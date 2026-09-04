@@ -315,6 +315,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           thinkingEffort: editing.thinkingEffort ?? '',
           contextThinking: editing.contextThinking ?? null,
           systemPrompt: editing.systemPrompt ?? '',
+          recordUsage: editing.recordUsage ?? true,
           skills: editing.skills ?? [],
         });
       } else {
@@ -721,6 +722,20 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
           />
         </div>
 
+        {/* 记录 AI 用量开关（bot 专属，关闭后该 bot 的 AI 调用不计入 usage 统计） */}
+        <div>
+          <label className={labelCls}>
+            {t('bots.form.recordUsage', { defaultValue: '记录用量' })}
+            <span className='ml-4px text-12px text-t-tertiary'>
+              {t('bots.form.recordUsageHint', { defaultValue: '关闭后该 Bot 的 AI 调用不计入用量统计，不影响全局设置' })}
+            </span>
+          </label>
+          <Switch
+            checked={form.recordUsage !== false}
+            onChange={(v) => patch({ recordUsage: v })}
+          />
+        </div>
+
         {/* Skill 绑定（多选） */}
         <div>
           <label className={labelCls}>
@@ -875,6 +890,7 @@ export default function BotManagementPage() {
           thinkingEffort: form.thinkingEffort ?? '',
           contextThinking: form.contextThinking,
           systemPrompt: form.systemPrompt ?? '',
+          recordUsage: form.recordUsage ?? true,
           skills: form.skills ?? [],
         };
         if (editing) {
