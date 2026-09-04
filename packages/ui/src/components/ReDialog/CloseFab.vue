@@ -70,12 +70,9 @@ function onClick(e: MouseEvent) {
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--el-bg-color, #ffffff);
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+    0 0 0 1px var(--el-border-color-lighter, rgba(0, 0, 0, 0.06));
   cursor: pointer;
   transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
   outline: none;
@@ -85,12 +82,10 @@ function onClick(e: MouseEvent) {
   background: var(--el-color-danger, #f56c6c);
   color: #fff;
   transform: rotate(90deg) scale(1.08);
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.35);
+  box-shadow: none;
 }
 .re-dialog__close-fab:focus-visible {
-  box-shadow:
-    0 0 0 3px rgba(64, 158, 255, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.4);
 }
 .re-dialog__close-fab:active {
   transform: rotate(90deg) scale(0.95);

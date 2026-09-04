@@ -124,17 +124,16 @@ withDefaults(defineProps<Props>(), {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  backdrop-filter: blur(6px);
   z-index: 9999;
 }
 
 .re-image-compare :deep(.vci--left-label) {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.85);
   color: #e5e7eb;
 }
 
 .re-image-compare :deep(.vci--right-label) {
-  background: rgba(5, 150, 105, 0.9);
+  background: rgba(5, 150, 105, 0.95);
   color: #ecfdf5;
 }
 </style>

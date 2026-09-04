@@ -324,8 +324,7 @@ function onReady() {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: color-mix(in srgb, var(--el-bg-color) 90%, transparent);
-  backdrop-filter: blur(6px);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   padding: 8px 12px;

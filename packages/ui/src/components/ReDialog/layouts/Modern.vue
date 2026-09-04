@@ -224,7 +224,6 @@ if (typeof window !== "undefined") {
   align-items: center;
   justify-content: center;
   background: var(--rm-overlay);
-  backdrop-filter: blur(2px);
 }
 .rm-dialog {
   display: flex;
