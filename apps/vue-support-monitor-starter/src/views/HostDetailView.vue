@@ -51,6 +51,16 @@ const cpuPct = computed(() => cpu.value?.usage ?? 0);
 const memPct = computed(() => mem.value?.usagePercent ?? 0);
 const jvmPct = computed(() => jvm.value?.heapUsagePercent ?? 0);
 
+/** ReTable 列：磁盘挂载点 */
+const diskColumns = [
+  { prop: "mount", label: "挂载点", minWidth: 140 },
+  { prop: "device", label: "设备", minWidth: 120, showOverflowTooltip: true },
+  { prop: "usedText", label: "已用", slot: "used" },
+  { prop: "usagePercent", label: "使用率", width: 200, slot: "usage" },
+];
+function diskUsed(r: any): string { return `${fmt(r.used)} / ${fmt(r.total)}`; }
+function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usagePercent ?? 0))}%`; }
+
 async function fetchMetrics(): Promise<void> {
   loading.value = true;
   error.value = "";
@@ -146,14 +156,12 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
     <!-- 磁盘挂载点 -->
     <ReCard :radius="12" shadow="never">
       <template #header><span class="card-h">磁盘挂载点</span></template>
-      <el-table :data="disk" size="small" empty-text="暂无磁盘数据">
-        <el-table-column prop="mount" label="挂载点" min-width="140" />
-        <el-table-column prop="device" label="设备" min-width="120" show-overflow-tooltip />
-        <el-table-column label="已用"><template #default="{ row }"><span class="mono">{{ fmt(row.used) }} / {{ fmt(row.total) }}</span></template></el-table-column>
-        <el-table-column label="使用率" width="200"><template #default="{ row }">
-          <div class="use-row"><div class="bar"><div class="bar-fill" :style="{ width: `${Math.min(100, Number(row.usagePercent ?? 0))}%` }" /></div><span class="mono dim">{{ pct(row.usagePercent) }}</span></div>
-        </template></el-table-column>
-      </el-table>
+      <ReTable :data="disk" :columns="diskColumns" size="small" empty-text="暂无磁盘数据" :pagination="false" :toolbar="false" table-id="monitor-host-disk">
+        <template #col-used="{ row }"><span class="mono">{{ diskUsed(row) }}</span></template>
+        <template #col-usage="{ row }">
+          <div class="use-row"><div class="bar"><div class="bar-fill" :style="{ width: diskUsageWidth(row) }" /></div><span class="mono dim">{{ pct(row.usagePercent) }}</span></div>
+        </template>
+      </ReTable>
     </ReCard>
   </div>
 </template>

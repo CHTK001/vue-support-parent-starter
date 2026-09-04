@@ -131,7 +131,7 @@ const tableColumns = computed(() => [
   { prop: "serverHostOsType", label: "OS", width: 80, slot: "os" },
   { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
-  { prop: "serverHostCollectMode", label: "采集模式", width: 100 },
+  { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
   { prop: "serverHostAgentEnabled", label: "Agent", width: 84, slot: "agent" },
   { prop: "id", label: "操作", width: 210, fixed: "right", slot: "actions" },
 ]);
