@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import enBrowser from '../../services/i18n/locales/en-US/browser.json';
 import zhBrowser from '../../services/i18n/locales/zh-CN/browser.json';
 import { diffLocaleKeys } from '../../services/i18n/localeKeyParity';

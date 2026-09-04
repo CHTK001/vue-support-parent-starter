@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
@@ -13,7 +13,7 @@
  * and the backend picks its default copy name.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { parseProviderId } from '../types/ids';
 import { mode } from './ipcBridge';
 

@@ -1,10 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createGenerator } from 'unocss';
 import cronEn from '@renderer/services/i18n/locales/en-US/cron.json';

@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 
 const rosterSource = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const detailSource = readFileSync(new URL('./CsAgentDetailPage.tsx', import.meta.url), 'utf8');

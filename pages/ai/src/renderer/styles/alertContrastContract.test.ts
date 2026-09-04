@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
@@ -20,7 +20,7 @@
  * against its own surface for every built-in theme, in both light and dark.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { PRESET_THEMES } from '@renderer/pages/settings/DisplaySettings/presets';
 

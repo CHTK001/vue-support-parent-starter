@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { parseMcpServerId } from '@/common/types/ids';
 import { extensionMcpUiKey, mcpServerUiKey, parseExtensionMcpServers } from './extensionCatalog';
 

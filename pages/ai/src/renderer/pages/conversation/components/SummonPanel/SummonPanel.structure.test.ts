@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
@@ -9,7 +9,7 @@
  * source-assertion style as `pages/nomi/workspace/tabs/MemoryTab`.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');

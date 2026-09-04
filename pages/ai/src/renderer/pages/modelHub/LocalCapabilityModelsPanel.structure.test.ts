@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import zhSettings from '@/renderer/services/i18n/locales/zh-CN/settings.json';
 import enSettings from '@/renderer/services/i18n/locales/en-US/settings.json';

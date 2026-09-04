@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import type { IKnowledgeFileEntry, IKnowledgeTreeEntry } from '@/common/adapter/ipcBridge';
 import {
   buildKnowledgeSearchTree,

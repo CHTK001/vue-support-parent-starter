@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { parseAssetId, parseWorkshopNodeId, type AssetId } from '@/common/types/ids';
 import type { WorkshopFlowEdge, WorkshopFlowNode } from '../canvas/model';

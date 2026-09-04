@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 
 import type { IProvider } from '@/common/config/storage';
 import { parseProviderId, type ProviderId } from '@/common/types/ids';

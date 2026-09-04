@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { parseExecutionStepId } from '@/common/types/ids';
 import { resolveExecutionCanvasFocusStepId, summarizeExecutionText } from './executionCanvasPresentation';
 

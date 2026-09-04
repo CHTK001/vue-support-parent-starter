@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { SkillInfo } from '@/renderer/pages/settings/PresetSettings/types';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveSkillDisplay } from './skillDisplay';
 
 const skill: SkillInfo = {

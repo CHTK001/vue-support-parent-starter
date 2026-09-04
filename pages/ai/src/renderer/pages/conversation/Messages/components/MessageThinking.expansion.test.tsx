@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+﻿import { readFileSync } from 'node:fs';
+import { describe, expect, test } from 'vitest';
 
 const source = readFileSync(new URL('./MessageThinking.tsx', import.meta.url), 'utf8');
 const cssSource = readFileSync(new URL('./MessageThinking.module.css', import.meta.url), 'utf8');

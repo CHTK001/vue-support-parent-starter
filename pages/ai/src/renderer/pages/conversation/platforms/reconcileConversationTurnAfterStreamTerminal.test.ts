@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { BackendRequestError } from '@/common/adapter/httpBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import type { ConversationId } from '@/common/types/ids';

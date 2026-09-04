@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import type { IMcpServer } from '@/common/config/storage';
 import { parseMcpServerId } from '@/common/types/ids';
 import { toSessionMcpServer } from './catalog';

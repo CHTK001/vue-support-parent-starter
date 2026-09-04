@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+﻿import { readFileSync } from 'node:fs';
+import { describe, expect, test } from 'vitest';
 
 const sharedLifecycle = readFileSync(new URL('./useAuthoritativeTurnLifecycle.ts', import.meta.url), 'utf8');
 const runtimeReconciler = readFileSync(

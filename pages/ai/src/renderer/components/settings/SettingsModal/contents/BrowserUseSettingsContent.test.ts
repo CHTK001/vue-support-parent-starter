@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readFileSync } from 'node:fs';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'vitest';
 import { AUTH_EXPIRED_EVENT } from '@/common/adapter/httpBridge';
 import {
   BROWSER_SETTINGS_OVERVIEW_RETRY_DELAYS_MS,

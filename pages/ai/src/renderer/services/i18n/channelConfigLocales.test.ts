@@ -1,10 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import enCommon from './locales/en-US/common.json';
 import enConversation from './locales/en-US/conversation.json';
 import enNomi from './locales/en-US/nomi.json';

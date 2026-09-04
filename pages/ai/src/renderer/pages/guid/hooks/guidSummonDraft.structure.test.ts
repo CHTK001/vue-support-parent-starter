@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
@@ -10,7 +10,7 @@
  * `SummonPanel.structure.test.ts`.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const readSource = (url: URL) => readFileSync(url, 'utf8');

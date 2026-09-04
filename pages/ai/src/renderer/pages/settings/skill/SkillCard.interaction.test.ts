@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 
 describe('SkillCard interaction ownership', () => {
   test('opens details from the card and reserves tag editing for its explicit action', () => {

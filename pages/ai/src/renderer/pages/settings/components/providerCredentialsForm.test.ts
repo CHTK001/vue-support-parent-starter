@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { buildBedrockConfig, buildProviderCredentials } from './providerCredentialsForm';
 
 describe('provider credentials form mapping', () => {

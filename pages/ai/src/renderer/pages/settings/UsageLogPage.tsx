@@ -26,8 +26,8 @@ const UsageLogPage: React.FC = () => {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await httpRequest<{ data?: LogEntry[] }>('GET', LOGS_API);
-      setEntries(res?.data ?? []);
+      const res = await httpRequest<LogEntry[]>('GET', LOGS_API);
+      setEntries(res ?? []);
     } catch {
       // ignore
     } finally {

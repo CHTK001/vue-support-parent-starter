@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import { parseConversationId, parseMessageId } from '@/common/types/ids';
 import { warmupConversationForPassiveMount } from '../utils/warmupConversation';

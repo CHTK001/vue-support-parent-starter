@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { initialRequirementTagLoadState, reduceRequirementTagLoadState } from './requirementTagLoadState';
 
 describe('requirement tag load state', () => {

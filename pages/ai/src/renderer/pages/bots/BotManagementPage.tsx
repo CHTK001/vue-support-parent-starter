@@ -58,6 +58,8 @@ interface BotBinding {
   contextThinking?: boolean | null;
   /** 系统提示词 */
   systemPrompt?: string;
+  /** 是否记录 AI 用量 */
+  recordUsage?: boolean;
   /** 绑定的 Skill 列表 */
   skills?: string[];
   createTime?: string;
