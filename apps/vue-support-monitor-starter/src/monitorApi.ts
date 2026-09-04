@@ -49,3 +49,51 @@ export function alarmLevel(e: AlarmEvent): string {
 export function isUnhandled(e: AlarmEvent): boolean {
   return String(e.msMonitorAlarmEventStatus || "").toUpperCase() === "NEW";
 }
+
+// ==================== 告警策略 / 规则（/ms/monitor/alarm） ====================
+
+/** 告警策略 */
+export interface AlarmPolicy {
+  id: number;
+  msMonitorAlarmPolicyName: string;
+  msMonitorAlarmPolicyEnabled: number;
+  msMonitorAlarmPolicyRemark: string;
+}
+
+/** 告警规则 */
+export interface AlarmRule {
+  id: number;
+  msMonitorAlarmRulePolicyId: number;
+  msMonitorAlarmRuleMonitorId: number | null;
+  msMonitorAlarmRuleMetricName: string;
+  msMonitorAlarmRuleCondition: string; // GT/GE/EQ/LE/LT
+  msMonitorAlarmRuleThreshold: number;
+  msMonitorAlarmRuleConsecutiveCount: number;
+  msMonitorAlarmRuleSilenceMinutes: number;
+  msMonitorAlarmRuleLevel: string; // P0~P4
+  msMonitorAlarmRuleEnabled: number;
+}
+
+export const fetchAlarmPolicies = () =>
+  http().get("/ms/monitor/alarm/policy").then(r => unwrap<AlarmPolicy[]>(r));
+export const saveAlarmPolicy = (id: number | null, d: Partial<AlarmPolicy>) =>
+  id != null
+    ? http().put(`/ms/monitor/alarm/policy/${id}`).data(d).then(r => unwrap<AlarmPolicy>(r))
+    : http().post("/ms/monitor/alarm/policy").data(d).then(r => unwrap<AlarmPolicy>(r));
+export const delAlarmPolicy = (id: number) =>
+  http().delete(`/ms/monitor/alarm/policy/${id}`).then(r => unwrap<boolean>(r));
+
+export const fetchAlarmRules = (policyId?: number) =>
+  http()
+    .get(`/ms/monitor/alarm/rule${policyId ? `?policyId=${policyId}` : ""}`)
+    .then(r => unwrap<AlarmRule[]>(r));
+export const saveAlarmRule = (id: number | null, d: Partial<AlarmRule>) =>
+  id != null
+    ? http().put(`/ms/monitor/alarm/rule/${id}`).data(d).then(r => unwrap<AlarmRule>(r))
+    : http().post("/ms/monitor/alarm/rule").data(d).then(r => unwrap<AlarmRule>(r));
+export const delAlarmRule = (id: number) =>
+  http().delete(`/ms/monitor/alarm/rule/${id}`).then(r => unwrap<boolean>(r));
+export const testAlarmRule = (ruleId: number, metricName?: string, value?: number) =>
+  http()
+    .get(`/ms/monitor/alarm/rule/${ruleId}/test?metricName=${encodeURIComponent(metricName ?? "")}&value=${value ?? 0}`)
+    .then(r => unwrap<boolean>(r));
