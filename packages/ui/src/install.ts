@@ -47,6 +47,8 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReDrawer: () => import("./components/ReDrawer"),
   ReSeamlessScroll: () => import("./components/ReSeamlessScroll"),
   ReStatusIndicator: () => import("./components/ReStatusIndicator"),
+  ReStatCard: () => import("./components/ReStatCard"),
+  ReSectionHead: () => import("./components/ReSectionHead"),
   ReTrend: () => import("./components/ReTrend"),
   ReGraph: () => import("./components/ReGraph"),
   ReGraphForce: () => import("./components/ReGraphForce"),

@@ -4,16 +4,8 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 
-/**
- * 本地能力模型清单面板。
- *
- * <p>消费后端 {@code GET /v2/ai/models/capabilities}（{@code AiModelCatalogController}），
- * 按能力标签（capability label，与后端 {@code ModelCapabilities} 常量一致）分组展示本地
- * 已注册的管线模型清单。能力标签在前端驱动展示顺序，后端返回的模型 ID 全量按标签归档，
- * 实现前后端分类统一——后续按前端选定模型创建管线时复用同一套标签。</p>
- */
 export interface LocalCapabilityModelsPanelProps {
-  /** 该区块关注的能力标签（后端 ModelCapabilities 常量，如 detect / ocr / layout）。 */
+  /** 该区块关注的能力标签（与后端 ModelCapabilities 常量一致）。 */
   capabilityKeys: readonly string[];
   icon: React.ReactNode;
   titleKey: I18nKey;
@@ -34,11 +26,11 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
   const { t } = useTranslation();
   const [groups, setGroups] = useState<CapabilityGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setLoadError(false);
+    setError(false);
     try {
       const capabilities = await httpRequest<Record<string, string[]>>(
         'GET',
@@ -54,7 +46,7 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
       setGroups(next);
     } catch (e) {
       console.error('[LocalCapabilityModelsPanel] 能力模型清单加载失败:', e);
-      setLoadError(true);
+      setError(true);
       setGroups([]);
     } finally {
       setLoading(false);
@@ -65,14 +57,11 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
     void load();
   }, [load]);
 
-  const capabilityLabel = (capability: string): string =>
-    t(`settings.modelHub.capability.${capability}` as I18nKey);
-
   const renderGroup = (group: CapabilityGroup) => (
     <div key={group.capability} className='mh-group'>
       <div className='mh-group-header'>
         <span className='text-14px font-600 text-t-primary truncate min-w-0'>
-          {capabilityLabel(group.capability)}
+          {t(`settings.modelHub.capability.${group.capability}` as I18nKey)}
         </span>
         <span className='mh-chip'>{group.capability}</span>
         <span className='mh-pill ml-auto'>{group.models.length}</span>
@@ -81,18 +70,12 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
         {group.models.map((model) => (
           <div key={model} className='model-row'>
             <div className='model-id'>
-              <span
-                aria-hidden='true'
-                className='model-logo w-22px h-22px rounded-4px shrink-0 flex items-center justify-center bg-[var(--fill-2)] text-10px font-600 text-t-secondary mr-8px'
-              >
-                {model.slice(0, 1).toUpperCase()}
-              </span>
               <span className='model-name' title={model}>
                 {model}
               </span>
             </div>
             <div className='model-caps'>
-              <span className='mh-tag unknown'>{capabilityLabel(group.capability)}</span>
+              <span className='mh-tag unknown'>{group.capability}</span>
             </div>
           </div>
         ))}
@@ -114,16 +97,12 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
         {loading ? (
           <div className='empty-state-container'>
             <span className='empty-state-icon'>{icon}</span>
-            <h3 className='empty-state-title'>
-              {t('settings.modelHub.capability.loading')}
-            </h3>
+            <h3 className='empty-state-title'>{t('settings.modelHub.capability.loading')}</h3>
           </div>
-        ) : loadError ? (
+        ) : error ? (
           <div className='empty-state-container'>
             <span className='empty-state-icon'>{icon}</span>
-            <h3 className='empty-state-title'>
-              {t('settings.modelHub.capability.loadFailed')}
-            </h3>
+            <h3 className='empty-state-title'>{t('settings.modelHub.capability.loadFailed')}</h3>
             <p className='empty-state-description'>
               {t('settings.modelHub.capability.loadFailedHint')}
             </p>
@@ -131,9 +110,7 @@ const LocalCapabilityModelsPanel: React.FC<LocalCapabilityModelsPanelProps> = ({
         ) : groups.length === 0 ? (
           <div className='empty-state-container'>
             <span className='empty-state-icon'>{icon}</span>
-            <h3 className='empty-state-title'>
-              {t('settings.modelHub.capability.empty')}
-            </h3>
+            <h3 className='empty-state-title'>{t('settings.modelHub.capability.empty')}</h3>
             <p className='empty-state-description'>
               {t('settings.modelHub.capability.emptyHint')}
             </p>

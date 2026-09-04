@@ -1177,8 +1177,8 @@ watch(
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #f8f9fe 0%, #f3f4f8 100%);
-  border-right: 1px solid #ebeef5;
+  background: var(--el-bg-color, #f5f7fa);
+  border-right: 1px solid var(--el-border-color-lighter, #ebeef5);
   overflow-x: hidden;
   overflow-y: hidden;
   transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1233,8 +1233,8 @@ watch(
   background: #f1f3f7;
 }
 .re-chat__menu-item.is-active {
-  background: linear-gradient(135deg, #eef2ff, #e8edff);
-  color: #4f46e5;
+  background: var(--el-color-primary-light-9, #eef2ff);
+  color: var(--el-color-primary, #4f46e5);
   font-weight: 600;
 }
 .re-chat__menu-item .el-icon {
@@ -1247,8 +1247,8 @@ watch(
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, #fef2f2, #fff1f2);
-  border-bottom: 1px solid #fecdd3;
+  background: var(--el-color-danger-light-9, #fef2f2);
+  border-bottom: 1px solid var(--el-color-danger-light-7, #fecdd3);
   flex-shrink: 0;
 }
 .re-chat__batch-count {
@@ -1296,7 +1296,7 @@ watch(
   background: rgba(99, 102, 241, 0.05);
 }
 .re-chat__history-body :deep(.elx-conversations__item.is-active) {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.04));
+  background: var(--el-color-primary-light-9, rgba(99, 102, 241, 0.08));
 }
 .re-chat__group-title {
   font-size: 11px;
@@ -1335,11 +1335,11 @@ watch(
   transform: scale(1.08);
 }
 .re-chat__item-icon.is-pinned {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: var(--el-color-primary, #6366f1);
   color: #fff;
 }
 .re-chat__history-body :deep(.elx-conversations__item.is-active) .re-chat__item-icon {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: var(--el-color-primary, #6366f1);
   color: #fff;
 }
 .re-chat__item-label-text {
