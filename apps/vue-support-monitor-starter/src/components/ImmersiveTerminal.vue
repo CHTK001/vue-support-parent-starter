@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Monitor } from "@element-plus/icons-vue";
 import Guacamole from "guacamole-common-js";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
@@ -101,12 +101,8 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   };
 
   // 点击终端区时把焦点从页面输入控件移走（headless/部分浏览器点 canvas 不触发失焦，
-  // 焦点滞留搜索框会导致按键全部被上面的隔离守卫拦掉）
-  const blurLocalInput = (): void => {
-    const el = document.activeElement as HTMLElement | null;
-    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) el.blur();
-  };
-  displayRef.value.addEventListener("mousedown", blurLocalInput);
+  // 焦点滞留搜索框会导致按键全部被上面的隔离守卫拦掉）。
+  // 注意：绑定走模板 @mousedown（见 it-display），组件内 addEventListener 不可靠。
 
   mouse = new Guacamole.Mouse(el);
   mouse.onmousedown = state => client?.sendMouseState(state);
@@ -138,6 +134,28 @@ function fullscreen(): void {
     el.requestFullscreen?.();
   }
 }
+
+/** 终端区按下：把焦点从页面输入控件移走，保证按键进入远程终端 */
+function blurLocalInput(): void {
+  const el = document.activeElement as HTMLElement | null;
+  if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) el.blur();
+  // 终端区已设 tabindex="0"，显式接管焦点，后续按键必走 Guacamole.Keyboard
+  displayRef.value?.focus();
+}
+
+/**
+ * document 捕获阶段监听：点击终端区一律先失焦本地输入框。
+ * 之前用模板 @mousedown 绑定在 .it-display 上，headless 下点 canvas 时
+ * 该绑定不生效（焦点滞留搜索框，按键全被隔离守卫拦掉）；捕获阶段在
+ * document 上拦截则不依赖目标元素内部的事件传播，实测可靠。
+ */
+function onDocMousedownCapture(e: MouseEvent): void {
+  const target = e.target as HTMLElement | null;
+  if (target && target.closest(".it-display")) blurLocalInput();
+}
+
+onMounted(() => document.addEventListener("mousedown", onDocMousedownCapture, true));
+onBeforeUnmount(() => document.removeEventListener("mousedown", onDocMousedownCapture, true));
 
 function teardown(): void {
   try { keyboard?.reset(); client?.disconnect(); } catch { /* ignore */ }
@@ -216,7 +234,7 @@ onBeforeUnmount(teardown);
         <div class="it-empty-title">从左侧选择一台资产开始控制</div>
         <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH / RDP / VNC</div>
       </div>
-      <div v-show="connection && !hasError" ref="displayRef" class="it-display" />
+      <div v-show="connection && !hasError" ref="displayRef" tabindex="0" class="it-display" @mousedown="blurLocalInput" />
       <div v-if="connection && hasError" class="it-error">
         <el-icon :size="40" color="#f56c6c"><Monitor /></el-icon>
         <div class="it-error-title">连接失败</div>
@@ -432,6 +450,7 @@ onBeforeUnmount(teardown);
   background: #0d1117;
   border-radius: 4px;
   overflow: auto;
+  outline: none; /* tabindex 焦点环不显示，视觉无变化 */
   :deep(canvas) {
     margin: 0 auto;
     display: block;

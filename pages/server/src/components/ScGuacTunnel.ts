@@ -120,6 +120,23 @@ export function createScGuacTunnel(url: string): Guacamole.Tunnel {
       const terminator = message.substring(elementEnd, elementEnd + 1);
       elements.push(element);
 
+      // terminator 只允许 ","（元素分隔）或 ";"（指令结束）。
+      // 其它值 = 字节流失步，协议上不可恢复 —— 必须显式报「协议解析失败」
+      // 并断开（用户要求：解析失败要返回解析失败，不能静默错位继续跑）。
+      if (terminator !== ";" && terminator !== ",") {
+        closed = true;
+        try { socket?.close(); } catch { /* ignore */ }
+        socket = null;
+        tunnel.setState(Guacamole.Tunnel.State.CLOSED);
+        if (tunnel.onerror) {
+          tunnel.onerror(new Guacamole.Status(
+            Guacamole.Status.Code.SERVER_ERROR,
+            `协议解析失败: 非法分隔符 "${terminator}" @${elementEnd}`,
+          ));
+        }
+        return;
+      }
+
       if (terminator === ";") {
         const opcode = elements.shift() ?? "";
 
