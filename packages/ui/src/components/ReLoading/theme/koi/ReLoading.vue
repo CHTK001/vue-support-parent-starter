@@ -83,9 +83,8 @@ const props = withDefaults(
     width: 56px;
     height: 56px;
     content: "";
-    background-image: linear-gradient(to right, #92fe9d 0%, #00c9ff 100%);
+    background: var(--el-color-primary, #409eff);
     border-radius: 50%;
-    box-shadow: 0 0 30px #00c9ff;
   }
 
   @keyframes koi-loading {

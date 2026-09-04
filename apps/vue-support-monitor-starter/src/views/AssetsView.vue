@@ -5,7 +5,6 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { RefreshRight } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { queryHosts, saveHost, delHost, switchHost, getHost } from "@pages/server/src/api";
 
@@ -176,114 +175,95 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="as scrollable">
-    <header class="as-head">
-      <div>
-        <h1 class="as-title">主机资产</h1>
-        <div class="as-sub">统一管理可远控目标 · 完整增删改查</div>
-      </div>
-      <div class="as-actions">
-        <el-button size="small" :loading="loading" @click="fetchAll"><el-icon v-if="!loading"><RefreshRight /></el-icon>刷新</el-button>
-        <el-button type="primary" size="small" @click="openAdd">+ 新增资产</el-button>
-      </div>
-    </header>
+  <div class="page-wrap as">
+    <ReSectionHead description="统一管理可远控目标 · 完整增删改查" >
+      <template #title>主机资产</template>
+      <template #actions>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openAdd">新增资产</ReButton>
+      </template>
+    </ReSectionHead>
 
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
-      <el-button size="small" type="primary" @click="fetchAll">重试</el-button>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
     <!-- KPI -->
-    <section class="kpi-row">
-      <div class="kpi-card"><div class="kpi-label">资产总数</div><div class="kpi-value">{{ hosts.length }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">在线</div><div class="kpi-value ok">{{ onlineCount }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">离线</div><div class="kpi-value">{{ offlineCount }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">远控启用</div><div class="kpi-value">{{ remoteCount }}</div></div>
+    <section class="kpi-grid">
+      <ReStatCard title="资产总数" icon="Grid" :value="String(hosts.length)" />
+      <ReStatCard title="在线" icon="CircleCheck" icon-color="var(--pulse-online)" :value="String(onlineCount)" />
+      <ReStatCard title="离线" icon="CircleClose" icon-color="var(--text-tertiary)" :value="String(offlineCount)" />
+      <ReStatCard title="远控启用" icon="Connection" icon-color="var(--brand-500)" :value="String(remoteCount)" />
     </section>
 
     <!-- 表格 -->
-    <div class="card">
-      <div class="filter-bar">
-        <el-input v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="f-kw" />
-        <el-select v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel">
-          <el-option label="在线" value="online" />
-          <el-option label="离线" value="offline" />
-          <el-option label="远控启用" value="remote" />
-        </el-select>
-        <span class="f-count">{{ filtered.length }} / {{ hosts.length }}</span>
-        <div class="f-ops">
-          <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
+    <ReCard :radius="12" shadow="never">
+      <template #header>
+        <div class="filter-bar">
+          <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="f-kw" />
+          <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel">
+            <el-option label="在线" value="online" />
+            <el-option label="离线" value="offline" />
+            <el-option label="远控启用" value="remote" />
+          </ReSelect>
+          <span class="f-count">{{ filtered.length }} / {{ hosts.length }}</span>
+          <div class="f-ops">
+            <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
+          </div>
         </div>
-      </div>
-
-      <el-table :data="filtered" v-loading="loading" size="small" class="as-table" empty-text="暂无主机" @selection-change="selection = $event">
+      </template>
+      <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无主机" border @selection-change="selection = $event">
         <el-table-column type="selection" width="40" />
-        <el-table-column label="名称" min-width="150">
-          <template #default="{ row }">
-            <div class="h-name">
-              <span class="h-os">{{ osIcon(row.serverHostOsType) }}</span>
-              <span class="h-name-text">{{ row.serverHostName }}</span>
-            </div>
-          </template>
+        <el-table-column label="名称" min-width="140">
+          <template #default="{ row }"><span class="h-os">{{ osIcon(row.serverHostOsType) }}</span> <b>{{ row.serverHostName }}</b></template>
         </el-table-column>
-        <el-table-column label="地址" width="150">
-          <template #default="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
-        </el-table-column>
-        <el-table-column label="OS" width="90">
-          <template #default="{ row }"><span class="os-tag">{{ normalizeOs(row.serverHostOsType) }}</span></template>
-        </el-table-column>
-        <el-table-column label="协议" width="70">
-          <template #default="{ row }"><span :class="['proto-tag', `proto-${protocolOf(row)}`]">{{ protocolOf(row).toUpperCase() }}</span></template>
-        </el-table-column>
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }">
-            <span class="st-cell"><span :class="['pdot', `pdot-${onlineState(row)}`]" />{{ onlineText(row) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="采集模式" width="105">
-          <template #default="{ row }"><span class="mono dim">{{ row.serverHostCollectMode || "—" }}</span></template>
-        </el-table-column>
-        <el-table-column label="Agent" width="85">
-          <template #default="{ row }"><span :class="row.serverHostAgentEnabled === 1 ? 'agent-ok' : 'dim'">{{ row.serverHostAgentEnabled === 1 ? "● 已注册" : "○ 未注册" }}</span></template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="地址" width="140"><template #default="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template></el-table-column>
+        <el-table-column label="OS" width="80"><template #default="{ row }"><ReTag size="small">{{ normalizeOs(row.serverHostOsType) }}</ReTag></template></el-table-column>
+        <el-table-column label="协议" width="70"><template #default="{ row }"><ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag></template></el-table-column>
+        <el-table-column label="状态" width="80"><template #default="{ row }">
+          <span class="st-cell"><ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : 'info'" />{{ onlineText(row) }}</span>
+        </template></el-table-column>
+        <el-table-column label="采集模式" width="100"><template #default="{ row }"><span class="mono dim">{{ row.serverHostCollectMode || "—" }}</span></template></el-table-column>
+        <el-table-column label="Agent" width="84"><template #default="{ row }"><ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag></template></el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <div class="op-cell">
-              <ReButton icon="Connection" :show-text="true" size="small" @click="connect(row)">连接</ReButton>
-              <ReButton icon="TrendCharts" :show-text="true" size="small" @click="openDetail(row)">监控</ReButton>
-              <ReButton icon="Edit" :show-text="true" size="small" @click="openEdit(row)">编辑</ReButton>
-              <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="removeHost(row)">删除</ReButton>
+              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接" @click="connect(row)" />
+              <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
+              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
+              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
             </div>
           </template>
         </el-table-column>
       </el-table>
-    </div>
+    </ReCard>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
-      <el-form label-width="90px">
-        <el-form-item label="名称"><el-input v-model="form.serverHostName" placeholder="如 web01" /></el-form-item>
-        <el-form-item label="地址"><el-input v-model="form.serverHostAddress" placeholder="IP 或域名" /></el-form-item>
-        <el-form-item label="端口"><el-input-number v-model="form.serverHostPort" :min="1" :max="65535" /></el-form-item>
+      <ReForm label-width="90px">
+        <el-form-item label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></el-form-item>
+        <el-form-item label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></el-form-item>
+        <el-form-item label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></el-form-item>
         <el-form-item label="系统">
-          <el-select v-model="form.serverHostOsType" size="small" style="width: 100%">
+          <ReSelect v-model="form.serverHostOsType" size="small" style="width: 100%">
             <el-option label="Linux" value="LINUX" />
             <el-option label="Windows" value="WINDOWS" />
             <el-option label="macOS" value="MACOS" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
         <el-form-item label="采集模式">
-          <el-select v-model="form.serverHostCollectMode" size="small" style="width: 100%">
+          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width: 100%">
             <el-option label="SCHEDULED" value="SCHEDULED" />
             <el-option label="AGENT" value="AGENT" />
             <el-option label="HTTP" value="HTTP" />
             <el-option label="PROMETHEUS" value="PROMETHEUS" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
-      </el-form>
+      </ReForm>
       <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" :loading="formSaving" @click="submitForm">保存</el-button>
+        <ReButton @click="formVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
       </template>
     </el-dialog>
   </div>
