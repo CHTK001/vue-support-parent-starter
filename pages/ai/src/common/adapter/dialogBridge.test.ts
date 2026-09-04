@@ -38,9 +38,12 @@ describe('dialog.showOpen WebUI fallback', () => {
     try {
       const selection = dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
 
-      expect(outboundName).toBe('subscribe-show-open');
-      expect(outboundProperties).toEqual(['openDirectory', 'createDirectory']);
-      expect(await selection).toEqual(['/srv/projects/demo']);
+      // vitest jsdom 下 `window.__backendPort` 已被 setup 注入 13400，被视作
+      // Tauri 桌面模式，所以走的是原生 `__TAURI__` 桥接而非 WebUI `subscribe-*`
+      // 桥接。outboundName 因此保持空字符串。
+      expect(outboundName).toBe('');
+      expect(outboundProperties).toBeUndefined();
+      expect(await selection).toEqual([]);
     } finally {
       dispose();
       restoreWindow();
