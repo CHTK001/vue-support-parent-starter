@@ -287,11 +287,9 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   display: none;
 }
 
-/* 磨砂玻璃遮罩 */
+/* 弹窗遮罩：纯色扁平遮罩 */
 .koi-dialog-modal {
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-  backdrop-filter: saturate(180%) blur(10px);
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.45);
 }
 
 /* headless：隐藏标题内容，仅保留一条悬浮于顶部的拖拽热区条（不占内容高度，可拖动），CloseFab 浮于右上角 */
@@ -333,7 +331,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   border-radius: var(--el-radius-xl);
   overflow: hidden;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 </style>
