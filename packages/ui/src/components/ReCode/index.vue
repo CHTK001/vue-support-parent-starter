@@ -353,12 +353,9 @@ defineExpose({
     justify-content: center;
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: var(--el-color-primary);
     border-radius: 50%;
     margin-bottom: 16px;
-    box-shadow:
-      0 8px 24px rgba(var(--el-color-primary-rgb), 0.3),
-      0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
     position: relative;
 
     &::before {
@@ -368,7 +365,7 @@ defineExpose({
       left: -4px;
       right: -4px;
       bottom: -4px;
-      background: conic-gradient(from 0deg, var(--el-color-primary-light-8), var(--el-color-primary-light-5), var(--el-color-primary-light-8));
+      border: 2px solid var(--el-color-primary-light-7);
       border-radius: 50%;
       z-index: -1;
       animation: rotate 3s linear infinite;
@@ -438,8 +435,6 @@ defineExpose({
   &:hover {
     border-color: var(--el-color-primary-light-7);
     background: var(--el-fill-color-extra-light);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
   }
 
   // 聚焦状态

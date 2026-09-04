@@ -24,6 +24,10 @@ const SECTIONS = [
   'video',
   'embedding',
   'rerank',
+  'face',
+  'ocr',
+  'image-recognition',
+  'layout',
   'failover',
 ] as const;
 
@@ -31,7 +35,10 @@ const GROUPS = [
   { key: 'access', sections: ['models'] },
   {
     key: 'capability',
-    sections: ['chat', 'realtime', 'asr', 'tts', 'vision', 'image', 'image-edit', 'video', 'embedding', 'rerank'],
+    sections: [
+      'chat', 'realtime', 'asr', 'tts', 'vision', 'image', 'image-edit', 'video', 'embedding', 'rerank',
+      'face', 'ocr', 'image-recognition', 'layout',
+    ],
   },
   { key: 'advanced', sections: ['failover'] },
 ] as const;

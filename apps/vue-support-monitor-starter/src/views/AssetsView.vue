@@ -241,7 +241,7 @@ onMounted(fetchAll);
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
-      <ReForm label-width="90px">
+      <el-form label-width="90px">
         <el-form-item label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></el-form-item>
         <el-form-item label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></el-form-item>
         <el-form-item label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></el-form-item>
@@ -260,7 +260,7 @@ onMounted(fetchAll);
             <el-option label="PROMETHEUS" value="PROMETHEUS" />
           </ReSelect>
         </el-form-item>
-      </ReForm>
+      </el-form>
       <template #footer>
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
@@ -270,30 +270,17 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.as { max-width: 1440px; padding: 24px; }
-.as-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
-.as-title { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; }
-.as-sub { margin-top: 2px; font-size: 13px; color: var(--text-tertiary); }
-.as-actions { display: flex; gap: 8px; }
+.page-wrap { max-width: 1440px; padding: 24px; }
 .as-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
-.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
-.kpi-card { padding: 14px 18px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-sm); }
-.kpi-label { font-size: 13px; color: var(--text-secondary); }
-.kpi-value { margin-top: 2px; font-size: 26px; font-weight: 700; line-height: 32px; &.ok { color: var(--pulse-online); } }
-.card { padding: 14px 16px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-sm); }
-.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
 .f-kw { width: 200px; }
 .f-sel { width: 120px; }
 .f-count { font-size: 12px; color: var(--text-tertiary); }
 .f-ops { margin-left: auto; }
-.h-name { display: flex; align-items: center; gap: 8px; }
 .h-os { font-size: 14px; }
-.h-name-text { font-weight: 600; }
 .mono { font-family: monospace; font-size: 12px; }
 .dim { color: var(--text-tertiary); }
-.os-tag { padding: 1px 7px; font-size: 12px; background: var(--brand-50); color: var(--brand-600); border-radius: 4px; }
-.proto-tag { padding: 1px 6px; font-size: 10px; font-weight: 700; font-family: monospace; border-radius: 3px; &.proto-ssh { color: #409eff; background: rgba(64,158,255,.12); } &.proto-rdp { color: #e6a23c; background: rgba(230,162,60,.14); } &.proto-vnc { color: #9254de; background: rgba(146,84,222,.12); } }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
-.agent-ok { color: var(--pulse-online); font-size: 12px; }
 .op-cell { display: flex; gap: 4px; }
 </style>

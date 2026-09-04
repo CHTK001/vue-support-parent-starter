@@ -67,6 +67,10 @@ const EXPECTED_ORDER = [
   hub.sectionVideo,
   hub.sectionEmbedding,
   hub.sectionRerank,
+  hub.sectionFace,
+  hub.sectionOcr,
+  hub.sectionImageRecognition,
+  hub.sectionLayout,
   hub.groupAdvanced,
   hub.sectionFailover,
 ];
