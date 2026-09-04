@@ -71,7 +71,7 @@ onMounted(loadInstances);
 
     <template v-else>
       <!-- KPI -->
-      <section class="kpi-grid">
+      <section class="kpi-row cols-4">
         <ReStatCard v-for="c in CHANNEL" :key="c.key" :title="c.label" :icon="c.icon" :icon-color="c.ic" :value="c.key.includes('ratio') ? ratio(c.key) : fmt(c.key)" />
       </section>
 

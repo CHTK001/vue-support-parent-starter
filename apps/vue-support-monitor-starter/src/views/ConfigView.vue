@@ -197,8 +197,8 @@ onMounted(fetchAll);
     </div>
 
     <div class="tabs">
-      <button :class="['tab-btn', { active: tab === 'policy' }]" @click="tab = 'policy'">告警策略</button>
-      <button :class="['tab-btn', { active: tab === 'rule' }]" @click="tab = 'rule'">告警规则</button>
+      <ReButton :class="['tab-btn', { active: tab === 'policy' }]" size="small" :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
+      <ReButton :class="['tab-btn', { active: tab === 'rule' }]" size="small" :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
     </div>
 
     <!-- 策略 -->
