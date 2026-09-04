@@ -412,8 +412,6 @@ const wrapStyle = computed(() => {
 
   &:hover:not(.is-disabled) {
     border-color: var(--rm-cron-border-hover);
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--rm-primary) 8%, transparent);
-    transform: translateY(-1px);
   }
 
   &.is-disabled {

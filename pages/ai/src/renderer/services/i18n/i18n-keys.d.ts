@@ -3895,7 +3895,7 @@ export type I18nKey =
   | 'settings.modelHub.modality.layoutTitle'
   | 'settings.modelHub.modality.manageModels'
   | 'settings.modelHub.modality.modelCount'
-| 'settings.modelHub.modality.modelDisabled'
+  | 'settings.modelHub.modality.modelDisabled'
   | 'settings.modelHub.modality.noDefault'
   | 'settings.modelHub.modality.ocrSubtitle'
   | 'settings.modelHub.modality.ocrTitle'

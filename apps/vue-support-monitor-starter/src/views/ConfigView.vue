@@ -185,85 +185,88 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="cf scrollable">
-    <header class="cf-head">
-      <div>
-        <h1 class="cf-title">监控配置</h1>
-        <div class="cf-sub">告警策略与规则管理 · 推送渠道依赖后端补全</div>
-      </div>
-      <el-button size="small" :loading="loading" @click="fetchAll">刷新</el-button>
-    </header>
+  <div class="page-wrap cf">
+    <ReSectionHead description="告警策略与规则管理 · 推送渠道依赖后端补全">
+      <template #title>监控配置</template>
+      <template #actions>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+      </template>
+    </ReSectionHead>
 
     <div class="cf-tabs">
-      <button :class="['cf-tab', { active: tab === 'policy' }]" @click="tab = 'policy'">告警策略</button>
-      <button :class="['cf-tab', { active: tab === 'rule' }]" @click="tab = 'rule'">告警规则</button>
+      <ReButton :class="['cf-tab', { active: tab === 'policy' }]" size="small" :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
+      <ReButton :class="['cf-tab', { active: tab === 'rule' }]" size="small" :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
     </div>
 
     <!-- 策略 -->
-    <div v-if="tab === 'policy'" class="card">
-      <div class="card-bar">
-        <span class="card-title">策略总览</span>
-        <el-button type="primary" size="small" @click="openPolicyAdd">+ 新增策略</el-button>
-      </div>
-      <div v-if="policies.length === 0" class="empty-hint">暂无策略 —— 策略是规则的逻辑容器，停用即整组失效</div>
+    <ReCard v-if="tab === 'policy'" :radius="12" shadow="never">
+      <template #header>
+        <div class="card-bar">
+          <span class="card-title">策略总览</span>
+          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openPolicyAdd">新增策略</ReButton>
+        </div>
+      </template>
+      <ReEmpty v-if="policies.length === 0" description="暂无策略 —— 策略是规则的逻辑容器，停用即整组失效" style="padding: 36px 0" />
       <div v-else class="p-list">
         <div v-for="p in policies" :key="p.id" class="p-row">
           <div class="p-main">
-            <span :class="['p-dot', p.msMonitorAlarmPolicyEnabled === 1 ? 'on' : 'off']" />
+            <ReStatusIndicator :type="p.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" :pulse="p.msMonitorAlarmPolicyEnabled === 1" />
             <b class="p-name">{{ p.msMonitorAlarmPolicyName }}</b>
-            <span :class="['st-tag', p.msMonitorAlarmPolicyEnabled === 1 ? 'st-ok' : 'st-info']">{{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}</span>
+            <ReTag :type="p.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" size="small">{{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}</ReTag>
             <span class="p-hint">{{ p.msMonitorAlarmPolicyRemark || "—" }}</span>
           </div>
           <div class="p-ops">
-            <ReButton icon="Plus" :show-text="false" :icon-size="28" title="新增规则" @click="openRuleAdd(p.id)" />
-            <ReButton icon="Edit" :show-text="false" :icon-size="28" title="编辑策略" @click="openPolicyEdit(p)" />
-            <ReButton icon="Delete" :show-text="false" :icon-size="28" title="删除策略" @click="removePolicy(p)" />
+            <ReButton icon="Plus" layout="square" size="small" title="新增规则" @click="openRuleAdd(p.id)" />
+            <ReButton icon="EditPen" layout="square" size="small" title="编辑策略" @click="openPolicyEdit(p)" />
+            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除策略" @click="removePolicy(p)" />
           </div>
         </div>
       </div>
-    </div>
+    </ReCard>
 
     <!-- 规则 -->
-    <div v-if="tab === 'rule'" class="card">
-      <div class="card-bar">
-        <span class="card-title">规则总览</span>
-        <el-button type="primary" size="small" @click="openRuleAdd()">+ 新增规则</el-button>
-      </div>
-      <div v-if="rules.length === 0" class="empty-hint">暂无规则 —— 选指标 + 阈值 + 级别定义触发条件</div>
+    <ReCard v-if="tab === 'rule'" :radius="12" shadow="never">
+      <template #header>
+        <div class="card-bar">
+          <span class="card-title">规则总览</span>
+          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openRuleAdd()">新增规则</ReButton>
+        </div>
+      </template>
+      <ReEmpty v-if="rules.length === 0" description="暂无规则 —— 选指标 + 阈值 + 级别定义触发条件" style="padding: 36px 0" />
       <div v-else class="r-list">
         <template v-for="[pid, list] in rulesGrouped" :key="pid">
           <div class="r-grp-title">{{ rulePolicyName(pid) }}</div>
           <div v-for="r in list" :key="r.id" class="r-row">
             <div class="r-main">
-              <span :class="['lv-tag', `lv-${r.msMonitorAlarmRuleLevel.toLowerCase()}`]">{{ r.msMonitorAlarmRuleLevel }}</span>
+              <ReTag :type="(r.msMonitorAlarmRuleLevel==='P0'||r.msMonitorAlarmRuleLevel==='P1')?'danger':r.msMonitorAlarmRuleLevel==='P2'?'warning':'success'" effect="dark" size="small">{{ r.msMonitorAlarmRuleLevel }}</ReTag>
               <span class="r-metric mono">{{ r.msMonitorAlarmRuleMetricName }}</span>
               <span class="r-cond mono">{{ condText(r.msMonitorAlarmRuleCondition) }} {{ r.msMonitorAlarmRuleThreshold }}</span>
               <span class="r-meta">{{ ruleMonitorName(r.msMonitorAlarmRuleMonitorId) }}</span>
               <span class="r-meta dim">连续 {{ r.msMonitorAlarmRuleConsecutiveCount }} 次 · 静默 {{ r.msMonitorAlarmRuleSilenceMinutes }}m</span>
-              <span :class="['st-tag', r.msMonitorAlarmRuleEnabled === 1 ? 'st-ok' : 'st-info']">{{ r.msMonitorAlarmRuleEnabled === 1 ? "启用" : "停用" }}</span>
+              <ReTag :type="r.msMonitorAlarmRuleEnabled === 1 ? 'success' : 'info'" size="small">{{ r.msMonitorAlarmRuleEnabled === 1 ? "启用" : "停用" }}</ReTag>
             </div>
             <div class="r-ops">
-              <ReButton icon="VideoPlay" :show-text="false" :icon-size="28" title="测试规则" :loading="ruleTesting" @click="runRuleTest(r)" />
-              <ReButton icon="Edit" :show-text="false" :icon-size="28" title="编辑规则" @click="openRuleEdit(r)" />
-              <ReButton icon="Delete" :show-text="false" :icon-size="28" title="删除规则" @click="removeRule(r)" />
+              <ReButton icon="VideoPlay" layout="square" size="small" title="测试规则" :loading="ruleTesting" @click="runRuleTest(r)" />
+              <ReButton icon="EditPen" layout="square" size="small" title="编辑规则" @click="openRuleEdit(r)" />
+              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除规则" @click="removeRule(r)" />
             </div>
           </div>
         </template>
       </div>
-    </div>
+    </ReCard>
 
     <!-- 策略弹窗 -->
     <el-dialog v-model="policyVisible" :title="policyForm.id ? '编辑策略' : '新增策略'" width="440px">
       <el-form label-width="80px">
-        <el-form-item label="名称"><el-input v-model="policyForm.msMonitorAlarmPolicyName" placeholder="如 服务器基础告警" /></el-form-item>
+        <el-form-item label="名称"><ReInput v-model="policyForm.msMonitorAlarmPolicyName" placeholder="如 服务器基础告警" /></el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="policyForm.msMonitorAlarmPolicyEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
+          <ReSwitch v-model="policyForm.msMonitorAlarmPolicyEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
         </el-form-item>
-        <el-form-item label="备注"><el-input v-model="policyForm.msMonitorAlarmPolicyRemark" type="textarea" :rows="2" placeholder="可选" /></el-form-item>
+        <el-form-item label="备注"><ReInput v-model="policyForm.msMonitorAlarmPolicyRemark" type="textarea" :rows="2" placeholder="可选" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="policyVisible = false">取消</el-button>
-        <el-button type="primary" :loading="policySaving" @click="submitPolicy">保存</el-button>
+        <ReButton @click="policyVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Check" :show-text="true" :loading="policySaving" @click="submitPolicy">保存</ReButton>
       </template>
     </el-dialog>
 
@@ -271,72 +274,53 @@ onMounted(fetchAll);
     <el-dialog v-model="ruleVisible" :title="ruleForm.id ? '编辑规则' : '新增规则'" width="520px">
       <el-form label-width="96px">
         <el-form-item label="所属策略">
-          <el-select v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%">
+          <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%">
             <el-option v-for="p in policies" :key="p.id" :label="p.msMonitorAlarmPolicyName" :value="p.id" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
         <el-form-item label="目标">
-          <el-select v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%">
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%">
             <el-option label="全部目标" :value="null" />
             <el-option v-for="m in monitors" :key="m.id" :label="m.monitorName" :value="m.id" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
         <el-form-item label="指标">
-          <el-select v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%">
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%">
             <el-option v-for="mt in METRICS" :key="mt" :label="mt" :value="mt" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
         <el-form-item label="条件">
-          <el-select v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr">
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr">
             <el-option v-for="c in CONDITIONS" :key="c.value" :label="c.label" :value="c.value" />
-          </el-select>
-          <el-input-number v-model="ruleForm.msMonitorAlarmRuleThreshold" size="small" :min="0" :step="5" style="width: 140px" />
+          </ReSelect>
+          <ReInputNumber v-model="ruleForm.msMonitorAlarmRuleThreshold" size="small" :min="0" :step="5" style="width: 140px" />
         </el-form-item>
         <el-form-item label="级别">
-          <el-select v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px">
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px">
             <el-option v-for="lv in LEVELS" :key="lv" :label="lv + ' ' + lv" :value="lv" />
-          </el-select>
+          </ReSelect>
         </el-form-item>
-        <el-form-item label="连续次数"><el-input-number v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></el-form-item>
-        <el-form-item label="静默(分钟)"><el-input-number v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></el-form-item>
-        <el-form-item label="状态"><el-switch v-model="ruleForm.msMonitorAlarmRuleEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" /></el-form-item>
+        <el-form-item label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></el-form-item>
+        <el-form-item label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></el-form-item>
+        <el-form-item label="状态"><ReSwitch v-model="ruleForm.msMonitorAlarmRuleEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="ruleVisible = false">取消</el-button>
-        <el-button type="primary" :loading="ruleSaving" @click="submitRule">保存</el-button>
+        <ReButton @click="ruleVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Check" :show-text="true" :loading="ruleSaving" @click="submitRule">保存</ReButton>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped lang="scss">
-.cf {
+.page-wrap {
   max-width: 1440px;
   padding: 24px;
 }
-.cf-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-.cf-title { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; }
-.cf-sub { margin-top: 2px; font-size: 13px; color: var(--text-tertiary); }
 .cf-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.cf-tab {
-  padding: 7px 16px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  cursor: pointer;
-  &.active { color: #fff; background: var(--brand-500); border-color: var(--brand-500); }
-}
-.card { padding: 16px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-sm); }
-.card-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.card-title { font-size: 15px; font-weight: 600; }
-.empty-hint { padding: 36px 0; color: var(--text-tertiary); font-size: 13px; text-align: center; }
+.cf-tab { background: var(--bg-container); border: 1px solid var(--border-subtle); }
+.cf-tab.active { color: #fff; background: var(--brand-500); border-color: var(--brand-500); }
+.card-bar { display: flex; align-items: center; justify-content: space-between; }
 
 .p-list, .r-list { display: flex; flex-direction: column; }
 .p-row, .r-row {
