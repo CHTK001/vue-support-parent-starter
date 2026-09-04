@@ -169,12 +169,16 @@ const Main = () => {
     // read `handshake.available_models` on the very first render — without
     // waiting for a session to be created.
     void Promise.all([
+      // Best-effort: `storageGeneration` is only a non-critical storage salt.
+      // A transient 5xx here must NOT abort the whole startup gate — the other
+      // two `Promise.all` items below already swallow their errors, so keeping
+      // this one from re-throwing matches that local convention and lets
+      // `configReady` proceed to render the shell (Layout + Sider menu).
       application.systemInfo
         .invoke()
         .then((info) => setBrowserStorageGeneration(info.storageGeneration))
         .catch((err) => {
           console.error('Failed to initialize browser storage generation:', err);
-          throw err;
         }),
       configService.initialize().catch((err) => {
         console.error('Failed to initialize config:', err);

@@ -29,15 +29,14 @@ function fixImportMetaUrl() {
       if (!/\.test\.[jt]sx?$/.test(id)) return null;
       const dir = dirname(id).replace(/\\/g, '/');
       const fileUrl = `file:///${dir}/`;
-      let replaced = code.replace(/import\.meta\.url/g, JSON.stringify(fileUrl));
-      // __vite_ssr_import_meta__.resolve(specifier) →
-      //   new URL(specifier, import.meta.url).href
-      replaced = replaced.replace(
-        /__vite_ssr_import_meta__\.resolve\(([^)]*)\)/g,
-        `new URL($1, ${JSON.stringify(fileUrl)}).href`
-      );
-      if (replaced === code) return null;
-      return { code: replaced, map: null };
+      // vitest jsdom 池下 `__vite_ssr_import_meta__` 的 resolve 方法未实现。
+      // 在文件顶部注入同名 const 遮蔽全局，再把 `import.meta.url` 替换为
+      // file:// 字符串字面量。这样 vitest SSR helper 和裸 import.meta.url
+      // 表达式都能拿到正确的 file:// 路径。
+      const polyfillHeader =
+        `const __vite_ssr_import_meta__ = Object.freeze({ url: ${JSON.stringify(fileUrl)}, resolve: (s) => new URL(s, ${JSON.stringify(fileUrl)}).href });\n`;
+      const replaced = code.replace(/import\.meta\.url/g, JSON.stringify(fileUrl));
+      return { code: polyfillHeader + replaced, map: null };
     },
   };
 }
