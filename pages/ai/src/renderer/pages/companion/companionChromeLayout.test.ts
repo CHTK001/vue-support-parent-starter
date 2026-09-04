@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const companionSource = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');

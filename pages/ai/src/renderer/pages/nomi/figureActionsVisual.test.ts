@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import enNomi from '../../services/i18n/locales/en-US/nomi.json';
 import zhNomi from '../../services/i18n/locales/zh-CN/nomi.json';
 

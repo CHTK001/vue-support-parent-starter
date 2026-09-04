@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { getMcpApiKeyUrl, getMcpConfigurationFields, supportsMcpOAuthLogin } from './mcpAuthConfig';
 
 describe('MCP auth config detection', () => {

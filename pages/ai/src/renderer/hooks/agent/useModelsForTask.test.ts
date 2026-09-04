@@ -1,11 +1,11 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import type { IProvider, ModelTask, ModelTrait } from '@/common/config/storage';
 import type { ProviderModelResponse } from '@/common/types/provider/providerModel';
 import { parseProviderId } from '@/common/types/ids';

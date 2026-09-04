@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 
 import type { TExecutionModelRef } from '@/common/types/agentExecution/agentExecutionTypes';
 import { parseProviderId, type ProviderId } from '@/common/types/ids';

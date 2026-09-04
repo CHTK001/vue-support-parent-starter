@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import {
   MAX_NOMI_MESSAGE_BUFFER_BYTES,
   MAX_NOMI_MESSAGE_BUFFER_ENTRIES,

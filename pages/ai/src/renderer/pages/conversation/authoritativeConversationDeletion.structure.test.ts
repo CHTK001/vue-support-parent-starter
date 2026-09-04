@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+﻿import { readFileSync } from 'node:fs';
+import { describe, expect, test } from 'vitest';
 
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const sessionListSource = readFileSync(new URL('./SessionList/index.tsx', import.meta.url), 'utf8');

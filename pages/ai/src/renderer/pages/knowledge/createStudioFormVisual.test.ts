@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const studioSource = readFileSync(new URL('./CreateStudio/index.tsx', import.meta.url), 'utf8');

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const toolbarSource = readFileSync(new URL('./KnowledgeTagFilterBar.tsx', import.meta.url), 'utf8');

@@ -1,10 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildLoginRequestBody, fetchCurrentUser, parseAuthUser } from './AuthContext';
 
 const USER_ID = '0190f5fe-7c00-7a00-8000-000000000001';

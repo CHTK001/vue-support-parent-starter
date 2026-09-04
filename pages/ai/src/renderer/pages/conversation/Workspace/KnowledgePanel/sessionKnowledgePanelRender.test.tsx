@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
@@ -15,7 +15,7 @@
  * a local i18n instance) — there is no testing-library in this repo.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { createInstance } from 'i18next';
 import React from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';

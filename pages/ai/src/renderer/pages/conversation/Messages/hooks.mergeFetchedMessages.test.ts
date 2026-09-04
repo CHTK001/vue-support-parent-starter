@@ -1,10 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { parseConversationId, parseCronJobId, parseMessageId, type MessageId } from '@/common/types/ids';
 import type { TMessage } from '@/common/chat/chatLib';
 import { createStoredMessageMapper } from '@/common/adapter/storedMessageMapper';

@@ -1,11 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as bunTest from 'bun:test';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   IBrowserInventoryChangedEvent,
@@ -27,15 +26,7 @@ import {
   type BrowserOverviewRecoveryState,
 } from './useBrowserInventory';
 
-interface FakeTimerApi {
-  useFakeTimers: () => void;
-  useRealTimers: () => void;
-  clearAllTimers: () => void;
-  advanceTimersByTime: (milliseconds: number) => void;
-  getTimerCount: () => number;
-}
-
-const timers = (bunTest as unknown as { jest: FakeTimerApi }).jest;
+const timers = vi;
 
 const availableOverview = (running = 0): IBrowserOverview => ({
   supported: true,

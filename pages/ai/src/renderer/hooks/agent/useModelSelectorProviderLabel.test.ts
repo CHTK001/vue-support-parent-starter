@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 
 import { NOMIFUN_FREE_MODEL_PLATFORM } from '@/common/types/provider/managedModelService';
 import { formatModelSelectorProviderLabel } from './useModelSelectorProviderLabel';

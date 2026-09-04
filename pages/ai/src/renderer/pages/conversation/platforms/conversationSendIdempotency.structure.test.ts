@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'bun:test';
+﻿import { readFileSync } from 'node:fs';
+import { describe, expect, test } from 'vitest';
 
 const readSource = (relativePath: string): string =>
   readFileSync(new URL(relativePath, import.meta.url), 'utf8');

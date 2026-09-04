@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+﻿import { describe, expect, test } from 'vitest';
 import type { IKnowledgeBinding } from '@/common/adapter/ipcBridge';
 import { removeBaseFromBinding } from './KnowledgeConsumersSection';
 import { parseKnowledgeBaseId } from '@/common/types/ids';

@@ -1,10 +1,10 @@
-/**
+﻿/**
  * @license
  * Copyright 2025-2026 NomiFun (nomifun.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import enSettings from '@/renderer/services/i18n/locales/en-US/settings.json';
 import zhSettings from '@/renderer/services/i18n/locales/zh-CN/settings.json';
 import { DEFAULT_THEME_ID, getCssThemeDisplayName, PRESET_THEMES, PRESET_THEME_NAME_KEYS } from './presets';
