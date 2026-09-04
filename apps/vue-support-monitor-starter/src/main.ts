@@ -2,7 +2,7 @@
  * vue-support-monitor-starter 单页沉浸式控制台入口
  *
  * 模式：mode=single（不挂 koi layout 壳，不嵌「鲤」框架）
- * 用途：本地实时预览自研 UI，左侧主机资源条 + 右侧 guacd 控制台
+ * 用途：本地实时预览自研 UI —— 工作台 / 告警 / 资产 / 远控（design.md v2）
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
@@ -11,6 +11,7 @@ import zhCn from "element-plus/es/locale/lang/zh-cn";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
+import "./styles/tokens.css";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
 import { installUi } from "@repo/ui";
