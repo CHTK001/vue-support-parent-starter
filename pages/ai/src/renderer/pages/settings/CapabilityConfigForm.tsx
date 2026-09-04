@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Message, Select, Switch } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
-import SettingsPageWrapper from './SettingsPageWrapper';
+import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
 import { httpRequest } from '@/common/adapter/httpBridge';
 
-/** 后端统一能力配置项（/v2/*/config 返回结构） */
+/** 后端统一能力配置项（/v2 下 config 接口返回结构） */
 export interface CapabilityConfigItem {
   field: string;
   value: string | number | boolean | null;

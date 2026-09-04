@@ -185,7 +185,7 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="page-wrap cf">
+  <div class="cf">
     <ReSectionHead description="告警策略与规则管理 · 推送渠道依赖后端补全">
       <template #title>监控配置</template>
       <template #actions>
@@ -313,10 +313,6 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
-.page-wrap {
-  max-width: 1440px;
-  padding: 24px;
-}
 .cf-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .cf-tab { background: var(--bg-container); border: 1px solid var(--border-subtle); }
 .cf-tab.active { color: #fff; background: var(--brand-500); border-color: var(--brand-500); }

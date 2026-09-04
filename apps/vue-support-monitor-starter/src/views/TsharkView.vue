@@ -63,7 +63,7 @@ onMounted(init);
 </script>
 
 <template>
-  <div class="page-wrap ts">
+  <div class="ts">
     <ReSectionHead :description="available === false ? '抓包模块不可用' : '网络抓包 · 会话 / 包 / 协议统计'">
       <template #title>抓包分析</template>
       <template #actions>
@@ -129,7 +129,6 @@ onMounted(init);
 </template>
 
 <style scoped lang="scss">
-.page-wrap { max-width: 1440px; padding: 24px; }
 .card-h { font-size: 15px; font-weight: 600; }
 .ts-note { padding: 10px 14px; margin-bottom: 16px; font-size: 13px; border-radius: 8px; &.warn { color: #8a5a00; background: #fff7e6; border: 1px solid #fde2a4; } }
 .form-card { margin-bottom: 16px; }
