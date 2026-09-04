@@ -135,6 +135,19 @@ function fullscreen(): void {
   }
 }
 
+/** 终端显示缩放（字体大小），默认 100%，调小=字小，调大=字大 */
+const zoomPct = ref(100);
+function applyZoom(pct: number): void {
+  zoomPct.value = pct;
+  if (client) {
+    const display = (client as any);
+    if (display && typeof display.getDisplay === "function") {
+      const gd = display.getDisplay();
+      if (gd && typeof gd.scale === "function") gd.scale(pct / 100);
+    }
+  }
+}
+
 /** 终端区按下：把焦点从页面输入控件移走，保证按键进入远程终端 */
 function blurLocalInput(): void {
   const el = document.activeElement as HTMLElement | null;
@@ -191,6 +204,14 @@ onBeforeUnmount(teardown);
         </el-tag>
       </div>
       <div v-if="connection" class="it-actions">
+        <!-- 字体/缩放 -->
+        <el-select v-model="zoomPct" size="small" style="width:86px" @change="applyZoom($event)" class="zoom-sel">
+          <el-option :value="75" label="75%" />
+          <el-option :value="90" label="90%" />
+          <el-option :value="100" label="100%" />
+          <el-option :value="125" label="125%" />
+          <el-option :value="150" label="150%" />
+        </el-select>
         <!-- ReButton：icon 走 ReIcon 统一渲染（design.md §2 / §4.8） -->
         <ReButton icon="RefreshRight" show-text size="small" class="reb" @click="reconnect">重连</ReButton>
         <ReButton icon="FullScreen" show-text size="small" class="reb" @click="fullscreen">全屏</ReButton>
