@@ -130,14 +130,12 @@ function toggle(): void {
 }
 
 .rm-switch--active .rm-switch__track {
-  background: linear-gradient(135deg, var(--rm-primary) 0%, var(--rm-primary-hover) 100%);
+  background: var(--rm-primary);
   border-color: transparent;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-text-white) 25%, transparent),
-    0 4px 12px color-mix(in srgb, var(--rm-primary) 35%, transparent);
+  box-shadow: none;
 }
 .rm-switch--active .rm-switch__track:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--rm-primary-hover) 0%, var(--rm-primary) 100%);
+  background: var(--rm-primary-hover);
 }
 
 /* Thumb */
