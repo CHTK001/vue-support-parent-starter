@@ -8,12 +8,14 @@ export default createVite({
     strictPort: true,
     host: "0.0.0.0",
     proxy: {
+      // 与 apps/vue-support-monitor-starter(5174) 对齐，走公网服务器真实链路
+      // （本地 18081 后端未常驻，历史配置会导致 8089 全页面无数据）
       "/ms/monitor": {
-        target: "http://127.0.0.1:18081",
+        target: "http://124.221.230.112:8080",
         changeOrigin: true,
       },
       "/api": {
-        target: "http://127.0.0.1:18081",
+        target: "http://124.221.230.112:8080",
         changeOrigin: true,
       },
     },
