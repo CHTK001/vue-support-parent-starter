@@ -13,8 +13,6 @@ import {
   DatabaseConfig,
   ChartHistogram,
   Platte,
-  Picture,
-  TableFile,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -35,8 +33,6 @@ export const BUILTIN_TAB_IDS = [
   'workshop',
   'ocr',
   'face',
-  'image-recognition',
-  'layout',
   'execution-engines',
   'ssh-hosts',
   'computer-use',
@@ -128,18 +124,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.face', { defaultValue: '人脸识别' }),
         icon: <System />,
         path: 'face',
-      },
-      'image-recognition': {
-        id: 'image-recognition',
-        label: t('settings.imageRecognition', { defaultValue: '图片识别' }),
-        icon: <Picture />,
-        path: 'image-recognition',
-      },
-      'layout': {
-        id: 'layout',
-        label: t('settings.layout', { defaultValue: '布局识别' }),
-        icon: <TableFile />,
-        path: 'layout',
       },
       'computer-use': {
         id: 'computer-use',
