@@ -109,7 +109,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
     <!-- 顶栏 -->
     <header class="topbar">
       <ReButton v-if="collapse" icon="Expand" :show-text="false" :icon-size="30" @click="collapse = false" />
-      <button v-else class="icon-btn" @click="collapse = true" title="折叠侧栏"><ReIcon name="Fold" :size="15" /></button>
+      <ReButton v-else icon="Fold" layout="square" size="small" title="折叠侧栏" @click="collapse = true" />
       <div class="crumb">{{ crumb }}</div>
       <div class="spacer" />
       <div class="gsearch">
@@ -117,7 +117,10 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
         <input placeholder="搜索资产、规则、文档…" />
         <span class="kbd">⌘K</span>
       </div>
-      <button class="icon-btn" title="通知"><el-icon :size="15"><Bell /></el-icon><span v-if="unhandled>0" class="note-dot" /></button>
+      <div class="bell-wrap">
+        <ReButton icon="Bell" layout="square" size="small" title="通知" @click="go('/alarms')" />
+        <span v-if="unhandled>0" class="note-dot" />
+      </div>
       <div class="avatar" title="管理员">CH</div>
     </header>
 
@@ -267,13 +270,14 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
 }
 .note-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--status-alarm, #f04a5d);
 }
+.bell-wrap { position: relative; display: inline-flex; }
 .crumb {
   font-size: 13px;
   color: var(--text-secondary);
