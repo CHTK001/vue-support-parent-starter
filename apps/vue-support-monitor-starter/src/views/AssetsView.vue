@@ -72,10 +72,20 @@ function normalizeOs(t?: string): string {
 }
 function osIcon(t?: string): string {
   const s = (t ?? "").toUpperCase();
-  if (s.includes("WIN")) return "🪟";
-  if (s.includes("LINUX")) return "🐧";
-  if (s.includes("MAC")) return "🍎";
-  return "🖥️";
+  if (s.includes("WIN")) return "windows";
+  if (s.includes("LINUX")) return "linux";
+  if (s.includes("MAC") || s.includes("DARWIN")) return "macos";
+  return "terminal";
+}
+/** 真实 OS 品牌图标（SVG） */
+function osSvg(os: string): string {
+  const icons: Record<string, string> = {
+    linux: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-2 0-2.4 1.4-2.4 2.6 0 .4.1.8.2 1.1C8.9 6.4 8 7 8 8c-1.6.7-2.3 2-2.3 3.6l.4 1.6c-1.4.4-2 1.1-2 2.2 0 .8.5 1.4 1.2 1.8.4 2 1.8 3 3.7 3h6c1.9 0 3.3-1 3.7-3 .7-.4 1.2-1 1.2-1.8 0-1.1-.6-1.8-2-2.2l.4-1.6c0-1.6-.7-2.9-2.3-3.6-.3-1.1-1-1.7-2-1.9.1-.3.2-.6.2-1C14.4 4.4 14 3 12 3z"/></svg>',
+    windows: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 5.5 11 4.6v6.1H3zM3 13.3h8V20L3 19.1zM12 4.4l9-1.4V10.8h-9zM12 13.3h9V21l-9-1.4z"/></svg>',
+    macos: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.2 12.6c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.9-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.1-1.2 2.9-2.3.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.6-3.8zM13.8 5.5c.7-.8 1.1-1.9 1-3-1 .1-2.2.7-2.9 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.2-.6 2.9-1.4z"/></svg>',
+    terminal: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  };
+  return icons[os] ?? icons.terminal;
 }
 function protocolOf(h: Host): string {
   const s = (h.serverHostOsType ?? "").toUpperCase();
@@ -390,7 +400,10 @@ onMounted(fetchAll);
       <el-table :data="filtered" v-loading="loading" size="small" empty-text="暂无主机" border @selection-change="selection = $event">
         <el-table-column type="selection" width="40" />
         <el-table-column label="名称" min-width="140">
-          <template #default="{ row }"><span class="h-os">{{ osIcon(row.serverHostOsType) }}</span> <b>{{ row.serverHostName }}</b></template>
+          <template #default="{ row }">
+            <span class="h-os" v-html="osSvg(osIcon(row.serverHostOsType))"></span>
+            <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
+          </template>
         </el-table-column>
         <el-table-column label="地址" width="140"><template #default="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template></el-table-column>
         <el-table-column label="分组" width="90"><template #default="{ row }"><ReTag v-if="row.serverGroupId" size="small" effect="plain">{{ groupName(row.serverGroupId) }}</ReTag><span v-else class="dim">未分组</span></template></el-table-column>
@@ -437,10 +450,10 @@ onMounted(fetchAll);
         </el-form-item>
         <el-form-item label="采集模式">
           <ReSelect v-model="form.serverHostCollectMode" size="small" style="width: 100%">
-            <el-option label="SCHEDULED" value="SCHEDULED" />
-            <el-option label="AGENT" value="AGENT" />
-            <el-option label="HTTP" value="HTTP" />
-            <el-option label="PROMETHEUS" value="PROMETHEUS" />
+            <el-option label="定时采集" value="SCHEDULED" />
+            <el-option label="Agent采集" value="AGENT" />
+            <el-option label="HTTP采集" value="HTTP" />
+            <el-option label="Prometheus采集" value="PROMETHEUS" />
           </ReSelect>
         </el-form-item>
         <el-form-item label="分组">
@@ -535,7 +548,8 @@ onMounted(fetchAll);
   border: 1px solid #fbc0c9;
   border-radius: 8px;
 }
-.h-os { font-size: 14px; }
+.h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); }
+.h-os :deep(svg) { display: block; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 .op-cell { display: flex; gap: 4px; }
 </style>

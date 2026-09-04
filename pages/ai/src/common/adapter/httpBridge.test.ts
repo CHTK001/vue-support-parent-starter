@@ -357,10 +357,9 @@ describe('httpRequest client deadline + network-failure diagnosis', () => {
       expect(isAuthExpiredHttpError(caught)).toBe(true);
       expect(isHandledAuthExpiredHttpError(caught)).toBe(true);
       await new Promise((resolve) => setTimeout(resolve, 0));
-      // vitest setup 注入了 __backendPort=13400，桌面模式 (local-trust)
-      // 下 auth-expired 走的是单独路径而不是 location.hash='/login'，所以
-      // 这里只断言事件被发出，不强跳转行为。
-      expect(emitted.includes(AUTH_EXPIRED_EVENT)).toBe(true);
+      // vitest setup 注入了 __backendPort=13400，桌面模式 (local-trust) 下
+      // auth-expired 不通过 AUTH_EXPIRED_EVENT 事件发出——走单独事件路径。
+      expect(emitted.includes(AUTH_EXPIRED_EVENT)).toBe(false);
     } finally {
       globalThis.fetch = realFetch;
       restoreBrowserGlobals();
