@@ -4,7 +4,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { resolveExtensionAssetUrl, isDesktopShell } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import { Computer, Cpu, Puzzle, Server, System, LinkCloud, DatabaseConfig, ChartHistogram, Platte, Picture, TableFile } from '@icon-park/react';
+import { Computer, Cpu, Puzzle, Server, System, LinkCloud, DatabaseConfig, ChartHistogram, Platte } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -84,18 +84,6 @@ export function getBuiltinSettingsNavItems(t: TranslateFn): NavItem[] {
       label: t('settings.face', { defaultValue: '人脸识别' }),
       icon: <System theme='outline' size='16' />,
       path: 'face',
-    },
-    'image-recognition': {
-      id: 'image-recognition',
-      label: t('settings.imageRecognition', { defaultValue: '图片识别' }),
-      icon: <Picture theme='outline' size='16' />,
-      path: 'image-recognition',
-    },
-    'layout': {
-      id: 'layout',
-      label: t('settings.layout', { defaultValue: '布局识别' }),
-      icon: <TableFile theme='outline' size='16' />,
-      path: 'layout',
     },
   };
 

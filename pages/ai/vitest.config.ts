@@ -1,9 +1,34 @@
-import { resolve } from 'path';
+import { dirname, resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 const src = resolve(__dirname, 'src');
 const packagesRoot = resolve(__dirname, '../../packages');
+
+/**
+ * vitest jsdom 环境下，import.meta.url 在测试文件里被解析为项目根
+ *（file:///<root>/），而测试源码里写
+ *   new URL('./xxx.tsx', import.meta.url)
+ * 期望 base 是测试文件所在目录，结果 readFileSync 报 ENOENT。
+ *
+ * esbuild 的 define 不支持 import.meta.url（属性访问不是标识符），所以在
+ * transform 阶段对测试文件做字符串替换：用 id（文件绝对路径）的 dirname
+ * 构造 file:// URL，作为 import.meta.url 的运行时值。
+ */
+function fixImportMetaUrl() {
+  return {
+    name: 'fix-import-meta-url-for-tests',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (!/\.test\.[jt]sx?$/.test(id)) return null;
+      const dir = dirname(id).replace(/\\/g, '/');
+      const fileUrl = `file:///${dir}/`;
+      const replaced = code.replace(/import\.meta\.url/g, JSON.stringify(fileUrl));
+      if (replaced === code) return null;
+      return { code: replaced, map: null };
+    },
+  };
+}
 
 export default defineConfig({
   resolve: {
@@ -35,14 +60,7 @@ export default defineConfig({
     ],
     extensions: ['.ts', '.tsx', '.js', '.json', '.vue'],
   },
-  plugins: [react()],
-  // jsdom 环境下 vitest 会把 import.meta.url 解析为 http://，导致
-  // `new URL('./xxx.tsx', import.meta.url)` 报 "URL must be of scheme file"。
-  // 在测试里把 import.meta.url 强制为构建时的绝对 file:// URL，让源码读文件
-  // 类的辅助测试正常进行。
-  define: {
-    'import.meta.url': JSON.stringify(`file://${__dirname.replace(/\\/g, '/')}/`),
-  },
+  plugins: [react(), fixImportMetaUrl()],
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
