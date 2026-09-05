@@ -49,6 +49,7 @@
   border-radius: 14px !important;
   box-shadow: none !important;
   background-color: var(--color-fill-2) !important;
+  white-space: normal !important;
 }
 .cs-message--outgoing .cs-message__content {
   color: var(--color-white);
