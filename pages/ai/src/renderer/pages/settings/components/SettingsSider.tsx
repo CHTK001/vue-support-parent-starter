@@ -129,6 +129,18 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <System />,
         path: 'face',
       },
+      'skills': {
+        id: 'skills',
+        label: t('settings.skillsMarket.settingsTitle', { defaultValue: '技能市场' }),
+        icon: <Puzzle />,
+        path: 'skills',
+      },
+      'mcp': {
+        id: 'mcp',
+        label: t('settings.mcpMarket.settingsTitle', { defaultValue: 'MCP 市场' }),
+        icon: <LinkCloud />,
+        path: 'mcp',
+      },
       'computer-use': {
         id: 'computer-use',
         label: t('settings.computerUseNav'),
