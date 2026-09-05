@@ -1,48 +1,40 @@
 <template>
-  <div class="snippet-manager">
-    <el-card class="shadow-sm rounded-xl p-6">
+  <div class="snippet-manager fade-in">
+    <ReCard class="shadow-sm rounded-xl" :radius="12" :padding="16">
       <template #header>
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-el-text">命令片段管理</h3>
-          <el-button type="primary" @click="handleAdd">新增片段</el-button>
+          <h3 class="snippet-title">命令片段管理</h3>
+          <ReButton show-text icon="Plus" type="primary" @click="handleAdd">新增片段</ReButton>
         </div>
       </template>
 
-      <el-table :data="snippets" style="width: 100%">
-        <el-table-column prop="name" label="名称" width="150" />
-        <el-table-column prop="content" label="命令内容" />
-        <el-table-column prop="category" label="分类" width="100" />
-        <el-table-column label="操作" width="150">
+      <ReTable :data="snippets" style="width: 100%" :pagination="false" :toolbar="false">
+        <ReTableColumn prop="name" label="名称" width="150" />
+        <ReTableColumn prop="content" label="命令内容" />
+        <ReTableColumn prop="category" label="分类" width="100" />
+        <ReTableColumn label="操作" width="150">
           <template #default="{ row }">
-            <el-button text type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button text type="danger" @click="handleDelete(row.id)">删除</el-button>
+            <ReButton link type="primary" @click="handleEdit(row)">编辑</ReButton>
+            <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ReTableColumn>
+      </ReTable>
+    </ReCard>
 
-    <el-dialog v-model="showDialog" :title="editId ? '编辑片段' : '新增片段'" width="500px" destroy-on-close>
-      <el-form :model="form" label-position="top">
-        <el-form-item label="名称">
-          <el-input v-model="form.name" placeholder="例如：重启服务" />
-        </el-form-item>
-        <el-form-item label="命令内容">
-          <el-input v-model="form.content" type="textarea" :rows="4" placeholder="输入命令内容" />
-        </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
-            <el-option label="系统" value="system" />
-            <el-option label="数据库" value="database" />
-            <el-option label="应用" value="application" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">保存</el-button>
-      </template>
-    </el-dialog>
+    <ReDialog v-model="showDialog" :title="editId ? '编辑片段' : '新增片段'" width="500" :height="360" confirm-text="保存" cancel-text="取消" @confirm="handleSubmit" @cancel="showDialog = false">
+      <ReForm :model="form" label-position="top">
+        <ReFormItem label="名称">
+          <ReInput v-model="form.name" placeholder="例如：重启服务" />
+        </ReFormItem>
+        <ReFormItem label="命令内容">
+          <ReInput v-model="form.content" type="textarea" :rows="4" placeholder="输入命令内容" />
+        </ReFormItem>
+        <ReFormItem label="分类">
+          <ReSelect v-model="form.category" placeholder="选择分类" style="width: 100%"
+            :data="[{ label: '系统', value: 'system' }, { label: '数据库', value: 'database' }, { label: '应用', value: 'application' }, { label: '其他', value: 'other' }]" />
+        </ReFormItem>
+      </ReForm>
+    </ReDialog>
   </div>
 </template>
 
@@ -95,5 +87,11 @@ const handleSubmit = () => {
 <style scoped>
 .snippet-manager {
   padding: 20px;
+}
+.snippet-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 </style>

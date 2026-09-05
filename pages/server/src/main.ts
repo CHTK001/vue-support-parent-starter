@@ -31,7 +31,7 @@ import "./styles/dialog.css";
  *  - koi framework 注册 layout/login/home 基础路由 + menu resolver
  *  - serverRoutes 挂到 layout 之下，侧边栏由 buildMenuFromRoutes 从路由自动生成
  *  - ElementPlus/图标/组件/指令由 installKoi 统一注册
- *  - Re 组件按需全局注册；ReKit 收纳轻量透传/美化组件（Option/FormItem/Row/Col/Radio*/TreeSelect/TableColumn/Dropdown*/Descriptions/Alert/Divider/Link/Avatar）
+ *  - Re 组件按需全局注册；ReKit 收纳轻量透传/美化组件（Option、FormItem、Row、Col、Radio 系列、TreeSelect、TableColumn、Dropdown 系列、Descriptions、Alert、Divider、Link、Avatar）
  */
 
 await createContextApp({

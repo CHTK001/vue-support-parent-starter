@@ -307,12 +307,8 @@
             <span class="viz-title">指标趋势 (近 {{ trendHours }}h)</span>
           </div>
           <div class="viz-actions">
-            <el-select v-model="trendHours" size="small" style="width: 80px; margin-right: 8px" @change="onMonitorChange">
-              <el-option :value="1" label="1h" />
-              <el-option :value="6" label="6h" />
-              <el-option :value="12" label="12h" />
-              <el-option :value="24" label="24h" />
-            </el-select>
+            <ReSelect v-model="trendHours" size="small" style="width: 80px; margin-right: 8px" @change="onMonitorChange"
+              :data="[{ value: 1, label: '1h' }, { value: 6, label: '6h' }, { value: 12, label: '12h' }, { value: 24, label: '24h' }]" />
             <span class="viz-sub">{{ seriesSourceLabel }}</span>
           </div>
         </div>

@@ -15,44 +15,44 @@
       </div>
     </div>
 
-    <el-table :data="agents" border size="small" v-loading="loading">
-      <el-table-column prop="monitorName" label="名称" min-width="140" />
-      <el-table-column prop="monitorHost" label="地址" min-width="140" />
-      <el-table-column prop="monitorAgentKey" label="探针标识" min-width="200" show-overflow-tooltip />
-      <el-table-column label="在线状态" width="100">
+    <ReTable :data="agents" border size="small" :loading="loading" :pagination="false" :toolbar="false">
+      <ReTableColumn prop="monitorName" label="名称" min-width="140" />
+      <ReTableColumn prop="monitorHost" label="地址" min-width="140" />
+      <ReTableColumn prop="monitorAgentKey" label="探针标识" min-width="200" show-overflow-tooltip />
+      <ReTableColumn label="在线状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.online ? 'success' : 'danger'" size="small">
+          <ReTag :type="row.online ? 'success' : 'danger'" size="small">
             {{ row.online ? '在线' : '离线' }}
-          </el-tag>
+          </ReTag>
         </template>
-      </el-table-column>
-      <el-table-column label="最后心跳" width="160">
+      </ReTableColumn>
+      <ReTableColumn label="最后心跳" width="160">
         <template #default="{ row }">{{ row.lastHeartbeat || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="viewConfig(row)">配置</el-button>
+          <ReButton link size="small" type="primary" @click="viewConfig(row)">配置</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
-    <el-dialog append-to-body v-model="configVisible" title="Agent 配置" width="500px">
+    <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true">
       <div v-if="configLoading">加载中...</div>
       <div v-else>
         <h4>采集间隔</h4>
-        <el-descriptions :column="1" border size="small">
-          <el-descriptions-item v-for="(v, k) in configData.intervals || {}" :key="k" :label="k">
+        <ReDescriptions :column="1" border size="small">
+          <ReDescriptionsItem v-for="(v, k) in configData.intervals || {}" :key="k" :label="k">
             {{ v }}ms
-          </el-descriptions-item>
-        </el-descriptions>
+          </ReDescriptionsItem>
+        </ReDescriptions>
         <h4 style="margin-top: 12px">采集任务</h4>
-        <el-table :data="configData.tasks || []" size="small">
-          <el-table-column prop="taskName" label="任务名" />
-          <el-table-column prop="taskType" label="类型" width="90" />
-          <el-table-column prop="taskCron" label="Cron" width="120" />
-        </el-table>
+        <ReTable :data="configData.tasks || []" size="small" :pagination="false" :toolbar="false">
+          <ReTableColumn prop="taskName" label="任务名" />
+          <ReTableColumn prop="taskType" label="类型" width="90" />
+          <ReTableColumn prop="taskCron" label="Cron" width="120" />
+        </ReTable>
       </div>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 

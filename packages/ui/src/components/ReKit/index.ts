@@ -10,9 +10,11 @@
  *   ReAlert / ReDivider / ReLink / ReAvatar
  *
  * 用法：
- *   import ReKit, { install } from "@repo/ui/re-kit";
- *   app.use(install);
- * 或按名注册：install(app);
+ *   import { install as ReKitInstall } from "@repo/ui/re-kit";
+ *   app.use(ReKitInstall);
+ * 或：
+ *   import ReKit from "@repo/ui/re-kit";
+ *   app.use(ReKit);
  */
 import type { App, Plugin } from "vue";
 import { defineComponent, h } from "vue";
@@ -44,17 +46,13 @@ const ReOption = defineComponent({
   name: "ReOption",
   inheritAttrs: true,
   props: {
-    value: { type: [String, Number, Boolean, Object], default: undefined },
-    label: { type: [String, Number], default: undefined },
+    value: { type: [String, Number, Boolean, Object] },
+    label: { type: [String, Number] },
     disabled: { type: Boolean, default: false },
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(
-        ElOption,
-        { ...attrs, value: props.value, label: props.label, disabled: props.disabled },
-        slots.default?.(),
-      );
+      h(ElOption, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, slots.default?.());
   },
 });
 
@@ -66,10 +64,10 @@ const ReFormItem = defineComponent({
     prop: { type: String, default: "" },
     label: { type: String, default: "" },
     required: { type: Boolean, default: false },
-    labelWidth: { type: [String, Number], default: undefined },
+    labelWidth: { type: [String, Number] },
     error: { type: String, default: "" },
     showMessage: { type: Boolean, default: true },
-    size: { type: String, default: undefined },
+    size: { type: String },
   },
   setup(props, { attrs, slots }) {
     return () =>
@@ -85,7 +83,7 @@ const ReFormItem = defineComponent({
           showMessage: props.showMessage,
           size: props.size,
           class: "re-form-item",
-        },
+        } as any,
         {
           default: slots.default?.(),
           ...(slots.label ? { label: () => slots.label?.() } : {}),
@@ -107,7 +105,7 @@ const ReRow = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElRow, { ...attrs, gutter: props.gutter, justify: props.justify, align: props.align, wrap: props.wrap, tag: props.tag }, slots.default?.());
+      h(ElRow, { ...attrs, gutter: props.gutter, justify: props.justify, align: props.align, wrap: props.wrap, tag: props.tag } as any, slots.default?.());
   },
 });
 
@@ -119,11 +117,11 @@ const ReCol = defineComponent({
     offset: { type: Number, default: 0 },
     push: { type: Number, default: 0 },
     pull: { type: Number, default: 0 },
-    xs: { type: [Number, Object], default: undefined },
-    sm: { type: [Number, Object], default: undefined },
-    md: { type: [Number, Object], default: undefined },
-    lg: { type: [Number, Object], default: undefined },
-    xl: { type: [Number, Object], default: undefined },
+    xs: { type: [Number, Object] },
+    sm: { type: [Number, Object] },
+    md: { type: [Number, Object] },
+    lg: { type: [Number, Object] },
+    xl: { type: [Number, Object] },
     tag: { type: String, default: "div" },
   },
   setup(props, { attrs, slots }) {
@@ -142,7 +140,7 @@ const ReCol = defineComponent({
           lg: props.lg,
           xl: props.xl,
           tag: props.tag,
-        },
+        } as any,
         slots.default?.(),
       );
   },
@@ -166,7 +164,6 @@ const ReRadioGroup = defineComponent({
         ElRadioGroup,
         {
           ...attrs,
-          modelValue: props.modelValue,
           size: props.size,
           disabled: props.disabled,
           class: [
@@ -175,7 +172,8 @@ const ReRadioGroup = defineComponent({
             { "re-radio-group--button": props.button, "re-radio-group--capsule": props.capsule },
           ],
           onUpdate: (v: unknown) => emit("update:modelValue", v),
-        },
+          onUpdateModelValue: (v: unknown) => emit("update:modelValue", v),
+        } as any,
         slots.default?.(),
       );
   },
@@ -186,14 +184,14 @@ const ReRadio = defineComponent({
   inheritAttrs: true,
   props: {
     value: { type: [String, Number, Boolean, Object], default: "" },
-    label: { type: [String, Number, Object], default: undefined },
+    label: { type: [String, Number, Object] },
     disabled: { type: Boolean, default: false },
     border: { type: Boolean, default: false },
-    size: { type: String, default: "default" },
+    size: { type: String },
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElRadio, { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size }, slots.default?.());
+      h(ElRadio, { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size } as any, slots.default?.());
   },
 });
 
@@ -202,11 +200,11 @@ const ReRadioButton = defineComponent({
   inheritAttrs: true,
   props: {
     value: { type: [String, Number, Boolean, Object], default: "" },
-    label: { type: [String, Number, Object], default: undefined },
+    label: { type: [String, Number, Object] },
     disabled: { type: Boolean, default: false },
   },
   setup(props, { attrs, slots }) {
-    return () => h(ElRadioButton, { ...attrs, value: props.value, label: props.label, disabled: props.disabled }, slots.default?.());
+    return () => h(ElRadioButton, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, slots.default?.());
   },
 });
 
@@ -236,7 +234,6 @@ const ReTreeSelect = defineComponent({
         ElTreeSelect,
         {
           ...attrs,
-          modelValue: props.modelValue,
           data: props.data,
           props: props.props,
           nodeKey: props.nodeKey,
@@ -250,8 +247,9 @@ const ReTreeSelect = defineComponent({
           size: props.size,
           disabled: props.disabled,
           class: "re-tree-select",
-          "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
-        },
+          modelValue: props.modelValue,
+          onUpdateModelValue: (v: unknown) => emit("update:modelValue", v),
+        } as any,
         slots.default?.(),
       );
   },
@@ -265,14 +263,14 @@ const ReTableColumn = defineComponent({
     type: { type: String, default: "default" },
     prop: { type: String, default: "" },
     label: { type: String, default: "" },
-    width: { type: [String, Number], default: undefined },
-    minWidth: { type: [String, Number], default: undefined },
-    fixed: { type: [Boolean, String], default: undefined },
-    align: { type: String, default: undefined },
-    headerAlign: { type: String, default: undefined },
+    width: { type: [String, Number] },
+    minWidth: { type: [String, Number] },
+    fixed: { type: [Boolean, String] },
+    align: { type: String },
+    headerAlign: { type: String },
     sortable: { type: [Boolean, String], default: false },
     showOverflowTooltip: { type: Boolean, default: false },
-    formatter: { type: Function, default: undefined },
+    formatter: { type: Function },
   },
   setup(props, { attrs, slots }) {
     return () =>
@@ -291,7 +289,7 @@ const ReTableColumn = defineComponent({
           sortable: props.sortable,
           showOverflowTooltip: props.showOverflowTooltip,
           formatter: props.formatter,
-        },
+        } as any,
         {
           default: (scope: unknown) => slots.default?.(scope ?? {}),
           ...(slots.header ? { header: (scope: unknown) => slots.header?.(scope ?? {}) } : {}),
@@ -325,7 +323,7 @@ const ReDropdown = defineComponent({
           disabled: props.disabled,
           hideOnClick: props.hideOnClick,
           popperClass: "re-dropdown",
-        },
+        } as any,
         {
           default: slots.default?.(),
           dropdown: slots.dropdown?.(),
@@ -338,7 +336,7 @@ const ReDropdownMenu = defineComponent({
   name: "ReDropdownMenu",
   inheritAttrs: true,
   setup(_, { attrs, slots }) {
-    return () => h(ElDropdownMenu, { ...attrs }, slots.default?.());
+    return () => h(ElDropdownMenu, { ...attrs } as any, slots.default?.());
   },
 });
 
@@ -348,15 +346,11 @@ const ReDropdownItem = defineComponent({
   props: {
     disabled: { type: Boolean, default: false },
     divided: { type: Boolean, default: false },
-    command: { type: [String, Number, Object], default: undefined },
+    command: { type: [String, Number, Object] },
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(
-        ElDropdownItem,
-        { ...attrs, disabled: props.disabled, divided: props.divided, command: props.command, class: "re-dropdown-item" },
-        slots.default?.(),
-      );
+      h(ElDropdownItem, { ...attrs, disabled: props.disabled, divided: props.divided, command: props.command, class: "re-dropdown-item" } as any, slots.default?.());
   },
 });
 
@@ -387,7 +381,7 @@ const ReDescriptions = defineComponent({
           labelStyle: props.labelStyle,
           contentStyle: props.contentStyle,
           class: "re-descriptions",
-        },
+        } as any,
         slots.default?.(),
       );
   },
@@ -399,15 +393,15 @@ const ReDescriptionsItem = defineComponent({
   props: {
     label: { type: String, default: "" },
     span: { type: Number, default: 1 },
-    minWidth: { type: [String, Number], default: undefined },
-    align: { type: String, default: undefined },
-    labelAlign: { type: String, default: undefined },
+    minWidth: { type: [String, Number] },
+    align: { type: String },
+    labelAlign: { type: String },
   },
   setup(props, { attrs, slots }) {
     return () =>
       h(
         ElDescriptionsItem,
-        { ...attrs, label: props.label, span: props.span, minWidth: props.minWidth, align: props.align, labelAlign: props.labelAlign },
+        { ...attrs, label: props.label, span: props.span, minWidth: props.minWidth, align: props.align, labelAlign: props.labelAlign } as any,
         slots.default?.(),
       );
   },
@@ -442,7 +436,7 @@ const ReAlert = defineComponent({
           center: props.center,
           class: "re-alert",
           onClose: () => emit("close"),
-        },
+        } as any,
         {
           ...(slots.title ? { title: () => slots.title?.() } : {}),
           ...(slots.default ? { default: () => slots.default?.() } : {}),
@@ -465,7 +459,7 @@ const ReDivider = defineComponent({
     return () =>
       h(
         ElDivider,
-        { ...attrs, direction: props.direction, contentPosition: props.contentPosition, borderStyle: props.borderStyle, plain: props.plain, class: "re-divider" },
+        { ...attrs, direction: props.direction, contentPosition: props.contentPosition, borderStyle: props.borderStyle, plain: props.plain, class: "re-divider" } as any,
         slots.default?.(),
       );
   },
@@ -479,12 +473,12 @@ const ReLink = defineComponent({
     type: { type: String, default: "default" },
     underline: { type: Boolean, default: true },
     disabled: { type: Boolean, default: false },
-    href: { type: String, default: undefined },
+    href: { type: String },
     target: { type: String, default: "_blank" },
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElLink, { ...attrs, type: props.type, underline: props.underline, disabled: props.disabled, href: props.href, target: props.target, class: "re-link" }, slots.default?.());
+      h(ElLink, { ...attrs, type: props.type, underline: props.underline, disabled: props.disabled, href: props.href, target: props.target, class: "re-link" } as any, slots.default?.());
   },
 });
 
@@ -501,7 +495,7 @@ const ReAvatar = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElAvatar, { ...attrs, size: props.size, shape: props.shape, src: props.src, fit: props.fit, alt: props.alt, class: "re-avatar" }, slots.default?.());
+      h(ElAvatar, { ...attrs, size: props.size, shape: props.shape, src: props.src, fit: props.fit, alt: props.alt, class: "re-avatar" } as any, slots.default?.());
   },
 });
 
