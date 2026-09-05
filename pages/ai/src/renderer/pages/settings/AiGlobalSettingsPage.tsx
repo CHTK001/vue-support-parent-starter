@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import {
+  AiGlobalSettings,
+  aiBool,
+  aiNum,
+  aiNumOrUndefined,
+  aiStr,
+  loadAiGlobalSettings,
+  saveAiGlobalSettings,
+} from '@/common/config/aiGlobalSettings';
 import { Button, Message, Select, Slider, Switch } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -9,15 +18,15 @@ import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents
 const AiGlobalSettingsPage: React.FC = () => {
   const { t } = useTranslation();
 
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<AiGlobalSettings>({});
   const [loading, setLoading] = useState(true);
   const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/global-settings');
-        if (res && typeof res === 'object') setValues(res);
+        const res = await loadAiGlobalSettings();
+        setValues(res);
       } catch { /* ignore */ } finally {
         setLoading(false);
       }
@@ -35,30 +44,13 @@ const AiGlobalSettingsPage: React.FC = () => {
     })();
   }, []);
 
-  const boolVal = (key: string, def: boolean): boolean => {
-    const v = values[key];
-    if (typeof v === 'boolean') return v;
-    if (v == null) return def;
-    return String(v).toLowerCase() === 'true' || String(v) === '1';
-  };
-
-  const strVal = (key: string, def = ''): string =>
-    values[key] == null ? def : String(values[key]);
-
-  const numVal = (key: string, def = 0): number => {
-    const v = values[key];
-    if (v == null || v === '') return def;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : def;
-  };
-
-  const set = useCallback((key: string, value: unknown) => {
+  const set = useCallback(<K extends keyof AiGlobalSettings>(key: K, value: AiGlobalSettings[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const handleSave = useCallback(async () => {
     try {
-      await httpRequest('PUT', '/v2/global-settings', values);
+      await saveAiGlobalSettings(values);
       Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
     } catch {
       Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
@@ -85,7 +77,7 @@ const AiGlobalSettingsPage: React.FC = () => {
                 <PreferenceRow label={t('settings.defaultModel', { defaultValue: '默认模型' })}>
                   <Select
                     className='w-240px'
-                    value={strVal('defaultModel')}
+                    value={aiStr(values, 'defaultModel')}
                     onChange={(v) => set('defaultModel', v as string)}
                     placeholder={t('settings.defaultModelPlaceholder', { defaultValue: '选择默认模型' })}
                     allowClear
@@ -100,7 +92,7 @@ const AiGlobalSettingsPage: React.FC = () => {
                     <Slider
                       className='flex-1'
                       min={0} max={2} step={0.1}
-                      value={numVal('temperature') ?? 0.7}
+                      value={aiNum(values, 'temperature', 0.7)}
                       onChange={(v) => set('temperature', v)}
                       marks={{ 0: '0', 0.5: '0.5', 1: '1', 1.5: '1.5', 2: '2' }}
                     />
@@ -108,8 +100,8 @@ const AiGlobalSettingsPage: React.FC = () => {
                       type='number'
                       min={0} max={2} step={0.1}
                       className='w-60px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-8px py-6px text-13px text-[var(--color-text-1)] outline-none text-center'
-                      value={numVal('temperature') ?? 0.7}
-                      onChange={(e) => set('temperature', parseFloat(e.target.value) ?? 0.7)}
+                      value={aiNum(values, 'temperature', 0.7)}
+                      onChange={(e) => set('temperature', parseFloat(e.target.value) || 0.7)}
                     />
                   </div>
                 </PreferenceRow>
@@ -118,8 +110,8 @@ const AiGlobalSettingsPage: React.FC = () => {
                     type='number'
                     min={1}
                     className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                    value={numVal('maxTokens') ?? 4096}
-                    onChange={(e) => set('maxTokens', Number(e.target.value) ?? 4096)}
+                    value={aiNum(values, 'maxTokens', 4096)}
+                    onChange={(e) => set('maxTokens', Number(e.target.value) || 4096)}
                   />
                 </PreferenceRow>
                 <PreferenceRow label={t('settings.timeout', { defaultValue: '请求超时（秒）' })}>
@@ -127,21 +119,21 @@ const AiGlobalSettingsPage: React.FC = () => {
                     type='number'
                     min={1}
                     className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                    value={numVal('timeout') ?? 30}
-                    onChange={(e) => set('timeout', Number(e.target.value) ?? 30)}
+                    value={aiNum(values, 'timeout', 30)}
+                    onChange={(e) => set('timeout', Number(e.target.value) || 30)}
                   />
                 </PreferenceRow>
                 <PreferenceRow label={t('settings.enableCache', { defaultValue: '启用缓存' })}>
-                  <Switch checked={boolVal('enableCache', true)} onChange={(v) => set('enableCache', v)} />
+                  <Switch checked={aiBool(values, 'enableCache', true)} onChange={(v) => set('enableCache', v)} />
                 </PreferenceRow>
                 <PreferenceRow label={t('settings.stream', { defaultValue: '流式输出' })}>
-                  <Switch checked={boolVal('stream', true)} onChange={(v) => set('stream', v)} />
+                  <Switch checked={aiBool(values, 'stream', true)} onChange={(v) => set('stream', v)} />
                 </PreferenceRow>
                 <PreferenceRow label={t('settings.systemPrompt', { defaultValue: '默认系统提示词' })}>
                   <textarea
                     className='w-480px min-h-100px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-8px text-13px text-[var(--color-text-1)] outline-none resize-y'
                     placeholder={t('settings.systemPromptPlaceholder', { defaultValue: '全局 ChatClient 默认系统提示词' })}
-                    value={strVal('systemPrompt')}
+                    value={aiStr(values, 'systemPrompt')}
                     onChange={(e) => set('systemPrompt', e.target.value)}
                     rows={4}
                   />
