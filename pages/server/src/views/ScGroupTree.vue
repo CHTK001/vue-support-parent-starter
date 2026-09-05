@@ -81,37 +81,38 @@ function renderNode(node: GroupNode): string {
 <template>
   <div class="group-tree sc-page">
     <div class="toolbar">
-      <el-button type="primary" @click="openCreate()">新建根分组</el-button>
-      <el-button @click="refresh">刷新</el-button>
+      <ReButton layout="square" icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
+      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
-    <el-card class="tree-card" v-loading="loading">
-      <el-tree
+    <ReCard class="tree-card" v-loading="loading">
+      <ReTree
         :data="treeData"
         node-key="id"
         :props="{ children: 'children', label: 'name' }"
-        :render-content="(h, { node, data }: any) => {
-          return h('div', { class: 'tree-node' }, [
-            h('span', { class: 'tree-label' }, node.label),
-            h('span', { class: 'tree-actions' }, [
-              h('el-button', { size: 'small', link: true, onClick: () => openCreate(data.id) }, '添加子'),
-              h('el-button', { size: 'small', link: true, onClick: () => openEdit(data) }, '编辑'),
-              h('el-button', { size: 'small', link: true, type: 'danger', onClick: () => removeGroup(data) }, '删除'),
-            ]),
-          ]);
-        }"
         default-expand-all
         highlight-current
-      />
-    </el-card>
+      >
+        <template #default="{ node, data }">
+          <div class="tree-node">
+            <span class="tree-label">{{ node.label }}</span>
+            <span class="tree-actions">
+              <ReButton link size="small" @click="openCreate(data.id)">添加子</ReButton>
+              <ReButton link size="small" @click="openEdit(data)">编辑</ReButton>
+              <ReButton link size="small" type="danger" @click="removeGroup(data)">删除</ReButton>
+            </span>
+          </div>
+        </template>
+      </ReTree>
+    </ReCard>
 
     <ReDialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="480" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
-      <el-form label-width="80px">
-        <el-form-item label="名称" required>
-          <el-input v-model="form.msServerGroupName" placeholder="分组名称" />
-        </el-form-item>
-        <el-form-item label="父分组">
-          <el-tree-select
+      <ReForm label-width="80px" label-position="right">
+        <ReFormItem label="名称" required>
+          <ReInput v-model="form.msServerGroupName" placeholder="分组名称" />
+        </ReFormItem>
+        <ReFormItem label="父分组">
+          <ReTreeSelect
             v-model="form.msServerGroupParentId"
             :data="treeData"
             :props="{ children: 'children', label: 'name', value: 'id' }"
@@ -120,14 +121,14 @@ function renderNode(node: GroupNode): string {
             filterable
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.msServerGroupSort" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem label="排序">
+          <ReInputNumber v-model="form.msServerGroupSort" :min="0" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="备注">
+          <ReInput v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
   </div>
 </template>

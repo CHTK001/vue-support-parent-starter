@@ -925,36 +925,44 @@ export const application = {
   // DEGRADE_STUB: Tauri v2 has no public JS API to toggle the webview devtools.
   openDevTools: stubShellProvider<boolean, void>(false),
   systemInfo: withResponseMap(
-    httpGet<
-      {
-        cache_dir: string;
-        work_dir: string;
-        log_dir: string;
-        storage_generation: string;
-        platform: string;
-        arch: string;
-      },
-      void
-    >('/api/system/info'),
-    (raw) => ({
-      cacheDir: raw.cache_dir,
-      workDir: raw.work_dir,
-      logDir: raw.log_dir,
-      storageGeneration: raw.storage_generation,
-      platform: raw.platform,
-      arch: raw.arch,
-    })
-  ),
+      httpGet<
+        {
+          cache_dir: string;
+          work_dir: string;
+          log_dir: string;
+          storage_generation: string;
+          platform: string;
+          arch: string;
+          profile?: string;
+        },
+        void
+      >('/api/system/info'),
+      (raw) => ({
+        cacheDir: raw.cache_dir,
+        workDir: raw.work_dir,
+        logDir: raw.log_dir,
+        storageGeneration: raw.storage_generation,
+        platform: raw.platform,
+        arch: raw.arch,
+        profile: raw.profile,
+      })
+    ),
   getPath: shellProvider<string, { name: 'desktop' | 'home' | 'downloads' }>(({ name }) => tauriGetPath(name), ''),
   // Persist the user-chosen work dir to a pre-boot config file that the next
   // boot reads before resolving work_dir (Rust `nomifun_common::dir_config`).
   // The caller restarts right after this resolves; the new dir applies then.
   // `cacheDir` is accepted for back-compat but ignored — it is no longer
   // user-editable (removed from the settings UI), only `workDir` is sent.
-  updateSystemInfo: httpPost<void, { cacheDir: string; workDir: string }>(
-    '/api/system/work-dir',
-    ({ workDir }) => ({ work_dir: workDir })
-  ),
+  updateSystemInfo: httpPost<void, { cacheDir?: string; workDir?: string; logDir?: string }>(
+      '/api/system/work-dir',
+      (payload) => {
+        const body: Record<string, string> = {};
+        if (payload.workDir !== undefined) body.work_dir = payload.workDir;
+        if (payload.cacheDir !== undefined) body.cache_dir = payload.cacheDir;
+        if (payload.logDir !== undefined) body.log_dir = payload.logDir;
+        return body;
+      }
+    ),
   getZoomFactor: shellProvider<number, void>(async () => tauriGetZoom(), 1),
   setZoomFactor: shellProvider<number, { factor: number }>(({ factor }) => tauriSetZoom(factor), 1),
   applyKeepAwake: shellProvider<void, { enabled: boolean }>(({ enabled }) => tauriSetKeepAwake(enabled), undefined),

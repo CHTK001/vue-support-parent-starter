@@ -120,77 +120,77 @@ async function onForceClose(row: SessionRow): Promise<void> {
         <span class="online-title">在线会话</span>
         <span class="online-count">{{ onlineSessions.length }} 个活跃</span>
       </div>
-      <el-table :data="onlineSessions" size="small" border :loading="loading">
-        <el-table-column label="协议" width="90">
+      <ReTable :data="onlineSessions" size="small" border :loading="loading" :pagination="false" :toolbar="false">
+        <ReTableColumn label="协议" width="90">
           <template #default="{ row }">
-            <el-tag size="small" type="success">{{ protocolLabel(row.protocol) }}</el-tag>
+            <ReTag size="small" type="success">{{ protocolLabel(row.protocol) }}</ReTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="hostId" label="主机 ID" width="100" />
-        <el-table-column prop="recordId" label="审计 ID" width="110" />
-        <el-table-column prop="tunnelId" label="隧道 ID" min-width="180" show-overflow-tooltip />
-        <el-table-column label="最近活跃" width="170">
+        </ReTableColumn>
+        <ReTableColumn prop="hostId" label="主机 ID" width="100" />
+        <ReTableColumn prop="recordId" label="审计 ID" width="110" />
+        <ReTableColumn prop="tunnelId" label="隧道 ID" min-width="180" show-overflow-tooltip />
+        <ReTableColumn label="最近活跃" width="170">
           <template #default="{ row }">{{ formatActive(row.lastActiveTime) }}</template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
     </div>
 
     <div class="toolbar">
-      <el-radio-group v-model="statusFilter" @change="refresh">
-        <el-radio-button value="">全部</el-radio-button>
-        <el-radio-button value="OPEN">进行中</el-radio-button>
-        <el-radio-button value="CLOSED">已结束</el-radio-button>
-      </el-radio-group>
-      <el-button @click="refresh">刷新</el-button>
+      <ReRadioGroup v-model="statusFilter" button capsule @change="refresh">
+        <ReRadioButton value="">全部</ReRadioButton>
+        <ReRadioButton value="OPEN">进行中</ReRadioButton>
+        <ReRadioButton value="CLOSED">已结束</ReRadioButton>
+      </ReRadioGroup>
+      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
-    <el-table v-loading="loading" :data="sessions" size="small" border>
-      <el-table-column prop="msTerminalSessionHostName" label="主机" min-width="130" />
-      <el-table-column prop="msTerminalSessionProtocol" label="协议" width="80" />
-      <el-table-column prop="msTerminalSessionUser" label="用户" width="100" />
-      <el-table-column prop="msTerminalSessionClientIp" label="客户端 IP" width="130" />
-      <el-table-column prop="msTerminalSessionConnectTime" label="连接时间" width="160" />
-      <el-table-column prop="msTerminalSessionCloseTime" label="关闭时间" width="160" />
-      <el-table-column label="状态" width="90">
+    <ReTable :data="sessions" :loading="loading" size="small" border :pagination="false" :toolbar="false">
+      <ReTableColumn prop="msTerminalSessionHostName" label="主机" min-width="130" />
+      <ReTableColumn prop="msTerminalSessionProtocol" label="协议" width="80" />
+      <ReTableColumn prop="msTerminalSessionUser" label="用户" width="100" />
+      <ReTableColumn prop="msTerminalSessionClientIp" label="客户端 IP" width="130" />
+      <ReTableColumn prop="msTerminalSessionConnectTime" label="连接时间" width="160" />
+      <ReTableColumn prop="msTerminalSessionCloseTime" label="关闭时间" width="160" />
+      <ReTableColumn label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
+          <ReTag :type="row.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
             {{ row.msTerminalSessionStatus === 'OPEN' ? '进行中' : '已结束' }}
-          </el-tag>
+          </ReTag>
         </template>
-      </el-table-column>
-      <el-table-column prop="msTerminalSessionCloseReason" label="关闭原因" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="160" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn prop="msTerminalSessionCloseReason" label="关闭原因" min-width="120" show-overflow-tooltip />
+      <ReTableColumn label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="openDetail(row)">详情</el-button>
-          <el-button
+          <ReButton link size="small" type="primary" @click="openDetail(row)">详情</ReButton>
+          <ReButton
             v-if="row.msTerminalSessionStatus === 'OPEN'"
             link
             type="danger"
             size="small"
             @click="onForceClose(row)"
-          >强制关闭</el-button>
+          >强制关闭</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
-    <el-drawer v-model="detailVisible" :title="`会话详情`" direction="rtl" size="500px" destroy-on-close>
-      <template v-if="detailSession">
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="主机">{{ detailSession.msTerminalSessionHostName || hostMap[detailSession.msTerminalSessionHostId ?? 0] || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="协议">{{ detailSession.msTerminalSessionProtocol }}</el-descriptions-item>
-          <el-descriptions-item label="用户">{{ detailSession.msTerminalSessionUser || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="客户端IP">{{ detailSession.msTerminalSessionClientIp || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="连接时间">{{ detailSession.msTerminalSessionConnectTime || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="关闭时间">{{ detailSession.msTerminalSessionCloseTime || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="detailSession.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
+    <ReDrawer v-model="detailVisible" :title="`会话详情`" direction="rtl" size="500px" destroy-on-close close-only :footer-hidden="true">
+      <template #content>
+        <ReDescriptions v-if="detailSession" :column="2" border size="small">
+          <ReDescriptionsItem label="主机">{{ detailSession.msTerminalSessionHostName || hostMap[detailSession.msTerminalSessionHostId ?? 0] || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="协议">{{ detailSession.msTerminalSessionProtocol }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="用户">{{ detailSession.msTerminalSessionUser || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="客户端IP">{{ detailSession.msTerminalSessionClientIp || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="连接时间">{{ detailSession.msTerminalSessionConnectTime || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="关闭时间">{{ detailSession.msTerminalSessionCloseTime || '-' }}</ReDescriptionsItem>
+          <ReDescriptionsItem label="状态">
+            <ReTag :type="detailSession.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
               {{ detailSession.msTerminalSessionStatus === 'OPEN' ? '进行中' : '已结束' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="关闭原因">{{ detailSession.msTerminalSessionCloseReason || '-' }}</el-descriptions-item>
-        </el-descriptions>
+            </ReTag>
+          </ReDescriptionsItem>
+          <ReDescriptionsItem label="关闭原因">{{ detailSession.msTerminalSessionCloseReason || '-' }}</ReDescriptionsItem>
+        </ReDescriptions>
       </template>
-    </el-drawer>
+    </ReDrawer>
   </div>
 </template>
 

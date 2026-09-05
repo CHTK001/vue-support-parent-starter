@@ -1,46 +1,42 @@
 <template>
   <div class="snippet-manager fade-in sc-page">
     <div class="toolbar">
-      <el-button type="primary" @click="dialogVisible = true">
-        <i class="el-icon-plus"></i> 新增片段
-      </el-button>
-      <el-button @click="handleDelete" type="danger" :disabled="!selectedRow">
-        <i class="el-icon-delete"></i> 删除
-      </el-button>
-      <el-select v-model="filterName" placeholder="搜索片段名" style="margin-left: 16px; width: 200px" />
+      <ReButton layout="square" icon="Plus" type="primary" @click="editRow()">新增片段</ReButton>
+      <ReButton layout="square" icon="Delete" type="danger" :disabled="!selectedRow" @click="handleDelete">删除</ReButton>
+      <ReInput v-model="filterName" placeholder="搜索片段名" prefix-icon="Search" style="width: 200px" clearable />
     </div>
 
-    <el-table :data="snippets" size="small" border style="margin-top: 16px">
-      <el-table-column prop="id" label="编号" width="60" />
-      <el-table-column prop="msTerminalSnippetName" label="片段名称" min-width="150" />
-      <el-table-column prop="msTerminalSnippetRemark" label="备注" min-width="200" />
-      <el-table-column label="操作" width="140">
+    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false">
+      <ReTableColumn prop="id" label="编号" width="60" />
+      <ReTableColumn prop="msTerminalSnippetName" label="片段名称" min-width="150" />
+      <ReTableColumn prop="msTerminalSnippetRemark" label="备注" min-width="200" />
+      <ReTableColumn label="操作" width="140">
         <template #default="{ row }">
-          <el-button size="small" @click="editRow(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteRow(row)">删除</el-button>
+          <ReButton link size="small" @click="editRow(row)">编辑</ReButton>
+          <ReButton link size="small" type="danger" @click="deleteRow(row)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <!-- 新增/编辑弹窗 -->
     <ReDialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="save" @cancel="dialogVisible = false">
-      <el-form :model="formData" label-width="100px">
-        <el-form-item label="片段名称" required>
-          <el-input v-model="formData.name" />
-        </el-form-item>
-        <el-form-item label="片段内容">
-          <el-input v-model="formData.content" type="textarea" :rows="4" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="formData.remark" />
-        </el-form-item>
-      </el-form>
+      <ReForm :model="formData" label-width="100px" label-position="right">
+        <ReFormItem label="片段名称" required>
+          <ReInput v-model="formData.name" />
+        </ReFormItem>
+        <ReFormItem label="片段内容">
+          <ReInput v-model="formData.content" type="textarea" :rows="4" />
+        </ReFormItem>
+        <ReFormItem label="备注">
+          <ReInput v-model="formData.remark" />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSnippets, saveSnippet as apiSaveSnippet, delSnippet as apiDelSnippet } from '../api'
 
@@ -54,19 +50,29 @@ const formData = ref({
 })
 const selectedRow = ref<any>(null)
 const filterName = ref('')
+const allSnippets = ref<any[]>([])
+
+// 搜索过滤（不丢失全量数据）
+watch(filterName, () => {
+  const kw = filterName.value.trim().toLowerCase()
+  snippets.value = kw
+    ? allSnippets.value.filter(s => (s.msTerminalSnippetName || '').toLowerCase().includes(kw))
+    : allSnippets.value
+})
 
 // 加载片段列表
 async function loadSnippets(): Promise<void> {
   try {
-    const data = await apiGetSnippets()
-    snippets.value = data ?? []
+    const data = await getSnippets()
+    allSnippets.value = data ?? []
+    const kw = filterName.value.trim().toLowerCase()
+    snippets.value = kw
+      ? allSnippets.value.filter(s => (s.msTerminalSnippetName || '').toLowerCase().includes(kw))
+      : allSnippets.value
   } catch (e) {
     ElMessage.error((e as Error).message)
   }
 }
-
-// 从 API 导入的函数重命名
-const apiGetSnippets = () => import('../api').then(m => m.getSnippets)
 
 // 本地函数：打开弹窗
 function editRow(row?: any): void {
@@ -128,10 +134,7 @@ function handleDelete(): void {
   deleteRow(selectedRow.value);
 }
 
-// 监听搜索变化
-watch(filterName, (val) => {
-  // 这里可以添加客户端过滤逻辑
-})
+onMounted(loadSnippets)
 </script>
 
 <style scoped>
@@ -143,10 +146,5 @@ watch(filterName, (val) => {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-}
-
-.el-select {
-  margin-left: 0 !important;
-  width: 200px !important;
 }
 </style>
