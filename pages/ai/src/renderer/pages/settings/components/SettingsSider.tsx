@@ -13,8 +13,8 @@ import {
   DatabaseConfig,
   ChartHistogram,
   Platte,
-  Light,
-  Tool,
+  Picture,
+  TableFile,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -35,6 +35,9 @@ export const BUILTIN_TAB_IDS = [
   'workshop',
   'ocr',
   'face',
+  'image-recognition',
+  'layout',
+  'service',
   'skills',
   'mcp',
   'execution-engines',
@@ -129,6 +132,24 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <System />,
         path: 'face',
       },
+      'image-recognition': {
+        id: 'image-recognition',
+        label: t('settings.imageRecognition', { defaultValue: '图片识别' }),
+        icon: <Picture />,
+        path: 'image-recognition',
+      },
+      'layout': {
+        id: 'layout',
+        label: t('settings.layout', { defaultValue: '布局识别' }),
+        icon: <TableFile />,
+        path: 'layout',
+      },
+      'service': {
+        id: 'service',
+        label: t('settings.service', { defaultValue: '服务设置' }),
+        icon: <LinkCloud />,
+        path: 'service',
+      },
       'skills': {
         id: 'skills',
         label: t('settings.skillsMarket.settingsTitle', { defaultValue: '技能市场' }),
@@ -146,18 +167,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.computerUseNav'),
         icon: <Computer />,
         path: 'computer-use',
-      },
-      skills: {
-        id: 'skills',
-        label: t('settings.skillsHub.railTitle', { defaultValue: '技能' }),
-        icon: <Light />,
-        path: 'skills',
-      },
-      mcp: {
-        id: 'mcp',
-        label: t('settings.mcpHub.railTitle', { defaultValue: 'MCP' }),
-        icon: <Tool />,
-        path: 'mcp',
       },
     };
 

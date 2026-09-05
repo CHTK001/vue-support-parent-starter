@@ -21,23 +21,35 @@ interface CapabilityConfigFormProps {
   /**
    * 模型类字段 → 从模型目录按该能力标签拉取可选模型。
    * key = 字段名（如 detector_model），value = 模型目录能力标签（如 detect / feature / ocr / enhance）。
-   * 若某字段未在映射中，仍会作为普通 Input 渲染。
+   * 若某字段未在映射中，仍会作为普通 STRING 渲染（描述里有枚举则下拉）。
    */
   modelCapabilities?: Record<string, string>;
   i18nPrefix: string;
 }
 
-const isBoolean = (v: unknown) => String(v).toLowerCase() === 'true' || String(v) === 'false';
 const toBoolean = (v: unknown, def = false) =>
   v == null || v === '' ? def : String(v).toLowerCase() === 'true' || String(v) === '1';
+
+/**
+ * 配置字段的最终渲染控件。
+ *  - BOOLEAN → Switch
+ *  - NUMBER/FLOAT/INT → 数字输入
+ *  - STRING → 有可选列表则下拉（模型目录 > description 括号解析），否则文本输入
+ */
+type FieldControl = { kind: 'switch' } | { kind: 'number' } | { kind: 'select'; options: string[] } | { kind: 'input' };
 
 /**
  * 通用 AI 能力配置表单 —— 后端管线分组（OCR / 人脸识别等）的数据驱动渲染。
  *
  * <p>从 {@code GET endpoint} 拉取全部配置项（{field,value,valueType,description}），
- * 按 valueType 自动渲染控件：BOOLEAN→Switch、NUMBER→数字输入、STRING→文本输入 或
- * （字段在 modelCapabilities 映射内）→ 模型下拉。保存时向 {@code PUT endpoint}
+ * 按 valueType 与可选枚举自动渲染控件。保存时向 {@code PUT endpoint}
  * 提交 { group, fields:[{field,value}] } 整组替换。</p>
+ *
+ * <p>渲染规范（与既有设置页一致）：
+ *  - 开关 / 选择 / 输入统一用 {@link PreferenceRow} 排版；
+ *  - 描述内嵌的"（模型a / 模型b / …）"清单剥掉，只保留功能说明，选项由下拉承担；
+ *  - 布尔开关是字段格式化来源（如 `liveness_enabled`），其直接关联的模型/阈值
+ *    分组随开关显隐（见 face 的 enabled 联动）。</p>
  */
 const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
   endpoint,
@@ -50,6 +62,8 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
   const [saving, setSaving] = useState(false);
   /** 能力 → 模型 ID 列表（从 /v2/ai/models/capabilities 拉取） */
   const [catalog, setCatalog] = useState<Record<string, string[]>>({});
+
+  const isNumberType = (type: string) => ['NUMBER', 'FLOAT', 'INT', 'DOUBLE', 'LONG'].includes(type);
 
   // 拉取模型目录（能力 → 模型 ID 列表），供模型下拉使用
   useEffect(() => {
@@ -74,7 +88,22 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
   }, [endpoint]);
 
   const setField = useCallback((field: string, value: unknown) => {
-    setItems((prev) => prev.map((it) => (it.field === field ? { ...it, value } : it)));
+    setItems((prev) =>
+      prev.map((it) => (it.field === field ? { ...it, value: value as CapabilityConfigItem['value'] } : it)),
+    );
+  }, []);
+
+  /** 从 description 括号内解析" a / b / c "枚举（含空格分隔统一去空白）。 */
+  const parseEnums = useCallback((description: string | undefined): string[] => {
+    if (!description) return [];
+    const match = description.match(/[（(]([^）)]+)[）)]/);
+    if (match && match[1].includes('/')) {
+      return match[1]
+        .split(/\s*\/\s*/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [];
   }, []);
 
   const optionsFor = useCallback(
@@ -84,17 +113,41 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
         const fromCatalog = catalog[cap];
         if (fromCatalog && fromCatalog.length > 0) return fromCatalog;
       }
-      // 兜底：从 description 的括号模型清单里解析（如"文字识别模型（paddleocrv6-rec / svtr-extractor）"）
-      if (description) {
-        const match = description.match(/[（(]([^）)]+)[）)]/);
-        if (match && match[1].includes('/')) {
-          return match[1].split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
-        }
-      }
-      return [];
+      // 兜底：从 description 括号模型清单里解析（如"文字识别模型（paddleocrv6-rec / svtr-extractor）"）
+      const parsed = parseEnums(description);
+      return parsed.length > 0 ? parsed : [];
     },
-    [catalog, modelCapabilities],
+    [catalog, modelCapabilities, parseEnums],
   );
+
+  const controlFor = useCallback(
+    (item: CapabilityConfigItem): FieldControl => {
+      if (item.valueType === 'BOOLEAN') return { kind: 'switch' };
+      if (isNumberType(item.valueType)) return { kind: 'number' };
+      const options = optionsFor(item.field, item.description);
+      // 纯数字枚举（如 device cpu/cuda、vector_algorithm COSINE/…）也应下拉
+      if (options.length > 0) return { kind: 'select', options };
+      return { kind: 'input' };
+    },
+    [optionsFor],
+  );
+
+  /** 带 `_enabled` 开关的关联子字段：均以开关的 field 前缀分组 */
+  const enabledGroups = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    for (const it of items) {
+      const m = it.field.match(/^(.*)_enabled$/);
+      if (m && it.valueType === 'BOOLEAN') {
+        const prefix = m[1];
+        const children = items
+          .filter((x) => x.field !== it.field && x.field.startsWith(`${prefix}_`))
+          .map((x) => x.field)
+          .sort((a, b) => (items.find((i) => i.field === a)?.sort ?? 0) - (items.find((i) => i.field === b)?.sort ?? 0));
+        if (children.length > 0) groups.set(prefix, children);
+      }
+    }
+    return groups;
+  }, [items]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -132,61 +185,95 @@ const CapabilityConfigForm: React.FC<CapabilityConfigFormProps> = ({
     );
   }
 
+  const stripModelList = (description: string): string =>
+    description
+      .replace(/（[^）]*\/[^）]*）/g, '')
+      .replace(/\([^)]*\/[^)]*\)/g, '')
+      .trim();
+
+  const renderControl = (item: CapabilityConfigItem) => {
+    const control = controlFor(item);
+    if (control.kind === 'switch') {
+      return (
+        <Switch
+          checked={toBoolean(item.value)}
+          onChange={(v) => setField(item.field, String(v))}
+        />
+      );
+    }
+    if (control.kind === 'number') {
+      return (
+        <Input
+          className='w-160px'
+          type='number'
+          step='any'
+          value={item.value == null ? '' : String(item.value)}
+          onChange={(v) => setField(item.field, v)}
+        />
+      );
+    }
+    if (control.kind === 'select') {
+      return (
+        <Select
+          className='w-320px'
+          value={String(item.value ?? '')}
+          onChange={(v) => setField(item.field, v as string)}
+          allowClear
+          placeholder={t(`${i18nPrefix}.selectModel`, { defaultValue: '请选择' })}
+        >
+          {control.options.map((m) => (
+            <Select.Option key={m} value={m}>
+              {m}
+            </Select.Option>
+          ))}
+        </Select>
+      );
+    }
+    return (
+      <Input
+        className='w-320px'
+        value={item.value == null ? '' : String(item.value)}
+        onChange={(v) => setField(item.field, v)}
+      />
+    );
+  };
+
+  /** 渲染一个字段行；若其在某个 enabled 分组的 children 中，根据开关状态决定是否禁用 */
+  const renderRow = (item: CapabilityConfigItem) => {
+    const label = stripModelList(item.description || item.field);
+    // 寻找所属 enabled 分组
+    let disabledByGroup: { field: string; on: boolean } | null = null;
+    for (const [prefix, children] of enabledGroups) {
+      if (children.includes(item.field)) {
+        const switchItem = items.find((x) => x.field === `${prefix}_enabled`);
+        disabledByGroup = {
+          field: `${prefix}_enabled`,
+          on: switchItem != null ? toBoolean(switchItem.value) : true,
+        };
+        break;
+      }
+    }
+
+    return (
+      <div key={item.field} className={disabledByGroup && !disabledByGroup.on ? 'opacity-50' : undefined}>
+        <PreferenceRow label={label}>
+          {disabledByGroup ? (
+            <div className={disabledByGroup.on ? undefined : 'pointer-events-none'}>{renderControl(item)}</div>
+          ) : (
+            renderControl(item)
+          )}
+        </PreferenceRow>
+      </div>
+    );
+  };
+
   return (
     <SettingsPageWrapper>
       <div className='flex flex-col h-full w-full'>
         <NomiScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow>
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
             <div className='w-full flex flex-col divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
-              {items.map((item) => {
-                // 描述里若内嵌了"（模型a / 模型b / ...）"模型清单，则剥掉，只保留功能说明。
-                // 模型选项由下方下拉从模型目录实时拉取，无需在描述里重复罗列。
-                const rawDescription = item.description || item.field;
-                const label = rawDescription.replace(/（[^）]*\/[^）]*）/g, '').replace(/\([^)]*\/[^)]*\)/g, '').trim();
-                const isBool = item.valueType === 'BOOLEAN';
-                const isNum = item.valueType === 'NUMBER';
-                const capModels = optionsFor(item.field, item.description);
-                const isModelSelect = capModels.length > 0;
-
-                return (
-                  <PreferenceRow key={item.field} label={label}>
-                    {isBool ? (
-                      <Switch
-                        checked={toBoolean(item.value)}
-                        onChange={(v) => setField(item.field, String(v))}
-                      />
-                    ) : isModelSelect ? (
-                      <Select
-                        className='w-320px'
-                        value={String(item.value ?? '')}
-                        onChange={(v) => setField(item.field, v as string)}
-                        allowClear
-                        placeholder={t(`${i18nPrefix}.selectModel`, { defaultValue: '选择模型' })}
-                      >
-                        {capModels.map((m) => (
-                          <Select.Option key={m} value={m}>
-                            {m}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    ) : isNum ? (
-                      <Input
-                        className='w-160px'
-                        type='number'
-                        step='any'
-                        value={item.value == null ? '' : String(item.value)}
-                        onChange={(v) => setField(item.field, v)}
-                      />
-                    ) : (
-                      <Input
-                        className='w-320px'
-                        value={item.value == null ? '' : String(item.value)}
-                        onChange={(v) => setField(item.field, v)}
-                      />
-                    )}
-                  </PreferenceRow>
-                );
-              })}
+              {items.map((item) => renderRow(item))}
             </div>
           </div>
         </NomiScrollArea>
