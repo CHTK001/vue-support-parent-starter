@@ -47,13 +47,18 @@ export type AiGlobalSettings = {
   /** RAG 文本切片策略 */
   ragSplitter?: string;
   /**
-   * [前端扩展字段] 创意工坊资产存储目录。后端 DTO 无对应字段，
-   * PUT `/v2/global-settings` 时会被忽略（保持与既有行为一致）。
+   * 创意工坊资产存储目录。映射后端 workshop.storage_dir。
    */
   workshopStorageDir?: string;
-  /** [前端扩展字段] 创意工坊单次上传大小上限（MB）。同上，保存时被忽略。 */
+  /** 创意工坊单次上传大小上限（MB）。映射后端 workshop.max_upload_size_mb。 */
   workshopMaxUploadSizeMb?: number;
-  /** [前端扩展字段] 用量同步数据源白名单（逗号分隔，空 = 全部启用）。同上。 */
+  /** 创意工坊上传文件后缀白名单（逗号分隔，如 jpg,png,webp,mp4；空 = 不限制）。映射 workshop.allowed_extensions。 */
+  workshopAllowedExtensions?: string;
+  /** 是否启用聚合协议服务（OpenAI/Claude/Gemini 兼容端点）。映射 runtime.protocol_server_enabled。 */
+  protocolServerEnabled?: boolean;
+  /** 聚合协议服务端口。映射 runtime.protocol_server_port。 */
+  protocolServerPort?: number;
+  /** [前端扩展字段] 用量同步数据源白名单（逗号分隔，空 = 全部启用）。同上，保存时被忽略。 */
   usageEnabledParsers?: string;
 };
 
@@ -78,6 +83,11 @@ const AI_GLOBAL_SETTINGS_KEYS = new Set<keyof AiGlobalSettings>([
   'ragChunkSize',
   'ragChunkOverlap',
   'ragSplitter',
+  'workshopStorageDir',
+  'workshopMaxUploadSizeMb',
+  'workshopAllowedExtensions',
+  'protocolServerEnabled',
+  'protocolServerPort',
 ]);
 
 /** 拉取全局设置 */
@@ -130,6 +140,9 @@ export const AI_GLOBAL_SETTINGS_DEFAULTS: Required<AiGlobalSettings> = {
   ragSplitter: 'sentence',
   workshopStorageDir: '',
   workshopMaxUploadSizeMb: 100,
+  workshopAllowedExtensions: '',
+  protocolServerEnabled: false,
+  protocolServerPort: 8090,
   usageEnabledParsers: '',
 };
 

@@ -73,6 +73,20 @@ const WorkshopSettingsPage: React.FC = () => {
                   </button>
                 </div>
               </PreferenceRow>
+              <PreferenceRow
+                label={t('settings.workshopAllowedExtensions', { defaultValue: '允许上传的文件后缀' })}
+                description={t('settings.workshopAllowedExtensionsDesc', {
+                  defaultValue: '逗号分隔，如 jpg,png,webp,mp4；留空表示不限制',
+                })}
+              >
+                <input
+                  type='text'
+                  className='w-320px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
+                  value={aiStr(values, 'workshopAllowedExtensions')}
+                  placeholder='jpg,png,webp,mp4,webm'
+                  onChange={(e) => set('workshopAllowedExtensions', e.target.value)}
+                />
+              </PreferenceRow>
               <PreferenceRow label={t('settings.workshopMaxUploadSizeMb', { defaultValue: '单次上传大小上限（MB）' })}>
                 <input
                   type='number'

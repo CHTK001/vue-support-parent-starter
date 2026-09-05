@@ -139,7 +139,12 @@
     "confirmUrl": "URL",
     "confirmHeaderKeys": "Header 键",
     "searchPlaceholder": "搜索 MCP 服务...",
-    "empty": "点击刷新获取 MCP 市场列表。"
+    "empty": "点击刷新获取 MCP 市场列表。",
+    "settingsTitle": "MCP 市场",
+    "toggleSuccess": "MCP 市场已{{state}}",
+    "toggleFailed": "MCP 市场开关操作失败",
+    "enableMarket": "启用 MCP 市场",
+    "enableMarketDesc": "开启后展示 SkillHub MCP、MCP World 等市场；关闭后隐藏市场并停止拉取。"
   },
   "mcpPage": {
     "installedMcpTab": "已安装MCP",

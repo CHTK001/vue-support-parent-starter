@@ -32,8 +32,8 @@ const McpMarketSettingsPage: React.FC = () => {
   useEffect(() => {
     let active = true;
     setStatusLoading(true);
-    void ipcBridge.mode.statusMcpMarket
-      .invoke()
+      void ipcBridge.mcpService.statusMcpMarket
+        .invoke()
       .then((status) => {
         if (active) setMarketEnabled(status?.enabled ?? true);
       })
@@ -54,9 +54,9 @@ const McpMarketSettingsPage: React.FC = () => {
       setMarketEnabled(enabled);
       try {
         if (enabled) {
-          await ipcBridge.mode.enableMcpMarket.invoke();
+          await ipcBridge.mcpService.enableMcpMarket.invoke();
         } else {
-          await ipcBridge.mode.disableMcpMarket.invoke();
+          await ipcBridge.mcpService.disableMcpMarket.invoke();
         }
         message.success(
           t('settings.mcpMarket.toggleSuccess', {
