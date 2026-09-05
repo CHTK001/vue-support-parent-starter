@@ -147,7 +147,7 @@ const KnowledgeControl: React.FC<KnowledgeControlProps> = ({ target, draft, disa
   const navigate = useNavigate();
   const { conversations } = useConversationHistoryContext();
   const { sessions: terminalSessions } = useTerminalSessions();
-  const { tags: allTags } = useKnowledgeTags();
+  const { tags: allTags = [] } = useKnowledgeTags();
 
   // Build tag key → IKnowledgeTag map
   const tagMap = useMemo(() => {

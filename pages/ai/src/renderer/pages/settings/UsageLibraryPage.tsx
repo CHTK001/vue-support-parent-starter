@@ -53,8 +53,18 @@ const fmtNum = (v: unknown, d = 0) => v == null ? '-' : Number(v).toLocaleString
 const fmtStr = (v: unknown, def = '-') => v == null ? def : String(v);
 const fmtToken = (v: number) => v >= 1e9 ? (v/1e9).toFixed(2)+'B' : v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : String(v);
 const fmtCost = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(2)}`;
+/** 表格内费用：六位小数（对齐账单精度，如 $0.057030） */
+const fmtCost6 = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(6)}`;
 const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v as string | number | Date).format('YYYY/MM/DD HH:mm');
+const fmtDateFull = (v: unknown) => v == null ? '-' : dayjs(v as string | number | Date).format('YYYY/MM/DD HH:mm:ss');
 const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+/** 延迟展示：>60s 显示 "3m 17s"，>1s 显示两位小数秒，否则毫秒 */
+const fmtLatencyImg = (ms?: number) => {
+  if (ms == null || ms <= 0) return '-';
+  if (ms >= 60000) { const m = Math.floor(ms / 60000); const s = Math.round((ms % 60000) / 1000); return `${m}m ${s}s`; }
+  if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
+  return `${Math.round(ms)}ms`;
+};
 
 const mapRow = (r: any): UsageRow => ({
   id: r.sysAiUsageId, api_key: r.sysAiUsageGroupName ?? '默认', model: r.sysAiUsageModel,
@@ -159,24 +169,42 @@ const CostPop: React.FC<{ row: UsageRow }> = ({ row }) => (
   </div>
 );
 
+/** 延迟阈值：首字 / 总耗时 通用分档 */
+const latencyColor = (ms?: number) => ms == null || ms <= 0 ? 'var(--color-text-4)' : ms < 500 ? 'var(--success)' : ms < 2000 ? 'var(--warning)' : ms < 30000 ? 'var(--warning-6, var(--warning))' : 'var(--danger)';
+
+/** 参考图延迟单元格：左侧竖色条 + 首字/总耗时 两行 */
 const DelayBar: React.FC<{ firstMs?: number; totalMs?: number }> = ({ firstMs, totalMs }) => {
-  const mx = 10000;
-  const c = (ms?:number) => ms==null ? 'var(--bg-8)' : ms<500 ? 'var(--success)' : ms<2000 ? 'var(--warning)' : 'var(--danger)';
+  const barColor = latencyColor(totalMs ?? firstMs);
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:2,minWidth:68}}>
-      {firstMs!=null && <div style={{display:'flex',alignItems:'center',gap:3}}>
-        <span style={{fontSize:11,color:'var(--bg-8)',whiteSpace:'nowrap'}}>首字</span>
-        <div style={{flex:1,height:3,background:'var(--bg-3)',borderRadius:2,overflow:'hidden'}}><div style={{width:`${Math.min(firstMs/mx*100,100)}%`,height:'100%',background:c(firstMs),borderRadius:2}}/></div>
-        <span style={{fontSize:11,color:c(firstMs),whiteSpace:'nowrap'}}>{fmtLatency(firstMs)}</span>
-      </div>}
-      {totalMs!=null && <div style={{display:'flex',alignItems:'center',gap:3}}>
-        <span style={{fontSize:11,color:'var(--bg-8)',whiteSpace:'nowrap'}}>总耗时</span>
-        <div style={{flex:1,height:3,background:'var(--bg-3)',borderRadius:2,overflow:'hidden'}}><div style={{width:`${Math.min(totalMs/mx*100,100)}%`,height:'100%',background:c(totalMs),borderRadius:2}}/></div>
-        <span style={{fontSize:11,color:c(totalMs),whiteSpace:'nowrap'}}>{fmtLatency(totalMs)}</span>
-      </div>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 110 }}>
+      <div style={{ width: 3, alignSelf: 'stretch', minHeight: 30, borderRadius: 2, background: barColor, flexShrink: 0 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--color-text-3)', whiteSpace: 'nowrap' }}>首字</span>
+          <span style={{ fontSize: 12, color: 'var(--warning)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtLatencyImg(firstMs)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--color-text-3)', whiteSpace: 'nowrap' }}>总耗时</span>
+          <span style={{ fontSize: 12, color: latencyColor(totalMs), whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtLatencyImg(totalMs)}</span>
+        </div>
+      </div>
     </div>
   );
 };
+
+/** 表格 ⓘ 信息角标（悬停出明细浮窗） */
+const InfoMark: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Tooltip content={children} trigger='hover' position='top'>
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 14, height: 14, borderRadius: '50%', border: '1px solid var(--color-border-3)',
+        color: 'var(--color-text-3)', fontSize: 9, lineHeight: 1, cursor: 'pointer',
+        flexShrink: 0, userSelect: 'none', fontStyle: 'normal',
+      }}
+    >i</span>
+  </Tooltip>
+);
 
 // ─── 图表面板 ──────────────────────────────────────────────────
 
@@ -258,6 +286,26 @@ const UsageLibraryPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  /** 表格排序：模型 / 时间（客户端，作用于当前页） */
+  const [sortKey, setSortKey] = useState<'time' | 'model'>('time');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleSort = useCallback((key: 'time' | 'model') => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'time' ? 'desc' : 'asc');
+    }
+  }, [sortKey]);
+
+  const sortedRows = useMemo(() => {
+    const sign = sortDir === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sortKey === 'model') return String(a.model ?? '').localeCompare(String(b.model ?? '')) * sign;
+      return ((a.call_time ?? '').localeCompare(b.call_time ?? '')) * sign;
+    });
+  }, [rows, sortKey, sortDir]);
 
   const syncTimerRef = useRef<ReturnType<typeof setInterval>|null>(null);
   const paramsRef = useRef('');
@@ -444,102 +492,142 @@ const UsageLibraryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── 图表区域 ── */}
-        <div style={{ flex:1, overflow:'auto', padding:'0 20px 16px', display:'flex', flexDirection:'column', gap:12 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <ChartPanel title="模型分布" toggleKey="model" byToken={chartModes.model??true} onToggle={toggleChartMode} data={modelAgg} />
-            <ChartPanel title="分组使用分布" toggleKey="group" byToken={chartModes.group??true} onToggle={toggleChartMode} data={groupAgg} />
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <ChartPanel title="端点分布" toggleKey="endpoint" byToken={chartModes.endpoint??true} onToggle={toggleChartMode} data={endpointAgg} />
-            <div style={{ background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid var(--bg-3)' }}>
-                <span style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)' }}>Token 使用趋势</span>
-                <span style={{ fontSize:12, color:'var(--bg-6)' }}>{granularity==='hourly'?'按小时':'按天'}</span>
-              </div>
-              <div style={{ flex:1, minHeight:140, padding:'8px 12px' }}>
-                <EChartLine points={trendPoints} height={150} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 数据表格 ── */}
-        <div style={{ padding:'0 20px 20px', flexShrink:0 }}>
+        {/* ── 数据表格（主视图，对齐账单流水风格） ── */}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0 20px 12px', display: 'flex', flexDirection: 'column' }}>
           {rows.length === 0 ? (
-            <div style={{ background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', padding:'40px', textAlign:'center', color:'var(--bg-6)', fontSize:14 }}>
+            <div style={{ background: 'var(--bg-1)', borderRadius: 12, border: '1px solid var(--bg-3)', padding: '40px', textAlign: 'center', color: 'var(--bg-6)', fontSize: 14 }}>
               暂无用量数据
             </div>
           ) : (
-            <div style={{ background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', overflow:'hidden' }}>
-              <div style={{ overflowX:'auto' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+            <div style={{ background: 'var(--bg-1)', borderRadius: 12, border: '1px solid var(--bg-3)', overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ background:'var(--bg-2)', position:'sticky', top:0, zIndex:10 }}>
-                      {['API密钥','模型','推理强度','端点','IP','分组','类型','计费模式','TOKEN','费用','延迟','时间'].map(h => (
-                        <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'var(--bg-6)', fontWeight:500, fontSize:12, whiteSpace:'nowrap', borderBottom:'1px solid var(--bg-3)' }}>{h}</th>
-                      ))}
+                    <tr style={{ background: 'var(--bg-2)', position: 'sticky', top: 0, zIndex: 10 }}>
+                      {([
+                        { key: 'api_key', label: 'API 密钥', sortable: false },
+                        { key: 'model', label: '模型', sortable: true },
+                        { key: 'inference', label: '推理强度', sortable: false },
+                        { key: 'endpoint', label: '端点', sortable: false },
+                        { key: 'ip', label: 'IP', sortable: false },
+                        { key: 'group', label: '分组', sortable: false },
+                        { key: 'type', label: '类型', sortable: false },
+                        { key: 'billing', label: '计费模式', sortable: false },
+                        { key: 'token', label: 'TOKEN', sortable: false },
+                        { key: 'cost', label: '费用', sortable: false },
+                        { key: 'latency', label: '延迟', sortable: false },
+                        { key: 'time', label: '时间', sortable: true },
+                      ] as const).map((h) => {
+                        const active = h.sortable && sortKey === (h.key as 'time' | 'model');
+                        return (
+                          <th key={h.key} style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--color-text-3)', fontWeight: 500, fontSize: 12, whiteSpace: 'nowrap', borderBottom: '1px solid var(--bg-3)' }}>
+                            {h.sortable ? (
+                              <span onClick={() => toggleSort(h.key as 'time' | 'model')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, userSelect: 'none' }}>
+                                {h.label}
+                                <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 0, lineHeight: 1 }}>
+                                  <span style={{ fontSize: 8, color: active && sortDir === 'asc' ? 'var(--primary)' : 'var(--color-text-4)' }}>▲</span>
+                                  <span style={{ fontSize: 8, color: active && sortDir === 'desc' ? 'var(--primary)' : 'var(--color-text-4)' }}>▼</span>
+                                </span>
+                              </span>
+                            ) : h.label}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={row.id ?? i} style={{ borderBottom:'1px solid var(--bg-3)' }}
-                        onMouseEnter={e => (e.currentTarget.style.background='var(--bg-2)')}
-                        onMouseLeave={e => (e.currentTarget.style.background='transparent')}>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12, fontFamily:'monospace' }}>{row.api_key??'-'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--text-secondary)', fontWeight:500, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.model??'-'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.inference_strength??'默认'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--primary)', maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.endpoint??'默认'}</td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12, fontFamily:'monospace' }}>{row.ip??'默认'}</td>
-                        <td style={{ padding:'7px 12px' }}>
-                          <span style={{ fontSize:12, padding:'1px 6px', borderRadius:4, background: row.group_name==='入站'?'rgba(22,93,255,0.15)':row.group_name==='出站'?'rgba(35,195,67,0.15)':'var(--bg-3)', color: row.group_name==='入站'?'var(--primary)':row.group_name==='出站'?'var(--success)':'var(--text-secondary)' }}>{row.group_name??'-'}</span>
+                    {sortedRows.map((row, i) => (
+                      <tr key={row.id ?? i} style={{ borderBottom: '1px solid var(--bg-3)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-3)', fontSize: 12 }}>{row.api_key ?? '-'}</td>
+                        <td style={{ padding: '12px 14px', color: 'var(--text-primary)', fontWeight: 500, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.model ?? '-'}</td>
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-3)' }}>{row.inference_strength === '默认' ? '-' : row.inference_strength ?? '-'}</td>
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-2)', fontSize: 12, maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>入站: {row.endpoint ?? '-'}</td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <span style={{ color: 'var(--color-text-2)', fontSize: 12 }}>{row.ip ?? '-'}</span>
+                          </div>
                         </td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.type??'默认'}</td>
-                        <td style={{ padding:'7px 12px' }}>
-                          <span style={{ fontSize:12, padding:'1px 6px', borderRadius:4, background:'rgba(129,140,248,0.12)', color:'var(--info)' }}>
-                            {{pay_as_you_go:'按量',subscription:'订阅'}[row.billing_mode ?? ''] ?? '默认'}
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: row.group_name === '入站' ? 'rgba(22,93,255,0.12)' : row.group_name === '出站' ? 'rgba(35,195,67,0.12)' : 'rgba(22,93,255,0.08)', color: row.group_name === '出站' ? 'var(--success)' : 'var(--primary)' }}>{row.group_name ?? '-'}</span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: 'rgba(22,93,255,0.08)', color: 'var(--primary)' }}>{row.type ?? '-'}</span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: 'rgba(22,93,255,0.08)', color: 'var(--primary)' }}>
+                            {{ pay_as_you_go: '按量', subscription: '订阅' }[row.billing_mode ?? ''] ?? (row.billing_mode ?? '默认')}
                           </span>
                         </td>
-                        <td style={{ padding:'7px 12px' }}>
-                          <Tooltip content={<TokenPop row={row}/>} trigger="hover" position="top">
-                            <div style={{ cursor:'pointer' }}>
-                              <div style={{ display:'flex', gap:3, fontSize:12, alignItems:'baseline' }}>
-                                <span style={{ color:'var(--primary)' }}>↓{fmtToken(row.prompt_tokens??0)}</span>
-                                <span style={{ color:'var(--success)' }}>↑{fmtToken(row.completion_tokens??0)}</span>
+                        <td style={{ padding: '12px 14px' }}>
+                          <Tooltip content={<TokenPop row={row} />} trigger='hover' position='top'>
+                            <div style={{ cursor: 'pointer' }}>
+                              <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', color: 'var(--color-text-2)' }}>
+                                <span style={{ color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>↓ {fmtNum(row.prompt_tokens ?? 0, 0)}</span>
+                                <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>↑ {fmtNum(row.completion_tokens ?? 0, 0)}</span>
+                                <InfoMark><TokenPop row={row} /></InfoMark>
                               </div>
-                              {(row.cached_tokens??0)>0 && <div style={{ fontSize:11, color:'var(--bg-6)' }}>🗄{fmtToken(row.cached_tokens!)}</div>}
-                              <div style={{ fontSize:12, color:'var(--text-secondary)', fontWeight:500, fontFamily:'monospace' }}>{fmtNum(row.total_tokens??0,0)}</div>
+                              {(row.cached_tokens ?? 0) > 0 && (
+                                <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', marginTop: 2 }}>
+                                  <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>⚡ {fmtToken(row.cached_tokens!)}</span>
+                                  <InfoMark><TokenPop row={row} /></InfoMark>
+                                </div>
+                              )}
                             </div>
                           </Tooltip>
                         </td>
-                        <td style={{ padding:'7px 12px' }}>
-                          <Tooltip content={<CostPop row={row}/>} trigger="hover" position="top">
-                            <span style={{ color:'var(--success)', fontWeight:600, fontSize:14, fontFamily:'monospace', cursor:'pointer' }}>{fmtCost(row.total_cost)}</span>
+                        <td style={{ padding: '12px 14px' }}>
+                          <Tooltip content={<CostPop row={row} />} trigger='hover' position='top'>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--success)', fontWeight: 600, fontSize: 13, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }}>
+                              {fmtCost6(row.total_cost)}
+                              <InfoMark><CostPop row={row} /></InfoMark>
+                            </span>
                           </Tooltip>
                         </td>
-                        <td style={{ padding:'7px 12px' }}><DelayBar firstMs={row.first_token_latency} totalMs={row.total_latency}/></td>
-                        <td style={{ padding:'7px 12px', color:'var(--bg-6)', fontSize:12 }}>{fmtDate(row.call_time)}</td>
+                        <td style={{ padding: '12px 14px' }}><DelayBar firstMs={row.first_token_latency} totalMs={row.total_latency} /></td>
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-2)', fontSize: 12, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtDateFull(row.call_time)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderTop:'1px solid var(--bg-3)' }}>
-                <span style={{ fontSize:12, color:'var(--bg-6)' }}>共 {total} 条</span>
-                <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                  <button onClick={()=>void handlePage(currentPage-1)} disabled={currentPage<=1}
-                    style={{ padding:'3px 10px', borderRadius:5, fontSize:12, border:'1px solid var(--bg-3)', background:'var(--bg-1)', color:'var(--text-secondary)', cursor:currentPage<=1?'not-allowed':'pointer' }}>上一页</button>
-                  <span style={{ fontSize:12, color:'var(--bg-6)', padding:'0 6px' }}>{currentPage} / {Math.ceil(total/pageSize)||1}</span>
-                  <button onClick={()=>void handlePage(currentPage+1)} disabled={currentPage>=Math.ceil(total/pageSize)}
-                    style={{ padding:'3px 10px', borderRadius:5, fontSize:12, border:'1px solid var(--bg-3)', background:'var(--bg-1)', color:'var(--text-secondary)', cursor:currentPage>=Math.ceil(total/pageSize)?'not-allowed':'pointer' }}>下一页</button>
-                  <select value={pageSize} onChange={e=>void handleSize(+e.target.value)}
-                    style={{ fontSize:12, padding:'2px 4px', background:'var(--bg-1)', border:'1px solid var(--bg-3)', borderRadius:4, color:'var(--text-secondary)' }}>
-                    {[5,10,20,50].map(n=><option key={n} value={n}>{n}条/页</option>)}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderTop: '1px solid var(--bg-3)' }}>
+                <span style={{ fontSize: 12, color: 'var(--bg-6)' }}>共 {total} 条</span>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button onClick={() => void handlePage(currentPage - 1)} disabled={currentPage <= 1}
+                    style={{ padding: '3px 10px', borderRadius: 5, fontSize: 12, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--text-secondary)', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
+                  <span style={{ fontSize: 12, color: 'var(--bg-6)', padding: '0 6px' }}>{currentPage} / {Math.ceil(total / pageSize) || 1}</span>
+                  <button onClick={() => void handlePage(currentPage + 1)} disabled={currentPage >= Math.ceil(total / pageSize)}
+                    style={{ padding: '3px 10px', borderRadius: 5, fontSize: 12, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--text-secondary)', cursor: currentPage >= Math.ceil(total / pageSize) ? 'not-allowed' : 'pointer' }}>下一页</button>
+                  <select value={pageSize} onChange={e => void handleSize(+e.target.value)}
+                    style={{ fontSize: 12, padding: '2px 4px', background: 'var(--bg-1)', border: '1px solid var(--bg-3)', borderRadius: 4, color: 'var(--text-secondary)' }}>
+                    {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}条/页</option>)}
                   </select>
                 </div>
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── 图表区域 ── */}
+        <div style={{ flexShrink: 0, padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ChartPanel title="模型分布" toggleKey="model" byToken={chartModes.model ?? true} onToggle={toggleChartMode} data={modelAgg} />
+            <ChartPanel title="分组使用分布" toggleKey="group" byToken={chartModes.group ?? true} onToggle={toggleChartMode} data={groupAgg} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ChartPanel title="端点分布" toggleKey="endpoint" byToken={chartModes.endpoint ?? true} onToggle={toggleChartMode} data={endpointAgg} />
+            <div style={{ background: 'var(--bg-1)', borderRadius: 12, border: '1px solid var(--bg-3)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--bg-3)' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Token 使用趋势</span>
+                <span style={{ fontSize: 12, color: 'var(--bg-6)' }}>{granularity === 'hourly' ? '按小时' : '按天'}</span>
+              </div>
+              <div style={{ flex: 1, minHeight: 140, padding: '8px 12px' }}>
+                <EChartLine points={trendPoints} height={150} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </SettingsPageWrapper>

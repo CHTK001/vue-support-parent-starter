@@ -138,10 +138,10 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
           description={t('settings.skillsMarket.description', {
             defaultValue: '同步 ClawHub、LoopHub 与 SkillHub 最新榜单，选择技能后交给 Nomi 生成安装确认草稿。',
           })}
-          sources={SKILL_MARKET_SOURCES}
+          sources={enabledSources}
           cacheKey={CACHE_KEY}
           autoSyncKey={AUTO_SYNC_KEY}
-          defaultSource='clawhub'
+          defaultSource={enabledSources[0] ?? 'clawhub'}
           searchPlaceholder={t('settings.skillsMarket.searchPlaceholder', { defaultValue: '搜索当前市场技能...' })}
           emptyText={t('settings.skillsMarket.empty', { defaultValue: '正在准备榜单，点击刷新可重新采集。' })}
           onAdd={handleAdd}

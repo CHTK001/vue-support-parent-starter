@@ -22,7 +22,7 @@ export function useKnowledgeTags() {
     setLoading(true);
     try {
       const res = await ipcBridge.knowledge.listTags.invoke();
-      setTags(res);
+      setTags(Array.isArray(res) ? res : []);
       setError(null);
     } catch (e) {
       log.error(`Failed to load knowledge tags`, e);
