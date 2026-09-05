@@ -171,16 +171,16 @@ async function onDetect(): Promise<void> {
  */
 async function onRefreshPublicIp(): Promise<void> {
   if (!form.id) {
-    ElMessage.warning('请先保存主机后再刷新公网 IP');
+    message.warning('请先保存主机后再刷新公网 IP');
     return;
   }
   refreshingIp.value = true;
   try {
     const ip = await refreshHostPublicIp(form.id);
     form.serverHostPublicIp = ip;
-    ElMessage.success(`公网 IP 已刷新：${ip}`);
+    message.success(`公网 IP 已刷新：${ip}`);
   } catch (e) {
-    ElMessage.error((e as Error).message || '公网 IP 刷新失败');
+    message.error((e as Error).message || '公网 IP 刷新失败');
   } finally {
     refreshingIp.value = false;
   }
@@ -194,7 +194,7 @@ async function onPemFileChange(file: any): Promise<void> {
   if (!raw) return;
   const ext = raw.name.split('.').pop()?.toLowerCase();
   if (!['pem', 'key', 'priv'].includes(ext ?? '')) {
-    ElMessage.warning('仅支持 .pem / .key / .priv 格式');
+    message.warning('仅支持 .pem / .key / .priv 格式');
     return;
   }
   pemLoading.value = true;
@@ -206,9 +206,9 @@ async function onPemFileChange(file: any): Promise<void> {
       reader.readAsText(raw);
     });
     form.serverHostPrivateKey = text.trim();
-    ElMessage.success('私钥已导入');
+    message.success('私钥已导入');
   } catch (e) {
-    ElMessage.error((e as Error).message || '私钥文件读取失败');
+    message.error((e as Error).message || '私钥文件读取失败');
   } finally {
     pemLoading.value = false;
   }
