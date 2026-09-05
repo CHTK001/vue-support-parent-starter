@@ -5,10 +5,7 @@
         <h2>全局配置</h2>
         <span class="header-desc">监控模块全局参数，重启采集器后生效</span>
       </div>
-      <el-button type="primary" @click="doSaveAll" class="save-btn">
-        <ReIcon name="Bottom" />
-        保存全部
-      </el-button>
+      <ReButton show-text icon="Bottom" type="primary" @click="doSaveAll">保存全部</ReButton>
     </header>
 
     <div class="config-grid">
@@ -19,10 +16,10 @@
             <span class="card-name">{{ section.name }}</span>
           </div>
         </template>
-        <el-form :model="section" label-position="top">
-          <el-form-item v-for="field in section.fields" :key="field.key" :label="field.label">
+        <ReForm :model="section" label-position="top">
+          <ReFormItem v-for="field in section.fields" :key="field.key" :label="field.label">
             <template v-if="field.type === 'number'">
-              <el-input-number
+              <ReInputNumber
                 v-model="cfg[field.key]"
                 :min="field.min" :max="field.max"
                 controls-position="right"
@@ -30,14 +27,14 @@
               />
             </template>
             <template v-else-if="field.type === 'switch'">
-              <el-switch v-model="cfg[field.key]" :active-value="1" :inactive-value="0" />
+              <ReSwitch v-model="cfg[field.key]" :active-value="1" :inactive-value="0" />
             </template>
             <template v-else>
-              <el-input v-model="cfg[field.key]" />
+              <ReInput v-model="cfg[field.key]" />
             </template>
             <span class="field-desc" v-if="field.desc">{{ field.desc }}</span>
-          </el-form-item>
-        </el-form>
+          </ReFormItem>
+        </ReForm>
       </ReCard>
     </div>
   </div>

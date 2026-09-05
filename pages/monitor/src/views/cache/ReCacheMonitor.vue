@@ -11,10 +11,10 @@
         </div>
         <div class="header-right">
           <span class="refresh-time">最后更新: {{ lastRefresh }}</span>
-          <el-button plain @click="refreshAll" class="refresh-btn">
+          <ReButton show-text icon="RefreshLeft" plain @click="refreshAll" class="refresh-btn">
             <ReIcon name="RefreshLeft" />
             刷新
-          </el-button>
+          </ReButton>
         </div>
       </div>
     </ReCard>
@@ -27,9 +27,9 @@
             <span class="panel-title">缓存列表</span>
             <span class="panel-count">共 {{ cachePrefixes.length }} 条</span>
           </div>
-          <el-button text size="small" @click="refreshCacheList" class="panel-refresh">
+          <ReButton text size="small" icon="RefreshLeft" @click="refreshCacheList" class="panel-refresh">
             <ReIcon name="RefreshLeft" />
-          </el-button>
+          </ReButton>
         </div>
       </template>
 
@@ -52,15 +52,16 @@
               </div>
               <div class="cache-actions">
                 <span class="cache-count">{{ item.count }} 个</span>
-                <el-button
+                <ReButton
                   text
                   size="small"
                   type="danger"
+                  icon="Delete"
                   @click.stop="clearCachePrefix(item.prefix)"
                   class="cache-del-btn"
                 >
                     <ReIcon name="Delete" />
-                </el-button>
+                </ReButton>
               </div>
             </div>
           </div>
@@ -74,9 +75,9 @@
             <span class="panel-title">键名列表</span>
             <span class="panel-count">{{ selectedCache ? `共 ${keyList.length} 个` : '' }}</span>
           </div>
-          <el-button v-if="selectedCache" text size="small" @click="refreshKeyList" class="panel-refresh">
+          <ReButton v-if="selectedCache" text size="small" icon="RefreshLeft" @click="refreshKeyList" class="panel-refresh">
             <ReIcon name="RefreshLeft" />
-          </el-button>
+          </ReButton>
         </div>
       </template>
 
@@ -99,15 +100,16 @@
             >
               <span class="key-index">{{ idx + 1 }}</span>
               <span class="key-name">{{ key }}</span>
-              <el-button
+              <ReButton
                 text
                 size="small"
                 type="danger"
+                icon="Close"
                 @click.stop="deleteKey(key)"
                 class="key-del-btn"
               >
                 <ReIcon name="Close" />
-              </el-button>
+              </ReButton>
             </div>
           </div>
         </div>
@@ -119,17 +121,19 @@
           <div class="panel-head-left">
             <span class="panel-title">缓存内容</span>
           </div>
-          <el-button
+          <ReButton
             v-if="selectedKey"
             type="danger"
             text
             size="small"
+            icon="Close"
+            show-text
             @click="clearSelectedKey"
             class="panel-clear-btn"
           >
             <ReIcon name="Close" />
             清空
-          </el-button>
+          </ReButton>
         </div>
       </template>
 
@@ -166,13 +170,13 @@
               <div class="value-head">
                 <span class="value-label">Value</span>
                 <div class="value-actions">
-                  <el-button size="small" @click="copyValue" class="value-copy-btn">
+                  <ReButton size="small" icon="CopyDocument" show-text @click="copyValue" class="value-copy-btn">
                     <ReIcon name="CopyDocument" />
                     复制
-                  </el-button>
-                  <el-button size="small" type="danger" @click="clearSelectedKey" class="value-del-btn">
+                  </ReButton>
+                  <ReButton size="small" type="danger" icon="Delete" @click="clearSelectedKey" class="value-del-btn">
               <ReIcon name="Delete" />
-                  </el-button>
+                  </ReButton>
                 </div>
               </div>
               <pre class="value-content">{{ cacheValue }}</pre>

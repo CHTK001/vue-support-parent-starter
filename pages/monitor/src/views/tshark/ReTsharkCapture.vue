@@ -7,15 +7,12 @@
         <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
       </div>
       <div class="toolbar-right">
-        <el-select v-model="iface" placeholder="选择网卡" clearable filterable class="iface-select" @visible-change="loadInterfaces">
-          <el-option v-for="i in interfaces" :key="i" :label="i" :value="i" />
-        </el-select>
-        <el-input v-model="filter" placeholder="BPF 过滤, 如 tcp port 8080" clearable class="filter-input" />
-        <el-input-number v-model="count" :min="0" :max="1000000" placeholder="包数(0不限)" class="count-input" />
-        <el-input-number v-model="timeout" :min="0" :max="86400" placeholder="时长(秒)" class="count-input" />
-        <el-button type="primary" :loading="starting" @click="startCapture">
-          <ReIcon name="VideoPlay" /> 开始抓包
-        </el-button>
+        <ReSelect v-model="iface" placeholder="选择网卡" clearable filterable class="iface-select"
+          :data="interfaces.map(i => ({ label: i, value: i }))" />
+        <ReInput v-model="filter" placeholder="BPF 过滤, 如 tcp port 8080" clearable class="filter-input" />
+        <ReInputNumber v-model="count" :min="0" :max="1000000" placeholder="包数(0不限)" class="count-input" />
+        <ReInputNumber v-model="timeout" :min="0" :max="86400" placeholder="时长(秒)" class="count-input" />
+        <ReButton show-text icon="VideoPlay" type="primary" :loading="starting" @click="startCapture">开始抓包</ReButton>
       </div>
     </div>
 
@@ -32,9 +29,9 @@
                  @click="selectSession(s.id)">
               <div class="session-head">
                 <span class="session-name">{{ s.sessionName || s.captureInterface }}</span>
-                <el-tag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="light">
+                <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="light">
                   {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
-                </el-tag>
+                </ReTag>
               </div>
               <div class="session-meta">
                 <span>{{ s.captureInterface }}</span>
@@ -44,12 +41,8 @@
                 <span>{{ s.startTime || '' }}</span>
               </div>
               <div class="session-actions">
-                <el-button v-if="s.captureStatus === 1" size="small" text type="warning" @click.stop="stopSession(s.id)">
-                  <ReIcon name="VideoPause" /> 停止
-                </el-button>
-                <el-button size="small" text type="danger" @click.stop="deleteSession(s.id)">
-                  <ReIcon name="Delete" /> 删除
-                </el-button>
+                <ReButton v-if="s.captureStatus === 1" size="small" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
+                <ReButton size="small" link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
               </div>
             </div>
             <div v-if="!loadingSessions && sessions.length === 0" class="empty-sessions">
@@ -57,7 +50,7 @@
             </div>
           </div>
           <div class="session-footer">
-            <el-pagination small layout="prev, pager, next" :total="sessionTotal" :page-size="10"
+            <RePagination small layout="prev, pager, next" :total="sessionTotal" :page-size="10"
                            :current-page="sessionPage" @current-change="(p: number) => loadSessions(p)" />
           </div>
         </ReCard>
@@ -95,41 +88,42 @@
           <template #title>
             <span class="panel-title"><ReIcon name="List" :size="13" /> 数据包明细</span>
           </template>
-          <el-table :data="packets" v-loading="loadingPackets" border stripe size="small" height="320">
-            <el-table-column prop="packetTime" label="时间" width="170" align="center">
+          <ReTable :data="packets" :loading="loadingPackets" border stripe size="small" :pagination="false" :toolbar="false"
+            :layout-table="{ height: 320 }">
+            <ReTableColumn prop="packetTime" label="时间" width="170" align="center">
               <template #default="{ row }"><span class="mono dim">{{ row.packetTime || '' }}</span></template>
-            </el-table-column>
-            <el-table-column label="协议" width="90" align="center">
+            </ReTableColumn>
+            <ReTableColumn label="协议" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :class="['proto-tag', protoClass(row.protocol)]" effect="plain" size="small">{{ row.protocol || 'OTHER' }}</el-tag>
+                <ReTag :class="['proto-tag', protoClass(row.protocol)]" effect="plain" size="small">{{ row.protocol || 'OTHER' }}</ReTag>
               </template>
-            </el-table-column>
-            <el-table-column label="源" width="170">
+            </ReTableColumn>
+            <ReTableColumn label="源" width="170">
               <template #default="{ row }">
                 <span class="mono">{{ row.sourceIp || '?' }}:{{ row.sourcePort ?? '' }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="目的" width="170">
+            </ReTableColumn>
+            <ReTableColumn label="目的" width="170">
               <template #default="{ row }">
                 <span class="mono">{{ row.destIp || '?' }}:{{ row.destPort ?? '' }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="packetLength" label="长度" width="80" align="right">
+            </ReTableColumn>
+            <ReTableColumn prop="packetLength" label="长度" width="80" align="right">
               <template #default="{ row }"><span class="mono">{{ row.packetLength ?? 0 }}</span></template>
-            </el-table-column>
-            <el-table-column label="摘要" min-width="240">
+            </ReTableColumn>
+            <ReTableColumn label="摘要" min-width="240">
               <template #default="{ row }">
                 <span class="info-cell" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="操作" width="80" align="center">
+            </ReTableColumn>
+            <ReTableColumn label="操作" width="80" align="center">
               <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="openPacketDetail(row)">详情</el-button>
+                <ReButton size="small" link type="primary" @click="openPacketDetail(row)">详情</ReButton>
               </template>
-            </el-table-column>
-          </el-table>
+            </ReTableColumn>
+          </ReTable>
           <div class="table-footer">
-            <el-pagination small layout="prev, pager, next" :total="packetTotal" :page-size="20"
+            <RePagination small layout="prev, pager, next" :total="packetTotal" :page-size="20"
                            :current-page="packetPage" @current-change="(p: number) => loadPackets(p)" />
           </div>
         </ReCard>
@@ -143,36 +137,38 @@
     </div>
 
     <!-- 数据包详情抽屉 -->
-    <el-drawer v-model="detailOpen" title="数据包详情" size="55%">
-      <div v-if="packetDetail" class="packet-detail">
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="协议">{{ packetDetail.protocol }}</el-descriptions-item>
-          <el-descriptions-item label="长度">{{ packetDetail.packetLength }} 字节</el-descriptions-item>
-          <el-descriptions-item label="源地址">{{ packetDetail.sourceIp }}:{{ packetDetail.sourcePort }}</el-descriptions-item>
-          <el-descriptions-item label="目的地址">{{ packetDetail.destIp }}:{{ packetDetail.destPort }}</el-descriptions-item>
-          <el-descriptions-item label="时间" :span="2">{{ packetDetail.packetTime }}</el-descriptions-item>
-        </el-descriptions>
-        <div class="detail-section">
-          <h4>摘要</h4>
-          <p class="mono">{{ packetDetail.packetInfo || '—' }}</p>
+    <ReDrawer v-model="detailOpen" title="数据包详情" size="55%">
+      <template #content>
+        <div v-if="packetDetail" class="packet-detail">
+          <ReDescriptions :column="2" border size="small">
+            <ReDescriptionsItem label="协议">{{ packetDetail.protocol }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="长度">{{ packetDetail.packetLength }} 字节</ReDescriptionsItem>
+            <ReDescriptionsItem label="源地址">{{ packetDetail.sourceIp }}:{{ packetDetail.sourcePort }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="目的地址">{{ packetDetail.destIp }}:{{ packetDetail.destPort }}</ReDescriptionsItem>
+            <ReDescriptionsItem label="时间" :span="2">{{ packetDetail.packetTime }}</ReDescriptionsItem>
+          </ReDescriptions>
+          <div class="detail-section">
+            <h4>摘要</h4>
+            <p class="mono">{{ packetDetail.packetInfo || '—' }}</p>
+          </div>
+          <div class="detail-section" v-if="packetDetail.restoredText">
+            <h4>协议还原</h4>
+            <pre class="restored">{{ packetDetail.restoredText }}</pre>
+          </div>
+          <div class="detail-section" v-if="packetDetail.rawData">
+            <h4>原始数据</h4>
+            <pre class="raw">{{ packetDetail.rawData.slice(0, 4000) }}</pre>
+          </div>
         </div>
-        <div class="detail-section" v-if="packetDetail.restoredText">
-          <h4>协议还原</h4>
-          <pre class="restored">{{ packetDetail.restoredText }}</pre>
-        </div>
-        <div class="detail-section" v-if="packetDetail.rawData">
-          <h4>原始数据</h4>
-          <pre class="raw">{{ packetDetail.rawData.slice(0, 4000) }}</pre>
-        </div>
-      </div>
-    </el-drawer>
+      </template>
+    </ReDrawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
@@ -241,7 +237,7 @@ async function loadSessions(page = sessionPage.value) {
       selectSession(sessions.value[0].id)
     }
   } catch (e: any) {
-    ElMessage.error('加载会话失败: ' + (e?.message || e))
+    message.error('加载会话失败: ' + (e?.message || e))
   } finally {
     loadingSessions.value = false
   }
@@ -262,7 +258,7 @@ async function loadPackets(page = packetPage.value) {
     packetTotal.value = r?.total ?? packets.value.length
     packetPage.value = page
   } catch (e: any) {
-    ElMessage.error('加载数据包失败: ' + (e?.message || e))
+    message.error('加载数据包失败: ' + (e?.message || e))
   } finally {
     loadingPackets.value = false
   }
@@ -325,7 +321,7 @@ function renderFlowChart() {
 }
 
 async function startCapture() {
-  if (!iface.value) { ElMessage.warning('请选择网卡'); return }
+  if (!iface.value) { message.warning('请选择网卡'); return }
   starting.value = true
   try {
     await startTsharkCapture({
@@ -335,10 +331,10 @@ async function startCapture() {
       count: count.value > 0 ? count.value : undefined,
       timeout: timeout.value > 0 ? timeout.value : undefined,
     })
-    ElMessage.success('抓包已启动')
+    message.success('抓包已启动')
     loadSessions(1)
   } catch (e: any) {
-    ElMessage.error('启动抓包失败: ' + (e?.message || e))
+    message.error('启动抓包失败: ' + (e?.message || e))
   } finally {
     starting.value = false
   }
@@ -347,20 +343,20 @@ async function startCapture() {
 async function stopSession(id: number) {
   try {
     await stopTsharkCapture(id)
-    ElMessage.success('已停止抓包')
+    message.success('已停止抓包')
     loadSessions()
   } catch (e: any) {
-    ElMessage.error('停止失败: ' + (e?.message || e))
+    message.error('停止失败: ' + (e?.message || e))
   }
 }
 
 async function deleteSession(id: number) {
   try {
-    await ElMessageBox.confirm('确认删除该会话及其所有数据包？', '提示', { type: 'warning' })
+    await message.confirm('确认删除该会话及其所有数据包？', '提示', { type: 'warning' })
   } catch { return }
   try {
     await delTsharkSession(id)
-    ElMessage.success('已删除')
+    message.success('已删除')
     if (activeSessionId.value === id) {
       activeSessionId.value = null
       packets.value = []
@@ -369,7 +365,7 @@ async function deleteSession(id: number) {
     }
     loadSessions()
   } catch (e: any) {
-    ElMessage.error('删除失败: ' + (e?.message || e))
+    message.error('删除失败: ' + (e?.message || e))
   }
 }
 
@@ -378,7 +374,7 @@ async function openPacketDetail(row: any) {
     packetDetail.value = await getTsharkPacketDetail(row.id)
     detailOpen.value = true
   } catch (e: any) {
-    ElMessage.error('加载详情失败: ' + (e?.message || e))
+    message.error('加载详情失败: ' + (e?.message || e))
   }
 }
 

@@ -28,56 +28,52 @@
     </div>
 
     <div class="export-btns" style="margin-bottom: 16px;">
-      <el-button type="primary" @click="downloadAllMetrics" style="margin-right: 8px;">
-        <i class="el-icon-download"></i> 导出全部
-      </el-button>
-      <el-button @click="downloadMetrics" style="margin-right: 8px;">
-        <i class="el-icon-download"></i> 导出选中
-      </el-button>
+      <ReButton show-text icon="Download" type="primary" @click="downloadAllMetrics" style="margin-right: 8px;">导出全部</ReButton>
+      <ReButton show-text icon="Download" @click="downloadMetrics" style="margin-right: 8px;">导出选中</ReButton>
     </div>
 
-    <el-row :gutter="16">
-      <el-col :span="12">
-        <el-card class="shadow-sm rounded-xl p-4">
+    <ReRow :gutter="16">
+      <ReCol :span="12">
+        <ReCard class="shadow-sm rounded-xl p-4">
           <div class="card-title">服务类型分布</div>
           <div class="dist-chart">
             <div class="dist-item">
               <span class="dist-label">服务器</span>
-              <el-progress :percentage="serverPct" :stroke-width="16" color="var(--el-color-primary)" />
+              <ReProgress :progress="serverPct / 100" color="primary" :height="16" />
             </div>
             <div class="dist-item">
               <span class="dist-label">Redis</span>
-              <el-progress :percentage="redisPct" :stroke-width="16" color="var(--el-color-warning)" />
+              <ReProgress :progress="redisPct / 100" color="warning" :height="16" />
             </div>
             <div class="dist-item">
               <span class="dist-label">数据库</span>
-              <el-progress :percentage="dbPct" :stroke-width="16" color="var(--el-color-success)" />
+              <ReProgress :progress="dbPct / 100" color="success" :height="16" />
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="shadow-sm rounded-xl p-4">
+        </ReCard>
+      </ReCol>
+      <ReCol :span="12">
+        <ReCard class="shadow-sm rounded-xl p-4">
           <div class="card-title">运行状态概览</div>
           <div class="status-chart">
             <div class="dist-item">
               <span class="dist-label">运行中</span>
-              <el-progress :percentage="enabledPct" :stroke-width="16" color="var(--el-color-success)" />
+              <ReProgress :progress="enabledPct / 100" color="success" :height="16" />
             </div>
             <div class="dist-item">
               <span class="dist-label">已停用</span>
-              <el-progress :percentage="disabledPct" :stroke-width="16" color="var(--el-color-danger)" />
+              <ReProgress :progress="disabledPct / 100" color="danger" :height="16" />
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ReCard>
+      </ReCol>
+    </ReRow>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, defineExpose } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from '@repo/core'
 import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../../api'
 
 const data = ref({ total: 0, enabled: 0, disabled: 0, serverCount: 0, redisCount: 0, dbCount: 0 })
@@ -95,7 +91,7 @@ onMounted(async () => {
   loading.value = true
   try {
     data.value = await getOverview() || data.value
-  } catch (e) { ElMessage.error((e as Error).message) }
+  } catch (e) { message.error((e as Error).message) }
   finally { loading.value = false }
 })
 

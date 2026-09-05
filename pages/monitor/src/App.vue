@@ -28,20 +28,20 @@
 
       <div class="top-right">
         <span class="clock">{{ currentTime }}</span>
-        <div class="user-zone" @click="userOpen = !userOpen">
-          <el-avatar size="26" class="user-avatar"><ReIcon name="User" :size="14" /></el-avatar>
-          <span class="user-name">Admin</span>
-          <ReIcon name="ArrowDown" :size="10" class="user-arrow" />
-        </div>
-        <el-dropdown v-model="userOpen" trigger="click" placement="bottom-end" class="user-dropdown">
+        <ReDropdown trigger="click" placement="bottom-end">
+          <div class="user-zone">
+            <ReAvatar :size="26" class="user-avatar"><ReIcon name="User" :size="14" /></ReAvatar>
+            <span class="user-name">Admin</span>
+            <ReIcon name="ArrowDown" :size="10" class="user-arrow" />
+          </div>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item><ReIcon name="User" :size="12" /> 个人资料</el-dropdown-item>
-              <el-dropdown-item><ReIcon name="Setting" :size="12" /> 系统设置</el-dropdown-item>
-              <el-dropdown-item divided><ReIcon name="SwitchButton" :size="12" /> 退出登录</el-dropdown-item>
-            </el-dropdown-menu>
+            <ReDropdownMenu>
+              <ReDropdownItem><ReIcon name="User" :size="12" /> 个人资料</ReDropdownItem>
+              <ReDropdownItem><ReIcon name="Setting" :size="12" /> 系统设置</ReDropdownItem>
+              <ReDropdownItem divided><ReIcon name="SwitchButton" :size="12" /> 退出登录</ReDropdownItem>
+            </ReDropdownMenu>
           </template>
-        </el-dropdown>
+        </ReDropdown>
       </div>
     </header>
 
@@ -79,7 +79,6 @@ import ReTerminalSnippetManager from './views/ReTerminalSnippetManager.vue'
 
 const activeTab = ref('dashboard')
 const currentTime = ref('')
-const userOpen = ref(false)
 
 const tabs = [
   { key: 'overview', label: '概览', icon: 'DataBoard' },

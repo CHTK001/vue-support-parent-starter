@@ -10,14 +10,10 @@
           <p class="page-desc">实时查看 Redis 实例的运行状态、内存占用与关键指标</p>
         </div>
         <div class="header-right">
-          <el-select v-model="selectedMonitorId" placeholder="选择 Redis 实例" class="redis-select" filterable @change="onRedisChange">
-            <el-option v-for="m in redisInstances" :key="m.id" :label="`${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`" :value="m.id" />
-          </el-select>
+          <ReSelect v-model="selectedMonitorId" placeholder="选择 Redis 实例" class="redis-select" filterable @change="onRedisChange"
+            :data="redisInstances.map(m => ({ label: `${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`, value: m.id }))" />
           <span class="refresh-time">最后更新: {{ lastRefresh }}</span>
-          <el-button plain @click="loadRedisMetric" class="refresh-btn">
-            <ReIcon name="RefreshLeft" />
-            刷新
-          </el-button>
+          <ReButton show-text icon="RefreshLeft" plain @click="loadRedisMetric">刷新</ReButton>
         </div>
       </div>
     </ReCard>
@@ -38,7 +34,7 @@
     <section class="detail-section">
       <div class="section-head">
         <h2 class="section-title">基本信息</h2>
-        <el-tag :class="['mode-tag', modeColor]" effect="light">
+        <ReTag :class="['mode-tag', modeColor]" effect="light">
           <span class="mode-dot"></span>
           {{ mode }}
         </el-tag>

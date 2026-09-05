@@ -17,55 +17,43 @@
 
     <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
       <div class="filter-bar">
-        <el-select v-model="filters.monitorId" placeholder="选择资产" class="filter-select" clearable filterable>
-          <el-option v-for="m in monitors" :key="m.id" :label="`${m.monitorName} (${m.monitorHost})`" :value="m.id" />
-        </el-select>
-        <el-select v-model="filters.taskType" placeholder="任务类型" class="filter-select" clearable>
-          <el-option label="全部" value="" />
-          <el-option label="健康检查" value="HEALTH" />
-          <el-option label="指标采集" value="COLLECT" />
-          <el-option label="告警任务" value="ALERT" />
-          <el-option label="自定义" value="CUSTOM" />
-        </el-select>
+        <ReSelect v-model="filters.monitorId" placeholder="选择资产" class="filter-select" clearable filterable
+          :data="monitors.map(m => ({ label: `${m.monitorName} (${m.monitorHost})`, value: m.id }))" />
+        <ReSelect v-model="filters.taskType" placeholder="任务类型" class="filter-select" clearable
+          :data="[{ label: '全部', value: '' }, { label: '健康检查', value: 'HEALTH' }, { label: '指标采集', value: 'COLLECT' }, { label: '告警任务', value: 'ALERT' }, { label: '自定义', value: 'CUSTOM' }]" />
         <span class="filter-divider"></span>
-        <el-button @click="fetchList" plain class="action-btn">
-          <ReIcon name="RefreshLeft" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="openAdd" class="add-btn">
-          <ReIcon name="Plus" />
-          新增任务
-        </el-button>
+        <ReButton show-text icon="RefreshLeft" plain @click="fetchList">刷新</ReButton>
+        <ReButton show-text icon="Plus" type="primary" @click="openAdd">新增任务</ReButton>
       </div>
     </ReCard>
 
-    <el-table :data="filtered" v-loading="loading" border stripe class="task-table">
-      <el-table-column prop="taskName" label="任务名称" min-width="160">
+    <ReTable :data="filtered" :loading="loading" border stripe class="task-table" :pagination="false" :toolbar="false">
+      <ReTableColumn prop="taskName" label="任务名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.taskName }}</span></template>
-      </el-table-column>
-      <el-table-column prop="taskType" label="任务类型" width="100" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="taskType" label="任务类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :class="['type-tag', typeClass(row.taskType)]" effect="plain" size="small">{{ typeLabel(row.taskType) }}</el-tag>
+          <ReTag :class="['type-tag', typeClass(row.taskType)]" effect="plain" size="small">{{ typeLabel(row.taskType) }}</ReTag>
         </template>
-      </el-table-column>
-      <el-table-column label="所属资产" width="130" align="center">
+      </ReTableColumn>
+      <ReTableColumn label="所属资产" width="130" align="center">
         <template #default="{ row }">
           <span v-if="monitorMap.get(row.monitorId)" class="dim">{{ monitorMap.get(row.monitorId).monitorName }}</span>
           <span v-else class="dim">—</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="taskCron" label="Cron" width="140" align="center" />
-      <el-table-column prop="taskStatus" label="运行状态" width="100" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="taskCron" label="Cron" width="140" align="center" />
+      <ReTableColumn prop="taskStatus" label="运行状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.taskStatus" :class="['status-pill', statusClass(row.taskStatus)]" effect="plain" size="small">
+          <ReTag v-if="row.taskStatus" :class="['status-pill', statusClass(row.taskStatus)]" effect="plain" size="small">
             {{ statusLabel(row.taskStatus) }}
-          </el-tag>
+          </ReTag>
           <span v-else class="dim">—</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="taskEnabled" label="启用" width="70" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="taskEnabled" label="启用" width="70" align="center">
         <template #default="{ row }">
-          <el-switch
+          <ReSwitch
             :model-value="row.taskEnabled === 1"
             :loading="row._toggling"
             size="small"
@@ -75,52 +63,43 @@
             @change="handleToggleEnabled(row)"
           />
         </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="160" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="createTime" label="创建时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.createTime" class="dim">{{ row.createTime.slice(0, 19).replace('T', ' ') }}</span>
           <span v-else class="dim">—</span>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button text size="small" @click="handleTrigger(row.id)">采集</el-button>
-          <el-button text size="small" @click="editRow(row)">编辑</el-button>
-          <el-button text size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+          <ReButton link size="small" @click="handleTrigger(row.id)">采集</ReButton>
+          <ReButton link size="small" @click="editRow(row)">编辑</ReButton>
+          <ReButton link size="small" type="danger" @click="handleDelete(row.id)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
-    <el-dialog append-to-body v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520px" destroy-on-close>
-      <el-form :model="form" label-position="top" class="task-form">
-        <el-form-item label="任务名称"><el-input v-model="form.taskName" placeholder="例如：Redis 健康检查" /></el-form-item>
-        <el-form-item label="所属资产">
-          <el-select v-model="form.monitorId" style="width:100%" placeholder="请选择资产">
-            <el-option v-for="m in monitors" :key="m.id" :label="`${m.monitorName} (${m.monitorHost}:${m.monitorPort})`" :value="m.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="任务类型">
-          <el-select v-model="form.taskType" style="width:100%">
-            <el-option label="健康检查 (HEALTH)" value="HEALTH" />
-            <el-option label="指标采集 (COLLECT)" value="COLLECT" />
-            <el-option label="告警任务 (ALERT)" value="ALERT" />
-            <el-option label="自定义 (CUSTOM)" value="CUSTOM" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="任务配置 (JSON)">
-          <el-input v-model="form.taskConfig" type="textarea" :rows="3" placeholder='{"host":"192.168.1.10","port":6379}' />
-        </el-form-item>
-        <el-form-item label="Cron 表达式">
-          <el-input v-model="form.taskCron" placeholder="0/30 * * * * ?" />
-        </el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.taskDescription" placeholder="任务说明" /></el-form-item>
-        <el-form-item label="启用状态"><el-switch v-model="form.taskEnabled" :active-value="1" :inactive-value="0" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
-      </template>
-    </el-dialog>
+    <ReDialog append-to-body v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520" :height="460" destroy-on-close confirm-text="保存" cancel-text="取消" @confirm="handleSave" @cancel="showDialog = false">
+      <ReForm :model="form" label-position="top" class="task-form">
+        <ReFormItem label="任务名称"><ReInput v-model="form.taskName" placeholder="例如：Redis 健康检查" /></ReFormItem>
+        <ReFormItem label="所属资产">
+          <ReSelect v-model="form.monitorId" style="width:100%" placeholder="请选择资产"
+            :data="monitors.map(m => ({ label: `${m.monitorName} (${m.monitorHost}:${m.monitorPort})`, value: m.id }))" />
+        </ReFormItem>
+        <ReFormItem label="任务类型">
+          <ReSelect v-model="form.taskType" style="width:100%"
+            :data="[{ label: '健康检查 (HEALTH)', value: 'HEALTH' }, { label: '指标采集 (COLLECT)', value: 'COLLECT' }, { label: '告警任务 (ALERT)', value: 'ALERT' }, { label: '自定义 (CUSTOM)', value: 'CUSTOM' }]" />
+        </ReFormItem>
+        <ReFormItem label="任务配置 (JSON)">
+          <ReInput v-model="form.taskConfig" type="textarea" :rows="3" placeholder='{"host":"192.168.1.10","port":6379}' />
+        </ReFormItem>
+        <ReFormItem label="Cron 表达式">
+          <ReInput v-model="form.taskCron" placeholder="0/30 * * * * ?" />
+        </ReFormItem>
+        <ReFormItem label="描述"><ReInput v-model="form.taskDescription" placeholder="任务说明" /></ReFormItem>
+        <ReFormItem label="启用状态"><ReSwitch v-model="form.taskEnabled" :active-value="1" :inactive-value="0" /></ReFormItem>
+      </ReForm>
+    </ReDialog>
 
     <ReCard layout="simple" :radius="14" :padding="0" shadow="never">
       <template #header>
@@ -143,7 +122,7 @@
 import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
 import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../../api'
 
 const tasks = ref<any[]>([])
@@ -257,7 +236,7 @@ const fetchList = async () => {
     tasks.value = (t || []).map(normalizeTask)
     monitors.value = m
     monitorMap.value = new Map(m.map((x: any) => [x.id, x]))
-  } catch (e: any) { ElMessage.error(e.message || '加载失败') }
+  } catch (e: any) { message.error(e.message || '加载失败') }
   finally { loading.value = false }
 }
 
@@ -280,19 +259,19 @@ const toBackendPayload = (f: any) => ({
 
 const handleSave = async () => {
   try { await saveTask(editId.value || 0, toBackendPayload(form.value)); showDialog.value = false; await fetchList() }
-  catch (e: any) { ElMessage.error(e.message || '保存失败') }
+  catch (e: any) { message.error(e.message || '保存失败') }
 }
 
 const handleDelete = async (id: number) => {
-  try { await ElMessageBox.confirm('确认删除该任务？'); await delTask(id); await fetchList() }
-  catch (e: any) { if (!e) return; ElMessage.error(e.message || '删除失败') }
+  try { await message.confirm('确认删除该任务？'); await delTask(id); await fetchList() }
+  catch (e: any) { if (!e) return; message.error(e.message || '删除失败') }
 }
 
 const handleTrigger = async (id: number) => {
   try {
     await triggerCollect(id)
-    ElMessage.success('已触发采集，请稍后查看结果')
-  } catch (e: any) { ElMessage.error(e.message || '触发失败') }
+    message.success('已触发采集，请稍后查看结果')
+  } catch (e: any) { message.error(e.message || '触发失败') }
 }
 
 const handleToggleEnabled = async (row: any) => {
@@ -301,9 +280,9 @@ const handleToggleEnabled = async (row: any) => {
     const newEnabled = row.taskEnabled === 1 ? 0 : 1
     await setTaskEnabled(row.id, newEnabled === 1)
     row.taskEnabled = newEnabled
-    ElMessage.success(newEnabled === 1 ? '任务已启用' : '任务已暂停')
+    message.success(newEnabled === 1 ? '任务已启用' : '任务已暂停')
   } catch (e: any) {
-    ElMessage.error(e.message || '操作失败')
+    message.error(e.message || '操作失败')
   } finally {
     row._toggling = false
   }

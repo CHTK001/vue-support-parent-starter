@@ -4,19 +4,15 @@
       <div class="ctrl-row">
         <div class="sel-group">
           <label class="ctrl-label">选择 Redis 任务</label>
-          <el-select v-model="selectedTaskId" placeholder="请选择任务" class="ctrl-select" @change="onTaskChange">
-            <el-option v-for="t in redisTasks" :key="t.id" :label="`${t.monitorTaskName} [${getMonitorLabel(t.monitorId)}]`" :value="t.id" />
-          </el-select>
+          <ReSelect v-model="selectedTaskId" placeholder="请选择任务" class="ctrl-select" @change="onTaskChange"
+            :data="redisTasks.map(t => ({ label: `${t.monitorTaskName} [${getMonitorLabel(t.monitorId)}]`, value: t.id }))" />
         </div>
         <div class="sel-group">
           <label class="ctrl-label">Key 前缀</label>
           <input v-model="scanPattern" placeholder="例如：user:*" class="ctrl-input" @keyup.enter="doScan" />
         </div>
         <div class="ctrl-actions">
-          <el-button @click="doScan" class="scan-btn">
-            <ReIcon name="Search" />
-            扫描
-          </el-button>
+          <ReButton show-text icon="Search" @click="doScan">扫描</ReButton>
         </div>
       </div>
     </ReCard>
@@ -32,9 +28,9 @@
         <div class="key-list" v-loading="scanLoading">
           <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()">
             <span class="key-text">{{ k }}</span>
-            <el-button text size="small" type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></el-button>
+            <ReButton link size="small" type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
           </div>
-          <el-empty v-if="filteredKeys.length === 0" description="暂无数据，请先扫描" :image-size="60" />
+          <ReEmpty v-if="filteredKeys.length === 0" description="暂无数据，请先扫描" :image-size="60" />
         </div>
       </ReCard>
 
@@ -43,24 +39,24 @@
           <div class="panel-head"><span class="panel-title">键值操作</span></div>
         </template>
         <div class="value-card" v-if="selectedKey">
-          <el-form :model="kvForm" label-position="top" class="kv-form">
-            <el-form-item label="Key"><el-input v-model="kvForm.key" disabled /></el-form-item>
-            <el-form-item label="Type">
-              <el-tag size="small" :type="getTypeColor(kvForm.type)">
+          <ReForm :model="kvForm" label-position="top" class="kv-form">
+            <ReFormItem label="Key"><ReInput v-model="kvForm.key" disabled /></ReFormItem>
+            <ReFormItem label="Type">
+              <ReTag size="small" :type="getTypeColor(kvForm.type)">
                 {{ kvForm.type || 'string' }}
-              </el-tag>
-            </el-form-item>
-            <el-form-item label="Value"><el-input v-model="kvForm.value" type="textarea" :rows="8" placeholder="键值内容" /></el-form-item>
-            <el-form-item label="TTL (秒, 空=永久)"><el-input-number v-model="kvForm.ttl" :min="1" controls-position="right" placeholder="永久" /></el-form-item>
+              </ReTag>
+            </ReFormItem>
+            <ReFormItem label="Value"><ReInput v-model="kvForm.value" type="textarea" :rows="8" placeholder="键值内容" /></ReFormItem>
+            <ReFormItem label="TTL (秒, 空=永久)"><ReInputNumber v-model="kvForm.ttl" :min="1" controls-position="right" placeholder="永久" /></ReFormItem>
             <div class="kv-actions">
-              <el-button @click="loadValue" class="action-btn"><ReIcon name="View" /> 读取</el-button>
-              <el-button @click="doSet" class="action-btn"><ReIcon name="EditPen" /> 写入</el-button>
-              <el-button @click="doExpire" class="action-btn"><ReIcon name="Timer" /> 设置过期</el-button>
-              <el-button type="danger" @click="handleDeleteKey(selectedKey)" class="action-btn"><ReIcon name="Delete" /> 删除</el-button>
+              <ReButton show-text icon="View" @click="loadValue">读取</ReButton>
+              <ReButton show-text icon="EditPen" @click="doSet">写入</ReButton>
+              <ReButton show-text icon="Timer" @click="doExpire">设置过期</ReButton>
+              <ReButton show-text icon="Delete" type="danger" @click="handleDeleteKey(selectedKey)">删除</ReButton>
             </div>
-          </el-form>
+          </ReForm>
         </div>
-        <el-empty v-else description="请从左侧选择一个 Key" :image-size="60" />
+        <ReEmpty v-else description="请从左侧选择一个 Key" :image-size="60" />
       </ReCard>
     </div>
   </div>
