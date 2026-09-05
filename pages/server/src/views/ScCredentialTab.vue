@@ -143,7 +143,7 @@ async function submitKey(): Promise<void> {
  * @param row 密钥
  */
 async function deleteKey(row: KeyRow): Promise<void> {
-  await message.confirm(`确认删除密钥 ${row.msServerKeyName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除密钥 ${row.msServerKeyName}?`, '删除');
   await delKey(row.id);
   message.success('已删除');
   refresh();
@@ -190,7 +190,7 @@ async function submitIdentity(): Promise<void> {
  * @param row 身份
  */
 async function deleteIdentity(row: IdentityRow): Promise<void> {
-  await message.confirm(`确认删除身份 ${row.msServerIdentityName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除身份 ${row.msServerIdentityName}?`, '删除');
   await delIdentity(row.id);
   message.success('已删除');
   refresh();

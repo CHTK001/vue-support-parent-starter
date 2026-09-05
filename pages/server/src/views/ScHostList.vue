@@ -216,18 +216,14 @@ async function onSwitch(row: HostRow): Promise<void> {
  * @param row 主机
  */
 async function onTestConnect(row: HostRow): Promise<void> {
-  const message = ElMessage({
-    type: 'info',
-    message: `正在测试 ${row.serverHostAddress} …`,
-    duration: 0,
-  });
+  message.info(`正在测试 ${row.serverHostAddress} …`, { duration: 0 });
   try {
     const banner = await testConnectHost(row.id);
-    message.close();
+    message.closeAll();
     message.success(`测试成功：${banner}`);
     refresh();
   } catch (e) {
-    message.close();
+    message.closeAll();
     message.error((e as Error).message);
   }
 }

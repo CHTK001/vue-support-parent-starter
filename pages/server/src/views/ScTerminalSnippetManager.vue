@@ -37,9 +37,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
 import { getSnippets, saveSnippet as apiSaveSnippet, delSnippet as apiDelSnippet } from '../api'
-
 const snippets = ref<any[]>([])
 const dialogVisible = ref(false)
 const editing = ref(false)
@@ -114,7 +113,7 @@ async function save(): Promise<void> {
 // 本地函数：删除片段
 async function deleteRow(row: any): Promise<void> {
   try {
-    const result = await message.confirm(`确认删除片段 "${row.msTerminalSnippetName}"?`, '删除', { type: 'warning' });
+    const result = await message.confirm(`确认删除片段 "${row.msTerminalSnippetName}"?`, '删除');
     if (result) {
       await apiDelSnippet(row.id);
       message.success('已删除');

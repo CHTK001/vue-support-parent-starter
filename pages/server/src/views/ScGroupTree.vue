@@ -67,7 +67,7 @@ async function submitForm() {
 }
 
 async function removeGroup(node: GroupNode) {
-  await message.confirm(`确认删除分组 ${node.name}? 若存在子分组或主机将拒绝删除`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除分组 ${node.name}? 若存在子分组或主机将拒绝删除`, '删除');
   await delGroup(node.id);
   message.success('已删除');
   refresh();
