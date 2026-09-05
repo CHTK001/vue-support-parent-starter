@@ -49,7 +49,8 @@ watch(
   visible,
   show => {
     if (show && props.connection) {
-      nextTick(() => connect(props.connection));
+      const conn = props.connection;
+      nextTick(() => connect(conn));
     } else if (!show) {
       teardown();
       emit('close');
