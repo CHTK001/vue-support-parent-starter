@@ -245,7 +245,7 @@ async function onRunNow(row: JobRow): Promise<void> {
  * @param row 任务
  */
 async function onDeleteJob(row: JobRow): Promise<void> {
-  await message.confirm(`确认删除任务 ${row.msExecJobName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除任务 ${row.msExecJobName}?`, '删除');
   await delJob(row.id);
   jobs.value = await getJobs();
   message.success('已删除');

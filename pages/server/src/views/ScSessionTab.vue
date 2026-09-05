@@ -106,7 +106,7 @@ function formatActive(t?: string): string {
  * @param row 会话
  */
 async function onForceClose(row: SessionRow): Promise<void> {
-  await message.confirm(`确认强制关闭 ${row.msTerminalSessionHostName} 的会话?`, '关闭', { type: 'warning' });
+  await message.confirm(`确认强制关闭 ${row.msTerminalSessionHostName} 的会话?`, '关闭');
   await closeSession(row.id);
   message.success('已关闭');
   refresh();

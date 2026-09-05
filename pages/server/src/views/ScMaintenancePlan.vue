@@ -123,7 +123,7 @@ async function submitForm() {
 }
 
 async function removePlan(row: PlanRow) {
-  await message.confirm(`确认删除维护计划 ${row.planName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除维护计划 ${row.planName}?`, '删除');
   await delMaintenancePlan(row.id);
   message.success('已删除');
   refresh();

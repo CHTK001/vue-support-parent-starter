@@ -15,6 +15,7 @@ import AutoImport from 'unplugin-auto-import/vite';
 import ElementPlus from 'unplugin-element-plus/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 import { createVite } from '../../turbo/vite/createVite.ts';
+import { unoColors, unoRules } from '../../pages/ai/uno.shared.ts';
 import {
   iconParkPlugin,
   repoThemeShimPlugin,
