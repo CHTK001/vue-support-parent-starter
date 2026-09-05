@@ -85,7 +85,12 @@
     "lastUpdated": "Last updated: {{time}}",
     "openInBrowser": "Open market in browser",
     "installSuccess": "Installed skill(s): {{names}}",
-    "installFailed": "Install failed: {{detail}}"
+    "installFailed": "Install failed: {{detail}}",
+    "settingsTitle": "Skill Market",
+    "toggleSuccess": "Skill Market {{state}}",
+    "toggleFailed": "Failed to toggle Skill Market",
+    "enableMarket": "Enable Skill Market",
+    "enableMarketDesc": "Show ClawHub, LoopHub and SkillHub rankings when enabled; hide the market and stop fetching when disabled."
   },
   "market": {
     "syncSuccess": "Market updated",

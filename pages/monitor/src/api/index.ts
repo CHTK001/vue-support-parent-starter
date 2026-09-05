@@ -141,18 +141,14 @@ export const setTaskEnabled = (id: number, enabled: boolean) =>
  */
 export const exportMetricHistory = (monitorId?: number, metricName?: string, hours = 24) => {
   const id = monitorId != null ? `/${monitorId}` : '';
-  return http().get(`${B}/metric/export${id}?metricName=${metricName ?? ''}&hours=${hours}`, {
-    responseType: 'blob'
-  }).then(r => r.data);
+  return http().get(`${B}/metric/export${id}?metricName=${metricName ?? ''}&hours=${hours}`).responseType('blob').then(r => r.data);
 };
 
 /**
  * 导出指标历史数据 CSV (无 monitorId 版本，查询所有)
  */
 export const exportAllMetricHistory = (metricName?: string, hours = 24) =>
-  http().get(`${B}/metric/export?metricName=${metricName ?? ''}&hours=${hours}`, {
-    responseType: 'blob'
-  }).then(r => r.data);
+  http().get(`${B}/metric/export?metricName=${metricName ?? ''}&hours=${hours}`).responseType('blob').then(r => r.data);
 
 // ===== 指标时序曲线（InfluxDB，未启用时接口不存在需降级）=====
 export type SeriesPoint = [number, number];
