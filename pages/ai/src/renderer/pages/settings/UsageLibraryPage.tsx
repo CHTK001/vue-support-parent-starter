@@ -111,6 +111,19 @@ async function fetchStats(p: URLSearchParams) {
 /** ECharts 饼图主题色板 token（亮/暗自动切换） */
 const CHART_COLOR_TOKENS = ['--primary-6', '--success-6', '--warning-6', '--danger-6', '--info'];
 
+/**
+ * 读取当前主题下 CSS 变量的实际色值。
+ *
+ * @param token 不含 var() 包裹的 token 名（如 "--primary-6"）
+ * @param fallback 变量缺失时的兜底色
+ * @return 解析后的颜色值
+ */
+function resolveCssToken(token: string, fallback: string): string {
+  const cs = getComputedStyle(document.documentElement);
+  const v = cs.getPropertyValue(token).trim();
+  return v || fallback;
+}
+
 // ─── 浮窗 ──────────────────────────────────────────────────────
 
 const popS: React.CSSProperties = { background:'var(--bg-1)', border:'1px solid var(--bg-3)', borderRadius:8, padding:'8px 10px', fontSize:13, boxShadow:'0 4px 12px rgba(0,0,0,0.4)', minWidth:155, zIndex:1000 };
@@ -209,7 +222,7 @@ const ChartPanel: React.FC<{
               {top5.map((d,i) => (
                 <tr key={d.label} style={{ borderBottom:'1px solid var(--bg-3)' }}>
                   <td style={{ padding:'4px 8px', color:'var(--text-secondary)', maxWidth:100, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    <span style={{ display:'inline-block', width:5, height:5, borderRadius:'50%', background:CHART_COLORS[i%CHART_COLORS.length], marginRight:5, flexShrink:0 }}/>
+                    <span style={{ display:'inline-block', width:5, height:5, borderRadius:'50%', background:resolveCssToken(CHART_COLOR_TOKENS[i%CHART_COLOR_TOKENS.length],'#165dff'), marginRight:5, flexShrink:0 }}/>
                     {d.label}
                   </td>
                   <td style={{ padding:'4px 8px', textAlign:'right', color:'var(--bg-6)' }}>{fmtNum(d.requests,0)}</td>

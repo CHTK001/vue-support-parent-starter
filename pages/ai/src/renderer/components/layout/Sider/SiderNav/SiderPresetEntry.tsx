@@ -19,7 +19,7 @@ interface SiderPresetEntryProps {
   onClick: () => void;
 }
 
-/** Presets — reusable launch configurations for Agents, companions and execution steps. */
+/** Roles — reusable launch configurations for Agents, companions and execution steps. */
 const SiderPresetEntry: React.FC<SiderPresetEntryProps> = ({
   isMobile,
   isActive,
@@ -28,7 +28,7 @@ const SiderPresetEntry: React.FC<SiderPresetEntryProps> = ({
   onClick,
 }) => {
   const { t } = useTranslation();
-  const label = t('settings.presetsHub.railTitle', { defaultValue: 'Presets' });
+  const label = t('settings.presetsHub.railTitle', { defaultValue: 'Roles' });
 
   if (collapsed) {
     return (

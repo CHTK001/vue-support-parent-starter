@@ -20,10 +20,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import DirInputItem from './DirInputItem';
 import FactoryResetModal from './FactoryResetModal';
 import PreferenceRow from './PreferenceRow';
-import { useAuth } from '@/renderer/hooks/context/AuthContext';
 
 /**
  * System settings content component
@@ -34,9 +34,13 @@ import { useAuth } from '@/renderer/hooks/context/AuthContext';
 const SystemModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
-  const { user } = useAuth();
+  // role 不依赖 useAuth().user（openAuth=false 时恒为 null），直接从后端 /api/auth/user 获取
+  const { data: authUser } = useSWR('system.auth.user', () =>
+    httpRequest<{ success?: boolean; user?: { role?: string } }>('GET', '/api/auth/user')
+  );
+  const userRole = authUser?.user?.role;
   // 仅 admin / superadmin 在 dev profile 下可编辑系统目录
-  const isAdminRole = user?.role === 'admin' || user?.role === 'superadmin';
+  const isAdminRole = userRole === 'admin' || userRole === 'superadmin';
   // arco types Modal.useModal() methods (confirm/info/...) as optional even
   // though the hook always supplies them; assert the non-optional shape so
   // `modal.confirm(...)` doesn't trip TS2722.
@@ -57,6 +61,7 @@ const SystemModalContent: React.FC = () => {
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
   const [sendKey, setSendKey] = useState<'enter' | 'mod-enter'>('enter');
   const [factoryResetVisible, setFactoryResetVisible] = useState(false);
+  const [dirPickerField, setDirPickerField] = useState<string | null>(null);
 
   const [aiGatewayPorts, setAiGatewayPorts] = useState<number[]>([]);
   const [aiGatewayNewPort, setAiGatewayNewPort] = useState(8081);
@@ -194,6 +199,22 @@ const SystemModalContent: React.FC = () => {
         console.error('[SystemModalContent] Failed to open log directory:', caughtError);
       });
   }, [systemInfo?.logDir]);
+
+  const openDirPicker = useCallback((field: string) => () => {
+    setDirPickerField(field);
+  }, []);
+
+  const handleDirPickerConfirm = useCallback(
+    (paths?: string[]) => {
+      if (paths?.[0] && dirPickerField) {
+        form.setFieldValue(dirPickerField, paths[0]);
+      }
+      setDirPickerField(null);
+    },
+    [dirPickerField, form]
+  );
+
+  const handleDirPickerCancel = useCallback(() => setDirPickerField(null), []);
 
   // Initialize form data
   useEffect(() => {
@@ -396,16 +417,27 @@ const SystemModalContent: React.FC = () => {
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
-              {/* 工作目录 */}
-              {isDesktopShell() && <DirInputItem label={t('settings.workDir')} field='workDir' />}
-              {/* 缓存目录 / 日志目录：仅 admin/superadmin + dev profile 时可编辑，否则只读展示 */}
-              {(canEditDirs || !isDesktopShell()) && (
+              {/* 缓存目录 / 工作目录 / 日志目录：仅 admin/superadmin + dev profile 时可编辑 */}
+              {canEditDirs && (
                 <>
-                  <DirInputItem label={t('settings.cacheDir', { defaultValue: '缓存目录' })} field='cacheDir' />
-                  <DirInputItem label={t('settings.logDir', { defaultValue: '日志目录' })} field='logDir' />
+                  <DirInputItem
+                    label={t('settings.cacheDir', { defaultValue: '缓存目录' })}
+                    field='cacheDir'
+                    onPick={isDesktopShell() ? undefined : openDirPicker('cacheDir')}
+                  />
+                  <DirInputItem
+                    label={t('settings.workDir')}
+                    field='workDir'
+                    onPick={isDesktopShell() ? undefined : openDirPicker('workDir')}
+                  />
+                  <DirInputItem
+                    label={t('settings.logDir', { defaultValue: '日志目录' })}
+                    field='logDir'
+                    onPick={isDesktopShell() ? undefined : openDirPicker('logDir')}
+                  />
                 </>
               )}
-              {!(canEditDirs) && isDesktopShell() && (
+              {!canEditDirs && (
                 <div className='text-13px text-warning-5 mt-8px'>
                   {t('settings.dirAdminOnly', { defaultValue: '系统目录仅管理员在 dev 模式下可修改' })}
                 </div>
@@ -442,6 +474,12 @@ const SystemModalContent: React.FC = () => {
       </NomiScrollArea>
 
       <FactoryResetModal visible={factoryResetVisible} onClose={() => setFactoryResetVisible(false)} />
+
+      <DirectorySelectionModal
+        visible={dirPickerField !== null}
+        onConfirm={handleDirPickerConfirm}
+        onCancel={handleDirPickerCancel}
+      />
     </div>
   );
 };

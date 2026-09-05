@@ -32,9 +32,9 @@ describe('preset settings locale coverage', () => {
     assertPresetSettingsLocale(zhSettings);
   });
 
-  test('zh-CN keeps Presets and Skills as independent destinations', () => {
-    expect(zhSettings.presetsHub.title).toBe('设定');
-    expect(zhSettings.presetsHub.railTitle).toBe('设定');
+  test('zh-CN keeps Presets (roles) and Skills as independent destinations', () => {
+    expect(zhSettings.presetsHub.title).toBe('角色');
+    expect(zhSettings.presetsHub.railTitle).toBe('角色');
     expect(zhSettings.skillsHub.railTitle).toBe('技能');
   });
 

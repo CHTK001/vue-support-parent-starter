@@ -8,6 +8,7 @@ import type { ConversationId, MessageId } from '@/common/types/ids';
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
+import SkillCapsuleBar from '@/renderer/components/chat/SkillCapsuleBar';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
@@ -1609,6 +1610,8 @@ const SendBox: React.FC<{
         <div style={{ width: '100%' }}>
           {prefix}
           {context}
+          {/* 技能胶囊条 / Skill capsules — loaded skills surfaced above the input. */}
+          <SkillCapsuleBar loadedSkills={conversationContext?.loadedSkills} />
           {/* 编辑消息提示条 / Editing message banner */}
           {/* b-1px 才是 1px 宽度（`b-1` 是 --bg-1 颜色），b-border-2 在 theme 里不存在，
               两者叠加等于「无宽度 + 无颜色」：下面这几条提示条从来没有边框。

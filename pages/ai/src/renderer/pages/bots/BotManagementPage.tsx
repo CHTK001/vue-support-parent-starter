@@ -927,6 +927,7 @@ export default function BotManagementPage() {
       Modal.confirm({
         title: t('bots.deleteTitle', { defaultValue: '解除绑定' }),
         content: t('bots.deleteContent', {
+          name: row.nickname || row.botId || '该 Bot',
           defaultValue: `确定解绑「${row.nickname || row.botId || '该 Bot'}」吗？此操作不可恢复。`,
         }),
         okText: t('bots.deleteOk', { defaultValue: '解绑' }),
