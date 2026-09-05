@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from '@repo/core';
 import { detectHost, refreshHostPublicIp } from '../api';
 
 /**
@@ -144,7 +144,7 @@ function parseTags(raw: unknown): string[] {
  */
 async function onDetect(): Promise<void> {
   if (!form.id) {
-    ElMessage.warning('请先保存主机后再探测');
+    message.warning('请先保存主机后再探测');
     return;
   }
   detecting.value = true;
@@ -158,9 +158,9 @@ async function onDetect(): Promise<void> {
     form.serverHostOsArch = updated?.serverHostOsArch ?? form.serverHostOsArch;
     form.serverHostPrivateIp = updated?.serverHostPrivateIp ?? form.serverHostPrivateIp;
     form.serverHostPublicIp = updated?.serverHostPublicIp ?? form.serverHostPublicIp;
-    ElMessage.success('硬件探测成功，已回填');
+    message.success('硬件探测成功，已回填');
   } catch (e) {
-    ElMessage.error((e as Error).message || '硬件探测失败');
+    message.error((e as Error).message || '硬件探测失败');
   } finally {
     detecting.value = false;
   }
