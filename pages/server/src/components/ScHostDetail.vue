@@ -75,11 +75,11 @@ async function onDetect(): Promise<void> {
   detecting.value = true;
   try {
     const updated = await detectHost(props.host.id);
-    ElMessage.success('硬件探测成功');
+    message.success('硬件探测成功');
     emit('updated');
     // 探测结果通过父组件刷新后回传
   } catch (e) {
-    ElMessage.error((e as Error).message || '硬件探测失败');
+    message.error((e as Error).message || '硬件探测失败');
   } finally {
     detecting.value = false;
   }
