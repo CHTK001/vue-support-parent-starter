@@ -729,7 +729,7 @@ export default function BotImPage() {
             <Button
               shape='circle'
               icon={<Refresh theme='outline' size='14' fill='currentColor' strokeWidth={4} />}
-              onClick={() => { void loadConversations(); void loadMessages(0); }}
+              onClick={() => { void loadConversations(); void loadMessages(true); }}
             />
           </Tooltip>
           <Tooltip content={t('bots.im.clearHistory', { defaultValue: '清空聊天记录' })}>
