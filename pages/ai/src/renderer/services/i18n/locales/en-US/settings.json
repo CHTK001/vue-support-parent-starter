@@ -139,7 +139,12 @@
     "confirmUrl": "URL",
     "confirmHeaderKeys": "Header keys",
     "searchPlaceholder": "Search MCP servers...",
-    "empty": "Refresh to load MCP market entries."
+    "empty": "Refresh to load MCP market entries.",
+    "settingsTitle": "MCP Market",
+    "toggleSuccess": "MCP Market {{state}}",
+    "toggleFailed": "Failed to toggle MCP Market",
+    "enableMarket": "Enable MCP Market",
+    "enableMarketDesc": "Show SkillHub MCP and MCP World servers when enabled; hide the market and stop fetching when disabled."
   },
   "mcpPage": {
     "installedMcpTab": "Installed MCP",
