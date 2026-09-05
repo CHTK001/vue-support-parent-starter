@@ -1540,9 +1540,9 @@
     "sectionWebhook": "Webhook"
   },
   "presetsHub": {
-    "title": "设定",
-    "subtitle": "将 Agent、模型、Skill 与知识范围固化为可一键启动的复用配置。",
-    "railTitle": "设定"
+    "title": "角色",
+    "subtitle": "将 Agent、模型、Skill 与知识范围固化为可一键启动的复用角色配置。",
+    "railTitle": "角色"
   },
   "mcpHub": {
     "title": "MCP",
