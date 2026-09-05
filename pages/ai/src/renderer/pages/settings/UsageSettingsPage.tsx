@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import {
+  AiGlobalSettings,
+  aiBool,
+  aiNum,
+  loadAiGlobalSettings,
+  saveAiGlobalSettings,
+} from '@/common/config/aiGlobalSettings';
 import { Button, Message, Spin, Switch, Tag } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -16,9 +23,9 @@ interface UsageParserInfo {
 const UsageSettingsPage: React.FC = () => {
   const { t } = useTranslation();
 
-  const { values, set, loading } = useAutoSave(
-    async () => httpRequest('GET', '/v2/global-settings'),
-    async (v) => httpRequest('PUT', '/v2/global-settings', v),
+  const { values, set, loading } = useAutoSave<AiGlobalSettings>(
+    loadAiGlobalSettings,
+    saveAiGlobalSettings,
   );
 
   const [syncLoading, setSyncLoading] = useState(false);
@@ -37,7 +44,7 @@ const UsageSettingsPage: React.FC = () => {
 
   const handleSave = useCallback(async () => {
     try {
-      await httpRequest('PUT', '/v2/global-settings', values);
+      await saveAiGlobalSettings(values);
       Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
     } catch {
       Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
@@ -63,22 +70,8 @@ const UsageSettingsPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const boolVal = (key: string, def: boolean): boolean => {
-    const v = values[key];
-    if (typeof v === 'boolean') return v;
-    if (v == null) return def;
-    return String(v).toLowerCase() === 'true' || String(v) === '1';
-  };
-
-  const numVal = (key: string): number | undefined => {
-    const v = values[key];
-    if (v == null || v === '') return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
-  };
-
   const enabledParsers = (): Set<string> => {
-    const raw = String(values['usageEnabledParsers'] ?? '');
+    const raw = aiStr(values, 'usageEnabledParsers');
     const set_ = new Set<string>();
     for (const s of raw.split(',')) {
       const name = s.trim();
