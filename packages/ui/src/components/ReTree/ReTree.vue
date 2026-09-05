@@ -74,7 +74,7 @@
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="400px">
       <el-form :model="formData" label-width="80px">
         <el-form-item label="名称">
-          <el-input v-model="formData[options.label || 'label']" />
+          <el-input v-model="(formData[labelKey] as string)" />
         </el-form-item>
         <slot name="dialog-form" :form="formData" :node="editingNodeData" />
       </el-form>
