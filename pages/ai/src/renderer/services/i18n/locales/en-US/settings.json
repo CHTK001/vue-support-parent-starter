@@ -1540,9 +1540,9 @@
     "sectionWebhook": "Webhook"
   },
   "presetsHub": {
-    "title": "Presets",
-    "subtitle": "Save Agents, models, Skills and knowledge scope as reusable one-click configurations.",
-    "railTitle": "Presets"
+    "title": "Roles",
+    "subtitle": "Save Agents, models, Skills and knowledge scope as reusable one-click role configurations.",
+    "railTitle": "Roles"
   },
   "mcpHub": {
     "title": "MCP",

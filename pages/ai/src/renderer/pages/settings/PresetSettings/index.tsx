@@ -144,9 +144,9 @@ const PresetSettings: React.FC = () => {
 
   return (
     <HubPageShell
-      title={t('settings.presetsHub.title', { defaultValue: 'Presets' })}
+      title={t('settings.presetsHub.title', { defaultValue: 'Roles' })}
       subtitle={t('settings.presetsHub.subtitle', {
-        defaultValue: 'Save reusable agent, model, skill and knowledge configurations for one-click startup.',
+        defaultValue: 'Save reusable agent, model, skill and knowledge configurations for one-click role startup.',
       })}
       maxWidthClass='md:max-w-1200px'
     >

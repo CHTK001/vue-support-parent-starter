@@ -88,6 +88,9 @@ const baseConfig = createVite({
   appName: 'vue-support-ai-starter',
   title: 'NomiFun AI',
   framework: 'react',
+  // pages/ai 自定义 UnoCSS 颜色与规则（bg-primary-N / text-t-primary / bg-fill-N 等）
+  unoTheme: unoColors,
+  unoRules: unoRules,
   alias: {
     // 把 @pages/ai 直接指向 renderer/App 入口（不再让 createVite 默认解析到
     // pages/ai/src 后被当作目录扫描）。其它子路径（@pages/system/* 等）由

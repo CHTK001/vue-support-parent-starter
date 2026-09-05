@@ -14,11 +14,15 @@ import { useTranslation } from 'react-i18next';
 /**
  * Directory selection input component
  * Used for selecting and displaying system directory paths
+ *
+ * `onPick` overrides the native directory dialog (used in WebUI browser mode,
+ * where the Tauri/Electron IPC dialog is unavailable).
  */
 const DirInputItem: React.FC<{
   label: string;
   field: string;
-}> = ({ label, field }) => {
+  onPick?: (currentValue: string) => void;
+}> = ({ label, field, onPick }) => {
   const { t } = useTranslation();
   return (
     <Form.Item label={label} field={field}>
@@ -26,6 +30,10 @@ const DirInputItem: React.FC<{
         const current_value = form.getFieldValue(field) || '';
 
         const handlePick = () => {
+          if (onPick) {
+            onPick(current_value);
+            return;
+          }
           ipcBridge.dialog.showOpen
             .invoke({
               defaultPath: current_value,

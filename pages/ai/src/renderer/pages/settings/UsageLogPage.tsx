@@ -17,11 +17,25 @@ const LEVEL_COLORS: Record<string, string> = {
   ERROR: 'var(--color-danger-5)',
 };
 
+/**
+ * 将 ISO 时间戳格式化为 "[yyyy-MM-dd HH:mm:ss]"。
+ *
+ * @param iso ISO 时间字符串（如 2026-09-05T12:59:39.0527666）
+ * @return 格式化后的时间文本；解析失败时原样返回
+ */
+function fmtTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `[${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} `
+    + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}]`;
+}
+
 const UsageLogPage: React.FC = () => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(false);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -81,7 +95,7 @@ const UsageLogPage: React.FC = () => {
                   key={i}
                   className='flex gap-8px py-2px hover:bg-fill-2 rd-4px px-8px'
                 >
-                  <span className='text-el-text-secondary shrink-0'>{e.timestamp}</span>
+                  <span className='text-el-text-secondary shrink-0'>{fmtTimestamp(e.timestamp)}</span>
                   <span
                     className='shrink-0 font-600'
                     style={{ color: LEVEL_COLORS[e.level] ?? LEVEL_COLORS.INFO }}

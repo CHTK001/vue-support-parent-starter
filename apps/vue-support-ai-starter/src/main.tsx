@@ -1,6 +1,11 @@
 /**
  * vue-support-ai-starter 入口 —— 挂载 NomiFun AI 渲染器。
  *
+ * 渲染器（pages/ai）为自包含 React 渲染器（内置 HashRouter + Auth/Theme/Provider 栈），
+ * 因此通过 `createContextApp({ selfContained: true })` 的自包含模式承载，
+ * 使全量应用统一经 @repo/app 入口装配（入口、日志、指纹等共享治理），同时避免
+ * 双路由/双装配冲突。不影响其他经 createContextApp 的现有应用。
+ *
  * 应用启动契约：
  *  - app.yaml: 由 createVite 暴露为 /apps/vue-support-ai-starter/app.yaml，
  *    业务侧 configService 会自动拉取并合并。
@@ -10,24 +15,7 @@
  * 桌面壳（Tauri）部署场景：把 base 改成 './'，由 vite.config.ts 切换。
  */
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createContextApp } from '@repo/app';
 import { NomiFunApp } from '@pages/ai';
 
-const host = document.getElementById('app');
-if (!host) {
-  throw new Error('[vue-support-ai-starter] 挂载节点 #app 不存在');
-}
-
-const root = createRoot(host);
-root.render(
-  <React.StrictMode>
-    <NomiFunApp />
-  </React.StrictMode>
-);
-
-// 隐藏公共 index.html 注入的全屏加载动画（共享模板契约：应用挂载完成后调用）。
-// 宿主直接 createRoot 挂载 NomiFunApp（不经 @repo/app createApp），需自行触发。
-const hideLoader = (window as unknown as { hideAppLoader?: () => void }).hideAppLoader;
-if (typeof hideLoader === 'function') {
-  hideLoader();
-}
+await createContextApp({ framework: 'react', appName: 'ai', selfContained: true }).root(<NomiFunApp />).mount('#app');
