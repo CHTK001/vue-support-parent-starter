@@ -128,6 +128,9 @@ export const AI_GLOBAL_SETTINGS_DEFAULTS: Required<AiGlobalSettings> = {
   ragChunkSize: 1000,
   ragChunkOverlap: 200,
   ragSplitter: 'sentence',
+  workshopStorageDir: '',
+  workshopMaxUploadSizeMb: 100,
+  usageEnabledParsers: '',
 };
 
 /** 类型安全读取：布尔值（后端可能存 "true"/"1"/"yes"） */

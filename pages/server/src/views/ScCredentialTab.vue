@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair } from '../api';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
@@ -70,16 +70,16 @@ async function openGenForm() {
 
 async function doGenerate() {
   if (!genForm.value.name.trim()) {
-    ElMessage.warning('密钥名称不能为空');
+    message.warning('密钥名称不能为空');
     return;
   }
   genLoading.value = true;
   try {
     genResult.value = await generateKeyPair(genForm.value.name, genForm.value.type, genForm.value.password || undefined, genForm.value.remark || undefined);
-    ElMessage.success('密钥已生成并保存');
+    message.success('密钥已生成并保存');
     refresh();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     genLoading.value = false;
   }
@@ -97,7 +97,7 @@ async function refresh(): Promise<void> {
     identities.value = identityList ?? [];
     keyRefOptions.value = (keyList ?? []).map(k => ({ label: k.msServerKeyName, value: k.id }));
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -124,16 +124,16 @@ function openKeyForm(row?: KeyRow): void {
  */
 async function submitKey(): Promise<void> {
   if (!keyForm.value.msServerKeyName.trim()) {
-    ElMessage.warning('名称不能为空');
+    message.warning('名称不能为空');
     return;
   }
   try {
     await saveKey(editingKeyId.value, { ...keyForm.value });
-    ElMessage.success('已保存');
+    message.success('已保存');
     keyFormVisible.value = false;
     refresh();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -143,9 +143,9 @@ async function submitKey(): Promise<void> {
  * @param row 密钥
  */
 async function deleteKey(row: KeyRow): Promise<void> {
-  await ElMessageBox.confirm(`确认删除密钥 ${row.msServerKeyName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除密钥 ${row.msServerKeyName}?`, '删除', { type: 'warning' });
   await delKey(row.id);
-  ElMessage.success('已删除');
+  message.success('已删除');
   refresh();
 }
 
@@ -171,16 +171,16 @@ function openIdentityForm(row?: IdentityRow): void {
  */
 async function submitIdentity(): Promise<void> {
   if (!identityForm.value.msServerIdentityName.trim()) {
-    ElMessage.warning('名称不能为空');
+    message.warning('名称不能为空');
     return;
   }
   try {
     await saveIdentity(editingIdentityId.value, { ...identityForm.value });
-    ElMessage.success('已保存');
+    message.success('已保存');
     identityFormVisible.value = false;
     refresh();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -190,9 +190,9 @@ async function submitIdentity(): Promise<void> {
  * @param row 身份
  */
 async function deleteIdentity(row: IdentityRow): Promise<void> {
-  await ElMessageBox.confirm(`确认删除身份 ${row.msServerIdentityName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除身份 ${row.msServerIdentityName}?`, '删除', { type: 'warning' });
   await delIdentity(row.id);
-  ElMessage.success('已删除');
+  message.success('已删除');
   refresh();
 }
 </script>

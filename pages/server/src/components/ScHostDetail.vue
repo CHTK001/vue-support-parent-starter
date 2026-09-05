@@ -101,10 +101,10 @@ async function onSaveConfig(): Promise<void> {
       serverHostAgentEnabled: cfgForm.serverHostAgentEnabled ? 1 : 0,
       serverHostRemoteEnabled: cfgForm.serverHostRemoteEnabled ? 1 : 0,
     });
-    ElMessage.success('系统设置已保存，采集/检测已动态调整');
+    message.success('系统设置已保存，采集/检测已动态调整');
     emit('updated');
   } catch (e) {
-    ElMessage.error((e as Error).message || '保存失败');
+    message.error((e as Error).message || '保存失败');
   } finally {
     saving.value = false;
   }
@@ -123,78 +123,76 @@ async function onSaveConfig(): Promise<void> {
     <template #content>
       <div v-if="host" class="host-detail">
       <!-- 基本信息 -->
-      <el-descriptions :column="2" border size="small">
-        <el-descriptions-item label="主机名称">{{ host.serverHostName }}</el-descriptions-item>
-        <el-descriptions-item label="主机编码">{{ host.serverHostCode || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="主机地址">{{ host.serverHostAddress }}</el-descriptions-item>
-        <el-descriptions-item label="SSH端口">{{ host.serverHostPort }}</el-descriptions-item>
-        <el-descriptions-item label="系统类型">{{ host.serverHostOsType }}</el-descriptions-item>
-        <el-descriptions-item label="系统版本">{{ host.serverHostOsVersion || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="在线状态">
-          <el-tag :type="host.serverHostOnline === 1 ? 'success' : host.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
+      <ReDescriptions :column="2" border size="small">
+        <ReDescriptionsItem label="主机名称">{{ host.serverHostName }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="主机编码">{{ host.serverHostCode || '-' }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="主机地址">{{ host.serverHostAddress }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="SSH端口">{{ host.serverHostPort }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="系统类型">{{ host.serverHostOsType }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="系统版本">{{ host.serverHostOsVersion || '-' }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="在线状态">
+          <ReTag :type="host.serverHostOnline === 1 ? 'success' : host.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
             {{ host.serverHostOnline === 1 ? '在线' : host.serverHostOnline === 0 ? '离线' : '未知' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="公网IP">{{ host.serverHostPublicIp || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="内网IP">{{ host.serverHostPrivateIp || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="探针标识">
-          <el-text size="small" type="info">{{ host.serverHostAgentKey || '-' }}</el-text>
-        </el-descriptions-item>
-      </el-descriptions>
+          </ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="公网IP">{{ host.serverHostPublicIp || '-' }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="内网IP">{{ host.serverHostPrivateIp || '-' }}</ReDescriptionsItem>
+        <ReDescriptionsItem label="探针标识">
+          <ReText size="small" type="info">{{ host.serverHostAgentKey || '-' }}</ReText>
+        </ReDescriptionsItem>
+      </ReDescriptions>
 
       <!-- 硬件规格：后台探测结果，只读展示 -->
-      <el-divider content-position="left">
+      <ReDivider content-position="left">
         硬件规格
         <ReButton layout="square" icon="Cpu" type="primary" size="small" :loading="detecting" @click="onDetect">重新探测</ReButton>
-      </el-divider>
-      <el-descriptions :column="3" border size="small">
-        <el-descriptions-item label="CPU 核心">
-          <el-tag size="small">{{ host.serverHostCpuCores ?? '-' }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="内存">
-          <el-tag size="small">{{ formatMem(host.serverHostMemoryMb) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="磁盘">
-          <el-tag size="small">{{ formatDisk(host.serverHostDiskGb) }}</el-tag>
-        </el-descriptions-item>
-      </el-descriptions>
+      </ReDivider>
+      <ReDescriptions :column="3" border size="small">
+        <ReDescriptionsItem label="CPU 核心">
+          <ReTag size="small">{{ host.serverHostCpuCores ?? '-' }}</ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="内存">
+          <ReTag size="small">{{ formatMem(host.serverHostMemoryMb) }}</ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="磁盘">
+          <ReTag size="small">{{ formatDisk(host.serverHostDiskGb) }}</ReTag>
+        </ReDescriptionsItem>
+      </ReDescriptions>
 
       <!-- 主机级系统设置 -->
-      <el-divider content-position="left">系统设置（本主机）</el-divider>
-      <el-form label-width="140px" label-position="left">
-        <el-divider content-position="left">在离线检测</el-divider>
-        <el-form-item label="启用自动检测">
-          <el-switch v-model="cfgForm.serverHostOnlineEnabled" />
-        </el-form-item>
-        <el-form-item label="检测间隔(秒)">
-          <el-input-number v-model="cfgForm.serverHostOnlineInterval" :min="5" :max="86400" style="width: 180px" />
-        </el-form-item>
+      <ReDivider content-position="left">系统设置（本主机）</ReDivider>
+      <ReForm label-width="140px" label-position="left">
+        <ReDivider content-position="left">在离线检测</ReDivider>
+        <ReFormItem label="启用自动检测">
+          <ReSwitch v-model="cfgForm.serverHostOnlineEnabled" />
+        </ReFormItem>
+        <ReFormItem label="检测间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostOnlineInterval" :min="5" :max="86400" style="width: 180px" />
+        </ReFormItem>
 
-        <el-divider content-position="left">硬件采集</el-divider>
-        <el-form-item label="启用采集">
-          <el-switch v-model="cfgForm.serverHostCollectEnabled" />
-        </el-form-item>
-        <el-form-item label="采集方式">
-          <ReSelect v-model="cfgForm.serverHostCollectMode" style="width: 220px">
-            <el-option v-for="m in collectModes" :key="m.value" :label="m.label" :value="m.value" />
-          </ReSelect>
-        </el-form-item>
-        <el-form-item label="采集间隔(秒)">
-          <el-input-number v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" />
-        </el-form-item>
+        <ReDivider content-position="left">硬件采集</ReDivider>
+        <ReFormItem label="启用采集">
+          <ReSwitch v-model="cfgForm.serverHostCollectEnabled" />
+        </ReFormItem>
+        <ReFormItem label="采集方式">
+          <ReSelect v-model="cfgForm.serverHostCollectMode" :data="collectModes" style="width: 220px" />
+        </ReFormItem>
+        <ReFormItem label="采集间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" />
+        </ReFormItem>
 
-        <el-divider content-position="left">Agent 与远控</el-divider>
-        <el-form-item label="Agent 上报">
-          <el-switch v-model="cfgForm.serverHostAgentEnabled" />
-        </el-form-item>
-        <el-form-item label="启用远控">
-          <el-switch v-model="cfgForm.serverHostRemoteEnabled" />
-        </el-form-item>
+        <ReDivider content-position="left">Agent 与远控</ReDivider>
+        <ReFormItem label="Agent 上报">
+          <ReSwitch v-model="cfgForm.serverHostAgentEnabled" />
+        </ReFormItem>
+        <ReFormItem label="启用远控">
+          <ReSwitch v-model="cfgForm.serverHostRemoteEnabled" />
+        </ReFormItem>
 
-        <el-form-item>
+        <ReFormItem>
           <ReButton layout="square" icon="Check" type="primary" :loading="saving" @click="onSaveConfig">保存设置</ReButton>
-        </el-form-item>
-      </el-form>
+        </ReFormItem>
+      </ReForm>
       </div>
     </template>
   </ReDrawer>

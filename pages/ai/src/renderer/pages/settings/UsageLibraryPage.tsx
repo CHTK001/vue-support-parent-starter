@@ -58,8 +58,8 @@ const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `
 
 const mapRow = (r: any): UsageRow => ({
   id: r.sysAiUsageId, api_key: r.sysAiUsageGroupName ?? '默认', model: r.sysAiUsageModel,
-  inference_strength: r.sysAiUsageInferenceStrength ?? '默认', endpoint: r.sysAiUsageEndpoint ?? '默认',
-  ip: r.sysAiUsageIp ?? '默认', group_name: r.sysAiUsageGroupName, type: r.sysAiUsageType ?? '默认',
+  inference_strength: r.sysAiUsageInferenceStrength ?? '默认', endpoint: r.sysAiUsageEndpoint ?? '/v1/chat/completions',
+  ip: r.sysAiUsageIp ?? '127.0.0.1', group_name: r.sysAiUsageGroupName, type: r.sysAiUsageType ?? 'chat',
   billing_mode: r.sysAiUsageBillingMode ?? '默认',
   prompt_tokens: r.sysAiUsagePromptTokens ?? 0, completion_tokens: r.sysAiUsageCompletionTokens ?? 0,
   cached_tokens: r.sysAiUsageCachedTokens ?? 0, total_tokens: r.sysAiUsageTotalTokens ?? 0,

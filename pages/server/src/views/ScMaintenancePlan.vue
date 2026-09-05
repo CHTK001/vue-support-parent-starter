@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { getMaintenancePlans, saveMaintenancePlan, delMaintenancePlan, queryHosts } from '../api';
 
 interface PlanRow {
@@ -71,7 +71,7 @@ async function refresh() {
     hosts.value = hostList ?? [];
     hostOptions.value = (hostList ?? []).map(h => ({ label: `${h.serverHostName} (${h.serverHostAddress})`, value: h.id }));
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
@@ -105,11 +105,11 @@ function openEdit(row: PlanRow) {
 
 async function submitForm() {
   if (!form.value.planName.trim()) {
-    ElMessage.warning('计划名称不能为空');
+    message.warning('计划名称不能为空');
     return;
   }
   if (!form.value.startTime || !form.value.endTime) {
-    ElMessage.warning('请选择开始和结束时间');
+    message.warning('请选择开始和结束时间');
     return;
   }
   const payload = {
@@ -117,15 +117,15 @@ async function submitForm() {
     targetHostIds: JSON.stringify(form.value.targetHostIds),
   };
   await saveMaintenancePlan(editingId.value, payload);
-  ElMessage.success('已保存');
+  message.success('已保存');
   formVisible.value = false;
   refresh();
 }
 
 async function removePlan(row: PlanRow) {
-  await ElMessageBox.confirm(`确认删除维护计划 ${row.planName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除维护计划 ${row.planName}?`, '删除', { type: 'warning' });
   await delMaintenancePlan(row.id);
-  ElMessage.success('已删除');
+  message.success('已删除');
   refresh();
 }
 

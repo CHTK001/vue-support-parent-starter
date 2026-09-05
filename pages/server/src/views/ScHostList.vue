@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import {
   queryHosts,
   getGroups,
@@ -105,29 +105,29 @@ const selectedIds = ref<number[]>([]);
 
 async function onBatchEnable(enabled: boolean) {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请先选择主机');
+    message.warning('请先选择主机');
     return;
   }
-  await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}选中的 ${selectedIds.value.length} 台主机?`, '批量操作', { type: 'warning' });
+  await message.confirm(`确认${enabled ? '启用' : '停用'}选中的 ${selectedIds.value.length} 台主机?`, '批量操作');
   await batchUpdateStatus(selectedIds.value, enabled);
-  ElMessage.success('操作成功');
+  message.success('操作成功');
   selectedIds.value = [];
   refresh();
 }
 
 async function onBatchMoveGroup() {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请先选择主机');
+    message.warning('请先选择主机');
     return;
   }
-  const { value: groupId } = await ElMessageBox.prompt('请输入目标分组ID', '批量移动分组', {
+  const { value: groupId } = await message.prompt('请输入目标分组ID', '批量移动分组', '确定', '取消', 'info', {
     inputType: 'number',
     inputPattern: /^\d+$/,
     inputErrorMessage: '请输入有效的分组ID',
   });
   if (groupId) {
     await batchMoveGroup(selectedIds.value, Number(groupId));
-    ElMessage.success('已移动');
+    message.success('已移动');
     selectedIds.value = [];
     refresh();
   }
@@ -148,7 +148,7 @@ async function refresh(): Promise<void> {
     hosts.value = hostList ?? [];
     groups.value = groupList ?? [];
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
@@ -180,11 +180,11 @@ function openEdit(row: HostRow): void {
 async function onSubmitForm(data: Record<string, any>): Promise<void> {
   try {
     await saveHost(data.id ?? null, data);
-    ElMessage.success('已保存');
+    message.success('已保存');
     formVisible.value = false;
     refresh();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -194,9 +194,9 @@ async function onSubmitForm(data: Record<string, any>): Promise<void> {
  * @param row 主机
  */
 async function onDelete(row: HostRow): Promise<void> {
-  await ElMessageBox.confirm(`确认删除主机 ${row.serverHostName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除主机 ${row.serverHostName}?`, '删除');
   await delHost(row.id);
-  ElMessage.success('已删除');
+  message.success('已删除');
   refresh();
 }
 
@@ -224,11 +224,11 @@ async function onTestConnect(row: HostRow): Promise<void> {
   try {
     const banner = await testConnectHost(row.id);
     message.close();
-    ElMessage.success(`测试成功：${banner}`);
+    message.success(`测试成功：${banner}`);
     refresh();
   } catch (e) {
     message.close();
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -308,10 +308,10 @@ async function onImportFile(file: File | undefined) {
   try {
     if (!file) return;
     const count = await importHosts(file);
-    ElMessage.success(`成功导入 ${count} 条记录`);
+    message.success(`成功导入 ${count} 条记录`);
     refresh();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 </script>

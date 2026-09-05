@@ -70,7 +70,7 @@ async function loadSnippets(): Promise<void> {
       ? allSnippets.value.filter(s => (s.msTerminalSnippetName || '').toLowerCase().includes(kw))
       : allSnippets.value
   } catch (e) {
-    ElMessage.error((e as Error).message)
+    message.error((e as Error).message)
   }
 }
 
@@ -98,37 +98,37 @@ function editRow(row?: any): void {
 // 本地函数：保存片段
 async function save(): Promise<void> {
   if (!formData.value.name.trim()) {
-    ElMessage.warning('片段名称不能为空');
+    message.warning('片段名称不能为空');
     return;
   }
   try {
     await apiSaveSnippet({ ...formData.value });
-    ElMessage.success('已保存');
+    message.success('已保存');
     dialogVisible.value = false;
     loadSnippets();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
 // 本地函数：删除片段
 async function deleteRow(row: any): Promise<void> {
   try {
-    const result = await ElMessageBox.confirm(`确认删除片段 "${row.msTerminalSnippetName}"?`, '删除', { type: 'warning' });
+    const result = await message.confirm(`确认删除片段 "${row.msTerminalSnippetName}"?`, '删除', { type: 'warning' });
     if (result) {
       await apiDelSnippet(row.id);
-      ElMessage.success('已删除');
+      message.success('已删除');
       loadSnippets();
     }
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
 // 本地函数：批量删除
 function handleDelete(): void {
   if (!selectedRow.value) {
-    ElMessage.warning('请先选择一行');
+    message.warning('请先选择一行');
     return;
   }
   deleteRow(selectedRow.value);

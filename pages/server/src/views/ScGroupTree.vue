@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { getGroupTree, getGroups, saveGroup, delGroup } from '../api';
 
 interface GroupNode {
@@ -32,7 +32,7 @@ async function refresh() {
     treeData.value = tree ?? [];
     flatGroups.value = flat ?? [];
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
@@ -57,19 +57,19 @@ function openEdit(node: GroupNode) {
 
 async function submitForm() {
   if (!form.value.msServerGroupName.trim()) {
-    ElMessage.warning('分组名称不能为空');
+    message.warning('分组名称不能为空');
     return;
   }
   await saveGroup(editingId.value, { ...form.value });
-  ElMessage.success('已保存');
+  message.success('已保存');
   formVisible.value = false;
   refresh();
 }
 
 async function removeGroup(node: GroupNode) {
-  await ElMessageBox.confirm(`确认删除分组 ${node.name}? 若存在子分组或主机将拒绝删除`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除分组 ${node.name}? 若存在子分组或主机将拒绝删除`, '删除', { type: 'warning' });
   await delGroup(node.id);
-  ElMessage.success('已删除');
+  message.success('已删除');
   refresh();
 }
 

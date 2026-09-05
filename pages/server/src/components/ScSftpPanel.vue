@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { http } from '@repo/utils';
 import {
   sftpDelete,
@@ -89,7 +89,7 @@ async function go(path?: string): Promise<void> {
     });
     currentPath.value = target || '/';
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
@@ -133,7 +133,7 @@ async function openEditor(path: string): Promise<void> {
     editorTruncated.value = !!result.truncated;
     editorVisible.value = true;
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -145,10 +145,10 @@ async function saveEditor(): Promise<void> {
   editorSaving.value = true;
   try {
     await sftpWriteContent(props.hostId, editorPath.value, editorContent.value);
-    ElMessage.success('保存成功');
+    message.success('保存成功');
     editorVisible.value = false;
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     editorSaving.value = false;
   }
@@ -159,10 +159,10 @@ async function saveEditor(): Promise<void> {
  */
 async function onMkdir(): Promise<void> {
   if (!props.hostId) return;
-  const { value } = await ElMessageBox.prompt('新目录名', '创建目录', { inputValue: 'newdir' });
+  const { value } = await message.prompt('新目录名', '创建目录', '确定', '取消', 'info', { inputValue: 'newdir' });
   const base = currentPath.value.endsWith('/') ? currentPath.value : `${currentPath.value}/`;
   await sftpMkdir(props.hostId, `${base}${value}`);
-  ElMessage.success('已创建');
+  message.success('已创建');
   go();
 }
 
@@ -174,9 +174,9 @@ async function onMkdir(): Promise<void> {
 async function onDelete(entry: FileEntry): Promise<void> {
   if (!props.hostId) return;
   const base = currentPath.value.endsWith('/') ? currentPath.value : `${currentPath.value}/`;
-  await ElMessageBox.confirm(`确认删除 ${entry.name}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除 ${entry.name}?`, '删除');
   await sftpDelete(props.hostId, `${base}${entry.name}`, !!entry.directory);
-  ElMessage.success('已删除');
+  message.success('已删除');
   go();
 }
 
@@ -188,9 +188,9 @@ async function onDelete(entry: FileEntry): Promise<void> {
 async function onRename(entry: FileEntry): Promise<void> {
   if (!props.hostId) return;
   const base = currentPath.value.endsWith('/') ? currentPath.value : `${currentPath.value}/`;
-  const { value } = await ElMessageBox.prompt('新名称', '重命名', { inputValue: entry.name });
+  const { value } = await message.prompt('新名称', '重命名', '确定', '取消', 'info', { inputValue: entry.name });
   await sftpRename(props.hostId, `${base}${entry.name}`, `${base}${value}`);
-  ElMessage.success('已完成');
+  message.success('已完成');
   go();
 }
 
@@ -220,10 +220,10 @@ async function onUpload(event: Event): Promise<void> {
   const q = `path=${encodeURIComponent(currentPath.value)}`;
   try {
     await http().post(`/ms/server/sftp/${props.hostId}/upload?${q}`).data(form);
-    ElMessage.success('上传成功');
+    message.success('上传成功');
     go();
   } catch (e) {
-    ElMessage.error('上传失败');
+    message.error('上传失败');
   }
   input.value = '';
 }
@@ -290,26 +290,26 @@ async function removeBookmark(id: number): Promise<void> {
   <div class="sftp-panel" :class="{ disabled: !hostId }">
     <!-- 工具栏 -->
     <div class="toolbar">
-      <el-button size="small" @click="up" :disabled="currentPath === '/'">上级</el-button>
-      <el-input
+      <ReButton size="small" @click="up" :disabled="currentPath === '/'">上级</ReButton>
+      <ReInput
         v-model="currentPath"
         size="small"
         style="width: 380px"
         @keyup.enter="go()"
         placeholder="远程路径"
       />
-      <el-button size="small" type="primary" @click="go()">刷新</el-button>
-      <el-button size="small" @click="onMkdir">新建目录</el-button>
-      <el-button size="small" @click="addBookmark">收藏路径</el-button>
+      <ReButton size="small" type="primary" @click="go()">刷新</ReButton>
+      <ReButton size="small" @click="onMkdir">新建目录</ReButton>
+      <ReButton size="small" @click="addBookmark">收藏路径</ReButton>
       <label class="upload-btn">
         <input type="file" hidden @change="onUpload" />
-        <el-button size="small" tag="span">上传到此目录</el-button>
+        <ReButton size="small" tag="span">上传到此目录</ReButton>
       </label>
     </div>
 
     <!-- 书签 -->
     <div v-if="bookmarks.length" class="bookmarks">
-      <el-tag
+      <ReTag
         v-for="bookmark in bookmarks"
         :key="bookmark.id"
         closable
@@ -319,48 +319,46 @@ async function removeBookmark(id: number): Promise<void> {
         @close="removeBookmark(bookmark.id)"
       >
         {{ bookmark.msTerminalBookmarkName }}
-      </el-tag>
+      </ReTag>
     </div>
 
     <!-- 文件表格 -->
-    <el-table v-loading="loading" :data="entries" size="small" height="calc(100vh - 320px)" border>
-      <el-table-column label="名称" min-width="240">
+    <ReTable :data="entries" :loading="loading" size="small" border :pagination="false" :toolbar="false"
+      :layout-table="{ minHeight: 0, height: 'calc(100vh - 320px)' }">
+      <ReTableColumn label="名称" min-width="240">
         <template #default="{ row }">
-          <el-link type="primary" :underline="false" @click="enter(row)">
-            <el-icon style="margin-right: 4px">
-              <Folder v-if="row.directory" />
-              <Document v-else />
-            </el-icon>
+          <ReLink type="primary" :underline="false" @click="enter(row)">
+            <ReIcon style="margin-right: 4px" :name="row.directory ? 'Folder' : 'Document'" />
             {{ row.name }}
-          </el-link>
+          </ReLink>
         </template>
-      </el-table-column>
-      <el-table-column label="类型" width="90">
+      </ReTableColumn>
+      <ReTableColumn label="类型" width="90">
         <template #default="{ row }">{{ row.directory ? '目录' : '文件' }}</template>
-      </el-table-column>
-      <el-table-column label="大小" width="110">
+      </ReTableColumn>
+      <ReTableColumn label="大小" width="110">
         <template #default="{ row }">{{ row.directory ? '-' : formatSize(row.size) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="200">
         <template #default="{ row }">
-          <el-button v-if="!row.directory" link size="small" @click="openEditor(joint(row.name))">编辑</el-button>
-          <el-button v-if="!row.directory" link size="small" @click="download(row)">下载</el-button>
-          <el-button link size="small" @click="onRename(row)">改名</el-button>
-          <el-button link size="small" type="danger" @click="onDelete(row)">删除</el-button>
+          <ReButton v-if="!row.directory" link size="small" @click="openEditor(joint(row.name))">编辑</ReButton>
+          <ReButton v-if="!row.directory" link size="small" @click="download(row)">下载</ReButton>
+          <ReButton link size="small" @click="onRename(row)">改名</ReButton>
+          <ReButton link size="small" type="danger" @click="onDelete(row)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <!-- 文本编辑器 -->
     <ReDialog v-model="editorVisible" :title="editorPath" width="760" :height="560" confirm-text="保存" cancel-text="取消" @confirm="saveEditor" @cancel="editorVisible = false">
-      <el-alert
+      <ReAlert
         v-if="editorTruncated"
         title="文件过大，仅加载前 1MB 内容；保存将覆盖完整文件，请谨慎操作"
         type="warning"
         :closable="false"
         style="margin-bottom: 8px"
       />
-      <el-input v-model="editorContent" type="textarea" :rows="20" spellcheck="false" />
+      <ReInput v-model="editorContent" type="textarea" :rows="20" spellcheck="false" />
     </ReDialog>
   </div>
 </template>
