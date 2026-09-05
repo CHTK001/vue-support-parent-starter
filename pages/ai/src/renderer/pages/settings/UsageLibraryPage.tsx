@@ -53,7 +53,7 @@ const fmtNum = (v: unknown, d = 0) => v == null ? '-' : Number(v).toLocaleString
 const fmtStr = (v: unknown, def = '-') => v == null ? def : String(v);
 const fmtToken = (v: number) => v >= 1e9 ? (v/1e9).toFixed(2)+'B' : v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : String(v);
 const fmtCost = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(2)}`;
-const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v).format('YYYY/MM/DD HH:mm');
+const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v as string | number | Date).format('YYYY/MM/DD HH:mm');
 const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
 
 const mapRow = (r: any): UsageRow => ({
@@ -427,7 +427,7 @@ const UsageLibraryPage: React.FC = () => {
               <button key={p.label} onClick={() => handlePresetChange(p)}
                 style={{ padding:'3px 10px', borderRadius:6, fontSize:12, background:'var(--bg-1)', color:'var(--text-secondary)', cursor:'pointer', border:'none' }}>{p.label}</button>
             ))}
-            <DatePicker.RangePicker allowClear showTime value={dateRange} onChange={handleDateChange} format="YYYY-MM-DD HH:mm:ss" style={{ width:240, background:'var(--bg-1)', border:'1px solid var(--bg-3)', borderRadius:6 }} placeholder={['开始','结束']} />
+            <DatePicker.RangePicker allowClear showTime value={dateRange ?? undefined} onChange={handleDateChange} format="YYYY-MM-DD HH:mm:ss" style={{ width:240, background:'var(--bg-1)', border:'1px solid var(--bg-3)', borderRadius:6 }} placeholder={['开始','结束']} />
           </div>
           <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
             <Select value={granularity} onChange={(v)=>setGranularity(v as 'hourly'|'daily')} size="small" style={{ width:90, background:'var(--bg-1)' }}>
@@ -497,7 +497,7 @@ const UsageLibraryPage: React.FC = () => {
                         <td style={{ padding:'7px 12px', color:'var(--bg-6)' }}>{row.type??'默认'}</td>
                         <td style={{ padding:'7px 12px' }}>
                           <span style={{ fontSize:12, padding:'1px 6px', borderRadius:4, background:'rgba(129,140,248,0.12)', color:'var(--info)' }}>
-                            {{pay_as_you_go:'按量',subscription:'订阅'}[row.billing_mode]??'默认'}
+                            {{pay_as_you_go:'按量',subscription:'订阅'}[row.billing_mode ?? ''] ?? '默认'}
                           </span>
                         </td>
                         <td style={{ padding:'7px 12px' }}>
