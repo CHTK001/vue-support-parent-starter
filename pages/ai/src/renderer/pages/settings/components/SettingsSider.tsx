@@ -152,13 +152,13 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       },
       'skills': {
         id: 'skills',
-        label: t('settings.skillsMarket.settingsTitle', { defaultValue: '技能市场' }),
+        label: t('settings.skillsMarket.settingsTitle', { defaultValue: '技能市场设置' }),
         icon: <Puzzle />,
         path: 'skills',
       },
       'mcp': {
         id: 'mcp',
-        label: t('settings.mcpMarket.settingsTitle', { defaultValue: 'MCP 市场' }),
+        label: t('settings.mcpMarket.settingsTitle', { defaultValue: 'MCP 设置' }),
         icon: <LinkCloud />,
         path: 'mcp',
       },
