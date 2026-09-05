@@ -79,8 +79,8 @@ const WorkshopSettingsPage: React.FC = () => {
                   min={1}
                   max={1024}
                   className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                  value={numVal('workshopMaxUploadSizeMb') ?? 100}
-                  onChange={(e) => set('workshopMaxUploadSizeMb', Number(e.target.value) ?? 100)}
+                  value={aiNum(values, 'workshopMaxUploadSizeMb', 100)}
+                  onChange={(e) => set('workshopMaxUploadSizeMb', Number(e.target.value) || 100)}
                 />
               </PreferenceRow>
             </div>

@@ -219,22 +219,22 @@ async function onPemFileChange(file: any): Promise<void> {
  */
 function onSubmit(): void {
   if (!form.serverHostName.trim() || !form.serverHostAddress.trim()) {
-    ElMessage.warning('主机名称与地址不能为空');
+    message.warning('主机名称与地址不能为空');
     return;
   }
   const hasAccount = form.serverHostAccount.trim();
   const hasPassword = !!form.serverHostPassword;
   const hasKey = form.serverHostPrivateKey.trim();
   if (form.authType === 'password' && hasAccount && !hasPassword) {
-    ElMessage.warning('请填写登录密码');
+    message.warning('请填写登录密码');
     return;
   }
   if (form.authType === 'key' && hasAccount && !hasKey) {
-    ElMessage.warning('请填写 PEM 私钥');
+    message.warning('请填写 PEM 私钥');
     return;
   }
   if (form.authType === 'key' && !hasAccount && hasKey) {
-    ElMessage.warning('请填写登录账号');
+    message.warning('请填写登录账号');
     return;
   }
   const submit = {
@@ -273,7 +273,7 @@ function onSubmit(): void {
     @confirm="onSubmit"
     @cancel="visible = false"
   >
-    <el-form label-position="top" class="host-form" @submit.prevent="onSubmit">
+    <ReForm label-position="top" class="host-form" @submit.prevent="onSubmit">
       <!-- 系统类型卡片 -->
       <div class="form-section">
         <div class="section-label">系统类型</div>
@@ -285,7 +285,7 @@ function onSubmit(): void {
             :class="{ active: form.serverHostOsType === opt.value }"
             @click="form.serverHostOsType = opt.value; onOsTypeChange(opt.value)"
           >
-            <el-icon :size="20"><Monitor /></el-icon>
+            <ReIcon name="Monitor" :size="20" />
             <span>{{ opt.label }}</span>
           </div>
         </div>
@@ -297,27 +297,27 @@ function onSubmit(): void {
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">主机名称<span class="required">*</span></label>
-            <el-input v-model="form.serverHostName" placeholder="如：应用服务器-01" />
+            <ReInput v-model="form.serverHostName" placeholder="如：应用服务器-01" />
           </div>
           <div class="form-field">
             <label class="field-label">主机编码</label>
-            <el-input v-model="form.serverHostCode" placeholder="可选，唯一标识" />
+            <ReInput v-model="form.serverHostCode" placeholder="可选，唯一标识" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field field-wide">
             <label class="field-label">主机地址<span class="required">*</span></label>
-            <el-input v-model="form.serverHostAddress" placeholder="IP 或域名" />
+            <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" />
           </div>
           <div class="form-field field-narrow">
             <label class="field-label">端口</label>
-            <el-input-number v-model="form.serverHostPort" :min="1" :max="65535" style="width: 100%" />
+            <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width: 100%" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">标签</label>
-            <el-select
+            <ReSelect
               v-model="form.tags"
               multiple
               filterable
@@ -325,16 +325,15 @@ function onSubmit(): void {
               default-first-option
               :reserve-keyword="false"
               placeholder="输入后回车添加"
+              :data="tagSuggestions.map(t => ({ label: t, value: t }))"
               style="width: 100%"
-            >
-              <el-option v-for="t in tagSuggestions" :key="t" :label="t" :value="t" />
-            </el-select>
+            />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">描述</label>
-            <el-input v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="备注信息" />
+            <ReInput v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="备注信息" />
           </div>
         </div>
       </div>
@@ -348,22 +347,22 @@ function onSubmit(): void {
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">认证类型</label>
-            <el-radio-group v-model="form.authType">
-              <el-radio-button v-for="opt in authTypeOptions" :key="opt.value" :value="opt.value">
+            <ReRadioGroup v-model="form.authType" button capsule>
+              <ReRadioButton v-for="opt in authTypeOptions" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
-              </el-radio-button>
-            </el-radio-group>
+              </ReRadioButton>
+            </ReRadioGroup>
           </div>
         </div>
         <template v-if="form.authType === 'password'">
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">登录账号</label>
-              <el-input v-model="form.serverHostAccount" placeholder="如 root" />
+              <ReInput v-model="form.serverHostAccount" placeholder="如 root" />
             </div>
             <div class="form-field">
               <label class="field-label">登录密码</label>
-              <el-input v-model="form.serverHostPassword" type="password" show-password placeholder="密码" />
+              <ReInput v-model="form.serverHostPassword" type="password" show-password placeholder="密码" />
             </div>
           </div>
         </template>
@@ -371,25 +370,20 @@ function onSubmit(): void {
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">登录账号</label>
-              <el-input v-model="form.serverHostAccount" placeholder="如 ubuntu" />
+              <ReInput v-model="form.serverHostAccount" placeholder="如 ubuntu" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field field-wide">
               <label class="field-label">PEM 私钥</label>
               <div class="pem-upload-wrap">
-                <el-upload
-                  :show-file-list="false"
-                  :auto-upload="false"
-                  accept=".pem,.key,.priv"
-                  :disabled="pemLoading"
-                  @change="onPemFileChange"
-                >
-                  <el-button size="small" :loading="pemLoading" plain>
-                    <el-icon style="margin-right: 4px"><Upload /></el-icon>选择文件
-                  </el-button>
-                </el-upload>
-                <el-input
+                <label class="pem-pick">
+                  <ReButton size="small" :loading="pemLoading" plain tag="span">
+                    <ReIcon name="Upload" :size="14" style="margin-right: 4px" />选择文件
+                  </ReButton>
+                  <input type="file" accept=".pem,.key,.priv" hidden :disabled="pemLoading" @change="onPemFileChange" />
+                </label>
+                <ReInput
                   v-model="form.serverHostPrivateKey"
                   type="textarea"
                   :rows="4"
@@ -407,32 +401,32 @@ function onSubmit(): void {
         <div class="form-section">
           <div class="section-label">
             硬件规格
-            <el-button link type="primary" :loading="detecting" @click="onDetect" class="section-action">
-              <el-icon style="margin-right: 4px"><Cpu /></el-icon>重新探测
-            </el-button>
+            <ReButton link type="primary" :loading="detecting" @click="onDetect" class="section-action">
+              <ReIcon name="Cpu" :size="14" style="margin-right: 4px" />重新探测
+            </ReButton>
           </div>
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">CPU 核心</label>
-              <el-input :model-value="form.serverHostCpuCores ?? '-'" disabled />
+              <ReInput :model-value="form.serverHostCpuCores ?? '-'" disabled />
             </div>
             <div class="form-field">
               <label class="field-label">内存 (MB)</label>
-              <el-input :model-value="form.serverHostMemoryMb ?? '-'" disabled />
+              <ReInput :model-value="form.serverHostMemoryMb ?? '-'" disabled />
             </div>
             <div class="form-field">
               <label class="field-label">磁盘 (GB)</label>
-              <el-input :model-value="form.serverHostDiskGb ?? '-'" disabled />
+              <ReInput :model-value="form.serverHostDiskGb ?? '-'" disabled />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">系统版本</label>
-              <el-input :model-value="form.serverHostOsVersion || '-'" disabled />
+              <ReInput :model-value="form.serverHostOsVersion || '-'" disabled />
             </div>
             <div class="form-field">
               <label class="field-label">系统架构</label>
-              <el-input :model-value="form.serverHostOsArch || '-'" disabled />
+              <ReInput :model-value="form.serverHostOsArch || '-'" disabled />
             </div>
           </div>
         </div>
@@ -440,34 +434,34 @@ function onSubmit(): void {
         <div class="form-section">
           <div class="section-label">
             网络地址
-            <el-button link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
-              <el-icon style="margin-right: 4px"><Refresh /></el-icon>刷新公网 IP
-            </el-button>
+            <ReButton link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
+              <ReIcon name="Refresh" :size="14" style="margin-right: 4px" />刷新公网 IP
+            </ReButton>
           </div>
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">公网 IP</label>
-              <el-input :model-value="form.serverHostPublicIp || '-'" disabled>
+              <ReInput :model-value="form.serverHostPublicIp || '-'" disabled>
                 <template #suffix>
-                  <el-icon v-if="form.serverHostPublicIp" color="#67c23a"><Connection /></el-icon>
+                  <ReIcon v-if="form.serverHostPublicIp" name="Connection" color="#67c23a" />
                 </template>
-              </el-input>
+              </ReInput>
             </div>
             <div class="form-field">
               <label class="field-label">内网 IP</label>
-              <el-input :model-value="form.serverHostPrivateIp || '-'" disabled />
+              <ReInput :model-value="form.serverHostPrivateIp || '-'" disabled />
             </div>
           </div>
         </div>
 
-        <el-form-item v-if="form.serverHostAgentKey">
+        <ReFormItem v-if="form.serverHostAgentKey">
           <template #label>
             <label class="field-label">探针标识</label>
           </template>
-          <el-text type="info" size="small">{{ form.serverHostAgentKey }}</el-text>
-        </el-form-item>
+          <ReText type="info" size="small">{{ form.serverHostAgentKey }}</ReText>
+        </ReFormItem>
       </template>
-    </el-form>
+    </ReForm>
   </ReDialog>
 </template>
 
@@ -585,6 +579,11 @@ function onSubmit(): void {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.pem-pick {
+  cursor: pointer;
+  display: inline-flex;
 }
 
 .pem-textarea {
