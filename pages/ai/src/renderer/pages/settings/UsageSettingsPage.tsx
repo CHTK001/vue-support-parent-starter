@@ -111,15 +111,15 @@ const UsageSettingsPage: React.FC = () => {
             <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
               <div className='w-full flex flex-col divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
                 <PreferenceRow label={t('settings.enableUsageAnalysis', { defaultValue: '启用用量分析' })}>
-                  <Switch checked={boolVal('enableUsageAnalysis', true)} onChange={(v) => set('enableUsageAnalysis', v)} />
+                  <Switch checked={aiBool(values, 'enableUsageAnalysis', true)} onChange={(v) => set('enableUsageAnalysis', v)} />
                 </PreferenceRow>
                 <PreferenceRow label={t('settings.usageReportInterval', { defaultValue: '用量上报间隔（秒）' })}>
                   <input
                     type='number'
                     min={10}
                     className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                    value={numVal('usageReportInterval') ?? 300}
-                    onChange={(e) => set('usageReportInterval', Number(e.target.value) ?? 300)}
+                    value={aiNum(values, 'usageReportInterval', 300)}
+                    onChange={(e) => set('usageReportInterval', Number(e.target.value) || 300)}
                   />
                 </PreferenceRow>
               </div>
