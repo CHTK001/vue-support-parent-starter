@@ -68,6 +68,8 @@ const EChartsPie: React.FC<{
       color: palette,
       tooltip: {
         trigger: 'item',
+        confine: true,
+        appendToBody: true,
         formatter: '{b}: {c} ({d}%)',
         backgroundColor: resolveToken('--color-bg-2', '#ffffff'),
         borderColor: resolveToken('--color-border-2', '#e5e6eb'),

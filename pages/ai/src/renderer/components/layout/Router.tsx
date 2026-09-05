@@ -52,6 +52,8 @@ const BotManagementPage = React.lazy(() => import('@renderer/pages/bots/BotManag
 const BotUserPage = React.lazy(() => import('@renderer/pages/bots/BotUserPage'));
 const BotImPage = React.lazy(() => import('@renderer/pages/bots/BotImPage'));
 const BotConfigPage = React.lazy(() => import('@renderer/pages/settings/BotConfigPage'));
+const SkillsMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/SkillsMarketSettingsPage'));
+const McpMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/McpMarketSettingsPage'));
 const ConversationShell = React.lazy(() => import('@renderer/pages/conversation/components/ConversationShell'));
 
 const RouteFallback: React.FC<{ Component: React.LazyExoticComponent<React.ComponentType> }> = ({ Component }) => {
@@ -258,6 +260,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/execution-engines' element={<ExecutionEngineSettingsRoute />} />
           <Route path='/settings/ssh-hosts' element={withRouteFallback(SshHostSettings)} />
           <Route path='/settings/bots' element={withRouteFallback(BotConfigPage)} />
+           <Route path='/settings/skills' element={withRouteFallback(SkillsMarketSettingsPage)} />
+           <Route path='/settings/mcp' element={withRouteFallback(McpMarketSettingsPage)} />
           <Route path='/settings/ai-global' element={withRouteFallback(AiGlobalSettingsPage)} />
            <Route path='/settings/ai-rag' element={withRouteFallback(RagSettingsPage)} />
            <Route path='/settings/ai-usage' element={withRouteFallback(UsageSettingsPage)} />

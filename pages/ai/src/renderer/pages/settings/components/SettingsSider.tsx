@@ -13,6 +13,8 @@ import {
   DatabaseConfig,
   ChartHistogram,
   Platte,
+  Light,
+  Tool,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -33,6 +35,8 @@ export const BUILTIN_TAB_IDS = [
   'workshop',
   'ocr',
   'face',
+  'skills',
+  'mcp',
   'execution-engines',
   'ssh-hosts',
   'computer-use',
@@ -130,6 +134,18 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.computerUseNav'),
         icon: <Computer />,
         path: 'computer-use',
+      },
+      skills: {
+        id: 'skills',
+        label: t('settings.skillsHub.railTitle', { defaultValue: '技能' }),
+        icon: <Light />,
+        path: 'skills',
+      },
+      mcp: {
+        id: 'mcp',
+        label: t('settings.mcpHub.railTitle', { defaultValue: 'MCP' }),
+        icon: <Tool />,
+        path: 'mcp',
       },
     };
 
