@@ -102,21 +102,22 @@ class ConfigServiceImpl {
             this.cache.set(key, value);
           }
         }
-        // 从 localStorage 恢复后端未存储的客户端配置（backdrop: 对象键按 JSON 反序列化）
+        // 从 localStorage 恢复后端未存储的客户端配置
         for (const key of ['chat.sendKey'] as ConfigKey[]) {
           if (!this.cache.has(key)) {
             try {
               const v = localStorage.getItem(key);
               if (v != null) {
                 try {
-                  this.cache.set(key, JSON.parse(v));
+                  this.cache.set(key, JSON.parse(v as string) as ConfigKeyMap[ConfigKey]);
                 } catch {
                   this.cache.set(key, v);
                 }
               }
             } catch { /* ignore */ }
           }
-        }        this.initialized = true;
+        }
+        this.initialized = true;
       } catch (error) {
         log.warn(`[configService] settings unavailable (pre-login or offline); using empty config:`, error);
         this.cache.clear();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { CronExpression } from '@repo/utils';
 import {
   queryHosts, runCommand, distributeFile, getJobs, saveJob, delJob, runJobNow,
@@ -89,7 +89,7 @@ onMounted(async () => {
     }));
     jobs.value = jobList ?? [];
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
   // 命令片段(失败静默, 不影响主功能)
   getSnippets().then(r => {
@@ -116,7 +116,7 @@ async function loadHistory(): Promise<void> {
   try {
     historyLogs.value = await getExecLogs(historyType.value || undefined);
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -125,16 +125,16 @@ async function loadHistory(): Promise<void> {
  */
 async function onRunCommand(): Promise<void> {
   if (!selectedHostIds.value.length || !command.value.trim()) {
-    ElMessage.warning('请选择主机并输入命令');
+    message.warning('请选择主机并输入命令');
     return;
   }
   running.value = true;
   try {
     const logs = await runCommand(selectedHostIds.value, command.value.trim());
     lastResults.value = normalizeLogs(logs);
-    ElMessage.success('执行完成');
+    message.success('执行完成');
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     running.value = false;
   }
@@ -145,15 +145,15 @@ async function onRunCommand(): Promise<void> {
  */
 async function onDistribute(): Promise<void> {
   if (!selectedHostIds.value.length || !distFile.value) {
-    ElMessage.warning('请选择主机与文件');
+    message.warning('请选择主机与文件');
     return;
   }
   distributing.value = true;
   try {
     await distributeFile(selectedHostIds.value.join(','), distDirectory.value, distFile.value);
-    ElMessage.success('分发完成');
+    message.success('分发完成');
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     distributing.value = false;
   }
@@ -190,18 +190,18 @@ function openJobForm(row?: JobRow): void {
 async function submitJob(): Promise<void> {
   const form = jobForm.value;
   if (!form.msExecJobName.trim() || !form.msExecJobCommand.trim()) {
-    ElMessage.warning('任务名称与命令均不能为空');
+    message.warning('任务名称与命令均不能为空');
     return;
   }
   if (!form.hostIdText.trim()) {
-    ElMessage.warning('目标主机ID不能为空');
+    message.warning('目标主机ID不能为空');
     return;
   }
   // cron 表达式合法性：复用框架解析器，非法即抛错
   try {
     new CronExpression(form.msExecJobCron.trim());
   } catch {
-    ElMessage.warning(`cron 表达式非法: ${form.msExecJobCron}`);
+    message.warning(`cron 表达式非法: ${form.msExecJobCron}`);
     return;
   }
   try {
@@ -216,11 +216,11 @@ async function submitJob(): Promise<void> {
       msExecJobTimeout: form.msExecJobTimeout,
       msExecJobEnabled: 1,
     });
-    ElMessage.success('已保存');
+    message.success('已保存');
     jobFormVisible.value = false;
     jobs.value = await getJobs();
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -233,9 +233,9 @@ async function onRunNow(row: JobRow): Promise<void> {
   try {
     const logs = await runJobNow(row.id);
     lastResults.value = normalizeLogs(logs);
-    ElMessage.success('已触发，结果见下方');
+    message.success('已触发，结果见下方');
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   }
 }
 
@@ -245,10 +245,10 @@ async function onRunNow(row: JobRow): Promise<void> {
  * @param row 任务
  */
 async function onDeleteJob(row: JobRow): Promise<void> {
-  await ElMessageBox.confirm(`确认删除任务 ${row.msExecJobName}?`, '删除', { type: 'warning' });
+  await message.confirm(`确认删除任务 ${row.msExecJobName}?`, '删除', { type: 'warning' });
   await delJob(row.id);
   jobs.value = await getJobs();
-  ElMessage.success('已删除');
+  message.success('已删除');
 }
 
 /**

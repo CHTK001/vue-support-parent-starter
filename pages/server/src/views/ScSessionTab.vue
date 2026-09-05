@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from '@repo/core';
 import { getSessions, getOnlineSessions, closeSession, queryHosts } from '../api';
 
 /** 会话审计行 */
@@ -71,7 +71,7 @@ async function refresh(): Promise<void> {
     sessions.value = audit;
     onlineSessions.value = online || [];
   } catch (e) {
-    ElMessage.error((e as Error).message);
+    message.error((e as Error).message);
   } finally {
     loading.value = false;
   }
@@ -106,9 +106,9 @@ function formatActive(t?: string): string {
  * @param row 会话
  */
 async function onForceClose(row: SessionRow): Promise<void> {
-  await ElMessageBox.confirm(`确认强制关闭 ${row.msTerminalSessionHostName} 的会话?`, '关闭', { type: 'warning' });
+  await message.confirm(`确认强制关闭 ${row.msTerminalSessionHostName} 的会话?`, '关闭', { type: 'warning' });
   await closeSession(row.id);
-  ElMessage.success('已关闭');
+  message.success('已关闭');
   refresh();
 }
 </script>

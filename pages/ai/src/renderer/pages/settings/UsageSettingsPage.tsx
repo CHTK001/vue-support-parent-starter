@@ -5,6 +5,7 @@ import {
   AiGlobalSettings,
   aiBool,
   aiNum,
+  aiStr,
   loadAiGlobalSettings,
   saveAiGlobalSettings,
 } from '@/common/config/aiGlobalSettings';
