@@ -4,9 +4,8 @@
       <div class="top-bar">
         <div class="sel-group">
           <label class="sel-label">选择服务器</label>
-          <el-select v-model="selectedMonitorId" placeholder="请选择服务器" class="sel-select" filterable @change="onMonitorChange">
-            <el-option v-for="m in servers" :key="m.id" :label="`${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`" :value="m.id" />
-          </el-select>
+          <ReSelect v-model="selectedMonitorId" placeholder="请选择服务器" class="sel-select" filterable @change="onMonitorChange"
+            :data="servers.map(m => ({ label: `${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`, value: m.id }))" />
         </div>
         <div class="meta-info">
           <span class="meta-item"><span class="dot"></span>{{ currentServer?.serverType || '—' }}</span>
@@ -15,10 +14,7 @@
           <span class="meta-item"><span class="dot dot-time"></span>最近采集: {{ lastCollect }}</span>
         </div>
         <div class="top-actions">
-          <el-button plain @click="refresh" class="refresh-btn">
-            <ReIcon name="RefreshLeft" />
-            <span>刷新</span>
-          </el-button>
+          <ReButton show-text icon="RefreshLeft" plain @click="refresh">刷新</ReButton>
         </div>
       </div>
     </ReCard>
@@ -300,7 +296,7 @@
     </ReCard>
     </div>
 
-    <el-empty v-else description="请从顶部选择一台服务器" :image-size="60" />
+    <ReEmpty v-else description="请从顶部选择一台服务器" :image-size="60" />
 
     <!-- 指标趋势曲线(echarts)：优先 InfluxDB series，未启用时降级 MySQL 历史 -->
     <ReCard v-if="selectedMonitorId" layout="simple" :radius="14" :padding="0" shadow="never">

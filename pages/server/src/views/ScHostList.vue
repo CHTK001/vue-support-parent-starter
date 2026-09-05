@@ -351,21 +351,21 @@ async function onImportFile(file: File | undefined) {
         style="width: 160px"
         @change="queryHosts({ groupId: filterGroupId }).then(r => (hosts = r ?? [])).catch(() => {})"
       />
-      <ReButton layout="square" icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
-      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
+      <ReButton show-text icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
+      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
       <label class="import-btn">
         <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
-        <ReButton layout="square" icon="Upload" tag="span">导入</ReButton>
+        <ReButton show-text icon="Upload" tag="span">导入</ReButton>
       </label>
-      <ReButton layout="square" icon="Download" @click="onExport">导出</ReButton>
+      <ReButton show-text icon="Download" @click="onExport">导出</ReButton>
     </div>
 
     <div class="batch-bar" v-if="selectedIds.length > 0">
       <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
-      <ReButton layout="square" icon="CircleCheck" type="success" size="small" @click="onBatchEnable(true)">批量启用</ReButton>
-      <ReButton layout="square" icon="CircleClose" type="warning" size="small" @click="onBatchEnable(false)">批量停用</ReButton>
-      <ReButton layout="square" icon="FolderOpened" size="small" @click="onBatchMoveGroup">移动分组</ReButton>
-      <ReButton layout="square" icon="Close" size="small" @click="selectedIds = []">清除选择</ReButton>
+      <ReButton show-text icon="CircleCheck" type="success" size="small" @click="onBatchEnable(true)">批量启用</ReButton>
+      <ReButton show-text icon="CircleClose" type="warning" size="small" @click="onBatchEnable(false)">批量停用</ReButton>
+      <ReButton show-text icon="FolderOpened" size="small" @click="onBatchMoveGroup">移动分组</ReButton>
+      <ReButton show-text icon="Close" size="small" @click="selectedIds = []">清除选择</ReButton>
     </div>
 
     <!-- 主机表格 -->
@@ -403,12 +403,12 @@ async function onImportFile(file: File | undefined) {
       </ReTableColumn>
       <ReTableColumn label="操作" width="280" fixed="right">
         <template #default="{ row }">
-          <ReButton layout="square" icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
-          <ReButton layout="square" icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
-          <ReButton layout="square" icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
-          <ReButton layout="square" icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
-          <ReButton layout="square" icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
-          <ReButton layout="square" icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+          <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
+          <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+          <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
+          <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+          <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
+          <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

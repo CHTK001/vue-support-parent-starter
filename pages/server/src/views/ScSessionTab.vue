@@ -141,7 +141,7 @@ async function onForceClose(row: SessionRow): Promise<void> {
         <ReRadioButton value="OPEN">进行中</ReRadioButton>
         <ReRadioButton value="CLOSED">已结束</ReRadioButton>
       </ReRadioGroup>
-      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
+      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
     <ReTable :data="sessions" :loading="loading" size="small" border :pagination="false" :toolbar="false">

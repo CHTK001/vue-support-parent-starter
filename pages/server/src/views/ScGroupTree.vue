@@ -81,8 +81,8 @@ function renderNode(node: GroupNode): string {
 <template>
   <div class="group-tree sc-page">
     <div class="toolbar">
-      <ReButton layout="square" icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
-      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
+      <ReButton show-text icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
+      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
     <ReCard class="tree-card" v-loading="loading">

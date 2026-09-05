@@ -206,8 +206,8 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           <div class="panel-head">
             <h4>SSH 密钥库</h4>
             <div style="display: flex; gap: 6px;">
-              <ReButton layout="square" icon="Key" size="small" @click="openGenForm()">生成密钥</ReButton>
-              <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openKeyForm()">新增密钥</ReButton>
+              <ReButton show-text icon="Key" size="small" @click="openGenForm()">生成密钥</ReButton>
+              <ReButton show-text icon="Plus" type="primary" size="small" @click="openKeyForm()">新增密钥</ReButton>
             </div>
           </div>
           <ReTable :data="keys" size="small" border :pagination="false" :toolbar="false">
@@ -228,7 +228,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
         <div class="panel">
           <div class="panel-head">
             <h4>登录身份</h4>
-            <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
+            <ReButton show-text icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
           </div>
           <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false">
             <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />

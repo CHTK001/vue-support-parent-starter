@@ -143,8 +143,8 @@ function hostNames(ids?: string): string {
 <template>
   <div class="plan-list sc-page">
     <div class="toolbar">
-      <ReButton layout="square" icon="Plus" type="primary" @click="openCreate">新建计划</ReButton>
-      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
+      <ReButton show-text icon="Plus" type="primary" @click="openCreate">新建计划</ReButton>
+      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
     <ReTable :data="plans" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false">

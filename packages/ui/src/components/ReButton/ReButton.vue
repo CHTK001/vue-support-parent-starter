@@ -8,13 +8,19 @@
  *           自动用 ReIcon 渲染（无需手动包 ReIcon）
  *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
  *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
- *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）
+ *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）/ "square"（正方形图标按钮，异步加载）
  *   - showText：true=显示文字，false=仅图标+tooltip（默认 false）
  *   - iconSize：按钮宽高（默认 32px，仅 iconOnly 时生效）
  *
+ * 【square 布局注意】"square" 是纯图标正方形按钮，不允许带文字：
+ *   - 传入的文字不会渲染到按钮上，仅作为 tooltip 悬浮提示与 aria-label 辅助信息
+ *   - 需要"图标 + 文字"展示时，请使用默认 layout（带 show-text）或 modern 布局
+ *
  * 用法：
  *   <ReButton icon="Search" type="primary" @click="onSearch">查询</ReButton>
- *   <ReButton icon="ri:refresh-line" :loading="loading" @click="reload">刷新</ReButton>
+ *   <ReButton icon="Plus" show-text type="primary">新增用户</ReButton>   <!-- 图标+文字 -->
+ *   <ReButton icon="Refresh" class="icon-only" @click="reload" />          <!-- 纯图标 -->
+ *   <ReButton layout="square" icon="Refresh" @click="reload" />            <!-- 纯图标正方形，文字仅做 tooltip -->
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
