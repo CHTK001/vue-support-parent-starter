@@ -140,7 +140,13 @@ class ConfigServiceImpl {
   async set<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): Promise<void> {
     this.cache.set(key, value);
     this.notify(key, value);
-    try { localStorage.setItem(key, String(value)); } catch { /* ignore */ }
+    try {
+      // 对象/数组键做 JSON 序列化，字符串/布尔/数字保持原样，避免对象键被存成 "[object Object]"
+      const serialized = value !== null && typeof value === 'object'
+        ? JSON.stringify(value)
+        : String(value);
+      localStorage.setItem(key, serialized);
+    } catch { /* ignore */ }
     await fetchJson<void>('PUT', '/api/settings/client', { [key]: value });
   }
 

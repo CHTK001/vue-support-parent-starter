@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from '@repo/core';
 import { saveHost, detectHost } from '../api';
 
 /**
