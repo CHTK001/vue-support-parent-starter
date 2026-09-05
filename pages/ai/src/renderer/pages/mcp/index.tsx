@@ -7,18 +7,17 @@
 import React from 'react';
 import { Tabs } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import HubPageShell from '@/renderer/components/layout/HubPageShell';
 import { ToolsModalContentWithState } from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
 import { useMcpServers } from '@/renderer/hooks/mcp';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
-import McpMarketSettings from './McpMarketSettings';
 import PluginSettingsPanel from './PluginSettingsPanel';
 
-type McpTab = 'servers' | 'market' | 'plugins' | 'plugin-market';
+type McpTab = 'servers' | 'plugins' | 'plugin-market';
 
 const isMcpTab = (value: string | null): value is McpTab =>
-  value === 'servers' || value === 'market' || value === 'plugins' || value === 'plugin-market';
+  value === 'servers' || value === 'plugins' || value === 'plugin-market';
 
 const McpPage: React.FC = () => {
   const { t } = useTranslation();
@@ -27,13 +26,16 @@ const McpPage: React.FC = () => {
   const {
     mcpServers,
     extensionMcpServers,
-    isMcpServersLoading,
-    mcpServersLoadFailed,
     saveMcpServers,
     setMcpServers,
   } = useMcpServers();
   const tabParam = searchParams.get('tab');
   const activeTab: McpTab = isMcpTab(tabParam) ? tabParam : 'servers';
+
+  // Legacy MCP market deep link → settings market page (/settings/mcp).
+  if (tabParam === 'market') {
+    return <Navigate to='/settings/mcp' replace />;
+  }
 
   const handleTabChange = (key: string) => {
     if (!isMcpTab(key)) return;
@@ -47,7 +49,7 @@ const McpPage: React.FC = () => {
     <HubPageShell
       title={t('settings.mcpHub.title', { defaultValue: 'MCP' })}
       subtitle={t('settings.mcpHub.subtitle', {
-        defaultValue: 'Register MCP servers, browse MCP markets, and manage plugins.',
+        defaultValue: 'Register MCP servers, and manage plugins.',
       })}
       maxWidthClass='md:max-w-1200px'
     >
@@ -66,13 +68,6 @@ const McpPage: React.FC = () => {
             extensionMcpServers={extensionMcpServers}
             saveMcpServers={saveMcpServers}
             setMcpServers={setMcpServers}
-          />
-        </Tabs.TabPane>
-        <Tabs.TabPane key='market' title={t('settings.mcpPage.mcpMarketTab', { defaultValue: 'MCP Market' })}>
-          <McpMarketSettings
-            saveMcpServers={saveMcpServers}
-            mcpServers={mcpServers}
-            addedStateLoading={isMcpServersLoading || mcpServersLoadFailed}
           />
         </Tabs.TabPane>
         <Tabs.TabPane key='plugins' title={t('settings.mcpPage.installedPluginsTab', { defaultValue: 'Installed Plugins' })}>

@@ -257,24 +257,32 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
 
         {sources.length > 0 && (
           <div className='grid gap-8px' style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-            {sources.map((source) => (
-              <div key={`${source.source}:${source.path}`} className='p-10px rd-8px bg-fill-2 min-w-0'>
-                <div className='flex items-center gap-8px min-w-0'>
-                  <FolderOpen size={15} className='text-t-secondary flex-shrink-0' />
-                  <span className='truncate text-13px font-600 text-t-primary' title={source.name}>
-                    {source.name}
-                  </span>
+            {sources.map((source) => {
+              const count = source.skill_count ?? source.skills.length;
+              return (
+                <div
+                  key={`${source.source}:${source.path}`}
+                  className={`p-10px rd-8px bg-fill-2 min-w-0 ${count === 0 ? 'op-55' : ''}`}
+                >
+                  <div className='flex items-center gap-8px min-w-0'>
+                    <FolderOpen size={15} className='text-t-secondary flex-shrink-0' />
+                    <span className='truncate text-13px font-600 text-t-primary' title={source.name}>
+                      {source.name}
+                    </span>
+                  </div>
+                  <div className='mt-6px flex items-center gap-6px'>
+                    <Tag size='small' bordered={false} className={sourceToneClass(source.source)}>
+                      {count}
+                    </Tag>
+                    <span className='truncate text-11px text-t-tertiary' title={source.path}>
+                      {count === 0
+                        ? t('settings.agentSkillImport.notInstalled', { defaultValue: 'Not installed' })
+                        : source.path}
+                    </span>
+                  </div>
                 </div>
-                <div className='mt-6px flex items-center gap-6px'>
-                  <Tag size='small' bordered={false} className={sourceToneClass(source.source)}>
-                    {source.skill_count ?? source.skills.length}
-                  </Tag>
-                  <span className='truncate text-11px text-t-tertiary' title={source.path}>
-                    {source.path}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

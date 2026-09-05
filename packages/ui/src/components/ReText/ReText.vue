@@ -45,7 +45,7 @@ const props = withDefaults(
     security?: ReTextSecurityOptions;
   }>(),
   {
-    type: undefined as undefined | "default" | "primary" | "success" | "warning" | "danger" | "info",
+    type: undefined as undefined | "" | "primary" | "success" | "warning" | "danger" | "info",
     size: undefined as undefined | "large" | "default" | "small",
     truncated: false,
     lineClamp: undefined,

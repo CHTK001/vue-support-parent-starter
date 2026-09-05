@@ -73,6 +73,7 @@ const EChartLine: React.FC<{ points: TrendPoint[]; height?: number }> = ({ point
       tooltip: {
         trigger: 'axis',
         confine: true,
+        appendToBody: true,
         backgroundColor: resolveToken('--color-bg-2', '#ffffff'),
         borderColor: resolveToken('--color-border-2', '#e5e6eb'),
         textStyle: { color: resolveToken('--color-text-1', '#1d2129'), fontSize: 12 },
