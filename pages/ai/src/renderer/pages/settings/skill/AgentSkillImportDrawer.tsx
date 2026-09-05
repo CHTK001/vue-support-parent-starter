@@ -13,12 +13,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   buildAgentSkillRows,
-  convertAgentSkillsToSources,
+  convertAgentProvidersToSources,
   defaultSelectedAgentSkillKeys,
   summarizeAgentSkillImport,
+  type AgentProviderInfo,
   type AgentSkillImportRow,
   type ExternalAgentSkillSource,
-  type AgentSkillInfo,
 } from './agentSkillImportUtils';
 
 export type ImportedAgentSkill = {
@@ -97,7 +97,7 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
         ipcBridge.fs.listSkillsFromAgent.invoke(),
       ]);
       const detectedSources = detected as ExternalAgentSkillSource[];
-      const agentSources = convertAgentSkillsToSources(agentResult as AgentSkillInfo[]);
+      const agentSources = convertAgentProvidersToSources(agentResult as AgentProviderInfo[]);
       setSources([...detectedSources, ...agentSources]);
     } catch (error) {
       console.error('Failed to detect external agent skills:', error);

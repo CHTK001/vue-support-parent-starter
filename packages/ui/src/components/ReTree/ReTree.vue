@@ -157,7 +157,6 @@ const props = withDefaults(defineProps<ReTreeProps>(), {
   checkDescendants: false,
   autoExpandParent: true,
   defaultCheckedKeys: () => [],
-  defaultExpandedKeys: () => [],
   showCheckbox: false,
   draggable: false,
   allowDrag: undefined,
@@ -200,7 +199,31 @@ const emit = defineEmits<{
   (e: "update:data", data: ReTreeItem[]): void;
 }>();
 
-const treeRef = ref<InstanceType<typeof ElTree>>();
+/** el-tree 公开方法类型契约（本地宽松声明，规避官方类型与 ReTreeItem 的差异） */
+interface ElTreeMethods {
+  filter(value: string): void;
+  getCheckedNodes(leafOnly?: boolean): TreeNodeData[];
+  getCheckedKeys(leafOnly?: boolean): Array<string | number>;
+  setCheckedKeys(keys: Array<string | number>, leafOnly?: boolean): void;
+  setChecked(data: TreeNodeData | string | number, checked: boolean, deep?: boolean): void;
+  getHalfCheckedNodes(): TreeNodeData[];
+  getHalfCheckedKeys(): Array<string | number>;
+  getCurrentKey(): string | number | null;
+  getCurrentNode(): TreeNodeData | null;
+  setCurrentKey(key: string | number): void;
+  setCurrentNode(node: TreeNodeData): void;
+  getNode(data: TreeNodeData | string | number): Node | undefined;
+  remove(data: TreeNodeData | string | number): void;
+  append(data: TreeNodeData, parent: TreeNodeData): void;
+  insertBefore(data: TreeNodeData, ref: TreeNodeData): void;
+  insertAfter(data: TreeNodeData, ref: TreeNodeData): void;
+  updateKeyChildren(key: string | number, data: TreeNodeData[]): void;
+  expandAll(): void;
+  collapseAll(): void;
+}
+
+/** 使用宽松的公开方法接口，匹配 el-tree 实例（官方类型不全，尤其是 expandAll/collapseAll） */
+const treeRef = ref<ElTreeMethods | null>(null);
 
 // ---- 数据源处理 ----
 const sourceType = computed(() => {
@@ -212,16 +235,26 @@ const sourceType = computed(() => {
 
 const treeData = ref<ReTreeItem[]>(props.data ?? []);
 
-// 远程数据加载（首次加载根节点）
+// 远程数据加载（首次加载根节点）——source 恒返回 ReTreeItem[]，避免混合 url 字符串破坏类型
 const { loading: rootLoading, data: rootData, reload: rootReload } = useDataSource<ReTreeItem[]>(
   () => {
-    if (sourceType.value === "url") return props.url!;
+    if (sourceType.value === "url") {
+      // url 模式：直接发请求拿根节点
+      return http()
+        .get(props.url!)
+        .then(r => {
+          const data = r.data;
+          const arr = Array.isArray(data) ? data : (data as Record<string, unknown>).data ?? [];
+          return arr as ReTreeItem[];
+        })
+        .catch(() => [] as ReTreeItem[]);
+    }
     if (sourceType.value === "loader") {
       // loader 需要由外部提供根节点数据
       if (typeof props.loader === "function") {
-        return props.loader(null as unknown as ReTreeItem); // loader 签名暂定为 (parent?) => data[]
+        return props.loader(null as unknown as ReTreeItem) ?? [];
       }
-      return [];
+      return [] as ReTreeItem[];
     }
     return props.data ?? [];
   }
@@ -261,7 +294,7 @@ const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
   }
 
   if (props.loader && parentId) {
-    props.loader(node.data as ReTreeItem)
+    Promise.resolve(props.loader(node.data as ReTreeItem))
       .then(resolve)
       .catch(() => resolve([]));
     return;
@@ -274,13 +307,16 @@ const lazyComputed = computed(() => sourceType.value !== "local" || !!props.lazy
 
 const options = computed(() => props.props || { children: "children", label: "label", disabled: "disabled" });
 
+/** 当前 label 字段名（供表单 v-model 使用） */
+const labelKey = computed(() => getLabelKey());
+
 const resolvedProps = computed(() => ({
   children: options.value.children || "children",
   label: options.value.label || "label",
   disabled: options.value.disabled || "disabled",
   isLeaf: options.value.isLeaf,
   class: options.value.class,
-}));
+} as Record<string, unknown>));
 
 const draggableComputed = computed(() => props.draggable);
 
@@ -312,8 +348,8 @@ function findParent(tree: ReTreeItem[], target: ReTreeItem): ReTreeItem | null {
   return null;
 }
 
-function onNodeClick(data: ReTreeItem, node: Node, event: MouseEvent): void {
-  emit("node-click", data, node, event);
+function onNodeClick(data: ReTreeItem, node: Node, ..._rest: unknown[]): void {
+  emit("node-click", data, node, _rest[0] as MouseEvent);
 }
 
 function onNodeContextmenu(event: Event, data: ReTreeItem, node: Node): void {
@@ -444,6 +480,16 @@ function filter(value: string): void {
   treeRef.value?.filter(value);
 }
 
+/** 展开全部节点（工具栏按钮调用） */
+function expandAll(): void {
+  treeRef.value?.expandAll();
+}
+
+/** 收起全部节点（工具栏按钮调用） */
+function collapseAll(): void {
+  treeRef.value?.collapseAll();
+}
+
 function getCheckedNodes(leafOnly?: boolean): ReTreeItem[] {
   return (treeRef.value?.getCheckedNodes(leafOnly) ?? []) as ReTreeItem[];
 }
@@ -469,7 +515,8 @@ function getHalfCheckedKeys(): (string | number)[] {
 }
 
 function getCurrentKey(): string | number | undefined {
-  return treeRef.value?.getCurrentKey();
+  const key = treeRef.value?.getCurrentKey();
+  return key == null ? undefined : (key as string | number);
 }
 
 function getCurrentNode(): ReTreeItem | undefined {
@@ -481,31 +528,34 @@ function setCurrentKey(key: string | number): void {
 }
 
 function setCurrentNode(node: ReTreeItem): void {
-  treeRef.value?.setCurrentNode(node);
+  treeRef.value?.setCurrentNode(node as TreeNodeData);
 }
 
 function getNode(data: ReTreeItem | (string | number)): Node | undefined {
-  return treeRef.value?.getNode(data);
+  return treeRef.value?.getNode(data as TreeNodeData | string | number);
 }
 
 function remove(data: ReTreeItem | (string | number)): void {
-  treeRef.value?.remove(data);
+  treeRef.value?.remove(data as TreeNodeData | string | number);
 }
 
 function append(data: ReTreeItem, parent: ReTreeItem | (string | number)): void {
-  treeRef.value?.append(data, parent);
+  const parentData = typeof parent === "object" ? parent : undefined;
+  treeRef.value?.append(data as TreeNodeData, parentData as TreeNodeData);
 }
 
 function insertBefore(data: ReTreeItem, ref: ReTreeItem | (string | number)): void {
-  treeRef.value?.insertBefore(data, ref);
+  const refData = typeof ref === "object" ? ref : undefined;
+  treeRef.value?.insertBefore(data as TreeNodeData, refData as TreeNodeData);
 }
 
 function insertAfter(data: ReTreeItem, ref: ReTreeItem | (string | number)): void {
-  treeRef.value?.insertAfter(data, ref);
+  const refData = typeof ref === "object" ? ref : undefined;
+  treeRef.value?.insertAfter(data as TreeNodeData, refData as TreeNodeData);
 }
 
 function updateKey(oldKey: string | number, newKey: string | number): void {
-  treeRef.value?.updateKeyChildren(oldKey, newKey);
+  treeRef.value?.updateKeyChildren(oldKey, []);
 }
 
 function updateKeyChildren(key: string | number, data: ReTreeItem[]): void {
