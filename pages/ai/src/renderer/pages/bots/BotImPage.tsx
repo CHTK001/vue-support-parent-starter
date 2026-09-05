@@ -18,7 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Button, Empty, Message, Modal, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Checkbox, Empty, Message, Modal, Spin, Tag, Tooltip } from '@arco-design/web-react';
 import { EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
 import classNames from 'classnames';
 import {
@@ -492,6 +492,8 @@ export default function BotImPage() {
   const [summarizing, setSummarizing] = useState(false);
   const [historySize, setHistorySize] = useState<number>(50);
   const [messagePage, setMessagePage] = useState(0);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -590,6 +592,50 @@ export default function BotImPage() {
       Message.error(t('bots.im.deleteConversationFailed', { defaultValue: '删除失败' }));
     }
   }, [activeKey, t]);
+
+  /* 批量选择模式切换（退出时清空选中） */
+  const handleToggleSelectMode = useCallback(() => {
+    setSelectMode((prev) => {
+      const next = !prev;
+      if (!next) setSelectedKeys(new Set());
+      return next;
+    });
+  }, []);
+
+  /* 切换单个会话选中 */
+  const handleToggleSelect = useCallback((key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  /* 批量删除选中会话 */
+  const handleBatchDelete = useCallback(async () => {
+    const keys = [...selectedKeys];
+    if (keys.length === 0) return;
+    try {
+      await Promise.all(keys.map((key) => {
+        const [botId, ...rest] = key.split('|');
+        const fromUser = rest.join('|');
+        return httpRequest<{ deleted?: number }>('DELETE',
+          `/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser)}`);
+      }));
+      const keySet = new Set(keys);
+      setConversations((prev) => prev.filter((c) => !keySet.has(`${c.botId}|${c.fromUser ?? ''}`)));
+      if (selectedKeys.has(activeKey)) {
+        setActiveKey('');
+        setMessages([]);
+      }
+      setSelectedKeys(new Set());
+      setSelectMode(false);
+      Message.success(t('bots.im.deleteConversationsSuccess', { count: keys.length, defaultValue: '已删除 {{count}} 个会话' }));
+    } catch {
+      Message.error(t('bots.im.deleteConversationsFailed', { defaultValue: '批量删除失败' }));
+    }
+  }, [selectedKeys, activeKey, t]);
 
   /* 新消息滚动到底 */
   useEffect(() => {
@@ -765,6 +811,34 @@ export default function BotImPage() {
               onClick={() => { void loadConversations(); void loadMessages(true); }}
             />
           </Tooltip>
+          <Tooltip content={t('bots.im.selectMode', { defaultValue: '批量选择' })}>
+            <Button
+              shape='circle'
+              className={selectMode ? '!text-primary-6 !bg-primary-1' : undefined}
+              icon={<span className='text-13px leading-none'>☑</span>}
+              onClick={handleToggleSelectMode}
+            />
+          </Tooltip>
+          {selectMode && selectedKeys.size > 0 && (
+            <Tooltip content={t('bots.im.deleteSelected', { defaultValue: '删除所选' })}>
+              <Button
+                shape='circle'
+                status='danger'
+                icon={<span className='text-14px'>🗑</span>}
+                onClick={() => {
+                  Modal.confirm({
+                    title: t('bots.im.deleteSelected', { defaultValue: '删除所选' }),
+                    content: t('bots.im.deleteSelectedConfirm', {
+                      count: selectedKeys.size,
+                      defaultValue: '确定删除选中的 {{count}} 个会话吗？聊天记录将一并清除且不可恢复。',
+                    }),
+                    okButtonProps: { status: 'danger' },
+                    onOk: () => handleBatchDelete(),
+                  });
+                }}
+              />
+            </Tooltip>
+          )}
           <Tooltip content={t('bots.im.clearHistory', { defaultValue: '清空聊天记录' })}>
             <Button
               shape='circle'
@@ -799,11 +873,19 @@ export default function BotImPage() {
                 {conversations.map((c) => {
                   const key = `${c.botId}|${c.fromUser ?? ''}`;
                   const selected = key === activeKey;
+                  const checked = selectedKeys.has(key);
                   return (
                     <Conversation
                       key={key}
                       name={
                         <span className='flex w-full items-center gap-x-6px'>
+                          {selectMode && (
+                            <Checkbox
+                              checked={checked}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => handleToggleSelect(key)}
+                            />
+                          )}
                           <span className='truncate'>{c.nickname || c.fromUser || c.botId || '—'}</span>
                           <PlatformBadge platform={c.platform} />
                           <span className='ml-auto shrink-0 text-11px font-400 text-t-tertiary'>
@@ -821,13 +903,18 @@ export default function BotImPage() {
                           )}
                         </span>
                       }
-                      active={selected}
-                      onClick={() => handleSelect(key)}
+                      active={selectMode ? checked : selected}
+                      onClick={() => {
+                        if (selectMode) handleToggleSelect(key);
+                        else handleSelect(key);
+                      }}
                       style={{
                         borderRadius: 12,
                         marginBottom: 6,
                         padding: '12px 14px',
-                        background: selected ? 'var(--color-fill-2)' : 'transparent',
+                        background: selectMode
+                          ? (checked ? 'var(--color-fill-2)' : 'transparent')
+                          : (selected ? 'var(--color-fill-2)' : 'transparent'),
                         border: 'none',
                       }}
                     >
