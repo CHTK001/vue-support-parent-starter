@@ -352,7 +352,7 @@ async function stopSession(id: number) {
 
 async function deleteSession(id: number) {
   try {
-    await message.confirm('确认删除该会话及其所有数据包？', '提示', { type: 'warning' })
+    await message.confirm('确认删除该会话及其所有数据包？', '提示', '确定', '取消', 'warning')
   } catch { return }
   try {
     await delTsharkSession(id)
