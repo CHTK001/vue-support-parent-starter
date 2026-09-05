@@ -56,6 +56,8 @@ const statusType: Record<string, string> = {
   CANCELLED: 'danger',
 };
 
+const hostOptions = ref<Array<{ label: string; value: number }>>([]);
+
 onMounted(refresh);
 
 async function refresh() {
@@ -67,6 +69,7 @@ async function refresh() {
     ]);
     plans.value = planList ?? [];
     hosts.value = hostList ?? [];
+    hostOptions.value = (hostList ?? []).map(h => ({ label: `${h.serverHostName} (${h.serverHostAddress})`, value: h.id }));
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
@@ -140,65 +143,61 @@ function hostNames(ids?: string): string {
 <template>
   <div class="plan-list sc-page">
     <div class="toolbar">
-      <el-button type="primary" @click="openCreate">新建计划</el-button>
-      <el-button @click="refresh">刷新</el-button>
+      <ReButton layout="square" icon="Plus" type="primary" @click="openCreate">新建计划</ReButton>
+      <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
-    <el-table v-loading="loading" :data="plans" border stripe size="default">
-      <el-table-column prop="planName" label="计划名称" min-width="140" show-overflow-tooltip />
-      <el-table-column label="类型" width="90">
+    <ReTable :data="plans" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false">
+      <ReTableColumn prop="planName" label="计划名称" min-width="140" show-overflow-tooltip />
+      <ReTableColumn label="类型" width="90">
         <template #default="{ row }">
-          <el-tag size="small">{{ planTypes.find(t => t.value === row.planType)?.label || row.planType }}</el-tag>
+          <ReTag size="small">{{ planTypes.find(t => t.value === row.planType)?.label || row.planType }}</ReTag>
         </template>
-      </el-table-column>
-      <el-table-column label="状态" width="80">
+      </ReTableColumn>
+      <ReTableColumn label="状态" width="80">
         <template #default="{ row }">
-          <el-tag :type="statusType[row.status] || 'info'" size="small">{{ statusMap[row.status] || row.status }}</el-tag>
+          <ReTag :type="statusType[row.status] || 'info'" size="small">{{ statusMap[row.status] || row.status }}</ReTag>
         </template>
-      </el-table-column>
-      <el-table-column label="开始时间" width="160">
+      </ReTableColumn>
+      <ReTableColumn label="开始时间" width="160">
         <template #default="{ row }">{{ row.startTime?.replace('T', ' ') || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="结束时间" width="160">
+      </ReTableColumn>
+      <ReTableColumn label="结束时间" width="160">
         <template #default="{ row }">{{ row.endTime?.replace('T', ' ') || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="目标主机" min-width="200" show-overflow-tooltip>
+      </ReTableColumn>
+      <ReTableColumn label="目标主机" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">{{ hostNames(row.targetHostIds) }}</template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="140" show-overflow-tooltip />
-      <el-table-column label="操作" width="130" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn prop="description" label="描述" min-width="140" show-overflow-tooltip />
+      <ReTableColumn label="操作" width="130" fixed="right">
         <template #default="{ row }">
-          <el-button link size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" size="small" @click="removePlan(row)">删除</el-button>
+          <ReButton link size="small" @click="openEdit(row)">编辑</ReButton>
+          <ReButton link type="danger" size="small" @click="removePlan(row)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <ReDialog v-model="formVisible" :title="editingId ? '编辑计划' : '新建计划'" width="560" :height="520" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
-      <el-form label-width="100px">
-        <el-form-item label="计划名称" required>
-          <el-input v-model="form.planName" placeholder="如 核心服务升级" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="form.planType" style="width: 100%">
-            <el-option v-for="t in planTypes" :key="t.value" :value="t.value" :label="t.label" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="开始时间" required>
-          <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%" value-format="YYYY-MM-DDTHH:mm:ss" />
-        </el-form-item>
-        <el-form-item label="结束时间" required>
-          <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%" value-format="YYYY-MM-DDTHH:mm:ss" />
-        </el-form-item>
-        <el-form-item label="目标主机">
-          <el-select v-model="form.targetHostIds" multiple filterable style="width: 100%">
-            <el-option v-for="h in hosts" :key="h.id" :value="h.id" :label="`${h.serverHostName} (${h.serverHostAddress})`" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
+      <ReForm label-width="100px" label-position="right">
+        <ReFormItem label="计划名称" required>
+          <ReInput v-model="form.planName" placeholder="如 核心服务升级" />
+        </ReFormItem>
+        <ReFormItem label="类型">
+          <ReSelect v-model="form.planType" :data="planTypes" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="开始时间" required>
+          <ReDatePicker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%" value-format="YYYY-MM-DDTHH:mm:ss" />
+        </ReFormItem>
+        <ReFormItem label="结束时间" required>
+          <ReDatePicker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%" value-format="YYYY-MM-DDTHH:mm:ss" />
+        </ReFormItem>
+        <ReFormItem label="目标主机">
+          <ReSelect v-model="form.targetHostIds" multiple filterable :data="hostOptions" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="描述">
+          <ReInput v-model="form.description" type="textarea" :rows="2" />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
   </div>
 </template>

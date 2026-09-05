@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox, ElUpload } from 'element-plus';
-import type { UploadFile } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   queryHosts,
   getGroups,
@@ -305,10 +304,10 @@ function onExport() {
   window.open(url, '_blank');
 }
 
-async function onImport(file: UploadFile) {
+async function onImportFile(file: File | undefined) {
   try {
-    if (!file.raw) return;
-    const count = await importHosts(file.raw);
+    if (!file) return;
+    const count = await importHosts(file);
     ElMessage.success(`成功导入 ${count} 条记录`);
     refresh();
   } catch (e) {
@@ -340,32 +339,28 @@ async function onImport(file: UploadFile) {
     </div>
     <!-- 工具条 -->
     <div class="toolbar">
-      <el-input
+      <ReInput
         v-model="keyword"
         placeholder="搜索名称/编码/地址"
         clearable
+        prefix-icon="Search"
         style="width: 240px"
         @keyup.enter="refresh"
       />
-      <el-select
+      <ReSelect
         v-model="filterGroupId"
         placeholder="全部分组"
         clearable
+        :data="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))"
         style="width: 160px"
         @change="queryHosts({ groupId: filterGroupId }).then(r => (hosts = r ?? [])).catch(() => {})"
-      >
-        <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.msServerGroupName" />
-      </el-select>
+      />
       <ReButton layout="square" icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
       <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
-      <el-upload
-        :show-file-list="false"
-        :auto-upload="false"
-        accept=".xlsx,.xls"
-        @change="onImport"
-      >
-        <ReButton layout="square" icon="Upload">导入</ReButton>
-      </el-upload>
+      <label class="import-btn">
+        <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
+        <ReButton layout="square" icon="Upload" tag="span">导入</ReButton>
+      </label>
       <ReButton layout="square" icon="Download" @click="onExport">导出</ReButton>
     </div>
 
@@ -378,39 +373,39 @@ async function onImport(file: UploadFile) {
     </div>
 
     <!-- 主机表格 -->
-    <el-table v-loading="loading" :data="hosts" border stripe size="default"
+    <ReTable :data="hosts" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false"
       @selection-change="(rows: any[]) => selectedIds = rows.map((r: any) => r.id)">
-      <el-table-column type="selection" width="40" />
-      <el-table-column label="状态" width="90">
+      <ReTableColumn type="selection" width="40" />
+      <ReTableColumn label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
+          <ReTag :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
             {{ row.serverHostOnline === 1 ? '在线' : row.serverHostOnline === 0 ? '离线' : '未知' }}
-          </el-tag>
+          </ReTag>
         </template>
-      </el-table-column>
-      <el-table-column prop="serverHostName" label="名称" min-width="140" show-overflow-tooltip />
-      <el-table-column prop="serverHostAddress" label="地址" min-width="140" show-overflow-tooltip />
-      <el-table-column prop="serverHostPort" label="端口" width="70" />
-      <el-table-column prop="serverHostOsType" label="系统" width="90" />
-      <el-table-column label="分组" width="110">
+      </ReTableColumn>
+      <ReTableColumn prop="serverHostName" label="名称" min-width="140" show-overflow-tooltip />
+      <ReTableColumn prop="serverHostAddress" label="地址" min-width="140" show-overflow-tooltip />
+      <ReTableColumn prop="serverHostPort" label="端口" width="70" />
+      <ReTableColumn prop="serverHostOsType" label="系统" width="90" />
+      <ReTableColumn label="分组" width="110">
         <template #default="{ row }">{{ groupName(row.msServerGroupId) }}</template>
-      </el-table-column>
-      <el-table-column label="标签" min-width="120">
+      </ReTableColumn>
+      <ReTableColumn label="标签" min-width="120">
         <template #default="{ row }">
-          <el-tag
+          <ReTag
             v-for="tag in parseTags(row.serverHostTags)"
             :key="tag"
             size="small"
             style="margin-right: 4px"
-          >{{ tag }}</el-tag>
+          >{{ tag }}</ReTag>
         </template>
-      </el-table-column>
-      <el-table-column label="启用" width="80">
+      </ReTableColumn>
+      <ReTableColumn label="启用" width="80">
         <template #default="{ row }">
-          <el-switch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
+          <ReSwitch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <ReButton layout="square" icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
           <ReButton layout="square" icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
@@ -419,8 +414,8 @@ async function onImport(file: UploadFile) {
           <ReButton layout="square" icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
           <ReButton layout="square" icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <!-- 表单 / 连接 / 远控 / SFTP -->
     <ScHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />
@@ -449,6 +444,10 @@ async function onImport(file: UploadFile) {
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.import-btn {
+  cursor: pointer;
 }
 
 .stats-row {

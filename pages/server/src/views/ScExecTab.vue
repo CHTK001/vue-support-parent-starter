@@ -50,6 +50,7 @@ const lastResults = ref<LogRow[]>([]);
 /** 命令片段下拉 */
 const snippets = ref<Array<{ id: number; msTerminalSnippetName: string; msTerminalSnippetContent: string }>>([]);
 const pickedSnippetId = ref<number | null>(null);
+const snippetOptions = ref<Array<{ label: string; value: number }>>([]);
 
 /** 执行日志抽屉 */
 const logDrawerVisible = ref(false);
@@ -91,7 +92,10 @@ onMounted(async () => {
     ElMessage.error((e as Error).message);
   }
   // 命令片段(失败静默, 不影响主功能)
-  getSnippets().then(r => (snippets.value = r ?? [])).catch(() => {});
+  getSnippets().then(r => {
+    snippets.value = r ?? [];
+    snippetOptions.value = (r ?? []).map(s => ({ label: s.msTerminalSnippetName, value: s.id }));
+  }).catch(() => {});
 });
 
 /**
@@ -262,150 +266,154 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
     <!-- 目标主机选择 -->
     <div class="panel">
       <div class="panel-head"><h4>目标主机</h4></div>
-      <el-select v-model="selectedHostIds" multiple filterable placeholder="选择主机(可多选)" style="width: 100%">
-        <el-option
-          v-for="host in hosts"
-          :key="host.id"
-          :value="host.id"
-          :label="`${host.serverHostName} (${host.serverHostAddress})`"
-        />
-      </el-select>
+      <ReSelect
+        v-model="selectedHostIds"
+        multiple
+        filterable
+        collapse-tags
+        placeholder="选择主机(可多选)"
+        :data="hosts.map(h => ({ label: `${h.serverHostName} (${h.serverHostAddress})`, value: h.id }))"
+        style="width: 100%"
+      />
     </div>
 
-    <el-row :gutter="16">
+    <ReRow :gutter="16">
       <!-- 批量命令 -->
-      <el-col :span="12">
+      <ReCol :span="12">
         <div class="panel">
           <div class="panel-head"><h4>批量命令</h4></div>
           <!-- 命令片段快捷填充 -->
-          <el-select
+          <ReSelect
             v-model="pickedSnippetId"
             placeholder="命令片段(选中即填入)"
             clearable
             filterable
             size="small"
+            :data="snippetOptions"
             style="width: 100%; margin-bottom: 8px"
             @change="applySnippet"
-          >
-            <el-option v-for="snippet in snippets" :key="snippet.id" :value="snippet.id" :label="snippet.msTerminalSnippetName" />
-          </el-select>
-          <el-input v-model="command" type="textarea" :rows="4" placeholder="如：df -h && free -m" />
+          />
+          <ReInput v-model="command" type="textarea" :rows="4" placeholder="如：df -h && free -m" />
           <div style="margin-top: 8px; display: flex; justify-content: space-between">
-            <el-button size="small" @click="logDrawerVisible = true">执行日志</el-button>
-            <el-button type="primary" :loading="running" @click="onRunCommand">执行</el-button>
+            <ReButton layout="square" icon="Document" size="small" @click="logDrawerVisible = true">执行日志</ReButton>
+            <ReButton layout="square" icon="VideoPlay" type="primary" :loading="running" @click="onRunCommand">执行</ReButton>
           </div>
         </div>
-      </el-col>
+      </ReCol>
 
       <!-- 文件分发 -->
-      <el-col :span="12">
+      <ReCol :span="12">
         <div class="panel">
           <div class="panel-head"><h4>文件分发</h4></div>
-          <el-input v-model="distDirectory" placeholder="目标目录，如 /tmp">
+          <ReInput v-model="distDirectory" placeholder="目标目录，如 /tmp">
             <template #prepend>目录</template>
-          </el-input>
-          <input type="file" style="margin-top: 10px" @change="(e: Event) => (distFile = (e.target as HTMLInputElement).files?.[0] ?? null)" />
+          </ReInput>
+          <label class="file-pick">
+            <ReButton layout="square" icon="Upload" tag="span" plain>选择文件</ReButton>
+            <span class="file-name" v-if="distFile">{{ distFile.name }}</span>
+            <input type="file" hidden @change="(e: Event) => (distFile = (e.target as HTMLInputElement).files?.[0] ?? null)" />
+          </label>
           <div style="margin-top: 8px; text-align: right">
-            <el-button type="primary" :loading="distributing" @click="onDistribute">分发</el-button>
+            <ReButton layout="square" icon="Position" type="primary" :loading="distributing" @click="onDistribute">分发</ReButton>
           </div>
         </div>
-      </el-col>
-    </el-row>
+      </ReCol>
+    </ReRow>
 
     <!-- 最近执行结果 -->
     <div v-if="lastResults.length" class="panel">
       <div class="panel-head"><h4>最近执行结果</h4></div>
-      <el-table :data="lastResults" size="small" border max-height="240">
-        <el-table-column prop="msExecLogHostName" label="主机" width="140" />
-        <el-table-column prop="msExecLogStatus" label="状态" width="80">
+      <ReTable :data="lastResults" size="small" border :pagination="false" :toolbar="false" :layout-table="{ minHeight: 0, maxHeight: 240 }">
+        <ReTableColumn prop="msExecLogHostName" label="主机" width="140" />
+        <ReTableColumn prop="msExecLogStatus" label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
+            <ReTag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
               {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
-            </el-tag>
+            </ReTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="msExecLogOutput" label="输出" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="msExecLogError" label="错误" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="90" />
-      </el-table>
+        </ReTableColumn>
+        <ReTableColumn prop="msExecLogOutput" label="输出" min-width="220" show-overflow-tooltip />
+        <ReTableColumn prop="msExecLogError" label="错误" min-width="160" show-overflow-tooltip />
+        <ReTableColumn prop="msExecLogCostMs" label="耗时(ms)" width="90" />
+      </ReTable>
     </div>
 
     <!-- 计划任务 -->
     <div class="panel">
       <div class="panel-head">
         <h4>计划任务(cron)</h4>
-        <el-button type="primary" size="small" @click="openJobForm()">新增任务</el-button>
+        <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
       </div>
-      <el-table :data="jobs" size="small" border>
-        <el-table-column prop="msExecJobName" label="名称" min-width="120" />
-        <el-table-column prop="msExecJobCron" label="cron" width="110" />
-        <el-table-column prop="msExecJobCommand" label="命令" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="msExecJobNextRunTime" label="下次运行" width="150" />
-        <el-table-column label="启用" width="70">
+      <ReTable :data="jobs" size="small" border :pagination="false" :toolbar="false">
+        <ReTableColumn prop="msExecJobName" label="名称" min-width="120" />
+        <ReTableColumn prop="msExecJobCron" label="cron" width="110" />
+        <ReTableColumn prop="msExecJobCommand" label="命令" min-width="180" show-overflow-tooltip />
+        <ReTableColumn prop="msExecJobNextRunTime" label="下次运行" width="150" />
+        <ReTableColumn label="启用" width="70">
           <template #default="{ row }">
-            <el-tag :type="row.msExecJobEnabled === 1 ? 'success' : 'info'" size="small">
+            <ReTag :type="row.msExecJobEnabled === 1 ? 'success' : 'info'" size="small">
               {{ row.msExecJobEnabled === 1 ? '启用' : '停用' }}
-            </el-tag>
+            </ReTag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170">
+        </ReTableColumn>
+        <ReTableColumn label="操作" width="170">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onRunNow(row)">立即运行</el-button>
-            <el-button link size="small" @click="openJobForm(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="onDeleteJob(row)">删除</el-button>
+            <ReButton link type="primary" size="small" @click="onRunNow(row)">立即运行</ReButton>
+            <ReButton link size="small" @click="openJobForm(row)">编辑</ReButton>
+            <ReButton link type="danger" size="small" @click="onDeleteJob(row)">删除</ReButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
     </div>
 
     <!-- 任务表单 -->
     <ReDialog v-model="jobFormVisible" :title="editingJobId ? '编辑任务' : '新增任务'" width="600" :height="460" confirm-text="保存" cancel-text="取消" @confirm="submitJob" @cancel="jobFormVisible = false">
-      <el-form label-width="100px">
-        <el-form-item label="任务名称" required>
-          <el-input v-model="jobForm.msExecJobName" placeholder="如 每日清理临时文件" />
-        </el-form-item>
-        <el-form-item label="cron 表达式" required>
-          <el-input v-model="jobForm.msExecJobCron" placeholder="6 域：秒 分 时 日 月 周，如 0 0 3 * * ?" />
-        </el-form-item>
-        <el-form-item label="命令" required>
-          <el-input v-model="jobForm.msExecJobCommand" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="目标主机ID" required>
-          <el-input v-model="jobForm.hostIdText" placeholder="逗号分隔，如 1,2,3" />
-        </el-form-item>
-        <el-form-item label="超时(秒)">
-          <el-input-number v-model="jobForm.msExecJobTimeout" :min="5" :max="3600" />
-        </el-form-item>
-      </el-form>
+      <ReForm label-width="100px" label-position="right">
+        <ReFormItem label="任务名称" required>
+          <ReInput v-model="jobForm.msExecJobName" placeholder="如 每日清理临时文件" />
+        </ReFormItem>
+        <ReFormItem label="cron 表达式" required>
+          <ReInput v-model="jobForm.msExecJobCron" placeholder="6 域：秒 分 时 日 月 周，如 0 0 3 * * ?" />
+        </ReFormItem>
+        <ReFormItem label="命令" required>
+          <ReInput v-model="jobForm.msExecJobCommand" type="textarea" :rows="3" />
+        </ReFormItem>
+        <ReFormItem label="目标主机ID" required>
+          <ReInput v-model="jobForm.hostIdText" placeholder="逗号分隔，如 1,2,3" />
+        </ReFormItem>
+        <ReFormItem label="超时(秒)">
+          <ReInputNumber v-model="jobForm.msExecJobTimeout" :min="5" :max="3600" />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
 
     <!-- 执行日志抽屉 -->
     <ReDrawer v-model="logDrawerVisible" title="执行日志" :size="'58%'" :footer-hidden="true" close-only @cancel="logDrawerVisible = false">
       <template #content>
-        <el-radio-group v-model="historyType" size="small" style="margin-bottom: 10px" @change="loadHistory">
-          <el-radio-button value="">全部</el-radio-button>
-          <el-radio-button value="COMMAND">命令</el-radio-button>
-          <el-radio-button value="FILE">文件</el-radio-button>
-          <el-radio-button value="JOB">计划任务</el-radio-button>
-        </el-radio-group>
-        <el-table :data="historyLogs" size="small" border max-height="calc(100vh - 180px)">
-          <el-table-column prop="msExecLogHostName" label="主机" width="120" />
-          <el-table-column prop="msExecLogType" label="类型" width="70">
+        <ReRadioGroup v-model="historyType" button size="small" capsule style="margin-bottom: 10px" @change="loadHistory">
+          <ReRadioButton value="">全部</ReRadioButton>
+          <ReRadioButton value="COMMAND">命令</ReRadioButton>
+          <ReRadioButton value="FILE">文件</ReRadioButton>
+          <ReRadioButton value="JOB">计划任务</ReRadioButton>
+        </ReRadioGroup>
+        <ReTable :data="historyLogs" size="small" border :pagination="false" :toolbar="false" :layout-table="{ minHeight: 0, maxHeight: 'calc(100vh - 180px)' }">
+          <ReTableColumn prop="msExecLogHostName" label="主机" width="120" />
+          <ReTableColumn prop="msExecLogType" label="类型" width="70">
             <template #default="{ row }">{{ row.msExecLogType }}</template>
-          </el-table-column>
-          <el-table-column prop="msExecLogCommand" label="命令/路径" min-width="160" show-overflow-tooltip />
-          <el-table-column label="状态" width="80">
+          </ReTableColumn>
+          <ReTableColumn prop="msExecLogCommand" label="命令/路径" min-width="160" show-overflow-tooltip />
+          <ReTableColumn label="状态" width="80">
             <template #default="{ row }">
-              <el-tag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
+              <ReTag :type="row.msExecLogStatus === 'SUCCESS' ? 'success' : 'danger'" size="small">
                 {{ row.msExecLogStatus === 'SUCCESS' ? '成功' : '失败' }}
-              </el-tag>
+              </ReTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="msExecLogOutput" label="输出" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="msExecLogError" label="错误" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="msExecLogEndTime" label="结束时间" width="150" />
-          <el-table-column prop="msExecLogCostMs" label="耗时(ms)" width="85" />
-        </el-table>
+          </ReTableColumn>
+          <ReTableColumn prop="msExecLogOutput" label="输出" min-width="200" show-overflow-tooltip />
+          <ReTableColumn prop="msExecLogError" label="错误" min-width="140" show-overflow-tooltip />
+          <ReTableColumn prop="msExecLogEndTime" label="结束时间" width="150" />
+          <ReTableColumn prop="msExecLogCostMs" label="耗时(ms)" width="85" />
+        </ReTable>
       </template>
     </ReDrawer>
   </div>
@@ -433,6 +441,23 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
     h4 {
       margin: 0;
       font-size: 14px;
+    }
+  }
+
+  .file-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    cursor: pointer;
+
+    .file-name {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }

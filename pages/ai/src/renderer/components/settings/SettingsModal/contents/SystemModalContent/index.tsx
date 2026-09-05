@@ -23,6 +23,7 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import DirInputItem from './DirInputItem';
 import FactoryResetModal from './FactoryResetModal';
 import PreferenceRow from './PreferenceRow';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 
 /**
  * System settings content component
@@ -33,6 +34,9 @@ import PreferenceRow from './PreferenceRow';
 const SystemModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
+  const { user } = useAuth();
+  // 仅 admin / superadmin 在 dev profile 下可编辑系统目录
+  const isAdminRole = user?.role === 'admin' || user?.role === 'superadmin';
   // arco types Modal.useModal() methods (confirm/info/...) as optional even
   // though the hook always supplies them; assert the non-optional shape so
   // `modal.confirm(...)` doesn't trip TS2722.
@@ -174,6 +178,14 @@ const SystemModalContent: React.FC = () => {
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
+  // systemInfo.profile 为后端返回的 Spring active profile（如 "dev"）
+  const isDevMode = (): boolean => {
+    if (!systemInfo) return false;
+    const p = (systemInfo as Record<string, unknown>).profile as string | undefined;
+    return !p || p === 'dev';
+  };
+  const canEditDirs = isDesktopShell() || (isAdminRole && isDevMode());
+
   const handleOpenLogDir = useCallback(() => {
     if (!systemInfo?.logDir) return;
     void ipcBridge.shell.openFolderWith
@@ -187,7 +199,11 @@ const SystemModalContent: React.FC = () => {
   useEffect(() => {
     if (systemInfo) {
       initializingRef.current = true;
-      form.setFieldsValue({ workDir: systemInfo.workDir });
+      form.setFieldsValue({
+        workDir: systemInfo.workDir,
+        cacheDir: systemInfo.cacheDir,
+        logDir: systemInfo.logDir,
+      });
       requestAnimationFrame(() => {
         initializingRef.current = false;
       });
@@ -265,7 +281,7 @@ const SystemModalContent: React.FC = () => {
     },
   ];
 
-  const saveDirConfigValidate = (_values: { workDir: string }): Promise<unknown> => {
+  const saveDirConfigValidate = (_values: { workDir: string; cacheDir: string; logDir: string }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.workDirChangeConfirmTitle'),
@@ -281,33 +297,30 @@ const SystemModalContent: React.FC = () => {
   const handleValuesChange = useCallback(
     async (_changedValue: unknown, allValues: Record<string, string>) => {
       if (initializingRef.current || savingRef.current || !systemInfo) return;
-      const { workDir } = allValues;
-      const needsRestart = workDir !== systemInfo.workDir;
-      if (!needsRestart) return;
+      const { workDir, cacheDir, logDir } = allValues;
+      const needsUpdate =
+        workDir !== systemInfo.workDir ||
+        cacheDir !== systemInfo.cacheDir ||
+        logDir !== systemInfo.logDir;
+      if (!needsUpdate) return;
 
       savingRef.current = true;
       setError(null);
       try {
-        // Confirm, then persist. A failure (or cancel) here means nothing was
-        // written, so reverting the field to the current value is correct.
         try {
-          await saveDirConfigValidate({ workDir });
-          // Pass systemInfo.cacheDir as-is: cacheDir is no longer user-editable
-          // (removed from UI), but the backend IPC interface still expects it.
-          // Passing the current value ensures existing custom paths are preserved.
-          await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir });
+          await saveDirConfigValidate({ workDir, cacheDir: cacheDir ?? '', logDir: logDir ?? '' });
+          await ipcBridge.application.updateSystemInfo.invoke({ workDir, cacheDir, logDir });
         } catch (persistError: unknown) {
-          form.setFieldValue('workDir', systemInfo.workDir);
+          form.setFieldsValue({
+            workDir: systemInfo.workDir,
+            cacheDir: systemInfo.cacheDir,
+            logDir: systemInfo.logDir,
+          });
           if (persistError) {
             setError(persistError instanceof Error ? persistError.message : String(persistError));
           }
           return;
         }
-        // Persisted: the new dir is now authoritative and applies on the next
-        // boot. Relaunch applies it immediately (and never returns). If relaunch
-        // instead throws, do NOT revert the field — the on-disk config already
-        // holds the new dir, so reverting would make the UI contradict reality;
-        // surface the error and let the user restart manually.
         try {
           await ipcBridge.application.restart.invoke();
         } catch (restartError: unknown) {
@@ -383,26 +396,20 @@ const SystemModalContent: React.FC = () => {
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
+              {/* 工作目录 */}
               {isDesktopShell() && <DirInputItem label={t('settings.workDir')} field='workDir' />}
-              {/* Log directory (read-only, click to open in file manager) */}
-              <div>
-                <Form.Item label={t('settings.logDir')}>
-                  <div className='nomi-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] '>
-                    <Tooltip content={systemInfo?.logDir || ''} position='top'>
-                      <div className='flex-1 min-w-0 text-15px text-t-primary truncate'>{systemInfo?.logDir || ''}</div>
-                    </Tooltip>
-                    <Button
-                      type='text'
-                      style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
-                      icon={<FolderSearch theme='outline' size='18' fill={iconColors.primary} />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenLogDir();
-                      }}
-                    />
-                  </div>
-                </Form.Item>
-              </div>
+              {/* 缓存目录 / 日志目录：仅 admin/superadmin + dev profile 时可编辑，否则只读展示 */}
+              {(canEditDirs || !isDesktopShell()) && (
+                <>
+                  <DirInputItem label={t('settings.cacheDir', { defaultValue: '缓存目录' })} field='cacheDir' />
+                  <DirInputItem label={t('settings.logDir', { defaultValue: '日志目录' })} field='logDir' />
+                </>
+              )}
+              {!(canEditDirs) && isDesktopShell() && (
+                <div className='text-13px text-warning-5 mt-8px'>
+                  {t('settings.dirAdminOnly', { defaultValue: '系统目录仅管理员在 dev 模式下可修改' })}
+                </div>
+              )}
               {error && (
                 <Alert
                   className='mt-16px'

@@ -11,6 +11,7 @@ type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 export interface AuthUser {
   id: UserId;
   username: string;
+  role?: string;
 }
 
 /**
@@ -20,10 +21,10 @@ export interface AuthUser {
  */
 export const parseAuthUser = (value: unknown): AuthUser | null => {
   if (!value || typeof value !== 'object') return null;
-  const raw = value as { user_id?: unknown; id?: unknown; username?: unknown };
+  const raw = value as { user_id?: unknown; id?: unknown; username?: unknown; role?: unknown };
   if (Object.prototype.hasOwnProperty.call(raw, 'id')) return null;
   if (typeof raw.user_id !== 'string' || typeof raw.username !== 'string') return null;
-  return { id: parseUserId(raw.user_id), username: raw.username };
+  return { id: parseUserId(raw.user_id), username: raw.username, role: raw.role as string | undefined };
 };
 
 interface LoginParams {

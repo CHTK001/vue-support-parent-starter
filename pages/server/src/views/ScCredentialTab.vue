@@ -46,6 +46,22 @@ const genForm = ref({ name: '', type: 'RSA', password: '', remark: '' });
 const genResult = ref<{ publicKey: string; privateKey: string } | null>(null);
 const genLoading = ref(false);
 
+/** 密钥类型选项 */
+const keyTypeOptions = [
+  { value: 'RSA', label: 'RSA' },
+  { value: 'ED25519', label: 'ED25519' },
+  { value: 'ECDSA', label: 'ECDSA' },
+];
+
+const keyGenTypeOptions = [
+  { value: 'RSA', label: 'RSA (4096位)' },
+  { value: 'ED25519', label: 'ED25519' },
+  { value: 'ECDSA', label: 'ECDSA (256位)' },
+];
+
+/** 可引用密钥选项 */
+const keyRefOptions = ref<Array<{ label: string; value: number }>>([]);
+
 async function openGenForm() {
   genForm.value = { name: '', type: 'RSA', password: '', remark: '' };
   genResult.value = null;
@@ -79,6 +95,7 @@ async function refresh(): Promise<void> {
     const [keyList, identityList] = await Promise.all([getKeys(), getIdentities()]);
     keys.value = keyList ?? [];
     identities.value = identityList ?? [];
+    keyRefOptions.value = (keyList ?? []).map(k => ({ label: k.msServerKeyName, value: k.id }));
   } catch (e) {
     ElMessage.error((e as Error).message);
   }
@@ -182,150 +199,140 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
 
 <template>
   <div class="credential-tab sc-page">
-    <el-row :gutter="16">
+    <ReRow :gutter="16">
       <!-- SSH 密钥库 -->
-      <el-col :span="12">
+      <ReCol :span="12">
         <div class="panel">
           <div class="panel-head">
             <h4>SSH 密钥库</h4>
             <div style="display: flex; gap: 6px;">
-              <el-button size="small" @click="openGenForm()">生成密钥</el-button>
-              <el-button type="primary" size="small" @click="openKeyForm()">新增密钥</el-button>
+              <ReButton layout="square" icon="Key" size="small" @click="openGenForm()">生成密钥</ReButton>
+              <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openKeyForm()">新增密钥</ReButton>
             </div>
           </div>
-          <el-table :data="keys" size="small" border>
-            <el-table-column prop="msServerKeyName" label="名称" min-width="120" />
-            <el-table-column prop="msServerKeyType" label="类型" width="90" />
-            <el-table-column label="操作" width="130">
+          <ReTable :data="keys" size="small" border :pagination="false" :toolbar="false">
+            <ReTableColumn prop="msServerKeyName" label="名称" min-width="120" />
+            <ReTableColumn prop="msServerKeyType" label="类型" width="90" />
+            <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
-                <el-button link size="small" @click="openKeyForm(row)">编辑</el-button>
-                <el-button link type="danger" size="small" @click="deleteKey(row)">删除</el-button>
+                <ReButton link size="small" @click="openKeyForm(row)">编辑</ReButton>
+                <ReButton link type="danger" size="small" @click="deleteKey(row)">删除</ReButton>
               </template>
-            </el-table-column>
-          </el-table>
+            </ReTableColumn>
+          </ReTable>
         </div>
-      </el-col>
+      </ReCol>
 
       <!-- 登录身份 -->
-      <el-col :span="12">
+      <ReCol :span="12">
         <div class="panel">
           <div class="panel-head">
             <h4>登录身份</h4>
-            <el-button type="primary" size="small" @click="openIdentityForm()">新增身份</el-button>
+            <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
           </div>
-          <el-table :data="identities" size="small" border>
-            <el-table-column prop="msServerIdentityName" label="名称" min-width="110" />
-            <el-table-column prop="msServerIdentityUsername" label="用户名" width="100" />
-            <el-table-column prop="msServerIdentityAuthType" label="认证" width="100" />
-            <el-table-column label="操作" width="130">
+          <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false">
+            <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
+            <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
+            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="100" />
+            <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
-                <el-button link size="small" @click="openIdentityForm(row)">编辑</el-button>
-                <el-button link type="danger" size="small" @click="deleteIdentity(row)">删除</el-button>
+                <ReButton link size="small" @click="openIdentityForm(row)">编辑</ReButton>
+                <ReButton link type="danger" size="small" @click="deleteIdentity(row)">删除</ReButton>
               </template>
-            </el-table-column>
-          </el-table>
+            </ReTableColumn>
+          </ReTable>
         </div>
-      </el-col>
-    </el-row>
+      </ReCol>
+    </ReRow>
 
     <!-- 密钥表单 -->
     <ReDialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="560" :height="420" confirm-text="保存" cancel-text="取消" @confirm="submitKey" @cancel="keyFormVisible = false">
-      <el-form label-width="80px">
-        <el-form-item label="名称" required>
-          <el-input v-model="keyForm.msServerKeyName" placeholder="如 ubuntu-prod-key" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="keyForm.msServerKeyType" style="width: 100%">
-            <el-option value="RSA" label="RSA" />
-            <el-option value="ED25519" label="ED25519" />
-            <el-option value="ECDSA" label="ECDSA" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="公钥">
-          <el-input v-model="keyForm.msServerKeyPublicKey" type="textarea" :rows="3" placeholder="ssh-rsa AAAA..." />
-        </el-form-item>
-        <el-form-item label="私钥">
-          <el-input
+      <ReForm label-width="80px" label-position="right">
+        <ReFormItem label="名称" required>
+          <ReInput v-model="keyForm.msServerKeyName" placeholder="如 ubuntu-prod-key" />
+        </ReFormItem>
+        <ReFormItem label="类型">
+          <ReSelect v-model="keyForm.msServerKeyType" :data="keyTypeOptions" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="公钥">
+          <ReInput v-model="keyForm.msServerKeyPublicKey" type="textarea" :rows="3" placeholder="ssh-rsa AAAA..." />
+        </ReFormItem>
+        <ReFormItem label="私钥">
+          <ReInput
             v-model="keyForm.msServerKeyPrivateKey"
             type="textarea"
             :rows="5"
             :placeholder="editingKeyId ? '留空保持不变；粘贴 PEM 私钥内容以更新' : '-----BEGIN OPENSSH PRIVATE KEY-----'"
           />
-        </el-form-item>
-        <el-form-item label="口令">
-          <el-input v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥口令，可空" />
-        </el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem label="口令">
+          <ReInput v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥口令，可空" />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
 
     <!-- 身份表单 -->
     <ReDialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitIdentity" @cancel="identityFormVisible = false">
-      <el-form label-width="80px">
-        <el-form-item label="名称" required>
-          <el-input v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
-        </el-form-item>
-        <el-form-item label="认证类型">
-          <el-radio-group v-model="identityForm.msServerIdentityAuthType">
-            <el-radio value="PASSWORD">密码</el-radio>
-            <el-radio value="PUBLIC_KEY">公钥</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="用户名">
-          <el-input v-model="identityForm.msServerIdentityUsername" />
-        </el-form-item>
-        <el-form-item v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
-          <el-input
+      <ReForm label-width="80px" label-position="right">
+        <ReFormItem label="名称" required>
+          <ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
+        </ReFormItem>
+        <ReFormItem label="认证类型">
+          <ReRadioGroup v-model="identityForm.msServerIdentityAuthType" button capsule>
+            <ReRadioButton value="PASSWORD">密码</ReRadioButton>
+            <ReRadioButton value="PUBLIC_KEY">公钥</ReRadioButton>
+          </ReRadioGroup>
+        </ReFormItem>
+        <ReFormItem label="用户名">
+          <ReInput v-model="identityForm.msServerIdentityUsername" />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
+          <ReInput
             v-model="identityForm.msServerIdentityPassword"
             type="password"
             show-password
             :placeholder="editingIdentityId ? '留空保持不变' : '登录密码'"
           />
-        </el-form-item>
-        <el-form-item v-else label="引用密钥">
-          <el-select v-model="identityForm.msServerIdentityKeyId" style="width: 100%" placeholder="选择密钥库条目">
-            <el-option v-for="k in keys" :key="k.id" :value="k.id" :label="k.msServerKeyName" />
-          </el-select>
-        </el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem v-else label="引用密钥">
+          <ReSelect v-model="identityForm.msServerIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
+        </ReFormItem>
+      </ReForm>
     </ReDialog>
 
     <!-- 生成密钥对话框 -->
     <ReDialog v-model="genFormVisible" title="生成SSH密钥对" width="680" :height="520" :footer-hidden="true">
       <template v-if="!genResult">
-        <el-form label-width="80px">
-          <el-form-item label="名称" required>
-            <el-input v-model="genForm.name" placeholder="如 prod-key-2026" />
-          </el-form-item>
-          <el-form-item label="类型">
-            <el-select v-model="genForm.type" style="width: 100%">
-              <el-option value="RSA" label="RSA (4096位)" />
-              <el-option value="ED25519" label="ED25519" />
-              <el-option value="ECDSA" label="ECDSA (256位)" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="口令">
-            <el-input v-model="genForm.password" type="password" show-password placeholder="私钥加密口令，可空" />
-          </el-form-item>
-          <el-form-item label="备注">
-            <el-input v-model="genForm.remark" type="textarea" :rows="2" placeholder="可选备注" />
-          </el-form-item>
-        </el-form>
+        <ReForm label-width="80px" label-position="right">
+          <ReFormItem label="名称" required>
+            <ReInput v-model="genForm.name" placeholder="如 prod-key-2026" />
+          </ReFormItem>
+          <ReFormItem label="类型">
+            <ReSelect v-model="genForm.type" :data="keyGenTypeOptions" style="width: 100%" />
+          </ReFormItem>
+          <ReFormItem label="口令">
+            <ReInput v-model="genForm.password" type="password" show-password placeholder="私钥加密口令，可空" />
+          </ReFormItem>
+          <ReFormItem label="备注">
+            <ReInput v-model="genForm.remark" type="textarea" :rows="2" placeholder="可选备注" />
+          </ReFormItem>
+        </ReForm>
       </template>
       <template v-else>
-        <el-alert title="密钥已生成并保存到密钥库" type="success" :closable="false" show-icon style="margin-bottom: 12px" />
-        <el-form label-width="80px">
-          <el-form-item label="公钥">
-            <el-input :model-value="genResult.publicKey" type="textarea" :rows="4" readonly />
-          </el-form-item>
-          <el-form-item label="私钥">
-            <el-input :model-value="genResult.privateKey" type="textarea" :rows="8" readonly />
-          </el-form-item>
-        </el-form>
+        <ReAlert title="密钥已生成并保存到密钥库" type="success" :closable="false" show-icon style="margin-bottom: 12px" />
+        <ReForm label-width="80px" label-position="right">
+          <ReFormItem label="公钥">
+            <ReInput :model-value="genResult.publicKey" type="textarea" :rows="4" readonly />
+          </ReFormItem>
+          <ReFormItem label="私钥">
+            <ReInput :model-value="genResult.privateKey" type="textarea" :rows="8" readonly />
+          </ReFormItem>
+        </ReForm>
       </template>
       <div style="text-align: right; margin-top: 8px">
-        <el-button v-if="!genResult" @click="genFormVisible = false">取消</el-button>
-        <el-button v-if="!genResult" type="primary" @click="doGenerate" :loading="genLoading">生成</el-button>
-        <el-button v-else @click="genFormVisible = false">关闭</el-button>
+        <ReButton v-if="!genResult" @click="genFormVisible = false">取消</ReButton>
+        <ReButton v-if="!genResult" type="primary" @click="doGenerate" :loading="genLoading">生成</ReButton>
+        <ReButton v-else @click="genFormVisible = false">关闭</ReButton>
       </div>
     </ReDialog>
   </div>
