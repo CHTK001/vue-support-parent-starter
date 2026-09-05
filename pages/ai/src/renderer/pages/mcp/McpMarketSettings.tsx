@@ -8,7 +8,7 @@
  * — testing an stdio server would execute its command on this machine.
  */
 import { ipcBridge } from '@/common';
-import type { ISkillMarketItem } from '@/common/adapter/ipcBridge';
+import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
 import type { IMcpServer, IMcpServerTransport } from '@/common/config/storage';
 import { Alert, Message, Modal, Tag } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
@@ -26,6 +26,8 @@ type McpMarketSettingsProps = {
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
   mcpServers: IMcpServer[];
   addedStateLoading?: boolean;
+  /** 启用的市场源列表（来自后端 SPI 配置）；缺省使用内置 MCP_MARKET_SOURCES。 */
+  sources?: SkillMarketSource[];
 };
 
 const MCP_MARKET_ORIGIN_KEY = '_nomifun_market';
@@ -136,8 +138,10 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
   saveMcpServers,
   mcpServers,
   addedStateLoading = false,
+  sources,
 }) => {
   const { t } = useTranslation();
+  const enabledSources = sources ?? MCP_MARKET_SOURCES;
   const navigate = useNavigate();
   const { handleBatchImportMcpServers } = useMcpServerCRUD(saveMcpServers);
 
@@ -213,7 +217,7 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
         description={t('settings.mcpMarket.description', {
           defaultValue: 'Browse SkillHub MCP and MCP World popular servers, then import their MCP JSON directly.',
         })}
-        sources={MCP_MARKET_SOURCES}
+        sources={enabledSources}
         cacheKey='nomifun.mcpMarket.rankings.v1'
         autoSyncKey='nomifun.mcpMarket.autoSynced.v1'
         defaultSource='mcpworld'

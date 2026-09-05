@@ -1293,12 +1293,23 @@ export const fs = {
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
   statusSkillsMarket: httpGet<{ enabled: boolean }, void>('/api/skills/market/status'),
-  listSkillMarketSources: httpGet<{ sources: Array<{ source: SkillMarketSource; displayName: string; url: string; marketType: string; enabled: boolean }> }, { marketType?: string }>(
-    (p) => (p?.marketType ? `/api/skills/market/sources/status?marketType=${encodeURIComponent(p.marketType)}` : '/api/skills/market/sources/status')
-  ),
-  toggleSkillMarketSource: httpPost<void, { source: SkillMarketSource; enabled: boolean }>(
-    '/api/skills/market/source/toggle'
-  ),
+  statusSkillMarketSources: httpGet<
+    {
+      sources: Array<{
+        source: string;
+        displayName: string;
+        url: string;
+        marketType: string;
+        enabled: boolean;
+      }>;
+    },
+    { marketType?: string }
+  >((p) => {
+    const query = new URLSearchParams();
+    if (p?.marketType) query.set('marketType', p.marketType);
+    return `/api/skills/market/sources/status${query.size > 0 ? `?${query.toString()}` : ''}`;
+  }),
+  toggleSkillMarketSource: httpPost<void, { source: string; enabled: boolean }>('/api/skills/market/source/toggle'),
   syncSkillMarketRankings: httpPost<ISkillMarketSyncResponse, { sources?: SkillMarketSource[] }>(
     '/api/skills/market/rankings/sync'
   ),
