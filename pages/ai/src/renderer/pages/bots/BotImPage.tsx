@@ -558,6 +558,23 @@ export default function BotImPage() {
     void loadMessages(true);
   }, [activeKey]);
 
+  /* 删除会话（清理僵尸账号聊天记录） */
+  const handleDeleteConversation = useCallback(async (botId: string, fromUser: string | undefined) => {
+    try {
+      await httpRequest<{ deleted?: number }>('DELETE',
+        `/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser ?? '')}`);
+      const key = `${botId}|${fromUser ?? ''}`;
+      setConversations((prev) => prev.filter((c) => `${c.botId}|${c.fromUser ?? ''}` !== key));
+      if (key === activeKey) {
+        setActiveKey('');
+        setMessages([]);
+      }
+      Message.success(t('bots.im.deleteConversationSuccess', { defaultValue: '会话已删除' }));
+    } catch {
+      Message.error(t('bots.im.deleteConversationFailed', { defaultValue: '删除失败' }));
+    }
+  }, [activeKey, t]);
+
   /* 新消息滚动到底 */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -782,7 +799,22 @@ export default function BotImPage() {
                         </div>
                       </Conversation.Avatar>
                       <Conversation.Operations>
-                        <StatusBadge status={c.status} />
+                        <div className='flex items-center gap-4px' onClick={(event) => event.stopPropagation()}>
+                          <StatusBadge status={c.status} />
+                          <Tooltip content={t('bots.im.deleteConversation', { defaultValue: '删除会话' })}>
+                            <Button
+                              size='mini'
+                              type='text'
+                              status='danger'
+                              className='!h-20px !min-w-20px !w-20px !p-0 !rounded-4px !text-t-tertiary hover:!text-danger'
+                              icon={<span className='text-12px leading-none'>🗑</span>}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleDeleteConversation(c.botId ?? '', c.fromUser);
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
                       </Conversation.Operations>
                     </Conversation>
                   );
