@@ -1,15 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch, Tag } from '@arco-design/web-react';
 import { ipcBridge } from '@/common';
 import type { SkillMarketSource } from '@/common/adapter/ipcBridge';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
-import McpMarketSettings from '@/renderer/pages/mcp/McpMarketSettings';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
 import { marketSourceLabel } from './skill/skillMarket';
-import { useMcpServers } from '@/renderer/hooks/mcp';
 
 /** 后端 SkillMarketSourceProvider SPI 枚举的市场源配置。 */
 export type SkillMarketSourceConfig = {
@@ -21,15 +19,12 @@ export type SkillMarketSourceConfig = {
 };
 
 /**
- * MCP 市场设置页（/settings/mcp）。
+ * MCP 设置页（/settings/mcp）。
  *
- * <p>市场源由后端 {@code SkillMarketSourceProvider} SPI 定义。本页作用：
- * <ol>
- *   <li>枚举 SPI 渲染「来源配置」列表（每个 MCP 市场源一个开关，持久化到
- *       {@code sys_ai_global_setting} 的 {@code skills} 分组）；</li>
- *   <li>仅渲染已启用来源的 MCP 市场内容（McpMarketSettings 按 enabled 过滤 sources）。</li>
- * </ol>
- * 关掉某个来源，前端就只显示剩余启用的来源，对应市场不再拉取。</p>
+ * <p>市场源由后端 {@code SkillMarketSourceProvider} SPI 定义。本页只做一件事：
+ * 枚举 SPI 渲染「来源配置」开关列表（每个 MCP 市场源一个开关，持久化到
+ * {@code sys_ai_global_setting} 的 {@code skills} 分组），控制启用哪些 MCP 市场；
+ * 不在此展示市场内容，只配置源开关。</p>
  */
 const McpMarketSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -37,18 +32,14 @@ const McpMarketSettingsPage: React.FC = () => {
   const [sources, setSources] = useState<SkillMarketSourceConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<SkillMarketSource | null>(null);
-  const {
-    mcpServers,
-    isMcpServersLoading,
-    mcpServersLoadFailed,
-    saveMcpServers,
-  } = useMcpServers();
 
   const loadSources = useCallback(async () => {
     setLoading(true);
     try {
       const res = await ipcBridge.fs.statusSkillMarketSources.invoke({ marketType: 'mcp' });
-      setSources(res?.sources ?? []);
+      setSources(
+        (res?.sources ?? []).map((s) => ({ ...s, source: s.source as SkillMarketSource }))
+      );
     } catch (error) {
       console.error('Failed to load MCP market sources:', error);
       message.error(
@@ -64,11 +55,6 @@ const McpMarketSettingsPage: React.FC = () => {
   useEffect(() => {
     void loadSources();
   }, [loadSources]);
-
-  const enabledSources = useMemo(
-    () => sources.filter((s) => s.enabled).map((s) => s.source),
-    [sources]
-  );
 
   const toggleSource = useCallback(
     async (source: SkillMarketSource, enabled: boolean) => {
@@ -98,7 +84,7 @@ const McpMarketSettingsPage: React.FC = () => {
     [message, t]
   );
 
-  const enabledCount = enabledSources.length;
+  const enabledCount = sources.filter((s) => s.enabled).length;
   const sourceTone = (source: SkillMarketSource): string => {
     if (['skillhub_mcp', 'mcpworld'].includes(source)) return 'bg-[rgba(var(--success-6),0.1)] text-success-6';
     return 'bg-[rgba(var(--primary-6),0.08)] text-primary-6';
@@ -113,13 +99,13 @@ const McpMarketSettingsPage: React.FC = () => {
             <div className='flex items-center justify-between'>
               <div>
                 <div className='text-14px font-600 text-t-primary'>
-                  {t('settings.mcpMarket.sourceConfigTitle', { defaultValue: 'MCP 市场来源配置' })}
+                  {t('settings.mcpMarket.settingsTitle', { defaultValue: 'MCP 设置' })}
                 </div>
                 <div className='mt-2px text-12px leading-18px text-t-secondary'>
                   {t('settings.mcpMarket.sourceConfigDesc', {
                     count: enabledCount,
                     total: sources.length,
-                    defaultValue: `市场源由后端 SPI 定义，共 ${sources.length} 个，当前启用 ${enabledCount} 个；仅启用的来源会展示在下方市场。`,
+                    defaultValue: `市场源由后端 SPI 定义，共 ${sources.length} 个，当前启用 ${enabledCount} 个；仅启用的来源会在 MCP 市场中被拉取。`,
                   })}
                 </div>
               </div>
@@ -156,16 +142,6 @@ const McpMarketSettingsPage: React.FC = () => {
               )}
             </div>
           </div>
-
-          {enabledSources.length > 0 && (
-            <div className='mt-16px'>
-              <McpMarketSettings
-                sources={enabledSources}
-                saveMcpServers={saveMcpServers}
-                mcpServers={mcpServers}
-              />
-            </div>
-          )}
         </NomiScrollArea>
       </div>
     </SettingsPageWrapper>
