@@ -1293,6 +1293,12 @@ export const fs = {
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
   statusSkillsMarket: httpGet<{ enabled: boolean }, void>('/api/skills/market/status'),
+  listSkillMarketSources: httpGet<{ sources: Array<{ source: SkillMarketSource; displayName: string; url: string; marketType: string; enabled: boolean }> }, { marketType?: string }>(
+    (p) => (p?.marketType ? `/api/skills/market/sources/status?marketType=${encodeURIComponent(p.marketType)}` : '/api/skills/market/sources/status')
+  ),
+  toggleSkillMarketSource: httpPost<void, { source: SkillMarketSource; enabled: boolean }>(
+    '/api/skills/market/source/toggle'
+  ),
   syncSkillMarketRankings: httpPost<ISkillMarketSyncResponse, { sources?: SkillMarketSource[] }>(
     '/api/skills/market/rankings/sync'
   ),
