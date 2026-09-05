@@ -1,7 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { httpRequest } from '@/common/adapter/httpBridge';
 import { ipcBridge } from '@/common';
+import {
+  AiGlobalSettings,
+  aiNum,
+  aiStr,
+  loadAiGlobalSettings,
+  saveAiGlobalSettings,
+} from '@/common/config/aiGlobalSettings';
 import { Button, Message } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -12,29 +18,19 @@ import { FolderOpen } from '@icon-park/react';
 const WorkshopSettingsPage: React.FC = () => {
   const { t } = useTranslation();
 
-  const { values, set, loading } = useAutoSave(
-    async () => httpRequest('GET', '/v2/global-settings'),
-    async (v) => httpRequest('PUT', '/v2/global-settings', v),
+  const { values, set, loading } = useAutoSave<AiGlobalSettings>(
+    loadAiGlobalSettings,
+    saveAiGlobalSettings,
   );
 
   const handleSave = useCallback(async () => {
     try {
-      await httpRequest('PUT', '/v2/global-settings', values);
+      await saveAiGlobalSettings(values);
       Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
     } catch {
       Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
     }
   }, [t, values]);
-
-  const strVal = (key: string, def = ''): string =>
-    values[key] == null ? def : String(values[key]);
-
-  const numVal = (key: string): number | undefined => {
-    const v = values[key];
-    if (v == null || v === '') return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
-  };
 
   const handlePickDirectory = async () => {
     try {
@@ -63,9 +59,9 @@ const WorkshopSettingsPage: React.FC = () => {
                 <div className='flex items-center gap-8px w-full md:w-auto'>
                   <span
                     className='flex-1 min-w-0 truncate text-13px text-[var(--color-text-2)] font-mono bg-fill-1 px-10px py-7px rounded-8px border border-solid border-[var(--color-border-2)]'
-                    title={strVal('workshopStorageDir')}
+                    title={aiStr(values, 'workshopStorageDir')}
                   >
-                    {strVal('workshopStorageDir') || t('settings.workshopStorageDirPlaceholder', { defaultValue: '未配置，使用默认路径' })}
+                    {aiStr(values, 'workshopStorageDir') || t('settings.workshopStorageDirPlaceholder', { defaultValue: '未配置，使用默认路径' })}
                   </span>
                   <button
                     type='button'

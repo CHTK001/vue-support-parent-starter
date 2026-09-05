@@ -46,6 +46,15 @@ export type AiGlobalSettings = {
   ragChunkOverlap?: number;
   /** RAG 文本切片策略 */
   ragSplitter?: string;
+  /**
+   * [前端扩展字段] 创意工坊资产存储目录。后端 DTO 无对应字段，
+   * PUT `/v2/global-settings` 时会被忽略（保持与既有行为一致）。
+   */
+  workshopStorageDir?: string;
+  /** [前端扩展字段] 创意工坊单次上传大小上限（MB）。同上，保存时被忽略。 */
+  workshopMaxUploadSizeMb?: number;
+  /** [前端扩展字段] 用量同步数据源白名单（逗号分隔，空 = 全部启用）。同上。 */
+  usageEnabledParsers?: string;
 };
 
 /** 受支持字段集合（写回时剔除未知字段，避免脏数据上行） */
