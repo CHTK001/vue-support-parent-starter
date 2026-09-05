@@ -1246,7 +1246,7 @@ export const fs = {
     void
   >('/api/skills/builtin-auto'),
   listSkillsFromAgent: httpGet<
-    Array<{ name: string; description: string; source: string }>,
+    Array<{ provider: string; name: string; installed: boolean; skill_count: number; skills: Array<{ name: string; description: string; source: string; provider?: string }> }>,
     void
   >('/api/skills/agent'),
   materializeSkillsForAgent: httpPost<
@@ -1292,6 +1292,7 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
+  statusSkillsMarket: httpGet<{ enabled: boolean }, void>('/api/skills/market/status'),
   syncSkillMarketRankings: httpPost<ISkillMarketSyncResponse, { sources?: SkillMarketSource[] }>(
     '/api/skills/market/rankings/sync'
   ),
@@ -1726,6 +1727,9 @@ export const mcpService = {
       cli_path?: string;
     }>
   >('/api/mcp/agent-configs'),
+  enableMcpMarket: httpPost<void, void>('/api/mcp/market/enable'),
+  disableMcpMarket: httpPost<void, void>('/api/mcp/market/disable'),
+  statusMcpMarket: httpGet<{ enabled: boolean }, void>('/api/mcp/market/status'),
   testMcpConnection: httpPost<
     {
       success: boolean;

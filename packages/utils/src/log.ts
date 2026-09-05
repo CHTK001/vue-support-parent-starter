@@ -5,10 +5,17 @@
  * 可通过 `on()` 订阅额外监听器（文件 / 远程 / UI），或用官方方式接管输出。
  * 日志级别从 app.yaml other.logLevel 读取（trace / debug / info / warn / error）。
  *
+ * 兼容两种调用方式（避免仓库内混乱调用导致类型错误）：
+ *   1) 经典两参 style：log.info("createApp", "开始加载");   —— (module, message)
+ *   2) 单参/含 data style：log.warn("连接失败", error);      —— (message, data?)
+ *
+ * 判定规则：若两个参数都是 string，视为 (module, message)；
+ *          若只有一参，或第二参非 string，则第一参是 message、第二参是 data。
+ *
  * 用法：
  *   import { log } from "@repo/utils";
  *   log.info("createApp", "开始加载");
- *   log.debug("createApp", "配置已读取");
+ *   log.warn("创建失败", error);
  *   log.error("createApp", "加载失败", err);
  */
 
@@ -74,6 +81,23 @@ function writeLog(level: LogLevel, module: string, message: string, data?: unkno
   emit({ level, module, message, data, timestamp: Date.now() });
 }
 
+/**
+ * 解析调用参数：兼容 (module, message) 与 (message, data?) 两种形态
+ *
+ * @returns { module, message, data }
+ */
+function parseArgs(a: unknown, b?: unknown, c?: unknown): { module: string; message: string; data?: unknown } {
+  if (typeof a !== "string") {
+    return { module: "log", message: String(a ?? "") };
+  }
+  // (module, message) —— 两参均为字符串
+  if (typeof b === "string") {
+    return { module: a, message: b, data: c };
+  }
+  // (message) 或 (message, data)
+  return { module: "log", message: a, data: b };
+}
+
 /** 默认 console 监听器：带颜色、时间戳输出 */
 function consoleListener(entry: LogEntry) {
   const { level, module, message, data, timestamp } = entry;
@@ -91,11 +115,26 @@ function consoleListener(entry: LogEntry) {
 listeners.push(consoleListener);
 
 export const log = {
-  trace(module: string, message: string, data?: unknown) { writeLog("trace", module, message, data); },
-  debug(module: string, message: string, data?: unknown) { writeLog("debug", module, message, data); },
-  info(module: string, message: string, data?: unknown) { writeLog("info", module, message, data); },
-  warn(module: string, message: string, data?: unknown) { writeLog("warn", module, message, data); },
-  error(module: string, message: string, data?: unknown) { writeLog("error", module, message, data); },
+  trace(a: unknown, b?: unknown, c?: unknown): void {
+    const { module, message, data } = parseArgs(a, b, c);
+    writeLog("trace", module, message, data);
+  },
+  debug(a: unknown, b?: unknown, c?: unknown): void {
+    const { module, message, data } = parseArgs(a, b, c);
+    writeLog("debug", module, message, data);
+  },
+  info(a: unknown, b?: unknown, c?: unknown): void {
+    const { module, message, data } = parseArgs(a, b, c);
+    writeLog("info", module, message, data);
+  },
+  warn(a: unknown, b?: unknown, c?: unknown): void {
+    const { module, message, data } = parseArgs(a, b, c);
+    writeLog("warn", module, message, data);
+  },
+  error(a: unknown, b?: unknown, c?: unknown): void {
+    const { module, message, data } = parseArgs(a, b, c);
+    writeLog("error", module, message, data);
+  },
   /** 订阅日志事件 */
   on(fn: LogListener) { listeners.push(fn); },
   /** 取消订阅 */
