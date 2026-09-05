@@ -4,7 +4,7 @@
  * directly on the backend and stays on the page (no conversation handoff).
  */
 import { ipcBridge } from '@/common';
-import type { ISkillMarketItem } from '@/common/adapter/ipcBridge';
+import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
 import { resolveLocaleKey } from '@/common/utils';
 import MarketSettingsPanel from './MarketSettingsPanel';
 import { ENHANCED_TOOLS_PAGE_STACK_CLASS } from './enhancedToolsLayout';
@@ -18,11 +18,14 @@ const AUTO_SYNC_KEY = 'nomifun.skillMarket.autoSynced.v4';
 
 type SkillMarketSettingsProps = {
   active?: boolean;
+  /** 启用的市场源列表（来自后端 SPI 配置）；缺省使用内置 SKILL_MARKET_SOURCES。 */
+  sources?: SkillMarketSource[];
 };
 
-const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true }) => {
+const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true, sources }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
+  const enabledSources = sources ?? SKILL_MARKET_SOURCES;
   const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set());
   const [installedStateLoading, setInstalledStateLoading] = useState(true);
   const [installedStateAvailable, setInstalledStateAvailable] = useState(false);
