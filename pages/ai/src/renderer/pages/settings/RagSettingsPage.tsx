@@ -1,6 +1,13 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import {
+  AiGlobalSettings,
+  aiNum,
+  aiStr,
+  loadAiGlobalSettings,
+  saveAiGlobalSettings,
+} from '@/common/config/aiGlobalSettings';
 import { Button, Message, Select } from '@arco-design/web-react';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -29,29 +36,19 @@ const SPLITTER_OPTIONS = [
 const RagSettingsPage: React.FC = () => {
   const { t } = useTranslation();
 
-  const { values, set, loading } = useAutoSave(
-    async () => httpRequest('GET', '/v2/global-settings'),
-    async (v) => httpRequest('PUT', '/v2/global-settings', v),
+  const { values, set, loading } = useAutoSave<AiGlobalSettings>(
+    loadAiGlobalSettings,
+    saveAiGlobalSettings,
   );
 
   const handleSave = useCallback(async () => {
     try {
-      await httpRequest('PUT', '/v2/global-settings', values);
+      await saveAiGlobalSettings(values);
       Message.success(t('common.saveSuccess', { defaultValue: '已保存' }));
     } catch {
       Message.error(t('common.saveFailed', { defaultValue: '保存失败' }));
     }
   }, [t, values]);
-
-  const strVal = (key: string, def = ''): string =>
-    values[key] == null ? def : String(values[key]);
-
-  const numVal = (key: string): number | undefined => {
-    const v = values[key];
-    if (v == null || v === '') return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
-  };
 
   if (loading) {
     return (
