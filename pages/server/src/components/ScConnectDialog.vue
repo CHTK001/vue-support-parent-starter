@@ -76,33 +76,28 @@ function onConnect(): void {
     @confirm="onConnect"
     @cancel="visible = false"
   >
-    <el-descriptions v-if="host" :column="1" border size="small" style="margin-bottom: 16px">
-      <el-descriptions-item label="主机">{{ host.serverHostName }}</el-descriptions-item>
-      <el-descriptions-item label="地址">{{ host.serverHostAddress }}</el-descriptions-item>
-      <el-descriptions-item label="系统">{{ host.serverHostOsType }}</el-descriptions-item>
-    </el-descriptions>
+    <ReDescriptions v-if="host" :column="1" border size="small" style="margin-bottom: 16px">
+      <ReDescriptionsItem label="主机">{{ host.serverHostName }}</ReDescriptionsItem>
+      <ReDescriptionsItem label="地址">{{ host.serverHostAddress }}</ReDescriptionsItem>
+      <ReDescriptionsItem label="系统">{{ host.serverHostOsType }}</ReDescriptionsItem>
+    </ReDescriptions>
 
-    <el-form label-width="90px" @submit.prevent="onConnect">
-      <el-form-item label="协议">
-        <el-radio-group v-model="form.protocol">
-          <el-radio-button v-for="opt in protocolOptions" :key="opt.value" :value="opt.value">
+    <ReForm label-width="90px" label-position="right" @submit.prevent="onConnect">
+      <ReFormItem label="协议">
+        <ReRadioGroup v-model="form.protocol" button capsule>
+          <ReRadioButton v-for="opt in protocolOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
-          </el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="登录身份">
-        <el-select v-model="form.identityId" placeholder="默认取优先级最高的绑定身份" clearable style="width: 100%">
-          <el-option
-            v-for="identity in identities"
-            :key="identity.id"
-            :value="identity.id"
-            :label="`${identity.msServerIdentityUsername} (${identity.msServerIdentityAuthType})`"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item v-if="form.protocol !== 'ssh'" label="目标端口">
-        <el-input-number v-model="form.targetPort" :min="1" :max="65535" :placeholder="portPlaceholder" />
-      </el-form-item>
-    </el-form>
+          </ReRadioButton>
+        </ReRadioGroup>
+      </ReFormItem>
+      <ReFormItem label="登录身份">
+        <ReSelect v-model="form.identityId" placeholder="默认取优先级最高的绑定身份" clearable
+          :data="identities.map(i => ({ label: `${i.msServerIdentityUsername} (${i.msServerIdentityAuthType})`, value: i.id }))"
+          style="width: 100%" />
+      </ReFormItem>
+      <ReFormItem v-if="form.protocol !== 'ssh'" label="目标端口">
+        <ReInputNumber v-model="form.targetPort" :min="1" :max="65535" :placeholder="portPlaceholder" />
+      </ReFormItem>
+    </ReForm>
   </ReDialog>
 </template>
