@@ -1,27 +1,42 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Switch } from '@arco-design/web-react';
+import { Switch, Tag } from '@arco-design/web-react';
 import { ipcBridge } from '@/common';
+import type { SkillMarketSource } from '@/common/adapter/ipcBridge';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import McpMarketSettings from '@/renderer/pages/mcp/McpMarketSettings';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
+import { marketSourceLabel } from './skill/skillMarket';
 import { useMcpServers } from '@/renderer/hooks/mcp';
+
+/** 后端 SkillMarketSourceProvider SPI 枚举的市场源配置。 */
+export type SkillMarketSourceConfig = {
+  source: SkillMarketSource;
+  displayName: string;
+  url: string;
+  marketType: string;
+  enabled: boolean;
+};
 
 /**
  * MCP 市场设置页（/settings/mcp）。
  *
- * <p>承载 MCP 市场（SkillHub MCP / MCP World）与「MCP 市场」总开关。
- * 市场开关经后端 SPI 持久化到 sys_ai_global_setting（mcp/market_enabled）；
- * 关闭后 McpMarketSettings 隐藏（不渲染、不拉取），仅保留开关供重新开启。</p>
+ * <p>市场源由后端 {@code SkillMarketSourceProvider} SPI 定义。本页作用：
+ * <ol>
+ *   <li>枚举 SPI 渲染「来源配置」列表（每个 MCP 市场源一个开关，持久化到
+ *       {@code sys_ai_global_setting} 的 {@code skills} 分组）；</li>
+ *   <li>仅渲染已启用来源的 MCP 市场内容（McpMarketSettings 按 enabled 过滤 sources）。</li>
+ * </ol>
+ * 关掉某个来源，前端就只显示剩余启用的来源，对应市场不再拉取。</p>
  */
 const McpMarketSettingsPage: React.FC = () => {
   const { t } = useTranslation();
   const [message, messageContext] = useArcoMessage({ maxCount: 3 });
-  const [marketEnabled, setMarketEnabled] = useState(true);
-  const [statusLoading, setStatusLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [sources, setSources] = useState<SkillMarketSourceConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState<SkillMarketSource | null>(null);
   const {
     mcpServers,
     isMcpServersLoading,
@@ -29,52 +44,65 @@ const McpMarketSettingsPage: React.FC = () => {
     saveMcpServers,
   } = useMcpServers();
 
-  useEffect(() => {
-    let active = true;
-    setStatusLoading(true);
-      void ipcBridge.mcpService.statusMcpMarket
-        .invoke()
-      .then((status) => {
-        if (active) setMarketEnabled(status?.enabled ?? true);
-      })
-      .catch(() => {
-        if (active) setMarketEnabled(true);
-      })
-      .finally(() => {
-        if (active) setStatusLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const loadSources = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await ipcBridge.fs.statusSkillMarketSources.invoke({ marketType: 'mcp' });
+      setSources(res?.sources ?? []);
+    } catch (error) {
+      console.error('Failed to load MCP market sources:', error);
+      message.error(
+        t('settings.mcpMarket.loadSourcesFailed', {
+          defaultValue: '市场源配置加载失败',
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [message, t]);
 
-  const toggleMarket = useCallback(
-    async (enabled: boolean) => {
-      setSaving(true);
-      setMarketEnabled(enabled);
+  useEffect(() => {
+    void loadSources();
+  }, [loadSources]);
+
+  const enabledSources = useMemo(
+    () => sources.filter((s) => s.enabled).map((s) => s.source),
+    [sources]
+  );
+
+  const toggleSource = useCallback(
+    async (source: SkillMarketSource, enabled: boolean) => {
+      setToggling(source);
+      setSources((prev) => prev.map((s) => (s.source === source ? { ...s, enabled } : s)));
       try {
-        if (enabled) {
-          await ipcBridge.mcpService.enableMcpMarket.invoke();
-        } else {
-          await ipcBridge.mcpService.disableMcpMarket.invoke();
-        }
+        await ipcBridge.fs.toggleSkillMarketSource.invoke({ source, enabled });
         message.success(
-          t('settings.mcpMarket.toggleSuccess', {
-            defaultValue: enabled ? 'MCP 市场已开启' : 'MCP 市场已关闭',
+          t('settings.mcpMarket.sourceToggleSuccess', {
+            name: marketSourceLabel(source),
+            enabled,
+            defaultValue: `${marketSourceLabel(source)} 已${enabled ? '启用' : '关闭'}`,
           })
         );
       } catch (error) {
-        setMarketEnabled(!enabled);
-        console.error('Failed to toggle MCP market:', error);
+        setSources((prev) => prev.map((s) => (s.source === source ? { ...s, enabled: !enabled } : s)));
+        console.error(`Failed to toggle MCP market source ${source}:`, error);
         message.error(
-          t('settings.mcpMarket.toggleFailed', { defaultValue: 'MCP 市场开关操作失败' })
+          t('settings.mcpMarket.sourceToggleFailed', {
+            defaultValue: '市场源开关操作失败',
+          })
         );
       } finally {
-        setSaving(false);
+        setToggling(null);
       }
     },
     [message, t]
   );
+
+  const enabledCount = enabledSources.length;
+  const sourceTone = (source: SkillMarketSource): string => {
+    if (['skillhub_mcp', 'mcpworld'].includes(source)) return 'bg-[rgba(var(--success-6),0.1)] text-success-6';
+    return 'bg-[rgba(var(--primary-6),0.08)] text-primary-6';
+  };
 
   return (
     <SettingsPageWrapper>
@@ -82,29 +110,59 @@ const McpMarketSettingsPage: React.FC = () => {
       <div className='flex flex-col h-full w-full'>
         <NomiScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow>
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <div className='text-14px font-600 text-t-primary'>
+                  {t('settings.mcpMarket.sourceConfigTitle', { defaultValue: 'MCP 市场来源配置' })}
+                </div>
+                <div className='mt-2px text-12px leading-18px text-t-secondary'>
+                  {t('settings.mcpMarket.sourceConfigDesc', {
+                    count: enabledCount,
+                    total: sources.length,
+                    defaultValue: `市场源由后端 SPI 定义，共 ${sources.length} 个，当前启用 ${enabledCount} 个；仅启用的来源会展示在下方市场。`,
+                  })}
+                </div>
+              </div>
+              <Tag size='small' className={enabledCount > 0 ? 'bg-[rgba(var(--success-6),0.1)] text-success-6' : 'bg-fill-2 text-t-secondary'}>
+                {enabledCount}/{sources.length}
+              </Tag>
+            </div>
             <div className='w-full flex flex-col divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
-              <PreferenceRow
-                label={t('settings.mcpMarket.enableMarket', { defaultValue: '启用 MCP 市场' })}
-                description={t('settings.mcpMarket.enableMarketDesc', {
-                  defaultValue: '开启后展示 SkillHub MCP、MCP World 等市场；关闭后隐藏市场并停止拉取。',
-                })}
-              >
-                <Switch
-                  checked={marketEnabled}
-                  loading={saving || statusLoading}
-                  onChange={(v: boolean) => void toggleMarket(v)}
-                  data-testid='mcp-market-enabled-switch'
-                />
-              </PreferenceRow>
+              {loading ? (
+                <div className='py-16px text-center text-13px text-t-secondary'>
+                  {t('settings.globalSettingsLoading', { defaultValue: '加载中…' })}
+                </div>
+              ) : (
+                sources.map((source) => (
+                  <PreferenceRow
+                    key={source.source}
+                    label={source.displayName}
+                    description={source.url}
+                  >
+                    <span className='flex items-center gap-8px'>
+                      <Tag size='small' bordered={false} className={sourceTone(source.source)}>
+                        {marketSourceLabel(source.source)}
+                      </Tag>
+                      <Switch
+                        size='small'
+                        checked={source.enabled}
+                        loading={toggling === source.source}
+                        onChange={(v: boolean) => void toggleSource(source.source, v)}
+                        data-testid={`mcp-market-source-toggle-${source.source}`}
+                      />
+                    </span>
+                  </PreferenceRow>
+                ))
+              )}
             </div>
           </div>
 
-          {marketEnabled && !statusLoading && (
+          {enabledSources.length > 0 && (
             <div className='mt-16px'>
               <McpMarketSettings
+                sources={enabledSources}
                 saveMcpServers={saveMcpServers}
                 mcpServers={mcpServers}
-                addedStateLoading={isMcpServersLoading || mcpServersLoadFailed}
               />
             </div>
           )}

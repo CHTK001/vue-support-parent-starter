@@ -311,8 +311,19 @@ export function fromApiPaginatedConversations(result: {
   total: number;
   has_more: boolean;
 } {
+  // Per-row tolerance: one stale row (e.g. a legacy prefixed provider_id from
+  // an old database) must not blank the whole sidebar via the caller's
+  // all-or-nothing catch.
+  const items: TChatConversation[] = [];
+  for (const raw of result.items) {
+    try {
+      items.push(fromApiConversation(raw));
+    } catch (error) {
+      console.warn('[apiModelMapper] skipped malformed conversation row:', error);
+    }
+  }
   return {
     ...result,
-    items: result.items.map(fromApiConversation),
+    items,
   };
 }
