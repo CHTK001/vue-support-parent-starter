@@ -307,77 +307,9 @@
       "types": "./src/components/ReCanvasUi/index.ts",
       "default": "./src/components/ReCanvasUi/index.ts"
     },
-    "./re-option": {
-      "types": "./src/components/ReOption/index.ts",
-      "default": "./src/components/ReOption/index.ts"
-    },
-    "./re-form-item": {
-      "types": "./src/components/ReFormItem/index.ts",
-      "default": "./src/components/ReFormItem/index.ts"
-    },
-    "./re-row": {
-      "types": "./src/components/ReRow/index.ts",
-      "default": "./src/components/ReRow/index.ts"
-    },
-    "./re-col": {
-      "types": "./src/components/ReCol/index.ts",
-      "default": "./src/components/ReCol/index.ts"
-    },
-    "./re-radio-group": {
-      "types": "./src/components/ReRadioGroup/index.ts",
-      "default": "./src/components/ReRadioGroup/index.ts"
-    },
-    "./re-radio": {
-      "types": "./src/components/ReRadio/index.ts",
-      "default": "./src/components/ReRadio/index.ts"
-    },
-    "./re-radio-button": {
-      "types": "./src/components/ReRadioButton/index.ts",
-      "default": "./src/components/ReRadioButton/index.ts"
-    },
-    "./re-tree-select": {
-      "types": "./src/components/ReTreeSelect/index.ts",
-      "default": "./src/components/ReTreeSelect/index.ts"
-    },
-    "./re-table-column": {
-      "types": "./src/components/ReTableColumn/index.ts",
-      "default": "./src/components/ReTableColumn/index.ts"
-    },
-    "./re-dropdown": {
-      "types": "./src/components/ReDropdown/index.ts",
-      "default": "./src/components/ReDropdown/index.ts"
-    },
-    "./re-dropdown-menu": {
-      "types": "./src/components/ReDropdownMenu/index.ts",
-      "default": "./src/components/ReDropdownMenu/index.ts"
-    },
-    "./re-dropdown-item": {
-      "types": "./src/components/ReDropdownItem/index.ts",
-      "default": "./src/components/ReDropdownItem/index.ts"
-    },
-    "./re-descriptions": {
-      "types": "./src/components/ReDescriptions/index.ts",
-      "default": "./src/components/ReDescriptions/index.ts"
-    },
-    "./re-descriptions-item": {
-      "types": "./src/components/ReDescriptionsItem/index.ts",
-      "default": "./src/components/ReDescriptionsItem/index.ts"
-    },
-    "./re-alert": {
-      "types": "./src/components/ReAlert/index.ts",
-      "default": "./src/components/ReAlert/index.ts"
-    },
-    "./re-divider": {
-      "types": "./src/components/ReDivider/index.ts",
-      "default": "./src/components/ReDivider/index.ts"
-    },
-    "./re-link": {
-      "types": "./src/components/ReLink/index.ts",
-      "default": "./src/components/ReLink/index.ts"
-    },
-    "./re-avatar": {
-      "types": "./src/components/ReAvatar/index.ts",
-      "default": "./src/components/ReAvatar/index.ts"
+    "./re-kit": {
+      "types": "./src/components/ReKit/index.ts",
+      "default": "./src/components/ReKit/index.ts"
     },
     "./*": "./src/*"
   },

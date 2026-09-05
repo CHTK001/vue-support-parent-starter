@@ -107,14 +107,16 @@ export function msgBoxPrompt(
   title: string = "温馨提示：",
   confirmButtonText: string = "确定",
   cancelButtonText: string = "取消",
-  type: string = "info"
-): Promise<boolean> {
+  type: string = "info",
+  options?: Record<string, unknown>
+): Promise<any> {
   return new Promise((resolve, reject) => {
     ElMessageBox.prompt(message as any, title as any, {
       confirmButtonText,
       cancelButtonText,
       type,
       draggable: true,
+      ...(options ?? {}),
     } as any)
       .then((res) => resolve(res as any))
       .catch(() => reject(false));

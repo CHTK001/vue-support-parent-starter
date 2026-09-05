@@ -69,9 +69,9 @@ const RagSettingsPage: React.FC = () => {
               <PreferenceRow label={t('settings.ragEmbeddingModel', { defaultValue: 'Embedding 引擎' })}>
                 <Select
                   className='w-200px'
-                  value={strVal('ragEmbeddingModel')}
+                  value={aiStr(values, 'ragEmbeddingModel')}
                   onChange={(v) => set('ragEmbeddingModel', v as string)}
-                  placeholder='选择引擎'
+                  placeholder={t('settings.selectEmbeddingEngine', { defaultValue: '选择引擎' })}
                   allowClear
                 >
                   {EMBEDDING_OPTIONS.map((o) => (
@@ -82,9 +82,9 @@ const RagSettingsPage: React.FC = () => {
               <PreferenceRow label={t('settings.ragVectorStorage', { defaultValue: '向量存储' })}>
                 <Select
                   className='w-200px'
-                  value={strVal('ragVectorStorage')}
+                  value={aiStr(values, 'ragVectorStorage')}
                   onChange={(v) => set('ragVectorStorage', v as string)}
-                  placeholder='选择存储'
+                  placeholder={t('settings.selectVectorStorage', { defaultValue: '选择存储' })}
                   allowClear
                 >
                   {VECTOR_STORAGE_OPTIONS.map((o) => (
@@ -97,8 +97,8 @@ const RagSettingsPage: React.FC = () => {
                   type='number'
                   min={100}
                   className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                  value={numVal('ragChunkSize') ?? 1000}
-                  onChange={(e) => set('ragChunkSize', Number(e.target.value) ?? 1000)}
+                  value={aiNum(values, 'ragChunkSize', 1000)}
+                  onChange={(e) => set('ragChunkSize', Number(e.target.value) || 1000)}
                 />
               </PreferenceRow>
               <PreferenceRow label={t('settings.ragChunkOverlap', { defaultValue: '文本切片重叠（字符）' })}>
@@ -106,16 +106,16 @@ const RagSettingsPage: React.FC = () => {
                   type='number'
                   min={0}
                   className='w-120px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-7px text-13px text-[var(--color-text-1)] outline-none'
-                  value={numVal('ragChunkOverlap') ?? 200}
-                  onChange={(e) => set('ragChunkOverlap', Number(e.target.value) ?? 200)}
+                  value={aiNum(values, 'ragChunkOverlap', 200)}
+                  onChange={(e) => set('ragChunkOverlap', Number(e.target.value) || 200)}
                 />
               </PreferenceRow>
               <PreferenceRow label={t('settings.ragSplitter', { defaultValue: '文本切片策略' })}>
                 <Select
                   className='w-200px'
-                  value={strVal('ragSplitter')}
+                  value={aiStr(values, 'ragSplitter')}
                   onChange={(v) => set('ragSplitter', v as string)}
-                  placeholder='选择策略'
+                  placeholder={t('settings.selectSplitterPolicy', { defaultValue: '选择策略' })}
                   allowClear
                 >
                   {SPLITTER_OPTIONS.map((o) => (
