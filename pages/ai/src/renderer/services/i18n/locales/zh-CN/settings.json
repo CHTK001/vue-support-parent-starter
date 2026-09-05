@@ -85,7 +85,12 @@
     "lastUpdated": "上次更新：{{time}}",
     "openInBrowser": "在浏览器中打开市场",
     "installSuccess": "已安装技能：{{names}}",
-    "installFailed": "安装失败：{{detail}}"
+    "installFailed": "安装失败：{{detail}}",
+    "settingsTitle": "技能市场",
+    "toggleSuccess": "技能市场已{{state}}",
+    "toggleFailed": "技能市场开关操作失败",
+    "enableMarket": "启用技能市场",
+    "enableMarketDesc": "开启后展示 ClawHub、LoopHub、SkillHub 等市场；关闭后隐藏市场并停止拉取。"
   },
   "market": {
     "syncSuccess": "市场已更新",

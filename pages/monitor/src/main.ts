@@ -59,7 +59,7 @@ async function installSinglePage(app: VueApp): Promise<void> {
     installs.push(installReMap3D.install(app));
   }
   // 业务组件：按钮/表单/表格/输入/选择等
-  const pluginInstalls: Array<{ install: (app: VueApp) => any }> = [
+  const pluginInstalls: any[] = [
     installReButton, installReDialog, installReTable, installReForm, installReSelect,
     installReInput, installReInputNumber, installReTag, installReSwitch, installReDatePicker,
     installReEmpty, installRePagination, installReProgress, installReUpload, installReTime,
