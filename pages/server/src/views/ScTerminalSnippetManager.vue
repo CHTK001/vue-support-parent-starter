@@ -1,8 +1,8 @@
 <template>
   <div class="snippet-manager fade-in sc-page">
     <div class="toolbar">
-      <ReButton layout="square" icon="Plus" type="primary" @click="editRow()">新增片段</ReButton>
-      <ReButton layout="square" icon="Delete" type="danger" :disabled="!selectedRow" @click="handleDelete">删除</ReButton>
+      <ReButton show-text icon="Plus" type="primary" @click="editRow()">新增片段</ReButton>
+      <ReButton show-text icon="Delete" type="danger" :disabled="!selectedRow" @click="handleDelete">删除</ReButton>
       <ReInput v-model="filterName" placeholder="搜索片段名" prefix-icon="Search" style="width: 200px" clearable />
     </div>
 

@@ -145,7 +145,7 @@ async function onSaveConfig(): Promise<void> {
       <!-- 硬件规格：后台探测结果，只读展示 -->
       <ReDivider content-position="left">
         硬件规格
-        <ReButton layout="square" icon="Cpu" type="primary" size="small" :loading="detecting" @click="onDetect">重新探测</ReButton>
+        <ReButton show-text icon="Cpu" type="primary" size="small" :loading="detecting" @click="onDetect">重新探测</ReButton>
       </ReDivider>
       <ReDescriptions :column="3" border size="small">
         <ReDescriptionsItem label="CPU 核心">
@@ -190,7 +190,7 @@ async function onSaveConfig(): Promise<void> {
         </ReFormItem>
 
         <ReFormItem>
-          <ReButton layout="square" icon="Check" type="primary" :loading="saving" @click="onSaveConfig">保存设置</ReButton>
+          <ReButton show-text icon="Check" type="primary" :loading="saving" @click="onSaveConfig">保存设置</ReButton>
         </ReFormItem>
       </ReForm>
       </div>

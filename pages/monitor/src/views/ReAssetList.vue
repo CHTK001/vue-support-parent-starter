@@ -20,55 +20,39 @@
           <ReIcon class="search-icon" name="Search" :size="14" />
           <input v-model="filters.keyword" placeholder="搜索名称 / 主机地址…" />
         </div>
-        <el-select v-model="filters.serviceType" placeholder="服务类型" class="filter-select" clearable>
-          <el-option label="全部" value="" />
-          <el-option label="服务器" value="SERVER" />
-          <el-option label="Redis" value="REDIS" />
-          <el-option label="MySQL" value="MYSQL" />
-          <el-option label="PostgreSQL" value="PG" />
-          <el-option label="Oracle" value="ORACLE" />
-          <el-option label="MSSQL" value="MSSQL" />
-        </el-select>
-        <el-select v-model="filters.enabled" placeholder="状态" class="filter-select" clearable>
-          <el-option label="全部" value="" />
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
+        <ReSelect v-model="filters.serviceType" placeholder="服务类型" class="filter-select" clearable
+          :data="[{ label: '全部', value: '' }, { label: '服务器', value: 'SERVER' }, { label: 'Redis', value: 'REDIS' }, { label: 'MySQL', value: 'MYSQL' }, { label: 'PostgreSQL', value: 'PG' }, { label: 'Oracle', value: 'ORACLE' }, { label: 'MSSQL', value: 'MSSQL' }]" />
+        <ReSelect v-model="filters.enabled" placeholder="状态" class="filter-select" clearable
+          :data="[{ label: '全部', value: '' }, { label: '启用', value: 1 }, { label: '禁用', value: 0 }]" />
         <span class="filter-divider"></span>
-        <el-button @click="fetchList" plain class="action-btn">
-          <ReIcon name="RefreshLeft" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="openAdd" class="add-btn">
-          <ReIcon name="Plus" />
-          新增资产
-        </el-button>
+        <ReButton show-text icon="RefreshLeft" plain @click="fetchList">刷新</ReButton>
+        <ReButton show-text icon="Plus" type="primary" @click="openAdd">新增资产</ReButton>
       </div>
     </ReCard>
 
-    <el-table :data="filtered" v-loading="loading" border stripe class="asset-table">
-      <el-table-column prop="monitorName" label="资产名称" min-width="160">
+    <ReTable :data="filtered" :loading="loading" border stripe class="asset-table" :pagination="false" :toolbar="false">
+      <ReTableColumn prop="monitorName" label="资产名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.monitorName }}</span></template>
-      </el-table-column>
-      <el-table-column prop="monitorHost" label="主机地址" min-width="150" />
-      <el-table-column prop="monitorPort" label="端口" width="80" align="center" />
-      <el-table-column prop="serviceType" label="服务类型" width="100" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="monitorHost" label="主机地址" min-width="150" />
+      <ReTableColumn prop="monitorPort" label="端口" width="80" align="center" />
+      <ReTableColumn prop="serviceType" label="服务类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :class="['type-tag', typeClass(row.serviceType)]" effect="plain" size="small">{{ typeLabel(row.serviceType) }}</el-tag>
+          <ReTag :class="['type-tag', typeClass(row.serviceType)]" effect="plain" size="small">{{ typeLabel(row.serviceType) }}</ReTag>
         </template>
-      </el-table-column>
-      <el-table-column prop="serverType" label="系统类型" width="90" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="serverType" label="系统类型" width="90" align="center">
         <template #default="{ row }"><span v-if="row.serverType">{{ row.serverType }}</span><span v-else class="dim">—</span></template>
-      </el-table-column>
-      <el-table-column prop="monitorGroup" label="分组" width="100" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="monitorGroup" label="分组" width="100" align="center">
         <template #default="{ row }"><span v-if="row.monitorGroup">{{ row.monitorGroup }}</span><span v-else class="dim">—</span></template>
-      </el-table-column>
-      <el-table-column prop="monitorEnabled" label="状态" width="80" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="monitorEnabled" label="状态" width="80" align="center">
         <template #default="{ row }">
           <span :class="['status-pill', row.monitorEnabled === 1 ? 'on' : 'off']">{{ row.monitorEnabled === 1 ? '运行中' : '已停用' }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="探针" width="90" align="center">
+      </ReTableColumn>
+      <ReTableColumn label="探针" width="90" align="center">
         <template #default="{ row }">
           <template v-if="!row.monitorAgentKey">
             <span class="dim">—</span>
@@ -83,69 +67,56 @@
             <span class="dim">未知</span>
           </template>
         </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="160" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="createTime" label="创建时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.createTime" class="dim">{{ row.createTime.slice(0, 19).replace('T', ' ') }}</span>
           <span v-else class="dim">—</span>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="140" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button text size="small" @click="editRow(row)">编辑</el-button>
-          <el-button text size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+          <ReButton link size="small" @click="editRow(row)">编辑</ReButton>
+          <ReButton link size="small" type="danger" @click="handleDelete(row.id)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
-    <el-dialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
-      <el-form :model="form" label-position="top" class="asset-form" v-loading="serverHostLoading">
-        <el-form-item label="服务器配置">
-          <el-select v-model="form.msServerHostId" placeholder="从服务器台账关联（可选）" clearable filterable style="width:100%" @change="onServerHostChange(form.msServerHostId)">
-            <el-option v-for="h in serverHosts" :key="h.id" :label="`${h.serverHostName}（${h.serverHostAddress}）`" :value="h.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="资产名称"><el-input v-model="form.monitorName" placeholder="例如：prod-web-01" /></el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主机地址"><el-input v-model="form.monitorHost" placeholder="192.168.1.100" /></el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="端口"><el-input-number v-model="form.monitorPort" :min="1" :max="65535" controls-position="right" style="width:100%" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="服务类型">
-              <el-select v-model="form.serviceType" style="width:100%">
-                <el-option label="服务器" value="SERVER" />
-                <el-option label="Redis" value="REDIS" />
-                <el-option label="MySQL" value="MYSQL" />
-                <el-option label="PostgreSQL" value="PG" />
-                <el-option label="Oracle" value="ORACLE" />
-                <el-option label="MSSQL" value="MSSQL" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" v-if="form.serviceType === 'SERVER'">
-            <el-form-item label="系统类型">
-              <el-select v-model="form.serverType" style="width:100%">
-                <el-option label="Linux" value="LINUX" />
-                <el-option label="Windows" value="WINDOWS" />
-                <el-option label="macOS" value="MACOS" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="分组"><el-input v-model="form.monitorGroup" placeholder="例如：prod / test" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.monitorDescription" placeholder="资产备注说明" /></el-form-item>
-        <el-form-item label="启用状态"><el-switch v-model="form.monitorEnabled" :active-value="1" :inactive-value="0" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
-      </template>
-    </el-dialog>
+    <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520" :height="560" destroy-on-close confirm-text="保存" cancel-text="取消" @confirm="handleSave" @cancel="showDialog = false">
+      <ReForm :model="form" label-position="top" class="asset-form" :disabled="serverHostLoading">
+        <ReFormItem label="服务器配置">
+          <ReSelect v-model="form.msServerHostId" placeholder="从服务器台账关联（可选）" clearable filterable style="width:100%"
+            :data="serverHosts.map(h => ({ label: `${h.serverHostName}（${h.serverHostAddress}）`, value: h.id }))"
+            @change="onServerHostChange(form.msServerHostId)" />
+        </ReFormItem>
+        <ReFormItem label="资产名称"><ReInput v-model="form.monitorName" placeholder="例如：prod-web-01" /></ReFormItem>
+        <ReRow :gutter="20">
+          <ReCol :span="12">
+            <ReFormItem label="主机地址"><ReInput v-model="form.monitorHost" placeholder="192.168.1.100" /></ReFormItem>
+          </ReCol>
+          <ReCol :span="12">
+            <ReFormItem label="端口"><ReInputNumber v-model="form.monitorPort" :min="1" :max="65535" controls-position="right" style="width:100%" /></ReFormItem>
+          </ReCol>
+        </ReRow>
+        <ReRow :gutter="20">
+          <ReCol :span="12">
+            <ReFormItem label="服务类型">
+              <ReSelect v-model="form.serviceType" style="width:100%"
+                :data="[{ label: '服务器', value: 'SERVER' }, { label: 'Redis', value: 'REDIS' }, { label: 'MySQL', value: 'MYSQL' }, { label: 'PostgreSQL', value: 'PG' }, { label: 'Oracle', value: 'ORACLE' }, { label: 'MSSQL', value: 'MSSQL' }]" />
+            </ReFormItem>
+          </ReCol>
+          <ReCol :span="12" v-if="form.serviceType === 'SERVER'">
+            <ReFormItem label="系统类型">
+              <ReSelect v-model="form.serverType" style="width:100%"
+                :data="[{ label: 'Linux', value: 'LINUX' }, { label: 'Windows', value: 'WINDOWS' }, { label: 'macOS', value: 'MACOS' }]" />
+            </ReFormItem>
+          </ReCol>
+        </ReRow>
+        <ReFormItem label="分组"><ReInput v-model="form.monitorGroup" placeholder="例如：prod / test" /></ReFormItem>
+        <ReFormItem label="描述"><ReInput v-model="form.monitorDescription" placeholder="资产备注说明" /></ReFormItem>
+        <ReFormItem label="启用状态"><ReSwitch v-model="form.monitorEnabled" :active-value="1" :inactive-value="0" /></ReFormItem>
+      </ReForm>
+    </ReDialog>
 
     <ReCard layout="simple" :radius="14" :padding="0" shadow="never">
       <template #header>

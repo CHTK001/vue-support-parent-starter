@@ -295,8 +295,8 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
           />
           <ReInput v-model="command" type="textarea" :rows="4" placeholder="如：df -h && free -m" />
           <div style="margin-top: 8px; display: flex; justify-content: space-between">
-            <ReButton layout="square" icon="Document" size="small" @click="logDrawerVisible = true">执行日志</ReButton>
-            <ReButton layout="square" icon="VideoPlay" type="primary" :loading="running" @click="onRunCommand">执行</ReButton>
+            <ReButton show-text icon="Document" size="small" @click="logDrawerVisible = true">执行日志</ReButton>
+            <ReButton show-text icon="VideoPlay" type="primary" :loading="running" @click="onRunCommand">执行</ReButton>
           </div>
         </div>
       </ReCol>
@@ -309,12 +309,12 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
             <template #prepend>目录</template>
           </ReInput>
           <label class="file-pick">
-            <ReButton layout="square" icon="Upload" tag="span" plain>选择文件</ReButton>
+            <ReButton show-text icon="Upload" tag="span" plain>选择文件</ReButton>
             <span class="file-name" v-if="distFile">{{ distFile.name }}</span>
             <input type="file" hidden @change="(e: Event) => (distFile = (e.target as HTMLInputElement).files?.[0] ?? null)" />
           </label>
           <div style="margin-top: 8px; text-align: right">
-            <ReButton layout="square" icon="Position" type="primary" :loading="distributing" @click="onDistribute">分发</ReButton>
+            <ReButton show-text icon="Position" type="primary" :loading="distributing" @click="onDistribute">分发</ReButton>
           </div>
         </div>
       </ReCol>
@@ -342,7 +342,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
     <div class="panel">
       <div class="panel-head">
         <h4>计划任务(cron)</h4>
-        <ReButton layout="square" icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
+        <ReButton show-text icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
       </div>
       <ReTable :data="jobs" size="small" border :pagination="false" :toolbar="false">
         <ReTableColumn prop="msExecJobName" label="名称" min-width="120" />
