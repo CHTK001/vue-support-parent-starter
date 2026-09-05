@@ -6,7 +6,7 @@
  * ChatScope 主题覆写
  *
  * 将 chatscope 默认的亮蓝高饱和主题对齐到本项目 Arco/UnoCSS 低饱和设计语言：
- *  - 气泡：出站用主色低饱和底 + 主文字；入站用填充色 + 主文字
+ *  - 气泡：出站主色渐变 + 白字；入站填充色 + 主文字；圆角带方向尖角
  *  - 会话列表：去掉默认白底/描边，用项目填充色与激活态
  *  - 分隔符、发送者名、时间：统一项目弱化文字
  *
@@ -19,23 +19,28 @@
 }
 .cs-conversation {
   color: var(--text-primary);
+  transition: background-color 0.15s ease;
 }
 .cs-conversation:hover {
-  background: var(--bg-hover) !important;
+  background: var(--color-fill-1) !important;
 }
 .cs-conversation:active {
-  background: var(--bg-active) !important;
+  background: var(--color-fill-2) !important;
 }
 .cs-conversation--active {
-  background: var(--color-fill-2) !important;
+  background: var(--color-primary-1) !important;
   box-shadow: inset 3px 0 0 0 var(--primary);
 }
 .cs-conversation--active:hover {
-  background: var(--color-fill-2) !important;
+  background: var(--color-primary-1) !important;
 }
 .cs-conversation__info,
 .cs-conversation__last-activity-time {
   color: var(--text-secondary);
+}
+.cs-conversation__last-activity-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 /* ===== 会话头部 ===== */
@@ -46,34 +51,64 @@
 /* ===== 消息气泡 ===== */
 .cs-message__content {
   color: var(--text-primary);
-  border-radius: 14px !important;
-  box-shadow: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
   background-color: var(--color-fill-2) !important;
   white-space: normal !important;
+  padding: 10px 14px !important;
+  font-size: 14px;
+  line-height: 1.65;
+  word-break: break-word;
+  max-width: min(560px, 78%);
 }
+/* 出站：主色渐变 + 白字，右下收角 */
 .cs-message--outgoing .cs-message__content {
   color: var(--color-white);
-  background-color: var(--primary) !important;
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--color-primary-5, var(--primary)) 100%) !important;
+  border-bottom-right-radius: 5px !important;
 }
+/* 入站：填充底 + 主文字，左下收角 */
 .cs-message--incoming .cs-message__content {
   background-color: var(--color-fill-2) !important;
+  border-bottom-left-radius: 5px !important;
 }
 .cs-message__sender-name,
 .cs-message__sent-time {
   color: var(--text-tertiary);
   font-size: 11px;
 }
+/* 气泡入场动效 */
+@keyframes botim-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.cs-message--outgoing .cs-message__content,
+.cs-message--incoming .cs-message__content {
+  animation: botim-pop-in 0.18s ease-out;
+}
 
-/* ===== 消息分隔符 ===== */
+/* ===== 消息分隔符：居中胶囊 ===== */
 .cs-message-separator {
-  color: var(--text-secondary);
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
   font-weight: 500;
-  opacity: 0.8;
+  opacity: 1;
+  background: var(--color-fill-1);
+  border: 1px solid var(--color-border-2);
+  border-radius: 999px;
+  padding: 2px 12px;
+  width: fit-content !important;
+  margin: 8px auto 12px !important;
 }
 .cs-message-separator::before,
 .cs-message-separator::after {
-  background-color: var(--color-border-2);
+  background-color: transparent;
 }
 
 /* ===== 消息列表背景 ===== */
@@ -87,10 +122,22 @@
   color: var(--text-secondary);
   border-radius: 0 !important;
   flex-shrink: 0 !important;
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
+  overflow: hidden;
+}
+/* 消息头像：30px 圆形，方向配色 */
+.botim-msg-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-fill-2) !important;
+}
+.cs-message--outgoing .botim-msg-avatar {
+  background: var(--color-primary-1, var(--color-fill-2)) !important;
 }
 .cs-conversation {
   align-items: center;
@@ -103,10 +150,24 @@
   min-width: 0;
   flex-shrink: 1;
   overflow: hidden;
+  flex-grow: 1;
 }
 .cs-conversation__name > * {
   min-width: 0;
   flex-shrink: 1;
+}
+/* 会话名行内布局：名字 + 徽标 + 右侧时间 */
+.cs-conversation__name > span:first-child {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+/* 会话最后一条消息行：内容截断 + 未读徽标 */
+.cs-conversation__info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ===== 消息气泡内嵌卡片适配 ===== */
@@ -130,4 +191,33 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ===== IM 页滚动条细化 ===== */
+.botim-scroll::-webkit-scrollbar,
+.botim-scroll *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.botim-scroll *::-webkit-scrollbar-thumb {
+  background: var(--color-text-4);
+  border-radius: 999px;
+  opacity: 0.4;
+}
+.botim-scroll *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== 在线状态呼吸点 ===== */
+@keyframes botim-online-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--success-6-rgb, 22, 163, 74), 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(var(--success-6-rgb, 22, 163, 74), 0);
+  }
+}
+.botim-online-dot {
+  animation: botim-online-pulse 2.4s ease-in-out infinite;
 }

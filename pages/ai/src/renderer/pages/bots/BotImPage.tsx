@@ -18,10 +18,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Button, Empty, Message, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Empty, Message, Modal, Spin, Tag, Tooltip } from '@arco-design/web-react';
 import { EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
 import classNames from 'classnames';
 import {
+  Avatar as ChatAvatar,
   Conversation,
   ConversationList,
   Message as ChatMsg,
@@ -158,7 +159,13 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   const meta = STATUS_META[status ?? ''] ?? { label: '未知', dot: 'bg-[var(--color-text-4)]' };
   return (
     <span className='inline-flex shrink-0 items-center gap-6px text-12px leading-18px text-t-secondary'>
-      <span className={classNames('h-6px w-6px shrink-0 rounded-full', meta.dot)} />
+      <span
+        className={classNames(
+          'h-6px w-6px shrink-0 rounded-full',
+          meta.dot,
+          status === 'online' && 'botim-online-dot'
+        )}
+      />
       <span>{meta.label}</span>
     </span>
   );
@@ -452,7 +459,16 @@ const ChatInput: React.FC<{
             className='h-full w-full resize-y rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
           />
         </div>
-        <Button type='primary' shape='round' disabled={disabled || !value.trim()} onClick={onSend}>
+        <Button
+          type='primary'
+          shape='round'
+          disabled={disabled || !value.trim()}
+          onClick={onSend}
+          style={{
+            backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, var(--color-primary-5, var(--primary)) 100%)',
+            paddingInline: 18,
+          }}
+        >
           {t('bots.im.send', { defaultValue: '发送' })}
         </Button>
       </div>
@@ -754,7 +770,17 @@ export default function BotImPage() {
               shape='circle'
               status='danger'
               icon={<span className='text-14px'>🗑</span>}
-              onClick={() => { if (active) setMessages([]); }}
+              onClick={() => {
+                if (!active) return;
+                Modal.confirm({
+                  title: t('bots.im.clearHistory', { defaultValue: '清空聊天记录' }),
+                  content: t('bots.im.clearHistoryConfirm', {
+                    defaultValue: '仅清空本地展示的聊天记录，确认继续？',
+                  }),
+                  okButtonProps: { status: 'danger' },
+                  onOk: () => setMessages([]),
+                });
+              }}
             />
           </Tooltip>
         </div>
@@ -762,7 +788,7 @@ export default function BotImPage() {
 
       <div className='grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 max-[760px]:grid-cols-1'>
         {/* 左栏：会话列表 */}
-        <aside className='flex min-h-0 flex-col border-r border-solid border-[var(--color-border-2)]'>
+        <aside className='botim-scroll flex min-h-0 flex-col border-r border-solid border-[var(--color-border-2)]'>
           <div className='min-h-0 flex-1 overflow-y-auto p-8px'>
             {conversations.length === 0 ? (
               <div className='flex h-full items-center justify-center py-20px'>
@@ -777,12 +803,24 @@ export default function BotImPage() {
                     <Conversation
                       key={key}
                       name={
-                        <span className='flex items-center flex-wrap gap-x-6px'>
-                          {c.nickname || c.fromUser || c.botId || '—'}
+                        <span className='flex w-full items-center gap-x-6px'>
+                          <span className='truncate'>{c.nickname || c.fromUser || c.botId || '—'}</span>
                           <PlatformBadge platform={c.platform} />
+                          <span className='ml-auto shrink-0 text-11px font-400 text-t-tertiary'>
+                            {formatTime(c.lastTime)}
+                          </span>
                         </span>
                       }
-                      info={c.lastContent || ''}
+                      info={
+                        <span className='flex w-full items-center gap-6px'>
+                          <span className='min-w-0 flex-1 truncate'>{c.lastContent || ''}</span>
+                          {(c.unread ?? 0) > 0 && (
+                            <span className='flex h-16px min-w-16px shrink-0 items-center justify-center rounded-full bg-[var(--primary)] px-5px text-10px font-500 leading-none text-white'>
+                              {c.unread! > 99 ? '99+' : c.unread}
+                            </span>
+                          )}
+                        </span>
+                      }
                       active={selected}
                       onClick={() => handleSelect(key)}
                       style={{
@@ -857,7 +895,7 @@ export default function BotImPage() {
               </div>
 
               {/* 消息区 */}
-              <div ref={messagesContainerRef} onScroll={handleScroll} className='min-h-0 flex-1 overflow-auto bg-[var(--color-bg-1)]'>
+              <div ref={messagesContainerRef} onScroll={handleScroll} className='botim-scroll min-h-0 flex-1 overflow-auto bg-[var(--color-bg-1)]'>
                 {loading ? (
                   <div className='flex h-full items-center justify-center'><Spin /></div>
                 ) : (
@@ -869,10 +907,41 @@ export default function BotImPage() {
                     ) : (
                       messages.map((m, i) => {
                         const isOut = m.direction === 'OUT';
+                        const prev = messages[i - 1];
                         const showSeparator =
                           i === 0 ||
-                          (m.createTime && messages[i - 1]?.createTime &&
-                            new Date(m.createTime).toDateString() !== new Date(messages[i - 1].createTime!).toDateString());
+                          (m.createTime && prev?.createTime &&
+                            new Date(m.createTime).toDateString() !== new Date(prev.createTime!).toDateString());
+                        // 连续同方向且间隔 <5min 的消息归为一组：组内仅最后一条带头像/时间
+                        const sameGroupAsPrev =
+                          !!prev && prev.direction === m.direction &&
+                          !!m.createTime && !!prev.createTime &&
+                          new Date(m.createTime).getTime() - new Date(prev.createTime).getTime() < 5 * 60 * 1000;
+                        const next = messages[i + 1];
+                        const sameGroupAsNext =
+                          !!next && next.direction === m.direction &&
+                          !!m.createTime && !!next.createTime &&
+                          new Date(next.createTime).getTime() - new Date(m.createTime).getTime() < 5 * 60 * 1000;
+                        const position = !sameGroupAsPrev && !sameGroupAsNext ? 'single' : !sameGroupAsPrev ? 'first' : sameGroupAsNext ? 'normal' : 'last';
+                        const isGroupEnd = !sameGroupAsNext;
+                        const avatarNode = isGroupEnd ? (
+                          <ChatAvatar
+                            name={isOut ? (active.fromUser || '?') : (activeBot?.nickname || activeBot?.botId || '?')}
+                            className='botim-msg-avatar'
+                          >
+                            {isOut ? (
+                              <span className='text-12px font-500 text-primary-6'>
+                                {(active.fromUser || '?').slice(0, 1).toUpperCase()}
+                              </span>
+                            ) : activeBot?.avatarUrl ? (
+                              <img src={activeBot.avatarUrl} alt='' className='h-full w-full rounded-full object-cover' />
+                            ) : (
+                              <span className='text-12px font-500 text-t-secondary'>
+                                {(activeBot?.nickname || activeBot?.botId || '?').slice(0, 1).toUpperCase()}
+                              </span>
+                            )}
+                          </ChatAvatar>
+                        ) : undefined;
                         return (
                           <React.Fragment key={m.id ?? i}>
                             {showSeparator ? <MessageSeparator content={formatGroupTime(m.createTime)} /> : null}
@@ -880,30 +949,17 @@ export default function BotImPage() {
                               model={{
                                 message: m.content ?? '',
                                 direction: isOut ? 'outgoing' : 'incoming',
-                                position: 'single',
+                                position,
                               }}
-                              avatar={
-                                isOut ? (
-                                  <div className='flex size-30px shrink-0 items-center justify-center rounded-full bg-primary-1 text-12px font-500 text-primary-6'>
-                                    {(active.fromUser || '?').slice(0, 1).toUpperCase()}
-                                  </div>
-                                ) : (
-                                  <div className='relative flex size-30px shrink-0 items-center justify-center rounded-full bg-fill-2'>
-                                    {activeBot?.avatarUrl ? (
-                                      <img src={activeBot.avatarUrl} alt='' className='h-full w-full rounded-full object-cover' />
-                                    ) : (
-                                      <span className='text-12px font-500 text-t-secondary'>
-                                        {(activeBot?.nickname || activeBot?.botId || '?').slice(0, 1).toUpperCase()}
-                                      </span>
-                                    )}
-                                  </div>
-                                )
-                              }
-                              style={{ marginBottom: 10 }}
+                              avatarSpacer={!isGroupEnd || undefined}
+                              style={{ marginBottom: sameGroupAsNext ? 2 : 10 }}
                             >
-                              <ChatMsg.Footer sender={isOut ? '' : (active.fromUser ?? '')}>
-                                {formatTime(m.createTime)}
-                              </ChatMsg.Footer>
+                              {avatarNode}
+                              {isGroupEnd && (
+                                <ChatMsg.Footer sender={isOut ? '' : (active.fromUser ?? '')}>
+                                  {formatTime(m.createTime)}
+                                </ChatMsg.Footer>
+                              )}
                             </ChatMsg>
                           </React.Fragment>
                         );

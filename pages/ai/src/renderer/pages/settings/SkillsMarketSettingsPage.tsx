@@ -40,7 +40,7 @@ const SkillsMarketSettingsPage: React.FC = () => {
   const loadSources = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await ipcBridge.fs.listSkillMarketSources.invoke({ marketType: 'skill' });
+      const res = await ipcBridge.fs.statusSkillMarketSources.invoke({ marketType: 'skill' });
       setSources(res?.sources ?? []);
     } catch (error) {
       console.error('Failed to load skill market sources:', error);
