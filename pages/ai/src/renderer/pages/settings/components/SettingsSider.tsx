@@ -40,6 +40,7 @@ export const BUILTIN_TAB_IDS = [
   'service',
   'skills',
   'mcp',
+  'plugins',
   'execution-engines',
   'ssh-hosts',
   'computer-use',
@@ -161,6 +162,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.mcpMarket.settingsTitle', { defaultValue: 'MCP 设置' }),
         icon: <LinkCloud />,
         path: 'mcp',
+      },
+      'plugins': {
+        id: 'plugins',
+        label: t('settings.pluginMarket.settingsTitle', { defaultValue: '插件市场设置' }),
+        icon: <Puzzle />,
+        path: 'plugins',
       },
       'computer-use': {
         id: 'computer-use',
