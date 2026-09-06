@@ -41,8 +41,15 @@ const SkillsMarketSettingsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await ipcBridge.fs.statusSkillMarketSources.invoke({ marketType: 'skill' });
+      // 后端响应经统一 HttpReturn 包装为 {success, data:{sources}}，
+      // 兼容单层 {sources} 与双层 {success,data} 两种结构。
+      const inner = (res as { data?: unknown }).data ?? res;
+      const list = (inner as { sources?: unknown })?.sources;
       setSources(
-        (res?.sources ?? []).map((s) => ({ ...s, source: s.source as SkillMarketSource }))
+        (Array.isArray(list) ? list : []).map((s) => ({
+          ...(s as { displayName: string; url: string; marketType: string; enabled: boolean }),
+          source: (s as { source: string }).source as SkillMarketSource,
+        }))
       );
     } catch (error) {
       console.error('Failed to load skill market sources:', error);
