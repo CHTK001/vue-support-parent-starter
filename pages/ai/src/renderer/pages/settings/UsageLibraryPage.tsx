@@ -112,8 +112,14 @@ async function fetchList(p: URLSearchParams) {
   };
 }
 async function fetchStats(p: URLSearchParams) {
-  const res = await httpRequest<UsageStats>('GET', `${STAT_API}?${p}`);
-  return res ?? {};
+  // 统计接口需要登录鉴权（list 在白名单内匿名可查）。鉴权失败时降级为空统计，
+  // 不能让 Promise.all 整体 reject 把列表也一起清空。
+  try {
+    const res = await httpRequest<UsageStats>('GET', `${STAT_API}?${p}`);
+    return res ?? {};
+  } catch {
+    return {} as UsageStats;
+  }
 }
 
 // ─── 图表 ──────────────────────────────────────────────────

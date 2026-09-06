@@ -13,7 +13,7 @@ import { Certificate, Download, Edit, Fingerprint, Key, Lock, Plus, Server, Spee
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import type { I18nKey } from '@renderer/services/i18n';
-import { useOpenSshSession } from '@renderer/pages/conversation/hooks/useOpenSshSession';
+import { useOpenSshTerminal } from './hooks/useOpenSshTerminal';
 import {
   buildUpdatePayload,
   validateSshHostForm,
@@ -421,7 +421,7 @@ const SshHostManagement: React.FC = () => {
   // Create a nomi conversation bound to this host (extra.ssh_host_id) and jump
   // to it — the factory connects the host and hands the agent the remote tools.
   // Shared with the sidebar's remote-session menu.
-  const openSession = useOpenSshSession();
+  const openSession = useOpenSshTerminal();
 
   const handleDelete = useCallback(
     (host: IApiSshHost) => {
