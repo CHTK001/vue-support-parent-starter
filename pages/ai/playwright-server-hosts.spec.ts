@@ -78,7 +78,7 @@ test.describe("服务器侧 ScHostList E2E 测试", () => {
         contentType: "application/json",
         body: JSON.stringify({ success: true, data }),
       });
-    };
+    });
   });
 
   test.afterAll(async () => {
