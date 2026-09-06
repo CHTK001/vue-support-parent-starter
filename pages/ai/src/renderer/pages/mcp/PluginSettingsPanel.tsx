@@ -4,7 +4,7 @@
  * install command is never executed without the user reviewing and sending it.
  */
 import { ipcBridge } from '@/common';
-import type { IExtensionInfo, ISkillMarketItem } from '@/common/adapter/ipcBridge';
+import type { IExtensionInfo, ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
 import { resolveLocaleKey } from '@/common/utils';
 import { Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -24,9 +24,11 @@ import {
 
 type PluginSettingsPanelProps = {
   section?: 'installed' | 'market' | 'both';
+  /** 启用的市场源（来自后端 SPI）；缺省使用内置 PLUGIN_MARKET_SOURCES。 */
+  sources?: SkillMarketSource[];
 };
 
-const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({ section = 'both' }) => {
+const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({ section = 'both', sources }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
   const { start } = useNomiQuickStart();
@@ -137,7 +139,7 @@ const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({ section = 'bo
           description={t('settings.plugins.marketDescription', {
             defaultValue: 'Browse ClawHub plugins and prepare an installation draft for review.',
           })}
-          sources={PLUGIN_MARKET_SOURCES}
+          sources={sources ?? PLUGIN_MARKET_SOURCES}
           cacheKey='nomifun.pluginMarket.rankings.v1'
           autoSyncKey='nomifun.pluginMarket.autoSynced.v1'
           defaultSource='clawhub_plugins'
