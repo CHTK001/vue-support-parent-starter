@@ -13,6 +13,8 @@
     "title": "技能中心",
     "railTitle": "技能",
     "description": "集中管理独立的 Agent Skill 能力包，可由任意设定引用。",
+    "installedTab": "已安装技能",
+    "marketTab": "技能市场",
     "mySkillsTitle": "我的技能",
     "noSkills": "未发现技能。请导入技能以开始使用。",
     "custom": "自定义",
@@ -1559,6 +1561,19 @@
     "title": "MCP",
     "subtitle": "管理已安装 MCP、MCP 市场、已安装插件与插件市场。",
     "railTitle": "MCP"
+  },
+  "pluginsHub": {
+    "title": "插件市场",
+    "subtitle": "浏览 ClawHub 插件市场，将选中的插件安装到当前工作区。",
+    "railTitle": "插件"
+  },
+  "pluginMarket": {
+    "settingsTitle": "插件市场设置",
+    "sourceConfigDesc": "市场源由后端 SPI 定义，共 {{total}} 个，当前启用 {{count}} 个；仅启用的来源会在插件市场中被拉取。",
+    "loadSourcesFailed": "市场源配置加载失败",
+    "sourceToggleSuccess": "{{name}} 已{{enabled, select, true{启用} false{关闭}}}",
+    "sourceToggleFailed": "市场源开关操作失败",
+    "noSources": "未配置插件市场源"
   },
   "openCapabilities": {
     "title": "远程&开放能力",

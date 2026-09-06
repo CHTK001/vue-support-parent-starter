@@ -13,6 +13,8 @@
     "title": "Skills Hub",
     "railTitle": "Skills",
     "description": "Manage independent Agent Skill packages that any preset can reference.",
+    "installedTab": "Installed Skills",
+    "marketTab": "Skill Market",
     "mySkillsTitle": "My Skills",
     "noSkills": "No skills found. Import some to get started.",
     "custom": "Custom",
@@ -1559,6 +1561,19 @@
     "title": "MCP",
     "subtitle": "Register MCP servers, browse MCP markets, and manage plugins.",
     "railTitle": "MCP"
+  },
+  "pluginsHub": {
+    "title": "Plugin Market",
+    "subtitle": "Browse ClawHub plugins and install them into your workspace.",
+    "railTitle": "Plugins"
+  },
+  "pluginMarket": {
+    "settingsTitle": "Plugin Market Settings",
+    "sourceConfigDesc": "Market sources are defined by the backend SPI. {{total}} total, {{count}} enabled; only enabled sources are fetched in the plugin market.",
+    "loadSourcesFailed": "Failed to load market source configuration",
+    "sourceToggleSuccess": "{{name}} {{enabled, select, true{enabled} false{disabled}}}",
+    "sourceToggleFailed": "Failed to toggle market source",
+    "noSources": "No plugin market sources configured"
   },
   "openCapabilities": {
     "title": "Remote & Open",
