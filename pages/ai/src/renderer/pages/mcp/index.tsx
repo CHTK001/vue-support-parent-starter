@@ -4,20 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import HubPageShell from '@/renderer/components/layout/HubPageShell';
 import { ToolsModalContentWithState } from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
 import { useMcpServers } from '@/renderer/hooks/mcp';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
+import { ipcBridge } from '@/common';
+import type { SkillMarketSource } from '@/common/adapter/ipcBridge';
+import McpMarketSettings from './McpMarketSettings';
 import PluginSettingsPanel from './PluginSettingsPanel';
 
-type McpTab = 'servers' | 'plugins' | 'plugin-market';
+type McpTab = 'servers' | 'market' | 'plugins' | 'plugin-market';
 
 const isMcpTab = (value: string | null): value is McpTab =>
-  value === 'servers' || value === 'plugins' || value === 'plugin-market';
+  value === 'servers' ||
+  value === 'market' ||
+  value === 'plugins' ||
+  value === 'plugin-market';
 
 const McpPage: React.FC = () => {
   const { t } = useTranslation();
@@ -29,13 +35,32 @@ const McpPage: React.FC = () => {
     saveMcpServers,
     setMcpServers,
   } = useMcpServers();
+  const [enabledMcpSources, setEnabledMcpSources] = useState<SkillMarketSource[]>([]);
   const tabParam = searchParams.get('tab');
   const activeTab: McpTab = isMcpTab(tabParam) ? tabParam : 'servers';
 
-  // Legacy MCP market deep link → settings market page (/settings/mcp).
-  if (tabParam === 'market') {
-    return <Navigate to='/settings/mcp' replace />;
-  }
+  useEffect(() => {
+    let active = true;
+    void ipcBridge.fs.statusSkillMarketSources
+      .invoke({ marketType: 'mcp' })
+      .then((res) => {
+        if (!active) return;
+        const inner = (res as { data?: unknown }).data ?? res;
+        const list = (inner as { sources?: unknown })?.sources;
+        if (!Array.isArray(list)) return;
+        setEnabledMcpSources(
+          list
+            .filter((s) => (s as { enabled: boolean }).enabled)
+            .map((s) => (s as { source: string }).source as SkillMarketSource)
+        );
+      })
+      .catch(() => {
+        if (active) setEnabledMcpSources([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleTabChange = (key: string) => {
     if (!isMcpTab(key)) return;
@@ -69,6 +94,12 @@ const McpPage: React.FC = () => {
             saveMcpServers={saveMcpServers}
             setMcpServers={setMcpServers}
           />
+        </Tabs.TabPane>
+        <Tabs.TabPane
+          key='market'
+          title={t('settings.mcpPage.mcpMarketTab', { defaultValue: 'MCP Market' })}
+        >
+          <McpMarketSettings sources={enabledMcpSources} mcpServers={mcpServers} saveMcpServers={saveMcpServers} />
         </Tabs.TabPane>
         <Tabs.TabPane key='plugins' title={t('settings.mcpPage.installedPluginsTab', { defaultValue: 'Installed Plugins' })}>
           <PluginSettingsPanel section='installed' />
