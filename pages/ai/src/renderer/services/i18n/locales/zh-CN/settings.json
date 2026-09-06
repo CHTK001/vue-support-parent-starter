@@ -1412,7 +1412,8 @@
       "pedestrian": "行人检测",
       "image-quality": "图像质量评估",
       "layout": "版面分析",
-      "pose": "姿态估计"
+      "pose": "姿态估计",
+        "enhance": "超分"
     },
     "provider": {
       "title": "供应商与密钥",

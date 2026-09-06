@@ -13,6 +13,7 @@ const FaceModelsContent: React.FC = () => (
       'smile-detect',
       'face-quality',
       'liveness',
+      'enhance',
     ]}
     icon={<ScanCode theme='outline' size='18' strokeWidth={3} />}
     titleKey='settings.modelHub.modality.faceTitle'

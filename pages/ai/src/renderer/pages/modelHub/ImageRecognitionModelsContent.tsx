@@ -13,6 +13,7 @@ const ImageRecognitionModelsContent: React.FC = () => (
       'depth',
       'pedestrian',
       'image-quality',
+      'enhance',
     ]}
     icon={<Picture theme='outline' size='18' strokeWidth={3} />}
     titleKey='settings.modelHub.modality.imageRecognitionTitle'

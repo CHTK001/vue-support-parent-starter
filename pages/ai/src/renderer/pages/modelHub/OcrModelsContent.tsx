@@ -5,7 +5,7 @@ import LocalCapabilityModelsPanel from './LocalCapabilityModelsPanel';
 /** OCR 识别区：本地文字识别（detector/recognizer 等）管线模型。 */
 const OcrModelsContent: React.FC = () => (
   <LocalCapabilityModelsPanel
-    capabilityKeys={['ocr']}
+    capabilityKeys={['ocr', 'enhance']}
     icon={<DocSearch theme='outline' size='18' strokeWidth={3} />}
     titleKey='settings.modelHub.modality.ocrTitle'
     subtitleKey='settings.modelHub.modality.ocrSubtitle'

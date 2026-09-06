@@ -14,6 +14,7 @@ const LayoutSettingsPage: React.FC = () => {
       modelCapabilities={{
         layout_model: 'layout',
         pose_model: 'pose',
+        super_resolution_model: 'enhance',
       }}
       i18nPrefix='settings.layout'
     />

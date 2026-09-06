@@ -1412,7 +1412,8 @@
       "pedestrian": "Pedestrian detection",
       "image-quality": "Image quality",
       "layout": "Layout analysis",
-      "pose": "Pose estimation"
+      "pose": "Pose estimation",
+        "enhance": "Enhance / Super-resolution"
     },
     "provider": {
       "title": "Providers & keys",
