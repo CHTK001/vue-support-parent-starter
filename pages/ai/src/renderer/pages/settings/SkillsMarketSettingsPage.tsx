@@ -151,20 +151,14 @@ const SkillsMarketSettingsPage: React.FC = () => {
                         loading={toggling === source.source}
                         onChange={(v: boolean) => void toggleSource(source.source, v)}
                         data-testid={`skill-market-source-toggle-${source.source}`}
-                      />
-                    </span>
-                  </PreferenceRow>
-                ))
-              )}
-            </div>
-          </div>
-
-          {enabledSources.length > 0 && (
-            <div className='mt-16px'>
-              <SkillMarketSettings sources={enabledSources} />
-            </div>
-          )}
-        </NomiScrollArea>
+                       />
+                     </span>
+                   </PreferenceRow>
+                 ))
+               )}
+             </div>
+           </div>
+         </NomiScrollArea>
       </div>
     </SettingsPageWrapper>
   );
