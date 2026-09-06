@@ -458,7 +458,8 @@ const UsageLibraryPage: React.FC = () => {
             { icon:'📋', bg:'var(--bg-3)', title:'总请求数', sub:'所选范围内', val: stats.totalCalls ?? rows.length },
             { icon:'📦', bg:'var(--bg-3)', title:'总 Token', sub:`输入: ${fmtToken(stats.totalPromptTokens??0)} / 输出: ${fmtToken(stats.totalCompletionTokens??0)} / 缓存: ${fmtToken(stats.totalCachedTokens??0)}`, val: fmtToken(stats.totalTokens??0) },
             { icon:'💵', bg:'var(--bg-3)', title:'总消费', sub: stats.standardCost!=null ? `标准 $${stats.standardCost.toFixed(6)}` : undefined, val: fmtCost(stats.totalCost) },
-            { icon:'⏱️', bg:'var(--bg-3)', title:'平均耗时', sub: undefined, val: fmtLatency(stats.avgLatency) },
+            { icon:'⏱️', bg:'var(--bg-3)', title:'平均首字', sub: 'TTFT', val: fmtLatency(stats.avgFirstTokenLatency) },
+            { icon:'⏱️', bg:'var(--bg-3)', title:'平均耗时', sub: '端到端', val: fmtLatency(stats.avgLatency) },
           ].map(({ icon, bg, title, sub, val }) => (
             <div key={title} style={{ flex:'1 1 180px', background:'var(--bg-1)', borderRadius:12, border:'1px solid var(--bg-3)', padding:'14px 18px', display:'flex', alignItems:'center', gap:14 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>{icon}</div>
