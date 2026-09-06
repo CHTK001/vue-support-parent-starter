@@ -94,6 +94,11 @@ const parseStoredMessageContent = (
     }
     return { content: value as TMessage['content'] };
   }
+  // 历史脏数据兼容：部分写入方（旧版本 / 外部脚本）把文本消息的 content
+  // 存成了纯字符串，这里规范回 { content } 对象，避免一条脏行炸掉整批聊天记录。
+  if (type === 'text' && typeof value === 'string') {
+    return { content: { content: value } as TMessage['content'] };
+  }
   if (!isRecord(value)) {
     throw new TypeError('Invalid persisted message content');
   }
