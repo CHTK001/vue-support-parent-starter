@@ -145,7 +145,6 @@ test.describe("服务器侧页面 E2E", () => {
     await page.goto(BASE);
     console.log("✓ P1 导航测试跳过（需 dev server）");
   });
-  });
 });
 
 // ── 独立按钮测试（针对 ReButton 组件本身） ──────────────────────
