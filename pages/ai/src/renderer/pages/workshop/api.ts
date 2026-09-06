@@ -90,7 +90,26 @@ function normalizeAsset(asset: WorkshopAsset): WorkshopAsset {
           asset.origin.creation_task_id === undefined ? undefined : parseCreationTaskId(asset.origin.creation_task_id),
       }
     : null;
-  return { ...asset, asset_id: parseAssetId(asset.asset_id), origin };
+  const rawTags = (asset as unknown as { tags?: unknown }).tags;
+  let tags: string[] = [];
+  if (Array.isArray(rawTags)) {
+    tags = rawTags.map((t) => String(t)).filter((t) => t.length > 0);
+  } else if (typeof rawTags === 'string' && rawTags.length > 0) {
+    const trimmed = rawTags.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        if (Array.isArray(parsed)) {
+          tags = parsed.map((t) => String(t)).filter((t) => t.length > 0);
+        }
+      } catch {
+        tags = [trimmed];
+      }
+    } else {
+      tags = [trimmed];
+    }
+  }
+  return { ...asset, asset_id: parseAssetId(asset.asset_id), origin, tags };
 }
 
 function normalizeNode(node: WorkshopNode): WorkshopNode {
