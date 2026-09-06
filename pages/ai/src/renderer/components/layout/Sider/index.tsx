@@ -28,6 +28,7 @@ import {
   SiderKnowledgeEntry,
   SiderMcpEntry,
   SiderMiniAppsEntry,
+  SiderPluginEntry,
   SiderModelHubEntry,
   SiderNomiEntry,
   SiderOpenCapabilitiesEntry,
@@ -127,6 +128,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handlePresetClick = () => navTo('/presets');
   const handleSkillsClick = () => navTo('/skills');
   const handleMcpClick = () => navTo('/mcp');
+  const handlePluginClick = () => navTo('/plugins');
   const handleOpenCapabilitiesClick = () => navTo('/open-capabilities');
   const handleModelHubClick = () => navTo('/models');
 
@@ -316,6 +318,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleMcpClick}
+            />
+            {/* 插件市场 — browse and install plugins */}
+            <SiderPluginEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/plugins')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handlePluginClick}
             />
             {/* 服务 — public-facing services (客服), a domain fully separate
                 from the desktop-companion group above. */}

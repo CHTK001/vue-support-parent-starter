@@ -7,6 +7,7 @@ export { default as SiderPresetEntry } from './SiderPresetEntry';
 export { default as SiderSkillsEntry } from './SiderSkillsEntry';
 export { default as SiderConversationEntry } from './SiderConversationEntry';
 export { default as SiderMcpEntry } from './SiderMcpEntry';
+export { default as SiderPluginEntry } from './SiderPluginEntry';
 export { default as SiderKnowledgeEntry } from './SiderKnowledgeEntry';
 export { default as SiderMiniAppsEntry } from './SiderMiniAppsEntry';
 export { default as SiderModelHubEntry } from './SiderModelHubEntry';
