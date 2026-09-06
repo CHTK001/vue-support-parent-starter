@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import HubPageShell from '@/renderer/components/layout/HubPageShell';
 import { ipcBridge } from '@/common';
 import type { SkillMarketSource } from '@/common/adapter/ipcBridge';
-import PluginSettingsPanel from './PluginSettingsPanel';
+import PluginSettingsPanel from '@/renderer/pages/mcp/PluginSettingsPanel';
 
 const PluginMarketPage: React.FC = () => {
   const { t } = useTranslation();
