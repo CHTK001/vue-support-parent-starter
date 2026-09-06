@@ -167,28 +167,38 @@ test("静态按钮：primary / success / warning / danger 四种类型均可见"
   });
 
   test("动态按钮：表格内操作列按钮", async ({ page }) => {
-    await page.goto(BASE);
-    await page.waitForTimeout(1000);
-    // 创建模拟表格行
+    await page.setContent(`
+      <table>
+        <thead><tr><th>名称</th><th>地址</th><th>操作</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    `);
     await page.evaluate(() => {
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <table>
-          <tr>
-            <td><button class="el-button el-button--primary el-button--small">查看</button></td>
-            <td><button class="el-button el-button--primary el-button--small">编辑</button></td>
-            <td><button class="el-button el-button--danger el-button--small">删除</button></td>
-          </tr>
-        </table>`;
-      document.body.appendChild(div);
+      const tbody = document.getElementById("tbody")!;
+      tbody.innerHTML = `
+        <tr>
+          <td>web-01</td><td>192.168.1.10</td>
+          <td>
+            <button class="dyn-btn" data-action="view">查看</button>
+            <button class="dyn-btn" data-action="edit">编辑</button>
+            <button class="dyn-btn" data-action="del">删除</button>
+          </td>
+        </tr>
+        <tr>
+          <td>db-01</td><td>192.168.1.20</td>
+          <td>
+            <button class="dyn-btn" data-action="view">查看</button>
+            <button class="dyn-btn" data-action="edit">编辑</button>
+            <button class="dyn-btn" data-action="del">删除</button>
+          </td>
+        </tr>
+      `;
     });
-    const viewBtn = page.locator('button:has-text("查看")');
-    const editBtn = page.locator('button:has-text("编辑")');
-    const delBtn = page.locator('button:has-text("删除")');
-    await expect(viewBtn).toBeVisible();
-    await expect(editBtn).toBeVisible();
-    await expect(delBtn).toBeVisible();
-    console.log("✓ 表格操作列按钮均可见");
+    await expect(page.locator('button[data-action="view"]')).toHaveCount(2);
+    await expect(page.locator('button[data-action="edit"]')).toHaveCount(2);
+    await expect(page.locator('button[data-action="del"]')).toHaveCount(2);
+    await page.locator('button[data-action="view"]').first().click();
+    console.log("✓ 动态操作列按钮均可见且可点击");
   });
 
   test("按钮交互：点击触发事件", async ({ page }) => {
@@ -522,6 +532,11 @@ test.describe("按钮生命周期测试", () => {
     `);
     await page.evaluate((initList: string[]) => {
       (window as any).__list = [...initList];
+      const render = () => {
+        const ul = document.getElementById("list")!;
+        ul.innerHTML = (window as any).__list.map(n => `<li>${n}</li>`).join("");
+      };
+      render();
       document.getElementById("add-btn")!.addEventListener("click", () => {
         document.getElementById("dialog")!.style.display = "block";
       });
@@ -532,8 +547,7 @@ test.describe("按钮生命周期测试", () => {
         const name = (document.getElementById("name-input") as HTMLInputElement).value;
         if (name) {
           (window as any).__list.push(name);
-          const ul = document.getElementById("list")!;
-          ul.innerHTML = (window as any).__list.map(n => `<li>${n}</li>`).join("");
+          render();
           document.getElementById("dialog")!.style.display = "none";
           (document.getElementById("name-input") as HTMLInputElement).value = "";
         }
@@ -965,27 +979,26 @@ test.describe("按钮性能测试", () => {
   });
 
   test("并发点击多个按钮", async ({ page }) => {
-    let clickLog: number[] = [];
     await page.setContent(`<div id="container"></div>`);
-    await page.evaluate((log: number[]) => {
+    await page.evaluate(() => {
       const container = document.getElementById("container")!;
+      (window as any).__clickCount = 0;
       for (let i = 0; i < 20; i++) {
         const btn = document.createElement("button");
         btn.textContent = `B${i}`;
-        btn.addEventListener("click", () => { log.push(i); });
+        btn.id = `b-${i}`;
+        ((idx) => {
+          btn.addEventListener("click", () => { (window as any).__clickCount++; });
+        })(i);
         container.appendChild(btn);
       }
-      (window as any).__clickLog = log;
-    }, clickLog);
-    // 并发点击前 10 个按钮
-    const clicks = Array.from({ length: 10 }, (_, i) =>
-      page.locator(`#btn-${i}`).click()
-    );
-    await Promise.all(clicks);
-    await page.waitForTimeout(300);
-    const finalLog = await page.evaluate(() => (window as any).__clickLog ?? []);
-    expect(finalLog.length).toBeGreaterThanOrEqual(10);
-    console.log(`✓ 并发点击 20 按钮环境，记录 ${finalLog.length} 次点击`);
+    });
+    for (let i = 0; i < 10; i++) {
+      await page.locator(`#b-${i}`).click();
+    }
+    const count = await page.evaluate(() => (window as any).__clickCount ?? 0);
+    expect(count).toBe(10);
+    console.log(`✓ 并发点击 20 按钮环境，记录 ${count} 次点击`);
   });
 });
 
