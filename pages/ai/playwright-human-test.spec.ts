@@ -171,8 +171,14 @@ test("全量真人模拟浏览流程", async ({ page }) => {
 
   // ── 阶段 2：点击 Learn more → IANA ───────────────────────
   console.log("\n═══ Phase 2: 跳转 IANA ═══");
-  await humanClick(page, 'a:has-text("Learn more")');
-  await page.waitForLoadState("domcontentloaded");
+  // 用 waitForURL 确保导航成功（比人工点击更可靠）
+  await page.locator('a:has-text("Learn more")').waitFor({ state: "visible", timeout: 10000 });
+  await page.locator('a:has-text("Learn more")').hover();
+  await think(page, 300);
+  const [ianaResponse] = await Promise.all([
+    page.waitForURL("**/example-domains", { timeout: 15000 }),
+    page.locator('a:has-text("Learn more")').click(),
+  ]);
   await think(page, 800);
   expect(page.url()).toContain("iana.org");
   console.log("✓ 跳转至:", page.url());
@@ -227,8 +233,13 @@ test("全量真人模拟浏览流程", async ({ page }) => {
   // Next 在页面底部，先滚到底部使其进入视口
   await page.evaluate(() => window.scrollTo({ top: 99999, behavior: "smooth" }));
   await think(page, 400);
-  await humanClick(page, 'a:has-text("Next")');
-  await page.waitForLoadState("networkidle");
+  await page.locator('a:has-text("Next")').waitFor({ state: "visible", timeout: 10000 });
+  await page.locator('a:has-text("Next")').hover();
+  await think(page, 200);
+  const [page2Resp] = await Promise.all([
+    page.waitForURL("**/page/2**", { timeout: 15000 }),
+    page.locator('a:has-text("Next")').click(),
+  ]);
   await think(page, 600);
   console.log("  URL:", page.url());
   expect(page.url()).toContain("/page/2");
