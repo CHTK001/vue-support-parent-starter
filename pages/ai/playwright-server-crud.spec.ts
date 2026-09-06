@@ -678,7 +678,7 @@ test.describe("按钮生命周期测试", () => {
       </div>
     `);
     await page.evaluate(() => {
-      (window as any).__statuses: Record<number, string> = { 1: "在线", 2: "在线" };
+      (window as any).__statuses = { 1: "在线", 2: "在线" };
       document.getElementById("batch-on")!.addEventListener("click", () => {
         document.querySelectorAll(".row-check:checked").forEach(cb => {
           const id = Number(cb.getAttribute("data-id"));
@@ -1007,3 +1007,5 @@ test.describe("按钮性能测试", () => {
     console.log(`✓ 并发点击 20 按钮环境，记录 ${finalLog.length} 次点击`);
   });
 });
+
+
