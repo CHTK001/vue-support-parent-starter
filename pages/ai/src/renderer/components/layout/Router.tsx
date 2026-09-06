@@ -57,6 +57,8 @@ const BotImPage = React.lazy(() => import('@renderer/pages/bots/BotImPage'));
 const BotConfigPage = React.lazy(() => import('@renderer/pages/settings/BotConfigPage'));
 const SkillsMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/SkillsMarketSettingsPage'));
 const McpMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/McpMarketSettingsPage'));
+const PluginMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/PluginMarketSettingsPage'));
+const PluginMarketPage = React.lazy(() => import('@renderer/pages/plugins/PluginMarketPage'));
 const ConversationShell = React.lazy(() => import('@renderer/pages/conversation/components/ConversationShell'));
 
 const RouteFallback: React.FC<{ Component: React.LazyExoticComponent<React.ComponentType> }> = ({ Component }) => {
@@ -239,7 +241,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/bots/im' element={withRouteFallback(BotImPage)} />
         <Route path='/models' element={withRouteFallback(ModelHubPage)} />
           <Route path='/extensions' element={<LegacyExtensionsRedirect />} />
-          <Route path='/mcp' element={withRouteFallback(McpPage)} />
+           <Route path='/mcp' element={withRouteFallback(McpPage)} />
+           <Route path='/plugins' element={withRouteFallback(PluginMarketPage)} />
           <Route path='/open-capabilities' element={withRouteFallback(OpenCapabilitiesPage)} />
           <Route path='/browser' element={withRouteFallback(BrowserPage)} />
           <Route path='/presets' element={withRouteFallback(PresetSettings)} />
@@ -265,6 +268,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/bots' element={withRouteFallback(BotConfigPage)} />
            <Route path='/settings/skills' element={withRouteFallback(SkillsMarketSettingsPage)} />
            <Route path='/settings/mcp' element={withRouteFallback(McpMarketSettingsPage)} />
+           <Route path='/settings/plugins' element={withRouteFallback(PluginMarketSettingsPage)} />
           <Route path='/settings/ai-global' element={withRouteFallback(AiGlobalSettingsPage)} />
            <Route path='/settings/ai-rag' element={withRouteFallback(RagSettingsPage)} />
            <Route path='/settings/ai-usage' element={withRouteFallback(UsageSettingsPage)} />
