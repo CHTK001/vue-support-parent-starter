@@ -518,11 +518,8 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B08 全选/取消", async () => {
       await gotoPage(page, "/server/hosts");
-      // 通过 evaluate 直接操作 DOM 并触发事件
-      await page.evaluate(() => {
-        const all = document.getElementById("chk-all") as HTMLInputElement;
-        all.click(); // 触发原生 click
-      });
+      // 用 Playwright click 触发原生 click 事件
+      await page.click("#chk-all");
       await page.waitForTimeout(300);
       const barVisible = await page.locator("#batch-bar").isVisible();
       const selText = await page.locator("#sel-cnt").textContent();
@@ -530,9 +527,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
       expect(barVisible).toBe(true);
       expect(selText).toContain("3");
       // 取消全选
-      await page.evaluate(() => {
-        (document.getElementById("chk-all") as HTMLInputElement).click();
-      });
+      await page.click("#chk-all");
       await page.waitForTimeout(300);
       expect(await page.locator("#batch-bar").isVisible()).toBe(false);
       console.log("  ✓ 全选/取消");
@@ -548,9 +543,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     test("B10 批量操作 4 按钮", async () => {
       await gotoPage(page, "/server/hosts");
       // 全选
-      await page.evaluate(() => {
-        (document.getElementById("chk-all") as HTMLInputElement).click();
-      });
+      await page.click("#chk-all");
       await page.waitForTimeout(300);
       expect(await page.locator("#batch-bar").isVisible()).toBe(true);
       // 点击取消（不触发 alert）
