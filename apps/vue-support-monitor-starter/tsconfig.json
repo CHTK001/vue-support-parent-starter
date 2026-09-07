@@ -4,9 +4,9 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@pages/server/*": ["../../pages/server/src/*"],
+      "@pages/server/*": ["../../pages/server/*"],
       "@pages/server": ["../../pages/server/src/index.ts"],
-      "@pages/monitor/*": ["../../pages/monitor/src/*"],
+      "@pages/monitor/*": ["../../pages/monitor/*"],
       "@pages/monitor": ["../../pages/monitor/src/index.ts"]
     }
   },

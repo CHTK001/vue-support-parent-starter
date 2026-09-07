@@ -386,8 +386,8 @@ const UsageLibraryPage: React.FC = () => {
 
   const handleDateChange = useCallback((v: any) => {
     if (!v || v.length !== 2) { setDateRange(null); return; }
-    const [start, end] = v;
-    if (!start || !end) { setDateRange(null); return; }
+    const [start, end] = [dayjs(v[0]), dayjs(v[1])];
+    if (!start.isValid() || !end.isValid()) { setDateRange(null); return; }
     const diffDays = end.diff(start, 'day');
     if (diffDays > MAX_DAYS) { setDateRange([start, start.add(MAX_DAYS, 'day')]); return; }
     setDateRange([start, end]);

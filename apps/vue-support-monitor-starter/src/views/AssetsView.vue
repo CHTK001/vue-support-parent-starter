@@ -202,7 +202,7 @@ function collectModeLabel(m?: string | null): string {
 const connectVisible = ref(false);
 const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
-const hostBoundIdentities = ref<{ id: number; msServerIdentityName: string; msServerIdentityUsername: string; }[]>([]);
+const hostBoundIdentities = ref<number[]>([]);
 /** 编辑表单里选中的登录身份 */
 const formIdentityId = ref<number | null>(null);
 /** 编辑表单是否显式绑定/解绑过身份 */
@@ -286,7 +286,7 @@ async function openEdit(h: Host): Promise<void> {
   formIdentityId.value = null;
   try {
     const bound = (await listBoundIdentities(h.id)) as any[] | null | undefined;
-    hostBoundIdentities.value = (bound ?? []).filter(Boolean);
+    hostBoundIdentities.value = bound ?? [];
     const first = hostBoundIdentities.value[0];
     if (first) formIdentityId.value = first.id;
   } catch {
