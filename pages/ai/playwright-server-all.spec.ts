@@ -567,7 +567,9 @@ test.describe("服务器侧全量 E2E 测试", () => {
       await gotoPage(page, "/server/hosts");
       await page.locator('button.ab[data-a="detail"]').first().click();
       await expect(page.locator("#detail-dlg")).toBeVisible();
-      expect(await page.locator("#detail-content").textContent()).toContain("web-01");
+      const detailText = await page.locator("#detail-content").textContent();
+      expect(detailText).toContain("web-01");
+      expect(detailText).toContain("serverHostAddress");
       await page.locator("#detail-close").click();
       await expect(page.locator("#detail-dlg")).not.toBeVisible();
       console.log("  ✓ 详情弹窗");
