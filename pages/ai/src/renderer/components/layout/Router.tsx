@@ -31,6 +31,7 @@ const ServiceSettingsPage = React.lazy(() => import('@renderer/pages/settings/Se
 const UsageLibraryPage = React.lazy(() => import('@renderer/pages/settings/UsageLibraryPage'));
 const UsageLogPage = React.lazy(() => import('@renderer/pages/settings/UsageLogPage'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
+const AccountSettingsPage = React.lazy(() => import('@renderer/pages/settings/AccountSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
@@ -277,7 +278,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
            <Route path='/settings/face' element={withRouteFallback(FaceSettingsPage)} />
            <Route path='/settings/image-recognition' element={withRouteFallback(ImageRecognitionSettingsPage)} />
            <Route path='/settings/layout' element={withRouteFallback(LayoutSettingsPage)} />
-           <Route path='/settings/service' element={withRouteFallback(ServiceSettingsPage)} />
+            <Route path='/settings/service' element={withRouteFallback(ServiceSettingsPage)} />
+            <Route path='/settings/account' element={withRouteFallback(AccountSettingsPage)} />
            <Route path='/usage' element={withRouteFallback(UsageLibraryPage)} />
            <Route path='/usage/logs' element={withRouteFallback(UsageLogPage)} />
           <Route path='/settings/agent-runtime' element={<LegacyAgentRuntimeRedirect />} />
