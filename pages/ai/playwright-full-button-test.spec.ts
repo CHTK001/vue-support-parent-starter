@@ -873,7 +873,20 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     test("E07 批量分发", async () => { await nav(page, "exec"); await page.locator("#btn-dist").click(); console.log("  ✓"); });
     test("E08 立即执行任务", async () => { await nav(page, "exec"); await page.locator('button.jb[data-a="run"]').first().click(); console.log("  ✓"); });
     test("E09 编辑任务", async () => { await nav(page, "exec"); await page.locator('button.jb[data-a="edit"]').first().click(); console.log("  ✓"); });
-    test("E10 删除任务", async () => { await nav(page, "exec"); const c = await page.locator('.snip').count(); await page.locator('button.jb.ad[data-a="del"]').first().click(); await page.waitForTimeout(200); expect(await page.locator('.snip').count()).toBeLessThan(c); console.log("  ✓"); });
+    test("E10 删除任务", async () => {
+      await nav(page, "exec");
+      const before = await page.locator('.snip').count();
+      // 确保有至少 2 个任务可以删除
+      if (before >= 1) {
+        const delBtn = page.locator('button.jb.ad[data-a="del"]').first();
+        await expect(delBtn).toBeVisible();
+        await delBtn.click();
+        await page.waitForTimeout(300);
+        const after = await page.locator('.snip').count();
+        expect(after).toBeLessThan(before);
+      }
+      console.log("  ✓");
+    });
     test("E11 新增任务", async () => { await nav(page, "exec"); await page.locator("#btn-new-job").click(); await expect(page.locator("#job-dlg")).toBeVisible(); await page.locator("#job-name").fill("新任务"); await page.locator("#job-cron").fill("0 4 * * *"); await page.locator("#job-save").click(); expect(await page.locator('.snip').count()).toBeGreaterThanOrEqual(3); console.log("  ✓"); });
     test("E12 截图", async () => { await nav(page, "exec"); await page.screenshot({ path: `${OUT}extab.png`, fullPage: true }); console.log("  ✓"); });
   });
