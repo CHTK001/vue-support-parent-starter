@@ -15,15 +15,11 @@ import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import { ipcBridge } from '@/common';
 import type { SkillMarketSource } from '@/common/adapter/ipcBridge';
 import McpMarketSettings from './McpMarketSettings';
-import PluginSettingsPanel from './PluginSettingsPanel';
 
-type McpTab = 'servers' | 'market' | 'plugins' | 'plugin-market';
+type McpTab = 'servers' | 'market';
 
 const isMcpTab = (value: string | null): value is McpTab =>
-  value === 'servers' ||
-  value === 'market' ||
-  value === 'plugins' ||
-  value === 'plugin-market';
+  value === 'servers' || value === 'market';
 
 const McpPage: React.FC = () => {
   const { t } = useTranslation();
@@ -74,7 +70,7 @@ const McpPage: React.FC = () => {
     <HubPageShell
       title={t('settings.mcpHub.title', { defaultValue: 'MCP' })}
       subtitle={t('settings.mcpHub.subtitle', {
-        defaultValue: 'Register MCP servers, and manage plugins.',
+        defaultValue: 'Register and browse MCP servers.',
       })}
       maxWidthClass='md:max-w-1200px'
     >
@@ -100,12 +96,6 @@ const McpPage: React.FC = () => {
           title={t('settings.mcpPage.mcpMarketTab', { defaultValue: 'MCP Market' })}
         >
           <McpMarketSettings sources={enabledMcpSources} mcpServers={mcpServers} saveMcpServers={saveMcpServers} />
-        </Tabs.TabPane>
-        <Tabs.TabPane key='plugins' title={t('settings.mcpPage.installedPluginsTab', { defaultValue: 'Installed Plugins' })}>
-          <PluginSettingsPanel section='installed' />
-        </Tabs.TabPane>
-        <Tabs.TabPane key='plugin-market' title={t('settings.mcpPage.pluginMarketTab', { defaultValue: 'Plugin Market' })}>
-          <PluginSettingsPanel section='market' />
         </Tabs.TabPane>
       </Tabs>
     </HubPageShell>

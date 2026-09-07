@@ -1563,9 +1563,11 @@
     "railTitle": "MCP"
   },
   "pluginsHub": {
-    "title": "Plugin Market",
-    "subtitle": "Browse ClawHub plugins and install them into your workspace.",
-    "railTitle": "Plugins"
+    "title": "Plugins",
+    "subtitle": "Manage installed plugins and browse the ClawHub plugin market.",
+    "railTitle": "Plugins",
+    "installedTab": "Installed Plugins",
+    "marketTab": "Plugin Market"
   },
   "pluginMarket": {
     "settingsTitle": "Plugin Market Settings",

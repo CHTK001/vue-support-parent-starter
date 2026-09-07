@@ -1563,9 +1563,11 @@
     "railTitle": "MCP"
   },
   "pluginsHub": {
-    "title": "插件市场",
-    "subtitle": "浏览 ClawHub 插件市场，将选中的插件安装到当前工作区。",
-    "railTitle": "插件"
+    "title": "插件",
+    "subtitle": "管理已安装插件，并浏览 ClawHub 插件市场安装新插件。",
+    "railTitle": "插件",
+    "installedTab": "已安装插件",
+    "marketTab": "插件市场"
   },
   "pluginMarket": {
     "settingsTitle": "插件市场设置",
