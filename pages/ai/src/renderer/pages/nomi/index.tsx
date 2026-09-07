@@ -24,7 +24,6 @@ import { WORKSPACE_TABS, isWorkspaceTabKey } from './workspace/types';
 import type { WorkspaceTabKey } from './workspace/types';
 import OverviewTab from './workspace/tabs/OverviewTab';
 import MemoryTab from './workspace/tabs/MemoryTab';
-import RemoteTab from './workspace/tabs/RemoteTab';
 import EvolutionTab from './workspace/tabs/EvolutionTab';
 import SkillsTab from './workspace/tabs/SkillsTab';
 import HistoryTab from './workspace/tabs/HistoryTab';
