@@ -179,7 +179,7 @@ function selectHost(h: Host): void {
   router.replace({ path: "/terminal", query: q });
 }
 
-watch(() => route.query.hostId, syncFromQuery);
+watch(() => route.query.hostId, (val) => { if (val != null) syncFromQuery(val as string | string[]); });
 
 async function onMountedInit(): Promise<void> {
   await loadHosts();

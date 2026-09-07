@@ -279,7 +279,7 @@ const isMenuTypeNode = computed<boolean>(() => current.value != null && current.
 async function onNodeClick(data: MenuVM) {
   current.value = data;
   // 按钮权限 = 原始数据(list 含按钮)中该节点的子节点 menuType=3
-  const full = findById(list.value, data.menuId);
+  const full = data.menuId != null ? findById(list.value, data.menuId) : null;
   buttonPerms.value = (full?.children ?? []).filter((c) => c.menuType === 3);
 }
 

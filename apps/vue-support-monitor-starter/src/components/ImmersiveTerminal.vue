@@ -91,13 +91,13 @@ function connect(conn: NonNullable<typeof props.connection>): void {
     const tag = el.tagName;
     return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
   };
-  keyboard.onkeydown = (keysym: number) => {
+  keyboard.onkeydown = (keysym: Guacamole.Keysym) => {
     if (typingInLocalInput()) return true;
-    client?.sendKeyEvent(true, keysym);
+    client?.sendKeyEvent(true, keysym.keysym);
   };
-  keyboard.onkeyup = (keysym: number) => {
+  keyboard.onkeyup = (keysym: Guacamole.Keysym) => {
     if (typingInLocalInput()) return true;
-    client?.sendKeyEvent(false, keysym);
+    client?.sendKeyEvent(false, keysym.keysym);
   };
 
   // 点击终端区时把焦点从页面输入控件移走（headless/部分浏览器点 canvas 不触发失焦，
@@ -105,9 +105,9 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   // 注意：绑定走模板 @mousedown（见 it-display），组件内 addEventListener 不可靠。
 
   mouse = new Guacamole.Mouse(el);
-  mouse.onmousedown = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
-  mouse.onmouseup = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
-  mouse.onmousemove = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
+  mouse.onmousedown = (state: Guacamole.MouseState) => client?.sendMouseState(state);
+  mouse.onmouseup = (state: Guacamole.MouseState) => client?.sendMouseState(state);
+  mouse.onmousemove = (state: Guacamole.MouseState) => client?.sendMouseState(state);
 
   client.connect();
 }
