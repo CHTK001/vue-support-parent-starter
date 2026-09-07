@@ -350,65 +350,157 @@ const handleDelete = async (id: number) => {
 onMounted(fetchList)
 </script>
 
-<style scoped>
+ <style scoped>
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-.summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.stat-bar { height: 3px; width: 32px; border-radius: 2px; margin-top: 6px; }
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat-bar {
+  height: 3px;
+  width: 32px;
+  border-radius: 2px;
+  margin-top: 6px;
+  transition: width 0.3s ease;
+}
 
 .filter-bar {
-  display: flex; align-items: center; gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 .search-box {
-  flex: 1; display: flex; align-items: center; gap: 8px; padding: 7px 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
-  transition: all 0.2s;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-fill);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition-base);
 }
-.search-box:focus-within { border-color: var(--el-color-primary); background: var(--el-bg-color); }
-.search-icon { width: 14px; height: 14px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.search-box input { flex: 1; border: none; outline: none; background: transparent; font-size: 13px; color: var(--el-text-color-primary); }
-.search-box input::placeholder { color: var(--el-text-color-secondary); }
-.filter-select { width: 120px; }
-.filter-divider { width: 1px; height: 24px; background: var(--el-border-color-light); }
-.action-btn, .add-btn {
-  display: flex; align-items: center; gap: 6px; border-radius: 8px;
-  padding: 7px 14px; font-size: 12.5px; font-weight: 500;
+.search-box:focus-within {
+  border-color: var(--brand-500);
+  background: var(--bg-container);
+}
+.search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.search-box input::placeholder { color: var(--text-tertiary); }
+.filter-select { width: 140px; }
+.filter-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-subtle);
 }
 
-.asset-table { border-radius: 8px; overflow: hidden; }
+.asset-table {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
 .asset-table :deep(.el-table__header th) {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-weight: 600; font-size: 12px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
   padding: 10px 12px;
 }
 .asset-table :deep(.el-table__row td) { padding: 9px 12px; }
-.asset-table :deep(.el-table__row:hover) { background: color-mix(in srgb, var(--el-color-primary) 3%, transparent) !important; }
-.name-cell { font-weight: 500; color: var(--el-text-color-primary); font-size: 13px; }
-.dim { color: var(--el-text-color-secondary); font-size: 11.5px; }
+.asset-table :deep(.el-table__row:hover) {
+  background: color-mix(in srgb, var(--brand-500) 6%, transparent) !important;
+}
+.name-cell {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.dim { color: var(--text-tertiary); font-size: 11.5px; }
 
-.type-tag.blue { color: var(--el-color-primary); }
-.type-tag.orange { color: var(--el-color-warning); }
-.type-tag.cyan { color: var(--el-color-info); }
-.type-tag.green { color: var(--el-color-success); }
-.type-tag.red { color: var(--el-color-danger); }
-.type-tag.purple { color: var(--el-color-primary); }
-.type-tag.gray { color: var(--el-text-color-regular); }
+.type-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.type-tag.blue { color: var(--metric-cpu); }
+.type-tag.orange { color: var(--metric-disk); }
+.type-tag.cyan { color: var(--status-info); }
+.type-tag.green { color: var(--status-success); }
+.type-tag.red { color: var(--status-error); }
+.type-tag.purple { color: var(--metric-jvm); }
+.type-tag.gray { color: var(--text-tertiary); }
 
-.status-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-.status-pill.on { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 8%, transparent); }
-.status-pill.off { color: var(--el-text-color-secondary); background: var(--el-fill-color); }
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-pill.on {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+}
+.status-pill.off {
+  color: var(--text-tertiary);
+  background: var(--bg-fill);
+}
 
-.asset-form :deep(.el-form-item__label) { font-weight: 500; color: var(--el-text-color-regular); font-size: 13px; }
+.asset-form :deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
 
-.globe-head { display: flex; justify-content: space-between; align-items: center; }
-.globe-title-wrap { display: flex; align-items: center; gap: 8px; }
-.globe-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.globe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.globe-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.globe-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 .globe-legend { display: flex; gap: 12px; }
-.legend-item { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--el-text-color-secondary); }
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
 .globe-body { width: 100%; }
 </style>
