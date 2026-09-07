@@ -1,12 +1,24 @@
 /**
  * pages/server 共享页面样式
- * 每个业务页面根容器使用 .sc-page（白色卡片背景，替代透明背景）。
- * Main 提供 16px 页面边距，sc-page 提供白色卡片 + 圆角 + 内边距。
+ * 每个业务页面根容器使用 .sc-page（卡片背景，替代透明背景）。
+ * Main 提供 16px 页面边距，sc-page 提供卡片背景 + 圆角 + 内边距。
  */
 .sc-page {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
   min-height: 100%;
   box-sizing: border-box;
+  box-shadow: var(--shadow-card);
 }
+
+.sc-page-card {
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
+}
+.sc-page-card:hover { box-shadow: var(--shadow-card-hover); }
+
