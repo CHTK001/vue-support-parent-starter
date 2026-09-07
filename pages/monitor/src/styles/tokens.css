@@ -51,6 +51,14 @@
   --status-error: #ff4c4c;
   --status-info: #3399ff;
 
+  /* 状态点（告警） */
+  --pulse-alarm: #f04a5d;
+
+  /* 滚动条 */
+  --scroll-thumb: #d5d9e6;
+  --scroll-thumb-hover: #b9bfd2;
+  --selection-bg: rgba(109, 93, 252, 0.18);
+
   /* 指标色 */
   --metric-cpu: #3b82f6;
   --metric-mem: #22c55e;

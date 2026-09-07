@@ -254,8 +254,8 @@ function renderTrendChart() {
       type: 'line', data: counts, smooth: true,
       lineStyle: { color: 'var(--el-color-danger)', width: 2 },
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: 'rgba(240, 80, 80, 0.3)' },
-        { offset: 1, color: 'rgba(240, 80, 80, 0.02)' },
+        { offset: 0, color: 'color-mix(in srgb, var(--pulse-alarm) 30%, transparent)' },
+        { offset: 1, color: 'color-mix(in srgb, var(--pulse-alarm) 2%, transparent)' },
       ]) },
       itemStyle: { color: 'var(--el-color-danger)' },
     }],

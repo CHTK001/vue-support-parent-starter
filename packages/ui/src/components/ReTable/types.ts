@@ -98,7 +98,7 @@ export interface ReTableSettings {
 }
 
 /** 表格布局模式 */
-export type ReTableLayout = "table" | "virtual" | "card" | "modern" | "canvas";
+export type ReTableLayout = "table" | "virtual" | "card" | "modern" | "canvas" | "radial";
 
 /** 卡片模式单卡渲染字段定义 */
 export interface ReCardField {
@@ -342,4 +342,50 @@ export interface ReTableLayoutConfig {
   card?: ReCardLayoutProps;
   /** Canvas 表格模式专属属性（AG Grid） */
   canvas?: ReCanvasLayoutProps;
+  /** 放射菜单模式专属属性 */
+  radial?: ReRadialLayoutProps;
+}
+
+/** 放射菜单模式单行子菜单项 */
+export interface ReRadialMenuItem {
+  /** 唯一标识 */
+  key: string;
+  /** 显示文字 */
+  label: string;
+  /** 图标（Element Plus 图标组件或图标类名） */
+  icon?: any;
+  /** 颜色类型：primary / success / warning / danger / info */
+  type?: "primary" | "success" | "warning" | "danger" | "info";
+  /** 是否禁用 */
+  disabled?: boolean;
+}
+
+/** 放射菜单模式专属属性（CSS 类名前缀 layout-radial） */
+export interface ReRadialLayoutProps {
+  /** 中心图表尺寸（px），默认 48 */
+  chartSize?: number;
+  /** 中心图表形状：square / circle，默认 circle */
+  chartShape?: "square" | "circle";
+  /** 中心图表颜色字段名（对应行数据属性），不传则用 type 字段 */
+  chartTypeField?: string;
+  /** 中心图表背景色（CSS color 或函数） */
+  chartColor?: string | ((row: Record<string, unknown>) => string);
+  /** 子菜单方向：'auto'（根据位置自动选择）| 'all'（四个方向全开）| 字符串数组 */
+  menuDirections?: "auto" | "all" | ("top" | "bottom" | "left" | "right")[];
+  /** 子菜单项数据（静态） */
+  menuItems?: ReRadialMenuItem[];
+  /** 子菜单项数据生成函数 */
+  menuItemsFn?: (row: Record<string, unknown>) => ReRadialMenuItem[];
+  /** 子菜单展开方向偏移量（px），默认 60 */
+  menuOffset?: number;
+  /** 子菜单项宽度（px），默认 80 */
+  menuItemWidth?: number;
+  /** 是否可多选展开（默认 true = 同时展开多个） */
+  multipleOpen?: boolean;
+  /** 行高（px），默认 56 */
+  rowHeight?: number;
+  /** 是否显示 checkbox */
+  selectable?: boolean;
+  /** 点击行本身是否也触发展开 */
+  rowExpandable?: boolean;
 }
