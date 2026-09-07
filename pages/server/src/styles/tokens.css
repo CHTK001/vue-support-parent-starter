@@ -53,6 +53,23 @@
   /* 终端背景 */
   --terminal-bg: #0d1117;
 
+  /* 告警级别色（P0~P4） */
+  --sev-p0-bg: #fdecef;
+  --sev-p0-text: #9b1c2e;
+  --sev-p0-border: #fbc0c9;
+  --sev-p1-bg: #fff1ed;
+  --sev-p1-text: #a4341a;
+  --sev-p1-border: #fcc4b3;
+  --sev-p2-bg: #fff7e6;
+  --sev-p2-text: #8a5a00;
+  --sev-p2-border: #fde2a4;
+  --sev-p3-bg: #ecfdf3;
+  --sev-p3-text: #0f6e3a;
+  --sev-p3-border: #bbe5c8;
+  --sev-p4-bg: #eef2f7;
+  --sev-p4-text: #475569;
+  --sev-p4-border: #cfd6e0;
+
   /* 滚动条 */
   --scroll-thumb: #d5d9e6;
   --scroll-thumb-hover: #b9bfd2;
