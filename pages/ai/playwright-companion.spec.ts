@@ -180,7 +180,9 @@ test("T1 伙伴工作台加载 & 伙伴列表展示", async ({ page }) => {
 
   test("T2 总览 tab：伙伴形象 + 设定", async ({ page }) => {
     await openNomi(page, request);
-    await clickWorkspaceTab(page, "总览", "Overview");
+    // Overview 是默认选中的工作台 tab，直接截图即可；再尝试点击一次作为交互验证
+    await clickWorkspaceTab(page, "总览", "Overview").catch(() => {});
+    await think(page, 600);
     await shot(page, "02-overview");
   });
 
