@@ -486,7 +486,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B04 刷新/导出按钮可点击", async () => {
       await gotoPage(page, "/server/hosts");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#b-refresh").click();
       await page.locator("#b-export").click();
       console.log("  ✓ 刷新+导出");
@@ -539,7 +539,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
       await gotoPage(page, "/server/hosts");
       await page.locator("#chk-all").check();
       await page.waitForTimeout(200);
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#b-batch-on").click();
       await page.locator("#b-batch-off").click();
       await page.locator("#b-batch-move").click();
@@ -567,7 +567,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B13 连通性测试", async () => {
       await gotoPage(page, "/server/hosts");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab[data-a="test"]').first().click();
       console.log("  ✓ 连通性测试");
     });
@@ -594,7 +594,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B16 删除主机（确认拦截）", async () => {
       await gotoPage(page, "/server/hosts");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab.ad[data-a="delete"]').first().click();
       console.log("  ✓ 删除确认拦截");
     });
@@ -610,7 +610,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     test("E01 页面加载", async () => { await gotoPage(page, "/server/exec"); console.log("  ✓"); });
     test("E02 执行命令", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#exec-host").selectOption("2");
       await page.locator("#cmd-input").fill("df -h");
       await page.locator("#btn-run").click();
@@ -618,37 +618,37 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("E03 执行日志", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-log").click();
       console.log("  ✓ 执行日志");
     });
     test("E04 上传文件", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-upload").click();
       console.log("  ✓ 上传文件");
     });
     test("E05 批量分发", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-dist").click();
       console.log("  ✓ 批量分发");
     });
     test("E06 立即执行任务", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.jb[data-a="run"]').first().click();
       console.log("  ✓ 立即执行");
     });
     test("E07 编辑任务", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.jb[data-a="edit"]').first().click();
       console.log("  ✓ 编辑任务");
     });
     test("E08 删除任务（确认拦截）", async () => {
       await gotoPage(page, "/server/exec");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.jb.ad[data-a="del"]').first().click();
       console.log("  ✓ 删除确认拦截");
     });
@@ -675,19 +675,19 @@ test.describe("服务器侧全量 E2E 测试", () => {
     test("S01 页面加载", async () => { await gotoPage(page, "/server/sessions"); console.log("  ✓"); });
     test("S02 刷新", async () => {
       await gotoPage(page, "/server/sessions");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-refresh").click();
       console.log("  ✓");
     });
     test("S03 详情", async () => {
       await gotoPage(page, "/server/sessions");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab[data-a="detail"]').first().click();
       console.log("  ✓");
     });
     test("S04 强制关闭（确认拦截）", async () => {
       await gotoPage(page, "/server/sessions");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab.ad[data-a="close"]').first().click();
       console.log("  ✓");
     });
@@ -714,19 +714,19 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("M03 编辑计划", async () => {
       await gotoPage(page, "/server/maintenance");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab[data-a="edit"]').first().click();
       console.log("  ✓");
     });
     test("M04 删除计划（确认拦截）", async () => {
       await gotoPage(page, "/server/maintenance");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ab.ad[data-a="del"]').first().click();
       console.log("  ✓");
     });
     test("M05 刷新", async () => {
       await gotoPage(page, "/server/maintenance");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-refresh").click();
       console.log("  ✓");
     });
@@ -759,7 +759,7 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("G04 双击编辑分组", async () => {
       await gotoPage(page, "/server/groups");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator(".tree .node").first().dblclick();
       console.log("  ✓");
     });
@@ -786,43 +786,43 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("C03 生成密钥对", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-gen").click();
       console.log("  ✓");
     });
     test("C04 编辑密钥", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.kb[data-a="edit"]').first().click();
       console.log("  ✓");
     });
     test("C05 绑定主机", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.kb[data-a="bind"]').first().click();
       console.log("  ✓");
     });
     test("C06 删除密钥（确认拦截）", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.kb.ad[data-a="del"]').first().click();
       console.log("  ✓");
     });
     test("C07 编辑身份", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ib[data-a="edit"]').first().click();
       console.log("  ✓");
     });
     test("C08 删除身份（确认拦截）", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.ib.ad[data-a="del"]').first().click();
       console.log("  ✓");
     });
     test("C09 刷新", async () => {
       await gotoPage(page, "/server/credentials");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-refresh").click();
       console.log("  ✓");
     });
@@ -850,25 +850,25 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("SN03 复制片段", async () => {
       await gotoPage(page, "/server/snippets");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.sb[data-a="copy"]').first().click();
       console.log("  ✓");
     });
     test("SN04 编辑片段", async () => {
       await gotoPage(page, "/server/snippets");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.sb[data-a="edit"]').first().click();
       console.log("  ✓");
     });
     test("SN05 删除片段（确认拦截）", async () => {
       await gotoPage(page, "/server/snippets");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator('button.sb.ad[data-a="del"]').first().click();
       console.log("  ✓");
     });
     test("SN06 刷新", async () => {
       await gotoPage(page, "/server/snippets");
-      page.on("dialog", async d => { await d.dismiss(); });
+      ;
       await page.locator("#btn-refresh").click();
       console.log("  ✓");
     });
@@ -896,3 +896,4 @@ test.describe("服务器侧全量 E2E 测试", () => {
     console.log("═══════════════════════════════════════════\n");
   });
 });
+

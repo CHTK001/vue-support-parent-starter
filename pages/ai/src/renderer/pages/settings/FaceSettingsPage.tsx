@@ -16,7 +16,7 @@ const FaceSettingsPage: React.FC = () => {
       modelCapabilities={{
         detector_model: 'detect',
         feature_model: 'feature',
-        liveness_model: 'classify',
+        liveness_model: 'liveness',
         super_resolution_model: 'enhance',
         restore_model: 'enhance',
         attribute_model: 'classify',
