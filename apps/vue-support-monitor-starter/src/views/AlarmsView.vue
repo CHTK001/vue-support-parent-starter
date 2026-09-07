@@ -121,7 +121,7 @@ onMounted(fetchAll);
       </div>
     </div>
 
-    <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
+    <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
@@ -197,6 +197,7 @@ onMounted(fetchAll);
 /* 依赖全局 pages.css 的 .page-header/.kpi-row/.kpi/.card/.filter/.t */
 .dim { color: var(--text-tertiary); }
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
+.as-error { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:var(--status-error-text); background:var(--status-error-bg); border:1px solid var(--status-error-border); border-radius: var(--radius-sm); }
 .dlg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
 .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .f-kw { width: 220px; }

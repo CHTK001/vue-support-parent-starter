@@ -16,7 +16,7 @@ const events = ref<AlarmEvent[]>([]);
 const lastRefresh = ref("");
 
 const LEVELS = ["P0", "P1", "P2", "P3", "P4"] as const;
-const LEVEL_COLORS: Record<string, string> = { P0: "#f04a5d", P1: "#f97316", P2: "#eab308", P3: "#22c55e", P4: "#94a3b8" };
+const LEVEL_COLORS: Record<string, string> = { P0: "var(--sev-p0-text)", P1: "var(--sev-p1-text)", P2: "var(--sev-p2-text)", P3: "var(--sev-p3-text)", P4: "var(--sev-p4-text)" };
 const LEVEL_LABELS: Record<string, string> = { P0: "严重", P1: "高", P2: "中", P3: "低", P4: "信息" };
 
 const onlineCount = computed(() => monitors.value.filter(m => m.monitorEnabled === 1).length);

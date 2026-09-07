@@ -176,11 +176,11 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-inverse);
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
-  background: var(--brand-gradient, linear-gradient(135deg, var(--brand-500) 0%, #8f83fd 100%));
+  background: var(--brand-gradient);
   box-shadow: var(--shadow-brand);
 }
 .collapsed .brand .name,
@@ -241,9 +241,9 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   padding: 1px 7px;
   font-size: 11px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-inverse);
   text-align: center;
-  background: var(--status-alarm, #f04a5d);
+  background: var(--pulse-alarm);
   border-radius: 999px;
 }
 .sidebar-foot {
@@ -281,7 +281,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--status-alarm, #f04a5d);
+  background: var(--pulse-alarm);
   animation: notePulse 1.6s ease-in-out infinite;
 }
 @keyframes notePulse {
@@ -338,10 +338,10 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 12px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--brand-500) 0%, #8f83fd 100%);
+  background: var(--brand-gradient);
 }
 
 .main {
