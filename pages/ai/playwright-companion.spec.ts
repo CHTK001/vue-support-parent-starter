@@ -139,20 +139,23 @@ async function apiCleanupOthers(request: APIRequestContext, keepId: string): Pro
 // ── 打开 nomi 工作台 ─────────────────────────────────────────
 
 async function openNomi(page: Page, request: APIRequestContext): Promise<void> {
+  // 避免 networkidle（页面 WS/轮询会令其永不空闲导致卡死）：用 domcontentloaded + 轮询关键元素
   let loaded = false;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      await page.goto(`${FRONT}/#/nomi`, { waitUntil: "networkidle", timeout: 40000 });
-      await page.waitForTimeout(4000);
-      const ready = await Promise.race([
-        page.locator("text=新建伙伴").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
-        page.locator("text=New companion").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
-        page.locator(`text=${TEST_NAME}`).first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
-        page.locator(".nomi-mochi, [class*='nomi-']").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
-      ]);
-      if (ready) { loaded = true; break; }
+      await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 30000 });
+      for (let i = 0; i < 16; i++) {
+        await page.waitForTimeout(1000);
+        const ok = await Promise.race([
+          page.locator(`text=${TEST_NAME}`).first().isVisible().catch(() => false),
+          page.locator("text=新建伙伴").first().isVisible().catch(() => false),
+          page.locator("text=New companion").first().isVisible().catch(() => false),
+        ]);
+        if (ok) { loaded = true; break; }
+      }
+      if (loaded) break;
     } catch { await waitBackend(request); }
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
   }
   if (!loaded) throw new Error(`无法加载 nomi 工作台（${FRONT}/#/nomi）`);
   await think(page, 700);
