@@ -1,0 +1,60 @@
+.remote-control {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+
+.connect-panel {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.work-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.terminal-container {
+  flex: 1;
+  background: #0c0c0c;
+  color: #00ff41;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px;
+  padding: 12px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  min-height: 400px;
+}
+
+.terminal-input {
+  margin-top: 8px;
+}
+
+.desktop-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0c0c;
+  min-height: 400px;
+}
+
+.desktop-container canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.placeholder {
+  color: #666;
+  font-size: 14px;
+}
