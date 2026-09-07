@@ -81,23 +81,27 @@ onMounted(fetchAll);
 
     <section class="kpi-row cols-4">
       <div class="kpi c-brand">
+        <span class="kpi-ico"><ReIcon name="DataBoard" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">资产总数</span><span class="kpi-delta up">↗ +4</span></div>
         <div class="kpi-value">{{ monitors.length }}</div>
         <svg class="kpi-spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline :points="spark(trend)" fill="none" stroke="var(--brand-500)" stroke-width="1.6" opacity="0.4" /></svg>
         <div class="kpi-sub">运行中 <b>{{ onlineCount }}</b> · 离线 <b>{{ monitors.length - onlineCount }}</b></div>
       </div>
       <div class="kpi c-red">
+        <span class="kpi-ico"><ReIcon name="Bell" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">告警未处理</span></div>
         <div class="kpi-value">{{ unhandledCount }}<span class="unit">/ {{ totalAlarms }}</span></div>
         <svg class="kpi-spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline :points="spark(trend.map(v=>v*1.2))" fill="none" stroke="var(--status-alarm)" stroke-width="1.6" opacity="0.4" /></svg>
         <div class="kpi-sub">累计事件</div>
       </div>
       <div class="kpi c-red">
+        <span class="kpi-ico"><ReIcon name="Warning" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">P0+P1 高危</span><span class="kpi-delta down">↘ -2</span></div>
         <div class="kpi-value">{{ levelCounts.P0 + levelCounts.P1 }}</div>
         <div class="kpi-sub">30 分钟内响应</div>
       </div>
       <div class="kpi c-amber">
+        <span class="kpi-ico"><ReIcon name="AlarmClock" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">P2 中危</span></div>
         <div class="kpi-value">{{ levelCounts.P2 }}</div>
         <div class="kpi-sub">当班处理</div>
@@ -143,9 +147,23 @@ onMounted(fetchAll);
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">快捷入口</span></div>
-        <ReButton icon="Position" :show-text="true" size="small" class="w100" @click="router.push('/terminal')">远程控制台</ReButton>
-        <ReButton icon="Monitor" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
-        <ReButton icon="Bell" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
+        <div class="quick-grid">
+          <button class="quick" @click="router.push('/terminal')">
+            <span class="q-ic" style="color:var(--brand-500);background:var(--brand-50)"><ReIcon name="Position" :size="18" /></span>
+            <span class="q-meta"><b>远程控制台</b><span>SSH / RDP / VNC</span></span>
+            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
+          </button>
+          <button class="quick" @click="router.push('/assets')">
+            <span class="q-ic" style="color:var(--metric-cpu);background:rgba(59,130,246,.1)"><ReIcon name="Monitor" :size="18" /></span>
+            <span class="q-meta"><b>主机资产</b><span>台账与凭据管理</span></span>
+            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
+          </button>
+          <button class="quick" @click="router.push('/alarms')">
+            <span class="q-ic" style="color:var(--metric-redis);background:rgba(239,68,68,.08)"><ReIcon name="Bell" :size="18" /></span>
+            <span class="q-meta"><b>告警中心</b><span>事件流与处理</span></span>
+            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
+          </button>
+        </div>
       </div>
     </section>
   </div>
