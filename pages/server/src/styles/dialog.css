@@ -1,31 +1,35 @@
 /**
  * pages/server 全局弹窗样式
  * ReDialog/ReDrawer 挂载在 body 下，需全局样式生效。
- * 遮罩层磨砂玻璃 + 弹窗本体大圆角（白色实心）。
+ * 遮罩层磨砖玻璃 + 弹窗本体大圆角（卡片背景）。
  */
 
-/* 遮罩层磨砂玻璃 */
+/* 遮罩层磨砖玻璃 */
 .koi-dialog-modal {
   -webkit-backdrop-filter: saturate(180%) blur(16px);
   backdrop-filter: saturate(180%) blur(16px);
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.45);
 }
 
-/* 抽屉遮罩磨砂 */
+/* 抽屉遮罩磨砖 */
 .koi-drawer-shell ~ .el-overlay {
   -webkit-backdrop-filter: saturate(180%) blur(16px);
   backdrop-filter: saturate(180%) blur(16px);
 }
 
-/* 弹窗本体：白色实心 + 大圆角 + 柔和阴影 */
+/* 弹窗本体：卡片背景 + 大圆角 + 柔和阴影 */
 .koi-dialog-shell {
   border-radius: 24px !important;
-  background: #ffffff;
+  background: var(--bg-container-card);
   box-shadow:
     0 12px 48px rgba(0, 0, 0, 0.18),
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .koi-dialog-shell .el-dialog__body {
-  background: #ffffff;
+  background: var(--bg-container-card);
 }
+.koi-dialog-shell .el-dialog__header {
+  background: var(--bg-container-card);
+}
+
