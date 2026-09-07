@@ -84,7 +84,7 @@ const handleSubmit = () => {
 }
 </script>
 
-<style scoped>
+ <style scoped>
 .snippet-manager {
   padding: 20px;
 }
@@ -92,6 +92,10 @@ const handleSubmit = () => {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
+}
+.snippet-manager .re-card {
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 </style>
