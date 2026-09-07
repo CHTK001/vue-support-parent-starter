@@ -52,6 +52,9 @@
   --pulse-offline: #9aa3b2;
   --pulse-unknown: #f5a524;
   --pulse-alarm: #f04a5d;
+  --pulse-online-glow-in: 0 0 0 0 rgba(47, 191, 113, 0.5);
+  --pulse-online-glow-out: 0 0 0 6px rgba(47, 191, 113, 0);
+  --empty-bg-gradient: rgba(109, 93, 252, 0.04);
 
   /* 协议色（远程控制） */
   --proto-ssh: #3b82f6;
