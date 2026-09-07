@@ -22,3 +22,38 @@
 }
 .sc-page-card:hover { box-shadow: var(--shadow-card-hover); }
 
+/* 状态点（Pulse Dot） */
+.pdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pdot-online { background: var(--status-success); }
+.pdot-offline { background: var(--status-error); }
+.pdot-unknown { background: var(--status-warning); }
+.pdot-alarm { background: var(--pulse-alarm); }
+
+/* 告警级别色快捷类 */
+.lv-p0 { color: var(--sev-p0-text); background: var(--sev-p0-bg); border-color: var(--sev-p0-border); }
+.lv-p1 { color: var(--sev-p1-text); background: var(--sev-p1-bg); border-color: var(--sev-p1-border); }
+.lv-p2 { color: var(--sev-p2-text); background: var(--sev-p2-bg); border-color: var(--sev-p2-border); }
+.lv-p3 { color: var(--sev-p3-text); background: var(--sev-p3-bg); border-color: var(--sev-p3-border); }
+.lv-p4 { color: var(--sev-p4-text); background: var(--sev-p4-bg); border-color: var(--sev-p4-border); }
+
+/* 空态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.empty-state .empty-ico { font-size: 32px; opacity: 0.4; }
+.empty-state .empty-text { font-size: 13px; color: var(--text-tertiary); }
+
+
