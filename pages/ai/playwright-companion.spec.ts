@@ -116,16 +116,16 @@ async function apiEnsureSeed(request: APIRequestContext, name: string): Promise<
 // ── 打开 nomi 工作台 ─────────────────────────────────────────
 
 async function openNomi(page: Page, request: APIRequestContext): Promise<void> {
-  // 前端 dev server 可能短暂不可用：重试直到页面加载
+  // 必须用 networkidle：页面主体依赖后续 JSON 加载，domcontentloaded 过早会导致 Main 区 spinner 卡住
   let loaded = false;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.goto(`${FRONT}/#/nomi`, { waitUntil: "networkidle", timeout: 40000 });
       await page.waitForTimeout(4000);
-      // 工作台稳定信号：伙伴名单渲染（存在「小蓝」或至少进入 nomi 布局）
+      // 工作台稳定信号：New companion 按钮或 mochi 形象渲染
       const ready = await Promise.race([
-        page.locator("text=小蓝").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
-        page.locator("text=新建伙伴").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
+        page.locator("text=New companion").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
+        page.locator(".nomi-mochi, [class*='nomi-']").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
       ]);
       if (ready) {
         loaded = true;
