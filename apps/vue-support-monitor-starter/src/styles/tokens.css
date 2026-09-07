@@ -35,6 +35,19 @@
   --pulse-offline: #9aa3b2;
   --pulse-unknown: #f5a524;
   --pulse-alarm: #f04a5d;
+
+  /* 协议色（远程控制） */
+  --proto-ssh: #3b82f6;
+  --proto-vnc: #8b5cf6;
+  --proto-rdp: #f59e0b;
+
+  /* 终端背景 */
+  --terminal-bg: #0d1117;
+
+  /* 告警错误色（用于错误提示框） */
+  --status-error-bg: #fdecef;
+  --status-error-border: #fbc0c9;
+  --status-error-text: #9b1c2e;
   /* 别名：pages.css / 视图层历史使用 --status-*（曾未定义导致状态点无色，此处兜底） */
   --status-online: var(--pulse-online);
   --status-offline: var(--pulse-offline);
