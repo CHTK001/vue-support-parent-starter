@@ -36,24 +36,30 @@ async function humanMove(page: Page, x: number, y: number): Promise<void> {
   }
 }
 
-/** 找到工作区内的 tab 按钮并点击（避免匹配 icon 内联 style 噪声） */
-async function clickWorkspaceTab(page: Page, text: string): Promise<void> {
-  const tab = page.locator(`[data-testid="workspace-tab"]:has-text("${text}")`).first();
-  const count = await tab.count();
-  if (count > 0) {
-    await tab.click({ timeout: 10000 });
-    await think(page, 700);
-    return;
+/** 找到工作区内的 tab 按钮并点击（中英文混合 UI 兜底） */
+async function clickWorkspaceTab(page: Page, text: string, enText: string): Promise<void> {
+  const candidates = [
+    page.locator(`[role="tab"]:has-text("${enText}")`).first(),
+    page.locator(`[role="tab"]:has-text("${text}")`).first(),
+    page.getByText(enText, { exact: true }).first(),
+    page.getByText(text, { exact: true }).first(),
+  ];
+  for (const el of candidates) {
+    const count = await el.count();
+    if (count > 0) {
+      try {
+        const visible = await el.isVisible();
+        if (visible) {
+          await el.click({ timeout: 5000 });
+          await think(page, 700);
+          return;
+        }
+      } catch {
+        // try next
+      }
+    }
   }
-  // fallback：精确文本匹配的 tab 元素
-  const el = page.locator(`[role="tab"]:text-is("${text}")`).first();
-  const elCount = await el.count();
-  if (elCount > 0) {
-    await el.click({ timeout: 10000 });
-    await think(page, 700);
-    return;
-  }
-  throw new Error(`工作区 tab 未找到: ${text}`);
+  throw new Error(`工作区 tab 未找到: ${enText} / ${text}`);
 }
 
 async function shot(page: Page, name: string): Promise<void> {
