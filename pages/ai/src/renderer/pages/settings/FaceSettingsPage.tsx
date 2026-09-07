@@ -14,7 +14,7 @@ const FaceSettingsPage: React.FC = () => {
     <CapabilityConfigForm
       endpoint='/v2/face/config'
       modelCapabilities={{
-        detector_model: 'detect',
+        detector_model: 'image-detect',
         feature_model: 'feature',
         liveness_model: 'liveness',
         super_resolution_model: 'enhance',
@@ -23,7 +23,7 @@ const FaceSettingsPage: React.FC = () => {
         emotion_model: 'classify',
         landmark_model: 'feature',
         deepfake_model: 'classify',
-        anime_detector_model: 'detect',
+        anime_detector_model: 'image-detect',
       }}
       i18nPrefix='settings.face'
     />
