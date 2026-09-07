@@ -171,7 +171,17 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
 .card-h { font-size: 13px; font-weight: 600; }
 .gauge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
 .g-tag { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
-.g-ring { width: 78px; height: 78px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.g-ring {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(15, 18, 33, 0.02), var(--shadow-1);
+  transition: background 0.6s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
+}
+.gauge-grid .card:hover .g-ring { transform: scale(1.05); }
 .g-hole { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 50%; background: var(--bg-container); font-size: 11px; color: var(--text-tertiary); b { font-size: 16px; color: var(--text-primary); } }
 .net-big { display: flex; flex-direction: column; align-items: center; gap: 2px; b { font-size: 15px; } .net-label { font-size: 11px; color: var(--text-tertiary); } .sep { margin-top: 4px; } }
 .trend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
