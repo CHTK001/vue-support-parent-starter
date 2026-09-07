@@ -15,6 +15,11 @@ test.describe("diag2", () => {
     console.log("BODY_TAIL:", JSON.stringify(body.slice(-300)));
     console.log("spinner:", await page.locator("[class*=spin], [class*=Loading], [class*=loading]").count());
     console.log("mochi:", await page.locator(".nomi-mochi, [class*=nomi]").count());
-    console.log('hasEnglishCompanion:', (await page.locator("text=Companion").count()) || (await page.locator("text=Desktop").count()));
+    console.log("tabs:", await page.locator('[role="tab"]').allTextContents().then(a=>a.slice(-8)));
+    console.log("hasNewCompanion:", await page.locator("text=New companion").count());
+    console.log("hasOpenChat:", await page.locator("text=Open chat").count(), await page.locator("text=Open Chat").count());
+    console.log("hasMemory:", await page.locator("text=Memory").count());
+    console.log("hasSkill:", await page.locator("text=Skills").count());
+    console.log("hasOverview:", await page.locator("text=Overview").count());
   });
 });

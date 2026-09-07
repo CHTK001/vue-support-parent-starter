@@ -521,9 +521,10 @@ test.describe("服务器侧全量 E2E 测试", () => {
       // 用 Playwright click 触发原生 click 事件
       await page.click("#chk-all");
       await page.waitForTimeout(300);
+      const checked = await page.locator("#chk-all").isChecked();
       const barVisible = await page.locator("#batch-bar").isVisible();
       const selText = await page.locator("#sel-cnt").textContent();
-      console.log(`  全选后: batch-bar=${barVisible}, sel-cnt=${selText}`);
+      console.log(`  全选后: checked=${checked}, batch-bar=${barVisible}, sel-cnt=${selText}`);
       expect(barVisible).toBe(true);
       expect(selText).toContain("3");
       // 取消全选
