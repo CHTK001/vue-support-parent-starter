@@ -125,6 +125,8 @@ async function openNomi(page: Page): Promise<void> {
 // ═════════════════════════════════════════════════════════════
 
 test.describe("桌面伙伴 E2E", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
   let companionId = "";
   let request: APIRequestContext;
 
