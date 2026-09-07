@@ -129,7 +129,7 @@ const emit = defineEmits<{
 }>();
 
 /** 内部过滤值（支持 v-model 双向绑定，未受控时内部维护） */
-const filterValues = ref<Record<string, unknown>>({ ...props.modelValue });
+const filterValues = ref<Record<string, any>>({ ...props.modelValue });
 watch(
   () => props.modelValue,
   (v) => { filterValues.value = { ...v }; },
