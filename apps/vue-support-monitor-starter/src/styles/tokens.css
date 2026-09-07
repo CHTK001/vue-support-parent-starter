@@ -81,9 +81,13 @@
   --shadow-2: 0 4px 12px rgba(15, 18, 33, 0.06);
   --shadow-3: 0 8px 24px rgba(15, 18, 33, 0.08);
   --shadow-brand: 0 2px 8px rgba(109, 93, 252, 0.25);
+  --badge-glow: 0 0 6px rgba(109, 93, 252, 0.5);
+  --alarm-glow-in: 0 0 0 0 rgba(240, 74, 93, 0.4);
+  --alarm-glow-out: 0 0 0 4px rgba(240, 74, 93, 0);
   --scroll-thumb: #d5d9e6;
   --scroll-thumb-hover: #b9bfd2;
   --selection-bg: rgba(109, 93, 252, 0.18);
+  --selection-bg-fade: rgba(109, 93, 252, 0.035);
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;

@@ -163,7 +163,7 @@ onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
   background: var(--el-bg-color);
   color: var(--el-color-primary);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 .nav-icon { width: 13px; height: 13px; color: currentColor; }
 

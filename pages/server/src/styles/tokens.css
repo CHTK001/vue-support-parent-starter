@@ -38,6 +38,7 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.16);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
 
   /* 过渡 */
   --transition-base: all 0.18s ease;
