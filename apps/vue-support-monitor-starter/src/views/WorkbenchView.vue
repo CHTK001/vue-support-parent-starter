@@ -199,3 +199,4 @@ onMounted(fetchAll);
 .q-meta span { font-size: 11px; color: var(--text-tertiary); }
 .q-arrow { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s; }
 </style>
+
