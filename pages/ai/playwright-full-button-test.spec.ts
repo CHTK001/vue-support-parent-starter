@@ -25,6 +25,7 @@ const KEYS = [{ id: 1, name: "deploy-rsa", type: "rsa" }];
 // ── 辅助函数 ─────────────────────────────────────────────────────
 
 async function nav(page: Page, id: string) {
+  await renderAll(page);
   await page.evaluate((tid: string) => {
     document.querySelectorAll('.pg').forEach((p: HTMLElement) => p.style.display = 'none');
     const el = document.getElementById('pg-' + tid);
