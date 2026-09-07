@@ -568,29 +568,22 @@ const UsageLibraryPage: React.FC = () => {
                           </span>
                         </td>
                         <td style={{ padding: '12px 14px' }}>
-                          <Tooltip content={<TokenPop row={row} />} trigger='hover' position='top'>
-                            <div style={{ cursor: 'pointer' }}>
-                              <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', color: 'var(--color-text-2)' }}>
-                                <span style={{ color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>↓ {fmtNum(row.prompt_tokens ?? 0, 0)}</span>
-                                <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>↑ {fmtNum(row.completion_tokens ?? 0, 0)}</span>
-                                <InfoMark><TokenPop row={row} /></InfoMark>
-                              </div>
-                              {(row.cached_tokens ?? 0) > 0 && (
-                                <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', marginTop: 2 }}>
-                                  <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>⚡ {fmtToken(row.cached_tokens!)}</span>
-                                  <InfoMark><TokenPop row={row} /></InfoMark>
-                                </div>
-                              )}
+                          <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', color: 'var(--color-text-2)' }}>
+                            <span style={{ color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>↓ {fmtNum(row.prompt_tokens ?? 0, 0)}</span>
+                            <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>↑ {fmtNum(row.completion_tokens ?? 0, 0)}</span>
+                            <InfoMark><TokenPop row={row} /></InfoMark>
+                          </div>
+                          {(row.cached_tokens ?? 0) > 0 && (
+                            <div style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center', marginTop: 2 }}>
+                              <span style={{ color: 'var(--primary)', fontVariantNumeric: 'tabular-nums' }}>⚡ {fmtToken(row.cached_tokens!)}</span>
                             </div>
-                          </Tooltip>
+                          )}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
-                          <Tooltip content={<CostPop row={row} />} trigger='hover' position='top'>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--success)', fontWeight: 600, fontSize: 13, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }}>
-                              {fmtCost6(row.total_cost)}
-                              <InfoMark><CostPop row={row} /></InfoMark>
-                            </span>
-                          </Tooltip>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--success)', fontWeight: 600, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
+                            {fmtCost6(row.total_cost)}
+                            <InfoMark><CostPop row={row} /></InfoMark>
+                          </span>
                         </td>
                         <td style={{ padding: '12px 14px' }}><DelayBar firstMs={row.first_token_latency} totalMs={row.total_latency} /></td>
                         <td style={{ padding: '12px 14px', color: 'var(--color-text-2)', fontSize: 12, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtDateFull(row.call_time)}</td>
