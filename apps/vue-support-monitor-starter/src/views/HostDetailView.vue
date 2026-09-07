@@ -167,7 +167,7 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
 </template>
 
 <style scoped lang="scss">
-.hd-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #9b1c2e; background: #fdecef; border: 1px solid #fbc0c9; border-radius: 8px; }
+.hd-error { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--status-error-text); background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: var(--radius-sm); }
 .card-h { font-size: 13px; font-weight: 600; }
 .gauge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
 .g-tag { font-size: 12px; font-weight: 600; margin-bottom: 8px; }

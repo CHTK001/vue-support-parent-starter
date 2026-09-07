@@ -154,7 +154,7 @@ onMounted(init);
 
 <style scoped lang="scss">
 .card-h { font-size: 15px; font-weight: 600; }
-.ts-note { padding: 10px 14px; margin-bottom: 16px; font-size: 13px; border-radius: 8px; &.warn { color: #8a5a00; background: #fff7e6; border: 1px solid #fde2a4; } }
+.ts-note { padding: 10px 14px; margin-bottom: 16px; font-size: 13px; border-radius: var(--radius-sm); &.warn { color: var(--sev-p2-text); background: var(--sev-p2-bg); border: 1px solid var(--sev-p2-border); } }
 .form-card { margin-bottom: 16px; }
 .form-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .form-hint { margin-top: 8px; font-size: 12px; color: var(--text-tertiary); }
