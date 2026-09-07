@@ -20,6 +20,7 @@
   --bg-header: #ffffff;
   --bg-fill: #f5f7fa;
   --bg-fill-secondary: #e6e9ee;
+  --bg-elevated: #fbfbff;
 
   /* 文本 */
   --text-primary: #1d2129;
@@ -62,10 +63,12 @@
 
   /* 指标色 */
   --metric-cpu: #3b82f6;
-  --metric-mem: #22c55e;
+  --metric-mem: #8b5cf6;
   --metric-disk: #f59e0b;
-  --metric-net: #a78bfa;
+  --metric-net: #06b6d4;
   --metric-jvm: #14b8a6;
+  --metric-redis: #ef4444;
+  --metric-db: #0ea5e9;
 
   /* 告警级别色（P0~P4） */
   --sev-p0-bg: #fdecef;

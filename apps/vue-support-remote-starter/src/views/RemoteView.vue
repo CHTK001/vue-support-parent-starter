@@ -144,9 +144,8 @@ const renderJpeg = (bytes: Uint8Array) => {
     .catch(() => undefined);
 };
 
-/** 后端配置接口地址（"保存配置到后台"——后端实现于 spring-support-parent-starter 的 /api/remote/config） */
-const API_BASE = "http://localhost:8080";
-const CONFIG_API = `${API_BASE}/api/remote/config`;
+/** 后端配置接口地址（"保存配置到后台"——走 vite 代理 /api → localhost:8080；后端实现于 spring-support-parent-starter 的 /api/remote/config） */
+const CONFIG_API = "/api/remote/config";
 
 /** 保存配置到后台（POST /api/remote/config；失败降级 localStorage 兜底） */
 const saveConfig = async () => {
