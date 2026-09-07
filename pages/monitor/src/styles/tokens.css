@@ -171,3 +171,36 @@ body {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .page-container { padding: 12px; }
 }
+
+/* 状态点（Pulse Dot） */
+.pdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pdot-online { background: var(--status-success); }
+.pdot-offline { background: var(--status-error); }
+.pdot-unknown { background: var(--status-warning); }
+.pdot-alarm { background: var(--pulse-alarm); }
+
+/* 空态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.empty-state .empty-ico {
+  font-size: 32px;
+  opacity: 0.4;
+}
+.empty-state .empty-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
