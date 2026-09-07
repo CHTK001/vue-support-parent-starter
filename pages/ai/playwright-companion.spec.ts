@@ -4,10 +4,11 @@
  * 覆盖：#/nomi 伙伴工作台 —— 伙伴列表、总览、记忆&知识库、技能、
  *        形象库、打开聊天（专属会话跳转）。
  *
- * 策略：连接本地真实前后端（前端 5173 / 后端 8787），先经 API 准备
- *       稳定的伙伴数据，再逐屏验证并截图。
+ * 策略：连接本地真实前后端（前端 5173 / 后端 8787），先经后端 API
+ *       准备稳定的伙伴数据（用 Playwright request fixture，规避 Node
+ *       fetch 代理问题），再逐屏验证并截图。
  */
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page, APIRequestContext } from "@playwright/test";
 
 const FRONT = "http://127.0.0.1:5173";
 const BACK = "http://127.0.0.1:8787";
@@ -53,55 +54,57 @@ async function shot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: OUT + name + ".png", fullPage: false });
 }
 
-// ── API 数据准备 / 清理 ───────────────────────────────────────
+// ── API 数据准备（用 Playwright request，规避 Node fetch 代理） ──
 
-async function apiCreateCompanion(name: string): Promise<string> {
-  const res = await fetch(`${BACK}/api/companion/companions`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, character: "mochi" }),
+async function waitBackend(request: APIRequestContext): Promise<void> {
+  let lastErr: unknown;
+  for (let i = 0; i < 20; i++) {
+    try {
+      const res = await request.get(`${BACK}/api/companion/companions`, { timeout: 5000 });
+      if (res.ok()) return;
+    } catch (e) {
+      lastErr = e;
+    }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  throw new Error(`后端不可达: ${BACK} (last=${lastErr})`);
+}
+
+async function apiListCompanions(request: APIRequestContext): Promise<any[]> {
+  const res = await request.get(`${BACK}/api/companion/companions`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+async function apiCreateCompanion(request: APIRequestContext, name: string): Promise<string> {
+  const res = await request.post(`${BACK}/api/companion/companions`, {
+    data: { name, character: "mochi" },
   });
   const json = await res.json();
   return json.data.companion_id;
 }
 
-async function apiAddMemory(companionId: string, content: string): Promise<void> {
-  await fetch(`${BACK}/api/companion/memories`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      kind: "preference",
-      content,
-      companion_id: companionId,
-    }),
+async function apiAddMemory(request: APIRequestContext, companionId: string, content: string): Promise<void> {
+  await request.post(`${BACK}/api/companion/memories`, {
+    data: { kind: "preference", content, companion_id: companionId },
   });
 }
 
-async function apiAddSkill(companionId: string, skillName: string): Promise<void> {
-  await fetch(`${BACK}/api/companion/companions/${companionId}/skills`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ skill_name: skillName, description: "E2E 技能", content: "# e2e" }),
+async function apiAddSkill(request: APIRequestContext, companionId: string, skillName: string): Promise<void> {
+  await request.post(`${BACK}/api/companion/companions/${companionId}/skills`, {
+    data: { skill_name: skillName, description: "E2E 技能", content: "# e2e" },
   });
 }
 
-async function apiDeleteCompanion(companionId: string): Promise<void> {
-  await fetch(`${BACK}/api/companion/companions/${companionId}`, { method: "DELETE" });
+async function apiDeleteCompanion(request: APIRequestContext, companionId: string): Promise<void> {
+  await request.delete(`${BACK}/api/companion/companions/${companionId}`);
 }
 
-async function apiListCompanions(): Promise<any[]> {
-  const res = await fetch(`${BACK}/api/companion/companions`);
-  const json = await res.json();
-  return json.data ?? [];
-}
-
-async function apiCleanupExcept(excludeId: string): Promise<void> {
-  const list = await apiListCompanions();
-  for (const c of list) {
-    if (c.companion_id !== excludeId) {
-      await apiDeleteCompanion(c.companion_id);
-    }
-  }
+async function apiEnsureSeed(request: APIRequestContext, name: string): Promise<string> {
+  const list = await apiListCompanions(request);
+  const existing = list.find((c) => c.name === name);
+  if (existing) return existing.companion_id;
+  return apiCreateCompanion(request, name);
 }
 
 // ── 打开 nomi 工作台 ─────────────────────────────────────────
@@ -115,23 +118,20 @@ async function openNomi(page: Page): Promise<void> {
 
 test.describe("桌面伙伴 E2E", () => {
   let companionId = "";
+  let request: APIRequestContext;
 
-  test.beforeAll(async () => {
-    // 准备稳定数据：确保存在一个「小蓝」伙伴 + 1 记忆 + 1 技能
-    const list = await apiListCompanions();
-    const existing = list.find((c) => c.name === "小蓝");
-    if (existing) {
-      companionId = existing.companion_id;
-    } else {
-      companionId = await apiCreateCompanion("小蓝");
-    }
-    await apiAddMemory(companionId, "用户喜欢简洁明了的回答");
-    await apiAddSkill(companionId, "git助手");
+  test.beforeAll(async ({ request: req }) => {
+    request = req;
+    await waitBackend(req);
+    // 准备稳定数据：确保存在「小蓝」伙伴 + 1 记忆 + 1 技能
+    companionId = await apiEnsureSeed(req, "小蓝");
+    await apiAddMemory(req, companionId, "用户喜欢简洁明了的回答");
+    await apiAddSkill(req, companionId, "git助手");
   });
 
   test.afterAll(async () => {
-    if (companionId) {
-      await apiDeleteCompanion(companionId).catch(() => {});
+    if (companionId && request) {
+      await apiDeleteCompanion(request, companionId).catch(() => {});
     }
   });
 
@@ -151,8 +151,8 @@ test.describe("桌面伙伴 E2E", () => {
 
   test("T2 总览 tab：伙伴形象 + 模型配置", async ({ page }) => {
     await openNomi(page);
-    // 点开伙伴「小蓝」
-    await humanClick(page, page.locator("[role=tab]:has-text('小蓝')").or(page.locator("text=小蓝").first()));
+    // 选中伙伴「小蓝」
+    await humanClick(page, page.locator("text=小蓝").first());
     await think(page, 600);
     // 切到「总览」
     await humanClick(page, page.locator("[role=tab]:has-text('总览')").or(page.locator("text=总览").first()));
@@ -170,7 +170,6 @@ test.describe("桌面伙伴 E2E", () => {
     // 记忆列表里有 E2E 记忆
     await expect(page.locator("text=用户喜欢简洁明了的回答").first()).toBeVisible({ timeout: 10000 });
     await shot(page, "03-memory");
-    // 归档 / 删除按钮存在
     await expect(page.locator("text=归档").first()).toBeVisible();
     await expect(page.locator("text=删除").first()).toBeVisible();
   });
@@ -201,7 +200,6 @@ test.describe("桌面伙伴 E2E", () => {
     await humanClick(page, page.locator("text=新建伙伴").first());
     await think(page, 800);
     await shot(page, "06-create-dialog");
-    // 弹窗出现（名称/角色输入）
     await expect(page.locator("text=创建伙伴").or(page.locator("text=新建伙伴")).first()).toBeVisible();
   });
 });
