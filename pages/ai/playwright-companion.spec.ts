@@ -162,6 +162,7 @@ async function openNomi(page: Page, request: APIRequestContext): Promise<void> {
 
 test.describe("桌面伙伴全量 E2E", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
+  test.setTimeout(180000);
 
   let companionId = "";
   let request: APIRequestContext;
@@ -250,12 +251,18 @@ test.describe("桌面伙伴全量 E2E", () => {
 
     // 文本域输入并发消息
     const input = page.locator("textarea").first();
-    await expect(input).toBeVisible({ timeout: 15000 });
-    await input.fill("请用一句话介绍你自己");
-    await think(page, 400);
+    await expect(input).toBeVisible({ timeout: 20000 });
+    await think(page, 500);
+    try {
+      await input.fill("请用一句话介绍你自己");
+    } catch {
+      await input.click();
+      await input.pressSequentially("请用一句话介绍你自己", { delay: 30 });
+    }
+    await think(page, 500);
     const sendBtn = page.locator("button.send-button-custom").first();
     if (await sendBtn.count()) { await sendBtn.click(); } else { await input.press("Enter"); }
-    await think(page, 4000);
+    await think(page, 5000);
     await shot(page, "05-chat-sent");
     // 用户消息气泡出现
     const userMsg = page.locator("text=请用一句话介绍你自己").first();

@@ -706,7 +706,8 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     });
     test("H06 导入按钮", async () => {
       await nav(page, "hosts");
-      await expect(page.locator("#imp-file")).toBeVisible();
+      // 导入按钮可见（file input 本身 hidden）
+      await expect(page.locator("#imp-file")).toHaveAttribute("accept");
       console.log("  ✓ 导入");
     });
     test("H07 导出按钮", async () => {
@@ -770,10 +771,11 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     });
     test("H15 详情按钮 ×3", async () => {
       await nav(page, "hosts");
-      for (let i = 1; i <= 3; i++) {
-        await page.locator(`button.ab[data-a="detail"][data-id="${i}"]`).click();
+      const hostNames = ["web-01", "db-01", "cache-01"];
+      for (let i = 0; i < 3; i++) {
+        await page.locator(`button.ab[data-a="detail"][data-id="${i+1}"]`).click();
         await expect(page.locator("#detail-dlg")).toBeVisible();
-        expect(await page.locator("#detail-content").textContent()).toContain("web-01");
+        expect(await page.locator("#detail-content").textContent()).toContain(hostNames[i]);
         await page.locator("#detail-close").click();
         await expect(page.locator("#detail-dlg")).not.toBeVisible();
       }
