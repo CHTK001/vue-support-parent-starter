@@ -62,8 +62,8 @@ async function shot(page: Page, name: string): Promise<void> {
 
 /** 中英兜底匹配文本元素 */
 function text(page: Page, zh: string, en?: string): any {
-  if (en) return page.locator(`text=${zh}`).first().or(page.locator(`text=${en}`).first());
-  return page.locator(`text=${zh}`).first();
+  if (en) return page.locator(`:has-text("${zh}")`).first().or(page.locator(`:has-text("${en}")`).first());
+  return page.locator(`:has-text("${zh}")`).first();
 }
 
 /** 点击工作区 tab（中英兜底） */
