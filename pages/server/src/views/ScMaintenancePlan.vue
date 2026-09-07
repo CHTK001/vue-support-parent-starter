@@ -202,7 +202,7 @@ function hostNames(ids?: string): string {
   </div>
 </template>
 
-<style scoped lang="scss">
+ <style scoped lang="scss">
 .plan-list {
   display: flex;
   flex-direction: column;
@@ -213,5 +213,9 @@ function hostNames(ids?: string): string {
   display: flex;
   gap: 8px;
   align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 </style>
