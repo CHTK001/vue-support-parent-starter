@@ -31,7 +31,7 @@ async function nav(page: Page, id: string) {
     const el = document.getElementById('pg-' + tid);
     if (el) el.style.display = 'block';
   }, id);
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(150);
 }
 
 async function confirmBox(page: Page, msg: string): Promise<boolean> {

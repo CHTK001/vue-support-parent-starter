@@ -214,9 +214,13 @@ test.describe("桌面伙伴全量 E2E", () => {
     await expect(page.locator("text=全量测试独特记忆ABC").first()).toBeVisible({ timeout: 12000 });
     await shot(page, "03-memory-list");
 
-    // 查重合并按钮
-    const mergeBtn = text(page, "查重合并", "Merge");
+    // 查重合并按钮（getByRole 精确定位 button）
+    const mergeBtn = page
+      .getByRole("button", { name: /查重合并|Merge/i })
+      .first()
+      .or(page.getByRole("button", { name: /合并/i }).first());
     await expect(mergeBtn).toBeVisible({ timeout: 10000 });
+    await mergeBtn.scrollIntoViewIfNeeded().catch(() => {});
     await humanClick(page, mergeBtn);
     await think(page, 1500);
     await shot(page, "03-merge-suggestions");
