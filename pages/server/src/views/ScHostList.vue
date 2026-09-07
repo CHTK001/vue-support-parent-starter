@@ -428,7 +428,7 @@ async function onImportFile(file: File | undefined) {
   </div>
 </template>
 
-<style scoped lang="scss">
+ <style scoped lang="scss">
 .host-list {
   display: flex;
   flex-direction: column;
@@ -440,6 +440,10 @@ async function onImportFile(file: File | undefined) {
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 
 .import-btn {
@@ -456,29 +460,40 @@ async function onImportFile(file: File | undefined) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-light);
+  padding: 16px;
+  border-radius: var(--border-radius);
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--metric-cpu);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
 }
-.stat-card.success { border-left: 3px solid var(--el-color-success); }
-.stat-card.danger { border-left: 3px solid var(--el-color-danger); }
-.stat-card.warning { border-left: 3px solid var(--el-color-warning); }
-.stat-value { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
-.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+.stat-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.stat-card.success { border-left-color: var(--status-success); }
+.stat-card.danger { border-left-color: var(--status-error); }
+.stat-card.warning { border-left-color: var(--metric-disk); }
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 
 .batch-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background: var(--el-color-primary-light-9);
-  border-radius: 8px;
-  border: 1px solid var(--el-color-primary-light-7);
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  border-radius: var(--border-radius);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 15%, transparent);
 }
 .batch-info {
   font-size: 12px;
-  color: var(--el-color-primary);
+  color: var(--brand-500);
   font-weight: 500;
   margin-right: 8px;
 }
