@@ -4,7 +4,7 @@ export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
   server: {
-    port: 5173,
+    port: 8096,
     strictPort: true,
     proxy: {
       // 系统管理后台网关：spring-api-support-system-starter: 18170/system/api
