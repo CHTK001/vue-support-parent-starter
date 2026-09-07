@@ -137,7 +137,7 @@ async function apiCleanupExcept(request: APIRequestContext, keepName: string): P
 // ═════════════════════════════════════════════════════════════
 
 test.describe("桌面伙伴 —— 穷尽按钮业务测试", () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
+  test.use({ viewport: { width: 1440, height: 900 }, locale: "zh-CN" });
   test.setTimeout(180000);
 
   let companionId = "";
