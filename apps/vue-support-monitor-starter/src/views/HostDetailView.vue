@@ -190,5 +190,5 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
 .dim { color: var(--text-tertiary); }
 .use-row { display: flex; align-items: center; gap: 8px; }
 .bar { flex: 1; height: 6px; background: var(--border-subtle); border-radius: 3px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--metric-disk); }
+.bar-fill { height: 100%; background-color: var(--metric-disk); border-radius: 3px; }
 </style>

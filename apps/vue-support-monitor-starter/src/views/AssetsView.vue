@@ -376,7 +376,7 @@ onMounted(fetchAll);
       </div>
     </div>
 
-    <div v-if="loadError" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#9b1c2e;background:#fdecef;border:1px solid #fbc0c9;border-radius:8px;display:flex;align-items:center;gap:12px">
+    <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
@@ -384,6 +384,7 @@ onMounted(fetchAll);
     <!-- KPI -->
     <section class="kpi-row cols-4">
       <div class="kpi c-brand">
+        <span class="kpi-ico"><ReIcon name="Monitor" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">资产总数</span></div>
         <div class="kpi-value">{{ hosts.length }}</div>
         <div class="kpi-sub">共注册资产</div>
@@ -590,6 +591,7 @@ onMounted(fetchAll);
 }
 .h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); }
 .h-os :deep(svg) { display: block; }
+.kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 .op-cell { display: flex; gap: 4px; }
 </style>

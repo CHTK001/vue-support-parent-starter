@@ -194,7 +194,7 @@ async function onForceClose(row: SessionRow): Promise<void> {
   </div>
 </template>
 
-<style scoped lang="scss">
+ <style scoped lang="scss">
 .session-tab {
   display: flex;
   flex-direction: column;
@@ -210,17 +210,21 @@ async function onForceClose(row: SessionRow): Promise<void> {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-container-card);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-card);
   }
 
   .online-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--text-primary);
   }
 
   .online-count {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--text-tertiary);
   }
 
   .toolbar {

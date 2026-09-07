@@ -161,12 +161,19 @@ onMounted(init);
 .split { display: grid; grid-template-columns: 280px 1fr; gap: 14px; margin-bottom: 16px; }
 .sess-card { }
 .sess-list { display: flex; flex-direction: column; gap: 6px; }
-.sess { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent; cursor: pointer; text-align: left; &.active { background: var(--brand-50); border-color: var(--brand-100); } }
+.sess {
+  display: flex; align-items: center; gap: 8px; padding: 9px 10px;
+  border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent;
+  cursor: pointer; text-align: left;
+  transition: border-color 0.15s var(--ease-out, ease), background 0.15s, box-shadow 0.15s, transform 0.15s;
+  &:hover { background: var(--bg-hover); transform: translateY(-1px); box-shadow: var(--shadow-1); }
+  &.active { background: var(--brand-50); border-color: var(--brand-100); box-shadow: inset 2px 0 0 var(--brand-500); }
+}
 .sess-name { flex: 1; font-size: 13px; font-weight: 600; }
 .dim { color: var(--text-tertiary); }
 .mono { font-family: monospace; font-size: 12px; }
 .use-row { display: flex; align-items: center; gap: 8px; }
 .bar { flex: 1; height: 6px; background: var(--border-subtle); border-radius: 3px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--metric-net); border-radius: 3px; }
+.bar-fill { height: 100%; background-color: var(--metric-net); border-radius: 3px; }
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
 </style>

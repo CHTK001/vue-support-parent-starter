@@ -419,29 +419,39 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
   </div>
 </template>
 
-<style scoped lang="scss">
+ <style scoped lang="scss">
 .exec-tab {
   display: flex;
   flex-direction: column;
   gap: 12px;
 
   .panel {
-    background: var(--el-bg-color);
-    border-radius: 8px;
-    padding: 12px;
-    border: 1px solid var(--el-border-color-light);
+    background: var(--bg-container-card);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    transition: var(--transition-base);
   }
 
-  .panel-head {
+  .panel:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .panel_head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
 
-    h4 {
-      margin: 0;
-      font-size: 14px;
-    }
+  .panel_head h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   .file-pick {
@@ -453,7 +463,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
 
     .file-name {
       font-size: 12px;
-      color: var(--el-text-color-secondary);
+      color: var(--text-tertiary);
       max-width: 220px;
       overflow: hidden;
       text-overflow: ellipsis;
