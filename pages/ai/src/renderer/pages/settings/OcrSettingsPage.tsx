@@ -14,7 +14,7 @@ const OcrSettingsPage: React.FC = () => {
       modelCapabilities={{
         detector_model: 'image-detect',
         recognizer_model: 'ocr',
-        direction_model: 'image-detect',
+        direction_model: 'ocr',
         restorer_model: 'enhance',
       }}
       i18nPrefix='settings.ocr'
