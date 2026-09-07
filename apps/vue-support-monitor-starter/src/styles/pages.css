@@ -272,7 +272,7 @@
 .pulse-offline { background: var(--status-offline); }
 .pulse-unknown { background: var(--status-unknown); }
 .pulse-alarm { background: var(--status-alarm); animation: blink 0.8s steps(2) infinite; }
-@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(47,191,113,.5); } 50% { box-shadow: 0 0 0 6px rgba(47,191,113,0); } }
+@keyframes pulse { 0%,100% { box-shadow: var(--pulse-online-glow-in); } 50% { box-shadow: var(--pulse-online-glow-out); } }
 @keyframes blink { 50% { opacity: .35; } }
 
 /* ============================================================
@@ -337,7 +337,7 @@
   border: 1px dashed var(--border-default);
   border-radius: var(--radius-lg, 12px);
   background:
-    radial-gradient(circle at 50% 0%, rgba(109, 93, 252, 0.04), transparent 70%),
+    radial-gradient(circle at 50% 0%, var(--empty-bg-gradient), transparent 70%),
     var(--bg-elevated);
 }
 .empty-state::before {
