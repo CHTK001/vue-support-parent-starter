@@ -133,7 +133,7 @@ function renderNode(node: GroupNode): string {
   </div>
 </template>
 
-<style scoped lang="scss">
+ <style scoped lang="scss">
 .group-tree {
   display: flex;
   flex-direction: column;
@@ -143,9 +143,16 @@ function renderNode(node: GroupNode): string {
   display: flex;
   gap: 8px;
   align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 .tree-card {
   padding: 8px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
 }
 .tree-node {
   display: flex;
@@ -157,12 +164,13 @@ function renderNode(node: GroupNode): string {
 .tree-label {
   font-size: 13px;
   font-weight: 500;
+  color: var(--text-primary);
 }
 .tree-actions {
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.2s;
 }
 .tree-node:hover .tree-actions {
   opacity: 1;
