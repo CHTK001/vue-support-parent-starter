@@ -44,6 +44,7 @@ import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
 import ReTableContextMenu from "./ReTableContextMenu.vue";
+import ReTableRadialView from "./ReTableRadialView.vue";
 import ReButton from "../ReButton/ReButton.vue";
 
 /** Modern 表格布局组件（按需异步加载） */
@@ -58,6 +59,7 @@ import type {
   ReCanvasLayoutProps,
   ReCardLayoutProps,
   RePageResult,
+  ReRadialLayoutProps,
   ReTableColumn,
   ReTableColumnState,
   ReTableFullState,
@@ -152,6 +154,8 @@ const props = withDefaults(
     layoutVirtual?: ReVirtualLayoutProps;
     /** Canvas 表格模式专属属性（layout-canvas-*，基于 AG Grid） */
     layoutCanvas?: ReCanvasLayoutProps;
+    /** 放射菜单模式专属属性（layout-radial-*） */
+    layoutRadial?: ReRadialLayoutProps;
     /** 默认表格模式专属属性（layout-table-*） */
     layoutTable?: {
       /** 是否显示表头 */
@@ -199,6 +203,7 @@ const props = withDefaults(
     layoutCard: () => ({}),
     layoutVirtual: () => ({}),
     layoutCanvas: () => ({}),
+    layoutRadial: () => ({}),
     layoutTable: () => ({}),
     treeProps: undefined,
     rowDraggable: false,
@@ -1112,6 +1117,23 @@ const iconSelect = Select;
       @sort-change="(payload: any) => onSortChange(payload)"
       @update:page="(p: number) => onPageChange(p)"
       @update:page-size="(s: number) => onSizeChange(s)"
+    />
+
+    <!-- 放射菜单模式 -->
+    <ReTableRadialView
+      v-else-if="layout === 'radial'"
+      :rows="dataList ?? []"
+      :columns="visibleColumns"
+      :layout="layoutRadial ?? {}"
+      :row-key="rowKey"
+      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :context-menu="contextMenu"
+      :empty-text="emptyText"
+      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
+      @cell-click="(payload: any) => emit('cell-click', payload)"
+      @selection-change="onSelectionChange"
+      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
+      @menu-select="(payload: any) => emit('row-click', payload.row)"
     />
 
     <!-- toolbar 顶部区域（当 toolbarConfig.position === 'top' 时） -->

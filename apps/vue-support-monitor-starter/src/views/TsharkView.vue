@@ -163,7 +163,7 @@ onMounted(init);
 .sess-list { display: flex; flex-direction: column; gap: 6px; }
 .sess {
   display: flex; align-items: center; gap: 8px; padding: 9px 10px;
-  border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: transparent;
   cursor: pointer; text-align: left;
   transition: border-color 0.15s var(--ease-out, ease), background 0.15s, box-shadow 0.15s, transform 0.15s;
   &:hover { background: var(--bg-hover); transform: translateY(-1px); box-shadow: var(--shadow-1); }
