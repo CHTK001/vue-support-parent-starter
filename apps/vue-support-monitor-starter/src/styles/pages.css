@@ -311,11 +311,11 @@
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.tag.sev-P0 { color: #9b1c2e; background: #fdecef; border-color: #fbc0c9; }
-.tag.sev-P1 { color: #a4341a; background: #fff1ed; border-color: #fcc4b3; }
-.tag.sev-P2 { color: #8a5a00; background: #fff7e6; border-color: #fde2a4; }
-.tag.sev-P3 { color: #0f6e3a; background: #ecfdf3; border-color: #bbe5c8; }
-.tag.sev-P4 { color: #475569; background: #eef2f7; border-color: #cfd6e0; }
+.tag.sev-P0 { color: var(--sev-p0-text); background: var(--sev-p0-bg); border-color: var(--sev-p0-border); }
+.tag.sev-P1 { color: var(--sev-p1-text); background: var(--sev-p1-bg); border-color: var(--sev-p1-border); }
+.tag.sev-P2 { color: var(--sev-p2-text); background: var(--sev-p2-bg); border-color: var(--sev-p2-border); }
+.tag.sev-P3 { color: var(--sev-p3-text); background: var(--sev-p3-bg); border-color: var(--sev-p3-border); }
+.tag.sev-P4 { color: var(--sev-p4-text); background: var(--sev-p4-bg); border-color: var(--sev-p4-border); }
 
 /* ============================================================
    迷你进度条（Tshark/HostDetail 协议占比、磁盘使用率）

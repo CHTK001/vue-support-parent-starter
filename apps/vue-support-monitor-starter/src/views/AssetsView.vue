@@ -584,10 +584,10 @@ onMounted(fetchAll);
   padding: 10px 14px;
   margin-bottom: 16px;
   font-size: 13px;
-  color: #9b1c2e;
-  background: #fdecef;
-  border: 1px solid #fbc0c9;
-  border-radius: 8px;
+  color: var(--status-error-text);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
+  border-radius: var(--radius-sm);
 }
 .h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); }
 .h-os :deep(svg) { display: block; }
