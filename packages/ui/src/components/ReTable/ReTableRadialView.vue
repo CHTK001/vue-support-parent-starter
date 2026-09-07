@@ -49,9 +49,6 @@ const emit = defineEmits<{
 /** 已展开的图表 key 集合 */
 const expandedKeys = ref<Set<string>>(new Set());
 
-/** 每个图表的行内坐标（用于计算相对偏移） */
-const chartPositions = ref<Map<string, { x: number; y: number }>>(new Map());
-
 /** 选中行 key 集合 */
 const selectedKeys = ref<Set<string>>(new Set());
 
@@ -95,7 +92,7 @@ function getMenuItems(row: Record<string, unknown>): ReRadialMenuItem[] {
   return [];
 }
 
-function getAutoDirections(row: Record<string, unknown>, idx: number): ("top" | "bottom" | "left" | "right")[] {
+function getAutoDirections(_row: Record<string, unknown>, idx: number): ("top" | "bottom" | "left" | "right")[] {
   const cfg = props.layout.menuDirections;
   if (cfg === "all") return ["top", "bottom", "left", "right"];
   if (Array.isArray(cfg)) return cfg as ("top" | "bottom" | "left" | "right")[];
@@ -107,6 +104,67 @@ function getAutoDirections(row: Record<string, unknown>, idx: number): ("top" | 
   if (!isTop) dirs.push("top");
   if (!isBottom) dirs.push("bottom");
   return dirs;
+}
+
+function calcMenuItemPosition(
+  itemIndex: number,
+  totalItems: number,
+  rowIndex: number,
+  totalRows: number,
+): { top: string; left: string; transform: string } {
+  const offset = props.layout.menuOffset ?? 60;
+  const mw = props.layout.menuItemWidth ?? 80;
+  const itemH = 32;
+  const gap = 8;
+
+  // 根据总项数均匀分配到四个方向
+  const dirs: ("top" | "right" | "bottom" | "left")[] = ["top", "right", "bottom", "left"];
+  const perDir = Math.max(1, Math.ceil(totalItems / 4));
+  const dirIndex = Math.min(Math.floor(itemIndex / perDir), 3);
+  const itemInDir = itemIndex % perDir;
+  const dir = dirs[dirIndex];
+
+  const spread = itemInDir * (itemH + gap);
+
+  // 如果是 auto 模式，根据行位置决定优先方向
+  const isTopRow = rowIndex === 0;
+  const isBottomRow = rowIndex === totalRows - 1;
+  const prefersBottom = !isTopRow && isBottomRow;
+  const prefersTop = isTopRow && !isBottomRow;
+
+  let finalDir = dir;
+  if (props.layout.menuDirections === "auto") {
+    if (prefersBottom) finalDir = "bottom";
+    else if (prefersTop) finalDir = "top";
+  }
+
+  switch (finalDir) {
+    case "top":
+      return {
+        top: `-${offset + spread + itemH}px`,
+        left: `calc(50% - ${mw / 2}px)`,
+        transform: "translateX(-50%)",
+      };
+    case "bottom":
+      return {
+        top: `${offset + spread}px`,
+        left: `calc(50% - ${mw / 2}px)`,
+        transform: "translateX(-50%)",
+      };
+    case "left":
+      return {
+        top: `calc(50% - ${itemH / 2}px)`,
+        left: `-${offset + mw / 2 + 4}px`,
+        transform: "translateY(-50%)",
+      };
+    case "right":
+      return {
+        top: `calc(50% - ${itemH / 2}px)`,
+        left: `${offset + mw / 2 + 4}px`,
+        transform: "translateY(-50%)",
+      };
+  }
+  return { top: "0", left: "0", transform: "none" };
 }
 
 function toggleExpand(row: Record<string, unknown>): void {
@@ -167,15 +225,11 @@ function onContextMenu(row: Record<string, unknown>, event: MouseEvent): void {
   event.preventDefault();
   emit("context-menu", { row, rowIndex: props.rows.indexOf(row), event });
 }
-
-function getRef(el: HTMLElement | null, key: string): void {
-  if (el) chartPositions.value.set(key, { x: el.offsetLeft, y: el.offsetTop });
-}
 </script>
 
 <template>
   <div class="re-table__radial-layout">
-    <!-- 全选 -->
+    <!-- 全选栏 -->
     <div v-if="selectable && !isEmpty" class="re-table__radial-header">
       <ElCheckbox
         :model-value="isAllSelected"
@@ -210,7 +264,6 @@ function getRef(el: HTMLElement | null, key: string): void {
 
         <!-- 中心图表按钮 -->
         <div
-          ref="(el) => getRef(el as HTMLElement, String(row[rowKey] ?? idx))"
           class="re-table__radial-chart"
           :class="[
             `re-table__radial-chart--${layout.chartShape ?? 'circle'}`,
@@ -223,7 +276,6 @@ function getRef(el: HTMLElement | null, key: string): void {
           }"
           @click.stop="toggleExpand(row)"
         >
-          <!-- 中心图标：展开时显示 ×，折叠时显示 ⊕ -->
           <svg v-if="!isExpanded(row)" class="re-table__radial-chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="9" />
             <line x1="12" y1="7" x2="12" y2="17" />
@@ -235,39 +287,30 @@ function getRef(el: HTMLElement | null, key: string): void {
           </svg>
         </div>
 
-        <!-- 放射子菜单（绝对定位，从图表中心向外展开） -->
-        <TransitionGroup name="radial">
-          <template v-if="isExpanded(row)">
-            <div
-              v-for="item in getMenuItems(row)"
-              :key="item.key"
-              class="re-table__radial-menu-item"
-              :class="[
-                `re-table__radial-menu-item--${item.type ?? 'primary'}`,
-                { 're-table__radial-menu-item--disabled': item.disabled },
-              ]"
-              :style="getMenuItemStyle(row, item, idx, getMenuItems(row).indexOf(item))"
-              @click.stop="onMenuSelect(row, item)"
-            >
-              <!-- 连线 -->
-              <svg class="re-table__radial-menu-line" viewBox="0 0 60 60" preserveAspectRatio="none">
-                <line x1="30" y1="30" x2="30" y2="8" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
-              </svg>
-              <!-- 图标 -->
-              <span v-if="item.icon" class="re-table__radial-menu-icon">{{ item.icon }}</span>
-              <!-- 文字 -->
-              <span class="re-table__radial-menu-label">{{ item.label }}</span>
-            </div>
-          </template>
-        </TransitionGroup>
+        <!-- 放射子菜单（绝对定位） -->
+        <template v-if="isExpanded(row)">
+          <div
+            v-for="(item, itemIdx) in getMenuItems(row)"
+            :key="item.key"
+            class="re-table__radial-menu-item"
+            :class="[`re-table__radial-menu-item--${item.type ?? 'primary'}`, { 're-table__radial-menu-item--disabled': item.disabled }]"
+            :style="{
+              ...calcMenuItemPosition(itemIdx, getMenuItems(row).length, idx, rows.length),
+            }"
+            @click.stop="onMenuSelect(row, item)"
+          >
+            <span v-if="item.icon" class="re-table__radial-menu-icon">{{ item.icon }}</span>
+            <span class="re-table__radial-menu-label">{{ item.label }}</span>
+          </div>
+        </template>
 
-        <!-- 列数据区域（仅当有多个列时展示） -->
+        <!-- 列数据区域 -->
         <div v-if="columns.length > 0" class="re-table__radial-row-data">
           <div
             v-for="col in columns.filter((c) => !c.hidden)"
             :key="col.prop"
             class="re-table__radial-cell"
-            :style="{ width: col.width ? `${col.width}` : undefined }"
+            :style="{ minWidth: col.minWidth ? `${col.minWidth}px` : undefined }"
             @click.stop="emit('cell-click', { row, columnProp: col.prop, cellValue: row[col.prop] })"
           >
             {{ col.formatter ? col.formatter(row, col, row[col.prop]) : (row[col.prop] ?? "-") }}
@@ -277,71 +320,6 @@ function getRef(el: HTMLElement | null, key: string): void {
     </div>
   </div>
 </template>
-
-<script lang="ts">
-/** 计算子菜单项的绝对位置 */
-function getMenuItemStyle(
-  _row: Record<string, unknown>,
-  item: ReRadialMenuItem,
-  _rowIndex: number,
-  itemIndex: number,
-  _totalItems: number,
-  layout: NonNullable<ReRadialLayoutProps>,
-): Record<string, string> {
-  const offset = layout.menuOffset ?? 60;
-  const mw = layout.menuItemWidth ?? 80;
-  const dirs = ["top", "right", "bottom", "left"] as const;
-  // 将菜单项均匀分配到各个方向
-  const dirCount = dirs.length;
-  const perDir = Math.ceil(_totalItems / dirCount);
-  const dirIndex = Math.floor(itemIndex / perDir);
-  const itemInDir = itemIndex % perDir;
-  const dir = dirs[dirIndex % dirCount];
-
-  const gap = 8;
-  const itemH = 32;
-  const spread = itemInDir * (itemH + gap);
-
-  const base: Record<string, string> = {
-    width: `${mw}px`,
-    height: `${itemH}px`,
-    fontSize: "12px",
-  };
-
-  switch (dir) {
-    case "top":
-      return {
-        ...base,
-        left: `calc(50% - ${mw / 2}px)`,
-        top: `-${offset + spread + itemH}px`,
-        transform: "translateX(-50%)",
-      };
-    case "right":
-      return {
-        ...base,
-        left: `${offset + mw / 2 + 4}px`,
-        top: `calc(50% - ${itemH / 2}px)`,
-        transform: "translateY(-50%)",
-      };
-    case "bottom":
-      return {
-        ...base,
-        left: `calc(50% - ${mw / 2}px)`,
-        top: `${offset + "px"}`,
-        transform: "translateX(-50%)",
-      };
-    case "left":
-      return {
-        ...base,
-        right: `${offset + mw / 2 + 4}px`,
-        top: `calc(50% - ${itemH / 2}px)`,
-        transform: "translateY(-50%)",
-        left: "auto",
-      };
-  }
-  return base;
-}
-</script>
 
 <style scoped>
 .re-table__radial-layout {
@@ -409,6 +387,7 @@ function getMenuItemStyle(
   position: relative;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  user-select: none;
 }
 .re-table__radial-chart:hover {
   transform: scale(1.1);
@@ -431,6 +410,7 @@ function getMenuItemStyle(
   width: 20px;
   height: 20px;
   transition: transform 0.2s;
+  pointer-events: none;
 }
 
 /* 子菜单项 */
@@ -449,9 +429,12 @@ function getMenuItemStyle(
   border: 1px solid transparent;
   color: #fff;
   background: var(--el-color-primary);
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: auto;
 }
 .re-table__radial-menu-item:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 .re-table__radial-menu-item--disabled {
@@ -468,22 +451,12 @@ function getMenuItemStyle(
 .re-table__radial-menu-item--info    { background: var(--el-color-info); }
 .re-table__radial-menu-item--primary { background: var(--el-color-primary); }
 
-.re-table__radial-menu-line {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-}
-
 .re-table__radial-menu-icon {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
 }
 
 .re-table__radial-menu-label {
-  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -507,22 +480,41 @@ function getMenuItemStyle(
 }
 .re-table__radial-cell:hover { color: var(--el-color-primary); }
 
-/* TransitionGroup 动画 */
-.radial-enter-active {
-  transition: all 0.25s ease-out;
+/* 动画 */
+.re-table__radial-menu-item {
+  animation: radial-menu-in 0.2s ease-out both;
 }
-.radial-leave-active {
-  transition: all 0.15s ease-in;
+.re-table__radial-menu-item:nth-child(1) { animation-delay: 0.0s; }
+.re-table__radial-menu-item:nth-child(2) { animation-delay: 0.03s; }
+.re-table__radial-menu-item:nth-child(3) { animation-delay: 0.06s; }
+.re-table__radial-menu-item:nth-child(4) { animation-delay: 0.09s; }
+.re-table__radial-menu-item:nth-child(5) { animation-delay: 0.12s; }
+.re-table__radial-menu-item:nth-child(6) { animation-delay: 0.15s; }
+
+@keyframes radial-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
-.radial-enter-from {
-  opacity: 0;
-  transform: scale(0.5);
+
+/* 收起动画 */
+.re-table__radial-row.expanding .re-table__radial-menu-item {
+  animation: radial-menu-out 0.12s ease-in both;
 }
-.radial-leave-to {
-  opacity: 0;
-  transform: scale(0.5);
-}
-.radial-move {
-  transition: transform 0.25s ease;
+
+@keyframes radial-menu-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 </style>
