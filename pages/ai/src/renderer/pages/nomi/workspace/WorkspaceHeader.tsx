@@ -27,7 +27,6 @@ interface Props {
 const TAB_LABEL_KEYS: Record<WorkspaceTabKey, { key: string; zh: string }> = {
   overview: { key: 'nomi.tabs.overview', zh: '总览' },
   memory: { key: 'nomi.tabs.memory', zh: '记忆&知识库' },
-  remote: { key: 'nomi.tabs.remote', zh: '远程控制' },
   evolution: { key: 'nomi.tabs.evolution', zh: '进化' },
   skills: { key: 'nomi.tabs.skills', zh: '技能' },
   history: { key: 'nomi.tabs.history', zh: '聊天历史' },
