@@ -172,4 +172,44 @@ onMounted(fetchAll);
 <style scoped>
 .w100 { width: 100%; justify-content: flex-start; }
 .as-error { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:#9b1c2e; background:#fdecef; border:1px solid #fbc0c9; border-radius:8px; }
+.kpi-ico {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.quick-grid { display: flex; flex-direction: column; gap: 8px; }
+.quick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s var(--ease-out, ease), box-shadow 0.15s, transform 0.15s;
+}
+.quick:hover {
+  border-color: var(--brand-100);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+.quick:hover .q-arrow { transform: translateX(3px); color: var(--brand-500); opacity: 1; }
+.q-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.q-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.q-meta b { font-size: 13px; color: var(--text-primary); }
+.q-meta span { font-size: 11px; color: var(--text-tertiary); }
+.q-arrow { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s; }
 </style>
