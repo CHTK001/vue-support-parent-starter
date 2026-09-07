@@ -41,7 +41,6 @@ const EMPTY_ATTENTION: AttentionFlags = {};
 const TAB_COMPONENTS: Record<WorkspaceTabKey, React.ComponentType<import('./workspace/types').WorkspaceTabProps>> = {
   overview: OverviewTab,
   memory: MemoryTab,
-  remote: RemoteTab,
   evolution: EvolutionTab,
   skills: SkillsTab,
   history: HistoryTab,
