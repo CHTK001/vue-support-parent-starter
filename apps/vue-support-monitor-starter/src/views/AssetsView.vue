@@ -213,7 +213,7 @@ function openConnect(h: Host): void {
   connectIdentityId.value = null;
   connectVisible.value = true;
   listBoundIdentities(h.id).then((list: any) => {
-    hostBoundIdentities.value = (list ?? []).filter(Boolean);
+    hostBoundIdentities.value = list ?? [];
   }).catch(() => { hostBoundIdentities.value = []; });
 }
 function doConnect(): void {
@@ -264,7 +264,7 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
     else await unbindIdentity(hostId, identityId);
     ElMessage.success(bind ? "已绑定该身份" : "已解绑");
     const list = await listBoundIdentities(hostId);
-    hostBoundIdentities.value = (list ?? []).filter(Boolean);
+    hostBoundIdentities.value = list ?? [];
   } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
 }
 
@@ -288,7 +288,7 @@ async function openEdit(h: Host): Promise<void> {
     const bound = (await listBoundIdentities(h.id)) as any[] | null | undefined;
     hostBoundIdentities.value = bound ?? [];
     const first = hostBoundIdentities.value[0];
-    if (first) formIdentityId.value = first.id;
+    if (first) formIdentityId.value = first;
   } catch {
     hostBoundIdentities.value = [];
   }
@@ -523,16 +523,16 @@ onMounted(fetchAll);
         <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
         <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%">
           <el-option-group label="已绑定">
-            <el-option v-for="b in hostBoundIdentities" :key="b.id" :label="`${b.msServerIdentityName}（${b.msServerIdentityUsername}）`" :value="b.id" />
+            <el-option v-for="b in hostBoundIdentities" :key="b" :label="`${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`" :value="b" />
           </el-option-group>
           <el-option-group label="全部身份">
-            <el-option v-for="i in identities.filter(x => !hostBoundIdentities.some(b => b.id === x.id))" :key="i.id" :label="`${i.msServerIdentityName}（${i.msServerIdentityUsername}）`" :value="i.id" />
+            <el-option v-for="i in identities.filter(x => !hostBoundIdentities.includes(x.id))" :key="i.id" :label="`${i.msServerIdentityName}（${i.msServerIdentityUsername}）`" :value="i.id" />
           </el-option-group>
         </ReSelect>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <ReButton icon="Plus" :show-text="true" size="small" @click="openIdentityAdd">新增身份</ReButton>
-          <template v-for="b in hostBoundIdentities" :key="b.id">
-            <ReButton icon="Unlink" :show-text="true" size="small" type="warning" plain :title="`解绑 ${b.msServerIdentityName}`" @click="toggleBind(connectTarget!.id, b.id, false)">解绑 {{ b.msServerIdentityName }}</ReButton>
+          <template v-for="b in hostBoundIdentities" :key="b">
+            <ReButton icon="Unlink" :show-text="true" size="small" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
           </template>
         </div>
       </template>
