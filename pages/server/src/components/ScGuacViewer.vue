@@ -162,7 +162,7 @@ onBeforeUnmount(teardown);
 }
 .guac-display {
   flex: 1;
-  background: #000;
+  background: var(--terminal-bg);
   border-radius: 8px;
   overflow: auto;
   :deep(canvas) { margin: 0 auto; }
