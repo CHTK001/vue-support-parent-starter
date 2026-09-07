@@ -251,13 +251,13 @@ onBeforeUnmount(teardown);
     </div>
     <div class="it-body">
       <div v-if="!connection" class="it-empty">
-        <el-icon :size="48" color="#c0c4cc"><Monitor /></el-icon>
+        <el-icon :size="48" :color="var(--text-tertiary)"><Monitor /></el-icon>
         <div class="it-empty-title">从左侧选择一台资产开始控制</div>
         <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH / RDP / VNC</div>
       </div>
       <div v-show="connection && !hasError" ref="displayRef" tabindex="0" class="it-display" @mousedown="blurLocalInput" />
       <div v-if="connection && hasError" class="it-error">
-        <el-icon :size="40" color="#f56c6c"><Monitor /></el-icon>
+        <el-icon :size="40" color="var(--status-error)"><Monitor /></el-icon>
         <div class="it-error-title">连接失败</div>
         <div class="it-error-desc">{{ statusText }}</div>
         <div class="it-error-actions">
@@ -294,23 +294,23 @@ onBeforeUnmount(teardown);
     transform: translateY(1px);
   }
   &.reb-primary {
-    color: #fff;
-    background: var(--el-color-primary);
-    border-color: var(--el-color-primary);
+    color: var(--text-inverse);
+    background: var(--brand-500);
+    border-color: var(--brand-500);
     &:hover {
-      color: #fff;
-      background: var(--el-color-primary-light-3);
-      border-color: var(--el-color-primary-light-3);
+      color: var(--text-inverse);
+      background: var(--brand-600);
+      border-color: var(--brand-600);
     }
   }
   &.reb-danger {
-    color: var(--el-color-danger);
-    border-color: var(--el-color-danger-light-5);
-    background: var(--el-color-danger-light-9);
+    color: var(--status-error);
+    border-color: color-mix(in srgb, var(--status-error) 30%, transparent);
+    background: color-mix(in srgb, var(--status-error) 8%, transparent);
     &:hover {
-      color: #fff;
-      background: var(--el-color-danger);
-      border-color: var(--el-color-danger);
+      color: var(--text-inverse);
+      background: var(--status-error);
+      border-color: var(--status-error);
     }
   }
   &.reb-sm {
@@ -387,24 +387,24 @@ onBeforeUnmount(teardown);
   border-radius: 2px;
 }
 .it-alarm-row.lv-p0 .it-alarm-level, .it-alarm-row.lv-p1 .it-alarm-level {
-  color: #fff;
-  background: var(--el-color-danger);
+  color: var(--text-inverse);
+  background: var(--status-error);
 }
 .it-alarm-row.lv-p2 .it-alarm-level {
-  color: #fff;
-  background: var(--el-color-warning);
+  color: var(--text-inverse);
+  background: var(--metric-disk);
 }
 .it-alarm-text {
   flex: 1;
-  b { color: var(--el-color-danger); }
+  b { color: var(--metric-redis); }
 }
 .it-alarm-status {
   font-size: 11px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
 }
 .it-alarm-time {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   font-family: monospace;
 }
 
@@ -441,16 +441,16 @@ onBeforeUnmount(teardown);
   border-radius: 2px;
   letter-spacing: 0.5px;
   &.p-ssh {
-    color: #409eff;
-    background: rgba(64, 158, 255, 0.12);
+    color: var(--proto-ssh);
+    background: color-mix(in srgb, var(--proto-ssh) 10%, transparent);
   }
   &.p-rdp {
-    color: #e6a23c;
-    background: rgba(230, 162, 60, 0.14);
+    color: var(--proto-rdp);
+    background: color-mix(in srgb, var(--proto-rdp) 10%, transparent);
   }
   &.p-vnc {
-    color: #9254de;
-    background: rgba(146, 84, 222, 0.12);
+    color: var(--proto-vnc);
+    background: color-mix(in srgb, var(--proto-vnc) 10%, transparent);
   }
 }
 .it-actions {
