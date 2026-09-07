@@ -12,6 +12,7 @@
   --brand-500: #1677ff;
   --brand-600: #0f60e0;
   --brand-700: #0a4ca6;
+  --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
 
   /* 背景 */
   --bg-container: #ffffff;
@@ -21,6 +22,7 @@
   --bg-fill: #f5f7fa;
   --bg-fill-secondary: #e6e9ee;
   --bg-elevated: #fbfbff;
+  --bg-hover: #f0f1f5;
   --text-primary: #1d2129;
   --text-secondary: #4e5359;
   --text-tertiary: #8d9196;
@@ -48,6 +50,10 @@
   /* 过渡 */
   --transition-base: all 0.18s ease;
   --transition-slow: all 0.3s ease;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 聚焦环 */
+  --focus-ring: 0 0 0 3px rgba(22, 124, 255, 0.18);
 
   /* 状态色 */
   --status-success: #16c916;
