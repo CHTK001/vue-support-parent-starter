@@ -5,9 +5,9 @@ const FRONT = "http://127.0.0.1:5173";
 test.describe("diag2", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("复刻探针：domcontentloaded + 长等待", async ({ page }) => {
-    await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(15000);
+  test("复刻探针：networkidle + 长等待", async ({ page }) => {
+    await page.goto(`${FRONT}/#/nomi`, { waitUntil: "networkidle", timeout: 40000 });
+    await page.waitForTimeout(8000);
     console.log("URL:", page.url());
     console.log("title:", await page.title());
     const body = await page.locator("body").innerText().catch(() => "[err]");
