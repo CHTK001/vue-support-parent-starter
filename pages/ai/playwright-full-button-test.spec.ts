@@ -757,6 +757,7 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     });
     test("H13 移动分组按钮", async () => {
       await nav(page, "hosts");
+      // 使用重新查找的 locator（每次 nav() 会重新渲染 DOM）
       await page.locator("#b-move").click();
       console.log("  ✓ 移动分组");
     });
