@@ -20,6 +20,7 @@ import { install as ReTimeInstall } from "@repo/ui/re-time";
 import { install as ReTextInstall } from "@repo/ui/re-text";
 import { install as ReKitInstall } from "@repo/ui/re-kit";
 import { serverRoutes } from "./routes";
+import "./styles/tokens.css";
 import "./styles/page.css";
 import "./styles/dialog.css";
 
