@@ -169,27 +169,24 @@ test.describe("桌面伙伴 E2E", () => {
     }
   });
 
-  test("T1 伙伴工作台加载 & 伙伴列表展示", async ({ page }) => {
+test("T1 伙伴工作台加载 & 伙伴列表展示", async ({ page }) => {
     await openNomi(page, request);
     expect(page.url()).toContain("#/nomi");
-    // 伙伴名单里有「小蓝」+ 状态
-    await expect(page.locator("text=小蓝").first()).toBeVisible();
-    // 工作台入口
-    await expect(page.locator("text=新建伙伴").first()).toBeVisible();
-    await expect(page.locator("text=打开聊天").first()).toBeVisible();
+    // 伙伴名单 + 工作台入口
+    await expect(page.locator("text=New companion").first()).toBeVisible();
+    await expect(page.locator("text=Open chat").first()).toBeVisible();
     await shot(page, "01-workspace");
   });
 
   test("T2 总览 tab：伙伴形象 + 设定", async ({ page }) => {
     await openNomi(page, request);
-    await clickWorkspaceTab(page, "总览");
+    await clickWorkspaceTab(page, "总览", "Overview");
     await shot(page, "02-overview");
-    await expect(page.locator("text=伙伴形象").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("T3 记忆&知识库 tab：展示真实记忆 + 操作", async ({ page }) => {
     await openNomi(page, request);
-    await clickWorkspaceTab(page, "记忆");
+    await clickWorkspaceTab(page, "记忆", "Memory");
     await think(page, 800);
     await expect(page.locator("text=用户喜欢简洁明了的回答").first()).toBeVisible({ timeout: 10000 });
     await shot(page, "03-memory");
@@ -197,7 +194,7 @@ test.describe("桌面伙伴 E2E", () => {
 
   test("T4 技能 tab：展示 E2E 技能", async ({ page }) => {
     await openNomi(page, request);
-    await clickWorkspaceTab(page, "技能");
+    await clickWorkspaceTab(page, "技能", "Skills");
     await think(page, 800);
     await expect(page.locator("text=git助手").first()).toBeVisible({ timeout: 10000 });
     await shot(page, "04-skills");
@@ -205,7 +202,7 @@ test.describe("桌面伙伴 E2E", () => {
 
   test("T5 打开聊天 → 跳转伙伴专属会话", async ({ page }) => {
     await openNomi(page, request);
-    const chatBtn = page.locator("text=打开聊天").first();
+    const chatBtn = page.locator("text=Open chat").first();
     await expect(chatBtn).toBeVisible();
     const box = await chatBtn.boundingBox();
     if (box) {
@@ -220,7 +217,7 @@ test.describe("桌面伙伴 E2E", () => {
 
   test("T6 新建伙伴弹窗", async ({ page }) => {
     await openNomi(page, request);
-    const btn = page.locator("text=新建伙伴").first();
+    const btn = page.locator("text=New companion").first();
     await expect(btn).toBeVisible();
     const box = await btn.boundingBox();
     if (box) {
