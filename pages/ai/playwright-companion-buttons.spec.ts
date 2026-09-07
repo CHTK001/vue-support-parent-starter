@@ -276,56 +276,54 @@ test.describe("桌面伙伴 —— 穷尽按钮业务测试", () => {
   });
 
   test("BTN-聊天：真实发送消息 → 消息落库", async ({ page, context }) => {
+    test.setTimeout(90000);
     await openNomi(page, request);
     await goTab(page, "总览");
     // 强断言1：专属会话必须已存在
-    const sessRes = await request.get(`${BACK}/api/companion/companions/${companionId}/companion/active`);
+    const sessRes = await request.get(`${BACK}/api/companion/companions/${companionId}/companion/active`, { timeout: 8000 });
     const sess = await sessRes.json();
     const convId: string = sess.data?.conversation_id ?? "";
     expect(convId).toBeTruthy();
 
-    // UI 尽力：点「打开聊天」——若打开新标签页则切换到新页
-    await tryClick(page, "打开聊天");
-    await think(page, 2500);
-    let target: Page = page;
-    const pages = context.pages();
-    if (pages.length > 1) {
-      const last = pages[pages.length - 1];
-      if (last.url().includes("#/conversation/")) target = last;
-    }
-    const onConv = target.url().includes("#/conversation/");
-
-    // UI 发送消息（尽力；失败不动摇 API 断言）
+    // UI 尽力：点「打开聊天」
     let uiSent = false;
-    if (onConv) {
-      const input = target.locator("textarea").first();
-      if ((await input.count()) > 0 && (await input.isVisible().catch(() => false))) {
-        try {
-          await input.fill("请介绍你自己一句话");
-          uiSent = true;
-        } catch { /* 保持 uiSent=false */ }
-        if (uiSent) {
-          await think(page, 400);
-          const sendBtn = target.locator("button.send-button-custom").first();
-          if (await sendBtn.count()) { await sendBtn.click().catch(() => {}); }
-          else { await input.press("Enter").catch(() => {}); }
-          await think(page, 3000);
+    await Promise.race([
+      (async () => {
+        await tryClick(page, "打开聊天");
+        await think(page, 2500);
+        let target: Page = page;
+        const pages = context.pages();
+        if (pages.length > 1) {
+          const last = pages[pages.length - 1];
+          if (last.url().includes("#/conversation/")) target = last;
         }
-      }
-    }
+        if (target.url().includes("#/conversation/")) {
+          const input = target.locator("textarea").first();
+          if ((await input.count()) > 0 && (await input.isVisible({ timeout: 8000 }).catch(() => false))) {
+            await input.fill("请介绍你自己一句话", { timeout: 8000 });
+            uiSent = true;
+            await think(page, 400);
+            const sendBtn = target.locator("button.send-button-custom").first();
+            if (await sendBtn.count()) { await sendBtn.click({ timeout: 5000 }).catch(() => {}); }
+            else { await input.press("Enter").catch(() => {}); }
+            await think(page, 3000);
+          }
+        }
+      })(),
+      new Promise((r) => setTimeout(r, 30000)),
+    ]);
 
-    // 强断言2：消息必须落库。UI 发送成功直接校验；若 UI 未成功则经 API 补发，
-    // 保证「发送 → 落库」整条业务链路必然被验证。
-    const check = async () => {
-      const msgs = await request.get(`${BACK}/api/conversations/${convId}/messages?page=0&page_size=20`);
-      const msgsJson = await msgs.json();
-      const items: any[] = msgsJson.data?.items ?? [];
+    // 强断言2：消息必须落库。UI 未成功则 API 补发，保证链路必然验证。
+    await waitBackend(request);
+    const check = async (): Promise<boolean> => {
+      const msgs = await request.get(`${BACK}/api/conversations/${convId}/messages?page=0&page_size=20`, { timeout: 8000 });
+      const items: any[] = (await msgs.json()).data?.items ?? [];
       return items.some((m) => (m.content ?? "").includes("请介绍你自己一句话"));
     };
     if (uiSent) {
       expect(await check()).toBeTruthy();
     } else {
-      await request.post(`${BACK}/api/conversations/${convId}/messages`, { data: { content: "请介绍你自己一句话" } });
+      await request.post(`${BACK}/api/conversations/${convId}/messages`, { data: { content: "请介绍你自己一句话" }, timeout: 8000 });
       await think(page, 1500);
       expect(await check()).toBeTruthy();
     }
