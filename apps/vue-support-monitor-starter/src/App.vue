@@ -229,7 +229,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
       width: 3px;
       border-radius: 0 2px 2px 0;
       background: var(--brand-500);
-      box-shadow: 0 0 6px rgba(109, 93, 252, 0.5);
+      box-shadow: var(--badge-glow);
     }
   }
 }
@@ -285,8 +285,8 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   animation: notePulse 1.6s ease-in-out infinite;
 }
 @keyframes notePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 74, 93, 0.4); }
-  50% { box-shadow: 0 0 0 4px rgba(240, 74, 93, 0); }
+  0%, 100% { box-shadow: var(--alarm-glow-in); }
+  50% { box-shadow: var(--alarm-glow-out); }
 }
 .bell-wrap { position: relative; display: inline-flex; }
 .crumb {

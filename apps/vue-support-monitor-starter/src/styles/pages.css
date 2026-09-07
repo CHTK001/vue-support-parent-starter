@@ -46,7 +46,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 56px;
-  background: linear-gradient(180deg, rgba(109, 93, 252, 0.035), transparent);
+  background: linear-gradient(180deg, var(--selection-bg-fade), transparent);
   pointer-events: none;
 }
 .kpi:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-color: var(--border-default); }
