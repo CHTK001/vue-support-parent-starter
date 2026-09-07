@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>远控控制端测试</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus/dist/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/element-plus"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; height: 100vh; }
+    .remote-control { display: flex; gap: 16px; height: 100%; padding: 16px; }
+    .connect-panel { width: 320px; flex-shrink: 0; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; }
+    .work-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .terminal-container { flex: 1; background: #0c0c0c; color: #00ff41; font-family: monospace; font-size: 13px; padding: 12px; overflow-y: auto; white-space: pre-wrap; min-height: 400px; }
+    .terminal-input { margin-top: 8px; }
+    .desktop-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #0c0c0c; min-height: 400px; }
+    .desktop-container canvas { max-width: 100%; max-height: 100%; }
+    .placeholder { color: #666; font-size: 14px; }
+    .el-card { background: #16213e; border-color: #0f3460; }
+    .el-card__header { border-bottom-color: #0f3460; }
+    .el-form-item__label { color: #8892b0; }
+    .el-input__wrapper { background: #0f3460; box-shadow: 0 0 0 1px #233554 inset; }
+    .el-input__inner { color: #e0e0e0; }
+    .el-select .el-input__wrapper { background: #0f3460; }
+    .el-tabs__item { color: #8892b0; }
+    .el-tabs__item.is-active { color: #e94560; }
+    .el-tabs__nav-wrap { background: #16213e; }
+    .el-tabs--border-card { background: #16213e; border-color: #0f3460; }
+    .el-tabs__content { padding: 16px; }
+    .el-button--primary { background: #e94560; border-color: #e94560; }
+    .el-button--primary:hover { background: #c81d4e; }
+    .el-button--danger { background: #ff4757; border-color: #ff4757; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="remote-control">
+      <el-card class="connect-panel" shadow="never">
+        <template #header>
+          <div class="panel-header">
+            <span>远程连接</span>
+            <el-tag :type="wsConnected ? 'success' : 'info'" size="small" data-testid="ws-status">
+              {{ wsConnected ? '已连接' : '未连接' }}
+            </el-tag>
+          </div>
+        </template>
+        <el-form :model="form" label-width="100px" :disabled="wsConnected">
+          <el-form-item label="被控端ID">
+            <el-input v-model="form.agentId" placeholder="agent-xxx" data-testid="input-agent-id" />
+          </el-form-item>
+          <el-form-item label="验证码">
+            <el-input v-model="form.verifyCode" placeholder="0000" data-testid="input-verify-code" />
+          </el-form-item>
+          <el-form-item label="连接方式">
+            <el-select v-model="form.connMethod" style="width: 100%" data-testid="select-conn-method">
+              <el-option label="SSH (WebSocket)" value="ssh" />
+              <el-option label="远程桌面 (WebRTC)" value="rdp" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="反向隧道">
+            <el-switch v-model="form.reverseTunnel" data-testid="switch-reverse-tunnel" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="doConnect" :loading="connecting" data-testid="btn-connect">连接</el-button>
+            <el-button type="danger" @click="doDisconnect" :disabled="!wsConnected" data-testid="btn-disconnect">断开</el-button>
+          </el-form-item>
+        </el-form>
+        <el-alert v-if="verifyResult" :title="verifyResult.message || ''" :type="verifyResult.success ? 'success' : 'error'" show-icon :closable="false" data-testid="verify-result" />
+      </el-card>
+
+      <div class="work-area">
+        <el-tabs v-model="activeTab" type="border-card">
+          <el-tab-pane label="SSH 终端" name="ssh">
+            <div ref="terminalRef" class="terminal-container" data-testid="terminal" />
+            <div class="terminal-input">
+              <el-input v-model="cmdInput" placeholder="输入命令..." @keydown.enter="sendCmd" :disabled="!wsConnected" data-testid="input-cmd">
+                <template #append>
+                  <el-button @click="sendCmd" :disabled="!wsConnected" data-testid="btn-send">发送</el-button>
+                </template>
+              </el-input>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="远程桌面" name="desktop">
+            <div class="desktop-container" data-testid="desktop-container">
+              <span v-if="!desktopFrame" class="placeholder">等待远程桌面数据...</span>
+              <canvas v-else ref="desktopCanvas" data-testid="desktop-canvas" />
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, nextTick, onBeforeUnmount } = Vue;
+
+    const app = createApp({
+      setup() {
+        const form = reactive({ agentId: '', verifyCode: '', connMethod: 'ssh', reverseTunnel: false });
+        const connecting = ref(false);
+        const wsConnected = ref(false);
+        const verifyResult = ref(null);
+        const activeTab = ref('ssh');
+        const cmdInput = ref('');
+        const terminalRef = ref(null);
+        const desktopCanvas = ref(null);
+        const desktopFrame = ref(false);
+        let ws = null;
+        let sshSessionId = null;
+
+        function doConnect() {
+          if (!form.agentId || !form.verifyCode) {
+            ElementPlus.ElMessage.warning('请填写ID和验证码');
+            return;
+          }
+          connecting.value = true;
+          // Mock verify - simulate gateway response
+          setTimeout(() => {
+            verifyResult.value = { success: true, message: '验证通过! Agent类型:SHELL, 连接方式:' + form.connMethod };
+            connecting.value = false;
+            // Mock WebSocket connection
+            wsConnected.value = true;
+            ElementPlus.ElMessage.success('已连接到网关');
+            if (form.connMethod === 'ssh') {
+              sshSessionId = 'ssh-' + Date.now();
+            }
+          }, 500);
+        }
+
+        function doDisconnect() {
+          wsConnected.value = false;
+          sshSessionId = null;
+          ws = null;
+          ElementPlus.ElMessage.info('连接已断开');
+        }
+
+        function sendCmd() {
+          if (!cmdInput.value || !wsConnected.value) return;
+          const terminal = terminalRef.value;
+          if (terminal) {
+            const span = document.createElement('span');
+            span.style.color = '#00ff41';
+            span.textContent = '$ ' + cmdInput.value + '\n';
+            terminal.appendChild(span);
+            terminal.scrollTop = terminal.scrollHeight;
+          }
+          cmdInput.value = '';
+        }
+
+        function switchTab(name) {
+          activeTab.value = name;
+        }
+
+        return { form, connecting, wsConnected, verifyResult, activeTab, cmdInput, terminalRef, desktopCanvas, desktopFrame, doConnect, doDisconnect, sendCmd, switchTab };
+      }
+    });
+    app.use(ElementPlus);
+    app.mount('#app');
+  </script>
+</body>
+</html>

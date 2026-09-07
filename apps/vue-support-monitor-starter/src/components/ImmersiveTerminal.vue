@@ -91,11 +91,11 @@ function connect(conn: NonNullable<typeof props.connection>): void {
     const tag = el.tagName;
     return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
   };
-  keyboard.onkeydown = keysym => {
+  keyboard.onkeydown = (keysym: number) => {
     if (typingInLocalInput()) return true;
     client?.sendKeyEvent(true, keysym);
   };
-  keyboard.onkeyup = keysym => {
+  keyboard.onkeyup = (keysym: number) => {
     if (typingInLocalInput()) return true;
     client?.sendKeyEvent(false, keysym);
   };
@@ -105,9 +105,9 @@ function connect(conn: NonNullable<typeof props.connection>): void {
   // 注意：绑定走模板 @mousedown（见 it-display），组件内 addEventListener 不可靠。
 
   mouse = new Guacamole.Mouse(el);
-  mouse.onmousedown = state => client?.sendMouseState(state);
-  mouse.onmouseup = state => client?.sendMouseState(state);
-  mouse.onmousemove = state => client?.sendMouseState(state);
+  mouse.onmousedown = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
+  mouse.onmouseup = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
+  mouse.onmousemove = (state: Guacamole.MouseEvent) => client?.sendMouseState(state);
 
   client.connect();
 }
@@ -251,7 +251,7 @@ onBeforeUnmount(teardown);
     </div>
     <div class="it-body">
       <div v-if="!connection" class="it-empty">
-        <el-icon :size="48" :color="var(--text-tertiary)"><Monitor /></el-icon>
+        <el-icon :size="48" :color="'var(--text-tertiary)'"><Monitor /></el-icon>
         <div class="it-empty-title">从左侧选择一台资产开始控制</div>
         <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH / RDP / VNC</div>
       </div>
