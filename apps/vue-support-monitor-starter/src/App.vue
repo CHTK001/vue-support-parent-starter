@@ -214,10 +214,10 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   border-radius: var(--radius-md, 8px);
   cursor: pointer;
   position: relative;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s var(--ease-out, ease), color 0.15s;
   &:hover { background: var(--bg-hover, #f1f2f8); color: var(--text-primary); }
   &.active {
-    background: var(--brand-50);
+    background: linear-gradient(90deg, var(--brand-100) 0%, var(--brand-50) 70%, transparent 100%);
     color: var(--brand-600);
     font-weight: 600;
     &::before {
@@ -229,6 +229,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
       width: 3px;
       border-radius: 0 2px 2px 0;
       background: var(--brand-500);
+      box-shadow: 0 0 6px rgba(109, 93, 252, 0.5);
     }
   }
 }
@@ -281,6 +282,11 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   height: 7px;
   border-radius: 50%;
   background: var(--status-alarm, #f04a5d);
+  animation: notePulse 1.6s ease-in-out infinite;
+}
+@keyframes notePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 74, 93, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(240, 74, 93, 0); }
 }
 .bell-wrap { position: relative; display: inline-flex; }
 .crumb {
@@ -300,6 +306,13 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   background: var(--bg-page);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  &:hover { border-color: var(--border-default); }
+  &:focus-within {
+    background: var(--bg-container);
+    border-color: var(--brand-500);
+    box-shadow: var(--focus-ring);
+  }
   input {
     flex: 1;
     min-width: 0;
@@ -345,7 +358,8 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
-.main > :deep(.page-enter) {
-  animation: pageFade 0.25s ease;
-}
+/* 路由切换过渡（<transition name="page-fade">） */
+.page-fade-enter-active { animation: pageFade 0.22s var(--ease-out, ease); }
+.page-fade-leave-active { transition: opacity 0.12s ease; }
+.page-fade-leave-to { opacity: 0; }
 </style>
