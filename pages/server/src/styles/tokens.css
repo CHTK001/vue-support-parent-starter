@@ -85,6 +85,26 @@ body {
   line-height: 1.5;
 }
 
+/* 告警级别色快捥类（对齐 vue-support-monitor-starter） */
+.lv-p0 { color: var(--sev-p0-text); background: var(--sev-p0-bg); border-color: var(--sev-p0-border); }
+.lv-p1 { color: var(--sev-p1-text); background: var(--sev-p1-bg); border-color: var(--sev-p1-border); }
+.lv-p2 { color: var(--sev-p2-text); background: var(--sev-p2-bg); border-color: var(--sev-p2-border); }
+.lv-p3 { color: var(--sev-p3-text); background: var(--sev-p3-bg); border-color: var(--sev-p3-border); }
+.lv-p4 { color: var(--sev-p4-text); background: var(--sev-p4-bg); border-color: var(--sev-p4-border); }
+
+/* 全局打磨：滚动条 / 选区 */
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-thumb-hover); }
+*::-webkit-scrollbar-track { background: transparent; }
+::selection { background: var(--selection-bg); }
+
 /* 页面容器 */
 .page-container {
   max-width: 1200px;
