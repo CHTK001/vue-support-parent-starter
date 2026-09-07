@@ -120,6 +120,10 @@ export async function tauriGetPath(name: 'desktop' | 'home' | 'downloads'): Prom
 // Tauri exposes no zoom *getter*; remember the last value set this session.
 let lastZoomFactor = 1;
 export async function tauriSetZoom(factor: number): Promise<number> {
+  // Guard against partial Tauri init: __TAURI_INTERNALS__ may exist but
+  // metadata (currentWindow / currentWebview) is not populated yet.
+  const internals = typeof window !== 'undefined' ? (window as Record<string, unknown>).__TAURI_INTERNALS__ : undefined;
+  if (!internals || !(internals as Record<string, unknown>)?.metadata) return factor;
   const { getCurrentWebview } = await import('@tauri-apps/api/webview');
   await getCurrentWebview().setZoom(factor);
   lastZoomFactor = factor;
