@@ -70,8 +70,13 @@ const offenders = (predicate: (src: Source) => boolean): string[] =>
   corpus.filter(predicate).map((src) => src.name);
 
 describe('workspace tab registry', () => {
-  test('is the seven tabs from the redesign, in reading order', () => {
-    expect([...WORKSPACE_TABS]).toEqual(['overview', 'memory', 'remote', 'evolution', 'skills', 'history', 'other']);
+  test('is the six visible tabs from the redesign, in reading order (remote 已按产品要求隐藏)', () => {
+    expect([...WORKSPACE_TABS]).toEqual(['overview', 'memory', 'evolution', 'skills', 'history', 'other']);
+  });
+
+  test('remote tab is hidden — WORKSPACE_TABS 不再包含 remote', () => {
+    expect(WORKSPACE_TABS.includes('remote')).toBe(false);
+    expect(isWorkspaceTabKey('remote')).toBe(false);
   });
 
   test('rejects the retired tab keys so a stale deep link falls back instead of blanking', () => {

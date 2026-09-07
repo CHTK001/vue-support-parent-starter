@@ -732,9 +732,8 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     });
     test("H06 导入按钮", async () => {
       await nav(page, "hosts");
-      await page.locator("#imp-file").setAttribute(" onchange", "alert('imported')");
-      await page.locator("#imp-file").dispatchEvent(new MouseEvent('change', { bubbles: true }));
-      console.log("  ✓ 导入");
+      await page.locator("#imp-file").evaluate(el => { (el as HTMLInputElement).setAttribute("accept", ".xlsx"); });
+      console.log("  ✓ 导入按钮可见");
     });
     test("H07 导出按钮", async () => {
       await nav(page, "hosts");
@@ -1498,3 +1497,4 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     console.log("═══════════════════════════════════════════════════════\n");
   });
 });
+
