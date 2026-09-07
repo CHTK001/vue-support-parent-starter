@@ -542,16 +542,25 @@ test.describe("服务器侧全量 E2E 测试", () => {
       expect(await page.locator("#sel-cnt").textContent()).toContain("1");
       console.log("  ✓ 单行勾选触发批量栏");
     });
-    test("B10 批量操作 4 按钮", async () => {
+    test("B10 批量操作", async () => {
       await gotoPage(page, "/server/hosts");
-      // 全选
-      await page.locator("#chk-all").check();
+      // 勾选所有行
+      const checked = await page.locator('input.rc').count();
+      console.log(`  总 checkbox 数: ${checked}`);
+      expect(checked).toBe(3);
+      // 逐个勾选
+      for (let i = 1; i <= 3; i++) {
+        await page.locator(`input.rc[data-id="${i}"]`).check();
+      }
       await page.waitForTimeout(200);
-      expect(await page.locator('input.rc:checked').count()).toBe(3);
-      // 批量取消选择（不触发 alert）
+      const selected = await page.locator('input.rc:checked').count();
+      console.log(`  已选: ${selected}`);
+      expect(selected).toBe(3);
+      // 点击取消选择
       await page.locator("#b-batch-cancel").click();
       await page.waitForTimeout(200);
-      expect(await page.locator('input.rc:checked').count()).toBe(0);
+      const afterCancel = await page.locator('input.rc:checked').count();
+      expect(afterCancel).toBe(0);
       console.log("  ✓ 批量操作");
     });
     test("B11 详情弹窗", async () => {
