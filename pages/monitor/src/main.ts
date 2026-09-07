@@ -35,6 +35,7 @@ import { install as ReKitInstall } from "@repo/ui/re-kit";
 import App from "./App.vue";
 import router from "./router";
 import "@repo/ui/components/shared/re-inputs.css";
+import "./styles/tokens.css";
 
 async function installSinglePage(app: VueApp): Promise<void> {
   if (import.meta.env.DEV) {
