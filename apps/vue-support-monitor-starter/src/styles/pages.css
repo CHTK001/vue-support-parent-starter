@@ -292,3 +292,59 @@
 .dim { color: var(--text-tertiary); }
 .muted { color: var(--text-tertiary); font-size: 12px; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   Tag / 级别徽标（WorkbenchView · AlarmsView 历史引用但从未定义，此处兜底）
+   用法：<span class="tag sev-P0">P0</span>
+   ============================================================ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.tag.sev-P0 { color: #9b1c2e; background: #fdecef; border-color: #fbc0c9; }
+.tag.sev-P1 { color: #a4341a; background: #fff1ed; border-color: #fcc4b3; }
+.tag.sev-P2 { color: #8a5a00; background: #fff7e6; border-color: #fde2a4; }
+.tag.sev-P3 { color: #0f6e3a; background: #ecfdf3; border-color: #bbe5c8; }
+.tag.sev-P4 { color: #475569; background: #eef2f7; border-color: #cfd6e0; }
+
+/* ============================================================
+   迷你进度条（Tshark/HostDetail 协议占比、磁盘使用率）
+   ============================================================ */
+.bar-fill {
+  transition: width 0.4s var(--ease-out, ease);
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%);
+  background-repeat: no-repeat;
+}
+
+/* ============================================================
+   空态（图标 + 主副文案）
+   ============================================================ */
+.empty-state {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg, 12px);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(109, 93, 252, 0.04), transparent 70%),
+    var(--bg-elevated);
+}
+.empty-state::before {
+  content: "◎";
+  display: block;
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: var(--brand-400);
+  opacity: 0.65;
+}
