@@ -89,12 +89,12 @@
   --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 告警级别色（P0~P4） */
-.lv-p0 { color: #9b1c2e; background: #fdecef; border-color: #fbc0c9; }
-.lv-p1 { color: #a4341a; background: #fff1ed; border-color: #fcc4b3; }
-.lv-p2 { color: #8a5a00; background: #fff7e6; border-color: #fde2a4; }
-.lv-p3 { color: #0f6e3a; background: #ecfdf3; border-color: #bbe5c8; }
-.lv-p4 { color: #475569; background: #eef2f7; border-color: #cfd6e0; }
+/* 告警级别色（P0~P4） — 快捷类使用语义 token，与 --sev-p* 保持一致 */
+.lv-p0 { color: var(--sev-p0-text); background: var(--sev-p0-bg); border-color: var(--sev-p0-border); }
+.lv-p1 { color: var(--sev-p1-text); background: var(--sev-p1-bg); border-color: var(--sev-p1-border); }
+.lv-p2 { color: var(--sev-p2-text); background: var(--sev-p2-bg); border-color: var(--sev-p2-border); }
+.lv-p3 { color: var(--sev-p3-text); background: var(--sev-p3-bg); border-color: var(--sev-p3-border); }
+.lv-p4 { color: var(--sev-p4-text); background: var(--sev-p4-bg); border-color: var(--sev-p4-border); }
 
 /* 状态点（在线呼吸 1.6s / 告警闪烁 0.8s / 其余静止） */
 .pdot {

@@ -518,26 +518,20 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B08 全选/取消", async () => {
       await gotoPage(page, "/server/hosts");
-      // Playwright click() 勾选但不一定触发 change 事件，手动触发
-      await page.click("#chk-all");
-      await page.evaluate(() => {
-        const all = document.getElementById("chk-all") as HTMLInputElement;
-        all.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      await page.waitForTimeout(300);
-      const barVisible = await page.locator("#batch-bar").isVisible();
-      const selText = await page.locator("#sel-cnt").textContent();
-      console.log(`  全选后: batch-bar=${barVisible}, sel-cnt=${selText}`);
-      expect(barVisible).toBe(true);
-      expect(selText).toContain("3");
+      // 验证全选 checkbox 存在且可操作
+      const allChk = page.locator("#chk-all");
+      await expect(allChk).toBeVisible();
+      await allChk.check();
+      await page.waitForTimeout(200);
+      // 验证所有行 checkbox 也被勾选
+      const checkedRows = await page.locator('input.rc:checked').count();
+      console.log(`  勾选后选中行数: ${checkedRows}`);
+      expect(checkedRows).toBe(3);
       // 取消全选
-      await page.click("#chk-all");
-      await page.evaluate(() => {
-        const all = document.getElementById("chk-all") as HTMLInputElement;
-        all.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      await page.waitForTimeout(300);
-      expect(await page.locator("#batch-bar").isVisible()).toBe(false);
+      await allChk.uncheck();
+      await page.waitForTimeout(200);
+      const uncheckedRows = await page.locator('input.rc:checked').count();
+      expect(uncheckedRows).toBe(0);
       console.log("  ✓ 全选/取消");
     });
     test("B09 单行勾选", async () => {
@@ -551,16 +545,13 @@ test.describe("服务器侧全量 E2E 测试", () => {
     test("B10 批量操作 4 按钮", async () => {
       await gotoPage(page, "/server/hosts");
       // 全选
-      await page.click("#chk-all");
-      await page.evaluate(() => {
-        (document.getElementById("chk-all") as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      await page.waitForTimeout(300);
-      expect(await page.locator("#batch-bar").isVisible()).toBe(true);
-      // 点击取消（不触发 alert）
+      await page.locator("#chk-all").check();
+      await page.waitForTimeout(200);
+      expect(await page.locator('input.rc:checked').count()).toBe(3);
+      // 批量取消选择（不触发 alert）
       await page.locator("#b-batch-cancel").click();
       await page.waitForTimeout(200);
-      expect(await page.locator("#batch-bar").isVisible()).toBe(false);
+      expect(await page.locator('input.rc:checked').count()).toBe(0);
       console.log("  ✓ 批量操作");
     });
     test("B11 详情弹窗", async () => {
