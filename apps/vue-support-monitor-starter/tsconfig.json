@@ -1,13 +1,21 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@pages/server/*": ["../../pages/server/src/*"],
+      "@pages/server": ["../../pages/server/src/index.ts"],
+      "@pages/monitor/*": ["../../pages/monitor/src/*"],
+      "@pages/monitor": ["../../pages/monitor/src/index.ts"]
+    }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.vue",
     "src/**/*.d.ts",
     "../../packages/core/src/**/*.d.ts",
+    "../../pages/server/src/**/*.d.ts",
     "../../pages/message/src/**/*.d.ts",
     "../../pages/hotsport/src/**/*.d.ts"
   ]
