@@ -36,19 +36,18 @@ export default defineConfig(({ mode }) => {
   // Same loopback host on both sides — keep the original Host header so the
   // backend's host-only session cookie maps cleanly back onto 127.0.0.1:5173.
   const httpProxy = { target: apiTarget, changeOrigin: false };
-  const proxy = webdev
-    ? {
-        '/api': httpProxy,
-        // Spring AI starter 管理端契约（/v2/v1/chat/completions、/v2/ai/bot-binding 等）。
-        // 与 /api 同目标：本地开发即 8787 网关本身；部署态由 nomifun-web 反代。
-        '/v2': httpProxy,
-        '/login': httpProxy,
-        '/logout': httpProxy,
-        '/qr-login': httpProxy,
-        '/health': httpProxy,
-        '/ws': { target: wsTarget, ws: true, changeOrigin: false },
-      }
-    : undefined;
+  // In both webdev and plain dev mode, proxy /v2/* to the backend so that
+  // capabilities / config endpoints are reachable without a manual __backendPort
+  // injection (which only exists in the Tauri desktop shell).
+  const proxy = {
+    '/api': httpProxy,
+    '/v2': httpProxy,
+    '/login': httpProxy,
+    '/logout': httpProxy,
+    '/qr-login': httpProxy,
+    '/health': httpProxy,
+    '/ws': { target: wsTarget, ws: true, changeOrigin: false },
+  };
 
   return {
     root: __dirname,
