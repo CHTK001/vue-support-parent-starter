@@ -74,7 +74,7 @@ onMounted(fetchAll);
       </div>
     </div>
 
-    <div v-if="loadError" class="as-error" style="margin-bottom:16px">
+    <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
@@ -108,21 +108,21 @@ onMounted(fetchAll);
       </div>
     </section>
 
-    <section class="cols-2-equal-responsive" style="margin-bottom:16px">
+    <section class="cols-2-equal-responsive">
       <div class="card">
         <div class="card-head"><span class="card-title">告警等级分布</span></div>
-        <div style="display:flex;align-items:center;gap:24px;padding:4px 0">
-          <div :style="{width:'120px',height:'120px',borderRadius:'50%',flexShrink:0,position:'relative',...donutStyle}">
-            <div style="position:absolute;inset:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-container);border-radius:50%">
-              <div style="font-size:22px;font-weight:700">{{ totalAlarms }}</div>
-              <div style="font-size:11px;color:var(--text-tertiary)">事件</div>
+        <div class="donut-wrap">
+          <div class="donut" :style="donutStyle">
+            <div class="donut-center">
+              <div class="donut-value">{{ totalAlarms }}</div>
+              <div class="donut-label">事件</div>
             </div>
           </div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
-            <div v-for="lv in LEVELS" :key="lv" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary)">
-              <span :style="{width:'8px',height:'8px',borderRadius:'2px',background:LEVEL_COLORS[lv],flexShrink:0}" />
-              <span style="flex:1">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
-              <span class="tag" :class="`sev-${lv}`" style="font-size:11px;padding:1px 6px">{{ levelCounts[lv] }}</span>
+          <div class="donut-legend">
+            <div v-for="lv in LEVELS" :key="lv" class="legend-item">
+              <span class="legend-dot" :style="{ background: LEVEL_COLORS[lv] }" />
+              <span class="legend-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
+              <span class="tag" :class="`sev-${lv}`">{{ levelCounts[lv] }}</span>
             </div>
           </div>
         </div>
@@ -141,29 +141,15 @@ onMounted(fetchAll);
             </tr>
           </tbody>
         </table>
-        <div v-if="totalAlarms > 5" style="padding:8px 12px;text-align:right">
+        <div v-if="totalAlarms > 5" class="see-all">
           <ReButton icon="ArrowRight" :show-text="true" link type="primary" size="small" @click="router.push('/alarms')">查看全部</ReButton>
         </div>
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">快捷入口</span></div>
-        <div class="quick-grid">
-          <button class="quick" @click="router.push('/terminal')">
-            <span class="q-ic" style="color:var(--brand-500);background:var(--brand-50)"><ReIcon name="Position" :size="18" /></span>
-            <span class="q-meta"><b>远程控制台</b><span>SSH / RDP / VNC</span></span>
-            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
-          </button>
-          <button class="quick" @click="router.push('/assets')">
-            <span class="q-ic" style="color:var(--metric-cpu);background:rgba(59,130,246,.1)"><ReIcon name="Monitor" :size="18" /></span>
-            <span class="q-meta"><b>主机资产</b><span>台账与凭据管理</span></span>
-            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
-          </button>
-          <button class="quick" @click="router.push('/alarms')">
-            <span class="q-ic" style="color:var(--metric-redis);background:rgba(239,68,68,.08)"><ReIcon name="Bell" :size="18" /></span>
-            <span class="q-meta"><b>告警中心</b><span>事件流与处理</span></span>
-            <ReIcon name="ArrowRight" :size="14" class="q-arrow" />
-          </button>
-        </div>
+        <ReButton icon="Position" :show-text="true" size="small" class="w100" @click="router.push('/terminal')">远程控制台</ReButton>
+        <ReButton icon="Monitor" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
+        <ReButton icon="Bell" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
       </div>
     </section>
   </div>
@@ -171,7 +157,7 @@ onMounted(fetchAll);
 
 <style scoped>
 .w100 { width: 100%; justify-content: flex-start; }
-.as-error { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:#9b1c2e; background:#fdecef; border:1px solid #fbc0c9; border-radius:8px; }
+.as-error { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:var(--status-error-text); background:var(--status-error-bg); border:1px solid var(--status-error-border); border-radius:8px; }
 .kpi-ico {
   position: absolute;
   top: 12px;

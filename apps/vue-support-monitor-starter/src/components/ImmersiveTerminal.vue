@@ -363,8 +363,8 @@ onBeforeUnmount(teardown);
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  &.on { background: #67c23a; }
-  &.off { background: #909399; }
+  &.on { background: var(--pulse-online); }
+  &.off { background: var(--pulse-offline); }
 }
 .it-mon-name {
   font-weight: 600;
@@ -468,7 +468,7 @@ onBeforeUnmount(teardown);
 .it-display {
   width: 100%;
   height: 100%;
-  background: #0d1117;
+  background: var(--terminal-bg);
   border-radius: 4px;
   overflow: auto;
   outline: none; /* tabindex 焦点环不显示，视觉无变化 */
