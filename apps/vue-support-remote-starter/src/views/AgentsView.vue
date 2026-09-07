@@ -64,8 +64,21 @@ const agents = ref<AgentRow[]>([]);
 
 const typeTag = (t: string) => (t === "PUSH" ? "warning" : "primary");
 
-/** 刷新（当前为示例数据；后端接口由 #5 接入后改为 fetch） */
-const refresh = () => {
+/** 刷新（真实后端接口 GET /api/remote/agents；后端不可达降级示例数据） */
+const refresh = async () => {
+  try {
+    const resp = await fetch("/api/remote/agents");
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        agents.value = data;
+        ElMessage.success("已刷新");
+        return;
+      }
+    }
+  } catch {
+    /* 后端不可达——走本地示例 */
+  }
   agents.value = [
     {
       id: "shell-agent1",
@@ -84,16 +97,25 @@ const refresh = () => {
       sshHost: "-",
     },
   ];
-  ElMessage.success("已刷新（示例数据）");
+  ElMessage.warning("后端不可达——显示示例数据");
 };
 
 const gotoRemote = (row: AgentRow) => {
   router.push({ path: "/remote", query: { agentId: row.id } });
 };
 
-const remove = (row: AgentRow) => {
+const remove = async (row: AgentRow) => {
   agents.value = agents.value.filter((a) => a.id !== row.id);
-  ElMessage.info(`已移除（本地示例）：${row.id}`);
+  try {
+    await fetch("/api/remote/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(agents.value),
+    });
+  } catch {
+    /* 后端不可达——仅本地 */
+  }
+  ElMessage.info(`已移除：${row.id}`);
 };
 
 onMounted(refresh);
