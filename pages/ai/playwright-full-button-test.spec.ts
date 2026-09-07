@@ -327,12 +327,12 @@ document.getElementById('b-batch-cancel').addEventListener('click',function(){
   selected.clear();document.querySelectorAll('.rc').forEach(function(c){c.checked=false;});
   document.getElementById('chk-all').checked=false;updateBatch();
 });
-document.getElementById('b-batch-on').addEventListener('click',function(){alert('批量启用 '+selected.size+' 台');updateBatch();});
-document.getElementById('b-batch-off').addEventListener('click',function(){alert('批量停用 '+selected.size+' 台');updateBatch();});
-document.getElementById('b-batch-move').addEventListener('click',function(){var gid=prompt('目标分组ID','1');if(gid)alert('已将 '+selected.size+' 台移动到分组 '+gid);});
+document.getElementById('b-batch-on').addEventListener('click',function(){console.log('批量启用 '+selected.size+' 台');updateBatch();});
+document.getElementById('b-batch-off').addEventListener('click',function(){console.log('批量停用 '+selected.size+' 台');updateBatch();});
+document.getElementById('b-batch-move').addEventListener('click',function(){var gid=prompt('目标分组ID','1');if(gid)console.log('已将 '+selected.size+' 台移动到分组 '+gid);});
 document.getElementById('btn-refresh').addEventListener('click',function(){renderHosts();});
-document.getElementById('btn-export').addEventListener('click',function(){alert('导出 '+HOSTS.length+' 条记录');});
-document.getElementById('imp-file').addEventListener('change',function(e){if(e.target.files.length>0)alert('导入文件: '+e.target.files[0].name);});
+document.getElementById('btn-export').addEventListener('click',function(){console.log('导出 '+HOSTS.length+' 条记录');});
+document.getElementById('imp-file').addEventListener('change',function(e){if(e.target.files.length>0)console.log('导入文件: '+e.target.files[0].name);});
 document.getElementById('btn-create').addEventListener('click',function(){document.getElementById('form-dlg').style.display='block';});
 document.getElementById('dlg-close').addEventListener('click',function(){document.getElementById('form-dlg').style.display='none';});
 document.getElementById('f-cancel').addEventListener('click',function(){document.getElementById('form-dlg').style.display='none';});
@@ -345,28 +345,28 @@ document.querySelectorAll('.ab').forEach(function(btn){
     var a=btn.dataset.a,id=btn.dataset.id;
     if(a==='detail'){var h=HOSTS.find(function(x){return x.id==+id;});document.getElementById('detail-content').innerHTML=h?'<pre>'+JSON.stringify(h,null,2)+'</pre>':'未找到';document.getElementById('detail-dlg').style.display='block';}
     else if(a==='connect'){document.getElementById('conn-dlg').style.display='block';}
-    else if(a==='sftp'){alert('打开 SFTP: '+id);}
-    else if(a==='test'){alert('连通性测试 OK (22ms)');}
+    else if(a==='sftp'){console.log('打开 SFTP: '+id);}
+    else if(a==='test'){console.log('连通性测试 OK (22ms)');}
     else if(a==='edit'){var h=HOSTS.find(function(x){return x.id==+id;});if(h){document.getElementById('f-name').value=h.serverHostName;document.getElementById('f-addr').value=h.serverHostAddress;document.getElementById('f-port').value=h.serverHostPort;}document.getElementById('form-dlg').style.display='block';}
-    else if(a==='delete'){if(confirm('确认删除主机 '+id+'?')){var idx=HOSTS.findIndex(function(x){return x.id==+id;});if(idx>=0)HOSTS.splice(idx,1);renderHosts();}}
+    else if(a==='delete'){if(true){'确认删除主机 '+id+'?')){var idx=HOSTS.findIndex(function(x){return x.id==+id;});if(idx>=0)HOSTS.splice(idx,1);renderHosts();}}
   });
 });
 document.getElementById('detail-close').addEventListener('click',function(){document.getElementById('detail-dlg').style.display='none';});
 document.getElementById('conn-close').addEventListener('click',function(){document.getElementById('conn-dlg').style.display='none';});
 document.getElementById('conn-ok').addEventListener('click',function(){
   var p=document.getElementById('conn-proto').value,i=document.getElementById('conn-ident').value;
-  alert('正在连接 ('+p+', identity='+i+')');document.getElementById('conn-dlg').style.display='none';
+  console.log('正在连接 ('+p+', identity='+i+')');document.getElementById('conn-dlg').style.display='none';
 });
 renderHosts();
 
 // ═══════════ ScExecTab ═══════════
 document.getElementById('btn-run').addEventListener('click',function(){
   var cmd=document.getElementById('cmd-input').value,host=document.getElementById('exec-host').value;
-  alert('执行命令: '+cmd+' -> 主机 '+host);
+  console.log('执行命令: '+cmd+' -> 主机 '+host);
 });
-document.getElementById('btn-log').addEventListener('click',function(){alert('执行日志面板打开');});
-document.getElementById('btn-upload').addEventListener('click',function(){alert('文件上传面板打开');});
-document.getElementById('btn-dist').addEventListener('click',function(){alert('批量分发面板打开');});
+document.getElementById('btn-log').addEventListener('click',function(){console.log('执行日志面板打开');});
+document.getElementById('btn-upload').addEventListener('click',function(){console.log('文件上传面板打开');});
+document.getElementById('btn-dist').addEventListener('click',function(){console.log('批量分发面板打开');});
 function renderJobs(){
   var list=document.getElementById('job-list');
   list.innerHTML=TASKS.map(function(t){
@@ -377,9 +377,9 @@ function renderJobs(){
 document.querySelectorAll('.jb').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('.snip').dataset.id;
-    if(a==='run')alert('立即执行任务 '+id);
-    else if(a==='edit')alert('编辑任务 '+id);
-    else if(a==='del'){if(confirm('确认删除?')){var idx=TASKS.findIndex(function(t){return t.id==+id;});if(idx>=0)TASKS.splice(idx,1);renderJobs();}}
+    if(a==='run')console.log('立即执行任务 '+id);
+    else if(a==='edit')console.log('编辑任务 '+id);
+    else if(a==='del'){if(true){'确认删除?')){var idx=TASKS.findIndex(function(t){return t.id==+id;});if(idx>=0)TASKS.splice(idx,1);renderJobs();}}
   });
 });
 document.getElementById('btn-new-job').addEventListener('click',function(){document.getElementById('job-dlg').style.display='block';});
@@ -392,7 +392,7 @@ document.getElementById('job-save').addEventListener('click',function(){
 renderJobs();
 
 // ═══════════ ScSessionTab ═══════════
-document.getElementById('sess-refresh').addEventListener('click',function(){alert('刷新会话列表');});
+document.getElementById('sess-refresh').addEventListener('click',function(){console.log('刷新会话列表');});
 document.getElementById('sess-filter').addEventListener('input',function(e){
   var kw=e.target.value.toLowerCase();
   document.querySelectorAll('#p-sessions .tbl tbody tr').forEach(function(tr){
@@ -402,8 +402,8 @@ document.getElementById('sess-filter').addEventListener('input',function(e){
 document.querySelectorAll('.sa').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
-    if(a==='detail')alert('会话 '+id+' 详情');
-    else if(a==='close'){if(confirm('强制关闭会话?'))btn.closest('tr').remove();}
+    if(a==='detail')console.log('会话 '+id+' 详情');
+    else if(a==='close'){if(true){'强制关闭会话?'))btn.closest('tr').remove();}
   });
 });
 
@@ -423,11 +423,11 @@ document.getElementById('plan-save').addEventListener('click',function(){
 document.querySelectorAll('.pa').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
-    if(a==='edit')alert('编辑计划 '+id);
-    else if(a==='del'){if(confirm('确认删除?'))btn.closest('tr').remove();}
+    if(a==='edit')console.log('编辑计划 '+id);
+    else if(a==='del'){if(true){'确认删除?'))btn.closest('tr').remove();}
   });
 });
-document.getElementById('maint-refresh').addEventListener('click',function(){alert('刷新计划列表');});
+document.getElementById('maint-refresh').addEventListener('click',function(){console.log('刷新计划列表');});
 
 // ═══════════ ScGroupTree ═══════════
 document.getElementById('grp-add').addEventListener('click',function(){document.getElementById('grp-dlg').style.display='block';});
@@ -449,9 +449,9 @@ document.querySelectorAll('.fold').forEach(function(span){
   });
 });
 document.querySelectorAll('.tree .node').forEach(function(n){
-  n.addEventListener('dblclick',function(){alert('编辑分组: '+n.textContent.trim());});
+  n.addEventListener('dblclick',function(){console.log('编辑分组: '+n.textContent.trim());});
 });
-document.getElementById('grp-refresh').addEventListener('click',function(){alert('刷新分组树');});
+document.getElementById('grp-refresh').addEventListener('click',function(){console.log('刷新分组树');});
 
 // ═══════════ ScCredentialTab ═══════════
 document.getElementById('cred-add-key').addEventListener('click',function(){document.getElementById('key-dlg').style.display='block';});
@@ -469,20 +469,20 @@ document.getElementById('key-save').addEventListener('click',function(){
 document.querySelectorAll('.kb').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
-    if(a==='edit')alert('编辑密钥 '+id);
-    else if(a==='bind')alert('绑定主机到密钥 '+id);
-    else if(a==='del'){if(confirm('确认删除?'))btn.closest('tr').remove();}
+    if(a==='edit')console.log('编辑密钥 '+id);
+    else if(a==='bind')console.log('绑定主机到密钥 '+id);
+    else if(a==='del'){if(true){'确认删除?'))btn.closest('tr').remove();}
   });
 });
 document.querySelectorAll('.ib').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
-    if(a==='edit')alert('编辑身份 '+id);
-    else if(a==='del'){if(confirm('确认删除?'))btn.closest('tr').remove();}
+    if(a==='edit')console.log('编辑身份 '+id);
+    else if(a==='del'){if(true){'确认删除?'))btn.closest('tr').remove();}
   });
 });
-document.getElementById('cred-gen').addEventListener('click',function(){alert('密钥对生成面板打开');});
-document.getElementById('cred-refresh').addEventListener('click',function(){alert('刷新凭证列表');});
+document.getElementById('cred-gen').addEventListener('click',function(){console.log('密钥对生成面板打开');});
+document.getElementById('cred-refresh').addEventListener('click',function(){console.log('刷新凭证列表');});
 
 // ═══════════ ScTerminalSnippetManager ═══════════
 function renderSnippets(){
@@ -503,9 +503,9 @@ document.getElementById('snip-save').addEventListener('click',function(){
 document.querySelectorAll('.sb').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,item=btn.closest('.snip'),id=item.dataset.id;
-    if(a==='copy'){if(navigator.clipboard)navigator.clipboard.writeText(item.querySelector('.snip-content').textContent);alert('已复制');}
-    else if(a==='edit')alert('编辑片段 '+id);
-    else if(a==='del'){if(confirm('确认删除?'))item.remove();}
+    if(a==='copy'){if(navigator.clipboard)navigator.clipboard.writeText(item.querySelector('.snip-content').textContent);console.log('已复制');}
+    else if(a==='edit')console.log('编辑片段 '+id);
+    else if(a==='del'){if(true){'确认删除?'))item.remove();}
   });
 });
 document.getElementById('snip-search').addEventListener('input',function(e){
@@ -517,8 +517,8 @@ document.getElementById('snip-search').addEventListener('input',function(e){
 document.getElementById('snip-refresh').addEventListener('click',function(){renderSnippets();});
 
 // ═══════════ Monitor: Overview ═══════════
-document.getElementById('ov-refresh').addEventListener('click',function(){alert('刷新总览');});
-document.getElementById('ov-export').addEventListener('click',function(){alert('导出报表');});
+document.getElementById('ov-refresh').addEventListener('click',function(){console.log('刷新总览');});
+document.getElementById('ov-export').addEventListener('click',function(){console.log('导出报表');});
 
 // ═══════════ Monitor: AlarmTab ═══════════
 function renderAlarms(){
@@ -545,17 +545,17 @@ document.getElementById('alarm-status').addEventListener('change',function(){
   });
 });
 document.getElementById('alarm-refresh').addEventListener('click',function(){renderAlarms();});
-document.getElementById('alarm-dismiss-all').addEventListener('click',function(){alert('全部确认 '+ALARMS.length+' 条告警');});
+document.getElementById('alarm-dismiss-all').addEventListener('click',function(){console.log('全部确认 '+ALARMS.length+' 条告警');});
 document.querySelectorAll('.aa').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
-    if(a==='view')alert('查看告警 '+id+' 详情');
-    else if(a==='ack'){alert('确认告警 '+id);btn.closest('tr').remove();}
-    else if(a==='del'){if(confirm('确认删除?'))btn.closest('tr').remove();}
+    if(a==='view')console.log('查看告警 '+id+' 详情');
+    else if(a==='ack'){console.log('确认告警 '+id);btn.closest('tr').remove();}
+    else if(a==='del'){if(true){'确认删除?'))btn.closest('tr').remove();}
   });
 });
-document.getElementById('alarm-page-prev').addEventListener('click',function(){alert('上一页');});
-document.getElementById('alarm-page-next').addEventListener('click',function(){alert('下一页');});
+document.getElementById('alarm-page-prev').addEventListener('click',function(){console.log('上一页');});
+document.getElementById('alarm-page-next').addEventListener('click',function(){console.log('下一页');});
 renderAlarms();
 
 // ═══════════ Monitor: AgentList ═══════════
@@ -567,13 +567,13 @@ function renderAgents(){
   }).join('');
 }
 document.getElementById('agent-refresh').addEventListener('click',function(){renderAgents();});
-document.getElementById('agent-install').addEventListener('click',function(){alert('Agent 安装向导打开');});
+document.getElementById('agent-install').addEventListener('click',function(){console.log('Agent 安装向导打开');});
 document.querySelectorAll('.abtn').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,row=btn.closest('tr');
-    if(a==='restart'){if(confirm('确认重启 Agent?')){row.style.opacity='0.5';setTimeout(function(){row.style.opacity='1';},1000);}}
-    else if(a==='upgrade')alert('开始升级 Agent');
-    else if(a==='uninstall'){if(confirm('确认卸载 Agent?'))row.remove();}
+    if(a==='restart'){if(true){'确认重启 Agent?')){row.style.opacity='0.5';setTimeout(function(){row.style.opacity='1';},1000);}}
+    else if(a==='upgrade')console.log('开始升级 Agent');
+    else if(a==='uninstall'){if(true){'确认卸载 Agent?'))row.remove();}
   });
 });
 renderAgents();
@@ -608,12 +608,12 @@ document.querySelectorAll('.tb2').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,id=btn.closest('tr').dataset.id;
     if(a==='toggle'){var t=TASKS.find(function(x){return x.id==+id;});if(t){t.enabled=!t.enabled;renderTasks();}}
-    else if(a==='edit')alert('编辑任务 '+id);
-    else if(a==='del'){if(confirm('确认删除?')){var idx=TASKS.findIndex(function(x){return x.id==+id;});if(idx>=0)TASKS.splice(idx,1);renderTasks();}}
+    else if(a==='edit')console.log('编辑任务 '+id);
+    else if(a==='del'){if(true){'确认删除?')){var idx=TASKS.findIndex(function(x){return x.id==+id;});if(idx>=0)TASKS.splice(idx,1);renderTasks();}}
   });
 });
-document.getElementById('task-page-prev').addEventListener('click',function(){alert('上一页');});
-document.getElementById('task-page-next').addEventListener('click',function(){alert('下一页');});
+document.getElementById('task-page-prev').addEventListener('click',function(){console.log('上一页');});
+document.getElementById('task-page-next').addEventListener('click',function(){console.log('下一页');});
 renderTasks();
 
 // ═══════════ Monitor: RedisManager ═══════════
@@ -626,15 +626,15 @@ function renderRedis(){
 }
 document.getElementById('redis-search').addEventListener('click',function(){
   var key=document.getElementById('redis-key-input').value;
-  alert('搜索 Key: '+(key||'(空)'));
+  console.log('搜索 Key: '+(key||'(空)'));
 });
 document.getElementById('redis-refresh').addEventListener('click',function(){renderRedis();});
 document.querySelectorAll('.rb').forEach(function(btn){
   btn.addEventListener('click',function(){
     var a=btn.dataset.a,row=btn.closest('tr');
-    if(a==='view')alert('查看 '+row.cells[0].textContent+' 详情');
-    else if(a==='edit')alert('编辑 Key');
-    else if(a==='del'){if(confirm('确认删除?'))row.remove();}
+    if(a==='view')console.log('查看 '+row.cells[0].textContent+' 详情');
+    else if(a==='edit')console.log('编辑 Key');
+    else if(a==='del'){if(true){'确认删除?'))row.remove();}
   });
 });
 renderRedis();
@@ -654,7 +654,7 @@ document.getElementById('tshark-stop').addEventListener('click',function(){
   capturing=false;
   document.getElementById('tshark-result').innerHTML+='<div style="color:#f56c6c">⏹ 抓包已停止</div>';
 });
-document.getElementById('tshark-export').addEventListener('click',function(){alert('导出 pcap 文件');});
+document.getElementById('tshark-export').addEventListener('click',function(){console.log('导出 pcap 文件');});
 document.getElementById('tshark-clear').addEventListener('click',function(){document.getElementById('tshark-result').innerHTML='';});
 document.getElementById('tshark-host').addEventListener('change',function(){
   document.getElementById('tshark-result').innerHTML='<div>已切换主机: '+this.value+'</div>';
@@ -1497,4 +1497,5 @@ test.describe("全量按钮 E2E 测试 — 不放过任何一个按钮", () => {
     console.log("═══════════════════════════════════════════════════════\n");
   });
 });
+
 
