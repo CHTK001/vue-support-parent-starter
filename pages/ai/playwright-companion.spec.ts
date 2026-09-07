@@ -115,11 +115,30 @@ async function apiEnsureSeed(request: APIRequestContext, name: string): Promise<
 
 // ── 打开 nomi 工作台 ─────────────────────────────────────────
 
-async function openNomi(page: Page): Promise<void> {
-  await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 20000 });
-  await page.waitForTimeout(4500);
-  // 等待工作台稳定（伙伴名单渲染）
-  await expect(page.locator("text=小蓝").first()).toBeVisible({ timeout: 15000 });
+async function openNomi(page: Page, request: APIRequestContext): Promise<void> {
+  // 前端 dev server 可能短暂不可用：重试直到页面加载
+  let loaded = false;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForTimeout(4000);
+      // 工作台稳定信号：伙伴名单渲染（存在「小蓝」或至少进入 nomi 布局）
+      const ready = await Promise.race([
+        page.locator("text=小蓝").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
+        page.locator("text=新建伙伴").first().waitFor({ state: "visible", timeout: 12000 }).then(() => true),
+      ]);
+      if (ready) {
+        loaded = true;
+        break;
+      }
+    } catch (e) {
+      // 后端可能也被打挂了——等待并在下一轮继续
+      await waitBackend(request);
+    }
+    await page.waitForTimeout(3000);
+  }
+  if (!loaded) throw new Error(`无法加载 nomi 工作台（${FRONT}/#/nomi）`);
+  await think(page, 500);
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -145,7 +164,7 @@ test.describe("桌面伙伴 E2E", () => {
   });
 
   test("T1 伙伴工作台加载 & 伙伴列表展示", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     expect(page.url()).toContain("#/nomi");
     // 伙伴名单里有「小蓝」+ 状态
     await expect(page.locator("text=小蓝").first()).toBeVisible();
@@ -156,14 +175,14 @@ test.describe("桌面伙伴 E2E", () => {
   });
 
   test("T2 总览 tab：伙伴形象 + 设定", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     await clickWorkspaceTab(page, "总览");
     await shot(page, "02-overview");
     await expect(page.locator("text=伙伴形象").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("T3 记忆&知识库 tab：展示真实记忆 + 操作", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     await clickWorkspaceTab(page, "记忆");
     await think(page, 800);
     await expect(page.locator("text=用户喜欢简洁明了的回答").first()).toBeVisible({ timeout: 10000 });
@@ -171,7 +190,7 @@ test.describe("桌面伙伴 E2E", () => {
   });
 
   test("T4 技能 tab：展示 E2E 技能", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     await clickWorkspaceTab(page, "技能");
     await think(page, 800);
     await expect(page.locator("text=git助手").first()).toBeVisible({ timeout: 10000 });
@@ -179,7 +198,7 @@ test.describe("桌面伙伴 E2E", () => {
   });
 
   test("T5 打开聊天 → 跳转伙伴专属会话", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     const chatBtn = page.locator("text=打开聊天").first();
     await expect(chatBtn).toBeVisible();
     const box = await chatBtn.boundingBox();
@@ -194,7 +213,7 @@ test.describe("桌面伙伴 E2E", () => {
   });
 
   test("T6 新建伙伴弹窗", async ({ page }) => {
-    await openNomi(page);
+    await openNomi(page, request);
     const btn = page.locator("text=新建伙伴").first();
     await expect(btn).toBeVisible();
     const box = await btn.boundingBox();
