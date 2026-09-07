@@ -62,7 +62,41 @@ const randomCode = () => {
 
 const now = () => new Date().toLocaleString("zh-CN", { hour12: false });
 
-const generate = () => {
+/** 保存接入码列表到后台（POST /api/remote/access-codes；后端不可达仅本地） */
+const save = async () => {
+  try {
+    await fetch("/api/remote/access-codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(codes.value),
+    });
+  } catch {
+    /* 后端不可达——仅本地 */
+  }
+};
+
+/** 加载（真实后端接口 GET /api/remote/access-codes；后端不可达降级示例数据） */
+const load = async () => {
+  try {
+    const resp = await fetch("/api/remote/access-codes");
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        codes.value = data;
+        return;
+      }
+    }
+  } catch {
+    /* 后端不可达——走本地示例 */
+  }
+  codes.value = [
+    { code: "CTRL-TOKEN-1", type: "控制端令牌", status: "启用", createdAt: now() },
+    { code: "VERIFY-0000", type: "被控端验证码", status: "启用", createdAt: now() },
+  ];
+  ElMessage.warning("后端不可达——显示示例数据");
+};
+
+const generate = async () => {
   codes.value.unshift({
     code: randomCode(),
     type: "控制端令牌",
@@ -70,6 +104,7 @@ const generate = () => {
     createdAt: now(),
   });
   ElMessage.success("已生成接入码");
+  await save();
 };
 
 const copyCode = (row: AccessCode) => {
@@ -78,16 +113,12 @@ const copyCode = (row: AccessCode) => {
   });
 };
 
-const toggle = (row: AccessCode) => {
+const toggle = async (row: AccessCode) => {
   row.status = row.status === "启用" ? "停用" : "启用";
+  await save();
 };
 
-onMounted(() => {
-  codes.value = [
-    { code: "CTRL-TOKEN-1", type: "控制端令牌", status: "启用", createdAt: now() },
-    { code: "VERIFY-0000", type: "被控端验证码", status: "启用", createdAt: now() },
-  ];
-});
+onMounted(load);
 </script>
 
 <style lang="scss" scoped>
