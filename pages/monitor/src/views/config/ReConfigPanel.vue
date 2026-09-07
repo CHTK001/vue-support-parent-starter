@@ -139,21 +139,73 @@ const doSaveAll = async () => {
 onMounted(loadConfig)
 </script>
 
-<style scoped>
+ <style scoped>
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-.panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.header-left h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: var(--el-text-color-primary); letter-spacing: -0.3px; }
-.header-desc { font-size: 13px; color: var(--el-text-color-secondary); }
-.save-btn { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-.save-btn:hover { transform: translateY(-1px); }
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
+}
+.header-left h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.header-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--border-radius-sm);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: var(--transition-base);
+}
+.save-btn:hover {
+  transform: translateY(-1px);
+}
 .btn-icon { width: 14px; height: 14px; }
 
-.config-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.card-title { display: flex; align-items: center; gap: 10px; }
-.card-name { font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); }
-.card-title :deep(.re-icon) { color: var(--el-color-primary); }
-:deep(.el-form-item__label) { font-weight: 500; color: var(--el-text-color-regular); font-size: 13px; margin-bottom: 4px; }
-.field-desc { display: block; font-size: 11.5px; color: var(--el-text-color-secondary); margin-top: 2px; }
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.card-title :deep(.re-icon) { color: var(--brand-500); }
+.card-title :deep(.el-icon) { color: var(--brand-500); }
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.field-desc {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
 </style>
