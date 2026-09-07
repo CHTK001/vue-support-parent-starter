@@ -443,7 +443,7 @@ function onSubmit(): void {
               <label class="field-label">公网 IP</label>
               <ReInput :model-value="form.serverHostPublicIp || '-'" disabled>
                 <template #suffix>
-                  <ReIcon v-if="form.serverHostPublicIp" name="Connection" color="#67c23a" />
+                  <ReIcon v-if="form.serverHostPublicIp" name="Connection" color="var(--pulse-online)" />
                 </template>
               </ReInput>
             </div>

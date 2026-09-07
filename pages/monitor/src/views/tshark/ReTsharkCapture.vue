@@ -289,11 +289,11 @@ function renderProtoChart() {
       radius: ['35%', '65%'],
       center: ['50%', '45%'],
       avoidLabelOverlap: true,
-      itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 1 },
+      itemStyle: { borderRadius: 4, borderColor: 'var(--bg-container)', borderWidth: 1 },
       label: { show: true, formatter: '{b}: {c}', fontSize: 10 },
       data: data.length
         ? data.map(d => ({ name: d.protocol, value: d.count }))
-        : [{ name: '暂无数据', value: 1, itemStyle: { color: '#ddd' } }],
+        : [{ name: '暂无数据', value: 1, itemStyle: { color: 'var(--text-tertiary)' } }],
     }],
   })
 }
@@ -314,7 +314,7 @@ function renderFlowChart() {
     series: [{
       type: 'bar',
       data: data.length ? data.map(d => d.count) : [0],
-      itemStyle: { borderRadius: [0, 4, 4, 0], color: '#409eff' },
+      itemStyle: { borderRadius: [0, 4, 4, 0], color: 'var(--brand-500)' },
       barWidth: '55%',
     }],
   })
