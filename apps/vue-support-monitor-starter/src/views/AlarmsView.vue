@@ -198,4 +198,8 @@ onMounted(fetchAll);
 .dim { color: var(--text-tertiary); }
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
 .dlg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
+.filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.f-kw { width: 220px; }
+.f-sel { width: 130px; }
+.f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
 </style>
