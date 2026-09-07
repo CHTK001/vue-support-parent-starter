@@ -12,9 +12,9 @@ const OcrSettingsPage: React.FC = () => {
     <CapabilityConfigForm
       endpoint='/v2/ocr/config'
       modelCapabilities={{
-        detector_model: 'ocr',
+        detector_model: 'image-detect',
         recognizer_model: 'ocr',
-        direction_model: 'ocr',
+        direction_model: 'image-detect',
         restorer_model: 'enhance',
       }}
       i18nPrefix='settings.ocr'
