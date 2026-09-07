@@ -215,7 +215,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   cursor: pointer;
   position: relative;
   transition: background 0.15s var(--ease-out, ease), color 0.15s;
-  &:hover { background: var(--bg-hover, #f1f2f8); color: var(--text-primary); }
+  &:hover { background: var(--bg-hover); color: var(--text-primary); }
   &.active {
     background: linear-gradient(90deg, var(--brand-100) 0%, var(--brand-50) 70%, transparent 100%);
     color: var(--brand-600);
@@ -272,7 +272,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   border-radius: 6px;
   cursor: pointer;
   position: relative;
-  &:hover { background: var(--bg-hover, #f1f2f8); color: var(--text-primary); }
+  &:hover { background: var(--bg-hover); color: var(--text-primary); }
 }
 .note-dot {
   position: absolute;
