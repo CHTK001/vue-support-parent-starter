@@ -190,6 +190,13 @@ function onMenuSelect(row: Record<string, unknown>, item: ReRadialMenuItem): voi
   emit("menu-select", { row, item });
 }
 
+function getMenuTip(row: Record<string, unknown>, item: ReRadialMenuItem): string {
+  if (props.layout.iconOnly || item.iconOnly) {
+    return item.tip ?? item.label ?? item.key;
+  }
+  return "";
+}
+
 function onSelectAll(val: boolean): void {
   const keys = new Set(selectedKeys.value);
   if (val) {
@@ -289,19 +296,27 @@ function onContextMenu(row: Record<string, unknown>, event: MouseEvent): void {
 
         <!-- 放射子菜单（绝对定位） -->
         <template v-if="isExpanded(row)">
-          <div
+          <ElTooltip
             v-for="(item, itemIdx) in getMenuItems(row)"
             :key="item.key"
-            class="re-table__radial-menu-item"
-            :class="[`re-table__radial-menu-item--${item.type ?? 'primary'}`, { 're-table__radial-menu-item--disabled': item.disabled }]"
-            :style="{
-              ...calcMenuItemPosition(itemIdx, getMenuItems(row).length, idx, rows.length),
-            }"
-            @click.stop="onMenuSelect(row, item)"
+            :content="getMenuTip(row, item)"
+            placement="bottom"
+            :disabled="!getMenuTip(row, item)"
+            popper-class="re-table__radial-tip"
           >
-            <span v-if="item.icon" class="re-table__radial-menu-icon">{{ item.icon }}</span>
-            <span class="re-table__radial-menu-label">{{ item.label }}</span>
-          </div>
+            <div
+              class="re-table__radial-menu-item"
+              :class="[`re-table__radial-menu-item--${item.type ?? 'primary'}`, { 're-table__radial-menu-item--disabled': item.disabled }]"
+              :style="{
+                ...calcMenuItemPosition(itemIdx, getMenuItems(row).length, idx, rows.length),
+                ...(props.layout.iconOnly || item.iconOnly ? { padding: '6px 8px' } : {}),
+              }"
+              @click.stop="onMenuSelect(row, item)"
+            >
+              <span v-if="item.icon" class="re-table__radial-menu-icon">{{ item.icon }}</span>
+              <span v-if="!props.layout.iconOnly && !item.iconOnly && item.label" class="re-table__radial-menu-label">{{ item.label }}</span>
+            </div>
+          </ElTooltip>
         </template>
 
         <!-- 列数据区域 -->
@@ -418,6 +433,7 @@ function onContextMenu(row: Record<string, unknown>, event: MouseEvent): void {
   position: absolute;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 0 10px;
   border-radius: 6px;
@@ -452,8 +468,10 @@ function onContextMenu(row: Record<string, unknown>, event: MouseEvent): void {
 .re-table__radial-menu-item--primary { background: var(--el-color-primary); }
 
 .re-table__radial-menu-icon {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 .re-table__radial-menu-label {

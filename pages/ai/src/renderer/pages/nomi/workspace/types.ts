@@ -7,11 +7,10 @@
 import type { CompanionId } from '@/common/types/ids';
 import type { useCompanion } from '../useNomi';
 
-/** The seven workspace tabs, in render order. */
+/** The workspace tabs, in render order. `remote`（远程控制）已按产品要求隐藏。 */
 export const WORKSPACE_TABS = [
   'overview',
   'memory',
-  'remote',
   'evolution',
   'skills',
   'history',

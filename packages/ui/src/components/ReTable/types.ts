@@ -350,14 +350,18 @@ export interface ReTableLayoutConfig {
 export interface ReRadialMenuItem {
   /** 唯一标识 */
   key: string;
-  /** 显示文字 */
-  label: string;
-  /** 图标（Element Plus 图标组件或图标类名） */
+  /** 显示文字（留空时仅显示图标） */
+  label?: string;
+  /** 是否纯图标模式（不渲染文字） */
+  iconOnly?: boolean;
+  /** 图标（Element Plus 图标组件或 SVG 字符串） */
   icon?: any;
   /** 颜色类型：primary / success / warning / danger / info */
   type?: "primary" | "success" | "warning" | "danger" | "info";
   /** 是否禁用 */
   disabled?: boolean;
+  /** tooltip 提示文字（纯图标模式下默认用 label，否则显示此字段） */
+  tip?: string;
 }
 
 /** 放射菜单模式专属属性（CSS 类名前缀 layout-radial） */
@@ -382,6 +386,8 @@ export interface ReRadialLayoutProps {
   menuItemWidth?: number;
   /** 是否可多选展开（默认 true = 同时展开多个） */
   multipleOpen?: boolean;
+  /** 纯图标模式：子菜单项仅显示图标 + tooltip，不显示文字 */
+  iconOnly?: boolean;
   /** 行高（px），默认 56 */
   rowHeight?: number;
   /** 是否显示 checkbox */
