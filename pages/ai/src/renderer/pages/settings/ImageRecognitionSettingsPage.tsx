@@ -15,7 +15,7 @@ const ImageRecognitionSettingsPage: React.FC = () => {
         classify_model: 'classify',
         detect_model: 'image-detect',
         segment_model: 'segment',
-        captioning_model: 'captioning',
+        captioning_model: 'classify',
         super_resolution_model: 'enhance',
       }}
       i18nPrefix='settings.imageRecognition'
