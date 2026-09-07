@@ -52,6 +52,11 @@
 
   /* 终端背景 */
   --terminal-bg: #0d1117;
+
+  /* 滚动条 */
+  --scroll-thumb: #d5d9e6;
+  --scroll-thumb-hover: #b9bfd2;
+  --selection-bg: rgba(109, 93, 252, 0.18);
 }
 
 body {

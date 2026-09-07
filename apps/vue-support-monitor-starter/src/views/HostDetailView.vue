@@ -178,7 +178,7 @@ onMounted(() => { fetchMetrics(); resolveHost(); });
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(15, 18, 33, 0.02), var(--shadow-1);
+  box-shadow: inset 0 0 0 1px rgba(15, 18, 33, 0.04), var(--shadow-1);
   transition: background 0.6s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
 }
 .gauge-grid .card:hover .g-ring { transform: scale(1.05); }
