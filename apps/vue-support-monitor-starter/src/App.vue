@@ -180,7 +180,8 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--brand-500) 0%, #8f83fd 100%);
+  background: var(--brand-gradient, linear-gradient(135deg, var(--brand-500) 0%, #8f83fd 100%));
+  box-shadow: var(--shadow-brand);
 }
 .collapsed .brand .name,
 .collapsed .nav .label,
