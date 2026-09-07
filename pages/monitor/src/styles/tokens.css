@@ -39,8 +39,7 @@
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.16);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-
-  /* 过渡 */
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --transition-base: all 0.18s ease;
   --transition-slow: all 0.3s ease;
 
@@ -59,6 +58,7 @@
   --scroll-thumb: #d5d9e6;
   --scroll-thumb-hover: #b9bfd2;
   --selection-bg: rgba(109, 93, 252, 0.18);
+  --selection-bg-fade: rgba(109, 93, 252, 0.035);
 
   /* 指标色 */
   --metric-cpu: #3b82f6;
