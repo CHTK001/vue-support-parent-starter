@@ -45,18 +45,18 @@ async function shot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: OUT + name + ".png", fullPage: false });
 }
 
-/** 点击指定文本按钮；返回是否点中（不因缺失失败） */
+/** 点击指定文本按钮；返回是否点中（不因缺失失败）。用 has-text 子串匹配兼容图标/包装。 */
 async function tryClick(page: Page, text: string): Promise<boolean> {
   const cands = [
-    page.getByRole("button", { name: text, exact: true }).first(),
-    page.getByRole("button", { name: new RegExp(text) }).first(),
+    page.locator(`button:has-text("${text}")`).first(),
+    page.locator(`[role="button"]:has-text("${text}")`).first(),
     page.getByText(text, { exact: true }).first(),
-    page.locator(`[role=button]:has-text("${text}")`).first(),
   ];
   for (const el of cands) {
     if ((await el.count()) > 0) {
       try {
         if (await el.isVisible()) {
+          await el.scrollIntoViewIfNeeded().catch(() => {});
           const box = await el.boundingBox();
           if (box) {
             await humanMove(page, box.x + box.width / 2, box.y + box.height / 2);
@@ -80,7 +80,11 @@ async function assertAlive(page: Page): Promise<void> {
 /** 切换到指定工作区 tab */
 async function goTab(page: Page, zh: string): Promise<void> {
   const el = page.locator(`[role="tab"]:has-text("${zh}")`).first();
-  if ((await el.count()) > 0) { await el.click().catch(() => {}); }
+  if ((await el.count()) > 0 && (await el.isVisible().catch(() => false))) { await el.click().catch(() => {}); }
+  else {
+    const alt = page.getByText(zh, { exact: true }).first();
+    if ((await alt.count()) > 0) { await alt.click().catch(() => {}); }
+  }
   await page.waitForTimeout(1200);
 }
 
