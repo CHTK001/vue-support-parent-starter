@@ -97,17 +97,38 @@ async function viewConfig(row: AgentRow) {
 onMounted(load)
 </script>
 
-<style scoped>
+ <style scoped>
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
-.stats-row { display: flex; gap: 12px; margin-bottom: 12px; }
-.stat-card {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 12px; border-radius: 8px;
-  background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-light);
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
 }
-.stat-card.success { border-left: 3px solid var(--el-color-success); }
-.stat-card.danger { border-left: 3px solid var(--el-color-danger); }
-.stat-value { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
-.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+.stat-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  border-radius: var(--border-radius);
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--metric-cpu);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.stat-card.success { border-left-color: var(--status-success); }
+.stat-card.danger { border-left-color: var(--status-error); }
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 </style>
