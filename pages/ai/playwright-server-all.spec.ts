@@ -613,8 +613,12 @@ test.describe("服务器侧全量 E2E 测试", () => {
     test("B16 删除主机（确认拦截）", async () => {
       await gotoPage(page, "/server/hosts");
       ;
+      // intercept browser confirm() so deletion proceeds
+      await page.evaluate(() => { window.__cf = () => true; window.confirm = window.__cf; });
       await page.locator('button.ab.ad[data-a="delete"]').first().click();
-      console.log("  ✓ 删除确认拦截");
+      await page.waitForTimeout(200);
+      expect(await page.locator("#tbody tr").count()).toBe(2);
+      console.log("  ✓ 删除后行数 3→2");
     });
     test("B17 截图", async () => {
       await gotoPage(page, "/server/hosts");
