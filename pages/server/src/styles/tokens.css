@@ -38,6 +38,7 @@
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-elevated: 0 12px 48px rgba(0, 0, 0, 0.16);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
 
   /* 过渡 */
   --transition-base: all 0.18s ease;
@@ -51,6 +52,15 @@
 
   /* 终端背景 */
   --terminal-bg: #0d1117;
+
+  /* 监控域语义色（对齐 monolith tokens.css） */
+  --metric-cpu: #3b82f6;
+  --metric-mem: #8b5cf6;
+  --metric-disk: #f59e0b;
+  --metric-net: #06b6d4;
+  --metric-jvm: #14b8a6;
+  --metric-redis: #ef4444;
+  --metric-db: #0ea5e9;
 
   /* 告警级别色（P0~P4） */
   --sev-p0-bg: #fdecef;
@@ -73,6 +83,7 @@
   --scroll-thumb: #d5d9e6;
   --scroll-thumb-hover: #b9bfd2;
   --selection-bg: rgba(109, 93, 252, 0.18);
+  --selection-bg-fade: rgba(109, 93, 252, 0.035);
 }
 
 body {
