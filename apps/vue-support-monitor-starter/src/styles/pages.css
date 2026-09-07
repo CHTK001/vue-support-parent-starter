@@ -38,9 +38,18 @@
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-1);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: box-shadow 0.2s var(--ease-out, ease), transform 0.2s var(--ease-out, ease), border-color 0.2s;
 }
-.kpi:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.kpi::after {
+  /* 顶部柔光，增强卡片层次 */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 56px;
+  background: linear-gradient(180deg, rgba(109, 93, 252, 0.035), transparent);
+  pointer-events: none;
+}
+.kpi:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-color: var(--border-default); }
 .kpi::before {
   content: "";
   position: absolute;
@@ -72,6 +81,7 @@
   font-weight: 700;
   margin: 6px 0 4px;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 .kpi .kpi-value .unit {
   font-size: 14px;
@@ -105,7 +115,9 @@
   padding: 12px 14px;
   margin-bottom: 14px;
   box-shadow: var(--shadow-1);
+  transition: border-color 0.15s;
 }
+.filter:focus-within { border-color: var(--brand-100); box-shadow: var(--shadow-1), var(--focus-ring); }
 .filter .grow { flex: 1; min-width: 200px; }
 .filter input,
 .filter select {
@@ -232,14 +244,16 @@
 .t { width: 100%; border-collapse: collapse; font-size: 13px; }
 .t thead th {
   text-align: left;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-tertiary);
   background: var(--bg-elevated);
   padding: 10px 12px;
   font-size: 12px;
+  letter-spacing: 0.02em;
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
+  z-index: 1;
 }
 .t tbody td {
   padding: 12px;
