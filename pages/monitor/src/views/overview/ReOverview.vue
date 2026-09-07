@@ -136,33 +136,50 @@ const downloadMetrics = async () => {
 }
 </script>
 
-<style scoped>
+ <style scoped>
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 16px;
 }
 .stat-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
-  border-radius: 10px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-light);
+  padding: 20px 16px;
+  border-radius: var(--border-radius);
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
+  flex: 1;
 }
-.stat-card.primary { border-left: 3px solid var(--el-color-primary); }
-.stat-card.success { border-left: 3px solid var(--el-color-success); }
-.stat-card.danger { border-left: 3px solid var(--el-color-danger); }
-.stat-card.warning { border-left: 3px solid var(--el-color-warning); }
-.stat-value { font-size: 28px; font-weight: 700; color: var(--el-text-color-primary); }
-.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
+.stat-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.stat-card.primary { border-left: 3px solid var(--metric-cpu); }
+.stat-card.success { border-left: 3px solid var(--status-success); }
+.stat-card.danger { border-left: 3px solid var(--status-error); }
+.stat-card.warning { border-left: 3px solid var(--metric-disk); }
+.stat-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
 
-.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--el-text-color-primary); }
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
 
 .dist-chart, .status-chart {
   display: flex;
@@ -177,7 +194,7 @@ const downloadMetrics = async () => {
 .dist-label {
   width: 56px;
   font-size: 13px;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .dist-item :deep(.el-progress) { flex: 1; }
