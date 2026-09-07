@@ -337,9 +337,9 @@ onMounted(onMountedInit);
   font-weight: 700;
   font-family: monospace;
   border-radius: 3px;
-  &.proto-ssh { color: #409eff; background: rgba(64, 158, 255, 0.12); }
-  &.proto-rdp { color: #e6a23c; background: rgba(230, 162, 60, 0.14); }
-  &.proto-vnc { color: #9254de; background: rgba(146, 84, 222, 0.12); }
+  &.proto-ssh { color: var(--proto-ssh); background: color-mix(in srgb, var(--proto-ssh) 10%, transparent); }
+  &.proto-rdp { color: var(--proto-rdp); background: color-mix(in srgb, var(--proto-rdp) 10%, transparent); }
+  &.proto-vnc { color: var(--proto-vnc); background: color-mix(in srgb, var(--proto-vnc) 10%, transparent); }
 }
 .rail-foot {
   padding: 10px 16px;

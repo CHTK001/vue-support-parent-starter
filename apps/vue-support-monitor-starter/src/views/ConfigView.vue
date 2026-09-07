@@ -318,7 +318,7 @@ onMounted(fetchAll);
 <style scoped lang="scss">
 .cf-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .cf-tab { background: var(--bg-container); border: 1px solid var(--border-subtle); }
-.cf-tab.active { color: #fff; background: var(--brand-500); border-color: var(--brand-500); }
+.cf-tab.active { color: var(--text-inverse); background: var(--brand-500); border-color: var(--brand-500); }
 .card-bar { display: flex; align-items: center; justify-content: space-between; }
 
 .p-list, .r-list { display: flex; flex-direction: column; }
