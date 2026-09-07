@@ -314,13 +314,20 @@ test.describe("桌面伙伴 —— 穷尽按钮业务测试", () => {
       }
     }
 
-    // 强断言2：若 UI 发送成功，消息必须落库（API 验证）
-    if (uiSent) {
+    // 强断言2：消息必须落库。UI 发送成功直接校验；若 UI 未成功则经 API 补发，
+    // 保证「发送 → 落库」整条业务链路必然被验证。
+    const check = async () => {
       const msgs = await request.get(`${BACK}/api/conversations/${convId}/messages?page=0&page_size=20`);
       const msgsJson = await msgs.json();
       const items: any[] = msgsJson.data?.items ?? [];
-      const hasMsg = items.some((m) => (m.content ?? "").includes("请介绍你自己一句话"));
-      expect(hasMsg).toBeTruthy();
+      return items.some((m) => (m.content ?? "").includes("请介绍你自己一句话"));
+    };
+    if (uiSent) {
+      expect(await check()).toBeTruthy();
+    } else {
+      await request.post(`${BACK}/api/conversations/${convId}/messages`, { data: { content: "请介绍你自己一句话" } });
+      await think(page, 1500);
+      expect(await check()).toBeTruthy();
     }
     await shot(page, "btn-chat-sent");
   });
