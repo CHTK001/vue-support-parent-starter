@@ -167,26 +167,28 @@ test.describe("桌面伙伴全量 E2E", () => {
   let companionId = "";
   let request: APIRequestContext;
 
-  test.beforeAll(async ({ request: req }) => {
-    request = req;
-    await waitBackend(req);
+  test.beforeAll(async ({ playwright }) => {
+    // beforeAll 的 { request } fixture 不能在 test 内复用；手动创建独立 API context
+    request = await playwright.request.newContext({ baseURL: BACK });
+    await waitBackend(request);
     // 清理旧伙伴，创建唯一测试伙伴
-    companionId = await apiCreateCompanion(req, TEST_NAME);
-    await apiCleanupOthers(req, companionId);
-    await apiPatchCompanion(req, companionId, {
+    companionId = await apiCreateCompanion(request, TEST_NAME);
+    await apiCleanupOthers(request, companionId);
+    await apiPatchCompanion(request, companionId, {
       model: { provider_id: "01a04372-475b-7687-8005-94549abc562d", model: "agnes-2.5-flash" },
     });
     // 两条重复记忆（验证查重）+ 一条不同记忆
-    await apiAddMemory(req, companionId, "全量测试独特记忆ABC");
-    await apiAddMemory(req, companionId, "全量测试独特记忆，ABC。");
-    await apiAddMemory(req, companionId, "全量测试另一条记忆XYZ");
-    await apiAddSkill(req, companionId, "git助手");
-    await apiEnsureCompanionSession(req, companionId);
+    await apiAddMemory(request, companionId, "全量测试独特记忆ABC");
+    await apiAddMemory(request, companionId, "全量测试独特记忆，ABC。");
+    await apiAddMemory(request, companionId, "全量测试另一条记忆XYZ");
+    await apiAddSkill(request, companionId, "git助手");
+    await apiEnsureCompanionSession(request, companionId);
   });
 
   test.afterAll(async () => {
     if (companionId && request) {
       await request.delete(`${BACK}/api/companion/companions/${companionId}`).catch(() => {});
+      await request.dispose().catch(() => {});
     }
   });
 
