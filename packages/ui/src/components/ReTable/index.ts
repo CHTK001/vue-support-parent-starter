@@ -11,6 +11,7 @@ import ReTableCardView from "./ReTableCardView.vue";
 import ReTableContextMenu from "./ReTableContextMenu.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
 import ReTableCanvasView from "./ReTableCanvasView.vue";
+import ReTableRadialView from "./ReTableRadialView.vue";
 
 const plugin: Plugin = {
   install(app: App) {
@@ -20,6 +21,7 @@ const plugin: Plugin = {
     app.component("ReTableContextMenu", ReTableContextMenu);
     app.component("ReTableToolbar", ReTableToolbar);
     app.component("ReTableCanvasView", ReTableCanvasView);
+    app.component("ReTableRadialView", ReTableRadialView);
   },
 };
 
