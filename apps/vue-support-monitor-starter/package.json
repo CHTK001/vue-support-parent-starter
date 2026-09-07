@@ -31,7 +31,8 @@
     "@pages/monitor": "workspace:*",
     "@pages/server": "workspace:*",
     "@pages/hotsport": "workspace:*",
-    "guacamole-common-js": "^1.5.0"
+    "guacamole-common-js": "^1.5.0",
+    "@pages/account": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

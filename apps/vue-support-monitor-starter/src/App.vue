@@ -31,6 +31,7 @@ const groups = [
     items: [
       { path: "/assets", label: "主机资产", icon: "Monitor" },
       { path: "/terminal", label: "远程控制", icon: "Position" },
+      { path: "/account", label: "账号管理", icon: "User" },
     ],
   },
   {
