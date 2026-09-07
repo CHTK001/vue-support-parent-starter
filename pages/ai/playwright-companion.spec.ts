@@ -139,19 +139,17 @@ async function apiCleanupOthers(request: APIRequestContext, keepId: string): Pro
 // ── 打开 nomi 工作台 ─────────────────────────────────────────
 
 async function openNomi(page: Page, request: APIRequestContext): Promise<void> {
-  // 避免 networkidle（页面 WS/轮询会令其永不空闲导致卡死）：用 domcontentloaded + 轮询关键元素
+  // 避免 networkidle 卡死：domcontentloaded + 轮询 body 文本
   let loaded = false;
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
       await page.goto(`${FRONT}/#/nomi`, { waitUntil: "domcontentloaded", timeout: 30000 });
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 20; i++) {
         await page.waitForTimeout(1000);
-        const ok = await Promise.race([
-          page.locator(`text=${TEST_NAME}`).first().isVisible().catch(() => false),
-          page.locator("text=新建伙伴").first().isVisible().catch(() => false),
-          page.locator("text=New companion").first().isVisible().catch(() => false),
-        ]);
-        if (ok) { loaded = true; break; }
+        const body = await page.locator("body").innerText().catch(() => "");
+        if (body.includes(TEST_NAME) || body.includes("新建伙伴") || body.includes("New companion")) {
+          loaded = true; break;
+        }
       }
       if (loaded) break;
     } catch { await waitBackend(request); }
