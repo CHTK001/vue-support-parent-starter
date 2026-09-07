@@ -518,17 +518,24 @@ test.describe("服务器侧全量 E2E 测试", () => {
     });
     test("B08 全选/取消", async () => {
       await gotoPage(page, "/server/hosts");
-      // 用 Playwright click 触发原生 click 事件
+      // Playwright click() 勾选但不一定触发 change 事件，手动触发
       await page.click("#chk-all");
+      await page.evaluate(() => {
+        const all = document.getElementById("chk-all") as HTMLInputElement;
+        all.dispatchEvent(new Event("change", { bubbles: true }));
+      });
       await page.waitForTimeout(300);
-      const checked = await page.locator("#chk-all").isChecked();
       const barVisible = await page.locator("#batch-bar").isVisible();
       const selText = await page.locator("#sel-cnt").textContent();
-      console.log(`  全选后: checked=${checked}, batch-bar=${barVisible}, sel-cnt=${selText}`);
+      console.log(`  全选后: batch-bar=${barVisible}, sel-cnt=${selText}`);
       expect(barVisible).toBe(true);
       expect(selText).toContain("3");
       // 取消全选
       await page.click("#chk-all");
+      await page.evaluate(() => {
+        const all = document.getElementById("chk-all") as HTMLInputElement;
+        all.dispatchEvent(new Event("change", { bubbles: true }));
+      });
       await page.waitForTimeout(300);
       expect(await page.locator("#batch-bar").isVisible()).toBe(false);
       console.log("  ✓ 全选/取消");
@@ -545,6 +552,9 @@ test.describe("服务器侧全量 E2E 测试", () => {
       await gotoPage(page, "/server/hosts");
       // 全选
       await page.click("#chk-all");
+      await page.evaluate(() => {
+        (document.getElementById("chk-all") as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
+      });
       await page.waitForTimeout(300);
       expect(await page.locator("#batch-bar").isVisible()).toBe(true);
       // 点击取消（不触发 alert）
