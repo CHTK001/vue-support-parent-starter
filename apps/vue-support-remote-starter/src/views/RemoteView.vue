@@ -144,19 +144,51 @@ const renderJpeg = (bytes: Uint8Array) => {
     .catch(() => undefined);
 };
 
-/** 保存配置到后台（当前 localStorage 兜底；后端接口由 #5 接入） */
-const saveConfig = () => {
+/** 后端配置接口地址（"保存配置到后台"——后端实现于 spring-support-parent-starter 的 /api/remote/config） */
+const API_BASE = "http://localhost:8080";
+const CONFIG_API = `${API_BASE}/api/remote/config`;
+
+/** 保存配置到后台（POST /api/remote/config；失败降级 localStorage 兜底） */
+const saveConfig = async () => {
+  const payload = JSON.stringify(form);
   try {
-    localStorage.setItem("remote-config", JSON.stringify(form));
-    configSaved.value = true;
-    ElMessage.success("配置已保存");
+    const resp = await fetch(CONFIG_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+    if (resp.ok) {
+      configSaved.value = true;
+      ElMessage.success("配置已保存到后台");
+      return;
+    }
+    throw new Error(`HTTP ${resp.status}`);
   } catch {
-    ElMessage.error("保存失败");
+    // 后端不可达——降级 localStorage 兜底
+    try {
+      localStorage.setItem("remote-config", payload);
+      configSaved.value = true;
+      ElMessage.success("后端不可达——配置已保存到本地");
+    } catch {
+      ElMessage.error("保存失败");
+    }
   }
 };
 
-/** 启动时回显本地配置 */
-const loadConfig = () => {
+/** 启动时回显配置（优先后台 GET 回显；失败读 localStorage） */
+const loadConfig = async () => {
+  try {
+    const resp = await fetch(CONFIG_API);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && typeof data === "object") {
+        Object.assign(form, data);
+        return;
+      }
+    }
+  } catch {
+    /* 后端不可达——走本地 */
+  }
   try {
     const raw = localStorage.getItem("remote-config");
     if (raw) Object.assign(form, JSON.parse(raw));
