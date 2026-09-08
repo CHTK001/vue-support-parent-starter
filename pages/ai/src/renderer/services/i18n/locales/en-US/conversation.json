@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "NomiFun — the workspace that gets you",
+    "title": "{{appTitle}} — the workspace that gets you",
     "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
