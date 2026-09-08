@@ -155,7 +155,7 @@ async function loadAccounts() {
 
 async function loadStats() {
   try {
-    const res = await httpGet<PoolStats>("/account/stats");
+    const res = await httpGet<PoolStats>("/account/stats", {});
     if (res) stats.value = res;
   } catch {
     // ignore
@@ -165,9 +165,11 @@ async function loadStats() {
 async function handleRegister(count: number) {
   registering.value = true;
   try {
-    const res = await httpPost<AccountItem[]>(
-      `/account/register-batch/${selectedPlatform.value}?count=${count}&emailProvider=${settings.value.emailProvider}`
-    );
+      const res = await httpPost<AccountItem[]>(
+        `/account/register-batch/${selectedPlatform.value}?count=${count}&emailProvider=${settings.value.emailProvider}`,
+        undefined,
+        []
+      );
     const list = Array.isArray(res) ? res : [];
     if (list.length > 0) {
       accounts.value = [...list, ...accounts.value];
