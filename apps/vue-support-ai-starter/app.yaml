@@ -25,7 +25,6 @@ loginConfig:
   welcome: 欢迎使用 NomiFun AI
   title: NomiFun AI
   description: NomiFun AI · 多模型对话与智能体协作平台
-  imageUrl: /assets/images/login/science.png
 
 # API 基础路径（前后端同源部署时由反代处理）
 httpConfig:
