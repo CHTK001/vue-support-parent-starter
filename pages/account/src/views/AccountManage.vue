@@ -88,27 +88,33 @@ const stats = ref<PoolStats>({});
 
 // ============ API 调用 ============
 
-async function httpGet<T>(url: string): Promise<T> {
-  const res = await fetch(`/api${url}`);
+/** 解析响应 body；后端对写操作（POST）可能返回空 body，直接 res.json() 会抛错 */
+async function parseJson<T>(res: Response, fallback: T): Promise<T> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return fallback;
+  return JSON.parse(text) as T;
 }
 
-async function httpPost<T>(url: string, body?: unknown): Promise<T> {
+async function httpGet<T>(url: string, fallback: T): Promise<T> {
+  const res = await fetch(`/api${url}`);
+  return parseJson<T>(res, fallback);
+}
+
+async function httpPost<T>(url: string, body?: unknown, fallback: T = undefined as T): Promise<T> {
   const res = await fetch(`/api${url}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<T>;
+  return parseJson<T>(res, fallback);
 }
 
 // ============ 配置操作 ============
 
 async function loadSettings() {
   try {
-    const res = await httpGet<AccountSettings>("/account/settings");
+    const res = await httpGet<AccountSettings>("/account/settings", settings.value);
     if (res) Object.assign(settings.value, res);
   } catch {
     // 未配置时使用默认值
@@ -138,7 +144,7 @@ async function saveSettings() {
 async function loadAccounts() {
   loading.value = true;
   try {
-    const res = await httpGet<AccountItem[]>(`/account/list/${selectedPlatform.value}`);
+    const res = await httpGet<AccountItem[]>(`/account/list/${selectedPlatform.value}`, []);
     accounts.value = Array.isArray(res) ? res : [];
   } catch {
     accounts.value = [];
