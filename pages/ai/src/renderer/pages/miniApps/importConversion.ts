@@ -31,7 +31,7 @@
  */
 
 import type { IApiMiniAppImportFinding } from '@/common/adapter/ipcBridge';
-import { MINI_APP_BUILDER_SYSTEM_PROMPT, MINI_APP_FILE_NAME } from './contract';
+import { getMiniAppBuilderSystemPrompt, MINI_APP_FILE_NAME } from './contract';
 
 /** Characters of an inlined document that ride the first message. */
 export const MINI_APP_IMPORT_INLINE_SOURCE_LIMIT = 24_000;
@@ -61,12 +61,13 @@ export type MiniAppImportConversionSource =
  * It persists with the conversation, so later turns keep the single-file contract
  * without the client replaying anything.
  */
-export const MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT = `${MINI_APP_BUILDER_SYSTEM_PROMPT}
+export function getMiniAppImportConversionSystemPrompt(appTitle?: string): string {
+  return `${getMiniAppBuilderSystemPrompt(appTitle)}
 
 [导入改造任务]
 用户已经写好一个网页应用,但它没通过小程序导入校验。你的任务是把它改写成符合上面规则的单文件小程序,而不是另做一个应用。
 
-**先看这一条:来源目录是只读的。** 用户的原始项目就是他们的真实代码,不在任何 NomiFun 管理的目录里,也没有备份。你只能读它,绝对不能写、改名、移动或删除其中任何文件,也不要在里面执行会产生副作用的命令。你的全部产物只有一个:工作区根目录下的 ${MINI_APP_FILE_NAME}。
+**先看这一条:来源目录是只读的。** 用户的原始项目就是他们的真实代码,不在任何 {{appTitle}} 管理的目录里,也没有备份。你只能读它,绝对不能写、改名、移动或删除其中任何文件,也不要在里面执行会产生副作用的命令。你的全部产物只有一个:工作区根目录下的 ${MINI_APP_FILE_NAME}。
 
 在这个前提下:
 1. 先读懂原应用的界面与功能,再动手;保持原有交互与视觉,不要顺手"重新设计"。

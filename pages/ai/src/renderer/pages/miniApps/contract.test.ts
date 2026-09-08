@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 import type { TFunction } from 'i18next';
 import { parseMiniAppId } from '@/common/types/ids';
 import {
-  MINI_APP_BUILDER_SYSTEM_PROMPT,
+  getMiniAppBuilderSystemPrompt,
   MINI_APP_EXTRA_FLAG,
   MINI_APP_FILE_NAME,
   MINI_APP_IFRAME_SANDBOX,

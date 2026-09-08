@@ -52,7 +52,7 @@ import { useArcoMessage } from '@renderer/utils/ui/useArcoMessage';
 import { useNomiQuickStart } from '@renderer/hooks/agent/useNomiQuickStart';
 import { MINI_APP_EXTRA_FLAG, MINI_APP_NAME_SNIPPET_LENGTH } from './contract';
 import {
-  MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT,
+  getMiniAppImportConversionSystemPrompt,
   buildMiniAppImportConversionPrompt,
   miniAppImportSourceBaseName,
   type MiniAppImportConversionSource,
@@ -347,7 +347,7 @@ const MiniAppImportDialog: React.FC<MiniAppImportDialogProps> = ({ visible, onCa
           findings: result?.report.findings ?? [],
         }),
         extra: {
-          system_prompt: MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT,
+          system_prompt: getMiniAppImportConversionSystemPrompt(),
           // Marks the thread as a mini-app build so the produced `miniapp.html`
           // opens in the preview panel with 「发布为小程序」 on it — that is how the
           // rewritten app gets back into the library.
