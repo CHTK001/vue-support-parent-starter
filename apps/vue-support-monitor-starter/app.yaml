@@ -24,7 +24,7 @@ loginConfig:
   welcome: 欢迎登录
   title: 监控管理平台
   description: 监控管理平台
-  logoUrl: /assets/images/logo/logo.webp
+  logoUrl: /assets/images/logo/logo-flat.svg
   imageUrl: /assets/images/login/science.png
 
 # 其他配置
