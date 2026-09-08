@@ -63,7 +63,9 @@
 
 <script setup lang="ts">
 import settings from "@repo/theme/koi/settings.ts";
-import logoUrl from "@repo/assets/images/logo/logo.webp";
+import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
 import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.vue";
 import ReDark from "@repo/theme/koi/layouts/components/Header/components/ReDark.vue";
@@ -81,6 +83,12 @@ const globalStore = useGlobalStore();
 
 const mobileDrawerVisible = ref(false);
 const showLogo = settings.logoShow;
+
+const logoUrl = computed(() => {
+  const cfg = getConfig();
+  const url = cfg.login?.logoUrl;
+  return url ? resolveAssetUrl(url) : fallbackLogoUrl;
+});
 
 const handleOpenMobileMenu = () => {
   mobileDrawerVisible.value = true;
