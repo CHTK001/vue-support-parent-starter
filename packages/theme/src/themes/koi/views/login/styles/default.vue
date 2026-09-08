@@ -83,11 +83,14 @@ import { computed, toRef } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 import { translateConfigText } from "@repo/languages";
 import ReLoginForm from "../components/ReLoginForm.vue";
 
 const loginConfig = toRef(getConfig(), "login");
-const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
+const resolvedLogoUrl = computed(() =>
+  loginConfig.value.logoUrl ? resolveAssetUrl(loginConfig.value.logoUrl) : fallbackLogoUrl
+);
 const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageUrl));
 </script>
 
