@@ -29,9 +29,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { ElUpload, ElButton, ElIcon } from "element-plus";
 import { Upload, Loading, Download, Delete } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
 interface Props { baseUrl?: string; headers?: Record<string, string>; }
 const props = withDefaults(defineProps<Props>(), { baseUrl: "/v2/ai/colorize" });
