@@ -421,7 +421,7 @@ onMounted(fetchAll);
         <!-- 标签快筛 -->
         <span v-if="allTags.length" class="muted" style="margin-left:8px">标签:</span>
         <template v-for="t in allTags" :key="t">
-          <button :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</button>
+          <ReTag :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</ReTag>
         </template>
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
       </div>
@@ -475,24 +475,16 @@ onMounted(fetchAll);
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
-      <el-form label-width="90px">
+    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
+      <el-form label-width="auto">
         <el-form-item label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></el-form-item>
         <el-form-item label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></el-form-item>
         <el-form-item label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></el-form-item>
         <el-form-item label="系统">
-          <ReSelect v-model="form.serverHostOsType" size="small" style="width: 100%">
-            <el-option label="Linux" value="LINUX" />
-            <el-option label="Windows" value="WINDOWS" />
-            <el-option label="macOS" value="MACOS" />
-          </ReSelect>
-        </el-form-item>
-        <el-form-item label="采集模式">
-          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width: 100%">
-            <el-option label="定时采集" value="SCHEDULED" />
-            <el-option label="Agent采集" value="AGENT" />
-            <el-option label="HTTP采集" value="HTTP" />
-            <el-option label="Prometheus采集" value="PROMETHEUS" />
+          <ReSelect v-model="form.serverHostOsType" layout="square" size="small" style="width: 100%">
+            <el-option label="Linux" value="LINUX"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('linux')" /> Linux</span></el-option>
+            <el-option label="Windows" value="WINDOWS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('windows')" /> Windows</span></el-option>
+            <el-option label="macOS" value="MACOS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('macos')" /> macOS</span></el-option>
           </ReSelect>
         </el-form-item>
         <el-form-item label="分组">
@@ -511,7 +503,7 @@ onMounted(fetchAll);
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 连接弹窗（选择登录身份） -->
     <el-dialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
