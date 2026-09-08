@@ -243,7 +243,7 @@ const OpenCapabilitiesPage: React.FC = () => {
     <HubPageShell
       title={t('settings.openCapabilities.title', { defaultValue: '远程&开放能力' })}
       subtitle={t('settings.openCapabilities.subtitle', {
-        defaultValue: '分开管理 WebUI 访问入口，以及 NomiFun Remote MCP / REST 对外开放能力。',
+        defaultValue: '分开管理 WebUI 访问入口，以及 {{appTitle}} Remote MCP / REST 对外开放能力。',
       })}
       maxWidthClass='md:max-w-1180px'
       className='open-capabilities-page'
@@ -299,10 +299,10 @@ const OpenCapabilitiesPage: React.FC = () => {
               <div className='rd-12px border border-solid border-arco-2 bg-fill-0 p-16px'>
                 <SectionHeader
                   icon={<ApiApp theme='outline' size='18' fill='currentColor' />}
-                  title={t('settings.openCapabilities.remoteTitle', { defaultValue: 'NomiFun Remote MCP 能力范围' })}
+                  title={t('settings.openCapabilities.remoteTitle', { defaultValue: '{{appTitle}} Remote MCP 能力范围' })}
                   description={t('settings.openCapabilities.remoteDesc', {
                     defaultValue:
-                      '勾选外部 Agent 通过 NomiFun Remote MCP / REST 能看到和调用的平台能力。配置会体现在生成的接入 URL 中。',
+                      '勾选外部 Agent 通过 {{appTitle}} Remote MCP / REST 能看到和调用的平台能力。配置会体现在生成的接入 URL 中。',
                   })}
                 />
 
