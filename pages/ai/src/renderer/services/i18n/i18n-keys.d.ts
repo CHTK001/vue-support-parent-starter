@@ -1786,7 +1786,6 @@ export type I18nKey =
   | 'knowledge.title'
   | 'knowledge.tree.deleteFolderTitle'
   | 'knowledge.tree.deleteFolderWarning'
-  | 'login.brand'
   | 'login.errors.empty'
   | 'login.errors.invalidCredentials'
   | 'login.errors.networkError'
