@@ -176,7 +176,7 @@ const CostPop: React.FC<{ row: UsageRow }> = ({ row }) => (
 );
 
 /** 延迟阈值：首字 / 总耗时 通用分档 */
-const latencyColor = (ms?: number) => ms == null || ms <= 0 ? 'var(--color-text-4)' : ms < 500 ? 'var(--success)' : ms < 2000 ? 'var(--warning)' : ms < 30000 ? 'var(--warning-6, var(--warning))' : 'var(--danger)';
+const latencyColor = (ms?: number) => ms == null || ms <= 0 ? 'var(--color-text-4)' : ms < 1000 ? 'var(--success)' : ms < 3000 ? 'var(--warning)' : ms < 10000 ? 'var(--warning-6, var(--orange-6, var(--warning)))' : 'var(--danger)';
 
 /** 参考图延迟单元格：左侧竖色条 + 首字/总耗时 两行 */
 const DelayBar: React.FC<{ firstMs?: number; totalMs?: number }> = ({ firstMs, totalMs }) => {

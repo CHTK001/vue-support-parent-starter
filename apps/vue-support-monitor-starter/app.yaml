@@ -21,10 +21,8 @@ loginConfig:
   otp: false
   slider: true
   brandName: 监控管理
-  welcome: 欢迎登录
   title: 监控管理平台
   description: 监控管理平台
-  imageUrl: /assets/images/login/science.png
 
 # 其他配置
 otherConfig:
