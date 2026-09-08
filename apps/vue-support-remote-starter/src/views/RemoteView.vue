@@ -5,13 +5,7 @@
       <div class="remote-form">
         <div class="form-field">
           <label class="form-label">网关地址</label>
-          <el-autocomplete
-            v-model="form.gatewayUrl"
-            :fetch-suggestions="queryGateways"
-            placeholder="tcp://host:port"
-            clearable
-            data-testid="input-gateway"
-          />
+          <ReInput v-model="form.gatewayUrl" placeholder="tcp://host:port" clearable data-testid="input-gateway" />
         </div>
         <div class="form-field">
           <label class="form-label">接入令牌</label>

@@ -91,7 +91,7 @@ function initScene() {
     controls.enableZoom = false;
     controls.enablePan = false;
     controls.mouseButtons = { LEFT: null, MIDDLE: null, RIGHT: THREE.MOUSE.ROTATE };
-    controls.touches = { ONE: THREE.TOUCH.ROTATE_PAN };
+    controls.touches = { ONE: THREE.(TOUCH as any).ROTATE_PAN };
     controls.update();
   }
 

@@ -34,7 +34,7 @@ function animate() {
     const progress = Math.min(elapsed / props.duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
     const current = from + (to - from) * eased;
-    el.textContent = props.prefix + current.toFixed(props.decimals) + props.suffix;
+    if (el) el.textContent = props.prefix + current.toFixed(props.decimals) + props.suffix;
     if (progress < 1) {
       requestAnimationFrame(tick);
     }
