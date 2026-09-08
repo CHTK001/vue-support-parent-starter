@@ -18,11 +18,12 @@ interface ServiceWorkerClients {
   claim(): Promise<void>;
 }
 
-/** Service Worker 全局作用域（仅用到 clients / skipWaiting / message 监听） */
+/** Service Worker 全局作用域（仅用到 clients / skipWaiting / 生命周期监听） */
 interface ServiceWorkerGlobalScope {
   clients: ServiceWorkerClients;
   skipWaiting(): Promise<void>;
-  addEventListener(type: "install" | "activate" | "message", listener: (event: ExtendableMessageEvent) => void): void;
+  addEventListener(type: "install" | "activate", listener: (event: Event) => void): void;
+  addEventListener(type: "message", listener: (event: Event) => void): void;
   postMessage(message: unknown): void;
 }
 
