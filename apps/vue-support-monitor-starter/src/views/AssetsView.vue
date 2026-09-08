@@ -562,7 +562,7 @@ onMounted(fetchAll);
         <ReButton @click="identityVisible = false">取消</ReButton>
         <ReButton type="primary" icon="Check" :show-text="true" :loading="identitySaving" @click="submitIdentity">保存身份</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
