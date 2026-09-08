@@ -22,7 +22,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "clean": "rimraf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@repo/utils": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "catalog:",
     "rimraf": "catalog:"
