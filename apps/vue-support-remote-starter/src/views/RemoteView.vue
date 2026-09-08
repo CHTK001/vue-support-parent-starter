@@ -5,7 +5,13 @@
       <div class="remote-form">
         <div class="form-field">
           <label class="form-label">网关地址</label>
-          <ReInput v-model="form.gatewayUrl" placeholder="tcp://host:port" clearable data-testid="input-gateway" />
+          <el-autocomplete
+            v-model="form.gatewayUrl"
+            :fetch-suggestions="queryGateways"
+            placeholder="tcp://host:port"
+            clearable
+            data-testid="input-gateway"
+          />
         </div>
         <div class="form-field">
           <label class="form-label">接入令牌</label>
@@ -43,7 +49,7 @@
     <section class="remote-right">
       <div class="screen-header">
         <span class="screen-title">远控画面</span>
-        <ReTag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</ReTag>
+        <el-tag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</el-tag>
       </div>
       <div class="screen-body">
         <div v-if="form.connMethod === 'ssh'" class="ssh-area">
@@ -71,14 +77,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, nextTick } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
-import ReTag from "@repo/ui/re-tag";
 import ReEmpty from "@repo/ui/re-empty";
+
+interface GatewayOption {
+  value: string;
+  label: string;
+}
 
 const form = reactive({
   gatewayUrl: "",
@@ -108,6 +118,35 @@ const statusTag = computed(() => {
   if (h264Mode.value) return { type: "warning" as const, text: "H264 流" };
   return { type: "info" as const, text: "未连接" };
 });
+
+const gatewayList = ref<GatewayOption[]>([]);
+
+const loadGateways = async () => {
+  try {
+    const resp = await fetch("/api/remote/gateways");
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        gatewayList.value = data.map((g: any) => ({
+          value: g.url || g.address || g,
+          label: g.name || g.label || g.url || g.address || g,
+        }));
+        return;
+      }
+    }
+  } catch { /* ignore */ }
+  gatewayList.value = [];
+};
+
+const queryGateways = (queryString: string, cb: (results: GatewayOption[]) => void) => {
+  const list = gatewayList.value;
+  const results = queryString
+    ? list.filter((g) => g.value.toLowerCase().includes(queryString.toLowerCase()) || g.label.toLowerCase().includes(queryString.toLowerCase()))
+    : list;
+  cb(results);
+};
+
+onMounted(loadGateways);
 
 const connect = () => {
   if (!form.wsUrl) {
