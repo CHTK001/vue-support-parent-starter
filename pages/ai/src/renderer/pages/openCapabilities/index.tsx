@@ -50,7 +50,7 @@ const MCP_DOMAIN_OPTIONS: McpDomainOption[] = [
     titleKey: 'settings.openCapabilities.domainConversationTitle',
     defaultTitle: '会话',
     descKey: 'settings.openCapabilities.domainConversationDesc',
-    defaultDesc: '创建、读取、发送和管理 NomiFun 会话。',
+    defaultDesc: '创建、读取、发送和管理 {{appTitle}} 会话。',
   },
   {
     id: 'browser',

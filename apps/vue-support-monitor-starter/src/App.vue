@@ -128,9 +128,9 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
 
     <!-- 主区 -->
     <main class="main">
-      <router-view v-slot="{ Component }">
+       <router-view v-slot="{ Component }">
         <transition name="page-fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="$route.path" />
         </transition>
       </router-view>
     </main>
