@@ -544,7 +544,7 @@ onMounted(fetchAll);
         </div>
       </div>
       <div style="margin:14px 0 10px"><b>新增身份</b></div>
-      <el-form label-width="80px">
+      <el-form label-width="auto">
         <el-form-item label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></el-form-item>
         <el-form-item label="类型">
           <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%">
