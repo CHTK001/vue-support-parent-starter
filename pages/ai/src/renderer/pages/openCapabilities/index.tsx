@@ -275,7 +275,7 @@ const OpenCapabilitiesPage: React.FC = () => {
                 title={t('settings.openCapabilities.addressStrategyTitle', { defaultValue: '访问地址策略' })}
                 body={t('settings.openCapabilities.addressStrategyDesc', {
                   defaultValue:
-                    'NomiFun 只展示更可能被手机和局域网设备访问的地址；回环、链路本地、基准测试网段等地址不会进入二维码候选。',
+                    '{{appTitle}} 只展示更可能被手机和局域网设备访问的地址；回环、链路本地、基准测试网段等地址不会进入二维码候选。',
                 })}
               />
               <EndpointBlock
@@ -347,7 +347,7 @@ const OpenCapabilitiesPage: React.FC = () => {
                   title={t('settings.openCapabilities.generatedConfigTitle', { defaultValue: '当前生成的接入配置' })}
                   body={t('settings.openCapabilities.generatedConfigDesc', {
                     defaultValue:
-                      '把下面的 MCP 地址写入外部 Agent。URL 中的 domains 参数就是当前勾选的 NomiFun 平台能力范围。',
+                      '把下面的 MCP 地址写入外部 Agent。URL 中的 domains 参数就是当前勾选的 {{appTitle}} 平台能力范围。',
                   })}
                 />
                 <EndpointBlock
