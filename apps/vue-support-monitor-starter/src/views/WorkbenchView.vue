@@ -147,9 +147,9 @@ onMounted(fetchAll);
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">快捷入口</span></div>
-        <ReButton icon="Position" :show-text="true" size="small" class="w100" @click="router.push('/terminal')">远程控制台</ReButton>
-        <ReButton icon="Monitor" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
-        <ReButton icon="Bell" :show-text="true" size="small" class="w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
+        <ReButton icon="Position" :show-text="true" size="small" class="quick w100" @click="router.push('/terminal')">远程控制台</ReButton>
+        <ReButton icon="Monitor" :show-text="true" size="small" class="quick w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
+        <ReButton icon="Bell" :show-text="true" size="small" class="quick w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
       </div>
     </section>
   </div>
