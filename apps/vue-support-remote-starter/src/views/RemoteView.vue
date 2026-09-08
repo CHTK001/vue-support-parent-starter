@@ -79,10 +79,6 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
 
-interface GatewayOption {
-  value: string;
-  label: string;
-}
 
 const form = reactive({
   gatewayUrl: "",
@@ -113,34 +109,6 @@ const statusTag = computed(() => {
   return { type: "info" as const, text: "未连接" };
 });
 
-const gatewayList = ref<GatewayOption[]>([]);
-
-const loadGateways = async () => {
-  try {
-    const resp = await fetch("/api/remote/gateways");
-    if (resp.ok) {
-      const data = await resp.json();
-      if (Array.isArray(data)) {
-        gatewayList.value = data.map((g: any) => ({
-          value: g.url || g.address || g,
-          label: g.name || g.label || g.url || g.address || g,
-        }));
-        return;
-      }
-    }
-  } catch { /* ignore */ }
-  gatewayList.value = [];
-};
-
-const queryGateways = (queryString: string, cb: (results: GatewayOption[]) => void) => {
-  const list = gatewayList.value;
-  const results = queryString
-    ? list.filter((g) => g.value.toLowerCase().includes(queryString.toLowerCase()) || g.label.toLowerCase().includes(queryString.toLowerCase()))
-    : list;
-  cb(results);
-};
-
-onMounted(loadGateways);
 
 const connect = () => {
   if (!form.wsUrl) {
