@@ -343,6 +343,7 @@ const avatar = computed(
 );
 // 头像框图片
 const avatarFrameImage = computed(() => {
+  if (!getConfig()?.other?.avatarFrame?.enable) return "";
   const frameId = authStore.loginUser?.avatarFrame ?? 0;
   const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
   if (Number(frameShow) !== 1) return "";
