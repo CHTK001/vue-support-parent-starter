@@ -8,7 +8,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  MINI_APP_BUILDER_SYSTEM_PROMPT,
+  getMiniAppBuilderSystemPrompt,
   MINI_APP_EXTRA_FLAG,
   MINI_APP_NAME_SNIPPET_LENGTH,
 } from '@renderer/pages/miniApps/contract';
@@ -70,7 +70,7 @@ export const useMiniAppQuickStart = () => {
           workspace: dir || '',
           custom_workspace: Boolean(dir),
           default_files: files ?? [],
-          system_prompt: MINI_APP_BUILDER_SYSTEM_PROMPT,
+          system_prompt: getMiniAppBuilderSystemPrompt(),
           [MINI_APP_EXTRA_FLAG]: true,
         },
       }),
