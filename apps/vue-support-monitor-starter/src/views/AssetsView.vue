@@ -424,22 +424,20 @@ onMounted(fetchAll);
           <button :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</button>
         </template>
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
-        <ReButton v-if="selection.length" icon="Delete" type="danger" plain size="small" :show-text="true" @click="batchDelete">批量删除({{ selection.length }})</ReButton>
       </div>
-      <ReTable
-        :data="filtered.map(h => ({ ...h }))"
-        :columns="tableColumns"
-        :loading="loading"
-        :table-id="'asset-host-list'"
-        size="small"
-        border
-        sticker
-        style="width:100%"
-        empty-text="暂无主机"
-        :toolbar-config="{ refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' } }"
-        :show-toolbar="false"
-        @selection-change="selection = $event"
-      >
+        <ReTable
+          :data="filtered.map(h => ({ ...h }))"
+          :columns="tableColumns"
+          :loading="loading"
+          :table-id="'asset-host-list'"
+          size="small"
+          border
+          style="width:100%"
+          empty-text="暂无主机"
+          :toolbar="true"
+          :toolbar-config="{ refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
+          @selection-change="selection = $event"
+        >
         <template #col-name="{ row }">
           <span class="h-os" v-html="osSvg(osIcon(row.serverHostOsType))"></span>
           <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
