@@ -6486,7 +6486,7 @@ export const knowledge = {
   setBinding: withResponseMap(httpPost<IKnowledgeBinding, KnowledgeBindingTargetInput & IKnowledgeBinding>(
     (p) => {
       const target = parseKnowledgeBindingTarget(p);
-      return `/api/knowledge/binding/${target.kind}/${encodeURIComponent(target.target_id)}`;
+      return `/api/knowledge/binding?kind=${encodeURIComponent(target.kind)}&target_id=${encodeURIComponent(target.target_id)}`;
     },
     // Forward EVERY binding field by destructuring off the routing params only.
     // A hand-maintained whitelist here silently dropped writeback_eagerness and
