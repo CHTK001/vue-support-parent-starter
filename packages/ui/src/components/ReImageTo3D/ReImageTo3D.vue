@@ -157,9 +157,9 @@ function createDepthTexture(canvas: HTMLCanvasElement): THREE.DataTexture {
 }
 
 /** 用图片 URL 创建 ColorTexture */
-function createColorTexture(url: string): THREE.Texture {
-  const loader = new THREE.TextureLoader();
-  return new Promise<typeof loader>((resolve, reject) => {
+function createColorTexture(url: string): Promise<THREE.Texture> {
+  return new Promise<THREE.Texture>((resolve, reject) => {
+    const loader = new THREE.TextureLoader();
     loader.load(
       url,
       (tex) => {
