@@ -35,15 +35,17 @@ function stopTask(name: string): void {
   }
 }
 
-self.addEventListener("install", () => {
-  void (self as unknown as ServiceWorkerGlobalScope).skipWaiting();
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+sw.addEventListener("install", () => {
+  void sw.skipWaiting();
 });
 
-self.addEventListener("activate", (event: ExtendableMessageEvent) => {
+sw.addEventListener("activate", (event: ExtendableMessageEvent) => {
   event.waitUntil(clients.claim());
 });
 
-self.addEventListener("message", (event: ExtendableMessageEvent) => {
+sw.addEventListener("message", (event: ExtendableMessageEvent) => {
   const msg = event.data;
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "start" && msg.name) {
