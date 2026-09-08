@@ -73,6 +73,9 @@ const ALL_RE_COMPONENTS = [
   "ReVideoGen",
   "ReEcharts",
   "ReTagFilter",
+  "ReAvatar3D",
+  "ReThree",
+  "ReClineCharacter",
 ];
 
 /** 单页面应用最小化主题安装器 */
