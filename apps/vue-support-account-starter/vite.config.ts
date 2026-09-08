@@ -7,11 +7,15 @@ export default createVite({
     port: 8097,
     strictPort: true,
     proxy: {
-      // 后端账号管理 API
+      // 账号管理 API
       "/api/account": {
         target: "http://localhost:8787",
         changeOrigin: true,
       },
     },
+  },
+  config: {
+    // 部署在 nginx /account/ 路径下，资源使用相对路径
+    base: "/account/",
   },
 });
