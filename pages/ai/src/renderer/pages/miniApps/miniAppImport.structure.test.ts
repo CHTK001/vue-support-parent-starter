@@ -31,7 +31,7 @@ import {
   resolveMiniAppImportRuleKeys,
 } from './importReport';
 import {
-  MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT,
+  getMiniAppImportConversionSystemPrompt,
   MINI_APP_IMPORT_INLINE_SOURCE_LIMIT,
   buildMiniAppImportConversionPrompt,
   miniAppImportSourceBaseName,
@@ -289,15 +289,16 @@ describe('mini-app import: the conversion fallback', () => {
     // The thread is marked as a mini-app build so its `miniapp.html` opens in the
     // preview with 「发布为小程序」 — that is how the rewrite gets into the library.
     expect(dialogSource.includes('[MINI_APP_EXTRA_FLAG]: true')).toBe(true);
-    expect(dialogSource.includes('system_prompt: MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT')).toBe(true);
+    expect(dialogSource.includes('system_prompt: getMiniAppImportConversionSystemPrompt()')).toBe(true);
   });
 
   test('the instruction names the single-file contract and the sandbox', () => {
-    expect(MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT.includes(MINI_APP_FILE_NAME)).toBe(true);
-    expect(MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT.includes('单文件')).toBe(true);
-    expect(MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT.includes('allow-same-origin')).toBe(true);
+    const prompt = getMiniAppImportConversionSystemPrompt('AI');
+    expect(prompt.includes(MINI_APP_FILE_NAME)).toBe(true);
+    expect(prompt.includes('单文件')).toBe(true);
+    expect(prompt.includes('allow-same-origin')).toBe(true);
     // Rewrite, not redesign: the user keeps their app.
-    expect(MINI_APP_IMPORT_CONVERSION_SYSTEM_PROMPT.includes('不是另做一个应用')).toBe(true);
+    expect(prompt.includes('不是另做一个应用')).toBe(true);
   });
 
   test('the first message hands the model the exact rule ids that failed', () => {
