@@ -22,8 +22,9 @@ interface ServiceWorkerClients {
 interface ServiceWorkerGlobalScope {
   clients: ServiceWorkerClients;
   skipWaiting(): Promise<void>;
-  addEventListener(type: "install" | "activate", listener: (event: Event) => void): void;
-  addEventListener(type: "message", listener: (event: Event) => void): void;
+  addEventListener(type: "install", listener: (event: Event) => void): void;
+  addEventListener(type: "activate", listener: (event: ExtendableMessageEvent) => void): void;
+  addEventListener(type: "message", listener: (event: ExtendableMessageEvent) => void): void;
   postMessage(message: unknown): void;
 }
 
