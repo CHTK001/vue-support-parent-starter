@@ -12,6 +12,7 @@ const route = useRoute();
 const router = useRouter();
 
 const collapse = ref(false);
+const searchKw = ref("");
 
 const groups = [
   {
@@ -115,7 +116,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
       <div class="spacer" />
       <div class="gsearch">
         <el-icon :size="14"><Search /></el-icon>
-        <input placeholder="搜索资产、规则、文档…" />
+        <ReInput v-model="searchKw" placeholder="搜索资产、规则、文档…" size="small" class="gsearch-input" />
         <span class="kbd">⌘K</span>
       </div>
       <div class="bell-wrap">
