@@ -177,7 +177,7 @@ onMounted(fetchAll);
     </ReCard>
 
     <!-- 处理弹窗 -->
-    <el-dialog v-model="handleVisible" title="处理告警事件" width="440px">
+    <ReDialog v-model="handleVisible" title="处理告警事件" width="440px">
       <div v-if="handleTarget" class="dlg-meta">
         <ReTag :type="(alarmLevel(handleTarget)==='P0'||alarmLevel(handleTarget)==='P1')?'danger':'warning'" effect="dark">{{ alarmLevel(handleTarget) }}</ReTag>
         <b>{{ handleTarget.msMonitorAlarmEventMonitorName }}</b>
