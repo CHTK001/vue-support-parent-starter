@@ -41,14 +41,25 @@ function stop(): void {
   }
 }
 
-ctx.addEventListener("message", (event: MessageEvent) => {
-  const msg = event.data;
+/** 处理来自主线程的消息（Web Worker 与 Service Worker 共用协议） */
+function handleMessage(raw: unknown): void {
+  const msg = raw as { type?: string; interval?: number };
   if (!msg || typeof msg !== "object") return;
-  if (msg.type === "start") start(msg.interval);
+  if (msg.type === "start") start(msg.interval ?? 0);
   else if (msg.type === "stop") stop();
-});
+}
 
-// 通知主线程 Worker 已就绪
-ctx.postMessage({ type: "ready" });
+const swScope = self as unknown as ServiceWorkerGlobalScope;
+const isSw = typeof swScope.clients !== "undefined";
 
-export {};
+if (isSw) {
+  swScope.addEventListener("message", (event: ExtendableMessageEvent) => {
+    handleMessage(event.data);
+  });
+  swScope.postMessage({ type: "ready" });
+} else {
+  (self as unknown as Worker).addEventListener("message", (event) => {
+    handleMessage(event instanceof MessageEvent ? event.data : undefined);
+  });
+  (self as unknown as Worker).postMessage({ type: "ready" });
+}
