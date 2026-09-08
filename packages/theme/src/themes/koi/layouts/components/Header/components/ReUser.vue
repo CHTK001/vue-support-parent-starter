@@ -105,6 +105,7 @@ const avatar = computed(
 );
 // 头像框图片：生日框由后端按生日窗口动态下发，前端仅按 ID 映射（渐变框不在此渲染）
 const avatarFrameImage = computed(() => {
+  if (!getConfig()?.other?.avatarFrame?.enable) return "";
   const frameId = authStore.loginUser?.avatarFrame ?? 0;
   const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
   // 开关默认关闭，仅当用户开启显示时才渲染头像框
