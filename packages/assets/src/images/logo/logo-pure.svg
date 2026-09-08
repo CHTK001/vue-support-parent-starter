@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- 纯色扁平 Logo - 无渐变 -->
+  <!-- 背景圆 -->
+  <circle cx="64" cy="64" r="60" fill="#3B82F6"/>
+  
+  <!-- 几何图形 - 六边形代表网络/连接 -->
+  <polygon points="64,28 88,42 88,70 64,84 40,70 40,42" fill="white" opacity="0.95"/>
+  
+  <!-- 内部三角形 -->
+  <polygon points="64,40 76,56 52,56" fill="#3B82F6"/>
+  <polygon points="64,72 76,56 52,56" fill="#06B6D4"/>
+  
+  <!-- 中心圆点 -->
+  <circle cx="64" cy="56" r="4" fill="white"/>
+</svg>

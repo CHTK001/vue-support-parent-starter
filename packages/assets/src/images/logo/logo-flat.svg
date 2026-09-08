@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- 扁平化几何抽象 Logo -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A9BD9"/>
+      <stop offset="100%" stop-color="#5AC8A0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 主圆形背景 -->
+  <circle cx="64" cy="64" r="56" fill="url(#grad1)"/>
+  
+  <!-- 抽象几何图形 - 代表AI/连接 -->
+  <path d="M40 52 L56 44 L72 52 L72 68 L56 76 L40 68 Z" fill="white" opacity="0.95"/>
+  <path d="M56 60 L72 52 L88 60 L88 76 L72 84 L56 76 Z" fill="white" opacity="0.7"/>
+  
+  <!-- 中心点 -->
+  <circle cx="64" cy="64" r="6" fill="white"/>
+</svg>
