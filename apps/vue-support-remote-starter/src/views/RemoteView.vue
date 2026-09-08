@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, nextTick, onMounted } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
