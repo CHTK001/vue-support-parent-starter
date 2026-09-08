@@ -301,29 +301,32 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 4px 12px;
   width: 320px;
   color: var(--text-tertiary);
   font-size: 13px;
   background: var(--bg-page);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  :deep(.el-input__wrapper) {
+    padding: 0 6px;
+    background: var(--bg-page);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    box-shadow: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    .el-input__inner {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      &:hover { background: var(--bg-page); }
+    }
+  }
   &:hover { border-color: var(--border-default); }
   &:focus-within {
     background: var(--bg-container);
     border-color: var(--brand-500);
     box-shadow: var(--focus-ring);
-  }
-  input {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
-    font-size: 13px;
-    &::placeholder { color: var(--text-tertiary); }
   }
 }
 .kbd {
