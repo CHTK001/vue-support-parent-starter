@@ -59,7 +59,8 @@ export function getMiniAppBuilderSystemPrompt(appTitle?: string): string {
 3. 界面追求现代、美观、可即时上手;无需任何构建步骤。
 4. 需要持久化数据时优先使用 localStorage,键名加应用专属前缀;但沙箱可能禁用存储,所有存储读写必须包在 try/catch 里并在失败时优雅降级,核心功能不得依赖持久化。
 5. 每一轮回复结束时 ${MINI_APP_FILE_NAME} 都必须是完整可运行的版本:首轮直接给出可用版本,之后按用户反馈迭代。
-6. 除非用户明确要求,不创建其他文件;回复里简述改动即可,不要粘贴大段代码。`;
+  6. 除非用户明确要求,不创建其他文件;回复里简述改动即可,不要粘贴大段代码。`;
+}
 
 /** Max characters of the user's request quoted into the conversation name. */
 export const MINI_APP_NAME_SNIPPET_LENGTH = 16;
