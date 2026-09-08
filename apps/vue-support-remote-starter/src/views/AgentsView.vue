@@ -64,7 +64,7 @@ const agents = ref<AgentRow[]>([]);
 
 const typeTag = (t: string) => (t === "PUSH" ? "warning" : "primary");
 
-/** 刷新（真实后端接口 GET /api/remote/agents；后端不可达降级示例数据） */
+/** 刷新（真实后端接口 GET /api/remote/agents） */
 const refresh = async () => {
   try {
     const resp = await fetch("/api/remote/agents");
@@ -77,27 +77,10 @@ const refresh = async () => {
       }
     }
   } catch {
-    /* 后端不可达——走本地示例 */
+    /* 后端不可达 */
   }
-  agents.value = [
-    {
-      id: "shell-agent1",
-      agentType: "SHELL",
-      platform: "Linux",
-      desktopSupported: false,
-      status: "在线",
-      sshHost: "124.221.230.112:22",
-    },
-    {
-      id: "push-agent1",
-      agentType: "PUSH",
-      platform: "Windows",
-      desktopSupported: true,
-      status: "在线",
-      sshHost: "-",
-    },
-  ];
-  ElMessage.warning("后端不可达——显示示例数据");
+  agents.value = [];
+  ElMessage.warning("后端不可达，请检查后端服务");
 };
 
 const gotoRemote = (row: AgentRow) => {

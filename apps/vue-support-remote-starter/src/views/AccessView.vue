@@ -75,7 +75,7 @@ const save = async () => {
   }
 };
 
-/** 加载（真实后端接口 GET /api/remote/access-codes；后端不可达降级示例数据） */
+/** 加载（真实后端接口 GET /api/remote/access-codes） */
 const load = async () => {
   try {
     const resp = await fetch("/api/remote/access-codes");
@@ -87,13 +87,10 @@ const load = async () => {
       }
     }
   } catch {
-    /* 后端不可达——走本地示例 */
+    /* 后端不可达 */
   }
-  codes.value = [
-    { code: "CTRL-TOKEN-1", type: "控制端令牌", status: "启用", createdAt: now() },
-    { code: "VERIFY-0000", type: "被控端验证码", status: "启用", createdAt: now() },
-  ];
-  ElMessage.warning("后端不可达——显示示例数据");
+  codes.value = [];
+  ElMessage.warning("后端不可达，请检查后端服务");
 };
 
 const generate = async () => {
