@@ -1,61 +1,69 @@
 <template>
   <div class="remote-view">
     <aside class="remote-left">
-      <el-form label-position="top" :model="form" class="remote-form">
-        <div class="form-title">连接信息</div>
-        <el-form-item label="网关地址">
-          <el-input v-model="form.gatewayUrl" placeholder="tcp://host:port" clearable />
-        </el-form-item>
-        <el-form-item label="接入令牌">
-          <el-input v-model="form.accessToken" placeholder="控制端接入令牌" clearable />
-        </el-form-item>
-        <el-form-item label="目标被控端">
-          <el-input v-model="form.targetAgentId" placeholder="被控端 id" clearable />
-        </el-form-item>
-        <el-form-item label="验证码">
-          <el-input v-model="form.verifyCode" placeholder="被控端验证码" clearable />
-        </el-form-item>
-        <el-form-item label="画面源地址（WS）">
-          <el-input v-model="form.wsUrl" placeholder="ws://host:port" clearable />
-        </el-form-item>
-        <el-form-item label="连接方式">
-          <el-select v-model="form.connMethod" style="width: 100%">
-            <el-option label="SSH (WebSocket)" value="ssh" />
-            <el-option label="远程桌面 (WebRTC)" value="rdp" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="反向隧道">
-          <el-switch v-model="form.reverseTunnel" />
-        </el-form-item>
-        <div class="remote-actions">
-          <el-button type="primary" :disabled="connected" @click="connect" data-testid="btn-connect">连接</el-button>
-          <el-button :disabled="!connected" @click="disconnect" data-testid="btn-disconnect">断开</el-button>
-          <el-button @click="saveConfig">保存配置</el-button>
+      <div class="form-title">连接信息</div>
+      <div class="remote-form">
+        <div class="form-field">
+          <label class="form-label">网关地址</label>
+          <ReInput v-model="form.gatewayUrl" placeholder="tcp://host:port" clearable data-testid="input-gateway" />
         </div>
-        <el-alert v-if="configSaved" type="success" :closable="false" title="配置已保存" class="save-tip" />
-      </el-form>
+        <div class="form-field">
+          <label class="form-label">接入令牌</label>
+          <ReInput v-model="form.accessToken" placeholder="控制端接入令牌" clearable data-testid="input-token" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">目标被控端</label>
+          <ReInput v-model="form.targetAgentId" placeholder="被控端 id" clearable data-testid="input-agent" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">验证码</label>
+          <ReInput v-model="form.verifyCode" placeholder="被控端验证码" show-password clearable data-testid="input-verify" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">画面源地址（WS）</label>
+          <ReInput v-model="form.wsUrl" placeholder="ws://host:port" clearable data-testid="input-ws" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">连接方式</label>
+          <ReSelect v-model="form.connMethod" :data="connMethodOptions" data-testid="select-method" />
+        </div>
+        <div class="form-field form-field--switch">
+          <label class="form-label">反向隧道</label>
+          <ReSwitch v-model="form.reverseTunnel" data-testid="switch-tunnel" />
+        </div>
+        <div class="remote-actions">
+          <ReButton type="primary" :disabled="connected" @click="connect" data-testid="btn-connect">连接</ReButton>
+          <ReButton :disabled="!connected" @click="disconnect" data-testid="btn-disconnect">断开</ReButton>
+          <ReButton @click="saveConfig" data-testid="btn-save">保存配置</ReButton>
+        </div>
+        <div v-if="configSaved" class="save-tip" data-testid="save-tip">配置已保存</div>
+      </div>
     </aside>
 
     <section class="remote-right">
       <div class="screen-header">
         <span class="screen-title">远控画面</span>
-        <el-tag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</el-tag>
+        <ReTag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</ReTag>
       </div>
       <div class="screen-body">
         <div v-if="form.connMethod === 'ssh'" class="ssh-area">
-          <div ref="terminalRef" class="terminal-container" data-testid="terminal" />
-          <div class="terminal-input">
-            <el-input v-model="cmdInput" placeholder="输入命令..." @keydown.enter="sendCmd" :disabled="!connected" data-testid="input-cmd">
-              <template #append>
-                <el-button @click="sendCmd" :disabled="!connected" data-testid="btn-send">发送</el-button>
-              </template>
-            </el-input>
+          <div
+            ref="terminalRef"
+            class="terminal-container"
+            tabindex="0"
+            data-testid="terminal"
+            @keydown="onTerminalKeydown"
+          />
+          <div v-if="!connected" class="terminal-overlay" data-testid="terminal-overlay">
+            <ReEmpty description="未连接——左侧填写连接信息后点击连接" :image-size="60" />
           </div>
         </div>
         <template v-else>
-          <canvas ref="screenRef" class="screen-canvas" />
+          <canvas ref="screenRef" class="screen-canvas" data-testid="screen-canvas" />
           <div v-if="h264Mode" class="h264-tip">H264 流（WebCodecs/MSE 播放——待接入）</div>
-          <el-empty v-if="!connected && !h264Mode" description="未连接——左侧填写连接信息后点击连接" :image-size="80" />
+          <div v-if="!connected && !h264Mode" class="screen-overlay" data-testid="screen-overlay">
+            <ReEmpty description="未连接——左侧填写连接信息后点击连接" :image-size="60" />
+          </div>
         </template>
       </div>
     </section>
@@ -63,8 +71,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, nextTick } from "vue";
 import { ElMessage } from "element-plus";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
+import ReSwitch from "@repo/ui/re-switch";
+import ReButton from "@repo/ui/re-button";
+import ReTag from "@repo/ui/re-tag";
+import ReEmpty from "@repo/ui/re-empty";
 
 const form = reactive({
   gatewayUrl: "",
@@ -76,12 +90,16 @@ const form = reactive({
   reverseTunnel: false,
 });
 
+const connMethodOptions = [
+  { label: "SSH (WebSocket)", value: "ssh" },
+  { label: "远程桌面 (WebRTC)", value: "rdp" },
+];
+
 const connected = ref(false);
 const h264Mode = ref(false);
 const configSaved = ref(false);
 const screenRef = ref<HTMLCanvasElement | null>(null);
 const terminalRef = ref<HTMLDivElement | null>(null);
-const cmdInput = ref("");
 let ws: WebSocket | null = null;
 let sshSessionId: string | null = null;
 
@@ -102,14 +120,16 @@ const connect = () => {
     ws.onopen = () => {
       connected.value = true;
       ElMessage.success("已连接");
-      if (form.connMethod === "ssh") startSSHSession();
+      if (form.connMethod === "ssh") {
+        startSSHSession();
+        nextTick(() => terminalRef.value?.focus());
+      }
     };
     ws.onmessage = (ev) => {
       if (typeof ev.data === "string") {
         try {
           handleTextMessage(JSON.parse(ev.data));
         } catch {
-          // 非 JSON 字符串（帧桥 base64）→ 按帧处理
           handleFrame(ev.data);
         }
       } else {
@@ -135,6 +155,7 @@ const disconnect = () => {
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
   ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, cols: 80, rows: 24 }));
+  appendTerminalOutput("SSH 会话已启动\n", false);
 };
 
 const handleTextMessage = (msg: any) => {
@@ -144,7 +165,6 @@ const handleTextMessage = (msg: any) => {
 const handleFrame = (data: unknown) => {
   let bytes: Uint8Array;
   if (typeof data === "string") {
-    // 帧桥文本模型：payload = "topic:base64" —— 剥离前缀 + base64 解码还原字节
     const idx = data.indexOf(":");
     const b64 = idx >= 0 ? data.slice(idx + 1) : data;
     try {
@@ -184,17 +204,25 @@ const renderJpeg = (bytes: Uint8Array) => {
 const appendTerminalOutput = (text: string, isError: boolean) => {
   if (!terminalRef.value) return;
   const span = document.createElement("span");
-  span.style.color = isError ? "#ff4757" : "#00ff41";
+  span.style.color = isError ? "#ff4757" : "#e6e6e6";
   span.textContent = text;
   terminalRef.value.appendChild(span);
   terminalRef.value.scrollTop = terminalRef.value.scrollHeight;
 };
 
-const sendCmd = () => {
-  if (!cmdInput.value || !ws || !sshSessionId) return;
-  ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(cmdInput.value + "\n"))) }));
-  appendTerminalOutput("$ " + cmdInput.value + "\n", false);
-  cmdInput.value = "";
+const onTerminalKeydown = (e: KeyboardEvent) => {
+  if (!connected.value || !ws || !sshSessionId) return;
+  e.preventDefault();
+  let data = "";
+  if (e.key === "Enter") data = "\r";
+  else if (e.key === "Backspace") data = "\x7f";
+  else if (e.key === "Tab") data = "\t";
+  else if (e.key === "Escape") data = "\x1b";
+  else if (e.ctrlKey && e.key >= "a" && e.key <= "z") data = String.fromCharCode(e.key.charCodeAt(0) - 96);
+  else if (e.key.length === 1) data = e.key;
+  if (data) {
+    ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(data))) }));
+  }
 };
 
 const CONFIG_API = "/api/remote/config";
@@ -230,15 +258,35 @@ onBeforeUnmount(() => { ws?.close(); });
 .remote-view { display: flex; height: 100%; gap: 16px; padding: 16px; box-sizing: border-box; }
 .remote-left { width: 320px; flex-shrink: 0; padding: 16px; background: #fff; border-radius: 8px; border: 1px solid var(--el-border-color-lighter); overflow-y: auto; }
 .form-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--el-text-color-primary); }
+.remote-form { display: flex; flex-direction: column; gap: 12px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field--switch { flex-direction: row; align-items: center; justify-content: space-between; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--el-text-color-secondary); }
 .remote-actions { display: flex; gap: 8px; margin-top: 4px; }
-.save-tip { margin-top: 12px; }
+.save-tip { margin-top: 8px; padding: 8px 12px; font-size: 12px; color: #67c23a; background: #f0f9eb; border-radius: 4px; }
 .remote-right { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid var(--el-border-color-lighter); overflow: hidden; }
 .screen-header { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--el-border-color-lighter); flex-shrink: 0; }
 .screen-title { font-size: 14px; font-weight: 600; }
 .screen-body { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; background: #0d1117; }
-.screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+.screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto; }
+.screen-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(13, 17, 23, 0.85); }
 .h264-tip { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); padding: 6px 14px; font-size: 12px; color: #e6a23c; background: rgba(230, 162, 60, 0.12); border: 1px solid rgba(230, 162, 60, 0.4); border-radius: 6px; }
-.ssh-area { flex: 1; display: flex; flex-direction: column; padding: 12px; }
-.terminal-container { flex: 1; background: #0c0c0c; color: #00ff41; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; padding: 12px; overflow-y: auto; white-space: pre-wrap; min-height: 300px; border-radius: 4px; }
-.terminal-input { margin-top: 8px; }
+.ssh-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+.terminal-container {
+  flex: 1;
+  background: #0c0c0c;
+  color: #e6e6e6;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 0;
+  outline: none;
+  cursor: text;
+  &:focus { box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4); }
+}
+.terminal-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12, 12, 12, 0.85); }
 </style>
