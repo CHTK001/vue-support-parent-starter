@@ -36,10 +36,10 @@ function stopTask(name: string): void {
 }
 
 self.addEventListener("install", () => {
-  self.skipWaiting();
+  void (self as unknown as ServiceWorkerGlobalScope).skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", (event: ExtendableMessageEvent) => {
   event.waitUntil(clients.claim());
 });
 
@@ -52,3 +52,5 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
     stopTask(msg.name);
   }
 });
+
+export {};
