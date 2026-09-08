@@ -116,9 +116,11 @@ const connect = async () => {
     return;
   }
   try {
-    const host = form.gatewayUrl.replace(/^tcp:\/\//, "").replace(/^ws:\/\//, "").replace(/^wss:\/\//, "");
-    const wsHost = host.replace("localhost:9000", "127.0.0.1:9003");
-    const wsUrl = `ws://${wsHost}/ws/ssh/${form.targetAgentId}`;
+    const gatewayHost = form.gatewayUrl.replace(/^tcp:\/\//, "").replace(/^ws:\/\//, "").replace(/^wss:\/\//, "");
+    const parts = gatewayHost.split(":");
+    const tcpHost = parts[0] || "127.0.0.1";
+    const tcpPort = parseInt(parts[1]) || 9000;
+    const wsUrl = `ws://${tcpHost}:${tcpPort + 3}/ws/ssh/${form.targetAgentId}`;
 
     const verifyResp = await fetch("/api/remote/verify", {
       method: "POST",
@@ -179,7 +181,11 @@ const startSSHSession = () => {
 };
 
 const handleTextMessage = (msg: any) => {
-  if (msg.type === "ssh") appendTerminalOutput(msg.data, msg.stream === "stderr");
+  if (msg.type === "ssh") {
+    if (msg.data && msg.data.length > 0) {
+      appendTerminalOutput(msg.data, msg.stream === "stderr");
+    }
+  }
 };
 
 const handleFrame = (data: unknown) => {
