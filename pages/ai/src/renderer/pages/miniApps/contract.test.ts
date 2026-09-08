@@ -58,18 +58,20 @@ describe('mini-app contract', () => {
   });
 
   test('builder prompt pins the artifact path and demands self-containment', () => {
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes(MINI_APP_FILE_NAME)).toBe(true);
+    const prompt = getMiniAppBuilderSystemPrompt('AI');
+    expect(prompt.includes(MINI_APP_FILE_NAME)).toBe(true);
     // Self-containment: inline CSS/JS, no sibling workspace files.
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('自包含')).toBe(true);
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('内联全部 CSS 与 JavaScript')).toBe(true);
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('不得依赖工作区内其他文件')).toBe(true);
+    expect(prompt.includes('自包含')).toBe(true);
+    expect(prompt.includes('内联全部 CSS 与 JavaScript')).toBe(true);
+    expect(prompt.includes('不得依赖工作区内其他文件')).toBe(true);
   });
 
   test('builder prompt requires storage to degrade gracefully in the sandbox', () => {
     // The sandbox has an opaque origin, so `localStorage` access may throw.
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('localStorage')).toBe(true);
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('try/catch')).toBe(true);
-    expect(MINI_APP_BUILDER_SYSTEM_PROMPT.includes('核心功能不得依赖持久化')).toBe(true);
+    const prompt = getMiniAppBuilderSystemPrompt('AI');
+    expect(prompt.includes('localStorage')).toBe(true);
+    expect(prompt.includes('try/catch')).toBe(true);
+    expect(prompt.includes('核心功能不得依赖持久化')).toBe(true);
   });
 
   test('iframe sandbox withholds same-origin so generated code gets an opaque origin', () => {
