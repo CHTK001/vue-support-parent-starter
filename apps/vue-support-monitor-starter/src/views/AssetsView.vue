@@ -506,7 +506,7 @@ onMounted(fetchAll);
     </ReDialog>
 
     <!-- 连接弹窗（选择登录身份） -->
-    <el-dialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
+    <ReDialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
       <div v-if="!connectTarget" />
       <template v-else>
         <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ connectTarget.serverHostPort }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
@@ -530,10 +530,10 @@ onMounted(fetchAll);
         <ReButton @click="connectVisible = false">取消</ReButton>
         <ReButton type="primary" icon="Connection" :show-text="true" @click="doConnect">{{ connectIdentityId ? "以此身份连接" : "默认凭据连接" }}</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 身份管理（账号密码 / 私钥）弹窗 -->
-    <el-dialog v-model="identityVisible" title="账号 / 密钥（登录身份）" width="500px">
+    <ReDialog v-model="identityVisible" title="账号 / 密钥（登录身份）" width="500px">
       <div v-if="identities.length">
         <div class="muted" style="margin-bottom:8px">已有身份</div>
         <div v-for="i in identities" :key="i.id" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle)">

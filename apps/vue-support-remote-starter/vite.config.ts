@@ -8,24 +8,8 @@ export default createVite({
     strictPort: true,
     host: "0.0.0.0",
     proxy: {
-      "/api/remote/verify": {
+      "/api/remote": {
         target: "http://localhost:9001",
-        changeOrigin: true,
-      },
-      "/api/remote/config": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      "/api/remote/gateways": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      "/api/remote/agents": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      "/api/remote/access-codes": {
-        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },
