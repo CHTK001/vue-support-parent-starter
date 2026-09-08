@@ -9,6 +9,7 @@
  */
 import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const props = withDefaults(
   defineProps<{
@@ -390,7 +391,7 @@ function initScene() {
 
   // OrbitControls
   if (props.interactive) {
-    controls = new (require("three/addons/controls/OrbitControls.js").OrbitControls)(
+    controls = new OrbitControls(
       camera,
       renderer.domElement,
     );
