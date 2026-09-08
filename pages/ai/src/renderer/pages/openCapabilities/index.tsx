@@ -71,7 +71,7 @@ const MCP_DOMAIN_OPTIONS: McpDomainOption[] = [
     titleKey: 'settings.openCapabilities.domainKnowledgeTitle',
     defaultTitle: '知识库',
     descKey: 'settings.openCapabilities.domainKnowledgeDesc',
-    defaultDesc: '读取、写入、绑定和维护 NomiFun 知识库内容。',
+    defaultDesc: '读取、写入、绑定和维护 {{appTitle}} 知识库内容。',
   },
   {
     id: 'files',
