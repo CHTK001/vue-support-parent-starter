@@ -19,7 +19,7 @@
         @click="handleItemClick(item, index)"
       >
         <slot :item="item" :index="realIndex(index)" :active="realIndex(index) === activeIndex">
-          <img v-if="isImage(item)" :src="item" :alt="getItemAlt(item, index)" class="re-carousel__img" />
+          <img v-if="isImage(item)" :src="(item as string)" :alt="getItemAlt(item, index)" class="re-carousel__img" />
           <div v-else class="re-carousel__default">{{ item }}</div>
         </slot>
       </div>
