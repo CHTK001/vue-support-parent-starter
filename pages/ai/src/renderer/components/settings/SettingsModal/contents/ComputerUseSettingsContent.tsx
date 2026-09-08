@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ComputerPermissionKind, ComputerPermissionStatus } from '@/common/adapter/ipcBridge';
+import { getConfig } from '@repo/config';
 import { configService } from '@/common/config/configService';
 import NomiScrollArea from '@/renderer/components/base/NomiScrollArea';
 import { Button, Switch } from '@arco-design/web-react';
@@ -57,7 +58,7 @@ const ComputerUseSettingsContent: React.FC = () => {
   }, []);
 
   const isMac = perm?.platform === 'macos';
-  const appLabel = perm?.app_label || 'NomiFun';
+  const appLabel = perm?.app_label || getConfig()?.app?.title || '';
 
   const permRow = (kind: ComputerPermissionKind, granted: boolean | null, label: string, description: string) => (
     <PreferenceRow label={label} description={description}>
