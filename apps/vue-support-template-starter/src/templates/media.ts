@@ -107,6 +107,31 @@ export const mediaTemplates: TemplateMeta[] = [
   reImageGroupMeta,
 ];
 
+/** ReImageTo3D —— 图片转伪 3D 浮浮雕 */
+export const reImageTo3DMeta: TemplateMeta = {
+  name: "ReImageTo3D",
+  component: () => import("@repo/ui/re-image-to-3d").then((m) => ({ default: m.default })),
+  title: "图片转 3D",
+  description: "输入图片 URL，通过亮度深度图生成伪 3D 浮浮雕效果（位移映射 + 正弦浮动）",
+  modelable: false,
+  props: [
+    { key: "src", label: "图片地址", type: "string", default: "https://picsum.photos/seed/ch3d/640/480", description: "支持任意公开图片 URL 或 data URL" },
+    { key: "width", label: "宽度", type: "number", default: 400, min: 200, max: 800, step: 10 },
+    { key: "height", label: "高度", type: "number", default: 400, min: 200, max: 800, step: 10 },
+    { key: "displacementScale", label: "置换强度", type: "number", default: 0.35, min: 0, max: 2, step: 0.05, description: "顶点位移量，越大立体感越强" },
+    { key: "segments", label: "网格细分", type: "number", default: 80, min: 20, max: 200, step: 10, description: "平面细分密度，越高越平滑但性能越低" },
+    { key: "floatAmplitude", label: "浮动振幅", type: "number", default: 8, min: 0, max: 30, step: 1 },
+    { key: "floatSpeed", label: "浮动速度", type: "number", default: 1.2, min: 0, max: 5, step: 0.1 },
+    { key: "parallax", label: "鼠标视差", type: "boolean", default: true },
+    { key: "interactive", label: "鼠标旋转", type: "boolean", default: true },
+    { key: "autoRotate", label: "自动旋转", type: "boolean", default: false },
+    { key: "autoRotateSpeed", label: "旋转速度", type: "number", default: 0.2, min: 0, max: 2, step: 0.1 },
+    { key: "backgroundColor", label: "背景色", type: "string", default: "transparent" },
+    { key: "lightColor", label: "主光颜色", type: "string", default: "#ffffff" },
+    { key: "fillLightColor", label: "填充光颜色", type: "string", default: "#9663f1" },
+  ],
+};
+
 /** ReClineCharacter —— Cline 首页浮动角色组件 */
 export const reClineCharacterMeta: TemplateMeta = {
   name: "ReClineCharacter",
