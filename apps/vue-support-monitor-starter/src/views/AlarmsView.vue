@@ -189,7 +189,7 @@ onMounted(fetchAll);
         <ReButton @click="handleVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="handleSubmitting" @click="submitHandle" icon="Check" :show-text="true">确认处理</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
