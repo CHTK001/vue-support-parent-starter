@@ -8,7 +8,6 @@ export default createVite({
   // 注意：业务代码以 "@pages/server/src/api" 形式引用，alias 目标应指向页面根（pages/server），
   // 使 "/src/..." 后缀落在真实的 pages/server/src/... 上；不可指向 pages/server/src（否则叠加成 src/src）。
   alias: {
-    "@pages/account": "pages/account",
     "@pages/server": "pages/server",
     "@pages/monitor": "pages/monitor",
   },
