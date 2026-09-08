@@ -299,6 +299,10 @@
       "types": "./src/components/ReClineCharacter/index.ts",
       "default": "./src/components/ReClineCharacter/index.ts"
     },
+    "./re-image-to-3d": {
+      "types": "./src/components/ReImageTo3D/index.ts",
+      "default": "./src/components/ReImageTo3D/index.ts"
+    },
     "./re-three": {
       "types": "./src/components/ReThree/index.ts",
       "default": "./src/components/ReThree/index.ts"
