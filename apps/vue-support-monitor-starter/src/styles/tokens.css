@@ -11,15 +11,18 @@
   --brand-50: #f6f4ff;
   --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-400) 100%);
 
-  /* 中性色（light） */
-  --bg-page: #f6f7fb;
-  --bg-container: #ffffff;
-  --bg-elevated: #fbfbff;
-  --border-subtle: #eef0f6;
-  --border-default: #e3e6ef;
-  --text-primary: #1f2430;
-  --text-secondary: #5c6270;
-  --text-tertiary: #8a90a0;
+   /* 中性色（light） */
+   --bg-page: #f6f7fb;
+   --bg-container: #ffffff;
+   --bg-elevated: #fbfbff;
+   --bg-fill: #f5f7fa;
+   --border-subtle: #eef0f6;
+   --border-default: #e3e6ef;
+   --text-primary: #1f2430;
+   --text-secondary: #5c6270;
+   --text-tertiary: #6b7280;
+   /* 反色文字：白字（品牌渐变底 / 徽标 / 头像） */
+   --text-inverse: #ffffff;
 
   /* 监控域语义色 */
   --metric-cpu: #3b82f6;
