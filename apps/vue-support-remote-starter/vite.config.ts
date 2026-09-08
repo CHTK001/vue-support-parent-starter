@@ -14,8 +14,19 @@ export default createVite({
     host: "0.0.0.0",
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: "http://localhost:8091",
         changeOrigin: true,
+        bypass(req) {
+          if (req.url?.startsWith("/api/remote/config")) return req.url;
+          if (req.url?.startsWith("/api/remote/gateways")) return req.url;
+          if (req.url?.startsWith("/api/remote/agents")) return req.url;
+          if (req.url?.startsWith("/api/remote/access-codes")) return req.url;
+        },
+      },
+      "/gateway-ws": {
+        target: "ws://localhost:9002",
+        ws: true,
+        rewriteWsPath: true,
       },
     },
   },
