@@ -136,6 +136,7 @@ import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
+import { getConfig } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
