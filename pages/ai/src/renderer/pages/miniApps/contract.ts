@@ -30,6 +30,7 @@
 
 import type { TFunction } from 'i18next';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { getConfig } from '@repo/config';
 import type { MiniAppId } from '@/common/types/ids';
 
 /** Workspace-root file the builder prompt pins the agent to. */
@@ -49,7 +50,9 @@ export const MINI_APP_EXTRA_FLAG = 'miniapp';
  * section). It persists with the conversation, so reopening the session keeps
  * the builder behavior without any client-side replay.
  */
-export const MINI_APP_BUILDER_SYSTEM_PROMPT = `[{{appTitle}} 小程序构建模式]
+export function getMiniAppBuilderSystemPrompt(appTitle?: string): string {
+  const title = appTitle ?? getConfig()?.app?.title ?? 'AI';
+  return `[${title} 小程序构建模式]
 你正在为用户构建一个「小程序」— 独立、自包含的网页小工具。规则:
 1. 产物永远是工作区根目录下的单个文件 ${MINI_APP_FILE_NAME},用文件工具创建与修改它。
 2. ${MINI_APP_FILE_NAME} 必须完全自包含:内联全部 CSS 与 JavaScript;需要第三方库时可经 CDN 引入;不得依赖工作区内其他文件。
