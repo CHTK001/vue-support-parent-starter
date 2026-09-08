@@ -117,11 +117,11 @@ onMounted(init);
         <div class="sess-list">
           <ReEmpty v-if="sessions.length === 0" :description="available === false ? '接口不可用' : '暂无会话'" style="padding: 24px 0" />
           <template v-else>
-            <button v-for="s in sessions" :key="s.id" :class="['sess', { active: currentSession === s.id }]" @click="openSession(s.id)">
+            <ReButton v-for="s in sessions" :key="s.id" :class="['sess', { active: currentSession === s.id }]" @click="openSession(s.id)">
               <span class="sess-name">会话 #{{ s.id }}</span>
               <ReTag :type="s.status === 'RUNNING' ? 'success' : 'info'" size="small">{{ s.status === 'RUNNING' ? '活跃' : '已停止' }}</ReTag>
               <ReButton v-if="s.status === 'RUNNING'" icon="VideoPause" layout="square" size="small" title="停止" @click.stop="stop(s.id)" />
-            </button>
+            </ReButton>
           </template>
         </div>
       </ReCard>
