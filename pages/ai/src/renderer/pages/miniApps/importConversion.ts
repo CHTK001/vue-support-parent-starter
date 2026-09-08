@@ -77,6 +77,7 @@ export function getMiniAppImportConversionSystemPrompt(appTitle?: string): strin
 3. 所有本地依赖必须内联进 ${MINI_APP_FILE_NAME}:CSS/JS 直接写进文档,小图片转 data URI,体积大的第三方库改用公网 CDN 地址。
 4. 运行环境是 sandbox 且没有 allow-same-origin(来源不透明):cookie、同源请求、localStorage 都可能不可用或抛错,相关代码一律 try/catch 并优雅降级。
 5. 最后用一段话说明你改了什么、哪些能力因为沙箱限制被降级。`;
+}
 
 /** Last path segment, tolerant of both separators and of a trailing one. */
 export function miniAppImportSourceBaseName(source: MiniAppImportConversionSource): string {
