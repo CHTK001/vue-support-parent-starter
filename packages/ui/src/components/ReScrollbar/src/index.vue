@@ -62,7 +62,7 @@ const props = defineProps({
    * 包装元素的 CSS 类名
    */
   wrapClass: {
-    type: [String, Array],
+    type: [String, String] as const,
     default: ""
   },
   /**
@@ -76,7 +76,7 @@ const props = defineProps({
    * 视图元素的 CSS 类名
    */
   viewClass: {
-    type: [String, Array],
+    type: [String, String] as const,
     default: ""
   },
   /**
