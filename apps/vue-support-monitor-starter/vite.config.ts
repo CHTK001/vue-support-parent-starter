@@ -10,6 +10,7 @@ export default createVite({
   alias: {
     "@pages/server": "pages/server",
     "@pages/monitor": "pages/monitor",
+    "@pages/account": "pages/account",
   },
   server: {
     port: 8848,
