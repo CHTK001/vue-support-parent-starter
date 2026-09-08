@@ -50,3 +50,5 @@ ctx.addEventListener("message", (event: MessageEvent) => {
 
 // 通知主线程 Worker 已就绪
 ctx.postMessage({ type: "ready" });
+
+export {};
