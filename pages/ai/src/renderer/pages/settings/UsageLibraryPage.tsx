@@ -44,6 +44,7 @@ interface UsageStats {
   totalCompletionTokens?: number;
   totalCachedTokens?: number;
   avgLatency?: number;
+  avgFirstTokenLatency?: number;
   standardCost?: number;
 }
 
