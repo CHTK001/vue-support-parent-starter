@@ -166,8 +166,10 @@ defineProps<{
 const { t } = useI18n();
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
-// 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL）
-const resolvedLogoUrl = computed(() => resolveAssetUrl(loginConfig.value.logoUrl));
+// 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL），为空时回退内置 logo
+const resolvedLogoUrl = computed(() =>
+  loginConfig.value.logoUrl ? resolveAssetUrl(loginConfig.value.logoUrl) : fallbackLogoUrl
+);
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const tabsStore = useTabsStore();
