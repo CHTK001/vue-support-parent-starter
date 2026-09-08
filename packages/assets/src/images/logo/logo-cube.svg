@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- 立方体风格 Logo - 代表多维度AI -->
+  <defs>
+    <linearGradient id="grad-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="grad-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="grad-right" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0891B2"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆 -->
+  <circle cx="64" cy="64" r="60" fill="#F8FAFC"/>
+  
+  <!-- 立方体顶面 -->
+  <polygon points="64,24 96,42 64,60 32,42" fill="url(#grad-top)"/>
+  
+  <!-- 立方体左面 -->
+  <polygon points="32,42 64,60 64,92 32,74" fill="url(#grad-left)"/>
+  
+  <!-- 立方体右面 -->
+  <polygon points="96,42 64,60 64,92 96,74" fill="url(#grad-right)"/>
+  
+  <!-- 中心连接点 -->
+  <circle cx="64" cy="60" r="4" fill="white"/>
+</svg>
