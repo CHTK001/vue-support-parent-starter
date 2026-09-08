@@ -1,4 +1,6 @@
-import request from '@repo/utils'
+import { getApiHttp } from "@repo/core";
+
+const http = getApiHttp();
 
 export interface Account {
   id: string
@@ -19,36 +21,36 @@ export interface PoolStats {
 
 export const accountApi = {
   register(platformType: string, emailProvider?: string, proxy?: string) {
-    return request.post(`/api/account/register/${platformType}`, null, { params: { emailProvider, proxy } })
+    return http.post(`/api/account/register/${platformType}`, null, { params: { emailProvider, proxy } })
   },
   registerBatch(platformType: string, count: number, emailProvider?: string) {
-    return request.post(`/api/account/register-batch/${platformType}?count=${count}${emailProvider ? '&emailProvider=' + emailProvider : ''}`)
+    return http.post(`/api/account/register-batch/${platformType}`, null, { params: { count, emailProvider } })
   },
   acquire(platformType: string) {
-    return request.get(`/api/account/acquire/${platformType}`)
+    return http.get(`/api/account/acquire/${platformType}`)
   },
   list(platformType: string) {
-    return request.get(`/api/account/list/${platformType}`)
+    return http.get(`/api/account/list/${platformType}`)
   },
   release(platformType: string, accountId: string) {
-    return request.post(`/api/account/release/${platformType}/${accountId}`)
+    return http.post(`/api/account/release/${platformType}/${accountId}`)
   },
   delete(platformType: string, accountId: string) {
-    return request.delete(`/api/account/${platformType}/${accountId}`)
+    return http.delete(`/api/account/${platformType}/${accountId}`)
   },
   clearPool(platformType: string) {
-    return request.delete(`/api/account/pool/${platformType}`)
+    return http.delete(`/api/account/pool/${platformType}`)
   },
   stats() {
-    return request.get('/api/account/stats')
+    return http.get('/api/account/stats')
   },
   replenish(platformType: string, count = 1) {
-    return request.post(`/api/account/replenish/${platformType}?count=${count}`)
+    return http.post(`/api/account/replenish/${platformType}`, null, { params: { count } })
   },
   getSettings() {
-    return request.get('/api/account/settings')
+    return http.get('/api/account/settings')
   },
   saveSettings(data: Record<string, any>) {
-    return request.post('/api/account/settings', data)
+    return http.post('/api/account/settings', data)
   }
 }
