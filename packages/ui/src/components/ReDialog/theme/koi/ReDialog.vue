@@ -195,15 +195,17 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
         <slot></slot>
       </slot>
     </div>
-    <template v-if="!footerHidden" #footer>
-      <span class="dialog-footer">
-        <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
-          {{ confirmText || "确定" }}
-        </el-button>
-        <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">
-          {{ cancelText || "取消" }}
-        </el-button>
-      </span>
+     <template v-if="!footerHidden" #footer>
+      <slot name="footer" v-bind="{ confirm: koiConfirm, cancel: koiCancel, loading: confirmLoading }">
+        <span class="dialog-footer">
+          <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">
+            {{ confirmText || "确定" }}
+          </el-button>
+          <el-button class="koi-btn-borderless" type="danger" @click="koiCancel">
+            {{ cancelText || "取消" }}
+          </el-button>
+        </span>
+      </slot>
     </template>
   </ElDialog>
   <KoiShellMinimizedDock

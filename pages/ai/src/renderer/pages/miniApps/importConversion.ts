@@ -62,12 +62,13 @@ export type MiniAppImportConversionSource =
  * without the client replaying anything.
  */
 export function getMiniAppImportConversionSystemPrompt(appTitle?: string): string {
+  const title = appTitle ?? 'AI';
   return `${getMiniAppBuilderSystemPrompt(appTitle)}
 
 [导入改造任务]
 用户已经写好一个网页应用,但它没通过小程序导入校验。你的任务是把它改写成符合上面规则的单文件小程序,而不是另做一个应用。
 
-**先看这一条:来源目录是只读的。** 用户的原始项目就是他们的真实代码,不在任何 {{appTitle}} 管理的目录里,也没有备份。你只能读它,绝对不能写、改名、移动或删除其中任何文件,也不要在里面执行会产生副作用的命令。你的全部产物只有一个:工作区根目录下的 ${MINI_APP_FILE_NAME}。
+**先看这一条:来源目录是只读的。** 用户的原始项目就是他们的真实代码,不在任何 ${title} 管理的目录里,也没有备份。你只能读它,绝对不能写、改名、移动或删除其中任何文件,也不要在里面执行会产生副作用的命令。你的全部产物只有一个:工作区根目录下的 ${MINI_APP_FILE_NAME}。
 
 在这个前提下:
 1. 先读懂原应用的界面与功能,再动手;保持原有交互与视觉,不要顺手"重新设计"。
@@ -116,7 +117,7 @@ export function buildMiniAppImportConversionPrompt(params: {
       : '导入校验没有给出具体失败项,请按单文件自包含的要求整体检查一遍。';
 
   return [
-    `请把我已有的网页应用改造成 NomiFun 小程序:产物必须是工作区根目录下的单个自包含文件 ${MINI_APP_FILE_NAME}。`,
+    `请把我已有的网页应用改造成 ${getConfig()?.app?.title ?? 'AI'} 小程序:产物必须是工作区根目录下的单个自包含文件 ${MINI_APP_FILE_NAME}。`,
     sourceBlock,
     findingBlock,
     `改造完成后 ${MINI_APP_FILE_NAME} 必须是一个能直接打开就跑的完整文档:不引用任何本地文件、不需要构建步骤、不依赖服务端渲染。我会在预览里点「发布为小程序」把它收进小程序库。`,
