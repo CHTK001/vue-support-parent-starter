@@ -485,12 +485,11 @@ const containerStyle = computed(() => ({
 }));
 
 watch(
-  () => [props.width, props.height] as const,
-  ([nw, nh]) => {
-    if (nw !== props.width || nh !== props.height) return;
+  () => props.width,
+  () => {
     if (!containerRef.value || !renderer) return;
-    const w = containerRef.value.clientWidth || nw;
-    const h = containerRef.value.clientHeight || nh;
+    const w = containerRef.value.clientWidth;
+    const h = containerRef.value.clientHeight;
     if (w > 0 && h > 0) {
       camera!.aspect = w / h;
       camera!.updateProjectionMatrix();
