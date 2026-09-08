@@ -295,6 +295,10 @@
       "types": "./src/components/ReAvatar3D/index.ts",
       "default": "./src/components/ReAvatar3D/index.ts"
     },
+    "./re-cline-character": {
+      "types": "./src/components/ReClineCharacter/index.ts",
+      "default": "./src/components/ReClineCharacter/index.ts"
+    },
     "./re-three": {
       "types": "./src/components/ReThree/index.ts",
       "default": "./src/components/ReThree/index.ts"
