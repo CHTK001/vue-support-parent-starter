@@ -106,7 +106,12 @@ const connect = () => {
     };
     ws.onmessage = (ev) => {
       if (typeof ev.data === "string") {
-        handleTextMessage(JSON.parse(ev.data));
+        try {
+          handleTextMessage(JSON.parse(ev.data));
+        } catch {
+          // 非 JSON 字符串（帧桥 base64）→ 按帧处理
+          handleFrame(ev.data);
+        }
       } else {
         handleFrame(ev.data as ArrayBuffer);
       }
@@ -136,8 +141,21 @@ const handleTextMessage = (msg: any) => {
   if (msg.type === "ssh") appendTerminalOutput(msg.data, msg.stream === "stderr");
 };
 
-const handleFrame = (data: ArrayBuffer) => {
-  const bytes = new Uint8Array(data);
+const handleFrame = (data: unknown) => {
+  let bytes: Uint8Array;
+  if (typeof data === "string") {
+    // 帧桥文本模型：payload = "topic:base64" —— 剥离前缀 + base64 解码还原字节
+    const idx = data.indexOf(":");
+    const b64 = idx >= 0 ? data.slice(idx + 1) : data;
+    try {
+      const bin = atob(b64);
+      bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    } catch {
+      return;
+    }
+  } else {
+    bytes = new Uint8Array(data as ArrayBuffer);
+  }
   if (bytes.length < 3) return;
   if (bytes[0] === 0xff && bytes[1] === 0xd8) {
     h264Mode.value = false;
