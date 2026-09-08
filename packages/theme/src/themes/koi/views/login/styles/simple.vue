@@ -48,6 +48,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
 import { translateConfigText } from "@repo/languages";
 import ReLoginForm from "../components/ReLoginForm.vue";
 
