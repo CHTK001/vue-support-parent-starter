@@ -12,6 +12,7 @@ import { dataTemplates } from "./data";
 import { graphTemplates } from "./graph";
 import { mediaTemplates } from "./media";
 import { reClineCharacterMeta } from "./media";
+import { reImageTo3DMeta } from "./media";
 
 const allTemplates: TemplateMeta[] = [
   ...basicTemplates,
@@ -21,6 +22,7 @@ const allTemplates: TemplateMeta[] = [
   ...graphTemplates,
   ...mediaTemplates,
   reClineCharacterMeta,
+  reImageTo3DMeta,
 ];
 
 /** 通过组件名索引 */
