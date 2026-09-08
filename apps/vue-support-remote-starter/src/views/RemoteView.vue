@@ -120,9 +120,10 @@ const connect = async () => {
     const parts = gatewayHost.split(":");
     const tcpHost = parts[0] || "127.0.0.1";
     const tcpPort = parseInt(parts[1]) || 9000;
-    const wsUrl = `ws://${tcpHost}:${tcpPort + 3}/ws/ssh/${form.targetAgentId}`;
+    const wsUrl = form.wsUrl || `ws://${tcpHost}:${tcpPort + 3}/ws/ssh/${form.targetAgentId}`;
 
-    const verifyResp = await fetch("/api/remote/verify", {
+    if (!form.wsUrl) {
+      const verifyResp = await fetch("/api/remote/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
@@ -136,6 +137,7 @@ const connect = async () => {
     if (!verifyData.success) {
       ElMessage.error(verifyData.message || "验证失败");
       return;
+    }
     }
 
     ws = new WebSocket(wsUrl);
