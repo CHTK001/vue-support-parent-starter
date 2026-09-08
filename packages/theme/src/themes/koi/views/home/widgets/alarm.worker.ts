@@ -6,9 +6,10 @@ let alarms: Array<{
   enabled: boolean;
   fired: boolean;
   repeatCount: number;
+  firedCount?: number;
   title: string;
 }> = [];
-let ticker = 0;
+let ticker: ReturnType<typeof setInterval> | 0 = 0;
 let lastMinuteKey = "";
 let firedCounts: Record<string, number> = {};
 let totalFired: Record<string, number> = {};
