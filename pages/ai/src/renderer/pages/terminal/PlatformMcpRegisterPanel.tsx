@@ -53,7 +53,7 @@ const PlatformMcpRegisterPanel: React.FC = () => {
         <p className='mb-12px text-12px text-t-secondary'>
           {t('terminal.create.mcpPanel.description', {
             defaultValue:
-              '模板只包含启动命令，不包含端口或凭据。外部 CLI 启动时通过当前系统用户专属的本地安全通道获取工作区权限；NomiFun 需要保持运行。',
+              '模板只包含启动命令，不包含端口或凭据。外部 CLI 启动时通过当前系统用户专属的本地安全通道获取工作区权限；{{appTitle}} 需要保持运行。',
           })}
         </p>
         {error && (

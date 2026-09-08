@@ -397,7 +397,7 @@ const PresetEditDrawer: React.FC<PresetEditDrawerProps> = ({
                 <span>
                   {t('settings.presetBuiltinReadonlyTip', {
                     defaultValue:
-                      'This preset is maintained by NomiFun. To customize it, ',
+                      'This preset is maintained by {{appTitle}}. To customize it, ',
                   })}
                 </span>
                 <a
