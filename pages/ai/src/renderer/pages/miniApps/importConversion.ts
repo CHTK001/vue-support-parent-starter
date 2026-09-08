@@ -14,7 +14,7 @@
  * conversation and asks it to produce one self-contained `miniapp.html`.
  *
  * The instruction text lives here, next to the report catalogue, for the same
- * reason {@link MINI_APP_BUILDER_SYSTEM_PROMPT} lives in `contract.ts`: it is a
+ * reason {@link getMiniAppBuilderSystemPrompt} lives in `contract.ts`: it is a
  * contract with the model, not UI copy the user reads, and it must stay in step
  * with the rule ids the validator emits.
  *
@@ -31,6 +31,7 @@
  */
 
 import type { IApiMiniAppImportFinding } from '@/common/adapter/ipcBridge';
+import { getConfig } from '@repo/config';
 import { getMiniAppBuilderSystemPrompt, MINI_APP_FILE_NAME } from './contract';
 
 /** Characters of an inlined document that ride the first message. */

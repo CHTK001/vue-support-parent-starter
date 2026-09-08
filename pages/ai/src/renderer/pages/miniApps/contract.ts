@@ -14,7 +14,7 @@
  * interchangeable:
  *
  *  - **Creating** (start page 创建小程序, and the import dialog's 「用会话改造」 exit)
- *    injects {@link MINI_APP_BUILDER_SYSTEM_PROMPT} as `extra.system_prompt` plus
+ *    injects {@link getMiniAppBuilderSystemPrompt} as `extra.system_prompt` plus
  *    the {@link MINI_APP_EXTRA_FLAG} marker. The artifact is
  *    {@link MINI_APP_FILE_NAME} in the conversation's own workspace root, and the
  *    preview panel's 「发布为新的小程序」 is how it reaches the library.

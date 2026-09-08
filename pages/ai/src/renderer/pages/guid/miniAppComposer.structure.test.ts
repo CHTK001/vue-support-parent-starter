@@ -113,8 +113,8 @@ describe('mini-app composer entry wiring', () => {
     // first-turn handoff → `/conversation/:id`, only `extra` differs.
     expect(quickStart.includes('useNomiQuickStart')).toBe(true);
     expect(quickStart.includes('startNomi({')).toBe(true);
-    expect(quickStart.includes('MINI_APP_BUILDER_SYSTEM_PROMPT')).toBe(true);
-    expect(quickStart.includes('system_prompt: MINI_APP_BUILDER_SYSTEM_PROMPT')).toBe(true);
+    expect(quickStart.includes('getMiniAppBuilderSystemPrompt()')).toBe(true);
+    expect(quickStart.includes('system_prompt: getMiniAppBuilderSystemPrompt()')).toBe(true);
     // The marker is what turns on auto-preview of `miniapp.html` in the
     // conversation workspace and the publish toolbar on it.
     expect(quickStart.includes('[MINI_APP_EXTRA_FLAG]: true')).toBe(true);
