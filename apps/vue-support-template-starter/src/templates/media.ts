@@ -106,3 +106,39 @@ export const mediaTemplates: TemplateMeta[] = [
   reImageMeta,
   reImageGroupMeta,
 ];
+
+/** ReClineCharacter —— Cline 首页浮动角色组件 */
+export const reClineCharacterMeta: TemplateMeta = {
+  name: "ReClineCharacter",
+  component: () => import("@repo/ui/re-cline-character").then((m) => ({ default: m.default })),
+  title: "Cline 浮动角色",
+  description: "Three.js 程序化构建的 Cline 机器人角色，正弦波浮动动画 + 粒子效果",
+  modelable: false,
+  props: [
+    { key: "width", label: "宽度", type: "number", default: 400, min: 200, max: 800, step: 10 },
+    { key: "height", label: "高度", type: "number", default: 400, min: 200, max: 800, step: 10 },
+    { key: "floatAmplitude", label: "浮动振幅", type: "number", default: 12, min: 0, max: 40, step: 1, description: "单位：px" },
+    { key: "floatSpeed", label: "浮动速度", type: "number", default: 1.5, min: 0, max: 5, step: 0.1, description: "rad/s" },
+    { key: "interactive", label: "鼠标交互", type: "boolean", default: true, description: "启用拖动旋转" },
+    { key: "particles", label: "粒子效果", type: "boolean", default: true },
+    { key: "autoRotate", label: "自动旋转", type: "boolean", default: false },
+    { key: "autoRotateSpeed", label: "旋转速度", type: "number", default: 0.3, min: 0, max: 2, step: 0.1 },
+    {
+      key: "gradientTopColor",
+      label: "背景渐变上",
+      type: "string",
+      default: "#2d1b69",
+      description: "渐变顶部颜色",
+    },
+    {
+      key: "gradientBottomColor",
+      label: "背景渐变下",
+      type: "string",
+      default: "#e8a0d0",
+      description: "渐变底部颜色",
+    },
+    { key: "robotColor", label: "机器人颜色", type: "string", default: "#f0f0f5" },
+    { key: "stoneColor", label: "浮石颜色", type: "string", default: "#4a2c8a" },
+    { key: "eyeColor", label: "眼睛颜色", type: "string", default: "#3d1a4a" },
+  ],
+};

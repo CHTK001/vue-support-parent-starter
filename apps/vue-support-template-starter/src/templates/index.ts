@@ -11,6 +11,7 @@ import { feedbackTemplates } from "./feedback";
 import { dataTemplates } from "./data";
 import { graphTemplates } from "./graph";
 import { mediaTemplates } from "./media";
+import { reClineCharacterMeta } from "./media";
 
 const allTemplates: TemplateMeta[] = [
   ...basicTemplates,
@@ -19,6 +20,7 @@ const allTemplates: TemplateMeta[] = [
   ...dataTemplates,
   ...graphTemplates,
   ...mediaTemplates,
+  reClineCharacterMeta,
 ];
 
 /** 通过组件名索引 */
