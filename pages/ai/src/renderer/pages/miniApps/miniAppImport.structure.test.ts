@@ -261,7 +261,7 @@ describe('mini-app import: every rule id ships copy', () => {
     const autofix = BACKEND_RULE_IDS.filter((id) => BACKEND_SEVERITY[id] === 'autofix');
     expect(autofix).toEqual(['fragment_not_document']);
     expect(zh.import.rules.fragment_not_document.fix.includes('自动')).toBe(true);
-    expect(en.import.rules.fragment_not_document.fix.includes('NomiFun')).toBe(true);
+    expect(en.import.rules.fragment_not_document.fix.includes('{{appTitle}}')).toBe(true);
   });
 
   test('the copy states the two semantics the rules would otherwise be read wrong', () => {
