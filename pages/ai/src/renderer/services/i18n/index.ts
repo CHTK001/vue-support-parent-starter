@@ -88,8 +88,9 @@ i18n
 // app.yaml propagates without a reload.
 function syncAppTitleDefaultVariables(): void {
   const appTitle = getConfig()?.app?.title ?? '';
-  i18n.options.interpolation.defaultVariables = {
-    ...(i18n.options.interpolation.defaultVariables ?? {}),
+  const interp = (i18n.options as any).interpolation ?? ((i18n.options as any).interpolation = {});
+  interp.defaultVariables = {
+    ...(interp.defaultVariables ?? {}),
     appTitle,
   };
 }
