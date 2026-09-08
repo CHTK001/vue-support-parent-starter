@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "NomiFun，最懂你的工作台",
+    "title": "{{appTitle}}，最懂你的工作台",
     "placeholder": "发消息、上传文件、打开文件夹或创建定时任务...",
     "linkFolder": "打开文件夹",
     "newConversation": "新会话",
