@@ -584,7 +584,7 @@ const Layout: React.FC<{
                   </svg>
                 </div>
                 <div className='min-w-0 flex-1 truncate text-16px text-t-primary collapsed-hidden font-semibold'>
-                  {getConfig()?.app?.title ?? 'NomiFun'}
+                  {getConfig()?.app?.title ?? ''}
                 </div>
                 {updateAvailability.available && !collapsed && (
                   <InstantHoverTooltip content={updateButtonLabel} position='right' className='ml-auto'>
