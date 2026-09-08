@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
+import { getConfig, onConfigChange } from '@repo/config';
 import i18nConfig from '@/common/config/i18n-config.json';
 import {
   DEFAULT_LANGUAGE,
@@ -78,6 +79,24 @@ i18n
   .catch((error: Error) => {
     log.error(`Failed to initialize i18n:`, error);
   });
+
+// Inject the config-driven app title as a default interpolation variable so
+// every translation string can reference the system name via `{{appTitle}}`
+// instead of hardcoding a brand. i18next merges `interpolation.defaultVariables`
+// into every `t()` call at runtime (i18next src, extendTranslation), so setting
+// the option after init works. We re-sync on config changes so rebranding via
+// app.yaml propagates without a reload.
+function syncAppTitleDefaultVariables(): void {
+  const appTitle = getConfig()?.app?.title ?? '';
+  i18n.options.interpolation.defaultVariables = {
+    ...(i18n.options.interpolation.defaultVariables ?? {}),
+    appTitle,
+  };
+}
+syncAppTitleDefaultVariables();
+onConfigChange(() => {
+  syncAppTitleDefaultVariables();
+});
 
 // Load initial language from configService (single source of truth).
 // Wait until configService.whenReady() so we observe the authoritative value
