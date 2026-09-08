@@ -346,7 +346,7 @@
     "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-advanced-chat": "^2.1.0",
-    "vue-element-plus-x": "^2.0.3",
+    "vue-element-plus-x": "workspace:*",
     "vue3-compare-image": "catalog:"
   },
   "devDependencies": {
