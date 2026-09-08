@@ -124,6 +124,9 @@ export const registry: ComponentMeta[] = [
   { name: "ReAlbum", title: "相册", description: "相册组件（图片预览）", category: "media", icon: "Camera" },
   { name: "ReCarousel", title: "轮播", description: "轮播图组件（el-carousel 封装）", category: "media", icon: "VideoPlay" },
   { name: "ReCropper", title: "图片裁剪", description: "图片裁剪组件（cropperjs）", category: "media", icon: "Crop" },
+  { name: "ReClineCharacter", title: "Cline 角色", description: "Three.js 程序化 Cline 浮动机器人角色（正弦波动画 + 粒子）", category: "media", icon: "MagicStick" },
+  { name: "ReAvatar3D", title: "3D 角色", description: "3D GLB 模型角色加载器（GLTFLoader + OrbitControls）", category: "media", icon: "VideoCameraFilled" },
+  { name: "ReThree", title: "3D 画布", description: "通用 Three.js 渲染画布（支持自定义 render/animate 回调）", category: "chart", icon: "FullScreen" },
 
   // ========== 聊天/AI ==========
   { name: "ReChat", title: "聊天", description: "聊天组件（vue-advanced-chat 封装）", category: "chat", icon: "ChatDotRound" },
