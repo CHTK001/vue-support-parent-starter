@@ -76,7 +76,6 @@ const ALL_RE_COMPONENTS = [
   "ReAvatar3D",
   "ReThree",
   "ReClineCharacter",
-  "ReImageTo3D",
 ];
 
 /** 单页面应用最小化主题安装器 */

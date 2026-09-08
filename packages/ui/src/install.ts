@@ -94,7 +94,6 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReRemoteSelect: () => import("./components/ReRemoteSelect"),
   ReAvatar3D: () => import("./components/ReAvatar3D"),
   ReClineCharacter: () => import("./components/ReClineCharacter"),
-  ReImageTo3D: () => import("./components/ReImageTo3D"),
   ReThree: () => import("./components/ReThree"),
   ReMap3D: () => import("./components/ReMap3D"),
   ReCanvasUi: () => import("./components/ReCanvasUi"),
