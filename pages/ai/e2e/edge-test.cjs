@@ -80,11 +80,11 @@ const API  = 'http://127.0.0.1:8787';
     await page.close();
   });
 
-  // ── Backend API (via browser fetch) ──────────────────────
-  console.log('\n=== Backend API (via fetch) ===');
+  // ── Backend API (via Vite proxy — same origin) ──────────
+  console.log('\n=== Backend API (via Vite proxy) ===');
   {
     const page = await browser.newPage();
-    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
     const apiTests = [
       ['GET /api/requirements/tag-bindings',       '/api/requirements/tag-bindings',        'success'],
