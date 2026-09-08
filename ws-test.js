@@ -1,19 +1,26 @@
 const ws = new WebSocket("ws://127.0.0.1:9003/ws/ssh/agent-linux-001");
+const msgs = [];
 ws.onopen = () => {
-  console.log("WS OPEN - sending start");
-  ws.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: "test-1", host: "local", cols: 80, rows: 24 }));
+  console.log("[open] connected");
+  ws.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: "t1", host: "local", cols: 80, rows: 24 }));
   setTimeout(() => {
-    console.log("Sending input: dir /b");
-    ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: "test-1", data: Buffer.from("dir /b\r").toString("base64") }));
-  }, 1000);
+    console.log("[input] hostname");
+    ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: "t1", data: Buffer.from("hostname\r").toString("base64") }));
+  }, 2000);
   setTimeout(() => {
-    console.log("Stopping...");
-    ws.send(JSON.stringify({ action: "ssh", sshAction: "stop", sessionId: "test-1" }));
-    setTimeout(() => { ws.close(); process.exit(0); }, 500);
-  }, 5000);
+    console.log("[stop]");
+    ws.send(JSON.stringify({ action: "ssh", sshAction: "stop", sessionId: "t1" }));
+    setTimeout(() => {
+      console.log("=== ALL MESSAGES ===");
+      msgs.forEach((m, i) => console.log(`[${i}] ${m}`));
+      ws.close();
+      process.exit(0);
+    }, 2000);
+  }, 6000);
 };
 ws.onmessage = (ev) => {
-  const msg = JSON.parse(String(ev.data));
-  console.log("RECV:", JSON.stringify(msg));
+  const s = String(ev.data);
+  console.log("[recv]", s.substring(0, 200));
+  msgs.push(s);
 };
-ws.onerror = (e) => { console.log("WS ERROR:", e.message || e); process.exit(1); };
+ws.onerror = (e) => { console.log("[error]", e.message || e); };
