@@ -79,10 +79,10 @@ const showLogo = computed(() => {
   return cfg.other.toolbar.logo && settings.logoShow;
 });
 
-// 品牌名（app.yaml loginConfig.brandName，为空时回退 i18n project.title）
+// 品牌名（app.yaml loginConfig.brandName，为空时回退 loginConfig.title）
 const brandName = computed(() => {
   const cfg = getConfig();
-  return translateConfigText(cfg.login.title) || "";
+  return translateConfigText(cfg.login.brandName) || translateConfigText(cfg.login.title) || "";
 });
 
 // Logo 图片地址（app.yaml loginConfig.logoUrl，为空时回退内置 logo）

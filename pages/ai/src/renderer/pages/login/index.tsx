@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const appTitle = getConfig()?.app?.title ?? 'NomiFun';
+    const appTitle = getConfig()?.app?.title ?? '';
     document.title = t('login.pageTitle', { appTitle });
   }, [t]);
 
