@@ -110,17 +110,36 @@ const statusTag = computed(() => {
 });
 
 
-const connect = () => {
-  if (!form.wsUrl) {
-    ElMessage.warning("请填写画面源地址（WS）");
+const connect = async () => {
+  if (!form.gatewayUrl || !form.targetAgentId || !form.verifyCode) {
+    ElMessage.warning("请填写网关地址、被控端 id 和验证码");
     return;
   }
   try {
-    ws = new WebSocket(form.wsUrl);
-    ws.binaryType = "arraybuffer";
+    const host = form.gatewayUrl.replace(/^tcp:\/\//, "").replace(/^ws:\/\//, "").replace(/^wss:\/\//, "");
+    const wsHost = host.replace("localhost:9000", "127.0.0.1:9003");
+    const wsUrl = `ws://${wsHost}/ws/ssh/${form.targetAgentId}`;
+
+    const verifyResp = await fetch("/api/remote/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
+    });
+    if (!verifyResp.ok) {
+      const err = await verifyResp.json().catch(() => ({}));
+      ElMessage.error(err.message || "验证码校验失败");
+      return;
+    }
+    const verifyData = await verifyResp.json();
+    if (!verifyData.success) {
+      ElMessage.error(verifyData.message || "验证失败");
+      return;
+    }
+
+    ws = new WebSocket(wsUrl);
     ws.onopen = () => {
       connected.value = true;
-      ElMessage.success("已连接");
+      ElMessage.success(`已连接 ${form.targetAgentId}`);
       if (form.connMethod === "ssh") {
         startSSHSession();
         nextTick(() => terminalRef.value?.focus());
@@ -138,9 +157,9 @@ const connect = () => {
       }
     };
     ws.onclose = () => { connected.value = false; sshSessionId = null; };
-    ws.onerror = () => { connected.value = false; ElMessage.error("连接失败"); };
-  } catch {
-    ElMessage.error("连接失败");
+    ws.onerror = () => { connected.value = false; ElMessage.error("WS连接失败"); };
+  } catch (e: any) {
+    ElMessage.error("连接失败: " + (e.message || "网络错误"));
   }
 };
 
@@ -155,7 +174,7 @@ const disconnect = () => {
 
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
-  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, cols: 80, rows: 24 }));
+  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: "local", cols: 80, rows: 24 }));
   appendTerminalOutput("SSH 会话已启动\n", false);
 };
 
