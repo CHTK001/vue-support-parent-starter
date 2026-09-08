@@ -40,6 +40,10 @@ export default createVite({
         target: "http://127.0.0.1:19180",
         changeOrigin: true,
       },
+      "/api/account": {
+        target: "http://124.221.230.112:8080",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://127.0.0.1:8080",
         changeOrigin: true,
