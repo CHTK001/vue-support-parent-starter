@@ -6475,12 +6475,12 @@ export const knowledge = {
     (p) => `/api/knowledge/bases/${p.knowledge_base_id}/file?path=${encodeURIComponent(p.path)}`
   ),
   getBinding: withResponseMap(httpGet<IKnowledgeBinding, KnowledgeBindingTargetInput>(
-    // workpath target_id is a filesystem path containing `/`; encode so it
-    // stays a single path segment (`/`→`%2F`). conversation/terminal ids have
-    // no `/`, so their encoded form is byte-identical — no regression.
+    // Use query param endpoint for workpath targets (contain `/`) to avoid
+    // Spring MVC path-variable slash-matching issues. conversation/terminal
+    // ids have no `/` so they also work fine with the query-param form.
     (p) => {
       const target = parseKnowledgeBindingTarget(p);
-      return `/api/knowledge/binding/${target.kind}/${encodeURIComponent(target.target_id)}`;
+      return `/api/knowledge/binding?kind=${encodeURIComponent(target.kind)}&target_id=${encodeURIComponent(target.target_id)}`;
     }
   ), fromApiKnowledgeBinding),
   setBinding: withResponseMap(httpPost<IKnowledgeBinding, KnowledgeBindingTargetInput & IKnowledgeBinding>(
