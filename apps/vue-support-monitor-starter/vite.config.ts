@@ -12,8 +12,8 @@ export default createVite({
     "@pages/monitor": "pages/monitor",
   },
   server: {
-    port: 5174,
-    strictPort: false,
+    port: 8848,
+    strictPort: true,
     proxy: {
       "/ms/monitor": {
         target: "http://124.221.230.112:8080",
