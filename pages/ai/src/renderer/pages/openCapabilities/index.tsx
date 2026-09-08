@@ -261,7 +261,7 @@ const OpenCapabilitiesPage: React.FC = () => {
                 icon={<WebPage theme='outline' size='18' fill='currentColor' />}
                 title={t('settings.openCapabilities.webuiTitle', { defaultValue: 'WebUI 远程访问' })}
                 description={t('settings.openCapabilities.webuiDesc', {
-                  defaultValue: '启用后，手机、平板或远程浏览器可以打开 NomiFun。二维码登录和账号密码都在这里处理。',
+                  defaultValue: '启用后，手机、平板或远程浏览器可以打开 {{appTitle}}。二维码登录和账号密码都在这里处理。',
                 })}
               />
               <div className='mt-14px'>
