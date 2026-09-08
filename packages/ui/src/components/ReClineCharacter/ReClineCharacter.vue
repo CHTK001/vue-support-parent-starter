@@ -480,8 +480,8 @@ function destroyScene() {
 const containerStyle = computed(() => ({
   width: `${props.width}px`,
   height: `${props.height}px`,
-  position: "relative",
-  overflow: "hidden",
+  position: "relative" as const,
+  overflow: "hidden" as const,
 }));
 
 watch(
