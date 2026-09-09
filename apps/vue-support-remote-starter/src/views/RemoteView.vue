@@ -235,19 +235,7 @@ const disconnect = () => {
   sshSessionId = null; vncSessionId = null;
 };
 
-const ensureTerminal = () => {
-  if (term || !terminalRef.value) return;
-  term = new Terminal({ cursorBlink: true, fontSize: 14, theme: { background: "#0f1115", foreground: "#e6e6e6" } });
-  fitAddon = new FitAddon();
-  term.loadAddon(fitAddon);
-  term.open(terminalRef.value);
-  fitAddon.fit();
-  term.onData((data) => {
-    if (connected.value && ws && sshSessionId) {
-      ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(data))) }));
-    }
-  });
-};
+const appendTerminalOutput = (text: string, isError = false) => {
 
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
