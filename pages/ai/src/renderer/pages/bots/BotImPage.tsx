@@ -497,6 +497,48 @@ export default function BotImPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
+  /* 会话列表 */
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await httpRequest<unknown>('GET', '/v2/ai/bot-binding/conversations');
+      const list = extractList<ConversationItem>(res);
+      setConversations(list);
+      // 优先按 URL 参数（来自 Bot 用户页「聊天」）选中会话
+      const targetBotId = searchParams.get('botId');
+      const targetUser = searchParams.get('fromUser');
+      const targetKey =
+        targetBotId && targetUser ? `${targetBotId}|${targetUser}` : '';
+      const resolvedKey =
+        (targetKey && list.some((c) => `${c.botId}|${c.fromUser ?? ''}` === targetKey))
+          ? targetKey
+          : (list.length > 0 ? `${list[0].botId}|${list[0].fromUser ?? ''}` : '');
+      setActiveKey((prev) => {
+        if (resolvedKey) return resolvedKey;
+        if (prev && list.some((c) => `${c.botId}|${c.fromUser ?? ''}` === prev)) return prev;
+        return '';
+      });
+    } catch {
+      Message.error(t('bots.im.loadFailed', { defaultValue: '会话加载失败' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
+
+  useEffect(() => {
+    void loadConversations();
+    /* 加载全局配置（含 historySize） */
+    (async () => {
+      try {
+        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/ai/bot-binding/global-config');
+        if (typeof res?.historySize === 'number') setHistorySize(res.historySize);
+      } catch { /* 忽略 */ }
+    })();
+  }, [loadConversations]);
+
+  const active = useMemo(
+    () => conversations.find((c) => `${c.botId}|${c.fromUser ?? ''}` === activeKey) ?? null,
+    [conversations, activeKey]
+  );
+
   /* ILink 会话运行状态 + 重新扫码 */
   const [runtimeStatus, setRuntimeStatus] = useState<'checking' | 'running' | 'stopped'>('checking');
   const [scanPhase, setScanPhase] = useState<'idle' | 'fetching' | 'showing_qr' | 'scanned' | 'expired' | 'error' | 'confirmed'>('idle');
@@ -545,7 +587,7 @@ export default function BotImPage() {
           stopPoll();
           setScanPhase('confirmed');
           Message.success(t('bots.scan.success', { defaultValue: '扫码成功，已自动绑定' }));
-          void checkRuntimeStatus();
+          void checkRuntimeStatus(active?.botId);
           void loadConversations();
         } else if (s === 'scanned') {
           setScanPhase('scanned');
@@ -590,48 +632,6 @@ export default function BotImPage() {
   }, [stopPoll, startScanPoll, t, active?.platform]);
 
   useEffect(() => () => stopPoll(), [stopPoll]);
-
-  /* 会话列表 */
-  const loadConversations = useCallback(async () => {
-    try {
-      const res = await httpRequest<unknown>('GET', '/v2/ai/bot-binding/conversations');
-      const list = extractList<ConversationItem>(res);
-      setConversations(list);
-      // 优先按 URL 参数（来自 Bot 用户页「聊天」）选中会话
-      const targetBotId = searchParams.get('botId');
-      const targetUser = searchParams.get('fromUser');
-      const targetKey =
-        targetBotId && targetUser ? `${targetBotId}|${targetUser}` : '';
-      const resolvedKey =
-        (targetKey && list.some((c) => `${c.botId}|${c.fromUser ?? ''}` === targetKey))
-          ? targetKey
-          : (list.length > 0 ? `${list[0].botId}|${list[0].fromUser ?? ''}` : '');
-      setActiveKey((prev) => {
-        if (resolvedKey) return resolvedKey;
-        if (prev && list.some((c) => `${c.botId}|${c.fromUser ?? ''}` === prev)) return prev;
-        return '';
-      });
-    } catch {
-      Message.error(t('bots.im.loadFailed', { defaultValue: '会话加载失败' }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
-
-  useEffect(() => {
-    void loadConversations();
-    /* 加载全局配置（含 historySize） */
-    (async () => {
-      try {
-        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/ai/bot-binding/global-config');
-        if (typeof res?.historySize === 'number') setHistorySize(res.historySize);
-      } catch { /* 忽略 */ }
-    })();
-  }, [loadConversations]);
-
-  const active = useMemo(
-    () => conversations.find((c) => `${c.botId}|${c.fromUser ?? ''}` === activeKey) ?? null,
-    [conversations, activeKey]
-  );
 
   /** 获取当前 Bot 的绑定信息（含模型） */
   const activeBot = useMemo(() => {

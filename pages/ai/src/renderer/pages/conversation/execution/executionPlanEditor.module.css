@@ -50,8 +50,8 @@
 }
 
 :global([data-theme='dark']) .composerInner {
-  background: #262626;
-  border-color: #3a3a3a;
+  background: var(--bg-2);
+  border-color: var(--color-border-3);
 }
 
 /* Small primary-tinted label strip at the top of the inner card (e.g. 「新建
@@ -127,8 +127,8 @@
 }
 
 :global([data-theme='dark']) .composerPopover {
-  background: #262626;
-  border-color: #3a3a3a;
+  background: var(--bg-2);
+  border-color: var(--color-border-2);
 }
 
 .composerPopoverTitle {
