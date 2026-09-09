@@ -142,7 +142,9 @@
     "confirmUrl": "URL",
     "confirmHeaderKeys": "Header keys",
     "searchPlaceholder": "Search MCP servers...",
-    "empty": "Refresh to load MCP market entries.",
+    "empty": "No MCP market data source is configured. Use \"Open in browser\" below to visit the official site.",
+    "syncEmpty": "MCP market has no data source configured; this is not a refresh failure.",
+    "syncKeptCache": "MCP market has no data source configured; kept local cache.",
     "settingsTitle": "MCP Settings",
     "toggleSuccess": "MCP Market {{state}}",
     "toggleFailed": "Failed to toggle MCP Market",
@@ -164,7 +166,9 @@
     "marketTitle": "Plugin Market",
     "marketDescription": "Browse ClawHub plugins and prepare an installation draft for review.",
     "searchPlaceholder": "Search plugins...",
-    "emptyMarket": "Refresh to load plugin market entries."
+    "emptyMarket": "No plugin market data source is configured. Use \"Open in browser\" below to visit the official site.",
+    "syncEmpty": "Plugin market has no data source configured; this is not a refresh failure.",
+    "syncKeptCache": "Plugin market has no data source configured; kept local cache."
   },
   "agentSkillImport": {
     "title": "Import from Agent",
