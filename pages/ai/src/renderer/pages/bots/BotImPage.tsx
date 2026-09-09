@@ -512,22 +512,22 @@ export default function BotImPage() {
     }
   }, []);
 
-  /* 查询当前 Bot 的 ILink 会话运行状态（超时则提示重新扫码） */
-  const checkRuntimeStatus = useCallback(async () => {
-    if (!active?.botId) return;
+  /* 查询指定 Bot 的 ILink 会话运行状态（超时则提示重新扫码） */
+  const checkRuntimeStatus = useCallback(async (botId?: string) => {
+    if (!botId) return;
     try {
       const res = await httpRequest<{ status?: string }>('GET',
-        `/v2/ai/bot-binding/runtime-status?botId=${encodeURIComponent(active.botId)}`);
+        `/v2/ai/bot-binding/runtime-status?botId=${encodeURIComponent(botId)}`);
       setRuntimeStatus(res?.status === 'running' ? 'running' : 'stopped');
     } catch {
       setRuntimeStatus('stopped');
     }
-  }, [active?.botId]);
+  }, []);
 
   useEffect(() => {
     if (!active?.botId) return;
     setRuntimeStatus('checking');
-    void checkRuntimeStatus();
+    void checkRuntimeStatus(active.botId);
   }, [active?.botId, checkRuntimeStatus]);
 
   /** 启动扫码轮询（复用 BotManagementPage 的二维码状态机） */
@@ -959,8 +959,13 @@ export default function BotImPage() {
         <aside className='botim-scroll flex min-h-0 flex-col border-r border-solid border-[var(--color-border-2)]'>
           <div className='min-h-0 flex-1 overflow-y-auto p-8px'>
             {conversations.length === 0 ? (
-              <div className='flex h-full items-center justify-center py-20px'>
-                <Empty description={t('bots.im.empty', { defaultValue: '暂无会话，请先在 Bot 管理中绑定微信' })} />
+              <div className='flex h-full flex-col items-center justify-center gap-y-8px px-16px text-center'>
+                <Empty description={t('bots.im.empty', { defaultValue: '暂无会话' })} />
+                <div className='text-12px leading-18px text-t-tertiary'>
+                  {t('bots.im.emptyHint', {
+                    defaultValue: '还没有微信用户会话。请先前往「Bot 管理」扫码绑定微信，新消息会自动出现在这里。',
+                  })}
+                </div>
               </div>
             ) : (
               <ConversationList className='!h-auto !bg-transparent !p-0'>
