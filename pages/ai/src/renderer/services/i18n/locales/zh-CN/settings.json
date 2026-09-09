@@ -130,6 +130,7 @@
     "description": "浏览 SkillHub MCP 与 MCP World 热门服务，并直接导入 MCP 配置。",
     "configMissing": "未找到可导入的 MCP 配置。",
     "addFailed": "添加 MCP 服务失败。",
+    "serviceUnavailable": "服务暂时不可用（后端或 SkillHub），请稍后重试。",
     "importedDisabled": "已导入 {{count}} 个 MCP 服务（默认停用）。启用或测试前请先检查其命令与配置。",
     "confirmTitle": "导入前请检查 MCP 服务",
     "confirmIntro": "该配置来自外部市场，服务将以停用状态导入；确认前请仔细检查以下内容。",

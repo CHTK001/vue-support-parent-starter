@@ -153,14 +153,15 @@ const EChartLine: React.FC<{ points: TrendPoint[]; height?: number }> = ({ point
 
   useEffect(() => () => { chartRef.current?.dispose(); chartRef.current = null; }, []);
 
-  if (empty) {
-    return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-8)', fontSize: 13 }}>
-        暂无数据
-      </div>
-    );
-  }
-  return <div ref={ref} style={{ width: '100%', height }} />;
+  return (
+    <div ref={ref} style={{ width: '100%', height, position: 'relative' }}>
+      {empty && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-8)', fontSize: 13 }}>
+          暂无数据
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default EChartLine;

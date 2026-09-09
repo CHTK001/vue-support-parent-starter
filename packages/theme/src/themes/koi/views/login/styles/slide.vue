@@ -39,7 +39,7 @@
 import { computed, toRef } from "vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
-import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.svg";
 import { translateConfigText } from "@repo/languages";
 import ReLoginForm from "../components/ReLoginForm.vue";
 
@@ -177,3 +177,4 @@ html.dark .slide-card-glow {
   object-fit: cover;
 }
 </style>
+

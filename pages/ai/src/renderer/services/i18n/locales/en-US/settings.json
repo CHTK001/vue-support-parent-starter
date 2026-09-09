@@ -130,6 +130,7 @@
     "description": "Browse SkillHub MCP and MCP World popular servers, then import their MCP JSON directly.",
     "configMissing": "No importable MCP config found.",
     "addFailed": "Failed to add MCP server.",
+    "serviceUnavailable": "The service is temporarily unavailable (backend or SkillHub). Please try again later.",
     "importedDisabled": "Imported {{count}} MCP server(s) in a disabled state. Review the command and config before enabling or testing.",
     "confirmTitle": "Review MCP server before import",
     "confirmIntro": "This configuration comes from an external market. Servers are imported disabled; review the details below before confirming.",

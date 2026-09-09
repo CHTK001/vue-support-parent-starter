@@ -25,7 +25,7 @@ loginConfig:
   welcome: 欢迎使用 ai平台
   title: ai平台
   description: ai平台 · 多模型对话与智能体协作平台
-  logoUrl: /assets/images/logo/logo-flat.svg
+  logoUrl: /assets/images/logo/logo.svg
   imageUrl: /assets/images/login/science.png
 
 # API 基础路径（前后端同源部署时由反代处理）
