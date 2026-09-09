@@ -1,19 +1,19 @@
 <template>
   <div class="task-list fade-in">
-    <div class="summary-row">
-      <ReCard v-for="s in summary" :key="s.label" layout="simple" :radius="12" :padding="14" shadow="never">
-      <div class="sum-card" :style="{ borderColor: s.color + '25' }">
-        <div class="sum-top">
-          <span class="sum-label">{{ s.label }}</span>
-          <ReIcon name="Top" :size="12" style="color: var(--el-text-color-secondary)" />
-        </div>
-        <div class="sum-mid">
-          <span class="sum-value" :style="{ color: s.color }">{{ s.value }}</span>
-        </div>
-        <div class="sum-bar" :style="{ background: s.color }"></div>
+    <ReSkeleton :loading="loading" :rows="3" :count="1" animated>
+      <div class="summary-row">
+        <ReStatCard
+          v-for="(s, i) in summary"
+          :key="s.label"
+          :title="s.label"
+          :value="s.value"
+          :icon-color="statMeta[i].color"
+        >
+          <template #icon><component :is="statMeta[i].icon" /></template>
+          <template #value><ReCountup :value="s.value" /></template>
+        </ReStatCard>
       </div>
-    </ReCard>
-    </div>
+    </ReSkeleton>
 
     <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
       <div class="filter-bar">
@@ -135,8 +135,7 @@ const form = ref<any>({ taskType: 'COLLECT', taskEnabled: 1 })
 const filters = ref({ monitorId: '', taskType: '' })
 
 const summary = computed(() => [
-  { label: '任务总数', value: tasks.value.length, color: 'var(--el-color-primary)' },
-  { label: '已启用', value: tasks.value.filter(r => r.taskEnabled === 1).length, color: 'var(--el-color-success)' },
+  { label: '任务总数', value: tasks.value.length, color: 'var(--el-color-primary)' },  { label: '已启用', value: tasks.value.filter(r => r.taskEnabled === 1).length, color: 'var(--el-color-success)' },
   { label: '已禁用', value: tasks.value.filter(r => r.taskEnabled === 0).length, color: 'var(--el-color-info)' },
   { label: '运行中', value: tasks.value.filter(r => r.taskStatus === 'RUNNING').length, color: 'var(--el-color-success)' },
 ])

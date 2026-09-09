@@ -106,8 +106,6 @@ const UNSAFE_INSTALLED_SKILL_NAME = /[\/\\]|\.\.|[\x00-\x1F\x7F]/;
 type SkillBindingSource = 'market' | 'installed';
 export type PresetPackageAddErrorKind = 'timeout' | 'upstream' | 'not_found' | 'generic';
 
-const TRANSIENT_INSTALL_STATUSES = new Set([408, 500, 502, 503, 504]);
-
 export const classifyPresetPackageAddError = (error: unknown): PresetPackageAddErrorKind => {
   if (!isBackendHttpError(error)) return 'generic';
   if (error.code === 'TIMEOUT' || error.status === 408) return 'timeout';

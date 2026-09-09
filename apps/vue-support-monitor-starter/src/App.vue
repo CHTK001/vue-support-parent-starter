@@ -6,43 +6,71 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Search } from "@element-plus/icons-vue";
-import { fetchAlarmEvents, isUnhandled } from "./monitorApi";
+import { getConfig } from "@repo/config";
+import { resolveAssetUrl } from "@repo/assets";
+import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
 
 const route = useRoute();
 const router = useRouter();
 
+/** 侧栏 logo 从 app.yaml loginConfig.logoUrl 读取，为空时显示首字母 */
+const logoSrc = computed(() => {
+  const url = getConfig()?.login?.logoUrl;
+  return url ? resolveAssetUrl(url) : "";
+});
+
 const collapse = ref(false);
 const searchKw = ref("");
 
-const groups = [
-  {
-    title: "工作台",
-    items: [{ path: "/", label: "监控概览", icon: "DataBoard" }],
-  },
-  {
-    title: "监控",
-    items: [
-      { path: "/alarms", label: "告警中心", icon: "Bell", badge: "alarm" },
-      { path: "/redis", label: "Redis 监控", icon: "Coin" },
-      { path: "/tshark", label: "抓包分析", icon: "Search" },
-    ],
-  },
-  {
-    title: "资产",
-    items: [
-      { path: "/assets", label: "主机资产", icon: "Monitor" },
-      { path: "/terminal", label: "远程控制", icon: "Position" },
-      { path: "/account", label: "账号管理", icon: "User" },
-    ],
-  },
-  {
-    title: "系统",
-    items: [{ path: "/config", label: "监控配置", icon: "Setting" }],
-  },
-];
+/** 当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单） */
+const redisAvailable = ref(false);
+let redisCheckDone = false;
+async function checkRedis(): Promise<void> {
+  if (redisCheckDone) return;
+  redisCheckDone = true;
+  try {
+    const info = await fetchSystemRedisInfo();
+    redisAvailable.value = !!(info && Object.keys(info).length > 0);
+  } catch {
+    redisAvailable.value = false;
+  }
+}
 
 /** 打平所有项用于激活判断 */
-const allNavPaths = computed(() => groups.flatMap(g => g.items.map(i => i.path)));
+const groups = computed(() => {
+  const base = [
+    {
+      title: "工作台",
+      items: [{ path: "/", label: "监控概览", icon: "DataBoard" }],
+    },
+    {
+      title: "监控",
+      items: [
+        { path: "/alarms", label: "告警中心", icon: "Bell", badge: "alarm" },
+        { path: "/redis", label: "Redis 监控", icon: "Coin" },
+        { path: "/tshark", label: "抓包分析", icon: "Search" },
+      ],
+    },
+    {
+      title: "资产",
+      items: [
+        { path: "/assets", label: "主机资产", icon: "Monitor" },
+        { path: "/terminal", label: "远程控制", icon: "Position" },
+        { path: "/account", label: "账号管理", icon: "User" },
+      ],
+    },
+    {
+      title: "系统",
+      items: [{ path: "/config", label: "监控配置", icon: "Setting" }],
+    },
+  ];
+  if (!redisAvailable.value) {
+    const monitorGroup = base.find(g => g.title === "监控");
+    if (monitorGroup) monitorGroup.items = monitorGroup.items.filter(i => i.path !== "/redis");
+  }
+  return base;
+});
+const allNavPaths = computed(() => groups.value.flatMap(g => g.items.map(i => i.path)));
 const activePath = computed(() => {
   const seg = route.path.split("/")[1];
   const p = seg ? `/${seg}` : "/";
@@ -70,6 +98,7 @@ async function refreshBadge(): Promise<void> {
 onMounted(() => {
   refreshBadge();
   badgeTimer = window.setInterval(refreshBadge, 30000);
+  checkRedis();
 });
 onBeforeUnmount(() => window.clearInterval(badgeTimer));
 
@@ -85,7 +114,8 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
     <!-- 侧栏 -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo">K</div>
+        <img v-if="logoSrc" :src="logoSrc" alt="logo" class="logo" />
+        <div v-else class="logo">K</div>
         <div class="name">监控管理平台</div>
       </div>
       <nav class="nav">

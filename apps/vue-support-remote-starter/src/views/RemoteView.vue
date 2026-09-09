@@ -43,6 +43,7 @@
       </div>
       <div class="screen-body">
         <div v-if="form.connMethod === 'ssh'" class="ssh-area">
+          <ReInput v-model="form.wsUrl" placeholder="ws://host:port（可选——直连跳过验证）" clearable data-testid="input-wsurl" />
           <div
             ref="terminalRef"
             class="terminal-container"
@@ -76,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, nextTick } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -89,6 +90,7 @@ const form = reactive({
   accessToken: "",
   targetAgentId: "",
   verifyCode: "",
+  wsUrl: "",
   connMethod: "ssh",
   reverseTunnel: false,
 });
@@ -333,6 +335,19 @@ const loadConfig = async () => {
   try { const raw = localStorage.getItem("remote-config"); if (raw) Object.assign(form, JSON.parse(raw)); } catch { /* ignore */ }
 };
 loadConfig();
+
+onMounted(async () => {
+  try {
+    // 进入即拉取网关配置（网关 HTTP 与 WS 同端口——默认 9001）——自动填充网关地址
+    const resp = await fetch("http://localhost:9001/api/remote/config");
+    if (resp.ok) {
+      const cfg = await resp.json();
+      if (cfg && cfg.gateway) form.gatewayUrl = cfg.gateway;
+    }
+  } catch {
+    // 网关不可达——保持手动填写
+  }
+});
 
 onBeforeUnmount(() => { ws?.close(); });
 </script>

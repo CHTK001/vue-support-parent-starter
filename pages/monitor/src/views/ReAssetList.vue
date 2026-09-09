@@ -8,6 +8,7 @@
         :value="s.value"
         :icon-color="s.color"
       >
+        <template #value><ReCountup :value="s.value" :duration="800" /></template>
         <template #icon>
           <div class="stat-bar" :style="{ background: s.color }"></div>
         </template>
@@ -356,9 +357,16 @@ onMounted(fetchList)
 
 .summary-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
+}
+.summary-row :deep(.re-stat-card) {
+  transition: box-shadow 200ms ease, transform 200ms ease, opacity 200ms ease;
+}
+.summary-row :deep(.re-stat-card:hover) {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 .stat-bar {
   height: 3px;
@@ -371,12 +379,15 @@ onMounted(fetchList)
 .filter-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 12px 16px;
   background: var(--bg-container-card);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease;
 }
+.filter-bar:hover { box-shadow: var(--shadow-card-hover); }
 .search-box {
   flex: 1;
   display: flex;
@@ -391,6 +402,11 @@ onMounted(fetchList)
 .search-box:focus-within {
   border-color: var(--brand-500);
   background: var(--bg-container);
+}
+.search-box input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm, 4px);
 }
 .search-icon {
   width: 14px;
@@ -503,4 +519,10 @@ onMounted(fetchList)
   display: inline-block;
 }
 .globe-body { width: 100%; }
+
+@media (max-width: 768px) {
+  .summary-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .filter-select { width: 100% !important; flex: 1 1 100%; }
+  .globe-legend { flex-wrap: wrap; }
+}
 </style>

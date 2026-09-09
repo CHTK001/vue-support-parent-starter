@@ -1,41 +1,47 @@
 <template>
-  <div class="overview fade-in" v-loading="loading">
-    <div class="stats-grid">
-      <div class="stat-card primary">
-        <span class="stat-value">{{ data.total }}</span>
-        <span class="stat-label">资产总数</span>
+  <div class="overview fade-in">
+    <ReSkeleton :loading="loading" :rows="4" :count="1" animated>
+      <div class="stats-grid">
+        <ReStatCard title="资产总数" :value="data.total" icon-color="var(--metric-cpu)">
+          <template #icon><DataAnalysis /></template>
+          <template #value><ReCountup :value="data.total" /></template>
+        </ReStatCard>
+        <ReStatCard title="运行中" :value="data.enabled" icon-color="var(--status-success)">
+          <template #icon><VideoPlay /></template>
+          <template #value><ReCountup :value="data.enabled" /></template>
+        </ReStatCard>
+        <ReStatCard title="已停用" :value="data.disabled" icon-color="var(--status-error)">
+          <template #icon><VideoPause /></template>
+          <template #value><ReCountup :value="data.disabled" /></template>
+        </ReStatCard>
+        <ReStatCard title="服务器" :value="data.serverCount" icon-color="var(--metric-net)">
+          <template #icon><Monitor /></template>
+          <template #value><ReCountup :value="data.serverCount" /></template>
+        </ReStatCard>
+        <ReStatCard title="Redis" :value="data.redisCount" icon-color="var(--metric-redis)">
+          <template #icon><Coin /></template>
+          <template #value><ReCountup :value="data.redisCount" /></template>
+        </ReStatCard>
+        <ReStatCard title="数据库" :value="data.dbCount" icon-color="var(--metric-db)">
+          <template #icon><Collection /></template>
+          <template #value><ReCountup :value="data.dbCount" /></template>
+        </ReStatCard>
       </div>
-      <div class="stat-card success">
-        <span class="stat-value">{{ data.enabled }}</span>
-        <span class="stat-label">运行中</span>
-      </div>
-      <div class="stat-card danger">
-        <span class="stat-value">{{ data.disabled }}</span>
-        <span class="stat-label">已停用</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">{{ data.serverCount }}</span>
-        <span class="stat-label">服务器</span>
-      </div>
-      <div class="stat-card warning">
-        <span class="stat-value">{{ data.redisCount }}</span>
-        <span class="stat-label">Redis</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">{{ data.dbCount }}</span>
-        <span class="stat-label">数据库</span>
-      </div>
-    </div>
+    </ReSkeleton>
 
-    <div class="export-btns" style="margin-bottom: 16px;">
-      <ReButton show-text icon="Download" type="primary" @click="downloadAllMetrics" style="margin-right: 8px;">导出全部</ReButton>
-      <ReButton show-text icon="Download" @click="downloadMetrics" style="margin-right: 8px;">导出选中</ReButton>
-    </div>
+    <ReSectionHead class="export-head" title="指标导出" description="按当前筛选导出采集指标历史数据">
+      <template #actions>
+        <ReButton show-text icon="Download" type="primary" @click="downloadAllMetrics">导出全部</ReButton>
+        <ReButton show-text icon="Download" @click="downloadMetrics">导出选中</ReButton>
+      </template>
+    </ReSectionHead>
 
     <ReRow :gutter="16">
-      <ReCol :span="12">
-        <ReCard class="shadow-sm rounded-xl p-4">
-          <div class="card-title">服务类型分布</div>
+      <ReCol :xs="24" :md="12">
+        <ReCard class="chart-card" layout="simple" hoverable>
+          <template #header>
+            <ReSectionHead title="服务类型分布" />
+          </template>
           <div class="dist-chart">
             <div class="dist-item">
               <span class="dist-label">服务器</span>
@@ -52,9 +58,11 @@
           </div>
         </ReCard>
       </ReCol>
-      <ReCol :span="12">
-        <ReCard class="shadow-sm rounded-xl p-4">
-          <div class="card-title">运行状态概览</div>
+      <ReCol :xs="24" :md="12">
+        <ReCard class="chart-card" layout="simple" hoverable>
+          <template #header>
+            <ReSectionHead title="运行状态概览" />
+          </template>
           <div class="status-chart">
             <div class="dist-item">
               <span class="dist-label">运行中</span>
@@ -142,43 +150,38 @@ const downloadMetrics = async () => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
   margin-bottom: 16px;
 }
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px;
-  border-radius: var(--border-radius);
+.stats-grid :deep(.re-stat-card) {
   background: var(--bg-container-card);
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, var(--border-radius));
   box-shadow: var(--shadow-card);
-  transition: var(--transition-base);
-  flex: 1;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
-.stat-card:hover {
+.stats-grid :deep(.re-stat-card:hover) {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
-.stat-card.primary { border-left: 3px solid var(--metric-cpu); }
-.stat-card.success { border-left: 3px solid var(--status-success); }
-.stat-card.danger { border-left: 3px solid var(--status-error); }
-.stat-card.warning { border-left: 3px solid var(--metric-disk); }
-.stat-value {
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.3px;
-}
-.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
 
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
+.export-head {
   margin-bottom: 16px;
-  color: var(--text-primary);
+}
+.export-head :deep(.re-section-head__actions) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-card {
+  border-radius: var(--radius-lg, var(--border-radius));
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.chart-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .dist-chart, .status-chart {
@@ -198,4 +201,10 @@ const downloadMetrics = async () => {
   flex-shrink: 0;
 }
 .dist-item :deep(.el-progress) { flex: 1; }
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .dist-item { flex-direction: column; align-items: stretch; gap: 6px; }
+  .dist-label { width: auto; }
+}
 </style>
