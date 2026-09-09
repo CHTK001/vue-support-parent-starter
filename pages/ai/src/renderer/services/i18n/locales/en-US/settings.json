@@ -88,6 +88,7 @@
     "openInBrowser": "Open market in browser",
     "installSuccess": "Installed skill(s): {{names}}",
     "installFailed": "Install failed: {{detail}}",
+    "serviceUnavailable": "The service is temporarily unavailable (backend or SkillHub). Please try again later.",
     "settingsTitle": "Skill Market Settings",
     "toggleSuccess": "Skill Market {{state}}",
     "toggleFailed": "Failed to toggle Skill Market",

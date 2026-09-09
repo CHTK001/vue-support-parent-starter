@@ -46,36 +46,36 @@
     </header>
 
     <main class="monitor-content">
-      <ReOverview v-show="activeTab === 'overview'" />
-      <ReAssetList v-show="activeTab === 'assets'" />
-      <ReServerDashboard v-if="activeTab === 'dashboard'" />
-      <ReAlarmTab v-if="activeTab === 'alarm'" />
-      <ReRedisDashboard v-if="activeTab === 'redis-monitor'" />
-      <ReCacheMonitor v-if="activeTab === 'cache'" />
-      <ReTaskList v-show="activeTab === 'tasks'" />
-      <ReRedisManager v-show="activeTab === 'redis'" />
-      <ReAgentList v-show="activeTab === 'agents'" />
-      <ReTsharkCapture v-if="activeTab === 'tshark'" />
-      <ReTerminalSnippetManager v-show="activeTab === 'snippets'" />
-      <ReConfigPanel v-show="activeTab === 'config'" />
+      <ScOverview v-show="activeTab === 'overview'" />
+      <ScAssetList v-show="activeTab === 'assets'" />
+      <ScServerDashboard v-if="activeTab === 'dashboard'" />
+      <ScAlarmTab v-if="activeTab === 'alarm'" />
+      <ScRedisDashboard v-if="activeTab === 'redis-monitor'" />
+      <ScCacheMonitor v-if="activeTab === 'cache'" />
+      <ScTaskList v-show="activeTab === 'tasks'" />
+      <ScRedisManager v-show="activeTab === 'redis'" />
+      <ScAgentList v-show="activeTab === 'agents'" />
+      <ScTsharkCapture v-if="activeTab === 'tshark'" />
+      <ScTerminalSnippetManager v-show="activeTab === 'snippets'" />
+      <ScConfigPanel v-show="activeTab === 'config'" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import ReAssetList from './views/ReAssetList.vue'
-import ReServerDashboard from './views/dashboard/ReServerDashboard.vue'
-import ReRedisDashboard from './views/redis-monitor/ReRedisDashboard.vue'
-import ReCacheMonitor from './views/cache/ReCacheMonitor.vue'
-import ReTaskList from './views/tasks/ReTaskList.vue'
-import ReAlarmTab from './views/alarm/ReAlarmTab.vue'
-import ReAgentList from './views/agents/ReAgentList.vue'
-import ReOverview from './views/overview/ReOverview.vue'
-import ReRedisManager from './views/redis/ReRedisManager.vue'
-import ReConfigPanel from './views/config/ReConfigPanel.vue'
-import ReTsharkCapture from './views/tshark/ReTsharkCapture.vue'
-import ReTerminalSnippetManager from './views/ReTerminalSnippetManager.vue'
+import ScAssetList from './views/ScAssetList.vue'
+import ScServerDashboard from './views/dashboard/ScServerDashboard.vue'
+import ScRedisDashboard from './views/redis-monitor/ScRedisDashboard.vue'
+import ScCacheMonitor from './views/cache/ScCacheMonitor.vue'
+import ScTaskList from './views/tasks/ScTaskList.vue'
+import ScAlarmTab from './views/alarm/ScAlarmTab.vue'
+import ScAgentList from './views/agents/ScAgentList.vue'
+import ScOverview from './views/overview/ScOverview.vue'
+import ScRedisManager from './views/redis/ScRedisManager.vue'
+import ScConfigPanel from './views/config/ScConfigPanel.vue'
+import ScTsharkCapture from './views/tshark/ScTsharkCapture.vue'
+import ScTerminalSnippetManager from './views/ScTerminalSnippetManager.vue'
 
 const activeTab = ref('dashboard')
 const currentTime = ref('')

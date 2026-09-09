@@ -202,7 +202,7 @@ async function onSaveConfig(): Promise<void> {
 .host-detail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 16px;
   padding: 4px;
 }
 </style>

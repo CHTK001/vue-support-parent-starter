@@ -142,12 +142,14 @@ function hostNames(ids?: string): string {
 
 <template>
   <div class="plan-list sc-page">
-    <div class="toolbar">
-      <ReButton show-text icon="Plus" type="primary" @click="openCreate">新建计划</ReButton>
-      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-    </div>
+    <ReSectionHead class="page-head" title="维护计划" description="窗口期内的维护 / 升级 / 备份 / 重启安排">
+      <template #actions>
+        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新建计划</ReButton>
+        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
+      </template>
+    </ReSectionHead>
 
-    <ReTable :data="plans" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false">
+    <ReTable :data="plans" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false" empty-text="暂无维护计划，点击右上角「新建计划」创建">
       <ReTableColumn prop="planName" label="计划名称" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="类型" width="90">
         <template #default="{ row }">
@@ -207,15 +209,5 @@ function hostNames(ids?: string): string {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
 }
 </style>

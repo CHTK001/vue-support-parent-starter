@@ -116,11 +116,8 @@ async function onForceClose(row: SessionRow): Promise<void> {
 <template>
   <div class="session-tab sc-page">
     <div class="online-section" v-if="onlineSessions.length > 0 || loading">
-      <div class="online-header">
-        <span class="online-title">在线会话</span>
-        <span class="online-count">{{ onlineSessions.length }} 个活跃</span>
-      </div>
-      <ReTable :data="onlineSessions" size="small" border :loading="loading" :pagination="false" :toolbar="false">
+      <ReSectionHead title="在线会话" :description="`${onlineSessions.length} 个活跃`" />
+      <ReTable :data="onlineSessions" size="small" border :loading="loading" :pagination="false" :toolbar="false" empty-text="暂无在线会话">
         <ReTableColumn label="协议" width="90">
           <template #default="{ row }">
             <ReTag size="small" type="success">{{ protocolLabel(row.protocol) }}</ReTag>
@@ -135,7 +132,7 @@ async function onForceClose(row: SessionRow): Promise<void> {
       </ReTable>
     </div>
 
-    <div class="toolbar">
+    <div class="toolbar page-toolbar">
       <ReRadioGroup v-model="statusFilter" button capsule @change="refresh">
         <ReRadioButton value="">全部</ReRadioButton>
         <ReRadioButton value="OPEN">进行中</ReRadioButton>
@@ -144,7 +141,7 @@ async function onForceClose(row: SessionRow): Promise<void> {
       <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
     </div>
 
-    <ReTable :data="sessions" :loading="loading" size="small" border :pagination="false" :toolbar="false">
+    <ReTable :data="sessions" :loading="loading" size="small" border :pagination="false" :toolbar="false" empty-text="暂无会话记录">
       <ReTableColumn prop="msTerminalSessionHostName" label="主机" min-width="130" />
       <ReTableColumn prop="msTerminalSessionProtocol" label="协议" width="80" />
       <ReTableColumn prop="msTerminalSessionUser" label="用户" width="100" />
@@ -153,9 +150,13 @@ async function onForceClose(row: SessionRow): Promise<void> {
       <ReTableColumn prop="msTerminalSessionCloseTime" label="关闭时间" width="160" />
       <ReTableColumn label="状态" width="90">
         <template #default="{ row }">
-          <ReTag :type="row.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
+          <span class="status-cell">
+            <ReStatusIndicator
+              :type="row.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'"
+              :pulse="row.msTerminalSessionStatus === 'OPEN'"
+            />
             {{ row.msTerminalSessionStatus === 'OPEN' ? '进行中' : '已结束' }}
-          </ReTag>
+          </span>
         </template>
       </ReTableColumn>
       <ReTableColumn prop="msTerminalSessionCloseReason" label="关闭原因" min-width="120" show-overflow-tooltip />
@@ -183,9 +184,13 @@ async function onForceClose(row: SessionRow): Promise<void> {
           <ReDescriptionsItem label="连接时间">{{ detailSession.msTerminalSessionConnectTime || '-' }}</ReDescriptionsItem>
           <ReDescriptionsItem label="关闭时间">{{ detailSession.msTerminalSessionCloseTime || '-' }}</ReDescriptionsItem>
           <ReDescriptionsItem label="状态">
-            <ReTag :type="detailSession.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'" size="small">
+            <span class="status-cell">
+              <ReStatusIndicator
+                :type="detailSession.msTerminalSessionStatus === 'OPEN' ? 'success' : 'info'"
+                :pulse="detailSession.msTerminalSessionStatus === 'OPEN'"
+              />
               {{ detailSession.msTerminalSessionStatus === 'OPEN' ? '进行中' : '已结束' }}
-            </ReTag>
+            </span>
           </ReDescriptionsItem>
           <ReDescriptionsItem label="关闭原因">{{ detailSession.msTerminalSessionCloseReason || '-' }}</ReDescriptionsItem>
         </ReDescriptions>
@@ -203,32 +208,6 @@ async function onForceClose(row: SessionRow): Promise<void> {
   .online-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-
-  .online-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    background: var(--bg-container-card);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-card);
-  }
-
-  .online-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .online-count {
-    font-size: 12px;
-    color: var(--text-tertiary);
-  }
-
-  .toolbar {
-    display: flex;
     gap: 8px;
   }
 }

@@ -165,6 +165,7 @@ onBeforeUnmount(teardown);
   background: var(--terminal-bg);
   border-radius: 8px;
   overflow: auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   :deep(canvas) { margin: 0 auto; }
 }
 </style>

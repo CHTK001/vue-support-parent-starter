@@ -88,6 +88,7 @@
     "openInBrowser": "在浏览器中打开市场",
     "installSuccess": "已安装技能：{{names}}",
     "installFailed": "安装失败：{{detail}}",
+    "serviceUnavailable": "服务暂时不可用（后端或 SkillHub），请稍后重试。",
     "settingsTitle": "技能市场设置",
     "toggleSuccess": "技能市场已{{state}}",
     "toggleFailed": "技能市场开关操作失败",

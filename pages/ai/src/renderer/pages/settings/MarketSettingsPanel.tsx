@@ -7,6 +7,7 @@
  */
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
+import { invokeWithTransientRetry } from '@/common/adapter/httpBridge';
 import { resolveLocaleKey } from '@/common/utils';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetTags } from '@/renderer/hooks/preset';
@@ -158,7 +159,9 @@ const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = ({
       const showToast = options?.showToast ?? true;
       setLoading(true);
       try {
-        const result = await ipcBridge.fs.syncSkillMarketRankings.invoke({ sources });
+        const result = await invokeWithTransientRetry(() =>
+          ipcBridge.fs.syncSkillMarketRankings.invoke({ sources })
+        );
         const normalized = normalizeSkillMarketItems(result.items).filter((item) => sources.includes(item.source));
         const normalizedErrors = normalizeSkillMarketErrors(result.errors);
         const nextItems = resolveMarketSyncItems(itemsRef.current, normalized);

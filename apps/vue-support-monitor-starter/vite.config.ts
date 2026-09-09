@@ -15,6 +15,10 @@ export default createVite({
     port: 8848,
     strictPort: true,
     proxy: {
+      "/ms/monitor/system": {
+        target: "http://127.0.0.1:8082",
+        changeOrigin: true,
+      },
       "/ms/monitor": {
         target: "http://124.221.230.112:8080",
         changeOrigin: true,

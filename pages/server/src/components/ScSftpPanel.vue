@@ -324,6 +324,7 @@ async function removeBookmark(id: number): Promise<void> {
 
     <!-- 文件表格 -->
     <ReTable :data="entries" :loading="loading" size="small" border :pagination="false" :toolbar="false"
+      empty-text="当前目录为空"
       :layout-table="{ minHeight: 0, height: 'calc(100vh - 320px)' }">
       <ReTableColumn label="名称" min-width="240">
         <template #default="{ row }">
@@ -367,7 +368,7 @@ async function removeBookmark(id: number): Promise<void> {
 .sftp-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 
   &.disabled {
     opacity: 0.5;
@@ -379,6 +380,12 @@ async function removeBookmark(id: number): Promise<void> {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius);
+  transition: var(--transition-base);
 }
 
 .bookmarks {
@@ -388,10 +395,16 @@ async function removeBookmark(id: number): Promise<void> {
 
   .bookmark-tag {
     cursor: pointer;
+    transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+
+    &:hover {
+      box-shadow: var(--shadow-card-hover);
+    }
   }
 }
 
 .upload-btn {
   cursor: pointer;
+  display: inline-flex;
 }
 </style>

@@ -19,6 +19,13 @@ import { install as ReUploadInstall } from "@repo/ui/re-upload";
 import { install as ReTimeInstall } from "@repo/ui/re-time";
 import { install as ReTextInstall } from "@repo/ui/re-text";
 import { install as ReKitInstall } from "@repo/ui/re-kit";
+import { install as ReCardInstall } from "@repo/ui/re-card";
+import { install as ReStatCardInstall } from "@repo/ui/re-stat-card";
+import { install as ReSectionHeadInstall } from "@repo/ui/components/ReSectionHead/index.ts";
+import { install as ReEmptyStateInstall } from "@repo/ui/components/ReEmptyState/index.ts";
+import { install as ReSkeletonInstall } from "@repo/ui/re-skeleton";
+import { install as ReCountupInstall } from "@repo/ui/re-countup";
+import { install as ReStatusIndicatorInstall } from "@repo/ui/re-status-indicator";
 import { serverRoutes } from "./routes";
 import "./styles/tokens.css";
 import "./styles/page.css";
@@ -61,6 +68,13 @@ await createContextApp({
     ReTimeInstall,
     ReTextInstall,
     ReKitInstall,
+    ReCardInstall,
+    ReStatCardInstall,
+    ReSectionHeadInstall,
+    ReEmptyStateInstall,
+    ReSkeletonInstall,
+    ReCountupInstall,
+    ReStatusIndicatorInstall,
   ])
   .routes(serverRoutes as never)
   .mount("#app");

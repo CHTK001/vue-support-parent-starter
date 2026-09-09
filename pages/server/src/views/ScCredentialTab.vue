@@ -203,16 +203,19 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
       <!-- SSH 密钥库 -->
       <ReCol :span="12">
         <div class="panel">
-          <div class="panel-head">
-            <h4>SSH 密钥库</h4>
-            <div style="display: flex; gap: 6px;">
+          <ReSectionHead title="SSH 密钥库">
+            <template #actions>
               <ReButton show-text icon="Key" size="small" @click="openGenForm()">生成密钥</ReButton>
               <ReButton show-text icon="Plus" type="primary" size="small" @click="openKeyForm()">新增密钥</ReButton>
-            </div>
-          </div>
-          <ReTable :data="keys" size="small" border :pagination="false" :toolbar="false">
+            </template>
+          </ReSectionHead>
+          <ReTable :data="keys" size="small" border :pagination="false" :toolbar="false" empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」">
             <ReTableColumn prop="msServerKeyName" label="名称" min-width="120" />
-            <ReTableColumn prop="msServerKeyType" label="类型" width="90" />
+            <ReTableColumn prop="msServerKeyType" label="类型" width="90">
+              <template #default="{ row }">
+                <ReTag size="small" type="info">{{ row.msServerKeyType || '-' }}</ReTag>
+              </template>
+            </ReTableColumn>
             <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
                 <ReButton link size="small" @click="openKeyForm(row)">编辑</ReButton>
@@ -226,14 +229,21 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
       <!-- 登录身份 -->
       <ReCol :span="12">
         <div class="panel">
-          <div class="panel-head">
-            <h4>登录身份</h4>
-            <ReButton show-text icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
-          </div>
-          <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false">
+          <ReSectionHead title="登录身份">
+            <template #actions>
+              <ReButton show-text icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
+            </template>
+          </ReSectionHead>
+          <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false" empty-text="暂无身份，点击右上角「新增身份」创建">
             <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
             <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
-            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="100" />
+            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="100">
+              <template #default="{ row }">
+                <ReTag size="small" :type="row.msServerIdentityAuthType === 'PUBLIC_KEY' ? 'success' : 'info'">
+                  {{ row.msServerIdentityAuthType === 'PUBLIC_KEY' ? '公钥' : '密码' }}
+                </ReTag>
+              </template>
+            </ReTableColumn>
             <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
                 <ReButton link size="small" @click="openIdentityForm(row)">编辑</ReButton>
@@ -340,33 +350,8 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
 
  <style scoped lang="scss">
 .credential-tab {
-  .panel {
-    background: var(--bg-container-card);
-    border-radius: var(--border-radius);
-    padding: 16px;
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-card);
-    transition: var(--transition-base);
-  }
-
-  .panel:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .panel_head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .panel_head h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>
