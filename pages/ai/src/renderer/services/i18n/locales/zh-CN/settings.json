@@ -142,7 +142,9 @@
     "confirmUrl": "URL",
     "confirmHeaderKeys": "Header 键",
     "searchPlaceholder": "搜索 MCP 服务...",
-    "empty": "点击刷新获取 MCP 市场列表。",
+    "empty": "MCP 市场暂无可用数据源，可点击下方“打开市场”在浏览器中访问官方站点。",
+    "syncEmpty": "MCP 市场未配置数据源，非刷新失败。",
+    "syncKeptCache": "MCP 市场未配置数据源，已保留本地缓存。",
     "settingsTitle": "MCP 设置",
     "toggleSuccess": "MCP 市场已{{state}}",
     "toggleFailed": "MCP 市场开关操作失败",
@@ -164,7 +166,9 @@
     "marketTitle": "插件市场",
     "marketDescription": "浏览 ClawHub 插件，并生成安装草稿供确认。",
     "searchPlaceholder": "搜索插件...",
-    "emptyMarket": "点击刷新获取插件市场列表。"
+    "emptyMarket": "插件市场暂无可用数据源，可点击下方“打开市场”在浏览器中访问官方站点。",
+    "syncEmpty": "插件市场未配置数据源，非刷新失败。",
+    "syncKeptCache": "插件市场未配置数据源，已保留本地缓存。"
   },
   "agentSkillImport": {
     "title": "从 Agent 导入",

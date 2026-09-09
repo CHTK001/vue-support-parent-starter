@@ -3679,6 +3679,7 @@ export type I18nKey =
   | 'settings.mcpMarket.enableMarketDesc'
   | 'settings.mcpMarket.importedDisabled'
   | 'settings.mcpMarket.searchPlaceholder'
+  | 'settings.mcpMarket.serviceUnavailable'
   | 'settings.mcpMarket.settingsTitle'
   | 'settings.mcpMarket.title'
   | 'settings.mcpMarket.toggleFailed'
