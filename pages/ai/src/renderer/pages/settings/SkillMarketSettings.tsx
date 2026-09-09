@@ -5,6 +5,7 @@
  */
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
+import { isBackendHttpError, invokeWithTransientRetry } from '@/common/adapter/httpBridge';
 import { resolveLocaleKey } from '@/common/utils';
 import MarketSettingsPanel from './MarketSettingsPanel';
 import { ENHANCED_TOOLS_PAGE_STACK_CLASS } from './enhancedToolsLayout';
@@ -97,11 +98,13 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
   const handleAdd = useCallback(
     async (item: ISkillMarketItem) => {
       try {
-        const installed = await ipcBridge.fs.installSkillMarketPackage.invoke({
-          source: item.source,
-          id: item.id,
-          url: item.url,
-        });
+        const installed = await invokeWithTransientRetry(() =>
+          ipcBridge.fs.installSkillMarketPackage.invoke({
+            source: item.source,
+            id: item.id,
+            url: item.url,
+          })
+        );
         const failedCount = installed.errors?.length ?? 0;
         const okNames = installed.installed_skill_names ?? [];
         if (okNames.length > 0) {
@@ -124,7 +127,17 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
         }
       } catch (error) {
         console.error('Failed to install market skill:', error);
-        Message.error(String(error));
+        const serviceDown = isBackendHttpError(error) && error.status >= 500;
+        Message.error(
+          serviceDown
+            ? t('settings.skillsMarket.serviceUnavailable', {
+                defaultValue: '服务暂时不可用（后端或 SkillHub），请稍后重试。',
+              })
+            : t('settings.skillsMarket.installFailed', {
+                detail: String(error),
+                defaultValue: '安装失败',
+              })
+        );
       }
     },
     [refreshInstalled, t]
