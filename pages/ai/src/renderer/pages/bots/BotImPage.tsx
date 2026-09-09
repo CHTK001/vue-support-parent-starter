@@ -960,7 +960,7 @@ export default function BotImPage() {
           <div className='min-h-0 flex-1 overflow-y-auto p-8px'>
             {conversations.length === 0 ? (
               <div className='flex h-full items-center justify-center py-20px'>
-                <Empty description={t('bots.im.empty', { defaultValue: '暂无会话' })} />
+                <Empty description={t('bots.im.empty', { defaultValue: '暂无会话，请先在 Bot 管理中绑定微信' })} />
               </div>
             ) : (
               <ConversationList className='!h-auto !bg-transparent !p-0'>
