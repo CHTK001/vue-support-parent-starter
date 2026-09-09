@@ -255,6 +255,35 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
   return false;
 }
 
+/**
+ * HTTP statuses that represent a transient upstream/backend outage (down or
+ * overloaded) rather than a permanent client error. Retrying these once after
+ * a short delay recovers from brief backend flaps without masking real errors.
+ */
+const TRANSIENT_BACKEND_STATUSES = new Set([408, 500, 502, 503, 504]);
+
+export function isTransientBackendError(error: unknown): boolean {
+  return isBackendHttpError(error) && TRANSIENT_BACKEND_STATUSES.has(error.status);
+}
+
+/**
+ * Run `invoke` once; if it fails with a transient backend status, wait `delayMs`
+ * and retry a single time. Non-transient errors (and a still-failing retry)
+ * are rethrown to the caller.
+ */
+export async function invokeWithTransientRetry<T>(
+  invoke: () => Promise<T>,
+  delayMs = 1500
+): Promise<T> {
+  try {
+    return await invoke();
+  } catch (error) {
+    if (!isTransientBackendError(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return invoke();
+  }
+}
+
 function bodyStringField(body: unknown, key: 'code' | 'error'): string {
   if (!body || typeof body !== 'object') return '';
   const value = (body as Record<string, unknown>)[key];

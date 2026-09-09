@@ -202,7 +202,7 @@ export const defaultAppConfig: AppConfig = {
     otp: false,
     slider: false,
     brandName: "应用",
-    logoUrl: "",
+    logoUrl: "/assets/images/logo/logo.svg",
     avatarUrl: "",
     welcome: "欢迎登录",
     title: "应用",

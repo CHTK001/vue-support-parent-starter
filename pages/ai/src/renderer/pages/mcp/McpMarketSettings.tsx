@@ -10,6 +10,7 @@
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
 import type { IMcpServer, IMcpServerTransport } from '@/common/config/storage';
+import { isBackendHttpError, invokeWithTransientRetry } from '@/common/adapter/httpBridge';
 import { Alert, Message, Modal, Tag } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -151,11 +152,13 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
   const handleAdd = useCallback(
     async (item: ISkillMarketItem) => {
       try {
-        const resolved = await ipcBridge.fs.resolveSkillMarketMcpConfig.invoke({
-          source: item.source,
-          id: item.id,
-          url: item.url,
-        });
+        const resolved = await invokeWithTransientRetry(() =>
+          ipcBridge.fs.resolveSkillMarketMcpConfig.invoke({
+            source: item.source,
+            id: item.id,
+            url: item.url,
+          })
+        );
         // Force every market server to import disabled — the user must review
         // the transport (especially stdio commands) before enabling anything.
         const servers = toImportableMcpServersFromConfig(resolved.config_json, false).map((server) => ({
@@ -172,7 +175,15 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
         setPendingServers(servers);
       } catch (error) {
         console.error('Failed to resolve MCP market config:', error);
-        Message.error(t('settings.mcpMarket.addFailed', { defaultValue: 'Failed to add MCP server.' }));
+        // Transient backend outage (5xx incl. proxy 502) → actionable retry hint.
+        const serviceDown = isBackendHttpError(error) && error.status >= 500;
+        Message.error(
+          serviceDown
+            ? t('settings.mcpMarket.serviceUnavailable', {
+                defaultValue: 'The service is temporarily unavailable. Please try again later.',
+              })
+            : t('settings.mcpMarket.addFailed', { defaultValue: 'Failed to add MCP server.' })
+        );
       }
     },
     [t]
@@ -198,7 +209,14 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
       }
     } catch (error) {
       console.error('Failed to import MCP market servers:', error);
-      Message.error(t('settings.mcpMarket.addFailed', { defaultValue: 'Failed to add MCP server.' }));
+      const serviceDown = isBackendHttpError(error) && error.status >= 500;
+      Message.error(
+        serviceDown
+          ? t('settings.mcpMarket.serviceUnavailable', {
+              defaultValue: 'The service is temporarily unavailable. Please try again later.',
+            })
+          : t('settings.mcpMarket.addFailed', { defaultValue: 'Failed to add MCP server.' })
+      );
     } finally {
       setImporting(false);
     }

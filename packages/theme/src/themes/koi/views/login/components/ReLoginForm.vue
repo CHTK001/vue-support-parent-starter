@@ -150,7 +150,7 @@ import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
 import { initAuthRouter, resetRouter } from "@repo/pinia";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import { resolveAssetUrl } from "@repo/assets";
-import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.svg";
 import { translateConfigText } from "@repo/languages";
 import { useI18n } from "vue-i18n";
 import ReOtpDialog from "./ReOtpDialog.vue";
@@ -537,3 +537,4 @@ const submitLogin = async (otpCode: string) => {
   letter-spacing: 1px;
 }
 </style>
+

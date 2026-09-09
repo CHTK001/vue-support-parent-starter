@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem, ISkillMarketPackageInstallResponse, ISkillMarketPackageResponse } from '@/common/adapter/ipcBridge';
-import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import { isBackendHttpError, isTransientBackendError, invokeWithTransientRetry } from '@/common/adapter/httpBridge';
 import type { CreatePresetRequest, Preset } from '@/common/types/agent/presetTypes';
 import { parsePresetId, type PresetId } from '@/common/types/ids';
 import { resolveLocaleKey, uuidv7 } from '@/common/utils';
@@ -118,20 +118,12 @@ export const classifyPresetPackageAddError = (error: unknown): PresetPackageAddE
 };
 
 export const isTransientPresetPackageAddError = (error: unknown): boolean =>
-  isBackendHttpError(error) && TRANSIENT_INSTALL_STATUSES.has(error.status);
+  isTransientBackendError(error);
 
-export const invokePresetPackageInstallWithRetry = async (
+export const invokePresetPackageInstallWithRetry = (
   invoke: () => Promise<ISkillMarketPackageInstallResponse>,
   delayMs = 1500
-): Promise<ISkillMarketPackageInstallResponse> => {
-  try {
-    return await invoke();
-  } catch (error) {
-    if (!isTransientPresetPackageAddError(error)) throw error;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    return invoke();
-  }
-};
+): Promise<ISkillMarketPackageInstallResponse> => invokeWithTransientRetry(invoke, delayMs);
 
 const isSkillBindingName = (skillName: string, source: SkillBindingSource) =>
   source === 'market'

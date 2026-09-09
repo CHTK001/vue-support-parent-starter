@@ -65,7 +65,7 @@
 import settings from "@repo/theme/koi/settings.ts";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
-import fallbackLogoUrl from "@repo/assets/images/logo/logo.webp";
+import fallbackLogoUrl from "@repo/assets/images/logo/logo.svg";
 import { CircleCloseFilled } from "@element-plus/icons-vue";
 import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.vue";
 import ReDark from "@repo/theme/koi/layouts/components/Header/components/ReDark.vue";
@@ -215,3 +215,4 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
   overflow: hidden;
 }
 </style>
+
