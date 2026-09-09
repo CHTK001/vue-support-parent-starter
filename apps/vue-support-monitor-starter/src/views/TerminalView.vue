@@ -7,6 +7,8 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { queryHosts, getHost } from "@pages/server/src/api";
+import ReInput from "@repo/ui/re-input";
+import ReScrollbar from "@repo/ui/re-scrollbar";
 import ImmersiveTerminal from "../components/ImmersiveTerminal.vue";
 
 interface Host {
@@ -198,10 +200,10 @@ onMounted(onMountedInit);
           <span class="rail-count">{{ hosts.length }}</span>
           <span class="rail-collapse-btn" @click="railOpen = false" title="折叠资源条">«</span>
         </div>
-        <el-input v-model="keyword" placeholder="搜索主机 / IP" clearable size="small" class="rail-search" />
+        <ReInput v-model="keyword" placeholder="搜索主机 / IP" clearable size="small" class="rail-search" />
         <div v-if="loading" class="tip">加载中…</div>
         <div v-else-if="error" class="tip err">{{ error }}</div>
-        <el-scrollbar v-else class="rail-list">
+        <ReScrollbar v-else class="rail-list">
           <template v-for="g in tagGroups" :key="g.label">
             <div class="g-title">
               {{ g.label === "默认" ? "∅ 默认" : "#" + g.label }}
@@ -221,7 +223,7 @@ onMounted(onMountedInit);
             </div>
           </template>
           <div v-if="tagGroups.length === 0" class="tip">暂无主机</div>
-        </el-scrollbar>
+        </ReScrollbar>
         <div class="rail-foot">
           <span class="foot-hint" v-if="!selectedHost">从左侧选择一台主机开始控制</span>
           <span class="foot-hint" v-else>已选择 {{ selectedHost.serverHostName }}</span>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { Monitor } from "@element-plus/icons-vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import Guacamole from "guacamole-common-js";
+import ReIcon from "@repo/ui/re-icon";
+import ReSelect from "@repo/ui/re-select";
+import ReTag from "@repo/ui/re-tag";
 import { buildTerminalWsUrl } from "@pages/server/src/api";
 import { createScGuacTunnel } from "@pages/server/src/components/ScGuacTunnel";
 import type { AlarmEvent, MonitorItem } from "../monitorApi";
@@ -137,6 +139,13 @@ function fullscreen(): void {
 
 /** 终端显示缩放（字体大小），默认 100%，调小=字小，调大=字大 */
 const zoomPct = ref(100);
+const zoomOptions = computed(() => [
+  { label: "75%", value: 75 },
+  { label: "90%", value: 90 },
+  { label: "100%", value: 100 },
+  { label: "125%", value: 125 },
+  { label: "150%", value: 150 },
+]);
 function applyZoom(pct: number): void {
   zoomPct.value = pct;
   if (client) {
@@ -189,29 +198,23 @@ onBeforeUnmount(teardown);
   <div ref="shellRef" class="it-shell">
     <div class="it-toolbar">
       <div class="it-title">
-        <el-icon><Monitor /></el-icon>
+        <ReIcon name="Monitor" />
         <span>{{ connection?.hostName ?? "远程控制台" }}</span>
         <span
           v-if="connection"
           :class="['it-proto-badge', `p-${connection.protocol}`]"
         >{{ connection.protocol.toUpperCase() }}</span>
-        <el-tag
+        <ReTag
           v-if="connection"
           :type="hasError ? 'danger' : statusText === '已连接' ? 'success' : 'info'"
           size="small"
         >
           {{ statusText }}
-        </el-tag>
+        </ReTag>
       </div>
       <div v-if="connection" class="it-actions">
         <!-- 字体/缩放 -->
-        <el-select v-model="zoomPct" size="small" style="width:86px" @change="applyZoom($event)" class="zoom-sel">
-          <el-option :value="75" label="75%" />
-          <el-option :value="90" label="90%" />
-          <el-option :value="100" label="100%" />
-          <el-option :value="125" label="125%" />
-          <el-option :value="150" label="150%" />
-        </el-select>
+        <ReSelect v-model="zoomPct" :options="zoomOptions" size="small" style="width:86px" @change="applyZoom($event)" class="zoom-sel" />
         <!-- ReButton：icon 走 ReIcon 统一渲染（design.md §2 / §4.8） -->
         <ReButton icon="RefreshRight" show-text size="small" class="reb" @click="reconnect">重连</ReButton>
         <ReButton icon="FullScreen" show-text size="small" class="reb" @click="fullscreen">全屏</ReButton>
@@ -251,13 +254,13 @@ onBeforeUnmount(teardown);
     </div>
     <div class="it-body">
       <div v-if="!connection" class="it-empty">
-        <el-icon :size="48" :color="'var(--text-tertiary)'"><Monitor /></el-icon>
+        <ReIcon name="Monitor" :size="48" color="var(--text-tertiary)" />
         <div class="it-empty-title">从左侧选择一台资产开始控制</div>
         <div class="it-empty-desc">沉浸式控制台 · guacd 隧道 · 支持 SSH / RDP / VNC</div>
       </div>
       <div v-show="connection && !hasError" ref="displayRef" tabindex="0" class="it-display" @mousedown="blurLocalInput" />
       <div v-if="connection && hasError" class="it-error">
-        <el-icon :size="40" color="var(--status-error)"><Monitor /></el-icon>
+        <ReIcon name="Monitor" :size="40" color="var(--status-error)" />
         <div class="it-error-title">连接失败</div>
         <div class="it-error-desc">{{ statusText }}</div>
         <div class="it-error-actions">

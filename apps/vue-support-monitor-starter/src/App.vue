@@ -5,7 +5,6 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Search } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
@@ -145,7 +144,7 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
       <div class="crumb">{{ crumb }}</div>
       <div class="spacer" />
       <div class="gsearch">
-        <el-icon :size="14"><Search /></el-icon>
+        <ReIcon name="Search" :size="14" />
         <ReInput v-model="searchKw" placeholder="搜索资产、规则、文档…" size="small" class="gsearch-input" />
         <span class="kbd">⌘K</span>
       </div>
