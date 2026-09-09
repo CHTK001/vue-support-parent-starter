@@ -1,0 +1,37 @@
+{
+  "title": "Image Space",
+  "tabs": {
+    "face": "Face Recognition",
+    "ocr": "OCR Recognition",
+    "recognition": "Image Recognition",
+    "layout": "Layout Detection"
+  },
+  "upload": {
+    "dragHint": "Drag and drop images here, or click to select files",
+    "acceptFormat": "Supports JPG, PNG, BMP and other common image formats"
+  },
+  "face": {
+    "title": "Face Recognition",
+    "description": "Upload images to automatically detect and identify facial information including position, expression, age, etc.",
+    "detectButton": "Start Recognition",
+    "batchButton": "Batch Processing"
+  },
+  "ocr": {
+    "title": "OCR Text Recognition",
+    "description": "Upload images to automatically extract text content, supporting multi-language recognition.",
+    "recognizeButton": "Start Recognition",
+    "multiLangButton": "Multi-language Support"
+  },
+  "recognition": {
+    "title": "Image Recognition",
+    "description": "Upload images for AI to automatically analyze content, identify objects, scenes, and more.",
+    "analyzeButton": "Start Analysis",
+    "compareButton": "Image Comparison"
+  },
+  "layout": {
+    "title": "Layout Detection",
+    "description": "Upload images to automatically detect page or document layout structure, including text and image regions.",
+    "detectButton": "Start Detection",
+    "exportButton": "Export Results"
+  }
+}

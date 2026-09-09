@@ -1,0 +1,37 @@
+{
+  "title": "图像空间",
+  "tabs": {
+    "face": "人脸识别",
+    "ocr": "OCR 识别",
+    "recognition": "图片识别",
+    "layout": "布局检测"
+  },
+  "upload": {
+    "dragHint": "拖拽图片到此处，或点击选择文件",
+    "acceptFormat": "支持 JPG、PNG、BMP 等常见图片格式"
+  },
+  "face": {
+    "title": "人脸识别",
+    "description": "上传图片，自动检测并识别人脸信息，包括位置、表情、年龄等。",
+    "detectButton": "开始识别",
+    "batchButton": "批量处理"
+  },
+  "ocr": {
+    "title": "OCR 文字识别",
+    "description": "上传图片，自动提取图片中的文字内容，支持多语言识别。",
+    "recognizeButton": "开始识别",
+    "multiLangButton": "多语言支持"
+  },
+  "recognition": {
+    "title": "图片识别",
+    "description": "上传图片，AI 自动分析图片内容，识别物体、场景等信息。",
+    "analyzeButton": "开始分析",
+    "compareButton": "图片对比"
+  },
+  "layout": {
+    "title": "布局检测",
+    "description": "上传图片，自动检测页面或文档的布局结构，包括文字区域、图片区域等。",
+    "detectButton": "开始检测",
+    "exportButton": "导出结果"
+  }
+}

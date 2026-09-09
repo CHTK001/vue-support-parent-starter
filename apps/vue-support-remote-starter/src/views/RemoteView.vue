@@ -49,9 +49,7 @@
           <div
             ref="terminalRef"
             class="terminal-container"
-            tabindex="0"
             data-testid="terminal"
-            @keydown="onTerminalKeydown"
           />
           <div v-if="!connected" class="terminal-overlay" data-testid="terminal-overlay">
             <ReEmpty description="未连接——填写连接信息后点击连接" :image-size="60" />
@@ -87,6 +85,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
+import ReTag from "@repo/ui/re-tag";
 
 const route = useRoute();
 
@@ -148,6 +147,8 @@ const connected = ref(false);
 const h264Mode = ref(false);
 const screenRef = ref<HTMLCanvasElement | null>(null);
 const terminalRef = ref<HTMLDivElement | null>(null);
+let term: Terminal | null = null;
+let fitAddon: FitAddon | null = null;
 let ws: WebSocket | null = null;
 let sshSessionId: string | null = null;
 let vncSessionId: string | null = null;
@@ -184,19 +185,15 @@ const connect = async () => {
     return;
   }
   if (!serverConfig.gatewayUrl) {
-    ElMessage.warning("请先到"设置"页面配置网关地址");
+    ElMessage.warning('请先到"设置"页面配置网关地址');
     return;
   }
   try {
-    // HTTP 与 WS 同端口（9001——由网关握手路由处理）——从 serverConfig.httpUrl 取端口
+    // HTTP=9001（REST/验证），SSH/VNC/RDP 会话 WS=9003（分离端口）——从 settings 取
     const httpUrl = serverConfig.httpUrl || `http://${location.hostname || "localhost"}:9001`;
-    const httpMatch = httpUrl.replace(/^https?:\/\//, "").split("/")[0].split(":");
-    const httpHost = httpMatch[0] || location.hostname || "localhost";
-    const httpPort = parseInt(httpMatch[1]) || 9001;
+    const wsBase = serverConfig.wsUrl || `ws://${location.hostname || "localhost"}:9003`;
     const wsPath = form.connMethod === "vnc" ? "vnc" : form.connMethod === "rdp" ? "rdp" : "ssh";
-    const wsUrl = serverConfig.wsUrl
-      ? `${serverConfig.wsUrl.replace(/\/$/, "")}/ws/${wsPath}/${form.targetAgentId}`
-      : `ws://${httpHost}:${httpPort}/ws/${wsPath}/${form.targetAgentId}`;
+    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/${wsPath}/${form.targetAgentId}`;
 
     const verifyResp = await fetch(`${httpUrl}/verify`, {
       method: "POST",
@@ -238,9 +235,24 @@ const disconnect = () => {
   sshSessionId = null; vncSessionId = null;
 };
 
+const ensureTerminal = () => {
+  if (term || !terminalRef.value) return;
+  term = new Terminal({ cursorBlink: true, fontSize: 14, theme: { background: "#0f1115", foreground: "#e6e6e6" } });
+  fitAddon = new FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(terminalRef.value);
+  fitAddon.fit();
+  term.onData((data) => {
+    if (connected.value && ws && sshSessionId) {
+      ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(data))) }));
+    }
+  });
+};
+
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
   ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: form.sshHost || "local", cols: 80, rows: 24 }));
+  appendTerminalOutput("SSH 会话已启动\n");
 };
 
 const startVNCSession = () => {
@@ -249,7 +261,7 @@ const startVNCSession = () => {
 };
 
 const handleTextMessage = (msg: any) => {
-  if (msg.type === "ssh" && msg.data?.length) appendTerminalOutput(msg.data, msg.stream === "stderr");
+  if (msg.type === "ssh" && msg.data?.length) appendTerminalOutput(msg.data);
 };
 
 const handleFrame = (data: unknown) => {
@@ -276,13 +288,8 @@ const renderJpeg = (bytes: Uint8Array) => {
   }).catch(() => {});
 };
 
-const appendTerminalOutput = (text: string, isError: boolean) => {
-  if (!terminalRef.value) return;
-  const span = document.createElement("span");
-  span.style.color = isError ? "#ff4757" : "#e6e6e6";
-  span.textContent = text;
-  terminalRef.value.appendChild(span);
-  terminalRef.value.scrollTop = terminalRef.value.scrollHeight;
+const appendTerminalOutput = (text: string) => {
+  if (term) term.write(text);
 };
 
 const sendVncInput = (payload: any) => {
@@ -314,7 +321,7 @@ const loadSettings = async () => {
     if (resp.ok) { const d = await resp.json(); if (d) { Object.assign(serverConfig, d); return; } }
   } catch {}
   const host = location.hostname || "localhost";
-  Object.assign(serverConfig, { httpUrl: `http://${host}:9001`, gatewayUrl: `tcp://${host}:9000`, wsUrl: `ws://${host}:9001` });
+  Object.assign(serverConfig, { httpUrl: `http://${host}:9001`, gatewayUrl: `tcp://${host}:9000`, wsUrl: `ws://${host}:9003` });
 };
 
 const sessions = ref<Array<{ name: string; data: string }>>([]);
@@ -345,6 +352,10 @@ const loadSession = (s: { data: string }) => {
 };
 
 onMounted(async () => {
+  // 全字段默认预填：用户零输入，打开页面直接点"连接"（网关/WS 默认同 IP 由 loadSettings 兜底）
+  if (!form.targetAgentId) form.targetAgentId = "local-ssh";
+  if (!form.verifyCode) form.verifyCode = "0000";
+  if (!form.accessToken) form.accessToken = "ctrl-token-1";
   await loadSettings();
   if (route.query.agentId) { form.targetAgentId = String(route.query.agentId); fetchAgentCapabilities(); }
   if (route.query.verifyCode) form.verifyCode = String(route.query.verifyCode);

@@ -25,6 +25,7 @@ import {
   SiderSkillsEntry,
   SiderConversationEntry,
   SiderCustomerServiceEntry,
+  SiderImageSpaceEntry,
   SiderKnowledgeEntry,
   SiderMcpEntry,
   SiderMiniAppsEntry,
@@ -121,9 +122,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
  const handleAssetLibraryClick = () => navTo('/assets');
   const handleUsageClick = () => navTo('/usage');
   const handleUsageLogClick = () => navTo('/usage/logs');
-  const handleNomiClick = () => navTo('/nomi');
+const handleNomiClick = () => navTo('/nomi');
   const handleWorkshopClick = () => navTo('/workshop');
   const handleMiniAppsClick = () => navTo('/mini-apps');
+  const handleImageSpaceClick = () => navTo('/image-space');
   const handleCustomerServiceClick = () => navTo('/customer-service');
   const handlePresetClick = () => navTo('/presets');
   const handleSkillsClick = () => navTo('/skills');
@@ -251,6 +253,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleAssetLibraryClick}
+            />
+            {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
+            <SiderImageSpaceEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/image-space')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleImageSpaceClick}
             />
             {/* Usage library — AI call usage records */}
             <SiderUsageEntry

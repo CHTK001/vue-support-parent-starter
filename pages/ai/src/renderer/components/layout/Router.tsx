@@ -55,6 +55,7 @@ const CompanionPage = React.lazy(() => import('@renderer/pages/companion'));
 const BotManagementPage = React.lazy(() => import('@renderer/pages/bots/BotManagementPage'));
 const BotUserPage = React.lazy(() => import('@renderer/pages/bots/BotUserPage'));
 const BotImPage = React.lazy(() => import('@renderer/pages/bots/BotImPage'));
+const ImageSpacePage = React.lazy(() => import('@renderer/pages/imageSpace'));
 const BotConfigPage = React.lazy(() => import('@renderer/pages/settings/BotConfigPage'));
 const SkillsMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/SkillsMarketSettingsPage'));
 const McpMarketSettingsPage = React.lazy(() => import('@renderer/pages/settings/McpMarketSettingsPage'));
@@ -315,6 +316,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           {/* 创意工坊 (Creative Workshop) — infinite-canvas AI visual creation. */}
           <Route path='/workshop' element={withRouteFallback(WorkshopListPage)} />
           <Route path='/workshop/:id' element={withRouteFallback(WorkshopCanvasPage)} />
+          {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
+          <Route path='/image-space' element={withRouteFallback(ImageSpacePage)} />
           {/* 小程序 (Mini-apps) — the solidified library and its full-page runner. */}
           <Route path='/mini-apps' element={withRouteFallback(MiniAppsListPage)} />
           <Route path='/mini-apps/:id' element={withRouteFallback(MiniAppRunnerPage)} />
