@@ -25,7 +25,12 @@
             <span class="panel-count dim">{{ filteredKeys.length }} 个</span>
           </div>
         </template>
-        <div class="key-list" v-loading="scanLoading">
+        <template v-if="scanLoading">
+          <div class="key-skeleton">
+            <ReSkeleton loading :rows="6" :count="1" animated />
+          </div>
+        </template>
+        <div v-else class="key-list">
           <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()">
             <span class="key-text">{{ k }}</span>
             <ReButton link size="small" type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
@@ -56,7 +61,9 @@
             </div>
           </ReForm>
         </div>
-        <ReEmpty v-else description="请从左侧选择一个 Key" :image-size="60" />
+        <div v-else class="value-empty">
+          <ReEmpty description="请从左侧选择一个 Key" :image-size="60" />
+        </div>
       </ReCard>
     </div>
   </div>
@@ -234,6 +241,17 @@ onMounted(loadMonitors)
   overflow: auto;
   padding: 6px;
 }
+.key-skeleton {
+  flex: 1;
+  padding: 12px;
+}
+.value-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
 .key-item {
   display: flex;
   justify-content: space-between;
@@ -244,11 +262,12 @@ onMounted(loadMonitors)
   color: var(--text-secondary);
   cursor: pointer;
   word-break: break-all;
-  transition: var(--transition-base);
   border: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 .key-item:hover {
   background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  transform: translateX(2px);
 }
 .key-item.active {
   background: color-mix(in srgb, var(--metric-cpu) 8%, transparent);
@@ -290,4 +309,57 @@ onMounted(loadMonitors)
   transition: var(--transition-base);
 }
 .action-btn:hover { transform: translateY(-1px); }
+
+/* 可访问性：键盘焦点可见 */
+.ctrl-input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.ctrl-select:focus-within,
+.ctrl-input:focus {
+  border-color: var(--brand-500);
+}
+.key-item:focus-visible,
+.del-btn:focus-visible,
+.kv-actions :deep(.re-btn):focus-visible,
+.ctrl-actions :deep(.re-btn):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--border-radius-sm);
+}
+.ctrl-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.ctrl-row,
+.value-card,
+.key-item,
+.del-btn,
+.kv-actions {
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+.ctrl-row:hover,
+.value-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .ctrl-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ctrl-select {
+    width: 100%;
+  }
+  .ctrl-input {
+    width: 100%;
+  }
+  .redis-body {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .key-list {
+    max-height: 300px;
+  }
+}
 </style>

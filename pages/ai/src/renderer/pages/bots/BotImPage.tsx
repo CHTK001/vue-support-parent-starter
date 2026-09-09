@@ -497,6 +497,100 @@ export default function BotImPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
+  /* ILink 会话运行状态 + 重新扫码 */
+  const [runtimeStatus, setRuntimeStatus] = useState<'checking' | 'running' | 'stopped'>('checking');
+  const [scanPhase, setScanPhase] = useState<'idle' | 'fetching' | 'showing_qr' | 'scanned' | 'expired' | 'error' | 'confirmed'>('idle');
+  const [qrcodeUrl, setQrcodeUrl] = useState('');
+  const [scanKey, setScanKey] = useState('');
+  const [scanMsg, setScanMsg] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPoll = useCallback(() => {
+    if (pollRef.current != null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  /* 查询当前 Bot 的 ILink 会话运行状态（超时则提示重新扫码） */
+  const checkRuntimeStatus = useCallback(async () => {
+    if (!active?.botId) return;
+    try {
+      const res = await httpRequest<{ status?: string }>('GET',
+        `/v2/ai/bot-binding/runtime-status?botId=${encodeURIComponent(active.botId)}`);
+      setRuntimeStatus(res?.status === 'running' ? 'running' : 'stopped');
+    } catch {
+      setRuntimeStatus('stopped');
+    }
+  }, [active?.botId]);
+
+  useEffect(() => {
+    if (!active?.botId) return;
+    setRuntimeStatus('checking');
+    void checkRuntimeStatus();
+  }, [active?.botId, checkRuntimeStatus]);
+
+  /** 启动扫码轮询（复用 BotManagementPage 的二维码状态机） */
+  const startScanPoll = useCallback((key: string) => {
+    setScanKey(key);
+    stopPoll();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; expireAt?: number }>(
+          'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
+        );
+        const s = res?.status ?? 'pending';
+        if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
+        if (s === 'confirmed') {
+          stopPoll();
+          setScanPhase('confirmed');
+          Message.success(t('bots.scan.success', { defaultValue: '扫码成功，已自动绑定' }));
+          void checkRuntimeStatus();
+          void loadConversations();
+        } else if (s === 'scanned') {
+          setScanPhase('scanned');
+        } else if (s === 'expired' || s === 'error') {
+          stopPoll();
+          setScanPhase(s);
+        } else {
+          setScanPhase('showing_qr');
+        }
+      } catch {
+        stopPoll();
+        setScanPhase('error');
+        setScanMsg(t('bots.scan.pollFailed', { defaultValue: '状态查询失败，请重试' }));
+      }
+    }, 3000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopPoll, t]);
+
+  /** 发起重新扫码 */
+  const handleRescan = useCallback(async () => {
+    stopPoll();
+    setScanPhase('fetching');
+    setQrcodeUrl('');
+    setScanMsg('');
+    try {
+      const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
+        'POST', `/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(active?.platform ?? 'wechat')}`
+      );
+      const key = res?.key ?? '';
+      if (!key) {
+        setScanPhase('error');
+        setScanMsg(t('bots.scan.noKey', { defaultValue: '未获取到会话 key，请重试' }));
+        return;
+      }
+      if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
+      setScanPhase('showing_qr');
+      startScanPoll(key);
+    } catch {
+      setScanPhase('error');
+      setScanMsg(t('bots.scan.unavailable', { defaultValue: 'iLink 服务暂不可用，请确认网络连通性或稍后重试' }));
+    }
+  }, [stopPoll, startScanPoll, t, active?.platform]);
+
+  useEffect(() => () => stopPoll(), [stopPoll]);
+
   /* 会话列表 */
   const loadConversations = useCallback(async () => {
     try {
@@ -980,6 +1074,72 @@ export default function BotImPage() {
                   {(active.nickname || active.fromUser || '?').slice(0, 1).toUpperCase()}
                 </span>
               </div>
+
+              {/* ILink 会话超时提示 + 重新扫码（二维码直接展示在聊天区） */}
+              {runtimeStatus === 'stopped' && (
+                <div className='shrink-0 border-b border-solid border-[var(--color-border-2)] bg-warning-1/10 px-16px py-12px'>
+                  <div className='flex items-start gap-8px'>
+                    <span className='mt-2px text-16px text-warning'>⚠</span>
+                    <div className='min-w-0 flex-1'>
+                      <div className='text-13px font-500 text-warning'>
+                        {t('bots.im.sessionExpired', { defaultValue: '微信会话已过期，Bot 暂时无法收发消息' })}
+                      </div>
+                      <div className='mt-2px text-12px leading-18px text-t-tertiary'>
+                        {t('bots.im.sessionExpiredHint', { defaultValue: '扫描下方二维码重新登录微信即可恢复（扫码成功后自动回到聊天）' })}
+                      </div>
+                    </div>
+                  </div>
+                  {/* 扫码区：折叠在提示条内，点击「重新扫码」展开 */}
+                  {scanPhase === 'idle' ? (
+                    <Button
+                      size='small'
+                      type='primary'
+                      status='warning'
+                      className='mt-8px'
+                      onClick={() => void handleRescan()}
+                    >
+                      {t('bots.im.rescan', { defaultValue: '重新扫码绑定' })}
+                    </Button>
+                  ) : scanPhase === 'fetching' ? (
+                    <div className='mt-8px flex items-center gap-8px text-12px text-t-tertiary'>
+                      <Spin size={14} />
+                      {t('bots.scan.fetching', { defaultValue: '正在获取二维码…' })}
+                    </div>
+                  ) : scanPhase === 'confirmed' ? (
+                    <div className='mt-8px text-12px text-success'>
+                      ✓ {t('bots.im.rescanDone', { defaultValue: '绑定成功，正在恢复会话…' })}
+                    </div>
+                  ) : (
+                    <div className='mt-8px flex flex-col items-center gap-6px py-8px'>
+                      {qrcodeUrl ? (
+                        <img
+                          src={qrcodeUrl}
+                          alt='QR'
+                          className='size-180px rounded-8px border border-solid border-[var(--color-border-2)] bg-white'
+                        />
+                      ) : (
+                        <div className='flex size-180px items-center justify-center rounded-8px bg-[var(--color-fill-2)]'>
+                          <Spin />
+                        </div>
+                      )}
+                      <div className='text-12px text-t-tertiary'>
+                        {scanPhase === 'scanned'
+                          ? t('bots.scan.scanned', { defaultValue: '已扫码，请在手机上确认登录' })
+                          : scanPhase === 'expired'
+                            ? t('bots.scan.expired', { defaultValue: '二维码已过期' })
+                            : scanPhase === 'error'
+                              ? (scanMsg || t('bots.scan.error', { defaultValue: '获取二维码失败' }))
+                              : t('bots.scan.waiting', { defaultValue: '请使用微信扫码' })}
+                      </div>
+                      {(scanPhase === 'expired' || scanPhase === 'error') && (
+                        <Button size='mini' onClick={() => void handleRescan()}>
+                          {t('common.retry', { defaultValue: '重试' })}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 消息区 */}
               <div ref={messagesContainerRef} onScroll={handleScroll} className='botim-scroll min-h-0 flex-1 overflow-auto bg-[var(--color-bg-1)]'>
