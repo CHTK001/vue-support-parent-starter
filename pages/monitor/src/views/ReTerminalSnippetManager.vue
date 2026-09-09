@@ -1,14 +1,13 @@
 <template>
   <div class="snippet-manager fade-in">
     <ReCard class="shadow-sm rounded-xl" :radius="12" :padding="16">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <h3 class="snippet-title">命令片段管理</h3>
+      <ReSectionHead title="命令片段管理" description="维护常用运维命令，便于终端快速调用">
+        <template #actions>
           <ReButton show-text icon="Plus" type="primary" @click="handleAdd">新增片段</ReButton>
-        </div>
-      </template>
+        </template>
+      </ReSectionHead>
 
-      <ReTable :data="snippets" style="width: 100%" :pagination="false" :toolbar="false">
+      <ReTable v-if="snippets.length" :data="snippets" style="width: 100%" :pagination="false" :toolbar="false">
         <ReTableColumn prop="name" label="名称" width="150" />
         <ReTableColumn prop="content" label="命令内容" />
         <ReTableColumn prop="category" label="分类" width="100" />
@@ -19,6 +18,9 @@
           </template>
         </ReTableColumn>
       </ReTable>
+      <ReEmpty v-else description="暂无命令片段，点击右上角新增片段开始创建">
+        <ReButton show-text icon="Plus" type="primary" @click="handleAdd">新增片段</ReButton>
+      </ReEmpty>
     </ReCard>
 
     <ReDialog v-model="showDialog" :title="editId ? '编辑片段' : '新增片段'" width="500" :height="360" confirm-text="保存" cancel-text="取消" @confirm="handleSubmit" @cancel="showDialog = false">
@@ -88,14 +90,22 @@ const handleSubmit = () => {
 .snippet-manager {
   padding: 20px;
 }
-.snippet-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.snippet-manager .re-card {
-  border-radius: var(--border-radius);
+.snippet-manager :deep(.re-card) {
+  border-radius: var(--radius-lg, var(--border-radius));
   box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease, transform 200ms ease, opacity 200ms ease;
+}
+.snippet-manager :deep(.re-card:hover) {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.snippet-manager :deep(:focus-visible) {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm, 4px);
+}
+
+@media (max-width: 640px) {
+  .snippet-manager { padding: 12px; }
 }
 </style>

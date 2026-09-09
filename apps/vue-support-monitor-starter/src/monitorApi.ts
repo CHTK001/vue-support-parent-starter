@@ -97,3 +97,27 @@ export const testAlarmRule = (ruleId: number, metricName?: string, value?: numbe
   http()
     .get(`/ms/monitor/alarm/rule/${ruleId}/test?metricName=${encodeURIComponent(metricName ?? "")}&value=${value ?? 0}`)
     .then(r => unwrap<boolean>(r));
+
+// ==================== 系统 Redis 信息（当前应用自身连接的 Redis，与监控资产/Agent 无关） ====================
+
+/** 当前系统 Redis 指标（INFO 解析后的 key 数值表） */
+export interface SystemRedisInfo {
+  connected_clients?: number;
+  used_memory?: number;
+  used_memory_human?: string;
+  os?: string;
+  redis_version?: string;
+  uptime_in_seconds?: number;
+  instantaneous_ops_per_sec?: number;
+  keyspace_hits?: number;
+  keyspace_misses?: number;
+  total_connections_received?: number;
+  total_commands_processed?: number;
+  role?: string;
+  [key: string]: number | string | undefined;
+}
+
+export const fetchSystemRedisInfo = () =>
+  http()
+    .get("/ms/monitor/system/redis-info")
+    .then(r => unwrap<SystemRedisInfo | null>(r));

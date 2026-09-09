@@ -25,6 +25,15 @@ import { install as installReTag } from "@repo/ui/re-tag";
 import { install as installReSwitch } from "@repo/ui/re-switch";
 import { install as installReDatePicker } from "@repo/ui/re-date-picker";
 import { install as installReEmpty } from "@repo/ui/re-empty";
+import { install as installReSkeleton } from "@repo/ui/re-skeleton";
+import { install as installReSectionHead } from "@repo/ui/re-section-head";
+import { install as installReEmptyState } from "@repo/ui/re-empty-state";
+import { install as installReSearch } from "@repo/ui/re-search";
+import { install as installReStatusIndicator } from "@repo/ui/re-status-indicator";
+import { install as installReTab } from "@repo/ui/re-tab";
+import { install as installReBadge } from "@repo/ui/re-badge";
+import { install as installReTrend } from "@repo/ui/re-trend";
+import { install as installReCountup } from "@repo/ui/re-countup";
 import { install as installRePagination } from "@repo/ui/re-pagination";
 import { install as installReProgress } from "@repo/ui/re-progress";
 import { install as installReUpload } from "@repo/ui/re-upload";
@@ -53,6 +62,9 @@ async function installSinglePage(app: VueApp): Promise<void> {
     installReDrawer.install(app),
     installReCard.install(app),
     installReStatCard.install(app),
+    installReSectionHead.install(app),
+    installReEmptyState.install(app),
+    installReSearch.install(app),
     installReThree.install(app),
   ];
   // ReMap3D 的 install 声明可能为可选成员，防御式调用
@@ -65,6 +77,8 @@ async function installSinglePage(app: VueApp): Promise<void> {
     installReInput, installReInputNumber, installReTag, installReSwitch, installReDatePicker,
     installReEmpty, installRePagination, installReProgress, installReUpload, installReTime,
     installReText, installReTree, ReKitInstall,
+    installReSkeleton, installReStatusIndicator, installReTab,
+    installReBadge, installReTrend, installReCountup,
   ];
   for (const p of pluginInstalls) {
     app.use(p);

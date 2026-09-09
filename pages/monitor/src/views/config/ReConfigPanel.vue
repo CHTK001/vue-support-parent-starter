@@ -1,12 +1,14 @@
 <template>
   <div class="config-panel fade-in">
-    <header class="panel-header">
-      <div class="header-left">
-        <h2>全局配置</h2>
-        <span class="header-desc">监控模块全局参数，重启采集器后生效</span>
-      </div>
-      <ReButton show-text icon="Bottom" type="primary" @click="doSaveAll">保存全部</ReButton>
-    </header>
+    <ReSectionHead
+      class="panel-head"
+      title="全局配置"
+      description="监控模块全局参数，重启采集器后生效"
+    >
+      <template #actions>
+        <ReButton show-text icon="Bottom" type="primary" @click="doSaveAll">保存全部</ReButton>
+      </template>
+    </ReSectionHead>
 
     <div class="config-grid">
       <ReCard v-for="section in sections" :key="section.name" layout="simple" :radius="14" :padding="18" hoverable>
@@ -143,45 +145,22 @@ onMounted(loadConfig)
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.panel-head {
   margin-bottom: 20px;
   padding: 16px;
   background: var(--bg-container-card);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-lg, var(--border-radius));
   box-shadow: var(--shadow-card);
 }
-.header-left h2 {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.3px;
-}
-.header-desc {
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-.save-btn {
+.panel-head :deep(.re-section-head__actions) {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: var(--border-radius-sm);
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: var(--transition-base);
 }
-.save-btn:hover {
-  transform: translateY(-1px);
-}
-.btn-icon { width: 14px; height: 14px; }
 
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 16px;
 }
 .card-title {
@@ -207,5 +186,20 @@ onMounted(loadConfig)
   font-size: 11.5px;
   color: var(--text-tertiary);
   margin-top: 2px;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-input-number),
+:deep(.el-textarea__inner) {
+  transition: box-shadow var(--transition-base);
+}
+:deep(.el-input__wrapper:focus-within),
+:deep(.el-textarea__inner:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+@media (max-width: 860px) {
+  .config-grid { grid-template-columns: 1fr; }
+  :deep(.el-input-number) { width: 100% !important; }
 }
 </style>

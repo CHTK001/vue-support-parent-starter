@@ -1,18 +1,15 @@
 <template>
   <div class="agent-list fade-in">
     <div class="stats-row">
-      <div class="stat-card">
-        <span class="stat-value">{{ agents.length }}</span>
-        <span class="stat-label">Agent 总数</span>
-      </div>
-      <div class="stat-card success">
-        <span class="stat-value">{{ onlineCount }}</span>
-        <span class="stat-label">在线</span>
-      </div>
-      <div class="stat-card danger">
-        <span class="stat-value">{{ agents.length - onlineCount }}</span>
-        <span class="stat-label">离线</span>
-      </div>
+      <ReStatCard title="Agent 总数" :value="agents.length" icon-color="var(--metric-cpu)">
+        <template #value><ReCountup :value="agents.length" :duration="800" /></template>
+      </ReStatCard>
+      <ReStatCard title="在线" :value="onlineCount" icon-color="var(--status-success)">
+        <template #value><ReCountup :value="onlineCount" :duration="800" /></template>
+      </ReStatCard>
+      <ReStatCard title="离线" :value="agents.length - onlineCount" icon-color="var(--status-error)">
+        <template #value><ReCountup :value="agents.length - onlineCount" :duration="800" /></template>
+      </ReStatCard>
     </div>
 
     <ReTable :data="agents" border size="small" :loading="loading" :pagination="false" :toolbar="false">
@@ -37,7 +34,7 @@
     </ReTable>
 
     <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true">
-      <div v-if="configLoading">加载中...</div>
+      <ReSkeleton v-if="configLoading" :loading="true" :rows="4" :count="1" animated />
       <div v-else>
         <h4>采集间隔</h4>
         <ReDescriptions :column="1" border size="small">
@@ -102,33 +99,26 @@ onMounted(load)
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
 .stats-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
-.stat-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px;
-  border-radius: var(--border-radius);
-  background: var(--bg-container-card);
-  border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--metric-cpu);
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-base);
+.stats-row :deep(.re-stat-card) {
+  transition: box-shadow 200ms ease, transform 200ms ease, opacity 200ms ease;
 }
-.stat-card:hover {
+.stats-row :deep(.re-stat-card:hover) {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
-.stat-card.success { border-left-color: var(--status-success); }
-.stat-card.danger { border-left-color: var(--status-error); }
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
+
+.agent-list :deep(:focus-visible) {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm, 4px);
 }
-.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+@media (max-width: 640px) {
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
 </style>

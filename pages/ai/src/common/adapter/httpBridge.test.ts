@@ -13,6 +13,8 @@ import {
   isAuthExpiredHttpError,
   isBackendHttpError,
   isHandledAuthExpiredHttpError,
+  isTransientBackendError,
+  invokeWithTransientRetry,
   redactSensitiveText,
   wsEmitter,
   wsMappedEmitter,
@@ -1163,5 +1165,78 @@ describe('httpBridge WebSocket heartbeat', () => {
       restoreWebSocketGlobal();
       restoreBrowserGlobals();
     }
+  });
+});
+
+describe('invokeWithTransientRetry', () => {
+  const backend502 = () => new (require('./httpBridge').BackendHttpError ?? Object)();
+
+  test('retries exactly once on a transient 5xx and returns the recovered value', async () => {
+    const { BackendHttpError } = await import('./httpBridge');
+    const transient = new BackendHttpError({ method: 'POST', path: '/x', status: 502, body: '' });
+    let calls = 0;
+    const result = await invokeWithTransientRetry(
+      async () => {
+        calls += 1;
+        if (calls === 1) throw transient;
+        return 'recovered';
+      },
+      1
+    );
+    expect(calls).toBe(2);
+    expect(result).toBe('recovered');
+  });
+
+  test('does not retry non-transient errors (4xx) and rethrows', async () => {
+    const { BackendHttpError } = await import('./httpBridge');
+    const bad = new BackendHttpError({
+      method: 'POST',
+      path: '/x',
+      status: 400,
+      body: { code: 'BAD_REQUEST' },
+    });
+    let calls = 0;
+    await expect(
+      invokeWithTransientRetry(
+        async () => {
+          calls += 1;
+          throw bad;
+        },
+        1
+      )
+    ).rejects.toBe(bad);
+    expect(calls).toBe(1);
+  });
+
+  test('rethrows when the retry also fails transiently', async () => {
+    const { BackendHttpError } = await import('./httpBridge');
+    const transient = new BackendHttpError({ method: 'POST', path: '/x', status: 503, body: '' });
+    let calls = 0;
+    await expect(
+      invokeWithTransientRetry(
+        async () => {
+          calls += 1;
+          throw transient;
+        },
+        1
+      )
+    ).rejects.toBe(transient);
+    expect(calls).toBe(2);
+  });
+
+  test('isTransientBackendError flags only transient statuses', async () => {
+    const { BackendHttpError } = await import('./httpBridge');
+    const mk = (status: number) => new BackendHttpError({ method: 'GET', path: '/x', status, body: '' });
+    expect(isTransientBackendError(mk(502))).toBe(true);
+    expect(isTransientBackendError(mk(500))).toBe(true);
+    expect(isTransientBackendError(mk(408))).toBe(true);
+    expect(isTransientBackendError(mk(404))).toBe(false);
+    expect(isTransientBackendError(new Error('network'))).toBe(false);
+  });
+
+  test('non-BackendHttpError values are not transient', () => {
+    expect(isTransientBackendError(new TypeError('net down'))).toBe(false);
+    expect(isTransientBackendError(null)).toBe(false);
+    expect(isTransientBackendError(undefined)).toBe(false);
   });
 });
