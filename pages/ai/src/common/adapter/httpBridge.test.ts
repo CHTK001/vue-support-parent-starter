@@ -1193,30 +1193,38 @@ describe('invokeWithTransientRetry', () => {
       body: { code: 'BAD_REQUEST' },
     });
     let calls = 0;
-    await expect(
-      invokeWithTransientRetry(
+    let caught: unknown = null;
+    try {
+      await invokeWithTransientRetry(
         async () => {
           calls += 1;
           throw bad;
         },
         1
-      )
-    ).rejects.toBe(bad);
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBe(bad);
     expect(calls).toBe(1);
   });
 
   test('rethrows when the retry also fails transiently', async () => {
     const transient = new BackendHttpError({ method: 'POST', path: '/x', status: 503, body: '' });
     let calls = 0;
-    await expect(
-      invokeWithTransientRetry(
+    let caught: unknown = null;
+    try {
+      await invokeWithTransientRetry(
         async () => {
           calls += 1;
           throw transient;
         },
         1
-      )
-    ).rejects.toBe(transient);
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBe(transient);
     expect(calls).toBe(2);
   });
 
