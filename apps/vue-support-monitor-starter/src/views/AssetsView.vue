@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
@@ -476,29 +476,29 @@ onMounted(fetchAll);
 
     <!-- 新增/编辑弹窗 -->
     <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
-      <el-form label-width="auto">
-        <el-form-item label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></el-form-item>
-        <el-form-item label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></el-form-item>
-        <el-form-item label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></el-form-item>
-        <el-form-item label="系统">
+      <ReForm label-width="auto">
+        <ReFormItem label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></ReFormItem>
+        <ReFormItem label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></ReFormItem>
+        <ReFormItem label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></ReFormItem>
+        <ReFormItem label="系统">
           <ReSelect v-model="form.serverHostOsType" layout="square" size="small" style="width: 100%">
             <el-option label="Linux" value="LINUX"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('linux')" /> Linux</span></el-option>
             <el-option label="Windows" value="WINDOWS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('windows')" /> Windows</span></el-option>
             <el-option label="macOS" value="MACOS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('macos')" /> macOS</span></el-option>
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="分组">
+        </ReFormItem>
+        <ReFormItem label="分组">
           <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width: 100%">
             <el-option v-for="g in groups" :key="g.id" :label="g.msServerGroupName" :value="g.id" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="标签">
+        </ReFormItem>
+        <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" />
-        </el-form-item>
-        <el-form-item label="描述">
+        </ReFormItem>
+        <ReFormItem label="描述">
           <ReInput v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="主机用途 / 备注（可选）" />
-        </el-form-item>
-      </el-form>
+        </ReFormItem>
+      </ReForm>
       <template #footer>
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
@@ -544,20 +544,20 @@ onMounted(fetchAll);
         </div>
       </div>
       <div style="margin:14px 0 10px"><b>新增身份</b></div>
-      <el-form label-width="auto">
-        <el-form-item label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></el-form-item>
-        <el-form-item label="类型">
+      <ReForm label-width="auto">
+        <ReFormItem label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></ReFormItem>
+        <ReFormItem label="类型">
           <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%">
             <el-option label="密码登录 (PASSWORD)" value="PASSWORD" />
             <el-option label="私钥登录 (PUBLIC_KEY)" value="PUBLIC_KEY" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></el-form-item>
-        <el-form-item v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
+        </ReFormItem>
+        <ReFormItem label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
           <ReInput v-model="identityForm.msServerIdentityPassword" type="password" show-password placeholder="登录口令" />
-        </el-form-item>
-        <el-form-item label="备注"><ReInput v-model="identityForm.msServerIdentityRemark" /></el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem label="备注"><ReInput v-model="identityForm.msServerIdentityRemark" /></ReFormItem>
+      </ReForm>
       <template #footer>
         <ReButton @click="identityVisible = false">取消</ReButton>
         <ReButton type="primary" icon="Check" :show-text="true" :loading="identitySaving" @click="submitIdentity">保存身份</ReButton>

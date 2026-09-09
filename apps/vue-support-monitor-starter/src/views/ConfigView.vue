@@ -18,6 +18,7 @@ import {
   type AlarmPolicy,
   type AlarmRule,
 } from "../monitorApi";
+import { ReFormItem } from "@repo/ui/re-kit";
 
 const tab = ref<"policy" | "rule">("policy");
 const policies = ref<AlarmPolicy[]>([]);
@@ -259,59 +260,59 @@ onMounted(fetchAll);
     </ReCard>
 
     <!-- 策略弹窗 -->
-    <el-dialog v-model="policyVisible" :title="policyForm.id ? '编辑策略' : '新增策略'" width="440px">
-      <el-form label-width="80px">
-        <el-form-item label="名称"><ReInput v-model="policyForm.msMonitorAlarmPolicyName" placeholder="如 服务器基础告警" /></el-form-item>
-        <el-form-item label="状态">
+    <ReDialog v-model="policyVisible" :title="policyForm.id ? '编辑策略' : '新增策略'" width="440px">
+      <ReForm label-width="80px">
+        <ReFormItem label="名称"><ReInput v-model="policyForm.msMonitorAlarmPolicyName" placeholder="如 服务器基础告警" /></ReFormItem>
+        <ReFormItem label="状态">
           <ReSwitch v-model="policyForm.msMonitorAlarmPolicyEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
-        </el-form-item>
-        <el-form-item label="备注"><ReInput v-model="policyForm.msMonitorAlarmPolicyRemark" type="textarea" :rows="2" placeholder="可选" /></el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem label="备注"><ReInput v-model="policyForm.msMonitorAlarmPolicyRemark" type="textarea" :rows="2" placeholder="可选" /></ReFormItem>
+      </ReForm>
       <template #footer>
         <ReButton @click="policyVisible = false">取消</ReButton>
         <ReButton type="primary" icon="Check" :show-text="true" :loading="policySaving" @click="submitPolicy">保存</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 规则弹窗 -->
-    <el-dialog v-model="ruleVisible" :title="ruleForm.id ? '编辑规则' : '新增规则'" width="520px">
-      <el-form label-width="96px">
-        <el-form-item label="所属策略">
+    <ReDialog v-model="ruleVisible" :title="ruleForm.id ? '编辑规则' : '新增规则'" width="520px">
+      <ReForm label-width="96px">
+        <ReFormItem label="所属策略">
           <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%">
             <el-option v-for="p in policies" :key="p.id" :label="p.msMonitorAlarmPolicyName" :value="p.id" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="目标">
+        </ReFormItem>
+        <ReFormItem label="目标">
           <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%">
             <el-option label="全部目标" :value="null" />
             <el-option v-for="m in monitors" :key="m.id" :label="m.monitorName" :value="m.id" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="指标">
+        </ReFormItem>
+        <ReFormItem label="指标">
           <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%">
             <el-option v-for="mt in METRICS" :key="mt" :label="mt" :value="mt" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="条件">
+        </ReFormItem>
+        <ReFormItem label="条件">
           <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr">
             <el-option v-for="c in CONDITIONS" :key="c.value" :label="c.label" :value="c.value" />
           </ReSelect>
           <ReInputNumber v-model="ruleForm.msMonitorAlarmRuleThreshold" size="small" :min="0" :step="5" style="width: 140px" />
-        </el-form-item>
-        <el-form-item label="级别">
+        </ReFormItem>
+        <ReFormItem label="级别">
           <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px">
             <el-option v-for="lv in LEVELS" :key="lv" :label="lv + ' ' + lv" :value="lv" />
           </ReSelect>
-        </el-form-item>
-        <el-form-item label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></el-form-item>
-        <el-form-item label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></el-form-item>
-        <el-form-item label="状态"><ReSwitch v-model="ruleForm.msMonitorAlarmRuleEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" /></el-form-item>
-      </el-form>
+        </ReFormItem>
+        <ReFormItem label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></ReFormItem>
+        <ReFormItem label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></ReFormItem>
+        <ReFormItem label="状态"><ReSwitch v-model="ruleForm.msMonitorAlarmRuleEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" /></ReFormItem>
+      </ReForm>
       <template #footer>
         <ReButton @click="ruleVisible = false">取消</ReButton>
         <ReButton type="primary" icon="Check" :show-text="true" :loading="ruleSaving" @click="submitRule">保存</ReButton>
       </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
