@@ -5,13 +5,13 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Input, Message, Spin } from '@arco-design/web-react';
 import { Refresh, EditOne, Terminal } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { ITerminalSession } from '@/common/adapter/ipcBridge';
-import { parseTerminalId, terminalTarget, type TerminalId } from '@/common/types/ids';
+import { parseTerminalId, terminalTarget, tryParseEntityId, type TerminalId } from '@/common/types/ids';
 import { browserStorageKey } from '@/common/utils/browserStorageKey';
 import AutoWorkControl from '@/renderer/pages/conversation/components/AutoWorkControl';
 import IdmmControl from '@/renderer/pages/conversation/components/IdmmControl';
@@ -604,9 +604,20 @@ const TerminalSessionContent: React.FC<{ sessionId: TerminalId }> = ({ sessionId
 
 const TerminalSessionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  if (!id) return null;
+  const navigate = useNavigate();
+  // Route params are untrusted (deep links, legacy links). An invalid/legacy
+  // terminal id replaces the route with home instead of throwing into the
+  // dark route error panel.
+  const sessionId = id != null ? (tryParseEntityId('terminal', id) ?? undefined) : undefined;
 
-  const sessionId = parseTerminalId(id);
+  useEffect(() => {
+    if (id != null && sessionId == null) {
+      navigate('/', { replace: true });
+    }
+  }, [id, sessionId, navigate]);
+
+  if (!id || sessionId == null) return null;
+
   // React Router reuses the same route element when only `:id` changes. Keying
   // the stateful page content prevents session A's loaded metadata, edit state,
   // or in-flight actions from being rendered against terminal B.

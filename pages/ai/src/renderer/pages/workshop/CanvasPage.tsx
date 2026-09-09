@@ -23,7 +23,7 @@ import { getCanvas, patchCanvas } from './api';
 import CanvasEditor from './canvas/CanvasEditor';
 import type { SaveState } from './canvas/persistence';
 import type { WorkshopCanvasDoc, WorkshopCanvasMeta } from './types';
-import { parseCanvasId } from '@/common/types/ids';
+import { tryParseEntityId } from '@/common/types/ids';
 
 // ─── Save-state pill ──────────────────────────────────────────────────────────
 
@@ -70,7 +70,10 @@ const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const canvasId = useMemo(() => (id === undefined ? null : parseCanvasId(id)), [id]);
+  const canvasId = useMemo(
+    () => (id === undefined ? null : tryParseEntityId('canvas', id)),
+    [id],
+  );
   const [message, messageHolder] = useArcoMessage();
 
   const [meta, setMeta] = useState<WorkshopCanvasMeta | null>(null);
@@ -100,6 +103,15 @@ const CanvasPage: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Invalid/legacy route parameter (not a canonical canvas id): replace the
+  // route with the workshop list instead of spinning forever or crashing into
+  // the dark route error panel.
+  useEffect(() => {
+    if (id !== undefined && canvasId === null) {
+      navigate('/workshop', { replace: true });
+    }
+  }, [id, canvasId, navigate]);
 
   // ─── Inline title rename ────────────────────────────────────────────────────
 

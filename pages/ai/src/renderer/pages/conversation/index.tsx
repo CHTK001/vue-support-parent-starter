@@ -8,14 +8,17 @@ import ChatConversation from './components/ChatConversation';
 import MessageListSkeleton from './Messages/components/MessageListSkeleton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { parseConversationId } from '@/common/types/ids';
+import { tryParseEntityId } from '@/common/types/ids';
 import { emitter } from '@/renderer/utils/emitter';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   // Validate the route string once at the boundary; every downstream layer
-  // keeps the same canonical conversation entity ID.
-  const conversationId = id != null ? parseConversationId(id) : undefined;
+  // keeps the same canonical conversation entity ID. Invalid or legacy route
+  // parameters are treated as "not found" (the effect below replaces the
+  // route with home) instead of throwing into the dark route error panel.
+  const conversationId =
+    id != null ? (tryParseEntityId('conversation', id) ?? undefined) : undefined;
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { syncTitleFromHistory } = useAutoTitle();
@@ -23,12 +26,15 @@ const ChatConversationIndex: React.FC = () => {
   const deletedHandledIdRef = useRef<string | undefined>(undefined);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
 
-  const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
-    return getConversationOrNull(conversationId!);
-  });
+  const { data, isLoading, mutate } = useSWR(
+    conversationId ? `conversation/${conversationId}` : null,
+    () => {
+      return getConversationOrNull(conversationId!);
+    },
+  );
 
   useEffect(() => {
-    if (!id) return;
+    if (conversationId == null) return;
 
     return ipcBridge.conversation.listChanged.on((event) => {
       if (event.conversation_id !== conversationId) {
