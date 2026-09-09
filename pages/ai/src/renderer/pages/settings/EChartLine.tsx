@@ -154,7 +154,9 @@ const EChartLine: React.FC<{ points: TrendPoint[]; height?: number }> = ({ point
   useEffect(() => () => { chartRef.current?.dispose(); chartRef.current = null; }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', height, position: 'relative' }}>
+    <div style={{ width: '100%', height, position: 'relative' }}>
+      {/* ref 挂在无子节点的 div 上：echarts 在此创建 canvas，React 不管理其 children，避免 removeChild 冲突 */}
+      <div ref={ref} style={{ width: '100%', height: '100%' }} />
       {empty && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-8)', fontSize: 13 }}>
           暂无数据

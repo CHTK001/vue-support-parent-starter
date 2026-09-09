@@ -1,6 +1,13 @@
 <template>
   <div class="remote-view">
     <aside class="remote-left">
+      <div class="session-list" data-testid="session-list">
+        <div class="form-title">会话</div>
+        <div v-for="(s, i) in sessions" :key="i" class="session-item" @click="loadSession(s)" data-testid="session-item">
+          <span class="session-name">{{ s.split("|")[0] }}</span>
+        </div>
+        <div v-if="sessions.length === 0" class="session-empty">暂无会话——填写后点"保存会话"</div>
+      </div>
       <div class="form-title">连接信息</div>
       <div class="remote-form">
         <div class="form-field">
@@ -31,6 +38,7 @@
           <ReButton type="primary" :disabled="connected" @click="connect" data-testid="btn-connect">连接</ReButton>
           <ReButton :disabled="!connected" @click="disconnect" data-testid="btn-disconnect">断开</ReButton>
           <ReButton @click="saveConfig" data-testid="btn-save">保存配置</ReButton>
+          <ReButton @click="saveSession" data-testid="btn-save-session">保存会话</ReButton>
         </div>
         <div v-if="configSaved" class="save-tip" data-testid="save-tip">配置已保存</div>
       </div>
@@ -334,6 +342,37 @@ const loadConfig = async () => {
   } catch { /* ignore */ }
   try { const raw = localStorage.getItem("remote-config"); if (raw) Object.assign(form, JSON.parse(raw)); } catch { /* ignore */ }
 };
+
+// xshell 风格会话列表：多会话保存（localStorage）与一键载入连接
+const sessions = ref<string[]>([]);
+try {
+  const raw = localStorage.getItem("remote-sessions");
+  if (raw) sessions.value = JSON.parse(raw);
+} catch { /* ignore */ }
+
+const saveSession = () => {
+  const name = form.targetAgentId || ("会话-" + (sessions.value.length + 1));
+  const entry = name + "|gw=" + form.gatewayUrl + "|token=" + form.accessToken
+    + "|id=" + form.targetAgentId + "|code=" + form.verifyCode + "|ws=" + form.wsUrl;
+  const idx = sessions.value.findIndex(s => s.includes("|id=" + form.targetAgentId));
+  if (idx >= 0) sessions.value[idx] = entry; else sessions.value.push(entry);
+  localStorage.setItem("remote-sessions", JSON.stringify(sessions.value));
+  ElMessage.success("会话已保存: " + name);
+};
+
+const loadSession = (entry: string) => {
+  const parts = entry.split("|");
+  const kv = (k: string) => {
+    const p = parts.find(x => x.startsWith(k));
+    return p ? p.slice(k.length) : "";
+  };
+  form.gatewayUrl = kv("gw=") || "tcp://localhost:9000";
+  form.accessToken = kv("token=");
+  form.targetAgentId = kv("id=");
+  form.verifyCode = kv("code=");
+  form.wsUrl = kv("ws=");
+  connect();
+};
 loadConfig();
 
 onMounted(async () => {
@@ -347,6 +386,8 @@ onMounted(async () => {
   } catch {
     // 网关不可达——保持手动填写
   }
+  // 兜底：配置未返回网关地址时自动填充默认网关（tcp://localhost:9000）
+  if (!form.gatewayUrl) form.gatewayUrl = "tcp://localhost:9000";
 });
 
 onBeforeUnmount(() => { ws?.close(); });

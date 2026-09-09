@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import * as httpBridgeModule from './httpBridge';
 import {
   AUTH_EXPIRED_EVENT,
+  BackendHttpError,
   httpPost,
   httpRequest,
   isAuthExpiredHttpError,
@@ -1169,10 +1170,7 @@ describe('httpBridge WebSocket heartbeat', () => {
 });
 
 describe('invokeWithTransientRetry', () => {
-  const backend502 = () => new (require('./httpBridge').BackendHttpError ?? Object)();
-
   test('retries exactly once on a transient 5xx and returns the recovered value', async () => {
-    const { BackendHttpError } = await import('./httpBridge');
     const transient = new BackendHttpError({ method: 'POST', path: '/x', status: 502, body: '' });
     let calls = 0;
     const result = await invokeWithTransientRetry(
@@ -1188,7 +1186,6 @@ describe('invokeWithTransientRetry', () => {
   });
 
   test('does not retry non-transient errors (4xx) and rethrows', async () => {
-    const { BackendHttpError } = await import('./httpBridge');
     const bad = new BackendHttpError({
       method: 'POST',
       path: '/x',
@@ -1209,7 +1206,6 @@ describe('invokeWithTransientRetry', () => {
   });
 
   test('rethrows when the retry also fails transiently', async () => {
-    const { BackendHttpError } = await import('./httpBridge');
     const transient = new BackendHttpError({ method: 'POST', path: '/x', status: 503, body: '' });
     let calls = 0;
     await expect(
@@ -1224,8 +1220,7 @@ describe('invokeWithTransientRetry', () => {
     expect(calls).toBe(2);
   });
 
-  test('isTransientBackendError flags only transient statuses', async () => {
-    const { BackendHttpError } = await import('./httpBridge');
+  test('isTransientBackendError flags only transient statuses', () => {
     const mk = (status: number) => new BackendHttpError({ method: 'GET', path: '/x', status, body: '' });
     expect(isTransientBackendError(mk(502))).toBe(true);
     expect(isTransientBackendError(mk(500))).toBe(true);

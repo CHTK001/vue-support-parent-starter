@@ -34,10 +34,7 @@
       </template>
 
         <div class="panel-body">
-          <div v-if="cachePrefixes.length === 0" class="empty-state">
-            <ReIcon class="empty-icon" name="Search" />
-            <span class="empty-text">暂无缓存数据</span>
-          </div>
+          <ReEmpty v-if="cachePrefixes.length === 0" description="暂无缓存数据" layout="modern" :image-size="60" />
           <div v-else class="cache-list">
             <div
               v-for="(item, idx) in cachePrefixes"
@@ -82,15 +79,13 @@
       </template>
 
       <div class="panel-body">
-          <div v-if="!selectedCache" class="empty-state">
-            <ReIcon class="empty-icon" name="Search" />
-            <span class="empty-text">请先选择缓存名称</span>
-            <span class="empty-sub">点击左侧缓存列表查看键名</span>
-          </div>
-          <div v-else-if="keyList.length === 0" class="empty-state">
-            <ReIcon class="empty-icon" name="QuestionFilled" />
-            <span class="empty-text">该缓存下暂无键</span>
-          </div>
+          <ReEmpty
+            v-if="!selectedCache"
+            description="请先选择缓存名称，点击左侧缓存列表查看键名"
+            layout="modern"
+            :image-size="60"
+          />
+          <ReEmpty v-else-if="keyList.length === 0" description="该缓存下暂无键" layout="modern" :image-size="60" />
           <div v-else class="key-list">
             <div
               v-for="(key, idx) in keyList"
@@ -138,11 +133,12 @@
       </template>
 
       <div class="panel-body">
-          <div v-if="!selectedKey" class="empty-state empty-large">
-            <ReIcon class="empty-icon-large" name="CirclePlus" />
-            <span class="empty-text">选择键名后查看缓存内容</span>
-            <span class="empty-sub">键值数据将以 JSON 格式展示</span>
-          </div>
+          <ReEmpty
+            v-if="!selectedKey"
+            description="选择键名后查看缓存内容，键值数据将以 JSON 格式展示"
+            layout="modern"
+            :image-size="72"
+          />
           <div v-else class="content-detail">
             <div class="content-key-bar">
               <span class="content-key-label">Key</span>
@@ -444,7 +440,11 @@ refreshAll()
 .panel.panel-left { border-left: 3px solid var(--metric-net); }
 .panel.panel-mid { border-left: 3px solid var(--status-success); }
 .panel.panel-right { border-left: 3px solid var(--metric-cpu); }
-.panel.panel-active { box-shadow: var(--shadow-card-hover); }
+.panel.panel-active {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.panel:focus-within { box-shadow: var(--shadow-card), var(--focus-ring); }
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -722,6 +722,68 @@ refreshAll()
   gap: 6px;
   padding: 24px 12px;
   color: var(--text-tertiary);
+}
+
+/* 可访问性：键盘焦点可见 */
+.refresh-btn:focus-visible,
+.panel-refresh:focus-visible,
+.panel-clear-btn:focus-visible,
+.cache-del-btn:focus-visible,
+.key-del-btn:focus-visible,
+.value-copy-btn:focus-visible,
+.value-del-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--border-radius-sm);
+}
+.cache-item:focus-visible,
+.key-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* 交互过渡统一 200ms，带轻微位移 */
+.cache-item,
+.key-item {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.cache-item:hover,
+.key-item:hover {
+  transform: translateX(2px);
+}
+.panel,
+.panel-refresh,
+.panel-clear-btn,
+.cache-del-btn,
+.key-del-btn,
+.value-copy-btn,
+.value-del-btn,
+.refresh-btn,
+.meta-item {
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+.meta-item:hover {
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-fill));
+}
+
+/* 响应式：窄屏下三栏折叠为单栏 */
+@media (max-width: 1100px) {
+  .three-panel {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+  .panel-body {
+    max-height: 320px;
+  }
+}
+@media (max-width: 640px) {
+  .header-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .content-meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .empty-icon { width: 24px; height: 24px; color: var(--border-default); }
 .empty-text { font-size: 12px; font-weight: 500; color: var(--text-secondary); }

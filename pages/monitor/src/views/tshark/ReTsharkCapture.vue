@@ -3,7 +3,7 @@
     <!-- 顶部: tshark 状态 + 新建抓包 -->
     <div class="toolbar">
       <div class="tshark-status">
-        <span class="status-dot" :class="tsharkOk ? 'ok' : 'bad'"></span>
+        <ReStatusIndicator :type="tsharkOk ? 'success' : 'danger'" />
         <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
       </div>
       <div class="toolbar-right">
@@ -23,32 +23,37 @@
           <template #title>
             <span class="panel-title"><ReIcon name="Folder" :size="13" /> 抓包会话</span>
           </template>
-          <div class="session-list" v-loading="loadingSessions">
-            <div v-for="s in sessions" :key="s.id"
-                 :class="['session-item', { active: activeSessionId === s.id }]"
-                 @click="selectSession(s.id)">
-              <div class="session-head">
-                <span class="session-name">{{ s.sessionName || s.captureInterface }}</span>
-                <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="light">
-                  {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
-                </ReTag>
+          <ReSkeleton :loading="loadingSessions" :count="3" :rows="2" animated>
+            <div class="session-list">
+              <div v-for="s in sessions" :key="s.id"
+                   :class="['session-item', { active: activeSessionId === s.id }]"
+                   tabindex="0"
+                   @click="selectSession(s.id)"
+                   @keydown.enter="selectSession(s.id)">
+                <div class="session-head">
+                  <span class="session-name">{{ s.sessionName || s.captureInterface }}</span>
+                  <span class="session-status">
+                    <ReStatusIndicator :type="s.captureStatus === 1 ? 'success' : 'info'" />
+                    <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="light">
+                      {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
+                    </ReTag>
+                  </span>
+                </div>
+                <div class="session-meta">
+                  <span>{{ s.captureInterface }}</span>
+                  <span class="dim">{{ s.packetCount ?? 0 }} 包</span>
+                </div>
+                <div class="session-meta dim">
+                  <span>{{ s.startTime || '' }}</span>
+                </div>
+                <div class="session-actions">
+                  <ReButton v-if="s.captureStatus === 1" size="small" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
+                  <ReButton size="small" link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
+                </div>
               </div>
-              <div class="session-meta">
-                <span>{{ s.captureInterface }}</span>
-                <span class="dim">{{ s.packetCount ?? 0 }} 包</span>
-              </div>
-              <div class="session-meta dim">
-                <span>{{ s.startTime || '' }}</span>
-              </div>
-              <div class="session-actions">
-                <ReButton v-if="s.captureStatus === 1" size="small" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
-                <ReButton size="small" link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
-              </div>
+              <ReEmpty v-if="!loadingSessions && sessions.length === 0" description="暂无抓包会话" layout="modern" />
             </div>
-            <div v-if="!loadingSessions && sessions.length === 0" class="empty-sessions">
-              暂无抓包会话
-            </div>
-          </div>
+          </ReSkeleton>
           <div class="session-footer">
             <RePagination small layout="prev, pager, next" :total="sessionTotal" :page-size="10"
                            :current-page="sessionPage" @current-change="(p: number) => loadSessions(p)" />
@@ -60,15 +65,9 @@
       <div class="detail-panel" v-show="activeSessionId">
         <!-- 统计卡片 -->
         <div class="stat-cards">
-          <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
-            <div class="stat-item"><span class="stat-label">数据包总数</span><span class="stat-value">{{ packetTotal }}</span></div>
-          </ReCard>
-          <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
-            <div class="stat-item"><span class="stat-label">协议种类</span><span class="stat-value">{{ protoStats.length }}</span></div>
-          </ReCard>
-          <ReCard layout="simple" :radius="12" :padding="14" shadow="never">
-            <div class="stat-item"><span class="stat-label">Top流</span><span class="stat-value">{{ topFlows.length }}</span></div>
-          </ReCard>
+          <ReStatCard title="数据包总数" :value="packetTotal" icon="DataLine" icon-color="var(--metric-net)" />
+          <ReStatCard title="协议种类" :value="protoStats.length" icon="Collection" icon-color="var(--metric-jvm)" />
+          <ReStatCard title="Top流" :value="topFlows.length" icon="TrendCharts" icon-color="var(--metric-db)" />
         </div>
 
         <!-- 协议分布 + Top 流 -->
@@ -131,8 +130,7 @@
 
       <!-- 无会话时的提示 -->
       <div class="empty-detail" v-show="!activeSessionId">
-        <ReIcon name="Search" :size="40" />
-        <p>请选择左侧抓包会话，或新建一个抓包任务</p>
+        <ReEmpty description="请选择左侧抓包会话，或新建一个抓包任务" layout="modern" />
       </div>
     </div>
 
@@ -431,15 +429,6 @@ function resizeCharts() {
   color: var(--text-primary);
   font-weight: 600;
 }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.ok {
-  background: var(--status-success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 20%, transparent);
-}
-.status-dot.bad {
-  background: var(--status-error);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-error) 20%, transparent);
-}
 .toolbar-right {
   display: flex;
   align-items: center;
@@ -458,6 +447,10 @@ function resizeCharts() {
   gap: 12px;
   flex: 1;
   min-height: 0;
+}
+@media (max-width: 900px) {
+  .body-grid { grid-template-columns: 1fr; }
+  .empty-detail { grid-column: 1; }
 }
 .session-panel { min-width: 0; }
 .detail-panel {
@@ -506,12 +499,28 @@ function resizeCharts() {
   border-radius: var(--border-radius-sm);
   padding: 8px 10px;
   cursor: pointer;
-  transition: var(--transition-base);
+  background: var(--bg-container-card);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
 }
-.session-item:hover { border-color: var(--metric-net); }
+.session-item:hover {
+  border-color: var(--metric-net);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+.session-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand-500);
+}
 .session-item.active {
   border-color: var(--metric-net);
   background: color-mix(in srgb, var(--metric-net) 6%, transparent);
+}
+.session-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 .session-head {
   display: flex;
@@ -540,12 +549,6 @@ function resizeCharts() {
   margin-top: 4px;
   justify-content: flex-end;
 }
-.empty-sessions {
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  padding: 20px 0;
-}
 .session-footer {
   padding-top: 8px;
   display: flex;
@@ -554,19 +557,18 @@ function resizeCharts() {
 
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+@media (max-width: 768px) {
+  .stat-cards { grid-template-columns: 1fr; }
 }
-.stat-label { font-size: 11px; color: var(--text-tertiary); }
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--metric-net);
+.stat-cards :deep(.re-stat-card) {
+  transition: box-shadow var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+}
+.stat-cards :deep(.re-stat-card:hover) {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .charts-row {

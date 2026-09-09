@@ -135,9 +135,18 @@ const form = ref<any>({ taskType: 'COLLECT', taskEnabled: 1 })
 const filters = ref({ monitorId: '', taskType: '' })
 
 const summary = computed(() => [
-  { label: '任务总数', value: tasks.value.length, color: 'var(--el-color-primary)' },  { label: '已启用', value: tasks.value.filter(r => r.taskEnabled === 1).length, color: 'var(--el-color-success)' },
+  { label: '任务总数', value: tasks.value.length, color: 'var(--el-color-primary)' },
+  { label: '已启用', value: tasks.value.filter(r => r.taskEnabled === 1).length, color: 'var(--el-color-success)' },
   { label: '已禁用', value: tasks.value.filter(r => r.taskEnabled === 0).length, color: 'var(--el-color-info)' },
   { label: '运行中', value: tasks.value.filter(r => r.taskStatus === 'RUNNING').length, color: 'var(--el-color-success)' },
+])
+
+/** 纯展示：摘要卡图标与配色（对齐 tokens --metric-* / --status-*），与 summary 按下标一一对应 */
+const statMeta = computed(() => [
+  { icon: 'DataLine', color: 'var(--metric-cpu)' },
+  { icon: 'Open', color: 'var(--status-success)' },
+  { icon: 'TurnOff', color: 'var(--text-tertiary)' },
+  { icon: 'CircleCheck', color: 'var(--status-success)' },
 ])
 
 const filtered = computed(() => {
@@ -296,9 +305,20 @@ onMounted(fetchList)
 
 .summary-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 14px;
+}
+.summary-row :deep(.re-stat-card) {
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, var(--border-radius));
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.summary-row :deep(.re-stat-card:hover) {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .filter-bar {
@@ -310,25 +330,13 @@ onMounted(fetchList)
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-card);
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 .filter-select { width: 200px; }
 .filter-divider {
   width: 1px;
   height: 24px;
   background: var(--border-subtle);
-}
-.action-btn, .add-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: var(--border-radius-sm);
-  padding: 7px 14px;
-  font-size: 12.5px;
-  font-weight: 500;
-  transition: var(--transition-base);
-}
-.action-btn:hover, .add-btn:hover {
-  transform: translateY(-1px);
 }
 
 .task-table {
@@ -344,6 +352,9 @@ onMounted(fetchList)
   padding: 10px 12px;
 }
 .task-table :deep(.el-table__row td) { padding: 9px 12px; }
+.task-table :deep(.el-table__row) {
+  transition: background-color var(--transition-base);
+}
 .task-table :deep(.el-table__row:hover) {
   background: color-mix(in srgb, var(--brand-500) 6%, transparent) !important;
 }
@@ -365,33 +376,26 @@ onMounted(fetchList)
   font-size: 13px;
 }
 
-.sum-card {
-  border-left: 3px solid;
-  padding-left: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  padding: 14px;
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-base);
-}
-.sum-card:hover { box-shadow: var(--shadow-card-hover); }
-.sum-top { display: flex; align-items: center; justify-content: space-between; }
-.sum-label { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
-.sum-mid { display: flex; align-items: baseline; gap: 4px; }
-.sum-value {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text-primary);
-}
-.sum-bar { height: 2px; border-radius: 2px; opacity: 0.6; margin-top: 4px; }
 
-.bars-head { display: flex; justify-content: space-between; align-items: center; }
+.bars-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bars-title-wrap { display: flex; align-items: center; gap: 8px; }
 .bars-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
 .bars-sub { font-size: 11.5px; color: var(--text-tertiary); }
 .bars-body { width: 100%; }
+
+.task-list :deep(.el-switch),
+.task-list :deep(.el-button) {
+  cursor: pointer;
+}
+.task-list :deep(.el-button:focus-visible),
+.task-list :deep(.el-switch:focus-visible) {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .summary-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .filter-select { width: 100%; }
+  .filter-divider { display: none; }
+}
  </style>

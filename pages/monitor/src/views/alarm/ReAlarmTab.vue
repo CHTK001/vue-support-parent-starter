@@ -285,37 +285,26 @@ onBeforeUnmount(() => {
 
     <!-- 事件列表 -->
     <template v-if="subView === 'events'">
-      <!-- 告警统计概览 -->
       <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-value">{{ alarmSummary.todayTotal }}</span>
-          <span class="stat-label">今日告警</span>
-        </div>
-        <div class="stat-card danger">
-          <span class="stat-value">{{ alarmSummary.unprocessed }}</span>
-          <span class="stat-label">未处理</span>
-        </div>
-        <div class="stat-card success">
-          <span class="stat-value">{{ alarmSummary.processed }}</span>
-          <span class="stat-label">已处理</span>
-        </div>
-        <div class="stat-card warning">
-          <span class="stat-value">{{ alarmSummary.falseAlarm }}</span>
-          <span class="stat-label">误报</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value" style="font-size: 14px;">{{ Object.entries(alarmSummary.levelDistribution || {}).map(([k,v]) => k+':'+v).join(' | ') }}</span>
-          <span class="stat-label">等级分布</span>
-        </div>
+        <ReStatCard title="今日告警" :value="alarmSummary.todayTotal" icon="Bell" icon-color="var(--metric-cpu)" />
+        <ReStatCard title="未处理" :value="alarmSummary.unprocessed" icon="AlarmClock" icon-color="var(--status-error)" />
+        <ReStatCard title="已处理" :value="alarmSummary.processed" icon="CircleCheck" icon-color="var(--status-success)" />
+        <ReStatCard title="误报" :value="alarmSummary.falseAlarm" icon="Warning" icon-color="var(--metric-disk)" />
+        <ReStatCard title="等级分布" icon="Histogram" icon-color="var(--metric-jvm)">
+          <template #value>
+            <span class="stat-dist">{{ Object.entries(alarmSummary.levelDistribution || {}).map(([k,v]) => k+':'+v).join(' | ') }}</span>
+          </template>
+        </ReStatCard>
       </div>
 
       <!-- 告警趋势图 -->
       <ReCard class="trend-card" v-if="trendData.length > 0" :radius="12" :padding="14">
-        <div class="trend-header">
-          <span class="trend-title">告警趋势（近 {{ trendHours }}h）</span>
-          <ReSelect v-model="trendHours" size="small" style="width: 100px" @change="loadStats"
-            :data="[{ value: 6, label: '6h' }, { value: 12, label: '12h' }, { value: 24, label: '24h' }, { value: 72, label: '72h' }]" />
-        </div>
+        <ReSectionHead :title="`告警趋势（近 ${trendHours}h）`">
+          <template #actions>
+            <ReSelect v-model="trendHours" size="small" style="width: 100px" @change="loadStats"
+              :data="[{ value: 6, label: '6h' }, { value: 12, label: '12h' }, { value: 24, label: '24h' }, { value: 72, label: '72h' }]" />
+          </template>
+        </ReSectionHead>
         <div ref="trendChartRef" style="height: 180px; width: 100%" />
       </ReCard>
 
@@ -360,10 +349,11 @@ onBeforeUnmount(() => {
     <!-- 策略与规则 -->
     <template v-else>
       <div class="panel">
-        <div class="panel-head">
-          <h4>告警策略</h4>
-          <ReButton icon="Plus" show-text type="primary" size="small" @click="openPolicyForm()">新增策略</ReButton>
-        </div>
+        <ReSectionHead title="告警策略">
+          <template #actions>
+            <ReButton icon="Plus" show-text type="primary" size="small" @click="openPolicyForm()">新增策略</ReButton>
+          </template>
+        </ReSectionHead>
         <ReTable :data="policies" size="small" border :pagination="false" :toolbar="false">
           <ReTableColumn prop="msMonitorAlarmPolicyName" label="名称" min-width="140" />
           <ReTableColumn label="启用" width="80">
@@ -384,10 +374,11 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="panel">
-        <div class="panel-head">
-          <h4>告警规则</h4>
-          <ReButton icon="Plus" show-text type="primary" size="small" :disabled="!policies.length" @click="openRuleForm()">新增规则</ReButton>
-        </div>
+        <ReSectionHead title="告警规则">
+          <template #actions>
+            <ReButton icon="Plus" show-text type="primary" size="small" :disabled="!policies.length" @click="openRuleForm()">新增规则</ReButton>
+          </template>
+        </ReSectionHead>
         <ReTable :data="rules" size="small" border :loading="loading" :pagination="false" :toolbar="false">
           <ReTableColumn prop="msMonitorAlarmRuleMetricName" label="指标" width="130" />
           <ReTableColumn label="条件" width="90">
@@ -481,7 +472,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-card);
   margin-bottom: 14px;
-  transition: var(--transition-base);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 .panel:hover { box-shadow: var(--shadow-card-hover); }
 .panel-head {
@@ -498,51 +489,53 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--text-primary);
 }
+.panel :deep(.re-section-head) {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
 
 .stats-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
-.stat-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px;
-  border-radius: var(--border-radius);
-  background: var(--bg-container-card);
-  border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--metric-cpu);
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-base);
+@media (max-width: 1200px) {
+  .stats-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.stat-card:hover {
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.stats-row :deep(.re-stat-card) {
+  transition: box-shadow var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+}
+.stats-row :deep(.re-stat-card:hover) {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
-.stat-card.danger { border-left-color: var(--status-error); }
-.stat-card.success { border-left-color: var(--status-success); }
-.stat-card.warning { border-left-color: var(--metric-disk); }
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
+.stat-dist {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.6;
+  word-break: break-all;
+  text-align: center;
+  display: inline-block;
 }
-.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 
 .trend-card {
   margin-bottom: 12px;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
-.trend-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.trend-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.trend-card :deep(.re-section-head) {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-subtle);
 }
-.trend-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
 </style>
