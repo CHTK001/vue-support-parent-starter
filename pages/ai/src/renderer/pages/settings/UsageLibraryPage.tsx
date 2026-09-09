@@ -58,10 +58,10 @@ const fmtCost = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(2)}`;
 const fmtCost6 = (v: unknown) => v == null ? '-' : `$${Number(v).toFixed(6)}`;
 const fmtDate = (v: unknown) => v == null ? '-' : dayjs(v as string | number | Date).format('YYYY/MM/DD HH:mm');
 const fmtDateFull = (v: unknown) => v == null ? '-' : dayjs(v as string | number | Date).format('YYYY/MM/DD HH:mm:ss');
-const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '-' : ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+const fmtLatency = (ms?: number) => ms == null || ms <= 0 ? '暂无数据' : ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
 /** 延迟展示：>60s 显示 "3m 17s"，>1s 显示两位小数秒，否则毫秒 */
 const fmtLatencyImg = (ms?: number) => {
-  if (ms == null || ms <= 0) return '-';
+  if (ms == null || ms <= 0) return '暂无数据';
   if (ms >= 60000) { const m = Math.floor(ms / 60000); const s = Math.round((ms % 60000) / 1000); return `${m}m ${s}s`; }
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
   return `${Math.round(ms)}ms`;

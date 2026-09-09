@@ -100,9 +100,7 @@ onMounted(init);
     <!-- 新建抓包 -->
     <ReCard v-if="available" :radius="12" shadow="never" class="form-card">
       <div class="form-row">
-        <ReSelect v-model="form.interface" placeholder="网卡" size="small" style="width: 200px">
-          <el-option v-for="i in interfaces" :key="i" :label="i" :value="i" />
-        </ReSelect>
+        <ReSelect v-model="form.interface" :options="interfaces.map(i => ({ label: i, value: i }))" placeholder="网卡" size="small" style="width: 200px" />
         <ReInput v-model="form.filter" placeholder="过滤表达式，如 tcp and port 22" clearable size="small" style="width: 320px" />
         <ReInputNumber v-model="form.limit" :min="100" :max="100000" :step="1000" size="small" />
         <ReButton icon="VideoPlay" :show-text="true" size="small" type="primary" @click="start">开始抓包</ReButton>

@@ -143,14 +143,12 @@ onMounted(fetchAll);
       <template #header>
         <div class="filter-bar">
           <ReInput v-model="keyword" placeholder="搜索主机 / 指标" clearable size="small" class="f-kw" />
-          <ReSelect v-model="filterLevel" placeholder="级别" clearable size="small" class="f-sel">
-            <el-option v-for="lv in LEVELS" :key="lv" :label="lv + ' ' + LEVEL_LABELS[lv]" :value="lv" />
-          </ReSelect>
-          <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel">
-            <el-option label="未处理" value="NEW" />
-            <el-option label="已处理" value="PROCESSED" />
-            <el-option label="误报" value="FALSE" />
-          </ReSelect>
+          <ReSelect v-model="filterLevel" placeholder="级别" clearable size="small" class="f-sel" :options="LEVELS.map(lv => ({ label: lv + ' ' + LEVEL_LABELS[lv], value: lv }))" />
+          <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel" :options="[
+            { label: '未处理', value: 'NEW' },
+            { label: '已处理', value: 'PROCESSED' },
+            { label: '误报', value: 'FALSE' },
+          ]" />
           <span class="f-count">{{ filtered.length }} 条</span>
         </div>
       </template>
