@@ -4,23 +4,19 @@
       <div class="session-list" data-testid="session-list">
         <div class="form-title">会话</div>
         <div v-for="(s, i) in sessions" :key="i" class="session-item" @click="loadSession(s)" data-testid="session-item">
-          <span class="session-name">{{ s.split("|")[0] }}</span>
+          <span class="session-name">{{ s.name }}</span>
         </div>
         <div v-if="sessions.length === 0" class="session-empty">暂无会话——填写后点"保存会话"</div>
       </div>
       <div class="form-title">连接信息</div>
       <div class="remote-form">
         <div class="form-field">
-          <label class="form-label">网关地址</label>
-          <ReInput v-model="form.gatewayUrl" placeholder="tcp://host:port" clearable data-testid="input-gateway" />
-        </div>
-        <div class="form-field">
           <label class="form-label">接入令牌</label>
           <ReInput v-model="form.accessToken" placeholder="控制端接入令牌" clearable data-testid="input-token" />
         </div>
         <div class="form-field">
           <label class="form-label">目标被控端</label>
-          <ReInput v-model="form.targetAgentId" placeholder="被控端 id" clearable data-testid="input-agent" />
+          <ReInput v-model="form.targetAgentId" placeholder="被控端 id" clearable data-testid="input-agent" @input="onAgentIdChange" />
         </div>
         <div class="form-field">
           <label class="form-label">验证码</label>
@@ -37,10 +33,8 @@
         <div class="remote-actions">
           <ReButton type="primary" :disabled="connected" @click="connect" data-testid="btn-connect">连接</ReButton>
           <ReButton :disabled="!connected" @click="disconnect" data-testid="btn-disconnect">断开</ReButton>
-          <ReButton @click="saveConfig" data-testid="btn-save">保存配置</ReButton>
           <ReButton @click="saveSession" data-testid="btn-save-session">保存会话</ReButton>
         </div>
-        <div v-if="configSaved" class="save-tip" data-testid="save-tip">配置已保存</div>
       </div>
     </aside>
 
@@ -51,7 +45,7 @@
       </div>
       <div class="screen-body">
         <div v-if="form.connMethod === 'ssh'" class="ssh-area">
-          <ReInput v-model="form.wsUrl" placeholder="ws://host:port（可选——直连跳过验证）" clearable data-testid="input-wsurl" />
+          <ReInput v-model="form.sshHost" placeholder="SSH 目标主机（默认 local）" clearable data-testid="input-sshhost" />
           <div
             ref="terminalRef"
             class="terminal-container"
@@ -60,7 +54,7 @@
             @keydown="onTerminalKeydown"
           />
           <div v-if="!connected" class="terminal-overlay" data-testid="terminal-overlay">
-            <ReEmpty description="未连接——左侧填写连接信息后点击连接" :image-size="60" />
+            <ReEmpty description="未连接——填写连接信息后点击连接" :image-size="60" />
           </div>
         </div>
         <template v-else>
@@ -76,7 +70,7 @@
             @contextmenu.prevent
           />
           <div v-if="!connected" class="screen-overlay" data-testid="screen-overlay">
-            <ReEmpty description="未连接——左侧填写连接信息后点击连接" :image-size="60" />
+            <ReEmpty description="未连接——填写连接信息后点击连接" :image-size="60" />
           </div>
         </template>
       </div>
@@ -86,6 +80,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, nextTick } from "vue";
+import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -93,25 +88,64 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
 
+const route = useRoute();
+
 const form = reactive({
-  gatewayUrl: "",
   accessToken: "",
   targetAgentId: "",
   verifyCode: "",
-  wsUrl: "",
   sshHost: "local",
   connMethod: "ssh",
   reverseTunnel: false,
 });
 
-const connMethodOptions = [
-  { label: "SSH (WebSocket)", value: "ssh" },
-  { label: "远程桌面 (VNC)", value: "vnc" },
-];
+const CONFIG_API = "/api/remote/config";
+
+/** 服务端持久化配置（网关/WS地址从这里取） */
+const serverConfig = reactive({ httpUrl: "", gatewayUrl: "", wsUrl: "" });
+
+/** agent 能力信息（从 /api/remote/agents 获取） */
+interface AgentInfo {
+  id: string;
+  agentType: string;
+  platform: string;
+  desktopSupported: boolean;
+  status: string;
+}
+
+const currentAgent = ref<AgentInfo | null>(null);
+
+/** 可用连接方式——根据 agent 能力动态生成 */
+const connMethodOptions = computed(() => {
+  const agent = currentAgent.value;
+  if (!agent) return [{ label: "SSH", value: "ssh" }];
+  const methods: Array<{ label: string; value: string }> = [];
+  const isDesktop = agent.desktopSupported || agent.platform?.toLowerCase().includes("windows");
+  const isLinux = agent.platform?.toLowerCase().includes("linux");
+
+  switch (agent.agentType) {
+    case "SHELL":
+      methods.push({ label: "SSH", value: "ssh" });
+      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
+      if (isDesktop) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
+      break;
+    case "PUSH":
+      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
+      if (isDesktop && !isLinux) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
+      break;
+    case "FORWARD":
+      methods.push({ label: "SSH", value: "ssh" });
+      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
+      if (isDesktop && !isLinux) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
+      break;
+    default:
+      methods.push({ label: "SSH", value: "ssh" });
+  }
+  return methods;
+});
 
 const connected = ref(false);
 const h264Mode = ref(false);
-const configSaved = ref(false);
 const screenRef = ref<HTMLCanvasElement | null>(null);
 const terminalRef = ref<HTMLDivElement | null>(null);
 let ws: WebSocket | null = null;
@@ -124,59 +158,71 @@ const statusTag = computed(() => {
   return { type: "info" as const, text: "未连接" };
 });
 
+/** 输入 agentId 时，查 /api/remote/agents 获取能力，联动连接方式 */
+let agentSearchTimer: ReturnType<typeof setTimeout> | null = null;
+const onAgentIdChange = () => {
+  if (agentSearchTimer) clearTimeout(agentSearchTimer);
+  agentSearchTimer = setTimeout(fetchAgentCapabilities, 300);
+};
+
+const fetchAgentCapabilities = async () => {
+  if (!form.targetAgentId) { currentAgent.value = null; return; }
+  try {
+    const resp = await fetch("/api/remote/agents");
+    if (!resp.ok) return;
+    const list: AgentInfo[] = await resp.json();
+    currentAgent.value = list.find(a => a.id === form.targetAgentId) ?? null;
+    if (currentAgent.value && !connMethodOptions.value.some(m => m.value === form.connMethod)) {
+      form.connMethod = connMethodOptions.value[0]?.value ?? "ssh";
+    }
+  } catch { /* ignore */ }
+};
+
 const connect = async () => {
-  if (!form.gatewayUrl || !form.targetAgentId || !form.verifyCode) {
-    ElMessage.warning("请填写网关地址、被控端 id 和验证码");
+  if (!form.targetAgentId || !form.verifyCode) {
+    ElMessage.warning("请填写被控端 id 和验证码");
+    return;
+  }
+  if (!serverConfig.gatewayUrl) {
+    ElMessage.warning("请先到"设置"页面配置网关地址");
     return;
   }
   try {
-    const gatewayHost = form.gatewayUrl.replace(/^tcp:\/\//, "").replace(/^ws:\/\//, "").replace(/^wss:\/\//, "");
-    const parts = gatewayHost.split(":");
-    const tcpHost = parts[0] || "127.0.0.1";
-    const tcpPort = parseInt(parts[1]) || 9000;
-    const wsPath = form.connMethod === "vnc" ? "vnc" : "ssh";
-    const wsUrl = form.wsUrl || `ws://${tcpHost}:${tcpPort + 3}/ws/${wsPath}/${form.targetAgentId}`;
+    // HTTP 与 WS 同端口（9001——由网关握手路由处理）——从 serverConfig.httpUrl 取端口
+    const httpUrl = serverConfig.httpUrl || `http://${location.hostname || "localhost"}:9001`;
+    const httpMatch = httpUrl.replace(/^https?:\/\//, "").split("/")[0].split(":");
+    const httpHost = httpMatch[0] || location.hostname || "localhost";
+    const httpPort = parseInt(httpMatch[1]) || 9001;
+    const wsPath = form.connMethod === "vnc" ? "vnc" : form.connMethod === "rdp" ? "rdp" : "ssh";
+    const wsUrl = serverConfig.wsUrl
+      ? `${serverConfig.wsUrl.replace(/\/$/, "")}/ws/${wsPath}/${form.targetAgentId}`
+      : `ws://${httpHost}:${httpPort}/ws/${wsPath}/${form.targetAgentId}`;
 
-    // 显式 wsUrl 时跳过后端验证（后端 403 鉴权守卫场景下仍可直连）
-    if (!form.wsUrl) {
-      const verifyResp = await fetch("/api/remote/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
-      });
-      if (!verifyResp.ok) {
-        const err = await verifyResp.json().catch(() => ({}));
-        ElMessage.error(err.message || "验证码校验失败");
-        return;
-      }
-      const verifyData = await verifyResp.json();
-      if (!verifyData.success) {
-        ElMessage.error(verifyData.message || "验证失败");
-        return;
-      }
+    const verifyResp = await fetch(`${httpUrl}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
+    });
+    if (verifyResp.ok) {
+      const vd = await verifyResp.json();
+      if (!vd.success) { ElMessage.error(vd.message || "验证失败"); return; }
+    } else {
+      const err = await verifyResp.json().catch(() => ({}));
+      ElMessage.error(err.message || "验证码校验失败");
+      return;
     }
 
     ws = new WebSocket(wsUrl);
     ws.onopen = () => {
       connected.value = true;
       ElMessage.success(`已连接 ${form.targetAgentId}`);
-      if (form.connMethod === "ssh") {
-        startSSHSession();
-        nextTick(() => terminalRef.value?.focus());
-      } else if (form.connMethod === "vnc") {
-        startVNCSession();
-      }
+      if (form.connMethod === "ssh") { startSSHSession(); nextTick(() => terminalRef.value?.focus()); }
+      else if (form.connMethod === "vnc" || form.connMethod === "rdp") { startVNCSession(); }
     };
     ws.onmessage = (ev) => {
       if (typeof ev.data === "string") {
-        try {
-          handleTextMessage(JSON.parse(ev.data));
-        } catch {
-          handleFrame(ev.data);
-        }
-      } else {
-        handleFrame(ev.data as ArrayBuffer);
-      }
+        try { handleTextMessage(JSON.parse(ev.data)); } catch { handleFrame(ev.data); }
+      } else { handleFrame(ev.data as ArrayBuffer); }
     };
     ws.onclose = () => { connected.value = false; sshSessionId = null; vncSessionId = null; };
     ws.onerror = () => { connected.value = false; ElMessage.error("WS连接失败"); };
@@ -188,18 +234,13 @@ const connect = async () => {
 const disconnect = () => {
   if (sshSessionId && ws) ws.send(JSON.stringify({ action: "ssh", sshAction: "stop", sessionId: sshSessionId }));
   if (vncSessionId && ws) ws.send(JSON.stringify({ action: "vnc", vncAction: "stop", sessionId: vncSessionId }));
-  ws?.close();
-  ws = null;
-  connected.value = false;
-  h264Mode.value = false;
-  sshSessionId = null;
-  vncSessionId = null;
+  ws?.close(); ws = null; connected.value = false; h264Mode.value = false;
+  sshSessionId = null; vncSessionId = null;
 };
 
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
   ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: form.sshHost || "local", cols: 80, rows: 24 }));
-  appendTerminalOutput("SSH 会话已启动\n", false);
 };
 
 const startVNCSession = () => {
@@ -208,11 +249,7 @@ const startVNCSession = () => {
 };
 
 const handleTextMessage = (msg: any) => {
-  if (msg.type === "ssh") {
-    if (msg.data && msg.data.length > 0) {
-      appendTerminalOutput(msg.data, msg.stream === "stderr");
-    }
-  }
+  if (msg.type === "ssh" && msg.data?.length) appendTerminalOutput(msg.data, msg.stream === "stderr");
 };
 
 const handleFrame = (data: unknown) => {
@@ -220,38 +257,23 @@ const handleFrame = (data: unknown) => {
   if (typeof data === "string") {
     const idx = data.indexOf(":");
     const b64 = idx >= 0 ? data.slice(idx + 1) : data;
-    try {
-      const bin = atob(b64);
-      bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    } catch {
-      return;
-    }
-  } else {
-    bytes = new Uint8Array(data as ArrayBuffer);
-  }
+    try { const bin = atob(b64); bytes = Uint8Array.from(bin, c => c.charCodeAt(0)); } catch { return; }
+  } else { bytes = new Uint8Array(data as ArrayBuffer); }
   if (bytes.length < 3) return;
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
-    h264Mode.value = false;
-    renderJpeg(bytes);
-  } else if (
-    (bytes.length > 4 && bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 0 && bytes[3] === 1) ||
-    (bytes.length > 3 && bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1)
-  ) {
-    h264Mode.value = true;
-  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) { h264Mode.value = false; renderJpeg(bytes); }
+  else if (bytes.length > 3 && bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 0 && bytes[3] === 1) { h264Mode.value = true; }
+  else if (bytes.length > 3 && bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1) { h264Mode.value = true; }
 };
 
 const renderJpeg = (bytes: Uint8Array) => {
   const blob = new Blob([bytes], { type: "image/jpeg" });
-  createImageBitmap(blob).then((bitmap) => {
+  createImageBitmap(blob).then(bitmap => {
     const canvas = screenRef.value;
     if (!canvas) return;
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.drawImage(bitmap, 0, 0);
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
     bitmap.close();
-  }).catch(() => undefined);
+  }).catch(() => {});
 };
 
 const appendTerminalOutput = (text: string, isError: boolean) => {
@@ -265,44 +287,13 @@ const appendTerminalOutput = (text: string, isError: boolean) => {
 
 const sendVncInput = (payload: any) => {
   if (!connected.value || !ws || !vncSessionId) return;
-  ws.send(JSON.stringify({
-    action: "vnc",
-    vncAction: "input",
-    sessionId: vncSessionId,
-    data: btoa(JSON.stringify(payload)),
-  }));
+  ws.send(JSON.stringify({ action: "vnc", vncAction: "input", sessionId: vncSessionId, data: btoa(JSON.stringify(payload)) }));
 };
 
-const onCanvasMouseDown = (e: MouseEvent) => {
-  const canvas = screenRef.value;
-  if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  sendVncInput({ type: "mouse", x, y, button: e.button, pressed: true, key: "button" });
-};
-
-const onCanvasMouseUp = (e: MouseEvent) => {
-  const canvas = screenRef.value;
-  if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  sendVncInput({ type: "mouse", x, y, button: e.button, pressed: false, key: "button" });
-};
-
-const onCanvasMouseMove = (e: MouseEvent) => {
-  const canvas = screenRef.value;
-  if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  sendVncInput({ type: "mouse", x, y, button: 0, pressed: false, key: "move" });
-};
-
-const onCanvasWheel = (e: WheelEvent) => {
-  sendVncInput({ type: "wheel", amount: e.deltaY > 0 ? -1 : 1, key: "wheel" });
-};
+const onCanvasMouseDown = (e: MouseEvent) => { const c = screenRef.value; if (!c) return; const r = c.getBoundingClientRect(); sendVncInput({ type: "mouse", x: e.clientX - r.left, y: e.clientY - r.top, button: e.button, pressed: true }); };
+const onCanvasMouseUp = (e: MouseEvent) => { const c = screenRef.value; if (!c) return; const r = c.getBoundingClientRect(); sendVncInput({ type: "mouse", x: e.clientX - r.left, y: e.clientY - r.top, button: e.button, pressed: false }); };
+const onCanvasMouseMove = (e: MouseEvent) => { const c = screenRef.value; if (!c) return; const r = c.getBoundingClientRect(); sendVncInput({ type: "mouse", x: e.clientX - r.left, y: e.clientY - r.top, button: 0, pressed: false }); };
+const onCanvasWheel = (e: WheelEvent) => { sendVncInput({ type: "wheel", amount: e.deltaY > 0 ? -1 : 1 }); };
 
 const onTerminalKeydown = (e: KeyboardEvent) => {
   if (!connected.value || !ws || !sshSessionId) return;
@@ -314,84 +305,52 @@ const onTerminalKeydown = (e: KeyboardEvent) => {
   else if (e.key === "Escape") data = "\x1b";
   else if (e.ctrlKey && e.key >= "a" && e.key <= "z") data = String.fromCharCode(e.key.charCodeAt(0) - 96);
   else if (e.key.length === 1) data = e.key;
-  if (data) {
-    ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(data))) }));
-  }
+  if (data) ws.send(JSON.stringify({ action: "ssh", sshAction: "input", sessionId: sshSessionId, data: btoa(unescape(encodeURIComponent(data))) }));
 };
 
-const CONFIG_API = "/api/remote/config";
-
-const saveConfig = async () => {
-  const payload = JSON.stringify(form);
-  try {
-    const resp = await fetch(CONFIG_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload });
-    if (resp.ok) { configSaved.value = true; ElMessage.success("配置已保存到后台"); return; }
-    throw new Error(`HTTP ${resp.status}`);
-  } catch {
-    try {
-      localStorage.setItem("remote-config", payload);
-      configSaved.value = true;
-      ElMessage.success("后端不可达——配置已保存到本地");
-    } catch { ElMessage.error("保存失败"); }
-  }
-};
-
-const loadConfig = async () => {
+const loadSettings = async () => {
   try {
     const resp = await fetch(CONFIG_API);
-    if (resp.ok) { const data = await resp.json(); if (data) Object.assign(form, data); return; }
-  } catch { /* ignore */ }
-  try { const raw = localStorage.getItem("remote-config"); if (raw) Object.assign(form, JSON.parse(raw)); } catch { /* ignore */ }
+    if (resp.ok) { const d = await resp.json(); if (d) { Object.assign(serverConfig, d); return; } }
+  } catch {}
+  const host = location.hostname || "localhost";
+  Object.assign(serverConfig, { httpUrl: `http://${host}:9001`, gatewayUrl: `tcp://${host}:9000`, wsUrl: `ws://${host}:9001` });
 };
 
-// xshell 风格会话列表：多会话保存（localStorage）与一键载入连接
-const sessions = ref<string[]>([]);
-try {
-  const raw = localStorage.getItem("remote-sessions");
-  if (raw) sessions.value = JSON.parse(raw);
-} catch { /* ignore */ }
-
+const sessions = ref<Array<{ name: string; data: string }>>([]);
+try { const raw = localStorage.getItem("remote-sessions"); if (raw) sessions.value = JSON.parse(raw); } catch {}
 const saveSession = () => {
   const name = form.targetAgentId || ("会话-" + (sessions.value.length + 1));
-  const entry = name + "|gw=" + form.gatewayUrl + "|token=" + form.accessToken
-    + "|id=" + form.targetAgentId + "|code=" + form.verifyCode + "|ws=" + form.wsUrl;
-  const idx = sessions.value.findIndex(s => s.includes("|id=" + form.targetAgentId));
-  if (idx >= 0) sessions.value[idx] = entry; else sessions.value.push(entry);
+  const data = JSON.stringify({ ...form, gateway: serverConfig.gatewayUrl, ws: serverConfig.wsUrl, http: serverConfig.httpUrl });
+  const idx = sessions.value.findIndex(s => s.data.includes(form.targetAgentId));
+  if (idx >= 0) { sessions.value[idx] = { name, data }; } else { sessions.value.push({ name, data }); }
   localStorage.setItem("remote-sessions", JSON.stringify(sessions.value));
   ElMessage.success("会话已保存: " + name);
 };
-
-const loadSession = (entry: string) => {
-  const parts = entry.split("|");
-  const kv = (k: string) => {
-    const p = parts.find(x => x.startsWith(k));
-    return p ? p.slice(k.length) : "";
-  };
-  form.gatewayUrl = kv("gw=") || "tcp://localhost:9000";
-  form.accessToken = kv("token=");
-  form.targetAgentId = kv("id=");
-  form.verifyCode = kv("code=");
-  form.wsUrl = kv("ws=");
-  connect();
+const loadSession = (s: { data: string }) => {
+  try {
+    const d = JSON.parse(s.data);
+    form.accessToken = d.accessToken || "";
+    form.targetAgentId = d.targetAgentId || "";
+    form.verifyCode = d.verifyCode || "";
+    form.sshHost = d.sshHost || "local";
+    form.connMethod = d.connMethod || "ssh";
+    form.reverseTunnel = d.reverseTunnel || false;
+    if (d.gateway) serverConfig.gatewayUrl = d.gateway;
+    if (d.ws) serverConfig.wsUrl = d.ws;
+    if (d.http) serverConfig.httpUrl = d.http;
+    fetchAgentCapabilities();
+    connect();
+  } catch {}
 };
-loadConfig();
 
 onMounted(async () => {
-  try {
-    // 进入即拉取网关配置（网关 HTTP 与 WS 同端口——默认 9001）——自动填充网关地址
-    const resp = await fetch("http://localhost:9001/api/remote/config");
-    if (resp.ok) {
-      const cfg = await resp.json();
-      if (cfg && cfg.gateway) form.gatewayUrl = cfg.gateway;
-    }
-  } catch {
-    // 网关不可达——保持手动填写
-  }
-  // 兜底：配置未返回网关地址时自动填充默认网关（tcp://localhost:9000）
-  if (!form.gatewayUrl) form.gatewayUrl = "tcp://localhost:9000";
+  await loadSettings();
+  if (route.query.agentId) { form.targetAgentId = String(route.query.agentId); fetchAgentCapabilities(); }
+  if (route.query.verifyCode) form.verifyCode = String(route.query.verifyCode);
 });
 
-onBeforeUnmount(() => { ws?.close(); });
+onBeforeUnmount(() => { ws?.close(); if (agentSearchTimer) clearTimeout(agentSearchTimer); });
 </script>
 
 <style lang="scss" scoped>
@@ -403,7 +362,6 @@ onBeforeUnmount(() => { ws?.close(); });
 .form-field--switch { flex-direction: row; align-items: center; justify-content: space-between; }
 .form-label { font-size: 12px; font-weight: 500; color: var(--el-text-color-secondary); }
 .remote-actions { display: flex; gap: 8px; margin-top: 4px; }
-.save-tip { margin-top: 8px; padding: 8px 12px; font-size: 12px; color: #67c23a; background: #f0f9eb; border-radius: 4px; }
 .remote-right { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid var(--el-border-color-lighter); overflow: hidden; }
 .screen-header { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--el-border-color-lighter); flex-shrink: 0; }
 .screen-title { font-size: 14px; font-weight: 600; }
@@ -411,21 +369,10 @@ onBeforeUnmount(() => { ws?.close(); });
 .screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto; outline: none; cursor: crosshair; }
 .screen-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(13, 17, 23, 0.85); }
 .ssh-area { flex: 1; display: flex; flex-direction: column; position: relative; }
-.terminal-container {
-  flex: 1;
-  background: #0c0c0c;
-  color: #e6e6e6;
-  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  padding: 12px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  min-height: 0;
-  outline: none;
-  cursor: text;
-  &:focus { box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4); }
-}
+.terminal-container { flex: 1; background: #0c0c0c; color: #e6e6e6; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; padding: 12px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; min-height: 0; outline: none; cursor: text; &:focus { box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4); } }
 .terminal-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12, 12, 12, 0.85); }
+.session-list { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.session-item { padding: 6px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; &:hover { background: #f5f7fa; } }
+.session-name { color: var(--el-text-color-primary); }
+.session-empty { font-size: 12px; color: var(--el-text-color-placeholder); padding: 8px 0; }
 </style>

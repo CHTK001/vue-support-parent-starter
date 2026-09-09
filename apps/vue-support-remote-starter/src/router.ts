@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "接入码" },
   },
   {
+    path: "/settings",
+    name: "settings",
+    component: () => import("./views/SettingsView.vue"),
+    meta: { title: "设置" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/remote",
   },

@@ -16,6 +16,7 @@
         <el-menu-item index="/remote">远控</el-menu-item>
         <el-menu-item index="/agents">被控端</el-menu-item>
         <el-menu-item index="/access">接入码</el-menu-item>
+        <el-menu-item index="/settings">设置</el-menu-item>
       </el-menu>
     </header>
 
