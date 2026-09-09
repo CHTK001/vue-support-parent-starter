@@ -18,6 +18,10 @@ import {
   Refresh,
   Search,
   Upload,
+ FullScreen,
+  ZoomIn,
+  ZoomOut,
+  RefreshRight,
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_BUCKET,
@@ -256,6 +260,12 @@ const previewKind = ref<PreviewKind>("unknown");
 const previewText = ref("");
 /** 预览对象 Key（用于 image/pdf/video/audio 直链） */
 const previewKey = ref("");
+/** iframe 缩放比例 */
+const previewZoom = ref(100);
+/** 预览加载错误状态 */
+const previewError = ref(false);
+/** iframe 加载计数器（用于强制刷新） */
+const iframeKey = ref(0);
 
 /**
  * 打开预览弹窗
@@ -271,10 +281,12 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewKind.value = kind;
   previewText.value = "";
   previewKey.value = fullKey(row.name);
+  previewZoom.value = 100;
+  previewError.value = false;
+  previewLoading.value = true;
   previewVisible.value = true;
 
   if (kind === "text") {
-    previewLoading.value = true;
     try {
       previewText.value = await fetchObjectText(bucket.value, fullKey(row.name));
     } catch (e) {
@@ -290,6 +302,46 @@ async function openPreview(row: StorageObject): Promise<void> {
  * 预览对象的直链地址
  */
 const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
+
+/** 缩放控制 */
+function zoomIn(): void {
+  previewZoom.value = Math.min(previewZoom.value + 25, 300);
+}
+function zoomOut(): void {
+  previewZoom.value = Math.max(previewZoom.value - 25, 25);
+}
+function zoomReset(): void {
+  previewZoom.value = 100;
+}
+/** 全屏切换（iframe 容器） */
+const previewFrameRef = ref<HTMLIFrameElement>();
+
+/** iframe 加载完成回调 */
+function onFrameLoad(): void {
+  previewLoading.value = false;
+  previewError.value = false;
+}
+/** iframe 加载失败回调 */
+function onFrameError(): void {
+  previewLoading.value = false;
+  previewError.value = true;
+}
+/** 重试加载 */
+function retryPreview(): void {
+  previewError.value = false;
+  previewLoading.value = true;
+  iframeKey.value++;
+}
+
+function toggleFullscreen(el?: HTMLElement): void {
+  const target = el || (previewFrameRef.value as unknown as HTMLElement)?.parentElement;
+  if (!target) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    target.requestFullscreen();
+  }
+}
 
 /* ================== 操作 ================== */
 
@@ -499,18 +551,38 @@ onMounted(() => {
       destroy-on-close
       append-to-body
     >
-      <div v-loading="previewLoading" class="filestorage-preview">
+      <div class="filestorage-preview">
+        <!-- 骨架屏加载中 -->
+        <div v-if="previewLoading" class="filestorage-preview__skeleton">
+          <div class="skeleton-block skeleton-block--title" />
+          <div class="skeleton-block skeleton-block--body" />
+          <div class="skeleton-block skeleton-block--body skeleton-block--short" />
+          <div class="filestorage-preview__skeleton-text">加载中…</div>
+        </div>
+
+        <!-- 错误重试 -->
+        <div v-else-if="previewError" class="filestorage-preview__error">
+          <el-empty description="预览加载失败">
+            <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
+            <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
+          </el-empty>
+        </div>
+
         <!-- 图片：el-image 内置查看器（点击可全屏缩放/旋转） -->
-        <template v-if="previewKind === 'image'">
+        <template v-else-if="previewKind === 'image'">
           <el-image
-            :src="previewSrc"
-            :preview-src-list="[previewSrc]"
+            :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
+            :preview-src-list="[previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')]"
             fit="contain"
             class="filestorage-preview__image"
             hide-on-click-modal
+            @error="previewError = true"
+            @load="previewLoading = false"
           >
             <template #error>
-              <el-empty description="图片加载失败" />
+              <el-empty description="图片加载失败">
+                <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
+              </el-empty>
             </template>
           </el-image>
           <div class="filestorage-preview__tip">点击图片可进入全屏查看（滚轮缩放、旋转）</div>
@@ -519,34 +591,76 @@ onMounted(() => {
         <!-- PDF：内嵌 iframe（服务端支持 Range 分段加载） -->
         <iframe
           v-else-if="previewKind === 'pdf'"
+          :key="iframeKey"
           :src="previewSrc"
           class="filestorage-preview__frame"
+          @load="onFrameLoad"
+          @error="onFrameError"
         />
 
         <!-- Office 文档：服务端 SPI(Univer 等) 转 HTML 后 iframe 渲染 -->
-        <iframe
-          v-else-if="previewKind === 'office'"
-          :src="previewSrc + '?preview=true'"
-          class="filestorage-preview__frame"
-        />
+        <template v-else-if="previewKind === 'office'">
+          <div class="filestorage-preview__toolbar">
+            <el-button-group>
+              <el-button :icon="ZoomOut" size="small" @click="zoomOut" :disabled="previewZoom <= 25" title="缩小" />
+              <el-button size="small" class="!px-3" disabled>{{ previewZoom }}%</el-button>
+              <el-button :icon="ZoomIn" size="small" @click="zoomIn" :disabled="previewZoom >= 300" title="放大" />
+              <el-button :icon="RefreshRight" size="small" @click="zoomReset" title="重置" />
+            </el-button-group>
+            <el-button :icon="FullScreen" size="small" @click="toggleFullscreen()" title="全屏" />
+          </div>
+          <div class="filestorage-preview__frame-wrap" :style="{ transform: `scale(${previewZoom / 100})`, transformOrigin: 'top center' }">              <iframe
+              ref="previewFrameRef"
+              :key="iframeKey"
+              :src="previewSrc + '?preview=true'"
+              class="filestorage-preview__frame"
+              @load="onFrameLoad"
+              @error="onFrameError"
+            />
+          </div>
+        </template>
 
         <!-- 视频 -->
         <video
           v-else-if="previewKind === 'video'"
-          :src="previewSrc"
+          :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
           controls
           class="filestorage-preview__media"
+          @loadeddata="previewLoading = false"
+          @error="previewError = true"
         />
 
         <!-- 音频 -->
-        <audio v-else-if="previewKind === 'audio'" :src="previewSrc" controls class="w-full" />
+        <audio
+          v-else-if="previewKind === 'audio'"
+          :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
+          controls
+          class="w-full"
+          @loadeddata="previewLoading = false"
+          @error="previewError = true"
+        />
 
         <!-- 字体 -->
-        <iframe
-          v-else-if="previewKind === 'font'"
-          :src="previewSrc + '?preview=true'"
-          class="filestorage-preview__frame"
-        />
+        <template v-else-if="previewKind === 'font'">
+          <div class="filestorage-preview__toolbar">
+            <el-button-group>
+              <el-button :icon="ZoomOut" size="small" @click="zoomOut" :disabled="previewZoom <= 25" title="缩小" />
+              <el-button size="small" class="!px-3" disabled>{{ previewZoom }}%</el-button>
+              <el-button :icon="ZoomIn" size="small" @click="zoomIn" :disabled="previewZoom >= 300" title="放大" />
+              <el-button :icon="RefreshRight" size="small" @click="zoomReset" title="重置" />
+            </el-button-group>
+            <el-button :icon="FullScreen" size="small" @click="toggleFullscreen()" title="全屏" />
+          </div>
+          <div class="filestorage-preview__frame-wrap" :style="{ transform: `scale(${previewZoom / 100})`, transformOrigin: 'top center' }">
+            <iframe
+              :key="iframeKey"
+              :src="previewSrc + '?preview=true'"
+              class="filestorage-preview__frame"
+              @load="onFrameLoad"
+              @error="onFrameError"
+            />
+          </div>
+        </template>
 
         <!-- 文本类 -->
         <pre v-else-if="previewKind === 'text'" class="filestorage-preview__code">{{ previewText }}</pre>
@@ -637,6 +751,62 @@ onMounted(() => {
   gap: 12px;
 }
 
+/* 骨架屏 */
+.filestorage-preview__skeleton {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.skeleton-block {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color) 50%, var(--el-fill-color-light) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-block--title {
+  width: 40%;
+  height: 24px;
+}
+
+.skeleton-block--body {
+  width: 100%;
+  height: 200px;
+}
+
+.skeleton-block--short {
+  width: 60%;
+  height: 120px;
+}
+
+.filestorage-preview__skeleton-text {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* 错误重试 */
+.filestorage-preview__error {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .filestorage-preview__image {
   max-width: 100%;
   max-height: 60vh;
@@ -649,6 +819,23 @@ onMounted(() => {
   border: none;
   border-radius: 8px;
   background: var(--el-bg-color-page);
+}
+
+/* iframe 缩放容器 */
+.filestorage-preview__frame-wrap {
+  width: 100%;
+  transition: transform 0.2s ease;
+  overflow: visible;
+}
+
+/* 预览工具栏 */
+.filestorage-preview__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+  width: 100%;
 }
 
 .filestorage-preview__media {
@@ -675,5 +862,25 @@ onMounted(() => {
 .filestorage-preview__tip {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 全屏模式下 iframe 容器适配 */
+:fullscreen .filestorage-preview__frame-wrap {
+  width: 100vw;
+  height: 100vh;
+  transform-origin: top left;
+}
+
+:fullscreen .filestorage-preview__frame {
+  height: 100vh;
+  border-radius: 0;
+}
+
+:fullscreen .filestorage-preview__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--el-bg-color);
+  padding: 10px 0;
 }
 </style>

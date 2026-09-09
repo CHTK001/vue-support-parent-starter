@@ -99,6 +99,7 @@ const form = reactive({
   targetAgentId: "",
   verifyCode: "",
   wsUrl: "",
+  sshHost: "local",
   connMethod: "ssh",
   reverseTunnel: false,
 });
@@ -197,7 +198,7 @@ const disconnect = () => {
 
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
-  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: "local", cols: 80, rows: 24 }));
+  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: form.sshHost || "local", cols: 80, rows: 24 }));
   appendTerminalOutput("SSH 会话已启动\n", false);
 };
 
