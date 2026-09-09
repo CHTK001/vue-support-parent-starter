@@ -228,13 +228,21 @@ const handleNomiClick = () => navTo('/nomi');
               siderTooltipProps={siderTooltipProps}
               onClick={handleWorkshopClick}
             />
-            {/* 小程序 (Mini-apps) — solidified single-file web tools, opened instantly */}
+{/* 小程序 (Mini-apps) — solidified single-file web tools, opened instantly */}
             <SiderMiniAppsEntry
               isMobile={isMobile}
               isActive={pathname.startsWith('/mini-apps')}
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleMiniAppsClick}
+            />
+            {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
+            <SiderImageSpaceEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/image-space')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleImageSpaceClick}
             />
             {/* 数据空间 — data & storage (文件管理 reserved for later) */}
             <SiderSectionHeader label={t('common.siderSection.data')} collapsed={collapsed} />
