@@ -3,21 +3,16 @@
     <header class="rc-header">
       <div class="rc-brand">
         <div class="rc-logo">
-          <el-icon :size="20"><Monitor /></el-icon>
+          <ReIcon name="Monitor" :size="20" />
         </div>
         <div class="rc-title">远控管理台</div>
       </div>
-      <el-menu
-        mode="horizontal"
-        :default-active="activeMenu"
-        class="rc-menu"
-        @select="onSelect"
-      >
-        <el-menu-item index="/remote">远控</el-menu-item>
-        <el-menu-item index="/agents">被控端</el-menu-item>
-        <el-menu-item index="/access">接入码</el-menu-item>
-        <el-menu-item index="/settings">设置</el-menu-item>
-      </el-menu>
+      <div class="rc-menu">
+        <ReButton link :type="activeMenu === '/remote' ? 'primary' : 'default'" @click="router.push('/remote')">远控</ReButton>
+        <ReButton link :type="activeMenu === '/agents' ? 'primary' : 'default'" @click="router.push('/agents')">被控端</ReButton>
+        <ReButton link :type="activeMenu === '/access' ? 'primary' : 'default'" @click="router.push('/access')">接入码</ReButton>
+        <ReButton link :type="activeMenu === '/settings' ? 'primary' : 'default'" @click="router.push('/settings')">设置</ReButton>
+      </div>
     </header>
 
     <main class="rc-main">
@@ -33,17 +28,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Monitor } from "@element-plus/icons-vue";
+import ReIcon from "@repo/ui/re-icon";
+import ReButton from "@repo/ui/re-button";
 
 const route = useRoute();
 const router = useRouter();
 
 /** 当前激活菜单（按路由路径） */
 const activeMenu = computed(() => route.path);
-
-const onSelect = (index: string) => {
-  router.push(index);
-};
 </script>
 
 <style lang="scss" scoped>

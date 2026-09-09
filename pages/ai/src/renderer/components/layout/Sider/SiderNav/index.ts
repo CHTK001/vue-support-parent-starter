@@ -23,3 +23,4 @@ export { default as SiderWorkshopEntry } from './SiderWorkshopEntry';
 
 export { default as SiderAgentEntry } from './SiderAgentEntry';
 export { default as SiderBotEntry } from './SiderBotEntry';
+export { default as SiderImageSpaceEntry } from './SiderImageSpaceEntry';
