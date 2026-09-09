@@ -4416,6 +4416,7 @@ export type I18nKey =
   | 'settings.skillsMarket.openInBrowser'
   | 'settings.skillsMarket.openMarketFailed'
   | 'settings.skillsMarket.searchPlaceholder'
+  | 'settings.skillsMarket.serviceUnavailable'
   | 'settings.skillsMarket.syncEmpty'
   | 'settings.skillsMarket.syncError'
   | 'settings.skillsMarket.syncKeptCache'
