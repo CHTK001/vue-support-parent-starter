@@ -133,10 +133,7 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
             ? t('settings.skillsMarket.serviceUnavailable', {
                 defaultValue: '服务暂时不可用（后端或 SkillHub），请稍后重试。',
               })
-            : t('settings.skillsMarket.installFailed', {
-                detail: String(error),
-                defaultValue: '安装失败',
-              })
+            : String(error)
         );
       }
     },

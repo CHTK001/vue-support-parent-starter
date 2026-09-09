@@ -276,14 +276,17 @@ function onSubmit(): void {
     <ReForm label-position="top" class="host-form" @submit.prevent="onSubmit">
       <!-- 系统类型卡片 -->
       <div class="form-section">
-        <div class="section-label">系统类型</div>
+        <ReSectionHead title="系统类型" />
         <div class="os-type-cards">
           <div
             v-for="opt in osTypeOptions"
             :key="opt.value"
             class="os-type-card"
             :class="{ active: form.serverHostOsType === opt.value }"
+            role="button"
+            tabindex="0"
             @click="form.serverHostOsType = opt.value; onOsTypeChange(opt.value)"
+            @keyup.enter="form.serverHostOsType = opt.value; onOsTypeChange(opt.value)"
           >
             <ReIcon name="Monitor" :size="20" />
             <span>{{ opt.label }}</span>
@@ -293,7 +296,7 @@ function onSubmit(): void {
 
       <!-- 基本信息 -->
       <div class="form-section">
-        <div class="section-label">基本信息</div>
+        <ReSectionHead title="基本信息" />
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">主机名称<span class="required">*</span></label>
@@ -340,10 +343,7 @@ function onSubmit(): void {
 
       <!-- 连接凭据 -->
       <div class="form-section">
-        <div class="section-label">
-          连接凭据
-          <span class="section-hint">{{ isEdit ? '留空不修改' : '' }}</span>
-        </div>
+        <ReSectionHead title="连接凭据" :description="isEdit ? '留空不修改' : ''" />
         <div class="form-row">
           <div class="form-field">
             <label class="field-label">认证类型</label>
@@ -399,12 +399,13 @@ function onSubmit(): void {
       <!-- 硬件规格 / 网络地址（编辑模式） -->
       <template v-if="isEdit">
         <div class="form-section">
-          <div class="section-label">
-            硬件规格
-            <ReButton link type="primary" :loading="detecting" @click="onDetect" class="section-action">
-              <ReIcon name="Cpu" :size="14" style="margin-right: 4px" />重新探测
-            </ReButton>
-          </div>
+          <ReSectionHead title="硬件规格">
+            <template #actions>
+              <ReButton link type="primary" :loading="detecting" @click="onDetect" class="section-action">
+                <ReIcon name="Cpu" :size="14" style="margin-right: 4px" />重新探测
+              </ReButton>
+            </template>
+          </ReSectionHead>
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">CPU 核心</label>
@@ -432,12 +433,13 @@ function onSubmit(): void {
         </div>
 
         <div class="form-section">
-          <div class="section-label">
-            网络地址
-            <ReButton link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
-              <ReIcon name="Refresh" :size="14" style="margin-right: 4px" />刷新公网 IP
-            </ReButton>
-          </div>
+          <ReSectionHead title="网络地址">
+            <template #actions>
+              <ReButton link type="primary" :loading="refreshingIp" @click="onRefreshPublicIp" class="section-action">
+                <ReIcon name="Refresh" :size="14" style="margin-right: 4px" />刷新公网 IP
+              </ReButton>
+            </template>
+          </ReSectionHead>
           <div class="form-row">
             <div class="form-field">
               <label class="field-label">公网 IP</label>
@@ -479,24 +481,6 @@ function onSubmit(): void {
 }
 .form-section {
   margin-bottom: 20px;
-}
-
-.section-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.section-hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
 }
 
 .section-action {
@@ -557,7 +541,7 @@ function onSubmit(): void {
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s var(--ease-out), background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
   color: var(--el-text-color-regular);
   background: var(--el-bg-color);
 
@@ -566,11 +550,17 @@ function onSubmit(): void {
     color: var(--el-color-primary);
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+
   &.active {
     border-color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
     font-weight: 500;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
   }
 }
 

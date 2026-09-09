@@ -265,7 +265,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
   <div class="exec-tab sc-page">
     <!-- 目标主机选择 -->
     <div class="panel">
-      <div class="panel-head"><h4>目标主机</h4></div>
+      <ReSectionHead title="目标主机" description="选择需要批量操作的主机（可多选）" />
       <ReSelect
         v-model="selectedHostIds"
         multiple
@@ -281,7 +281,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       <!-- 批量命令 -->
       <ReCol :span="12">
         <div class="panel">
-          <div class="panel-head"><h4>批量命令</h4></div>
+          <ReSectionHead title="批量命令" />
           <!-- 命令片段快捷填充 -->
           <ReSelect
             v-model="pickedSnippetId"
@@ -304,7 +304,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
       <!-- 文件分发 -->
       <ReCol :span="12">
         <div class="panel">
-          <div class="panel-head"><h4>文件分发</h4></div>
+          <ReSectionHead title="文件分发" />
           <ReInput v-model="distDirectory" placeholder="目标目录，如 /tmp">
             <template #prepend>目录</template>
           </ReInput>
@@ -322,7 +322,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
 
     <!-- 最近执行结果 -->
     <div v-if="lastResults.length" class="panel">
-      <div class="panel-head"><h4>最近执行结果</h4></div>
+      <ReSectionHead title="最近执行结果" />
       <ReTable :data="lastResults" size="small" border :pagination="false" :toolbar="false" :layout-table="{ minHeight: 0, maxHeight: 240 }">
         <ReTableColumn prop="msExecLogHostName" label="主机" width="140" />
         <ReTableColumn prop="msExecLogStatus" label="状态" width="80">
@@ -340,11 +340,12 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
 
     <!-- 计划任务 -->
     <div class="panel">
-      <div class="panel-head">
-        <h4>计划任务(cron)</h4>
-        <ReButton show-text icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
-      </div>
-      <ReTable :data="jobs" size="small" border :pagination="false" :toolbar="false">
+      <ReSectionHead title="计划任务(cron)">
+        <template #actions>
+          <ReButton show-text icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
+        </template>
+      </ReSectionHead>
+      <ReTable :data="jobs" size="small" border :pagination="false" :toolbar="false" empty-text="暂无计划任务，点击右上角「新增任务」创建">
         <ReTableColumn prop="msExecJobName" label="名称" min-width="120" />
         <ReTableColumn prop="msExecJobCron" label="cron" width="110" />
         <ReTableColumn prop="msExecJobCommand" label="命令" min-width="180" show-overflow-tooltip />
@@ -396,7 +397,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
           <ReRadioButton value="FILE">文件</ReRadioButton>
           <ReRadioButton value="JOB">计划任务</ReRadioButton>
         </ReRadioGroup>
-        <ReTable :data="historyLogs" size="small" border :pagination="false" :toolbar="false" :layout-table="{ minHeight: 0, maxHeight: 'calc(100vh - 180px)' }">
+        <ReTable :data="historyLogs" size="small" border :pagination="false" :toolbar="false" :layout-table="{ minHeight: 0, maxHeight: 'calc(100vh - 180px)' }" empty-text="暂无执行日志">
           <ReTableColumn prop="msExecLogHostName" label="主机" width="120" />
           <ReTableColumn prop="msExecLogType" label="类型" width="70">
             <template #default="{ row }">{{ row.msExecLogType }}</template>
@@ -424,35 +425,6 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
   display: flex;
   flex-direction: column;
   gap: 12px;
-
-  .panel {
-    background: var(--bg-container-card);
-    border-radius: var(--border-radius);
-    padding: 16px;
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-card);
-    transition: var(--transition-base);
-  }
-
-  .panel:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .panel_head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .panel_head h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
 
   .file-pick {
     display: flex;

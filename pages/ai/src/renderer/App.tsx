@@ -30,6 +30,7 @@ import './styles/beauty-enhanced.css';
 /** 配置服务提前初始化（i18n/theme 启动路径会 await configService.whenReady()）。 */
 import { configService } from '@/common/config/configService';
 import { loadConfig as loadAppYaml, getConfig, onConfigChange } from '@repo/config';
+import { resolveAssetUrl } from '@repo/assets';
 configService.initialize().catch((err) => {
   console.error('Failed to initialize config:', err);
 });
@@ -110,12 +111,11 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
     // document.title
     const title = cfg.app.title;
     if (title) document.title = title;
-    // favicon
+    // favicon：优先走 @repo/assets 打包资源（app.yaml loginConfig.logoUrl），
+    // 外部 URL / data: 原样返回，本地相对路径按文件名解析到构建产物，避免依赖 public 静态副本
     const logoUrl = cfg.login.logoUrl;
     if (logoUrl) {
-      const resolved = logoUrl.startsWith('http') || logoUrl.startsWith('/')
-        ? logoUrl
-        : `/${logoUrl.replace(/^\/+/, '')}`;
+      const resolved = resolveAssetUrl(logoUrl) || logoUrl;
       let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
       if (!icon) {
         icon = document.createElement('link');

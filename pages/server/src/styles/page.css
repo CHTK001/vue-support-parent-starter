@@ -10,6 +10,9 @@
   min-height: 100%;
   box-sizing: border-box;
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .sc-page-card {
@@ -21,6 +24,48 @@
   transition: var(--transition-base);
 }
 .sc-page-card:hover { box-shadow: var(--shadow-card-hover); }
+
+/* 页面区段头部（ReSectionHead 容器层） */
+.page-head {
+  margin-bottom: 2px;
+}
+.page-head h3,
+.page-head .re-section-head__title {
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+/* 统计卡片区（ReStatCard 网格） */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+/* 工具条（筛选/搜索区） */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
+}
+
+/* 内容面板（批量命令 / 密钥库 / 计划任务等） */
+.panel {
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-base);
+}
+.panel:hover { box-shadow: var(--shadow-card-hover); }
 
 /* KPI 卡片 */
 .kpi-row {
@@ -138,6 +183,42 @@
 }
 .empty-state .empty-ico { font-size: 32px; opacity: 0.4; }
 .empty-state .empty-text { font-size: 13px; color: var(--text-tertiary); }
+
+/* 焦点可见（键盘可达性） */
+.sc-page :focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 可点击元素手势 */
+.sc-page .el-button,
+.sc-page .el-tag.is-closable,
+.sc-page .el-link,
+.sc-page [role="button"] {
+  cursor: pointer;
+}
+
+/* 状态单元（圆点 + 文本） */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 动效克减 */
+@media (prefers-reduced-motion: reduce) {
+  .sc-page *,
+  .sc-page *::before,
+  .sc-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* Donut 环图（对齐 monolith pages.css） */
 .donut-wrap {

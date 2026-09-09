@@ -80,13 +80,24 @@ function renderNode(node: GroupNode): string {
 
 <template>
   <div class="group-tree sc-page">
-    <div class="toolbar">
-      <ReButton show-text icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
-      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-    </div>
+    <ReSectionHead class="page-head" title="分组管理" description="维护主机分组的层级结构">
+      <template #actions>
+        <ReButton show-text icon="Plus" type="primary" @click="openCreate()">新建根分组</ReButton>
+        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
+      </template>
+    </ReSectionHead>
 
     <ReCard class="tree-card" v-loading="loading">
+      <ReEmptyState
+        v-if="!loading && treeData.length === 0"
+        title="暂无分组"
+        description="点击右上角「新建根分组」创建第一个分组"
+        size="compact"
+      >
+        <template #icon><FolderOpened /></template>
+      </ReEmptyState>
       <ReTree
+        v-else
         :data="treeData"
         node-key="id"
         :props="{ children: 'children', label: 'name' }"
@@ -139,15 +150,6 @@ function renderNode(node: GroupNode): string {
   flex-direction: column;
   gap: 12px;
 }
-.toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
-}
 .tree-card {
   padding: 8px;
   background: var(--bg-container-card);
@@ -170,9 +172,10 @@ function renderNode(node: GroupNode): string {
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s var(--ease-out);
 }
-.tree-node:hover .tree-actions {
+.tree-node:hover .tree-actions,
+.tree-node:focus-within .tree-actions {
   opacity: 1;
 }
 </style>

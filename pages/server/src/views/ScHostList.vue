@@ -314,27 +314,43 @@ async function onImportFile(file: File | undefined) {
 
 <template>
   <div class="host-list sc-page">
+    <!-- 页面头部 + 主操作 -->
+    <ReSectionHead class="page-head" title="主机资产" description="服务器台账、启停管理、远控与文件分发">
+      <template #actions>
+        <ReButton show-text icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
+        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
+        <label class="import-btn">
+          <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
+          <ReButton show-text icon="Upload" tag="span">导入</ReButton>
+        </label>
+        <ReButton show-text icon="Download" @click="onExport">导出</ReButton>
+      </template>
+    </ReSectionHead>
+
     <!-- 资产统计 -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <span class="stat-value">{{ hostStats.total }}</span>
-        <span class="stat-label">资产总数</span>
+    <ReSkeleton :loading="statsLoading" :rows="2" :count="1" animated>
+      <div class="stats-grid">
+        <ReStatCard title="资产总数" :value="hostStats.total" icon-color="var(--metric-cpu)">
+          <template #icon><Monitor /></template>
+          <template #value><ReCountup :value="hostStats.total" :duration="800" /></template>
+        </ReStatCard>
+        <ReStatCard title="在线" :value="hostStats.online" icon-color="var(--status-success)">
+          <template #icon><CircleCheckFilled /></template>
+          <template #value><ReCountup :value="hostStats.online" :duration="800" /></template>
+        </ReStatCard>
+        <ReStatCard title="离线" :value="hostStats.offline" icon-color="var(--status-error)">
+          <template #icon><CircleCloseFilled /></template>
+          <template #value><ReCountup :value="hostStats.offline" :duration="800" /></template>
+        </ReStatCard>
+        <ReStatCard title="未知" :value="hostStats.unknown" icon-color="var(--metric-disk)">
+          <template #icon><QuestionFilled /></template>
+          <template #value><ReCountup :value="hostStats.unknown" :duration="800" /></template>
+        </ReStatCard>
       </div>
-      <div class="stat-card success">
-        <span class="stat-value">{{ hostStats.online }}</span>
-        <span class="stat-label">在线</span>
-      </div>
-      <div class="stat-card danger">
-        <span class="stat-value">{{ hostStats.offline }}</span>
-        <span class="stat-label">离线</span>
-      </div>
-      <div class="stat-card warning">
-        <span class="stat-value">{{ hostStats.unknown }}</span>
-        <span class="stat-label">未知</span>
-      </div>
-    </div>
-    <!-- 工具条 -->
-    <div class="toolbar">
+    </ReSkeleton>
+
+    <!-- 筛选工具条 -->
+    <div class="toolbar page-toolbar">
       <ReInput
         v-model="keyword"
         placeholder="搜索名称/编码/地址"
@@ -351,13 +367,6 @@ async function onImportFile(file: File | undefined) {
         style="width: 160px"
         @change="queryHosts({ groupId: filterGroupId }).then(r => (hosts = r ?? [])).catch(() => {})"
       />
-      <ReButton show-text icon="Plus" type="primary" size="default" @click="openCreate">新增主机</ReButton>
-      <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-      <label class="import-btn">
-        <input type="file" accept=".xlsx,.xls" hidden @change="(e: Event) => onImportFile((e.target as HTMLInputElement).files?.[0])" />
-        <ReButton show-text icon="Upload" tag="span">导入</ReButton>
-      </label>
-      <ReButton show-text icon="Download" @click="onExport">导出</ReButton>
     </div>
 
     <div class="batch-bar" v-if="selectedIds.length > 0">
@@ -370,13 +379,18 @@ async function onImportFile(file: File | undefined) {
 
     <!-- 主机表格 -->
     <ReTable :data="hosts" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false"
+      empty-text="暂无主机，点击右上角「新增主机」添加"
       @selection-change="(rows: any[]) => selectedIds = rows.map((r: any) => r.id)">
       <ReTableColumn type="selection" width="40" />
       <ReTableColumn label="状态" width="90">
         <template #default="{ row }">
-          <ReTag :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
+          <span class="status-cell">
+            <ReStatusIndicator
+              :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'"
+              :pulse="row.serverHostOnline === 1"
+            />
             {{ row.serverHostOnline === 1 ? '在线' : row.serverHostOnline === 0 ? '离线' : '未知' }}
-          </ReTag>
+          </span>
         </template>
       </ReTableColumn>
       <ReTableColumn prop="serverHostName" label="名称" min-width="140" show-overflow-tooltip />
@@ -435,52 +449,10 @@ async function onImportFile(file: File | undefined) {
   gap: 12px;
 }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
-}
-
 .import-btn {
   cursor: pointer;
+  display: inline-flex;
 }
-
-.stats-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.stat-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px;
-  border-radius: var(--border-radius);
-  background: var(--bg-container-card);
-  border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--metric-cpu);
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-base);
-}
-.stat-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
-.stat-card.success { border-left-color: var(--status-success); }
-.stat-card.danger { border-left-color: var(--status-error); }
-.stat-card.warning { border-left-color: var(--metric-disk); }
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.stat-label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 
 .batch-bar {
   display: flex;
@@ -490,11 +462,17 @@ async function onImportFile(file: File | undefined) {
   background: color-mix(in srgb, var(--brand-500) 6%, transparent);
   border-radius: var(--border-radius);
   border: 1px solid color-mix(in srgb, var(--brand-500) 15%, transparent);
+  animation: batch-in 0.2s var(--ease-out) both;
 }
 .batch-info {
   font-size: 12px;
   color: var(--brand-500);
   font-weight: 500;
   margin-right: 8px;
+}
+
+@keyframes batch-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
 }
 </style>

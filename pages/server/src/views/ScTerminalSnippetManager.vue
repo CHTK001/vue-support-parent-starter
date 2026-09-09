@@ -1,12 +1,14 @@
 <template>
   <div class="snippet-manager fade-in sc-page">
-    <div class="toolbar">
-      <ReButton show-text icon="Plus" type="primary" @click="editRow()">新增片段</ReButton>
-      <ReButton show-text icon="Delete" type="danger" :disabled="!selectedRow" @click="handleDelete">删除</ReButton>
-      <ReInput v-model="filterName" placeholder="搜索片段名" prefix-icon="Search" style="width: 200px" clearable />
-    </div>
+    <ReSectionHead class="page-head" title="片段管理" description="常用终端命令片段，可在批量作业中快捷填充">
+      <template #actions>
+        <ReInput v-model="filterName" placeholder="搜索片段名" prefix-icon="Search" style="width: 200px" clearable />
+        <ReButton show-text icon="Delete" type="danger" :disabled="!selectedRow" @click="handleDelete">删除</ReButton>
+        <ReButton show-text icon="Plus" type="primary" @click="editRow()">新增片段</ReButton>
+      </template>
+    </ReSectionHead>
 
-    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false">
+    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false" empty-text="暂无命令片段，点击右上角「新增片段」创建">
       <ReTableColumn prop="id" label="编号" width="60" />
       <ReTableColumn prop="msTerminalSnippetName" label="片段名称" min-width="150" />
       <ReTableColumn prop="msTerminalSnippetRemark" label="备注" min-width="200" />
@@ -140,10 +142,7 @@ onMounted(loadSnippets)
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
 }
 </style>
