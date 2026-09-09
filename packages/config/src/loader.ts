@@ -18,16 +18,23 @@ import { load as parseYaml } from "js-yaml";
 import {
   defaultAppConfig,
   getConfig,
-  mergeAppConfig,
   normalizeTopKey,
   parseAppYaml,
-  resetConfig,
+  resetConfigSilent,
   setConfig,
   type AppConfig,
 } from "./config";
+import { deepMerge } from "./shared";
 
 /** 环境变量（默认取 import.meta.env，便于测试注入） */
 export type EnvLike = Record<string, string | undefined>;
+
+/**
+ * loadConfig 幂等去重：同一配置源（appName + configUrl）并发调用只执行一次，
+ * 其余调用共享同一 in-flight promise，避免 App.tsx 与 Vue 登录 bootstrap 并发
+ * 加载导致 setConfig 多次触发订阅者（document.title 等 UI 二次跳动）。
+ */
+let inFlightConfig: Promise<AppConfig> | null = null;
 
 /** 远程设置列表缓存（供 loadDefaultSetting 复用，避免重复请求） */
 let remoteSettingList: Array<Record<string, unknown>> | null = null;
@@ -100,6 +107,10 @@ async function safeFetchYaml(
 /**
  * 加载并合并统一配置（内部会重置并写入 getConfig 缓存）
  * @returns 合并后的最终配置（reactive 单例，调用方后续修改可直接走 setConfig）
+ *
+ * 所有来源（example / app / env / remote / envvars）先收集为 partial，
+ * 链式合并成一个后只调用一次 setConfig，避免加载中间态（reset/example
+ * 阶段的默认 title）触发订阅者反复更新 document.title 等 UI。
  */
 export async function loadConfig(
   options: LoadConfigOptions = {},
@@ -109,40 +120,129 @@ export async function loadConfig(
   const env = options.env ?? getImportMetaEnv();
   const timeout = options.timeout ?? 5000;
 
-  // ① 重置为默认值
-  resetConfig();
-
-  // ② 加载 app.example.yaml 作为全局默认模板（比 defaultAppConfig 优先级高）
-  await loadExampleYaml({ baseUrl, timeout });
-
-  // ③ 加载本地 app.yaml（应用级覆盖）
-  await loadAppYaml({ appName, baseUrl, configUrl: options.configUrl, timeout });
-
-  // ④ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
-  const envName = getEnvName(env);
-  if (envName) {
-    await loadEnvYaml({ appName, baseUrl, envName, timeout });
+  // 幂等去重：相同配置源（appName + configUrl + baseUrl）并发调用共享同一结果
+  const dedupeKey = `${baseUrl}|${appName}|${options.configUrl ?? ""}`;
+  if (inFlightConfig) {
+    return inFlightConfig;
   }
+  const run = (async () => {
+    // ① 加载 app.example.yaml（全局默认模板）
+    const examplePartial = await loadExampleYamlPartial({ baseUrl, timeout });
 
-  // ⑤ 加载远程配置（远程为主，失败忽略；地址 = http.baseUrl + url.setting，
-  //    由 config.enable 开关控制，默认开启）
-  const current = getConfig();
-  if (!options.disableRemote && current.config?.enable !== false) {
-    const remoteUrl = buildRemoteConfigUrl(current);
-    if (remoteUrl) {
-      const remote = await loadRemoteConfig(remoteUrl, timeout);
-      if (remote) {
-        setConfig(remote);
-      }
+    // ② 加载本地 app.yaml（应用级覆盖）
+    const appPartial = await loadAppYamlPartial({ appName, baseUrl, configUrl: options.configUrl, timeout });
+
+    // ③ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
+    let envPartial: Partial<AppConfig> | undefined;
+    const envName = getEnvName(env);
+    if (envName) {
+      envPartial = await loadEnvYamlPartial({ appName, baseUrl, envName, timeout });
     }
-  }
 
-  // ⑥ 环境变量覆盖（VITE_* → AppConfig 字段映射）
-  const envConfig = envToConfig(env);
-  if (Object.keys(envConfig).length > 0) {
-    setConfig(envConfig);
-  }
-  return getConfig();
+    // 一次性提交：先重置为默认值（不通知），再把本地来源（example/app/env）链式合并成
+    // 一个纯对象，用于计算远程配置地址（依赖合并后的 http.baseUrl / url.setting），
+    // 最后连同远程 + 环境变量一起只 setConfig 一次，避免中间态 title 闪烁
+    resetConfigSilent();
+    const sourceList: Partial<AppConfig>[] = [
+      examplePartial,
+      appPartial,
+      envPartial,
+    ].filter(Boolean) as Partial<AppConfig>[];
+    const localMerged = sourceList.reduce<Record<string, unknown>>(
+      (acc, partial) => deepMerge(acc, partial as unknown as Record<string, unknown>),
+      defaultAppConfig as unknown as Record<string, unknown>,
+    );
+
+    // ④ 远程配置（远程为主，失败忽略；地址基于合并后的本地配置）
+    const remotePartial = await loadRemoteConfigPartial(localMerged as unknown as AppConfig, timeout, options.disableRemote);
+
+    // ⑤ 环境变量覆盖（VITE_* → AppConfig 字段映射）
+    const envConfig = envToConfig(env);
+
+    const allSources: Partial<AppConfig>[] = [
+      examplePartial,
+      appPartial,
+      envPartial,
+      remotePartial,
+      envConfig,
+    ].filter(Boolean) as Partial<AppConfig>[];
+    const merged = allSources.reduce<Record<string, unknown>>(
+      (acc, partial) => deepMerge(acc, partial as unknown as Record<string, unknown>),
+      defaultAppConfig as unknown as Record<string, unknown>,
+    );
+    setConfig(merged as unknown as Partial<AppConfig>);
+
+    return getConfig();
+  })().finally(() => {
+    // 仅清理本次 in-flight；若期间有新的相同 key 调用入队，允许其重新执行
+    if (inFlightConfig === run) inFlightConfig = null;
+  });
+  inFlightConfig = run;
+  return run;
+}
+
+/**
+ * 加载 app.example.yaml 作为全局默认配置。
+ * 加载失败（含非 yaml 响应，如 SPA fallback 返回 HTML）时返回 undefined。
+ */
+async function loadExampleYamlPartial(options: { baseUrl: string; timeout: number }): Promise<Partial<AppConfig> | undefined> {
+  return safeFetchYaml(
+    `${options.baseUrl}/app.example.yaml`,
+    options.timeout,
+  );
+}
+
+/**
+ * 加载本地 app.yaml；失败回退 apps/default/app.yaml。
+ * 返回 partial，由 loadConfig 统一合并提交。
+ */
+async function loadAppYamlPartial(options: {
+  appName: string;
+  baseUrl: string;
+  configUrl?: string;
+  timeout: number;
+}): Promise<Partial<AppConfig> | undefined> {
+  const url =
+    options.configUrl ?? `${options.baseUrl}/apps/${options.appName}/app.yaml`;
+  const partial = await safeFetchYaml(url, options.timeout);
+  if (partial) return partial;
+  // 目标不存在时尝试 apps/default/app.yaml 兜底
+  return safeFetchYaml(
+    `${options.baseUrl}/apps/default/app.yaml`,
+    options.timeout,
+  );
+}
+
+/**
+ * 加载环境级 app.{env}.yaml（如 app.dev.yaml）。
+ * 存在则返回 partial；不存在或失败时返回 undefined。
+ */
+async function loadEnvYamlPartial(options: {
+  appName: string;
+  baseUrl: string;
+  envName: string;
+  timeout: number;
+}): Promise<Partial<AppConfig> | undefined> {
+  return safeFetchYaml(
+    `${options.baseUrl}/apps/${options.appName}/app.${options.envName}.yaml`,
+    options.timeout,
+  );
+}
+
+/**
+ * 拉取远程配置（JSON/YAML 均可），失败或非 yaml/JSON 时返回 undefined。
+ */
+async function loadRemoteConfigPartial(
+  localMerged: AppConfig,
+  timeout: number,
+  disableRemote: boolean | undefined,
+): Promise<Partial<AppConfig> | undefined> {
+  // 由 config.enable 开关控制，默认开启；禁用时跳过
+  if (disableRemote) return undefined;
+  if (localMerged.config?.enable === false) return undefined;
+  const remoteUrl = buildRemoteConfigUrl(localMerged);
+  if (!remoteUrl) return undefined;
+  return loadRemoteConfig(remoteUrl, timeout);
 }
 
 /**
@@ -171,63 +271,6 @@ function buildRemoteConfigUrl(cfg: AppConfig): string {
   if (!setting) return "";
   if (!base) return setting;
   return `${base.replace(/\/+$/, "")}/${setting.replace(/^\/+/, "")}`;
-}
-
-/**
- * 加载 app.example.yaml 作为全局默认配置。
- * 加载失败（含非 yaml 响应，如 SPA fallback 返回 HTML）时静默跳过（保留 defaultAppConfig）。
- */
-async function loadExampleYaml(options: { baseUrl: string; timeout: number }): Promise<void> {
-  const partial = await safeFetchYaml(
-    `${options.baseUrl}/app.example.yaml`,
-    options.timeout,
-  );
-  if (partial) setConfig(partial);
-}
-
-/**
- * 加载本地 app.yaml；失败回退默认值（保留已有配置）。
- * 始终通过 setConfig 写入响应式 getConfig 单例。
- */
-async function loadAppYaml(options: {
-  appName: string;
-  baseUrl: string;
-  configUrl?: string;
-  timeout: number;
-}): Promise<void> {
-  const tryMerge = (partial: Partial<AppConfig> | undefined): void => {
-    if (partial) setConfig(partial);
-  };
-  const url =
-    options.configUrl ?? `${options.baseUrl}/apps/${options.appName}/app.yaml`;
-  const partial = await safeFetchYaml(url, options.timeout);
-  if (partial) {
-    tryMerge(partial);
-    return;
-  }
-  // 目标不存在时尝试 apps/default/app.yaml 兜底
-  const fallback = await safeFetchYaml(
-    `${options.baseUrl}/apps/default/app.yaml`,
-    options.timeout,
-  );
-  if (fallback) tryMerge(fallback);
-}
-
-/**
- * 加载环境级 app.{env}.yaml（如 app.dev.yaml）。
- * 存在则覆盖 app.yaml 的对应字段；不存在或失败时静默保留现有配置。
- */
-async function loadEnvYaml(options: {
-  appName: string;
-  baseUrl: string;
-  envName: string;
-  timeout: number;
-}): Promise<void> {
-  const partial = await safeFetchYaml(
-    `${options.baseUrl}/apps/${options.appName}/app.${options.envName}.yaml`,
-    options.timeout,
-  );
-  if (partial) setConfig(partial);
 }
 
 /**

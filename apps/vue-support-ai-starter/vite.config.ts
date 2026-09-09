@@ -25,13 +25,32 @@ import {
   fileViewerAssetsPluginFor,
 } from '../../pages/ai/vite-file-viewer-plugin.ts';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const aiRoot = resolve(__dirname, '..', '..', 'pages', 'ai');
 const packagesRoot = resolve(__dirname, '..', '..', 'packages');
 const srcRoot = resolve(__dirname, 'src');
+
+/**
+ * 从本应用 app.yaml 读取系统标题，作为 index.html 模板的 %APP_TITLE% 注入。
+ *
+ * 运行时标题仍以 getConfig().app.title 为准（app.yaml → 运行时 config），
+ * 这里只是让构建期静态 HTML title 与 app.yaml 保持一致，避免改品牌后
+ * 浏览器标签页/收藏标题仍显示旧名称。
+ */
+function readAppYamlTitle(): string {
+  try {
+    const yamlPath = resolve(__dirname, 'app.yaml');
+    const parsed = parseYaml(readFileSync(yamlPath, 'utf-8')) as { appConfig?: { title?: string } };
+    return parsed?.appConfig?.title ?? '';
+  } catch {
+    return '';
+  }
+}
 
 /** 与 pages/ai/vite.config.ts 行为一致：注入 __NOMIFUN_BACKEND_PORT__。 */
 function backendPortInjectPlugin(): Plugin {
@@ -86,7 +105,7 @@ function pagesAiSubpathAliasPlugin(): Plugin {
 
 const baseConfig = createVite({
   appName: 'vue-support-ai-starter',
-  title: 'NomiFun AI',
+  title: readAppYamlTitle(),
   framework: 'react',
   // pages/ai 自定义 UnoCSS 颜色与规则（bg-primary-N / text-t-primary / bg-fill-N 等）
   unoTheme: unoColors,

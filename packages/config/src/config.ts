@@ -155,6 +155,17 @@ export function resetConfig(): AppConfig {
 }
 
 /**
+ * 重置为默认配置但不通知订阅者（供 loadConfig 批量提交内部使用）。
+ * 与 resetConfig 的区别仅在「是否触发 onConfigChange」：
+ * loadConfig 会在收集全部来源后统一 setConfig 一次，避免中间态
+ * 触发订阅者多次更新 document.title 等 UI。
+ */
+export function resetConfigSilent(): AppConfig {
+  applyMerge(currentConfig, defaultAppConfig);
+  return currentConfig;
+}
+
+/**
  * 浅响应式补充：默认导出整个 reactive 对象后，
  * 当远端 setConfig 传入新顶层字段时，对象整体仍是响应式，但若 partial 中出现
  * 当前没有的 key，需要补建。Vue 3 reactive 对已知 key 是响应的，

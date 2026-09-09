@@ -6,6 +6,7 @@ import {
   buildPresetFromMarketPackage,
   classifyPresetPackageAddError,
   getOrCreatePresetMarketId,
+  invokePresetPackageInstallWithRetry,
   isPresetMarketItemInstalled,
 } from './PresetPackageMarketSettings';
 
@@ -105,11 +106,11 @@ describe('preset package installed state', () => {
 });
 
 describe('preset package market errors', () => {
-  const backendError = (code: string) =>
+  const backendError = (code: string, status?: number) =>
     new BackendHttpError({
       method: 'POST',
       path: '/api/skills/market/package/install',
-      status: code === 'NOT_FOUND' ? 404 : 502,
+      status: status ?? (code === 'NOT_FOUND' ? 404 : 502),
       body: { success: false, code, error: 'redacted backend error' },
     });
 
@@ -119,8 +120,48 @@ describe('preset package market errors', () => {
     expect(classifyPresetPackageAddError(backendError('NOT_FOUND'))).toBe('not_found');
   });
 
+  test('maps raw 5xx (incl. empty-body proxy 502) to upstream, 404 to not_found', () => {
+    expect(classifyPresetPackageAddError(backendError('INTERNAL_ERROR', 500))).toBe('upstream');
+    expect(
+      classifyPresetPackageAddError(new BackendHttpError({ method: 'POST', path: '/x', status: 502, body: '' }))
+    ).toBe('upstream');
+    expect(
+      classifyPresetPackageAddError(new BackendHttpError({ method: 'GET', path: '/x', status: 404, body: '' }))
+    ).toBe('not_found');
+  });
+
   test('keeps unknown failures on the generic safe fallback', () => {
-    expect(classifyPresetPackageAddError(backendError('INTERNAL_ERROR'))).toBe('generic');
+    expect(classifyPresetPackageAddError(backendError('UNHANDLED', 400))).toBe('generic');
     expect(classifyPresetPackageAddError(new TypeError('malformed response'))).toBe('generic');
+  });
+
+  test('retries transient install failures once', async () => {
+    const flaky = new BackendHttpError({ method: 'POST', path: '/x', status: 502, body: '' });
+    let calls = 0;
+    const ok = {
+      package: { name: 'p', description: '', instructions: '', skill_slugs: ['a'] },
+      installed_skill_names: ['a'],
+      errors: [],
+    };
+    const result = await invokePresetPackageInstallWithRetry(
+      async () => {
+        calls += 1;
+        if (calls === 1) throw flaky;
+        return ok;
+      },
+      1
+    );
+    expect(calls).toBe(2);
+    expect(result.installed_skill_names).toEqual(['a']);
+
+    let thrown = false;
+    try {
+      await invokePresetPackageInstallWithRetry(async () => {
+        throw new BackendHttpError({ method: 'POST', path: '/x', status: 400, body: { code: 'BAD_REQUEST' } });
+      }, 1);
+    } catch {
+      thrown = true;
+    }
+    expect(thrown).toBe(true);
   });
 });
