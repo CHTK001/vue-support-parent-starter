@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * 监控概览（工作台）—— 对齐 prototype §PAGE-1
- * KPI + Donut + 最近告警 + 快捷入口
- * 全部按钮统一 ReButton，KPI 用 pages.css .kpi 原型风格（左侧色条 + sparkline）
+ * KPI（ReStatCard + ReCountup + ReSkeleton）+ Donut + 最近告警 + 快捷入口
+ * 全部按钮统一 ReButton；.kpi 色条类保留（pages.css 左侧色条 + e2e 定位）
  */
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -42,12 +42,6 @@ const donutStyle = computed(() => {
 const recentAlarms = computed(() =>
   [...events.value].sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? "")).slice(0, 5),
 );
-function spark(data: number[], w = 100, h = 24): string {
-  if (!data.length) return "";
-  const min = Math.min(...data), max = Math.max(...data), r = max - min || 1;
-  return data.map((v, i) => `${(i / (data.length - 1 || 1) * w).toFixed(1)},${(h - (v - min) / r * h).toFixed(1)}`).join(" ");
-}
-const trend = computed(() => Array.from({ length: 12 }, () => Math.floor(Math.random() * 5)));
 
 async function fetchAll(): Promise<void> {
   loading.value = true; loadError.value = "";
@@ -75,38 +69,36 @@ onMounted(fetchAll);
     </div>
 
     <div v-if="loadError" class="as-error">
+      <ReStatusIndicator type="danger" />
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <section class="kpi-row cols-4">
-      <div class="kpi c-brand">
-        <span class="kpi-ico"><ReIcon name="DataBoard" :size="36" /></span>
-        <div class="kpi-top"><span class="kpi-label">资产总数</span><span class="kpi-delta up">↗ +4</span></div>
-        <div class="kpi-value">{{ monitors.length }}</div>
-        <svg class="kpi-spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline :points="spark(trend)" fill="none" stroke="var(--brand-500)" stroke-width="1.6" opacity="0.4" /></svg>
-        <div class="kpi-sub">运行中 <b>{{ onlineCount }}</b> · 离线 <b>{{ monitors.length - onlineCount }}</b></div>
-      </div>
-      <div class="kpi c-red">
-        <span class="kpi-ico"><ReIcon name="Bell" :size="36" /></span>
-        <div class="kpi-top"><span class="kpi-label">告警未处理</span></div>
-        <div class="kpi-value">{{ unhandledCount }}<span class="unit">/ {{ totalAlarms }}</span></div>
-        <svg class="kpi-spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline :points="spark(trend.map(v=>v*1.2))" fill="none" stroke="var(--status-alarm)" stroke-width="1.6" opacity="0.4" /></svg>
-        <div class="kpi-sub">累计事件</div>
-      </div>
-      <div class="kpi c-red">
-        <span class="kpi-ico"><ReIcon name="Warning" :size="36" /></span>
-        <div class="kpi-top"><span class="kpi-label">P0+P1 高危</span><span class="kpi-delta down">↘ -2</span></div>
-        <div class="kpi-value">{{ levelCounts.P0 + levelCounts.P1 }}</div>
-        <div class="kpi-sub">30 分钟内响应</div>
-      </div>
-      <div class="kpi c-amber">
-        <span class="kpi-ico"><ReIcon name="AlarmClock" :size="36" /></span>
-        <div class="kpi-top"><span class="kpi-label">P2 中危</span></div>
-        <div class="kpi-value">{{ levelCounts.P2 }}</div>
-        <div class="kpi-sub">当班处理</div>
-      </div>
-    </section>
+    <!-- KPI 统计卡：ReStatCard + ReCountup（保留 .kpi 色条类对齐原型视觉与 e2e 定位） -->
+    <ReSkeleton :loading="loading" :rows="4" animated>
+      <section class="kpi-row cols-4">
+        <ReStatCard
+          class="kpi c-brand"
+          title="资产总数"
+          :desc="`运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`"
+        >
+          <template #icon><ReIcon name="DataBoard" :size="18" style="color: var(--brand-500)" /></template>
+          <template #value><ReCountup :value="monitors.length" /></template>
+        </ReStatCard>
+        <ReStatCard class="kpi c-red" title="告警未处理" desc="累计事件">
+          <template #icon><ReIcon name="Bell" :size="18" style="color: var(--status-alarm)" /></template>
+          <template #value><ReCountup :value="unhandledCount" /><span class="kpi-unit">/ {{ totalAlarms }}</span></template>
+        </ReStatCard>
+        <ReStatCard class="kpi c-red" title="P0+P1 高危" desc="30 分钟内响应">
+          <template #icon><ReIcon name="Warning" :size="18" style="color: var(--sev-p0-text)" /></template>
+          <template #value><ReCountup :value="levelCounts.P0 + levelCounts.P1" /></template>
+        </ReStatCard>
+        <ReStatCard class="kpi c-amber" title="P2 中危" desc="当班处理">
+          <template #icon><ReIcon name="AlarmClock" :size="18" style="color: var(--sev-p2-text)" /></template>
+          <template #value><ReCountup :value="levelCounts.P2" /></template>
+        </ReStatCard>
+      </section>
+    </ReSkeleton>
 
     <section class="cols-2-equal-responsive">
       <div class="card">
