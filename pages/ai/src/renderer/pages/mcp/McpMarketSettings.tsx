@@ -222,7 +222,17 @@ const McpMarketSettings: React.FC<McpMarketSettingsProps> = ({
         autoSyncKey='nomifun.mcpMarket.autoSynced.v1'
         defaultSource='mcpworld'
         searchPlaceholder={t('settings.mcpMarket.searchPlaceholder', { defaultValue: 'Search MCP servers...' })}
-        emptyText={t('settings.mcpMarket.empty', { defaultValue: 'Refresh to load MCP market entries.' })}
+        emptyText={t('settings.mcpMarket.empty', {
+          defaultValue: 'MCP 市场暂无可用数据源，可点击下方“在浏览器中打开”访问官方站点。',
+        })}
+        text={{
+          syncEmpty: t('settings.mcpMarket.syncEmpty', {
+            defaultValue: 'MCP 市场未配置数据源，非刷新失败。',
+          }),
+          syncKeptCache: t('settings.mcpMarket.syncKeptCache', {
+            defaultValue: 'MCP 市场未配置数据源，已保留本地缓存。',
+          }),
+        }}
         onAdd={handleAdd}
         isAdded={isAdded}
         addedStateLoading={addedStateLoading}

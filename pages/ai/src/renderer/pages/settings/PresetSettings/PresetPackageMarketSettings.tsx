@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import type { ISkillMarketItem, ISkillMarketPackageResponse } from '@/common/adapter/ipcBridge';
+import type { ISkillMarketItem, ISkillMarketPackageInstallResponse, ISkillMarketPackageResponse } from '@/common/adapter/ipcBridge';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { CreatePresetRequest, Preset } from '@/common/types/agent/presetTypes';
 import { parsePresetId, type PresetId } from '@/common/types/ids';
@@ -106,12 +106,31 @@ const UNSAFE_INSTALLED_SKILL_NAME = /[\/\\]|\.\.|[\x00-\x1F\x7F]/;
 type SkillBindingSource = 'market' | 'installed';
 export type PresetPackageAddErrorKind = 'timeout' | 'upstream' | 'not_found' | 'generic';
 
+const TRANSIENT_INSTALL_STATUSES = new Set([408, 500, 502, 503, 504]);
+
 export const classifyPresetPackageAddError = (error: unknown): PresetPackageAddErrorKind => {
   if (!isBackendHttpError(error)) return 'generic';
-  if (error.code === 'TIMEOUT') return 'timeout';
-  if (error.code === 'BAD_GATEWAY') return 'upstream';
-  if (error.code === 'NOT_FOUND') return 'not_found';
+  if (error.code === 'TIMEOUT' || error.status === 408) return 'timeout';
+  if (error.status === 404 || error.code === 'NOT_FOUND') return 'not_found';
+  // 5xx（含代理 502 空响应体）= 后端或其上游暂不可用，给可操作的重试提示。
+  if (error.status >= 500 || error.code === 'BAD_GATEWAY') return 'upstream';
   return 'generic';
+};
+
+export const isTransientPresetPackageAddError = (error: unknown): boolean =>
+  isBackendHttpError(error) && TRANSIENT_INSTALL_STATUSES.has(error.status);
+
+export const invokePresetPackageInstallWithRetry = async (
+  invoke: () => Promise<ISkillMarketPackageInstallResponse>,
+  delayMs = 1500
+): Promise<ISkillMarketPackageInstallResponse> => {
+  try {
+    return await invoke();
+  } catch (error) {
+    if (!isTransientPresetPackageAddError(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return invoke();
+  }
 };
 
 const isSkillBindingName = (skillName: string, source: SkillBindingSource) =>
@@ -169,11 +188,13 @@ const PresetPackageMarketSettings: React.FC<PresetPackageMarketSettingsProps> = 
       // two app windows cannot mint separate preset IDs for the same package.
       const presetId = getOrCreatePresetMarketId(item.id);
       try {
-        const installedPackage = await ipcBridge.fs.installSkillMarketPackage.invoke({
-          source: item.source,
-          id: item.id,
-          url: item.url,
-        });
+        const installedPackage = await invokePresetPackageInstallWithRetry(() =>
+          ipcBridge.fs.installSkillMarketPackage.invoke({
+            source: item.source,
+            id: item.id,
+            url: item.url,
+          })
+        );
         const failedSkillCount = installedPackage.errors?.length ?? 0;
         const failedSkillNames = (installedPackage.errors ?? [])
           .slice(0, 3)
@@ -243,10 +264,10 @@ const PresetPackageMarketSettings: React.FC<PresetPackageMarketSettingsProps> = 
         const errorKind = classifyPresetPackageAddError(error);
         const errorMessage = {
           timeout: t('settings.presetMarket.timeout', {
-            defaultValue: 'SkillHub took too long to respond. Please try again.',
+            defaultValue: 'The request timed out. Please try again.',
           }),
           upstream: t('settings.presetMarket.upstreamUnavailable', {
-            defaultValue: 'SkillHub is temporarily unavailable. Please try again later.',
+            defaultValue: 'The service is temporarily unavailable. Please try again later.',
           }),
           not_found: t('settings.presetMarket.notFound', {
             defaultValue: 'This expert package is no longer available. Refresh the market and try again.',

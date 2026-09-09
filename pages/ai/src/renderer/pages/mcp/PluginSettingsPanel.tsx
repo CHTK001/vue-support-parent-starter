@@ -144,7 +144,17 @@ const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({ section = 'bo
           autoSyncKey='nomifun.pluginMarket.autoSynced.v1'
           defaultSource='clawhub_plugins'
           searchPlaceholder={t('settings.plugins.searchPlaceholder', { defaultValue: 'Search plugins...' })}
-          emptyText={t('settings.plugins.emptyMarket', { defaultValue: 'Refresh to load plugin market entries.' })}
+          emptyText={t('settings.plugins.emptyMarket', {
+            defaultValue: '插件市场暂无可用数据源，可点击下方“在浏览器中打开”访问官方站点。',
+          })}
+          text={{
+            syncEmpty: t('settings.plugins.syncEmpty', {
+              defaultValue: '插件市场未配置数据源，非刷新失败。',
+            }),
+            syncKeptCache: t('settings.plugins.syncKeptCache', {
+              defaultValue: '插件市场未配置数据源，已保留本地缓存。',
+            }),
+          }}
           onAdd={handleAdd}
           testIdPrefix='plugin-market'
         />

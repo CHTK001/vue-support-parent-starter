@@ -20,10 +20,6 @@
           <ReInput v-model="form.verifyCode" placeholder="被控端验证码" show-password clearable data-testid="input-verify" />
         </div>
         <div class="form-field">
-          <label class="form-label">画面源地址（WS）</label>
-          <ReInput v-model="form.wsUrl" placeholder="ws://host:port" clearable data-testid="input-ws" />
-        </div>
-        <div class="form-field">
           <label class="form-label">连接方式</label>
           <ReSelect v-model="form.connMethod" :data="connMethodOptions" data-testid="select-method" />
         </div>
@@ -59,9 +55,18 @@
           </div>
         </div>
         <template v-else>
-          <canvas ref="screenRef" class="screen-canvas" data-testid="screen-canvas" />
-          <div v-if="h264Mode" class="h264-tip">H264 流（WebCodecs/MSE 播放——待接入）</div>
-          <div v-if="!connected && !h264Mode" class="screen-overlay" data-testid="screen-overlay">
+          <canvas
+            ref="screenRef"
+            class="screen-canvas"
+            data-testid="screen-canvas"
+            tabindex="0"
+            @mousedown="onCanvasMouseDown"
+            @mouseup="onCanvasMouseUp"
+            @mousemove="onCanvasMouseMove"
+            @wheel="onCanvasWheel"
+            @contextmenu.prevent
+          />
+          <div v-if="!connected" class="screen-overlay" data-testid="screen-overlay">
             <ReEmpty description="未连接——左侧填写连接信息后点击连接" :image-size="60" />
           </div>
         </template>
@@ -79,20 +84,18 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
 
-
 const form = reactive({
   gatewayUrl: "",
   accessToken: "",
   targetAgentId: "",
   verifyCode: "",
-  wsUrl: "",
   connMethod: "ssh",
   reverseTunnel: false,
 });
 
 const connMethodOptions = [
   { label: "SSH (WebSocket)", value: "ssh" },
-  { label: "远程桌面 (WebRTC)", value: "rdp" },
+  { label: "远程桌面 (VNC)", value: "vnc" },
 ];
 
 const connected = ref(false);
@@ -102,13 +105,13 @@ const screenRef = ref<HTMLCanvasElement | null>(null);
 const terminalRef = ref<HTMLDivElement | null>(null);
 let ws: WebSocket | null = null;
 let sshSessionId: string | null = null;
+let vncSessionId: string | null = null;
 
 const statusTag = computed(() => {
   if (connected.value) return { type: "success" as const, text: "已连接" };
   if (h264Mode.value) return { type: "warning" as const, text: "H264 流" };
   return { type: "info" as const, text: "未连接" };
 });
-
 
 const connect = async () => {
   if (!form.gatewayUrl || !form.targetAgentId || !form.verifyCode) {
@@ -120,24 +123,26 @@ const connect = async () => {
     const parts = gatewayHost.split(":");
     const tcpHost = parts[0] || "127.0.0.1";
     const tcpPort = parseInt(parts[1]) || 9000;
-    const wsUrl = form.wsUrl || `ws://${tcpHost}:${tcpPort + 3}/ws/ssh/${form.targetAgentId}`;
+    const wsPath = form.connMethod === "vnc" ? "vnc" : "ssh";
+    const wsUrl = form.wsUrl || `ws://${tcpHost}:${tcpPort + 3}/ws/${wsPath}/${form.targetAgentId}`;
 
+    // 显式 wsUrl 时跳过后端验证（后端 403 鉴权守卫场景下仍可直连）
     if (!form.wsUrl) {
       const verifyResp = await fetch("/api/remote/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
-    });
-    if (!verifyResp.ok) {
-      const err = await verifyResp.json().catch(() => ({}));
-      ElMessage.error(err.message || "验证码校验失败");
-      return;
-    }
-    const verifyData = await verifyResp.json();
-    if (!verifyData.success) {
-      ElMessage.error(verifyData.message || "验证失败");
-      return;
-    }
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: form.targetAgentId, verifyCode: form.verifyCode }),
+      });
+      if (!verifyResp.ok) {
+        const err = await verifyResp.json().catch(() => ({}));
+        ElMessage.error(err.message || "验证码校验失败");
+        return;
+      }
+      const verifyData = await verifyResp.json();
+      if (!verifyData.success) {
+        ElMessage.error(verifyData.message || "验证失败");
+        return;
+      }
     }
 
     ws = new WebSocket(wsUrl);
@@ -147,6 +152,8 @@ const connect = async () => {
       if (form.connMethod === "ssh") {
         startSSHSession();
         nextTick(() => terminalRef.value?.focus());
+      } else if (form.connMethod === "vnc") {
+        startVNCSession();
       }
     };
     ws.onmessage = (ev) => {
@@ -160,7 +167,7 @@ const connect = async () => {
         handleFrame(ev.data as ArrayBuffer);
       }
     };
-    ws.onclose = () => { connected.value = false; sshSessionId = null; };
+    ws.onclose = () => { connected.value = false; sshSessionId = null; vncSessionId = null; };
     ws.onerror = () => { connected.value = false; ElMessage.error("WS连接失败"); };
   } catch (e: any) {
     ElMessage.error("连接失败: " + (e.message || "网络错误"));
@@ -169,17 +176,24 @@ const connect = async () => {
 
 const disconnect = () => {
   if (sshSessionId && ws) ws.send(JSON.stringify({ action: "ssh", sshAction: "stop", sessionId: sshSessionId }));
+  if (vncSessionId && ws) ws.send(JSON.stringify({ action: "vnc", vncAction: "stop", sessionId: vncSessionId }));
   ws?.close();
   ws = null;
   connected.value = false;
   h264Mode.value = false;
   sshSessionId = null;
+  vncSessionId = null;
 };
 
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
   ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: "local", cols: 80, rows: 24 }));
   appendTerminalOutput("SSH 会话已启动\n", false);
+};
+
+const startVNCSession = () => {
+  vncSessionId = "vnc-" + Date.now();
+  ws!.send(JSON.stringify({ action: "vnc", vncAction: "start", sessionId: vncSessionId }));
 };
 
 const handleTextMessage = (msg: any) => {
@@ -236,6 +250,47 @@ const appendTerminalOutput = (text: string, isError: boolean) => {
   span.textContent = text;
   terminalRef.value.appendChild(span);
   terminalRef.value.scrollTop = terminalRef.value.scrollHeight;
+};
+
+const sendVncInput = (payload: any) => {
+  if (!connected.value || !ws || !vncSessionId) return;
+  ws.send(JSON.stringify({
+    action: "vnc",
+    vncAction: "input",
+    sessionId: vncSessionId,
+    data: btoa(JSON.stringify(payload)),
+  }));
+};
+
+const onCanvasMouseDown = (e: MouseEvent) => {
+  const canvas = screenRef.value;
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  sendVncInput({ type: "mouse", x, y, button: e.button, pressed: true, key: "button" });
+};
+
+const onCanvasMouseUp = (e: MouseEvent) => {
+  const canvas = screenRef.value;
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  sendVncInput({ type: "mouse", x, y, button: e.button, pressed: false, key: "button" });
+};
+
+const onCanvasMouseMove = (e: MouseEvent) => {
+  const canvas = screenRef.value;
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  sendVncInput({ type: "mouse", x, y, button: 0, pressed: false, key: "move" });
+};
+
+const onCanvasWheel = (e: WheelEvent) => {
+  sendVncInput({ type: "wheel", amount: e.deltaY > 0 ? -1 : 1, key: "wheel" });
 };
 
 const onTerminalKeydown = (e: KeyboardEvent) => {
@@ -296,9 +351,8 @@ onBeforeUnmount(() => { ws?.close(); });
 .screen-header { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--el-border-color-lighter); flex-shrink: 0; }
 .screen-title { font-size: 14px; font-weight: 600; }
 .screen-body { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; background: #0d1117; }
-.screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto; }
+.screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto; outline: none; cursor: crosshair; }
 .screen-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(13, 17, 23, 0.85); }
-.h264-tip { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); padding: 6px 14px; font-size: 12px; color: #e6a23c; background: rgba(230, 162, 60, 0.12); border: 1px solid rgba(230, 162, 60, 0.4); border-radius: 6px; }
 .ssh-area { flex: 1; display: flex; flex-direction: column; position: relative; }
 .terminal-container {
   flex: 1;

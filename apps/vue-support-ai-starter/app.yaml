@@ -1,12 +1,12 @@
 # ===========================================
-# 应用配置（vue-support-ai-starter —— NomiFun AI）
-# 这是 NomiFun AI 的正式启动入口配置；
+# 应用配置（vue-support-ai-starter —— ai平台）
+# 这是 ai平台的正式启动入口配置；
 # pages/ai 仅作为渲染器模块被引用，不在此处承担启动角色。
 # ===========================================
 
 # 系统信息
 appConfig:
-  title: NomiFun AI
+  title: ai平台
   version: "0.6.4"
   systemCode: ai
   openAuth: false
@@ -21,10 +21,12 @@ loginConfig:
   captcha: false
   otp: false
   slider: false
-  brandName: NomiFun AI
-  welcome: 欢迎使用 NomiFun AI
-  title: NomiFun AI
-  description: NomiFun AI · 多模型对话与智能体协作平台
+  brandName: ai平台
+  welcome: 欢迎使用 ai平台
+  title: ai平台
+  description: ai平台 · 多模型对话与智能体协作平台
+  logoUrl: /assets/images/logo/logo-flat.svg
+  imageUrl: /assets/images/login/science.png
 
 # API 基础路径（前后端同源部署时由反代处理）
 httpConfig:
