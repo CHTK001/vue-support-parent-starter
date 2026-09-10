@@ -923,7 +923,11 @@ const iconSelect = Select;
 </script>
 
 <template>
-  <div class="re-table" :class="{ 're-table--empty': isEmpty }" :style="{ '--re-table-min-height': tableMinHeight }">
+  <div
+    class="re-table"
+    :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small' }"
+    :style="{ '--re-table-min-height': tableMinHeight }"
+  >
     <!-- 默认表格模式 -->
     <ElTable
       v-if="layout === 'table'"
@@ -1136,29 +1140,28 @@ const iconSelect = Select;
       @menu-select="(payload: any) => emit('row-click', payload.row)"
     />
 
-    <!-- toolbar 顶部区域（当 toolbarConfig.position === 'top' 时） -->
+    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
     <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
       <ReTableToolbar
+        mode="batch"
         :config="toolbarConfig"
         :selected-count="selectedCount"
         :editing="batchEditing"
         :processing="batchProcessing"
         :loading="dataLoading || loading"
         :size="tableSize"
-        :columns-trigger-text="columnsTriggerText"
-        :settings-trigger-text="settingsTriggerText"
         @batch-delete="onBatchDelete"
         @batch-edit="onBatchEdit"
         @batch-save="onBatchSave"
         @batch-select-toggle="toggleBatchSelect"
-        @refresh="reload"
       />
     </div>
 
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
-        <!-- 使用 ReTableToolbar 统一组件 -->
+        <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
         <ReTableToolbar
+          :mode="toolbarConfigPosition === 'top' ? 'tools' : 'full'"
           :config="toolbarConfig"
           :selected-count="selectedCount"
           :editing="batchEditing"
@@ -1314,28 +1317,28 @@ const iconSelect = Select;
 </template>
 
 <style>
+/* 根容器：圆角 + 内边距（组件与容器边缘的边距，可用 --rt-padding 调整） */
 .re-table {
   border-radius: var(--rt-radius);
+  padding: var(--rt-padding, 12px);
+  background: var(--rt-bg);
+  font-size: var(--rt-font);
 }
-.re-table  {
-  border-radius: var(--rt-radius);
+/* el-table 在根元素上本地定义 --el-table-* 变量，令牌必须直接挂在 .el-table 上才生效 */
+.re-table .el-table {
   --el-table-border-color: var(--rt-border);
+  --el-table-header-bg-color: var(--rt-header-bg);
+  --el-table-row-hover-bg-color: var(--rt-bg-row-hover);
+  --el-table-tr-bg-color: var(--rt-bg);
 }
-.re-table  {
-  background: var(--rt-header-bg);
+/* 表头字体（element 默认色/字重偏浅，按 rt 令牌覆盖） */
+.re-table .el-table__header th.el-table__cell {
   font-weight: var(--rt-header-font-weight);
   font-size: var(--rt-header-font-size);
   color: var(--rt-text-header);
 }
-.re-table  {
-  font-size: var(--rt-font);
-  transition: background var(--rt-transition);
-}
-.re-table  {
-  background: var(--rt-bg-row-hover);
-}
 /* 斑马纹美化 */
-.re-table  {
+.re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
   background: var(--rt-bg-strip);
 }
 .re-table__footer {
@@ -1345,6 +1348,10 @@ const iconSelect = Select;
   margin-top: var(--rt-gap);
   gap: var(--rt-gap);
   flex-wrap: wrap;
+  /* 抵消根容器内边距，让分页行保持在原来的容器边缘位置 */
+  margin-left: calc(var(--rt-padding, 12px) * -1);
+  margin-right: calc(var(--rt-padding, 12px) * -1);
+  margin-bottom: calc(var(--rt-padding, 12px) * -1);
 }
 .re-table__toolbar {
   display: flex;
@@ -1360,6 +1367,19 @@ const iconSelect = Select;
   border-right: none;
   position: relative;
   z-index: 1;
+}
+/* 统一分页行控件大小：「前往」输入框与每页条数下拉框同高，避免视觉大小不一致 */
+.re-table__pagination .el-pagination__jump .el-input {
+  --el-input-height: 32px;
+}
+.re-table--compact .re-table__pagination .el-pagination__jump .el-input {
+  --el-input-height: 24px;
+}
+.re-table__pagination .el-select__wrapper {
+  min-height: 32px;
+}
+.re-table--compact .re-table__pagination .el-select__wrapper {
+  min-height: 24px;
 }
 /* 空数据时 body 保持最小高度，避免表格塌陷 */
 .re-table--empty .el-table__empty-block {

@@ -103,13 +103,22 @@ describe('stored message v3 mapper', () => {
     );
   });
 
-  test('rejects guessed metadata enums, non-finite timestamps, and string JSON content', () => {
+  test('rejects guessed metadata enums, non-finite timestamps, and non-text string content', () => {
     const map = createStoredMessageMapper(() => 'render-1');
 
     expectRejected(() => map(rawMessage({ position: 'assistant' })));
     expectRejected(() => map(rawMessage({ status: 'complete' })));
     expectRejected(() => map(rawMessage({ created_at: Number.NaN })));
-    expectRejected(() => map(rawMessage({ content: JSON.stringify({ content: 'old' }) })));
     expectRejected(() => map(rawMessage({ type: 'tool_group', content: { call_id: 'call-1' } })));
+  });
+
+  test('normalizes legacy string content for text messages instead of rejecting it', () => {
+    // 历史脏数据兼容：部分写入方把文本消息的 content 存成纯字符串，mapper 将其
+    // 规范回 { content } 对象，而不是让一条脏行炸掉整批聊天记录。
+    const map = createStoredMessageMapper(() => 'render-1');
+    const mapped = map(rawMessage({ content: JSON.stringify({ content: 'old' }) }));
+
+    expect(mapped.type).toBe('text');
+    expect(mapped.content).toEqual({ content: JSON.stringify({ content: 'old' }) });
   });
 });

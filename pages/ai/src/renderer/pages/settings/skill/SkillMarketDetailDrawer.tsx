@@ -5,14 +5,17 @@
  * shows the full description, tags, install command and source page instead of
  * rendering document content.
  */
+import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import type { ISkillMarketItem } from '@/common/adapter/ipcBridge';
 import type { PresetTag } from '@/common/types/agent/presetTypes';
 import CopyIconButton from '@/renderer/components/base/CopyIconButton';
+import MarkdownView from '@/renderer/components/Markdown';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { Button, Drawer, Tag } from '@arco-design/web-react';
-import { LinkOut, Plus } from '@icon-park/react';
+import { Button, Drawer, Spin, Tag } from '@arco-design/web-react';
+import { Code, FileText, LinkOut, Plus, Refresh } from '@icon-park/react';
 import { normalizeTestId } from './skillPresentation';
+import { stripSkillFrontmatter } from './skillDetail';
 import { marketSourceLabel, translateMarketDescription } from './skillMarket';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -70,6 +73,42 @@ const SkillMarketDetailDrawer: React.FC<SkillMarketDetailDrawerProps> = ({
   const resolvedLocaleKey = resolveLocaleKey(localeKey);
   const [opening, setOpening] = useState(false);
   const testId = item ? normalizeTestId(item.id) : '';
+
+  // 市场技能内容预览（拉取远程 SKILL.md；GitHub 不可达时降级）
+  const [contentState, setContentState] = useState<{
+    loading: boolean;
+    loaded: boolean;
+    content: string;
+    available: boolean;
+  }>({ loading: false, loaded: false, content: '', available: false });
+  const [contentMode, setContentMode] = useState<'preview' | 'source'>('preview');
+
+  const loadContentPreview = useCallback(async () => {
+    if (!item) return;
+    setContentState((s) => ({ ...s, loading: true }));
+    try {
+      const res = await ipcBridge.fs.previewMarketSkillContent.invoke({
+        source: item.source,
+        id: item.id,
+        url: item.url,
+      });
+      setContentState({
+        loading: false,
+        loaded: true,
+        content: res.content ?? '',
+        available: Boolean(res.available && (res.content ?? '').trim()),
+      });
+    } catch (error) {
+      console.error('Failed to load market skill content:', error);
+      setContentState({ loading: false, loaded: true, content: '', available: false });
+    }
+  }, [item]);
+
+  React.useEffect(() => {
+    // 切换市场项时重置预览
+    setContentState({ loading: false, loaded: false, content: '', available: false });
+    setContentMode('preview');
+  }, [item?.id]);
 
   const handleOpenSource = useCallback(async () => {
     if (!item?.url) return;
@@ -153,6 +192,117 @@ const SkillMarketDetailDrawer: React.FC<SkillMarketDetailDrawerProps> = ({
                   {translateMarketDescription(item.description, item, resolvedLocaleKey) ||
                     t('settings.skillsMarket.noDescription', { defaultValue: '暂无描述。' })}
                 </p>
+              </section>
+
+              <section
+                className='rounded-14px border border-solid border-[var(--color-border-1)] bg-[var(--color-bg-2)] p-14px'
+                data-testid={`market-skill-content-${testId}`}
+              >
+                <div className='mb-10px flex items-center justify-between gap-10px'>
+                  <div className='flex items-center gap-8px'>
+                    <FileText size={14} className='text-t-tertiary' />
+                    <span className='text-13px font-600 text-t-primary'>
+                      {t('settings.skillsMarket.detailContent', { defaultValue: '内容预览' })}
+                    </span>
+                    {contentState.available && (
+                      <div className='flex rounded-[100px] bg-fill-2 p-2px' role='tablist'>
+                        {([
+                          ['preview', t('settings.skillsHub.detailPreview', { defaultValue: '预览' })],
+                          ['source', t('settings.skillsHub.detailSource', { defaultValue: '源码' })],
+                        ] as const).map(([mode, label]) => (
+                          <div
+                            key={mode}
+                            role='tab'
+                            tabIndex={0}
+                            aria-selected={contentMode === mode}
+                            onClick={() => setContentMode(mode)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setContentMode(mode);
+                              }
+                            }}
+                            className={[
+                              'cursor-pointer rounded-[100px] px-8px py-3px text-11px font-600 transition-colors',
+                              contentMode === mode ? 'bg-base text-t-primary shadow-sm' : 'text-t-tertiary hover:text-t-secondary',
+                            ].join(' ')}
+                          >
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!contentState.loaded ? (
+                    <Button
+                      size='small'
+                      type='secondary'
+                      icon={contentState.loading ? <Spin size={12} /> : <Refresh size={12} />}
+                      loading={contentState.loading}
+                      onClick={() => void loadContentPreview()}
+                      data-testid={`btn-preview-market-content-${testId}`}
+                    >
+                      {t('settings.skillsMarket.previewContent', { defaultValue: '获取内容' })}
+                    </Button>
+                  ) : (
+                    contentState.available && (
+                      <Button
+                        size='small'
+                        type='text'
+                        icon={<Refresh size={12} />}
+                        onClick={() => void loadContentPreview()}
+                        data-testid={`btn-reload-market-content-${testId}`}
+                      >
+                        {t('common.retry', { defaultValue: '重试' })}
+                      </Button>
+                    )
+                  )}
+                </div>
+
+                {!contentState.loaded && !contentState.loading ? (
+                  <div className='text-12px leading-18px text-t-tertiary'>
+                    {t('settings.skillsMarket.contentHint', {
+                      defaultValue: '点击「获取内容」拉取该技能的 SKILL.md 原文（来源为 GitHub 仓库，网络不可用时将显示降级提示）。',
+                    })}
+                  </div>
+                ) : contentState.loading ? (
+                  <div className='flex min-h-120px items-center justify-center'>
+                    <Spin size={20} />
+                  </div>
+                ) : !contentState.available ? (
+                  <div className='flex min-h-120px flex-col items-center justify-center gap-8px text-center'>
+                    <div className='text-12px leading-18px text-t-tertiary'>
+                      {t('settings.skillsMarket.contentUnavailable', {
+                        defaultValue: '暂时无法获取该技能内容（来源不可达或无 SKILL.md）。可在下方打开来源页面查看。',
+                      })}
+                    </div>
+                    {item.url && (
+                      <Button
+                        size='small'
+                        type='text'
+                        icon={<LinkOut size={12} fill='currentColor' />}
+                        loading={opening}
+                        onClick={() => void handleOpenSource()}
+                        className='!p-0 !text-12px !text-primary-6'
+                      >
+                        {t('settings.market.openInBrowser', { defaultValue: '打开市场' })}
+                      </Button>
+                    )}
+                  </div>
+                ) : contentMode === 'source' ? (
+                  <pre
+                    className='m-0 max-h-360px overflow-auto whitespace-pre font-mono text-12px leading-18px text-t-secondary'
+                    data-testid={`market-skill-content-source-${testId}`}
+                  >
+                    {contentState.content}
+                  </pre>
+                ) : (
+                  <div className='max-h-360px overflow-auto'>
+                    <MarkdownView hiddenCodeCopyButton className='text-13px' fontSize='13px' lineHeight='1.6'>
+                      {stripSkillFrontmatter(contentState.content).trim()}
+                    </MarkdownView>
+                  </div>
+                )}
               </section>
 
               {(resolvedTags.length > 0 || rawTags.length > 0) && (

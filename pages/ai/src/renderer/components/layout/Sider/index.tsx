@@ -25,7 +25,10 @@ import {
   SiderSkillsEntry,
   SiderConversationEntry,
   SiderCustomerServiceEntry,
-  SiderImageSpaceEntry,
+  SiderImageFaceEntry,
+  SiderImageOcrEntry,
+  SiderImageRecognitionEntry,
+  SiderImageLayoutEntry,
   SiderKnowledgeEntry,
   SiderMcpEntry,
   SiderMiniAppsEntry,
@@ -70,6 +73,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
   const { pathname, search, hash } = location;
+  const tab = new URLSearchParams(search).get('tab') ?? 'face';
   const {
     overview: browserOverview,
     transient: browserOverviewTransient,
@@ -125,7 +129,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 const handleNomiClick = () => navTo('/nomi');
   const handleWorkshopClick = () => navTo('/workshop');
   const handleMiniAppsClick = () => navTo('/mini-apps');
-  const handleImageSpaceClick = () => navTo('/image-space');
   const handleCustomerServiceClick = () => navTo('/customer-service');
   const handlePresetClick = () => navTo('/presets');
   const handleSkillsClick = () => navTo('/skills');
@@ -228,7 +231,8 @@ const handleNomiClick = () => navTo('/nomi');
               siderTooltipProps={siderTooltipProps}
               onClick={handleWorkshopClick}
             />
-{/* 小程序 (Mini-apps) — solidified single-file web tools, opened instantly */}
+{/* 隐藏小程序入口
+            小程序 (Mini-apps) — solidified single-file web tools, opened instantly
             <SiderMiniAppsEntry
               isMobile={isMobile}
               isActive={pathname.startsWith('/mini-apps')}
@@ -236,14 +240,7 @@ const handleNomiClick = () => navTo('/nomi');
               siderTooltipProps={siderTooltipProps}
               onClick={handleMiniAppsClick}
             />
-            {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
-            <SiderImageSpaceEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/image-space')}
-              collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
-              onClick={handleImageSpaceClick}
-            />
+*/}
             {/* 数据空间 — data & storage (文件管理 reserved for later) */}
             <SiderSectionHeader label={t('common.siderSection.data')} collapsed={collapsed} />
             {/* Knowledge base */}
@@ -262,14 +259,6 @@ const handleNomiClick = () => navTo('/nomi');
               siderTooltipProps={siderTooltipProps}
               onClick={handleAssetLibraryClick}
             />
-            {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
-            <SiderImageSpaceEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/image-space')}
-              collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
-              onClick={handleImageSpaceClick}
-            />
             {/* Usage library — AI call usage records */}
             <SiderUsageEntry
               isMobile={isMobile}
@@ -285,6 +274,36 @@ const handleNomiClick = () => navTo('/nomi');
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleUsageLogClick}
+            />
+            {/* 图像空间 (Image Space) — 人脸识别 / OCR / 图片识别 / 布局检测 */}
+            <SiderSectionHeader label={t('common.siderSection.imageSpace')} collapsed={collapsed} />
+            <SiderImageFaceEntry
+              isMobile={isMobile}
+              isActive={pathname === '/image-space' && tab === 'face'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navTo('/image-space?tab=face')}
+            />
+            <SiderImageOcrEntry
+              isMobile={isMobile}
+              isActive={pathname === '/image-space' && tab === 'ocr'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navTo('/image-space?tab=ocr')}
+            />
+            <SiderImageRecognitionEntry
+              isMobile={isMobile}
+              isActive={pathname === '/image-space' && tab === 'recognition'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navTo('/image-space?tab=recognition')}
+            />
+            <SiderImageLayoutEntry
+              isMobile={isMobile}
+              isActive={pathname === '/image-space' && tab === 'layout'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={() => navTo('/image-space?tab=layout')}
             />
             {/* 自动化 — automation platforms */}
             <SiderSectionHeader label={t('common.siderSection.automation')} collapsed={collapsed} />

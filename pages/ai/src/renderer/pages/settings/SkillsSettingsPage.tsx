@@ -23,6 +23,7 @@ const SkillsSettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'installed' | 'market'>('installed');
   const [marketSources, setMarketSources] = useState<SkillMarketSource[]>([]);
   const [sourcesLoaded, setSourcesLoaded] = useState(false);
+  const [installedCount, setInstalledCount] = useState<number | null>(null);
 
   // Legacy market deep link → skills market tab
   if (isLegacyMarketLink(searchParams)) {
@@ -45,13 +46,19 @@ const SkillsSettingsPage: React.FC = () => {
       })
       .catch(() => {})
       .finally(() => setSourcesLoaded(true));
+    // 已安装技能数（tab 计数徽标用；失败不显示数字）
+    void ipcBridge.fs
+      .listAvailableSkills
+      .invoke()
+      .then((skills) => setInstalledCount(Array.isArray(skills) ? skills.length : 0))
+      .catch(() => setInstalledCount(null));
   }, []);
 
   return (
     <HubPageShell
       title={t('settings.skillsHub.title', { defaultValue: '技能中心' })}
       subtitle={t('settings.skillsHub.description', {
-        defaultValue: '集中管理独立的 Agent Skill 能力包，可由任意设定引用。',
+        defaultValue: '集中管理独立的 Agent Skill 能力包，可由任意设定引用。点击技能可查看其内容。',
       })}
       maxWidthClass='md:max-w-1200px'
     >
@@ -64,13 +71,31 @@ const SkillsSettingsPage: React.FC = () => {
       >
         <Tabs.TabPane
           key='installed'
-          title={t('settings.skillsHub.installedTab', { defaultValue: '已安装技能' })}
+          title={
+            <span className='inline-flex items-center gap-6px'>
+              {t('settings.skillsHub.installedTab', { defaultValue: '已安装技能' })}
+              {installedCount !== null && installedCount > 0 && (
+                <span className='rounded-[100px] bg-fill-2 px-7px text-11px leading-16px text-t-secondary'>
+                  {installedCount}
+                </span>
+              )}
+            </span>
+          }
         >
           <SkillsHubSettings />
         </Tabs.TabPane>
         <Tabs.TabPane
           key='market'
-          title={t('settings.skillsHub.marketTab', { defaultValue: '技能市场' })}
+          title={
+            <span className='inline-flex items-center gap-6px'>
+              {t('settings.skillsHub.marketTab', { defaultValue: '技能市场' })}
+              {sourcesLoaded && marketSources.length > 0 && (
+                <span className='rounded-[100px] bg-fill-2 px-7px text-11px leading-16px text-t-secondary'>
+                  {marketSources.length}
+                </span>
+              )}
+            </span>
+          }
         >
           {sourcesLoaded ? (
             <SkillMarketSettings

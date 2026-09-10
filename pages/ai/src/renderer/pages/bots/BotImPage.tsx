@@ -18,6 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button, Checkbox, Empty, Message, Modal, Spin, Tag, Tooltip } from '@arco-design/web-react';
 import { EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
 import classNames from 'classnames';
@@ -30,7 +31,7 @@ import {
   MessageSeparator,
 } from '@chatscope/chat-ui-kit-react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
-import { httpRequest, wsEmitter } from '@/common/adapter/httpBridge';
+import { httpRequest, isBackendHttpError, wsEmitter } from '@/common/adapter/httpBridge';
 import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
@@ -58,6 +59,10 @@ interface ChatMessage {
   fromUser?: string;
   content?: string;
   createTime?: string;
+  /** 发送状态：sending=发送中 / sent=已发送 / failed=发送失败 */
+  status?: 'sending' | 'sent' | 'failed';
+  /** 发送失败时的错误描述（供聊天记录内展示） */
+  sendError?: string;
 }
 
 /** 兼容两种信封 */
@@ -67,6 +72,28 @@ function extractList<T>(res: unknown): T[] {
     return (res as { data: T[] }).data;
   }
   return [];
+}
+
+/**
+ * 将后端返回的原始错误文案映射为面向用户的中文说明（失败原因 + 解决方式）。
+ * 后端可能返回英文（如 session timeout）或简短短语，用户无法据此判断下一步，
+ * 这里统一转换为可操作的提示。无法识别的原文原样返回（不吞错误）。
+ *
+ * @param raw 后端返回的原始错误消息（可能为空）
+ * @return 用户可理解的中文说明
+ */
+function friendlyError(raw: string): string {
+  const r = (raw ?? '').trim();
+  if (!r) return '消息发送失败';
+  const lower = r.toLowerCase();
+  if (lower.includes('session timeout') || lower.includes('timeout') || lower.includes('expired') || lower.includes('-14')) {
+    return '微信会话已过期，请点击「重新扫码绑定」后重试';
+  }
+  if (lower.includes('not running') || lower.includes('未运行') || lower.includes('offline') || lower.includes('离线')) {
+    return 'Bot 未在运行，请扫描二维码重新绑定后重试';
+  }
+  if (r.includes('不能为空')) return r;
+  return r;
 }
 
 const STATUS_META: Record<string, { label: string; dot: string }> = {
@@ -606,15 +633,17 @@ export default function BotImPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopPoll, t]);
 
-  /** 发起重新扫码 */
+  /** 发起重新扫码（携带旧 botId，扫码确认后合并到旧绑定并自动刷新会话） */
   const handleRescan = useCallback(async () => {
     stopPoll();
     setScanPhase('fetching');
     setQrcodeUrl('');
     setScanMsg('');
     try {
+      const oldBotId = active?.botId ? encodeURIComponent(active.botId) : '';
+      const platform = encodeURIComponent(active?.platform ?? 'wechat');
       const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
-        'POST', `/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(active?.platform ?? 'wechat')}`
+        'POST', `/v2/ai/bot-binding/qrcode?platform=${platform}${oldBotId ? `&botId=${oldBotId}` : ''}`
       );
       const key = res?.key ?? '';
       if (!key) {
@@ -629,7 +658,7 @@ export default function BotImPage() {
       setScanPhase('error');
       setScanMsg(t('bots.scan.unavailable', { defaultValue: 'iLink 服务暂不可用，请确认网络连通性或稍后重试' }));
     }
-  }, [stopPoll, startScanPoll, t, active?.platform]);
+  }, [stopPoll, startScanPoll, t, active?.botId, active?.platform]);
 
   useEffect(() => () => stopPoll(), [stopPoll]);
 
@@ -787,39 +816,71 @@ export default function BotImPage() {
     const content = input.trim();
     if (!active?.botId || !active.fromUser || !content) return;
     setSending(true);
+    const localId = Date.now();
+    const localMsg: ChatMessage = {
+      id: localId,
+      botId: active.botId,
+      direction: 'OUT',
+      fromUser: active.fromUser,
+      content,
+      createTime: new Date().toISOString(),
+      status: 'sending',
+    };
+    // 先乐观插入用户消息，发送成功/失败都保留在聊天记录中，避免"发出去没反应"
+    setMessages((prev) => [...prev, localMsg]);
+    setInput('');
     try {
-      const res = await httpRequest<{ success?: boolean; msgId?: string }>('POST', '/v2/ai/bot-binding/send', {
-        botId: active.botId,
-        fromUser: active.fromUser,
-        content,
-      });
-      setInput('');
-      // / 命令：不添加用户消息，但显示服务器返回的命令输出
+      const res = await httpRequest<{ ok?: boolean; success?: boolean; msg?: string; msgId?: string; messageId?: string }>(
+        'POST', '/v2/ai/bot-binding/send', {
+          botId: active.botId,
+          fromUser: active.fromUser,
+          content,
+        });
+      // 业务失败：后端可能返回 HTTP 200 但 ok=false / success=false（如会话过期），
+      // 必须识别并标记失败，否则用户会看到自己的消息"已发出"但实际没送达。
+      if (res && (res.ok === false || res.success === false)) {
+        const reason = friendlyError(res.msg || '');
+        const rescanNeeded = /未在运行|未运行|过期|expired|timeout|超时|重新扫码|已停止|离线|session/i.test(reason);
+        setMessages((prev) => prev.map((m) => (m.id === localId ? { ...m, status: 'failed', sendError: reason } : m)));
+        if (rescanNeeded) {
+          setRuntimeStatus('stopped');
+          Message.warning(reason);
+        } else {
+          Message.error(reason);
+        }
+        return;
+      }
+      // 发送成功：标记该消息为已发送
+      setMessages((prev) => prev.map((m) => (m.id === localId ? { ...m, status: 'sent' } : m)));
+      // / 命令：服务器返回的命令输出以系统消息追加
       if (content.startsWith('/')) {
-        const cmdOutput = res?.msgId;
+        const cmdOutput = res?.messageId ?? res?.msgId;
         if (cmdOutput) {
           setMessages((prev) => [...prev, {
-            id: Date.now(),
+            id: Date.now() + 1,
             botId: active.botId,
             direction: 'IN',
             fromUser: 'system',
             content: cmdOutput,
             createTime: new Date().toISOString(),
+            status: 'sent',
           }]);
         }
-      } else {
-        // @ # 和普通消息：添加用户消息
-        setMessages((prev) => [...prev, {
-          id: Date.now(),
-          botId: active.botId,
-          direction: 'OUT',
-          fromUser: active.fromUser,
-          content,
-          createTime: new Date().toISOString(),
-        }]);
       }
-    } catch {
-      Message.error(t('bots.im.sendFailed', { defaultValue: '发送失败' }));
+    } catch (e) {
+      // 发送失败：保留该消息，标记失败并展示错误原因 + 解决入口
+      const reason = isBackendHttpError(e)
+        ? friendlyError(e.backendMessage || '')
+        : t('bots.im.sendFailed', { defaultValue: '发送失败' });
+      // 判断是否为"Bot 未运行 / 会话过期"类错误，提示重新扫码
+      const rescanNeeded = /未在运行|未运行|过期|expired|timeout|超时|重新扫码|已停止|离线|session/i.test(reason);
+      setMessages((prev) => prev.map((m) => (m.id === localId ? { ...m, status: 'failed', sendError: reason } : m)));
+      if (rescanNeeded) {
+        setRuntimeStatus('stopped');
+        Message.warning(reason);
+      } else {
+        Message.error(reason);
+      }
     } finally {
       setSending(false);
     }
@@ -1117,11 +1178,11 @@ export default function BotImPage() {
                   ) : (
                     <div className='mt-8px flex flex-col items-center gap-6px py-8px'>
                       {qrcodeUrl ? (
-                        <img
-                          src={qrcodeUrl}
-                          alt='QR'
-                          className='size-180px rounded-8px border border-solid border-[var(--color-border-2)] bg-white'
-                        />
+                        // qrcodeUrl 是微信登录页 URL（iLink 返回），需要编码为二维码供用户扫码，
+                        // 不能直接用 <img src>（那是 HTML 页面，无法显示）。
+                        <div className='rounded-8px border border-solid border-[var(--color-border-2)] bg-white p-10px'>
+                          <QRCodeSVG value={qrcodeUrl} size={180} marginSize={1} />
+                        </div>
                       ) : (
                         <div className='flex size-180px items-center justify-center rounded-8px bg-[var(--color-fill-2)]'>
                           <Spin />
@@ -1210,9 +1271,34 @@ export default function BotImPage() {
                               {isGroupEnd && (
                                 <ChatMsg.Footer sender={isOut ? '' : (active.fromUser ?? '')}>
                                   {formatTime(m.createTime)}
+                                  {/* 发送状态标记：发送中 / 已发送 / 失败 */}
+                                  {m.status === 'sending'
+                                    ? (<span className='ml-6px text-11px text-t-tertiary'>{t('bots.im.sending', { defaultValue: '发送中…' })}</span>)
+                                    : m.status === 'failed'
+                                      ? (<span className='ml-6px text-11px text-danger'>⚠ {t('bots.im.sendFailed', { defaultValue: '发送失败' })}</span>)
+                                      : m.status === 'sent'
+                                        ? (<span className='ml-6px text-11px text-success'>✓</span>)
+                                        : null}
                                 </ChatMsg.Footer>
                               )}
                             </ChatMsg>
+                            {/* 发送失败：气泡下方展示错误原因与解决入口 */}
+                            {m.status === 'failed' && m.sendError && (
+                              <div className='mb-10px ml-auto max-w-[85%] rounded-8px border border-solid border-danger-2 bg-danger-1/10 px-10px py-6px text-12px text-danger'>
+                                <div className='flex items-start gap-6px'>
+                                  <span className='mt-1px shrink-0'>⚠</span>
+                                  <div className='min-w-0 flex-1'>
+                                    <div className='font-500'>{t('bots.im.sendErrorTitle', { defaultValue: '消息发送失败' })}</div>
+                                    <div className='mt-2px break-words text-t-secondary'>{m.sendError}</div>
+                                    {/未在运行|未运行|过期|expired|timeout|超时|重新扫码/i.test(m.sendError) && (
+                                      <Button size='mini' type='primary' status='warning' className='mt-8px' onClick={() => void handleRescan()}>
+                                        {t('bots.im.rescan', { defaultValue: '重新扫码绑定' })}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </React.Fragment>
                         );
                       })

@@ -8,30 +8,54 @@
   },
   "upload": {
     "dragHint": "拖拽图片到此处，或点击选择文件",
-    "acceptFormat": "支持 JPG、PNG、BMP 等常见图片格式"
+    "acceptFormat": "支持 JPG、PNG、BMP 等常见图片格式，单文件"
+  },
+  "common": {
+    "copySuccess": "已复制",
+    "copyFailed": "复制失败"
   },
   "face": {
     "title": "人脸识别",
-    "description": "上传图片，自动检测并识别人脸信息，包括位置、表情、年龄等。",
-    "detectButton": "开始识别",
-    "batchButton": "批量处理"
+    "description": "检测图片中的人脸位置与活体状态，并分析属性与表情。模型在 设置 → 人脸识别 中配置。",
+    "detectButton": "人脸检测",
+    "attributeButton": "属性 / 表情",
+    "detected": "检测到人脸",
+    "live": "活体",
+    "noLive": "非活体"
   },
   "ocr": {
     "title": "OCR 文字识别",
-    "description": "上传图片，自动提取图片中的文字内容，支持多语言识别。",
-    "recognizeButton": "开始识别",
-    "multiLangButton": "多语言支持"
+    "description": "识别图片中的全部文字块并拼接为完整文本。检测/识别/方向/修复模型在 设置 → OCR 中配置。",
+    "recognizeButton": "识别文字",
+    "annotateButton": "标注预览",
+    "blocks": "文本块",
+    "copyText": "复制全文",
+    "noText": "未识别到文字",
+    "annotated": "标注结果"
   },
   "recognition": {
     "title": "图片识别",
-    "description": "上传图片，AI 自动分析图片内容，识别物体、场景等信息。",
-    "analyzeButton": "开始分析",
-    "compareButton": "图片对比"
+    "description": "对图片执行图像分类、目标检测与图像描述，并支持超分修复。各能力模型在 设置 → 图片识别 中配置，未配置的能力自动跳过。",
+    "analyzeButton": "分析图片",
+    "enhanceButton": "超分修复",
+    "classification": "图像分类",
+    "detections": "目标检测",
+    "caption": "图像描述",
+    "copyCaption": "复制",
+    "enhanced": "超分结果",
+    "srNotEnabled": "图像超分未启用：请在 设置 → 图片识别 配置超分模型并开启开关",
+    "noCapability": "未识别到结果：当前 设置 → 图片识别 未配置任何可用模型，配置分类/检测/描述模型后重试"
   },
   "layout": {
     "title": "布局检测",
-    "description": "上传图片，自动检测页面或文档的布局结构，包括文字区域、图片区域等。",
-    "detectButton": "开始检测",
-    "exportButton": "导出结果"
+    "description": "检测文档中文字/表格/图片等版面区域，并可解析为 Markdown 结构化文本。版面模型在 设置 → 布局识别 中配置。",
+    "detectButton": "版面检测",
+    "parseButton": "结构化解析",
+    "regions": "版面区域",
+    "noRegion": "未检测到版面区域",
+    "markdown": "Markdown 解析结果",
+    "copyMarkdown": "复制",
+    "exportButton": "导出",
+    "emptyMarkdown": "（空）"
   }
 }

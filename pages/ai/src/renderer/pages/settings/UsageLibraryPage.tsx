@@ -278,16 +278,23 @@ const ChartPanel: React.FC<{
 
 const UsageLibraryPage: React.FC = () => {
   const { t } = useTranslation();
-  const defaultStart = () => { const d = new Date(); d.setHours(d.getHours()-24); d.setMinutes(0,0,0); return d; };
+  const defaultStart = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
 
   const [rows, setRows] = useState<UsageRow[]>([]);
+  /** 图表用全量明细（趋势/分布聚合），与表格分页 rows 分离；默认近 7 天按天/小时聚合需要足够覆盖 */
+  const [chartRows, setChartRows] = useState<UsageRow[]>([]);
   const [stats, setStats] = useState<UsageStats>({});
   const [provider, setProvider] = useState<string|undefined>();
   const [model, setModel] = useState<string|undefined>();
   const [providers, setProviders] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs,dayjs.Dayjs]|null>([dayjs(defaultStart()), dayjs()]);
-  const [granularity, setGranularity] = useState<'hourly'|'daily'>('hourly');
+  const [granularity, setGranularity] = useState<'hourly'|'daily'>('daily');
   const [chartModes, setChartModes] = useState<Record<string,boolean>>({ model:true, group:true, endpoint:true });
   const [syncing, setSyncing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -317,17 +324,25 @@ const UsageLibraryPage: React.FC = () => {
   const syncTimerRef = useRef<ReturnType<typeof setInterval>|null>(null);
   const paramsRef = useRef('');
   const seqRef = useRef(0);
+  /** 图表聚合全量数据拉取 size（趋势/分布需要覆盖整个时间窗口，不受表格分页限制） */
+  const CHART_PAGE_SIZE = 5000;
 
   const doSync = useCallback(async (params: string) => {
     const seq = ++seqRef.current;
     try {
-      const [listRes, statRes] = await Promise.all([fetchList(new URLSearchParams(params)), fetchStats(new URLSearchParams(params))]);
+      const [listRes, statRes, chartRes] = await Promise.all([
+        fetchList(new URLSearchParams(params)),
+        fetchStats(new URLSearchParams(params)),
+        fetchList(new URLSearchParams(`${params}&page=1&size=${CHART_PAGE_SIZE}`)),
+      ]);
       // 只应用最新一次请求的结果，丢弃过期响应，避免翻页/切换条数后旧响应还原页码
       if (seq !== seqRef.current) return;
-      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total);
+      setRows(listRes.rows);
+      setChartRows(chartRes.rows);
+      setStats(statRes); setTotal(listRes.total);
       setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
       const pSet=new Set<string>(), mSet=new Set<string>();
-      listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
+      chartRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
     } catch { /* ignore */ }
   }, []);
@@ -356,13 +371,17 @@ const UsageLibraryPage: React.FC = () => {
       const params = buildParams();
       const p = new URLSearchParams(params);
       p.set('page', String(currentPage)); p.set('size', String(pageSize));
+      const chartP = new URLSearchParams(params);
+      chartP.set('page', '1'); chartP.set('size', String(CHART_PAGE_SIZE));
       const seq = ++seqRef.current;
-      const [listRes, statRes] = await Promise.all([fetchList(p), fetchStats(new URLSearchParams(params))]);
+      const [listRes, statRes, chartRes] = await Promise.all([
+        fetchList(p), fetchStats(new URLSearchParams(params)), fetchList(chartP),
+      ]);
       if (seq !== seqRef.current) return;
-      setRows(listRes.rows); setStats(statRes); setTotal(listRes.total);
+      setRows(listRes.rows); setChartRows(chartRes.rows); setStats(statRes); setTotal(listRes.total);
       setCurrentPage(listRes.page); setPageSize(listRes.pageSize);
       const pSet=new Set<string>(), mSet=new Set<string>();
-      listRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
+      chartRes.rows.forEach(r => { if(r.group_name) pSet.add(r.group_name); if(r.model) mSet.add(r.model); });
       setProviders([...pSet].sort()); setModels([...mSet].sort());
     } catch { /* ignore */ } finally { setSyncing(false); }
   }, [buildParams, currentPage, pageSize]);
@@ -392,6 +411,8 @@ const UsageLibraryPage: React.FC = () => {
     const diffDays = end.diff(start, 'day');
     if (diffDays > MAX_DAYS) { setDateRange([start, start.add(MAX_DAYS, 'day')]); return; }
     setDateRange([start, end]);
+    // 跨度 > 2 天自动切「按天」，避免小时粒度下点太多/过密
+    if (diffDays > 2) setGranularity('daily');
   }, []);
 
   const handlePresetChange = useCallback((preset: { label: string; type?: string; days?: number; hours?: number }) => {
@@ -408,12 +429,15 @@ const UsageLibraryPage: React.FC = () => {
     } else {
       start = now.subtract(preset.days ?? 0, 'day').subtract(preset.hours ?? 0, 'hour');
     }
+    const diffDays = now.diff(start, 'day');
+    if (diffDays > 2) setGranularity('daily');
     setDateRange([start, now]);
   }, []);
 
   const handleReset = useCallback(() => {
     setDateRange([dayjs(defaultStart()), dayjs()]);
     setProvider(undefined); setModel(undefined);
+    setGranularity('daily');
   }, []);
 
   const toggleChartMode = useCallback((key:string, byToken:boolean) => {
@@ -422,23 +446,23 @@ const UsageLibraryPage: React.FC = () => {
 
   const aggData = useCallback((getKey: (r:UsageRow) => string): PanelData[] => {
     const m = new Map<string,{ requests:number; tokens:number; actual:number; standard:number }>();
-    rows.forEach(r => {
+    chartRows.forEach(r => {
       const k = getKey(r);
       const prev = m.get(k) ?? { requests:0, tokens:0, actual:0, standard:0 };
       m.set(k, { requests:prev.requests+1, tokens:prev.tokens+(r.total_tokens??0), actual:prev.actual+(r.total_cost??0), standard:prev.standard+(r.original_cost??r.total_cost??0) });
     });
     return [...m.entries()].sort((a,b)=>b[1].tokens-a[1].tokens).map(([label,v]) => ({ label, ...v }));
-  }, [rows]);
+  }, [chartRows]);
 
   const modelAgg = useMemo(() => aggData(r => r.model ?? '未知'), [aggData]);
   const groupAgg = useMemo(() => aggData(r => r.group_name ?? '未知'), [aggData]);
   const endpointAgg = useMemo(() => aggData(r => r.endpoint ?? '默认'), [aggData]);
 
   const trendPoints = useMemo(() => {
-    if (rows.length === 0) return [];
+    if (chartRows.length === 0) return [];
     const keyFn = (row:UsageRow) => granularity==='hourly' ? dayjs(row.call_time).format('MM/DD HH:00') : dayjs(row.call_time).format('MM/DD');
     const m = new Map<string,{ input:number; output:number; cacheRead:number }>();
-    rows.forEach(r => {
+    chartRows.forEach(r => {
       const k = keyFn(r);
       const prev = m.get(k) ?? { input:0, output:0, cacheRead:0 };
       m.set(k, { input:prev.input+(r.prompt_tokens??0), output:prev.output+(r.completion_tokens??0), cacheRead:prev.cacheRead+(r.cached_tokens??0) });
@@ -446,7 +470,7 @@ const UsageLibraryPage: React.FC = () => {
     return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([label,v]) => ({
       label, input:v.input, output:v.output, cacheRead:v.cacheRead,
     }));
-  }, [rows, granularity]);
+  }, [chartRows, granularity]);
 
   // ── 渲染 ──
   return (

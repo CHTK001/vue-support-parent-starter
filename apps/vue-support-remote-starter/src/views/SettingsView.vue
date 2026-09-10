@@ -6,31 +6,34 @@
         <div class="page-sub">网关与连接地址配置——保存到服务端，连接页自动使用</div>
       </div>
       <div class="header-actions">
-        <el-button @click="load">恢复</el-button>
-        <el-button type="primary" @click="save">保存配置</el-button>
+        <ReButton @click="load">恢复</ReButton>
+        <ReButton type="primary" @click="save">保存配置</ReButton>
       </div>
     </div>
 
-    <el-form :model="form" label-width="110px" class="settings-form">
-      <el-form-item label="HTTP 地址">
+    <div class="settings-form">
+      <div class="form-field">
+        <label class="form-label">HTTP 地址</label>
         <ReInput v-model="form.httpUrl" placeholder="http://host:9001（REST/验证/WS 会话同端口）" clearable data-testid="set-http" />
-      </el-form-item>
-      <el-form-item label="agent 帧地址">
+      </div>
+      <div class="form-field">
+        <label class="form-label">agent 帧地址</label>
         <ReInput v-model="form.gatewayUrl" placeholder="tcp://host:9000（被控端 agent 连接）" clearable data-testid="set-gateway" />
-      </el-form-item>
-      <el-form-item label="WS 会话地址">
+      </div>
+      <div class="form-field">
+        <label class="form-label">WS 会话地址</label>
         <ReInput v-model="form.wsUrl" placeholder="ws://host:9001（SSH/VNC/RDP 会话，与 HTTP 同端口）" clearable data-testid="set-ws" />
-      </el-form-item>
-      <el-form-item label="默认被控端">
+      </div>
+      <div class="form-field">
+        <label class="form-label">默认被控端</label>
         <ReInput v-model="form.defaultAgentId" placeholder="选填——进入连接页自动预填" clearable data-testid="set-agent" />
-      </el-form-item>
-      <el-form-item label="默认验证码">
+      </div>
+      <div class="form-field">
+        <label class="form-label">默认验证码</label>
         <ReInput v-model="form.defaultVerifyCode" placeholder="选填——进入连接页自动预填" clearable data-testid="set-code" />
-      </el-form-item>
-      <el-form-item>
-        <div v-if="saved" class="save-tip" data-testid="set-saved-tip">配置已保存到服务端</div>
-      </el-form-item>
-    </el-form>
+      </div>
+      <div v-if="saved" class="save-tip" data-testid="set-saved-tip">配置已保存到服务端</div>
+    </div>
   </div>
 </template>
 
@@ -38,6 +41,7 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
+import ReButton from "@repo/ui/re-button";
 
 const form = reactive({
   httpUrl: "",
@@ -143,6 +147,21 @@ onMounted(load);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
 }
 
 .save-tip {

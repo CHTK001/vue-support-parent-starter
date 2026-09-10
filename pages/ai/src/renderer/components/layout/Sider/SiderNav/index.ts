@@ -23,4 +23,7 @@ export { default as SiderWorkshopEntry } from './SiderWorkshopEntry';
 
 export { default as SiderAgentEntry } from './SiderAgentEntry';
 export { default as SiderBotEntry } from './SiderBotEntry';
-export { default as SiderImageSpaceEntry } from './SiderImageSpaceEntry';
+export { default as SiderImageFaceEntry } from './SiderImageFaceEntry';
+export { default as SiderImageOcrEntry } from './SiderImageOcrEntry';
+export { default as SiderImageRecognitionEntry } from './SiderImageRecognitionEntry';
+export { default as SiderImageLayoutEntry } from './SiderImageLayoutEntry';

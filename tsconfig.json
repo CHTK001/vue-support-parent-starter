@@ -24,6 +24,7 @@
       "@repo/pinia": ["packages/pinia/src"],
       "@repo/pinia/*": ["packages/pinia/src/*"],
       "@repo/ui": ["packages/ui/src"],
+      "@repo/ui/components/*": ["packages/ui/src/components/*"],
       "@repo/ui/re-ip-text": ["packages/ui/src/components/ReIpText/index.ts"],
       "@repo/ui/re-ip-select": ["packages/ui/src/components/ReIpSelect/index.ts"],
       "@repo/ui/re-icon-select": ["packages/ui/src/components/ReIconSelect/index.ts"],

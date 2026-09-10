@@ -9,6 +9,11 @@
  *   - 批量修改（编辑→保存切换）
  *   - 刷新 / 列设置 / 表格设置（透传主组件功能）
  *
+ * 分区模式（mode）：
+ *   - "batch"  仅左侧批量操作按钮（用于表格上方的工具栏）
+ *   - "tools"  仅右侧工具区（刷新 / 列设置 / 表格设置，用于分页行）
+ *   - "full"   左右两侧都渲染（默认，兼容旧用法）
+ *
  * 每个按钮可单独配置图标和 tip。
  */
 import { computed, ref, watch, type ComputedRef } from "vue";
@@ -42,6 +47,8 @@ const props = withDefaults(
     columnsTriggerText?: string;
     /** 表格设置触发文字 */
     settingsTriggerText?: string;
+    /** 分区模式：batch=仅批量按钮(表格上方)，tools=仅工具区(分页行)，full=全部(默认) */
+    mode?: "batch" | "tools" | "full";
   }>(),
   {
     config: () => ({}),
@@ -52,6 +59,7 @@ const props = withDefaults(
     size: "default",
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
+    mode: "full",
   },
 );
 
@@ -120,9 +128,9 @@ const iconSettings = Setting;
 </script>
 
 <template>
-  <div class="re-table-toolbar">
-    <!-- 左侧：批量操作区 -->
-    <div class="re-table-toolbar__left">
+  <div class="re-table-toolbar" :class="`re-table-toolbar--${mode}`">
+    <!-- 左侧：批量操作区（mode=batch/full） -->
+    <div v-if="mode !== 'tools'" class="re-table-toolbar__left">
       <!-- 批量选择切换 -->
       <ElTooltip
         v-if="batchSelectConfig"
@@ -183,8 +191,8 @@ const iconSettings = Setting;
       </ElTooltip>
     </div>
 
-    <!-- 右侧：工具区 -->
-    <div class="re-table-toolbar__right">
+    <!-- 右侧：工具区（mode=tools/full）；工具区属于分页行，表格上方工具栏只放批量按钮 -->
+    <div v-if="mode !== 'batch'" class="re-table-toolbar__right">
       <!-- 列设置 -->
       <slot name="column-settings" v-if="showColumnSettings">
         <ElTooltip :content="columnsTriggerText" placement="top">
@@ -214,6 +222,10 @@ const iconSettings = Setting;
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
+}
+/* tools 分区（分页行只保留工具区）：内容右对齐 */
+.re-table-toolbar--tools {
+  justify-content: flex-end;
 }
 .re-table-toolbar__left {
   display: flex;

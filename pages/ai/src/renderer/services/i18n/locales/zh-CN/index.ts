@@ -42,6 +42,7 @@ import browser from './browser.json';
 import ssh from './ssh.json';
 import miniApps from './miniApps.json';
 import bots from './bots.json';
+import imageSpace from './imageSpace.json';
 
 export default {
   common,
@@ -83,4 +84,5 @@ export default {
   ssh,
   miniApps,
   bots,
+  imageSpace,
 };

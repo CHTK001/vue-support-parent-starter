@@ -53,7 +53,16 @@ const SkillDetailDrawer: React.FC<SkillDetailDrawerProps> = ({
       const nextContent = await readSkillContent(skill, {
         readBuiltinSkill: (relativeLocation) =>
           ipcBridge.fs.readBuiltinSkill.invoke({ file_name: relativeLocation }),
-        readFile: (location) => ipcBridge.fs.readFile.invoke({ path: location }),
+        readFile: async (location) => {
+          // location is the skill DIRECTORY (from GET /api/skills); the canonical
+          // document is its SKILL.md (or lowercase skill.md), not the dir itself.
+          const base = location.replace(/[\\/]+$/, '');
+          const read = (fileName: string) =>
+            ipcBridge.fs.readFile.invoke({ path: `${base}/${fileName}` });
+          const primary = await read('SKILL.md');
+          if (primary !== null) return primary;
+          return read('skill.md');
+        },
       });
       if (requestId !== requestIdRef.current) return;
       setContent(nextContent);

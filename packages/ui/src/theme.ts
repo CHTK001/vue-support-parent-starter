@@ -10,6 +10,7 @@
  *     koi: () => import("./theme/koi/ReCard.vue"),
  *   });
  */
+import { defineAsyncComponent } from "vue";
 import type { App, Component, Plugin } from "vue";
 import { getConfig } from "@repo/config";
 
@@ -60,10 +61,11 @@ export function defineThemeComponent(
   name: string,
   map: ThemeComponentMap,
 ): ThemedComponent {
-  const component = () => loadThemedComponent(map);
+  // component 必须是 Vue 可渲染的组件（而非"返回 Promise 的函数"）——
+  // 否则模板里 <ReIcon> 会被当作函数式组件调用，渲染出 "[object Promise]"
+  const component = defineAsyncComponent(() => loadThemedComponent(map));
   const install = async (app: App) => {
-    const comp = await component();
-    app.component(name, comp);
+    app.component(name, await loadThemedComponent(map));
   };
   return { install, component };
 }

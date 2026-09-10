@@ -1,9 +1,13 @@
 <template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
+<!-- 分组菜单：meta.isGroup → 分组标题 + 组内平铺 items -->
+    <el-menu-item-group v-if="item.meta?.isGroup && item.children?.length" :title="getMenuLanguage(item.meta?.title)">
+      <ReAsideSubMenu :menuList="item.children" />
+    </el-menu-item-group>
 <!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
 	<el-menu-item
-		v-if="collapseSingleChild && item.children?.length === 1"
+		v-else-if="collapseSingleChild && item.children?.length === 1"
 		:index="item.children[0].path"
 		@click="handleMenuRouter(item.children[0])"
 	>
@@ -45,6 +49,7 @@
               <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
             </div>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
+            <span v-if="item.meta?.badge" class="menu-badge">{{ item.meta.badge }}</span>
           </div>
         </el-tooltip>
       </template>
@@ -203,6 +208,34 @@ const handleMenuRouter = (value: any) => {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
   }
+}
+
+/** 菜单徽标（meta.badge） */
+.menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--el-menu-active-text-color);
+  background: var(--el-color-danger);
+  border-radius: 8px;
+}
+
+/** 分组菜单标题（meta.isGroup） */
+:deep(.el-menu-item-group__title) {
+  padding-top: 12px;
+  padding-bottom: 4px;
+  padding-left: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-menu-text-color, #909399);
+  text-transform: none;
+  pointer-events: none;
 }
 </style>
 
