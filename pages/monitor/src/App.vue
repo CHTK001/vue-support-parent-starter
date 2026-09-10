@@ -84,17 +84,6 @@ const activeTab = ref('dashboard')
 const currentTime = ref('')
 const route = useRoute()
 
-// 支持从 URL query 切换 tab（如告警中心跳转 /?tab=alarm）
-watch(
-  () => route.query.tab,
-  (tab) => {
-    if (typeof tab === 'string' && tabs.some(t => t.key === tab)) {
-      activeTab.value = tab
-    }
-  },
-  { immediate: true },
-)
-
 const tabs = [
   { key: 'overview', label: '概览', icon: 'DataBoard' },
   { key: 'assets', label: '资产', icon: 'Monitor' },
@@ -109,6 +98,17 @@ const tabs = [
   { key: 'snippets', label: '片段管理', icon: 'Document' },
   { key: 'config', label: '配置', icon: 'Setting' },
 ]
+
+// 支持从 URL query 切换 tab（如告警中心跳转 /?tab=alarm）
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (typeof tab === 'string' && tabs.some(t => t.key === tab)) {
+      activeTab.value = tab
+    }
+  },
+  { immediate: true },
+)
 
 let clockTimer: any = null
 const updateClock = () => {

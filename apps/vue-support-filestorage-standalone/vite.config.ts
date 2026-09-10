@@ -34,7 +34,7 @@ export default defineConfig({
       },
     },
   },
-  base: "/fs/",
+  base: "/",
   server: {
     proxy: {
       "/ot": { target: "http://127.0.0.1:18080", changeOrigin: true },
