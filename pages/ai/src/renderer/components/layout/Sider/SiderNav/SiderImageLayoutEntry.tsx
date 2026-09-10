@@ -7,11 +7,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { ImageFiles } from '@icon-park/react';
+import { Format } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
-interface SiderImageSpaceEntryProps {
+interface SiderImageLayoutEntryProps {
   isMobile: boolean;
   isActive: boolean;
   collapsed: boolean;
@@ -20,10 +20,9 @@ interface SiderImageSpaceEntryProps {
 }
 
 /**
- * SiderImageSpaceEntry — 图像空间入口
- * 包含人脸识别、OCR、图片识别、布局检测
+ * SiderImageLayoutEntry — 图像空间分区下的「布局检测」子菜单。
  */
-const SiderImageSpaceEntry: React.FC<SiderImageSpaceEntryProps> = ({
+const SiderImageLayoutEntry: React.FC<SiderImageLayoutEntryProps> = ({
   isMobile,
   isActive,
   collapsed,
@@ -34,7 +33,7 @@ const SiderImageSpaceEntry: React.FC<SiderImageSpaceEntryProps> = ({
 
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('imageSpace.title')} position='right'>
+      <Tooltip {...siderTooltipProps} content={t('imageSpace.tabs.layout')} position='right'>
         <div
           className={classNames(
             'w-full h-28px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
@@ -42,16 +41,14 @@ const SiderImageSpaceEntry: React.FC<SiderImageSpaceEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <span className='relative block leading-none shrink-0' style={{ lineHeight: 0 }}>
-            <ImageFiles theme='outline' size='20' fill='currentColor' className='block leading-none' />
-          </span>
+          <Format theme='outline' size='20' fill='currentColor' className='block leading-none' />
         </div>
       </Tooltip>
     );
   }
 
   return (
-    <Tooltip {...siderTooltipProps} content={t('imageSpace.title')} position='right'>
+    <Tooltip {...siderTooltipProps} content={t('imageSpace.tabs.layout')} position='right'>
       <div
         className={classNames(
           'box-border group h-28px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
@@ -61,18 +58,14 @@ const SiderImageSpaceEntry: React.FC<SiderImageSpaceEntryProps> = ({
         onClick={onClick}
       >
         <span className='relative size-22px flex items-center justify-center shrink-0'>
-          <ImageFiles
-            theme='outline'
-            size='16'
-            fill='currentColor'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
+          <Format theme='outline' size='16' fill='currentColor' className='block leading-none' />
         </span>
-        <span className='collapsed-hidden text-14px font-[500] leading-24px'>{t('imageSpace.title')}</span>
+        <span className='collapsed-hidden text-14px font-[500] leading-24px'>
+          {t('imageSpace.tabs.layout')}
+        </span>
       </div>
     </Tooltip>
   );
 };
 
-export default SiderImageSpaceEntry;
+export default SiderImageLayoutEntry;

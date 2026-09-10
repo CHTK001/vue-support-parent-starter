@@ -6,7 +6,7 @@
  * 目录点击进入（面包屑导航）、文件弹窗预览（图片大图查看 / 文本 / PDF / 音视频）、
  * 上传（支持当前子目录）、下载、存在性检查与删除。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Back,
@@ -18,10 +18,6 @@ import {
   Refresh,
   Search,
   Upload,
- FullScreen,
-  ZoomIn,
-  ZoomOut,
-  RefreshRight,
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_BUCKET,
@@ -38,6 +34,8 @@ import {
   setServerBase,
 } from "../api/filestorageApi";
 import type { StorageObject } from "../api/filestorageApi";
+import PreviewIframePanel from "../components/PreviewIframePanel.vue";
+import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 
 /** 预览类型 */
 type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "unknown";
@@ -266,6 +264,10 @@ const previewZoom = ref(100);
 const previewError = ref(false);
 /** iframe 加载计数器（用于强制刷新） */
 const iframeKey = ref(0);
+/** 预览文件元信息 */
+const previewMeta = ref<{ size?: number; lastModified?: number }>({});
+/** iframe 加载中状态（用于 iframe 骨架屏 overlay） */
+const iframeLoading = ref(false);
 
 /**
  * 打开预览弹窗
@@ -284,6 +286,8 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewZoom.value = 100;
   previewError.value = false;
   previewLoading.value = true;
+  iframeLoading.value = ["pdf", "office", "font"].includes(kind);
+  previewMeta.value = { size: row.size, lastModified: row.lastModified };
   previewVisible.value = true;
 
   if (kind === "text") {
@@ -303,38 +307,36 @@ async function openPreview(row: StorageObject): Promise<void> {
  */
 const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
 
-/** 缩放控制 */
-function zoomIn(): void {
-  previewZoom.value = Math.min(previewZoom.value + 25, 300);
-}
-function zoomOut(): void {
-  previewZoom.value = Math.max(previewZoom.value - 25, 25);
-}
-function zoomReset(): void {
-  previewZoom.value = 100;
-}
-/** 全屏切换（iframe 容器） */
-const previewFrameRef = ref<HTMLIFrameElement>();
 
 /** iframe 加载完成回调 */
 function onFrameLoad(): void {
   previewLoading.value = false;
+  iframeLoading.value = false;
   previewError.value = false;
 }
 /** iframe 加载失败回调 */
 function onFrameError(): void {
   previewLoading.value = false;
+  iframeLoading.value = false;
   previewError.value = true;
 }
 /** 重试加载 */
 function retryPreview(): void {
   previewError.value = false;
   previewLoading.value = true;
+  iframeLoading.value = ["pdf", "office", "font"].includes(previewKind.value);
   iframeKey.value++;
 }
 
+/** iframe 面板引用 */
+const iframePanelRef = ref<InstanceType<typeof PreviewIframePanel>>();
+/** 图片面板引用 */
+const imagePanelRef = ref<InstanceType<typeof PreviewImagePanel>>();
+
+
+/** 全屏切换（iframe 容器） */
 function toggleFullscreen(el?: HTMLElement): void {
-  const target = el || (previewFrameRef.value as unknown as HTMLElement)?.parentElement;
+  const target = el || iframePanelRef.value?.wrapRef || imagePanelRef.value?.wrapRef;
   if (!target) return;
   if (document.fullscreenElement) {
     document.exitFullscreen();
@@ -342,6 +344,70 @@ function toggleFullscreen(el?: HTMLElement): void {
     target.requestFullscreen();
   }
 }
+
+
+
+/** 预览弹窗键盘快捷键 */
+function onPreviewKeydown(e: KeyboardEvent): void {
+  // 忽略输入框内的按键
+  const tag = (e.target as HTMLElement)?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+  switch (e.key) {
+    case "+":
+    case "=":  // Shift+= 也是 +
+      e.preventDefault();
+      previewZoom.value = Math.min(previewZoom.value + 25, 300);
+      break;
+    case "-":
+      e.preventDefault();
+      previewZoom.value = Math.max(previewZoom.value - 25, 25);
+      break;
+    case "0":
+    case "r":
+    case "R":
+      e.preventDefault();
+      previewZoom.value = 100;
+      break;
+    case "f":
+    case "F":
+      if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      break;
+    case "?":
+      e.preventDefault();
+      if (previewKind.value === "image") {
+        imagePanelRef.value?.toggleHelp();
+      } else {
+        iframePanelRef.value?.toggleHelp();
+      }
+      break;
+    case "Escape":
+      // 如果处于全屏模式，先退出全屏，阻止 el-dialog 同时关闭
+      if (document.fullscreenElement) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.exitFullscreen();
+      }
+      // 否则由 el-dialog 自己处理 Escape 关闭弹窗
+      break;
+  }
+}
+
+// 预览弹窗打开时注册快捷键，关闭时移除
+watch(previewVisible, (visible) => {
+  if (visible) {
+    document.addEventListener("keydown", onPreviewKeydown);
+  } else {
+    document.removeEventListener("keydown", onPreviewKeydown);
+  }
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", onPreviewKeydown);
+});
 
 /* ================== 操作 ================== */
 
@@ -551,6 +617,14 @@ onMounted(() => {
       destroy-on-close
       append-to-body
     >
+      <!-- 文件元信息（仅预览内容就绪后显示） -->
+      <div v-if="previewMeta.size != null && !previewLoading && !previewError" class="filestorage-preview__meta">
+        <span class="filestorage-preview__meta-item">
+          <el-tag size="small" type="info">{{ previewKind }}</el-tag>
+        </span>
+        <span class="filestorage-preview__meta-item">{{ formatSize(previewMeta.size) }}</span>
+        <span class="filestorage-preview__meta-item" v-if="previewMeta.lastModified">{{ formatTime(previewMeta.lastModified) }}</span>
+      </div>
       <div class="filestorage-preview">
         <!-- 骨架屏加载中 -->
         <div v-if="previewLoading" class="filestorage-preview__skeleton">
@@ -568,56 +642,45 @@ onMounted(() => {
           </el-empty>
         </div>
 
-        <!-- 图片：el-image 内置查看器（点击可全屏缩放/旋转） -->
+        <!-- 图片：工具栏 + 缩放 + 全屏 -->
         <template v-else-if="previewKind === 'image'">
-          <el-image
+          <PreviewImagePanel
+            ref="imagePanelRef"
+            v-model:zoom="previewZoom"
             :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
-            :preview-src-list="[previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')]"
-            fit="contain"
-            class="filestorage-preview__image"
-            hide-on-click-modal
-            @error="previewError = true"
+            :alt="previewName"
+            @fullscreen="toggleFullscreen()"
             @load="previewLoading = false"
-          >
-            <template #error>
-              <el-empty description="图片加载失败">
-                <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
-              </el-empty>
-            </template>
-          </el-image>
-          <div class="filestorage-preview__tip">点击图片可进入全屏查看（滚轮缩放、旋转）</div>
+            @error="previewError = true"
+          />
         </template>
 
         <!-- PDF：内嵌 iframe（服务端支持 Range 分段加载） -->
-        <iframe
-          v-else-if="previewKind === 'pdf'"
-          :key="iframeKey"
-          :src="previewSrc"
-          class="filestorage-preview__frame"
-          @load="onFrameLoad"
-          @error="onFrameError"
-        />
+        <template v-else-if="previewKind === 'pdf'">
+          <PreviewIframePanel
+            ref="iframePanelRef"
+            v-model:zoom="previewZoom"
+            :src="previewSrc + '#toolbar=0&zoom=page-width'"
+            :loading="iframeLoading"
+            :frame-key="iframeKey"
+            @fullscreen="toggleFullscreen()"
+            @load="onFrameLoad"
+            @error="onFrameError"
+          />
+        </template>
 
         <!-- Office 文档：服务端 SPI(Univer 等) 转 HTML 后 iframe 渲染 -->
         <template v-else-if="previewKind === 'office'">
-          <div class="filestorage-preview__toolbar">
-            <el-button-group>
-              <el-button :icon="ZoomOut" size="small" @click="zoomOut" :disabled="previewZoom <= 25" title="缩小" />
-              <el-button size="small" class="!px-3" disabled>{{ previewZoom }}%</el-button>
-              <el-button :icon="ZoomIn" size="small" @click="zoomIn" :disabled="previewZoom >= 300" title="放大" />
-              <el-button :icon="RefreshRight" size="small" @click="zoomReset" title="重置" />
-            </el-button-group>
-            <el-button :icon="FullScreen" size="small" @click="toggleFullscreen()" title="全屏" />
-          </div>
-          <div class="filestorage-preview__frame-wrap" :style="{ transform: `scale(${previewZoom / 100})`, transformOrigin: 'top center' }">              <iframe
-              ref="previewFrameRef"
-              :key="iframeKey"
-              :src="previewSrc + '?preview=true'"
-              class="filestorage-preview__frame"
-              @load="onFrameLoad"
-              @error="onFrameError"
-            />
-          </div>
+          <PreviewIframePanel
+            ref="iframePanelRef"
+            v-model:zoom="previewZoom"
+            :src="previewSrc + '?preview=true'"
+            :loading="iframeLoading"
+            :frame-key="iframeKey"
+            @fullscreen="toggleFullscreen()"
+            @load="onFrameLoad"
+            @error="onFrameError"
+          />
         </template>
 
         <!-- 视频 -->
@@ -642,24 +705,16 @@ onMounted(() => {
 
         <!-- 字体 -->
         <template v-else-if="previewKind === 'font'">
-          <div class="filestorage-preview__toolbar">
-            <el-button-group>
-              <el-button :icon="ZoomOut" size="small" @click="zoomOut" :disabled="previewZoom <= 25" title="缩小" />
-              <el-button size="small" class="!px-3" disabled>{{ previewZoom }}%</el-button>
-              <el-button :icon="ZoomIn" size="small" @click="zoomIn" :disabled="previewZoom >= 300" title="放大" />
-              <el-button :icon="RefreshRight" size="small" @click="zoomReset" title="重置" />
-            </el-button-group>
-            <el-button :icon="FullScreen" size="small" @click="toggleFullscreen()" title="全屏" />
-          </div>
-          <div class="filestorage-preview__frame-wrap" :style="{ transform: `scale(${previewZoom / 100})`, transformOrigin: 'top center' }">
-            <iframe
-              :key="iframeKey"
-              :src="previewSrc + '?preview=true'"
-              class="filestorage-preview__frame"
-              @load="onFrameLoad"
-              @error="onFrameError"
-            />
-          </div>
+          <PreviewIframePanel
+            ref="iframePanelRef"
+            v-model:zoom="previewZoom"
+            :src="previewSrc + '?preview=true'"
+            :loading="iframeLoading"
+            :frame-key="iframeKey"
+            @fullscreen="toggleFullscreen()"
+            @load="onFrameLoad"
+            @error="onFrameError"
+          />
         </template>
 
         <!-- 文本类 -->
@@ -807,36 +862,7 @@ onMounted(() => {
   justify-content: center;
 }
 
-.filestorage-preview__image {
-  max-width: 100%;
-  max-height: 60vh;
-  border-radius: 8px;
-}
 
-.filestorage-preview__frame {
-  width: 100%;
-  height: 65vh;
-  border: none;
-  border-radius: 8px;
-  background: var(--el-bg-color-page);
-}
-
-/* iframe 缩放容器 */
-.filestorage-preview__frame-wrap {
-  width: 100%;
-  transition: transform 0.2s ease;
-  overflow: visible;
-}
-
-/* 预览工具栏 */
-.filestorage-preview__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 0;
-  width: 100%;
-}
 
 .filestorage-preview__media {
   max-width: 100%;
@@ -859,10 +885,26 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.filestorage-preview__tip {
+.filestorage-preview__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 6px 0 2px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 8px;
+  width: 100%;
 }
+
+.filestorage-preview__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+
 
 /* 全屏模式下 iframe 容器适配 */
 :fullscreen .filestorage-preview__frame-wrap {
@@ -876,11 +918,4 @@ onMounted(() => {
   border-radius: 0;
 }
 
-:fullscreen .filestorage-preview__toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--el-bg-color);
-  padding: 10px 0;
-}
 </style>

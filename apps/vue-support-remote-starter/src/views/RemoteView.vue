@@ -16,7 +16,7 @@
         </div>
         <div class="form-field">
           <label class="form-label">目标被控端</label>
-          <ReInput v-model="form.targetAgentId" placeholder="被控端 id" clearable data-testid="input-agent" @input="onAgentIdChange" />
+          <ReSelect v-model="form.targetAgentId" :data="agentOptions" placeholder="选择被控端" clearable data-testid="input-agent" @change="onAgentIdChange" @visible-change="(v: boolean) => { if (v) loadAgentList(); }" />
         </div>
         <div class="form-field">
           <label class="form-label">验证码</label>
@@ -41,15 +41,15 @@
     <section class="remote-right">
       <div class="screen-header">
         <span class="screen-title">远控画面</span>
-        <el-tag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</el-tag>
+        <ReTag :type="statusTag.type" size="small" data-testid="ws-status">{{ statusTag.text }}</ReTag>
       </div>
       <div class="screen-body">
         <div v-if="form.connMethod === 'ssh'" class="ssh-area">
-          <ReInput v-model="form.sshHost" placeholder="SSH 目标主机（默认 local）" clearable data-testid="input-sshhost" />
           <div
             ref="terminalRef"
             class="terminal-container"
             data-testid="terminal"
+            @keydown="onTerminalKeydown"
           />
           <div v-if="!connected" class="terminal-overlay" data-testid="terminal-overlay">
             <ReEmpty description="未连接——填写连接信息后点击连接" :image-size="60" />
@@ -93,7 +93,6 @@ const form = reactive({
   accessToken: "",
   targetAgentId: "",
   verifyCode: "",
-  sshHost: "local",
   connMethod: "ssh",
   reverseTunnel: false,
 });
@@ -114,41 +113,40 @@ interface AgentInfo {
 
 const currentAgent = ref<AgentInfo | null>(null);
 
-/** 可用连接方式——根据 agent 能力动态生成 */
-const connMethodOptions = computed(() => {
+/** 全部连接方式（含隐藏的 ssh-direct） */
+const allMethodOptions = computed(() => {
   const agent = currentAgent.value;
-  if (!agent) return [{ label: "SSH", value: "ssh" }];
-  const methods: Array<{ label: string; value: string }> = [];
-  const isDesktop = agent.desktopSupported || agent.platform?.toLowerCase().includes("windows");
-  const isLinux = agent.platform?.toLowerCase().includes("linux");
+  const base: Array<{ label: string; value: string }> = [
+    { label: "SSH", value: "ssh" },
+    { label: "SSH 直连", value: "ssh-direct" },
+  ];
+  const isDesktop = agent?.desktopSupported || agent?.platform?.toLowerCase().includes("windows");
+  const isLinux = agent?.platform?.toLowerCase().includes("linux");
 
-  switch (agent.agentType) {
-    case "SHELL":
-      methods.push({ label: "SSH", value: "ssh" });
-      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
-      if (isDesktop) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
-      break;
-    case "PUSH":
-      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
-      if (isDesktop && !isLinux) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
-      break;
-    case "FORWARD":
-      methods.push({ label: "SSH", value: "ssh" });
-      if (isDesktop) methods.push({ label: "远程桌面 (VNC)", value: "vnc" });
-      if (isDesktop && !isLinux) methods.push({ label: "远程桌面 (RDP)", value: "rdp" });
-      break;
-    default:
-      methods.push({ label: "SSH", value: "ssh" });
+  if (agent) {
+    if (agent.agentType === "SHELL" || agent.agentType === "FORWARD") {
+      if (isDesktop) base.push({ label: "远程桌面 (VNC)", value: "vnc" });
+      if (isDesktop && !isLinux) base.push({ label: "远程桌面 (RDP)", value: "rdp" });
+    } else if (agent.agentType === "PUSH") {
+      if (isDesktop) base.push({ label: "远程桌面 (VNC)", value: "vnc" });
+      if (isDesktop && !isLinux) base.push({ label: "远程桌面 (RDP)", value: "rdp" });
+    }
+  } else {
+    base.push({ label: "远程桌面 (VNC)", value: "vnc" });
+    base.push({ label: "远程桌面 (RDP)", value: "rdp" });
   }
-  return methods;
+  return base;
 });
+
+/** 下拉显示项：ssh-direct 隐藏 */
+const connMethodOptions = computed(() =>
+  allMethodOptions.value.filter((o) => o.value !== "ssh-direct"),
+);
 
 const connected = ref(false);
 const h264Mode = ref(false);
 const screenRef = ref<HTMLCanvasElement | null>(null);
 const terminalRef = ref<HTMLDivElement | null>(null);
-let term: Terminal | null = null;
-let fitAddon: FitAddon | null = null;
 let ws: WebSocket | null = null;
 let sshSessionId: string | null = null;
 let vncSessionId: string | null = null;
@@ -179,6 +177,28 @@ const fetchAgentCapabilities = async () => {
   } catch { /* ignore */ }
 };
 
+/** 被控端下拉选项（/api/remote/agents——SSH 接入为"服务器 SSH"——agent 部署在目标服务器） */
+const agentOptions = ref<Array<{ label: string; value: string }>>([]);
+const loadAgentList = async () => {
+  try {
+    const resp = await fetch("/api/remote/agents");
+    if (!resp.ok) return;
+    const list: AgentInfo[] = await resp.json();
+    agentOptions.value = list.map((a) => ({
+      label: `${a.id}（${a.agentType === "PUSH" ? "服务器监控" : "服务器 SSH" + (a.desktopSupported ? "/桌面" : "")}）`,
+      value: a.id,
+    }));
+    // 零输入：默认预填 local-ssh（若存在）
+    if (!form.targetAgentId) {
+      const preset = list.find((a) => a.id === "local-ssh") ?? list[0];
+      if (preset) {
+        form.targetAgentId = preset.id;
+        onAgentIdChange();
+      }
+    }
+  } catch { /* ignore */ }
+};
+
 const connect = async () => {
   if (!form.targetAgentId || !form.verifyCode) {
     ElMessage.warning("请填写被控端 id 和验证码");
@@ -192,8 +212,7 @@ const connect = async () => {
     // HTTP=9001（REST/验证），SSH/VNC/RDP 会话 WS=9003（分离端口）——从 settings 取
     const httpUrl = serverConfig.httpUrl || `http://${location.hostname || "localhost"}:9001`;
     const wsBase = serverConfig.wsUrl || `ws://${location.hostname || "localhost"}:9003`;
-    const wsPath = form.connMethod === "vnc" ? "vnc" : form.connMethod === "rdp" ? "rdp" : "ssh";
-    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/${wsPath}/${form.targetAgentId}`;
+    const wsPath = form.connMethod === "vnc" ? "vnc" : form.connMethod === "rdp" ? "rdp" : "ssh";    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/${wsPath}/${form.targetAgentId}`;
 
     const verifyResp = await fetch(`${httpUrl}/verify`, {
       method: "POST",
@@ -235,12 +254,9 @@ const disconnect = () => {
   sshSessionId = null; vncSessionId = null;
 };
 
-const appendTerminalOutput = (text: string, isError = false) => {
-
 const startSSHSession = () => {
   sshSessionId = "ssh-" + Date.now();
-  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, host: form.sshHost || "local", cols: 80, rows: 24 }));
-  appendTerminalOutput("SSH 会话已启动\n");
+  ws!.send(JSON.stringify({ action: "ssh", sshAction: "start", sessionId: sshSessionId, cols: 80, rows: 24 }));
 };
 
 const startVNCSession = () => {
@@ -249,7 +265,8 @@ const startVNCSession = () => {
 };
 
 const handleTextMessage = (msg: any) => {
-  if (msg.type === "ssh" && msg.data?.length) appendTerminalOutput(msg.data);
+  // SSH 回传帧特征：带 stream 字段（stdout/stderr/ssh）+ data——type 是 connected/started/output/stopped（非 "ssh"！）
+  if (msg.stream && msg.data?.length) appendTerminalOutput(msg.data);
 };
 
 const handleFrame = (data: unknown) => {
@@ -277,7 +294,12 @@ const renderJpeg = (bytes: Uint8Array) => {
 };
 
 const appendTerminalOutput = (text: string) => {
-  if (term) term.write(text);
+  if (!terminalRef.value) return;
+  const span = document.createElement("span");
+  span.style.color = "#e6e6e6";
+  span.textContent = text;
+  terminalRef.value.appendChild(span);
+  terminalRef.value.scrollTop = terminalRef.value.scrollHeight;
 };
 
 const sendVncInput = (payload: any) => {
@@ -328,7 +350,6 @@ const loadSession = (s: { data: string }) => {
     form.accessToken = d.accessToken || "";
     form.targetAgentId = d.targetAgentId || "";
     form.verifyCode = d.verifyCode || "";
-    form.sshHost = d.sshHost || "local";
     form.connMethod = d.connMethod || "ssh";
     form.reverseTunnel = d.reverseTunnel || false;
     if (d.gateway) serverConfig.gatewayUrl = d.gateway;
@@ -345,6 +366,8 @@ onMounted(async () => {
   if (!form.verifyCode) form.verifyCode = "0000";
   if (!form.accessToken) form.accessToken = "ctrl-token-1";
   await loadSettings();
+  // 被控端下拉：加载 agent 接入列表（含 SSH 接入 local-ssh）
+  await loadAgentList();
   if (route.query.agentId) { form.targetAgentId = String(route.query.agentId); fetchAgentCapabilities(); }
   if (route.query.verifyCode) form.verifyCode = String(route.query.verifyCode);
 });
@@ -353,25 +376,112 @@ onBeforeUnmount(() => { ws?.close(); if (agentSearchTimer) clearTimeout(agentSea
 </script>
 
 <style lang="scss" scoped>
-.remote-view { display: flex; height: 100%; gap: 16px; padding: 16px; box-sizing: border-box; }
-.remote-left { width: 320px; flex-shrink: 0; padding: 16px; background: #fff; border-radius: 8px; border: 1px solid var(--el-border-color-lighter); overflow-y: auto; }
-.form-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--el-text-color-primary); }
+// 全部使用 element-plus 默认 CSS 变量（--el-*）——默认主题，不自定义色板
+
+.remote-view {
+  display: flex;
+  height: 100%;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
+  background: var(--el-fill-color-lighter);
+}
+
+.remote-left {
+  width: 320px;
+  flex-shrink: 0;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.form-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--el-text-color-primary);
+}
+
 .remote-form { display: flex; flex-direction: column; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 4px; }
 .form-field--switch { flex-direction: row; align-items: center; justify-content: space-between; }
 .form-label { font-size: 12px; font-weight: 500; color: var(--el-text-color-secondary); }
 .remote-actions { display: flex; gap: 8px; margin-top: 4px; }
-.remote-right { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid var(--el-border-color-lighter); overflow: hidden; }
-.screen-header { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--el-border-color-lighter); flex-shrink: 0; }
-.screen-title { font-size: 14px; font-weight: 600; }
+
+.remote-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  flex-shrink: 0;
+  background: var(--el-fill-color-lighter);
+}
+
+.screen-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .screen-body { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; background: #0d1117; }
 .screen-canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto; outline: none; cursor: crosshair; }
 .screen-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(13, 17, 23, 0.85); }
 .ssh-area { flex: 1; display: flex; flex-direction: column; position: relative; }
-.terminal-container { flex: 1; background: #0c0c0c; color: #e6e6e6; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; padding: 12px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; min-height: 0; outline: none; cursor: text; &:focus { box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4); } }
+
+.terminal-container {
+  flex: 1;
+  background: #0d1117;
+  color: #e6e6e6;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 0;
+  outline: none;
+  cursor: text;
+  &:focus { box-shadow: inset 0 0 0 1px var(--el-color-primary); }
+}
+
 .terminal-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12, 12, 12, 0.85); }
-.session-list { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
-.session-item { padding: 6px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; &:hover { background: #f5f7fa; } }
+
+.session-list {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.session-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: background 0.15s ease;
+  &:hover { background: var(--el-fill-color-light); }
+}
+
 .session-name { color: var(--el-text-color-primary); }
 .session-empty { font-size: 12px; color: var(--el-text-color-placeholder); padding: 8px 0; }
 </style>

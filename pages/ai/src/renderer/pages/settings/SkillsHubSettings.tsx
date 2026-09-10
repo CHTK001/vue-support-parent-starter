@@ -87,6 +87,17 @@ const SkillsHubSettings: React.FC = () => {
     [builtinAutoSkills]
   );
 
+  // Source breakdown for the library overview strip.
+  const sourceStats = useMemo(() => {
+    const counts = { builtin: 0, custom: 0, extension: 0 };
+    for (const s of availableSkills) {
+      if (s.source === 'builtin') counts.builtin += 1;
+      else if (s.source === 'custom') counts.custom += 1;
+      else if (s.source === 'extension') counts.extension += 1;
+    }
+    return counts;
+  }, [availableSkills]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -314,11 +325,47 @@ const SkillsHubSettings: React.FC = () => {
                     message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
                   }}
                   title={t('common.refresh', { defaultValue: 'Refresh' })}
-                />
-              </div>
-            </div>
+                 />
+               </div>
+             </div>
 
-            {isSearchVisible && (
+             {/* Library overview — source breakdown at a glance */}
+             {!loading && availableSkills.length > 0 && (
+               <div
+                 data-testid='skills-library-overview'
+                 className='mb-10px flex flex-wrap items-center gap-6px rounded-10px bg-[var(--color-bg-2)] px-12px py-8px text-12px'
+               >
+                 <span className='font-600 text-t-primary'>
+                   {t('settings.skillsHub.overviewTotal', {
+                     count: availableSkills.length,
+                     defaultValue: `共 {{count}} 个技能`,
+                   })}
+                 </span>
+                 <span className='text-t-tertiary'>·</span>
+                 <span className='text-t-secondary'>
+                   {t('settings.skillsHub.builtin', { defaultValue: '内置' })} {sourceStats.builtin}
+                 </span>
+                 <span className='text-t-tertiary'>·</span>
+                 <span className='text-t-secondary'>
+                   {t('settings.skillsHub.custom', { defaultValue: '自定义' })} {sourceStats.custom}
+                 </span>
+                 {sourceStats.extension > 0 && (
+                   <>
+                     <span className='text-t-tertiary'>·</span>
+                     <span className='text-t-secondary'>
+                       {t('settings.skillsHub.sourceExtension', { defaultValue: '扩展' })} {sourceStats.extension}
+                     </span>
+                   </>
+                 )}
+                 <span className='ml-auto text-11px text-t-tertiary'>
+                   {t('settings.skillsHub.overviewHint', {
+                     defaultValue: '点击技能卡片可查看其 SKILL.md 内容',
+                   })}
+                 </span>
+               </div>
+             )}
+
+             {isSearchVisible && (
               <Input
                 allowClear
                 autoFocus

@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://127.0.0.1:9003/ws/vnc/agent-linux-001");
+const ws = new WebSocket("ws://127.0.0.1:9003/ws/vnc/agent-vnc-001");
 const frames = [];
 ws.onopen = () => {
   console.log("[open] vnc connected");

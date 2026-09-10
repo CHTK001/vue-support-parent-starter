@@ -19,7 +19,7 @@ import type { SkillInfo } from '@/renderer/pages/settings/PresetSettings/types';
 import { resolveSkillDisplay } from './skillDisplay';
 import { getAvatarColorClass, normalizeTestId } from './skillPresentation';
 import { Tag } from '@arco-design/web-react';
-import { Delete, Lightning, SettingOne } from '@icon-park/react';
+import { Delete, FileText, Lightning, SettingOne } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -152,6 +152,15 @@ const SkillCard: React.FC<SkillCardProps> = ({
               title={display.name}
             >
               {display.name}
+            </span>
+            <span
+              className='ml-6px inline-flex shrink-0 items-center gap-3px rounded-[100px] border border-solid border-[var(--color-border-2)] bg-[var(--color-fill-2)] px-6px py-0 text-10px leading-14px text-[var(--color-text-3)] opacity-0 transition-opacity duration-180 group-hover:opacity-100'
+              title={t('settings.skillsHub.viewContentHint', {
+                defaultValue: '点击卡片查看 SKILL.md 内容',
+              })}
+            >
+              <FileText size={11} />
+              {t('settings.skillsHub.viewContent', { defaultValue: '内容' })}
             </span>
           </div>
           <div className='flex h-14px items-center'>

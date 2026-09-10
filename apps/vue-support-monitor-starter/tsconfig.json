@@ -4,6 +4,7 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
+      "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
       "@pages/server/*": ["../../pages/server/*"],
       "@pages/server": ["../../pages/server/src/index.ts"],
       "@pages/monitor/*": ["../../pages/monitor/*"],

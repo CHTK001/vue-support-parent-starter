@@ -29,11 +29,13 @@ describe('remote session entry', () => {
     expect(popoverSource.includes('ipcBridge.ssh.create.invoke')).toBe(false);
   });
 
-  test('shares one launcher with the settings host book', () => {
-    // Two copies of "create a conversation with extra.ssh_host_id" would drift:
-    // the model check, the cache seeding and the history refresh all have to
-    // happen, and only the hook is guaranteed to do them.
-    expect(hostBookSource.includes('useOpenSshSession')).toBe(true);
+  test('host book opens an SSH terminal via the shared launch hook', () => {
+    // The settings host book now opens a real SSH PTY through
+    // useOpenSshTerminal (Xterm /terminal/:id). It must not grow a second
+    // conversation creator; the nomi conversation path stays in the sidebar's
+    // useOpenSshSession only.
+    expect(hostBookSource.includes('useOpenSshTerminal')).toBe(true);
+    expect(hostBookSource.includes('useOpenSshSession')).toBe(false);
     expect(hostBookSource.includes('conversation.create.invoke')).toBe(false);
   });
 

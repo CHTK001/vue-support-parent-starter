@@ -6,9 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import MarkdownView from '@/renderer/components/Markdown';
 import { useArcoMessage } from '@/renderer/utils/ui/useArcoMessage';
 import { Button, Checkbox, Drawer, Tag } from '@arco-design/web-react';
-import { CheckSmall, FolderOpen, ImportAndExport, Info, Refresh } from '@icon-park/react';
+import { CheckSmall, FileText, FolderOpen, ImportAndExport, Info, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -20,6 +21,7 @@ import {
   type AgentSkillImportRow,
   type ExternalAgentSkillSource,
 } from './agentSkillImportUtils';
+import { stripSkillFrontmatter } from './skillDetail';
 
 export type ImportedAgentSkill = {
   name: string;
@@ -87,6 +89,66 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
   const rowSignature = useMemo(
     () => rows.map((row) => `${row.key}:${row.alreadyImported ? '1' : '0'}`).join('|'),
     [rows]
+  );
+
+  // ---- 本机扫描内容预览（SKILL.md）----
+  const [contentCache, setContentCache] = useState<
+    Record<string, { loading: boolean; loaded: boolean; content: string; error?: string }>
+  >({});
+  const [expandedContentKeys, setExpandedContentKeys] = useState<string[]>([]);
+
+  const toggleContent = useCallback(
+    async (row: AgentSkillImportRow) => {
+      const key = row.key;
+      const cached = contentCache[key];
+      if (expandedContentKeys.includes(key) && !cached?.loading) {
+        setExpandedContentKeys((prev) => prev.filter((k) => k !== key));
+        return;
+      }
+      setExpandedContentKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+      if (cached && (cached.loaded || cached.loading)) return;
+      setContentCache((prev) => ({ ...prev, [key]: { loading: true, loaded: false, content: '' } }));
+      try {
+        let content = '';
+        let error: string | undefined;
+        if (row.path.startsWith('agent://')) {
+          const res = await ipcBridge.fs.readAgentSkillContent.invoke({
+            provider: row.source,
+            skill_name: row.name,
+          });
+          content = res.content ?? '';
+          if (!res.available && !content) error = res.error;
+        } else {
+          const dir = row.path.replace(/[\\/]+$/, '');
+          let fileContent = await ipcBridge.fs.readFile.invoke({ path: `${dir}/SKILL.md` });
+          if (fileContent === null) fileContent = await ipcBridge.fs.readFile.invoke({ path: `${dir}/skill.md` });
+          if (fileContent === null) {
+            error = t('settings.agentSkillImport.contentNotFound', {
+              defaultValue: '未找到 SKILL.md 内容文件',
+            });
+          } else {
+            content = fileContent;
+          }
+        }
+        setContentCache((prev) => ({ ...prev, [key]: { loading: false, loaded: true, content, error } }));
+      } catch (err) {
+        setContentCache((prev) => ({
+          ...prev,
+          [key]: {
+            loading: false,
+            loaded: true,
+            content: '',
+            error:
+              isBackendHttpError(err) && err.backendMessage
+                ? err.backendMessage
+                : t('settings.agentSkillImport.contentLoadFailed', {
+                    defaultValue: '内容加载失败',
+                  }),
+          },
+        }));
+      }
+    },
+    [contentCache, expandedContentKeys, t]
   );
 
   const fetchSources = useCallback(async () => {
@@ -312,31 +374,76 @@ const AgentSkillImportDrawer: React.FC<AgentSkillImportDrawerProps> = ({
                   data-testid={`agent-skill-import-row-${row.source}-${row.name}`}
                 >
                   <Checkbox checked={selectedKeySet.has(row.key)} onChange={() => toggleRow(row)} className='mt-2px' />
-                  <div className='min-w-0 flex-1'>
-                    <div className='flex items-center gap-8px min-w-0'>
-                      <span className='text-13px font-600 text-t-primary truncate' title={row.name}>
-                        {row.name}
-                      </span>
-                      <Tag size='small' bordered={false} className={sourceToneClass(row.source)}>
-                        {row.sourceName}
-                      </Tag>
-                      {row.alreadyImported && (
-                        <Tag size='small' bordered={false} className='!bg-[rgba(var(--success-6),0.1)] !text-success-6'>
-                          <span className='inline-flex items-center gap-3px'>
-                            <CheckSmall size={12} fill='currentColor' />
-                            {t('settings.agentSkillImport.alreadyImported', { defaultValue: 'In library' })}
-                          </span>
-                        </Tag>
-                      )}
-                    </div>
-                    <div className='mt-3px text-12px text-t-secondary line-clamp-2'>
-                      {row.description ||
-                        t('settings.skillsHub.noDescription', { defaultValue: 'No description provided.' })}
-                    </div>
-                    <div className='mt-4px text-11px text-t-tertiary truncate font-mono' title={row.path}>
-                      {row.path}
-                    </div>
-                  </div>
+                   <div className='min-w-0 flex-1'>
+                     <div className='flex items-center gap-8px min-w-0'>
+                       <span className='text-13px font-600 text-t-primary truncate' title={row.name}>
+                         {row.name}
+                       </span>
+                       <Tag size='small' bordered={false} className={sourceToneClass(row.source)}>
+                         {row.sourceName}
+                       </Tag>
+                       {row.alreadyImported && (
+                         <Tag size='small' bordered={false} className='!bg-[rgba(var(--success-6),0.1)] !text-success-6'>
+                           <span className='inline-flex items-center gap-3px'>
+                             <CheckSmall size={12} fill='currentColor' />
+                             {t('settings.agentSkillImport.alreadyImported', { defaultValue: 'In library' })}
+                           </span>
+                         </Tag>
+                       )}
+                       <span
+                         role='button'
+                         tabIndex={0}
+                         aria-expanded={expandedContentKeys.includes(row.key)}
+                         onClick={() => void toggleContent(row)}
+                         onKeyDown={(event) => {
+                           if (event.key === 'Enter' || event.key === ' ') {
+                             event.preventDefault();
+                             void toggleContent(row);
+                           }
+                         }}
+                         className={[
+                           'ml-auto inline-flex shrink-0 items-center gap-4px rounded-[100px] border border-solid px-8px py-2px text-11px font-600 transition-colors cursor-pointer outline-none',
+                           expandedContentKeys.includes(row.key)
+                             ? 'border-[rgba(var(--primary-6),0.35)] bg-[rgba(var(--primary-6),0.08)] text-primary-6'
+                             : 'border-[var(--color-border-2)] bg-fill-2 text-t-secondary hover:text-t-primary',
+                         ].join(' ')}
+                         data-testid={`btn-toggle-agent-skill-content-${row.source}-${row.name}`}
+                       >
+                         <FileText size={12} />
+                         {t('settings.agentSkillImport.viewContent', { defaultValue: '内容' })}
+                       </span>
+                     </div>
+                     <div className='mt-3px text-12px text-t-secondary line-clamp-2'>
+                       {row.description ||
+                         t('settings.skillsHub.noDescription', { defaultValue: 'No description provided.' })}
+                     </div>
+                     <div className='mt-4px text-11px text-t-tertiary truncate font-mono' title={row.path}>
+                       {row.path}
+                     </div>
+
+                     {expandedContentKeys.includes(row.key) && (
+                       <div
+                         className='mt-8px max-h-280px overflow-auto rounded-10px border border-solid border-[var(--color-border-1)] bg-[var(--color-bg-2)] p-10px'
+                         data-testid={`agent-skill-content-${row.source}-${row.name}`}
+                       >
+                         {contentCache[row.key]?.loading ? (
+                           <div className='text-12px text-t-tertiary'>
+                             {t('common.loading', { defaultValue: 'Loading...' })}
+                           </div>
+                         ) : contentCache[row.key]?.error ? (
+                           <div className='text-12px leading-18px text-t-tertiary'>{contentCache[row.key].error}</div>
+                         ) : contentCache[row.key]?.content ? (
+                           <MarkdownView hiddenCodeCopyButton className='text-13px' fontSize='13px' lineHeight='1.6'>
+                             {stripSkillFrontmatter(contentCache[row.key].content).trim()}
+                           </MarkdownView>
+                         ) : (
+                           <div className='text-12px text-t-tertiary'>
+                             {t('settings.agentSkillImport.contentEmpty', { defaultValue: 'No content available.' })}
+                           </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
                 </div>
               ))}
             </div>

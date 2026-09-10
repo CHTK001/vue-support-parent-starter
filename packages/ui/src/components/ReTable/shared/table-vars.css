@@ -38,6 +38,8 @@
   --rt-gap-sm: 8px;
   --rt-gap: 12px;
   --rt-gap-lg: 16px;
+  /* 组件内边距（.re-table 根容器与内容/工具栏的边缘距离） */
+  --rt-padding: 12px;
 
   /* 阴影 */
   --rt-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);

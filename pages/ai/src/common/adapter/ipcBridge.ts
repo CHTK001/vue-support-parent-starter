@@ -1327,6 +1327,16 @@ export const fs = {
     ISkillMarketMcpConfigResponse,
     { source: SkillMarketSource; id: string; url: string }
   >('/api/skills/market/mcp/config'),
+  /** 市场技能 SKILL.md 内容预览（尽力而为；GitHub 不可达时 available=false）。 */
+  previewMarketSkillContent: httpPost<
+    { content: string; available: boolean; source_url?: string },
+    { source: SkillMarketSource; id: string; url: string }
+  >('/api/skills/market/content'),
+  /** 本机 Agent 扫描技能的 SKILL.md 内容（provider + skill_name 解析本机落盘位置）。 */
+  readAgentSkillContent: httpPost<
+    { content: string; available: boolean; location?: string; error?: string },
+    { provider: string; skill_name: string }
+  >('/api/skills/agent/content'),
   installSkillMarketPackage: httpPost<
     ISkillMarketPackageInstallResponse,
     { source: SkillMarketSource; id: string; url: string }
