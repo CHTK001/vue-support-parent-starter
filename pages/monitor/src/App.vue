@@ -27,6 +27,7 @@
       </nav>
 
       <div class="top-right">
+        <ScAlarmCenter />
         <span class="clock">{{ currentTime }}</span>
         <ReDropdown trigger="click" placement="bottom-end">
           <div class="user-zone">
@@ -63,7 +64,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import ScAssetList from './views/ScAssetList.vue'
 import ScServerDashboard from './views/dashboard/ScServerDashboard.vue'
 import ScRedisDashboard from './views/redis-monitor/ScRedisDashboard.vue'
@@ -76,9 +78,22 @@ import ScRedisManager from './views/redis/ScRedisManager.vue'
 import ScConfigPanel from './views/config/ScConfigPanel.vue'
 import ScTsharkCapture from './views/tshark/ScTsharkCapture.vue'
 import ScTerminalSnippetManager from './views/ScTerminalSnippetManager.vue'
+import ScAlarmCenter from './components/ScAlarmCenter.vue'
 
 const activeTab = ref('dashboard')
 const currentTime = ref('')
+const route = useRoute()
+
+// 支持从 URL query 切换 tab（如告警中心跳转 /?tab=alarm）
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (typeof tab === 'string' && tabs.some(t => t.key === tab)) {
+      activeTab.value = tab
+    }
+  },
+  { immediate: true },
+)
 
 const tabs = [
   { key: 'overview', label: '概览', icon: 'DataBoard' },
