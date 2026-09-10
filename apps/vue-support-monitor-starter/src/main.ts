@@ -1,25 +1,19 @@
 /**
  * vue-support-monitor-starter 单页沉浸式控制台入口
  *
- * 模式：mode=single（不挂 koi layout 壳，不嵌「鲤」框架）
- * 用途：本地实时预览自研 UI —— 工作台 / 告警 / 资产 / 远控（design.md v2）
+ * 模式：mode=single + koi 单页面安装器（installKoi：ElementPlus/图标/指令/koi 全局样式与圆角令牌），
+ * 叠加本应用自研 UI —— 工作台 / 告警 / 资产 / 远控（design.md v2）
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
-import ElementPlus from "element-plus";
-import zhCn from "element-plus/es/locale/lang/zh-cn";
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import "element-plus/dist/index.css";
-import "element-plus/theme-chalk/dark/css-vars.css";
+import { installKoi } from "@repo/theme/koi/framework";
 import "./styles/tokens.css";
 import "./styles/pages.css";
-import { setupCommonDirectives } from "@repo/core";
-import { setupSvgSprite } from "@repo/assets";
 import { installUi } from "@repo/ui";
 import App from "./App.vue";
 import router from "./router";
 
-/** 本页可能用到的 Re* 组件 */
+/** 本页可能用到的 Re* 组件（ReIcon / ReScrollNav / ReDrawer 已由 installKoi 注册） */
 const MONITOR_RE_COMPONENTS = [
   "ReButton",
   "ReIcon",
@@ -50,13 +44,17 @@ const MONITOR_RE_COMPONENTS = [
   "ReTagFilter",
 ];
 
-async function installSinglePage(app: VueApp): Promise<void> {
-  setupSvgSprite();
-  app.use(ElementPlus, { locale: zhCn });
-  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component);
-  }
-  setupCommonDirectives(app);
+/**
+ * koi 单页面安装：
+ * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
+ *    （styles/index.scss：reset / theme-vars / 圆角令牌 radius / element 覆盖等）
+ * 2. installUi —— 按需注册本应用用到的 Re* 组件
+ *
+ * 样式加载顺序（import 提升后）：element css → koi 样式 → 本应用 tokens.css / pages.css，
+ * 应用自有令牌在后，冲突时应用层胜出。
+ */
+async function installKoiSinglePage(app: VueApp): Promise<void> {
+  await installKoi(app);
   await installUi(app, { components: MONITOR_RE_COMPONENTS });
 }
 
@@ -64,8 +62,16 @@ await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   mode: "single",
-  install: installSinglePage,
+  install: installKoiSinglePage,
 })
   .app(App)
   .use(router)
   .mount("#app");
+
+/** 预加载弹窗类组件链（ReDialog/ReSelect 的 koi 主题实现 + 懒加载布局），消除首次打开卡顿 */
+void import("@repo/ui/components/ReDialog");
+void import("@repo/ui/components/ReDialog/theme/koi/ReDialog.vue");
+void import("@repo/ui/components/ReDrawer");
+void import("@repo/ui/components/ReSelect");
+void import("@repo/ui/components/ReSelect/layouts/Square.vue");
+void import("@repo/ui/components/ReSelect/layouts/Modern.vue");
