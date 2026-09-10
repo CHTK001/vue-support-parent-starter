@@ -7,17 +7,31 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
+import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, saveHost, delHost, switchHost, getHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, saveIdentity, delIdentity } from "@pages/server/src/api";
 
 interface Host {
   id: number;
   serverHostName: string;
+  serverHostCode?: string | null;
   serverHostAddress: string;
   serverHostPort: number;
   serverHostOsType: string;
+  serverHostOsArch?: string | null;
+  serverHostOsVersion?: string | null;
+  serverHostCpuCores?: number | null;
+  serverHostMemoryMb?: number | null;
+  serverHostDiskGb?: number | null;
+  serverHostPublicIp?: string | null;
+  serverHostPrivateIp?: string | null;
   serverHostStatus: number;
   serverHostOnline: number;
   serverHostCollectMode: string;
+  serverHostCollectEnabled?: number;
+  serverHostCollectInterval?: number;
+  serverHostLastCollectTime?: string | null;
+  serverHostOnlineEnabled?: number;
+  serverHostOnlineInterval?: number;
   serverHostAgentEnabled: number;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
@@ -27,8 +41,12 @@ interface Host {
   serverHostTags?: string | null;
   /** 描述/备注（后端字段 msServerHostDescription） */
   serverHostDescription?: string | null;
-  /** 编码（后端字段 msServerHostCode） */
-  serverHostCode?: string | null;
+  /** 登录账号（瞬态，新增表单直接提交，不落库） */
+  serverHostAccount?: string | null;
+  /** 登录密码（瞬态） */
+  serverHostPassword?: string | null;
+  /** PEM 私钥（瞬态） */
+  serverHostPrivateKey?: string | null;
 }
 
 interface Group { id: number; msServerGroupName: string; }
@@ -40,11 +58,28 @@ const groups = ref<Group[]>([]);
 const identities = ref<Identity[]>([]);
 const loading = ref(false);
 const loadError = ref("");
-const keyword = ref("");
-const filterStatus = ref("");
-const filterGroup = ref<number | null>(null);
-const filterTag = ref("");
 const selection = ref<Host[]>([]);
+
+/** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
+const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });
+function onFilterChange(prop: string, value: unknown): void {
+  filterState.value[prop] = value;
+}
+function onFilterReset(): void {
+  filterState.value = { keyword: "", status: "", group: "", tag: "" };
+}
+
+/** ReFilter 筛选项配置 */
+const filterItems = computed<ReFilterItem[]>(() => [
+  { prop: "keyword", label: "名称/IP", type: "input", placeholder: "搜索名称 / IP", clearable: true, always: true },
+  { prop: "status", label: "状态", type: "select", placeholder: "状态", clearable: true, options: [
+    { label: "在线", value: "online" },
+    { label: "离线", value: "offline" },
+    { label: "远控启用", value: "remote" },
+  ], always: true },
+  { prop: "group", label: "分组", type: "select", placeholder: "分组", clearable: true, options: groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })), always: true },
+  { prop: "tag", label: "标签", type: "slot", always: false },
+]);
 
 /** 标签集合（用于筛选/展示） */
 const allTags = computed(() => {
@@ -110,15 +145,17 @@ const remoteCount = computed(() => hosts.value.filter(h => h.serverHostRemoteEna
 const offlineCount = computed(() => hosts.value.length - onlineCount.value);
 
 const filtered = computed(() => {
+  const fs = filterState.value;
   let list = hosts.value;
-  if (filterStatus.value === "online") list = list.filter(h => h.serverHostOnline === 1);
-  else if (filterStatus.value === "offline") list = list.filter(h => h.serverHostOnline !== 1);
-  else if (filterStatus.value === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
-  if (filterGroup.value != null) list = list.filter(h => h.serverGroupId === filterGroup.value);
-  if (filterTag.value) list = list.filter(h => splitTags(h.serverHostTags).includes(filterTag.value));
-  if (keyword.value) {
-    const k = keyword.value.toLowerCase();
-    list = list.filter(h => h.serverHostName.toLowerCase().includes(k) || h.serverHostAddress.toLowerCase().includes(k));
+  const status = String(fs.status ?? "");
+  if (status === "online") list = list.filter(h => h.serverHostOnline === 1);
+  else if (status === "offline") list = list.filter(h => h.serverHostOnline !== 1);
+  else if (status === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
+  if (fs.group != null && fs.group !== "") list = list.filter(h => h.serverGroupId === fs.group);
+  if (fs.tag) list = list.filter(h => splitTags(h.serverHostTags).includes(String(fs.tag)));
+  const kw = String(fs.keyword ?? "").toLowerCase();
+  if (kw) {
+    list = list.filter(h => h.serverHostName.toLowerCase().includes(kw) || h.serverHostAddress.toLowerCase().includes(kw));
   }
   return list;
 });
@@ -173,6 +210,22 @@ function openDetail(h: Host): void {
   router.push(`/host/${h.id}`);
 }
 
+/** 认证方式（表单用，不落库） */
+type AuthMethod = "PASSWORD" | "PUBLIC_KEY" | "IDENTITY";
+/** 采集方式选项 */
+const collectModes = [
+  { label: "定时采集", value: "SCHEDULED" },
+  { label: "Agent采集", value: "AGENT" },
+  { label: "HTTP采集", value: "HTTP" },
+  { label: "Prometheus采集", value: "PROMETHEUS" },
+];
+/** 认证方式选项 */
+const authMethods = [
+  { label: "账号密码", value: "PASSWORD" },
+  { label: "SSH私钥", value: "PUBLIC_KEY" },
+  { label: "已存身份", value: "IDENTITY" },
+];
+
 // ---- 新增/编辑表单 ----
 const formVisible = ref(false);
 const formSaving = ref(false);
@@ -180,11 +233,35 @@ const formIsEdit = ref(false);
 /** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
 const tagsText = ref("");
 const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" });
+/** 认证方式 */
+const formAuthMethod = ref<AuthMethod>("IDENTITY");
+/** 从身份列表选择 */
+const formIdentityId = ref<number | null>(null);
+const formIdentityChanged = ref(false);
+/** 登录凭据（瞬态） */
+const formAccount = ref("");
+const formPassword = ref("");
+const formPrivateKey = ref("");
+
 function resetForm(): void {
-  form.value = { serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED", serverGroupId: null, serverHostTags: "", serverHostDescription: "" };
+  form.value = {
+    serverHostName: "", serverHostAddress: "", serverHostPort: 22,
+    serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED",
+    serverGroupId: null, serverHostTags: "", serverHostDescription: "",
+    serverHostCode: "",
+    // 采集
+    serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
+    serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
+    // 远控
+    serverHostRemoteEnabled: 1, serverHostAgentEnabled: 0,
+  };
   tagsText.value = "";
+  formAuthMethod.value = "IDENTITY";
   formIdentityId.value = null;
   formIdentityChanged.value = false;
+  formAccount.value = "";
+  formPassword.value = "";
+  formPrivateKey.value = "";
   hostBoundIdentities.value = [];
 }
 
@@ -204,10 +281,6 @@ const connectVisible = ref(false);
 const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
 const hostBoundIdentities = ref<number[]>([]);
-/** 编辑表单里选中的登录身份 */
-const formIdentityId = ref<number | null>(null);
-/** 编辑表单是否显式绑定/解绑过身份 */
-const formIdentityChanged = ref(false);
 
 function openConnect(h: Host): void {
   connectTarget.value = h;
@@ -282,13 +355,18 @@ async function openEdit(h: Host): Promise<void> {
     form.value = { ...h };
   }
   tagsText.value = splitTags(form.value.serverHostTags).join(", ");
+  // 回填认证方式与凭据（后端瞬态字段不回显，编辑时按已绑定身份兜底）
+  formAuthMethod.value = "IDENTITY";
+  formAccount.value = "";
+  formPassword.value = "";
+  formPrivateKey.value = "";
   // 加载该主机已绑定身份，预选第一个作为登录身份
   formIdentityChanged.value = false;
   formIdentityId.value = null;
   try {
     const bound = (await listBoundIdentities(h.id)) as any[] | null | undefined;
     hostBoundIdentities.value = bound ?? [];
-    const first = hostBoundIdentities.value[0];
+    const first = bound?.[0];
     if (first) formIdentityId.value = first;
   } catch {
     hostBoundIdentities.value = [];
@@ -306,6 +384,20 @@ async function submitForm(): Promise<void> {
   if (!validForm()) return;
   // 标签文本 → 逗号分隔字符串
   form.value.serverHostTags = tagsText.value.split(",").map(t => t.trim()).filter(Boolean).join(",");
+  // 注入认证凭据（瞬态字段，后端不落库，用于 SSH 连接建立）
+  if (formAuthMethod.value === "PASSWORD") {
+    form.value.serverHostAccount = formAccount.value || null;
+    form.value.serverHostPassword = formPassword.value || null;
+    form.value.serverHostPrivateKey = null;
+  } else if (formAuthMethod.value === "PUBLIC_KEY") {
+    form.value.serverHostAccount = formAccount.value || null;
+    form.value.serverHostPassword = null;
+    form.value.serverHostPrivateKey = formPrivateKey.value || null;
+  } else {
+    form.value.serverHostAccount = null;
+    form.value.serverHostPassword = null;
+    form.value.serverHostPrivateKey = null;
+  }
   formSaving.value = true;
   try {
     const res = await saveHost(formIsEdit.value ? form.value.id ?? null : null, form.value) as any;
@@ -410,18 +502,27 @@ onMounted(fetchAll);
     <!-- 表格 -->
     <div class="card">
       <div class="filter">
-        <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="grow" />
-        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:110px" :options="[
-          { label: '在线', value: 'online' },
-          { label: '离线', value: 'offline' },
-          { label: '远控启用', value: 'remote' },
-        ]" />
-        <ReSelect v-model="filterGroup" placeholder="分组" clearable size="small" style="width:130px" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
-        <!-- 标签快筛 -->
-        <span v-if="allTags.length" class="muted" style="margin-left:8px">标签:</span>
-        <template v-for="t in allTags" :key="t">
-          <ReTag :class="['chip', { active: filterTag === t }]" @click="filterTag = filterTag === t ? '' : t">{{ t }}</ReTag>
-        </template>
+        <ReFilter
+          :items="filterItems"
+          :columns="3"
+          :collapsible="false"
+          :show-actions="false"
+          @change="onFilterChange"
+          @reset="onFilterReset"
+          style="width:100%"
+        >
+          <template #tag>
+            <div v-if="allTags.length" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span class="muted">标签:</span>
+              <ReTag
+                v-for="t in allTags"
+                :key="t"
+                :class="['chip', { active: filterState.tag === t }]"
+                @click="filterState.tag = filterState.tag === t ? '' : t"
+              >{{ t }}</ReTag>
+            </div>
+          </template>
+        </ReFilter>
         <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
       </div>
         <ReTable
@@ -473,29 +574,90 @@ onMounted(fetchAll);
       </ReTable>
     </div>
 
-    <!-- 新增/编辑弹窗 -->
-    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="520px">
-      <ReForm label-width="auto">
-        <ReFormItem label="名称"><ReInput v-model="form.serverHostName" placeholder="如 web01" /></ReFormItem>
-        <ReFormItem label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></ReFormItem>
-        <ReFormItem label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></ReFormItem>
-        <ReFormItem label="系统">
-          <ReSelect v-model="form.serverHostOsType" size="small" style="width: 100%" :options="[
-            { label: 'Linux', value: 'LINUX' },
-            { label: 'Windows', value: 'WINDOWS' },
-            { label: 'macOS', value: 'MACOS' },
+    <!-- 新增/编辑弹窗（680px 双列，无滚动条） -->
+    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="680px">
+      <div class="form-grid">
+        <!-- ─── 基本信息 ─── -->
+        <div class="form-section full">基本信息</div>
+        <ReFormItem label="主机名称" class="col-span-2">
+          <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="主机地址">
+          <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="端口">
+          <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="系统类型">
+          <ReSelect v-model="form.serverHostOsType" size="small" style="width:100%" :options="[
+            { label: 'Linux', value: 'LINUX' }, { label: 'Windows', value: 'WINDOWS' }, { label: 'macOS', value: 'MACOS' },
           ]" />
         </ReFormItem>
+        <ReFormItem label="主机编码">
+          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
+        </ReFormItem>
+
+        <!-- ─── 认证方式 ─── -->
+        <div class="form-section full">认证方式</div>
+        <ReFormItem label="登录方式">
+          <ReSelect v-model="formAuthMethod" size="small" style="width:100%" :options="authMethods" />
+        </ReFormItem>
+        <ReFormItem v-if="formAuthMethod === 'IDENTITY'" label="绑定身份">
+          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="identities.map(i => ({
+            label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码'}`,
+            value: i.id
+          }))" />
+        </ReFormItem>
+        <template v-if="formAuthMethod === 'PASSWORD'">
+          <ReFormItem label="登录账号">
+            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem label="登录密码">
+            <ReInput v-model="formPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
+          </ReFormItem>
+        </template>
+        <template v-if="formAuthMethod === 'PUBLIC_KEY'">
+          <ReFormItem label="登录账号">
+            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem label="SSH 私钥" class="col-span-2">
+            <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容" style="width:100%" />
+          </ReFormItem>
+        </template>
+
+        <!-- ─── 分类/标签 ─── -->
+        <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width: 100%" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
+          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
         </ReFormItem>
         <ReFormItem label="标签">
-          <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" />
+          <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />
         </ReFormItem>
-        <ReFormItem label="描述">
-          <ReInput v-model="form.serverHostDescription" type="textarea" :rows="2" placeholder="主机用途 / 备注（可选）" />
+        <ReFormItem label="描述" class="col-span-2">
+          <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
         </ReFormItem>
-      </ReForm>
+
+        <!-- ─── 采集配置 ─── -->
+        <div class="form-section full">硬件采集</div>
+        <ReFormItem label="采集方式">
+          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
+        </ReFormItem>
+        <ReFormItem label="采集间隔(秒)">
+          <ReInputNumber v-model="form.serverHostCollectInterval" :min="60" :max="86400" :step="60" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="在离线检测">
+          <ReSwitch v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+        <ReFormItem label="检测间隔(秒)">
+          <ReInputNumber v-model="form.serverHostOnlineInterval" :min="10" :max="3600" :step="10" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="远控开关">
+          <ReSwitch v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+        <ReFormItem label="Agent上报">
+          <ReSwitch v-model="form.serverHostAgentEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+      </div>
       <template #footer>
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
@@ -560,6 +722,25 @@ onMounted(fetchAll);
 </template>
 
 <style scoped lang="scss">
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.form-section {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 6px 0 2px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-top: 6px;
+}
+.form-section.full {
+  grid-column: 1 / -1;
+}
+.col-span-2 {
+  grid-column: 1 / -1;
+}
 .as-error {
   display: flex;
   align-items: center;

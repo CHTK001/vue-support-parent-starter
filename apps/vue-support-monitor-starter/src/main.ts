@@ -40,6 +40,7 @@ const MONITOR_RE_COMPONENTS = [
   "ReStatCard",
   "ReSectionHead",
   "ReSwitch",
+  "ReFilter",
   "ReText",
   "ReCountup",
   "ReTrend",
