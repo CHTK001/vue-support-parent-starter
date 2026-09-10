@@ -3,7 +3,7 @@
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
@@ -80,6 +80,13 @@ const filterItems = computed<ReFilterItem[]>(() => [
   { prop: "group", label: "分组", type: "select", placeholder: "分组", clearable: true, options: groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })), always: true },
   { prop: "tag", label: "标签", type: "slot", always: false },
 ]);
+
+/** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
+const identityOptions = computed(() => identities.value.map(i => ({
+  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码'}`,
+  value: i.id,
+})));
+const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));
 
 /** 标签集合（用于筛选/展示） */
 const allTags = computed(() => {
@@ -348,29 +355,22 @@ function openAdd(): void {
   formVisible.value = true;
 }
 async function openEdit(h: Host): Promise<void> {
-  try {
-    const full = await getHost(h.id);
-    form.value = { ...((full as any) ?? h) };
-  } catch {
-    form.value = { ...h };
-  }
+  // 并行请求主机详情 + 已绑定身份，减少串行等待
+  const [full, bound] = await Promise.all([
+    getHost(h.id).catch(() => h),
+    listBoundIdentities(h.id).catch(() => []),
+  ]);
+  form.value = { ...((full as any) ?? h) };
   tagsText.value = splitTags(form.value.serverHostTags).join(", ");
-  // 回填认证方式与凭据（后端瞬态字段不回显，编辑时按已绑定身份兜底）
   formAuthMethod.value = "IDENTITY";
   formAccount.value = "";
   formPassword.value = "";
   formPrivateKey.value = "";
-  // 加载该主机已绑定身份，预选第一个作为登录身份
   formIdentityChanged.value = false;
   formIdentityId.value = null;
-  try {
-    const bound = (await listBoundIdentities(h.id)) as any[] | null | undefined;
-    hostBoundIdentities.value = bound ?? [];
-    const first = bound?.[0];
-    if (first) formIdentityId.value = first;
-  } catch {
-    hostBoundIdentities.value = [];
-  }
+  hostBoundIdentities.value = (bound as any[]) ?? [];
+  const first = (bound as any[])?.[0];
+  if (first) formIdentityId.value = first;
   formIsEdit.value = true;
   formVisible.value = true;
 }
@@ -452,7 +452,15 @@ async function batchDelete(): Promise<void> {
   await fetchAll();
 }
 
-onMounted(fetchAll);
+onMounted(async () => {
+  await fetchAll();
+  // 预热弹窗 DOM：首次打开弹窗时会创建整棵树（~20 个 Re 组件），
+  // 页面加载后提前挂载一次（一个宏任务内完成，不闪屏），
+  // 之后打开/关闭仅做显示切换，秒开。
+  formVisible.value = true;
+  await nextTick();
+  formVisible.value = false;
+});
 </script>
 
 <template>
@@ -535,7 +543,7 @@ onMounted(fetchAll);
           style="width:100%"
           empty-text="暂无主机"
           :toolbar="true"
-          :toolbar-config="{ refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
+          :toolbar-config="{ position: 'top', refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
           @selection-change="selection = $event"
         >
         <template #col-name="{ row }">
@@ -574,13 +582,16 @@ onMounted(fetchAll);
       </ReTable>
     </div>
 
-    <!-- 新增/编辑弹窗（680px 双列，无滚动条） -->
-    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="680px">
+    <!-- 新增/编辑弹窗（920px 三列，无滚动条） -->
+    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="920px" :close-on-click-modal="false">
       <div class="form-grid">
         <!-- ─── 基本信息 ─── -->
         <div class="form-section full">基本信息</div>
         <ReFormItem label="主机名称" class="col-span-2">
           <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="主机编码">
+          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="主机地址">
           <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" style="width:100%" />
@@ -593,26 +604,20 @@ onMounted(fetchAll);
             { label: 'Linux', value: 'LINUX' }, { label: 'Windows', value: 'WINDOWS' }, { label: 'macOS', value: 'MACOS' },
           ]" />
         </ReFormItem>
-        <ReFormItem label="主机编码">
-          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
-        </ReFormItem>
 
         <!-- ─── 认证方式 ─── -->
         <div class="form-section full">认证方式</div>
         <ReFormItem label="登录方式">
           <ReSelect v-model="formAuthMethod" size="small" style="width:100%" :options="authMethods" />
         </ReFormItem>
-        <ReFormItem v-if="formAuthMethod === 'IDENTITY'" label="绑定身份">
-          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="identities.map(i => ({
-            label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码'}`,
-            value: i.id
-          }))" />
+        <ReFormItem v-if="formAuthMethod === 'IDENTITY'" label="绑定身份" class="col-span-2">
+          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="identityOptions" />
         </ReFormItem>
         <template v-if="formAuthMethod === 'PASSWORD'">
           <ReFormItem label="登录账号">
             <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
           </ReFormItem>
-          <ReFormItem label="登录密码">
+          <ReFormItem label="登录密码" class="col-span-2">
             <ReInput v-model="formPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
           </ReFormItem>
         </template>
@@ -625,20 +630,20 @@ onMounted(fetchAll);
           </ReFormItem>
         </template>
 
-        <!-- ─── 分类/标签 ─── -->
+        <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
+          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groupOptions" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />
         </ReFormItem>
-        <ReFormItem label="描述" class="col-span-2">
+        <ReFormItem label="描述">
           <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
         </ReFormItem>
 
         <!-- ─── 采集配置 ─── -->
-        <div class="form-section full">硬件采集</div>
+        <div class="form-section full">硬件采集与检测</div>
         <ReFormItem label="采集方式">
           <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
         </ReFormItem>
@@ -724,22 +729,23 @@ onMounted(fetchAll);
 <style scoped lang="scss">
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 24px;
+  padding: 4px 8px;
 }
 .form-section {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  padding: 6px 0 2px;
+  padding: 8px 0 6px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .form-section.full {
   grid-column: 1 / -1;
 }
 .col-span-2 {
-  grid-column: 1 / -1;
+  grid-column: span 2;
 }
 .as-error {
   display: flex;
