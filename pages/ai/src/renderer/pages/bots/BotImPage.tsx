@@ -36,6 +36,7 @@ import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import '@/renderer/styles/chatscope-override.css';
+import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /** 会话列表项 */
 interface ConversationItem {
@@ -1133,6 +1134,15 @@ export default function BotImPage() {
                   <div className='flex items-center gap-8px mt-1px'>
                     <span className='truncate text-12px leading-16px text-t-tertiary'>{active.botId || '—'}</span>
                     <StatusBadge status={active.status} />
+                    {activeBot?.model && (
+                      <Tooltip content={activeBot.model}>
+                        <img
+                          src={resolveModelVendorLogo(activeBot.model) ?? undefined}
+                          alt={activeBot.model}
+                          className='h-14px w-14px shrink-0 rounded-4px object-contain opacity-70'
+                        />
+                      </Tooltip>
+                    )}
                   </div>
                 </div>
                 {/* 用户头像 */}

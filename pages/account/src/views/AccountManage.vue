@@ -1,423 +1,193 @@
 <script setup lang="ts">
 /**
- * 账号管理页面 — 自动生成/管理临时邮箱账号（Grok 等平台的注册账号）。
+ * 账号管理 —— 主机资产登录身份（账号密码 / 私钥）统一管理。
  *
- * 对接后端 /api/account/* REST API：
- *   POST /api/account/register/{platformType}       单账号注册
- *   POST /api/account/register-batch/{platformType} 批量注册
- *   GET  /api/account/acquire/{platformType}        获取可用账号
- *   GET  /api/account/list/{platformType}           账号列表
- *   POST /api/account/release/{platformType}/{id}   释放账号
- *   GET  /api/account/stats                         全局统计
- *   POST /api/account/replenish/{platformType}      手动补号
- *   GET  /api/account/settings                      读取配置
- *   POST /api/account/settings                      保存配置
+ * 数据源：spring-support-server-starter `/ms/server/identity`（MsServerIdentity），
+ * 即主机资产连接时可选的登录凭据，与 AssetsView「账号/密钥」同一数据。
  */
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
 import ReCard from "@repo/ui/re-card";
 import ReForm from "@repo/ui/re-form";
 import ReInput from "@repo/ui/re-input";
-import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
-import ReSwitch from "@repo/ui/re-switch";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReTag from "@repo/ui/re-tag";
-import ReEmpty from "@repo/ui/re-empty";
-import ReStat from "@repo/ui/re-stat";
 import ReTable from "@repo/ui/re-table";
-import { ReFormItem, ReRow, ReCol } from "@repo/ui/re-kit";
+import ReDialog from "@repo/ui/re-dialog";
+import { ReFormItem } from "@repo/ui/re-kit";
+import { getIdentities, saveIdentity, delIdentity } from "@pages/server/src/api";
 
-// ============ 类型定义 ============
-
-interface PoolStats {
-  [key: string]: { total: number; active: number; inactive: number };
+interface Identity {
+  id: number;
+  msServerIdentityName: string;
+  msServerIdentityAuthType: string;
+  msServerIdentityUsername: string;
+  msServerIdentityPassword?: string;
+  msServerIdentityKeyId?: number | null;
+  msServerIdentityRemark?: string;
 }
-
-interface AccountItem {
-  id: string;
-  email: string;
-  password: string;
-  token: string;
-  platformType: string;
-  active: boolean;
-  createdAt: number;
-  lastUsedAt: number;
-}
-
-interface AccountSettings {
-  enable: boolean;
-  yescaptchaKey: string;
-  emailProvider: string;
-  proxy: string;
-  autoRegisterCount: number;
-}
-
-// ============ 常量 ============
-
-const PLATFORM_TYPES = [
-  { label: "Grok (xAI)", value: "GROK" },
-  { label: "Twitter/X", value: "TWITTER" },
-  { label: "Discord", value: "DISCORD" },
-  { label: "Reddit", value: "REDDIT" },
-  { label: "Custom", value: "CUSTOM" },
-] as const;
-
-const EMAIL_PROVIDERS = [
-  { label: "FreeCustom (FCE)", value: "fce" },
-  { label: "mail.tm", value: "mail-tm" },
-  { label: "MailNest", value: "mailnest" },
-  { label: "LuckMail", value: "luckmail" },
-] as const;
-
-// ============ 状态 ============
 
 const loading = ref(false);
-const registering = ref(false);
+const identities = ref<Identity[]>([]);
+const keyword = ref("");
 
-// 配置
-const settings = ref<AccountSettings>({
-  enable: false,
-  yescaptchaKey: "",
-  emailProvider: "fce",
-  proxy: "",
-  autoRegisterCount: 0,
-});
-const settingsLoading = ref(false);
-const settingsSaving = ref(false);
-const settingsFormRef = ref<FormInstance>();
+/** 认证方式选项 */
+const authTypeOptions = [
+  { label: "密码登录 (PASSWORD)", value: "PASSWORD" },
+  { label: "私钥登录 (PUBLIC_KEY)", value: "PUBLIC_KEY" },
+];
 
-const settingsRules: Record<string, Array<Record<string, unknown>>> = {
-  emailProvider: [{ required: true, message: "请选择邮箱提供商", trigger: "change" }],
+const filtered = () => {
+  const k = keyword.value.trim().toLowerCase();
+  if (!k) return identities.value;
+  return identities.value.filter(i =>
+    i.msServerIdentityName.toLowerCase().includes(k) ||
+    (i.msServerIdentityUsername ?? "").toLowerCase().includes(k) ||
+    (i.msServerIdentityRemark ?? "").toLowerCase().includes(k),
+  );
 };
 
-// 账号列表
-const selectedPlatform = ref("GROK");
-const accounts = ref<AccountItem[]>([]);
-const stats = ref<PoolStats>({});
-
-// ============ API 调用 ============
-
-/** 解析响应 body；后端对写操作（POST）可能返回空 body，直接 res.json() 会抛错 */
-async function parseJson<T>(res: Response, fallback: T): Promise<T> {
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  if (!text) return fallback;
-  return JSON.parse(text) as T;
-}
-
-async function httpGet<T>(url: string, fallback: T): Promise<T> {
-  const res = await fetch(`/api${url}`);
-  return parseJson<T>(res, fallback);
-}
-
-async function httpPost<T>(url: string, body?: unknown, fallback: T = undefined as T): Promise<T> {
-  const res = await fetch(`/api${url}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return parseJson<T>(res, fallback);
-}
-
-// ============ 配置操作 ============
-
-async function loadSettings() {
-  try {
-    const res = await httpGet<AccountSettings>("/account/settings", settings.value);
-    if (res) Object.assign(settings.value, res);
-  } catch {
-    // 未配置时使用默认值
-  }
-}
-
-async function saveSettings() {
-  if (!settingsFormRef.value) return;
-  try {
-    await settingsFormRef.value.validate();
-  } catch {
-    return;
-  }
-  settingsSaving.value = true;
-  try {
-    await httpPost("/account/settings", settings.value);
-    ElMessage.success("配置已保存");
-  } catch (e) {
-    ElMessage.error(`保存失败: ${e}`);
-  } finally {
-    settingsSaving.value = false;
-  }
-}
-
-// ============ 账号操作 ============
-
-async function loadAccounts() {
+async function fetchAll(): Promise<void> {
   loading.value = true;
   try {
-    const res = await httpGet<AccountItem[]>(`/account/list/${selectedPlatform.value}`, []);
-    accounts.value = Array.isArray(res) ? res : [];
-  } catch {
-    accounts.value = [];
+    const list = await getIdentities();
+    identities.value = (list ?? []) as Identity[];
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
   } finally {
     loading.value = false;
   }
 }
 
-async function loadStats() {
-  try {
-    const res = await httpGet<PoolStats>("/account/stats", {});
-    if (res) stats.value = res;
-  } catch {
-    // ignore
-  }
-}
+// ---- 新增/编辑弹窗 ----
+const visible = ref(false);
+const saving = ref(false);
+const isEdit = ref(false);
+const form = ref<Partial<Identity>>({});
 
-async function handleRegister(count: number) {
-  registering.value = true;
+function openAdd(): void {
+  isEdit.value = false;
+  form.value = { msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "", msServerIdentityPassword: "", msServerIdentityRemark: "" };
+  visible.value = true;
+}
+function openEdit(row: Identity): void {
+  isEdit.value = true;
+  // 密码不回显（后端不下发明文），编辑时留空表示不修改
+  form.value = { ...row, msServerIdentityPassword: "" };
+  visible.value = true;
+}
+async function submit(): Promise<void> {
+  if (!form.value.msServerIdentityName?.trim()) { ElMessage.warning("请输入身份名称"); return; }
+  if (!form.value.msServerIdentityUsername?.trim()) { ElMessage.warning("请输入登录用户名"); return; }
+  saving.value = true;
   try {
-      const res = await httpPost<AccountItem[]>(
-        `/account/register-batch/${selectedPlatform.value}?count=${count}&emailProvider=${settings.value.emailProvider}`,
-        undefined,
-        []
-      );
-    const list = Array.isArray(res) ? res : [];
-    if (list.length > 0) {
-      accounts.value = [...list, ...accounts.value];
-      ElMessage.success(`注册成功 ${list.length} 个账号`);
-      await loadStats();
-    } else {
-      ElMessage.warning("注册未返回账号，请检查日志");
-    }
+    const body = { ...form.value, msServerIdentityPassword: form.value.msServerIdentityPassword || undefined };
+    await saveIdentity(isEdit.value ? (form.value.id ?? null) : null, body);
+    ElMessage.success(isEdit.value ? "已更新" : "已创建");
+    visible.value = false;
+    await fetchAll();
   } catch (e) {
-    ElMessage.error(`注册失败: ${e}`);
+    ElMessage.error(String((e as Error)?.message ?? e));
   } finally {
-    registering.value = false;
+    saving.value = false;
   }
 }
-
-async function handleRelease(account: AccountItem) {
+async function remove(row: Identity): Promise<void> {
+  await ElMessageBox.confirm(`删除身份「${row.msServerIdentityName}」？绑定该身份的主机将回退默认凭据`, "删除确认", { type: "warning" });
   try {
-    await ElMessageBox.confirm(`确认释放账号 ${account.email}？`, "提示", { type: "warning" });
-    await httpPost(`/account/release/${selectedPlatform.value}/${account.id}`);
-    accounts.value = accounts.value.filter(a => a.id !== account.id);
-    ElMessage.success("已释放");
-    await loadStats();
-  } catch {
-    // cancelled or error
-  }
-}
-
-async function handleReplenish() {
-  registering.value = true;
-  try {
-    const res = await httpPost<AccountItem[]>(`/account/replenish/${selectedPlatform.value}?count=2`);
-    const list = Array.isArray(res) ? res : [];
-    if (list.length > 0) {
-      accounts.value = [...list, ...accounts.value];
-      ElMessage.success(`补号成功 ${list.length} 个`);
-      await loadStats();
-    }
+    await delIdentity(row.id);
+    ElMessage.success("已删除");
+    await fetchAll();
   } catch (e) {
-    ElMessage.error(`补号失败: ${e}`);
-  } finally {
-    registering.value = false;
+    ElMessage.error(String((e as Error)?.message ?? e));
   }
 }
 
-function handleRefresh() {
-  Promise.all([loadAccounts(), loadStats()]);
-}
-
-function formatTime(ts: number) {
-  if (!ts) return "-";
-  return new Date(ts).toLocaleString("zh-CN", { hour12: false });
-}
-
-/** 账号表格列定义（ReTable :columns） */
-const tableColumns: Array<{
-  prop: string;
-  label: string;
-  width?: number;
-  minWidth?: number;
-  slot?: string;
-  fixed?: boolean | "left" | "right";
-  showOverflowTooltip?: boolean;
-}> = [
-  { prop: "email", label: "邮箱", minWidth: 180, showOverflowTooltip: true },
-  { prop: "password", label: "密码", width: 120, showOverflowTooltip: true, slot: "password" },
-  { prop: "token", label: "Token", width: 100, showOverflowTooltip: true, slot: "token" },
-  { prop: "active", label: "状态", width: 70, slot: "active" },
-  { prop: "createdAt", label: "创建时间", width: 150, slot: "createdAt" },
-  { prop: "actions", label: "操作", width: 80, fixed: "right", slot: "actions" },
+/** 表格列定义 */
+const tableColumns = [
+  { prop: "msServerIdentityName", label: "名称", minWidth: 140, showOverflowTooltip: true },
+  { prop: "msServerIdentityAuthType", label: "类型", width: 120, slot: "type" },
+  { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 120, showOverflowTooltip: true },
+  { prop: "msServerIdentityRemark", label: "备注", minWidth: 140, showOverflowTooltip: true },
+  { prop: "actions", label: "操作", width: 140, fixed: "right", slot: "actions" },
 ];
 
-// ============ 生命周期 ============
-
-onMounted(() => {
-  loadSettings();
-  loadAccounts();
-  loadStats();
-});
+onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="account-page">
-    <ReRow :gutter="16">
-      <!-- 左侧：配置面板 -->
-      <ReCol :span="8">
-        <ReCard shadow="never">
-          <template #header>
-            <div class="card-header">
-              <span><ReIcon name="Setting" /> 全局配置</span>
-            </div>
-          </template>
-          <ReForm
-            ref="settingsFormRef"
-            :model="settings"
-            :rules="settingsRules"
-            label-width="120px"
-            size="default"
-          >
-            <ReFormItem label="启用自动注册" prop="enable">
-              <ReSwitch v-model="settings.enable" />
-            </ReFormItem>
+  <div class="acct">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">账号管理</h1>
+        <p class="page-desc">主机资产登录身份（账号密码 / 私钥）· 共 {{ identities.length }} 条</p>
+      </div>
+      <div class="page-actions">
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增身份</ReButton>
+      </div>
+    </div>
 
-            <ReFormItem label="YesCaptcha Key" prop="yescaptchaKey">
-              <ReInput
-                v-model="settings.yescaptchaKey"
-                type="password"
-                show-password
-                placeholder="fce_xxxxx..."
-                clearable
-              />
-            </ReFormItem>
+    <ReCard :radius="12" shadow="never">
+      <template #header>
+        <div class="filter-bar">
+          <ReInput v-model="keyword" placeholder="搜索名称 / 用户 / 备注" clearable size="small" class="f-kw" />
+          <span class="f-count">{{ filtered().length }} / {{ identities.length }}</span>
+        </div>
+      </template>
+      <ReTable
+        :data="filtered().map(i => ({ ...i }))"
+        :columns="tableColumns"
+        :loading="loading"
+        size="small"
+        :border="false"
+        table-id="account-identity-list"
+        empty-text="暂无登录身份"
+      >
+        <template #col-type="{ row }">
+          <ReTag :type="row.msServerIdentityAuthType === 'PUBLIC_KEY' ? 'warning' : 'info'" size="small" effect="plain">
+            {{ row.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码' }}
+          </ReTag>
+        </template>
+        <template #col-actions="{ row }">
+          <div class="op-cell">
+            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
+            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
+          </div>
+        </template>
+      </ReTable>
+    </ReCard>
 
-            <ReFormItem label="邮箱提供商" prop="emailProvider">
-              <ReSelect v-model="settings.emailProvider" style="width: 100%">
-                <el-option
-                  v-for="p in EMAIL_PROVIDERS"
-                  :key="p.value"
-                  :label="p.label"
-                  :value="p.value"
-                />
-              </ReSelect>
-            </ReFormItem>
-
-            <ReFormItem label="代理地址" prop="proxy">
-              <ReInput v-model="settings.proxy" placeholder="http://127.0.0.1:7897" clearable />
-            </ReFormItem>
-
-            <ReFormItem label="启动预注册">
-              <ReInputNumber v-model="settings.autoRegisterCount" :min="0" :max="20" style="width: 100%" />
-              <span style="margin-left: 8px; color: #909399; font-size: 12px">个（启动时自动注册）</span>
-            </ReFormItem>
-
-            <ReFormItem>
-              <ReButton type="primary" :loading="settingsSaving" @click="saveSettings">
-                保存配置
-              </ReButton>
-            </ReFormItem>
-          </ReForm>
-        </ReCard>
-
-        <!-- 统计卡片 -->
-        <ReCard shadow="never" style="margin-top: 16px">
-          <template #header>
-            <span><ReIcon name="Key" /> 账号池统计</span>
-          </template>
-          <ReRow :gutter="12">
-            <ReCol :span="12" v-for="(s, type) in stats" :key="type">
-              <ReStat class="re-stat" :title="String(type)" :value="s.active" :suffix="`/ ${s.total}`" />
-            </ReCol>
-            <ReCol :span="24" v-if="Object.keys(stats).length === 0">
-              <ReEmpty description="暂无数据" :image-size="60" />
-            </ReCol>
-          </ReRow>
-        </ReCard>
-      </ReCol>
-
-      <!-- 右侧：账号列表 -->
-      <ReCol :span="16">
-        <ReCard shadow="never">
-          <template #header>
-            <div class="card-header">
-              <span><ReIcon name="UserFilled" /> 账号管理 — {{ selectedPlatform }}</span>
-              <div class="header-space">
-                <ReSelect v-model="selectedPlatform" style="width: 140px" @change="loadAccounts">
-                  <el-option
-                    v-for="pt in PLATFORM_TYPES"
-                    :key="pt.value"
-                    :label="pt.label"
-                    :value="pt.value"
-                  />
-                </ReSelect>
-                <ReButton :loading="registering" @click="handleRegister(1)" icon="Plus">
-                  注册1个
-                </ReButton>
-                <ReButton :loading="registering" @click="handleReplenish" icon="Refresh">
-                  补号
-                </ReButton>
-                <ReButton icon="Refresh" @click="handleRefresh">刷新</ReButton>
-              </div>
-            </div>
-          </template>
-
-          <ReTable :data="accounts" :columns="tableColumns" v-loading="loading" stripe size="small" table-id="account-list" empty-text="暂无账号">
-            <template #col-password="{ row }">
-              <span style="font-family: monospace; font-size: 12px">{{ row.password }}</span>
-            </template>
-            <template #col-token="{ row }">
-              <span v-if="row.token" style="font-family: monospace; font-size: 11px; color: #909399">
-                {{ row.token.substring(0, 8) }}...
-              </span>
-              <span v-else style="color: #c0c4cc">-</span>
-            </template>
-            <template #col-active="{ row }">
-              <ReTag :type="row.active ? 'success' : 'danger'" size="small">
-                {{ row.active ? '活跃' : '已释放' }}
-              </ReTag>
-            </template>
-            <template #col-createdAt="{ row }">
-              <span style="font-size: 11px">{{ formatTime(row.createdAt) }}</span>
-            </template>
-            <template #col-actions="{ row }">
-              <ReButton type="danger" link size="small" :disabled="!row.active" @click="handleRelease(row as AccountItem)">
-                释放
-              </ReButton>
-            </template>
-          </ReTable>
-
-          <ReEmpty v-if="!loading && accounts.length === 0" description="暂无账号，点击「注册」创建" />
-        </ReCard>
-      </ReCol>
-    </ReRow>
+    <!-- 新增/编辑弹窗 -->
+    <ReDialog v-model="visible" :title="isEdit ? '编辑身份' : '新增身份'" width="520px" :close-on-click-modal="false">
+      <ReForm label-width="auto">
+        <ReFormItem label="名称"><ReInput v-model="form.msServerIdentityName" placeholder="如 root-prod" style="width:100%" /></ReFormItem>
+        <ReFormItem label="类型">
+          <ReSelect v-model="form.msServerIdentityAuthType" size="small" style="width:100%" :options="authTypeOptions" />
+        </ReFormItem>
+        <ReFormItem label="用户名"><ReInput v-model="form.msServerIdentityUsername" placeholder="如 root / ubuntu" style="width:100%" /></ReFormItem>
+        <ReFormItem v-if="form.msServerIdentityAuthType === 'PASSWORD'" label="密码">
+          <ReInput v-model="form.msServerIdentityPassword" type="password" show-password :placeholder="isEdit ? '留空表示不修改' : '登录口令'" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="备注"><ReInput v-model="form.msServerIdentityRemark" placeholder="用途 / 备注（可选）" style="width:100%" /></ReFormItem>
+      </ReForm>
+      <template #footer>
+        <ReButton @click="visible = false">取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="submit" icon="Check" :show-text="true">保存</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
-<style scoped>
-.account-page {
-  padding: 16px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 600;
-}
-
-.header-space {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.re-stat {
-  text-align: center;
-  padding: 8px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-}
+<style scoped lang="scss">
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; }
+.page-title { margin: 0; font-size: 20px; font-weight: 700; }
+.page-desc { margin: 4px 0 0; font-size: 13px; color: var(--text-tertiary); }
+.page-actions { display: flex; gap: 8px; }
+.filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.f-kw { width: 220px; }
+.f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
+.op-cell { display: flex; gap: 6px; }
 </style>
