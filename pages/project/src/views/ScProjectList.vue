@@ -208,8 +208,8 @@ function isLinux(row: ProjectRow) {
   <div class="project-list sc-page">
     <ReSectionHead class="page-head" title="发布项目管理" description="软件部署 / 升级 / 启停维护">
       <template #actions>
-        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新建项目</ReButton>
-        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
+        <ReButton layout="square" type="primary" icon="Plus">新建项目</ReButton>
+        <ReButton layout="square" icon="Refresh">刷新</ReButton>
       </template>
     </ReSectionHead>
 
@@ -233,7 +233,7 @@ function isLinux(row: ProjectRow) {
         style="width:200px"
         @change="refresh"
       />
-      <ReButton icon="Search" :show-text="false" title="查询" @click="refresh" />
+      <ReButton layout="square" icon="Search" @click="refresh">查询</ReButton>
       <div class="spacer" />
       <span class="muted">{{ projects.length }} 个项目</span>
     </div>
@@ -287,13 +287,11 @@ function isLinux(row: ProjectRow) {
 
         <!-- 操作区 -->
         <div class="project-card__actions">
-          <ReButton size="small" type="primary" icon="VideoPlay" show-text @click="runLifecycle(row, 'start')">启动</ReButton>
-          <ReButton size="small" icon="VideoPause" show-text @click="runLifecycle(row, 'stop')">停止</ReButton>
-          <ReButton size="small" icon="RefreshRight" show-text @click="runLifecycle(row, 'restart')">重启</ReButton>
+          <ReButton layout="square" size="small" type="primary" icon="VideoPlay" @click="runLifecycle(row, 'start')">启动</ReButton>
+          <ReButton layout="square" size="small" icon="VideoPause" @click="runLifecycle(row, 'stop')">停止</ReButton>
+          <ReButton layout="square" size="small" icon="RefreshRight" @click="runLifecycle(row, 'restart')">重启</ReButton>
           <ReDropdown trigger="click" style="margin-left:4px">
-            <ReButton size="small" icon="Upload">
-              <span style="display:inline-flex;align-items:center">上传包<ReIcon name="ArrowDown" :size="12" /></span>
-            </ReButton>
+            <ReButton layout="square" size="small" icon="Upload">上传包</ReButton>
             <template #dropdown>
               <ReDropdownMenu>
                 <ReDropdownItem @click="pickFile(row, 'DEPLOY')">部署（DEPLOY）</ReDropdownItem>
@@ -302,9 +300,9 @@ function isLinux(row: ProjectRow) {
             </template>
           </ReDropdown>
           <div class="spacer" />
-          <ReButton size="small" icon="Document" :show-text="false" title="部署日志" @click="openLogs(row)" />
-          <ReButton size="small" icon="Edit" :show-text="false" title="编辑" @click="openEdit(row)" />
-          <ReButton size="small" icon="Delete" :show-text="false" title="删除" @click="removeProject(row)" />
+          <ReButton layout="square" size="small" icon="Document" @click="openLogs(row)">部署日志</ReButton>
+          <ReButton layout="square" size="small" icon="Edit" @click="openEdit(row)">编辑</ReButton>
+          <ReButton layout="square" size="small" icon="Delete" @click="removeProject(row)">删除</ReButton>
         </div>
       </div>
     </div>

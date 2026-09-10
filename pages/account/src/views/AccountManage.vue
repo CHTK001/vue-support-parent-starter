@@ -33,11 +33,27 @@ const loading = ref(false);
 const identities = ref<Identity[]>([]);
 const keyword = ref("");
 
-/** 认证方式选项 */
+/** 账号类型选项（分组）：主机登录身份 + 通用账号类型；下拉可选、支持手动输入新类型 */
 const authTypeOptions = [
-  { label: "密码登录 (PASSWORD)", value: "PASSWORD" },
-  { label: "私钥登录 (PUBLIC_KEY)", value: "PUBLIC_KEY" },
+  { label: "密码登录", value: "PASSWORD", group: "主机" },
+  { label: "私钥登录", value: "PUBLIC_KEY", group: "主机" },
+  { label: "Token", value: "TOKEN", group: "通用" },
+  { label: "API Key", value: "API_KEY", group: "通用" },
+  { label: "OAuth 2.0", value: "OAUTH2", group: "通用" },
+  { label: "Cookie", value: "COOKIE", group: "通用" },
+  { label: "账号密码", value: "ACCOUNT", group: "通用" },
 ];
+
+/** 类型展示映射：未知类型显示原值 */
+function authTypeLabel(v: string): string {
+  const hit = authTypeOptions.find(o => o.value === v);
+  return hit ? hit.label : v || "—";
+}
+function authTypeTagType(v: string): string {
+  if (v === "PUBLIC_KEY") return "warning";
+  if (v === "PASSWORD") return "info";
+  return "primary";
+}
 
 const filtered = () => {
   const k = keyword.value.trim().toLowerCase();
@@ -122,7 +138,7 @@ onMounted(fetchAll);
     <div class="page-header">
       <div>
         <h1 class="page-title">账号管理</h1>
-        <p class="page-desc">主机资产登录身份（账号密码 / 私钥）· 共 {{ identities.length }} 条</p>
+        <p class="page-desc">登录身份与账号凭据统一管理（主机 / Token / API Key 等）· 共 {{ identities.length }} 条</p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
@@ -147,9 +163,10 @@ onMounted(fetchAll);
         empty-text="暂无登录身份"
       >
         <template #col-type="{ row }">
-          <ReTag :type="row.msServerIdentityAuthType === 'PUBLIC_KEY' ? 'warning' : 'info'" size="small" effect="plain">
-            {{ row.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码' }}
+          <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" size="small" effect="plain">
+            {{ authTypeLabel(row.msServerIdentityAuthType) }}
           </ReTag>
+          <span v-if="authTypeOptions.every(o => o.value !== row.msServerIdentityAuthType) && row.msServerIdentityAuthType" class="type-raw mono">{{ row.msServerIdentityAuthType }}</span>
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
@@ -165,7 +182,7 @@ onMounted(fetchAll);
       <ReForm label-width="auto">
         <ReFormItem label="名称"><ReInput v-model="form.msServerIdentityName" placeholder="如 root-prod" style="width:100%" /></ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="form.msServerIdentityAuthType" size="small" style="width:100%" :options="authTypeOptions" />
+          <ReSelect v-model="form.msServerIdentityAuthType" size="small" style="width:100%" filterable allow-create default-first-option :options="authTypeOptions" placeholder="选择或输入类型" />
         </ReFormItem>
         <ReFormItem label="用户名"><ReInput v-model="form.msServerIdentityUsername" placeholder="如 root / ubuntu" style="width:100%" /></ReFormItem>
         <ReFormItem v-if="form.msServerIdentityAuthType === 'PASSWORD'" label="密码">
@@ -190,4 +207,6 @@ onMounted(fetchAll);
 .f-kw { width: 220px; }
 .f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
 .op-cell { display: flex; gap: 6px; }
+.type-raw { margin-left: 6px; font-size: 11px; color: var(--text-tertiary); }
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; }
 </style>
