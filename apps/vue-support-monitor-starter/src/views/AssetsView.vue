@@ -411,14 +411,12 @@ onMounted(fetchAll);
     <div class="card">
       <div class="filter">
         <ReInput v-model="keyword" placeholder="搜索名称 / IP" clearable size="small" class="grow" />
-        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:110px">
-          <el-option label="在线" value="online" />
-          <el-option label="离线" value="offline" />
-          <el-option label="远控启用" value="remote" />
-        </ReSelect>
-        <ReSelect v-model="filterGroup" placeholder="分组" clearable size="small" style="width:130px">
-          <el-option v-for="g in groups" :key="g.id" :label="g.msServerGroupName" :value="g.id" />
-        </ReSelect>
+        <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" style="width:110px" :options="[
+          { label: '在线', value: 'online' },
+          { label: '离线', value: 'offline' },
+          { label: '远控启用', value: 'remote' },
+        ]" />
+        <ReSelect v-model="filterGroup" placeholder="分组" clearable size="small" style="width:130px" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
         <!-- 标签快筛 -->
         <span v-if="allTags.length" class="muted" style="margin-left:8px">标签:</span>
         <template v-for="t in allTags" :key="t">
@@ -482,16 +480,14 @@ onMounted(fetchAll);
         <ReFormItem label="地址"><ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" /></ReFormItem>
         <ReFormItem label="端口"><ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" /></ReFormItem>
         <ReFormItem label="系统">
-          <ReSelect v-model="form.serverHostOsType" layout="square" size="small" style="width: 100%">
-            <el-option label="Linux" value="LINUX"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('linux')" /> Linux</span></el-option>
-            <el-option label="Windows" value="WINDOWS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('windows')" /> Windows</span></el-option>
-            <el-option label="macOS" value="MACOS"><span style="display:flex;align-items:center;gap:6px"><span v-html="osSvg('macos')" /> macOS</span></el-option>
-          </ReSelect>
+          <ReSelect v-model="form.serverHostOsType" size="small" style="width: 100%" :options="[
+            { label: 'Linux', value: 'LINUX' },
+            { label: 'Windows', value: 'WINDOWS' },
+            { label: 'macOS', value: 'MACOS' },
+          ]" />
         </ReFormItem>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width: 100%">
-            <el-option v-for="g in groups" :key="g.id" :label="g.msServerGroupName" :value="g.id" />
-          </ReSelect>
+          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width: 100%" :options="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" />
@@ -512,14 +508,10 @@ onMounted(fetchAll);
       <template v-else>
         <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ connectTarget.serverHostPort }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
         <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
-        <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%">
-          <el-option-group label="已绑定">
-            <el-option v-for="b in hostBoundIdentities" :key="b" :label="`${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`" :value="b" />
-          </el-option-group>
-          <el-option-group label="全部身份">
-            <el-option v-for="i in identities.filter(x => !hostBoundIdentities.includes(x.id))" :key="i.id" :label="`${i.msServerIdentityName}（${i.msServerIdentityUsername}）`" :value="i.id" />
-          </el-option-group>
-        </ReSelect>
+        <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="[
+          ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
+          ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
+        ]" />
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <ReButton icon="Plus" :show-text="true" size="small" @click="openIdentityAdd">新增身份</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b">
@@ -548,10 +540,10 @@ onMounted(fetchAll);
       <ReForm label-width="auto">
         <ReFormItem label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%">
-            <el-option label="密码登录 (PASSWORD)" value="PASSWORD" />
-            <el-option label="私钥登录 (PUBLIC_KEY)" value="PUBLIC_KEY" />
-          </ReSelect>
+          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%" :options="[
+            { label: '密码登录 (PASSWORD)', value: 'PASSWORD' },
+            { label: '私钥登录 (PUBLIC_KEY)', value: 'PUBLIC_KEY' },
+          ]" />
         </ReFormItem>
         <ReFormItem label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></ReFormItem>
         <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">

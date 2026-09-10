@@ -60,7 +60,10 @@ const groups = computed(() => {
     },
     {
       title: "系统",
-      items: [{ path: "/config", label: "监控配置", icon: "Setting" }],
+      items: [
+        { path: "/config", label: "监控配置", icon: "Setting" },
+        { path: "/proxy", label: "代理管理", icon: "Connection" },
+      ],
     },
   ];
   if (!redisAvailable.value) {

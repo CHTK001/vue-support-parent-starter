@@ -278,31 +278,23 @@ onMounted(fetchAll);
     <ReDialog v-model="ruleVisible" :title="ruleForm.id ? '编辑规则' : '新增规则'" width="520px">
       <ReForm label-width="96px">
         <ReFormItem label="所属策略">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%">
-            <el-option v-for="p in policies" :key="p.id" :label="p.msMonitorAlarmPolicyName" :value="p.id" />
-          </ReSelect>
+          <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%" :options="policies.map(p => ({ label: p.msMonitorAlarmPolicyName, value: p.id }))" />
         </ReFormItem>
         <ReFormItem label="目标">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%">
-            <el-option label="全部目标" :value="null" />
-            <el-option v-for="m in monitors" :key="m.id" :label="m.monitorName" :value="m.id" />
-          </ReSelect>
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%" :options="[
+            { label: '全部目标', value: null as any },
+            ...monitors.map(m => ({ label: m.monitorName, value: m.id })),
+          ]" />
         </ReFormItem>
         <ReFormItem label="指标">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%">
-            <el-option v-for="mt in METRICS" :key="mt" :label="mt" :value="mt" />
-          </ReSelect>
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%" :options="METRICS.map(mt => ({ label: mt, value: mt }))" />
         </ReFormItem>
         <ReFormItem label="条件">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr">
-            <el-option v-for="c in CONDITIONS" :key="c.value" :label="c.label" :value="c.value" />
-          </ReSelect>
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr" :options="CONDITIONS.map(c => ({ label: c.label, value: c.value }))" />
           <ReInputNumber v-model="ruleForm.msMonitorAlarmRuleThreshold" size="small" :min="0" :step="5" style="width: 140px" />
         </ReFormItem>
         <ReFormItem label="级别">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px">
-            <el-option v-for="lv in LEVELS" :key="lv" :label="lv + ' ' + lv" :value="lv" />
-          </ReSelect>
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px" :options="LEVELS.map(lv => ({ label: lv + ' ' + lv, value: lv }))" />
         </ReFormItem>
         <ReFormItem label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></ReFormItem>
         <ReFormItem label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></ReFormItem>
