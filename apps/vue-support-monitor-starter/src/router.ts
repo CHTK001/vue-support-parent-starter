@@ -14,8 +14,10 @@ const routes: RouteRecordRaw[] = [
   { path: "/host/:id", name: "host-detail", component: () => import("./views/HostDetailView.vue"), meta: { title: "主机监控详情" } },
   { path: "/terminal", name: "terminal", component: () => import("./views/TerminalView.vue"), meta: { title: "远程控制" } },
   { path: "/config", name: "config", component: () => import("./views/ConfigView.vue"), meta: { title: "监控配置" } },
+  { path: "/system-config", name: "system-config", component: () => import("./views/SystemConfigView.vue"), meta: { title: "系统配置" } },
   { path: "/proxy", name: "proxy", component: () => import("./views/ProxyView.vue"), meta: { title: "代理管理" } },
   { path: "/account", name: "account", component: () => import("@pages/account/views/AccountManage.vue"), meta: { title: "账号管理" } },
+  { path: "/project", name: "project", component: () => import("@pages/project/src/views/ScProjectList.vue"), meta: { title: "发布项目管理" } },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
 

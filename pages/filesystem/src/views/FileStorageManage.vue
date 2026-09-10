@@ -15,6 +15,7 @@ import {
   Download,
   Folder,
   FolderOpened,
+  Link,
   Refresh,
   Search,
   Upload,
@@ -22,6 +23,7 @@ import {
 import {
   DEFAULT_BUCKET,
   DEFAULT_SERVER,
+  createOneTimeLink,
   deleteObject,
   existObject,
   fetchObjectText,
@@ -461,6 +463,71 @@ async function handleDelete(row: StorageObject): Promise<void> {
   }
 }
 
+/* ================== 一次性链接 ================== */
+
+const oneTimeVisible = ref(false);
+const oneTimeLink = ref("");
+const oneTimeExpiry = ref(600);
+const oneTimeExpiryOptions = [
+  { label: "1 分钟", value: 60 },
+  { label: "10 分钟", value: 600 },
+  { label: "30 分钟", value: 1800 },
+  { label: "1 小时", value: 3600 },
+  { label: "6 小时", value: 21600 },
+  { label: "1 天", value: 86400 },
+];
+const oneTimeGenerating = ref(false);
+const oneTimeTarget = ref<{ name: string; key: string }>();
+
+/**
+ * 打开一次性链接创建对话框
+ *
+ * @param row 行数据
+ */
+async function openOneTime(row: StorageObject): Promise<void> {
+  if (row.directory) {
+    ElMessage.warning("目录不支持生成一次性链接");
+    return;
+  }
+  oneTimeTarget.value = { name: row.name, key: fullKey(row.name) };
+  oneTimeLink.value = "";
+  oneTimeExpiry.value = 600;
+  oneTimeVisible.value = true;
+}
+
+/**
+ * 生成一次性链接
+ */
+async function generateOneTimeLink(): Promise<void> {
+  if (!oneTimeTarget.value) return;
+  oneTimeGenerating.value = true;
+  try {
+    const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, oneTimeExpiry.value);
+    oneTimeLink.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
+    ElMessage.success("一次性链接已生成（仅可访问一次）");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "生成失败");
+  } finally {
+    oneTimeGenerating.value = false;
+  }
+}
+
+/** 复制一次性链接 */
+function copyOneTimeLink(): void {
+  if (!oneTimeLink.value) return;
+  const textarea = document.createElement("textarea");
+  textarea.value = oneTimeLink.value;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    ElMessage.success("已复制到剪贴板");
+  } catch {
+    ElMessage.error("复制失败，请手动复制");
+  }
+  textarea.remove();
+}
+
 onMounted(() => {
   loadObjects();
 });
@@ -581,6 +648,7 @@ onMounted(() => {
             <template v-else>
               <el-button text type="primary" :icon="Search" @click="openPreview(row)">预览</el-button>
               <el-button text type="primary" :icon="Download" @click="handleDownload(row)">下载</el-button>
+              <el-button text type="primary" :icon="Link" @click="openOneTime(row)">一次性</el-button>
             </template>
             <el-button text :icon="Search" :disabled="row.directory" @click="handleExist(row)">检查</el-button>
             <el-button text type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
@@ -607,6 +675,56 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
+    </el-dialog>
+
+    <!-- 一次性链接对话框 -->
+    <el-dialog
+      v-model="oneTimeVisible"
+      :title="`生成一次性链接 - ${oneTimeTarget?.name ?? ''}`"
+      width="480px"
+      destroy-on-close
+    >
+      <el-form label-width="90px">
+        <el-form-item label="过期时间">
+          <el-select v-model="oneTimeExpiry" placeholder="选择过期时间" style="width: 100%">
+            <el-option
+              v-for="opt in oneTimeExpiryOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="链接">
+          <el-input
+            v-model="oneTimeLink"
+            placeholder="点击下方按钮生成"
+            readonly
+            clearable
+            :disabled="!oneTimeLink"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button v-if="oneTimeLink" :icon="Document" @click="copyOneTimeLink">复制链接</el-button>
+        <el-button
+          v-if="!oneTimeLink"
+          type="primary"
+          :icon="Document"
+          :loading="oneTimeGenerating"
+          @click="generateOneTimeLink"
+        >
+          生成
+        </el-button>
+        <el-button @click="oneTimeVisible = false">关闭</el-button>
+      </template>
+      <el-alert
+        v-if="oneTimeLink"
+        type="warning"
+        :closable="false"
+        class="mt-4"
+        title="该链接只能访问一次，访问后立即销毁，过期自动失效"
+      />
     </el-dialog>
 
     <!-- 预览对话框 -->

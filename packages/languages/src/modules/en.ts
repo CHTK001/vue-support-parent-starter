@@ -422,6 +422,7 @@ export default {
       classic: "Classic",
       optimum: "Optimum",
       horizontal: "Horizontal",
+      group: "Grouped",
     },
     interface: {
       routeAnimation: {

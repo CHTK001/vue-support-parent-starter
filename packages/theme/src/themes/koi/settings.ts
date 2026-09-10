@@ -76,5 +76,10 @@ export default {
   /**
    * 左侧悬浮折叠宽度[双栏布局]
    */
-  columnMenuHoverCollapse: "56px"
+  columnMenuHoverCollapse: "56px",
+
+  /**
+   * 左侧菜单展开宽度[Group 布局：分组轨]
+   */
+  groupMenuWidth: "224px"
 };

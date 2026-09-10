@@ -155,6 +155,7 @@ export async function listObjects(bucket: string, path = ""): Promise<StorageObj
   try {
     const res = await storageHttp()
       .get(objectPath(bucket, path))
+      .query({ format: "json" })
       .then<ListResponse>((r) => r.data);
     return res.items ?? [];
   } catch (e) {
@@ -211,6 +212,33 @@ export async function existObject(bucket: string, key: string): Promise<boolean>
       return false;
     }
     throw new Error(toErrorMessage(e, "存在性检查"));
+  }
+}
+
+/**
+ * 创建一次性访问链接
+ *
+ * @param bucket  存储桶名
+ * @param key     对象 Key
+ * @param expires 过期时间（秒），如 60（1分钟）、600（10分钟）、3600（1小时）、86400（1天）
+ * @return 一次性链接信息
+ */
+export async function createOneTimeLink(
+  bucket: string,
+  key: string,
+  expires?: number,
+): Promise<{ token: string; url: string; expires: string }> {
+  try {
+    const params: Record<string, string> = { bucket, key };
+    if (expires != null && expires > 0) params.expires = String(expires);
+    const url = "/ot?" + new URLSearchParams(params).toString();
+    const res = await storageHttp()
+      .post(url)
+      .timeout(10000)
+      .then<{ token: string; url: string; expires: string }>((r) => r.data);
+    return res;
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "创建一次性链接"));
   }
 }
 

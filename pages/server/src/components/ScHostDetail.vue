@@ -29,6 +29,8 @@ const cfgForm = reactive({
   serverHostCollectInterval: 3600,
   serverHostAgentEnabled: false,
   serverHostRemoteEnabled: true,
+  serverHostDelayEnabled: false,
+  serverHostDelayInterval: 60,
 });
 
 /** 采集方式选项 */
@@ -50,6 +52,8 @@ watch(
       cfgForm.serverHostCollectInterval = h.serverHostCollectInterval ?? 3600;
       cfgForm.serverHostAgentEnabled = h.serverHostAgentEnabled === 1;
       cfgForm.serverHostRemoteEnabled = h.serverHostRemoteEnabled !== 0;
+      cfgForm.serverHostDelayEnabled = h.serverHostDelayEnabled === 1;
+      cfgForm.serverHostDelayInterval = h.serverHostDelayInterval ?? 60;
     }
   },
   { immediate: true },
@@ -100,6 +104,8 @@ async function onSaveConfig(): Promise<void> {
       serverHostCollectInterval: cfgForm.serverHostCollectInterval,
       serverHostAgentEnabled: cfgForm.serverHostAgentEnabled ? 1 : 0,
       serverHostRemoteEnabled: cfgForm.serverHostRemoteEnabled ? 1 : 0,
+      serverHostDelayEnabled: cfgForm.serverHostDelayEnabled ? 1 : 0,
+      serverHostDelayInterval: cfgForm.serverHostDelayInterval,
     });
     message.success('系统设置已保存，采集/检测已动态调整');
     emit('updated');
@@ -187,6 +193,20 @@ async function onSaveConfig(): Promise<void> {
         </ReFormItem>
         <ReFormItem label="启用远控">
           <ReSwitch v-model="cfgForm.serverHostRemoteEnabled" />
+        </ReFormItem>
+
+        <ReDivider content-position="left">延迟检测</ReDivider>
+        <ReFormItem label="启用延迟检测">
+          <ReSwitch v-model="cfgForm.serverHostDelayEnabled" />
+        </ReFormItem>
+        <ReFormItem label="检测间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostDelayInterval" :min="5" :max="86400" style="width: 180px" />
+        </ReFormItem>
+        <ReFormItem label="最近延迟">
+          <ReText v-if="host.serverHostDelayMs !== null && host.serverHostDelayMs >= 0" type="primary" size="small">
+            {{ host.serverHostDelayMs }} ms
+          </ReText>
+          <ReText v-else type="info" size="small">未检测</ReText>
         </ReFormItem>
 
         <ReFormItem>

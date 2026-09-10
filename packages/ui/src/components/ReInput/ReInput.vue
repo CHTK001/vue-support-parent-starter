@@ -79,77 +79,115 @@ function onInput(value: string | number | null | undefined): void {
 </script>
 
 <template>
-  <!-- Modern 布局（异步加载） -->
-  <ModernLayout
-    v-if="layout === 'modern'"
-    :model-value="model"
-    @update:model-value="onInput"
-    v-bind="$attrs"
-    :type="type"
-    :placeholder="placeholder"
-    :clearable="clearable"
-    :disabled="disabled"
-    :readonly="readonly"
-    :show-password="showPassword"
-    :show-word-limit="showWordLimit"
-    :maxlength="maxlength"
-    :minlength="minlength"
-    :rows="rows"
-    :autosize="autosize"
-    :size="size"
-    :prefix-icon="prefixIcon"
-    :suffix-icon="suffixIcon"
-    :status="status"
-    :formatter="formatter"
-    :parser="parser"
-  >
-    <template v-if="$slots.prefix" #prefix>
-      <slot name="prefix" />
-    </template>
-    <template v-if="$slots.suffix" #suffix>
-      <slot name="suffix" />
-    </template>
-    <template v-if="$slots.prepend" #prepend>
-      <slot name="prepend" />
-    </template>
-    <template v-if="$slots.append" #append>
-      <slot name="append" />
-    </template>
-  </ModernLayout>
+  <div class="re-input">
+    <!-- Modern 布局（异步加载） -->
+    <ModernLayout
+      v-if="layout === 'modern'"
+      :model-value="model"
+      @update:model-value="onInput"
+      v-bind="$attrs"
+      :type="type"
+      :placeholder="placeholder"
+      :clearable="clearable"
+      :disabled="disabled"
+      :readonly="readonly"
+      :show-password="showPassword"
+      :show-word-limit="showWordLimit"
+      :maxlength="maxlength"
+      :minlength="minlength"
+      :rows="rows"
+      :autosize="autosize"
+      :size="size"
+      :prefix-icon="prefixIcon"
+      :suffix-icon="suffixIcon"
+      :status="status"
+      :formatter="formatter"
+      :parser="parser"
+    >
+      <template v-if="$slots.prefix" #prefix>
+        <slot name="prefix" />
+      </template>
+      <template v-if="$slots.suffix" #suffix>
+        <slot name="suffix" />
+      </template>
+      <template v-if="$slots.prepend" #prepend>
+        <slot name="prepend" />
+      </template>
+      <template v-if="$slots.append" #append>
+        <slot name="append" />
+      </template>
+    </ModernLayout>
 
-  <!-- 默认 el-input 布局 -->
-  <ElInput
-    v-else
-    :model-value="formatter ? formatter(model as never) : (model as never)"
-    v-bind="$attrs"
-    :type="type"
-    :placeholder="placeholder"
-    :clearable="clearable"
-    :disabled="disabled"
-    :readonly="readonly"
-    :show-password="showPassword"
-    :show-word-limit="showWordLimit"
-    :maxlength="maxlength"
-    :minlength="minlength"
-    :rows="rows"
-    :autosize="autosize"
-    :size="size"
-    :prefix-icon="prefixIcon || undefined"
-    :suffix-icon="suffixIcon || undefined"
-    :status="status"
-    @update:model-value="onInput"
-  >
-    <template v-if="$slots.prefix" #prefix>
-      <slot name="prefix" />
-    </template>
-    <template v-if="$slots.suffix || $slots.append" #suffix>
-      <slot name="suffix" />
-    </template>
-    <template v-if="$slots.prepend" #prepend>
-      <slot name="prepend" />
-    </template>
-    <template v-if="$slots.append" #append>
-      <slot name="append" />
-    </template>
-  </ElInput>
+    <!-- 默认 el-input 布局 -->
+    <ElInput
+      v-else
+      :model-value="formatter ? formatter(model as never) : (model as never)"
+      v-bind="$attrs"
+      :type="type"
+      :placeholder="placeholder"
+      :clearable="clearable"
+      :disabled="disabled"
+      :readonly="readonly"
+      :show-password="showPassword"
+      :show-word-limit="showWordLimit"
+      :maxlength="maxlength"
+      :minlength="minlength"
+      :rows="rows"
+      :autosize="autosize"
+      :size="size"
+      :prefix-icon="prefixIcon || undefined"
+      :suffix-icon="suffixIcon || undefined"
+      :status="status"
+      @update:model-value="onInput"
+    >
+      <template v-if="$slots.prefix" #prefix>
+        <slot name="prefix" />
+      </template>
+      <template v-if="$slots.suffix || $slots.append" #suffix>
+        <slot name="suffix" />
+      </template>
+      <template v-if="$slots.prepend" #prepend>
+        <slot name="prepend" />
+      </template>
+      <template v-if="$slots.append" #append>
+        <slot name="append" />
+      </template>
+    </ElInput>
+  </div>
 </template>
+
+<style>
+/* 高度统一 34px（与 ReSelect / 表单控件基线对齐）；size=small/large 显式变体保持 element 原有尺寸。
+   盒模型与 el-select__wrapper 对齐：border-box + min-height 34px（含 1px 上下 border），
+   inner 内容高度 = 34 - 8(padding) - 2(border) = 24px，由 flex 垂直居中，box 总高恒为 34。 */
+.re-input .el-input {
+  --el-input-height: 34px;
+}
+.re-input .el-input.el-input--small {
+  --el-input-height: 24px;
+}
+.re-input .el-input.el-input--large {
+  --el-input-height: 40px;
+}
+.re-input .el-input .el-input__wrapper {
+  box-sizing: border-box;
+  min-height: var(--el-input-height);
+  height: auto;
+}
+.re-input .el-input .el-input__inner {
+  height: auto;
+  min-height: calc(var(--el-input-height) - 10px);
+  line-height: calc(var(--el-input-height) - 10px);
+}
+.re-input .el-input .el-input__prefix,
+.re-input .el-input .el-input__suffix {
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+}
+/* 包裹层不产生盒子，避免影响既有布局（class/style 通过 v-bind="$attrs" 仍落到内部控件） */
+.re-input {
+  display: contents;
+}
+</style>

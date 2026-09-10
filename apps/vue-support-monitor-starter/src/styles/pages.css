@@ -119,19 +119,7 @@
 }
 .filter:focus-within { border-color: var(--brand-100); box-shadow: var(--shadow-1), var(--focus-ring); }
 .filter .grow { flex: 1; min-width: 200px; }
-.filter input,
-.filter select {
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-container);
-  border-radius: var(--radius-md, 8px);
-  color: var(--text-primary);
-  font-size: 13px;
-  outline: 0;
-}
-.filter input:focus,
-.filter select:focus { border-color: var(--brand-500); }
+/* ReFilter 组件已接管 input/select 样式，无需再覆盖原生控件边框 */
 .filter .chip {
   display: inline-flex;
   align-items: center;

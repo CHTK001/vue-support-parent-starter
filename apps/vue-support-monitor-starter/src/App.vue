@@ -59,10 +59,17 @@ const groups = computed(() => {
       ],
     },
     {
+      title: "发布",
+      items: [
+        { path: "/project", label: "项目管理", icon: "Box" },
+      ],
+    },
+    {
       title: "系统",
       items: [
         { path: "/config", label: "监控配置", icon: "Setting" },
         { path: "/proxy", label: "代理管理", icon: "Connection" },
+        { path: "/system-config", label: "系统配置", icon: "Tools" },
       ],
     },
   ];

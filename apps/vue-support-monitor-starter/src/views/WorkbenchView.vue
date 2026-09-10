@@ -74,29 +74,33 @@ onMounted(fetchAll);
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <!-- KPI 统计卡：ReStatCard + ReCountup（保留 .kpi 色条类对齐原型视觉与 e2e 定位） -->
+    <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字） -->
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
-        <ReStatCard
-          class="kpi c-brand"
-          title="资产总数"
-          :desc="`运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`"
-        >
-          <template #icon><ReIcon name="DataBoard" :size="18" style="color: var(--brand-500)" /></template>
-          <template #value><ReCountup :value="monitors.length" /></template>
-        </ReStatCard>
-        <ReStatCard class="kpi c-red" title="告警未处理" desc="累计事件">
-          <template #icon><ReIcon name="Bell" :size="18" style="color: var(--status-alarm)" /></template>
-          <template #value><ReCountup :value="unhandledCount" /><span class="kpi-unit">/ {{ totalAlarms }}</span></template>
-        </ReStatCard>
-        <ReStatCard class="kpi c-red" title="P0+P1 高危" desc="30 分钟内响应">
-          <template #icon><ReIcon name="Warning" :size="18" style="color: var(--sev-p0-text)" /></template>
-          <template #value><ReCountup :value="levelCounts.P0 + levelCounts.P1" /></template>
-        </ReStatCard>
-        <ReStatCard class="kpi c-amber" title="P2 中危" desc="当班处理">
-          <template #icon><ReIcon name="AlarmClock" :size="18" style="color: var(--sev-p2-text)" /></template>
-          <template #value><ReCountup :value="levelCounts.P2" /></template>
-        </ReStatCard>
+        <el-tooltip :content="`资产总数 · 运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`" placement="top">
+          <ReStatCard class="kpi c-brand">
+            <template #icon><ReIcon name="DataBoard" :size="18" style="color: var(--brand-500)" /></template>
+            <template #value><ReCountup :value="monitors.length" /></template>
+          </ReStatCard>
+        </el-tooltip>
+        <el-tooltip content="告警未处理 · 累计事件" placement="top">
+          <ReStatCard class="kpi c-red">
+            <template #icon><ReIcon name="Bell" :size="18" style="color: var(--status-alarm)" /></template>
+            <template #value><ReCountup :value="unhandledCount" /><span class="kpi-unit">/ {{ totalAlarms }}</span></template>
+          </ReStatCard>
+        </el-tooltip>
+        <el-tooltip content="P0+P1 高危 · 30 分钟内响应" placement="top">
+          <ReStatCard class="kpi c-red">
+            <template #icon><ReIcon name="Warning" :size="18" style="color: var(--sev-p0-text)" /></template>
+            <template #value><ReCountup :value="levelCounts.P0 + levelCounts.P1" /></template>
+          </ReStatCard>
+        </el-tooltip>
+        <el-tooltip content="P2 中危 · 当班处理" placement="top">
+          <ReStatCard class="kpi c-amber">
+            <template #icon><ReIcon name="AlarmClock" :size="18" style="color: var(--sev-p2-text)" /></template>
+            <template #value><ReCountup :value="levelCounts.P2" /></template>
+          </ReStatCard>
+        </el-tooltip>
       </section>
     </ReSkeleton>
 
@@ -104,18 +108,21 @@ onMounted(fetchAll);
       <div class="card">
         <div class="card-head"><span class="card-title">告警等级分布</span></div>
         <div class="donut-wrap">
-          <div class="donut" :style="donutStyle">
-            <div class="donut-center">
-              <div class="donut-value">{{ totalAlarms }}</div>
-              <div class="donut-label">事件</div>
+          <el-tooltip :content="`告警事件 · 共 ${totalAlarms} 起`" placement="top">
+            <div class="donut" :style="donutStyle">
+              <div class="donut-center">
+                <div class="donut-value">{{ totalAlarms }}</div>
+              </div>
             </div>
-          </div>
+          </el-tooltip>
           <div class="donut-legend">
-            <div v-for="lv in LEVELS" :key="lv" class="legend-item">
-              <span class="legend-dot" :style="{ background: LEVEL_COLORS[lv] }" />
-              <span class="legend-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
-              <span class="tag" :class="`sev-${lv}`">{{ levelCounts[lv] }}</span>
-            </div>
+            <el-tooltip v-for="lv in LEVELS" :key="lv" :content="`${lv} ${LEVEL_LABELS[lv]}`" placement="top">
+              <div class="legend-item">
+                <span class="legend-dot" :style="{ background: LEVEL_COLORS[lv] }" />
+                <span class="legend-label">{{ lv }}</span>
+                <span class="tag" :class="`sev-${lv}`">{{ levelCounts[lv] }}</span>
+              </div>
+            </el-tooltip>
           </div>
         </div>
       </div>

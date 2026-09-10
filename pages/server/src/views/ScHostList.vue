@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { message } from '@repo/core';
 import {
   queryHosts,
@@ -34,7 +34,23 @@ interface HostRow {
   serverHostStatus: number;
   serverHostOnline: number;
   serverHostAgentKey?: string;
+  serverHostOnlineEnabled?: number;
+  serverHostOnlineInterval?: number;
+  serverHostCollectEnabled?: number;
+  serverHostCollectMode?: string;
+  serverHostCollectInterval?: number;
+  serverHostDelayEnabled?: number;
+  serverHostDelayInterval?: number;
+  serverHostDelayMs?: number | null;
 }
+
+/** 采集方式选项 */
+const collectModeOptions = [
+  { label: '定时 SSH 采集', value: 'SCHEDULED' },
+  { label: 'Agent 主动上报', value: 'AGENT' },
+  { label: 'HTTP 接口拉取', value: 'HTTP' },
+  { label: 'Prometheus 拉取', value: 'PROMETHEUS' },
+];
 
 /** 分组行 */
 interface GroupRow {
@@ -95,9 +111,67 @@ const sftpHostId = ref<number | null>(null);
 const detailVisible = ref(false);
 const detailHost = ref<HostRow | null>(null);
 
+/** 更多配置弹窗状态 */
+const configVisible = ref(false);
+const configHost = ref<HostRow | null>(null);
+const cfgForm = reactive({
+  serverHostOnlineEnabled: 1,
+  serverHostOnlineInterval: 60,
+  serverHostCollectEnabled: 0,
+  serverHostCollectMode: 'SCHEDULED',
+  serverHostCollectInterval: 3600,
+  serverHostDelayEnabled: 0,
+  serverHostDelayInterval: 60,
+});
+const cfgSaving = ref(false);
+
 function openDetail(row: HostRow) {
   detailHost.value = row;
   detailVisible.value = true;
+}
+
+/** 打开更多配置弹窗并回填当前主机配置 */
+function openConfig(row: HostRow) {
+  configHost.value = row;
+  cfgForm.serverHostOnlineEnabled = row.serverHostOnlineEnabled ?? 1;
+  cfgForm.serverHostOnlineInterval = row.serverHostOnlineInterval ?? 60;
+  cfgForm.serverHostCollectEnabled = row.serverHostCollectEnabled ?? 0;
+  cfgForm.serverHostCollectMode = row.serverHostCollectMode || 'SCHEDULED';
+  cfgForm.serverHostCollectInterval = row.serverHostCollectInterval ?? 3600;
+  cfgForm.serverHostDelayEnabled = row.serverHostDelayEnabled ?? 0;
+  cfgForm.serverHostDelayInterval = row.serverHostDelayInterval ?? 60;
+  configVisible.value = true;
+}
+
+/** 保存更多配置 */
+async function onSaveConfig(): Promise<void> {
+  if (!configHost.value?.id) return;
+  cfgSaving.value = true;
+  try {
+    await saveHost(configHost.value.id, {
+      serverHostOnlineEnabled: cfgForm.serverHostOnlineEnabled,
+      serverHostOnlineInterval: cfgForm.serverHostOnlineInterval,
+      serverHostCollectEnabled: cfgForm.serverHostCollectEnabled,
+      serverHostCollectMode: cfgForm.serverHostCollectMode,
+      serverHostCollectInterval: cfgForm.serverHostCollectInterval,
+      serverHostDelayEnabled: cfgForm.serverHostDelayEnabled,
+      serverHostDelayInterval: cfgForm.serverHostDelayInterval,
+    });
+    message.success('主机配置已保存，检测/采集已动态调整');
+    configVisible.value = false;
+    refresh();
+  } catch (e) {
+    message.error((e as Error).message || '保存失败');
+  } finally {
+    cfgSaving.value = false;
+  }
+}
+
+/** 延迟毫秒展示（-1 表示不可达） */
+function delayText(ms?: number | null): string {
+  if (ms == null) return '未检测';
+  if (ms < 0) return '不可达';
+  return `${ms} ms`;
 }
 
 /** 批量操作 */
@@ -415,13 +489,26 @@ async function onImportFile(file: File | undefined) {
           <ReSwitch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="280" fixed="right">
+      <ReTableColumn label="延迟" width="100">
+        <template #default="{ row }">
+          <span
+            :class="[
+              'delay-cell',
+              row.serverHostDelayMs === null || row.serverHostDelayMs === undefined
+                ? 'is-info'
+                : row.serverHostDelayMs < 0 ? 'is-down' : row.serverHostDelayMs <= 50 ? 'is-fast' : 'is-slow'
+            ]"
+          >{{ delayText(row.serverHostDelayMs) }}</span>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
           <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
           <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
           <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
           <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
+          <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
           <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
         </template>
       </ReTableColumn>
@@ -437,6 +524,49 @@ async function onImportFile(file: File | undefined) {
         <ScSftpPanel :host-id="sftpHostId" />
       </template>
     </ReDrawer>
+
+    <!-- 主机更多配置：在离线 / 指标采集 / 延迟检测 -->
+    <ReDialog
+      v-model="configVisible"
+      layout="modern"
+      compact
+      :title="`主机配置 - ${configHost?.serverHostName || ''}`"
+      width="520"
+      ok-text="保存"
+      cancel-text="取消"
+      :confirm-loading="cfgSaving"
+      @ok="onSaveConfig"
+      @cancel="configVisible = false"
+    >
+      <ReForm label-position="left" label-width="130px" class="cfg-form">
+        <ReDivider content-position="left">在离线检测</ReDivider>
+        <ReFormItem label="启用自动检测">
+          <ReSwitch v-model="cfgForm.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+        <ReFormItem label="检测间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostOnlineInterval" :min="5" :max="86400" style="width: 180px" />
+        </ReFormItem>
+
+        <ReDivider content-position="left">指标采集</ReDivider>
+        <ReFormItem label="启用采集">
+          <ReSwitch v-model="cfgForm.serverHostCollectEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+        <ReFormItem label="采集方式">
+          <ReSelect v-model="cfgForm.serverHostCollectMode" :data="collectModeOptions" style="width: 220px" />
+        </ReFormItem>
+        <ReFormItem label="采集间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" />
+        </ReFormItem>
+
+        <ReDivider content-position="left">延迟检测</ReDivider>
+        <ReFormItem label="启用延迟检测">
+          <ReSwitch v-model="cfgForm.serverHostDelayEnabled" :active-value="1" :inactive-value="0" />
+        </ReFormItem>
+        <ReFormItem label="检测间隔(秒)">
+          <ReInputNumber v-model="cfgForm.serverHostDelayInterval" :min="5" :max="86400" style="width: 180px" />
+        </ReFormItem>
+      </ReForm>
+    </ReDialog>
 
     <ScHostDetail v-model="detailVisible" :host="detailHost" @updated="refresh" />
   </div>
@@ -469,6 +599,19 @@ async function onImportFile(file: File | undefined) {
   color: var(--brand-500);
   font-weight: 500;
   margin-right: 8px;
+}
+
+.delay-cell {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  &.is-fast { color: var(--status-success, #67c23a); font-weight: 500; }
+  &.is-slow { color: var(--status-warning, #e6a23c); }
+  &.is-down { color: var(--status-error, #f56c6c); font-weight: 500; }
+  &.is-info { color: var(--text-tertiary, #909399); }
+}
+
+.cfg-form :deep(.el-form-item) {
+  margin-bottom: 14px;
 }
 
 @keyframes batch-in {

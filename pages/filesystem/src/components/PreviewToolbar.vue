@@ -8,7 +8,7 @@
  * @author Buffy
  * @since 2026/09/10
  */
-import { onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FullScreen, QuestionFilled, RefreshRight, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
 
 /** 缩放比例 */
@@ -37,8 +37,28 @@ const shortcutPopoverVisible = ref(false);
 /** 切换快捷键帮助弹窗（供父组件通过 ref 调用） */
 function toggleHelp(): void {
   shortcutPopoverVisible.value = !shortcutPopoverVisible.value;
+  if (!shortcutPopoverVisible.value) {
+    shortcutSearch.value = "";
+    debouncedSearch.value = "";
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+  }
 }
 defineExpose({ toggleHelp });
+
+/** 快捷键搜索关键词（输入框实时值） */
+const shortcutSearch = ref("");
+/** 防抖后的搜索关键词（用于过滤和高亮，300ms 延迟） */
+const debouncedSearch = ref("");
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(shortcutSearch, (val) => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debouncedSearch.value = val;
+  }, 300);
+});
+
+onBeforeUnmount(() => { if (debounceTimer) clearTimeout(debounceTimer); });
 
 /** 快捷键列表 */
 const shortcuts = [
@@ -49,6 +69,36 @@ const shortcuts = [
   { keys: "Esc", desc: "退出全屏 / 关闭弹窗" },
   { keys: "?" , desc: "显示/隐藏快捷键帮助" },
 ];
+
+/** 快捷键总数 */
+const totalCount = shortcuts.length;
+
+/** 按关键词过滤快捷键（使用防抖后的值） */
+const filteredShortcuts = computed(() => {
+  const q = debouncedSearch.value.trim().toLowerCase();
+  if (!q) return shortcuts;
+  return shortcuts.filter(s =>
+    s.keys.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)
+  );
+});
+
+/** 是否正在搜索 */
+const isSearching = computed(() => debouncedSearch.value.trim().length > 0);
+
+/** 匹配计数文本 */
+const matchCountText = computed(() => {
+  return `${filteredShortcuts.value.length}/${totalCount} 匹配`;
+});
+
+/** 高亮匹配文本（使用防抖后的值） */
+function highlight(text: string): string {
+  const q = debouncedSearch.value.trim();
+  if (!q) return text;
+  // 转义正则特殊字符，然后全局匹配（大小写不敏感）
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(${escaped})`, "gi");
+  return text.replace(re, '<mark class="shortcut-highlight">$1</mark>');
+}
 
 /** 点击外部关闭快捷键帮助 */
 function onDocClick(e: MouseEvent): void {
@@ -74,6 +124,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
       placement="bottom"
       :width="280"
       :visible="shortcutPopoverVisible"
+      :teleported="false"
+      transition="popover-fade-scale"
     >
       <template #reference>
         <el-button
@@ -86,9 +138,38 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
       </template>
       <div class="shortcut-help">
         <div class="shortcut-help__title">快捷键一览</div>
-        <div v-for="s in shortcuts" :key="s.keys" class="shortcut-help__row">
-          <kbd class="shortcut-help__keys">{{ s.keys }}</kbd>
-          <span class="shortcut-help__desc">{{ s.desc }}</span>
+        <div class="shortcut-help__search-row">
+          <el-input
+            v-model="shortcutSearch"
+            placeholder="搜索快捷键…"
+            size="small"
+            clearable
+            class="shortcut-help__search"
+          />
+          <span v-if="isSearching" class="shortcut-help__match-count">{{ matchCountText }}</span>
+        </div>
+        <div class="shortcut-help__list">
+          <div
+            v-for="s in filteredShortcuts"
+            :key="s.keys"
+            class="shortcut-help__row"
+          >
+            <kbd class="shortcut-help__keys" v-html="highlight(s.keys)" />
+            <span class="shortcut-help__desc" v-html="highlight(s.desc)" />
+          </div>
+          <div v-if="filteredShortcuts.length === 0" class="shortcut-help__empty">
+            <el-icon class="shortcut-help__empty-icon" :size="28"><QuestionFilled /></el-icon>
+            <span>未找到匹配的快捷键</span>
+            <span class="shortcut-help__empty-hint">试试其他关键词？</span>
+            <el-button
+              type="primary"
+              size="small"
+              text
+              @click="shortcutSearch = ''"
+            >
+              清空搜索
+            </el-button>
+          </div>
         </div>
       </div>
     </el-popover>
@@ -111,6 +192,51 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
   gap: 6px;
 }
 
+.shortcut-help__search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.shortcut-help__search {
+  flex: 1;
+}
+
+.shortcut-help__match-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.shortcut-help__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.shortcut-help__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  padding: 16px 0 8px;
+}
+
+.shortcut-help__empty-icon {
+  color: var(--el-color-info-light-5, #c0c4cc);
+}
+
+.shortcut-help__empty-hint {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
 .shortcut-help__title {
   font-size: 13px;
   font-weight: 600;
@@ -122,7 +248,14 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 0;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.shortcut-help__row:hover {
+  background-color: var(--el-fill-color-light);
 }
 
 .shortcut-help__keys {
@@ -142,5 +275,37 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 .shortcut-help__desc {
   font-size: 13px;
   color: var(--el-text-color-regular);
+}
+
+/* ---- 弹窗弹出/收起 fade+scale 过渡 ---- */
+.popover-fade-scale-enter-active,
+.popover-fade-scale-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.popover-fade-scale-enter-from,
+.popover-fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+@keyframes highlightFadeIn {
+  from {
+    opacity: 0;
+    background: transparent;
+  }
+  to {
+    opacity: 1;
+    background: var(--el-color-danger-light-9, #fef0f0);
+  }
+}
+
+.shortcut-help :deep(.shortcut-highlight) {
+  background: var(--el-color-danger-light-9, #fef0f0);
+  color: var(--el-color-danger, #f56c6c);
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 600;
+  animation: highlightFadeIn 0.25s ease-out;
 }
 </style>

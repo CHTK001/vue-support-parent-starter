@@ -1,9 +1,11 @@
 <script setup lang="ts">
 /**
- * 抓包分析 —— ReSectionHead + ReCard + ReTag + ReButton(square)
+ * 抓包分析 —— 全 Re 组件 + socket.io 实时推送
+ * 静态数据：/ms/monitor/tshark（@pages/monitor API）
+ * 实时推送：subscribe("tshark", "packet"/"session")，dataId=sessionId 过滤当前会话
  */
-import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { message, useSocketService } from "@repo/core";
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   getTsharkSessions, getTsharkPackets, getTsharkProtocolStats,
@@ -17,6 +19,8 @@ const protocolStats = ref<{ protocol: string; count: number }[]>([]);
 const currentSession = ref<number | null>(null);
 const loading = ref(false);
 const captureError = ref("");
+const liveCount = ref(0);
+const liveConnected = ref(false);
 const form = ref({ interface: "", filter: "", limit: 10000, running: false });
 
 async function init(): Promise<void> {
@@ -36,6 +40,7 @@ async function loadSessions(): Promise<void> {
 }
 async function openSession(id: number): Promise<void> {
   currentSession.value = id;
+  liveCount.value = 0;
   try {
     const [p, s] = await Promise.all([getTsharkPackets(id, 1, 20), getTsharkProtocolStats(id)]);
     packets.value = (p as any)?.list ?? p ?? [];
@@ -45,9 +50,10 @@ async function openSession(id: number): Promise<void> {
 async function start(): Promise<void> {
   captureError.value = "";
   try {
-    await startTsharkCapture({ interfaceName: form.value.interface, filter: form.value.filter || undefined, limit: form.value.limit });
+    const session = await startTsharkCapture({ interfaceName: form.value.interface, filter: form.value.filter || undefined, limit: form.value.limit });
     form.value.running = true;
-    ElMessage.success("抓包已启动");
+    message.success("抓包已启动");
+    currentSession.value = (session as any)?.id ?? null;
     setTimeout(loadSessions, 1500);
   } catch (e) { captureError.value = String((e as Error)?.message ?? e); }
 }
@@ -56,9 +62,40 @@ async function stop(id: number): Promise<void> {
     await stopTsharkCapture(id);
     form.value.running = false;
     await loadSessions();
-  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
+  } catch (e) { message.error(String((e as Error)?.message ?? e)); }
 }
 const totalProto = () => protocolStats.value.reduce((a, b) => a + b.count, 0) || 1;
+
+/** 实时追加包（去重 + 上限 500，防止刷屏） */
+function appendLivePacket(packet: any): void {
+  if (currentSession.value == null || packet == null) return;
+  if (packets.value.some(p => p.id === packet.id)) return;
+  packets.value.unshift(packet);
+  if (packets.value.length > 500) packets.value.length = 500;
+  liveCount.value++;
+  const proto = packet.protocol || "OTHER";
+  const hit = protocolStats.value.find(s => s.protocol === proto);
+  if (hit) hit.count++;
+  else protocolStats.value.push({ protocol: proto, count: 1 });
+  protocolStats.value.sort((a, b) => b.count - a.count);
+}
+
+/** socket 订阅句柄（组件卸载时释放） */
+const unsubPacket: Array<() => void> = [];
+const socket = useSocketService();
+if (socket) {
+  // 后端 MonitorPushService 协议：module=monitor, event=tshark-packet / tshark-session
+  // broadcast 事件名 "monitor:tshark-packet"，dataId=sessionId 与当前会话匹配时实时追加
+  unsubPacket.push(socket.subscribe("monitor", "tshark-packet", (msg) => {
+    const packet = (msg.data ?? msg) as any;
+    if (currentSession.value != null && String(msg.dataId ?? packet?.sessionId) !== String(currentSession.value)) return;
+    appendLivePacket(packet);
+  }));
+  unsubPacket.push(socket.subscribe("monitor", "tshark-session", () => { loadSessions(); }));
+  const tick = setInterval(() => { liveConnected.value = !!socket.isConnected; }, 2000);
+  unsubPacket.push(() => clearInterval(tick));
+}
+onBeforeUnmount(() => unsubPacket.forEach(fn => fn?.()));
 
 /** ReTable 列：数据包 */
 const packetColumns = computed(() => [
@@ -68,11 +105,11 @@ const packetColumns = computed(() => [
   { prop: "protoText", label: "协议", width: 80, slot: "proto" },
   { prop: "lenText", label: "长度", width: 80, slot: "len" },
 ]);
-function packetTime(r: any): string { return r.time ?? r.timestamp ?? "—"; }
-function packetSrc(r: any): string { return r.src ?? r.source ?? "—"; }
-function packetDst(r: any): string { return r.dst ?? r.destination ?? "—"; }
+function packetTime(r: any): string { return r.time ?? r.packetTime ?? r.timestamp ?? "—"; }
+function packetSrc(r: any): string { return r.sourceIp ?? r.src ?? r.source ?? "—"; }
+function packetDst(r: any): string { return r.destIp ?? r.dst ?? r.destination ?? "—"; }
 function packetProto(r: any): string { return r.protocol ?? "—"; }
-function packetLen(r: any): string { return r.length ?? "—"; }
+function packetLen(r: any): string { return r.packetLength ?? r.length ?? "—"; }
 
 /** ReTable 列：协议统计 */
 const protoColumns = computed(() => [
@@ -91,6 +128,9 @@ onMounted(init);
     <ReSectionHead :description="available === false ? '抓包模块不可用' : '网络抓包 · 会话 / 包 / 协议统计'">
       <template #title>抓包分析</template>
       <template #actions>
+        <ReTag v-if="currentSession != null" :type="liveConnected ? 'success' : 'info'" size="small">
+          {{ liveConnected ? `实时推送中 +${liveCount}` : "推送未连接" }}
+        </ReTag>
         <ReButton v-if="available === false" icon="RefreshRight" :show-text="true" size="small" @click="init">重试初始化</ReButton>
       </template>
     </ReSectionHead>
@@ -105,7 +145,7 @@ onMounted(init);
         <ReInputNumber v-model="form.limit" :min="100" :max="100000" :step="1000" size="small" />
         <ReButton icon="VideoPlay" :show-text="true" size="small" type="primary" @click="start">开始抓包</ReButton>
       </div>
-      <div class="form-hint">接口 {{ interfaces.length }} 个 · tshark 可用</div>
+      <div class="form-hint">接口 {{ interfaces.length }} 个 · tshark 可用 · 推送通道 {{ liveConnected ? "已连接" : "未连接" }}</div>
     </ReCard>
 
     <!-- 会话 + 包 -->
@@ -117,8 +157,8 @@ onMounted(init);
           <template v-else>
             <ReButton v-for="s in sessions" :key="s.id" :class="['sess', { active: currentSession === s.id }]" @click="openSession(s.id)">
               <span class="sess-name">会话 #{{ s.id }}</span>
-              <ReTag :type="s.status === 'RUNNING' ? 'success' : 'info'" size="small">{{ s.status === 'RUNNING' ? '活跃' : '已停止' }}</ReTag>
-              <ReButton v-if="s.status === 'RUNNING'" icon="VideoPause" layout="square" size="small" title="停止" @click.stop="stop(s.id)" />
+              <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small">{{ s.captureStatus === 1 ? '活跃' : '已停止' }}</ReTag>
+              <ReButton v-if="s.captureStatus === 1" icon="VideoPause" layout="square" size="small" title="停止" @click.stop="stop(s.id)" />
             </ReButton>
           </template>
         </div>
@@ -157,7 +197,6 @@ onMounted(init);
 .form-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .form-hint { margin-top: 8px; font-size: 12px; color: var(--text-tertiary); }
 .split { display: grid; grid-template-columns: 280px 1fr; gap: 14px; margin-bottom: 16px; }
-.sess-card { }
 .sess-list { display: flex; flex-direction: column; gap: 6px; }
 .sess {
   display: flex; align-items: center; gap: 8px; padding: 9px 10px;

@@ -38,8 +38,8 @@
       </template>
       <ReAsideSubMenu :menuList="item.children" />
     </el-sub-menu>
-    <!-- 叶子节点[功能节点] -->
-    <el-menu-item v-else :index="item.path" @click="handleMenuRouter(item)">
+    <!-- 叶子节点[功能节点]；空分组（isGroup 且无子项）不渲染，避免悬空分组标题 -->
+    <el-menu-item v-else-if="!(item.meta?.isGroup && !item.children?.length)" :index="item.path" @click="handleMenuRouter(item)">
       <template #title>
         <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
           <div class="menu-title-wrap">

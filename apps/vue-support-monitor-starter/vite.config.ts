@@ -10,10 +10,21 @@ export default createVite({
   alias: {
     "@pages/server": "pages/server",
     "@pages/monitor": "pages/monitor",
+    "@pages/project": "pages/project",
   },
   server: {
     port: 8848,
     strictPort: true,
+    // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 4~30s 卡顿）
+    warmup: {
+      clientFiles: [
+        "src/main.ts",
+        "src/App.vue",
+        "src/router.ts",
+        "src/views/AssetsView.vue",
+        "src/views/HostFormDialog.vue",
+      ],
+    },
     proxy: {
       "/ms/monitor/system": {
         target: "http://127.0.0.1:8082",
@@ -29,6 +40,12 @@ export default createVite({
       },
       "/ws/ms/server": {
         target: "http://124.221.230.112:8080",
+        ws: true,
+        changeOrigin: true,
+      },
+      // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=9000）
+      "/socket.io": {
+        target: "http://124.221.230.112:9000",
         ws: true,
         changeOrigin: true,
       },
@@ -53,5 +70,8 @@ export default createVite({
         changeOrigin: true,
       },
     },
+  },
+  optimizeDeps: {
+    include: ["element-plus"],
   },
 });

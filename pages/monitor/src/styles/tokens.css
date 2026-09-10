@@ -73,6 +73,9 @@
   --selection-bg: rgba(109, 93, 252, 0.18);
   --selection-bg-fade: rgba(109, 93, 252, 0.035);
 
+  /* 遮罩 */
+  --overlay-bg: rgba(29, 33, 41, 0.5);
+
   /* 指标色 */
   --metric-cpu: #3b82f6;
   --metric-mem: #8b5cf6;

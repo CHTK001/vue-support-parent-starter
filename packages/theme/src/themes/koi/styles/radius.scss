@@ -43,3 +43,14 @@
   --el-input-border-radius: var(--el-radius-sm);
   --el-avatar-border-radius: 50%;
 }
+
+/*
+ * Element 在 .el-dialog 元素上本地定义 --el-dialog-border-radius（取 --el-border-radius-base），
+ * 会屏蔽 :root 层的令牌，导致上方 xl=16px 不生效。
+ * 框架级默认 16px：直接写在组件类上（双类加权，不依赖"主题 css 后加载"的序关系）；
+ * 需要定制时按实例/局部设置 --el-dialog-border-radius 变量即可覆盖（更高特异度选择器或内联 style）。
+ * 全屏态（.el-dialog.is-fullscreen，element 直接 border-radius:0）不受影响。
+ */
+.el-dialog.el-dialog {
+  --el-dialog-border-radius: var(--el-radius-xl, 16px);
+}

@@ -8,9 +8,10 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { queryHosts, saveHost, delHost, switchHost, getHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, saveIdentity, delIdentity } from "@pages/server/src/api";
+import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, saveIdentity, delIdentity } from "@pages/server/src/api";
+import HostFormDialog from "./HostFormDialog.vue";
 
-interface Host {
+export interface Host {
   id: number;
   serverHostName: string;
   serverHostCode?: string | null;
@@ -69,17 +70,22 @@ function onFilterReset(): void {
   filterState.value = { keyword: "", status: "", group: "", tag: "" };
 }
 
-/** ReFilter 筛选项配置 */
-const filterItems = computed<ReFilterItem[]>(() => [
-  { prop: "keyword", label: "名称/IP", type: "input", placeholder: "搜索名称 / IP", clearable: true, always: true },
-  { prop: "status", label: "状态", type: "select", placeholder: "状态", clearable: true, options: [
-    { label: "在线", value: "online" },
-    { label: "离线", value: "offline" },
-    { label: "远控启用", value: "remote" },
-  ], always: true },
-  { prop: "group", label: "分组", type: "select", placeholder: "分组", clearable: true, options: groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })), always: true },
-  { prop: "tag", label: "标签", type: "slot", always: false },
-]);
+/** ReFilter 筛选项配置（"标签"项仅在存在标签数据时显示，避免空的筛选项） */
+const filterItems = computed<ReFilterItem[]>(() => {
+  const items: ReFilterItem[] = [
+    { prop: "keyword", label: "名称/IP", type: "input", placeholder: "搜索名称 / IP", clearable: true, always: true },
+    { prop: "status", label: "状态", type: "select", placeholder: "状态", clearable: true, options: [
+      { label: "在线", value: "online" },
+      { label: "离线", value: "offline" },
+      { label: "远控启用", value: "remote" },
+    ], always: true },
+    { prop: "group", label: "分组", type: "select", placeholder: "分组", clearable: true, options: groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })), always: true },
+  ];
+  if (allTags.value.length > 0) {
+    items.push({ prop: "tag", label: "标签", type: "slot", always: false });
+  }
+  return items;
+});
 
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
@@ -217,66 +223,13 @@ function openDetail(h: Host): void {
   router.push(`/host/${h.id}`);
 }
 
-/** 认证方式（表单用，不落库） */
-type AuthMethod = "PASSWORD" | "PUBLIC_KEY" | "IDENTITY";
-/** 采集方式选项 */
-const collectModes = [
-  { label: "定时采集", value: "SCHEDULED" },
-  { label: "Agent采集", value: "AGENT" },
-  { label: "HTTP采集", value: "HTTP" },
-  { label: "Prometheus采集", value: "PROMETHEUS" },
-];
-/** 认证方式选项 */
-const authMethods = [
-  { label: "账号密码", value: "PASSWORD" },
-  { label: "SSH私钥", value: "PUBLIC_KEY" },
-  { label: "已存身份", value: "IDENTITY" },
-];
+/** 认证方式/采集方式选项已随弹窗拆入 HostFormDialog 子组件 */
 
 // ---- 新增/编辑表单 ----
 const formVisible = ref(false);
-const formSaving = ref(false);
 const formIsEdit = ref(false);
-/** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
-const tagsText = ref("");
-const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" });
-/** 认证方式 */
-const formAuthMethod = ref<AuthMethod>("IDENTITY");
-/** 从身份列表选择 */
-const formIdentityId = ref<number | null>(null);
-const formIdentityChanged = ref(false);
-/** 登录凭据（瞬态） */
-const formAccount = ref("");
-const formPassword = ref("");
-const formPrivateKey = ref("");
-
-function resetForm(): void {
-  form.value = {
-    serverHostName: "", serverHostAddress: "", serverHostPort: 22,
-    serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED",
-    serverGroupId: null, serverHostTags: "", serverHostDescription: "",
-    serverHostCode: "",
-    // 采集
-    serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
-    serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
-    // 远控
-    serverHostRemoteEnabled: 1, serverHostAgentEnabled: 0,
-  };
-  tagsText.value = "";
-  formAuthMethod.value = "IDENTITY";
-  formIdentityId.value = null;
-  formIdentityChanged.value = false;
-  formAccount.value = "";
-  formPassword.value = "";
-  formPrivateKey.value = "";
-  hostBoundIdentities.value = [];
-}
-
-/** 编辑弹窗里切换登录身份 */
-function onFormIdentityChange(v: number | null): void {
-  formIdentityChanged.value = true;
-  formIdentityId.value = v;
-}
+/** 编辑时的行数据（传给弹窗子组件，打开后由子组件异步回填详情） */
+const editHost = ref<Host | null>(null);
 
 function collectModeLabel(m?: string | null): string {
   const map: Record<string, string> = { SCHEDULED: "定时采集", AGENT: "Agent采集", HTTP: "HTTP采集", PROMETHEUS: "Prometheus采集" };
@@ -351,74 +304,15 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
 
 function openAdd(): void {
   formIsEdit.value = false;
-  resetForm();
+  editHost.value = null;
   formVisible.value = true;
 }
-async function openEdit(h: Host): Promise<void> {
-  // 并行请求主机详情 + 已绑定身份，减少串行等待
-  const [full, bound] = await Promise.all([
-    getHost(h.id).catch(() => h),
-    listBoundIdentities(h.id).catch(() => []),
-  ]);
-  form.value = { ...((full as any) ?? h) };
-  tagsText.value = splitTags(form.value.serverHostTags).join(", ");
-  formAuthMethod.value = "IDENTITY";
-  formAccount.value = "";
-  formPassword.value = "";
-  formPrivateKey.value = "";
-  formIdentityChanged.value = false;
-  formIdentityId.value = null;
-  hostBoundIdentities.value = (bound as any[]) ?? [];
-  const first = (bound as any[])?.[0];
-  if (first) formIdentityId.value = first;
+function openEdit(h: Host): void {
+  // 弹窗子组件内部负责：行数据立即填充 + 详情异步回填（打开不再阻塞、不再触发本组件大 diff）
   formIsEdit.value = true;
+  editHost.value = h;
   formVisible.value = true;
 }
-function validForm(): boolean {
-  if (!form.value.serverHostName?.trim()) { ElMessage.warning("请输入主机名"); return false; }
-  if (!form.value.serverHostAddress?.trim()) { ElMessage.warning("请输入地址"); return false; }
-  if (!form.value.serverHostPort) { ElMessage.warning("请输入端口"); return false; }
-  return true;
-}
-async function submitForm(): Promise<void> {
-  if (!validForm()) return;
-  // 标签文本 → 逗号分隔字符串
-  form.value.serverHostTags = tagsText.value.split(",").map(t => t.trim()).filter(Boolean).join(",");
-  // 注入认证凭据（瞬态字段，后端不落库，用于 SSH 连接建立）
-  if (formAuthMethod.value === "PASSWORD") {
-    form.value.serverHostAccount = formAccount.value || null;
-    form.value.serverHostPassword = formPassword.value || null;
-    form.value.serverHostPrivateKey = null;
-  } else if (formAuthMethod.value === "PUBLIC_KEY") {
-    form.value.serverHostAccount = formAccount.value || null;
-    form.value.serverHostPassword = null;
-    form.value.serverHostPrivateKey = formPrivateKey.value || null;
-  } else {
-    form.value.serverHostAccount = null;
-    form.value.serverHostPassword = null;
-    form.value.serverHostPrivateKey = null;
-  }
-  formSaving.value = true;
-  try {
-    const res = await saveHost(formIsEdit.value ? form.value.id ?? null : null, form.value) as any;
-    // 新主机：取回后端返回的 id（res 可能是保存后的实体或 id）
-    const savedId = formIsEdit.value ? form.value.id : (res?.id ?? null);
-    let hostId = formIsEdit.value ? form.value.id! : null;
-    if (!hostId && savedId) hostId = Number(savedId);
-    // 若表单选了身份，且是显式选择的，则绑定到（新/旧）主机
-    if (hostId && formIdentityChanged.value && formIdentityId.value != null) {
-      await bindIdentity(hostId, formIdentityId.value);
-    }
-    ElMessage.success(formIsEdit.value ? "已更新" : "已新增");
-    formVisible.value = false;
-    await fetchAll();
-  } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
-  } finally {
-    formSaving.value = false;
-  }
-}
-
 // ---- 删除 / 启停 / 批量 ----
 async function removeHost(h: Host): Promise<void> {
   await ElMessageBox.confirm(`删除主机「${h.serverHostName}」？`, "删除确认", { type: "warning" });
@@ -525,7 +419,7 @@ onMounted(() => {
             </div>
           </template>
         </ReFilter>
-        <span class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
+        <span v-if="filtered.length !== hosts.length" class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
       </div>
         <ReTable
           :data="filtered.map(h => ({ ...h }))"
@@ -576,94 +470,15 @@ onMounted(() => {
       </ReTable>
     </div>
 
-    <!-- 新增/编辑弹窗（1080px 三列上下布局，一页无滚动条） -->
-    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="1080px" :height="780" :close-on-click-modal="false">
-      <ReForm :model="form" label-position="top" class="form-vertical">
-      <div class="form-grid">
-        <!-- ─── 基本信息 ─── -->
-        <div class="form-section full">基本信息</div>
-        <ReFormItem label="主机名称" class="col-span-2">
-          <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="主机编码">
-          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="主机地址">
-          <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="端口">
-          <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="系统类型">
-          <ReSelect v-model="form.serverHostOsType" size="small" style="width:100%" :options="[
-            { label: 'Linux', value: 'LINUX' }, { label: 'Windows', value: 'WINDOWS' }, { label: 'macOS', value: 'MACOS' },
-          ]" />
-        </ReFormItem>
-
-        <!-- ─── 认证方式 ─── -->
-        <div class="form-section full">认证方式</div>
-        <ReFormItem label="登录方式">
-          <ReSelect v-model="formAuthMethod" size="small" style="width:100%" :options="authMethods" />
-        </ReFormItem>
-        <ReFormItem v-if="formAuthMethod === 'IDENTITY'" label="绑定身份" class="col-span-2">
-          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="identityOptions" />
-        </ReFormItem>
-        <template v-if="formAuthMethod === 'PASSWORD'">
-          <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
-          </ReFormItem>
-          <ReFormItem label="登录密码" class="col-span-2">
-            <ReInput v-model="formPassword" type="password" show-password placeholder="SSH 口令" style="width:100%" />
-          </ReFormItem>
-        </template>
-        <template v-if="formAuthMethod === 'PUBLIC_KEY'">
-          <ReFormItem label="登录账号">
-            <ReInput v-model="formAccount" placeholder="如 root / ubuntu" style="width:100%" />
-          </ReFormItem>
-          <ReFormItem label="SSH 私钥" class="col-span-2">
-            <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容" style="width:100%" />
-          </ReFormItem>
-        </template>
-
-        <!-- ─── 分组与标签 ─── -->
-        <div class="form-section full">分组与标签</div>
-        <ReFormItem label="分组">
-          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groupOptions" />
-        </ReFormItem>
-        <ReFormItem label="标签">
-          <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="描述">
-          <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
-        </ReFormItem>
-
-        <!-- ─── 采集配置 ─── -->
-        <div class="form-section full">硬件采集与检测</div>
-        <ReFormItem label="采集方式">
-          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
-        </ReFormItem>
-        <ReFormItem label="采集间隔(秒)">
-          <ReInputNumber v-model="form.serverHostCollectInterval" :min="60" :max="86400" :step="60" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="在离线检测">
-          <ReSwitch layout="square" v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="检测间隔(秒)">
-          <ReInputNumber v-model="form.serverHostOnlineInterval" :min="10" :max="3600" :step="10" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="远控开关">
-          <ReSwitch layout="square" v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="Agent上报">
-          <ReSwitch layout="square" v-model="form.serverHostAgentEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-      </div>
-      </ReForm>
-      <template #footer>
-        <ReButton @click="formVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 新增/编辑弹窗（独立子组件——弹窗渲染只在子组件内进行，不再触发本组件全量 diff） -->
+    <HostFormDialog
+      v-model="formVisible"
+      :is-edit="formIsEdit"
+      :host="editHost"
+      :identity-options="identityOptions"
+      :group-options="groupOptions"
+      @saved="fetchAll"
+    />
 
     <!-- 连接弹窗（选择登录身份） -->
     <ReDialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
