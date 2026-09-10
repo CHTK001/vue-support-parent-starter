@@ -3,7 +3,7 @@
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
  */
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
@@ -452,14 +452,8 @@ async function batchDelete(): Promise<void> {
   await fetchAll();
 }
 
-onMounted(async () => {
-  await fetchAll();
-  // 预热弹窗 DOM：首次打开弹窗时会创建整棵树（~20 个 Re 组件），
-  // 页面加载后提前挂载一次（一个宏任务内完成，不闪屏），
-  // 之后打开/关闭仅做显示切换，秒开。
-  formVisible.value = true;
-  await nextTick();
-  formVisible.value = false;
+onMounted(() => {
+  fetchAll();
 });
 </script>
 
@@ -582,8 +576,9 @@ onMounted(async () => {
       </ReTable>
     </div>
 
-    <!-- 新增/编辑弹窗（920px 三列，无滚动条） -->
-    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="920px" :close-on-click-modal="false">
+    <!-- 新增/编辑弹窗（1080px 三列上下布局，一页无滚动条） -->
+    <ReDialog v-model="formVisible" :title="formIsEdit ? '编辑主机' : '新增主机'" width="1080px" :height="780" :close-on-click-modal="false">
+      <ReForm :model="form" label-position="top" class="form-vertical">
       <div class="form-grid">
         <!-- ─── 基本信息 ─── -->
         <div class="form-section full">基本信息</div>
@@ -651,18 +646,19 @@ onMounted(async () => {
           <ReInputNumber v-model="form.serverHostCollectInterval" :min="60" :max="86400" :step="60" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="在离线检测">
-          <ReSwitch v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
+          <ReSwitch layout="square" v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
         </ReFormItem>
         <ReFormItem label="检测间隔(秒)">
           <ReInputNumber v-model="form.serverHostOnlineInterval" :min="10" :max="3600" :step="10" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="远控开关">
-          <ReSwitch v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
+          <ReSwitch layout="square" v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
         </ReFormItem>
         <ReFormItem label="Agent上报">
-          <ReSwitch v-model="form.serverHostAgentEnabled" :active-value="1" :inactive-value="0" />
+          <ReSwitch layout="square" v-model="form.serverHostAgentEnabled" :active-value="1" :inactive-value="0" />
         </ReFormItem>
       </div>
+      </ReForm>
       <template #footer>
         <ReButton @click="formVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="formSaving" @click="submitForm" icon="Check" :show-text="true">保存</ReButton>
@@ -730,16 +726,55 @@ onMounted(async () => {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px 24px;
-  padding: 4px 8px;
+  gap: 14px 28px;
+  padding: 16px 8px 8px;
 }
+/* 上下布局：label 独占一行在上，控件在下 */
+.form-vertical {
+  :deep(.el-form-item) {
+    display: block;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  :deep(.el-form-item__label) {
+    display: block;
+    height: auto;
+    margin-bottom: 6px;
+    line-height: 1.4;
+    padding: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+  }
+  :deep(.el-form-item__content > .re-input),
+  :deep(.el-form-item__content > .el-input-number) {
+    width: 100%;
+  }
+}
+/* 分节标题：左侧品牌色竖条 + 留白 */
 .form-section {
+  position: relative;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
-  padding: 8px 0 6px;
+  color: var(--text-primary);
+  padding: 0 0 8px 12px;
+  margin-top: 14px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-top: 8px;
+}
+.form-section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand-500, #6d5dfc);
+}
+.form-section:first-child {
+  margin-top: 0;
 }
 .form-section.full {
   grid-column: 1 / -1;
