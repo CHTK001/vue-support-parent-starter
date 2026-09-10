@@ -28,6 +28,7 @@ defineProps<{
   <ElDialog
     v-model="visible"
     v-bind="$attrs"
+    class="re-dialog"
     :title="title"
     :width="width"
     :top="top"

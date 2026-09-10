@@ -27,8 +27,11 @@ export function resolveThemeId(): string {
   return getConfig().other.themeId || FALLBACK_THEME;
 }
 
+/** 已解析主题组件缓存（map 对象 → themeId → 组件），避免重复 await 动态 import */
+const themedComponentCache = new WeakMap<ThemeComponentMap, Map<string, Promise<Component>>>();
+
 /**
- * 按主题加载组件实例
+ * 按主题加载组件实例（带缓存：同一 map + themeId 只解析一次）
  * @param map 主题实现映射
  */
 export async function loadThemedComponent(
@@ -39,8 +42,17 @@ export async function loadThemedComponent(
   if (!loader) {
     throw new Error(`[ui] 组件缺少主题实现：${themeId}`);
   }
-  const mod = await loader();
-  return mod.default;
+  let byTheme = themedComponentCache.get(map);
+  if (!byTheme) {
+    byTheme = new Map();
+    themedComponentCache.set(map, byTheme);
+  }
+  let pending = byTheme.get(themeId);
+  if (!pending) {
+    pending = loader().then(mod => mod.default);
+    byTheme.set(themeId, pending);
+  }
+  return pending;
 }
 
 /**

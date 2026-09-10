@@ -424,6 +424,7 @@ export default {
       classic: "经典",
       optimum: "混合",
       horizontal: "横向",
+      group: "分组",
     },
     interface: {
       routeAnimation: {

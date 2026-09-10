@@ -338,7 +338,7 @@ import { ref, computed, onMounted, onBeforeUnmount, shallowRef, nextTick } from 
 import * as THREE from 'three'
 import * as echarts from 'echarts'
 import type { ReThreeContext } from '@repo/ui/re-three'
-import { message } from '@repo/core'
+import { message, useSocketService } from '@repo/core'
 import {
   getMonitors,
   getLatestCpu, getCpuHistory,
@@ -654,6 +654,22 @@ const animateMetrics3D = (ctx: ReThreeContext) => {
 
 let pollTimer: any = null
 
+/** socket 订阅句柄（组件卸载时释放） */
+const unsubs: Array<() => void> = []
+
+/** 实时指标推送：命中当前监控目标时立即刷新 */
+function initLivePush(): void {
+  const socket = useSocketService()
+  if (!socket) return
+  unsubs.push(socket.subscribe("monitor", "metric", (msg) => {
+    const data = (msg.data ?? msg) as any
+    const payload = data && typeof data === "object" ? (data.data ?? data) : data
+    if (!payload || payload.monitorId == null) return
+    if (selectedMonitorId.value != null && payload.monitorId != null && String(payload.monitorId) !== String(selectedMonitorId.value)) return
+    loadMetrics(payload.monitorId)
+  }))
+}
+
 const refresh = () => {
   if (selectedMonitorId.value) loadMetrics(selectedMonitorId.value)
   lastCollect.value = new Date().toLocaleTimeString()
@@ -672,11 +688,13 @@ const loadServers = async () => {
 
 onMounted(() => {
   loadServers()
+  initLivePush()
   pollTimer = setInterval(refresh, 10000)
   window.addEventListener('resize', onResize)
 })
 
 onBeforeUnmount(() => {
+  unsubs.forEach(fn => fn?.())
   if (pollTimer) clearInterval(pollTimer)
   window.removeEventListener('resize', onResize)
   trendChart?.dispose()

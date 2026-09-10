@@ -33,16 +33,18 @@ import LayoutDouble from "@repo/theme/koi/layouts/LayoutDouble/index.vue";
 import LayoutClassic from "@repo/theme/koi/layouts/LayoutClassic/index.vue";
 import LayoutHorizontal from "@repo/theme/koi/layouts/LayoutHorizontal/index.vue";
 import LayoutOptimum from "@repo/theme/koi/layouts/LayoutOptimum/index.vue";
+import LayoutGroup from "@repo/theme/koi/layouts/LayoutGroup/index.vue";
 import LayoutMobile from "@repo/theme/koi/layouts/LayoutMobile/index.vue";
 
-type LayoutType = "vertical" | "columns" | "double" | "classic" | "horizontal" | 'optimum' | string;
+type LayoutType = "vertical" | "columns" | "double" | "classic" | "horizontal" | 'optimum' | "group" | string;
 const LayoutComponent: Record<LayoutType, Component> = {
   vertical: LayoutVertical,
   columns: LayoutColumns,
   double: LayoutDouble,
   classic: LayoutClassic,
   horizontal: LayoutHorizontal,
-  optimum: LayoutOptimum
+  optimum: LayoutOptimum,
+  group: LayoutGroup
 };
 
 // 全局主题仓库

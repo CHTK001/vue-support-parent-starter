@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick, onBeforeUnmount } from 'vue';
-import { message } from '@repo/core';
+import { onMounted, ref, watch, nextTick, onBeforeUnmount, shallowRef } from 'vue';
+import { message, useSocketService } from '@repo/core';
 import * as echarts from 'echarts';
 import {
   getAlarmPolicies, saveAlarmPolicy, delAlarmPolicy,
@@ -79,6 +79,42 @@ const events = ref<EventRow[]>([]);
 const eventStatusFilter = ref('');
 
 onMounted(refresh);
+onMounted(initLivePush);
+
+/** socket 订阅句柄（组件卸载时释放） */
+const unsubs: Array<() => void> = [];
+
+/** 实时推送告警事件：新告警插到列表顶部并刷新统计 */
+function initLivePush(): void {
+  const socket = useSocketService();
+  if (!socket) return;
+  unsubs.push(socket.subscribe("monitor", "alarm", (msg) => {
+    const data = (msg.data ?? msg) as any;
+    const payload = data && typeof data === "object" ? (data.data ?? data) : data;
+    if (!payload) return;
+    const level = payload.level ?? "P2";
+    if (level === "P0" || level === "P1") {
+      message.error(`[${level}] ${payload.monitorName || ""} ${payload.metricName || ""}=${payload.alarmValue ?? ""}`);
+    } else if (level === "P2" || level === "P3") {
+      message.warning(`[${level}] ${payload.monitorName || ""} ${payload.metricName || ""}=${payload.alarmValue ?? ""}`);
+    }
+    // 插入列表顶部（仅当在事件视图且未按状态过滤时）
+    if (subView.value === "events" && !eventStatusFilter.value) {
+      events.value.unshift({
+        id: Number(payload.id) || Date.now(),
+        msMonitorAlarmEventMonitorName: payload.monitorName,
+        msMonitorAlarmEventMetricName: payload.metricName,
+        msMonitorAlarmEventAlarmValue: payload.alarmValue,
+        msMonitorAlarmEventThreshold: payload.threshold,
+        msMonitorAlarmEventLevel: payload.level,
+        msMonitorAlarmEventStatus: payload.status ?? "NEW",
+        msMonitorAlarmEventTriggerTime: payload.triggerTime,
+      });
+      if (events.value.length > 200) events.value.length = 200;
+    }
+    loadStats().catch(() => {});
+  }));
+}
 
 /**
  * 刷新策略/规则/事件
@@ -267,6 +303,7 @@ watch(subView, () => {
 })
 
 onBeforeUnmount(() => {
+  unsubs.forEach(fn => fn?.())
   trendChartInstance?.dispose()
   trendChartInstance = null
 })
