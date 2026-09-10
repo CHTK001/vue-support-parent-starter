@@ -887,12 +887,19 @@ defineExpose({
 });
 
 /** ========== toolbarConfig 解析 ========== */
+function isBatchEnabled(val: unknown): boolean {
+  if (!val) return false;
+  if (val === true) return true;
+  if (typeof val === "object" && val !== null && "enabled" in val) return (val as any).enabled !== false;
+  return Boolean(val);
+}
 const hasToolbarConfig = computed(() => {
   const cfg = props.toolbarConfig;
-  return Boolean(cfg && (cfg.batchDelete || cfg.batchSelect || cfg.batchEdit));
+  if (!cfg) return false;
+  return isBatchEnabled(cfg.batchDelete) || isBatchEnabled(cfg.batchSelect) || isBatchEnabled(cfg.batchEdit);
 });
 
-const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConfig?.position ?? "bottom");
+const toolbarConfigPosition = computed<"top" | "bottom">(() => props.toolbarConfig?.position ?? "top");
 
 const batchSelectTip = computed(() => {
   const cfg = props.toolbarConfig?.batchSelect;
@@ -928,6 +935,23 @@ const iconSelect = Select;
     :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small' }"
     :style="{ '--re-table-min-height': tableMinHeight }"
   >
+    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
+    <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
+      <ReTableToolbar
+        mode="batch"
+        :config="toolbarConfig"
+        :selected-count="selectedCount"
+        :editing="batchEditing"
+        :processing="batchProcessing"
+        :loading="dataLoading || loading"
+        :size="tableSize"
+        @batch-delete="onBatchDelete"
+        @batch-edit="onBatchEdit"
+        @batch-save="onBatchSave"
+        @batch-select-toggle="toggleBatchSelect"
+      />
+    </div>
+
     <!-- 默认表格模式 -->
     <ElTable
       v-if="layout === 'table'"
@@ -957,7 +981,7 @@ const iconSelect = Select;
     >
       <!-- 批量选择 checkbox 列 -->
       <ElTableColumn
-        v-if="batchSelectActive || (toolbarConfig.batchSelect)"
+        v-if="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
         type="selection"
         width="50"
         fixed="left"
@@ -1043,7 +1067,7 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutVirtual ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :context-menu="contextMenu"
       :empty-text="emptyText"
       :loading="loading || dataLoading"
@@ -1068,7 +1092,7 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutCard ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :context-menu="contextMenu"
       :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
@@ -1084,7 +1108,7 @@ const iconSelect = Select;
       :loading="loading || dataLoading"
       :empty-text="emptyText"
       :row-key="rowKey"
-      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :pagination="pagination"
       :page="page"
       :page-size="pageSize"
@@ -1105,7 +1129,7 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutCanvas ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :context-menu="contextMenu"
       :empty-text="emptyText"
       :loading="loading || dataLoading"
@@ -1130,7 +1154,7 @@ const iconSelect = Select;
       :columns="visibleColumns"
       :layout="layoutRadial ?? {}"
       :row-key="rowKey"
-      :selectable="batchSelectActive || Boolean(toolbarConfig.batchSelect)"
+      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :context-menu="contextMenu"
       :empty-text="emptyText"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
@@ -1139,23 +1163,6 @@ const iconSelect = Select;
       @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
       @menu-select="(payload: any) => emit('row-click', payload.row)"
     />
-
-    <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
-    <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
-      <ReTableToolbar
-        mode="batch"
-        :config="toolbarConfig"
-        :selected-count="selectedCount"
-        :editing="batchEditing"
-        :processing="batchProcessing"
-        :loading="dataLoading || loading"
-        :size="tableSize"
-        @batch-delete="onBatchDelete"
-        @batch-edit="onBatchEdit"
-        @batch-save="onBatchSave"
-        @batch-select-toggle="toggleBatchSelect"
-      />
-    </div>
 
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar">
@@ -1186,7 +1193,9 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText" />
+                <ReButton :size="tableSize" layout="square" :icon="iconColumns" :title="columnsTriggerText">
+                  {{ columnsTriggerText }}
+                </ReButton>
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -1250,7 +1259,9 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText" />
+                <ReButton :size="tableSize" layout="square" :icon="iconSettings" :title="settingsTriggerText">
+                  {{ settingsTriggerText }}
+                </ReButton>
               </template>
               <div class="re-table__settings-panel">
                 <ReSwitch
@@ -1356,8 +1367,10 @@ const iconSelect = Select;
 .re-table__toolbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
   order: 2;
+  margin-left: auto;
 }
 .re-table__pagination {
   display: flex;
@@ -1390,6 +1403,21 @@ const iconSelect = Select;
 }
 .re-table--empty .el-table__body-wrapper .el-scrollbar {
   height: 100%;
+}
+/* 空态文本居中修复：
+   el-table 默认 .el-table__empty-text 宽 50% 且 empty-block sticky 定位，
+   有固定列/横向滚动时文本按内容总宽居中，在可视窗口内偏移；窄容器下 50% 宽也不居中。
+   这里改为文本自适应宽度，并强制水平垂直居中于可视区域。 */
+.re-table .el-table__empty-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.re-table .el-table__empty-text {
+  width: auto;
+  min-width: 50%;
+  line-height: inherit;
+  padding: 0 16px;
 }
 .re-table__icon {
   display: inline-block;
@@ -1456,7 +1484,7 @@ const iconSelect = Select;
 .re-table__toolbar-top {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
   margin-bottom: var(--rt-gap);
   gap: var(--rt-gap-sm);
 }

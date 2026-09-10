@@ -394,10 +394,13 @@ const pageList = computed(() => {
 .rm-table {
   position: relative;
   width: 100%;
+  margin: 16px; /* 默认外边距 16px（组件级——使用处无需再设） */
   border-radius: var(--rm-radius-lg);
   background: var(--rm-bg);
   border: 1px solid var(--rm-border-light);
   overflow: hidden;
+  display: flex;
+  flex-direction: column; /* 表格体弹性滚动——分页固定在底部可见（不溢出裁剪） */
 }
 
 /* Header */
@@ -456,6 +459,8 @@ const pageList = computed(() => {
 /* Body */
 .rm-table__body {
   overflow-y: auto;
+  flex: 1;
+  min-height: 0; /* 表格体占剩余高度滚动——分页不被挤出容器 */
 }
 
 /* Row */

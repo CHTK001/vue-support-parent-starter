@@ -16,8 +16,8 @@
  *
  * 每个按钮可单独配置图标和 tip。
  */
-import { computed, ref, watch, type ComputedRef } from "vue";
-import { ElTooltip, ElPopconfirm, ElBadge } from "element-plus";
+import { computed } from "vue";
+import { ElPopconfirm, ElBadge } from "element-plus";
 import { Delete, Edit, Check, Select, Refresh, Setting, Menu } from "@element-plus/icons-vue";
 import ReButton from "../ReButton/ReButton.vue";
 import type {
@@ -73,27 +73,30 @@ const emit = defineEmits<{
   (e: "table-settings"): void;
 }>();
 
-/** 解析批量删除配置 */
+/** 解析批量删除配置（enabled: false 时不显示） */
 const batchDeleteConfig = computed<ReTableToolbarBatchDelete | null>(() => {
   const cfg = props.config.batchDelete;
   if (!cfg) return null;
   if (cfg === true) return { enabled: true, handler: () => {} };
+  if (cfg.enabled === false) return null;
   return cfg;
 });
 
-/** 解析批量选择配置 */
+/** 解析批量选择配置（enabled: false 时不显示） */
 const batchSelectConfig = computed<ReTableToolbarBatchSelect | null>(() => {
   const cfg = props.config.batchSelect;
   if (!cfg) return null;
   if (cfg === true) return { enabled: true };
+  if (cfg.enabled === false) return null;
   return cfg;
 });
 
-/** 解析批量修改配置 */
+/** 解析批量修改配置（enabled: false 时不显示） */
 const batchEditConfig = computed<ReTableToolbarBatchEdit | null>(() => {
   const cfg = props.config.batchEdit;
   if (!cfg) return null;
   if (cfg === true) return { enabled: true, handler: () => {} };
+  if (cfg.enabled === false) return null;
   return cfg;
 });
 
@@ -129,24 +132,26 @@ const iconSettings = Setting;
 
 <template>
   <div class="re-table-toolbar" :class="`re-table-toolbar--${mode}`">
-    <!-- 左侧：批量操作区（mode=batch/full） -->
+    <!-- 左侧：批量操作区（mode=batch/full，右对齐） -->
     <div v-if="mode !== 'tools'" class="re-table-toolbar__left">
       <!-- 批量选择切换 -->
-      <ElTooltip
+      <ElBadge
         v-if="batchSelectConfig"
-        :content="batchSelectConfig.tip || '批量选择'"
-        placement="top"
+        :value="hasSelected ? selectedCount : 0"
+        :max="99"
+        :hidden="!hasSelected"
+        class="re-table-toolbar__select-badge"
       >
         <ReButton
           :size="size"
           :type="hasSelected ? 'primary' : 'default'"
-          plain
+          layout="square"
           :icon="batchSelectConfig.icon || Select"
           @click="emit('batch-select-toggle')"
         >
-          <span v-if="hasSelected" class="re-table-toolbar__badge">{{ selectedCount }}</span>
+          {{ batchSelectConfig.tip || '批量选择' }}
         </ReButton>
-      </ElTooltip>
+      </ElBadge>
 
       <!-- 批量删除 -->
       <ElPopconfirm
@@ -158,59 +163,54 @@ const iconSettings = Setting;
         @confirm="emit('batch-delete', [])"
       >
         <template #reference>
-          <ElTooltip :content="batchDeleteConfig.tip || '批量删除'" placement="top">
-            <ReButton
-              :size="size"
-              type="danger"
-              plain
-              :disabled="deleteDisabled"
-              :loading="processing"
-              :icon="batchDeleteConfig.icon || Delete"
-            />
-          </ElTooltip>
+          <ReButton
+            :size="size"
+            type="danger"
+            layout="square"
+            :disabled="deleteDisabled"
+            :loading="processing"
+            :icon="batchDeleteConfig.icon || Delete"
+          >
+            {{ batchDeleteConfig.tip || '批量删除' }}
+          </ReButton>
         </template>
       </ElPopconfirm>
 
       <!-- 批量修改 / 保存 -->
-      <ElTooltip
+      <ReButton
         v-if="batchEditConfig"
-        :content="editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改')"
-        placement="top"
+        :size="size"
+        :type="editing ? 'success' : 'primary'"
+        layout="square"
+        :disabled="editDisabled"
+        :loading="processing && editing"
+        :icon="editing ? (batchEditConfig.saveIcon || Check) : (batchEditConfig.icon || Edit)"
+        @click="editing ? emit('batch-save', []) : emit('batch-edit')"
       >
-        <ReButton
-          :size="size"
-          :type="editing ? 'success' : 'primary'"
-          plain
-          :disabled="editDisabled"
-          :loading="processing && editing"
-          :icon="editing ? (batchEditConfig.saveIcon || Check) : (batchEditConfig.icon || Edit)"
-          @click="editing ? emit('batch-save', []) : emit('batch-edit')"
-        >
-          {{ editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改') }}
-        </ReButton>
-      </ElTooltip>
+        {{ editing ? (batchEditConfig.saveTip || '保存') : (batchEditConfig.tip || '批量修改') }}
+      </ReButton>
     </div>
 
     <!-- 右侧：工具区（mode=tools/full）；工具区属于分页行，表格上方工具栏只放批量按钮 -->
     <div v-if="mode !== 'batch'" class="re-table-toolbar__right">
       <!-- 列设置 -->
       <slot name="column-settings" v-if="showColumnSettings">
-        <ElTooltip :content="columnsTriggerText" placement="top">
-          <ReButton :size="size" text :icon="iconColumns" />
-        </ElTooltip>
+        <ReButton :size="size" layout="square" :icon="iconColumns">
+          {{ columnsTriggerText }}
+        </ReButton>
       </slot>
 
       <!-- 表格设置 -->
       <slot name="table-settings" v-if="showTableSettings">
-        <ElTooltip :content="settingsTriggerText" placement="top">
-          <ReButton :size="size" text :icon="iconSettings" />
-        </ElTooltip>
+        <ReButton :size="size" layout="square" :icon="iconSettings">
+          {{ settingsTriggerText }}
+        </ReButton>
       </slot>
 
       <!-- 刷新 -->
-      <ElTooltip v-if="showRefresh" content="刷新" placement="top">
-        <ReButton :size="size" text :icon="iconRefresh" :loading="loading" @click="emit('refresh')" />
-      </ElTooltip>
+      <ReButton v-if="showRefresh" :size="size" layout="square" :icon="iconRefresh" :loading="loading" @click="emit('refresh')">
+        刷新
+      </ReButton>
     </div>
   </div>
 </template>
@@ -219,12 +219,16 @@ const iconSettings = Setting;
 .re-table-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
 }
 /* tools 分区（分页行只保留工具区）：内容右对齐 */
 .re-table-toolbar--tools {
+  justify-content: flex-end;
+}
+/* batch 分区（表格上方只放批量按钮）：内容右对齐 */
+.re-table-toolbar--batch {
   justify-content: flex-end;
 }
 .re-table-toolbar__left {
@@ -237,22 +241,7 @@ const iconSettings = Setting;
   align-items: center;
   gap: 2px;
 }
-.re-table-toolbar__badge {
+.re-table-toolbar__select-badge {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--el-color-primary);
-  border-radius: 9px;
-  line-height: 1;
-}
-.re-table-toolbar__right :deep(.el-button) {
-  padding: 6px;
 }
 </style>
