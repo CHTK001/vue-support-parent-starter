@@ -11,6 +11,12 @@ export default createVite({
     port: 8097,
     strictPort: true,
     proxy: {
+      // crypto wasm（shared 默认 wasmUrl 为根路径 /wasm/...，dev 下转到自身 base 路径 /account/wasm/...）
+      "/wasm": {
+        target: "http://127.0.0.1:8097",
+        changeOrigin: false,
+        rewrite: (path: string) => "/account" + path,
+      },
       // 主机资产登录身份 API（MsServerIdentity）
       "/ms/server": {
         target: "http://124.221.230.112:8080",
