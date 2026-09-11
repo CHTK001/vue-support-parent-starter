@@ -3,8 +3,8 @@
  * 发布项目管理 —— 卡片网格 + 拖拽上传 + 启停/升级/回滚 + 实时日志
  * 组件约定：全量使用 Re 组件体系。
  */
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { message } from '@repo/core';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { message, useSocketService } from '@repo/core';
 import {
   queryProjects,
   delProject,
@@ -72,8 +72,8 @@ const statusMap: Record<string, { label: string; cls: string }> = {
 };
 
 const deployingIds = ref<Set<number>>(new Set());
-/** 项目进度：hostId → stage/status */
-const projectProgress = ref<Map<number, { stage: string; status: string; message: string }>>(new Map());
+/** 项目进度：projectId → 整体 stage/status/message */
+const projectProgress = ref<Record<number, { stage: string; status: string; message: string }>>({});
 
 onMounted(refresh);
 setupSocket();
@@ -81,26 +81,32 @@ setupSocket();
 /* ================== Socket 进度订阅 ================== */
 function setupSocket() {
   try {
-    const { useSocketService } = require('@repo/core');
     const socket = useSocketService();
     if (!socket) return;
     const unsub = socket.subscribe('project', 'deploy-progress', (msg: any) => {
-      const payload = msg?.data ?? msg;
+      const payload = msg?.data?.data ?? msg?.data ?? msg;
       if (!payload?.projectId) return;
-      const pid = payload.hostId
-        ? `${payload.projectId}-${payload.hostId}`
-        : `${payload.projectId}`;
-      const key = payload.hostId ?? -payload.projectId;
-      projectProgress.value.set(key, {
-        stage: payload.stage,
-        status: payload.status,
-        message: payload.message,
-      });
+      const pid = Number(payload.projectId);
+      if (payload.hostId) {
+        // 单主机进度，合并到整体描述
+        const prev = projectProgress.value[pid];
+        projectProgress.value[pid] = {
+          stage: payload.stage,
+          status: payload.status,
+          message: prev && prev.status === 'SUCCESS' ? prev.message : payload.message,
+        };
+      } else {
+        projectProgress.value[pid] = {
+          stage: payload.stage,
+          status: payload.status,
+          message: payload.message,
+        };
+      }
       if (payload.status === 'SUCCESS' || payload.status === 'FAIL') {
         setTimeout(() => {
-          projectProgress.value.delete(key);
+          delete projectProgress.value[pid];
           refresh();
-        }, 1200);
+        }, 1500);
       }
     });
     onBeforeUnmount(() => unsub?.());
