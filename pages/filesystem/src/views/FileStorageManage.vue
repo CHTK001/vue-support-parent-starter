@@ -26,6 +26,7 @@ import {
   existObject,
   fetchObjectText,
   getBucketConfig,
+  getBucketTree,
   getDefaultBucket,
   getServerBase,
   listObjects,
@@ -33,7 +34,7 @@ import {
   putObject,
   setDefaultBucket,
 } from "../api/filestorageApi";
-import type { BucketConfig, StorageObject } from "../api/filestorageApi";
+import type { BucketConfig, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 
@@ -87,6 +88,10 @@ const configLoading = ref(false);
 const selected = ref<Set<string>>(new Set());
 /** 最近一次点击的选中项（用于 Shift 连续多选） */
 let lastSelectedIndex = -1;
+/** 目录树数据 */
+const tree = ref<TreeItem[]>([]);
+/** 目录树加载状态 */
+const treeLoading = ref(false);
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];

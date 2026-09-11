@@ -212,6 +212,36 @@ export async function getBucketConfig(bucket: string): Promise<BucketConfig> {
 }
 
 /**
+ * 目录树节点
+ */
+export interface TreeItem {
+  /** 目录名 */
+  name: string;
+  /** 相对路径 */
+  path: string;
+  /** 子目录 */
+  children?: TreeItem[];
+}
+
+/**
+ * 获取目录树（仅目录，KodExplorer 式左侧文件树）
+ *
+ * @param bucket 存储桶名
+ * @return 树节点数组
+ */
+export async function getBucketTree(bucket: string): Promise<TreeItem[]> {
+  try {
+    const res = await storageHttp()
+      .get(objectPath(bucket))
+      .query({ tree: "true" })
+      .then<TreeItem[]>((r) => r.data);
+    return res ?? [];
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "目录树获取"));
+  }
+}
+
+/**
  * 上传对象（原始内容直传）
  *
  * @param bucket  存储桶名
