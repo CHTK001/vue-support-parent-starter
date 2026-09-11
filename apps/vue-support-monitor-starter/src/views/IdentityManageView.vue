@@ -8,6 +8,7 @@ import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { getIdentities, saveIdentity, delIdentity } from "@pages/server/src/api";
+import { useDialogPrerender } from "../utils/dialogPrerender";
 
 interface Identity {
   id: number;
@@ -45,7 +46,9 @@ const authTypeLabel = (t?: string | null): string =>
   t === "PUBLIC_KEY" ? "私钥登录" : "密码登录";
 
 // ---- 新增身份 ----
+// ---- 新增身份弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const addVisible = ref(false);
+useDialogPrerender(addVisible);
 const addSaving = ref(false);
 const addForm = ref<{
   msServerIdentityName: string;

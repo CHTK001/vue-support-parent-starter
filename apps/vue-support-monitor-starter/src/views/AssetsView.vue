@@ -11,6 +11,7 @@ import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
+import { useDialogPrerender } from "../utils/dialogPrerender";
 
 export interface Host {
   id: number;
@@ -226,7 +227,9 @@ function openDetail(h: Host): void {
 /** 认证方式/采集方式选项已随弹窗拆入 HostFormDialog 子组件 */
 
 // ---- 新增/编辑表单 ----
+// ---- 新增/编辑弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const formVisible = ref(false);
+useDialogPrerender(formVisible);
 const formIsEdit = ref(false);
 /** 编辑时的行数据（传给弹窗子组件，打开后由子组件异步回填详情） */
 const editHost = ref<Host | null>(null);
