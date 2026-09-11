@@ -108,3 +108,5 @@ start-dev*.bat
 # 空文件残留
 **/null
 
+
+e2e-tshark.png
