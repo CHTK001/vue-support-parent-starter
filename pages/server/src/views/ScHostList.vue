@@ -306,6 +306,24 @@ async function onTestConnect(row: HostRow): Promise<void> {
 }
 
 /**
+ * 端口扫描（依赖本机 nmap）
+ *
+ * @param row 主机
+ */
+async function onScanPorts(row: HostRow): Promise<void> {
+  message.info(`正在扫描 ${row.serverHostAddress} 端口，全量扫描可能需要几分钟 …`, { duration: 0 });
+  try {
+    const updated = await scanPorts(row.id);
+    message.closeAll();
+    message.success(updated?.msg || '端口扫描完成');
+    refresh();
+  } catch (e) {
+    message.closeAll();
+    message.error((e as Error).message);
+  }
+}
+
+/**
  * 打开连接配置（远控）
  *
  * @param row 主机
