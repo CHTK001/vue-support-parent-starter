@@ -968,6 +968,20 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 状态栏（KodExplorer 风格：当前目录/选中/统计） -->
+        <div class="fs-statusbar">
+          <span class="fs-statusbar__item">
+            {{ currentPath || '/' }} · {{ filteredObjects.length }} 项
+          </span>
+          <span v-if="selectedCount > 0" class="fs-statusbar__item fs-statusbar__item--selected">
+            已选 {{ selectedCount }} 项{{ selectedSize > 0 ? `（${formatSize(selectedSize)}）` : '' }}
+          </span>
+          <span class="fs-statusbar__spacer" />
+          <span class="fs-statusbar__item">文件 {{ fileCount }}</span>
+          <span class="fs-statusbar__item">目录 {{ dirCount }}</span>
+          <span class="fs-statusbar__item">共 {{ formatSize(totalSize) }}</span>
+        </div>
       </main>
     </div>
 
