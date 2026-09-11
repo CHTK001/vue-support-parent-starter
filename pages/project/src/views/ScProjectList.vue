@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 发布项目管理 —— 卡片网格 + 拖拽上传 + 启停/升级 + 部署日志
+ * 发布项目管理 —— 卡片网格 + 拖拽上传 + 启停/升级/回滚 + 实时日志
  * 组件约定：全量使用 Re 组件体系。
  */
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import {
   queryProjects,
@@ -13,9 +13,12 @@ import {
   startProject,
   stopProject,
   restartProject,
+  getArchives,
+  rollbackProject,
 } from '../api';
 import ScProjectFormDialog from '../components/ScProjectFormDialog.vue';
 import ScDeployLog from '../components/ScDeployLog.vue';
+import ScLiveLog from '../components/ScLiveLog.vue';
 import '../styles/page.css';
 
 interface ProjectRow {
@@ -29,9 +32,12 @@ interface ProjectRow {
   msProjectStartScript?: string;
   msProjectStopScript?: string;
   msProjectRestartScript?: string;
+  msProjectLogDir?: string;
+  msProjectLogFile?: string;
   msProjectDeleteBefore?: number;
   msProjectOverwriteMode?: string;
   msProjectAutoExtract?: number;
+  msProjectAutoStart?: number;
   msProjectCurrentVersion?: string;
   msProjectRuntimeStatus?: string;
   msProjectEnabled?: number;
@@ -53,7 +59,6 @@ const typeLabels: Record<string, string> = {
   CUSTOM: '自定义',
 };
 
-/** 类型下拉选项（ReSelect data 格式） */
 const typeOptions = Object.entries(typeLabels).map(([value, label]) => ({ label, value }));
 
 const statusMap: Record<string, { label: string; cls: string }> = {
@@ -63,11 +68,44 @@ const statusMap: Record<string, { label: string; cls: string }> = {
   DEPLOYING: { label: '部署中', cls: 'warning' },
   UPGRADING: { label: '升级中', cls: 'warning' },
   RESTARTING: { label: '重启中', cls: 'warning' },
+  ROLLING_BACK: { label: '回滚中', cls: 'warning' },
 };
 
 const deployingIds = ref<Set<number>>(new Set());
+/** 项目进度：hostId → stage/status */
+const projectProgress = ref<Map<number, { stage: string; status: string; message: string }>>(new Map());
 
 onMounted(refresh);
+setupSocket();
+
+/* ================== Socket 进度订阅 ================== */
+function setupSocket() {
+  try {
+    const { useSocketService } = require('@repo/core');
+    const socket = useSocketService();
+    if (!socket) return;
+    const unsub = socket.subscribe('project', 'deploy-progress', (msg: any) => {
+      const payload = msg?.data ?? msg;
+      if (!payload?.projectId) return;
+      const pid = payload.hostId
+        ? `${payload.projectId}-${payload.hostId}`
+        : `${payload.projectId}`;
+      const key = payload.hostId ?? -payload.projectId;
+      projectProgress.value.set(key, {
+        stage: payload.stage,
+        status: payload.status,
+        message: payload.message,
+      });
+      if (payload.status === 'SUCCESS' || payload.status === 'FAIL') {
+        setTimeout(() => {
+          projectProgress.value.delete(key);
+          refresh();
+        }, 1200);
+      }
+    });
+    onBeforeUnmount(() => unsub?.());
+  } catch { /* socket 未启用时静默 */ }
+}
 
 async function refresh() {
   loading.value = true;
@@ -103,13 +141,7 @@ async function removeProject(row: ProjectRow) {
   refresh();
 }
 
-async function toggleEnabled(row: ProjectRow) {
-  await switchProject(row.id, !row.msProjectEnabled);
-  message.success(row.msProjectEnabled ? '已停用' : '已启用');
-  refresh();
-}
-
-/* ================== 生命周期操作 ================== */
+/* ================== 生命周期 ================== */
 async function runLifecycle(row: ProjectRow, action: 'start' | 'stop' | 'restart') {
   await message.confirm(`确认${action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启'}项目 ${row.msProjectName}？`, '确认');
   const logs = await (action === 'start' ? startProject(row.id)
@@ -118,18 +150,16 @@ async function runLifecycle(row: ProjectRow, action: 'start' | 'stop' | 'restart
   refresh();
 }
 
-/* ================== 部署 / 升级上传 ================== */
-const uploadMode = ref<'DEPLOY' | 'UPGRADE'>('DEPLOY');
-
-async function uploadToCard(row: ProjectRow, file: File) {
+/* ================== 部署/升级 ================== */
+async function uploadToCard(row: ProjectRow, file: File, act: 'DEPLOY' | 'UPGRADE') {
   if (deployingIds.value.has(row.id)) {
-    message.warning('该项目正在部署中，请稍候');
+    message.warning('该项目正在处理中，请稍候');
     return;
   }
   deployingIds.value.add(row.id);
   try {
-    message.info(`开始${uploadMode.value === 'UPGRADE' ? '升级' : '部署'} ${row.msProjectName}...`);
-    const logs = await deployProject(row.id, file, uploadMode.value);
+    message.info(`开始${act === 'UPGRADE' ? '升级' : '部署'} ${row.msProjectName}...`);
+    const logs = await deployProject(row.id, file, act);
     showActionResult(logs);
   } catch (e) {
     message.error(`部署失败: ${(e as Error).message}`);
@@ -140,13 +170,12 @@ async function uploadToCard(row: ProjectRow, file: File) {
 }
 
 function pickFile(row: ProjectRow, mode: 'DEPLOY' | 'UPGRADE') {
-  uploadMode.value = mode;
   const input = document.createElement('input');
   input.type = 'file';
   input.style.display = 'none';
   input.onchange = () => {
     const f = input.files?.[0];
-    if (f) uploadToCard(row, f);
+    if (f) uploadToCard(row, f, mode);
   };
   document.body.appendChild(input);
   input.click();
@@ -157,15 +186,69 @@ function handleDrop(row: ProjectRow, e: DragEvent) {
   e.preventDefault();
   cardDragover.value = null;
   const file = e.dataTransfer?.files?.[0];
-  if (file) {
-    uploadMode.value = 'DEPLOY';
-    uploadToCard(row, file);
-  }
+  if (file) uploadToCard(row, file, 'DEPLOY');
 }
 
 const cardDragover = ref<number | null>(null);
 
-/* ================== 操作结果展示 ================== */
+/* ================== 回滚 ================== */
+const rollbackVisible = ref(false);
+const rollbackProjectRow = ref<ProjectRow | null>(null);
+const rollbackArchives = ref<any[]>([]);
+const rollbackSelected = ref<number | null>(null);
+const rollbackLoading = ref(false);
+
+async function openRollback(row: ProjectRow) {
+  rollbackProjectRow.value = row;
+  rollbackSelected.value = null;
+  rollbackArchives.value = [];
+  rollbackVisible.value = true;
+  try {
+    const list = await getArchives(row.id);
+    rollbackArchives.value = list ?? [];
+    if (rollbackArchives.value.length === 0) {
+      message.warning('暂无可回滚的历史版本');
+    }
+  } catch (e) {
+    message.error((e as Error).message);
+  }
+}
+
+async function submitRollback() {
+  if (!rollbackProjectRow.value || !rollbackSelected.value) {
+    message.warning('请选择回滚版本');
+    return;
+  }
+  if (deployingIds.value.has(rollbackProjectRow.value.id)) {
+    message.warning('该项目正在处理中');
+    return;
+  }
+  deployingIds.value.add(rollbackProjectRow.value.id);
+  rollbackLoading.value = true;
+  try {
+    message.info('开始回滚...');
+    const logs = await rollbackProject(rollbackProjectRow.value.id, rollbackSelected.value);
+    showActionResult(logs);
+    rollbackVisible.value = false;
+  } catch (e) {
+    message.error(`回滚失败: ${(e as Error).message}`);
+  } finally {
+    rollbackLoading.value = false;
+    deployingIds.value.delete(rollbackProjectRow.value.id);
+    refresh();
+  }
+}
+
+/* ================== 实时日志 ================== */
+const logVisible = ref(false);
+const logProject = ref<ProjectRow | null>(null);
+
+function openLiveLog(row: ProjectRow) {
+  logProject.value = row;
+  logVisible.value = true;
+}
+
+/* ================== 结果弹窗 ================== */
 const resultVisible = ref(false);
 const resultTitle = ref('');
 const resultLogs = ref<any[]>([]);
@@ -181,23 +264,12 @@ function showActionResult(logs: any[]) {
   resultVisible.value = true;
 }
 
-/* ================== 部署日志抽屉 ================== */
-const logVisible = ref(false);
-const logProject = ref<ProjectRow | null>(null);
-
-function openLogs(row: ProjectRow) {
-  logProject.value = row;
-  logVisible.value = true;
-}
-
 /* ================== 工具函数 ================== */
 function hostCount(row: ProjectRow): number {
   try {
     const arr = JSON.parse(row.msProjectHostIds || '[]');
     return Array.isArray(arr) ? arr.length : 0;
-  } catch {
-    return 0;
-  }
+  } catch { return 0; }
 }
 function isLinux(row: ProjectRow) {
   return (row.msProjectHostOs || '').toUpperCase().startsWith('LINUX');
@@ -206,7 +278,7 @@ function isLinux(row: ProjectRow) {
 
 <template>
   <div class="project-list sc-page">
-    <ReSectionHead class="page-head" title="发布项目管理" description="软件部署 / 升级 / 启停维护">
+    <ReSectionHead class="page-head" title="发布项目管理" description="软件部署 / 升级 / 回滚 / 实时日志">
       <template #actions>
         <ReButton layout="square" type="primary" icon="Plus">新建项目</ReButton>
         <ReButton layout="square" icon="Refresh">刷新</ReButton>
@@ -244,7 +316,10 @@ function isLinux(row: ProjectRow) {
         v-for="row in projects"
         :key="row.id"
         class="project-card"
-        :class="{ deploying: deployingIds.has(row.id), dragover: cardDragover === row.id }"
+        :class="{
+          deploying: deployingIds.has(row.id),
+          dragover: cardDragover === row.id,
+        }"
         @dragover.prevent="cardDragover = row.id"
         @dragleave="cardDragover = null"
         @drop.prevent="handleDrop(row, $event)"
@@ -263,26 +338,41 @@ function isLinux(row: ProjectRow) {
           </ReTag>
         </div>
 
+        <!-- 进度条（实时） -->
+        <div
+          v-for="[key, progress] in projectProgress"
+          :key="key"
+          v-show="(key > 0 && key === row.id) || (key < 0 && -key === row.id)"
+          class="project-card__progress"
+        >
+          <ReTag size="small" :type="progress.status === 'FAIL' ? 'danger' : 'warning'">
+            {{ progress.stage }}: {{ progress.message }}
+          </ReTag>
+        </div>
+
         <!-- 元信息 -->
         <div class="project-card__meta">
           <span class="kv"><span>类型</span><span class="v">{{ typeLabels[row.msProjectType] || row.msProjectType }}</span></span>
           <span class="kv"><span>主机</span><span class="v">{{ hostCount(row) }} 台</span></span>
           <span class="kv"><span>OS</span><span class="v">{{ isLinux(row) ? 'Linux' : 'Windows' }}</span></span>
-          <span class="kv" v-if="row.msProjectCurrentVersion"><span>版本</span><span class="v" :title="row.msProjectCurrentVersion">{{ row.msProjectCurrentVersion }}</span></span>
+          <span class="kv" v-if="row.msProjectCurrentVersion">
+            <span>版本</span><span class="v" :title="row.msProjectCurrentVersion">{{ row.msProjectCurrentVersion }}</span>
+          </span>
         </div>
 
-        <!-- 升级策略 -->
+        <!-- 升级策略 + 自动启动 -->
         <div class="project-card__policy">
           <span class="policy-chip" :class="{ 'policy-on': row.msProjectDeleteBefore === 1 }">升级前删除</span>
           <span class="policy-chip">{{ row.msProjectOverwriteMode === 'REPLACE' ? '全量替换' : '直接覆盖' }}</span>
           <span class="policy-chip">{{ row.msProjectAutoExtract === 1 ? '自动解压' : '仅上传' }}</span>
+          <span class="policy-chip policy-on" v-if="row.msProjectAutoStart === 1">部署后自动启动</span>
         </div>
 
         <!-- 拖拽上传区 -->
         <div class="project-card__drop">
           <ReIcon name="UploadFilled" :size="15" />
           <span v-if="deployingIds.has(row.id)">部署中...</span>
-          <span v-else>拖拽部署包到此处 或 点击选择</span>
+          <span v-else>拖拽部署包到此处</span>
         </div>
 
         <!-- 操作区 -->
@@ -290,7 +380,7 @@ function isLinux(row: ProjectRow) {
           <ReButton layout="square" size="small" type="primary" icon="VideoPlay" @click="runLifecycle(row, 'start')">启动</ReButton>
           <ReButton layout="square" size="small" icon="VideoPause" @click="runLifecycle(row, 'stop')">停止</ReButton>
           <ReButton layout="square" size="small" icon="RefreshRight" @click="runLifecycle(row, 'restart')">重启</ReButton>
-          <ReDropdown trigger="click" style="margin-left:4px">
+          <ReDropdown trigger="click">
             <ReButton layout="square" size="small" icon="Upload">上传包</ReButton>
             <template #dropdown>
               <ReDropdownMenu>
@@ -300,7 +390,8 @@ function isLinux(row: ProjectRow) {
             </template>
           </ReDropdown>
           <div class="spacer" />
-          <ReButton layout="square" size="small" icon="Document" @click="openLogs(row)">部署日志</ReButton>
+          <ReButton layout="square" size="small" icon="Document" @click="openLiveLog(row)">实时日志</ReButton>
+          <ReButton layout="square" size="small" icon="UploadBack" @click="openRollback(row)">回滚</ReButton>
           <ReButton layout="square" size="small" icon="Edit" @click="openEdit(row)">编辑</ReButton>
           <ReButton layout="square" size="small" icon="Delete" @click="removeProject(row)">删除</ReButton>
         </div>
@@ -315,8 +406,14 @@ function isLinux(row: ProjectRow) {
     <!-- 表单弹窗 -->
     <ScProjectFormDialog v-model:visible="formVisible" :project="editingProject" @saved="refresh" />
 
-    <!-- 部署日志抽屉 -->
-    <ScDeployLog v-if="logProject" v-model:visible="logVisible" :project-id="logProject.id" :project-name="logProject.msProjectName" />
+    <!-- 实时日志抽屉 -->
+    <ScLiveLog
+      v-if="logProject"
+      v-model:visible="logVisible"
+      :project-id="logProject.id"
+      :project-name="logProject.msProjectName"
+      :host-options="[]"
+    />
 
     <!-- 操作结果弹窗 -->
     <ReDialog
@@ -349,9 +446,45 @@ function isLinux(row: ProjectRow) {
         </ReTableColumn>
       </ReTable>
     </ReDialog>
+
+    <!-- 回滚选择抽屉 -->
+    <ReDrawer
+      v-model="rollbackVisible"
+      :title="`回滚 - ${rollbackProjectRow?.msProjectName}`"
+      :size="640"
+    >
+      <div class="rollback-panel" style="padding:0 4px">
+        <p class="dim" style="margin-bottom:12px">选择要回滚到的历史版本：</p>
+        <div v-if="rollbackArchives.length === 0" class="empty-state" style="padding:32px">
+          <div class="empty-ico">📦</div>
+          <div class="empty-text">暂无历史版本</div>
+        </div>
+        <ReTable v-else :data="rollbackArchives" size="small" :pagination="false" :toolbar="false"
+          highlight-current-row @current-change="rollbackSelected = $event?.id">
+          <ReTableColumn label="版本" prop="msProjectUploadArchiveVersion" min-width="180" show-overflow-tooltip />
+          <ReTableColumn label="主机" prop="msProjectUploadArchiveHostName" width="140" show-overflow-tooltip />
+          <ReTableColumn label="类型" prop="msProjectUploadArchiveType" width="100" />
+          <ReTableColumn label="部署时间" width="170">
+            <template #default="{ row }">
+              <span class="dim">{{ row.msProjectUploadArchiveDeployTime || '-' }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="大小" width="80">
+            <template #default="{ row }">
+              <span class="dim">{{ row.msProjectUploadArchiveFileSize ? (row.msProjectUploadArchiveFileSize / 1024).toFixed(0) + 'KB' : '-' }}</span>
+            </template>
+          </ReTableColumn>
+        </ReTable>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
+          <ReButton @click="rollbackVisible = false">取消</ReButton>
+          <ReButton type="primary" :disabled="!rollbackSelected || rollbackLoading" :loading="rollbackLoading" @click="submitRollback">确认回滚</ReButton>
+        </div>
+      </div>
+    </ReDrawer>
   </div>
 </template>
 
 <style scoped>
 .policy-on { color: var(--brand-600); border-color: var(--brand-300); background: var(--brand-50); }
+.project-card__progress { padding-top: 4px; }
 </style>

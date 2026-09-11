@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { message } from '@repo/core';
-import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair } from '../api';
+import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage } from '../api';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
@@ -18,6 +18,8 @@ interface IdentityRow {
   msServerIdentityAuthType: string;
   msServerIdentityUsername: string;
   msServerIdentityKeyId?: number | null;
+  msServerIdentityImapHost?: string | null;
+  msServerIdentityImapPort?: number | null;
 }
 
 /** 密钥与身份数据 */
@@ -38,6 +40,8 @@ const identityForm = ref({
   msServerIdentityUsername: 'root',
   msServerIdentityPassword: '',
   msServerIdentityKeyId: null as number | null,
+  msServerIdentityImapHost: '',
+  msServerIdentityImapPort: null as number | null,
 });
 
 /** 生成密钥对话框 */
