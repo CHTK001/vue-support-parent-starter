@@ -354,8 +354,6 @@ function connectMailboxSse(identityId: number): void {
 }
 
 /**
-
-/**
  * 邮件箱对话框关闭回调(断开 SSE)
  */
 function onMailboxDialogClosed(): void {
@@ -365,9 +363,6 @@ function onMailboxDialogClosed(): void {
 }
 
 /**
- * 断开邮箱 SSE 连接
- */
-function disconnectMailboxSse(): void {
  * 断开邮箱 SSE 连接
  */
 function disconnectMailboxSse(): void {
@@ -662,4 +657,11 @@ async function viewMessage(email: any): Promise<void> {
   overflow: auto;
   margin: 0;
 }
+.sse-status { font-size: 12px; margin-left: auto; }
+.sse-connected { color: var(--color-success, #67c23a); }
+.sse-connecting { color: var(--color-warning, #e6a23c); }
+.sse-offline { color: var(--text-tertiary); }
+.sse-badge { font-size: 12px; color: #fff; background: var(--pulse-alarm, #f56c6c); border-radius: 10px; padding: 1px 8px; }
+.temp-email-row { display: flex; gap: 8px; align-items: center; }
+.temp-email-row > .re-input { flex: 1; }
 </style>
