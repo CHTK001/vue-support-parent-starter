@@ -1443,13 +1443,13 @@ onMounted(() => {
 /* ---- 右键菜单 ---- */
 .fs-ctx {
   position: fixed;
-  z-index: 9999;
+  z-index: 100000;
   min-width: 168px;
-  background: var(--fs-surface);
+  background: #ffffff;
   border: 1px solid var(--fs-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 5px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.2);
   font-size: 13px;
 }
 .fs-ctx__item {
