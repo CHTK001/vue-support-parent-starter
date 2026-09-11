@@ -8,8 +8,9 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, saveIdentity, delIdentity } from "@pages/server/src/api";
+import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
+import HostConfigDialog from "./HostConfigDialog.vue";
 
 export interface Host {
   id: number;
@@ -478,6 +479,14 @@ onMounted(() => {
             <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
+            <el-dropdown trigger="click" @command="(cmd: string) => onMoreCommand(cmd, row)" class="more-dd">
+              <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="collect">采集配置</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </template>
       </ReTable>
