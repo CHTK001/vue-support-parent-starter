@@ -608,25 +608,51 @@ onMounted(() => {
         v-if="ctxMenu.visible"
         class="fs-ctx"
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        role="menu"
+        :aria-label="'文件操作'"
         @click.stop
       >
         <template v-if="ctxMenu.row">
-          <div class="fs-ctx__item" @click="ctxAction(ctxMenu.row!.directory ? 'open' : 'preview')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <button
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction(ctxMenu.row!.directory ? 'open' : 'preview')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             {{ ctxMenu.row!.directory ? '打开' : allowPreview ? '预览' : '打开' }}
-          </div>
-          <div v-if="!ctxMenu.row!.directory && allowDownload" class="fs-ctx__item" @click="ctxAction('download')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button
+            v-if="!ctxMenu.row!.directory && allowDownload"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('download')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             下载
-          </div>
-          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('onetime')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+          <button
+            v-if="!ctxMenu.row!.directory"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('onetime')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             一次性链接
-          </div>
-          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('delete')" style="color:var(--el-color-danger)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+          <div class="fs-ctx__sep" aria-hidden="true" />
+          <button
+            v-if="!ctxMenu.row!.directory"
+            type="button"
+            class="fs-ctx__item fs-ctx__item--danger"
+            role="menuitem"
+            @click="ctxAction('delete')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             删除
-          </div>
+          </button>
         </template>
       </div>
     </Teleport>
@@ -700,93 +726,209 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ===== 全局布局 ===== */
+/* ========================================================
+   FileStorage · 现代云盘界面
+   设计系统：Slate 中性色阶 + 蓝色主色（Accessible 4.5:1）
+   ======================================================== */
 .fs-app {
+  --fs-bg: #f4f6f8;
+  --fs-surface: #ffffff;
+  --fs-border: #e2e8f0;
+  --fs-text: #0f172a;
+  --fs-text-2: #475569;
+  --fs-text-3: #64748b;
+  --fs-primary: #2563eb;
+  --fs-primary-hover: #1d4ed8;
+  --fs-primary-soft: #eff6ff;
+  --fs-danger: #dc2626;
+  --fs-success: #16a34a;
+  --fs-radius: 12px;
+  --fs-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
+
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background: var(--fs-bg);
+  color: var(--fs-text);
   overflow: hidden;
 }
 
-/* ===== 顶部工具栏 ===== */
+/* ---- 顶部工具栏 ---- */
 .fs-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   padding: 0 20px;
-  height: 52px;
-  background: rgba(250, 250, 252, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  height: 56px;
+  background: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-border);
+  z-index: 30;
 }
 
 .fs-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 15px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--fs-text);
   white-space: nowrap;
 }
 
 .fs-logo {
-  width: 22px;
-  height: 22px;
-  color: #0a84ff;
+  width: 24px;
+  height: 24px;
+  color: var(--fs-primary);
+}
+
+.fs-bucket-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fs-primary);
+  background: var(--fs-primary-soft);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 999px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fs-header__right {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.fs-search { width: 180px; }
+.fs-search { width: 200px; }
 .fs-search :deep(.el-input__wrapper) {
-  background: rgba(120, 120, 128, 0.08);
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--fs-border);
+  box-shadow: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fs-search :deep(.el-input__wrapper:hover) { border-color: #cbd5e1; }
+.fs-search :deep(.el-input__wrapper.is-focus) {
+  border-color: var(--fs-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: #ffffff;
+}
+
+.fs-toolbar-sep { width: 1px; height: 20px; background: var(--fs-border); }
+
+/* ---- 视图切换 ---- */
+.fs-view-toggle {
+  display: inline-flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.fs-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--fs-text-3);
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.fs-view-btn svg { width: 16px; height: 16px; }
+.fs-view-btn:hover { color: var(--fs-text); }
+.fs-view-btn--active {
+  background: #ffffff;
+  color: var(--fs-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ---- 按钮 ---- */
+.fs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
   border-radius: 8px;
   border: 1px solid transparent;
-  box-shadow: none;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, opacity 0.18s;
 }
-.fs-search :deep(.el-input__wrapper:hover) { background: rgba(120, 120, 128, 0.12); }
-.fs-search :deep(.el-input__wrapper.is-focus) {
-  border-color: #0a84ff;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+.fs-btn svg { width: 15px; height: 15px; }
+.fs-btn:focus-visible {
+  outline: 2px solid var(--fs-primary);
+  outline-offset: 2px;
 }
 
-.fs-view-toggle :deep(.el-button) { padding: 5px 10px; }
+.fs-btn--ghost {
+  background: #ffffff;
+  border-color: var(--fs-border);
+  color: var(--fs-text-2);
+}
+.fs-btn--ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+.fs-btn--ghost:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* ===== 侧边栏 ===== */
+.fs-btn--primary {
+  background: var(--fs-primary);
+  color: #ffffff;
+}
+.fs-btn--primary:hover { background: var(--fs-primary-hover); }
+
+.fs-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--fs-text-2);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.fs-icon-btn svg { width: 18px; height: 18px; }
+.fs-icon-btn:hover:not(:disabled) { background: #f1f5f9; color: var(--fs-text); }
+.fs-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.fs-icon-btn:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 1px; }
+
+/* ---- 主体 ---- */
 .fs-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
+/* ---- 侧边栏 ---- */
 .fs-sidebar {
-  width: 200px;
+  width: 208px;
   flex-shrink: 0;
-  padding: 16px 12px;
-  background: rgba(255, 255, 255, 0.5);
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 16px 10px;
+  background: var(--fs-surface);
+  border-right: 1px solid var(--fs-border);
   overflow-y: auto;
 }
 
-.fs-sidebar__section { margin-bottom: 20px; }
+.fs-sidebar__section { margin-bottom: 22px; }
 
 .fs-sidebar__title {
   font-size: 11px;
   font-weight: 600;
-  color: #86868b;
+  color: var(--fs-text-3);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   padding: 0 8px;
   margin-bottom: 8px;
 }
@@ -795,35 +937,50 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 7px 8px;
   border-radius: 8px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  color: #1d1d1f;
-  transition: background 0.15s;
+  color: var(--fs-text);
+  transition: background 0.18s;
 }
-.fs-sidebar__item:hover { background: rgba(0, 0, 0, 0.05); }
-.fs-sidebar__item.active { background: rgba(10, 132, 255, 0.12); color: #0a84ff; font-weight: 500; }
+.fs-sidebar__item:hover { background: #f8fafc; }
+.fs-sidebar__item.active { background: var(--fs-primary-soft); color: var(--fs-primary); }
 .fs-sidebar__item svg { flex-shrink: 0; color: inherit; }
 
 .fs-sidebar__stat {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 5px 8px;
   font-size: 12px;
-  color: #1d1d1f;
+  color: var(--fs-text);
 }
-.fs-sidebar__stat span { color: #86868b; }
+.fs-sidebar__stat span { color: var(--fs-text-3); }
+.fs-sidebar__stat b { font-weight: 600; color: var(--fs-text); }
+
+.fs-stat-badge {
+  display: inline-flex;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fs-stat-badge.on { color: var(--fs-success); background: rgba(22, 163, 74, 0.1); }
+.fs-stat-badge.off { color: var(--fs-text-3); background: #f1f5f9; }
 
 .fs-sidebar__path {
   padding: 8px;
   font-size: 12px;
-  color: #86868b;
+  color: var(--fs-text-3);
+  background: #f8fafc;
+  border-radius: 8px;
   word-break: break-all;
   line-height: 1.5;
 }
 
-/* ===== 主内容区 ===== */
+/* ---- 主内容区 ---- */
 .fs-content {
   flex: 1;
   display: flex;
@@ -831,36 +988,49 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* ===== 面包屑路径栏 ===== */
+/* ---- 路径栏 ---- */
 .fs-pathbar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 20px;
-  background: rgba(250, 250, 252, 0.6);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--fs-bg);
+  border-bottom: 1px solid var(--fs-border);
   font-size: 13px;
 }
-.fs-pathbar__crumbs { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; overflow: hidden; }
-.fs-pathbar__sep { color: #c7c7cc; }
-.fs-pathbar__item { cursor: pointer; color: #0a84ff; padding: 2px 6px; border-radius: 6px; transition: background 0.15s; }
-.fs-pathbar__item:hover { background: rgba(10, 132, 255, 0.1); }
-.fs-pathbar__item--active { color: #1d1d1f; font-weight: 600; cursor: default; }
+.fs-pathbar__crumbs {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+  overflow: hidden;
+}
+.fs-pathbar__sep { color: #cbd5e1; margin: 0 2px; }
+.fs-pathbar__item {
+  cursor: pointer;
+  color: var(--fs-primary);
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: background 0.18s;
+}
+.fs-pathbar__item:hover { background: var(--fs-primary-soft); }
+.fs-pathbar__item--active { color: var(--fs-text); font-weight: 600; cursor: default; }
 .fs-pathbar__item--active:hover { background: transparent; }
-.fs-pathbar__count { color: #86868b; font-size: 12px; white-space: nowrap; }
+.fs-pathbar__count { color: var(--fs-text-3); font-size: 12px; white-space: nowrap; }
 
-/* ===== 文件区域 ===== */
+/* ---- 文件区域 ---- */
 .fs-files {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px 32px;
 }
 
-/* —— 网格视图 —— */
+/* 网格视图 */
 .fs-files--grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 12px;
   align-content: start;
 }
@@ -870,42 +1040,50 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 10px 12px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 18px 10px 14px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius);
+  border: 1px solid var(--fs-border);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
   user-select: none;
 }
-.fs-card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); transform: translateY(-1px); }
-.fs-card--selected { outline: 2px solid #0a84ff; background: rgba(10, 132, 255, 0.04); }
+.fs-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--fs-shadow);
+  transform: translateY(-1px);
+}
+.fs-card:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 1px; }
+.fs-card--selected {
+  border-color: var(--fs-primary);
+  background: var(--fs-primary-soft);
+}
 
 .fs-card__icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
 }
-.fs-card__icon svg { width: 36px; height: 36px; }
+.fs-card__icon svg { width: 34px; height: 34px; }
 
-.fs-card__icon.icon-folder { color: #0a84ff; background: rgba(10, 132, 255, 0.1); }
-.fs-card__icon.icon-image { color: #34c759; background: rgba(52, 199, 89, 0.1); }
-.fs-card__icon.icon-video { color: #af52de; background: rgba(175, 82, 222, 0.1); }
-.fs-card__icon.icon-audio { color: #ff9f0a; background: rgba(255, 159, 10, 0.1); }
-.fs-card__icon.icon-pdf { color: #ff3b30; background: rgba(255, 59, 48, 0.1); }
-.fs-card__icon.icon-office { color: #007aff; background: rgba(0, 122, 255, 0.1); }
-.fs-card__icon.icon-archive { color: #8e8e93; background: rgba(142, 142, 147, 0.1); }
-.fs-card__icon.icon-file { color: #636366; background: rgba(99, 99, 102, 0.08); }
+.fs-card__icon.icon-folder { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-card__icon.icon-image { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+.fs-card__icon.icon-video { color: #9333ea; background: rgba(147, 51, 234, 0.1); }
+.fs-card__icon.icon-audio { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+.fs-card__icon.icon-pdf { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.fs-card__icon.icon-office { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-card__icon.icon-archive { color: #64748b; background: #f1f5f9; }
+.fs-card__icon.icon-file { color: #475569; background: #f1f5f9; }
 
 .fs-card__name {
   width: 100%;
   text-align: center;
   font-size: 12px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: var(--fs-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -915,113 +1093,142 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   font-size: 11px;
-  color: #86868b;
+  color: var(--fs-text-3);
 }
 
-/* —— 列表视图 —— */
-.fs-files--list { padding: 0 0 20px; }
+/* 列表视图 */
+.fs-files--list { padding: 0 0 24px; }
+
 .fs-table-head,
 .fs-table-row {
   display: grid;
-  grid-template-columns: 1fr 100px 160px 220px;
+  grid-template-columns: 1fr 96px 168px 224px;
   align-items: center;
   gap: 12px;
   padding: 0 20px;
 }
+
 .fs-table-head {
   position: sticky;
   top: 0;
-  background: #f5f5f7;
+  background: var(--fs-bg);
   z-index: 5;
   font-size: 11px;
   font-weight: 600;
-  color: #86868b;
+  color: var(--fs-text-3);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   padding-top: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--fs-border);
 }
+
 .fs-table-row {
   padding-top: 10px;
   padding-bottom: 10px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.18s;
   font-size: 13px;
 }
-.fs-table-row:hover { background: rgba(0, 0, 0, 0.035); }
-.fs-table-row--selected { background: rgba(10, 132, 255, 0.08); }
+.fs-table-row:hover { background: #f8fafc; }
+.fs-table-row:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: -2px; }
+.fs-table-row--selected { background: var(--fs-primary-soft); }
 
-.fs-table-row__name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  overflow: hidden;
-}
-.fs-table-row__name span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fs-table-row__icon { width: 18px; height: 18px; flex-shrink: 0; color: #636366; }
-.fs-table-row__icon:first-child { color: #0a84ff; }
-.fs-name--dir { font-weight: 500; color: #0a84ff; }
-.fs-table-row__size { color: #86868b; font-size: 12px; text-align: right; }
-.fs-table-row__time { color: #86868b; font-size: 12px; }
-.fs-table-row__actions { display: flex; gap: 2px; justify-content: flex-end; }
+.fs-table-row__name { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
+.fs-table-row__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-table-row__icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--fs-text-3); }
+.fs-table-row__icon:first-child { color: var(--fs-primary); }
+.fs-name--dir { font-weight: 600; color: var(--fs-primary); }
+.fs-table-row__size { color: var(--fs-text-3); font-size: 12px; text-align: right; }
+.fs-table-row__time { color: var(--fs-text-3); font-size: 12px; }
 
-/* —— 空状态 —— */
+.fs-table-row__actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+
+.fs-link-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fs-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.fs-link-btn:hover { background: var(--fs-primary-soft); }
+.fs-link-btn--danger { color: var(--fs-danger); }
+.fs-link-btn--danger:hover { background: rgba(220, 38, 38, 0.08); }
+
+/* 空状态 */
 .fs-files__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 60px 0;
-  color: #86868b;
+  gap: 8px;
+  padding: 64px 0;
+  color: var(--fs-text-3);
   font-size: 14px;
 }
+.fs-files__empty small { color: var(--fs-text-3); opacity: 0.8; font-size: 12px; }
 
-/* ===== 右键菜单 ===== */
+/* ---- 右键菜单 ---- */
 .fs-ctx {
   position: fixed;
   z-index: 9999;
-  min-width: 160px;
-  background: rgba(250, 250, 252, 0.92);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 168px;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-border);
   border-radius: 10px;
   padding: 5px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.14);
   font-size: 13px;
 }
 .fs-ctx__item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
+  width: 100%;
   padding: 7px 10px;
+  border: none;
+  background: transparent;
   border-radius: 7px;
   cursor: pointer;
-  transition: background 0.12s;
+  text-align: left;
+  color: var(--fs-text);
+  font-size: 13px;
+  font-family: inherit;
+  transition: background 0.15s;
 }
-.fs-ctx__item:hover { background: rgba(10, 132, 255, 0.1); }
-.fs-ctx__item svg { flex-shrink: 0; color: #636366; }
+.fs-ctx__item:hover { background: var(--fs-primary-soft); }
+.fs-ctx__item svg { flex-shrink: 0; color: var(--fs-text-3); }
+.fs-ctx__item--danger { color: var(--fs-danger); }
+.fs-ctx__item--danger:hover { background: rgba(220, 38, 38, 0.08); }
+.fs-ctx__sep { height: 1px; background: var(--fs-border); margin: 4px 6px; }
 
-/* ===== 预览 ===== */
+/* ---- 预览 ---- */
 .fs-preview { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-.fs-preview__meta { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0 2px; font-size: 12px; color: #86868b; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 8px; width: 100%; }
+.fs-preview__meta { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0 2px; font-size: 12px; color: var(--fs-text-3); border-bottom: 1px solid var(--fs-border); margin-bottom: 8px; width: 100%; }
 .fs-preview__media { max-width: 100%; border-radius: 10px; }
-.fs-preview__code { width: 100%; max-height: 60vh; margin: 0; padding: 14px 16px; overflow: auto; border-radius: 10px; background: #f5f5f7; color: #1d1d1f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
+.fs-preview__code { width: 100%; max-height: 60vh; margin: 0; padding: 14px 16px; overflow: auto; border-radius: 10px; background: #f8fafc; border: 1px solid var(--fs-border); color: var(--fs-text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
 .fs-preview__error { width: 100%; display: flex; align-items: center; justify-content: center; }
 .fs-preview__skeleton { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0; }
-.fs-preview__loading-text { font-size: 13px; color: #86868b; }
+.fs-preview__loading-text { font-size: 13px; color: var(--fs-text-3); }
 
-.sk { border-radius: 10px; background: linear-gradient(90deg, #f5f5f7 25%, #ebebeb 50%, #f5f5f7 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.sk { border-radius: 10px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 .sk--w40 { width: 40%; height: 24px; }
 .sk--w60 { width: 60%; height: 120px; }
 .sk--full { width: 100%; height: 200px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ---- 响应式 ---- */
+@media (max-width: 768px) {
+  .fs-sidebar { display: none; }
+  .fs-search { width: 120px; }
+  .fs-header { padding: 0 12px; }
+  .fs-files--grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .fs-table-head, .fs-table-row { grid-template-columns: 1fr 64px 120px; }
+  .fs-table-head__time, .fs-table-row__time { display: none; }
+}
 </style>

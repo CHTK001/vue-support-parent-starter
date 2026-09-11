@@ -90,26 +90,10 @@ const filterItems = computed<ReFilterItem[]>(() => {
 
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
-  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${authTypeLabel(i.msServerIdentityAuthType)}`,
+  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === "PUBLIC_KEY" ? "私钥" : "密码"}`,
   value: i.id,
 })));
 const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));
-
-/** 账号认证类型选项（分组）：主机登录方式 + 通用账号类型；下拉可选、支持手动输入新类型 */
-const authTypeOptions = [
-  { label: "密码登录", value: "PASSWORD", group: "主机" },
-  { label: "私钥登录", value: "PUBLIC_KEY", group: "主机" },
-  { label: "Token", value: "TOKEN", group: "通用" },
-  { label: "API Key", value: "API_KEY", group: "通用" },
-  { label: "OAuth 2.0", value: "OAUTH2", group: "通用" },
-  { label: "Cookie", value: "COOKIE", group: "通用" },
-  { label: "账号密码", value: "ACCOUNT", group: "通用" },
-];
-function authTypeLabel(v: string): string {
-  if (!v) return "—";
-  const hit = authTypeOptions.find(o => o.value === v);
-  return hit ? hit.label : v;
-}
 
 /** 标签集合（用于筛选/展示） */
 const allTags = computed(() => {
@@ -277,36 +261,8 @@ function doConnect(): void {
   connectVisible.value = false;
 }
 
-// ---- 身份管理（账号密码 / 私钥登录）----
-const identityVisible = ref(false);
-const identitySaving = ref(false);
-const identityForm = ref<{ msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityPassword: string; msServerIdentityKeyId: number | null; msServerIdentityRemark: string }>({
-  msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "", msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
-});
-function openIdentityAdd(): void {
-  identityForm.value = { msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "", msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "" };
-  identityVisible.value = true;
-}
-async function submitIdentity(): Promise<void> {
-  if (!identityForm.value.msServerIdentityName?.trim()) { ElMessage.warning("请输入身份名称"); return; }
-  if (!identityForm.value.msServerIdentityUsername?.trim()) { ElMessage.warning("请输入登录用户名"); return; }
-  identitySaving.value = true;
-  try {
-    await saveIdentity(null, { ...identityForm.value, msServerIdentityPassword: identityForm.value.msServerIdentityPassword || undefined });
-    ElMessage.success("身份已创建");
-    identityVisible.value = false;
-    const list = await getIdentities();
-    identities.value = list ?? [];
-  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
-  finally { identitySaving.value = false; }
-}
-async function removeIdentity(id: number): Promise<void> {
-  await ElMessageBox.confirm("删除该身份？", "删除确认", { type: "warning" });
-  try {
-    await delIdentity(id);
-    identities.value = identities.value.filter(x => x.id !== id);
-  } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
-}
+/** 身份管理（新增/删除）已统一迁至左侧「账号管理」页（/account）；
+ *  本页仅保留身份选择（连接弹窗）与绑定/解绑 */
 /** 在连接弹窗里绑定/解绑身份 */
 async function toggleBind(hostId: number, identityId: number, bind: boolean): Promise<void> {
   try {
