@@ -116,3 +116,5 @@ e2e-tshark*
 _deleted_*
 _type-check-out.txt
 proj-debug.cjs
+
+kodcloud-*.cjs
