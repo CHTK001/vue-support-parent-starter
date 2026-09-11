@@ -29,6 +29,15 @@ otherConfig:
   avatarFrame:
     enable: true
 
+# Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）
+# urls 为空回退 http.baseUrl/当前源 → 经 vite proxy /socket.io → 后端 netty-socketio 29181
+socketConfig:
+  enable: true
+  protocol: socketio
+  context: "/socket.io"
+  transports:
+    - websocket
+
 # 布局配置（首页仪表板持久化：local=本地 localStorage / remote=远程同步）
 layoutConfig:
   enable: true

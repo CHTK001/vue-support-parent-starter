@@ -200,7 +200,7 @@ onMounted(load);
   position: relative;
   transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.15s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
   animation: scCardIn 0.24s var(--ease-out, ease) both;
-  :nth-child(2) { animation-delay: 0.05s; }
+  &:nth-child(2) { animation-delay: 0.05s; }
   &:hover {
     box-shadow: var(--shadow-2);
     border-color: var(--border-default);
@@ -249,7 +249,7 @@ onMounted(load);
 .sc-field {
   display: block;
   cursor: default;
-  &: + .sc-field { margin-top: 14px; }
+  & + .sc-field { margin-top: 14px; }
 }
 .sc-label {
   display: flex;

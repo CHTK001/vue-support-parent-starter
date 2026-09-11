@@ -21,7 +21,7 @@ export default createVite({
         changeOrigin: true,
       },
       "/ms/monitor": {
-        target: "http://124.221.230.112:8080",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ms/server": {
@@ -37,9 +37,9 @@ export default createVite({
         ws: true,
         changeOrigin: true,
       },
-      // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=9000）
+      // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=29181）
       "/socket.io": {
-        target: "http://124.221.230.112:9000",
+        target: "http://127.0.0.1:29181",
         ws: true,
         changeOrigin: true,
       },
@@ -66,6 +66,17 @@ export default createVite({
     },
   },
   optimizeDeps: {
-    include: ["element-plus", "@repo/theme"],
+    include: [
+      "element-plus",
+      "@repo/theme",
+      "@repo/ui",
+      "@repo/ui/components/ReFilter/types",
+      "@repo/ui/re-icon",
+      "@repo/ui/re-input",
+      "@repo/ui/re-kit",
+      "@repo/ui/re-scrollbar",
+      "@repo/ui/re-select",
+      "@repo/ui/re-tag",
+    ],
   },
 });

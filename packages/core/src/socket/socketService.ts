@@ -24,12 +24,14 @@ import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
 import { createSocketIOService, type SocketIOConfig } from "./socketio";
 import { createWebSocketService, type WebSocketConfig } from "./websocket";
 import { createSseService, type SseConfig } from "./sse";
+import { createUrlSelector, type UrlSelector, type UrlSelectorOptions } from "./urlSelector";
 import { log } from "@repo/utils";
 
 // 重新导出各协议的类型和工厂函数
 export { createSocketIOService, type SocketIOConfig } from "./socketio";
 export { createWebSocketService, type WebSocketConfig } from "./websocket";
 export { createSseService, type SseConfig } from "./sse";
+export { createUrlSelector, type UrlSelector, type UrlSelectorOptions } from "./urlSelector";
 export {
   parseSocketMessage,
   buildAuthUrl,
@@ -74,6 +76,8 @@ export interface SocketServiceConfig {
   reconnectionAttempts?: number;
   /** 重连延迟（毫秒），默认 1000 */
   reconnectionDelay?: number;
+  /** 失败地址黑名单缓存时长（毫秒），默认 60000；多地址时连接失败自动降级并到期重试 */
+  blacklistTtlMs?: number;
   /** 心跳间隔（毫秒），WebSocket 专用，默认 30000 */
   heartbeatInterval?: number;
   /** SSE 客户端ID */
@@ -191,6 +195,7 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
         reconnection: config.reconnection,
         reconnectionAttempts: config.reconnectionAttempts,
         reconnectionDelay: config.reconnectionDelay,
+        blacklistTtlMs: config.blacklistTtlMs,
       };
       return createSocketIOService(socketioConfig);
     }
@@ -204,6 +209,7 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
         reconnectionAttempts: config.reconnectionAttempts,
         reconnectionDelay: config.reconnectionDelay,
         heartbeatInterval: config.heartbeatInterval,
+        blacklistTtlMs: config.blacklistTtlMs,
       };
       return createWebSocketService(wsConfig);
     }
@@ -217,6 +223,7 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
         reconnection: config.reconnection,
         reconnectionDelay: config.reconnectionDelay,
         reconnectionAttempts: config.reconnectionAttempts,
+        blacklistTtlMs: config.blacklistTtlMs,
       };
       return createSseService(sseConfig);
     }
@@ -229,6 +236,7 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
         urls: config.urls || [],
         context: config.context,
         query: config.query,
+        blacklistTtlMs: config.blacklistTtlMs,
       });
   }
 }

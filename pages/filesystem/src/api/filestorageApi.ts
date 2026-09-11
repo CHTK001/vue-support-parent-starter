@@ -43,6 +43,36 @@ export interface StorageObject {
 }
 
 /**
+ * 存储桶公开配置（?format=config 返回结构，不含敏感字段）
+ */
+export interface BucketConfig {
+  /** 存储桶名 */
+  bucket: string;
+  /** 存储实现类简称 */
+  storage: string;
+  /** 开关 */
+  openPreview: boolean;
+  /** 开关 */
+  openDownload: boolean;
+  /** 开关 */
+  openRange: boolean;
+  /** 开关 */
+  openWatermark: boolean;
+  /** 开关 */
+  openWebjars: boolean;
+  /** 开关 */
+  openRemoteFile: boolean;
+  /** 水印文字（可能为空） */
+  watermark: string | null;
+  /** 布局开关 */
+  layout: boolean;
+  /** 布局类型 */
+  layoutType: string;
+  /** 一次性链接默认有效期（毫秒） */
+  oneTimeTtlMs: number;
+}
+
+/**
  * 目录列表响应结构
  */
 interface ListResponse {
@@ -160,6 +190,24 @@ export async function listObjects(bucket: string, path = ""): Promise<StorageObj
     return res.items ?? [];
   } catch (e) {
     throw new Error(toErrorMessage(e, "列表查询"));
+  }
+}
+
+/**
+ * 获取存储桶公开配置
+ *
+ * @param bucket 存储桶名
+ * @return 配置对象
+ */
+export async function getBucketConfig(bucket: string): Promise<BucketConfig> {
+  try {
+    const res = await storageHttp()
+      .get(objectPath(bucket))
+      .query({ format: "config" })
+      .then<BucketConfig>((r) => r.data);
+    return res;
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "配置获取"));
   }
 }
 

@@ -67,6 +67,7 @@ const keyGenTypeOptions = [
 const authTypeOptions = [
   { value: 'PASSWORD', label: '密码登录', group: '主机' },
   { value: 'PUBLIC_KEY', label: '公钥登录', group: '主机' },
+  { value: 'MAILBOX', label: '邮箱账号', group: '通用' },
   { value: 'TOKEN', label: 'Token', group: '通用' },
   { value: 'API_KEY', label: 'API Key', group: '通用' },
   { value: 'OAUTH2', label: 'OAuth 2.0', group: '通用' },
@@ -83,6 +84,7 @@ function authTypeLabel(v: string): string {
 function authTypeTagType(v: string): 'success' | 'info' | 'warning' | 'primary' {
   if (v === 'PUBLIC_KEY') return 'warning';
   if (v === 'PASSWORD') return 'info';
+  if (v === 'MAILBOX') return 'success';
   return 'primary';
 }
 
@@ -223,6 +225,78 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
   await delIdentity(row.id);
   message.success('已删除');
   refresh();
+
+// ===== 邮箱账号信箱 (MAILBOX 身份, IMAP) =====
+/** 邮件箱对话框可见性 */
+const mailboxDialogVisible = ref(false);
+/** 当前查看的邮箱身份 ID */
+const mailboxIdentityId = ref<number | null>(null);
+/** 邮件箱加载状态 */
+const mailboxLoading = ref(false);
+/** 邮件列表 */
+const mailboxEmails = ref<any[]>([]);
+/** 当前文件夹 */
+const mailboxFolder = ref('INBOX');
+/** 每页条数 */
+const mailboxLimit = ref(20);
+/** 当前查看的邮件详情 */
+const selectedEmail = ref<any>(null);
+/** 邮件详情加载状态 */
+const mailboxDetailLoading = ref(false);
+
+/**
+ * 打开邮件箱对话框
+ *
+ * @param row 邮箱身份行
+ */
+async function openMailbox(row: IdentityRow): Promise<void> {
+  mailboxIdentityId.value = row.id;
+  mailboxFolder.value = 'INBOX';
+  mailboxLimit.value = 20;
+  selectedEmail.value = null;
+  mailboxDialogVisible.value = true;
+  await loadMailboxList();
+}
+
+/**
+ * 加载收件箱列表
+ */
+async function loadMailboxList(): Promise<void> {
+  if (mailboxIdentityId.value == null) {
+    return;
+  }
+  mailboxLoading.value = true;
+  try {
+    const list = await listMailbox(mailboxIdentityId.value, mailboxFolder.value, mailboxLimit.value);
+    mailboxEmails.value = (list ?? []) as any[];
+    selectedEmail.value = null;
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    mailboxLoading.value = false;
+  }
+}
+
+/**
+ * 查看单封邮件正文
+ *
+ * @param email 列表中的邮件
+ */
+async function viewMessage(email: any): Promise<void> {
+  if (mailboxIdentityId.value == null) {
+    return;
+  }
+  mailboxDetailLoading.value = true;
+  try {
+    const detail = await getMailboxMessage(mailboxIdentityId.value, mailboxFolder.value, email.subject);
+    selectedEmail.value = detail ?? email;
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    mailboxDetailLoading.value = false;
+  }
+}
+
 }
 </script>
 
@@ -274,8 +348,9 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
                 <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="130">
+            <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
+                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link size="small" type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
                 <ReButton link size="small" @click="openIdentityForm(row)">编辑</ReButton>
                 <ReButton link type="danger" size="small" @click="deleteIdentity(row)">删除</ReButton>
               </template>
@@ -331,6 +406,20 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
             :placeholder="editingIdentityId ? '留空保持不变' : '登录密码'"
           />
         </ReFormItem>
+        <ReFormItem v-else-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="授权码">
+          <ReInput
+            v-model="identityForm.msServerIdentityPassword"
+            type="password"
+            show-password
+            placeholder="邮箱 IMAP 授权码（非登录密码）"
+          />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="IMAP 服务器">
+          <ReInput v-model="identityForm.msServerIdentityImapHost" placeholder="留空则按邮箱域名自动推断（如 imap.qq.com）" />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="IMAP 端口">
+          <ReInput v-model.number="identityForm.msServerIdentityImapPort" placeholder="默认 993" />
+        </ReFormItem>
         <ReFormItem v-else label="引用密钥">
           <ReSelect v-model="identityForm.msServerIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
         </ReFormItem>
@@ -373,6 +462,35 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
       </div>
     </ReDialog>
   </div>
+
+    <!-- 邮箱账号邮件箱对话框 -->
+    <ReDialog v-model="mailboxDialogVisible" title="邮箱收件箱" width="800" :height="560" :close-on-click-modal="false" :footer-hidden="true" @closed="selectedEmail = null">
+      <div class="mailbox">
+        <div class="mailbox-toolbar">
+          <ReSelect v-model="mailboxFolder" :data="[{label:'收件箱',value:'INBOX'},{label:'已发送',value:'Sent'},{label:'草稿',value:'Drafts'}]" style="width:150px" @change="loadMailboxList()" />
+          <ReInputNumber v-model="mailboxLimit" :min="5" :max="100" size="small" style="width:100px" />
+          <ReButton size="small" :loading="mailboxLoading" @click="loadMailboxList()">刷新</ReButton>
+        </div>
+        <div v-if="selectedEmail" class="mailbox-detail">
+          <div class="mailbox-detail-head">
+            <strong>{{ selectedEmail.subject || '(无主题)' }}</strong>
+            <span class="mailbox-detail-meta">发件人：{{ selectedEmail.from }} ｜ 日期：{{ selectedEmail.date }} ｜ 大小：{{ selectedEmail.size }} bytes</span>
+            <ReButton link size="small" @click="selectedEmail = null">返回列表</ReButton>
+          </div>
+          <ReLoading :loading="mailboxDetailLoading">
+            <pre class="mailbox-content">{{ selectedEmail.content }}</pre>
+          </ReLoading>
+        </div>
+        <ReLoading v-else :loading="mailboxLoading">
+          <ReTable :data="mailboxEmails" size="small" border :pagination="false" empty-text="暂无邮件" @row-click="viewMessage">
+            <ReTableColumn prop="subject" label="主题" min-width="200" />
+            <ReTableColumn prop="from" label="发件人" min-width="160" />
+            <ReTableColumn prop="date" label="日期" min-width="150" />
+            <ReTableColumn prop="size" label="大小" width="80" />
+          </ReTable>
+        </ReLoading>
+      </div>
+    </ReDialog>
 </template>
 
  <style scoped lang="scss">
@@ -387,5 +505,20 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
   font-size: 11px;
   color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.mailbox { display: flex; flex-direction: column; gap: 10px; }
+.mailbox-toolbar { display: flex; align-items: center; gap: 8px; }
+.mailbox-detail-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.mailbox-detail-meta { font-size: 12px; color: var(--text-tertiary); }
+.mailbox-content {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  max-height: 420px;
+  overflow: auto;
+  margin: 0;
 }
 </style>

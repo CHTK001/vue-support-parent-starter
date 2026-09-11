@@ -14,6 +14,7 @@ import {
   parseSocketMessage,
   toWebSocketUrl,
 } from "./socketUtils";
+import { createUrlSelector } from "./urlSelector";
 import type {
   SocketTemplate,
   SocketTemplateListenOptions,
@@ -38,6 +39,8 @@ export interface WebSocketConfig {
   heartbeatInterval?: number;
   /** 子协议（可选） */
   protocols?: string | string[];
+  /** 失败地址黑名单缓存时长（毫秒），默认 60_000 */
+  blacklistTtlMs?: number;
 }
 
 /**
@@ -54,6 +57,11 @@ export function createWebSocketService(
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let reconnectAttempts = 0;
   const eventListeners = new Map<string, Set<(data: unknown) => void>>();
+  /** 多地址负载均衡 / 失败降级选择器 */
+  const selector = createUrlSelector({
+    urls: config.urls,
+    blacklistTtlMs: config.blacklistTtlMs,
+  });
 
   const triggerEvent = (event: string, data: unknown) => {
     const listeners = eventListeners.get(event);
@@ -94,8 +102,12 @@ export function createWebSocketService(
 
     try {
       const token = getSocketToken();
-      let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
-      baseUrl = toWebSocketUrl(baseUrl);
+      const baseUrlRaw = selector.next();
+      if (!baseUrlRaw) {
+        log.warn(`[WebSocket] 无可用的连接地址`);
+        return;
+      }
+      let baseUrl = toWebSocketUrl(baseUrlRaw);
 
       if (config.path) {
         baseUrl = baseUrl.replace(/\/$/, "") + config.path;
@@ -118,6 +130,8 @@ export function createWebSocketService(
       wsInstance.onopen = () => {
         isConnected.value = true;
         reconnectAttempts = 0;
+        // 连接成功：恢复该地址健康状态
+        selector.markSuccess(baseUrlRaw);
         startHeartbeat();
         triggerEvent("connect", { connected: true });
       };
@@ -130,6 +144,11 @@ export function createWebSocketService(
           code: event.code,
           reason: event.reason,
         });
+
+        // 非正常关闭视为地址故障：降级该地址并尝试下一地址
+        if (wsInstance?.readyState !== WebSocket.CLOSED || event.code !== 1000) {
+          selector.markFailure(baseUrlRaw);
+        }
 
         const maxAttempts = config.reconnectionAttempts ?? 3;
         if (config.reconnection !== false && reconnectAttempts < maxAttempts) {
@@ -144,7 +163,7 @@ export function createWebSocketService(
       };
 
       wsInstance.onerror = (error) => {
-        log.error(`[WebSocket] 连接错误:`, error);
+        log.error(`[WebSocket] 连接错误 ${baseUrlRaw}:`, error);
         triggerEvent("error", error);
       };
 

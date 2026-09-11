@@ -33,15 +33,15 @@ import {
   deleteObject,
   existObject,
   fetchObjectText,
+  getBucketConfig,
   getDefaultBucket,
   getServerBase,
   listObjects,
   objectUrl,
   putObject,
   setDefaultBucket,
-  setServerBase,
 } from "../api/filestorageApi";
-import type { StorageObject } from "../api/filestorageApi";
+import type { BucketConfig, StorageObject } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 
@@ -50,8 +50,28 @@ type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "fo
 
 /* ================== 连接 & 状态 ================== */
 
+/**
+ * 从当前页面 URL 解析存储桶。
+ *
+ * 服务返回的 Vue 壳页面 URL 即 {@code /{bucket}}，第一段路径即 bucket；
+ * query 参数 bucket 优先级最高，便于测试覆盖。
+ */
+function resolveBucket(): string {
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    const qb = (qs.get("bucket") || "").trim();
+    if (qb) return qb;
+    const seg = (window.location.pathname || "").split("/").filter((s) => s.length > 0);
+    const first = (seg[0] || "").trim();
+    if (first && !["fs", "assets", "ot", "config"].includes(first.toLowerCase())) {
+      return first;
+    }
+  } catch { /* ignore */ }
+  return "";
+}
+
 const server = ref(getServerBase() || DEFAULT_SERVER);
-const bucket = ref(getDefaultBucket() || DEFAULT_BUCKET);
+const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
@@ -60,6 +80,10 @@ const keyword = ref("");
 const viewMode = ref<"grid" | "list">("grid");
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
+/** 存储桶公开配置（?format=config） */
+const bucketConfig = ref<BucketConfig | null>(null);
+/** 存储桶配置加载状态 */
+const configLoading = ref(false);
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
@@ -127,15 +151,33 @@ async function loadObjects(): Promise<void> {
   loading.value = true;
   try {
     objects.value = await listObjects(bucket.value, currentPath.value);
-    setServerBase(server.value);
     setDefaultBucket(bucket.value);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "连接失败");
+    ElMessage.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
   } finally {
     loading.value = false;
   }
 }
+
+/** 容错地从服务端拉取 bucket 公开配置（失败静默，页面不受影响） */
+async function loadBucketConfig(): Promise<void> {
+  configLoading.value = true;
+  try {
+    bucketConfig.value = await getBucketConfig(bucket.value);
+  } catch {
+    bucketConfig.value = null;
+  } finally {
+    configLoading.value = false;
+  }
+}
+
+/** 服务端是否允许预览 */
+const allowPreview = computed(() => bucketConfig.value?.openPreview ?? true);
+/** 服务端是否允许下载 */
+const allowDownload = computed(() => bucketConfig.value?.openDownload ?? true);
+/** 存储类型显示名 */
+const storageType = computed(() => bucketConfig.value?.storage ?? "--");
 
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
@@ -343,7 +385,10 @@ function copyOneTimeLink(): void {
   el.remove();
 }
 
-onMounted(() => loadObjects());
+onMounted(() => {
+  loadBucketConfig();
+  loadObjects();
+});
 </script>
 
 <template>
@@ -356,16 +401,6 @@ onMounted(() => loadObjects());
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>
         <span>FileStorage</span>
-      </div>
-
-      <div class="fs-conn">
-        <el-tooltip content="服务器地址（如 http://127.0.0.1:18080）" placement="bottom">
-          <el-input v-model="server" placeholder="Server" clearable size="small" class="fs-conn__input" />
-        </el-tooltip>
-        <el-tooltip content="存储桶名称（如 local）" placement="bottom">
-          <el-input v-model="bucket" placeholder="Bucket" clearable size="small" class="fs-conn__input fs-conn__input--sm" />
-        </el-tooltip>
-        <el-button type="primary" :icon="Search" :loading="loading" size="small" @click="loadObjects">连接</el-button>
       </div>
 
       <div class="fs-header__right">
@@ -402,9 +437,15 @@ onMounted(() => loadObjects());
         </div>
         <div class="fs-sidebar__section">
           <div class="fs-sidebar__title">统计</div>
+          <div class="fs-sidebar__stat"><span>存储类型</span><b>{{ storageType }}</b></div>
           <div class="fs-sidebar__stat"><span>文件</span><b>{{ fileCount }}</b></div>
           <div class="fs-sidebar__stat"><span>目录</span><b>{{ dirCount }}</b></div>
           <div class="fs-sidebar__stat"><span>总大小</span><b>{{ formatSize(totalSize) }}</b></div>
+        </div>
+        <div class="fs-sidebar__section">
+          <div class="fs-sidebar__title">功能开关</div>
+          <div class="fs-sidebar__stat"><span>预览</span><b>{{ bucketConfig == null ? '…' : (allowPreview ? '开' : '关') }}</b></div>
+          <div class="fs-sidebar__stat"><span>下载</span><b>{{ bucketConfig == null ? '…' : (allowDownload ? '开' : '关') }}</b></div>
         </div>
         <div class="fs-sidebar__section">
           <div class="fs-sidebar__title">当前路径</div>
@@ -498,8 +539,8 @@ onMounted(() => loadObjects());
             <span class="fs-table-row__actions">
               <el-button v-if="item.directory" text type="primary" size="small" @click.stop="enterDir(item)">打开</el-button>
               <template v-else>
-                <el-button text type="primary" size="small" @click.stop="openPreview(item)">预览</el-button>
-                <el-button text type="primary" size="small" @click.stop="handleDownload(item)">下载</el-button>
+                <el-button v-if="allowPreview" text type="primary" size="small" @click.stop="openPreview(item)">预览</el-button>
+                <el-button v-if="allowDownload" text type="primary" size="small" @click.stop="handleDownload(item)">下载</el-button>
                 <el-button text type="primary" size="small" @click.stop="openOneTime(item)">一次性链接</el-button>
               </template>
               <el-button text type="danger" size="small" @click.stop="handleDelete(item)">删除</el-button>
@@ -521,9 +562,9 @@ onMounted(() => loadObjects());
         <template v-if="ctxMenu.row">
           <div class="fs-ctx__item" @click="ctxAction(ctxMenu.row!.directory ? 'open' : 'preview')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            {{ ctxMenu.row!.directory ? '打开' : '预览' }}
+            {{ ctxMenu.row!.directory ? '打开' : allowPreview ? '预览' : '打开' }}
           </div>
-          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('download')">
+          <div v-if="!ctxMenu.row!.directory && allowDownload" class="fs-ctx__item" @click="ctxAction('download')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             下载
           </div>
@@ -648,26 +689,6 @@ onMounted(() => loadObjects());
   height: 22px;
   color: #0a84ff;
 }
-
-.fs-conn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fs-conn :deep(.el-input__wrapper) {
-  background: rgba(120, 120, 128, 0.08);
-  border-radius: 8px;
-  border: 1px solid transparent;
-  box-shadow: none;
-}
-.fs-conn :deep(.el-input__wrapper:hover) { background: rgba(120, 120, 128, 0.12); }
-.fs-conn :deep(.el-input__wrapper.is-focus) {
-  border-color: #0a84ff;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
-}
-.fs-conn__input { width: 200px; }
-.fs-conn__input--sm { width: 110px; }
 
 .fs-header__right {
   margin-left: auto;

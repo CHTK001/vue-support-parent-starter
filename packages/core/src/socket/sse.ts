@@ -20,6 +20,7 @@ import {
   matchesSocketListenOptions,
   parseSocketMessage,
 } from "./socketUtils";
+import { createUrlSelector } from "./urlSelector";
 import type {
   SocketTemplate,
   SocketTemplateListenOptions,
@@ -44,6 +45,8 @@ export interface SseConfig {
   reconnectionDelay?: number;
   /** 最大重连次数，默认 5 */
   reconnectionAttempts?: number;
+  /** 失败地址黑名单缓存时长（毫秒），默认 60_000 */
+  blacklistTtlMs?: number;
 }
 
 /**
@@ -58,10 +61,17 @@ export function createSseService(config: SseConfig): SocketTemplate {
   const listeners = new Map<string, Set<(data: unknown) => void>>();
   let reconnectAttempts = 0;
   const maxReconnectAttempts = config.reconnectionAttempts ?? 5;
+  /** 多地址负载均衡 / 失败降级选择器 */
+  const selector = createUrlSelector({
+    urls: config.urls,
+    blacklistTtlMs: config.blacklistTtlMs,
+  });
 
-  const buildUrl = (): string => {
+  const buildUrl = (): { url: string; baseUrlRaw: string } => {
     const token = getSocketToken();
-    let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
+    const baseUrlRaw = selector.next();
+    if (!baseUrlRaw) return { url: "", baseUrlRaw: "" };
+    let baseUrl = baseUrlRaw;
 
     if (config.path) {
       baseUrl = baseUrl.replace(/\/$/, "") + config.path;
@@ -72,7 +82,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
       queryParams.clientId = config.clientId;
     }
 
-    return buildAuthUrl(baseUrl, token, queryParams);
+    return { url: buildAuthUrl(baseUrl, token, queryParams), baseUrlRaw };
   };
 
   const connect = () => {
@@ -82,7 +92,12 @@ export function createSseService(config: SseConfig): SocketTemplate {
     }
 
     abortController = new AbortController();
-    const url = buildUrl();
+    const { url, baseUrlRaw } = buildUrl();
+    if (!url) {
+      log.warn("[SSE] 无可用的连接地址");
+      abortController = null;
+      return;
+    }
     const token = getSocketToken();
 
     fetchEventSource(url, {
@@ -102,8 +117,12 @@ export function createSseService(config: SseConfig): SocketTemplate {
         ) {
           isConnected.value = true;
           reconnectAttempts = 0;
+          // 连接成功：恢复该地址健康状态
+          selector.markSuccess(baseUrlRaw);
           triggerListeners("connect", { connected: true });
         } else {
+          // 连接失败：降级该地址
+          selector.markFailure(baseUrlRaw);
           throw new Error(
             `[SSE] 连接失败: ${response.status} ${response.statusText}`,
           );

@@ -68,3 +68,11 @@ await createContextApp({
   .app(App)
   .use(router)
   .mount("#app");
+
+/** 预加载弹窗内组件的懒加载布局（ReDialog koi / ReSelect / ReSwitch / ReDrawer），消除首次打开卡顿 */
+void import("@repo/ui/components/ReDialog/theme/koi/ReDialog.vue");
+void import("@repo/ui/components/ReSelect/layouts/Square.vue");
+void import("@repo/ui/components/ReSelect/layouts/Modern.vue");
+void import("@repo/ui/components/ReSwitch/layouts/SquareReSwitch.vue");
+void import("@repo/ui/components/ReSwitch/layouts/CardReSwitch.vue");
+void import("@repo/ui/components/ReDrawer");
