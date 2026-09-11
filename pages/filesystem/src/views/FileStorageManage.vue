@@ -732,12 +732,25 @@ onUnmounted(() => {
       <!-- 左侧边栏 -->
       <aside class="fs-sidebar">
         <div class="fs-sidebar__section">
-          <div class="fs-sidebar__title">存储桶</div>
-          <div class="fs-sidebar__item active">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>{{ bucket }}</span>
+          <div class="fs-sidebar__title">文件树</div>
+          <div class="fs-tree" v-loading="treeLoading">
+            <div
+              v-if="tree.length === 0 && !treeLoading"
+              class="fs-tree__empty"
+            >暂无目录</div>
+            <div
+              v-for="node in tree"
+              :key="node.path"
+              class="fs-tree-node"
+              :class="{ 'fs-tree-node--active': currentPath === node.path }"
+            >
+              <FsTreeNode
+                :node="node"
+                :depth="0"
+                :active-path="currentPath"
+                @select="onTreeSelect"
+              />
+            </div>
           </div>
         </div>
         <div class="fs-sidebar__section">
