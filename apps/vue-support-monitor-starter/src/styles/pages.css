@@ -395,3 +395,14 @@
   flex: 1;
 }
 .legend-item .tag { font-size: 11px; padding: 1px 6px; }
+
+/* ============================================================
+   Dialog 预渲染防闪（dialogPrerender.ts）—— 预挂载期间隐藏弹窗
+   ============================================================ */
+body.dialog-prerender .el-overlay {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+body.dialog-prerender .el-overlay .el-dialog {
+  visibility: hidden !important;
+}
