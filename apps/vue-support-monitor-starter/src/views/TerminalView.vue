@@ -9,7 +9,6 @@ import { useRoute, useRouter } from "vue-router";
 import { queryHosts, getHost } from "@pages/server/src/api";
 import ReInput from "@repo/ui/re-input";
 import ReScrollbar from "@repo/ui/re-scrollbar";
-import ImmersiveTerminal from "../components/ImmersiveTerminal.vue";
 
 interface Host {
   id: number;
@@ -72,6 +71,21 @@ const connection = computed(() => {
     targetPort: null,
 
   };
+});
+
+/**
+ * 远程控制 iframe URL —— 后端按主机信息向 guacd 建立隧道并返回远控页面
+ * （前端只负责嵌入 URL：/ms/server/remote/connect?hostId=&protocol=&identityId=）
+ */
+const remoteUrl = computed(() => {
+  const c = connection.value;
+  if (!c) return "";
+  const qs = new URLSearchParams({
+    hostId: String(c.hostId),
+    protocol: String(c.protocol ?? "ssh"),
+  });
+  if (c.identityId != null) qs.set("identityId", String(c.identityId));
+  return `/ms/server/remote/connect?${qs.toString()}`;
 });
 
 const filteredHosts = computed(() => {
@@ -232,9 +246,17 @@ onMounted(onMountedInit);
       <div v-else class="rail-collapsed" @click="railOpen = true" title="展开资源条">☰</div>
     </aside>
 
-    <!-- 右侧控制台 -->
+    <!-- 右侧控制台：iframe 嵌入后端远控 URL（后端按主机信息向 guacd 建隧道并返回页面） -->
     <main class="term-main">
-      <ImmersiveTerminal :connection="connection" />
+      <iframe
+        v-if="remoteUrl"
+        :key="remoteUrl"
+        :src="remoteUrl"
+        class="remote-frame"
+        frameborder="0"
+        allow="clipboard-read; clipboard-write"
+      />
+      <div v-else class="remote-empty">从左侧选择一台主机开始控制</div>
     </main>
   </div>
 </template>
@@ -364,5 +386,20 @@ onMounted(onMountedInit);
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+.remote-frame {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: none;
+  background: #000;
+}
+.remote-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 14px;
 }
 </style>
