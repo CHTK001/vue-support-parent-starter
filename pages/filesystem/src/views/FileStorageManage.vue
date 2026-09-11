@@ -474,11 +474,14 @@ async function handleDelete(row: StorageObject): Promise<void> {
 const oneTimeVisible = ref(false);
 const oneTimeLink = ref("");
 const oneTimeType = ref<"once" | "expiry">("once");
+/** 过期时间（秒）：expiry 模式必填；once 模式不使用 */
 const oneTimeExpiry = ref(600);
 const oneTimeExpiryOptions = [
-  { label: "1 分钟", value: 60 }, { label: "10 分钟", value: 600 },
-  { label: "30 分钟", value: 1800 }, { label: "1 小时", value: 3600 },
-  { label: "6 小时", value: 21600 }, { label: "1 天", value: 86400 },
+  { label: "10 秒", value: 10 }, { label: "30 秒", value: 30 },
+  { label: "1 分钟", value: 60 }, { label: "5 分钟", value: 300 },
+  { label: "10 分钟", value: 600 }, { label: "30 分钟", value: 1800 },
+  { label: "1 小时", value: 3600 }, { label: "6 小时", value: 21600 },
+  { label: "1 天", value: 86400 },
 ];
 const oneTimeGenerating = ref(false);
 const oneTimeTarget = ref<{ name: string; key: string }>();
@@ -488,15 +491,26 @@ function openOneTime(row: StorageObject): void {
   oneTimeTarget.value = { name: row.name, key: fullKey(row.name) };
   oneTimeLink.value = "";
   oneTimeType.value = "once";
+  // once 无需过期时间（展示默认值即可）
   oneTimeExpiry.value = 600;
   oneTimeVisible.value = true;
 }
 
 async function generateOneTimeLink(): Promise<void> {
   if (!oneTimeTarget.value) return;
+  // expiry 模式需合法过期时间（兜底分钟：一次性无此项）
+  let expires: number | undefined;
+  if (oneTimeType.value === "expiry") {
+    expires = Number(oneTimeExpiry.value);
+    if (!Number.isFinite(expires) || expires <= 0) {
+      ElMessage.warning("请输入有效的过期时间（秒）");
+      return;
+    }
+    expires = Math.floor(expires);
+  }
   oneTimeGenerating.value = true;
   try {
-    const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, oneTimeExpiry.value, oneTimeType.value);
+    const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, expires, oneTimeType.value);
     oneTimeLink.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
     ElMessage.success(oneTimeType.value === "once" ? "一次性链接已生成（仅可访问一次）" : "限时链接已生成（有效期内可多次访问）");
   } catch (e) { ElMessage.error((e as Error)?.message ?? "生成失败"); }
