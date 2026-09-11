@@ -181,7 +181,7 @@ export function getGlobalSocketConfig(): {
  * @returns SocketTemplate 实例
  */
 export function createSocketService(config: SocketServiceConfig): SocketTemplate {
-  const protocol = config.protocol || "socketio";
+  const protocol = config.protocol || "sse";
   currentProtocol = protocol;
 
   switch (protocol) {
