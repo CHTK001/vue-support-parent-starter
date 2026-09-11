@@ -195,7 +195,6 @@ const tableColumns = computed(() => [
   { prop: "serverHostAddress", label: "地址", width: 150, slot: "addr" },
   { prop: "serverGroupId", label: "分组", width: 92, slot: "group" },
   { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
-  { prop: "serverHostOsType", label: "OS", width: 80, slot: "os" },
   { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
   { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
@@ -375,7 +374,6 @@ onMounted(() => {
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
-        <ReButton icon="Key" :show-text="true" size="small" @click="openIdentityAdd">账号/密钥</ReButton>
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增资产</ReButton>
       </div>
@@ -465,7 +463,6 @@ onMounted(() => {
           </div>
           <span v-else class="dim">—</span>
         </template>
-        <template #col-os="{ row }"><ReTag size="small">{{ normalizeOs(row.serverHostOsType) }}</ReTag></template>
         <template #col-proto="{ row }">
           <ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag>
         </template>
