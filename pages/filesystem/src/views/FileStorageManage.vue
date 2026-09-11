@@ -224,6 +224,61 @@ function fullKey(name: string): string {
   return currentPath.value ? `${currentPath.value}/${name}` : name;
 }
 
+/* ================== 多选 & 状态栏 ================== */
+
+/** 是否选中 */
+function isSelected(name: string): boolean {
+  return selected.value.has(name);
+}
+
+/** 点击行：支持 Ctrl/Shift 多选 */
+function onRowClick(e: MouseEvent, item: StorageObject, index: number): void {
+  if (e.ctrlKey || e.metaKey) {
+    toggleSelect(item.name);
+    lastSelectedIndex = index;
+    return;
+  }
+  if (e.shiftKey && lastSelectedIndex >= 0) {
+    // 连续多选（保留原选择）
+    const from = Math.min(lastSelectedIndex, index);
+    const to = Math.max(lastSelectedIndex, index);
+    const next = new Set(selected.value);
+    for (let i = from; i <= to; i++) {
+      const it = filteredObjects.value[i];
+      if (it) next.add(it.name);
+    }
+    selected.value = next;
+    return;
+  }
+  // 单选：仅保留当前
+  selected.value = new Set([item.name]);
+  lastSelectedIndex = index;
+}
+
+/** 切换选中 */
+function toggleSelect(name: string): void {
+  const next = new Set(selected.value);
+  if (next.has(name)) next.delete(name);
+  else next.add(name);
+  selected.value = next;
+}
+
+/** 清空选中 */
+function clearSelect(): void {
+  selected.value = new Set();
+}
+
+/** 选中文件数 */
+const selectedCount = computed(() => selected.value.size);
+/** 选中文件总大小 */
+const selectedSize = computed(() => {
+  let sum = 0;
+  for (const obj of objects.value) {
+    if (selected.value.has(obj.name) && !obj.directory) sum += obj.size || 0;
+  }
+  return sum;
+});
+
 /* ================== 目录导航 ================== */
 
 async function loadObjects(): Promise<void> {
