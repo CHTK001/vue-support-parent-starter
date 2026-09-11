@@ -66,15 +66,6 @@ export default createVite({
     },
   },
   optimizeDeps: {
-    include: [
-      "element-plus",
-      "@repo/ui",
-      "@repo/app",
-      "@repo/core",
-      "@repo/theme",
-      "@repo/assets",
-      "@repo/config",
-      "@repo/utils",
-    ],
+    include: ["element-plus", "@repo/theme"],
   },
 });
