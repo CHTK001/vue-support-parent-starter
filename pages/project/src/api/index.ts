@@ -62,3 +62,15 @@ export const restartProject = (id: number) =>
 /** 部署日志 */
 export const getDeployLogs = (id: number, action?: string) =>
   http().get(`${B}/${id}/logs${action ? `?action=${encodeURIComponent(action)}` : ''}`).then(r => unwrapResult<any[]>(r));
+
+/** 部署包归档列表（历史版本） */
+export const getArchives = (id: number, hostId?: number) =>
+  http().get(`${B}/${id}/archives${hostId ? `?hostId=${hostId}` : ''}`).then(r => unwrapResult<any[]>(r));
+
+/** 回滚到指定历史版本 */
+export const rollbackProject = (id: number, archiveId: number) =>
+  http().post(`${B}/${id}/rollback?archiveId=${archiveId}`).then(r => unwrapResult<any[]>(r));
+
+/** 实时查看项目日志（tail） */
+export const tailProjectLog = (id: number, hostId: number, cursor?: number, lines = 500) =>
+  http().get(`${B}/${id}/log?hostId=${hostId}&lines=${lines}${cursor != null ? `&cursor=${cursor}` : ''}`).then(r => unwrapResult<{ content: string; cursor: number; eof: boolean }>(r));

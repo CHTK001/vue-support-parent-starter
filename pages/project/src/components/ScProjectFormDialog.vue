@@ -210,6 +210,14 @@ function newProjectForm() {
         <ReInput v-model="form.msProjectRestartScript" type="textarea" :rows="3" placeholder="支持 {{dir}} 占位符" />
       </ReFormItem>
 
+      <ReDivider content-position="left">日志配置</ReDivider>
+      <ReFormItem label="日志目录">
+        <ReInput v-model="form.msProjectLogDir" placeholder="/opt/apps/user-service/logs" />
+      </ReFormItem>
+      <ReFormItem label="日志文件">
+        <ReInput v-model="form.msProjectLogFile" placeholder="app.log" />
+      </ReFormItem>
+
       <ReDivider content-position="left">升级策略</ReDivider>
       <ReFormItem label="升级前删除旧内容">
         <ReSwitch v-model="form.msProjectDeleteBefore" />
@@ -224,6 +232,10 @@ function newProjectForm() {
       <ReFormItem label="自动解压">
         <ReSwitch v-model="form.msProjectAutoExtract" />
         <span class="muted" style="margin-left:8px">zip/tar.gz 上传后自动解压到部署目录</span>
+      </ReFormItem>
+      <ReFormItem label="部署后自动启动">
+        <ReSwitch v-model="form.msProjectAutoStart" />
+        <span class="muted" style="margin-left:8px">部署/回滚成功后自动执行启动脚本</span>
       </ReFormItem>
 
       <ReDivider content-position="left">其他</ReDivider>
