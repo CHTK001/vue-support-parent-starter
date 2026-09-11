@@ -89,10 +89,26 @@ const filterItems = computed<ReFilterItem[]>(() => {
 
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
-  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${i.msServerIdentityAuthType === 'PUBLIC_KEY' ? '私钥' : '密码'}`,
+  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${authTypeLabel(i.msServerIdentityAuthType)}`,
   value: i.id,
 })));
 const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));
+
+/** 账号认证类型选项（分组）：主机登录方式 + 通用账号类型；下拉可选、支持手动输入新类型 */
+const authTypeOptions = [
+  { label: "密码登录", value: "PASSWORD", group: "主机" },
+  { label: "私钥登录", value: "PUBLIC_KEY", group: "主机" },
+  { label: "Token", value: "TOKEN", group: "通用" },
+  { label: "API Key", value: "API_KEY", group: "通用" },
+  { label: "OAuth 2.0", value: "OAUTH2", group: "通用" },
+  { label: "Cookie", value: "COOKIE", group: "通用" },
+  { label: "账号密码", value: "ACCOUNT", group: "通用" },
+];
+function authTypeLabel(v: string): string {
+  if (!v) return "—";
+  const hit = authTypeOptions.find(o => o.value === v);
+  return hit ? hit.label : v;
+}
 
 /** 标签集合（用于筛选/展示） */
 const allTags = computed(() => {
@@ -508,7 +524,9 @@ onMounted(() => {
       <div v-if="identities.length">
         <div class="muted" style="margin-bottom:8px">已有身份</div>
         <div v-for="i in identities" :key="i.id" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle)">
-          <span class="mono dim" style="flex:none">{{ i.msServerIdentityAuthType === "PASSWORD" ? "🔑 密码" : "🔐 密钥" }}</span>
+          <ReTag v-if="i.msServerIdentityAuthType === 'PUBLIC_KEY'" type="warning" size="small" effect="plain">🔐 私钥</ReTag>
+          <ReTag v-else-if="i.msServerIdentityAuthType === 'PASSWORD'" type="info" size="small" effect="plain">🔑 密码</ReTag>
+          <ReTag v-else type="primary" size="small" effect="plain">{{ authTypeLabel(i.msServerIdentityAuthType) }}</ReTag>
           <b>{{ i.msServerIdentityName }}</b>
           <span class="muted">{{ i.msServerIdentityUsername }}</span>
           <ReButton icon="Delete" layout="square" size="small" type="danger" style="margin-left:auto" title="删除" @click="removeIdentity(i.id)" />
@@ -518,10 +536,7 @@ onMounted(() => {
       <ReForm label-width="auto">
         <ReFormItem label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%" :options="[
-            { label: '密码登录 (PASSWORD)', value: 'PASSWORD' },
-            { label: '私钥登录 (PUBLIC_KEY)', value: 'PUBLIC_KEY' },
-          ]" />
+          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></ReFormItem>
         <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
