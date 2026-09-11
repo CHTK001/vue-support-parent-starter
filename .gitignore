@@ -104,6 +104,8 @@ rfb-test.js
 *remote-inspect*
 inspect-remote*
 start-dev*.bat
+run-dev*.ps1
+start-be*.ps1
 !pages/ai/test-screenshots/*.png
 *.jpg
 
