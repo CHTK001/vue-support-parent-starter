@@ -1,7 +1,53 @@
 /**
  * pages/project 共享页面样式
- * 根容器 .sc-page 复用 pages/server 的卡片容器约定（宿主应用已加载 koi 令牌）。
+ * 基础布局约定与 pages/server 保持一致（sc-page 卡片容器 / page-toolbar 水平工具条）。
  */
+
+/* ========== 页面根容器（卡片背景） ========== */
+.sc-page {
+  background: var(--bg-container-card);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  min-height: 100%;
+  box-sizing: border-box;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: sc-page-in 0.25s var(--ease-out) both;
+}
+@keyframes sc-page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 页面区段头部（ReSectionHead 容器层） */
+.page-head h3,
+.page-head .re-section-head__title {
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+/* ========== 工具条（筛选/搜索区，水平排列） ========== */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-container-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+.page-toolbar .spacer { flex: 1; }
+
+/* ========== 通用工具类 ========== */
+.spacer { flex: 1; }
+.muted { color: var(--text-tertiary); font-size: 12px; }
+.dim { color: var(--text-tertiary); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
 
 /* ========== 项目卡片网格 ========== */
 .project-grid {
@@ -119,9 +165,6 @@
 }
 .project-card.deploying .project-card__drop { opacity: 0.55; pointer-events: none; }
 
-/* 状态徽标（复用 pages/server badge 系列） */
-.runtime-status { text-transform: capitalize; }
-
 /* 升级策略配置行 */
 .project-card__policy {
   display: flex;
@@ -139,8 +182,13 @@
   background: var(--bg-fill);
   border: 1px solid var(--border-subtle);
 }
+.policy-on {
+  color: var(--brand-600);
+  border-color: var(--brand-300);
+  background: var(--brand-50);
+}
 
-/* 部署日志抽屉内输出块 */
+/* 部署日志输出块 */
 .log-output {
   max-height: 320px;
   overflow: auto;
@@ -157,7 +205,7 @@
 }
 .log-error { color: var(--status-error); }
 
-/* 空态（复用 pages/server empty-state 约定） */
+/* 空态 */
 .empty-state {
   display: flex;
   flex-direction: column;

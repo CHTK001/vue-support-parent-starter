@@ -55,9 +55,7 @@
       "@pages/system": ["pages/system/src"],
       "@pages/system/*": ["pages/system/src/*"],
       "@pages/server": ["pages/server/src"],
-      "@pages/server/*": ["pages/server/*"],
-      "@pages/account": ["pages/account/src"],
-      "@pages/account/*": ["pages/account/src/*"]
+      "@pages/server/*": ["pages/server/*"]
     }
   },
   "include": [],

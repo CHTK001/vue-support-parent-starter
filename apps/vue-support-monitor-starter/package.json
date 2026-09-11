@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
-    "@pages/account": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",
     "@pages/server": "workspace:*",
