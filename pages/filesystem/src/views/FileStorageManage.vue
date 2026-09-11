@@ -300,19 +300,21 @@ function ctxAction(action: string) {
 
 document.addEventListener("click", closeContextMenu);
 
-/* ================== 上传 ================== */
+/* ================== 上传（点击 + 拖拽） ================== */
 
 const uploadVisible = ref(false);
 const uploading = ref(false);
 const uploadInput = ref<HTMLInputElement>();
+/** 是否正在拖拽文件到页面（用于高亮遮罩） */
+const dragging = ref(false);
+/** 拖拽计数器：防止 dragover 反复触发 enter/leave */
+let dragDepth = 0;
 
 function openUpload(): void { uploadVisible.value = true; }
 function pickFiles(): void { uploadInput.value?.click(); }
 
-async function handleFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
+/** 执行上传：支持 FileList 与 DataTransferItem 的文件 */
+async function doUpload(files: File[]): Promise<void> {
   if (!files.length) return;
   uploading.value = true;
   let success = 0;
@@ -322,13 +324,71 @@ async function handleFileChange(event: Event): Promise<void> {
       success++;
     }
     ElMessage.success(`上传成功 ${success} 个文件`);
-    uploadVisible.value = false;
     await loadObjects();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "上传失败");
   } finally {
     uploading.value = false;
   }
+}
+
+async function handleFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  await doUpload(files);
+  uploadVisible.value = false;
+}
+
+/* ================== 拖拽上传 ================== */
+
+function onDragEnter(e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes("Files")) return;
+  e.preventDefault();
+  dragDepth++;
+  dragging.value = true;
+}
+
+function onDragOver(e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes("Files")) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "copy";
+  dragging.value = true;
+}
+
+function onDragLeave(e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes("Files")) return;
+  e.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dragging.value = false;
+}
+
+async function onDrop(e: DragEvent): Promise<void> {
+  e.preventDefault();
+  dragDepth = 0;
+  dragging.value = false;
+  const files = Array.from(e.dataTransfer?.files ?? []);
+  if (!files.length) return;
+  if (uploading.value) {
+    ElMessage.warning("正在上传，请稍候");
+    return;
+  }
+  await doUpload(files);
+}
+
+// 全局拖拽事件（挂载时注册，卸载时移除）
+function bindDragEvents(): void {
+  document.addEventListener("dragenter", onDragEnter);
+  document.addEventListener("dragover", onDragOver);
+  document.addEventListener("dragleave", onDragLeave);
+  document.addEventListener("drop", onDrop);
+}
+
+function unbindDragEvents(): void {
+  document.removeEventListener("dragenter", onDragEnter);
+  document.removeEventListener("dragover", onDragOver);
+  document.removeEventListener("dragleave", onDragLeave);
+  document.removeEventListener("drop", onDrop);
 }
 
 /* ================== 预览 ================== */

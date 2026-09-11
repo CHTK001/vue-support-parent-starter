@@ -270,6 +270,31 @@ export function normalizeSocketUrl(
   }
 }
 
+/**
+ * 从 URL 中提取协议类型（用于前端根据 URL 自动识别协议）
+ * 支持: sse://, socket://, ws://, wss://, http://, https://
+ */
+export function extractProtocolType(url: string | undefined | null): ProtocolType {
+  if (!url) {
+    return "sse";
+  }
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.startsWith("sse://")) {
+    return "sse";
+  }
+  if (trimmed.startsWith("socket://")) {
+    return "socketio";
+  }
+  if (trimmed.startsWith("ws://") || trimmed.startsWith("wss://")) {
+    return "websocket";
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return "sse";
+  }
+  return "sse";
+}
+
+
 /** 批量规范化地址列表 */
 export function normalizeSocketUrls(
   urls: string[],
