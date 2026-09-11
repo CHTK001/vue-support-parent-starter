@@ -8,7 +8,7 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity } from "@pages/server/src/api";
+import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
@@ -39,6 +39,8 @@ export interface Host {
   serverHostDelayInterval?: number;
   serverHostDelayMs?: number | null;
   serverHostLastDelayTime?: string | null;
+  serverHostPorts?: string | null;
+  serverHostLastPortScanTime?: string | null;
   serverHostAgentEnabled: number;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
@@ -112,6 +114,37 @@ const allTags = computed(() => {
 function splitTags(tags?: string | null): string[] {
   if (!tags || !tags.trim()) return [];
   return tags.split(",").map(t => t.trim()).filter(Boolean);
+}
+
+/** 端口扫描结果项 */
+interface PortItem { port: string; protocol?: string; service?: string; }
+
+/** 解析端口扫描 JSON */
+function parsePorts(raw?: string | null): PortItem[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
+/** 端口文案：22/tcp ssh */
+function portText(p: PortItem): string {
+  const parts = [`${p.port}${p.protocol ? "/" + p.protocol : ""}`];
+  if (p.service) parts.push(p.service);
+  return parts.join(" ");
+}
+
+/** 端口扫描 */
+async function scanHostPorts(h: Host): Promise<void> {
+  ElMessage.info(`正在扫描 ${h.serverHostAddress} 端口，全量扫描可能需要几分钟 …`);
+  try {
+    const r: any = await scanPorts(h.id);
+    ElMessage.success(r?.msg || "端口扫描完成");
+    await fetchAll();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
 }
 function groupName(id?: number | null): string {
   if (!id) return "未分组";
@@ -188,8 +221,9 @@ const tableColumns = computed(() => [
   { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
   { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
+  { prop: "serverHostPorts", label: "端口", minWidth: 140, slot: "ports" },
   { prop: "serverHostAgentEnabled", label: "Agent", width: 84, slot: "agent" },
-  { prop: "id", label: "操作", width: 210, fixed: "right", slot: "actions" },
+  { prop: "id", label: "操作", width: 250, fixed: "right", slot: "actions" },
 ]);
 
 /** 表格合计统计（筛选后数量顶部展示） */
@@ -448,10 +482,17 @@ onMounted(() => {
         <template #col-agent="{ row }">
           <ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag>
         </template>
+        <template #col-ports="{ row }">
+          <div v-if="parsePorts(row.serverHostPorts).length" style="display:flex;gap:4px;flex-wrap:wrap">
+            <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" size="small" effect="plain" type="info">{{ portText(p) }}</ReTag>
+          </div>
+          <span v-else class="dim">未扫描</span>
+        </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
             <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接（选择身份）" @click="openConnect(row)" />
             <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(row)" />
+            <ReButton icon="Search" layout="square" size="small" type="warning" title="端口扫描（nmap）" @click="scanHostPorts(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
             <el-dropdown trigger="click" @command="(cmd: string) => onMoreCommand(cmd, row)" class="more-dd">
@@ -503,7 +544,7 @@ onMounted(() => {
     </ReDialog>
 
     <!-- 采集配置（行操作「更多」入口） -->
-    <HostConfigDialog v-model="configVisible" :host="configHost" @saved="fetchAll" />
+    <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
   </div>
 </template>
 

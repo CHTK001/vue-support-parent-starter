@@ -539,6 +539,12 @@ function copyOneTimeLink(): void {
 onMounted(() => {
   loadBucketConfig();
   loadObjects();
+  bindDragEvents();
+});
+
+onUnmounted(() => {
+  unbindDragEvents();
+  document.removeEventListener("click", closeContextMenu);
 });
 </script>
 
