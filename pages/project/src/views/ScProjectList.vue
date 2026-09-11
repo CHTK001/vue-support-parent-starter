@@ -353,10 +353,5 @@ function isLinux(row: ProjectRow) {
 </template>
 
 <style scoped>
-.spacer { flex: 1; }
-.muted { color: var(--text-tertiary); font-size: 12px; }
-.dim { color: var(--text-tertiary); }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
 .policy-on { color: var(--brand-600); border-color: var(--brand-300); background: var(--brand-50); }
 </style>
