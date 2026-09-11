@@ -924,13 +924,13 @@ onUnmounted(() => {
             <span>当前目录为空</span>
           </div>
           <div
-            v-for="item in filteredObjects"
+            v-for="(item, index) in filteredObjects"
             :key="item.name"
             class="fs-md-card"
-            :class="{ 'fs-md-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            :class="{ 'fs-md-card--selected': isSelected(item.name) }"
             role="button" tabindex="0"
             :aria-label="item.name"
-            @click="item.directory ? enterDir(item) : openPreview(item)"
+            @click="onRowClick($event, item, index)"
             @dblclick="item.directory ? enterDir(item) : openPreview(item)"
             @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
             @contextmenu="openContextMenu($event, item)"
@@ -951,12 +951,13 @@ onUnmounted(() => {
           </div>
           <div class="fs-files__small-list">
             <div
-              v-for="item in filteredObjects"
+              v-for="(item, index) in filteredObjects"
               :key="item.name"
               class="fs-sm-row"
+              :class="{ 'fs-sm-row--selected': isSelected(item.name) }"
               role="button" tabindex="0"
               :aria-label="item.name"
-              @click="item.directory ? enterDir(item) : openPreview(item)"
+              @click="onRowClick($event, item, index)"
               @dblclick="item.directory ? enterDir(item) : openPreview(item)"
               @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
               @contextmenu="openContextMenu($event, item)"
