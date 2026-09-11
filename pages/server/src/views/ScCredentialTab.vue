@@ -63,6 +63,29 @@ const keyGenTypeOptions = [
   { value: 'ECDSA', label: 'ECDSA (256位)' },
 ];
 
+/** 账号认证类型选项（分组）；主机登录方式 + 通用账号类型，支持下拉选择与手动输入 */
+const authTypeOptions = [
+  { value: 'PASSWORD', label: '密码登录', group: '主机' },
+  { value: 'PUBLIC_KEY', label: '公钥登录', group: '主机' },
+  { value: 'TOKEN', label: 'Token', group: '通用' },
+  { value: 'API_KEY', label: 'API Key', group: '通用' },
+  { value: 'OAUTH2', label: 'OAuth 2.0', group: '通用' },
+  { value: 'COOKIE', label: 'Cookie', group: '通用' },
+  { value: 'ACCOUNT', label: '账号密码', group: '通用' },
+];
+
+/** 认证类型展示名（未知类型显示原值） */
+function authTypeLabel(v: string): string {
+  if (!v) return '-';
+  const hit = authTypeOptions.find(o => o.value === v);
+  return hit ? hit.label : v;
+}
+function authTypeTagType(v: string): 'success' | 'info' | 'warning' | 'primary' {
+  if (v === 'PUBLIC_KEY') return 'warning';
+  if (v === 'PASSWORD') return 'info';
+  return 'primary';
+}
+
 /** 可引用密钥选项 */
 const keyRefOptions = ref<Array<{ label: string; value: number }>>([]);
 
@@ -166,6 +189,8 @@ function openIdentityForm(row?: IdentityRow): void {
     msServerIdentityUsername: row?.msServerIdentityUsername ?? 'root',
     msServerIdentityPassword: '',
     msServerIdentityKeyId: row?.msServerIdentityKeyId ?? null,
+    msServerIdentityImapHost: row?.msServerIdentityImapHost ?? '',
+    msServerIdentityImapPort: row?.msServerIdentityImapPort ?? null,
   };
   identityFormVisible.value = true;
 }
@@ -241,11 +266,12 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false" empty-text="暂无身份，点击右上角「新增身份」创建">
             <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
             <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
-            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="100">
+            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="120">
               <template #default="{ row }">
-                <ReTag size="small" :type="row.msServerIdentityAuthType === 'PUBLIC_KEY' ? 'success' : 'info'">
-                  {{ row.msServerIdentityAuthType === 'PUBLIC_KEY' ? '公钥' : '密码' }}
+                <ReTag size="small" :type="authTypeTagType(row.msServerIdentityAuthType)">
+                  {{ authTypeLabel(row.msServerIdentityAuthType) }}
                 </ReTag>
+                <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
             <ReTableColumn label="操作" width="130">
@@ -292,10 +318,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
           <ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
         </ReFormItem>
         <ReFormItem label="认证类型">
-          <ReRadioGroup v-model="identityForm.msServerIdentityAuthType" button capsule>
-            <ReRadioButton value="PASSWORD">密码</ReRadioButton>
-            <ReRadioButton value="PUBLIC_KEY">公钥</ReRadioButton>
-          </ReRadioGroup>
+          <ReSelect v-model="identityForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="用户名">
           <ReInput v-model="identityForm.msServerIdentityUsername" />
@@ -357,5 +380,12 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+/* 未知账号类型原值显示 */
+.type-raw {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, monospace;
 }
 </style>
