@@ -14,6 +14,7 @@ import {
   importHosts,
   batchUpdateStatus,
   batchMoveGroup,
+  scanPorts,
 } from '../api';
 import ScHostFormDialog from '../components/ScHostFormDialog.vue';
 import ScConnectDialog from '../components/ScConnectDialog.vue';
@@ -42,6 +43,8 @@ interface HostRow {
   serverHostDelayEnabled?: number;
   serverHostDelayInterval?: number;
   serverHostDelayMs?: number | null;
+  serverHostPorts?: string;
+  serverHostLastPortScanTime?: string;
 }
 
 /** 采集方式选项 */

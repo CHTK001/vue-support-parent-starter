@@ -282,15 +282,15 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
   } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
 }
 
-// ---- 更多菜单：采集配置（硬件采集与检测）----
+// ---- 更多菜单：在离线 / 指标 / 延迟检测（后台 HostOnlineScheduler 三项检测）----
 const configVisible = ref(false);
 useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
+const configMode = ref<"online" | "metric" | "delay">("collect" as "metric");
 function onMoreCommand(cmd: string, row: Host): void {
-  if (cmd === "collect") {
-    configHost.value = row;
-    configVisible.value = true;
-  }
+  configHost.value = row;
+  configMode.value = cmd === "online" ? "online" : cmd === "delay" ? "delay" : "metric";
+  configVisible.value = true;
 }
 
 function openAdd(): void {
