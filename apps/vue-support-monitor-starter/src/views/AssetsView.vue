@@ -458,7 +458,9 @@ onMounted(() => {
               <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="collect">采集配置</el-dropdown-item>
+                  <el-dropdown-item command="online">在离线</el-dropdown-item>
+                  <el-dropdown-item command="metric">指标</el-dropdown-item>
+                  <el-dropdown-item command="delay">延迟检测</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
