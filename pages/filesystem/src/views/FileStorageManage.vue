@@ -1,10 +1,13 @@
 <script setup lang="ts">
 /**
- * 文件存储服务页
+ * 文件存储服务页 —— 现代云盘风格
  *
- * 对接独立文件存储服务器（FileStorageServerFilter），提供类 Windows 资源管理器体验：
- * 目录点击进入（面包屑导航）、文件弹窗预览（图片大图查看 / 文本 / PDF / 音视频）、
- * 上传（支持当前子目录）、下载、存在性检查与删除。
+ * 对接独立文件存储服务器（FileStorageServerFilter），提供：
+ *  - 顶部工具栏（服务器/存储桶配置、搜索、视图切换、上传）
+ *  - 左侧边栏（存储桶统计、快捷操作）
+ *  - 主区域（面包屑导航、网格/列表双视图）
+ *  - 弹窗预览（图片/文本/Office/PDF/音视频）
+ *  - 一次性链接（自定义过期时间）
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -19,6 +22,9 @@ import {
   Refresh,
   Search,
   Upload,
+  Grid,
+  List,
+  Setting,
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_BUCKET,
@@ -42,64 +48,37 @@ import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 /** 预览类型 */
 type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "unknown";
 
-/* ================== 连接配置 ================== */
+/* ================== 连接 & 状态 ================== */
 
-/** 服务器地址 */
 const server = ref(getServerBase() || DEFAULT_SERVER);
-/** 存储桶名称 */
 const bucket = ref(getDefaultBucket() || DEFAULT_BUCKET);
-/** 当前目录（空字符串表示根目录） */
 const currentPath = ref("");
-/** 对象列表 */
 const objects = ref<StorageObject[]>([]);
-/** 加载状态 */
 const loading = ref(false);
-/** 关键字过滤 */
 const keyword = ref("");
+/** 视图模式：grid=网格卡片 / list=紧凑列表 */
+const viewMode = ref<"grid" | "list">("grid");
+/** 当前右键菜单 */
+const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
 
-/**
- * 面包屑片段（根目录 + 各级目录名）
- */
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
-  return [{ name: "根目录", path: "" }, ...segments.map((name, index) => ({
+  return [{ name: "全部文件", path: "" }, ...segments.map((name, index) => ({
     name,
     path: segments.slice(0, index + 1).join("/"),
   }))];
 });
 
-/**
- * 过滤后的对象列表
- */
 const filteredObjects = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
   if (!kw) return objects.value;
   return objects.value.filter((item) => item.name.toLowerCase().includes(kw));
 });
 
-/**
- * 文件对象数量
- */
 const fileCount = computed(() => objects.value.filter((item) => !item.directory).length);
-
-/**
- * 目录数量
- */
 const dirCount = computed(() => objects.value.filter((item) => item.directory).length);
+const totalSize = computed(() => objects.value.reduce((sum, item) => sum + (item.directory ? 0 : item.size || 0), 0));
 
-/**
- * 对象总大小（字节）
- */
-const totalSize = computed(() =>
-  objects.value.reduce((sum, item) => sum + (item.directory ? 0 : item.size || 0), 0),
-);
-
-/**
- * 格式化字节大小
- *
- * @param bytes 字节数
- * @return 可读字符串
- */
 function formatSize(bytes?: number): string {
   if (!bytes) return "-";
   if (bytes < 1024) return `${bytes} B`;
@@ -108,54 +87,42 @@ function formatSize(bytes?: number): string {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-/**
- * 格式化修改时间
- *
- * @param ts 毫秒时间戳
- * @return 可读字符串
- */
 function formatTime(ts?: number): string {
   if (!ts) return "-";
   return new Date(ts).toLocaleString();
 }
 
-/**
- * 根据扩展名推断预览类型
- *
- * @param name 文件名
- * @return 预览类型
- */
 function kindOf(name: string): PreviewKind {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
   if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"].includes(ext)) return "image";
   if (["txt", "log", "json", "xml", "html", "css", "js", "ts", "md", "yaml", "yml", "csv"].includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
-  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd",
-       "dwg", "dgn", "step", "stp", "iges", "igs", "brep",
-       "xlsb", "xlt", "xltx", "xltm", "xlam", "xlsxml",
-       "dotx", "dotm", "potx", "potm", "xmind", "rtf", "epub"].includes(ext)) return "office";
+  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd", "dwg", "dgn", "rtf", "epub", "xmind"].includes(ext)) return "office";
   if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"].includes(ext)) return "video";
   if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
   if (["ttf", "otf", "woff", "woff2", "eot"].includes(ext)) return "font";
-  if (["epub", "rtf", "eml", "ics", "vcf", "fbx", "blend", "shp"].includes(ext)) return "text";
   return "unknown";
 }
 
-/**
- * 拼接完整对象 Key
- *
- * @param name 对象名
- * @return 含当前目录前缀的 Key
- */
+/** 根据扩展名返回 SVG 图标类名（用于网格模式大图标） */
+function fileIconClass(name: string, isDir: boolean): string {
+  if (isDir) return "icon-folder";
+  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"].includes(ext)) return "icon-image";
+  if (["mp4", "webm", "mov", "avi", "mkv"].includes(ext)) return "icon-video";
+  if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "icon-audio";
+  if (ext === "pdf") return "icon-pdf";
+  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt"].includes(ext)) return "icon-office";
+  if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) return "icon-archive";
+  return "icon-file";
+}
+
 function fullKey(name: string): string {
   return currentPath.value ? `${currentPath.value}/${name}` : name;
 }
 
 /* ================== 目录导航 ================== */
 
-/**
- * 加载当前目录对象列表
- */
 async function loadObjects(): Promise<void> {
   loading.value = true;
   try {
@@ -163,42 +130,66 @@ async function loadObjects(): Promise<void> {
     setServerBase(server.value);
     setDefaultBucket(bucket.value);
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "连接文件存储服务器失败");
+    ElMessage.error((e as Error)?.message ?? "连接失败");
     objects.value = [];
   } finally {
     loading.value = false;
   }
 }
 
-/**
- * 进入子目录
- *
- * @param row 行数据
- */
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
   loadObjects();
 }
 
-/**
- * 跳转到面包屑对应层级
- *
- * @param path 目标路径（空表示根目录）
- */
 function goCrumb(path: string): void {
   currentPath.value = path;
   loadObjects();
 }
 
-/**
- * 返回上一级目录
- */
 function goUp(): void {
   if (!currentPath.value) return;
-  const index = currentPath.value.lastIndexOf("/");
-  currentPath.value = index > 0 ? currentPath.value.slice(0, index) : "";
+  const i = currentPath.value.lastIndexOf("/");
+  currentPath.value = i > 0 ? currentPath.value.slice(0, i) : "";
   loadObjects();
 }
+
+/* ================== 右键菜单 ================== */
+
+function openContextMenu(e: MouseEvent, row: StorageObject): void {
+  e.preventDefault();
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
+}
+
+function closeContextMenu(): void {
+  ctxMenu.value.visible = false;
+  ctxMenu.value.row = null;
+}
+
+function ctxAction(action: string) {
+  const row = ctxMenu.value.row;
+  closeContextMenu();
+  if (!row) return;
+  switch (action) {
+    case "open":
+      row.directory ? enterDir(row) : openPreview(row);
+      break;
+    case "preview":
+      openPreview(row);
+      break;
+    case "download":
+      handleDownload(row);
+      break;
+    case "onetime":
+      openOneTime(row);
+      break;
+    case "delete":
+      handleDelete(row);
+      break;
+  }
+}
+
+document.addEventListener("click", closeContextMenu);
 
 /* ================== 上传 ================== */
 
@@ -206,39 +197,22 @@ const uploadVisible = ref(false);
 const uploading = ref(false);
 const uploadInput = ref<HTMLInputElement>();
 
-/**
- * 打开上传对话框
- */
-function openUpload(): void {
-  uploadVisible.value = true;
-}
+function openUpload(): void { uploadVisible.value = true; }
+function pickFiles(): void { uploadInput.value?.click(); }
 
-/**
- * 触发文件选择
- */
-function pickFiles(): void {
-  uploadInput.value?.click();
-}
-
-/**
- * 处理文件选择并逐个上传到当前目录
- *
- * @param event 输入框变更事件
- */
 async function handleFileChange(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files ?? []);
   input.value = "";
   if (!files.length) return;
-
   uploading.value = true;
   let success = 0;
   try {
-    for (const file of files) {
-      await putObject(bucket.value, fullKey(file.name), file);
-      success += 1;
+    for (const f of files) {
+      await putObject(bucket.value, fullKey(f.name), f);
+      success++;
     }
-    ElMessage.success(`成功上传 ${success} 个文件`);
+    ElMessage.success(`上传成功 ${success} 个文件`);
     uploadVisible.value = false;
     await loadObjects();
   } catch (e) {
@@ -248,37 +222,20 @@ async function handleFileChange(event: Event): Promise<void> {
   }
 }
 
-/* ================== 弹窗预览 ================== */
+/* ================== 预览 ================== */
 
 const previewVisible = ref(false);
 const previewLoading = ref(false);
-/** 预览对象名 */
 const previewName = ref("");
-/** 预览类型 */
 const previewKind = ref<PreviewKind>("unknown");
-/** 文本类内容 */
 const previewText = ref("");
-/** 预览对象 Key（用于 image/pdf/video/audio 直链） */
 const previewKey = ref("");
-/** iframe 缩放比例 */
 const previewZoom = ref(100);
-/** 预览加载错误状态 */
 const previewError = ref(false);
-/** iframe 加载计数器（用于强制刷新） */
 const iframeKey = ref(0);
-/** 预览文件元信息 */
 const previewMeta = ref<{ size?: number; lastModified?: number }>({});
-/** iframe 加载中状态（用于 iframe 骨架屏 overlay） */
 const iframeLoading = ref(false);
 
-/**
- * 打开预览弹窗
- *
- * 图片使用 el-image 大图查看器（缩放/旋转/全屏）；
- * 文本类拉取内容展示；PDF/音视频内嵌原生标签；其余提示下载。
- *
- * @param row 行数据
- */
 async function openPreview(row: StorageObject): Promise<void> {
   const kind = kindOf(row.name);
   previewName.value = row.name;
@@ -291,176 +248,56 @@ async function openPreview(row: StorageObject): Promise<void> {
   iframeLoading.value = ["pdf", "office", "font"].includes(kind);
   previewMeta.value = { size: row.size, lastModified: row.lastModified };
   previewVisible.value = true;
-
   if (kind === "text") {
-    try {
-      previewText.value = await fetchObjectText(bucket.value, fullKey(row.name));
-    } catch (e) {
-      ElMessage.error((e as Error)?.message ?? "内容读取失败");
-      previewVisible.value = false;
-    } finally {
-      previewLoading.value = false;
-    }
+    try { previewText.value = await fetchObjectText(bucket.value, fullKey(row.name)); }
+    catch (e) { ElMessage.error((e as Error)?.message ?? "读取失败"); previewVisible.value = false; }
+    finally { previewLoading.value = false; }
   }
 }
 
-/**
- * 预览对象的直链地址
- */
 const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
-
-
-/** iframe 加载完成回调 */
-function onFrameLoad(): void {
-  previewLoading.value = false;
-  iframeLoading.value = false;
-  previewError.value = false;
-}
-/** iframe 加载失败回调 */
-function onFrameError(): void {
-  previewLoading.value = false;
-  iframeLoading.value = false;
-  previewError.value = true;
-}
-/** 重试加载 */
-function retryPreview(): void {
-  previewError.value = false;
-  previewLoading.value = true;
-  iframeLoading.value = ["pdf", "office", "font"].includes(previewKind.value);
-  iframeKey.value++;
-}
-
-/** iframe 面板引用 */
 const iframePanelRef = ref<InstanceType<typeof PreviewIframePanel>>();
-/** 图片面板引用 */
 const imagePanelRef = ref<InstanceType<typeof PreviewImagePanel>>();
 
-
-/** 全屏切换（iframe 容器） */
+function onFrameLoad(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = false; }
+function onFrameError(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = true; }
+function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = ["pdf", "office", "font"].includes(previewKind.value); iframeKey.value++; }
 function toggleFullscreen(el?: HTMLElement): void {
-  const target = el || iframePanelRef.value?.wrapRef || imagePanelRef.value?.wrapRef;
-  if (!target) return;
-  if (document.fullscreenElement) {
-    document.exitFullscreen();
-  } else {
-    target.requestFullscreen();
-  }
+  const t = el || iframePanelRef.value?.wrapRef || imagePanelRef.value?.wrapRef;
+  if (!t) return;
+  document.fullscreenElement ? document.exitFullscreen() : t.requestFullscreen();
 }
 
-
-
-/** 预览弹窗键盘快捷键 */
 function onPreviewKeydown(e: KeyboardEvent): void {
-  // 忽略输入框内的按键
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-
   switch (e.key) {
-    case "+":
-    case "=":  // Shift+= 也是 +
-      e.preventDefault();
-      previewZoom.value = Math.min(previewZoom.value + 25, 300);
-      break;
-    case "-":
-      e.preventDefault();
-      previewZoom.value = Math.max(previewZoom.value - 25, 25);
-      break;
-    case "0":
-    case "r":
-    case "R":
-      e.preventDefault();
-      previewZoom.value = 100;
-      break;
-    case "f":
-    case "F":
-      if (!e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        toggleFullscreen();
-      }
-      break;
-    case "?":
-      e.preventDefault();
-      if (previewKind.value === "image") {
-        imagePanelRef.value?.toggleHelp();
-      } else {
-        iframePanelRef.value?.toggleHelp();
-      }
-      break;
-    case "Escape":
-      // 如果处于全屏模式，先退出全屏，阻止 el-dialog 同时关闭
-      if (document.fullscreenElement) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.exitFullscreen();
-      }
-      // 否则由 el-dialog 自己处理 Escape 关闭弹窗
-      break;
+    case "+": case "=": e.preventDefault(); previewZoom.value = Math.min(previewZoom.value + 25, 300); break;
+    case "-": e.preventDefault(); previewZoom.value = Math.max(previewZoom.value - 25, 25); break;
+    case "0": case "r": case "R": e.preventDefault(); previewZoom.value = 100; break;
+    case "f": case "F": if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFullscreen(); } break;
+    case "?": e.preventDefault(); previewKind.value === "image" ? imagePanelRef.value?.toggleHelp() : iframePanelRef.value?.toggleHelp(); break;
+    case "Escape": if (document.fullscreenElement) { e.preventDefault(); e.stopPropagation(); document.exitFullscreen(); } break;
   }
 }
+watch(previewVisible, (v) => { v ? document.addEventListener("keydown", onPreviewKeydown) : document.removeEventListener("keydown", onPreviewKeydown); });
+onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); });
 
-// 预览弹窗打开时注册快捷键，关闭时移除
-watch(previewVisible, (visible) => {
-  if (visible) {
-    document.addEventListener("keydown", onPreviewKeydown);
-  } else {
-    document.removeEventListener("keydown", onPreviewKeydown);
-  }
-});
+/* ================== 下载 / 检查 / 删除 ================== */
 
-onUnmounted(() => {
-  document.removeEventListener("keydown", onPreviewKeydown);
-});
+function handleDownload(row: StorageObject): void { window.open(objectUrl(bucket.value, fullKey(row.name), true), "_blank"); }
 
-/* ================== 操作 ================== */
-
-/**
- * 以附件方式下载对象
- *
- * @param row 行数据
- */
-function handleDownload(row: StorageObject): void {
-  window.open(objectUrl(bucket.value, fullKey(row.name), true), "_blank");
-}
-
-/**
- * 存在性检查（HEAD 请求演示）
- *
- * @param row 行数据
- */
 async function handleExist(row: StorageObject): Promise<void> {
   try {
     const exists = await existObject(bucket.value, fullKey(row.name));
-    if (exists) {
-      ElMessage.success(`「${row.name}」存在`);
-    } else {
-      ElMessage.warning(`「${row.name}」不存在`);
-    }
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "检查失败");
-  }
+    ElMessage[exists ? "success" : "warning"](exists ? `「${row.name}」存在` : `「${row.name}」不存在`);
+  } catch (e) { ElMessage.error((e as Error)?.message ?? "检查失败"); }
 }
 
-/**
- * 删除对象
- *
- * @param row 行数据
- */
 async function handleDelete(row: StorageObject): Promise<void> {
-  try {
-    await ElMessageBox.confirm(`确认删除对象「${row.name}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确认删除",
-    });
-  } catch {
-    return;
-  }
-  try {
-    await deleteObject(bucket.value, fullKey(row.name));
-    ElMessage.success("删除成功");
-    await loadObjects();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "删除失败");
-  }
+  try { await ElMessageBox.confirm(`确认删除「${row.name}」？`, "删除确认", { type: "warning" }); } catch { return; }
+  try { await deleteObject(bucket.value, fullKey(row.name)); ElMessage.success("删除成功"); await loadObjects(); }
+  catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
 }
 
 /* ================== 一次性链接 ================== */
@@ -469,35 +306,21 @@ const oneTimeVisible = ref(false);
 const oneTimeLink = ref("");
 const oneTimeExpiry = ref(600);
 const oneTimeExpiryOptions = [
-  { label: "1 分钟", value: 60 },
-  { label: "10 分钟", value: 600 },
-  { label: "30 分钟", value: 1800 },
-  { label: "1 小时", value: 3600 },
-  { label: "6 小时", value: 21600 },
-  { label: "1 天", value: 86400 },
+  { label: "1 分钟", value: 60 }, { label: "10 分钟", value: 600 },
+  { label: "30 分钟", value: 1800 }, { label: "1 小时", value: 3600 },
+  { label: "6 小时", value: 21600 }, { label: "1 天", value: 86400 },
 ];
 const oneTimeGenerating = ref(false);
 const oneTimeTarget = ref<{ name: string; key: string }>();
 
-/**
- * 打开一次性链接创建对话框
- *
- * @param row 行数据
- */
-async function openOneTime(row: StorageObject): Promise<void> {
-  if (row.directory) {
-    ElMessage.warning("目录不支持生成一次性链接");
-    return;
-  }
+function openOneTime(row: StorageObject): void {
+  if (row.directory) { ElMessage.warning("目录不支持生成一次性链接"); return; }
   oneTimeTarget.value = { name: row.name, key: fullKey(row.name) };
   oneTimeLink.value = "";
   oneTimeExpiry.value = 600;
   oneTimeVisible.value = true;
 }
 
-/**
- * 生成一次性链接
- */
 async function generateOneTimeLink(): Promise<void> {
   if (!oneTimeTarget.value) return;
   oneTimeGenerating.value = true;
@@ -505,344 +328,279 @@ async function generateOneTimeLink(): Promise<void> {
     const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, oneTimeExpiry.value);
     oneTimeLink.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
     ElMessage.success("一次性链接已生成（仅可访问一次）");
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "生成失败");
-  } finally {
-    oneTimeGenerating.value = false;
-  }
+  } catch (e) { ElMessage.error((e as Error)?.message ?? "生成失败"); }
+  finally { oneTimeGenerating.value = false; }
 }
 
-/** 复制一次性链接 */
 function copyOneTimeLink(): void {
   if (!oneTimeLink.value) return;
-  const textarea = document.createElement("textarea");
-  textarea.value = oneTimeLink.value;
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    document.execCommand("copy");
-    ElMessage.success("已复制到剪贴板");
-  } catch {
-    ElMessage.error("复制失败，请手动复制");
-  }
-  textarea.remove();
+  const el = document.createElement("textarea");
+  el.value = oneTimeLink.value;
+  document.body.appendChild(el);
+  el.select();
+  try { document.execCommand("copy"); ElMessage.success("已复制到剪贴板"); }
+  catch { ElMessage.error("复制失败"); }
+  el.remove();
 }
 
-onMounted(() => {
-  loadObjects();
-});
+onMounted(() => loadObjects());
 </script>
 
 <template>
-  <div class="filesystem-page">
-    <!-- 页面头部 -->
-    <div class="filesystem-page__header">
-      <div>
-        <div class="filesystem-page__title">文件存储服务</div>
-        <div class="filesystem-page__subtitle">
-          直连独立文件存储服务器，类资源管理器目录浏览、弹窗预览、上传与删除
-        </div>
+  <div class="fs-app" @click="closeContextMenu">
+    <!-- ===== 顶部工具栏 ===== -->
+    <header class="fs-header">
+      <div class="fs-brand">
+        <svg class="fs-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="currentColor" stroke="none" opacity="0.15"/>
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>FileStorage</span>
       </div>
-      <el-button type="primary" :icon="Upload" @click="openUpload">上传到当前目录</el-button>
-    </div>
 
-    <!-- 统计卡片 -->
-    <div class="filesystem-page__stats">
-      <div class="filesystem-page__stat">
-        <span class="filesystem-page__stat-label">对象总数</span>
-        <span class="filesystem-page__stat-value">{{ objects.length }}</span>
+      <div class="fs-conn">
+        <el-tooltip content="服务器地址（如 http://127.0.0.1:18080）" placement="bottom">
+          <el-input v-model="server" placeholder="Server" clearable size="small" class="fs-conn__input" />
+        </el-tooltip>
+        <el-tooltip content="存储桶名称（如 local）" placement="bottom">
+          <el-input v-model="bucket" placeholder="Bucket" clearable size="small" class="fs-conn__input fs-conn__input--sm" />
+        </el-tooltip>
+        <el-button type="primary" :icon="Search" :loading="loading" size="small" @click="loadObjects">连接</el-button>
       </div>
-      <div class="filesystem-page__stat">
-        <span class="filesystem-page__stat-label">文件</span>
-        <span class="filesystem-page__stat-value">{{ fileCount }}</span>
-      </div>
-      <div class="filesystem-page__stat">
-        <span class="filesystem-page__stat-label">目录</span>
-        <span class="filesystem-page__stat-value">{{ dirCount }}</span>
-      </div>
-      <div class="filesystem-page__stat">
-        <span class="filesystem-page__stat-label">总大小</span>
-        <span class="filesystem-page__stat-value">{{ formatSize(totalSize) }}</span>
-      </div>
-    </div>
 
-    <!-- 连接配置 -->
-    <el-card shadow="never" class="filesystem-page__card">
-      <div class="filestorage-conn">
-        <el-input v-model="server" placeholder="服务器地址" clearable class="!w-72">
-          <template #prepend>地址</template>
-        </el-input>
-        <el-input v-model="bucket" placeholder="存储桶" clearable class="!w-44">
-          <template #prepend>存储桶</template>
-        </el-input>
-        <el-button type="primary" :icon="Search" :loading="loading" @click="loadObjects">连接</el-button>
-        <el-button :icon="Refresh" @click="loadObjects">刷新</el-button>
-        <el-divider direction="vertical" />
+      <div class="fs-header__right">
         <el-input
           v-model="keyword"
-          placeholder="按名称过滤"
+          placeholder="搜索文件..."
           clearable
-          class="!w-56"
+          size="small"
+          class="fs-search"
           :prefix-icon="Search"
         />
+        <el-divider direction="vertical" />
+        <el-button-group class="fs-view-toggle">
+          <el-button :type="viewMode === 'grid' ? 'primary' : 'default'" size="small" :icon="Grid" @click="viewMode = 'grid'" />
+          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" :icon="List" @click="viewMode = 'list'" />
+        </el-button-group>
+        <el-button type="primary" :icon="Refresh" size="small" @click="loadObjects">刷新</el-button>
+        <el-button type="primary" :icon="Upload" size="small" @click="openUpload">上传</el-button>
       </div>
-    </el-card>
+    </header>
 
-    <!-- 对象列表 -->
-    <el-card shadow="never" class="filesystem-page__card">
-      <!-- 工具栏：返回上级 + 面包屑 -->
-      <div class="filestorage-toolbar">
-        <el-button :icon="Back" :disabled="!currentPath" circle size="small" @click="goUp" />
-        <el-breadcrumb separator="/">
-          <el-breadcrumb-item
-            v-for="crumb in breadcrumbs"
-            :key="crumb.path || 'root'"
-            :class="{ 'filestorage-crumb--active': crumb.path === currentPath }"
+    <!-- ===== 主体区域 ===== -->
+    <div class="fs-body">
+      <!-- 左侧边栏 -->
+      <aside class="fs-sidebar">
+        <div class="fs-sidebar__section">
+          <div class="fs-sidebar__title">存储桶</div>
+          <div class="fs-sidebar__item active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>{{ bucket }}</span>
+          </div>
+        </div>
+        <div class="fs-sidebar__section">
+          <div class="fs-sidebar__title">统计</div>
+          <div class="fs-sidebar__stat"><span>文件</span><b>{{ fileCount }}</b></div>
+          <div class="fs-sidebar__stat"><span>目录</span><b>{{ dirCount }}</b></div>
+          <div class="fs-sidebar__stat"><span>总大小</span><b>{{ formatSize(totalSize) }}</b></div>
+        </div>
+        <div class="fs-sidebar__section">
+          <div class="fs-sidebar__title">当前路径</div>
+          <div class="fs-sidebar__path">{{ currentPath || '/' }}</div>
+        </div>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="fs-content">
+        <!-- 路径栏 -->
+        <div class="fs-pathbar">
+          <el-button :icon="Back" :disabled="!currentPath" size="small" circle @click="goUp" />
+          <span class="fs-pathbar__crumbs">
+            <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
+              <span v-if="i > 0" class="fs-pathbar__sep">/</span>
+              <span
+                class="fs-pathbar__item"
+                :class="{ 'fs-pathbar__item--active': crumb.path === currentPath }"
+                @click="goCrumb(crumb.path)"
+              >{{ crumb.name }}</span>
+            </template>
+          </span>
+          <span class="fs-pathbar__count">{{ filteredObjects.length }} 项</span>
+        </div>
+
+        <!-- 网格视图 -->
+        <div v-if="viewMode === 'grid'" class="fs-files fs-files--grid" v-loading="loading">
+          <div
+            v-for="item in filteredObjects"
+            :key="item.name"
+            class="fs-card"
+            :class="{ 'fs-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            @click="item.directory ? enterDir(item) : null"
+            @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+            @contextmenu="openContextMenu($event, item)"
           >
-            <span class="filestorage-crumb" @click="goCrumb(crumb.path)">{{ crumb.name }}</span>
-          </el-breadcrumb-item>
-        </el-breadcrumb>
-      </div>
-
-      <el-table
-        :data="filteredObjects"
-        v-loading="loading"
-        stripe
-        empty-text="暂无对象"
-        @row-dblclick="(row: StorageObject) => (row.directory ? enterDir(row) : openPreview(row))"
-      >
-        <el-table-column label="名称" min-width="300">
-          <template #default="{ row }">
-            <div
-              class="filestorage-name"
-              :class="{ 'filestorage-name--dir': row.directory }"
-              @click="row.directory && enterDir(row)"
-              @dblclick="row.directory ? enterDir(row) : openPreview(row)"
-            >
-              <el-icon :size="18" :class="row.directory ? 'filestorage-icon--dir' : 'filestorage-icon--file'">
-                <FolderOpened v-if="row.directory" />
-                <Document v-else />
-              </el-icon>
-              <span>{{ row.name }}</span>
+            <div class="fs-card__icon" :class="fileIconClass(item.name, item.directory)">
+              <!-- 目录 SVG -->
+              <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
+              </svg>
+              <!-- 文件 SVG -->
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="类型" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.directory ? 'warning' : 'info'" size="small">
-              {{ row.directory ? "目录" : kindOf(row.name) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="大小" width="110" align="center">
-          <template #default="{ row }">{{ formatSize(row.size) }}</template>
-        </el-table-column>
-        <el-table-column label="修改时间" width="180" align="center">
-          <template #default="{ row }">{{ formatTime(row.lastModified) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="280" align="center" fixed="right">
-          <template #default="{ row }">
-            <template v-if="row.directory">
-              <el-button text type="primary" :icon="FolderOpened" @click="enterDir(row)">打开</el-button>
-            </template>
-            <template v-else>
-              <el-button text type="primary" :icon="Search" @click="openPreview(row)">预览</el-button>
-              <el-button text type="primary" :icon="Download" @click="handleDownload(row)">下载</el-button>
-              <el-button text type="primary" :icon="Link" @click="openOneTime(row)">一次性</el-button>
-            </template>
-            <el-button text :icon="Search" :disabled="row.directory" @click="handleExist(row)">检查</el-button>
-            <el-button text type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-        <template #empty>
-          <el-empty description="当前目录为空，可点击右上角上传文件" />
-        </template>
-      </el-table>
-    </el-card>
+            <div class="fs-card__name" :title="item.name">{{ item.name }}</div>
+            <div class="fs-card__meta">
+              <span v-if="!item.directory">{{ formatSize(item.size) }}</span>
+              <span v-if="item.lastModified" class="fs-card__date">{{ formatTime(item.lastModified) }}</span>
+            </div>
+          </div>
+          <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c0c4cc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>当前目录为空</span>
+          </div>
+        </div>
 
-    <!-- 上传对话框 -->
-    <el-dialog v-model="uploadVisible" title="上传文件" width="480px" destroy-on-close>
-      <el-alert
-        v-if="currentPath"
-        :title="`将上传至：${bucket}/${currentPath}/`"
-        type="info"
-        :closable="false"
-        class="mb-4"
-      />
-      <el-form label-width="90px">
-        <el-form-item label="文件">
-          <el-button :icon="Upload" :loading="uploading" @click="pickFiles">选择文件（可多选）</el-button>
-        </el-form-item>
-      </el-form>
+        <!-- 列表视图 -->
+        <div v-else class="fs-files fs-files--list" v-loading="loading">
+          <div class="fs-table-head">
+            <span class="fs-table-head__name">名称</span>
+            <span class="fs-table-head__size">大小</span>
+            <span class="fs-table-head__time">修改时间</span>
+            <span class="fs-table-head__actions">操作</span>
+          </div>
+          <div
+            v-for="item in filteredObjects"
+            :key="item.name"
+            class="fs-table-row"
+            :class="{ 'fs-table-row--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            @click="item.directory ? enterDir(item) : null"
+            @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+            @contextmenu="openContextMenu($event, item)"
+          >
+            <span class="fs-table-row__name">
+              <svg v-if="item.directory" class="fs-table-row__icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
+              </svg>
+              <svg v-else class="fs-table-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+            </span>
+            <span class="fs-table-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
+            <span class="fs-table-row__time">{{ formatTime(item.lastModified) }}</span>
+            <span class="fs-table-row__actions">
+              <el-button v-if="item.directory" text type="primary" size="small" @click.stop="enterDir(item)">打开</el-button>
+              <template v-else>
+                <el-button text type="primary" size="small" @click.stop="openPreview(item)">预览</el-button>
+                <el-button text type="primary" size="small" @click.stop="handleDownload(item)">下载</el-button>
+                <el-button text type="primary" size="small" @click.stop="openOneTime(item)">一次性链接</el-button>
+              </template>
+              <el-button text type="danger" size="small" @click.stop="handleDelete(item)">删除</el-button>
+            </span>
+          </div>
+          <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">当前目录为空</div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ===== 右键菜单 ===== -->
+    <Teleport to="body">
+      <div
+        v-if="ctxMenu.visible"
+        class="fs-ctx"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @click.stop
+      >
+        <template v-if="ctxMenu.row">
+          <div class="fs-ctx__item" @click="ctxAction(ctxMenu.row!.directory ? 'open' : 'preview')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            {{ ctxMenu.row!.directory ? '打开' : '预览' }}
+          </div>
+          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('download')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            下载
+          </div>
+          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('onetime')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            一次性链接
+          </div>
+          <div v-if="!ctxMenu.row!.directory" class="fs-ctx__item" @click="ctxAction('delete')" style="color:var(--el-color-danger)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            删除
+          </div>
+        </template>
+      </div>
+    </Teleport>
+
+    <!-- ===== 上传对话框 ===== -->
+    <el-dialog v-model="uploadVisible" title="上传文件" width="440px" :append-to-body="true" destroy-on-close>
+      <el-alert v-if="currentPath" :title="`上传至 ${bucket}/${currentPath}/`" type="info" :closable="false" class="mb-3" />
+      <el-button type="primary" :icon="Upload" :loading="uploading" @click="pickFiles">选择文件（可多选）</el-button>
       <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
     </el-dialog>
 
-    <!-- 一次性链接对话框 -->
-    <el-dialog
-      v-model="oneTimeVisible"
-      :title="`生成一次性链接 - ${oneTimeTarget?.name ?? ''}`"
-      width="480px"
-      destroy-on-close
-    >
-      <el-form label-width="90px">
+    <!-- ===== 一次性链接对话框 ===== -->
+    <el-dialog v-model="oneTimeVisible" :title="`生成一次性链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
+      <el-form label-width="80px">
         <el-form-item label="过期时间">
-          <el-select v-model="oneTimeExpiry" placeholder="选择过期时间" style="width: 100%">
-            <el-option
-              v-for="opt in oneTimeExpiryOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
+          <el-select v-model="oneTimeExpiry" placeholder="选择过期时间" style="width:100%">
+            <el-option v-for="opt in oneTimeExpiryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="链接">
-          <el-input
-            v-model="oneTimeLink"
-            placeholder="点击下方按钮生成"
-            readonly
-            clearable
-            :disabled="!oneTimeLink"
-          />
+          <el-input v-model="oneTimeLink" placeholder="点击下方按钮生成" readonly :disabled="!oneTimeLink" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button v-if="oneTimeLink" :icon="Document" @click="copyOneTimeLink">复制链接</el-button>
-        <el-button
-          v-if="!oneTimeLink"
-          type="primary"
-          :icon="Document"
-          :loading="oneTimeGenerating"
-          @click="generateOneTimeLink"
-        >
-          生成
-        </el-button>
+        <el-button v-else type="primary" :loading="oneTimeGenerating" :icon="Document" @click="generateOneTimeLink">生成</el-button>
         <el-button @click="oneTimeVisible = false">关闭</el-button>
       </template>
-      <el-alert
-        v-if="oneTimeLink"
-        type="warning"
-        :closable="false"
-        class="mt-4"
-        title="该链接只能访问一次，访问后立即销毁，过期自动失效"
-      />
+      <el-alert v-if="oneTimeLink" type="warning" :closable="false" title="该链接只能访问一次，访问后立即销毁，过期自动失效" class="mt-3" />
     </el-dialog>
 
-    <!-- 预览对话框 -->
-    <el-dialog
-      v-model="previewVisible"
-      :title="previewName"
-      width="720px"
-      destroy-on-close
-      append-to-body
-    >
-      <!-- 文件元信息（仅预览内容就绪后显示） -->
-      <div v-if="previewMeta.size != null && !previewLoading && !previewError" class="filestorage-preview__meta">
-        <span class="filestorage-preview__meta-item">
-          <el-tag size="small" type="info">{{ previewKind }}</el-tag>
-        </span>
-        <span class="filestorage-preview__meta-item">{{ formatSize(previewMeta.size) }}</span>
-        <span class="filestorage-preview__meta-item" v-if="previewMeta.lastModified">{{ formatTime(previewMeta.lastModified) }}</span>
+    <!-- ===== 预览对话框 ===== -->
+    <el-dialog v-model="previewVisible" :title="previewName" width="720px" :append-to-body="true" destroy-on-close @closed="retryPreview">
+      <div v-if="previewMeta.size != null && !previewLoading && !previewError" class="fs-preview__meta">
+        <span><el-tag size="small" type="info">{{ previewKind }}</el-tag></span>
+        <span>{{ formatSize(previewMeta.size) }}</span>
+        <span v-if="previewMeta.lastModified">{{ formatTime(previewMeta.lastModified) }}</span>
       </div>
-      <div class="filestorage-preview">
-        <!-- 骨架屏加载中 -->
-        <div v-if="previewLoading" class="filestorage-preview__skeleton">
-          <div class="skeleton-block skeleton-block--title" />
-          <div class="skeleton-block skeleton-block--body" />
-          <div class="skeleton-block skeleton-block--body skeleton-block--short" />
-          <div class="filestorage-preview__skeleton-text">加载中…</div>
+      <div class="fs-preview">
+        <div v-if="previewLoading" class="fs-preview__skeleton">
+          <div class="sk sk--w40 sk--h24" /><div class="sk sk--full sk--h200" /><div class="sk sk--w60 sk--h120" />
+          <span class="fs-preview__loading-text">加载中…</span>
         </div>
-
-        <!-- 错误重试 -->
-        <div v-else-if="previewError" class="filestorage-preview__error">
+        <div v-else-if="previewError" class="fs-preview__error">
           <el-empty description="预览加载失败">
             <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
             <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
           </el-empty>
         </div>
-
-        <!-- 图片：工具栏 + 缩放 + 全屏 -->
         <template v-else-if="previewKind === 'image'">
-          <PreviewImagePanel
-            ref="imagePanelRef"
-            v-model:zoom="previewZoom"
-            :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
-            :alt="previewName"
-            @fullscreen="toggleFullscreen()"
-            @load="previewLoading = false"
-            @error="previewError = true"
-          />
+          <PreviewImagePanel ref="imagePanelRef" v-model:zoom="previewZoom" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" :alt="previewName" @fullscreen="toggleFullscreen()" @load="previewLoading = false" @error="previewError = true" />
         </template>
-
-        <!-- PDF：内嵌 iframe（服务端支持 Range 分段加载） -->
         <template v-else-if="previewKind === 'pdf'">
-          <PreviewIframePanel
-            ref="iframePanelRef"
-            v-model:zoom="previewZoom"
-            :src="previewSrc + '#toolbar=0&zoom=page-width'"
-            :loading="iframeLoading"
-            :frame-key="iframeKey"
-            @fullscreen="toggleFullscreen()"
-            @load="onFrameLoad"
-            @error="onFrameError"
-          />
+          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '#toolbar=0&zoom=page-width'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
-
-        <!-- Office 文档：服务端 SPI(Univer 等) 转 HTML 后 iframe 渲染 -->
         <template v-else-if="previewKind === 'office'">
-          <PreviewIframePanel
-            ref="iframePanelRef"
-            v-model:zoom="previewZoom"
-            :src="previewSrc + '?preview=true'"
-            :loading="iframeLoading"
-            :frame-key="iframeKey"
-            @fullscreen="toggleFullscreen()"
-            @load="onFrameLoad"
-            @error="onFrameError"
-          />
+          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
-
-        <!-- 视频 -->
-        <video
-          v-else-if="previewKind === 'video'"
-          :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
-          controls
-          class="filestorage-preview__media"
-          @loadeddata="previewLoading = false"
-          @error="previewError = true"
-        />
-
-        <!-- 音频 -->
-        <audio
-          v-else-if="previewKind === 'audio'"
-          :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
-          controls
-          class="w-full"
-          @loadeddata="previewLoading = false"
-          @error="previewError = true"
-        />
-
-        <!-- 字体 -->
+        <video v-else-if="previewKind === 'video'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
+        <audio v-else-if="previewKind === 'audio'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
         <template v-else-if="previewKind === 'font'">
-          <PreviewIframePanel
-            ref="iframePanelRef"
-            v-model:zoom="previewZoom"
-            :src="previewSrc + '?preview=true'"
-            :loading="iframeLoading"
-            :frame-key="iframeKey"
-            @fullscreen="toggleFullscreen()"
-            @load="onFrameLoad"
-            @error="onFrameError"
-          />
+          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
-
-        <!-- 文本类 -->
-        <pre v-else-if="previewKind === 'text'" class="filestorage-preview__code">{{ previewText }}</pre>
-
-        <!-- 其他类型 -->
+        <pre v-else-if="previewKind === 'text'" class="fs-preview__code">{{ previewText }}</pre>
         <el-empty v-else description="该类型不支持在线预览">
-          <el-button type="primary" :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">
-            下载文件
-          </el-button>
+          <el-button type="primary" :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
         </el-empty>
       </div>
     </el-dialog>
@@ -850,190 +608,348 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 连接配置行 */
-.filestorage-conn {
+/* ===== 全局布局 ===== */
+.fs-app {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  overflow: hidden;
 }
 
-/* 列表工具栏：返回按钮 + 面包屑 */
-.filestorage-toolbar {
+/* ===== 顶部工具栏 ===== */
+.fs-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  padding: 0 20px;
+  height: 52px;
+  background: rgba(250, 250, 252, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* 面包屑可点击项 */
-.filestorage-crumb {
-  cursor: pointer;
-  color: var(--el-text-color-secondary);
-  transition: color 0.15s ease;
-}
-
-.filestorage-crumb:hover {
-  color: var(--el-color-primary);
-}
-
-.filestorage-crumb--active .filestorage-crumb {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-}
-
-/* 名称单元格 */
-.filestorage-name {
+.fs-brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  padding: 2px 6px;
-  margin-left: -6px;
-  border-radius: 6px;
-  cursor: default;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
 }
 
-/* 目录名称可点击 */
-.filestorage-name--dir {
+.fs-logo {
+  width: 22px;
+  height: 22px;
+  color: #0a84ff;
+}
+
+.fs-conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-conn :deep(.el-input__wrapper) {
+  background: rgba(120, 120, 128, 0.08);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.fs-conn :deep(.el-input__wrapper:hover) { background: rgba(120, 120, 128, 0.12); }
+.fs-conn :deep(.el-input__wrapper.is-focus) {
+  border-color: #0a84ff;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+.fs-conn__input { width: 200px; }
+.fs-conn__input--sm { width: 110px; }
+
+.fs-header__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-search { width: 180px; }
+.fs-search :deep(.el-input__wrapper) {
+  background: rgba(120, 120, 128, 0.08);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.fs-search :deep(.el-input__wrapper:hover) { background: rgba(120, 120, 128, 0.12); }
+.fs-search :deep(.el-input__wrapper.is-focus) {
+  border-color: #0a84ff;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.fs-view-toggle :deep(.el-button) { padding: 5px 10px; }
+
+/* ===== 侧边栏 ===== */
+.fs-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.fs-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  overflow-y: auto;
+}
+
+.fs-sidebar__section { margin-bottom: 20px; }
+
+.fs-sidebar__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 8px;
+  margin-bottom: 8px;
+}
+
+.fs-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  color: #1d1d1f;
+  transition: background 0.15s;
+}
+.fs-sidebar__item:hover { background: rgba(0, 0, 0, 0.05); }
+.fs-sidebar__item.active { background: rgba(10, 132, 255, 0.12); color: #0a84ff; font-weight: 500; }
+.fs-sidebar__item svg { flex-shrink: 0; color: inherit; }
+
+.fs-sidebar__stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #1d1d1f;
+}
+.fs-sidebar__stat span { color: #86868b; }
+
+.fs-sidebar__path {
+  padding: 8px;
+  font-size: 12px;
+  color: #86868b;
+  word-break: break-all;
+  line-height: 1.5;
 }
 
-.filestorage-name--dir:hover {
-  background-color: var(--el-fill-color-light);
+/* ===== 主内容区 ===== */
+.fs-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.filestorage-icon--dir {
-  color: var(--el-color-warning);
+/* ===== 面包屑路径栏 ===== */
+.fs-pathbar {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(250, 250, 252, 0.6);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+}
+.fs-pathbar__crumbs { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; overflow: hidden; }
+.fs-pathbar__sep { color: #c7c7cc; }
+.fs-pathbar__item { cursor: pointer; color: #0a84ff; padding: 2px 6px; border-radius: 6px; transition: background 0.15s; }
+.fs-pathbar__item:hover { background: rgba(10, 132, 255, 0.1); }
+.fs-pathbar__item--active { color: #1d1d1f; font-weight: 600; cursor: default; }
+.fs-pathbar__item--active:hover { background: transparent; }
+.fs-pathbar__count { color: #86868b; font-size: 12px; white-space: nowrap; }
+
+/* ===== 文件区域 ===== */
+.fs-files {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 32px;
 }
 
-.filestorage-icon--file {
-  color: var(--el-text-color-secondary);
-  flex-shrink: 0;
+/* —— 网格视图 —— */
+.fs-files--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  align-content: start;
 }
 
-/* 预览容器 */
-.filestorage-preview {
-  min-height: 200px;
+.fs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px 12px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+.fs-card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); transform: translateY(-1px); }
+.fs-card--selected { outline: 2px solid #0a84ff; background: rgba(10, 132, 255, 0.04); }
+
+.fs-card__icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+.fs-card__icon svg { width: 36px; height: 36px; }
+
+.fs-card__icon.icon-folder { color: #0a84ff; background: rgba(10, 132, 255, 0.1); }
+.fs-card__icon.icon-image { color: #34c759; background: rgba(52, 199, 89, 0.1); }
+.fs-card__icon.icon-video { color: #af52de; background: rgba(175, 82, 222, 0.1); }
+.fs-card__icon.icon-audio { color: #ff9f0a; background: rgba(255, 159, 10, 0.1); }
+.fs-card__icon.icon-pdf { color: #ff3b30; background: rgba(255, 59, 48, 0.1); }
+.fs-card__icon.icon-office { color: #007aff; background: rgba(0, 122, 255, 0.1); }
+.fs-card__icon.icon-archive { color: #8e8e93; background: rgba(142, 142, 147, 0.1); }
+.fs-card__icon.icon-file { color: #636366; background: rgba(99, 99, 102, 0.08); }
+
+.fs-card__name {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1d1d1f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-card__meta {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: #86868b;
+}
+
+/* —— 列表视图 —— */
+.fs-files--list { padding: 0 0 20px; }
+.fs-table-head,
+.fs-table-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 160px 220px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+.fs-table-head {
+  position: sticky;
+  top: 0;
+  background: #f5f5f7;
+  z-index: 5;
+  font-size: 11px;
+  font-weight: 600;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.fs-table-row {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+}
+.fs-table-row:hover { background: rgba(0, 0, 0, 0.035); }
+.fs-table-row--selected { background: rgba(10, 132, 255, 0.08); }
+
+.fs-table-row__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+.fs-table-row__name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-table-row__icon { width: 18px; height: 18px; flex-shrink: 0; color: #636366; }
+.fs-table-row__icon:first-child { color: #0a84ff; }
+.fs-name--dir { font-weight: 500; color: #0a84ff; }
+.fs-table-row__size { color: #86868b; font-size: 12px; text-align: right; }
+.fs-table-row__time { color: #86868b; font-size: 12px; }
+.fs-table-row__actions { display: flex; gap: 2px; justify-content: flex-end; }
+
+/* —— 空状态 —— */
+.fs-files__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  padding: 60px 0;
+  color: #86868b;
+  font-size: 14px;
 }
 
-/* 骨架屏 */
-.filestorage-preview__skeleton {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 0;
-}
-
-.skeleton-block {
-  border-radius: 8px;
-  background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color) 50%, var(--el-fill-color-light) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-}
-
-.skeleton-block--title {
-  width: 40%;
-  height: 24px;
-}
-
-.skeleton-block--body {
-  width: 100%;
-  height: 200px;
-}
-
-.skeleton-block--short {
-  width: 60%;
-  height: 120px;
-}
-
-.filestorage-preview__skeleton-text {
+/* ===== 右键菜单 ===== */
+.fs-ctx {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: rgba(250, 250, 252, 0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
   font-size: 13px;
-  color: var(--el-text-color-secondary);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
-
-@keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-
-/* 错误重试 */
-.filestorage-preview__error {
-  width: 100%;
+.fs-ctx__item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
 }
+.fs-ctx__item:hover { background: rgba(10, 132, 255, 0.1); }
+.fs-ctx__item svg { flex-shrink: 0; color: #636366; }
 
+/* ===== 预览 ===== */
+.fs-preview { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.fs-preview__meta { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0 2px; font-size: 12px; color: #86868b; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 8px; width: 100%; }
+.fs-preview__media { max-width: 100%; border-radius: 10px; }
+.fs-preview__code { width: 100%; max-height: 60vh; margin: 0; padding: 14px 16px; overflow: auto; border-radius: 10px; background: #f5f5f7; color: #1d1d1f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
+.fs-preview__error { width: 100%; display: flex; align-items: center; justify-content: center; }
+.fs-preview__skeleton { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0; }
+.fs-preview__loading-text { font-size: 13px; color: #86868b; }
 
-
-.filestorage-preview__media {
-  max-width: 100%;
-  border-radius: 8px;
-}
-
-.filestorage-preview__code {
-  width: 100%;
-  max-height: 60vh;
-  margin: 0;
-  padding: 14px 16px;
-  overflow: auto;
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter);
-  color: var(--el-text-color-primary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.filestorage-preview__meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 6px 0 2px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  margin-bottom: 8px;
-  width: 100%;
-}
-
-.filestorage-preview__meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-
-
-/* 全屏模式下 iframe 容器适配 */
-:fullscreen .filestorage-preview__frame-wrap {
-  width: 100vw;
-  height: 100vh;
-  transform-origin: top left;
-}
-
-:fullscreen .filestorage-preview__frame {
-  height: 100vh;
-  border-radius: 0;
-}
-
+.sk { border-radius: 10px; background: linear-gradient(90deg, #f5f5f7 25%, #ebebeb 50%, #f5f5f7 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.sk--w40 { width: 40%; height: 24px; }
+.sk--w60 { width: 60%; height: 120px; }
+.sk--full { width: 100%; height: 200px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
