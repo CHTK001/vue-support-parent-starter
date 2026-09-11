@@ -1,28 +1,31 @@
 <template>
   <div class="tshark-page fade-in">
-    <!-- 顶部: tshark 状态 + 新建抓包 -->
+    <!-- 顶部工具条：状态 + 新建抓包 -->
     <div class="toolbar">
-      <div class="tshark-status">
-        <ReStatusIndicator :type="tsharkOk ? 'success' : 'danger'" />
-        <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
+      <div class="toolbar-left">
+        <div class="status-pill" :class="tsharkOk ? 'status-ok' : 'status-bad'">
+          <span class="status-dot"></span>
+          <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
+        </div>
         <ReTag v-if="activeSessionId != null" :type="liveConnected ? 'success' : 'info'" size="small" effect="light">
-          {{ liveConnected ? `实时推送 +${liveCount}` : '推送未连接' }}
+          {{ liveConnected ? `实时推送中 +${liveCount}` : '推送未连接' }}
         </ReTag>
       </div>
+
       <div class="toolbar-right">
         <ReSelect v-model="iface" placeholder="选择网卡" clearable filterable class="iface-select"
           :data="interfaces.map(i => ({ label: i, value: i }))" />
-        <ReInput v-model="filter" placeholder="BPF 过滤, 如 tcp port 8080" clearable class="filter-input" />
-        <ReInputNumber v-model="count" :min="0" :max="1000000" placeholder="包数(0不限)" class="count-input" />
-        <ReInputNumber v-model="timeout" :min="0" :max="86400" placeholder="时长(秒)" class="count-input" />
+        <ReInput v-model="filter" placeholder="BPF 过滤，如 tcp port 8080" clearable class="filter-input" />
+        <ReInputNumber v-model="count" :min="0" :max="1000000" placeholder="包数" class="count-input" />
+        <ReInputNumber v-model="timeout" :min="0" :max="86400" placeholder="时长/s" class="count-input" />
         <ReButton show-text icon="VideoPlay" type="primary" :loading="starting" @click="startCapture">开始抓包</ReButton>
       </div>
     </div>
 
     <div class="body-grid">
-      <!-- 左: 会话列表 -->
-      <div class="session-panel">
-        <ReCard layout="simple" :radius="12" :padding="12" shadow="never" class="panel-card">
+      <!-- 左侧：会话列表 -->
+      <aside class="session-panel">
+        <ReCard layout="simple" :radius="14" shadow="never" class="panel-card">
           <template #title>
             <span class="panel-title"><ReIcon name="Folder" :size="13" /> 抓包会话</span>
           </template>
@@ -34,24 +37,22 @@
                    @click="selectSession(s.id)"
                    @keydown.enter="selectSession(s.id)">
                 <div class="session-head">
-                  <span class="session-name">{{ s.sessionName || s.captureInterface }}</span>
-                  <span class="session-status">
-                    <ReStatusIndicator :type="s.captureStatus === 1 ? 'success' : 'info'" />
-                    <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="light">
-                      {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
-                    </ReTag>
-                  </span>
+                  <span class="session-name" :title="s.sessionName || s.captureInterface">{{ s.sessionName || s.captureInterface }}</span>
+                  <span class="session-state" :class="s.captureStatus === 1 ? 'state-run' : 'state-stop'"></span>
                 </div>
                 <div class="session-meta">
-                  <span>{{ s.captureInterface }}</span>
-                  <span class="dim">{{ s.packetCount ?? 0 }} 包</span>
-                </div>
-                <div class="session-meta dim">
-                  <span>{{ s.startTime || '' }}</span>
+                  <span class="meta-iface">{{ s.captureInterface }}</span>
+                  <span class="meta-count">{{ s.packetCount ?? 0 }} 包</span>
+                  <span class="meta-time">{{ fmtTime(s.startTime) }}</span>
                 </div>
                 <div class="session-actions">
-                  <ReButton v-if="s.captureStatus === 1" size="small" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
-                  <ReButton size="small" link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
+                  <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="plain">
+                    {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
+                  </ReTag>
+                  <div class="action-btns">
+                    <ReButton v-if="s.captureStatus === 1" link type="warning" icon="VideoPause" show-text size="small" @click.stop="stopSession(s.id)">停止</ReButton>
+                    <ReButton link type="danger" icon="Delete" show-text size="small" @click.stop="deleteSession(s.id)">删除</ReButton>
+                  </div>
                 </div>
               </div>
               <ReEmpty v-if="!loadingSessions && sessions.length === 0" description="暂无抓包会话" layout="modern" />
@@ -62,31 +63,49 @@
                            :current-page="sessionPage" @current-change="(p: number) => loadSessions(p)" />
           </div>
         </ReCard>
-      </div>
+      </aside>
 
-      <!-- 右: 详情 -->
-      <div class="detail-panel" v-show="activeSessionId">
+      <!-- 右侧：详情 -->
+      <section class="detail-panel" v-show="activeSessionId">
         <!-- 统计卡片 -->
         <div class="stat-cards">
-          <ReStatCard title="数据包总数" :value="packetTotal" icon="DataLine" icon-color="var(--metric-net)" />
-          <ReStatCard title="协议种类" :value="protoStats.length" icon="Collection" icon-color="var(--metric-jvm)" />
-          <ReStatCard title="Top流" :value="topFlows.length" icon="TrendCharts" icon-color="var(--metric-db)" />
+          <div class="stat-card stat-net">
+            <div class="stat-icon"><ReIcon name="DataLine" :size="16" /></div>
+            <div class="stat-body">
+              <span class="stat-label">数据包总数</span>
+              <span class="stat-value">{{ packetTotal }}</span>
+            </div>
+          </div>
+          <div class="stat-card stat-jvm">
+            <div class="stat-icon"><ReIcon name="Collection" :size="16" /></div>
+            <div class="stat-body">
+              <span class="stat-label">协议种类</span>
+              <span class="stat-value">{{ protoStats.length }}</span>
+            </div>
+          </div>
+          <div class="stat-card stat-db">
+            <div class="stat-icon"><ReIcon name="TrendCharts" :size="16" /></div>
+            <div class="stat-body">
+              <span class="stat-label">Top 流</span>
+              <span class="stat-value">{{ topFlows.length }}</span>
+            </div>
+          </div>
         </div>
 
-        <!-- 协议分布 + Top 流 -->
+        <!-- 图表 -->
         <div class="charts-row">
-          <ReCard layout="simple" :radius="12" :padding="12" shadow="never" class="chart-card">
+          <ReCard layout="simple" :radius="14" :padding="14" shadow="never" class="chart-card">
             <template #title><span class="panel-title">协议分布</span></template>
             <div ref="protoChartRef" class="chart-box"></div>
           </ReCard>
-          <ReCard layout="simple" :radius="12" :padding="12" shadow="never" class="chart-card">
+          <ReCard layout="simple" :radius="14" :padding="14" shadow="never" class="chart-card">
             <template #title><span class="panel-title">Top 会话流</span></template>
             <div ref="flowChartRef" class="chart-box"></div>
           </ReCard>
         </div>
 
         <!-- 数据包表格 -->
-        <ReCard layout="simple" :radius="12" :padding="12" shadow="never">
+        <ReCard layout="simple" :radius="14" :padding="14" shadow="never" class="packet-card">
           <template #title>
             <span class="panel-title"><ReIcon name="List" :size="13" /> 数据包明细</span>
           </template>
@@ -120,7 +139,7 @@
             </ReTableColumn>
             <ReTableColumn label="操作" width="80" align="center">
               <template #default="{ row }">
-                <ReButton size="small" link type="primary" @click="openPacketDetail(row)">详情</ReButton>
+                <ReButton link type="primary" size="small" @click="openPacketDetail(row)">详情</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -129,11 +148,12 @@
                            :current-page="packetPage" @current-change="(p: number) => loadPackets(p)" />
           </div>
         </ReCard>
-      </div>
+      </section>
 
-      <!-- 无会话时的提示 -->
+      <!-- 无会话提示 -->
       <div class="empty-detail" v-show="!activeSessionId">
-        <ReEmpty description="请选择左侧抓包会话，或新建一个抓包任务" layout="modern" />
+        <div class="empty-illustration"><ReIcon name="Monitor" :size="36" /></div>
+        <ReEmpty description="选择左侧抓包会话，或新建一个抓包任务" layout="modern" />
       </div>
     </div>
 
@@ -213,6 +233,14 @@ const packetTotalText = computed(() => {
   return s ? (s.packetCount ?? 0) : packets.value.length
 })
 
+function fmtTime(t?: string | null): string {
+  if (!t) return ''
+  const d = t.includes('T') ? new Date(t) : new Date(t.replace(/-/g, '/'))
+  if (isNaN(d.getTime())) return t
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 async function init() {
   try {
     tsharkOk.value = await checkTshark()
@@ -281,44 +309,68 @@ async function loadStats() {
   renderFlowChart()
 }
 
+const CHART_THEME = {
+  font: "'Inter', -apple-system, 'Segoe UI', sans-serif",
+  brand: getComputedStyle(document.documentElement).getPropertyValue('--brand-500').trim() || '#6366f1',
+  net: getComputedStyle(document.documentElement).getPropertyValue('--metric-net').trim() || '#0ea5e9',
+  jvm: getComputedStyle(document.documentElement).getPropertyValue('--metric-jvm').trim() || '#a855f7',
+  db: getComputedStyle(document.documentElement).getPropertyValue('--metric-db').trim() || '#f59e0b',
+  cpu: getComputedStyle(document.documentElement).getPropertyValue('--metric-cpu').trim() || '#ef4444',
+  disk: getComputedStyle(document.documentElement).getPropertyValue('--metric-disk').trim() || '#22c55e',
+  textSecondary: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b',
+  textTertiary: getComputedStyle(document.documentElement).getPropertyValue('--text-tertiary').trim() || '#94a3b8',
+}
+
+const PROTO_COLORS: Record<string, string> = {
+  TCP: 'var(--metric-cpu)', UDP: 'var(--status-success)', HTTP: 'var(--metric-disk)',
+  TLS: 'var(--text-tertiary)', DNS: 'var(--status-error)', ICMP: 'var(--metric-jvm)',
+  ARP: 'var(--metric-disk)', SSH: 'var(--metric-net)', QUIC: 'var(--text-secondary)',
+}
+
 function renderProtoChart() {
   if (!protoChartRef.value) return
+  const theme = CHART_THEME
+  protoChart?.dispose()
   protoChart = echarts.init(protoChartRef.value)
   const data = protoStats.value.slice(0, 12)
   protoChart.setOption({
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0, type: 'scroll', textStyle: { fontSize: 10 } },
+    tooltip: { trigger: 'item', borderWidth: 0, textStyle: { fontSize: 11, fontFamily: theme.font } },
+    legend: { bottom: 0, type: 'scroll', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10, color: theme.textSecondary, fontFamily: theme.font } },
     series: [{
       type: 'pie',
-      radius: ['35%', '65%'],
-      center: ['50%', '45%'],
+      radius: ['38%', '66%'],
+      center: ['50%', '44%'],
       avoidLabelOverlap: true,
-      itemStyle: { borderRadius: 4, borderColor: 'var(--bg-container)', borderWidth: 1 },
-      label: { show: true, formatter: '{b}: {c}', fontSize: 10 },
+      itemStyle: { borderRadius: 5, borderWidth: 3, borderColor: 'transparent' },
+      label: { show: false },
+      emphasis: { scaleSize: 4 },
       data: data.length
-        ? data.map(d => ({ name: d.protocol, value: d.count }))
-        : [{ name: '暂无数据', value: 1, itemStyle: { color: 'var(--text-tertiary)' } }],
+        ? data.map(d => ({ name: d.protocol, value: d.count, itemStyle: { color: PROTO_COLORS[d.protocol] || theme.textSecondary } }))
+        : [{ name: '暂无数据', value: 1, itemStyle: { color: theme.textTertiary } }],
     }],
   })
 }
 
 function renderFlowChart() {
   if (!flowChartRef.value) return
+  const theme = CHART_THEME
+  flowChart?.dispose()
   flowChart = echarts.init(flowChartRef.value)
   const data = topFlows.value.slice(0, 10)
   flowChart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: '12%', right: '8%', top: '8%', bottom: '10%' },
-    xAxis: { type: 'value', name: '包数' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, borderWidth: 0, textStyle: { fontSize: 11, fontFamily: theme.font } },
+    grid: { left: '12%', right: '8%', top: '6%', bottom: '10%', containLabel: false },
+    xAxis: { type: 'value', name: '包数', nameTextStyle: { fontSize: 10, color: theme.textTertiary }, axisLabel: { fontSize: 10, color: theme.textSecondary }, splitLine: { lineStyle: { color: 'rgba(128,128,128,.12)' } } },
     yAxis: {
       type: 'category',
       data: data.length ? data.map(d => d.flow) : ['暂无数据'],
-      axisLabel: { fontSize: 9 },
+      axisLabel: { fontSize: 9, color: theme.textSecondary },
+      axisLine: { show: false }, axisTick: { show: false },
     },
     series: [{
       type: 'bar',
       data: data.length ? data.map(d => d.count) : [0],
-      itemStyle: { borderRadius: [0, 4, 4, 0], color: 'var(--brand-500)' },
+      itemStyle: { borderRadius: [0, 6, 6, 0], color: theme.net },
       barWidth: '55%',
     }],
   })
@@ -439,51 +491,88 @@ function resizeCharts() {
 }
 </script>
 
- <style scoped>
+<style scoped>
+/* ==================== 布局 ==================== */
 .tshark-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   height: 100%;
+  padding: 4px;
 }
 
+/* ==================== 顶部工具条 ==================== */
 .toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-container-card);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-lg, 12px);
   border: 1px solid var(--border-subtle);
-  flex-wrap: wrap;
   box-shadow: var(--shadow-card);
+  flex-wrap: wrap;
 }
-.tshark-status {
+.toolbar-left {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-primary);
-  font-weight: 600;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.status-ok {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+}
+.status-bad {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent); }
+}
+
 .iface-select { width: 150px; }
-.iface-select :deep(.el-select__wrapper) { box-shadow: none !important; }
-.iface-select :deep(.el-select.is-focused .el-select__wrapper) { box-shadow: none !important; }
+.iface-select :deep(.el-select__wrapper),
+.iface-select :deep(.el-select__wrapper:hover),
+.iface-select :deep(.el-select.is-focused .el-select__wrapper) {
+  box-shadow: none !important;
+  border-color: var(--border-subtle) !important;
+}
+.iface-select :deep(.el-select__wrapper:hover) { background: var(--bg-hover); }
 .filter-input { width: 220px; }
 .count-input { width: 110px; }
 
+/* ==================== 主区网格 ==================== */
 .body-grid {
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: 12px;
+  gap: 14px;
   flex: 1;
   min-height: 0;
 }
@@ -495,9 +584,10 @@ function resizeCharts() {
 .detail-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   min-height: 0;
+  overflow: auto;
 }
 .empty-detail {
   grid-column: 2;
@@ -505,95 +595,140 @@ function resizeCharts() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   color: var(--text-tertiary);
-  gap: 8px;
+  min-height: 320px;
+}
+.empty-illustration {
+  color: color-mix(in srgb, var(--brand-500) 30%, transparent);
+  opacity: 0.7;
 }
 
+/* ==================== 会话面板 ==================== */
 .panel-card {
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-container-card);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 .panel-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
+
 .session-list {
   flex: 1;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px 2px;
+  padding: 6px 4px;
 }
 .session-item {
+  position: relative;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-sm);
-  padding: 8px 10px;
+  border-radius: var(--radius-md, 10px);
+  padding: 10px 12px;
   cursor: pointer;
   background: var(--bg-container-card);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+}
+.session-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-500);
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 .session-item:hover {
-  border-color: var(--metric-net);
-  box-shadow: var(--shadow-card-hover);
+  border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  background: var(--bg-hover);
   transform: translateY(-1px);
 }
+.session-item:hover::before { opacity: 0.5; }
 .session-item:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 25%, transparent);
   border-color: var(--brand-500);
 }
 .session-item.active {
-  border-color: var(--metric-net);
-  background: color-mix(in srgb, var(--metric-net) 6%, transparent);
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500) 30%, transparent);
 }
-.session-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
+.session-item.active::before { opacity: 1; }
+
 .session-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
 }
 .session-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.session-state {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.state-run { background: var(--status-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 20%, transparent); animation: pulse 2s ease-in-out infinite; }
+.state-stop { background: var(--text-tertiary); }
+
 .session-meta {
   display: flex;
+  align-items: center;
   gap: 8px;
   font-size: 10.5px;
   color: var(--text-tertiary);
-  margin-top: 3px;
+  margin-top: 4px;
+  flex-wrap: wrap;
 }
+.meta-iface {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--text-secondary);
+}
+.meta-time { margin-left: auto; }
+
 .session-actions {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+.action-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .session-footer {
-  padding-top: 8px;
+  padding-top: 10px;
   display: flex;
   justify-content: center;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
 }
 
+/* ==================== 统计卡片 ==================== */
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -602,32 +737,84 @@ function resizeCharts() {
 @media (max-width: 768px) {
   .stat-cards { grid-template-columns: 1fr; }
 }
-.stat-cards :deep(.re-stat-card) {
-  transition: box-shadow var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-container-card);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  cursor: default;
 }
-.stat-cards :deep(.re-stat-card:hover) {
+.stat-card:hover {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 10px);
+  flex-shrink: 0;
+}
+.stat-net { --sc: var(--metric-net); }
+.stat-jvm { --sc: var(--metric-jvm); }
+.stat-db { --sc: var(--metric-db); }
+.stat-net .stat-icon, .stat-jvm .stat-icon, .stat-db .stat-icon {
+  background: color-mix(in srgb, var(--sc) 12%, transparent);
+  color: var(--sc);
+}
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
 
+/* ==================== 图表 ==================== */
 .charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+@media (max-width: 720px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
 .chart-card {
   min-height: 220px;
   background: var(--bg-container-card);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-card);
 }
 .chart-box { height: 200px; width: 100%; }
 
+/* ==================== 表格 ==================== */
+.packet-card {
+  background: var(--bg-container-card);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-card);
+}
 .table-footer {
   display: flex;
   justify-content: flex-end;
-  padding-top: 8px;
+  padding-top: 10px;
 }
+
+/* ==================== 通用 ==================== */
 .mono { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 11px; }
 .dim { color: var(--text-tertiary); }
 .info-cell {
@@ -661,13 +848,18 @@ function resizeCharts() {
 }
 .restored, .raw {
   background: var(--bg-fill);
-  border-radius: var(--border-radius-sm);
-  padding: 10px;
+  border-radius: var(--radius-sm, 8px);
+  padding: 12px;
   font-size: 11px;
   line-height: 1.5;
   max-height: 260px;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot, .session-state { animation: none; }
+  .session-item, .stat-card { transition: none; }
 }
 </style>
