@@ -765,7 +765,7 @@ function resizeCharts() {
 .stat-jvm { --sc: var(--metric-jvm); }
 .stat-db { --sc: var(--metric-db); }
 .stat-net .stat-icon, .stat-jvm .stat-icon, .stat-db .stat-icon {
-  background: color-mix(in srgb, var(--sc) 12%, transparent);
+  background: rgba(99, 102, 241, 0.10);
   color: var(--sc);
 }
 .stat-body {

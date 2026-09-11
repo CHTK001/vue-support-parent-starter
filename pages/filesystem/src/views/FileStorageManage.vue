@@ -79,10 +79,14 @@ const sortKey = ref<"name" | "size" | "lastModified">("name");
 const sortOrder = ref<"asc" | "desc">("asc");
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
-/** 存储桶公开配置（?format=config） */
+/** 存储桶公开配置（?config） */
 const bucketConfig = ref<BucketConfig | null>(null);
 /** 存储桶配置加载状态 */
 const configLoading = ref(false);
+/** 选中的对象 name 集合（多选） */
+const selected = ref<Set<string>>(new Set());
+/** 最近一次点击的选中项（用于 Shift 连续多选） */
+let lastSelectedIndex = -1;
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
