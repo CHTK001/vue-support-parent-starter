@@ -72,6 +72,7 @@ e2e-screenshots/
 e2e-screenshots-*/
 e2e-black/
 e2e-black-*/
+e2e-*.png
 
 # 临时测试脚本
 test-*.mjs
@@ -79,6 +80,7 @@ test-*.js
 test-*.ts
 verify-*.js
 verify-*.mjs
+probe.*
 
 # Playwright 报告
 playwright-report/
