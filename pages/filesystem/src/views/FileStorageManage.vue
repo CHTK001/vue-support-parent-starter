@@ -396,11 +396,12 @@ onMounted(() => {
     <!-- ===== 顶部工具栏 ===== -->
     <header class="fs-header">
       <div class="fs-brand">
-        <svg class="fs-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="currentColor" stroke="none" opacity="0.15"/>
+        <svg class="fs-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="currentColor" stroke="none" opacity="0.12"/>
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>
         <span>FileStorage</span>
+        <span class="fs-bucket-badge" :title="`存储桶：${bucket}`">{{ bucket }}</span>
       </div>
 
       <div class="fs-header__right">
@@ -408,17 +409,56 @@ onMounted(() => {
           v-model="keyword"
           placeholder="搜索文件..."
           clearable
-          size="small"
+          size="default"
           class="fs-search"
           :prefix-icon="Search"
+          :aria-label="'搜索文件'"
         />
-        <el-divider direction="vertical" />
-        <el-button-group class="fs-view-toggle">
-          <el-button :type="viewMode === 'grid' ? 'primary' : 'default'" size="small" :icon="Grid" @click="viewMode = 'grid'" />
-          <el-button :type="viewMode === 'list' ? 'primary' : 'default'" size="small" :icon="List" @click="viewMode = 'list'" />
-        </el-button-group>
-        <el-button type="primary" :icon="Refresh" size="small" @click="loadObjects">刷新</el-button>
-        <el-button type="primary" :icon="Upload" size="small" @click="openUpload">上传</el-button>
+        <div class="fs-toolbar-sep" aria-hidden="true" />
+        <div class="fs-view-toggle" role="group" aria-label="视图切换">
+          <button
+            type="button"
+            class="fs-view-btn"
+            :class="{ 'fs-view-btn--active': viewMode === 'grid' }"
+            title="网格视图"
+            :aria-label="'网格视图'"
+            :aria-pressed="viewMode === 'grid'"
+            @click="viewMode = 'grid'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="fs-view-btn"
+            :class="{ 'fs-view-btn--active': viewMode === 'list' }"
+            title="列表视图"
+            :aria-label="'列表视图'"
+            :aria-pressed="viewMode === 'list'"
+            @click="viewMode = 'list'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="8" y1="6" x2="21" y2="6"/>
+              <line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <button type="button" class="fs-btn fs-btn--ghost" :class="{ 'fs-btn--loading': loading }" :disabled="loading" @click="loadObjects">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+          刷新
+        </button>
+        <button type="button" class="fs-btn fs-btn--primary" @click="openUpload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          上传
+        </button>
       </div>
     </header>
 
@@ -429,7 +469,7 @@ onMounted(() => {
         <div class="fs-sidebar__section">
           <div class="fs-sidebar__title">存储桶</div>
           <div class="fs-sidebar__item active">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
             <span>{{ bucket }}</span>
@@ -444,8 +484,8 @@ onMounted(() => {
         </div>
         <div class="fs-sidebar__section">
           <div class="fs-sidebar__title">功能开关</div>
-          <div class="fs-sidebar__stat"><span>预览</span><b>{{ bucketConfig == null ? '…' : (allowPreview ? '开' : '关') }}</b></div>
-          <div class="fs-sidebar__stat"><span>下载</span><b>{{ bucketConfig == null ? '…' : (allowDownload ? '开' : '关') }}</b></div>
+          <div class="fs-sidebar__stat"><span>预览</span><b class="fs-stat-badge" :class="allowPreview ? 'on' : 'off'">{{ bucketConfig == null ? '…' : (allowPreview ? '开' : '关') }}</b></div>
+          <div class="fs-sidebar__stat"><span>下载</span><b class="fs-stat-badge" :class="allowDownload ? 'on' : 'off'">{{ bucketConfig == null ? '…' : (allowDownload ? '开' : '关') }}</b></div>
         </div>
         <div class="fs-sidebar__section">
           <div class="fs-sidebar__title">当前路径</div>
@@ -457,10 +497,12 @@ onMounted(() => {
       <main class="fs-content">
         <!-- 路径栏 -->
         <div class="fs-pathbar">
-          <el-button :icon="Back" :disabled="!currentPath" size="small" circle @click="goUp" />
+          <button type="button" class="fs-icon-btn" :disabled="!currentPath" title="返回上一级" :aria-label="'返回上一级'" @click="goUp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
           <span class="fs-pathbar__crumbs">
             <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
-              <span v-if="i > 0" class="fs-pathbar__sep">/</span>
+              <span v-if="i > 0" class="fs-pathbar__sep" aria-hidden="true">/</span>
               <span
                 class="fs-pathbar__item"
                 :class="{ 'fs-pathbar__item--active': crumb.path === currentPath }"
@@ -478,17 +520,21 @@ onMounted(() => {
             :key="item.name"
             class="fs-card"
             :class="{ 'fs-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            role="button"
+            tabindex="0"
+            :aria-label="item.directory ? `打开目录 ${item.name}` : `文件 ${item.name}`"
             @click="item.directory ? enterDir(item) : null"
             @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+            @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
             @contextmenu="openContextMenu($event, item)"
           >
             <div class="fs-card__icon" :class="fileIconClass(item.name, item.directory)">
               <!-- 目录 SVG -->
-              <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor">
+              <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
               </svg>
               <!-- 文件 SVG -->
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
@@ -500,10 +546,11 @@ onMounted(() => {
             </div>
           </div>
           <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c0c4cc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
             <span>当前目录为空</span>
+            <small>点击右上角「上传」添加文件</small>
           </div>
         </div>
 
@@ -520,15 +567,19 @@ onMounted(() => {
             :key="item.name"
             class="fs-table-row"
             :class="{ 'fs-table-row--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            role="button"
+            tabindex="0"
+            :aria-label="item.name"
             @click="item.directory ? enterDir(item) : null"
             @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+            @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
             @contextmenu="openContextMenu($event, item)"
           >
             <span class="fs-table-row__name">
-              <svg v-if="item.directory" class="fs-table-row__icon" viewBox="0 0 24 24" fill="currentColor">
+              <svg v-if="item.directory" class="fs-table-row__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
               </svg>
-              <svg v-else class="fs-table-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg v-else class="fs-table-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
@@ -537,13 +588,13 @@ onMounted(() => {
             <span class="fs-table-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
             <span class="fs-table-row__time">{{ formatTime(item.lastModified) }}</span>
             <span class="fs-table-row__actions">
-              <el-button v-if="item.directory" text type="primary" size="small" @click.stop="enterDir(item)">打开</el-button>
+              <button v-if="item.directory" type="button" class="fs-link-btn" @click.stop="enterDir(item)">打开</button>
               <template v-else>
-                <el-button v-if="allowPreview" text type="primary" size="small" @click.stop="openPreview(item)">预览</el-button>
-                <el-button v-if="allowDownload" text type="primary" size="small" @click.stop="handleDownload(item)">下载</el-button>
-                <el-button text type="primary" size="small" @click.stop="openOneTime(item)">一次性链接</el-button>
+                <button v-if="allowPreview" type="button" class="fs-link-btn" @click.stop="openPreview(item)">预览</button>
+                <button v-if="allowDownload" type="button" class="fs-link-btn" @click.stop="handleDownload(item)">下载</button>
+                <button type="button" class="fs-link-btn" @click.stop="openOneTime(item)">一次性链接</button>
               </template>
-              <el-button text type="danger" size="small" @click.stop="handleDelete(item)">删除</el-button>
+              <button type="button" class="fs-link-btn fs-link-btn--danger" @click.stop="handleDelete(item)">删除</button>
             </span>
           </div>
           <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">当前目录为空</div>

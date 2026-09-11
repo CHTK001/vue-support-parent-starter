@@ -522,8 +522,8 @@ onMounted(() => {
           ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
           ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
         ]" />
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-          <ReButton icon="Plus" :show-text="true" size="small" @click="openIdentityAdd">新增身份</ReButton>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+          <ReButton icon="Key" :show-text="true" size="small" plain title="统一在左侧「账号管理」维护" @click="router.push('/account')">账号管理</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b">
             <ReButton icon="Unlink" :show-text="true" size="small" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
           </template>
@@ -535,36 +535,8 @@ onMounted(() => {
       </template>
     </ReDialog>
 
-    <!-- 身份管理（账号密码 / 私钥）弹窗 -->
-    <ReDialog v-model="identityVisible" title="账号 / 密钥（登录身份）" width="500px">
-      <div v-if="identities.length">
-        <div class="muted" style="margin-bottom:8px">已有身份</div>
-        <div v-for="i in identities" :key="i.id" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle)">
-          <ReTag v-if="i.msServerIdentityAuthType === 'PUBLIC_KEY'" type="warning" size="small" effect="plain">🔐 私钥</ReTag>
-          <ReTag v-else-if="i.msServerIdentityAuthType === 'PASSWORD'" type="info" size="small" effect="plain">🔑 密码</ReTag>
-          <ReTag v-else type="primary" size="small" effect="plain">{{ authTypeLabel(i.msServerIdentityAuthType) }}</ReTag>
-          <b>{{ i.msServerIdentityName }}</b>
-          <span class="muted">{{ i.msServerIdentityUsername }}</span>
-          <ReButton icon="Delete" layout="square" size="small" type="danger" style="margin-left:auto" title="删除" @click="removeIdentity(i.id)" />
-        </div>
-      </div>
-      <div style="margin:14px 0 10px"><b>新增身份</b></div>
-      <ReForm label-width="auto">
-        <ReFormItem label="名称"><ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root-prod" /></ReFormItem>
-        <ReFormItem label="类型">
-          <ReSelect v-model="identityForm.msServerIdentityAuthType" size="small" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
-        </ReFormItem>
-        <ReFormItem label="用户名"><ReInput v-model="identityForm.msServerIdentityUsername" placeholder="如 root / ubuntu" /></ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
-          <ReInput v-model="identityForm.msServerIdentityPassword" type="password" show-password placeholder="登录口令" />
-        </ReFormItem>
-        <ReFormItem label="备注"><ReInput v-model="identityForm.msServerIdentityRemark" /></ReFormItem>
-      </ReForm>
-      <template #footer>
-        <ReButton @click="identityVisible = false">取消</ReButton>
-        <ReButton type="primary" icon="Check" :show-text="true" :loading="identitySaving" @click="submitIdentity">保存身份</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 采集配置（行操作「更多」入口） -->
+    <HostConfigDialog v-model="configVisible" :host="configHost" @saved="fetchAll" />
   </div>
 </template>
 
