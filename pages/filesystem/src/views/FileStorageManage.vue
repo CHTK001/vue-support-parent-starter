@@ -9,7 +9,7 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Document,
@@ -37,6 +37,62 @@ import {
 import type { BucketConfig, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
+
+/**
+ * 递归目录树节点组件（KodExplorer 式左侧文件树）。
+ *
+ * <p>通过 props.node 渲染当前目录，若有 children 递归展开为子节点；
+ * 点击节点通过 {@code select} 事件通知父组件切换当前目录。</p>
+ */
+const FsTreeNode = defineComponent({
+  name: "FsTreeNode",
+  props: {
+    node: { type: Object as () => TreeItem, required: true },
+    depth: { type: Number, default: 0 },
+    activePath: { type: String, default: "" },
+  },
+  emits: ["select"],
+  setup(props, { emit }) {
+    const open = ref(false);
+    const hasChildren = computed(() =>
+      Array.isArray(props.node.children) && props.node.children.length > 0);
+    const isActive = computed(() => props.activePath === props.node.path);
+    function toggle(): void { if (hasChildren.value) open.value = !open.value; }
+    function go(): void { emit("select", props.node.path, props.node.name); }
+    return { open, hasChildren, isActive, toggle, go };
+  },
+  render() {
+    const props = this.$props as { node: TreeItem; depth: number; activePath: string };
+    const ind = (8 + (props.depth || 0) * 14) + "px";
+    const row = h("div", {
+      class: ["fs-tree-node__row", this.isActive ? "fs-tree-node__row--active" : ""],
+      style: { paddingLeft: ind },
+      onClick: this.go,
+    }, [
+      h("span", {
+        class: ["fs-tree-node__arrow", this.open ? "fs-tree-node__arrow--open" : ""],
+        onClick: (e: MouseEvent) => { e.stopPropagation(); this.toggle(); },
+      }, this.hasChildren
+        ? h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+            h("polyline", { points: "9 18 15 12 9 6" }))
+        : null),
+      h("svg", { class: "fs-tree-node__icon", viewBox: "0 0 24 24", fill: "currentColor" },
+        h("path", { d: "M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z" })),
+      h("span", { class: "fs-tree-node__label", title: props.node.name }, props.node.name),
+    ]);
+    const children = this.open && this.hasChildren
+      ? h("div", {}, (props.node.children || []).map((child) =>
+          h(FsTreeNode, {
+            key: child.path,
+            node: child,
+            depth: (props.depth || 0) + 1,
+            activePath: props.activePath,
+            onSelect: (p: string, n: string) => this.$emit("select", p, n),
+          })))
+      : null;
+    return h("div", {}, [row, children]);
+  },
+});
 
 /** 预览类型 */
 type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "archive" | "unknown";
