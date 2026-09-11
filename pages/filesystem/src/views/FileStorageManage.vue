@@ -12,19 +12,11 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  Back,
-  Delete,
   Document,
   Download,
-  Folder,
-  FolderOpened,
-  Link,
   Refresh,
   Search,
   Upload,
-  Grid,
-  List,
-  Setting,
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_BUCKET,
