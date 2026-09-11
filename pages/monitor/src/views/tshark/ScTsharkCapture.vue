@@ -538,12 +538,12 @@ function resizeCharts() {
   transition: all 0.2s ease;
 }
 .status-ok {
-  color: var(--status-success);
-  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+  color: var(--status-success, #16c916);
+  background: rgba(22, 201, 22, 0.10);
 }
 .status-bad {
-  color: var(--status-error);
-  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+  color: var(--status-error, #ff4c4c);
+  background: rgba(255, 76, 76, 0.10);
 }
 .status-dot {
   width: 7px;
@@ -600,7 +600,7 @@ function resizeCharts() {
   min-height: 320px;
 }
 .empty-illustration {
-  color: color-mix(in srgb, var(--brand-500) 30%, transparent);
+  color: rgba(99, 102, 241, 0.30);
   opacity: 0.7;
 }
 
@@ -653,20 +653,20 @@ function resizeCharts() {
   transition: opacity 0.18s ease;
 }
 .session-item:hover {
-  border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  border-color: rgba(99, 102, 241, 0.45);
   background: var(--bg-hover);
   transform: translateY(-1px);
 }
 .session-item:hover::before { opacity: 0.5; }
 .session-item:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 25%, transparent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
   border-color: var(--brand-500);
 }
 .session-item.active {
   border-color: var(--brand-500);
-  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500) 30%, transparent);
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.30);
 }
 .session-item.active::before { opacity: 1; }
 
@@ -690,7 +690,7 @@ function resizeCharts() {
   height: 8px;
   border-radius: 50%;
 }
-.state-run { background: var(--status-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 20%, transparent); animation: pulse 2s ease-in-out infinite; }
+.state-run { background: var(--status-success); box-shadow: 0 0 0 3px rgba(22, 201, 22, 0.20); animation: pulse 2s ease-in-out infinite; }
 .state-stop { background: var(--text-tertiary); }
 
 .session-meta {
