@@ -6,7 +6,7 @@
  * 使用方式与 default 主题对齐（v-model 控制显隐），
  * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
-import { ref, toRefs, computed, onMounted, onUnmounted, type Component } from "vue";
+import { ref, toRefs, computed, watch, onMounted, onUnmounted, type Component } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
@@ -71,6 +71,13 @@ const props = withDefaults(
 /** v-model 控制显隐（与 default 主题 API 对齐） */
 const visible = defineModel<boolean>({ default: false });
 
+/**
+ * 本地可见性镜像：关闭时本地立即生效，不依赖父组件是否响应 update:modelValue
+ * （防御 v-model 绑定只读 props 等错误用法——父不响应时弹窗也能关闭；父重新打开时再同步）
+ */
+const localOpen = ref(false);
+watch(visible, (v) => { localOpen.value = v; }, { immediate: true });
+
 const { loading, width } = toRefs(props);
 const confirmLoading = ref(loading);
 
@@ -110,6 +117,7 @@ const emit = defineEmits<{
 }>();
 
 function koiClose() {
+  localOpen.value = false;
   visible.value = false;
   clearMinimized();
 }
@@ -130,6 +138,7 @@ function koiOpen() {
 /** 编程式快速关闭（跳过二次确认） */
 function koiQuickClose() {
   clearMinimized();
+  localOpen.value = false;
   visible.value = false;
 }
 
@@ -140,7 +149,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   <ElDialog
     class="koi-dialog-shell"
     :class="{ 'is-headless': headless }"
-    :model-value="visible"
+    :model-value="localOpen"
     :title="title"
     :width="dialogWidth"
     :top="top"
