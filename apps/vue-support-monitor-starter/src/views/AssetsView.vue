@@ -35,6 +35,10 @@ export interface Host {
   serverHostLastCollectTime?: string | null;
   serverHostOnlineEnabled?: number;
   serverHostOnlineInterval?: number;
+  serverHostDelayEnabled?: number;
+  serverHostDelayInterval?: number;
+  serverHostDelayMs?: number | null;
+  serverHostLastDelayTime?: string | null;
   serverHostAgentEnabled: number;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
