@@ -16,6 +16,8 @@ export const testConnectHost = (id: number) =>
   http().post(`${B}/host/${id}/test-connect`).then(r => unwrapResult<string>(r));
 export const detectHost = (id: number) =>
   http().post(`${B}/host/${id}/detect`).then(r => unwrapResult<any>(r));
+export const scanPorts = (id: number) =>
+  http().post(`${B}/host/${id}/scan-ports`).then(r => unwrapResult<any>(r));
 export const refreshHostPublicIp = (id: number) =>
   http().post(`${B}/host/${id}/refresh-public-ip`).then(r => unwrapResult<string>(r));
 export const pushAgentData = (agentKey: string, payload: Record<string, unknown>) =>
