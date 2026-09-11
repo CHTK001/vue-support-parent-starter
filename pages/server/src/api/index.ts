@@ -58,11 +58,17 @@ export const saveIdentity = (id: number | null, d: any) => id != null
   : http().post(`${B}/identity`).data(d).then(r => unwrapResult<any>(r));
 export const delIdentity = (id: number) => http().delete(`${B}/identity/${id}`).then(r => unwrapResult<boolean>(r));
 
-// ===== 邮箱账号信箱 (MAILBOX 身份, IMAP) =====
+// ===== 邮箱账号信箱 (MAILBOX 身份, IMAP / 临时邮箱 API) =====
 export const listMailbox = (identityId: number, folder?: string, limit = 20) =>
   http().get(`${B}/identity/${identityId}/mailbox/list?folder=${folder ?? ''}&limit=${limit}`).then(r => unwrapResult<any[]>(r));
 export const getMailboxMessage = (identityId: number, folder?: string, subject?: string) =>
   http().get(`${B}/identity/${identityId}/mailbox/message?folder=${folder ?? ''}${subject ? `&subject=${encodeURIComponent(subject)}` : ''}`).then(r => unwrapResult<any>(r));
+export const createTempEmail = (provider: string) =>
+  http().post(`${B}/identity/mailbox/temp-create?provider=${encodeURIComponent(provider)}`).then(r => unwrapResult<{ email: string; provider: string }>(r));
+export const registerMailbox = (identityId: number, clientId: string) =>
+  http().put(`${B}/identity/${identityId}/mailbox/register?clientId=${encodeURIComponent(clientId)}`).then(r => unwrapResult<void>(r));
+export const unregisterMailbox = (clientId: string) =>
+  http().delete(`${B}/identity/mailbox/unregister?clientId=${encodeURIComponent(clientId)}`).then(r => unwrapResult<void>(r));
 
 // ===== SFTP 文件管理 =====
 export const sftpList = (hostId: number, path: string, identityId?: number | null) =>

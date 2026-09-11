@@ -203,7 +203,7 @@ export async function getBucketConfig(bucket: string): Promise<BucketConfig> {
   try {
     const res = await storageHttp()
       .get(objectPath(bucket))
-      .query({ format: "config" })
+      .query({ config: "true" })
       .then<BucketConfig>((r) => r.data);
     return res;
   } catch (e) {

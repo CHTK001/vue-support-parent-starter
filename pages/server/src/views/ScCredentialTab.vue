@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { message } from '@repo/core';
-import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage } from '../api';
+import { getKeys, saveKey, delKey, getIdentities, saveIdentity, delIdentity, generateKeyPair, listMailbox, getMailboxMessage, createTempEmail, registerMailbox, unregisterMailbox } from '../api';
 
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
@@ -18,6 +18,8 @@ interface IdentityRow {
   msServerIdentityAuthType: string;
   msServerIdentityUsername: string;
   msServerIdentityKeyId?: number | null;
+  msServerIdentityEmailSource?: string | null;
+  msServerIdentityProvider?: string | null;
   msServerIdentityImapHost?: string | null;
   msServerIdentityImapPort?: number | null;
 }
@@ -40,6 +42,8 @@ const identityForm = ref({
   msServerIdentityUsername: 'root',
   msServerIdentityPassword: '',
   msServerIdentityKeyId: null as number | null,
+  msServerIdentityEmailSource: 'IMAP',
+  msServerIdentityProvider: '',
   msServerIdentityImapHost: '',
   msServerIdentityImapPort: null as number | null,
 });
@@ -87,6 +91,53 @@ function authTypeTagType(v: string): 'success' | 'info' | 'warning' | 'primary' 
   if (v === 'MAILBOX') return 'success';
   return 'primary';
 }
+
+/** 临时邮箱服务商选项 */
+const tempProviderOptions = [
+  { value: 'fce', label: 'FreeCustom.Email (FCE)' },
+  { value: 'mailtm', label: 'Mail.tm' },
+  { value: 'luckmail', label: 'LuckMail' },
+  { value: 'mailnest', label: 'MailNest' },
+];
+
+/** 创建临时邮箱加载状态 */
+const tempEmailLoading = ref(false);
+
+/** 认证类型变化时重置邮箱来源 */
+function onAuthTypeChange(): void {
+  if (identityForm.value.msServerIdentityAuthType === 'MAILBOX') {
+    if (!identityForm.value.msServerIdentityEmailSource) {
+      identityForm.value.msServerIdentityEmailSource = 'IMAP';
+    }
+  } else {
+    identityForm.value.msServerIdentityEmailSource = 'IMAP';
+    identityForm.value.msServerIdentityProvider = '';
+    identityForm.value.msServerIdentityImapHost = '';
+    identityForm.value.msServerIdentityImapPort = null;
+  }
+}
+
+/**
+ * 创建临时邮箱地址(调后端 API → 服务商生成)
+ */
+async function handleCreateTempEmail(): Promise<void> {
+  const provider = identityForm.value.msServerIdentityProvider;
+  if (!provider) {
+    message.warning('请先选择临时邮箱服务商');
+    return;
+  }
+  tempEmailLoading.value = true;
+  try {
+    const result = await createTempEmail(provider);
+    identityForm.value.msServerIdentityUsername = result.email || '';
+    message.success('临时邮箱创建成功: ' + (result.email || ''));
+  } catch (e) {
+    message.error((e as Error).message);
+  } finally {
+    tempEmailLoading.value = false;
+  }
+}
+
 
 /** 可引用密钥选项 */
 const keyRefOptions = ref<Array<{ label: string; value: number }>>([]);
@@ -191,6 +242,8 @@ function openIdentityForm(row?: IdentityRow): void {
     msServerIdentityUsername: row?.msServerIdentityUsername ?? 'root',
     msServerIdentityPassword: '',
     msServerIdentityKeyId: row?.msServerIdentityKeyId ?? null,
+    msServerIdentityEmailSource: row?.msServerIdentityEmailSource ?? 'IMAP',
+    msServerIdentityProvider: row?.msServerIdentityProvider ?? '',
     msServerIdentityImapHost: row?.msServerIdentityImapHost ?? '',
     msServerIdentityImapPort: row?.msServerIdentityImapPort ?? null,
   };
@@ -243,9 +296,17 @@ const mailboxLimit = ref(20);
 const selectedEmail = ref<any>(null);
 /** 邮件详情加载状态 */
 const mailboxDetailLoading = ref(false);
+/** SSE 连接 clientId */
+const mailboxClientId = ref<string>('');
+/** SSE EventSource 实例 */
+const mailboxEventSource = ref<EventSource | null>(null);
+/** SSE 连接状态(connecting/connected/closed) */
+const mailboxSseStatus = ref<string>('closed');
+/** SSE 推送的新邮件计数(未读红点) */
+const mailboxNewEmailCount = ref(0);
 
 /**
- * 打开邮件箱对话框
+ * 打开邮件箱对话框(建立 SSE 实时推送连接)
  *
  * @param row 邮箱身份行
  */
@@ -254,8 +315,71 @@ async function openMailbox(row: IdentityRow): Promise<void> {
   mailboxFolder.value = 'INBOX';
   mailboxLimit.value = 20;
   selectedEmail.value = null;
+  mailboxNewEmailCount.value = 0;
   mailboxDialogVisible.value = true;
   await loadMailboxList();
+  connectMailboxSse(row.id);
+}
+
+/**
+ * 建立邮箱 SSE 连接(实时推送新邮件)
+ *
+ * @param identityId 邮箱身份 ID
+ */
+function connectMailboxSse(identityId: number): void {
+  disconnectMailboxSse();
+  const clientId = 'mailbox-' + identityId + '-' + Date.now();
+  mailboxClientId.value = clientId;
+  mailboxSseStatus.value = 'connecting';
+  const es = new EventSource('/sse/connect?clientId=' + encodeURIComponent(clientId));
+  mailboxEventSource.value = es;
+  es.addEventListener('connected', () => {
+    mailboxSseStatus.value = 'connected';
+    registerMailbox(identityId, clientId).catch(() => {});
+  });
+  es.addEventListener('mailbox', (evt: MessageEvent) => {
+    try {
+      const emails = JSON.parse(evt.data || '[]');
+      if (Array.isArray(emails) && emails.length > 0) {
+        const list = mailboxEmails.value;
+        mailboxEmails.value = [...emails, ...list].slice(0, 100);
+        mailboxNewEmailCount.value += emails.length;
+        message.info('收到 ' + emails.length + ' 封新邮件');
+      }
+    } catch { /* 忽略解析异常 */ }
+  });
+  es.onerror = () => {
+    mailboxSseStatus.value = 'closed';
+  };
+}
+
+/**
+
+/**
+ * 邮件箱对话框关闭回调(断开 SSE)
+ */
+function onMailboxDialogClosed(): void {
+  selectedEmail.value = null;
+  mailboxNewEmailCount.value = 0;
+  disconnectMailboxSse();
+}
+
+/**
+ * 断开邮箱 SSE 连接
+ */
+function disconnectMailboxSse(): void {
+ * 断开邮箱 SSE 连接
+ */
+function disconnectMailboxSse(): void {
+  if (mailboxEventSource.value) {
+    mailboxEventSource.value.close();
+    mailboxEventSource.value = null;
+  }
+  if (mailboxClientId.value) {
+    unregisterMailbox(mailboxClientId.value).catch(() => {});
+  }
+  mailboxClientId.value = '';
+  mailboxSseStatus.value = 'closed';
 }
 
 /**
@@ -393,10 +517,23 @@ async function viewMessage(email: any): Promise<void> {
           <ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
         </ReFormItem>
         <ReFormItem label="认证类型">
-          <ReSelect v-model="identityForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
+          <ReSelect v-model="identityForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" @change="onAuthTypeChange()" />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="邮箱来源">
+          <ReRadioGroup v-model="identityForm.msServerIdentityEmailSource" button capsule>
+            <ReRadioButton value="IMAP">真实邮箱(IMAP)</ReRadioButton>
+            <ReRadioButton value="TEMP">临时邮箱(API)</ReRadioButton>
+          </ReRadioGroup>
         </ReFormItem>
         <ReFormItem label="用户名">
-          <ReInput v-model="identityForm.msServerIdentityUsername" />
+          <div v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource === 'TEMP'" class="temp-email-row">
+            <ReInput v-model="identityForm.msServerIdentityUsername" placeholder="点击右侧按钮创建临时邮箱地址" />
+            <ReButton size="small" type="primary" :loading="tempEmailLoading" @click="handleCreateTempEmail()">创建临时邮箱</ReButton>
+          </div>
+          <ReInput v-else v-model="identityForm.msServerIdentityUsername" />
+        </ReFormItem>
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource === 'TEMP'" label="服务商">
+          <ReSelect v-model="identityForm.msServerIdentityProvider" :data="tempProviderOptions" style="width:100%" placeholder="临时邮箱服务商" />
         </ReFormItem>
         <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
           <ReInput
@@ -406,7 +543,7 @@ async function viewMessage(email: any): Promise<void> {
             :placeholder="editingIdentityId ? '留空保持不变' : '登录密码'"
           />
         </ReFormItem>
-        <ReFormItem v-else-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="授权码">
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="授权码">
           <ReInput
             v-model="identityForm.msServerIdentityPassword"
             type="password"
@@ -414,13 +551,13 @@ async function viewMessage(email: any): Promise<void> {
             placeholder="邮箱 IMAP 授权码（非登录密码）"
           />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="IMAP 服务器">
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="IMAP 服务器">
           <ReInput v-model="identityForm.msServerIdentityImapHost" placeholder="留空则按邮箱域名自动推断（如 imap.qq.com）" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="IMAP 端口">
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="IMAP 端口">
           <ReInput v-model.number="identityForm.msServerIdentityImapPort" placeholder="默认 993" />
         </ReFormItem>
-        <ReFormItem v-else label="引用密钥">
+        <ReFormItem v-if="identityForm.msServerIdentityAuthType !== 'MAILBOX' && identityForm.msServerIdentityAuthType !== 'PASSWORD'" label="引用密钥">
           <ReSelect v-model="identityForm.msServerIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
         </ReFormItem>
       </ReForm>
@@ -463,19 +600,23 @@ async function viewMessage(email: any): Promise<void> {
     </ReDialog>
   </div>
 
-    <!-- 邮箱账号邮件箱对话框 -->
-    <ReDialog v-model="mailboxDialogVisible" title="邮箱收件箱" width="800" :height="560" :close-on-click-modal="false" :footer-hidden="true" @closed="selectedEmail = null">
+    <!-- 邮箱账号邮件箱对话框(SSE 实时推送) -->
+    <ReDialog v-model="mailboxDialogVisible" title="邮箱收件箱" width="800" :height="560" :close-on-click-modal="false" :footer-hidden="true" @closed="onMailboxDialogClosed()">
       <div class="mailbox">
         <div class="mailbox-toolbar">
           <ReSelect v-model="mailboxFolder" :data="[{label:'收件箱',value:'INBOX'},{label:'已发送',value:'Sent'},{label:'草稿',value:'Drafts'}]" style="width:150px" @change="loadMailboxList()" />
           <ReInputNumber v-model="mailboxLimit" :min="5" :max="100" size="small" style="width:100px" />
           <ReButton size="small" :loading="mailboxLoading" @click="loadMailboxList()">刷新</ReButton>
+          <span v-if="mailboxSseStatus === 'connected'" class="sse-status sse-connected">● SSE 实时推送中</span>
+          <span v-else-if="mailboxSseStatus === 'connecting'" class="sse-status sse-connecting">● 连接中...</span>
+          <span v-else class="sse-status sse-offline">● 离线</span>
+          <span v-if="mailboxNewEmailCount > 0" class="sse-badge">{{ mailboxNewEmailCount }} 封新邮件</span>
         </div>
         <div v-if="selectedEmail" class="mailbox-detail">
           <div class="mailbox-detail-head">
             <strong>{{ selectedEmail.subject || '(无主题)' }}</strong>
             <span class="mailbox-detail-meta">发件人：{{ selectedEmail.from }} ｜ 日期：{{ selectedEmail.date }} ｜ 大小：{{ selectedEmail.size }} bytes</span>
-            <ReButton link size="small" @click="selectedEmail = null">返回列表</ReButton>
+            <ReButton link size="small" @click="selectedEmail = null; mailboxNewEmailCount = 0">返回列表</ReButton>
           </div>
           <ReLoading :loading="mailboxDetailLoading">
             <pre class="mailbox-content">{{ selectedEmail.content }}</pre>
