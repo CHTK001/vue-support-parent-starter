@@ -109,4 +109,4 @@ start-dev*.bat
 **/null
 
 
-e2e-tshark.png
+e2e-tshark*
