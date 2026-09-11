@@ -318,6 +318,16 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
   } catch (e) { ElMessage.error(String((e as Error)?.message ?? e)); }
 }
 
+// ---- 更多菜单：采集配置（硬件采集与检测）----
+const configVisible = ref(false);
+const configHost = ref<Host | null>(null);
+function onMoreCommand(cmd: string, row: Host): void {
+  if (cmd === "collect") {
+    configHost.value = row;
+    configVisible.value = true;
+  }
+}
+
 function openAdd(): void {
   formIsEdit.value = false;
   editHost.value = null;
