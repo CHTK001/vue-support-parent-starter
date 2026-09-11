@@ -1,6 +1,5 @@
 /**
- * 监控管理平台路由 —— 对齐 prototype.html 7 页
- * / 概览 · /alarms 告警 · /redis Redis · /tshark 抓包 · /assets 资产
+ * 监控管理平台路由 —�?对齐 prototype.html 7 �? * / 概览 · /alarms 告警 · /redis Redis · /tshark 抓包 · /assets 资产
  * · /host/:id 主机详情 · /terminal 远控 · /config 监控配置
  */
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router";
