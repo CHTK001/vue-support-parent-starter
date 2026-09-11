@@ -475,6 +475,8 @@ function resizeCharts() {
   justify-content: flex-end;
 }
 .iface-select { width: 150px; }
+.iface-select :deep(.el-select__wrapper) { box-shadow: none !important; }
+.iface-select :deep(.el-select.is-focused .el-select__wrapper) { box-shadow: none !important; }
 .filter-input { width: 220px; }
 .count-input { width: 110px; }
 
