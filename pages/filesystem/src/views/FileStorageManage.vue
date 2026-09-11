@@ -186,10 +186,18 @@ function fileType(name: string): string {
   }
 }
 
-/** 大图标缩略图 URL（?preview=true，压缩文件返回空走图标兜底） */
+/**
+ * 大图标缩略图 URL：
+ *  - 图片：直接用原图 URL（浏览器原生渲染，不做 SPI 转 HTML）
+ *  - office/pdf/text/video/audio/font：?preview=true 走 SPI 预览
+ *  - archive/unknown：空走图标兜底
+ */
 function objectThumbUrl(name: string): string {
-  if (isArchive(name) || !isPreviewable(name)) return "";
-  return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
+  if (isArchive(name)) return "";
+  const k = kindOf(name);
+  if (k === "image") return objectUrl(bucket.value, fullKey(name), false);
+  if (isPreviewable(name)) return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
+  return "";
 }
 
 /** 排序点击切换 */
@@ -1498,5 +1506,40 @@ onMounted(() => {
   .fs-files--medium { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
   .fs-details-head, .fs-details-row { grid-template-columns: minmax(0, 1fr) 84px 60px; }
   .fs-details-head__type, .fs-details-row__type { display: none; }
+}
+
+/* ---- Element Plus 弹窗圆角（深度选择器穿透 scoped） ---- */
+.fs-app :deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 0;
+}
+.fs-app :deep(.el-dialog__header) {
+  padding: 16px 20px 12px;
+  margin-right: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.fs-app :deep(.el-dialog__title) {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.fs-app :deep(.el-dialog__headerbtn) {
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.fs-app :deep(.el-dialog__headerbtn:hover) {
+  background: #f1f5f9;
+}
+.fs-app :deep(.el-dialog__body) {
+  padding: 18px 20px;
+}
+.fs-app :deep(.el-dialog__footer) {
+  padding: 12px 20px 16px;
+  border-top: 1px solid #f1f5f9;
 }
 </style>
