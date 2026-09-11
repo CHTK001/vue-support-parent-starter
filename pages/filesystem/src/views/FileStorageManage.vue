@@ -140,20 +140,72 @@ function kindOf(name: string): PreviewKind {
   if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"].includes(ext)) return "video";
   if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
   if (["ttf", "otf", "woff", "woff2", "eot"].includes(ext)) return "font";
+  if (["zip", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz", "7z", "rar"].includes(ext)) return "archive";
   return "unknown";
 }
 
-/** 根据扩展名返回 SVG 图标类名（用于网格模式大图标） */
+/** 是否压缩文件（大图标模式下不参与 ?preview 预览） */
+function isArchive(name: string): boolean {
+  return kindOf(name) === "archive";
+}
+
+/** 直接可见文件类型（大图标可尝试 ?preview 渲染缩略图） */
+function isPreviewable(name: string): boolean {
+  const k = kindOf(name);
+  return !["archive", "unknown"].includes(k);
+}
+
+/** 根据扩展名返回 SVG 图标类名 */
 function fileIconClass(name: string, isDir: boolean): string {
   if (isDir) return "icon-folder";
+  switch (kindOf(name)) {
+    case "image": return "icon-image";
+    case "video": return "icon-video";
+    case "audio": return "icon-audio";
+    case "pdf": return "icon-pdf";
+    case "office": return "icon-office";
+    case "archive": return "icon-archive";
+    case "text": return "icon-text";
+    default: return "icon-file";
+  }
+}
+
+/** 文件类型描述（详细信息列 / 排序提示） */
+function fileType(name: string): string {
+  if (isArchive(name)) return "压缩文件";
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"].includes(ext)) return "icon-image";
-  if (["mp4", "webm", "mov", "avi", "mkv"].includes(ext)) return "icon-video";
-  if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "icon-audio";
-  if (ext === "pdf") return "icon-pdf";
-  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt"].includes(ext)) return "icon-office";
-  if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) return "icon-archive";
-  return "icon-file";
+  switch (kindOf(name)) {
+    case "image": return "图片";
+    case "text": return "文本";
+    case "pdf": return "PDF 文档";
+    case "office": return "Office 文档";
+    case "video": return "视频";
+    case "audio": return "音频";
+    case "font": return "字体";
+    default: return ext ? `${ext.toUpperCase()} 文件` : "文件";
+  }
+}
+
+/** 大图标缩略图 URL（?preview=true，压缩文件返回空走图标兜底） */
+function objectThumbUrl(name: string): string {
+  if (isArchive(name) || !isPreviewable(name)) return "";
+  return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
+}
+
+/** 排序点击切换 */
+function toggleSort(key: "name" | "size" | "lastModified"): void {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortKey.value = key;
+    sortOrder.value = "asc";
+  }
+}
+
+/** 排序指示箭头 */
+function sortArrow(key: "name" | "size" | "lastModified"): string {
+  if (sortKey.value !== key) return "";
+  return sortOrder.value === "asc" ? "↑" : "↓";
 }
 
 function fullKey(name: string): string {
@@ -430,39 +482,63 @@ onMounted(() => {
           :aria-label="'搜索文件'"
         />
         <div class="fs-toolbar-sep" aria-hidden="true" />
-        <div class="fs-view-toggle" role="group" aria-label="视图切换">
+        <div class="fs-view-toggle" role="group" aria-label="查看方式">
           <button
             type="button"
             class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'grid' }"
-            title="网格视图"
-            :aria-label="'网格视图'"
-            :aria-pressed="viewMode === 'grid'"
-            @click="viewMode = 'grid'"
+            :class="{ 'fs-view-btn--active': viewMode === 'details' }"
+            title="详细信息"
+            :aria-label="'详细信息'"
+            :aria-pressed="viewMode === 'details'"
+            @click="viewMode = 'details'"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+              <circle cx="2.5" cy="6" r="0.5" fill="currentColor"/><circle cx="2.5" cy="12" r="0.5" fill="currentColor"/><circle cx="2.5" cy="18" r="0.5" fill="currentColor"/>
             </svg>
           </button>
           <button
             type="button"
             class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'list' }"
-            title="列表视图"
-            :aria-label="'列表视图'"
-            :aria-pressed="viewMode === 'list'"
-            @click="viewMode = 'list'"
+            :class="{ 'fs-view-btn--active': viewMode === 'largeIcons' }"
+            title="大图标"
+            :aria-label="'大图标'"
+            :aria-pressed="viewMode === 'largeIcons'"
+            @click="viewMode = 'largeIcons'"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <line x1="8" y1="6" x2="21" y2="6"/>
-              <line x1="8" y1="12" x2="21" y2="12"/>
-              <line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/>
-              <line x1="3" y1="12" x2="3.01" y2="12"/>
-              <line x1="3" y1="18" x2="3.01" y2="18"/>
+              <rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/>
+              <rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="fs-view-btn"
+            :class="{ 'fs-view-btn--active': viewMode === 'mediumIcons' }"
+            title="中图标"
+            :aria-label="'中图标'"
+            :aria-pressed="viewMode === 'mediumIcons'"
+            @click="viewMode = 'mediumIcons'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="10" y="2" width="6" height="6" rx="1.2"/><rect x="18" y="2" width="4" height="6" rx="1.2"/>
+              <rect x="2" y="10" width="6" height="6" rx="1.2"/><rect x="10" y="10" width="6" height="6" rx="1.2"/><rect x="18" y="10" width="4" height="6" rx="1.2"/>
+              <rect x="2" y="18" width="6" height="4" rx="1.2"/><rect x="10" y="18" width="6" height="4" rx="1.2"/><rect x="18" y="18" width="4" height="4" rx="1.2"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="fs-view-btn"
+            :class="{ 'fs-view-btn--active': viewMode === 'smallIcons' }"
+            title="小图标"
+            :aria-label="'小图标'"
+            :aria-pressed="viewMode === 'smallIcons'"
+            @click="viewMode = 'smallIcons'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="4" cy="6" r="1.2" fill="currentColor"/><line x1="8" y1="6" x2="20" y2="6"/>
+              <circle cx="4" cy="12" r="1.2" fill="currentColor"/><line x1="8" y1="12" x2="20" y2="12"/>
+              <circle cx="4" cy="18" r="1.2" fill="currentColor"/><line x1="8" y1="18" x2="20" y2="18"/>
             </svg>
           </button>
         </div>
@@ -528,91 +604,125 @@ onMounted(() => {
           <span class="fs-pathbar__count">{{ filteredObjects.length }} 项</span>
         </div>
 
-        <!-- 网格视图 -->
-        <div v-if="viewMode === 'grid'" class="fs-files fs-files--grid" v-loading="loading">
+        <!-- 详细信息（Details） -->
+        <div v-if="viewMode === 'details'" class="fs-files fs-files--details" v-loading="loading">
+          <div class="fs-details-head">
+            <span class="fs-details-head__col fs-details-head__name" @click="toggleSort('name')">
+              名称 <span class="fs-sort-arrow">{{ sortArrow('name') }}</span>
+            </span>
+            <span class="fs-details-head__col fs-details-head__type">类型</span>
+            <span class="fs-details-head__col fs-details-head__size" @click="toggleSort('size')">
+              大小 <span class="fs-sort-arrow">{{ sortArrow('size') }}</span>
+            </span>
+            <span class="fs-details-head__col fs-details-head__time" @click="toggleSort('lastModified')">
+              修改时间 <span class="fs-sort-arrow">{{ sortArrow('lastModified') }}</span>
+            </span>
+          </div>
+          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>当前目录为空</span>
+          </div>
           <div
             v-for="item in filteredObjects"
             :key="item.name"
-            class="fs-card"
-            :class="{ 'fs-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
-            role="button"
-            tabindex="0"
-            :aria-label="item.directory ? `打开目录 ${item.name}` : `文件 ${item.name}`"
-            @click="item.directory ? enterDir(item) : null"
+            class="fs-details-row"
+            :class="{ 'fs-details-row--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            role="button" tabindex="0"
+            :aria-label="item.name"
+            @click="item.directory ? enterDir(item) : openPreview(item)"
             @dblclick="item.directory ? enterDir(item) : openPreview(item)"
             @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
             @contextmenu="openContextMenu($event, item)"
           >
-            <div class="fs-card__icon" :class="fileIconClass(item.name, item.directory)">
-              <!-- 目录 SVG -->
-              <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
-              </svg>
-              <!-- 文件 SVG -->
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-            </div>
-            <div class="fs-card__name" :title="item.name">{{ item.name }}</div>
-            <div class="fs-card__meta">
-              <span v-if="!item.directory">{{ formatSize(item.size) }}</span>
-              <span v-if="item.lastModified" class="fs-card__date">{{ formatTime(item.lastModified) }}</span>
-            </div>
-          </div>
-          <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">
-            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>当前目录为空</span>
-            <small>点击右上角「上传」添加文件</small>
+            <span class="fs-details-row__name">
+              <svg v-if="item.directory" class="fs-details-row__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/></svg>
+              <svg v-else class="fs-details-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+            </span>
+            <span class="fs-details-row__type">{{ item.directory ? '文件夹' : fileType(item.name) }}</span>
+            <span class="fs-details-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
+            <span class="fs-details-row__time">{{ formatTime(item.lastModified) }}</span>
           </div>
         </div>
 
-        <!-- 列表视图 -->
-        <div v-else class="fs-files fs-files--list" v-loading="loading">
-          <div class="fs-table-head">
-            <span class="fs-table-head__name">名称</span>
-            <span class="fs-table-head__size">大小</span>
-            <span class="fs-table-head__time">修改时间</span>
-            <span class="fs-table-head__actions">操作</span>
+        <!-- 大图标（Large Icons）- 使用 ?preview 渲染缩略图 -->
+        <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" v-loading="loading">
+          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>当前目录为空</span>
           </div>
           <div
             v-for="item in filteredObjects"
             :key="item.name"
-            class="fs-table-row"
-            :class="{ 'fs-table-row--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
-            role="button"
-            tabindex="0"
+            class="fs-lg-card"
+            :class="{ 'fs-lg-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            role="button" tabindex="0"
             :aria-label="item.name"
-            @click="item.directory ? enterDir(item) : null"
+            @click="item.directory ? enterDir(item) : openPreview(item)"
             @dblclick="item.directory ? enterDir(item) : openPreview(item)"
             @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
             @contextmenu="openContextMenu($event, item)"
           >
-            <span class="fs-table-row__name">
-              <svg v-if="item.directory" class="fs-table-row__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/>
-              </svg>
-              <svg v-else class="fs-table-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              <span :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
-            </span>
-            <span class="fs-table-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
-            <span class="fs-table-row__time">{{ formatTime(item.lastModified) }}</span>
-            <span class="fs-table-row__actions">
-              <button v-if="item.directory" type="button" class="fs-link-btn" @click.stop="enterDir(item)">打开</button>
+            <div class="fs-lg-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
+              <img v-if="!item.directory && objectThumbUrl(item.name)" :src="objectThumbUrl(item.name)" class="fs-lg-card__img" loading="lazy" @error="$event.target.style.display='none'" />
               <template v-else>
-                <button v-if="allowPreview" type="button" class="fs-link-btn" @click.stop="openPreview(item)">预览</button>
-                <button v-if="allowDownload" type="button" class="fs-link-btn" @click.stop="handleDownload(item)">下载</button>
-                <button type="button" class="fs-link-btn" @click.stop="openOneTime(item)">一次性链接</button>
+                <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </template>
-              <button type="button" class="fs-link-btn fs-link-btn--danger" @click.stop="handleDelete(item)">删除</button>
-            </span>
+            </div>
+            <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
           </div>
-          <div v-if="!loading && filteredObjects.length === 0" class="fs-files__empty">当前目录为空</div>
+        </div>
+
+        <!-- 中图标（Medium Icons） -->
+        <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" v-loading="loading">
+          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>当前目录为空</span>
+          </div>
+          <div
+            v-for="item in filteredObjects"
+            :key="item.name"
+            class="fs-md-card"
+            :class="{ 'fs-md-card--selected': ctxMenu.visible && ctxMenu.row?.name === item.name }"
+            role="button" tabindex="0"
+            :aria-label="item.name"
+            @click="item.directory ? enterDir(item) : openPreview(item)"
+            @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+            @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
+            @contextmenu="openContextMenu($event, item)"
+          >
+            <div class="fs-md-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
+              <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="fs-md-card__label" :title="item.name">{{ item.name }}</div>
+          </div>
+        </div>
+
+        <!-- 小图标（Small Icons） -->
+        <div v-else class="fs-files fs-files--small" v-loading="loading">
+          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>当前目录为空</span>
+          </div>
+          <div class="fs-files__small-list">
+            <div
+              v-for="item in filteredObjects"
+              :key="item.name"
+              class="fs-sm-row"
+              role="button" tabindex="0"
+              :aria-label="item.name"
+              @click="item.directory ? enterDir(item) : openPreview(item)"
+              @dblclick="item.directory ? enterDir(item) : openPreview(item)"
+              @keydown.enter="item.directory ? enterDir(item) : openPreview(item)"
+              @contextmenu="openContextMenu($event, item)"
+            >
+              <svg v-if="item.directory" class="fs-sm-row__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/></svg>
+              <svg v-else class="fs-sm-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="fs-sm-row__name" :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -1042,58 +1152,107 @@ onMounted(() => {
   padding: 16px 20px 32px;
 }
 
-/* 网格视图 */
-.fs-files--grid {
+/* ---- 详细信息视图 ---- */
+.fs-details-head,
+.fs-details-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: minmax(0, 1fr) 130px 100px 176px;
+  align-items: center;
   gap: 12px;
+  padding: 0 20px;
+  font-size: 13px;
+}
+.fs-details-head {
+  position: sticky;
+  top: 0;
+  background: var(--fs-bg);
+  z-index: 5;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--fs-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fs-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fs-details-head__col { cursor: pointer; user-select: none; transition: color 0.15s; }
+.fs-details-head__col:hover { color: var(--fs-primary); }
+.fs-details-head__size { text-align: right; }
+.fs-sort-arrow { color: var(--fs-primary); font-weight: 700; }
+.fs-details-row {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.fs-details-row:hover { background: #f8fafc; }
+.fs-details-row:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: -2px; }
+.fs-details-row--selected { background: var(--fs-primary-soft); }
+
+.fs-details-row__name { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
+.fs-details-row__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-details-row__icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--fs-text-3); }
+.fs-details-row__icon:first-child { color: var(--fs-primary); }
+.fs-name--dir { font-weight: 600; color: var(--fs-primary); }
+.fs-details-row__type { color: var(--fs-text-2); font-size: 12px; }
+.fs-details-row__size { color: var(--fs-text-3); font-size: 12px; text-align: right; }
+.fs-details-row__time { color: var(--fs-text-3); font-size: 12px; }
+
+/* ---- 大图标视图 ---- */
+.fs-files--large {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  gap: 14px;
   align-content: start;
 }
-
-.fs-card {
+.fs-lg-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 18px 10px 14px;
+  padding: 16px 10px 14px;
   background: var(--fs-surface);
   border-radius: var(--fs-radius);
   border: 1px solid var(--fs-border);
   cursor: pointer;
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
   user-select: none;
+  overflow: hidden;
 }
-.fs-card:hover {
+.fs-lg-card:hover {
   border-color: #cbd5e1;
   box-shadow: var(--fs-shadow);
   transform: translateY(-1px);
 }
-.fs-card:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 1px; }
-.fs-card--selected {
-  border-color: var(--fs-primary);
-  background: var(--fs-primary-soft);
-}
+.fs-lg-card:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 1px; }
+.fs-lg-card--selected { border-color: var(--fs-primary); background: var(--fs-primary-soft); }
 
-.fs-card__icon {
-  width: 52px;
-  height: 52px;
+.fs-lg-card__thumb {
+  width: 100%;
+  height: 104px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
 }
-.fs-card__icon svg { width: 34px; height: 34px; }
+.fs-lg-card__thumb svg { width: 48px; height: 48px; }
+.fs-lg-card__thumb.icon-folder { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-lg-card__thumb.icon-image { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+.fs-lg-card__thumb.icon-video { color: #9333ea; background: rgba(147, 51, 234, 0.1); }
+.fs-lg-card__thumb.icon-audio { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+.fs-lg-card__thumb.icon-pdf { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.fs-lg-card__thumb.icon-office { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-lg-card__thumb.icon-archive { color: #64748b; background: #f1f5f9; }
+.fs-lg-card__thumb.icon-text { color: #475569; background: #f1f5f9; }
+.fs-lg-card__thumb.icon-file { color: #475569; background: #f1f5f9; }
 
-.fs-card__icon.icon-folder { color: #2563eb; background: var(--fs-primary-soft); }
-.fs-card__icon.icon-image { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
-.fs-card__icon.icon-video { color: #9333ea; background: rgba(147, 51, 234, 0.1); }
-.fs-card__icon.icon-audio { color: #d97706; background: rgba(217, 119, 6, 0.1); }
-.fs-card__icon.icon-pdf { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
-.fs-card__icon.icon-office { color: #2563eb; background: var(--fs-primary-soft); }
-.fs-card__icon.icon-archive { color: #64748b; background: #f1f5f9; }
-.fs-card__icon.icon-file { color: #475569; background: #f1f5f9; }
+.fs-lg-card__img { width: 100%; height: 100%; object-fit: cover; background: #ffffff; }
 
-.fs-card__name {
+.fs-lg-card__label {
   width: 100%;
   text-align: center;
   font-size: 12px;
@@ -1104,76 +1263,83 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-.fs-card__meta {
-  display: flex;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--fs-text-3);
-}
-
-/* 列表视图 */
-.fs-files--list { padding: 0 0 24px; }
-
-.fs-table-head,
-.fs-table-row {
+/* ---- 中图标视图 ---- */
+.fs-files--medium {
   display: grid;
-  grid-template-columns: 1fr 96px 168px 224px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px;
+  align-content: start;
+}
+.fs-md-card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 0 20px;
-}
-
-.fs-table-head {
-  position: sticky;
-  top: 0;
-  background: var(--fs-bg);
-  z-index: 5;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--fs-text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding-top: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--fs-border);
-}
-
-.fs-table-row {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-radius: 10px;
+  gap: 7px;
+  padding: 14px 8px 12px;
+  background: var(--fs-surface);
+  border-radius: var(--fs-radius);
+  border: 1px solid var(--fs-border);
   cursor: pointer;
-  transition: background 0.18s;
-  font-size: 13px;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  user-select: none;
 }
-.fs-table-row:hover { background: #f8fafc; }
-.fs-table-row:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: -2px; }
-.fs-table-row--selected { background: var(--fs-primary-soft); }
+.fs-md-card:hover { border-color: #cbd5e1; box-shadow: var(--fs-shadow); transform: translateY(-1px); }
+.fs-md-card:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 1px; }
+.fs-md-card--selected { border-color: var(--fs-primary); background: var(--fs-primary-soft); }
 
-.fs-table-row__name { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
-.fs-table-row__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fs-table-row__icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--fs-text-3); }
-.fs-table-row__icon:first-child { color: var(--fs-primary); }
-.fs-name--dir { font-weight: 600; color: var(--fs-primary); }
-.fs-table-row__size { color: var(--fs-text-3); font-size: 12px; text-align: right; }
-.fs-table-row__time { color: var(--fs-text-3); font-size: 12px; }
+.fs-md-card__thumb {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+.fs-md-card__thumb svg { width: 30px; height: 30px; }
+.fs-md-card__thumb.icon-folder { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-md-card__thumb.icon-image { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+.fs-md-card__thumb.icon-video { color: #9333ea; background: rgba(147, 51, 234, 0.1); }
+.fs-md-card__thumb.icon-audio { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+.fs-md-card__thumb.icon-pdf { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.fs-md-card__thumb.icon-office { color: #2563eb; background: var(--fs-primary-soft); }
+.fs-md-card__thumb.icon-archive { color: #64748b; background: #f1f5f9; }
+.fs-md-card__thumb.icon-text { color: #475569; background: #f1f5f9; }
+.fs-md-card__thumb.icon-file { color: #475569; background: #f1f5f9; }
 
-.fs-table-row__actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
-
-.fs-link-btn {
-  border: none;
-  background: transparent;
-  padding: 4px 8px;
+.fs-md-card__label {
+  width: 100%;
+  text-align: center;
   font-size: 12px;
   font-weight: 500;
-  color: var(--fs-primary);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.18s;
+  color: var(--fs-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.fs-link-btn:hover { background: var(--fs-primary-soft); }
-.fs-link-btn--danger { color: var(--fs-danger); }
-.fs-link-btn--danger:hover { background: rgba(220, 38, 38, 0.08); }
+
+/* ---- 小图标视图 ---- */
+.fs-files--small { padding: 0 12px 24px; }
+.fs-files__small-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px;
+}
+.fs-sm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 12.5px;
+  overflow: hidden;
+}
+.fs-sm-row:hover { background: #f8fafc; }
+.fs-sm-row:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: -2px; }
+.fs-sm-row__icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--fs-text-3); }
+.fs-sm-row__icon:first-child { color: var(--fs-primary); }
+.fs-sm-row__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 空状态 */
 .fs-files__empty {
@@ -1242,8 +1408,9 @@ onMounted(() => {
   .fs-sidebar { display: none; }
   .fs-search { width: 120px; }
   .fs-header { padding: 0 12px; }
-  .fs-files--grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
-  .fs-table-head, .fs-table-row { grid-template-columns: 1fr 64px 120px; }
-  .fs-table-head__time, .fs-table-row__time { display: none; }
+  .fs-files--large { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .fs-files--medium { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .fs-details-head, .fs-details-row { grid-template-columns: minmax(0, 1fr) 84px 60px; }
+  .fs-details-head__type, .fs-details-row__type { display: none; }
 }
 </style>
