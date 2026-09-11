@@ -85,7 +85,7 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-  <ReDialog v-model="props.modelValue" :title="`采集配置 · ${props.host?.serverHostName ?? ""}`" width="440px" :close-on-click-modal="false">
+  <ReDialog v-model="props.modelValue" :title="'采集配置 · ' + (props.host?.serverHostName ?? '')" width="440px" :close-on-click-modal="false">
     <ReForm :model="form" label-position="top">
       <ReFormItem label="采集方式">
         <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
