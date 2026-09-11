@@ -124,6 +124,7 @@ function submit() {
     msProjectHostIds: JSON.stringify(form.value.msProjectHostIds),
     msProjectDeleteBefore: form.value.msProjectDeleteBefore ? 1 : 0,
     msProjectAutoExtract: form.value.msProjectAutoExtract ? 1 : 0,
+    msProjectAutoStart: form.value.msProjectAutoStart ? 1 : 0,
   })
     .then(() => {
       message.success(isEdit.value ? '已更新' : '已创建');
@@ -146,9 +147,12 @@ function newProjectForm() {
     msProjectStartScript: '',
     msProjectStopScript: '',
     msProjectRestartScript: '',
+    msProjectLogDir: '',
+    msProjectLogFile: '',
     msProjectDeleteBefore: false,
     msProjectOverwriteMode: 'OVERWRITE',
     msProjectAutoExtract: true,
+    msProjectAutoStart: false,
     msProjectSort: 100,
     msProjectRemark: '',
   };
