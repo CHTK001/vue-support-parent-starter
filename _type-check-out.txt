@@ -1,3 +1,0 @@
-﻿ ERR_PNPM_NO_SCRIPT  Missing script: type-check
-
-Command "type-check" not found. Did you mean "pnpm run config:check"?
