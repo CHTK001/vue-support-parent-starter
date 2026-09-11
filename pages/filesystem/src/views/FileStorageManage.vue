@@ -874,10 +874,14 @@ onMounted(() => {
             <el-radio value="expiry">限时（有效期内可多次访问）</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="过期时间">
-          <el-select v-model="oneTimeExpiry" placeholder="选择过期时间" style="width:100%">
-            <el-option v-for="opt in oneTimeExpiryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
+        <el-form-item v-if="oneTimeType === 'expiry'" label="过期时间">
+          <div style="display:flex;gap:8px;align-items:center;width:100%">
+            <el-input-number v-model="oneTimeExpiry" :min="10" :step="10" :controls="false" style="width:120px" />
+            <span style="font-size:12px;color:#64748b">秒</span>
+            <el-select v-model="oneTimeExpiry" placeholder="快捷选择" style="flex:1">
+              <el-option v-for="opt in oneTimeExpiryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </div>
         </el-form-item>
         <el-form-item label="链接">
           <el-input v-model="oneTimeLink" placeholder="点击下方按钮生成" readonly :disabled="!oneTimeLink" />
@@ -888,7 +892,7 @@ onMounted(() => {
         <el-button v-else type="primary" :loading="oneTimeGenerating" :icon="Document" @click="generateOneTimeLink">生成</el-button>
         <el-button @click="oneTimeVisible = false">关闭</el-button>
       </template>
-      <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁，过期自动失效' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
+      <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
     </el-dialog>
 
     <!-- ===== 预览对话框 ===== -->

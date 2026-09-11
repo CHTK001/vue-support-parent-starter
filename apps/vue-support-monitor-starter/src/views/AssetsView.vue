@@ -239,8 +239,9 @@ function collectModeLabel(m?: string | null): string {
   return map[m ?? ""] ?? m ?? "—";
 }
 
-// ---- 连接时选择身份 ----
+// ---- 连接时选择身份（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const connectVisible = ref(false);
+useDialogPrerender(connectVisible);
 const connectTarget = ref<Host | null>(null);
 const connectIdentityId = ref<number | null>(null);
 const hostBoundIdentities = ref<number[]>([]);
@@ -279,6 +280,7 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
 
 // ---- 更多菜单：采集配置（硬件采集与检测）----
 const configVisible = ref(false);
+useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
 function onMoreCommand(cmd: string, row: Host): void {
   if (cmd === "collect") {

@@ -6,6 +6,7 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { useDialogPrerender } from "../utils/dialogPrerender";
 import {
   fetchAlarmPolicies,
   saveAlarmPolicy,
@@ -64,8 +65,9 @@ function policyStatus(enabled: number): string {
   return enabled === 1 ? "运行中" : "已停用";
 }
 
-// ---- 策略弹窗 ----
+// ---- 策略弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const policyVisible = ref(false);
+useDialogPrerender(policyVisible);
 const policySaving = ref(false);
 const policyForm = ref<Partial<AlarmPolicy>>({ msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "" });
 function openPolicyAdd(): void {
@@ -104,8 +106,9 @@ async function removePolicy(p: AlarmPolicy): Promise<void> {
   }
 }
 
-// ---- 规则弹窗 ----
+// ---- 规则弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const ruleVisible = ref(false);
+useDialogPrerender(ruleVisible);
 const ruleSaving = ref(false);
 const ruleTesting = ref(false);
 const ruleForm = ref<Partial<AlarmRule>>({

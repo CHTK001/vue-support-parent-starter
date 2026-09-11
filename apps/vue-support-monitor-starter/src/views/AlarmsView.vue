@@ -5,6 +5,7 @@
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { fetchAlarmEvents, handleAlarmEvent, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
+import { useDialogPrerender } from "../utils/dialogPrerender";
 
 const loading = ref(false);
 const loadError = ref("");
@@ -82,8 +83,9 @@ async function fetchAll(): Promise<void> {
   finally { loading.value = false; }
 }
 
-// 处理弹窗
+// 处理弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts）
 const handleVisible = ref(false);
+useDialogPrerender(handleVisible);
 const handleTarget = ref<AlarmEvent | null>(null);
 const handleRemark = ref("");
 const handleFalseAlarm = ref(false);
