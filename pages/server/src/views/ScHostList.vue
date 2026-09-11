@@ -679,6 +679,17 @@ async function onImportFile(file: File | undefined) {
   &.is-info { color: var(--text-tertiary, #909399); }
 }
 
+.ports-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+
+.ports-empty {
+  color: var(--text-tertiary, #909399);
+  font-size: 12px;
+}
+
 .cfg-form :deep(.el-form-item) {
   margin-bottom: 14px;
 }
