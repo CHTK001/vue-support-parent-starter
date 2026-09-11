@@ -12,9 +12,9 @@ import { log } from "@repo/utils";
 import {
   getSocketToken,
   matchesSocketListenOptions,
-  normalizeSocketUrls,
   parseSocketMessage,
 } from "./socketUtils";
+import { createUrlSelector } from "./urlSelector";
 import type {
   SocketTemplate,
   SocketTemplateListenOptions,
@@ -31,6 +31,8 @@ export interface SocketIOConfig {
   reconnection?: boolean;
   reconnectionAttempts?: number;
   reconnectionDelay?: number;
+  /** 失败地址黑名单缓存时长（毫秒），默认 60_000 */
+  blacklistTtlMs?: number;
 }
 
 /**
@@ -44,7 +46,11 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   let socketInstance: Socket | null = null;
   const eventListeners = new Map<string, Set<(data: unknown) => void>>();
   const autoConnect = config.autoConnect ?? true;
-  const normalizedUrls = normalizeSocketUrls(config.urls);
+  /** 多地址负载均衡 / 失败降级选择器 */
+  const selector = createUrlSelector({
+    urls: config.urls,
+    blacklistTtlMs: config.blacklistTtlMs,
+  });
   const transports =
     config.transports && config.transports.length > 0
       ? config.transports
@@ -61,8 +67,11 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     }
 
     const token = getSocketToken();
-    const url =
-      normalizedUrls[Math.floor(Math.random() * normalizedUrls.length)];
+    const url = selector.next();
+    if (!url) {
+      log.warn("[Socket.IO] 无可用的连接地址");
+      return;
+    }
 
     socketInstance = io(url, {
       path: config.context || "/socket.io",
@@ -79,6 +88,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
     socketInstance.on("connect", () => {
       isConnected.value = true;
+      // 连接成功：恢复该地址健康状态
+      selector.markSuccess(url);
     });
 
     socketInstance.on("disconnect", () => {
@@ -86,7 +97,15 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     });
 
     socketInstance.on("connect_error", (error) => {
-      log.error(`[Socket.IO] 连接错误:`, error);
+      log.error(`[Socket.IO] 连接错误 ${url}:`, error);
+      // 连接失败：降级该地址（进入黑名单），后续重连走其他地址
+      selector.markFailure(url);
+      // 主动 tear-down 并重建，让后续 connect() 选取下一个健康地址
+      if (socketInstance) {
+        socketInstance.disconnect();
+        socketInstance = null;
+        isConnected.value = false;
+      }
     });
 
     // message 事件分发（必须在 socketInstance 创建后注册）

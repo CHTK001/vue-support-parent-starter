@@ -5,6 +5,9 @@
       <div class="tshark-status">
         <ReStatusIndicator :type="tsharkOk ? 'success' : 'danger'" />
         <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
+        <ReTag v-if="activeSessionId != null" :type="liveConnected ? 'success' : 'info'" size="small" effect="light">
+          {{ liveConnected ? `实时推送 +${liveCount}` : '推送未连接' }}
+        </ReTag>
       </div>
       <div class="toolbar-right">
         <ReSelect v-model="iface" placeholder="选择网卡" clearable filterable class="iface-select"
@@ -166,7 +169,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
-import { message } from '@repo/core'
+import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
   delTsharkSession, getTsharkSessions, getTsharkPackets, getTsharkPacketDetail,
@@ -180,6 +183,8 @@ const filter = ref('')
 const count = ref(500)
 const timeout = ref(0)
 const starting = ref(false)
+const liveCount = ref(0)
+const liveConnected = ref(false)
 
 const loadingSessions = ref(false)
 const sessions = ref<any[]>([])
@@ -243,6 +248,7 @@ async function loadSessions(page = sessionPage.value) {
 
 function selectSession(id: number) {
   activeSessionId.value = id
+  liveCount.value = 0
   loadPackets(1)
   loadStats()
 }
@@ -385,6 +391,36 @@ function protoClass(p: string) {
   return map[p] || ''
 }
 
+// ==================== socket.io 实时推送 ====================
+// 后端 MonitorPushService 协议：module=monitor, event=tshark-packet / tshark-session，
+// dataId=sessionId；当前会话匹配时新包去重追加，统计与图表增量刷新
+const socket = useSocketService()
+const socketUnsubs: Array<() => void> = []
+
+if (socket) {
+  socketUnsubs.push(socket.subscribe('monitor', 'tshark-packet', (msg) => {
+    const packet = msg?.data ?? msg
+    if (activeSessionId.value == null || packet == null) return
+    const sid = String(msg?.dataId ?? (packet as any)?.sessionId)
+    if (sid !== String(activeSessionId.value)) return
+    if (packets.value.some((p: any) => p.id === (packet as any).id)) return
+    packets.value.unshift(packet as any)
+    if (packets.value.length > 500) packets.value.length = 500
+    packetTotal.value++
+    liveCount.value++
+    const proto = (packet as any).protocol || 'OTHER'
+    const hit = protoStats.value.find((s: any) => s.protocol === proto)
+    if (hit) hit.count++
+    else protoStats.value.push({ protocol: proto, count: 1 })
+    renderProtoChart()
+  }))
+  socketUnsubs.push(socket.subscribe('monitor', 'tshark-session', () => {
+    loadSessions()
+  }))
+  const tick = setInterval(() => { liveConnected.value = !!socket.isConnected }, 2000)
+  socketUnsubs.push(() => clearInterval(tick))
+}
+
 onMounted(() => {
   init()
   window.addEventListener('resize', resizeCharts)
@@ -392,6 +428,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeCharts)
+  socketUnsubs.forEach(fn => fn?.())
   protoChart?.dispose()
   flowChart?.dispose()
 })
