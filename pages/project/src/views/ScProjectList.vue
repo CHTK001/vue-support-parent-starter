@@ -15,6 +15,7 @@ import {
   restartProject,
   getArchives,
   rollbackProject,
+  queryHostOptions,
 } from '../api';
 import ScProjectFormDialog from '../components/ScProjectFormDialog.vue';
 import ScDeployLog from '../components/ScDeployLog.vue';
@@ -248,10 +249,31 @@ async function submitRollback() {
 /* ================== 实时日志 ================== */
 const logVisible = ref(false);
 const logProject = ref<ProjectRow | null>(null);
+const logHostOptions = ref<Array<{ label: string; value: number }>>([]);
 
-function openLiveLog(row: ProjectRow) {
-  logProject.value = row;
-  logVisible.value = true;
+async function openLiveLog(row: ProjectRow) {
+  const hostIds: number[] = parseHostIds(row.msProjectHostIds);
+  if (hostIds.length === 0) {
+    message.warning('项目未绑定目标服务器');
+    return;
+  }
+  try {
+    const hosts = await queryHostOptions(row.msProjectHostOs);
+    logHostOptions.value = (hosts ?? [])
+      .filter(h => hostIds.includes(h.id))
+      .map(h => ({ label: `${h.name} (${h.address})`, value: h.id }));
+    logProject.value = row;
+    logVisible.value = true;
+  } catch (e) {
+    message.error((e as Error).message);
+  }
+}
+
+function parseHostIds(json?: string): number[] {
+  try {
+    const arr = JSON.parse(json || '[]');
+    return Array.isArray(arr) ? arr as number[] : [];
+  } catch { return []; }
 }
 
 /* ================== 结果弹窗 ================== */
@@ -346,13 +368,11 @@ function isLinux(row: ProjectRow) {
 
         <!-- 进度条（实时） -->
         <div
-          v-for="[key, progress] in projectProgress"
-          :key="key"
-          v-show="(key > 0 && key === row.id) || (key < 0 && -key === row.id)"
+          v-if="projectProgress[row.id]"
           class="project-card__progress"
         >
-          <ReTag size="small" :type="progress.status === 'FAIL' ? 'danger' : 'warning'">
-            {{ progress.stage }}: {{ progress.message }}
+          <ReTag size="small" :type="projectProgress[row.id].status === 'FAIL' ? 'danger' : 'warning'">
+            {{ projectProgress[row.id].stage }}: {{ projectProgress[row.id].message }}
           </ReTag>
         </div>
 
@@ -418,7 +438,7 @@ function isLinux(row: ProjectRow) {
       v-model:visible="logVisible"
       :project-id="logProject.id"
       :project-name="logProject.msProjectName"
-      :host-options="[]"
+      :host-options="logHostOptions"
     />
 
     <!-- 操作结果弹窗 -->
