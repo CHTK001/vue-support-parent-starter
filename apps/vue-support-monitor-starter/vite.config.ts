@@ -15,6 +15,16 @@ export default createVite({
   server: {
     port: 8848,
     strictPort: true,
+    // 启动预编译：预热弹窗相关源码文件，首次点击弹窗不再现场 transform（避免 5s~1min 卡顿）
+    warmup: {
+      clientFiles: [
+        "src/main.ts",
+        "src/App.vue",
+        "src/router.ts",
+        "src/views/AssetsView.vue",
+        "src/views/HostFormDialog.vue",
+      ],
+    },
     proxy: {
       "/ms/monitor/system": {
         target: "http://127.0.0.1:8082",

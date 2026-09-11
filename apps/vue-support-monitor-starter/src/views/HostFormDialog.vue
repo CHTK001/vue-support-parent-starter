@@ -252,27 +252,6 @@ watch(() => props.modelValue, (v) => {
         <ReFormItem label="描述" class="col-span-2">
           <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
         </ReFormItem>
-
-        <!-- ─── 采集配置 ─── -->
-        <div class="form-section full">硬件采集与检测</div>
-        <ReFormItem label="采集方式">
-          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
-        </ReFormItem>
-        <ReFormItem label="采集间隔(秒)">
-          <ReInputNumber v-model="form.serverHostCollectInterval" :min="60" :max="86400" :step="60" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="在离线检测">
-          <ReSwitch layout="square" v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem label="检测间隔(秒)">
-          <ReInputNumber v-model="form.serverHostOnlineInterval" :min="10" :max="3600" :step="10" style="width:100%" />
-        </ReFormItem>
-        <ReFormItem label="远控开关">
-          <ReSwitch layout="square" v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
-        <ReFormItem v-if="form.serverHostCollectMode === 'AGENT'" label="Agent上报">
-          <ReSwitch layout="square" v-model="form.serverHostAgentEnabled" :active-value="1" :inactive-value="0" />
-        </ReFormItem>
       </div>
     </ReForm>
     <template #footer>
