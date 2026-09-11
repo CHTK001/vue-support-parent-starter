@@ -469,10 +469,11 @@ async function handleDelete(row: StorageObject): Promise<void> {
   catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
 }
 
-/* ================== 一次性链接 ================== */
+/* ================== 创建链接（一次性 / 限时） ================== */
 
 const oneTimeVisible = ref(false);
 const oneTimeLink = ref("");
+const oneTimeType = ref<"once" | "expiry">("once");
 const oneTimeExpiry = ref(600);
 const oneTimeExpiryOptions = [
   { label: "1 分钟", value: 60 }, { label: "10 分钟", value: 600 },
@@ -483,9 +484,10 @@ const oneTimeGenerating = ref(false);
 const oneTimeTarget = ref<{ name: string; key: string }>();
 
 function openOneTime(row: StorageObject): void {
-  if (row.directory) { ElMessage.warning("目录不支持生成一次性链接"); return; }
+  if (row.directory) { ElMessage.warning("目录不支持生成访问链接"); return; }
   oneTimeTarget.value = { name: row.name, key: fullKey(row.name) };
   oneTimeLink.value = "";
+  oneTimeType.value = "once";
   oneTimeExpiry.value = 600;
   oneTimeVisible.value = true;
 }
@@ -494,9 +496,9 @@ async function generateOneTimeLink(): Promise<void> {
   if (!oneTimeTarget.value) return;
   oneTimeGenerating.value = true;
   try {
-    const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, oneTimeExpiry.value);
+    const res = await createOneTimeLink(bucket.value, oneTimeTarget.value.key, oneTimeExpiry.value, oneTimeType.value);
     oneTimeLink.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
-    ElMessage.success("一次性链接已生成（仅可访问一次）");
+    ElMessage.success(oneTimeType.value === "once" ? "一次性链接已生成（仅可访问一次）" : "限时链接已生成（有效期内可多次访问）");
   } catch (e) { ElMessage.error((e as Error)?.message ?? "生成失败"); }
   finally { oneTimeGenerating.value = false; }
 }

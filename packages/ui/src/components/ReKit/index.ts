@@ -85,7 +85,7 @@ const ReFormItem = defineComponent({
           class: "re-form-item",
         } as any,
         {
-          default: slots.default?.(),
+          default: () => slots.default?.(),
           ...(slots.label ? { label: () => slots.label?.() } : {}),
         },
       );
