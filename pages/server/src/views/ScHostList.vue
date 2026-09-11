@@ -390,6 +390,39 @@ function parseTags(raw?: string): string[] {
   }
 }
 
+/** 端口扫描结果项 */
+interface PortItem {
+  port: string;
+  protocol?: string;
+  service?: string;
+}
+
+/**
+ * 端口扫描 JSON 解析
+ *
+ * @param raw JSON 数组字符串
+ */
+function parsePorts(raw?: string): PortItem[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 端口展示文案：22/tcp ssh
+ *
+ * @param item 端口项
+ */
+function portText(item: PortItem): string {
+  const parts = [`${item.port}${item.protocol ? '/' + item.protocol : ''}`];
+  if (item.service) parts.push(item.service);
+  return parts.join(' ');
+}
+
 function onExport() {
   const url = exportHostsUrl(keyword.value || undefined, filterGroupId.value ?? undefined);
   window.open(url, '_blank');
@@ -522,12 +555,27 @@ async function onImportFile(file: File | undefined) {
           >{{ delayText(row.serverHostDelayMs) }}</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="320" fixed="right">
+      <ReTableColumn label="端口" min-width="160">
+        <template #default="{ row }">
+          <span v-if="!parsePorts(row.serverHostPorts).length" class="ports-empty">未扫描</span>
+          <div v-else class="ports-wrap">
+            <ReTag
+              v-for="p in parsePorts(row.serverHostPorts)"
+              :key="p.port"
+              size="small"
+              type="info"
+              style="margin-right: 4px; margin-bottom: 4px"
+            >{{ portText(p) }}</ReTag>
+          </div>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
           <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
           <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
           <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+          <ReButton show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
           <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
           <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
           <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
