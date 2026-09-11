@@ -7,7 +7,17 @@ import { ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import { saveHost, getHost } from "@pages/server/src/api";
-import type { Host } from "./AssetsView";
+/** 主机字段（与 AssetsView.Host 保持一致——跨 .vue 文件类型导入解析不可靠，独立声明） */
+interface Host {
+  id: number;
+  serverHostName: string;
+  serverHostCollectMode?: string;
+  serverHostCollectInterval?: number;
+  serverHostOnlineEnabled?: number;
+  serverHostOnlineInterval?: number;
+  serverHostAgentEnabled?: number;
+  serverHostRemoteEnabled?: number;
+}
 
 const props = defineProps<{
   modelValue: boolean;

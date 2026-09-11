@@ -38,7 +38,10 @@ import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 
 /** 预览类型 */
-type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "unknown";
+type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "archive" | "unknown";
+
+/** 视图模式（Windows 资源管理器风格） */
+type ViewMode = "details" | "largeIcons" | "mediumIcons" | "smallIcons";
 
 /* ================== 连接 & 状态 ================== */
 
