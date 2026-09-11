@@ -827,7 +827,7 @@ onMounted(() => {
             @click="ctxAction('onetime')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            一次性链接
+            创建链接
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button
@@ -851,9 +851,15 @@ onMounted(() => {
       <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
     </el-dialog>
 
-    <!-- ===== 一次性链接对话框 ===== -->
-    <el-dialog v-model="oneTimeVisible" :title="`生成一次性链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
+    <!-- ===== 创建链接对话框 ===== -->
+    <el-dialog v-model="oneTimeVisible" :title="`创建访问链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
       <el-form label-width="80px">
+        <el-form-item label="类型">
+          <el-radio-group v-model="oneTimeType">
+            <el-radio value="once">一次性（访问即销毁）</el-radio>
+            <el-radio value="expiry">限时（有效期内可多次访问）</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="过期时间">
           <el-select v-model="oneTimeExpiry" placeholder="选择过期时间" style="width:100%">
             <el-option v-for="opt in oneTimeExpiryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -868,7 +874,7 @@ onMounted(() => {
         <el-button v-else type="primary" :loading="oneTimeGenerating" :icon="Document" @click="generateOneTimeLink">生成</el-button>
         <el-button @click="oneTimeVisible = false">关闭</el-button>
       </template>
-      <el-alert v-if="oneTimeLink" type="warning" :closable="false" title="该链接只能访问一次，访问后立即销毁，过期自动失效" class="mt-3" />
+      <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁，过期自动失效' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
     </el-dialog>
 
     <!-- ===== 预览对话框 ===== -->
