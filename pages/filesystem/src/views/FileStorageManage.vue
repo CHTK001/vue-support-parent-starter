@@ -299,6 +299,25 @@ async function loadObjects(): Promise<void> {
   }
 }
 
+/** 加载左侧目录树（失败静默） */
+async function loadTree(): Promise<void> {
+  treeLoading.value = true;
+  try {
+    tree.value = await getBucketTree(bucket.value);
+  } catch {
+    tree.value = [];
+  } finally {
+    treeLoading.value = false;
+  }
+}
+
+/** 目录树点击：进入该目录 */
+function onTreeSelect(path: string, name: string): void {
+  currentPath.value = path;
+  clearSelect();
+  loadObjects();
+}
+
 /** 容错地从服务端拉取 bucket 公开配置（失败静默，页面不受影响） */
 async function loadBucketConfig(): Promise<void> {
   configLoading.value = true;
@@ -603,6 +622,7 @@ function copyOneTimeLink(): void {
 onMounted(() => {
   loadBucketConfig();
   loadObjects();
+  loadTree();
   bindDragEvents();
 });
 
