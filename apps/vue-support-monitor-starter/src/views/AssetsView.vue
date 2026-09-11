@@ -320,7 +320,7 @@ async function toggleBind(hostId: number, identityId: number, bind: boolean): Pr
 const configVisible = ref(false);
 useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
-const configMode = ref<"online" | "metric" | "delay">("collect" as "metric");
+const configMode = ref<"online" | "metric" | "delay">("metric");
 function onMoreCommand(cmd: string, row: Host): void {
   configHost.value = row;
   configMode.value = cmd === "online" ? "online" : cmd === "delay" ? "delay" : "metric";
