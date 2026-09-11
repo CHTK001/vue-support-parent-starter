@@ -58,6 +58,12 @@ export const saveIdentity = (id: number | null, d: any) => id != null
   : http().post(`${B}/identity`).data(d).then(r => unwrapResult<any>(r));
 export const delIdentity = (id: number) => http().delete(`${B}/identity/${id}`).then(r => unwrapResult<boolean>(r));
 
+// ===== 邮箱账号信箱 (MAILBOX 身份, IMAP) =====
+export const listMailbox = (identityId: number, folder?: string, limit = 20) =>
+  http().get(`${B}/identity/${identityId}/mailbox/list?folder=${folder ?? ''}&limit=${limit}`).then(r => unwrapResult<any[]>(r));
+export const getMailboxMessage = (identityId: number, folder?: string, subject?: string) =>
+  http().get(`${B}/identity/${identityId}/mailbox/message?folder=${folder ?? ''}${subject ? `&subject=${encodeURIComponent(subject)}` : ''}`).then(r => unwrapResult<any>(r));
+
 // ===== SFTP 文件管理 =====
 export const sftpList = (hostId: number, path: string, identityId?: number | null) =>
   http().get(`${B}/sftp/${hostId}?path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`)
