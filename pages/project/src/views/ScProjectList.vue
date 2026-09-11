@@ -18,7 +18,6 @@ import {
   queryHostOptions,
 } from '../api';
 import ScProjectFormDialog from '../components/ScProjectFormDialog.vue';
-import ScDeployLog from '../components/ScDeployLog.vue';
 import ScLiveLog from '../components/ScLiveLog.vue';
 import '../styles/page.css';
 
