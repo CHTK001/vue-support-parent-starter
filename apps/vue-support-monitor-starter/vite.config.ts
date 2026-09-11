@@ -35,7 +35,7 @@ export default createVite({
         changeOrigin: true,
       },
       "/ms/server": {
-        target: "http://124.221.230.112:8080",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ms/project": {
@@ -43,7 +43,7 @@ export default createVite({
         changeOrigin: true,
       },
       "/ws/ms/server": {
-        target: "http://124.221.230.112:8080",
+        target: "http://127.0.0.1:8081",
         ws: true,
         changeOrigin: true,
       },

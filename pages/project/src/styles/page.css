@@ -218,3 +218,252 @@
 }
 .empty-state .empty-ico { font-size: 32px; opacity: 0.4; }
 .empty-state .empty-text { font-size: 13px; color: var(--text-tertiary); }
+
+/* ========== 门户宫格布局（kodcloud 风格） ========== */
+.portal-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+.portal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.portal-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+}
+.portal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-page);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+}
+.portal-tab {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.portal-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+.portal-tab.active {
+  background: var(--bg-container-card);
+  color: var(--brand-600);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  font-weight: 600;
+}
+.portal-search {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 图标宫格容器 */
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  min-height: 320px;
+}
+.portal-grid.is-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 0;
+}
+
+/* 图标宫格卡片 */
+.portal-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 8px 12px;
+  border-radius: 12px;
+  background: var(--bg-container-card);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.portal-app:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+.portal-app.working {
+  border-color: var(--brand-300);
+  background: color-mix(in srgb, var(--brand-50) 30%, var(--bg-container-card));
+}
+.portal-app.offline { opacity: 0.55; }
+
+/* 状态角标（右上角小圆点） */
+.portal-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot-green { background: var(--status-success); box-shadow: 0 0 6px color-mix(in srgb, var(--status-success) 50%, transparent); }
+.dot-gray { background: var(--text-tertiary); }
+.dot-amber { background: var(--status-warning); }
+
+/* 大图标 */
+.portal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  color: #fff;
+  background: var(--brand-gradient);
+  box-shadow: var(--shadow-brand);
+  transition: transform 0.2s var(--ease-out);
+}
+.portal-icon.lg { width: 72px; height: 72px; border-radius: 20px; }
+.portal-app:hover .portal-icon { transform: scale(1.06); }
+
+.portal-icon.t-green  { background: linear-gradient(135deg, #43a047, #66bb6a); }
+.portal-icon.t-blue   { background: linear-gradient(135deg, #1e88e5, #42a5f5); }
+.portal-icon.t-violet { background: linear-gradient(135deg, #7e57c2, #ab47bc); }
+.portal-icon.t-amber  { background: linear-gradient(135deg, #f57c00, #ffa726); }
+.portal-icon.t-cyan   { background: linear-gradient(135deg, #00838f, #26c6da); }
+.portal-icon.t-gray   { background: linear-gradient(135deg, #546e7a, #78909c); }
+
+/* 名称/子信息 */
+.portal-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.portal-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.portal-ver {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* hover 操作浮层（顶部覆盖） */
+.portal-ops {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: color-mix(in srgb, var(--bg-container-card) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s;
+  z-index: 2;
+}
+.portal-app:hover .portal-ops { opacity: 1; pointer-events: auto; }
+.portal-app:active .portal-ops { opacity: 1; pointer-events: auto; }
+
+/* 进度指示 */
+.portal-progress {
+  width: 100%;
+  padding: 4px 0 0;
+}
+.portal-progress-text {
+  display: inline-block;
+  font-size: 10.5px;
+  color: var(--brand-600);
+  background: var(--brand-50);
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--brand-100);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 详情抽屉 */
+.detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 0 16px;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+.detail-hero__info { min-width: 0; }
+.detail-hero__name { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.detail-hero__code { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.detail-hero__tags { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+.detail-rows { padding: 14px 0; }
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row > span:first-child { width: 80px; flex-shrink: 0; color: var(--text-tertiary); font-weight: 500; }
+.detail-row > span:last-child { flex: 1; color: var(--text-primary); word-break: break-all; }
+
+.detail-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0 0;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+/* 空态 */
+.portal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 32px;
+  color: var(--text-tertiary);
+}
+.portal-empty .empty-ico { font-size: 40px; opacity: 0.45; }
+.portal-empty .empty-text { font-size: 14px; color: var(--text-tertiary); }

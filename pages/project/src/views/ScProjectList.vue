@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
- * 发布项目管理 —— 卡片网格 + 拖拽上传 + 启停/升级/回滚 + 实时日志
+ * 发布项目管理 —— 图标宫格门户（对齐 kodcloud 项目主页布局）
+ * 顶部状态导航 + 大图标宫格 + hover 操作浮层 + 详情抽屉
  * 组件约定：全量使用 Re 组件体系。
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { message, useSocketService } from '@repo/core';
 import {
   queryProjects,
@@ -47,32 +48,54 @@ interface ProjectRow {
 
 const loading = ref(false);
 const projects = ref<ProjectRow[]>([]);
-const keyword = ref('');
-const filterType = ref('');
 
-const typeLabels: Record<string, string> = {
-  SPRINGBOOT_MONO: 'SpringBoot 单体jar',
-  SPRINGBOOT_WAR: 'SpringBoot war包',
-  SPRINGBOOT_SPLIT: '前后端分离',
-  NODEJS: 'Node.js',
-  STATIC: '静态资源(dist)',
-  CUSTOM: '自定义',
+/* ================== 顶部状态导航 ================== */
+const navItems = [
+  { label: '全部', value: 'all' },
+  { label: '运行中', value: 'RUNNING' },
+  { label: '部署中', value: 'deploying' },
+  { label: '已停止', value: 'STOPPED' },
+  { label: '异常', value: 'abnormal' },
+];
+const activeNav = ref('all');
+
+const filteredProjects = computed(() => {
+  if (activeNav.value === 'all') return projects.value;
+  if (activeNav.value === 'deploying')
+    return projects.value.filter(r => ['DEPLOYING', 'UPGRADING', 'RESTARTING', 'ROLLING_BACK'].includes(r.msProjectRuntimeStatus || ''));
+  if (activeNav.value === 'abnormal')
+    return projects.value.filter(r => ['UNKNOWN'].includes(r.msProjectRuntimeStatus || '') || r.msProjectEnabled === 0);
+  return projects.value.filter(r => r.msProjectRuntimeStatus === activeNav.value);
+});
+
+/* 类型：图标 + 配色（kodcloud 式大图标） */
+const typeMeta: Record<string, { icon: string; cls: string; label: string }> = {
+  SPRINGBOOT_MONO: { icon: 'Box', cls: 't-green', label: 'SpringBoot 单体jar' },
+  SPRINGBOOT_WAR: { icon: 'TakeawayBox', cls: 't-blue', label: 'SpringBoot war包' },
+  SPRINGBOOT_SPLIT: { icon: 'CopyDocument', cls: 't-violet', label: '前后端分离' },
+  NODEJS: { icon: 'Document', cls: 't-amber', label: 'Node.js' },
+  STATIC: { icon: 'Picture', cls: 't-cyan', label: '静态资源' },
+  CUSTOM: { icon: 'Setting', cls: 't-gray', label: '自定义' },
 };
+function iconOf(row: ProjectRow) {
+  return typeMeta[row.msProjectType]?.icon || 'Box';
+}
+function iconClsOf(row: ProjectRow) {
+  return typeMeta[row.msProjectType]?.cls || 't-gray';
+}
 
-const typeOptions = Object.entries(typeLabels).map(([value, label]) => ({ label, value }));
-
-const statusMap: Record<string, { label: string; cls: string }> = {
-  RUNNING: { label: '运行中', cls: 'success' },
-  STOPPED: { label: '已停止', cls: 'info' },
-  UNKNOWN: { label: '未知', cls: 'warning' },
-  DEPLOYING: { label: '部署中', cls: 'warning' },
-  UPGRADING: { label: '升级中', cls: 'warning' },
-  RESTARTING: { label: '重启中', cls: 'warning' },
-  ROLLING_BACK: { label: '回滚中', cls: 'warning' },
+/* 状态：标签 + 角标色 */
+const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
+  RUNNING: { label: '运行中', cls: 'success', dot: 'dot-green' },
+  STOPPED: { label: '已停止', cls: 'info', dot: 'dot-gray' },
+  UNKNOWN: { label: '未知', cls: 'warning', dot: 'dot-amber' },
+  DEPLOYING: { label: '部署中', cls: 'warning', dot: 'dot-amber' },
+  UPGRADING: { label: '升级中', cls: 'warning', dot: 'dot-amber' },
+  RESTARTING: { label: '重启中', cls: 'warning', dot: 'dot-amber' },
+  ROLLING_BACK: { label: '回滚中', cls: 'warning', dot: 'dot-amber' },
 };
 
 const deployingIds = ref<Set<number>>(new Set());
-/** 项目进度：projectId → 整体 stage/status/message */
 const projectProgress = ref<Record<number, { stage: string; status: string; message: string }>>({});
 
 onMounted(refresh);
@@ -87,21 +110,11 @@ function setupSocket() {
       const payload = msg?.data?.data ?? msg?.data ?? msg;
       if (!payload?.projectId) return;
       const pid = Number(payload.projectId);
-      if (payload.hostId) {
-        // 单主机进度，合并到整体描述
-        const prev = projectProgress.value[pid];
-        projectProgress.value[pid] = {
-          stage: payload.stage,
-          status: payload.status,
-          message: prev && prev.status === 'SUCCESS' ? prev.message : payload.message,
-        };
-      } else {
-        projectProgress.value[pid] = {
-          stage: payload.stage,
-          status: payload.status,
-          message: payload.message,
-        };
-      }
+      projectProgress.value[pid] = {
+        stage: payload.stage,
+        status: payload.status,
+        message: payload.message,
+      };
       if (payload.status === 'SUCCESS' || payload.status === 'FAIL') {
         setTimeout(() => {
           delete projectProgress.value[pid];
@@ -116,6 +129,8 @@ function setupSocket() {
 async function refresh() {
   loading.value = true;
   try {
+    const filterMap: Record<string, string> = {};
+    if (filterType.value) filterMap.type = filterType.value;
     projects.value = await queryProjects({
       keyword: keyword.value || undefined,
       type: filterType.value || undefined,
@@ -126,6 +141,11 @@ async function refresh() {
     loading.value = false;
   }
 }
+
+/* 工具条搜索 */
+const keyword = ref('');
+const filterType = ref('');
+const typeOptions = Object.entries(typeMeta).map(([value, m]) => ({ label: m.label, value }));
 
 /* ================== 表单弹窗 ================== */
 const formVisible = ref(false);
@@ -144,6 +164,22 @@ async function removeProject(row: ProjectRow) {
   await message.confirm(`确认删除项目 ${row.msProjectName}？该操作不可恢复`, '删除');
   await delProject(row.id);
   message.success('已删除');
+  detailVisible.value = false;
+  refresh();
+}
+
+/* ================== 详情抽屉 ================== */
+const detailVisible = ref(false);
+const detailProject = ref<ProjectRow | null>(null);
+
+function openDetail(row: ProjectRow) {
+  detailProject.value = row;
+  detailVisible.value = true;
+}
+
+async function toggleEnabled(row: ProjectRow) {
+  await switchProject(row.id, !row.msProjectEnabled);
+  message.success(row.msProjectEnabled ? '已停用' : '已启用');
   refresh();
 }
 
@@ -187,15 +223,6 @@ function pickFile(row: ProjectRow, mode: 'DEPLOY' | 'UPGRADE') {
   input.click();
   input.remove();
 }
-
-function handleDrop(row: ProjectRow, e: DragEvent) {
-  e.preventDefault();
-  cardDragover.value = null;
-  const file = e.dataTransfer?.files?.[0];
-  if (file) uploadToCard(row, file, 'DEPLOY');
-}
-
-const cardDragover = ref<number | null>(null);
 
 /* ================== 回滚 ================== */
 const rollbackVisible = ref(false);
@@ -293,115 +320,85 @@ function showActionResult(logs: any[]) {
 
 /* ================== 工具函数 ================== */
 function hostCount(row: ProjectRow): number {
-  try {
-    const arr = JSON.parse(row.msProjectHostIds || '[]');
-    return Array.isArray(arr) ? arr.length : 0;
-  } catch { return 0; }
-}
-function isLinux(row: ProjectRow) {
-  return (row.msProjectHostOs || '').toUpperCase().startsWith('LINUX');
+  return parseHostIds(row.msProjectHostIds).length;
 }
 </script>
 
 <template>
-  <div class="project-list sc-page">
-    <ReSectionHead class="page-head" title="发布项目管理" description="软件部署 / 升级 / 回滚 / 实时日志">
-      <template #actions>
-        <ReButton layout="square" type="primary" icon="Plus">新建项目</ReButton>
-        <ReButton layout="square" icon="Refresh">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
-    <!-- 工具条 -->
-    <div class="page-toolbar">
-      <ReInput
-        v-model="keyword"
-        placeholder="搜索项目名称/编码"
-        clearable
-        style="width:240px"
-        @keyup.enter="refresh"
-        @clear="refresh"
-      >
-        <template #prefix><ReIcon name="Search" :size="14" /></template>
-      </ReInput>
-      <ReSelect
-        v-model="filterType"
-        placeholder="项目类型"
-        clearable
-        :data="typeOptions"
-        style="width:200px"
-        @change="refresh"
-      />
-      <ReButton layout="square" icon="Search" @click="refresh">查询</ReButton>
-      <div class="spacer" />
-      <span class="muted">{{ projects.length }} 个项目</span>
+  <div class="project-portal sc-page">
+    <!-- 顶部导航（对齐 kodcloud 项目主页：标题 + 状态 tab + 搜索/操作） -->
+    <div class="portal-head">
+      <div class="portal-title">
+        <ReIcon name="Box" :size="20" />
+        <span>发布项目管理</span>
+        <span class="portal-count">{{ filteredProjects.length }}</span>
+      </div>
+      <div class="portal-tabs">
+        <button
+          v-for="t in navItems"
+          :key="t.value"
+          class="portal-tab"
+          :class="{ active: activeNav === t.value }"
+          @click="activeNav = t.value"
+        >
+          {{ t.label }}
+        </button>
+      </div>
+      <div class="portal-search">
+        <ReInput
+          v-model="keyword"
+          placeholder="搜索项目名称/编码"
+          clearable
+          style="width:200px"
+          @keyup.enter="refresh"
+          @clear="refresh"
+        >
+          <template #prefix><ReIcon name="Search" :size="14" /></template>
+        </ReInput>
+        <ReButton layout="square" icon="Search" @click="refresh">查询</ReButton>
+        <ReButton layout="square" type="primary" icon="Plus" @click="openCreate">新建项目</ReButton>
+        <ReButton layout="square" icon="Refresh" @click="refresh">刷新</ReButton>
+      </div>
     </div>
 
-    <!-- 卡片网格 -->
-    <div v-loading="loading" class="project-grid">
+    <!-- 图标宫格（对齐 kodcloud 应用宫格：大图标 + 标题 + 状态角标 + hover 操作浮层） -->
+    <div v-loading="loading" class="portal-grid" :class="{ 'is-empty': filteredProjects.length === 0 }">
       <div
-        v-for="row in projects"
+        v-for="row in filteredProjects"
         :key="row.id"
-        class="project-card"
+        class="portal-app"
         :class="{
-          deploying: deployingIds.has(row.id),
-          dragover: cardDragover === row.id,
+          working: deployingIds.has(row.id) || !!projectProgress[row.id],
+          offline: row.msProjectEnabled === 0,
         }"
-        @dragover.prevent="cardDragover = row.id"
-        @dragleave="cardDragover = null"
-        @drop.prevent="handleDrop(row, $event)"
+        @click="openDetail(row)"
       >
-        <!-- 头部 -->
-        <div class="project-card__head">
-          <div class="project-card__name">
-            <span class="ico"><ReIcon name="Box" :size="17" /></span>
-            <div style="min-width:0">
-              <div class="project-card__title" :title="row.msProjectName">{{ row.msProjectName }}</div>
-              <div class="project-card__code">{{ row.msProjectCode }}</div>
-            </div>
-          </div>
-          <ReTag :type="statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.cls || 'info'">
+        <!-- 状态角标 -->
+        <span class="portal-dot" :class="statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.dot || 'dot-amber'" />
+
+        <!-- 大图标 -->
+        <div class="portal-icon" :class="iconClsOf(row)">
+          <ReIcon :name="iconOf(row)" :size="36" />
+        </div>
+
+        <!-- 标题 -->
+        <div class="portal-name" :title="row.msProjectName">{{ row.msProjectName }}</div>
+        <div class="portal-sub" :title="typeMeta[row.msProjectType]?.label || row.msProjectType">
+          <span class="portal-ver" v-if="row.msProjectCurrentVersion" :title="row.msProjectCurrentVersion">
+            {{ (row.msProjectCurrentVersion || '').slice(0, 18) }}
+          </span>
+          <ReTag :type="statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.cls || 'info'" size="small" round>
             {{ statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.label || row.msProjectRuntimeStatus }}
           </ReTag>
         </div>
 
-        <!-- 进度条（实时） -->
-        <div
-          v-if="projectProgress[row.id]"
-          class="project-card__progress"
-        >
-          <ReTag size="small" :type="projectProgress[row.id].status === 'FAIL' ? 'danger' : 'warning'">
-            {{ projectProgress[row.id].stage }}: {{ projectProgress[row.id].message }}
-          </ReTag>
+        <!-- 进度 -->
+        <div v-if="projectProgress[row.id]" class="portal-progress">
+          <span class="portal-progress-text">{{ projectProgress[row.id].stage }}: {{ projectProgress[row.id].message }}</span>
         </div>
 
-        <!-- 元信息 -->
-        <div class="project-card__meta">
-          <span class="kv"><span>类型</span><span class="v">{{ typeLabels[row.msProjectType] || row.msProjectType }}</span></span>
-          <span class="kv"><span>主机</span><span class="v">{{ hostCount(row) }} 台</span></span>
-          <span class="kv"><span>OS</span><span class="v">{{ isLinux(row) ? 'Linux' : 'Windows' }}</span></span>
-          <span class="kv" v-if="row.msProjectCurrentVersion">
-            <span>版本</span><span class="v" :title="row.msProjectCurrentVersion">{{ row.msProjectCurrentVersion }}</span>
-          </span>
-        </div>
-
-        <!-- 升级策略 + 自动启动 -->
-        <div class="project-card__policy">
-          <span class="policy-chip" :class="{ 'policy-on': row.msProjectDeleteBefore === 1 }">升级前删除</span>
-          <span class="policy-chip">{{ row.msProjectOverwriteMode === 'REPLACE' ? '全量替换' : '直接覆盖' }}</span>
-          <span class="policy-chip">{{ row.msProjectAutoExtract === 1 ? '自动解压' : '仅上传' }}</span>
-          <span class="policy-chip policy-on" v-if="row.msProjectAutoStart === 1">部署后自动启动</span>
-        </div>
-
-        <!-- 拖拽上传区 -->
-        <div class="project-card__drop">
-          <ReIcon name="UploadFilled" :size="15" />
-          <span v-if="deployingIds.has(row.id)">部署中...</span>
-          <span v-else>拖拽部署包到此处</span>
-        </div>
-
-        <!-- 操作区 -->
-        <div class="project-card__actions">
+        <!-- hover 操作浮层 -->
+        <div class="portal-ops" @click.stop>
           <ReButton layout="square" size="small" type="primary" icon="VideoPlay" @click="runLifecycle(row, 'start')">启动</ReButton>
           <ReButton layout="square" size="small" icon="VideoPause" @click="runLifecycle(row, 'stop')">停止</ReButton>
           <ReButton layout="square" size="small" icon="RefreshRight" @click="runLifecycle(row, 'restart')">重启</ReButton>
@@ -414,18 +411,18 @@ function isLinux(row: ProjectRow) {
               </ReDropdownMenu>
             </template>
           </ReDropdown>
-          <div class="spacer" />
           <ReButton layout="square" size="small" icon="Document" @click="openLiveLog(row)">实时日志</ReButton>
           <ReButton layout="square" size="small" icon="UploadBack" @click="openRollback(row)">回滚</ReButton>
           <ReButton layout="square" size="small" icon="Edit" @click="openEdit(row)">编辑</ReButton>
           <ReButton layout="square" size="small" icon="Delete" @click="removeProject(row)">删除</ReButton>
         </div>
       </div>
-    </div>
 
-    <div v-if="!loading && projects.length === 0" class="empty-state">
-      <div class="empty-ico">📦</div>
-      <div class="empty-text">暂无项目，点击右上角「新建项目」创建</div>
+      <!-- 空态 -->
+      <div v-if="!loading && filteredProjects.length === 0" class="portal-empty">
+        <div class="empty-ico">📦</div>
+        <div class="empty-text">暂无项目，点击右上角「新建项目」创建</div>
+      </div>
     </div>
 
     <!-- 表单弹窗 -->
@@ -506,10 +503,66 @@ function isLinux(row: ProjectRow) {
         </div>
       </div>
     </ReDrawer>
+
+    <!-- 详情抽屉 -->
+    <ReDrawer
+      v-model="detailVisible"
+      :title="detailProject?.msProjectName || '项目详情'"
+      :size="560"
+    >
+      <div v-if="detailProject" class="detail-panel" style="padding:0 4px">
+        <div class="detail-hero">
+          <div class="portal-icon lg" :class="iconClsOf(detailProject)">
+            <ReIcon :name="iconOf(detailProject)" :size="44" />
+          </div>
+          <div class="detail-hero__info">
+            <div class="detail-hero__name">{{ detailProject.msProjectName }}</div>
+            <div class="detail-hero__code">{{ detailProject.msProjectCode }} · {{ typeMeta[detailProject.msProjectType]?.label }}</div>
+            <div class="detail-hero__tags">
+              <ReTag :type="statusMap[detailProject.msProjectRuntimeStatus || 'UNKNOWN']?.cls || 'info'" size="small">
+                {{ statusMap[detailProject.msProjectRuntimeStatus || 'UNKNOWN']?.label }}
+              </ReTag>
+              <span class="policy-chip">{{ hostCount(detailProject) }} 台主机</span>
+              <span v-if="detailProject.msProjectAutoStart === 1" class="policy-chip policy-on">部署后自动启动</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-rows">
+          <div class="detail-row"><span>版本</span><span>{{ detailProject.msProjectCurrentVersion || '-' }}</span></div>
+          <div class="detail-row"><span>部署目录</span><span class="mono">{{ detailProject.msProjectDeployDir || '-' }}</span></div>
+          <div class="detail-row"><span>日志</span><span class="mono">{{ detailProject.msProjectLogDir || '-' }}{{ detailProject.msProjectLogFile ? '/' + detailProject.msProjectLogFile : '' }}</span></div>
+          <div class="detail-row"><span>升级策略</span><span>
+            {{ detailProject.msProjectDeleteBefore === 1 ? '升级前删除' : '保留旧内容' }} ·
+            {{ detailProject.msProjectOverwriteMode === 'REPLACE' ? '全量替换' : '直接覆盖' }} ·
+            {{ detailProject.msProjectAutoExtract === 1 ? '自动解压' : '仅上传' }}
+          </span></div>
+          <div class="detail-row"><span>备注</span><span>{{ detailProject.msProjectRemark || '-' }}</span></div>
+        </div>
+
+        <div class="detail-ops">
+          <ReButton layout="square" type="primary" icon="VideoPlay" @click="runLifecycle(detailProject, 'start')">启动</ReButton>
+          <ReButton layout="square" icon="VideoPause" @click="runLifecycle(detailProject, 'stop')">停止</ReButton>
+          <ReButton layout="square" icon="RefreshRight" @click="runLifecycle(detailProject, 'restart')">重启</ReButton>
+          <ReDropdown trigger="click">
+            <ReButton layout="square" icon="Upload">上传包</ReButton>
+            <template #dropdown>
+              <ReDropdownMenu>
+                <ReDropdownItem @click="pickFile(detailProject, 'DEPLOY')">部署（DEPLOY）</ReDropdownItem>
+                <ReDropdownItem @click="pickFile(detailProject, 'UPGRADE')">升级（UPGRADE）</ReDropdownItem>
+              </ReDropdownMenu>
+            </template>
+          </ReDropdown>
+          <ReButton layout="square" icon="Document" @click="openLiveLog(detailProject)">实时日志</ReButton>
+          <ReButton layout="square" icon="UploadBack" @click="openRollback(detailProject)">回滚</ReButton>
+          <ReButton layout="square" icon="Edit" @click="openEdit(detailProject)">编辑</ReButton>
+          <ReButton layout="square" icon="Delete" @click="removeProject(detailProject)">删除</ReButton>
+        </div>
+      </div>
+    </ReDrawer>
   </div>
 </template>
 
 <style scoped>
 .policy-on { color: var(--brand-600); border-color: var(--brand-300); background: var(--brand-50); }
-.project-card__progress { padding-top: 4px; }
 </style>
