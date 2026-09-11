@@ -71,8 +71,12 @@ const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
 const keyword = ref("");
-/** 视图模式：grid=网格卡片 / list=紧凑列表 */
-const viewMode = ref<"grid" | "list">("grid");
+/** 视图模式：details=详细信息 / largeIcons=大图标 / mediumIcons=中图标 / smallIcons=小图标 */
+const viewMode = ref<ViewMode>("details");
+/** 排序字段 */
+const sortKey = ref<"name" | "size" | "lastModified">("name");
+/** 排序方向：asc 升序 / desc 降序 */
+const sortOrder = ref<"asc" | "desc">("asc");
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
 /** 存储桶公开配置（?format=config） */
@@ -90,8 +94,24 @@ const breadcrumbs = computed(() => {
 
 const filteredObjects = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return objects.value;
-  return objects.value.filter((item) => item.name.toLowerCase().includes(kw));
+  const base = kw ? objects.value.filter((item) => item.name.toLowerCase().includes(kw)) : [...objects.value];
+  return base.sort((a, b) => {
+    // Windows 惯例：目录始终排在文件前面
+    if (a.directory !== b.directory) return a.directory ? -1 : 1;
+    const dir = sortOrder.value === "asc" ? 1 : -1;
+    let r: number;
+    switch (sortKey.value) {
+      case "size":
+        r = (a.size || 0) - (b.size || 0);
+        break;
+      case "lastModified":
+        r = (a.lastModified || 0) - (b.lastModified || 0);
+        break;
+      default:
+        r = a.name.localeCompare(b.name, "zh-CN");
+    }
+    return r * dir;
+  });
 });
 
 const fileCount = computed(() => objects.value.filter((item) => !item.directory).length);
