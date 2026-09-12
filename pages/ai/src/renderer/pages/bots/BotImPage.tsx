@@ -682,7 +682,8 @@ export default function BotImPage() {
       const list: ChatMessage[] = Array.isArray(data.messages) ? data.messages : extractList<ChatMessage>(res);
       if (resetPage) {
         setMessages(list);
-        setMessagePage(0);
+        // 第 0 页（最近一页）已展示，滚动加载更早历史应从第 1 页开始
+        setMessagePage(1);
       } else {
         setMessages((prev) => [...list, ...prev]);
         setMessagePage((p) => p + 1);
