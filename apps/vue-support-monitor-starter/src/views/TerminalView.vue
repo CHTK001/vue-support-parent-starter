@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
  * 远程控制工作区 —— design.md §4.8（沉浸式 master–detail）
- * 左侧主机资源条（点选即切）+ 右侧 ImmersiveTerminal 控制台
+ * 左侧主机资源条（点选即切）+ 右侧 ScGuacViewer 远控渲染（guacamole 客户端直连隧道）
  * 支持 ?hostId= 直达：从资产页「连接」进入并自动选中、自动连接。
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { queryHosts, getHost } from "@pages/server/src/api";
+import ScGuacViewer from "@pages/server/src/components/ScGuacViewer.vue";
 import ReInput from "@repo/ui/re-input";
 import ReScrollbar from "@repo/ui/re-scrollbar";
 
@@ -58,7 +59,7 @@ const railWidth = computed(() => (railOpen.value ? `${layout.railWidth}px` : `${
 /** 当前选中资产 */
 const selectedHost = computed(() => hosts.value.find(h => h.id === selectedId.value) ?? null);
 
-/** 传给 ImmersiveTerminal 的连接对象 */
+/** 传给 ScGuacViewer 的连接对象 */
 const connection = computed(() => {
   const h = selectedHost.value;
   if (!h) return null;
@@ -71,21 +72,6 @@ const connection = computed(() => {
     targetPort: null,
 
   };
-});
-
-/**
- * 远程控制 iframe URL —— 后端按主机信息向 guacd 建立隧道并返回远控页面
- * （前端只负责嵌入 URL：/ms/server/remote/connect?hostId=&protocol=&identityId=）
- */
-const remoteUrl = computed(() => {
-  const c = connection.value;
-  if (!c) return "";
-  const qs = new URLSearchParams({
-    hostId: String(c.hostId),
-    protocol: String(c.protocol ?? "ssh"),
-  });
-  if (c.identityId != null) qs.set("identityId", String(c.identityId));
-  return `/ms/server/remote/connect?${qs.toString()}`;
 });
 
 const filteredHosts = computed(() => {
@@ -246,17 +232,10 @@ onMounted(onMountedInit);
       <div v-else class="rail-collapsed" @click="railOpen = true" title="展开资源条">☰</div>
     </aside>
 
-    <!-- 右侧控制台：iframe 嵌入后端远控 URL（后端按主机信息向 guacd 建隧道并返回页面） -->
+    <!-- 右侧控制台：ScGuacViewer（guacamole-common-js 客户端直连 /ws/ms/server/terminal 隧道） -->
     <main class="term-main">
-      <iframe
-        v-if="remoteUrl"
-        :key="remoteUrl"
-        :src="remoteUrl"
-        class="remote-frame"
-        frameborder="0"
-        allow="clipboard-read; clipboard-write"
-      />
-      <div v-else class="remote-empty">从左侧选择一台主机开始控制</div>
+      <ScGuacViewer :connection="connection" @close="connection = null" />
+      <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
     </main>
   </div>
 </template>
