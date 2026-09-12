@@ -9,6 +9,7 @@ interface GroupNode {
   parentId: number;
   sort: number;
   remark?: string;
+  color?: string;
   children?: GroupNode[];
 }
 
@@ -18,7 +19,10 @@ const flatGroups = ref<any[]>([]);
 
 const formVisible = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '' });
+const form = ref({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
+
+/** 预设分组色板，便于快速选取常用颜色 */
+const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#2f3c4f', '#0ea5e9'];
 
 onMounted(refresh);
 
@@ -40,17 +44,19 @@ async function refresh() {
 
 function openCreate(parentId = 0) {
   editingId.value = null;
-  form.value = { msServerGroupName: '', msServerGroupParentId: parentId, msServerGroupSort: 0, msServerGroupRemark: '' };
+  form.value = { msServerGroupName: '', msServerGroupParentId: parentId, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' };
   formVisible.value = true;
 }
 
 function openEdit(node: GroupNode) {
   editingId.value = node.id;
+  const anyNode = node as unknown as Record<string, unknown>;
   form.value = {
     msServerGroupName: node.name,
     msServerGroupParentId: node.parentId,
     msServerGroupSort: node.sort,
     msServerGroupRemark: node.remark || '',
+    msServerGroupColor: String(anyNode.msServerGroupColor ?? anyNode.color ?? ''),
   };
   formVisible.value = true;
 }
@@ -106,7 +112,14 @@ function renderNode(node: GroupNode): string {
       >
         <template #default="{ node, data }">
           <div class="tree-node">
-            <span class="tree-label">{{ node.label }}</span>
+            <span class="tree-label">
+              <span
+                v-if="data?.msServerGroupColor"
+                class="color-dot"
+                :style="{ background: data.msServerGroupColor }"
+              ></span>
+              {{ node.label }}
+            </span>
             <span class="tree-actions">
               <ReButton link size="small" @click="openCreate(data.id)">添加子</ReButton>
               <ReButton link size="small" @click="openEdit(data)">编辑</ReButton>
@@ -135,6 +148,12 @@ function renderNode(node: GroupNode): string {
         </ReFormItem>
         <ReFormItem label="排序">
           <ReInputNumber v-model="form.msServerGroupSort" :min="0" style="width: 100%" />
+        </ReFormItem>
+        <ReFormItem label="颜色">
+          <div class="color-field">
+            <el-color-picker v-model="form.msServerGroupColor" :predefine="colorPresets" />
+            <ReInput v-model="form.msServerGroupColor" placeholder="可选，如 #6d5dfc" clearable style="flex:1" />
+          </div>
         </ReFormItem>
         <ReFormItem label="备注">
           <ReInput v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
@@ -167,6 +186,22 @@ function renderNode(node: GroupNode): string {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+}
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 .tree-actions {
   display: flex;

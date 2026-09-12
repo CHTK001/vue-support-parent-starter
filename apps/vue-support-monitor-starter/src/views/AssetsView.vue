@@ -58,7 +58,7 @@ export interface Host {
   serverHostPrivateKey?: string | null;
 }
 
-interface Group { id: number; msServerGroupName: string; }
+interface Group { id: number; msServerGroupName: string; msServerGroupColor?: string | null; }
 interface Identity { id: number; msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityRemark?: string; }
 
 const router = useRouter();
@@ -149,6 +149,32 @@ async function scanHostPorts(h: Host): Promise<void> {
 function groupName(id?: number | null): string {
   if (!id) return "未分组";
   return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
+}
+/** 分组背景色开关：开启时分组标记按分组配置颜色显示底色 */
+const groupColorEnabled = ref(true);
+/** 取分组颜色（未配置或关闭开关时返回空，不使用背景色） */
+function groupColor(id?: number | null): string {
+  if (!groupColorEnabled.value || !id) return "";
+  return groups.value.find(g => g.id === id)?.msServerGroupColor ?? "";
+}
+/** 分组标签背景样式：按颜色值生成带透明度的底色与匹配文字色 */
+function groupColorStyle(id?: number | null): Record<string, string> {
+  const c = groupColor(id);
+  if (!c) return {};
+  // 解析 #RRGGBB
+  const hex = c.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return {};
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  // 亮度感知文字色（深底浅字 / 浅底深字）
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const text = luminance > 0.6 ? "#3a3f4b" : "#ffffff";
+  return {
+    backgroundColor: `${c}26`, // 15% 透明底
+    color: text,
+    borderColor: `${c}55`,
+  };
 }
 
 function normalizeOs(t?: string): string {
@@ -464,7 +490,12 @@ onMounted(() => {
         </template>
         <template #col-addr="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
         <template #col-group="{ row }">
-          <ReTag v-if="row.serverGroupId" size="small" effect="plain">{{ groupName(row.serverGroupId) }}</ReTag>
+          <ReTag
+            v-if="row.serverGroupId"
+            size="small"
+            :effect="groupColor(row.serverGroupId) ? 'light' : 'plain'"
+            :style="groupColorStyle(row.serverGroupId)"
+          >{{ groupName(row.serverGroupId) }}</ReTag>
           <span v-else class="dim">未分组</span>
         </template>
         <template #col-tags="{ row }">
