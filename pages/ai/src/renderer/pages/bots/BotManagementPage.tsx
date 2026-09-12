@@ -285,9 +285,9 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     let cancelled = false;
     (async () => {
       try {
-        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/skills/catalog');
-        const list = Array.isArray(res) ? res : res?.data;
-        if (!cancelled && Array.isArray(list)) setSkillOptions(list);
+const res = await http().get('/v2/ai/skills/catalog').then(r => unwrapResult<string[]>(r));
+const list = Array.isArray(res) ? res : undefined;
+if (!cancelled && Array.isArray(list)) setSkillOptions(list);
       } catch {
         // 忽略：skill 列表加载失败不影响绑定
       }
@@ -344,9 +344,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     stopPoll();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; botId?: string; botToken?: string; expireAt?: number }>(
-          'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
-        );
+        const res = await http().get(`/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`)
+          .then(r => unwrapResult<{ status?: string; qrcodeUrl?: string; botId?: string; botToken?: string; expireAt?: number }>(r));
         const s = res?.status ?? 'pending';
         // 后端二维码就绪（ready）时返回 qrcodeUrl，赋给 state 供 img 展示
         if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
@@ -394,9 +393,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     setScanExpireAt(null);
     setScanRemaining(null);
     try {
-      const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
-        'POST', `/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(platform)}`
-      );
+      const res = await http().post(`/v2/ai/bot-binding/qrcode?platform=${encodeURIComponent(platform)}`)
+        .then(r => unwrapResult<{ key?: string; qrcodeUrl?: string }>(r));
       const key = res?.key ?? '';
       const url = res?.qrcodeUrl ?? '';
       if (!key) {
@@ -801,7 +799,7 @@ export default function BotManagementPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await httpRequest<{ hasAdmin?: boolean }>('GET', '/v2/ai/bot-binding/meta');
+        const res = await http().get('/v2/ai/bot-binding/meta').then(r => unwrapResult<{ hasAdmin?: boolean }>(r));
         const has = res?.hasAdmin === true;
         if (!cancelled) setIsManager(has);
       } catch {
@@ -815,7 +813,7 @@ export default function BotManagementPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await httpRequest<unknown>('GET', '/v2/ai/bot-binding/list');
+      const res = await http().get('/v2/ai/bot-binding/list').then(r => unwrapResult<unknown>(r));
       setBindings(extractList(res));
     } catch {
       Message.error(t('bots.loadFailed', { defaultValue: '加载失败' }));
@@ -875,8 +873,8 @@ export default function BotManagementPage() {
             Message.error(t('bots.feishuRequired', { defaultValue: '请填写飞书 App ID 与 App Secret' }));
             return;
           }
-          await httpRequest('POST',
-            `/v2/ai/bot-binding/feishu?appId=${encodeURIComponent(appId)}&appSecret=${encodeURIComponent(appSecret)}`);
+          await http().post(`/v2/ai/bot-binding/feishu?appId=${encodeURIComponent(appId)}&appSecret=${encodeURIComponent(appSecret)}`)
+            .then(r => unwrapResult<unknown>(r));
           Message.success(t('bots.feishuSuccess', { defaultValue: '飞书绑定成功' }));
           setEditorVisible(false);
           await load();
