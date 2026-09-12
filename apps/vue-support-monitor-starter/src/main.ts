@@ -42,6 +42,8 @@ const MONITOR_RE_COMPONENTS = [
   "ReLoading",
   "ReScrollbar",
   "ReTagFilter",
+  "ReTree",
+  "ReEmptyState",
   "ReKit",
 ];
 

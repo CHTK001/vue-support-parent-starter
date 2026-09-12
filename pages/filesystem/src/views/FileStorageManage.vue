@@ -252,17 +252,12 @@ function fileType(name: string): string {
 }
 
 /**
- * 大图标缩略图 URL：
- *  - 图片：直接用原图 URL（浏览器原生渲染，不做 SPI 转 HTML）
- *  - office/pdf/text/video/audio/font：?preview=true 走 SPI 预览
- *  - archive/unknown：空走图标兜底
+ * 大图标缩略图 URL：所有可预览文件统一 ?preview=true（图片返回字节，其余转 HTML）
+ * archive/unknown 返回空走图标兜底
  */
 function objectThumbUrl(name: string): string {
-  if (isArchive(name)) return "";
-  const k = kindOf(name);
-  if (k === "image") return objectUrl(bucket.value, fullKey(name), false);
-  if (isPreviewable(name)) return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
-  return "";
+  if (isArchive(name) || !isPreviewable(name)) return "";
+  return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
 }
 
 /** 排序点击切换 */
@@ -923,7 +918,14 @@ onUnmounted(() => {
             @contextmenu="openContextMenu($event, item)"
           >
             <div class="fs-lg-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
-              <img v-if="!item.directory && objectThumbUrl(item.name)" :src="objectThumbUrl(item.name)" class="fs-lg-card__img" loading="lazy" @error="$event.target.style.display='none'" />
+              <iframe
+                v-if="!item.directory && objectThumbUrl(item.name)"
+                :src="objectThumbUrl(item.name)"
+                class="fs-lg-card__frame"
+                loading="lazy"
+                title=""
+                scrolling="no"
+              />
               <template v-else>
                 <svg v-if="item.directory" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16z"/></svg>
                 <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -1112,7 +1114,7 @@ onUnmounted(() => {
           </el-empty>
         </div>
         <template v-else-if="previewKind === 'image'">
-          <PreviewImagePanel ref="imagePanelRef" v-model:zoom="previewZoom" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" :alt="previewName" @fullscreen="toggleFullscreen()" @load="previewLoading = false" @error="previewError = true" />
+          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
         <template v-else-if="previewKind === 'pdf'">
           <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '#toolbar=0&zoom=page-width'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
@@ -1586,7 +1588,14 @@ onUnmounted(() => {
 .fs-lg-card__thumb.icon-text { color: #475569; background: #f1f5f9; }
 .fs-lg-card__thumb.icon-file { color: #475569; background: #f1f5f9; }
 
-.fs-lg-card__img { width: 100%; height: 100%; object-fit: cover; background: #ffffff; }
+.fs-lg-card__frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+  pointer-events: none;
+  opacity: 0.95;
+}
 
 .fs-lg-card__label {
   width: 100%;

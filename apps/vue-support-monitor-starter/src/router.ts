@@ -16,6 +16,7 @@ const routes: RouteRecordRaw[] = [
   { path: "/system-config", name: "system-config", component: () => import("./views/SystemConfigView.vue"), meta: { title: "系统配置" } },
   { path: "/proxy", name: "proxy", component: () => import("./views/ProxyView.vue"), meta: { title: "代理管理" } },
   { path: "/account", name: "account", component: () => import("./views/IdentityManageView.vue"), meta: { title: "账号管理" } },
+  { path: "/groups", name: "groups", component: () => import("@pages/server/src/views/ScGroupTree.vue"), meta: { title: "分组管理" } },
   { path: "/project", name: "project", component: () => import("@pages/project/src/views/ScProjectList.vue"), meta: { title: "发布项目管理" } },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
