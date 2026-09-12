@@ -82,6 +82,8 @@ verify-*.js
 verify-*.mjs
 probe.*
 final-check.mjs
+shot.js
+verify.js
 
 # Playwright 报告
 playwright-report/

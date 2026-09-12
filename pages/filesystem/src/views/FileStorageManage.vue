@@ -148,6 +148,12 @@ let lastSelectedIndex = -1;
 const tree = ref<TreeItem[]>([]);
 /** 目录树加载状态 */
 const treeLoading = ref(false);
+/** 历史栈（KodExplorer 地址栏前进/后退） */
+const historyStack = ref<string[]>([]);
+/** 当前历史索引 */
+const historyIndex = ref(-1);
+/** 是否阻止历史记录（如前进后退导航本身） */
+let suppressHistory = false;
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
@@ -342,12 +348,78 @@ async function loadObjects(): Promise<void> {
   try {
     objects.value = await listObjects(bucket.value, currentPath.value);
     setDefaultBucket(bucket.value);
+    // 记录历史（前进/后退导航时 suppressHistory=true 跳过）
+    if (!suppressHistory) {
+      historyStack.value = historyStack.value.slice(0, historyIndex.value + 1);
+      historyStack.value.push(currentPath.value);
+      historyIndex.value = historyStack.value.length - 1;
+    }
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
   } finally {
     loading.value = false;
   }
+}
+
+/** 历史后退 */
+function goBack(): void {
+  if (historyIndex.value <= 0) return;
+  historyIndex.value--;
+  suppressHistory = true;
+  currentPath.value = historyStack.value[historyIndex.value];
+  clearSelect();
+  loadObjects();
+  suppressHistory = false;
+}
+
+/** 历史前进 */
+function goForward(): void {
+  if (historyIndex.value >= historyStack.value.length - 1) return;
+  historyIndex.value++;
+  suppressHistory = true;
+  currentPath.value = historyStack.value[historyIndex.value];
+  clearSelect();
+  loadObjects();
+  suppressHistory = false;
+}
+
+/** 历史是否可后退 */
+const canGoBack = computed(() => historyIndex.value > 0);
+/** 历史是否可前进 */
+const canGoForward = computed(() => historyIndex.value < historyStack.value.length - 1);
+
+/** 全选当前目录 */
+function selectAll(): void {
+  selected.value = new Set(filteredObjects.value.map((i) => i.name));
+  lastSelectedIndex = -1;
+}
+
+/** 下载选中文件 */
+function downloadSelected(): void {
+  if (selectedCount.value === 0) return;
+  const files = objects.value.filter((o) => selected.value.has(o.name) && !o.directory);
+  for (const f of files) {
+    window.open(objectUrl(bucket.value, fullKey(f.name), true), "_blank");
+  }
+}
+
+/** 删除选中对象（含目录） */
+async function deleteSelected(): Promise<void> {
+  if (selectedCount.value === 0) return;
+  const targets = objects.value.filter((o) => selected.value.has(o.name));
+  try {
+    await ElMessageBox.confirm(`确认删除选中的 ${targets.length} 个对象？`, "删除确认", { type: "warning" });
+  } catch { return; }
+  try {
+    for (const t of targets) {
+      await deleteObject(bucket.value, fullKey(t.name));
+    }
+    ElMessage.success(`已删除 ${targets.length} 个对象`);
+    clearSelect();
+    await loadObjects();
+    await loadTree();
+  } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
 }
 
 /** 加载左侧目录树（失败静默） */
@@ -701,7 +773,7 @@ onUnmounted(() => {
 
 <template>
   <div class="fs-app" @click="closeContextMenu">
-    <!-- ===== 顶部工具栏 ===== -->
+    <!-- ===== 顶部地址栏（KodExplorer 风格） ===== -->
     <header class="fs-header">
       <div class="fs-brand">
         <svg class="fs-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -710,6 +782,36 @@ onUnmounted(() => {
         </svg>
         <span>FileStorage</span>
         <span class="fs-bucket-badge" :title="`存储桶：${bucket}`">{{ bucket }}</span>
+      </div>
+
+      <!-- 历史前进/后退 -->
+      <div class="fs-addr-nav">
+        <button type="button" class="fs-icon-btn" :disabled="!canGoBack" title="后退" aria-label="后退" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="fs-icon-btn" :disabled="!canGoForward" title="前进" aria-label="前进" @click="goForward">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button type="button" class="fs-icon-btn" title="根目录" aria-label="根目录" @click="goCrumb('')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </button>
+        <button type="button" class="fs-icon-btn" :disabled="!currentPath" title="上级目录" aria-label="上级目录" @click="goUp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+      </div>
+
+      <!-- 面包屑地址栏 -->
+      <div class="fs-addr">
+        <span class="fs-pathbar__crumbs">
+          <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
+            <span v-if="i > 0" class="fs-pathbar__sep" aria-hidden="true">/</span>
+            <span
+              class="fs-pathbar__item"
+              :class="{ 'fs-pathbar__item--active': crumb.path === currentPath }"
+              @click="goCrumb(crumb.path)"
+            >{{ crumb.name }}</span>
+          </template>
+        </span>
       </div>
 
       <div class="fs-header__right">
@@ -722,75 +824,6 @@ onUnmounted(() => {
           :prefix-icon="Search"
           :aria-label="'搜索文件'"
         />
-        <div class="fs-toolbar-sep" aria-hidden="true" />
-        <div class="fs-view-toggle" role="group" aria-label="查看方式">
-          <button
-            type="button"
-            class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'details' }"
-            title="详细信息"
-            :aria-label="'详细信息'"
-            :aria-pressed="viewMode === 'details'"
-            @click="viewMode = 'details'"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-              <circle cx="2.5" cy="6" r="0.5" fill="currentColor"/><circle cx="2.5" cy="12" r="0.5" fill="currentColor"/><circle cx="2.5" cy="18" r="0.5" fill="currentColor"/>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'largeIcons' }"
-            title="大图标"
-            :aria-label="'大图标'"
-            :aria-pressed="viewMode === 'largeIcons'"
-            @click="viewMode = 'largeIcons'"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/>
-              <rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'mediumIcons' }"
-            title="中图标"
-            :aria-label="'中图标'"
-            :aria-pressed="viewMode === 'mediumIcons'"
-            @click="viewMode = 'mediumIcons'"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="10" y="2" width="6" height="6" rx="1.2"/><rect x="18" y="2" width="4" height="6" rx="1.2"/>
-              <rect x="2" y="10" width="6" height="6" rx="1.2"/><rect x="10" y="10" width="6" height="6" rx="1.2"/><rect x="18" y="10" width="4" height="6" rx="1.2"/>
-              <rect x="2" y="18" width="6" height="4" rx="1.2"/><rect x="10" y="18" width="6" height="4" rx="1.2"/><rect x="18" y="18" width="4" height="4" rx="1.2"/>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="fs-view-btn"
-            :class="{ 'fs-view-btn--active': viewMode === 'smallIcons' }"
-            title="小图标"
-            :aria-label="'小图标'"
-            :aria-pressed="viewMode === 'smallIcons'"
-            @click="viewMode = 'smallIcons'"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="4" cy="6" r="1.2" fill="currentColor"/><line x1="8" y1="6" x2="20" y2="6"/>
-              <circle cx="4" cy="12" r="1.2" fill="currentColor"/><line x1="8" y1="12" x2="20" y2="12"/>
-              <circle cx="4" cy="18" r="1.2" fill="currentColor"/><line x1="8" y1="18" x2="20" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <button type="button" class="fs-btn fs-btn--ghost" :class="{ 'fs-btn--loading': loading }" :disabled="loading" @click="loadObjects">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-          刷新
-        </button>
-        <button type="button" class="fs-btn fs-btn--primary" @click="openUpload">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          上传
-        </button>
       </div>
     </header>
 
@@ -840,22 +873,48 @@ onUnmounted(() => {
 
       <!-- 主内容区 -->
       <main class="fs-content">
-        <!-- 路径栏 -->
-        <div class="fs-pathbar">
-          <button type="button" class="fs-icon-btn" :disabled="!currentPath" title="返回上一级" :aria-label="'返回上一级'" @click="goUp">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <span class="fs-pathbar__crumbs">
-            <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
-              <span v-if="i > 0" class="fs-pathbar__sep" aria-hidden="true">/</span>
-              <span
-                class="fs-pathbar__item"
-                :class="{ 'fs-pathbar__item--active': crumb.path === currentPath }"
-                @click="goCrumb(crumb.path)"
-              >{{ crumb.name }}</span>
-            </template>
-          </span>
-          <span class="fs-pathbar__count">{{ filteredObjects.length }} 项</span>
+        <!-- KodExplorer 工具栏 -->
+        <div class="fs-toolbar">
+          <div class="fs-toolbar__left">
+            <button type="button" class="fs-tb-btn" title="全选" aria-label="全选" @click="selectAll">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span>全选</span>
+            </button>
+            <button type="button" class="fs-tb-btn" title="上传" aria-label="上传" @click="openUpload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>上传</span>
+            </button>
+            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="下载选中" aria-label="下载选中" @click="downloadSelected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>下载</span>
+            </button>
+            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn fs-tb-btn--danger" title="删除选中" aria-label="删除选中" @click="deleteSelected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>删除</span>
+            </button>
+            <button type="button" class="fs-tb-btn" title="刷新" aria-label="刷新" :disabled="loading" @click="loadObjects">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+              <span>刷新</span>
+            </button>
+          </div>
+          <span v-if="selectedCount > 0" class="fs-toolbar__sel">已选 {{ selectedCount }} 项</span>
+          <div class="fs-toolbar__right">
+            <span class="fs-pathbar__count">{{ filteredObjects.length }} 项</span>
+            <div class="fs-view-toggle" role="group" aria-label="查看方式">
+              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'details' }" title="详细信息" aria-label="详细信息" aria-pressed="viewMode === 'details'" @click="viewMode = 'details'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="2.5" cy="6" r="0.5" fill="currentColor"/><circle cx="2.5" cy="12" r="0.5" fill="currentColor"/><circle cx="2.5" cy="18" r="0.5" fill="currentColor"/></svg>
+              </button>
+              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'largeIcons' }" title="大图标" aria-label="大图标" aria-pressed="viewMode === 'largeIcons'" @click="viewMode = 'largeIcons'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
+              </button>
+              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'mediumIcons' }" title="中图标" aria-label="中图标" aria-pressed="viewMode === 'mediumIcons'" @click="viewMode = 'mediumIcons'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="10" y="2" width="6" height="6" rx="1.2"/><rect x="18" y="2" width="4" height="6" rx="1.2"/><rect x="2" y="10" width="6" height="6" rx="1.2"/><rect x="10" y="10" width="6" height="6" rx="1.2"/><rect x="18" y="10" width="4" height="6" rx="1.2"/><rect x="2" y="18" width="6" height="4" rx="1.2"/><rect x="10" y="18" width="6" height="4" rx="1.2"/><rect x="18" y="18" width="4" height="4" rx="1.2"/></svg>
+              </button>
+              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'smallIcons' }" title="小图标" aria-label="小图标" aria-pressed="viewMode === 'smallIcons'" @click="viewMode = 'smallIcons'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="4" cy="6" r="1.2" fill="currentColor"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.2" fill="currentColor"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.2" fill="currentColor"/><line x1="8" y1="18" x2="20" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 详细信息（Details） -->
@@ -1216,6 +1275,89 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
 }
+
+/* KodExplorer 地址导航栏 */
+.fs-addr-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+/* KodExplorer 地址/面包屑 */
+.fs-addr {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--fs-border);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 32px;
+  overflow: hidden;
+  margin: 0 10px;
+}
+
+.fs-addr .fs-pathbar__crumbs { flex: 1; display: flex; flex-wrap: nowrap; gap: 2px; align-items: center; overflow: hidden; }
+.fs-addr .fs-pathbar__sep { color: var(--fs-text-3); margin: 0 1px; }
+.fs-addr .fs-pathbar__item {
+  cursor: pointer;
+  color: var(--fs-primary);
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.fs-addr .fs-pathbar__item:hover { background: var(--fs-primary-soft); }
+.fs-addr .fs-pathbar__item--active { color: var(--fs-text); font-weight: 600; cursor: default; }
+
+/* KodExplorer 工具栏 */
+.fs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-border);
+  flex-shrink: 0;
+}
+.fs-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fs-toolbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.fs-toolbar__sel {
+  font-size: 12px;
+  color: var(--fs-primary);
+  font-weight: 600;
+  margin-left: 8px;
+}
+.fs-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--fs-border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--fs-text-2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.fs-tb-btn svg { width: 15px; height: 15px; }
+.fs-tb-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: var(--fs-text); }
+.fs-tb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fs-tb-btn--danger { color: var(--fs-danger); border-color: rgba(220,38,38,0.2); }
+.fs-tb-btn--danger:hover { background: rgba(220,38,38,0.06); }
 
 .fs-search { width: 200px; }
 .fs-search :deep(.el-input__wrapper) {

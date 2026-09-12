@@ -23,7 +23,8 @@ import {
 import { Comment, EveryUser, Refresh } from '@icon-park/react';
 import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { http } from '@repo/core';
+import { unwrapResult } from '@repo/utils';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 import { PlatformLogo } from '@/renderer/utils/platformLogo';

@@ -25,6 +25,22 @@ const defaultOptions: HttpOptions = {
   timeout: 10000,
 };
 
+/**
+ * 模块级默认 axios 实例（拦截器所在）。
+ *
+ * 业务侧统一 `import { http } from "@repo/utils"` 使用本模块的 http()，
+ * 但无参 http() 创建新 Http 时默认挂到全局 axios 上，会丢失 createApp
+ * 注入的加密/签名/401/loading 拦截器。createApp 构建 HTTP 客户端后会调用
+ * {@link setDefaultHttpInstance} 把带拦截器的实例回写到这里，
+ * 使业务侧 http() 复用同一请求管线。
+ */
+let defaultInstance: typeof axios = axios;
+
+/** 注入全局默认 axios 实例（createApp 构建 HTTP 客户端后调用） */
+export function setDefaultHttpInstance(instance: typeof axios): void {
+  defaultInstance = instance ?? axios;
+}
+
 type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };
 
 /**
@@ -195,7 +211,7 @@ export class Http {
 
   constructor(options: HttpOptions = {}) {
     this.options = { ...defaultOptions, ...options };
-    this.instance = options.instance ?? axios;
+    this.instance = options.instance ?? defaultInstance;
     this.baseURL = this.resolveBaseURL();
   }
 
