@@ -27,28 +27,28 @@ export default createVite({
     },
     proxy: {
       "/ms/monitor/system": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ms/monitor": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ms/server": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ms/project": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/ws/ms/server": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         ws: true,
         changeOrigin: true,
       },
       "/guacamole": {
-        target: "http://127.0.0.1:8082",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=29181）
