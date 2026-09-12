@@ -1,5 +1,8 @@
 import { createVite } from "../../turbo/vite/createVite.ts";
 
+const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8082";
+const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://127.0.0.1:29181";
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
@@ -27,33 +30,33 @@ export default createVite({
     },
     proxy: {
       "/ms/monitor/system": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         changeOrigin: true,
       },
       "/ms/monitor": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         changeOrigin: true,
       },
       "/ms/server": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         changeOrigin: true,
       },
       "/ms/project": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         changeOrigin: true,
       },
       "/ws/ms/server": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         ws: true,
         changeOrigin: true,
       },
       "/guacamole": {
-        target: "http://127.0.0.1:8081",
+        target: apiTarget,
         changeOrigin: true,
       },
-      // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=29181）
+      // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port）
       "/socket.io": {
-        target: "http://127.0.0.1:29181",
+        target: socketTarget,
         ws: true,
         changeOrigin: true,
       },
