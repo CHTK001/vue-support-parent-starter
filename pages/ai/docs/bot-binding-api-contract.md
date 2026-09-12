@@ -38,7 +38,7 @@
 ```
 
 - `code = "00000"`（`ReturnCode.SUCCESS`）表示成功；其他为业务错误，业务错误文案在 **`msg`** 字段（不是 `message`）。
-- 前端 `httpBridge` 仅在成功时解包一层 `data`，因此页面里拿到的 `res` 通常**已经是 `data` 内容**。
+- 前端 `httpBridge`（**本仓库未提交该实现**，以下为据调用点推断）在成功时解包一层 `data`，因此页面里拿到的 `res` 通常**已经是 `data` 内容**。该行为未经源码验证。
 - 页面代码里同时存在 `Array.isArray(res) ? res : res?.data` 的兜底写法，属于对"是否解包"的防御性兼容，不是契约要求。
 
 **两个例外（没有 `ReturnResult` 外壳）**：
@@ -46,7 +46,7 @@
 | 接口 | 返回 | 影响 |
 | --- | --- | --- |
 | `GET /v2/ai/skills/catalog` | **裸 `List<String>`** | 若 httpBridge 无条件取 `body.data`，将得到 `undefined` → 技能下拉恒为空 |
-| `GET /v2/global-settings`（非本页） | **裸 `AiGlobalSettingDTO`** | 同上风险，设置页需注意 |
+| `GET /v2/global-settings`（**其他设置页，不在本文档范围**） | **裸 `AiGlobalSettingDTO`** | 同上风险，规划设置页时需注意 |
 
 ### 1.4 时间字段
 
@@ -116,7 +116,7 @@
 **请求体**：同上 `BotBindingCreateRequest`。
 
 > ⚠️ **`BotBindingCreateRequest` 不含 `id` 字段**。后端 `update` 实现是 `BeanUtils.copyProperties(request, entity)` 后调 `saveOrUpdate`，**以 `botId` 定位既有记录**，而不是用 `id`。
-> 前端发送的 `payload.id` 会被丢弃。因此**`botId` 是更新的实际主键**；前端已把 `botId` 在编辑态置为只读，契约依赖这一点。若允许修改 `botId`，会退化为"插入一条新记录"。
+> 前端发送的 `payload.id` 不会参与定位（既便 DTO 将来补上 `id`，`saveOrUpdate` 仍会用 `findByBotId` 覆盖为既有记录 ID，结论不变）。因此**`botId` 是更新的实际主键**；前端已把 `botId` 在编辑态置为只读，契约依赖这一点。若允许修改 `botId`，会退化为"插入一条新记录"。
 
 **响应**：`ReturnResult<Long>`。
 
@@ -257,7 +257,8 @@
 ```
 
 **行为说明**：
-- `platform=wecom` **不支持扫码**，直接返回随机 key + 空 `qrcodeUrl`（`status` 会被轮询为 `expired`）。
+- `platform` 非 `wechat` / `wecom`（如 `feishu`）时返回**业务错误信封** `ReturnResult.illegal("platform 仅支持 wechat / wecom")`，不是成功响应。
+- `platform=wecom` **不支持扫码**，直接返回随机 key + 空 `qrcodeUrl`（未写入会话表，因此 `status` 会被轮询为 `expired`）。
 - 扫码会话保存在内存 `ConcurrentHashMap`（注释标注生产环境应换 Redis）。
 - 会话超时 **180s**（`expireAt = now + 180_000`）。
 
@@ -297,6 +298,8 @@
 | --- | --- | --- |
 | `GET /v2/ai/bot-binding/users` | `ReturnResult<List<BotUserSummary>>` | 管理员视角用户聚合；由未提交的 `/bots/users` 页面消费 |
 | `GET /v2/ai/bot-binding/{id}` | `ReturnResult<BotBindingListResponse>` | 单条详情，页面未使用（编辑直接用列表行数据） |
+| `GET /v2/ai/bot-binding/default-model` | `ReturnResult<Map{ model }>` | 查询 Bot 默认模型（全局设置 `bot.default_model`），页面未调用 |
+| `PUT /v2/ai/bot-binding/default-model` | `ReturnResult<Map{ model }>` | 设置 Bot 默认模型，页面未调用 |
 | `PUT /v2/ai/bot-binding/global-config` | `ReturnResult<Map>` | 页面只读未写（写入入口在设置页） |
 
 `BotUserSummary`：`owner`（用户 ID 或 `unassigned`）、`nickname`、`botCount`、`onlineCount`、`offlineCount`、`lastActiveTime`（毫秒时间戳）。
@@ -401,7 +404,7 @@
 { "code": "<业务错误码>", "msg": "Bot 未在运行，请先在 Bot 管理页启用", "data": null }
 ```
 
-> ⚠️ 前端 `handleSend` 判断 `res.ok === false || res.success === false` 是**死分支**（后端从不返回这两个字段）；失败只能靠 `catch`（即 httpBridge 对非成功 `code` 抛异常）。且错误文案字段是 `msg`，前端读取 `e.backendMessage`，两者可能不一致。
+> ⚠️ 前端 `handleSend` 判断 `res.ok === false || res.success === false` 是**死分支**（后端从不返回这两个字段）。失败处理依赖 `catch`：**若** httpBridge 对非成功 `code` 抛异常（推断值，适配器实现未提交）则能被捕获；**否则**业务失败将完全无提示。另外错误文案字段是 `msg`，前端读取的是 `e.backendMessage`，两者不一定一致。
 > ⚠️ 发送成功后仅 `recordMessage(..., "OUT", ...)` 落库；该落库会广播 `bot.message`，因此本端也会收到自己的消息推送。
 
 ### 3.5 AI 润色
@@ -469,7 +472,7 @@
 }
 ```
 
-前端订阅：`wsEmitter('bot.message').on(payload => ...)`，`payload` 为**解包后的 `data`**。
+前端订阅：`wsEmitter('bot.message').on(payload => ...)`。按调用点推断 `payload` 为**解包后的 `data`**（`wsEmitter` 实现未提交，未经验证）。
 
 > ⚠️ 前端对 `content.startsWith('/')` 的消息直接 `return`（注释称"命令不保存数据库"），但后端 `AiBotChatService.handleMessage` 对**所有**入站消息都 `recordMessage(..., "IN", ...)` 落库并广播 → 实时看不到、刷新后又出现。
 
@@ -516,7 +519,7 @@
 | 8 | WS `bot.conversation-deleted` | 后端广播，前端未订阅 |
 | 9 | `GET /v2/ai/skills/catalog` | 裸数组，与其他接口的 `ReturnResult` 信封不一致 |
 | 10 | `create`/WS `bot.message` | 时间字段序列化格式可能不同（Jackson vs `LocalDateTime.toString()`） |
-| 11 | `thinking` / `thinkingEffort` | 后端支持，但表单**没有对应 UI**（`thinking` 恒 `false`、`thinkingEffort` 恒 `""`） |
+| 11 | `thinking` / `thinkingEffort` | 后端支持，但表单**没有编辑入口**：新建时恒为 `false` / `""`，编辑时仅回显存储值、无法修改 |
 | 12 | `GET /conversations` | `BotConversation.unread` 后端未填充，前端"未读数"徽标恒为 0 |
 
 ### 4.4 建议的修复优先级
