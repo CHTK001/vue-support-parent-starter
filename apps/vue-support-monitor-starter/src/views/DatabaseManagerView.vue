@@ -178,6 +178,19 @@
         <ReIcon name="Plus" size="14" />新建表
       </div>
       <div class="dbm-context-divider"></div>
+      <div class="dbm-context-item dbm-warning" @click="truncateTable(contextMenu.tableName)">
+        <ReIcon name="Delete" size="14" />清空数据
+      </div>
+      <div class="dbm-context-item" @click="renameTable(contextMenu.tableName)">
+        <ReIcon name="Edit" size="14" />重命名表
+      </div>
+      <div class="dbm-context-item" @click="copyTable(contextMenu.tableName)">
+        <ReIcon name="Copy" size="14" />复制表
+      </div>
+      <div class="dbm-context-item" @click="exportTableData(contextMenu.tableName)">
+        <ReIcon name="Download" size="14" />导出数据
+      </div>
+      <div class="dbm-context-divider"></div>
       <div class="dbm-context-item dbm-danger" @click="deleteTable(contextMenu.tableName)">
         <ReIcon name="Delete" size="14" />删除表
       </div>
@@ -505,6 +518,90 @@ async function deleteTable(tableName: string) {
   }
 }
 
+// 清空表数据
+async function truncateTable(tableName: string) {
+  if (!confirm(`确定要清空表 ${tableName} 的所有数据吗？此操作不可恢复！`)) return;
+  try {
+    await executeDbSql(`TRUNCATE TABLE ${tableName}`, currentDatasourceId.value);
+    alert("表数据已清空");
+    refreshTree();
+    // 刷新当前打开的表数据标签页
+    const dataTab = tabs.value.find(t => t.type === "data" && t.tableName === tableName);
+    if (dataTab) loadTableData(tableName);
+  } catch (e: any) {
+    alert("清空表数据失败: " + (e.message || e));
+  }
+}
+
+// 重命名表
+async function renameTable(tableName: string) {
+  const newName = prompt(`请输入表 ${tableName} 的新名称:`, tableName);
+  if (!newName || newName === tableName) return;
+  try {
+    await executeDbSql(`ALTER TABLE ${tableName} RENAME TO ${newName}`, currentDatasourceId.value);
+    alert("表已重命名");
+    refreshTree();
+    // 更新相关标签页
+    tabs.value = tabs.value.map(t => {
+      if (t.tableName === tableName) {
+        return { ...t, tableName: newName, title: newName };
+      }
+      return t;
+    });
+  } catch (e: any) {
+    alert("重命名表失败: " + (e.message || e));
+  }
+}
+
+// 复制表
+async function copyTable(tableName: string) {
+  const newName = prompt(`请输入复制后的表名:`, `${tableName}_copy`);
+  if (!newName) return;
+  try {
+    // 先复制表结构，再复制数据
+    await executeDbSql(`CREATE TABLE ${newName} AS SELECT * FROM ${tableName}`, currentDatasourceId.value);
+    alert("表已复制（包含数据）");
+    refreshTree();
+  } catch (e: any) {
+    // 如果 CREATE TABLE AS 失败，尝试只复制结构
+    try {
+      await executeDbSql(`CREATE TABLE ${newName} LIKE ${tableName}`, currentDatasourceId.value);
+      alert("表已复制（仅结构）");
+      refreshTree();
+    } catch (e2: any) {
+      alert("复制表失败: " + (e.message || e));
+    }
+  }
+}
+
+// 导出表数据为 CSV
+async function exportTableData(tableName: string) {
+  try {
+    const result = await executeDbSql(`SELECT * FROM ${tableName}`, currentDatasourceId.value);
+    const rows = result.rows || result.data || [];
+    if (rows.length === 0) {
+      alert("表中没有数据可导出");
+      return;
+    }
+    // 生成 CSV
+    const headers = Object.keys(rows[0]);
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+    // 下载文件
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${tableName}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    alert(`已导出 ${rows.length} 行数据`);
+  } catch (e: any) {
+    alert("导出数据失败: " + (e.message || e));
+  }
+}
+
 // 点击页面其他地方关闭右键菜单
 document.addEventListener("click", () => {
   contextMenu.visible = false;
@@ -778,6 +875,15 @@ document.addEventListener("click", () => {
 
 .dbm-context-item.dbm-danger:hover {
   background: #ef4444;
+}
+
+.dbm-context-item.dbm-warning {
+  color: var(--tel-warning, #f59e0b);
+}
+
+.dbm-context-item.dbm-warning:hover {
+  background: #f59e0b;
+  color: #fff;
 }
 
 .dbm-context-divider {
