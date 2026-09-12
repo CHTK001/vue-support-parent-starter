@@ -17,11 +17,28 @@
           size="small"
           class="filter-input"
         />
+        <el-date-picker
+          v-model="filters.range"
+          type="datetimerange"
+          range-separator="~"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          size="small"
+          style="width: 320px"
+        />
         <el-checkbox v-model="filters.errorOnly" size="small">仅看错误</el-checkbox>
       </div>
-      <el-button size="small" round :loading="loading" @click="load">
-        <el-icon class="mr-1"><Refresh /></el-icon>刷新
-      </el-button>
+      <div class="toolbar-right">
+        <el-button size="small" round @click="exportJson">
+          <el-icon class="mr-1"><Download /></el-icon>JSON
+        </el-button>
+        <el-button size="small" round @click="exportCsv">
+          <el-icon class="mr-1"><Download /></el-icon>CSV
+        </el-button>
+        <el-button size="small" round :loading="loading" @click="load">
+          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
     </div>
 
     <div class="table-panel">
@@ -98,10 +115,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, Right } from "@element-plus/icons-vue";
-import { pageTransmissions } from "../api/apmApi";
+import { Refresh, Right, Download } from "@element-plus/icons-vue";
+import { pageTransmissions, toCsv, download } from "../api/apmApi";
 import type { TransmissionQuery, TransmissionRecord } from "../api/apmApi";
 
 const items = ref<TransmissionRecord[]>([]);
@@ -114,6 +131,7 @@ const filters = reactive({
   source: "",
   protocol: "",
   errorOnly: false,
+  range: null as [Date, Date] | null,
 });
 
 async function load() {
@@ -126,6 +144,10 @@ async function load() {
     if (filters.source) q.source = filters.source;
     if (filters.protocol) q.protocol = filters.protocol;
     if (filters.errorOnly) q.errorOnly = true;
+    if (filters.range && filters.range.length === 2) {
+      q.startTime = new Date(filters.range[0]).getTime();
+      q.endTime = new Date(filters.range[1]).getTime();
+    }
     const res = await pageTransmissions(q);
     items.value = res.items;
     total.value = res.total;
@@ -136,6 +158,17 @@ async function load() {
   }
 }
 
+function exportJson() {
+  download(`traces-${Date.now()}.json`, JSON.stringify(items.value, null, 2), "application/json");
+}
+
+function exportCsv() {
+  const csv = toCsv(items.value as unknown as Record<string, unknown>[], [
+    "traceId", "spanId", "source", "target", "protocol", "status", "durationMs", "startTime", "errorType",
+  ]);
+  download(`traces-${Date.now()}.csv`, csv, "text/csv");
+}
+
 function shortId(id: string) {
   return id ? id.slice(0, 12) : "—";
 }
@@ -143,6 +176,14 @@ function shortId(id: string) {
 function rowClass() {
   return "";
 }
+
+watch(
+  () => [filters.source, filters.protocol, filters.errorOnly, filters.range],
+  () => {
+    page.value = 1;
+    load();
+  },
+);
 
 onMounted(load);
 </script>
@@ -165,6 +206,12 @@ onMounted(load);
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .section-label {

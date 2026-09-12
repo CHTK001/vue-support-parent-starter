@@ -5,6 +5,9 @@
         <span class="section-label">Agent 状态</span>
         <el-tag v-if="stats.agentActive" type="success" effect="dark" round size="small">已注入</el-tag>
         <el-tag v-else type="info" effect="plain" round size="small">未注入</el-tag>
+        <span class="live-dot" title="SSE 实时推送中">
+          <i class="live-pulse"></i>实时
+        </span>
       </div>
       <el-button size="small" round @click="load" :loading="loading">
         <el-icon class="mr-1"><Refresh /></el-icon>刷新
@@ -51,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { ElMessage } from "element-plus";
 import {
@@ -61,7 +64,7 @@ import {
   Share,
   Warning,
 } from "@element-plus/icons-vue";
-import { getStats } from "../api/apmApi";
+import { getStats, watchStats } from "../api/apmApi";
 import type { ApmStats } from "../api/apmApi";
 
 const stats = ref<ApmStats>({
@@ -76,6 +79,7 @@ const stats = ref<ApmStats>({
 const loading = ref(false);
 const pieRef = ref<HTMLElement | null>(null);
 const barRef = ref<HTMLElement | null>(null);
+let sseWatch: { close: () => void } | null = null;
 
 const cards = computed(() => [
   {
@@ -169,7 +173,19 @@ function renderCharts() {
   }
 }
 
-onMounted(load);
+onMounted(async () => {
+  await load();
+  // SSE 实时刷新：每 3s 后端推一次 stats 快照，替代 HTTP 轮询
+  sseWatch = watchStats((snapshot) => {
+    Object.assign(stats.value, snapshot);
+    renderCharts();
+  });
+});
+
+onBeforeUnmount(() => {
+  sseWatch?.close();
+});
+
 watch(stats, () => renderCharts(), { deep: true });
 </script>
 
@@ -195,6 +211,35 @@ watch(stats, () => renderCharts(), { deep: true });
 .section-label {
   font-size: 13px;
   color: var(--apm-muted);
+}
+
+.live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--apm-success, #22c55e);
+}
+
+.live-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--apm-success, #22c55e);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: live-pulse 1.6s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 
 .mr-1 {

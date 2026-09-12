@@ -10,7 +10,7 @@ import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { getIdentities, saveIdentity, delIdentity } from "@pages/server/src/api";
+import { getIdentities, saveIdentity, delIdentity, getKeys } from "@pages/server/src/api";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
 interface Identity {
@@ -22,21 +22,33 @@ interface Identity {
   msServerIdentityRemark?: string;
 }
 
+interface KeyRow {
+  id: number;
+  msServerKeyName: string;
+}
+
 const columns = [
   { prop: "msServerIdentityName", label: "名称", minWidth: 140 },
   { prop: "auth", label: "类型", width: 110, slot: "auth" },
   { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
+  { prop: "key", label: "密钥", width: 130, slot: "key" },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 160 },
   { prop: "id", label: "操作", width: 130, slot: "actions" },
 ];
 
 const list = ref<Identity[]>([]);
+const keys = ref<KeyRow[]>([]);
 const loading = ref(false);
+const selection = ref<Identity[]>([]);
+const page = ref(1);
+const pageSize = ref(10);
 
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    list.value = (await getIdentities()) ?? [];
+    const [idList, keyList] = await Promise.all([getIdentities(), getKeys().catch(() => [])]);
+    list.value = (idList ?? []) as Identity[];
+    keys.value = (keyList ?? []) as KeyRow[];
   } catch (e) {
     ElMessage.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -44,6 +56,68 @@ async function load(): Promise<void> {
   }
 }
 onMounted(load);
+
+/** 密钥名映射（PUBLIC_KEY 引用 msServerKeyId → 密钥库名称） */
+function keyNameOf(i: Identity): string {
+  if (i.msServerIdentityAuthType !== "PUBLIC_KEY" || i.msServerIdentityKeyId == null) return "";
+  return keys.value.find((k) => k.id === i.msServerIdentityKeyId)?.msServerKeyName ?? `#${i.msServerIdentityKeyId}`;
+}
+
+async function remove(i: Identity): Promise<void> {
+  await ElMessageBox.confirm(`删除身份「${i.msServerIdentityName}」？`, "删除确认", { type: "warning" });
+  try {
+    await delIdentity(i.id);
+    ElMessage.success("已删除");
+    await load();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
+}
+
+/** 批量删除（ReTable toolbar batchDelete handler） */
+async function batchDelete(rows: Record<string, unknown>[]): Promise<void> {
+  let ok = 0;
+  for (const r of rows) {
+    const id = Number(r.id);
+    if (!id) continue;
+    try {
+      await delIdentity(id);
+      ok++;
+    } catch {
+      /* 单条失败继续 */
+    }
+  }
+  ElMessage.success(`删除 ${ok}/${rows.length}`);
+  selection.value = [];
+  await load();
+}
+
+/** 导出当前过滤结果为 CSV */
+function exportCsv(): void {
+  const rows = filteredList.value;
+  if (!rows.length) {
+    ElMessage.warning("没有可导出的数据");
+    return;
+  }
+  const head = ["名称", "类型", "登录用户", "密钥", "备注"];
+  const lines = rows.map((i) => [
+    i.msServerIdentityName,
+    authTypeLabel(i.msServerIdentityAuthType),
+    i.msServerIdentityUsername,
+    keyNameOf(i),
+    i.msServerIdentityRemark ?? "",
+  ]);
+  const csv = [head, ...lines]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `账号身份-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  ElMessage.success(`已导出 ${rows.length} 条`);
+}
 
 const authTypeOptions = [
   { value: "PASSWORD", label: "密码登录", group: "主机" },
@@ -183,17 +257,6 @@ async function submitAdd(): Promise<void> {
     addSaving.value = false;
   }
 }
-
-async function remove(i: Identity): Promise<void> {
-  await ElMessageBox.confirm(`删除身份「${i.msServerIdentityName}」？`, "删除确认", { type: "warning" });
-  try {
-    await delIdentity(i.id);
-    ElMessage.success("已删除");
-    await load();
-  } catch (e) {
-    ElMessage.error(String((e as Error)?.message ?? e));
-  }
-}
 </script>
 
 <template>
@@ -204,6 +267,7 @@ async function remove(i: Identity): Promise<void> {
         <p class="page-desc">登录身份（账号密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 {{ list.length }} 条</p>
       </div>
       <div class="page-actions">
+        <ReButton icon="Download" :show-text="true" size="small" @click="exportCsv">导出</ReButton>
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
@@ -259,12 +323,28 @@ async function remove(i: Identity): Promise<void> {
         :loading="loading"
         table-id="identity-list"
         size="small"
+        :pagination="true"
+        :page-size="pageSize"
         empty-text="暂无身份"
+        :toolbar="true"
+        :toolbar-config="{
+          position: 'bottom',
+          refresh: true,
+          columnSettings: true,
+          tableSettings: true,
+          batchSelect: { enabled: true, tip: '批量选择' },
+          batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的身份？', handler: batchDelete },
+        }"
+        @selection-change="selection = $event"
       >
         <template #col-auth="{ row }">
           <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" size="small">
             {{ authTypeLabel(row.msServerIdentityAuthType) }}
           </ReTag>
+        </template>
+        <template #col-key="{ row }">
+          <span v-if="keyNameOf(row)" class="mono dim">{{ keyNameOf(row) }}</span>
+          <span v-else class="dim">—</span>
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
@@ -274,6 +354,10 @@ async function remove(i: Identity): Promise<void> {
           </div>
         </template>
       </ReTable>
+      <div v-if="selection.length" class="sel-bar">
+        <ReTag type="primary" effect="plain">已选 {{ selection.length }} 项</ReTag>
+        <ReButton icon="Delete" size="small" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
+      </div>
     </div>
 
     <!-- 新增身份 -->
@@ -306,4 +390,7 @@ async function remove(i: Identity): Promise<void> {
 <style scoped lang="scss">
 .im { display: flex; flex-direction: column; gap: 14px; }
 .op-cell { display: flex; gap: 6px; }
+.sel-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; }
+.dim { color: var(--text-tertiary); }
 </style>

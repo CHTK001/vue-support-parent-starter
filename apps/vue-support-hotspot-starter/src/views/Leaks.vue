@@ -10,9 +10,17 @@
           <el-option label="Thread" value="Thread" />
         </el-select>
       </div>
-      <el-button size="small" round :loading="loading" @click="load">
-        <el-icon class="mr-1"><Refresh /></el-icon>刷新
-      </el-button>
+      <div class="toolbar-right">
+        <el-button size="small" round @click="exportJson">
+          <el-icon class="mr-1"><Download /></el-icon>JSON
+        </el-button>
+        <el-button size="small" round @click="exportCsv">
+          <el-icon class="mr-1"><Download /></el-icon>CSV
+        </el-button>
+        <el-button size="small" round :loading="loading" @click="load">
+          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
     </div>
 
     <div class="table-panel">
@@ -89,10 +97,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
-import { pageLeaks } from "../api/apmApi";
+import { Refresh, Download } from "@element-plus/icons-vue";
+import { pageLeaks, toCsv, download } from "../api/apmApi";
 import type { LeakRecord } from "../api/apmApi";
 
 const items = ref<LeakRecord[]>([]);
@@ -146,6 +154,22 @@ function ageColor(ageMs: number) {
 }
 
 onMounted(load);
+
+watch(filterType, () => {
+  page.value = 1;
+  load();
+});
+
+function exportJson() {
+  download(`leaks-${Date.now()}.json`, JSON.stringify(items.value, null, 2), "application/json");
+}
+
+function exportCsv() {
+  const csv = toCsv(items.value as unknown as Record<string, unknown>[], [
+    "id", "resourceType", "resourceName", "thread", "active", "ageMs", "detectedAt",
+  ]);
+  download(`leaks-${Date.now()}.csv`, csv, "text/csv");
+}
 </script>
 
 <style scoped>
@@ -165,6 +189,12 @@ onMounted(load);
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .section-label {
