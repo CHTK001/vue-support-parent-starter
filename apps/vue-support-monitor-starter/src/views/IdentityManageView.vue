@@ -42,14 +42,38 @@ async function load(): Promise<void> {
 }
 onMounted(load);
 
-const authTypeLabel = (t?: string | null): string =>
-  t === "PUBLIC_KEY" ? "私钥登录" : "密码登录";
+const authTypeOptions = [
+  { value: "PASSWORD", label: "密码登录", group: "主机" },
+  { value: "PUBLIC_KEY", label: "公钥登录", group: "主机" },
+  { value: "MAILBOX", label: "邮箱账号", group: "通用" },
+  { value: "TOKEN", label: "Token", group: "通用" },
+  { value: "API_KEY", label: "API Key", group: "通用" },
+  { value: "OAUTH2", label: "OAuth 2.0", group: "通用" },
+  { value: "COOKIE", label: "Cookie", group: "通用" },
+  { value: "ACCOUNT", label: "账号密码", group: "通用" },
+];
 
-// ---- 新增身份 ----
-// ---- 新增身份弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
+/** 认证类型展示名（未知类型显示原值） */
+const authTypeLabel = (t?: string | null): string => {
+  if (!t) return "-";
+  const hit = authTypeOptions.find((o) => o.value === t);
+  return hit ? hit.label : t;
+};
+
+/** 认证类型标签色 */
+const authTypeTagType = (t?: string | null): "success" | "info" | "warning" | "primary" => {
+  if (t === "PUBLIC_KEY") return "warning";
+  if (t === "MAILBOX") return "success";
+  if (t === "PASSWORD") return "info";
+  return "primary";
+};
+
+// ---- 新增 / 编辑身份 ----
+// ---- 弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const addVisible = ref(false);
 useDialogPrerender(addVisible);
 const addSaving = ref(false);
+const editingId = ref<number | null>(null);
 const addForm = ref<{
   msServerIdentityName: string;
   msServerIdentityAuthType: string;
@@ -63,9 +87,24 @@ const addForm = ref<{
 });
 
 function openAdd(): void {
+  editingId.value = null;
   addForm.value = {
     msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "",
     msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
+  };
+  addVisible.value = true;
+}
+
+function openEdit(row: Identity): void {
+  editingId.value = row.id;
+  addForm.value = {
+    msServerIdentityName: row.msServerIdentityName,
+    msServerIdentityAuthType: row.msServerIdentityAuthType,
+    msServerIdentityUsername: row.msServerIdentityUsername,
+    // 密码不回显，留空表示不修改
+    msServerIdentityPassword: "",
+    msServerIdentityKeyId: row.msServerIdentityKeyId ?? null,
+    msServerIdentityRemark: row.msServerIdentityRemark ?? "",
   };
   addVisible.value = true;
 }
@@ -75,8 +114,11 @@ async function submitAdd(): Promise<void> {
   if (!addForm.value.msServerIdentityUsername?.trim()) { ElMessage.warning("请输入登录用户名"); return; }
   addSaving.value = true;
   try {
-    await saveIdentity(null, { ...addForm.value, msServerIdentityPassword: addForm.value.msServerIdentityPassword || undefined });
-    ElMessage.success("身份已创建");
+    await saveIdentity(editingId.value, {
+      ...addForm.value,
+      msServerIdentityPassword: addForm.value.msServerIdentityPassword || undefined,
+    });
+    ElMessage.success(editingId.value != null ? "身份已更新" : "身份已创建");
     addVisible.value = false;
     await load();
   } catch (e) {
@@ -99,7 +141,7 @@ async function remove(i: Identity): Promise<void> {
 </script>
 
 <template>
-  <div class="im">
+  <div class="im tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">账号管理</h1>
@@ -124,12 +166,13 @@ async function remove(i: Identity): Promise<void> {
         empty-text="暂无身份"
       >
         <template #col-auth="{ row }">
-          <ReTag :type="row.msServerIdentityAuthType === 'PUBLIC_KEY' ? 'success' : 'primary'" size="small">
-            {{ row.msServerIdentityAuthType === 'PUBLIC_KEY' ? '🔐 密钥' : '🔑 密码' }}
+          <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" size="small">
+            {{ authTypeLabel(row.msServerIdentityAuthType) }}
           </ReTag>
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
+            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
           </div>
         </template>
@@ -137,16 +180,13 @@ async function remove(i: Identity): Promise<void> {
     </div>
 
     <!-- 新增身份 -->
-    <ReDialog v-model="addVisible" title="新增身份" width="520px" :close-on-click-modal="false">
+    <ReDialog v-model="addVisible" :title="editingId != null ? '编辑身份' : '新增身份'" width="520px" :close-on-click-modal="false">
       <ReForm :model="addForm" label-position="top">
         <ReFormItem label="名称">
           <ReInput v-model="addForm.msServerIdentityName" placeholder="如 root-prod" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="addForm.msServerIdentityAuthType" size="small" style="width:100%" :options="[
-            { label: '密码登录 (PASSWORD)', value: 'PASSWORD' },
-            { label: '私钥登录 (PUBLIC_KEY)', value: 'PUBLIC_KEY' },
-          ]" />
+          <ReSelect v-model="addForm.msServerIdentityAuthType" size="small" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="登录用户名">
           <ReInput v-model="addForm.msServerIdentityUsername" placeholder="如 root / ubuntu" style="width:100%" />
@@ -160,7 +200,7 @@ async function remove(i: Identity): Promise<void> {
       </ReForm>
       <template #footer>
         <ReButton @click="addVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="addSaving" icon="Check" :show-text="true" @click="submitAdd">保存</ReButton>
+        <ReButton type="primary" :loading="addSaving" icon="Check" :show-text="true" @click="submitAdd">{{ editingId != null ? '保存' : '创建' }}</ReButton>
       </template>
     </ReDialog>
   </div>

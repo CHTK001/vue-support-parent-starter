@@ -1193,9 +1193,9 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton :size="tableSize" layout="square" :icon="iconColumns" :title="columnsTriggerText">
+                <ElButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText">
                   {{ columnsTriggerText }}
-                </ReButton>
+                </ElButton>
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -1259,9 +1259,9 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton :size="tableSize" layout="square" :icon="iconSettings" :title="settingsTriggerText">
+                <ElButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText">
                   {{ settingsTriggerText }}
-                </ReButton>
+                </ElButton>
               </template>
               <div class="re-table__settings-panel">
                 <ReSwitch
