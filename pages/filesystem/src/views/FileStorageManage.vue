@@ -41,6 +41,7 @@ import {
   fetchObjectText,
   getBucketConfig,
   getBucketTree,
+  getCapabilities,
   getDefaultBucket,
   getServerBase,
   listObjects,
@@ -53,7 +54,7 @@ import {
   setBucketConfig,
   setDefaultBucket,
 } from "../api/filestorageApi";
-import type { BucketConfig, StorageObject, TreeItem } from "../api/filestorageApi";
+import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 
@@ -279,6 +280,8 @@ const sortOrder = ref<"asc" | "desc">("asc");
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
 /** 存储桶公开配置（?config） */
 const bucketConfig = ref<BucketConfig | null>(null);
+/** SPI 真实能力列表（?format=capabilities，滤镜/URL 参数动态渲染用） */
+const capabilities = ref<CapabilitiesResponse | null>(null);
 /** 存储桶配置加载状态 */
 const configLoading = ref(false);
 /** 选中的对象 name 集合（多选） */
@@ -883,6 +886,15 @@ async function loadBucketConfig(): Promise<void> {
   }
 }
 
+/** 容错地从服务端拉取 SPI 真实能力（失败静默，下拉回退到内置 CSS 滤镜） */
+async function loadCapabilities(): Promise<void> {
+  try {
+    capabilities.value = await getCapabilities(bucket.value);
+  } catch {
+    capabilities.value = null;
+  }
+}
+
 /** localStorage 中管理员令牌的键名 */
 const ADMIN_TOKEN_KEY = "filestorage.adminToken";
 
@@ -921,12 +933,12 @@ const adminForm = reactive({
   showSize: true,
   /** 详情视图是否显示"修改时间"列 */
   showTime: true,
-  /** 图片滤镜（ImageFilter 枚举名） */
+  /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
   imageFilter: "NONE",
 });
 
-/** 图片滤镜可选项（与后端 FileStorageSetting.ImageFilter 对应） */
-const IMAGE_FILTER_OPTIONS = [
+/** 能力接口不可用时的内置兜底选项（纯前端 CSS 滤镜） */
+const FALLBACK_FILTER_OPTIONS = [
   { value: "NONE", label: "原图", css: "" },
   { value: "GRAYSCALE", label: "灰度", css: "grayscale(1)" },
   { value: "SEPIA", label: "怀旧", css: "sepia(0.9)" },
@@ -935,10 +947,46 @@ const IMAGE_FILTER_OPTIONS = [
   { value: "SATURATE", label: "鲜艳", css: "saturate(1.8)" },
 ] as const;
 
-/** 当前滤镜的 CSS filter 值（应用于图片缩略图与图片预览） */
-const imageFilterCss = computed(() =>
-  IMAGE_FILTER_OPTIONS.find((o) => o.value === (bucketConfig.value?.imageFilter ?? "NONE"))?.css ?? ""
-);
+/** SPI 滤镜名到前端 CSS filter 的映射（仅用于缩略图即时预览，实际效果以后端处理为准） */
+const SPI_FILTER_CSS: Record<string, string> = {
+  GRAY: "grayscale(1)",
+  GRAYSCALE: "grayscale(1)",
+  SEPIATONE: "sepia(0.9)",
+  OLDFASHION: "sepia(0.6)",
+  NEGATIVE: "invert(1)",
+  GAUSSIANBLUR: "blur(3px)",
+  BLUR: "blur(3px)",
+  BSC: "saturate(1.4) contrast(1.05)",
+  BRIGHT: "brightness(1.15)",
+};
+
+/** 图片滤镜可选项：首项固定"原图"，其余取自后端 ImageFilter SPI 真实实现；能力加载失败时回退内置 CSS 滤镜 */
+const imageFilterOptions = computed<{ value: string; label: string }[]>(() => {
+  const opts: { value: string; label: string }[] = [{ value: "NONE", label: "原图" }];
+  const spiFilters = capabilities.value?.imageFilters;
+  if (spiFilters && spiFilters.length > 0) {
+    for (const f of spiFilters) {
+      opts.push({ value: f.name, label: f.label || f.name });
+    }
+  } else {
+    for (const f of FALLBACK_FILTER_OPTIONS) {
+      if (f.value !== "NONE") {
+        opts.push({ value: f.value, label: f.label });
+      }
+    }
+  }
+  return opts;
+});
+
+/** 当前滤镜的 CSS filter 值（应用于图片缩略图与图片预览；SPI 滤镜无 CSS 对应时为空，实际效果以后端处理为准） */
+const imageFilterCss = computed(() => {
+  const value = bucketConfig.value?.imageFilter ?? "NONE";
+  if (value === "NONE") {
+    return "";
+  }
+  const fallbackCss = FALLBACK_FILTER_OPTIONS.find((o) => o.value === value)?.css;
+  return SPI_FILTER_CSS[value] ?? fallbackCss ?? "";
+});
 
 /** 服务端是否显示"类型"列 */
 const showFormatCol = computed(() => bucketConfig.value?.showFormat ?? true);
@@ -1361,6 +1409,7 @@ function copyOneTimeLink(): void {
 
 onMounted(() => {
   loadBucketConfig();
+  loadCapabilities();
   loadObjects();
   loadTree();
   bindDragEvents();
@@ -1977,12 +2026,12 @@ onUnmounted(() => {
         <div class="fs-admin__row">
           <span class="fs-admin__label">
             图片滤镜
-            <el-tooltip content="应用于图片缩略图与图片预览的滤镜效果（如灰度、怀旧）" placement="top">
+            <el-tooltip content="图片滤镜，选项来自后端 ImageFilter SPI 真实实现，应用于图片缩略图与预览" placement="top">
               <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
             </el-tooltip>
           </span>
-          <el-select v-model="adminForm.imageFilter" style="width: 110px" size="small">
-            <el-option v-for="opt in IMAGE_FILTER_OPTIONS" :key="opt.value" :value="opt.value" :label="opt.label" />
+          <el-select v-model="adminForm.imageFilter" style="width: 140px" size="small">
+            <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
           </el-select>
         </div>
         <el-divider class="fs-admin__divider" />

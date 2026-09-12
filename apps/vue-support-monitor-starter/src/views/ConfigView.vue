@@ -3,6 +3,8 @@
  * 监控配置 —— 告警策略 / 告警规则 管理（"设置推送"入口）
  * 基于后端 /ms/monitor/alarm/policy + /rule 的真实 CRUD。
  * 推送渠道(webhook/邮件) 依赖后端补推送渠道，此处先落策略/规则配置。
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -54,6 +56,10 @@ async function fetchAll(): Promise<void> {
 const rulePolicyName = (pid: number): string =>
   policies.value.find(p => p.id === pid)?.msMonitorAlarmPolicyName ?? `策略#${pid}`;
 
+/**
+ * 告警条件表达式中文描述
+ * @param c 条件表达式
+ */
 function condText(c: string): string {
   return CONDITIONS.find(x => x.value === c)?.label ?? c;
 }
@@ -61,6 +67,10 @@ const ruleMonitorName = (mid: number | null): string => {
   if (mid == null) return "全部目标";
   return monitors.value.find(m => m.id === mid)?.monitorName ?? `目标#${mid}`;
 };
+/**
+ * 策略启用状态文案
+ * @param enabled 启用标记
+ */
 function policyStatus(enabled: number): string {
   return enabled === 1 ? "运行中" : "已停用";
 }
@@ -70,10 +80,17 @@ const policyVisible = ref(false);
 useDialogPrerender(policyVisible);
 const policySaving = ref(false);
 const policyForm = ref<Partial<AlarmPolicy>>({ msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "" });
+/**
+ * 打开新建策略弹窗
+ */
 function openPolicyAdd(): void {
   policyForm.value = { msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "" };
   policyVisible.value = true;
 }
+/**
+ * 打开编辑策略弹窗
+ * @param p 策略
+ */
 function openPolicyEdit(p: AlarmPolicy): void {
   policyForm.value = { ...p };
   policyVisible.value = true;
@@ -122,6 +139,10 @@ const ruleForm = ref<Partial<AlarmRule>>({
   msMonitorAlarmRuleLevel: "P2",
   msMonitorAlarmRuleEnabled: 1,
 });
+/**
+ * 打开新建规则弹窗
+ * @param policyId 所属策略 ID
+ */
 function openRuleAdd(policyId?: number): void {
   ruleForm.value = {
     msMonitorAlarmRulePolicyId: policyId ?? policies.value[0]?.id ?? 0,
@@ -136,6 +157,10 @@ function openRuleAdd(policyId?: number): void {
   };
   ruleVisible.value = true;
 }
+/**
+ * 打开编辑规则弹窗
+ * @param r 规则
+ */
 function openRuleEdit(r: AlarmRule): void {
   ruleForm.value = { ...r };
   ruleVisible.value = true;
@@ -346,4 +371,4 @@ onMounted(fetchAll);
 .st-tag { font-size: 12px; &.st-ok { color: var(--pulse-online); } &.st-info { color: var(--text-tertiary); } }
 .lv-tag { padding: 0 6px; font-size: 11px; font-weight: 700; font-family: monospace; border: 1px solid transparent; border-radius: 4px; }
 .mr { margin-right: 8px; }
-</style>
+</style>

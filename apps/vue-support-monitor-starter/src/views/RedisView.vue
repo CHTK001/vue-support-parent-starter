@@ -6,6 +6,8 @@
  * 数据来源：
  *   - INFO 指标：GET /ms/monitor/system/redis-info
  *   - KV 操作：/ms/monitor/system/redis/keys、/kv/{key}、/kv/{key}/detail 等
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import * as echarts from "echarts";
@@ -198,6 +200,119 @@ const newKeyName = ref("");
 const newKeyValue = ref("");
 const newKeyTtl = ref(-1);
 
+// ==================== 批量操作 ====================
+const selectedKeys = ref<Set<string>>(new Set());
+
+const toggleKeySelection = (key: string) => {
+  if (selectedKeys.value.has(key)) {
+    selectedKeys.value.delete(key);
+  } else {
+    selectedKeys.value.add(key);
+  }
+};
+
+const selectAllKeys = () => {
+  if (selectedKeys.value.size === keys.value.length) {
+    selectedKeys.value.clear();
+  } else {
+    selectedKeys.value = new Set(keys.value);
+  }
+};
+
+const batchDeleteKeys = async () => {
+  if (selectedKeys.value.size === 0) return;
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedKeys.value.size} 个 Key 吗？`, "批量删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await deleteSystemRedisKeys(Array.from(selectedKeys.value));
+    ElMessage.success(`成功删除 ${selectedKeys.value.size} 个 Key`);
+    selectedKeys.value.clear();
+    await loadKeys();
+  } catch (e) {
+    ElMessage.error(`批量删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
+
+// ==================== 多数据类型编辑 ====================
+const listItems = ref<string[]>([]);
+const newListItem = ref("");
+const setItems = ref<string[]>([]);
+const newSetItem = ref("");
+const hashItems = ref<{ field: string; value: string }[]>([]);
+const newHashField = ref("");
+const newHashValue = ref("");
+const zsetItems = ref<{ member: string; score: number }[]>([]);
+const newZsetMember = ref("");
+const newZsetScore = ref(0);
+
+// ==================== Stream 类型 ====================
+const streamMessages = ref<any[]>([]);
+const streamDialogVisible = ref(false);
+const newStreamId = ref("");
+const newStreamBody = ref("{}");
+
+const loadStreamMessages = () => {
+  // Stream 消息已在 selectKey 中加载
+  ElMessage.info("Stream 消息已刷新");
+};
+
+const addStreamMessage = () => {
+  newStreamId.value = "";
+  newStreamBody.value = "{}";
+  streamDialogVisible.value = true;
+};
+
+const saveStreamMessage = () => {
+  try {
+    const body = JSON.parse(newStreamBody.value);
+    streamMessages.value.unshift({
+      id: newStreamId.value || `${Date.now()}-0`,
+      body,
+    });
+    streamDialogVisible.value = false;
+    ElMessage.success("消息添加成功");
+  } catch {
+    ElMessage.error("JSON 格式错误");
+  }
+};
+
+const addListItem = () => {
+  if (newListItem.value.trim()) {
+    listItems.value.push(newListItem.value.trim());
+    newListItem.value = "";
+  }
+};
+const removeListItem = (idx: number) => listItems.value.splice(idx, 1);
+
+const addSetItem = () => {
+  if (newSetItem.value.trim()) {
+    setItems.value.push(newSetItem.value.trim());
+    newSetItem.value = "";
+  }
+};
+const removeSetItem = (idx: number) => setItems.value.splice(idx, 1);
+
+const addHashItem = () => {
+  if (newHashField.value.trim()) {
+    hashItems.value.push({ field: newHashField.value.trim(), value: newHashValue.value });
+    newHashField.value = "";
+    newHashValue.value = "";
+  }
+};
+const removeHashItem = (idx: number) => hashItems.value.splice(idx, 1);
+
+const addZsetItem = () => {
+  if (newZsetMember.value.trim()) {
+    zsetItems.value.push({ member: newZsetMember.value.trim(), score: newZsetScore.value });
+    newZsetMember.value = "";
+    newZsetScore.value = 0;
+  }
+};
+const removeZsetItem = (idx: number) => zsetItems.value.splice(idx, 1);
+
 /** 加载 key 列表 */
 const loadKeys = async () => {
   keysLoading.value = true;
@@ -220,6 +335,22 @@ const selectKey = async (key: string) => {
     keyDetail.value = detail;
     editValue.value = detail?.value ?? "";
     editTtl.value = detail?.ttl ?? -1;
+    // 初始化多数据类型
+    const type = detail?.type;
+    if (type === "LIST") {
+      listItems.value = Array.isArray(detail?.value) ? [...detail.value] : [];
+    } else if (type === "SET") {
+      setItems.value = Array.isArray(detail?.value) ? [...detail.value] : [];
+    } else if (type === "HASH") {
+      const hashVal = detail?.value;
+      hashItems.value = hashVal && typeof hashVal === "object"
+        ? Object.entries(hashVal).map(([field, value]) => ({ field, value: String(value) }))
+        : [];
+    } else if (type === "ZSET") {
+      zsetItems.value = Array.isArray(detail?.value) ? detail.value.map((item: any) => ({ member: String(item.member), score: Number(item.score) })) : [];
+    } else if (type === "STREAM") {
+      streamMessages.value = Array.isArray(detail?.value) ? detail.value : [];
+    }
   } catch (e) {
     ElMessage.error(`加载 Key 详情失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -419,6 +550,9 @@ watch(kvTab, (val) => {
               />
               <ReButton icon="Search" size="small" @click="loadKeys">搜索</ReButton>
               <ReButton icon="Plus" type="primary" size="small" @click="newKeyDialog = true">新增</ReButton>
+              <ReButton v-if="selectedKeys.size > 0" icon="Delete" type="danger" size="small" @click="batchDeleteKeys">
+                批量删除({{ selectedKeys.size }})
+              </ReButton>
             </div>
             <div class="kv-list" :class="{ loading: keysLoading }">
               <ReEmpty v-if="!keysLoading && keys.length === 0" description="暂无 Keys，点击搜索或新增" :image-size="60" />
@@ -464,14 +598,125 @@ watch(kvTab, (val) => {
                     <span class="kv-meta-value">{{ keyDetail.ttl < 0 ? '永不过期' : keyDetail.ttl + ' 秒' }}</span>
                   </div>
                 </div>
-                <div class="kv-value-label">Value（STRING 类型可编辑）：</div>
-                <ReTextarea
-                  v-model="editValue"
-                  :rows="10"
-                  :disabled="keyDetail.type !== 'STRING'"
-                  placeholder="STRING 类型的值"
-                  class="kv-value-editor"
-                />
+                <!-- STRING 类型 -->
+                <template v-if="keyDetail.type === 'STRING'">
+                  <div class="kv-value-label">Value：</div>
+                  <ReTextarea
+                    v-model="editValue"
+                    :rows="8"
+                    placeholder="STRING 类型的值"
+                    class="kv-value-editor"
+                  />
+                </template>
+
+                <!-- LIST 类型 -->
+                <template v-else-if="keyDetail.type === 'LIST'">
+                  <div class="kv-value-label">列表元素（共 {{ keyDetail.size }} 个）：</div>
+                  <div class="kv-list-editor">
+                    <div v-for="(item, idx) in listItems" :key="idx" class="kv-list-item">
+                      <span class="kv-list-index">{{ idx }}</span>
+                      <ReInput v-model="listItems[idx]" size="small" class="kv-list-input" />
+                      <ReButton icon="Delete" size="small" text @click="removeListItem(idx)" />
+                    </div>
+                    <div class="kv-list-add">
+                      <ReInput v-model="newListItem" size="small" placeholder="新元素值" @keyup.enter="addListItem" />
+                      <ReButton icon="Plus" size="small" @click="addListItem">添加</ReButton>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- SET 类型 -->
+                <template v-else-if="keyDetail.type === 'SET'">
+                  <div class="kv-value-label">集合元素（共 {{ keyDetail.size }} 个）：</div>
+                  <div class="kv-list-editor">
+                    <div v-for="(item, idx) in setItems" :key="idx" class="kv-list-item">
+                      <ReInput v-model="setItems[idx]" size="small" class="kv-list-input" />
+                      <ReButton icon="Delete" size="small" text @click="removeSetItem(idx)" />
+                    </div>
+                    <div class="kv-list-add">
+                      <ReInput v-model="newSetItem" size="small" placeholder="新元素值" @keyup.enter="addSetItem" />
+                      <ReButton icon="Plus" size="small" @click="addSetItem">添加</ReButton>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- HASH 类型 -->
+                <template v-else-if="keyDetail.type === 'HASH'">
+                  <div class="kv-value-label">哈希字段（共 {{ keyDetail.size }} 个）：</div>
+                  <div class="kv-hash-editor">
+                    <div class="kv-hash-header">
+                      <span class="kv-hash-field">字段</span>
+                      <span class="kv-hash-value">值</span>
+                      <span class="kv-hash-action">操作</span>
+                    </div>
+                    <div v-for="(item, idx) in hashItems" :key="idx" class="kv-hash-row">
+                      <ReInput v-model="hashItems[idx].field" size="small" class="kv-hash-field" />
+                      <ReInput v-model="hashItems[idx].value" size="small" class="kv-hash-value" />
+                      <ReButton icon="Delete" size="small" text @click="removeHashItem(idx)" />
+                    </div>
+                    <div class="kv-hash-add">
+                      <ReInput v-model="newHashField" size="small" placeholder="字段名" class="kv-hash-field" />
+                      <ReInput v-model="newHashValue" size="small" placeholder="字段值" class="kv-hash-value" />
+                      <ReButton icon="Plus" size="small" @click="addHashItem">添加</ReButton>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- STREAM 类型 -->
+                <template v-else-if="keyDetail.type === 'STREAM'">
+                  <div class="kv-value-label">流消息（共 {{ keyDetail.size }} 条）：</div>
+                  <div class="kv-stream-view">
+                    <div class="kvs-toolbar">
+                      <ReButton size="small" type="primary" @click="addStreamMessage">
+                        <template #icon><ReIcon name="Plus" /></template>添加消息
+                      </ReButton>
+                      <ReButton size="small" @click="loadStreamMessages">
+                        <template #icon><ReIcon name="Refresh" /></template>刷新
+                      </ReButton>
+                    </div>
+                    <div class="kvs-list">
+                      <div v-for="(msg, idx) in streamMessages" :key="idx" class="kvs-message">
+                        <div class="kvs-msg-id">{{ msg.id }}</div>
+                        <div class="kvs-msg-body">
+                          <div v-for="(val, field) in msg.body" :key="field" class="kvs-msg-field">
+                            <span class="kvs-field-name">{{ field }}</span>
+                            <span class="kvs-field-value">{{ val }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <ReEmpty v-if="streamMessages.length === 0" description="暂无消息" :image-size="40" />
+                    </div>
+                  </div>
+                </template>
+
+                <!-- ZSET 类型 -->
+                <template v-else-if="keyDetail.type === 'ZSET'">
+                  <div class="kv-value-label">有序集合（共 {{ keyDetail.size }} 个）：</div>
+                  <div class="kv-hash-editor">
+                    <div class="kv-hash-header">
+                      <span class="kv-hash-field">成员</span>
+                      <span class="kv-hash-value">分数</span>
+                      <span class="kv-hash-action">操作</span>
+                    </div>
+                    <div v-for="(item, idx) in zsetItems" :key="idx" class="kv-hash-row">
+                      <ReInput v-model="zsetItems[idx].member" size="small" class="kv-hash-field" />
+                      <ReInputNumber v-model="zsetItems[idx].score" size="small" class="kv-hash-value" style="width: 100%" />
+                      <ReButton icon="Delete" size="small" text @click="removeZsetItem(idx)" />
+                    </div>
+                    <div class="kv-hash-add">
+                      <ReInput v-model="newZsetMember" size="small" placeholder="成员" class="kv-hash-field" />
+                      <ReInputNumber v-model="newZsetScore" size="small" placeholder="分数" class="kv-hash-value" style="width: 100%" />
+                      <ReButton icon="Plus" size="small" @click="addZsetItem">添加</ReButton>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- 其他类型 -->
+                <template v-else>
+                  <div class="kv-value-label">Value（{{ keyDetail.type }} 类型，暂不支持编辑）：</div>
+                  <pre class="kv-raw-value">{{ JSON.stringify(keyDetail.value, null, 2) }}</pre>
+                </template>
+
                 <div class="kv-actions">
                   <div class="kv-ttl">
                     <span>过期时间(秒，-1=永不过期)：</span>
@@ -507,6 +752,22 @@ watch(kvTab, (val) => {
       </template>
     </ReDialog>
   </div>
+
+  <!-- Stream 消息弹窗 -->
+  <ReDialog v-model="streamDialogVisible" title="添加 Stream 消息" width="500px">
+    <ReForm label-width="100px">
+      <ReFormItem label="消息ID">
+        <ReInput v-model="newStreamId" placeholder="留空自动生成，格式：时间戳-序号" />
+      </ReFormItem>
+      <ReFormItem label="消息体(JSON)">
+        <ReTextarea v-model="newStreamBody" :rows="6" placeholder='{"field1": "value1", "field2": "value2"}' />
+      </ReFormItem>
+    </ReForm>
+    <template #footer>
+      <ReButton @click="streamDialogVisible = false">取消</ReButton>
+      <ReButton type="primary" @click="saveStreamMessage">添加</ReButton>
+    </template>
+  </ReDialog>
 </template>
 
 <style scoped lang="scss">

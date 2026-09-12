@@ -2,6 +2,8 @@
 /**
  * 主机新增/编辑弹窗（独立子组件）
  * 从 AssetsView 拆出：弹窗打开/渲染只在自身组件内进行，不再触发 AssetsView 巨型组件全量 diff
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, watch } from "vue";
 import { ElMessage } from "element-plus";
@@ -73,12 +75,19 @@ const collectModes = [
   { label: "Prometheus采集", value: "PROMETHEUS" },
 ];
 
+/**
+ * 逗号分隔标签拆分为数组
+ * @param tags 标签字符串
+ */
 function splitTags(tags?: string | null): string[] {
   if (!tags) return [];
   // 同时兼容中英文逗号分隔（后端/手工录入可能用「，」）
   return tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
 }
 
+/**
+ * 重置表单
+ */
 function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
@@ -107,6 +116,9 @@ function onFormIdentityChange(v: number | null): void {
   formIdentityId.value = v;
 }
 
+/**
+ * 校验表单必填项
+ */
 function validForm(): boolean {
   if (!form.value.serverHostName?.trim()) { ElMessage.warning("请输入主机名"); return false; }
   if (!form.value.serverHostAddress?.trim()) { ElMessage.warning("请输入地址"); return false; }

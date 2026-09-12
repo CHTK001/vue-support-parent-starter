@@ -6,6 +6,8 @@
  *   - 左侧：模式列表（el-menu vertical）
  *   - 中间：Leaflet 地图（GeoMap）
  *   - 右侧：当前模式的下载参数面板
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed, markRaw, type Component } from "vue";
 import { MODES } from "@/constants/modes";
@@ -40,6 +42,7 @@ const boundsText = computed(() => {
   return `N ${b.north.toFixed(4)} · S ${b.south.toFixed(4)} · E ${b.east.toFixed(4)} · W ${b.west.toFixed(4)}`;
 });
 
+/** 选区变化回调（选区已同步至 store，无需额外处理） */
 function onBoundsChange() {
   /* 选区已同步至 store，无需额外处理 */
 }

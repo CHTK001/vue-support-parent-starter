@@ -83,6 +83,14 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 地图组件
+ *
+ * Leaflet 底图 + 矩形/多边形选区绘制 + 手动四至输入
+ * 与 useSelectionStore 双向同步 bounds / polygon
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue"
 import { FullScreen, EditPen, Delete, Aim } from "@element-plus/icons-vue"
 import L from "leaflet"
@@ -90,6 +98,11 @@ import "leaflet/dist/leaflet.css"
 import { useSelectionStore } from "@/store/selection"
 import type { GeoBounds } from "@/types"
 
+/**
+ * 组件 props 定义
+ * @author CH
+ * @since 4.0.0
+ */
 const props = withDefaults(
   defineProps<{
     height?: number
@@ -123,6 +136,7 @@ let tempLayer: L.Layer | null = null
 let drawingClickListener: ((e: L.LeafletMouseEvent) => void) | null = null
 let drawingDblClickListener: ((e: L.LeafletMouseEvent) => void) | null = null
 
+/** 修正 Leaflet 默认图标资源路径 */
 function fixLeafletIcon() {
   delete (L.Icon.Default.prototype as any)._getIconUrl
   L.Icon.Default.mergeOptions({
@@ -132,6 +146,7 @@ function fixLeafletIcon() {
   })
 }
 
+/** 创建底图瓦片图层（高德路网 / OSM / 高德影像） */
 function createBaseLayers() {
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors",
@@ -150,6 +165,7 @@ function createBaseLayers() {
   return { osm, gaode, gaodeImg }
 }
 
+/** 初始化地图实例 */
 function initMap() {
   if (!mapRef.value) return
   fixLeafletIcon()
@@ -172,6 +188,10 @@ function initMap() {
   emit("map-ready", map)
 }
 
+/**
+ * 切换绘制工具
+ * @param tool 工具类型：矩形或多边形
+ */
 function toggleTool(tool: "rect" | "polygon") {
   if (!map) return
   if (activeTool.value === tool) {
@@ -185,6 +205,7 @@ function toggleTool(tool: "rect" | "polygon") {
   }
 }
 
+/** 开始多边形绘制 */
 function startPolygonDraw() {
   if (!map) return
   drawingPoints = []
@@ -218,6 +239,7 @@ function startPolygonDraw() {
   map!.getContainer().style.cursor = "crosshair"
 }
 
+/** 完成多边形绘制并同步至选区 store */
 function finishPolygonDraw() {
   if (!map || drawingPoints.length < 3) return
   removeTempLayer()
@@ -243,12 +265,20 @@ function finishPolygonDraw() {
   cancelDrawing()
 }
 
+/**
+ * 地图点击事件处理（矩形工具下开始绘制）
+ * @param e Leaflet 鼠标事件
+ */
 function handleMapClick(e: L.LeafletMouseEvent) {
   if (activeTool.value === "rect") {
     startRectDraw(e.latlng)
   }
 }
 
+/**
+ * 开始矩形绘制
+ * @param start 矩形起点坐标
+ */
 function startRectDraw(start: L.LatLng) {
   if (!map) return
   removeDrawLayer()
@@ -283,6 +313,7 @@ function startRectDraw(start: L.LatLng) {
   map.on("mouseup", onUp)
 }
 
+/** 移除绘制图层 */
 function removeDrawLayer() {
   if (drawLayer && map) {
     map.removeLayer(drawLayer)
@@ -290,6 +321,7 @@ function removeDrawLayer() {
   }
 }
 
+/** 移除临时预览图层 */
 function removeTempLayer() {
   if (tempLayer && map) {
     map.removeLayer(tempLayer)
@@ -297,6 +329,7 @@ function removeTempLayer() {
   }
 }
 
+/** 取消当前绘制 */
 function cancelDrawing() {
   if (map) {
     if (drawingClickListener) map.off("click", drawingClickListener)
@@ -310,12 +343,17 @@ function cancelDrawing() {
   activeTool.value = null
 }
 
+/** 清除全部选区 */
 function clearSelection() {
   removeDrawLayer()
   selection.clear()
   drawingPoints = []
 }
 
+/**
+ * 切换底图
+ * @param name 底图键名：gaode / osm / gaode_img
+ */
 function switchBaseLayer(name: "gaode" | "osm" | "gaode_img") {
   if (!map) return
   const layers = createBaseLayers()
@@ -326,6 +364,7 @@ function switchBaseLayer(name: "gaode" | "osm" | "gaode_img") {
   currentBaseLayer.value = name
 }
 
+/** 应用手动输入的四至范围 */
 function applyManualBounds() {
   const b = manualBounds.value
   const bounds: GeoBounds = {

@@ -5,6 +5,8 @@
  * 后端暂未提供 MVT 下载接口，本面板提供：
  *   - 矢量瓦片服务地址说明
  *   - 预览 URL 构造（供外部工具 / 浏览器使用）
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed } from "vue";
 

@@ -3,6 +3,8 @@
  * 监控概览（工作台）—— 对齐 prototype §PAGE-1
  * KPI（ReStatCard + ReCountup + ReSkeleton）+ Donut + 最近告警 + 快捷入口
  * 全部按钮统一 ReButton；.kpi 色条类保留（pages.css 左侧色条 + e2e 定位）
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";

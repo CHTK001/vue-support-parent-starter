@@ -49,6 +49,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * GeoDownloader 应用根组件
+ *
+ * 包含顶部导航栏（工作台/任务中心/下载历史/设置）与主内容路由出口
+ * @author CH
+ * @since 4.0.0
+ */
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { MapLocation, Platform, List, Clock, Setting } from "@element-plus/icons-vue";
@@ -58,6 +65,7 @@ const router = useRouter();
 
 const activeRoute = computed(() => route.path);
 
+/** 跳转至工作台页面 */
 const goWorkspace = () => {
   router.push("/workspace");
 };

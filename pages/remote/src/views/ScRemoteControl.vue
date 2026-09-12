@@ -57,6 +57,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 远程控制页面
+ *
+ * 通过 Agent 网关建立 WebSocket 连接，提供 SSH 终端与 WebRTC 远程桌面（JPEG 帧渲染）。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { verifyAgent, createGatewayWsUrl } from '../api/remoteApi'
@@ -81,6 +88,7 @@ const desktopFrame = ref<boolean>(false)
 let ws: WebSocket | null = null
 let sshSessionId: string | null = null
 
+/** 校验并连接网关 */
 function doConnect() {
   if (!form.agentId || !form.verifyCode) {
     ElMessage.warning('请填写ID和验证码')
@@ -104,6 +112,10 @@ function doConnect() {
     })
 }
 
+/**
+ * 建立网关 WebSocket 连接
+ * @param url WebSocket URL
+ */
 function connectWebSocket(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
     ws = new WebSocket(url)
@@ -136,6 +148,7 @@ function connectWebSocket(url: string): Promise<void> {
   })
 }
 
+/** 启动 SSH 会话 */
 function startSSHSession() {
   sshSessionId = 'ssh-' + Date.now()
   ws!.send(JSON.stringify({
@@ -147,18 +160,31 @@ function startSSHSession() {
   }))
 }
 
+/**
+ * 处理文本消息（SSH 输出）
+ * @param msg 消息对象
+ */
 function handleTextMessage(msg: any) {
   if (msg.type === 'ssh') {
     appendTerminalOutput(msg.data, msg.stream === 'stderr')
   }
 }
 
+/**
+ * 处理二进制帧（JPEG 画面）
+ * @param bytes 帧数据
+ */
 function handleBinaryFrame(bytes: Uint8Array) {
   if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
     renderJPEG(bytes)
   }
 }
 
+/**
+ * 追加终端输出
+ * @param text 输出文本
+ * @param isError 是否为 stderr
+ */
 function appendTerminalOutput(text: string, isError: boolean) {
   if (!terminalRef.value) return
   const span = document.createElement('span')
@@ -168,6 +194,10 @@ function appendTerminalOutput(text: string, isError: boolean) {
   terminalRef.value.scrollTop = terminalRef.value.scrollHeight
 }
 
+/**
+ * 渲染 JPEG 画面帧到 canvas
+ * @param bytes JPEG 数据
+ */
 function renderJPEG(bytes: Uint8Array) {
   desktopFrame.value = true
   nextTick(() => {
@@ -190,6 +220,7 @@ function renderJPEG(bytes: Uint8Array) {
   })
 }
 
+/** 发送终端命令 */
 function sendCmd() {
   if (!cmdInput.value || !ws || !sshSessionId) return
   ws.send(JSON.stringify({
@@ -202,6 +233,7 @@ function sendCmd() {
   cmdInput.value = ''
 }
 
+/** 断开连接 */
 function doDisconnect() {
   if (sshSessionId && ws) {
     ws.send(JSON.stringify({ action: 'ssh', sshAction: 'stop', sessionId: sshSessionId }))

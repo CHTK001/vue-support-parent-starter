@@ -6,8 +6,18 @@
  */
 
 // 地图模式
+/**
+ * 地图模式键
+ * @author CH
+ * @since 4.0.0
+ */
 export type ModeKey = "imagery" | "dem" | "wayback" | "tiles3d" | "mvt" | "osm"
 
+/**
+ * 地图模式元信息
+ * @author CH
+ * @since 4.0.0
+ */
 export interface ModeMeta {
   value: ModeKey
   label: string

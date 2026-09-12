@@ -13,6 +13,8 @@ import { nextTick, onMounted, type Ref } from "vue";
  *
  * 安全性：预渲染触发的 modelValue=true 会走各弹窗的 watch 初始化逻辑，
  * host 为 null 时均直接 return / resetForm，不会发出数据请求。
+ * @author CH
+ * @since 4.0.0
  */
 export function useDialogPrerender(visible: Ref<boolean>, delay = 2500): void {
   if (typeof window === "undefined") return;

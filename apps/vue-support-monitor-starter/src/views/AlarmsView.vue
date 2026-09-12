@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
  * 告警中心 —— 对齐 prototype §PAGE-ALARM（ReSectionHead + ReCard + ReTag + ReButton(square)）
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
@@ -28,8 +30,20 @@ const unhandledCount = computed(() => events.value.filter(isUnhandled).length);
 // KPI 色条 tone（pages.css .kpi.c-*）
 const TONES: Record<string, string> = { P0: "red", P1: "red", P2: "amber", P3: "green", P4: "gray" };
 const SEV_HINTS: Record<string, string> = { P0: "立即响应", P1: "30 分钟", P2: "当班处理", P3: "计划内", P4: "通知" };
+/**
+ * KPI 色条 tone 映射
+ * @param lv 告警级别
+ */
 function kpiTone(lv: string): string { return TONES[lv] ?? "gray"; }
+/**
+ * 级别标签映射
+ * @param lv 告警级别
+ */
 function sevLabel(lv: string): string { return SEV_HINTS[lv] ?? ""; }
+/**
+ * 级别处理建议提示
+ * @param lv 告警级别
+ */
 function sevHint(lv: string): string { return SEV_HINTS[lv] ?? ""; }
 
 const filtered = computed(() => {
@@ -46,6 +60,10 @@ const filtered = computed(() => {
   return [...list].sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? ""));
 });
 
+/**
+ * 告警状态中文标签
+ * @param e 告警事件
+ */
 function statusLabel(e: AlarmEvent): string {
   const s = String(e.msMonitorAlarmEventStatus || "").toUpperCase();
   if (s === "NEW") return "未处理";
@@ -53,6 +71,10 @@ function statusLabel(e: AlarmEvent): string {
   if (s === "PROCESSED") return "已处理";
   return s || "—";
 }
+/**
+ * 告警状态对应的 el-tag 类型
+ * @param e 告警事件
+ */
 function statusType(e: AlarmEvent): string {
   const s = String(e.msMonitorAlarmEventStatus || "").toUpperCase();
   if (s === "NEW") return "danger";
@@ -73,6 +95,10 @@ const alarmColumns = computed(() => [
 
 /** 行级格式化辅助（供 slot 使用） */
 function timeText(e: AlarmEvent): string { return (e.msMonitorAlarmEventTriggerTime || "").slice(0, 16); }
+/**
+ * 当前值/阈值展示文本
+ * @param e 告警事件
+ */
 function valueText(e: AlarmEvent): string { return `${e.msMonitorAlarmEventAlarmValue} / ${e.msMonitorAlarmEventThreshold}`; }
 
 async function fetchAll(): Promise<void> {
@@ -90,6 +116,10 @@ const handleTarget = ref<AlarmEvent | null>(null);
 const handleRemark = ref("");
 const handleFalseAlarm = ref(false);
 const handleSubmitting = ref(false);
+/**
+ * 打开告警处理弹窗
+ * @param e 告警事件
+ */
 function openHandle(e: AlarmEvent): void {
   handleTarget.value = e;
   handleRemark.value = "";
@@ -203,4 +233,4 @@ onMounted(fetchAll);
 .f-kw { width: 220px; }
 .f-sel { width: 130px; }
 .f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
-</style>
+</style>

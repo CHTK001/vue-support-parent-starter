@@ -47,6 +47,11 @@ export const taskRoutes: RouteConfigsTable[] = [
 /**
  * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
  */
+/**
+ * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
+ * @author CH
+ * @since 4.0.0
+ */
 export const taskMenus: StaticMenuItem[] = [
   {
     path: "/task",

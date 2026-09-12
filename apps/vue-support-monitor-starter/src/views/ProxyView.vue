@@ -8,6 +8,8 @@
  * 说明：已移除「当前代理」卡片——当前代理 = 代理表第一条（host:port），
  * 由系统自动管理、无业务消费方（代理仅用于抓取/刷新），页面展示无操作价值；
  * 后端 /ms/server/proxy/current 端点保留（供其他业务方调用）。
+ * @author CH
+ * @since 4.0.0
  */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";

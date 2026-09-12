@@ -3,6 +3,8 @@
  * 用户成就页面
  *
  * 展示成就统计概览、类型切换标签、段位时间线，并通过 Socket 实时接收成就解锁推送。
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";

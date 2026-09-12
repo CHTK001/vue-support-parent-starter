@@ -1,0 +1,2 @@
+$env:PATH = "C:\Program Files\nodejs;" + $env:PATH
+Start-Process -FilePath "node" -ArgumentList "node_modules\vite\bin\vite.js --port 8848 --strictPort" -WorkingDirectory "D:\ch\project\vue-support-parent-starter\apps\vue-support-monitor-starter" -WindowStyle Hidden

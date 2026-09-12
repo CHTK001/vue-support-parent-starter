@@ -3,7 +3,11 @@
  * 与后端 spring-api-support-geo-starter 数据契约对应
  */
 
-/** 地理边界（WGS-84） */
+/**
+ * 地理边界（WGS-84）
+ * @author CH
+ * @since 4.0.0
+ */
 export interface GeoBounds {
   north: number
   south: number
@@ -11,7 +15,11 @@ export interface GeoBounds {
   west: number
 }
 
-/** 瓦片图源 */
+/**
+ * 瓦片图源
+ * @author CH
+ * @since 4.0.0
+ */
 export interface TileSource {
   id: string
   name: string
@@ -23,7 +31,11 @@ export interface TileSource {
   headers?: Record<string, string>
 }
 
-/** 下载请求 */
+/**
+ * 下载请求
+ * @author CH
+ * @since 4.0.0
+ */
 export interface DownloadRequest {
   source: string
   bounds: GeoBounds
@@ -44,7 +56,11 @@ export interface DownloadRequest {
   overlaySources?: string[] | null
 }
 
-/** 下载估算结果 */
+/**
+ * 下载估算结果
+ * @author CH
+ * @since 4.0.0
+ */
 export interface DownloadEstimate {
   tileCount: number
   cols?: number
@@ -55,13 +71,21 @@ export interface DownloadEstimate {
   message?: string
 }
 
-/** 创建任务结果 */
+/**
+ * 创建任务结果
+ * @author CH
+ * @since 4.0.0
+ */
 export interface CreateTaskResult {
   taskId: string
   tileCount: number
 }
 
-/** 任务信息 */
+/**
+ * 任务信息
+ * @author CH
+ * @since 4.0.0
+ */
 export interface TaskInfo {
   id: string
   name: string
@@ -82,7 +106,11 @@ export interface TaskInfo {
   createdAt?: string
 }
 
-/** 任务状态 */
+/**
+ * 任务状态
+ * @author CH
+ * @since 4.0.0
+ */
 export type TaskStatus =
   | 'pending'
   | 'downloading'
@@ -97,7 +125,11 @@ export type TaskStatus =
   | 'paused'
   | 'pending_decision'
 
-/** 下载历史记录 */
+/**
+ * 下载历史记录
+ * @author CH
+ * @since 4.0.0
+ */
 export interface DownloadHistoryRecord {
   id: string | number
   name: string
@@ -114,7 +146,11 @@ export interface DownloadHistoryRecord {
   durationSecs?: number
 }
 
-/** 历史分页结果 */
+/**
+ * 历史分页结果
+ * @author CH
+ * @since 4.0.0
+ */
 export interface DownloadHistoryPage {
   records: DownloadHistoryRecord[]
   total: number
@@ -122,14 +158,22 @@ export interface DownloadHistoryPage {
   pageSize: number
 }
 
-/** DEM 图源 */
+/**
+ * DEM 图源
+ * @author CH
+ * @since 4.0.0
+ */
 export interface DemSource {
   id: string
   name: string
   maxZoom?: number
 }
 
-/** Wayback 版本 */
+/**
+ * Wayback 版本
+ * @author CH
+ * @since 4.0.0
+ */
 export interface WaybackVersion {
   id: string
   title: string
@@ -137,13 +181,21 @@ export interface WaybackVersion {
   layerId?: string
 }
 
-/** Wayback 版本列表响应 */
+/**
+ * Wayback 版本列表响应
+ * @author CH
+ * @since 4.0.0
+ */
 export interface WaybackVersionsResponse {
   versions: WaybackVersion[]
   count: number
 }
 
-/** 3D Tiles 数据源 */
+/**
+ * 3D Tiles 数据源
+ * @author CH
+ * @since 4.0.0
+ */
 export interface Tiles3dSource {
   type: 'url' | 'cesium_ion'
   assetId?: number
@@ -151,7 +203,11 @@ export interface Tiles3dSource {
   tilesetQueryUrl?: string
 }
 
-/** 3D Tiles 摘要 */
+/**
+ * 3D Tiles 摘要
+ * @author CH
+ * @since 4.0.0
+ */
 export interface TilesetSummary {
   version: string
   extent?: number[] | null
@@ -162,7 +218,11 @@ export interface TilesetSummary {
   hasExternalTilesets: boolean
 }
 
-/** 全局设置 */
+/**
+ * 全局设置
+ * @author CH
+ * @since 4.0.0
+ */
 export interface AppSettings {
   proxyEnabled?: boolean
   proxyUrl?: string

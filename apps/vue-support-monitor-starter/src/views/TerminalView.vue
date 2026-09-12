@@ -3,6 +3,8 @@
  * 远程控制工作区 —— design.md §4.8（沉浸式 master–detail）
  * 左侧主机资源条（点选即切）+ 右侧 ScGuacViewer 远控渲染（guacamole 客户端直连隧道）
  * 支持 ?hostId= 直达：从资产页「连接」进入并自动选中、自动连接。
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -33,6 +35,10 @@ const selectedId = ref<number | null>(null);
 const railOpen = ref(true);
 const keyword = ref("");
 
+/**
+ * 操作系统型式归一化
+ * @param t 原始值
+ */
 function normalizeOs(t?: string): string {
   const s = (t ?? "").toUpperCase();
   if (s.includes("WIN")) return "Windows";
@@ -40,6 +46,10 @@ function normalizeOs(t?: string): string {
   if (s.includes("MAC")) return "macOS";
   return s || "其他";
 }
+/**
+ * 操作系统图标名
+ * @param t 操作系统类型
+ */
 function osIcon(t?: string): string {
   const s = (t ?? "").toUpperCase();
   if (s.includes("WIN")) return "🪟";
@@ -47,6 +57,10 @@ function osIcon(t?: string): string {
   if (s.includes("MAC")) return "🍎";
   return "🖥️";
 }
+/**
+ * 推断主机默认协议
+ * @param h 主机
+ */
 function protocolOf(h: Host): string {
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
@@ -113,9 +127,16 @@ const tagGroups = computed(() => {
 
 /** 终端字体大小（默认 / 小 / 中 / 大） */
 const fontScale = ref<number>(13);
+/**
+ * 终端字体样式
+ */
 function fontStyle(): Record<string, string> {
   return { "--term-font-size": `${fontScale.value}px` };
 }
+/**
+ * 字号标签
+ * @param n 字号
+ */
 function fontLabel(n: number): string {
   return n + "px";
 }
@@ -191,7 +212,7 @@ onMounted(onMountedInit);
 </script>
 
 <template>
-  <div class="tw">
+  <div class="tw tel-page">
     <!-- 左侧主机资源条 -->
     <aside :style="{ width: railWidth }" class="rail tel-rail">
       <div v-if="railOpen" class="rail-inner">

@@ -10,6 +10,8 @@
  *
  * 设计语言：深色遥测面板 + 发光刻度环 + 网格趋势 + 等宽数字，
  * 与外壳 koi 浅色主题形成“任务控制室”的对比记忆点。
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -39,7 +41,15 @@ const jvmHist = ref<number[]>([]);
 
 // ---------------- 格式化工具 ----------------
 function pct(v?: number): string { return v == null ? "—" : `${v.toFixed(0)}%`; }
+/**
+ * 数值展示，null 显示 —
+ * @param v 数值
+ */
 function num(v?: number): string { return v == null ? "—" : String(Math.round(v)); }
+/**
+ * 数值格式化
+ * @param v 数值
+ */
 function fmt(v?: number): string {
   if (v == null) return "—";
   if (v >= 1073741824) return `${(v / 1073741824).toFixed(1)}G`;
@@ -65,16 +75,40 @@ function spark(data: number[]): string {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
 }
+/**
+ * 序列面积估算文本
+ * @param data 数值序列
+ */
 function area(data: number[]): string {
   if (data.length === 0) return "";
   return `${spark(data)} 200,56 0,56`;
 }
+/**
+ * 序列最小值
+ * @param data 数值序列
+ */
 function trendMin(data: number[]): string { return data.length ? data.reduce((a, b) => Math.min(a, b), Infinity).toFixed(0) : "—"; }
+/**
+ * 序列最大值
+ * @param data 数值序列
+ */
 function trendMax(data: number[]): string { return data.length ? data.reduce((a, b) => Math.max(a, b), -Infinity).toFixed(0) : "—"; }
+/**
+ * 序列最新值
+ * @param data 数值序列
+ */
 function trendLast(data: number[]): string { return data.length ? data[data.length - 1].toFixed(0) : "—"; }
 /** 网络字节趋势的 min/max/last（空数据返回 —，有数据按 fmt 压缩显示） */
 function netMin(data: number[]): string { return data.length ? fmt(data.reduce((a, b) => Math.min(a, b), Infinity)) : "—"; }
+/**
+ * 网络峰值
+ * @param data 数值序列
+ */
 function netMax(data: number[]): string { return data.length ? fmt(data.reduce((a, b) => Math.max(a, b), -Infinity)) : "—"; }
+/**
+ * 网络最新值
+ * @param data 数值序列
+ */
 function netLast(data: number[]): string { return data.length ? fmt(data[data.length - 1]) : "—"; }
 
 // ---------------- 仪表 ----------------
@@ -85,6 +119,10 @@ function ringDash(p: number): string {
   const v = Math.max(0, Math.min(100, p));
   return `${(circ * v / 100).toFixed(2)} ${circ.toFixed(2)}`;
 }
+/**
+ * 进度环样式
+ * @param p 百分比
+ */
 function ringStyle(p: number): Record<string, string> {
   return { strokeDasharray: ringDash(p) };
 }
@@ -217,12 +255,20 @@ const diskColumns = [
   { prop: "usedText", label: "已用 / 总量" },
   { prop: "usagePercent", label: "使用率" },
 ];
+/**
+ * 磁盘已用/总量文本
+ * @param r 分区行
+ */
 function diskUsed(r: any): string { return `${fmt(r.used)} / ${fmt(r.total)}`; }
+/**
+ * 磁盘使用率进度条宽度
+ * @param r 分区行
+ */
 function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usagePercent ?? 0))}%`; }
 </script>
 
 <template>
-  <div class="hd">
+  <div class="hd tel-page">
     <!-- 页头（外壳浅色区域，保持与整体一致） -->
     <ReSectionHead :description="`主机 #${monitorId} · 实时遥测与 24h 趋势`">
       <template #title>{{ hostName || `主机 #${monitorId}` }}</template>

@@ -28,6 +28,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 遥测折线图组件（ECharts）
+ *
+ * 实时渲染指标折线（FIFO 限点），支持时间范围选择与历史数据弹窗。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import * as echarts from "echarts";
 
@@ -81,6 +88,12 @@ const stats = computed(() => {
   };
 });
 
+/**
+ * 构建 ECharts 配置项
+ * @param data 数值序列
+ * @param times 时间戳序列（可选）
+ * @returns ECharts 配置
+ */
 function buildOption(data: number[], times?: number[]): echarts.EChartsOption {
   const xData = times && times.length === data.length
     ? times.map(t => new Date(t).toLocaleTimeString("zh-CN", { hour12: false }))
@@ -126,6 +139,7 @@ function buildOption(data: number[], times?: number[]): echarts.EChartsOption {
   };
 }
 
+/** 渲染实时图表（FIFO 限制数据点数量） */
 function renderChart() {
   if (!chart || !chartRef.value) return;
   // FIFO: 限制数据点数量
@@ -141,15 +155,18 @@ function renderChart() {
   chart.setOption(buildOption(data, times));
 }
 
+/** 渲染历史数据图表 */
 function renderHistoryChart() {
   if (!historyChart || !historyChartRef.value) return;
   historyChart.setOption(buildOption(props.data, props.timestamps));
 }
 
+/** 时间范围变更事件透传 */
 function onTimeRangeChange() {
   emit("time-range-change", timeRange.value);
 }
 
+/** 打开历史数据弹窗并渲染 */
 function openHistory() {
   historyVisible.value = true;
   nextTick(() => {
@@ -175,6 +192,7 @@ onMounted(() => {
   window.addEventListener("resize", onResize);
 });
 
+/** 窗口尺寸变化时重算图表尺寸 */
 function onResize() {
   chart?.resize();
   historyChart?.resize();

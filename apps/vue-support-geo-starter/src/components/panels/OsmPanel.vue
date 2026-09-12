@@ -5,6 +5,8 @@
  * 使用后端 /v1/geo/osm/* 接口：
  *   - Overpass QL 查询语句
  *   - 查询估算（元素数 / 大小）-> 创建下载任务
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -37,6 +39,7 @@ const bboxText = computed(() => {
   return `南${b.south.toFixed(4)}, 西${b.west.toFixed(4)}, 北${b.north.toFixed(4)}, 东${b.east.toFixed(4)}`;
 });
 
+/** 用当前选区 bbox 填充查询语句 */
 function fillBounds() {
   if (!selection.bounds) {
     ElMessage.warning("请先在地图上绘制选区");
@@ -48,6 +51,7 @@ function fillBounds() {
   ElMessage.success("已用当前选区填充 bbox");
 }
 
+/** 执行 OSM 查询估算 */
 async function onEstimate() {
   if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
   estimating.value = true;
@@ -66,6 +70,7 @@ async function onEstimate() {
   }
 }
 
+/** 创建 OSM 下载任务并跳转任务中心 */
 async function onSubmit() {
   if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
   submitting.value = true;

@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * 沉浸式远程终端组件（Guacamole 隧道）
+ *
+ * 支持 SSH / RDP / VNC 协议，通过 guacd 隧道实现远程控制台，
+ * 提供重连/断开/全屏/缩放与监控告警条。
+ * @author CH
+ * @since 4.0.0
+ */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import Guacamole from "guacamole-common-js";
 import ReIcon from "@repo/ui/re-icon";
@@ -42,6 +50,10 @@ watch(
   },
 );
 
+/**
+ * 建立 Guacamole 连接
+ * @param conn 连接配置（主机/协议/身份/端口）
+ */
 function connect(conn: NonNullable<typeof props.connection>): void {
   hasError.value = false;
   statusText.value = "正在连接…";
@@ -127,6 +139,7 @@ function disconnect(): void {
   statusText.value = "已手动断开";
 }
 
+/** 切换全屏状态 */
 function fullscreen(): void {
   const el = shellRef.value;
   if (!el) return;
@@ -146,6 +159,10 @@ const zoomOptions = computed(() => [
   { label: "125%", value: 125 },
   { label: "150%", value: 150 },
 ]);
+/**
+ * 应用终端缩放比例
+ * @param pct 缩放百分比
+ */
 function applyZoom(pct: number): void {
   zoomPct.value = pct;
   if (client) {
@@ -171,6 +188,10 @@ function blurLocalInput(): void {
  * 该绑定不生效（焦点滞留搜索框，按键全被隔离守卫拦掉）；捕获阶段在
  * document 上拦截则不依赖目标元素内部的事件传播，实测可靠。
  */
+/**
+ * document 捕获阶段监听：点击终端区一律先失焦本地输入框。
+ * @param e 鼠标按下事件
+ */
 function onDocMousedownCapture(e: MouseEvent): void {
   const target = e.target as HTMLElement | null;
   if (target && target.closest(".it-display")) blurLocalInput();
@@ -179,6 +200,7 @@ function onDocMousedownCapture(e: MouseEvent): void {
 onMounted(() => document.addEventListener("mousedown", onDocMousedownCapture, true));
 onBeforeUnmount(() => document.removeEventListener("mousedown", onDocMousedownCapture, true));
 
+/** 拆除连接资源（键盘/鼠标/渲染层/客户端） */
 function teardown(): void {
   try { keyboard?.reset(); client?.disconnect(); } catch { /* ignore */ }
   resizeObserver?.disconnect();

@@ -9,6 +9,8 @@
  * 在离线检测 / 硬件采集 / Agent 推送 / 远控开关均属主机级配置，
  * 存于 ms_server_host 主机字段，随各主机在「主机资产」表单内配置，不在系统配置出现。
  * 保存后即时生效，无需重启。
+ * @author CH
+ * @since 4.0.0
  */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";

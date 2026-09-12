@@ -8,6 +8,8 @@
  *   - 使用 koi 默认布局（AppWithRouter + layout），不再需要自定义 App.vue
  *   - 侧边栏菜单由路由树（RouteConfigsTable[]）自动推导
  *   - 业务路由自动挂到 layout 之下
+ * @author CH
+ * @since 4.0.0
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
@@ -56,6 +58,13 @@ const MONITOR_RE_COMPONENTS = [
  * koi 单页面安装：
  * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
  * 2. installUi —— 按需注册本应用用到的 Re* 组件
+ */
+/**
+ * koi 单页面安装：
+ * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
+ * 2. installUi —— 按需注册本应用用到的 Re* 组件
+ * @param app Vue 应用实例
+ * @returns 安装完成
  */
 async function installKoiSinglePage(app: VueApp): Promise<void> {
   await installKoi(app);

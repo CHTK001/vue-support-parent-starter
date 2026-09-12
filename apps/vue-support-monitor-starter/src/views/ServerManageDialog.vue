@@ -152,6 +152,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 协议服务器管理弹窗
+ *
+ * 管理协议服务器节点（RDP/SSH/VNC 等）的增删改查与启停，支持 ServerFilter 插件配置。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, computed, watch, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -239,18 +246,28 @@ const configJson = computed({
   },
 });
 
+/**
+ * 打开新建服务器节点弹窗
+ */
 function openCreate() {
   formData.value = { id: null, name: "", protocol: "http", engine: "jdk", host: "0.0.0.0", port: 8080, enabled: 1, remark: "", config: {}, filters: [] };
   showAdvanced.value = false;
   formVisible.value = true;
 }
 
+/**
+ * 打开编辑服务器节点弹窗
+ * @param row 节点行
+ */
 function openEdit(row: ServerNodeView) {
   formData.value = { ...row, config: { ...row.config }, filters: [...(row.filters ?? [])] };
   showAdvanced.value = false;
   formVisible.value = true;
 }
 
+/**
+ * 协议切换时重置默认端口
+ */
 function onProtocolChange() {
   const meta = protocolMetas.value.find(p => p.code === formData.value.protocol);
   if (meta?.defaultPort && !formData.value.port) formData.value.port = meta.defaultPort;
@@ -319,12 +336,19 @@ const filterTypeOptions = computed(() => [
   ...filterTypeMetas.value.map(f => ({ label: `${f.name}（${f.type}）`, value: f.type })),
 ]);
 
+/**
+ * 打开 ServerFilter 配置面板
+ * @param row 节点行
+ */
 function openFilterConfig(row: ServerNodeView) {
   filterTarget.value = row;
   filterList.value = [...(row.filters ?? [])];
   filterVisible.value = true;
 }
 
+/**
+ * 新增一条 ServerFilter
+ */
 function addFilter() {
   filterEditIndex.value = -1;
   filterForm.value = { name: "", type: "", order: 100, enabled: true, params: {} };
@@ -332,6 +356,11 @@ function addFilter() {
   filterEditVisible.value = true;
 }
 
+/**
+ * 编辑 ServerFilter
+ * @param row 过滤器
+ * @param index 下标
+ */
 function editFilter(row: ServerFilterDescriptor, index: number) {
   filterEditIndex.value = index;
   filterForm.value = { ...row, params: { ...row.params } };
@@ -340,25 +369,44 @@ function editFilter(row: ServerFilterDescriptor, index: number) {
   filterEditVisible.value = true;
 }
 
+/**
+ * 删除 ServerFilter
+ * @param index 下标
+ */
 function removeFilter(index: number) {
   filterList.value.splice(index, 1);
 }
 
+/**
+ * 新增过滤器参数
+ */
 function addParam() {
   const key = `param${Object.keys(filterForm.value.params).length + 1}`;
   filterForm.value.params[key] = "";
   paramKeys.value[key] = key;
 }
 
+/**
+ * 更新过滤器参数
+ * @param oldKey 参数键
+ * @param val 参数值
+ */
 function updateParam(oldKey: string, val: string) {
   filterForm.value.params[oldKey] = val;
 }
 
+/**
+ * 删除过滤器参数
+ * @param key 参数键
+ */
 function removeParam(key: string) {
   delete filterForm.value.params[key];
   delete paramKeys.value[key];
 }
 
+/**
+ * 保存 ServerFilter 配置
+ */
 function saveFilter() {
   if (!filterForm.value.name?.trim()) { ElMessage.error("请输入过滤器名称"); return; }
   // 同步 paramKeys 到 params 的 key
@@ -408,6 +456,10 @@ function statusClass(s?: string) {
   if (s === "ERROR") return "status-error";
   return "status-stopped";
 }
+/**
+ * 节点状态文案
+ * @param s 状态值
+ */
 function statusText(s?: string) {
   if (s === "RUNNING") return "运行中";
   if (s === "ERROR") return "错误";

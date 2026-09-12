@@ -1,0 +1,1678 @@
+{
+  "timestamp": "2026-09-12T08:34:14.284Z",
+  "total": 21,
+  "passed": 21,
+  "failed": 0,
+  "totalButtons": 490,
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `ForwardRef`. ",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ],
+  "results": [
+    {
+      "name": "01-bot-management",
+      "desc": "Bot 管理",
+      "path": "/bots/users",
+      "status": "PASS",
+      "buttons": 26,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "Bot 用户"
+      ],
+      "inputs": 1,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\01-bot-management.png"
+    },
+    {
+      "name": "02-bot-im",
+      "desc": "Bot 会话",
+      "path": "/bots/im",
+      "status": "PASS",
+      "buttons": 21,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "(图标按钮)"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\02-bot-im.png"
+    },
+    {
+      "name": "03-model-management",
+      "desc": "模型管理",
+      "path": "/models",
+      "status": "PASS",
+      "buttons": 38,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "全部",
+        "图像分类"
+      ],
+      "inputs": 2,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\03-model-management.png"
+    },
+    {
+      "name": "04-agent-management",
+      "desc": "Agent 管理",
+      "path": "/agents",
+      "status": "PASS",
+      "buttons": 20,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "刷新",
+        "新建 Agent"
+      ],
+      "inputs": 1,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\04-agent-management.png"
+    },
+    {
+      "name": "05-service-management",
+      "desc": "服务管理",
+      "path": "/services",
+      "status": "PASS",
+      "buttons": 49,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "刷新",
+        "启动"
+      ],
+      "inputs": 5,
+      "tables": 0,
+      "cards": 5,
+      "switches": 25,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\05-service-management.png"
+    },
+    {
+      "name": "06-cap-text-to-image",
+      "desc": "文生图管线",
+      "path": "/capabilities/text-to-image",
+      "status": "PASS",
+      "buttons": 22,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "保存"
+      ],
+      "inputs": 13,
+      "tables": 0,
+      "cards": 3,
+      "switches": 2,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": false,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\06-cap-text-to-image.png"
+    },
+    {
+      "name": "07-cap-text-to-video",
+      "desc": "文生视频管线",
+      "path": "/capabilities/text-to-video",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": false,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\07-cap-text-to-video.png"
+    },
+    {
+      "name": "08-cap-ocr",
+      "desc": "OCR 管线",
+      "path": "/capabilities/ocr",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": false,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\08-cap-ocr.png"
+    },
+    {
+      "name": "09-cap-layout",
+      "desc": "布局管线",
+      "path": "/capabilities/layout",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": false,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\09-cap-layout.png"
+    },
+    {
+      "name": "10-cap-face",
+      "desc": "人脸识别管线",
+      "path": "/capabilities/face",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": false,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\10-cap-face.png"
+    },
+    {
+      "name": "11-cap-image",
+      "desc": "图片识别管线",
+      "path": "/capabilities/image",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\11-cap-image.png"
+    },
+    {
+      "name": "12-usage-management",
+      "desc": "用量管理",
+      "path": "/usage",
+      "status": "PASS",
+      "buttons": 27,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "刷新",
+        "导出 CSV"
+      ],
+      "inputs": 8,
+      "tables": 3,
+      "cards": 1,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\12-usage-management.png"
+    },
+    {
+      "name": "13-usage-sync-logs",
+      "desc": "用量同步日志",
+      "path": "/usage/sync-logs",
+      "status": "PASS",
+      "buttons": 25,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "刷新"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 1,
+      "switches": 1,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\13-usage-sync-logs.png"
+    },
+    {
+      "name": "14-system-settings",
+      "desc": "系统设置",
+      "path": "/settings",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 6,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\14-system-settings.png"
+    },
+    {
+      "name": "15-global-beans",
+      "desc": "全局 Bean 配置",
+      "path": "/settings/global-beans",
+      "status": "PASS",
+      "buttons": 33,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "保存"
+      ],
+      "inputs": 5,
+      "tables": 0,
+      "cards": 6,
+      "switches": 3,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\15-global-beans.png"
+    },
+    {
+      "name": "16-usage-config",
+      "desc": "用量配置",
+      "path": "/settings/usage-config",
+      "status": "PASS",
+      "buttons": 24,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)",
+        "保存"
+      ],
+      "inputs": 1,
+      "tables": 0,
+      "cards": 3,
+      "switches": 1,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\16-usage-config.png"
+    },
+    {
+      "name": "17-skills-config",
+      "desc": "Skills 配置",
+      "path": "/settings/skills-config",
+      "status": "PASS",
+      "buttons": 18,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\17-skills-config.png"
+    },
+    {
+      "name": "18-skills-management",
+      "desc": "Skills 管理",
+      "path": "/skills",
+      "status": "PASS",
+      "buttons": 19,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "(图标按钮)"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\18-skills-management.png"
+    },
+    {
+      "name": "19-roles-management",
+      "desc": "角色管理",
+      "path": "/roles",
+      "status": "PASS",
+      "buttons": 20,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "新建角色",
+        "(图标按钮)"
+      ],
+      "inputs": 0,
+      "tables": 1,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\19-roles-management.png"
+    },
+    {
+      "name": "20-mcp-management",
+      "desc": "MCP 管理",
+      "path": "/mcp",
+      "status": "PASS",
+      "buttons": 20,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "新建服务器",
+        "(图标按钮)"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\20-mcp-management.png"
+    },
+    {
+      "name": "21-plugins-management",
+      "desc": "插件管理",
+      "path": "/plugins",
+      "status": "PASS",
+      "buttons": 20,
+      "buttonTexts": [
+        "文生图",
+        "文生视频",
+        "OCR 文字识别",
+        "版面布局分析",
+        "人脸识别",
+        "图片识别",
+        "Bot 配置",
+        "Bot IM",
+        "模型管理",
+        "Agent 管理",
+        "服务管理",
+        "Skills 管理",
+        "角色管理",
+        "MCP 管理",
+        "插件管理",
+        "用量管理",
+        "同步日志",
+        "系统设置",
+        "市场搜索",
+        "(图标按钮)"
+      ],
+      "inputs": 0,
+      "tables": 0,
+      "cards": 0,
+      "switches": 0,
+      "clickResults": [
+        {
+          "button": "文生图",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "文生视频",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "OCR 文字识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "版面布局分析",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        },
+        {
+          "button": "人脸识别",
+          "urlChanged": true,
+          "modalOpened": false,
+          "messageShown": false
+        }
+      ],
+      "screenshot": "D:\\ch\\project\\vue-support-parent-starter\\acceptance-screenshots-full\\21-plugins-management.png"
+    }
+  ]
+}

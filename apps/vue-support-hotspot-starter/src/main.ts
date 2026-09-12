@@ -21,4 +21,9 @@ app.use(router);
 
 app.mount("#app");
 
+// 共享模板 index.html 注入的全屏 loader（public/loader.js），挂载完成后隐藏
+if (typeof window.hideAppLoader === "function") {
+  window.hideAppLoader();
+}
+
 export default app;

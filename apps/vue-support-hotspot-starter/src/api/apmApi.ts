@@ -106,6 +106,8 @@ export interface TransmissionQuery {
   target?: string;
   protocol?: string;
   errorOnly?: boolean;
+  startTime?: number;
+  endTime?: number;
 }
 
 export interface LeakQuery {
@@ -113,12 +115,60 @@ export interface LeakQuery {
   size?: number;
   resourceType?: string;
   minAgeMs?: number;
+  startTime?: number;
+  endTime?: number;
 }
 
 export interface LogQuery {
   page?: number;
   size?: number;
   level?: string;
+}
+
+// ---- SSE 实时流（增强）----
+
+/** 打开 /api/apm/stream，回调每次 stats 快照。返回 close() 终止。 */
+export function watchStats(onSnapshot: (stats: ApmStats & { ts: number }) => void, onError?: (e: Event) => void): { close: () => void } {
+  const es = new EventSource("/api/apm/stream?intervalMs=3000");
+  es.addEventListener("stats", (ev: MessageEvent) => {
+    try {
+      const parsed = JSON.parse(ev.data as string);
+      onSnapshot(parsed as ApmStats & { ts: number });
+    } catch {
+      /* 跳过畸形帧 */
+    }
+  });
+  if (onError) es.addEventListener("error", onError);
+  return {
+    close: () => es.close(),
+  };
+}
+
+// ---- 导出工具（增强）----
+
+/** 对象数组 → CSV 字符串（首行表头，字段取 keys 并集） */
+export function toCsv<T extends Record<string, unknown>>(rows: T[], header?: string[]): string {
+  if (rows.length === 0) return header?.length ? header.join(",") : "";
+  const keys = header ?? Object.keys(rows[0]);
+  const esc = (v: unknown) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [keys.join(",")];
+  for (const r of rows) lines.push(keys.map((k) => esc((r as Record<string, unknown>)[k])).join(","));
+  return lines.join("\n");
+}
+
+/** 触发浏览器下载（JSON 或 CSV） */
+export function download(filename: string, content: string, mime = "application/json"): void {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ---- 实例 ----

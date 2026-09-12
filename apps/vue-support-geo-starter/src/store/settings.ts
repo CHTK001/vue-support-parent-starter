@@ -5,6 +5,11 @@ import { defineStore } from "pinia"
 import type { AppSettings } from "@/types"
 import { getSettings, saveSettings } from "@/api/sources"
 
+/**
+ * 设置状态接口
+ * @author CH
+ * @since 4.0.0
+ */
 interface SettingsState {
   settings: AppSettings | null
   loading: boolean
