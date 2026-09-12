@@ -134,24 +134,7 @@ export default function UsageConfigPage() {
   const find = (field: string) => fields.find((f) => f.field === field);
   const enabledProviders = (Form.useWatch?.('usage_sync_providers', form) as string[]) ?? [];
 
-  /* ===== 模型指标采集 ===== */
-  const loadMetrics = useCallback(async () => {
-    setMetricsLoading(true);
-    try {
-      const cfg = await modelMetricsApi.getConfig();
-      setMetricsEnabled(cfg.enabled);
-      setMetricsInterval(cfg.intervalSec ?? 300);
-    } catch {
-      /* 后端不可达时保持默认 */
-    } finally {
-      setMetricsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMetrics();
-  }, [loadMetrics]);
-
+  /* ===== 模型指标采集：即时保存（开关立即存，间隔防抖 500ms 存） ===== */
   const persistMetrics = useCallback(async (enabled: boolean, intervalSec: number) => {
     setMetricsSaving(true);
     try {
@@ -390,70 +373,6 @@ export default function UsageConfigPage() {
                 </Button>
                 <span style={{ fontSize: 12, color: 'var(--color-text-3, #9a9aa5)' }}>
                   {t('console.usageConfig.metricsSyncNote', '手动触发一次定价同步，无需等待定时任务')}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 模型指标采集（datasearch-starter 官方定价同步） */}
-      <div className="ai-pipeline-block" style={{ marginTop: 16 }}>
-        <div className="block-head">
-          <span className="block-title">{t('console.usageConfig.metricsTitle', '模型指标采集')}</span>
-          <span className="block-sub">
-            {t('console.usageConfig.metricsSub', 'datasearch-starter 官方定价同步，每次同步清空旧数据；用量无金额时回退使用官方金额')}
-          </span>
-          <div style={{ flex: 1 }} />
-          <Button size="small" icon={<Refresh size={13} />} onClick={load} loading={metricsLoading} />
-          <Button size="small" type="primary" icon={<Save size={13} />} onClick={handleMetricsSave} loading={metricsSaving}>
-            {t('console.capability.save', '保存')}
-          </Button>
-        </div>
-        <div style={{ padding: '12px 16px 16px' }}>
-          {metricsLoading ? (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <Spin size={20} />
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Switch
-                  checked={metricsEnabled}
-                  onChange={(val) => setMetricsEnabled(val)}
-                />
-                <span style={{ fontSize: 13, fontWeight: 500 }}>
-                  {t('console.usageConfig.metricsEnabled', '启用模型指标采集与官方定价同步')}
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 13, minWidth: 120 }}>
-                  {t('console.usageConfig.metricsInterval', '定时同步时间（秒）')}
-                </span>
-                <InputNumber
-                  min={30}
-                  step={30}
-                  value={metricsInterval}
-                  onChange={(val) => setMetricsInterval(val ?? 300)}
-                  style={{ width: 200 }}
-                  disabled={!metricsEnabled}
-                />
-                <span style={{ fontSize: 11, color: 'var(--color-text-3, #9a9aa5)' }}>
-                  {t('console.usageConfig.metricsIntervalHint', '最小 30 秒，默认 300 秒（5 分钟）')}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <Button
-                  type="primary"
-                  icon={<Sync size={14} />}
-                  onClick={handleSyncPricing}
-                  loading={syncPricingLoading}
-                  disabled={syncPricingLoading}
-                >
-                  {t('console.usageConfig.syncPricing', '立即同步官方定价')}
-                </Button>
-                <span style={{ fontSize: 12, color: 'var(--color-text-3, #9a9aa5)' }}>
-                  {t('console.usageConfig.syncPricingHint', '从 datasearch-starter 加载全量官方定价，清空旧数据后全量插入 sys_ai_pricing 表')}
                 </span>
               </div>
             </div>
