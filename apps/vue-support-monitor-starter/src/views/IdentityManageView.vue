@@ -10,7 +10,7 @@ import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { getIdentities, saveIdentity, delIdentity, getKeys } from "@pages/server/src/api";
+import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair } from "@pages/server/src/api";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
 interface Identity {
@@ -25,6 +25,28 @@ interface Identity {
 interface KeyRow {
   id: number;
   msServerKeyName: string;
+  msServerKeyType?: string;
+  msServerKeyPublicKey?: string;
+  msServerKeyRemark?: string;
+}
+
+/** 页面 tab：身份 / 密钥库 */
+const tab = ref<"identity" | "key">("identity");
+
+/** 公钥指纹（取 SHA256 前 16 位，便于识别） */
+function keyFingerprint(pub: string | undefined): string {
+  if (!pub) return "";
+  try {
+    const raw = Uint8Array.from(pub, (c) => c.charCodeAt(0));
+    return Array.from(raw.slice(0, 16))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join(":");
+  } catch {
+    return pub.slice(0, 16);
+  }
+}
+function keyTypeLabel(t: string | undefined): string {
+  return t ? t.toUpperCase() : "RSA";
 }
 
 const columns = [
@@ -34,6 +56,14 @@ const columns = [
   { prop: "key", label: "密钥", width: 130, slot: "key" },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 160 },
   { prop: "id", label: "操作", width: 130, slot: "actions" },
+];
+
+const keyColumns = [
+  { prop: "msServerKeyName", label: "名称", minWidth: 160 },
+  { prop: "type", label: "类型", width: 90, slot: "type" },
+  { prop: "fp", label: "公钥指纹", minWidth: 180, slot: "fp" },
+  { prop: "msServerKeyRemark", label: "备注", minWidth: 140 },
+  { prop: "id", label: "操作", width: 120, slot: "actions" },
 ];
 
 const list = ref<Identity[]>([]);
@@ -61,6 +91,133 @@ onMounted(load);
 function keyNameOf(i: Identity): string {
   if (i.msServerIdentityAuthType !== "PUBLIC_KEY" || i.msServerIdentityKeyId == null) return "";
   return keys.value.find((k) => k.id === i.msServerIdentityKeyId)?.msServerKeyName ?? `#${i.msServerIdentityKeyId}`;
+}
+
+// ---- 密钥库管理 ----
+const keyLoading = ref(false);
+const keySelection = ref<KeyRow[]>([]);
+const keyFormVisible = ref(false);
+useDialogPrerender(keyFormVisible);
+const keySaving = ref(false);
+const editingKeyId = ref<number | null>(null);
+const isGenerateKey = ref(false);
+const keyForm = ref<{
+  msServerKeyName: string;
+  msServerKeyType: string;
+  msServerKeyPublicKey: string;
+  msServerKeyPrivateKey: string;
+  msServerKeyPassword: string;
+  msServerKeyRemark: string;
+}>({
+  msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
+  msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+});
+
+const KEY_TYPE_OPTIONS = [
+  { label: "RSA (4096位)", value: "RSA" },
+  { label: "ED25519", value: "ED25519" },
+  { label: "ECDSA (P-256)", value: "ECDSA" },
+];
+
+async function loadKeys(): Promise<void> {
+  keyLoading.value = true;
+  try {
+    keys.value = ((await getKeys()) ?? []) as KeyRow[];
+  } catch (e) {
+    ElMessage.error(`密钥加载失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    keyLoading.value = false;
+  }
+}
+
+function openKeyAdd(): void {
+  editingKeyId.value = null;
+  isGenerateKey.value = true;
+  keyForm.value = {
+    msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
+    msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+  };
+  keyFormVisible.value = true;
+}
+
+function openKeyManual(): void {
+  editingKeyId.value = null;
+  isGenerateKey.value = false;
+  keyForm.value = {
+    msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
+    msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+  };
+  keyFormVisible.value = true;
+}
+
+function openKeyEdit(row: KeyRow): void {
+  editingKeyId.value = row.id;
+  isGenerateKey.value = false;
+  keyForm.value = {
+    msServerKeyName: row.msServerKeyName,
+    msServerKeyType: row.msServerKeyType || "RSA",
+    msServerKeyPublicKey: row.msServerKeyPublicKey ?? "",
+    msServerKeyPrivateKey: "", // 不回显
+    msServerKeyPassword: "", // 不回显
+    msServerKeyRemark: row.msServerKeyRemark ?? "",
+  };
+  keyFormVisible.value = true;
+}
+
+async function submitKey(): Promise<void> {
+  if (!keyForm.value.msServerKeyName?.trim()) { ElMessage.warning("请输入密钥名称"); return; }
+  keySaving.value = true;
+  try {
+    await saveKey(editingKeyId.value, {
+      msServerKeyName: keyForm.value.msServerKeyName.trim(),
+      msServerKeyType: keyForm.value.msServerKeyType,
+      msServerKeyPublicKey: keyForm.value.msServerKeyPublicKey || undefined,
+      msServerKeyPrivateKey: keyForm.value.msServerKeyPrivateKey || undefined,
+      msServerKeyPassword: keyForm.value.msServerKeyPassword || undefined,
+      msServerKeyRemark: keyForm.value.msServerKeyRemark,
+    });
+    ElMessage.success(editingKeyId.value != null ? "密钥已更新" : "密钥已创建");
+    keyFormVisible.value = false;
+    await loadKeys();
+    await load();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  } finally {
+    keySaving.value = false;
+  }
+}
+
+async function removeKey(row: KeyRow): Promise<void> {
+  await ElMessageBox.confirm(`删除密钥「${row.msServerKeyName}」？被引用的身份将受影响`, "删除确认", { type: "warning" });
+  try {
+    await delKey(row.id);
+    ElMessage.success("已删除");
+    await loadKeys();
+    await load();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
+}
+
+/** 生成密钥对 */
+async function generateKey(): Promise<void> {
+  if (!keyForm.value.msServerKeyName?.trim()) { ElMessage.warning("请输入密钥名称"); return; }
+  keySaving.value = true;
+  try {
+    const r = await generateKeyPair(
+      keyForm.value.msServerKeyName.trim(),
+      keyForm.value.msServerKeyType,
+      keyForm.value.msServerKeyPassword || undefined,
+      keyForm.value.msServerKeyRemark,
+    );
+    ElMessage.success("密钥对已生成并保存");
+    keyFormVisible.value = false;
+    await loadKeys();
+  } catch (e) {
+    ElMessage.error(`生成失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    keySaving.value = false;
+  }
 }
 
 async function remove(i: Identity): Promise<void> {
@@ -264,14 +421,23 @@ async function submitAdd(): Promise<void> {
     <div class="page-header">
       <div>
         <h1 class="page-title">账号管理</h1>
-        <p class="page-desc">登录身份（账号密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 {{ list.length }} 条</p>
+        <p class="page-desc">{{ tab === 'identity' ? '登录身份（密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 ' + list.length + ' 条' : 'SSH 密钥库统一维护 · 供身份公钥登录引用' }}</p>
       </div>
       <div class="page-actions">
-        <ReButton icon="Download" :show-text="true" size="small" @click="exportCsv">导出</ReButton>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
+        <ReButton v-if="tab === 'identity'" icon="Download" :show-text="true" size="small" @click="exportCsv">导出</ReButton>
+        <ReButton v-if="tab === 'identity'" icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
+        <ReButton v-else icon="RefreshRight" :show-text="true" size="small" :loading="keyLoading" @click="loadKeys">刷新</ReButton>
       </div>
     </div>
 
+    <!-- Tab 切换 -->
+    <div class="tabs">
+      <button class="tab-btn" :class="{ active: tab === 'identity' }" @click="tab = 'identity'">登录身份</button>
+      <button class="tab-btn" :class="{ active: tab === 'key' }" @click="tab = 'key'">SSH 密钥库</button>
+    </div>
+
+    <!-- 身份 tab -->
+    <template v-if="tab === 'identity'">
     <!-- KPI 统计 -->
     <section class="kpi-row cols-4">
       <div class="kpi c-brand">
@@ -359,6 +525,53 @@ async function submitAdd(): Promise<void> {
         <ReButton icon="Delete" size="small" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
       </div>
     </div>
+    </template>
+
+    <!-- 密钥库 tab -->
+    <template v-else>
+      <div class="card">
+        <ReSectionHead description="SSH 密钥库：密钥名称 / 类型 / 公钥指纹；身份选「公钥登录」时引用密钥">
+          <template #title>SSH 密钥库</template>
+          <template #actions>
+            <ReButton icon="MagicStick" :show-text="true" size="small" @click="openKeyAdd">生成密钥对</ReButton>
+            <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openKeyManual">新增密钥</ReButton>
+          </template>
+        </ReSectionHead>
+
+        <ReTable
+          :data="keys"
+          :columns="keyColumns"
+          :loading="keyLoading"
+          table-id="ssh-key-list"
+          size="small"
+          :pagination="true"
+          :page-size="10"
+          empty-text="暂无密钥"
+          :toolbar="true"
+          :toolbar-config="{
+            position: 'bottom',
+            refresh: true,
+            columnSettings: true,
+            tableSettings: true,
+            batchSelect: { enabled: true, tip: '批量选择' },
+            batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的密钥？' },
+          }"
+        >
+          <template #col-type="{ row }">
+            <ReTag :type="row.msServerKeyType === 'RSA' ? 'warning' : 'primary'" size="small" effect="plain">{{ keyTypeLabel(row.msServerKeyType) }}</ReTag>
+          </template>
+          <template #col-fp="{ row }">
+            <span class="mono dim">{{ keyFingerprint(row.msServerKeyPublicKey) }}</span>
+          </template>
+          <template #col-actions="{ row }">
+            <div class="op-cell">
+              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openKeyEdit(row)" />
+              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeKey(row)" />
+            </div>
+          </template>
+        </ReTable>
+      </div>
+    </template>
 
     <!-- 新增身份 -->
     <ReDialog v-model="addVisible" :title="editingId != null ? '编辑身份' : '新增身份'" width="520px" :close-on-click-modal="false">
@@ -382,6 +595,37 @@ async function submitAdd(): Promise<void> {
       <template #footer>
         <ReButton @click="addVisible = false">取消</ReButton>
         <ReButton type="primary" :loading="addSaving" icon="Check" :show-text="true" @click="submitAdd">{{ editingId != null ? '保存' : '创建' }}</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 密钥表单（新增/编辑/生成） -->
+    <ReDialog v-model="keyFormVisible" :title="editingKeyId != null ? '编辑密钥' : (isGenerateKey ? '生成密钥对' : '新增密钥')" width="560px" :close-on-click-modal="false">
+      <ReForm :model="keyForm" label-position="top">
+        <ReFormItem label="密钥名称">
+          <ReInput v-model="keyForm.msServerKeyName" placeholder="如 prod-rsa-2026" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="密钥类型">
+          <ReSelect v-model="keyForm.msServerKeyType" size="small" style="width:100%" :options="KEY_TYPE_OPTIONS" :disabled="editingKeyId != null" />
+        </ReFormItem>
+        <template v-if="!isGenerateKey">
+          <ReFormItem label="公钥">
+            <ReInput v-model="keyForm.msServerKeyPublicKey" type="textarea" :rows="3" placeholder="粘贴公钥内容（可选）" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem label="私钥">
+            <ReInput v-model="keyForm.msServerKeyPrivateKey" type="textarea" :rows="3" :placeholder="editingKeyId != null ? '留空保持不变' : '粘贴私钥内容（可选）'" style="width:100%" />
+          </ReFormItem>
+        </template>
+        <ReFormItem v-if="isGenerateKey" label="私钥口令">
+          <ReInput v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥加密口令（可空）" style="width:100%" />
+        </ReFormItem>
+        <ReFormItem label="备注">
+          <ReInput v-model="keyForm.msServerKeyRemark" placeholder="用途说明（可选）" style="width:100%" />
+        </ReFormItem>
+      </ReForm>
+      <template #footer>
+        <ReButton @click="keyFormVisible = false">取消</ReButton>
+        <ReButton v-if="isGenerateKey && editingKeyId == null" type="primary" :loading="keySaving" icon="MagicStick" :show-text="true" @click="generateKey">生成</ReButton>
+        <ReButton v-else type="primary" :loading="keySaving" icon="Check" :show-text="true" @click="submitKey">{{ editingKeyId != null ? '保存' : '创建' }}</ReButton>
       </template>
     </ReDialog>
   </div>
