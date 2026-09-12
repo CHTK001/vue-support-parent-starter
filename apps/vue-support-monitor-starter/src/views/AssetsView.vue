@@ -69,6 +69,9 @@ const identities = ref<Identity[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 const selection = ref<Host[]>([]);
+/** 实时延迟（hostId → delayMs，socket host-delay 推送更新；-1 表不可达） */
+const liveDelay = ref<Record<number, number>>({});
+let unsubDelay: (() => void) | undefined;
 
 /** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
 const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });

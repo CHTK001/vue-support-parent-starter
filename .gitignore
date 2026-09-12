@@ -80,6 +80,7 @@ test-*.js
 test-*.ts
 verify-*.js
 verify-*.mjs
+verify*.js
 probe.*
 final-check.mjs
 shot.js
