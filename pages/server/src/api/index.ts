@@ -119,6 +119,26 @@ export const runJobNow = (id: number) => http().post(`${B}/exec/job/${id}/run`).
 export const getExecLogs = (type?: string, hostId?: number) =>
   http().get(`${B}/exec/log?type=${type ?? ''}${hostId ? `&hostId=${hostId}` : ''}`).then(r => unwrapResult<any[]>(r));
 
+// ===== 远控短令牌 =====
+/**
+ * 签发远控短令牌（按服务器信息登记连接参数，浏览器只拿随机 token）
+ *
+ * @param hostId     主机 id
+ * @param protocol   协议：ssh | vnc | rdp
+ * @param identityId 登录身份 id（可选）
+ * @param targetPort 目标端口覆盖（可选）
+ * @returns { token, url, hostName, protocol }——url 为会话页地址（未配置 web 前端时为 null）
+ */
+export const fetchIssueRemoteToken = (
+  hostId: number,
+  protocol: string,
+  identityId?: number | null,
+  targetPort?: number | null,
+) =>
+  http().get(`${B}/remote/token`)
+    .query({ hostId, protocol, identityId: identityId ?? undefined, targetPort: targetPort ?? undefined } as Record<string, unknown>)
+    .then(r => unwrapResult<{ token: string; url: string | null; hostName: string; protocol: string }>(r));
+
 // ===== 终端会话审计 =====
 export const getOnlineSessions = () =>
   http().get(`${B}/terminal/online`).then(r => unwrapResult<any[]>(r));
@@ -164,6 +184,18 @@ export const buildTerminalWsUrl = (
   if (targetPort) {
     qs.set('targetPort', String(targetPort));
   }
+  return `${proto}//${location.host}/ws/ms/server/terminal?${qs.toString()}`;
+};
+
+/**
+ * 构造远控 WebSocket 地址（token 模式——URL 只携带随机令牌，服务器信息不出后端）
+ *
+ * @param token 远控短令牌（由 fetchIssueRemoteToken 签发）
+ * @param user  发起用户名（仅审计用）
+ */
+export const buildTerminalTokenWsUrl = (token: string, user = 'admin'): string => {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const qs = new URLSearchParams({ token, user });
   return `${proto}//${location.host}/ws/ms/server/terminal?${qs.toString()}`;
 };
 
