@@ -255,8 +255,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     let cancelled = false;
     (async () => {
       try {
-        const res = await httpRequest<{ data?: string[] }>('GET', '/v2/ai/bot-binding/models');
-        const list = Array.isArray(res) ? res : res?.data;
+        const res = await http().get('/v2/ai/bot-binding/models').then(r => unwrapResult<string[]>(r));
+        const list = Array.isArray(res) ? res : undefined;
         if (!cancelled && Array.isArray(list)) setModelOptions(list);
       } catch {
         // 忽略：模型列表加载失败不影响绑定
@@ -271,7 +271,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ visible, editing, saving, onC
     let cancelled = false;
     (async () => {
       try {
-        const res = await httpRequest<{ contextThinking?: boolean }>('GET', '/v2/ai/bot-binding/global-config');
+        const res = await http().get('/v2/ai/bot-binding/global-config').then(r => unwrapResult<{ contextThinking?: boolean }>(r));
         if (!cancelled && typeof res?.contextThinking === 'boolean') {
           setGlobalContextThinking(res.contextThinking);
         }
