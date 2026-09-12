@@ -43,12 +43,12 @@ export default createVite({
         changeOrigin: true,
       },
       "/ws/ms/server": {
-        target: "http://127.0.0.1:8081",
+        target: "http://124.221.230.112:8080",
         ws: true,
         changeOrigin: true,
       },
       "/guacamole": {
-        target: "http://127.0.0.1:8081",
+        target: "http://124.221.230.112:8080",
         changeOrigin: true,
       },
       // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port=29181）

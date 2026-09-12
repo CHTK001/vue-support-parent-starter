@@ -69,6 +69,7 @@ const groups = computed(() => {
         { path: "/config", label: "监控配置", icon: "Setting" },
         { path: "/proxy", label: "代理管理", icon: "Connection" },
         { path: "/system-config", label: "系统配置", icon: "Tools" },
+        { path: "/groups", label: "分组管理", icon: "FolderOpened" },
         { path: "/account", label: "账号管理", icon: "Key" },
       ],
     },
