@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import Guacamole from 'guacamole-common-js';
-import { buildTerminalWsUrl } from '../api';
+import { buildTerminalTokenWsUrl, fetchIssueRemoteToken } from '../api';
 import { createScGuacTunnel } from './ScGuacTunnel';
 
 /**
@@ -58,14 +58,23 @@ watch(
   },
 );
 
-function connect(conn: NonNullable<typeof props.connection>): void {
+async function connect(conn: NonNullable<typeof props.connection>): Promise<void> {
   hasError.value = false;
   statusText.value = '正在连接…';
   if (!displayRef.value) return; // 防御性断言
 
-  const tunnel = createScGuacTunnel(
-    buildTerminalWsUrl(conn.hostId, conn.protocol, conn.identityId, conn.targetPort),
-  );
+  // 先向后端签发短令牌（服务器信息不出后端），再用 token 直连 WS 隧道
+  let wsUrl: string;
+  try {
+    const issued = await fetchIssueRemoteToken(conn.hostId, conn.protocol, conn.identityId, conn.targetPort);
+    wsUrl = buildTerminalTokenWsUrl(issued.token);
+  } catch (e: any) {
+    hasError.value = true;
+    statusText.value = `令牌签发失败: ${e?.message ?? '未知错误'}`;
+    return;
+  }
+
+  const tunnel = createScGuacTunnel(wsUrl);
   client = new Guacamole.Client(tunnel);
 
   tunnel.onstatechange = (state: number) => {
