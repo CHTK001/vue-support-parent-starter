@@ -5,8 +5,9 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Empty, Input, Spin, Tabs, Tag } from '@arco-design/web-react';
-import { Refresh } from '@icon-park/react';
+import { Download, Refresh, Star } from '@icon-park/react';
 import classNames from 'classnames';
+import '@/renderer/styles/ai-page.css';
 
 export interface MarketItem {
   id: string;
@@ -30,6 +31,11 @@ export interface MarketSettingsPanelProps {
   enableTagFilter?: boolean;
   testIdPrefix?: string;
   addedStateLoading?: boolean;
+  /**
+   * 自定义排行拉取函数（按市场源 id 返回市场条目）。
+   * 缺省时回退为直接 fetch 源 URL（兼容独立部署的第三方市场）。
+   */
+  fetchFn?: (sourceId: string) => Promise<MarketItem[]>;
   isAdded: (item: MarketItem) => boolean;
   text: {
     syncSuccess?: string;
@@ -67,6 +73,7 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
     emptyText = '暂无数据',
     enableTagFilter = false,
     addedStateLoading = false,
+    fetchFn,
     isAdded,
     text = {},
     onAdd,
@@ -89,9 +96,14 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
   const fetchItems = useCallback(async (useCache = true) => {
     setLoading(true);
     try {
-      const resp = await fetch(activeSourceObj?.url || '');
-      const data = await resp.json();
-      const list: MarketItem[] = Array.isArray(data) ? data : data?.data || [];
+      let list: MarketItem[];
+      if (fetchFn) {
+        list = await fetchFn(activeSource);
+      } else {
+        const resp = await fetch(activeSourceObj?.url || '');
+        const data = await resp.json();
+        list = Array.isArray(data) ? data : data?.data || [];
+      }
       setItems(list);
       if (useCache) {
         try { localStorage.setItem(cacheKey, JSON.stringify(list)); } catch { /* ignore */ }
@@ -108,7 +120,7 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
     } finally {
       setLoading(false);
     }
-  }, [activeSourceObj, cacheKey, text.syncError]);
+  }, [fetchFn, activeSource, activeSourceObj, cacheKey, text.syncError]);
 
   useEffect(() => {
     void fetchItems(true);
@@ -143,9 +155,14 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
 
   const handleRefresh = useCallback(async () => {
     try {
-      const resp = await fetch(activeSourceObj?.url || '');
-      const data = await resp.json();
-      const list: MarketItem[] = Array.isArray(data) ? data : data?.data || [];
+      let list: MarketItem[];
+      if (fetchFn) {
+        list = await fetchFn(activeSource);
+      } else {
+        const resp = await fetch(activeSourceObj?.url || '');
+        const data = await resp.json();
+        list = Array.isArray(data) ? data : data?.data || [];
+      }
       if (list.length > 0) {
         setItems(list);
         try { localStorage.setItem(cacheKey, JSON.stringify(list)); } catch { /* ignore */ }
@@ -158,7 +175,7 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
       // eslint-disable-next-line no-console
       console.error(text.syncError || 'Sync failed');
     }
-  }, [activeSourceObj, cacheKey, text]);
+  }, [fetchFn, activeSource, activeSourceObj, cacheKey, text]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
@@ -166,7 +183,7 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
   };
 
   return (
-    <div className='flex h-full w-full flex-col'>
+    <div className='ai-page flex h-full w-full flex-col'>
       {/* 页面标题 */}
       <div className='mb-16px'>
         <h2 className='text-20px font-600 leading-28px text-t-primary'>{title}</h2>
@@ -211,8 +228,8 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
         </div>
       </div>
 
-      {/* 排序 */}
-      <div className='mb-12px flex items-center gap-8px'>
+      {/* 排序（pills 分段控件风格） */}
+      <div className='mb-12px ai-pills'>
         {SORT_OPTIONS.map((opt) => {
           const active = sortKey === opt.key;
           const asc = active && sortOrder === 'asc';
@@ -220,10 +237,8 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
             <button
               key={opt.key}
               type='button'
-              className={classNames(
-                'flex items-center gap-4px rounded-6px px-8px py-4px text-12px transition-colors',
-                active ? 'bg-primary-1/10 text-primary-6' : 'text-t-secondary hover:bg-fill-1 hover:text-t-primary',
-              )}
+              aria-pressed={active}
+              className={classNames('inline-flex items-center gap-4px', active && 'selected')}
               onClick={() => handleSort(opt.key)}
             >
               {opt.label}
@@ -270,33 +285,43 @@ export const MarketSettingsPanel: React.FC<MarketSettingsPanelProps> = (props) =
             return (
               <div
                 key={item.id}
-                className='group flex flex-col gap-8px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 p-12px transition-all duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm'
+                className='ai-card group flex flex-col gap-10px !p-14px'
               >
                 <div className='flex-1'>
                   <div className='mb-4px flex items-start justify-between gap-8px'>
                     <span className='truncate text-13px font-500 text-t-primary' title={item.name}>{item.name}</span>
-                    {installed && <Tag color='green' className='text-10px'>已添加</Tag>}
+                    {installed && <Tag color='green' className='!rounded-full !text-10px'>已添加</Tag>}
                   </div>
                   {item.description && (
                     <p className='truncate text-11px leading-16px text-t-tertiary' title={item.description}>{item.description}</p>
                   )}
                   {(item.tags || []).length > 0 && (
-                    <div className='mt-4px flex flex-wrap gap-4px'>
+                    <div className='mt-6px flex flex-wrap gap-4px'>
                       {item.tags!.slice(0, 3).map((tag) => (
-                        <Tag key={tag} className='text-10px' />
+                        <Tag key={tag} className='!rounded-full !text-10px' size='small'>{tag}</Tag>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className='flex items-center justify-between gap-8px'>
+                <div className='flex items-center justify-between gap-8px border-t border-solid border-[var(--color-border-2)] pt-10px'>
                   {(item.stars !== undefined || item.downloads !== undefined) && (
-                    <div className='flex items-center gap-8px text-11px text-t-tertiary'>
-                      {item.stars !== undefined && <span>⭐ {item.stars}</span>}
-                      {item.downloads !== undefined && <span>📥 {item.downloads}</span>}
+                    <div className='flex items-center gap-10px text-11px text-t-tertiary'>
+                      {item.stars !== undefined && (
+                        <span className='inline-flex items-center gap-3px'>
+                          <Star theme='filled' size='12' fill='#f7ba1e' />
+                          {item.stars}
+                        </span>
+                      )}
+                      {item.downloads !== undefined && (
+                        <span className='inline-flex items-center gap-3px'>
+                          <Download theme='outline' size='12' fill='currentColor' strokeWidth={2} />
+                          {item.downloads}
+                        </span>
+                      )}
                     </div>
                   )}
                   <Button
-                    type={installed ? 'default' : 'primary'}
+                    type={installed ? 'secondary' : 'primary'}
                     size='small'
                     shape='round'
                     loading={addedStateLoading}

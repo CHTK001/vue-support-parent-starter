@@ -380,6 +380,19 @@
   white-space: nowrap;
 }
 
+/* 卡片策略标识行 */
+.portal-policy {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+}
+.portal-policy .policy-chip {
+  font-size: 9.5px;
+  line-height: 1.4;
+  padding: 0 6px;
+}
+
 /* hover 操作浮层（顶部覆盖） */
 .portal-ops {
   position: absolute;

@@ -39,6 +39,13 @@ interface ProjectRow {
   msProjectOverwriteMode?: string;
   msProjectAutoExtract?: number;
   msProjectAutoStart?: number;
+  msProjectHealthEnabled?: number;
+  msProjectHealthType?: string;
+  msProjectHealthTarget?: string;
+  msProjectHealthTimeout?: number;
+  msProjectAutoRollback?: number;
+  msProjectDeployRetry?: number;
+  msProjectArchiveKeep?: number;
   msProjectCurrentVersion?: string;
   msProjectRuntimeStatus?: string;
   msProjectEnabled?: number;
@@ -322,6 +329,15 @@ function showActionResult(logs: any[]) {
 function hostCount(row: ProjectRow): number {
   return parseHostIds(row.msProjectHostIds).length;
 }
+function healthTargetOf(row: ProjectRow): string {
+  if (row.msProjectHealthEnabled !== 1) return '';
+  const type = row.msProjectHealthType || 'PORT';
+  return `${type}: ${row.msProjectHealthTarget || '-'} (超时${row.msProjectHealthTimeout ?? 30}s)`;
+}
+function healthTypeLabel(type?: string): string {
+  const map: Record<string, string> = { PORT: '端口', HTTP: 'HTTP', PROCESS: '进程' };
+  return map[type || 'PORT'] || '端口';
+}
 </script>
 
 <template>
@@ -390,6 +406,14 @@ function hostCount(row: ProjectRow): number {
           <ReTag :type="statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.cls || 'info'" size="small" round>
             {{ statusMap[row.msProjectRuntimeStatus || 'UNKNOWN']?.label || row.msProjectRuntimeStatus }}
           </ReTag>
+        </div>
+
+        <!-- 策略标识 -->
+        <div class="portal-policy">
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectAutoStart === 1 }">启动</span>
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectHealthEnabled === 1 }" :title="healthTargetOf(row)">健康</span>
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectAutoRollback === 1 }">回滚</span>
+          <span class="policy-chip" v-if="row.msProjectDeployRetry">重试{{ row.msProjectDeployRetry }}</span>
         </div>
 
         <!-- 进度 -->
@@ -524,6 +548,8 @@ function hostCount(row: ProjectRow): number {
               </ReTag>
               <span class="policy-chip">{{ hostCount(detailProject) }} 台主机</span>
               <span v-if="detailProject.msProjectAutoStart === 1" class="policy-chip policy-on">部署后自动启动</span>
+              <span v-if="detailProject.msProjectHealthEnabled === 1" class="policy-chip policy-on">健康检查</span>
+              <span v-if="detailProject.msProjectAutoRollback === 1" class="policy-chip policy-on">失败自动回滚</span>
             </div>
           </div>
         </div>
@@ -537,6 +563,22 @@ function hostCount(row: ProjectRow): number {
             {{ detailProject.msProjectOverwriteMode === 'REPLACE' ? '全量替换' : '直接覆盖' }} ·
             {{ detailProject.msProjectAutoExtract === 1 ? '自动解压' : '仅上传' }}
           </span></div>
+          <div class="detail-row" v-if="detailProject.msProjectHealthEnabled === 1">
+            <span>健康检查</span>
+            <span>
+              {{ healthTypeLabel(detailProject.msProjectHealthType) }} 探测
+              <span class="mono">{{ detailProject.msProjectHealthTarget || '-' }}</span>
+              （超时 {{ detailProject.msProjectHealthTimeout ?? 30 }}s）
+            </span>
+          </div>
+          <div class="detail-row">
+            <span>故障自愈</span>
+            <span>
+              单台重试 {{ detailProject.msProjectDeployRetry || 0 }} 次 ·
+              归档保留 {{ detailProject.msProjectArchiveKeep || 0 }} 份
+              {{ detailProject.msProjectArchiveKeep ? '(超出自动清理)' : '(不清理)' }}
+            </span>
+          </div>
           <div class="detail-row"><span>备注</span><span>{{ detailProject.msProjectRemark || '-' }}</span></div>
         </div>
 

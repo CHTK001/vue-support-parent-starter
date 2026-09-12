@@ -112,7 +112,7 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="al">
+  <div class="al tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">告警中心</h1>
@@ -130,7 +130,7 @@ onMounted(fetchAll);
 
     <!-- 级别 KPI 行（左色条对齐告警级别色） -->
     <section class="kpi-row cols-5">
-      <div class="kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
+      <div class="kpi tel-kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
         <div class="kpi-top">
           <span class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
           <span class="tag" :class="`sev-${lv}`">{{ sevLabel(lv) }}</span>

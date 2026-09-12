@@ -56,7 +56,7 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div>
+  <div class="tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">监控概览</h1>
@@ -78,25 +78,25 @@ onMounted(fetchAll);
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
         <el-tooltip :content="`资产总数 · 运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`" placement="top">
-          <ReStatCard class="kpi c-brand">
+          <ReStatCard class="kpi tel-kpi c-brand">
             <template #icon><ReIcon name="DataBoard" :size="18" style="color: var(--brand-500)" /></template>
             <template #value><ReCountup :value="monitors.length" /></template>
           </ReStatCard>
         </el-tooltip>
         <el-tooltip content="告警未处理 · 累计事件" placement="top">
-          <ReStatCard class="kpi c-red">
+          <ReStatCard class="kpi tel-kpi c-red">
             <template #icon><ReIcon name="Bell" :size="18" style="color: var(--status-alarm)" /></template>
             <template #value><ReCountup :value="unhandledCount" /><span class="kpi-unit">/ {{ totalAlarms }}</span></template>
           </ReStatCard>
         </el-tooltip>
         <el-tooltip content="P0+P1 高危 · 30 分钟内响应" placement="top">
-          <ReStatCard class="kpi c-red">
+          <ReStatCard class="kpi tel-kpi c-red">
             <template #icon><ReIcon name="Warning" :size="18" style="color: var(--sev-p0-text)" /></template>
             <template #value><ReCountup :value="levelCounts.P0 + levelCounts.P1" /></template>
           </ReStatCard>
         </el-tooltip>
         <el-tooltip content="P2 中危 · 当班处理" placement="top">
-          <ReStatCard class="kpi c-amber">
+          <ReStatCard class="kpi tel-kpi c-amber">
             <template #icon><ReIcon name="AlarmClock" :size="18" style="color: var(--sev-p2-text)" /></template>
             <template #value><ReCountup :value="levelCounts.P2" /></template>
           </ReStatCard>

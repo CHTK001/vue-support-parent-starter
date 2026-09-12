@@ -8,10 +8,41 @@ import { useRoute, useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { useSocketService } from "@repo/core";
+import { getUserInfo, clearAuthCache } from "@repo/utils";
 import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
 
 const route = useRoute();
 const router = useRouter();
+
+/** 当前登录用户信息（从 token storage 读取，未登录时为 null） */
+interface LoginUser {
+  userId?: string | number;
+  userName?: string;
+  nickName?: string;
+  avatar?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+const currentUser = ref<LoginUser | null>(null);
+function loadCurrentUser(): void {
+  try {
+    currentUser.value = getUserInfo<LoginUser>();
+  } catch {
+    currentUser.value = null;
+  }
+}
+/** 头像显示：有头像用头像，否则用用户名首字母，未登录显示 "?" */
+const userInitial = computed(() => {
+  const u = currentUser.value;
+  if (!u) return "?";
+  const name = u.nickName || u.userName || String(u.userId || "");
+  return name ? name.charAt(0).toUpperCase() : "?";
+});
+const userDisplayName = computed(() => {
+  const u = currentUser.value;
+  if (!u) return "未登录";
+  return u.nickName || u.userName || String(u.userId || "未知用户");
+});
 
 /** 侧栏 logo 从 app.yaml loginConfig.logoUrl 读取，为空时显示首字母 */
 const logoSrc = computed(() => {
@@ -21,6 +52,22 @@ const logoSrc = computed(() => {
 
 const collapse = ref(false);
 const searchKw = ref("");
+const userMenuVisible = ref(false);
+
+/** 退出登录：清除 token + 用户信息，跳转到登录页 */
+function logout(): void {
+  userMenuVisible.value = false;
+  clearAuthCache();
+  currentUser.value = null;
+  const loginPath = getConfig()?.route?.loginPath || "/login";
+  router.push(loginPath).catch(() => router.push("/"));
+}
+/** 跳转个人中心（koi 体系默认路径，不存在则跳转到首页） */
+function goProfile(): void {
+  userMenuVisible.value = false;
+  const personagePath = getConfig()?.route?.personagePath || "/system/personage";
+  router.push(personagePath).catch(() => router.push("/"));
+}
 
 /** 当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单） */
 const redisAvailable = ref(false);
@@ -55,6 +102,8 @@ const groups = computed(() => {
       title: "资产",
       items: [
         { path: "/assets", label: "主机资产", icon: "Monitor" },
+        { path: "/datasource", label: "数据源管理", icon: "Coin" },
+        { path: "/db-manager", label: "数据库管理", icon: "Coin" },
         { path: "/terminal", label: "远程控制", icon: "Position" },
       ],
     },
@@ -120,7 +169,7 @@ async function refreshBadge(): Promise<void> {
     unhandled.value = list.filter(isUnhandled).length;
   } catch { /* 静默 */ }
 }
-onMounted(() => { refreshBadge(); checkRedis(); });
+onMounted(() => { refreshBadge(); checkRedis(); loadCurrentUser(); });
 onBeforeUnmount(() => { unsubAlarm?.(); });
 
 function go(path: string): void {
@@ -174,7 +223,20 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
         <ReButton icon="Bell" layout="square" size="small" title="通知" @click="go('/alarms')" />
         <span v-if="unhandled>0" class="note-dot" />
       </div>
-      <div class="avatar" title="管理员">CH</div>
+      <div class="avatar-wrap">
+        <div class="avatar" :title="userDisplayName" @click="userMenuVisible = !userMenuVisible">
+          <img v-if="currentUser?.avatar" :src="currentUser.avatar" alt="avatar" class="avatar-img" />
+          <template v-else>{{ userInitial }}</template>
+        </div>
+        <div v-if="userMenuVisible" class="user-dropdown" @click.stop>
+          <div class="user-info">
+            <div class="user-name">{{ userDisplayName }}</div>
+            <div v-if="currentUser?.email" class="user-email">{{ currentUser.email }}</div>
+          </div>
+          <div class="user-menu-item" @click="goProfile">个人中心</div>
+          <div class="user-menu-item danger" @click="logout">退出登录</div>
+        </div>
+      </div>
     </header>
 
     <!-- 主区 -->
@@ -398,6 +460,73 @@ const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
   font-size: 12px;
   font-weight: 600;
   background: var(--brand-gradient);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 2px var(--brand-400), 0 4px 12px rgba(109, 93, 252, 0.3);
+  }
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(7, 11, 26, 0.5);
+  overflow: hidden;
+  z-index: 1000;
+  animation: dropdownIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.user-info {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(135deg, rgba(109, 93, 252, 0.08), transparent);
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.user-email {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.user-menu-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, padding-left 0.12s ease;
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    padding-left: 20px;
+  }
+  &.danger {
+    color: var(--color-error, #f87171);
+    &:hover {
+      background: rgba(248, 113, 113, 0.1);
+      color: #fca5a5;
+    }
+  }
 }
 
 .main {

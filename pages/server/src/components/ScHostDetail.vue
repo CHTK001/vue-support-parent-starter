@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { message } from '@repo/core';
-import { saveHost, detectHost } from '../api';
+import { saveHost, detectHost, scanPorts } from '../api';
 
 /**
  * 主机详情抽屉（Sc 项目组件）
@@ -89,6 +89,55 @@ async function onDetect(): Promise<void> {
   }
 }
 
+/** 端口扫描加载态 */
+const scanning = ref(false);
+
+/** 端口扫描结果项 */
+interface PortItem {
+  port: string;
+  protocol?: string;
+  service?: string;
+}
+
+/** 解析端口扫描 JSON */
+const parsedPorts = computed(() => {
+  const raw = props.host?.serverHostPorts;
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr as PortItem[] : [];
+  } catch {
+    return [];
+  }
+});
+
+/** 端口展示文案：22/tcp ssh */
+function portText(p: PortItem): string {
+  const parts = [`${p.port}${p.protocol ? '/' + p.protocol : ''}`];
+  if (p.service) parts.push(p.service);
+  return parts.join(' ');
+}
+
+/**
+ * 端口扫描（Rust 原生实现，全量 TCP 扫描）
+ */
+async function onScanPorts(): Promise<void> {
+  if (!props.host?.id) return;
+  scanning.value = true;
+  message.info('正在扫描端口，全量扫描可能需要几分钟 …', { duration: 0 });
+  try {
+    const updated = await scanPorts(props.host.id);
+    message.closeAll();
+    message.success(updated?.msg || '端口扫描完成');
+    emit('updated');
+  } catch (e) {
+    message.closeAll();
+    message.error((e as Error).message || '端口扫描失败');
+  } finally {
+    scanning.value = false;
+  }
+}
+
 /**
  * 保存主机级系统设置
  */
@@ -141,6 +190,12 @@ async function onSaveConfig(): Promise<void> {
             {{ host.serverHostOnline === 1 ? '在线' : host.serverHostOnline === 0 ? '离线' : '未知' }}
           </ReTag>
         </ReDescriptionsItem>
+        <ReDescriptionsItem label="最近延迟">
+          <ReTag v-if="host.serverHostDelayMs === null || host.serverHostDelayMs === undefined" size="small" type="info">未检测</ReTag>
+          <ReTag v-else :type="host.serverHostDelayMs < 0 ? 'danger' : host.serverHostDelayMs <= 50 ? 'success' : 'warning'" size="small">
+            {{ host.serverHostDelayMs < 0 ? '不可达' : `${host.serverHostDelayMs} ms` }}
+          </ReTag>
+        </ReDescriptionsItem>
         <ReDescriptionsItem label="公网IP">{{ host.serverHostPublicIp || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="内网IP">{{ host.serverHostPrivateIp || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="探针标识">
@@ -164,6 +219,25 @@ async function onSaveConfig(): Promise<void> {
           <ReTag size="small">{{ formatDisk(host.serverHostDiskGb) }}</ReTag>
         </ReDescriptionsItem>
       </ReDescriptions>
+
+      <!-- 端口扫描结果 -->
+      <ReDivider content-position="left">
+        端口扫描
+        <ReButton show-text icon="Search" type="primary" size="small" :loading="scanning" @click="onScanPorts">扫描端口</ReButton>
+      </ReDivider>
+      <div v-if="parsedPorts.length" class="detail-ports">
+        <ReTag
+          v-for="p in parsedPorts"
+          :key="p.port"
+          size="small"
+          type="info"
+          class="detail-port-tag"
+        >{{ portText(p) }}</ReTag>
+      </div>
+      <ReText v-else-if="host.serverHostPorts" size="small" type="info">未发现开放端口</ReText>
+      <ReText v-else size="small" type="info">
+        尚未扫描（{{ host.serverHostLastPortScanTime ? '上次扫描：' + host.serverHostLastPortScanTime : '点击右上角扫描' }}）
+      </ReText>
 
       <!-- 主机级系统设置 -->
       <ReDivider content-position="left">系统设置（本主机）</ReDivider>
@@ -224,5 +298,15 @@ async function onSaveConfig(): Promise<void> {
   flex-direction: column;
   gap: 16px;
   padding: 4px;
+}
+
+.detail-ports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-port-tag {
+  font-variant-numeric: tabular-nums;
 }
 </style>

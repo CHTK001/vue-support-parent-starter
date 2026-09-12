@@ -1,0 +1,31 @@
+{
+  "name": "vue-support-ai-starter",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.8.0",
+    "i18next": "^23.7.16",
+    "react-i18next": "^14.0.5",
+    "@repo/app": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@pages/ai": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.1.6",
+    "rimraf": "catalog:"
+  }
+}

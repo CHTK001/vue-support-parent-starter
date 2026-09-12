@@ -2,6 +2,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
     "@pages/filesystem": "workspace:*",
+    "@repo/core": "workspace:*",
     "@repo/utils": "workspace:*",
     "axios": "catalog:",
     "element-plus": "catalog:",

@@ -64,6 +64,7 @@ const FALLBACK: Record<string, string> = {
   "guacd.host": "127.0.0.1",
   "guacd.port": "4822",
   "guacd.client.host": "127.0.0.1:8082",
+  "monitor.chart.maxPoints": "200",
 };
 
 const values = ref<Record<string, string>>({});
@@ -130,7 +131,7 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="sc">
+  <div class="sc tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">系统配置</h1>

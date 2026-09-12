@@ -60,6 +60,20 @@ const typeDefaults: Record<string, { start: string; stop: string; restart: strin
   CUSTOM: { start: '# 在此填写启动命令', stop: '# 在此填写停止命令', restart: '# 在此填写重启命令' },
 };
 
+const healthTypes = [
+  { label: '端口检测', value: 'PORT' },
+  { label: 'HTTP 探测', value: 'HTTP' },
+  { label: '进程检测', value: 'PROCESS' },
+];
+
+/** 健康检查目标占位提示（随类型变化） */
+const healthTargetPlaceholder = computed(() => {
+  const t = form.value.msProjectHealthType;
+  if (t === 'HTTP') return '如 127.0.0.1:8080/actuator/health';
+  if (t === 'PROCESS') return '如 java 或 app.jar';
+  return '如 8080';
+});
+
 const isEdit = computed(() => !!props.project);
 const selectedOs = ref('LINUX');
 let initializing = false;
@@ -125,6 +139,8 @@ function submit() {
     msProjectDeleteBefore: form.value.msProjectDeleteBefore ? 1 : 0,
     msProjectAutoExtract: form.value.msProjectAutoExtract ? 1 : 0,
     msProjectAutoStart: form.value.msProjectAutoStart ? 1 : 0,
+    msProjectHealthEnabled: form.value.msProjectHealthEnabled ? 1 : 0,
+    msProjectAutoRollback: form.value.msProjectAutoRollback ? 1 : 0,
   })
     .then(() => {
       message.success(isEdit.value ? '已更新' : '已创建');
@@ -153,6 +169,13 @@ function newProjectForm() {
     msProjectOverwriteMode: 'OVERWRITE',
     msProjectAutoExtract: true,
     msProjectAutoStart: false,
+    msProjectHealthEnabled: false,
+    msProjectHealthType: 'PORT',
+    msProjectHealthTarget: '',
+    msProjectHealthTimeout: 30,
+    msProjectAutoRollback: false,
+    msProjectDeployRetry: 0,
+    msProjectArchiveKeep: 0,
     msProjectSort: 100,
     msProjectRemark: '',
   };
@@ -240,6 +263,35 @@ function newProjectForm() {
       <ReFormItem label="部署后自动启动">
         <ReSwitch v-model="form.msProjectAutoStart" />
         <span class="muted" style="margin-left:8px">部署/回滚成功后自动执行启动脚本</span>
+      </ReFormItem>
+
+      <ReDivider content-position="left">健康检查</ReDivider>
+      <ReFormItem label="启用健康检查">
+        <ReSwitch v-model="form.msProjectHealthEnabled" />
+        <span class="muted" style="margin-left:8px">启动后探测服务是否就绪</span>
+      </ReFormItem>
+      <ReFormItem label="检查类型" v-if="form.msProjectHealthEnabled">
+        <ReSelect v-model="form.msProjectHealthType" :data="healthTypes" style="width: 100%" />
+      </ReFormItem>
+      <ReFormItem label="检查目标" v-if="form.msProjectHealthEnabled">
+        <ReInput v-model="form.msProjectHealthTarget" :placeholder="healthTargetPlaceholder" />
+      </ReFormItem>
+      <ReFormItem label="检查超时(s)" v-if="form.msProjectHealthEnabled">
+        <ReInputNumber v-model="form.msProjectHealthTimeout" :min="5" :max="300" />
+      </ReFormItem>
+
+      <ReDivider content-position="left">故障自愈</ReDivider>
+      <ReFormItem label="失败自动回滚">
+        <ReSwitch v-model="form.msProjectAutoRollback" />
+        <span class="muted" style="margin-left:8px">部署失败自动回滚到上一版本</span>
+      </ReFormItem>
+      <ReFormItem label="单台重试次数">
+        <ReInputNumber v-model="form.msProjectDeployRetry" :min="0" :max="5" />
+        <span class="muted" style="margin-left:8px">单台部署失败自动重试</span>
+      </ReFormItem>
+      <ReFormItem label="归档保留数">
+        <ReInputNumber v-model="form.msProjectArchiveKeep" :min="0" :max="50" />
+        <span class="muted" style="margin-left:8px">0=不清理，超出自动删除旧版本包</span>
       </ReFormItem>
 
       <ReDivider content-position="left">其他</ReDivider>

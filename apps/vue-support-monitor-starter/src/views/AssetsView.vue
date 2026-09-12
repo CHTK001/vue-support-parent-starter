@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
@@ -11,6 +11,8 @@ import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
+import SystemManageDialog from "./SystemManageDialog.vue";
+import ServerManageDialog from "./ServerManageDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { useSocketService } from "@repo/core";
 
@@ -117,7 +119,8 @@ const allTags = computed(() => {
 
 function splitTags(tags?: string | null): string[] {
   if (!tags || !tags.trim()) return [];
-  return tags.split(",").map(t => t.trim()).filter(Boolean);
+  // 同时兼容中英文逗号分隔（后端/手工录入可能用「，」）
+  return tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
 }
 
 /** 端口扫描结果项 */
@@ -197,18 +200,18 @@ function osIcon(t?: string): string {
   if (s.includes("MAC") || s.includes("DARWIN")) return "macos";
   return "terminal";
 }
-/** 真实 OS 品牌图标（SVG）：使用高辨识度的官方风格矢量路径（Windows 微软标 / macOS 苹果 / Linux 企鹅） */
+/** 真实 OS 品牌图标（SVG）：Windows 四色旗标 / macOS Apple / Linux Tux / Android，标准品牌矢量 */
 function osSvg(os: string): string {
   const icons: Record<string, string> = {
-    linux: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3D7A45"><path d="M12 0C8.28 0 5.236 1.92 5.236 4.286c0 1.516.86 2.857 2.168 3.73C4.872 8.47 3.5 10.11 3.5 12c0 1.344.56 2.55 1.45 3.46-.168 1.098-.7 2.1-1.49 2.9-.24.243-.39.56-.43.89-.04.33.03.67.2.97.23.43.06.83.3.83.12 0 1.06-.5 2.05-1.13.22.05.45.09.68.12.32.05.65.09.99.11.35.03.7.05 1.06.05.37 0 .73-.02 1.1-.05.34-.03.68-.06 1-.11.24-.03.48-.07.71-.12.99.63 1.93 1.13 2.05 1.13.24 0 .07-.4.3-.83.17-.3.24-.64.2-.97-.04-.33-.19-.65-.43-.89-.79-.8-1.32-1.8-1.49-2.9.89-.91 1.45-2.12 1.45-3.46 0-.45-.07-.9-.2-1.32.42-.73.67-1.63.67-2.57 0-2.37-3.05-4.29-6.79-4.29zm4.5 5.3c.19 0 .36.61.36 1.36s-.16 1.36-.36 1.36c-.19 0-.36-.61-.36-1.36s.16-1.36.36-1.36zm-9 0c.2 0 .36.61.36 1.36s-.16 1.36-.36 1.36c-.2 0-.36-.61-.36-1.36s.16-1.36.36-1.36z"/></svg>',
-    windows: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#0078D4" d="M0 3.45 9.75 2.1V11H0ZM10.88 2.05 24 0v11H10.88ZM0 12.2h9.75v8.9L0 19.7ZM10.88 12.2H24V24l-13.12-1.76Z"/></svg>',
-    macos: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#4A4A4A"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/></svg>',
-    android: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3DDC84"><path d="M19.07 4.17A4.92 4.92 0 0 0 12 2.5a4.92 4.92 0 0 0-7.07 2.18A4.5 4.5 0 0 0 .5 9c0 2.49 2.01 4.5 4.5 4.5h.13a3.76 3.76 0 0 0 .24 1.65 1 1 0 0 0 1.58.26 5.5 5.5 0 0 1 6.19.2.9.9 0 0 1 .39.78v.5a.5.5 0 0 0 1 .33 4.5 4.5 0 0 0 3.65-2.59 4.53 4.53 0 0 0 3.72-11.32z"/><circle cx="15.3" cy="9.2" r="1.1"/><circle cx="9.7" cy="9.2" r="1.1"/></svg>',
+    linux: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#3D7A45" d="M12 1.5c-3.6 0-6.4 1.8-6.4 4 0 1.4.8 2.6 2 3.4C6.2 10 5 11.6 5 13.4c0 1.2.5 2.3 1.3 3.1-.2 1-.7 1.9-1.4 2.7-.3.3-.4.7-.2 1 .2.4.7.6 1 .3.9-.5 1.7-1 2.3-1.3.5.1 1 .2 1.5.2.7 0 1.4-.1 2.1-.3.7.4 1.4.8 2.2 1.1.4.1.8-.1.9-.5.2-.5.3-.9.2-1.4 0-.4-.3-.7-.6-1-.7-.8-1.2-1.7-1.3-2.7.8-.9 1.3-2 1.3-3.2 0-.5-.1-1-.2-1.4.3-.7.5-1.5.5-2.3 0-2.2-2.8-4-6.4-4zm4.6 5.6c.2 0 .4.6.4 1.4s-.2 1.4-.4 1.4-.4-.6-.4-1.4.2-1.4.4-1.4zm-9.2 0c.2 0 .4.6.4 1.4s-.2 1.4-.4 1.4-.4-.6-.4-1.4.2-1.4.4-1.4z"/></svg>',
+    windows: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#f25022" d="M3 4.6 10.4 3.6v6.9H3zM3 13.5h7.4v6.9L3 19.4z"/><path fill="#7fba00" d="M11.6 3.4 21 2.2v8.3h-9.4zM11.6 13.5H21v8.3l-9.4-1.3z"/><path fill="#00a4ef" d="M3 10.5h7.4v-5.9L3 4.6v5.9zM11.6 7.5v5.9H10.4V7.5zM11.6 13.5v5.9l-.4 1.2-.8.3v-7.4zM11.6 7.5h9.4v1.5h-9.4zM11.6 12v-1.5H21V12z"/></svg>',
+    macos: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#5A5F6A"><path d="M17.05 12.57c-.03-2.44 2.01-3.6 2.1-3.66-1.14-1.67-2.92-1.9-3.54-1.93-1.51-.15-2.97.9-3.75.9-.78 0-2.01-.88-3.32-.86-1.71.03-3.29.99-4.18 2.5-1.8 3.02-.46 7.46 1.28 9.91.85 1.2 1.87 2.55 3.2 2.5 1.28-.05 1.76-.83 3.3-.83 1.55 0 2.01.83 3.36.8 1.39-.02 2.27-1.24 3.12-2.45.98-1.39 1.39-2.75 1.4-2.82-.03-.01-2.68-1.03-2.71-4.06zM14.4 5.1c.72-.87 1.19-2.07 1.06-3.27-1.03.04-2.28.68-3.01 1.55-.65.77-1.23 2-1.07 3.18 1.15.09 2.3-.58 3.02-1.46z"/></svg>',
+    android: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3DDC84"><path d="M17.5 12h-11v7h2.5v-4.5h6V19H17.5z"/><path d="M15.4 6.3l1.4-2.4-1.3-.76-1.4 2.4a5.6 5.6 0 0 0-4.8 0L7.9 3.1 6.6 3.9l1.4 2.4a5.6 5.6 0 0 0-2.4 4.5h13.6a5.6 5.6 0 0 0-2.4-4.5zM9.9 7.7a.9.9 0 1 1 .9-.9.9.9 0 0 1-.9.9zm5.2 0a.9.9 0 1 1 .9-.9.9.9 0 0 1-.9.9z"/></svg>',
     terminal: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
   };
   return icons[os] ?? icons.terminal;
 }
-/** 平台图片资源路径（用户可自行放置高辨识度 logo 到 src/assets/os/，见该目录 README）；无匹配时返回空走 SVG 兜底 */
+/** 平台图片资源路径（public/os/*.svg 品牌图标）；无匹配时返回空走内联 SVG 兜底 */
 function osImgSrc(os: string): string {
   const map: Record<string, string> = {
     linux: "os-linux",
@@ -218,7 +221,7 @@ function osImgSrc(os: string): string {
   };
   const name = map[os];
   if (!name) return "";
-  return `${import.meta.env.BASE_URL}os/${name}.png`;
+  return `${import.meta.env.BASE_URL}os/${name}.svg`;
 }
 /** 已确认图片加载失败的主机集合（key: id-os），命中则回退 SVG */
 const osImgErrors = ref<Set<string>>(new Set());
@@ -378,7 +381,33 @@ const configVisible = ref(false);
 useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
 const configMode = ref<"online" | "metric" | "delay">("metric");
+// 系统管理弹窗
+const sysMgrVisible = ref(false);
+const sysMgrType = ref("process");
+const sysMgrHost = ref<Host | null>(null);
+
+// 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 配置）
+const serverMgrVisible = ref(false);
+const serverMgrHost = ref<Host | null>(null);
+
+function openSysMgr(type: string, row: Host): void {
+  sysMgrType.value = type;
+  sysMgrHost.value = row;
+  sysMgrVisible.value = true;
+}
+
 function onMoreCommand(cmd: string, row: Host): void {
+  // 协议服务器管理（Server 实现的 web 操作 + ServerFilter 实时配置）
+  if (cmd === "server") {
+    serverMgrHost.value = row;
+    serverMgrVisible.value = true;
+    return;
+  }
+  const sysTypes = ["process", "system-service", "network-interface", "network-connection", "disk", "partition", "firewall", "driver"];
+  if (sysTypes.includes(cmd)) {
+    openSysMgr(cmd === "system-service" ? "service" : cmd, row);
+    return;
+  }
   configHost.value = row;
   configMode.value = cmd === "online" ? "online" : cmd === "delay" ? "delay" : "metric";
   configVisible.value = true;
@@ -445,7 +474,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="as">
+  <div class="as tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">主机资产</h1>
@@ -468,23 +497,23 @@ onBeforeUnmount(() => {
 
     <!-- KPI -->
     <section class="kpi-row cols-4">
-      <div class="kpi c-brand">
+      <div class="kpi tel-kpi c-brand">
         <span class="kpi-ico"><ReIcon name="Monitor" :size="36" /></span>
         <div class="kpi-top"><span class="kpi-label">资产总数</span></div>
         <div class="kpi-value">{{ hosts.length }}</div>
         <div class="kpi-sub">共注册资产</div>
       </div>
-      <div class="kpi c-green">
+      <div class="kpi tel-kpi c-green">
         <div class="kpi-top"><span class="kpi-label">在线</span></div>
         <div class="kpi-value">{{ onlineCount }}</div>
         <div class="kpi-sub"><b>{{ onlineCount }}</b> / {{ hosts.length }}</div>
       </div>
-      <div class="kpi c-gray">
+      <div class="kpi tel-kpi c-gray">
         <div class="kpi-top"><span class="kpi-label">离线</span></div>
         <div class="kpi-value">{{ offlineCount }}</div>
         <div class="kpi-sub">需关注</div>
       </div>
-      <div class="kpi c-blue">
+      <div class="kpi tel-kpi c-blue">
         <div class="kpi-top"><span class="kpi-label">远控启用</span></div>
         <div class="kpi-value">{{ remoteCount }}</div>
         <div class="kpi-sub">可远程连接</div>
@@ -593,6 +622,15 @@ onBeforeUnmount(() => {
                   <el-dropdown-item command="online">在离线</el-dropdown-item>
                   <el-dropdown-item command="metric">指标</el-dropdown-item>
                   <el-dropdown-item command="delay">延迟检测</el-dropdown-item>
+                  <el-dropdown-item divided command="server">协议服务器（Server+Filter）</el-dropdown-item>
+                  <el-dropdown-item command="process">进程管理</el-dropdown-item>
+                  <el-dropdown-item command="system-service">系统服务</el-dropdown-item>
+                  <el-dropdown-item command="network-interface">网络接口</el-dropdown-item>
+                  <el-dropdown-item command="network-connection">网络连接</el-dropdown-item>
+                  <el-dropdown-item command="disk">磁盘管理</el-dropdown-item>
+                  <el-dropdown-item command="partition">磁盘分区</el-dropdown-item>
+                  <el-dropdown-item command="firewall">防火墙</el-dropdown-item>
+                  <el-dropdown-item command="driver">驱动管理</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -635,6 +673,17 @@ onBeforeUnmount(() => {
     </ReDialog>
 
     <!-- 采集配置（行操作「更多」入口） -->
+    <!-- 系统管理弹窗 -->
+    <SystemManageDialog
+      v-model="sysMgrVisible"
+      :type="sysMgrType"
+      :host-id="sysMgrHost?.id"
+      :host-name="sysMgrHost?.serverHostName"
+    />
+
+    <!-- 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 实时配置） -->
+    <ServerManageDialog v-model="serverMgrVisible" />
+
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
   </div>
 </template>

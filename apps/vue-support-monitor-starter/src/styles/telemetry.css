@@ -1,0 +1,933 @@
+/* ============================================================
+ * telemetry.css —— 深色遥测设计系统（方案 A：内容区深色统一）
+ *
+ * 用法：
+ *   1. 页面根容器加 class="tel-page"（浅色面板 + 网格 + 光晕 + 扫描线）
+ *   2. KPI 卡在 .kpi 基础上加 class="tel-kpi"（发光色条 / 图标 / 悬停抬升）
+ *   3. 面板内的 ReXxx / element-plus 组件由 CSS 变量覆盖自动浅色化
+ *   4. 浮层（弹窗 / 下拉 / 消息 / 确认框）全局浅色化，保证观感统一
+ * ============================================================ */
+
+/* ================= 浅色遥测面板容器 ================= */
+.tel-page {
+  position: relative;
+  overflow: hidden;
+  min-height: 100%;
+  height: 100%;
+  background:
+    radial-gradient(1100px 480px at 12% -12%, rgba(59, 130, 246, 0.08), transparent 62%),
+    radial-gradient(900px 440px at 108% 112%, rgba(6, 182, 212, 0.06), transparent 60%),
+    #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  color: #1e293b;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  animation: telPanelIn 0.45s ease both;
+}
+/* 背景网格 */
+.tel-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
+}
+/* 顶部扫描线 */
+.tel-page::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), rgba(6, 182, 212, 0.5), transparent);
+  background-size: 240px 100%;
+  background-repeat: no-repeat;
+  animation: telScan 3.2s ease-in-out infinite;
+  opacity: 0.5;
+  pointer-events: none;
+}
+@keyframes telPanelIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes telScan {
+  0% { background-position: -260px 0; opacity: 0.2; }
+  45% { opacity: 0.85; }
+  100% { background-position: calc(100% + 260px) 0; opacity: 0.2; }
+}
+
+/* ================= 浅色变量集 =================
+ * 挂在 .tel-page 与全部浮层上：内部组件（koi + element-plus）自动浅色化 */
+.tel-page,
+.tel-rail,
+.el-dialog,
+.el-message-box,
+.el-message,
+.el-popper,
+.el-select-dropdown {
+  /* koi / 应用令牌 */
+  --bg-page: #f8fafc;
+  --bg-container: #ffffff;
+  --bg-container-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-fill: #f1f5f9;
+  --bg-hover: #1e293b;
+  --border-subtle: rgba(148, 163, 184, 0.2);
+  --border-default: rgba(148, 163, 184, 0.3);
+  --border-strong: rgba(100, 116, 139, 0.5);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --brand-50: rgba(59, 130, 246, 0.1);
+  --brand-100: rgba(59, 130, 246, 0.2);
+  --brand-400: #3b82f6;
+  --brand-600: #2563eb;
+  --selection-bg: rgba(59, 130, 246, 0.2);
+  --selection-bg-fade: rgba(59, 130, 246, 0.05);
+  --shadow-1: 0 1px 3px rgba(15, 23, 42, 0.1);
+  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.1);
+  --shadow-3: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  --scroll-thumb: #cbd5e1;
+  --scroll-thumb-hover: #94a3b8;
+  --empty-bg-gradient: rgba(59, 130, 246, 0.06);
+
+  /* 告警等级（浅底 → 深底半透明） */
+  --sev-p0-bg: rgba(254, 226, 226, 0.6);
+  --sev-p0-text: #b91c1c;
+  --sev-p0-border: rgba(239, 68, 68, 0.3);
+  --sev-p1-bg: rgba(255, 237, 213, 0.6);
+  --sev-p1-text: #c2410c;
+  --sev-p1-border: rgba(249, 115, 22, 0.3);
+  --sev-p2-bg: rgba(254, 249, 195, 0.6);
+  --sev-p2-text: #a16207;
+  --sev-p2-border: rgba(245, 158, 11, 0.3);
+  --sev-p3-bg: rgba(209, 250, 229, 0.6);
+  --sev-p3-text: #047857;
+  --sev-p3-border: rgba(16, 185, 129, 0.3);
+  --sev-p4-bg: rgba(241, 245, 249, 0.8);
+  --sev-p4-text: #475569;
+  --sev-p4-border: rgba(148, 163, 184, 0.3);
+
+  /* 错误提示 */
+  --status-error-bg: rgba(254, 226, 226, 0.6);
+  --status-error-border: rgba(239, 68, 68, 0.3);
+  --status-error-text: #b91c1c;
+
+  /* ===== koi 主题令牌（ReCard / ReDrawer / ReSearch 等 --theme-color-*） ===== */
+  --theme-color-bg: var(--bg-page);
+  --theme-color-bg-container: var(--bg-container);
+  --theme-color-text: var(--text-primary);
+  --theme-color-text-secondary: var(--text-secondary);
+  --theme-color-border: var(--border-default);
+  --theme-color-primary: var(--brand-400);
+  --theme-color-success: var(--color-success, #34d399);
+  --theme-color-warning: var(--color-warning, #fbbf24);
+  --theme-color-error: var(--color-error, #f87171);
+
+  /* ===== ReTable 令牌（--rt-*，在 :root 被计算为亮色具体值，此处覆盖） ===== */
+  --rt-bg: var(--bg-elevated);
+  --rt-bg-header: var(--bg-fill);
+  --rt-bg-strip: var(--bg-fill);
+  --rt-bg-row-hover: var(--brand-50);
+  --rt-bg-overlay: var(--bg-elevated);
+  --rt-border: var(--border-subtle);
+  --rt-border-hover: var(--border-strong);
+  --rt-border-strong: var(--brand-400);
+  --rt-text: var(--text-primary);
+  --rt-text-header: var(--text-secondary);
+  --rt-text-secondary: var(--text-secondary);
+  --rt-text-placeholder: var(--text-tertiary);
+  --rt-header-bg: var(--bg-fill);
+  --rt-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --rt-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+
+  /* element-plus 基础 */
+  --el-bg-color: var(--bg-container);
+  --el-bg-color-overlay: var(--bg-elevated);
+  --el-fill-color-blank: var(--bg-elevated);
+  --el-fill-color: var(--bg-hover);
+  --el-fill-color-light: var(--bg-fill);
+  --el-fill-color-lighter: var(--bg-container);
+  --el-fill-color-dark: var(--bg-hover);
+  --el-border-color: var(--border-default);
+  --el-border-color-light: var(--border-subtle);
+  --el-border-color-lighter: var(--border-subtle);
+  --el-border-color-extra-light: rgba(148, 163, 184, 0.08);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-primary);
+  --el-text-color-secondary: var(--text-secondary);
+  --el-text-color-placeholder: var(--text-tertiary);
+  --el-mask-color: rgba(15, 23, 42, 0.5);
+  --el-table-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--brand-50);
+  --el-table-border-color: var(--border-subtle);
+  --el-table-header-bg-color: var(--bg-fill);
+  --el-table-tr-bg-color: transparent;
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-disabled-bg-color: var(--bg-elevated);
+  --el-disabled-border-color: var(--border-subtle);
+  --el-disabled-text-color: var(--text-tertiary);
+
+  /* ReXxx 全局令牌（--rm-*，组件库全局 !important 规则引用，必须在此覆盖） */
+  --rm-bg: var(--bg-elevated);
+  --rm-bg-elevated: var(--bg-container);
+  --rm-bg-hover: var(--bg-hover);
+  --rm-bg-active: var(--brand-50);
+  --rm-border: var(--border-default);
+  --rm-border-light: var(--border-subtle);
+  --rm-border-hover: var(--brand-400);
+  --rm-border-focus: var(--brand-400);
+  --rm-text: var(--text-primary);
+  --rm-text-secondary: var(--text-secondary);
+  --rm-text-placeholder: var(--text-tertiary);
+  --rm-primary: var(--brand-400);
+  --rm-primary-bg: var(--brand-50);
+  --rm-success: #34d399;
+  --rm-warning: #fbbf24;
+  --rm-danger: #f87171;
+  --rm-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  --rm-radius: 8px;
+  /* 输入 / 选择 / 下拉 */
+  --el-input-bg-color: var(--bg-elevated);
+  --el-input-border-color: var(--border-default);
+  --el-input-hover-border-color: var(--brand-400);
+  --el-input-focus-border-color: var(--brand-400);
+  --el-input-text-color: var(--text-primary);
+  --el-input-placeholder-color: var(--text-tertiary);
+  --el-input-icon-color: var(--text-tertiary);
+  --el-input-clear-hover-color: var(--text-secondary);
+  /* 分页 */
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: transparent;
+  --el-pagination-hover-color: var(--brand-400);
+  --el-pagination-text-color: var(--text-secondary);
+  --el-button-bg-color: var(--bg-fill);
+  --el-button-border-color: var(--border-default);
+  --el-button-text-color: var(--text-primary);
+  --el-button-hover-bg-color: var(--bg-hover);
+  --el-button-hover-border-color: var(--brand-400);
+  --el-button-hover-text-color: var(--text-primary);
+}
+
+/* ================= 内嵌深色侧条（终端资源条等） ================= */
+.tel-rail {
+  background: #ffffff;
+  border-right-color: rgba(148, 163, 184, 0.14);
+}
+
+/* ================= 组件级背景强制覆盖（element-plus 内部硬编码白色） ================= */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-cascader__label,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-date-editor {
+  background-color: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--border-default) inset !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__wrapper:hover,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--el-input-hover-border-color, var(--brand-400)) inset !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input.is-focus .el-input__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select.is-focus .el-select__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner:focus {
+  background-color: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--brand-400) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__inner,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__placeholder,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__selected-item {
+  color: var(--el-input-text-color, var(--text-primary)) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__inner::placeholder,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner::placeholder {
+  color: var(--el-input-placeholder-color, var(--text-tertiary)) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__suffix,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__prefix,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__suffix {
+  color: var(--el-input-icon-color, var(--text-tertiary));
+}
+
+/* el-input-number（带上下箭头的数字输入框） */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number .el-input__wrapper {
+  background-color: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--border-default) inset !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number.is-focus .el-input__wrapper {
+  background-color: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--brand-400) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__decrease,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__increase {
+  background-color: var(--bg-fill);
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__decrease:hover,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__increase:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number.is-disabled .el-input__wrapper {
+  background-color: var(--el-disabled-bg-color, var(--bg-elevated)) !important;
+}
+
+/* el-table 内部 wrapper 透明，露出 .re-table / .tel-page 深色底 */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__body-wrapper,
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__inner-wrapper,
+:is(.tel-page, .el-dialog, .el-message-box) .el-table__empty-block,
+:is(.tel-page, .el-dialog, .el-message-box) .el-table__append-wrapper {
+  background-color: transparent;
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__empty-text {
+  color: var(--text-tertiary);
+}
+
+/* 表单标签 / 按钮默认态 */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-form-item__label {
+  color: var(--text-secondary);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info) {
+  background-color: var(--bg-fill);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):hover {
+  background-color: var(--bg-hover);
+  border-color: var(--brand-400);
+  color: var(--text-primary);
+}
+
+/* ReCard koi 主题（--theme-color-* 变量继承保险） */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .koi-card {
+  background-color: var(--theme-color-bg-container, var(--bg-container));
+  border-color: var(--theme-color-border, var(--border-default));
+  color: var(--theme-color-text, var(--text-primary));
+}
+
+/* 分页文字 */
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination {
+  color: var(--text-secondary);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination .el-pager li {
+  color: var(--text-secondary);
+}
+:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination .el-pager li.is-active {
+  color: #fff;
+}
+
+/* ================= 表格深色细节 ================= */
+.tel-page .el-table {
+  background: transparent;
+  --el-table-border-color: rgba(148, 163, 184, 0.12);
+  --el-table-header-text-color: #94a3b8;
+  --el-table-text-color: #cbd5e1;
+  --el-table-expanded-cell-bg-color: transparent;
+}
+.tel-page .el-table th.el-table__cell {
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.tel-page .el-table .el-table__cell { background: transparent; }
+.tel-page .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: rgba(148, 163, 184, 0.04);
+}
+.tel-page .el-table__body tr:hover > td.el-table__cell {
+  background: rgba(59, 130, 246, 0.08);
+}
+.tel-page .el-table__inner-wrapper::before {
+  background-color: rgba(148, 163, 184, 0.1);
+}
+.tel-page .el-table__border-left-patch,
+.tel-page .el-table__border-bottom-patch {
+  background-color: rgba(148, 163, 184, 0.1);
+}
+.tel-page .el-table__empty-text { color: #64748b; }
+
+/* ================= ReXxx 组件边框强制覆盖（解决半黑半白问题） ================= */
+/* ReTable 外框和单元格边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-table,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] {
+  border-color: var(--border-subtle) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog) .re-table th,
+:is(.tel-page, .tel-rail, .el-dialog) .re-table td,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] th,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] td {
+  border-color: var(--border-subtle) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog) .re-table__border,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table__border"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ReCard 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-card,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-card"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ReDialog 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-dialog,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-dialog"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ReInput / ReSelect / ReTextarea / ReInputNumber 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper,
+:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner,
+:is(.tel-page, .tel-rail, .el-dialog) .re-input-number,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"],
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"] {
+  border-color: var(--border-default) !important;
+  background: var(--bg-elevated) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper:hover,
+:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper:hover,
+:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner:hover,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"]:hover,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"]:hover {
+  border-color: var(--brand-400) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper:focus-within,
+:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper:focus-within,
+:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner:focus,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"]:focus-within,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"]:focus-within {
+  border-color: var(--brand-400) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
+}
+
+/* ReButton 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-button,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-button"] {
+  border-color: var(--border-default) !important;
+}
+:is(.tel-page, .tel-rail, .el-dialog) .re-button:hover,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-button"]:hover {
+  border-color: var(--brand-400) !important;
+}
+
+/* ReTag 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-tag,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-tag"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* RePagination 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-pagination,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-pagination"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ReDropdown / RePopover 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-dropdown,
+:is(.tel-page, .tel-rail, .el-dialog) .re-popover,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-dropdown"],
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-popover"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ReForm / ReFormItem 边框 */
+:is(.tel-page, .tel-rail, .el-dialog) .re-form-item,
+:is(.tel-page, .tel-rail, .el-dialog) [class*="re-form"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* ================= KPI 卡增强 ================= */
+.tel-page .kpi {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), rgba(148, 163, 184, 0.02)), #ffffff;
+  border-color: rgba(148, 163, 184, 0.16);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+.tel-kpi::before {
+  width: 3px;
+  box-shadow: 0 0 10px currentColor;
+}
+.tel-kpi .kpi-value {
+  font-size: 30px;
+  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, Consolas, monospace);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.tel-kpi .kpi-ico {
+  opacity: 0.22;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+.tel-kpi:hover {
+  transform: translateY(-2px);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.08);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.tel-kpi .kpi-sub b { color: #1e293b; }
+
+/* ================= 通用卡片（pages.css .card 自动深色后的增强） ================= */
+.tel-page .card {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.04), rgba(148, 163, 184, 0.01)), #ffffff;
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+.tel-page .card-head { margin-bottom: 12px; }
+.tel-page .card-title { color: #1e293b; letter-spacing: 0.02em; }
+
+/* ================= 过滤条 / tabs / 快捷入口 ================= */
+.tel-page .filter {
+  background: rgba(148, 163, 184, 0.05);
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: none;
+}
+.tel-page .filter:focus-within {
+  border-color: rgba(109, 93, 252, 0.5);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.tel-page .filter .chip {
+  background: #ffffff;
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+.tel-page .filter .chip:hover { background: #1e293b; color: #1e293b; }
+.tel-page .filter .chip.active {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+.tel-page .tabs { border-bottom-color: rgba(148, 163, 184, 0.14); }
+.tel-page .tab-btn { color: #94a3b8; }
+.tel-page .tab-btn:hover { color: #1e293b; }
+.tel-page .tab-btn.active { color: #2563eb; border-bottom-color: #3b82f6; }
+.tel-page .tab-btn .count { background: #1e293b; color: #94a3b8; }
+
+.tel-page .quick {
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+.tel-page .quick:hover {
+  border-color: rgba(109, 93, 252, 0.5);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
+}
+.tel-page .quick .q-meta b { color: #1e293b; }
+
+/* ================= 弹层 / 浮层（全局深色，统一风格） ================= */
+.el-overlay { background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
+
+.el-dialog {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+.el-dialog__title { color: #1e293b; font-weight: 600; }
+.el-dialog__body { color: #cbd5e1; }
+.el-dialog__headerbtn:hover .el-dialog__close { color: #3b82f6; }
+.el-dialog__close { color: #64748b; }
+
+.el-popper {
+  background: #151f3d;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: #cbd5e1;
+}
+.el-popper .el-popper__arrow::before {
+  background: #151f3d;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+.el-popper.is-light { background: #151f3d; border-color: rgba(148, 163, 184, 0.2); }
+.el-popper.is-light .el-popper__arrow::before { background: #151f3d; border-color: rgba(148, 163, 184, 0.2); }
+
+.el-popper.el-select-dropdown,
+.el-select-dropdown { background: #151f3d !important; border: 1px solid rgba(148, 163, 184, 0.2) !important; }
+.el-select-dropdown__item { color: #cbd5e1 !important; }
+.el-select-dropdown__item.is-hovering { background: rgba(59, 130, 246, 0.12) !important; color: #1e293b !important; }
+.el-select-dropdown__item.selected { color: #3b82f6 !important; font-weight: 600; }
+.el-select-dropdown__item.is-disabled { color: #475569 !important; }
+
+.el-dropdown-menu { background: transparent; }
+.el-dropdown-menu__item { color: #cbd5e1; }
+.el-dropdown-menu__item:not(.is-disabled):hover,
+.el-dropdown-menu__item:not(.is-disabled):focus {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1e293b;
+}
+.el-dropdown-menu__item.is-disabled { color: #475569; }
+
+.el-message-box {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+.el-message-box__title { color: #1e293b; }
+.el-message-box__content { color: #94a3b8; }
+.el-message { border: 1px solid rgba(148, 163, 184, 0.16); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+
+.el-picker-panel, .el-date-picker, .el-date-editor {
+  --el-datepicker-bg-color: #151f3d;
+  --el-datepicker-border-color: rgba(148, 163, 184, 0.2);
+  background: #151f3d;
+}
+
+/* ================= ReXxx 组件美化增强（深色遥测风格） ================= */
+:root {
+  --tel-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  --tel-glow-brand: 0 0 0 1px var(--brand-400), 0 0 16px rgba(59, 130, 246, 0.25);
+  --tel-glow-soft: 0 4px 20px rgba(15, 23, 42, 0.08);
+}
+
+/* ---- ReTable：行 hover 发光 / 选中高亮 / 表头渐变线 / 空状态 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr {
+  transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--brand-50) !important;
+  box-shadow: inset 3px 0 0 var(--brand-400);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr.current-row > td.el-table__cell {
+  background-color: var(--brand-100) !important;
+  box-shadow: inset 3px 0 0 var(--brand-400);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__header-wrapper {
+  position: relative;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__header-wrapper::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand-400), transparent);
+  opacity: 0.5;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__cell {
+  transition: background-color var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__empty-text {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 40px 0;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__empty-text::before {
+  content: "◇";
+  display: block;
+  font-size: 28px;
+  color: var(--brand-400);
+  opacity: 0.4;
+  margin-bottom: 8px;
+}
+
+/* ---- ReInput / ReSelect / ReTextarea：focus 外发光 / 过渡 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-input__wrapper,
+:is(.tel-page, .el-dialog, .el-message-box) .el-select__wrapper,
+:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner,
+:is(.tel-page, .el-dialog, .el-message-box) .el-input-number .el-input__wrapper {
+  transition: border-color var(--tel-transition), box-shadow var(--tel-transition), background-color var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-input.is-focus .el-input__wrapper,
+:is(.tel-page, .el-dialog, .el-message-box) .el-select.is-focus .el-select__wrapper,
+:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner:focus {
+  box-shadow: var(--tel-glow-brand) !important;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-input__inner::placeholder,
+:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner::placeholder,
+:is(.tel-page, .el-dialog, .el-message-box) .el-select__placeholder {
+  transition: color var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-input__wrapper:hover .el-input__inner::placeholder,
+:is(.tel-page, .el-dialog, .el-message-box) .el-select__wrapper:hover .el-select__placeholder {
+  color: var(--text-secondary);
+}
+
+/* ---- ReButton：hover 发光抬升 / primary 渐变发光 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-button {
+  transition: all var(--tel-transition);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):not(.is-disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.18);
+  border-color: var(--brand-400);
+  color: var(--brand-400);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary {
+  background: linear-gradient(135deg, var(--brand-400), #6d5dfc);
+  border: none;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+  filter: brightness(1.08);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--danger {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  border: none;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+  filter: brightness(1.08);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--success {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  border: none;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+  filter: brightness(1.08);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--warning {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: none;
+  color: #1a1a1a;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-button--warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+  filter: brightness(1.05);
+}
+
+/* ---- ReCard：hover 抬升发光 / 头部渐变线 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .koi-card {
+  transition: transform var(--tel-transition), box-shadow var(--tel-transition), border-color var(--tel-transition);
+  box-shadow: var(--tel-glow-soft);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .koi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .koi-card__header {
+  position: relative;
+  padding-bottom: 12px !important;
+  margin-bottom: 4px;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .koi-card__header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brand-400), transparent);
+  opacity: 0.3;
+}
+
+/* ---- ReTag / ReBadge：圆角发光 / hover ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag {
+  border-radius: 6px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all var(--tel-transition);
+  border: 1px solid transparent;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag--primary {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag--success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag--danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag--info {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-tag:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+
+/* ---- ReDialog：标题渐变 / 底部分隔 / 出现动画 ---- */
+.el-dialog {
+  overflow: hidden;
+}
+.el-dialog__header {
+  position: relative;
+  padding-bottom: 16px !important;
+  margin-bottom: 0 !important;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), transparent);
+}
+.el-dialog__header::after {
+  content: "";
+  position: absolute;
+  left: 20px; right: 20px; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brand-400), transparent);
+  opacity: 0.4;
+}
+.el-dialog__body {
+  padding-top: 20px !important;
+  padding-bottom: 16px !important;
+}
+.el-dialog__footer {
+  position: relative;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--border-subtle);
+}
+.el-dialog__footer::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: 20px; right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand-400), transparent);
+  opacity: 0.3;
+}
+.el-overlay-dialog {
+  animation: telDialogIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes telDialogIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- RePagination：页码发光 / 跳转框 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li {
+  transition: all var(--tel-transition);
+  border-radius: 6px;
+  margin: 0 2px;
+  min-width: 30px;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li:hover:not(.is-active):not(.disabled) {
+  background: var(--brand-50);
+  color: var(--brand-400);
+  transform: translateY(-1px);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li.is-active {
+  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-pagination button:hover:not(:disabled) {
+  color: var(--brand-400);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pagination__jump .el-input__wrapper {
+  border-radius: 6px;
+}
+
+/* ---- ReEmpty：空状态样式 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-empty {
+  padding: 40px 0;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-empty__description p {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-empty__image svg {
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.2));
+}
+
+/* ---- ReScrollbar：滚动条美化 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__thumb {
+  background: var(--scroll-thumb, #2a3457);
+  border-radius: 4px;
+  transition: background var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__thumb:hover {
+  background: var(--scroll-thumb-hover, #3b4770);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__bar.is-vertical {
+  width: 6px;
+}
+
+/* ---- ReSwitch：开关美化 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-switch__core {
+  transition: all var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-switch.is-checked .el-switch__core {
+  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+/* ---- ReCheckbox / ReRadio：选中发光 ---- */
+:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__inner,
+:is(.tel-page, .el-dialog, .el-message-box) .el-radio__inner {
+  transition: all var(--tel-transition);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__input.is-checked .el-checkbox__inner,
+:is(.tel-page, .el-dialog, .el-message-box) .el-radio__input.is-checked .el-radio__inner {
+  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
+  border-color: var(--brand-400) !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
+}
+:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__input.is-checked + .el-checkbox__label,
+:is(.tel-page, .el-dialog, .el-message-box) .el-radio__input.is-checked + .el-radio__label {
+  color: var(--brand-400);
+}
+
+/* ---- ReDropdown：菜单项 hover 发光 ---- */
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--brand-50) !important;
+  color: var(--brand-400) !important;
+  padding-left: 18px;
+}
+.el-dropdown-menu__item {
+  transition: all var(--tel-transition);
+}
+
+/* ================= 其他细节 ================= */
+.tel-page .as-error {
+  background: rgba(155, 28, 46, 0.18);
+  border-color: rgba(244, 63, 94, 0.45);
+  color: #fda4af;
+}
+.tel-page .mono { font-family: var(--font-mono, "JetBrains Mono", ui-monospace, Consolas, monospace); }
+.tel-page .dim { color: #64748b; }
+.tel-page .muted { color: #64748b; }
+
+/* 分页 hover / active */
+.tel-page .el-pagination.is-background .el-pager li {
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+}
+.tel-page .el-pagination.is-background .el-pager li.is-active {
+  background: rgba(59, 130, 246, 0.85);
+  color: #fff;
+}
+
+/* 弹窗内表格 */
+.el-dialog .el-table { background: transparent; }
+.el-dialog .el-table th.el-table__cell { background: #f1f5f9; }
+
+/* ================= 响应式 ================= */
+@media (max-width: 860px) {
+  .tel-page { padding: 14px 14px 16px; border-radius: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tel-page,
+  .tel-page::after {
+    animation: none;
+  }
+}

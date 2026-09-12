@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
+      "@repo/theme/koi/framework": ["../../packages/theme/src/themes/koi/framework"],
+      "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],
+      "@pages/hotsport/*": ["../../pages/hotsport/*"],
+      "@pages/hotsport": ["../../pages/hotsport/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "src/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

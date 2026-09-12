@@ -1,0 +1,40 @@
+{
+  "name": "vue-support-hotspot-starter",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .vue,.ts,.tsx",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@pages/hotsport": "workspace:*",
+    "@repo/app": "workspace:*",
+    "@repo/assets": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/pinia": "workspace:*",
+    "@repo/theme": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@relation-graph/vue3": "^3.0.13",
+    "axios": "^1.7.9",
+    "echarts": "catalog:",
+    "element-plus": "catalog:",
+    "js-cookie": "catalog:",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

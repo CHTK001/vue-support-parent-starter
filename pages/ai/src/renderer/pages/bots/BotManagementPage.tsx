@@ -20,14 +20,15 @@ import {
   Tag,
   Tooltip,
 } from '@arco-design/web-react';
-import { Comment, EveryUser, Refresh } from '@icon-park/react';
+import { Application, Comment, EveryUser, Power, Refresh } from '@icon-park/react';
 import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
 import { http } from '@repo/core';
 import { unwrapResult } from '@repo/utils';
-import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
-import { PlatformLogo } from '@/renderer/utils/platformLogo';
+import { PlatformLogo, PLATFORM_LABEL } from '@/renderer/utils/platformLogo';
+import { StatusBadge, STATUS_META } from '@/renderer/utils/botStatusMeta';
+import '@/renderer/styles/ai-page.css';
 
 /* ── 类型（对齐后端 SysAiBotBinding 实体）── */
 
@@ -101,19 +102,6 @@ type Saving = boolean;
 
 /* ── 常量与展示映射 ── */
 
-/** 状态 → 展示文案与圆点色（低饱和语义变量，禁止硬编码色值） */
-const STATUS_META: Record<string, { label: string; dot: string }> = {
-  online: { label: '在线', dot: 'bg-success' },
-  offline: { label: '离线', dot: 'bg-[var(--color-text-4)]' },
-  expired: { label: '已过期', dot: 'bg-warning' },
-};
-
-const PLATFORM_LABEL: Record<string, string> = {
-  wechat: '微信',
-  wecom: '企业微信',
-  feishu: '飞书',
-};
-
 /** 新建时的表单初始值 */
 const EMPTY_FORM: BotFormState = {
   botId: '',
@@ -131,7 +119,8 @@ const EMPTY_FORM: BotFormState = {
   feishuAppSecret: '',
 };
 
-/** 桌面端列表列模板：主体 | 平台 | 端口 | 模型 | 最后活跃 | 状态 | 操作 */
+/** 桌面端列表列模板：主体 | 平台 | 端口 | 模型 | 最后活跃 | 状态 | 操作
+ *  桌面端（≥768px）作为 CSS 变量驱动表头/行网格；移动端单列堆叠由媒体查询控制。 */
 const LIST_GRID_COLUMNS = 'minmax(0,1fr) 96px 88px minmax(0,120px) 112px 88px 128px';
 
 /* ── 工具函数 ── */
@@ -162,34 +151,23 @@ function extractList(res: unknown): BotBinding[] {
 
 /* ── 子组件 ── */
 
-/** 状态徽章：圆点 + 文案，未知状态兜底为灰色「未知」 */
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  const meta = STATUS_META[status ?? ''] ?? { label: '未知', dot: 'bg-[var(--color-text-4)]' };
-  return (
-    <span className='inline-flex items-center gap-6px text-13px leading-20px text-t-secondary'>
-      <span className={classNames('h-6px w-6px shrink-0 rounded-full', meta.dot)} />
-      <span>{meta.label}</span>
-    </span>
-  );
-};
-
-/** 头像：优先 avatarUrl，缺失时退化为昵称首字符的圆形占位 */
-const BotAvatar: React.FC<{ binding: BotBinding; size?: number }> = ({ binding, size = 34 }) => {
+/** 头像：优先 avatarUrl，缺失时退化为昵称首字符的圆角占位（主色浅底） */
+const BotAvatar: React.FC<{ binding: BotBinding; size?: number }> = ({ binding, size = 42 }) => {
   const initial = (binding.nickname || binding.botId || '?').slice(0, 1).toUpperCase();
   if (binding.avatarUrl) {
     return (
       <img
         src={binding.avatarUrl}
         alt={binding.nickname ?? ''}
-        className='shrink-0 rounded-10px object-cover'
+        className='ai-avatar shrink-0 overflow-hidden object-cover'
         style={{ height: size, width: size }}
       />
     );
   }
   return (
     <span
-      className='flex shrink-0 items-center justify-center rounded-10px bg-fill-2 text-t-secondary font-500'
-      style={{ height: size, width: size, fontSize: size * 0.41 }}
+      className='ai-avatar shrink-0'
+      style={{ height: size, width: size, fontSize: size * 0.4 }}
     >
       {initial}
     </span>
@@ -461,6 +439,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
             <label className={labelCls}>{t('bots.form.platform', { defaultValue: '平台' })}</label>
             <Select
               className={inputCls}
+              getPopupContainer={(node) => node.parentNode as HTMLElement}
               value={platform}
               onChange={(v) => setPlatform(v)}
               options={[
@@ -481,7 +460,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
 
         {/* 微信扫码面板（仅 wechat 平台的新建态展示） */}
         {!editing && platform === 'wechat' && (
-          <div className='flex min-h-260px flex-col items-center justify-center gap-12px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-20px'>
+          <div className='ai-qr-panel'>
             {(scanPhase === 'idle' || scanPhase === 'fetching') && (
               <>
                 {scanPhase === 'fetching' && <Spin />}
@@ -505,7 +484,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
               <>
                 {/* qrcodeUrl 是微信登录页 URL（iLink 返回），作为二维码内容由 QRCodeSVG 渲染，
                     用户微信扫码即打开该 URL 完成登录；不能用 <img> 直接加载（那是 HTML 页面） */}
-                <div className='rounded-10px bg-white p-8px'>
+                <div className='ai-qr-frame'>
                   <QRCodeSVG value={qrcodeUrl} size={168} marginSize={1} />
                 </div>
                 <span className='text-13px text-t-secondary'>
@@ -642,6 +621,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
             <label className={labelCls}>{t('bots.form.status', { defaultValue: '状态' })}</label>
             <Select
               className={inputCls}
+              getPopupContainer={(node) => node.parentNode as HTMLElement}
               value={form.status}
               onChange={(v) => patch({ status: v })}
               options={[
@@ -677,6 +657,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
           </label>
           <Select
             className={inputCls}
+            getPopupContainer={(node) => node.parentNode as HTMLElement}
             value={form.model ?? ''}
             allowClear
             onChange={(v) => patch({ model: v as string })}
@@ -747,6 +728,7 @@ if (!cancelled && Array.isArray(list)) setSkillOptions(list);
           </label>
           <Select
             className={inputCls}
+            getPopupContainer={(node) => node.parentNode as HTMLElement}
             mode='multiple'
             value={form.skills ?? []}
             allowClear
@@ -956,31 +938,27 @@ export default function BotManagementPage() {
   ];
 
   const statCards = [
-    { label: t('bots.stats.total', { defaultValue: '已绑定' }), value: stats.total, valueCls: 'text-t-primary' },
-    { label: STATUS_META.online.label, value: stats.online, valueCls: 'text-success' },
-    {
-      label: t('bots.stats.rest', { defaultValue: '离线 / 过期' }),
-      value: stats.rest,
-      valueCls: 'text-t-tertiary',
-    },
+    { label: t('bots.stats.total', { defaultValue: '已绑定' }), value: stats.total, accent: 'primary', Icon: Application },
+    { label: STATUS_META.online.label, value: stats.online, accent: 'success', Icon: EveryUser },
+    { label: t('bots.stats.rest', { defaultValue: '离线 / 过期' }), value: stats.rest, accent: 'muted', Icon: Power },
   ];
 
   return (
-    <div className='box-border w-full min-h-full overflow-y-auto px-12px py-24px md:px-40px md:py-32px'>
-      <div className='mx-auto flex w-full max-w-860px box-border flex-col gap-16px'>
+    <div className='ai-page box-border w-full min-h-full overflow-y-auto px-12px py-24px md:px-40px md:py-32px'>
+      <div className='mx-auto flex w-full max-w-860px box-border flex-col gap-20px'>
         {/* 头部：标题 + 操作 */}
         <div className='flex w-full items-center justify-between gap-12px max-[560px]:flex-wrap'>
-          <div className='flex items-center gap-12px min-w-0 flex-1'>
-            <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
-              <svg className='h-24px w-24px' viewBox='0 0 24 24' fill='none'>
-                <path d='M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z' fill='rgb(var(--el-color-primary))' />
+          <div className='ai-page-header flex-1 min-w-0'>
+            <div className='ai-icon-tile'>
+              <svg className='h-22px w-22px' viewBox='0 0 24 24' fill='none'>
+                <path d='M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z' fill='currentColor' />
               </svg>
             </div>
             <div className='min-w-0'>
-              <h1 className={HUB_PAGE_TITLE_CLASS}>
+              <h1 className='title'>
                 {t('bots.page.title', { defaultValue: 'Bot 配置' })}
               </h1>
-              <p className='m-0 mt-6px text-13px leading-18px text-t-tertiary'>
+              <p className='desc'>
                 {t('bots.page.description', {
                   defaultValue: '管理微信 / 企业微信 Bot 的绑定、网关端口与运行状态。',
                 })}
@@ -1011,48 +989,53 @@ export default function BotManagementPage() {
           </div>
         </div>
 
-        {/* 统计卡 */}
+        {/* 统计卡：图标块 + 数值的扁平指标卡 */}
         <div className='grid w-full grid-cols-3 gap-12px max-[560px]:gap-8px'>
           {statCards.map((s) => (
             <div
               key={s.label}
-              className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'
+              data-accent={s.accent}
+              className='ai-stat-card'
             >
-              <div className='mb-4px text-11px leading-16px text-t-tertiary'>{s.label}</div>
-              <div className={classNames('text-24px font-600 leading-none', s.valueCls)}>{s.value}</div>
+              <div className='icon'>
+                <s.Icon theme='outline' size='20' fill='currentColor' strokeWidth={2.4} />
+              </div>
+              <div className='label'>{s.label}</div>
+              <div className={classNames('value', s.accent === 'muted' && 'is-muted', s.accent === 'success' && 'is-success')}>
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* 工具栏：搜索 + 状态筛选 */}
+        {/* 工具栏：搜索 + 状态筛选（pills 分段控件） */}
         <div className='flex w-full flex-wrap items-center gap-x-12px gap-y-8px'>
-          <Input.Search
-            allowClear
-            className='w-full max-w-280px [&_.arco-input-inner-wrapper]:!rounded-full [&_.arco-input-inner-wrapper]:!border [&_.arco-input-inner-wrapper]:!border-solid [&_.arco-input-inner-wrapper]:!border-[var(--color-border-2)]'
-            placeholder={t('bots.searchPlaceholder', { defaultValue: '搜索昵称 / Bot ID / 平台' })}
-            value={searchQuery}
-            onChange={setSearchQuery}
-          />
-          <div className='flex items-center gap-4px'>
-            {filterItems.map((item) => {
-              const selected = statusFilter === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type='button'
-                  aria-pressed={selected}
-                  className={classNames(
-                    'appearance-none !border-0 !outline-none !shadow-none rounded-8px px-9px py-4px text-13px leading-18px transition-colors',
-                    selected
-                      ? 'bg-fill-2 font-medium text-t-primary'
-                      : 'bg-transparent text-t-secondary hover:bg-fill-1 hover:text-t-primary'
-                  )}
-                  onClick={() => setStatusFilter(item.key)}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+          <div className='ai-toolbar w-full !flex-nowrap'>
+            <div className='search-box w-full max-w-280px'>
+              <Input.Search
+                allowClear
+                className='w-full [&_.arco-input-inner-wrapper]:!rounded-full'
+                placeholder={t('bots.searchPlaceholder', { defaultValue: '搜索昵称 / Bot ID / 平台' })}
+                value={searchQuery}
+                onChange={setSearchQuery}
+              />
+            </div>
+            <div className='ai-pills ml-auto'>
+              {filterItems.map((item) => {
+                const selected = statusFilter === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type='button'
+                    aria-pressed={selected}
+                    className={selected ? 'selected' : undefined}
+                    onClick={() => setStatusFilter(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -1072,12 +1055,12 @@ export default function BotManagementPage() {
             />
           </div>
         ) : (
-          <div className='w-full'>
+          <div
+            className='w-full ai-table md:md-card'
+            style={{ '--ai-grid-cols': LIST_GRID_COLUMNS } as React.CSSProperties}
+          >
             {/* 桌面表头 */}
-            <div
-              className='hidden items-center gap-16px border-b border-b-solid border-b-[var(--color-border-2)] px-16px py-10px text-12px font-medium leading-18px text-t-tertiary md:grid'
-              style={{ gridTemplateColumns: LIST_GRID_COLUMNS }}
-            >
+            <div className='table-head hidden md:grid'>
               <span>{t('bots.list.bot', { defaultValue: 'Bot' })}</span>
               <span>{t('bots.form.platform', { defaultValue: '平台' })}</span>
               <span>{t('bots.list.gatewayPort', { defaultValue: '端口' })}</span>
@@ -1087,69 +1070,64 @@ export default function BotManagementPage() {
               <span className='justify-self-end'>{t('bots.list.actions', { defaultValue: '操作' })}</span>
             </div>
 
-            <div className='block w-full divide-y divide-x-0 divide-solid divide-[var(--color-border-2)]'>
-              {filtered.map((row) => (
-                <div
-                  key={row.id}
-                  className='group flex flex-col gap-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm md:grid md:min-h-52px md:items-center md:gap-16px md:rounded-0 md:border-0 md:bg-transparent md:px-16px md:py-8px md:hover:bg-fill-1 md:hover:shadow-none'
-                  style={{ gridTemplateColumns: LIST_GRID_COLUMNS }}
-                >
-                  {/* 主体：头像 + 昵称 + Bot ID */}
-                  <div className='flex min-w-0 items-center gap-10px'>
-                    <BotAvatar binding={row} />
-                    <div className='flex min-w-0 flex-col'>
-                      <span className='truncate text-14px font-500 leading-20px text-t-primary' title={row.nickname}>
-                        {row.nickname || '—'}
-                      </span>
-                      <span className='truncate text-12px leading-16px text-t-tertiary' title={row.botId}>
-                        {row.botId || '—'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 平台 */}
-                  <div className='md:justify-self-start'>
-                    <PlatformLogo platform={row.platform} className='h-20px w-20px' />
-                  </div>
-
-                  {/* 端口 */}
-                  <span className='text-13px leading-20px text-t-secondary' title={row.gatewayPort != null ? String(row.gatewayPort) : undefined}>
-                    {row.gatewayPort != null && row.gatewayPort > 0 ? `:${row.gatewayPort}` : '—'}
-                  </span>
-
-                  {/* 模型（带厂商 Logo） */}
-                  <div className='flex min-w-0 items-center text-13px leading-20px text-t-secondary' title={row.model}>
-                    <ModelVendorLogo model={row.model} />
-                    <span className='truncate'>{row.model || '—'}</span>
-                  </div>
-
-                  {/* 最后活跃 */}
-                  <span
-                    className='truncate text-13px leading-20px text-t-secondary'
-                    title={row.lastActiveTime ?? undefined}
-                  >
-                    {formatRelativeTime(row.lastActiveTime)}
-                  </span>
-
-                  {/* 状态 */}
-                  <StatusBadge status={row.status} />
-
-                  {/* 操作 */}
-                  <div className='flex items-center justify-start gap-4px md:justify-self-end'>
-                    <Button
-                      size='mini'
-                      type='text'
-                      onClick={() => openEdit(row)}
-                    >
-                      {t('common.edit', { defaultValue: '编辑' })}
-                    </Button>
-                    <Button size='mini' type='text' status='danger' onClick={() => handleDelete(row)}>
-                      {t('bots.unbind', { defaultValue: '解绑' })}
-                    </Button>
+            {/* 列表：移动端为独立圆角卡片行，桌面端合为带边框圆角卡片表体 */}
+            {filtered.map((row) => (
+              <div key={row.id} className='table-row group'>
+                {/* 主体：头像 + 昵称 + Bot ID */}
+                <div className='flex min-w-0 items-center gap-10px'>
+                  <BotAvatar binding={row} />
+                  <div className='flex min-w-0 flex-col'>
+                    <span className='truncate text-14px font-500 leading-20px text-t-primary' title={row.nickname}>
+                      {row.nickname || '—'}
+                    </span>
+                    <span className='truncate text-12px leading-16px text-t-tertiary' title={row.botId}>
+                      {row.botId || '—'}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* 平台 */}
+                <div className='md:justify-self-start'>
+                  <PlatformLogo platform={row.platform} className='h-20px w-20px' />
+                </div>
+
+                {/* 端口 */}
+                <span className='text-13px leading-20px text-t-secondary' title={row.gatewayPort != null ? String(row.gatewayPort) : undefined}>
+                  {row.gatewayPort != null && row.gatewayPort > 0 ? `:${row.gatewayPort}` : '—'}
+                </span>
+
+                {/* 模型（带厂商 Logo） */}
+                <div className='flex min-w-0 items-center text-13px leading-20px text-t-secondary' title={row.model}>
+                  <ModelVendorLogo model={row.model} />
+                  <span className='truncate'>{row.model || '—'}</span>
+                </div>
+
+                {/* 最后活跃 */}
+                <span
+                  className='truncate text-13px leading-20px text-t-secondary'
+                  title={row.lastActiveTime ?? undefined}
+                >
+                  {formatRelativeTime(row.lastActiveTime)}
+                </span>
+
+                {/* 状态 */}
+                <StatusBadge status={row.status} />
+
+                {/* 操作 */}
+                <div className='flex items-center justify-start gap-4px md:justify-self-end'>
+                  <Button
+                    size='mini'
+                    type='text'
+                    onClick={() => openEdit(row)}
+                  >
+                    {t('common.edit', { defaultValue: '编辑' })}
+                  </Button>
+                  <Button size='mini' type='text' status='danger' onClick={() => handleDelete(row)}>
+                    {t('bots.unbind', { defaultValue: '解绑' })}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

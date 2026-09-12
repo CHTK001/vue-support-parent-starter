@@ -37,8 +37,8 @@ const defaultOptions: HttpOptions = {
 let defaultInstance: typeof axios = axios;
 
 /** 注入全局默认 axios 实例（createApp 构建 HTTP 客户端后调用） */
-export function setDefaultHttpInstance(instance: typeof axios): void {
-  defaultInstance = instance ?? axios;
+export function setDefaultHttpInstance(instance: AxiosInstance): void {
+  defaultInstance = (instance ?? axios) as typeof axios;
 }
 
 type MetaRequestConfig = AxiosRequestConfig & { hc?: HttpMetaConfig };
