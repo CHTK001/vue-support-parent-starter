@@ -201,6 +201,28 @@ function osSvg(os: string): string {
   };
   return icons[os] ?? icons.terminal;
 }
+/** 平台图片资源路径（用户可自行放置高辨识度 logo 到 src/assets/os/，见该目录 README）；无匹配时返回空走 SVG 兜底 */
+function osImgSrc(os: string): string {
+  const map: Record<string, string> = {
+    linux: "os-linux",
+    windows: "os-windows",
+    macos: "os-macos",
+  };
+  const name = map[os];
+  if (!name) return "";
+  return `${import.meta.env.BASE_URL}os/${name}.png`;
+}
+/** 已确认图片加载失败的主机集合（key: id-os），命中则回退 SVG */
+const osImgErrors = ref<Set<string>>(new Set());
+function osImgFailed(row: Host): boolean {
+  return osImgErrors.value.has(`${row.id}-${osIcon(row.serverHostOsType)}`);
+}
+function markOsImgFailed(row: Host): void {
+  const key = `${row.id}-${osIcon(row.serverHostOsType)}`;
+  if (!osImgErrors.value.has(key)) {
+    osImgErrors.value = new Set(osImgErrors.value).add(key);
+  }
+}
 function protocolOf(h: Host): string {
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
@@ -410,6 +432,10 @@ onMounted(() => {
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
+        <label class="color-switch">
+          <span>分组底色</span>
+          <el-switch v-model="groupColorEnabled" size="small" />
+        </label>
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增资产</ReButton>
       </div>
@@ -485,7 +511,16 @@ onMounted(() => {
           @selection-change="selection = $event"
         >
         <template #col-name="{ row }">
-          <span class="h-os" v-html="osSvg(osIcon(row.serverHostOsType))"></span>
+          <span class="h-os">
+            <img
+              v-if="!osImgFailed(row) && osImgSrc(osIcon(row.serverHostOsType))"
+              :src="osImgSrc(osIcon(row.serverHostOsType))"
+              class="os-img"
+              alt=""
+              @error="markOsImgFailed(row)"
+            />
+            <span v-else v-html="osSvg(osIcon(row.serverHostOsType))"></span>
+          </span>
           <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
         </template>
         <template #col-addr="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
@@ -653,7 +688,9 @@ onMounted(() => {
 }
 .h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); }
 .h-os :deep(svg) { display: block; }
+.os-img { width: 17px; height: 17px; display: block; object-fit: contain; }
 .kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 .op-cell { display: flex; gap: 4px; }
+.color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
 </style>
