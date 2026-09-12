@@ -615,9 +615,21 @@ async function handleExist(row: StorageObject): Promise<void> {
 }
 
 async function handleDelete(row: StorageObject): Promise<void> {
-  try { await ElMessageBox.confirm(`确认删除「${row.name}」？`, "删除确认", { type: "warning" }); } catch { return; }
-  try { await deleteObject(bucket.value, fullKey(row.name)); ElMessage.success("删除成功"); await loadObjects(); }
-  catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
+  // 多选模式：删除选中集中的所有文件（目录保留单独删除）
+  const targets = selected.value.size > 1 && selected.value.has(row.name)
+    ? [...selected.value].map((name) => ({ name } as StorageObject))
+    : [row];
+  const label = targets.length > 1 ? `确认删除选中的 ${targets.length} 个对象？` : `确认删除「${row.name}」？`;
+  try { await ElMessageBox.confirm(label, "删除确认", { type: "warning" }); } catch { return; }
+  try {
+    for (const t of targets) {
+      await deleteObject(bucket.value, fullKey(t.name));
+    }
+    ElMessage.success(`已删除 ${targets.length} 个对象`);
+    clearSelect();
+    await loadObjects();
+    await loadTree();
+  } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
 }
 
 /* ================== 创建链接（一次性 / 限时） ================== */
