@@ -183,6 +183,7 @@ function groupColorStyle(id?: number | null): Record<string, string> {
 
 function normalizeOs(t?: string): string {
   const s = (t ?? "").toUpperCase();
+  if (s.includes("ANDROID")) return "Android";
   if (s.includes("WIN")) return "Windows";
   if (s.includes("LINUX")) return "Linux";
   if (s.includes("MAC")) return "macOS";
@@ -190,6 +191,7 @@ function normalizeOs(t?: string): string {
 }
 function osIcon(t?: string): string {
   const s = (t ?? "").toUpperCase();
+  if (s.includes("ANDROID")) return "android";
   if (s.includes("WIN")) return "windows";
   if (s.includes("LINUX")) return "linux";
   if (s.includes("MAC") || s.includes("DARWIN")) return "macos";
@@ -201,6 +203,7 @@ function osSvg(os: string): string {
     linux: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3D7A45"><path d="M12 0C8.28 0 5.236 1.92 5.236 4.286c0 1.516.86 2.857 2.168 3.73C4.872 8.47 3.5 10.11 3.5 12c0 1.344.56 2.55 1.45 3.46-.168 1.098-.7 2.1-1.49 2.9-.24.243-.39.56-.43.89-.04.33.03.67.2.97.23.43.06.83.3.83.12 0 1.06-.5 2.05-1.13.22.05.45.09.68.12.32.05.65.09.99.11.35.03.7.05 1.06.05.37 0 .73-.02 1.1-.05.34-.03.68-.06 1-.11.24-.03.48-.07.71-.12.99.63 1.93 1.13 2.05 1.13.24 0 .07-.4.3-.83.17-.3.24-.64.2-.97-.04-.33-.19-.65-.43-.89-.79-.8-1.32-1.8-1.49-2.9.89-.91 1.45-2.12 1.45-3.46 0-.45-.07-.9-.2-1.32.42-.73.67-1.63.67-2.57 0-2.37-3.05-4.29-6.79-4.29zm4.5 5.3c.19 0 .36.61.36 1.36s-.16 1.36-.36 1.36c-.19 0-.36-.61-.36-1.36s.16-1.36.36-1.36zm-9 0c.2 0 .36.61.36 1.36s-.16 1.36-.36 1.36c-.2 0-.36-.61-.36-1.36s.16-1.36.36-1.36z"/></svg>',
     windows: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#0078D4" d="M0 3.45 9.75 2.1V11H0ZM10.88 2.05 24 0v11H10.88ZM0 12.2h9.75v8.9L0 19.7ZM10.88 12.2H24V24l-13.12-1.76Z"/></svg>',
     macos: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#4A4A4A"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/></svg>',
+    android: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3DDC84"><path d="M19.07 4.17A4.92 4.92 0 0 0 12 2.5a4.92 4.92 0 0 0-7.07 2.18A4.5 4.5 0 0 0 .5 9c0 2.49 2.01 4.5 4.5 4.5h.13a3.76 3.76 0 0 0 .24 1.65 1 1 0 0 0 1.58.26 5.5 5.5 0 0 1 6.19.2.9.9 0 0 1 .39.78v.5a.5.5 0 0 0 1 .33 4.5 4.5 0 0 0 3.65-2.59 4.53 4.53 0 0 0 3.72-11.32z"/><circle cx="15.3" cy="9.2" r="1.1"/><circle cx="9.7" cy="9.2" r="1.1"/></svg>',
     terminal: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
   };
   return icons[os] ?? icons.terminal;
@@ -211,6 +214,7 @@ function osImgSrc(os: string): string {
     linux: "os-linux",
     windows: "os-windows",
     macos: "os-macos",
+    android: "os-android",
   };
   const name = map[os];
   if (!name) return "";

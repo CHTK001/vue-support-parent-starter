@@ -1,7 +1,7 @@
 /**
  * 消息推送模块 API 封装（@pages/message）
  */
-import { getApiHttp } from "@repo/core";
+import { http } from "@repo/utils";
 import type {
   ApiResult,
   ChannelInfo,
@@ -47,7 +47,7 @@ export function pageForProvider(params: {
   sysMessageProviderName?: string;
   sysMessageProviderType?: string;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/message/provider/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<MessageProvider>>>((r) => r.data);
@@ -55,21 +55,21 @@ export function pageForProvider(params: {
 
 /** 提供商列表查询 */
 export function listForProvider() {
-  return getApiHttp()
+  return http()
     .get("/v2/message/provider/list")
     .then<ApiResult<MessageProvider[]>>((r) => r.data);
 }
 
 /** 已注册消息渠道列表 */
 export function listChannels() {
-  return getApiHttp()
+  return http()
     .get("/v2/message/channel/list")
     .then<ApiResult<ChannelInfo[]>>((r) => r.data);
 }
 
 /** 新增提供商 */
 export function saveProvider(data: MessageProvider) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/provider/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<MessageProvider>>((r) => r.data);
@@ -77,7 +77,7 @@ export function saveProvider(data: MessageProvider) {
 
 /** 更新提供商 */
 export function updateProvider(data: MessageProvider) {
-  return getApiHttp()
+  return http()
     .put("/v2/message/provider/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -85,7 +85,7 @@ export function updateProvider(data: MessageProvider) {
 
 /** 删除提供商 */
 export function deleteProvider(sysMessageProviderId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/message/provider/delete")
     .query({ sysMessageProviderId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -99,7 +99,7 @@ export function pageForTemplate(params: {
   sysMessageTemplateName?: string;
   sysMessageTemplateType?: string;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/message/template/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<MessageTemplate>>>((r) => r.data);
@@ -107,14 +107,14 @@ export function pageForTemplate(params: {
 
 /** 模板列表查询 */
 export function listForTemplate() {
-  return getApiHttp()
+  return http()
     .get("/v2/message/template/list")
     .then<ApiResult<MessageTemplate[]>>((r) => r.data);
 }
 
 /** 新增模板 */
 export function saveTemplate(data: MessageTemplate) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/template/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<MessageTemplate>>((r) => r.data);
@@ -122,7 +122,7 @@ export function saveTemplate(data: MessageTemplate) {
 
 /** 更新模板 */
 export function updateTemplate(data: MessageTemplate) {
-  return getApiHttp()
+  return http()
     .put("/v2/message/template/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -130,7 +130,7 @@ export function updateTemplate(data: MessageTemplate) {
 
 /** 删除模板 */
 export function deleteTemplate(sysMessageTemplateId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/message/template/delete")
     .query({ sysMessageTemplateId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -138,7 +138,7 @@ export function deleteTemplate(sysMessageTemplateId: number) {
 
 /** 手动同步模板 */
 export function syncTemplate(sysMessageProviderId: number) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/template/sync")
     .query({ sysMessageProviderId })
     .then<ApiResult<number>>((r) => r.data);
@@ -146,7 +146,7 @@ export function syncTemplate(sysMessageProviderId: number) {
 
 /** 按模板发送消息 */
 export function sendMessage(data: MessageSendRequest) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/send")
     .data(data as Record<string, unknown>)
     .then<ApiResult<MessageResponse[]>>((r) => r.data);
@@ -154,7 +154,7 @@ export function sendMessage(data: MessageSendRequest) {
 
 /** 按内容发送消息 */
 export function sendContentMessage(data: MessageContentSendRequest) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/send/content")
     .data(data as Record<string, unknown>)
     .then<ApiResult<MessageResponse[]>>((r) => r.data);
@@ -169,7 +169,7 @@ export function pageForLog(params: {
   sysMessageProviderId?: number;
   sysMessageReadStatus?: number;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/message/log/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<MessageLog>>>((r) => r.data);
@@ -177,7 +177,7 @@ export function pageForLog(params: {
 
 /** 模板内容渲染预览 */
 export function previewTemplate(data: TemplatePreviewRequest) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/template/preview")
     .data(data as Record<string, unknown>)
     .then<ApiResult<TemplatePreviewResponse>>((r) => r.data);
@@ -185,7 +185,7 @@ export function previewTemplate(data: TemplatePreviewRequest) {
 
 /** 清理推送日志（截止时间，ISO 串，如 2026-01-01T00:00:00） */
 export function cleanLog(beforeTime: string) {
-  return getApiHttp()
+  return http()
     .post("/v2/message/log/clean")
     .query({ beforeTime })
     .then<ApiResult<number>>((r) => r.data);
