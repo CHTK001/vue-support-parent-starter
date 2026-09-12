@@ -3,7 +3,7 @@
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
@@ -12,6 +12,7 @@ import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIde
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
+import { useSocketService } from "@repo/core";
 
 export interface Host {
   id: number;
@@ -268,6 +269,7 @@ const tableColumns = computed(() => [
   { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
   { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
+  { prop: "serverHostDelayMs", label: "延迟", width: 84, slot: "delay" },
   { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
   { prop: "serverHostPorts", label: "端口", minWidth: 140, slot: "ports" },
   { prop: "serverHostAgentEnabled", label: "Agent", width: 84, slot: "agent" },
@@ -421,6 +423,17 @@ async function batchDelete(): Promise<void> {
 
 onMounted(() => {
   fetchAll();
+  // 实时延迟：socket 推送（后台 delayTick 每轮检测后广播），更新到 liveDelay 覆盖表格列
+  const socket = useSocketService();
+  unsubDelay = socket?.subscribe("monitor", "host-delay", (msg) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; delayMs?: number | null };
+      if (d && d.hostId != null) liveDelay.value[d.hostId] = d.delayMs ?? -1;
+    } catch { /* 静默 */ }
+  });
+});
+onBeforeUnmount(() => {
+  unsubDelay?.();
 });
 </script>
 
@@ -544,6 +557,11 @@ onMounted(() => {
         </template>
         <template #col-status="{ row }">
           <span class="st-cell"><ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : 'info'" />{{ onlineText(row) }}</span>
+        </template>
+        <template #col-delay="{ row }">
+          <span v-if="liveDelay[row.id] != null" class="delay-live" :class="{ bad: liveDelay[row.id] < 0 }">{{ liveDelay[row.id] < 0 ? "不可达" : liveDelay[row.id] + " ms" }}</span>
+          <span v-else-if="row.serverHostDelayMs != null" class="delay-live" :class="{ bad: row.serverHostDelayMs < 0 }">{{ row.serverHostDelayMs < 0 ? "不可达" : row.serverHostDelayMs + " ms" }}</span>
+          <span v-else class="dim">—</span>
         </template>
         <template #col-agent="{ row }">
           <ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag>

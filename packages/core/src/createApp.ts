@@ -31,6 +31,7 @@ import { createTokenManager, type TokenManager } from "./token";
 import { setupHttpCryptoInterceptor } from "./httpCrypto";
 import {
   createHttp,
+  setDefaultHttpInstance,
   log,
   getUserInfo,
   setMenuCache,
@@ -127,6 +128,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   log.info("createApp", "⑤ buildHttp...");
   const http = buildHttp(crypto, config);
   setApiHttp(http);
+  setDefaultHttpInstance(http.getInstance());
 
   log.info("createApp", "⑥ createAppRouter...");
   const remoteLoader = options.loadRemoteRoutes ?? (await getRemoteRouteLoader());

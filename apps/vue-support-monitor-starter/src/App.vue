@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
+import { useSocketService } from "@repo/core";
 import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
 
 const route = useRoute();
@@ -96,21 +97,31 @@ const crumb = computed(() => {
   return `监控管理 / ${top ?? (seg ? seg : "监控概览")}`;
 });
 
-/** 告警未处理徽标（30s 轮询） */
+/** 告警未处理徽标 —— socket 实时推送（新告警+1，处理/恢复-1），初次/网络恢复时 REST 补偿 */
 const unhandled = ref(0);
-let badgeTimer: number | undefined;
+const socket = useSocketService();
+
+/** socket 到达时增加未处理计数 */
+const unsubAlarm = socket?.subscribe("monitor", "alarm", (msg: any) => {
+  try {
+    const data = (msg.data ?? msg) as any;
+    const status = String(data?.status ?? data?.msMonitorAlarmEventStatus ?? "").toUpperCase();
+    if (status === "NEW") unhandled.value++;
+    else if (status === "PROCESSED" || status === "FALSE_ALARM") {
+      unhandled.value = Math.max(0, unhandled.value - 1);
+    }
+  } catch { /* 静默 */ }
+});
+
+/** 初始加载 + 每次页面恢复时刷新真实计数（补偿 socket 断线期间丢失的事件） */
 async function refreshBadge(): Promise<void> {
   try {
     const list = await fetchAlarmEvents();
     unhandled.value = list.filter(isUnhandled).length;
   } catch { /* 静默 */ }
 }
-onMounted(() => {
-  refreshBadge();
-  badgeTimer = window.setInterval(refreshBadge, 30000);
-  checkRedis();
-});
-onBeforeUnmount(() => window.clearInterval(badgeTimer));
+onMounted(() => { refreshBadge(); checkRedis(); });
+onBeforeUnmount(() => { unsubAlarm?.(); });
 
 function go(path: string): void {
   if (route.path !== path) router.push(path);

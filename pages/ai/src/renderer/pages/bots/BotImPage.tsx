@@ -31,7 +31,9 @@ import {
   MessageSeparator,
 } from '@chatscope/chat-ui-kit-react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
-import { httpRequest, isBackendHttpError, wsEmitter } from '@/common/adapter/httpBridge';
+import { wsEmitter } from '@/common/adapter/httpBridge';
+import { http } from '@repo/core';
+import { unwrapResult, AxiosError } from '@repo/utils';
 import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
@@ -95,6 +97,18 @@ function friendlyError(raw: string): string {
   }
   if (r.includes('不能为空')) return r;
   return r;
+}
+
+/** 从 http() 抛出的错误中提取后端返回的错误信息（兼容 AxiosError 与 unwrapResult 抛出的 Error） */
+function getBackendError(e: unknown): string {
+  if (e instanceof AxiosError) {
+    const data = e.response?.data;
+    if (data && typeof data === 'object') {
+      const msg = (data as Record<string, unknown>).msg || (data as Record<string, unknown>).message || '';
+      if (msg) return String(msg);
+    }
+  }
+  return (e instanceof Error ? e.message : '') || '';
 }
 
 const STATUS_META: Record<string, { label: string; dot: string }> = {
@@ -278,7 +292,7 @@ const ChatInput: React.FC<{
   useEffect(() => {
     (async () => {
       try {
-        const res = await httpRequest<Array<{ name?: string; description?: string; prefix?: string }>>('GET', '/v2/ai/bot-binding/commands');
+        const res = await http().get('/v2/ai/bot-binding/commands').then(r => unwrapResult<Array<{ name?: string; description?: string; prefix?: string }>>(r));
         if (Array.isArray(res)) {
           setCmdList(res.map((c) => ({
             prefix: c.prefix ?? '/',
@@ -295,7 +309,7 @@ const ChatInput: React.FC<{
   const loadContacts = useCallback(async (id?: string) => {
     if (!id) return;
     try {
-      const res = await httpRequest<string[]>('GET', `/v2/ai/bot-binding/contacts?botId=${id}`);
+      const res = await http().get(`/v2/ai/bot-binding/contacts?botId=${id}`).then(r => unwrapResult<string[]>(r));
       setContacts(Array.isArray(res) ? res : []);
     } catch { setContacts([]); }
   }, []);
@@ -528,8 +542,8 @@ export default function BotImPage() {
   /* 会话列表 */
   const loadConversations = useCallback(async () => {
     try {
-      const res = await httpRequest<unknown>('GET', '/v2/ai/bot-binding/conversations');
-      const list = extractList<ConversationItem>(res);
+      const res = await http().get('/v2/ai/bot-binding/conversations').then(r => unwrapResult<ConversationItem[]>(r));
+      const list = Array.isArray(res) ? res : extractList<ConversationItem>(res);
       setConversations(list);
       // 优先按 URL 参数（来自 Bot 用户页「聊天」）选中会话
       const targetBotId = searchParams.get('botId');
@@ -556,7 +570,7 @@ export default function BotImPage() {
     /* 加载全局配置（含 historySize） */
     (async () => {
       try {
-        const res = await httpRequest<Record<string, unknown>>('GET', '/v2/ai/bot-binding/global-config');
+        const res = await http().get('/v2/ai/bot-binding/global-config').then(r => unwrapResult<Record<string, unknown>>(r));
         if (typeof res?.historySize === 'number') setHistorySize(res.historySize);
       } catch { /* 忽略 */ }
     })();
@@ -586,8 +600,7 @@ export default function BotImPage() {
   const checkRuntimeStatus = useCallback(async (botId?: string) => {
     if (!botId) return;
     try {
-      const res = await httpRequest<{ status?: string }>('GET',
-        `/v2/ai/bot-binding/runtime-status?botId=${encodeURIComponent(botId)}`);
+      const res = await http().get(`/v2/ai/bot-binding/runtime-status?botId=${encodeURIComponent(botId)}`).then(r => unwrapResult<{ status?: string }>(r));
       setRuntimeStatus(res?.status === 'running' ? 'running' : 'stopped');
     } catch {
       setRuntimeStatus('stopped');
@@ -606,9 +619,7 @@ export default function BotImPage() {
     stopPoll();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await httpRequest<{ status?: string; qrcodeUrl?: string; expireAt?: number }>(
-          'GET', `/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`
-        );
+        const res = await http().get(`/v2/ai/bot-binding/qrcode/status?key=${encodeURIComponent(key)}`).then(r => unwrapResult<{ status?: string; qrcodeUrl?: string; expireAt?: number }>(r));
         const s = res?.status ?? 'pending';
         if (res?.qrcodeUrl) setQrcodeUrl(res.qrcodeUrl);
         if (s === 'confirmed') {
@@ -643,9 +654,8 @@ export default function BotImPage() {
     try {
       const oldBotId = active?.botId ? encodeURIComponent(active.botId) : '';
       const platform = encodeURIComponent(active?.platform ?? 'wechat');
-      const res = await httpRequest<{ key?: string; qrcodeUrl?: string }>(
-        'POST', `/v2/ai/bot-binding/qrcode?platform=${platform}${oldBotId ? `&botId=${oldBotId}` : ''}`
-      );
+      const res = await http().post(`/v2/ai/bot-binding/qrcode?platform=${platform}${oldBotId ? `&botId=${oldBotId}` : ''}`)
+        .then(r => unwrapResult<{ key?: string; qrcodeUrl?: string }>(r));
       const key = res?.key ?? '';
       if (!key) {
         setScanPhase('error');
@@ -676,10 +686,10 @@ export default function BotImPage() {
     if (resetPage) setLoading(true);
     else setLoadingOlder(true);
     try {
-      const res = await httpRequest<{ messages?: ChatMessage[]; hasMore?: boolean; page?: number; pageSize?: number }>('GET',
-        `/v2/ai/bot-binding/messages?botId=${encodeURIComponent(active.botId)}&fromUser=${encodeURIComponent(active.fromUser ?? '')}&page=${page}&pageSize=${historySize}`);
-      const data = res?.data ?? res as Record<string, unknown>;
-      const list: ChatMessage[] = Array.isArray(data.messages) ? data.messages : extractList<ChatMessage>(res);
+      const res = await http().get(`/v2/ai/bot-binding/messages?botId=${encodeURIComponent(active.botId)}&fromUser=${encodeURIComponent(active.fromUser ?? '')}&page=${page}&pageSize=${historySize}`)
+        .then(r => unwrapResult<{ messages?: ChatMessage[]; hasMore?: boolean; page?: number; pageSize?: number }>(r));
+      const data = res as Record<string, unknown>;
+      const list: ChatMessage[] = Array.isArray(data.messages) ? data.messages : extractList<ChatMessage>(data);
       if (resetPage) {
         setMessages(list);
         // 第 0 页（最近一页）已展示，滚动加载更早历史应从第 1 页开始
@@ -704,8 +714,8 @@ export default function BotImPage() {
   /* 删除会话（清理僵尸账号聊天记录） */
   const handleDeleteConversation = useCallback(async (botId: string, fromUser: string | undefined) => {
     try {
-      await httpRequest<{ deleted?: number }>('DELETE',
-        `/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser ?? '')}`);
+      await http().delete(`/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser ?? '')}`)
+        .then(r => unwrapResult<{ deleted?: number }>(r));
       const key = `${botId}|${fromUser ?? ''}`;
       setConversations((prev) => prev.filter((c) => `${c.botId}|${c.fromUser ?? ''}` !== key));
       if (key === activeKey) {
@@ -745,8 +755,8 @@ export default function BotImPage() {
       await Promise.all(keys.map((key) => {
         const [botId, ...rest] = key.split('|');
         const fromUser = rest.join('|');
-        return httpRequest<{ deleted?: number }>('DELETE',
-          `/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser)}`);
+        return http().delete(`/v2/ai/bot-binding/conversations?botId=${encodeURIComponent(botId)}&fromUser=${encodeURIComponent(fromUser)}`)
+          .then(r => unwrapResult<{ deleted?: number }>(r));
       }));
       const keySet = new Set(keys);
       setConversations((prev) => prev.filter((c) => !keySet.has(`${c.botId}|${c.fromUser ?? ''}`)));
@@ -832,12 +842,13 @@ export default function BotImPage() {
     setMessages((prev) => [...prev, localMsg]);
     setInput('');
     try {
-      const res = await httpRequest<{ ok?: boolean; success?: boolean; msg?: string; msgId?: string; messageId?: string }>(
-        'POST', '/v2/ai/bot-binding/send', {
+      const res = await http().post('/v2/ai/bot-binding/send')
+        .data({
           botId: active.botId,
           fromUser: active.fromUser,
           content,
-        });
+        })
+        .then(r => unwrapResult<{ ok?: boolean; success?: boolean; msg?: string; msgId?: string; messageId?: string }>(r));
       // 业务失败：后端可能返回 HTTP 200 但 ok=false / success=false（如会话过期），
       // 必须识别并标记失败，否则用户会看到自己的消息"已发出"但实际没送达。
       if (res && (res.ok === false || res.success === false)) {
@@ -871,9 +882,7 @@ export default function BotImPage() {
       }
     } catch (e) {
       // 发送失败：保留该消息，标记失败并展示错误原因 + 解决入口
-      const reason = isBackendHttpError(e)
-        ? friendlyError(e.backendMessage || '')
-        : t('bots.im.sendFailed', { defaultValue: '发送失败' });
+      const reason = friendlyError(getBackendError(e));
       // 判断是否为"Bot 未运行 / 会话过期"类错误，提示重新扫码
       const rescanNeeded = /未在运行|未运行|过期|expired|timeout|超时|重新扫码|已停止|离线|session/i.test(reason);
       setMessages((prev) => prev.map((m) => (m.id === localId ? { ...m, status: 'failed', sendError: reason } : m)));
@@ -893,10 +902,12 @@ export default function BotImPage() {
     if (!active?.botId || !input.trim()) return;
     setPolishing(true);
     try {
-      const res = await httpRequest<{ result?: string }>('POST', '/v2/ai/bot-binding/polish', {
-        botId: active.botId,
-        text: input,
-      });
+      const res = await http().post('/v2/ai/bot-binding/polish')
+        .data({
+          botId: active.botId,
+          text: input,
+        })
+        .then(r => unwrapResult<{ result?: string }>(r));
       const result = res?.result?.trim();
       if (result) {
         setInput(result);
@@ -925,10 +936,12 @@ export default function BotImPage() {
     if (!active?.botId) return;
     setSummarizing(true);
     try {
-      const res = await httpRequest<{ summary?: string }>('POST', '/v2/ai/bot-binding/summarize', {
-        botId: active.botId,
-        fromUser: active.fromUser,
-      });
+      const res = await http().post('/v2/ai/bot-binding/summarize')
+        .data({
+          botId: active.botId,
+          fromUser: active.fromUser,
+        })
+        .then(r => unwrapResult<{ summary?: string }>(r));
       const summary = res?.summary?.trim();
       if (summary) {
         Message.success(t('bots.im.summarizeSuccess', { defaultValue: '上下文总结完成' }));
