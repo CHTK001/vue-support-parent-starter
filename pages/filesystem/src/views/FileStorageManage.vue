@@ -414,6 +414,10 @@ function goUp(): void {
 
 function openContextMenu(e: MouseEvent, row: StorageObject): void {
   e.preventDefault();
+  // KodExplorer 行为：右键即选中该文件（若已多选则保留选择）
+  if (!selected.value.has(row.name)) {
+    selected.value = new Set([row.name]);
+  }
   ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
 }
 
@@ -1373,6 +1377,58 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
+/* ---- 目录树（KodExplorer 风格） ---- */
+.fs-tree { display: flex; flex-direction: column; gap: 1px; }
+.fs-tree__empty { padding: 8px; font-size: 12px; color: var(--fs-text-3); text-align: center; }
+.fs-tree-node { width: 100%; }
+.fs-tree-node__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fs-text);
+  transition: background 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fs-tree-node__row:hover { background: #f1f5f9; }
+.fs-tree-node__row--active { background: var(--fs-primary-soft); color: var(--fs-primary); font-weight: 600; }
+.fs-tree-node__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--fs-text-3);
+  transition: transform 0.18s;
+}
+.fs-tree-node__arrow svg { width: 12px; height: 12px; }
+.fs-tree-node__arrow--open { transform: rotate(90deg); }
+.fs-tree-node__icon { width: 16px; height: 16px; flex-shrink: 0; color: #f59e0b; }
+.fs-tree-node__row--active .fs-tree-node__icon { color: var(--fs-primary); }
+.fs-tree-node__label { overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- 状态栏（KodExplorer 风格） ---- */
+.fs-statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 7px 20px;
+  background: var(--fs-surface);
+  border-top: 1px solid var(--fs-border);
+  font-size: 12px;
+  color: var(--fs-text-3);
+  user-select: none;
+}
+.fs-statusbar__item { white-space: nowrap; }
+.fs-statusbar__item--selected { color: var(--fs-primary); font-weight: 600; }
+.fs-statusbar__spacer { flex: 1; }
+
 /* ---- 主内容区 ---- */
 .fs-content {
   flex: 1;
@@ -1604,6 +1660,7 @@ onUnmounted(() => {
   overflow: hidden;
 }
 .fs-sm-row:hover { background: #f8fafc; }
+.fs-sm-row--selected { background: var(--fs-primary-soft); }
 .fs-sm-row:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: -2px; }
 .fs-sm-row__icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--fs-text-3); }
 .fs-sm-row__icon:first-child { color: var(--fs-primary); }
