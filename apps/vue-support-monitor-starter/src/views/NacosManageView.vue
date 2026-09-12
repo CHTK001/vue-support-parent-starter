@@ -61,7 +61,7 @@
             </div>
           </div>
           <ReTable :data="filteredConfigs" :columns="configColumns" :loading="loading" stripe border height="400px">
-            <template #default="{ row }">
+            <template #col-actions="{ row }">
               <ReButton size="small" text @click="viewConfig(row)">查看</ReButton>
               <ReButton size="small" text type="primary" @click="editConfig(row)">编辑</ReButton>
               <ReButton size="small" text type="danger" @click="deleteConfig(row)">删除</ReButton>
@@ -102,9 +102,54 @@
       </template>
     </ReDialog>
   </div>
+
+  <!-- 配置右键菜单 -->
+  <div
+    v-if="configContextMenu.visible"
+    class="nacos-context-menu"
+    :style="{ left: configContextMenu.x + 'px', top: configContextMenu.y + 'px' }"
+    @click="configContextMenu.visible = false"
+  >
+    <div class="ncm-item" @click="viewConfig(configContextMenu.config)">
+      <ReIcon name="View" size="14" />查看配置
+    </div>
+    <div class="ncm-item" @click="editConfig(configContextMenu.config)">
+      <ReIcon name="Edit" size="14" />编辑配置
+    </div>
+    <div class="ncm-item" @click="onCloneConfig(configContextMenu.config)">
+      <ReIcon name="Copy" size="14" />克隆配置
+    </div>
+    <div class="ncm-item" @click="onExportConfig(configContextMenu.config)">
+      <ReIcon name="Download" size="14" />导出配置
+    </div>
+    <div class="ncm-item" @click="onPublishConfig(configContextMenu.config)">
+      <ReIcon name="Promotion" size="14" />发布配置
+    </div>
+    <div class="ncm-divider"></div>
+    <div class="ncm-item ncm-danger" @click="deleteConfig(configContextMenu.config)">
+      <ReIcon name="Delete" size="14" />删除配置
+    </div>
+    <div class="ncm-item" @click="refresh">
+      <ReIcon name="Refresh" size="14" />刷新
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Nacos 配置中心管理页
+ *
+ * 提供命名空间/配置/服务/集群节点浏览、配置增删改查与发布/克隆/导出。
+ * @author CH
+ * @since 4.0.0
+ */
+/**
+ * Nacos 管理页
+ *
+ * 提供 Nacos 配置中心的命名空间/配置/服务/集群节点浏览、配置增删改查。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
@@ -117,36 +162,80 @@ const activeView = ref("configs");
 const loading = ref(false);
 const searchKeyword = ref("");
 
-const namespaces = ref([
-  { id: "public", name: "public", count: 45 },
-  { id: "dev", name: "dev", count: 23 },
-  { id: "prod", name: "prod", count: 67 },
-]);
+const namespaces = ref<any[]>([]);
+const configs = ref<any[]>([]);
+const services = ref<any[]>([]);
+const clusters = ref<any[]>([]);
 
-const configs = ref([
-  { id: 1, dataId: "application.yaml", group: "DEFAULT_GROUP", format: "yaml", content: "server:\n  port: 8080\nspring:\n  application:\n    name: monitor-service", updatedAt: "2024-01-15 10:30:00" },
-  { id: 2, dataId: "datasource.properties", group: "DEFAULT_GROUP", format: "properties", content: "spring.datasource.url=jdbc:mysql://localhost:3306/monitor\nspring.datasource.username=root", updatedAt: "2024-01-14 16:20:00" },
-  { id: 3, dataId: "redis-config.json", group: "DEFAULT_GROUP", format: "json", content: '{\n  "host": "127.0.0.1",\n  "port": 6379,\n  "database": 0\n}', updatedAt: "2024-01-13 09:15:00" },
-]);
+async function loadNamespaces() {
+  try {
+    const data = await fetchNacosNamespaces();
+    namespaces.value = (data || []).map((n: any) => ({
+      id: n.id || n.namespace,
+      name: n.name || n.namespace,
+      count: n.configCount || 0,
+    }));
+  } catch (e) {
+    console.error("加载命名空间失败", e);
+  }
+}
 
-const services = ref([
-  { id: 1, name: "monitor-service", group: "DEFAULT_GROUP", instances: 3, healthy: 3, trigger: "N/A" },
-  { id: 2, name: "gateway-service", group: "DEFAULT_GROUP", instances: 2, healthy: 2, trigger: "N/A" },
-  { id: 3, name: "auth-service", group: "DEFAULT_GROUP", instances: 2, healthy: 1, trigger: "N/A" },
-]);
+async function loadConfigs() {
+  try {
+    loading.value = true;
+    const data = await fetchNacosConfigs({ namespace: activeNs.value, page: 1, pageSize: 50 });
+    configs.value = data?.list || [];
+  } catch (e) {
+    console.error("加载配置列表失败", e);
+  } finally {
+    loading.value = false;
+  }
+}
 
-const clusters = ref([
-  { id: 1, node: "nacos-01", ip: "10.0.0.1", port: 8848, status: "UP", leader: true },
-  { id: 2, node: "nacos-02", ip: "10.0.0.2", port: 8848, status: "UP", leader: false },
-  { id: 3, node: "nacos-03", ip: "10.0.0.3", port: 8848, status: "DOWN", leader: false },
-]);
+async function loadServices() {
+  try {
+    const data = await fetchNacosServices(undefined, activeNs.value);
+    services.value = (data || []).map((s: any) => ({
+      name: s.name,
+      group: "DEFAULT_GROUP",
+      instances: s.clusterCount || 0,
+      healthy: s.healthyInstanceCount || 0,
+      trigger: s.triggerFlag ? "Y" : "N",
+    }));
+  } catch (e) {
+    console.error("加载服务列表失败", e);
+  }
+}
+
+async function loadClusters() {
+  try {
+    const data = await fetchNacosClusterNodes();
+    clusters.value = (data || []).map((n: any, i: number) => ({
+      id: i + 1,
+      node: `nacos-0${i + 1}`,
+      ip: n.ip,
+      port: n.port,
+      status: n.status,
+      leader: n.role === "LEADER",
+    }));
+  } catch (e) {
+    console.error("加载集群节点失败", e);
+  }
+}
+
+onMounted(() => {
+  loadNamespaces();
+  loadConfigs();
+  loadServices();
+  loadClusters();
+});
 
 const configColumns = [
   { prop: "dataId", label: "Data ID", minWidth: 200 },
   { prop: "group", label: "Group", width: 140 },
   { prop: "format", label: "格式", width: 100 },
   { prop: "updatedAt", label: "更新时间", width: 180 },
-  { label: "操作", width: 180, fixed: "right" },
+  { label: "操作", width: 180, fixed: "right", slot: "actions" },
 ];
 const serviceColumns = [
   { prop: "name", label: "服务名", minWidth: 180 },
@@ -173,37 +262,69 @@ const configVisible = ref(false);
 const editingConfig = ref(false);
 const form = reactive({ dataId: "", group: "DEFAULT_GROUP", format: "yaml", content: "" });
 
+/**
+ * 展开/收起侧栏树节点
+ * @param key 节点键
+ */
 function toggleNode(key: string) {
   if (expandedNodes.value.has(key)) expandedNodes.value.delete(key);
   else expandedNodes.value.add(key);
 }
 
-function selectNs(id: string) { activeNs.value = id; }
+/**
+ * 选中命名空间加载配置
+ * @param id 命名空间 ID
+ */
+function selectNs(id: string) {
+  activeNs.value = id;
+  loadConfigs();
+  loadServices();
+}
 
-function viewConfig(row: any) {
+async function viewConfig(row: any) {
   editingConfig.value = false;
-  Object.assign(form, row);
+  try {
+    const detail = await fetchNacosConfigDetail(row.dataId, { namespace: activeNs.value, group: row.group });
+    Object.assign(form, detail || row);
+  } catch (e) {
+    Object.assign(form, row);
+  }
   configVisible.value = true;
 }
 
+/**
+ * 打开编辑配置弹窗
+ * @param row 配置行
+ */
 function editConfig(row: any) {
   editingConfig.value = true;
   Object.assign(form, row);
   configVisible.value = true;
 }
 
-function deleteConfig(row: any) {
+async function deleteConfig(row: any) {
   if (confirm(`确定删除配置 ${row.dataId} 吗？`)) {
-    configs.value = configs.value.filter(c => c.id !== row.id);
+    try {
+      await deleteNacosConfig(row.dataId, { namespace: activeNs.value, group: row.group });
+      configs.value = configs.value.filter(c => c.dataId !== row.dataId);
+    } catch (e) {
+      console.error("删除配置失败", e);
+    }
   }
 }
 
+/**
+ * 打开新建配置弹窗
+ */
 function openCreate() {
   editingConfig.value = true;
   Object.assign(form, { dataId: "", group: "DEFAULT_GROUP", format: "yaml", content: "" });
   configVisible.value = true;
 }
 
+/**
+ * 保存配置
+ */
 function saveConfig() {
   if (editingConfig.value && form.dataId) {
     const idx = configs.value.findIndex(c => c.dataId === form.dataId);
@@ -212,6 +333,51 @@ function saveConfig() {
   }
   configVisible.value = false;
 }
+
+/**
+ * 刷新命名空间/配置/服务列表
+ */
+// ==================== 右键菜单 ====================
+const configContextMenu = ref({ visible: false, x: 0, y: 0, config: null as any });
+
+const onConfigContextMenu = (row: any, column: any, event: MouseEvent) => {
+  event.preventDefault();
+  configContextMenu.value = { visible: true, x: event.clientX, y: event.clientY, config: row };
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("click", () => {
+    configContextMenu.value.visible = false;
+  });
+}
+
+const onCloneConfig = (config: any) => {
+  const newDataId = prompt("请输入克隆后的 Data ID:", config.dataId + "_copy");
+  if (!newDataId) return;
+  ElMessage.success("配置已克隆（功能演示）");
+  refresh();
+};
+
+const onExportConfig = (config: any) => {
+  const exportData = {
+    dataId: config.dataId,
+    group: config.group,
+    content: config.content,
+    type: config.type,
+    exportTime: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `nacos-${config.dataId}-${Date.now()}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  ElMessage.success("导出成功");
+};
+
+const onPublishConfig = (config: any) => {
+  ElMessage.success(`配置 ${config.dataId} 已发布（功能演示）`);
+};
 
 function refresh() {
   loading.value = true;

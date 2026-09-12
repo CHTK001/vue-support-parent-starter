@@ -79,6 +79,12 @@
         <div v-if="activeTabObj && activeTabObj.type === 'table'" class="dbm-table-view">
           <div class="dbm-table-toolbar">
             <span class="dbm-table-name">{{ activeTabObj.tableName }}</span>
+            <ReButton size="small" type="primary" @click="openAddRowDialog">
+              <template #icon><ReIcon name="Plus" /></template>新增行
+            </ReButton>
+            <ReButton size="small" @click="exportTableCsv">
+              <template #icon><ReIcon name="Download" /></template>导出CSV
+            </ReButton>
             <ReButton size="small" @click="refreshTableData">
               <template #icon><ReIcon name="Refresh" /></template>刷新
             </ReButton>
@@ -97,7 +103,12 @@
             stripe
             border
             height="calc(100% - 60px)"
-          />
+          >
+            <template #col-actions="{ row }">
+              <ReButton size="small" text type="primary" @click="openEditRowDialog(row)">编辑</ReButton>
+              <ReButton size="small" text type="danger" @click="deleteRow(row)">删除</ReButton>
+            </template>
+          </ReTable>
         </div>
 
         <!-- 表设计视图 -->
@@ -178,19 +189,6 @@
         <ReIcon name="Plus" size="14" />新建表
       </div>
       <div class="dbm-context-divider"></div>
-      <div class="dbm-context-item dbm-warning" @click="truncateTable(contextMenu.tableName)">
-        <ReIcon name="Delete" size="14" />清空数据
-      </div>
-      <div class="dbm-context-item" @click="renameTable(contextMenu.tableName)">
-        <ReIcon name="Edit" size="14" />重命名表
-      </div>
-      <div class="dbm-context-item" @click="copyTable(contextMenu.tableName)">
-        <ReIcon name="Copy" size="14" />复制表
-      </div>
-      <div class="dbm-context-item" @click="exportTableData(contextMenu.tableName)">
-        <ReIcon name="Download" size="14" />导出数据
-      </div>
-      <div class="dbm-context-divider"></div>
       <div class="dbm-context-item dbm-danger" @click="deleteTable(contextMenu.tableName)">
         <ReIcon name="Delete" size="14" />删除表
       </div>
@@ -221,9 +219,29 @@
       </template>
     </ReDialog>
   </div>
+
+  <!-- 编辑/新增行弹窗 -->
+  <ReDialog v-model="rowDialogVisible" :title="rowDialogMode === 'edit' ? '编辑行' : '新增行'" width="600px">
+    <ReForm label-width="120px">
+      <ReFormItem v-for="col in tableData.columns" :key="col" :label="col">
+        <ReInput v-model="rowForm[col]" :placeholder="`输入 ${col}`" />
+      </ReFormItem>
+    </ReForm>
+    <template #footer>
+      <ReButton @click="rowDialogVisible = false">取消</ReButton>
+      <ReButton type="primary" :loading="rowSaving" @click="saveRow">保存</ReButton>
+    </template>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
+/**
+ * 数据库管理页
+ *
+ * 提供数据源/数据库/表/视图的浏览、SQL 查询执行、表结构查看与建表/删表操作。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, computed, onMounted, reactive, watch } from "vue";
 import {
   fetchDbDatabases,
@@ -268,10 +286,193 @@ const activeTabObj = computed(() => tabs.value.find(t => t.id === activeTab.valu
 
 // 表数据
 const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: 50 });
+
+// ==================== 新建数据库 ====================
+const createDbVisible = ref(false);
+const newDbName = ref("");
+const newDbCharset = ref("utf8mb4");
+const newDbCollation = ref("utf8mb4_general_ci");
+const creatingDb = ref(false);
+
+const openCreateDatabase = () => {
+  newDbName.value = "";
+  createDbVisible.value = true;
+};
+
+const createDatabase = async () => {
+  if (!newDbName.value.trim()) {
+    ElMessage.warning("请输入数据库名称");
+    return;
+  }
+  creatingDb.value = true;
+  try {
+    const sql = `CREATE DATABASE \`${newDbName.value}\` CHARACTER SET ${newDbCharset.value} COLLATE ${newDbCollation.value}`;
+    await executeDbSql(sql, currentDatasourceId.value, null);
+    ElMessage.success("数据库创建成功");
+    createDbVisible.value = false;
+    await refreshDatabases();
+  } catch (e) {
+    ElMessage.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    creatingDb.value = false;
+  }
+};
+
+// ==================== 导入数据 ====================
+const importVisible = ref(false);
+const importTableName = ref("");
+const importFormat = ref("csv");
+const importData = ref("");
+const importSkipHeader = ref(true);
+const importing = ref(false);
+
+const openImportData = () => {
+  importTableName.value = tables.value[0] || "";
+  importFormat.value = "csv";
+  importData.value = "";
+  importVisible.value = true;
+};
+
+const doImportData = async () => {
+  if (!importTableName.value) {
+    ElMessage.warning("请选择目标表");
+    return;
+  }
+  if (!importData.value.trim()) {
+    ElMessage.warning("请输入数据内容");
+    return;
+  }
+  importing.value = true;
+  try {
+    let sql = "";
+    if (importFormat.value === "sql") {
+      sql = importData.value;
+    } else if (importFormat.value === "csv") {
+      const lines = importData.value.trim().split("\n");
+      const startIdx = importSkipHeader.value ? 1 : 0;
+      const values = lines.slice(startIdx).map(line => {
+        const fields = line.split(",").map(f => `'${f.trim().replace(/'/g, "''")}'`);
+        return `(${fields.join(", ")})`;
+      });
+      sql = `INSERT INTO \`${importTableName.value}\` VALUES ${values.join(", ")}`;
+    } else if (importFormat.value === "json") {
+      const data = JSON.parse(importData.value);
+      if (Array.isArray(data) && data.length > 0) {
+        const columns = Object.keys(data[0]);
+        const values = data.map(row => {
+          const vals = columns.map(col => `'${String(row[col] ?? "").replace(/'/g, "''")}'`);
+          return `(${vals.join(", ")})`;
+        });
+        sql = `INSERT INTO \`${importTableName.value}\` (${columns.map(c => `\`${c}\``).join(", ")}) VALUES ${values.join(", ")}`;
+      }
+    }
+    if (sql) {
+      await executeDbSql(sql, currentDatasourceId.value, databases.value[0]);
+      ElMessage.success("数据导入成功");
+      importVisible.value = false;
+      await refreshTableData();
+    }
+  } catch (e) {
+    ElMessage.error(`导入失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    importing.value = false;
+  }
+};
+
+// ==================== 行编辑 ====================
+const rowDialogVisible = ref(false);
+const rowDialogMode = ref<'edit' | 'add'>('add');
+const rowForm = ref<Record<string, any>>({});
+const rowSaving = ref(false);
+const editingRow = ref<Record<string, any> | null>(null);
+
+const openAddRowDialog = () => {
+  rowDialogMode.value = 'add';
+  rowForm.value = {};
+  tableData.columns.forEach(col => { rowForm.value[col] = ''; });
+  editingRow.value = null;
+  rowDialogVisible.value = true;
+};
+
+const openEditRowDialog = (row: Record<string, any>) => {
+  rowDialogMode.value = 'edit';
+  rowForm.value = { ...row };
+  editingRow.value = row;
+  rowDialogVisible.value = true;
+};
+
+const saveRow = async () => {
+  if (!activeTabObj.value) return;
+  rowSaving.value = true;
+  try {
+    const tableName = activeTabObj.value.tableName;
+    if (rowDialogMode.value === 'add') {
+      // 新增行：构建 INSERT SQL
+      const cols = Object.keys(rowForm.value).filter(k => rowForm.value[k] !== '');
+      const vals = cols.map(c => `'${String(rowForm.value[c]).replace(/'/g, "''")}'`);
+      const sql = `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${vals.join(', ')})`;
+      await executeDbSql(sql, currentDatasourceId.value, databases.value[0]);
+      ElMessage.success('新增行成功');
+    } else {
+      // 编辑行：构建 UPDATE SQL（需要主键，这里用所有字段作为 WHERE 条件）
+      const sets = Object.keys(rowForm.value).map(k => `${k} = '${String(rowForm.value[k]).replace(/'/g, "''")}'`);
+      const wheres = Object.keys(editingRow.value || {}).map(k => `${k} = '${String(editingRow.value?.[k]).replace(/'/g, "''")}'`);
+      const sql = `UPDATE ${tableName} SET ${sets.join(', ')} WHERE ${wheres.join(' AND ')}`;
+      await executeDbSql(sql, currentDatasourceId.value, databases.value[0]);
+      ElMessage.success('更新行成功');
+    }
+    rowDialogVisible.value = false;
+    await refreshTableData();
+  } catch (e) {
+    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    rowSaving.value = false;
+  }
+};
+
+const deleteRow = async (row: Record<string, any>) => {
+  if (!activeTabObj.value) return;
+  try {
+    await ElMessageBox.confirm('确定删除这一行吗？', '删除确认', { type: 'warning' });
+  } catch {
+    return;
+  }
+  try {
+    const tableName = activeTabObj.value.tableName;
+    const wheres = Object.keys(row).map(k => `${k} = '${String(row[k]).replace(/'/g, "''")}'`);
+    const sql = `DELETE FROM ${tableName} WHERE ${wheres.join(' AND ')}`;
+    await executeDbSql(sql, currentDatasourceId.value, databases.value[0]);
+    ElMessage.success('删除行成功');
+    await refreshTableData();
+  } catch (e) {
+    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
+
+const exportTableCsv = () => {
+  if (tableData.rows.length === 0) {
+    ElMessage.warning('没有数据可导出');
+    return;
+  }
+  const headers = tableData.columns.join(',');
+  const rows = tableData.rows.map((row: any) =>
+    tableData.columns.map(col => `"${String(row[col] ?? '').replace(/"/g, '""')}"`).join(',')
+  );
+  const csv = '\ufeff' + headers + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${activeTabObj.value?.tableName || 'table'}-${Date.now()}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  ElMessage.success('导出成功');
+};
 const tableLoading = ref(false);
-const tableColumns = computed(() =>
-  tableData.columns.map(col => ({ prop: col, label: col, minWidth: 120, showOverflowTooltip: true }))
-);
+const tableColumns = computed(() => {
+  const cols = tableData.columns.map(col => ({ prop: col, label: col, minWidth: 120, showOverflowTooltip: true }));
+  cols.push({ prop: '__actions', label: '操作', width: 120, slot: 'actions', fixed: 'right' });
+  return cols;
+});
 
 // 表设计
 const designColumns = ref<DbColumnInfo[]>([]);
@@ -344,10 +545,18 @@ async function loadTables(db: string) {
   }
 }
 
+/**
+ * 获取指定数据库已加载的表列表
+ * @param db 数据库名
+ */
 function getTablesForDb(db: string) {
   return tables.value;
 }
 
+/**
+ * 展开/收起侧栏树节点
+ * @param key 节点键
+ */
 function toggleNode(key: string) {
   if (expandedNodes.value.has(key)) {
     expandedNodes.value.delete(key);
@@ -359,15 +568,26 @@ function toggleNode(key: string) {
   }
 }
 
+/**
+ * 刷新数据源/数据库/表树
+ */
 function refreshTree() {
   loadTree();
 }
 
+/**
+ * 选中表节点（展开结构）
+ * @param tableName 表名
+ */
 function selectTable(tableName: string) {
   activeTable.value = tableName;
   openTableData(tableName);
 }
 
+/**
+ * 打开表数据页签
+ * @param tableName 表名
+ */
 function openTableData(tableName: string) {
   const id = "table-" + tableName;
   let tab = tabs.value.find(t => t.id === id);
@@ -379,6 +599,10 @@ function openTableData(tableName: string) {
   loadTableData(tableName);
 }
 
+/**
+ * 打开表结构设计页签
+ * @param tableName 表名
+ */
 function openTableDesign(tableName: string) {
   const id = "design-" + tableName;
   let tab = tabs.value.find(t => t.id === id);
@@ -390,6 +614,9 @@ function openTableDesign(tableName: string) {
   loadTableDesign(tableName);
 }
 
+/**
+ * 新建 SQL 查询页签
+ */
 function openNewQuery() {
   const id = "query-" + Date.now();
   const tab: Tab = { id, type: "query", title: "查询 " + (tabs.value.filter(t => t.type === "query").length + 1), sql: "" };
@@ -397,6 +624,10 @@ function openNewQuery() {
   activeTab.value = id;
 }
 
+/**
+ * 关闭页签
+ * @param id 页签 ID
+ */
 function closeTab(id: string) {
   const idx = tabs.value.findIndex(t => t.id === id);
   if (idx >= 0) {
@@ -431,6 +662,9 @@ async function onPageChange(page: number) {
   }
 }
 
+/**
+ * 刷新当前表数据
+ */
 function refreshTableData() {
   if (activeTabObj.value?.tableName) {
     loadTableData(activeTabObj.value.tableName);
@@ -448,6 +682,9 @@ async function loadTableDesign(tableName: string) {
   }
 }
 
+/**
+ * 保存建表 SQL
+ */
 function saveTableDesign() {
   // 表设计保存功能（需要后端 ALTER TABLE 支持，此处提示）
   alert("表结构修改需要执行 ALTER TABLE SQL，请在 SQL 查询中执行");
@@ -463,6 +700,9 @@ async function executeQuery() {
   }
 }
 
+/**
+ * 格式化当前 SQL
+ */
 function formatSql() {
   if (activeTabObj.value?.sql) {
     activeTabObj.value.sql = activeTabObj.value.sql
@@ -515,90 +755,6 @@ async function deleteTable(tableName: string) {
     tabs.value = tabs.value.filter(t => t.tableName !== tableName);
   } catch (e: any) {
     alert("删除表失败: " + (e.message || e));
-  }
-}
-
-// 清空表数据
-async function truncateTable(tableName: string) {
-  if (!confirm(`确定要清空表 ${tableName} 的所有数据吗？此操作不可恢复！`)) return;
-  try {
-    await executeDbSql(`TRUNCATE TABLE ${tableName}`, currentDatasourceId.value);
-    alert("表数据已清空");
-    refreshTree();
-    // 刷新当前打开的表数据标签页
-    const dataTab = tabs.value.find(t => t.type === "data" && t.tableName === tableName);
-    if (dataTab) loadTableData(tableName);
-  } catch (e: any) {
-    alert("清空表数据失败: " + (e.message || e));
-  }
-}
-
-// 重命名表
-async function renameTable(tableName: string) {
-  const newName = prompt(`请输入表 ${tableName} 的新名称:`, tableName);
-  if (!newName || newName === tableName) return;
-  try {
-    await executeDbSql(`ALTER TABLE ${tableName} RENAME TO ${newName}`, currentDatasourceId.value);
-    alert("表已重命名");
-    refreshTree();
-    // 更新相关标签页
-    tabs.value = tabs.value.map(t => {
-      if (t.tableName === tableName) {
-        return { ...t, tableName: newName, title: newName };
-      }
-      return t;
-    });
-  } catch (e: any) {
-    alert("重命名表失败: " + (e.message || e));
-  }
-}
-
-// 复制表
-async function copyTable(tableName: string) {
-  const newName = prompt(`请输入复制后的表名:`, `${tableName}_copy`);
-  if (!newName) return;
-  try {
-    // 先复制表结构，再复制数据
-    await executeDbSql(`CREATE TABLE ${newName} AS SELECT * FROM ${tableName}`, currentDatasourceId.value);
-    alert("表已复制（包含数据）");
-    refreshTree();
-  } catch (e: any) {
-    // 如果 CREATE TABLE AS 失败，尝试只复制结构
-    try {
-      await executeDbSql(`CREATE TABLE ${newName} LIKE ${tableName}`, currentDatasourceId.value);
-      alert("表已复制（仅结构）");
-      refreshTree();
-    } catch (e2: any) {
-      alert("复制表失败: " + (e.message || e));
-    }
-  }
-}
-
-// 导出表数据为 CSV
-async function exportTableData(tableName: string) {
-  try {
-    const result = await executeDbSql(`SELECT * FROM ${tableName}`, currentDatasourceId.value);
-    const rows = result.rows || result.data || [];
-    if (rows.length === 0) {
-      alert("表中没有数据可导出");
-      return;
-    }
-    // 生成 CSV
-    const headers = Object.keys(rows[0]);
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row: any) => headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-    // 下载文件
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${tableName}_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    alert(`已导出 ${rows.length} 行数据`);
-  } catch (e: any) {
-    alert("导出数据失败: " + (e.message || e));
   }
 }
 
@@ -875,15 +1031,6 @@ document.addEventListener("click", () => {
 
 .dbm-context-item.dbm-danger:hover {
   background: #ef4444;
-}
-
-.dbm-context-item.dbm-warning {
-  color: var(--tel-warning, #f59e0b);
-}
-
-.dbm-context-item.dbm-warning:hover {
-  background: #f59e0b;
-  color: #fff;
 }
 
 .dbm-context-divider {

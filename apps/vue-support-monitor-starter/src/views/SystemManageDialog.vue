@@ -131,6 +131,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 系统管理弹窗
+ *
+ * 管理目标主机的进程/服务/网络/磁盘/防火墙/驱动等系统级操作。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, computed, watch } from "vue";
 import {
   fetchProcesses, killProcess, fetchProcessChildren, fetchProcessThreads,
@@ -264,6 +271,10 @@ const driverColumns = [
   { prop: "dependsOn", label: "依赖", minWidth: 150, showOverflowTooltip: true },
 ];
 
+/**
+ * 字节数格式化
+ * @param bytes 字节数
+ */
 function formatBytes(bytes: number): string {
   if (!bytes) return "-";
   if (bytes < 1024) return bytes + " B";
@@ -272,6 +283,10 @@ function formatBytes(bytes: number): string {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
 }
 
+/**
+ * 服务是否运行中
+ * @param row 服务行
+ */
 function isRunning(row: ServiceInfo): boolean {
   const s = String(row.status ?? row.activeState ?? "").toLowerCase();
   return s === "running" || s === "active";

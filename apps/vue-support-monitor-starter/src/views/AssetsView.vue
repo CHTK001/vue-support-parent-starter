@@ -2,6 +2,8 @@
 /**
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -77,9 +79,17 @@ let unsubDelay: (() => void) | undefined;
 
 /** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
 const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });
+/**
+ * ReFilter 过滤项变更
+ * @param prop 过滤属性名
+ * @param value 过滤值
+ */
 function onFilterChange(prop: string, value: unknown): void {
   filterState.value[prop] = value;
 }
+/**
+ * 重置全部过滤条件
+ */
 function onFilterReset(): void {
   filterState.value = { keyword: "", status: "", group: "", tag: "" };
 }
@@ -117,6 +127,10 @@ const allTags = computed(() => {
   return [...s];
 });
 
+/**
+ * 逗号分隔标签拆分为数组
+ * @param tags 标签字符串
+ */
 function splitTags(tags?: string | null): string[] {
   if (!tags || !tags.trim()) return [];
   // 同时兼容中英文逗号分隔（后端/手工录入可能用「，」）
@@ -153,6 +167,10 @@ async function scanHostPorts(h: Host): Promise<void> {
     ElMessage.error(String((e as Error)?.message ?? e));
   }
 }
+/**
+ * 分组 ID 查名称
+ * @param id 分组 ID
+ */
 function groupName(id?: number | null): string {
   if (!id) return "未分组";
   return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
@@ -184,6 +202,10 @@ function groupColorStyle(id?: number | null): Record<string, string> {
   };
 }
 
+/**
+ * 操作系统类型归一化
+ * @param t 原始值
+ */
 function normalizeOs(t?: string): string {
   const s = (t ?? "").toUpperCase();
   if (s.includes("ANDROID")) return "Android";
@@ -192,6 +214,10 @@ function normalizeOs(t?: string): string {
   if (s.includes("MAC")) return "macOS";
   return s || "其他";
 }
+/**
+ * 操作系统图标名
+ * @param t 操作系统类型
+ */
 function osIcon(t?: string): string {
   const s = (t ?? "").toUpperCase();
   if (s.includes("ANDROID")) return "android";
@@ -225,27 +251,47 @@ function osImgSrc(os: string): string {
 }
 /** 已确认图片加载失败的主机集合（key: id-os），命中则回退 SVG */
 const osImgErrors = ref<Set<string>>(new Set());
+/**
+ * 该主机操作系统图标是否加载失败
+ * @param row 主机行
+ */
 function osImgFailed(row: Host): boolean {
   return osImgErrors.value.has(`${row.id}-${osIcon(row.serverHostOsType)}`);
 }
+/**
+ * 标记主机操作系统图标加载失败
+ * @param row 主机行
+ */
 function markOsImgFailed(row: Host): void {
   const key = `${row.id}-${osIcon(row.serverHostOsType)}`;
   if (!osImgErrors.value.has(key)) {
     osImgErrors.value = new Set(osImgErrors.value).add(key);
   }
 }
+/**
+ * 推断主机默认协议
+ * @param h 主机
+ */
 function protocolOf(h: Host): string {
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
   return "ssh";
 }
+/**
+ * 在线状态：online/offline/unknown
+ * @param h 主机
+ */
 function onlineState(h: Host): "online" | "offline" | "unknown" {
   const v = h.serverHostOnline;
   if (v === 1) return "online";
   if (v === 0) return "offline";
   return "unknown";
 }
+/**
+ * 在线状态文案
+ * @param h 主机
+ */
 function onlineText(h: Host): string {
   const v = h.serverHostOnline;
   return v === 1 ? "在线" : v === 0 ? "离线" : "未知";
@@ -315,6 +361,10 @@ async function fetchAll(): Promise<void> {
   }
 }
 
+/**
+ * 跳转远程控制台并携带连接参数
+ * @param h 主机
+ */
 function connect(h: Host): void {
   router.push({ path: "/terminal", query: { hostId: String(h.id), protocol: protocolOf(h) } });
 }

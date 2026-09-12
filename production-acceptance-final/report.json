@@ -1,0 +1,325 @@
+{
+  "timestamp": "2026-09-12T13:31:09.181Z",
+  "summary": {
+    "total": 34,
+    "passed": 34,
+    "failed": 0,
+    "warned": 0,
+    "passRate": "100.0%"
+  },
+  "performance": [
+    {
+      "label": "首页加载",
+      "duration": 3263
+    }
+  ],
+  "routeLoadTimes": [],
+  "avgRouteLoadTime": 0,
+  "network": {
+    "total": 54,
+    "sample": [
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/@fs/D:/ch/project/vue-support-parent-starter/packages/core/src/api/index.ts"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/@fs/D:/ch/project/vue-support-parent-starter/packages/core/src/api/stationMessage.ts"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/@fs/D:/ch/project/vue-support-parent-starter/pages/ai/src/renderer/services/api/aiConsoleApi.ts"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/setting/default"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/setting/default"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/ai/pipelines"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/models"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/ai/models/capabilities"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/ai/pipelines"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/manufacturer/list"
+      },
+      {
+        "method": "POST",
+        "url": "http://localhost:19094/v2/models"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/models"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/roles"
+      },
+      {
+        "method": "POST",
+        "url": "http://localhost:19094/v2/roles"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/v2/roles"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/api/mcp/servers"
+      },
+      {
+        "method": "POST",
+        "url": "http://localhost:19094/api/mcp/servers"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/api/mcp/servers"
+      },
+      {
+        "method": "GET",
+        "url": "http://localhost:19094/api/agents/managed"
+      },
+      {
+        "method": "POST",
+        "url": "http://localhost:19094/api/agents/managed"
+      }
+    ]
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `AgentManagementPage`. ",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "PAGE_ERROR: CopyReactDOM.render is not a function",
+    "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `ForwardRef`. ",
+    "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.",
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "results": [
+    {
+      "name": "首页加载时间",
+      "status": "PASS",
+      "detail": "3263ms",
+      "timestamp": "2026-09-12T13:30:11.918Z"
+    },
+    {
+      "name": "模型管理-列表渲染",
+      "status": "PASS",
+      "detail": "表格已渲染",
+      "timestamp": "2026-09-12T13:30:14.061Z"
+    },
+    {
+      "name": "模型管理-新建弹窗",
+      "status": "PASS",
+      "detail": "弹窗已打开",
+      "timestamp": "2026-09-12T13:30:15.758Z"
+    },
+    {
+      "name": "模型管理-创建提交",
+      "status": "PASS",
+      "detail": "API 200",
+      "timestamp": "2026-09-12T13:30:18.043Z"
+    },
+    {
+      "name": "角色管理-新建弹窗",
+      "status": "PASS",
+      "detail": "弹窗已打开",
+      "timestamp": "2026-09-12T13:30:21.720Z"
+    },
+    {
+      "name": "角色管理-创建提交",
+      "status": "PASS",
+      "detail": "API 200",
+      "timestamp": "2026-09-12T13:30:24.062Z"
+    },
+    {
+      "name": "MCP管理-新建弹窗",
+      "status": "PASS",
+      "detail": "弹窗已打开",
+      "timestamp": "2026-09-12T13:30:27.731Z"
+    },
+    {
+      "name": "MCP管理-创建提交",
+      "status": "PASS",
+      "detail": "API 200",
+      "timestamp": "2026-09-12T13:30:29.916Z"
+    },
+    {
+      "name": "Agent管理-新建弹窗",
+      "status": "PASS",
+      "detail": "弹窗已打开",
+      "timestamp": "2026-09-12T13:30:33.666Z"
+    },
+    {
+      "name": "Agent管理-子Agent配置",
+      "status": "PASS",
+      "detail": "文本匹配5, class匹配11",
+      "timestamp": "2026-09-12T13:30:33.682Z"
+    },
+    {
+      "name": "Agent管理-创建提交",
+      "status": "PASS",
+      "detail": "API 200",
+      "timestamp": "2026-09-12T13:30:35.821Z"
+    },
+    {
+      "name": "系统设置-配置卡片",
+      "status": "PASS",
+      "detail": "32 个",
+      "timestamp": "2026-09-12T13:30:37.894Z"
+    },
+    {
+      "name": "系统设置-全局Bean导航",
+      "status": "PASS",
+      "detail": "已跳转",
+      "timestamp": "2026-09-12T13:30:39.986Z"
+    },
+    {
+      "name": "用量配置-模型指标采集区域",
+      "status": "PASS",
+      "detail": "区域存在",
+      "timestamp": "2026-09-12T13:30:42.080Z"
+    },
+    {
+      "name": "用量配置-立即同步官方定价",
+      "status": "PASS",
+      "detail": "API 200",
+      "timestamp": "2026-09-12T13:30:44.122Z"
+    },
+    {
+      "name": "用量管理-统计卡片",
+      "status": "PASS",
+      "detail": "17 个",
+      "timestamp": "2026-09-12T13:30:47.229Z"
+    },
+    {
+      "name": "用量管理-图表",
+      "status": "PASS",
+      "detail": "41 个",
+      "timestamp": "2026-09-12T13:30:47.235Z"
+    },
+    {
+      "name": "用量管理-导出按钮",
+      "status": "PASS",
+      "detail": "存在",
+      "timestamp": "2026-09-12T13:30:47.240Z"
+    },
+    {
+      "name": "服务管理-服务卡片",
+      "status": "PASS",
+      "detail": "142 个",
+      "timestamp": "2026-09-12T13:30:49.352Z"
+    },
+    {
+      "name": "服务管理-协议端点",
+      "status": "PASS",
+      "detail": "协议文本26, 开关25",
+      "timestamp": "2026-09-12T13:30:49.359Z"
+    },
+    {
+      "name": "扩展-Skills管理页",
+      "status": "PASS",
+      "detail": "页面加载成功",
+      "timestamp": "2026-09-12T13:30:51.452Z"
+    },
+    {
+      "name": "扩展-插件市场搜索弹窗",
+      "status": "PASS",
+      "detail": "弹窗已打开",
+      "timestamp": "2026-09-12T13:30:55.091Z"
+    },
+    {
+      "name": "扩展-插件市场搜索输入",
+      "status": "PASS",
+      "detail": "可输入",
+      "timestamp": "2026-09-12T13:30:55.109Z"
+    },
+    {
+      "name": "管线-文生图",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:30:56.706Z"
+    },
+    {
+      "name": "管线-文生视频",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:30:58.208Z"
+    },
+    {
+      "name": "管线-OCR文字识别",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:30:59.715Z"
+    },
+    {
+      "name": "管线-版面布局分析",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:31:01.217Z"
+    },
+    {
+      "name": "管线-人脸识别",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:31:02.722Z"
+    },
+    {
+      "name": "管线-图片识别",
+      "status": "PASS",
+      "detail": "加载成功",
+      "timestamp": "2026-09-12T13:31:04.228Z"
+    },
+    {
+      "name": "响应式-桌面大屏",
+      "status": "PASS",
+      "detail": "1920x1080",
+      "timestamp": "2026-09-12T13:31:05.325Z"
+    },
+    {
+      "name": "响应式-桌面标准",
+      "status": "PASS",
+      "detail": "1366x768",
+      "timestamp": "2026-09-12T13:31:06.337Z"
+    },
+    {
+      "name": "响应式-平板",
+      "status": "PASS",
+      "detail": "768x1024",
+      "timestamp": "2026-09-12T13:31:07.350Z"
+    },
+    {
+      "name": "可访问性-Tab导航",
+      "status": "PASS",
+      "detail": "焦点: BUTTON",
+      "timestamp": "2026-09-12T13:31:09.179Z"
+    },
+    {
+      "name": "可访问性-ARIA标签",
+      "status": "PASS",
+      "detail": "15 个",
+      "timestamp": "2026-09-12T13:31:09.181Z"
+    }
+  ]
+}

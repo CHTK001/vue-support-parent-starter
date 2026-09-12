@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="dsm tel-page">
     <!-- 顶部工具栏 -->
     <div class="dsm-toolbar">
@@ -160,6 +160,13 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * InfluxDB 管理页
+ *
+ * 提供 InfluxDB 时序库的 Bucket/度量浏览、连接测试与 Flux 查询执行。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, reactive, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
@@ -207,9 +214,127 @@ const dataColumns = [
 
 // 查询
 const queryVisible = ref(false);
+
+// ==================== 数据浏览 ====================
+const influxView = ref<'overview' | 'data' | 'query'>('overview');
+const selectedBucket = ref("");
+const selectedMeasurement = ref("");
+const timeRange = ref("1h");
+const queryLoading = ref(false);
+const queryDataRows = ref<any[]>([]);
+const queryDataColumns = ref<any[]>([]);
+const fluxResult = ref<{ columns: any[]; rows: any[] }>({ columns: [], rows: [] });
+
+const loadMeasurements = async () => {
+  // 模拟加载测量列表
+  measurements.value = ["cpu", "memory", "disk", "network", "temperature"];
+};
+
+const queryData = async () => {
+  if (!selectedBucket.value || !selectedMeasurement.value) {
+    ElMessage.warning("请选择存储桶和测量");
+    return;
+  }
+  queryLoading.value = true;
+  try {
+    // 模拟查询数据
+    const now = Date.now();
+    const rows = [];
+    for (let i = 0; i < 20; i++) {
+      rows.push({
+        time: new Date(now - i * 60000).toISOString(),
+        _measurement: selectedMeasurement.value,
+        _field: "value",
+        _value: (Math.random() * 100).toFixed(2),
+        host: "server-" + (i % 3 + 1),
+      });
+    }
+    queryDataRows.value = rows;
+    queryDataColumns.value = [
+      { prop: "time", label: "时间", minWidth: 180 },
+      { prop: "_measurement", label: "测量", minWidth: 120 },
+      { prop: "_field", label: "字段", minWidth: 100 },
+      { prop: "_value", label: "值", minWidth: 100 },
+      { prop: "host", label: "主机", minWidth: 120 },
+    ];
+  } catch (e) {
+    ElMessage.error(`查询失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    queryLoading.value = false;
+  }
+};
+
+// ==================== 图表展示 ====================
+import * as echarts from "echarts";
+const influxChartRef = ref<HTMLDivElement | null>(null);
+let influxChartInstance: echarts.ECharts | null = null;
+const dataViewMode = ref<'chart' | 'table'>('chart');
+
+const renderInfluxChart = () => {
+  if (!influxChartRef.value || queryDataRows.value.length === 0) return;
+  if (!influxChartInstance) {
+    influxChartInstance = echarts.init(influxChartRef.value);
+  }
+  // 从数据中提取时间和值
+  const times = queryDataRows.value.map((r: any) => r.time?.substring(11, 19) || '');
+  const values = queryDataRows.value.map((r: any) => Number(r._value) || 0);
+  influxChartInstance.setOption({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "axis" },
+    grid: { left: "3%", right: "4%", bottom: "3%", top: "10%", containLabel: true },
+    xAxis: { type: "category", data: times, axisLabel: { fontSize: 10 } },
+    yAxis: { type: "value" },
+    series: [{
+      name: selectedMeasurement.value,
+      type: "line",
+      data: values,
+      smooth: true,
+      areaStyle: { opacity: 0.3 },
+      lineStyle: { width: 2 },
+      itemStyle: { color: "#3b82f6" },
+    }],
+  });
+};
+
+// 监听数据变化，重新渲染图表
+watch(queryDataRows, () => {
+  if (dataViewMode.value === 'chart') {
+    setTimeout(renderInfluxChart, 100);
+  }
+});
+
+watch(dataViewMode, (mode) => {
+  if (mode === 'chart') {
+    setTimeout(renderInfluxChart, 100);
+  }
+});
+
+const executeFluxQuery = async () => {
+  if (!fluxQuery.value.trim()) {
+    ElMessage.warning("请输入 Flux 查询");
+    return;
+  }
+  try {
+    // 模拟执行 Flux 查询
+    const result = await executeInfluxFluxQuery(fluxQuery.value);
+    if (result && Array.isArray(result)) {
+      fluxResult.value = {
+        columns: result.length > 0 ? Object.keys(result[0]).map(k => ({ prop: k, label: k, minWidth: 120 })) : [],
+        rows: result,
+      };
+    }
+    ElMessage.success("查询成功");
+  } catch (e) {
+    ElMessage.error(`查询失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
 const fluxQuery = ref('from(bucket: "monitor_metrics")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "cpu")');
 const queryResult = reactive({ columns: [] as string[], rows: [] as Record<string, unknown>[] });
 
+/**
+ * 展开/收起侧栏树节点
+ * @param key 节点键
+ */
 function toggleNode(key: string) {
   if (expandedNodes.value.has(key)) {
     expandedNodes.value.delete(key);
@@ -218,16 +343,27 @@ function toggleNode(key: string) {
   }
 }
 
+/**
+ * 选中 Bucket 加载度量
+ * @param name Bucket 名
+ */
 function selectBucket(name: string) {
   activeBucket.value = name;
   loadBucketData();
 }
 
+/**
+ * 选中度量
+ * @param name 度量名
+ */
 function selectMeasurement(name: string) {
   fluxQuery.value = `from(bucket: "${activeBucket.value || 'monitor_metrics'}")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "${name}")`;
   queryVisible.value = true;
 }
 
+/**
+ * 刷新当前连接下的树数据
+ */
 function refresh() {
   loading.value = true;
   setTimeout(() => {
@@ -235,6 +371,9 @@ function refresh() {
   }, 500);
 }
 
+/**
+ * 加载 Bucket 与度量数据
+ */
 function loadBucketData() {
   dataLoading.value = true;
   setTimeout(() => {
@@ -247,10 +386,16 @@ function loadBucketData() {
   }, 300);
 }
 
+/**
+ * 打开 Flux 查询面板
+ */
 function openQuery() {
   queryVisible.value = true;
 }
 
+/**
+ * 执行 Flux 查询
+ */
 function executeQuery() {
   queryResult.columns = ["_time", "_measurement", "_field", "_value", "host"];
   queryResult.rows = [
@@ -482,4 +627,36 @@ onMounted(() => {
   background: var(--bg-fill);
   border-bottom: 1px solid var(--border-subtle);
 }
+
+/* 右键菜单 */
+.influx-context-menu, .neo4j-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: var(--bg-container, #ffffff);
+  border: 1px solid var(--border-default, rgba(148, 163, 184, 0.3));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  padding: 4px;
+}
+.icm-item, .n4j-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.icm-item:hover, .n4j-item:hover { background: var(--bg-hover, #f1f5f9); }
+.icm-item.icm-danger, .n4j-item.n4j-danger { color: #ef4444; }
+.icm-item.icm-danger:hover, .n4j-item.n4j-danger:hover { background: rgba(239, 68, 68, 0.1); }
+.icm-divider, .n4j-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border-subtle, rgba(148, 163, 184, 0.2));
+}
 </style>
+

@@ -8,6 +8,11 @@
 import { defineStore } from "pinia"
 import type { GeoBounds } from "@/types"
 
+/**
+ * 选区状态接口
+ * @author CH
+ * @since 4.0.0
+ */
 interface SelectionState {
   bounds: GeoBounds | null
   polygon: Array<[number, number]> | null

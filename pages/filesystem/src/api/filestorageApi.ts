@@ -223,6 +223,56 @@ export async function getBucketConfig(bucket: string): Promise<BucketConfig> {
 }
 
 /**
+ * SPI 能力项（滤镜实现）
+ */
+export interface SpiCapability {
+  /** SPI 名称 */
+  name: string;
+  /** 人类可读标签 */
+  label: string;
+}
+
+/**
+ * SPI 能力分组（某一 SPI 接口的能力列表）
+ */
+export interface SpiCapabilityGroup {
+  /** SPI 实现名 */
+  spi: string;
+  /** 支持的能力标识列表 */
+  capabilities: string[];
+}
+
+/**
+ * SPI 能力响应结构
+ */
+export interface CapabilitiesResponse {
+  /** URL 参数能力（FileStorageFileSetting SPI） */
+  fileSettingCapabilities: SpiCapabilityGroup[];
+  /** 全局滤镜能力（FileStorageFilterSetting SPI） */
+  filterSettingCapabilities: SpiCapabilityGroup[];
+  /** 图片滤镜实现列表（ImageFilter SPI，含 name + label） */
+  imageFilters: SpiCapability[];
+}
+
+/**
+ * 获取 SPI 真实支持的能力列表（滤镜、URL参数等，供前端动态渲染配置项）
+ *
+ * @param bucket 存储桶名
+ * @return 能力列表
+ */
+export async function getCapabilities(bucket: string): Promise<CapabilitiesResponse> {
+  try {
+    const res = await storageHttp()
+      .get(objectPath(bucket))
+      .query({ format: "capabilities" })
+      .then<CapabilitiesResponse>((r) => r.data);
+    return res;
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "能力列表获取"));
+  }
+}
+
+/**
  * 目录树节点
  */
 export interface TreeItem {

@@ -54,6 +54,7 @@ import {
   Document,
   Share,
   Warning,
+  Tickets,
 } from "@element-plus/icons-vue";
 import { getStats } from "./api/apmApi";
 
@@ -66,6 +67,7 @@ const navItems = [
   { path: "/traces", label: "调用链路", icon: Document },
   { path: "/dependencies", label: "依赖拓扑", icon: Share },
   { path: "/leaks", label: "资源泄漏", icon: Warning },
+  { path: "/logs", label: "日志", icon: Tickets },
 ];
 
 const currentTitle = computed(

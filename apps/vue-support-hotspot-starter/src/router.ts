@@ -4,10 +4,11 @@
  * @since 2.0.0
  */
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
-import Dashboard from "@pages/hotsport/src/views/Dashboard.vue";
-import Traces from "@pages/hotsport/src/views/Traces.vue";
-import Dependencies from "@pages/hotsport/src/views/Dependencies.vue";
-import Leaks from "@pages/hotsport/src/views/Leaks.vue";
+import Dashboard from "./views/Dashboard.vue";
+import Traces from "./views/Traces.vue";
+import Dependencies from "./views/Dependencies.vue";
+import Leaks from "./views/Leaks.vue";
+import Logs from "./views/Logs.vue";
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -37,6 +38,12 @@ export const routes: RouteRecordRaw[] = [
     name: "HotsportLeaks",
     component: Leaks,
     meta: { title: "资源泄漏" },
+  },
+  {
+    path: "/logs",
+    name: "HotsportLogs",
+    component: Logs,
+    meta: { title: "日志" },
   },
 ];
 

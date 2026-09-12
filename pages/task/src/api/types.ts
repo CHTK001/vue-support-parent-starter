@@ -7,12 +7,18 @@
  */
 
 /** 统一返回结构（后端 ReturnResult） */
+ * @author CH
+ * @since 4.0.0
+/** 统一返回结构（后端 ReturnResult） */
 export interface ApiResult<T = unknown> {
   code?: string | number;
   msg?: string;
   data?: T;
 }
 
+/** 公共审计字段 */
+ * @author CH
+ * @since 4.0.0
 /** 公共审计字段 */
 export interface Auditable {
   createName?: string;
@@ -25,6 +31,9 @@ export interface Auditable {
 
 /* ================== 任务派发 ================== */
 
+/** 派发任务 */
+ * @author CH
+ * @since 4.0.0
 /** 派发任务 */
 export interface DispatchTask {
   taskId?: string;
@@ -45,6 +54,9 @@ export interface DispatchTask {
   [key: string]: unknown;
 }
 
+/** 派发节点 */
+ * @author CH
+ * @since 4.0.0
 /** 派发节点 */
 export interface DispatchNode {
   nodeId?: string;
@@ -68,6 +80,9 @@ export interface DispatchNode {
 /* ================== 调度中心 ================== */
 
 /** 调度类型常量 */
+ * @author CH
+ * @since 4.0.0
+/** 调度类型常量 */
 export const ScheduleType = {
   CRON: "CRON",
   FIXED: "FIXED",
@@ -78,6 +93,9 @@ export const ScheduleType = {
 } as const;
 
 /** 触发状态常量 */
+ * @author CH
+ * @since 4.0.0
+/** 触发状态常量 */
 export const TriggerStatus = {
   /** 停止 */
   STOPPED: 0,
@@ -85,6 +103,9 @@ export const TriggerStatus = {
   RUNNING: 1,
 } as const;
 
+/** 任务实体 */
+ * @author CH
+ * @since 4.0.0
 /** 任务实体 */
 export interface JobEntity extends Auditable {
   sysJobId?: number;
@@ -145,6 +166,9 @@ export interface JobEntity extends Auditable {
 }
 
 /** 任务日志 */
+ * @author CH
+ * @since 4.0.0
+/** 任务日志 */
 export interface JobLogEntity extends Auditable {
   sysJobLogId?: number;
   sysJobLogNo?: string;
@@ -183,6 +207,9 @@ export interface JobLogEntity extends Auditable {
 }
 
 /** 调度任务视图（task/list 返回） */
+ * @author CH
+ * @since 4.0.0
+/** 调度任务视图（task/list 返回） */
 export interface SchedulerTaskVO {
   jobId?: number;
   jobNo?: string;
@@ -204,6 +231,9 @@ export interface SchedulerTaskVO {
   deleted?: boolean;
 }
 
+/** 任务更新请求 */
+ * @author CH
+ * @since 4.0.0
 /** 任务更新请求 */
 export interface SchedulerTaskUpdateRequest {
   cronExpression?: string;

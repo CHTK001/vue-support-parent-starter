@@ -3,6 +3,8 @@
  * 成就段位管理页面
  *
  * 使用 ReTable + ReSearch 组件化架构，管理员 CRUD 段位定义。
+ * @author CH
+ * @since 4.0.0
  */
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";

@@ -7,6 +7,7 @@
 import React from 'react';
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AiConsoleSidebar from '@/renderer/components/layout/AiConsoleSidebar';
+import PageErrorBoundary from '@/renderer/components/common/PageErrorBoundary';
 import BotManagementPage from '@/renderer/pages/bots/BotManagementPage';
 import BotImPage from '@/renderer/pages/bots/BotImPage';
 import ModelManagementPage from '@/renderer/pages/models/ModelManagementPage';
@@ -58,7 +59,9 @@ export function AiConsoleShell() {
       <AiConsoleSidebar />
       <main className="ai-console-main">
         <div className="ai-console-page">
-          <Outlet />
+          <PageErrorBoundary>
+            <Outlet />
+          </PageErrorBoundary>
         </div>
       </main>
     </div>

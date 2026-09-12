@@ -14,7 +14,11 @@
  *   - /achievement/records/page     - Admin user records pagination
  */
 
-/** Paginated response */
+/**
+ * 分页响应结构
+ * @author CH
+ * @since 4.0.0
+ */
 export interface PageResult<T> {
   current?: number;
   size?: number;
@@ -25,7 +29,11 @@ export interface PageResult<T> {
   data?: T[];
 }
 
-/** API response wrapper */
+/**
+ * API 响应包装结构
+ * @author CH
+ * @since 4.0.0
+ */
 export interface ApiResult<T = unknown> {
   status?: number;
   code?: number;
@@ -33,7 +41,11 @@ export interface ApiResult<T = unknown> {
   data?: T;
 }
 
-/** Achievement tier definition */
+/**
+ * 成就等级定义
+ * @author CH
+ * @since 4.0.0
+ */
 export interface AchievementTier {
   id?: number;
   type?: string;
@@ -48,7 +60,11 @@ export interface AchievementTier {
   updateTime?: string;
 }
 
-/** Unlocked achievement (user side) */
+/**
+ * 已解锁成就（用户端）
+ * @author CH
+ * @since 4.0.0
+ */
 export interface UnlockedAchievement {
   id?: number;
   name?: string;
@@ -59,7 +75,11 @@ export interface UnlockedAchievement {
   unlockedAt?: string;
 }
 
-/** User achievement stats */
+/**
+ * 用户成就统计
+ * @author CH
+ * @since 4.0.0
+ */
 export interface AchievementStats {
   userId?: string | number;
   totalUnlocked?: number;
@@ -68,7 +88,11 @@ export interface AchievementStats {
   progress?: Record<string, number>;
 }
 
-/** User achievement record (admin side) */
+/**
+ * 用户成就记录（管理端）
+ * @author CH
+ * @since 4.0.0
+ */
 export interface UserAchievementRecord {
   id?: number;
   userId?: string | number;
@@ -78,7 +102,11 @@ export interface UserAchievementRecord {
   createTime?: string;
 }
 
-/** Unlocked achievement DTO (stats) */
+/**
+ * 已解锁成就 DTO（统计用）
+ * @author CH
+ * @since 4.0.0
+ */
 export interface UnlockedAchievementDTO {
   type?: string;
   maxLevel?: number;

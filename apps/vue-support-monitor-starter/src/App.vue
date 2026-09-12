@@ -2,6 +2,8 @@
 /**
  * 监控管理平台外壳 —— 对齐 prototype.html（§3.1 布局）
  * 左：分组侧栏(工作台/监控/资产/运维/系统 五区) · 右：56px 顶栏(面包屑/全局搜索/通知/主题/头像)
+ * @author CH
+ * @since 4.0.0
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -14,7 +16,11 @@ import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorAp
 const route = useRoute();
 const router = useRouter();
 
-/** 当前登录用户信息（从 token storage 读取，未登录时为 null） */
+/**
+ * 当前登录用户信息（从 token storage 读取，未登录时为 null）
+ * @author CH
+ * @since 4.0.0
+ */
 interface LoginUser {
   userId?: string | number;
   userName?: string;
@@ -24,6 +30,7 @@ interface LoginUser {
   [key: string]: unknown;
 }
 const currentUser = ref<LoginUser | null>(null);
+/** 从本地缓存加载当前登录用户信息，加载失败时置为 null */
 function loadCurrentUser(): void {
   try {
     currentUser.value = getUserInfo<LoginUser>();
@@ -72,6 +79,10 @@ function goProfile(): void {
 /** 当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单） */
 const redisAvailable = ref(false);
 let redisCheckDone = false;
+/**
+ * 检查当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单）
+ * @returns Promise<void>
+ */
 async function checkRedis(): Promise<void> {
   if (redisCheckDone) return;
   redisCheckDone = true;
@@ -163,6 +174,7 @@ const unsubAlarm = socket?.subscribe("monitor", "alarm", (msg: any) => {
 });
 
 /** 初始加载 + 每次页面恢复时刷新真实计数（补偿 socket 断线期间丢失的事件） */
+/** 初始加载 + 每次页面恢复时刷新未处理告警计数（补偿 socket 断线期间丢失的事件） */
 async function refreshBadge(): Promise<void> {
   try {
     const list = await fetchAlarmEvents();
@@ -172,6 +184,10 @@ async function refreshBadge(): Promise<void> {
 onMounted(() => { refreshBadge(); checkRedis(); loadCurrentUser(); });
 onBeforeUnmount(() => { unsubAlarm?.(); });
 
+/**
+ * 路由跳转（当前路径与目标相同时不重复跳转）
+ * @param path 目标路径
+ */
 function go(path: string): void {
   if (route.path !== path) router.push(path);
 }

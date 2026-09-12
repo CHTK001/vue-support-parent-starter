@@ -7,6 +7,8 @@
  *   - 代理（启用 / URL）
  *   - 下载默认值（并发 / 缩放 / 格式）
  *   - 证书与缓存
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, onMounted, watch } from "vue";
 import { ElMessage } from "element-plus";
@@ -42,6 +44,7 @@ watch(
   { immediate: true, deep: true },
 );
 
+/** 从后端加载设置并同步到表单 */
 async function load() {
   const s = await settingsStore.loadSettings();
   if (s) {
@@ -50,6 +53,7 @@ async function load() {
   }
 }
 
+/** 保存设置到后端 */
 async function onSave() {
   saving.value = true;
   try {

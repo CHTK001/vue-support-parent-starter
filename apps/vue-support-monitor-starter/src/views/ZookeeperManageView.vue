@@ -84,7 +84,11 @@
 
           <div class="dsm-children-section" v-if="children.length > 0">
             <div class="dsm-data-title">子节点列表</div>
-            <ReTable :data="children" :columns="childColumns" stripe border size="small" />
+            <ReTable :data="children" :columns="childColumns" stripe border size="small">
+              <template #col-type="{ row }">
+                <ReTag :type="row.ephemeral ? 'warning' : 'info'" size="small">{{ row.ephemeral ? '临时' : '持久' }}</ReTag>
+              </template>
+            </ReTable>
           </div>
         </div>
 
@@ -116,9 +120,50 @@
       </template>
     </ReDialog>
   </div>
+
+  <!-- 节点右键菜单 -->
+  <div
+    v-if="nodeContextMenu.visible"
+    class="zk-context-menu"
+    :style="{ left: nodeContextMenu.x + 'px', top: nodeContextMenu.y + 'px' }"
+    @click="nodeContextMenu.visible = false"
+  >
+    <div class="zkm-item" @click="selectNode(nodeContextMenu.path)">
+      <ReIcon name="View" size="14" />查看详情
+    </div>
+    <div class="zkm-item" @click="onCopyPath(nodeContextMenu.path)">
+      <ReIcon name="Copy" size="14" />复制路径
+    </div>
+    <div class="zkm-item" @click="onEditNodeData(nodeContextMenu.path)">
+      <ReIcon name="Edit" size="14" />编辑数据
+    </div>
+    <div class="zkm-item" @click="onAddChildNode(nodeContextMenu.path)">
+      <ReIcon name="Plus" size="14" />新建子节点
+    </div>
+    <div class="zkm-item" @click="onExportNode(nodeContextMenu.path)">
+      <ReIcon name="Download" size="14" />导出节点
+    </div>
+    <div class="zkm-divider"></div>
+    <div class="zkm-item zkm-danger" @click="onDeleteNode(nodeContextMenu.path)">
+      <ReIcon name="Delete" size="14" />删除节点
+    </div>
+    <div class="zkm-item zkm-warning" @click="onDeleteRecursive(nodeContextMenu.path)">
+      <ReIcon name="Delete" size="14" />递归删除（含子节点）
+    </div>
+    <div class="zkm-item" @click="refresh">
+      <ReIcon name="Refresh" size="14" />刷新
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * ZooKeeper 管理页
+ *
+ * 提供 ZooKeeper 注册中心的节点树浏览、节点增删改查与连接测试。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, reactive, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
@@ -155,7 +200,7 @@ const children = ref([
 
 const childColumns = [
   { prop: "name", label: "子节点名称", minWidth: 200 },
-  { prop: "ephemeral", label: "类型", width: 120, formatter: (r: any) => r.ephemeral ? "临时" : "持久" },
+  { prop: "ephemeral", label: "类型", width: 120, slot: "type" },
   { prop: "data", label: "数据", minWidth: 200 },
 ];
 
@@ -163,11 +208,107 @@ const nodeDialogVisible = ref(false);
 const editing = ref(false);
 const nodeForm = reactive({ path: "", data: "", ephemeral: false });
 
+/**
+ * 展开/收起树节点
+ * @param path 节点路径
+ */
+// ==================== 右键菜单 ====================
+const nodeContextMenu = ref({ visible: false, x: 0, y: 0, path: "" });
+
+const onNodeContextMenu = (e: MouseEvent, path: string) => {
+  nodeContextMenu.value = { visible: true, x: e.clientX, y: e.clientY, path };
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("click", () => {
+    nodeContextMenu.value.visible = false;
+  });
+}
+
+const onCopyPath = (path: string) => {
+  navigator.clipboard.writeText(path).then(() => {
+    ElMessage.success("已复制路径");
+  }).catch(() => {
+    ElMessage.error("复制失败");
+  });
+};
+
+const onEditNodeData = (path: string) => {
+  selectNode(path);
+  editNode();
+};
+
+const onAddChildNode = (parentPath: string) => {
+  editing.value = false;
+  nodeForm.value = { path: parentPath === "/" ? "/new-node" : parentPath + "/new-node", data: "" };
+  nodeDialogVisible.value = true;
+};
+
+const onExportNode = async (path: string) => {
+  try {
+    const detail = await fetchZkNodeDetail(path);
+    const children = await fetchZkChildren(path);
+    const exportData = {
+      path,
+      data: detail?.data,
+      stat: detail?.stat,
+      children: children.map((c: any) => c.path || c.name),
+      exportTime: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `zk-${path.replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    ElMessage.success("导出成功");
+  } catch (e) {
+    ElMessage.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
+
+const onDeleteNode = (path: string) => {
+  selectNode(path);
+  deleteNode();
+};
+
+const onDeleteRecursive = async (path: string) => {
+  try {
+    await ElMessageBox.confirm(`确定递归删除节点 "${path}" 及其所有子节点吗？此操作不可恢复！`, "递归删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    // 递归删除：先获取所有子节点，然后从叶子节点开始删除
+    const deleteRecursive = async (p: string): Promise<void> => {
+      const children = await fetchZkChildren(p);
+      for (const child of children) {
+        const childPath = p === "/" ? "/" + (child.path || child.name) : p + "/" + (child.path || child.name);
+        await deleteRecursive(childPath);
+      }
+      await deleteZkNode(p);
+    };
+    await deleteRecursive(path);
+    ElMessage.success("递归删除成功");
+    refresh();
+    if (activePath.value === path) {
+      activePath.value = null;
+      nodeDetail.value = null;
+    }
+  } catch (e) {
+    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
+
 function toggleNode(path: string) {
   if (expandedNodes.value.has(path)) expandedNodes.value.delete(path);
   else expandedNodes.value.add(path);
 }
 
+/**
+ * 选中节点加载详情
+ * @param path 节点路径
+ */
 function selectNode(path: string) {
   activePath.value = path;
   nodeDetail.path = path;
@@ -181,11 +322,17 @@ function selectNode(path: string) {
   }
 }
 
+/**
+ * 刷新节点详情
+ */
 function refreshNode() {
   loading.value = true;
   setTimeout(() => { loading.value = false; }, 300);
 }
 
+/**
+ * 进入节点编辑态
+ */
 function editNode() {
   editing.value = true;
   nodeForm.path = activePath.value;
@@ -193,6 +340,9 @@ function editNode() {
   nodeDialogVisible.value = true;
 }
 
+/**
+ * 打开新建节点弹窗
+ */
 function openCreate() {
   editing.value = false;
   nodeForm.path = "";
@@ -201,6 +351,9 @@ function openCreate() {
   nodeDialogVisible.value = true;
 }
 
+/**
+ * 保存节点
+ */
 function saveNode() {
   if (editing.value) {
     nodeDetail.data = nodeForm.data;
@@ -210,12 +363,18 @@ function saveNode() {
   nodeDialogVisible.value = false;
 }
 
+/**
+ * 删除节点
+ */
 function deleteNode() {
   if (confirm(`确定删除节点 ${activePath.value} 吗？`)) {
     activePath.value = "";
   }
 }
 
+/**
+ * 刷新节点树
+ */
 function refresh() {
   loading.value = true;
   setTimeout(() => { loading.value = false; }, 500);
@@ -262,6 +421,39 @@ onMounted(() => {});
 .dsm-children-section { padding: 14px 16px; }
 .dsm-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-tertiary); }
 .dsm-empty-icon { opacity: 0.3; }
+
+/* 右键菜单 */
+.zk-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 180px;
+  background: var(--bg-container, #ffffff);
+  border: 1px solid var(--border-default, rgba(148, 163, 184, 0.3));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  padding: 4px;
+}
+.zkm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.zkm-item:hover { background: var(--bg-hover, #f1f5f9); }
+.zkm-item.zkm-danger { color: #ef4444; }
+.zkm-item.zkm-danger:hover { background: rgba(239, 68, 68, 0.1); }
+.zkm-item.zkm-warning { color: #f59e0b; }
+.zkm-item.zkm-warning:hover { background: rgba(245, 158, 11, 0.1); }
+.zkm-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border-subtle, rgba(148, 163, 184, 0.2));
+}
 .dsm-node-form { display: flex; flex-direction: column; gap: 14px; }
 .dsm-form-item { display: flex; flex-direction: column; gap: 6px; }
 .dsm-form-item label { font-size: 13px; font-weight: 500; color: var(--text-primary); }

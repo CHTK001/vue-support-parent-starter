@@ -6,6 +6,8 @@
  *   - URL：直接提供 tileset.json 地址
  *   - Cesium ion：assetId + accessToken
  * 流程：分析（获取摘要）-> 下载
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed } from "vue";
 import { ElMessage } from "element-plus";
@@ -35,6 +37,7 @@ const canAnalyze = computed(() => {
 
 const polygonCoords = computed(() => selection.polygon);
 
+/** 分析 3D Tiles 结构 */
 async function onAnalyze() {
   analyzing.value = true;
   summary.value = null;
@@ -55,6 +58,7 @@ async function onAnalyze() {
   }
 }
 
+/** 下载 3D Tiles 模型 */
 async function onSubmit() {
   if (!polygonCoords.value) {
     ElMessage.warning("3D 模型下载请先在图上绘制多边形选区");

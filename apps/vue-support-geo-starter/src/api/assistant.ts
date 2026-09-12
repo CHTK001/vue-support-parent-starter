@@ -3,7 +3,11 @@
  */
 import { http } from "./http"
 
-/** 助手状态 */
+/**
+ * 助手状态
+ * @author CH
+ * @since 4.0.0
+ */
 export interface AssistantHealth {
   status: string
   mode: 'desktop' | 'web'
@@ -12,11 +16,20 @@ export interface AssistantHealth {
   knowledge: { version: string; articleCount: number }
 }
 
+/**
+ * 获取 AI 助手运行状态
+ * @returns 助手状态信息
+ */
 export function getAssistantStatus(): Promise<AssistantHealth> {
   return http.get("/v1/geo/assistant/status")
 }
 
-/** 流式聊天（SSE） */
+/**
+ * 流式聊天（SSE）
+ * @param messages 对话消息列表
+ * @param onDelta 增量内容回调
+ * @param signal 中止信号
+ */
 export async function streamAssistantChat(
   messages: Array<{ role: string; content: string }>,
   onDelta: (content: string) => void,

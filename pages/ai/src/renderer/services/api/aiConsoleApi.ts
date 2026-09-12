@@ -6,6 +6,7 @@
  */
 import { http } from '@repo/core';
 import { unwrapResult } from '@repo/utils';
+import { apiRequest } from './apiHelper';
 
 /* ==================== 类型 ==================== */
 
@@ -200,7 +201,7 @@ export function getGroupConfig(group: string): Promise<SettingField[]> {
   if (!path) {
     return Promise.reject(new Error(`未注册的配置分组: ${group}`));
   }
-  return http().get(path).then((r) => unwrapResult<SettingField[]>(r));
+  return apiRequest(http().get(path).then((r) => unwrapResult<SettingField[]>(r)));
 }
 
 /** 更新任意能力分组配置（整组替换） */
@@ -209,7 +210,7 @@ export function updateGroupConfig(group: string, fields: SettingField[]): Promis
   if (!path) {
     return Promise.reject(new Error(`未注册的配置分组: ${group}`));
   }
-  return http().put(path).data({ fields }).then((r) => unwrapResult<unknown>(r));
+  return apiRequest(http().put(path).data({ fields }).then((r) => unwrapResult<unknown>(r)));
 }
 
 /* ==================== 模型管理 ==================== */
@@ -221,68 +222,87 @@ function toBody<T extends object>(obj: T): Record<string, unknown> {
 
 export const modelApi = {
   /** 模型列表 */
-  list: (): Promise<AiModelDTO[]> => http().get('/v2/models').then((r) => unwrapResult<AiModelDTO[]>(r)),
+  list: (): Promise<AiModelDTO[]> => apiRequest(http().get('/v2/models').then((r) => unwrapResult<AiModelDTO[]>(r))),
   /** 新建模型 */
   create: (m: AiModelDTO): Promise<AiModelDTO> =>
-    http().post('/v2/models').data(toBody(m)).then((r) => unwrapResult<AiModelDTO>(r)),
+    apiRequest(http().post('/v2/models').data(toBody(m)).then((r) => unwrapResult<AiModelDTO>(r))),
   /** 更新模型 */
   update: (id: number, m: AiModelDTO): Promise<AiModelDTO> =>
-    http().put(`/v2/models/${id}`).data(toBody(m)).then((r) => unwrapResult<AiModelDTO>(r)),
+    apiRequest(http().put(`/v2/models/${id}`).data(toBody(m)).then((r) => unwrapResult<AiModelDTO>(r))),
   /** 删除模型 */
   remove: (id: number): Promise<unknown> =>
-    http().delete(`/v2/models/${id}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/v2/models/${id}`).then((r) => unwrapResult<unknown>(r))),
   /** 测试模型连通性延迟（非本地模型） */
   testLatency: (id: number): Promise<AiModelDTO> =>
-    http().post(`/v2/models/${id}/test-latency`).then((r) => unwrapResult<AiModelDTO>(r)),
+    apiRequest(http().post(`/v2/models/${id}/test-latency`).then((r) => unwrapResult<AiModelDTO>(r))),
   /** 模型能力目录（capability -> 模型清单） */
   capabilities: (): Promise<Record<string, string[]>> =>
-    http().get('/v2/ai/models/capabilities').then((r) => unwrapResult<Record<string, string[]>>(r)),
+    apiRequest(http().get('/v2/ai/models/capabilities').then((r) => unwrapResult<Record<string, string[]>>(r))),
 };
 
 /* ==================== 管线目录 ==================== */
 
 export const pipelineApi = {
-  list: (): Promise<PipelineDef[]> => http().get('/v2/ai/pipelines').then((r) => unwrapResult<PipelineDef[]>(r)),
+  list: (): Promise<PipelineDef[]> => apiRequest(http().get('/v2/ai/pipelines').then((r) => unwrapResult<PipelineDef[]>(r))),
 };
 
 /* ==================== 供应商 / 密钥 ==================== */
 
 export const manufacturerApi = {
   list: (): Promise<Manufacturer[]> =>
-    http().get('/v2/manufacturer/list').then((r) => unwrapResult<Manufacturer[]>(r)),
+    apiRequest(http().get('/v2/manufacturer/list').then((r) => unwrapResult<Manufacturer[]>(r))),
   keys: (): Promise<ManufacturerKey[]> =>
-    http().get('/v2/manufacturer-key/list').then((r) => unwrapResult<ManufacturerKey[]>(r)),
+    apiRequest(http().get('/v2/manufacturer-key/list').then((r) => unwrapResult<ManufacturerKey[]>(r))),
 };
 
 /* ==================== 用量管理 ==================== */
 
+/** 用量时间范围（ISO 字符串，后端 /v2/usage/* 可选查询参数） */
+export interface UsageTimeRange {
+  startTime?: string;
+  endTime?: string;
+}
+
+/** 拼接到 URL 的时间范围查询串 */
+function rangeQuery(range?: UsageTimeRange): string {
+  if (!range) return '';
+  const p: string[] = [];
+  if (range.startTime) p.push(`startTime=${encodeURIComponent(range.startTime)}`);
+  if (range.endTime) p.push(`endTime=${encodeURIComponent(range.endTime)}`);
+  return p.length ? `&${p.join('&')}` : '';
+}
+
 export const usageApi = {
   /** 用量统计概览 */
-  statistics: (): Promise<UsageStatistics> =>
-    http().get('/v2/usage/statistics').then((r) => unwrapResult<UsageStatistics>(r)),
+  statistics: (range?: UsageTimeRange): Promise<UsageStatistics> =>
+    apiRequest(http().get(`/v2/usage/statistics?1=1${rangeQuery(range)}`).then((r) => unwrapResult<UsageStatistics>(r))),
   /** 每日用量趋势（按天聚合，默认最近 30 天） */
-  trend: (): Promise<UsageTrendItem[]> =>
-    http().get('/v2/usage/trend').then((r) => unwrapResult<UsageTrendItem[]>(r)),
+  trend: (range?: UsageTimeRange): Promise<UsageTrendItem[]> =>
+    apiRequest(http().get(`/v2/usage/trend?1=1${rangeQuery(range)}`).then((r) => unwrapResult<UsageTrendItem[]>(r))),
   /** 用量明细（分页） */
-  list: (page: number, size: number, groupName?: string): Promise<{ records: UsageRecord[]; total: number; page: number; pageSize: number }> =>
-    http()
-      .get(`/v2/usage/list?page=${page}&size=${size}${groupName ? `&groupName=${encodeURIComponent(groupName)}` : ''}`)
-      .then((r) => unwrapResult<{ records: UsageRecord[]; total: number; page: number; pageSize: number }>(r)),
+  list: (page: number, size: number, groupName?: string, range?: UsageTimeRange): Promise<{ records: UsageRecord[]; total: number; page: number; pageSize: number }> =>
+    apiRequest(
+      http()
+        .get(`/v2/usage/list?page=${page}&size=${size}${groupName ? `&groupName=${encodeURIComponent(groupName)}` : ''}${rangeQuery(range)}`)
+        .then((r) => unwrapResult<{ records: UsageRecord[]; total: number; page: number; pageSize: number }>(r)),
+    ),
   /** 可用数据源（UsageParser SPI） */
-  parsers: (): Promise<UsageParserInfo[]> => http().get('/v2/usage/parsers').then((r) => unwrapResult<UsageParserInfo[]>(r)),
+  parsers: (): Promise<UsageParserInfo[]> => apiRequest(http().get('/v2/usage/parsers').then((r) => unwrapResult<UsageParserInfo[]>(r))),
   /** 立即同步外部用量 */
-  trigger: (): Promise<unknown> => http().post('/v2/usage/trigger').then((r) => unwrapResult<unknown>(r)),
+  trigger: (): Promise<unknown> => apiRequest(http().post('/v2/usage/trigger').then((r) => unwrapResult<unknown>(r))),
   /** 聚合当天 */
-  aggregate: (): Promise<unknown> => http().post('/v2/usage/aggregate').then((r) => unwrapResult<unknown>(r)),
+  aggregate: (): Promise<unknown> => apiRequest(http().post('/v2/usage/aggregate').then((r) => unwrapResult<unknown>(r))),
   /** 全量聚合 */
-  aggregateAll: (): Promise<unknown> => http().post('/v2/usage/aggregate-all').then((r) => unwrapResult<unknown>(r)),
+  aggregateAll: (): Promise<unknown> => apiRequest(http().post('/v2/usage/aggregate-all').then((r) => unwrapResult<unknown>(r))),
   /** 最近同步日志（内存缓冲） */
-  syncLogsLive: (): Promise<SyncLogEntry[]> => http().get('/v2/usage/logs').then((r) => unwrapResult<SyncLogEntry[]>(r)),
+  syncLogsLive: (): Promise<SyncLogEntry[]> => apiRequest(http().get('/v2/usage/logs').then((r) => unwrapResult<SyncLogEntry[]>(r))),
   /** 用量同步日志（持久化分页） */
   syncLogs: (page: number, size: number, level?: string): Promise<{ records: SyncLogRow[]; total: number; page: number; pageSize: number }> =>
-    http()
-      .get(`/v2/usage/sync-logs?page=${page}&size=${size}${level ? `&level=${encodeURIComponent(level)}` : ''}`)
-      .then((r) => unwrapResult<{ records: SyncLogRow[]; total: number; page: number; pageSize: number }>(r)),
+    apiRequest(
+      http()
+        .get(`/v2/usage/sync-logs?page=${page}&size=${size}${level ? `&level=${encodeURIComponent(level)}` : ''}`)
+        .then((r) => unwrapResult<{ records: SyncLogRow[]; total: number; page: number; pageSize: number }>(r)),
+    ),
 };
 
 /* ==================== 全局 Bean（ChatClient 会话） ==================== */
@@ -300,9 +320,9 @@ export interface ChatGlobalBean {
 
 export const globalBeanApi = {
   get: (): Promise<ChatGlobalBean> =>
-    http().get('/v2/global-settings').then((r) => unwrapResult<ChatGlobalBean>(r)),
+    apiRequest(http().get('/v2/global-settings').then((r) => unwrapResult<ChatGlobalBean>(r))),
   update: (patch: ChatGlobalBean): Promise<unknown> =>
-    http().put('/v2/global-settings').data(toBody(patch)).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().put('/v2/global-settings').data(toBody(patch)).then((r) => unwrapResult<unknown>(r))),
 };
 
 /* ==================== 格式化工具 ==================== */
@@ -664,36 +684,38 @@ export interface OrchestrationData {
 
 export const agentApi = {
   list: (): Promise<AgentDefinition[]> =>
-    http().get('/api/agents/managed').then((r) => unwrapResult<AgentDefinition[]>(r)),
+    apiRequest(http().get('/api/agents/managed').then((r) => unwrapResult<AgentDefinition[]>(r))),
   get: (agentId: string): Promise<AgentDefinition> =>
-    http().get(`/api/agents/managed/${agentId}`).then((r) => unwrapResult<AgentDefinition>(r)),
+    apiRequest(http().get(`/api/agents/managed/${agentId}`).then((r) => unwrapResult<AgentDefinition>(r))),
   create: (body: Partial<AgentDefinition>): Promise<AgentDefinition> =>
-    http().post('/api/agents/managed').data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r)),
+    apiRequest(http().post('/api/agents/managed').data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r))),
   update: (agentId: string, body: Partial<AgentDefinition>): Promise<AgentDefinition> =>
-    http().put(`/api/agents/managed/${agentId}`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r)),
+    apiRequest(http().put(`/api/agents/managed/${agentId}`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r))),
   remove: (agentId: string): Promise<unknown> =>
-    http().delete(`/api/agents/managed/${agentId}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/api/agents/managed/${agentId}`).then((r) => unwrapResult<unknown>(r))),
   createSubAgent: (agentId: string, body: Partial<AgentDefinition>): Promise<AgentDefinition> =>
-    http().post(`/api/agents/managed/${agentId}/sub-agents`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r)),
+    apiRequest(http().post(`/api/agents/managed/${agentId}/sub-agents`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r))),
   updateSubAgent: (agentId: string, subId: string, body: Partial<AgentDefinition>): Promise<AgentDefinition> =>
-    http().put(`/api/agents/managed/${agentId}/sub-agents/${subId}`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r)),
+    apiRequest(http().put(`/api/agents/managed/${agentId}/sub-agents/${subId}`).data(toBody(body)).then((r) => unwrapResult<AgentDefinition>(r))),
   removeSubAgent: (agentId: string, subId: string): Promise<unknown> =>
-    http().delete(`/api/agents/managed/${agentId}/sub-agents/${subId}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/api/agents/managed/${agentId}/sub-agents/${subId}`).then((r) => unwrapResult<unknown>(r))),
   getOrchestration: (agentId: string): Promise<OrchestrationData> =>
-    http().get(`/api/agents/managed/${agentId}/orchestration`).then((r) => unwrapResult<OrchestrationData>(r)),
+    apiRequest(http().get(`/api/agents/managed/${agentId}/orchestration`).then((r) => unwrapResult<OrchestrationData>(r))),
   saveOrchestration: (agentId: string, data: OrchestrationData): Promise<unknown> =>
-    http().post(`/api/agents/managed/${agentId}/orchestration`).data(toBody(data)).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post(`/api/agents/managed/${agentId}/orchestration`).data(toBody(data)).then((r) => unwrapResult<unknown>(r))),
   registerAsModel: (agentId: string, modelName?: string): Promise<{ registered: boolean; modelName: string }> =>
-    http().post(`/api/agents/managed/${agentId}/register${modelName ? `?model_name=${encodeURIComponent(modelName)}` : ''}`)
-      .then((r) => unwrapResult<{ registered: boolean; modelName: string }>(r)),
+    apiRequest(
+      http().post(`/api/agents/managed/${agentId}/register${modelName ? `?model_name=${encodeURIComponent(modelName)}` : ''}`)
+        .then((r) => unwrapResult<{ registered: boolean; modelName: string }>(r)),
+    ),
   unregisterModel: (agentId: string): Promise<unknown> =>
-    http().delete(`/api/agents/managed/${agentId}/register`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/api/agents/managed/${agentId}/register`).then((r) => unwrapResult<unknown>(r))),
   getRegisteredModel: (agentId: string): Promise<{ registered: boolean; modelName?: string }> =>
-    http().get(`/api/agents/managed/${agentId}/registered-model`).then((r) => unwrapResult<{ registered: boolean; modelName?: string }>(r)),
+    apiRequest(http().get(`/api/agents/managed/${agentId}/registered-model`).then((r) => unwrapResult<{ registered: boolean; modelName?: string }>(r))),
   listRegisteredModels: (): Promise<Array<{ modelName: string; agentName: string }>> =>
-    http().get('/api/agents/managed/registered-models').then((r) => unwrapResult<Array<{ modelName: string; agentName: string }>>(r)),
+    apiRequest(http().get('/api/agents/managed/registered-models').then((r) => unwrapResult<Array<{ modelName: string; agentName: string }>>(r))),
   rebuild: (agentId: string): Promise<unknown> =>
-    http().post(`/api/agents/managed/${agentId}/rebuild`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post(`/api/agents/managed/${agentId}/rebuild`).then((r) => unwrapResult<unknown>(r))),
 };
 
 /* ==================== 服务管理 ==================== */
@@ -711,11 +733,11 @@ export interface ServiceStatus {
 
 export const serviceApi = {
   list: (): Promise<ServiceStatus[]> =>
-    http().get('/v2/services/status').then((r) => unwrapResult<ServiceStatus[]>(r)),
+    apiRequest(http().get('/v2/services/status').then((r) => unwrapResult<ServiceStatus[]>(r))),
   start: (name: string): Promise<unknown> =>
-    http().post(`/v2/services/${name}/start`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post(`/v2/services/${name}/start`).then((r) => unwrapResult<unknown>(r))),
   stop: (name: string): Promise<unknown> =>
-    http().post(`/v2/services/${name}/stop`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post(`/v2/services/${name}/stop`).then((r) => unwrapResult<unknown>(r))),
 };
 
 /* ==================== Skills 配置（本地/在线 Provider 开关） ==================== */
@@ -739,9 +761,9 @@ export interface SkillsConfigResponse {
 
 export const skillsConfigApi = {
   list: (): Promise<SkillsConfigResponse> =>
-    http().get('/v2/skills-config').then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().get('/v2/skills-config').then((r) => unwrapResult<SkillsConfigResponse>(r))),
   update: (config: Record<string, boolean>): Promise<SkillsConfigResponse> =>
-    http().put('/v2/skills-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().put('/v2/skills-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r))),
 };
 
 /* ==================== 角色 / MCP / 插件 Provider 配置（与 skills-config 同构） ==================== */
@@ -752,25 +774,25 @@ export const skillsConfigApi = {
  */
 export const rolesConfigApi = {
   list: (): Promise<SkillsConfigResponse> =>
-    http().get('/v2/roles-config').then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().get('/v2/roles-config').then((r) => unwrapResult<SkillsConfigResponse>(r))),
   update: (config: Record<string, boolean>): Promise<SkillsConfigResponse> =>
-    http().put('/v2/roles-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().put('/v2/roles-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r))),
 };
 
 /** MCP Provider 开关（/v2/mcp-config） */
 export const mcpConfigApi = {
   list: (): Promise<SkillsConfigResponse> =>
-    http().get('/v2/mcp-config').then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().get('/v2/mcp-config').then((r) => unwrapResult<SkillsConfigResponse>(r))),
   update: (config: Record<string, boolean>): Promise<SkillsConfigResponse> =>
-    http().put('/v2/mcp-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().put('/v2/mcp-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r))),
 };
 
 /** 插件 Provider 开关（/v2/plugins-config） */
 export const pluginsConfigApi = {
   list: (): Promise<SkillsConfigResponse> =>
-    http().get('/v2/plugins-config').then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().get('/v2/plugins-config').then((r) => unwrapResult<SkillsConfigResponse>(r))),
   update: (config: Record<string, boolean>): Promise<SkillsConfigResponse> =>
-    http().put('/v2/plugins-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r)),
+    apiRequest(http().put('/v2/plugins-config').data(config).then((r) => unwrapResult<SkillsConfigResponse>(r))),
 };
 
 /* ==================== 模型指标采集（ModelMetricsPushTask） ==================== */
@@ -791,16 +813,16 @@ export interface ModelMetricsSnapshot {
 export const modelMetricsApi = {
   /** 读取模型指标采集配置 */
   getConfig: (): Promise<ModelMetricsConfig> =>
-    http().get('/api/model-metrics/config').then((r) => unwrapResult<ModelMetricsConfig>(r)),
+    apiRequest(http().get('/api/model-metrics/config').then((r) => unwrapResult<ModelMetricsConfig>(r))),
   /** 保存模型指标采集配置 */
   saveConfig: (data: ModelMetricsConfig): Promise<ModelMetricsConfig> =>
-    http().put('/api/model-metrics/config').data(toBody(data)).then((r) => unwrapResult<ModelMetricsConfig>(r)),
+    apiRequest(http().put('/api/model-metrics/config').data(toBody(data)).then((r) => unwrapResult<ModelMetricsConfig>(r))),
   /** 立即同步官方定价到 sys_ai_pricing 表 */
   syncPricing: (): Promise<unknown> =>
-    http().post('/api/model-metrics/sync-pricing').then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post('/api/model-metrics/sync-pricing').then((r) => unwrapResult<unknown>(r))),
   /** 读取指标快照 */
   getSnapshot: (): Promise<ModelMetricsSnapshot> =>
-    http().get('/api/model-metrics').then((r) => unwrapResult<ModelMetricsSnapshot>(r)),
+    apiRequest(http().get('/api/model-metrics').then((r) => unwrapResult<ModelMetricsSnapshot>(r))),
 };
 
 /* ==================== 用量明细（参考 New API 风格） ==================== */
@@ -845,9 +867,9 @@ export interface UsageDashboard {
 
 export const usageDetailApi = {
   dashboard: (params: { startDate?: string; endDate?: string; granularity?: string }): Promise<UsageDashboard> =>
-    http().get('/v2/usage/dashboard').query(params).then((r) => unwrapResult<UsageDashboard>(r)),
+    apiRequest(http().get('/v2/usage/dashboard').query(params).then((r) => unwrapResult<UsageDashboard>(r))),
   list: (params: Record<string, unknown>): Promise<{ items: UsageDetail[]; total: number }> =>
-    http().get('/v2/usage/details').query(params).then((r) => unwrapResult<{ items: UsageDetail[]; total: number }>(r)),
+    apiRequest(http().get('/v2/usage/details').query(params).then((r) => unwrapResult<{ items: UsageDetail[]; total: number }>(r))),
 };
 
 /* ==================== Skills（已安装技能 / 本地扫描 / 市场搜索安装） ==================== */
@@ -911,36 +933,38 @@ export interface SkillInstallResult {
 export const skillApi = {
   /** 已安装技能列表 */
   list: (): Promise<InstalledSkill[]> =>
-    http().get('/api/skills').then((r) => unwrapResult<InstalledSkill[]>(r)),
+    apiRequest(http().get('/api/skills').then((r) => unwrapResult<InstalledSkill[]>(r))),
   /** 扫描指定本地目录 */
   scan: (folderPath: string): Promise<InstalledSkill[]> =>
-    http().post('/api/skills/scan').data(toBody({ folder_path: folderPath })).then((r) => unwrapResult<InstalledSkill[]>(r)),
+    apiRequest(http().post('/api/skills/scan').data(toBody({ folder_path: folderPath })).then((r) => unwrapResult<InstalledSkill[]>(r))),
   /** 探测内置 / 用户技能目录 */
   detectPaths: (): Promise<DetectedSkillPath[]> =>
-    http().get('/api/skills/detect-paths').then((r) => unwrapResult<DetectedSkillPath[]>(r)),
+    apiRequest(http().get('/api/skills/detect-paths').then((r) => unwrapResult<DetectedSkillPath[]>(r))),
   /** 读取技能目录配置 */
   paths: (): Promise<SkillsDirs> =>
-    http().get('/api/skills/paths').then((r) => unwrapResult<SkillsDirs>(r)),
+    apiRequest(http().get('/api/skills/paths').then((r) => unwrapResult<SkillsDirs>(r))),
   /** 删除（卸载）技能 */
   remove: (skillName: string): Promise<unknown> =>
-    http().delete(`/api/skills/${encodeURIComponent(skillName)}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/api/skills/${encodeURIComponent(skillName)}`).then((r) => unwrapResult<unknown>(r))),
   /** 市场搜索 */
   marketSearch: (params: { search?: string; page?: number; limit?: number; sortBy?: string }): Promise<MarketSearchResult> =>
-    http()
-      .get('/api/skills/market/search')
-      .query({
-        search: params.search ?? '',
-        page: params.page ?? 1,
-        limit: params.limit ?? 20,
-        sortBy: params.sortBy ?? 'stars',
-      })
-      .then((r) => unwrapResult<MarketSearchResult>(r)),
+    apiRequest(
+      http()
+        .get('/api/skills/market/search')
+        .query({
+          search: params.search ?? '',
+          page: params.page ?? 1,
+          limit: params.limit ?? 20,
+          sortBy: params.sortBy ?? 'stars',
+        })
+        .then((r) => unwrapResult<MarketSearchResult>(r)),
+    ),
   /** 市场安装 */
   marketInstall: (pkg: { source: string; id: string; url?: string }): Promise<SkillInstallResult> =>
-    http().post('/api/skills/market/package/install').data(toBody(pkg)).then((r) => unwrapResult<SkillInstallResult>(r)),
+    apiRequest(http().post('/api/skills/market/package/install').data(toBody(pkg)).then((r) => unwrapResult<SkillInstallResult>(r))),
   /** 同步市场排行（插件源等） */
   rankingsSync: (sources: string[]): Promise<unknown> =>
-    http().post('/api/skills/market/rankings/sync').data(toBody({ sources })).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post('/api/skills/market/rankings/sync').data(toBody({ sources })).then((r) => unwrapResult<unknown>(r))),
 };
 
 /* ==================== 角色（/v2/roles） ==================== */
@@ -962,22 +986,22 @@ export interface AiRole {
 export const roleApi = {
   /** 角色列表 */
   list: (): Promise<AiRole[]> =>
-    http().get('/v2/roles').then((r) => unwrapResult<AiRole[]>(r)),
+    apiRequest(http().get('/v2/roles').then((r) => unwrapResult<AiRole[]>(r))),
   /** 启用角色列表 */
   enabled: (): Promise<AiRole[]> =>
-    http().get('/v2/roles/enabled').then((r) => unwrapResult<AiRole[]>(r)),
+    apiRequest(http().get('/v2/roles/enabled').then((r) => unwrapResult<AiRole[]>(r))),
   /** 单个角色 */
   get: (id: number): Promise<AiRole> =>
-    http().get(`/v2/roles/${id}`).then((r) => unwrapResult<AiRole>(r)),
+    apiRequest(http().get(`/v2/roles/${id}`).then((r) => unwrapResult<AiRole>(r))),
   /** 创建 */
   create: (role: AiRole): Promise<AiRole> =>
-    http().post('/v2/roles').data(toBody(role)).then((r) => unwrapResult<AiRole>(r)),
+    apiRequest(http().post('/v2/roles').data(toBody(role)).then((r) => unwrapResult<AiRole>(r))),
   /** 更新 */
   update: (id: number, role: AiRole): Promise<AiRole> =>
-    http().put(`/v2/roles/${id}`).data(toBody(role)).then((r) => unwrapResult<AiRole>(r)),
+    apiRequest(http().put(`/v2/roles/${id}`).data(toBody(role)).then((r) => unwrapResult<AiRole>(r))),
   /** 删除 */
   remove: (id: number): Promise<unknown> =>
-    http().delete(`/v2/roles/${id}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/v2/roles/${id}`).then((r) => unwrapResult<unknown>(r))),
 };
 
 /* ==================== MCP（/api/mcp） ==================== */
@@ -1014,22 +1038,22 @@ export interface McpTestResult {
 export const mcpApi = {
   /** 服务器列表 */
   list: (): Promise<McpServer[]> =>
-    http().get('/api/mcp/servers').then((r) => unwrapResult<McpServer[]>(r)),
+    apiRequest(http().get('/api/mcp/servers').then((r) => unwrapResult<McpServer[]>(r))),
   /** 创建 */
   create: (body: { name: string; transport: McpTransport; enabled?: boolean }): Promise<McpServer> =>
-    http().post('/api/mcp/servers').data(toBody(body)).then((r) => unwrapResult<McpServer>(r)),
+    apiRequest(http().post('/api/mcp/servers').data(toBody(body)).then((r) => unwrapResult<McpServer>(r))),
   /** 更新 */
   update: (serverId: string, body: Partial<{ name: string; transport: McpTransport; enabled: boolean }>): Promise<McpServer> =>
-    http().put(`/api/mcp/servers/${encodeURIComponent(serverId)}`).data(toBody(body)).then((r) => unwrapResult<McpServer>(r)),
+    apiRequest(http().put(`/api/mcp/servers/${encodeURIComponent(serverId)}`).data(toBody(body)).then((r) => unwrapResult<McpServer>(r))),
   /** 删除 */
   remove: (serverId: string): Promise<unknown> =>
-    http().delete(`/api/mcp/servers/${encodeURIComponent(serverId)}`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().delete(`/api/mcp/servers/${encodeURIComponent(serverId)}`).then((r) => unwrapResult<unknown>(r))),
   /** 切换启用状态 */
   toggle: (serverId: string): Promise<unknown> =>
-    http().post(`/api/mcp/servers/${encodeURIComponent(serverId)}/toggle`).then((r) => unwrapResult<unknown>(r)),
+    apiRequest(http().post(`/api/mcp/servers/${encodeURIComponent(serverId)}/toggle`).then((r) => unwrapResult<unknown>(r))),
   /** 测试连接 */
   testConnection: (body: { name: string; transport: McpTransport }): Promise<McpTestResult> =>
-    http().post('/api/mcp/test-connection').data(toBody(body)).then((r) => unwrapResult<McpTestResult>(r)),
+    apiRequest(http().post('/api/mcp/test-connection').data(toBody(body)).then((r) => unwrapResult<McpTestResult>(r))),
 };
 
 /* ==================== 插件（复用 Skills 市场，source=clawhub_plugins） ==================== */

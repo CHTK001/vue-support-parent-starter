@@ -1,4 +1,15 @@
 <script setup lang="ts">
+/**
+ * Wayback 历史影像下载参数面板
+ *
+ * 使用后端 /v1/geo/wayback/* 接口：
+ *   - 历史版本选择
+ *   - 最大级别探测
+ *   - 缩放级别 / 输出格式 / 并发 / 保存路径
+ *   - 创建下载任务
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
@@ -26,6 +37,7 @@ const submitting = ref(false);
 
 const hasBounds = computed(() => !!selection.bounds);
 
+/** 加载 Wayback 历史版本列表 */
 async function loadVersions() {
   loadingVersions.value = true;
   try {
@@ -39,6 +51,7 @@ async function loadVersions() {
   }
 }
 
+/** 探测选区中心点的最大可用缩放级别 */
 async function onProbe() {
   if (!form.value.versionId) return ElMessage.warning("请选择历史版本");
   if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
@@ -56,6 +69,7 @@ async function onProbe() {
   }
 }
 
+/** 创建 Wayback 下载任务并跳转任务中心 */
 async function onSubmit() {
   if (!selection.bounds) return ElMessage.warning("请先在地图上绘制选区");
   if (!form.value.versionId) return ElMessage.warning("请选择历史版本");

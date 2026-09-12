@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * 任务中心页
+ *
+ * 展示进行中的下载任务列表，支持刷新、取消、暂停/继续、部分导出、删除，
+ * 并每 4 秒轮询任务状态。
+ * @author CH
+ * @since 4.0.0
+ */
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getActiveTasks, cancelTask, togglePauseTask, removeTask, exportPartialTask } from "@/api/tile";
@@ -26,6 +34,7 @@ const statusMap: Record<string, { label: string; type: string }> = {
   pending_decision: { label: "待处理", type: "danger" },
 };
 
+/** 刷新任务列表 */
 async function refresh() {
   loading.value = true;
   try {
@@ -37,6 +46,10 @@ async function refresh() {
   }
 }
 
+/**
+ * 取消任务
+ * @param id 任务 ID
+ */
 async function onCancel(id: string) {
   try {
     await cancelTask(id);
@@ -47,6 +60,10 @@ async function onCancel(id: string) {
   }
 }
 
+/**
+ * 切换任务暂停/继续
+ * @param id 任务 ID
+ */
 async function onPause(id: string) {
   try {
     const res = await togglePauseTask(id);
@@ -57,6 +74,10 @@ async function onPause(id: string) {
   }
 }
 
+/**
+ * 请求导出任务的已完成部分
+ * @param id 任务 ID
+ */
 async function onExportPartial(id: string) {
   try {
     const res = await exportPartialTask(id);
@@ -66,6 +87,10 @@ async function onExportPartial(id: string) {
   }
 }
 
+/**
+ * 删除任务记录
+ * @param id 任务 ID
+ */
 async function onRemove(id: string) {
   try {
     await ElMessageBox.confirm("确定删除该任务记录？", "删除任务", { type: "warning" });
@@ -77,6 +102,11 @@ async function onRemove(id: string) {
   }
 }
 
+/**
+ * 格式化文件大小
+ * @param bytes 字节数
+ * @returns 可读的文件大小字符串
+ */
 function formatSize(bytes?: number) {
   if (!bytes) return "-";
   if (bytes > 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
@@ -85,10 +115,12 @@ function formatSize(bytes?: number) {
   return `${bytes} B`;
 }
 
+/** 跳转至工作台新建任务 */
 function goWorkspace() {
   router.push("/workspace");
 }
 
+/** 轮询任务状态 */
 function poll() {
   refresh();
 }

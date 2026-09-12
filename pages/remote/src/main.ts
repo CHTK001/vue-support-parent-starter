@@ -1,3 +1,10 @@
+/**
+ * pages-remote 入口
+ *
+ * 远程控制页面路由模式，注册 Re* 组件并挂载 remoteRoutes。
+ * @author CH
+ * @since 4.0.0
+ */
 import { createContextApp } from "@repo/app";
 import { install as ReButtonInstall } from "@repo/ui/re-button";
 import { install as ReDialogInstall } from "@repo/ui/re-dialog";

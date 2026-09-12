@@ -6,6 +6,8 @@
  *  - metric —— 指标采集（serverHostCollectMode / serverHostCollectInterval / serverHostAgentEnabled）
  *  - delay  —— 延迟检测（serverHostDelayEnabled / serverHostDelayInterval，RTT 由后台 delayTick 回写）
  * 三类检测均由后台 HostOnlineScheduler 驱动，保存走 saveHost。
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
@@ -70,6 +72,10 @@ const collectModes = [
 
 const title = computed(() => `${MODE_TITLE[props.mode]} · ${props.host?.serverHostName ?? ""}`);
 
+/**
+ * 用主机数据回填表单
+ * @param source 主机数据
+ */
 function fillFrom(source: Partial<Host>): void {
   form.value = {
     serverHostOnlineEnabled: source.serverHostOnlineEnabled ?? 1,

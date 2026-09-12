@@ -3,6 +3,8 @@
  * 下载历史页
  *
  * 分页 + 表格，支持金字塔构建、删除、清空。
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -26,6 +28,11 @@ const statusMap: Record<string, { label: string; type: string }> = {
   failed: { label: "失败", type: "danger" },
 };
 
+/**
+ * 格式化文件大小
+ * @param bytes 字节数
+ * @returns 可读的文件大小字符串
+ */
 function formatSize(bytes?: number) {
   if (!bytes) return "-";
   if (bytes > 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
@@ -34,6 +41,11 @@ function formatSize(bytes?: number) {
   return `${bytes} B`;
 }
 
+/**
+ * 格式化耗时
+ * @param s 秒数
+ * @returns 可读的耗时字符串
+ */
 function formatDuration(s?: number) {
   if (!s) return "-";
   const m = Math.floor(s / 60);
@@ -41,6 +53,7 @@ function formatDuration(s?: number) {
   return m > 0 ? `${m}分${sec}秒` : `${sec}秒`;
 }
 
+/** 刷新当前页历史列表 */
 async function refresh() {
   loading.value = true;
   try {
@@ -54,6 +67,10 @@ async function refresh() {
   }
 }
 
+/**
+ * 删除单条历史记录
+ * @param id 记录 ID
+ */
 async function onDelete(id: string | number) {
   try {
     await ElMessageBox.confirm("确定删除该记录？", "删除", { type: "warning" });
@@ -65,6 +82,7 @@ async function onDelete(id: string | number) {
   }
 }
 
+/** 清空全部下载历史 */
 async function onClearAll() {
   try {
     await ElMessageBox.confirm("确定清空全部下载历史？此操作不可恢复。", "清空历史", { type: "warning" });
@@ -76,6 +94,10 @@ async function onClearAll() {
   }
 }
 
+/**
+ * 为指定记录构建金字塔
+ * @param id 记录 ID
+ */
 async function onBuildPyramid(id: string | number) {
   try {
     const res = await buildPyramidForFile(id);
@@ -85,6 +107,10 @@ async function onBuildPyramid(id: string | number) {
   }
 }
 
+/**
+ * 切换页码
+ * @param p 目标页码
+ */
 function onPageChange(p: number) {
   page.value = p;
   refresh();

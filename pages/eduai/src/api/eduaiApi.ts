@@ -22,6 +22,11 @@ function unwrap<T>(r: { data?: T }): T {
   return r.data as T;
 }
 
+/**
+ * 教育 AI API 客户端（题库/组卷/阅卷/知识库/错题/考试 全模块）
+ * @author CH
+ * @since 4.0.0
+ */
 export const eduaiApi = {
   // 题库
   pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; type?: string }) =>

@@ -6,6 +6,8 @@
  *   - 图源选择（getDemSources）
  *   - 缩放级别 / 输出格式 / 保存路径
  *   - 估算 -> 创建下载任务
+ * @author CH
+ * @since 4.0.0
  */
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -43,6 +45,7 @@ const sourceList = computed(() =>
 const hasBounds = computed(() => !!selection.bounds);
 const canSubmit = computed(() => hasBounds.value && !estimating.value && !submitting.value);
 
+/** 加载 DEM 图源列表 */
 async function loadSources() {
   sourcesLoading.value = true;
   try {
@@ -57,6 +60,7 @@ async function loadSources() {
   }
 }
 
+/** 执行 DEM 估算 */
 async function onEstimate() {
   if (!selection.bounds) {
     ElMessage.warning("请先在地图上绘制选区");
@@ -78,6 +82,7 @@ async function onEstimate() {
   }
 }
 
+/** 提交 DEM 下载任务并跳转任务中心 */
 async function onSubmit() {
   if (!selection.bounds) {
     ElMessage.warning("请先在地图上绘制选区");
