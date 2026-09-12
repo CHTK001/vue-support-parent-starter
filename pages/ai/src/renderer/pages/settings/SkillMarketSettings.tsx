@@ -1,15 +1,19 @@
 /**
- * SkillMarketSettings — the skill market surface. A thin binding of the shared
- * MarketSettingsPanel to the skill ranking sources: "Add" installs the skill
- * directly on the backend and stays on the page (no conversation handoff).
+ * SkillMarketSettings — 插件/技能市场页。
+ *
+ * 数据链路（全部走后端 AiSkillController /api/skills*）：
+ *  - 市场源配置 → GET /api/skills/market/sources/status?marketType=skill
+ *  - 排行数据   → POST /api/skills/market/rankings/sync
+ *  - 已安装集合 → GET /api/skills + /api/skills/detect-external（经 ipcBridge fs）
+ *  - 安装       → POST /api/skills/market/package/install（经 ipcBridge fs）
  */
 import { ipcBridge } from '@/common';
 import type { ISkillMarketItem, SkillMarketSource } from '@/common/adapter/ipcBridge';
-import { isBackendHttpError, invokeWithTransientRetry } from '@/common/adapter/httpBridge';
-import { resolveLocaleKey } from '@/common/utils';
+import { listMarketSources, syncMarketRankings, type MarketItem } from '@/common/api/skillMarket';
+import { AxiosError } from '@/common/adapter/httpBridge';
 import MarketSettingsPanel from './MarketSettingsPanel';
 import { ENHANCED_TOOLS_PAGE_STACK_CLASS } from './enhancedToolsLayout';
-import { isSkillMarketItemInstalled, SKILL_MARKET_SOURCES } from './skill/skillMarket';
+import { isSkillMarketItemInstalled } from './skill/skillMarket';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
@@ -19,18 +23,54 @@ const AUTO_SYNC_KEY = 'nomifun.skillMarket.autoSynced.v4';
 
 type SkillMarketSettingsProps = {
   active?: boolean;
-  /** 启用的市场源列表（来自后端 SPI 配置）；缺省使用内置 SKILL_MARKET_SOURCES。 */
+  /** 启用的市场源列表（缺省由后端 SPI 配置提供：marketType=skill）。 */
   sources?: SkillMarketSource[];
 };
 
+/** 将后端排行条目映射为面板可渲染条目（面板展示 name/description/tags） */
+function toMarketItem(item: MarketItem): ISkillMarketItem {
+  return {
+    id: item.id,
+    source: item.source,
+    name: item.name,
+    url: item.url,
+    description: item.description,
+    tags: item.tags,
+  };
+}
+
 const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true, sources }) => {
-  const { t, i18n } = useTranslation();
-  const localeKey = resolveLocaleKey(i18n.language);
-  const enabledSources = sources ?? SKILL_MARKET_SOURCES;
+  const { t } = useTranslation();
+  const [backendSources, setBackendSources] = useState<SkillMarketSource[]>([]);
+  const enabledSources = sources && sources.length > 0
+    ? sources
+    : (backendSources.length > 0
+      ? backendSources
+      : [{ id: 'clawhub', name: 'ClawHub', url: '', enabled: false }]);
   const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set());
   const [installedStateLoading, setInstalledStateLoading] = useState(true);
   const [installedStateAvailable, setInstalledStateAvailable] = useState(false);
 
+  /* 加载后端市场源配置（marketType=skill） */
+  useEffect(() => {
+    if (!active) return;
+    let disposed = false;
+    listMarketSources('skill')
+      .then((list) => {
+        if (disposed) return;
+        const mapped: SkillMarketSource[] = (list ?? []).map((s) => ({
+          id: s.source,
+          name: s.displayName || s.source,
+          url: s.url || '',
+          enabled: s.enabled,
+        }));
+        if (mapped.length > 0) setBackendSources(mapped);
+      })
+      .catch((e) => console.error('Failed to load market sources:', e));
+    return () => { disposed = true; };
+  }, [active]);
+
+  /* 已安装技能集合（后端扫描：Nomi skills + 外部 Agent skills） */
   useEffect(() => {
     if (!active) return;
     let disposed = false;
@@ -70,7 +110,7 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
   }, [active]);
 
   const isAdded = useCallback(
-    (item: ISkillMarketItem) => isSkillMarketItemInstalled(item, installedSkillNames),
+    (item: { name: string; id: string }) => isSkillMarketItemInstalled(item, installedSkillNames),
     [installedSkillNames]
   );
 
@@ -95,16 +135,20 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
     }
   }, []);
 
+  /* 排行数据拉取：按源同步后端榜单，映射为面板条目 */
+  const panelFetchFn = useCallback(async (sourceId: string): Promise<ISkillMarketItem[]> => {
+    const result = await syncMarketRankings([sourceId]);
+    return (result?.items ?? []).map(toMarketItem);
+  }, []);
+
   const handleAdd = useCallback(
-    async (item: ISkillMarketItem) => {
+    async (item: { id?: string; source?: string; url?: string; name?: string }) => {
       try {
-        const installed = await invokeWithTransientRetry(() =>
-          ipcBridge.fs.installSkillMarketPackage.invoke({
-            source: item.source,
-            id: item.id,
-            url: item.url,
-          })
-        );
+        const installed = await ipcBridge.fs.installSkillMarketPackage.invoke({
+          source: item.source ?? '',
+          id: item.id ?? item.name ?? '',
+          url: item.url ?? '',
+        });
         const failedCount = installed.errors?.length ?? 0;
         const okNames = installed.installed_skill_names ?? [];
         if (okNames.length > 0) {
@@ -127,7 +171,7 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
         }
       } catch (error) {
         console.error('Failed to install market skill:', error);
-        const serviceDown = isBackendHttpError(error) && error.status >= 500;
+        const serviceDown = error instanceof AxiosError && (error.response?.status ?? 0) >= 500;
         Message.error(
           serviceDown
             ? t('settings.skillsMarket.serviceUnavailable', {
@@ -146,14 +190,15 @@ const SkillMarketSettings: React.FC<SkillMarketSettingsProps> = ({ active = true
         <MarketSettingsPanel
           title={t('settings.skillsMarket.title', { defaultValue: '技能市场' })}
           description={t('settings.skillsMarket.description', {
-            defaultValue: '同步 ClawHub、LoopHub 与 SkillHub 最新榜单，选择技能后交给 Nomi 生成安装确认草稿。',
+            defaultValue: '同步 ClawHub、LoopHub 与 SkillHub 最新榜单，选择技能后直接安装到本机。',
           })}
           sources={enabledSources}
           cacheKey={CACHE_KEY}
           autoSyncKey={AUTO_SYNC_KEY}
-          defaultSource={enabledSources[0] ?? 'clawhub'}
+          defaultSource={enabledSources[0]?.id ?? 'clawhub'}
           searchPlaceholder={t('settings.skillsMarket.searchPlaceholder', { defaultValue: '搜索当前市场技能...' })}
           emptyText={t('settings.skillsMarket.empty', { defaultValue: '正在准备榜单，点击刷新可重新采集。' })}
+          fetchFn={panelFetchFn}
           onAdd={handleAdd}
           isAdded={isAdded}
           addedStateLoading={installedStateLoading || !installedStateAvailable}

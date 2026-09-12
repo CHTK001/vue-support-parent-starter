@@ -8,7 +8,10 @@
  *   4) PUT  /{bucket}/{key}    — 上传（body 为原始文件内容）
  *   5) GET  /{bucket}/{key}    — 下载/预览（?download=true 强制附件下载）
  *   6) HEAD /{bucket}/{key}    — 存在性检查（200 存在 / 404 不存在）
- *   7) DELETE /{bucket}/{key}  — 删除
+ *   7) DELETE /{bucket}/{key}  — 删除（目录递归删除）
+ *   8) POST /{bucket}?action=mkdir|mkfile|rename|copy|move|unzip — 文件管理动作
+ *   9) GET  /{bucket}?action=zip&sources= — 打包下载 ZIP
+ *  10) POST /{bucket}?action=setConfig&token= — 管理员动态修改行为配置（实时生效）
  *
  * 该服务为独立 HTTP 服务（非网关代理），通过 createHttp 指定 baseUrl，
  * 与业务接口共用统一链式请求封装。
@@ -68,6 +71,14 @@ export interface BucketConfig {
   layout: boolean;
   /** 布局类型 */
   layoutType: string;
+  /** 详情视图是否显示"类型"列 */
+  showFormat: boolean;
+  /** 详情视图是否显示"大小"列 */
+  showSize: boolean;
+  /** 详情视图是否显示"修改时间"列 */
+  showTime: boolean;
+  /** 图片滤镜（NONE/GRAYSCALE/SEPIA/INVERT/BLUR/SATURATE） */
+  imageFilter: string;
   /** 一次性链接默认有效期（毫秒） */
   oneTimeTtlMs: number;
 }
@@ -337,5 +348,176 @@ export async function fetchObjectText(bucket: string, key: string): Promise<stri
       .then<string>((r) => r.data as string);
   } catch (e) {
     throw new Error(toErrorMessage(e, "内容读取"));
+  }
+}
+
+/* ================== 文件管理动作（KodExplorer 风格） ================== */
+
+/**
+ * 文件管理动作统一 POST 封装
+ *
+ * @param bucket 存储桶名
+ * @param action 动作名（mkdir/mkfile/rename/copy/move/unzip）
+ * @param params 查询参数
+ * @return 动作结果 JSON
+ */
+async function postAction(
+  bucket: string,
+  action: string,
+  params: Record<string, string>,
+): Promise<Record<string, unknown>> {
+  try {
+    const query = new URLSearchParams({ action, ...params }).toString();
+    return await storageHttp()
+      .post(`${objectPath(bucket)}?${query}`)
+      .then<Record<string, unknown>>((r) => r.data);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, action));
+  }
+}
+
+/**
+ * 管理员动态修改存储桶行为配置（setConfig，实时生效）
+ *
+ * @param bucket 存储桶名
+ * @param token  管理员令牌（后端每次启动随机生成，getToken() / /config 页可查）
+ * @param config 待修改的配置项（部分更新，缺省字段保持原值）
+ * @return 动作结果
+ */
+export async function setBucketConfig(
+  bucket: string,
+  token: string,
+  config: Partial<BucketConfig>,
+): Promise<Record<string, unknown>> {
+  try {
+    const query = new URLSearchParams({ action: "setConfig", token }).toString();
+    return await storageHttp()
+      .post(`${objectPath(bucket)}?${query}`)
+      .headers({ "Content-Type": "application/json;charset=UTF-8" })
+      .data(JSON.stringify(config))
+      .then<Record<string, unknown>>((r) => r.data);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "配置保存"));
+  }
+}
+
+/**
+ * 新建目录
+ *
+ * @param bucket 存储桶名
+ * @param path   父目录路径（空表示根目录）
+ * @param name   新目录名
+ */
+export async function createDirectory(bucket: string, path: string, name: string): Promise<void> {
+  await postAction(bucket, "mkdir", { path, name });
+}
+
+/**
+ * 新建空文件
+ *
+ * @param bucket 存储桶名
+ * @param path   父目录路径（空表示根目录）
+ * @param name   新文件名
+ */
+export async function createFile(bucket: string, path: string, name: string): Promise<void> {
+  await postAction(bucket, "mkfile", { path, name });
+}
+
+/**
+ * 重命名（同目录改名，目录递归搬运）
+ *
+ * @param bucket  存储桶名
+ * @param path    所在目录路径
+ * @param name    原名称
+ * @param newName 新名称
+ */
+export async function renameObject(bucket: string, path: string, name: string, newName: string): Promise<void> {
+  await postAction(bucket, "rename", { path, name, newName });
+}
+
+/**
+ * 复制对象到目标目录（同名自动生成" - 副本"）
+ *
+ * @param bucket  存储桶名
+ * @param sources 源对象 Key 列表
+ * @param target  目标目录（空表示根目录）
+ * @return 动作结果（含生成的目标键）
+ */
+export async function copyObjects(
+  bucket: string,
+  sources: string[],
+  target: string,
+): Promise<Record<string, unknown>> {
+  return postAction(bucket, "copy", { sources: sources.join("\n"), target });
+}
+
+/**
+ * 移动（剪切粘贴）对象到目标目录
+ *
+ * @param bucket  存储桶名
+ * @param sources 源对象 Key 列表
+ * @param target  目标目录（空表示根目录）
+ * @return 动作结果（含生成的目标键）
+ */
+export async function moveObjects(
+  bucket: string,
+  sources: string[],
+  target: string,
+): Promise<Record<string, unknown>> {
+  return postAction(bucket, "move", { sources: sources.join("\n"), target });
+}
+
+/**
+ * 解压 ZIP 到目标目录
+ *
+ * @param bucket 存储桶名
+ * @param path   压缩包所在目录
+ * @param name   压缩包名称
+ * @param target 解压目标目录（空表示压缩包所在目录）
+ * @return 动作结果（含解压条目数）
+ */
+export async function unzipObject(
+  bucket: string,
+  path: string,
+  name: string,
+  target = "",
+): Promise<Record<string, unknown>> {
+  return postAction(bucket, "unzip", { path, name, target });
+}
+
+/**
+ * 计算打包下载默认压缩包名（与后端规则一致：单对象去扩展名加 .zip，多个为 download.zip）
+ *
+ * @param sources 源对象 Key 列表
+ * @return 压缩包文件名
+ */
+export function zipArchiveName(sources: string[]): string {
+  if (sources.length === 1) {
+    const single = sources[0].slice(sources[0].lastIndexOf("/") + 1);
+    const dot = single.lastIndexOf(".");
+    return (dot > 0 ? single.slice(0, dot) : single) + ".zip";
+  }
+  return "download.zip";
+}
+
+/**
+ * 打包下载：将一个或多个对象打包为 ZIP，返回二进制内容
+ *
+ * @param bucket  存储桶名
+ * @param sources 源对象 Key 列表
+ * @return ZIP 文件 Blob
+ */
+export async function downloadZip(bucket: string, sources: string[]): Promise<Blob> {
+  try {
+    const query = new URLSearchParams({
+      action: "zip",
+      sources: sources.join("\n"),
+    }).toString();
+    return await storageHttp()
+      .get(`${objectPath(bucket)}?${query}`)
+      .responseType("blob")
+      .then<Blob>((r) => r.data as Blob);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "打包下载"));
   }
 }

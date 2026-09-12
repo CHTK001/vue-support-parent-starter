@@ -1,17 +1,22 @@
 /**
- * vue-support-monitor-starter 单页沉浸式控制台入口
+ * vue-support-monitor-starter 路由模式入口
  *
- * 模式：mode=single + koi 单页面安装器（installKoi：ElementPlus/图标/指令/koi 全局样式与圆角令牌），
- * 叠加本应用自研 UI —— 工作台 / 告警 / 资产 / 远控（design.md v2）
+ * 模式：mode=router（默认）+ koi 布局（侧边栏菜单由路由树自动推导）
+ * 路由模式：hash（routerMode: "hash"）
+ *
+ * 与 single 模式的区别：
+ *   - 使用 koi 默认布局（AppWithRouter + layout），不再需要自定义 App.vue
+ *   - 侧边栏菜单由路由树（RouteConfigsTable[]）自动推导
+ *   - 业务路由自动挂到 layout 之下
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
 import "./styles/tokens.css";
 import "./styles/pages.css";
+import "./styles/telemetry.css";
 import { installUi } from "@repo/ui";
-import App from "./App.vue";
-import router from "./router";
+import monitorRoutes from "./routes";
 
 /** 本页可能用到的 Re* 组件（ReIcon / ReScrollNav / ReDrawer 已由 installKoi 注册） */
 const MONITOR_RE_COMPONENTS = [
@@ -50,11 +55,7 @@ const MONITOR_RE_COMPONENTS = [
 /**
  * koi 单页面安装：
  * 1. installKoi —— ElementPlus + 图标 + 公共指令 + koi SVG sprite + koi 主题样式
- *    （styles/index.scss：reset / theme-vars / 圆角令牌 radius / element 覆盖等）
  * 2. installUi —— 按需注册本应用用到的 Re* 组件
- *
- * 样式加载顺序（import 提升后）：element css → koi 样式 → 本应用 tokens.css / pages.css，
- * 应用自有令牌在后，冲突时应用层胜出。
  */
 async function installKoiSinglePage(app: VueApp): Promise<void> {
   await installKoi(app);
@@ -64,11 +65,11 @@ async function installKoiSinglePage(app: VueApp): Promise<void> {
 await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
-  mode: "single",
+  mode: "router",
+  routerMode: "hash",
   install: installKoiSinglePage,
 })
-  .app(App)
-  .use(router)
+  .routes(monitorRoutes)
   .mount("#app");
 
 /** 预加载弹窗内组件的懒加载布局（ReDialog koi / ReSelect / ReSwitch / ReDrawer），消除首次打开卡顿 */

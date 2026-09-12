@@ -11,6 +11,7 @@
  */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { http, unwrapResult } from "@repo/utils";
 
 const BASE = "/ms/server/proxy";
 
@@ -25,10 +26,8 @@ const freeList = ref<FreeProxy[]>([]);
 const fetching = ref(false);
 
 async function api<T>(path: string): Promise<T> {
-  const res = await fetch(BASE + path, { headers: { "Content-Type": "application/json" } });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body = await res.json();
-  return (body?.data ?? body) as T;
+  const res = await http().get(BASE + path);
+  return unwrapResult<T>(res);
 }
 
 async function loadList(): Promise<void> {
@@ -56,7 +55,7 @@ onMounted(loadList);
 </script>
 
 <template>
-  <div class="px">
+  <div class="px tel-page">
     <ReSectionHead description="免费代理获取 · 后台代理表每次获取清空重录 · 页面从数据表读取">
       <template #title>代理管理</template>
       <template #actions>

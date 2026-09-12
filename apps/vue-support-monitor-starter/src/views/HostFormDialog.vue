@@ -74,8 +74,9 @@ const collectModes = [
 ];
 
 function splitTags(tags?: string | null): string[] {
-  if (!tags || !tags.trim()) return [];
-  return tags.split(",").map(t => t.trim()).filter(Boolean);
+  if (!tags) return [];
+  // 同时兼容中英文逗号分隔（后端/手工录入可能用「，」）
+  return tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
 }
 
 function resetForm(): void {
@@ -190,8 +191,8 @@ watch(() => props.modelValue, (v) => {
     :model-value="props.modelValue"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     :title="props.isEdit ? '编辑主机' : '新增主机'"
-    width="1080px"
-    :height="780"
+    width="880px"
+    :height="640"
     :close-on-click-modal="false"
   >
     <ReForm :model="form" label-position="top" class="form-vertical">
@@ -201,19 +202,27 @@ watch(() => props.modelValue, (v) => {
         <ReFormItem label="主机名称" class="col-span-2">
           <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
         </ReFormItem>
-        <ReFormItem label="主机编码">
-          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
-        </ReFormItem>
         <ReFormItem label="主机地址">
           <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="端口">
           <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width:100%" />
         </ReFormItem>
-        <ReFormItem label="系统类型">
-          <ReSelect v-model="form.serverHostOsType" size="small" style="width:100%" :options="[
-            { label: 'Linux', value: 'LINUX' }, { label: 'Windows', value: 'WINDOWS' }, { label: 'macOS', value: 'MACOS' },
-          ]" />
+        <ReFormItem label="平台" class="col-span-2">
+          <ReSelect
+            v-model="form.serverHostOsType"
+            layout="square"
+            style="width:100%"
+            :options="[
+              { label: 'Linux', value: 'LINUX' },
+              { label: 'Windows', value: 'WINDOWS' },
+              { label: 'macOS', value: 'MACOS' },
+              { label: 'Android', value: 'ANDROID' },
+            ]"
+          />
+        </ReFormItem>
+        <ReFormItem label="主机编码" class="col-span-2">
+          <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
         </ReFormItem>
 
         <!-- ─── 认证方式 ─── -->

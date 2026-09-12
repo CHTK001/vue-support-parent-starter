@@ -508,6 +508,7 @@ async function onImportFile(file: File | undefined) {
     <!-- 主机表格 -->
     <ReTable :data="hosts" :loading="loading" border stripe size="default" :pagination="false" :toolbar="false"
       empty-text="暂无主机，点击右上角「新增主机」添加"
+      @row-click="openDetail"
       @selection-change="(rows: any[]) => selectedIds = rows.map((r: any) => r.id)">
       <ReTableColumn type="selection" width="40" />
       <ReTableColumn label="状态" width="90">
@@ -540,7 +541,7 @@ async function onImportFile(file: File | undefined) {
       </ReTableColumn>
       <ReTableColumn label="启用" width="80">
         <template #default="{ row }">
-          <ReSwitch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" />
+          <span @click.stop><ReSwitch :model-value="row.serverHostStatus === 1" @change="onSwitch(row)" /></span>
         </template>
       </ReTableColumn>
       <ReTableColumn label="延迟" width="100">
@@ -571,6 +572,7 @@ async function onImportFile(file: File | undefined) {
       </ReTableColumn>
       <ReTableColumn label="操作" width="380" fixed="right">
         <template #default="{ row }">
+          <span @click.stop>
           <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
           <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
           <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
@@ -579,6 +581,7 @@ async function onImportFile(file: File | undefined) {
           <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
           <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
           <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+          </span>
         </template>
       </ReTableColumn>
     </ReTable>

@@ -189,7 +189,7 @@ onMounted(fetchAll);
 </script>
 
 <template>
-  <div class="cf">
+  <div class="cf tel-page">
     <div class="page-header">
       <div>
         <h1 class="page-title">监控配置</h1>

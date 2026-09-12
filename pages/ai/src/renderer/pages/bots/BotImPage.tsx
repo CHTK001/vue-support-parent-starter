@@ -19,9 +19,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Button, Checkbox, Empty, Message, Modal, Spin, Tag, Tooltip } from '@arco-design/web-react';
-import { EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
-import classNames from 'classnames';
+import { Button, Checkbox, Empty, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
+import { Attention, Check, Checkbox as CheckboxIcon, Delete, EmotionHappy, FaceRecognition, Refresh } from '@icon-park/react';
 import {
   Avatar as ChatAvatar,
   Conversation,
@@ -37,7 +36,10 @@ import { unwrapResult, AxiosError } from '@repo/utils';
 import { useConfig } from '@renderer/hooks/config/useConfig';
 import { isSubmitGesture, type SendKeyMode } from '@renderer/hooks/chat/useCompositionInput';
 import { HUB_PAGE_TITLE_CLASS } from '@/renderer/components/layout/HubPageShell';
+import { PlatformBadge, StatusBadge } from '@/renderer/utils/botStatusMeta';
+import { PlatformLogo } from '@/renderer/utils/platformLogo';
 import '@/renderer/styles/chatscope-override.css';
+import '@/renderer/styles/ai-page.css';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
 
 /** 会话列表项 */
@@ -111,68 +113,6 @@ function getBackendError(e: unknown): string {
   return (e instanceof Error ? e.message : '') || '';
 }
 
-const STATUS_META: Record<string, { label: string; dot: string }> = {
-  online: { label: '在线', dot: 'bg-success' },
-  offline: { label: '离线', dot: 'bg-[var(--color-text-4)]' },
-  expired: { label: '已过期', dot: 'bg-warning' },
-};
-
-const PLATFORM_LABEL: Record<string, string> = {
-  wechat: '微信',
-  wecom: '企业微信',
-  feishu: '飞书',
-};
-
-/** 平台徽标：小图标 + 文字，用于会话名右侧 */
-const PlatformBadge: React.FC<{ platform?: string }> = ({ platform }) => {
-  if (!platform || !PLATFORM_LABEL[platform]) return null;
-  return (
-    <span className='inline-flex items-center gap-4px ml-6px px-5px py-1px rounded-4px bg-primary-1/10 text-10px font-medium text-t-secondary'>
-      <PlatformLogo platform={platform} className='h-10px w-10px' />
-      {PLATFORM_LABEL[platform]}
-    </span>
-  );
-};
-
-/** 平台 Logo SVG 组件 */
-const PlatformLogo: React.FC<{ platform?: string; className?: string }> = ({ platform, className = 'h-18px w-18px' }) => {
-  if (platform === 'wechat') {
-    return (
-      <svg className={className} viewBox='0 0 24 24' fill='none'>
-        <path d='M9.5 4C5.36 4 2 6.69 2 10c0 1.89 1.08 3.56 2.78 4.66l-.7 2.1 2.46-1.23c.78.22 1.6.34 2.46.34.34 0 .68-.02 1-.06A5.97 5.97 0 0 1 10 14c0-3.31 3.13-6 7-6 .34 0 .68.02 1 .06C17.36 5.69 13.64 4 9.5 4ZM7 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z' fill='#07C160'/>
-        <path d='M22 14c0-2.76-2.69-5-6-5s-6 2.24-6 5 2.69 5 6 5c.7 0 1.37-.1 2-.3l2 1-.56-1.68C21.08 16.56 22 15.36 22 14Zm-7.5-.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm3 0a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z' fill='#07C160'/>
-      </svg>
-    );
-  }
-  if (platform === 'feishu') {
-    return (
-      <svg className={className} viewBox='0 0 24 24' fill='none'>
-        <path d='M12 2L2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5' stroke='#3370FF' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'/>
-      </svg>
-    );
-  }
-  if (platform === 'wecom') {
-    return (
-      <svg className={className} viewBox='0 0 24 24' fill='none'>
-        <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Z' fill='#1AAD19'/>
-        <path d='M8.5 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm7 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM12 18c-2.21 0-4-1.34-4-3h8c0 1.66-1.79 3-4 3Z' fill='white'/>
-      </svg>
-    );
-  }
-  // 默认：灰色圆形 + 首字母
-  return (
-    <div className={`${className} flex items-center justify-center rounded-full bg-fill-2 text-10px text-t-secondary`}>
-      {(platform || '?')[0].toUpperCase()}
-    </div>
-  );
-};
-
-const PLATFORM_LOGO: Record<string, string> = {
-  wechat: 'https://img.icons8.com/color/48/wechat.png',
-  feishu: 'https://img.icons8.com/color/48/feishu.png',
-  wecom: 'https://img.icons8.com/color/48/weixin-work.png',
-};
-
 function formatTime(v?: string | null): string {
   if (!v) return '';
   const d = new Date(v);
@@ -196,22 +136,6 @@ function formatGroupTime(v?: string | null): string {
   if (d.toDateString() === yesterday.toDateString()) return '昨天';
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
-
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  const meta = STATUS_META[status ?? ''] ?? { label: '未知', dot: 'bg-[var(--color-text-4)]' };
-  return (
-    <span className='inline-flex shrink-0 items-center gap-6px text-12px leading-18px text-t-secondary'>
-      <span
-        className={classNames(
-          'h-6px w-6px shrink-0 rounded-full',
-          meta.dot,
-          status === 'online' && 'botim-online-dot'
-        )}
-      />
-      <span>{meta.label}</span>
-    </span>
-  );
-};
 
 /** 常用 Emoji 列表（按场景分组） */
 const COMMON_EMOJIS = [
@@ -238,13 +162,13 @@ const EmojiPicker: React.FC<{ onInsert: (emoji: string) => void }> = ({ onInsert
       {open && (
         <>
           <div className='fixed inset-0 z-40' onClick={() => setOpen(false)} />
-          <div className='absolute bottom-full left-0 z-50 mb-8px w-280px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 p-10px shadow-lg'>
-            <div className='grid grid-cols-10 gap-4px'>
+          <div className='absolute bottom-full left-0 z-50 mb-8px w-280px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 p-8px shadow-lg'>
+            <div className='grid grid-cols-10 gap-2px'>
               {COMMON_EMOJIS.map((e) => (
                 <button
                   key={e}
                   type='button'
-                  className='flex h-26px w-26px items-center justify-center text-lg transition-transform hover:scale-125'
+                  className='flex h-26px w-26px items-center justify-center rounded-6px text-lg transition-all hover:bg-fill-2 hover:scale-110'
                   onClick={() => { onInsert(e); setOpen(false); }}
                 >
                   {e}
@@ -417,9 +341,9 @@ const ChatInput: React.FC<{
   }, [onChange, value]);
 
   return (
-    <div className='relative flex shrink-0 flex-col border-t border-solid border-[var(--color-border-2)] bg-fill-1'>
+    <div className='ai-page relative flex shrink-0 flex-col border-t border-solid border-[var(--color-border-2)] bg-fill-1'>
       {/* 工具栏：Emoji + AI 分析 */}
-      <div className='flex items-center gap-4px px-10px pt-6px'>
+      <div className='flex items-center gap-6px px-12px pt-8px'>
         <EmojiPicker onInsert={insertEmoji} />
         {onPolish && value.trim() && (
           <Tooltip content={t('bots.im.polishHint', { defaultValue: 'AI 润色：让文本更得体、清晰' })}>
@@ -456,15 +380,15 @@ const ChatInput: React.FC<{
       {cmdOpen && cmdItems.length > 0 && (
         <div
           ref={cmdRef}
-          className='absolute bottom-full left-10px right-10px z-50 mb-4px max-h-200px overflow-auto rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-1)] shadow-md'
+          className='absolute bottom-full left-12px right-12px z-50 mb-6px max-h-200px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-1)] p-4px shadow-lg'
         >
-          <div className='px-10px py-6px text-11px text-t-tertiary'>
+          <div className='px-8px py-6px text-11px font-medium text-t-tertiary'>
             {cmdType === '/' ? t('bots.im.commands', { defaultValue: '可用命令' }) : t('bots.im.contacts', { defaultValue: '选择联系人' })}
           </div>
           {cmdItems.map((item, i) => (
             <div
               key={item.label}
-              className={`flex cursor-pointer items-center gap-8px px-10px py-8px text-13px transition-colors ${
+              className={`flex cursor-pointer items-center gap-8px rounded-8px px-8px py-7px text-13px transition-colors ${
                 i === cmdIdx ? 'bg-primary-1 text-primary-6' : 'hover:bg-fill-2 text-t-primary'
               }`}
               onMouseEnter={() => setCmdIdx(i)}
@@ -498,7 +422,7 @@ const ChatInput: React.FC<{
                 if (!disabled && value.trim()) onSend();
               }
             }}
-            className='h-full w-full resize-y rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
+            className='h-full w-full resize-y rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-8px text-13px leading-20px text-t-primary outline-none transition-colors placeholder:text-t-tertiary focus:border-[var(--color-primary-6)]'
           />
         </div>
         <Button
@@ -506,10 +430,7 @@ const ChatInput: React.FC<{
           shape='round'
           disabled={disabled || !value.trim()}
           onClick={onSend}
-          style={{
-            backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, var(--color-primary-5, var(--primary)) 100%)',
-            paddingInline: 18,
-          }}
+          style={{ paddingInline: 20 }}
         >
           {t('bots.im.send', { defaultValue: '发送' })}
         </Button>
@@ -962,16 +883,23 @@ export default function BotImPage() {
   }, []);
 
   return (
-    <div className='box-border flex h-full w-full flex-col overflow-hidden'>
+    <div className='ai-page box-border flex h-full w-full flex-col overflow-hidden'>
       {/* 头部 */}
-      <div className='flex shrink-0 items-center justify-between gap-12px border-b border-solid border-[var(--color-border-2)] px-16px py-14px md:px-24px'>
-        <div className='min-w-0'>
-          <h1 className={HUB_PAGE_TITLE_CLASS}>
-            {t('bots.im.title', { defaultValue: 'Bot IM' })}
-          </h1>
-          <p className='m-0 mt-4px text-13px leading-18px text-t-tertiary'>
-            {t('bots.im.description', { defaultValue: 'Bot 与用户的实时聊天，支持主动发送。' })}
-          </p>
+      <div className='flex shrink-0 items-center justify-between gap-12px border-b border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px md:px-24px'>
+        <div className='flex min-w-0 items-center gap-12px'>
+          <div className='ai-icon-tile !size-38px !rounded-12px'>
+            <svg className='h-20px w-20px' viewBox='0 0 24 24' fill='none'>
+              <path d='M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z' fill='currentColor' />
+            </svg>
+          </div>
+          <div className='min-w-0'>
+            <h1 className={HUB_PAGE_TITLE_CLASS}>
+              {t('bots.im.title', { defaultValue: 'Bot IM' })}
+            </h1>
+            <p className='m-0 mt-2px text-12px leading-16px text-t-tertiary'>
+              {t('bots.im.description', { defaultValue: 'Bot 与用户的实时聊天，支持主动发送。' })}
+            </p>
+          </div>
         </div>
         <div className='flex items-center gap-6px'>
           <Tooltip content={t('bots.refresh', { defaultValue: '刷新' })}>
@@ -985,7 +913,7 @@ export default function BotImPage() {
             <Button
               shape='circle'
               className={selectMode ? '!text-primary-6 !bg-primary-1' : undefined}
-              icon={<span className='text-13px leading-none'>☑</span>}
+              icon={<CheckboxIcon theme='outline' size='16' fill='currentColor' strokeWidth={2} />}
               onClick={handleToggleSelectMode}
             />
           </Tooltip>
@@ -994,7 +922,7 @@ export default function BotImPage() {
               <Button
                 shape='circle'
                 status='danger'
-                icon={<span className='text-14px'>🗑</span>}
+                icon={<Delete theme='outline' size='16' fill='currentColor' strokeWidth={2} />}
                 onClick={() => {
                   Modal.confirm({
                     title: t('bots.im.deleteSelected', { defaultValue: '删除所选' }),
@@ -1013,7 +941,7 @@ export default function BotImPage() {
             <Button
               shape='circle'
               status='danger'
-              icon={<span className='text-14px'>🗑</span>}
+              icon={<Delete theme='outline' size='16' fill='currentColor' strokeWidth={2} />}
               onClick={() => {
                 if (!active) return;
                 Modal.confirm({
@@ -1083,31 +1011,22 @@ export default function BotImPage() {
                         if (selectMode) handleToggleSelect(key);
                         else handleSelect(key);
                       }}
-                      style={{
-                        borderRadius: 12,
-                        marginBottom: 6,
-                        padding: '12px 14px',
-                        background: selectMode
-                          ? (checked ? 'var(--color-fill-2)' : 'transparent')
-                          : (selected ? 'var(--color-fill-2)' : 'transparent'),
-                        border: 'none',
-                      }}
                     >
                       <Conversation.Avatar>
-                        <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+                        <div className='ai-avatar !shrink-0'>
                           <PlatformLogo platform={c.platform} className='h-24px w-24px' />
                         </div>
                       </Conversation.Avatar>
                       <Conversation.Operations>
                         <div className='flex items-center gap-4px' onClick={(event) => event.stopPropagation()}>
-                          <StatusBadge status={c.status} />
+                          <StatusBadge status={c.status} pulse />
                           <Tooltip content={t('bots.im.deleteConversation', { defaultValue: '删除会话' })}>
                             <Button
                               size='mini'
                               type='text'
                               status='danger'
                               className='!h-20px !min-w-20px !w-20px !p-0 !rounded-4px !text-t-tertiary hover:!text-danger'
-                              icon={<span className='text-12px leading-none'>🗑</span>}
+                              icon={<Delete theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 void handleDeleteConversation(c.botId ?? '', c.fromUser);
@@ -1134,8 +1053,8 @@ export default function BotImPage() {
             <>
               {/* 会话头：大 Logo + Bot 信息 + 平台徽标 + 用户头像 */}
               <div className='flex shrink-0 items-center gap-12px border-b border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-12px'>
-                {/* 大 Logo */}
-                <div className='flex size-42px shrink-0 items-center justify-center rounded-12px bg-primary-1'>
+                {/* 大 Logo（主色浅底圆角块） */}
+                <div className='ai-avatar shrink-0'>
                   <PlatformLogo platform={active.platform} className='h-24px w-24px' />
                 </div>
                 <div className='min-w-0 flex-1'>
@@ -1145,7 +1064,7 @@ export default function BotImPage() {
                     </span>
                     <PlatformBadge platform={active.platform} />
                   </div>
-                  <div className='flex items-center gap-8px mt-1px'>
+                  <div className='mt-2px flex items-center gap-8px'>
                     <span className='truncate text-12px leading-16px text-t-tertiary'>{active.botId || '—'}</span>
                     <StatusBadge status={active.status} />
                     {activeBot?.model && (
@@ -1160,16 +1079,17 @@ export default function BotImPage() {
                   </div>
                 </div>
                 {/* 用户头像 */}
-                <span className='flex size-34px shrink-0 items-center justify-center rounded-10px bg-primary-1 text-14px font-500 text-primary-6'>
+                <span className='ai-avatar !size-34px shrink-0 !text-14px'>
                   {(active.nickname || active.fromUser || '?').slice(0, 1).toUpperCase()}
                 </span>
               </div>
 
               {/* ILink 会话超时提示 + 重新扫码（二维码直接展示在聊天区） */}
               {runtimeStatus === 'stopped' && (
-                <div className='shrink-0 border-b border-solid border-[var(--color-border-2)] bg-warning-1/10 px-16px py-12px'>
-                  <div className='flex items-start gap-8px'>
-                    <span className='mt-2px text-16px text-warning'>⚠</span>
+                <div className='shrink-0 px-16px py-12px'>
+                  <div className='ai-warn-banner px-14px py-12px'>
+                  <div className='flex items-start gap-10px'>
+                    <Attention theme='filled' size='18' fill='var(--color-warning)' className='mt-1px shrink-0' />
                     <div className='min-w-0 flex-1'>
                       <div className='text-13px font-500 text-warning'>
                         {t('bots.im.sessionExpired', { defaultValue: '微信会话已过期，Bot 暂时无法收发消息' })}
@@ -1184,31 +1104,32 @@ export default function BotImPage() {
                     <Button
                       size='small'
                       type='primary'
-                      status='warning'
-                      className='mt-8px'
+                      shape='round'
+                      className='mt-10px'
                       onClick={() => void handleRescan()}
                     >
                       {t('bots.im.rescan', { defaultValue: '重新扫码绑定' })}
                     </Button>
                   ) : scanPhase === 'fetching' ? (
-                    <div className='mt-8px flex items-center gap-8px text-12px text-t-tertiary'>
+                    <div className='mt-10px flex items-center gap-8px text-12px text-t-tertiary'>
                       <Spin size={14} />
                       {t('bots.scan.fetching', { defaultValue: '正在获取二维码…' })}
                     </div>
                   ) : scanPhase === 'confirmed' ? (
-                    <div className='mt-8px text-12px text-success'>
-                      ✓ {t('bots.im.rescanDone', { defaultValue: '绑定成功，正在恢复会话…' })}
+                    <div className='mt-10px flex items-center gap-6px text-12px text-success'>
+                      <Check theme='filled' size='14' fill='var(--color-success)' />
+                      {t('bots.im.rescanDone', { defaultValue: '绑定成功，正在恢复会话…' })}
                     </div>
                   ) : (
-                    <div className='mt-8px flex flex-col items-center gap-6px py-8px'>
+                    <div className='ai-qr-panel !min-h-0 !p-12px mt-10px'>
                       {qrcodeUrl ? (
                         // qrcodeUrl 是微信登录页 URL（iLink 返回），需要编码为二维码供用户扫码，
                         // 不能直接用 <img src>（那是 HTML 页面，无法显示）。
-                        <div className='rounded-8px border border-solid border-[var(--color-border-2)] bg-white p-10px'>
+                        <div className='ai-qr-frame'>
                           <QRCodeSVG value={qrcodeUrl} size={180} marginSize={1} />
                         </div>
                       ) : (
-                        <div className='flex size-180px items-center justify-center rounded-8px bg-[var(--color-fill-2)]'>
+                        <div className='ai-qr-frame flex !size-180px items-center justify-center bg-[var(--color-fill-2)]'>
                           <Spin />
                         </div>
                       )}
@@ -1222,12 +1143,13 @@ export default function BotImPage() {
                               : t('bots.scan.waiting', { defaultValue: '请使用微信扫码' })}
                       </div>
                       {(scanPhase === 'expired' || scanPhase === 'error') && (
-                        <Button size='mini' onClick={() => void handleRescan()}>
+                        <Button size='mini' shape='round' onClick={() => void handleRescan()}>
                           {t('common.retry', { defaultValue: '重试' })}
                         </Button>
                       )}
                     </div>
                   )}
+                  </div>
                 </div>
               )}
 
@@ -1299,23 +1221,23 @@ export default function BotImPage() {
                                   {m.status === 'sending'
                                     ? (<span className='ml-6px text-11px text-t-tertiary'>{t('bots.im.sending', { defaultValue: '发送中…' })}</span>)
                                     : m.status === 'failed'
-                                      ? (<span className='ml-6px text-11px text-danger'>⚠ {t('bots.im.sendFailed', { defaultValue: '发送失败' })}</span>)
+                                      ? (<span className='ml-6px inline-flex items-center gap-2px text-11px text-danger'><Attention theme='filled' size='12' fill='currentColor' />{t('bots.im.sendFailed', { defaultValue: '发送失败' })}</span>)
                                       : m.status === 'sent'
-                                        ? (<span className='ml-6px text-11px text-success'>✓</span>)
+                                        ? (<span className='ml-6px inline-flex items-center text-11px text-success'><Check theme='filled' size='12' fill='currentColor' /></span>)
                                         : null}
                                 </ChatMsg.Footer>
                               )}
                             </ChatMsg>
                             {/* 发送失败：气泡下方展示错误原因与解决入口 */}
                             {m.status === 'failed' && m.sendError && (
-                              <div className='mb-10px ml-auto max-w-[85%] rounded-8px border border-solid border-danger-2 bg-danger-1/10 px-10px py-6px text-12px text-danger'>
+                              <div className='mb-10px ml-auto max-w-[85%] rounded-12px border border-solid border-danger-2 bg-danger-1/10 px-10px py-8px text-12px text-danger'>
                                 <div className='flex items-start gap-6px'>
-                                  <span className='mt-1px shrink-0'>⚠</span>
+                                  <Attention theme='filled' size='15' fill='var(--color-danger)' className='mt-1px shrink-0' />
                                   <div className='min-w-0 flex-1'>
                                     <div className='font-500'>{t('bots.im.sendErrorTitle', { defaultValue: '消息发送失败' })}</div>
                                     <div className='mt-2px break-words text-t-secondary'>{m.sendError}</div>
                                     {/未在运行|未运行|过期|expired|timeout|超时|重新扫码/i.test(m.sendError) && (
-                                      <Button size='mini' type='primary' status='warning' className='mt-8px' onClick={() => void handleRescan()}>
+                                      <Button size='mini' type='primary' shape='round' className='mt-8px' onClick={() => void handleRescan()}>
                                         {t('bots.im.rescan', { defaultValue: '重新扫码绑定' })}
                                       </Button>
                                     )}

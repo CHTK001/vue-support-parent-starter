@@ -193,7 +193,7 @@ onMounted(onMountedInit);
 <template>
   <div class="tw">
     <!-- 左侧主机资源条 -->
-    <aside :style="{ width: railWidth }" class="rail">
+    <aside :style="{ width: railWidth }" class="rail tel-rail">
       <div v-if="railOpen" class="rail-inner">
         <div class="rail-head">
           <span class="rail-title">主机资源</span>

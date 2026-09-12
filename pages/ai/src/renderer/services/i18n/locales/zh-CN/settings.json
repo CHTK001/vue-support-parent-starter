@@ -1807,5 +1807,32 @@
     "refresh": "刷新",
     "auto_refresh": "每 5 秒自动刷新"
   }
+,
+  "console": {
+    "nav": {
+      "title": "AI 控制台",
+      "online": "服务已连接",
+      "chat": "会话",
+      "botUsers": "Bot 配置",
+      "botIm": "Bot IM",
+      "models": "模型",
+      "modelManage": "模型管理",
+      "agents": "Agent",
+      "agentManage": "Agent 管理",
+      "services": "服务",
+      "serviceManage": "服务管理",
+      "extensions": "扩展",
+      "skillsManage": "Skills 管理",
+      "rolesManage": "角色管理",
+      "mcpManage": "MCP 管理",
+      "pluginsManage": "插件管理",
+      "usage": "用量",
+      "usageManage": "用量管理",
+      "usageSyncLogs": "用量同步日志",
+      "system": "系统",
+      "systemSettings": "系统设置",
+      "generation": "生成",
+      "vision": "视觉管线"
+    }
+  }
 }
-

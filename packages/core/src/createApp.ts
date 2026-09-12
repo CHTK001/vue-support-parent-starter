@@ -72,6 +72,8 @@ export interface CreateAppOptions {
   setupRouter?: (router: ReturnType<typeof createAppRouter>) => void | Promise<void>;
   /** 远程路由加载器（覆盖默认 initAuthRouter） */
   loadRemoteRoutes?: RemoteRoutesLoader;
+  /** 路由模式（history / hash），默认 history */
+  routerMode?: "history" | "hash";
 }
 
 /** createApp 完成后的应用上下文 */
@@ -134,7 +136,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   const remoteLoader = options.loadRemoteRoutes ?? (await getRemoteRouteLoader());
   const router = createAppRouter({
     routes: options.routes,
-    mode: "history",
+    mode: options.routerMode ?? "history",
     getAccessToken: () => token.getAccessToken(),
     loadRemoteRoutes: remoteLoader,
     setup: options.setupRouter,
