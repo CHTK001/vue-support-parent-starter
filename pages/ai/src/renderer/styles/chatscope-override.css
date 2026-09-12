@@ -1,0 +1,199 @@
+/**
+ * chatscope-override.css — Modern flat styling overrides for Chatscope UI
+ *
+ * Overrides the default Chatscope theme to match Nomi's modern flat design:
+ * - Flat message bubbles (no gradients, subtle shadows)
+ * - Clean avatar placement
+ * - Minimal separators
+ * - Smooth transitions on hover/active
+ * - Consistent with Arco Design CSS variables
+ */
+
+/* ===== Global Chatscope Container ===== */
+.cs-container {
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif) !important;
+  background: transparent !important;
+}
+
+.cs-container__content {
+  background: transparent !important;
+}
+
+/* ===== Message List ===== */
+.cs-message-list {
+  background: transparent !important;
+  padding: 16px 0 !important;
+}
+
+.cs-message-list--with-input {
+  padding-bottom: 0 !important;
+}
+
+/* ===== Message Bubble — Modern Flat Design ===== */
+.cs-message {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.cs-message__content-wrapper {
+  border-radius: 14px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-1, #000) 3%, transparent) !important;
+}
+
+/* Incoming (left) message bubble — flat surface */
+.cs-message--incoming .cs-message__content-wrapper {
+  background: var(--color-bg-2, #f4f4f5) !important;
+  border: 1px solid var(--color-border-2, #e4e4e7) !important;
+  border-bottom-left-radius: 4px !important;
+  border-bottom-right-radius: 14px !important;
+  border-top-left-radius: 14px !important;
+  border-top-right-radius: 14px !important;
+}
+
+/* Outgoing (right) message bubble — primary flat surface */
+.cs-message--outgoing .cs-message__content-wrapper {
+  background: var(--primary, #165dff) !important;
+  border: none !important;
+  border-bottom-left-radius: 14px !important;
+  border-bottom-right-radius: 4px !important;
+  border-top-left-radius: 14px !important;
+  border-top-right-radius: 14px !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--primary, #165dff) 12%, transparent) !important;
+}
+
+/* ===== Avatar ===== */
+.cs-avatar {
+  border-radius: 10px !important;
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 12px !important;
+}
+
+.cs-message__avatar-wrapper {
+  margin-right: 8px !important;
+}
+
+/* ===== Message Footer (time / status) ===== */
+.cs-message__footer {
+  margin-top: 4px !important;
+  font-size: 10px !important;
+  color: var(--color-text-4, #afb0b9) !important;
+  opacity: 0.8 !important;
+}
+
+/* ===== Message Separator (date divider) ===== */
+.cs-message-separator-container {
+  margin: 16px 0 !important;
+}
+
+.cs-message-separator {
+  background: var(--color-border-2, #e4e4e7) !important;
+  border-radius: 999px !important;
+  padding: 2px 12px !important;
+  font-size: 11px !important;
+  color: var(--color-text-3, #8d8d93) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* ===== Typing indicator ===== */
+.cs-typing-indicator {
+  background: var(--color-bg-2, #f4f4f5) !important;
+  border: 1px solid var(--color-border-2, #e4e4e7) !important;
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-1, #000) 3%, transparent) !important;
+}
+
+.cs-typing-indicator__dot {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  margin: 0 1.5px !important;
+  background: var(--color-text-3, #8d8d93) !important;
+}
+
+/* ===== Input area ===== */
+.cs-input {
+  border-radius: 12px !important;
+  border: 1px solid var(--color-border-2, #e4e4e7) !important;
+  background: var(--color-bg-2, #f4f4f5) !important;
+  padding: 8px 12px !important;
+  box-shadow: none !important;
+}
+
+.cs-input textarea {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  font-size: 13px !important;
+  color: var(--color-text-1, #1e1e1e) !important;
+}
+
+/* ===== Send button ===== */
+.cs-input__send-button {
+  border-radius: 10px !important;
+  border: none !important;
+  background: var(--primary, #165dff) !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease !important;
+}
+
+.cs-input__send-button:hover:not(:disabled) {
+  filter: brightness(1.05) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary, #165dff) 20%, transparent) !important;
+}
+
+.cs-input__send-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* ===== Scrollbar ===== */
+.cs-container::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.cs-container::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.cs-container::-webkit-scrollbar-thumb {
+  background: var(--color-border-3, #d4d6d8) !important;
+  border-radius: 3px !important;
+  transition: background 0.2s ease !important;
+}
+
+.cs-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-4, #afb0b9) !important;
+}
+
+/* Dark mode adaptations */
+html.dark .cs-message--incoming .cs-message__content-wrapper {
+  background: var(--color-bg-2, #1f1f1f) !important;
+  border-color: var(--color-border-2, #333333) !important;
+  color: var(--color-text-1, #e5e5e5) !important;
+}
+
+html.dark .cs-message--outgoing .cs-message__content-wrapper {
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--primary, #165dff) 18%, transparent) !important;
+}
+
+html.dark .cs-message-separator {
+  background: var(--color-border-2, #333333) !important;
+  color: var(--color-text-3, #a3a3ad) !important;
+}
+
+html.dark .cs-input {
+  background: var(--color-bg-2, #1f1f1f) !important;
+  border-color: var(--color-border-2, #333333) !important;
+}
+
+html.dark .cs-typing-indicator {
+  background: var(--color-bg-2, #1f1f1f) !important;
+  border-color: var(--color-border-2, #333333) !important;
+}

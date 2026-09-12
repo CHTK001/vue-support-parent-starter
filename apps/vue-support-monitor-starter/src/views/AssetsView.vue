@@ -712,6 +712,8 @@ onBeforeUnmount(() => {
 .os-img { width: 17px; height: 17px; display: block; object-fit: contain; }
 .kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.delay-live { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-secondary, #8b90a0); }
+.delay-live.bad { color: var(--danger, #f56c6c); font-weight: 600; }
 .op-cell { display: flex; gap: 4px; }
 .color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
 </style>
