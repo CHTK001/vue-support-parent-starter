@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
- * 账号管理 —— 登录身份（账号密码 / SSH 私钥）统一维护
+ * 账号管理 —— 登录身份（账号密码 / SSH 私钥 / 邮箱 / Token 等）统一维护
  * 数据源：@pages/server 身份接口（getIdentities / saveIdentity / delIdentity）
  * 主机连接 / 编辑时从该列表选择身份
+ * @author CH
+ * @since 4.0.0
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
+import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { getIdentities, saveIdentity, delIdentity } from "@pages/server/src/api";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
@@ -24,7 +27,7 @@ const columns = [
   { prop: "auth", label: "类型", width: 110, slot: "auth" },
   { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 160 },
-  { prop: "id", label: "操作", width: 80, slot: "actions" },
+  { prop: "id", label: "操作", width: 130, slot: "actions" },
 ];
 
 const list = ref<Identity[]>([]);
@@ -68,6 +71,52 @@ const authTypeTagType = (t?: string | null): "success" | "info" | "warning" | "p
   return "primary";
 };
 
+// ---- 过滤（ReFilter 统一驱动） ----
+const filterState = ref<Record<string, unknown>>({ keyword: "", type: "" });
+function onFilterChange(prop: string, value: unknown): void {
+  filterState.value[prop] = value;
+}
+function onFilterReset(): void {
+  filterState.value = { keyword: "", type: "" };
+}
+
+/** 类型统计：主机 / 通用 / 未知 */
+const hostCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PASSWORD" || i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+const genericCount = computed(() => list.value.length - hostCount.value);
+const keyCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+
+const filterItems = computed<ReFilterItem[]>(() => [
+  { prop: "keyword", label: "名称/用户", type: "input", placeholder: "搜索名称 / 登录用户 / 备注", clearable: true, always: true },
+  { prop: "type", label: "类型", type: "select", placeholder: "全部类型", clearable: true, options: authTypeOptions.map((o) => ({ label: o.label, value: o.value })), always: true },
+]);
+
+/** 过滤后的列表 */
+const filteredList = computed(() => {
+  let items = list.value;
+  const kw = String(filterState.value.keyword ?? "").toLowerCase().trim();
+  if (kw) {
+    items = items.filter(
+      (i) =>
+        i.msServerIdentityName.toLowerCase().includes(kw) ||
+        (i.msServerIdentityUsername ?? "").toLowerCase().includes(kw) ||
+        (i.msServerIdentityRemark ?? "").toLowerCase().includes(kw),
+    );
+  }
+  const type = String(filterState.value.type ?? "");
+  if (type) items = items.filter((i) => i.msServerIdentityAuthType === type);
+  return items;
+});
+
+/** 复制用户名到剪贴板 */
+async function copyUsername(i: Identity): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(i.msServerIdentityUsername || "");
+    ElMessage.success("用户名已复制");
+  } catch {
+    ElMessage.info(i.msServerIdentityUsername || "");
+  }
+}
+
 // ---- 新增 / 编辑身份 ----
 // ---- 弹窗（空闲时预渲染，首次打开毫秒级——dialogPrerender.ts） ----
 const addVisible = ref(false);
@@ -86,6 +135,9 @@ const addForm = ref<{
   msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
 });
 
+/**
+ * 打开新建身份弹窗
+ */
 function openAdd(): void {
   editingId.value = null;
   addForm.value = {
@@ -95,6 +147,10 @@ function openAdd(): void {
   addVisible.value = true;
 }
 
+/**
+ * 打开编辑身份弹窗
+ * @param row 身份行
+ */
 function openEdit(row: Identity): void {
   editingId.value = row.id;
   addForm.value = {
@@ -145,20 +201,60 @@ async function remove(i: Identity): Promise<void> {
     <div class="page-header">
       <div>
         <h1 class="page-title">账号管理</h1>
-        <p class="page-desc">登录身份（账号密码 / SSH 私钥）统一维护 · 主机连接与编辑时从这里选择</p>
+        <p class="page-desc">登录身份（账号密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 {{ list.length }} 条</p>
+      </div>
+      <div class="page-actions">
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
+    <!-- KPI 统计 -->
+    <section class="kpi-row cols-4">
+      <div class="kpi c-brand">
+        <div class="kpi-top"><span class="kpi-label">身份总数</span></div>
+        <div class="kpi-value">{{ list.length }}</div>
+        <div class="kpi-sub">全部登录身份</div>
+      </div>
+      <div class="kpi c-green">
+        <div class="kpi-top"><span class="kpi-label">主机身份</span></div>
+        <div class="kpi-value">{{ hostCount }}</div>
+        <div class="kpi-sub">密码 / 公钥</div>
+      </div>
+      <div class="kpi c-blue">
+        <div class="kpi-top"><span class="kpi-label">通用账号</span></div>
+        <div class="kpi-value">{{ genericCount }}</div>
+        <div class="kpi-sub">邮箱 / Token / API Key 等</div>
+      </div>
+      <div class="kpi c-amber">
+        <div class="kpi-top"><span class="kpi-label">密钥引用</span></div>
+        <div class="kpi-value">{{ keyCount }}</div>
+        <div class="kpi-sub">SSH 私钥登录</div>
+      </div>
+    </section>
+
     <div class="card">
-      <ReSectionHead description="身份即登录凭据：密码或私钥；主机可绑定多个身份，连接时按所选身份建连">
+      <ReSectionHead description="身份即登录凭据；主机可绑定多个身份，连接时按所选身份建连">
         <template #title>登录身份</template>
         <template #actions>
           <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openAdd">新增身份</ReButton>
         </template>
       </ReSectionHead>
 
+      <div class="filter">
+        <ReFilter
+          :items="filterItems"
+          :columns="2"
+          :collapsible="false"
+          :show-actions="false"
+          @change="onFilterChange"
+          @reset="onFilterReset"
+          style="width:100%"
+        />
+        <span class="muted" style="margin-left:auto">{{ filteredList.length }} / {{ list.length }}</span>
+      </div>
+
       <ReTable
-        :data="list"
+        :data="filteredList"
         :columns="columns"
         :loading="loading"
         table-id="identity-list"
@@ -172,6 +268,7 @@ async function remove(i: Identity): Promise<void> {
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
+            <ReButton icon="CopyDocument" layout="square" size="small" title="复制用户名" @click="copyUsername(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
           </div>
