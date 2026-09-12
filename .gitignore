@@ -81,6 +81,7 @@ test-*.ts
 verify-*.js
 verify-*.mjs
 probe.*
+final-check.mjs
 
 # Playwright 报告
 playwright-report/
