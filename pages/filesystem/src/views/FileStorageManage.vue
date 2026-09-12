@@ -484,6 +484,18 @@ const selectedSize = computed(() => {
   }
   return sum;
 });
+/** 当前选中的对象实体（按选中名从当前目录对象列表解析） */
+const selectedObjects = computed<StorageObject[]>(() =>
+  objects.value.filter((obj) => selected.value.has(obj.name)),
+);
+/** 是否可解压：恰好选中一个非目录的压缩包（与右键菜单的解压显隐条件保持一致） */
+const canUnzip = computed(() => {
+  if (selected.value.size !== 1) {
+    return false;
+  }
+  const target = selectedObjects.value[0];
+  return !!target && !target.directory && isArchive(target.name);
+});
 
 /* ================== 目录导航 ================== */
 
@@ -1554,27 +1566,27 @@ onUnmounted(() => {
               <el-icon aria-hidden="true"><DocumentAdd /></el-icon>
               <span>新建文件</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="重命名" aria-label="重命名" :disabled="actionRunning || selectedCount !== 1" @click="onRename()">
+            <button v-if="selectedCount === 1" type="button" class="fs-tb-btn" title="重命名" aria-label="重命名" :disabled="actionRunning" @click="onRename()">
               <el-icon aria-hidden="true"><EditPen /></el-icon>
               <span>重命名</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="复制" aria-label="复制" :disabled="selectedCount === 0" @click="onCopySelected">
+            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="复制" aria-label="复制" @click="onCopySelected">
               <el-icon aria-hidden="true"><CopyDocument /></el-icon>
               <span>复制</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="剪切" aria-label="剪切" :disabled="selectedCount === 0" @click="onCutSelected">
+            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="剪切" aria-label="剪切" @click="onCutSelected">
               <el-icon aria-hidden="true"><Scissor /></el-icon>
               <span>剪切</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="粘贴到当前目录" aria-label="粘贴" :disabled="actionRunning || clipboard == null" @click="onPaste">
+            <button v-if="clipboard != null" type="button" class="fs-tb-btn" title="粘贴到当前目录" aria-label="粘贴" :disabled="actionRunning" @click="onPaste">
               <el-icon aria-hidden="true"><DocumentCopy /></el-icon>
               <span>粘贴</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="压缩下载" aria-label="压缩下载" :disabled="actionRunning || selectedCount === 0" @click="onZipSelected">
+            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="压缩下载" aria-label="压缩下载" :disabled="actionRunning" @click="onZipSelected">
               <el-icon aria-hidden="true"><Files /></el-icon>
               <span>压缩</span>
             </button>
-            <button type="button" class="fs-tb-btn" title="解压到当前目录" aria-label="解压" :disabled="actionRunning || selectedCount !== 1" @click="onUnzip()">
+            <button v-if="canUnzip" type="button" class="fs-tb-btn" title="解压到当前目录" aria-label="解压" :disabled="actionRunning" @click="onUnzip()">
               <el-icon aria-hidden="true"><FolderOpened /></el-icon>
               <span>解压</span>
             </button>
