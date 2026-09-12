@@ -19,7 +19,6 @@
     "@repo/assets": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
-    "@repo/images": "workspace:*",
     "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",

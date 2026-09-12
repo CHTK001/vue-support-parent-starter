@@ -2,12 +2,12 @@
  * 系统管理模块 API 封装（@pages/system）
  *
  * 覆盖 8 个核心 Controller，调用规范：
- *   1) 全部走 getApiHttp()，URL 形如 /v2/{module}/{action}
+ *   1) 全部走 http()，URL 形如 /v2/{module}/{action}
  *   2) 链式 API：.get(url).query(params) / .post(url).data(body) / .put / .delete
  *   3) 返回 Promise<ApiResult<T>>，由业务代码 .then(r => r.data) 解包
  *   4) 路径与后端 spring-api-support-common-system-starter / common-service-starter 一致
  */
-import { getApiHttp } from "@repo/core";
+import { http } from "@repo/utils";
 import type {
   ApiResult,
   FeedbackIssue,
@@ -40,7 +40,7 @@ import type {
 
 /** 用户分页 */
 export function pageForUser(params: SysUserQuery) {
-  return getApiHttp()
+  return http()
     .get("/v2/user/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysUser>>>((r) => r.data);
@@ -48,7 +48,7 @@ export function pageForUser(params: SysUserQuery) {
 
 /** 新增用户 */
 export function saveUser(data: SysUserUpdate) {
-  return getApiHttp()
+  return http()
     .post("/v2/user/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysUser>>((r) => r.data);
@@ -56,7 +56,7 @@ export function saveUser(data: SysUserUpdate) {
 
 /** 更新用户 */
 export function updateUser(data: SysUserUpdate) {
-  return getApiHttp()
+  return http()
     .put("/v2/user/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysUser>>((r) => r.data);
@@ -64,7 +64,7 @@ export function updateUser(data: SysUserUpdate) {
 
 /** 删除用户 */
 export function deleteUser(sysUserId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/user/delete")
     .query({ sysUserId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -72,7 +72,7 @@ export function deleteUser(sysUserId: number) {
 
 /** 重置用户密码（管理员操作） */
 export function resetUserPassword(userId: number) {
-  return getApiHttp()
+  return http()
     .post("/v2/user/reset")
     .data({ userId } as Record<string, unknown>)
     .then<ApiResult<string>>((r) => r.data);
@@ -80,14 +80,14 @@ export function resetUserPassword(userId: number) {
 
 /** 重置个人密码 */
 export function resetOwner() {
-  return getApiHttp()
+  return http()
     .get("/v2/user/resetOwner")
     .then<ApiResult<SysUser>>((r) => r.data);
 }
 
 /** 修改个人密码 */
 export function updateOwner(data: { oldPassword: string; newPassword: string; confirmPassword: string }) {
-  return getApiHttp()
+  return http()
     .put("/v2/user/updateOwner")
     .data(data)
     .then<ApiResult<SysUser>>((r) => r.data);
@@ -97,7 +97,7 @@ export function updateOwner(data: { oldPassword: string; newPassword: string; co
 
 /** 头像框列表 */
 export function getAvatarFrameList() {
-  return getApiHttp()
+  return http()
     .get("/v2/avatar-frame/list")
     .then<ApiResult<SysAvatarFrame[]>>((r) => r.data);
 }
@@ -112,7 +112,7 @@ export function pageForRole(params: {
   sysRoleCode?: string;
   sysRoleStatus?: number;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/role/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysRole>>>((r) => r.data);
@@ -120,14 +120,14 @@ export function pageForRole(params: {
 
 /** 角色列表（启用/下拉用） */
 export function listForRole() {
-  return getApiHttp()
+  return http()
     .get("/v2/role/list")
     .then<ApiResult<SysRole[]>>((r) => r.data);
 }
 
 /** 新增角色 */
 export function saveRole(data: SysRole) {
-  return getApiHttp()
+  return http()
     .post("/v2/role/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysRole>>((r) => r.data);
@@ -135,7 +135,7 @@ export function saveRole(data: SysRole) {
 
 /** 更新角色 */
 export function updateRole(data: SysRole) {
-  return getApiHttp()
+  return http()
     .put("/v2/role/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -143,7 +143,7 @@ export function updateRole(data: SysRole) {
 
 /** 删除角色 */
 export function deleteRole(roleId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/role/delete")
     .query({ roleId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -151,7 +151,7 @@ export function deleteRole(roleId: number) {
 
 /** 获取角色的菜单 ID 集合 */
 export function getRoleMenu(roleId: number) {
-  return getApiHttp()
+  return http()
     .get("/v2/role/get_menu")
     .query({ roleId })
     .then<ApiResult<number[]>>((r) => r.data);
@@ -159,7 +159,7 @@ export function getRoleMenu(roleId: number) {
 
 /** 更新角色的菜单授权 */
 export function updateRoleMenu(data: RoleMenuUpdate) {
-  return getApiHttp()
+  return http()
     .put("/v2/role/update_menu")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -169,7 +169,7 @@ export function updateRoleMenu(data: RoleMenuUpdate) {
 
 /** 全部菜单（条件查询，返回扁平列表） */
 export function listAllMenu(params?: Record<string, unknown>) {
-  return getApiHttp()
+  return http()
     .get("/v2/menu/all")
     .query((params ?? {}) as Record<string, unknown>)
     .then<ApiResult<SysMenu[]>>((r) => r.data);
@@ -177,7 +177,7 @@ export function listAllMenu(params?: Record<string, unknown>) {
 
 /** 菜单树（菜单管理用） */
 export function listMenuTree(params?: Record<string, unknown>) {
-  return getApiHttp()
+  return http()
     .get("/v2/menu/list")
     .query((params ?? {}) as Record<string, unknown>)
     .then<ApiResult<SysMenuSettingVO[]>>((r) => r.data);
@@ -185,7 +185,7 @@ export function listMenuTree(params?: Record<string, unknown>) {
 
 /** 菜单分页（备用） */
 export function pageForMenu(params: { page?: number; pageSize?: number; sysMenuName?: string }) {
-  return getApiHttp()
+  return http()
     .get("/v2/menu/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysMenu>>>((r) => r.data);
@@ -193,7 +193,7 @@ export function pageForMenu(params: { page?: number; pageSize?: number; sysMenuN
 
 /** 新增菜单 */
 export function saveMenu(data: SysMenu) {
-  return getApiHttp()
+  return http()
     .post("/v2/menu/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysMenu>>((r) => r.data);
@@ -201,7 +201,7 @@ export function saveMenu(data: SysMenu) {
 
 /** 更新菜单 */
 export function updateMenu(data: SysMenu) {
-  return getApiHttp()
+  return http()
     .put("/v2/menu/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -209,7 +209,7 @@ export function updateMenu(data: SysMenu) {
 
 /** 删除菜单 */
 export function deleteMenu(sysMenuId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/menu/delete")
     .query({ sysMenuId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -219,14 +219,14 @@ export function deleteMenu(sysMenuId: number) {
 
 /** 部门列表（树形） */
 export function listDept() {
-  return getApiHttp()
+  return http()
     .get("/v2/dept/list")
     .then<ApiResult<SysDeptVO[]>>((r) => r.data);
 }
 
 /** 新增部门 */
 export function saveDept(data: SysDept) {
-  return getApiHttp()
+  return http()
     .post("/v2/dept/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysDept>>((r) => r.data);
@@ -234,7 +234,7 @@ export function saveDept(data: SysDept) {
 
 /** 更新部门 */
 export function updateDept(data: SysDept) {
-  return getApiHttp()
+  return http()
     .put("/v2/dept/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -242,7 +242,7 @@ export function updateDept(data: SysDept) {
 
 /** 删除部门 */
 export function deleteDept(deptId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/dept/delete")
     .query({ deptId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -257,7 +257,7 @@ export function pageForDict(params: {
   sysDictName?: string;
   sysDictCode?: string;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/dict/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysDict>>>((r) => r.data);
@@ -265,7 +265,7 @@ export function pageForDict(params: {
 
 /** 字典列表（树形） */
 export function listForDict() {
-  return getApiHttp()
+  return http()
     .get("/v2/dict/list")
     .then<ApiResult<SysDict[]>>((r) => r.data);
 }
@@ -277,7 +277,7 @@ export function pageForDictItem(params: {
   sysDictId?: number;
   sysDictItemLabel?: string;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/dict/item/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysDictItem>>>((r) => r.data);
@@ -285,7 +285,7 @@ export function pageForDictItem(params: {
 
 /** 字典子项按字典 ID 查 */
 export function listDictItem(sysDictId: number) {
-  return getApiHttp()
+  return http()
     .get("/v2/dict/item/list")
     .query({ sysDictId })
     .then<ApiResult<SysDictItem[]>>((r) => r.data);
@@ -293,7 +293,7 @@ export function listDictItem(sysDictId: number) {
 
 /** 按字典编码查子项（带缓存） */
 export function listDictItemByCode(sysDictCode: string) {
-  return getApiHttp()
+  return http()
     .get("/v2/dict/item/code")
     .query({ sysDictCode })
     .then<ApiResult<SysDictItem[]>>((r) => r.data);
@@ -301,7 +301,7 @@ export function listDictItemByCode(sysDictCode: string) {
 
 /** 新增字典 */
 export function saveDict(data: SysDict) {
-  return getApiHttp()
+  return http()
     .post("/v2/dict/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysDict>>((r) => r.data);
@@ -309,7 +309,7 @@ export function saveDict(data: SysDict) {
 
 /** 更新字典 */
 export function updateDict(data: SysDict) {
-  return getApiHttp()
+  return http()
     .put("/v2/dict/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -317,7 +317,7 @@ export function updateDict(data: SysDict) {
 
 /** 删除字典 */
 export function deleteDict(sysDictId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/dict/delete")
     .query({ sysDictId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -325,7 +325,7 @@ export function deleteDict(sysDictId: number) {
 
 /** 新增字典子项 */
 export function saveDictItem(data: SysDictItem) {
-  return getApiHttp()
+  return http()
     .post("/v2/dict/item/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysDictItem>>((r) => r.data);
@@ -333,7 +333,7 @@ export function saveDictItem(data: SysDictItem) {
 
 /** 更新字典子项 */
 export function updateDictItem(data: SysDictItem) {
-  return getApiHttp()
+  return http()
     .put("/v2/dict/item/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -341,7 +341,7 @@ export function updateDictItem(data: SysDictItem) {
 
 /** 删除字典子项 */
 export function deleteDictItem(sysDictItemId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/dict/item/delete")
     .query({ sysDictItemId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -351,7 +351,7 @@ export function deleteDictItem(sysDictItemId: number) {
 
 /** 在线用户列表 */
 export function listOnline(params?: { username?: string; ip?: string }) {
-  return getApiHttp()
+  return http()
     .get("/v2/online/list")
     .query((params ?? {}) as Record<string, unknown>)
     .then<ApiResult<OnlineUser[]>>((r) => r.data);
@@ -359,21 +359,21 @@ export function listOnline(params?: { username?: string; ip?: string }) {
 
 /** 在线用户数 */
 export function countOnline() {
-  return getApiHttp()
+  return http()
     .get("/v2/online/count")
     .then<ApiResult<number>>((r) => r.data);
 }
 
 /** 踢出单个用户 */
 export function kickUser(userId: string) {
-  return getApiHttp()
+  return http()
     .delete(`/v2/online/kick/${userId}`)
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
 /** 批量踢出 */
 export function kickUsers(userIds: string[]) {
-  return getApiHttp()
+  return http()
     .delete("/v2/online/kick/batch")
     .data({ userIds })
     .then<ApiResult<number>>((r) => r.data);
@@ -383,7 +383,7 @@ export function kickUsers(userIds: string[]) {
 
 /** 默认设置（应用启动配置） */
 export function listForDefaultSetting() {
-  return getApiHttp()
+  return http()
     .get("/v2/setting/default")
     .then<ApiResult<SysSettingVO[]>>((r) => r.data);
 }
@@ -398,7 +398,7 @@ export function pageForSetting(params: {
   sysSettingValueType?: string;
   sysSettingInSystem?: number;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/setting/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysSetting>>>((r) => r.data);
@@ -406,7 +406,7 @@ export function pageForSetting(params: {
 
 /** 按分组查设置 */
 export function listForSetting(sysSettingGroup: string) {
-  return getApiHttp()
+  return http()
     .get("/v2/setting/list")
     .query({ sysSettingGroup })
     .then<ApiResult<SysSettingVO[]>>((r) => r.data);
@@ -414,7 +414,7 @@ export function listForSetting(sysSettingGroup: string) {
 
 /** 新增设置 */
 export function saveSetting(data: SysSetting) {
-  return getApiHttp()
+  return http()
     .post("/v2/setting/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysSetting>>((r) => r.data);
@@ -422,7 +422,7 @@ export function saveSetting(data: SysSetting) {
 
 /** 更新设置 */
 export function updateSetting(data: SysSetting) {
-  return getApiHttp()
+  return http()
     .put("/v2/setting/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -430,7 +430,7 @@ export function updateSetting(data: SysSetting) {
 
 /** 批量更新 */
 export function updateBatchSetting(data: SysSetting[]) {
-  return getApiHttp()
+  return http()
     .put("/v2/setting/updateBatch")
     .data(data as Record<string, unknown>[])
     .then<ApiResult<boolean>>((r) => r.data);
@@ -438,7 +438,7 @@ export function updateBatchSetting(data: SysSetting[]) {
 
 /** 删除设置 */
 export function deleteSetting(sysSettingId: number) {
-  return getApiHttp()
+  return http()
     .delete("/v2/setting/delete")
     .query({ sysSettingId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -448,7 +448,7 @@ export function deleteSetting(sysSettingId: number) {
 
 /** 反馈分页 */
 export function pageForFeedback(params: { page?: number; pageSize?: number; sysFeedbackType?: string }) {
-  return getApiHttp()
+  return http()
     .get("/v2/feedback/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysFeedback>>>((r) => r.data);
@@ -456,7 +456,7 @@ export function pageForFeedback(params: { page?: number; pageSize?: number; sysF
 
 /** 处理反馈 */
 export function issueFeedback(data: FeedbackIssue) {
-  return getApiHttp()
+  return http()
     .put("/v2/feedback/issue")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -466,7 +466,7 @@ export function issueFeedback(data: FeedbackIssue) {
 
 /** 登录日志分页 */
 export function pageForUserLog(params: { page?: number; pageSize?: number; sysLogUsername?: string }) {
-  return getApiHttp()
+  return http()
     .get("/v2/user/log/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysUserLog>>>((r) => r.data);
@@ -483,7 +483,7 @@ export function pageForTenant(params: {
   sysTenantPhone?: string;
   sysTenantStatus?: number;
 }) {
-  return getApiHttp()
+  return http()
     .get("/v2/tenant/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysTenant>>>((r) => r.data);
@@ -491,14 +491,14 @@ export function pageForTenant(params: {
 
 /** 租户列表 */
 export function listForTenant() {
-  return getApiHttp()
+  return http()
     .get("/v2/tenant/list")
     .then<ApiResult<SysTenant[]>>((r) => r.data);
 }
 
 /** 租户详情 */
 export function getTenant(sysTenantId: string) {
-  return getApiHttp()
+  return http()
     .get("/v2/tenant/get")
     .query({ sysTenantId })
     .then<ApiResult<SysTenant>>((r) => r.data);
@@ -506,7 +506,7 @@ export function getTenant(sysTenantId: string) {
 
 /** 新增租户 */
 export function saveTenant(data: SysTenant) {
-  return getApiHttp()
+  return http()
     .post("/v2/tenant/save")
     .data(data as Record<string, unknown>)
     .then<ApiResult<SysTenant>>((r) => r.data);
@@ -514,7 +514,7 @@ export function saveTenant(data: SysTenant) {
 
 /** 更新租户 */
 export function updateTenant(data: SysTenant) {
-  return getApiHttp()
+  return http()
     .put("/v2/tenant/update")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -522,7 +522,7 @@ export function updateTenant(data: SysTenant) {
 
 /** 删除租户 */
 export function deleteTenant(sysTenantId: string) {
-  return getApiHttp()
+  return http()
     .delete("/v2/tenant/delete")
     .query({ sysTenantId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -530,7 +530,7 @@ export function deleteTenant(sysTenantId: string) {
 
 /** 绑定租户服务（触发菜单重置推送） */
 export function bindTenantService(data: TenantServiceBindRequest) {
-  return getApiHttp()
+  return http()
     .put("/v2/tenant/bind/service")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
@@ -538,7 +538,7 @@ export function bindTenantService(data: TenantServiceBindRequest) {
 
 /** 更新租户状态 */
 export function updateTenantStatus(sysTenantId: string, status: number) {
-  return getApiHttp()
+  return http()
     .put("/v2/tenant/status")
     .query({ sysTenantId, status })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -546,7 +546,7 @@ export function updateTenantStatus(sysTenantId: string, status: number) {
 
 /** 重置租户密码（推送给租户端） */
 export function resetTenantPassword(sysTenantId: string, sysTenantPassword: string) {
-  return getApiHttp()
+  return http()
     .put("/v2/tenant/reset-password")
     .query({ sysTenantId, sysTenantPassword })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -554,7 +554,7 @@ export function resetTenantPassword(sysTenantId: string, sysTenantPassword: stri
 
 /** 重置租户菜单（按订阅重新计算并推送给租户端） */
 export function resetTenantMenu(sysTenantId: string) {
-  return getApiHttp()
+  return http()
     .put("/v2/tenant/reset-menu")
     .query({ sysTenantId })
     .then<ApiResult<boolean>>((r) => r.data);
@@ -562,21 +562,21 @@ export function resetTenantMenu(sysTenantId: string) {
 
 /** 租户统计 */
 export function tenantStats() {
-  return getApiHttp()
+  return http()
     .get("/v2/tenant/stats")
     .then<ApiResult<SysTenantStats>>((r) => r.data);
 }
 
 /** 服务列表（租户服务分配用） */
 export function listForService() {
-  return getApiHttp()
+  return http()
     .get("/v2/service/list")
     .then<ApiResult<SysService[]>>((r) => r.data);
 }
 
 /** 操作日志分页列表 */
 export function pageForSysLog(params: { page?: number; pageSize?: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }) {
-  return getApiHttp()
+  return http()
     .get("/v2/log/page")
     .query(params as Record<string, unknown>)
     .then<ApiResult<PageResult<SysLog>>>((r) => r.data);

@@ -897,12 +897,12 @@ export default function BotManagementPage() {
         if (editing) {
           payload.id = editing.id;
           if (form.botToken.trim()) payload.botToken = form.botToken.trim();
-          await httpRequest('PUT', '/v2/ai/bot-binding/update', payload);
+          await http().put('/v2/ai/bot-binding/update').data(payload).then(r => unwrapResult<unknown>(r));
         } else {
           if (form.fromScan) payload.bindSource = 'qrcode_scan';
           else payload.bindSource = 'manual_import';
           if (form.botToken.trim()) payload.botToken = form.botToken.trim();
-          await httpRequest('POST', '/v2/ai/bot-binding/create', payload);
+          await http().post('/v2/ai/bot-binding/create').data(payload).then(r => unwrapResult<unknown>(r));
         }
         Message.success(
           editing
@@ -935,7 +935,7 @@ export default function BotManagementPage() {
         maskClosable: false,
         onOk: async () => {
           try {
-            await httpRequest('DELETE', `/v2/ai/bot-binding/${row.id}`);
+            await http().delete(`/v2/ai/bot-binding/${row.id}`).then(r => unwrapResult<unknown>(r));
             Message.success(t('bots.deleteSuccess', { defaultValue: '已解绑' }));
             await load();
           } catch {
