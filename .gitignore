@@ -121,3 +121,6 @@ proj-debug.cjs
 
 kodcloud-*.cjs
 debug-*.cjs
+
+start-vite-ps.ps1
+vite.pid
