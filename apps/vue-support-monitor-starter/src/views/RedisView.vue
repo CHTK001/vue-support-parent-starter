@@ -9,7 +9,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -21,7 +21,12 @@ import {
   expireSystemRedisKey,
   type SystemRedisInfo,
   type RedisKeyDetail,
+  fetchMonitors,
+  getRedisMetricHistory,
+  type MonitorItem,
+  type RedisMetricRow,
 } from "../monitorApi";
+import TelemetryChart from "../components/TelemetryChart.vue";
 
 const info = ref<SystemRedisInfo | null>(null);
 const loading = ref(false);
@@ -183,6 +188,126 @@ const pushHistoryPoint = () => {
   }
   updateChart();
 };
+
+// ==================== 监控 Redis 资产时序图表 ====================
+const redisAssets = ref<MonitorItem[]>([]);
+const selectedRedisId = ref<number | null>(null);
+const redisTimeRange = ref<"1h" | "6h" | "24h" | "7d">("1h");
+const redisLoading = ref(false);
+const redisHasData = ref(false);
+const redisLoaded = ref(false);
+
+const HOURS_MAP: Record<string, number> = { "1h": 1, "6h": 6, "24h": 24, "7d": 168 };
+const TIME_RANGE_OPTIONS = [
+  { label: "最近 1 小时", value: "1h" },
+  { label: "最近 6 小时", value: "6h" },
+  { label: "最近 24 小时", value: "24h" },
+  { label: "最近 7 天", value: "7d" },
+];
+
+/** 透视后的时序数据：times + 各指标序列 */
+const redisSeries = ref<{
+  times: number[];
+  memory: (number | null)[];
+  clients: (number | null)[];
+  ops: (number | null)[];
+  hitRate: (number | null)[];
+  cpu: (number | null)[];
+  totalCmds: (number | null)[];
+}>();
+
+/** 最新快照（用于 KPI 卡片） */
+const redisLatest = ref<Record<string, number>>({});
+
+let redisPollTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 加载 Redis 资产列表 */
+async function loadRedisAssets() {
+  try {
+    const list = await fetchMonitors();
+    redisAssets.value = (list ?? []).filter(m => m.serviceType === "REDIS");
+    if (redisAssets.value.length && !selectedRedisId.value) {
+      selectedRedisId.value = redisAssets.value[0].id;
+    }
+  } catch { /* ignore */ }
+}
+
+/** 加载历史指标并透视成时序 */
+async function loadRedisHistory() {
+  if (!selectedRedisId.value) return;
+  redisLoading.value = true;
+  try {
+    const hours = HOURS_MAP[redisTimeRange.value] ?? 1;
+    const rows = await getRedisMetricHistory(selectedRedisId.value, hours);
+    // 按 collectTime 分组
+    const timeMap = new Map<string, Record<string, number>>();
+    for (const row of (rows ?? [])) {
+      const t = row.collectTime;
+      if (!timeMap.has(t)) timeMap.set(t, {});
+      timeMap.get(t)![row.metricName] = Number(row.metricValue);
+    }
+    const sortedTimes = [...timeMap.keys()].sort();
+    const times = sortedTimes.map(t => new Date(t).getTime());
+    const get = (t: string, key: string): number | null => {
+      const v = timeMap.get(t)?.[key];
+      return v != null && !Number.isNaN(v) ? v : null;
+    };
+
+    redisSeries.value = {
+      times,
+      memory: sortedTimes.map(t => {
+        const v = get(t, "redis_used_memory_bytes");
+        return v != null ? v / 1048576 : null;
+      }),
+      clients: sortedTimes.map(t => get(t, "redis_connected_clients")),
+      ops: sortedTimes.map(t => get(t, "redis_instaneous_ops")),
+      hitRate: sortedTimes.map(t => get(t, "redis_hit_rate")),
+      cpu: sortedTimes.map(t => {
+        const u = get(t, "redis_cpu_user") ?? 0;
+        const s = get(t, "redis_cpu_sys") ?? 0;
+        return u + s;
+      }),
+      totalCmds: sortedTimes.map(t => {
+        const v = get(t, "redis_total_commands");
+        return v != null ? v / 1000 : null;
+      }),
+    };
+
+    if (sortedTimes.length) {
+      redisLatest.value = timeMap.get(sortedTimes[sortedTimes.length - 1]) ?? {};
+    }
+    redisHasData.value = sortedTimes.length > 0;
+    redisLoaded.value = true;
+  } catch {
+    redisHasData.value = false;
+  } finally {
+    redisLoading.value = false;
+  }
+}
+
+/** 资产切换 */
+function onRedisAssetChange() {
+  loadRedisHistory();
+}
+
+/** 时间范围切换 */
+function onRedisTimeRangeChange() {
+  loadRedisHistory();
+}
+
+/** 格式化最新快照数值 */
+const snapNum = (key: string, divisor = 1): string => {
+  const v = redisLatest.value[key];
+  if (v == null) return "—";
+  return (v / divisor).toLocaleString();
+};
+
+const redisKpis = computed(() => [
+  { label: "已用内存", value: snapNum("redis_used_memory_bytes", 1048576) + " MB", color: "#34d399" },
+  { label: "连接数", value: snapNum("redis_connected_clients"), color: "#a78bfa" },
+  { label: "QPS", value: snapNum("redis_instaneous_ops"), color: "#38bdf8" },
+  { label: "命中率", value: snapNum("redis_hit_rate") + "%", color: "#fbbf24" },
+]);
 
 // ==================== KV 管理 ====================
 const kvTab = ref<"monitor" | "kv">("monitor"); // monitor=监控图表, kv=KV管理
@@ -457,18 +582,33 @@ const snapshotColumns = computed(() => [
   { prop: "value", label: "值", slot: "value" },
 ]);
 
-onMounted(() => {
+onMounted(async () => {
   load();
   // 每 5 秒刷新一次 INFO 指标，更新图表
   refreshTimer = setInterval(load, 5000);
   // 延迟初始化图表（等待 DOM 渲染）
   setTimeout(initChart, 100);
+  // 加载 Redis 资产列表与时序历史
+  await loadRedisAssets();
+  if (selectedRedisId.value) loadRedisHistory();
+  // 每 15 秒轮询最新历史数据，追加到图表
+  redisPollTimer = setInterval(() => {
+    if (selectedRedisId.value) loadRedisHistory();
+  }, 15000);
 });
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer);
+  if (redisPollTimer) clearInterval(redisPollTimer);
   window.removeEventListener("resize", handleResize);
   chartInstance?.dispose();
+});
+
+// 系统 Redis 可用后初始化图表（等待 DOM 渲染）
+watch(available, (v) => {
+  if (v && !chartInstance) {
+    nextTick(() => initChart());
+  }
 });
 
 // 切换到 KV 管理 tab 时加载 keys
@@ -488,24 +628,135 @@ watch(kvTab, (val) => {
       </template>
     </ReSectionHead>
 
-    <ReEmpty v-if="failed || !available" description="当前系统未连接 Redis（或后端未就绪），无指标可展示" style="padding: 48px 0">
-      <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
-    </ReEmpty>
+    <!-- Tab 切换：监控图表 / KV 管理 -->
+    <div class="tabs">
+      <button class="tab-btn" :class="{ active: kvTab === 'monitor' }" @click="kvTab = 'monitor'">
+        监控图表
+      </button>
+      <button class="tab-btn" :class="{ active: kvTab === 'kv' }" @click="kvTab = 'kv'">
+        KV 管理
+      </button>
+    </div>
 
-    <template v-else>
-      <!-- Tab 切换：监控图表 / KV 管理 -->
-      <div class="tabs">
-        <button class="tab-btn" :class="{ active: kvTab === 'monitor' }" @click="kvTab = 'monitor'">
-          监控图表
-        </button>
-        <button class="tab-btn" :class="{ active: kvTab === 'kv' }" @click="kvTab = 'kv'">
-          KV 管理
-        </button>
+    <!-- ==================== 监控图表（时序图表优先） ==================== -->
+    <template v-if="kvTab === 'monitor'">
+      <!-- Redis 资产选择工具栏 -->
+      <div class="redis-asset-bar">
+        <ReSelect
+          v-model="selectedRedisId"
+          placeholder="选择 Redis 监控资产"
+          size="small"
+          style="width: 260px"
+          filterable
+          :options="redisAssets.map(m => ({ label: `${m.monitorName} [${m.monitorHost}:${m.monitorPort}]`, value: m.id }))"
+          @change="onRedisAssetChange"
+        />
+        <ReSelect
+          v-model="redisTimeRange"
+          size="small"
+          style="width: 140px"
+          :options="TIME_RANGE_OPTIONS"
+          @change="onRedisTimeRangeChange"
+        />
+        <ReButton icon="RefreshRight" size="small" :loading="redisLoading" @click="loadRedisHistory">刷新</ReButton>
       </div>
 
-      <!-- ==================== 监控图表（图表优先于表格） ==================== -->
-      <template v-if="kvTab === 'monitor'">
-        <!-- KPI -->
+      <!-- 无 Redis 资产引导 -->
+      <ReEmpty v-if="redisAssets.length === 0" description="暂无 Redis 监控资产，请先在资产管理页面添加 Redis 类型的监控资产" :image-size="80" style="padding: 40px 0">
+        <ReButton type="primary" size="small" @click="loadRedisAssets">重新加载</ReButton>
+      </ReEmpty>
+
+      <!-- 选中资产但无数据 -->
+      <ReEmpty v-else-if="selectedRedisId && redisLoaded && !redisHasData" description="该 Redis 资产暂无历史指标数据（可能采集任务未运行或无数据点）" :image-size="80" style="padding: 40px 0" />
+
+      <!-- 时序图表 -->
+      <template v-else-if="redisSeries">
+        <!-- 最新快照 KPI -->
+        <section class="kpi-row cols-4">
+          <ReStatCard
+            v-for="(k, i) in redisKpis"
+            :key="i"
+            :title="k.label"
+            :icon="'Coin'"
+            :icon-color="k.color"
+            :value="k.value"
+          />
+        </section>
+
+        <!-- 6 个时序图表（2 列网格） -->
+        <div class="tel-chart-grid">
+          <TelemetryChart
+            title="内存使用 (MB)"
+            :data="redisSeries.memory"
+            :timestamps="redisSeries.times"
+            unit=" MB"
+            color="#34d399"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+          <TelemetryChart
+            title="连接数"
+            :data="redisSeries.clients"
+            :timestamps="redisSeries.times"
+            color="#a78bfa"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+          <TelemetryChart
+            title="每秒操作数 (QPS)"
+            :data="redisSeries.ops"
+            :timestamps="redisSeries.times"
+            color="#38bdf8"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+          <TelemetryChart
+            title="命中率 (%)"
+            :data="redisSeries.hitRate"
+            :timestamps="redisSeries.times"
+            unit="%"
+            color="#fbbf24"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+          <TelemetryChart
+            title="CPU 使用 (秒)"
+            :data="redisSeries.cpu"
+            :timestamps="redisSeries.times"
+            color="#f472b6"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+          <TelemetryChart
+            title="总命令数 (千次)"
+            :data="redisSeries.totalCmds"
+            :timestamps="redisSeries.times"
+            unit="k"
+            color="#3b82f6"
+            :height="180"
+            :max-points="200"
+            hide-time-range
+            v-model:time-range="redisTimeRange"
+          />
+        </div>
+      </template>
+
+      <!-- 加载中 -->
+      <div v-else-if="redisLoading" class="redis-loading-hint">正在加载历史指标数据...</div>
+
+      <!-- 系统 Redis 信息（当前应用自身连接的 Redis） -->
+      <ReCard v-if="available" :radius="12" shadow="never" class="chart-card">
+        <template #header><span class="card-h">当前应用 Redis 实时信息</span></template>
         <section class="kpi-row cols-4">
           <ReStatCard
             v-for="c in CHANNEL"
@@ -516,28 +767,23 @@ watch(kvTab, (val) => {
             :value="c.key === 'hit_rate' ? hitRate() : num(c.key, Number((info as any)?.[c.key] ?? 0))"
           />
         </section>
+        <div ref="chartRef" class="redis-chart"></div>
+      </ReCard>
 
-        <!-- 实时趋势图表（echarts，图表优先于表格） -->
-        <ReCard :radius="12" shadow="never" class="chart-card">
-          <template #header>
-            <span class="card-h">实时趋势（最近 {{ historyData.length }} 个数据点，每 5 秒刷新）</span>
-          </template>
-          <div ref="chartRef" class="redis-chart"></div>
-        </ReCard>
+      <ReCard v-if="available" :radius="12" shadow="never">
+        <template #header><span class="card-h">系统 Redis 指标快照</span></template>
+        <ReTable :data="snapshotEntries" :columns="snapshotColumns" size="small" empty-text="暂无指标数据" table-id="monitor-redis">
+          <template #col-key="{ row }"><span class="mono">{{ row.key }}</span></template>
+          <template #col-value="{ row }"><span class="mono strong">{{ row.value }}</span></template>
+        </ReTable>
+      </ReCard>
+    </template>
 
-        <!-- 指标快照（表格在图表之后） -->
-        <ReCard :radius="12" shadow="never">
-          <template #header><span class="card-h">指标快照</span></template>
-          <ReTable :data="snapshotEntries" :columns="snapshotColumns" size="small" empty-text="暂无指标数据" table-id="monitor-redis">
-            <template #col-key="{ row }"><span class="mono">{{ row.key }}</span></template>
-            <template #col-value="{ row }"><span class="mono strong">{{ row.value }}</span></template>
-          </ReTable>
-        </ReCard>
-      </template>
+    <!-- ==================== KV 管理（左侧 key，右侧 value） ==================== -->
+    <template v-else>
+      <ReEmpty v-if="failed || !available" description="当前系统未连接 Redis，无法进行 KV 管理" style="padding: 48px 0" />
 
-      <!-- ==================== KV 管理（左侧 key，右侧 value） ==================== -->
-      <template v-else>
-        <div class="kv-container">
+      <div v-else class="kv-container">
           <!-- 左侧：key 列表 -->
           <div class="kv-left">
             <div class="kv-toolbar">
@@ -729,7 +975,6 @@ watch(kvTab, (val) => {
             </template>
           </div>
         </div>
-      </template>
     </template>
 
     <!-- 新增 Key 弹窗 -->
@@ -774,6 +1019,33 @@ watch(kvTab, (val) => {
 .card-h { font-size: 15px; font-weight: 600; }
 .mono { font-family: monospace; font-size: 12px; }
 .strong { font-weight: 600; font-size: 13px; }
+
+/* Redis 资产工具栏 */
+.redis-asset-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--bg-fill, rgba(148, 163, 184, 0.04));
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.12));
+  border-radius: 10px;
+}
+.tel-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.redis-loading-hint {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .tel-chart-grid { grid-template-columns: 1fr; }
+}
 
 /* Tab 切换 */
 .tabs {

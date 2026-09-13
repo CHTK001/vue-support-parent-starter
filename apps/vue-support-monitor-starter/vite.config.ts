@@ -1,6 +1,6 @@
 import { createVite } from "../../turbo/vite/createVite.ts";
 
-const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8082";
+const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8081";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://127.0.0.1:29181";
 
 export default createVite({

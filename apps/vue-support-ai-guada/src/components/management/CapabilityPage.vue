@@ -122,7 +122,7 @@ const PIPELINE_INFO: Record<string, { title: string; desc: string }> = {
   'ocr': { title: 'OCR文字识别', desc: '光学字符识别管线配置' },
   'layout': { title: '版面布局分析', desc: '文档版面布局分析管线配置' },
   'face': { title: '人脸识别', desc: '人脸检测与识别管线配置' },
-  'image': { title: '图片识别', desc: '图片内容识别与分析管线配置' },
+  'image-recognition': { title: '图片识别', desc: '图像内容识别与分类管线配置' },
 };
 
 const pipelineTitle = computed(() => PIPELINE_INFO[pipelineCode.value]?.title || pipelineCode.value);

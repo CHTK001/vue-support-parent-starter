@@ -19,6 +19,13 @@
                     <PanelRightExpand20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
+                  <!-- 上下文面板切换 -->
+                  <LTooltip v-if="mainSession?.id" content="会话上下文" placement="bottom">
+                  <div class="header-icon-btn" :class="{ active: showContextPanel }"
+                    @click="showContextPanel = !showContextPanel">
+                    <Info20Filled class="w-5 h-5" />
+                  </div>
+                  </LTooltip>
                   <!-- 更多操作下拉菜单 -->
                   <DropdownMenu @command="handleMoreSelect">
                     <div class="header-icon-btn">
@@ -36,19 +43,35 @@
                 </template>
               </PageHeader>
 
-              <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
-              <!-- 全屏模式下 ChatPanel 通过 Teleport 搬至浮动容器 -->
-              <Teleport :disabled="teleportDisabled" to="#floating-chat">
-                <ChatPanel ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
-                  :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
-                  @switch-agent="switchTab"
-                  @save-settings="handleSaveSessionSettings"
-                  @select-character="handleSelectCharacter" />
-              </Teleport>
+              <!-- 聊天内容区域（含上下文面板） -->
+              <div class="chat-content-wrapper" style="flex: 1; display: flex; overflow: hidden;">
+                <!-- 会话面板容器 -->
+                <div class="chat-panel-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                  <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
+                  <!-- 全屏模式下 ChatPanel 通过 Teleport 搬至浮动容器 -->
+                  <Teleport :disabled="teleportDisabled" to="#floating-chat">
+                    <ChatPanel ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
+                      :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
+                      @switch-agent="switchTab"
+                      @save-settings="handleSaveSessionSettings"
+                      @select-character="handleSelectCharacter" />
+                  </Teleport>
 
-              <!-- 右侧大纲导航 -->
-              <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
-                :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
+                  <!-- 右侧大纲导航 -->
+                  <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
+                    :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
+                </div>
+
+                <!-- 上下文信息面板 -->
+                <ContextPanel
+                  v-if="showContextPanel && mainSession"
+                  :session-id="mainSession.id"
+                  :current-model="mainSession.model || mainSession.settings?.model"
+                  :messages="chatPanelRef?.activeMessages || []"
+                  :system-prompt="mainSession.systemPrompt || mainSession.settings?.systemPrompt"
+                  :max-context="mainSession.settings?.maxTokens || 8192"
+                />
+              </div>
             </div>
           </template>
 
@@ -110,11 +133,15 @@ import {
   // FileDownloadOutlined,
   // FileUploadOutlined
 } from "@vicons/material";
-import { PanelRightExpand20Filled } from "@vicons/fluent";
+import { PanelRightExpand20Filled, Info20Filled } from "@vicons/fluent";
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
 const WorkspaceSidebar = defineAsyncComponent(() => import("./workspace/WorkspaceSidebar.vue"));
+const ContextPanel = defineAsyncComponent(() => import("./ContextPanel.vue"));
+
+// 上下文面板显示状态
+const showContextPanel = ref(false);
 
 // 子 Agent Tab 状态
 const agentTabs = ref<AgentTab[]>([

@@ -1,63 +1,148 @@
 /**
  * 监控管理平台路由树（RouteConfigsTable[]）
  *
- * 扁平结构：所有路由都是顶级路由，菜单由 meta.rank 和 meta.title 自动排序
+ * 分组结构：一级为「分组父节点」（仅用于侧边栏分组标题 + 折叠/展开，无 component、无 redirect），
+ *           二级为具体业务页面（叶子路由，带 component）。
+ *
+ * 装配说明：
+ *   - 菜单：buildMenuFromRoutes 递归保留 children → koi 侧边栏按 children 渲染 el-sub-menu（自带折叠箭头）。
+ *   - 路由：registerRoutesUnderLayout 递归 visit，仅把「带 component」或「带 redirect」的节点
+ *           通过 addRoute("layout", ...) 平铺到 koi 布局下；分组父节点既无 component 又无 redirect，
+ *           因此不会被注册为路由，只作为菜单分组容器存在。
+ *   - 隐藏路由（showLink:false）保留在顶层：菜单过滤时被剔除，但仍会被注册为可访问路由。
+ *
  * 路由模式：hash（routerMode: "hash"）
  */
 import type { RouteConfigsTable } from "@repo/core";
 
-/** 监控管理平台路由树（扁平结构） */
+/** 监控管理平台路由树（分组结构） */
 export const monitorRoutes: RouteConfigsTable[] = [
   // ==================== 监控管理 ====================
   {
-    path: "/",
-    name: "Workbench",
-    component: () => import("./views/WorkbenchView.vue"),
-    meta: { title: "监控概览", icon: "DataBoard", showLink: true, rank: 1 },
-  },
-  {
-    path: "/alarms",
-    name: "Alarms",
-    component: () => import("./views/AlarmsView.vue"),
-    meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
-  },
-  {
-    path: "/redis",
-    name: "Redis",
-    component: () => import("./views/RedisView.vue"),
-    meta: { title: "Redis 监控", icon: "Coin", showLink: true, rank: 3 },
-  },
-  {
-    path: "/tshark",
-    name: "Tshark",
-    component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"),
-    meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 4 },
+    path: "/grp-monitor",
+    name: "GroupMonitor",
+    meta: { title: "监控管理", icon: "Odometer", showLink: true, rank: 1 },
+    children: [
+      {
+        path: "/",
+        name: "Workbench",
+        component: () => import("./views/WorkbenchView.vue"),
+        meta: { title: "监控概览", icon: "DataBoard", showLink: true, rank: 1 },
+      },
+      {
+        path: "/alarms",
+        name: "Alarms",
+        component: () => import("./views/AlarmsView.vue"),
+        meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
+      },
+      {
+        path: "/redis",
+        name: "Redis",
+        component: () => import("./views/RedisView.vue"),
+        meta: { title: "Redis 监控", icon: "Coin", showLink: true, rank: 3 },
+      },
+      {
+        path: "/tshark",
+        name: "Tshark",
+        component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"),
+        meta: { title: "抓包分析", icon: "Search", showLink: true, rank: 4 },
+      },
+    ],
   },
 
   // ==================== 资产管理 ====================
   {
-    path: "/assets",
-    name: "Assets",
-    component: () => import("./views/AssetsView.vue"),
-    meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
+    path: "/grp-asset",
+    name: "GroupAsset",
+    meta: { title: "资产管理", icon: "FolderOpened", showLink: true, rank: 10 },
+    children: [
+      {
+        path: "/assets",
+        name: "Assets",
+        component: () => import("./views/AssetsView.vue"),
+        meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
+      },
+      {
+        path: "/datasource",
+        name: "DataSource",
+        component: () => import("./views/DataSourceView.vue"),
+        meta: { title: "数据源管理", icon: "Coin", showLink: true, rank: 11 },
+      },
+      {
+        path: "/db-manager",
+        name: "DbManager",
+        component: () => import("./views/DatabaseManagerView.vue"),
+        meta: { title: "数据库管理", icon: "Coin", showLink: true, rank: 12 },
+      },
+      {
+        path: "/terminal",
+        name: "Terminal",
+        component: () => import("./views/TerminalView.vue"),
+        meta: { title: "远程控制", icon: "Position", showLink: true, rank: 13 },
+      },
+    ],
   },
+
+  // ==================== 发布管理 ====================
+  {
+    path: "/grp-release",
+    name: "GroupRelease",
+    meta: { title: "发布管理", icon: "Promotion", showLink: true, rank: 20 },
+    children: [
+      {
+        path: "/project",
+        name: "Project",
+        component: () => import("@pages/project/src/views/ScProjectList.vue"),
+        meta: { title: "发布项目管理", icon: "Box", showLink: true, rank: 20 },
+      },
+    ],
+  },
+
+  // ==================== 系统管理 ====================
+  {
+    path: "/grp-system",
+    name: "GroupSystem",
+    meta: { title: "系统管理", icon: "Setting", showLink: true, rank: 30 },
+    children: [
+      {
+        path: "/config",
+        name: "Config",
+        component: () => import("./views/ConfigView.vue"),
+        meta: { title: "监控配置", icon: "Setting", showLink: true, rank: 30 },
+      },
+      {
+        path: "/proxy",
+        name: "Proxy",
+        component: () => import("./views/ProxyView.vue"),
+        meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
+      },
+      {
+        path: "/system-config",
+        name: "SystemConfig",
+        component: () => import("./views/SystemConfigView.vue"),
+        meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 32 },
+      },
+      {
+        path: "/groups",
+        name: "Groups",
+        component: () => import("@pages/server/src/views/ScGroupTree.vue"),
+        meta: { title: "分组管理", icon: "FolderOpened", showLink: true, rank: 33 },
+      },
+      {
+        path: "/account",
+        name: "Account",
+        component: () => import("./views/IdentityManageView.vue"),
+        meta: { title: "账号管理", icon: "Key", showLink: true, rank: 34 },
+      },
+    ],
+  },
+
+  // ==================== 隐藏路由（不进菜单，仍可访问） ====================
   {
     path: "/host/:id",
     name: "HostDetail",
     component: () => import("./views/HostDetailView.vue"),
     meta: { title: "主机监控详情", icon: "Monitor", showLink: false, activeMenu: "/assets" },
-  },
-  {
-    path: "/datasource",
-    name: "DataSource",
-    component: () => import("./views/DataSourceView.vue"),
-    meta: { title: "数据源管理", icon: "Coin", showLink: true, rank: 11 },
-  },
-  {
-    path: "/db-manager",
-    name: "DbManager",
-    component: () => import("./views/DatabaseManagerView.vue"),
-    meta: { title: "数据库管理", icon: "Coin", showLink: true, rank: 12 },
   },
   {
     path: "/influxdb",
@@ -82,52 +167,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
     name: "Zookeeper",
     component: () => import("./views/ZookeeperManageView.vue"),
     meta: { title: "ZooKeeper 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
-  },
-  {
-    path: "/terminal",
-    name: "Terminal",
-    component: () => import("./views/TerminalView.vue"),
-    meta: { title: "远程控制", icon: "Position", showLink: true, rank: 13 },
-  },
-
-  // ==================== 发布管理 ====================
-  {
-    path: "/project",
-    name: "Project",
-    component: () => import("@pages/project/src/views/ScProjectList.vue"),
-    meta: { title: "发布项目管理", icon: "Box", showLink: true, rank: 20 },
-  },
-
-  // ==================== 系统管理 ====================
-  {
-    path: "/config",
-    name: "Config",
-    component: () => import("./views/ConfigView.vue"),
-    meta: { title: "监控配置", icon: "Setting", showLink: true, rank: 30 },
-  },
-  {
-    path: "/proxy",
-    name: "Proxy",
-    component: () => import("./views/ProxyView.vue"),
-    meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
-  },
-  {
-    path: "/system-config",
-    name: "SystemConfig",
-    component: () => import("./views/SystemConfigView.vue"),
-    meta: { title: "系统配置", icon: "Tools", showLink: true, rank: 32 },
-  },
-  {
-    path: "/groups",
-    name: "Groups",
-    component: () => import("@pages/server/src/views/ScGroupTree.vue"),
-    meta: { title: "分组管理", icon: "FolderOpened", showLink: true, rank: 33 },
-  },
-  {
-    path: "/account",
-    name: "Account",
-    component: () => import("./views/IdentityManageView.vue"),
-    meta: { title: "账号管理", icon: "Key", showLink: true, rank: 34 },
   },
 ];
 

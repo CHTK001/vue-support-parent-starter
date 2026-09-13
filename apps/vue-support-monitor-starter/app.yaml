@@ -38,6 +38,10 @@ socketConfig:
   transports:
     - websocket
 
+# 菜单配置：单子节点也渲染为可折叠子菜单（而非压平为单项）
+menuConfig:
+  collapseSingleChild: false
+
 # 布局配置（首页仪表板持久化：local=本地 localStorage / remote=远程同步）
 layoutConfig:
   enable: true

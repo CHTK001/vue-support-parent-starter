@@ -205,6 +205,43 @@ export const fetchSystemRedisInfo = () =>
     .get("/ms/monitor/system/redis-info")
     .then(r => unwrap<SystemRedisInfo | null>(r));
 
+// ==================== 监控 Redis 资产时序指标（/ms/monitor/metric/redis） ====================
+
+/**
+ * Redis 时序指标行（ms_monitor_redis_metric 表单行）
+ * @author CH
+ * @since 4.0.0
+ */
+export interface RedisMetricRow {
+  id?: number;
+  monitorId: number;
+  metricName: string;
+  metricValue: number;
+  metricTags?: string;
+  collectTime: string;
+}
+
+/**
+ * 获取监控 Redis 资产最新指标（单行）
+ * @param monitorId 监控资产 ID
+ * @returns 最新一条 Redis 指标
+ */
+export const getLatestRedisMetric = (monitorId: number) =>
+  http()
+    .get(`/ms/monitor/metric/redis/${monitorId}`)
+    .then(r => unwrap<RedisMetricRow | null>(r));
+
+/**
+ * 获取监控 Redis 资产历史指标（按时段查询，返回多行，每行一个指标点）
+ * @param monitorId 监控资产 ID
+ * @param hours 过去 N 小时，默认 24
+ * @returns 历史指标行列表
+ */
+export const getRedisMetricHistory = (monitorId: number, hours: number = 24) =>
+  http()
+    .get(`/ms/monitor/metric/redis/history/${monitorId}?hours=${hours}`)
+    .then(r => unwrap<RedisMetricRow[]>(r));
+
 // ==================== 系统 Redis KV 操作（直接操作当前应用连接的 Redis） ====================
 
 /**
@@ -870,9 +907,13 @@ export interface ServerNodeRequest {
  */
 export interface ServerProtocolMeta {
   code: string;
-  name: string;
+  alias?: string;
   desc?: string;
   defaultPort?: number;
+  defaultEngine?: string;
+  requiresBackend?: boolean;
+  spi?: boolean;
+  params?: Array<{ name: string; defaultValue?: string; desc?: string; type?: string }>;
   [key: string]: unknown;
 }
 
@@ -884,9 +925,12 @@ export interface ServerProtocolMeta {
  */
 export interface ServerFilterTypeMeta {
   type: string;
-  name: string;
   desc?: string;
-  params?: Array<{ key: string; label: string; type: string; default?: string; hint?: string }>;
+  params?:
+    | Array<{ name: string; defaultValue?: string; desc?: string; type?: string }>
+    | Record<string, string>;
+  require?: string;
+  spi?: boolean;
   [key: string]: unknown;
 }
 

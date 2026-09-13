@@ -210,7 +210,12 @@ const filterColumns = [
 ];
 
 // 协议/引擎选项
-const protocolOptions = computed(() => protocolMetas.value.map(p => ({ label: `${p.name}（${p.code}）`, value: p.code })));
+const protocolOptions = computed(() =>
+  protocolMetas.value.map((p) => ({
+    label: p.desc ? `${p.code}（${p.desc}）` : p.code,
+    value: p.code,
+  })),
+);
 const engineOptions = [
   { label: "JDK（默认）", value: "jdk" },
   { label: "NIO", value: "nio" },
@@ -331,10 +336,14 @@ const filterList = ref<ServerFilterDescriptor[]>([]);
 const filterEditIndex = ref(-1);
 const filterForm = ref<any>({ name: "", type: "", order: 100, enabled: true, params: {} });
 const paramKeys = ref<Record<string, string>>({});
-const filterTypeOptions = computed(() => [
-  { label: "file-storage（文件存储）", value: "file-storage" },
-  ...filterTypeMetas.value.map(f => ({ label: `${f.name}（${f.type}）`, value: f.type })),
-]);
+const filterTypeOptions = computed(() =>
+  filterTypeMetas.value
+    .filter((f) => f.type === "file-storage" || f.spi === true)
+    .map((f) => ({
+      label: f.desc ? `${f.type}（${f.desc}）` : f.type,
+      value: f.type,
+    })),
+);
 
 /**
  * 打开 ServerFilter 配置面板
