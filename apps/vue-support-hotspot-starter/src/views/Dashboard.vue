@@ -50,6 +50,15 @@
         <div ref="barRef" class="panel-chart" />
       </div>
     </div>
+
+    <!-- 趋势区 -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>传输趋势</span>
+        <span class="panel-sub">最近 30 分钟调用量 / 错误数（每分钟聚合）</span>
+      </div>
+      <div ref="trendRef" class="panel-chart" />
+    </div>
   </div>
 </template>
 
@@ -64,7 +73,7 @@ import {
   Share,
   Warning,
 } from "@element-plus/icons-vue";
-import { getStats, watchStats } from "../api/apmApi";
+import { getStats, watchStats, pageTransmissions } from "../api/apmApi";
 import type { ApmStats } from "../api/apmApi";
 
 const stats = ref<ApmStats>({
@@ -79,7 +88,10 @@ const stats = ref<ApmStats>({
 const loading = ref(false);
 const pieRef = ref<HTMLElement | null>(null);
 const barRef = ref<HTMLElement | null>(null);
+const trendRef = ref<HTMLElement | null>(null);
 let sseWatch: { close: () => void } | null = null;
+let trendTimer: number | undefined;
+let trendChart: echarts.ECharts | null = null;
 
 const cards = computed(() => [
   {
@@ -173,8 +185,98 @@ function renderCharts() {
   }
 }
 
+/** 拉取最近传输记录并按分钟聚合渲染趋势图（拉取失败静默，不影响主视图）。 */
+async function loadTrend() {
+  try {
+    const res = await pageTransmissions({ page: 1, size: 500 });
+    renderTrend(res.items);
+  } catch {
+    /* 趋势图降级为空 */
+  }
+}
+
+/** 按 startTime 分钟分桶聚合（最近 30 分钟），渲染调用量面积 + 错误数折线。 */
+function renderTrend(items: { startTime: string; status: string }[]) {
+  if (!trendRef.value) {
+    return;
+  }
+  const now = Date.now();
+  const buckets = new Map<number, { total: number; errors: number }>();
+  for (let i = 29; i >= 0; i--) {
+    buckets.set(Math.floor((now - i * 60_000) / 60_000), { total: 0, errors: 0 });
+  }
+  for (const it of items) {
+    const t = Date.parse(it.startTime);
+    if (Number.isNaN(t)) {
+      continue;
+    }
+    const key = Math.floor(t / 60_000);
+    const b = buckets.get(key);
+    if (b) {
+      b.total++;
+      if ((it.status || "").toUpperCase() !== "OK") {
+        b.errors++;
+      }
+    }
+  }
+  const xs: string[] = [];
+  const totals: number[] = [];
+  const errors: number[] = [];
+  const hm = (ms: number) => {
+    const d = new Date(ms);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  for (const [key, b] of [...buckets.entries()].sort((a, b2) => a[0] - b2[0])) {
+    xs.push(hm(key * 60_000));
+    totals.push(b.total);
+    errors.push(b.errors);
+  }
+  if (!trendChart) {
+    trendChart = echarts.init(trendRef.value, "dark");
+  }
+  trendChart.setOption({
+    backgroundColor: "transparent",
+    grid: { left: 40, right: 20, top: 30, bottom: 24 },
+    tooltip: { trigger: "axis" },
+    legend: { data: ["调用量", "错误数"], textStyle: { color: "#e6edf7" }, top: 0 },
+    xAxis: { type: "category", data: xs, axisLabel: { color: "#e6edf7" }, boundaryGap: false },
+    yAxis: { type: "value", minInterval: 1, axisLabel: { color: "#e6edf7" } },
+    series: [
+      {
+        name: "调用量",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: totals,
+        lineStyle: { color: "#3b82f6", width: 2 },
+        areaStyle: {
+          color: {
+            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(59,130,246,0.35)" },
+              { offset: 1, color: "rgba(59,130,246,0)" },
+            ],
+          },
+        },
+      },
+      {
+        name: "错误数",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: errors,
+        lineStyle: { color: "#ef4444", width: 2 },
+      },
+    ],
+  });
+}
+
 onMounted(async () => {
   await load();
+  await loadTrend();
+  // 趋势图每 15s 刷新一次（SSE 快照只更新计数，趋势聚合较重不需每 3s 做）
+  trendTimer = window.setInterval(loadTrend, 15000);
   // SSE 实时刷新：每 3s 后端推一次 stats 快照，替代 HTTP 轮询
   sseWatch = watchStats((snapshot) => {
     Object.assign(stats.value, snapshot);
@@ -184,6 +286,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   sseWatch?.close();
+  if (trendTimer) window.clearInterval(trendTimer);
+  trendChart?.dispose();
+  trendChart = null;
 });
 
 watch(stats, () => renderCharts(), { deep: true });

@@ -25,12 +25,14 @@
       <div class="apm-footer">
         <div class="agent-dot" :class="{ on: agentActive }"></div>
         <span>Agent {{ agentActive ? "已连接" : "未注入" }}</span>
+        <span class="footer-version">v4.0.0.42</span>
       </div>
     </aside>
     <main class="apm-main">
       <header class="apm-header">
         <h1>{{ currentTitle }}</h1>
         <div class="apm-header-right">
+          <span class="header-clock mono">{{ clockText }}</span>
           <el-tag v-if="agentActive" type="success" size="small" round>Agent 运行中</el-tag>
           <el-tag v-else type="info" size="small" round>降级模式</el-tag>
         </div>
@@ -61,6 +63,14 @@ import { getStats } from "./api/apmApi";
 const route = useRoute();
 const agentActive = ref(false);
 let timer: number | undefined;
+let clockTimer: number | undefined;
+const clockText = ref("");
+
+function tickClock() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  clockText.value = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
 
 const navItems = [
   { path: "/dashboard", label: "总览看板", icon: DataAnalysis },
@@ -85,11 +95,14 @@ async function checkAgent() {
 
 onMounted(() => {
   checkAgent();
+  tickClock();
   timer = window.setInterval(checkAgent, 15000);
+  clockTimer = window.setInterval(tickClock, 1000);
 });
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer);
+  if (clockTimer) window.clearInterval(clockTimer);
 });
 </script>
 
@@ -156,6 +169,7 @@ onBeforeUnmount(() => {
 }
 
 .apm-nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -165,6 +179,23 @@ onBeforeUnmount(() => {
   color: rgba(230, 237, 247, 0.7);
   transition: background 0.15s, color 0.15s;
   text-decoration: none;
+}
+
+.apm-nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.apm-nav-item.active::before {
+  opacity: 1;
 }
 
 .apm-nav-item:hover {
@@ -185,6 +216,20 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: rgba(230, 237, 247, 0.5);
   padding: 0 6px;
+}
+
+.footer-version {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(230, 237, 247, 0.3);
+  font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+.header-clock {
+  font-size: 13px;
+  color: var(--apm-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
 }
 
 .agent-dot {
@@ -263,6 +308,13 @@ onBeforeUnmount(() => {
 
 body {
   margin: 0;
-  background: var(--apm-bg);
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(139, 92, 246, 0.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(59, 130, 246, 0.07), transparent 60%),
+    var(--apm-bg);
+}
+
+.mono {
+  font-family: "JetBrains Mono", Consolas, monospace;
 }
 </style>

@@ -9,13 +9,19 @@
           <el-option label="INFO" value="INFO" />
           <el-option label="DEBUG" value="DEBUG" />
         </el-select>
+        <el-input
+          v-model="keyword"
+          placeholder="搜索消息 / Logger / Trace"
+          clearable
+          size="small"
+          class="filter-input"
+          :prefix-icon="Search"
+        />
+        <span class="match-hint" v-if="keyword">命中 {{ filteredItems.length }} / {{ items.length }}</span>
       </div>
       <div class="toolbar-right">
-        <el-button size="small" round @click="exportJson">
-          <el-icon class="mr-1"><Download /></el-icon>JSON
-        </el-button>
-        <el-button size="small" round @click="exportCsv">
-          <el-icon class="mr-1"><Download /></el-icon>CSV
+        <el-button size="small" round @click="exportCsvFull">
+          <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
@@ -26,7 +32,7 @@
     <div class="table-panel">
       <el-table
         v-loading="loading"
-        :data="items"
+        :data="filteredItems"
         class="apm-table"
         empty-text="暂无日志记录"
       >
@@ -81,10 +87,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, Download } from "@element-plus/icons-vue";
-import { pageLogs, toCsv, download } from "../api/apmApi";
+import { Refresh, Download, Search } from "@element-plus/icons-vue";
+import { pageLogs, exportLogsCsv } from "../api/apmApi";
 import type { LogRecord } from "../api/apmApi";
 
 const items = ref<LogRecord[]>([]);
@@ -93,6 +99,19 @@ const page = ref(1);
 const size = ref(20);
 const loading = ref(false);
 const filterLevel = ref("");
+const keyword = ref("");
+
+/** 关键字前端过滤（消息 / Logger / 类名 / TraceId，大小写不敏感）。 */
+const filteredItems = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) {
+    return items.value;
+  }
+  return items.value.filter((r) =>
+    [r.message, r.logger, r.className, r.methodName, r.traceId]
+      .some((f) => (f || "").toLowerCase().includes(kw)),
+  );
+});
 
 async function load() {
   loading.value = true;
@@ -111,15 +130,9 @@ async function load() {
   }
 }
 
-function exportJson() {
-  download(`logs-${Date.now()}.json`, JSON.stringify(items.value, null, 2), "application/json");
-}
-
-function exportCsv() {
-  const csv = toCsv(items.value as unknown as Record<string, unknown>[], [
-    "timestamp", "level", "logger", "className", "methodName", "message", "traceId",
-  ]);
-  download(`logs-${Date.now()}.csv`, csv, "text/csv");
+/** 后端全量 CSV 导出（带当前级别筛选） */
+function exportCsvFull() {
+  exportLogsCsv(filterLevel.value || undefined);
 }
 
 function levelTag(level: string) {
@@ -184,6 +197,16 @@ onMounted(load);
 
 .filter-select {
   width: 120px;
+}
+
+.filter-input {
+  width: 220px;
+}
+
+.match-hint {
+  font-size: 12px;
+  color: var(--apm-muted);
+  white-space: nowrap;
 }
 
 .table-panel {
