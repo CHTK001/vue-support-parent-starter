@@ -11,11 +11,8 @@
         </el-select>
       </div>
       <div class="toolbar-right">
-        <el-button size="small" round @click="exportJson">
-          <el-icon class="mr-1"><Download /></el-icon>JSON
-        </el-button>
-        <el-button size="small" round @click="exportCsv">
-          <el-icon class="mr-1"><Download /></el-icon>CSV
+        <el-button size="small" round @click="exportCsvFull">
+          <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
@@ -100,7 +97,7 @@
 import { onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Download } from "@element-plus/icons-vue";
-import { pageLeaks, toCsv, download } from "../api/apmApi";
+import { pageLeaks, exportLeaksCsv } from "../api/apmApi";
 import type { LeakRecord } from "../api/apmApi";
 
 const items = ref<LeakRecord[]>([]);
@@ -160,15 +157,11 @@ watch(filterType, () => {
   load();
 });
 
-function exportJson() {
-  download(`leaks-${Date.now()}.json`, JSON.stringify(items.value, null, 2), "application/json");
-}
-
-function exportCsv() {
-  const csv = toCsv(items.value as unknown as Record<string, unknown>[], [
-    "id", "resourceType", "resourceName", "thread", "active", "ageMs", "detectedAt",
-  ]);
-  download(`leaks-${Date.now()}.csv`, csv, "text/csv");
+/** 后端全量 CSV 导出（带当前筛选条件） */
+function exportCsvFull() {
+  exportLeaksCsv({
+    resourceType: filterType.value || undefined,
+  });
 }
 </script>
 

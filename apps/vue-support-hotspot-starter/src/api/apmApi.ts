@@ -132,8 +132,12 @@ export function watchStats(onSnapshot: (stats: ApmStats & { ts: number }) => voi
   const es = new EventSource("/api/apm/stream?intervalMs=3000");
   es.addEventListener("stats", (ev: MessageEvent) => {
     try {
-      const parsed = JSON.parse(ev.data as string);
-      onSnapshot(parsed as ApmStats & { ts: number });
+      const parsed = JSON.parse(ev.data as string) as { ts?: number; data?: ApmStats } & Partial<ApmStats>;
+      // 后端帧结构 { ts, data: stats }；兼容平铺 { ...stats, ts }
+      const snapshot = (parsed.data && typeof parsed.data === "object")
+        ? ({ ...parsed.data, ts: parsed.ts } as ApmStats & { ts: number })
+        : (parsed as unknown as ApmStats & { ts: number });
+      onSnapshot(snapshot);
     } catch {
       /* 跳过畸形帧 */
     }
@@ -212,6 +216,41 @@ export function pageLeaks(params: LeakQuery = {}): Promise<Paged<LeakRecord>> {
 
 export function pageLogs(params: LogQuery = {}): Promise<Paged<LogRecord>> {
   return unwrap(instance.get<Paged<LogRecord>>("/logs", { params }));
+}
+
+// ---- Trace 详情（span 列表）----
+
+export function getTraceDetail(traceId: string): Promise<TransmissionRecord[]> {
+  return unwrap(instance.get<TransmissionRecord[]>(`/trace/${encodeURIComponent(traceId)}`));
+}
+
+// ---- 后端全量 CSV 导出（不受分页限制，直接触发浏览器下载）----
+
+function downloadUrl(url: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.click();
+}
+
+export function exportTransmissionsCsv(params: TransmissionQuery = {}): void {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+  });
+  downloadUrl(`/api/apm/export/transmissions?${qs.toString()}`);
+}
+
+export function exportLeaksCsv(params: LeakQuery = {}): void {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+  });
+  downloadUrl(`/api/apm/export/leaks?${qs.toString()}`);
+}
+
+export function exportLogsCsv(level?: string): void {
+  const qs = level ? `?level=${encodeURIComponent(level)}` : "";
+  downloadUrl(`/api/apm/export/logs${qs}`);
 }
 
 export default {
