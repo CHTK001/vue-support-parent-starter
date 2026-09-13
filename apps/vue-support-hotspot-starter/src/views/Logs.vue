@@ -23,6 +23,9 @@
         <el-button size="small" round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
+        <el-button size="small" type="primary" round :loading="injecting" @click="doInjectLog">
+          <el-icon class="mr-1"><Plus /></el-icon>写入一条日志
+        </el-button>
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
@@ -90,7 +93,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Download, Search } from "@element-plus/icons-vue";
-import { pageLogs, exportLogsCsv } from "../api/apmApi";
+import { pageLogs, exportLogsCsv, injectLog } from "../api/apmApi";
 import type { LogRecord } from "../api/apmApi";
 
 const items = ref<LogRecord[]>([]);
@@ -127,6 +130,25 @@ async function load() {
     ElMessage.error("加载日志失败");
   } finally {
     loading.value = false;
+  }
+}
+
+// ---- 注入 ----
+const injecting = ref(false);
+const logSeq = ref(0);
+
+async function doInjectLog() {
+  injecting.value = true;
+  try {
+    logSeq.value++;
+    const lv = ["INFO", "WARN", "ERROR"][logSeq.value % 3];
+    await injectLog(lv, `手动写入的${lv}日志 #${logSeq.value}`);
+    ElMessage.success(`已写入一条 ${lv} 日志`);
+    await load();
+  } catch {
+    ElMessage.error("写入失败");
+  } finally {
+    injecting.value = false;
   }
 }
 

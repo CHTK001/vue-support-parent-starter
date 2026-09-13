@@ -8,9 +8,21 @@
           <el-radio-button value="table">列表</el-radio-button>
         </el-radio-group>
       </div>
-      <el-button size="small" round :loading="loading" @click="load">
-        <el-icon class="mr-1"><Refresh /></el-icon>刷新
-      </el-button>
+      <div class="toolbar-right">
+        <el-select v-model="injectProto" size="small" style="width: 96px">
+          <el-option v-for="p in ['HTTP','REDIS','MYSQL','GRPC','KAFKA']" :key="p" :label="p" :value="p" />
+        </el-select>
+        <el-input v-model="injectTarget" placeholder="目标 host:port" size="small" style="width: 170px" clearable />
+        <el-button size="small" type="primary" round :loading="injecting" @click="doInject">
+          <el-icon class="mr-1"><Plus /></el-icon>注入一条调用
+        </el-button>
+        <el-button size="small" round :loading="batching" @click="doBatch">
+          <el-icon class="mr-1"><MagicStick /></el-icon>批量×20
+        </el-button>
+        <el-button size="small" round :loading="loading" @click="load">
+          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
     </div>
 
     <!-- 图形视图 -->
@@ -59,8 +71,8 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { ElMessage } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
-import { getDependencies } from "../api/apmApi";
+import { Refresh, Plus, MagicStick } from "@element-plus/icons-vue";
+import { getDependencies, injectTransmission, injectBatch } from "../api/apmApi";
 import type { DependencyEdge } from "../api/apmApi";
 
 const mode = ref<"graph" | "table">("graph");
@@ -82,6 +94,46 @@ const graphNodes = computed(() => {
     symbolSize: Math.max(24, Math.min(60, 24 + totalCalls / 50)),
   }));
 });
+
+// ---- 注入：页面操作产生真实数据 ----
+const injectProto = ref("HTTP");
+const injectTarget = ref("");
+const injecting = ref(false);
+const batching = ref(false);
+
+async function doInject() {
+  injecting.value = true;
+  try {
+    const target = injectTarget.value.trim() || "manual-target:8080";
+    const source = "manual-client:40000";
+    await injectTransmission({
+      source,
+      target,
+      protocol: injectProto.value,
+      operation: "manual inject",
+      error: false,
+    });
+    ElMessage.success(`已注入 ${injectProto.value} 调用：${source} → ${target}`);
+    await load();
+  } catch {
+    ElMessage.error("注入失败");
+  } finally {
+    injecting.value = false;
+  }
+}
+
+async function doBatch() {
+  batching.value = true;
+  try {
+    const r = await injectBatch(20);
+    ElMessage.success(`批量注入 ${r.count ?? 20} 条调用，多条依赖边已生成`);
+    await load();
+  } catch {
+    ElMessage.error("批量注入失败");
+  } finally {
+    batching.value = false;
+  }
+}
 
 async function load() {
   loading.value = true;
