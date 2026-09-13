@@ -431,3 +431,25 @@ onMounted(load);
   font-family: "JetBrains Mono", Consolas, monospace;
 }
 </style>
+
+<style>
+/* Trace 详情抽屉：Element Plus 抽屉默认白底，覆盖为深色主题
+   （抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式） */
+.el-drawer {
+  --el-drawer-bg-color: var(--apm-panel, #131a2b);
+  background: var(--apm-panel, #131a2b);
+  color: var(--apm-fg, #e6edf7);
+}
+
+.el-drawer__header {
+  color: var(--apm-fg, #e6edf7);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
+  padding-bottom: 12px;
+}
+
+.el-drawer__body {
+  background: var(--apm-bg, #0b0f1a);
+  color: var(--apm-fg, #e6edf7);
+}
+</style>
