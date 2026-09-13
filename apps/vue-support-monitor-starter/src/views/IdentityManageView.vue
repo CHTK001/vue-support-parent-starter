@@ -10,7 +10,7 @@ import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
-import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair } from "@pages/server/src/api";
+import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "@pages/server/src/api";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 
 interface Identity {
@@ -28,6 +28,15 @@ interface KeyRow {
   msServerKeyType?: string;
   msServerKeyPublicKey?: string;
   msServerKeyRemark?: string;
+}
+
+interface HostRow {
+  id: number;
+  serverHostName?: string;
+  serverHostAddress?: string;
+  serverHostPort?: number;
+  serverHostOnline?: number;
+  serverHostOsType?: string;
 }
 
 /** 页面 tab：身份 / 密钥库 */
@@ -54,8 +63,9 @@ const columns = [
   { prop: "auth", label: "类型", width: 110, slot: "auth" },
   { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
   { prop: "key", label: "密钥", width: 130, slot: "key" },
-  { prop: "msServerIdentityRemark", label: "备注", minWidth: 160 },
-  { prop: "id", label: "操作", width: 130, slot: "actions" },
+  { prop: "hosts", label: "绑定主机", width: 90, slot: "hosts" },
+  { prop: "msServerIdentityRemark", label: "备注", minWidth: 140 },
+  { prop: "id", label: "操作", width: 180, slot: "actions" },
 ];
 
 const keyColumns = [
@@ -68,6 +78,9 @@ const keyColumns = [
 
 const list = ref<Identity[]>([]);
 const keys = ref<KeyRow[]>([]);
+const hosts = ref<HostRow[]>([]);
+/** 绑定关系缓存：identityId → hostId[] */
+const bindCache = ref<Record<number, number[]>>({});
 const loading = ref(false);
 const selection = ref<Identity[]>([]);
 const page = ref(1);
@@ -76,9 +89,29 @@ const pageSize = ref(10);
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [idList, keyList] = await Promise.all([getIdentities(), getKeys().catch(() => [])]);
+    const [idList, keyList, hostList] = await Promise.all([
+      getIdentities(),
+      getKeys().catch(() => []),
+      queryHosts().catch(() => []),
+    ]);
     list.value = (idList ?? []) as Identity[];
     keys.value = (keyList ?? []) as KeyRow[];
+    hosts.value = (hostList ?? []) as HostRow[];
+    // 批量加载绑定关系（host → identity）
+    const map: Record<number, number[]> = {};
+    await Promise.all(
+      (hostList ?? []).map(async (h: HostRow) => {
+        try {
+          const ids = ((await listBoundIdentities(h.id)) ?? []) as number[];
+          for (const id of ids) {
+            (map[id] ??= []).push(h.id);
+          }
+        } catch {
+          /* 忽略单主机绑定加载失败 */
+        }
+      }),
+    );
+    bindCache.value = map;
   } catch (e) {
     ElMessage.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -86,6 +119,15 @@ async function load(): Promise<void> {
   }
 }
 onMounted(load);
+
+/** 身份绑定的主机列表 */
+function boundHostsOf(identityId: number): HostRow[] {
+  const ids = bindCache.value[identityId] ?? [];
+  return ids.map((id) => hosts.value.find((h) => h.id === id)).filter(Boolean) as HostRow[];
+}
+function boundHostCountOf(identityId: number): number {
+  return (bindCache.value[identityId] ?? []).length;
+}
 
 /** 密钥名映射（PUBLIC_KEY 引用 msServerKeyId → 密钥库名称） */
 function keyNameOf(i: Identity): string {
@@ -229,6 +271,94 @@ async function remove(i: Identity): Promise<void> {
   } catch (e) {
     ElMessage.error(String((e as Error)?.message ?? e));
   }
+}
+
+// ---- 绑定主机弹窗 ----
+const bindVisible = ref(false);
+const bindTarget = ref<Identity | null>(null);
+const bindLoading = ref(false);
+const bindHosts = ref<HostRow[]>([]);
+const bindAllHosts = ref<HostRow[]>([]);
+
+async function openBind(row: Identity): Promise<void> {
+  bindTarget.value = row;
+  bindVisible.value = true;
+  bindLoading.value = true;
+  bindHosts.value = boundHostsOf(row.id);
+  // 可绑定的候选主机：尚未绑定该身份的
+  const bound = new Set(boundHostsOf(row.id).map((h) => h.id));
+  bindAllHosts.value = hosts.value.filter((h) => !bound.has(h.id));
+  bindLoading.value = false;
+}
+
+async function doBind(hostId: number): Promise<void> {
+  if (!bindTarget.value) return;
+  try {
+    await bindIdentity(hostId, bindTarget.value.id);
+    ElMessage.success("已绑定");
+    await openBind(bindTarget.value);
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
+}
+
+async function doUnbind(hostId: number): Promise<void> {
+  if (!bindTarget.value) return;
+  try {
+    await unbindIdentity(hostId, bindTarget.value.id);
+    ElMessage.success("已解绑");
+    await openBind(bindTarget.value);
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
+}
+
+// ---- 邮箱（MAILBOX）管理 ----
+const mailVisible = ref(false);
+const mailTarget = ref<Identity | null>(null);
+const mailLoading = ref(false);
+const mails = ref<Array<{ id: string; subject?: string; from?: string; date?: string; snippet?: string }>>([]);
+const mailDetail = ref("");
+
+async function openMail(row: Identity): Promise<void> {
+  mailTarget.value = row;
+  mailVisible.value = true;
+  mailDetail.value = "";
+  mailLoading.value = true;
+  try {
+    const list = ((await listMailbox(row.id, "INBOX", 20)) ?? []) as Array<{ id: string; subject?: string; from?: string; date?: string; snippet?: string }>;
+    mails.value = list;
+  } catch (e) {
+    mails.value = [];
+    ElMessage.error(`加载邮件失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    mailLoading.value = false;
+  }
+}
+
+async function showMailDetail(m: { id?: string; subject?: string }): Promise<void> {
+  if (!mailTarget.value) return;
+  try {
+    const d = await getMailboxMessage(mailTarget.value.id, "INBOX", m.subject);
+    mailDetail.value = typeof d === "string" ? d : JSON.stringify(d ?? "", null, 2);
+  } catch (e) {
+    mailDetail.value = `读取邮件内容失败: ${String((e as Error)?.message ?? e)}`;
+  }
+}
+
+// ---- 密钥私钥/公钥下载 ----
+function downloadKeyMaterial(row: KeyRow, which: "public" | "private"): void {
+  if (which === "private" && !row.msServerKeyPrivateKey) {
+    ElMessage.warning("私钥内容不可见（出于安全考虑，后端不回显），请用「生成密钥对」重建或查看密钥库");
+    return;
+  }
+  const content = which === "public" ? row.msServerKeyPublicKey ?? "" : (row.msServerKeyPrivateKey ?? "");
+  const blob = new Blob([content || "（空）"], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${row.msServerKeyName}.${which === "public" ? "pub" : "key"}`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 /** 批量删除（ReTable toolbar batchDelete handler） */
@@ -512,8 +642,14 @@ async function submitAdd(): Promise<void> {
           <span v-if="keyNameOf(row)" class="mono dim">{{ keyNameOf(row) }}</span>
           <span v-else class="dim">—</span>
         </template>
+        <template #col-hosts="{ row }">
+          <ReTag v-if="boundHostCountOf(row.id) > 0" size="small" effect="plain" type="primary" @click="openBind(row)" class="clickable">{{ boundHostCountOf(row.id) }} 台</ReTag>
+          <span v-else class="dim">—</span>
+        </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
+            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" size="small" title="收件箱" @click="openMail(row)" />
+            <ReButton icon="Connection" layout="square" size="small" title="绑定主机" @click="openBind(row)" />
             <ReButton icon="CopyDocument" layout="square" size="small" title="复制用户名" @click="copyUsername(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
@@ -565,6 +701,7 @@ async function submitAdd(): Promise<void> {
           </template>
           <template #col-actions="{ row }">
             <div class="op-cell">
+              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadKeyMaterial(row, 'public')" />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openKeyEdit(row)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeKey(row)" />
             </div>
@@ -628,6 +765,58 @@ async function submitAdd(): Promise<void> {
         <ReButton v-else type="primary" :loading="keySaving" icon="Check" :show-text="true" @click="submitKey">{{ editingKeyId != null ? '保存' : '创建' }}</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 绑定主机弹窗 -->
+    <ReDialog v-model="bindVisible" :title="`绑定主机：${bindTarget?.msServerIdentityName ?? ''}`" width="640px" :close-on-click-modal="false">
+      <div v-if="bindLoading" class="dim" style="padding:20px 0;text-align:center">加载中...</div>
+      <template v-else>
+        <div class="muted" style="margin-bottom:8px">已绑定主机（{{ bindHosts.length }}）</div>
+        <div v-if="bindHosts.length" class="host-chips">
+          <div v-for="h in bindHosts" :key="h.id" class="host-chip">
+            <ReTag :type="h.serverHostOnline === 1 ? 'success' : 'info'" size="small" effect="plain">{{ h.serverHostOnline === 1 ? '在线' : '离线' }}</ReTag>
+            <b>{{ h.serverHostName }}</b>
+            <span class="mono dim">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
+            <ReButton icon="Unlink" layout="square" size="small" type="danger" title="解绑" @click="doUnbind(h.id)" />
+          </div>
+        </div>
+        <div v-else class="dim" style="padding:8px 0">未绑定任何主机</div>
+
+        <div class="muted" style="margin:14px 0 8px">可绑定主机（{{ bindAllHosts.length }}）</div>
+        <div v-if="bindAllHosts.length" class="host-chips">
+          <div v-for="h in bindAllHosts" :key="h.id" class="host-chip">
+            <b>{{ h.serverHostName }}</b>
+            <span class="mono dim">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
+            <ReButton icon="Link" layout="square" size="small" type="primary" title="绑定" @click="doBind(h.id)" />
+          </div>
+        </div>
+        <div v-else class="dim" style="padding:8px 0">已全部绑定</div>
+      </template>
+      <template #footer>
+        <ReButton @click="bindVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 邮箱（MAILBOX）弹窗 -->
+    <ReDialog v-model="mailVisible" :title="`收件箱：${mailTarget?.msServerIdentityName ?? ''}`" width="700px" :close-on-click-modal="false">
+      <div v-if="mailLoading" class="dim" style="padding:20px 0;text-align:center">加载中...</div>
+      <template v-else>
+        <div v-if="mails.length" class="mail-list">
+          <div v-for="m in mails" :key="m.id" class="mail-item" @click="showMailDetail(m)">
+            <div class="mail-subject">{{ m.subject || '(无主题)' }}</div>
+            <div class="mail-meta mono dim">{{ m.from || '' }} · {{ m.date || '' }}</div>
+            <div v-if="m.snippet" class="mail-snippet dim">{{ m.snippet }}</div>
+          </div>
+        </div>
+        <div v-else class="dim" style="padding:20px 0;text-align:center">收件箱为空</div>
+        <template v-if="mailDetail">
+          <el-divider />
+          <div class="mail-detail"><pre>{{ mailDetail }}</pre></div>
+        </template>
+      </template>
+      <template #footer>
+        <ReButton @click="mailVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -637,4 +826,16 @@ async function submitAdd(): Promise<void> {
 .sel-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; }
 .dim { color: var(--text-tertiary); }
+.muted { color: var(--text-tertiary); font-size: 12px; }
+.clickable { cursor: pointer; }
+.host-chips { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.host-chip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 13px; }
+.host-chip b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-list { max-height: 320px; overflow-y: auto; }
+.mail-item { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
+.mail-item:hover { background: var(--bg-hover); }
+.mail-subject { font-size: 13px; font-weight: 600; }
+.mail-meta { font-size: 11px; margin-top: 2px; }
+.mail-snippet { font-size: 12px; margin-top: 2px; }
+.mail-detail pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; max-height: 240px; overflow-y: auto; }
 </style>
