@@ -260,3 +260,23 @@ export default {
   pageLeaks,
   pageLogs,
 };
+
+// ---- 数据注入（写操作：页面操作产生真实数据）----
+
+export function injectTransmission(params: {
+  source?: string; target?: string; protocol?: string; operation?: string; error?: boolean;
+}): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/transmission", null, { params }));
+}
+
+export function injectBatch(count: number): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/batch", null, { params: { count } }));
+}
+
+export function injectLeak(resourceType?: string, resourceName?: string): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/leak", null, { params: { resourceType, resourceName } }));
+}
+
+export function injectLog(level?: string, message?: string): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/inject/log", null, { params: { level, message } }));
+}

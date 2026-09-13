@@ -14,6 +14,9 @@
         <el-button size="small" round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
+        <el-button size="small" type="primary" round :loading="injecting" @click="doInjectLeak">
+          <el-icon class="mr-1"><Plus /></el-icon>制造一条泄漏
+        </el-button>
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
@@ -96,8 +99,8 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, Download } from "@element-plus/icons-vue";
-import { pageLeaks, exportLeaksCsv } from "../api/apmApi";
+import { Refresh, Download, Plus } from "@element-plus/icons-vue";
+import { pageLeaks, exportLeaksCsv, injectLeak } from "../api/apmApi";
 import type { LeakRecord } from "../api/apmApi";
 
 const items = ref<LeakRecord[]>([]);
@@ -156,6 +159,26 @@ watch(filterType, () => {
   page.value = 1;
   load();
 });
+
+// ---- 注入 ----
+const injecting = ref(false);
+const leakSeq = ref(0);
+
+async function doInjectLeak() {
+  injecting.value = true;
+  try {
+    leakSeq.value++;
+    const kinds = ["File", "Socket", "Connection", "Thread"];
+    const kind = kinds[leakSeq.value % kinds.length];
+    await injectLeak(kind, `${kind.toLowerCase()}-manual-${leakSeq.value}`);
+    ElMessage.success(`已制造一条 ${kind} 泄漏记录`);
+    await load();
+  } catch {
+    ElMessage.error("写入失败");
+  } finally {
+    injecting.value = false;
+  }
+}
 
 /** 后端全量 CSV 导出（带当前筛选条件） */
 function exportCsvFull() {
