@@ -1,25 +1,19 @@
 /**
- * 任务管理模块类型定义（@pages/task）
+ * 浠诲姟绠＄悊妯″潡绫诲瀷瀹氫箟锛園pages/task锛?
  *
- * 覆盖两个后端模块：
- *   1) 任务派发 spring-support-taskdistribution-starter（/v2/taskdistribution）
- *   2) 调度中心 spring-support-scheduler-starter（/scheduler/api/v1/job-platform）
+ * 瑕嗙洊涓や釜鍚庣妯″潡锛?
+ *   1) 浠诲姟娲惧彂 spring-support-taskdistribution-starter锛?v2/taskdistribution锛?
+ *   2) 璋冨害涓績 spring-support-scheduler-starter锛?scheduler/api/v1/job-platform锛?
  */
 
-/** 统一返回结构（后端 ReturnResult） */
- * @author CH
- * @since 4.0.0
-/** 统一返回结构（后端 ReturnResult） */
+/** 缁熶竴杩斿洖缁撴瀯锛堝悗绔?ReturnResult锛?*/
 export interface ApiResult<T = unknown> {
   code?: string | number;
   msg?: string;
   data?: T;
 }
 
-/** 公共审计字段 */
- * @author CH
- * @since 4.0.0
-/** 公共审计字段 */
+/** 鍏叡瀹¤瀛楁 */
 export interface Auditable {
   createName?: string;
   createBy?: number;
@@ -29,60 +23,51 @@ export interface Auditable {
   updateTime?: string;
 }
 
-/* ================== 任务派发 ================== */
+/* ================== 浠诲姟娲惧彂 ================== */
 
-/** 派发任务 */
- * @author CH
- * @since 4.0.0
-/** 派发任务 */
+/** 娲惧彂浠诲姟 */
 export interface DispatchTask {
   taskId?: string;
-  /** 任务类型 */
+  /** 浠诲姟绫诲瀷 */
   taskType?: string;
-  /** 任务状态 */
+  /** 浠诲姟鐘舵€?*/
   taskStatus?: string;
-  /** 任务内容（JSON 字符串） */
+  /** 浠诲姟鍐呭锛圝SON 瀛楃涓诧級 */
   taskJson?: string;
-  /** 任务结果（JSON 字符串） */
+  /** 浠诲姟缁撴灉锛圝SON 瀛楃涓诧級 */
   resultJson?: string;
-  /** 重试次数 */
+  /** 閲嶈瘯娆℃暟 */
   retryCount?: number;
-  /** 创建时间 */
+  /** 鍒涘缓鏃堕棿 */
   createdAt?: string;
-  /** 完成时间 */
+  /** 瀹屾垚鏃堕棿 */
   completedAt?: string;
   [key: string]: unknown;
 }
 
-/** 派发节点 */
- * @author CH
- * @since 4.0.0
-/** 派发节点 */
+/** 娲惧彂鑺傜偣 */
 export interface DispatchNode {
   nodeId?: string;
-  /** 节点标签 */
+  /** 鑺傜偣鏍囩 */
   tags?: string[];
-  /** 节点权重 */
+  /** 鑺傜偣鏉冮噸 */
   weight?: number;
-  /** 主机 */
+  /** 涓绘満 */
   host?: string;
-  /** 端口 */
+  /** 绔彛 */
   port?: number;
-  /** 是否在线 */
+  /** 鏄惁鍦ㄧ嚎 */
   online?: boolean;
-  /** 最后心跳时间 */
+  /** 鏈€鍚庡績璺虫椂闂?*/
   lastHeartbeat?: string;
-  /** 归属中间件ID */
+  /** 褰掑睘涓棿浠禝D */
   homeMiddlewareId?: string;
   [key: string]: unknown;
 }
 
-/* ================== 调度中心 ================== */
+/* ================== 璋冨害涓績 ================== */
 
-/** 调度类型常量 */
- * @author CH
- * @since 4.0.0
-/** 调度类型常量 */
+/** 璋冨害绫诲瀷甯搁噺 */
 export const ScheduleType = {
   CRON: "CRON",
   FIXED: "FIXED",
@@ -92,124 +77,112 @@ export const ScheduleType = {
   NONE: "NONE",
 } as const;
 
-/** 触发状态常量 */
- * @author CH
- * @since 4.0.0
-/** 触发状态常量 */
+/** 瑙﹀彂鐘舵€佸父閲?*/
 export const TriggerStatus = {
-  /** 停止 */
+  /** 鍋滄 */
   STOPPED: 0,
-  /** 运行 */
+  /** 杩愯 */
   RUNNING: 1,
 } as const;
 
-/** 任务实体 */
- * @author CH
- * @since 4.0.0
-/** 任务实体 */
+/** 浠诲姟瀹炰綋 */
 export interface JobEntity extends Auditable {
   sysJobId?: number;
-  /** 任务编号 */
+  /** 浠诲姟缂栧彿 */
   sysJobNo?: string;
-  /** 任务名称 */
+  /** 浠诲姟鍚嶇О */
   sysJobName?: string;
-  /** 作者 */
+  /** 浣滆€?*/
   sysJobAuthor?: string;
-  /** 告警邮箱 */
+  /** 鍛婅閭 */
   sysJobAlarmEmail?: string;
-  /** 任务分组/命名空间 */
+  /** 浠诲姟鍒嗙粍/鍛藉悕绌洪棿 */
   sysJobGroup?: string;
-  /** 调度类型: CRON/FIXED/FIXED_MS/DELAY/AT/NONE */
+  /** 璋冨害绫诲瀷: CRON/FIXED/FIXED_MS/DELAY/AT/NONE */
   sysJobScheduleType?: string;
-  /** 调度时间（cron 表达式或间隔） */
+  /** 璋冨害鏃堕棿锛坈ron 琛ㄨ揪寮忔垨闂撮殧锛?*/
   sysJobScheduleTime?: string;
-  /** 触发状态: 0停止 1运行 */
+  /** 瑙﹀彂鐘舵€? 0鍋滄 1杩愯 */
   sysJobTriggerStatus?: number;
-  /** 描述 */
+  /** 鎻忚堪 */
   sysJobDesc?: string;
-  /** GLUE 更新时间 */
+  /** GLUE 鏇存柊鏃堕棿 */
   sysJobGlueUpdatetime?: string;
-  /** GLUE 源码 */
+  /** GLUE 婧愮爜 */
   sysJobGlueSource?: string;
-  /** GLUE 类型: BEAN/GLUE */
+  /** GLUE 绫诲瀷: BEAN/GLUE */
   sysJobGlueType?: string;
-  /** 分发模式: LOCAL/REMOTE */
+  /** 鍒嗗彂妯″紡: LOCAL/REMOTE */
   sysJobDispatchMode?: string;
-  /** 远程执行器地址 */
+  /** 杩滅▼鎵ц鍣ㄥ湴鍧€ */
   sysJobRemoteExecutorAddress?: string;
-  /** 存储模式: DATABASE/FILE */
+  /** 瀛樺偍妯″紡: DATABASE/FILE */
   sysJobStorageMode?: string;
-  /** 失败重试次数 */
+  /** 澶辫触閲嶈瘯娆℃暟 */
   sysJobFailRetry?: number;
-  /** 重试间隔 */
+  /** 閲嶈瘯闂撮殧 */
   sysJobRetryInterval?: number;
-  /** 执行超时(秒) */
+  /** 鎵ц瓒呮椂(绉? */
   sysJobExecuteTimeout?: number;
-  /** 执行 Bean */
+  /** 鎵ц Bean */
   sysJobExecuteBean?: string;
-  /** 执行参数 */
+  /** 鎵ц鍙傛暟 */
   sysJobExecuteParam?: string;
-  /** 异常回调 Bean */
+  /** 寮傚父鍥炶皟 Bean */
   sysJobExceptionCallbackBean?: string;
-  /** 重试回调 Bean */
+  /** 閲嶈瘯鍥炶皟 Bean */
   sysJobRetryCallbackBean?: string;
-  /** 执行过期策略 */
+  /** 鎵ц杩囨湡绛栫暐 */
   sysJobExecuteMisfireStrategy?: string;
-  /** 上次触发时间 */
+  /** 涓婃瑙﹀彂鏃堕棿 */
   sysJobTriggerLastTime?: number;
-  /** 下次触发时间 */
+  /** 涓嬫瑙﹀彂鏃堕棿 */
   sysJobTriggerNextTime?: number;
-  /** 是否删除 */
+  /** 鏄惁鍒犻櫎 */
   sysJobIsDeleted?: number;
-  /** 乐观锁版本 */
+  /** 涔愯閿佺増鏈?*/
   sysJobVersion?: number;
 }
 
-/** 任务日志 */
- * @author CH
- * @since 4.0.0
-/** 任务日志 */
+/** 浠诲姟鏃ュ織 */
 export interface JobLogEntity extends Auditable {
   sysJobLogId?: number;
   sysJobLogNo?: string;
   sysJobId?: number;
   sysJobNo?: string;
-  /** 应用名 */
+  /** 搴旂敤鍚?*/
   sysJobLogApp?: string;
-  /** 触发 Bean */
+  /** 瑙﹀彂 Bean */
   sysJobLogTriggerBean?: string;
-  /** 触发类型 */
+  /** 瑙﹀彂绫诲瀷 */
   sysJobLogTriggerType?: string;
-  /** 执行环境 */
+  /** 鎵ц鐜 */
   sysJobLogProfile?: string;
-  /** 触发时间 */
+  /** 瑙﹀彂鏃堕棿 */
   sysJobLogTriggerTime?: string;
-  /** 触发日期 */
+  /** 瑙﹀彂鏃ユ湡 */
   sysJobLogTriggerDate?: string;
-  /** 触发结果码 */
+  /** 瑙﹀彂缁撴灉鐮?*/
   sysJobLogTriggerCode?: string;
-  /** 执行结果码 */
+  /** 鎵ц缁撴灉鐮?*/
   sysJobLogExecuteCode?: string;
-  /** 耗时 */
+  /** 鑰楁椂 */
   sysJobLogCost?: number;
-  /** 触发消息 */
+  /** 瑙﹀彂娑堟伅 */
   sysJobLogTriggerMsg?: string;
-  /** 触发参数 */
+  /** 瑙﹀彂鍙傛暟 */
   sysJobLogTriggerParam?: string;
-  /** 触发地址 */
+  /** 瑙﹀彂鍦板潃 */
   sysJobLogTriggerAddress?: string;
-  /** 节点ID */
+  /** 鑺傜偣ID */
   sysJobLogNodeId?: string;
-  /** 日志文件路径 */
+  /** 鏃ュ織鏂囦欢璺緞 */
   sysJobLogFilePath?: string;
-  /** 是否删除 */
+  /** 鏄惁鍒犻櫎 */
   sysJobLogIsDeleted?: number;
 }
 
-/** 调度任务视图（task/list 返回） */
- * @author CH
- * @since 4.0.0
-/** 调度任务视图（task/list 返回） */
+/** 璋冨害浠诲姟瑙嗗浘锛坱ask/list 杩斿洖锛?*/
 export interface SchedulerTaskVO {
   jobId?: number;
   jobNo?: string;
@@ -231,10 +204,7 @@ export interface SchedulerTaskVO {
   deleted?: boolean;
 }
 
-/** 任务更新请求 */
- * @author CH
- * @since 4.0.0
-/** 任务更新请求 */
+/** 浠诲姟鏇存柊璇锋眰 */
 export interface SchedulerTaskUpdateRequest {
   cronExpression?: string;
   enabled?: boolean;

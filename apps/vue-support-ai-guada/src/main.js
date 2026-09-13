@@ -88,8 +88,8 @@ const routes = [
       {
         path: "setting/:tab?",
         name: "SystemSettings",
-        meta: { titleKey: "common.route.settings", requiresAuth: true },
-        component: () => import("./components/setting/SystemSettings.vue"),
+        meta: { title: "系统设置", requiresAuth: true },
+        component: () => import("./components/management/SystemSettingsPage.vue"),
       },
       {
         path: "plugins/:tab?",
@@ -113,8 +113,20 @@ const routes = [
       {
         path: "models",
         name: "Models",
-        meta: { titleKey: "common.route.models", requiresAuth: true },
-        component: () => import("./components/models/ModelsPage.vue"),
+        meta: { title: "模型管理", requiresAuth: true },
+        component: () => import("./components/management/ModelsManagementPage.vue"),
+      },
+      {
+        path: "app-keys",
+        name: "AppKeys",
+        meta: { title: "AppKey管理", requiresAuth: true },
+        component: () => import("./components/management/AppKeysPage.vue"),
+      },
+      {
+        path: "manufacturer-keys",
+        name: "ManufacturerKeys",
+        meta: { title: "厂商Key管理", requiresAuth: true },
+        component: () => import("./components/management/ManufacturerKeysPage.vue"),
       },
       {
         path: "roles",

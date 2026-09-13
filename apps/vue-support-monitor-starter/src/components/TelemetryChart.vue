@@ -4,6 +4,7 @@
       <span class="tel-chart-title">{{ title }}</span>
       <div class="tel-chart-controls">
         <ReSelect
+          v-if="!hideTimeRange"
           v-model="timeRange"
           size="small"
           style="width: 100px"
@@ -40,27 +41,38 @@ import * as echarts from "echarts";
 
 const props = withDefaults(defineProps<{
   title: string;
-  data: number[];
+  data: (number | null)[];
   timestamps?: number[];
   unit?: string;
   color?: string;
   height?: number;
   maxPoints?: number;
+  /** 受控时间范围（外部 v-model:time-range），传入后内部选择器同步显示 */
+  timeRange?: string;
+  /** 是否隐藏内置时间范围选择器（页面级统一控制时使用） */
+  hideTimeRange?: boolean;
 }>(), {
   unit: "",
   color: "#38bdf8",
   height: 160,
   maxPoints: 200,
+  hideTimeRange: false,
 });
 
 const emit = defineEmits<{
   (e: "time-range-change", range: string): void;
+  (e: "update:timeRange", range: string): void;
 }>();
 
 const chartRef = ref<HTMLDivElement>();
 const historyChartRef = ref<HTMLDivElement>();
 const historyVisible = ref(false);
-const timeRange = ref("1h");
+const timeRange = ref(props.timeRange ?? "1h");
+
+// 外部受控 timeRange 变化时同步内部状态
+watch(() => props.timeRange, (v) => {
+  if (v && v !== timeRange.value) timeRange.value = v;
+});
 
 const timeRangeOptions = [
   { label: "1小时", value: "1h" },
@@ -72,9 +84,10 @@ const timeRangeOptions = [
 
 let chart: echarts.ECharts | null = null;
 let historyChart: echarts.ECharts | null = null;
+let themeObserver: MutationObserver | null = null;
 
 const stats = computed(() => {
-  const d = props.data;
+  const d = props.data.filter((v): v is number => v != null);
   if (!d.length) return { min: "—", max: "—", avg: "—", last: "—", count: 0 };
   const min = Math.min(...d);
   const max = Math.max(...d);
@@ -88,40 +101,51 @@ const stats = computed(() => {
   };
 });
 
+/** 是否深色主题（html.dark class） */
+function isDark(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+}
+
 /**
- * 构建 ECharts 配置项
- * @param data 数值序列
+ * 构建 ECharts 配置项（主题感知）
+ * @param data 数值序列（可含 null）
  * @param times 时间戳序列（可选）
  * @returns ECharts 配置
  */
-function buildOption(data: number[], times?: number[]): echarts.EChartsOption {
+function buildOption(data: (number | null)[], times?: number[]): echarts.EChartsOption {
+  const dark = isDark();
+  const axisLabelColor = dark ? "#94a3b8" : "#64748b";
+  const splitLineColor = dark ? "rgba(148,163,184,0.08)" : "rgba(100,116,139,0.12)";
+  const axisLineColor = dark ? "rgba(148,163,184,0.2)" : "rgba(100,116,139,0.2)";
+  const tooltipBg = dark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)";
+  const tooltipTextColor = dark ? "#e2e8f0" : "#1e293b";
   const xData = times && times.length === data.length
-    ? times.map(t => new Date(t).toLocaleTimeString("zh-CN", { hour12: false }))
+    ? times.map(t => new Date(t).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }))
     : data.map((_, i) => String(i));
   return {
-    grid: { left: 45, right: 15, top: 10, bottom: 25 },
+    grid: { left: 50, right: 15, top: 10, bottom: 30 },
     tooltip: {
       trigger: "axis",
-      backgroundColor: "rgba(15,23,42,0.95)",
-      borderColor: "rgba(56,189,248,0.3)",
-      textStyle: { color: "#e2e8f0", fontSize: 12 },
+      backgroundColor: tooltipBg,
+      borderColor: dark ? "rgba(56,189,248,0.3)" : "rgba(100,116,139,0.2)",
+      textStyle: { color: tooltipTextColor, fontSize: 12 },
       formatter: (params: any) => {
         const p = params[0];
-        return `${p.axisValue}<br/>${props.title}: <b>${Number(p.value).toFixed(1)}${props.unit}</b>`;
+        return `${p.axisValue}<br/>${props.title}: <b>${Number(p.value).toLocaleString()}${props.unit}</b>`;
       },
     },
     xAxis: {
       type: "category",
       data: xData,
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } },
-      axisLabel: { color: "#94a3b8", fontSize: 10, hideOverlap: true },
+      axisLine: { lineStyle: { color: axisLineColor } },
+      axisLabel: { color: axisLabelColor, fontSize: 10, hideOverlap: true },
       axisTick: { show: false },
     },
     yAxis: {
       type: "value",
       axisLine: { show: false },
-      axisLabel: { color: "#94a3b8", fontSize: 10 },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.08)" } },
+      axisLabel: { color: axisLabelColor, fontSize: 10 },
+      splitLine: { lineStyle: { color: splitLineColor } },
     },
     series: [{
       type: "line",
@@ -164,6 +188,7 @@ function renderHistoryChart() {
 /** 时间范围变更事件透传 */
 function onTimeRangeChange() {
   emit("time-range-change", timeRange.value);
+  emit("update:timeRange", timeRange.value);
 }
 
 /** 打开历史数据弹窗并渲染 */
@@ -190,6 +215,12 @@ onMounted(() => {
     }
   });
   window.addEventListener("resize", onResize);
+  // 监听 html.dark 类变化，切换主题时重绘图表
+  themeObserver = new MutationObserver(() => {
+    renderChart();
+    if (historyVisible.value) renderHistoryChart();
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 });
 
 /** 窗口尺寸变化时重算图表尺寸 */
@@ -200,6 +231,7 @@ function onResize() {
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize);
+  themeObserver?.disconnect();
   chart?.dispose();
   historyChart?.dispose();
 });

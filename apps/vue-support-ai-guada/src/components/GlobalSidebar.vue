@@ -299,8 +299,9 @@ import {
   Server20Regular,
   DataArea20Regular,
   Image20Regular,
+  Key20Regular,
 } from '@vicons/fluent'
-import { MoreHorizontal20Filled } from '@vicons/fluent'
+import { MoreHorizontal20Filled, Settings20Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
 import TitlebarLeftPanel from './TitlebarLeftPanel.vue'
 
@@ -433,8 +434,18 @@ const navItems = computed(() => [
   },
   {
     key: 'models',
-    label: t('ui.sidebar.navModels'),
+    label: '模型管理',
     icon: Cloud20Regular
+  },
+  {
+    key: 'app-keys',
+    label: 'AppKey管理',
+    icon: Key20Regular
+  },
+  {
+    key: 'manufacturer-keys',
+    label: '厂商Key管理',
+    icon: Key20Regular
   },
   {
     key: 'roles',
@@ -470,6 +481,11 @@ const navItems = computed(() => [
     key: 'capabilities',
     label: '视觉管线',
     icon: Image20Regular
+  },
+  {
+    key: 'setting',
+    label: '系统设置',
+    icon: Settings20Regular
   }
 ])
 
@@ -489,6 +505,8 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'Models') return 'models'
+  if (routeName === 'AppKeys') return 'app-keys'
+  if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
   if (routeName === 'Roles') return 'roles'
   if (routeName === 'Mcp') return 'mcp'
   if (routeName === 'Agents') return 'agents'
@@ -689,6 +707,10 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Scheduler' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
+  } else if (tab === 'app-keys') {
+    router.replace({ name: 'AppKeys' })
+  } else if (tab === 'manufacturer-keys') {
+    router.replace({ name: 'ManufacturerKeys' })
   } else if (tab === 'roles') {
     router.replace({ name: 'Roles' })
   } else if (tab === 'mcp') {

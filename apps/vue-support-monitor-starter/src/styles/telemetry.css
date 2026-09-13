@@ -1,154 +1,20 @@
-﻿/* ============================================================
- * telemetry.css 鈥斺€?娣辫壊閬ユ祴璁捐绯荤粺锛堟柟妗?A锛氬唴瀹瑰尯娣辫壊缁熶竴锛?
+/* ============================================================
+ * telemetry.css —— 监控平台全局样式覆盖
  *
- * 鐢ㄦ硶锛?
- *   1. 椤甸潰鏍瑰鍣ㄥ姞 class="tel-page"锛堟祬鑹查潰鏉?+ 缃戞牸 + 鍏夋檿 + 鎵弿绾匡級
- *   2. KPI 鍗″湪 .kpi 鍩虹涓婂姞 class="tel-kpi"锛堝彂鍏夎壊鏉?/ 鍥炬爣 / 鎮仠鎶崌锛?
- *   3. 闈㈡澘鍐呯殑 ReXxx / element-plus 缁勪欢鐢?CSS 鍙橀噺瑕嗙洊鑷姩娴呰壊鍖?
- *   4. 娴眰锛堝脊绐?/ 涓嬫媺 / 娑堟伅 / 纭妗嗭級鍏ㄥ眬娴呰壊鍖栵紝淇濊瘉瑙傛劅缁熶竴
+ * 职责：
+ *   1. 将应用自定义令牌映射到 element-plus / ReXxx 组件变量
+ *   2. 覆盖 element-plus 硬编码白色，使其跟随 CSS 变量
+ *   3. 弹窗 / 表单 / 按钮 / 表格 统一美化
+ *   4. 明暗双主题自动适配（html.dark 切换）
  * ============================================================ */
 
-/* ================= 娴呰壊閬ユ祴闈㈡澘瀹瑰櫒 ================= */
-.tel-page {
-  position: relative;
-  overflow: hidden;
-  min-height: 100%;
-  height: 100%;
-  background:
-    radial-gradient(1100px 480px at 12% -12%, rgba(59, 130, 246, 0.08), transparent 62%),
-    radial-gradient(900px 440px at 108% 112%, rgba(6, 182, 212, 0.06), transparent 60%),
-    #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  padding: 18px 20px 20px;
-  color: #1e293b;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-  animation: telPanelIn 0.45s ease both;
-}
-/* 鑳屾櫙缃戞牸 */
-.tel-page::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
-  background-size: 30px 30px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
-}
-/* 椤堕儴鎵弿绾?*/
-.tel-page::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), rgba(6, 182, 212, 0.5), transparent);
-  background-size: 240px 100%;
-  background-repeat: no-repeat;
-  animation: telScan 3.2s ease-in-out infinite;
-  opacity: 0.5;
-  pointer-events: none;
-}
-@keyframes telPanelIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes telScan {
-  0% { background-position: -260px 0; opacity: 0.2; }
-  45% { opacity: 0.85; }
-  100% { background-position: calc(100% + 260px) 0; opacity: 0.2; }
-}
-
-/* ================= 娴呰壊鍙橀噺闆?=================
- * 鎸傚湪 .tel-page 涓庡叏閮ㄦ诞灞備笂锛氬唴閮ㄧ粍浠讹紙koi + element-plus锛夎嚜鍔ㄦ祬鑹插寲 */
-.tel-page,
-.tel-rail,
-.el-dialog,
-.el-message-box,
-.el-message,
-.el-popper,
-.el-select-dropdown {
-  /* koi / 搴旂敤浠ょ墝 */
-  --bg-page: #f8fafc;
-  --bg-container: #ffffff;
-  --bg-container-card: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-fill: #f1f5f9;
-  --bg-hover: #1e293b;
-  --border-subtle: rgba(148, 163, 184, 0.2);
-  --border-default: rgba(148, 163, 184, 0.3);
-  --border-strong: rgba(100, 116, 139, 0.5);
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --brand-50: rgba(59, 130, 246, 0.1);
-  --brand-100: rgba(59, 130, 246, 0.2);
-  --brand-400: #3b82f6;
-  --brand-600: #2563eb;
-  --selection-bg: rgba(59, 130, 246, 0.2);
-  --selection-bg-fade: rgba(59, 130, 246, 0.05);
-  --shadow-1: 0 1px 3px rgba(15, 23, 42, 0.1);
-  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.1);
-  --shadow-3: 0 8px 24px rgba(15, 23, 42, 0.12);
-  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.2);
-  --scroll-thumb: #cbd5e1;
-  --scroll-thumb-hover: #94a3b8;
-  --empty-bg-gradient: rgba(59, 130, 246, 0.06);
-
-  /* 鍛婅绛夌骇锛堟祬搴?鈫?娣卞簳鍗婇€忔槑锛?*/
-  --sev-p0-bg: rgba(254, 226, 226, 0.6);
-  --sev-p0-text: #b91c1c;
-  --sev-p0-border: rgba(239, 68, 68, 0.3);
-  --sev-p1-bg: rgba(255, 237, 213, 0.6);
-  --sev-p1-text: #c2410c;
-  --sev-p1-border: rgba(249, 115, 22, 0.3);
-  --sev-p2-bg: rgba(254, 249, 195, 0.6);
-  --sev-p2-text: #a16207;
-  --sev-p2-border: rgba(245, 158, 11, 0.3);
-  --sev-p3-bg: rgba(209, 250, 229, 0.6);
-  --sev-p3-text: #047857;
-  --sev-p3-border: rgba(16, 185, 129, 0.3);
-  --sev-p4-bg: rgba(241, 245, 249, 0.8);
-  --sev-p4-text: #475569;
-  --sev-p4-border: rgba(148, 163, 184, 0.3);
-
-  /* 閿欒鎻愮ず */
-  --status-error-bg: rgba(254, 226, 226, 0.6);
-  --status-error-border: rgba(239, 68, 68, 0.3);
-  --status-error-text: #b91c1c;
-
-  /* ===== koi 涓婚浠ょ墝锛圧eCard / ReDrawer / ReSearch 绛?--theme-color-*锛?===== */
-  --theme-color-bg: var(--bg-page);
-  --theme-color-bg-container: var(--bg-container);
-  --theme-color-text: var(--text-primary);
-  --theme-color-text-secondary: var(--text-secondary);
-  --theme-color-border: var(--border-default);
-  --theme-color-primary: var(--brand-400);
-  --theme-color-success: var(--color-success, #34d399);
-  --theme-color-warning: var(--color-warning, #fbbf24);
-  --theme-color-error: var(--color-error, #f87171);
-
-  /* ===== ReTable 浠ょ墝锛?-rt-*锛屽湪 :root 琚绠椾负浜壊鍏蜂綋鍊硷紝姝ゅ瑕嗙洊锛?===== */
-  --rt-bg: var(--bg-elevated);
-  --rt-bg-header: var(--bg-fill);
-  --rt-bg-strip: var(--bg-fill);
-  --rt-bg-row-hover: var(--brand-50);
-  --rt-bg-overlay: var(--bg-elevated);
-  --rt-border: var(--border-subtle);
-  --rt-border-hover: var(--border-strong);
-  --rt-border-strong: var(--brand-400);
-  --rt-text: var(--text-primary);
-  --rt-text-header: var(--text-secondary);
-  --rt-text-secondary: var(--text-secondary);
-  --rt-text-placeholder: var(--text-tertiary);
-  --rt-header-bg: var(--bg-fill);
-  --rt-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --rt-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
-
-  /* element-plus 鍩虹 */
+/* ============================================================
+   第一部分：全局变量映射（:root = 亮色，html.dark = 暗色）
+   将自定义 --bg-* / --text-* 映射到 element-plus 和 ReXxx 组件
+   必须放在全局（:root），因为弹窗/下拉层 teleport 到 body
+   ============================================================ */
+:root {
+  /* ===== element-plus 基础变量映射 ===== */
   --el-bg-color: var(--bg-container);
   --el-bg-color-overlay: var(--bg-elevated);
   --el-fill-color-blank: var(--bg-elevated);
@@ -159,12 +25,14 @@
   --el-border-color: var(--border-default);
   --el-border-color-light: var(--border-subtle);
   --el-border-color-lighter: var(--border-subtle);
-  --el-border-color-extra-light: rgba(148, 163, 184, 0.08);
+  --el-border-color-extra-light: var(--border-subtle);
   --el-text-color-primary: var(--text-primary);
   --el-text-color-regular: var(--text-primary);
   --el-text-color-secondary: var(--text-secondary);
   --el-text-color-placeholder: var(--text-tertiary);
-  --el-mask-color: rgba(15, 23, 42, 0.5);
+  --el-mask-color: rgba(15, 18, 33, 0.5);
+
+  /* ===== element-plus 表格变量 ===== */
   --el-table-bg-color: transparent;
   --el-table-row-hover-bg-color: var(--brand-50);
   --el-table-border-color: var(--border-subtle);
@@ -172,647 +40,354 @@
   --el-table-tr-bg-color: transparent;
   --el-table-text-color: var(--text-primary);
   --el-table-header-text-color: var(--text-secondary);
+  --el-table-expanded-cell-bg-color: transparent;
+  --el-table-border-color: var(--border-subtle);
+
+  /* ===== element-plus 禁用态 ===== */
   --el-disabled-bg-color: var(--bg-elevated);
   --el-disabled-border-color: var(--border-subtle);
   --el-disabled-text-color: var(--text-tertiary);
 
-  /* ReXxx 鍏ㄥ眬浠ょ墝锛?-rm-*锛岀粍浠跺簱鍏ㄥ眬 !important 瑙勫垯寮曠敤锛屽繀椤诲湪姝よ鐩栵級 */
+  /* ===== element-plus 输入框 ===== */
+  --el-input-bg-color: var(--bg-elevated);
+  --el-input-border-color: var(--border-default);
+  --el-input-hover-border-color: var(--brand-500);
+  --el-input-focus-border-color: var(--brand-500);
+  --el-input-text-color: var(--text-primary);
+  --el-input-placeholder-color: var(--text-tertiary);
+  --el-input-icon-color: var(--text-tertiary);
+  --el-input-clear-hover-color: var(--text-secondary);
+
+  /* ===== element-plus 分页 ===== */
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: transparent;
+  --el-pagination-hover-color: var(--brand-500);
+  --el-pagination-text-color: var(--text-secondary);
+
+  /* ===== element-plus 按钮 ===== */
+  --el-button-bg-color: var(--bg-fill);
+  --el-button-border-color: var(--border-default);
+  --el-button-text-color: var(--text-primary);
+  --el-button-hover-bg-color: var(--bg-hover);
+  --el-button-hover-border-color: var(--brand-500);
+  --el-button-hover-text-color: var(--text-primary);
+
+  /* ===== ReXxx 组件变量（--rm-*） ===== */
   --rm-bg: var(--bg-elevated);
   --rm-bg-elevated: var(--bg-container);
   --rm-bg-hover: var(--bg-hover);
   --rm-bg-active: var(--brand-50);
   --rm-border: var(--border-default);
   --rm-border-light: var(--border-subtle);
-  --rm-border-hover: var(--brand-400);
-  --rm-border-focus: var(--brand-400);
+  --rm-border-hover: var(--brand-500);
+  --rm-border-focus: var(--brand-500);
   --rm-text: var(--text-primary);
   --rm-text-secondary: var(--text-secondary);
   --rm-text-placeholder: var(--text-tertiary);
-  --rm-primary: var(--brand-400);
+  --rm-primary: var(--brand-500);
   --rm-primary-bg: var(--brand-50);
-  --rm-success: #34d399;
-  --rm-warning: #fbbf24;
-  --rm-danger: #f87171;
-  --rm-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  --rm-shadow: 0 4px 16px var(--shadow-md);
   --rm-radius: 8px;
-  /* 杈撳叆 / 閫夋嫨 / 涓嬫媺 */
-  --el-input-bg-color: var(--bg-elevated);
-  --el-input-border-color: var(--border-default);
-  --el-input-hover-border-color: var(--brand-400);
-  --el-input-focus-border-color: var(--brand-400);
-  --el-input-text-color: var(--text-primary);
-  --el-input-placeholder-color: var(--text-tertiary);
-  --el-input-icon-color: var(--text-tertiary);
-  --el-input-clear-hover-color: var(--text-secondary);
-  /* 鍒嗛〉 */
-  --el-pagination-bg-color: transparent;
-  --el-pagination-button-bg-color: transparent;
-  --el-pagination-hover-color: var(--brand-400);
-  --el-pagination-text-color: var(--text-secondary);
-  --el-button-bg-color: var(--bg-fill);
-  --el-button-border-color: var(--border-default);
-  --el-button-text-color: var(--text-primary);
-  --el-button-hover-bg-color: var(--bg-hover);
-  --el-button-hover-border-color: var(--brand-400);
-  --el-button-hover-text-color: var(--text-primary);
+
+  /* ===== ReTable 变量（--rt-*） ===== */
+  --rt-bg: var(--bg-elevated);
+  --rt-bg-header: var(--bg-fill);
+  --rt-bg-strip: var(--bg-fill);
+  --rt-bg-row-hover: var(--brand-50);
+  --rt-bg-overlay: var(--bg-elevated);
+  --rt-border: var(--border-subtle);
+  --rt-border-hover: var(--border-strong);
+  --rt-border-strong: var(--brand-500);
+  --rt-text: var(--text-primary);
+  --rt-text-header: var(--text-secondary);
+  --rt-text-secondary: var(--text-secondary);
+  --rt-text-placeholder: var(--text-tertiary);
+  --rt-header-bg: var(--bg-fill);
+
+  /* ===== koi 主题变量（ReCard / ReDrawer 等使用 --theme-color-*） ===== */
+  --theme-color-bg: var(--bg-page);
+  --theme-color-bg-container: var(--bg-container);
+  --theme-color-text: var(--text-primary);
+  --theme-color-text-secondary: var(--text-secondary);
+  --theme-color-border: var(--border-default);
+  --theme-color-primary: var(--brand-500);
+  --theme-color-success: #2fbf71;
+  --theme-color-warning: #f5a524;
+  --theme-color-error: #f04a5d;
+
+  /* ===== 过渡动画 ===== */
+  --tel-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  --tel-glow-brand: 0 0 0 1px var(--brand-500), 0 0 16px rgba(109, 93, 252, 0.25);
+  --tel-glow-soft: 0 4px 20px var(--shadow-md);
+
+  /* ===== --tel-* 变量（数据库/中间件管理页面使用） ===== */
+  --tel-bg: var(--bg-page);
+  --tel-panel: var(--bg-container);
+  --tel-border: var(--border-subtle);
+  --tel-hover: var(--bg-hover);
+  --tel-primary: var(--brand-500);
+  --tel-success: #10b981;
+  --tel-text: var(--text-primary);
+  --tel-text-secondary: var(--text-secondary);
+  --tel-text-dim: var(--text-tertiary);
 }
 
-/* ================= 鍐呭祵娣辫壊渚ф潯锛堢粓绔祫婧愭潯绛夛級 ================= */
-.tel-rail {
-  background: #ffffff;
-  border-right-color: rgba(148, 163, 184, 0.14);
+/* 深色主题下调整遮罩色（更深） */
+html.dark {
+  --el-mask-color: rgba(0, 0, 0, 0.6);
 }
 
-/* ================= 缁勪欢绾ц儗鏅己鍒惰鐩栵紙element-plus 鍐呴儴纭紪鐮佺櫧鑹诧級 ================= */
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-cascader__label,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-date-editor {
-  background-color: var(--bg-elevated) !important;
-  box-shadow: 0 0 0 1px var(--border-default) inset !important;
+/* ============================================================
+   第二部分：页面容器 .tel-page
+   ============================================================ */
+.tel-page {
+  position: relative;
+  overflow: hidden;
+  min-height: 100%;
+  height: 100%;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-1);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__wrapper:hover,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__wrapper:hover {
-  box-shadow: 0 0 0 1px var(--el-input-hover-border-color, var(--brand-400)) inset !important;
+/* 背景网格（两主题共用，用半透明色） */
+.tel-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input.is-focus .el-input__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select.is-focus .el-select__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner:focus {
-  background-color: var(--bg-elevated) !important;
-  box-shadow: 0 0 0 1px var(--brand-400) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+/* 顶部扫描线 */
+.tel-page::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand-400), transparent);
+  background-size: 240px 100%;
+  background-repeat: no-repeat;
+  animation: telScan 3.2s ease-in-out infinite;
+  opacity: 0.4;
+  pointer-events: none;
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__inner,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__placeholder,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__selected-item {
-  color: var(--el-input-text-color, var(--text-primary)) !important;
+@keyframes telPanelIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__inner::placeholder,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner::placeholder {
-  color: var(--el-input-placeholder-color, var(--text-tertiary)) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__suffix,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__prefix,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__suffix {
-  color: var(--el-input-icon-color, var(--text-tertiary));
+@keyframes telScan {
+  0% { background-position: -260px 0; opacity: 0.15; }
+  45% { opacity: 0.6; }
+  100% { background-position: calc(100% + 260px) 0; opacity: 0.15; }
 }
 
-/* el-input-number锛堝甫涓婁笅绠ご鐨勬暟瀛楄緭鍏ユ锛?*/
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number .el-input__wrapper {
-  background-color: var(--bg-elevated) !important;
-  box-shadow: 0 0 0 1px var(--border-default) inset !important;
+/* ============================================================
+   第三部分：element-plus 组件内部背景覆盖
+   （EP 内部有硬编码白色，需强制覆盖为变量）
+   ============================================================ */
+
+/* 输入框 / 下拉框 / 数字输入框 / 日期选择器 背景与边框 */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper,
+.el-cascader__label,
+.el-date-editor.el-input__wrapper,
+.el-select__placeholder.is-transparent + .el-select__wrapper {
+  background-color: var(--el-input-bg-color) !important;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number.is-focus .el-input__wrapper {
-  background-color: var(--bg-elevated) !important;
-  box-shadow: 0 0 0 1px var(--brand-400) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--el-input-hover-border-color) inset !important;
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__decrease,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__increase {
+.el-input.is-focus .el-input__wrapper,
+.el-select.is-focus .el-select__wrapper,
+.el-textarea__inner:focus {
+  background-color: var(--el-input-bg-color) !important;
+  box-shadow: 0 0 0 1px var(--brand-500) inset, 0 0 0 3px var(--focus-ring) !important;
+}
+.el-input__inner,
+.el-textarea__inner,
+.el-select__placeholder,
+.el-select__selected-item {
+  color: var(--el-input-text-color) !important;
+}
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--el-input-placeholder-color) !important;
+}
+.el-input__suffix,
+.el-input__prefix,
+.el-select__suffix {
+  color: var(--el-input-icon-color);
+}
+
+/* el-input-number */
+.el-input-number .el-input__wrapper {
+  background-color: var(--el-input-bg-color) !important;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
+}
+.el-input-number.is-focus .el-input__wrapper {
+  background-color: var(--el-input-bg-color) !important;
+  box-shadow: 0 0 0 1px var(--brand-500) inset, 0 0 0 3px var(--focus-ring) !important;
+}
+.el-input-number__decrease,
+.el-input-number__increase {
   background-color: var(--bg-fill);
   color: var(--text-secondary);
   border-color: var(--border-default);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__decrease:hover,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number__increase:hover {
+.el-input-number__decrease:hover,
+.el-input-number__increase:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number.is-disabled .el-input__wrapper {
-  background-color: var(--el-disabled-bg-color, var(--bg-elevated)) !important;
+.el-input-number.is-disabled .el-input__wrapper {
+  background-color: var(--el-disabled-bg-color) !important;
 }
 
-/* el-table 鍐呴儴 wrapper 閫忔槑锛岄湶鍑?.re-table / .tel-page 娣辫壊搴?*/
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__body-wrapper,
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__inner-wrapper,
-:is(.tel-page, .el-dialog, .el-message-box) .el-table__empty-block,
-:is(.tel-page, .el-dialog, .el-message-box) .el-table__append-wrapper {
+/* el-table 透明背景，露出父容器 */
+.el-table,
+.el-table__body-wrapper,
+.el-table__inner-wrapper,
+.el-table__empty-block,
+.el-table__append-wrapper {
   background-color: transparent;
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__empty-text {
+.el-table__empty-text {
   color: var(--text-tertiary);
 }
+.el-table .el-table__cell {
+  background: transparent;
+}
+.el-table th.el-table__cell {
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--bg-fill);
+}
+.el-table__body tr:hover > td.el-table__cell {
+  background: var(--brand-50);
+}
+.el-table__inner-wrapper::before,
+.el-table__border-left-patch,
+.el-table__border-bottom-patch {
+  background-color: var(--border-subtle);
+}
 
-/* 琛ㄥ崟鏍囩 / 鎸夐挳榛樿鎬?*/
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-form-item__label {
+/* 表单标签 */
+.el-form-item__label {
   color: var(--text-secondary);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info) {
+
+/* 默认按钮（非 primary/success/warning/danger） */
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info) {
   background-color: var(--bg-fill);
   border-color: var(--border-default);
   color: var(--text-primary);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):hover {
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):hover {
   background-color: var(--bg-hover);
-  border-color: var(--brand-400);
-  color: var(--text-primary);
+  border-color: var(--brand-500);
+  color: var(--brand-500);
 }
 
-/* ReCard koi 涓婚锛?-theme-color-* 鍙橀噺缁ф壙淇濋櫓锛?*/
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .koi-card {
-  background-color: var(--theme-color-bg-container, var(--bg-container));
-  border-color: var(--theme-color-border, var(--border-default));
-  color: var(--theme-color-text, var(--text-primary));
-}
-
-/* 鍒嗛〉鏂囧瓧 */
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination {
+/* 分页 */
+.el-pagination {
   color: var(--text-secondary);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination .el-pager li {
+.el-pagination .el-pager li {
   color: var(--text-secondary);
 }
-:is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination .el-pager li.is-active {
+.el-pagination .el-pager li.is-active {
+  color: var(--brand-500);
+}
+.el-pagination.is-background .el-pager li {
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+}
+.el-pagination.is-background .el-pager li.is-active {
+  background: var(--brand-500);
   color: #fff;
 }
 
-/* ================= 琛ㄦ牸娣辫壊缁嗚妭 ================= */
-.tel-page .el-table {
-  background: transparent;
-  --el-table-border-color: rgba(148, 163, 184, 0.12);
-  --el-table-header-text-color: #94a3b8;
-  --el-table-text-color: #cbd5e1;
-  --el-table-expanded-cell-bg-color: transparent;
-}
-.tel-page .el-table th.el-table__cell {
-  background: #f1f5f9;
-  color: #94a3b8;
-  font-weight: 600;
-}
-.tel-page .el-table .el-table__cell { background: transparent; }
-.tel-page .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background: rgba(148, 163, 184, 0.04);
-}
-.tel-page .el-table__body tr:hover > td.el-table__cell {
-  background: rgba(59, 130, 246, 0.08);
-}
-.tel-page .el-table__inner-wrapper::before {
-  background-color: rgba(148, 163, 184, 0.1);
-}
-.tel-page .el-table__border-left-patch,
-.tel-page .el-table__border-bottom-patch {
-  background-color: rgba(148, 163, 184, 0.1);
-}
-.tel-page .el-table__empty-text { color: #64748b; }
+/* ============================================================
+   第四部分：弹窗 / 浮层 / 下拉（全局，teleport 到 body）
+   ============================================================ */
 
-/* ================= ReXxx 缁勪欢杈规寮哄埗瑕嗙洊锛堣В鍐冲崐榛戝崐鐧介棶棰橈級 ================= */
-/* ReTable 澶栨鍜屽崟鍏冩牸杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-table,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] {
-  border-color: var(--border-subtle) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog) .re-table th,
-:is(.tel-page, .tel-rail, .el-dialog) .re-table td,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] th,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] td {
-  border-color: var(--border-subtle) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog) .re-table__border,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-table__border"] {
-  border-color: var(--border-subtle) !important;
+/* 遮罩层 */
+.el-overlay {
+  background-color: var(--el-mask-color);
 }
 
-/* ReCard 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-card,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-card"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* ReDialog 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-dialog,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-dialog"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* ReInput / ReSelect / ReTextarea / ReInputNumber 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper,
-:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner,
-:is(.tel-page, .tel-rail, .el-dialog) .re-input-number,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"],
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"] {
-  border-color: var(--border-default) !important;
-  background: var(--bg-elevated) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper:hover,
-:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper:hover,
-:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner:hover,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"]:hover,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"]:hover {
-  border-color: var(--brand-400) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper:focus-within,
-:is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper:focus-within,
-:is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner:focus,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-input"] [class*="wrapper"]:focus-within,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-select"] [class*="wrapper"]:focus-within {
-  border-color: var(--brand-400) !important;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
-}
-
-/* ReButton 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-button,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-button"] {
-  border-color: var(--border-default) !important;
-}
-:is(.tel-page, .tel-rail, .el-dialog) .re-button:hover,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-button"]:hover {
-  border-color: var(--brand-400) !important;
-}
-
-/* ReTag 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-tag,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-tag"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* RePagination 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-pagination,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-pagination"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* ReDropdown / RePopover 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-dropdown,
-:is(.tel-page, .tel-rail, .el-dialog) .re-popover,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-dropdown"],
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-popover"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* ReForm / ReFormItem 杈规 */
-:is(.tel-page, .tel-rail, .el-dialog) .re-form-item,
-:is(.tel-page, .tel-rail, .el-dialog) [class*="re-form"] {
-  border-color: var(--border-subtle) !important;
-}
-
-/* ================= KPI 鍗″寮?================= */
-.tel-page .kpi {
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), rgba(148, 163, 184, 0.02)), #ffffff;
-  border-color: rgba(148, 163, 184, 0.16);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-}
-.tel-kpi::before {
-  width: 3px;
-  box-shadow: 0 0 10px currentColor;
-}
-.tel-kpi .kpi-value {
-  font-size: 30px;
-  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, Consolas, monospace);
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-.tel-kpi .kpi-ico {
-  opacity: 0.22;
-  filter: drop-shadow(0 0 8px currentColor);
-}
-.tel-kpi:hover {
-  transform: translateY(-2px);
-  border-color: rgba(148, 163, 184, 0.32);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.08);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-.tel-kpi .kpi-sub b { color: #1e293b; }
-
-/* ================= 閫氱敤鍗＄墖锛坧ages.css .card 鑷姩娣辫壊鍚庣殑澧炲己锛?================= */
-.tel-page .card {
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.04), rgba(148, 163, 184, 0.01)), #ffffff;
-  border-color: rgba(148, 163, 184, 0.14);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-}
-.tel-page .card-head { margin-bottom: 12px; }
-.tel-page .card-title { color: #1e293b; letter-spacing: 0.02em; }
-
-/* ================= 杩囨护鏉?/ tabs / 蹇嵎鍏ュ彛 ================= */
-.tel-page .filter {
-  background: rgba(148, 163, 184, 0.05);
-  border-color: rgba(148, 163, 184, 0.14);
-  box-shadow: none;
-}
-.tel-page .filter:focus-within {
-  border-color: rgba(109, 93, 252, 0.5);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-.tel-page .filter .chip {
-  background: #ffffff;
-  border-color: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
-}
-.tel-page .filter .chip:hover { background: #1e293b; color: #1e293b; }
-.tel-page .filter .chip.active {
-  background: rgba(59, 130, 246, 0.16);
-  border-color: #3b82f6;
-  color: #2563eb;
-}
-
-.tel-page .tabs { border-bottom-color: rgba(148, 163, 184, 0.14); }
-.tel-page .tab-btn { color: #94a3b8; }
-.tel-page .tab-btn:hover { color: #1e293b; }
-.tel-page .tab-btn.active { color: #2563eb; border-bottom-color: #3b82f6; }
-.tel-page .tab-btn .count { background: #1e293b; color: #94a3b8; }
-
-.tel-page .quick {
-  background: rgba(148, 163, 184, 0.06);
-  border-color: rgba(148, 163, 184, 0.14);
-}
-.tel-page .quick:hover {
-  border-color: rgba(109, 93, 252, 0.5);
-  background: rgba(59, 130, 246, 0.1);
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
-}
-.tel-page .quick .q-meta b { color: #1e293b; }
-
-/* ================= 寮瑰眰 / 娴眰锛堝叏灞€娣辫壊锛岀粺涓€椋庢牸锛?================= */
-.el-overlay { background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
-
+/* ---- 弹窗美化（统一后台样式规范） ---- */
 .el-dialog {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-}
-.el-dialog__title { color: #1e293b; font-weight: 600; }
-.el-dialog__body { color: #cbd5e1; }
-.el-dialog__headerbtn:hover .el-dialog__close { color: #3b82f6; }
-.el-dialog__close { color: #64748b; }
-
-.el-popper {
-  background: #151f3d;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  color: #cbd5e1;
-}
-.el-popper .el-popper__arrow::before {
-  background: #151f3d;
-  border-color: rgba(148, 163, 184, 0.2);
-}
-.el-popper.is-light { background: #151f3d; border-color: rgba(148, 163, 184, 0.2); }
-.el-popper.is-light .el-popper__arrow::before { background: #151f3d; border-color: rgba(148, 163, 184, 0.2); }
-
-.el-popper.el-select-dropdown,
-.el-select-dropdown { background: #151f3d !important; border: 1px solid rgba(148, 163, 184, 0.2) !important; }
-.el-select-dropdown__item { color: #cbd5e1 !important; }
-.el-select-dropdown__item.is-hovering { background: rgba(59, 130, 246, 0.12) !important; color: #1e293b !important; }
-.el-select-dropdown__item.selected { color: #3b82f6 !important; font-weight: 600; }
-.el-select-dropdown__item.is-disabled { color: #475569 !important; }
-
-.el-dropdown-menu { background: transparent; }
-.el-dropdown-menu__item { color: #cbd5e1; }
-.el-dropdown-menu__item:not(.is-disabled):hover,
-.el-dropdown-menu__item:not(.is-disabled):focus {
-  background: rgba(59, 130, 246, 0.14);
-  color: #1e293b;
-}
-.el-dropdown-menu__item.is-disabled { color: #475569; }
-
-.el-message-box {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-}
-.el-message-box__title { color: #1e293b; }
-.el-message-box__content { color: #94a3b8; }
-.el-message { border: 1px solid rgba(148, 163, 184, 0.16); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
-
-.el-picker-panel, .el-date-picker, .el-date-editor {
-  --el-datepicker-bg-color: #151f3d;
-  --el-datepicker-border-color: rgba(148, 163, 184, 0.2);
-  background: #151f3d;
-}
-
-/* ================= ReXxx 缁勪欢缇庡寲澧炲己锛堟繁鑹查仴娴嬮鏍硷級 ================= */
-:root {
-  --tel-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  --tel-glow-brand: 0 0 0 1px var(--brand-400), 0 0 16px rgba(59, 130, 246, 0.25);
-  --tel-glow-soft: 0 4px 20px rgba(15, 23, 42, 0.08);
-  /* 数据库/Redis 等管理页面的白色主题变量覆盖 */
-  --tel-bg: #f8fafc;
-  --tel-panel: #ffffff;
-  --tel-border: #e2e8f0;
-  --tel-hover: #f1f5f9;
-  --tel-primary: #3b82f6;
-  --tel-success: #10b981;
-  --tel-text: #1e293b;
-  --tel-text-secondary: #64748b;
-}
-
-/* ---- ReTable锛氳 hover 鍙戝厜 / 閫変腑楂樹寒 / 琛ㄥご娓愬彉绾?/ 绌虹姸鎬?---- */
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr {
-  transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr:hover > td.el-table__cell {
-  background-color: var(--brand-50) !important;
-  box-shadow: inset 3px 0 0 var(--brand-400);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr.current-row > td.el-table__cell {
-  background-color: var(--brand-100) !important;
-  box-shadow: inset 3px 0 0 var(--brand-400);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__header-wrapper {
-  position: relative;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__header-wrapper::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--brand-400), transparent);
-  opacity: 0.5;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__cell {
-  transition: background-color var(--tel-transition);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__empty-text {
-  color: var(--text-tertiary);
-  font-size: 13px;
-  padding: 40px 0;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__empty-text::before {
-  content: "鈼?;
-  display: block;
-  font-size: 28px;
-  color: var(--brand-400);
-  opacity: 0.4;
-  margin-bottom: 8px;
-}
-
-/* ---- ReInput / ReSelect / ReTextarea锛歠ocus 澶栧彂鍏?/ 杩囨浮 ---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-input__wrapper,
-:is(.tel-page, .el-dialog, .el-message-box) .el-select__wrapper,
-:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner,
-:is(.tel-page, .el-dialog, .el-message-box) .el-input-number .el-input__wrapper {
-  transition: border-color var(--tel-transition), box-shadow var(--tel-transition), background-color var(--tel-transition);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-input.is-focus .el-input__wrapper,
-:is(.tel-page, .el-dialog, .el-message-box) .el-select.is-focus .el-select__wrapper,
-:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner:focus {
-  box-shadow: var(--tel-glow-brand) !important;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-input__inner::placeholder,
-:is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner::placeholder,
-:is(.tel-page, .el-dialog, .el-message-box) .el-select__placeholder {
-  transition: color var(--tel-transition);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-input__wrapper:hover .el-input__inner::placeholder,
-:is(.tel-page, .el-dialog, .el-message-box) .el-select__wrapper:hover .el-select__placeholder {
-  color: var(--text-secondary);
-}
-
-/* ---- ReButton锛歨over 鍙戝厜鎶崌 / primary 娓愬彉鍙戝厜 ---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-button {
-  transition: all var(--tel-transition);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):not(.is-disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.18);
-  border-color: var(--brand-400);
-  color: var(--brand-400);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary {
-  background: linear-gradient(135deg, var(--brand-400), #6d5dfc);
-  border: none;
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
-  filter: brightness(1.08);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--primary:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--danger {
-  background: linear-gradient(135deg, #f87171, #ef4444);
-  border: none;
-  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--danger:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
-  filter: brightness(1.08);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--success {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  border: none;
-  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--success:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
-  filter: brightness(1.08);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--warning {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  border: none;
-  color: #1a1a1a;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-button--warning:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
-  filter: brightness(1.05);
-}
-
-/* ---- ReCard锛歨over 鎶崌鍙戝厜 / 澶撮儴娓愬彉绾?---- */
-:is(.tel-page, .el-dialog, .el-message-box) .koi-card {
-  transition: transform var(--tel-transition), box-shadow var(--tel-transition), border-color var(--tel-transition);
-  box-shadow: var(--tel-glow-soft);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .koi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .koi-card__header {
-  position: relative;
-  padding-bottom: 12px !important;
-  margin-bottom: 4px;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .koi-card__header::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--brand-400), transparent);
-  opacity: 0.3;
-}
-
-/* ---- ReTag / ReBadge锛氬渾瑙掑彂鍏?/ hover ---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag {
-  border-radius: 6px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  transition: all var(--tel-transition);
-  border: 1px solid transparent;
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag--primary {
-  background: rgba(59, 130, 246, 0.15);
-  color: #2563eb;
-  border-color: rgba(59, 130, 246, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag--success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag--warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
-  border-color: rgba(245, 158, 11, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag--danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.3);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag--info {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
-  border-color: rgba(148, 163, 184, 0.25);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-tag:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.15);
-}
-
-/* ---- ReDialog锛氭爣棰樻笎鍙?/ 搴曢儴鍒嗛殧 / 鍑虹幇鍔ㄧ敾 ---- */
-.el-dialog {
+  border-radius: var(--radius-dialog, 8px);
+  box-shadow: var(--shadow-lg);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
 }
 .el-dialog__header {
   position: relative;
-  padding-bottom: 16px !important;
+  padding: 20px 24px 16px !important;
+  margin-right: 0 !important;
   margin-bottom: 0 !important;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), transparent);
+  background: var(--bg-fill);
 }
-.el-dialog__header::after {
-  content: "";
-  position: absolute;
-  left: 20px; right: 20px; bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--brand-400), transparent);
-  opacity: 0.4;
+.el-dialog__title {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 16px;
+}
+.el-dialog__headerbtn {
+  top: 18px;
+  right: 20px;
+}
+.el-dialog__headerbtn .el-dialog__close {
+  color: var(--text-tertiary);
+  font-size: 18px;
+}
+.el-dialog__headerbtn:hover .el-dialog__close {
+  color: var(--text-primary);
 }
 .el-dialog__body {
-  padding-top: 20px !important;
-  padding-bottom: 16px !important;
+  padding: 20px 24px !important;
+  color: var(--text-primary);
 }
 .el-dialog__footer {
   position: relative;
-  padding-top: 16px !important;
+  padding: 14px 24px 18px !important;
   border-top: 1px solid var(--border-subtle);
 }
-.el-dialog__footer::before {
-  content: "";
-  position: absolute;
-  top: -1px; left: 20px; right: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--brand-400), transparent);
-  opacity: 0.3;
+
+/* koi 弹窗壳（ReDialog koi 主题） */
+.koi-dialog-shell {
+  border-radius: var(--radius-dialog, 8px) !important;
 }
+.koi-dialog-shell .el-dialog__header {
+  background: var(--bg-fill);
+}
+.koi-dialog-shell .koi-dialog-custom-header .el-dialog__title {
+  color: var(--text-primary);
+}
+.koi-dialog-shell .koi-dialog-header-icon-wrap {
+  border-color: var(--border-default);
+  background: var(--bg-container);
+}
+
+/* 弹窗出现动画 */
 .el-overlay-dialog {
   animation: telDialogIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -821,121 +396,464 @@
   to { opacity: 1; transform: none; }
 }
 
-/* ---- RePagination锛氶〉鐮佸彂鍏?/ 璺宠浆妗?---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li {
+/* ---- 下拉浮层（最常见的黑色块来源） ---- */
+.el-popper,
+.el-select-dropdown,
+.el-picker-panel,
+.el-date-picker,
+.el-date-editor {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+}
+.el-popper.is-light {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+.el-popper .el-popper__arrow::before {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+
+/* 下拉菜单项 */
+.el-select-dropdown__item {
+  color: var(--text-primary) !important;
+}
+.el-select-dropdown__item.is-hovering,
+.el-select-dropdown__item.hover {
+  background: var(--brand-50) !important;
+  color: var(--brand-500) !important;
+}
+.el-select-dropdown__item.selected {
+  color: var(--brand-500) !important;
+  font-weight: 600;
+}
+.el-select-dropdown__item.is-disabled {
+  color: var(--text-tertiary) !important;
+}
+
+/* 下拉菜单（dropdown） */
+.el-dropdown-menu {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+.el-dropdown-menu__item {
+  color: var(--text-primary);
+}
+.el-dropdown-menu__item:not(.is-disabled):hover,
+.el-dropdown-menu__item:not(.is-disabled):focus {
+  background: var(--brand-50);
+  color: var(--brand-500);
+}
+.el-dropdown-menu__item.is-disabled {
+  color: var(--text-tertiary);
+}
+
+/* 消息框 */
+.el-message-box {
+  border-radius: var(--radius-dialog, 8px);
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+}
+.el-message-box__title {
+  color: var(--text-primary);
+}
+.el-message-box__content {
+  color: var(--text-secondary);
+}
+
+/* 消息提示 */
+.el-message {
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-elevated);
+}
+
+/* 日期选择器内部 */
+.el-date-picker,
+.el-picker-panel {
+  --el-datepicker-bg-color: var(--bg-elevated);
+  --el-datepicker-border-color: var(--border-subtle);
+  background: var(--bg-elevated);
+}
+.el-date-table td.available span {
+  color: var(--text-primary);
+}
+.el-date-table td.next-month span,
+.el-date-table td.prev-month span {
+  color: var(--text-tertiary);
+}
+.el-date-table td.today span {
+  color: var(--brand-500);
+}
+.el-date-table td.current:not(.disabled) span {
+  background: var(--brand-500);
+  color: #fff;
+}
+
+/* ============================================================
+   第五部分：组件美化增强
+   ============================================================ */
+
+/* ---- 输入框 / 下拉框 focus 发光 ---- */
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner,
+.el-input-number .el-input__wrapper {
+  transition: border-color var(--tel-transition), box-shadow var(--tel-transition), background-color var(--tel-transition);
+}
+.el-input.is-focus .el-input__wrapper,
+.el-select.is-focus .el-select__wrapper,
+.el-textarea__inner:focus {
+  box-shadow: var(--tel-glow-brand) !important;
+}
+
+/* ---- 按钮美化 ---- */
+.el-button {
+  transition: all var(--tel-transition);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):not(.is-disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--shadow-md);
+}
+.el-button--primary {
+  background: var(--brand-gradient);
+  border: none;
+  box-shadow: 0 2px 10px rgba(109, 93, 252, 0.3);
+  color: #fff;
+}
+.el-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(109, 93, 252, 0.4);
+  filter: brightness(1.08);
+}
+.el-button--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(109, 93, 252, 0.3);
+}
+.el-button--danger {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  border: none;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
+  color: #fff;
+}
+.el-button--danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+  filter: brightness(1.08);
+}
+.el-button--success {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  border: none;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
+  color: #fff;
+}
+.el-button--success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+  filter: brightness(1.08);
+}
+.el-button--warning {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: none;
+  color: #1a1a1a;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+.el-button--warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+  filter: brightness(1.05);
+}
+
+/* ---- 表格行 hover 发光 ---- */
+.el-table .el-table__body tr {
+  transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
+}
+.el-table .el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--brand-50) !important;
+  box-shadow: inset 3px 0 0 var(--brand-500);
+}
+.el-table .el-table__body tr.current-row > td.el-table__cell {
+  background-color: var(--brand-100) !important;
+  box-shadow: inset 3px 0 0 var(--brand-500);
+}
+.el-table .el-table__header-wrapper {
+  position: relative;
+}
+.el-table .el-table__header-wrapper::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand-500), transparent);
+  opacity: 0.4;
+}
+.el-table .el-table__cell {
+  transition: background-color var(--tel-transition);
+}
+.el-table .el-table__empty-text {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 40px 0;
+}
+
+/* ---- ReCard / koi-card 美化 ---- */
+.koi-card {
+  background-color: var(--theme-color-bg-container, var(--bg-container));
+  border-color: var(--theme-color-border, var(--border-default));
+  color: var(--theme-color-text, var(--text-primary));
+  transition: transform var(--tel-transition), box-shadow var(--tel-transition), border-color var(--tel-transition);
+  box-shadow: var(--shadow-1);
+}
+.koi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--brand-500);
+}
+
+/* ---- Tag 美化 ---- */
+.el-tag {
+  border-radius: 6px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all var(--tel-transition);
+  border: 1px solid transparent;
+}
+.el-tag:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+/* ---- 分页美化 ---- */
+.el-pagination .el-pager li {
   transition: all var(--tel-transition);
   border-radius: 6px;
   margin: 0 2px;
   min-width: 30px;
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li:hover:not(.is-active):not(.disabled) {
+.el-pagination .el-pager li:hover:not(.is-active):not(.disabled) {
   background: var(--brand-50);
-  color: var(--brand-400);
+  color: var(--brand-500);
   transform: translateY(-1px);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li.is-active {
-  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
+.el-pagination .el-pager li.is-active {
+  background: var(--brand-gradient) !important;
   color: #fff !important;
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 2px 10px rgba(109, 93, 252, 0.35);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-pagination button:hover:not(:disabled) {
-  color: var(--brand-400);
-}
-:is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pagination__jump .el-input__wrapper {
-  border-radius: 6px;
+.el-pagination button:hover:not(:disabled) {
+  color: var(--brand-500);
 }
 
-/* ---- ReEmpty锛氱┖鐘舵€佹牱寮?---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-empty {
+/* ---- Empty 空态 ---- */
+.el-empty {
   padding: 40px 0;
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-empty__description p {
+.el-empty__description p {
   color: var(--text-tertiary);
   font-size: 13px;
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-empty__image svg {
-  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.2));
-}
 
-/* ---- ReScrollbar锛氭粴鍔ㄦ潯缇庡寲 ---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__thumb {
-  background: var(--scroll-thumb, #2a3457);
+/* ---- Scrollbar ---- */
+.el-scrollbar__thumb {
+  background: var(--scroll-thumb, rgba(128, 128, 128, 0.4));
   border-radius: 4px;
   transition: background var(--tel-transition);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__thumb:hover {
-  background: var(--scroll-thumb-hover, #3b4770);
+.el-scrollbar__thumb:hover {
+  background: var(--scroll-thumb-hover, rgba(128, 128, 128, 0.6));
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__bar.is-vertical {
+.el-scrollbar__bar.is-vertical {
   width: 6px;
 }
 
-/* ---- ReSwitch锛氬紑鍏崇編鍖?---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-switch__core {
+/* ---- Switch ---- */
+.el-switch__core {
   transition: all var(--tel-transition);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-switch.is-checked .el-switch__core {
-  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+.el-switch.is-checked .el-switch__core {
+  background: var(--brand-gradient) !important;
+  box-shadow: 0 0 10px rgba(109, 93, 252, 0.4);
 }
 
-/* ---- ReCheckbox / ReRadio锛氶€変腑鍙戝厜 ---- */
-:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__inner,
-:is(.tel-page, .el-dialog, .el-message-box) .el-radio__inner {
+/* ---- Checkbox / Radio 选中发光 ---- */
+.el-checkbox__inner,
+.el-radio__inner {
   transition: all var(--tel-transition);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__input.is-checked .el-checkbox__inner,
-:is(.tel-page, .el-dialog, .el-message-box) .el-radio__input.is-checked .el-radio__inner {
-  background: linear-gradient(135deg, var(--brand-400), #6d5dfc) !important;
-  border-color: var(--brand-400) !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-radio__input.is-checked .el-radio__inner {
+  background: var(--brand-gradient) !important;
+  border-color: var(--brand-500) !important;
+  box-shadow: 0 0 8px rgba(109, 93, 252, 0.35);
 }
-:is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__input.is-checked + .el-checkbox__label,
-:is(.tel-page, .el-dialog, .el-message-box) .el-radio__input.is-checked + .el-radio__label {
-  color: var(--brand-400);
+.el-checkbox__input.is-checked + .el-checkbox__label,
+.el-radio__input.is-checked + .el-radio__label {
+  color: var(--brand-500);
 }
 
-/* ---- ReDropdown锛氳彍鍗曢」 hover 鍙戝厜 ---- */
-.el-dropdown-menu__item:not(.is-disabled):hover {
-  background: var(--brand-50) !important;
-  color: var(--brand-400) !important;
-  padding-left: 18px;
-}
+/* ---- Dropdown 菜单项 ---- */
 .el-dropdown-menu__item {
   transition: all var(--tel-transition);
 }
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--brand-50) !important;
+  color: var(--brand-500) !important;
+  padding-left: 18px;
+}
 
-/* ================= 鍏朵粬缁嗚妭 ================= */
+/* ============================================================
+   第六部分：页面内通用卡片 / KPI / 筛选栏
+   ============================================================ */
+
+/* KPI 卡片 */
+.tel-page .kpi {
+  background: var(--bg-container);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-1);
+}
+.tel-kpi .kpi-value {
+  color: var(--text-primary);
+}
+.tel-kpi .kpi-sub b { color: var(--text-primary); }
+
+/* 通用卡片 */
+.tel-page .card {
+  background: var(--bg-container);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-1);
+}
+.tel-page .card-title { color: var(--text-primary); }
+
+/* 筛选栏 */
+.tel-page .filter {
+  background: var(--bg-fill);
+  border-color: var(--border-subtle);
+}
+.tel-page .filter .chip {
+  background: var(--bg-container);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+.tel-page .filter .chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tel-page .filter .chip.active {
+  background: var(--brand-50);
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+}
+
+/* Tabs */
+.tel-page .tabs { border-bottom-color: var(--border-subtle); }
+.tel-page .tab-btn { color: var(--text-secondary); }
+.tel-page .tab-btn:hover { color: var(--text-primary); }
+.tel-page .tab-btn.active { color: var(--brand-500); border-bottom-color: var(--brand-500); }
+.tel-page .tab-btn .count { background: var(--bg-hover); color: var(--text-secondary); }
+
+/* Quick actions */
+.tel-page .quick {
+  background: var(--bg-fill);
+  border-color: var(--border-subtle);
+}
+.tel-page .quick:hover {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+}
+.tel-page .quick .q-meta b { color: var(--text-primary); }
+
+/* 辅助类 */
 .tel-page .as-error {
-  background: rgba(155, 28, 46, 0.18);
-  border-color: rgba(244, 63, 94, 0.45);
-  color: #fda4af;
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
 }
-.tel-page .mono { font-family: var(--font-mono, "JetBrains Mono", ui-monospace, Consolas, monospace); }
-.tel-page .dim { color: #64748b; }
-.tel-page .muted { color: #64748b; }
+.tel-page .dim { color: var(--text-secondary); }
+.tel-page .muted { color: var(--text-tertiary); }
 
-/* 鍒嗛〉 hover / active */
-.tel-page .el-pagination.is-background .el-pager li {
-  background: rgba(148, 163, 184, 0.08);
-  color: #cbd5e1;
+/* ============================================================
+   第七部分：顶部区域（App.vue sidebar + topbar）主题适配
+   这些组件使用 var(--bg-container) / var(--text-primary) 等，
+   已在 tokens.css html.dark 中覆盖，此处补充 koi 框架 header 变量
+   ============================================================ */
+
+/* koi 布局顶栏变量（如果使用了 koi 默认布局） */
+.el-header.layout-header {
+  background-color: var(--bg-container);
+  color: var(--text-primary);
 }
-.tel-page .el-pagination.is-background .el-pager li.is-active {
-  background: rgba(59, 130, 246, 0.85);
-  color: #fff;
+
+/* App.vue 自定义顶栏补充适配 */
+.app .sidebar {
+  background: var(--bg-container);
+  border-right: 1px solid var(--border-subtle);
+}
+.app .topbar {
+  background: var(--bg-container);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.app .group-title { color: var(--text-tertiary); }
+.app .item { color: var(--text-secondary); }
+.app .item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.app .item.active {
+  background: linear-gradient(90deg, var(--brand-100), var(--brand-50) 70%, transparent);
+  color: var(--brand-500);
+}
+.app .crumb { color: var(--text-secondary); }
+.app .gsearch {
+  background: var(--bg-page);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+.app .gsearch :deep(.el-input__wrapper) {
+  background: var(--bg-page);
+}
+.app .gsearch :deep(.el-input__wrapper) .el-input__inner {
+  background: transparent;
+}
+.app .gsearch:hover { border-color: var(--border-default); }
+.app .gsearch:focus-within {
+  background: var(--bg-container);
+  border-color: var(--brand-500);
+}
+.app .kbd {
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+.app .user-dropdown {
+  background: var(--bg-container);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-lg);
+}
+.app .user-info {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.app .user-name { color: var(--text-primary); }
+.app .user-email { color: var(--text-tertiary); }
+.app .user-menu-item { color: var(--text-secondary); }
+.app .user-menu-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.app .user-menu-item.danger { color: var(--theme-color-error, #f04a5d); }
+.app .user-menu-item.danger:hover {
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
 }
 
-/* 寮圭獥鍐呰〃鏍?*/
-.el-dialog .el-table { background: transparent; }
-.el-dialog .el-table th.el-table__cell { background: #f1f5f9; }
-
-/* ================= 鍝嶅簲寮?================= */
+/* ============================================================
+   第八部分：响应式
+   ============================================================ */
 @media (max-width: 860px) {
   .tel-page { padding: 14px 14px 16px; border-radius: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tel-page,
   .tel-page::after {
     animation: none;
   }

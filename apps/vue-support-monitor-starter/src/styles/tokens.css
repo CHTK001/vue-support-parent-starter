@@ -167,6 +167,76 @@ html, body {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================================
+   深色主题（html.dark）—— 覆盖 :root 中的自定义设计令牌
+   element-plus 自身的 --el-* 深色变量由 dark/css-vars.css 提供
+   此处只覆盖应用自定义的 --bg-* / --text-* / --border-* 等
+   ============================================================ */
+html.dark {
+  /* 中性色（dark） */
+  --bg-page: #0f1117;
+  --bg-container: #1a1d27;
+  --bg-elevated: #222633;
+  --bg-fill: #262a38;
+  --bg-hover: #2a2e3d;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --text-primary: #e4e6ef;
+  --text-secondary: #9ca0b0;
+  --text-tertiary: #6b7080;
+  --text-inverse: #ffffff;
+
+  /* 品牌色（dark 下略微提亮以保证对比度） */
+  --brand-50: rgba(109, 93, 252, 0.15);
+  --brand-100: rgba(109, 93, 252, 0.25);
+  --brand-400: #8f83fd;
+  --brand-500: #6d5dfc;
+  --brand-600: #7c6cf0;
+  --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-400) 100%);
+
+  /* 阴影（dark 下更深更柔） */
+  --bg-hover: #2a2e3d;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-brand: 0 2px 8px rgba(109, 93, 252, 0.4);
+  --badge-glow: 0 0 6px rgba(109, 93, 252, 0.6);
+
+  /* 滚动条 */
+  --scroll-thumb: #3a3f52;
+  --scroll-thumb-hover: #4a5068;
+  --selection-bg: rgba(109, 93, 252, 0.3);
+  --selection-bg-fade: rgba(109, 93, 252, 0.08);
+
+  /* 告警级别色（dark 下半透明底 + 亮色文字） */
+  --sev-p0-bg: rgba(239, 68, 68, 0.15);
+  --sev-p0-text: #fca5a5;
+  --sev-p0-border: rgba(239, 68, 68, 0.3);
+  --sev-p1-bg: rgba(249, 115, 22, 0.15);
+  --sev-p1-text: #fdba74;
+  --sev-p1-border: rgba(249, 115, 22, 0.3);
+  --sev-p2-bg: rgba(245, 158, 11, 0.15);
+  --sev-p2-text: #fcd34d;
+  --sev-p2-border: rgba(245, 158, 11, 0.3);
+  --sev-p3-bg: rgba(16, 185, 129, 0.15);
+  --sev-p3-text: #6ee7b7;
+  --sev-p3-border: rgba(16, 185, 129, 0.3);
+  --sev-p4-bg: rgba(148, 163, 184, 0.12);
+  --sev-p4-text: #94a3b8;
+  --sev-p4-border: rgba(148, 163, 184, 0.25);
+
+  /* 状态错误色 */
+  --status-error-bg: rgba(239, 68, 68, 0.15);
+  --status-error-border: rgba(239, 68, 68, 0.3);
+  --status-error-text: #fca5a5;
+
+  --empty-bg-gradient: rgba(109, 93, 252, 0.08);
+  --focus-ring: 0 0 0 3px rgba(109, 93, 252, 0.25);
 }
