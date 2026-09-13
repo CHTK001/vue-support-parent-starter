@@ -6,17 +6,24 @@
  * 设置项类型：STRING / NUMBER / BOOLEAN / JSON。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
+import { Plus, Edit, Delete, Search, Refresh, Clock, View, Hide } from "@element-plus/icons-vue";
 import {
   pageForSetting,
   saveSetting,
   updateSetting,
   deleteSetting,
   updateBatchSetting,
+  pageForSettingHistory,
+  rollbackSettingHistorySingle,
+  rollbackSettingHistoryBatch,
+  listSettingHistoryByBatch,
+  decryptSettingValue,
+  exportSetting,
+  importSetting,
 } from "../api/systemApi";
-import type { SysSetting } from "../api/types";
+import type { SysSetting, SysSettingHistory } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const settingTypeOptions = [
@@ -74,9 +81,12 @@ const dialogVisible = ref(false);
 const saving = ref(false);
 const isEdit = ref(false);
 const form = ref<SysSetting>({});
+/** 编辑弹窗中是否显示敏感配置明文 */
+const editRevealSensitive = ref(false);
 
 function handleAdd() {
   isEdit.value = false;
+  editRevealSensitive.value = false;
   form.value = {
     sysSettingValueType: "STRING",
     sysSettingSort: 0,
@@ -87,6 +97,7 @@ function handleAdd() {
 
 function handleEdit(row: Record<string, unknown>) {
   isEdit.value = true;
+  editRevealSensitive.value = false;
   form.value = { ...(row as unknown as SysSetting) };
   dialogVisible.value = true;
 }
@@ -164,6 +175,211 @@ async function handleBatchSave() {
   tableRef.value?.reload();
 }
 
+/* ================== 变更历史 ================== */
+
+const historyDrawerVisible = ref(false);
+const historyLoading = ref(false);
+const historySetting = ref<SysSetting | null>(null);
+const historyList = ref<SysSettingHistory[]>([]);
+const historyPage = ref(1);
+const historyPageSize = ref(10);
+const historyTotal = ref(0);
+const rollbackLoading = ref<number>(0);
+
+/** 当前历史列表中最新一条记录的批次号（用于抽屉底部批次回滚按钮） */
+const latestBatchNo = computed(() => historyList.value.find((h) => h.sysSettingBatchNo)?.sysSettingBatchNo ?? "");
+
+const operationMap: Record<string, { label: string; type: string }> = {
+  CREATE: { label: "新增", type: "success" },
+  UPDATE: { label: "更新", type: "primary" },
+  DELETE: { label: "删除", type: "danger" },
+  IMPORT: { label: "导入", type: "warning" },
+  ROLLBACK: { label: "回滚", type: "info" },
+};
+
+async function openHistory(row: Record<string, unknown>) {
+  const setting = row as unknown as SysSetting;
+  historySetting.value = setting;
+  historyPage.value = 1;
+  historyDrawerVisible.value = true;
+  await loadHistory();
+}
+
+async function loadHistory() {
+  if (!historySetting.value?.sysSettingId) return;
+  historyLoading.value = true;
+  try {
+    const res = await pageForSettingHistory({
+      page: historyPage.value,
+      pageSize: historyPageSize.value,
+      settingId: historySetting.value.sysSettingId,
+    });
+    historyList.value = (res?.data?.data ?? res?.data?.records ?? []) as SysSettingHistory[];
+    historyTotal.value = res?.data?.total ?? 0;
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "历史记录加载失败");
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+async function handleRollbackSingle(record: SysSettingHistory) {
+  if (!record.sysSettingHistoryId) return;
+  await ElMessageBox.confirm(
+    `确认将「${record.sysSettingName}」回滚到 ${record.createTime} 的版本？当前值将被覆盖。`,
+    "回滚确认",
+    { type: "warning" },
+  );
+  rollbackLoading.value = record.sysSettingHistoryId;
+  try {
+    await rollbackSettingHistorySingle(record.sysSettingHistoryId);
+    ElMessage.success("回滚成功");
+    tableRef.value?.reload();
+    loadHistory();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "回滚失败");
+  } finally {
+    rollbackLoading.value = 0;
+  }
+}
+
+async function handleRollbackBatch(batchNo: string) {
+  if (!batchNo) return;
+  await ElMessageBox.confirm(`确认按批次「${batchNo}」回滚所有相关配置？`, "批次回滚确认", {
+    type: "warning",
+  });
+  try {
+    await rollbackSettingHistoryBatch(batchNo);
+    ElMessage.success("批次回滚成功");
+    tableRef.value?.reload();
+    loadHistory();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "回滚失败");
+  }
+}
+
+function formatValue(val?: string): string {
+  if (val == null || val === "") return "-";
+  if (val.length > 80) return val.slice(0, 80) + "...";
+  return val;
+}
+
+/* ================== 敏感配置掩码 ================== */
+
+function isSensitive(row: SysSetting): boolean {
+  return Number((row as unknown as Record<string, unknown>).sysSettingIsSensitive) === 1;
+}
+
+/** 已临时解密展示的配置 id -> 明文（10s 后自动恢复掩码） */
+const revealedMap = ref<Record<number, string>>({});
+const revealTimers: Record<number, ReturnType<typeof setTimeout>> = {};
+
+async function toggleSensitive(row: SysSetting): Promise<void> {
+  if (!row.sysSettingId) return;
+  const id = row.sysSettingId;
+  // 再次点击：隐藏
+  if (revealedMap.value[id]) {
+    delete revealedMap.value[id];
+    if (revealTimers[id]) clearTimeout(revealTimers[id]);
+    return;
+  }
+  try {
+    const res = await decryptSettingValue(id);
+    revealedMap.value[id] = res?.data ?? row.sysSettingValue ?? "";
+    if (revealTimers[id]) clearTimeout(revealTimers[id]);
+    revealTimers[id] = setTimeout(() => {
+      delete revealedMap.value[id];
+    }, 10000);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "获取明文失败");
+  }
+}
+
+/* ================== 按批次查询历史 ================== */
+
+const batchNoInput = ref("");
+const batchMode = ref(false);
+const batchList = ref<SysSettingHistory[]>([]);
+const batchLoading = ref(false);
+
+async function handleViewBatch(): Promise<void> {
+  const no = batchNoInput.value.trim();
+  if (!no) {
+    ElMessage.warning("请输入批次号");
+    return;
+  }
+  batchLoading.value = true;
+  try {
+    const res = await listSettingHistoryByBatch(no);
+    batchList.value = (res?.data ?? []) as SysSettingHistory[];
+    batchMode.value = true;
+    if (!batchList.value.length) ElMessage.info("该批次无记录");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "批次查询失败");
+  } finally {
+    batchLoading.value = false;
+  }
+}
+
+function exitBatchMode(): void {
+  batchMode.value = false;
+  batchList.value = [];
+  batchNoInput.value = "";
+}
+
+/* ================== 设置导入导出 ================== */
+
+const exporting = ref(false);
+const importing = ref(false);
+const settingImportInput = ref<HTMLInputElement>();
+
+async function handleSettingExport(): Promise<void> {
+  exporting.value = true;
+  try {
+    const res = await exportSetting(query.value.sysSettingGroup);
+    const json = res?.data ?? "{}";
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `系统设置_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "导出失败");
+  } finally {
+    exporting.value = false;
+  }
+}
+
+function triggerSettingImport(): void {
+  settingImportInput.value?.click();
+}
+
+async function onSettingImportChange(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  importing.value = true;
+  try {
+    const json = await file.text();
+    const res = await importSetting(json, false);
+    if (res?.code === 200 || res?.status === 200) {
+      ElMessage.success(res?.data ?? "导入成功");
+      tableRef.value?.reload();
+      loadGroups();
+    } else {
+      ElMessage.error(res?.msg ?? "导入失败");
+    }
+  } catch (err) {
+    ElMessage.error((err as Error)?.message ?? "导入失败");
+  } finally {
+    importing.value = false;
+    input.value = "";
+  }
+}
+
 function renderValue(row: SysSetting) {
   const v = row.sysSettingValue;
   const t = row.sysSettingValueType;
@@ -229,8 +445,19 @@ onMounted(() => {
           <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
           <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <span class="system-page__divider" />
+          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleSettingExport">导出</ReButton>
+          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerSettingImport">导入</ReButton>
         </template>
       </ReSearch>
+
+      <input
+        ref="settingImportInput"
+        type="file"
+        accept=".json,.xlsx,.xls"
+        style="display: none"
+        @change="onSettingImportChange"
+      />
 
 <ReTable
          ref="tableRef"
@@ -308,10 +535,19 @@ onMounted(() => {
            </div>
          </template>
         <template #preview="{ row }">
-          <code class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
+          <div v-if="isSensitive(row)" class="flex items-center gap-1">
+            <code class="text-xs font-mono">
+              {{ revealedMap[row.sysSettingId] ?? "••••••••" }}
+            </code>
+            <el-button link type="primary" size="small" @click.stop="toggleSensitive(row)">
+              <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
+            </el-button>
+          </div>
+          <code v-else class="text-xs text-[--el-text-color-secondary]">{{ renderValue(row) }}</code>
         </template>
 <template #action="{ row }">
            <ReButton layout="square" type="primary" icon="Edit" v-admin @click.stop="handleEdit(row)">编辑</ReButton>
+           <ReButton layout="square" type="info" icon="Clock" v-admin @click.stop="openHistory(row)">历史</ReButton>
            <ReButton layout="square" type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)">删除</ReButton>
          </template>
       </ReTable>
@@ -341,7 +577,18 @@ onMounted(() => {
           <el-segmented v-model="form.sysSettingValueType" :options="settingTypeOptions" class="w-full" />
         </el-form-item>
         <el-form-item label="默认值">
-          <ReInput layout="modern" v-model="form.sysSettingValue" type="textarea" :rows="3" placeholder="默认值" maxlength="255" show-word-limit />
+          <ReInput
+            layout="modern"
+            v-model="form.sysSettingValue"
+            :type="isSensitive(form) && !editRevealSensitive ? 'password' : 'textarea'"
+            :rows="isSensitive(form) && !editRevealSensitive ? 1 : 3"
+            placeholder="默认值"
+            maxlength="255"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item v-if="isEdit && isSensitive(form)" label="显示明文">
+          <ReSwitch layout="modern" v-model="editRevealSensitive" />
         </el-form-item>
         <el-form-item label="排序">
           <ReInputNumber layout="modern" v-model="form.sysSettingSort" :min="0" class="!w-full" />
@@ -429,6 +676,118 @@ onMounted(() => {
         </el-descriptions>
       </template>
     </ReDrawer>
+
+    <!-- 变更历史抽屉 -->
+    <ReDrawer
+      v-model="historyDrawerVisible"
+      :title="`变更历史 - ${historySetting?.sysSettingName ?? ''}`"
+      size="640"
+      :show-window-shell="false"
+      :close-on-click-modal="true"
+      :footer-hidden="true"
+    >
+      <template #content>
+        <div v-loading="historyLoading" class="setting-history">
+          <el-alert
+            v-if="historySetting"
+            :title="`配置编码：${historySetting.sysSettingCode}`"
+            type="info"
+            :closable="false"
+            class="mb-3"
+            show-icon
+          />
+          <!-- 按批次查询 -->
+          <div class="batch-bar mb-3">
+            <el-input
+              v-model="batchNoInput"
+              placeholder="输入批次号，按批次查看全部变更"
+              clearable
+              class="!w-72"
+              @keyup.enter="handleViewBatch"
+            />
+            <el-button type="primary" :loading="batchLoading" @click="handleViewBatch">查看批次</el-button>
+            <el-button v-if="batchMode" link type="info" @click="exitBatchMode">返回普通查看</el-button>
+          </div>
+          <el-table :data="batchMode ? batchList : historyList" border stripe style="width: 100%" size="small">
+            <el-table-column prop="sysSettingOperation" label="操作" width="80" align="center">
+              <template #default="{ row }">
+                <el-tag
+                  :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never"
+                  size="small"
+                  effect="plain"
+                >
+                  {{ operationMap[row.sysSettingOperation ?? '']?.label ?? row.sysSettingOperation }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sysSettingOldValue" label="变更前" minWidth="140" show-overflow-tooltip>
+              <template #default="{ row }">
+                <code class="text-xs text-[--el-color-danger]">{{ formatValue(row.sysSettingOldValue) }}</code>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sysSettingNewValue" label="变更后" minWidth="140" show-overflow-tooltip>
+              <template #default="{ row }">
+                <code class="text-xs text-[--el-color-success]">{{ formatValue(row.sysSettingNewValue) }}</code>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sysSettingOperatorName" label="操作人" width="100" />
+            <el-table-column prop="sysSettingBatchNo" label="批次号" width="140" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span v-if="row.sysSettingBatchNo" class="text-xs font-mono cursor-pointer text-[--el-color-primary]" @click="handleRollbackBatch(row.sysSettingBatchNo!)">
+                  {{ row.sysSettingBatchNo }}
+                </span>
+                <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="时间" width="170" />
+            <el-table-column label="操作" width="90" fixed="right" align="center">
+              <template #default="{ row }">
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  :loading="rollbackLoading === row.sysSettingHistoryId"
+                  @click="handleRollbackSingle(row)"
+                >
+                  回滚
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="flex justify-end items-center mt-3 gap-2">
+            <template v-if="batchMode">
+              <el-button
+                type="danger"
+                size="small"
+                @click="handleRollbackBatch(batchNoInput.trim())"
+              >
+                整批回滚（{{ batchNoInput.trim() }}）
+              </el-button>
+              <span class="text-xs text-[--el-text-color-secondary]">共 {{ batchList.length }} 条记录</span>
+            </template>
+            <template v-else>
+              <el-button
+                type="warning"
+                size="small"
+                :disabled="!latestBatchNo"
+                @click="handleRollbackBatch(latestBatchNo!)"
+              >
+                批次回滚（{{ latestBatchNo || '无批次' }}）
+              </el-button>
+              <el-pagination
+                v-model:current-page="historyPage"
+                v-model:page-size="historyPageSize"
+                :total="historyTotal"
+                :page-sizes="[10, 20, 50]"
+                layout="total, sizes, prev, pager, next"
+                @size-change="loadHistory"
+                @current-change="loadHistory"
+              />
+            </template>
+          </div>
+        </div>
+      </template>
+    </ReDrawer>
   </div>
 </template>
 
@@ -468,4 +827,17 @@ onMounted(() => {
   gap: 12px;
   padding-bottom: 12px;
 }
+.system-page__divider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--el-border-color);
+  margin: 0 4px;
+}
+.setting-history .batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mb-3 { margin-bottom: 12px; }
 </style>

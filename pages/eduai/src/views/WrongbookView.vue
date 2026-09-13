@@ -30,9 +30,9 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="reviewVisible" :title="`复习卷 ${reviewPaperId}`" width="520">
+    <el-dialog v-model="reviewVisible" title="复习卷生成结果" width="520">
       <div class="text-sm">
-        复习卷生成完成。可在 /edu/paper 页面查看详情。
+        已为当前学生挑选 {{ reviewQuestionIds.length }} 道错题用于复习（题目 ID：{{ reviewQuestionIds.join('、') || '无' }}）。
       </div>
       <template #footer>
         <el-button @click="reviewVisible = false">关闭</el-button>
@@ -53,7 +53,7 @@ const loading = ref(false);
 const list = ref<WrongQuestion[]>([]);
 
 const reviewVisible = ref(false);
-const reviewPaperId = ref('');
+const reviewQuestionIds = ref<number[]>([]);
 
 const reload = async () => {
   loading.value = true;
@@ -62,7 +62,7 @@ const reload = async () => {
       studentId: filter.studentId || undefined,
       subject: filter.subject || undefined,
     });
-    list.value = (res?.records ?? []) as WrongQuestion[];
+    list.value = (res?.data ?? []) as WrongQuestion[];
   } catch (e) {
     ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -85,8 +85,8 @@ const generateReview = async () => {
     return;
   }
   try {
-    const paperId = await eduaiApi.reviewWrongbook({ studentId: filter.studentId });
-    reviewPaperId.value = String(paperId);
+    const questionIds = await eduaiApi.reviewWrongbook({ studentId: filter.studentId });
+    reviewQuestionIds.value = Array.isArray(questionIds) ? questionIds : [];
     reviewVisible.value = true;
   } catch (e) {
     ElMessage.error('生成失败: ' + (e instanceof Error ? e.message : String(e)));

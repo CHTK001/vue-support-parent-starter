@@ -114,23 +114,36 @@
     </el-dialog>
 
     <!-- 上传文档对话框 -->
-    <el-dialog v-model="uploadVisible" title="上传文档（占位）" width="560">
+    <el-dialog v-model="uploadVisible" title="上传文档" width="560">
       <el-form label-width="100">
-        <el-form-item label="名称"><el-input v-model="uploadName" /></el-form-item>
+        <el-form-item label="名称" required><el-input v-model="uploadForm.knowledgeDocName" /></el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="uploadType" style="width: 100%">
+          <el-select v-model="uploadForm.knowledgeDocType" style="width: 100%">
             <el-option label="PDF" value="PDF" />
             <el-option label="WORD" value="WORD" />
             <el-option label="TXT" value="TXT" />
             <el-option label="MARKDOWN" value="MARKDOWN" />
           </el-select>
         </el-form-item>
-        <el-form-item label="学科"><el-input v-model="uploadSubject" /></el-form-item>
-        <el-form-item label="路径"><el-input v-model="uploadPath" placeholder="OSS / 本地路径" /></el-form-item>
+        <el-form-item label="学科"><el-input v-model="uploadForm.knowledgeDocSubject" /></el-form-item>
+        <el-form-item label="学段">
+          <el-select v-model="uploadForm.knowledgeDocGradeLevel" style="width: 100%" clearable>
+            <el-option label="小学" value="PRIMARY" />
+            <el-option label="初中" value="JUNIOR" />
+            <el-option label="高中" value="SENIOR" />
+            <el-option label="大学" value="UNIVERSITY" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="文件路径" required>
+          <el-input v-model="uploadForm.knowledgeDocFilePath" placeholder="本地路径或 http(s) URL" />
+        </el-form-item>
+        <el-form-item label="大小(B)">
+          <el-input-number v-model="uploadForm.knowledgeDocFileSize" :min="0" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="uploadVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmUpload">确认</el-button>
+        <el-button type="primary" :loading="uploading" @click="confirmUpload">确认</el-button>
       </template>
     </el-dialog>
   </div>
@@ -141,7 +154,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Plus, Search, Upload } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
-import type { KnowledgePoint } from '../api/types';
+import type { KnowledgeDoc, KnowledgePoint } from '../api/types';
 
 const filter = reactive({ subject: '', grade: '' });
 const tree = ref<KnowledgePoint[]>([]);
@@ -149,15 +162,13 @@ const kpDialogVisible = ref(false);
 const kpSaving = ref(false);
 const kpForm = reactive<Partial<KnowledgePoint>>({});
 
-const docs = ref<any[]>([]);
+const docs = ref<KnowledgeDoc[]>([]);
 const loadingDocs = ref(false);
 const docSearch = ref('');
 
 const uploadVisible = ref(false);
-const uploadName = ref('');
-const uploadType = ref('PDF');
-const uploadSubject = ref('');
-const uploadPath = ref('');
+const uploading = ref(false);
+const uploadForm = reactive<Partial<KnowledgeDoc> & { knowledgeDocFilePath?: string; knowledgeDocFileSize?: number }>({});
 
 const reload = async () => {
   try {
@@ -220,9 +231,14 @@ const remove = async (row: KnowledgePoint) => {
 const reloadDocs = async () => {
   loadingDocs.value = true;
   try {
-    const res: any = await eduaiApi.pageExams({ pageNum: 1, pageSize: 100 });
-    docs.value = (res?.records as any[]) || [];
-  } catch {
+    const res = await eduaiApi.pageDocs({
+      page: 1,
+      pageSize: 100,
+      name: docSearch.value || undefined,
+    });
+    docs.value = (res?.data ?? []) as KnowledgeDoc[];
+  } catch (e) {
+    ElMessage.error('加载文档失败: ' + (e instanceof Error ? e.message : String(e)));
     docs.value = [];
   } finally {
     loadingDocs.value = false;
@@ -230,24 +246,44 @@ const reloadDocs = async () => {
 };
 
 const openUpload = () => {
-  uploadName.value = '';
-  uploadType.value = 'PDF';
-  uploadSubject.value = '';
-  uploadPath.value = '';
+  Object.assign(uploadForm, {
+    knowledgeDocId: undefined,
+    knowledgeDocName: '',
+    knowledgeDocType: 'PDF',
+    knowledgeDocSubject: '',
+    knowledgeDocGradeLevel: '',
+    knowledgeDocFilePath: '',
+    knowledgeDocFileSize: undefined,
+  });
   uploadVisible.value = true;
 };
 
 const confirmUpload = async () => {
-  if (!uploadName.value) {
-    ElMessage.warning('请填写名称');
+  if (!uploadForm.knowledgeDocName || !uploadForm.knowledgeDocFilePath) {
+    ElMessage.warning('请填写名称与文件路径');
     return;
   }
-  ElMessage.success('已上传（占位）');
-  uploadVisible.value = false;
+  uploading.value = true;
+  try {
+    await eduaiApi.uploadDoc(uploadForm);
+    ElMessage.success('上传成功');
+    uploadVisible.value = false;
+    reloadDocs();
+  } catch (e) {
+    ElMessage.error('上传失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    uploading.value = false;
+  }
 };
 
-const removeDoc = async (row: any) => {
-  ElMessage.success('已删除');
+const removeDoc = async (row: KnowledgeDoc) => {
+  try {
+    await eduaiApi.deleteDoc(row.knowledgeDocId);
+    ElMessage.success('已删除');
+    reloadDocs();
+  } catch (e) {
+    ElMessage.error('删除失败: ' + (e instanceof Error ? e.message : String(e)));
+  }
 };
 
 const docStatusLabel = (n?: number) =>
@@ -255,6 +291,7 @@ const docStatusLabel = (n?: number) =>
 
 onMounted(() => {
   reload();
+  reloadDocs();
 });
 </script>
 

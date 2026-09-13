@@ -145,8 +145,11 @@ const reload = async () => {
       pageSize: pageSize.value,
       subject: filter.subject || undefined,
       type: filter.type || undefined,
+      gradeLevel: filter.gradeLevel || undefined,
+      grade: filter.grade || undefined,
+      difficulty: filter.difficulty,
     });
-    questions.value = (res?.records ?? []) as Question[];
+    questions.value = (res?.data ?? []) as Question[];
     total.value = res?.total ?? 0;
   } catch (e) {
     ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));

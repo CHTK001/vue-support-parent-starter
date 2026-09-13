@@ -89,6 +89,13 @@ watch(() => props.visible, async v => {
   try {
     if (props.project) {
       form.value = { ...newProjectForm(), ...props.project };
+      // 编辑回填：hostIds JSON 字符串 → 数组，避免提交时重复 JSON.stringify 导致校验失败
+      if (typeof form.value.msProjectHostIds === 'string') {
+        try {
+          const parsed = JSON.parse(form.value.msProjectHostIds);
+          form.value.msProjectHostIds = Array.isArray(parsed) ? parsed as number[] : [];
+        } catch { form.value.msProjectHostIds = []; }
+      }
       selectedOs.value = props.project.msProjectHostOs || 'LINUX';
     } else {
       form.value = newProjectForm();

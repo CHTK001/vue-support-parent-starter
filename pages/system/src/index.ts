@@ -28,6 +28,12 @@ registerMenuViewModules({
   "views/system/syslog/index.vue": () => import("./views/SysLogManage.vue"),
   "views/system/tenant/index.vue": () => import("./views/TenantManage.vue"),
   "views/system/announcement/index.vue": () => import("./views/AnnouncementManage.vue"),
+  "views/system/post/index.vue": () => import("./views/PostManage.vue"),
+  "views/system/cache/index.vue": () => import("./views/CacheManage.vue"),
+  "views/system/message/index.vue": () => import("./views/MessageManage.vue"),
+  "views/system/errorlog/index.vue": () => import("./views/ErrorLogManage.vue"),
+  "views/system/ip/index.vue": () => import("./views/IpManage.vue"),
+  "views/system/monitor/index.vue": () => import("./views/MonitorManage.vue"),
 });
 
 export { systemRoutes, systemMenus } from "./routes";

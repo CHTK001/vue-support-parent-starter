@@ -13,6 +13,7 @@ import type {
   MarkingResultVO,
   MarkingAdjust,
   KnowledgePoint,
+  KnowledgeDoc,
   WrongQuestion,
   Exam,
 } from "./types";
@@ -29,7 +30,7 @@ function unwrap<T>(r: { data?: T }): T {
  */
 export const eduaiApi = {
   // 题库
-  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; type?: string }) =>
+  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number }) =>
     http()
       .get("/v2/edu/question/page")
       .query(params)
@@ -106,25 +107,46 @@ export const eduaiApi = {
       .delete(`/v2/edu/knowledge-point/${id}`)
       .then<boolean>(unwrap),
 
+  // 知识库文档
+  pageDocs: (params: { page?: number; pageSize?: number; name?: string; subject?: string; status?: number } = {}) =>
+    http()
+      .get("/v2/edu/knowledge-doc/page")
+      .query(params)
+      .then<PageResult<KnowledgeDoc>>(unwrap),
+  uploadDoc: (data: Partial<KnowledgeDoc> & { filePath?: string; fileSize?: number }) =>
+    http()
+      .post("/v2/edu/knowledge-doc/upload")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  searchDocs: (params: { keyword: string; subject?: string; limit?: number }) =>
+    http()
+      .get("/v2/edu/knowledge-doc/search")
+      .query(params)
+      .then<PageResult<KnowledgeDoc>>(unwrap),
+  deleteDoc: (id: number) =>
+    http()
+      .delete(`/v2/edu/knowledge-doc/${id}`)
+      .then<boolean>(unwrap),
+
   // 错题
   listWrongQuestions: (params: { studentId?: string; subject?: string; pageNum?: number; pageSize?: number } = {}) =>
     http()
       .get("/v2/edu/wrongbook/page")
       .query(params)
       .then<PageResult<WrongQuestion>>(unwrap),
-  reviewWrongbook: (data: any) =>
+  reviewWrongbook: (data: { studentId?: string; count?: number; subject?: string }) =>
     http()
       .post("/v2/edu/wrongbook/review")
       .data(data as Record<string, unknown>)
-      .then<string>(unwrap),
-  updateMastery: (id: number, level: number) =>
+      .then<number[]>(unwrap),
+  updateMastery: (wrongId: number, masteryLevel: number) =>
     http()
       .put("/v2/edu/wrongbook/mastery")
-      .query({ id, level })
+      .query({ wrongId, masteryLevel })
       .then<boolean>(unwrap),
 
   // 考试
-  pageExams: (params: { pageNum?: number; pageSize?: number } = {}) =>
+  pageExams: (params: { page?: number; pageSize?: number } = {}) =>
     http()
       .get("/v2/edu/exam/page")
       .query(params)

@@ -115,8 +115,8 @@
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { createScheduler, type Scheduler } from "@repo/work";
 
-const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
-const ReIcon = defineAsyncComponent(async () => await (await import("@repo/ui/re-icon")).default());
+const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default));
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 import ReMap from "@repo/re-map";
 import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
 

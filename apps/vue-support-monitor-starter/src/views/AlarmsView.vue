@@ -170,20 +170,20 @@ onMounted(fetchAll);
       </div>
     </section>
 
+    <!-- 过滤栏 -->
+    <div class="filter-panel">
+      <ReInput v-model="keyword" placeholder="搜索主机 / 指标" clearable size="small" class="f-kw" />
+      <ReSelect v-model="filterLevel" placeholder="级别" clearable size="small" class="f-sel" :options="LEVELS.map(lv => ({ label: lv + ' ' + LEVEL_LABELS[lv], value: lv }))" />
+      <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel" :options="[
+        { label: '未处理', value: 'NEW' },
+        { label: '已处理', value: 'PROCESSED' },
+        { label: '误报', value: 'FALSE' },
+      ]" />
+      <span class="f-count">{{ filtered.length }} 条</span>
+    </div>
+
     <!-- 事件流 -->
     <ReCard :radius="12" shadow="never">
-      <template #header>
-        <div class="filter-bar">
-          <ReInput v-model="keyword" placeholder="搜索主机 / 指标" clearable size="small" class="f-kw" />
-          <ReSelect v-model="filterLevel" placeholder="级别" clearable size="small" class="f-sel" :options="LEVELS.map(lv => ({ label: lv + ' ' + LEVEL_LABELS[lv], value: lv }))" />
-          <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel" :options="[
-            { label: '未处理', value: 'NEW' },
-            { label: '已处理', value: 'PROCESSED' },
-            { label: '误报', value: 'FALSE' },
-          ]" />
-          <span class="f-count">{{ filtered.length }} 条</span>
-        </div>
-      </template>
       <ReTable
         :data="filtered"
         :columns="alarmColumns"
@@ -229,8 +229,32 @@ onMounted(fetchAll);
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
 .as-error { display:flex; align-items:center; gap:12px; padding:10px 14px; font-size:13px; color:var(--status-error-text); background:var(--status-error-bg); border:1px solid var(--status-error-border); border-radius: var(--radius-sm); }
 .dlg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
-.filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.f-kw { width: 220px; }
-.f-sel { width: 130px; }
-.f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+/* 独立过滤栏：水平排列，与 card 分离避免双层背景 */
+.filter-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--tel-panel, #fff);
+  border: 1px solid var(--tel-border, #e2e8f0);
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.filter-panel :deep(.re-input),
+.filter-panel :deep(.re-select) {
+  width: 100%;
+}
+.f-kw { width: 260px; flex-shrink: 0; }
+.f-sel { width: 150px; flex-shrink: 0; }
+.f-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; flex-shrink: 0; }
+/* ReCard 与过滤栏衔接：去除自身 header，圆角只保留下半 */
+:deep(.re-card) { background: transparent; border: none; box-shadow: none; }
+:deep(.re-card__body) {
+  padding: 0;
+  background: var(--tel-panel, #fff);
+  border: 1px solid var(--tel-border, #e2e8f0);
+  border-radius: 0 0 12px 12px;
+  border-top: none;
+}
 </style>

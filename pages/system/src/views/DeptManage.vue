@@ -8,8 +8,8 @@
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { OfficeBuilding, Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
-import { listDept, saveDept, updateDept, deleteDept } from "../api/systemApi";
-import type { SysDept } from "../api/types";
+import { listDept, saveDept, updateDept, deleteDept, pageForUser } from "../api/systemApi";
+import type { SysDept, SysUser } from "../api/types";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
 const deptStatusOptions = [
@@ -130,6 +130,55 @@ async function handleDelete(row: Record<string, unknown>) {
   }
 }
 
+/* ================== 负责人远程用户选择 ================== */
+const principalOptions = ref<{ label: string; value: string }[]>([]);
+const principalLoading = ref(false);
+const principalSelected = ref("");
+
+/** 远程搜索用户（按账号/昵称），结果作为负责人下拉选项 */
+async function searchPrincipal(queryStr: string) {
+  if (!queryStr) {
+    principalOptions.value = [];
+    return;
+  }
+  principalLoading.value = true;
+  try {
+    const res = await pageForUser({ page: 1, pageSize: 20, sysUserName: queryStr });
+    const rows = (res?.data?.data ?? []) as SysUser[];
+    principalOptions.value = rows.map((u) => ({
+      label: `${u.sysUserNickname ?? u.sysUserUsername}（${u.sysUserUsername}）`,
+      value: u.sysUserUsername ?? "",
+    }));
+  } catch (e) {
+    console.warn("[dept] 负责人搜索失败", e);
+    principalOptions.value = [];
+  } finally {
+    principalLoading.value = false;
+  }
+}
+
+/* ================== 部门用户列表抽屉 ================== */
+const usersDrawerVisible = ref(false);
+const deptUsersLoading = ref(false);
+const deptUsers = ref<SysUser[]>([]);
+const currentDeptName = ref("");
+
+async function openDeptUsers(row: Record<string, unknown>) {
+  const dept = row as unknown as SysDept;
+  currentDeptName.value = dept.sysDeptName ?? "";
+  usersDrawerVisible.value = true;
+  deptUsersLoading.value = true;
+  try {
+    const res = await pageForUser({ page: 1, pageSize: 200, sysDeptId: dept.sysDeptId });
+    deptUsers.value = (res?.data?.data ?? []) as SysUser[];
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "部门用户加载失败");
+    deptUsers.value = [];
+  } finally {
+    deptUsersLoading.value = false;
+  }
+}
+
 const columns: ReTableColumn[] = [
   { prop: "sysDeptName", label: "部门名称", minWidth: 220, slot: "deptName" },
   { prop: "sysDeptCode", label: "部门编码", minWidth: 140 },
@@ -138,7 +187,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysDeptSort", label: "排序", width: 80, align: "center" },
   { prop: "sysDeptStatus", label: "状态", width: 100, slot: "status", align: "center" },
   { prop: "sysDeptRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 240, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 300, slot: "action", fixed: "right" },
 ];
 
 onMounted(loadList);
@@ -177,6 +226,7 @@ onMounted(loadList);
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
             <span>{{ row.sysDeptName }}</span>
+            <ReTag v-if="row.memberCount != null" size="small" effect="plain" type="info">{{ row.memberCount }}人</ReTag>
           </div>
         </template>
         <template #status="{ row }">
@@ -187,6 +237,7 @@ onMounted(loadList);
         <template #action="{ row }">
           <ReButton layout="square" type="primary" icon="Plus" v-admin @click="handleAdd(row)">新增下级</ReButton>
           <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
+          <ReButton layout="square" type="info" v-admin @click="openDeptUsers(row)">用户列表</ReButton>
           <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysDeptId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
@@ -221,7 +272,24 @@ onMounted(loadList);
           <ReInput layout="modern" v-model="form.sysDeptCode" placeholder="请输入部门编码" maxlength="255" show-word-limit />
         </el-form-item>
         <el-form-item label="负责人">
-          <ReInput layout="modern" v-model="form.sysDeptPrincipal" placeholder="请输入负责人姓名" maxlength="255" show-word-limit />
+          <el-select
+            v-model="form.sysDeptPrincipal"
+            filterable
+            remote
+            clearable
+            reserve-keyword
+            placeholder="输入账号/昵称搜索用户"
+            :remote-method="searchPrincipal"
+            :loading="principalLoading"
+            class="w-full"
+          >
+            <el-option
+              v-for="opt in principalOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="联系方式">
           <ReInput layout="modern" v-model="form.sysDeptContact" placeholder="请输入联系方式" maxlength="255" show-word-limit />
@@ -251,6 +319,33 @@ onMounted(loadList);
         </el-form-item>
       </el-form>
     </ReDialog>
+
+    <!-- 部门用户列表抽屉 -->
+    <ReDrawer
+      v-model="usersDrawerVisible"
+      :title="`部门用户 - ${currentDeptName}`"
+      size="520"
+      :show-window-shell="false"
+      :close-on-click-modal="true"
+      :footer-hidden="true"
+    >
+      <template #content>
+        <el-table v-loading="deptUsersLoading" :data="deptUsers" border stripe size="small" style="width: 100%">
+          <el-table-column type="index" label="#" width="60" align="center" />
+          <el-table-column prop="sysUserUsername" label="账号" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="sysUserNickname" label="昵称" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="sysUserPhone" label="手机号" min-width="130" />
+          <el-table-column label="状态" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.sysUserStatus === 0 ? 'success' : 'danger'" size="small" effect="plain">
+                {{ row.sysUserStatus === 0 ? '启用' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+        <p class="mt-3 text-sm text-[--el-text-color-secondary]">共 {{ deptUsers.length }} 个用户</p>
+      </template>
+    </ReDrawer>
   </div>
 </template>
 
