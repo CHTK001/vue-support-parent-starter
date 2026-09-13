@@ -72,6 +72,47 @@ function formatDisk(gb?: number | null): string {
 }
 
 /**
+ * 使用率展示文案（空 显示 未知，非法 显示 未知）
+ *
+ * @param value 使用率百分比
+ * @returns 展示文案
+ */
+function usageText(value?: number | null): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '未知';
+  return `${Number(value).toFixed(1)}%`;
+}
+
+/**
+ * 使用率告警色：>=90 危险，>=70 警告，否则正常
+ *
+ * @param value 使用率百分比
+ * @returns 标签类型
+ */
+function usageType(value?: number | null): 'danger' | 'warning' | 'success' {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'info' as any;
+  if (value >= 90) return 'danger';
+  if (value >= 70) return 'warning';
+  return 'success';
+}
+
+/**
+ * 网卡信息展示：JSON 数组转 "名称 ip" 列表
+ *
+ * @returns 展示文案
+ */
+const networksText = computed(() => {
+  const raw = props.host?.serverHostNetworks;
+  if (!raw) return '-';
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || arr.length === 0) return '-';
+    return arr.map((n: any) => `${n?.name ?? '?'} ${n?.ip ?? ''}`.trim()).join('；');
+  } catch {
+    return '-';
+  }
+});
+
+/**
  * 硬件探测：SSH 采集后刷新详情展示
  */
 async function onDetect(): Promise<void> {
@@ -212,11 +253,29 @@ async function onSaveConfig(): Promise<void> {
         <ReDescriptionsItem label="CPU 核心">
           <ReTag size="small">{{ host.serverHostCpuCores ?? '-' }}</ReTag>
         </ReDescriptionsItem>
+        <ReDescriptionsItem label="CPU 使用率">
+          <ReTag size="small" :type="usageType(host.serverHostCpuUsage)">{{ usageText(host.serverHostCpuUsage) }}</ReTag>
+        </ReDescriptionsItem>
         <ReDescriptionsItem label="内存">
           <ReTag size="small">{{ formatMem(host.serverHostMemoryMb) }}</ReTag>
         </ReDescriptionsItem>
+        <ReDescriptionsItem label="内存使用率">
+          <ReTag size="small" :type="usageType(host.serverHostMemUsage)">{{ usageText(host.serverHostMemUsage) }}</ReTag>
+        </ReDescriptionsItem>
         <ReDescriptionsItem label="磁盘">
           <ReTag size="small">{{ formatDisk(host.serverHostDiskGb) }}</ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="磁盘使用率">
+          <ReTag size="small" :type="usageType(host.serverHostDiskUsage)">{{ usageText(host.serverHostDiskUsage) }}</ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="GPU 卡数">
+          <ReTag size="small">{{ host.serverHostGpuCount ?? '-' }}</ReTag>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="GPU 型号">
+          <ReText size="small" type="info">{{ host.serverHostGpuModel || '-' }}</ReText>
+        </ReDescriptionsItem>
+        <ReDescriptionsItem label="网卡">
+          <ReText size="small" type="info">{{ networksText }}</ReText>
         </ReDescriptionsItem>
       </ReDescriptions>
 
