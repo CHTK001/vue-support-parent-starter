@@ -1,14 +1,14 @@
-/* ============================================================
- * telemetry.css —— 深色遥测设计系统（方案 A：内容区深色统一）
+﻿/* ============================================================
+ * telemetry.css 鈥斺€?娣辫壊閬ユ祴璁捐绯荤粺锛堟柟妗?A锛氬唴瀹瑰尯娣辫壊缁熶竴锛?
  *
- * 用法：
- *   1. 页面根容器加 class="tel-page"（浅色面板 + 网格 + 光晕 + 扫描线）
- *   2. KPI 卡在 .kpi 基础上加 class="tel-kpi"（发光色条 / 图标 / 悬停抬升）
- *   3. 面板内的 ReXxx / element-plus 组件由 CSS 变量覆盖自动浅色化
- *   4. 浮层（弹窗 / 下拉 / 消息 / 确认框）全局浅色化，保证观感统一
+ * 鐢ㄦ硶锛?
+ *   1. 椤甸潰鏍瑰鍣ㄥ姞 class="tel-page"锛堟祬鑹查潰鏉?+ 缃戞牸 + 鍏夋檿 + 鎵弿绾匡級
+ *   2. KPI 鍗″湪 .kpi 鍩虹涓婂姞 class="tel-kpi"锛堝彂鍏夎壊鏉?/ 鍥炬爣 / 鎮仠鎶崌锛?
+ *   3. 闈㈡澘鍐呯殑 ReXxx / element-plus 缁勪欢鐢?CSS 鍙橀噺瑕嗙洊鑷姩娴呰壊鍖?
+ *   4. 娴眰锛堝脊绐?/ 涓嬫媺 / 娑堟伅 / 纭妗嗭級鍏ㄥ眬娴呰壊鍖栵紝淇濊瘉瑙傛劅缁熶竴
  * ============================================================ */
 
-/* ================= 浅色遥测面板容器 ================= */
+/* ================= 娴呰壊閬ユ祴闈㈡澘瀹瑰櫒 ================= */
 .tel-page {
   position: relative;
   overflow: hidden;
@@ -25,7 +25,7 @@
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   animation: telPanelIn 0.45s ease both;
 }
-/* 背景网格 */
+/* 鑳屾櫙缃戞牸 */
 .tel-page::before {
   content: "";
   position: absolute;
@@ -37,7 +37,7 @@
   background-size: 30px 30px;
   mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
 }
-/* 顶部扫描线 */
+/* 椤堕儴鎵弿绾?*/
 .tel-page::after {
   content: "";
   position: absolute;
@@ -62,8 +62,8 @@
   100% { background-position: calc(100% + 260px) 0; opacity: 0.2; }
 }
 
-/* ================= 浅色变量集 =================
- * 挂在 .tel-page 与全部浮层上：内部组件（koi + element-plus）自动浅色化 */
+/* ================= 娴呰壊鍙橀噺闆?=================
+ * 鎸傚湪 .tel-page 涓庡叏閮ㄦ诞灞備笂锛氬唴閮ㄧ粍浠讹紙koi + element-plus锛夎嚜鍔ㄦ祬鑹插寲 */
 .tel-page,
 .tel-rail,
 .el-dialog,
@@ -71,7 +71,7 @@
 .el-message,
 .el-popper,
 .el-select-dropdown {
-  /* koi / 应用令牌 */
+  /* koi / 搴旂敤浠ょ墝 */
   --bg-page: #f8fafc;
   --bg-container: #ffffff;
   --bg-container-card: #ffffff;
@@ -98,7 +98,7 @@
   --scroll-thumb-hover: #94a3b8;
   --empty-bg-gradient: rgba(59, 130, 246, 0.06);
 
-  /* 告警等级（浅底 → 深底半透明） */
+  /* 鍛婅绛夌骇锛堟祬搴?鈫?娣卞簳鍗婇€忔槑锛?*/
   --sev-p0-bg: rgba(254, 226, 226, 0.6);
   --sev-p0-text: #b91c1c;
   --sev-p0-border: rgba(239, 68, 68, 0.3);
@@ -115,12 +115,12 @@
   --sev-p4-text: #475569;
   --sev-p4-border: rgba(148, 163, 184, 0.3);
 
-  /* 错误提示 */
+  /* 閿欒鎻愮ず */
   --status-error-bg: rgba(254, 226, 226, 0.6);
   --status-error-border: rgba(239, 68, 68, 0.3);
   --status-error-text: #b91c1c;
 
-  /* ===== koi 主题令牌（ReCard / ReDrawer / ReSearch 等 --theme-color-*） ===== */
+  /* ===== koi 涓婚浠ょ墝锛圧eCard / ReDrawer / ReSearch 绛?--theme-color-*锛?===== */
   --theme-color-bg: var(--bg-page);
   --theme-color-bg-container: var(--bg-container);
   --theme-color-text: var(--text-primary);
@@ -131,7 +131,7 @@
   --theme-color-warning: var(--color-warning, #fbbf24);
   --theme-color-error: var(--color-error, #f87171);
 
-  /* ===== ReTable 令牌（--rt-*，在 :root 被计算为亮色具体值，此处覆盖） ===== */
+  /* ===== ReTable 浠ょ墝锛?-rt-*锛屽湪 :root 琚绠椾负浜壊鍏蜂綋鍊硷紝姝ゅ瑕嗙洊锛?===== */
   --rt-bg: var(--bg-elevated);
   --rt-bg-header: var(--bg-fill);
   --rt-bg-strip: var(--bg-fill);
@@ -148,7 +148,7 @@
   --rt-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
   --rt-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 
-  /* element-plus 基础 */
+  /* element-plus 鍩虹 */
   --el-bg-color: var(--bg-container);
   --el-bg-color-overlay: var(--bg-elevated);
   --el-fill-color-blank: var(--bg-elevated);
@@ -176,7 +176,7 @@
   --el-disabled-border-color: var(--border-subtle);
   --el-disabled-text-color: var(--text-tertiary);
 
-  /* ReXxx 全局令牌（--rm-*，组件库全局 !important 规则引用，必须在此覆盖） */
+  /* ReXxx 鍏ㄥ眬浠ょ墝锛?-rm-*锛岀粍浠跺簱鍏ㄥ眬 !important 瑙勫垯寮曠敤锛屽繀椤诲湪姝よ鐩栵級 */
   --rm-bg: var(--bg-elevated);
   --rm-bg-elevated: var(--bg-container);
   --rm-bg-hover: var(--bg-hover);
@@ -195,7 +195,7 @@
   --rm-danger: #f87171;
   --rm-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
   --rm-radius: 8px;
-  /* 输入 / 选择 / 下拉 */
+  /* 杈撳叆 / 閫夋嫨 / 涓嬫媺 */
   --el-input-bg-color: var(--bg-elevated);
   --el-input-border-color: var(--border-default);
   --el-input-hover-border-color: var(--brand-400);
@@ -204,7 +204,7 @@
   --el-input-placeholder-color: var(--text-tertiary);
   --el-input-icon-color: var(--text-tertiary);
   --el-input-clear-hover-color: var(--text-secondary);
-  /* 分页 */
+  /* 鍒嗛〉 */
   --el-pagination-bg-color: transparent;
   --el-pagination-button-bg-color: transparent;
   --el-pagination-hover-color: var(--brand-400);
@@ -217,13 +217,13 @@
   --el-button-hover-text-color: var(--text-primary);
 }
 
-/* ================= 内嵌深色侧条（终端资源条等） ================= */
+/* ================= 鍐呭祵娣辫壊渚ф潯锛堢粓绔祫婧愭潯绛夛級 ================= */
 .tel-rail {
   background: #ffffff;
   border-right-color: rgba(148, 163, 184, 0.14);
 }
 
-/* ================= 组件级背景强制覆盖（element-plus 内部硬编码白色） ================= */
+/* ================= 缁勪欢绾ц儗鏅己鍒惰鐩栵紙element-plus 鍐呴儴纭紪鐮佺櫧鑹诧級 ================= */
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input__wrapper,
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-textarea__inner,
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-select__wrapper,
@@ -258,7 +258,7 @@
   color: var(--el-input-icon-color, var(--text-tertiary));
 }
 
-/* el-input-number（带上下箭头的数字输入框） */
+/* el-input-number锛堝甫涓婁笅绠ご鐨勬暟瀛楄緭鍏ユ锛?*/
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-input-number .el-input__wrapper {
   background-color: var(--bg-elevated) !important;
   box-shadow: 0 0 0 1px var(--border-default) inset !important;
@@ -282,7 +282,7 @@
   background-color: var(--el-disabled-bg-color, var(--bg-elevated)) !important;
 }
 
-/* el-table 内部 wrapper 透明，露出 .re-table / .tel-page 深色底 */
+/* el-table 鍐呴儴 wrapper 閫忔槑锛岄湶鍑?.re-table / .tel-page 娣辫壊搴?*/
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table,
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__body-wrapper,
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-table__inner-wrapper,
@@ -294,7 +294,7 @@
   color: var(--text-tertiary);
 }
 
-/* 表单标签 / 按钮默认态 */
+/* 琛ㄥ崟鏍囩 / 鎸夐挳榛樿鎬?*/
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-form-item__label {
   color: var(--text-secondary);
 }
@@ -309,14 +309,14 @@
   color: var(--text-primary);
 }
 
-/* ReCard koi 主题（--theme-color-* 变量继承保险） */
+/* ReCard koi 涓婚锛?-theme-color-* 鍙橀噺缁ф壙淇濋櫓锛?*/
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .koi-card {
   background-color: var(--theme-color-bg-container, var(--bg-container));
   border-color: var(--theme-color-border, var(--border-default));
   color: var(--theme-color-text, var(--text-primary));
 }
 
-/* 分页文字 */
+/* 鍒嗛〉鏂囧瓧 */
 :is(.tel-page, .tel-rail, .el-dialog, .el-message-box) .el-pagination {
   color: var(--text-secondary);
 }
@@ -327,7 +327,7 @@
   color: #fff;
 }
 
-/* ================= 表格深色细节 ================= */
+/* ================= 琛ㄦ牸娣辫壊缁嗚妭 ================= */
 .tel-page .el-table {
   background: transparent;
   --el-table-border-color: rgba(148, 163, 184, 0.12);
@@ -356,8 +356,8 @@
 }
 .tel-page .el-table__empty-text { color: #64748b; }
 
-/* ================= ReXxx 组件边框强制覆盖（解决半黑半白问题） ================= */
-/* ReTable 外框和单元格边框 */
+/* ================= ReXxx 缁勪欢杈规寮哄埗瑕嗙洊锛堣В鍐冲崐榛戝崐鐧介棶棰橈級 ================= */
+/* ReTable 澶栨鍜屽崟鍏冩牸杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-table,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-table"] {
   border-color: var(--border-subtle) !important;
@@ -373,19 +373,19 @@
   border-color: var(--border-subtle) !important;
 }
 
-/* ReCard 边框 */
+/* ReCard 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-card,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-card"] {
   border-color: var(--border-subtle) !important;
 }
 
-/* ReDialog 边框 */
+/* ReDialog 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-dialog,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-dialog"] {
   border-color: var(--border-subtle) !important;
 }
 
-/* ReInput / ReSelect / ReTextarea / ReInputNumber 边框 */
+/* ReInput / ReSelect / ReTextarea / ReInputNumber 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-input__wrapper,
 :is(.tel-page, .tel-rail, .el-dialog) .re-select__wrapper,
 :is(.tel-page, .tel-rail, .el-dialog) .re-textarea__inner,
@@ -411,7 +411,7 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
 }
 
-/* ReButton 边框 */
+/* ReButton 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-button,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-button"] {
   border-color: var(--border-default) !important;
@@ -421,19 +421,19 @@
   border-color: var(--brand-400) !important;
 }
 
-/* ReTag 边框 */
+/* ReTag 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-tag,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-tag"] {
   border-color: var(--border-subtle) !important;
 }
 
-/* RePagination 边框 */
+/* RePagination 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-pagination,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-pagination"] {
   border-color: var(--border-subtle) !important;
 }
 
-/* ReDropdown / RePopover 边框 */
+/* ReDropdown / RePopover 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-dropdown,
 :is(.tel-page, .tel-rail, .el-dialog) .re-popover,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-dropdown"],
@@ -441,13 +441,13 @@
   border-color: var(--border-subtle) !important;
 }
 
-/* ReForm / ReFormItem 边框 */
+/* ReForm / ReFormItem 杈规 */
 :is(.tel-page, .tel-rail, .el-dialog) .re-form-item,
 :is(.tel-page, .tel-rail, .el-dialog) [class*="re-form"] {
   border-color: var(--border-subtle) !important;
 }
 
-/* ================= KPI 卡增强 ================= */
+/* ================= KPI 鍗″寮?================= */
 .tel-page .kpi {
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), rgba(148, 163, 184, 0.02)), #ffffff;
   border-color: rgba(148, 163, 184, 0.16);
@@ -475,7 +475,7 @@
 }
 .tel-kpi .kpi-sub b { color: #1e293b; }
 
-/* ================= 通用卡片（pages.css .card 自动深色后的增强） ================= */
+/* ================= 閫氱敤鍗＄墖锛坧ages.css .card 鑷姩娣辫壊鍚庣殑澧炲己锛?================= */
 .tel-page .card {
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.04), rgba(148, 163, 184, 0.01)), #ffffff;
   border-color: rgba(148, 163, 184, 0.14);
@@ -484,7 +484,7 @@
 .tel-page .card-head { margin-bottom: 12px; }
 .tel-page .card-title { color: #1e293b; letter-spacing: 0.02em; }
 
-/* ================= 过滤条 / tabs / 快捷入口 ================= */
+/* ================= 杩囨护鏉?/ tabs / 蹇嵎鍏ュ彛 ================= */
 .tel-page .filter {
   background: rgba(148, 163, 184, 0.05);
   border-color: rgba(148, 163, 184, 0.14);
@@ -523,7 +523,7 @@
 }
 .tel-page .quick .q-meta b { color: #1e293b; }
 
-/* ================= 弹层 / 浮层（全局深色，统一风格） ================= */
+/* ================= 寮瑰眰 / 娴眰锛堝叏灞€娣辫壊锛岀粺涓€椋庢牸锛?================= */
 .el-overlay { background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
 
 .el-dialog {
@@ -580,14 +580,23 @@
   background: #151f3d;
 }
 
-/* ================= ReXxx 组件美化增强（深色遥测风格） ================= */
+/* ================= ReXxx 缁勪欢缇庡寲澧炲己锛堟繁鑹查仴娴嬮鏍硷級 ================= */
 :root {
   --tel-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --tel-glow-brand: 0 0 0 1px var(--brand-400), 0 0 16px rgba(59, 130, 246, 0.25);
   --tel-glow-soft: 0 4px 20px rgba(15, 23, 42, 0.08);
+  /* 数据库/Redis 等管理页面的白色主题变量覆盖 */
+  --tel-bg: #f8fafc;
+  --tel-panel: #ffffff;
+  --tel-border: #e2e8f0;
+  --tel-hover: #f1f5f9;
+  --tel-primary: #3b82f6;
+  --tel-success: #10b981;
+  --tel-text: #1e293b;
+  --tel-text-secondary: #64748b;
 }
 
-/* ---- ReTable：行 hover 发光 / 选中高亮 / 表头渐变线 / 空状态 ---- */
+/* ---- ReTable锛氳 hover 鍙戝厜 / 閫変腑楂樹寒 / 琛ㄥご娓愬彉绾?/ 绌虹姸鎬?---- */
 :is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__body tr {
   transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
 }
@@ -619,7 +628,7 @@
   padding: 40px 0;
 }
 :is(.tel-page, .el-dialog, .el-message-box) .re-table .el-table__empty-text::before {
-  content: "◇";
+  content: "鈼?;
   display: block;
   font-size: 28px;
   color: var(--brand-400);
@@ -627,7 +636,7 @@
   margin-bottom: 8px;
 }
 
-/* ---- ReInput / ReSelect / ReTextarea：focus 外发光 / 过渡 ---- */
+/* ---- ReInput / ReSelect / ReTextarea锛歠ocus 澶栧彂鍏?/ 杩囨浮 ---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-input__wrapper,
 :is(.tel-page, .el-dialog, .el-message-box) .el-select__wrapper,
 :is(.tel-page, .el-dialog, .el-message-box) .el-textarea__inner,
@@ -649,7 +658,7 @@
   color: var(--text-secondary);
 }
 
-/* ---- ReButton：hover 发光抬升 / primary 渐变发光 ---- */
+/* ---- ReButton锛歨over 鍙戝厜鎶崌 / primary 娓愬彉鍙戝厜 ---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-button {
   transition: all var(--tel-transition);
   font-weight: 500;
@@ -707,7 +716,7 @@
   filter: brightness(1.05);
 }
 
-/* ---- ReCard：hover 抬升发光 / 头部渐变线 ---- */
+/* ---- ReCard锛歨over 鎶崌鍙戝厜 / 澶撮儴娓愬彉绾?---- */
 :is(.tel-page, .el-dialog, .el-message-box) .koi-card {
   transition: transform var(--tel-transition), box-shadow var(--tel-transition), border-color var(--tel-transition);
   box-shadow: var(--tel-glow-soft);
@@ -731,7 +740,7 @@
   opacity: 0.3;
 }
 
-/* ---- ReTag / ReBadge：圆角发光 / hover ---- */
+/* ---- ReTag / ReBadge锛氬渾瑙掑彂鍏?/ hover ---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-tag {
   border-radius: 6px;
   font-weight: 500;
@@ -769,7 +778,7 @@
   filter: brightness(1.15);
 }
 
-/* ---- ReDialog：标题渐变 / 底部分隔 / 出现动画 ---- */
+/* ---- ReDialog锛氭爣棰樻笎鍙?/ 搴曢儴鍒嗛殧 / 鍑虹幇鍔ㄧ敾 ---- */
 .el-dialog {
   overflow: hidden;
 }
@@ -812,7 +821,7 @@
   to { opacity: 1; transform: none; }
 }
 
-/* ---- RePagination：页码发光 / 跳转框 ---- */
+/* ---- RePagination锛氶〉鐮佸彂鍏?/ 璺宠浆妗?---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-pagination .el-pager li {
   transition: all var(--tel-transition);
   border-radius: 6px;
@@ -836,7 +845,7 @@
   border-radius: 6px;
 }
 
-/* ---- ReEmpty：空状态样式 ---- */
+/* ---- ReEmpty锛氱┖鐘舵€佹牱寮?---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-empty {
   padding: 40px 0;
 }
@@ -848,7 +857,7 @@
   filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.2));
 }
 
-/* ---- ReScrollbar：滚动条美化 ---- */
+/* ---- ReScrollbar锛氭粴鍔ㄦ潯缇庡寲 ---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-scrollbar__thumb {
   background: var(--scroll-thumb, #2a3457);
   border-radius: 4px;
@@ -861,7 +870,7 @@
   width: 6px;
 }
 
-/* ---- ReSwitch：开关美化 ---- */
+/* ---- ReSwitch锛氬紑鍏崇編鍖?---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-switch__core {
   transition: all var(--tel-transition);
 }
@@ -870,7 +879,7 @@
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }
 
-/* ---- ReCheckbox / ReRadio：选中发光 ---- */
+/* ---- ReCheckbox / ReRadio锛氶€変腑鍙戝厜 ---- */
 :is(.tel-page, .el-dialog, .el-message-box) .el-checkbox__inner,
 :is(.tel-page, .el-dialog, .el-message-box) .el-radio__inner {
   transition: all var(--tel-transition);
@@ -886,7 +895,7 @@
   color: var(--brand-400);
 }
 
-/* ---- ReDropdown：菜单项 hover 发光 ---- */
+/* ---- ReDropdown锛氳彍鍗曢」 hover 鍙戝厜 ---- */
 .el-dropdown-menu__item:not(.is-disabled):hover {
   background: var(--brand-50) !important;
   color: var(--brand-400) !important;
@@ -896,7 +905,7 @@
   transition: all var(--tel-transition);
 }
 
-/* ================= 其他细节 ================= */
+/* ================= 鍏朵粬缁嗚妭 ================= */
 .tel-page .as-error {
   background: rgba(155, 28, 46, 0.18);
   border-color: rgba(244, 63, 94, 0.45);
@@ -906,7 +915,7 @@
 .tel-page .dim { color: #64748b; }
 .tel-page .muted { color: #64748b; }
 
-/* 分页 hover / active */
+/* 鍒嗛〉 hover / active */
 .tel-page .el-pagination.is-background .el-pager li {
   background: rgba(148, 163, 184, 0.08);
   color: #cbd5e1;
@@ -916,11 +925,11 @@
   color: #fff;
 }
 
-/* 弹窗内表格 */
+/* 寮圭獥鍐呰〃鏍?*/
 .el-dialog .el-table { background: transparent; }
 .el-dialog .el-table th.el-table__cell { background: #f1f5f9; }
 
-/* ================= 响应式 ================= */
+/* ================= 鍝嶅簲寮?================= */
 @media (max-width: 860px) {
   .tel-page { padding: 14px 14px 16px; border-radius: 12px; }
 }

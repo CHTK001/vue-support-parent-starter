@@ -127,23 +127,44 @@ function fileSvg(name: string, isDir: boolean): string {
       return FS_TYPE_SVG.font;
     case "office":
       // Excel 表格类 / PPT 演示类 / 其余按 Word 文档
-      if (["xlsx", "xls", "csv", "ods"].includes(ext)) {
+      if (["xlsx", "xls", "ods"].includes(ext)) {
         return FS_TYPE_SVG.excel;
       }
       if (["pptx", "ppt", "odp", "pps"].includes(ext)) {
         return FS_TYPE_SVG.ppt;
       }
       return FS_TYPE_SVG.word;
+    // 源代码统一蓝色尖括号图标
+    case "code":
+      return FS_TYPE_SVG.code;
+    // Markdown 专属 M↓ 图标
+    case "markdown":
+      return FS_TYPE_SVG.md;
+    // CSV 按表格类文件显示 Excel 图标
+    case "csv":
+      return FS_TYPE_SVG.excel;
+    // 邮件 / 日历 / 名片 / Jupyter 暂无专属绘制，使用通用文档图标
+    case "email":
+    case "calendar":
+    case "contact":
+    case "notebook":
+    case "model":
+      return FS_TYPE_SVG.file;
+    // HTML 网页沿用代码图标；数据库/大数据文件使用花括号图标
+    case "webpage":
+      return FS_TYPE_SVG.code;
+    case "data":
+      return FS_TYPE_SVG.json;
+    // PSD 设计稿按图片图标
+    case "design":
+      return FS_TYPE_SVG.image;
     case "text":
-      // json / 代码 / markdown 细分，其余普通文本
+      // json 专属花括号图标，标记类文本使用代码图标，其余普通文本
       if (ext === "json") {
         return FS_TYPE_SVG.json;
       }
-      if (["js", "mjs", "cjs", "ts", "jsx", "tsx", "html", "htm", "css", "scss", "less", "xml", "vue", "yaml", "yml"].includes(ext)) {
+      if (["xml", "yaml", "yml"].includes(ext)) {
         return FS_TYPE_SVG.code;
-      }
-      if (["md", "markdown"].includes(ext)) {
-        return FS_TYPE_SVG.md;
       }
       return FS_TYPE_SVG.txt;
     default:
@@ -237,7 +258,95 @@ const FsTreeNode = defineComponent({
 });
 
 /** 预览类型 */
-type PreviewKind = "image" | "text" | "pdf" | "office" | "video" | "audio" | "font" | "archive" | "unknown";
+type PreviewKind =
+  | "image"
+  | "text"
+  | "code"
+  | "markdown"
+  | "csv"
+  | "pdf"
+  | "office"
+  | "email"
+  | "calendar"
+  | "contact"
+  | "notebook"
+  | "webpage"
+  | "data"
+  | "design"
+  | "model"
+  | "video"
+  | "audio"
+  | "font"
+  | "archive"
+  | "unknown";
+
+/** 图片扩展名（浏览器原生可解码） */
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "avif", "apng", "jfif"];
+
+/** 纯文本扩展名（前端直接拉取原文展示） */
+const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
+
+/** 源代码 / 配置文件扩展名（走后端语法高亮预览） */
+const CODE_EXTS = [
+  "js", "mjs", "cjs", "ts", "jsx", "tsx", "vue", "css", "scss", "less",
+  "java", "kt", "groovy", "scala", "py", "rb", "go", "rs",
+  "c", "h", "cpp", "hpp", "cs", "php", "swift", "dart", "lua", "pl",
+  "sql", "sh", "bash", "zsh", "bat", "cmd", "ps1",
+  "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
+];
+
+/** Office 及其他服务端渲染的文档扩展名（统一走 iframe ?preview=true） */
+const OFFICE_EXTS = [
+  "xlsx", "xls", "docx", "doc", "pptx", "ppt",
+  "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
+  "dwg", "dgn", "rtf", "epub", "xmind",
+];
+
+/** 网页文件扩展名（后端沙箱渲染） */
+const WEBPAGE_EXTS = ["html", "htm"];
+
+/** 数据文件扩展名（数据库 / 大数据格式，服务端解析） */
+const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq"];
+
+/** 设计稿扩展名（服务端转图预览） */
+const DESIGN_EXTS = ["psd", "psb"];
+
+/** 3D / CAD / GIS 模型扩展名（服务端信息卡或在线渲染） */
+const MODEL_EXTS = [
+  "glb", "gltf", "obj", "stl", "dxf", "blend", "fbx",
+  "step", "stp", "iges", "igs", "brep", "shp",
+];
+
+/** 邮件扩展名 */
+const EMAIL_EXTS = ["eml", "msg"];
+
+/** 日历事件扩展名 */
+const CALENDAR_EXTS = ["ics", "ical", "ifb", "icalendar"];
+
+/** 通讯录名片扩展名 */
+const CONTACT_EXTS = ["vcf", "vcard"];
+
+/** 视频扩展名（仅浏览器原生可播放容器） */
+const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"];
+
+/** 音频扩展名（浏览器原生可播放） */
+const AUDIO_EXTS = ["mp3", "wav", "flac", "m4a", "oga", "opus", "weba"];
+
+/** 字体扩展名 */
+const FONT_EXTS = ["ttf", "otf", "woff", "woff2", "eot"];
+
+/** 压缩包扩展名（走后端条目列表预览） */
+const ARCHIVE_EXTS = [
+  "zip", "zipx", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz",
+  "7z", "rar", "zst", "tzst", "jar", "war", "apk",
+];
+
+/** 走 iframe 调用后端 SPI 预览的全部类型 */
+const SPI_IFRAME_KINDS: PreviewKind[] = [
+  "office", "font", "archive", "code", "markdown", "csv",
+  "email", "calendar", "contact", "notebook",
+  "webpage", "data", "design", "model",
+];
 
 /** 视图模式（Windows 资源管理器风格） */
 type ViewMode = "details" | "largeIcons" | "mediumIcons" | "smallIcons";
@@ -348,14 +457,25 @@ function formatTime(ts?: number): string {
 
 function kindOf(name: string): PreviewKind {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"].includes(ext)) return "image";
-  if (["txt", "log", "json", "xml", "html", "css", "js", "ts", "md", "yaml", "yml", "csv"].includes(ext)) return "text";
+  if (IMAGE_EXTS.includes(ext)) return "image";
+  if (CODE_EXTS.includes(ext)) return "code";
+  if (ext === "md" || ext === "markdown") return "markdown";
+  if (ext === "csv") return "csv";
+  if (PLAIN_TEXT_EXTS.includes(ext)) return "text";
   if (ext === "pdf") return "pdf";
-  if (["xlsx", "xls", "docx", "doc", "pptx", "ppt", "odt", "ods", "odp", "vsd", "dwg", "dgn", "rtf", "epub", "xmind"].includes(ext)) return "office";
-  if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"].includes(ext)) return "video";
-  if (["mp3", "wav", "flac", "m4a"].includes(ext)) return "audio";
-  if (["ttf", "otf", "woff", "woff2", "eot"].includes(ext)) return "font";
-  if (["zip", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz", "7z", "rar"].includes(ext)) return "archive";
+  if (OFFICE_EXTS.includes(ext)) return "office";
+  if (EMAIL_EXTS.includes(ext)) return "email";
+  if (CALENDAR_EXTS.includes(ext)) return "calendar";
+  if (CONTACT_EXTS.includes(ext)) return "contact";
+  if (ext === "ipynb") return "notebook";
+  if (WEBPAGE_EXTS.includes(ext)) return "webpage";
+  if (DATA_EXTS.includes(ext)) return "data";
+  if (DESIGN_EXTS.includes(ext)) return "design";
+  if (MODEL_EXTS.includes(ext)) return "model";
+  if (VIDEO_EXTS.includes(ext)) return "video";
+  if (AUDIO_EXTS.includes(ext)) return "audio";
+  if (FONT_EXTS.includes(ext)) return "font";
+  if (ARCHIVE_EXTS.includes(ext)) return "archive";
   return "unknown";
 }
 
@@ -380,7 +500,19 @@ function fileIconClass(name: string, isDir: boolean): string {
     case "pdf": return "icon-pdf";
     case "office": return "icon-office";
     case "archive": return "icon-archive";
-    case "text": return "icon-text";
+    case "design": return "icon-image";
+    // 代码 / Markdown / CSV / 邮件 / 网页 / 数据等文本类文档统一使用文本色系图标
+    case "text":
+    case "code":
+    case "markdown":
+    case "csv":
+    case "email":
+    case "calendar":
+    case "contact":
+    case "notebook":
+    case "webpage":
+    case "data":
+      return "icon-text";
     default: return "icon-file";
   }
 }
@@ -392,8 +524,19 @@ function fileType(name: string): string {
   switch (kindOf(name)) {
     case "image": return "图片";
     case "text": return "文本";
+    case "code": return "代码文件";
+    case "markdown": return "Markdown 文档";
+    case "csv": return "CSV 表格";
     case "pdf": return "PDF 文档";
     case "office": return "Office 文档";
+    case "email": return "邮件";
+    case "calendar": return "日历事件";
+    case "contact": return "通讯录名片";
+    case "notebook": return "Jupyter 笔记本";
+    case "webpage": return "网页文件";
+    case "data": return "数据文件";
+    case "design": return "设计稿";
+    case "model": return "3D / CAD 模型";
     case "video": return "视频";
     case "audio": return "音频";
     case "font": return "字体";
@@ -1288,7 +1431,8 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewKey.value = fullKey(row.name);
   previewZoom.value = 100;
   previewError.value = false;
-  iframeLoading.value = ["pdf", "office", "font"].includes(kind);
+  // PDF 使用浏览器内置查看器，其余文档类走后端 SPI iframe 预览
+  iframeLoading.value = kind === "pdf" || SPI_IFRAME_KINDS.includes(kind);
   previewMeta.value = { size: row.size, lastModified: row.lastModified };
   previewVisible.value = true;
   if (kind === "text") {
@@ -1309,7 +1453,7 @@ const imagePanelRef = ref<InstanceType<typeof PreviewImagePanel>>();
 
 function onFrameLoad(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = false; }
 function onFrameError(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = true; }
-function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = ["pdf", "office", "font"].includes(previewKind.value); iframeKey.value++; }
+function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = previewKind.value === "pdf" || SPI_IFRAME_KINDS.includes(previewKind.value); iframeKey.value++; }
 function toggleFullscreen(el?: HTMLElement): void {
   const t = el || iframePanelRef.value?.wrapRef || imagePanelRef.value?.wrapRef;
   if (!t) return;
@@ -2147,14 +2291,12 @@ onUnmounted(() => {
         <template v-else-if="previewKind === 'pdf'">
           <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '#toolbar=0&zoom=page-width'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
-        <template v-else-if="previewKind === 'office'">
+        <!-- Office / 压缩包 / 代码 / Markdown / CSV / 邮件等：统一走后端 SPI 渲染 -->
+        <template v-else-if="SPI_IFRAME_KINDS.includes(previewKind)">
           <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
         </template>
         <video v-else-if="previewKind === 'video'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
         <audio v-else-if="previewKind === 'audio'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
-        <template v-else-if="previewKind === 'font'">
-          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
-        </template>
         <pre v-else-if="previewKind === 'text'" class="fs-preview__code">{{ previewText }}</pre>
         <el-empty v-else description="该类型不支持在线预览">
           <el-button type="primary" :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>

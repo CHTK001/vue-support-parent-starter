@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 菜单管理页面 —— 完整复刻 KOI-ADMIN 目标站（http://39.107.143.109/system/menu）
  *
@@ -23,7 +23,8 @@ import {
   MoreFilled,
   Warning,
 } from "@element-plus/icons-vue";
-import { listMenuTree, saveMenu, updateMenu, deleteMenu } from "../api/systemApi";
+import { listMenuTree, saveMenu, updateMenu, deleteMenu, refreshMenuCache, batchSaveMenuButtons, batchDeleteMenuButtons } from "../api/systemApi";
+// (http 直连已迁移为 systemApi 具名函数，此处不再引入)
 import type { SysMenu } from "../api/types";
 
 /** 异步加载 ReIcon（与工程其他页面一致） */
@@ -252,6 +253,62 @@ function refresh() {
   loadList();
 }
 
+const cacheRefreshing = ref(false);
+async function handleRefreshCache() {
+  cacheRefreshing.value = true;
+  try {
+    await refreshMenuCache();
+    ElMessage.success("菜单缓存已刷新");
+    loadList();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "刷新缓存失败");
+  } finally {
+    cacheRefreshing.value = false;
+  }
+}
+
+/** 上移 / 下移：与相邻兄弟节点交换 sysMenuSort */
+const moving = ref(false);
+async function handleMove(dir: "up" | "down") {
+  if (!current.value?.menuId) return;
+  const curId = current.value.menuId;
+  function findSiblings(nodes: MenuVM[]): MenuVM[] | null {
+    if (nodes.some((n) => n.menuId === curId)) return nodes;
+    for (const n of nodes) {
+      if (n.children?.length) {
+        const hit = findSiblings(n.children);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  }
+  const siblings = findSiblings(list.value);
+  if (!siblings || siblings.length < 2) {
+    ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
+    return;
+  }
+  const sorted = [...siblings].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const idx = sorted.findIndex((n) => n.menuId === curId);
+  const target = dir === "up" ? sorted[idx - 1] : sorted[idx + 1];
+  if (!target) {
+    ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
+    return;
+  }
+  moving.value = true;
+  try {
+    const mySort = current.value.sort ?? 0;
+    const targetSort = target.sort ?? 0;
+    await updateMenu({ ...toEntity(current.value), sysMenuSort: targetSort });
+    await updateMenu({ ...toEntity(target), sysMenuSort: mySort });
+    ElMessage.success(dir === "up" ? "已上移" : "已下移");
+    await loadList();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "排序调整失败");
+  } finally {
+    moving.value = false;
+  }
+}
+
 /** 树节点动态类（目标站 tn()） */
 function nodeClass(data: MenuVM): Record<string, boolean> {
   return {
@@ -441,6 +498,98 @@ function handleEditButton(row: MenuVM) {
   dialogVisible.value = true;
 }
 
+/* ================== 按钮权限批量管理 ================== */
+/** 表格多选选中的按钮 */
+const selectedButtons = ref<MenuVM[]>([]);
+function onButtonSelectionChange(rows: MenuVM[]) {
+  selectedButtons.value = rows;
+}
+
+/** 批量新增按钮弹窗 */
+const batchDialogVisible = ref(false);
+const batchSaving = ref(false);
+interface BatchButtonRow { menuName: string; auth: string; sort: number }
+const batchRows = ref<BatchButtonRow[]>([{ menuName: "", auth: "", sort: 0 }]);
+
+function handleOpenBatchAdd() {
+  if (!current.value?.menuId) {
+    ElMessage.warning("请先选择菜单");
+    return;
+  }
+  if (String(current.value.menuType) !== "2") {
+    ElMessage.warning("请选择菜单类型节点");
+    return;
+  }
+  batchRows.value = [{ menuName: "", auth: "", sort: 0 }];
+  batchDialogVisible.value = true;
+}
+
+function addBatchRow() {
+  batchRows.value.push({ menuName: "", auth: "", sort: (batchRows.value.length + 1) * 10 });
+}
+
+function removeBatchRow(idx: number) {
+  batchRows.value.splice(idx, 1);
+}
+
+/** 批量保存按钮 */
+async function handleBatchSubmit() {
+  const valid = batchRows.value.filter((r) => r.menuName.trim());
+  if (!valid.length) {
+    ElMessage.warning("请至少填写一个按钮名称");
+    return;
+  }
+  batchSaving.value = true;
+  try {
+    const items = valid.map((r) => ({
+      sysMenuPid: current.value!.menuId,
+      sysMenuTitle: r.menuName,
+      sysMenuName: r.menuName,
+      sysMenuPerm: r.auth,
+      sysMenuType: 3,
+      sysMenuSort: r.sort,
+      sysMenuHidden: 0,
+    }));
+    await batchSaveMenuButtons(items as Record<string, unknown>[]);
+    ElMessage.success(`已批量新增 ${items.length} 个按钮`);
+    batchDialogVisible.value = false;
+    await loadList();
+    if (current.value?.menuId) {
+      const hit = findById(list.value, current.value.menuId);
+      if (hit) onNodeClick(hit);
+    }
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "批量保存失败");
+  } finally {
+    batchSaving.value = false;
+  }
+}
+
+/** 批量删除按钮 */
+async function handleBatchDeleteButtons() {
+  if (!selectedButtons.value.length) {
+    ElMessage.warning("请先勾选要删除的按钮");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedButtons.value.length} 个按钮？`, "提示", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    const ids = selectedButtons.value.map((b) => b.menuId).filter(Boolean) as number[];
+    await batchDeleteMenuButtons(ids);
+    ElMessage.success("已批量删除");
+    await loadList();
+    if (current.value?.menuId) {
+      const hit = findById(list.value, current.value.menuId);
+      if (hit) onNodeClick(hit);
+    }
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "批量删除失败");
+  }
+}
+
 /** 树右键菜单 */
 const contextMenuVisible = ref(false);
 const contextMenuX = ref(0);
@@ -536,6 +685,9 @@ onMounted(() => {
             <el-tooltip content="刷新" placement="top">
               <el-button type="info" icon="Refresh" circle plain @click="refresh" />
             </el-tooltip>
+            <el-tooltip content="刷新缓存" placement="top">
+              <el-button type="warning" icon="Refresh" circle plain :loading="cacheRefreshing" @click="handleRefreshCache" />
+            </el-tooltip>
           </div>
 
           <div class="menu-tree-toolbar">
@@ -624,6 +776,8 @@ onMounted(() => {
               </div>
             </div>
             <div v-if="current" class="menu-action-group">
+              <el-tooltip content="上移" placement="top"><el-button type="primary" icon="ArrowUp" circle plain @click="handleMove('up')" /></el-tooltip>
+              <el-tooltip content="下移" placement="top"><el-button type="primary" icon="ArrowDown" circle plain @click="handleMove('down')" /></el-tooltip>
               <el-tooltip content="新增子菜单" placement="top">
                 <el-button type="primary" icon="Plus" circle plain @click="handleAdd(current)" />
               </el-tooltip>
@@ -635,6 +789,9 @@ onMounted(() => {
               </el-tooltip>
               <el-tooltip content="刷新" placement="top">
                 <el-button type="info" icon="Refresh" circle plain @click="refresh" />
+            </el-tooltip>
+            <el-tooltip content="刷新缓存" placement="top">
+              <el-button type="warning" icon="Refresh" circle plain :loading="cacheRefreshing" @click="handleRefreshCache" />
               </el-tooltip>
             </div>
           </div>
@@ -716,6 +873,8 @@ onMounted(() => {
             </div>
             <div class="menu-action-group">
               <el-tag size="small" effect="plain">{{ buttonPerms.length }} 项</el-tag>
+              <el-button size="small" type="primary" plain :disabled="!isMenuTypeNode" @click="handleOpenBatchAdd">批量新增按钮</el-button>
+              <el-button size="small" type="danger" plain :disabled="!selectedButtons.length" @click="handleBatchDeleteButtons">批量删除{{ selectedButtons.length ? `(${selectedButtons.length})` : '' }}</el-button>
               <el-tooltip content="新增按钮权限" placement="top">
                 <el-button type="primary" icon="Plus" circle plain :disabled="!isMenuTypeNode" @click="handleAddButton" />
               </el-tooltip>
@@ -737,7 +896,8 @@ onMounted(() => {
               </div>
             </div>
             <!-- 按钮权限表格 -->
-            <el-table v-else :data="buttonPerms" class="menu-button-table" border stripe empty-text="暂无数据">
+            <el-table v-else :data="buttonPerms" class="menu-button-table" border stripe empty-text="暂无数据" @selection-change="onButtonSelectionChange">
+              <el-table-column type="selection" width="44" align="center" />
               <el-table-column type="index" label="序号" width="70px" align="center" />
               <el-table-column label="按钮名称" prop="menuName" min-width="160" show-overflow-tooltip>
                 <template #default="{ row }">
@@ -917,7 +1077,7 @@ onMounted(() => {
             <el-row :gutter="16">
               <el-col :sm="12" :xs="24">
                 <el-form-item label="权限字符" prop="auth" required>
-                  <el-input v-model="form.auth" placeholder="格式：模块:资源:操作，如 sys:user:save" maxlength="128" show-word-limit clearable />
+                  <el-input v-model="form.auth" placeholder="如 system:user:add，留空自动生成" maxlength="128" show-word-limit clearable />
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
@@ -1005,6 +1165,45 @@ onMounted(() => {
           </section>
         </el-form>
       </div>
+    </ReDialog>
+
+    <!-- 批量新增按钮弹窗 -->
+    <ReDialog
+      v-model="batchDialogVisible"
+      title="批量新增按钮"
+      width="640px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      :confirm-loading="batchSaving"
+      @confirm="handleBatchSubmit"
+      @cancel="batchDialogVisible = false"
+    >
+      <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
+        将为当前选中菜单批量创建按钮权限（菜单类型为按钮），权限标识建议填写如 system:user:add。
+      </el-alert>
+      <el-table :data="batchRows" border size="small" style="width: 100%">
+        <el-table-column label="#" width="60" align="center">
+          <template #default="{ $index }">
+            <el-button type="danger" link :icon="Delete" @click="removeBatchRow($index)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="按钮名称" min-width="160">
+          <template #default="{ row }">
+            <el-input v-model="row.menuName" placeholder="如：新增" />
+          </template>
+        </el-table-column>
+        <el-table-column label="权限标识" min-width="200">
+          <template #default="{ row }">
+            <el-input v-model="row.auth" placeholder="如 system:user:add" />
+          </template>
+        </el-table-column>
+        <el-table-column label="排序" width="110">
+          <template #default="{ row }">
+            <el-input-number v-model="row.sort" :min="0" controls-position="right" style="width: 100%" />
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-button type="primary" plain icon="Plus" style="margin-top: 10px" @click="addBatchRow">添加一行</el-button>
     </ReDialog>
   </div>
 </template>

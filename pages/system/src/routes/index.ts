@@ -143,6 +143,72 @@ export const systemRoutes: RouteConfigsTable[] = [
       keepAlive: true,
     },
   },
+  {
+    path: "/system/post",
+    name: "SystemPost",
+    component: () => import("../views/PostManage.vue"),
+    meta: {
+      title: "岗位管理",
+      icon: "Postcard",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/message",
+    name: "SystemMessage",
+    component: () => import("../views/MessageManage.vue"),
+    meta: {
+      title: "消息管理",
+      icon: "Message",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/error-log",
+    name: "SystemErrorLog",
+    component: () => import("../views/ErrorLogManage.vue"),
+    meta: {
+      title: "异常日志",
+      icon: "Warning",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/cache",
+    name: "SystemCache",
+    component: () => import("../views/CacheManage.vue"),
+    meta: {
+      title: "缓存管理",
+      icon: "Coin",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/ip",
+    name: "SystemIp",
+    component: () => import("../views/IpManage.vue"),
+    meta: {
+      title: "IP管理",
+      icon: "Lock",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/system/monitor",
+    name: "SystemMonitor",
+    component: () => import("../views/MonitorManage.vue"),
+    meta: {
+      title: "系统监控",
+      icon: "Monitor",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
 ];
 
 /**
@@ -201,6 +267,36 @@ export const systemMenus: StaticMenuItem[] = [
         path: "/system/feedback",
         name: "SystemFeedback",
         meta: { title: "反馈管理", icon: "ChatLineSquare", isVisible: "1" },
+      },
+      {
+        path: "/system/post",
+        name: "SystemPost",
+        meta: { title: "岗位管理", icon: "Postcard", isVisible: "1" },
+      },
+      {
+        path: "/system/message",
+        name: "SystemMessage",
+        meta: { title: "消息管理", icon: "Message", isVisible: "1" },
+      },
+      {
+        path: "/system/error-log",
+        name: "SystemErrorLog",
+        meta: { title: "异常日志", icon: "Warning", isVisible: "1" },
+      },
+      {
+        path: "/system/cache",
+        name: "SystemCache",
+        meta: { title: "缓存管理", icon: "Coin", isVisible: "1" },
+      },
+      {
+        path: "/system/ip",
+        name: "SystemIp",
+        meta: { title: "IP管理", icon: "Lock", isVisible: "1" },
+      },
+      {
+        path: "/system/monitor",
+        name: "SystemMonitor",
+        meta: { title: "系统监控", icon: "Monitor", isVisible: "1" },
       },
     ],
   },

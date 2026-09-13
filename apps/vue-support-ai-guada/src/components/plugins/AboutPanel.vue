@@ -1,0 +1,175 @@
+<template>
+    <div v-if="isElectron" class="about-panel p-4">
+        <div class="flex flex-col items-center justify-center space-y-6 text-center">
+            <!-- 应用图标与版本 -->
+            <div class="space-y-2">
+                <img :src="logoPath" alt="GuaDa Logo" class="w-24 h-24 mx-auto rounded-xl shadow-lg" />
+                <h2 class="text-2xl font-bold text-(--color-text-primary)">GuaDa</h2>
+                <p class="text-sm text-(--color-text-secondary)">{{ t('plugins.about.version', { version: appVersion }) }}</p>
+            </div>
+
+            <!-- 更新状态区域 -->
+            <div class="w-full bg-(--color-surface-elevated) rounded-lg p-6 border border-(--color-border)">
+                <div class="flex flex-col items-center space-y-4">
+                    <div v-if="updateStatus === 'checking'" class="flex items-center space-x-2 text-blue-500">
+                        <el-icon class="is-loading"><Loading /></el-icon>
+                        <span>{{ t('plugins.about.checking') }}</span>
+                    </div>
+                    
+                    <div v-else-if="updateStatus === 'not-available'" class="text-green-500 flex items-center space-x-2">
+                        <el-icon><CircleCheck /></el-icon>
+                        <span>{{ t('plugins.about.upToDate') }}</span>
+                    </div>
+
+                    <div v-else-if="updateStatus === 'available'" class="space-y-3 w-full">
+                        <div class="text-orange-500 font-medium">{{ t('plugins.about.newVersion', { version: updateInfo?.version }) }}</div>
+                        <p class="text-xs text-(--color-text-secondary) whitespace-pre-wrap">{{ updateInfo?.description || t('plugins.about.noUpdateDesc') }}</p>
+                        <div class="flex gap-2">
+                            <el-button type="primary" @click="handleDownload" class="flex-1">
+                                {{ t('plugins.about.downloadUpdate') }}
+                            </el-button>
+                            <el-button @click="handleViewChangelog" class="flex-1">
+                                {{ t('plugins.about.viewChangelog') }}
+                            </el-button>
+                        </div>
+                    </div>
+
+                    <div v-else-if="updateStatus === 'error'" class="text-red-500 text-sm">
+                        {{ t('plugins.about.checkFailed', { error: errorMessage }) }}
+                    </div>
+
+                    <el-button v-if="updateStatus === 'idle' || updateStatus === 'not-available' || updateStatus === 'error'" 
+                               @click="checkForUpdates" 
+                               :disabled="isChecking" 
+                               class="w-full">
+                        {{ t('plugins.about.checkUpdate') }}
+                    </el-button>
+                </div>
+            </div>
+
+            <!-- 仓库地址 -->
+            <div class="w-full bg-(--color-surface-elevated) rounded-lg p-6 border border-(--color-border)">
+                <h3 class="text-sm font-medium text-(--color-text-primary) mb-4">{{ t('plugins.about.repository') }}</h3>
+                <div class="flex flex-col space-y-3">
+                    <div v-for="repo in repositories" :key="repo.url"
+                        class="flex items-center justify-between cursor-pointer p-2 rounded-md hover:bg-(--color-bg) transition-colors"
+                        @click="openRepo(repo.url)">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-lg">{{ repo.icon }}</span>
+                            <div>
+                                <div class="text-sm text-(--color-text-primary)">{{ repo.name }}</div>
+                                <div class="text-xs text-(--color-text-secondary)">{{ repo.url }}</div>
+                            </div>
+                        </div>
+                        <el-icon class="text-(--color-text-secondary)"><Link /></el-icon>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div v-else class="p-8 text-center text-(--color-text-secondary)">
+        {{ t('plugins.about.desktopOnly') }}
+    </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElButton, ElIcon } from 'element-plus'
+import { Loading, CircleCheck, Link } from '@element-plus/icons-vue'
+import { fixFrontendAssetUrl } from '@/utils/url'
+import { openInExternalBrowser } from '@/utils/browserUtils'
+
+const isElectron = typeof window !== 'undefined' && !!window.electronAPI
+const { t } = useI18n()
+const appVersion = ref('')
+const updateStatus = ref<'idle' | 'checking' | 'available' | 'not-available' | 'error'>('idle')
+const updateInfo = ref<any>(null)
+const isChecking = ref(false)
+const errorMessage = ref('')
+
+const repositories = [
+    { name: 'GitHub', url: 'https://github.com/donggua-zen/guada', icon: '🐙' },
+    { name: 'Gitee', url: 'https://gitee.com/zhendongdong/guada_ai', icon: '🇨' },
+    { name: 'GitCode', url: 'https://atomgit.com/donggua_sherlock/GuaDaAI', icon: '📦' },
+]
+
+const openRepo = (url: string) => {
+    openInExternalBrowser(url)
+}
+
+// 计算属性：自适应 Logo 路径
+const logoPath = computed(() => fixFrontendAssetUrl('/images/logo.png'))
+
+const checkForUpdates = async () => {
+    if (!window.electronAPI) return
+    isChecking.value = true
+    updateStatus.value = 'checking'
+    errorMessage.value = ''
+    
+    try {
+        const res = await window.electronAPI.checkForUpdates()
+        if (!res.success) {
+            updateStatus.value = 'error'
+            errorMessage.value = res.error || ''
+        }
+    } catch (e: any) {
+        updateStatus.value = 'error'
+        errorMessage.value = e.message || t('plugins.about.unknownError')
+    } finally {
+        isChecking.value = false
+    }
+}
+
+const handleDownload = () => {
+    if (!window.electronAPI || !updateInfo.value?.downloadUrl) return
+    window.electronAPI.openExternal(updateInfo.value.downloadUrl)
+}
+
+const handleViewChangelog = () => {
+    if (!window.electronAPI || !updateInfo.value?.releaseNotes) return
+    window.electronAPI.openExternal(updateInfo.value.releaseNotes)
+}
+
+const handleUpdateStatus = (status: any) => {
+    switch (status.status) {
+        case 'checking':
+            updateStatus.value = 'checking'
+            break
+        case 'available':
+            updateStatus.value = 'available'
+            updateInfo.value = status.info
+            break
+        case 'not-available':
+            updateStatus.value = 'not-available'
+            break
+        case 'error':
+            updateStatus.value = 'error'
+            errorMessage.value = status.error
+            isChecking.value = false
+            break
+    }
+}
+
+onMounted(async () => {
+    if (window.electronAPI) {
+        const info = await window.electronAPI.getAppInfo()
+        appVersion.value = info.version
+        
+        // 监听更新状态
+        window.electronAPI.onUpdateStatus(handleUpdateStatus)
+    }
+})
+
+onUnmounted(() => {
+    // 注意：ipcRenderer 监听器在 preload 中处理，这里无需手动移除
+    // 如果需要更精细的控制，可以在 preload 中返回一个取消监听的函数
+})
+</script>
+
+<style scoped>
+.about-panel {
+    height: 100%;
+    overflow-y: auto;
+}
+</style>

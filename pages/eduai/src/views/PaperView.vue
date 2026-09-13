@@ -142,7 +142,7 @@ const reload = async () => {
       pageSize: pageSize.value,
       subject: filter.subject || undefined,
     });
-    papers.value = (res?.records ?? []) as Paper[];
+    papers.value = (res?.data ?? []) as Paper[];
     total.value = res?.total ?? 0;
   } catch (e) {
     ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));

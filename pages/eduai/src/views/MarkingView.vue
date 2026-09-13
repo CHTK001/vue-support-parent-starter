@@ -159,8 +159,8 @@ const fetchResult = async () => {
 
 const confirmAdjust = async () => {
   if (!result.value) return;
-  const adjustments = (result.value.results || []).map((r, idx) => ({
-    resultId: idx + 1, // 后端 resultId 实际应通过详情接口获取；此处按顺序占位
+  const adjustments = (result.value.results || []).map((r) => ({
+    resultId: r.resultId,
     score: r.teacherScore ?? r.score,
     comment: r.teacherComment ?? r.comment,
   })).filter((a) => a.resultId > 0);

@@ -96,8 +96,8 @@ const form = reactive<Partial<Exam>>({});
 const reload = async () => {
   loading.value = true;
   try {
-    const res = await eduaiApi.pageExams({ pageNum: pageNo.value, pageSize: pageSize.value });
-    list.value = ((res?.records ?? []) as Exam[]).filter((it: any) => !keyword.value || (it.examName || '').includes(keyword.value));
+    const res = await eduaiApi.pageExams({ page: pageNo.value, pageSize: pageSize.value });
+    list.value = ((res?.data ?? []) as Exam[]).filter((it: any) => !keyword.value || (it.examName || '').includes(keyword.value));
     total.value = res?.total ?? 0;
   } catch (e) {
     ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));

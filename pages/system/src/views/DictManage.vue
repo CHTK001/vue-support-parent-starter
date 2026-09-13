@@ -9,7 +9,7 @@
  */
 import { onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Collection, Plus, Edit, Delete, Search, Refresh, Upload, Download } from "@element-plus/icons-vue";
+import { Collection, Plus, Edit, Delete, Search, Refresh, Upload, Download, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import {
   pageForDict,
@@ -22,11 +22,28 @@ import {
   deleteDictItem,
   listForDict,
   listDictItemByCode,
+  refreshDictCache,
 } from "../api/systemApi";
 import type { SysDict, SysDictItem } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const activeTab = ref<"dict" | "item">("dict");
+
+/* 刷新字典缓存 */
+const cacheRefreshing = ref(false);
+async function handleRefreshCache() {
+  cacheRefreshing.value = true;
+  try {
+    await refreshDictCache();
+    ElMessage.success("字典缓存已刷新");
+    dictTableRef.value?.reload();
+    itemTableRef.value?.reload();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "刷新缓存失败");
+  } finally {
+    cacheRefreshing.value = false;
+  }
+}
 
 const dictStatusOptions = [
   { label: "启用", value: 1 },
@@ -326,6 +343,32 @@ async function handleItemDelete(row: Record<string, unknown>) {
   itemTableRef.value?.reload();
 }
 
+/** 字典子项上移/下移：与相邻行交换 sysDictItemSort */
+async function handleItemMove(row: Record<string, unknown>, dir: "up" | "down") {
+  const item = row as unknown as SysDictItem;
+  if (!itemQuery.value.sysDictId) return;
+  try {
+    const res = await pageForDictItem({ page: 1, pageSize: 999, sysDictId: itemQuery.value.sysDictId });
+    const all = ((res?.data?.data ?? res?.data?.records ?? []) as SysDictItem[])
+      .slice()
+      .sort((a, b) => (a.sysDictItemSort ?? 0) - (b.sysDictItemSort ?? 0));
+    const idx = all.findIndex((it) => it.sysDictItemId === item.sysDictItemId);
+    const target = dir === "up" ? all[idx - 1] : all[idx + 1];
+    if (idx < 0 || !target) {
+      ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
+      return;
+    }
+    const mySort = item.sysDictItemSort ?? 0;
+    const targetSort = target.sysDictItemSort ?? 0;
+    await updateDictItem({ ...item, sysDictItemSort: targetSort });
+    await updateDictItem({ ...target, sysDictItemSort: mySort });
+    ElMessage.success(dir === "up" ? "已上移" : "已下移");
+    itemTableRef.value?.reload();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "排序调整失败");
+  }
+}
+
 function switchToItem(dict: SysDict) {
   activeTab.value = "item";
   itemQuery.value.sysDictId = dict.sysDictId;
@@ -342,11 +385,12 @@ watch(activeTab, (tab) => {
 const itemColumns: ReTableColumn[] = [
   { prop: "sysDictItemLabel", label: "标签", minWidth: 160 },
   { prop: "sysDictItemValue", label: "值", minWidth: 160 },
+  { prop: "preview", label: "翻译预览", minWidth: 160, slot: "preview" },
   { prop: "sysDictItemCode", label: "编码", minWidth: 120 },
   { prop: "sysDictItemSort", label: "排序", width: 80, align: "center" },
   { prop: "sysDictItemStatus", label: "状态", width: 100, slot: "status", align: "center" },
   { prop: "sysDictItemRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 240, slot: "action", fixed: "right" },
 ];
 
 onMounted(() => {
@@ -381,6 +425,7 @@ onMounted(() => {
               <div class="flex-1" />
               <ReButton layout="modern" type="primary" icon="Search" @click="dictTableRef?.reload()">查询</ReButton>
               <ReButton layout="modern" icon="Refresh" @click="handleDictReset">重置</ReButton>
+              <ReButton layout="modern" type="warning" icon="Refresh" :loading="cacheRefreshing" @click="handleRefreshCache">刷新缓存</ReButton>
               <ReButton layout="modern" icon="Download" @click="handleExport">导出</ReButton>
               <ReButton layout="modern" icon="Upload" @click="triggerImport">导入</ReButton>
               <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleDictAdd">新增字典</ReButton>
@@ -409,6 +454,7 @@ onMounted(() => {
               <div class="flex items-center gap-2">
                 <el-icon :size="16" color="var(--el-color-primary)"><Collection /></el-icon>
                 <span>{{ row.sysDictName }}</span>
+                <ReTag v-if="row.sysDictInSystem === 1" type="warning" effect="plain" size="small">内置</ReTag>
               </div>
             </template>
             <template #status="{ row }">
@@ -423,7 +469,7 @@ onMounted(() => {
             <template #action="{ row }">
               <ReButton layout="square" type="primary" @click="switchToItem(row)">字典项</ReButton>
               <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleDictEdit(row)">编辑</ReButton>
-              <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
+              <ReButton v-if="row.sysDictInSystem !== 1" layout="square" type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
             </template>
           </ReTable>
         </el-card>
@@ -466,12 +512,19 @@ onMounted(() => {
             v-model:page="itemQuery.page"
             v-model:page-size="itemQuery.pageSize"
           >
+            <template #preview="{ row }">
+              <ReTag type="primary" effect="plain" size="small">
+                {{ row.sysDictItemLabel }}({{ row.sysDictItemValue }})
+              </ReTag>
+            </template>
             <template #status="{ row }">
               <ReTag :type="row.sysDictItemStatus === 1 ? 'success' : 'info'" effect="plain" size="small">
                 {{ row.sysDictItemStatus === 1 ? "启用" : "禁用" }}
               </ReTag>
             </template>
             <template #action="{ row }">
+              <ReButton layout="square" type="warning" icon="ArrowUp" @click="handleItemMove(row, 'up')">上移</ReButton>
+              <ReButton layout="square" type="warning" icon="ArrowDown" @click="handleItemMove(row, 'down')">下移</ReButton>
               <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleItemEdit(row)">编辑</ReButton>
               <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleItemDelete(row)">删除</ReButton>
             </template>

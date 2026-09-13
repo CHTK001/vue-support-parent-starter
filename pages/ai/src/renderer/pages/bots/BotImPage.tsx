@@ -41,6 +41,7 @@ import { PlatformLogo } from '@/renderer/utils/platformLogo';
 import '@/renderer/styles/chatscope-override.css';
 import '@/renderer/styles/ai-page.css';
 import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { ContextInfoPanel } from '@/renderer/components/chat/ContextInfoPanel';
 
 /** 会话列表项 */
 interface ConversationItem {
@@ -961,6 +962,8 @@ export default function BotImPage() {
       <div className='grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 max-[760px]:grid-cols-1'>
         {/* 左栏：会话列表 */}
         <aside className='botim-scroll flex min-h-0 flex-col border-r border-solid border-[var(--color-border-2)]'>
+          {/* 上下文信息面板 */}
+          <ContextInfoPanel modelName={active?.model || undefined} />
           <div className='min-h-0 flex-1 overflow-y-auto p-8px'>
             {conversations.length === 0 ? (
               <div className='flex h-full flex-col items-center justify-center gap-y-8px px-16px text-center'>

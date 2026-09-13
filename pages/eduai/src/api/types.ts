@@ -74,6 +74,7 @@ export interface MarkingResultVO {
   total: number;
   finished: boolean;
   results: Array<{
+    resultId: number;
     questionId: number;
     score: number;
     comment?: string;
@@ -102,6 +103,20 @@ export interface KnowledgePoint {
   knowledgePointSortOrder?: number;
   knowledgePointStatus?: number;
   children?: KnowledgePoint[];
+}
+
+/** 知识库文档 */
+export interface KnowledgeDoc {
+  knowledgeDocId: number;
+  knowledgeDocName: string;
+  knowledgeDocType?: string;
+  knowledgeDocFilePath?: string;
+  knowledgeDocFileSize?: number;
+  knowledgeDocVectorStoreId?: string;
+  knowledgeDocSubject?: string;
+  knowledgeDocGradeLevel?: string;
+  knowledgeDocStatus?: number;
+  knowledgeDocCreateTime?: string;
 }
 
 /** 错题 */

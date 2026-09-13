@@ -166,6 +166,8 @@
  */
 import { ref, reactive, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { fetchZkNodeDetail, fetchZkChildren, deleteZkNode } from "../monitorApi";
 
 const route = useRoute();
 const connectionInfo = reactive({ host: "127.0.0.1", port: 2181, version: "3.9" });
@@ -240,7 +242,7 @@ const onEditNodeData = (path: string) => {
 
 const onAddChildNode = (parentPath: string) => {
   editing.value = false;
-  nodeForm.value = { path: parentPath === "/" ? "/new-node" : parentPath + "/new-node", data: "" };
+  Object.assign(nodeForm, { path: parentPath === "/" ? "/new-node" : parentPath + "/new-node", data: "" });
   nodeDialogVisible.value = true;
 };
 
@@ -292,8 +294,8 @@ const onDeleteRecursive = async (path: string) => {
     ElMessage.success("递归删除成功");
     refresh();
     if (activePath.value === path) {
-      activePath.value = null;
-      nodeDetail.value = null;
+      activePath.value = "";
+      Object.assign(nodeDetail, { path: "", ephemeral: false, version: 0, numChildren: 0, data: "" });
     }
   } catch (e) {
     ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);

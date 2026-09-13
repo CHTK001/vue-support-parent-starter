@@ -10,6 +10,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Bell, Plus, Edit, Delete, Search, Refresh, Upload, Download } from "@element-plus/icons-vue";
 import { pageForAnnouncement, saveAnnouncement, updateAnnouncement, deleteAnnouncement, publishAnnouncement, unpublishAnnouncement } from "../api/announcementApi";
 import type { SysAnnouncement } from "../api/announcementApi";
+import { getAnnouncementReadStat, pageForAnnouncementReadUsers } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const query = ref<{
@@ -31,10 +32,53 @@ async function loadAnnouncements({ page, pageSize, params }: ReTableLoadParams):
     sysAnnouncementStatus: (params.sysAnnouncementStatus as number) || undefined,
     sysAnnouncementLevel: (params.sysAnnouncementLevel as string) || undefined,
   });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  const rows = (res?.data?.data ?? []) as Record<string, unknown>[];
+  // 异步加载每条公告的已读统计
+  rows.forEach((row) => {
+    const id = row.sysAnnouncementId as number;
+    if (!id) return;
+    getAnnouncementReadStat(id)
+      .then((res) => {
+        readStatMap.value[id] = { readCount: res?.data?.readCount ?? 0, unreadCount: res?.data?.unreadCount ?? 0 };
+      })
+      .catch(() => {});
+  });
+  return { total: res?.data?.total ?? 0, data: rows };
 }
 
 const tableRef = ref();
+
+/** 已读统计缓存：id -> { readCount, unreadCount } */
+const readStatMap = ref<Record<number, { readCount: number; unreadCount: number }>>({});
+
+/** 是否定时发布开关 */
+const scheduledPublish = ref(false);
+
+/* ================== 已读用户抽屉 ================== */
+const readDrawerVisible = ref(false);
+const readDrawerLoading = ref(false);
+const readUsers = ref<Array<{ username?: string; readTime?: string }>>([]);
+const readDrawerTitle = ref("");
+
+/** 已读用户列表 */
+async function openReadUsers(row: SysAnnouncement) {
+  readDrawerTitle.value = `已读用户 - ${row.sysAnnouncementTitle ?? ""}`;
+  readDrawerVisible.value = true;
+  readDrawerLoading.value = true;
+  readUsers.value = [];
+  try {
+    const res = await pageForAnnouncementReadUsers({
+      announcementId: row.sysAnnouncementId as number,
+      page: 1,
+      pageSize: 200,
+    });
+    readUsers.value = ((res?.data?.data ?? res?.data?.rows ?? []) ?? []) as Array<{ username?: string; readTime?: string }>;
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "已读用户加载失败");
+  } finally {
+    readDrawerLoading.value = false;
+  }
+}
 
 function handleReset() {
   query.value = { page: 1, pageSize: 20 };
@@ -66,11 +110,22 @@ const typeOptions = [
 const statusMap: Record<number, string> = {
   0: "草稿",
   1: "已发布",
-  2: "已下架",
+  2: "已下线",
+  3: "待发布",
 };
+
+/** 预览弹窗 */
+const previewVisible = ref(false);
+const previewData = ref<SysAnnouncement | null>(null);
+
+function handlePreview(row: SysAnnouncement) {
+  previewData.value = row;
+  previewVisible.value = true;
+}
 
 function handleAdd() {
   isEdit.value = false;
+  scheduledPublish.value = false;
   form.value = {
     sysAnnouncementLevel: "info",
     sysAnnouncementPosition: "default",
@@ -82,6 +137,7 @@ function handleAdd() {
 
 async function handleEdit(row: SysAnnouncement) {
   isEdit.value = true;
+  scheduledPublish.value = Boolean(row.sysAnnouncementPublishTime);
   form.value = { ...row };
   dialogVisible.value = true;
 }
@@ -141,7 +197,11 @@ const columns: ReTableColumn[] = [
   { prop: "sysAnnouncementLevel", label: "级别", width: 80, formatter: (_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown) => levelOptions.find(o => o.value === cellValue)?.label ?? String(cellValue ?? "") },
   { prop: "sysAnnouncementPosition", label: "位置", width: 120, formatter: (_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown) => positionOptions.find(o => o.value === cellValue)?.label ?? String(cellValue ?? "") },
   { prop: "sysAnnouncementType", label: "类型", width: 80, formatter: (_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown) => typeOptions.find(o => o.value === cellValue)?.label ?? String(cellValue ?? "") },
-  { prop: "sysAnnouncementStatus", label: "状态", width: 80, formatter: (_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown) => statusMap[cellValue as number] ?? "--" },
+  { prop: "sysAnnouncementStatus", label: "状态", width: 90, formatter: (_row: Record<string, unknown>, _col: ReTableColumn, cellValue: unknown) => statusMap[cellValue as number] ?? "--" },
+  { prop: "readStat", label: "已读/未读", width: 120, align: "center", formatter: (row: Record<string, unknown>) => {
+    const st = readStatMap.value[(row.sysAnnouncementId as number)];
+    return st ? `已读 ${st.readCount} / 未读 ${st.unreadCount}` : "-";
+  } },
   { prop: "sysAnnouncementSort", label: "排序", width: 60 },
   { prop: "sysAnnouncementPublishTime", label: "发布时间", width: 160 },
   { prop: "sysAnnouncementExpireTime", label: "过期时间", width: 160 },
@@ -170,8 +230,9 @@ onMounted(() => {
         <el-form-item label="状态">
           <el-select v-model="query.sysAnnouncementStatus" placeholder="全部" clearable style="width: 120px">
             <el-option label="草稿" :value="0" />
+            <el-option label="待发布" :value="3" />
             <el-option label="已发布" :value="1" />
-            <el-option label="已下架" :value="2" />
+            <el-option label="已下线" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -191,6 +252,8 @@ onMounted(() => {
       </template>
 
       <template #default="{ row }">
+        <el-button size="small" @click="handlePreview(row as SysAnnouncement)">预览</el-button>
+        <el-button size="small" type="info" @click="openReadUsers(row as SysAnnouncement)">已读详情</el-button>
         <el-button size="small" @click="handleEdit(row as SysAnnouncement)">编辑</el-button>
         <el-button v-if="row.sysAnnouncementStatus === 0" size="small" type="primary" @click="handlePublish(row as SysAnnouncement)">发布</el-button>
         <el-button v-if="row.sysAnnouncementStatus === 1" size="small" warning @click="handleUnpublish(row as SysAnnouncement)">下架</el-button>
@@ -246,7 +309,56 @@ onMounted(() => {
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="状态">
+              <el-select v-model="form.sysAnnouncementStatus">
+                <el-option label="草稿" :value="0" />
+                <el-option label="待发布（到点自动发布）" :value="3" />
+                <el-option label="已发布" :value="1" />
+                <el-option label="已下线" :value="2" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="定时发布">
+              <el-switch v-model="scheduledPublish" />
+            </el-form-item>
+            <el-form-item v-if="scheduledPublish" label="发布时间">
+              <el-date-picker
+                v-model="form.sysAnnouncementPublishTime"
+                type="datetime"
+                placeholder="选择发布时间，留空立即发布"
+                style="width: 100%"
+                value-format="YYYY-MM-DDTHH:mm:ss"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
+    </ReDialog>
+
+    <!-- 已读用户抽屉 -->
+    <el-drawer v-model="readDrawerVisible" :title="readDrawerTitle" size="480px">
+      <el-table v-loading="readDrawerLoading" :data="readUsers" border stripe size="small" style="width: 100%">
+        <el-table-column type="index" label="#" width="60" align="center" />
+        <el-table-column prop="username" label="用户名" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="readTime" label="阅读时间" min-width="180" />
+      </el-table>
+      <p v-if="!readDrawerLoading && !readUsers.length" style="margin-top: 12px; color: var(--el-text-color-secondary); font-size: 13px">暂无已读用户</p>
+    </el-drawer>
+
+    <!-- 公告预览弹窗（纯文本渲染，避免 XSS） -->
+    <ReDialog v-model="previewVisible" title="公告预览" width="640px" :footer-hidden="true">
+      <div v-if="previewData" class="announcement-preview">
+        <h2 class="announcement-preview__title">{{ previewData.sysAnnouncementTitle || "无标题" }}</h2>
+        <div class="announcement-preview__meta">
+          <span>级别：{{ levelOptions.find(o => o.value === previewData.sysAnnouncementLevel)?.label ?? "-" }}</span>
+          <span>状态：{{ statusMap[previewData.sysAnnouncementStatus ?? 0] ?? "-" }}</span>
+          <span>发布时间：{{ previewData.sysAnnouncementPublishTime || "未发布" }}</span>
+        </div>
+        <div class="announcement-preview__content" v-html="previewData.sysAnnouncementContent || '（无内容）'"></div>
+      </div>
     </ReDialog>
   </div>
 </template>
@@ -276,5 +388,29 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   margin: 0;
+}
+
+.announcement-preview {
+  &__title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  &__meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+  &__content {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.7;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+  }
 }
 </style>

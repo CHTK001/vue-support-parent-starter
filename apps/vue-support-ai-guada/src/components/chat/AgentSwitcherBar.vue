@@ -1,0 +1,97 @@
+<template>
+  <div
+    class="absolute bottom-full left-3 right-3 z-20 w-[calc(100%-24px)] margin-auto flex flex-col rounded-tl-(--size-dialog-rounded-radius) rounded-tr-(--size-dialog-rounded-radius)  bg-(--color-surface) border border-(--color-surface-border) overflow-hidden transition-all duration-300 shadow-lg"
+    :class="{ 'max-h-48': isExpanded, 'max-h-12': !isExpanded }">
+    <!-- 头部折叠栏 -->
+    <div class="flex items-center px-2 py-2 cursor-pointer select-none" @click="toggleExpand">
+      <Avatar :src="character?.avatarUrl" type="assistant" :name="character?.title || t('chat.agent.smartAssistant')"
+        class="w-5 h-5 shrink-0 rounded overflow-hidden mr-2" />
+      <span class="text-sm text-gray-700 dark:text-[#c5c7cc] shrink-0">
+        {{ character?.title || t('chat.agent.smartAssistant') }}
+      </span>
+      <span class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">
+        {{ character?.description || t('chat.agent.defaultDescription') }}
+      </span>
+    </div>
+    <!-- 展开的角色列表 -->
+    <div class="mb-5 space-y-0.5 px-1"
+      :class="{ 'overflow-y-auto': isExpanded, 'overflow-y-hidden': !isExpanded }">
+      <!-- 加载中 -->
+      <div v-if="loading" class="flex items-center justify-center py-4">
+        <el-icon class="is-loading text-gray-400" size="16">
+          <Loading />
+        </el-icon>
+      </div>
+      <!-- 角色列表 -->
+      <template v-else>
+        <div v-for="char in selectableCharacters" :key="char.id"
+          class="flex items-center gap-2 py-1 px-1 rounded-(--size-dialog-rounded-radius) cursor-pointer transition-colors"
+          :class="{
+            'text-gray-500 dark:text-[#8b8d95] hover:bg-(--color-surface-hover)': true,
+          }"
+          @click.stop="handleSelect(char)">
+          <Avatar :src="char.avatarUrl" type="assistant" :name="char.title"
+            class="w-5 h-5 shrink-0 rounded overflow-hidden" />
+          <span class="text-sm shrink-0">{{ char.title }}</span>
+          <span class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">{{ char.description || t('chat.agent.noDescription') }}</span>
+        </div>
+        <div v-if="selectableCharacters.length === 0" class="text-center py-4 text-gray-400 dark:text-[#6b6d75]">
+          <p class="text-sm">{{ t('chat.agent.noOtherRoles') }}</p>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { ArrowUp, Loading } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { apiService } from '@/services/ApiService';
+import { Avatar } from '../ui';
+import type { Character } from '@/types/character';
+
+const { t } = useI18n();
+
+const props = defineProps<{
+  character?: Character | null;
+}>();
+
+const emit = defineEmits<{
+  select: [character: Character];
+}>();
+
+const isExpanded = ref(false);
+const loading = ref(false);
+const characters = ref<Character[]>([]);
+let loaded = false;
+
+const selectableCharacters = computed(() => {
+  return characters.value.filter(c => c.id !== props.character?.id);
+});
+
+function toggleExpand() {
+  isExpanded.value = !isExpanded.value;
+  if (isExpanded.value && !loaded) {
+    loadCharacters();
+  }
+}
+
+async function loadCharacters() {
+  loading.value = true;
+  try {
+    const res = await apiService.fetchCharacters();
+    characters.value = res.items || [];
+    loaded = true;
+  } catch (e) {
+    console.error('[AgentSwitcherBar] 加载角色失败:', e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleSelect(char: Character) {
+  emit('select', char);
+  isExpanded.value = false;
+}
+</script>

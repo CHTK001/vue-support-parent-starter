@@ -44,6 +44,8 @@ export interface SysUserQuery {
   sysUserPhone?: string;
   sysUserStatus?: number;
   sysDeptId?: number;
+  /** 按角色 ID 筛选（角色用户列表用） */
+  sysRoleId?: number;
 }
 
 /** 用户 */
@@ -83,6 +85,26 @@ export interface SysUser extends Auditable {
   roleIds?: number[];
   /** 角色列表（只读） */
   userRoles?: SysRole[];
+  /** 岗位 ID 列表（更新时使用） */
+  postIds?: number[];
+  /** 岗位列表（只读） */
+  userPosts?: SysPost[];
+  /** 锁定状态 0正常 1锁定 */
+  sysUserLock?: number;
+  /** 锁定时间 */
+  sysUserLockTime?: string;
+  /** 登录次数 */
+  sysUserLoginCount?: number;
+  /** 最后登录时间 */
+  sysUserLastLoginTime?: string;
+  /** 密码最后修改时间 */
+  sysUserPasswordUpdateTime?: string;
+  /** 是否必须修改密码 0否 1是 */
+  sysUserMustChangePassword?: number;
+  /** TOTP 绑定码（不展示值） */
+  sysUserTotpCode?: string;
+  /** TOTP 是否已开启（派生状态） */
+  totpEnabled?: boolean;
 }
 
 /** 用户新增/更新（不带密码字段） */
@@ -112,6 +134,16 @@ export interface SysRole extends Auditable {
   sysRoleInSystem?: number;
   /** 备注 */
   sysRoleRemark?: string;
+  /** 数据权限范围: 1-全部 2-本部门 3-本部门及以下 4-仅本人 5-自定义 */
+  sysRoleDataScope?: number;
+  /** 自定义数据权限部门ID列表(逗号分隔) */
+  sysRoleDataScopeDeptIds?: string;
+  /** 是否只读角色 0否 1是 */
+  sysRoleReadonly?: number;
+  /** 数据权限范围(字符串口径): all/dept/dept_and_child/self/custom */
+  sysRoleDataScopeStr?: string;
+  /** 自定义数据权限部门ID列表(JSON 数组字符串) */
+  sysRoleDeptIds?: string;
 }
 
 /** 角色分配菜单请求 */
@@ -294,6 +326,10 @@ export interface SysSetting extends Auditable {
   sysSettingSort?: number;
   sysSettingInSystem?: number;
   sysSettingRemark?: string;
+  /** 是否敏感配置: 0否 1是（列表/详情返回时掩码，明文需通过解密接口获取） */
+  sysSettingIsSensitive?: number;
+  /** 校验规则（正则表达式，可为空） */
+  sysSettingValidate?: string;
   /** 选项（select 类型使用） */
   options?: Array<{ label: string; value: string }>;
 }
@@ -301,6 +337,25 @@ export interface SysSetting extends Auditable {
 /** 系统设置 VO（带类型/选项） */
 export interface SysSettingVO extends SysSetting {
   sysSettingOptions?: string;
+}
+
+/** 系统设置变更历史 */
+export interface SysSettingHistory {
+  sysSettingHistoryId?: number;
+  sysSettingId?: number;
+  sysSettingName?: string;
+  sysSettingGroup?: string;
+  sysSettingOldValue?: string;
+  sysSettingNewValue?: string;
+  /** CREATE-新增 UPDATE-更新 DELETE-删除 IMPORT-导入 ROLLBACK-回滚 */
+  sysSettingOperation?: string;
+  sysSettingOperatorId?: string;
+  sysSettingOperatorName?: string;
+  sysSettingRemark?: string;
+  sysSettingBatchNo?: string;
+  /** 操作人（新口径） */
+  createBy?: string;
+  createTime?: string;
 }
 
 /* ================== 反馈管理 ================== */
@@ -319,6 +374,8 @@ export interface SysFeedback extends Auditable {
   sysFeedbackRecoverImages?: string;
   sysFeedbackUserAgent?: string;
   sysFeedbackPlatform?: string;
+  /** 优先级 0低 1中 2高 3紧急 */
+  sysFeedbackPriority?: number;
 }
 
 /** 反馈处理请求 */
@@ -326,6 +383,15 @@ export interface FeedbackIssue {
   sysFeedbackId?: number;
   sysFeedbackRecoverContent?: string;
   sysFeedbackRecoverImages?: string;
+}
+
+/** 反馈统计 */
+export interface FeedbackStatistic {
+  total?: number;
+  pending?: number;
+  resolved?: number;
+  typeStatistics?: Array<{ name?: string; type?: string; value?: number }>;
+  trendStatistics?: Array<{ date?: string; count?: number }>;
 }
 
 /* ================== 登录日志 ================== */
@@ -492,4 +558,294 @@ export interface SysLog extends Auditable {
   sysLogFrom?: string;
   /** 操作状态: 0失败 1成功 */
   sysLogStatus?: number;
+}
+
+/* ================== 岗位管理 ================== */
+
+/** 岗位 */
+export interface SysPost extends Auditable {
+  sysPostId?: number;
+  /** 岗位名称 */
+  sysPostName?: string;
+  /** 岗位编码 */
+  sysPostCode?: string;
+  /** 排序 */
+  sysPostSort?: number;
+  /** 0:启用 1:禁用 */
+  sysPostStatus?: number;
+  /** 备注 */
+  sysPostRemark?: string;
+  /** 备注（别名口径） */
+  remark?: string;
+  /** 关联用户数（瞬态） */
+  userCount?: number;
+}
+
+/** 岗位查询条件 */
+export interface SysPostQuery {
+  page?: number;
+  pageSize?: number;
+  sysPostName?: string;
+  sysPostCode?: string;
+  sysPostStatus?: number;
+}
+
+/* ================== 缓存管理 ================== */
+
+/** 缓存模块 */
+export interface CacheModule {
+  /** 模块名称 */
+  name?: string;
+  /** Key 前缀 */
+  keyPrefix?: string;
+  /** 模块描述 */
+  description?: string;
+  /** Key 数量 */
+  keyCount?: number;
+}
+
+/** 缓存 Key */
+export interface CacheKey {
+  /** Key 名 */
+  key?: string;
+  /** 剩余存活时间（秒，-1 表示永不过期） */
+  ttl?: number;
+}
+
+/* ================== 消息管理 ================== */
+
+/** 系统消息（管理端） */
+export interface SysMessageAdmin extends Auditable {
+  sysMessageId?: number;
+  /** 消息标题 */
+  sysMessageTitle?: string;
+  /** 消息内容 */
+  sysMessageContent?: string;
+  /** 消息类型: system-系统通知 notice-公告 remind-提醒 */
+  sysMessageType?: string;
+  /** 消息级别: normal-普通 important-重要 urgent-紧急 */
+  sysMessageLevel?: string;
+  /** 发送时间 */
+  sysMessageSendTime?: string;
+  /** 发送状态: 0未读 1已读（单条视角，管理端一般不用） */
+  sysMessageRead?: number;
+  /** 已读人数 */
+  readCount?: number;
+  /** 未读人数 */
+  unreadCount?: number;
+  /** 目标用户 ID 列表（空则广播全部） */
+  targetUserIds?: number[];
+  /** 发送者ID */
+  sysMessageSenderId?: number;
+  /** 发送者名称 */
+  sysMessageSenderName?: string;
+  /** 接收者ID 0=广播 */
+  sysMessageReceiverId?: number;
+  /** 接收者名称 */
+  sysMessageReceiverName?: string;
+  /** 0草稿 1已发送 2已撤回 */
+  sysMessageStatus?: number;
+  /** 跳转链接 */
+  sysMessageUrl?: string;
+}
+
+/** 消息模板 */
+export interface SysMessageTemplate {
+  sysMessageTemplateId?: number;
+  sysMessageTemplateCode: string;
+  sysMessageTemplateName: string;
+  sysMessageTemplateTitle?: string;
+  sysMessageTemplateContent?: string;
+  /** 0禁用 1启用 */
+  sysMessageTemplateStatus?: number;
+}
+
+/** 发送消息请求 */
+export interface SysMessageSendRequest {
+  sysMessageTitle: string;
+  sysMessageContent?: string;
+  /** system/notice/message/warning/info */
+  sysMessageType?: string;
+  /** low/normal/high/urgent */
+  sysMessageLevel?: string;
+  /** 接收者ID，0或留空=广播 */
+  sysMessageReceiverId?: number;
+  sysMessageUrl?: string;
+  templateCode?: string;
+}
+
+/** 消息统计 */
+export interface MessageStatistic {
+  /** 总数 */
+  total?: number;
+  /** 已读 */
+  readCount?: number;
+  /** 未读 */
+  unreadCount?: number;
+}
+
+/* ================== IP 黑白名单 ================== */
+
+/** IP 黑白名单 */
+export interface SysIpBlackwhite extends Auditable {
+  sysIpId?: number;
+  /** 类型: 0白名单 1黑名单 */
+  sysIpType?: number;
+  /** IP 地址 / 网段（CIDR） */
+  sysIpIp?: string;
+  /** 0:启用 1:禁用 */
+  sysIpStatus?: number;
+  /** 备注 */
+  sysIpRemark?: string;
+}
+
+/* ================== 错误日志 ================== */
+
+/** 错误日志 */
+export interface SysErrorLog {
+  sysErrorLogId?: number;
+  /** 异常类型 */
+  sysErrorLogType?: string;
+  /** 异常消息 */
+  sysErrorLogMessage?: string;
+  /** 完整异常堆栈 */
+  sysErrorLogStack?: string;
+  /** 请求 URL */
+  sysErrorLogUrl?: string;
+  /** 请求参数 */
+  sysErrorLogParam?: string;
+  /** 操作人 */
+  sysErrorLogUsername?: string;
+  /** 发生时间 */
+  createTime?: string;
+  /** 异常聚合Key */
+  sysErrorKey?: string;
+  /** 来源: js/rejection/resource/manual */
+  sysErrorSource?: string;
+  /** 异常消息（新口径） */
+  sysErrorMessage?: string;
+  /** 异常堆栈（新口径） */
+  sysErrorStack?: string;
+  /** 出错文件 */
+  sysErrorFilename?: string;
+  /** 行号 */
+  sysErrorLineno?: number;
+  /** 列号 */
+  sysErrorColno?: number;
+  /** 资源URL */
+  sysErrorResourceUrl?: string;
+  /** 标签名 */
+  sysErrorTagName?: string;
+  /** 首次发生时间(ms) */
+  sysErrorFirstAt?: number;
+  /** 发生次数 */
+  sysErrorCount?: number;
+  /** 最近上报时间(ms) */
+  sysErrorReportTime?: number;
+  /** 0未处理 1已处理 2已忽略 */
+  sysErrorStatus?: number;
+}
+
+/** 异常日志统计 */
+export interface ErrorLogStatistic {
+  total: number;
+  todayCount: number;
+  pendingCount: number;
+  handledCount: number;
+  ignoredCount: number;
+  handleRate: number;
+  sourceStats?: Record<string, number>;
+  topErrors?: Array<{ message: string; count: number; source: string }>;
+}
+
+/** 错误统计（按异常类型） */
+export interface ErrorStatistic {
+  /** 异常类型 */
+  type?: string;
+  /** 数量 */
+  count?: number;
+}
+
+/* ================== JVM 系统监控 ================== */
+
+/** 内存用量 */
+export interface MemoryUsage {
+  /** 初始 */
+  init?: number;
+  /** 已用 */
+  used?: number;
+  /** 已提交 */
+  committed?: number;
+  /** 最大 */
+  max?: number;
+}
+
+/** JVM 信息 */
+export interface JvmInfo {
+  /** JVM 名称 */
+  jvmName?: string;
+  /** JVM 版本 */
+  jvmVersion?: string;
+  /** Java 版本 */
+  javaVersion?: string;
+  /** 启动时间戳(ms) */
+  startTime?: number;
+  /** 运行时长(ms) */
+  uptime?: number;
+  /** JVM 输入参数 */
+  inputArguments?: string[];
+  /** 堆内存 */
+  heapMemory?: MemoryUsage;
+  /** 非堆内存 */
+  nonHeapMemory?: MemoryUsage;
+  /** 各内存池详情 */
+  memoryPools?: Array<{ name?: string; type?: string; usage?: MemoryUsage }>;
+  /** 线程信息 */
+  threadInfo?: {
+    threadCount?: number;
+    peakThreadCount?: number;
+    daemonThreadCount?: number;
+    deadlockedThreadCount?: number;
+  };
+  /** GC 收集器 */
+  garbageCollectors?: Array<{ name?: string; collectionCount?: number; collectionTime?: number }>;
+  /** Top CPU 线程 */
+  topCpuThreads?: Array<{ name?: string; cpuPercent?: number; state?: string }>;
+  /** 系统信息 */
+  systemInfo?: { cpuUsage?: number; totalMemory?: number; freeMemory?: number };
+}
+
+/* ================== 缓存管理（新口径） ================== */
+
+/** 缓存信息（固定 6 项：角色/字典/部门/设置/菜单/用户缓存） */
+export interface SysCacheInfo {
+  /** 缓存名称（角色缓存/字典缓存/部门缓存/设置缓存/菜单缓存/用户缓存） */
+  cacheName: string;
+  /** Redis key 前缀 */
+  cacheKey: string;
+  /** 描述 */
+  description: string;
+  keyCount?: number;
+  memoryUsage?: string;
+}
+
+/* ================== 公告已读统计 ================== */
+
+/** 公告已读统计 */
+export interface AnnouncementReadStat {
+  readCount: number;
+  unreadCount: number;
+  totalUsers: number;
+}
+
+/* ================== TOTP/2FA ================== */
+
+/** TOTP 开启状态 */
+export interface TotpStatus {
+  enabled: boolean;
+}
+
+/** TOTP 绑定 URI 响应 */
+export interface TotpUriResponse {
+  uri: string;
 }
