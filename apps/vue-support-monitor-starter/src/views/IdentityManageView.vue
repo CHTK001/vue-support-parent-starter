@@ -317,16 +317,39 @@ async function doUnbind(hostId: number): Promise<void> {
 const mailVisible = ref(false);
 const mailTarget = ref<Identity | null>(null);
 const mailLoading = ref(false);
-const mails = ref<Array<{ id: string; subject?: string; from?: string; date?: string; snippet?: string }>>([]);
-const mailDetail = ref("");
+const mails = ref<Array<{ id?: string; subject?: string; from?: string; date?: string; snippet?: string; content?: string; size?: number }>>([]);
+const activeMailIndex = ref(-1);
+const activeMail = computed(() => (activeMailIndex.value >= 0 ? mails.value[activeMailIndex.value] : null));
+
+/** 发件人短名（取 <...> 前或前 20 字符） */
+function mailFromShort(from: string | undefined): string {
+  if (!from) return "未知发件人";
+  const m = from.match(/^([^<@]+@[^>]+)/);
+  return (m?.[1] ?? from).slice(0, 22);
+}
+
+/** 日期格式化 */
+function formatMailDate(d: string | undefined): string {
+  if (!d) return "";
+  const s = d.slice(0, 16).replace("T", " ");
+  return s;
+}
+
+/** 大小格式化 */
+function formatSize(n: number | undefined): string {
+  if (n == null) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
 
 async function openMail(row: Identity): Promise<void> {
   mailTarget.value = row;
   mailVisible.value = true;
-  mailDetail.value = "";
+  activeMailIndex.value = -1;
   mailLoading.value = true;
   try {
-    const list = ((await listMailbox(row.id, "INBOX", 20)) ?? []) as Array<{ id: string; subject?: string; from?: string; date?: string; snippet?: string }>;
+    const list = ((await listMailbox(row.id, "INBOX", 20)) ?? []) as Array<{ id?: string; subject?: string; from?: string; date?: string; snippet?: string; content?: string; size?: number }>;
     mails.value = list;
   } catch (e) {
     mails.value = [];
@@ -336,13 +359,21 @@ async function openMail(row: Identity): Promise<void> {
   }
 }
 
-async function showMailDetail(m: { id?: string; subject?: string }): Promise<void> {
+/** 选中邮件并加载详情 */
+async function selectMail(m: { id?: string; subject?: string }, idx: number): Promise<void> {
+  activeMailIndex.value = idx;
   if (!mailTarget.value) return;
   try {
     const d = await getMailboxMessage(mailTarget.value.id, "INBOX", m.subject);
-    mailDetail.value = typeof d === "string" ? d : JSON.stringify(d ?? "", null, 2);
+    const detail = typeof d === "string" ? d : JSON.stringify(d ?? "", null, 2);
+    mails.value[idx] = { ...mails.value[idx], content: detail };
+    if (activeMailIndex.value === idx) {
+      // 保持响应式
+      mails.value = [...mails.value];
+    }
   } catch (e) {
-    mailDetail.value = `读取邮件内容失败: ${String((e as Error)?.message ?? e)}`;
+    mails.value[idx] = { ...mails.value[idx], content: `读取邮件内容失败: ${String((e as Error)?.message ?? e)}` };
+    mails.value = [...mails.value];
   }
 }
 
@@ -797,21 +828,73 @@ async function submitAdd(): Promise<void> {
     </ReDialog>
 
     <!-- 邮箱（MAILBOX）弹窗 -->
-    <ReDialog v-model="mailVisible" :title="`收件箱：${mailTarget?.msServerIdentityName ?? ''}`" width="700px" :close-on-click-modal="false">
-      <div v-if="mailLoading" class="dim" style="padding:20px 0;text-align:center">加载中...</div>
+    <ReDialog v-model="mailVisible" :title="`收件箱：${mailTarget?.msServerIdentityName ?? ''}`" width="820px" :close-on-click-modal="false">
+      <div v-if="mailLoading" class="mail-loading">
+        <span class="spinner" />
+        <span>正在读取邮件...</span>
+      </div>
       <template v-else>
-        <div v-if="mails.length" class="mail-list">
-          <div v-for="m in mails" :key="m.id" class="mail-item" @click="showMailDetail(m)">
-            <div class="mail-subject">{{ m.subject || '(无主题)' }}</div>
-            <div class="mail-meta mono dim">{{ m.from || '' }} · {{ m.date || '' }}</div>
-            <div v-if="m.snippet" class="mail-snippet dim">{{ m.snippet }}</div>
+        <div v-if="mails.length" class="mail-layout">
+          <!-- 左侧邮件列表 -->
+          <div class="mail-side">
+            <div class="mail-side-header">
+              <span class="mail-side-count">{{ mails.length }} 封</span>
+              <span class="mail-side-hint">点击查看内容</span>
+            </div>
+            <div class="mail-list">
+              <div
+                v-for="(m, idx) in mails"
+                :key="m.id ?? idx"
+                class="mail-item"
+                :class="{ active: activeMailIndex === idx }"
+                @click="selectMail(m, idx)"
+              >
+                <div class="mail-item-top">
+                  <span class="mail-avatar">{{ (m.from || '?').charAt(0).toUpperCase() }}</span>
+                  <span class="mail-from mono">{{ mailFromShort(m.from) }}</span>
+                  <span class="mail-date dim">{{ formatMailDate(m.date) }}</span>
+                </div>
+                <div class="mail-subject">{{ m.subject || '(无主题)' }}</div>
+                <div v-if="m.snippet" class="mail-snippet dim">{{ m.snippet }}</div>
+              </div>
+            </div>
+          </div>
+          <!-- 右侧详情 -->
+          <div class="mail-pane">
+            <template v-if="activeMail">
+              <div class="mail-pane-header">
+                <div class="mail-pane-subject">{{ activeMail.subject || '(无主题)' }}</div>
+                <div class="mail-pane-meta">
+                  <ReTag size="small" effect="plain">发件人</ReTag>
+                  <span class="mono">{{ activeMail.from || '—' }}</span>
+                </div>
+                <div class="mail-pane-meta">
+                  <ReTag size="small" effect="plain">时间</ReTag>
+                  <span class="mono">{{ activeMail.date || '—' }}</span>
+                </div>
+                <div v-if="activeMail.size != null" class="mail-pane-meta">
+                  <ReTag size="small" effect="plain">大小</ReTag>
+                  <span class="mono">{{ formatSize(activeMail.size) }}</span>
+                </div>
+              </div>
+              <div class="mail-body">
+                <pre v-if="activeMail.content">{{ activeMail.content }}</pre>
+                <div v-else class="dim">（该邮件暂无正文预览，点击下方查看原始内容）</div>
+              </div>
+              <div class="mail-pane-foot">
+                <ReButton icon="RefreshLeft" :show-text="true" size="small" @click="openMail(mailTarget!)">刷新</ReButton>
+              </div>
+            </template>
+            <div v-else class="mail-pane-empty">
+              <ReIcon name="Message" :size="40" color="var(--text-tertiary)" />
+              <span>选择左侧邮件查看详情</span>
+            </div>
           </div>
         </div>
-        <div v-else class="dim" style="padding:20px 0;text-align:center">收件箱为空</div>
-        <template v-if="mailDetail">
-          <el-divider />
-          <div class="mail-detail"><pre>{{ mailDetail }}</pre></div>
-        </template>
+        <div v-else class="mail-empty">
+          <ReIcon name="Inbox" :size="40" color="var(--text-tertiary)" />
+          <span>收件箱为空</span>
+        </div>
       </template>
       <template #footer>
         <ReButton @click="mailVisible = false">关闭</ReButton>
@@ -831,11 +914,31 @@ async function submitAdd(): Promise<void> {
 .host-chips { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
 .host-chip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 13px; }
 .host-chip b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mail-list { max-height: 320px; overflow-y: auto; }
-.mail-item { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
+.mail-layout { display: flex; gap: 12px; height: 480px; }
+.mail-side { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; }
+.mail-side-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-container); border-bottom: 1px solid var(--border-subtle); font-size: 12px; }
+.mail-side-count { font-weight: 600; }
+.mail-side-hint { color: var(--text-tertiary); }
+.mail-list { flex: 1; overflow-y: auto; }
+.mail-item { padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.15s; }
 .mail-item:hover { background: var(--bg-hover); }
-.mail-subject { font-size: 13px; font-weight: 600; }
-.mail-meta { font-size: 11px; margin-top: 2px; }
-.mail-snippet { font-size: 12px; margin-top: 2px; }
-.mail-detail pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; max-height: 240px; overflow-y: auto; }
+.mail-item.active { background: var(--brand-50); border-left: 3px solid var(--brand-500); }
+.mail-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.mail-avatar { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-500); color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.mail-from { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-date { font-size: 11px; flex-shrink: 0; }
+.mail-subject { font-size: 13px; font-weight: 600; margin: 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-snippet { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; }
+.mail-pane-header { padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
+.mail-pane-subject { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.mail-pane-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 4px 0; }
+.mail-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+.mail-body pre { white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; line-height: 1.6; }
+.mail-pane-foot { padding: 8px 12px; border-top: 1px solid var(--border-subtle); }
+.mail-pane-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-tertiary); font-size: 13px; }
+.mail-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 0; color: var(--text-tertiary); font-size: 13px; }
+.mail-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px 0; color: var(--text-tertiary); font-size: 13px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border-subtle); border-top-color: var(--brand-500); border-radius: 50%; animation: im-spin 0.8s linear infinite; }
+@keyframes im-spin { to { transform: rotate(360deg); } }
 </style>
