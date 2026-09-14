@@ -1,0 +1,134 @@
+/**
+ * 视频资源中心 —— 全局设计令牌与基础样式
+ *
+ * Ocean Blue 配色（frontend-beautify 规范）：
+ *   Primary #0ea5e9 / Secondary #38bdf8 / Surface #f0f9ff / Text #0c4a6e
+ */
+:root {
+  --vd-primary: #0ea5e9;
+  --vd-primary-strong: #0284c7;
+  --vd-secondary: #38bdf8;
+  --vd-accent: #7dd3fc;
+  --vd-surface: #f0f9ff;
+  --vd-text: #0c4a6e;
+  --vd-text-secondary: #64748b;
+  --vd-border: #e2e8f0;
+  --vd-surface-card: #ffffff;
+
+  --vd-radius-sm: 6px;
+  --vd-radius-md: 10px;
+  --vd-radius-lg: 14px;
+
+  --vd-shadow-sm: 0 1px 3px rgba(12, 74, 110, 0.08);
+  --vd-shadow-md: 0 2px 8px rgba(12, 74, 110, 0.1);
+  --vd-shadow-lg: 0 8px 24px rgba(12, 74, 110, 0.16);
+
+  --vd-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--vd-surface);
+  color: var(--vd-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ── 页面容器 ─────────────────────────────── */
+.vd-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+}
+
+/* ── 页头 ─────────────────────────────────── */
+.vd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.vd-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.vd-header .vd-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--vd-text-secondary);
+}
+
+/* ── 视频卡片 ─────────────────────────────── */
+.vd-card {
+  background: var(--vd-surface-card);
+  border: 1px solid var(--vd-border);
+  border-radius: var(--vd-radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s var(--vd-ease), transform 0.2s var(--vd-ease);
+  box-shadow: var(--vd-shadow-sm);
+}
+
+.vd-card:hover {
+  box-shadow: var(--vd-shadow-lg);
+  transform: translateY(-3px);
+}
+
+.vd-card:focus-visible {
+  outline: 2px solid var(--vd-primary);
+  outline-offset: 2px;
+}
+
+/* ── 海报占位（加载中/无封面） ─────────────── */
+.vd-poster-skeleton {
+  background: linear-gradient(100deg, #e2e8f0 30%, #f1f5f9 50%, #e2e8f0 70%);
+  background-size: 200% 100%;
+  animation: vd-skeleton 1.5s infinite;
+}
+
+@keyframes vd-skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── 播放页剧场模式 ───────────────────────── */
+.vd-theater {
+  background: #0b1220;
+  border-radius: var(--vd-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--vd-shadow-lg);
+}
+
+/* ── 微交互过渡 ───────────────────────────── */
+.vd-fade-enter-active,
+.vd-fade-leave-active {
+  transition: opacity 0.25s var(--vd-ease);
+}
+.vd-fade-enter-from,
+.vd-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vd-card,
+  .vd-card:hover {
+    transition: none;
+    transform: none;
+  }
+  .vd-poster-skeleton {
+    animation: none;
+  }
+}
