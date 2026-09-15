@@ -643,7 +643,7 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
         @selection-change="handleSelectionChange"
-        @update:page="(p) => { query.value.page = p; tableRef?.reload(); }"
+        @update:page="(p) => { window.__userUpdatePage = p; query.value.page = p; window.__queryPageAfter = query.value.page; tableRef?.reload(); }"
       >
         <template #username="{ row }">
           <div class="flex items-center gap-2">
