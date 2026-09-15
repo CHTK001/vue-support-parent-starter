@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 登录日志管理页面 —— 查看系统登录日志，只读，不提供删除功能
  *
@@ -82,7 +82,7 @@ const columns: ReTableColumn[] = [
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" :add-button="false">
+      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
         <div class="system-page__search">
           <ReInput
             layout="modern"

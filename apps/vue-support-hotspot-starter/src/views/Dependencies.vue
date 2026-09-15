@@ -30,8 +30,19 @@
 
     <!-- 列表视图 -->
     <div v-else class="table-panel">
+      <div class="table-filter">
+        <el-input
+          v-model="listKeyword"
+          placeholder="过滤 源/目标/协议…"
+          clearable
+          size="small"
+          style="width: 220px"
+        />
+        <el-checkbox v-model="listErrorOnly" size="small">仅看错误边</el-checkbox>
+        <span class="filter-hint">聚合后 {{ filteredEdges.length }} / {{ edges.length }} 条边</span>
+      </div>
       <el-table
-        :data="edges"
+        :data="filteredEdges"
         class="apm-table"
         empty-text="暂无依赖关系"
       >
@@ -51,15 +62,22 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="callCount" label="调用次数" width="100" align="center" />
+        <el-table-column prop="callCount" label="调用次数" width="100" align="center" sortable />
+        <el-table-column label="P95 耗时" width="100" align="center" sortable sort-by="p95Ms">
+          <template #default="{ row }">
+            <span class="mono">{{ (row.p95Ms ?? 0).toFixed(1) }} ms</span>
+          </template>
+        </el-table-column>
         <el-table-column label="错误" width="80" align="center">
           <template #default="{ row }">
             <span :class="['mono', row.errorCount > 0 ? 'err' : 'muted']">{{ row.errorCount }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="平均耗时" width="110" align="center">
+        <el-table-column label="错误率" width="90" align="center" sortable sort-by="errorRate">
           <template #default="{ row }">
-            <span class="mono">{{ row.avgDurationMs.toFixed(1) }} ms</span>
+            <span :class="['mono', (row.errorRate ?? 0) > 5 ? 'err' : (row.errorRate ?? 0) > 1 ? 'warn' : 'muted']">
+              {{ (row.errorRate ?? 0).toFixed(2) }}%
+            </span>
           </template>
         </el-table-column>
       </el-table>
@@ -72,13 +90,28 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { ElMessage } from "element-plus";
 import { Refresh, Plus, MagicStick } from "@element-plus/icons-vue";
-import { getDependencies, injectTransmission, injectBatch } from "../api/apmApi";
+import { getDependenciesAggregated, injectTransmission, injectBatch } from "../api/apmApi";
 import type { DependencyEdge } from "../api/apmApi";
 
 const mode = ref<"graph" | "table">("graph");
 const edges = ref<DependencyEdge[]>([]);
 const loading = ref(false);
 const graphRef = ref<HTMLElement | null>(null);
+const listKeyword = ref("");
+const listErrorOnly = ref(false);
+
+/** 列表视图：前端过滤聚合边 */
+const filteredEdges = computed(() => {
+  const kw = listKeyword.value.trim().toLowerCase();  return edges.value.filter((e) => {
+    if (listErrorOnly.value && e.errorCount === 0) return false;
+    if (!kw) return true;
+    return (
+      e.source.toLowerCase().includes(kw) ||
+      e.target.toLowerCase().includes(kw) ||
+      (e.protocol || "").toLowerCase().includes(kw)
+    );
+  });
+});
 
 let chart: echarts.ECharts | null = null;
 
@@ -138,8 +171,7 @@ async function doBatch() {
 async function load() {
   loading.value = true;
   try {
-    const res = await getDependencies();
-    edges.value = res.items;
+    edges.value = await getDependenciesAggregated(100);
     renderGraph();
   } catch {
     ElMessage.error("加载依赖拓扑失败");
@@ -278,6 +310,26 @@ watch(mode, () => renderGraph());
 
 .mono.err {
   color: var(--apm-danger);
+}
+
+.mono.warn {
+  color: var(--apm-warning);
+}
+
+/* 列表筛选行 */
+.table-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--apm-border);
+  margin-bottom: 4px;
+}
+
+.filter-hint {
+  font-size: 12px;
+  color: var(--apm-muted);
+  margin-left: auto;
 }
 
 .muted {

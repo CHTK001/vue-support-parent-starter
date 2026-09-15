@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 字典管理页面
  *
@@ -404,7 +404,7 @@ onMounted(() => {
       <!-- 字典分类 -->
       <el-tab-pane label="字典分类" name="dict">
         <el-card shadow="never" class="system-page__card">
-          <ReSearch :is-expanded="true">
+          <ReSearch :is-expanded="true" filter-mode="data">
             <div class="system-page__search">
               <ReInput
                 layout="modern"
@@ -478,7 +478,7 @@ onMounted(() => {
       <!-- 字典子项 -->
       <el-tab-pane label="字典子项" name="item">
         <el-card shadow="never" class="system-page__card">
-          <ReSearch :is-expanded="true">
+          <ReSearch :is-expanded="true" filter-mode="data">
             <div class="system-page__search">
               <ReSelect
                 v-model="itemQuery.sysDictId"

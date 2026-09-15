@@ -143,3 +143,54 @@ export interface Exam {
   examDuration?: number;
   examStatus?: number;
 }
+
+/** 趣味模块配置 */
+export interface FunConfig {
+  configId: number;
+  moduleCode: string;
+  moduleName: string;
+  moduleDesc: string;
+  moduleIcon: string;
+  modulePath: string;
+  enabled: number;
+  sortOrder: number;
+  configJson: string;
+  createTime: string;
+  updateTime: string;
+}
+
+/** 成语 */
+export interface Idiom {
+  idiomId: number;
+  idiomContent: string;
+  idiomPinyin: string;
+  idiomMeaning: string;
+  idiomSource: string;
+  idiomExample: string;
+  idiomSynonyms: string;
+  idiomAntonyms: string;
+  idiomDifficulty: number;
+  idiomTags: string;
+  createTime: string;
+  updateTime: string;
+}
+
+/** 成语游戏数据 */
+export interface IdiomGameData {
+  items: IdiomGameItem[];
+  distractorPinyin: string[];
+  distractorMeanings: string[];
+  totalItems: number;
+  gradeLevel: string;
+  grade: string;
+}
+
+/** 成语游戏项目 */
+export interface IdiomGameItem {
+  idiomId: number;
+  content: string;
+  pinyin: string;
+  meaning: string;
+  difficulty: number;
+  tags: string;
+}

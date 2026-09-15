@@ -533,7 +533,7 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   border-radius: 16px;
   padding: 18px 20px 20px;
   color: var(--p-text);
-  box-shadow: 0 12px 40px rgba(7, 11, 26, 0.35);
+  box-shadow: 0 2px 12px rgba(7, 11, 26, 0.08);
   animation: panelIn 0.45s var(--ease-out, ease) both;
 }
 /* 背景网格（伪元素叠加，不干扰 radial 光晕） */
@@ -715,7 +715,7 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   animation: cardIn 0.4s var(--ease-out, ease) 0.12s both;
   transition: border-color 0.25s, box-shadow 0.25s;
 }
-.trend:hover { border-color: rgba(148, 163, 184, 0.3); box-shadow: 0 4px 20px rgba(7, 11, 26, 0.45); }
+.trend:hover { border-color: rgba(148, 163, 184, 0.3); box-shadow: 0 2px 8px rgba(7, 11, 26, 0.06); }
 .t-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
 .t-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--p-text-3); }
 .t-now { font-size: 13px; font-weight: 700; color: var(--p-text); }

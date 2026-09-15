@@ -290,7 +290,7 @@ const loadModels = async (): Promise<void> => {
   try {
     const response = await apiService.fetchModels();
     // 提取所有 text 类型的模型
-    response.items.forEach(provider => {
+    (response.items || []).forEach(provider => {
       const textModels = provider.models?.filter((m: any) => m.modelType === 'text') || [];
       models.value.push(...textModels);
     });

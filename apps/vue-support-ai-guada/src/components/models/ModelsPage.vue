@@ -6,10 +6,10 @@
         <!-- 标题区（固定不滚动） -->
         <div class="shrink-0 flex items-center justify-between gap-4 mb-8 mt-2 px-4 w-full md:max-w-260 md:mx-auto">
           <div class="min-w-0">
-            <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.models.providers') }}</h1>
-            <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('settings.models.providersDesc') }}</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('settings.models.providers') }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('settings.models.providersDesc') }}</p>
           </div>
-          <el-button type="primary" @click="handleCreateGroup">
+          <el-button type="primary" size="large" round @click="handleCreateGroup">
             <template #icon><PlusOutlined /></template>
             {{ t('settings.models.addCustom') }}
           </el-button>
@@ -58,41 +58,87 @@
             <el-form-item :label="t('settings.models.apiUrl')" prop="apiUrl">
               <el-input v-model="currentProviderEdit.apiUrl" placeholder="api_url" :disabled="!isCustomProvider" />
             </el-form-item>
-            <el-form-item :label="t('settings.models.apiKey')" prop="apiKey">
-              <div class="api-key-input-wrapper">
-                <el-input v-model="currentProviderEdit.apiKey" placeholder="api_key" type="password" show-password />
-                <el-button type="primary" @click="handleTestConnection" :loading="testingConnection"
-                  :disabled="!currentProviderEdit.apiUrl || !currentProviderEdit.apiKey">
-                  {{ t('settings.models.test') }}
-                </el-button>
-              </div>
-              <!-- API Key 获取链接（仅非自定义供应商显示） -->
-              <div v-if="currentProviderEdit.provider !== 'custom'" class="mt-2">
-                <el-link type="primary" :underline="false" @click="handleOpenApiKeyUrl" class="text-xs">
-                  <el-icon class="mr-1">
-                    <LinkOutlined />
-                  </el-icon>
-                  {{ t('settings.models.getApiKey') }}
-                </el-link>
+            <el-form-item label="API KEY" prop="apiKey">
+              <div class="space-y-2 w-full">
+                <!-- 已配置key的提示（编辑模式时显示） -->
+                <div v-if="isProviderEditMode && currentProviderEdit.existingKeyCount > 0" 
+                     class="text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded mb-2">
+                  已配置 <strong>{{ currentProviderEdit.existingKeyCount }}</strong> 个Key
+                  <span v-if="currentProviderEdit.existingKeyMask" class="ml-2 text-gray-400">
+                    (示例: {{ currentProviderEdit.existingKeyMask }})
+                  </span>
+                  <span class="ml-2 text-blue-500">
+                    如需修改请在下方输入新Key，留空则保留原有配置
+                  </span>
+                </div>
+                <div v-for="(key, index) in apiKeyList" :key="index" class="flex gap-2">
+                  <el-input v-model="apiKeyList[index]" placeholder="api_key" type="password" show-password class="flex-1" />
+                  <el-button type="danger" link @click="removeApiKey(index)" :disabled="apiKeyList.length <= 1">
+                    <el-icon><DeleteOutlined /></el-icon>
+                  </el-button>
+                </div>
+                <!-- 测试连接结果 -->
+                <div v-if="testResult" class="text-xs mt-1" :class="testResult.success ? 'text-green-500' : 'text-red-500'">
+                  <span v-if="testingConnection">测试中...</span>
+                  <span v-else>{{ testResult.message }}<span v-if="testResult.latency"> ({{ testResult.latency }}ms)</span></span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <el-button type="primary" link @click="addApiKey">
+                    <el-icon class="mr-1"><PlusOutlined /></el-icon>
+                    添加API KEY
+                  </el-button>
+                  <!-- API Key 获取链接（仅非自定义供应商显示） -->
+                  <el-tooltip v-if="currentProviderEdit.provider !== 'custom'" content="获取 API Key" placement="top">
+                    <el-button type="primary" link @click="handleOpenApiKeyUrl">
+                      <el-icon><LinkOutlined /></el-icon>
+                    </el-button>
+                  </el-tooltip>
+                </div>
               </div>
             </el-form-item>
-            <!-- 自定义请求头（仅自定义供应商可编辑） -->
-            <el-form-item :label="t('settings.models.customHeaders')" prop="headers">
-              <el-input
-                v-model="currentProviderEdit.headers"
-                type="textarea"
-                :rows="4"
-                class="w-full"
-                :placeholder="t('settings.models.customHeadersPlaceholder')"
-              />
-              <div class="text-xs text-gray-400 mt-1">{{ t('settings.models.customHeadersDesc') }}</div>
-            </el-form-item>
+
+            <!-- 高级设置折叠 -->
+            <el-collapse v-model="advancedCollapse" class="mt-4">
+              <el-collapse-item title="高级设置" name="advanced">
+                <!-- 代理地址 -->
+                <el-form-item label="代理地址" prop="proxyUrl">
+                  <el-input v-model="currentProviderEdit.proxyUrl" placeholder="http://127.0.0.1:7890，留空不使用代理" />
+                  <div class="text-xs text-gray-400 mt-1">需要代理的供应商（如Gemini）填写代理地址</div>
+                </el-form-item>
+                <!-- Key策略 -->
+                <el-form-item label="Key策略" prop="keyStrategy">
+                  <el-select v-model="currentProviderEdit.keyStrategy" placeholder="选择Key轮询策略" class="w-full">
+                    <el-option label="不轮询（使用第一个Key）" value="none" />
+                    <el-option label="轮询（依次使用所有Key）" value="round_robin" />
+                    <el-option label="随机（随机选择Key）" value="random" />
+                    <el-option label="权重（按权重分配）" value="weighted" />
+                  </el-select>
+                  <div class="text-xs text-gray-400 mt-1">多Key时的分配策略，支持限流自动切换</div>
+                </el-form-item>
+                <!-- 限流自动切换 -->
+                <el-form-item label="限流自动切换" prop="autoSwitchOnRateLimit">
+                  <el-switch v-model="currentProviderEdit.autoSwitchOnRateLimit" />
+                  <div class="text-xs text-gray-400 mt-1">当前Key限流时自动切换到下一个可用Key</div>
+                </el-form-item>
+                <!-- 自定义请求头 -->
+                <el-form-item :label="t('settings.models.customHeaders')" prop="headers">
+                  <el-input
+                    v-model="currentProviderEdit.headers"
+                    type="textarea"
+                    :rows="4"
+                    class="w-full"
+                    :placeholder="t('settings.models.customHeadersPlaceholder')"
+                  />
+                  <div class="text-xs text-gray-400 mt-1">{{ t('settings.models.customHeadersDesc') }}</div>
+                </el-form-item>
+              </el-collapse-item>
+            </el-collapse>
           </el-form>
         </div>
         <template #footer>
           <span class="dialog-footer">
-            <el-button @click="showProviderModal = false">{{ t('common.cancel') }}</el-button>
-            <el-button type="primary" @click="handleSaveProvider">{{ t('common.ok') }}</el-button>
+            <el-button @click="handleTestConnection" :loading="testingConnection">测试连接</el-button>
+            <el-button type="primary" @click="handleSaveProvider">确定</el-button>
           </span>
         </template>
       </LDialog>
@@ -101,13 +147,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ModelsProviderList from '../setting/ModelsProviderList.vue'
 import ModelsProviderDetail from './ModelsProviderDetail.vue'
 import {
   PlusOutlined,
-  LinkOutlined
+  LinkOutlined,
+  DeleteOutlined
 } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
 import { apiService } from '../../services/ApiService'
@@ -115,7 +162,7 @@ import { usePopup } from '../../composables/usePopup'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 
 // Element Plus 组件导入
-import { ElInput, ElFormItem, ElForm, ElButton, ElSelect, ElOption } from 'element-plus'
+import { ElInput, ElFormItem, ElForm, ElButton, ElSelect, ElOption, ElCollapse, ElCollapseItem } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import LDialog from '@/components/ui/LDialog.vue'
 
@@ -136,7 +183,9 @@ const modelPresets = ref<any[]>([])
 // 计算可用的模板（过滤掉已添加的）
 const availableTemplates = computed(() => {
   const addedProviderTypes = new Set(providers.value.map(p => p.provider))
-  return providerTemplates.value.filter(t => !addedProviderTypes.has(t.id))
+  const result = providerTemplates.value.filter(t => !addedProviderTypes.has(t.id))
+  console.log('availableTemplates:', result.length, providerTemplates.value.length, providers.value.length)
+  return result
 })
 
 // 添加用于编辑的临时数据
@@ -147,6 +196,9 @@ const currentProviderEdit = ref<{
   provider: string
   protocol: string
   headers: string
+  proxyUrl: string
+  keyStrategy: string
+  autoSwitchOnRateLimit: boolean
   attributes: {
     headers: Record<string, string>
   }
@@ -157,16 +209,39 @@ const currentProviderEdit = ref<{
   provider: "custom",
   protocol: "openai",
   headers: "",
+  proxyUrl: "",
+  keyStrategy: "none",
+  autoSwitchOnRateLimit: false,
   attributes: {
     headers: {} as Record<string, string>
   }
 })
 
+// 多API KEY列表
+const apiKeyList = ref<string[]>([''])
+const advancedCollapse = ref<string[]>([])
+
+// 测试连接结果
+const testResult = ref<{ success: boolean; message: string; latency?: number } | null>(null)
+
+// 自动同步apiKeyList到currentProviderEdit.apiKey
+watch(apiKeyList, (newList) => {
+  currentProviderEdit.value.apiKey = newList.filter(k => k && k.trim()).join(',')
+}, { deep: true })
+
+const addApiKey = () => {
+  apiKeyList.value.push('')
+}
+
+const removeApiKey = (index: number) => {
+  if (apiKeyList.value.length > 1) {
+    apiKeyList.value.splice(index, 1)
+  }
+}
+
 // 判断是否为自定义供应商（只有 custom 类型才可编辑 name、protocol、apiUrl）
 const isCustomProvider = computed(() => {
-  if (!isProviderEditMode.value) {
-    return true
-  }
+  // 自定义供应商才能改API地址，模板供应商（openai/anthropic等）不能改
   return currentProviderEdit.value.provider === 'custom'
 })
 
@@ -209,11 +284,8 @@ const providerRules = computed(() => ({
     message: t('settings.models.apiUrlRequired'),
     trigger: ['blur', 'input']
   },
-  apiKey: {
-    required: true,
-    message: t('settings.models.apiKeyRequired'),
-    trigger: ['blur']
-  },
+  // apiKey不做required验证，因为输入框绑定的是apiKeyList不是currentProviderEdit.apiKey
+  // 验证逻辑在handleSaveProvider里手动处理
   headers: {
     validator: (rule: any, value: string, callback: any) => {
       const errors = validateHeadersText(value)
@@ -229,35 +301,40 @@ const providerRules = computed(() => ({
 
 // 初始化数据函数
 const initData = async () => {
-  const response = await apiService.fetchAllModels()
-  response.items.forEach(provider => {
-    if (provider.models) {
-      models.value.push(...provider.models.map(model => ({
-        ...model,
-        isActive: model.isActive !== undefined ? model.isActive : true
-      })))
-      delete provider.models
-    }
-    providers.value.push(provider)
-  })
+  try {
+    const res = await fetch('/api/providers')
+    const data = await res.json()
+    const list = (data.data || []).map(p => ({
+      ...p,
+      provider: p.platform || p.provider,
+      id: p.provider_id || p.id,
+      apiUrl: p.base_url || p.apiUrl,
+      protocol: p.auth_scheme || p.protocol
+    }))
+    providers.value = list
+  } catch (e) {
+    console.warn('初始化供应商列表失败:', e)
+  }
 }
 
 // 重新加载供应商和模型数据
 const reloadProvidersAndModels = async () => {
-  providers.value = []
-  models.value = []
-
-  const response = await apiService.fetchAllModels()
-  response.items.forEach(provider => {
-    if (provider.models && provider.models.length > 0) {
-      models.value.push(...provider.models.map(model => ({
-        ...model,
-        isActive: model.isActive !== undefined ? model.isActive : true
-      })))
-    }
-    delete provider.models
-    providers.value.push(provider)
-  })
+  try {
+    const res = await fetch('/api/providers')
+    const data = await res.json()
+    console.log('providers raw data:', data.data)
+    const list = (data.data || []).map(p => ({
+      ...p,
+      provider: p.platform || p.provider,
+      id: p.provider_id || p.id,
+      apiUrl: p.base_url || p.apiUrl,
+      protocol: p.auth_scheme || p.protocol
+    }))
+    console.log('providers mapped:', list)
+    providers.value = list
+  } catch (e) {
+    console.warn('刷新供应商列表失败:', e)
+  }
 }
 
 const currentProvider = computed(() => {
@@ -294,17 +371,29 @@ const handleCreateGroup = async () => {
 
 const handleSaveProvider = async () => {
   try {
+    // 先同步多API KEY到currentProviderEdit.apiKey
+    const apiKeys = apiKeyList.value.filter(k => k && k.trim())
+    currentProviderEdit.value.apiKey = apiKeys.join(',')
+
+    // 手动清除apiKey的验证状态，因为输入框绑定的是apiKeyList不是currentProviderEdit.apiKey
+    formRef.value?.clearValidate('apiKey')
+    
     await formRef.value?.validate()
 
     const headers = parseHeaders(currentProviderEdit.value.headers)
 
     if (isProviderEditMode.value) {
       const updateData: any = {
-        apiKey: currentProviderEdit.value.apiKey,
         apiUrl: currentProviderEdit.value.apiUrl,
         attributes: {
           headers
         }
+      }
+
+      // 只有用户输入了新key才更新，否则保留原key
+      const newApiKeys = apiKeyList.value.filter(k => k && k.trim())
+      if (newApiKeys.length > 0) {
+        updateData.apiKey = newApiKeys.join(',')
       }
 
       if (isNameEditable.value) {
@@ -320,7 +409,10 @@ const handleSaveProvider = async () => {
 
       const provider = providers.value.find(p => p.id === currentProviderId.value)
       if (provider) {
-        provider.apiKey = currentProviderEdit.value.apiKey
+        // 如果更新了key，才更新本地显示
+        if (newApiKeys.length > 0) {
+          provider.apiKey = newApiKeys.join(',')
+        }
         provider.apiUrl = currentProviderEdit.value.apiUrl
         if (isNameEditable.value) {
           provider.name = currentProviderEdit.value.name
@@ -331,31 +423,43 @@ const handleSaveProvider = async () => {
 
       showProviderModal.value = false
     } else {
+      // 拼接多API KEY
+      const apiKeys = apiKeyList.value.filter(k => k && k.trim())
+      // 构造后端需要的payload
       const payload = {
+        platform: currentProviderEdit.value.provider || 'openai',
         name: currentProviderEdit.value.name,
-        apiUrl: currentProviderEdit.value.apiUrl,
-        apiKey: currentProviderEdit.value.apiKey,
-        provider: currentProviderEdit.value.provider || 'custom',
-        protocol: currentProviderEdit.value.protocol || 'openai',
-        attributes: {
-          headers
+        base_url: currentProviderEdit.value.apiUrl,
+        auth_scheme: 'api_key',
+        credentials: {
+          api_key: apiKeys.join(',')
+        },
+        enabled: true,
+        initial_model: {
+          model: 'gpt-3.5-turbo',
+          name: '默认模型'
         }
       }
 
-      const provider = await apiService.createProvider(payload)
+      // 可选字段
+      if (currentProviderEdit.value.proxyUrl && currentProviderEdit.value.proxyUrl.trim()) {
+        payload.proxy = currentProviderEdit.value.proxyUrl.trim()
+      }
+
+      const res = await fetch('/api/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const result = await res.json()
 
       await reloadProvidersAndModels()
 
-      const newProvider = providers.value.find(p => p.id === provider.id)
-      if (newProvider) {
-        currentProviderId.value = newProvider.id
-      }
-
       const isFromTemplate = currentProviderEdit.value.provider !== 'custom'
       if (isFromTemplate) {
-        notify.success(t('common.createSuccess'), t('settings.models.providerAdded', { name: currentProviderEdit.value.name }), { duration: 3000 })
+        notify.success('创建成功', `已添加 ${currentProviderEdit.value.name}`, { duration: 3000 })
       } else {
-        notify.success(t('common.createSuccess'), t('settings.models.groupCreated'), { duration: 2000 })
+        notify.success('创建成功', '供应商已添加', { duration: 2000 })
       }
 
       showProviderModal.value = false
@@ -367,32 +471,48 @@ const handleSaveProvider = async () => {
 
 // 测试供应商连通性
 const handleTestConnection = async () => {
+  // 先同步多API KEY到currentProviderEdit.apiKey
+  const apiKeys = apiKeyList.value.filter(k => k && k.trim())
+  currentProviderEdit.value.apiKey = apiKeys.join(',')
+
   if (!currentProviderEdit.value.apiUrl) {
-    notify.error(t('settings.models.configError'), t('settings.models.apiUrlFirst'), { duration: 2000 })
+    testResult.value = { success: false, message: '请先填写API地址' }
     return
   }
   if (!currentProviderEdit.value.apiKey) {
-    notify.error(t('settings.models.configError'), t('settings.models.apiKeyFirst'), { duration: 2000 })
+    testResult.value = { success: false, message: '请先填写API Key' }
     return
   }
 
   testingConnection.value = true
+  testResult.value = { success: false, message: '测试中...' }
   try {
     const result = await apiService.testProviderConnection({
       apiUrl: currentProviderEdit.value.apiUrl,
       apiKey: currentProviderEdit.value.apiKey,
       protocol: currentProviderEdit.value.protocol || 'openai',
+      proxy: currentProviderEdit.value.proxyUrl,
       attributes: currentProviderEdit.value.attributes
     })
 
-    if (result.success) {
-      notify.success(t('settings.models.connectionSuccess'), result.message || t('settings.models.connectionTestSuccess'), { duration: 3000 })
+    console.log('test connection result:', result)
+
+    if (result.data?.success) {
+      testResult.value = {
+        success: true,
+        message: '连接成功',
+        latency: result.data.latency
+      }
     } else {
-      notify.error(t('settings.models.connectionFailed'), result.message || t('settings.models.connectionTestFailed'), { duration: 3000 })
+      testResult.value = {
+        success: false,
+        message: result.data?.message || '连接失败',
+        latency: result.data?.latency
+      }
     }
   } catch (error) {
     console.error('测试连通性失败:', error)
-    notify.error(t('settings.models.connectionFailed'), t('settings.models.testConnectionError'), { duration: 3000 })
+    testResult.value = { success: false, message: '测试失败，请检查网络' }
   } finally {
     testingConnection.value = false
   }
@@ -487,7 +607,17 @@ const handleEditProvider = (provider: any) => {
       .join('\n'),
     attributes: {
       headers: existingHeaders
-    }
+    },
+    // 保存已配置的key数量和掩码
+    existingKeyCount: provider.api_key_count || 0,
+    existingKeyMask: provider.api_key_mask || ""
+  }
+
+  // 如果是编辑模式，apiKeyList初始化为空，提示"已配置N个key"
+  if (provider.api_key_count && provider.api_key_count > 0) {
+    apiKeyList.value = []
+  } else {
+    apiKeyList.value = provider.apiKey ? provider.apiKey.split(',') : []
   }
 
   formRef.value?.clearValidate()
@@ -501,7 +631,7 @@ const handleTemplateClick = (template: any) => {
 
   currentProviderEdit.value = {
     name: template.name || "",
-    apiUrl: template.defaultApiUrl || "",
+    apiUrl: template.defaultApiUrl || template.defaultUrl || "",
     apiKey: "",
     provider: template.id,
     protocol: template.protocol || 'openai',
@@ -546,9 +676,33 @@ onMounted(() => {
   }
   // 获取供应商模板列表用于网格展示
   apiService.getProviderTemplates().then(templates => {
+    console.log('模板返回:', templates)
     providerTemplates.value = templates
   }).catch(error => {
     console.error('获取供应商模板失败:', error)
+    // 默认模板（从secrets.html提取）
+    providerTemplates.value = [
+      { id: 'openai', name: 'OpenAI', description: 'GPT系列模型官方API', protocol: 'openai', defaultApiUrl: 'https://api.openai.com/v1' },
+      { id: 'anthropic', name: 'Anthropic', description: 'Claude系列模型官方API', protocol: 'openai', defaultApiUrl: 'https://api.anthropic.com/v1' },
+      { id: 'gemini', name: 'Google Gemini', description: 'Google Gemini模型，需代理', protocol: 'openai', defaultApiUrl: 'https://generativelanguage.googleapis.com/v1beta/openai' },
+      { id: 'deepseek', name: 'DeepSeek', description: '深度求索大模型', protocol: 'openai', defaultApiUrl: 'https://api.deepseek.com/v1' },
+      { id: 'qwen', name: '通义千问', description: '阿里通义千问大模型', protocol: 'openai', defaultApiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+      { id: 'zhipu', name: '智谱AI', description: '智谱GLM系列模型', protocol: 'openai', defaultApiUrl: 'https://open.bigmodel.cn/api/paas/v4' },
+      { id: 'moonshot', name: 'Moonshot', description: '月之暗面Kimi模型', protocol: 'openai', defaultApiUrl: 'https://api.moonshot.cn/v1' },
+      { id: 'ollama', name: 'Ollama', description: '本地Ollama模型', protocol: 'openai', defaultApiUrl: 'http://localhost:11434/v1' },
+      { id: 'onnx', name: 'ONNX Runtime', description: '本地ONNX模型推理', protocol: 'openai', defaultApiUrl: 'http://localhost:8080/v1' },
+      { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内AI模型平台，支持DeepSeek、Qwen等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1' },
+      { id: 'openrouter', name: 'OpenRouter', description: '聚合API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://openrouter.ai/api/v1' },
+      { id: 'modelscope', name: '魔搭 ModelScope', description: '阿里达摩院模型社区，免费使用多种开源模型', protocol: 'openai', defaultApiUrl: 'https://api-inference.modelscope.cn/v1' },
+      { id: 'qianfan', name: '百度千帆', description: '百度智能云大模型平台', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2' },
+      { id: 'sensenova', name: 'SenseNova 商汤', description: '商汤科技大模型平台', protocol: 'openai', defaultApiUrl: 'https://token.sensenova.cn/v1' },
+      { id: 'nvidia', name: 'NVIDIA NIM', description: '英伟达AI推理平台，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://integrate.api.nvidia.com/v1' },
+      { id: 'agnes', name: 'Agnes AI', description: '聚合API，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://apihub.agnes-ai.cn/v1' },
+      { id: 'opencode', name: 'OpenCode', description: '免费开源API，支持多种模型', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/zen/v1' },
+      { id: 'huiqing', name: '慧清 AI', description: '免费AI模型平台', protocol: 'openai', defaultApiUrl: 'https://ai.huiqing.cyou/v1' },
+      { id: 'bai', name: 'b.ai', description: '免费AI模型平台，支持DeepSeek等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1' },
+      { id: 'custom', name: '自定义供应商', description: '自定义OpenAI兼容协议的供应商', protocol: 'openai', defaultApiUrl: '' },
+    ]
   })
   // 获取模型预设库
   apiService.getModelPresets().then(presets => {
@@ -578,5 +732,86 @@ onMounted(() => {
 .api-key-input-wrapper :deep(.el-input) {
   flex: 1;
   min-width: 0;
+}
+
+/* 对话框美化 */
+.provider-modal :deep(.el-dialog) {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.provider-modal :deep(.el-dialog__header) {
+  padding: 20px 24px 12px !important;
+  margin-right: 0 !important;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.provider-modal :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.provider-modal :deep(.el-dialog__body) {
+  padding: 20px 24px !important;
+}
+
+.provider-modal :deep(.el-dialog__footer) {
+  padding: 12px 24px 20px !important;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 表单项美化 */
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+/* 折叠面板美化 */
+:deep(.el-collapse) {
+  border: none;
+  background: transparent;
+}
+
+:deep(.el-collapse-item__header) {
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-weight: 500;
+  border-bottom: none;
+  margin-bottom: 8px;
+}
+
+:deep(.el-collapse-item__wrap) {
+  border: none;
+  background: transparent;
+}
+
+/* 按钮美化 */
+.dialog-footer :deep(.el-button) {
+  border-radius: 8px;
+  padding: 8px 20px;
+}
+
+.dialog-footer :deep(.el-button--primary) {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+/* 下拉框美化 */
+:deep(.el-select) {
+  border-radius: 8px;
+}
+
+/* 输入框美化 */
+:deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+:deep(.el-textarea__inner) {
+  border-radius: 8px;
 }
 </style>

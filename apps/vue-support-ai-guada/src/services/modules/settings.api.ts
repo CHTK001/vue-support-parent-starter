@@ -43,10 +43,15 @@ export const settingsApi: SettingsApi = {
   },
 
   async queryPlugins(this: ApiContext, config?: any, lang?: string) {
-    return await this._request("/plugins/query", {
-      method: "POST",
-      data: { config, ...(lang ? { lang } : {}) },
-    });
+    try {
+      return await this._request("/plugins/query", {
+        method: "POST",
+        data: { config, ...(lang ? { lang } : {}) },
+      });
+    } catch (e) {
+      // 后端插件接口暂未提供，返回空列表避免报错
+      return { plugins: [] };
+    }
   },
 
   async updateGlobalToolStatus(this: ApiContext, pluginId: string, enabled: boolean) {

@@ -1,0 +1,65 @@
+# ===========================================
+# 应用配置（vue-support-eduai-starter）
+# 教育 AI 工作台：题库 / 组卷 / 扫描识别 / AI 阅卷 / 知识库 / 错题库 / 考试
+# 说明：eduai 为免登录即可体验的功能型应用，鉴权关闭（无登录页路由）
+# API 走 dev 代理：/v2/edu -> /system/api/v2/edu（见 vite.config.ts）
+# ===========================================
+
+# 系统信息
+appConfig:
+  title: 教育 AI 工作台
+  openAuth: false
+
+# 路由：静态路由（路由树即菜单树，由 .routes() 注入）
+routeConfig:
+  mode: static
+
+# API 基础路径（dev 代理已处理前缀，留空走相对路径 /v2/edu/**）
+httpConfig:
+  baseUrl: ""
+  # 401/403 鉴权失败行为（免登录场景不触发）
+  authFailAction: confirm
+
+# 登录页配置（免登录场景仅用于兜底）
+loginConfig:
+  captcha: false
+  otp: false
+  slider: false
+  brandName: 教育 AI 工作台
+  title: 教育 AI 工作台
+  description: 题库 · AI 组卷 · 扫描识别 · AI 阅卷 · 知识库 · 错题库
+  beiAnHao: ""
+
+# 其他配置
+other:
+  # 主题（koi）
+  themeId: "koi"
+  # 工具栏显隐：免登录场景仅保留必要项
+  toolbar:
+    searchMenu: false
+    refresh: true
+    dark: true
+    language: false
+    fullScreen: true
+    themeSetting: true
+    user: false
+    breadcrumb: true
+    breadcrumbDropdown: true
+    breadcrumbIcon: false
+    tabIcon: false
+    logo: true
+    message: false
+    weather: false
+    collapse: false
+  # 天气（未配置定位时隐藏）
+  weather:
+    enable: false
+
+# 布局配置
+layoutConfig:
+  enable: true
+  source: local
+
+# 菜单配置
+menuConfig:
+  collapseSingleChild: true

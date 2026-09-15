@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { message } from '@repo/core';
 import { getGroupTree, getGroups, saveGroup, delGroup } from '../api';
 
@@ -21,8 +21,30 @@ const formVisible = ref(false);
 const editingId = ref<number | null>(null);
 const form = ref({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
 
-/** 预设分组色板，便于快速选取常用颜色 */
-const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#2f3c4f', '#0ea5e9'];
+/** 预设分组色板 */
+const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#0ea5e9'];
+
+// ---- 统计 ----
+const totalGroups = computed(() => flatGroups.value.length);
+const rootGroups = computed(() => treeData.value.length);
+const subGroups = computed(() => totalGroups.value - rootGroups.value);
+
+function countDescendants(node: GroupNode): number {
+  if (!node.children?.length) return 0;
+  return node.children.reduce((sum, c) => sum + 1 + countDescendants(c), 0);
+}
+
+/** 判断节点是否为根分组 */
+function isRoot(node: GroupNode): boolean {
+  return node.parentId === 0 || node.parentId === null;
+}
+
+/** 统计分组下的主机数（从 flatGroups 或 hosts 推导） */
+function hostCount(node: GroupNode): number {
+  // 从 flatGroups 里查 msServerHostCount 字段
+  const g = flatGroups.value.find((x: any) => x.id === node.id);
+  return g?.msServerHostCount ?? 0;
+}
 
 onMounted(refresh);
 
@@ -33,8 +55,8 @@ async function refresh() {
       getGroupTree().catch(() => []),
       getGroups().catch(() => []),
     ]);
-    treeData.value = tree ?? [];
-    flatGroups.value = flat ?? [];
+    treeData.value = Array.isArray(tree) ? tree : [];
+    flatGroups.value = Array.isArray(flat) ? flat : [];
   } catch (e) {
     message.error((e as Error).message);
   } finally {
@@ -78,10 +100,6 @@ async function removeGroup(node: GroupNode) {
   message.success('已删除');
   refresh();
 }
-
-function renderNode(node: GroupNode): string {
-  return `${node.name}${node.children?.length ? ` (${node.children.length})` : ''}`;
-}
 </script>
 
 <template>
@@ -92,6 +110,31 @@ function renderNode(node: GroupNode): string {
         <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
       </template>
     </ReSectionHead>
+
+    <!-- 统计卡片 -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--purple"><span class="stat-icon__inner">📁</span></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ totalGroups }}</div>
+          <div class="stat-label">全部分组</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--blue"><span class="stat-icon__inner">🌿</span></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ rootGroups }}</div>
+          <div class="stat-label">根分组</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--green"><span class="stat-icon__inner">📂</span></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ subGroups }}</div>
+          <div class="stat-label">子分组</div>
+        </div>
+      </div>
+    </div>
 
     <ReCard class="tree-card" v-loading="loading">
       <ReEmptyState
@@ -114,11 +157,14 @@ function renderNode(node: GroupNode): string {
           <div class="tree-node">
             <span class="tree-label">
               <span
-                v-if="data?.msServerGroupColor"
+                v-if="data?.color"
                 class="color-dot"
-                :style="{ background: data.msServerGroupColor }"
+                :style="{ background: data.color }"
               ></span>
-              {{ node.label }}
+              <span v-else class="color-dot color-dot--default"></span>
+              <span class="node-name">{{ node.label }}</span>
+              <span v-if="data?.children?.length" class="node-badge">{{ data.children.length }}</span>
+              <span v-if="data?.remark" class="node-remark" :title="data.remark">💬</span>
             </span>
             <span class="tree-actions">
               <ReButton link size="small" @click="openCreate(data.id)">添加子</ReButton>
@@ -163,54 +209,133 @@ function renderNode(node: GroupNode): string {
   </div>
 </template>
 
- <style scoped lang="scss">
+<style scoped lang="scss">
 .group-tree {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- 统计卡片 ---- */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
-.tree-card {
-  padding: 8px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--bg-container-card, #fff);
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.06));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+.stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon--purple { background: linear-gradient(135deg, #6d5dfc22, #6d5dfc44); }
+.stat-icon--blue   { background: linear-gradient(135deg, #4f8ff722, #4f8ff744); }
+.stat-icon--green  { background: linear-gradient(135deg, #22b89522, #22b89544); }
+.stat-icon__inner { font-size: 22px; line-height: 1; }
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary, #1a1a2e);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary, #8a8a9e);
+  margin-top: 2px;
+}
+
+/* ---- 树卡片 ---- */
+.tree-card {
+  padding: 12px 8px;
+  background: var(--bg-container-card, #fff);
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.06));
+}
+
+/* ---- 树节点 ---- */
 .tree-node {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding-right: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.tree-node:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
 }
 .tree-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
+}
+.node-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a2e);
 }
 .color-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
 }
+.color-dot--default {
+  background: #c0c4cc;
+}
+.node-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--el-color-primary-light-9, #e8e7ff);
+  color: var(--el-color-primary, #6d5dfc);
+  font-size: 11px;
+  font-weight: 600;
+}
+.node-remark {
+  font-size: 12px;
+  opacity: 0.5;
+  cursor: help;
+}
+.tree-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.tree-node:hover .tree-actions,
+.tree-node:focus-within .tree-actions {
+  opacity: 1;
+}
+
 .color-field {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-}
-.tree-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s var(--ease-out);
-}
-.tree-node:hover .tree-actions,
-.tree-node:focus-within .tree-actions {
-  opacity: 1;
 }
 </style>

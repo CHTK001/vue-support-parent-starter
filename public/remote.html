@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; overflow: hidden; font-family: monospace; }
+#display { width: 100vw; height: 100vh; }
+#status { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: #fff; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 4px; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="display"></div>
+<div id="status">connecting...</div>
+<script type="module">
+import Guacamole from '/guacamole/guacamole-common.min.js';
+const statusEl = document.getElementById('status');
+const params = new URLSearchParams(location.search);
+const hostId = params.get('hostId');
+const protocol = params.get('protocol') || 'ssh';
+const identityId = params.get('identityId') || '';
+const targetPort = params.get('targetPort') || '';
+
+const wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+const wsUrl = wsProto + location.host + '/ws/ms/server/terminal?hostId=' + hostId +
+  '&protocol=' + protocol +
+  (identityId ? '&identityId=' + identityId : '') +
+  (targetPort ? '&targetPort=' + targetPort : '');
+
+const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
+const client = new Guacamole.Client(tunnel);
+const displayEl = client.getDisplay().getElement();
+displayEl.style.width = '100%';
+displayEl.style.height = '100%';
+document.getElementById('display').appendChild(displayEl);
+client.connect();
+
+const keyboard = new Guacamole.Keyboard(document);
+keyboard.onkeydown = (keysym) => client.sendKeyEvent(1, keysym);
+keyboard.onkeyup = (keysym) => client.sendKeyEvent(0, keysym);
+const mouse = new Guacamole.Mouse(displayEl);
+mouse.onmousedown = mouse.onmouseup = (e) => client.sendMouseState(e.state, true);
+mouse.onmousemove = (e) => client.sendMouseState(e.state, false);
+mouse.onmousewheel = (e) => client.sendMouseWheel(e.deltaY > 0 ? -1 : 1);
+
+function doResize() {
+  const w = window.innerWidth || document.body.clientWidth || 800;
+  const h = window.innerHeight || document.body.clientHeight || 600;
+  client.sendSize(w, h);
+}
+window.addEventListener('resize', doResize);
+requestAnimationFrame(() => { doResize(); setTimeout(doResize, 100); setTimeout(doResize, 300); setTimeout(doResize, 800); });
+
+tunnel.onstatechange = (state) => {
+  if (state === Guacamole.Tunnel.State.OPEN) {
+    statusEl.textContent = '宸茶繛鎺?;
+    setTimeout(doResize, 50);
+  }
+  else if (state === Guacamole.Tunnel.State.CLOSED) statusEl.textContent = '宸叉柇寮€';
+};
+tunnel.onerror = (status) => {
+  statusEl.textContent = '杩炴帴澶辫触: ' + (status && status.message ? status.message : '鏈煡閿欒');
+};
+</script>
+</body>
+</html>
+

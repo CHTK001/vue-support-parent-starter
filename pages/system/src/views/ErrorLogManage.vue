@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 异常日志监控页面
  *
@@ -206,7 +206,7 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" :add-button="false">
+      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
         <div class="system-page__search">
           <ReInput
             layout="modern"

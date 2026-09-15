@@ -105,6 +105,12 @@ class ApiService {
     // 添加响应拦截器处理通用错误
     this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
+        // 解包后端统一响应格式 {code, data, msg, ok, success}
+        const res = response.data;
+        if (res && typeof res === 'object' && 'data' in res && 'code' in res) {
+          // 后端统一格式，返回 data 部分
+          return res.data;
+        }
         return response.data ? response.data : response;
       },
       (error) => {

@@ -5,7 +5,7 @@
  * 用户分页查询 + 增删改查 + 重置密码 + 分配角色。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument } from "@element-plus/icons-vue";
 import {
@@ -57,18 +57,28 @@ const query = ref<{
 });
 
 async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  (window).__loadUsersPage = query.value.page;
+  (window).__debugPage = { queryPage: query.value.page, paramPage: page };
   const res = await pageForUser({
-    page,
-    pageSize,
+    page: query.value.page || page,
+    pageSize: query.value.pageSize || pageSize,
     sysUserName: (params.sysUserName as string) || undefined,
     sysUserPhone: (params.sysUserPhone as string) || undefined,
     sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
     sysDeptId: params.sysDeptId === "" ? undefined : (params.sysDeptId as number),
   });
+  total.value = res?.data?.total ?? 0;
   return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
 }
 
 const tableRef = ref();
+const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / (query.value.pageSize || 10))));
+function goPage(p: number) {
+  query.value.page = p;
+  // 直接调用 ReTable 的 goto，它会同步 internalPage 并 reload
+  tableRef.value?.goto(p);
+}
 
 const roles = ref<SysRole[]>([]);
 const depts = ref<SysDept[]>([]);
@@ -561,7 +571,7 @@ onMounted(() => {
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" @add="handleAdd">
+      <ReSearch :is-expanded="true" filter-mode="data" @add="handleAdd">
         <div class="system-page__search">
           <ReInput
             layout="modern"
@@ -635,6 +645,7 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
         @selection-change="handleSelectionChange"
+        @update:page="(p) => { window.__updatePageCalled = p; query.value.page = p; tableRef?.reload(); }"
       >
         <template #username="{ row }">
           <div class="flex items-center gap-2">
@@ -674,39 +685,32 @@ onMounted(() => {
           <ReTag v-else type="info" effect="plain" size="small">未启用</ReTag>
         </template>
         <template #action="{ row }">
-          <el-dropdown trigger="click" @command="(cmd: string) => handleActionCommand(cmd, row)">
-            <ReButton layout="square" type="info">
-              更多<el-icon class="el-icon--right"><More /></el-icon>
-            </ReButton>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="edit" :icon="Edit" :disabled="isSelf(row)">编辑</el-dropdown-item>
-                <el-dropdown-item command="resetPwd" :icon="Key" :disabled="resettingPwd === row.sysUserId">重置密码</el-dropdown-item>
-                <el-dropdown-item command="role" :icon="UserFilled">分配角色</el-dropdown-item>
-                <el-dropdown-item command="detail" :icon="View">详情</el-dropdown-item>
-                <el-dropdown-item
-                  :command="isLocked(row) ? 'unlock' : 'lock'"
-                  :icon="isLocked(row) ? Unlock : Lock"
-                  :disabled="isSelf(row)"
-                >
-                  {{ isLocked(row) ? '解锁' : '锁定' }}
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="hasTotp(row)"
-                  command="unbindTotp"
-                  :icon="CopyDocument"
-                  divided
-                >
-                  强制解绑2FA
-                </el-dropdown-item>
-                <el-dropdown-item command="delete" :icon="Delete" :disabled="isSelf(row)" divided>
-                  <span style="color: var(--el-color-danger)">删除</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <div class="row-actions">
+            <el-tooltip content="编辑">
+              <el-button link type="primary" :icon="Edit" :disabled="isSelf(row)" @click="handleEdit(row)" />
+            </el-tooltip>
+            <el-tooltip content="重置密码">
+              <el-button link type="warning" :icon="Key" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)" />
+            </el-tooltip>
+            <el-tooltip content="删除">
+              <el-button link type="danger" :icon="Delete" :disabled="isSelf(row)" @click="handleDelete(row)" />
+            </el-tooltip>
+          </div>
         </template>
       </ReTable>
+      <!-- 自定义分页 -->
+      <div class="custom-pagination">
+        <span>total={{ total }} totalPages={{ totalPages }}</span>
+        <button class="page-btn" :disabled="query.page <= 1" @click="goPage(query.page - 1)">‹</button>
+        <button
+          v-for="p in totalPages"
+          :key="p"
+          class="page-btn"
+          :class="{ active: p === query.page }"
+          @click="goPage(p)"
+        >{{ p }}</button>
+        <button class="page-btn" :disabled="query.page >= totalPages" @click="goPage(query.page + 1)">›</button>
+      </div>
     </el-card>
 
     <!-- 用户编辑弹窗 -->
@@ -926,6 +930,42 @@ onMounted(() => {
   height: 16px;
   background: var(--el-border-color);
   margin: 0 4px;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.custom-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+}
+.page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  background: var(--el-bg-color);
+  cursor: pointer;
+  font-size: 13px;
+}
+.page-btn:hover:not(:disabled):not(.active) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.page-btn.active {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+.page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .user-dialog__body {
   padding: 4px 8px 0;

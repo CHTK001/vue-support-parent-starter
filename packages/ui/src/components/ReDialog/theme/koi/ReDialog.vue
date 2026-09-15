@@ -128,6 +128,9 @@ function koiConfirm() {
 
 function koiCancel() {
   emit("cancel");
+  localOpen.value = false;
+  visible.value = false;
+  clearMinimized();
 }
 
 /** 编程式打开 */

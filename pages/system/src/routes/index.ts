@@ -1,21 +1,14 @@
-/**
- * 系统管理模块路由配置（@pages/system）
+﻿/**
+ * 绯荤粺绠＄悊妯″潡璺敱閰嶇疆锛園pages/system锛? *
+ * 涓€浠?routes 鍚屾椂鎵挎媴涓や釜瑙掕壊锛? *   1) 璺敱琛細閫氳繃 router.addRoute("layout", route) 鎶婃瘡涓瓙椤甸潰鎸傚埌 koi 甯冨眬涓嬶紝淇濈暀渚ц竟鏍? *   2) 闈欐€佽彍鍗曪細閫氳繃 systemMenus 瀵煎嚭锛屼紶鍏?registerStaticMenu() 璁╀晶杈规爮娓叉煋
  *
- * 一份 routes 同时承担两个角色：
- *   1) 路由表：通过 router.addRoute("layout", route) 把每个子页面挂到 koi 布局下，保留侧边栏
- *   2) 静态菜单：通过 systemMenus 导出，传入 registerStaticMenu() 让侧边栏渲染
- *
- * 注意：路由是扁平结构（直接 path=/system/user），不是嵌套的 /system + children 形式。
- *       这是为了适配 vue-router 的 addRoute("layout", item) 用法。
- *       侧边栏的层级由 systemMenus 的 children 表达，路由层级由 addRoute 自动平铺。
- */
+ * 娉ㄦ剰锛氳矾鐢辨槸鎵佸钩缁撴瀯锛堢洿鎺?path=/system/user锛夛紝涓嶆槸宓屽鐨?/system + children 褰㈠紡銆? *       杩欐槸涓轰簡閫傞厤 vue-router 鐨?addRoute("layout", item) 鐢ㄦ硶銆? *       渚ц竟鏍忕殑灞傜骇鐢?systemMenus 鐨?children 琛ㄨ揪锛岃矾鐢卞眰绾х敱 addRoute 鑷姩骞抽摵銆? */
 import type { RouteConfigsTable } from "@repo/core";
 import type { StaticMenuItem } from "@repo/pinia";
 
 /**
- * 系统管理路由（叶子路由，直接挂到 koi layout 之下）
- *
- * 使用方式（在应用 main.ts）：
+ * 绯荤粺绠＄悊璺敱锛堝彾瀛愯矾鐢憋紝鐩存帴鎸傚埌 koi layout 涔嬩笅锛? *
+ * 浣跨敤鏂瑰紡锛堝湪搴旂敤 main.ts锛夛細
  *   const { context } = await createContextApp({});
  *   for (const r of systemRoutes) {
  *     context.router.addRoute("layout", r as never);
@@ -23,29 +16,29 @@ import type { StaticMenuItem } from "@repo/pinia";
  */
 export const systemRoutes: RouteConfigsTable[] = [
   {
-    path: "/system/personage",
+    path: "/personage",
     name: "SystemPersonage",
     component: () => import("../views/Personage.vue"),
     meta: {
-      title: "个人中心",
+      title: "涓汉涓績",
       icon: "User",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/settings",
+    path: "/settings",
     name: "SystemSettings",
     component: () => import("../views/PersonalSettings.vue"),
     meta: {
-      title: "个人设置",
+      title: "涓汉璁剧疆",
       icon: "Setting",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/user",
+    path: "/user",
     name: "SystemUser",
     component: () => import("../views/UserManage.vue"),
     meta: {
@@ -56,7 +49,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/role",
+    path: "/role",
     name: "SystemRole",
     component: () => import("../views/RoleManage.vue"),
     meta: {
@@ -67,7 +60,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/menu",
+    path: "/menu",
     name: "SystemMenu",
     component: () => import("../views/MenuManage.vue"),
     meta: {
@@ -78,7 +71,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/dept",
+    path: "/dept",
     name: "SystemDept",
     component: () => import("../views/DeptManage.vue"),
     meta: {
@@ -89,7 +82,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/dict",
+    path: "/dict",
     name: "SystemDict",
     component: () => import("../views/DictManage.vue"),
     meta: {
@@ -100,7 +93,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/online",
+    path: "/online",
     name: "SystemOnline",
     component: () => import("../views/OnlineUser.vue"),
     meta: {
@@ -111,7 +104,7 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/setting",
+    path: "/setting",
     name: "SystemSetting",
     component: () => import("../views/SettingManage.vue"),
     meta: {
@@ -122,88 +115,88 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/system/announcement",
+    path: "/announcement",
     name: "SystemAnnouncement",
     component: () => import("../views/AnnouncementManage.vue"),
     meta: {
-      title: "公告管理",
+      title: "鍏憡绠＄悊",
       icon: "Bell",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/feedback",
+    path: "/feedback",
     name: "SystemFeedback",
     component: () => import("../views/FeedbackManage.vue"),
     meta: {
-      title: "反馈管理",
+      title: "鍙嶉绠＄悊",
       icon: "ChatLineSquare",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/post",
+    path: "/post",
     name: "SystemPost",
     component: () => import("../views/PostManage.vue"),
     meta: {
-      title: "岗位管理",
+      title: "宀椾綅绠＄悊",
       icon: "Postcard",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/message",
+    path: "/message",
     name: "SystemMessage",
     component: () => import("../views/MessageManage.vue"),
     meta: {
-      title: "消息管理",
+      title: "娑堟伅绠＄悊",
       icon: "Message",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/error-log",
+    path: "/error-log",
     name: "SystemErrorLog",
     component: () => import("../views/ErrorLogManage.vue"),
     meta: {
-      title: "异常日志",
+      title: "寮傚父鏃ュ織",
       icon: "Warning",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/cache",
+    path: "/cache",
     name: "SystemCache",
     component: () => import("../views/CacheManage.vue"),
     meta: {
-      title: "缓存管理",
+      title: "缂撳瓨绠＄悊",
       icon: "Coin",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/ip",
+    path: "/ip",
     name: "SystemIp",
     component: () => import("../views/IpManage.vue"),
     meta: {
-      title: "IP管理",
+      title: "IP绠＄悊",
       icon: "Lock",
       showLink: true,
       keepAlive: true,
     },
   },
   {
-    path: "/system/monitor",
+    path: "/monitor",
     name: "SystemMonitor",
     component: () => import("../views/MonitorManage.vue"),
     meta: {
-      title: "系统监控",
+      title: "绯荤粺鐩戞帶",
       icon: "Monitor",
       showLink: true,
       keepAlive: true,
@@ -212,10 +205,8 @@ export const systemRoutes: RouteConfigsTable[] = [
 ];
 
 /**
- * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
- *
- * 父级"系统管理"节点 + 7 个子节点，结构与 systemRoutes 对应。
- */
+ * 闈欐€佽彍鍗曪紙鐢ㄤ簬 registerStaticMenu锛岄┍鍔ㄤ晶杈规爮锛? *
+ * 鐖剁骇"绯荤粺绠＄悊"鑺傜偣 + 7 涓瓙鑺傜偣锛岀粨鏋勪笌 systemRoutes 瀵瑰簲銆? */
 export const systemMenus: StaticMenuItem[] = [
   {
     path: "/system",
@@ -224,80 +215,81 @@ export const systemMenus: StaticMenuItem[] = [
     meta: { title: "menu.system.auth", icon: "Setting", isVisible: "1" },
     children: [
       {
-        path: "/system/user",
+        path: "/user",
         name: "SystemUser",
         meta: { title: "menu.system.user.name", icon: "User", isVisible: "1" },
       },
       {
-        path: "/system/role",
+        path: "/role",
         name: "SystemRole",
         meta: { title: "menu.system.role.name", icon: "UserFilled", isVisible: "1" },
       },
       {
-        path: "/system/menu",
+        path: "/menu",
         name: "SystemMenu",
         meta: { title: "menu.system.menu.name", icon: "Menu", isVisible: "1" },
       },
       {
-        path: "/system/dept",
+        path: "/dept",
         name: "SystemDept",
         meta: { title: "menu.system.dept.name", icon: "OfficeBuilding", isVisible: "1" },
       },
       {
-        path: "/system/dict",
+        path: "/dict",
         name: "SystemDict",
         meta: { title: "menu.system.dictType.name", icon: "Collection", isVisible: "1" },
       },
       {
-        path: "/system/online",
+        path: "/online",
         name: "SystemOnline",
         meta: { title: "menu.monitor.online.name", icon: "Connection", isVisible: "1" },
       },
       {
-        path: "/system/setting",
+        path: "/setting",
         name: "SystemSetting",
         meta: { title: "menu.tools.config.name", icon: "Tools", isVisible: "1" },
       },
       {
-        path: "/system/announcement",
+        path: "/announcement",
         name: "SystemAnnouncement",
-        meta: { title: "公告管理", icon: "Bell", isVisible: "1" },
+        meta: { title: "鍏憡绠＄悊", icon: "Bell", isVisible: "1" },
       },
       {
-        path: "/system/feedback",
+        path: "/feedback",
         name: "SystemFeedback",
-        meta: { title: "反馈管理", icon: "ChatLineSquare", isVisible: "1" },
+        meta: { title: "鍙嶉绠＄悊", icon: "ChatLineSquare", isVisible: "1" },
       },
       {
-        path: "/system/post",
+        path: "/post",
         name: "SystemPost",
-        meta: { title: "岗位管理", icon: "Postcard", isVisible: "1" },
+        meta: { title: "宀椾綅绠＄悊", icon: "Postcard", isVisible: "1" },
       },
       {
-        path: "/system/message",
+        path: "/message",
         name: "SystemMessage",
-        meta: { title: "消息管理", icon: "Message", isVisible: "1" },
+        meta: { title: "娑堟伅绠＄悊", icon: "Message", isVisible: "1" },
       },
       {
-        path: "/system/error-log",
+        path: "/error-log",
         name: "SystemErrorLog",
-        meta: { title: "异常日志", icon: "Warning", isVisible: "1" },
+        meta: { title: "寮傚父鏃ュ織", icon: "Warning", isVisible: "1" },
       },
       {
-        path: "/system/cache",
+        path: "/cache",
         name: "SystemCache",
-        meta: { title: "缓存管理", icon: "Coin", isVisible: "1" },
+        meta: { title: "缂撳瓨绠＄悊", icon: "Coin", isVisible: "1" },
       },
       {
-        path: "/system/ip",
+        path: "/ip",
         name: "SystemIp",
-        meta: { title: "IP管理", icon: "Lock", isVisible: "1" },
+        meta: { title: "IP绠＄悊", icon: "Lock", isVisible: "1" },
       },
       {
-        path: "/system/monitor",
+        path: "/monitor",
         name: "SystemMonitor",
-        meta: { title: "系统监控", icon: "Monitor", isVisible: "1" },
+        meta: { title: "绯荤粺鐩戞帶", icon: "Monitor", isVisible: "1" },
       },
     ],
   },
 ];
+

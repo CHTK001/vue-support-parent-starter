@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * IP 黑白名单页面
  *
@@ -171,7 +171,7 @@ onMounted(() => {
         <el-tab-pane :label="`黑名单`" :name="1" />
       </el-tabs>
 
-      <ReSearch :is-expanded="true" :add-text="activeTab === 0 ? '新增白名单' : '新增黑名单'" @add="handleAdd">
+      <ReSearch :is-expanded="true" filter-mode="data" :add-text="activeTab === 0 ? '新增白名单' : '新增黑名单'" @add="handleAdd">
         <div class="system-page__search">
           <ReInput
             layout="modern"

@@ -151,6 +151,17 @@ function checkApiResponse(
       ok: data.ok,
     });
   }
+  // 解内层业务包装：后端分页接口返回 {code:"00000", data:{code:0, data:{total,data}}}，
+  // 把内层 {code:0, data:{...}} 展平为 {code:"00000", data:{...}}，让业务侧 res.data 直接拿到业务数据。
+  try {
+    if (data && typeof data === "object" && "data" in data &&
+        data.data && typeof data.data === "object" && "code" in data.data) {
+      const inner = data.data as Record<string, unknown>;
+      if (inner.code === 0 || inner.code === "0" || inner.code === 200 || inner.code === "200") {
+        data.data = inner.data;
+      }
+    }
+  } catch { /* ignore */ }
   return response;
 }
 

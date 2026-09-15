@@ -4,7 +4,7 @@
  * 顶部状态导航 + 大图标宫格 + hover 操作浮层 + 详情抽屉
  * 组件约定：全量使用 Re 组件体系。
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { message, useSocketService } from '@repo/core';
 import {
   queryProjects,
@@ -17,6 +17,8 @@ import {
   getArchives,
   rollbackProject,
   queryHostOptions,
+  getProjectMetrics,
+  getWatchdogStatus,
 } from '../api';
 import ScProjectFormDialog from '../components/ScProjectFormDialog.vue';
 import ScLiveLog from '../components/ScLiveLog.vue';
@@ -46,6 +48,12 @@ interface ProjectRow {
   msProjectAutoRollback?: number;
   msProjectDeployRetry?: number;
   msProjectArchiveKeep?: number;
+  msProjectWatchdogEnabled?: number;
+  msProjectWatchdogInterval?: number;
+  msProjectWatchdogMaxFail?: number;
+  msProjectPreflightGate?: number;
+  msProjectMetricEnabled?: number;
+  msProjectMetricInterval?: number;
   msProjectCurrentVersion?: string;
   msProjectRuntimeStatus?: string;
   msProjectEnabled?: number;
@@ -129,7 +137,22 @@ function setupSocket() {
         }, 1500);
       }
     });
-    onBeforeUnmount(() => unsub?.());
+    const unsub2 = socket.subscribe('project', 'project-metric', (msg: any) => {
+      const payload = msg?.data?.data ?? msg?.data ?? msg;
+      if (!payload?.projectId) return;
+      const pid = Number(payload.projectId);
+      if (detailProject.value?.id === pid && detailVisible.value) {
+        detailMetrics.value[String(payload.metricName)] = {
+          metricName: String(payload.metricName),
+          metricValue: Number(payload.value),
+          collectTime: payload.collectTime,
+        };
+      }
+    });
+    onBeforeUnmount(() => {
+      unsub?.();
+      unsub2?.();
+    });
   } catch { /* socket 未启用时静默 */ }
 }
 
@@ -179,10 +202,52 @@ async function removeProject(row: ProjectRow) {
 const detailVisible = ref(false);
 const detailProject = ref<ProjectRow | null>(null);
 
+/** 详情抽屉内实时指标（socket 推送 + 历史拉取，开抽屉时加载） */
+interface MetricPoint { metricName: string; metricValue: number; collectTime?: string; }
+const detailMetrics = ref<Record<string, MetricPoint>>({});
+
+const metricLabels: Record<string, string> = {
+  'project.process.mem.mb': '进程内存',
+  'project.process.cpu': '进程 CPU',
+  'project.port.alive': '端口存活',
+  'project.http.code': 'HTTP 状态码',
+};
+
+/** 详情抽屉内守护状态（连续失败计数 / 累计拉起 / 最近检测时间） */
+const detailWatchdog = ref<Record<string, unknown> | null>(null);
+
 function openDetail(row: ProjectRow) {
   detailProject.value = row;
   detailVisible.value = true;
+  detailWatchdog.value = null;
+  refreshDetailMetrics(row);
+  if (row.msProjectWatchdogEnabled === 1) loadWatchdogStatus(row);
 }
+
+async function loadWatchdogStatus(row: ProjectRow) {
+  try {
+    detailWatchdog.value = await getWatchdogStatus(row.id);
+  } catch { detailWatchdog.value = null; }
+}
+
+async function refreshDetailMetrics(row: ProjectRow) {
+  detailMetrics.value = {};
+  if (row.msProjectMetricEnabled !== 1) return;
+  try {
+    const points = await getProjectMetrics(row.id, undefined, 60);
+    for (const p of points) {
+      if (!detailMetrics.value[p.metricName]) detailMetrics.value[p.metricName] = p;
+    }
+  } catch { /* 指标表未建/未配置 JDBC 时静默 */ }
+}
+
+watch(detailVisible, async (v) => {
+  if (v && detailProject.value) refreshDetailMetrics(detailProject.value);
+});
+
+watch(detailProject, (row) => {
+  if (row) refreshDetailMetrics(row);
+});
 
 async function toggleEnabled(row: ProjectRow) {
   await switchProject(row.id, !row.msProjectEnabled);
@@ -413,6 +478,12 @@ function healthTypeLabel(type?: string): string {
           <span class="policy-chip" :class="{ 'policy-on': row.msProjectAutoStart === 1 }">启动</span>
           <span class="policy-chip" :class="{ 'policy-on': row.msProjectHealthEnabled === 1 }" :title="healthTargetOf(row)">健康</span>
           <span class="policy-chip" :class="{ 'policy-on': row.msProjectAutoRollback === 1 }">回滚</span>
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectWatchdogEnabled === 1 }"
+            :title="row.msProjectWatchdogEnabled === 1 ? `守护 ${row.msProjectWatchdogInterval ?? 30}s × 阈值${row.msProjectWatchdogMaxFail ?? 1}` : '守护未启用'">守护</span>
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectPreflightGate === 1 }"
+            :title="row.msProjectPreflightGate === 1 ? '部署前校验主机在线/延迟' : '门禁未启用'">门禁</span>
+          <span class="policy-chip" :class="{ 'policy-on': row.msProjectMetricEnabled === 1 }"
+            :title="row.msProjectMetricEnabled === 1 ? `指标 ${row.msProjectMetricInterval ?? 60}s` : '指标未启用'">指标</span>
           <span class="policy-chip" v-if="row.msProjectDeployRetry">重试{{ row.msProjectDeployRetry }}</span>
         </div>
 
@@ -550,6 +621,13 @@ function healthTypeLabel(type?: string): string {
               <span v-if="detailProject.msProjectAutoStart === 1" class="policy-chip policy-on">部署后自动启动</span>
               <span v-if="detailProject.msProjectHealthEnabled === 1" class="policy-chip policy-on">健康检查</span>
               <span v-if="detailProject.msProjectAutoRollback === 1" class="policy-chip policy-on">失败自动回滚</span>
+              <span v-if="detailProject.msProjectPreflightGate === 1" class="policy-chip policy-on">部署门禁</span>
+              <span v-if="detailProject.msProjectWatchdogEnabled === 1" class="policy-chip policy-on">
+                守护 {{ detailProject.msProjectWatchdogInterval ?? 30 }}s
+              </span>
+              <span v-if="detailProject.msProjectMetricEnabled === 1" class="policy-chip policy-on">
+                指标 {{ detailProject.msProjectMetricInterval ?? 60 }}s
+              </span>
             </div>
           </div>
         </div>
@@ -582,6 +660,52 @@ function healthTypeLabel(type?: string): string {
           <div class="detail-row"><span>备注</span><span>{{ detailProject.msProjectRemark || '-' }}</span></div>
         </div>
 
+        <div v-if="detailProject.msProjectWatchdogEnabled === 1" class="detail-metrics">
+          <div class="detail-metrics__title">
+            守护状态
+            <ReButton link size="small" style="float:right" @click="loadWatchdogStatus(detailProject)">刷新</ReButton>
+          </div>
+          <div v-if="!detailWatchdog" class="detail-metrics__empty">加载中…</div>
+          <div v-else class="detail-metrics__grid">
+            <div class="metric-cell">
+              <div class="metric-cell__name">连续失败</div>
+              <div class="metric-cell__value mono" :class="Number(detailWatchdog.consecutiveFail) > 0 ? 'metric-warn' : ''">
+                {{ detailWatchdog.consecutiveFail }}
+              </div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-cell__name">累计拉起</div>
+              <div class="metric-cell__value mono">{{ detailWatchdog.restartedCount }}</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-cell__name">最近检测</div>
+              <div class="metric-cell__value mono small">{{ detailWatchdog.lastCheckTime || '-' }}</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-cell__name">最近结果</div>
+              <div class="metric-cell__value mono small" :class="detailWatchdog.lastResult === 'UNHEALTHY' || detailWatchdog.lastResult === 'RESTARTED' ? 'metric-warn' : 'metric-ok'">
+                {{ detailWatchdog.lastResult || '-' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="detailProject.msProjectMetricEnabled === 1" class="detail-metrics">
+          <div class="detail-metrics__title">实时指标</div>
+          <div v-if="Object.keys(detailMetrics).length === 0" class="detail-metrics__empty">
+            暂无指标数据（等待首次采集或主机不可达）
+          </div>
+          <div v-else class="detail-metrics__grid">
+            <div v-for="(m, key) in detailMetrics" :key="key" class="metric-cell">
+              <div class="metric-cell__name">{{ metricLabels[key] || key }}</div>
+              <div class="metric-cell__value mono">{{ m.metricValue }}</div>
+              <div v-if="key === 'project.port.alive'" :class="m.metricValue === 1 ? 'metric-dot ok' : 'metric-dot bad'">
+                {{ m.metricValue === 1 ? '存活' : '未监听' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="detail-ops">
           <ReButton layout="square" type="primary" icon="VideoPlay" @click="runLifecycle(detailProject, 'start')">启动</ReButton>
           <ReButton layout="square" icon="VideoPause" @click="runLifecycle(detailProject, 'stop')">停止</ReButton>
@@ -607,4 +731,19 @@ function healthTypeLabel(type?: string): string {
 
 <style scoped>
 .policy-on { color: var(--brand-600); border-color: var(--brand-300); background: var(--brand-50); }
+
+.detail-metrics { margin: 14px 0; }
+.detail-metrics__title { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+.detail-metrics__empty { font-size: 12px; color: var(--text-tertiary); padding: 16px; text-align: center;
+  border: 1px dashed var(--border-subtle); border-radius: 8px; }
+.detail-metrics__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.metric-cell { padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-fill); }
+.metric-cell__name { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+.metric-cell__value { font-size: 18px; font-weight: 600; }
+.metric-cell__value.small { font-size: 12px; font-weight: 400; word-break: break-all; }
+.metric-warn { color: var(--danger-600, #dc2626); }
+.metric-ok { color: var(--success-600, #16a34a); }
+.metric-dot { font-size: 11px; margin-top: 4px; }
+.metric-dot.ok { color: var(--success-600, #16a34a); }
+.metric-dot.bad { color: var(--danger-600, #dc2626); }
 </style>

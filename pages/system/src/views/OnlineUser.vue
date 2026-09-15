@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 在线用户管理页面
  *
@@ -170,7 +170,7 @@ onMounted(() => {
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true">
+      <ReSearch :is-expanded="true" filter-mode="data">
         <div class="system-page__search">
           <ReInput
             layout="modern"

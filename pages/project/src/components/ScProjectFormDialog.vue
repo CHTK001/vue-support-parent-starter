@@ -6,7 +6,7 @@
  */
 import { computed, ref, watch } from 'vue';
 import { message } from '@repo/core';
-import { queryHostOptions, saveProject } from '../api';
+import { queryHostOptions, saveProject, aiGenScript } from '../api';
 
 interface HostOption {
   id: number;
@@ -19,6 +19,7 @@ const props = defineProps<{ visible: boolean; project: any | null }>();
 const emit = defineEmits<{ 'update:visible': [v: boolean]; saved: [] }>();
 
 const loading = ref(false);
+const aiLoading = ref(false);
 const hosts = ref<HostOption[]>([]);
 const form = ref(newProjectForm());
 
@@ -96,6 +97,12 @@ watch(() => props.visible, async v => {
           form.value.msProjectHostIds = Array.isArray(parsed) ? parsed as number[] : [];
         } catch { form.value.msProjectHostIds = []; }
       }
+      if (typeof form.value.msProjectMetricHostIds === 'string') {
+        try {
+          const parsed = JSON.parse(form.value.msProjectMetricHostIds);
+          form.value.msProjectMetricHostIds = Array.isArray(parsed) ? parsed as number[] : [];
+        } catch { form.value.msProjectMetricHostIds = []; }
+      }
       selectedOs.value = props.project.msProjectHostOs || 'LINUX';
     } else {
       form.value = newProjectForm();
@@ -148,6 +155,11 @@ function submit() {
     msProjectAutoStart: form.value.msProjectAutoStart ? 1 : 0,
     msProjectHealthEnabled: form.value.msProjectHealthEnabled ? 1 : 0,
     msProjectAutoRollback: form.value.msProjectAutoRollback ? 1 : 0,
+    msProjectWatchdogEnabled: form.value.msProjectWatchdogEnabled ? 1 : 0,
+    msProjectCheckScript: form.value.msProjectCheckScript || null,
+    msProjectPreflightGate: form.value.msProjectPreflightGate ? 1 : 0,
+    msProjectMetricEnabled: form.value.msProjectMetricEnabled ? 1 : 0,
+    msProjectMetricHostIds: form.value.msProjectMetricHostIds.length > 0 ? JSON.stringify(form.value.msProjectMetricHostIds) : null,
   })
     .then(() => {
       message.success(isEdit.value ? '已更新' : '已创建');
@@ -156,6 +168,37 @@ function submit() {
     })
     .catch(e => message.error((e as Error).message))
     .finally(() => { loading.value = false; });
+}
+
+/** AI 生成脚本目标脚本字段映射 */
+const aiScriptField: Record<string, 'msProjectStartScript' | 'msProjectStopScript' | 'msProjectRestartScript' | 'msProjectCheckScript'> = {
+  START: 'msProjectStartScript',
+  STOP: 'msProjectStopScript',
+  RESTART: 'msProjectRestartScript',
+  CHECK: 'msProjectCheckScript',
+};
+
+/** AI 生成指定类型脚本并回填对应输入框（未保存时直接传表单上下文，保存后按 id 查询） */
+async function genAiScript(kind: 'START' | 'STOP' | 'RESTART' | 'CHECK') {
+  aiLoading.value = true;
+  try {
+    const context = {
+      msProjectType: form.value.msProjectType,
+      msProjectHostOs: form.value.msProjectHostOs || selectedOs.value,
+      msProjectDeployDir: form.value.msProjectDeployDir,
+      msProjectHealthType: form.value.msProjectHealthEnabled ? form.value.msProjectHealthType : 'PROCESS',
+      msProjectHealthTarget: form.value.msProjectHealthTarget,
+    };
+    const script = await aiGenScript(isEdit.value ? form.value.id : null, kind, context as Record<string, unknown>);
+    if (script) {
+      form.value[aiScriptField[kind]] = script;
+      message.success(`AI 已生成${kind === 'CHECK' ? '状态检测' : kind === 'START' ? '启动' : kind === 'STOP' ? '停止' : '重启'}脚本，请确认后保存`);
+    }
+  } catch (e) {
+    message.warning((e as Error).message || 'AI 生成失败，请检查 AI 服务配置');
+  } finally {
+    aiLoading.value = false;
+  }
 }
 
 function newProjectForm() {
@@ -183,6 +226,14 @@ function newProjectForm() {
     msProjectAutoRollback: false,
     msProjectDeployRetry: 0,
     msProjectArchiveKeep: 0,
+    msProjectWatchdogEnabled: false,
+    msProjectWatchdogInterval: 30,
+    msProjectWatchdogMaxFail: 1,
+    msProjectCheckScript: '',
+    msProjectPreflightGate: true,
+    msProjectMetricEnabled: false,
+    msProjectMetricInterval: 60,
+    msProjectMetricHostIds: [] as number[],
     msProjectSort: 100,
     msProjectRemark: '',
   };
@@ -236,12 +287,15 @@ function newProjectForm() {
       </ReFormItem>
       <ReFormItem label="启动脚本">
         <ReInput v-model="form.msProjectStartScript" type="textarea" :rows="3" placeholder="支持 {{dir}} 占位符" />
+        <ReButton size="small" style="margin-top:6px" :loading="aiLoading" @click="genAiScript('START')">AI 生成启动脚本</ReButton>
       </ReFormItem>
       <ReFormItem label="停止脚本">
         <ReInput v-model="form.msProjectStopScript" type="textarea" :rows="3" placeholder="支持 {{dir}} 占位符" />
+        <ReButton size="small" style="margin-top:6px" :loading="aiLoading" @click="genAiScript('STOP')">AI 生成停止脚本</ReButton>
       </ReFormItem>
       <ReFormItem label="重启脚本">
         <ReInput v-model="form.msProjectRestartScript" type="textarea" :rows="3" placeholder="支持 {{dir}} 占位符" />
+        <ReButton size="small" style="margin-top:6px" :loading="aiLoading" @click="genAiScript('RESTART')">AI 生成重启脚本</ReButton>
       </ReFormItem>
 
       <ReDivider content-position="left">日志配置</ReDivider>
@@ -300,6 +354,53 @@ function newProjectForm() {
         <ReInputNumber v-model="form.msProjectArchiveKeep" :min="0" :max="50" />
         <span class="muted" style="margin-left:8px">0=不清理，超出自动删除旧版本包</span>
       </ReFormItem>
+
+      <ReDivider content-position="left">部署门禁</ReDivider>
+      <ReFormItem label="部署前置门禁">
+        <ReSwitch v-model="form.msProjectPreflightGate" />
+        <span class="muted" style="margin-left:8px">部署前校验目标主机在线状态与延迟，不可达主机直接拦截（区分网络故障 vs 部署失败）</span>
+      </ReFormItem>
+
+      <ReDivider content-position="left">指标采集</ReDivider>
+      <ReFormItem label="启用指标采集">
+        <ReSwitch v-model="form.msProjectMetricEnabled" />
+        <span class="muted" style="margin-left:8px">SSH 轮询采集进程内存/CPU、端口存活、HTTP 健康码（需先配健康检查目标）</span>
+      </ReFormItem>
+      <ReFormItem label="采集目标主机" v-if="form.msProjectMetricEnabled">
+        <ReSelect
+          v-model="form.msProjectMetricHostIds"
+          multiple
+          filterable
+          placeholder="为空时采集全部绑定主机"
+          :data="hostOptions"
+          style="width: 100%"
+        />
+      </ReFormItem>
+      <ReFormItem label="采集间隔(s)" v-if="form.msProjectMetricEnabled">
+        <ReInputNumber v-model="form.msProjectMetricInterval" :min="5" :max="3600" />
+        <span class="muted" style="margin-left:8px">每个项目独立设置，时间轮统一调度</span>
+      </ReFormItem>
+
+      <ReDivider content-position="left">守护进程</ReDivider>
+      <ReFormItem label="启用守护">
+        <ReSwitch v-model="form.msProjectWatchdogEnabled" />
+        <span class="muted" style="margin-left:8px">持续存活检测，挂了自动拉起（SSH 轮询，无需 Agent）</span>
+      </ReFormItem>
+      <template v-if="form.msProjectWatchdogEnabled">
+        <ReFormItem label="检测间隔(s)">
+          <ReInputNumber v-model="form.msProjectWatchdogInterval" :min="5" :max="3600" />
+          <span class="muted" style="margin-left:8px">每个项目独立设置，时间轮统一调度</span>
+        </ReFormItem>
+        <ReFormItem label="失败阈值">
+          <ReInputNumber v-model="form.msProjectWatchdogMaxFail" :min="1" :max="10" />
+          <span class="muted" style="margin-left:8px">连续 N 次不健康才自动重启，避免误杀</span>
+        </ReFormItem>
+        <ReFormItem label="状态检测脚本">
+          <ReInput v-model="form.msProjectCheckScript" type="textarea" :rows="3"
+            placeholder="exit 0=健康；为空时回退健康检查类型探测，可 AI 生成" />
+          <ReButton size="small" style="margin-top:6px" :loading="aiLoading" @click="genAiScript('CHECK')">AI 生成检测脚本</ReButton>
+        </ReFormItem>
+      </template>
 
       <ReDivider content-position="left">其他</ReDivider>
       <ReFormItem label="排序">

@@ -58,27 +58,37 @@ export const modelApi: ModelApi = {
   },
 
   async createProvider(this: ApiContext, data: any) {
-    return await this._request("/providers", { method: "POST", data });
+    const res = await fetch('/api/providers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
   },
 
   async testProviderConnection(this: ApiContext, data: any) {
-    return await this._request("/providers/test-connection", {
-      method: "POST",
-      data,
+    const res = await fetch('/api/providers/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
+    return await res.json();
   },
 
   async deleteProvider(this: ApiContext, providerId: string) {
-    return await this._request(`/providers/${encodeURIComponent(providerId)}`, {
-      method: "DELETE",
+    const res = await fetch(`/api/providers/${encodeURIComponent(providerId)}`, {
+      method: 'DELETE'
     });
+    return await res.json();
   },
 
   async updateProvider(this: ApiContext, providerId: string, data: any) {
-    return await this._request(`/providers/${encodeURIComponent(providerId)}`, {
-      method: "PUT",
-      data,
+    const res = await fetch(`/api/providers/${encodeURIComponent(providerId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
+    return await res.json();
   },
 
   async getProviderTemplates(this: ApiContext) {

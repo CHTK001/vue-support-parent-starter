@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col py-3 w-full">
-    <!-- 新建助手与使用说明 -->
+    <!-- 新建助手 -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-2">
         <el-button type="primary" @click="$emit('createCharacter')" class="flex items-center">
@@ -17,14 +17,6 @@
         </el-button>
         <input ref="fileInputRef" type="file" accept=".md,.markdown" multiple class="hidden" @change="handleFileSelect" />
       </div>
-      <el-button link type="primary" class="text-sm" @click="$emit('openDocs')">
-        <template #icon>
-          <el-icon :size="16">
-            <QuestionCircleOutlined />
-          </el-icon>
-        </template>
-        {{ t('characters.list.docs') }}
-      </el-button>
     </div>
 
     <!-- 分组筛选标签区域 -->
