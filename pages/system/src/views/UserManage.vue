@@ -57,8 +57,6 @@ const query = ref<{
 });
 
 async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
-  (window).__loadUsersPage = query.value.page;
-  (window).__debugPage = { queryPage: query.value.page, paramPage: page };
   const res = await pageForUser({
     page: query.value.page || page,
     pageSize: query.value.pageSize || pageSize,
@@ -645,7 +643,7 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
         @selection-change="handleSelectionChange"
-        @update:page="(p) => { window.__updatePageCalled = p; query.value.page = p; tableRef?.reload(); }"
+        @update:page="(p) => { query.value.page = p; tableRef?.reload(); }"
       >
         <template #username="{ row }">
           <div class="flex items-center gap-2">
@@ -698,19 +696,6 @@ onMounted(() => {
           </div>
         </template>
       </ReTable>
-      <!-- 自定义分页 -->
-      <div class="custom-pagination">
-        <span>total={{ total }} totalPages={{ totalPages }}</span>
-        <button class="page-btn" :disabled="query.page <= 1" @click="goPage(query.page - 1)">‹</button>
-        <button
-          v-for="p in totalPages"
-          :key="p"
-          class="page-btn"
-          :class="{ active: p === query.page }"
-          @click="goPage(p)"
-        >{{ p }}</button>
-        <button class="page-btn" :disabled="query.page >= totalPages" @click="goPage(query.page + 1)">›</button>
-      </div>
     </el-card>
 
     <!-- 用户编辑弹窗 -->
