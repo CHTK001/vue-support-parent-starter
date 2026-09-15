@@ -267,6 +267,14 @@ const selectedRowsMap = ref<Record<string, Record<string, unknown>>>(loadSelecti
 /** 当前页选中行（el-table selection-change 回调更新） */
 const currentPageSelection = ref<Record<string, unknown>[]>([]);
 
+/** 内部分页状态（与 props 同步，确保 reload 时读到最新值） */
+const internalPage = ref(props.page ?? 1);
+const internalPageSize = ref(props.pageSize ?? 10);
+// 强制响应式：用 shallowRef 或 triggerRef
+import { triggerRef } from "vue";
+watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
+watch(() => props.pageSize, (v) => { if (typeof v === "number") internalPageSize.value = v; });
+
 /** 所有选中行（跨页合并） */
 const allSelectedRows = computed<Record<string, unknown>[]>(() => Object.values(selectedRowsMap.value));
 
@@ -726,10 +734,13 @@ function resetColumns(): void {
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     const paramObj = props.params ?? {};
+    const curPage = internalPage.value || props.page || 1;
+    (window).__runPage = { internal: internalPage.value, props: props.page, curPage };
+    const curSize = internalPageSize.value || props.pageSize || 10;
     const loadParams = {
-      page: props.page,
-      pageSize: props.pageSize,
-      params: { ...paramObj, page: props.page, pageSize: props.pageSize },
+      page: curPage,
+      pageSize: curSize,
+      params: { ...paramObj, page: curPage, pageSize: curSize },
     };
     let result: RePageResult | undefined;
     try {
@@ -805,6 +816,46 @@ watch(internalParamsKey, (key) => {
   nextTick(() => { void dsReload(); });
 });
 
+/** page 变化 → 重新加载远程数据 */
+watch(() => props.page, (p, oldP) => {
+  if (!isRemote.value || !props.autoReload) return;
+  if (p === oldP) return;
+  nextTick(() => { void dsReload(); });
+});
+
+/** internalPage 变化（用户点击分页）→ 同步并 reload */
+watch(internalPage, (p, oldP) => {
+  if (!isRemote.value || !props.autoReload) return;
+  if (p === oldP) return;
+  emit("update:page", p);
+  nextTick(() => { void dsReload(); });
+});
+
+/** 原生分页辅助 */
+const paginationTotalPages = computed(() => Math.max(1, Math.ceil(totalToShow.value / internalPageSize.value)));
+const paginationPageList = computed(() => {
+  const total = paginationTotalPages.value;
+  const cur = internalPage.value;
+  const list: number[] = [];
+  for (let i = 1; i <= total; i++) list.push(i);
+  return list;
+});
+function goToPage(p: number) {
+  if (p < 1 || p > paginationTotalPages.value || p === internalPage.value) return;
+  internalPage.value = p;
+  emit("update:page", p);
+  setTimeout(() => { void dsReload(); }, 200);
+}
+function onPageClick(p: number) {
+  goToPage(p);
+}
+function onPrevPage() {
+  goToPage((props.page || internalPage.value) - 1);
+}
+function onNextPage() {
+  goToPage((props.page || internalPage.value) + 1);
+}
+
 function formatCell(row: Record<string, unknown>, column: ReTableColumn): string {
   const value = row[column.prop];
   if (column.formatter) {
@@ -815,6 +866,8 @@ function formatCell(row: Record<string, unknown>, column: ReTableColumn): string
 }
 
 function onPageChange(p: number): void {
+  (window as any).__onPageChange = p;
+  internalPage.value = p;
   emit("update:page", p);
   saveColumnState();
   restoreSelection();
@@ -824,8 +877,12 @@ function onPageChange(p: number): void {
   }
 }
 function onSizeChange(s: number): void {
+  internalPageSize.value = s;
   emit("update:pageSize", s);
-  if (props.page !== 1) emit("update:page", 1);
+  if (props.page !== 1) {
+    internalPage.value = 1;
+    emit("update:page", 1);
+  }
   saveColumnState();
   restoreSelection();
   // 等 props 更新后重新加载远程数据
@@ -842,8 +899,14 @@ async function reload(): Promise<void> {
  * 使用 nextTick 确保 page/pageSize props 更新后再 reload。
  */
 async function goto(page?: number, size?: number): Promise<void> {
-  if (typeof page === "number" && page > 0) emit("update:page", page);
-  if (typeof size === "number" && size > 0) emit("update:pageSize", size);
+  if (typeof page === "number" && page > 0) {
+    internalPage.value = page;
+    emit("update:page", page);
+  }
+  if (typeof size === "number" && size > 0) {
+    internalPageSize.value = size;
+    emit("update:pageSize", size);
+  }
   await nextTick();
   await dsReload();
 }
@@ -1193,9 +1256,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText">
-                  {{ columnsTriggerText }}
-                </ElButton>
+                <ElButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText" />
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -1259,59 +1320,82 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText">
-                  {{ settingsTriggerText }}
-                </ElButton>
+                <ElButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText" />
               </template>
               <div class="re-table__settings-panel">
-                <ReSwitch
-                  layout="card"
-                  title="斑马纹"
-                  :model-value="localSettings.stripe ?? false"
-                  @update:model-value="(v: boolean | string | number) => onSettingChange('stripe', Boolean(v))"
-                />
-                <ReSwitch
-                  layout="card"
-                  title="边框"
-                  :model-value="localSettings.border ?? true"
-                  @update:model-value="(v: boolean | string | number) => onSettingChange('border', Boolean(v))"
-                />
-                <ReSwitch
-                  layout="card"
-                  title="紧凑"
-                  :model-value="localSettings.compact ?? false"
-                  @update:model-value="(v: boolean | string | number) => onSettingChange('compact', Boolean(v))"
-                />
-                <ReSwitch
-                  layout="card"
-                  title="高亮当前行"
-                  :model-value="localSettings.highlightCurrentRow ?? false"
-                  @update:model-value="(v: boolean | string | number) => onSettingChange('highlightCurrentRow', Boolean(v))"
-                />
-                <ReSwitch
-                  layout="card"
-                  title="可调整列宽"
-                  :model-value="localSettings.resizable ?? true"
-                  @update:model-value="(v: boolean | string | number) => onSettingChange('resizable', Boolean(v))"
-                />
+                <div class="settings-header">
+                  <span class="settings-title">表格设置</span>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">斑马纹</span>
+                      <span class="settings-item__desc">隔行变色提升可读性</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.stripe ?? false"
+                      @update:model-value="(v: any) => onSettingChange('stripe', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">边框</span>
+                      <span class="settings-item__desc">显示表格外边框</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.border ?? true"
+                      @update:model-value="(v: any) => onSettingChange('border', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">紧凑模式</span>
+                      <span class="settings-item__desc">减小行高展示更多数据</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.compact ?? false"
+                      @update:model-value="(v: any) => onSettingChange('compact', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">高亮当前行</span>
+                      <span class="settings-item__desc">鼠标悬停高亮整行</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.highlightCurrentRow ?? false"
+                      @update:model-value="(v: any) => onSettingChange('highlightCurrentRow', Boolean(v))"
+                    />
+                  </div>
+                  <div class="settings-item">
+                    <div class="settings-item__label">
+                      <span class="settings-item__title">可调整列宽</span>
+                      <span class="settings-item__desc">拖拽列边缘调整宽度</span>
+                    </div>
+                    <ElSwitch
+                      :model-value="localSettings.resizable ?? true"
+                      @update:model-value="(v: any) => onSettingChange('resizable', Boolean(v))"
+                    />
+                  </div>
+                </div>
               </div>
             </ElPopover>
           </template>
         </ReTableToolbar>
       </div>
 
-      <div v-if="pagination" class="re-table__pagination">
-        <ElPagination
-          :current-page="page"
-          :page-size="pageSize"
-          :total="totalToShow"
-          :page-sizes="pageSizes"
-          :size="tableSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @current-change="(p: number) => onPageChange(p)"
-          @size-change="(s: number) => onSizeChange(s)"
-        />
+      <!-- 内置分页已隐藏，使用外部自定义分页 -->
+      <div v-if="false && pagination" class="re-table__pagination">
+        <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
+        <button class="re-page-btn" :disabled="page <= 1" @click="onPrevPage">‹</button>
+        <button
+          v-for="p in paginationPageList"
+          :key="p"
+          class="re-page-btn"
+          :class="{ 're-page-btn--active': p === page }"
+          @click="onPageClick(p)"
+        >{{ p }}</button>
+        <button class="re-page-btn" :disabled="page >= paginationTotalPages" @click="onNextPage">›</button>
       </div>
     </div>
 
@@ -1375,11 +1459,43 @@ const iconSelect = Select;
 .re-table__pagination {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
   flex: 1 1 auto;
   order: 1;
   border-right: none;
   position: relative;
   z-index: 1;
+  padding: 12px 0;
+}
+.re-table__pagination-total {
+  margin-right: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.re-page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  background: var(--el-bg-color);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+.re-page-btn:hover:not(:disabled):not(.re-page-btn--active) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.re-page-btn--active {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+.re-page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 /* 统一分页行控件大小：「前往」输入框与每页条数下拉框同高，避免视觉大小不一致 */
 .re-table__pagination .el-pagination__jump .el-input {
@@ -1477,9 +1593,51 @@ const iconSelect = Select;
   color: var(--rt-text-secondary);
 }
 .re-table__settings-panel {
+  min-width: 260px;
+  padding: 0;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.settings-header {
+  padding: 14px 16px 10px;
+  background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.settings-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.settings-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  padding: 4px 0;
+}
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.settings-item:hover {
+  background: var(--el-fill-color);
+}
+.settings-item__label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.settings-item__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+.settings-item__desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 .re-table__toolbar-top {
   display: flex;

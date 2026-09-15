@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { message } from '@repo/core';
 import {
   queryHosts,
@@ -70,6 +71,8 @@ const groups = ref<GroupRow[]>([]);
 /** 身份列表（连接对话框用） */
 const identities = ref<Array<Record<string, any>>>([]);
 
+const router = useRouter();
+
 /** 资产统计 */
 const hostStats = ref({ total: 0, online: 0, offline: 0, unknown: 0 });
 const statsLoading = ref(false);
@@ -129,8 +132,9 @@ const cfgForm = reactive({
 const cfgSaving = ref(false);
 
 function openDetail(row: HostRow) {
-  detailHost.value = row;
-  detailVisible.value = true;
+  // 独立新窗口打开主机监控页，不受主应用 router/tab 控制
+  const url = `${location.pathname}#/host/${row.id}`;
+  window.open(url, `host-detail-${row.id}`, 'width=1280,height=860,resizable=yes,scrollbars=yes');
 }
 
 /** 打开更多配置弹窗并回填当前主机配置 */
@@ -328,12 +332,9 @@ async function onScanPorts(row: HostRow): Promise<void> {
  *
  * @param row 主机
  */
-async function onOpenConnect(row: HostRow): Promise<void> {
-  if (identities.value.length === 0) {
-    identities.value = await getIdentities().catch(() => []);
-  }
-  connectingHost.value = row;
-  connectVisible.value = true;
+function onOpenConnect(row: HostRow): void {
+  // 跳转到远程控制页，右侧主区域直接渲染远控终端（master-detail 布局）
+  router.push({ path: '/terminal', query: { hostId: String(row.id) } });
 }
 
 /**
@@ -607,7 +608,7 @@ async function onImportFile(file: File | undefined) {
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="cfgSaving"
-      @ok="onSaveConfig"
+      @confirm="onSaveConfig"
       @cancel="configVisible = false"
     >
       <ReForm label-position="left" label-width="130px" class="cfg-form">

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 部门管理页面
  *
@@ -196,7 +196,7 @@ onMounted(loadList);
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" add-text="新增顶级部门" @add="handleAdd()">
+      <ReSearch :is-expanded="true" filter-mode="data" add-text="新增顶级部门" @add="handleAdd()">
         <div class="system-page__search">
           <ReInput
             layout="modern"

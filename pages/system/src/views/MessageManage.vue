@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 消息管理页面（管理端）
  *
@@ -337,7 +337,7 @@ onMounted(() => {
       <el-tabs v-model="activeTab">
         <!-- ============ 消息列表 ============ -->
         <el-tab-pane label="消息列表" name="message">
-          <ReSearch :is-expanded="true" :add-button="false">
+          <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
             <div class="system-page__search">
               <ReInput
                 layout="modern"
@@ -435,7 +435,7 @@ onMounted(() => {
 
         <!-- ============ 消息模板 ============ -->
         <el-tab-pane label="消息模板" name="template">
-          <ReSearch :is-expanded="true" :add-button="false">
+          <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
             <div class="system-page__search">
               <ReInput
                 layout="modern"

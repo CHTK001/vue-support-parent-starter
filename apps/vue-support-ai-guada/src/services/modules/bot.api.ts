@@ -28,7 +28,53 @@ export interface BotApi {
 
 export const botApi: BotApi = {
   async fetchBotPlatforms(this: ApiContext) {
-    return await this._request("/bot-admin/platforms");
+    // 后端接口暂未提供，前端硬编码常用平台
+    return [
+      {
+        platform: "qq",
+        displayName: "QQ",
+        description: "QQ机器人，支持群聊和私聊",
+        fields: [
+          { key: "appId", label: "App ID", type: "text", required: true, placeholder: "请输入QQ机器人AppID" },
+          { key: "clientSecret", label: "Client Secret", type: "password", required: true, placeholder: "请输入ClientSecret" },
+        ],
+      },
+      {
+        platform: "wechat",
+        displayName: "微信",
+        description: "微信公众号/个人微信机器人",
+        fields: [
+          { key: "appId", label: "App ID", type: "text", required: true },
+          { key: "appSecret", label: "App Secret", type: "password", required: true },
+          { key: "token", label: "Token", type: "text", required: false },
+        ],
+      },
+      {
+        platform: "discord",
+        displayName: "Discord",
+        description: "Discord机器人",
+        fields: [
+          { key: "token", label: "Bot Token", type: "password", required: true, placeholder: "请输入Discord Bot Token" },
+        ],
+      },
+      {
+        platform: "telegram",
+        displayName: "Telegram",
+        description: "Telegram Bot",
+        fields: [
+          { key: "botToken", label: "Bot Token", type: "password", required: true, placeholder: "请输入Bot Father提供的Token" },
+        ],
+      },
+      {
+        platform: "webhook",
+        displayName: "Webhook",
+        description: "通用Webhook接入",
+        fields: [
+          { key: "webhookUrl", label: "Webhook URL", type: "text", required: true, placeholder: "https://example.com/webhook" },
+          { key: "secret", label: "签名密钥", type: "password", required: false },
+        ],
+      },
+    ];
   },
 
   async fetchBotInstances(this: ApiContext) {

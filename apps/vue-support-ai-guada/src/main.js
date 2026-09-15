@@ -89,7 +89,7 @@ const routes = [
         path: "setting/:tab?",
         name: "SystemSettings",
         meta: { title: "系统设置", requiresAuth: true },
-        component: () => import("./components/management/SystemSettingsPage.vue"),
+        component: () => import("./components/setting/SystemSettings.vue"),
       },
       {
         path: "plugins/:tab?",
@@ -114,7 +114,7 @@ const routes = [
         path: "models",
         name: "Models",
         meta: { title: "模型管理", requiresAuth: true },
-        component: () => import("./components/management/ModelsManagementPage.vue"),
+        component: () => import("./components/models/ModelsPage.vue"),
       },
       {
         path: "app-keys",

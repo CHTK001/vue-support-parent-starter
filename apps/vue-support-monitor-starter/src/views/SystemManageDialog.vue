@@ -1,5 +1,5 @@
 <template>
-  <ReDialog v-model="visible" :title="dialogTitle" width="900px" class="sys-mgr-dialog">
+  <ReDialog v-model="visible" :title="dialogTitle" width="900px" class="sys-mgr-dialog" :show-footer="false">
     <div class="sys-mgr-toolbar">
       <ReInput
         v-model="keyword"
@@ -119,12 +119,12 @@
     />
 
     <!-- 子进程弹窗 -->
-    <ReDialog v-model="childrenVisible" :title="`子进程 - PID ${currentPid}`" width="700px">
+    <ReDialog v-model="childrenVisible" :title="`子进程 - PID ${currentPid}`" width="700px" :show-footer="false">
       <ReTable :data="childrenList" :columns="processColumns" size="small" stripe style="height: 360px" />
     </ReDialog>
 
     <!-- 线程弹窗 -->
-    <ReDialog v-model="threadsVisible" :title="`线程列表 - PID ${currentPid}`" width="700px">
+    <ReDialog v-model="threadsVisible" :title="`线程列表 - PID ${currentPid}`" width="700px" :show-footer="false">
       <ReTable :data="threadsList" :columns="threadColumns" size="small" stripe style="height: 360px" />
     </ReDialog>
   </ReDialog>
@@ -212,28 +212,26 @@ const threadColumns = [
 ];
 
 const serviceColumns = [
-  { prop: "name", label: "服务名称", width: 180 },
-  { prop: "displayName", label: "显示名称", width: 200, showOverflowTooltip: true },
-  { prop: "status", label: "状态", width: 100, formatter: (r: any) => r.status ?? r.activeState ?? "" },
-  { prop: "startType", label: "启动类型", width: 100, formatter: (r: any) => r.startType ?? r.loadState ?? "" },
-  { prop: "description", label: "描述", minWidth: 150, showOverflowTooltip: true },
+  { prop: "Name", label: "服务名称", width: 180 },
+  { prop: "DisplayName", label: "显示名称", width: 220, showOverflowTooltip: true },
+  { prop: "Status", label: "状态", width: 90, formatter: (r: any) => serviceStatusText(r.Status) },
+  { prop: "StartType", label: "启动类型", width: 100, formatter: (r: any) => startTypeText(r.StartType) },
   { prop: "actions", label: "操作", width: 140, fixed: "right", slot: "actions" },
 ];
 
 const networkInterfaceColumns = [
-  { prop: "name", label: "名称", width: 160 },
-  { prop: "status", label: "状态", width: 100 },
-  { prop: "macAddress", label: "MAC 地址", width: 160 },
-  { prop: "linkSpeed", label: "链路速度", width: 120 },
-  { prop: "ifIndex", label: "索引", width: 80 },
+  { prop: "Name", label: "名称", width: 180 },
+  { prop: "InterfaceDescription", label: "描述", width: 220, showOverflowTooltip: true },
+  { prop: "Status", label: "状态", width: 90 },
+  { prop: "MacAddress", label: "MAC 地址", width: 160 },
+  { prop: "LinkSpeed", label: "链路速度", width: 100 },
 ];
 
 const networkConnectionColumns = [
-  { prop: "proto", label: "协议", width: 80 },
-  { prop: "state", label: "状态", width: 120 },
-  { prop: "localAddress", label: "本地地址", width: 180 },
-  { prop: "remoteAddress", label: "远程地址", width: 180 },
-  { prop: "process", label: "进程", minWidth: 120, showOverflowTooltip: true },
+  { prop: "LocalAddress", label: "本地地址", width: 160, formatter: (r: any) => `${r.LocalAddress}:${r.LocalPort}` },
+  { prop: "RemoteAddress", label: "远程地址", width: 160, formatter: (r: any) => `${r.RemoteAddress}:${r.RemotePort}` },
+  { prop: "State", label: "状态", width: 100, formatter: (r: any) => tcpStateText(r.State) },
+  { prop: "OwningProcess", label: "PID", width: 80 },
 ];
 
 const diskColumns = [
@@ -245,30 +243,32 @@ const diskColumns = [
 ];
 
 const partitionColumns = [
-  { prop: "filesystem", label: "文件系统", width: 160 },
-  { prop: "type", label: "类型", width: 100 },
-  { prop: "size", label: "总容量", width: 100 },
-  { prop: "used", label: "已用", width: 100 },
-  { prop: "available", label: "可用", width: 100 },
-  { prop: "usePercent", label: "使用率", width: 100 },
-  { prop: "mountPoint", label: "挂载点", minWidth: 120 },
+  { prop: "DriveLetter", label: "盘符", width: 80 },
+  { prop: "FileSystemLabel", label: "卷标", width: 120 },
+  { prop: "FileSystem", label: "文件系统", width: 100 },
+  { prop: "Size", label: "总容量", width: 100, formatter: (r: any) => formatBytes(r.Size) },
+  { prop: "SizeRemaining", label: "可用", width: 100, formatter: (r: any) => formatBytes(r.SizeRemaining) },
+  { prop: "UsePercent", label: "使用率", width: 100, formatter: (r: any) => {
+    if (!r.Size) return "-";
+    const used = (r.Size - r.SizeRemaining) / r.Size * 100;
+    return used.toFixed(1) + "%";
+  }},
+  { prop: "DriveType", label: "类型", width: 80 },
+  { prop: "HealthStatus", label: "健康", width: 80 },
 ];
 
 const firewallColumns = [
-  { prop: "chain", label: "链", width: 100 },
-  { prop: "num", label: "序号", width: 70 },
-  { prop: "target", label: "目标", width: 100 },
-  { prop: "protocol", label: "协议", width: 80 },
-  { prop: "source", label: "源地址", width: 140 },
-  { prop: "destination", label: "目标地址", width: 140 },
-  { prop: "info", label: "信息", minWidth: 150, showOverflowTooltip: true },
+  { prop: "DisplayName", label: "规则名称", minWidth: 200, showOverflowTooltip: true },
+  { prop: "Direction", label: "方向", width: 80, formatter: (r: any) => r.Direction === 1 ? "入站" : "出站" },
+  { prop: "Action", label: "动作", width: 80, formatter: (r: any) => r.Action === 1 ? "允许" : "阻止" },
+  { prop: "Enabled", label: "启用", width: 80, formatter: (r: any) => r.Enabled === 1 ? "是" : "否" },
 ];
 
 const driverColumns = [
-  { prop: "name", label: "驱动名称", width: 200 },
-  { prop: "size", label: "大小", width: 120, formatter: (r: any) => formatBytes(r.size) },
-  { prop: "usedBy", label: "被引用", width: 100 },
-  { prop: "dependsOn", label: "依赖", minWidth: 150, showOverflowTooltip: true },
+  { prop: "ClassName", label: "类别", width: 120 },
+  { prop: "ProviderName", label: "提供商", width: 120 },
+  { prop: "OriginalFileName", label: "驱动文件", minWidth: 250, showOverflowTooltip: true },
+  { prop: "BootCritical", label: "关键", width: 80, formatter: (r: any) => r.BootCritical ? "是" : "否" },
 ];
 
 /**
@@ -284,12 +284,42 @@ function formatBytes(bytes: number): string {
 }
 
 /**
+ * TCP 状态文本（Windows TcpState: 1=CLOSED, 2=LISTEN, 3=SYN_SENT, ..., 10=DELETE_TCB）
+ */
+function tcpStateText(s: any): string {
+  const map: Record<number, string> = {
+    1: "CLOSED", 2: "LISTEN", 3: "SYN_SENT", 4: "SYN_RCVD",
+    5: "ESTAB", 6: "FIN_WAIT1", 7: "FIN_WAIT2", 8: "CLOSE_WAIT",
+    9: "CLOSING", 10: "LAST_ACK", 11: "TIME_WAIT", 12: "DELETE_TCB", 100: "LISTEN",
+  };
+  if (typeof s === "number") return map[s] ?? String(s);
+  return String(s ?? "-");
+}
+
+/**
+ * 服务状态文本（Windows: 1=running, 4=stopped）
+ */
+function serviceStatusText(s: any): string {
+  if (s === 1 || s === "Running") return "运行中";
+  if (s === 4 || s === "Stopped") return "已停止";
+  return String(s ?? "-");
+}
+
+/**
+ * 启动类型文本（Windows: 2=auto, 3=manual, 4=disabled）
+ */
+function startTypeText(t: any): string {
+  const map: Record<number, string> = { 2: "自动", 3: "手动", 4: "禁用" };
+  if (typeof t === "number") return map[t] ?? String(t);
+  return String(t ?? "-");
+}
+
+/**
  * 服务是否运行中
  * @param row 服务行
  */
-function isRunning(row: ServiceInfo): boolean {
-  const s = String(row.status ?? row.activeState ?? "").toLowerCase();
-  return s === "running" || s === "active";
+function isRunning(row: any): boolean {
+  return row.Status === 1 || row.Status === "Running";
 }
 
 function onSortChange({ prop, order }: { prop: string; order: string }) {
@@ -358,20 +388,20 @@ async function openThreads(row: ProcessInfo) {
   threadsVisible.value = true;
 }
 
-async function doStart(row: ServiceInfo) {
-  await startService(row.name);
+async function doStart(row: any) {
+  await startService(row.Name);
   loadData();
 }
 
-async function doStop(row: ServiceInfo) {
-  if (!confirm(`确认停止服务 ${row.name}?`)) return;
-  await stopService(row.name);
+async function doStop(row: any) {
+  if (!confirm(`确认停止服务 ${row.Name}?`)) return;
+  await stopService(row.Name);
   loadData();
 }
 
-async function doRestart(row: ServiceInfo) {
-  if (!confirm(`确认重启服务 ${row.name}?`)) return;
-  await restartService(row.name);
+async function doRestart(row: any) {
+  if (!confirm(`确认重启服务 ${row.Name}?`)) return;
+  await restartService(row.Name);
   loadData();
 }
 

@@ -11,13 +11,32 @@
         </el-select>
         <el-input
           v-model="keyword"
-          placeholder="搜索消息 / Logger / Trace"
+          placeholder="服务端搜索：消息 / Logger / 类名"
           clearable
           size="small"
           class="filter-input"
           :prefix-icon="Search"
+          @keyup.enter="doServerSearch"
         />
-        <span class="match-hint" v-if="keyword">命中 {{ filteredItems.length }} / {{ items.length }}</span>
+        <el-input
+          v-model="traceIdSearch"
+          placeholder="按 traceId 精确过滤"
+          clearable
+          size="small"
+          class="filter-input trace-filter"
+          @keyup.enter="doServerSearch"
+        />
+        <el-date-picker
+          v-model="filters.range"
+          type="datetimerange"
+          range-separator="~"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          size="small"
+          style="width: 320px"
+        />
+        <el-button size="small" round :loading="loading" @click="doServerSearch">搜索</el-button>
+        <span class="match-hint" v-if="keyword || traceIdSearch">服务端命中 {{ total }} 条</span>
       </div>
       <div class="toolbar-right">
         <el-button size="small" round @click="exportCsvFull">
@@ -35,7 +54,7 @@
     <div class="table-panel">
       <el-table
         v-loading="loading"
-        :data="filteredItems"
+        :data="items"
         class="apm-table"
         empty-text="暂无日志记录"
       >
@@ -66,9 +85,11 @@
             <span :class="{ 'err-text': row.level === 'ERROR' }">{{ row.message }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Trace" width="140">
+        <el-table-column label="Trace" width="160">
           <template #default="{ row }">
-            <code v-if="row.traceId" class="mono">{{ shortId(row.traceId) }}</code>
+            <a v-if="row.traceId" class="trace-link" @click="openTrace(row.traceId)">
+              <code class="mono">{{ shortId(row.traceId) }}</code>
+            </a>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -90,11 +111,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Refresh, Download, Search } from "@element-plus/icons-vue";
 import { pageLogs, exportLogsCsv, injectLog } from "../api/apmApi";
 import type { LogRecord } from "../api/apmApi";
+
+const router = useRouter();
+const route = useRoute();
+
+/** 点击 traceId 跳调用链路页（带 traceId 查询参数） */
+function openTrace(traceId: string) {
+  router.push({ path: "/traces", query: { traceId } });
+}
 
 const items = ref<LogRecord[]>([]);
 const total = ref(0);
@@ -103,18 +133,14 @@ const size = ref(20);
 const loading = ref(false);
 const filterLevel = ref("");
 const keyword = ref("");
+const traceIdSearch = ref("");
+const filters = reactive({ range: null as [Date, Date] | null });
 
-/** 关键字前端过滤（消息 / Logger / 类名 / TraceId，大小写不敏感）。 */
-const filteredItems = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) {
-    return items.value;
-  }
-  return items.value.filter((r) =>
-    [r.message, r.logger, r.className, r.methodName, r.traceId]
-      .some((f) => (f || "").toLowerCase().includes(kw)),
-  );
-});
+/** 服务端搜索：把关键字/traceId/时间范围传给后端 /logs 过滤 */
+function doServerSearch() {
+  page.value = 1;
+  load();
+}
 
 async function load() {
   loading.value = true;
@@ -123,6 +149,10 @@ async function load() {
       page: page.value,
       size: size.value,
       level: filterLevel.value || undefined,
+      keyword: keyword.value.trim() || undefined,
+      traceId: traceIdSearch.value.trim() || undefined,
+      startTime: filters.range?.[0] ? new Date(filters.range[0]).getTime() : undefined,
+      endTime: filters.range?.[1] ? new Date(filters.range[1]).getTime() : undefined,
     });
     items.value = res.items;
     total.value = res.total;
@@ -152,9 +182,15 @@ async function doInjectLog() {
   }
 }
 
-/** 后端全量 CSV 导出（带当前级别筛选） */
+/** 后端全量 CSV 导出（带当前全部筛选条件） */
 function exportCsvFull() {
-  exportLogsCsv(filterLevel.value || undefined);
+  exportLogsCsv({
+    level: filterLevel.value || undefined,
+    keyword: keyword.value.trim() || undefined,
+    traceId: traceIdSearch.value.trim() || undefined,
+    startTime: filters.range?.[0] ? new Date(filters.range[0]).getTime() : undefined,
+    endTime: filters.range?.[1] ? new Date(filters.range[1]).getTime() : undefined,
+  });
 }
 
 function levelTag(level: string) {
@@ -175,11 +211,17 @@ function shortId(id: string) {
 }
 
 watch(filterLevel, () => {
-  page.value = 1;
-  load();
+  doServerSearch();
 });
 
-onMounted(load);
+onMounted(() => {
+  // 从全局搜索进入：/logs?keyword=xxx 自动应用
+  const qKw = String(route.query.keyword ?? "");
+  if (qKw) {
+    keyword.value = qKw;
+  }
+  load();
+});
 </script>
 
 <style scoped>
@@ -251,6 +293,17 @@ onMounted(load);
 .mono {
   font-family: "JetBrains Mono", Consolas, monospace;
   font-size: 12px;
+}
+
+.trace-link {
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--apm-accent);
+  transition: opacity 0.15s;
+}
+
+.trace-link:hover {
+  opacity: 0.7;
 }
 
 .muted {

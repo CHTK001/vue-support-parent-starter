@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 角色管理页面
  *
@@ -317,7 +317,7 @@ onMounted(() => {
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" @add="handleAdd">
+      <ReSearch :is-expanded="true" filter-mode="data" @add="handleAdd">
         <div class="system-page__search">
           <ReInput
             layout="modern"

@@ -9,7 +9,7 @@
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { User, Lock, Edit, Key, RefreshLeft, Monitor, Shield } from "@element-plus/icons-vue";
+import { User, Lock, Edit, Key, Refresh, Monitor } from "@element-plus/icons-vue";
 import {
   listOnline,
   kickUser,
@@ -75,7 +75,7 @@ const tabs = computed<ReTabItem[]>(() => {
     items.push({ name: "frame", label: "头像框", icon: "Avatar" });
   }
   items.push({ name: "pwd", label: "修改密码", icon: "Key" });
-  items.push({ name: "security", label: "账号安全", icon: "Shield" });
+  items.push({ name: "security", label: "账号安全", icon: "Lock" });
   items.push({ name: "lock", label: "锁屏设置", icon: "Lock" });
   items.push({ name: "devices", label: "登录设备", icon: "Monitor" });
   return items;
@@ -509,7 +509,7 @@ onMounted(async () => {
               <ReForm v-model="pwdForm" layout="modern" label-width="110px" class="pwd-form" :fields="pwdFields">
                 <template #actions>
                   <ReButton layout="modern" type="primary" icon="Lock" :loading="savingPwd" :disabled="isReadonly" @click="savePassword">确认修改</ReButton>
-                  <ReButton layout="modern" :icon="RefreshLeft" @click="resetPwdForm">重置</ReButton>
+                  <ReButton layout="modern" :icon="Refresh" @click="resetPwdForm">重置</ReButton>
                 </template>
               </ReForm>
             </template>
@@ -542,7 +542,7 @@ onMounted(async () => {
               <div v-loading="totpLoading" class="security-body">
                 <div class="security-card">
                   <div class="security-card__left">
-                    <el-icon :size="22" color="var(--el-color-primary)"><Shield /></el-icon>
+                    <el-icon :size="22" color="var(--el-color-primary)"><Lock /></el-icon>
                     <div>
                       <div class="security-card__title">二次验证（2FA）</div>
                       <div class="security-card__desc">开启后登录需输入 TOTP 动态验证码，显著提升账号安全性</div>

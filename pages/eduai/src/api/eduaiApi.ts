@@ -183,6 +183,64 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/debug/queue-name")
       .then<Record<string, unknown>>(unwrap),
+
+  // 趣味模块配置
+  listFunConfigs: () =>
+    http()
+      .get("/v2/edu/fun/list")
+      .then<FunConfig[]>(unwrap),
+  listAllFunConfigs: () =>
+    http()
+      .get("/v2/edu/fun/list-all")
+      .then<FunConfig[]>(unwrap),
+  getFunConfig: (moduleCode: string) =>
+    http()
+      .get(`/v2/edu/fun/detail/${moduleCode}`)
+      .then<FunConfig>(unwrap),
+  toggleFunConfig: (moduleCode: string, enabled: number) =>
+    http()
+      .put(`/v2/edu/fun/toggle/${moduleCode}`)
+      .query({ enabled })
+      .then<boolean>(unwrap),
+  saveFunConfig: (data: Partial<FunConfig>) =>
+    http()
+      .post("/v2/edu/fun/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  deleteFunConfig: (configId: number) =>
+    http()
+      .delete(`/v2/edu/fun/delete/${configId}`)
+      .then<boolean>(unwrap),
+
+  // 成语游戏
+  listIdioms: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
+    http()
+      .get("/v2/edu/idiom/list")
+      .query(params)
+      .then<Idiom[]>(unwrap),
+  generateIdiomGame: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
+    http()
+      .get("/v2/edu/idiom/game/generate")
+      .query(params)
+      .then<IdiomGameData>(unwrap),
+  validateIdiomPair: (data: { idiomId: number; pinyin: string; meaning: string }) =>
+    http()
+      .post("/v2/edu/idiom/game/validate")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  getIdiomDetail: (idiomId: number) =>
+    http()
+      .get(`/v2/edu/idiom/detail/${idiomId}`)
+      .then<Idiom>(unwrap),
+  saveIdiom: (data: Partial<Idiom>) =>
+    http()
+      .post("/v2/edu/idiom/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  deleteIdiom: (idiomId: number) =>
+    http()
+      .delete(`/v2/edu/idiom/delete/${idiomId}`)
+      .then<boolean>(unwrap),
 };
 
 export default eduaiApi;

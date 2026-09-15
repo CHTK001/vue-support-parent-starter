@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 租户管理页面 —— 平台侧维护租户，向租户端分配服务并推送菜单/账号密码
  *
@@ -240,7 +240,7 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" add-text="新增租户" @add="handleCreate">
+      <ReSearch :is-expanded="true" filter-mode="data" add-text="新增租户" @add="handleCreate">
         <div class="system-page__search">
           <ReInput
             layout="modern"

@@ -4,6 +4,17 @@
       <div class="toolbar-left">
         <span class="section-label">调用链路（传输记录）</span>
         <el-input
+          v-model="traceSearch"
+          placeholder="按 traceId 搜索"
+          clearable
+          size="small"
+          class="filter-input trace-search"
+          @keyup.enter="applyTraceSearch"
+        />
+        <el-button v-if="traceSearch" size="small" text type="primary" @click="applyTraceSearch">
+          搜索
+        </el-button>
+        <el-input
           v-model="filters.source"
           placeholder="源端"
           clearable
@@ -47,9 +58,16 @@
         empty-text="暂无传输记录（Agent 未注入或无数据）"
         @row-click="openDetail"
       >
-        <el-table-column prop="traceId" label="Trace ID" width="150">
+        <el-table-column label="Trace ID" width="200">
           <template #default="{ row }">
-            <code class="mono">{{ shortId(row.traceId) }}</code>
+            <div class="trace-id-cell">
+              <code class="mono trace-link" @click.stop="openWaterfall(row.traceId)">
+                {{ shortId(row.traceId) }}
+              </code>
+              <el-button link size="small" type="primary" @click.stop="openWaterfall(row.traceId)">
+                瀑布
+              </el-button>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="源 → 目标" min-width="260">
@@ -116,6 +134,11 @@
       :title="`链路详情 · ${detailTraceId || ''}`"
       size="640px"
     >
+      <div v-if="detailTraceId" class="drawer-actions">
+        <el-button size="small" round type="primary" @click="openWaterfall(detailTraceId)">
+          <el-icon class="mr-1"><Right /></el-icon>查看瀑布图
+        </el-button>
+      </div>
       <div v-loading="detailLoading" class="detail-body">
         <el-empty v-if="!detailLoading && detailSpans.length === 0" description="该链路无 span 数据" />
         <div v-for="(span, i) in detailSpans" :key="span.spanId || i" class="span-card">
@@ -148,21 +171,49 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Refresh, Right, Download } from "@element-plus/icons-vue";
 import { pageTransmissions, getTraceDetail, exportTransmissionsCsv } from "../api/apmApi";
 import type { TransmissionQuery, TransmissionRecord } from "../api/apmApi";
+
+const router = useRouter();
+const route = useRoute();
 
 const items = ref<TransmissionRecord[]>([]);
 const total = ref(0);
 const page = ref(1);
 const size = ref(20);
 const loading = ref(false);
+const traceSearch = ref("");
+
+/** 按 traceId 服务端搜索（后端 /transmissions 已支持 traceId 参数过滤） */
+function applyTraceSearch() {
+  const kw = traceSearch.value.trim();
+  if (!kw) {
+    filters.traceId = "";
+  } else {
+    filters.traceId = kw;
+  }
+  page.value = 1;
+  load();
+}
+
+/** 跳瀑布详情页 */
+function openWaterfall(traceId: string) {
+  if (!traceId) return;
+  detailVisible.value = false;
+  router.push({ path: "/traces/detail", query: { traceId } });
+}
 
 const filters = reactive({
   source: "",
   protocol: "",
   errorOnly: false,
+  traceId: "",
+  operation: "",
+  durationMin: null as number | null,
+  durationMax: null as number | null,
   range: null as [Date, Date] | null,
 });
 
@@ -176,6 +227,10 @@ async function load() {
     if (filters.source) q.source = filters.source;
     if (filters.protocol) q.protocol = filters.protocol;
     if (filters.errorOnly) q.errorOnly = true;
+    if (filters.traceId) q.traceId = filters.traceId;
+    if (filters.operation) q.operation = filters.operation;
+    if (filters.durationMin != null) q.durationMin = filters.durationMin;
+    if (filters.durationMax != null) q.durationMax = filters.durationMax;
     if (filters.range && filters.range.length === 2) {
       q.startTime = new Date(filters.range[0]).getTime();
       q.endTime = new Date(filters.range[1]).getTime();
@@ -196,6 +251,10 @@ function exportCsvFull() {
   if (filters.source) params.source = filters.source;
   if (filters.protocol) params.protocol = filters.protocol;
   if (filters.errorOnly) params.errorOnly = true;
+  if (filters.traceId) params.traceId = filters.traceId;
+  if (filters.operation) params.operation = filters.operation;
+  if (filters.durationMin != null) params.durationMin = filters.durationMin;
+  if (filters.durationMax != null) params.durationMax = filters.durationMax;
   if (filters.range && filters.range.length === 2) {
     params.startTime = new Date(filters.range[0]).getTime();
     params.endTime = new Date(filters.range[1]).getTime();
@@ -241,7 +300,15 @@ watch(
   },
 );
 
-onMounted(load);
+onMounted(() => {
+  // 从全局搜索进入：/traces?traceId=xxx 自动应用
+  const qTrace = String(route.query.traceId ?? "");
+  if (qTrace) {
+    filters.traceId = qTrace;
+    traceSearch.value = qTrace;
+  }
+  load();
+});
 </script>
 
 <style scoped>
@@ -279,6 +346,10 @@ onMounted(load);
   width: 140px;
 }
 
+.trace-search {
+  width: 180px;
+}
+
 .mr-1 {
   margin-right: 4px;
   vertical-align: -2px;
@@ -299,6 +370,21 @@ onMounted(load);
   --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
+}
+
+.trace-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trace-link {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.trace-link:hover {
+  opacity: 0.7;
 }
 
 .mono {
@@ -358,6 +444,12 @@ onMounted(load);
 }
 
 /* ---- 详情抽屉 ---- */
+.drawer-actions {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+}
+
 .detail-body {
   display: flex;
   flex-direction: column;

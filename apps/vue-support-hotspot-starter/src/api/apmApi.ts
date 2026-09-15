@@ -26,6 +26,12 @@ export interface ApmStats {
   errorCount: number;
   traceCount: number;
   dependencyCount: number;
+  /** SkyWalking 饱和度派生指标（stats() 已并入 health() 返回值，SSE 帧携带） */
+  health?: "HEALTHY" | "DEGRADED" | "SATURATED";
+  qps?: number;
+  errorRate?: number;
+  activeLeaks?: number;
+  recentAlerts?: ApmAlert[];
 }
 
 /** 传输记录 */
@@ -62,6 +68,9 @@ export interface DependencyEdge {
   lastError: string;
   lastCallAt: string;
   edgeId: string;
+  /** 聚合后字段（/dependencies/aggregated 返回） */
+  errorRate?: number;
+  p95Ms?: number;
 }
 
 /** 资源泄漏记录 */
@@ -108,6 +117,14 @@ export interface TransmissionQuery {
   errorOnly?: boolean;
   startTime?: number;
   endTime?: number;
+  /** 按 traceId 精确搜索（后端服务端过滤，2026 增强） */
+  traceId?: string;
+  /** 耗时下限（毫秒） */
+  durationMin?: number;
+  /** 耗时上限（毫秒） */
+  durationMax?: number;
+  /** 操作名模糊搜索（后端内存过滤，2026 增强） */
+  operation?: string;
 }
 
 export interface LeakQuery {
@@ -117,12 +134,27 @@ export interface LeakQuery {
   minAgeMs?: number;
   startTime?: number;
   endTime?: number;
+  /** 资源名模糊搜索 */
+  resourceName?: string;
+  /** 线程名模糊搜索 */
+  thread?: string;
+  /** 仅返回活跃泄漏 */
+  activeOnly?: boolean;
 }
 
 export interface LogQuery {
   page?: number;
   size?: number;
   level?: string;
+  /** 消息/Logger 全文搜索（服务端过滤，2026 增强） */
+  keyword?: string;
+  /** 按 traceId 精确匹配 */
+  traceId?: string;
+  /** 时间窗口 */
+  startTime?: number;
+  endTime?: number;
+  /** 类名模糊匹配 */
+  className?: string;
 }
 
 // ---- SSE 实时流（增强）----
@@ -224,6 +256,320 @@ export function getTraceDetail(traceId: string): Promise<TransmissionRecord[]> {
   return unwrap(instance.get<TransmissionRecord[]>(`/trace/${encodeURIComponent(traceId)}`));
 }
 
+// ---- Agent 实时数据（/agent/*）----
+
+/** 链路树（trace → span 两级，ReTree 数据源） */
+export function getTracesTree(limit = 50): Promise<TraceTreeItem[]> {
+  return unwrap(instance.get<TraceTreeItem[]>("/agent/traces/tree", { params: { limit } }));
+}
+
+/** Agent 实时 Trace Span 列表 */
+export function getAgentTraces(limit = 200): Promise<TraceTreeItem[]> {
+  return unwrap(instance.get<TraceTreeItem[]>("/agent/traces", { params: { limit } }));
+}
+
+/** Agent 实时依赖边列表 */
+export function getAgentDependencies(limit = 50): Promise<DependencyEdge[]> {
+  return unwrap(instance.get<DependencyEdge[]>("/agent/dependencies", { params: { limit } }));
+}
+
+// ---- 服务 / 端点聚合（SkyWalking 三层拓扑 + 端点分析）----
+
+export interface ApmService {
+  service: string;
+  endpointCount: number;
+  callCount: number;
+  errorCount: number;
+  /** 错误率（%），后端从 callCount/errorCount 计算 */
+  errorRate?: number;
+}
+
+export interface ApmEndpoint {
+  endpoint: string;
+  callCount: number;
+  errorCount: number;
+  errorRate: number;
+  avgMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+/** 服务聚合（software@host） */
+export function getServices(): Promise<ApmService[]> {
+  return unwrap(instance.get<ApmService[]>("/services"));
+}
+
+/** 端点聚合 + 分位数 */
+export function getEndpoints(limit = 50, keyword?: string): Promise<ApmEndpoint[]> {
+  return unwrap(instance.get<ApmEndpoint[]>("/endpoints", { params: { limit, keyword } }));
+}
+
+/** 依赖边聚合（按 edgeId 归并，修复 callCount=1 存储问题） */
+export function getDependenciesAggregated(size = 100): Promise<DependencyEdge[]> {
+  return unwrap(instance.get<DependencyEdge[]>("/dependencies/aggregated", { params: { size } }));
+}
+
+// ---- 健康状态（SkyWalking 饱和度派生指标）----
+
+export interface ApmHealth {
+  health: "HEALTHY" | "DEGRADED" | "SATURATED";
+  qps: number;
+  errorRate: number;
+  activeLeaks: number;
+  windowSeconds: number;
+}
+
+export function getHealth(): Promise<ApmHealth> {
+  return unwrap(instance.get<ApmHealth>("/health"));
+}
+
+// ---- JVM 指标（/jvm/*）----
+
+export interface JvmSnapshot {
+  ts: number;
+  memory: {
+    heapUsed: number;
+    heapMax: number;
+    heapCommitted: number;
+    heapUsedPercent: number;
+    nonHeapUsed: number;
+  };
+  gc: {
+    collectors: string[];
+    gcCount: number;
+    gcTimeMs: number;
+  };
+  cpu: {
+    cpuCores: number;
+    systemLoadAverage: number;
+    loadPerCore: number;
+    processCpuLoad: number;
+  };
+  threads: {
+    totalThreads: number;
+    peakThreads: number;
+    daemonThreads: number;
+    liveThreads: number;
+  };
+  network: Record<string, unknown>;
+  process: Record<string, unknown>;
+}
+
+/** JVM 实时快照 */
+export function getJvmSnapshot(): Promise<JvmSnapshot> {
+  return unwrap(instance.get<JvmSnapshot>("/jvm/snapshot"));
+}
+
+export interface JvmMetricPoint {
+  ts: number;
+  heapUsed: number;
+  heapPercent: number;
+  gcCount: number;
+  gcTimeMs: number;
+  liveThreads: number;
+}
+
+/** JVM 指标时序（最近 N 分钟环形缓冲） */
+export function getJvmMetrics(minutes = 30): Promise<JvmMetricPoint[]> {
+  return unwrap(instance.get<JvmMetricPoint[]>("/jvm/metrics", { params: { minutes } }));
+}
+
+// ---- 系统拓扑（/system/topology）----
+
+export interface SystemTopology {
+  center: string;
+  jvmPid: number;
+  modules: { id: string; label: string; kind: string }[];
+  ports: { port: number; label: string; protocol: string; software: string }[];
+  connections: { iface: string; local: string; mac: string }[];
+  nodes: { id: string; label: string; symbolSize: number }[];
+  edges: { source: string; target: string }[];
+}
+
+/** 系统拓扑（真实运行值） */
+export function getSystemTopology(): Promise<SystemTopology> {
+  return unwrap(instance.get<SystemTopology>("/system/topology"));
+}
+
+// ---- Trace 瀑布（SkyWalking 风格）----
+
+export interface WaterfallSpan {
+  spanId: string;
+  parentSpanId?: string;
+  traceId?: string;
+  source?: string;
+  target?: string;
+  protocol?: string;
+  software?: string;
+  operation?: string;
+  className?: string;
+  methodName?: string;
+  status?: string;
+  statusCode?: number;
+  startTime: string;
+  endTime?: string;
+  durationMs: number;
+  offsetMs: number;
+  depth: number;
+  percentWidth: number;
+  spanKind: string;
+  attributes?: Record<string, string>;
+  bytesOut?: number;
+  bytesIn?: number;
+  errorType?: string;
+  errorMessage?: string;
+}
+
+export interface TraceWaterfall {
+  traceId: string;
+  spans: WaterfallSpan[];
+  totalMs: number;
+  spanCount: number;
+}
+
+/** Trace 瀑布数据（横向时间轴） */
+export function getTraceWaterfall(traceId: string): Promise<TraceWaterfall> {
+  return unwrap(instance.get<TraceWaterfall>(`/trace/${encodeURIComponent(traceId)}/waterfall`));
+}
+
+// ---- 告警事件（/alerts）----
+
+export interface ApmAlert {
+  id: number;
+  ts: number;
+  metric: string;
+  current: number;
+  threshold: number;
+  severity: "WARNING" | "CRITICAL";
+  message: string;
+  /** 状态机：OPEN / ACKNOWLEDGED / MUTED / IGNORED */
+  status?: "OPEN" | "ACKNOWLEDGED" | "MUTED" | "IGNORED";
+  statusTs?: number;
+}
+
+/** 告警规则 */
+export interface AlertRule {
+  id: number;
+  metric: string;
+  threshold: number;
+  severity: "WARNING" | "CRITICAL";
+  debounceMs: number;
+  enabled: boolean;
+}
+
+/** 告警事件（新事件在前） */
+export function getAlerts(limit = 100): Promise<ApmAlert[]> {
+  return unwrap(instance.get<ApmAlert[]>("/alerts", { params: { limit } }));
+}
+
+/** 告警规则列表 */
+export function getAlertRules(): Promise<AlertRule[]> {
+  return unwrap(instance.get<AlertRule[]>("/alerts/rules"));
+}
+
+/** 新增告警规则 */
+export function addAlertRule(params: {
+  metric: string; threshold: number; severity?: string; debounceMs?: number; enabled?: boolean;
+}): Promise<AlertRule> {
+  return unwrap(instance.post<AlertRule>("/alerts/rules", null, { params }));
+}
+
+/** 启停告警规则 */
+export function toggleAlertRule(metric: string, enabled: boolean): Promise<unknown> {
+  return unwrap(instance.post<unknown>("/alerts/rules/toggle", null, { params: { metric, enabled } }));
+}
+
+/** 删除告警规则 */
+export function deleteAlertRule(metric: string): Promise<unknown> {
+  return unwrap(instance.delete(`/alerts/rules/${encodeURIComponent(metric)}`));
+}
+
+/** 确认告警 */
+export function acknowledgeAlert(id: number): Promise<boolean> {
+  return unwrap(instance.post<boolean>(`/alerts/${id}/acknowledge`));
+}
+
+/** 静默告警 */
+export function muteAlert(id: number): Promise<boolean> {
+  return unwrap(instance.post<boolean>(`/alerts/${id}/mute`));
+}
+
+/** 忽略告警 */
+export function ignoreAlert(id: number): Promise<boolean> {
+  return unwrap(instance.post<boolean>(`/alerts/${id}/ignore`));
+}
+
+// ---- 慢调用 / 错误排行 / SLA / 数据清理（2026 增强）----
+
+/** 慢调用 Top N */
+export interface SlowCall {
+  traceId: string;
+  spanId: string;
+  source: string;
+  target: string;
+  protocol: string;
+  operation: string;
+  status: string;
+  durationMs: number;
+  startTime: string;
+  errorType?: string;
+  errorMessage?: string;
+}
+
+export function getSlowCalls(limit = 20): Promise<SlowCall[]> {
+  return unwrap(instance.get<SlowCall[]>("/slow-calls", { params: { limit } }));
+}
+
+/** 错误排行 */
+export interface ErrorRanking {
+  errorType: string;
+  errorMessage: string;
+  callCount: number;
+  avgDurationMs: number;
+  lastOccurrence: string;
+}
+
+export function getErrorRanking(limit = 20): Promise<ErrorRanking[]> {
+  return unwrap(instance.get<ErrorRanking[]>("/error-ranking", { params: { limit } }));
+}
+
+/** SLA 统计 */
+export interface SlaStats {
+  totalCount: number;
+  errorCount: number;
+  successCount: number;
+  slaPercent: number;
+  uptimeMs: number;
+  qps: number;
+}
+
+export function getSla(): Promise<SlaStats> {
+  return unwrap(instance.get<SlaStats>("/sla"));
+}
+
+/** 数据清理（POST） */
+export function cleanup(retentionMs = 86400000): Promise<Record<string, unknown>> {
+  return unwrap(instance.post<Record<string, unknown>>("/cleanup", null, { params: { retentionMs } }));
+}
+
+// ---- 链路树节点（/agent/traces/tree 返回结构，与 ReTree 兼容）----
+
+export interface TraceTreeItem {
+  id: string;
+  label: string;
+  traceId?: string;
+  spanCount?: number;
+  totalMs?: number;
+  spanId?: string;
+  operation?: string;
+  durationMs?: number;
+  status?: string;
+  startTime?: string;
+  error?: boolean;
+  children?: TraceTreeItem[];
+}
+
 // ---- 后端全量 CSV 导出（不受分页限制，直接触发浏览器下载）----
 
 function downloadUrl(url: string): void {
@@ -248,9 +594,12 @@ export function exportLeaksCsv(params: LeakQuery = {}): void {
   downloadUrl(`/api/apm/export/leaks?${qs.toString()}`);
 }
 
-export function exportLogsCsv(level?: string): void {
-  const qs = level ? `?level=${encodeURIComponent(level)}` : "";
-  downloadUrl(`/api/apm/export/logs${qs}`);
+export function exportLogsCsv(params: LogQuery = {}): void {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+  });
+  downloadUrl(`/api/apm/export/logs?${qs.toString()}`);
 }
 
 export default {
@@ -259,6 +608,28 @@ export default {
   getDependencies,
   pageLeaks,
   pageLogs,
+  getServices,
+  getEndpoints,
+  getHealth,
+  getJvmSnapshot,
+  getJvmMetrics,
+  getSystemTopology,
+  getTraceWaterfall,
+  getAlerts,
+  getTracesTree,
+  getAgentTraces,
+  getAgentDependencies,
+  getDependenciesAggregated,
+  getSlowCalls,
+  getErrorRanking,
+  getSla,
+  cleanup,
+  getAlertRules,
+  addAlertRule,
+  toggleAlertRule,
+  acknowledgeAlert,
+  muteAlert,
+  ignoreAlert,
 };
 
 // ---- 数据注入（写操作：页面操作产生真实数据）----

@@ -47,15 +47,15 @@ function normalizeOs(t?: string): string {
   return s || "其他";
 }
 /**
- * 操作系统图标名
+ * 操作系统图标（标准 PNG 图片路径）
  * @param t 操作系统类型
  */
 function osIcon(t?: string): string {
   const s = (t ?? "").toUpperCase();
-  if (s.includes("WIN")) return "🪟";
-  if (s.includes("LINUX")) return "🐧";
-  if (s.includes("MAC")) return "🍎";
-  return "🖥️";
+  if (s.includes("WIN")) return "/os/os-windows.png";
+  if (s.includes("LINUX")) return "/os/os-linux.png";
+  if (s.includes("MAC")) return "/os/os-macos.png";
+  return "/os/os-linux.png";
 }
 /**
  * 推断主机默认协议
@@ -235,7 +235,7 @@ onMounted(onMountedInit);
                 :class="['rail-item', { active: selectedId === h.id }]"
                 @click="selectHost(h)"
               >
-                <span class="ri-os">{{ osIcon(h.serverHostOsType) }}</span>
+                <img class="ri-os" :src="osIcon(h.serverHostOsType)" :alt="h.serverHostOsType" />
                 <span class="ri-name">{{ h.serverHostName }}</span>
                 <span :class="['pdot', h.serverHostOnline === 1 ? 'pdot-online' : 'pdot-offline']" />
                 <span :class="['ri-proto', `proto-${protocolOf(h)}`]">{{ protocolOf(h).toUpperCase() }}</span>
@@ -255,7 +255,7 @@ onMounted(onMountedInit);
 
     <!-- 右侧控制台：ScGuacViewer（guacamole-common-js 客户端直连 /ws/ms/server/terminal 隧道） -->
     <main class="term-main">
-      <ScGuacViewer :connection="connection" @close="connection = null" />
+      <ScGuacViewer :connection="connection" inline @close="connection = null" />
       <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
     </main>
   </div>
@@ -345,7 +345,7 @@ onMounted(onMountedInit);
     border-color: var(--brand-100);
   }
 }
-.ri-os { font-size: 14px; }
+.ri-os { width: 16px; height: 16px; flex-shrink: 0; object-fit: contain; }
 .ri-name {
   flex: 1;
   min-width: 0;

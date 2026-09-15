@@ -1,7 +1,7 @@
 /**
  * 教育 AI 路由表 + 静态菜单表。
  *
- * 7 个页面：
+ * 10 个页面：
  * - /edu             工作台（6 卡片入口 + AI 健康 + 队列状态）
  * - /edu/question    题库管理
  * - /edu/paper       AI 组卷
@@ -9,8 +9,13 @@
  * - /edu/knowledge   知识库
  * - /edu/wrongbook   错题库
  * - /edu/exam        考试管理
+ * - /edu/fun         趣味学习（非 router 方式显示）
+ * - /edu/fun/config  趣味模块配置
+ * - /edu/fun/insect  昆虫识图
+ * - /edu/fun/idiom   成语消消乐
  *
  * isVisible = "1" 才能在 koi 主题侧边栏中显示。
+ * remind = true 表示不受菜单控制（独立显示）。
  */
 import type { RouteConfigsTable } from "@repo/core";
 
@@ -99,6 +104,55 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       isVisible: "1",
     },
   },
+  {
+    path: "/edu/fun",
+    name: "EduFun",
+    component: () => import("../views/FunView.vue"),
+    meta: {
+      title: "趣味学习",
+      icon: "MagicStick",
+      showLink: true,
+      keepAlive: true,
+      isVisible: "1",
+      remind: true, // 不受菜单控制，独立显示
+    },
+  },
+  {
+    path: "/edu/fun/config",
+    name: "EduFunConfig",
+    component: () => import("../views/FunConfigView.vue"),
+    meta: {
+      title: "趣味模块配置",
+      icon: "Setting",
+      showLink: false, // 不在菜单中显示
+      keepAlive: true,
+      isVisible: "0",
+    },
+  },
+  {
+    path: "/edu/fun/insect",
+    name: "EduFunInsect",
+    component: () => import("../views/InsectView.vue"),
+    meta: {
+      title: "昆虫识图",
+      icon: "Bug",
+      showLink: false,
+      keepAlive: true,
+      isVisible: "0",
+    },
+  },
+  {
+    path: "/edu/fun/idiom",
+    name: "EduFunIdiom",
+    component: () => import("../views/IdiomGameView.vue"),
+    meta: {
+      title: "成语消消乐",
+      icon: "Trophy",
+      showLink: false,
+      keepAlive: true,
+      isVisible: "0",
+    },
+  },
 ];
 
 /**
@@ -137,10 +191,29 @@ export const eduaiMenus = [
       icon: "Reading",
       isVisible: "1",
     },
-    children: eduaiRoutes.map(r => ({
-      path: r.path,
-      name: r.name,
-      meta: { title: (r.meta as any)?.title, icon: (r.meta as any)?.icon, isVisible: "1" },
-    })),
+    children: [
+      ...eduaiRoutes
+        .filter((r) => (r.meta as any)?.showLink !== false)
+        .map((r) => ({
+          path: r.path,
+          name: r.name,
+          meta: {
+            title: (r.meta as any)?.title,
+            icon: (r.meta as any)?.icon,
+            isVisible: (r.meta as any)?.isVisible || "1",
+            remind: (r.meta as any)?.remind,
+          },
+        })),
+      // 趣味模块子菜单
+      {
+        path: "/edu/fun/config",
+        name: "EduFunConfig",
+        meta: {
+          title: "趣味模块配置",
+          icon: "Setting",
+          isVisible: "1",
+        },
+      },
+    ],
   },
 ];

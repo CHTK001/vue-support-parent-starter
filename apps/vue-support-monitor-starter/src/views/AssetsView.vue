@@ -75,7 +75,13 @@ const loadError = ref("");
 const selection = ref<Host[]>([]);
 /** 实时延迟（hostId → delayMs，socket host-delay 推送更新；-1 表不可达） */
 const liveDelay = ref<Record<number, number>>({});
+/** 实时在线状态（hostId → 1/0，socket host-online 推送翻转） */
+const liveOnline = ref<Record<number, number>>({});
 let unsubDelay: (() => void) | undefined;
+let unsubOnline: (() => void) | undefined;
+
+/** 视图模式：card（默认，卡片网格）/ table（表格） */
+const viewMode = ref<"card" | "table">("card");
 
 /** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
 const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });
@@ -237,7 +243,7 @@ function osSvg(os: string): string {
   };
   return icons[os] ?? icons.terminal;
 }
-/** 平台图片资源路径（public/os/*.svg 品牌图标）；无匹配时返回空走内联 SVG 兜底 */
+/** 平台图片资源路径（public/os/*.png 品牌图标）；无匹配时返回空走内联 SVG 兜底 */
 function osImgSrc(os: string): string {
   const map: Record<string, string> = {
     linux: "os-linux",
@@ -247,7 +253,7 @@ function osImgSrc(os: string): string {
   };
   const name = map[os];
   if (!name) return "";
-  return `${import.meta.env.BASE_URL}os/${name}.svg`;
+  return `${import.meta.env.BASE_URL}os/${name}.png`;
 }
 /** 已确认图片加载失败的主机集合（key: id-os），命中则回退 SVG */
 const osImgErrors = ref<Set<string>>(new Set());
@@ -509,7 +515,7 @@ async function batchDelete(): Promise<void> {
 
 onMounted(() => {
   fetchAll();
-  // 实时延迟：socket 推送（后台 delayTick 每轮检测后广播），更新到 liveDelay 覆盖表格列
+  // 实时延迟 + 在线状态：socket 推送（后台 HostOnlineScheduler 检测后广播）
   const socket = useSocketService();
   unsubDelay = socket?.subscribe("monitor", "host-delay", (msg) => {
     try {
@@ -517,10 +523,38 @@ onMounted(() => {
       if (d && d.hostId != null) liveDelay.value[d.hostId] = d.delayMs ?? -1;
     } catch { /* 静默 */ }
   });
+  unsubOnline = socket?.subscribe("monitor", "host-online", (msg) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; online?: number };
+      if (d && d.hostId != null) liveOnline.value[d.hostId] = d.online ? 1 : 0;
+    } catch { /* 静默 */ }
+  });
 });
 onBeforeUnmount(() => {
   unsubDelay?.();
+  unsubOnline?.();
 });
+
+/** 实时在线状态（socket 优先，回退 host.serverHostOnline） */
+function liveOnlineState(h: Host): number {
+  return liveOnline.value[h.id] ?? h.serverHostOnline;
+}
+/** 实时延迟（socket 优先，回退 host.serverHostDelayMs） */
+function liveDelayMs(h: Host): number | null {
+  const v = liveDelay.value[h.id];
+  if (v != null) return v;
+  return h.serverHostDelayMs ?? null;
+}
+/** 延迟显示文案 */
+function delayText(ms: number | null): string {
+  if (ms == null) return "—";
+  if (ms < 0) return "不可达";
+  return ms + " ms";
+}
+/** 延迟是否异常（高延迟红色） */
+function delayBad(ms: number | null): boolean {
+  return ms != null && (ms < 0 || ms > 200);
+}
 </script>
 
 <template>
@@ -570,7 +604,7 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <!-- 表格 -->
+    <!-- 表格 / 卡片 视图 -->
     <div class="card">
       <div class="filter">
         <ReFilter
@@ -595,20 +629,132 @@ onBeforeUnmount(() => {
           </template>
         </ReFilter>
         <span v-if="filtered.length !== hosts.length" class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <ReButton :type="viewMode === 'card' ? 'primary' : 'default'" :show-text="false" size="small" title="卡片视图" @click="viewMode = 'card'" icon="Grid" />
+          <ReButton :type="viewMode === 'table' ? 'primary' : 'default'" :show-text="false" size="small" title="表格视图" @click="viewMode = 'table'" icon="Menu" />
+        </div>
       </div>
-        <ReTable
-          :data="filtered.map(h => ({ ...h }))"
-          :columns="tableColumns"
-          :loading="loading"
-          :table-id="'asset-host-list'"
-          size="small"
-          border
-          style="width:100%"
-          empty-text="暂无主机"
-          :toolbar="true"
-          :toolbar-config="{ position: 'top', refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
-          @selection-change="selection = $event"
+
+      <!-- 卡片视图（默认）：吃满一行，显示详细指标 -->
+      <div v-if="viewMode === 'card'" class="host-card-grid">
+        <ReCard
+          v-for="h in filtered"
+          :key="h.id"
+          :body-style="{ paddingTop: '10px', paddingBottom: '10px' }"
         >
+          <template #header>
+            <div class="hc-head">
+              <span class="hc-os">
+                <img
+                  v-if="!osImgFailed(h) && osImgSrc(osIcon(h.serverHostOsType))"
+                  :src="osImgSrc(osIcon(h.serverHostOsType))"
+                  class="os-img"
+                  alt=""
+                  @error="markOsImgFailed(h)"
+                />
+                <span v-else v-html="osSvg(osIcon(h.serverHostOsType))"></span>
+              </span>
+              <div class="hc-name-wrap">
+                <b class="hc-name">{{ h.serverHostName }}</b>
+                <span class="hc-addr mono">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
+              </div>
+              <span class="hc-status">
+                <ReStatusIndicator :type="liveOnlineState(h) === 1 ? 'success' : 'danger'" />
+                <span :class="liveOnlineState(h) === 1 ? 'on' : 'off'">{{ liveOnlineState(h) === 1 ? '在线' : '离线' }}</span>
+              </span>
+            </div>
+          </template>
+
+          <!-- 实时指标行 -->
+          <div class="hc-metrics">
+            <div class="hc-metric">
+              <span class="hc-m-label">延迟</span>
+              <span class="hc-m-val mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</span>
+            </div>
+            <div class="hc-metric">
+              <span class="hc-m-label">采集</span>
+              <span class="hc-m-val">{{ collectModeLabel(h.serverHostCollectMode) }}</span>
+            </div>
+            <div class="hc-metric">
+              <span class="hc-m-label">协议</span>
+              <span class="hc-m-val">{{ protocolOf(h).toUpperCase() }}</span>
+            </div>
+            <div class="hc-metric">
+              <span class="hc-m-label">Agent</span>
+              <span class="hc-m-val">{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</span>
+            </div>
+          </div>
+
+          <!-- 标签 + 分组 -->
+          <div class="hc-tags">
+            <ReTag
+              v-if="h.serverGroupId"
+              size="small"
+              :value="String(h.serverGroupId)"
+              :tag-options="[{ dictValue: String(h.serverGroupId), dictLabel: groupName(h.serverGroupId), dictTag: 'primary' }]"
+            />
+            <ReTag
+              v-for="t in splitTags(h.serverHostTags)"
+              :key="t"
+              size="small"
+              :value="t"
+              :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]"
+            />
+            <span v-if="!h.serverGroupId && splitTags(h.serverHostTags).length === 0" class="dim">未分组</span>
+          </div>
+
+          <!-- 端口 -->
+          <div v-if="parsePorts(h.serverHostPorts).length" class="hc-ports">
+            <ReTag v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" size="small" effect="plain" type="info">{{ portText(p) }}</ReTag>
+          </div>
+
+          <!-- 卡片操作 -->
+          <template #footer>
+            <div class="hc-actions">
+              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接" @click="openConnect(h)" />
+              <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(h)" />
+              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(h)" />
+              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(h)" />
+              <el-dropdown trigger="click" @command="(cmd: string) => onMoreCommand(cmd, h)" class="more-dd">
+                <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="online">在离线</el-dropdown-item>
+                    <el-dropdown-item command="metric">指标</el-dropdown-item>
+                    <el-dropdown-item command="delay">延迟检测</el-dropdown-item>
+                    <el-dropdown-item divided command="server">协议服务器</el-dropdown-item>
+                    <el-dropdown-item command="process">进程管理</el-dropdown-item>
+                    <el-dropdown-item command="system-service">系统服务</el-dropdown-item>
+                    <el-dropdown-item command="network-interface">网络接口</el-dropdown-item>
+                    <el-dropdown-item command="network-connection">网络连接</el-dropdown-item>
+                    <el-dropdown-item command="disk">磁盘管理</el-dropdown-item>
+                    <el-dropdown-item command="partition">磁盘分区</el-dropdown-item>
+                    <el-dropdown-item command="firewall">防火墙</el-dropdown-item>
+                    <el-dropdown-item command="driver">驱动管理</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </template>
+        </ReCard>
+        <div v-if="filtered.length === 0" class="hc-empty">暂无主机</div>
+      </div>
+
+      <!-- 表格视图 -->
+      <ReTable
+        v-else
+        :data="filtered.map(h => ({ ...h }))"
+        :columns="tableColumns"
+        :loading="loading"
+        :table-id="'asset-host-list'"
+        size="small"
+        border
+        style="width:100%"
+        empty-text="暂无主机"
+        :toolbar="true"
+        :toolbar-config="{ position: 'top', refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
+        @selection-change="selection = $event"
+      >
         <template #col-name="{ row }">
           <span class="h-os">
             <img
@@ -627,34 +773,39 @@ onBeforeUnmount(() => {
           <ReTag
             v-if="row.serverGroupId"
             size="small"
-            :effect="groupColor(row.serverGroupId) ? 'light' : 'plain'"
-            :style="groupColorStyle(row.serverGroupId)"
-          >{{ groupName(row.serverGroupId) }}</ReTag>
+            :value="String(row.serverGroupId)"
+            :tag-options="[{ dictValue: String(row.serverGroupId), dictLabel: groupName(row.serverGroupId), dictTag: 'primary' }]"
+          />
           <span v-else class="dim">未分组</span>
         </template>
         <template #col-tags="{ row }">
           <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
-            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" effect="light">{{ t }}</ReTag>
+            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" :value="t" :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]" />
           </div>
           <span v-else class="dim">—</span>
         </template>
         <template #col-proto="{ row }">
-          <ReTag :type="protocolOf(row) === 'ssh' ? 'primary' : protocolOf(row) === 'rdp' ? 'warning' : 'info'" size="small" effect="plain">{{ protocolOf(row).toUpperCase() }}</ReTag>
+          <ReTag size="small" :value="protocolOf(row)" :tag-options="[
+            { dictValue: 'ssh', dictLabel: 'SSH', dictTag: 'primary' },
+            { dictValue: 'rdp', dictLabel: 'RDP', dictTag: 'warning' },
+            { dictValue: 'vnc', dictLabel: 'VNC', dictTag: 'info' },
+          ]" />
         </template>
         <template #col-status="{ row }">
-          <span class="st-cell"><ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : 'info'" />{{ onlineText(row) }}</span>
+          <span class="st-cell"><ReStatusIndicator :type="liveOnlineState(row) === 1 ? 'success' : 'danger'" />{{ liveOnlineState(row) === 1 ? '在线' : '离线' }}</span>
         </template>
         <template #col-delay="{ row }">
-          <span v-if="liveDelay[row.id] != null" class="delay-live" :class="{ bad: liveDelay[row.id] < 0 }">{{ liveDelay[row.id] < 0 ? "不可达" : liveDelay[row.id] + " ms" }}</span>
-          <span v-else-if="row.serverHostDelayMs != null" class="delay-live" :class="{ bad: row.serverHostDelayMs < 0 }">{{ row.serverHostDelayMs < 0 ? "不可达" : row.serverHostDelayMs + " ms" }}</span>
-          <span v-else class="dim">—</span>
+          <span class="delay-live" :class="{ bad: delayBad(liveDelayMs(row)) }">{{ delayText(liveDelayMs(row)) }}</span>
         </template>
         <template #col-agent="{ row }">
-          <ReTag :type="row.serverHostAgentEnabled === 1 ? 'success' : 'info'" size="small">{{ row.serverHostAgentEnabled === 1 ? "已注册" : "未注册" }}</ReTag>
+          <ReTag size="small" :value="row.serverHostAgentEnabled === 1 ? 'on' : 'off'" :tag-options="[
+            { dictValue: 'on', dictLabel: '已注册', dictTag: 'success' },
+            { dictValue: 'off', dictLabel: '未注册', dictTag: 'info' },
+          ]" />
         </template>
         <template #col-ports="{ row }">
           <div v-if="parsePorts(row.serverHostPorts).length" style="display:flex;gap:4px;flex-wrap:wrap">
-            <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" size="small" effect="plain" type="info">{{ portText(p) }}</ReTag>
+            <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" size="small" :value="p.port" :tag-options="[{ dictValue: p.port, dictLabel: portText(p), dictTag: 'info' }]" />
           </div>
           <span v-else class="dim">未扫描</span>
         </template>
@@ -819,4 +970,43 @@ onBeforeUnmount(() => {
 .delay-live.bad { color: var(--danger, #f56c6c); font-weight: 600; }
 .op-cell { display: flex; gap: 4px; }
 .color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
+
+/* ---- 卡片视图（ReCard）---- */
+.host-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 10px;
+  padding: 8px 0;
+}
+/* ReCard koi 主题 margin 覆盖：按网格排布时去掉多余边距 */
+.host-card-grid :deep(.koi-card) {
+  margin: 0;
+  padding: 12px 16px;
+}
+.hc-head { display: flex; align-items: flex-start; gap: 10px; }
+.hc-os { display: inline-flex; align-items: center; color: var(--brand-500); flex-shrink: 0; margin-top: 2px; }
+.hc-os :deep(svg) { display: block; }
+.hc-os .os-img { width: 22px; height: 22px; display: block; object-fit: contain; }
+.hc-name-wrap { flex: 1; min-width: 0; }
+.hc-name {
+  display: block; font-size: 14px; font-weight: 600; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hc-addr { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
+.hc-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+.hc-status .on { color: var(--status-success-text, #34c759); }
+.hc-status .off { color: var(--status-error-text, #f56c6c); }
+.hc-metrics {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+  padding: 10px 0; border-top: 1px solid var(--border-subtle);
+}
+.hc-metric { display: flex; flex-direction: column; gap: 2px; }
+.hc-m-label { font-size: 10px; color: var(--text-tertiary, #a0a4b0); text-transform: uppercase; letter-spacing: .4px; }
+.hc-m-val { font-size: 12px; color: var(--text-secondary); }
+.hc-m-val.mono { font-family: var(--font-mono, monospace); }
+.hc-m-val.bad { color: var(--danger, #f56c6c); font-weight: 600; }
+.hc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.hc-ports { display: flex; flex-wrap: wrap; gap: 4px; }
+.hc-actions { display: flex; gap: 4px; }
+.hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
 </style>

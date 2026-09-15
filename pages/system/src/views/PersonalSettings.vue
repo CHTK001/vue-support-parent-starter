@@ -8,7 +8,7 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Monitor, Bell, Lock, Setting, CloudUpload, Cloud } from "@element-plus/icons-vue";
+import { Monitor, Bell, Lock, Setting, Upload } from "@element-plus/icons-vue";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
 import ReSelect from "@repo/ui/re-select";
@@ -388,7 +388,7 @@ onMounted(() => {
         <ReButton
           layout="modern"
           type="primary"
-          :icon="saveStatus === 'saving' ? CloudUpload : Setting"
+          :icon="saveStatus === 'saving' ? Upload : Setting"
           :loading="saveStatus === 'saving'"
           @click="savePrefs"
         >
@@ -396,7 +396,7 @@ onMounted(() => {
         </ReButton>
         <ReButton layout="modern" @click="resetPrefs">恢复默认</ReButton>
         <span class="sync-hint" v-loading="loading">
-          <el-icon><Cloud /></el-icon>
+          <el-icon><Monitor /></el-icon>
           <span v-if="loading">正在从云端同步...</span>
           <span v-else-if="saveStatus === 'failed'" class="text-[--el-color-warning]">本地缓存模式</span>
           <span v-else class="text-[--el-text-color-secondary]">云端已同步</span>

@@ -52,6 +52,14 @@ const formSaving = ref(false);
 /** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
 const tagsText = ref("");
 const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" });
+
+/** 平台选项（PNG 图片） */
+const osOptions = [
+  { label: "Linux", value: "LINUX", icon: "/os/os-linux.png" },
+  { label: "Windows", value: "WINDOWS", icon: "/os/os-windows.png" },
+  { label: "macOS", value: "MACOS", icon: "/os/os-macos.png" },
+  { label: "Android", value: "ANDROID", icon: "/os/os-android.png" },
+];
 /** 认证方式 */
 const formAuthMethod = ref("IDENTITY");
 /** 从身份列表选择 */
@@ -221,17 +229,18 @@ watch(() => props.modelValue, (v) => {
           <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="平台" class="col-span-2">
-          <ReSelect
-            v-model="form.serverHostOsType"
-            layout="square"
-            style="width:100%"
-            :options="[
-              { label: 'Linux', value: 'LINUX' },
-              { label: 'Windows', value: 'WINDOWS' },
-              { label: 'macOS', value: 'MACOS' },
-              { label: 'Android', value: 'ANDROID' },
-            ]"
-          />
+          <div class="os-picker">
+            <div
+              v-for="opt in osOptions"
+              :key="opt.value"
+              class="os-picker-item"
+              :class="{ active: form.serverHostOsType === opt.value }"
+              @click="form.serverHostOsType = opt.value"
+            >
+              <img :src="opt.icon" :alt="opt.label" class="os-picker-img" />
+              <span class="os-picker-label">{{ opt.label }}</span>
+            </div>
+          </div>
         </ReFormItem>
         <ReFormItem label="主机编码" class="col-span-2">
           <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
@@ -342,5 +351,46 @@ watch(() => props.modelValue, (v) => {
 }
 .col-span-2 {
   grid-column: span 2;
+}
+/* 平台图片选择器 */
+.os-picker {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.os-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: 2px solid var(--border-subtle, #e4e7ed);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-card, #fff);
+  min-width: 80px;
+}
+.os-picker-item:hover {
+  border-color: var(--brand-400, #8b7ffb);
+  background: var(--brand-50, #f5f3ff);
+}
+.os-picker-item.active {
+  border-color: var(--brand-500, #6d5dfc);
+  background: var(--brand-50, #f5f3ff);
+  box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.12);
+}
+.os-picker-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.os-picker-label {
+  font-size: 12px;
+  color: var(--text-secondary, #606266);
+}
+.os-picker-item.active .os-picker-label {
+  color: var(--brand-600, #5a4ae0);
+  font-weight: 600;
 }
 </style>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 反馈管理页 —— 用户反馈列表与处理
  *
@@ -194,7 +194,7 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" :add-button="false">
+      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
         <div class="system-page__search">
           <ReInput
             layout="modern"

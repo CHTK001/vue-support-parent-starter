@@ -267,6 +267,13 @@ watch(rootData, (v) => {
   }
 }, { immediate: true });
 
+// 本地模式下，外部 props.data 异步加载完成后需要同步到内部 treeData
+watch(() => props.data, (v) => {
+  if (sourceType.value === "local" && Array.isArray(v)) {
+    treeData.value = v;
+  }
+});
+
 // 懒加载函数（由 el-tree 的 load prop 触发）
 const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
   // 本地模式：children 已在 data 中提前给出，无需再走 load
@@ -303,7 +310,7 @@ const loadFunction = (node: Node, resolve: (data: ReTreeItem[]) => void) => {
   resolve([]);
 };
 
-const lazyComputed = computed(() => sourceType.value !== "local" || !!props.lazy);
+const lazyComputed = computed(() => sourceType.value !== "local" && !!props.lazy);
 
 const options = computed(() => props.props || { children: "children", label: "label", disabled: "disabled" });
 

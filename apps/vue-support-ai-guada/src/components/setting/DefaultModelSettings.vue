@@ -408,9 +408,9 @@ const loadModels = async () => {
     try {
         const response = await apiService.fetchModels()
 
-        response.items.forEach(provider => {
+        (response.items || []).forEach(provider => {
             // 过滤只保留 modelType 为 'text' 的模型
-            const textModels = provider.models.filter(model => model.modelType === "text")
+            const textModels = (provider.models || []).filter(model => model.modelType === "text")
             models.value.push(...textModels)
             delete provider.models
             // 只有当该供应商有符合条件的模型时才加入列表

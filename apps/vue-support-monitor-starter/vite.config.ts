@@ -33,6 +33,10 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      "/ms/system": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
       "/ms/monitor": {
         target: apiTarget,
         changeOrigin: true,
@@ -48,10 +52,6 @@ export default createVite({
       "/ws/ms/server": {
         target: apiTarget,
         ws: true,
-        changeOrigin: true,
-      },
-      "/guacamole": {
-        target: apiTarget,
         changeOrigin: true,
       },
       // tshark 抓包实时推送（socket.io，后端 plugin.socket.room[0].port）

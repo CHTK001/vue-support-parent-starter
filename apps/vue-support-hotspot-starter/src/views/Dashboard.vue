@@ -14,13 +14,31 @@
       </el-button>
     </div>
 
+    <!-- 系统健康（SkyWalking 饱和度派生指标，仅当 stats.health 存在时显示） -->
+    <div v-if="healthType" class="health-bar">
+      <ReStatusIndicator :type="healthType" :pulse="stats.health === 'SATURATED'" />
+      <span class="health-label">{{ healthLabel }}</span>
+      <span class="health-metric">QPS {{ stats.qps ?? 0 }}</span>
+      <span class="health-metric">错误率 {{ stats.errorRate ?? 0 }}%</span>
+      <span class="health-metric">活跃泄漏 {{ stats.activeLeaks ?? 0 }}</span>
+      <span class="health-metric sla-metric" v-if="sla">
+        可用率
+        <b :class="slaPercentClass">{{ sla.slaPercent.toFixed(2) }}%</b>
+        <span class="sla-detail">成功 {{ sla.successCount }} / {{ sla.totalCount }}</span>
+      </span>
+      <el-button size="small" text type="primary" @click="router.push('/alerts')">
+        告警中心 →
+      </el-button>
+    </div>
+
     <!-- 统计卡片 -->
     <div class="stat-grid">
       <div
         v-for="c in cards"
         :key="c.key"
-        class="stat-card"
+        class="stat-card clickable"
         :style="{ '--accent': c.color } as any"
+        @click="onCardClick(c)"
       >
         <div class="stat-icon">
           <el-icon :size="22"><component :is="c.icon" /></el-icon>
@@ -59,6 +77,93 @@
       </div>
       <div ref="trendRef" class="panel-chart" />
     </div>
+
+    <!-- 排行区（服务 Top / 慢调用 / 错误排行） -->
+    <div class="rank-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <span>服务 Top N</span>
+          <span class="panel-sub">按调用次数 / 错误率</span>
+        </div>
+        <el-table
+          :data="services.slice(0, 8)"
+          class="apm-table"
+          size="small"
+          empty-text="暂无服务数据"
+          @row-click="(r: Record<string, unknown>) => router.push('/endpoints')"
+        >
+          <el-table-column prop="service" label="服务" min-width="140">
+            <template #default="{ row }">
+              <span class="mono">{{ row.service }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="callCount" label="调用" width="70" align="right" sortable />
+          <el-table-column label="错误率" width="80" align="right">
+            <template #default="{ row }">
+              <span :class="['mono', row.errorCount > 0 ? 'err' : 'muted']">
+                {{ row.callCount > 0 ? Math.round(10000 * row.errorCount / row.callCount) / 100 : 0 }}%
+              </span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>慢调用 Top 5</span>
+          <span class="panel-sub">耗时最长的调用</span>
+        </div>
+        <el-table
+          :data="slowCalls.slice(0, 5)"
+          class="apm-table"
+          size="small"
+          empty-text="暂无慢调用"
+          @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
+        >
+          <el-table-column label="操作" min-width="120">
+            <template #default="{ row }">
+              <span class="mono">{{ String(row.operation ?? '—').slice(0, 24) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="durationMs" label="耗时" width="70" align="right">
+            <template #default="{ row }">
+              <span class="mono warn">{{ row.durationMs }}ms</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="60" align="center">
+            <template #default="{ row }">
+              <span :class="['mono', row.status === 'OK' ? 'ok' : 'err']">{{ row.status || "OK" }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>错误排行 Top 5</span>
+          <span class="panel-sub">按错误次数</span>
+        </div>
+        <el-table
+          :data="errorRanking.slice(0, 5)"
+          class="apm-table"
+          size="small"
+          empty-text="暂无错误"
+          @row-click="(r: Record<string, unknown>) => router.push('/errors')"
+        >
+          <el-table-column label="错误类型" width="100">
+            <template #default="{ row }">
+              <span class="mono err">{{ String(row.errorType ?? '—').slice(0, 18) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="callCount" label="次数" width="60" align="right" sortable />
+          <el-table-column label="消息" min-width="120">
+            <template #default="{ row }">
+              <span class="muted">{{ String(row.errorMessage ?? '—').slice(0, 30) }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -73,8 +178,12 @@ import {
   Share,
   Warning,
 } from "@element-plus/icons-vue";
-import { getStats, watchStats, pageTransmissions } from "../api/apmApi";
-import type { ApmStats } from "../api/apmApi";
+import { useRouter } from "vue-router";
+import ReStatusIndicator from "@repo/ui/re-status-indicator";
+import { getStats, watchStats, pageTransmissions, getServices, getSlowCalls, getErrorRanking, getSla } from "../api/apmApi";
+import type { ApmStats, ApmService, SlowCall, ErrorRanking, SlaStats } from "../api/apmApi";
+
+const router = useRouter();
 
 const stats = ref<ApmStats>({
   agentActive: false,
@@ -92,6 +201,24 @@ const trendRef = ref<HTMLElement | null>(null);
 let sseWatch: { close: () => void } | null = null;
 let trendTimer: number | undefined;
 let trendChart: echarts.ECharts | null = null;
+
+/** 排行数据 */
+const services = ref<ApmService[]>([]);
+const slowCalls = ref<SlowCall[]>([]);
+const errorRanking = ref<ErrorRanking[]>([]);
+/** SLA 统计 */
+const sla = ref<SlaStats | null>(null);
+
+const slaPercentClass = computed(() => {
+  const p = sla.value?.slaPercent ?? 100;
+  if (p >= 99) return "sla-ok";
+  if (p >= 95) return "sla-warn";
+  return "sla-bad";
+});
+
+function openTrace(r: SlowCall) {
+  if (r.traceId) router.push({ path: "/traces/detail", query: { traceId: r.traceId } });
+}
 
 const cards = computed(() => [
   {
@@ -124,6 +251,34 @@ const cards = computed(() => [
   },
 ]);
 
+/** 卡片点击下钻路由 */
+const cardRoutes: Record<string, string> = {
+  transmissions: "/traces",
+  deps: "/dependencies",
+  leaks: "/leaks",
+  traces: "/traces",
+};
+function onCardClick(c: { key: string }) {
+  const to = cardRoutes[c.key];
+  if (to) router.push(to);
+}
+
+/** 健康状态映射（仅后端并入 health 后非空） */
+const healthType = computed((): "success" | "warning" | "danger" | null => {
+  const h = stats.value.health;
+  if (h === "HEALTHY") return "success";
+  if (h === "DEGRADED") return "warning";
+  if (h === "SATURATED") return "danger";
+  return null;
+});
+const healthLabel = computed(() => {
+  const h = stats.value.health;
+  if (h === "HEALTHY") return "系统健康";
+  if (h === "DEGRADED") return "性能降级";
+  if (h === "SATURATED") return "资源饱和";
+  return "未知";
+});
+
 async function load() {
   loading.value = true;
   try {
@@ -134,6 +289,25 @@ async function load() {
     ElMessage.error("加载统计失败");
   } finally {
     loading.value = false;
+  }
+  await loadRanks();
+}
+
+/** 加载排行 + SLA 数据 */
+async function loadRanks() {
+  try {
+    const [svc, slow, err, s] = await Promise.all([
+      getServices(),
+      getSlowCalls(5),
+      getErrorRanking(5),
+      getSla(),
+    ]);
+    services.value = svc || [];
+    slowCalls.value = slow || [];
+    errorRanking.value = err || [];
+    sla.value = s || null;
+  } catch {
+    /* 排行降级为空，不影响主视图 */
   }
 }
 
@@ -376,6 +550,78 @@ watch(stats, () => renderCharts(), { deep: true });
   border-color: var(--accent);
 }
 
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable::after {
+  content: "→";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--apm-muted);
+  opacity: 0;
+  transition: opacity 0.2s, right 0.2s;
+}
+
+.stat-card.clickable:hover::after {
+  opacity: 1;
+  right: 14px;
+  color: var(--accent);
+}
+
+/* ---- 健康条 ---- */
+.health-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.health-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.health-metric {
+  font-size: 12px;
+  color: var(--apm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.health-bar .el-button {
+  margin-left: auto;
+}
+
+/* ---- SLA ---- */
+.sla-metric b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sla-detail {
+  margin-left: 6px;
+  color: var(--apm-muted);
+  font-size: 11px;
+}
+
+.sla-ok {
+  color: var(--apm-success);
+}
+
+.sla-warn {
+  color: var(--apm-warning);
+}
+
+.sla-bad {
+  color: var(--apm-danger);
+}
+
 .stat-icon {
   width: 48px;
   height: 48px;
@@ -446,6 +692,55 @@ watch(stats, () => renderCharts(), { deep: true });
 .panel-chart {
   height: 260px;
   width: 100%;
+}
+
+/* ---- 排行网格 ---- */
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* ---- 表格样式 ---- */
+.apm-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-border-color: var(--apm-border);
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-text-color: var(--apm-fg);
+  --el-table-header-text-color: var(--apm-muted);
+}
+
+.apm-table :deep(.el-table__row) {
+  cursor: pointer;
+}
+
+.mono {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--apm-muted);
+}
+
+.err {
+  color: var(--apm-danger);
+}
+
+.warn {
+  color: var(--apm-warning);
+}
+
+.ok {
+  color: var(--apm-success);
+}
+
+@media (max-width: 1200px) {
+  .rank-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1024px) {

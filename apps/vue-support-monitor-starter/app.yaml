@@ -20,6 +20,7 @@ loginConfig:
   captcha: false
   otp: false
   slider: true
+  logoUrl: /logo.svg
   brandName: 监控管理
   title: 监控管理平台
   description: 监控管理平台

@@ -120,12 +120,7 @@
                 <el-input v-model="editModelForm.modelName" :placeholder="t('settings.providerDetail.modelNamePlaceholder')" clearable
                   :disabled="isEditMode" />
                 <el-button v-if="!isEditMode" type="primary" @click="handleFetchModels"
-                  :loading="fetchingModels">
-                  <template #icon>
-                    <CloudDownloadOutlined />
-                  </template>
-                  {{ t('settings.providerDetail.fetchFromProvider') }}
-                </el-button>
+                  :loading="fetchingModels" :icon="CloudDownloadOutlined" circle></el-button>
               </div>
               <!-- 预设检测提示 -->
               <div v-if="!isEditMode && matchedPreset" class="preset-hint" @click="applyPreset(matchedPreset)">
@@ -145,6 +140,36 @@
                   <span class="flex items-center"><el-icon class="mr-1 align-middle">
                       <Group24Regular />
                     </el-icon> {{ t('settings.providerDetail.embeddingModel') }}</span>
+                </el-radio-button>
+                <el-radio-button value="ocr">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <DocumentText24Regular />
+                    </el-icon> OCR文字识别</span>
+                </el-radio-button>
+                <el-radio-button value="face">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <PersonCircle24Regular />
+                    </el-icon> 人脸识别</span>
+                </el-radio-button>
+                <el-radio-button value="layout">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <Grid24Regular />
+                    </el-icon> 布局识别</span>
+                </el-radio-button>
+                <el-radio-button value="image">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <Image24Regular />
+                    </el-icon> 文生图</span>
+                </el-radio-button>
+                <el-radio-button value="video">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <Video24Regular />
+                    </el-icon> 文生视频</span>
+                </el-radio-button>
+                <el-radio-button value="asr">
+                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
+                      <Mic24Regular />
+                    </el-icon> 语音识别</span>
                 </el-radio-button>
               </el-radio-group>
             </el-form-item>
@@ -242,6 +267,121 @@
               <div class="text-xs text-gray-400 mt-1">{{ t('settings.providerDetail.vectorDimensionsDesc') }}</div>
             </el-form-item>
           </div>
+
+          <!-- OCR模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'ocr'" class="transition-all">
+            <el-form-item label="识别语言" prop="config.ocrLanguages">
+              <el-checkbox-group v-model="editModelForm.config.ocrLanguages">
+                <el-checkbox-button value="zh">中文</el-checkbox-button>
+                <el-checkbox-button value="en">英文</el-checkbox-button>
+                <el-checkbox-button value="ja">日文</el-checkbox-button>
+                <el-checkbox-button value="ko">韩文</el-checkbox-button>
+              </el-checkbox-group>
+            </el-form-item>
+            <el-form-item label="检测方向" prop="config.ocrDetectDirection">
+              <el-radio-group v-model="editModelForm.config.ocrDetectDirection">
+                <el-radio-button value="horizontal">横向</el-radio-button>
+                <el-radio-button value="vertical">竖向</el-radio-button>
+                <el-radio-button value="auto">自动</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </div>
+
+          <!-- 人脸识别模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'face'" class="transition-all">
+            <el-form-item label="检测功能" prop="config.faceFeatures">
+              <el-checkbox-group v-model="editModelForm.config.faceFeatures">
+                <el-checkbox-button value="detection">人脸检测</el-checkbox-button>
+                <el-checkbox-button value="landmark">关键点定位</el-checkbox-button>
+                <el-checkbox-button value="attribute">属性分析</el-checkbox-button>
+                <el-checkbox-button value="compare">人脸比对</el-checkbox-button>
+                <el-checkbox-button value="search">人脸搜索</el-checkbox-button>
+              </el-checkbox-group>
+            </el-form-item>
+            <el-form-item label="最小人脸尺寸" prop="config.faceMinSize">
+              <el-input-number v-model="editModelForm.config.faceMinSize" :placeholder="'建议48~200'"
+                style="width: 240px;" controls-position="right">
+                <template #suffix><span class="text-gray-400 text-xs ml-1">px</span></template>
+              </el-input-number>
+            </el-form-item>
+          </div>
+
+          <!-- 布局识别模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'layout'" class="transition-all">
+            <el-form-item label="检测元素" prop="config.layoutElements">
+              <el-checkbox-group v-model="editModelForm.config.layoutElements">
+                <el-checkbox-button value="text">文本区域</el-checkbox-button>
+                <el-checkbox-button value="table">表格</el-checkbox-button>
+                <el-checkbox-button value="figure">图片</el-checkbox-button>
+                <el-checkbox-button value="title">标题</el-checkbox-button>
+                <el-checkbox-button value="list">列表</el-checkbox-button>
+              </el-checkbox-group>
+            </el-form-item>
+          </div>
+
+          <!-- 文生图模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'image'" class="transition-all">
+            <el-form-item label="默认尺寸" prop="config.imageSize">
+              <el-select v-model="editModelForm.config.imageSize" style="width: 240px;">
+                <el-option label="512x512" value="512x512" />
+                <el-option label="768x768" value="768x768" />
+                <el-option label="1024x1024" value="1024x1024" />
+                <el-option label="1024x768 (横图)" value="1024x768" />
+                <el-option label="768x1024 (竖图)" value="768x1024" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="默认步数" prop="config.imageSteps">
+              <el-input-number v-model="editModelForm.config.imageSteps" :min="1" :max="100"
+                :placeholder="'建议20~50'" style="width: 240px;" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="默认提示词引导" prop="config.imageGuidance">
+              <el-input-number v-model="editModelForm.config.imageGuidance" :min="1" :max="20" :step="0.5"
+                :placeholder="'7.5'" style="width: 240px;" controls-position="right" />
+            </el-form-item>
+          </div>
+
+          <!-- 文生视频模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'video'" class="transition-all">
+            <el-form-item label="默认时长" prop="config.videoDuration">
+              <el-input-number v-model="editModelForm.config.videoDuration" :min="1" :max="60"
+                :placeholder="'5'" style="width: 240px;" controls-position="right">
+                <template #suffix><span class="text-gray-400 text-xs ml-1">秒</span></template>
+              </el-input-number>
+            </el-form-item>
+            <el-form-item label="分辨率" prop="config.videoResolution">
+              <el-select v-model="editModelForm.config.videoResolution" style="width: 240px;">
+                <el-option label="720p" value="720p" />
+                <el-option label="1080p" value="1080p" />
+                <el-option label="4K" value="4k" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="帧率" prop="config.videoFps">
+              <el-input-number v-model="editModelForm.config.videoFps" :min="15" :max="60"
+                :placeholder="'24'" style="width: 240px;" controls-position="right">
+                <template #suffix><span class="text-gray-400 text-xs ml-1">fps</span></template>
+              </el-input-number>
+            </el-form-item>
+          </div>
+
+          <!-- 语音识别模型配置 -->
+          <div v-else-if="editModelForm.modelType === 'asr'" class="transition-all">
+            <el-form-item label="识别语言" prop="config.asrLanguage">
+              <el-select v-model="editModelForm.config.asrLanguage" style="width: 240px;">
+                <el-option label="自动检测" value="auto" />
+                <el-option label="中文" value="zh" />
+                <el-option label="英文" value="en" />
+                <el-option label="日文" value="ja" />
+                <el-option label="韩文" value="ko" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="采样率" prop="config.asrSampleRate">
+              <el-select v-model="editModelForm.config.asrSampleRate" style="width: 240px;">
+                <el-option label="16000 Hz" value="16000" />
+                <el-option label="8000 Hz" value="8000" />
+                <el-option label="44100 Hz" value="44100" />
+              </el-select>
+            </el-form-item>
+          </div>
         </el-form>
       </div>
       <template #footer>
@@ -323,7 +463,8 @@ import {
   AutoFixHighOutlined
 } from '@vicons/material'
 import {
-  TextT24Regular, LightbulbFilament24Regular, Image24Regular, WrenchScrewdriver24Regular, Group24Regular, ArrowRight24Regular, Box16Regular
+  TextT24Regular, LightbulbFilament24Regular, Image24Regular, WrenchScrewdriver24Regular, Group24Regular, ArrowRight24Regular, Box16Regular,
+  DocumentText24Regular, PersonCircle24Regular, Grid24Regular, Video24Regular, Mic24Regular
 } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'

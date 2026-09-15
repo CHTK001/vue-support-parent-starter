@@ -64,6 +64,9 @@
                         <template v-else-if="currentTabValue === 'browser'">
                             <BrowserSettings />
                         </template>
+                        <template v-else-if="currentTabValue === 'providers'">
+                            <ModelsProviderList />
+                        </template>
                         <template v-else-if="currentTabValue === 'about'">
                             <AboutPanel />
                         </template>
@@ -100,6 +103,7 @@ import OcrSettings from './OcrSettings.vue'
 import AppearanceSettings from './AppearanceSettings.vue'
 import SearchSettings from './SearchSettings.vue'
 import BrowserSettings from './BrowserSettings.vue'
+import ModelsProviderList from './ModelsProviderList.vue'
 import AboutPanel from '../plugins/AboutPanel.vue'
 import SessionGroupManage from './SessionGroupManage.vue'
 import ArchivedSessions from './ArchivedSessions.vue'
@@ -191,18 +195,6 @@ const sidebarItems = computed(() => [
         roles: ['primary'],
     },
     {
-        label: t('settings.system.tabs.about'),
-        path: 'about',
-        icon: Info24Regular,
-        roles: ['primary'],
-    },
-    {
-        label: t('settings.system.tabs.community'),
-        path: 'community',
-        icon: Chat24Regular,
-        roles: ['primary'],
-    },
-    {
         label: t('settings.system.tabs.connections'),
         path: 'connections',
         icon: Cloud24Regular,
@@ -219,18 +211,6 @@ const sidebarItems = computed(() => [
         path: 'session-archived',
         icon: Archive20Regular,
         roles: ['primary'],
-    },
-    {
-        label: t('settings.system.tabs.profile'),
-        path: 'profile',
-        icon: PersonOutlineOutlined,
-        roles: ['primary', 'subaccount'],
-    },
-    {
-        label: t('settings.system.tabs.security'),
-        path: 'security',
-        icon: VerifiedUserOutlined,
-        roles: ['primary', 'subaccount'],
     },
 ])
 

@@ -16,7 +16,7 @@
           :key="item.path"
           :to="item.path"
           class="apm-nav-item"
-          :class="{ active: $route.path === item.path }"
+          :class="{ active: $route.path === item.path || (item.path === '/traces' && $route.path.startsWith('/traces')) }"
         >
           <el-icon :size="18"><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -32,6 +32,19 @@
       <header class="apm-header">
         <h1>{{ currentTitle }}</h1>
         <div class="apm-header-right">
+          <el-input
+            ref="searchInput"
+            v-model="globalSearch"
+            placeholder="全局搜索 traceId / 日志关键词 / 端点（按 / 聚焦）"
+            clearable
+            size="small"
+            class="global-search"
+            @keyup.enter="applyGlobalSearch"
+          >
+            <template #append>
+              <el-button :icon="SearchIcon" @click="applyGlobalSearch" />
+            </template>
+          </el-input>
           <span class="header-clock mono">{{ clockText }}</span>
           <el-tag v-if="agentActive" type="success" size="small" round>Agent 运行中</el-tag>
           <el-tag v-else type="info" size="small" round>降级模式</el-tag>
@@ -49,22 +62,58 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
   DataAnalysis,
   Document,
   Share,
   Warning,
   Tickets,
+  Download,
+  Odometer,
+  Connection,
+  Histogram,
+  Bell,
+  Search as SearchIcon,
 } from "@element-plus/icons-vue";
 import { getStats } from "./api/apmApi";
 
 const route = useRoute();
+const router = useRouter();
 const agentActive = ref(false);
 let timer: number | undefined;
 let clockTimer: number | undefined;
 const clockText = ref("");
+
+/** 全局搜索 */
+const globalSearch = ref("");
+const searchInput = ref<InstanceType<typeof import("element-plus")["ElInput"]> | null>(null);
+
+/** 快捷键 / 聚焦搜索框 */
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const active = document.activeElement;
+    const tag = active?.tagName;
+    if (tag !== "INPUT" && tag !== "TEXTAREA" && !e.repeat) {
+      e.preventDefault();
+      searchInput.value?.focus?.();
+    }
+  }
+}
+
+/** 全局搜索执行：按内容智能跳转 */
+function applyGlobalSearch() {
+  const kw = globalSearch.value.trim();
+  if (!kw) return;
+  const looksLikeTraceId = /^[0-9a-f\-]{12,}$/i.test(kw);
+  if (looksLikeTraceId) {
+    router.push({ path: "/traces", query: { traceId: kw } });
+  } else {
+    router.push({ path: "/logs", query: { keyword: kw } });
+  }
+  globalSearch.value = "";
+}
 
 function tickClock() {
   const d = new Date();
@@ -77,7 +126,14 @@ const navItems = [
   { path: "/traces", label: "调用链路", icon: Document },
   { path: "/dependencies", label: "依赖拓扑", icon: Share },
   { path: "/leaks", label: "资源泄漏", icon: Warning },
+  { path: "/endpoints", label: "端点分析", icon: Histogram },
+  { path: "/services", label: "服务列表", icon: Connection },
+  { path: "/errors", label: "错误排行", icon: Warning },
+  { path: "/jvm", label: "JVM 指标", icon: Odometer },
+  { path: "/topology", label: "系统拓扑", icon: Connection },
   { path: "/logs", label: "日志", icon: Tickets },
+  { path: "/injector", label: "数据注入器", icon: Download },
+  { path: "/alerts", label: "告警中心", icon: Bell },
 ];
 
 const currentTitle = computed(
@@ -98,11 +154,16 @@ onMounted(() => {
   tickClock();
   timer = window.setInterval(checkAgent, 15000);
   clockTimer = window.setInterval(tickClock, 1000);
+  window.addEventListener("keydown", handleKeyDown);
 });
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer);
   if (clockTimer) window.clearInterval(clockTimer);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
 });
 </script>
 
@@ -230,6 +291,20 @@ onBeforeUnmount(() => {
   color: var(--apm-muted);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
+}
+
+.global-search {
+  width: 320px;
+  --el-input-bg-color: rgba(255, 255, 255, 0.04);
+  --el-input-border-color: var(--apm-border, rgba(255, 255, 255, 0.08));
+  --el-input-text-color: var(--apm-fg, #e6edf7);
+  --el-input-placeholder-color: var(--apm-muted, rgba(230, 237, 247, 0.4));
+}
+
+.global-search :deep(.el-input-group__append) {
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  border-color: var(--apm-border, rgba(255, 255, 255, 0.08));
 }
 
 .agent-dot {

@@ -9,6 +9,30 @@
           <el-option label="Connection" value="Connection" />
           <el-option label="Thread" value="Thread" />
         </el-select>
+        <el-input
+          v-model="resourceNameSearch"
+          placeholder="搜索资源名…"
+          clearable
+          size="small"
+          class="filter-input"
+        />
+        <el-input
+          v-model="threadSearch"
+          placeholder="搜索线程…"
+          clearable
+          size="small"
+          class="filter-input"
+        />
+        <el-checkbox v-model="activeOnly" size="small">仅看活跃</el-checkbox>
+        <el-date-picker
+          v-model="range"
+          type="datetimerange"
+          range-separator="~"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          size="small"
+          style="width: 320px"
+        />
       </div>
       <div class="toolbar-right">
         <el-button size="small" round @click="exportCsvFull">
@@ -101,7 +125,7 @@ import { onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Download, Plus } from "@element-plus/icons-vue";
 import { pageLeaks, exportLeaksCsv, injectLeak } from "../api/apmApi";
-import type { LeakRecord } from "../api/apmApi";
+import type { LeakRecord, LeakQuery } from "../api/apmApi";
 
 const items = ref<LeakRecord[]>([]);
 const total = ref(0);
@@ -109,15 +133,25 @@ const page = ref(1);
 const size = ref(20);
 const loading = ref(false);
 const filterType = ref("");
+const resourceNameSearch = ref("");
+const threadSearch = ref("");
+const activeOnly = ref(false);
+const range = ref<[Date, Date] | null>(null);
 
 async function load() {
   loading.value = true;
   try {
-    const res = await pageLeaks({
+    const q: LeakQuery = {
       page: page.value,
       size: size.value,
       resourceType: filterType.value || undefined,
-    });
+      resourceName: resourceNameSearch.value.trim() || undefined,
+      thread: threadSearch.value.trim() || undefined,
+      activeOnly: activeOnly.value || undefined,
+      startTime: range.value?.[0] ? new Date(range.value[0]).getTime() : undefined,
+      endTime: range.value?.[1] ? new Date(range.value[1]).getTime() : undefined,
+    };
+    const res = await pageLeaks(q);
     items.value = res.items;
     total.value = res.total;
   } catch {
@@ -155,10 +189,13 @@ function ageColor(ageMs: number) {
 
 onMounted(load);
 
-watch(filterType, () => {
-  page.value = 1;
-  load();
-});
+watch(
+  () => [filterType.value, resourceNameSearch.value, threadSearch.value, activeOnly.value, range.value],
+  () => {
+    page.value = 1;
+    load();
+  },
+);
 
 // ---- 注入 ----
 const injecting = ref(false);
@@ -184,6 +221,10 @@ async function doInjectLeak() {
 function exportCsvFull() {
   exportLeaksCsv({
     resourceType: filterType.value || undefined,
+    resourceName: resourceNameSearch.value.trim() || undefined,
+    thread: threadSearch.value.trim() || undefined,
+    startTime: range.value?.[0] ? new Date(range.value[0]).getTime() : undefined,
+    endTime: range.value?.[1] ? new Date(range.value[1]).getTime() : undefined,
   });
 }
 </script>
@@ -225,6 +266,10 @@ function exportCsvFull() {
 
 .filter-select {
   width: 140px;
+}
+
+.filter-input {
+  width: 160px;
 }
 
 .table-panel {

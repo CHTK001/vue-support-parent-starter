@@ -301,7 +301,7 @@ import {
   Image20Regular,
   Key20Regular,
 } from '@vicons/fluent'
-import { MoreHorizontal20Filled, Settings20Regular } from '@vicons/fluent'
+import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
 import TitlebarLeftPanel from './TitlebarLeftPanel.vue'
 
@@ -435,58 +435,8 @@ const navItems = computed(() => [
   {
     key: 'models',
     label: '模型管理',
-    icon: Cloud20Regular
+    icon: Grid16Regular
   },
-  {
-    key: 'app-keys',
-    label: 'AppKey管理',
-    icon: Key20Regular
-  },
-  {
-    key: 'manufacturer-keys',
-    label: '厂商Key管理',
-    icon: Key20Regular
-  },
-  {
-    key: 'roles',
-    label: '角色管理',
-    icon: ContactCard20Regular
-  },
-  {
-    key: 'mcp',
-    label: 'MCP管理',
-    icon: Apps20Regular
-  },
-  {
-    key: 'agents',
-    label: 'Agent管理',
-    icon: Bot20Regular
-  },
-  {
-    key: 'services',
-    label: '服务管理',
-    icon: Server20Regular
-  },
-  {
-    key: 'usage',
-    label: '用量管理',
-    icon: DataArea20Regular
-  },
-  {
-    key: 'skills',
-    label: 'Skills管理',
-    icon: BookSearch20Regular
-  },
-  {
-    key: 'capabilities',
-    label: '视觉管线',
-    icon: Image20Regular
-  },
-  {
-    key: 'setting',
-    label: '系统设置',
-    icon: Settings20Regular
-  }
 ])
 
 // 当前激活的 tab（根据路由）

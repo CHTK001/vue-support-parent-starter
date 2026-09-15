@@ -74,3 +74,22 @@ export const rollbackProject = (id: number, archiveId: number) =>
 /** 实时查看项目日志（tail） */
 export const tailProjectLog = (id: number, hostId: number, cursor?: number, lines = 500) =>
   http().get(`${B}/${id}/log?hostId=${hostId}&lines=${lines}${cursor != null ? `&cursor=${cursor}` : ''}`).then(r => unwrapResult<{ content: string; cursor: number; eof: boolean }>(r));
+
+/* ================== 守护进程 ================== */
+
+/** 守护进程状态（连续失败计数 / 最近检测时间 / 累计拉起次数） */
+export const getWatchdogStatus = (id: number) =>
+  http().get(`${B}/${id}/watchdog/status`).then(r => unwrapResult<Record<string, unknown>>(r));
+
+/* ================== AI 脚本生成 ================== */
+
+/** AI 生成运维脚本（启动/停止/重启/状态检测），宿主未装配 AI 时返回降级提示 */
+export const aiGenScript = (id: number | null, kind: 'START' | 'STOP' | 'RESTART' | 'CHECK', context: Record<string, unknown>) =>
+  http().post(`${B}/${id ?? 0}/ai-gen-script?kind=${kind}`).data(context).then(r => unwrapResult<string>(r));
+
+/* ================== 项目指标 ================== */
+
+/** 项目指标时间序列（历史查询，供图表渲染） */
+export const getProjectMetrics = (id: number, metricName?: string, limit = 200) =>
+  http().get(`${B}/${id}/metrics?limit=${limit}${metricName ? `&metricName=${encodeURIComponent(metricName)}` : ''}`)
+    .then(r => unwrapResult<Array<{ metricName: string; metricValue: number; hostId: number | null; collectTime: string }>>(r));
