@@ -18,6 +18,12 @@
   <script type="module">
     import Guacamole from '/guacamole/guacamole-common.min.js';
     const statusEl = document.getElementById('status');
+    // H2 持久化的连接状态（跨刷新保留）——key: 本次会话 hostId:protocol
+    const hParam = new URLSearchParams(location.search).get('hostId') || '0';
+    function loadSaved() { try { return localStorage.getItem('guac-st:' + hParam); } catch (e) { return null; } }
+    function saveState(s) { try { localStorage.setItem('guac-st:' + hParam, s); } catch (e) {} }
+    const saved = loadSaved();
+    if (saved) statusEl.textContent = '上次状态: ' + saved + '（重连中…）';
     const params = new URLSearchParams(location.search);
     const hostId = params.get('hostId');
     const protocol = params.get('protocol') || 'ssh';
@@ -25,11 +31,13 @@
     const targetPort = params.get('targetPort') || '';
 
     const wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const wsUrl = wsProto + location.host + '/ws/ms/server/terminal?hostId=' + hostId +
+    const wsHost = location.host;
+    const wsUrl = wsProto + wsHost + '/ws/ms/server/terminal?hostId=' + hostId +
       '&protocol=' + protocol +
       (identityId ? '&identityId=' + identityId : '') +
       (targetPort ? '&targetPort=' + targetPort : '');
 
+    console.log('[remote] connecting tunnel:', wsUrl);
     const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
     const client = new Guacamole.Client(tunnel);
     const displayEl = client.getDisplay().getElement();
@@ -58,12 +66,19 @@
     tunnel.onstatechange = (state) => {
       if (state === Guacamole.Tunnel.State.OPEN) {
         statusEl.textContent = '已连接';
+        saveState('已连接');
         setTimeout(doResize, 50);
       }
-      else if (state === Guacamole.Tunnel.State.CLOSED) statusEl.textContent = '已断开';
+      else if (state === Guacamole.Tunnel.State.CLOSED) {
+        statusEl.textContent = '已断开';
+        saveState('已断开');
+      }
     };
     tunnel.onerror = (status) => {
-      statusEl.textContent = '连接失败: ' + (status && status.message ? status.message : '未知错误');
+      const msg = '连接失败: ' + (status && status.message ? status.message : '未知错误');
+      console.error('[remote]', msg, status);
+      statusEl.textContent = msg;
+      saveState(msg);
     };
   </script>
 </body>

@@ -332,6 +332,24 @@ const reloadProvidersAndModels = async () => {
     }))
     console.log('providers mapped:', list)
     providers.value = list
+
+    // 从providers中提取models
+    const allModels: any[] = []
+    list.forEach(p => {
+      if (p.models && Array.isArray(p.models)) {
+        p.models.forEach((m: any) => {
+          allModels.push({
+            ...m,
+            providerId: p.provider_id || p.id,
+            id: m.id || m.model_id || m.model,
+            name: m.name || m.model,
+            model: m.model
+          })
+        })
+      }
+    })
+    models.value = allModels
+    console.log('models loaded:', allModels.length)
   } catch (e) {
     console.warn('刷新供应商列表失败:', e)
   }
@@ -346,7 +364,10 @@ const currentProvider = computed(() => {
 })
 
 const currentModels = computed(() => {
-  return models.value.filter(m => m.providerId === currentProviderId.value)
+  return models.value.filter(m => {
+    const pid = m.providerId || m.provider_id;
+    return pid === currentProviderId.value;
+  })
 })
 
 const formRef = ref<FormInstance | null>(null)

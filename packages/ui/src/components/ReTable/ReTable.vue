@@ -735,7 +735,6 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     const paramObj = props.params ?? {};
     const curPage = internalPage.value || props.page || 1;
-    (window).__runPage = { internal: internalPage.value, props: props.page, curPage };
     const curSize = internalPageSize.value || props.pageSize || 10;
     const loadParams = {
       page: curPage,
@@ -1228,7 +1227,21 @@ const iconSelect = Select;
     />
 
     <div v-if="pagination || toolbar" class="re-table__footer">
-      <div class="re-table__toolbar" v-if="toolbar">
+      <div class="re-table__toolbar" v-if="toolbar || pagination">
+        <!-- 左侧：分页 -->
+        <div v-if="pagination" class="re-table__pagination">
+          <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
+          <button class="re-page-btn" :disabled="page <= 1" @click="onPrevPage">‹</button>
+          <button
+            v-for="p in paginationPageList"
+            :key="p"
+            class="re-page-btn"
+            :class="{ 're-page-btn--active': p === page }"
+            @click="onPageClick(p)"
+          >{{ p }}</button>
+          <button class="re-page-btn" :disabled="page >= paginationTotalPages" @click="onNextPage">›</button>
+        </div>
+
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
         <ReTableToolbar
           :mode="toolbarConfigPosition === 'top' ? 'tools' : 'full'"
@@ -1383,20 +1396,6 @@ const iconSelect = Select;
           </template>
         </ReTableToolbar>
       </div>
-
-      <!-- 内置分页已隐藏，使用外部自定义分页 -->
-      <div v-if="false && pagination" class="re-table__pagination">
-        <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
-        <button class="re-page-btn" :disabled="page <= 1" @click="onPrevPage">‹</button>
-        <button
-          v-for="p in paginationPageList"
-          :key="p"
-          class="re-page-btn"
-          :class="{ 're-page-btn--active': p === page }"
-          @click="onPageClick(p)"
-        >{{ p }}</button>
-        <button class="re-page-btn" :disabled="page >= paginationTotalPages" @click="onNextPage">›</button>
-      </div>
     </div>
 
     <!-- 右键菜单 -->
@@ -1451,14 +1450,15 @@ const iconSelect = Select;
 .re-table__toolbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
+  justify-content: space-between;
+  gap: 8px;
   order: 2;
   margin-left: auto;
+  width: 100%;
 }
 .re-table__pagination {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: 6px;
   flex: 1 1 auto;
