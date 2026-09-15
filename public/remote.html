@@ -22,10 +22,10 @@ const identityId = params.get('identityId') || '';
 const targetPort = params.get('targetPort') || '';
 
 const wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
-const wsUrl = wsProto + location.host + '/ws/ms/server/terminal?hostId=' + hostId +
+const wsUrl = wsProto + 'localhost:8081' + '/ws/ms/server/terminal?hostId=' + hostId +
   '&protocol=' + protocol +
   (identityId ? '&identityId=' + identityId : '') +
-  (targetPort ? '&targetPort=' + targetPort : '');
+  (targetPort ? '&targetPort=' + targetPort : '') + '&_gc=';
 
 const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
 const client = new Guacamole.Client(tunnel);

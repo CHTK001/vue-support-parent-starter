@@ -272,7 +272,7 @@ const internalPage = ref(props.page ?? 1);
 const internalPageSize = ref(props.pageSize ?? 10);
 // 强制响应式：用 shallowRef 或 triggerRef
 import { triggerRef } from "vue";
-watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
+watch(() => props.page, (v) => { (window).__watchPropsPage = v; if (typeof v === "number") internalPage.value = v; });
 watch(() => props.pageSize, (v) => { if (typeof v === "number") internalPageSize.value = v; });
 
 /** 所有选中行（跨页合并） */
@@ -735,6 +735,7 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     const paramObj = props.params ?? {};
     const curPage = internalPage.value || props.page || 1;
+    (window).__runCurPage = curPage;
     const curSize = internalPageSize.value || props.pageSize || 10;
     const loadParams = {
       page: curPage,
@@ -801,7 +802,12 @@ const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource
 );
 
 /** params 变化 → 重置回第 1 页并重新加载 */
-const internalParamsKey = computed<string>(() => JSON.stringify(props.params ?? {}));
+const internalParamsKey = computed<string>(() => {
+  const p = { ...(props.params ?? {}) } as Record<string, unknown>;
+  delete p.page;
+  delete p.pageSize;
+  return JSON.stringify(p);
+});
 const lastParamsKey = ref<string>(internalParamsKey.value);
 
 watch(internalParamsKey, (key) => {
@@ -824,6 +830,7 @@ watch(() => props.page, (p, oldP) => {
 
 /** internalPage 变化（用户点击分页）→ 同步并 reload */
 watch(internalPage, (p, oldP) => {
+  (window).__watchInternalPage = {p, oldP};
   if (!isRemote.value || !props.autoReload) return;
   if (p === oldP) return;
   emit("update:page", p);
@@ -842,10 +849,10 @@ const paginationPageList = computed(() => {
 function goToPage(p: number) {
   if (p < 1 || p > paginationTotalPages.value || p === internalPage.value) return;
   internalPage.value = p;
-  emit("update:page", p);
-  setTimeout(() => { void dsReload(); }, 200);
+  // watch internalPage 会自动 emit update:page 和 dsReload
 }
 function onPageClick(p: number) {
+  (window).__onPageClickCalled = p;
   goToPage(p);
 }
 function onPrevPage() {
@@ -1231,15 +1238,14 @@ const iconSelect = Select;
         <!-- 左侧：分页 -->
         <div v-if="pagination" class="re-table__pagination">
           <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
-          <button class="re-page-btn" :disabled="page <= 1" @click="onPrevPage">‹</button>
-          <button
-            v-for="p in paginationPageList"
-            :key="p"
-            class="re-page-btn"
-            :class="{ 're-page-btn--active': p === page }"
-            @click="onPageClick(p)"
-          >{{ p }}</button>
-          <button class="re-page-btn" :disabled="page >= paginationTotalPages" @click="onNextPage">›</button>
+          <ElPagination
+            :small="true"
+            :total="totalToShow"
+            :current-page="page"
+            :page-size="pageSize"
+            layout="prev, pager, next"
+            @current-change="onPageClick"
+          />
         </div>
 
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->

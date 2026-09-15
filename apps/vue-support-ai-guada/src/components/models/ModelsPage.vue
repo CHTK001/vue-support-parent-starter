@@ -336,11 +336,12 @@ const reloadProvidersAndModels = async () => {
     // 从providers中提取models
     const allModels: any[] = []
     list.forEach(p => {
+      console.log('provider:', p.name, 'models:', p.models ? p.models.length : 0)
       if (p.models && Array.isArray(p.models)) {
         p.models.forEach((m: any) => {
           allModels.push({
             ...m,
-            providerId: p.provider_id || p.id,
+            providerId: p.id,
             id: m.id || m.model_id || m.model,
             name: m.name || m.model,
             model: m.model
@@ -364,8 +365,10 @@ const currentProvider = computed(() => {
 })
 
 const currentModels = computed(() => {
+  console.log('currentModels filter:', models.value.length, 'models, providerId:', currentProviderId.value)
   return models.value.filter(m => {
-    const pid = m.providerId || m.provider_id;
+    const pid = m.providerId || m.provider_id || m.providerId
+    console.log('model pid:', pid, 'current:', currentProviderId.value, 'match:', pid === currentProviderId.value)
     return pid === currentProviderId.value;
   })
 })
