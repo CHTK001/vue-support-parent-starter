@@ -51,6 +51,7 @@ const MONITOR_RE_COMPONENTS = [
   "ReTagFilter",
   "ReTree",
   "ReEmptyState",
+  "ReTab",
   "ReKit",
 ];
 

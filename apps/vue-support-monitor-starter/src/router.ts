@@ -5,7 +5,7 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router";
 
 const routes: RouteRecordRaw[] = [
-  { path: "/", name: "workbench", component: () => import("./views/WorkbenchView.vue"), meta: { title: "监控概览" } },
+  { path: "/", redirect: "/groups" },
   { path: "/alarms", name: "alarms", component: () => import("./views/AlarmsView.vue"), meta: { title: "告警中心" } },
   { path: "/redis", name: "redis", component: () => import("./views/RedisView.vue"), meta: { title: "Redis 监控" } },
   { path: "/tshark", name: "tshark", component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"), meta: { title: "抓包分析" } },
@@ -18,6 +18,7 @@ const routes: RouteRecordRaw[] = [
   { path: "/datasource", name: "datasource", component: () => import("./views/DataSourceView.vue"), meta: { title: "数据源管理" } },
   { path: "/db-manager", name: "db-manager", component: () => import("./views/DatabaseManagerView.vue"), meta: { title: "数据库管理" } },
   { path: "/account", name: "account", component: () => import("./views/IdentityManageView.vue"), meta: { title: "账号管理" } },
+  { path: "/files", name: "files", component: () => import("./views/FileAssetView.vue"), meta: { title: "文件资产" } },
   { path: "/groups", name: "groups", component: () => import("@pages/server/src/views/ScGroupTree.vue"), meta: { title: "分组管理" } },
   { path: "/project", name: "project", component: () => import("@pages/project/src/views/ScProjectList.vue"), meta: { title: "发布项目管理" } },
   { path: "/:pathMatch(.*)*", redirect: "/" },

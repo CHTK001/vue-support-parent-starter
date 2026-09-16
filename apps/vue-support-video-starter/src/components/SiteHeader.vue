@@ -84,8 +84,9 @@ function goPlayUrl() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(14px);
+  background: rgba(11, 14, 20, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--vd-border);
 }
 
@@ -93,7 +94,7 @@ function goPlayUrl() {
   max-width: 1440px;
   margin: 0 auto;
   padding: 0 32px;
-  height: 60px;
+  height: 62px;
   display: flex;
   align-items: center;
   gap: 28px;
@@ -103,30 +104,34 @@ function goPlayUrl() {
 .vds-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
 }
 
 .vds-logo-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
   color: #fff;
   font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
 }
 
 .vds-logo-text {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--vd-text);
   letter-spacing: 0.5px;
   white-space: nowrap;
+  background: linear-gradient(120deg, var(--vd-text), var(--vd-primary-strong));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* 主导航 */
@@ -141,31 +146,33 @@ function goPlayUrl() {
   text-decoration: none;
   color: var(--vd-text-secondary);
   font-size: 15px;
-  padding: 8px 14px;
+  font-weight: 500;
+  padding: 9px 16px;
   border-radius: var(--vd-radius-sm);
   transition: color 0.2s var(--vd-ease), background 0.2s var(--vd-ease);
   white-space: nowrap;
 }
 
 .vds-nav-link:hover {
-  color: var(--vd-primary-strong);
-  background: var(--vd-surface);
+  color: var(--vd-text);
+  background: rgba(148, 163, 184, 0.1);
 }
 
 .vds-nav-link.is-active {
-  color: var(--vd-primary-strong);
-  font-weight: 600;
+  color: var(--vd-text);
+  font-weight: 700;
 }
 
 .vds-nav-link.is-active::after {
   content: "";
   position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 2px;
+  left: 16px;
+  right: 16px;
+  bottom: 4px;
   height: 3px;
   border-radius: 2px;
   background: linear-gradient(90deg, var(--vd-primary), var(--vd-secondary));
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
 }
 
 /* 右侧动作区 */
@@ -178,21 +185,39 @@ function goPlayUrl() {
 
 .vds-play-url-btn {
   color: var(--vd-primary-strong);
-  border-color: #bae6fd;
-  background: var(--vd-surface);
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .vds-play-url-btn:hover {
-  background: #e0f2fe;
-  border-color: var(--vd-secondary);
+  background: rgba(99, 102, 241, 0.22);
+  border-color: var(--vd-primary-strong);
+  color: var(--vd-text);
 }
 
+/* 搜索框暗色适配 */
 .vds-search {
   width: 220px;
 }
 
 .vds-search :deep(.el-input__wrapper) {
   border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+  box-shadow: 0 0 0 1px var(--vd-border) inset;
+  transition: box-shadow 0.2s var(--vd-ease), background 0.2s var(--vd-ease);
+}
+
+.vds-search :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--vd-primary) inset, 0 0 16px rgba(99, 102, 241, 0.2);
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.vds-search :deep(.el-input__inner) {
+  color: var(--vd-text);
+}
+
+.vds-search :deep(.el-input__inner::placeholder) {
+  color: var(--vd-text-muted);
 }
 
 @media (max-width: 900px) {
@@ -201,7 +226,7 @@ function goPlayUrl() {
     gap: 12px;
   }
   .vds-nav-link {
-    padding: 8px 8px;
+    padding: 8px 10px;
     font-size: 14px;
   }
   .vds-search {

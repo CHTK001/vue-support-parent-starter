@@ -133,6 +133,7 @@ const emit = defineEmits<{
   (e: "toggle"): void;
   (e: "search"): void;
   (e: "reset"): void;
+  (e: "refresh"): void;
   (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
@@ -357,6 +358,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
             v-if="showSearchBtn"
             type="primary"
             icon="Search"
+            show-text
             :loading="loading"
             @click="emit('search')"
           >{{ searchText }}</ReButton>
@@ -364,6 +366,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
             v-if="showResetBtn"
             type="danger"
             icon="RefreshLeft"
+            show-text
             @click="resetForm"
           >{{ resetText }}</ReButton>
           <!-- 额外按钮（新增 / 批量 / 刷新 / 显示隐藏）走 ReSearchToolbar -->

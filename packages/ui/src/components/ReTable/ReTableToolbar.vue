@@ -18,7 +18,7 @@
  */
 import { computed } from "vue";
 import { ElPopconfirm, ElBadge } from "element-plus";
-import { Delete, Edit, Check, Select, Refresh, Setting, Menu } from "@element-plus/icons-vue";
+import { Delete, Edit, Check, Select, Refresh, Setting, Menu, Search, View, Hide } from "@element-plus/icons-vue";
 import ReButton from "../ReButton/ReButton.vue";
 import type {
   ReTableToolbarConfig,
@@ -49,6 +49,10 @@ const props = withDefaults(
     settingsTriggerText?: string;
     /** 分区模式：batch=仅批量按钮(表格上方)，tools=仅工具区(分页行)，full=全部(默认) */
     mode?: "batch" | "tools" | "full";
+    /** 是否显示搜索开关按钮 */
+    showSearch?: boolean;
+    /** 搜索区当前是否显示 */
+    searchVisible?: boolean;
   }>(),
   {
     config: () => ({}),
@@ -60,6 +64,8 @@ const props = withDefaults(
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
     mode: "full",
+    showSearch: false,
+    searchVisible: true,
   },
 );
 
@@ -69,6 +75,7 @@ const emit = defineEmits<{
   (e: "batch-save", rows: Record<string, unknown>[]): void;
   (e: "batch-select-toggle"): void;
   (e: "refresh"): void;
+  (e: "toggle-search"): void;
   (e: "column-settings"): void;
   (e: "table-settings"): void;
 }>();

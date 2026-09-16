@@ -160,8 +160,9 @@ onMounted(fetchAll);
 
     <!-- 级别 KPI 行（左色条对齐告警级别色） -->
     <section class="kpi-row cols-5">
-      <div class="kpi tel-kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
-        <div class="kpi-top">
+      <div class="kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
+        <div class="kpi-head">
+          <ReButton icon="Warning" layout="square" size="small" />
           <span class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
           <span class="tag" :class="`sev-${lv}`">{{ sevLabel(lv) }}</span>
         </div>

@@ -7,7 +7,7 @@
  */
 import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument, Iphone, Message } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
@@ -25,7 +25,8 @@ import {
   lockUser,
   unbindTotp,
 } from "../api/systemApi";
-import type { SysDept, SysPost, SysRole, SysUser, SysUserUpdate } from "../api/types";
+import type { SysDept, SysPost, SysRole, SysUser, SysUserUpdate, SysUserLog, SysLog } from "../api/types";
+import { pageForUserLog, pageForSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import useUserStore from "@repo/pinia/modules/user";
 
@@ -375,6 +376,11 @@ async function handleFileChange(e: Event) {
 }
 
 const dialogVisible = ref(false);
+const profileVisible = ref(false);
+const profileUser = ref<SysUser | null>(null);
+const loginLogs = ref<SysUserLog[]>([]);
+const operLogs = ref<SysLog[]>([]);
+const loadingLogs = ref(false);
 const saving = ref(false);
 const isEdit = ref(false);
 const form = ref<SysUserUpdate>({});
@@ -383,6 +389,30 @@ function handleAdd() {
   isEdit.value = false;
   form.value = { sysUserStatus: 0, sysUserSex: 0 };
   dialogVisible.value = true;
+}
+
+async function loadProfileLogs(username?: string) {
+  if (!username) return;
+  loadingLogs.value = true;
+  try {
+    const [loginRes, operRes] = await Promise.all([
+      pageForUserLog({ page: 1, pageSize: 10, sysLogUsername: username }),
+      pageForSysLog({ page: 1, pageSize: 10, sysLogUsername: username }),
+    ]);
+    loginLogs.value = (loginRes?.data?.data?.list ?? []) as SysUserLog[];
+    operLogs.value = (operRes?.data?.data?.list ?? []) as SysLog[];
+  } catch {
+    loginLogs.value = [];
+    operLogs.value = [];
+  } finally {
+    loadingLogs.value = false;
+  }
+}
+
+function handleProfile(row: Record<string, unknown>) {
+  profileUser.value = row as unknown as SysUser;
+  profileVisible.value = true;
+  loadProfileLogs(profileUser.value.sysUserUsername);
 }
 
 function handleEdit(row: Record<string, unknown>) {
@@ -565,18 +595,16 @@ function handleActionCommand(cmd: string, row: Record<string, unknown>) {
 }
 
 const columns: ReTableColumn[] = [
-  { type: "selection", width: 50, align: "center" },
-  { prop: "sysUserUsername", label: "账号", minWidth: 150, slot: "username" },
-  { prop: "sysUserNickname", label: "昵称", minWidth: 110 },
-  { prop: "sysUserPhone", label: "手机号", minWidth: 130 },
-  { prop: "sysUserEmail", label: "邮箱", minWidth: 180, showOverflowTooltip: true },
+  { prop: "sysUserUsername", label: "账号", minWidth: 200, slot: "username" },
+  { prop: "sysUserNickname", label: "昵称", minWidth: 120, slot: "nickname" },
+  { prop: "sysUserPhone", label: "手机号", minWidth: 150, slot: "phone" },
+  { prop: "sysUserEmail", label: "邮箱", minWidth: 180, showOverflowTooltip: true, slot: "email" },
   { prop: "roles", label: "角色", minWidth: 160, slot: "roles" },
-  { prop: "sysUserTotpCode", label: "2FA", width: 90, slot: "totp", align: "center" },
   { prop: "sysUserLastAddress", label: "最近登录", minWidth: 150, showOverflowTooltip: true },
   { prop: "sysUserLastIp", label: "最近 IP", minWidth: 120 },
   { prop: "sysUserStatus", label: "状态", width: 120, slot: "status", align: "center" },
   { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "center" },
 ];
 
 onMounted(() => {
@@ -641,13 +669,41 @@ onMounted(() => {
             <el-avatar :size="28" :src="row.sysUserAvatar">
               <el-icon><User /></el-icon>
             </el-avatar>
-            <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
-            <ReTag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small">只读</ReTag>
+            <div class="flex flex-col">
+              <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
+              <div class="flex gap-1 mt-0.5">
+                <el-tag v-if="row.sysUserStatus !== 0" type="danger" effect="plain" size="small">禁用</el-tag>
+                <el-tag v-else type="success" effect="plain" size="small">启用</el-tag>
+                <el-tag v-if="row.sysUserLock === 1" type="warning" effect="plain" size="small">锁定</el-tag>
+                <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small">只读</el-tag>
+              </div>
+            </div>
           </div>
         </template>
+        <template #nickname="{ row }">
+          <span v-if="row.sysUserNickname" class="flex items-center gap-1">
+            <el-icon><UserFilled /></el-icon>
+            <span>{{ row.sysUserNickname }}</span>
+          </span>
+          <span v-else>-</span>
+        </template>
+        <template #phone="{ row }">
+          <span v-if="row.sysUserPhone" class="flex items-center gap-1">
+            <el-icon><Iphone /></el-icon>
+            <span>{{ row.sysUserPhone }}</span>
+          </span>
+          <span v-else>-</span>
+        </template>
+        <template #email="{ row }">
+          <span v-if="row.sysUserEmail" class="flex items-center gap-1">
+            <el-icon><Message /></el-icon>
+            <span>{{ row.sysUserEmail }}</span>
+          </span>
+          <span v-else>-</span>
+        </template>
         <template #roles="{ row }">
-          <ReTag
-            v-for="role in row.userRoles ?? []"
+          <el-tag
+            v-for="role in [...new Map((row.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]"
             :key="role.sysRoleId"
             type="primary"
             effect="plain"
@@ -655,7 +711,7 @@ onMounted(() => {
             class="mr-1"
           >
             {{ role.sysRoleName }}
-          </ReTag>
+          </el-tag>
           <span v-if="!row.userRoles?.length" class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #status="{ row }">
@@ -675,15 +731,10 @@ onMounted(() => {
         </template>
         <template #action="{ row }">
           <div class="row-actions">
-            <el-tooltip content="编辑">
-              <el-button link type="primary" :icon="Edit" :disabled="isSelf(row)" @click="handleEdit(row)" />
-            </el-tooltip>
-            <el-tooltip content="重置密码">
-              <el-button link type="warning" :icon="Key" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)" />
-            </el-tooltip>
-            <el-tooltip content="删除">
-              <el-button link type="danger" :icon="Delete" :disabled="isSelf(row)" @click="handleDelete(row)" />
-            </el-tooltip>
+            <ReButton layout="square" type="primary" :icon="View" title="画像" @click="handleProfile(row)" />
+            <ReButton layout="square" type="primary" :icon="Edit" title="编辑" :disabled="isSelf(row)" @click="handleEdit(row)" />
+            <ReButton layout="square" type="warning" :icon="Key" title="重置密码" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)" />
+            <ReButton layout="square" type="danger" :icon="Delete" title="删除" :disabled="isSelf(row)" @click="handleDelete(row)" />
           </div>
         </template>
       </ReTable>
@@ -760,6 +811,89 @@ onMounted(() => {
         </el-form>
       </div>
     </ReDialog>
+
+    <!-- 用户画像弹窗 -->
+    <el-dialog
+      v-model="profileVisible"
+      title="用户画像"
+      width="900"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="profile-body" v-if="profileUser">
+        <div class="profile-left">
+          <el-avatar :size="80" :src="profileUser.sysUserAvatar">
+            {{ (profileUser.sysUserUsername || '?').charAt(0).toUpperCase() }}
+          </el-avatar>
+          <div class="profile-name">{{ profileUser.sysUserNickname || profileUser.sysUserUsername }}</div>
+          <div class="profile-account">@{{ profileUser.sysUserUsername }}</div>
+          <div class="profile-tags">
+            <el-tag size="small" :type="profileUser.sysUserStatus === 0 ? 'success' : 'danger'">
+              {{ profileUser.sysUserStatus === 0 ? '启用' : '禁用' }}
+            </el-tag>
+            <el-tag size="small" v-if="profileUser.sysUserLock === 1" type="warning">已锁定</el-tag>
+          </div>
+          <div class="profile-info-grid profile-info-grid--compact">
+            <div class="profile-info-item"><span class="label">账号</span><span>{{ profileUser.sysUserUsername }}</span></div>
+            <div class="profile-info-item"><span class="label">昵称</span><span>{{ profileUser.sysUserNickname || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">手机号</span><span>{{ profileUser.sysUserPhone || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">邮箱</span><span>{{ profileUser.sysUserEmail || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">状态</span><span>{{ profileUser.sysUserStatus === 0 ? '启用' : '禁用' }}</span></div>
+            <div class="profile-info-item"><span class="label">部门</span><span>{{ deptNameOf(profileUser.sysDeptId) }}</span></div>
+            <div class="profile-info-item"><span class="label">角色</span><span>{{ profileUser.userRoles?.map(r => r.sysRoleName).join('、') || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">岗位</span><span>{{ profileUser.userPosts?.map(p => p.sysPostName).join('、') || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">最后登录</span><span>{{ profileUser.sysUserLastLoginTime || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">登录IP</span><span>{{ profileUser.sysUserLastIp || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">登录地址</span><span>{{ profileUser.sysUserLastAddress || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">登录次数</span><span>{{ profileUser.sysUserLoginCount || 0 }}</span></div>
+          </div>
+        </div>
+        <div class="profile-right">
+          <el-tabs>
+            <el-tab-pane label="登录日志">
+              <div v-loading="loadingLogs">
+                <div v-if="loginLogs.length" class="log-list">
+                  <div v-for="log in loginLogs" :key="log.sysLogId" class="log-item">
+                    <div class="log-item__main">
+                      <el-tag size="small" :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
+                        {{ log.sysLogStatus === 1 ? '成功' : '失败' }}
+                      </el-tag>
+                      <span class="log-item__ip">{{ log.sysLogIp || '-' }}</span>
+                      <span v-if="log.sysLogAddress" class="log-item__addr">{{ log.sysLogAddress }}</span>
+                    </div>
+                    <div class="log-item__meta">
+                      <span>{{ log.sysLogBrowser || '-' }}</span>
+                      <span>{{ log.sysLogSystem || '-' }}</span>
+                      <span>{{ log.createTime || '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="profile-empty">暂无登录日志</div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="操作日志">
+              <div v-loading="loadingLogs">
+                <div v-if="operLogs.length" class="log-list">
+                  <div v-for="log in operLogs" :key="log.sysLogId" class="log-item">
+                    <div class="log-item__main">
+                      <el-tag size="small" :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
+                        {{ log.sysLogStatus === 1 ? '成功' : '失败' }}
+                      </el-tag>
+                      <span class="log-item__url">{{ log.sysLogUrl || '-' }}</span>
+                    </div>
+                    <div class="log-item__meta">
+                      <span>{{ log.sysLogContent || log.sysLogMessage || '-' }}</span>
+                      <span>{{ log.createTime || '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="profile-empty">暂无操作日志</div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+    </el-dialog>
 
     <!-- 分配角色弹窗 -->
     <ReDialog
@@ -865,6 +999,80 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+.profile-body {
+  display: flex;
+  gap: 24px;
+  min-height: 400px;
+}
+.profile-left {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+.profile-left .profile-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+.profile-left .profile-account {
+  font-size: 13px;
+  color: #909399;
+}
+.profile-left .profile-tags {
+  display: flex;
+  gap: 6px;
+}
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.profile-info-grid .profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  .label {
+    color: #909399;
+  }
+}
+.profile-right {
+  flex: 1;
+  min-width: 0;
+}
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.log-item {
+  padding: 8px 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  .log-item__main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .log-item__meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #909399;
+  }
+}
+.profile-empty {
+  text-align: center;
+  padding: 40px;
+  color: #909399;
+}
 .system-page {
   display: flex;
   flex-direction: column;
@@ -901,6 +1109,9 @@ onMounted(() => {
   padding-bottom: 4px;
   font-size: 13px;
   color: var(--el-text-color-regular);
+}
+:deep(.el-overlay) {
+  transition: none !important;
 }
 .user-search-actions {
   display: flex;

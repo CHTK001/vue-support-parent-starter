@@ -1,27 +1,44 @@
 /**
  * 视频资源中心 —— 全局设计令牌与基础样式
  *
- * Ocean Blue 配色（frontend-beautify 规范）：
- *   Primary #0ea5e9 / Secondary #38bdf8 / Surface #f0f9ff / Text #0c4a6e
+ * Night Cinematic 深色影院主题（UI/UX Pro Max 规范）：
+ *   - 背景 #0b0e14 ~ #111827 深色渐变，接近 Netflix/iQIYI 的沉浸式观感
+ *   - 主色 Indigo #6366f1 → Sky #38bdf8（品牌渐变）
+ *   - 卡片 hover 发光 + 上浮，Hero 全屏渐变遮罩
+ *   - 尊重 prefers-reduced-motion
  */
 :root {
-  --vd-primary: #0ea5e9;
-  --vd-primary-strong: #0284c7;
+  /* ── 品牌色 ── */
+  --vd-primary: #6366f1;
+  --vd-primary-strong: #818cf8;
   --vd-secondary: #38bdf8;
   --vd-accent: #7dd3fc;
-  --vd-surface: #f0f9ff;
-  --vd-text: #0c4a6e;
-  --vd-text-secondary: #64748b;
-  --vd-border: #e2e8f0;
-  --vd-surface-card: #ffffff;
 
-  --vd-radius-sm: 6px;
-  --vd-radius-md: 10px;
-  --vd-radius-lg: 14px;
+  /* ── 中性色（深色） ── */
+  --vd-bg: #0b0e14;
+  --vd-bg-deep: #070a10;
+  --vd-surface: #111827;
+  --vd-surface-card: #1a2233;
+  --vd-surface-hover: #212b40;
+  --vd-border: rgba(148, 163, 184, 0.14);
+  --vd-border-strong: rgba(148, 163, 184, 0.28);
 
-  --vd-shadow-sm: 0 1px 3px rgba(12, 74, 110, 0.08);
-  --vd-shadow-md: 0 2px 8px rgba(12, 74, 110, 0.1);
-  --vd-shadow-lg: 0 8px 24px rgba(12, 74, 110, 0.16);
+  --vd-text: #f8fafc;
+  --vd-text-secondary: #94a3b8;
+  --vd-text-muted: #64748b;
+
+  /* ── 评分 / 状态色 ── */
+  --vd-gold: #fbbf24;
+
+  /* ── 圆角 / 阴影 ── */
+  --vd-radius-sm: 8px;
+  --vd-radius-md: 12px;
+  --vd-radius-lg: 18px;
+
+  --vd-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --vd-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --vd-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --vd-glow: 0 0 0 1px rgba(99, 102, 241, 0.4), 0 4px 24px rgba(99, 102, 241, 0.25);
 
   --vd-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -32,87 +49,220 @@ body,
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: var(--vd-surface);
+  background: var(--vd-bg);
   color: var(--vd-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── 页面容器 ─────────────────────────────── */
+/* 全局背景氛围光斑 */
+#app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(680px 480px at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(720px 520px at 88% -6%, rgba(56, 189, 248, 0.12), transparent 62%),
+    linear-gradient(180deg, var(--vd-bg) 0%, var(--vd-bg-deep) 100%);
+  pointer-events: none;
+}
+
+/* ── 页面容器 ── */
 .vd-page {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 24px 32px 48px;
+  padding: 28px 32px 56px;
 }
 
-/* ── 页头 ─────────────────────────────────── */
+/* ── 页头 ── */
 .vd-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   flex-wrap: wrap;
 }
 
 .vd-header h1 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   letter-spacing: 0.5px;
-  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
+  background: linear-gradient(120deg, var(--vd-text), var(--vd-primary-strong) 70%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .vd-header .vd-subtitle {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--vd-text-secondary);
 }
 
-/* ── 视频卡片 ─────────────────────────────── */
+/* ── 视频卡片 ── */
 .vd-card {
+  position: relative;
   background: var(--vd-surface-card);
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.2s var(--vd-ease), transform 0.2s var(--vd-ease);
+  transition: transform 0.28s var(--vd-ease), box-shadow 0.28s var(--vd-ease),
+    border-color 0.28s var(--vd-ease);
   box-shadow: var(--vd-shadow-sm);
 }
 
 .vd-card:hover {
-  box-shadow: var(--vd-shadow-lg);
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  border-color: var(--vd-border-strong);
+  box-shadow: var(--vd-glow);
 }
 
 .vd-card:focus-visible {
-  outline: 2px solid var(--vd-primary);
+  outline: 2px solid var(--vd-primary-strong);
   outline-offset: 2px;
 }
 
-/* ── 海报占位（加载中/无封面） ─────────────── */
+/* ── 共享卡片子元素（Home/Channel/Browse 复用） ── */
+.vd-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(160deg, #1a2b44, #111827);
+  overflow: hidden;
+}
+
+.vd-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s var(--vd-ease);
+}
+
+.vd-card:hover .vd-poster img {
+  transform: scale(1.06);
+}
+
+.vd-poster-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vd-primary-strong);
+  background: linear-gradient(160deg, #1a2233, #111827);
+}
+
+.vd-score {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(7, 10, 16, 0.82);
+  color: var(--vd-gold);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--vd-radius-sm);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.vd-continue {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(7, 10, 16, 0.92));
+  color: #e2f3ff;
+  font-size: 12px;
+  text-align: center;
+  padding: 18px 8px 8px;
+}
+
+.vd-card-body {
+  padding: 12px 14px 14px;
+}
+
+.vd-name {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vd-text);
+}
+
+.vd-meta {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--vd-text-secondary);
+  display: flex;
+  gap: 8px;
+}
+
+.vd-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.vd-tag {
+  font-size: 11px;
+  color: var(--vd-primary-strong);
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ── 空态 ── */
+.vd-empty {
+  padding: 60px 0;
+}
+
+/* ── 加载失败 ── */
+.vds-load-error {
+  padding: 60px 0;
+}
+
+/* ── 分页居中 ── */
+.vd-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+/* ── 海报占位（加载中/无封面） ── */
 .vd-poster-skeleton {
-  background: linear-gradient(100deg, #e2e8f0 30%, #f1f5f9 50%, #e2e8f0 70%);
+  background: linear-gradient(100deg, #1e2636 30%, #263145 50%, #1e2636 70%);
   background-size: 200% 100%;
   animation: vd-skeleton 1.5s infinite;
 }
 
 @keyframes vd-skeleton {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-/* ── 播放页剧场模式 ───────────────────────── */
+/* ── 播放器剧场 ── */
 .vd-theater {
-  background: #0b1220;
+  background: #05070a;
   border-radius: var(--vd-radius-lg);
   overflow: hidden;
   box-shadow: var(--vd-shadow-lg);
+  border: 1px solid var(--vd-border);
 }
 
-/* ── 微交互过渡 ───────────────────────────── */
+/* ── 微交互过渡 ── */
 .vd-fade-enter-active,
 .vd-fade-leave-active {
   transition: opacity 0.25s var(--vd-ease);
@@ -120,6 +270,22 @@ body,
 .vd-fade-enter-from,
 .vd-fade-leave-to {
   opacity: 0;
+}
+
+/* ── 滚动条 ── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

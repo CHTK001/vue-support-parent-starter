@@ -225,8 +225,8 @@ onMounted(() => void load());
 .vd-continue-pill {
   font-size: 12px;
   color: var(--vd-primary-strong);
-  background: var(--vd-surface);
-  border: 1px solid #bae6fd;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 999px;
   padding: 2px 10px;
 }
@@ -276,6 +276,7 @@ onMounted(() => void load());
   display: flex;
   gap: 4px;
   background: var(--vd-surface);
+  border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-md);
   padding: 4px;
 }
@@ -289,17 +290,19 @@ onMounted(() => void load());
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
   transition: all 0.2s var(--vd-ease);
+  font-weight: 500;
 }
 
 .vd-line-btn:hover {
-  color: var(--vd-primary);
+  color: var(--vd-text);
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .vd-line-btn.is-active {
-  background: var(--vd-surface-card);
-  color: var(--vd-primary-strong);
+  background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
+  color: #fff;
   font-weight: 600;
-  box-shadow: var(--vd-shadow-sm);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
 .vd-episode-grid {
@@ -326,6 +329,7 @@ onMounted(() => void load());
   border-color: var(--vd-secondary);
   color: var(--vd-primary-strong);
   transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
 }
 
 .vd-episode.is-active {
@@ -333,7 +337,7 @@ onMounted(() => void load());
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
 .vd-episode:focus-visible {

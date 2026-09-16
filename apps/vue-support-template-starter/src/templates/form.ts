@@ -310,7 +310,7 @@ export const reSearchMeta: TemplateMeta = {
     { key: "resetText", label: "重置按钮文案", type: "string", default: "重置" },
     { key: "showResetBtn", label: "显示重置按钮", type: "boolean", default: true },
     { key: "loading", label: "搜索 loading", type: "boolean", default: false },
-    { key: "showRefreshBtn", label: "显示刷新按钮", type: "boolean", default: false },
+    { key: "showRefreshBtn", label: "显示刷新按钮", type: "boolean", default: true, description: "组件默认值 true（工具栏内、纯图标）" },
     { key: "showAddBtn", label: "显示新增按钮", type: "boolean", default: false },
     { key: "addText", label: "新增按钮文案", type: "string", default: "新增" },
     { key: "showToggle", label: "显示隐藏/显示按钮", type: "boolean", default: false, description: "ReSearchToolbar 里的整区显示切换" },

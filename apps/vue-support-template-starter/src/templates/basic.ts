@@ -164,8 +164,10 @@ export const reButtonMeta: TemplateMeta = {
     { key: "circle", label: "圆形按钮", type: "boolean", default: false },
     { key: "disabled", label: "禁用", type: "boolean", default: false },
     { key: "loading", label: "加载中", type: "boolean", default: false },
-    { key: "icon", label: "图标", type: "string", default: "" },
+    { key: "icon", label: "图标", type: "string", default: "Search", description: "有 icon 且有插槽文字时默认显示文字；:show-text=\"false\" 才降级为纯图标+tooltip" },
   ],
+  // 默认插槽：配合 icon 可验证「有文字就显示文字」（showText 默认自动）
+  slots: [{ name: "default", label: "按钮文字", defaultText: "查询" }],
 };
 
 export const reInputMeta: TemplateMeta = {

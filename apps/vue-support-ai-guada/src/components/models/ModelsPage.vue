@@ -38,7 +38,7 @@
       </template>
 
       <!-- 供应商编辑弹窗 -->
-      <LDialog v-model="showProviderModal" :title="getProviderModalTitle" width="500px" align-center append-to-body
+      <el-dialog v-model="showProviderModal" :title="getProviderModalTitle" width="500px" align-center append-to-body
         class="provider-modal dialog-with-scroll">
         <div class="dialog-content">
           <el-form ref="formRef" :label-width="80" :model="currentProviderEdit" :rules="providerRules" size="large"
@@ -106,12 +106,9 @@
                   <div class="text-xs text-gray-400 mt-1">需要代理的供应商（如Gemini）填写代理地址</div>
                 </el-form-item>
                 <!-- Key策略 -->
-                <el-form-item label="Key策略" prop="keyStrategy">
-                  <el-select v-model="currentProviderEdit.keyStrategy" placeholder="选择Key轮询策略" class="w-full">
-                    <el-option label="不轮询（使用第一个Key）" value="none" />
-                    <el-option label="轮询（依次使用所有Key）" value="round_robin" />
-                    <el-option label="随机（随机选择Key）" value="random" />
-                    <el-option label="权重（按权重分配）" value="weighted" />
+                <el-form-item label="Key策略" prop="loadStrategy">
+                  <el-select v-model="currentProviderEdit.loadStrategy" placeholder="选择Key轮询策略" class="w-full">
+                    <el-option v-for="strategy in keyStrategies" :key="strategy.name" :label="strategy.display_name" :value="strategy.name" />
                   </el-select>
                   <div class="text-xs text-gray-400 mt-1">多Key时的分配策略，支持限流自动切换</div>
                 </el-form-item>
@@ -141,7 +138,7 @@
             <el-button type="primary" @click="handleSaveProvider">确定</el-button>
           </span>
         </template>
-      </LDialog>
+      </el-dialog>
     </div>
   </div>
 </template>
@@ -180,6 +177,16 @@ const providerTemplates = ref<any[]>([])
 // 模型预设库
 const modelPresets = ref<any[]>([])
 
+// Key策略列表（后台实际支持的负载均衡策略）
+const keyStrategies = ref<any[]>([
+  { name: 'failover', display_name: '故障转移（优先使用第一个可用Key）', description: '按序取第一个可用Key，失败后自动切换到下一个' },
+  { name: 'round_robin', display_name: '轮询（依次使用所有Key）', description: '依次使用所有Key，实现负载均衡' },
+  { name: 'weighted', display_name: '权重（按权重分配Key）', description: '按权重分配Key，权重越高被选中的概率越大' },
+  { name: 'latency', display_name: '延迟（按响应速度分配）', description: '优先选择响应速度快的Key' },
+  { name: 'cost', display_name: '成本（按成本最低分配）', description: '优先选择成本最低的Key' },
+  { name: 'hybrid', display_name: '混合（综合延迟和成本）', description: '综合考虑延迟和成本，智能分配Key' }
+])
+
 // 计算可用的模板（过滤掉已添加的）
 const availableTemplates = computed(() => {
   const addedProviderTypes = new Set(providers.value.map(p => p.provider))
@@ -197,7 +204,7 @@ const currentProviderEdit = ref<{
   protocol: string
   headers: string
   proxyUrl: string
-  keyStrategy: string
+  loadStrategy: string
   autoSwitchOnRateLimit: boolean
   attributes: {
     headers: Record<string, string>
@@ -210,7 +217,7 @@ const currentProviderEdit = ref<{
   protocol: "openai",
   headers: "",
   proxyUrl: "",
-  keyStrategy: "none",
+  loadStrategy: "failover",
   autoSwitchOnRateLimit: false,
   attributes: {
     headers: {} as Record<string, string>
@@ -339,12 +346,22 @@ const reloadProvidersAndModels = async () => {
       console.log('provider:', p.name, 'models:', p.models ? p.models.length : 0)
       if (p.models && Array.isArray(p.models)) {
         p.models.forEach((m: any) => {
+          // 映射后端字段到前端字段
+          const capabilities = m.capabilities || []
           allModels.push({
             ...m,
             providerId: p.id,
             id: m.id || m.model_id || m.model,
             name: m.name || m.model,
-            model: m.model
+            model: m.model,
+            modelName: m.model,  // 后端是model，前端用modelName
+            modelType: m.model_type || 'text',  // 默认对话模型
+            isActive: m.enabled !== false,  // 后端是enabled，前端用isActive
+            config: {
+              inputCapabilities: capabilities.includes('text') || capabilities.length === 0 ? ['text'] : [],
+              outputCapabilities: capabilities.includes('text') || capabilities.length === 0 ? ['text'] : [],
+              features: []
+            }
           })
         })
       }
@@ -411,6 +428,9 @@ const handleSaveProvider = async () => {
         apiUrl: currentProviderEdit.value.apiUrl,
         attributes: {
           headers
+        },
+        extra: {
+          load_strategy: currentProviderEdit.value.loadStrategy || 'failover'
         }
       }
 
@@ -450,7 +470,7 @@ const handleSaveProvider = async () => {
       // 拼接多API KEY
       const apiKeys = apiKeyList.value.filter(k => k && k.trim())
       // 构造后端需要的payload
-      const payload = {
+      const payload: any = {
         platform: currentProviderEdit.value.provider || 'openai',
         name: currentProviderEdit.value.name,
         base_url: currentProviderEdit.value.apiUrl,
@@ -462,6 +482,9 @@ const handleSaveProvider = async () => {
         initial_model: {
           model: 'gpt-3.5-turbo',
           name: '默认模型'
+        },
+        extra: {
+          load_strategy: currentProviderEdit.value.loadStrategy || 'failover'
         }
       }
 
@@ -619,6 +642,7 @@ const handleEditProvider = (provider: any) => {
   currentProviderId.value = provider.id
   isProviderEditMode.value = true
   const existingHeaders = provider.attributes?.headers || {}
+  const loadStrategy = provider.extra?.load_strategy || 'failover'
 
   currentProviderEdit.value = {
     name: provider.name || "",
@@ -629,6 +653,7 @@ const handleEditProvider = (provider: any) => {
     headers: Object.entries(existingHeaders)
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n'),
+    loadStrategy: loadStrategy,
     attributes: {
       headers: existingHeaders
     },
@@ -637,11 +662,13 @@ const handleEditProvider = (provider: any) => {
     existingKeyMask: provider.api_key_mask || ""
   }
 
-  // 如果是编辑模式，apiKeyList初始化为空，提示"已配置N个key"
-  if (provider.api_key_count && provider.api_key_count > 0) {
-    apiKeyList.value = []
+  // 编辑模式下填充已有的key列表
+  if (provider.api_keys && provider.api_keys.length > 0) {
+    apiKeyList.value = [...provider.api_keys]
+  } else if (provider.api_key) {
+    apiKeyList.value = provider.apiKey.split(',')
   } else {
-    apiKeyList.value = provider.apiKey ? provider.apiKey.split(',') : []
+    apiKeyList.value = []
   }
 
   formRef.value?.clearValidate()
@@ -707,6 +734,7 @@ onMounted(() => {
     providerTemplates.value = templates
   }).catch(error => {
     console.error('获取供应商模板失败:', error)
+  })
     // 默认模板（从secrets.html提取）
     providerTemplates.value = [
       { id: 'openai', name: 'OpenAI', description: 'GPT系列模型官方API', protocol: 'openai', defaultApiUrl: 'https://api.openai.com/v1' },
@@ -730,7 +758,6 @@ onMounted(() => {
       { id: 'bai', name: 'b.ai', description: '免费AI模型平台，支持DeepSeek等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1' },
       { id: 'custom', name: '自定义供应商', description: '自定义OpenAI兼容协议的供应商', protocol: 'openai', defaultApiUrl: '' },
     ]
-  })
   // 获取模型预设库
   apiService.getModelPresets().then(presets => {
     modelPresets.value = presets

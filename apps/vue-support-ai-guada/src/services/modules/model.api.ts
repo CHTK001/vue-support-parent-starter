@@ -34,15 +34,51 @@ export const modelApi: ModelApi = {
   },
 
   async createModel(this: ApiContext, data: any) {
-    return await this._request("/models", { method: "POST", data });
+    // 后端接口格式：PUT /api/provider-models，body是 { provider_id: "xxx", model: { ... } }
+    const body = {
+      provider_id: data.providerId,
+      model: {
+        model: data.model || data.name,
+        enabled: data.enabled !== false,
+        sort_order: data.sort_order || 0,
+        capabilities: data.capabilities || []
+      }
+    };
+    const res = await fetch('/api/provider-models', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return await res.json();
   },
 
   async updateModel(this: ApiContext, modelId: string, data: any) {
-    return await this._request(`/models/${encodeURIComponent(modelId)}`, { method: "PUT", data });
+    // 后端接口格式：PUT /api/provider-models
+    const body = {
+      provider_id: data.providerId,
+      model: {
+        model: data.model || data.name,
+        enabled: data.enabled !== false,
+        sort_order: data.sort_order || 0,
+        capabilities: data.capabilities || []
+      }
+    };
+    const res = await fetch('/api/provider-models', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return await res.json();
   },
 
   async deleteModel(this: ApiContext, modelId: string) {
-    return await this._request(`/models/${encodeURIComponent(modelId)}`, { method: "DELETE" });
+    // 后端接口格式：DELETE /api/provider-models?provider_id=xxx&model=xxx
+    // modelId格式：providerId:modelName
+    const [providerId, modelName] = modelId.split(':');
+    const res = await fetch(`/api/provider-models?provider_id=${encodeURIComponent(providerId)}&model=${encodeURIComponent(modelName)}`, {
+      method: 'DELETE'
+    });
+    return await res.json();
   },
 
   async toggleModelFavorite(this: ApiContext, modelId: string) {

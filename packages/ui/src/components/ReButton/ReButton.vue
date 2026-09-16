@@ -9,7 +9,8 @@
  *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
  *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
  *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）/ "square"（正方形图标按钮，异步加载）
- *   - showText：true=显示文字，false=仅图标+tooltip（默认 false）
+ *   - showText：默认 undefined=自动（有插槽文字就显示，没有则仅图标+tooltip）；
+ *                显式 false=强制仅图标+tooltip（文字只做悬浮提示）；显式 true=强制显示文字
  *   - iconSize：按钮宽高（默认 32px，仅 iconOnly 时生效）
  *
  * 【square 布局注意】"square" 是纯图标正方形按钮，不允许带文字：
@@ -57,9 +58,14 @@ const props = withDefaults(
     auth?: string;
     /** 点击防抖时长（ms），0 关闭 */
     debounce?: number;
-    /** 是否显示文字（false=仅图标+tooltip，默认 false） */
+    /**
+     * 是否显示文字：
+     *   默认 undefined = 自动（插槽有文字就显示，没有则仅图标+tooltip）
+     *   false = 强制仅图标+tooltip（文字只做悬浮提示）
+     *   true  = 强制显示文字
+     */
     showText?: boolean;
-    /** 图标按钮宽高 px（仅 iconOnly 且 showText=false 时生效，默认 32） */
+    /** 图标按钮宽高 px（仅 iconOnly 时生效，默认 32） */
     iconSize?: number;
   }>(),
   {
@@ -78,7 +84,8 @@ const props = withDefaults(
     nativeType: "button",
     auth: "",
     debounce: 0,
-    showText: false,
+    // showText 不给默认值：undefined = 自动（有文字则显示），见 iconOnly
+    showText: undefined,
     iconSize: 32,
   },
 );
@@ -96,8 +103,14 @@ const labelText = computed<string>(() => {
     .join("");
 });
 
-/** 纯图标按钮：有 icon 且无文字内容时，或 showText=false 时 */
-const iconOnly = computed<boolean>(() => Boolean(props.icon) && (labelText.value.trim() === "" || !props.showText));
+/**
+ * 纯图标按钮：有 icon 且（无文字内容 或 显式 showText=false）
+ * ⚠️ 这里不能用 `!props.showText` —— showText 默认是 undefined（自动），
+ *    那样会让所有带 icon 的按钮都变成 icon-only，把插槽文字吞成 tooltip。
+ */
+const iconOnly = computed<boolean>(
+  () => Boolean(props.icon) && (labelText.value.trim() === "" || props.showText === false),
+);
 
 /** 图标是组件对象时直接渲染组件，字符串走 ReIcon */
 const iconIsComponent = computed<boolean>(() => typeof props.icon !== "string" && props.icon != null);
@@ -183,7 +196,7 @@ function onClick(e: MouseEvent): void {
 
   <!-- 默认 el-button 布局：仅图标+tooltip 模式 -->
   <ElTooltip
-    v-else-if="visible && iconOnly && !props.showText && labelText"
+    v-else-if="visible && iconOnly && props.showText === false && labelText"
     :content="labelText"
     placement="top"
   >

@@ -56,6 +56,7 @@ const props = withDefaults(
     batchSelectActive?: boolean;
     batchSelectTextActive?: string;
     loading?: boolean;
+    showRefreshBtn?: boolean;
     max?: number;
     filters?: SearchFilter[];
     modelValue?: Record<string, unknown>;
@@ -87,6 +88,7 @@ const props = withDefaults(
     batchSelectActive: false,
     batchSelectTextActive: "取消选择",
     loading: false,
+    showRefreshBtn: false,
     max: 0,
     filters: () => [],
     modelValue: () => ({}),
@@ -98,6 +100,7 @@ const emit = defineEmits<{
   (e: "toggle"): void;
   (e: "search"): void;
   (e: "reset"): void;
+  (e: "refresh"): void;
   (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
@@ -294,6 +297,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
             v-if="showSearchBtn"
             type="primary"
             icon="Search"
+            show-text
             :loading="loading"
             @click="emit('search')"
           >{{ searchText }}</ReButton>
@@ -301,14 +305,16 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
             v-if="showResetBtn"
             type="danger"
             icon="RefreshLeft"
+            show-text
             @click="resetForm"
           >{{ resetText }}</ReButton>
           <ReSearchToolbar
-            v-if="showAddBtn || showBatchDeleteBtn || showBatchSelectBtn || showToggle || !!slots.footer"
+            v-if="showAddBtn || showBatchDeleteBtn || showBatchSelectBtn || showRefreshBtn || showToggle || !!slots.footer"
             :filter-visible="localFilterVisible"
             :show-toggle="showToggle"
             :show-search="false"
             :show-reset="false"
+            :show-refresh="showRefreshBtn"
             :show-add="showAddBtn"
             :add-text="addText"
             :show-batch-delete="showBatchDeleteBtn"
@@ -319,6 +325,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
             :batch-select-active="batchSelectActive"
             :batch-select-text-active="batchSelectTextActive"
             @toggle="toggleFilter"
+            @refresh="emit('refresh')"
             @add="emit('add')"
             @batch-delete="emit('batch-delete')"
             @batch-select="emit('batch-select')"

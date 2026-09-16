@@ -13,6 +13,7 @@ import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
+import HostProfileView from "./HostProfileView.vue";
 import SystemManageDialog from "./SystemManageDialog.vue";
 import ServerManageDialog from "./ServerManageDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
@@ -446,6 +447,27 @@ const sysMgrHost = ref<Host | null>(null);
 const serverMgrVisible = ref(false);
 const serverMgrHost = ref<Host | null>(null);
 
+// 远控配置弹窗
+const remoteCfgVisible = ref(false);
+const remoteCfgHost = ref<Host | null>(null);
+const remoteCfgForm = ref({
+  protocol: 'ssh',
+  sipEnabled: false,
+  sipProviderId: '',
+  sipService: 'rdp',
+  sipLocalPort: 13389,
+  vncPort: 5900,
+});
+
+// ---- 主机画像（master-detail：左主机列表 + 右 ReTab 详情） ----
+const profileVisible = ref(false);
+useDialogPrerender(profileVisible);
+function openProfile(): void {
+  profileVisible.value = true;
+}
+/** 画像抽屉宽度：约 90% 窗口宽（koi ReDrawer size 传像素值，组件内部自适应百分比） */
+const profileSize = computed(() => Math.round(window.innerWidth * 0.9));
+
 function openSysMgr(type: string, row: Host): void {
   sysMgrType.value = type;
   sysMgrHost.value = row;
@@ -453,20 +475,28 @@ function openSysMgr(type: string, row: Host): void {
 }
 
 function onMoreCommand(cmd: string, row: Host): void {
-  // 协议服务器管理（Server 实现的 web 操作 + ServerFilter 实时配置）
-  if (cmd === "server") {
-    serverMgrHost.value = row;
-    serverMgrVisible.value = true;
+  if (cmd === "remote-config") {
+    remoteCfgHost.value = row;
+    remoteCfgForm.value.protocol = row.serverHostOsType === 'WINDOWS' ? 'rdp' : 'ssh';
+    remoteCfgVisible.value = true;
     return;
   }
-  const sysTypes = ["process", "system-service", "network-interface", "network-connection", "disk", "partition", "firewall", "driver"];
-  if (sysTypes.includes(cmd)) {
-    openSysMgr(cmd === "system-service" ? "service" : cmd, row);
-    return;
-  }
-  configHost.value = row;
-  configMode.value = cmd === "online" ? "online" : cmd === "delay" ? "delay" : "metric";
-  configVisible.value = true;
+  // 所有系统管理项都合并到主机画像弹窗
+  const tabMap: Record<string, string> = {
+    "online": "process",
+    "metric": "process",
+    "delay": "process",
+    "process": "process",
+    "system-service": "service",
+    "network-interface": "network-interface",
+    "network-connection": "network-connection",
+    "disk": "disk",
+    "partition": "disk",
+    "firewall": "firewall",
+    "driver": "driver",
+  };
+  const tab = tabMap[cmd] || "process";
+  openSysMgr(tab, row);
 }
 
 function openAdd(): void {
@@ -581,26 +611,37 @@ function delayBad(ms: number | null): boolean {
 
     <!-- KPI -->
     <section class="kpi-row cols-4">
-      <div class="kpi tel-kpi c-brand">
-        <span class="kpi-ico"><ReIcon name="Monitor" :size="36" /></span>
-        <div class="kpi-top"><span class="kpi-label">资产总数</span></div>
-        <div class="kpi-value">{{ hosts.length }}</div>
-        <div class="kpi-sub">共注册资产</div>
+      <div class="kpi c-brand">
+        <div class="kpi-head">
+          <ReButton icon="Monitor" layout="square" size="small" />
+          <span class="kpi-label">资产总数</span>
+        </div>
+        <div class="kpi-value">{{ hosts.length }}<span class="kpi-unit">台</span></div>
+        <div class="kpi-sub">共注册可远控目标</div>
       </div>
-      <div class="kpi tel-kpi c-green">
-        <div class="kpi-top"><span class="kpi-label">在线</span></div>
-        <div class="kpi-value">{{ onlineCount }}</div>
-        <div class="kpi-sub"><b>{{ onlineCount }}</b> / {{ hosts.length }}</div>
+      <div class="kpi c-green">
+        <div class="kpi-head">
+          <ReButton icon="CircleCheck" layout="square" size="small" />
+          <span class="kpi-label">在线</span>
+        </div>
+        <div class="kpi-value">{{ onlineCount }}<span class="kpi-unit">/ {{ hosts.length }}</span></div>
+        <div class="kpi-sub">当前可连接资产</div>
       </div>
-      <div class="kpi tel-kpi c-gray">
-        <div class="kpi-top"><span class="kpi-label">离线</span></div>
-        <div class="kpi-value">{{ offlineCount }}</div>
-        <div class="kpi-sub">需关注</div>
+      <div class="kpi c-gray">
+        <div class="kpi-head">
+          <ReButton icon="CircleClose" layout="square" size="small" />
+          <span class="kpi-label">离线</span>
+        </div>
+        <div class="kpi-value">{{ offlineCount }}<span class="kpi-unit">台</span></div>
+        <div class="kpi-sub">需关注处理</div>
       </div>
-      <div class="kpi tel-kpi c-blue">
-        <div class="kpi-top"><span class="kpi-label">远控启用</span></div>
-        <div class="kpi-value">{{ remoteCount }}</div>
-        <div class="kpi-sub">可远程连接</div>
+      <div class="kpi c-blue">
+        <div class="kpi-head">
+          <ReButton icon="Connection" layout="square" size="small" />
+          <span class="kpi-label">远控启用</span>
+        </div>
+        <div class="kpi-value">{{ remoteCount }}<span class="kpi-unit">台</span></div>
+        <div class="kpi-sub">支持远程连接</div>
       </div>
     </section>
 
@@ -715,25 +756,7 @@ function delayBad(ms: number | null): boolean {
               <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(h)" />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(h)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(h)" />
-              <el-dropdown trigger="click" @command="(cmd: string) => onMoreCommand(cmd, h)" class="more-dd">
-                <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="online">在离线</el-dropdown-item>
-                    <el-dropdown-item command="metric">指标</el-dropdown-item>
-                    <el-dropdown-item command="delay">延迟检测</el-dropdown-item>
-                    <el-dropdown-item divided command="server">协议服务器</el-dropdown-item>
-                    <el-dropdown-item command="process">进程管理</el-dropdown-item>
-                    <el-dropdown-item command="system-service">系统服务</el-dropdown-item>
-                    <el-dropdown-item command="network-interface">网络接口</el-dropdown-item>
-                    <el-dropdown-item command="network-connection">网络连接</el-dropdown-item>
-                    <el-dropdown-item command="disk">磁盘管理</el-dropdown-item>
-                    <el-dropdown-item command="partition">磁盘分区</el-dropdown-item>
-                    <el-dropdown-item command="firewall">防火墙</el-dropdown-item>
-                    <el-dropdown-item command="driver">驱动管理</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', h)" />
             </div>
           </template>
         </ReCard>
@@ -816,25 +839,7 @@ function delayBad(ms: number | null): boolean {
             <ReButton icon="Search" layout="square" size="small" type="warning" title="端口扫描（nmap）" @click="scanHostPorts(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(row)" />
-            <el-dropdown trigger="click" @command="(cmd: string) => onMoreCommand(cmd, row)" class="more-dd">
-              <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="online">在离线</el-dropdown-item>
-                  <el-dropdown-item command="metric">指标</el-dropdown-item>
-                  <el-dropdown-item command="delay">延迟检测</el-dropdown-item>
-                  <el-dropdown-item divided command="server">协议服务器（Server+Filter）</el-dropdown-item>
-                  <el-dropdown-item command="process">进程管理</el-dropdown-item>
-                  <el-dropdown-item command="system-service">系统服务</el-dropdown-item>
-                  <el-dropdown-item command="network-interface">网络接口</el-dropdown-item>
-                  <el-dropdown-item command="network-connection">网络连接</el-dropdown-item>
-                  <el-dropdown-item command="disk">磁盘管理</el-dropdown-item>
-                  <el-dropdown-item command="partition">磁盘分区</el-dropdown-item>
-                  <el-dropdown-item command="firewall">防火墙</el-dropdown-item>
-                  <el-dropdown-item command="driver">驱动管理</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', row)" />
           </div>
         </template>
       </ReTable>
@@ -874,18 +879,83 @@ function delayBad(ms: number | null): boolean {
     </ReDialog>
 
     <!-- 采集配置（行操作「更多」入口） -->
-    <!-- 系统管理弹窗 -->
+    <!-- 系统管理弹窗（主机画像） -->
     <SystemManageDialog
       v-model="sysMgrVisible"
       :type="sysMgrType"
       :host-id="sysMgrHost?.id"
       :host-name="sysMgrHost?.serverHostName"
+      :host-address="sysMgrHost ? `${sysMgrHost.serverHostAddress}:${sysMgrHost.serverHostPort}` : ''"
+      :host-os-type="sysMgrHost?.serverHostOsType"
+      :host-protocol="sysMgrHost?.serverHostOsType === 'WINDOWS' ? 'RDP' : 'SSH'"
+      :host-delay="sysMgrHost?.serverHostDelayMs"
+      :host-online="sysMgrHost?.serverHostOnline === 1"
+      :host-group="sysMgrHost?.serverGroupId ? groupName(sysMgrHost.serverGroupId) : '未分组'"
     />
 
     <!-- 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 实时配置） -->
     <ServerManageDialog v-model="serverMgrVisible" />
 
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
+
+    <!-- 主机画像（全屏 Drawer：左主机列表 + 右 ReTab 详情） -->
+    <ReDrawer v-model="profileVisible" title="主机画像" :size="profileSize" direction="rtl" :footer-hidden="true" :close-only="true">
+      <HostProfileView
+        :hosts="hosts"
+        :groups="groups"
+        :live-delay="liveDelay"
+        :live-online="liveOnline"
+        @connect="(h) => openConnect(h)"
+        @edit="(h) => openEdit(h)"
+        @detail="(h) => openDetail(h)"
+        @scan-ports="(h) => scanHostPorts(h)"
+      />
+    </ReDrawer>
+
+    <!-- 远控配置弹窗 -->
+    <ReDialog v-model="remoteCfgVisible" :title="`远控配置 - ${remoteCfgHost?.serverHostName ?? ''}`" width="520px" class="no-anim-dialog">
+      <div class="form-grid">
+        <div class="form-vertical">
+          <label class="form-label">远控协议</label>
+          <el-select v-model="remoteCfgForm.protocol" placeholder="选择协议">
+            <el-option label="SSH (Linux)" value="ssh" />
+            <el-option label="RDP (Windows)" value="rdp" />
+            <el-option label="VNC" value="vnc" />
+          </el-select>
+        </div>
+        <div class="form-vertical">
+          <label class="form-label">VNC 端口</label>
+          <el-input-number v-model="remoteCfgForm.vncPort" :min="5900" :max="6999" />
+        </div>
+      </div>
+      <el-divider content-position="left">SIP 内网穿透</el-divider>
+      <div class="form-grid">
+        <div class="form-vertical">
+          <label class="form-label">启用 SIP 隧道</label>
+          <el-switch v-model="remoteCfgForm.sipEnabled" />
+        </div>
+        <div class="form-vertical">
+          <label class="form-label">Provider ID</label>
+          <el-input v-model="remoteCfgForm.sipProviderId" placeholder="如 win-test-01" />
+        </div>
+        <div class="form-vertical">
+          <label class="form-label">暴露服务</label>
+          <el-select v-model="remoteCfgForm.sipService" placeholder="选择服务">
+            <el-option label="RDP (3389)" value="rdp" />
+            <el-option label="SSH (22)" value="ssh" />
+            <el-option label="VNC (5900)" value="vnc" />
+          </el-select>
+        </div>
+        <div class="form-vertical">
+          <label class="form-label">Visit 本地端口</label>
+          <el-input-number v-model="remoteCfgForm.sipLocalPort" :min="1024" :max="65535" />
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="remoteCfgVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="remoteCfgVisible = false">保存</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -974,39 +1044,49 @@ function delayBad(ms: number | null): boolean {
 /* ---- 卡片视图（ReCard）---- */
 .host-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
   padding: 8px 0;
 }
 /* ReCard koi 主题 margin 覆盖：按网格排布时去掉多余边距 */
 .host-card-grid :deep(.koi-card) {
   margin: 0;
-  padding: 12px 16px;
+  padding: 0;
 }
-.hc-head { display: flex; align-items: flex-start; gap: 10px; }
-.hc-os { display: inline-flex; align-items: center; color: var(--brand-500); flex-shrink: 0; margin-top: 2px; }
+.hc-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; }
+.hc-os {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--bg-fill, #f5f6fa); flex-shrink: 0; color: var(--brand-500);
+}
 .hc-os :deep(svg) { display: block; }
-.hc-os .os-img { width: 22px; height: 22px; display: block; object-fit: contain; }
+.hc-os .os-img { width: 24px; height: 24px; display: block; object-fit: contain; }
 .hc-name-wrap { flex: 1; min-width: 0; }
 .hc-name {
-  display: block; font-size: 14px; font-weight: 600; color: var(--text-primary);
+  display: block; font-size: 15px; font-weight: 600; color: var(--text-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.hc-addr { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
-.hc-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
-.hc-status .on { color: var(--status-success-text, #34c759); }
-.hc-status .off { color: var(--status-error-text, #f56c6c); }
-.hc-metrics {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
-  padding: 10px 0; border-top: 1px solid var(--border-subtle);
+.hc-addr { font-size: 12px; color: var(--text-tertiary, #a0a4b0); margin-top: 2px; }
+.hc-status {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+  flex-shrink: 0; padding: 3px 10px; border-radius: 20px;
+  background: var(--bg-fill, #f5f6fa);
 }
-.hc-metric { display: flex; flex-direction: column; gap: 2px; }
-.hc-m-label { font-size: 10px; color: var(--text-tertiary, #a0a4b0); text-transform: uppercase; letter-spacing: .4px; }
-.hc-m-val { font-size: 12px; color: var(--text-secondary); }
+.hc-status .on { color: var(--status-success-text, #34c759); font-weight: 500; }
+.hc-status .off { color: var(--status-error-text, #f56c6c); font-weight: 500; }
+.hc-metrics {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+  padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.hc-metric { display: flex; flex-direction: column; gap: 3px; }
+.hc-metric + .hc-metric { padding-left: 12px; border-left: 1px solid var(--border-subtle); }
+.hc-m-label { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
+.hc-m-val { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 .hc-m-val.mono { font-family: var(--font-mono, monospace); }
 .hc-m-val.bad { color: var(--danger, #f56c6c); font-weight: 600; }
-.hc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.hc-ports { display: flex; flex-wrap: wrap; gap: 4px; }
-.hc-actions { display: flex; gap: 4px; }
+.hc-tags { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 20px; }
+.hc-ports { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px 10px; }
+.hc-actions { display: flex; gap: 6px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }
 .hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
 </style>

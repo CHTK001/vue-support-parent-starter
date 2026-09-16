@@ -197,21 +197,23 @@ onMounted(() => void load());
   background: transparent;
   color: var(--vd-text-secondary);
   font-size: 13px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
   transition: all 0.2s var(--vd-ease);
+  font-weight: 500;
 }
 
 .vds-sort-btn:hover {
-  color: var(--vd-primary);
+  color: var(--vd-text);
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .vds-sort-btn.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
 }
 
 .vds-sort-btn:focus-visible {
@@ -219,29 +221,11 @@ onMounted(() => void load());
   outline-offset: 1px;
 }
 
-/* ── 频道海报墙（网格，比首页轨道更密） ───── */
+/* ── 频道海报墙 ───── */
 .vds-channel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: 18px;
-}
-
-.vds-fallback-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #075985;
-  text-align: center;
-  padding: 0 8px;
-}
-
-.vd-empty {
-  padding: 60px 0;
-}
-
-.vd-pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 20px;
 }
 
 @media (max-width: 640px) {

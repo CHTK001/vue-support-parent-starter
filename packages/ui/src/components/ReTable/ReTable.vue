@@ -38,7 +38,7 @@
  */
 import { computed, defineAsyncComponent, inject, ref, useSlots, watch, nextTick } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon } from "element-plus";
-import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search } from "@element-plus/icons-vue";
+import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
 import { http, useDataSource, type ReDataSource } from "@repo/core";
 import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
@@ -175,6 +175,14 @@ const props = withDefaults(
     resizable?: boolean;
     /** 默认展开所有树节点 */
     defaultExpandAll?: boolean;
+    /** 是否显示搜索开关按钮（切换内置搜索区显示） */
+    showSearch?: boolean;
+    /** 搜索区是否显示（v-model 支持） */
+    searchVisible?: boolean;
+    /** 是否显示搜索区右上角的展开/收起切换按钮 */
+    showSearchToggle?: boolean;
+    showSearchTitle?: boolean;
+    showSelection?: boolean;
   }>(),
   {
     data: () => [],
@@ -209,6 +217,11 @@ const props = withDefaults(
     rowDraggable: false,
     resizable: true,
     defaultExpandAll: false,
+    showSearch: false,
+    searchVisible: true,
+    showSearchToggle: true,
+    showSearchTitle: true,
+    showSelection: false,
   },
 );
 
@@ -228,6 +241,8 @@ const emit = defineEmits<{
   (e: "row-sort", payload: ReTableRowSortPayload): void;
   (e: "load", payload: RePageResult): void;
   (e: "load-error", err: Error): void;
+  (e: "update:searchVisible", visible: boolean): void;
+  (e: "toggle-search"): void;
 }>();
 
 /** ========== 批量选择状态（sessionStorage 记住跨页选择） ========== */
@@ -385,6 +400,10 @@ function getBatchEditHandler() {
 
 /** ========== 右键菜单状态 ========== */
 const ctxMenuVisible = ref(false);
+const searchVisible = computed({
+  get: () => props.searchVisible ?? true,
+  set: (v: boolean) => emit('update:searchVisible', v),
+});
 const ctxMenuX = ref(0);
 const ctxMenuY = ref(0);
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
@@ -1001,6 +1020,28 @@ const iconSelect = Select;
     :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small' }"
     :style="{ '--re-table-min-height': tableMinHeight }"
   >
+    <!-- 内置搜索区（showSearch=true 时显示，可通过搜索开关切换） -->
+    <div v-if="showSearch && $slots.search" class="re-table__search">
+      <div v-if="showSearchTitle" class="re-table__search-bar">
+        <div class="re-table__search-title">
+          <el-icon :size="16"><Search /></el-icon>
+          <span>搜索</span>
+        </div>
+        <div v-if="showSearchToggle" class="re-table__search-toggle" @click="emit('toggle-search')">
+          <span>{{ searchVisible ? '收起' : '展开' }}</span>
+          <el-icon class="re-table__search-toggle-icon"><ArrowUp v-if="searchVisible" /><ArrowDown v-else /></el-icon>
+        </div>
+      </div>
+      <div v-show="searchVisible" class="re-table__search-body">
+        <slot name="search" />
+      </div>
+    </div>
+
+    <!-- 自定义工具栏 slot（业务按钮 + 工具图标） -->
+    <div v-if="$slots.toolbar" class="re-table__toolbar-slot">
+      <slot name="toolbar" />
+    </div>
+
     <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
     <div v-if="toolbar && hasToolbarConfig && toolbarConfigPosition === 'top'" class="re-table__toolbar-top">
       <ReTableToolbar
@@ -1047,7 +1088,7 @@ const iconSelect = Select;
     >
       <!-- 批量选择 checkbox 列 -->
       <ElTableColumn
-        v-if="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
+        v-if="showSelection || batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
         type="selection"
         width="50"
         fixed="left"
@@ -1257,11 +1298,14 @@ const iconSelect = Select;
           :size="tableSize"
           :columns-trigger-text="columnsTriggerText"
           :settings-trigger-text="settingsTriggerText"
+          :show-search="showSearch"
+          :search-visible="searchVisible"
           @batch-delete="onBatchDelete"
           @batch-edit="onBatchEdit"
           @batch-save="onBatchSave"
           @batch-select-toggle="toggleBatchSelect"
           @refresh="reload"
+          @toggle-search="searchVisible = !searchVisible"
         >
           <!-- 列设置 Popover slot -->
           <template #column-settings>
@@ -1422,6 +1466,37 @@ const iconSelect = Select;
   background: var(--rt-bg);
   font-size: var(--rt-font);
 }
+.re-table__search {
+  margin-bottom: 12px;
+}
+.re-table__toolbar-slot {
+  margin-bottom: 12px;
+}
+.re-table__search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.re-table__search-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.re-table__search-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.re-table__search-toggle:hover {
+  color: var(--el-color-primary);
+}
 /* el-table 在根元素上本地定义 --el-table-* 变量，令牌必须直接挂在 .el-table 上才生效 */
 .re-table .el-table {
   --el-table-border-color: var(--rt-border);
@@ -1475,6 +1550,28 @@ const iconSelect = Select;
 .re-table__pagination-total {
   margin-right: 8px;
   color: var(--el-text-color-secondary);
+}
+:deep(.el-popper.is-dark),
+:deep(.el-tooltip__popper) {
+  z-index: 9999 !important;
+}
+:deep(.el-table__fixed-right) {
+  z-index: 30 !important;
+}
+:deep(.el-table__fixed-right::before) {
+  z-index: 31 !important;
+}
+.re-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+  order: 0;
+  border-right: none;
+  position: relative;
+  z-index: 1;
+  padding: 12px 0;
   font-size: 13px;
 }
 .page-nav-btn {

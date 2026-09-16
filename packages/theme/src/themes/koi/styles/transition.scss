@@ -1,11 +1,11 @@
 /* 默认 */
 .fade-default-enter-active,
 .fade-default-leave-active {
-  transition: opacity 0.2s ease-in-out;
+  transition: none;
 }
 .fade-default-enter-from,
 .fade-default-leave-to {
-  opacity: 0;
+  opacity: 1;
 }
 
 /* fade */

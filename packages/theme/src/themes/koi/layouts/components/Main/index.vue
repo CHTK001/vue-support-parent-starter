@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="main-wrapper">
     <ReMaximize />
     <RePerfMonitor />
@@ -37,27 +37,27 @@ import useGlobalStore from "@repo/pinia/modules/global";
 
 const globalStore = useGlobalStore();
 
-// 路由动画
+// 璺敱鍔ㄧ敾
 const { transition } = storeToRefs(globalStore);
-// 无动画（transition 为空或 "none"）
+// 鏃犲姩鐢伙紙transition 涓虹┖鎴?"none"锛?
 const isNoneTransition = computed(() => !transition.value || transition.value === "none");
 const keepAliveStore = useKeepAliveStore();
 
-// 刷新当前路由页面缓存方法
+// 鍒锋柊褰撳墠璺敱椤甸潰缂撳瓨鏂规硶
 const isRouterShow = ref(true);
 
 const refreshCurrentPage = (val: boolean) => (isRouterShow.value = val);
 
 provide("refresh", refreshCurrentPage);
 
-/** 监听当前页面是否最大化，动态添加 class */
+/** 鐩戝惉褰撳墠椤甸潰鏄惁鏈€澶у寲锛屽姩鎬佹坊鍔?class */
 watch(
   () => globalStore.maximize,
   () => {
     const app = document.getElementById("app") as HTMLElement;
     if (globalStore.maximize) app.classList.add("main-maximize");
     else app.classList.remove("main-maximize");
-    // 浏览器没有实际变化的情况下，触发一次浏览器尺寸变化的逻辑。保证全屏切换的时候，表格阔以进行自适应。
+    // 娴忚鍣ㄦ病鏈夊疄闄呭彉鍖栫殑鎯呭喌涓嬶紝瑙﹀彂涓€娆℃祻瑙堝櫒灏哄鍙樺寲鐨勯€昏緫銆備繚璇佸叏灞忓垏鎹㈢殑鏃跺€欙紝琛ㄦ牸闃斾互杩涜鑷€傚簲銆?
     const event = new Event("resize");
     window.dispatchEvent(event);
   },
@@ -67,7 +67,7 @@ watch(
 const screenWidth = ref(0);
 const showTabs = ref(true);
 
-/** 监听窗口大小变化，折叠侧边栏 */
+/** 鐩戝惉绐楀彛澶у皬鍙樺寲锛屾姌鍙犱晶杈规爮 */
 const listeningWindow = useDebounceFn(() => {
   screenWidth.value = document.body.clientWidth;
   if (!globalStore.isCollapse && screenWidth.value < 1200) globalStore.setGlobalState("isCollapse", true);
@@ -86,22 +86,22 @@ onBeforeUnmount(() => {
 @use "../../../styles/transition.scss";
 
 .main-wrapper {
-  // 最小化样式，只设置必要的布局属性
+  // 鏈€灏忓寲鏍峰紡锛屽彧璁剧疆蹇呰鐨勫竷灞€灞炴€?
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0; // 防止高度溢出
+  min-height: 0; // 闃叉楂樺害婧㈠嚭
 }
 
 .main-content {
   overflow-x: hidden;
   flex: 1;
-  padding: 16px;
+  padding: 0;
   margin: 0;
   background-color: var(--el-bg-color-page);
   min-height: 0;
   
-  // 暗色模式
+  // 鏆楄壊妯″紡
   .dark & {
     background-color: var(--el-bg-color-page);
   }

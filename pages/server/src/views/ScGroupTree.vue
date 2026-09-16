@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { message } from '@repo/core';
+import { ChatLineRound } from '@element-plus/icons-vue';
 import { getGroupTree, getGroups, saveGroup, delGroup } from '../api';
 
 interface GroupNode {
@@ -114,21 +115,21 @@ async function removeGroup(node: GroupNode) {
     <!-- 统计卡片 -->
     <div class="stat-row">
       <div class="stat-card">
-        <div class="stat-icon stat-icon--purple"><span class="stat-icon__inner">📁</span></div>
+        <ReButton icon="Folder" layout="square" size="small" />
         <div class="stat-body">
           <div class="stat-value">{{ totalGroups }}</div>
           <div class="stat-label">全部分组</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon stat-icon--blue"><span class="stat-icon__inner">🌿</span></div>
+        <ReButton icon="FolderOpened" layout="square" size="small" />
         <div class="stat-body">
           <div class="stat-value">{{ rootGroups }}</div>
           <div class="stat-label">根分组</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon stat-icon--green"><span class="stat-icon__inner">📂</span></div>
+        <ReButton icon="FolderAdd" layout="square" size="small" />
         <div class="stat-body">
           <div class="stat-value">{{ subGroups }}</div>
           <div class="stat-label">子分组</div>
@@ -164,7 +165,9 @@ async function removeGroup(node: GroupNode) {
               <span v-else class="color-dot color-dot--default"></span>
               <span class="node-name">{{ node.label }}</span>
               <span v-if="data?.children?.length" class="node-badge">{{ data.children.length }}</span>
-              <span v-if="data?.remark" class="node-remark" :title="data.remark">💬</span>
+              <span v-if="data?.remark" class="node-remark" :title="data.remark">
+                <el-icon><ChatLineRound /></el-icon>
+              </span>
             </span>
             <span class="tree-actions">
               <ReButton link size="small" @click="openCreate(data.id)">添加子</ReButton>
@@ -220,40 +223,33 @@ async function removeGroup(node: GroupNode) {
 .stat-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 .stat-card {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 18px 20px;
-  background: var(--bg-container-card, #fff);
-  border-radius: var(--border-radius, 12px);
-  box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.06));
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ef);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .stat-card:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--border-default, #d0d0d8);
 }
-.stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.stat-body {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  flex-direction: column;
 }
-.stat-icon--purple { background: linear-gradient(135deg, #6d5dfc22, #6d5dfc44); }
-.stat-icon--blue   { background: linear-gradient(135deg, #4f8ff722, #4f8ff744); }
-.stat-icon--green  { background: linear-gradient(135deg, #22b89522, #22b89544); }
-.stat-icon__inner { font-size: 22px; line-height: 1; }
 .stat-value {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.2;
   color: var(--text-primary, #1a1a2e);
+  font-variant-numeric: tabular-nums;
 }
 .stat-label {
   font-size: 12px;
