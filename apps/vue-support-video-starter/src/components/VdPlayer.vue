@@ -306,7 +306,7 @@ onBeforeUnmount(destroy);
   height: 72px;
   border: none;
   border-radius: 50%;
-  background: rgba(14, 165, 233, 0.85);
+  background: rgba(99, 102, 241, 0.9);
   color: #fff;
   font-size: 26px;
   cursor: pointer;
@@ -314,11 +314,11 @@ onBeforeUnmount(destroy);
   align-items: center;
   justify-content: center;
   transition: transform 0.2s var(--vd-ease, ease), background 0.2s ease;
-  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.45);
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.5);
 }
 
 .vd-player-bigplay:hover {
-  background: var(--vd-primary, #0ea5e9);
+  background: var(--vd-primary, #6366f1);
   transform: translate(-50%, -50%) scale(1.06);
 }
 

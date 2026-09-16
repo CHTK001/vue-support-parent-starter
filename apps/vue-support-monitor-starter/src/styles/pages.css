@@ -67,27 +67,29 @@
 .kpi.c-green::before { background: var(--status-online); }
 .kpi.c-gray::before { background: var(--status-offline); }
 
-.kpi .kpi-top {
+.kpi .kpi-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.kpi .kpi-label { font-size: 12px; color: var(--text-secondary); }
+.kpi .kpi-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 .kpi .kpi-delta { font-size: 12px; font-weight: 500; }
 .kpi .kpi-delta.up { color: var(--status-online); }
 .kpi .kpi-delta.down { color: var(--status-alarm); }
 .kpi .kpi-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  margin: 6px 0 4px;
-  letter-spacing: -0.01em;
+  margin: 4px 0 2px;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
-.kpi .kpi-value .unit {
-  font-size: 14px;
+.kpi .kpi-value .kpi-unit {
+  font-size: 13px;
   color: var(--text-tertiary);
   font-weight: 500;
-  margin-left: 4px;
+  margin-left: 6px;
 }
 .kpi .kpi-sub {
   font-size: 12px;
@@ -397,12 +399,197 @@
 .legend-item .tag { font-size: 11px; padding: 1px 6px; }
 
 /* ============================================================
-   Dialog 预渲染防闪（dialogPrerender.ts）—— 预挂载期间隐藏弹窗
+   Dialog 预渲染防闪（已禁用，保留空规则）
    ============================================================ */
-body.dialog-prerender .el-overlay {
-  visibility: hidden !important;
-  pointer-events: none !important;
+
+/* 全局禁用 el-dialog 打开/关闭动画，避免闪一下 */
+.el-overlay,
+.el-overlay *,
+.el-dialog,
+.el-dialog * {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
 }
-body.dialog-prerender .el-overlay .el-dialog {
-  visibility: hidden !important;
+.el-overlay-fade-enter-active,
+.el-overlay-fade-leave-active,
+.dialog-fade-enter-active,
+.dialog-fade-leave-active,
+.el-dialog-fade-enter-active,
+.el-dialog-fade-leave-active {
+  transition: none !important;
+  animation: none !important;
+}
+.el-overlay-fade-enter-from,
+.el-overlay-fade-leave-to,
+.dialog-fade-enter-from,
+.dialog-fade-leave-to,
+.el-dialog-fade-enter-from,
+.el-dialog-fade-leave-to {
+  opacity: 1 !important;
+}
+
+/* ============================================================
+   全局生产级设计系统 — 统一所有表格/卡片/表单外观
+   ============================================================ */
+
+/* --- 表格统一美化 --- */
+.el-table {
+  border-radius: 12px !important;
+  overflow: hidden;
+  --el-table-header-bg-color: var(--tel-bg-2, #f8fafc) !important;
+  --el-table-header-text-color: var(--tel-text-2, #64748b) !important;
+  --el-table-row-hover-bg-color: var(--tel-brand-50, #eef2ff) !important;
+  --el-table-border-color: var(--tel-border, #e2e8f0) !important;
+}
+.el-table th.el-table__cell {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 12px 12px !important;
+}
+.el-table td.el-table__cell {
+  padding: 10px 12px !important;
+  font-size: 13px;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--tel-bg-2, #f8fafc) !important;
+}
+
+/* --- 卡片容器统一 --- */
+.el-card, .re-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--tel-border, #e2e8f0) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+}
+
+/* --- 页面内容区统一间距 --- */
+.app-main-content, .page-content {
+  padding: 20px 24px !important;
+}
+
+/* --- 统计数字统一 --- */
+.kpi-value, .stat-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* --- 空状态美化 --- */
+.el-empty__description p {
+  font-size: 13px;
+  color: var(--tel-text-muted, #94a3b8);
+}
+
+/* --- 按钮统一圆角 --- */
+.el-button, .re-btn {
+  border-radius: 8px !important;
+  font-weight: 500;
+}
+
+/* --- 输入框统一 --- */
+.el-input__wrapper, .el-select__wrapper {
+  border-radius: 8px !important;
+}
+
+/* --- 分页器统一 --- */
+.el-pagination {
+  padding: 16px 0 0;
+  justify-content: flex-end;
+}
+
+/* --- 标签页统一 --- */
+.el-tabs__item {
+  font-size: 14px;
+  font-weight: 500;
+}
+.el-tabs__item.is-active {
+  font-weight: 600;
+}
+
+/* --- 描述列表统一 --- */
+.el-descriptions__label {
+  font-weight: 500 !important;
+  color: var(--tel-text-2, #64748b) !important;
+}
+
+/* --- 面包屑统一 --- */
+.el-breadcrumb__inner {
+  font-size: 13px;
+}
+
+/* --- 对话框统一 --- */
+.el-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+.el-dialog__header {
+  margin-right: 0 !important;
+  padding: 20px 24px 0 !important;
+}
+.el-dialog__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+.el-dialog__body {
+  padding: 16px 24px 24px !important;
+}
+
+/* --- 下拉菜单统一 --- */
+.el-dropdown-menu {
+  border-radius: 10px !important;
+  padding: 6px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+}
+.el-dropdown-menu__item {
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+}
+
+/* --- 消息提示统一 --- */
+.el-message {
+  border-radius: 10px !important;
+}
+
+/* --- 加载骨架屏统一 --- */
+.el-skeleton__item {
+  border-radius: 6px !important;
+}
+
+/* --- 工作台 KPI 卡片修复 --- */
+.workbench-kpi-row .kpi {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 24px;
+}
+.workbench-kpi-row .kpi .kpi-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 8px 0 4px;
+}
+.workbench-kpi-row .kpi .kpi-label {
+  font-size: 13px;
+  color: var(--tel-text-2, #64748b);
+}
+.workbench-kpi-row .kpi .kpi-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  opacity: 0.5;
+}
+
+/* --- 页面标题统一 --- */
+.page-header h2, .page-header .page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--tel-text-1, #0f172a);
+}
+.page-header .page-desc {
+  font-size: 13px;
+  color: var(--tel-text-muted, #94a3b8);
+  margin-top: 4px;
 }

@@ -25,9 +25,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
     children: [
       {
         path: "/",
+        redirect: "/groups",
+      },
+      {
+        path: "/workbench",
         name: "Workbench",
         component: () => import("./views/WorkbenchView.vue"),
-        meta: { title: "监控概览", icon: "DataBoard", showLink: true, rank: 1 },
+        meta: { title: "监控概览", icon: "DataBoard", showLink: false, rank: 1 },
       },
       {
         path: "/alarms",
@@ -61,6 +65,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "Assets",
         component: () => import("./views/AssetsView.vue"),
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
+      },
+      {
+        path: "/files",
+        name: "FileAssets",
+        component: () => import("./views/FileAssetView.vue"),
+        meta: { title: "文件资产", icon: "Document", showLink: true, rank: 11 },
       },
       {
         path: "/datasource",

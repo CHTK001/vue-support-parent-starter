@@ -20,6 +20,9 @@ import App from "./App.vue";
 import router from "./router";
 import "./styles/video.css";
 
+/** 启用 Element Plus 暗色模式（配合深色影院主题） */
+document.documentElement.classList.add("dark");
+
 /** 本应用使用的 Re* 组件 */
 const RE_COMPONENTS = [
   "ReIcon",

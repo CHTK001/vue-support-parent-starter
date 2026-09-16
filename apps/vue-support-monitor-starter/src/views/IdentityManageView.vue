@@ -602,22 +602,34 @@ async function submitAdd(): Promise<void> {
     <!-- KPI 统计 -->
     <section class="kpi-row cols-4">
       <div class="kpi c-brand">
-        <div class="kpi-top"><span class="kpi-label">身份总数</span></div>
+        <div class="kpi-head">
+          <ReButton icon="User" layout="square" size="small" />
+          <span class="kpi-label">身份总数</span>
+        </div>
         <div class="kpi-value">{{ list.length }}</div>
         <div class="kpi-sub">全部登录身份</div>
       </div>
       <div class="kpi c-green">
-        <div class="kpi-top"><span class="kpi-label">主机身份</span></div>
+        <div class="kpi-head">
+          <ReButton icon="Monitor" layout="square" size="small" />
+          <span class="kpi-label">主机身份</span>
+        </div>
         <div class="kpi-value">{{ hostCount }}</div>
         <div class="kpi-sub">密码 / 公钥</div>
       </div>
       <div class="kpi c-blue">
-        <div class="kpi-top"><span class="kpi-label">通用账号</span></div>
+        <div class="kpi-head">
+          <ReButton icon="Message" layout="square" size="small" />
+          <span class="kpi-label">通用账号</span>
+        </div>
         <div class="kpi-value">{{ genericCount }}</div>
         <div class="kpi-sub">邮箱 / Token / API Key 等</div>
       </div>
       <div class="kpi c-amber">
-        <div class="kpi-top"><span class="kpi-label">密钥引用</span></div>
+        <div class="kpi-head">
+          <ReButton icon="Key" layout="square" size="small" />
+          <span class="kpi-label">密钥引用</span>
+        </div>
         <div class="kpi-value">{{ keyCount }}</div>
         <div class="kpi-sub">SSH 私钥登录</div>
       </div>

@@ -76,6 +76,27 @@ export function parseAppYaml(yaml: string): Partial<AppConfig> {
   }
 }
 
+/**
+ * 取应用 base（vite `import.meta.env.BASE_URL`，末位不带斜杠）。
+ *
+ * 共享静态目录是根 public（createVite 的 `SHARED_PUBLIC_DIR`），**挂在 base 之下**，
+ * 所以默认配置里指向静态资源的路径（/wasm/...、/assets/...）必须拼上 base：
+ * base="/system/" 的应用（vue-support-system-starter）用绝对路径会 404。
+ *
+ * 本模块是 Vue / React 共享的纯数据模块，非 vite 环境下 import.meta.env 不存在，
+ * 此时回退 "/"（与原先写死绝对路径的行为一致）。
+ * 注意：只用于**静态资源**路径，后端接口路径（/v2/...）不要走这里。
+ */
+function assetBase(): string {
+  const env = (import.meta as unknown as { env?: { BASE_URL?: string } })?.env;
+  return (env?.BASE_URL ?? "/").replace(/\/+$/, "");
+}
+
+/** 拼接静态资源默认路径（带 base） */
+function asset(path: string): string {
+  return `${assetBase()}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 /** 默认配置（没有 app.yaml 时全部走默认） */
 export const defaultAppConfig: AppConfig = {
   config: {
@@ -194,7 +215,7 @@ export const defaultAppConfig: AppConfig = {
     },
   },
   crypto: {
-    wasmUrl: "/wasm/crypto-wasm.js",
+    wasmUrl: asset("/wasm/crypto-wasm.js"),
     algorithm: "aes",
   },
   login: {
@@ -202,12 +223,12 @@ export const defaultAppConfig: AppConfig = {
     otp: false,
     slider: false,
     brandName: "应用",
-    logoUrl: "/assets/images/logo/logo.svg",
+    logoUrl: asset("/assets/images/logo/logo.svg"),
     avatarUrl: "",
     welcome: "欢迎登录",
     title: "应用",
     description: "",
-    imageUrl: "/assets/images/login/science.png",
+    imageUrl: asset("/assets/images/login/science.png"),
     featureTags: [
       { icon: "DataAnalysis", text: "高效管理" },
       { icon: "Brush", text: "现代设计" },
@@ -350,12 +371,12 @@ export const defaultAppConfig: AppConfig = {
       aiChatMode: "webllm",
       aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
       webllmModels: [
-        { label: "Qwen2.5-1.5B-Instruct（推荐·轻量）", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
-        { label: "Qwen2.5-3B-Instruct（中等）", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: "/assets/models/qwen-color.svg" },
-        { label: "Llama-3.2-1B-Instruct（轻量）", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
-        { label: "Llama-3.2-3B-Instruct（中等）", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: "/assets/models/meta-color.svg" },
-        { label: "Phi-3.5-mini-instruct（中等）", value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: "/assets/models/microsoft-color.svg" },
-        { label: "gemma-2-2b-it（中等）", value: "gemma-2-2b-it-q4f16_1-MLC", image: "/assets/models/gemini-color.svg" },
+        { label: "Qwen2.5-1.5B-Instruct（推荐·轻量）", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", image: asset("/assets/models/qwen-color.svg") },
+        { label: "Qwen2.5-3B-Instruct（中等）", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", image: asset("/assets/models/qwen-color.svg") },
+        { label: "Llama-3.2-1B-Instruct（轻量）", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", image: asset("/assets/models/meta-color.svg") },
+        { label: "Llama-3.2-3B-Instruct（中等）", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", image: asset("/assets/models/meta-color.svg") },
+        { label: "Phi-3.5-mini-instruct（中等）", value: "Phi-3.5-mini-instruct-q4f16_1-MLC", image: asset("/assets/models/microsoft-color.svg") },
+        { label: "gemma-2-2b-it（中等）", value: "gemma-2-2b-it-q4f16_1-MLC", image: asset("/assets/models/gemini-color.svg") },
       ],
       aiChatVendor: "openai",
       aiChatApiKey: "",
@@ -367,7 +388,7 @@ export const defaultAppConfig: AppConfig = {
       aiChatSummaryEnabled: true,
       aiChatSummaryRetainRounds: 6,
       aiChatCharacter: "3d",
-      aiChatModelUrl: "/assets/models/ai-character.glb",
+      aiChatModelUrl: asset("/assets/models/ai-character.glb"),
       aiChatCharacterSize: 72,
     },
     home: {

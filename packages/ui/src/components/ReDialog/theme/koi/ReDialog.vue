@@ -237,6 +237,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   width: 100%;
   min-width: 0;
   padding-right: 0;
+  padding-bottom: 8px;
 
   .koi-dialog-header-left {
     display: inline-flex;

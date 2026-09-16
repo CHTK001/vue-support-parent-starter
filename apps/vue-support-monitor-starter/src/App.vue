@@ -113,6 +113,7 @@ const groups = computed(() => {
       title: "资产",
       items: [
         { path: "/assets", label: "主机资产", icon: "Monitor" },
+        { path: "/files", label: "文件资产", icon: "Document" },
         { path: "/datasource", label: "数据源管理", icon: "Coin" },
         { path: "/db-manager", label: "数据库管理", icon: "Coin" },
         { path: "/terminal", label: "远程控制", icon: "Position" },

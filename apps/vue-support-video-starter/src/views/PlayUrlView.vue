@@ -186,8 +186,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--vd-primary);
-  background: linear-gradient(160deg, #e0f2fe, #bae6fd);
+  color: var(--vd-primary-strong);
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.2), rgba(56, 189, 248, 0.12));
   margin-bottom: 6px;
 }
 

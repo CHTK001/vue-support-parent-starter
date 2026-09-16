@@ -79,30 +79,22 @@ onMounted(fetchAll);
     <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字） -->
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
-        <el-tooltip :content="`资产总数 · 运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`" placement="top">
-          <ReStatCard class="kpi tel-kpi c-brand">
-            <template #icon><ReIcon name="DataBoard" :size="18" style="color: var(--brand-500)" /></template>
-            <template #value><ReCountup :value="monitors.length" /></template>
-          </ReStatCard>
-        </el-tooltip>
-        <el-tooltip content="告警未处理 · 累计事件" placement="top">
-          <ReStatCard class="kpi tel-kpi c-red">
-            <template #icon><ReIcon name="Bell" :size="18" style="color: var(--status-alarm)" /></template>
-            <template #value><ReCountup :value="unhandledCount" /><span class="kpi-unit">/ {{ totalAlarms }}</span></template>
-          </ReStatCard>
-        </el-tooltip>
-        <el-tooltip content="P0+P1 高危 · 30 分钟内响应" placement="top">
-          <ReStatCard class="kpi tel-kpi c-red">
-            <template #icon><ReIcon name="Warning" :size="18" style="color: var(--sev-p0-text)" /></template>
-            <template #value><ReCountup :value="levelCounts.P0 + levelCounts.P1" /></template>
-          </ReStatCard>
-        </el-tooltip>
-        <el-tooltip content="P2 中危 · 当班处理" placement="top">
-          <ReStatCard class="kpi tel-kpi c-amber">
-            <template #icon><ReIcon name="AlarmClock" :size="18" style="color: var(--sev-p2-text)" /></template>
-            <template #value><ReCountup :value="levelCounts.P2" /></template>
-          </ReStatCard>
-        </el-tooltip>
+        <ReStatCard title="资产总数" :desc="`运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`" icon-color="var(--brand-500)">
+          <template #icon><ReButton icon="DataBoard" layout="square" size="small" /></template>
+          <template #value><span class="kpi-big">{{ monitors.length }}</span></template>
+        </ReStatCard>
+        <ReStatCard title="未处理告警" :desc="`累计事件 ${totalAlarms}`" icon-color="var(--status-alarm)">
+          <template #icon><ReButton icon="Bell" layout="square" size="small" type="danger" /></template>
+          <template #value><span class="kpi-big">{{ unhandledCount }}</span></template>
+        </ReStatCard>
+        <ReStatCard title="高危告警 P0+P1" desc="30 分钟内响应" icon-color="var(--sev-p0-text)">
+          <template #icon><ReButton icon="Warning" layout="square" size="small" type="danger" /></template>
+          <template #value><span class="kpi-big">{{ levelCounts.P0 + levelCounts.P1 }}</span></template>
+        </ReStatCard>
+        <ReStatCard title="中危告警 P2" desc="当班处理" icon-color="var(--sev-p2-text)">
+          <template #icon><ReButton icon="AlarmClock" layout="square" size="small" type="warning" /></template>
+          <template #value><span class="kpi-big">{{ levelCounts.P2 }}</span></template>
+        </ReStatCard>
       </section>
     </ReSkeleton>
 
@@ -199,5 +191,12 @@ onMounted(fetchAll);
 .q-meta b { font-size: 13px; color: var(--text-primary); }
 .q-meta span { font-size: 11px; color: var(--text-tertiary); }
 .q-arrow { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s; }
+.kpi-big {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
 </style>
 

@@ -1,16 +1,6 @@
 <script setup lang="ts">
 /**
- * 系统配置 —— 系统级（Guacd 远控网关）配置
- *
- * 基于后端 /ms/server/config 系统配置表（MsServerConfig）：
- * - guacd：服务端隧道连接的守护进程地址（GuacdConnectionFactory 动态读取）
- * - guacd-client：浏览器侧 guacamole 客户端回连后端 WS 隧道的 host:port
- *   （RemoteControlPageController 动态读取，空串 = 同域 location.host）
- * 在离线检测 / 硬件采集 / Agent 推送 / 远控开关均属主机级配置，
- * 存于 ms_server_host 主机字段，随各主机在「主机资产」表单内配置，不在系统配置出现。
- * 保存后即时生效，无需重启。
- * @author CH
- * @since 4.0.0
+ * 系统配置 —— 系统级（Guacd 远控网关 + SIP 内网穿透）配置
  */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
@@ -30,7 +20,6 @@ interface ConfigCard {
   title: string;
   desc: string;
   icon: string;
-  /** 消费方说明（卡片脚注） */
   consumer: string;
   items: ConfigField[];
 }
@@ -43,7 +32,7 @@ const CARDS: ConfigCard[] = [
     icon: "Connection",
     consumer: "GuacdConnectionFactory 动态读取 · 远控隧道建立时生效",
     items: [
-      { key: "guacd.host", label: "地址", type: "text", placeholder: "172.16.0.40" },
+      { key: "guacd.host", label: "地址", type: "text", placeholder: "124.221.230.112" },
       { key: "guacd.port", label: "端口", type: "number", placeholder: "4822" },
     ],
   },
@@ -54,54 +43,61 @@ const CARDS: ConfigCard[] = [
     icon: "Link",
     consumer: "RemoteControlPageController 动态读取 · 生成远控页面时生效",
     items: [
-      { key: "guacd.client.host", label: "网关地址（host:port）", type: "text", placeholder: "127.0.0.1:8082", hint: "留空 = 同域 location.host（前后端同域部署）" },
+      { key: "guacd.client.host", label: "网关地址（host:port）", type: "text", placeholder: "127.0.0.1:8848", hint: "留空 = 同域 location.host" },
     ],
   },
 ];
 
 const KEYS = CARDS.flatMap(c => c.items.map(i => i.key));
 
-/** 前端兜底默认值：后端旧版本缺该键、或请求失败时页面仍展示默认值 */
 const FALLBACK: Record<string, string> = {
-  "guacd.host": "127.0.0.1",
+  "guacd.host": "124.221.230.112",
   "guacd.port": "4822",
-  "guacd.client.host": "127.0.0.1:8082",
-  "monitor.chart.maxPoints": "200",
+  "guacd.client.host": "127.0.0.1:8848",
 };
 
 const values = ref<Record<string, string>>({});
 const loading = ref(false);
 const saving = ref(false);
 
+// SIP 状态
+const sipRunning = ref(false);
+const sipStarting = ref(false);
+const sipForm = ref({
+  enabled: false,
+  serverHost: "124.221.230.112",
+  controlPort: 7822,
+  secret: "lvzhou2011",
+});
+const sipCmds = ref<Record<string, string>>({});
+
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    // /map 返回 ReturnResult 信封（{code,msg,data}），unwrapResult 解出配置 Map
     const map = await http().get("/ms/server/config/map").then(r => unwrapResult<Record<string, unknown>>(r));
     const merged: Record<string, string> = {};
     for (const k of KEYS) {
       const v = map?.[k];
-      // 键缺失（旧后端）→ 前端默认值；显式空串（guacd-client 留空=同域）保留不覆盖
       merged[k] = v == null ? FALLBACK[k] : String(v);
     }
     values.value = merged;
+
+    // 加载 SIP 状态
+    const sipCfg = await http().get("/ms/server/sip/config").then(r => unwrapResult<Record<string, any>>(r));
+    sipForm.value.enabled = sipCfg?.["sip.enabled"] === "true";
+    sipForm.value.serverHost = sipCfg?.["sip.server.host"] ?? "124.221.230.112";
+    sipForm.value.controlPort = sipCfg?.["sip.control.port"] ?? 7822;
+    sipForm.value.secret = sipCfg?.["sip.secret"] ?? "lvzhou2011";
+    sipRunning.value = sipCfg?.running === true;
+
+    // 加载部署命令
+    sipCmds.value = await http().get("/ms/server/sip/deploy-cmds").then(r => unwrapResult<Record<string, string>>(r));
   } catch (e) {
     values.value = { ...FALLBACK };
     ElMessage.error(`加载失败：${String((e as Error)?.message ?? e)}`);
   } finally {
     loading.value = false;
   }
-}
-
-/** 保存成功后后台重同步（不触发骨架屏闪烁） */
-async function resync(): Promise<void> {
-  try {
-    const map = await http().get("/ms/server/config/map").then(r => unwrapResult<Record<string, unknown>>(r));
-    for (const k of KEYS) {
-      const v = map?.[k];
-      if (v != null) values.value[k] = String(v);
-    }
-  } catch { /* 重同步失败不影响已保存结果 */ }
 }
 
 async function save(): Promise<void> {
@@ -113,8 +109,7 @@ async function save(): Promise<void> {
       if (v != null && v !== "") payload[k] = String(v);
     }
     await http().post("/ms/server/config").data(payload);
-    ElMessage.success("系统配置已保存（即时生效——无需重启）");
-    await resync();
+    ElMessage.success("系统配置已保存");
   } catch (e) {
     ElMessage.error(`保存失败：${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -122,7 +117,34 @@ async function save(): Promise<void> {
   }
 }
 
-/** guacd-client 当前生效模式（自定义网关 / 同域直连） */
+async function toggleSip(): Promise<void> {
+  sipStarting.value = true;
+  try {
+    if (sipRunning.value) {
+      await http().post("/ms/server/sip/stop");
+      sipRunning.value = false;
+      sipForm.value.enabled = false;
+      ElMessage.success("SIP 服务已停止");
+    } else {
+      // 先保存配置
+      await http().post("/ms/server/config").data({
+        "sip.enabled": "true",
+        "sip.server.host": sipForm.value.serverHost,
+        "sip.control.port": String(sipForm.value.controlPort),
+        "sip.secret": sipForm.value.secret,
+      });
+      await http().post("/ms/server/sip/start");
+      sipRunning.value = true;
+      sipForm.value.enabled = true;
+      ElMessage.success("SIP 服务已启动");
+    }
+  } catch (e) {
+    ElMessage.error(`操作失败：${String((e as Error)?.message ?? e)}`);
+  } finally {
+    sipStarting.value = false;
+  }
+}
+
 const clientMode = (c: ConfigCard): string => {
   const v = c.items.find(i => i.key === "guacd.client.host");
   if (!v) return "";
@@ -137,7 +159,7 @@ onMounted(load);
     <div class="page-header">
       <div>
         <h1 class="page-title">系统配置</h1>
-        <p class="page-desc">系统级配置 · 在离线/采集/Agent/远控为主机级配置，请在「主机资产」中按主机维护</p>
+        <p class="page-desc">远控网关与内网穿透配置 · 保存后即时生效</p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
@@ -146,7 +168,8 @@ onMounted(load);
     </div>
 
     <ReSkeleton :loading="loading" :rows="3" animated>
-      <div class="sc-groups">
+      <!-- guacd + guacd-client 两列 -->
+      <div class="sc-grid-2">
         <ReCard v-for="c in CARDS" :key="c.key" :radius="12" shadow="never" class="sc-card">
           <template #header>
             <div class="sc-card-head">
@@ -155,7 +178,6 @@ onMounted(load);
                 <b class="sc-tt-name">{{ c.title }}</b>
                 <span class="sc-tt-desc">{{ c.desc }}</span>
               </div>
-              <div class="sc-live"><ReStatusIndicator type="success" :pulse="true" /><span>生效中</span></div>
             </div>
           </template>
           <div class="sc-fields">
@@ -165,9 +187,7 @@ onMounted(load);
                 <ReTag
                   v-if="it.key === 'guacd.client.host'"
                   :type="values[it.key]?.trim() ? 'primary' : 'info'"
-                  size="small"
-                  effect="light"
-                  class="sc-mode-tag"
+                  size="small" effect="light"
                 >{{ clientMode(c) }}</ReTag>
               </span>
               <ReInput v-if="it.type === 'text'" v-model="values[it.key]" :placeholder="it.placeholder" class="sc-mono" style="width:100%" />
@@ -177,136 +197,201 @@ onMounted(load);
           </div>
           <div class="sc-foot">
             <span class="sc-consumer">{{ c.consumer }}</span>
-            <span class="sc-effect"><ReIcon name="Lightning" :size="12" />即时生效</span>
           </div>
         </ReCard>
       </div>
+
+      <!-- SIP 内网穿透 - 通栏大卡片 -->
+      <ReCard :radius="12" shadow="never" class="sip-card">
+        <template #header>
+          <div class="sip-head">
+            <div class="sc-tile sip-tile"><ReIcon name="Connection" :size="16" /></div>
+            <div class="sc-tt">
+              <b class="sc-tt-name">SIP 内网穿透</b>
+              <span class="sc-tt-desc">Secure Infrastructure Proxy · 打通 guacd 到内网机器（RDP/SSH/VNC）</span>
+            </div>
+            <div class="sip-status">
+              <span class="sip-dot" :class="sipRunning ? 'on' : 'off'"></span>
+              <span class="sip-status-text">{{ sipRunning ? '运行中' : '已停止' }}</span>
+              <ReButton
+                :type="sipRunning ? 'danger' : 'success'"
+                size="small"
+                :loading="sipStarting"
+                @click="toggleSip"
+              >{{ sipRunning ? '停止' : '启动服务' }}</ReButton>
+            </div>
+          </div>
+        </template>
+
+        <div class="sip-body">
+          <!-- 配置区 -->
+          <div class="sip-config">
+            <label class="sc-field">
+              <span class="sc-label">SIP 服务器地址</span>
+              <ReInput v-model="sipForm.serverHost" placeholder="124.221.230.112" class="sc-mono" />
+            </label>
+            <label class="sc-field">
+              <span class="sc-label">控制端口</span>
+              <ReInputNumber v-model="sipForm.controlPort" :min="1024" :max="65535" controls-position="right" class="sc-mono" />
+            </label>
+            <label class="sc-field">
+              <span class="sc-label">认证密钥</span>
+              <ReInput v-model="sipForm.secret" placeholder="lvzhou2011" class="sc-mono" />
+            </label>
+          </div>
+
+          <!-- 部署架构图 -->
+          <div class="sip-deploy">
+            <div class="deploy-title">部署架构</div>
+            <div class="deploy-flow">
+              <div class="deploy-node">
+                <div class="deploy-node-title">sip + visit</div>
+                <div class="deploy-node-desc">部署到 guacd 服务器<br/>124.221.230.112</div>
+              </div>
+              <div class="deploy-arrow">⟷</div>
+              <div class="deploy-node">
+                <div class="deploy-node-title">provider</div>
+                <div class="deploy-node-desc">部署到目标内网<br/>192.168.200.18</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 启动命令 -->
+          <div class="sip-cmds">
+            <div class="deploy-title">启动命令</div>
+            <div class="cmd-block">
+              <div class="cmd-label">server（guacd 服务器）</div>
+              <code class="cmd-text">{{ sipCmds.server }}</code>
+            </div>
+            <div class="cmd-block">
+              <div class="cmd-label">visit（guacd 服务器）</div>
+              <code class="cmd-text">{{ sipCmds.visit }}</code>
+            </div>
+            <div class="cmd-block">
+              <div class="cmd-label">provider（目标内网机器）</div>
+              <code class="cmd-text">{{ sipCmds.provider }}</code>
+            </div>
+          </div>
+        </div>
+      </ReCard>
     </ReSkeleton>
   </div>
 </template>
 
 <style scoped lang="scss">
-/* 一行 3 列 ReCard */
-.sc-groups {
+.sc-grid-2 {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  margin-bottom: 16px;
 }
-@media (max-width: 1100px) {
-  .sc-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 760px) {
-  .sc-groups { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .sc-grid-2 { grid-template-columns: 1fr; }
 }
 
 .sc-card {
-  position: relative;
-  transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.15s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
-  animation: scCardIn 0.24s var(--ease-out, ease) both;
-  &:nth-child(2) { animation-delay: 0.05s; }
-  &:hover {
-    box-shadow: var(--shadow-2);
-    border-color: var(--border-default);
-    transform: translateY(-1px);
-  }
+  transition: box-shadow 0.2s ease, border-color 0.15s ease;
+  &:hover { box-shadow: var(--shadow-2); border-color: var(--border-default); }
   :deep(.el-card__header) { padding: 14px 16px; }
   :deep(.el-card__body) { padding: 16px; }
 }
-@keyframes scCardIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
 
-/* 卡片头：图标磁贴 + 标题/描述 + 生效状态 */
 .sc-card-head { display: flex; align-items: center; gap: 10px; }
 .sc-tile {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  flex: none;
+  display: grid; place-items: center;
+  width: 30px; height: 30px; flex: none;
   border-radius: 8px;
-  background: var(--brand-50);
-  color: var(--brand-600);
+  background: var(--brand-50); color: var(--brand-600);
   box-shadow: inset 0 0 0 1px var(--brand-100);
 }
 .sc-tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .sc-tt-name { font-size: 14px; font-weight: 600; }
-.sc-tt-desc {
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sc-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: var(--status-online);
-  flex: none;
-}
+.sc-tt-desc { font-size: 11.5px; color: var(--text-tertiary); }
 
-/* 字段区：label 包裹控件（可访问性隐式关联）+ 等宽输入 */
-.sc-field {
-  display: block;
-  cursor: default;
-  & + .sc-field { margin-top: 14px; }
-}
+.sc-fields { display: flex; flex-direction: column; gap: 14px; }
+.sc-field { display: block; }
 .sc-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px; font-size: 12px; font-weight: 600;
   color: var(--text-secondary);
 }
-.sc-mode-tag { margin-left: 2px; }
-.sc-mono {
-  :deep(.el-input__inner),
-  :deep(.el-input-number) {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    font-size: 13px;
-  }
-  /* 数字框与文本框统一 34px 高度 */
-  :deep(.el-input-number) { --el-input-number-height: 34px; }
+.sc-mono :deep(.el-input__inner),
+.sc-mono :deep(.el-input-number) {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
 }
-.sc-hint {
-  margin-top: 6px;
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-}
-
-/* 卡片脚注：消费方说明 + 即时生效 */
+.sc-hint { margin-top: 6px; font-size: 11.5px; color: var(--text-tertiary); }
 .sc-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 12px;
+  margin-top: 16px; padding-top: 12px;
   border-top: 1px dashed var(--border-subtle);
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-}
-.sc-effect {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  color: var(--brand-600);
-  font-weight: 500;
+  font-size: 11.5px; color: var(--text-tertiary);
 }
 
-/* 动效降级：尊重系统减少动效设置 */
-@media (prefers-reduced-motion: reduce) {
-  .sc-card {
-    animation: none;
-    transition: none;
-    &:hover { transform: none; }
-  }
+/* SIP 卡片 */
+.sip-card {
+  :deep(.el-card__header) { padding: 16px 20px; }
+  :deep(.el-card__body) { padding: 20px; }
+}
+.sip-head { display: flex; align-items: center; gap: 12px; }
+.sip-tile { background: var(--success-light, #e6f7e6); color: var(--status-online); }
+.sip-status { display: flex; align-items: center; gap: 8px; flex: none; }
+.sip-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  &.on { background: var(--status-online); box-shadow: 0 0 6px var(--status-online); }
+  &.off { background: var(--text-tertiary); }
+}
+.sip-status-text { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+.sip-body {
+  display: grid;
+  grid-template-columns: 280px 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) {
+  .sip-body { grid-template-columns: 1fr; }
+}
+
+.deploy-title {
+  font-size: 12px; font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* 部署架构 */
+.deploy-flow {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px;
+  background: var(--fill-light, #f8f9fa);
+  border-radius: 8px;
+}
+.deploy-node {
+  flex: 1; text-align: center;
+  padding: 12px 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.deploy-node-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.deploy-node-desc { font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
+.deploy-arrow { font-size: 20px; color: var(--text-tertiary); flex: none; }
+
+/* 命令区 */
+.sip-cmds { display: flex; flex-direction: column; gap: 10px; }
+.cmd-block {
+  padding: 10px 12px;
+  background: var(--fill-light, #f8f9fa);
+  border-radius: 6px;
+  border-left: 3px solid var(--brand-500);
+}
+.cmd-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+.cmd-text {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  word-break: break-all;
+  display: block;
+  line-height: 1.5;
 }
 </style>

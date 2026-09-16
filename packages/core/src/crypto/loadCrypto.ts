@@ -21,7 +21,20 @@ export interface LoadCryptoOptions {
 //   wasm-pack build --target web --out-name crypto-wasm --out-dir ../../../../public/wasm
 // 注意：必须带 --out-name crypto-wasm，否则产物为 crypto_wasm.js（下划线），
 // 与本路径及 config.ts 的 wasmUrl 失配，运行时将加载到过期/缺失新函数的模块。
-export const DEFAULT_CRYPTO_URL = "/wasm/crypto-wasm.js";
+/**
+ * ⚠️ 必须带应用 base 前缀：共享 public 目录（根 public）由 createVite 的
+ * `publicDir: SHARED_PUBLIC_DIR` 挂在 **base 之下**，所以产物实际地址是 `<base>wasm/...`。
+ * 例如 vue-support-system-starter 的 base 被硬编码为 "/system/"（见 createVite.ts），
+ * 正确路径是 /system/wasm/crypto-wasm.js，写死 "/wasm/..." 会 404 →
+ * 抛「加载 wasm 加密模块失败」→ 整页空白。
+ * base 为 "/" 时结果与原先完全一致（/wasm/crypto-wasm.js）。
+ */
+function resolveBaseUrl(): string {
+  const env = (import.meta as unknown as { env?: { BASE_URL?: string } }).env;
+  return (env?.BASE_URL ?? "/").replace(/\/+$/, "");
+}
+
+export const DEFAULT_CRYPTO_URL = `${resolveBaseUrl()}/wasm/crypto-wasm.js`;
 
 /**
  * 通过 fetch + Blob URL 加载并初始化 wasm-bindgen 产物。
