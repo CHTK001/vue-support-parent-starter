@@ -653,6 +653,9 @@ const handleTemplateClick = (template: any) => {
   currentProviderId.value = null
   isProviderEditMode.value = false
 
+  // 重置API KEY列表，避免残留
+  apiKeyList.value = ['']
+
   currentProviderEdit.value = {
     name: template.name || "",
     apiUrl: template.defaultApiUrl || template.defaultUrl || "",
@@ -694,7 +697,7 @@ const handleDeleteProviderFromList = async (provider: any) => {
 }
 
 onMounted(() => {
-  initData()
+  reloadProvidersAndModels()
   if (providers.value.length > 0) {
     currentProviderId.value = providers.value[0].id
   }

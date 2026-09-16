@@ -2,17 +2,18 @@
 /**
  * 视频播放页
  *
- * 结构：剧场模式播放器（原生 video，支持 m3u8/mp4 直链）+
+ * 结构：剧场模式播放器（VdPlayer，hls.js 支持 m3u8 + 原生 mp4）+
  *       线路切换 + 选集列表 + 详情信息（评分/标签/简介/下载）。
  * 交互：集数高亮、线路切换重置选集、加载骨架、错误空态、返回浏览页。
  * 数据：videoApi.fetchVideoDetail；后端未启动时降级演示数据。
  */
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, Download, VideoCamera } from "@element-plus/icons-vue";
+import { ArrowLeft, Download } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { fetchVideoDetail } from "@/api/videoApi";
 import type { VideoDetail } from "@/types/video";
+import VdPlayer from "@/components/VdPlayer.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -24,8 +25,6 @@ const lastError = ref("");
 const detail = ref<VideoDetail | null>(null);
 const activeLine = ref(0);
 const activeEpisode = ref(0);
-
-const videoEl = ref<HTMLVideoElement | null>(null);
 
 /** 当前线路的集数列表 */
 const episodes = computed(() => detail.value?.playLines?.[activeLine.value]?.episodes ?? []);
@@ -55,20 +54,21 @@ watch(activeLine, () => {
   activeEpisode.value = 0;
 });
 
-/** 播放地址变化时重载 video 元素 */
-watch(currentUrl, () => {
-  videoEl.value?.load();
-});
-
+/** 切换集数时提示以支持手动播放（自动播放可能被浏览器拦截） */
 function playEpisode(index: number) {
   activeEpisode.value = index;
-  videoEl.value?.play().catch(() => {
-    ElMessage.info("该集地址暂不可自动播放，请手动点击播放");
-  });
+  if (!currentUrl.value) {
+    ElMessage.info("该集暂无可播放的地址");
+  }
 }
 
 function goBack() {
   void router.back();
+}
+
+/** 播放器错误提示（VdPlayer 已展示内嵌错误空态，这里补充轻提示） */
+function onPlayerError(msg: string) {
+  ElMessage.error(msg || "视频播放失败");
 }
 
 onMounted(() => void load());
@@ -94,20 +94,12 @@ onMounted(() => void load());
     <template v-else>
       <!-- 剧场模式播放器 -->
       <section class="vd-theater" aria-label="视频播放器">
-        <video
-          ref="videoEl"
-          class="vd-player"
-          controls
-          preload="metadata"
+        <VdPlayer
+          :url="currentUrl"
           :poster="detail.cover"
-          :src="currentUrl || undefined"
-        >
-          <track kind="captions" />
-        </video>
-        <div v-if="!currentUrl" class="vd-player-hint">
-          <el-icon :size="48" aria-hidden="true"><VideoCamera /></el-icon>
-          <p>暂无可播放的地址：该集尚未解析到播放链接</p>
-        </div>
+          :autoplay="true"
+          @error="onPlayerError"
+        />
       </section>
 
       <!-- 信息区 -->
@@ -193,25 +185,6 @@ onMounted(() => void load());
 }
 
 /* ── 剧场播放器 ─────────────────────────── */
-.vd-player {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #000;
-}
-
-.vd-player-hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: #64748b;
-  pointer-events: none;
-}
-
 .vd-theater {
   position: relative;
 }

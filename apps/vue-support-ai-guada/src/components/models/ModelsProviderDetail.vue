@@ -108,19 +108,21 @@
     </div>
 
     <!-- 编辑/新增模型信息的模态框 -->
-    <LDialog v-model="showEditModal" :title="isEditMode ? t('settings.providerDetail.editModelInfo') : t('settings.providerDetail.newModel')" width="600px" align-center
+    <LDialog v-model="showEditModal" :title="isEditMode ? t('settings.providerDetail.editModelInfo') : t('settings.providerDetail.newModel')" width="720px" align-center
       class="model-edit-dialog dialog-with-scroll" append-to-body>
       <div class="dialog-content">
-        <el-form ref="editFormRef" :model="editModelForm" :rules="editModelRules" label-position="left"
-          label-width="120px" size="default">
+        <el-form ref="editFormRef" :model="editModelForm" :rules="editModelRules" label-position="top"
+          size="default" class="model-form">
 
           <div class="form-section">
             <el-form-item :label="t('settings.providerDetail.modelName')" prop="modelName">
               <div class="api-key-input-wrapper">
                 <el-input v-model="editModelForm.modelName" :placeholder="t('settings.providerDetail.modelNamePlaceholder')" clearable
-                  :disabled="isEditMode" />
-                <el-button v-if="!isEditMode" type="primary" @click="handleFetchModels"
-                  :loading="fetchingModels" :icon="CloudDownloadOutlined" circle></el-button>
+                  :disabled="isEditMode" size="large" />
+                <el-tooltip v-if="!isEditMode" content="从提供商获取模型列表" placement="top">
+                  <el-button type="primary" @click="handleFetchModels"
+                    :loading="fetchingModels" :icon="CloudDownloadOutlined" circle size="large"></el-button>
+                </el-tooltip>
               </div>
               <!-- 预设检测提示 -->
               <div v-if="!isEditMode && matchedPreset" class="preset-hint" @click="applyPreset(matchedPreset)">
@@ -129,49 +131,15 @@
               </div>
             </el-form-item>
 
-            <el-form-item :label="t('settings.providerDetail.modelType')" prop="modelType">
-              <el-radio-group v-model="editModelForm.modelType">
-                <el-radio-button value="text">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <TextT24Regular />
-                    </el-icon> {{ t('settings.providerDetail.chatModel') }}</span>
-                </el-radio-button>
-                <el-radio-button value="embedding">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <Group24Regular />
-                    </el-icon> {{ t('settings.providerDetail.embeddingModel') }}</span>
-                </el-radio-button>
-                <el-radio-button value="ocr">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <DocumentText24Regular />
-                    </el-icon> OCR文字识别</span>
-                </el-radio-button>
-                <el-radio-button value="face">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <PersonCircle24Regular />
-                    </el-icon> 人脸识别</span>
-                </el-radio-button>
-                <el-radio-button value="layout">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <Grid24Regular />
-                    </el-icon> 布局识别</span>
-                </el-radio-button>
-                <el-radio-button value="image">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <Image24Regular />
-                    </el-icon> 文生图</span>
-                </el-radio-button>
-                <el-radio-button value="video">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <Video24Regular />
-                    </el-icon> 文生视频</span>
-                </el-radio-button>
-                <el-radio-button value="asr">
-                  <span class="flex items-center"><el-icon class="mr-1 align-middle">
-                      <Mic24Regular />
-                    </el-icon> 语音识别</span>
-                </el-radio-button>
-              </el-radio-group>
+            <el-form-item :label="t('settings.providerDetail.modelType')" prop="modelType" class="mt-4">
+              <div class="model-type-grid">
+                <div v-for="type in modelTypeOptions" :key="type.value"
+                  class="model-type-card" :class="{ active: editModelForm.modelType === type.value }"
+                  @click="editModelForm.modelType = type.value">
+                  <el-icon class="model-type-icon"><component :is="type.icon" /></el-icon>
+                  <div class="model-type-label">{{ type.label }}</div>
+                </div>
+              </div>
             </el-form-item>
           </div>
 
@@ -236,7 +204,9 @@
               </el-input-number>
             </el-form-item>
 
-            <el-divider content-position="left" class="!my-4 text-xs text-gray-400">{{ t('settings.providerDetail.defaultParamsDesc') }}</el-divider>
+            <div class="text-xs text-gray-400 my-3 leading-relaxed">
+              {{ t('settings.providerDetail.defaultParamsDesc') }}
+            </div>
 
             <el-form-item :label="t('settings.providerDetail.temperature')" prop="config.temperature">
               <el-input-number v-model="editModelForm.config.temperature" :min="0" :max="2" :step="0.1"
@@ -485,6 +455,18 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { notify, confirm } = usePopup()
+
+// 模型类型选项
+const modelTypeOptions = [
+  { value: 'text', label: '对话', icon: TextT24Regular },
+  { value: 'embedding', label: '嵌入', icon: Group24Regular },
+  { value: 'ocr', label: 'OCR识别', icon: DocumentText24Regular },
+  { value: 'face', label: '人脸识别', icon: PersonCircle24Regular },
+  { value: 'layout', label: '布局识别', icon: Grid24Regular },
+  { value: 'image', label: '文生图', icon: Image24Regular },
+  { value: 'video', label: '文生视频', icon: Video24Regular },
+  { value: 'asr', label: '语音识别', icon: Mic24Regular }
+]
 
 // ========== 编辑/新增模型信息 ==========
 const showEditModal = ref(false)
@@ -790,13 +772,15 @@ const handleFetchModels = async () => {
 :deep(.el-checkbox-button__inner),
 :deep(.el-radio-button__inner) {
   padding: 6px 12px;
-  border-radius: 4px !important;
+  border-radius: 6px !important;
+  font-size: 13px;
 }
 
 /* 调整相邻按钮的间距 */
 :deep(.el-checkbox-button + .el-checkbox-button),
 :deep(.el-radio-button + .el-radio-button) {
-  margin-left: 8px;
+  margin-left: 6px;
+  margin-top: 4px;
 }
 
 /* API Key 输入框和按钮布局 */
@@ -825,5 +809,108 @@ const handleFetchModels = async () => {
 
 .preset-hint:hover {
   opacity: 1;
+}
+
+/* 对话框内容美化 */
+.dialog-content {
+  padding: 0 4px;
+}
+
+/* 表单分区 */
+.form-section {
+  padding: 12px 0;
+}
+
+.form-section + .form-section {
+  border-top: 1px solid var(--el-border-color-lighter);
+  margin-top: 8px;
+}
+
+/* 表单项间距优化 */
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+/* 表单项label样式 */
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  padding-bottom: 6px;
+}
+
+/* 模型类型网格 */
+.model-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.model-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--el-bg-color);
+}
+
+.model-type-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.model-type-card.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+
+.model-type-icon {
+  font-size: 24px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
+
+.model-type-card.active .model-type-icon {
+  color: var(--el-color-primary);
+}
+
+.model-type-label {
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+/* 对话框底部按钮美化 */
+:deep(.dialog-footer .el-button) {
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+}
+
+/* 输入框聚焦效果 */
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-7);
+}
+
+/* 输入框圆角 */
+:deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+/* 数字输入框宽度 */
+:deep(.el-input-number) {
+  width: 100%;
+}
+
+/* 复选框按钮组 */
+:deep(.el-checkbox-button__inner) {
+  border-radius: 6px !important;
+  padding: 8px 14px;
 }
 </style>

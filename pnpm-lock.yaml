@@ -1091,6 +1091,55 @@ importers:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
 
+  apps/vue-support-video-starter:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@repo/app':
+        specifier: workspace:*
+        version: link:../../turbo/app
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.3(vue@3.5.40(typescript@5.9.3))
+      hls.js:
+        specifier: 'catalog:'
+        version: 1.6.16
+      pinia:
+        specifier: 'catalog:'
+        version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.40(typescript@5.9.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.40(typescript@5.9.3))
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
+
   packages/assets: {}
 
   packages/auth-core:
@@ -4565,6 +4614,7 @@ packages:
 
   '@rollup/rollup-win32-x64-msvc@4.63.1':
     resolution: {integrity: sha512-at8QVep6S3h5Y6gSbdGU06bRY5WJkf6WUduM9YtvYMbYhB1MOFfUgc6kehitQXzOtMSaT70q7f9ydPhpqu821w==}
+    cpu: [x64]
     os: [win32]
 
   '@sakitam-gis/vis-engine@1.5.3':

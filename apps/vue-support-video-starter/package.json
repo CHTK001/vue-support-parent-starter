@@ -12,6 +12,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
+    "hls.js": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:",
