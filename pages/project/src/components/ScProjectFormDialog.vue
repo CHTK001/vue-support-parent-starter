@@ -146,28 +146,41 @@ function submit() {
   if (!form.value.msProjectDeployDir.trim()) { message.warning('部署目录不能为空'); return; }
   if (!form.value.msProjectType) { message.warning('请选择项目类型'); return; }
   if (form.value.msProjectHostIds.length === 0) { message.warning('至少选择一台目标服务器'); return; }
-  loading.value = true;
-  saveProject(form.value.id ?? null, {
-    ...form.value,
-    msProjectHostIds: JSON.stringify(form.value.msProjectHostIds),
-    msProjectDeleteBefore: form.value.msProjectDeleteBefore ? 1 : 0,
-    msProjectAutoExtract: form.value.msProjectAutoExtract ? 1 : 0,
-    msProjectAutoStart: form.value.msProjectAutoStart ? 1 : 0,
-    msProjectHealthEnabled: form.value.msProjectHealthEnabled ? 1 : 0,
-    msProjectAutoRollback: form.value.msProjectAutoRollback ? 1 : 0,
-    msProjectWatchdogEnabled: form.value.msProjectWatchdogEnabled ? 1 : 0,
-    msProjectCheckScript: form.value.msProjectCheckScript || null,
-    msProjectPreflightGate: form.value.msProjectPreflightGate ? 1 : 0,
-    msProjectMetricEnabled: form.value.msProjectMetricEnabled ? 1 : 0,
-    msProjectMetricHostIds: form.value.msProjectMetricHostIds.length > 0 ? JSON.stringify(form.value.msProjectMetricHostIds) : null,
-  })
-    .then(() => {
-      message.success(isEdit.value ? '已更新' : '已创建');
-      emit('update:visible', false);
-      emit('saved');
+  // 脚本安全确认：任意脚本非空时弹确认（防止未审核脚本/AI 脚本直接落库执行）
+  const hasScript = [form.value.msProjectStartScript, form.value.msProjectStopScript,
+    form.value.msProjectRestartScript, form.value.msProjectCheckScript]
+    .some(s => s && !s.trim().startsWith('#'));
+  const doSave = () => {
+    loading.value = true;
+    saveProject(form.value.id ?? null, {
+      ...form.value,
+      msProjectHostIds: JSON.stringify(form.value.msProjectHostIds),
+      msProjectDeleteBefore: form.value.msProjectDeleteBefore ? 1 : 0,
+      msProjectAutoExtract: form.value.msProjectAutoExtract ? 1 : 0,
+      msProjectAutoStart: form.value.msProjectAutoStart ? 1 : 0,
+      msProjectHealthEnabled: form.value.msProjectHealthEnabled ? 1 : 0,
+      msProjectAutoRollback: form.value.msProjectAutoRollback ? 1 : 0,
+      msProjectWatchdogEnabled: form.value.msProjectWatchdogEnabled ? 1 : 0,
+      msProjectCheckScript: form.value.msProjectCheckScript || null,
+      msProjectPreflightGate: form.value.msProjectPreflightGate ? 1 : 0,
+      msProjectMetricEnabled: form.value.msProjectMetricEnabled ? 1 : 0,
+      msProjectMetricHostIds: form.value.msProjectMetricHostIds.length > 0 ? JSON.stringify(form.value.msProjectMetricHostIds) : null,
     })
-    .catch(e => message.error((e as Error).message))
-    .finally(() => { loading.value = false; });
+      .then(() => {
+        message.success(isEdit.value ? '已更新' : '已创建');
+        emit('update:visible', false);
+        emit('saved');
+      })
+      .catch(e => message.error((e as Error).message))
+      .finally(() => { loading.value = false; });
+  };
+  if (hasScript) {
+    message.msgBox('脚本将随项目保存并可能被远程执行，请确认已审核（AI 生成的脚本请重点核对高危命令）。确定保存？', '脚本确认', '保存', '取消', 'warning')
+      .then(() => doSave())
+      .catch(() => {});
+  } else {
+    doSave();
+  }
 }
 
 /** AI 生成脚本目标脚本字段映射 */
