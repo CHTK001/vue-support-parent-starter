@@ -1,17 +1,25 @@
 <script setup lang="ts">
 /**
- * ReSearch koi 主题 —— 搜索区折叠组件
+ * ReSearch koi 主题 —— 横向搜索条（按截图重排版）
  *
- * 特性：
- *   - 顶部标题栏：搜索图标 + 「搜索」标题
- *   - 过滤区域默认显示（表单模式），通过工具栏「显示/隐藏」按钮切换
- *   - 内置操作按钮组（ReSearchToolbar）：搜索 / 重置 / 新增 / 批量删除 / 批量勾选等，
- *     每个按钮均可通过 prop 配置显示与事件
+ *   ┌────────────────────────────────────────────────────────────┐
+ *   │ [🔍 搜索]                          展开 ∨                   │   ← topbar
+ *   ├────────────────────────────────────────────────────────────┤
+ *   │ 登录账号 [____]   用户名称 [____]   手机号 [____]   [搜索][重置] │   ← body
+ *   └────────────────────────────────────────────────────────────┘
+ *
+ * 设计要点：
+ *   - 顶部条：徽标（搜索图标 + 标题）在左，折叠切换在右上
+ *   - 内容行：字段左对齐（label 叠在 input 上方）、按钮右对齐
+ *   - 右上折叠按钮：仅当 hasOverflow（max>0 && item>max）时显示，
+ *     控制 localExpanded（点击显示被 max 隐藏的多余字段）
+ *   - filterVisible 切换仍走 ReSearchToolbar 里的"显示/隐藏"按钮（保持原 API）
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
-import { ElDivider, ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
-import "../../shared/research-vars.css";
-import ReSearchToolbar from "../../ReSearchToolbar.vue";
+import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
+import ReButton from "../ReButton/ReButton.vue";
+import ReSearchToolbar from "../ReSearchToolbar.vue";
+import "../shared/research-vars.css";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
@@ -48,35 +56,37 @@ const props = withDefaults(
     showLabel?: boolean;
     tooltipText?: string;
     padding?: string;
-    /** 标题栏文案（默认"搜索"） */
+    /** 顶部徽标文案（默认"搜索"） */
     title?: string;
     /** 过滤区当前是否可见（v-model 双向绑定） */
     filterVisible?: boolean;
     /** 工具栏按钮模式：icon=图标+tooltip，text=图标+文字 */
     btnMode?: "icon" | "text";
-    /** 工具栏：显示/隐藏过滤区 */
+    /** ReSearchToolbar：显示/隐藏过滤区按钮 */
     showToggle?: boolean;
-    /** 工具栏：搜索按钮 */
+    /** ReSearchToolbar：搜索按钮 */
     showSearchBtn?: boolean;
     searchText?: string;
-    /** 工具栏：重置按钮 */
+    /** ReSearchToolbar：重置按钮 */
     showResetBtn?: boolean;
     resetText?: string;
-    /** 工具栏：新增按钮 */
+    /** ReSearchToolbar：刷新按钮 */
+    showRefreshBtn?: boolean;
+    /** ReSearchToolbar：新增按钮 */
     showAddBtn?: boolean;
     addText?: string;
-    /** 工具栏：批量删除按钮 */
+    /** ReSearchToolbar：批量删除按钮 */
     showBatchDeleteBtn?: boolean;
     batchDeleteText?: string;
     batchDeleteDisabled?: boolean;
-    /** 工具栏：批量勾选按钮 */
+    /** ReSearchToolbar：批量勾选按钮 */
     showBatchSelectBtn?: boolean;
     batchSelectText?: string;
     batchSelectActive?: boolean;
     batchSelectTextActive?: string;
     /** 搜索按钮 loading */
     loading?: boolean;
-    /** 默认展开的最大表单项数（0=不限） */
+    /** 默认展开的最大表项数（0=不限，配合右上角"展开/收起"按钮使用） */
     max?: number;
     /** 过滤项配置（prop 驱动模式，与 default slot 二选一） */
     filters?: SearchFilter[];
@@ -92,7 +102,7 @@ const props = withDefaults(
     bordered: false,
     showLabel: false,
     tooltipText: "搜索",
-    padding: "12px 20px 8px",
+    padding: "12px 16px",
     title: "搜索",
     filterVisible: true,
     btnMode: "icon",
@@ -101,6 +111,7 @@ const props = withDefaults(
     searchText: "搜索",
     showResetBtn: true,
     resetText: "重置",
+    showRefreshBtn: false,
     showAddBtn: false,
     addText: "新增",
     showBatchDeleteBtn: false,
@@ -147,9 +158,7 @@ const hasFilterContent = computed(() => hasDefaultSlot.value || (props.filters &
 const localFilterVisible = ref(props.filterVisible);
 watch(
   () => props.filterVisible,
-  (v) => {
-    localFilterVisible.value = v;
-  },
+  (v) => { localFilterVisible.value = v; },
 );
 function toggleFilter(): void {
   localFilterVisible.value = !localFilterVisible.value;
@@ -157,6 +166,7 @@ function toggleFilter(): void {
   emit("toggle");
 }
 
+/** 右上角"展开/收起"折叠（仅作用于被 max 隐藏的多余字段） */
 const localExpanded = ref(false);
 const itemSlots = computed(() => slots.default?.() ?? []);
 const itemCount = computed(() => itemSlots.value.length);
@@ -174,12 +184,6 @@ const gridRows = computed(() => {
 function toggleExpand(): void {
   localExpanded.value = !localExpanded.value;
 }
-
-const containerStyle = computed<CSSProperties>(() => {
-  const base: CSSProperties = { padding: props.padding };
-  if (props.mode === 2) base["--label-width"] = "100px";
-  return base;
-});
 
 const contentEl = ref<HTMLElement | null>(null);
 function resetForm(): void {
@@ -199,9 +203,12 @@ function resetForm(): void {
   });
   emit("reset");
 }
+
+const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }));
 </script>
 
 <template>
+  <!-- Modern 布局（原样保留） -->
   <ModernLayout
     v-if="layout === 'modern'"
     :is-expanded="isExpanded"
@@ -221,72 +228,64 @@ function resetForm(): void {
     </template>
   </ModernLayout>
 
-  <div v-if="layout !== 'modern'">
+  <!-- Default 布局：横向搜索条 -->
+  <div
+    v-else
+    class="koi-search"
+    :class="{ 'koi-search--bordered': bordered }"
+    :style="containerStyle"
+  >
+    <!-- 顶部条：徽标（左）+ 折叠切换（右上角） -->
+    <div class="koi-search__topbar">
+      <div class="koi-search__badge">
+        <span class="koi-search__badge-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" />
+          </svg>
+        </span>
+        <span>{{ title }}</span>
+      </div>
+      <button
+        v-if="hasOverflow"
+        type="button"
+        class="koi-search__expand"
+        :class="{ 'koi-search__expand--expanded': localExpanded }"
+        @click="toggleExpand"
+      >
+        <span>{{ localExpanded ? "收起" : "展开" }}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 内容行：字段（左）+ 操作按钮（右） -->
     <transition name="re-search-collapse">
       <div
-        v-show="showSearch"
-        class="koi-search"
-        :class="{
-          'koi-search--bordered': bordered,
-          'koi-search--form': filterMode === 'form',
-        }"
-        :style="containerStyle"
+        v-show="localFilterVisible && hasFilterContent"
+        class="koi-search__body"
       >
-        <!-- 顶部标题栏 -->
-        <div v-show="localFilterVisible && hasFilterContent" class="koi-search__header">
-          <div class="koi-search__header-title">
-            <span class="koi-search__title-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <circle cx="11" cy="11" r="7" />
-                <line x1="21" y1="21" x2="16.5" y2="16.5" />
-              </svg>
-            </span>
-            <span>{{ title }}</span>
-          </div>
-          <button
-            v-if="hasOverflow"
-            type="button"
-            class="koi-search__expand-btn"
-            :class="{ 'koi-search__expand-btn--expanded': localExpanded }"
-            @click="toggleExpand"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- 过滤区域 -->
         <div
-          v-show="localFilterVisible && hasFilterContent"
           ref="contentEl"
-          class="koi-search__content"
+          class="koi-search__fields"
           :class="{
-            'koi-search__content--form': filterMode === 'form',
-            'koi-search__content--data': filterMode === 'data',
-            'koi-search__content--overflow': hasOverflow,
+            'koi-search__fields--data': filterMode === 'data',
+            'koi-search__fields--overflow': hasOverflow,
           }"
           :style="{ gridTemplateRows: gridRows }"
         >
           <!-- filters prop 驱动的过滤项 -->
           <template v-if="filters && filters.length > 0">
-            <template v-for="filter in filters" :key="filter.key">
-              <!-- form 模式：标签 + 组件 -->
-              <template v-if="filterMode === 'form' && filter.label">
-                <span class="koi-search__filter-label">{{ filter.label }}</span>
-              </template>
+            <div v-for="filter in filters" :key="filter.key" class="koi-search__field">
+              <span
+                v-if="filterMode === 'form' && filter.label"
+                class="koi-search__field-label"
+              >{{ filter.label }}</span>
               <ElInput
-                v-if="(!filter.type || filter.type === 'input') && filterMode === 'data'"
+                v-if="!filter.type || filter.type === 'input'"
                 v-model="filterValues[filter.key]"
-                :placeholder="filter.placeholder || filter.label || '请输入'"
-                clearable
-                v-bind="filter.attrs || {}"
-                @input="(val: string) => onFilterInput(filter.key, val)"
-              />
-              <ElInput
-                v-else-if="(!filter.type || filter.type === 'input') && filterMode === 'form'"
-                v-model="filterValues[filter.key]"
-                :placeholder="filter.placeholder || '请输入'"
+                :placeholder="filter.placeholder || (filterMode === 'form' ? '请输入' : filter.label || '请输入')"
                 clearable
                 v-bind="filter.attrs || {}"
                 @input="(val: string) => onFilterInput(filter.key, val)"
@@ -294,7 +293,7 @@ function resetForm(): void {
               <ElSelect
                 v-else-if="filter.type === 'select'"
                 v-model="filterValues[filter.key]"
-                :placeholder="filter.placeholder || filter.label || '请选择'"
+                :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择' : filter.label || '请选择')"
                 clearable
                 v-bind="filter.attrs || {}"
                 @change="(val: any) => onFilterInput(filter.key, val)"
@@ -309,7 +308,7 @@ function resetForm(): void {
               <ElDatePicker
                 v-else-if="filter.type === 'date'"
                 v-model="filterValues[filter.key]"
-                :placeholder="filter.placeholder || filter.label || '请选择日期'"
+                :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择日期' : filter.label || '请选择日期')"
                 type="date"
                 value-format="YYYY-MM-DD"
                 clearable
@@ -331,31 +330,42 @@ function resetForm(): void {
                 v-else-if="filter.type === 'treeselect'"
                 v-model="filterValues[filter.key]"
                 :data="filter.options || []"
-                :placeholder="filter.placeholder || filter.label || '请选择'"
+                :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择' : filter.label || '请选择')"
                 clearable
                 check-strictly
                 v-bind="filter.attrs || {}"
                 @change="(val: any) => onFilterInput(filter.key, val)"
               />
-            </template>
+            </div>
           </template>
           <!-- slot 自定义过滤项 -->
           <slot />
         </div>
 
-        <!-- 分割线 -->
-        <el-divider v-show="localFilterVisible && hasFilterContent" />
-
-        <!-- 底部操作按钮组（始终可见） -->
-        <div class="koi-search__footer">
+        <!-- 操作按钮（与字段同行右对齐） -->
+        <div class="koi-search__actions">
+          <ReButton
+            v-if="showSearchBtn"
+            type="primary"
+            icon="Search"
+            :loading="loading"
+            @click="emit('search')"
+          >{{ searchText }}</ReButton>
+          <ReButton
+            v-if="showResetBtn"
+            type="danger"
+            icon="RefreshLeft"
+            @click="resetForm"
+          >{{ resetText }}</ReButton>
+          <!-- 额外按钮（新增 / 批量 / 刷新 / 显示隐藏）走 ReSearchToolbar -->
           <ReSearchToolbar
+            v-if="showAddBtn || showBatchDeleteBtn || showBatchSelectBtn || showRefreshBtn || showToggle || !!slots.footer"
             :filter-visible="localFilterVisible"
             :btn-mode="btnMode"
             :show-toggle="showToggle"
-            :show-search="showSearchBtn"
-            :search-text="searchText"
-            :show-reset="showResetBtn"
-            :reset-text="resetText"
+            :show-search="false"
+            :show-reset="false"
+            :show-refresh="showRefreshBtn"
             :show-add="showAddBtn"
             :add-text="addText"
             :show-batch-delete="showBatchDeleteBtn"
@@ -365,173 +375,164 @@ function resetForm(): void {
             :batch-select-text="batchSelectText"
             :batch-select-active="batchSelectActive"
             :batch-select-text-active="batchSelectTextActive"
-            :loading="loading"
             @toggle="toggleFilter"
-            @search="emit('search')"
-            @reset="resetForm"
+            @refresh="emit('refresh')"
             @add="emit('add')"
             @batch-delete="emit('batch-delete')"
             @batch-select="emit('batch-select')"
           >
             <template #toolbar>
-              <slot name="toolbar" />
+              <slot name="footer" />
             </template>
           </ReSearchToolbar>
         </div>
       </div>
     </transition>
   </div>
-
-  </template>
+</template>
 
 <style scoped lang="scss">
 .koi-search {
-  position: relative;
   margin: 4px 4px 0;
-  overflow: hidden;
-  color: var(--theme-color-text, var(--rs-text));
   background: var(--rs-bg-card);
   border: 1px solid transparent;
   border-radius: var(--rs-radius-md);
-  box-shadow: none;
+  color: var(--rs-text);
+  box-sizing: border-box;
   transition: border-color var(--rs-transition), box-shadow var(--rs-transition);
 }
-
 .koi-search--bordered {
-  border: 1px solid var(--rs-border);
+  border-color: var(--rs-border);
   box-shadow: var(--rs-shadow-xs);
 }
 
-.koi-search__filter-label {
+/* 顶部条：徽标（左）+ 折叠切换（右上角） */
+.koi-search__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  min-height: 26px;
+}
+.koi-search__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(57, 134, 255);
+  background: rgb(235, 243, 255);
+  border: 1px solid rgb(156, 195, 255);
+  border-radius: 6px;
+  user-select: none;
+  line-height: 18px;
+}
+.koi-search__badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.koi-search__expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color var(--rs-transition), background var(--rs-transition);
+}
+.koi-search__expand:hover {
+  color: var(--rs-text);
+  background: var(--rs-bg-hover);
+}
+.koi-search__expand svg {
+  transition: transform 0.25s ease;
+}
+.koi-search__expand--expanded svg {
+  transform: rotate(180deg);
+}
+
+/* 内容行：字段（左）+ 操作按钮（右），同一行 */
+.koi-search__body {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.koi-search__fields {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.koi-search__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.koi-search__field-label {
   font-size: 13px;
   color: var(--el-text-color-regular);
   white-space: nowrap;
-  text-align: right;
+  text-align: left;
 }
 
-.koi-search__content--form :deep(> *:not(.el-row)) {
-    display: grid;
-    grid-template-columns: var(--label-width, 100px) 1fr;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 4px;
-  }
-  .koi-search__content--data :deep(> *) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 6px 4px;
-  }
-
-@media (max-width: 768px) {
-  .koi-search {
-    padding: 10px 12px 6px;
-  }
-  .koi-search__content--form :deep(> *:not(.el-row)) {
-    grid-template-columns: minmax(60px, auto) 1fr;
-    gap: 8px;
-  }
-  .koi-search__content--data :deep(> *) {
-    flex: 1 1 100%;
-  }
+/* data 模式：标签隐藏，仅组件 */
+.koi-search__fields--data .koi-search__field {
+  display: block;
 }
 
-@media (max-width: 480px) {
-  .koi-search__content--form :deep(> *:not(.el-row)) {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-}
-
-.koi-search__content--overflow {
-  display: grid;
+/* overflow 模式（max>0）：用 grid-template-rows 折叠 */
+.koi-search__fields--overflow {
   grid-auto-rows: minmax(0, auto);
-  grid-template-rows: repeat(1, minmax(0, 1fr));
   overflow: hidden;
-  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.koi-search__content--overflow :deep(> *) {
+.koi-search__fields--overflow :deep(> *) {
   overflow: hidden;
   min-height: 0;
 }
 
-.koi-search__expand-btn {
+/* 操作按钮：与字段同行右对齐 */
+.koi-search__actions {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--rs-text-secondary, var(--el-text-color-secondary));
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.2s, background 0.2s, transform 0.35s;
-}
-
-.koi-search__expand-btn:hover {
-  background: var(--rs-bg-hover, var(--el-fill-color));
-  color: var(--rs-text, var(--el-text-color-primary));
-}
-
-.koi-search__expand-btn--expanded svg {
-  transform: rotate(180deg);
-}
-
-/* 顶部标题栏 */
-.koi-search__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.koi-search__header-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--rs-text);
-}
-.koi-search__title-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid rgb(156, 195, 255);
-  border-radius: 6px;
-  background-color: rgb(235, 243, 255);
-  color: rgb(57, 134, 255);
+  gap: 8px;
   flex-shrink: 0;
-}
-.koi-search__header-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--el-color-primary-light-2);
+  margin-left: auto;
+  align-self: flex-end;
 }
 
-.koi-search__content {
-  padding: 0 2px 10px;
-}
-
-.koi-search__footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 2px 0;
-}
-
-.re-search-collapse-enter-from {
-  transform: translateY(-6px);
-  opacity: 0;
-}
-
+/* 折叠动画（filterVisible 切换时整行淡入淡出） */
+.re-search-collapse-enter-from,
 .re-search-collapse-leave-to {
   transform: translateY(-4px);
   opacity: 0;
+}
+.re-search-collapse-enter-active,
+.re-search-collapse-leave-active {
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .koi-search__fields {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  .koi-search__actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
 }
 </style>

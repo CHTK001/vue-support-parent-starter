@@ -56,10 +56,30 @@ const query = ref<{
   pageSize: 10,
 });
 
+const searchFilters = computed(() => [
+  { key: 'sysUserName', label: '用户名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysUserPhone', label: '手机号', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysDeptId', label: '部门', type: 'treeselect' as const, placeholder: '请选择',
+    options: depts.value as any,
+    attrs: {
+      props: { value: 'sysDeptId', label: 'sysDeptName', children: 'children' },
+      checkStrictly: true, clearable: true,
+    },
+  },
+  {
+    key: 'sysUserStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '启用', value: 0 },
+      { label: '禁用', value: 1 },
+    ],
+  },
+]);
+
 async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForUser({
-    page: query.value.page || page,
-    pageSize: query.value.pageSize || pageSize,
+    page,
+    pageSize,
     sysUserName: (params.sysUserName as string) || undefined,
     sysUserPhone: (params.sysUserPhone as string) || undefined,
     sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
@@ -70,6 +90,7 @@ async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise
 }
 
 const tableRef = ref();
+const searchVisible = ref(true);
 const total = ref(0);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / (query.value.pageSize || 10))));
 function goPage(p: number) {
@@ -569,58 +590,29 @@ onMounted(() => {
 <template>
   <div class="system-page">
     <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" @add="handleAdd">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysUserName"
-            placeholder="用户名称"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysUserPhone"
-            placeholder="手机号"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <el-tree-select
-            v-model="query.sysDeptId"
-            :data="depts"
-            :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }"
-            check-strictly
-            clearable
-            placeholder="部门"
-            class="!w-44"
-          />
-          <ReSelect
-            v-model="query.sysUserStatus"
-            placeholder="状态"
-            clearable
-            class="!w-32"
-            :data="[
-              { label: '启用', value: 0 },
-              { label: '禁用', value: 1 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-          <span class="system-page__divider" />
-          <ReButton layout="modern" icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
-          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerImport">导入用户</ReButton>
-          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleExport">导出</ReButton>
-          <span class="system-page__divider" />
-          <ReButton layout="modern" type="success" :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchStatus(0)">批量启用</ReButton>
-          <ReButton layout="modern" type="warning" :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchStatus(1)">批量禁用</ReButton>
-          <ReButton layout="modern" type="danger" :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchDelete">批量删除</ReButton>
-        </template>
-      </ReSearch>
+      <el-form v-show="searchVisible" :model="query" inline label-position="top" class="user-search-form">
+        <el-form-item label="用户名称" label-width="auto">
+          <ReInput layout="modern" v-model="query.sysUserName" placeholder="请输入" clearable class="!w-44" @keyup.enter="tableRef?.reload()" />
+        </el-form-item>
+        <el-form-item label="手机号" label-width="auto">
+          <ReInput layout="modern" v-model="query.sysUserPhone" placeholder="请输入" clearable class="!w-44" @keyup.enter="tableRef?.reload()" />
+        </el-form-item>
+        <el-form-item label="部门" label-width="auto">
+          <el-tree-select v-model="query.sysDeptId" :data="depts" :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }" check-strictly clearable placeholder="请选择" class="!w-44" />
+        </el-form-item>
+        <el-form-item label="状态" label-width="auto">
+          <ReSelect v-model="query.sysUserStatus" placeholder="请选择" clearable class="!w-32" :data="[{ label: '启用', value: 0 }, { label: '禁用', value: 1 }]" />
+        </el-form-item>
+      </el-form>
+      <div class="user-search-actions">
+        <ReButton layout="square" :icon="searchVisible ? 'Hide' : 'View'" :title="searchVisible ? '隐藏搜索' : '显示搜索'" @click="searchVisible = !searchVisible" />
+        <ReButton layout="square" icon="Refresh" title="重置" @click="handleReset" />
+        <ReButton layout="square" type="primary" icon="Search" title="查询" @click="tableRef?.reload()" />
+        <span class="system-page__divider" />
+        <ReButton layout="modern" icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
+        <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerImport">导入用户</ReButton>
+        <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleExport">导出</ReButton>
+      </div>
 
       <!-- 隐藏文件输入 -->
       <input
@@ -643,7 +635,6 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
         @selection-change="handleSelectionChange"
-        @update:page="(p) => { window.__userUpdatePage = p; query.value.page = p; window.__queryPageAfter = query.value.page; tableRef?.reload(); }"
       >
         <template #username="{ row }">
           <div class="flex items-center gap-2">
@@ -902,12 +893,22 @@ onMounted(() => {
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
 }
-.system-page__search {
+.user-search-form :deep(.el-form-item) {
+  margin-right: 24px;
+  margin-bottom: 12px;
+}
+.user-search-form :deep(.el-form-item__label) {
+  padding-bottom: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.user-search-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 .system-page__divider {
   display: inline-block;

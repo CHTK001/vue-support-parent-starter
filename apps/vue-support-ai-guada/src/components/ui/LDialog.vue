@@ -271,35 +271,22 @@ html.dark .l-dialog {
   gap: 8px;
 }
 
-/* Transition */
+/* Transition - 简化动画，确保对话框能正常显示 */
 .l-dialog-fade-enter-active,
 .l-dialog-fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
 .l-dialog-fade-enter-active .l-dialog {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
 .l-dialog-fade-leave-active .l-dialog {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
-.l-dialog-fade-enter-from {
-  opacity: 0;
-}
-
-.l-dialog-fade-enter-from .l-dialog {
-  transform: translateY(-20px) scale(0.96);
-  opacity: 0;
-}
-
+/* 进入时不再隐藏opacity，直接显示 */
 .l-dialog-fade-leave-to {
-  opacity: 0;
-}
-
-.l-dialog-fade-leave-to .l-dialog {
-  transform: translateY(-10px) scale(0.98);
   opacity: 0;
 }
 </style>

@@ -3,45 +3,28 @@
  * 直链播放页 —— 输入/粘贴 URL 即时播放
  *
  * 能力：
- *   - 支持 mp4/webm/ogg 直链与 HLS(m3u8)（检测浏览器原生支持，
- *     不支持时提示并保留占位，不引入额外运行时依赖）
+ *   - 支持 mp4/webm/ogg/mov 直链与 HLS(m3u8)（VdPlayer 内置 hls.js，
+ *     Chrome/Edge/Firefox 均可播放 m3u8，不再依赖 Safari）
  *   - 历史记录（localStorage，最近 10 条，可回填/删除）
  *   - 站内跳转：支持 /watch/:id 内部地址，直接路由到播放页
  * 交互：回车/按钮播放、加载状态、错误提示、默认示例链接。
  */
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { VideoCamera, Delete, Link } from "@element-plus/icons-vue";
+import VdPlayer from "@/components/VdPlayer.vue";
 
 const route = useRoute();
 const router = useRouter();
 
 const url = ref("");
 const playing = ref(false);
-const loadError = ref(false);
-const videoEl = ref<HTMLVideoElement | null>(null);
 
 const HISTORY_KEY = "vds-play-history";
 
 /** 播放历史 */
 const history = ref<string[]>([]);
-
-/** 浏览器是否原生支持 HLS（Safari 支持，Chrome 需扩展/库） */
-const isM3u8 = (u: string) => /\.m3u8($|\?)/i.test(u);
-const hlsSupported = computed(
-  () =>
-    typeof document !== "undefined" &&
-    document.createElement("video").canPlayType("application/vnd.apple.mpegurl") !== "",
-);
-
-/** 是否为可原生播放的地址 */
-const playable = computed(() => {
-  const u = url.value.trim();
-  if (!u) return false;
-  if (isM3u8(u)) return hlsSupported.value;
-  return /\.(mp4|webm|ogg|mov)($|\?)/i.test(u) || u.startsWith("blob:");
-});
 
 function loadHistory() {
   try {
@@ -79,21 +62,13 @@ function play(target?: string) {
     ElMessage.error("仅支持 http(s) 直链地址");
     return;
   }
-  if (isM3u8(u) && !hlsSupported.value) {
-    ElMessage.warning("当前浏览器不支持原生 HLS(m3u8) 播放，请使用 Safari 或改用 mp4 直链");
-  }
   url.value = u;
   playing.value = true;
-  loadError.value = false;
   saveHistory(u);
 }
 
-function onPlay() {
-  loadError.value = false;
-}
-
-function onError() {
-  loadError.value = true;
+function onPlayerError(msg: string) {
+  ElMessage.error(msg || "地址无法播放，请检查链接有效性、跨域限制或编码格式");
 }
 
 onMounted(() => {
@@ -137,22 +112,7 @@ onMounted(() => {
 
     <!-- 播放器 -->
     <section v-if="playing" class="vds-theater" aria-label="直链播放器">
-      <video
-        ref="videoEl"
-        class="vd-player"
-        controls
-        autoplay
-        :src="url"
-        @play="onPlay"
-        @error="onError"
-      >
-        <track kind="captions" />
-      </video>
-      <div v-if="loadError" class="vds-player-hint vds-player-error">
-        <el-icon :size="44" aria-hidden="true"><VideoCamera /></el-icon>
-        <p>地址无法播放：请检查链接有效性、跨域限制或编码格式</p>
-        <el-button size="small" @click="playing = false">重置</el-button>
-      </div>
+      <VdPlayer :url="url" :autoplay="true" @error="onPlayerError" />
     </section>
 
     <!-- 未播放时的引导 -->
@@ -248,29 +208,10 @@ onMounted(() => {
 }
 
 /* ── 播放器 ─────────────────────────────── */
-.vd-player {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #000;
-}
-
-.vds-player-hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: #94a3b8;
-  background: rgba(11, 18, 32, 0.9);
-  pointer-events: auto;
-}
-
-.vds-player-error p {
-  margin: 0;
-  font-size: 14px;
+.vds-theater {
+  border-radius: var(--vd-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--vd-shadow-lg);
 }
 
 /* ── 历史 ───────────────────────────────── */

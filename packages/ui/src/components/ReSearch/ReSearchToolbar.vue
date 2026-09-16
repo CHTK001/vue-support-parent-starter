@@ -33,6 +33,8 @@ const props = withDefaults(
     showSearch?: boolean;
     /** 是否显示“重置”按钮 */
     showReset?: boolean;
+    /** 是否显示“刷新”按钮 */
+    showRefresh?: boolean;
     /** 是否显示“新增”按钮 */
     showAdd?: boolean;
     /** 是否显示“批量删除”按钮 */
@@ -58,6 +60,7 @@ const props = withDefaults(
     showToggle: true,
     showSearch: true,
     showReset: true,
+    showRefresh: true,
     showAdd: false,
     showBatchDelete: false,
     showBatchSelect: false,
@@ -77,6 +80,7 @@ const emit = defineEmits<{
   (e: "toggle"): void;
   (e: "search"): void;
   (e: "reset"): void;
+  (e: "refresh"): void;
   (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
@@ -127,7 +131,7 @@ function btnProps(): Record<string, unknown> {
       </ReButton>
       <ReButton
         v-if="showReset"
-        v-bind="btnProps()" type="danger" icon="Refresh"
+        v-bind="btnProps()" icon="Refresh"
         @click="emit('reset')"
       >
         {{ resetText }}
@@ -139,6 +143,13 @@ function btnProps(): Record<string, unknown> {
         @click="emit('search')"
       >
         {{ searchText }}
+      </ReButton>
+      <ReButton
+        v-if="showRefresh"
+        v-bind="btnProps()" icon="RefreshRight"
+        @click="emit('refresh')"
+      >
+        刷新
       </ReButton>
       <ReButton
         v-if="showToggle"

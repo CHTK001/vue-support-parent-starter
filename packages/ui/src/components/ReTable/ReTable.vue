@@ -272,7 +272,7 @@ const internalPage = ref(props.page ?? 1);
 const internalPageSize = ref(props.pageSize ?? 10);
 // 强制响应式：用 shallowRef 或 triggerRef
 import { triggerRef } from "vue";
-watch(() => props.page, (v) => { (window).__watchPropsPage = v; if (typeof v === "number") internalPage.value = v; });
+watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
 watch(() => props.pageSize, (v) => { if (typeof v === "number") internalPageSize.value = v; });
 
 /** 所有选中行（跨页合并） */
@@ -735,7 +735,6 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     const paramObj = props.params ?? {};
     const curPage = internalPage.value || props.page || 1;
-    (window).__runCurPage = curPage;
     const curSize = internalPageSize.value || props.pageSize || 10;
     const loadParams = {
       page: curPage,
@@ -830,7 +829,6 @@ watch(() => props.page, (p, oldP) => {
 
 /** internalPage 变化（用户点击分页）→ 同步并 reload */
 watch(internalPage, (p, oldP) => {
-  (window).__watchInternalPage = {p, oldP};
   if (!isRemote.value || !props.autoReload) return;
   if (p === oldP) return;
   emit("update:page", p);
@@ -852,7 +850,6 @@ function goToPage(p: number) {
   // watch internalPage 会自动 emit update:page 和 dsReload
 }
 function onPageClick(p: number) {
-  (window).__onPageClickCalled = p;
   goToPage(p);
 }
 function onPrevPage() {
@@ -1238,14 +1235,15 @@ const iconSelect = Select;
         <!-- 左侧：分页 -->
         <div v-if="pagination" class="re-table__pagination">
           <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
-          <ElPagination
-            :small="true"
-            :total="totalToShow"
-            :current-page="page"
-            :page-size="pageSize"
-            layout="prev, pager, next"
-            @current-change="onPageClick"
-          />
+          <button class="page-nav-btn" :disabled="internalPage <= 1" @click="onPrevPage">‹</button>
+          <button
+            v-for="p in paginationPageList"
+            :key="p"
+            class="page-nav-btn"
+            :class="{ 'page-nav-btn--active': p === internalPage }"
+            @click="onPageClick(p)"
+          >{{ p }}</button>
+          <button class="page-nav-btn" :disabled="internalPage >= paginationTotalPages" @click="onNextPage">›</button>
         </div>
 
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
@@ -1275,7 +1273,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :icon="iconColumns" :title="columnsTriggerText" />
+                <ReButton layout="square" :size="tableSize" :icon="iconColumns" :title="columnsTriggerText" />
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -1339,7 +1337,7 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ElButton :size="tableSize" text :icon="iconSettings" :title="settingsTriggerText" />
+                <ReButton layout="square" :size="tableSize" :icon="iconSettings" :title="settingsTriggerText" />
               </template>
               <div class="re-table__settings-panel">
                 <div class="settings-header">
@@ -1456,8 +1454,8 @@ const iconSelect = Select;
 .re-table__toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 12px;
   order: 2;
   margin-left: auto;
   width: 100%;
@@ -1467,8 +1465,8 @@ const iconSelect = Select;
   justify-content: flex-start;
   align-items: center;
   gap: 6px;
-  flex: 1 1 auto;
-  order: 1;
+  flex: none;
+  order: 0;
   border-right: none;
   position: relative;
   z-index: 1;
@@ -1478,6 +1476,43 @@ const iconSelect = Select;
   margin-right: 8px;
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+.page-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 2px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 10px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.page-nav-btn:hover:not(:disabled) {
+  border-color: var(--el-color-primary-light-3, #a0cfff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.page-nav-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.page-nav-btn--active {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.page-nav-btn--active:hover {
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
+}
+.page-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .re-page-btn {
   min-width: 28px;
