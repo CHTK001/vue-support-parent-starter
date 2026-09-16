@@ -17,9 +17,9 @@
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
-import ReButton from "../ReButton/ReButton.vue";
-import ReSearchToolbar from "../ReSearchToolbar.vue";
-import "../shared/research-vars.css";
+import ReButton from "../../../ReButton/ReButton.vue";
+import ReSearchToolbar from "../../ReSearchToolbar.vue";
+import "../../shared/research-vars.css";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
@@ -111,7 +111,7 @@ const props = withDefaults(
     searchText: "搜索",
     showResetBtn: true,
     resetText: "重置",
-    showRefreshBtn: false,
+    showRefreshBtn: true,
     showAddBtn: false,
     addText: "新增",
     showBatchDeleteBtn: false,
@@ -169,10 +169,19 @@ function toggleFilter(): void {
 /** 右上角"展开/收起"折叠（仅作用于被 max 隐藏的多余字段） */
 const localExpanded = ref(false);
 const itemSlots = computed(() => slots.default?.() ?? []);
-const itemCount = computed(() => itemSlots.value.length);
+/** 项数：优先取 filters prop 的长度，否则数 default slot 的子节点 */
+const itemCount = computed(() => {
+  const filterCount = props.filters?.length ?? 0;
+  return filterCount > 0 ? filterCount : itemSlots.value.length;
+});
 const hasOverflow = computed(
   () => props.max > 0 && itemCount.value > props.max,
 );
+/** 折叠态下只渲染前 max 个 filters（slot 子节点仍走 grid-template-rows 折叠） */
+const visibleFilters = computed(() => {
+  if (!hasOverflow.value || localExpanded.value) return props.filters;
+  return props.filters.slice(0, props.max);
+});
 const gridRows = computed(() => {
   if (!hasOverflow.value) return undefined;
   if (localExpanded.value) {
@@ -276,8 +285,8 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
           :style="{ gridTemplateRows: gridRows }"
         >
           <!-- filters prop 驱动的过滤项 -->
-          <template v-if="filters && filters.length > 0">
-            <div v-for="filter in filters" :key="filter.key" class="koi-search__field">
+          <template v-if="visibleFilters && visibleFilters.length > 0">
+            <div v-for="filter in visibleFilters" :key="filter.key" class="koi-search__field">
               <span
                 v-if="filterMode === 'form' && filter.label"
                 class="koi-search__field-label"

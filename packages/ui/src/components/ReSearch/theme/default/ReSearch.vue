@@ -7,9 +7,9 @@
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
 import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
-import ReButton from "../ReButton/ReButton.vue";
-import ReSearchToolbar from "../ReSearchToolbar.vue";
-import "../shared/research-vars.css";
+import ReButton from "../../../ReButton/ReButton.vue";
+import ReSearchToolbar from "../../ReSearchToolbar.vue";
+import "../../shared/research-vars.css";
 
 const ModernLayout = defineAsyncComponent(() => import("../../layouts/Modern.vue"));
 
@@ -123,8 +123,15 @@ function toggleFilter(): void {
 
 const localExpanded = ref(false);
 const itemSlots = computed(() => slots.default?.() ?? []);
-const itemCount = computed(() => itemSlots.value.length);
+const itemCount = computed(() => {
+  const filterCount = props.filters?.length ?? 0;
+  return filterCount > 0 ? filterCount : itemSlots.value.length;
+});
 const hasOverflow = computed(() => props.max > 0 && itemCount.value > props.max);
+const visibleFilters = computed(() => {
+  if (!hasOverflow.value || localExpanded.value) return props.filters;
+  return props.filters.slice(0, props.max);
+});
 const gridRows = computed(() => {
   if (!hasOverflow.value) return undefined;
   if (localExpanded.value) {
@@ -217,8 +224,8 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
           }"
           :style="{ gridTemplateRows: gridRows }"
         >
-          <template v-if="filters && filters.length > 0">
-            <div v-for="filter in filters" :key="filter.key" class="re-search__field">
+          <template v-if="visibleFilters && visibleFilters.length > 0">
+            <div v-for="filter in visibleFilters" :key="filter.key" class="re-search__field">
               <span
                 v-if="filterMode === 'form' && filter.label"
                 class="re-search__field-label"

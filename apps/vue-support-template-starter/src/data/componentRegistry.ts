@@ -100,7 +100,7 @@ export const registry: ComponentMeta[] = [
   { name: "ReFilePicker", title: "文件选择", description: "文件选择器（el-upload 二次封装）", category: "form", icon: "FolderOpened" },
   { name: "ReUpload", title: "上传", description: "上传组件（el-upload 封装）", category: "form", icon: "UploadFilled" },
   { name: "ReUploadChunk", title: "分片上传", description: "分片上传组件（大文件切片）", category: "form", icon: "Upload" },
-  { name: "ReSearch", title: "搜索", description: "搜索组件（带搜索历史/建议）", category: "form", icon: "Search" },
+  { name: "ReSearch", title: "搜索", description: "横向搜索条（徽标+字段+按钮，右上角折叠）", category: "form", icon: "Search" },
   { name: "ReCode", title: "验证码", description: "验证码输入组件（多位自动跳转）", category: "form", icon: "Key" },
   { name: "ReIp", title: "IP 输入", description: "IP 地址输入组件（4 段式）", category: "form", icon: "Position" },
   { name: "ReIconSelect", title: "图标选择", description: "图标选择器（按主题切换图标源）", category: "form", icon: "Star" },
