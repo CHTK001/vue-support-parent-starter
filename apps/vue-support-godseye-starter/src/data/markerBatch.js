@@ -66,7 +66,10 @@ function scheduleChunk(fn) {
   return setTimeout(fn, 0);
 }
 
-/** @param {number|object} handle */
+/**
+ * 取消正在进行的分片任务。
+ * @param {number|object} handle
+ */
 function cancelChunk(handle) {
   if (handle === null || handle === undefined) return;
   if (typeof cancelAnimationFrame === 'function' && typeof handle === 'number') {
@@ -175,17 +178,30 @@ export function createMarkerBatch({
       addChunk();
     },
 
-    /** @param {boolean} value */
+    /**
+     * 设置集合可见性。
+     * @param {boolean} value
+     */
     setVisible(value) {
       visible = value !== false;
       if (collection) collection.show = visible;
     },
 
-    /** @returns {number} Points currently in the collection. */
-    length() { return collection ? collection.length : 0; },
+    /**
+     * 当前集合中的点数。
+     * @returns {number}
+     */
+    length() {
+      return collection ? collection.length : 0;
+    },
 
-    /** @returns {boolean} True while chunks are still being added. */
-    building() { return pending !== null; },
+    /**
+     * 分片是否仍在添加中。
+     * @returns {boolean}
+     */
+    building() {
+      return pending !== null;
+    },
 
     /** Stop any in-flight build and drop every point. */
     clear() {

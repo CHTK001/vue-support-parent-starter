@@ -36,7 +36,11 @@ export function findByDoublingRadius(search, {
   return null;
 }
 
-/** @param {number} meters @returns {string} */
+/**
+ * 将米制距离格式化为人类可读的距离字符串。
+ * @param {number} meters
+ * @returns {string}
+ */
 export function formatAwarenessDistance(meters) {
   if (!Number.isFinite(meters) || meters < 0) return '—';
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(meters < 10000 ? 1 : 0)} km`;

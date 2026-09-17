@@ -120,7 +120,9 @@ export function createFlightSimPanel({ viewer, controller }) {
     }
   }
 
-  /** @returns {void} */
+  /**
+   * @returns {void}
+   */
   function stopPicking() {
     picking = null;
     viewer.scene.canvas.style.cursor = '';
@@ -206,14 +208,18 @@ export function createFlightSimPanel({ viewer, controller }) {
     controller.exit();
   });
 
-  /** @returns {void} */
+  /**
+   * @returns {void}
+   */
   function open() {
     panel.hidden = false;
     panel.classList.remove('collapsed');
     refresh();
   }
 
-  /** @returns {void} */
+  /**
+   * @returns {void}
+   */
   function close() {
     panel.hidden = true;
     stopPicking();

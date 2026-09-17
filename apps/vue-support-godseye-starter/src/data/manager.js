@@ -2041,7 +2041,10 @@ export class DataLayerManager {
     return this._collapsedGroupCache;
   }
 
-  /** @param {Set<string>} set */
+  /**
+   * 持久化折叠分组集合到本地存储。
+   * @param {Set<string>} set
+   */
   _persistCollapsedGroups(set) {
     this._collapsedGroupCache = set;
     try {

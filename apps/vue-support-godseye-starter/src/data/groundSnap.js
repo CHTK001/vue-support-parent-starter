@@ -294,7 +294,10 @@ export function createGroundSnap() {
     if (entry && now < entry.nextRetryMs) return heldSnapM(entry, surfacePos); // backoff in force
     // Per-window budget: deny WITHOUT a retry stamp so the overflow simply
     // tries again next tick instead of waiting out a backoff it didn't earn.
-    if (now - windowStartMs > SAMPLE_WINDOW_MS) { windowStartMs = now; windowCount = 0; }
+    if (now - windowStartMs > SAMPLE_WINDOW_MS) {
+      windowStartMs = now;
+      windowCount = 0;
+    }
     if (windowCount >= SAMPLE_BUDGET_PER_WINDOW) return heldSnapM(entry, surfacePos);
     const misses = entry ? entry.misses : 0;
     const miss = () => {

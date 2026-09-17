@@ -129,8 +129,14 @@ function computePixelWidths(cw: number, pct: number, applyConstraints = true): {
     // pane1 最小/最大百分比约束
     const p1Min = available * props.minSize / 100;
     const p1Max = available * props.maxSize / 100;
-    if (p1Px < p1Min) { p1Px = p1Min; p2Px = available - p1Px; }
-    if (p1Px > p1Max) { p1Px = p1Max; p2Px = available - p1Px; }
+    if (p1Px < p1Min) {
+      p1Px = p1Min;
+      p2Px = available - p1Px;
+    }
+    if (p1Px > p1Max) {
+      p1Px = p1Max;
+      p2Px = available - p1Px;
+    }
   }
 
   // 兜底非负

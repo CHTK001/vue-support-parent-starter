@@ -44,7 +44,9 @@
  */
 export const VOICE_MODEL_RATES_VERIFIED_ON = '2026-08-18';
 
-/** @typedef {'standard'|'mini'} VoiceModelTier */
+/**
+ * @typedef {'standard'|'mini'} VoiceModelTier
+ */
 
 export const VOICE_MODELS = Object.freeze({
   standard: Object.freeze({

@@ -313,19 +313,29 @@ export function createSimAircraftRenderer(viewer) {
   return {
     load,
     update,
-    /** @returns {object|null} The Cesium Model, for the camera to anchor to. */
+    /**
+     * The Cesium Model, for the camera to anchor to.
+     * @returns {object|null}
+     */
     getModel() {
       return model;
     },
-    /** @returns {string[]} Control names the asset does not expose. */
+    /**
+     * Control names the asset does not expose.
+     * @returns {string[]}
+     */
     getMissingControls() {
       return bindings.missing;
     },
-    /** @returns {boolean} */
+    /**
+     * @returns {boolean}
+     */
     didFailToLoad() {
       return loadFailed;
     },
-    /** @returns {void} */
+    /**
+     * @returns {void}
+     */
     hide() {
       if (model) model.show = false;
     },

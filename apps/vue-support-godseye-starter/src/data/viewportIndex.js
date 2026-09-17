@@ -96,11 +96,21 @@ export function createViewportIndex(points) {
   }
 
   return {
-    /** @returns {number} Points indexed. */
-    size() { return items.length; },
+    /**
+     * 已索引的点数。
+     * @returns {number}
+     */
+    size() {
+      return items.length;
+    },
 
-    /** @returns {number} Occupied grid cells, for diagnostics. */
-    cells() { return cells.size; },
+    /**
+     * 占用的网格单元数，用于诊断。
+     * @returns {number}
+     */
+    cells() {
+      return cells.size;
+    },
 
     /**
      * Points inside a geographic rectangle.
@@ -130,8 +140,13 @@ export function createViewportIndex(points) {
       return [...found];
     },
 
-    /** @returns {Array<object>} Everything, unculled. */
-    all() { return items.slice(); },
+    /**
+     * 全部点（未裁剪）。
+     * @returns {Array<object>}
+     */
+    all() {
+      return items.slice();
+    },
   };
 }
 

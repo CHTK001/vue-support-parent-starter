@@ -87,7 +87,10 @@ const mapLabelsLayer = {
     }
   },
 
-  /** @returns {void} */
+  /**
+   * 启用地图标签图层。
+   * @returns {void}
+   */
   enable() {
     if (_enabled) return;
     if (!_imageryLayer) _imageryLayer = buildImageryLayer();
@@ -105,7 +108,10 @@ const mapLabelsLayer = {
     _viewer?.scene?.requestRender?.();
   },
 
-  /** @returns {void} */
+  /**
+   * 禁用地图标签图层。
+   * @returns {void}
+   */
   disable() {
     if (!_enabled) return;
     for (const collection of targetCollections()) {
@@ -137,7 +143,10 @@ const mapLabelsLayer = {
     };
   },
 
-  /** @returns {void} */
+  /**
+   * 销毁标签图层资源。
+   * @returns {void}
+   */
   destroy() {
     this.disable();
     if (_imageryLayer && !_imageryLayer.isDestroyed?.()) _imageryLayer.destroy?.();

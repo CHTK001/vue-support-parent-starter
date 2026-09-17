@@ -1108,7 +1108,10 @@ function _deadReckon(icao24, result) {
   }
   const history = _positionHistory.get(icao24);
   if (!history || history.length === 0) {
-    _drCourseDeg = null; _drSpeedMps = null; _drCourseHold = false; _drExtrapolating = false;
+    _drCourseDeg = null;
+    _drSpeedMps = null;
+    _drCourseHold = false;
+    _drExtrapolating = false;
     return null;
   }
 
@@ -3730,7 +3733,10 @@ function _onMilitaryActiveChange(active) {
  */
 export function mapAnalystRecord(icao24, info, { military = false, routeOk = false } = {}) {
   const num = (v) => (Number.isFinite(v) ? v : null);
-  const text = (v) => { const t = String(v ?? '').trim(); return t || null; };
+  const text = (v) => {
+    const t = String(v ?? '').trim();
+    return t || null;
+  };
   const callsign = text(info?.callsign);
   return {
     // Display identity for the narration layer. `id` is NOT a queryable field
@@ -3917,8 +3923,16 @@ const flightsLayer = {
       const epoch = _modelEpoch;
       Cesium.Model.fromGltfAsync({ url: PLANE_MODEL_URL, asynchronous: false })
         .then((m) => {
-          if (epoch === _modelEpoch) { _preloadModel = m; _planeModelLoaded = true; }
-          else { try { m.destroy(); } catch { /* gone */ } }
+          if (epoch === _modelEpoch) {
+            _preloadModel = m;
+            _planeModelLoaded = true;
+          } else {
+            try {
+              m.destroy();
+            } catch {
+              /* gone */
+            }
+          }
         })
         .catch(() => { /* tracked plane just stays a billboard a beat longer */ });
     }

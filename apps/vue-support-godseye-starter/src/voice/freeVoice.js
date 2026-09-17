@@ -606,31 +606,59 @@ export function initFreeVoice({
      */
     setAiAvailable(value) { aiAvailable = value !== false; },
 
-    /** @returns {boolean} */
-    isSupported() { return supported; },
+     /**
+      * 查询当前浏览器是否支持语音功能。
+      * @returns {boolean}
+      */
+     isSupported() {
+       return supported;
+     },
 
-    /** @returns {boolean} */
-    isListening() { return listening; },
+     /**
+      * 查询当前是否正在监听语音输入。
+      * @returns {boolean}
+      */
+     isListening() {
+       return listening;
+     },
 
-    /** Start a new conversation, forgetting what was said before. */
-    resetConversation() { agent.reset(); },
+     /**
+      * 开始新的对话，忘记之前的内容。
+      */
+     resetConversation() {
+       agent.reset();
+     },
 
-    /** @returns {Array<object>} The conversation so far, for diagnostics. */
-    conversation() { return agent.history(); },
+     /**
+      * 返回当前对话历史，用于诊断。
+      * @returns {Array<object>}
+      */
+     conversation() {
+       return agent.history();
+     },
 
-    /** @param {Function} listener */
-    onStateChange(listener) {
-      onState = typeof listener === 'function' ? listener : () => {};
-    },
+     /**
+      * 注册状态变化监听器。
+      * @param {Function} listener
+      */
+     onStateChange(listener) {
+       onState = typeof listener === 'function' ? listener : () => {};
+     },
 
-    /** @returns {string} Why it cannot run, or ''. */
-    unsupportedReason() {
+     /**
+      * 返回不支持的原因，若支持则返回空字符串。
+      * @returns {string}
+      */
+     unsupportedReason() {
       if (!window.speechSynthesis) return 'This browser has no speech synthesis.';
       if (!SR) return 'Speech recognition needs Chrome or Edge. Firefox does not support it.';
       return '';
     },
 
-    /** @returns {boolean} Whether listening started. */
+    /**
+     * 开始语音监听。
+     * @returns {boolean} 是否成功开始监听
+     */
     start() {
       if (!supported || listening) return false;
       recognition = new SR();
@@ -676,7 +704,10 @@ export function initFreeVoice({
       return true;
     },
 
-    /** @returns {void} */
+    /**
+     * 停止语音监听。
+     * @returns {void}
+     */
     stop() {
       listening = false;
       try { recognition?.stop(); } catch { /* not started */ }

@@ -491,7 +491,10 @@ export function createTemperatureLayer() {
     }
   }
 
-  /** @returns {void} */
+  /**
+   * 移除 Gibbs 表面温度图层。
+   * @returns {void}
+   */
   function removeGibs() {
     if (_gibsLayer && _tileset?.imageryLayers) {
       try { _tileset.imageryLayers.remove(_gibsLayer, true); } catch { /* already gone */ }
@@ -507,7 +510,10 @@ export function createTemperatureLayer() {
     _rowControlsListener?.();
   }
 
-  /** @returns {void} */
+  /**
+   * 移除当前选中的温度影像图层。
+   * @returns {void}
+   */
   function removeImagery() {
     if (_imageryLayer && _tileset?.imageryLayers) {
       try { _tileset.imageryLayers.remove(_imageryLayer, true); } catch { /* already gone */ }
@@ -570,7 +576,10 @@ export function createTemperatureLayer() {
     }
   }
 
-  /** @returns {void} */
+  /**
+   * 关闭温度详情面板。
+   * @returns {void}
+   */
   function closePanel() {
     if (_panel) _panel.hidden = true;
   }
@@ -597,7 +606,10 @@ export function createTemperatureLayer() {
     _hover.hidden = false;
   }
 
-  /** @returns {void} */
+  /**
+   * 隐藏鼠标悬停温度读数。
+   * @returns {void}
+   */
   function hideHover() {
     if (_hover) _hover.hidden = true;
   }
@@ -744,7 +756,10 @@ export function createTemperatureLayer() {
       }
     },
 
-    /** @param {Function} listener */
+    /**
+     * 设置行级控制监听器。
+     * @param {Function} listener
+     */
     setRowControlsListener(listener) {
       _rowControlsListener = typeof listener === 'function' ? listener : null;
     },
@@ -761,7 +776,10 @@ export function createTemperatureLayer() {
       return true;
     },
 
-    /** @returns {object} */
+    /**
+     * 获取行级控件定义。
+     * @returns {object}
+     */
     getRowControls() {
       // A handful of stops rather than every one: the row is narrow, and the
       // point is to say which end is hot.

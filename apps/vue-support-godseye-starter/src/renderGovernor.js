@@ -153,8 +153,12 @@ export function setGovernorTargetHz(hz) {
   return _targetHz;
 }
 
-/** @returns {number} */
-export function getGovernorTargetHz() { return _targetHz; }
+/**
+ * @returns {number}
+ */
+export function getGovernorTargetHz() {
+  return _targetHz;
+}
 
 /**
  * Replace the frame scheduler. Tests only.

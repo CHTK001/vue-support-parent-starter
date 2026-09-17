@@ -275,7 +275,10 @@ let _activeBucketColors = { ...FLOW_BUCKET_COLORS };
  */
 const STYLED_MIN_BASE_PX = 5;
 
-/** @returns {boolean} A non-normal preset profile is active and enabled. */
+/**
+ * 是否激活并启用了非默认的预设档案。
+ * @returns {boolean}
+ */
 function presetProfileActive() {
   return _presetDots === 'on' && trafficStyleProfile(_stylePreset) !== 'normal';
 }
@@ -365,9 +368,15 @@ function setStylePreset(name) {
   restyleDotsInPlace();
 }
 
-/** @returns {boolean} Density/queue/creep prototype active. */
+/**
+ * 密度/队列/蠕行原型是否激活。
+ * @returns {boolean}
+ */
 const jamDensityOn = () => _jamViz === 'density' || _jamViz === 'both';
-/** @returns {boolean} Heat-line prototype active. */
+/**
+ * 热力线原型是否激活。
+ * @returns {boolean}
+ */
 const heatlineOn = () => _jamViz === 'heatline' || _jamViz === 'both';
 /**
  * Dot fade-out distances, recomputed per render from the camera-to-area

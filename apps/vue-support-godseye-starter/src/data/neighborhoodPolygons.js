@@ -48,8 +48,10 @@ const NAME_ALIASES = new Map([
 function pointInRing(lon, lat, ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0]; const yi = ring[i][1];
-    const xj = ring[j][0]; const yj = ring[j][1];
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
     const intersect = ((yi > lat) !== (yj > lat))
       && (lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi);
     if (intersect) inside = !inside;

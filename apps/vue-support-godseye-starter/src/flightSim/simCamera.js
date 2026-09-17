@@ -246,7 +246,9 @@ export function createSimCamera(viewer) {
       return mode;
     },
 
-    /** @returns {string} */
+    /**
+     * @returns {string}
+     */
     getMode() {
       return mode;
     },

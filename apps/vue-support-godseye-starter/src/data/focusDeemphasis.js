@@ -134,7 +134,10 @@ export function setFocusDeemphasisParams(patch = {}) {
   return { ..._params };
 }
 
-/** @returns {typeof DEFAULT_FOCUS_DEEMPHASIS_PARAMS} Current runtime tuning. */
+/**
+ * 获取当前运行时调参。
+ * @returns {typeof DEFAULT_FOCUS_DEEMPHASIS_PARAMS}
+ */
 export function getFocusDeemphasisParams() {
   return _params;
 }
@@ -235,7 +238,10 @@ export function clearFocusTarget(ownerLayer, id = null) {
   _focusTarget = null;
 }
 
-/** @returns {object|null} The current shared focus target. */
+/**
+ * 获取当前共享焦点目标。
+ * @returns {object|null}
+ */
 export function getFocusTarget() {
   return _focusTarget;
 }

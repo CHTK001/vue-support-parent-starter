@@ -623,7 +623,12 @@ function parseCsv(text) {
     }
     if (ch === '"') quoted = true;
     else if (ch === ',') { record.push(field); field = ''; }
-    else if (ch === '\n') { record.push(field); rows.push(record); record = []; field = ''; }
+    else if (ch === '\n') {
+      record.push(field);
+      rows.push(record);
+      record = [];
+      field = '';
+    }
     else if (ch !== '\r') field += ch;
   }
   if (field !== '' || record.length) { record.push(field); rows.push(record); }

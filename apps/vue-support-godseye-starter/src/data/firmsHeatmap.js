@@ -106,7 +106,10 @@ const scratchWindowCoord = new Cesium.Cartesian2();
  */
 export function mapAnalystRecord(fire) {
   const num = (v) => (Number.isFinite(v) ? v : null);
-  const text = (v) => { const t = String(v ?? '').trim(); return t || null; };
+  const text = (v) => {
+    const t = String(v ?? '').trim();
+    return t || null;
+  };
   return {
     id: `FIRE-${String(fire?.index ?? 0).padStart(5, '0')}`,
     lat: num(fire?.lat),

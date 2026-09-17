@@ -110,7 +110,9 @@ export const WORLD_OVERLAY_OCCLUDER_SELECTORS = Object.freeze([
   '#cockpit-signal-stream',
 ]);
 
-/** @typedef {{x:number,y:number,w:number,h:number}} OverlayRect */
+/**
+ * @typedef {{x:number, y:number, w:number, h:number}} OverlayRect
+ */
 /**
  * @typedef {object} WorldOverlayEntry
  * @property {string} id Stable identity within the source.
@@ -929,7 +931,10 @@ export function hitTestWorldOverlay(x, y, options = {}) {
   return null;
 }
 
-/** @returns {object} Copy of the stable diagnostic facade shape. */
+/**
+ * Copy of the stable diagnostic facade shape.
+ * @returns {object}
+ */
 export function getWorldOverlayDiagnostics() {
   const paintedBySource = {};
   for (let i = 0; i < _paintedSourceKeys.length; i++) {

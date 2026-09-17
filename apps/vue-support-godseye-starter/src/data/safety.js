@@ -186,7 +186,10 @@ export function createSafetyLayer() {
       }
     },
 
-    /** @param {Function} listener */
+    /**
+     * 设置行级控制监听器。
+     * @param {Function} listener
+     */
     setRowControlsListener(listener) {
       _rowControlsListener = typeof listener === 'function' ? listener : null;
     },

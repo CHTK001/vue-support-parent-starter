@@ -494,7 +494,10 @@ export function createShootingsLayer() {
     return 'Marker placed at the recorded location';
   }
 
-  /** Hide the detail card. @returns {void} */
+  /**
+   * 关闭详情卡片。
+   * @returns {void}
+   */
   function closeCard() {
     if (_card) _card.hidden = true;
   }
@@ -684,7 +687,10 @@ export function createShootingsLayer() {
       return true;
     },
 
-    /** @param {Function} listener */
+    /**
+     * 设置行级控制监听器。
+     * @param {Function} listener
+     */
     setRowControlsListener(listener) {
       _rowControlsListener = typeof listener === 'function' ? listener : null;
     },

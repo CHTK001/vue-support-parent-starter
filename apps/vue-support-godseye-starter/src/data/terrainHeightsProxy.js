@@ -11,7 +11,10 @@ export const TERRAIN_RETRY_BUDGET_MS = 10_000;
 /** One initial attempt plus three bounded retries. */
 export const TERRAIN_MAX_ATTEMPTS = 4;
 
-/** @param {number} ms */
+/**
+ * 默认休眠函数（基于 setTimeout）。
+ * @param {number} ms
+ */
 function defaultSleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -46,7 +49,10 @@ export function terrainPointKey([lon, lat]) {
   return `${lon.toFixed(TERRAIN_POINT_PRECISION)},${lat.toFixed(TERRAIN_POINT_PRECISION)}`;
 }
 
-/** @param {[number, number]} point */
+/**
+ * 将 [lon, lat] 点规范化为缓存键。
+ * @param {[number, number]} point
+ */
 function canonicalTerrainPoint(point) {
   const key = terrainPointKey(point);
   return { key, point: key.split(',').map(Number) };

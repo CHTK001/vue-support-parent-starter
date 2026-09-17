@@ -114,7 +114,11 @@ export function normalizeMilitaryInstallations(payload, retrievedAt = new Date()
   return { records, droppedCount };
 }
 
-/** @param {unknown} value @returns {boolean} */
+/**
+ * 校验是否为合法的设施边界框（四个角经纬度均有限值）。
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 export function isValidInstallationBoundingBox(value) {
   const box = value || {};
   const south = Number(box.south);

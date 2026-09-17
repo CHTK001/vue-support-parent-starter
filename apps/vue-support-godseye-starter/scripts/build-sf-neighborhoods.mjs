@@ -37,8 +37,11 @@ const DECIMALS = 6;
 
 /** Perpendicular distance from point p to segment a-b (in degrees, planar — fine at this scale). */
 function segDist(p, a, b) {
-  let [x, y] = p; const [x1, y1] = a; const [x2, y2] = b;
-  let dx = x2 - x1; let dy = y2 - y1;
+  let [x, y] = p;
+  const [x1, y1] = a;
+  const [x2, y2] = b;
+  let dx = x2 - x1;
+  let dy = y2 - y1;
   if (dx !== 0 || dy !== 0) {
     const t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
     if (t > 1) { x -= x2; y -= y2; return Math.hypot(x, y); }
@@ -55,10 +58,14 @@ function douglasPeucker(points, tolerance) {
   const stack = [[0, points.length - 1]];
   while (stack.length) {
     const [first, last] = stack.pop();
-    let maxDist = 0; let index = -1;
+    let maxDist = 0;
+    let index = -1;
     for (let i = first + 1; i < last; i++) {
       const d = segDist(points[i], points[first], points[last]);
-      if (d > maxDist) { maxDist = d; index = i; }
+      if (d > maxDist) {
+        maxDist = d;
+        index = i;
+      }
     }
     if (maxDist > tolerance && index !== -1) {
       keep[index] = 1;
@@ -104,7 +111,8 @@ async function main() {
     throw new Error('unexpected payload: not a FeatureCollection');
   }
 
-  let inVerts = 0; let outVerts = 0;
+  let inVerts = 0;
+  let outVerts = 0;
   const features = [];
   for (const f of raw.features) {
     const name = f.properties && f.properties.nhood;

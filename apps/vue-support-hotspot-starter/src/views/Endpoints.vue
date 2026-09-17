@@ -116,11 +116,20 @@
         <span class="call-share-label mono">调用量占比 {{ callSharePercent.toFixed(1) }} %</span>
       </div>
     </div>
+
+    <!-- 端点调用量趋势（近 60 分钟，分钟桶） -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>{{ trendEndpointLabel }}</span>
+        <span class="panel-sub">端点调用量趋势 · 近 60 分钟（分钟桶，/endpoint-stats）</span>
+      </div>
+      <ReEcharts :option="endpointTrendOption" theme="dark" height="220px" class="duration-chart" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { DataLine, Timer, Warning } from "@element-plus/icons-vue";
 import ReInput from "@repo/ui/re-input";
@@ -132,8 +141,8 @@ import ReStatCard from "@repo/ui/re-stat-card";
 import ReEcharts from "@repo/ui/re-echarts";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { EChartsOption } from "echarts";
-import { getEndpoints } from "../api/apmApi";
-import type { ApmEndpoint } from "../api/apmApi";
+import { getEndpoints, getEndpointStats } from "../api/apmApi";
+import type { ApmEndpoint, EndpointStatPoint } from "../api/apmApi";
 
 const items = ref<ApmEndpoint[]>([]);
 const loading = ref(false);
@@ -170,7 +179,10 @@ const maxErrorRateEndpoint = computed(() => {
   let ep = "";
   for (const e of items.value) {
     const r = e.errorRate ?? 0;
-    if (r > max) { max = r; ep = e.endpoint; }
+    if (r > max) {
+      max = r;
+      ep = e.endpoint;
+    }
   }
   return ep;
 });
@@ -196,6 +208,7 @@ async function load() {
   selected.value = null;
   try {
     items.value = await getEndpoints(50);
+    loadEndpointTrend();
   } catch {
     ElMessage.error("加载端点失败");
   } finally {
@@ -203,9 +216,86 @@ async function load() {
   }
 }
 
+// ---- 端点调用量趋势（/endpoint-stats 分钟桶）----
+const endpointStats = ref<EndpointStatPoint[]>([]);
+
+/** 趋势图目标端点：选中优先，否则 Top1（调用量最大） */
+function targetEndpoint(): string {
+  if (selected.value?.endpoint) return selected.value.endpoint;
+  if (!items.value.length) return "";
+  return [...items.value].sort((a, b) => b.callCount - a.callCount)[0].endpoint;
+}
+
+const trendEndpointLabel = computed(() => {
+  const ep = targetEndpoint();
+  if (!ep) return "端点调用量趋势";
+  return selected.value?.endpoint ? `端点趋势 · ${selected.value.endpoint}` : `端点趋势 · Top1（${ep}）`;
+});
+
+async function loadEndpointTrend() {
+  try {
+    endpointStats.value = (await getEndpointStats("", 60, 60)) || [];
+  } catch {
+    endpointStats.value = [];
+  }
+}
+
+const endpointTrendOption = computed<EChartsOption>(() => {
+  const ep = targetEndpoint();
+  if (!ep) return {};
+  const rows = endpointStats.value
+    .filter((p) => p.endpoint === ep)
+    .sort((a, b) => a.ts - b.ts);
+  if (!rows.length) return { backgroundColor: "transparent", title: { text: "暂无趋势数据", left: "center", top: "center", textStyle: { color: "rgba(230,237,247,0.4)", fontSize: 12 } } };
+  const hm = (ms: number) => {
+    const d = new Date(ms);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  return {
+    backgroundColor: "transparent",
+    grid: { left: 44, right: 44, top: 30, bottom: 24 },
+    tooltip: { trigger: "axis" },
+    legend: { data: ["调用量", "平均耗时 ms"], textStyle: { color: "#e6edf7" }, top: 0 },
+    xAxis: { type: "category", boundaryGap: false, data: rows.map((p) => hm(p.ts)), axisLabel: { color: "#e6edf7" } },
+    yAxis: [
+      { type: "value", minInterval: 1, axisLabel: { color: "#e6edf7" } },
+      { type: "value", name: "ms", axisLabel: { color: "#e6edf7" } },
+    ],
+    series: [
+      {
+        name: "调用量",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: rows.map((p) => p.callCount),
+        lineStyle: { color: "#3b82f6", width: 2 },
+        areaStyle: { color: "rgba(59,130,246,0.2)" },
+      },
+      {
+        name: "平均耗时 ms",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        yAxisIndex: 1,
+        data: rows.map((p) => Number(p.avgMs.toFixed(1))),
+        lineStyle: { color: "#f59e0b", width: 2 },
+      },
+    ],
+  } as EChartsOption;
+});
+
+let trendTimer: number | undefined;
+
 function onRowClick(row: Record<string, unknown>) {
   selected.value = row as unknown as ApmEndpoint;
 }
+
+onMounted(load);
+
+onBeforeUnmount(() => {
+  if (trendTimer) window.clearInterval(trendTimer);
+});
 
 // 耗时分布图（4 柱：avg / p95 / p99 / max）
 const DURATION_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
@@ -256,7 +346,15 @@ const durationOption = computed<EChartsOption>(() => {
   } as EChartsOption;
 });
 
-onMounted(load);
+onMounted(() => {
+  load();
+  // 复用现有 15s 轮询节奏，趋势数据随 load 追加刷新
+  trendTimer = window.setInterval(loadEndpointTrend, 15000);
+});
+
+onBeforeUnmount(() => {
+  if (trendTimer) window.clearInterval(trendTimer);
+});
 </script>
 
 <style scoped>

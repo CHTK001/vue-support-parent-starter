@@ -217,7 +217,10 @@ function withCoalescedPaint(fn) {
   }
 }
 
-/** @returns {number} Quantized terminus the CURRENT camera + override imply. */
+/**
+ * Quantized terminus the CURRENT camera + override imply.
+ * @returns {number}
+ */
 function currentTerminusTarget() {
   return quantizeScopeTerminusAlpha(
     _terminusOverride == null ? scopeTerminusAlpha(currentCameraHeightM()) : _terminusOverride,
@@ -242,12 +245,18 @@ export function setScopeTerminusOverride(alpha) {
   draw();
 }
 
-/** @returns {?number} The pinned terminus alpha, or null when adaptive. */
+/**
+ * The pinned terminus alpha, or null when adaptive.
+ * @returns {?number}
+ */
 export function getScopeTerminusOverride() {
   return _terminusOverride;
 }
 
-/** @returns {number} The terminus alpha currently painted. */
+/**
+ * The terminus alpha currently painted.
+ * @returns {number}
+ */
 export function getScopeTerminusAlpha() {
   return _terminusAlpha;
 }
@@ -412,7 +421,10 @@ export function installScopeMask(viewer) {
   draw();
 }
 
-/** @returns {number} Live camera height above the ellipsoid, or +Inf if unknown. */
+/**
+ * Live camera height above the ellipsoid, or +Inf if unknown.
+ * @returns {number}
+ */
 function currentCameraHeightM() {
   const height = _viewer?.camera?.positionCartographic?.height;
   return Number.isFinite(height) ? height : Number.POSITIVE_INFINITY;
@@ -475,7 +487,9 @@ export function setScopeMaskEnabled(enabled) {
   draw();
 }
 
-/** @returns {boolean} */
+/**
+ * @returns {boolean}
+ */
 export function isScopeMaskEnabled() {
   return _enabled;
 }
@@ -489,7 +503,10 @@ export function setScopeMaskFeather(ratio) {
   draw();
 }
 
-/** @returns {number} */
+/**
+ * 查询当前蒙版羽化比例。
+ * @returns {number}
+ */
 export function getScopeMaskFeather() {
   return _featherRatio;
 }

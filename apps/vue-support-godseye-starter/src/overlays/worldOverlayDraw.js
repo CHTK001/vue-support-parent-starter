@@ -99,7 +99,10 @@ export function measureWorldOverlayText(ctx, text, font) {
   return width;
 }
 
-/** @returns {number} Current cache size, exposed for focused diagnostics/tests. */
+/**
+ * Current cache size, exposed for focused diagnostics/tests.
+ * @returns {number}
+ */
 export function getWorldOverlayTextMeasureCacheSize() {
   return _textMeasureCacheSize;
 }

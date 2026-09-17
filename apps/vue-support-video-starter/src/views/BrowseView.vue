@@ -24,6 +24,12 @@ const activeType = ref("");
 const page = ref(1);
 const pageSize = 24;
 
+/** 清空筛选条件（关键词 + 类型） */
+function clearFilters() {
+  keyword.value = "";
+  activeType.value = "";
+}
+
 /** 类型筛选项 */
 const TYPE_OPTIONS = [
   { value: "", label: "全部" },
@@ -183,7 +189,7 @@ onMounted(() => void load());
 
       <div v-else class="vd-empty">
         <el-empty description="没有找到匹配的影片，换个关键词试试">
-          <el-button type="primary" @click="keyword = ''; activeType = ''">清空筛选</el-button>
+          <el-button type="primary" @click="clearFilters">清空筛选</el-button>
         </el-empty>
       </div>
 

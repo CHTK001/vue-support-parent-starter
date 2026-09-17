@@ -32,11 +32,18 @@ function fakeFrames() {
   const cancelled = [];
   _setGovernorSchedulerForTest({
     raf: (fn) => { queued = fn; return nextId++; },
-    cancel: (id) => { cancelled.push(id); queued = null; },
+    cancel: (id) => {
+      cancelled.push(id);
+      queued = null;
+    },
   });
   return {
     /** Advance one frame at timestamp `t`. */
-    tick(t) { const fn = queued; queued = null; if (fn) fn(t); },
+    tick(t) {
+      const fn = queued;
+      queued = null;
+      if (fn) fn(t);
+    },
     pending: () => queued !== null,
     cancelled: () => cancelled,
   };

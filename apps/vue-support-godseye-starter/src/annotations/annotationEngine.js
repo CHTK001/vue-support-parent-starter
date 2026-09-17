@@ -633,7 +633,8 @@ export function createAnnotationEngine({
     // same-length rings/paths at the same anchor are never falsely merged.
     const ringSame = ringsEqual;
     const pathSame = (a, b) => {
-      const la = a ? a.length : 0; const lb = b ? b.length : 0;
+      const la = a ? a.length : 0;
+      const lb = b ? b.length : 0;
       if (la !== lb) return false;
       for (let i = 0; i < la; i++) if (!near(a[i], b[i])) return false;
       return true;

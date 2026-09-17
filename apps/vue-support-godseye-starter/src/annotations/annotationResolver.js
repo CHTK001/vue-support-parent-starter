@@ -1019,7 +1019,10 @@ async function fetchPlaceArea(lat, lon, query, signal) {
     if (nameCoverage < 0.6) continue;
     if (approximateAreaM2(coords) > 80_000_000) continue; // a neighborhood isn't a city
     const score = nameCoverage * 1000 + (pointInPolygon(lon, lat, coords) ? 400 : 0) + overlap * 50;
-    if (score > bestScore) { bestScore = score; bestRing = closeRing(coords.map((p) => [p.lon, p.lat])); }
+    if (score > bestScore) {
+      bestScore = score;
+      bestRing = closeRing(coords.map((p) => [p.lon, p.lat]));
+    }
   }
   return bestRing ? { ring: bestRing, kind: 'area', heightM: null } : null;
 }
@@ -1060,7 +1063,10 @@ async function fetchStreet(lat, lon, query, signal) {
       if (!overlap) continue;
       if (approximateAreaM2(coords) > 2_000_000) continue; // a street isn't a whole suburb
       const score = overlap * 1000 + (pointInPolygon(lon, lat, coords) ? 300 : 0);
-      if (score > bestScore) { bestScore = score; bestRing = closeRing(coords.map((p) => [p.lon, p.lat])); }
+      if (score > bestScore) {
+        bestScore = score;
+        bestRing = closeRing(coords.map((p) => [p.lon, p.lat]));
+      }
     }
     if (bestRing) {
       const fp = { ring: bestRing, kind: 'area', heightM: null };
@@ -1182,7 +1188,10 @@ function douglasPeucker(points, tol) {
     const b = points[last];
     for (let i = first + 1; i < last; i += 1) {
       const dist = perpDistance(points[i], a, b);
-      if (dist > maxD) { maxD = dist; index = i; }
+      if (dist > maxD) {
+        maxD = dist;
+        index = i;
+      }
     }
     if (maxD > tol && index > first) {
       keep[index] = 1;
@@ -1475,7 +1484,10 @@ async function fetchLocalMonument(lat, lon, query, signal) {
     const completeness = f.words.size ? overlap / f.words.size : 0;
     if (completeness < 0.6) continue;
     const score = overlap * 10 + completeness;
-    if (score > bestScore) { bestScore = score; best = f; }
+    if (score > bestScore) {
+      bestScore = score;
+      best = f;
+    }
   }
   return best ? { lat: best.lat, lon: best.lon, label: best.name } : null;
 }
@@ -1645,14 +1657,20 @@ function largestByArea(components) {
   let bestArea = approximateAreaM2(best);
   for (let i = 1; i < components.length; i += 1) {
     const area = approximateAreaM2(components[i]);
-    if (area > bestArea) { bestArea = area; best = components[i]; }
+    if (area > bestArea) {
+      bestArea = area;
+      best = components[i];
+    }
   }
   return best;
 }
 
 /** Rough diameter (m) of a chain's bounding box. */
 function ringSpanM(chain) {
-  let minLat = Infinity; let maxLat = -Infinity; let minLon = Infinity; let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
   for (const p of chain) {
     if (p.lat < minLat) minLat = p.lat;
     if (p.lat > maxLat) maxLat = p.lat;

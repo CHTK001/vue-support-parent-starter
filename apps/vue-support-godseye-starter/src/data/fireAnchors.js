@@ -59,7 +59,10 @@ export function warmFireAnchorFloors(points) {
   return run;
 }
 
-/** @returns {Array<{lat: number, lon: number}>} Points with no warm floor. */
+/**
+ * Points with no warm floor.
+ * @returns {Array<{lat: number, lon: number}>}
+ */
 function collectCold(points) {
   if (!Array.isArray(points)) return [];
   const cold = [];
