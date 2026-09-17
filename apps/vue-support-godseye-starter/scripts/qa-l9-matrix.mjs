@@ -191,7 +191,10 @@ const CREDIT_EXEMPT_LAYERS = {
   annotations: 'user-drawn marks; no third-party data',
 };
 
-/** @returns {{regex: RegExp}|{exempt: string}|null} null = unmapped (fails closed). */
+/**
+ * 判断图层所需的版权信用说明。
+ * @returns {{regex: RegExp}|{exempt: string}|null} null = 未映射（保守失败）。
+ */
 function requiredCreditFor(layerId) {
   if (CREDIT_EXPECTATIONS[layerId]) return { regex: CREDIT_EXPECTATIONS[layerId] };
   if (CREDIT_EXEMPT_LAYERS[layerId]) return { exempt: CREDIT_EXEMPT_LAYERS[layerId] };

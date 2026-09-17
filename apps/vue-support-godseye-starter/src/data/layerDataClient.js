@@ -17,7 +17,10 @@ const _pending = new Map();
 let _nextId = 1;
 let _unavailable = false;
 
-/** @returns {Worker|null} */
+/**
+ * 获取或创建 Worker 实例。
+ * @returns {Worker|null}
+ */
 function ensureWorker() {
   if (_worker || _unavailable) return _worker;
   try {

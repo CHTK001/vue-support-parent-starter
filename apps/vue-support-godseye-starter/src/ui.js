@@ -6688,7 +6688,10 @@ export class StyleManager {
     this._cctvLightboxSaveBtn?.addEventListener('click', () => this._saveCctvFrame());
   }
 
-  /** Opens the enlarged frame view. @returns {void} */
+  /**
+   * Opens the enlarged frame view.
+   * @returns {void}
+   */
   _openCctvLightbox() {
     if (!this._cctvLightbox) return;
     this._cctvLightbox.hidden = false;
@@ -6696,7 +6699,10 @@ export class StyleManager {
     this._syncCctvLightboxFrame();
   }
 
-  /** Closes the enlarged frame view. @returns {void} */
+  /**
+   * Closes the enlarged frame view.
+   * @returns {void}
+   */
   _closeCctvLightbox() {
     if (!this._cctvLightbox) return;
     this._cctvLightbox.hidden = true;
@@ -6758,7 +6764,10 @@ export class StyleManager {
     });
   }
 
-  /** @returns {string} The frame URL currently on show, or ''. */
+  /**
+   * The frame URL currently on show, or ''.
+   * @returns {string}
+   */
   _currentCctvFrameSrc() {
     return this._cctvLightboxFrame?.dataset.currentSrc
       || this._cctvFrame?.dataset.currentSrc

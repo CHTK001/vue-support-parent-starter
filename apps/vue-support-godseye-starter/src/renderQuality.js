@@ -130,12 +130,18 @@ export function loadRenderQuality() {
   return level;
 }
 
-/** @returns {string} The active level id. */
+/**
+ * The active level id.
+ * @returns {string}
+ */
 export function getRenderQuality() {
   return level;
 }
 
-/** @returns {boolean} Whether a mode may adapt quality on its own. */
+/**
+ * Whether a mode may adapt quality on its own.
+ * @returns {boolean}
+ */
 export function isAutoQuality() {
   return level === 'auto';
 }

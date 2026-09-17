@@ -129,7 +129,8 @@ try {
   /** Count scene postRender fires and rAF ticks over windowMs. */
   const countFrames = (windowMs) => page.evaluate((ms) => new Promise((resolve) => {
     const scene = window.__godsEyeView.viewer.scene;
-    let renders = 0; let rafs = 0;
+    let renders = 0;
+    let rafs = 0;
     const remove = scene.postRender.addEventListener(() => { renders += 1; });
     const t0 = performance.now();
     const tick = () => {

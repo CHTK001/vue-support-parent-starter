@@ -861,7 +861,10 @@ export class IntelHUD {
     return this._visible ? 'on' : 'off';
   }
 
-  /** @returns {boolean} Whether the HUD is currently visible. */
+  /**
+   * Whether the HUD is currently visible.
+   * @returns {boolean}
+   */
   get visible() {
     return this._visible;
   }

@@ -855,7 +855,10 @@ export class SceneDirector {
     };
   }
 
-  /** @returns {boolean} Whether a scene run is currently in progress */
+  /**
+   * Whether a scene run is currently in progress
+   * @returns {boolean}
+   */
   get running() {
     return this._running;
   }

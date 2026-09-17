@@ -56,7 +56,10 @@ export function findNextIssPass({
   while (t <= horizonMs) {
     const e = elev(t);
     if (e < minElevDeg && t > riseMs) break;
-    if (e > maxElevDeg) { maxElevDeg = e; maxElevMs = t; }
+    if (e > maxElevDeg) {
+      maxElevDeg = e;
+      maxElevMs = t;
+    }
     t += fine;
   }
   const setMs = t;

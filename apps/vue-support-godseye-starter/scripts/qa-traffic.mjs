@@ -221,12 +221,14 @@ async function main() {
     await settleTraffic(page, { lon: -97.72, lat: 30.245, height: 2500, heading: 315, pitch: -20 }, { minCount: 100 });
     {
       const fetchLine = trafficLogs.find((t) => t.includes('fetch') && t.includes('['));
-      let ok = false; let detail = 'no fetch log captured';
+      let ok = false;
+      let detail = 'no fetch log captured';
       if (fetchLine) {
         const m = fetchLine.match(/\[(-?[\d.]+),(-?[\d.]+),(-?[\d.]+),(-?[\d.]+)\]/);
         if (m) {
           const [s, w, n, e] = m.slice(1).map(Number);
-          const cLat = (s + n) / 2; const cLon = (w + e) / 2;
+          const cLat = (s + n) / 2;
+          const cLon = (w + e) / 2;
           const dKm = Math.sqrt(((cLat - 30.245) * 111) ** 2 + ((cLon - (-97.72)) * 111 * Math.cos(30.27 * Math.PI / 180)) ** 2);
           ok = dKm > 1 && dKm <= 13; // look-at ~6.9 km ahead; clamp allows ≤12 (+margin)
           detail = `box center (${cLat.toFixed(4)},${cLon.toFixed(4)}) is ${dKm.toFixed(1)} km from camera (want 1–13 km; pre-fix bug: 25+ km)`;

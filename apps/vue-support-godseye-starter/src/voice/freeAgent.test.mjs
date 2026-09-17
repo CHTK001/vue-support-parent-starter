@@ -133,11 +133,17 @@ test('an enormous result cannot blow the model context', () => {
 
 // --- the loop -------------------------------------------------------------
 
-/** @returns {Function} A chat stub replying with each script entry in turn. */
+/**
+ * 依次回复脚本条目的 chat 测试桩。
+ * @returns {Function}
+ */
 function scriptedChat(replies) {
   let i = 0;
   const seen = [];
-  const fn = async (messages) => { seen.push(messages); return replies[i++] ?? ''; };
+  const fn = async (messages) => {
+    seen.push(messages);
+    return replies[i++] ?? '';
+  };
   fn.seen = seen;
   return fn;
 }

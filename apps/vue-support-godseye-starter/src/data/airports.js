@@ -105,7 +105,10 @@ export function nearestUsable(airports, lat, lon, requiredFt = 8000) {
     const dLat = airport.lat - lat;
     const dLon = (airport.lon - lon) * Math.cos((lat * Math.PI) / 180);
     const score = (dLat * dLat) + (dLon * dLon);
-    if (score < bestScore) { bestScore = score; best = airport; }
+    if (score < bestScore) {
+      bestScore = score;
+      best = airport;
+    }
   }
   return best;
 }
@@ -140,7 +143,9 @@ export function createAirportsLayer() {
   let _clickHandler = null;
   let _card = null;
 
-  /** @returns {Array<object>} */
+  /**
+   * @returns {Array<object>}
+   */
   function visible() {
     return _airports.filter((airport) => _tiers.has(airport.type));
   }
@@ -264,7 +269,9 @@ export function createAirportsLayer() {
     if (_card) _card.hidden = true;
   }
 
-  /** @param {object} viewer */
+  /**
+   * @param {object} viewer
+   */
   function installInteraction(viewer) {
     if (_clickHandler || !viewer?.scene?.canvas) return;
     _clickHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -368,7 +375,9 @@ export function createAirportsLayer() {
       return true;
     },
 
-    /** @param {Function} listener */
+    /**
+     * @param {Function} listener
+     */
     setRowControlsListener(listener) {
       _rowControlsListener = typeof listener === 'function' ? listener : null;
     },
@@ -408,8 +417,13 @@ export function createAirportsLayer() {
       };
     },
 
-    /** @returns {Array<object>} For the flight simulator. */
-    all() { return _airports; },
+    /**
+     * For the flight simulator.
+     * @returns {Array<object>}
+     */
+    all() {
+      return _airports;
+    },
   };
 
   return layer;

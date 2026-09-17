@@ -102,7 +102,11 @@ export function classifyGoogleMilitaryPlace(place) {
     : 'places_candidate';
 }
 
-/** @param {object} record @returns {string} Human-readable source attribution. */
+/**
+ * Get a human-readable source-attribution label for an installation record.
+ * @param {object} record — installation record carrying a `sources` array
+ * @returns {string} human-readable source attribution
+ */
 export function installationSourceLabel(record) {
   const names = [...new Set((Array.isArray(record?.sources) ? record.sources : [])
     .map((source) => String(source?.name || '').trim())
@@ -154,8 +158,10 @@ export function installationWithinViewport(record, box) {
     && longitude >= box.west && longitude <= box.east;
   if (centreInside) return true;
   if (Array.isArray(footprint) && footprint.length) {
-    let minLat = Infinity; let maxLat = -Infinity;
-    let minLon = Infinity; let maxLon = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    let minLon = Infinity;
+    let maxLon = -Infinity;
     for (const [lon, lat] of footprint) {
       if (lat < minLat) minLat = lat;
       if (lat > maxLat) maxLat = lat;

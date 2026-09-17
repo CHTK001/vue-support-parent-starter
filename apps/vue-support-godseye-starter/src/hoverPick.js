@@ -67,7 +67,10 @@ export function createHoverPickThrottle({
   let pending = null;
   let queued = false;
 
-  /** @returns {boolean} True while the user is driving the camera. */
+  /**
+   * True while the user is driving the camera.
+   * @returns {boolean}
+   */
   function cameraIsMoving() {
     const controller = scene?.screenSpaceCameraController;
     // `_lastInertia*` are not public, so go by the flags that are: any active
@@ -125,6 +128,9 @@ export function createHoverPickThrottle({
     },
 
     /** Drop any queued pick. */
-    cancel() { pending = null; queued = false; },
+    cancel() {
+      pending = null;
+      queued = false;
+    },
   };
 }

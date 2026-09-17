@@ -412,7 +412,10 @@ function analyzeHandoff(label, { samples, actionTMs }, {
     boundaryPairs += 1;
     const d = Math.abs(norm180(valid[i].course - valid[i - 1].course));
     const excess = d - truthDps * (dtMs / 1000);
-    if (excess > maxExcess) { maxExcess = excess; maxExcessAtMs = valid[i].tMs - actionTMs; }
+    if (excess > maxExcess) {
+      maxExcess = excess;
+      maxExcessAtMs = valid[i].tMs - actionTMs;
+    }
     // Rate metric: dt floored at the display's own refresh quantum — the fleet
     // billboard's rotation advances in ROTATION_REFRESH_MS batches, so a
     // short-dt sample pair spanning one refresh reads a full second of course
@@ -612,12 +615,16 @@ async function main() {
         let tracked = null;
         if (ent && typeof ent.gevDisplayPosition === 'function') tracked = ent.gevDisplayPosition();
         if (!tracked) return pool[0];
-        let best = null, bestD = Infinity;
+        let best = null;
+        let bestD = Infinity;
         for (const m of pool) {
           const mm = m.modelMatrix;
           const dx = mm[12] - tracked.x, dy = mm[13] - tracked.y, dz = mm[14] - tracked.z;
           const d = dx * dx + dy * dy + dz * dz;
-          if (d < bestD) { bestD = d; best = m; }
+          if (d < bestD) {
+            bestD = d;
+            best = m;
+          }
         }
         return best;
       };

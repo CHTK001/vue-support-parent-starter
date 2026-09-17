@@ -52,7 +52,10 @@ export function stripWakeWords(text) {
     changed = false;
     for (const opener of openers) {
       const next = out.replace(opener, '');
-      if (next !== out) { out = next; changed = true; }
+      if (next !== out) {
+        out = next;
+        changed = true;
+      }
     }
   }
   return out.trim();
@@ -341,10 +344,19 @@ export function createAgentLoop({
       return { spoke, rounds, steps: stepCount, failed: 'round-cap' };
     },
 
-    /** Forget the conversation. */
-    reset() { history = []; },
+    /**
+     * 清除对话历史。
+     */
+    reset() {
+      history = [];
+    },
 
-    /** @returns {Array<object>} A copy, for tests and diagnostics. */
-    history() { return history.map((m) => ({ ...m })); },
+    /**
+     * 返回对话历史的副本，用于测试与诊断。
+     * @returns {Array<object>}
+     */
+    history() {
+      return history.map((m) => ({ ...m }));
+    },
   };
 }

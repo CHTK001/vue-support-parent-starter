@@ -2087,7 +2087,9 @@ function updateSelectionEntity() {
     return;
   }
   const selectionColor = radioCategoryColor(radioStationCategoryId(station));
-  const bracketImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(radioSelectionBracketSvg(selectionColor))}`;
+  const bracketSvg = radioSelectionBracketSvg(selectionColor);
+  const svgDataUri = 'data:image/svg+xml;charset=utf-8';
+  const bracketImage = `${svgDataUri},${encodeURIComponent(bracketSvg)}`;
 
   _selectedEntity = _viewer.entities.add({
     id: `${RADIO_PREFIX}selected:${station.id}`,

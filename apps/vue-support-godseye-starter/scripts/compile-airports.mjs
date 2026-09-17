@@ -112,7 +112,11 @@ async function getText(url) {
   return response.text();
 }
 
-/** @param {string} v @returns {number|null} */
+/**
+ * 将字符串解析为有限数值。
+ * @param {string} v
+ * @returns {number|null}
+ */
 function num(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;

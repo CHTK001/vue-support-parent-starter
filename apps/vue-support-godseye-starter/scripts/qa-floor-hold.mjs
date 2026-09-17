@@ -129,7 +129,9 @@ await page.evaluate(async () => { await window.__godsEyeView.dataManager.toggle(
 const measure = () => page.evaluate(async (icao) => {
   const v = window.__godsEyeView.viewer;
   const C = v.camera.positionCartographic.constructor;
-  const sprites = []; const models = []; let bb = null;
+  const sprites = [];
+  const models = [];
+  let bb = null;
   const walk = (coll) => {
     for (let i = 0; i < coll.length; i++) {
       let p; try { p = coll.get(i); } catch { continue; }

@@ -163,7 +163,9 @@ export function createSimInput({ surface, onExitRequest, onAction } = {}) {
     dragging = true;
   }
 
-  /** @returns {void} */
+  /**
+   * @returns {void}
+   */
   function onMouseUp() {
     dragging = false;
   }
@@ -296,7 +298,9 @@ export function createSimInput({ surface, onExitRequest, onAction } = {}) {
       return mouseYoke;
     },
 
-    /** @returns {boolean} */
+    /**
+     * @returns {boolean}
+     */
     isMouseYoke() {
       return mouseYoke;
     },

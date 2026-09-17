@@ -926,7 +926,9 @@ function _deadReckon(icao24, result) {
   const history = _positionHistory.get(icao24);
   const info = _flightData.get(icao24);
   if (!history || history.length === 0) {
-    _drCourseDeg = null; _drSpeedMps = null; _drCourseHold = false;
+    _drCourseDeg = null;
+    _drSpeedMps = null;
+    _drCourseHold = false;
     return null;
   }
 
@@ -2567,7 +2569,10 @@ function _trackFlight(icao24, { origin = 'programmatic' } = {}) {
  */
 export function mapAnalystRecord(icao24, info) {
   const num = (v) => (Number.isFinite(v) ? v : null);
-  const text = (v) => { const t = String(v ?? '').trim(); return t || null; };
+  const text = (v) => {
+    const t = String(v ?? '').trim();
+    return t || null;
+  };
   const callsign = text(info?.callsign);
   return {
     id: callsign || text(info?.registration) || icao24,
@@ -2627,8 +2632,16 @@ const militaryFlightsLayer = {
       const epoch = _modelEpoch;
       Cesium.Model.fromGltfAsync({ url: JET_MODEL_URL, asynchronous: false })
         .then((m) => {
-          if (epoch === _modelEpoch) { _preloadModel = m; _planeModelLoaded = true; }
-          else { try { m.destroy(); } catch { /* gone */ } }
+          if (epoch === _modelEpoch) {
+            _preloadModel = m;
+            _planeModelLoaded = true;
+          } else {
+            try {
+              m.destroy();
+            } catch {
+              /* gone */
+            }
+          }
         })
         .catch(() => { /* tracked plane just stays a billboard a beat longer */ });
     }

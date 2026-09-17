@@ -115,7 +115,10 @@ export function setAircraftRecessionParams(patch = {}) {
   return { ..._params };
 }
 
-/** @returns {typeof DEFAULT_AIRCRAFT_RECESSION_PARAMS} Current tuning. */
+/**
+ * Current tuning.
+ * @returns {typeof DEFAULT_AIRCRAFT_RECESSION_PARAMS}
+ */
 export function getAircraftRecessionParams() {
   return _params;
 }

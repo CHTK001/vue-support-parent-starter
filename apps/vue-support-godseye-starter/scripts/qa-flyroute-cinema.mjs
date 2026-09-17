@@ -357,7 +357,10 @@ try {
     let worstAt = null;
     for (const row of probed) {
       const clearance = row.height - row.surfaceM;
-      if (clearance < worst) { worst = clearance; worstAt = row; }
+      if (clearance < worst) {
+        worst = clearance;
+        worstAt = row;
+      }
     }
     report(worst > 0, 'the eye is never inside the RENDERED world',
       `min clearance over the rendered surface ${worst.toFixed(1)} m across ${probed.length} live probes`

@@ -36,7 +36,11 @@ export const TR3B_TYPE_LABEL = 'TR-3B';
  */
 export const TR3B_CLASS = 'tr3b';
 
-/** @param {*} id Raw contact id. @returns {string} Normalized registry key. */
+/**
+ * Normalize a raw contact id into the registry key.
+ * @param {*} id Raw contact id.
+ * @returns {string} Normalized registry key.
+ */
 function key(id) {
   return String(id ?? '').trim().toLowerCase();
 }
@@ -74,12 +78,18 @@ export function toggleTr3b(id) {
   return setTr3b(id, !isTr3b(id));
 }
 
-/** @returns {string[]} Every currently converted id (lower-case hex). */
+/**
+ * 获取当前所有已转换的 ID（小写十六进制）。
+ * @returns {string[]}
+ */
 export function tr3bConvertedIds() {
   return [..._converted];
 }
 
-/** @returns {number} How many contacts are converted right now. */
+/**
+ * 获取当前已转换的联系人数量。
+ * @returns {number}
+ */
 export function tr3bCount() {
   return _converted.size;
 }

@@ -332,7 +332,8 @@ export function createScreenAnnotationRenderer(viewer, {
       let scale = 1;
       const sbd = bb.scaleByDistance?.getValue?.(now);
       if (sbd) scale = nearFarValue(sbd, Cesium.Cartesian3.distance(scene.camera.positionWC, world));
-      const hw = (baseW * scale) / 2; const hh = (baseH * scale) / 2;
+      const hw = (baseW * scale) / 2;
+      const hh = (baseH * scale) / 2;
       const bbLeft = win.x - hw;
       const bbRight = win.x + hw;
       const bbTop = win.y - hh;
@@ -369,7 +370,9 @@ export function createScreenAnnotationRenderer(viewer, {
 
       if (anno.type === 'area' && parts.poly) {
         const pts = [];
-        let cx = 0; let cy = 0; let n = 0;
+        let cx = 0;
+        let cy = 0;
+        let n = 0;
         for (const [lon, lat] of anno.ring) {
           const p = project(lon, lat);
           if (!p) continue;
@@ -388,8 +391,10 @@ export function createScreenAnnotationRenderer(viewer, {
         const b = project(anno.to.lon, anno.to.lat);
         if (a && b) {
           // gentle arc so the connector reads as a drawn gesture, not a ruler line
-          const mx = (a.x + b.x) / 2; const my = (a.y + b.y) / 2;
-          const dx = b.x - a.x; const dy = b.y - a.y;
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
           const len = Math.hypot(dx, dy) || 1;
           const bow = Math.min(60, len * 0.18);
           const ctrlX = mx - (dy / len) * bow;
@@ -427,12 +432,25 @@ export function createScreenAnnotationRenderer(viewer, {
         if (p) {
           group.style.display = '';
           const baseDotR = anno.type === 'label' ? LABEL_DOT_R : DOT_R;
-          if (parts.dot) { parts.dot.setAttribute('cx', p.x.toFixed(1)); parts.dot.setAttribute('cy', p.y.toFixed(1)); parts.dot.setAttribute('r', (baseDotR * mScale).toFixed(1)); }
-          if (parts.ringOuter) { parts.ringOuter.setAttribute('cx', p.x.toFixed(1)); parts.ringOuter.setAttribute('cy', p.y.toFixed(1)); parts.ringOuter.setAttribute('r', (RING_OUTER_R * mScale).toFixed(1)); }
-          if (parts.ringInner) { parts.ringInner.setAttribute('cx', p.x.toFixed(1)); parts.ringInner.setAttribute('cy', p.y.toFixed(1)); parts.ringInner.setAttribute('r', (RING_INNER_R * mScale).toFixed(1)); }
+          if (parts.dot) {
+            parts.dot.setAttribute('cx', p.x.toFixed(1));
+            parts.dot.setAttribute('cy', p.y.toFixed(1));
+            parts.dot.setAttribute('r', (baseDotR * mScale).toFixed(1));
+          }
+          if (parts.ringOuter) {
+            parts.ringOuter.setAttribute('cx', p.x.toFixed(1));
+            parts.ringOuter.setAttribute('cy', p.y.toFixed(1));
+            parts.ringOuter.setAttribute('r', (RING_OUTER_R * mScale).toFixed(1));
+          }
+          if (parts.ringInner) {
+            parts.ringInner.setAttribute('cx', p.x.toFixed(1));
+            parts.ringInner.setAttribute('cy', p.y.toFixed(1));
+            parts.ringInner.setAttribute('r', (RING_INNER_R * mScale).toFixed(1));
+          }
           if (parts.label) {
             // Keep the callout tucked near the (now smaller) reticle by scaling its offset.
-            const lx = p.x + 18 * mScale; const ly = p.y - 34 * mScale;
+            const lx = p.x + 18 * mScale;
+            const ly = p.y - 34 * mScale;
             positionCallout(parts.label, lx, ly, false);
             if (parts.leader) {
               parts.leader.setAttribute('x1', p.x.toFixed(1)); parts.leader.setAttribute('y1', p.y.toFixed(1));

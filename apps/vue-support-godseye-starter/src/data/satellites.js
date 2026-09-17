@@ -2109,7 +2109,10 @@ const satellitesLayer = {
     return true;
   },
 
-  /** @returns {{ catalog: string }} Current runtime params. */
+  /**
+   * 获取当前运行时参数。
+   * @returns {{ catalog: string }}
+   */
   getParams() {
     return {
       catalog: _params.catalog,
@@ -2385,7 +2388,10 @@ export function getSatelliteOrbitTrack(query, options = {}) {
       const designatorYear = internationalDesignatorYear(sat.satrec);
       if (launchYear !== null && designatorYear !== null && designatorYear !== launchYear) continue;
       const score = scoreSatelliteNameMatch(q, sat.name);
-      if (score > bestScore) { bestScore = score; noradId = id; }
+      if (score > bestScore) {
+        bestScore = score;
+        noradId = id;
+      }
     }
     if (bestScore < 12) noradId = null;
   }

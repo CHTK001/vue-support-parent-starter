@@ -574,7 +574,10 @@ function resetNavigationVisitedCycle() {
   if (currentKey) state.navigationVisited.add(currentKey);
 }
 
-/** @returns {{historyKeys: string[], navigationVisitedKeys: string[], historyLength: number, navigationIndex: number, suppressedHistoryKey: string|null, pendingSelectionKey: string|null}} */
+/**
+ * 返回导航状态快照，用于测试。
+ * @returns {{historyKeys: string[], navigationVisitedKeys: string[], historyLength: number, navigationIndex: number, suppressedHistoryKey: string|null, pendingSelectionKey: string|null}}
+ */
 export function _getAwarenessNavigationStateForTest() {
   return {
     historyKeys: state.navigationHistory.map(subjectKey),
@@ -1731,7 +1734,10 @@ const militaryAwarenessLayer = {
     state.passive = params.passive;
     if (state.enabled && wasPassive && !state.passive) activateOperationalContext();
   },
-  /** @returns {{ passive: boolean }} Current runtime parameters. */
+  /**
+   * 获取当前运行时参数。
+   * @returns {{ passive: boolean }}
+   */
   getParams() {
     return { passive: state.passive };
   },

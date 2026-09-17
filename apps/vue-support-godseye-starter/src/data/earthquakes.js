@@ -109,7 +109,10 @@ export function selectEarthquakeOverlayCohort(
  */
 export function mapAnalystRecord(raw, index = 0) {
   const num = (v) => (Number.isFinite(v) ? v : null);
-  const text = (v) => { const t = String(v ?? '').trim(); return t || null; };
+  const text = (v) => {
+    const t = String(v ?? '').trim();
+    return t || null;
+  };
   return {
     id: text(raw?.id) || `QUAKE-${String(index).padStart(4, '0')}`,
     magnitude: num(raw?.mag),

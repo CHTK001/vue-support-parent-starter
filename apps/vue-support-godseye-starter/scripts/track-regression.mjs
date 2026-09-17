@@ -1331,12 +1331,16 @@ async function main() {
         let tracked = null;
         if (ent && typeof ent.gevDisplayPosition === 'function') tracked = ent.gevDisplayPosition();
         if (!tracked) return pool[0];
-        let best = null, bestD = Infinity;
+        let best = null;
+        let bestD = Infinity;
         for (const m of pool) {
           const mm = m.modelMatrix;
           const dx = mm[12] - tracked.x, dy = mm[13] - tracked.y, dz = mm[14] - tracked.z;
           const d = dx * dx + dy * dy + dz * dz;
-          if (d < bestD) { bestD = d; best = m; }
+          if (d < bestD) {
+            bestD = d;
+            best = m;
+          }
         }
         // The tracked model rides AT the display position. While the tracked
         // GLB is still loading, the nearest ready model is some OTHER plane's

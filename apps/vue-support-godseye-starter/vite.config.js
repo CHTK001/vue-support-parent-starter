@@ -448,12 +448,16 @@ function makeOptInRateLimiter(envValue) {
 // the result is cached so the limiter's per-IP window state persists. `null` = unlimited (default).
 let _openAiRateLimiter; // undefined = not built yet; null = unlimited; fn = active limiter
 let _googleRateLimiter;
-/** OpenAI cost endpoints (realtime/token + hud-summary). Null = unlimited (default). */
+/**
+ * OpenAI 成本接口（realtime/token + hud-summary）的限速器。null = 不限制（默认）。
+ */
 function openAiRateLimiter() {
   if (_openAiRateLimiter === undefined) _openAiRateLimiter = makeOptInRateLimiter(process.env.GEV_RATELIMIT_OPENAI_PER_MIN);
   return _openAiRateLimiter;
 }
-/** Google cost endpoint (nearby-places). Null = unlimited (default). */
+/**
+ * Google 成本接口（nearby-places）的限速器。null = 不限制（默认）。
+ */
 function googleRateLimiter() {
   if (_googleRateLimiter === undefined) _googleRateLimiter = makeOptInRateLimiter(process.env.GEV_RATELIMIT_GOOGLE_PER_MIN);
   return _googleRateLimiter;
@@ -588,7 +592,10 @@ function sanitizeOverpassBody(rawBody) {
   }
   // Reject world-sized / oversized bboxes.
   for (const m of stripped.matchAll(/\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/g)) {
-    const s = Number(m[1]); const w = Number(m[2]); const n = Number(m[3]); const e = Number(m[4]);
+    const s = Number(m[1]);
+    const w = Number(m[2]);
+    const n = Number(m[3]);
+    const e = Number(m[4]);
     if (Math.abs(n - s) > OVERPASS_MAX_BBOX_DEG || Math.abs(e - w) > OVERPASS_MAX_BBOX_DEG) {
       return { ok: false, error: 'Overpass bbox too large' };
     }
@@ -2103,7 +2110,9 @@ function firmsProxy() {
     { source: 'VIIRS_NOAA20_NRT', url: 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv' },
   ]);
 
-  /** @returns {Promise<Array<object>>} */
+  /**
+   * @returns {Promise<Array<object>>}
+   */
   async function fetchKeylessArchive(source) {
     const res = await fetch(source.url, {
       headers: { 'User-Agent': 'GodsEyeView/1.0 (https://github.com/uhrichsam4/gods-eye-view)' },
@@ -8422,7 +8431,9 @@ function airportsData() {
   let cached = null;
   let cachedMtimeMs = -1;
 
-  /** @returns {Promise<object|null>} */
+  /**
+   * @returns {Promise<object|null>}
+   */
   async function load() {
     let mtimeMs = -1;
     try {
@@ -8487,7 +8498,10 @@ function shootingsData() {
   /** mtime the cache was built from, so a rewritten file is picked up. */
   let cachedMtimeMs = -1;
 
-  /** @returns {Promise<object>} */
+  /**
+   * 加载枪击事件数据（按 mtime 判断是否重新构建缓存）。
+   * @returns {Promise<object>}
+   */
   async function load() {
     // Keyed on mtime rather than cached forever: recompiling the dataset should
     // take effect without restarting the server, and a deploy that changes only
@@ -8576,7 +8590,10 @@ function safetyData() {
   let cached = null;
   let cachedMtimeMs = -1;
 
-  /** @returns {Promise<object>} */
+  /**
+   * 加载安全评级数据（按 mtime 判断是否重新构建缓存）。
+   * @returns {Promise<object>}
+   */
   async function load() {
     let mtimeMs = -1;
     try {
@@ -8791,7 +8808,10 @@ function temperatureData() {
     }
   }
 
-  /** @param {object} grid */
+  /**
+   * 将网格写入磁盘缓存。
+   * @param {object} grid
+   */
   function saveDiskCache(grid) {
     try {
       fs.writeFileSync(CACHE_PATH, JSON.stringify(grid), 'utf8');

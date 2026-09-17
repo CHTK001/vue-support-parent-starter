@@ -180,7 +180,10 @@ export function createCoarseElevation() {
   }
 
   return {
-    /** @returns {Promise<void>} */
+    /**
+     * 等待地形温度网格加载完成。
+     * @returns {Promise<void>}
+     */
     ready() {
       if (!_loading) _loading = load();
       return _loading;
@@ -366,7 +369,11 @@ export function createTerrainTemperatureProvider({ sampleSeaLevel, colorTable, a
   /** Roughly 15 MB at 128 kB per tile. */
   const ELEVATION_CACHE_MAX = 120;
 
-  /** @param {string} key @param {Int16Array} grid */
+  /**
+   * 缓存高程网格，并超出上限时淘汰最旧条目。
+   * @param {string} key
+   * @param {Int16Array} grid
+   */
   function cacheElevation(key, grid) {
     elevationCache.set(key, grid);
     while (elevationCache.size > ELEVATION_CACHE_MAX) {

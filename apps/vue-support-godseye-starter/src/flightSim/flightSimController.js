@@ -219,7 +219,10 @@ export function createFlightSimController({ viewer, hooks = {} }) {
     return true;
   }
 
-  /** Build the sub-systems once. @returns {void} */
+  /**
+   * Build the sub-systems once.
+   * @returns {void}
+   */
   function ensureSubsystems() {
     if (renderer) return;
     renderer = createSimAircraftRenderer(viewer);
@@ -993,17 +996,23 @@ export function createFlightSimController({ viewer, hooks = {} }) {
     revive,
     cycleQuality,
 
-    /** @returns {string} */
+    /**
+     * @returns {string}
+     */
     getState() {
       return state;
     },
 
-    /** @returns {boolean} */
+    /**
+     * @returns {boolean}
+     */
     isActive() {
       return state === FlightSimState.ACTIVE || state === FlightSimState.PAUSED;
     },
 
-    /** @returns {object|null} */
+    /**
+     * @returns {object|null}
+     */
     getFlight() {
       return flight;
     },
@@ -1026,7 +1035,9 @@ export function createFlightSimController({ viewer, hooks = {} }) {
       };
     },
 
-    /** @returns {void} */
+    /**
+     * @returns {void}
+     */
     toggleAutopilot() {
       if (!flight) return;
       if (autopilot.engaged) disengageAutopilot(autopilot);
@@ -1046,7 +1057,9 @@ export function createFlightSimController({ viewer, hooks = {} }) {
       routeRenderer?.showRoute(route);
     },
 
-    /** @returns {void} */
+    /**
+     * @returns {void}
+     */
     cycleCamera() {
       camera?.cycle();
       input?.resetView?.();

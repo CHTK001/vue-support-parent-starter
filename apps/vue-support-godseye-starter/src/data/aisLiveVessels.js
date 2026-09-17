@@ -243,7 +243,10 @@ export function classifyAisFeedSnapshot(payload) {
  */
 export function mapAnalystRecord(record) {
   const num = (v) => (Number.isFinite(v) ? v : null);
-  const text = (v) => { const t = String(v ?? '').trim(); return t || null; };
+  const text = (v) => {
+    const t = String(v ?? '').trim();
+    return t || null;
+  };
   const mmsi = text(record?.mmsi);
   const name = text(record?.name);
   return {

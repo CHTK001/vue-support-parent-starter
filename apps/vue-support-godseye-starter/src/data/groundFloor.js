@@ -395,12 +395,18 @@ const _meshCells = new Map();
  *  'gev:map-stack-changed' listener. Photoreal is the boot default. */
 let _meshPreferred = true;
 
-/** @param {boolean} preferred - google-3d regime active. */
+/**
+ * 设置网格底面偏好（google-3d 机制是否启用）。
+ * @param {boolean} preferred
+ */
 export function setMeshFloorPreferred(preferred) {
   _meshPreferred = !!preferred;
 }
 
-/** @returns {boolean} Whether mesh-floor cells currently apply. */
+/**
+ * 查询当前是否启用网格底面单元格。
+ * @returns {boolean}
+ */
 export function meshFloorPreferred() {
   return _meshPreferred;
 }

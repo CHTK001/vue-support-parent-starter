@@ -243,11 +243,15 @@ const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 function closestOnTriangle(p, a, b, c) {
   const sub = (u, v) => [u[0] - v[0], u[1] - v[1], u[2] - v[2]];
   const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-  const ab = sub(b, a); const ac = sub(c, a); const ap = sub(p, a);
-  const d1 = dot(ab, ap); const d2 = dot(ac, ap);
+  const ab = sub(b, a);
+  const ac = sub(c, a);
+  const ap = sub(p, a);
+  const d1 = dot(ab, ap);
+  const d2 = dot(ac, ap);
   if (d1 <= 0 && d2 <= 0) return a;
   const bp = sub(p, b);
-  const d3 = dot(ab, bp); const d4 = dot(ac, bp);
+  const d3 = dot(ab, bp);
+  const d4 = dot(ac, bp);
   if (d3 >= 0 && d4 <= d3) return b;
   const vc = d1 * d4 - d3 * d2;
   if (vc <= 0 && d1 >= 0 && d3 <= 0) {
@@ -255,7 +259,8 @@ function closestOnTriangle(p, a, b, c) {
     return [a[0] + ab[0] * v, a[1] + ab[1] * v, a[2] + ab[2] * v];
   }
   const cp = sub(p, c);
-  const d5 = dot(ab, cp); const d6 = dot(ac, cp);
+  const d5 = dot(ab, cp);
+  const d6 = dot(ac, cp);
   if (d6 >= 0 && d5 <= d6) return c;
   const vb = d5 * d2 - d1 * d6;
   if (vb <= 0 && d2 >= 0 && d6 <= 0) {
@@ -268,7 +273,8 @@ function closestOnTriangle(p, a, b, c) {
     return [b[0] + (c[0] - b[0]) * w, b[1] + (c[1] - b[1]) * w, b[2] + (c[2] - b[2]) * w];
   }
   const den = 1 / (va + vb + vc);
-  const v = vb * den; const w = vc * den;
+  const v = vb * den;
+  const w = vc * den;
   return [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w];
 }
 
@@ -288,7 +294,8 @@ function centrelineProfile(verts, tris) {
   for (const [i, j, k] of tris) {
     const t = [verts[i], verts[j], verts[k]];
     for (let e = 0; e < 3; e++) {
-      const a = t[e]; const b = t[(e + 1) % 3];
+      const a = t[e];
+      const b = t[(e + 1) % 3];
       if (a[2] === 0) pts.push(a);
       if ((a[2] < 0 && b[2] > 0) || (a[2] > 0 && b[2] < 0)) {
         const s = a[2] / (a[2] - b[2]);
@@ -308,7 +315,8 @@ function closestProfilePoint(target, profile, tris, verts) {
     const t = [verts[i], verts[j], verts[k]];
     const pts = [];
     for (let e = 0; e < 3; e++) {
-      const a = t[e]; const b = t[(e + 1) % 3];
+      const a = t[e];
+      const b = t[(e + 1) % 3];
       if (a[2] === 0) pts.push(a);
       if ((a[2] < 0 && b[2] > 0) || (a[2] > 0 && b[2] < 0)) {
         const s = a[2] / (a[2] - b[2]);
@@ -317,7 +325,8 @@ function closestProfilePoint(target, profile, tris, verts) {
     }
     if (pts.length >= 2) segs.push([pts[0], pts[1]]);
   }
-  let best = null; let bestD = Infinity;
+  let best = null;
+  let bestD = Infinity;
   for (const [a, b] of segs) {
     const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     const den = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
@@ -328,7 +337,10 @@ function closestProfilePoint(target, profile, tris, verts) {
       q = [a[0] + ab[0] * s, a[1] + ab[1] * s, a[2] + ab[2] * s];
     }
     const d = dist3(target, q);
-    if (d < bestD) { bestD = d; best = q; }
+    if (d < bestD) {
+      bestD = d;
+      best = q;
+    }
   }
   assert.ok(best, 'the centreline slice produced no segments');
   assert.ok(profile.length > 0, 'the centreline profile is empty');
@@ -815,7 +827,9 @@ test('the trail anchor rides the rendered longitudinal axis at every heading', (
         const c = Cesium.Matrix4.getColumn(enu, i, new Cesium.Cartesian4());
         return Cesium.Cartesian3.normalize(new Cesium.Cartesian3(c.x, c.y, c.z), new Cesium.Cartesian3());
       };
-      const east = axis(0); const north = axis(1); const vertical = axis(2);
+      const east = axis(0);
+      const north = axis(1);
+      const vertical = axis(2);
       const rad = Cesium.Math.toRadians(headingDeg);
       const lengthwise = Cesium.Cartesian3.normalize(Cesium.Cartesian3.add(
         Cesium.Cartesian3.multiplyByScalar(north, Math.cos(rad), new Cesium.Cartesian3()),
