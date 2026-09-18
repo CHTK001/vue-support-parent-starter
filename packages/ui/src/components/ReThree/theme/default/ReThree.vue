@@ -20,6 +20,7 @@ import {
   nextTick,
 } from "vue";
 import * as THREE from "three";
+import type { ReThreeContext } from "../../types";
 
 const props = withDefaults(
   defineProps<{
@@ -51,14 +52,6 @@ const props = withDefaults(
     animate: undefined,
   },
 );
-
-/** Three.js 渲染上下文，暴露给 render/animate 回调 */
-export interface ReThreeContext {
-  scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
-  renderer: THREE.WebGLRenderer;
-  THREE: typeof THREE;
-}
 
 const emit = defineEmits<{
   (e: "ready", ctx: ReThreeContext): void;
