@@ -177,7 +177,16 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     </template>
     <div class="koi-drawer-body">
       <div class="body">
-        <slot name="content"></slot>
+        <!--
+          必须保留默认插槽兜底：default 主题的 ReDrawer 渲染的是 `<slot />`，
+          而 ReDrawer 是按主题切换的组件（defineThemeComponent）。
+          若此处只渲染具名 content，则所有按 default 主题习惯书写的
+          `<ReDrawer>内容</ReDrawer>` 在 koi 主题下内容会被静默丢弃（抽屉空白）。
+          写法与 ReDialog/theme/koi 保持一致。
+        -->
+        <slot name="content">
+          <slot></slot>
+        </slot>
       </div>
       <div class="footer" v-if="!footerHidden">
         <el-button class="koi-btn-borderless" type="primary" :loading="confirmLoading" @click="koiConfirm">

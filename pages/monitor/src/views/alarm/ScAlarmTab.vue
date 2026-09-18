@@ -447,7 +447,7 @@ onBeforeUnmount(() => {
     </template>
 
     <!-- 策略表单 -->
-    <ReDialog v-model="policyFormVisible" :title="editingPolicyId ? '编辑策略' : '新增策略'" width="440" :height="320" confirm-text="保存" cancel-text="取消" @confirm="submitPolicy" @cancel="policyFormVisible = false">
+    <ReDialog v-model="policyFormVisible" :title="editingPolicyId ? '编辑策略' : '新增策略'" width="440" :height="320" confirm-text="保存" cancel-text="取消" compact @confirm="submitPolicy" @cancel="policyFormVisible = false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
           <ReInput v-model="policyForm.msMonitorAlarmPolicyName" placeholder="如 服务器基础告警" />
@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
     </ReDialog>
 
     <!-- 规则表单 -->
-    <ReDialog v-model="ruleFormVisible" :title="editingRuleId ? '编辑规则' : '新增规则'" width="480" :height="420" confirm-text="保存" cancel-text="取消" @confirm="submitRule" @cancel="ruleFormVisible = false">
+    <ReDialog v-model="ruleFormVisible" :title="editingRuleId ? '编辑规则' : '新增规则'" width="480" :height="420" confirm-text="保存" cancel-text="取消" compact @confirm="submitRule" @cancel="ruleFormVisible = false">
       <ReForm label-width="100px" label-position="right">
         <ReFormItem label="所属策略" required>
           <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" style="width: 100%"

@@ -12,6 +12,7 @@
  */
 import { load as parseYaml } from "js-yaml";
 import type { AppConfig } from "./types/config";
+import { DEFAULT_MENU_ICON } from "./constants";
 
 /** AppConfig 顶层字段名（用于 yaml 键去 Config 后缀的映射白名单） */
 export const APP_CONFIG_TOP_KEYS = new Set([
@@ -130,6 +131,8 @@ export const defaultAppConfig: AppConfig = {
   },
   menu: {
     collapseSingleChild: true,
+    // 菜单缺省图标：菜单未配置 icon 时兜底，避免图标位空白
+    defaultIcon: DEFAULT_MENU_ICON,
   },
   upload: {
     enable: true,
@@ -256,6 +259,9 @@ export const defaultAppConfig: AppConfig = {
     enable: false,
     protocol: "sse",
     urls: "",
+    // socketio 上下文路径。SocketConfig.context 为必填字段，
+    // 缺省值必须与 socket.io 客户端默认值一致，否则协议切到 socketio 时会拼出错误路径。
+    context: "/socket.io",
     path: "/sse",
     query: {},
     autoConnect: true,

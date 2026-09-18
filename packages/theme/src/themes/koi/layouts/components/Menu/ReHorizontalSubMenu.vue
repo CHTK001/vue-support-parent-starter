@@ -15,7 +15,7 @@
 				popper-class="koi-horizontal-menu-tooltip"
 			>
 				<div class="menu-title-wrap menu-title-trigger">
-					<ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
+					<ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
 					<span class="menu-ellipsis" v-text="getMenuLanguage(item.children[0].meta?.title)"></span>
 				</div>
 			</el-tooltip>
@@ -31,7 +31,7 @@
           popper-class="koi-horizontal-menu-tooltip"
         >
           <div class="menu-title-wrap menu-title-trigger">
-            <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
+            <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
           </div>
         </el-tooltip>
@@ -48,7 +48,7 @@
           popper-class="koi-horizontal-menu-tooltip"
         >
           <div class="menu-title-wrap menu-title-trigger">
-            <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
+            <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
           </div>
         </el-tooltip>
@@ -62,7 +62,7 @@ import ReHorizontalSubMenu from "@repo/theme/koi/layouts/components/Menu/ReHoriz
 import { msgWarning } from "@repo/core";
 import { getMenuLanguage } from "@repo/languages";
 import { useRouter } from "vue-router";
-import { getConfig } from "@repo/config";
+import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
 const router = useRouter();
 
@@ -70,6 +70,9 @@ const router = useRouter();
 defineProps(["menuList"]);
 
 const collapseSingleChild = getConfig().menu.collapseSingleChild;
+
+/** 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白 */
+const menuDefaultIcon = resolveMenuDefaultIcon();
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {

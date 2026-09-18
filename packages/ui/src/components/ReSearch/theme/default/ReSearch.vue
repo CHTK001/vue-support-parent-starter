@@ -5,7 +5,7 @@
  * 结构与 koi 主题一致，类名前缀改为 re-search（保持 default 主题的命名习惯）。
  * 同时移除了此前被错误编码（GBK 当作 UTF-8 显示）的注释乱码。
  */
-import { ref, watch, computed, useSlots, defineAsyncComponent, type CSSProperties, nextTick } from "vue";
+import { ref, watch, computed, useSlots, defineAsyncComponent, onMounted, onBeforeUnmount, type CSSProperties, nextTick } from "vue";
 import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
 import ReButton from "../../../ReButton/ReButton.vue";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
@@ -130,24 +130,125 @@ const itemCount = computed(() => {
   const filterCount = props.filters?.length ?? 0;
   return filterCount > 0 ? filterCount : itemSlots.value.length;
 });
-const hasOverflow = computed(() => props.max > 0 && itemCount.value > props.max);
-const visibleFilters = computed(() => {
-  if (!hasOverflow.value || localExpanded.value) return props.filters;
-  return props.filters.slice(0, props.max);
+/** 是否有字段被收纳（max 超限 或 容器宽度不足以一行放下全部字段） */
+const hasOverflow = computed(
+  () => (props.max > 0 && itemCount.value > props.max) || (fitCount.value > 0 && itemCount.value > fitCount.value),
+);
+/** 折叠态显示的字段数：受 max 与容器实际可容纳数（fitCount）双重限制 */
+const collapsedLimit = computed(() => {
+  if (!hasOverflow.value) return itemCount.value;
+  const byMax = props.max > 0 ? props.max : itemCount.value;
+  const byFit = fitCount.value > 0 ? fitCount.value : byMax;
+  return Math.max(1, Math.min(byMax, byFit));
 });
-const gridRows = computed(() => {
-  if (!hasOverflow.value) return undefined;
-  if (localExpanded.value) {
-    return `repeat(${itemCount.value}, minmax(0, 1fr))`;
-  }
-  const hidden = itemCount.value - props.max;
-  return `repeat(${props.max}, minmax(0, 1fr)) repeat(${hidden}, 0fr)`;
-});
+/** 折叠态下第 index 个字段是否被隐藏（测量期间全部可见） */
+function isFieldHidden(index: number): boolean {
+  if (measuring.value || !hasOverflow.value || localExpanded.value) return false;
+  return index >= collapsedLimit.value;
+}
 function toggleExpand(): void {
   localExpanded.value = !localExpanded.value;
+  // 展开/收起会改变字段区高度（可能连带影响滚动条与可用宽度），
+  // 强制按当前宽度重测一次，保证「收起后只留首行」始终按现状成立
+  lastWidth = -1;
+  nextTick(() => measureFit());
 }
 
 const contentEl = ref<HTMLElement | null>(null);
+
+/** ========== 响应式收纳：测量首行可容纳的字段数 ========== */
+/** 测量看门狗超时（ms）：超时强制复位 measuring，避免字段被永久隐藏 */
+const MEASURE_WATCHDOG_MS = 300;
+const fitCount = ref(0);
+const measuring = ref(false);
+let resizeObserver: ResizeObserver | null = null;
+let measureWatchdog: ReturnType<typeof setTimeout> | undefined;
+let lastWidth = -1;
+
+function measureFit(): void {
+  const el = contentEl.value;
+  if (!el || !localFilterVisible.value || measuring.value) return;
+  const w = el.clientWidth;
+  // 只在宽度变化时重测：显隐切换引起的高度变化会再次触发 RO，若不忽略会造成测量死循环
+  // fitCount 仍为 0 时不能跳过：否则首次测量失败会把「从未测量」状态锁死
+  if (w === lastWidth && fitCount.value > 0) return;
+  // 先置 measuring=true：isFieldHidden 会让整行字段全部参与布局，
+  // 且该状态引发的重渲染（含 slot 模式的 applySlotCollapse）会排在下面
+  // nextTick 回调之前，所以测量时拿到的一定是「全部字段都排开」的真实布局
+  measuring.value = true;
+  // 看门狗兜底（防御性冗余）：nextTick 是微任务不会丢，finally 也已保证复位，
+  // 这里再兜一层——万一后续改动引入异常，也不会让展开/收纳永久失效。
+  if (measureWatchdog) clearTimeout(measureWatchdog);
+  measureWatchdog = setTimeout(() => {
+    measureWatchdog = undefined;
+    measuring.value = false;
+  }, MEASURE_WATCHDOG_MS);
+  // 用 nextTick 而非 requestAnimationFrame：rAF 在隐藏/后台文档（后台标签页、
+  // 不可见 iframe、keep-alive 缓存页）中不会触发，测量会被推迟甚至丢弃。
+  // nextTick 是微任务不会丢帧，且同样在浏览器绘制前完成测量，不会闪一下全部字段。
+  // 复位放在 finally：测量中途抛异常也必须复位 measuring，否则 measureFit
+  // 入口会永久早退，展开/收纳彻底失效。
+  void nextTick(() => {
+    try {
+      const items = Array.from(el.children) as HTMLElement[];
+      // 空容器（filters 尚未加载、slot 子节点被 v-if 隐藏）：items[0] 不存在，
+      // 直接读 offsetTop 会抛异常并中断本次测量，所以必须提前返回
+      if (items.length === 0) {
+        fitCount.value = 0;
+        return;
+      }
+      const top0 = items[0].offsetTop;
+      let count = 0;
+      for (const it of items) {
+        if (it.offsetParent !== null && it.offsetTop <= top0 + 1) count += 1;
+        else break;
+      }
+      fitCount.value = count;
+      lastWidth = w;
+    } finally {
+      if (measureWatchdog) {
+        clearTimeout(measureWatchdog);
+        measureWatchdog = undefined;
+      }
+      measuring.value = false;
+    }
+  });
+}
+
+/** slot 模式：无法用 class 绑定，直接操作子节点显隐 */
+function applySlotCollapse(): void {
+  if (props.filters && props.filters.length > 0) return;
+  const el = contentEl.value;
+  if (!el) return;
+  Array.from(el.children).forEach((child, i) => {
+    const hidden = isFieldHidden(i);
+    (child as HTMLElement).style.display = hidden ? "none" : "";
+  });
+}
+watch([collapsedLimit, hasOverflow, localExpanded, measuring, itemCount], applySlotCollapse, { flush: "post" });
+watch([itemCount, () => props.max], () => {
+  // 字段数量变化时即使宽度未变也需强制重测
+  lastWidth = -1;
+  nextTick(() => measureFit());
+});
+watch(localFilterVisible, () => {
+  nextTick(() => measureFit());
+});
+onMounted(() => {
+  if (typeof ResizeObserver === "undefined") return;
+  resizeObserver = new ResizeObserver(() => measureFit());
+  if (contentEl.value) resizeObserver.observe(contentEl.value);
+  nextTick(() => measureFit());
+});
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+  if (measureWatchdog) {
+    clearTimeout(measureWatchdog);
+    measureWatchdog = undefined;
+  }
+  measuring.value = false;
+});
 function resetForm(): void {
   if (props.filters && props.filters.length > 0) {
     const cleared: Record<string, unknown> = {};
@@ -223,12 +324,15 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
           class="re-search__fields"
           :class="{
             're-search__fields--data': filterMode === 'data',
-            're-search__fields--overflow': hasOverflow,
           }"
-          :style="{ gridTemplateRows: gridRows }"
         >
-          <template v-if="visibleFilters && visibleFilters.length > 0">
-            <div v-for="filter in visibleFilters" :key="filter.key" class="re-search__field">
+          <template v-if="filters && filters.length > 0">
+            <div
+              v-for="(filter, index) in filters"
+              :key="filter.key"
+              class="re-search__field"
+              :class="{ 're-search__field--hidden': isFieldHidden(index) }"
+            >
               <span
                 v-if="filterMode === 'form' && filter.label"
                 class="re-search__field-label"
@@ -414,9 +518,12 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
 }
 
 .re-search__fields {
-  flex: 1 1 auto;
+  /* flex-basis 必须是 0：若取内容宽度（auto），字段区会被 grid 的内在宽度撑开，
+     把操作按钮挤到下一行；且测量出的可用宽度就不再等于「去掉按钮后」的宽度 */
+  flex: 1 1 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* min(220px, 100%) 保证容器过窄时列宽跟着缩，而不是溢出到按钮下面 */
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 10px 12px;
   min-width: 0;
 }
@@ -437,14 +544,9 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
   display: block;
 }
 
-.re-search__fields--overflow {
-  grid-auto-rows: minmax(0, auto);
-  overflow: hidden;
-  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.re-search__fields--overflow :deep(> *) {
-  overflow: hidden;
-  min-height: 0;
+/* 响应式收纳：折叠态隐藏放不下的字段 */
+.re-search__field--hidden {
+  display: none;
 }
 
 .re-search__actions {
@@ -469,7 +571,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
 
 @media (max-width: 768px) {
   .re-search__fields {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
   }
   .re-search__actions {
     width: 100%;

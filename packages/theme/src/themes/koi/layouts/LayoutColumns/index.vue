@@ -21,7 +21,7 @@
             }"
             @click="handleTopMenuClick(item)"
           >
-            <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="18"></ReIcon>
+            <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
             <span v-if="!isFirstColumnCollapse" class="title line-clamp-2">{{ getMenuLanguage(item.meta?.title) }}</span>
           </div>
         </el-tooltip>
@@ -138,7 +138,7 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { HOME_URL, LOGIN_URL, getConfig } from "@repo/config";
+import { HOME_URL, LOGIN_URL, getConfig, resolveMenuDefaultIcon } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { msgError } from "@repo/core";
 import { clearSessionStorage, getUserInfo } from "@repo/utils";
@@ -161,6 +161,9 @@ const menuAnimate = computed(() => (!globalStore.transition || globalStore.trans
 const isFirstColumnCollapse = computed(() => globalStore.isColumnFirstCollapse);
 
 // 获取所有顶级菜单[第一层级]
+// 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白
+const menuDefaultIcon = resolveMenuDefaultIcon();
+
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
 
 // 当前激活的顶级菜单ID

@@ -756,7 +756,7 @@ export interface DriverInfo {
 }
 
 /** 获取进程列表 */
-export const fetchProcesses = (params?: { keyword?: string; sortBy?: string; sortOrder?: string; limit?: number }) =>
+export const fetchProcesses = (params?: { keyword?: string; sortBy?: string; sortOrder?: string; limit?: number; hostId?: number }) =>
   http()
     .get("/ms/system/processes")
     .query(params ?? {})
@@ -781,10 +781,10 @@ export const fetchProcessThreads = (pid: number) =>
     .then(r => unwrap<ThreadInfo[]>(r));
 
 /** 获取服务列表 */
-export const fetchServices = (keyword?: string) =>
+export const fetchServices = (keyword?: string, hostId?: number) =>
   http()
     .get("/ms/system/services")
-    .query(keyword ? { keyword } : {})
+    .query({ ...(keyword ? { keyword } : {}), ...(hostId ? { hostId } : {}) })
     .then(r => unwrap<ServiceInfo[]>(r));
 
 /** 启动服务 */
@@ -806,40 +806,44 @@ export const restartService = (name: string) =>
     .then(r => unwrap<string>(r));
 
 /** 获取网络接口列表 */
-export const fetchNetworkInterfaces = () =>
+export const fetchNetworkInterfaces = (hostId?: number) =>
   http()
     .get("/ms/system/network/interfaces")
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<NetworkInterfaceInfo[]>(r));
 
 /** 获取网络连接列表 */
-export const fetchNetworkConnections = (state?: string) =>
+export const fetchNetworkConnections = (state?: string, hostId?: number) =>
   http()
     .get("/ms/system/network/connections")
-    .query(state ? { state } : {})
+    .query({ ...(state ? { state } : {}), ...(hostId ? { hostId } : {}) })
     .then(r => unwrap<NetworkConnectionInfo[]>(r));
 
 /** 获取磁盘列表 */
-export const fetchDisks = () =>
+export const fetchDisks = (hostId?: number) =>
   http()
-    .get("/ms/system/disks")
+    .get("/ms/system/disks" + (hostId ? `?hostId=${hostId}` : ""))
     .then(r => unwrap<DiskInfo[]>(r));
 
 /** 获取磁盘分区列表 */
-export const fetchPartitions = () =>
+export const fetchPartitions = (hostId?: number) =>
   http()
     .get("/ms/system/partitions")
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<PartitionInfo[]>(r));
 
 /** 获取防火墙规则列表 */
-export const fetchFirewallRules = () =>
+export const fetchFirewallRules = (hostId?: number) =>
   http()
     .get("/ms/system/firewall/rules")
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<FirewallRuleInfo[]>(r));
 
 /** 获取驱动列表 */
-export const fetchDrivers = () =>
+export const fetchDrivers = (hostId?: number) =>
   http()
     .get("/ms/system/drivers")
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<DriverInfo[]>(r));
 
 // ==================== 协议服务器管理（Server / ServerFilter） ====================

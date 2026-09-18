@@ -45,6 +45,8 @@
         :toolbar="false"
         :layout-table="{ minHeight: 300 }"
         empty-text="暂无服务数据"
+        class="drill-table"
+        @row-click="onRowClick"
       >
         <template #col-service="{ row }">
           <span class="mono service-text">{{ row.service }}</span>
@@ -73,6 +75,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { Connection, Histogram, Warning } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import ReButton from "@repo/ui/re-button";
@@ -87,6 +90,12 @@ import type { ApmService } from "../api/apmApi";
 const items = ref<ApmService[]>([]);
 const loading = ref(false);
 let timer: number | undefined;
+const router = useRouter();
+
+/** 行下钻 → 服务详情页 */
+function onRowClick(row: Record<string, unknown>) {
+  router.push({ path: "/services/detail", query: { service: String(row.service ?? "") } });
+}
 
 const totalCalls = computed(() => items.value.reduce((acc, s) => acc + s.callCount, 0));
 const errorServices = computed(() => items.value.filter((s) => s.errorCount > 0).map((s) => s.service));
@@ -211,6 +220,7 @@ onBeforeUnmount(() => {
   --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
+  cursor: pointer;
 }
 
 .service-text {

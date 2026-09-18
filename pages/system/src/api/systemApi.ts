@@ -68,7 +68,15 @@ export function saveUser(data: SysUserUpdate) {
   return http()
     .post("/v2/user/save")
     .data(data as Record<string, unknown>)
-    .then<ApiResult<SysUser>>((r) => r.data);
+    .then((r: any) => {
+      console.log('saveUser raw response:', r);
+      const body = r?.data ?? r;
+      console.log('saveUser body:', body);
+      if (body && (body.ok === false || body.success === false)) {
+        throw new Error(body.msg || "新增失败");
+      }
+      return body;
+    });
 }
 
 /** 更新用户 */
@@ -131,11 +139,14 @@ export function importUsers(file: File) {
 }
 
 /** 重置用户密码（管理员操作） */
-export function resetUserPassword(userId: number) {
+export function resetUserPassword(userId: number, password?: string) {
   return http()
     .post("/v2/user/reset")
-    .data({ userId } as Record<string, unknown>)
-    .then<ApiResult<string>>((r) => r.data);
+    .query({ userId, ...(password ? { password } : {}) })
+    .then<string>((r) => {
+      const body = r as unknown as { data: { data: string } };
+      return body.data.data;
+    });
 }
 
 /** 重置个人密码 */

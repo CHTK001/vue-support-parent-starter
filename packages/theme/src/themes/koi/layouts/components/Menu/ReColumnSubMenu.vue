@@ -8,7 +8,7 @@
 		@click="handleMenuRouter(item.children[0])"
 	>
 		<div class="icon-container">
-			<ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+			<ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
 		</div>
 		<template #title>
 			<el-tooltip :content="getMenuLanguage(item.children[0].meta?.title)" :show-after="1500" placement="right">
@@ -23,8 +23,7 @@
         <div class="icon-container">
           <!-- 图标本身 - 负责动画 -->
           <ReIcon 
-            v-if="item.meta.icon" 
-            :name="item.meta.icon" 
+            :name="item.meta?.icon || menuDefaultIcon" 
             size="18" 
             class="menu-icon"
           ></ReIcon>
@@ -48,8 +47,7 @@
       <div class="icon-container">
         <!-- 图标本身 - 负责动画 -->
         <ReIcon 
-          v-if="item.meta.icon" 
-          :name="item.meta.icon" 
+          :name="item.meta?.icon || menuDefaultIcon" 
           size="18" 
           class="menu-icon"
         ></ReIcon>
@@ -75,7 +73,7 @@ import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSub
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
 import { getMenuLanguage } from "@repo/languages";
-import { getConfig } from "@repo/config";
+import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
 const router = useRouter();
 
@@ -83,6 +81,9 @@ const router = useRouter();
 defineProps(["menuList"]);
 
 const collapseSingleChild = getConfig().menu.collapseSingleChild;
+
+/** 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白 */
+const menuDefaultIcon = resolveMenuDefaultIcon();
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {

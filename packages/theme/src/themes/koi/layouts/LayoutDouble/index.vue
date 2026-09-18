@@ -26,7 +26,7 @@
               @mouseenter="handleFirstItemEnter(item)"
               @click="handleTopMenuClick(item)"
             >
-              <ReIcon v-if="item.meta?.icon" :name="item.meta?.icon" size="18"></ReIcon>
+              <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
               <span v-if="!globalStore.isCollapse" class="title">{{ getMenuLanguage(item.meta?.title) }}</span>
             </div>
           </div>
@@ -105,7 +105,7 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { HOME_URL, getStorageKey } from "@repo/config";
+import { HOME_URL, getStorageKey, resolveMenuDefaultIcon } from "@repo/config";
 import { msgError } from "@repo/core";
 import { Search } from "@element-plus/icons-vue";
 
@@ -118,6 +118,9 @@ const globalStore = useGlobalStore();
 const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));
 
 // 获取所有顶级菜单[第一层级]
+// 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白
+const menuDefaultIcon = resolveMenuDefaultIcon();
+
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
 
 // 当前激活的顶级菜单ID（路由联动）

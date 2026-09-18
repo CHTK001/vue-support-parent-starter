@@ -12,7 +12,11 @@ const themed = defineThemeComponent("ReIcon", {
   koi: () => import("./theme/koi/ReIcon.vue"),
 });
 
-/** 按当前主题异步解析组件实例 */
+/**
+ * 可直接渲染的异步组件（`defineAsyncComponent` 的返回值）。
+ * 外部按需引入时必须写成 `import("@repo/ui/re-icon").then((m) => m.default)`，
+ * **不能**写成 `m.default()` —— 它不是 loader，调用会抛 "m.default is not a function"。
+ */
 export const component = themed.component;
 
 export { themed as install };

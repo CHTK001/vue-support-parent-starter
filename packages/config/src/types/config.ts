@@ -181,6 +181,8 @@ export interface LayoutConfig {
 export interface MenuConfig {
   /** 父菜单只有单个子菜单时是否折叠到父级（默认 true） */
   collapseSingleChild: boolean;
+  /** 菜单缺省图标：菜单未配置 icon 时兜底显示，避免图标位空白（默认 koi-text-menu） */
+  defaultIcon?: string;
 }
 
 /** 上传配置 */

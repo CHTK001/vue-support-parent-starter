@@ -31,6 +31,23 @@ const query = ref<{
   pageSize: 20,
 });
 
+const searchFilters = computed(() => [
+  { key: 'sysTenantName', label: '租户名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysTenantUsername', label: '租户账号', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysTenantStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '启用', value: 0 },
+      { label: '禁用', value: 1 },
+    ],
+  },
+]);
+
+function handleReset() {
+  query.value = { page: 1, pageSize: 20 };
+  tableRef.value?.reload();
+}
+
 const stats = ref<SysTenantStats>({});
 
 async function loadTenants({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
@@ -239,56 +256,27 @@ onMounted(() => {
       </el-card>
     </div>
 
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" add-text="新增租户" @add="handleCreate">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysTenantName"
-            placeholder="租户名称"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysTenantUsername"
-            placeholder="租户账号"
-            clearable
-            class="!w-40"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysTenantStatus"
-            placeholder="状态"
-            clearable
-            class="!w-28"
-            :data="[
-              { label: '启用', value: 0 },
-              { label: '禁用', value: 1 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysTenantName = undefined; query.sysTenantUsername = undefined; query.sysTenantStatus = undefined; tableRef?.reload()">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-        </template>
-      </ReSearch>
-
-      <ReTable
-        ref="tableRef"
-        table-id="system-tenant"
-        :loader="loadTenants"
-        :columns="columns"
-        :pagination="true"
-        :params="query"
-        row-key="sysTenantId"
-        v-model:page="query.page"
-        v-model:page-size="query.pageSize"
-        :row-class-name="rowClassName"
-      >
-        <template #status="{ row }">
+    <ReTable
+      ref="tableRef"
+      table-id="system-tenant"
+      :loader="loadTenants"
+      :columns="columns"
+      :pagination="true"
+      :params="query"
+      row-key="sysTenantId"
+      v-model:page="query.page"
+      v-model:page-size="query.pageSize"
+      :row-class-name="rowClassName"
+      :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+      :search-gap="16"
+      v-model:search-model="query"
+      @search-reset="handleReset"
+    >
+      <template #toolbar>
+        <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleCreate">新增租户</ReButton>
+        <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+      </template>
+      <template #status="{ row }">
           <div class="flex flex-col items-center gap-1">
             <ReTag :type="row.sysTenantStatus === 1 ? 'danger' : 'success'" size="small" effect="plain">
               {{ row.sysTenantStatus === 1 ? "禁用" : "启用" }}
@@ -320,7 +308,6 @@ onMounted(() => {
           <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <TenantFormDialog v-model:visible="formDialogVisible" v-model:model="currentTenant" :mode="formMode" @success="handleDialogSuccess" />
     <TenantServiceBindDialog v-model:visible="bindDialogVisible" :tenant="currentTenant" @success="handleDialogSuccess" />
@@ -403,17 +390,6 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 
 :deep(.tenant-expiring-row) {

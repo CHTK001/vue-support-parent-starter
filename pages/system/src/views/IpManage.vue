@@ -4,7 +4,7 @@
  *
  * 顶部 Tab 切换白/黑名单，分页查询 + 新增/编辑/删除 + 状态切换 + IP 归属地查询。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Edit, Delete, Search, Refresh, LocationInformation } from "@element-plus/icons-vue";
 import { pageForIp, saveIp, updateIp, deleteIp, lookupIp } from "../api/systemApi";
@@ -23,6 +23,17 @@ const query = ref<{
   page: 1,
   pageSize: 10,
 });
+
+const searchFilters = computed(() => [
+  { key: 'sysIpIp', label: 'IP 地址 / 网段', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysIpStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '启用', value: 0 },
+      { label: '禁用', value: 1 },
+    ],
+  },
+]);
 
 async function loadIps({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForIp({
@@ -165,43 +176,18 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
       <el-tabs v-model="activeTab" class="ip-tabs" @tab-change="handleTabChange">
         <el-tab-pane :label="`白名单`" :name="0" />
         <el-tab-pane :label="`黑名单`" :name="1" />
       </el-tabs>
 
-      <ReSearch :is-expanded="true" filter-mode="data" :add-text="activeTab === 0 ? '新增白名单' : '新增黑名单'" @add="handleAdd">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysIpIp"
-            placeholder="IP 地址 / 网段"
-            clearable
-            class="!w-56"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysIpStatus"
-            placeholder="状态"
-            clearable
-            class="!w-32"
-            :data="[
-              { label: '启用', value: 0 },
-              { label: '禁用', value: 1 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-ip"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         :loader="loadIps"
         :columns="columns"
         :pagination="true"
@@ -210,6 +196,12 @@ onMounted(() => {
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
       >
+        <template #toolbar>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">
+            {{ activeTab === 0 ? '新增白名单' : '新增黑名单' }}
+          </ReButton>
+        </template>
         <template #type="{ row }">
           <ReTag :type="row.sysIpType === 0 ? 'success' : 'danger'" effect="plain" size="small">
             {{ row.sysIpType === 0 ? '白名单' : '黑名单' }}
@@ -229,7 +221,6 @@ onMounted(() => {
           <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysIpId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <ReDialog
       v-model="dialogVisible"
@@ -238,6 +229,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
@@ -278,17 +270,6 @@ onMounted(() => {
   gap: 16px;
   padding: 20px;
   height: 100%;
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 .ip-tabs {
   margin-bottom: 4px;

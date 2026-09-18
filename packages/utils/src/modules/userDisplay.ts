@@ -42,6 +42,8 @@ export interface UserDisplayInfo {
   avatarFrameShow?: number;
   /** 生日（yyyy-MM-dd） */
   birthday?: string;
+  /** 身份证号 */
+  idCard?: string;
 }
 
 /** 简化的 store 形状（解耦 pinia 模块依赖） */
@@ -105,5 +107,6 @@ export function resolveUserDisplayInfo(sources?: UserInfoSources): UserDisplayIn
       (merged.avatarFrameShow as number) ??
       0,
     birthday: (merged.sysUserBirthday as string) ?? (merged.birthday as string) ?? "",
+    idCard: (merged.sysUserIdCard as string) ?? (merged.idCard as string) ?? "",
   };
 }

@@ -23,7 +23,7 @@ interface Host {
   serverHostOnlineInterval?: number;
   serverHostAgentEnabled?: number;
   serverHostRemoteEnabled?: number;
-  serverGroupId?: number | null;
+  msServerGroupId?: number | null;
   serverHostTags?: string | null;
   serverHostDescription?: string | null;
   serverHostCode?: string | null;
@@ -55,10 +55,10 @@ const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", ser
 
 /** 平台选项（PNG 图片） */
 const osOptions = [
-  { label: "Linux", value: "LINUX", icon: "/os/os-linux.png" },
-  { label: "Windows", value: "WINDOWS", icon: "/os/os-windows.png" },
-  { label: "macOS", value: "MACOS", icon: "/os/os-macos.png" },
-  { label: "Android", value: "ANDROID", icon: "/os/os-android.png" },
+  { label: "Linux", value: "LINUX", icon: "/os/os-linux.svg" },
+  { label: "Windows", value: "WINDOWS", icon: "/os/os-windows.svg" },
+  { label: "macOS", value: "MACOS", icon: "/os/os-macos.svg" },
+  { label: "Android", value: "ANDROID", icon: "/os/os-android.svg" },
 ];
 /** 认证方式 */
 const formAuthMethod = ref("IDENTITY");
@@ -100,7 +100,7 @@ function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
     serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED",
-    serverGroupId: null, serverHostTags: "", serverHostDescription: "",
+    msServerGroupId: null, serverHostTags: "", serverHostDescription: "",
     serverHostCode: "",
     // 采集
     serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
@@ -274,7 +274,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.serverGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="props.groupOptions" />
+          <ReSelect v-model="form.msServerGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="props.groupOptions" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />

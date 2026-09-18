@@ -16,6 +16,7 @@ import Topology from "./views/Topology.vue";
 import Alerts from "./views/Alerts.vue";
 import Injector from "./views/Injector.vue";
 import Services from "./views/Services.vue";
+import ServiceDetail from "./views/ServiceDetail.vue";
 import Errors from "./views/Errors.vue";
 
 export const routes: RouteRecordRaw[] = [
@@ -82,6 +83,12 @@ export const routes: RouteRecordRaw[] = [
     name: "HotsportServices",
     component: Services,
     meta: { title: "服务列表" },
+  },
+  {
+    path: "/services/detail",
+    name: "HotsportServiceDetail",
+    component: ServiceDetail,
+    meta: { title: "服务详情" },
   },
   {
     path: "/errors",

@@ -35,6 +35,10 @@ const authStore = defineStore("auth", {
         avatarFrame: 0,
         avatarFrameShow: 0,
         birthday: "",
+        phone: "",
+        email: "",
+        idCard: "",
+        nickname: "",
       },
     };
   },
@@ -75,6 +79,10 @@ const authStore = defineStore("auth", {
             avatarFrame: data.sysUserAvatarFrame ?? data.avatarFrame ?? 0,
             avatarFrameShow: data.sysUserAvatarFrameShow ?? data.avatarFrameShow ?? 0,
             birthday: data.sysUserBirthday ?? data.birthday ?? "",
+            phone: data.sysUserPhone ?? data.phone ?? "",
+            email: data.sysUserEmail ?? data.email ?? "",
+            idCard: data.sysUserCard ?? data.idCard ?? "",
+            nickname: data.sysUserNickname ?? data.nickname ?? "",
           };
           setUserRoles(this.roleList);
           setUserPerms(this.buttonList);

@@ -25,3 +25,12 @@ export const DEFAULT_THEME: string = "#2992FF";
 
 /** 路由白名单地址 */
 export const ROUTER_WHITE_LIST: string[] = ["/500"];
+
+/**
+ * 菜单缺省图标（菜单未配置 icon 时兜底显示，避免图标位空白）。
+ *
+ * 可在 app.yaml 的 menuConfig.defaultIcon 覆盖；解析入口见 @repo/config 的
+ * resolveMenuDefaultIcon()（配置优先，未配置回退本常量）。
+ * 默认值取自 @repo/assets/src/icons（koi 主题本地 svg sprite，<use> 引用 #icon-koi-*）。
+ */
+export const DEFAULT_MENU_ICON: string = "koi-text-menu";

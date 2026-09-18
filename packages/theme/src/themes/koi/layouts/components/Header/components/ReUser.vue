@@ -133,7 +133,10 @@ const handleLayout = () => {
   // 清除 auth store 数据[重置为初始状态]
   authStore.$reset();
   // 退出登录，必须使用replace把页面缓存刷掉。
-  window.location.replace(LOGIN_URL);
+  // 拼接 base 路径，确保跳转到正确的登录页
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const loginPath = LOGIN_URL.replace(/^\//, ""); // 去掉开头的 /
+  window.location.replace(baseUrl + loginPath);
 };
 
 // 下拉折叠

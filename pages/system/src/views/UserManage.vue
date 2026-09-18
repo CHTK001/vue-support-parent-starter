@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 用户管理页面
  *
@@ -7,7 +7,7 @@
  */
 import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument, Iphone, Message } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
@@ -41,8 +41,8 @@ const userSexOptions = [
 ];
 
 const userStatusOptions = [
-  { label: "启用", value: 0 },
-  { label: "禁用", value: 1 },
+  { label: "启用", value: 1 },
+  { label: "禁用", value: 0 },
 ];
 
 const query = ref<{
@@ -71,8 +71,8 @@ const searchFilters = computed(() => [
   {
     key: 'sysUserStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
     options: [
-      { label: '启用', value: 0 },
-      { label: '禁用', value: 1 },
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 },
     ],
   },
 ]);
@@ -85,13 +85,12 @@ async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise
     sysUserPhone: (params.sysUserPhone as string) || undefined,
     sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
     sysDeptId: params.sysDeptId === "" ? undefined : (params.sysDeptId as number),
-  });
+  } as any);
   total.value = res?.data?.total ?? 0;
   return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
 }
 
 const tableRef = ref();
-const searchVisible = ref(true);
 const total = ref(0);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / (query.value.pageSize || 10))));
 function goPage(p: number) {
@@ -229,7 +228,7 @@ async function handleBatchStatus(status: number) {
     ElMessage.warning("请先选择用户");
     return;
   }
-  const actionText = status === 0 ? "启用" : "禁用";
+  const actionText = status === 1 ? "禁用" : "启用";
   try {
     await ElMessageBox.confirm(`确认批量${actionText}选中的 ${ids.length} 个用户？`, "批量操作确认", { type: "warning" });
   } catch {
@@ -299,7 +298,7 @@ function deptNameOf(deptId?: number): string {
 
 function handleReset() {
   query.value = { page: 1, pageSize: 10 };
-  tableRef.value?.reload();
+  nextTick(() => { tableRef.value?.reload(); });
 }
 
 /* ================== 导入导出 ================== */
@@ -376,6 +375,8 @@ async function handleFileChange(e: Event) {
 }
 
 const dialogVisible = ref(false);
+const okText = ref('\u786e\u5b9a');
+const cancelText = ref('\u53d6\u6d88');
 const profileVisible = ref(false);
 const profileUser = ref<SysUser | null>(null);
 const loginLogs = ref<SysUserLog[]>([]);
@@ -384,10 +385,89 @@ const loadingLogs = ref(false);
 const saving = ref(false);
 const isEdit = ref(false);
 const form = ref<SysUserUpdate>({});
+const avatarInputRef = ref<HTMLInputElement | null>(null);
+const rowAvatarInputRef = ref<HTMLInputElement | null>(null);
+const currentAvatarRow = ref<Record<string, unknown> | null>(null);
+
+function triggerAvatarUpload() {
+  avatarInputRef.value?.click();
+}
+
+function onIdCardChange(val: string) {
+  if (!val || val.length !== 18) return;
+  // 第17位奇数男，偶数女
+  const sexDigit = parseInt(val.charAt(16), 10);
+  if (!isNaN(sexDigit)) {
+    form.value.sysUserSex = sexDigit % 2 === 1 ? 0 : 1;
+  }
+  // 年龄
+  const birthYear = parseInt(val.substring(6, 10), 10);
+  if (!isNaN(birthYear)) {
+    const now = new Date().getFullYear();
+    form.value.sysUserAge = now - birthYear;
+  }
+}
+
+function triggerAvatarUploadForRow(row: Record<string, unknown>) {
+  currentAvatarRow.value = row;
+  rowAvatarInputRef.value?.click();
+}
+
+function handleRowAvatarChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file || !currentAvatarRow.value) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 64, 64);
+      const base64 = canvas.toDataURL('image/jpeg', 0.4);
+      const userId = currentAvatarRow.value.sysUserId;
+      if (userId) {
+        try {
+          await updateUser({ sysUserId: userId, sysUserAvatar: base64 } as any);
+          ElMessage.success('头像已更新');
+          tableRef.value?.reload();
+        } catch (e: any) {
+          console.error('头像更新失败:', e);
+          ElMessage.error(e?.msg || e?.message || '头像更新失败');
+        }
+      }
+    };
+    img.src = ev.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+  (e.target as HTMLInputElement).value = '';
+}
+
+function handleAvatarChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 64, 64);
+      form.value.sysUserAvatar = canvas.toDataURL('image/jpeg', 0.4);
+    };
+    img.src = ev.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+}
 
 function handleAdd() {
   isEdit.value = false;
-  form.value = { sysUserStatus: 0, sysUserSex: 0 };
+  form.value = { sysUserStatus: 1, sysUserSex: 0 };
   dialogVisible.value = true;
 }
 
@@ -449,20 +529,44 @@ async function handleSubmit() {
     ElMessage.warning("请填写账号、密码、昵称");
     return;
   }
+  
+  // 账号校验：不允许特殊字符和保留字
+  const username = form.value.sysUserUsername.trim();
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    ElMessage.warning("账号只能使用字母、数字和下划线，不允许特殊字符");
+    return;
+  }
+  // 不允许保留字作为账号
+  const reservedUsernames = ["null", "void", "undefined", "admin", "sa", "root", "test", "guest", "anonymous"];
+  if (reservedUsernames.includes(username.toLowerCase())) {
+    ElMessage.warning("该名称为系统保留字，不允许作为账号");
+    return;
+  }
+  
+  if (!isEdit.value && form.value.sysUserPassword !== (form.value as any).sysUserPasswordConfirm) {
+    ElMessage.warning("两次输入的密码不一致");
+    return;
+  }
+  
+  // 自动清理后的账号
+  form.value.sysUserUsername = username;
   saving.value = true;
   try {
     const data: SysUserUpdate = { ...form.value, updateRole: form.value.roleIds && form.value.roleIds.length > 0 };
     if (isEdit.value) {
-      await updateUser(data);
+      const res: any = await updateUser(data);
+      if (res && res.ok === false) throw new Error(res.msg || "修改失败");
       ElMessage.success("修改成功");
     } else {
-      await saveUser(data);
+      const res: any = await saveUser(data);
+      if (res && res.ok === false) throw new Error(res.msg || "新增失败");
       ElMessage.success("新增成功");
     }
     dialogVisible.value = false;
     tableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
+  } catch (e: any) {
+    console.error('handleSubmit error:', e);
+    ElMessage.error(e?.msg || e?.message || e?.response?.data?.msg || "保存失败");
   } finally {
     saving.value = false;
   }
@@ -500,8 +604,8 @@ async function handleStatus(row: Record<string, unknown>) {
   }
   statusLoading.value = user.sysUserId!;
   try {
-    await updateUser({ ...user, sysUserStatus: user.sysUserStatus === 0 ? 1 : 0 });
-    ElMessage.success(user.sysUserStatus === 0 ? "已禁用" : "已启用");
+    await updateUser({ ...user, sysUserStatus: user.sysUserStatus === 1 ? 0 : 1 });
+    ElMessage.success(user.sysUserStatus === 1 ? "已禁用" : "已启用");
     tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "操作失败");
@@ -510,43 +614,81 @@ async function handleStatus(row: Record<string, unknown>) {
   }
 }
 
-async function handleResetPwd(row: Record<string, unknown>) {
-  const user = row as unknown as SysUser;
-  if (resettingPwd.value) return;
+async function handleChangeMyPwd() {
   try {
-    await ElMessageBox.confirm(`确认重置「${user.sysUserNickname ?? user.sysUserUsername}」的密码？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定重置",
+    const { value } = await ElMessageBox.prompt("请输入新密码", "修改密码", {
+      inputPlaceholder: "新密码",
+      inputPattern: /.{6,}/,
+      inputErrorMessage: "密码至少6位",
     });
+    await resetOwner();
+    ElMessage.success("密码已重置，请使用新密码登录");
   } catch {
-    return;
+    // 用户取消
   }
-  resettingPwd.value = user.sysUserId!;
+}
+
+// 重置密码对话框状态
+const resetPwdDialogVisible = ref(false);
+const resetPwdSaving = ref(false);
+const resetPwdUser = ref<SysUser | null>(null);
+const resetPwdMode = ref<"auto" | "manual">("auto"); // auto=自动生成, manual=手动输入
+const resetPwdNew = ref("");
+const resetPwdConfirm = ref("");
+
+function openResetPwdDialog(row: Record<string, unknown>) {
+  resetPwdUser.value = row as unknown as SysUser;
+  resetPwdMode.value = "auto";
+  resetPwdNew.value = "";
+  resetPwdConfirm.value = "";
+  resetPwdDialogVisible.value = true;
+}
+
+async function handleResetPwdSubmit() {
+  if (!resetPwdUser.value) return;
+  
+  // 手动输入模式校验
+  if (resetPwdMode.value === "manual") {
+    if (!resetPwdNew.value) {
+      ElMessage.warning("请输入新密码");
+      return;
+    }
+    if (resetPwdNew.value !== resetPwdConfirm.value) {
+      ElMessage.warning("两次输入的密码不一致");
+      return;
+    }
+  }
+  
+  resetPwdSaving.value = true;
   try {
-    const res = await resetUserPassword(user.sysUserId!);
-    const newPwd = res?.data ?? "";
-    await ElMessageBox.prompt("新密码（请妥善保管）", "重置成功", {
-      confirmButtonText: "复制密码",
-      cancelButtonText: "已记住",
-      inputType: "password",
-      inputPattern: /.+/,
-      inputErrorMessage: "密码不能为空",
-    }).then((confirmRes) => {
-      if (confirmRes.action === "confirm" && newPwd) {
-        navigator.clipboard.writeText(newPwd);
-        ElMessage.success("密码已复制到剪贴板");
-      }
-    }).catch(() => {
-      ElMessage.warning("请截图保存新密码，关闭后将无法再次查看");
-      ElMessageBox.alert(`新密码：${newPwd}，请妥善保管`, "密码确认", {
-        confirmButtonText: "确定",
+    if (resetPwdMode.value === "auto") {
+      // 自动生成密码模式
+      const res = await resetUserPassword(resetPwdUser.value.sysUserId!);
+      const newPwd = (res as string) ?? "";
+      resetPwdDialogVisible.value = false;
+      
+      // 显示新密码
+      await ElMessageBox.alert(`新密码：${newPwd}，请妥善保管`, "重置成功", {
+        confirmButtonText: "复制密码",
         distinguishCancelAndClose: false,
+      }).then(() => {
+        if (newPwd) {
+          navigator.clipboard.writeText(newPwd);
+          ElMessage.success("密码已复制到剪贴板");
+        }
+      }).catch(() => {
+        ElMessage.warning("请截图保存新密码，关闭后将无法再次查看");
       });
-    });
+    } else {
+      // 手动输入密码模式
+      await resetUserPassword(resetPwdUser.value.sysUserId!, resetPwdNew.value);
+      ElMessage.success("密码已重置，请使用新密码登录");
+      resetPwdDialogVisible.value = false;
+    }
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "重置失败");
   } finally {
-    resettingPwd.value = 0;
+    resetPwdSaving.value = false;
   }
 }
 
@@ -588,7 +730,7 @@ function handleActionCommand(cmd: string, row: Record<string, unknown>) {
   if (cmd === "detail") openDetail(row);
   else if (cmd === "edit") handleEdit(row);
   else if (cmd === "role") openRoleDialog(row);
-  else if (cmd === "resetPwd") handleResetPwd(row);
+  else if (cmd === "resetPwd") openResetPwdDialog(row);
   else if (cmd === "delete") handleDelete(row);
   else if (cmd === "lock" || cmd === "unlock") handleToggleLock(row);
   else if (cmd === "unbindTotp") handleUnbindTotp(row);
@@ -596,14 +738,13 @@ function handleActionCommand(cmd: string, row: Record<string, unknown>) {
 
 const columns: ReTableColumn[] = [
   { prop: "sysUserUsername", label: "账号", minWidth: 200, slot: "username" },
-  { prop: "sysUserNickname", label: "昵称", minWidth: 120, slot: "nickname" },
-  { prop: "sysUserPhone", label: "手机号", minWidth: 150, slot: "phone" },
-  { prop: "sysUserEmail", label: "邮箱", minWidth: 180, showOverflowTooltip: true, slot: "email" },
+  { prop: "sysUserNickname", label: "昵称", minWidth: 160, slot: "nickname" },
+  { prop: "contact", label: "联系方式", minWidth: 200, slot: "contact" },
   { prop: "roles", label: "角色", minWidth: 160, slot: "roles" },
-  { prop: "sysUserLastAddress", label: "最近登录", minWidth: 150, showOverflowTooltip: true },
-  { prop: "sysUserLastIp", label: "最近 IP", minWidth: 120 },
-  { prop: "sysUserStatus", label: "状态", width: 120, slot: "status", align: "center" },
-  { prop: "createTime", label: "创建时间", width: 170 },
+  { prop: "sysUserStatus", label: "状态", width: 100, slot: "status", align: "center" },
+  { prop: "createTime", label: "创建时间", width: 160 },
+  { prop: "sysUserLastLoginTime", label: "最近登录", minWidth: 160, showOverflowTooltip: true },
+  { prop: "sysUserLastIp", label: "最近 IP", minWidth: 140, slot: "ip" },
   { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "center" },
 ];
 
@@ -617,31 +758,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <el-form v-show="searchVisible" :model="query" inline label-position="top" class="user-search-form">
-        <el-form-item label="用户名称" label-width="auto">
-          <ReInput layout="modern" v-model="query.sysUserName" placeholder="请输入" clearable class="!w-44" @keyup.enter="tableRef?.reload()" />
-        </el-form-item>
-        <el-form-item label="手机号" label-width="auto">
-          <ReInput layout="modern" v-model="query.sysUserPhone" placeholder="请输入" clearable class="!w-44" @keyup.enter="tableRef?.reload()" />
-        </el-form-item>
-        <el-form-item label="部门" label-width="auto">
-          <el-tree-select v-model="query.sysDeptId" :data="depts" :props="{ value: 'sysDeptId', label: 'sysDeptName', children: 'children' }" check-strictly clearable placeholder="请选择" class="!w-44" />
-        </el-form-item>
-        <el-form-item label="状态" label-width="auto">
-          <ReSelect v-model="query.sysUserStatus" placeholder="请选择" clearable class="!w-32" :data="[{ label: '启用', value: 0 }, { label: '禁用', value: 1 }]" />
-        </el-form-item>
-      </el-form>
-      <div class="user-search-actions">
-        <ReButton layout="square" :icon="searchVisible ? 'Hide' : 'View'" :title="searchVisible ? '隐藏搜索' : '显示搜索'" @click="searchVisible = !searchVisible" />
-        <ReButton layout="square" icon="Refresh" title="重置" @click="handleReset" />
-        <ReButton layout="square" type="primary" icon="Search" title="查询" @click="tableRef?.reload()" />
-        <span class="system-page__divider" />
-        <ReButton layout="modern" icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
-        <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerImport">导入用户</ReButton>
-        <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleExport">导出</ReButton>
-      </div>
-
       <!-- 隐藏文件输入 -->
       <input
         ref="importInput"
@@ -658,48 +774,75 @@ onMounted(() => {
         :columns="columns"
         :pagination="true"
         :params="query"
+        :auto-reload="false"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
         row-key="sysUserId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
+        @search-reset="handleReset"
         @selection-change="handleSelectionChange"
       >
+        <!-- 工具栏：页面业务按钮（内置只保留 显示/隐藏搜索、刷新、搜索、重置） -->
+        <template #toolbar>
+          <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">添加</ReButton>
+          <ReButton layout="modern" icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
+          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerImport">导入用户</ReButton>
+          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleExport">导出</ReButton>
+        </template>
+
         <template #username="{ row }">
           <div class="flex items-center gap-2">
-            <el-avatar :size="28" :src="row.sysUserAvatar">
+            <el-avatar :size="28" :src="row.sysUserAvatar" class="cursor-pointer" @click="triggerAvatarUploadForRow(row)">
               <el-icon><User /></el-icon>
             </el-avatar>
             <div class="flex flex-col">
               <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
               <div class="flex gap-1 mt-0.5">
-                <el-tag v-if="row.sysUserStatus !== 0" type="danger" effect="plain" size="small">禁用</el-tag>
+                <el-tag v-if="row.sysUserStatus !== 1" type="danger" effect="plain" size="small">禁用</el-tag>
                 <el-tag v-else type="success" effect="plain" size="small">启用</el-tag>
                 <el-tag v-if="row.sysUserLock === 1" type="warning" effect="plain" size="small">锁定</el-tag>
                 <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small">只读</el-tag>
               </div>
             </div>
+            <input ref="rowAvatarInputRef" type="file" accept="image/*" style="display:none" @change="handleRowAvatarChange" />
           </div>
         </template>
         <template #nickname="{ row }">
           <span v-if="row.sysUserNickname" class="flex items-center gap-1">
-            <el-icon><UserFilled /></el-icon>
+            <el-icon :color="row.sysUserSex === 1 ? '#e91e63' : '#409eff'">
+              <Female v-if="row.sysUserSex === 1" />
+              <Male v-else />
+            </el-icon>
             <span>{{ row.sysUserNickname }}</span>
           </span>
           <span v-else>-</span>
         </template>
-        <template #phone="{ row }">
-          <span v-if="row.sysUserPhone" class="flex items-center gap-1">
-            <el-icon><Iphone /></el-icon>
-            <span>{{ row.sysUserPhone }}</span>
-          </span>
-          <span v-else>-</span>
+        <template #contact="{ row }">
+          <div class="flex flex-col gap-0.5 text-xs">
+            <span v-if="row.sysUserPhone" class="flex items-center gap-1">
+              <el-icon><Iphone /></el-icon>
+              <span>{{ row.sysUserPhone }}</span>
+            </span>
+            <span v-if="row.sysUserEmail" class="flex items-center gap-1">
+              <el-icon><Message /></el-icon>
+              <span>{{ row.sysUserEmail }}</span>
+            </span>
+            <span v-if="row.sysUserIdCard" class="flex items-center gap-1">
+              <el-icon><Postcard /></el-icon>
+              <span>{{ row.sysUserIdCard }}</span>
+            </span>
+            <span v-if="!row.sysUserPhone && !row.sysUserEmail && !row.sysUserIdCard" class="text-[--el-text-color-secondary]">-</span>
+          </div>
         </template>
-        <template #email="{ row }">
-          <span v-if="row.sysUserEmail" class="flex items-center gap-1">
-            <el-icon><Message /></el-icon>
-            <span>{{ row.sysUserEmail }}</span>
+        <template #ip="{ row }">
+          <span v-if="row.sysUserLastIp" class="flex items-center gap-1 text-xs">
+            <span>{{ row.sysUserLastIp }}</span>
+            <span v-if="row.sysUserLastAddress" class="text-[--el-text-color-secondary]">{{ row.sysUserLastAddress }}</span>
           </span>
-          <span v-else>-</span>
+          <span v-else class="text-[--el-text-color-secondary]">-</span>
         </template>
         <template #roles="{ row }">
           <el-tag
@@ -716,11 +859,10 @@ onMounted(() => {
         </template>
         <template #status="{ row }">
           <div class="flex flex-col items-center gap-1">
-            <ReSwitch
-              layout="modern"
-              :model-value="row.sysUserStatus === 0"
+            <el-switch
+              :model-value="row.sysUserStatus === 1"
               :disabled="statusLoading === row.sysUserId"
-              @update:model-value="() => handleStatus(row)"
+              @change="() => handleStatus(row)"
             />
             <ReTag v-if="isLocked(row)" type="danger" effect="dark" size="small">已锁定</ReTag>
           </div>
@@ -733,12 +875,11 @@ onMounted(() => {
           <div class="row-actions">
             <ReButton layout="square" type="primary" :icon="View" title="画像" @click="handleProfile(row)" />
             <ReButton layout="square" type="primary" :icon="Edit" title="编辑" :disabled="isSelf(row)" @click="handleEdit(row)" />
-            <ReButton layout="square" type="warning" :icon="Key" title="重置密码" :loading="resettingPwd === row.sysUserId" @click="handleResetPwd(row)" />
+            <ReButton layout="square" type="warning" :icon="Key" title="重置密码" :loading="resettingPwd === row.sysUserId" @click="openResetPwdDialog(row)" />
             <ReButton layout="square" type="danger" :icon="Delete" title="删除" :disabled="isSelf(row)" @click="handleDelete(row)" />
           </div>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 用户编辑弹窗 -->
     <ReDialog
@@ -748,7 +889,10 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
+      :ok-text="okText"
+      :cancel-text="cancelText"
       @ok="handleSubmit"
     >
       <div class="user-dialog__body">
@@ -759,6 +903,9 @@ onMounted(() => {
             </el-form-item>
             <el-form-item label="密码" v-if="!isEdit" required>
               <ReInput layout="modern" v-model="form.sysUserPassword" type="password" show-password placeholder="登录密码" maxlength="255" show-word-limit />
+            </el-form-item>
+            <el-form-item label="确认密码" v-if="!isEdit" required>
+              <ReInput layout="modern" v-model="form.sysUserPasswordConfirm" type="password" show-password placeholder="再次输入密码" maxlength="255" show-word-limit />
             </el-form-item>
             <el-form-item label="昵称" required>
               <ReInput layout="modern" v-model="form.sysUserNickname" placeholder="显示名称" maxlength="255" show-word-limit />
@@ -771,6 +918,9 @@ onMounted(() => {
             </el-form-item>
             <el-form-item label="性别">
               <el-segmented v-model="form.sysUserSex" :options="userSexOptions" />
+            </el-form-item>
+            <el-form-item label="身份证">
+              <ReInput layout="modern" v-model="form.sysUserIdCard" placeholder="身份证号" maxlength="18" show-word-limit @change="onIdCardChange" />
             </el-form-item>
             <el-form-item label="状态">
               <el-segmented v-model="form.sysUserStatus" :options="userStatusOptions" />
@@ -810,6 +960,45 @@ onMounted(() => {
           </div>
         </el-form>
       </div>
+      <template #footer>
+        <ReButton type="default" @click="dialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="saving" @click="handleSubmit">确定</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 重置密码对话框 -->
+    <ReDialog
+      v-model="resetPwdDialogVisible"
+      title="重置密码"
+      width="480px"
+      :close-on-click-modal="false"
+    >
+      <div style="padding: 20px 0;">
+        <el-form label-width="80px">
+          <el-form-item label="重置对象">
+            <span>{{ resetPwdUser?.sysUserNickname ?? resetPwdUser?.sysUserUsername }}</span>
+          </el-form-item>
+          <el-form-item label="重置模式">
+            <el-radio-group v-model="resetPwdMode">
+              <el-radio value="auto">自动生成密码</el-radio>
+              <el-radio value="manual">手动输入密码</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-if="resetPwdMode === 'manual'" label="新密码" required>
+            <ReInput layout="modern" v-model="resetPwdNew" type="password" placeholder="请输入新密码" show-password />
+          </el-form-item>
+          <el-form-item v-if="resetPwdMode === 'manual'" label="确认密码" required>
+            <ReInput layout="modern" v-model="resetPwdConfirm" type="password" placeholder="请再次输入新密码" show-password />
+          </el-form-item>
+          <el-form-item v-if="resetPwdMode === 'auto'">
+            <span style="color: #909399; font-size: 13px;">系统将自动生成新密码，重置成功后显示</span>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <ReButton type="default" @click="resetPwdDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="resetPwdSaving" @click="handleResetPwdSubmit">确定重置</ReButton>
+      </template>
     </ReDialog>
 
     <!-- 用户画像弹窗 -->
@@ -828,8 +1017,8 @@ onMounted(() => {
           <div class="profile-name">{{ profileUser.sysUserNickname || profileUser.sysUserUsername }}</div>
           <div class="profile-account">@{{ profileUser.sysUserUsername }}</div>
           <div class="profile-tags">
-            <el-tag size="small" :type="profileUser.sysUserStatus === 0 ? 'success' : 'danger'">
-              {{ profileUser.sysUserStatus === 0 ? '启用' : '禁用' }}
+            <el-tag size="small" :type="profileUser.sysUserStatus === 1 ? 'success' : 'danger'">
+              {{ profileUser.sysUserStatus === 1 ? '启用' : '禁用' }}
             </el-tag>
             <el-tag size="small" v-if="profileUser.sysUserLock === 1" type="warning">已锁定</el-tag>
           </div>
@@ -838,10 +1027,10 @@ onMounted(() => {
             <div class="profile-info-item"><span class="label">昵称</span><span>{{ profileUser.sysUserNickname || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">手机号</span><span>{{ profileUser.sysUserPhone || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">邮箱</span><span>{{ profileUser.sysUserEmail || '-' }}</span></div>
-            <div class="profile-info-item"><span class="label">状态</span><span>{{ profileUser.sysUserStatus === 0 ? '启用' : '禁用' }}</span></div>
+            <div class="profile-info-item"><span class="label">状态</span><span>{{ profileUser.sysUserStatus === 1 ? '启用' : '禁用' }}</span></div>
             <div class="profile-info-item"><span class="label">部门</span><span>{{ deptNameOf(profileUser.sysDeptId) }}</span></div>
-            <div class="profile-info-item"><span class="label">角色</span><span>{{ profileUser.userRoles?.map(r => r.sysRoleName).join('、') || '-' }}</span></div>
-            <div class="profile-info-item"><span class="label">岗位</span><span>{{ profileUser.userPosts?.map(p => p.sysPostName).join('、') || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">角色</span><span>{{ [...new Map((profileUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()].map(r => r.sysRoleName).join('、') || '-' }}</span></div>
+            <div class="profile-info-item"><span class="label">岗位</span><span>{{ [...new Map((profileUser.userPosts ?? []).map(p => [p.sysPostId, p])).values()].map(p => p.sysPostName).join('、') || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">最后登录</span><span>{{ profileUser.sysUserLastLoginTime || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">登录IP</span><span>{{ profileUser.sysUserLastIp || '-' }}</span></div>
             <div class="profile-info-item"><span class="label">登录地址</span><span>{{ profileUser.sysUserLastAddress || '-' }}</span></div>
@@ -903,6 +1092,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="roleSaving"
       @ok="handleSaveRoles"
     >
@@ -936,13 +1126,13 @@ onMounted(() => {
             {{ deptNameOf(detailUser.sysDeptId) }}
           </el-descriptions-item>
           <el-descriptions-item label="状态">
-            <ReTag :type="detailUser.sysUserStatus === 0 ? 'success' : 'danger'" effect="plain" size="small">
-              {{ detailUser.sysUserStatus === 0 ? '启用' : '禁用' }}
+            <ReTag :type="detailUser.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" size="small">
+              {{ detailUser.sysUserStatus === 1 ? '启用' : '禁用' }}
             </ReTag>
           </el-descriptions-item>
           <el-descriptions-item label="角色">
             <div v-if="detailUser.userRoles?.length" class="flex flex-wrap gap-1">
-              <ReTag v-for="r in detailUser.userRoles" :key="r.sysRoleId" type="primary" effect="plain" size="small">
+              <ReTag v-for="r in [...new Map((detailUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]" :key="r.sysRoleId" type="primary" effect="plain" size="small">
                 {{ r.sysRoleName }}
               </ReTag>
             </div>
@@ -950,7 +1140,7 @@ onMounted(() => {
           </el-descriptions-item>
           <el-descriptions-item label="岗位">
             <div v-if="detailUser.userPosts?.length" class="flex flex-wrap gap-1">
-              <ReTag v-for="p in detailUser.userPosts" :key="p.sysPostId" type="success" effect="plain" size="small">
+              <ReTag v-for="p in [...new Map((detailUser.userPosts ?? []).map(p => [p.sysPostId, p])).values()]" :key="p.sysPostId" type="success" effect="plain" size="small">
                 {{ p.sysPostName }}
               </ReTag>
             </div>
@@ -1097,36 +1287,8 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.user-search-form :deep(.el-form-item) {
-  margin-right: 24px;
-  margin-bottom: 12px;
-}
-.user-search-form :deep(.el-form-item__label) {
-  padding-bottom: 4px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-}
 :deep(.el-overlay) {
   transition: none !important;
-}
-.user-search-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.system-page__divider {
-  display: inline-block;
-  width: 1px;
-  height: 16px;
-  background: var(--el-border-color);
-  margin: 0 4px;
 }
 .row-actions {
   display: flex;
@@ -1185,3 +1347,6 @@ onMounted(() => {
   background: var(--el-color-danger-light-9);
 }
 </style>
+
+
+

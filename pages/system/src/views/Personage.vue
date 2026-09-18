@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 个人中心页面（/system/personage）
  *
@@ -120,6 +120,7 @@ const profileForm = reactive<SysUserUpdate>({
   sysUserNickname: "",
   sysUserPhone: "",
   sysUserEmail: "",
+  sysUserIdCard: "",
   sysUserSex: 0,
 });
 
@@ -128,6 +129,7 @@ function openProfile() {
   profileForm.sysUserNickname = display.value.nickname === "-" ? "" : display.value.nickname;
   profileForm.sysUserPhone = display.value.phone === "-" ? "" : display.value.phone;
   profileForm.sysUserEmail = display.value.email === "-" ? "" : display.value.email;
+  profileForm.sysUserIdCard = (display.value.idCard as string) || "";
   profileForm.sysUserSex = display.value.sex;
   profileVisible.value = true;
 }
@@ -234,7 +236,8 @@ const lockFields: ReFormField[] = [
 const profileFields: ReFormField[] = [
   { prop: "sysUserNickname", label: "昵称", component: ReInput, attrs: { layout: "modern", placeholder: "请输入昵称" } },
   { prop: "sysUserPhone", label: "手机号", component: ReInput, attrs: { layout: "modern", placeholder: "请输入手机号" } },
-  { prop: "sysUserEmail", label: "邮箱", component: ReInput, attrs: { layout: "modern", placeholder: "请输入邮箱" } },
+  { prop: "sysUserEmail", label: "邮箱", component: ReInput, attrs: { layout: "modern", placeholder: "请输入邮箱（选填）" }, required: false },
+  { prop: "sysUserIdCard", label: "身份证", component: ReInput, attrs: { layout: "modern", placeholder: "请输入身份证号（选填）", maxlength: 18 }, required: false },
   {
     prop: "sysUserSex",
     label: "性别",
@@ -487,6 +490,7 @@ onMounted(async () => {
           <el-descriptions :column="1" class="base-info">
             <el-descriptions-item label="手机号">{{ display.phone }}</el-descriptions-item>
             <el-descriptions-item label="邮箱">{{ display.email }}</el-descriptions-item>
+            <el-descriptions-item label="身份证">{{ (display.idCard as string) || "-" }}</el-descriptions-item>
             <el-descriptions-item label="性别">
               {{ display.sex === 1 ? "女" : display.sex === 2 ? "保密" : "男" }}
             </el-descriptions-item>
@@ -639,6 +643,7 @@ onMounted(async () => {
       layout="modern"
       width="480"
       :close-on-click-modal="false"
+      compact
       :confirm-loading="savingProfile"
       ok-text="保存"
       @ok="saveProfile"
@@ -653,6 +658,7 @@ onMounted(async () => {
       layout="modern"
       width="420"
       :close-on-click-modal="false"
+      compact
       :confirm-loading="totpBinding"
       ok-text="确认绑定"
       @ok="confirmTotpBind"
@@ -805,3 +811,6 @@ onMounted(async () => {
   &__tip { font-size: 12px; color: var(--el-text-color-secondary); text-align: center; margin: 0; }
 }
 </style>
+
+
+

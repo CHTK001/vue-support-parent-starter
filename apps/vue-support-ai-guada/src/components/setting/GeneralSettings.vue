@@ -156,13 +156,15 @@ watch(() => ({ autoLoginEnabled: settingsForm.autoLoginEnabled, workspaceBaseDir
 const loadSettings = async () => {
   try {
     const response = await apiService.fetchGroupSettings('system')
+    // 后端返回两层data嵌套：{ success: true, data: {...} }
+    const data = response?.data || response
 
     // 填充表单
-    settingsForm.autoLoginEnabled = response.autoLoginEnabled === true || response.autoLoginEnabled === 'true'
-    settingsForm.workspaceBaseDir = response.workspaceBaseDir || ''
-    settingsForm.maxToolIterations = Number(response.maxToolIterations) || 100
-    settingsForm.llmRequestTimeoutMs = Math.round(Number(response.llmRequestTimeoutMs) / 1000) || 600
-    settingsForm.llmIdleTimeoutMs = Math.round(Number(response.llmIdleTimeoutMs) / 1000) || 120
+    settingsForm.autoLoginEnabled = data.autoLoginEnabled === true || data.autoLoginEnabled === 'true'
+    settingsForm.workspaceBaseDir = data.workspaceBaseDir || ''
+    settingsForm.maxToolIterations = Number(data.maxToolIterations) || 100
+    settingsForm.llmRequestTimeoutMs = Math.round(Number(data.llmRequestTimeoutMs) / 1000) || 600
+    settingsForm.llmIdleTimeoutMs = Math.round(Number(data.llmIdleTimeoutMs) / 1000) || 120
     // 备份原始数据
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
   } catch (error: any) {

@@ -5,18 +5,35 @@
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Search, Download } from "@element-plus/icons-vue";
 import { pageForUserLog, exportUserLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import { defineAsyncComponent } from "vue";
-const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default()));
+/** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
+const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
 
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogStatus?: number }>({
   page: 1,
   pageSize: 20,
 });
+
+const searchFilters = computed(() => [
+  { key: 'sysLogUsername', label: '用户名', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysLogStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '成功', value: 1 },
+      { label: '失败', value: 0 },
+    ],
+  },
+]);
+
+function handleReset() {
+  query.value = { page: 1, pageSize: 20 };
+  tableRef.value?.reload();
+}
 
 /* 导出登录日志 */
 const exporting = ref(false);
@@ -81,39 +98,13 @@ const columns: ReTableColumn[] = [
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysLogUsername"
-            placeholder="用户名"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysLogStatus"
-            placeholder="状态（全部/成功/失败）"
-            clearable
-            class="!w-48"
-            :data="[
-              { label: '成功', value: 1 },
-              { label: '失败', value: 0 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysLogUsername = undefined; query.sysLogStatus = undefined; tableRef?.reload()">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-          <ReButton layout="modern" type="success" icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-userlog"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         :loader="loadLogs"
         :columns="columns"
         :pagination="true"
@@ -123,6 +114,10 @@ const columns: ReTableColumn[] = [
         v-model:page-size="query.pageSize"
         :row-class-name="rowClassName"
       >
+        <template #toolbar>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <ReButton layout="modern" type="success" icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
+        </template>
         <template #username="{ row }">
           <span class="log-content-link" @click="openDetail(row)">{{ row.sysLogUsername ?? '-' }}</span>
         </template>
@@ -151,7 +146,6 @@ const columns: ReTableColumn[] = [
           <ReButton layout="square" type="primary" @click="openDetail(row)">详情</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 登录日志详情弹窗 -->
     <ReDialog v-model="detailVisible" title="登录日志详情" width="640" :footer-hidden="true">
@@ -202,17 +196,6 @@ const columns: ReTableColumn[] = [
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 
 :deep(.login-fail-row) {

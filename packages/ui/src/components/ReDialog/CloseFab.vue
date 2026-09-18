@@ -8,10 +8,12 @@
 import { computed, defineAsyncComponent } from "vue";
 
 /**
- * ReIcon 的模块 default 是「按主题异步解析组件的 loader」（() => Promise<Component>），
- * 不能直接当组件用。用 defineAsyncComponent 包装成真正的异步组件。
+ * ReIcon 的模块 default 是**已经包装好的异步组件**（`defineAsyncComponent` 的返回值），
+ * 不是「按主题解析组件的 loader」，因此不能再当函数调用 —— `m.default()` 会抛
+ * "m.default is not a function"，导致 headless 对话框的关闭按钮整块渲染失败。
+ * 这里只做一次动态 import 拆包，交给 defineAsyncComponent 保持懒加载。
  */
-const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 
 defineOptions({ name: "ReDialogCloseFab" });
 

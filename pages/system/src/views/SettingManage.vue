@@ -44,6 +44,15 @@ const query = ref<{
   pageSize: 20,
 });
 
+const searchFilters = computed(() => [
+  { key: 'sysSettingName', label: '名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysSettingCode', label: '编码', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysSettingGroup', label: '分组', type: 'select' as const, placeholder: '请选择',
+    options: allGroups.value.map((g) => ({ label: g, value: g })),
+  },
+]);
+
 async function loadSettings({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForSetting({
     page,
@@ -414,50 +423,13 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" @add="handleAdd">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysSettingName"
-            placeholder="名称"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysSettingCode"
-            placeholder="编码"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysSettingGroup"
-            placeholder="分组"
-            clearable
-            class="!w-44"
-            :data="allGroups.map((g) => ({ label: g, value: g }))"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-          <span class="system-page__divider" />
-          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleSettingExport">导出</ReButton>
-          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerSettingImport">导入</ReButton>
-        </template>
-      </ReSearch>
-
-      <input
-        ref="settingImportInput"
-        type="file"
-        accept=".json,.xlsx,.xls"
-        style="display: none"
-        @change="onSettingImportChange"
-      />
+    <input
+      ref="settingImportInput"
+      type="file"
+      accept=".json,.xlsx,.xls"
+      style="display: none"
+      @change="onSettingImportChange"
+    />
 
 <ReTable
          ref="tableRef"
@@ -470,7 +442,17 @@ onMounted(() => {
          v-model:page="query.page"
          v-model:page-size="query.pageSize"
          @row-click="handleRowClick"
+         :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+         :search-gap="16"
+         v-model:search-model="query"
+         @search-reset="handleReset"
        >
+        <template #toolbar>
+          <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">新增设置</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleSettingExport">导出</ReButton>
+          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerSettingImport">导入</ReButton>
+        </template>
         <template #name="{ row }">
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><Tools /></el-icon>
@@ -551,7 +533,6 @@ onMounted(() => {
            <ReButton layout="square" type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)">删除</ReButton>
          </template>
       </ReTable>
-    </el-card>
 
     <ReDialog
       v-model="dialogVisible"
@@ -560,6 +541,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
@@ -815,24 +797,6 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-}
-.system-page__divider {
-  display: inline-block;
-  width: 1px;
-  height: 16px;
-  background: var(--el-border-color);
-  margin: 0 4px;
 }
 .setting-history .batch-bar {
   display: flex;

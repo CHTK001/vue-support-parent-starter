@@ -5,7 +5,7 @@
  * 顶部 4 个统计卡片（今日异常/未处理/已处理/处理率） + 搜索 + 分页表格 + 详情弹窗。
  * 支持标记已处理 / 忽略 / 删除。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Warning, Clock, CircleCheck, TrendCharts } from "@element-plus/icons-vue";
 import { pageForErrorLog, getErrorLogStatistic, updateErrorLogStatus, deleteErrorLog } from "../api/systemApi";
@@ -59,6 +59,12 @@ const statusOptions = [
   { value: 1, label: "已处理" },
   { value: 2, label: "已忽略" },
 ];
+
+const searchFilters = computed(() => [
+  { key: 'sysErrorMessage', label: '异常消息', type: 'input' as const, placeholder: '请输入（模糊匹配）' },
+  { key: 'sysErrorSource', label: '来源', type: 'select' as const, placeholder: '请选择', options: sourceOptions },
+  { key: 'sysErrorStatus', label: '状态', type: 'select' as const, placeholder: '请选择', options: statusOptions },
+]);
 
 function sourceLabel(v?: string) {
   return sourceOptions.find((o) => o.value === v)?.label ?? v ?? "-";
@@ -205,42 +211,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysErrorMessage"
-            placeholder="异常消息（模糊）"
-            clearable
-            class="!w-56"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysErrorSource"
-            placeholder="来源"
-            clearable
-            class="!w-40"
-            :data="sourceOptions"
-          />
-          <ReSelect
-            v-model="query.sysErrorStatus"
-            placeholder="状态"
-            clearable
-            class="!w-40"
-            :data="statusOptions"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload(); loadStatistic()">刷新</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-error-log"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         :loader="loadLogs"
         :columns="columns"
         :pagination="true"
@@ -250,6 +227,9 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         class="mt-2"
       >
+        <template #toolbar>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload(); loadStatistic()">刷新</ReButton>
+        </template>
         <template #source="{ row }">
           <ReTag type="primary" effect="plain" size="small">{{ sourceLabel(row.sysErrorSource) }}</ReTag>
         </template>
@@ -296,7 +276,6 @@ onMounted(() => {
           </ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 异常详情弹窗 -->
     <ReDialog
@@ -341,17 +320,6 @@ onMounted(() => {
   gap: 16px;
   padding: 20px;
   height: 100%;
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 .text-danger {
   color: var(--el-color-danger);

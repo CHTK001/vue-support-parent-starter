@@ -24,6 +24,7 @@ import {
   getStorageKey as sharedGetStorageKey,
   mergeAppConfig as sharedMergeAppConfig,
 } from "./shared";
+import { DEFAULT_MENU_ICON } from "./constants";
 
 // 重新导出框架无关的纯函数 / 纯数据，保持对外导出不变（向后兼容所有 vue apps）
 export { parseAppYaml, normalizeTopKey, getDefaultConfig } from "./shared";
@@ -63,6 +64,19 @@ const subscribers = new Set<(config: AppConfig) => void>();
  */
 export function getConfig(): AppConfig {
   return currentConfig;
+}
+
+/**
+ * 解析菜单缺省图标：app.yaml 的 menuConfig.defaultIcon 优先，未配置时回退框架内置默认常量。
+ *
+ * 供「菜单数据归一化」（core 远程菜单 / @repo/app 静态路由树）与「菜单渲染层」（koi 布局）共用，
+ * 保证菜单项未配置 icon 时仍有兜底图标，不出现空白图标位。
+ */
+export function resolveMenuDefaultIcon(): string {
+  const configured = currentConfig.menu?.defaultIcon;
+  return typeof configured === "string" && configured.trim()
+    ? configured.trim()
+    : DEFAULT_MENU_ICON;
 }
 
 /**

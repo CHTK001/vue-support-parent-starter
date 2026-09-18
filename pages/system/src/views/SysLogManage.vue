@@ -5,17 +5,35 @@
  * 复用 ReTable（loader 模式：自动分页 / loading / 列设置持久化）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { ref, defineAsyncComponent } from "vue";
+import { computed, ref, defineAsyncComponent } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Search, Download } from "@element-plus/icons-vue";
 import { pageForSysLog, exportSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
-const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default()));
+/** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
+const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
 
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }>({
   page: 1,
   pageSize: 20,
 });
+
+const searchFilters = computed(() => [
+  { key: 'sysLogUsername', label: '操作人', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysLogFrom', label: '模块', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysLogStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '成功', value: 1 },
+      { label: '失败', value: 0 },
+    ],
+  },
+]);
+
+function handleReset() {
+  query.value = { page: 1, pageSize: 20 };
+  tableRef.value?.reload();
+}
 
 /* 导出日志 */
 const exporting = ref(false);
@@ -90,47 +108,13 @@ const columns: ReTableColumn[] = [
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysLogUsername"
-            placeholder="操作人"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysLogFrom"
-            placeholder="模块"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysLogStatus"
-            placeholder="状态"
-            clearable
-            class="!w-32"
-            :data="[
-              { label: '成功', value: 1 },
-              { label: '失败', value: 0 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysLogUsername = undefined; query.sysLogFrom = undefined; query.sysLogStatus = undefined; tableRef?.reload()">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-          <ReButton layout="modern" type="success" icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-syslog"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         :loader="loadLogs"
         :columns="columns"
         :pagination="true"
@@ -139,6 +123,10 @@ const columns: ReTableColumn[] = [
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
       >
+        <template #toolbar>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <ReButton layout="modern" type="success" icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
+        </template>
         <template #content="{ row }">
           <span class="log-content-link" @click="openDetail(row)">{{ row.sysLogContent ?? '-' }}</span>
         </template>
@@ -160,7 +148,6 @@ const columns: ReTableColumn[] = [
           <ReButton layout="square" type="primary" @click="openDetail(row)">详情</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 日志详情弹窗 -->
     <ReDialog v-model="detailVisible" title="操作日志详情" width="700" :footer-hidden="true">
@@ -216,18 +203,6 @@ const columns: ReTableColumn[] = [
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-}
-
 .log-detail-params {
   margin: 0;
   padding: 8px;

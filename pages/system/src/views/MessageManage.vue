@@ -6,7 +6,7 @@
  * 消息列表：分页查询 + 发送消息 + 撤回 + 删除。
  * 消息模板：分页查询 + 新增/编辑/删除。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   pageForMessageAdmin,
@@ -110,6 +110,13 @@ function handleMsgReset() {
   msgQuery.value = { page: 1, pageSize: 10 };
   msgTableRef.value?.reload();
 }
+
+const msgSearchFilters = computed(() => [
+  { key: 'sysMessageTitle', label: '消息标题', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysMessageType', label: '消息类型', type: 'select' as const, placeholder: '请选择', options: typeOptions },
+  { key: 'sysMessageStatus', label: '状态', type: 'select' as const, placeholder: '请选择', options: msgStatusOptions },
+  { key: 'sysMessageReceiverId', label: '接收者ID', type: 'input' as const, placeholder: '请输入' },
+]);
 
 async function handleRecall(row: Record<string, unknown>) {
   const msg = row as unknown as SysMessageAdmin;
@@ -237,6 +244,11 @@ function handleTplReset() {
   tplTableRef.value?.reload();
 }
 
+const tplSearchFilters = computed(() => [
+  { key: 'sysMessageTemplateName', label: '模板名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysMessageTemplateCode', label: '模板编码', type: 'input' as const, placeholder: '请输入' },
+]);
+
 const tplDialogVisible = ref(false);
 const tplSaving = ref(false);
 const tplIsEdit = ref(false);
@@ -337,51 +349,13 @@ onMounted(() => {
       <el-tabs v-model="activeTab">
         <!-- ============ 消息列表 ============ -->
         <el-tab-pane label="消息列表" name="message">
-          <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-            <div class="system-page__search">
-              <ReInput
-                layout="modern"
-                v-model="msgQuery.sysMessageTitle"
-                placeholder="消息标题"
-                clearable
-                class="!w-48"
-                @keyup.enter="msgTableRef?.reload()"
-              />
-              <ReSelect
-                v-model="msgQuery.sysMessageType"
-                placeholder="消息类型"
-                clearable
-                class="!w-40"
-                :data="typeOptions"
-              />
-              <ReSelect
-                v-model="msgQuery.sysMessageStatus"
-                placeholder="状态"
-                clearable
-                class="!w-32"
-                :data="msgStatusOptions"
-              />
-              <ReInput
-                layout="modern"
-                v-model="msgQuery.sysMessageReceiverId"
-                placeholder="接收者ID"
-                clearable
-                class="!w-36"
-                @keyup.enter="msgTableRef?.reload()"
-              />
-            </div>
-            <template #footer>
-              <ReButton layout="modern" type="primary" icon="Search" @click="msgTableRef?.reload()">查询</ReButton>
-              <ReButton layout="modern" icon="Refresh" @click="handleMsgReset">重置</ReButton>
-              <ReButton layout="modern" icon="Refresh" @click="msgTableRef?.reload()">刷新</ReButton>
-              <span class="system-page__divider" />
-              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">发送消息</ReButton>
-            </template>
-          </ReSearch>
-
           <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
+            :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
+            :search-gap="16"
+            v-model:search-model="msgQuery"
+            @search-reset="handleMsgReset"
             :loader="loadMessages"
             :columns="msgColumns"
             :pagination="true"
@@ -391,6 +365,10 @@ onMounted(() => {
             v-model:page-size="msgQuery.pageSize"
             class="mt-2"
           >
+            <template #toolbar>
+              <ReButton layout="modern" icon="Refresh" @click="msgTableRef?.reload()">刷新</ReButton>
+              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">发送消息</ReButton>
+            </template>
             <template #type="{ row }">
               <ReTag type="primary" effect="plain" size="small">{{ typeLabel(row.sysMessageType) }}</ReTag>
             </template>
@@ -435,37 +413,13 @@ onMounted(() => {
 
         <!-- ============ 消息模板 ============ -->
         <el-tab-pane label="消息模板" name="template">
-          <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-            <div class="system-page__search">
-              <ReInput
-                layout="modern"
-                v-model="tplQuery.sysMessageTemplateName"
-                placeholder="模板名称"
-                clearable
-                class="!w-48"
-                @keyup.enter="tplTableRef?.reload()"
-              />
-              <ReInput
-                layout="modern"
-                v-model="tplQuery.sysMessageTemplateCode"
-                placeholder="模板编码"
-                clearable
-                class="!w-48"
-                @keyup.enter="tplTableRef?.reload()"
-              />
-            </div>
-            <template #footer>
-              <ReButton layout="modern" type="primary" icon="Search" @click="tplTableRef?.reload()">查询</ReButton>
-              <ReButton layout="modern" icon="Refresh" @click="handleTplReset">重置</ReButton>
-              <ReButton layout="modern" icon="Refresh" @click="tplTableRef?.reload()">刷新</ReButton>
-              <span class="system-page__divider" />
-              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleTplAdd">新增</ReButton>
-            </template>
-          </ReSearch>
-
           <ReTable
             ref="tplTableRef"
             table-id="system-message-template"
+            :search="{ filters: tplSearchFilters, title: '搜索', btnMode: 'text' }"
+            :search-gap="16"
+            v-model:search-model="tplQuery"
+            @search-reset="handleTplReset"
             :loader="loadTemplatesPage"
             :columns="tplColumns"
             :pagination="true"
@@ -475,6 +429,10 @@ onMounted(() => {
             v-model:page-size="tplQuery.pageSize"
             class="mt-2"
           >
+            <template #toolbar>
+              <ReButton layout="modern" icon="Refresh" @click="tplTableRef?.reload()">刷新</ReButton>
+              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleTplAdd">新增</ReButton>
+            </template>
             <template #tstatus="{ row }">
               <ReTag :type="row.sysMessageTemplateStatus === 1 ? 'success' : 'info'" size="small">
                 {{ row.sysMessageTemplateStatus === 1 ? "启用" : "禁用" }}
@@ -506,6 +464,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="sendSaving"
       @ok="handleSend"
     >
@@ -549,6 +508,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="tplSaving"
       @ok="handleTplSubmit"
     >
@@ -592,13 +552,6 @@ onMounted(() => {
 .system-page__card {
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 .system-page__divider {
   display: inline-block;

@@ -5,7 +5,7 @@
  * 树形展示组织机构，支持新增/编辑/删除（含选择父级）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { OfficeBuilding, Plus, Edit, Delete, Search, Refresh } from "@element-plus/icons-vue";
 import { listDept, saveDept, updateDept, deleteDept, pageForUser } from "../api/systemApi";
@@ -25,7 +25,11 @@ const saving = ref(false);
 const form = ref<SysDept>({});
 const isEdit = ref(false);
 
-const filterText = ref("");
+const query = ref<{ filterText?: string }>({});
+
+const searchFilters = computed(() => [
+  { key: 'filterText', label: '部门名称', type: 'input' as const, placeholder: '按部门名称过滤' },
+]);
 
 /** 递归过滤部门树（按名称） */
 function filterTree(data: SysDept[], keyword: string): SysDept[] {
@@ -47,8 +51,16 @@ function filterTree(data: SysDept[], keyword: string): SysDept[] {
 const displayList = ref<SysDept[]>([]);
 
 function applyFilter() {
-  displayList.value = filterTree(list.value, filterText.value.trim());
+  displayList.value = filterTree(list.value, (query.value.filterText ?? "").trim());
 }
+
+function handleReset() {
+  query.value = {};
+  applyFilter();
+}
+
+/** 表格使用静态 :data 渲染，内置搜索条件变化时重新应用过滤 */
+watch(query, () => applyFilter(), { deep: true });
 
 async function loadList() {
   loading.value = true;
@@ -195,24 +207,6 @@ onMounted(loadList);
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" add-text="新增顶级部门" @add="handleAdd()">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="filterText"
-            placeholder="按部门名称过滤"
-            clearable
-            class="!w-56"
-            :prefix-icon="Search"
-            @input="applyFilter"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" icon="Refresh" @click="loadList">刷新</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         :data="displayList"
         :columns="columns"
@@ -221,7 +215,15 @@ onMounted(loadList);
         row-key="sysDeptId"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
         :default-expand-all="false"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
       >
+        <template #toolbar>
+          <ReButton layout="modern" type="primary" icon="Plus" v-admin @click="handleAdd()">新增顶级部门</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="loadList">刷新</ReButton>
+        </template>
         <template #deptName="{ row }">
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
@@ -241,7 +243,6 @@ onMounted(loadList);
           <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysDeptId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <ReDialog
       v-model="dialogVisible"
@@ -250,6 +251,7 @@ onMounted(loadList);
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
@@ -373,16 +375,5 @@ onMounted(loadList);
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 </style>

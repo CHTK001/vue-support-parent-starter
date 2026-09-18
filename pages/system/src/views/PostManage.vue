@@ -5,7 +5,7 @@
  * 岗位分页查询 + 新增/编辑/删除。
  * 全部使用 ReXxx modern 组件渲染，风格对齐 UserManage.vue。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { pageForPost, savePost, updatePost, deletePost } from "../api/systemApi";
 import type { SysPost } from "../api/types";
@@ -48,6 +48,18 @@ function handleReset() {
   query.value = { page: 1, pageSize: 10 };
   tableRef.value?.reload();
 }
+
+const searchFilters = computed(() => [
+  { key: 'sysPostName', label: '岗位名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysPostCode', label: '岗位编码', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysPostStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '启用', value: 0 },
+      { label: '禁用', value: 1 },
+    ],
+  },
+]);
 
 const dialogVisible = ref(false);
 const saving = ref(false);
@@ -133,44 +145,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysPostName"
-            placeholder="岗位名称"
-            clearable
-            class="!w-48"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysPostCode"
-            placeholder="岗位编码"
-            clearable
-            class="!w-48"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysPostStatus"
-            placeholder="状态"
-            clearable
-            class="!w-32"
-            :data="[
-              { label: '启用', value: 0 },
-              { label: '禁用', value: 1 },
-            ]"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-          <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">新增</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-post"
@@ -181,8 +155,15 @@ onMounted(() => {
         row-key="sysPostId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
-        class="mt-2"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
       >
+        <template #toolbar>
+          <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">新增</ReButton>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+        </template>
         <template #status="{ row }">
           <ReTag :type="row.sysPostStatus === 0 ? 'success' : 'danger'" size="small">
             {{ row.sysPostStatus === 0 ? "启用" : "禁用" }}
@@ -193,7 +174,6 @@ onMounted(() => {
           <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysPostId" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 新增/编辑岗位弹窗 -->
     <ReDialog
@@ -203,6 +183,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
@@ -234,16 +215,5 @@ onMounted(() => {
   gap: 16px;
   padding: 20px;
   height: 100%;
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 </style>

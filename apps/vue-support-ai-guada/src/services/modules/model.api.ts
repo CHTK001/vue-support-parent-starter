@@ -22,7 +22,11 @@ export interface ModelApi {
 
 export const modelApi: ModelApi = {
   async fetchModels(this: ApiContext) {
-    return await this._request("/models");
+    // 调用 /api/providers 获取供应商和模型数据
+    const res = await fetch('/api/providers');
+    const data = await res.json();
+    // 转换成前端期望的格式：{ items: [...] }
+    return { items: data.data || [] };
   },
 
   async fetchAllModels(this: ApiContext) {
@@ -30,7 +34,9 @@ export const modelApi: ModelApi = {
   },
 
   async fetchRemoteModels(this: ApiContext, providerId: string) {
-    return await this._request(`/providers/${encodeURIComponent(providerId)}/remote_models`);
+    // 后端接口在 /api/providers/...，不是 /v2/providers/...
+    const res = await fetch(`/api/providers/${encodeURIComponent(providerId)}/remote_models`);
+    return await res.json();
   },
 
   async createModel(this: ApiContext, data: any) {

@@ -52,6 +52,13 @@
             </div>
             <div class="flex flex-justify-between flex-wrap p-y-12px">
               <div class="flex flex-items-center">
+                <el-icon size="15"><CreditCard /></el-icon>
+                <div class="p-l-2px">身份证</div>
+              </div>
+              <div v-text="mine.idCard || '-'"></div>
+            </div>
+            <div class="flex flex-justify-between flex-wrap p-y-12px">
+              <div class="flex flex-items-center">
                 <el-icon size="15"><Collection /></el-icon>
                 <div class="p-l-2px">所属角色</div>
               </div>
@@ -92,7 +99,12 @@
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
                     <el-form-item label="邮箱" prop="sysUserEmail">
-                      <el-input v-model="mineForm.sysUserEmail" placeholder="请输入邮箱" clearable />
+                      <el-input v-model="mineForm.sysUserEmail" placeholder="请输入邮箱（选填）" clearable />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
+                    <el-form-item label="身份证" prop="sysUserCard">
+                      <el-input v-model="mineForm.sysUserCard" placeholder="请输入身份证号（选填）" clearable maxlength="18" />
                     </el-form-item>
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
@@ -338,35 +350,36 @@ const mineFrameImage = computed(() => {
 const mineFrameStyle = (): Record<string, string> => getAvatarFrameLayerStyle(mine.value.avatarFrame, 104);
 
 /** 读取登录用户信息到展示区与表单 */
-const refreshMine = () => {
-  // 复用 @repo/utils 统一数据源合并：authStore.loginUser > storage.getUserInfo() > userStore.userInfo
-  const display = resolveUserDisplayInfo({
-    authLoginUser: authStore.loginUser as Record<string, unknown>,
-    userStoreInfo: userStore.userInfo as Record<string, unknown>,
-  });
-
-  const info = (getUserInfo<Record<string, unknown>>() ?? {}) as Record<string, unknown>;
-  const loginUser = authStore.loginUser ?? {};
-
-  mine.value = {
-    avatar: display.avatar || getConfig()?.login?.avatarUrl || "",
-    loginName: display.username,
-    nickname: display.nickname,
-    phone: display.phone,
-    email: display.email,
-    roles: display.roles?.join("、") || authStore.roleList?.join("、") || "",
-    avatarFrame: display.avatarFrame ?? 0,
-    avatarFrameShow: display.avatarFrameShow ?? 0,
-    birthday: display.birthday,
-  };
-  mineForm.value = {
-    sysUserId: (info.sysUserId ?? loginUser.userId ?? "") as never,
-    sysUserUsername: mine.value.loginName,
-    sysUserNickname: mine.value.nickname,
-    sysUserPhone: mine.value.phone,
-    sysUserEmail: mine.value.email,
-    sysUserSex: (info.sysUserSex ?? info.sex ?? 0) as never,
-  };
+const refreshMine = async () => {
+  // 直接调用 /me 接口获取最新用户信息
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp().get("/v2/user/me").then((r) => r.data);
+    const data = res?.data ?? {};
+    
+    mine.value = {
+      avatar: data.avatar || getConfig()?.login?.avatarUrl || "",
+      loginName: data.sysUserUsername || "",
+      nickname: data.sysUserNickname || "",
+      phone: data.sysUserPhone || "",
+      email: data.sysUserEmail || "",
+      roles: data.roles?.join("、") || authStore.roleList?.join("、") || "",
+      avatarFrame: data.sysUserAvatarFrame ?? 0,
+      avatarFrameShow: data.sysUserAvatarFrameShow ?? 0,
+      birthday: data.sysUserBirthday || "",
+    };
+    mineForm.value = {
+      sysUserId: data.sysUserId ?? "",
+      sysUserUsername: mine.value.loginName,
+      sysUserNickname: mine.value.nickname,
+      sysUserPhone: mine.value.phone,
+      sysUserEmail: mine.value.email,
+      sysUserCard: data.sysUserCard ?? "",
+      sysUserSex: data.sysUserSex ?? 0,
+    };
+  } catch (e) {
+    console.error("获取用户信息失败", e);
+  }
 };
 
 /** 基本资料 Begin */
@@ -378,6 +391,7 @@ const mineForm = ref<any>({
   sysUserNickname: "",
   sysUserPhone: "",
   sysUserEmail: "",
+  sysUserCard: "",
   sysUserSex: 0,
 });
 
@@ -394,7 +408,7 @@ const mineRules = reactive({
   sysUserUsername: [{ required: true, message: "请输入登录名称", trigger: "blur" }],
   sysUserNickname: [{ required: true, message: "请输入用户名称", trigger: "blur" }],
   sysUserPhone: [{ required: true, message: "请输入手机号码", trigger: "blur" }],
-  sysUserEmail: [{ required: true, message: "请输入邮箱", trigger: "blur" }],
+  sysUserEmail: [{ required: false, message: "请输入邮箱", trigger: "blur" }],
 });
 
 /** 保存基本资料（PUT /v2/user/update，不传 sysUserId 时后端更新当前账号） */

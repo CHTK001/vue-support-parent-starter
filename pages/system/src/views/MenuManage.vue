@@ -27,8 +27,12 @@ import { listMenuTree, saveMenu, updateMenu, deleteMenu, refreshMenuCache, batch
 // (http 直连已迁移为 systemApi 具名函数，此处不再引入)
 import type { SysMenu } from "../api/types";
 
-/** 异步加载 ReIcon（与工程其他页面一致） */
-const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
+/**
+ * 异步加载 ReIcon（与工程其他页面一致）。
+ * 注意 `m.default` 本身已是异步组件，**不能**写成 `m.default()`：
+ * 该调用会抛 "m.default is not a function"，图标位会静默空白。
+ */
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 
 /** 目标站菜单类型标签（1目录 2菜单 3按钮） */
 const typeLabels: Record<number, string> = {
@@ -1174,6 +1178,7 @@ onMounted(() => {
       width="640px"
       :close-on-click-modal="false"
       destroy-on-close
+      compact
       :confirm-loading="batchSaving"
       @confirm="handleBatchSubmit"
       @cancel="batchDialogVisible = false"

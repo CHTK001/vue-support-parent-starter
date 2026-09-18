@@ -36,9 +36,12 @@ onMounted(() => {
 });
 
 const cancelLoading = () => {
-  setTimeout(() => {
-    loading.value = false
-  }, 1500)
+  // 使用 requestAnimationFrame 确保 DOM 渲染后再隐藏
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      loading.value = false
+    }, 100)
+  });
 };
 </script>
 

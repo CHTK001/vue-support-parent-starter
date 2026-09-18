@@ -39,6 +39,12 @@
         <span class="match-hint" v-if="keyword || traceIdSearch">服务端命中 {{ total }} 条</span>
       </div>
       <div class="toolbar-right">
+        <el-switch
+          v-model="liveStream"
+          active-text="实时日志流"
+          class="live-switch"
+          @change="toggleLiveStream"
+        />
         <el-button size="small" round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
@@ -48,6 +54,35 @@
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
+      </div>
+    </div>
+
+    <!-- 级别分布条 -->
+    <div class="level-bar" v-if="logStats.length">
+      <span class="section-label">级别分布</span>
+      <div class="level-cards">
+        <div v-for="s in logStats" :key="s.level" class="level-card">
+          <el-tag :type="levelTag(s.level)" size="small" round>{{ s.level }}</el-tag>
+          <span class="mono level-count">{{ s.count }}</span>
+          <span class="mono muted level-pct">{{ s.percent.toFixed(1) }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 实时日志流（SSE log 事件，仅保留最近 50 条） -->
+    <div class="live-panel" v-if="liveStream">
+      <div class="panel-head-row">
+        <span class="section-label">实时日志流</span>
+        <span class="muted hint-text">最近 {{ liveItems.length }} 条 · 自动滚动</span>
+      </div>
+      <div class="live-list">
+        <div v-for="(r, i) in liveItems" :key="i" class="live-row">
+          <el-tag :type="levelTag(r.level)" size="small" round>{{ r.level }}</el-tag>
+          <span class="muted mono live-time">{{ r.timestamp }}</span>
+          <span class="mono live-logger">{{ r.logger }}</span>
+          <span :class="{ 'err-text': r.level === 'ERROR' }" class="live-msg">{{ r.message }}</span>
+        </div>
+        <div v-if="!liveItems.length" class="muted live-empty">等待实时日志…</div>
       </div>
     </div>
 
@@ -111,12 +146,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Refresh, Download, Search } from "@element-plus/icons-vue";
-import { pageLogs, exportLogsCsv, injectLog } from "../api/apmApi";
-import type { LogRecord } from "../api/apmApi";
+import { Refresh, Download, Search, Plus } from "@element-plus/icons-vue";
+import { pageLogs, exportLogsCsv, injectLog, getLogStats } from "../api/apmApi";
+import type { LogRecord, LogLevelStat } from "../api/apmApi";
 
 const router = useRouter();
 const route = useRoute();
@@ -156,6 +191,7 @@ async function load() {
     });
     items.value = res.items;
     total.value = res.total;
+    loadLogStats();
   } catch {
     ElMessage.error("加载日志失败");
   } finally {
@@ -192,6 +228,51 @@ function exportCsvFull() {
     endTime: filters.range?.[1] ? new Date(filters.range[1]).getTime() : undefined,
   });
 }
+
+// ---- 级别分布 ----
+const logStats = ref<LogLevelStat[]>([]);
+
+async function loadLogStats() {
+  try {
+    logStats.value = (await getLogStats()) || [];
+  } catch {
+    logStats.value = [];
+  }
+}
+
+// ---- 实时日志流（SSE log 事件）----
+const liveStream = ref(false);
+const liveItems = ref<LogRecord[]>([]);
+let logEventSource: EventSource | null = null;
+
+function toggleLiveStream(on: boolean) {
+  if (on) {
+    liveItems.value = [];
+    logEventSource = new EventSource("/api/apm/stream?intervalMs=3000");
+    logEventSource.addEventListener("log", (ev: MessageEvent) => {
+      try {
+        const raw = JSON.parse(ev.data as string);
+        const rec: LogRecord = (raw && typeof raw === "object" && "items" in raw)
+          ? (raw.items[0] as LogRecord)
+          : (raw as LogRecord);
+        if (rec && (rec.level || rec.message)) {
+          liveItems.value.unshift(rec);
+          if (liveItems.value.length > 50) liveItems.value.pop();
+        }
+      } catch {
+        /* 忽略畸形帧 */
+      }
+    });
+  } else {
+    logEventSource?.close();
+    logEventSource = null;
+  }
+}
+
+onBeforeUnmount(() => {
+  logEventSource?.close();
+  logEventSource = null;
+});
 
 function levelTag(level: string) {
   switch ((level || "").toUpperCase()) {
@@ -259,6 +340,10 @@ onMounted(() => {
   vertical-align: -2px;
 }
 
+.live-switch {
+  margin-right: 4px;
+}
+
 .filter-select {
   width: 120px;
 }
@@ -318,5 +403,104 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding: 10px 8px 4px;
+}
+
+/* 级别分布条 */
+.level-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.level-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.level-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.level-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--apm-fg);
+}
+
+.level-pct {
+  font-size: 11px;
+}
+
+/* 实时日志流 */
+.live-panel {
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hint-text {
+  font-size: 11px;
+}
+
+.live-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.live-time {
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.live-logger {
+  color: var(--apm-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.live-msg {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.live-empty {
+  font-size: 12px;
+  padding: 12px 0;
+  text-align: center;
 }
 </style>

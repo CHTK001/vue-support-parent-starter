@@ -719,7 +719,11 @@ const filteredFetchedModels = computed(() => {
 })
 
 const handleFetchModels = async () => {
-  if (!props.provider.apiUrl || !props.provider.apiKey) {
+  const hasApiKey = props.provider.apiKey || 
+                   (props.provider.apiKeyList && props.provider.apiKeyList.length > 0) ||
+                   (props.provider.api_keys && props.provider.api_keys.length > 0)
+  
+  if (!props.provider.apiUrl || !hasApiKey) {
     notify.error(t('settings.providerDetail.configError'), t('settings.providerDetail.configApiError'), { duration: 2000 })
     return
   }
@@ -729,7 +733,8 @@ const handleFetchModels = async () => {
 
   try {
     const data = await apiService.fetchRemoteModels(props.provider.id)
-    const apiModels = data.items || []
+    // 兼容两种返回格式：直接返回items，或者包在data里
+    const apiModels = data.items || data.data?.items || []
     // 从已添加的模型中继承config参数
     const enrichedModels = apiModels.map((apiModel: any) => {
       const existingModel = props.models.find(

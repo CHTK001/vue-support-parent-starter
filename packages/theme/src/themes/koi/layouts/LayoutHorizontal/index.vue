@@ -27,8 +27,7 @@
                     <template #title>
                       <div class="horizontal-menu-item-inner">
                         <ReIcon
-                          v-if="item.meta.icon"
-                          :name="item.meta.icon"
+                          :name="item.meta?.icon || menuDefaultIcon"
                           size="18"
                         />
                         <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta.title)" />
@@ -44,8 +43,7 @@
                   >
                     <div class="horizontal-menu-item-inner">
                       <ReIcon
-                        v-if="item.meta.icon"
-                        :name="item.meta.icon"
+                        :name="item.meta?.icon || menuDefaultIcon"
                         size="18"
                       />
                       <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta.title)" />
@@ -76,11 +74,15 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { getMenuLanguage } from "@repo/languages";
+import { resolveMenuDefaultIcon } from "@repo/config";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+
+// 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白
+const menuDefaultIcon = resolveMenuDefaultIcon();
 
 const menuList = computed(() => authStore.showMenuList);
 
