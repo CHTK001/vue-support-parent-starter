@@ -18,6 +18,7 @@
  * 注意：进度条请用 @repo/core 的引用计数版本 startLoading/doneLoading（见 progress.ts），
  * 勿直接用 nprogress.start/done，避免并发请求下进度条提前隐藏或悬挂。
  */
+/// <reference types="vite/client" />
 import {
   createRouter,
   createWebHistory,
