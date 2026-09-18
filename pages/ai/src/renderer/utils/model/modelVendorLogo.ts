@@ -1,42 +1,17 @@
 /**
- * 模型厂商 Logo 解析
+ * 模型厂商 Logo 解析（历史接口，保留兼容）
  *
- * 根据模型名称前缀匹配厂商 Logo 的 URL，供 Bot 列表 / 聊天记录展示。
- * 未匹配时返回 null。
+ * 旧实现按模型名前缀返回外链 Logo URL（指向不存在的 CDN 占位地址，实际渲染会 404）。
+ * 现改用本地内置图标体系：
+ *   - 首选 {@link ModelLogo}（pages/ai/renderer/components/common/ModelLogo.tsx）；
+ *   - 本文件保留 resolveModelVendorLogo 以维持旧调用方的 API 兼容（返回 null，调用方自行回退）。
  */
-const VENDOR_LOGOS: Record<string, string> = {
-  // OpenAI / GPT
-  'gpt-': 'https://cdn.example.com/logos/openai.svg',
-  'o1-': 'https://cdn.example.com/logos/openai.svg',
-  'o3-': 'https://cdn.example.com/logos/openai.svg',
-  'chat-completions-': 'https://cdn.example.com/logos/openai.svg',
-  // Claude / Anthropic
-  'claude-': 'https://cdn.example.com/logos/anthropic.svg',
-  // Gemini / Google
-  'gemini-': 'https://cdn.example.com/logos/google.svg',
-  // DeepSeek
-  'deepseek-': 'https://cdn.example.com/logos/deepseek.svg',
-  // 通义千问
-  'qwen-': 'https://cdn.example.com/logos/qwen.svg',
-  // 百度
-  'ernie-': 'https://cdn.example.com/logos/baidu.svg',
-  // 星火
-  'spark-': 'https://cdn.example.com/logos/spark.svg',
-  // 暢鵬
-  'gpt-4.1': 'https://cdn.example.com/logos/openai.svg',
-};
 
 /**
  * 解析模型厂商 Logo URL。
- * @param model 模型名称
- * @param _size 可选尺寸（当前未使用，保留接口兼容性）
- * @returns Logo URL 或 null
+ * @deprecated 外链 Logo 已停用（占位 CDN 404），请改用 ModelLogo / ProviderIcon 内置图标。
+ * @returns 始终返回 null（保持签名兼容）
  */
-export function resolveModelVendorLogo(model?: string | null, _size?: number | undefined): string | null {
-  if (!model) return null;
-  const lower = model.toLowerCase();
-  for (const [prefix, url] of Object.entries(VENDOR_LOGOS)) {
-    if (lower.includes(prefix)) return url;
-  }
+export function resolveModelVendorLogo(_model?: string | null, _size?: number | undefined): string | null {
   return null;
 }

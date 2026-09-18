@@ -32,11 +32,14 @@ import {
   pipelineApi,
   PipelineDef,
 } from '@/renderer/services/api/aiConsoleApi';
+import { ProviderIcon } from '@/renderer/components/common/ProviderIcon';
+import { ModelLogo } from '@/renderer/components/common/ModelLogo';
 import '@/renderer/styles/ai-page.css';
 
 interface ManufacturerOption {
   id: number;
   name: string;
+  code?: string;
 }
 
 export default function ModelManagementPage() {
@@ -201,6 +204,13 @@ export default function ModelManagementPage() {
 
   const pipelineTagForCap = (cap: string) => pipelineTags.find((x) => x.cap === cap);
 
+  /** 模型供应商名（providerName 缺失时按 providerId 从厂商列表查名） */
+  const providerNameOf = (m: AiModelDTO): string | null => {
+    if (m.providerName) return m.providerName;
+    if (m.providerId == null) return null;
+    return manufacturers.find((p) => p.id === m.providerId)?.name ?? null;
+  };
+
   /* ===== 批量操作 ===== */
   const selectedModels = useMemo(() => models.filter((m) => m.id != null && selectedKeys.includes(m.id)), [models, selectedKeys]);
   const allChecked = filtered.length > 0 && filtered.every((m) => m.id != null && selectedKeys.includes(m.id));
@@ -360,7 +370,10 @@ export default function ModelManagementPage() {
                 <span style={{ fontSize: 12, color: 'var(--color-text-3, #9a9aa5)', fontFamily: 'monospace' }}>{m.code}</span>
               </div>
               <div style={{ display: 'none' }} className="md:block">
-                <div style={{ fontWeight: 600 }}>{m.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                  <ModelLogo model={m.name} vendor={providerNameOf(m)} size={14} />
+                  <span>{m.name}</span>
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-3, #9a9aa5)', fontFamily: 'monospace' }}>{m.code}</div>
                 {(m.aliases ?? []).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
@@ -390,7 +403,10 @@ export default function ModelManagementPage() {
                   <span className="ai-model-chip">+{(m.capabilities ?? []).length - 6}</span>
                 )}
               </div>
-              <div style={{ color: 'var(--color-text-2, #5c5c66)' }}>{m.providerName ?? '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-2, #5c5c66)' }}>
+                <ProviderIcon provider={providerNameOf(m)} size={14} />
+                {providerNameOf(m) ?? '—'}
+              </div>
               <div>
                 {m.inputPrice != null || m.outputPrice != null ? (
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -468,8 +484,16 @@ export default function ModelManagementPage() {
               showSearch
               getPopupContainer={(node) => node.parentNode as HTMLElement}
               placeholder={t('console.model.formProviderPlaceholder', '选择供应商（可留空）')}
-              options={manufacturers.map((m) => ({ label: m.name, value: m.id }))}
-            />
+            >
+              {manufacturers.map((m) => (
+                <Select.Option key={m.id} value={m.id}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <ProviderIcon provider={m.code ?? m.name} size={14} />
+                    {m.name}
+                  </span>
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item label={t('console.model.formCapabilities', '能力标签')} field="capabilities" extra={t('console.model.formCapabilitiesExtra', '覆盖对话 / 文生图 / 文生视频 / OCR / 布局 / 人脸识别 / 图片识别等全部能力')}>
             <Select mode="multiple" allowCreate getPopupContainer={(node) => node.parentNode as HTMLElement} placeholder={t('console.model.formCapabilitiesPlaceholder', '选择或输入能力标签')}>

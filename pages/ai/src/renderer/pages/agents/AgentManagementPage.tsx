@@ -39,6 +39,8 @@ import {
   DEFAULT_MANUFACTURERS,
   OrchestrationData,
 } from '@/renderer/services/api/aiConsoleApi';
+import { ProviderIcon } from '@/renderer/components/common/ProviderIcon';
+import { ModelLogo } from '@/renderer/components/common/ModelLogo';
 import '@/renderer/styles/ai-page.css';
 
 const { TextArea } = Input;
@@ -274,7 +276,10 @@ export default function AgentManagementPage() {
                   <div className="ai-agent-meta">
                     <div className="ai-agent-meta-item">
                       <span className="ai-agent-meta-label">{t('console.agent.model', '模型')}</span>
-                      <span className="ai-agent-meta-value">{agent.model || '—'}</span>
+                      <span className="ai-agent-meta-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {agent.model ? <ModelLogo model={agent.model} vendor={agent.providerId != null ? (manufacturers.find((m) => m.id === agent.providerId)?.name ?? String(agent.providerId)) : null} size={12} /> : null}
+                        {agent.model || '—'}
+                      </span>
                     </div>
                     <div className="ai-agent-meta-item">
                       <span className="ai-agent-meta-label">{t('console.agent.mode', '模式')}</span>
@@ -330,7 +335,12 @@ export default function AgentManagementPage() {
             <Form.Item label={t('console.agent.formProvider', '供应商')} field="providerId">
               <Select placeholder={t('console.agent.formProviderPlaceholder', '选择供应商')} allowClear getPopupContainer={(node) => node.parentNode as HTMLElement}>
                 {manufacturers.map((m) => (
-                  <Select.Option key={m.id} value={m.id}>{m.name}</Select.Option>
+                  <Select.Option key={m.id} value={m.id}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <ProviderIcon provider={m.code ?? m.name} size={14} />
+                      {m.name}
+                    </span>
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
