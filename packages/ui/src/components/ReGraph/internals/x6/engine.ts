@@ -21,10 +21,10 @@ import { ensureRegistered, buildNodeMetadata, buildEdgeMetadata } from "./regist
 import { computeLayout } from "./layout";
 import { resolveNodeType, DEFAULT_NODE_TYPES } from "./nodeTypes";
 import type { GraphPreset } from "./graphPresets";
+import { ReGraphMode } from "./types";
 import type {
   ReGraphData,
   ReGraphEdge,
-  ReGraphMode,
   ReGraphNode,
   ReGraphNodeMenuAction,
   ReGraphNodeTypeDef,
