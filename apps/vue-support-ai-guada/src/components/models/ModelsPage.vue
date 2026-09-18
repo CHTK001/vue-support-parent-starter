@@ -798,7 +798,7 @@ onMounted(() => {
       { id: 'qwen', name: '通义千问', description: '阿里通义千问大模型', protocol: 'openai', defaultApiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
       { id: 'zhipu', name: '智谱AI', description: '智谱GLM系列模型', protocol: 'openai', defaultApiUrl: 'https://open.bigmodel.cn/api/paas/v4' },
       { id: 'moonshot', name: 'Moonshot', description: '月之暗面Kimi模型', protocol: 'openai', defaultApiUrl: 'https://api.moonshot.cn/v1' },
-      { id: 'ollama', name: 'Ollama', description: '本地Ollama模型', protocol: 'openai', defaultApiUrl: 'http://localhost:11434/v1' },
+      { id: 'ollama', name: 'ollama', description: '本地Ollama模型', protocol: 'openai', defaultApiUrl: 'http://localhost:11434/v1' },
       { id: 'onnx', name: 'ONNX Runtime', description: '本地ONNX模型推理', protocol: 'openai', defaultApiUrl: 'http://localhost:8080/v1' },
       { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内AI模型平台，支持DeepSeek、Qwen等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1' },
       { id: 'openrouter', name: 'OpenRouter', description: '聚合API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://openrouter.ai/api/v1' },

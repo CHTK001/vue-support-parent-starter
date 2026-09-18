@@ -155,19 +155,40 @@
         <el-form-item label="模型能力">
           <el-select v-model="form.capabilitiesList" multiple placeholder="选择模型能力" style="width: 100%">
             <el-option label="聊天(chat)" value="chat" />
+            <el-option label="视觉语言(vlm)" value="vlm" />
             <el-option label="补全(completion)" value="completion" />
             <el-option label="文生图(text-to-image)" value="text-to-image" />
             <el-option label="文生视频(text-to-video)" value="text-to-video" />
             <el-option label="OCR" value="ocr" />
             <el-option label="布局分析(layout)" value="layout" />
+            <el-option label="人脸检测(face-detect)" value="face-detect" />
             <el-option label="人脸识别(face)" value="face" />
-            <el-option label="图片识别(image-recognition)" value="image-recognition" />
+            <el-option label="图像识别(image)" value="image" />
+            <el-option label="超分辨率(super-resolution)" value="super-resolution" />
+            <el-option label="动漫化(anime)" value="anime" />
             <el-option label="嵌入(embedding)" value="embedding" />
-            <el-option label="语音(asr)" value="asr" />
+            <el-option label="语音识别(asr)" value="asr" />
             <el-option label="语音合成(tts)" value="tts" />
+            <el-option label="深度思考(thinking)" value="thinking" />
+            <el-option label="网页搜索(web-search)" value="web-search" />
           </el-select>
         </el-form-item>
         <el-form-item label="必填管线">
+        <el-form-item label="上下文窗口">
+          <el-input-number v-model="form.contextWindow" :min="0" :step="1024" placeholder="如 128000" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="最大输出长度">
+          <el-input-number v-model="form.maxTokens" :min="1" :step="128" placeholder="如 4096" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="温度">
+          <el-input-number v-model="form.temperature" :min="0" :max="2" :step="0.1" :precision="1" placeholder="如 0.7" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="Top P">
+          <el-input-number v-model="form.topP" :min="0" :max="1" :step="0.1" :precision="1" placeholder="如 0.9" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="频率惩罚">
+          <el-input-number v-model="form.frequencyPenalty" :min="-2" :max="2" :step="0.1" :precision="1" placeholder="如 0.0" style="width: 100%" />
+        </el-form-item>
           <el-select v-model="form.requiredPipelinesList" multiple placeholder="选择必填管线" style="width: 100%">
             <el-option label="文生图" value="text-to-image" />
             <el-option label="文生视频" value="text-to-video" />
@@ -361,6 +382,11 @@ const submitForm = async () => {
         modelRequiredPipelines: form.value.requiredPipelinesList.join(','),
         modelOptionalPipelines: form.value.optionalPipelinesList.join(','),
         modelDescription: form.value.modelDescription,
+        contextWindow: form.value.contextWindow,
+        maxTokens: form.value.maxTokens,
+        temperature: form.value.temperature,
+        topP: form.value.topP,
+        frequencyPenalty: form.value.frequencyPenalty,
         modelSort: form.value.modelSort,
         modelEnabled: form.value.modelEnabled,
       };

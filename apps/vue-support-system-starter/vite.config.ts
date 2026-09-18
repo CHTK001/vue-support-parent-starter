@@ -8,19 +8,9 @@ export default createVite({
     port: 8096,
     strictPort: true,
     proxy: {
-      // 系统管理后台网关（本地）
+      // 系统管理后台网关（服务器 nginx 8080）
       "/system/api": {
-        target: "http://localhost:18170",
-        changeOrigin: true,
-      },
-      // 后端 API（本地）
-      "/v2": {
-        target: "http://localhost:18170",
-        changeOrigin: true,
-      },
-      // OAuth 认证服务（本地）
-      "/oauth": {
-        target: "http://localhost:19180",
+        target: "http://124.221.230.112:8080",
         changeOrigin: true,
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）

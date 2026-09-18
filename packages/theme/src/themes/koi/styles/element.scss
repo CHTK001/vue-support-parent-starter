@@ -99,6 +99,60 @@ html.dark .el-card.is-hover-shadow:hover {
   border-radius: var(--el-pagination-border-radius);
 }
 
+/* ==================== el-dialog 内容区内边距（全局） ==================== */
+/* 全局把 el-dialog 内容区（body）内边距置 0：留白交由对话框内容自行控制。
+ * 覆盖范围需包含三种形态，否则会被组件内更高优先级的 padding 规则加回来：
+ *   1. 原生 el-dialog
+ *   2. ReDialog koi 主题壳（.koi-dialog-shell，packages/ui ReDialog/theme/koi）
+ *   3. ReDialog 默认主题壳（.re-dialog，packages/ui ReDialog/ReDialog.vue）
+ * 需要恢复留白时：不必再写 !important，只要在对话框 / 页面作用域内覆盖变量即可，例如
+ *   .my-dialog { --el-dialog-body-padding: 16px 20px; }
+ */
+:root {
+  --el-dialog-body-padding: 0;
+}
+
+.el-dialog__body,
+.el-dialog.koi-dialog-shell .el-dialog__body,
+.el-dialog.re-dialog .el-dialog__body {
+  padding: var(--el-dialog-body-padding) !important;
+}
+
+/* ==================== el-dialog 头部（压缩高度，把空间让给内容） ==================== */
+/* 头部实际高度 = .el-dialog 上内边距 + 标题行 + .el-dialog__header 下内边距，
+ * Element Plus 默认这三段的上下留白均为 16px，这里把上下留白压到 8px，
+ * 左右内边距保持 16px 不变（内容不被挤到贴边）。
+ * 覆盖范围包含 ReDialog koi 壳（.koi-dialog-shell 的自定义头部）与关闭按钮热区。
+ * 需要恢复 / 进一步压缩的场景：覆盖下列变量即可，无需再写 !important，例如
+ *   .my-dialog { --el-dialog-header-padding-top: 16px; --el-dialog-header-padding-bottom: 16px; }
+ */
+:root {
+  --el-dialog-header-padding-top: 8px;
+  --el-dialog-header-padding-bottom: 8px;
+}
+
+.el-dialog {
+  padding-top: var(--el-dialog-header-padding-top) !important;
+}
+
+.el-dialog__header {
+  padding-top: 0 !important;
+  padding-bottom: var(--el-dialog-header-padding-bottom) !important;
+}
+
+/* koi 壳自定义头部自身的下内边距（组件内为 4px）一并去掉，避免叠加留白 */
+.el-dialog.koi-dialog-shell .koi-dialog-custom-header {
+  padding-bottom: 0;
+}
+
+/* 关闭按钮：原 48×48 顶部对齐，会在压缩后的头部下压住正文，改为跟随头部高度 */
+.el-dialog__headerbtn {
+  top: 0;
+  right: 6px;
+  width: 36px;
+  height: 36px;
+}
+
 /* el-table 表格样式 和 表格自适应 */
 .el-table {
   flex: 1;

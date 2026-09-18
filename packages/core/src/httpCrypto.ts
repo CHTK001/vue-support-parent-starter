@@ -345,25 +345,34 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         }
       }
 
-      // 401/403 未授权/无权限：跳转登录页
+      // 401/403 未授权/无权限：跳转登录页，加锁防止重复弹窗
       if (status === 401 || status === 403) {
         const loginUrl = getConfig().route?.loginPath || LOGIN_URL || "/login";
         const action = getConfig().http?.authFailAction || "confirm";
+        // 如果当前已经在登录页，就不弹了
+        const currentPath = window.location.pathname;
+        const isOnLoginPage = currentPath.includes("/login") || currentPath.endsWith("/login");
         if (action === "redirect") {
           window.location.href = loginUrl;
-        } else {
-          ElMessageBox.confirm(
-            status === 401 ? "登录已过期，请重新登录" : "当前操作没有权限，请重新登录",
-            "提示",
-            {
-              confirmButtonText: "重新登录",
-              showCancelButton: false,
-              closeOnClickModal: false,
-              type: "warning",
-            }
-          ).then(() => {
-            window.location.href = loginUrl;
-          });
+        } else if (!isOnLoginPage) {
+          // 防止多个请求同时 403 导致弹窗叠在一起
+          if (!(window as any).__authDialogOpen) {
+            (window as any).__authDialogOpen = true;
+            ElMessageBox.confirm(
+              status === 401 ? "登录已过期，请重新登录" : "当前操作没有权限，请重新登录",
+              "提示",
+              {
+                confirmButtonText: "重新登录",
+                showCancelButton: false,
+                closeOnClickModal: false,
+                type: "warning",
+              }
+            ).then(() => {
+              window.location.href = loginUrl;
+            }).finally(() => {
+              (window as any).__authDialogOpen = false;
+            });
+          }
         }
         return Promise.reject(error);
       }

@@ -100,17 +100,30 @@
               <span class="text-xs font-medium">技能</span>
             </button>
           </template>
+            <!-- 深度思考开关 -->
+            <button class="tool-btn" :class="{ 'tool-btn-active': thinkingEnabled }" @click.stop="thinkingEnabled = !thinkingEnabled"
+              title="深度思考">
+              <el-icon size="16"><BrainCircuit20Regular /></el-icon><span class="text-xs font-medium">深度思考</span>
+            </button>
+            <!-- 网页搜索开关 -->
+            <button class="tool-btn" :class="{ 'tool-btn-active': webSearchEnabled }" @click.stop="webSearchEnabled = !webSearchEnabled"
+              title="在线检索">
+              <el-icon size="16"><GlobeShield20Regular /></el-icon><span class="text-xs font-medium">在线检索</span>
+            </button>
         </div>
         <div class="right-actions flex items-center gap-1">
           <slot name="right-actions-before" />
           <!-- 模型选择按钮 -->
           <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-selector-btn"
             :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }">
+            <div class="w-5 h-5 shrink-0 mr-1">
+              <Avatar v-if="currentModel" :src="getModelAvatarPath(currentModel.modelName, detectModelProvider(currentModel.modelName)) || undefined"
+                :name="currentModel.modelName" type="assistant" :round="false" class="w-full h-full" />
+            </div>
             <span class="text-sm font-medium truncate flex-1 min-w-0"
               style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
                 currentModelNameOnly }}</span>
-            <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel
-              }}</span>
+            <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
           </button>
           <!-- 会话设置按钮 -->
           <LTooltip v-if="!props.readonly" :content="t('chat.input.tokenLimit')" placement="top">
@@ -177,10 +190,13 @@ import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel } from '@/utils/modelUtils';
+import Avatar from '../ui/Avatar.vue';
+import { getModelAvatarPath } from '@/utils/modelUtils';
+import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
   Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  DrinkCoffee16Regular, ClipboardTask24Regular, ShieldLock24Regular, Add24Regular, Wrench24Regular
+  DrinkCoffee16Regular, ClipboardTask24Regular, ShieldLock24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular
 } from '@vicons/fluent'
 import { usePopup } from '@/composables/usePopup';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
@@ -852,6 +868,10 @@ const loadModels = async () => {
     response.items.forEach(provider => {
       // 过滤只保留 mode_type 为 'text' 的模型
       const textModels = provider.models?.filter(model => model.modelType === "text") ?? [];
+      // 映射字段：model -> modelName
+      textModels.forEach(model => {
+        model.modelName = model.model || model.modelName || model.id;
+      });
       models.value.push(...textModels);
       delete provider.models;
       // 只有当该供应商有符合条件的模型时才加入列表
@@ -1094,6 +1114,10 @@ const removeFile = (fileId: number) => {
 // UI 交互函数
 const triggerFileInput = () => fileInputRef.value?.click();
 const triggerImageInput = () => imageInputRef.value?.click();
+
+// 深度思考/网页搜索开关
+const thinkingEnabled = ref(false);
+const webSearchEnabled = ref(false);
 
 const sendMessage = async () => {
   const content = editor.value ? editor.value.getText() : inputContent.value;
@@ -1637,6 +1661,16 @@ defineExpose({ insertText, insertBadge });
 
 .tool-btn:active {
   background: var(--color-sidebar-bg-active);
+}
+
+.tool-btn-active {
+  background: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+.tool-btn-active:hover {
+  background: #bae7ff !important;
+  color: #1890ff !important;
 }
 
 /* 模型选择器按钮 - 原生 button */

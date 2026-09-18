@@ -99,6 +99,62 @@
           </div>
         </div>
       </div>
+
+      <!-- 对话上下文分组 -->
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">对话上下文</h3>
+        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
+          <!-- 压缩触发类型 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩触发类型</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">选择何时触发上下文压缩</span>
+            </div>
+            <div class="shrink-0 w-52">
+              <el-select v-model="settingsForm.chatCompressType" size="default">
+                <el-option label="按轮数触发" value="rounds" />
+                <el-option label="按上下文阈值触发" value="tokens" />
+                <el-option label="两者都触发" value="both" />
+              </el-select>
+            </div>
+          </div>
+
+          <!-- 压缩触发轮数（轮数模式） -->
+          <div v-if="settingsForm.chatCompressType === 'rounds' || settingsForm.chatCompressType === 'both'" class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩触发轮数</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">会话累计达到该轮数后自动压缩（默认 100 轮）</span>
+            </div>
+            <div class="shrink-0">
+              <el-input-number v-model="settingsForm.chatCompressTriggerRounds" :min="10" :max="1000" :step="10" size="default" controls-position="right" />
+            </div>
+          </div>
+
+          <!-- 上下文阈值（tokens 模式） -->
+          <div v-if="settingsForm.chatCompressType === 'tokens' || settingsForm.chatCompressType === 'both'" class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">上下文阈值</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">当上下文占用模型窗口的百分比超过此值时触发压缩（默认 80%）</span>
+            </div>
+            <div class="shrink-0">
+              <el-input-number v-model="settingsForm.chatCompressTokenThreshold" :min="50" :max="95" :step="5" size="default" controls-position="right">
+                <template #suffix>%</template>
+              </el-input-number>
+            </div>
+          </div>
+
+          <!-- 压缩保留轮数 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩保留轮数</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">压缩后保留最近 N 轮原始对话（默认 6 轮）</span>
+            </div>
+            <div class="shrink-0">
+              <el-input-number v-model="settingsForm.chatCompressRetainRounds" :min="1" :max="50" :step="1" size="default" controls-position="right" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -130,6 +186,10 @@ const settingsForm = reactive({
   maxToolIterations: 100,
   llmRequestTimeoutMs: 600,   // 秒（后端存储为毫秒）
   llmIdleTimeoutMs: 120,     // 秒
+  chatCompressType: 'rounds',      // 压缩触发类型：rounds / tokens / both
+  chatCompressTriggerRounds: 100,  // 压缩触发轮数
+  chatCompressTokenThreshold: 80,  // 上下文阈值（百分比）
+  chatCompressRetainRounds: 6,     // 压缩保留轮数
 })
 
 // 原始设置备份，用于对比是否有改动
@@ -148,7 +208,17 @@ const debouncedSave = useDebounceFn(async () => {
 }, 300)
 
 // 监听设置变化自动保存
-watch(() => ({ autoLoginEnabled: settingsForm.autoLoginEnabled, workspaceBaseDir: settingsForm.workspaceBaseDir, maxToolIterations: settingsForm.maxToolIterations, llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs, llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs }), () => {
+watch(() => ({ 
+  autoLoginEnabled: settingsForm.autoLoginEnabled, 
+  workspaceBaseDir: settingsForm.workspaceBaseDir, 
+  maxToolIterations: settingsForm.maxToolIterations, 
+  llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs, 
+  llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs,
+  chatCompressType: settingsForm.chatCompressType,
+  chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
+  chatCompressTokenThreshold: settingsForm.chatCompressTokenThreshold,
+  chatCompressRetainRounds: settingsForm.chatCompressRetainRounds
+}), () => {
   debouncedSave()
 }, { deep: true })
 
@@ -165,6 +235,10 @@ const loadSettings = async () => {
     settingsForm.maxToolIterations = Number(data.maxToolIterations) || 100
     settingsForm.llmRequestTimeoutMs = Math.round(Number(data.llmRequestTimeoutMs) / 1000) || 600
     settingsForm.llmIdleTimeoutMs = Math.round(Number(data.llmIdleTimeoutMs) / 1000) || 120
+    settingsForm.chatCompressType = data.chatCompressType || 'rounds'
+    settingsForm.chatCompressTriggerRounds = Number(data.chatCompressTriggerRounds) || 100
+    settingsForm.chatCompressTokenThreshold = Number(data.chatCompressTokenThreshold) || 80
+    settingsForm.chatCompressRetainRounds = Number(data.chatCompressRetainRounds) || 6
     // 备份原始数据
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
   } catch (error: any) {
@@ -211,6 +285,10 @@ const handleSave = async () => {
       maxToolIterations: settingsForm.maxToolIterations,
       llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs * 1000,
       llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs * 1000,
+      chatCompressType: settingsForm.chatCompressType,
+      chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
+      chatCompressTokenThreshold: settingsForm.chatCompressTokenThreshold,
+      chatCompressRetainRounds: settingsForm.chatCompressRetainRounds,
     }
 
     // 使用分组设置接口更新 system 分组

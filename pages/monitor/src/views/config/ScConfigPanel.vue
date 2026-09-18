@@ -56,6 +56,7 @@ const cfg = reactive<any>({
   'monitor.redis.scan.count': 100,
   'monitor.data.retention.days': 30,
   'monitor.prometheus.enabled': 0,
+  'monitor.prometheus.package.url': '',
   'monitor.alert.webhook.url': '',
   'monitor.alert.email.to': '',
   'monitor.alert.email.from': '',
@@ -93,6 +94,7 @@ const sections = ref([
     icon: 'Grid',
     fields: [
       { key: 'monitor.prometheus.enabled', label: '启用 Prometheus Provider', type: 'switch' as const, desc: '关闭时不注册 PROMETHEUS 采集器' },
+      { key: 'monitor.prometheus.package.url', label: '安装包下载地址', type: 'text' as const, desc: 'node_exporter/Prometheus 安装包下载地址，主机侧安装并暴露 /metrics 后即可被拉取采集；主机「更多配置」中可直接下载' },
     ],
   },
   {

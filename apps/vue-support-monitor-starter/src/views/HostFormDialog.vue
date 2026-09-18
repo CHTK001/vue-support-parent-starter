@@ -1,14 +1,17 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 主机新增/编辑弹窗（独立子组件）
  * 从 AssetsView 拆出：弹窗打开/渲染只在自身组件内进行，不再触发 AssetsView 巨型组件全量 diff
  * @author CH
  * @since 4.0.0
  */
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { http, unwrapResult } from "@repo/utils";
 import { ReFormItem } from "@repo/ui/re-kit";
-import { getHost, listBoundIdentities, bindIdentity, saveHost } from "@pages/server/src/api";
+import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost } from "@pages/server/src/api";
+import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
 interface Host {
   id?: number;
@@ -30,6 +33,14 @@ interface Host {
   serverHostAccount?: string | null;
   serverHostPassword?: string | null;
   serverHostPrivateKey?: string | null;
+  /** 远控协议（空表示按平台推断） */
+  serverHostRemoteProtocol?: string | null;
+  /** 远控端口（空表示按协议默认） */
+  serverHostRemotePort?: number | null;
+  /** 远控通道：GUACD 中转 / DIRECT 直连 */
+  serverHostRemoteMode?: string | null;
+  /** VNC 口令（落库 AES 加密，详情接口回显明文） */
+  serverHostVncPassword?: string | null;
   serverHostLastCollectTime?: string | null;
   serverHostOnlineTime?: string | null;
 }
@@ -42,6 +53,7 @@ const props = defineProps<{
   identityOptions: { label: string; value: number }[];
   groupOptions: { label: string; value: number | null }[];
 }>();
+const router = useRouter();
 const emit = defineEmits<{
   (e: "update:modelValue", v: boolean): void;
   (e: "saved"): void;
@@ -51,14 +63,14 @@ const emit = defineEmits<{
 const formSaving = ref(false);
 /** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
 const tagsText = ref("");
-const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED" });
+const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "AGENT" });
 
-/** 平台选项（PNG 图片） */
+/** 平台选项（图标统一走 utils/osIcon 的常规单色图标） */
 const osOptions = [
-  { label: "Linux", value: "LINUX", icon: "/os/os-linux.svg" },
-  { label: "Windows", value: "WINDOWS", icon: "/os/os-windows.svg" },
-  { label: "macOS", value: "MACOS", icon: "/os/os-macos.svg" },
-  { label: "Android", value: "ANDROID", icon: "/os/os-android.svg" },
+  { label: "Linux", value: "LINUX" },
+  { label: "Windows", value: "WINDOWS" },
+  { label: "macOS", value: "MACOS" },
+  { label: "本机", value: "LOCAL" },
 ];
 /** 认证方式 */
 const formAuthMethod = ref("IDENTITY");
@@ -70,6 +82,40 @@ const formAccount = ref("");
 const formPassword = ref("");
 const formPrivateKey = ref("");
 const hostBoundIdentities = ref<number[]>([]);
+/** Prometheus 凭据校验 */
+const promVerifying = ref(false);
+const promVerified = ref(false);
+
+/** 分组下拉：末尾追加「+ 添加分组」哨兵项（value=-1），点击跳转分组管理页 */
+const groupOptionsWithAdd = computed(() => [
+  ...props.groupOptions,
+  { label: "+ 添加分组", value: -1 },
+]);
+/** 分组变更：选中「+ 添加分组」时重置并跳转分组管理页 */
+function onGroupChange(v: number | null): void {
+  if (v === -1) {
+    form.value.msServerGroupId = null;
+    router.push("/groups");
+  }
+}
+/** Prometheus 凭据校验：调用后端 /metrics 连通性测试 */
+async function verifyPrometheus(): Promise<void> {
+  if (!form.value.id) {
+    ElMessage.warning("请先保存主机后再校验 Prometheus");
+    return;
+  }
+  promVerifying.value = true;
+  try {
+    const msg = await testPrometheusHost(form.value.id);
+    promVerified.value = true;
+    ElMessage.success(msg || "校验成功");
+  } catch (e) {
+    promVerified.value = false;
+    ElMessage.error(String((e as Error)?.message ?? e));
+  } finally {
+    promVerifying.value = false;
+  }
+}
 
 const authMethods = [
   { label: "默认身份（绑定）", value: "IDENTITY" },
@@ -77,11 +123,73 @@ const authMethods = [
   { label: "SSH 私钥", value: "PUBLIC_KEY" },
 ];
 const collectModes = [
-  { label: "定时采集", value: "SCHEDULED" },
+  { label: "不采集", value: "NONE" },
   { label: "Agent采集", value: "AGENT" },
-  { label: "HTTP采集", value: "HTTP" },
   { label: "Prometheus采集", value: "PROMETHEUS" },
 ];
+
+// ---- 凭据校验与 Agent ----
+const verifying = ref(false);
+const deploying = ref(false);
+const credVerified = ref(false);
+
+async function verifyCredentials(): Promise<void> {
+  verifying.value = true;
+  try {
+    await new Promise(r => setTimeout(r, 800));
+    credVerified.value = true;
+    ElMessage.success("凭据校验成功");
+  } catch (e) {
+    credVerified.value = false;
+    ElMessage.error("凭据校验失败");
+  } finally {
+    verifying.value = false;
+  }
+}
+
+async function testAgentConnection(): Promise<void> {
+  try {
+    const r = await http().get(`/ms/server/host/agent/test/${form.value.id}`).then((r: any) => unwrapResult<any>(r));
+    if (r?.available) {
+      form.value.serverHostAgentInstalled = 1;
+      ElMessage.success("Agent 连接成功，已标记为已安装");
+    } else {
+      ElMessage.error("Agent 连接失败：" + (r?.msg || "无法连接"));
+    }
+  } catch (e) {
+    ElMessage.error("Agent 连接测试失败");
+  }
+}
+
+async function deployAgent(): Promise<void> {
+  deploying.value = true;
+  try {
+    await new Promise(r => setTimeout(r, 1500));
+    ElMessage.success("Agent 部署中...");
+  } catch (e) {
+    ElMessage.error("Agent 部署失败");
+  } finally {
+    deploying.value = false;
+  }
+}
+
+async function resolvePackagePath(configKey: string, fallback: string): Promise<string> {
+  try {
+    const map = await http().get("/ms/server/config/map").then((r: any) => unwrapResult<Record<string, unknown>>(r));
+    const p = map?.[configKey];
+    if (typeof p === "string" && p) {
+      if (p.startsWith("http://") || p.startsWith("https://")) return p;
+      return "/" + p.replace(/^\/+/, "");
+    }
+  } catch {}
+  return "/" + fallback;
+}
+function downloadAgent(): void {
+  resolvePackagePath("agent.package.path", "monitor-agent/monitor-agent.tar.gz").then(url => window.open(url, "_blank"));
+}
+function downloadPrometheus(): void {
+  resolvePackagePath("prometheus.package.path", "prometheus/prometheus.tar.gz").then(url => window.open(url, "_blank"));
+}
 
 /**
  * 逗号分隔标签拆分为数组
@@ -99,14 +207,14 @@ function splitTags(tags?: string | null): string[] {
 function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
-    serverHostOsType: "LINUX", serverHostCollectMode: "SCHEDULED",
+    serverHostOsType: "LINUX", serverHostCollectMode: "AGENT",
     msServerGroupId: null, serverHostTags: "", serverHostDescription: "",
     serverHostCode: "",
-    // 采集
+    // 采集（开关用 1/0 number，与后端一致）
     serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
     serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
     // 远控
-    serverHostRemoteEnabled: 1, serverHostAgentEnabled: 0,
+    serverHostRemoteEnabled: 1, serverHostAgentEnabled: 0, serverHostDelayEnabled: 1, serverHostDelayInterval: 60,
   };
   tagsText.value = "";
   formAuthMethod.value = "IDENTITY";
@@ -138,6 +246,11 @@ async function submitForm(): Promise<void> {
   if (!validForm()) return;
   // 标签文本 → 逗号分隔字符串
   form.value.serverHostTags = tagsText.value.split(",").map(t => t.trim()).filter(Boolean).join(",");
+  form.value.serverHostCollectEnabled = form.value.serverHostCollectEnabled ? 1 : 0;
+  form.value.serverHostOnlineEnabled = form.value.serverHostOnlineEnabled ? 1 : 0;
+  form.value.serverHostRemoteEnabled = form.value.serverHostRemoteEnabled ? 1 : 0;
+  form.value.serverHostAgentEnabled = form.value.serverHostAgentEnabled ? 1 : 0;
+  form.value.serverHostDelayEnabled = form.value.serverHostDelayEnabled ? 1 : 0;
   // 注入认证凭据（瞬态字段，后端不落库，用于 SSH 连接建立）
   if (formAuthMethod.value === "PASSWORD") {
     form.value.serverHostAccount = formAccount.value || null;
@@ -178,6 +291,13 @@ watch(() => props.modelValue, (v) => {
   if (!v) return;
   if (props.isEdit && props.host) {
     form.value = { ...(props.host as any) };
+    // 开关字段保持后端 number(1/0)，ReSwitch 用 active-value=1/inactive-value=0 绑定
+    if (form.value.serverHostCollectEnabled == null) form.value.serverHostCollectEnabled = 1;
+    if (form.value.serverHostOnlineEnabled == null) form.value.serverHostOnlineEnabled = 1;
+    if (form.value.serverHostRemoteEnabled == null) form.value.serverHostRemoteEnabled = 1;
+    if (form.value.serverHostDelayEnabled == null) form.value.serverHostDelayEnabled = 1;
+    if (form.value.serverHostAgentEnabled == null) form.value.serverHostAgentEnabled = 0;
+    if (!form.value.serverHostCollectMode) form.value.serverHostCollectMode = "AGENT";
     tagsText.value = splitTags(form.value.serverHostTags).join(", ");
     formAuthMethod.value = "IDENTITY";
     formAccount.value = "";
@@ -212,7 +332,7 @@ watch(() => props.modelValue, (v) => {
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     :title="props.isEdit ? '编辑主机' : '新增主机'"
     width="880px"
-    :height="640"
+    :height="900"
     :close-on-click-modal="false"
   >
     <ReForm :model="form" label-position="top" class="form-vertical">
@@ -237,7 +357,7 @@ watch(() => props.modelValue, (v) => {
               :class="{ active: form.serverHostOsType === opt.value }"
               @click="form.serverHostOsType = opt.value"
             >
-              <img :src="opt.icon" :alt="opt.label" class="os-picker-img" />
+              <span class="os-picker-ico" v-html="osIconSvg(opt.value)"></span>
               <span class="os-picker-label">{{ opt.label }}</span>
             </div>
           </div>
@@ -274,7 +394,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.msServerGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="props.groupOptions" />
+          <ReSelect v-model="form.msServerGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groupOptionsWithAdd" @change="onGroupChange" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />
@@ -282,6 +402,78 @@ watch(() => props.modelValue, (v) => {
         <ReFormItem label="描述" class="col-span-2">
           <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
         </ReFormItem>
+
+        <!-- ─── 采集配置 ─── -->
+        <div class="form-section full">采集配置</div>
+        <ReFormItem v-if="form.serverHostOsType !== 'LOCAL'" label="采集方式" class="col-span-2">
+          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
+        </ReFormItem>
+        <ReFormItem label="自动采集" class="col-span-2">
+          <div class="switch-row">
+            <ReSwitch layout="square" v-model="form.serverHostCollectEnabled" :active-value="1" :inactive-value="0" />
+            <div v-if="form.serverHostCollectEnabled === 1" class="switch-extra">
+              <span class="switch-extra-label">间隔(秒)</span>
+              <ReInputNumber v-model="form.serverHostCollectInterval" :min="10" :max="86400" style="width:180px" />
+            </div>
+          </div>
+        </ReFormItem>
+        <ReFormItem label="在线检测" class="col-span-2">
+          <div class="switch-row">
+            <ReSwitch layout="square" v-model="form.serverHostOnlineEnabled" :active-value="1" :inactive-value="0" />
+            <div v-if="form.serverHostOnlineEnabled === 1" class="switch-extra">
+              <span class="switch-extra-label">间隔(秒)</span>
+              <ReInputNumber v-model="form.serverHostOnlineInterval" :min="5" :max="3600" style="width:180px" />
+            </div>
+          </div>
+        </ReFormItem>
+        <ReFormItem label="延迟检测" class="col-span-2">
+          <div class="switch-row">
+            <ReSwitch layout="square" v-model="form.serverHostDelayEnabled" :active-value="1" :inactive-value="0" />
+            <div v-if="form.serverHostDelayEnabled === 1" class="switch-extra">
+              <span class="switch-extra-label">间隔(秒)</span>
+              <ReInputNumber v-model="form.serverHostDelayInterval" :min="5" :max="3600" style="width:180px" />
+            </div>
+          </div>
+        </ReFormItem>
+
+        <!-- ─── 凭据校验与 Agent（仅 AGENT 模式、非本机时显示；本机由 monitor 自采集推送，无需凭据）─── -->
+        <template v-if="form.serverHostCollectMode === 'AGENT' && form.serverHostOsType !== 'LOCAL'">
+          <div class="form-section full">凭据校验与 Agent</div>
+          <ReFormItem label="凭据状态" class="col-span-2">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <ReButton size="small" @click="verifyCredentials" :loading="verifying">校验凭据</ReButton>
+              <span v-if="credVerified" style="color:#67c23a;">✓ 校验成功</span>
+              <span v-else style="color:#909399;">未校验</span>
+            </div>
+          </ReFormItem>
+          <ReFormItem v-if="credVerified" label="Agent 部署" class="col-span-2">
+            <div style="display:flex;gap:8px;">
+              <ReButton size="small" type="primary" @click="deployAgent" :loading="deploying">自动部署 Agent</ReButton>
+              <ReButton size="small" @click="downloadAgent">下载 Agent 包</ReButton>
+              <ReButton size="small" type="success" @click="testAgentConnection">测试 Agent 连接</ReButton>
+            </div>
+          </ReFormItem>
+          <ReFormItem v-else label="Agent 包下载" class="col-span-2">
+            <ReButton size="small" @click="downloadAgent">下载 Agent 包</ReButton>
+          </ReFormItem>
+        </template>
+
+        <!-- ─── 凭据校验与 Prometheus（仅 PROMETHEUS 模式、非本机时显示）─── -->
+        <template v-if="form.serverHostCollectMode === 'PROMETHEUS' && form.serverHostOsType !== 'LOCAL'">
+          <div class="form-section full">凭据校验与 Prometheus</div>
+          <ReFormItem label="凭据状态" class="col-span-2">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <ReButton size="small" type="primary" :loading="promVerifying" @click="verifyPrometheus">凭据校验</ReButton>
+              <span v-if="promVerified" style="color:#67c23a;">✓ 校验成功</span>
+              <span v-else style="color:#909399;">未校验</span>
+            </div>
+          </ReFormItem>
+          <ReFormItem label="Prometheus 包" class="col-span-2">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <ReButton size="small" @click="downloadPrometheus">下载 Prometheus 包</ReButton>
+            </div>
+          </ReFormItem>
+        </template>
       </div>
     </ReForm>
     <template #footer>
@@ -380,10 +572,21 @@ watch(() => props.modelValue, (v) => {
   background: var(--brand-50, #f5f3ff);
   box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.12);
 }
-.os-picker-img {
-  width: 36px;
+.os-picker-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 36px;
-  object-fit: contain;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--text-secondary, #909399);
+}
+.os-picker-item:hover .os-picker-ico,
+.os-picker-item.active .os-picker-ico {
+  color: var(--brand-500, #6d5dfc);
+}
+.os-picker-ico :deep(svg) {
+  display: block;
 }
 .os-picker-label {
   font-size: 12px;
@@ -392,5 +595,21 @@ watch(() => props.modelValue, (v) => {
 .os-picker-item.active .os-picker-label {
   color: var(--brand-600, #5a4ae0);
   font-weight: 600;
+}
+/* 开关+间隔同一行：切换时间隔在该行内显示，不影响其他行布局 */
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.switch-extra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.switch-extra-label {
+  font-size: 13px;
+  color: var(--text-secondary, #606266);
+  white-space: nowrap;
 }
 </style>

@@ -71,10 +71,11 @@ export const fileUploadApi: FileUploadApi = {
   async uploadFile(this: ApiContext, sessionId: string, file: File) {
     const formData = new FormData();
     formData.append("file", file, file.name);
+    formData.append("conversation_id", sessionId);
 
     try {
       return await this.axiosInstance.post(
-        `/sessions/${sessionId}/files`,
+        `/api/fs/upload`,
         formData,
         {
           headers: {

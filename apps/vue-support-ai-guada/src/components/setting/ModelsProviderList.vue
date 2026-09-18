@@ -95,7 +95,8 @@ const getProviderIcon = (item) => {
       'nvidia': 'nvidia-color',
       'modelscope': 'aliyun-bailian',
       'sensenova': 'zhipu',
-      'agnes': 'openrouter',
+      'agnes': 'agnes',
+      'ollama': 'ollama',
       'gemini': 'google'
     };
     const iconName = iconMap[providerId] || providerId;

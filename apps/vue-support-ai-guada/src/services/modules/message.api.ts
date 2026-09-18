@@ -86,7 +86,7 @@ export const messageApi: MessageApi = {
   },
 
   async deleteMessage(this: ApiContext, messageId: string) {
-    return await this._request(`/messages/${messageId}`, { method: "DELETE" });
+    return await this._request(`/sessions/messages/${messageId}`, { method: "DELETE" });
   },
 
   async updateMessage(this: ApiContext, messageId: string, data: any) {

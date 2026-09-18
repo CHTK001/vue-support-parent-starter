@@ -46,6 +46,17 @@ const CARDS: ConfigCard[] = [
       { key: "guacd.client.host", label: "网关地址（host:port）", type: "text", placeholder: "127.0.0.1:8848", hint: "留空 = 同域 location.host" },
     ],
   },
+  {
+    key: "agent",
+    title: "Agent 包",
+    desc: "监控 Agent 部署包路径与下载",
+    icon: "Download",
+    consumer: "Agent 部署时从平台下载 · 打包后自动更新",
+    items: [
+      { key: "agent.package.path", label: "Agent 包路径", type: "text", placeholder: "agent-package/monitor-agent.tar.gz", hint: "相对于平台工作目录的 tar.gz 包路径" },
+      { key: "prometheus.package.path", label: "Prometheus 包路径", type: "text", placeholder: "prometheus/prometheus.tar.gz", hint: "Prometheus 二进制部署包路径" },
+    ],
+  },
 ];
 
 const KEYS = CARDS.flatMap(c => c.items.map(i => i.key));
@@ -54,6 +65,8 @@ const FALLBACK: Record<string, string> = {
   "guacd.host": "124.221.230.112",
   "guacd.port": "4822",
   "guacd.client.host": "127.0.0.1:8848",
+  "agent.package.path": "monitor-agent/monitor-agent.tar.gz",
+  "prometheus.package.path": "prometheus/prometheus.tar.gz",
 };
 
 const values = ref<Record<string, string>>({});

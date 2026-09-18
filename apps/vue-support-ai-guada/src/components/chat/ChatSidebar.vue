@@ -73,21 +73,18 @@
               </div>
             </div>
 
-            <!-- 加载更多提示 -->
-            <div v-if="filteredSessions.length > 0" class="py-3 px-5 text-center">
+            <!-- 加载更多提示（只有还有更多可加载时才显示） -->
+            <div v-if="hasMoreSessions || isLoadingMore" class="py-3 px-5 text-center">
               <div v-if="isLoadingMore" class="flex items-center justify-center gap-2 text-sm text-gray-500">
                 <el-icon class="animate-spin" size="16">
                   <Loading />
                 </el-icon>
                 <span>{{ t('common.loading') }}</span>
               </div>
-              <div v-else-if="hasMoreSessions"
+              <div v-else
                 class="text-sm text-gray-400 cursor-pointer hover:text-blue-500 transition-colors"
                 @click="loadMoreSessions">
                 {{ t('chat.sidebar.loadMore', { n: totalSessionsCount - filteredSessions.length }) }}
-              </div>
-              <div v-else-if="totalSessionsCount > 0" class="text-sm text-gray-400">
-                {{ t('chat.sidebar.allLoaded', { n: totalSessionsCount }) }}
               </div>
             </div>
           </template>
