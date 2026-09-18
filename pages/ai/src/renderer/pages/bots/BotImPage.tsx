@@ -40,7 +40,7 @@ import { PlatformBadge, StatusBadge } from '@/renderer/utils/botStatusMeta';
 import { PlatformLogo } from '@/renderer/utils/platformLogo';
 import '@/renderer/styles/chatscope-override.css';
 import '@/renderer/styles/ai-page.css';
-import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { ModelLogo } from '@/renderer/components/common/ModelLogo';
 import { ContextInfoPanel } from '@/renderer/components/chat/ContextInfoPanel';
 
 /** 会话列表项 */
@@ -1072,11 +1072,9 @@ export default function BotImPage() {
                     <StatusBadge status={active.status} />
                     {activeBot?.model && (
                       <Tooltip content={activeBot.model}>
-                        <img
-                          src={resolveModelVendorLogo(activeBot.model) ?? undefined}
-                          alt={activeBot.model}
-                          className='h-14px w-14px shrink-0 rounded-4px object-contain opacity-70'
-                        />
+                        <span className='shrink-0'>
+                          <ModelLogo model={activeBot.model} size={14} className='opacity-70' />
+                        </span>
                       </Tooltip>
                     )}
                   </div>

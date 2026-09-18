@@ -378,6 +378,41 @@ html.dark .ai-icon-tile {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #165dff) 8%, transparent);
 }
 
+/* ===== 供应商图标（ProviderIcon）=====
+   图标本身为内联 SVG（24 网格），仅定尺寸；
+   首字母回退块：中性浅底 + 圆角，深色模式由变量自动切换。 */
+.ai-provider-icon,
+.ai-model-logo {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.ai-provider-initial,
+.ai-model-logo-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-2, #4e5969);
+  background: var(--color-fill-2, #f2f3f5);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-1, #000) 4%, transparent);
+}
+
+html.dark .ai-provider-initial,
+html.dark .ai-model-logo-initial {
+  background: color-mix(in srgb, var(--color-text-1, #fff) 8%, var(--color-bg-1, #1d2129));
+}
+
+/* 下拉选项里的图标对齐（Arco Select.Option 内部为单行文本流） */
+.arco-select-option .ai-provider-icon,
+.arco-select-option .ai-provider-initial,
+.arco-select-option .ai-model-logo {
+  vertical-align: middle;
+}
+
 /* ===== 二维码面板 ===== */
 .ai-qr-panel {
   display: flex;

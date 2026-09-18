@@ -25,7 +25,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import classNames from 'classnames';
 import { http } from '@repo/core';
 import { unwrapResult } from '@repo/utils';
-import { resolveModelVendorLogo } from '@/renderer/utils/model/modelVendorLogo';
+import { ModelLogo } from '@/renderer/components/common/ModelLogo';
 import { PlatformLogo, PLATFORM_LABEL } from '@/renderer/utils/platformLogo';
 import { StatusBadge, STATUS_META } from '@/renderer/utils/botStatusMeta';
 import '@/renderer/styles/ai-page.css';
@@ -174,18 +174,10 @@ const BotAvatar: React.FC<{ binding: BotBinding; size?: number }> = ({ binding, 
   );
 };
 
-/** 模型厂商 Logo（内联小图标，显示在模型名左侧） */
+/** 模型厂商 Logo（内联小图标，显示在模型名左侧；本地内置图标，离线可用） */
 const ModelVendorLogo: React.FC<{ model?: string | null }> = ({ model }) => {
-  const logoUrl = resolveModelVendorLogo(model ?? '', undefined);
-  if (!logoUrl) return null;
-  return (
-    <img
-      src={logoUrl}
-      alt={model ?? ''}
-      title={model ?? ''}
-      className='mr-6px inline-block h-16px w-16px shrink-0 rounded-4px object-contain'
-    />
-  );
+  if (!model) return null;
+  return <ModelLogo model={model} size={16} className='mr-6px' />;
 };
 
 /* ── 编辑对话框 ── */
