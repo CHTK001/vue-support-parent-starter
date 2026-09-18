@@ -33,7 +33,7 @@
       </ReTableColumn>
     </ReTable>
 
-    <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true">
+    <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true" compact>
       <ReSkeleton v-if="configLoading" :loading="true" :rows="4" :count="1" animated />
       <div v-else>
         <h4>采集间隔</h4>

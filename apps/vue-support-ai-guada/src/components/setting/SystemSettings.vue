@@ -52,9 +52,7 @@
                         <template v-else-if="currentTabValue === 'default-models'">
                             <DefaultModelSettings />
                         </template>
-                        <template v-else-if="currentTabValue === 'ocr'">
-                            <OcrSettings />
-                        </template>
+
                         <template v-else-if="currentTabValue === 'appearance'">
                             <AppearanceSettings />
                         </template>
@@ -99,7 +97,7 @@
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import DefaultModelSettings from './DefaultModelSettings.vue'
 import GeneralSettings from './GeneralSettings.vue'
-import OcrSettings from './OcrSettings.vue'
+
 import AppearanceSettings from './AppearanceSettings.vue'
 import SearchSettings from './SearchSettings.vue'
 import BrowserSettings from './BrowserSettings.vue'
@@ -170,12 +168,7 @@ const sidebarItems = computed(() => [
         icon: Grid16Regular,
         roles: ['primary'],
     },
-    {
-        label: t('settings.system.tabs.ocr'),
-        path: 'ocr',
-        icon: ScanText24Regular,
-        roles: ['primary'],
-    },
+
     {
         label: t('settings.system.tabs.appearance'),
         path: 'appearance',
@@ -267,6 +260,11 @@ const currentTabLabel = computed(() => {
 
 // 点击侧边栏项
 const handleItemClick = (path: string) => {
+    // 如果是外部路由（以/开头），直接跳转
+    if (path.startsWith('/')) {
+        router.push(path)
+        return
+    }
     currentTabValue.value = path
     router.replace({ name: 'SystemSettings', params: { tab: path } })
 }

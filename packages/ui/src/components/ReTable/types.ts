@@ -395,3 +395,42 @@ export interface ReRadialLayoutProps {
   /** 点击行本身是否也触发展开 */
   rowExpandable?: boolean;
 }
+
+/** ReTable 内置搜索过滤项（透传 ReSearch filters 模式） */
+export interface ReTableSearchFilter {
+  /** 字段 key（与 searchModel / params 中的键对应） */
+  key: string;
+  /** 标签文案 */
+  label?: string;
+  /** 组件类型：input / select / date / daterange / treeselect（默认 input） */
+  type?: "input" | "select" | "date" | "daterange" | "treeselect";
+  /** 占位文案 */
+  placeholder?: string;
+  /** select / treeselect 选项数据 */
+  options?: Array<{ label: string; value: string | number; children?: any[] }>;
+  /** 其他透传给子组件的属性 */
+  attrs?: Record<string, unknown>;
+}
+
+/** ReTable 内置 ReSearch 搜索区配置（search 传对象时的字段） */
+export interface ReTableSearchConfig {
+  /** 过滤项配置（filters 优先；不传时回退到 #search 插槽） */
+  filters?: ReTableSearchFilter[];
+  /** 搜索区标题（默认 "搜索"） */
+  title?: string;
+  /** 默认展开的最大表项数（0=不限） */
+  max?: number;
+  /** 工具栏按钮模式：icon=图标+tooltip / text=图标+文字 */
+  btnMode?: "icon" | "text";
+  /** 是否显示"显示/隐藏搜索"切换按钮（默认 true） */
+  showToggle?: boolean;
+  /** 是否显示搜索按钮（默认 true） */
+  showSearchBtn?: boolean;
+  /** 是否显示重置按钮（默认 true） */
+  showResetBtn?: boolean;
+  /** 是否显示刷新按钮（默认 true） */
+  showRefreshBtn?: boolean;
+}
+
+/** ReTable 内置搜索区属性（search 属性类型） */
+export type ReTableSearch = boolean | ReTableSearchConfig;

@@ -108,7 +108,7 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
 import type { NoteTheme } from "../widgets";
 
-const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
+const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default));
 const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
 const ReInput = defineAsyncComponent(() => import("@repo/ui/re-input").then((m) => m.default));
 const ReEmpty = defineAsyncComponent(() => import("@repo/ui/re-empty").then((m) => m.default));

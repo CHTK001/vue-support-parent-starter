@@ -311,13 +311,40 @@ const initData = async () => {
   try {
     const res = await fetch('/api/providers')
     const data = await res.json()
-    const list = (data.data || []).map(p => ({
-      ...p,
-      provider: p.platform || p.provider,
-      id: p.provider_id || p.id,
-      apiUrl: p.base_url || p.apiUrl,
-      protocol: p.auth_scheme || p.protocol
-    }))
+    const list = (data.data || []).map(p => {
+      // 处理models字段：后端可能返回字符串或数组，统一转成数组
+      let modelsArr = []
+      if (Array.isArray(p.models)) {
+        modelsArr = p.models
+      } else if (typeof p.models === 'string' && p.models) {
+        try {
+          modelsArr = JSON.parse(p.models)
+        } catch {
+          modelsArr = []
+        }
+      }
+      
+      // 处理api_keys字段：后端可能返回逗号或空格分隔的字符串，统一转成数组
+      let apiKeysArr = []
+      if (Array.isArray(p.api_keys)) {
+        apiKeysArr = p.api_keys
+      } else if (typeof p.api_keys === 'string' && p.api_keys) {
+        apiKeysArr = p.api_keys.split(/[\s,]+/).filter(Boolean)
+      }
+      
+      return {
+        ...p,
+        provider: p.platform || p.provider,
+        platform: p.platform || p.provider,
+        id: p.provider_id || p.id,
+        apiUrl: p.base_url || p.apiUrl,
+        protocol: p.platform || p.protocol,
+        models: modelsArr,
+        api_keys: apiKeysArr,
+        apiKeyList: apiKeysArr,
+        description: p.description || (modelsArr.length > 0 ? `${modelsArr.length} 个模型已配置` : '')
+      }
+    })
     providers.value = list
   } catch (e) {
     console.warn('初始化供应商列表失败:', e)
@@ -330,13 +357,40 @@ const reloadProvidersAndModels = async () => {
     const res = await fetch('/api/providers')
     const data = await res.json()
     console.log('providers raw data:', data.data)
-    const list = (data.data || []).map(p => ({
-      ...p,
-      provider: p.platform || p.provider,
-      id: p.provider_id || p.id,
-      apiUrl: p.base_url || p.apiUrl,
-      protocol: p.auth_scheme || p.protocol
-    }))
+    const list = (data.data || []).map(p => {
+      // 处理models字段：后端可能返回字符串或数组，统一转成数组
+      let modelsArr = []
+      if (Array.isArray(p.models)) {
+        modelsArr = p.models
+      } else if (typeof p.models === 'string' && p.models) {
+        try {
+          modelsArr = JSON.parse(p.models)
+        } catch {
+          modelsArr = []
+        }
+      }
+      
+      // 处理api_keys字段：后端可能返回逗号或空格分隔的字符串，统一转成数组
+      let apiKeysArr = []
+      if (Array.isArray(p.api_keys)) {
+        apiKeysArr = p.api_keys
+      } else if (typeof p.api_keys === 'string' && p.api_keys) {
+        apiKeysArr = p.api_keys.split(/[\s,]+/).filter(Boolean)
+      }
+      
+      return {
+        ...p,
+        provider: p.platform || p.provider,
+        platform: p.platform || p.provider,
+        id: p.provider_id || p.id,
+        apiUrl: p.base_url || p.apiUrl,
+        protocol: p.platform || p.protocol,
+        models: modelsArr,
+        api_keys: apiKeysArr,
+        apiKeyList: apiKeysArr,
+        description: p.description || (modelsArr.length > 0 ? `${modelsArr.length} 个模型已配置` : '')
+      }
+    })
     console.log('providers mapped:', list)
     providers.value = list
 

@@ -18,6 +18,7 @@ import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { ReDialogCloseFab } from "./CloseFab.vue";
 import { useResponsiveDialog } from "./composables/useResponsiveDialog";
+import "./shared/modern-vars.css";
 
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 const WindowsLayout = defineAsyncComponent(() => import("./layouts/WindowsLayout.vue"));
@@ -294,6 +295,7 @@ const showCloseFab = computed(() => props.headless);
     :headless="headless"
     :responsive="responsive"
     :mobile-breakpoint="mobileBreakpoint"
+    :compact="compact"
     v-bind="$attrs"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
     @ok="onOk"
@@ -329,6 +331,7 @@ const showCloseFab = computed(() => props.headless);
       're-dialog--fullscreen': isFullscreen,
       're-dialog--headless': headless,
       're-dialog--responsive': responsive,
+      're-dialog--compact': compact,
     }"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
@@ -359,8 +362,8 @@ const showCloseFab = computed(() => props.headless);
     <!-- 默认 footer -->
     <template v-if="showFooter" #footer>
       <slot name="footer" :ok="onOk" :cancel="onCancel">
-        <ElButton v-if="showCancel" @click="onCancel">{{ cancelText }}</ElButton>
-        <ElButton v-if="showOk" type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
+        <ElButton v-if="showCancel" size="small" @click="onCancel">{{ cancelText }}</ElButton>
+        <ElButton v-if="showOk" type="primary" size="small" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
       </slot>
     </template>
 
@@ -372,16 +375,18 @@ const showCloseFab = computed(() => props.headless);
 <style scoped>
 .re-dialog :deep(.el-dialog__header) {
   cursor: default;
+  padding: 12px 20px 0;
+  margin-right: 0;
 }
 .re-dialog__header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: 24px;
+  padding-right: 20px;
 }
 .re-dialog__title {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
 }
 .re-dialog__header-actions {
   display: inline-flex;
@@ -396,7 +401,16 @@ const showCloseFab = computed(() => props.headless);
 .re-dialog--headless :deep(.el-dialog__header) {
   display: none;
 }
+.re-dialog :deep(.el-dialog__body) {
+  padding: 16px 20px;
+}
 .re-dialog--headless :deep(.el-dialog__body) {
-  padding-top: 28px;
+  padding-top: 24px;
+}
+/* compact 模式下 footer 按钮进一步缩小（使用共享令牌） */
+.re-dialog--compact :deep(.el-dialog__footer .el-button) {
+  height: var(--rm-compact-btn-height);
+  padding: var(--rm-compact-btn-padding);
+  font-size: var(--rm-compact-btn-font-size);
 }
 </style>

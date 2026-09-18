@@ -77,7 +77,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
       <div class="cache-toolbar">
         <ReButton layout="modern" type="primary" icon="Refresh" :loading="loading" @click="loadList">刷新</ReButton>
         <ReButton layout="modern" type="danger" icon="Refresh" v-admin @click="handleRefreshAll">刷新全部缓存</ReButton>
@@ -103,7 +102,6 @@ onMounted(() => {
           </ReButton>
         </template>
       </ReTable>
-    </el-card>
   </div>
 </template>
 
@@ -114,10 +112,6 @@ onMounted(() => {
   gap: 16px;
   padding: 20px;
   height: 100%;
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
 }
 .cache-toolbar {
   display: flex;

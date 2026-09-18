@@ -29,6 +29,7 @@
             're-dialog-win--resizing': isResizing,
             're-dialog-win--headless': headless,
             're-dialog-win--responsive': responsive,
+            're-dialog-win--compact': compact,
           },
         ]"
         :style="windowStyle"
@@ -153,6 +154,8 @@ const props = withDefaults(
     responsive?: boolean;
     /** 移动端断点 */
     mobileBreakpoint?: number;
+    /** 紧凑模式：减小弹窗内边距 */
+    compact?: boolean;
   }>(),
   {
     id: "",
@@ -176,6 +179,7 @@ const props = withDefaults(
     headless: false,
     responsive: false,
     mobileBreakpoint: 768,
+    compact: false,
   },
 );
 
@@ -514,8 +518,8 @@ watch(isVisible, (v) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 36px;
-  padding: 0 4px 0 12px;
+  height: 32px;
+  padding: 0 4px 0 10px;
   background: var(--el-fill-color-lighter, #f5f7fa);
   border-bottom: 1px solid var(--el-border-color-lighter, #e4e7ed);
   user-select: none;
@@ -529,8 +533,8 @@ watch(isVisible, (v) => {
   min-width: 0;
 }
 .re-dialog-win__logo {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -548,7 +552,7 @@ watch(isVisible, (v) => {
   border-radius: 2px;
 }
 .re-dialog-win__title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--el-text-color-primary, #303133);
   overflow: hidden;
@@ -566,7 +570,7 @@ watch(isVisible, (v) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  width: 32px;
   height: 100%;
   border: none;
   background: transparent;
@@ -587,7 +591,7 @@ watch(isVisible, (v) => {
 .re-dialog-win__body {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 12px 16px;
   min-height: 0;
 }
 .re-dialog-win__body--headless {
@@ -600,18 +604,44 @@ watch(isVisible, (v) => {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-top: 1px solid var(--el-border-color-lighter, #e4e7ed);
   flex-shrink: 0;
 }
 .re-dialog-win__footer-btn {
-  padding: 6px 16px;
+  padding: 4px 12px;
   border-radius: 4px;
   border: 1px solid var(--el-border-color, #dcdfe6);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
   outline: none;
+}
+/* compact 模式（使用共享令牌） */
+.re-dialog-win--compact .re-dialog-win__titlebar {
+  height: var(--rm-compact-btn-height);
+  padding: 0 4px 0 8px;
+}
+.re-dialog-win--compact .re-dialog-win__logo {
+  width: var(--rm-compact-koi-icon-size);
+  height: var(--rm-compact-koi-icon-size);
+  font-size: var(--rm-font-xs);
+}
+.re-dialog-win--compact .re-dialog-win__title {
+  font-size: var(--rm-font-xs);
+}
+.re-dialog-win--compact .re-dialog-win__btn {
+  width: var(--rm-compact-btn-height);
+}
+.re-dialog-win--compact .re-dialog-win__body {
+  padding: 8px 12px;
+}
+.re-dialog-win--compact .re-dialog-win__footer {
+  padding: 6px 12px;
+}
+.re-dialog-win--compact .re-dialog-win__footer-btn {
+  padding: var(--rm-compact-btn-padding);
+  font-size: var(--rm-font-xs);
 }
 .re-dialog-win__footer-btn--cancel {
   background: #fff;

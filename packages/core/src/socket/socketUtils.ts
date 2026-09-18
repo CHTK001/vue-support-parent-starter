@@ -9,7 +9,7 @@
  *   parseSocketMessage(raw);          // 解析后端推送的 socket 消息
  *   toWebSocketUrl("http://x/ws");    // http → ws 协议
  */
-import type { SocketMessage, SocketTemplateListenOptions } from "./socketTemplate";
+import type { ProtocolType, SocketMessage, SocketTemplateListenOptions } from "./socketTemplate";
 import { log } from "@repo/utils";
 
 /** Socket 消息包装结构（后端推送的数据格式） */

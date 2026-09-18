@@ -22,6 +22,7 @@ import {
 } from '../api';
 import ScProjectFormDialog from '../components/ScProjectFormDialog.vue';
 import ScLiveLog from '../components/ScLiveLog.vue';
+import ScDeployLog from '../components/ScDeployLog.vue';
 import '../styles/page.css';
 
 interface ProjectRow {
@@ -51,9 +52,11 @@ interface ProjectRow {
   msProjectWatchdogEnabled?: number;
   msProjectWatchdogInterval?: number;
   msProjectWatchdogMaxFail?: number;
+  msProjectCheckScript?: string;
   msProjectPreflightGate?: number;
   msProjectMetricEnabled?: number;
   msProjectMetricInterval?: number;
+  msProjectMetricHostIds?: string;
   msProjectCurrentVersion?: string;
   msProjectRuntimeStatus?: string;
   msProjectEnabled?: number;
@@ -64,22 +67,40 @@ interface ProjectRow {
 const loading = ref(false);
 const projects = ref<ProjectRow[]>([]);
 
-/* ================== 顶部状态导航 ================== */
+/* ================== 顶部状态导航 ==================
+ * 说明：
+ *  - 「运行中」同时覆盖 RUNNING 与健康检查写入的 HEALTHY；
+ *  - 「异常」仅收 UNHEALTHY / UNKNOWN（UNKNOWN 是部署完成后的待检态），
+ *    不再把「已停用（enabled=0）」混入异常，停用是正常管理动作；
+ *  - 「已停用」单独成项，对应 msProjectEnabled === 0（该状态下守护/指标/门禁均不生效）。
+ */
 const navItems = [
   { label: '全部', value: 'all' },
   { label: '运行中', value: 'RUNNING' },
   { label: '部署中', value: 'deploying' },
   { label: '已停止', value: 'STOPPED' },
   { label: '异常', value: 'abnormal' },
+  { label: '已停用', value: 'disabled' },
 ];
 const activeNav = ref('all');
+
+/** 运行中（含健康检查通过） */
+const RUNNING_STATUSES = ['RUNNING', 'HEALTHY'];
+/** 部署/回滚过程中的中间态 */
+const IN_PROGRESS_STATUSES = ['DEPLOYING', 'UPGRADING', 'RESTARTING', 'ROLLING_BACK'];
+/** 异常（含未就绪） */
+const ABNORMAL_STATUSES = ['UNHEALTHY', 'UNKNOWN'];
 
 const filteredProjects = computed(() => {
   if (activeNav.value === 'all') return projects.value;
   if (activeNav.value === 'deploying')
-    return projects.value.filter(r => ['DEPLOYING', 'UPGRADING', 'RESTARTING', 'ROLLING_BACK'].includes(r.msProjectRuntimeStatus || ''));
+    return projects.value.filter(r => IN_PROGRESS_STATUSES.includes(r.msProjectRuntimeStatus || ''));
   if (activeNav.value === 'abnormal')
-    return projects.value.filter(r => ['UNKNOWN'].includes(r.msProjectRuntimeStatus || '') || r.msProjectEnabled === 0);
+    return projects.value.filter(r => ABNORMAL_STATUSES.includes(r.msProjectRuntimeStatus || ''));
+  if (activeNav.value === 'disabled')
+    return projects.value.filter(r => r.msProjectEnabled === 0);
+  if (activeNav.value === 'RUNNING')
+    return projects.value.filter(r => RUNNING_STATUSES.includes(r.msProjectRuntimeStatus || ''));
   return projects.value.filter(r => r.msProjectRuntimeStatus === activeNav.value);
 });
 
@@ -99,11 +120,15 @@ function iconClsOf(row: ProjectRow) {
   return typeMeta[row.msProjectType]?.cls || 't-gray';
 }
 
-/* 状态：标签 + 角标色 */
+/* 状态：标签 + 角标色
+ * HEALTHY/UNHEALTHY 由部署/回滚后的健康检查写入（ProjectConstants.RUNTIME_HEALTHY/UNHEALTHY），
+ * 缺失映射时会直接显示英文原值并落回 amber 角标，故必须与后端常量保持一一对应。 */
 const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
   RUNNING: { label: '运行中', cls: 'success', dot: 'dot-green' },
+  HEALTHY: { label: '健康', cls: 'success', dot: 'dot-green' },
   STOPPED: { label: '已停止', cls: 'info', dot: 'dot-gray' },
   UNKNOWN: { label: '未知', cls: 'warning', dot: 'dot-amber' },
+  UNHEALTHY: { label: '不健康', cls: 'danger', dot: 'dot-red' },
   DEPLOYING: { label: '部署中', cls: 'warning', dot: 'dot-amber' },
   UPGRADING: { label: '升级中', cls: 'warning', dot: 'dot-amber' },
   RESTARTING: { label: '重启中', cls: 'warning', dot: 'dot-amber' },
@@ -159,8 +184,6 @@ function setupSocket() {
 async function refresh() {
   loading.value = true;
   try {
-    const filterMap: Record<string, string> = {};
-    if (filterType.value) filterMap.type = filterType.value;
     projects.value = await queryProjects({
       keyword: keyword.value || undefined,
       type: filterType.value || undefined,
@@ -191,11 +214,17 @@ function openEdit(row: ProjectRow) {
 }
 
 async function removeProject(row: ProjectRow) {
-  await message.confirm(`确认删除项目 ${row.msProjectName}？该操作不可恢复`, '删除');
-  await delProject(row.id);
-  message.success('已删除');
-  detailVisible.value = false;
-  refresh();
+  try {
+    await message.confirm(`确认删除项目「${row.msProjectName}」？该项目不可恢复，其部署日志与全部历史版本归档包将一并清理。`, '删除');
+  } catch { return; }
+  try {
+    await delProject(row.id);
+    message.success('已删除');
+    detailVisible.value = false;
+    refresh();
+  } catch (e) {
+    message.error((e as Error).message);
+  }
 }
 
 /* ================== 详情抽屉 ================== */
@@ -249,19 +278,51 @@ watch(detailProject, (row) => {
   if (row) refreshDetailMetrics(row);
 });
 
+/**
+ * 启用 / 停用项目
+ * 该开关是守护进程与指标采集的总闸（后端 enabledProjects 同时要求 msProjectEnabled=1），
+ * 必须提供 UI 入口，否则无法停用一个正在跑的守护任务。
+ */
 async function toggleEnabled(row: ProjectRow) {
-  await switchProject(row.id, !row.msProjectEnabled);
-  message.success(row.msProjectEnabled ? '已停用' : '已启用');
-  refresh();
+  const next = row.msProjectEnabled !== 1;
+  try {
+    await message.confirm(
+      next
+        ? `确认启用项目「${row.msProjectName}」？启用后守护进程与指标采集将按已配置的间隔生效。`
+        : `确认停用项目「${row.msProjectName}」？停用后守护进程与指标采集立即停止，部署/启停仍可手动执行。`,
+      next ? '启用' : '停用',
+    );
+  } catch { return; }
+  try {
+    await switchProject(row.id, next);
+    message.success(next ? '已启用' : '已停用');
+    refresh();
+  } catch (e) {
+    message.error((e as Error).message);
+  }
 }
 
 /* ================== 生命周期 ================== */
 async function runLifecycle(row: ProjectRow, action: 'start' | 'stop' | 'restart') {
-  await message.confirm(`确认${action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启'}项目 ${row.msProjectName}？`, '确认');
-  const logs = await (action === 'start' ? startProject(row.id)
-    : action === 'stop' ? stopProject(row.id) : restartProject(row.id));
-  showActionResult(logs);
-  refresh();
+  const label = action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启';
+  try {
+    await message.confirm(`确认${label}项目「${row.msProjectName}」？将对其全部绑定主机执行${label}脚本。`, '确认');
+  } catch { return; }
+  if (deployingIds.value.has(row.id)) {
+    message.warning('该项目正在处理中，请稍候');
+    return;
+  }
+  deployingIds.value.add(row.id);
+  try {
+    const logs = await (action === 'start' ? startProject(row.id)
+      : action === 'stop' ? stopProject(row.id) : restartProject(row.id));
+    showActionResult(logs);
+  } catch (e) {
+    message.error(`${label}失败: ${(e as Error).message}`);
+  } finally {
+    deployingIds.value.delete(row.id);
+    refresh();
+  }
 }
 
 /* ================== 部署/升级 ================== */
@@ -344,6 +405,15 @@ async function submitRollback() {
   }
 }
 
+/* ================== 部署日志审计 ================== */
+const deployLogVisible = ref(false);
+const deployLogProject = ref<ProjectRow | null>(null);
+
+function openDeployLog(row: ProjectRow) {
+  deployLogProject.value = row;
+  deployLogVisible.value = true;
+}
+
 /* ================== 实时日志 ================== */
 const logVisible = ref(false);
 const logProject = ref<ProjectRow | null>(null);
@@ -357,9 +427,18 @@ async function openLiveLog(row: ProjectRow) {
   }
   try {
     const hosts = await queryHostOptions(row.msProjectHostOs);
-    logHostOptions.value = (hosts ?? [])
+    // 项目绑定的 hostId 可能已在「服务器管理」里被删除，或与项目声明的 OS 不匹配。
+    // 此时若照旧打开抽屉，用户会看到一个空面板 + 「暂无日志输出」——
+    // 真正的故障原因（服务器不存在）被完全掩盖，会被误判成「应用没打日志」。
+    // 所以这里必须拦下来并说清原因。
+    const matched = (hosts ?? [])
       .filter(h => hostIds.includes(h.id))
       .map(h => ({ label: `${h.name} (${h.address})`, value: h.id }));
+    if (matched.length === 0) {
+      message.warning(`项目绑定的目标服务器已不存在（hostId: ${hostIds.join(', ')}），请先在编辑弹窗中重新选择服务器`);
+      return;
+    }
+    logHostOptions.value = matched;
     logProject.value = row;
     logVisible.value = true;
   } catch (e) {
@@ -507,6 +586,7 @@ function healthTypeLabel(type?: string): string {
             </template>
           </ReDropdown>
           <ReButton layout="square" size="small" icon="Document" @click="openLiveLog(row)">实时日志</ReButton>
+          <ReButton layout="square" size="small" icon="Tickets" @click="openDeployLog(row)">部署日志</ReButton>
           <ReButton layout="square" size="small" icon="UploadBack" @click="openRollback(row)">回滚</ReButton>
           <ReButton layout="square" size="small" icon="Edit" @click="openEdit(row)">编辑</ReButton>
           <ReButton layout="square" size="small" icon="Delete" @click="removeProject(row)">删除</ReButton>
@@ -530,6 +610,14 @@ function healthTypeLabel(type?: string): string {
       :project-id="logProject.id"
       :project-name="logProject.msProjectName"
       :host-options="logHostOptions"
+    />
+
+    <!-- 部署日志抽屉（操作审计） -->
+    <ScDeployLog
+      v-if="deployLogProject"
+      v-model:visible="deployLogVisible"
+      :project-id="deployLogProject.id"
+      :project-name="deployLogProject.msProjectName"
     />
 
     <!-- 操作结果弹窗 -->
@@ -720,6 +808,7 @@ function healthTypeLabel(type?: string): string {
             </template>
           </ReDropdown>
           <ReButton layout="square" icon="Document" @click="openLiveLog(detailProject)">实时日志</ReButton>
+          <ReButton layout="square" icon="Tickets" @click="openDeployLog(detailProject)">部署日志</ReButton>
           <ReButton layout="square" icon="UploadBack" @click="openRollback(detailProject)">回滚</ReButton>
           <ReButton layout="square" icon="Edit" @click="openEdit(detailProject)">编辑</ReButton>
           <ReButton layout="square" icon="Delete" @click="removeProject(detailProject)">删除</ReButton>

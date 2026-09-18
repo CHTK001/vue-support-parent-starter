@@ -83,7 +83,7 @@
       </ReTableColumn>
     </ReTable>
 
-    <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520" :height="560" destroy-on-close confirm-text="保存" cancel-text="取消" @confirm="handleSave" @cancel="showDialog = false">
+    <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520" :height="560" destroy-on-close confirm-text="保存" cancel-text="取消" compact @confirm="handleSave" @cancel="showDialog = false">
       <ReForm :model="form" label-position="top" class="asset-form" :disabled="serverHostLoading">
         <ReFormItem label="服务器配置">
           <ReSelect v-model="form.msServerHostId" placeholder="从服务器台账关联（可选）" clearable filterable style="width:100%"

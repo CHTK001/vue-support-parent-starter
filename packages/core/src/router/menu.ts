@@ -13,7 +13,7 @@
  *   resolver.generateRoutes(menuData, 0);       // 递归生成树
  *   resolver.generateFlattenRoutes(menuData);    // 扁平一级路由
  */
-import { getConfig } from "@repo/config";
+import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 import { log } from "@repo/utils";
 
 /** 视图模块（vue-router 懒加载组件） */
@@ -89,7 +89,8 @@ export function createMenuRouteResolver(
   const _menuId = (i: any) => i.menuId ?? i.sysMenuId;
   const _parentId = (i: any) => i.parentId ?? i.sysMenuPid;
   const _menuName = (i: any) => i.menuName ?? i.meta?.title ?? i.name;
-  const _menuIcon = (i: any) => i.icon ?? i.meta?.icon;
+  // 菜单缺省图标：后端未配置 icon 时兜底（可在 app.yaml 的 menuConfig.defaultIcon 覆盖）
+  const _menuIcon = (i: any) => i.icon || i.meta?.icon || resolveMenuDefaultIcon();
   const _menuType = (i: any) => i.menuType ?? i.sysMenuType;
   const _isVisible = (i: any) => {
     if (i.isVisible !== undefined) return i.isVisible;

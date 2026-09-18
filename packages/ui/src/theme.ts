@@ -60,11 +60,15 @@ export async function loadThemedComponent(
  *
  * 导出对象同时满足：
  *  - 作为 Plugin：`app.use(install)`
- *  - 直接取组件：`install.component`（异步）
+ *  - 直接取组件：`install.component`（可渲染的异步组件，非「返回 Promise 的函数」）
  */
 export interface ThemedComponent {
-  /** 按当前主题异步解析组件实例 */
-  component: () => Promise<Component>;
+  /**
+   * 可直接渲染的异步组件（`defineAsyncComponent` 的返回值）。
+   * 注意：这里**不能**声明成 `() => Promise<Component>` —— 该类型与真实值不符，
+   * 且若有人按函数类型去调用它，模板里会把组件当函数式组件执行，渲染出 "[object Promise]"。
+   */
+  component: Component;
   /** 注册为全局组件（返回 Promise，便于 installUi 等待完成） */
   install: (app: App) => Promise<void>;
 }

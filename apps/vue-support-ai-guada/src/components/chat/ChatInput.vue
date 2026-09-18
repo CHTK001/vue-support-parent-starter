@@ -91,6 +91,14 @@
               :selected-attachments="props.config?.attachments || {}" @select-image="triggerImageInput"
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
               @toggle-attachment="toggleAttachmentSelection" />
+            
+            <!-- 技能按钮 -->
+            <button class="tool-btn skill-btn" @click.stop="openCommandPicker('', 'slash')">
+              <el-icon size="16">
+                <Wrench24Regular />
+              </el-icon>
+              <span class="text-xs font-medium">技能</span>
+            </button>
           </template>
         </div>
         <div class="right-actions flex items-center gap-1">
@@ -172,7 +180,7 @@ import { getModelThinkingEfforts, getThinkingEffortLabel } from '@/utils/modelUt
 import {
 
   Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  DrinkCoffee16Regular, ClipboardTask24Regular, ShieldLock24Regular, Add24Regular
+  DrinkCoffee16Regular, ClipboardTask24Regular, ShieldLock24Regular, Add24Regular, Wrench24Regular
 } from '@vicons/fluent'
 import { usePopup } from '@/composables/usePopup';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
@@ -505,8 +513,13 @@ const handleThinkingEffortChange = (effort: string) => {
 };
 
 const currentModelNameOnly = computed(() => {
+  // 如果没有模型，显示"+添加模型"
+  if (!models.value || models.value.length === 0) {
+    return '+ 添加模型';
+  }
+  // 如果没有选中模型，显示"自动"
   const model = currentModel.value;
-  return model ? model.modelName.split("/").pop() : t('chat.input.selectModel');
+  return model ? model.modelName.split("/").pop() : '自动';
 });
 
 const currentThinkingLabel = computed(() => {
@@ -682,6 +695,12 @@ function collapseModelButton() {
 }
 
 const openModelPanel = () => {
+  // 如果没有模型，直接跳转到模型管理页面
+  if (!models.value || models.value.length === 0) {
+    window.location.href = '/models'
+    return
+  }
+
   if (modelPanelVisible.value) {
     modelPanelVisible.value = false
     return
@@ -696,17 +715,8 @@ const openModelPanel = () => {
     modelCloseTimer = null
   }
 
-  // 从当前自适应宽度开始，再在下一帧过渡到最大宽度
-  modelButtonWidth.value = `${button.getBoundingClientRect().width}px`
-  modelButtonExpanded.value = true
-  requestAnimationFrame(() => {
-    modelButtonWidth.value = `${MODEL_BUTTON_MAX_WIDTH}px`
-  })
-
-  modelOpenTimer = setTimeout(() => {
-    modelPanelVisible.value = true
-    modelOpenTimer = null
-  }, MODEL_BUTTON_TRANSITION_MS)
+  // 直接显示弹框，没有动画
+  modelPanelVisible.value = true
 };
 
 // 外部点击或 ESC 关闭弹窗时，反向收起按钮
@@ -1630,6 +1640,13 @@ defineExpose({ insertText, insertBadge });
 }
 
 /* 模型选择器按钮 - 原生 button */
+/* 技能按钮 */
+.skill-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .model-selector-btn {
   cursor: pointer;
   height: 28px;
@@ -1641,10 +1658,8 @@ defineExpose({ insertText, insertBadge });
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 200px;
-  min-width: 80px;
+  width: 90px;
   overflow: hidden;
-  transition: all 0.2s;
   outline: none;
   font-size: 12px;
 }
@@ -1659,8 +1674,6 @@ defineExpose({ insertText, insertBadge });
 }
 
 .model-selector-btn.is-open {
-  width: 200px;
-  max-width: 200px;
   background: var(--color-sidebar-bg-active);
 }
 

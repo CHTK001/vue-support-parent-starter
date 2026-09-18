@@ -113,16 +113,11 @@
               <el-input v-model="editConfig.password" type="password" show-password />
             </div>
             <div v-if="editConfig.authMethod === 'privateKey'">
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{{ t('settings.connection.connectionName') === '连接名称' ? '私钥路径' : 'Private Key Path' }}</label>
-              <div class="flex gap-2">
-                <el-input v-model="editConfig.privateKeyPath" class="flex-1 min-w-0"
-                  :placeholder="isElectron ? '选择或输入私钥文件路径' : '请输入私钥文件绝对路径'" />
-                <el-button v-if="isElectron" @click="selectPrivateKeyFile">
-                  {{ t('settings.connection.browse') }}
-                </el-button>
-              </div>
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{{ t('settings.connection.connectionName') === '连接名称' ? '私钥内容' : 'Private Key' }}</label>
+              <el-input v-model="editConfig.privateKey" type="textarea" :rows="6"
+                placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEpAIBAAKCAQEA...&#10;-----END RSA PRIVATE KEY-----" />
               <div class="text-xs text-gray-400 dark:text-[#8b8d95] mt-1">
-                {{ t('settings.connection.privateKeyPathDesc') }}
+                请粘贴完整的私钥内容，包括 BEGIN/END 标记
               </div>
             </div>
 
@@ -301,7 +296,7 @@ interface ConnectionConfig {
   username: string
   authMethod: 'password' | 'privateKey'
   password?: string
-  privateKeyPath?: string
+  privateKey?: string
   path: string
   perm?: string
 }
@@ -323,7 +318,7 @@ const editing = ref(false)
 const editConnId = ref<string | null>(null)
 const editName = ref('')
 const editConfig = ref<ConnectionConfig>({
-  host: '', port: 22, username: 'root', authMethod: 'password', password: '', privateKeyPath: '', path: '', perm: 'workspace'
+  host: '', port: 22, username: 'root', authMethod: 'password', password: '', privateKey: '', path: '', perm: 'workspace'
 })
 // Electron 环境判断(有文件选择能力)
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI
@@ -384,7 +379,7 @@ function startNew() {
   editing.value = true
   editConnId.value = null
   editName.value = ''
-  editConfig.value = { host: '', port: 22, username: 'root', authMethod: 'password', password: '', privateKeyPath: '', path: '', perm: 'workspace' }
+  editConfig.value = { host: '', port: 22, username: 'root', authMethod: 'password', password: '', privateKey: '', path: '', perm: 'workspace' }
   testResult.value = null
   testLog.value = ''
   deployResult.value = null

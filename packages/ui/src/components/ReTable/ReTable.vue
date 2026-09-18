@@ -46,6 +46,7 @@ import ReTableToolbar from "./ReTableToolbar.vue";
 import ReTableContextMenu from "./ReTableContextMenu.vue";
 import ReTableRadialView from "./ReTableRadialView.vue";
 import ReButton from "../ReButton/ReButton.vue";
+import ReSearch from "../ReSearch/index";
 
 /** Modern 表格布局组件（按需异步加载） */
 const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vue"));
@@ -68,6 +69,7 @@ import type {
   ReTableSettings,
   ReVirtualLayoutProps,
   ReTableToolbarConfig,
+  ReTableSearchConfig,
   ReTableContextMenuItem,
   ReTableContextMenuContext,
   ReTableCellClickPayload,
@@ -183,6 +185,12 @@ const props = withDefaults(
     showSearchToggle?: boolean;
     showSearchTitle?: boolean;
     showSelection?: boolean;
+    /** 内置 ReSearch 搜索区（true=默认配置；传对象可配 filters/title/btnMode 等） */
+    search?: boolean | ReTableSearchConfig;
+    /** 搜索区与表格的间距（px），0 时搜索与表格连为一体 */
+    searchGap?: number;
+    /** 搜索值（v-model:search-model，内置 ReSearch filters 模式下双向绑定） */
+    searchModel?: Record<string, unknown>;
   }>(),
   {
     data: () => [],
@@ -222,6 +230,9 @@ const props = withDefaults(
     showSearchToggle: true,
     showSearchTitle: true,
     showSelection: false,
+    search: false,
+    searchGap: 16,
+    searchModel: undefined,
   },
 );
 
@@ -243,6 +254,10 @@ const emit = defineEmits<{
   (e: "load-error", err: Error): void;
   (e: "update:searchVisible", visible: boolean): void;
   (e: "toggle-search"): void;
+  (e: "update:searchModel", value: Record<string, unknown>): void;
+  (e: "search"): void;
+  (e: "search-reset"): void;
+  (e: "refresh"): void;
 }>();
 
 /** ========== 批量选择状态（sessionStorage 记住跨页选择） ========== */
@@ -400,10 +415,42 @@ function getBatchEditHandler() {
 
 /** ========== 右键菜单状态 ========== */
 const ctxMenuVisible = ref(false);
+/** 内部兜底状态：父组件未绑定 v-model:search-visible 时本地生效 */
+const localSearchVisible = ref(props.searchVisible ?? true);
+watch(
+  () => props.searchVisible,
+  (v) => { if (v !== undefined) localSearchVisible.value = v; },
+);
 const searchVisible = computed({
-  get: () => props.searchVisible ?? true,
-  set: (v: boolean) => emit('update:searchVisible', v),
+  get: () => props.searchVisible ?? localSearchVisible.value,
+  set: (v: boolean) => {
+    localSearchVisible.value = v;
+    emit('update:searchVisible', v);
+  },
 });
+
+/** ========== 内置 ReSearch 搜索区 ========== */
+const searchEnabled = computed(() => props.search === true || (typeof props.search === "object" && props.search !== null));
+const searchConfig = computed<ReTableSearchConfig>(() => (props.search && typeof props.search === "object" ? props.search : {}));
+/** 搜索区是否渲染：开启内置 ReSearch 或（showSearch 且有 #search 插槽） */
+const searchAreaVisible = computed(() => searchEnabled.value || (props.showSearch && !!parentSlots.search));
+/** searchGap > 0 时搜索区渲染为独立卡片样式（与表格之间露出间距） */
+const searchSeparated = computed(() => (props.searchGap ?? 0) > 0);
+const searchGapStyle = computed(() => ({ marginBottom: `${props.searchGap ?? 0}px` }));
+function onSearchModelUpdate(value: Record<string, unknown>): void {
+  emit("update:searchModel", value);
+}
+function onBuiltinSearch(): void {
+  emit("search");
+  void reload();
+}
+function onBuiltinSearchReset(): void {
+  emit("search-reset");
+}
+function onBuiltinSearchRefresh(): void {
+  emit("refresh");
+  void reload();
+}
 const ctxMenuX = ref(0);
 const ctxMenuY = ref(0);
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
@@ -752,7 +799,7 @@ function resetColumns(): void {
 /** 远程数据加载 */
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
-    const paramObj = props.params ?? {};
+    const paramObj = { ...(props.params ?? {}), ...(props.searchModel ?? {}) };
     const curPage = internalPage.value || props.page || 1;
     const curSize = internalPageSize.value || props.pageSize || 10;
     const loadParams = {
@@ -1017,29 +1064,78 @@ const iconSelect = Select;
 <template>
   <div
     class="re-table"
-    :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small' }"
+    :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small', 're-table--separated': searchSeparated }"
     :style="{ '--re-table-min-height': tableMinHeight }"
   >
-    <!-- 内置搜索区（showSearch=true 时显示，可通过搜索开关切换） -->
-    <div v-if="showSearch && $slots.search" class="re-table__search">
-      <div v-if="showSearchTitle" class="re-table__search-bar">
-        <div class="re-table__search-title">
-          <el-icon :size="16"><Search /></el-icon>
-          <span>搜索</span>
+    <!-- 内置搜索区（search 开启内置 ReSearch；或 showSearch=true 配合 #search 插槽） -->
+    <div
+      v-if="searchAreaVisible"
+      class="re-table__search"
+      :style="searchGapStyle"
+    >
+      <template v-if="searchEnabled">
+        <div v-show="searchVisible">
+          <ReSearch
+            :filters="searchConfig.filters ?? []"
+            :model-value="searchModel ?? {}"
+            :title="searchConfig.title ?? '搜索'"
+            :max="searchConfig.max ?? 0"
+            :btn-mode="searchConfig.btnMode ?? 'icon'"
+            :filter-visible="searchVisible"
+            :show-toggle="false"
+            :show-search-btn="searchConfig.showSearchBtn ?? true"
+            :show-reset-btn="searchConfig.showResetBtn ?? true"
+            :show-refresh-btn="false"
+            :show-add-btn="false"
+            :show-batch-delete-btn="false"
+            :show-batch-select-btn="false"
+            @update:model-value="onSearchModelUpdate"
+            @update:filter-visible="searchVisible = $event"
+            @search="onBuiltinSearch"
+            @reset="onBuiltinSearchReset"
+            @refresh="onBuiltinSearchRefresh"
+          />
         </div>
-        <div v-if="showSearchToggle" class="re-table__search-toggle" @click="emit('toggle-search')">
-          <span>{{ searchVisible ? '收起' : '展开' }}</span>
-          <el-icon class="re-table__search-toggle-icon"><ArrowUp v-if="searchVisible" /><ArrowDown v-else /></el-icon>
+      </template>
+      <template v-else>
+        <div v-if="showSearchTitle" class="re-table__search-bar">
+          <div class="re-table__search-title">
+            <el-icon :size="16"><Search /></el-icon>
+            <span>搜索</span>
+          </div>
+          <div v-if="showSearchToggle" class="re-table__search-toggle" @click="emit('toggle-search')">
+            <span>{{ searchVisible ? '收起' : '展开' }}</span>
+            <el-icon class="re-table__search-toggle-icon"><ArrowUp v-if="searchVisible" /><ArrowDown v-else /></el-icon>
+          </div>
         </div>
-      </div>
-      <div v-show="searchVisible" class="re-table__search-body">
-        <slot name="search" />
-      </div>
+        <div v-show="searchVisible" class="re-table__search-body">
+          <slot name="search" />
+        </div>
+      </template>
     </div>
 
-    <!-- 自定义工具栏 slot（业务按钮 + 工具图标） -->
-    <div v-if="$slots.toolbar" class="re-table__toolbar-slot">
-      <slot name="toolbar" />
+    <!-- 主体区（两卡模式下与搜索区分离，各自成卡） -->
+    <div class="re-table__main">
+    <!-- 工具栏行：左侧 #toolbar 自定义按钮，右侧搜索开关 + 刷新（search 开启时） -->
+    <div v-if="$slots.toolbar || searchEnabled" class="re-table__toolbar-row">
+      <div v-if="$slots.toolbar" class="re-table__toolbar-left">
+        <slot name="toolbar" />
+      </div>
+      <div v-if="searchEnabled" class="re-table__toolbar-right">
+        <ReButton
+          layout="square"
+          :icon="searchVisible ? 'Hide' : 'View'"
+          :title="searchVisible ? '隐藏搜索' : '显示搜索'"
+          @click="searchVisible = !searchVisible"
+        />
+        <ReButton
+          layout="square"
+          icon="Refresh"
+          title="刷新"
+          :loading="dataLoading || loading"
+          @click="onBuiltinSearchRefresh"
+        />
+      </div>
     </div>
 
     <!-- 顶部工具栏（当 toolbarConfig.position === 'top' 时）：只放批量操作按钮，工具区在分页行 -->
@@ -1071,7 +1167,6 @@ const iconSelect = Select;
       :border="localSettings.border ?? true"
       :size="tableSize"
       :row-key="rowKey"
-      :empty-text="emptyText"
       :show-header="layoutTable?.showHeader ?? true"
       :height="layoutTable?.height"
       :max-height="layoutTable?.maxHeight"
@@ -1163,6 +1258,20 @@ const iconSelect = Select;
             </template>
           </template>
         </ElTableColumn>
+      </template>
+      <template #empty>
+        <div class="re-table__empty">
+          <svg viewBox="0 0 64 41" class="re-table__empty-icon">
+            <g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-width="2">
+              <ellipse cx="32" cy="33" rx="32" ry="7" fill="var(--el-fill-color-light)"/>
+              <g fill="var(--el-fill-color)" stroke-linecap="round">
+                <path d="M12 14l8-8h16l8 8v14a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z"/>
+                <path d="M20 6l-8 8h16l8-8"/>
+              </g>
+            </g>
+          </svg>
+          <p>{{ emptyText }}</p>
+        </div>
       </template>
       <slot />
     </ElTable>
@@ -1455,6 +1564,7 @@ const iconSelect = Select;
       :y="ctxMenuY"
       @select="onContextMenuSelect"
     />
+    </div>
   </div>
 </template>
 
@@ -1469,8 +1579,42 @@ const iconSelect = Select;
 .re-table__search {
   margin-bottom: 12px;
 }
-.re-table__toolbar-slot {
+/* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色 */
+.re-table--separated {
+  background: transparent;
+  padding: 0;
+}
+.re-table--separated > .re-table__search {
+  background: var(--rt-bg);
+  border-radius: var(--rt-radius);
+  padding: var(--rt-padding, 12px);
+  border: 1px solid var(--el-border-color);
+}
+.re-table--separated > .re-table__main {
+  background: var(--rt-bg);
+  border-radius: var(--rt-radius);
+  padding: var(--rt-padding, 12px);
+  border: 1px solid var(--el-border-color);
+}
+/* 工具栏行：左侧业务按钮（#toolbar 插槽），右侧搜索开关/刷新 */
+.re-table__toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
+}
+.re-table__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.re-table__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .re-table__search-bar {
   display: flex;
@@ -1560,6 +1704,13 @@ const iconSelect = Select;
 }
 :deep(.el-table__fixed-right::before) {
   z-index: 31 !important;
+}
+.el-table__body td.el-table-fixed-column--right {
+  background-color: var(--el-table-bg-color, #fff);
+}
+.el-table__body tr:hover td.el-table-fixed-column--right,
+.el-table__body tr.hover-row td.el-table-fixed-column--right {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
 }
 .re-table__pagination {
   display: flex;
@@ -1658,6 +1809,10 @@ const iconSelect = Select;
 .re-table--empty .el-table__body-wrapper .el-scrollbar {
   height: 100%;
 }
+.re-table--empty .el-table__body-wrapper .el-scrollbar__wrap {
+  height: 100% !important;
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
+}
 /* 空态文本居中修复：
    el-table 默认 .el-table__empty-text 宽 50% 且 empty-block sticky 定位，
    有固定列/横向滚动时文本按内容总宽居中，在可视窗口内偏移；窄容器下 50% 宽也不居中。
@@ -1672,6 +1827,26 @@ const iconSelect = Select;
   min-width: 50%;
   line-height: inherit;
   padding: 0 16px;
+}
+.re-table__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: var(--el-text-color-secondary);
+  width: 100%;
+}
+.re-table__empty .re-table__empty-icon {
+  width: 80px;
+  height: 52px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+.re-table__empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
 }
 .re-table__icon {
   display: inline-block;

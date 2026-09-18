@@ -6,7 +6,7 @@
  * 支持按账号/IP 过滤、强制踢出（kick）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Connection, Search, Refresh, CircleClose, Switch } from "@element-plus/icons-vue";
 import { listOnline, kickUser, kickUsers, countOnline, listForRole, listDept } from "../api/systemApi";
@@ -35,6 +35,23 @@ async function loadFilterOptions(): Promise<void> {
 
 /** 部门树展平为 el-tree-select 数据 */
 const deptTreeProps = { value: "sysDeptId", label: "sysDeptName", children: "children" };
+
+const searchFilters = computed(() => [
+  { key: 'username', label: '账号', type: 'input' as const, placeholder: '请输入' },
+  { key: 'ip', label: 'IP 地址', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'roleCode', label: '角色', type: 'select' as const, placeholder: '请选择',
+    options: roleOptions.value.map((r) => ({ label: r.sysRoleName, value: r.sysRoleCode })),
+  },
+  {
+    key: 'deptId', label: '部门', type: 'treeselect' as const, placeholder: '请选择',
+    options: deptOptions.value as any,
+    attrs: {
+      props: deptTreeProps,
+      checkStrictly: true, clearable: true,
+    },
+  },
+]);
 
 /* ================== 多选与批量操作 ================== */
 const selectedRows = ref<OnlineUser[]>([]);
@@ -118,6 +135,9 @@ function handleReset() {
   loadList();
 }
 
+/** 表格使用静态 :data 渲染，内置搜索条件变化时重新加载列表 */
+watch(query, () => loadList(), { deep: true });
+
 async function handleKick(row: Record<string, unknown>) {
   const user = row as unknown as OnlineUser;
   if (!user.userId) return;
@@ -169,61 +189,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.username"
-            placeholder="账号"
-            clearable
-            class="!w-44"
-            @keyup.enter="loadList"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.ip"
-            placeholder="IP 地址"
-            clearable
-            class="!w-44"
-            @keyup.enter="loadList"
-          />
-          <ReSelect
-            v-model="query.roleCode"
-            placeholder="角色"
-            clearable
-            class="!w-44"
-            :data="roleOptions.map((r) => ({ label: r.sysRoleName, value: r.sysRoleCode }))"
-            @change="loadList"
-          />
-          <el-tree-select
-            v-model="query.deptId"
-            :data="deptOptions"
-            :props="deptTreeProps"
-            check-strictly
-            clearable
-            placeholder="部门"
-            class="!w-44"
-            @change="loadList"
-          />
-          <div class="flex-1" />
-          <ReButton layout="modern" type="primary" icon="Search" @click="loadList">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-        </div>
-        <template #footer>
-          <ReButton
-            layout="modern"
-            type="danger"
-            :icon="CircleClose"
-            :disabled="!selectedRows.length"
-            :loading="batchKicking"
-            @click="handleBatchKick"
-          >
-            批量踢出{{ selectedRows.length ? `（${selectedRows.length}）` : "" }}
-          </ReButton>
-        </template>
-      </ReSearch>
-
       <!-- 批量操作栏 -->
       <div class="batch-bar" v-if="selectedRows.length > 0">
         <span class="batch-bar__info">已选择 {{ selectedRows.length }} 个用户</span>
@@ -255,8 +220,24 @@ onMounted(() => {
         :columns="columns"
         :pagination="false"
         :loading="loading"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         @selection-change="handleSelectionChange"
       >
+        <template #toolbar>
+          <ReButton
+            layout="modern"
+            type="danger"
+            :icon="CircleClose"
+            :disabled="!selectedRows.length"
+            :loading="batchKicking"
+            @click="handleBatchKick"
+          >
+            批量踢出{{ selectedRows.length ? `（${selectedRows.length}）` : "" }}
+          </ReButton>
+        </template>
         <template #index="{ $index }">
           <span>{{ $index + 1 }}</span>
         </template>
@@ -271,7 +252,6 @@ onMounted(() => {
       <div class="mt-4 text-right text-sm text-[--el-text-color-secondary]">
         共 {{ total }} 条记录
       </div>
-    </el-card>
   </div>
 </template>
 
@@ -299,17 +279,6 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 
 .batch-bar {

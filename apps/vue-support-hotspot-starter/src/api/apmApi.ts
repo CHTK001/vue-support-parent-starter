@@ -305,6 +305,25 @@ export function getEndpoints(limit = 50, keyword?: string): Promise<ApmEndpoint[
   return unwrap(instance.get<ApmEndpoint[]>("/endpoints", { params: { limit, keyword } }));
 }
 
+// ---- 服务健康详情（按 service 过滤聚合）----
+
+export interface ServiceDetail {
+  service: string;
+  callCount: number;
+  errorCount: number;
+  errorRatePercent: number;
+  avgMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+  endpointCount: number;
+}
+
+/** 服务健康详情（按 service 过滤聚合） */
+export function getServiceDetail(service: string): Promise<ServiceDetail> {
+  return unwrap(instance.get<ServiceDetail>(`/service/${encodeURIComponent(service)}/detail`));
+}
+
 /** 依赖边聚合（按 edgeId 归并，修复 callCount=1 存储问题） */
 export function getDependenciesAggregated(size = 100): Promise<DependencyEdge[]> {
   return unwrap(instance.get<DependencyEdge[]>("/dependencies/aggregated", { params: { size } }));
@@ -553,6 +572,80 @@ export function cleanup(retentionMs = 86400000): Promise<Record<string, unknown>
   return unwrap(instance.post<Record<string, unknown>>("/cleanup", null, { params: { retentionMs } }));
 }
 
+// ---- 时序统计（2026 增强 R3）----
+
+/** 调用量/错误率时序分桶点 */
+export interface TrendPoint {
+  bucketStart: number;
+  callCount: number;
+  errorCount: number;
+  errorRatePercent: number;
+  avgMs: number;
+}
+export function getTrend(minutes = 30, bucketSeconds = 60): Promise<TrendPoint[]> {
+  return unwrap(instance.get<TrendPoint[]>("/trend", { params: { minutes, bucketSeconds } }));
+}
+
+/** 日志级别统计 */
+export interface LogLevelStat {
+  level: string;
+  count: number;
+  percent: number;
+}
+export function getLogStats(): Promise<LogLevelStat[]> {
+  return unwrap(instance.get<LogLevelStat[]>("/log-stats"));
+}
+
+/** 端点×时间桶 扁平统计 */
+export interface EndpointStatPoint {
+  ts: number;
+  endpoint: string;
+  callCount: number;
+  errorCount: number;
+  avgMs: number;
+}
+export function getEndpointStats(service = "", minutes = 60, bucketSeconds = 60): Promise<EndpointStatPoint[]> {
+  return unwrap(instance.get<EndpointStatPoint[]>("/endpoint-stats", { params: { service, minutes, bucketSeconds } }));
+}
+
+/** 协议统计 */
+export interface ProtocolStat {
+  protocol: string;
+  callCount: number;
+  errorCount: number;
+  errorRatePercent: number;
+  avgMs: number;
+}
+export function getProtocolStats(): Promise<ProtocolStat[]> {
+  return unwrap(instance.get<ProtocolStat[]>("/protocol-stats"));
+}
+
+/** 线程池（按线程名分组） */
+export interface ThreadStateSample { state: string; count: number; }
+export interface ThreadPoolStat {
+  name: string;
+  count: number;
+  daemonCount: number;
+  knownPool: boolean;
+  sampleStates: ThreadStateSample[];
+}
+export function getThreadPools(): Promise<ThreadPoolStat[]> {
+  return unwrap(instance.get<ThreadPoolStat[]>("/thread-pools"));
+}
+
+/** 连接池近似（target endpoint 分组 + OS-FD 行） */
+export interface ConnectionPoolStat {
+  endpoint: string;
+  callCount: number;
+  avgMs: number;
+  lastCallAt: string;
+  activeLeakCount: number;
+  openFileDescriptors?: number;
+}
+export function getConnectionPools(): Promise<ConnectionPoolStat[]> {
+  return unwrap(instance.get<ConnectionPoolStat[]>("/connection-pools"));
+}
+
 // ---- 链路树节点（/agent/traces/tree 返回结构，与 ReTree 兼容）----
 
 export interface TraceTreeItem {
@@ -609,6 +702,7 @@ export default {
   pageLeaks,
   pageLogs,
   getServices,
+  getServiceDetail,
   getEndpoints,
   getHealth,
   getJvmSnapshot,
@@ -624,6 +718,12 @@ export default {
   getErrorRanking,
   getSla,
   cleanup,
+  getTrend,
+  getLogStats,
+  getEndpointStats,
+  getProtocolStats,
+  getThreadPools,
+  getConnectionPools,
   getAlertRules,
   addAlertRule,
   toggleAlertRule,

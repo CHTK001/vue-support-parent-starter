@@ -78,6 +78,15 @@
       <div ref="trendRef" class="panel-chart" />
     </div>
 
+    <!-- 错误率 & 平均耗时趋势（后端 /trend 分桶） -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>错误率 & 平均耗时趋势</span>
+        <span class="panel-sub">最近 30 分钟（每分钟分桶，双轴）</span>
+      </div>
+      <div ref="errorTrendRef" class="panel-chart" />
+    </div>
+
     <!-- 排行区（服务 Top / 慢调用 / 错误排行） -->
     <div class="rank-grid">
       <div class="panel">
@@ -180,8 +189,8 @@ import {
 } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import ReStatusIndicator from "@repo/ui/re-status-indicator";
-import { getStats, watchStats, pageTransmissions, getServices, getSlowCalls, getErrorRanking, getSla } from "../api/apmApi";
-import type { ApmStats, ApmService, SlowCall, ErrorRanking, SlaStats } from "../api/apmApi";
+import { getStats, watchStats, pageTransmissions, getServices, getSlowCalls, getErrorRanking, getSla, getTrend } from "../api/apmApi";
+import type { ApmStats, ApmService, SlowCall, ErrorRanking, SlaStats, TrendPoint } from "../api/apmApi";
 
 const router = useRouter();
 
@@ -198,9 +207,11 @@ const loading = ref(false);
 const pieRef = ref<HTMLElement | null>(null);
 const barRef = ref<HTMLElement | null>(null);
 const trendRef = ref<HTMLElement | null>(null);
+const errorTrendRef = ref<HTMLElement | null>(null);
 let sseWatch: { close: () => void } | null = null;
 let trendTimer: number | undefined;
 let trendChart: echarts.ECharts | null = null;
+let errorTrendChart: echarts.ECharts | null = null;
 
 /** 排行数据 */
 const services = ref<ApmService[]>([]);
@@ -446,11 +457,74 @@ function renderTrend(items: { startTime: string; status: string }[]) {
   });
 }
 
+/** 拉取后端 /trend 分桶数据，渲染错误率（左轴 %）+ 平均耗时（右轴 ms）双轴折线。 */
+async function loadErrorTrend() {
+  try {
+    renderErrorTrend(await getTrend(30, 60));
+  } catch {
+    /* 降级为空 */
+  }
+}
+
+function renderErrorTrend(points: TrendPoint[]) {
+  if (!errorTrendRef.value) {
+    return;
+  }
+  if (!errorTrendChart) {
+    errorTrendChart = echarts.init(errorTrendRef.value, "dark");
+  }
+  const hm = (ms: number) => {
+    const d = new Date(ms);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  errorTrendChart.setOption({
+    backgroundColor: "transparent",
+    grid: { left: 44, right: 44, top: 30, bottom: 24 },
+    tooltip: { trigger: "axis" },
+    legend: { data: ["错误率 %", "平均耗时 ms"], textStyle: { color: "#e6edf7" }, top: 0 },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: points.map((p) => hm(p.bucketStart)),
+      axisLabel: { color: "#e6edf7" },
+    },
+    yAxis: [
+      { type: "value", name: "%", axisLabel: { color: "#e6edf7" } },
+      { type: "value", name: "ms", axisLabel: { color: "#e6edf7" } },
+    ],
+    series: [
+      {
+        name: "错误率 %",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: points.map((p) => Number(p.errorRatePercent.toFixed(2))),
+        lineStyle: { color: "#ef4444", width: 2 },
+        areaStyle: { color: "rgba(239,68,68,0.2)" },
+      },
+      {
+        name: "平均耗时 ms",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        yAxisIndex: 1,
+        data: points.map((p) => Number(p.avgMs.toFixed(1))),
+        lineStyle: { color: "#f59e0b", width: 2 },
+      },
+    ],
+  });
+}
+
 onMounted(async () => {
   await load();
   await loadTrend();
+  await loadErrorTrend();
   // 趋势图每 15s 刷新一次（SSE 快照只更新计数，趋势聚合较重不需每 3s 做）
-  trendTimer = window.setInterval(loadTrend, 15000);
+  trendTimer = window.setInterval(() => {
+    loadTrend();
+    loadErrorTrend();
+  }, 15000);
   // SSE 实时刷新：每 3s 后端推一次 stats 快照，替代 HTTP 轮询
   sseWatch = watchStats((snapshot) => {
     Object.assign(stats.value, snapshot);
@@ -463,6 +537,8 @@ onBeforeUnmount(() => {
   if (trendTimer) window.clearInterval(trendTimer);
   trendChart?.dispose();
   trendChart = null;
+  errorTrendChart?.dispose();
+  errorTrendChart = null;
 });
 
 watch(stats, () => renderCharts(), { deep: true });

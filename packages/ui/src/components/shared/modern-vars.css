@@ -1,106 +1,91 @@
-/**
- * Modern 扁平化布局 —— 共享设计令牌
- *
- * 所有 Re* 的 Modern 布局组件共享此变量集，
- * 颜色自动跟随 Element Plus CSS 变量（主题换色时自动适配）。
- * 暗色模式通过 .dark 类或 prefers-color-scheme 自动切换。
- */
+/* ============================================================
+ * modern-vars.css —— Modern 布局通用 CSS 变量
+ * 所有 ReXxx Modern 布局组件共享的设计令牌
+ * ============================================================ */
 
 :root {
-  /* 色彩 */
-  --rm-primary: var(--el-color-primary, #6366f1);
-  --rm-primary-hover: var(--el-color-primary-light-3, #818cf8);
-  --rm-primary-active: var(--el-color-primary-dark-2, #4f46e5);
-  --rm-primary-light-9: var(--el-color-primary-light-9, #eef2ff);
-  --rm-primary-light-8: var(--el-color-primary-light-8, #e0e7ff);
-  --rm-success: var(--el-color-success, #22c55e);
-  --rm-success-light: var(--el-color-success-light-9, #f0fdf4);
-  --rm-warning: var(--el-color-warning, #f59e0b);
-  --rm-warning-light: var(--el-color-warning-light-9, #fffbeb);
-  --rm-danger: var(--el-color-danger, #ef4444);
-  --rm-danger-light: var(--el-color-danger-light-9, #fef2f2);
-  --rm-info: var(--el-color-info, #94a3b8);
-  --rm-info-light: var(--el-color-info-light-9, #f8fafc);
-
-  /* 边框 */
-  --rm-border: var(--el-border-color, #e2e8f0);
-  --rm-border-light: var(--el-border-color-lighter, #f1f5f9);
-  --rm-border-hover: var(--el-border-color-hover, #cbd5e1);
-  --rm-border-focus: var(--rm-primary, #6366f1);
+  /* 颜色 */
+  --rm-primary: #6366f1;
+  --rm-primary-hover: #4f46e5;
+  --rm-primary-light-9: #eef2ff;
+  --rm-success: #10b981;
+  --rm-warning: #f59e0b;
+  --rm-danger: #ef4444;
 
   /* 背景 */
-  --rm-bg: var(--el-bg-color, #ffffff);
-  --rm-bg-subtle: var(--el-fill-color-light, #f8fafc);
-  --rm-bg-hover: var(--el-fill-color, #f1f5f9);
-  --rm-bg-disabled: var(--el-fill-color-dark, #e2e8f0);
-  --rm-bg-glass: var(--el-bg-color, #ffffff);
-  --rm-overlay: rgba(0, 0, 0, 0.32);
+  --rm-bg: #ffffff;
+  --rm-bg-hover: #f1f5f9;
+  --rm-bg-subtle: #f8fafc;
+  --rm-bg-disabled: #f1f5f9;
+  --rm-bg-overlay: #ffffff;
 
-  /* 文本 */
-  --rm-text: var(--el-text-color-primary, #1e293b);
-  --rm-text-regular: var(--el-text-color-regular, #475569);
-  --rm-text-secondary: var(--el-text-color-secondary, #94a3b8);
-  --rm-text-disabled: var(--el-text-color-placeholder, #cbd5e1);
+  /* 边框 */
+  --rm-border: #e2e8f0;
+  --rm-border-light: #f1f5f9;
+  --rm-border-hover: #cbd5e1;
+  --rm-border-focus: #6366f1;
+
+  /* 文字 */
+  --rm-text: #1e293b;
+  --rm-text-regular: #475569;
+  --rm-text-secondary: #64748b;
+  --rm-text-disabled: #94a3b8;
   --rm-text-white: #ffffff;
 
-  /* 圆角（统一令牌，与 ElXxx 编排一致） */
-  --rm-radius-xs: var(--el-radius-xs, 4px);
-  --rm-radius-sm: var(--el-radius-sm, 6px);
-  --rm-radius: var(--el-radius-md, 8px);
-  --rm-radius-md: var(--el-radius-md, 8px);
-  --rm-radius-lg: var(--el-radius-lg, 12px);
-  --rm-radius-xl: var(--el-radius-xl, 16px);
-  --rm-radius-full: var(--el-radius-full, 9999px);
-
-  /* 间距 */
-  --rm-gap-xs: 4px;
-  --rm-gap-sm: 8px;
-  --rm-gap: 12px;
-  --rm-gap-lg: 20px;
-
-  /* 阴影（扁平化） */
-  --rm-shadow-xs: none;
-  --rm-shadow-sm: none;
-  --rm-shadow: none;
-  --rm-shadow-md: none;
-  --rm-shadow-lg: none;
-  --rm-shadow-primary: none;
-  --rm-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 15%, transparent);
-
-  /* 动画 */
-  --rm-duration: 150ms;
-  --rm-duration-slow: 250ms;
-  --rm-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --rm-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --rm-transition: var(--rm-duration) var(--rm-ease);
-  --rm-transition-slow: var(--rm-duration-slow) var(--rm-ease);
-
   /* 尺寸 */
+  --rm-height: 36px;
   --rm-height-sm: 28px;
-  --rm-height: 34px;
-  --rm-height-lg: 40px;
-  --rm-padding-sm: 0 8px;
-  --rm-padding: 0 14px;
-  --rm-padding-lg: 0 20px;
+  --rm-height-lg: 44px;
+
+  /* 圆角 */
+  --rm-radius: 8px;
+  --rm-radius-sm: 6px;
+  --rm-radius-md: 10px;
+  --rm-radius-lg: 12px;
+  --rm-radius-xl: 16px;
 
   /* 字号 */
-  --rm-font-xs: 11px;
   --rm-font-sm: 12px;
-  --rm-font: 13px;
   --rm-font-md: 14px;
   --rm-font-lg: 16px;
+
+  /* 间距 */
+  --rm-padding: 0 16px;
+  --rm-compact-header-padding: 12px 16px 8px;
+  --rm-compact-body-padding: 8px 16px;
+  --rm-compact-footer-padding: 8px 16px 12px;
+  --rm-compact-btn-height: 28px;
+  --rm-compact-btn-padding: 0 12px;
+  --rm-compact-btn-font-size: 12px;
+  --rm-compact-btn-radius: 6px;
+  --rm-compact-body-headless-padding-top: 24px;
+
+  /* 阴影 */
+  --rm-shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.1);
+
+  /* 遮罩 */
+  --rm-overlay: rgba(15, 23, 42, 0.5);
+
+  /* 过渡 */
+  --rm-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 暗色模式：Element Plus 使用 .dark 类切换 */
+/* 深色主题 */
 .dark {
-  --rm-bg-glass: var(--el-bg-color, #1e293b);
-  --rm-overlay: rgba(0, 0, 0, 0.5);
-}
+  --rm-bg: #1e293b;
+  --rm-bg-hover: #334155;
+  --rm-bg-subtle: #0f172a;
+  --rm-bg-disabled: #334155;
+  --rm-bg-overlay: #1e293b;
 
-/* 系统暗色模式回退 */
-@media (prefers-color-scheme: dark) {
-  :root:not(.dark):not(.light) {
-    --rm-bg-glass: var(--el-bg-color, #1e293b);
-    --rm-overlay: rgba(0, 0, 0, 0.5);
-  }
+  --rm-border: #475569;
+  --rm-border-light: #334155;
+  --rm-border-hover: #64748b;
+
+  --rm-text: #f1f5f9;
+  --rm-text-regular: #cbd5e1;
+  --rm-text-secondary: #94a3b8;
+  --rm-text-disabled: #64748b;
+
+  --rm-overlay: rgba(0, 0, 0, 0.7);
 }

@@ -7,7 +7,7 @@
  *   字典子项：按字典 ID 分页 + 增删改查（/v2/dict/item/*）
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Collection, Plus, Edit, Delete, Search, Refresh, Upload, Download, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
@@ -195,6 +195,11 @@ async function handleImportFile(evt: Event) {
   }
 }
 
+const dictSearchFilters = computed(() => [
+  { key: 'sysDictName', label: '字典名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysDictCode', label: '字典编码', type: 'input' as const, placeholder: '请输入' },
+]);
+
 function handleDictReset() {
   dictQuery.value = { page: 1, pageSize: 10 };
   dictTableRef.value?.reload();
@@ -260,6 +265,19 @@ const dictColumns: ReTableColumn[] = [
   { prop: "createTime", label: "创建时间", width: 170 },
   { prop: "action", label: "操作", width: 260, slot: "action", fixed: "right" },
 ];
+
+const itemSearchFilters = computed(() => [
+  {
+    key: 'sysDictId', label: '字典分类', type: 'select' as const, placeholder: '选择字典分类',
+    options: dictList.value.map((d) => ({ label: `${d.sysDictName} (${d.sysDictCode})`, value: d.sysDictId })),
+  },
+  { key: 'sysDictItemLabel', label: '标签', type: 'input' as const, placeholder: '请输入' },
+]);
+
+function handleItemReset() {
+  itemQuery.value = { page: 1, pageSize: 10 };
+  itemTableRef.value?.reload();
+}
 
 /* ===== 字典子项 ===== */
 const itemQuery = ref<{
@@ -403,28 +421,22 @@ onMounted(() => {
     <el-tabs v-model="activeTab" type="border-card" class="rounded-xl">
       <!-- 字典分类 -->
       <el-tab-pane label="字典分类" name="dict">
-        <el-card shadow="never" class="system-page__card">
-          <ReSearch :is-expanded="true" filter-mode="data">
-            <div class="system-page__search">
-              <ReInput
-                layout="modern"
-                v-model="dictQuery.sysDictName"
-                placeholder="字典名称"
-                clearable
-                class="!w-44"
-                @keyup.enter="dictTableRef?.reload()"
-              />
-              <ReInput
-                layout="modern"
-                v-model="dictQuery.sysDictCode"
-                placeholder="字典编码"
-                clearable
-                class="!w-44"
-                @keyup.enter="dictTableRef?.reload()"
-              />
-              <div class="flex-1" />
-              <ReButton layout="modern" type="primary" icon="Search" @click="dictTableRef?.reload()">查询</ReButton>
-              <ReButton layout="modern" icon="Refresh" @click="handleDictReset">重置</ReButton>
+          <ReTable
+            ref="dictTableRef"
+            table-id="system-dict"
+            :loader="loadDicts"
+            :columns="dictColumns"
+            :pagination="true"
+            :params="dictQuery"
+            row-key="sysDictId"
+            v-model:page="dictQuery.page"
+            v-model:page-size="dictQuery.pageSize"
+            :search="{ filters: dictSearchFilters, title: '搜索', btnMode: 'text' }"
+            :search-gap="16"
+            v-model:search-model="dictQuery"
+            @search-reset="handleDictReset"
+          >
+            <template #toolbar>
               <ReButton layout="modern" type="warning" icon="Refresh" :loading="cacheRefreshing" @click="handleRefreshCache">刷新缓存</ReButton>
               <ReButton layout="modern" icon="Download" @click="handleExport">导出</ReButton>
               <ReButton layout="modern" icon="Upload" @click="triggerImport">导入</ReButton>
@@ -436,20 +448,7 @@ onMounted(() => {
                 class="hidden"
                 @change="handleImportFile"
               />
-            </div>
-          </ReSearch>
-
-          <ReTable
-            ref="dictTableRef"
-            table-id="system-dict"
-            :loader="loadDicts"
-            :columns="dictColumns"
-            :pagination="true"
-            :params="dictQuery"
-            row-key="sysDictId"
-            v-model:page="dictQuery.page"
-            v-model:page-size="dictQuery.pageSize"
-          >
+            </template>
             <template #dictName="{ row }">
               <div class="flex items-center gap-2">
                 <el-icon :size="16" color="var(--el-color-primary)"><Collection /></el-icon>
@@ -472,35 +471,10 @@ onMounted(() => {
               <ReButton v-if="row.sysDictInSystem !== 1" layout="square" type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
             </template>
           </ReTable>
-        </el-card>
       </el-tab-pane>
 
       <!-- 字典子项 -->
       <el-tab-pane label="字典子项" name="item">
-        <el-card shadow="never" class="system-page__card">
-          <ReSearch :is-expanded="true" filter-mode="data">
-            <div class="system-page__search">
-              <ReSelect
-                v-model="itemQuery.sysDictId"
-                placeholder="选择字典分类"
-                class="!w-56"
-                :data="dictList.map((d) => ({ label: `${d.sysDictName} (${d.sysDictCode})`, value: d.sysDictId }))"
-                @change="itemTableRef?.reload()"
-              />
-              <ReInput
-                layout="modern"
-                v-model="itemQuery.sysDictItemLabel"
-                placeholder="标签"
-                clearable
-                class="!w-44"
-                @keyup.enter="itemTableRef?.reload()"
-              />
-              <div class="flex-1" />
-              <ReButton layout="modern" type="primary" icon="Search" @click="itemTableRef?.reload()">查询</ReButton>
-              <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleItemAdd">新增字典项</ReButton>
-            </div>
-          </ReSearch>
-
           <ReTable
             ref="itemTableRef"
             table-id="system-dict-item"
@@ -511,7 +485,14 @@ onMounted(() => {
             row-key="sysDictItemId"
             v-model:page="itemQuery.page"
             v-model:page-size="itemQuery.pageSize"
+            :search="{ filters: itemSearchFilters, title: '搜索', btnMode: 'text' }"
+            :search-gap="16"
+            v-model:search-model="itemQuery"
+            @search-reset="handleItemReset"
           >
+            <template #toolbar>
+              <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleItemAdd">新增字典项</ReButton>
+            </template>
             <template #preview="{ row }">
               <ReTag type="primary" effect="plain" size="small">
                 {{ row.sysDictItemLabel }}({{ row.sysDictItemValue }})
@@ -529,7 +510,6 @@ onMounted(() => {
               <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleItemDelete(row)">删除</ReButton>
             </template>
           </ReTable>
-        </el-card>
       </el-tab-pane>
     </el-tabs>
 
@@ -541,6 +521,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="dictSaving"
       @ok="handleDictSubmit"
     >
@@ -571,6 +552,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="itemSaving"
       @ok="handleItemSubmit"
     >
@@ -622,16 +604,5 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
 }
 </style>

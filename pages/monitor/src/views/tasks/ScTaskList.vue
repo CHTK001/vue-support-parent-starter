@@ -79,7 +79,7 @@
       </ReTableColumn>
     </ReTable>
 
-    <ReDialog append-to-body v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520" :height="460" destroy-on-close confirm-text="保存" cancel-text="取消" @confirm="handleSave" @cancel="showDialog = false">
+    <ReDialog append-to-body v-model="showDialog" :title="editId ? '编辑任务' : '新增采集任务'" width="520" :height="460" destroy-on-close confirm-text="保存" cancel-text="取消" compact @confirm="handleSave" @cancel="showDialog = false">
       <ReForm :model="form" label-position="top" class="task-form">
         <ReFormItem label="任务名称"><ReInput v-model="form.taskName" placeholder="例如：Redis 健康检查" /></ReFormItem>
         <ReFormItem label="所属资产">

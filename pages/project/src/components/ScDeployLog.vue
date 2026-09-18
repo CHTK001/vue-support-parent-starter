@@ -3,12 +3,22 @@
  * 部署日志抽屉（展示项目的操作历史）
  * 组件约定：全量使用 Re 组件体系。
  */
-import { ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import { getDeployLogs } from '../api';
 
 const props = defineProps<{ visible: boolean; projectId: number | null; projectName: string }>();
 const emit = defineEmits<{ 'update:visible': [v: boolean] }>();
+
+/**
+ * ReDrawer 的 v-model 契约是 `modelValue`（内部 `defineModel<boolean>()`），不是 `visible`。
+ * `v-model="props.visible"` 会导致关闭无法回写父组件 → 抽屉第二次打不开、日志不刷新。
+ * 用 computed 代理双向桥接。
+ */
+const drawerVisible = computed({
+  get: () => props.visible,
+  set: (v: boolean) => emit('update:visible', v),
+});
 
 const logs = ref<any[]>([]);
 const loading = ref(false);
@@ -23,6 +33,15 @@ const actionFilters = [
 ];
 
 watch(() => props.visible, v => { if (v && props.projectId) load(); });
+
+/**
+ * ⚠️ 必须补 onMounted：父组件（`ScProjectList.openDeployLog`）在**同一个 tick** 里
+ * 同时置 `deployLogProject`（触发 `v-if` 挂载）与 `deployLogVisible = true`，
+ * 所以本组件**挂载时 `props.visible` 已经是 true** → 上面的 watch 不产生变化、永不触发
+ * → 表现为「第一次打开部署日志抽屉，列表恒为空（只有空态）」，关掉再开才加载。
+ * 注意这类缺陷不会被「开→关→再开」的验收发现 —— 它只看抽屉有没有打开。
+ */
+onMounted(() => { if (props.visible && props.projectId) load(); });
 
 async function load() {
   if (!props.projectId) return;
@@ -72,7 +91,7 @@ function showOutput(row: any) {
 
 <template>
   <ReDrawer
-    v-model="props.visible"
+    v-model="drawerVisible"
     :title="`${props.projectName} - 部署日志`"
     :size="680"
   >

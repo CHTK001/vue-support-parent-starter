@@ -71,9 +71,38 @@ export const getArchives = (id: number, hostId?: number) =>
 export const rollbackProject = (id: number, archiveId: number) =>
   http().post(`${B}/${id}/rollback?archiveId=${archiveId}`).then(r => unwrapResult<any[]>(r));
 
-/** 实时查看项目日志（tail） */
+/**
+ * 实时查看项目日志（tail）
+ * 降级通道：socket 推送不可用时才用它轮询；正常路径是 subscribeProjectLog + socket 推送。
+ *
+ * `noToast(true)` 不可省：日志文件尚未生成 / 项目未配置日志目录属**正常态**，
+ * 而轮询是 1.5s 一次 —— 走全局拦截器会每 1.5s 弹一次错误框，把界面刷爆。
+ * 组件的状态栏与占位文案已经如实显示了原因，不需要再来一遍弹窗。
+ */
 export const tailProjectLog = (id: number, hostId: number, cursor?: number, lines = 500) =>
-  http().get(`${B}/${id}/log?hostId=${hostId}&lines=${lines}${cursor != null ? `&cursor=${cursor}` : ''}`).then(r => unwrapResult<{ content: string; cursor: number; eof: boolean }>(r));
+  http().get(`${B}/${id}/log?hostId=${hostId}&lines=${lines}${cursor != null ? `&cursor=${cursor}` : ''}`)
+    .noToast(true)
+    .then(r => unwrapResult<{ content: string; cursor: number; eof: boolean }>(r));
+
+/**
+ * 订阅实时日志推送
+ * 后端按 projectId+hostId 建一条共享采集流，经 socket 事件 `project`/`project-log` 广播；
+ * 需周期性重复调用以续订（心跳），超时未续订会被剔除并停止采集。
+ * 这里**保留**全局错误提示：订阅失败是一次性事件，且原因（如活跃流已达上限）值得让用户看到。
+ */
+export const subscribeProjectLog = (id: number, hostId: number, subscriberId: string) =>
+  http().post(`${B}/${id}/log/subscribe?hostId=${hostId}&subscriberId=${encodeURIComponent(subscriberId)}`)
+    .then(r => unwrapResult<{ intervalMillis: number; idleMillis: number; subscribers: number }>(r));
+
+/**
+ * 取消实时日志订阅（幂等；最后一个观察者退订时后端停止采集）
+ * `noToast(true)`：这是关闭抽屉时的后台清理动作，不是用户主动发起的操作；
+ * 失败也不影响本地清理（后端还有空闲剪枝兜底），不该为此弹框打扰用户。
+ */
+export const unsubscribeProjectLog = (id: number, hostId: number, subscriberId: string) =>
+  http().post(`${B}/${id}/log/unsubscribe?hostId=${hostId}&subscriberId=${encodeURIComponent(subscriberId)}`)
+    .noToast(true)
+    .then(r => unwrapResult<{ stopped: boolean; subscribers: number }>(r));
 
 /* ================== 守护进程 ================== */
 

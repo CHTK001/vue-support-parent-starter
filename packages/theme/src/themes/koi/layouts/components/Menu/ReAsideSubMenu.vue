@@ -15,7 +15,7 @@
 			<el-tooltip :content="getMenuLanguage(item.children[0].meta?.title)" :show-after="1500" placement="right">
 				<div class="menu-title-wrap">
 					<div class="icon-container">
-						<ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+						<ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
 					</div>
 					<span class="menu-ellipsis" v-text="getMenuLanguage(item.children[0].meta?.title)"></span>
 				</div>
@@ -30,7 +30,7 @@
             <!-- 图标容器 - 负责偏移 -->
             <div class="icon-container">
               <!-- 图标本身 - 负责动画 -->
-              <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+              <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
             </div>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
           </div>
@@ -46,7 +46,7 @@
             <!-- 图标容器 - 负责偏移 -->
             <div class="icon-container">
               <!-- 图标本身 - 负责动画 -->
-              <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18" class="menu-icon"></ReIcon>
+              <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
             </div>
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
             <span v-if="item.meta?.badge" class="menu-badge">{{ item.meta.badge }}</span>
@@ -62,7 +62,7 @@ import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMe
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
 import { getMenuLanguage } from "@repo/languages";
-import { getConfig } from "@repo/config";
+import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
 const router = useRouter();
 
@@ -70,6 +70,9 @@ const router = useRouter();
 defineProps(["menuList"]);
 
 const collapseSingleChild = getConfig().menu.collapseSingleChild;
+
+/** 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白 */
+const menuDefaultIcon = resolveMenuDefaultIcon();
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {

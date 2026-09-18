@@ -273,6 +273,16 @@ const retryLoadSetting = async () => {
 // 进入页面加载管理员信息
 onMounted(async () => {
   await loadSettingAndInit();
+  
+  // 如果用户已经登录，自动跳转到 redirect 地址或首页
+  if (userStore?.token) {
+    const redirect = router.currentRoute.value.query.redirect as string;
+    if (redirect) {
+      router.replace(redirect);
+    } else {
+      router.replace(HOME_URL);
+    }
+  }
 });
 
 /** 登录 */
@@ -344,9 +354,12 @@ const submitLogin = async (otpCode: string) => {
     keepAliveStore.$reset();
     await nextTick();
     await router.replace(HOME_URL);
-  } catch (error) {
+  } catch (error: any) {
     sliderPassed.value = false;
     sliderRef.value?.reset();
+    // 显示登录失败错误提示
+    const errorMsg = error?.message || error?.msg || t("msg.logInFail");
+    msgError(errorMsg);
   } finally {
     loading.value = false;
   }

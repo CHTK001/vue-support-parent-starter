@@ -3,15 +3,25 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
+  publicDir: "../../public",
   server: {
     port: 8096,
     strictPort: true,
     proxy: {
-      // 系统管理后台网关：spring-api-support-system-starter: 18170/system/api
+      // 系统管理后台网关（本地）
       "/system/api": {
         target: "http://localhost:18170",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/system\/api/, "/system/api"),
+      },
+      // 后端 API（本地）
+      "/v2": {
+        target: "http://localhost:18170",
+        changeOrigin: true,
+      },
+      // OAuth 认证服务（本地）
+      "/oauth": {
+        target: "http://localhost:19180",
+        changeOrigin: true,
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）
       "/weather-api": {

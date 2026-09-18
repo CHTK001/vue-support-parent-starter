@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 
   <!-- 输入区域 -->
   <div class="px-5 pb-2.5 w-full flex-1 flex flex-col items-center justify-center mb-20">
@@ -289,10 +289,14 @@ const chatInputButtons = computed(() => {
 const loadModels = async (): Promise<void> => {
   try {
     const response = await apiService.fetchModels();
-    // 提取所有 text 类型的模型
+    // 提取所有启用的模型，并映射字段
     (response.items || []).forEach(provider => {
-      const textModels = provider.models?.filter((m: any) => m.modelType === 'text') || [];
-      models.value.push(...textModels);
+      const availableModels = provider.models?.filter((m: any) => m.enabled).map((m: any) => ({
+        ...m,
+        id: m.model,
+        name: m.model
+      })) || [];
+      models.value.push(...availableModels);
     });
   } catch (error) {
     console.error('获取模型列表失败:', error);

@@ -428,14 +428,14 @@ const navItems = computed(() => [
     icon: Apps20Regular
   },
   {
+    key: 'models',
+    label: '模型管理',
+    icon: Apps20Regular
+  },
+  {
     key: 'scheduler',
     label: t('ui.sidebar.navScheduler'),
     icon: ClockAlarm20Regular
-  },
-  {
-    key: 'models',
-    label: '模型管理',
-    icon: Grid16Regular
   },
 ])
 

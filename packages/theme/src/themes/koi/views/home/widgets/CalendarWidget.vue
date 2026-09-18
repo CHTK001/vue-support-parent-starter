@@ -114,7 +114,7 @@ import { CATEGORY_OPTIONS, categoryColor, type CalendarCategory } from "./calend
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
 
-const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default()));
+const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m) => m.default));
 const ReSwitch = defineAsyncComponent(() => import("@repo/ui/re-switch").then((m) => m.default));
 const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
 const ReInput = defineAsyncComponent(() => import("@repo/ui/re-input").then((m) => m.default));

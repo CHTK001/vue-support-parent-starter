@@ -8,7 +8,8 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox, ElTree } from "element-plus";
 import { UserFilled, Plus, Edit, Delete, Search, Refresh, Menu as MenuIcon } from "@element-plus/icons-vue";
-const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default()));
+/** ReIcon 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 import {
   pageForRole,
   saveRole,
@@ -52,6 +53,18 @@ async function loadRoles({ page, pageSize, params }: ReTableLoadParams): Promise
 
 const tableRef = ref();
 
+const searchFilters = computed(() => [
+  { key: 'sysRoleName', label: '角色名称', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysRoleCode', label: '角色编码', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysRoleStatus', label: '状态', type: 'select' as const, placeholder: '请选择',
+    options: [
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 },
+    ],
+  },
+]);
+
 const dialogVisible = ref(false);
 const saving = ref(false);
 /** sysRoleReadonly 暂未在 types.ts 中声明，本地扩展 */
@@ -80,6 +93,28 @@ async function handleSubmit() {
     ElMessage.warning("请输入角色名称和编码");
     return;
   }
+  
+  // 角色编码校验：去除空格、\\t等符号，只能用字母（大小写都支持）
+  const originalCode = form.value.sysRoleCode;
+  const cleanedCode = originalCode.replace(/[\s\t\r\n]+/g, "");
+  if (cleanedCode !== originalCode) {
+    ElMessage.warning("角色编码不允许包含空格或制表符");
+    return;
+  }
+  if (!/^[a-zA-Z]+$/.test(cleanedCode)) {
+    ElMessage.warning("角色编码只能使用字母（大小写都支持），不允许数字和特殊字符");
+    return;
+  }
+  
+  // 禁止新建内置角色编码
+  const reservedCodes = ["admin", "sa", "superadmin", "super_admin"];
+  if (!isEdit.value && reservedCodes.includes(cleanedCode.toLowerCase())) {
+    ElMessage.warning("该角色编码为系统内置，不允许新建");
+    return;
+  }
+  
+  // 自动清理后的编码
+  form.value.sysRoleCode = cleanedCode;
   saving.value = true;
   try {
     if (isEdit.value) {
@@ -316,42 +351,6 @@ onMounted(() => {
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" @add="handleAdd">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysRoleName"
-            placeholder="角色名称"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReInput
-            layout="modern"
-            v-model="query.sysRoleCode"
-            placeholder="角色编码"
-            clearable
-            class="!w-44"
-            @keyup.enter="tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysRoleStatus"
-            placeholder="状态"
-            clearable
-            :data="[
-              { label: '启用', value: 1 },
-              { label: '禁用', value: 0 },
-            ]"
-            class="!w-32"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="handleReset">重置</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-role"
@@ -362,7 +361,14 @@ onMounted(() => {
         row-key="sysRoleId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
       >
+        <template #toolbar>
+          <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">新增</ReButton>
+        </template>
         <template #roleName="{ row }">
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><UserFilled /></el-icon>
@@ -393,7 +399,6 @@ onMounted(() => {
           <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 角色编辑弹窗 -->
     <ReDialog
@@ -403,6 +408,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="saving"
       @ok="handleSubmit"
     >
@@ -439,6 +445,7 @@ onMounted(() => {
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
+      compact
       :confirm-loading="permSaving"
       @ok="handleSavePerm"
     >
@@ -574,17 +581,6 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-}
 
 .perm-toolbar {
   display: flex;
@@ -675,3 +671,4 @@ onMounted(() => {
   }
 }
 </style>
+

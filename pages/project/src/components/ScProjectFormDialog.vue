@@ -18,6 +18,18 @@ interface HostOption {
 const props = defineProps<{ visible: boolean; project: any | null }>();
 const emit = defineEmits<{ 'update:visible': [v: boolean]; saved: [] }>();
 
+/**
+ * ReDialog 的 v-model 契约是 `modelValue`（内部 `defineModel<boolean>()`），不是 `visible`。
+ * 若写成 `v-model="props.visible"`：
+ *   ① 关闭时回写的是只读 props，父组件状态永远停在 true；
+ *   ② 父组件再次置 true 不产生 prop 变化 → 弹窗第二次打不开。
+ * 因此用 computed 代理，把 ReDialog 的 modelValue 双向桥接到 visible。
+ */
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (v: boolean) => emit('update:visible', v),
+});
+
 const loading = ref(false);
 const aiLoading = ref(false);
 const hosts = ref<HostOption[]>([]);
@@ -84,12 +96,44 @@ const hostOptions = computed(() =>
   hosts.value.map(h => ({ label: `${h.name} (${h.address})`, value: h.id })),
 );
 
+/**
+ * 开关型字段清单。
+ * 后端（以及 DDL 默认值）返回的是 0/1 数字，而 ElSwitch 的 checked 判定为
+ * `modelValue === activeValue`（activeValue 默认 true），`1 === true` 为 false，
+ * 会导致编辑回填时所有开关都显示为「关」，与实际策略不符。故回填时统一归一化为布尔。
+ */
+const BOOL_FIELDS = [
+  'msProjectDeleteBefore',
+  'msProjectAutoExtract',
+  'msProjectAutoStart',
+  'msProjectHealthEnabled',
+  'msProjectAutoRollback',
+  'msProjectWatchdogEnabled',
+  'msProjectPreflightGate',
+  'msProjectMetricEnabled',
+] as const;
+
+/** 把 0/1/true/false/'1' 统一成布尔 */
+function normalizeBools(target: Record<string, any>) {
+  for (const key of BOOL_FIELDS) {
+    const v = target[key];
+    target[key] = v === true || v === 1 || v === '1';
+  }
+}
+
+/** 数值区间判定（ReInputNumber 允许手输，min/max 属性不拦截键盘输入） */
+function inRange(v: unknown, min: number, max: number): boolean {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= min && n <= max;
+}
+
 watch(() => props.visible, async v => {
   if (!v) return;
   initializing = true;
   try {
     if (props.project) {
       form.value = { ...newProjectForm(), ...props.project };
+      normalizeBools(form.value);
       // 编辑回填：hostIds JSON 字符串 → 数组，避免提交时重复 JSON.stringify 导致校验失败
       if (typeof form.value.msProjectHostIds === 'string') {
         try {
@@ -102,6 +146,9 @@ watch(() => props.visible, async v => {
           const parsed = JSON.parse(form.value.msProjectMetricHostIds);
           form.value.msProjectMetricHostIds = Array.isArray(parsed) ? parsed as number[] : [];
         } catch { form.value.msProjectMetricHostIds = []; }
+      }
+      if (!Array.isArray(form.value.msProjectMetricHostIds)) {
+        form.value.msProjectMetricHostIds = [];
       }
       selectedOs.value = props.project.msProjectHostOs || 'LINUX';
     } else {
@@ -146,6 +193,42 @@ function submit() {
   if (!form.value.msProjectDeployDir.trim()) { message.warning('部署目录不能为空'); return; }
   if (!form.value.msProjectType) { message.warning('请选择项目类型'); return; }
   if (form.value.msProjectHostIds.length === 0) { message.warning('至少选择一台目标服务器'); return; }
+
+  // 健康检查完整性：守护的失败阈值默认 1，配置缺失会导致探测恒失败 → 守护无限重启应用
+  if (form.value.msProjectHealthEnabled && !form.value.msProjectCheckScript?.trim()) {
+    if (!form.value.msProjectHealthTarget?.trim()) {
+      message.warning('启用健康检查后必须填写检查目标（端口/URL/进程名），或改用自定义检测脚本');
+      return;
+    }
+    if (!['PORT', 'HTTP', 'PROCESS'].includes(form.value.msProjectHealthType)) {
+      message.warning('健康检查类型非法，仅支持 PORT/HTTP/PROCESS');
+      return;
+    }
+  }
+
+  // 调度间隔：后端时间轮对 <5 的值会静默回退默认值，前端先行拦截避免误配
+  if (form.value.msProjectWatchdogEnabled && !inRange(form.value.msProjectWatchdogInterval, 5, 3600)) {
+    message.warning('守护间隔必须在 5~3600 秒之间');
+    return;
+  }
+  if (form.value.msProjectMetricEnabled && !inRange(form.value.msProjectMetricInterval, 5, 3600)) {
+    message.warning('指标采集间隔必须在 5~3600 秒之间');
+    return;
+  }
+  if (form.value.msProjectWatchdogMaxFail != null
+    && (form.value.msProjectWatchdogMaxFail < 1 || form.value.msProjectWatchdogMaxFail > 100)) {
+    message.warning('守护失败阈值必须在 1~100 之间');
+    return;
+  }
+
+  // 实时日志依赖 目录 + 文件名 同时存在，只填一半属于死配置
+  const hasLogDir = !!form.value.msProjectLogDir?.trim();
+  const hasLogFile = !!form.value.msProjectLogFile?.trim();
+  if (hasLogDir !== hasLogFile) {
+    message.warning('日志目录与日志文件名必须同时填写，否则无法读取实时日志');
+    return;
+  }
+
   // 脚本安全确认：任意脚本非空时弹确认（防止未审核脚本/AI 脚本直接落库执行）
   const hasScript = [form.value.msProjectStartScript, form.value.msProjectStopScript,
     form.value.msProjectRestartScript, form.value.msProjectCheckScript]
@@ -175,7 +258,9 @@ function submit() {
       .finally(() => { loading.value = false; });
   };
   if (hasScript) {
-    message.msgBox('脚本将随项目保存并可能被远程执行，请确认已审核（AI 生成的脚本请重点核对高危命令）。确定保存？', '脚本确认', '保存', '取消', 'warning')
+    // 注意：只能用 message.confirm（= msgBox 的对象风格别名），
+    // message 对象上没有 msgBox 成员，写 message.msgBox 会直接 TypeError 中断保存流程。
+    message.confirm('脚本将随项目保存并可能被远程执行，请确认已审核（AI 生成的脚本请重点核对高危命令）。确定保存？', '脚本确认', '保存', '取消', 'warning')
       .then(() => doSave())
       .catch(() => {});
   } else {
@@ -255,7 +340,7 @@ function newProjectForm() {
 
 <template>
   <ReDialog
-    v-model="props.visible"
+    v-model="dialogVisible"
     :title="isEdit ? '编辑项目' : '新建项目'"
     :width="720"
     confirm-text="保存"

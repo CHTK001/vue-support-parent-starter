@@ -367,6 +367,7 @@ onMounted(() => {
         layout="modern"
         width="420"
         :close-on-click-modal="false"
+        compact
         :confirm-loading="totpBinding"
         ok-text="确认绑定"
         @ok="confirmTotpBind"

@@ -50,7 +50,7 @@
                 >
                   <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
                     <div class="left-row-tooltip-trigger">
-                      <ReIcon v-if="item.meta.icon" :name="item.meta.icon" size="18"></ReIcon>
+                      <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18"></ReIcon>
                       <span class="title" v-text="getMenuLanguage(item.meta?.title)"></span>
                     </div>
                   </el-tooltip>
@@ -81,7 +81,7 @@ import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getMenuLanguage } from "@repo/languages";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { HOME_URL } from "@repo/config";
+import { HOME_URL, resolveMenuDefaultIcon } from "@repo/config";
 import { msgError } from "@repo/core";
 
 const route = useRoute();
@@ -93,6 +93,9 @@ const globalStore = useGlobalStore();
 const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));
 
 // 获取所有顶级菜单[第一层级]
+// 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白
+const menuDefaultIcon = resolveMenuDefaultIcon();
+
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
 
 // 当前激活的顶级菜单ID

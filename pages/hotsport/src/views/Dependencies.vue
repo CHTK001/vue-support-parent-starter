@@ -42,9 +42,10 @@ import type { DependencyEdge } from '../api/types';
 import type { JsonNode, JsonLine } from '@relation-graph/vue3';
 import { ElMessage } from 'element-plus';
 
-// ReGraphRelation 是主题化组件，默认导出为异步加载器，需用 defineAsyncComponent 解析
+// ReGraphRelation 的 default 是已包装好的异步组件，直接交给 defineAsyncComponent 即可；
+// 写成 `m.default()` 会抛 "m.default is not a function"，图区会整块空白
 const ReGraphRelation = defineAsyncComponent(() =>
-  import('@repo/ui/re-graph-relation').then((m) => m.default()),
+  import('@repo/ui/re-graph-relation').then((m) => m.default),
 );
 
 const { t } = useI18n();

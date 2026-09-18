@@ -10,4 +10,7 @@
  */
 export { projectRoutes } from "./routes";
 export { default as ScProjectList } from "./views/ScProjectList.vue";
+export { default as ScProjectFormDialog } from "./components/ScProjectFormDialog.vue";
+export { default as ScLiveLog } from "./components/ScLiveLog.vue";
+export { default as ScDeployLog } from "./components/ScDeployLog.vue";
 export * from "./api";

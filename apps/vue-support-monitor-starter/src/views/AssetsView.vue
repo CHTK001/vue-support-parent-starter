@@ -5,7 +5,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, onBeforeUnmount, ref } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
@@ -50,8 +50,8 @@ export interface Host {
   serverHostAgentEnabled: number;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
-  /** 分组（后端字段 msServerGroupId） */
-  serverGroupId?: number | null;
+  /** 分组（后端字段 msmsServerGroupId） */
+  msServerGroupId?: number | null;
   /** 标签（后端字段 msServerHostTags，逗号分隔） */
   serverHostTags?: string | null;
   /** 描述/备注（后端字段 msServerHostDescription） */
@@ -184,6 +184,43 @@ function groupName(id?: number | null): string {
 }
 /** 分组背景色开关：开启时分组标记按分组配置颜色显示底色 */
 const groupColorEnabled = ref(true);
+
+// ---- 实时指标（默认关闭，开关控制，每3秒轮询） ----
+const realtimeEnabled = ref(false);
+const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
+let rtTimer: any = null;
+
+function barColor(pct: number): string {
+  if (pct >= 90) return '#ef4444';
+  if (pct >= 70) return '#f59e0b';
+  return '#10b981';
+}
+
+async function pollRealtime() {
+  for (const h of hosts.value) {
+    try {
+      const r = await fetch(`/ms/system/host-info?hostId=${h.id}&refresh=true`);
+      const j = await r.json();
+      const d = j.data;
+      if (!d) continue;
+      const cpuPct = Number(d.cpuPercent) || 0;
+      const memTotal = Number(d.memoryMb) || 1;
+      const memUsed = Number(d.memoryUsed) || 0;
+      const memPct = memUsed > 0 ? Math.round(memUsed / memTotal * 100) : 0;
+      const diskPct = Number(d.diskPercent) || 0;
+      rtMetrics[h.id] = { cpu: Math.round(cpuPct), mem: memPct, disk: diskPct, tx: '—', rx: '—' };
+    } catch (e) { /* ignore */ }
+  }
+}
+
+function onRealtimeToggle(v: any) {
+  if (v) {
+    pollRealtime();
+    rtTimer = setInterval(pollRealtime, 3000);
+  } else {
+    if (rtTimer) { clearInterval(rtTimer); rtTimer = null; }
+  }
+}
 /** 取分组颜色（未配置或关闭开关时返回空，不使用背景色） */
 function groupColor(id?: number | null): string {
   if (!groupColorEnabled.value || !id) return "";
@@ -315,7 +352,7 @@ const filtered = computed(() => {
   if (status === "online") list = list.filter(h => h.serverHostOnline === 1);
   else if (status === "offline") list = list.filter(h => h.serverHostOnline !== 1);
   else if (status === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
-  if (fs.group != null && fs.group !== "") list = list.filter(h => h.serverGroupId === fs.group);
+  if (fs.group != null && fs.group !== "") list = list.filter(h => h.msServerGroupId === fs.group);
   if (fs.tag) list = list.filter(h => splitTags(h.serverHostTags).includes(String(fs.tag)));
   const kw = String(fs.keyword ?? "").toLowerCase();
   if (kw) {
@@ -328,7 +365,7 @@ const filtered = computed(() => {
 const tableColumns = computed(() => [
   { prop: "serverHostName", label: "名称", minWidth: 150, slot: "name" },
   { prop: "serverHostAddress", label: "地址", width: 150, slot: "addr" },
-  { prop: "serverGroupId", label: "分组", width: 92, slot: "group" },
+  { prop: "msServerGroupId", label: "分组", width: 92, slot: "group" },
   { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
   { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
@@ -599,6 +636,10 @@ function delayBad(ms: number | null): boolean {
           <span>分组底色</span>
           <el-switch v-model="groupColorEnabled" size="small" />
         </label>
+        <label class="color-switch">
+          <span>实时指标</span>
+          <el-switch v-model="realtimeEnabled" size="small" @change="onRealtimeToggle" />
+        </label>
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增资产</ReButton>
       </div>
@@ -726,13 +767,40 @@ function delayBad(ms: number | null): boolean {
             </div>
           </div>
 
+          <!-- 实时指标条 -->
+          <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-bars">
+            <div class="hc-bar-row">
+              <span class="hc-bar-label">CPU</span>
+              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].cpu + '%', background: barColor(rtMetrics[h.id].cpu)}"></div></div>
+              <span class="hc-bar-val mono">{{ rtMetrics[h.id].cpu }}%</span>
+            </div>
+            <div class="hc-bar-row">
+              <span class="hc-bar-label">内存</span>
+              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].mem + '%', background: barColor(rtMetrics[h.id].mem)}"></div></div>
+              <span class="hc-bar-val mono">{{ rtMetrics[h.id].mem }}%</span>
+            </div>
+            <div class="hc-bar-row">
+              <span class="hc-bar-label">磁盘</span>
+              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].disk + '%', background: barColor(rtMetrics[h.id].disk)}"></div></div>
+              <span class="hc-bar-val mono">{{ rtMetrics[h.id].disk }}%</span>
+            </div>
+            <div class="hc-bar-row">
+              <span class="hc-bar-label">上行</span>
+              <span class="hc-bar-net mono">{{ rtMetrics[h.id].tx }}</span>
+            </div>
+            <div class="hc-bar-row">
+              <span class="hc-bar-label">下行</span>
+              <span class="hc-bar-net mono">{{ rtMetrics[h.id].rx }}</span>
+            </div>
+          </div>
+
           <!-- 标签 + 分组 -->
           <div class="hc-tags">
             <ReTag
-              v-if="h.serverGroupId"
+              v-if="h.msServerGroupId"
               size="small"
-              :value="String(h.serverGroupId)"
-              :tag-options="[{ dictValue: String(h.serverGroupId), dictLabel: groupName(h.serverGroupId), dictTag: 'primary' }]"
+              :value="String(h.msServerGroupId)"
+              :tag-options="[{ dictValue: String(h.msServerGroupId), dictLabel: groupName(h.msServerGroupId), dictTag: 'primary' }]"
             />
             <ReTag
               v-for="t in splitTags(h.serverHostTags)"
@@ -741,7 +809,7 @@ function delayBad(ms: number | null): boolean {
               :value="t"
               :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]"
             />
-            <span v-if="!h.serverGroupId && splitTags(h.serverHostTags).length === 0" class="dim">未分组</span>
+            <span v-if="!h.msServerGroupId && splitTags(h.serverHostTags).length === 0" class="dim">未分组</span>
           </div>
 
           <!-- 端口 -->
@@ -794,10 +862,10 @@ function delayBad(ms: number | null): boolean {
         <template #col-addr="{ row }"><span class="mono">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span></template>
         <template #col-group="{ row }">
           <ReTag
-            v-if="row.serverGroupId"
+            v-if="row.msServerGroupId"
             size="small"
-            :value="String(row.serverGroupId)"
-            :tag-options="[{ dictValue: String(row.serverGroupId), dictLabel: groupName(row.serverGroupId), dictTag: 'primary' }]"
+            :value="String(row.msServerGroupId)"
+            :tag-options="[{ dictValue: String(row.msServerGroupId), dictLabel: groupName(row.msServerGroupId), dictTag: 'primary' }]"
           />
           <span v-else class="dim">未分组</span>
         </template>
@@ -890,7 +958,7 @@ function delayBad(ms: number | null): boolean {
       :host-protocol="sysMgrHost?.serverHostOsType === 'WINDOWS' ? 'RDP' : 'SSH'"
       :host-delay="sysMgrHost?.serverHostDelayMs"
       :host-online="sysMgrHost?.serverHostOnline === 1"
-      :host-group="sysMgrHost?.serverGroupId ? groupName(sysMgrHost.serverGroupId) : '未分组'"
+      :host-group="sysMgrHost?.msServerGroupId ? groupName(sysMgrHost.msServerGroupId) : '未分组'"
     />
 
     <!-- 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 实时配置） -->
@@ -1085,6 +1153,14 @@ function delayBad(ms: number | null): boolean {
 .hc-m-val { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 .hc-m-val.mono { font-family: var(--font-mono, monospace); }
 .hc-m-val.bad { color: var(--danger, #f56c6c); font-weight: 600; }
+.hc-rt { padding: 8px 20px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f1f5f9; }
+.hc-bars { padding: 10px 20px; display: flex; flex-direction: column; gap: 5px; border-top: 1px solid #f1f5f9; }
+.hc-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.hc-bar-label { width: 30px; color: #94a3b8; }
+.hc-bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.hc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.hc-bar-val { width: 40px; text-align: right; font-weight: 600; color: #0f172a; }
+.hc-bar-net { flex: 1; text-align: right; color: #64748b; }
 .hc-tags { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 20px; }
 .hc-ports { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px 10px; }
 .hc-actions { display: flex; gap: 6px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }

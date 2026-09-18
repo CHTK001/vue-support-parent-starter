@@ -6,7 +6,7 @@
  * 搜索区用 ReSearch 外壳，处理弹窗用 ReDialog（modern 布局）。
  * 顶部统计卡片展示总数/待处理/已处理/今日新增。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElImageViewer } from "element-plus";
 import { Plus, Refresh, ChatLineSquare, Clock, CircleCheck, TrendCharts } from "@element-plus/icons-vue";
 import { pageForFeedback, issueFeedback, getFeedbackStatistic } from "../api/systemApi";
@@ -26,6 +26,16 @@ const priorityOptions = [
   { label: "高", value: 2 },
   { label: "紧急", value: 3 },
 ];
+
+const searchFilters = computed(() => [
+  { key: 'sysFeedbackType', label: '反馈类型', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysFeedbackPriority', label: '优先级', type: 'select' as const, placeholder: '请选择', options: priorityOptions },
+]);
+
+function handleReset() {
+  query.value = { page: 1, pageSize: 10 };
+  tableRef.value?.reload();
+}
 function priorityMeta(p?: number): { label: string; type: "info" | "primary" | "warning" | "danger" } {
   switch (p) {
     case 1: return { label: "中", type: "primary" };
@@ -193,36 +203,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <el-card shadow="never" class="system-page__card">
-      <ReSearch :is-expanded="true" filter-mode="data" :add-button="false">
-        <div class="system-page__search">
-          <ReInput
-            layout="modern"
-            v-model="query.sysFeedbackType"
-            placeholder="反馈类型"
-            clearable
-            class="!w-44"
-            @keyup.enter="query.page = 1; tableRef?.reload()"
-          />
-          <ReSelect
-            v-model="query.sysFeedbackPriority"
-            placeholder="优先级"
-            clearable
-            class="!w-32"
-            :data="priorityOptions"
-            @change="query.page = 1; tableRef?.reload()"
-          />
-        </div>
-        <template #footer>
-          <ReButton layout="modern" type="primary" icon="Search" @click="query.page = 1; tableRef?.reload()">查询</ReButton>
-          <ReButton layout="modern" @click="query.sysFeedbackType = undefined; query.sysFeedbackPriority = undefined; tableRef?.reload()">重置</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload(); loadStatistic()">刷新</ReButton>
-        </template>
-      </ReSearch>
-
       <ReTable
         ref="tableRef"
         table-id="system-feedback"
+        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+        :search-gap="16"
+        v-model:search-model="query"
+        @search-reset="handleReset"
         :loader="loadFeedback"
         :columns="columns"
         :pagination="true"
@@ -232,6 +219,9 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
         class="mt-2"
       >
+        <template #toolbar>
+          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload(); loadStatistic()">刷新</ReButton>
+        </template>
         <template #content="{ row }">
           <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysFeedbackContent }}</span>
         </template>
@@ -274,7 +264,6 @@ onMounted(() => {
           </ReButton>
         </template>
       </ReTable>
-    </el-card>
 
     <!-- 反馈详情弹窗 -->
     <ReDialog
@@ -340,6 +329,7 @@ onMounted(() => {
       layout="modern"
       width="520"
       :close-on-click-modal="false"
+      compact
       :confirm-loading="replySaving"
       @ok="submitReply"
     >
@@ -375,18 +365,6 @@ onMounted(() => {
   padding: 20px;
   height: 100%;
 }
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.system-page__search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-}
-
 /* 统计卡片 */
 .stat-cards {
   display: grid;

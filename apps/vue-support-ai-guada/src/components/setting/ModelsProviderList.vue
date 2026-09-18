@@ -17,13 +17,13 @@
 
         <!-- Description -->
         <div class="text-gray-500 dark:text-gray-400 line-clamp-2 text-sm leading-relaxed">
-          {{ provider.description || '暂无简介' }}
+          {{ provider.description || (provider.models && provider.models.length > 0 ? `${provider.models.length} 个模型已配置` : '暂无简介') }}
         </div>
 
-        <!-- Footer: protocol + actions (hover visible) -->
+        <!-- Footer: protocol + actions -->
         <div class="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
-          <span class="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ getProtocolLabel(provider.protocol) }}</span>
-          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" @click.stop>
+          <span class="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ getProtocolLabel(provider.platform || provider.protocol) }}</span>
+          <div class="flex items-center gap-1" @click.stop>
             <el-button link size="small" @click="$emit('item-edit', provider)">配置</el-button>
             <el-button link size="small" type="danger" @click="$emit('item-delete', provider)">删除</el-button>
           </div>

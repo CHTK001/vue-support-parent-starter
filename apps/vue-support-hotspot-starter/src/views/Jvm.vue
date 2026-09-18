@@ -71,6 +71,52 @@
         <div class="panel-head"><span>指标趋势</span><span class="panel-sub">时间窗 {{ metricsWindow }} 分钟（后端 /jvm/metrics）</span></div>
         <div ref="trendRef" class="trend-chart" />
       </div>
+
+      <!-- 线程池 / 连接池（2026 增强 R3） -->
+      <div class="panel-row">
+        <div class="panel">
+          <div class="panel-head"><span>线程池</span><span class="panel-sub">按线程名分组（/thread-pools）</span></div>
+          <el-table :data="threadPools" class="apm-table" size="small" empty-text="暂无线程池数据">
+            <el-table-column prop="name" label="线程组" min-width="140">
+              <template #default="{ row }">
+                <span class="mono">
+                  {{ row.name }}
+                  <ReTag v-if="row.knownPool" type="success" size="small" round effect="plain" style="margin-left:6px">已知池</ReTag>
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="count" label="总数" width="70" align="right" />
+            <el-table-column prop="daemonCount" label="守护线程" width="80" align="right" />
+            <el-table-column label="状态分布" min-width="180">
+              <template #default="{ row }">
+                <span class="mono muted">{{ stateText(row.sampleStates) }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span>连接池</span><span class="panel-sub">按目标端点分组 + OS-FD（/connection-pools）</span></div>
+          <el-table :data="connectionPools" class="apm-table" size="small" empty-text="暂无连接池数据">
+            <el-table-column label="端点" min-width="160">
+              <template #default="{ row }">
+                <span class="mono">{{ row.endpoint }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="callCount" label="调用量" width="80" align="right" />
+            <el-table-column label="平均耗时" width="90" align="right">
+              <template #default="{ row }">
+                <span class="mono">{{ row.avgMs.toFixed ? row.avgMs.toFixed(1) : row.avgMs }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="activeLeakCount" label="活跃泄漏" width="80" align="right" />
+            <el-table-column label="最后调用" min-width="140">
+              <template #default="{ row }">
+                <span class="mono muted">{{ row.openFileDescriptors !== undefined ? 'OS-FD ' + row.openFileDescriptors : (row.lastCallAt || '—') }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -85,8 +131,8 @@ import ReButton from "@repo/ui/re-button";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatusIndicator from "@repo/ui/re-status-indicator";
 import { ReDescriptions, ReDescriptionsItem, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
-import { getJvmSnapshot, getJvmMetrics } from "../api/apmApi";
-import type { JvmSnapshot, JvmMetricPoint } from "../api/apmApi";
+import { getJvmSnapshot, getJvmMetrics, getThreadPools, getConnectionPools } from "../api/apmApi";
+import type { JvmSnapshot, JvmMetricPoint, ThreadPoolStat, ConnectionPoolStat, ThreadStateSample } from "../api/apmApi";
 
 const snapshot = ref<JvmSnapshot | null>(null);
 const loading = ref(false);
@@ -94,6 +140,15 @@ const live = ref(false);
 const trendRef = ref<HTMLElement | null>(null);
 let timer: number | undefined;
 let chart: echarts.ECharts | null = null;
+
+/** 线程池 / 连接池（2026 增强 R3，随 5s 轮询静默刷新） */
+const threadPools = ref<ThreadPoolStat[]>([]);
+const connectionPools = ref<ConnectionPoolStat[]>([]);
+
+function stateText(states: ThreadStateSample[] | undefined): string {
+  if (!states?.length) return "—";
+  return states.map((s) => `${s.state}×${s.count}`).join(" / ");
+}
 
 /** 趋势图数据源（后端 /jvm/metrics 环形缓冲，跨路由/刷新不丢数据） */
 const metrics = ref<JvmMetricPoint[]>([]);
@@ -148,6 +203,21 @@ async function loadTrend() {
     metrics.value = [];
   }
   renderTrend();
+  loadPoolStats();
+}
+
+/** 线程池 / 连接池统计（失败静默，不影响主视图） */
+async function loadPoolStats() {
+  try {
+    threadPools.value = (await getThreadPools()) || [];
+  } catch {
+    threadPools.value = [];
+  }
+  try {
+    connectionPools.value = (await getConnectionPools()) || [];
+  } catch {
+    connectionPools.value = [];
+  }
 }
 
 function renderTrend() {
