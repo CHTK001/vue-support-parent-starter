@@ -8,7 +8,8 @@
  */
 import { computed, ref, watch } from "vue";
 import { useSocketService } from "@repo/core";
-import type { Host, Group } from "../AssetsView.vue";
+import { osIconSvg } from "../utils/osIcon";
+import type { Host, Group } from "./AssetsView.vue";
 
 interface Props {
   hosts: Host[];
@@ -78,20 +79,7 @@ function delayBad(ms: number | null): boolean {
   return ms != null && (ms < 0 || ms > 200);
 }
 
-/** OS 图标（复用 AssetsView 的 osIcon/osSvg/osImgSrc 逻辑——这里内联精简版） */
-function osKey(t?: string): string {
-  const s = (t ?? "").toUpperCase();
-  if (s.includes("ANDROID")) return "android";
-  if (s.includes("WIN")) return "windows";
-  if (s.includes("LINUX")) return "linux";
-  if (s.includes("MAC") || s.includes("DARWIN")) return "macos";
-  return "terminal";
-}
-function osImgSrc(os: string): string {
-  const map: Record<string, string> = { linux: "os-linux", windows: "os-windows", macos: "os-macos", android: "os-android" };
-  const name = map[os];
-  return name ? `${import.meta.env.BASE_URL}os/${name}.svg` : "";
-}
+/** 平台图标统一走 utils/osIcon 的常规单色图标 */
 function protocolOf(h: Host): string {
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
@@ -166,12 +154,7 @@ const overviewRows = computed<InfoRow[]>(() => {
           @click="selectHost(h.id)"
         >
           <span class="ri-os">
-            <img
-              v-if="osImgSrc(osKey(h.serverHostOsType))"
-              :src="osImgSrc(osKey(h.serverHostOsType))"
-              class="ri-os-img"
-              alt=""
-            />
+            <span v-html="osIconSvg(h.serverHostOsType)"></span>
           </span>
           <div class="ri-meta">
             <b class="ri-name">{{ h.serverHostName }}</b>

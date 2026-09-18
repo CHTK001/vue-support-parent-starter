@@ -97,17 +97,34 @@
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
               <template #right-actions-before>
-                <!-- 上下文使用率：圆形进度条 -->
-                <LTooltip :content="contextTooltip" placement="top">
-                  <button class="context-ring-btn" @click="memoPanelVisible = true">
-                    <svg class="context-ring" width="16" height="16" viewBox="0 0 36 36">
-                      <circle class="ring-bg" cx="18" cy="18" r="15" fill="none" stroke-width="3.5" />
-                      <circle class="ring-fg" cx="18" cy="18" r="15" fill="none" stroke-width="3.5" :stroke="ringColor"
-                        :stroke-dasharray="ringCircumference" :stroke-dashoffset="ringDashOffset" stroke-linecap="round"
-                        transform="rotate(-90 18 18)" />
-                    </svg>
-                  </button>
-                </LTooltip>
+                <!-- 上下文使用率：横向进度条 -->
+                <el-popover placement="top" :width="280" trigger="hover">
+                  <template #reference>
+                    <button class="context-bar-btn" @click="contextPopoverVisible = !contextPopoverVisible">
+                      <span class="context-bar-text">{{ contextDisplayText }}</span>
+                      <div class="context-bar">
+                        <div class="context-bar-fill" :style="{ width: ringPercent + '%', background: ringColor }"></div>
+                      </div>
+                    </button>
+                  </template>
+                  <div class="context-detail-card">
+                    <div class="context-detail-row">
+                      <span class="context-detail-label">上下文用量</span>
+                      <span class="context-detail-value">{{ contextUsedText }} · {{ ringPercent }}%</span>
+                    </div>
+                    <div class="context-detail-progress">
+                      <div class="context-detail-progress-fill" :style="{ width: ringPercent + '%', background: ringColor }"></div>
+                    </div>
+                    <div class="context-detail-section">额度用量</div>
+                    <div class="context-detail-row">
+                      <span class="context-detail-label">当前时段</span>
+                      <span class="context-detail-value">已用 {{ ringPercent }}%</span>
+                    </div>
+                    <div class="context-detail-progress small">
+                      <div class="context-detail-progress-fill" :style="{ width: ringPercent + '%', background: '#409eff' }"></div>
+                    </div>
+                  </div>
+                </el-popover>
               </template>
             </ChatInput>
           </div>
@@ -203,6 +220,31 @@ const contextTooltip = computed(() => {
   if (!sharedTokenStats.value) return t('chat.panel.contextUsage');
   const pct = ringPercent.value;
   return t('chat.panel.contextUsagePercent', { pct });
+});
+
+// 上下文使用率弹窗
+const contextPopoverVisible = ref(false);
+
+// 格式化 token 数量为 K/M 单位
+function formatTokens(tokens: number): string {
+  if (!tokens) return '0';
+  if (tokens >= 1000000) return (tokens / 1000000).toFixed(1) + 'M';
+  if (tokens >= 1000) return (tokens / 1000).toFixed(1) + 'K';
+  return tokens.toString();
+}
+
+const contextDisplayText = computed(() => {
+  if (!sharedTokenStats.value) return '上下文';
+  const used = formatTokens(sharedTokenStats.value.usedTokens);
+  const total = formatTokens(sharedTokenStats.value.totalTokens);
+  return `${used} / ${total}`;
+});
+
+const contextUsedText = computed(() => {
+  if (!sharedTokenStats.value) return '0 / 0';
+  const used = formatTokens(sharedTokenStats.value.usedTokens);
+  const total = formatTokens(sharedTokenStats.value.totalTokens);
+  return `${used}/${total}`;
 });
 
 // Props & Emits - 类型化
@@ -832,6 +874,8 @@ async function handleStreamResponseWithCreate(
   fileIds: string[],
   replaceMessageId: string | null = null,
   knowledgeBaseIds?: string[],
+  think?: boolean,
+  search?: boolean,
 ) {
   try {
     const handler = useStreamResponse(sessionStore, apiService)
@@ -841,6 +885,8 @@ async function handleStreamResponseWithCreate(
       fileIds,
       replaceMessageId,
       knowledgeBaseIds,
+      think,
+      search,
     )
   } catch (error) {
     if ((error as Error).message.includes('SessionBusyError')) {
@@ -938,7 +984,7 @@ async function handleSendMessage(payload?: InputMessageState) {
   if (!data || (!data.content?.trim() && !data.files.length)) return;
 
   try {
-    const { content, files, knowledgeBaseIds } = data;
+    const { content, files, knowledgeBaseIds, think, search } = data;
 
     // 流式进行中：消息入队，等 stream_finished 后自动消费
     if (currentSessionId.value && isStreaming.value) {
@@ -981,6 +1027,8 @@ async function handleSendMessage(payload?: InputMessageState) {
         prepared.fileIds,
         replaceMessageId,
         prepared.knowledgeBaseIds,
+        think,
+        search,
       );
     }
   } catch (error: any) {
@@ -1269,29 +1317,92 @@ function scrollToMessage(messageId: string) {
   transition: all 0.2s;
 }
 
-/* 圆形进度条按钮 */
-.context-ring-btn {
+/* 横向进度条按钮 */
+.context-bar-btn {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 6px;
   transition: background 0.2s;
   outline: none;
+  gap: 2px;
+  min-width: 140px;
 }
 
-.context-ring-btn:hover {
+.context-bar-btn:hover {
   background: var(--color-sidebar-bg-hover);
 }
 
-.context-ring .ring-bg {
-  stroke: var(--color-text-disabled);
-  opacity: 0.3;
+.context-bar-text {
+  font-size: 12px;
+  color: var(--color-text-secondary, #666);
+  white-space: nowrap;
 }
 
-.context-ring .ring-fg {
-  transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
+.context-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border, #e5e7eb);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.context-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* 详细信息卡片 */
+.context-detail-card {
+  padding: 4px 0;
+}
+
+.context-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.context-detail-label {
+  color: var(--color-text-secondary, #666);
+}
+
+.context-detail-value {
+  color: var(--color-text-primary, #333);
+  font-weight: 500;
+}
+
+.context-detail-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--color-border, #e5e7eb);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.context-detail-progress.small {
+  height: 4px;
+  margin-bottom: 0;
+}
+
+.context-detail-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.context-detail-section {
+  font-size: 12px;
+  color: var(--color-text-secondary, #999);
+  margin-bottom: 8px;
+  margin-top: 4px;
 }
 </style>

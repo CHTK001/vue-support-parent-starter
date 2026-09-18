@@ -63,6 +63,8 @@ export class ChatStreamService {
       resumeData,
       lastContentId,
       userMessage,
+      think,
+      search,
     } = params;
 
     const isSubscribeMode = regenerationMode === "subscribe";
@@ -93,6 +95,8 @@ export class ChatStreamService {
           resumeData,
           lastContentId,
           userMessage,
+          think,
+          search,
         }),
         signal: controller.signal,
       });

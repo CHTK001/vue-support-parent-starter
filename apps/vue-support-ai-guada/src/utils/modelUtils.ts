@@ -72,6 +72,10 @@ const PROVIDER_LOGOS: Record<string, string> = {
   internlm: "internlm",
   shusheng: "internlm",
 
+  // Agnes
+  agnes: "Agnes",
+  ollama: "ollama",
+
   // 灵犀
   ling: "ling",
 };

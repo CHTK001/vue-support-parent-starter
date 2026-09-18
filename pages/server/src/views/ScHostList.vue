@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from '@repo/core';
+import { http, unwrapResult } from '@repo/utils';
 import {
   queryHosts,
   getGroups,
@@ -16,6 +17,7 @@ import {
   batchUpdateStatus,
   batchMoveGroup,
   scanPorts,
+  testPrometheusHost,
 } from '../api';
 import ScHostFormDialog from '../components/ScHostFormDialog.vue';
 import ScConnectDialog from '../components/ScConnectDialog.vue';
@@ -89,6 +91,29 @@ async function loadStats() {
 const keyword = ref('');
 const filterGroupId = ref<number | null>(null);
 
+/** 分组筛选下拉选项：末尾固定追加「+ 添加分组」入口（value=-1 为哨兵值） */
+const ADD_GROUP_VALUE = -1;
+const groupSelectOptions = computed(() => [
+  ...groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })),
+  { label: '+ 添加分组', value: ADD_GROUP_VALUE },
+]);
+
+/**
+ * 分组筛选变更：选中「+ 添加分组」时跳转分组管理页，其余按分组过滤
+ */
+async function onGroupFilterChange(val: number | null): Promise<void> {
+  if (val === ADD_GROUP_VALUE) {
+    // 重置筛选值，跳转分组管理页
+    filterGroupId.value = null;
+    router.push('/server/groups');
+    return;
+  }
+  try {
+    const rows = await queryHosts({ groupId: val ?? undefined });
+    hosts.value = rows ?? [];
+  } catch { /* ignore */ }
+}
+
 /** 加载态 */
 const loading = ref(false);
 
@@ -130,6 +155,37 @@ const cfgForm = reactive({
   serverHostDelayInterval: 60,
 });
 const cfgSaving = ref(false);
+
+/** Prometheus 凭据校验 loading */
+const promTestLoading = ref(false);
+/** Prometheus 安装包下载地址（取自 monitor 全局配置） */
+const promPkgUrl = ref('');
+
+/** 从 monitor 全局配置读取 Prometheus 安装包下载地址 */
+async function loadPrometheusPkgUrl(): Promise<void> {
+  try {
+    const all = await http().get('/ms/monitor/config').then((r: any) => unwrapResult<Record<string, string>>(r));
+    const v = all?.['monitor.prometheus.package.url'];
+    promPkgUrl.value = typeof v === 'string' ? v : (v != null ? String(v) : '');
+  } catch { /* 未配置时静默 */ }
+}
+
+/** Prometheus 凭据校验：测试目标 /metrics 端点连通性 */
+async function onTestPrometheus(): Promise<void> {
+  if (!configHost.value?.id) return;
+  promTestLoading.value = true;
+  message.info('正在校验 Prometheus /metrics 端点 …', { duration: 0 });
+  try {
+    const msg = await testPrometheusHost(configHost.value.id);
+    message.closeAll();
+    message.success(msg || '校验成功');
+  } catch (e) {
+    message.closeAll();
+    message.error((e as Error).message || '校验失败');
+  } finally {
+    promTestLoading.value = false;
+  }
+}
 
 function openDetail(row: HostRow) {
   // 独立新窗口打开主机监控页，不受主应用 router/tab 控制
@@ -214,7 +270,7 @@ async function onBatchMoveGroup() {
   }
 }
 
-onMounted(() => { refresh(); loadStats(); });
+onMounted(() => { refresh(); loadStats(); loadPrometheusPkgUrl(); });
 
 /**
  * 刷新主机与分组数据
@@ -492,9 +548,9 @@ async function onImportFile(file: File | undefined) {
         v-model="filterGroupId"
         placeholder="全部分组"
         clearable
-        :data="groups.map(g => ({ label: g.msServerGroupName, value: g.id }))"
-        style="width: 160px"
-        @change="queryHosts({ groupId: filterGroupId }).then(r => (hosts = r ?? [])).catch(() => {})"
+        :data="groupSelectOptions"
+        style="width: 180px"
+        @change="onGroupFilterChange"
       />
     </div>
 
@@ -627,6 +683,13 @@ async function onImportFile(file: File | undefined) {
         <ReFormItem label="采集方式">
           <ReSelect v-model="cfgForm.serverHostCollectMode" :data="collectModeOptions" style="width: 220px" />
         </ReFormItem>
+        <ReFormItem v-if="cfgForm.serverHostCollectMode === 'PROMETHEUS'" label="Prometheus">
+          <div class="prom-actions">
+            <ReButton size="small" type="primary" :loading="promTestLoading" @click="onTestPrometheus">凭据校验</ReButton>
+            <a v-if="promPkgUrl" class="prom-dl" :href="promPkgUrl" target="_blank" rel="noopener">下载 Prometheus 包</a>
+            <span v-else class="prom-tip">未配置安装包下载地址（系统配置 → Prometheus → 安装包下载地址）</span>
+          </div>
+        </ReFormItem>
         <ReFormItem label="采集间隔(秒)">
           <ReInputNumber v-model="cfgForm.serverHostCollectInterval" :min="10" :max="86400" style="width: 180px" />
         </ReFormItem>
@@ -697,6 +760,10 @@ async function onImportFile(file: File | undefined) {
 .cfg-form :deep(.el-form-item) {
   margin-bottom: 14px;
 }
+.prom-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prom-dl { font-size: 13px; color: var(--el-color-primary); text-decoration: none; }
+.prom-dl:hover { text-decoration: underline; }
+.prom-tip { font-size: 12px; color: var(--text-tertiary, #909399); }
 
 @keyframes batch-in {
   from { opacity: 0; transform: translateY(-4px); }

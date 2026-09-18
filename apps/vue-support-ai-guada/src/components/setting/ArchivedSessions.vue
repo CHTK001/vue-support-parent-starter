@@ -27,10 +27,16 @@
                 <el-checkbox v-model="selectAll" @change="handleSelectAll">{{ t('common.selectAll') }}</el-checkbox>
                 <span class="text-xs text-gray-400" v-if="selectedIds.size > 0">{{ t('settings.archived.selectedCount', { n: selectedIds.size }) }}</span>
             </div>
-            <el-button type="primary" size="small" :disabled="selectedIds.size === 0" :loading="batchLoading"
-                @click="handleBatchUnarchive">
-                {{ t('settings.archived.batchUnarchive') }}
-            </el-button>
+            <div class="flex items-center gap-2">
+                <el-button type="danger" size="small" :disabled="selectedIds.size === 0" :loading="batchDeleting"
+                    @click="handleBatchDelete">
+                    批量删除
+                </el-button>
+                <el-button type="primary" size="small" :disabled="selectedIds.size === 0" :loading="batchLoading"
+                    @click="handleBatchUnarchive">
+                    {{ t('settings.archived.batchUnarchive') }}
+                </el-button>
+            </div>
         </div>
 
         <!-- 加载中 -->
@@ -57,6 +63,12 @@
                             <ArrowUndo20Regular />
                         </el-icon>
                     </div>
+                    <div class="action-btn p-1 rounded cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="删除" @click="handleDelete(session)">
+                        <el-icon class="w-3.5 h-3.5 text-red-500">
+                            <Delete />
+                        </el-icon>
+                    </div>
                 </div>
             </div>
 
@@ -79,7 +91,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Archive20Regular, ArrowUndo20Regular, ArrowClockwise20Regular, Search16Regular } from '@vicons/fluent'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, Delete } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { useSessionGroupStore } from '@/stores/sessionGroup'
@@ -96,6 +108,7 @@ const { toast, confirm } = usePopup()
 
 const isLoading = ref(false)
 const batchLoading = ref(false)
+const batchDeleting = ref(false)
 const archivedSessions = ref<Session[]>([])
 const selectedIds = ref<Set<string>>(new Set())
 
@@ -224,6 +237,53 @@ const handleBatchUnarchive = async () => {
         toast.error(t('settings.archived.batchUnarchiveFailed'))
     } finally {
         batchLoading.value = false
+    }
+}
+
+const handleDelete = async (session: Session) => {
+    const confirmed = await confirm('删除会话', `确定要删除会话 "${session.title}" 吗？此操作不可恢复。`, {
+        type: 'warning',
+        confirmText: '删除',
+        cancelText: '取消'
+    })
+    if (!confirmed) return
+
+    try {
+        await apiService.deleteSession(session.id)
+        if (archivedSessions.value.length === 1 && currentPage.value > 1) {
+            currentPage.value--
+        }
+        await loadArchivedSessions()
+        toast.success('删除成功')
+    } catch (error) {
+        console.error('删除会话失败:', error)
+        toast.error('删除失败')
+    }
+}
+
+const handleBatchDelete = async () => {
+    if (selectedIds.value.size === 0) return
+
+    const confirmed = await confirm('批量删除', `确定要删除选中的 ${selectedIds.value.size} 个会话吗？此操作不可恢复。`, {
+        type: 'warning',
+        confirmText: '删除',
+        cancelText: '取消'
+    })
+    if (!confirmed) return
+
+    batchDeleting.value = true
+    try {
+        const ids = Array.from(selectedIds.value)
+        await apiService.batchDeleteSessions(ids)
+        selectedIds.value = new Set()
+        selectAll.value = false
+        await loadArchivedSessions()
+        toast.success('批量删除成功')
+    } catch (error) {
+        console.error('批量删除失败:', error)
+        toast.error('批量删除失败')
+    } finally {
+        batchDeleting.value = false
     }
 }
 

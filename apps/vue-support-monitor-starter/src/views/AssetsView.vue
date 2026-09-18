@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
@@ -7,7 +7,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox, ElProgress } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
@@ -17,7 +17,11 @@ import HostProfileView from "./HostProfileView.vue";
 import SystemManageDialog from "./SystemManageDialog.vue";
 import ServerManageDialog from "./ServerManageDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
+import { osIconSvg } from "../utils/osIcon";
 import { useSocketService } from "@repo/core";
+import ReMaskDialog from "../components/ReMaskDialog.vue";
+import AgentDeployDialog from "../components/AgentDeployDialog.vue";
+import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
 
 export interface Host {
   id: number;
@@ -62,9 +66,17 @@ export interface Host {
   serverHostPassword?: string | null;
   /** PEM 私钥（瞬态） */
   serverHostPrivateKey?: string | null;
+  /** 远控协议（SSH/RDP/VNC，空表示按平台推断） */
+  serverHostRemoteProtocol?: string | null;
+  /** 远控端口（空表示按协议默认） */
+  serverHostRemotePort?: number | null;
+  /** 远控通道：GUACD 中转 / DIRECT 直连 */
+  serverHostRemoteMode?: string | null;
+  /** VNC 口令（落库 AES 加密，详情接口回显明文） */
+  serverHostVncPassword?: string | null;
 }
 
-interface Group { id: number; msServerGroupName: string; msServerGroupColor?: string | null; }
+export interface Group { id: number; msServerGroupName: string; msServerGroupColor?: string | null; }
 interface Identity { id: number; msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityRemark?: string; }
 
 const router = useRouter();
@@ -80,12 +92,19 @@ const liveDelay = ref<Record<number, number>>({});
 const liveOnline = ref<Record<number, number>>({});
 let unsubDelay: (() => void) | undefined;
 let unsubOnline: (() => void) | undefined;
+let unsubMetrics: (() => void) | undefined;
+let unsubDeploy: (() => void) | undefined;
 
 /** 视图模式：card（默认，卡片网格）/ table（表格） */
 const viewMode = ref<"card" | "table">("card");
 
 /** ReFilter 过滤状态（由 ReFilter 组件统一驱动，替代手写 keyword/status/group 三个 ref） */
 const filterState = ref<Record<string, unknown>>({ keyword: "", status: "", group: "", tag: "" });
+/**
+ * ReFilter 过滤项变更
+ * @param prop 过滤属性名
+ * @param value 过滤值
+ */
 /**
  * ReFilter 过滤项变更
  * @param prop 过滤属性名
@@ -185,10 +204,9 @@ function groupName(id?: number | null): string {
 /** 分组背景色开关：开启时分组标记按分组配置颜色显示底色 */
 const groupColorEnabled = ref(true);
 
-// ---- 实时指标（默认关闭，开关控制，每3秒轮询） ----
-const realtimeEnabled = ref(false);
+// ---- 实时指标（默认开启，socket 推送，不轮询） ----
+const realtimeEnabled = ref(localStorage.getItem('assets-realtime-enabled') !== 'false');
 const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
-let rtTimer: any = null;
 
 function barColor(pct: number): string {
   if (pct >= 90) return '#ef4444';
@@ -196,30 +214,9 @@ function barColor(pct: number): string {
   return '#10b981';
 }
 
-async function pollRealtime() {
-  for (const h of hosts.value) {
-    try {
-      const r = await fetch(`/ms/system/host-info?hostId=${h.id}&refresh=true`);
-      const j = await r.json();
-      const d = j.data;
-      if (!d) continue;
-      const cpuPct = Number(d.cpuPercent) || 0;
-      const memTotal = Number(d.memoryMb) || 1;
-      const memUsed = Number(d.memoryUsed) || 0;
-      const memPct = memUsed > 0 ? Math.round(memUsed / memTotal * 100) : 0;
-      const diskPct = Number(d.diskPercent) || 0;
-      rtMetrics[h.id] = { cpu: Math.round(cpuPct), mem: memPct, disk: diskPct, tx: '—', rx: '—' };
-    } catch (e) { /* ignore */ }
-  }
-}
-
-function onRealtimeToggle(v: any) {
-  if (v) {
-    pollRealtime();
-    rtTimer = setInterval(pollRealtime, 3000);
-  } else {
-    if (rtTimer) { clearInterval(rtTimer); rtTimer = null; }
-  }
+function onRealtimeToggle(v: boolean): void {
+  localStorage.setItem('assets-realtime-enabled', String(v));
+  // 实时指标只靠 socket 推送，不轮询
 }
 /** 取分组颜色（未配置或关闭开关时返回空，不使用背景色） */
 function groupColor(id?: number | null): string {
@@ -246,72 +243,6 @@ function groupColorStyle(id?: number | null): Record<string, string> {
   };
 }
 
-/**
- * 操作系统类型归一化
- * @param t 原始值
- */
-function normalizeOs(t?: string): string {
-  const s = (t ?? "").toUpperCase();
-  if (s.includes("ANDROID")) return "Android";
-  if (s.includes("WIN")) return "Windows";
-  if (s.includes("LINUX")) return "Linux";
-  if (s.includes("MAC")) return "macOS";
-  return s || "其他";
-}
-/**
- * 操作系统图标名
- * @param t 操作系统类型
- */
-function osIcon(t?: string): string {
-  const s = (t ?? "").toUpperCase();
-  if (s.includes("ANDROID")) return "android";
-  if (s.includes("WIN")) return "windows";
-  if (s.includes("LINUX")) return "linux";
-  if (s.includes("MAC") || s.includes("DARWIN")) return "macos";
-  return "terminal";
-}
-/** 真实 OS 品牌图标（SVG）：Windows 四色旗标 / macOS Apple / Linux Tux / Android，标准品牌矢量 */
-function osSvg(os: string): string {
-  const icons: Record<string, string> = {
-    linux: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#3D7A45" d="M12 1.5c-3.6 0-6.4 1.8-6.4 4 0 1.4.8 2.6 2 3.4C6.2 10 5 11.6 5 13.4c0 1.2.5 2.3 1.3 3.1-.2 1-.7 1.9-1.4 2.7-.3.3-.4.7-.2 1 .2.4.7.6 1 .3.9-.5 1.7-1 2.3-1.3.5.1 1 .2 1.5.2.7 0 1.4-.1 2.1-.3.7.4 1.4.8 2.2 1.1.4.1.8-.1.9-.5.2-.5.3-.9.2-1.4 0-.4-.3-.7-.6-1-.7-.8-1.2-1.7-1.3-2.7.8-.9 1.3-2 1.3-3.2 0-.5-.1-1-.2-1.4.3-.7.5-1.5.5-2.3 0-2.2-2.8-4-6.4-4zm4.6 5.6c.2 0 .4.6.4 1.4s-.2 1.4-.4 1.4-.4-.6-.4-1.4.2-1.4.4-1.4zm-9.2 0c.2 0 .4.6.4 1.4s-.2 1.4-.4 1.4-.4-.6-.4-1.4.2-1.4.4-1.4z"/></svg>',
-    windows: '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#f25022" d="M3 4.6 10.4 3.6v6.9H3zM3 13.5h7.4v6.9L3 19.4z"/><path fill="#7fba00" d="M11.6 3.4 21 2.2v8.3h-9.4zM11.6 13.5H21v8.3l-9.4-1.3z"/><path fill="#00a4ef" d="M3 10.5h7.4v-5.9L3 4.6v5.9zM11.6 7.5v5.9H10.4V7.5zM11.6 13.5v5.9l-.4 1.2-.8.3v-7.4zM11.6 7.5h9.4v1.5h-9.4zM11.6 12v-1.5H21V12z"/></svg>',
-    macos: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#5A5F6A"><path d="M17.05 12.57c-.03-2.44 2.01-3.6 2.1-3.66-1.14-1.67-2.92-1.9-3.54-1.93-1.51-.15-2.97.9-3.75.9-.78 0-2.01-.88-3.32-.86-1.71.03-3.29.99-4.18 2.5-1.8 3.02-.46 7.46 1.28 9.91.85 1.2 1.87 2.55 3.2 2.5 1.28-.05 1.76-.83 3.3-.83 1.55 0 2.01.83 3.36.8 1.39-.02 2.27-1.24 3.12-2.45.98-1.39 1.39-2.75 1.4-2.82-.03-.01-2.68-1.03-2.71-4.06zM14.4 5.1c.72-.87 1.19-2.07 1.06-3.27-1.03.04-2.28.68-3.01 1.55-.65.77-1.23 2-1.07 3.18 1.15.09 2.3-.58 3.02-1.46z"/></svg>',
-    android: '<svg viewBox="0 0 24 24" width="17" height="17" fill="#3DDC84"><path d="M17.5 12h-11v7h2.5v-4.5h6V19H17.5z"/><path d="M15.4 6.3l1.4-2.4-1.3-.76-1.4 2.4a5.6 5.6 0 0 0-4.8 0L7.9 3.1 6.6 3.9l1.4 2.4a5.6 5.6 0 0 0-2.4 4.5h13.6a5.6 5.6 0 0 0-2.4-4.5zM9.9 7.7a.9.9 0 1 1 .9-.9.9.9 0 0 1-.9.9zm5.2 0a.9.9 0 1 1 .9-.9.9.9 0 0 1-.9.9z"/></svg>',
-    terminal: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
-  };
-  return icons[os] ?? icons.terminal;
-}
-/** 平台图片资源路径（public/os/*.png 品牌图标）；无匹配时返回空走内联 SVG 兜底 */
-function osImgSrc(os: string): string {
-  const map: Record<string, string> = {
-    linux: "os-linux",
-    windows: "os-windows",
-    macos: "os-macos",
-    android: "os-android",
-  };
-  const name = map[os];
-  if (!name) return "";
-  return `${import.meta.env.BASE_URL}os/${name}.png`;
-}
-/** 已确认图片加载失败的主机集合（key: id-os），命中则回退 SVG */
-const osImgErrors = ref<Set<string>>(new Set());
-/**
- * 该主机操作系统图标是否加载失败
- * @param row 主机行
- */
-function osImgFailed(row: Host): boolean {
-  return osImgErrors.value.has(`${row.id}-${osIcon(row.serverHostOsType)}`);
-}
-/**
- * 标记主机操作系统图标加载失败
- * @param row 主机行
- */
-function markOsImgFailed(row: Host): void {
-  const key = `${row.id}-${osIcon(row.serverHostOsType)}`;
-  if (!osImgErrors.value.has(key)) {
-    osImgErrors.value = new Set(osImgErrors.value).add(key);
-  }
-}
 /**
  * 推断主机默认协议
  * @param h 主机
@@ -498,6 +429,23 @@ const remoteCfgForm = ref({
 
 // ---- 主机画像（master-detail：左主机列表 + 右 ReTab 详情） ----
 const profileVisible = ref(false);
+const deployDialogVisible = ref(false);
+const deployProgress = ref(0);
+const deployMessage = ref("");
+const deployStatus = ref<"info" | "success" | "error">("info");
+const deployInfo = reactive({ hostId: 0, hostName: "", action: "" as "install" | "reinstall" | "upgrade" });
+const deployMinimized = ref(false);
+const deployLogs = ref<string[]>([]);
+const deployTask = ref<any>({
+  id: "agent-deploy",
+  title: "Agent 部署",
+  progress: 0,
+  status: "running",
+  text: "准备中...",
+  createdAt: Date.now(),
+  startedAt: Date.now(),
+  history: [],
+});
 useDialogPrerender(profileVisible);
 function openProfile(): void {
   profileVisible.value = true;
@@ -506,6 +454,11 @@ function openProfile(): void {
 const profileSize = computed(() => Math.round(window.innerWidth * 0.9));
 
 function openSysMgr(type: string, row: Host): void {
+  // 主机画像依赖 Agent，未安装时提示
+  if (row.serverHostCollectMode !== 'AGENT' || !row.serverHostAgentInstalled) {
+    ElMessage.warning(row.serverHostCollectMode !== 'AGENT' ? '当前采集方式不是 Agent，无法使用主机画像' : '主机画像需要先安装 Agent，请点击「安装 Agent」按钮');
+    return;
+  }
   sysMgrType.value = type;
   sysMgrHost.value = row;
   sysMgrVisible.value = true;
@@ -548,6 +501,39 @@ function openEdit(h: Host): void {
   formVisible.value = true;
 }
 // ---- 删除 / 启停 / 批量 ----
+// 打开 Agent 自动部署弹窗
+async function openDeploy(h: Host, action: 'install' | 'reinstall' | 'upgrade') {
+  deployInfo.hostId = h.id;
+  deployInfo.hostName = h.serverHostName;
+  deployInfo.action = action;
+  deployProgress.value = 0;
+  deployMessage.value = '准备中...';
+  deployStatus.value = 'info';
+  deployDialogVisible.value = true;
+  deployLogs.value = [`[${new Date().toLocaleTimeString()}] 开始${action === 'install' ? '安装' : action === 'reinstall' ? '重装' : '升级'} Agent...`];
+  deployTask.value = {
+    id: "agent-deploy",
+    title: `${action === 'install' ? '安装' : action === 'reinstall' ? '重装' : '升级'} Agent - ${h.serverHostName}`,
+    progress: 0.05,
+    status: "running",
+    text: "准备中...",
+    createdAt: Date.now(),
+    startedAt: Date.now(),
+    history: [{ time: Date.now(), progress: 0.05, status: "running" }],
+  };
+  try {
+    const r = await fetch(`/ms/server/host/agent/${h.id}/${action === 'install' ? 'deploy' : action}`, { method: 'POST' });
+    const j = await r.json();
+    if (!j.success) {
+      deployStatus.value = 'error';
+      deployMessage.value = j.msg || '启动部署失败';
+    }
+  } catch (e: any) {
+    deployStatus.value = 'error';
+    deployMessage.value = '请求失败: ' + e.message;
+  }
+}
+
 async function removeHost(h: Host): Promise<void> {
   await ElMessageBox.confirm(`删除主机「${h.serverHostName}」？`, "删除确认", { type: "warning" });
   try {
@@ -596,10 +582,46 @@ onMounted(() => {
       if (d && d.hostId != null) liveOnline.value[d.hostId] = d.online ? 1 : 0;
     } catch { /* 静默 */ }
   });
+  // 实时 CPU/内存/磁盘：socket host-metrics 推送
+  // Agent 自动部署进度推送
+  unsubDeploy = socket?.subscribe("monitor", "agent-deploy", (msg) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; progress?: number; message?: string; status?: string };
+      if (d && d.hostId === deployInfo.hostId) {
+        const pct = (d.progress ?? 0) / 100;
+        deployProgress.value = d.progress ?? 0;
+        deployMessage.value = d.message ?? '';
+        deployStatus.value = d.status ?? 'info';
+        deployLogs.value.push(`[${new Date().toLocaleTimeString()}] ${d.message} (${d.progress}%)`);
+        deployTask.value = {
+          ...deployTask.value,
+          progress: pct,
+          status: d.status === 'success' ? 'success' : d.status === 'error' ? 'failed' : 'running',
+          text: d.message ?? '',
+          history: [...deployTask.value.history, { time: Date.now(), progress: pct, status: d.status === 'success' ? 'success' : d.status === 'error' ? 'failed' : 'running' }],
+        };
+      }
+    } catch { /* 静默 */ }
+  });
+  unsubMetrics = socket?.subscribe("monitor", "host-metrics", (msg) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; cpu?: number; mem?: number; disk?: number };
+      if (d && d.hostId != null) {
+        rtMetrics[d.hostId] = {
+          cpu: Math.round(Number(d.cpu) || 0),
+          mem: Math.round(Number(d.mem) || 0),
+          disk: Math.round(Number(d.disk) || 0),
+          tx: '—', rx: '—'
+        };
+      }
+    } catch { /* 静默 */ }
+  });
 });
 onBeforeUnmount(() => {
   unsubDelay?.();
   unsubOnline?.();
+  unsubMetrics?.();
+  unsubDeploy?.();
 });
 
 /** 实时在线状态（socket 优先，回退 host.serverHostOnline） */
@@ -632,10 +654,7 @@ function delayBad(ms: number | null): boolean {
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
-        <label class="color-switch">
-          <span>分组底色</span>
-          <el-switch v-model="groupColorEnabled" size="small" />
-        </label>
+
         <label class="color-switch">
           <span>实时指标</span>
           <el-switch v-model="realtimeEnabled" size="small" @change="onRealtimeToggle" />
@@ -727,14 +746,7 @@ function delayBad(ms: number | null): boolean {
           <template #header>
             <div class="hc-head">
               <span class="hc-os">
-                <img
-                  v-if="!osImgFailed(h) && osImgSrc(osIcon(h.serverHostOsType))"
-                  :src="osImgSrc(osIcon(h.serverHostOsType))"
-                  class="os-img"
-                  alt=""
-                  @error="markOsImgFailed(h)"
-                />
-                <span v-else v-html="osSvg(osIcon(h.serverHostOsType))"></span>
+                <span v-html="osIconSvg(h.serverHostOsType)"></span>
               </span>
               <div class="hc-name-wrap">
                 <b class="hc-name">{{ h.serverHostName }}</b>
@@ -767,30 +779,19 @@ function delayBad(ms: number | null): boolean {
             </div>
           </div>
 
-          <!-- 实时指标条 -->
-          <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-bars">
+          <!-- 实时指标条（socket host-metrics 推送） -->
+          <div v-if="rtMetrics[h.id]" class="hc-bars">
             <div class="hc-bar-row">
               <span class="hc-bar-label">CPU</span>
-              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].cpu + '%', background: barColor(rtMetrics[h.id].cpu)}"></div></div>
-              <span class="hc-bar-val mono">{{ rtMetrics[h.id].cpu }}%</span>
+              <ElProgress :percentage="rtMetrics[h.id].cpu" :color="barColor(rtMetrics[h.id].cpu)" :stroke-width="10" class="hc-bar-progress" />
             </div>
             <div class="hc-bar-row">
               <span class="hc-bar-label">内存</span>
-              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].mem + '%', background: barColor(rtMetrics[h.id].mem)}"></div></div>
-              <span class="hc-bar-val mono">{{ rtMetrics[h.id].mem }}%</span>
+              <ElProgress :percentage="rtMetrics[h.id].mem" :color="barColor(rtMetrics[h.id].mem)" :stroke-width="10" class="hc-bar-progress" />
             </div>
             <div class="hc-bar-row">
               <span class="hc-bar-label">磁盘</span>
-              <div class="hc-bar-track"><div class="hc-bar-fill" :style="{width: rtMetrics[h.id].disk + '%', background: barColor(rtMetrics[h.id].disk)}"></div></div>
-              <span class="hc-bar-val mono">{{ rtMetrics[h.id].disk }}%</span>
-            </div>
-            <div class="hc-bar-row">
-              <span class="hc-bar-label">上行</span>
-              <span class="hc-bar-net mono">{{ rtMetrics[h.id].tx }}</span>
-            </div>
-            <div class="hc-bar-row">
-              <span class="hc-bar-label">下行</span>
-              <span class="hc-bar-net mono">{{ rtMetrics[h.id].rx }}</span>
+              <ElProgress :percentage="rtMetrics[h.id].disk" :color="barColor(rtMetrics[h.id].disk)" :stroke-width="10" class="hc-bar-progress" />
             </div>
           </div>
 
@@ -825,6 +826,11 @@ function delayBad(ms: number | null): boolean {
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(h)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(h)" />
               <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', h)" />
+              <ReButton v-if="h.serverHostCollectMode === 'AGENT' && !h.serverHostAgentInstalled" icon="Download" layout="square" size="small" type="success" title="安装 Agent" @click="openDeploy(h, 'install')" />
+              <template v-else>
+                <ReButton v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled" icon="RefreshRight" layout="square" size="small" type="warning" title="重装 Agent" @click="openDeploy(h, 'reinstall')" />
+                <ReButton v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled" icon="Top" layout="square" size="small" type="primary" title="升级 Agent" @click="openDeploy(h, 'upgrade')" />
+              </template>
             </div>
           </template>
         </ReCard>
@@ -848,14 +854,7 @@ function delayBad(ms: number | null): boolean {
       >
         <template #col-name="{ row }">
           <span class="h-os">
-            <img
-              v-if="!osImgFailed(row) && osImgSrc(osIcon(row.serverHostOsType))"
-              :src="osImgSrc(osIcon(row.serverHostOsType))"
-              class="os-img"
-              alt=""
-              @error="markOsImgFailed(row)"
-            />
-            <span v-else v-html="osSvg(osIcon(row.serverHostOsType))"></span>
+            <span v-html="osIconSvg(row.serverHostOsType)"></span>
           </span>
           <b style="vertical-align:middle;margin-left:6px">{{ row.serverHostName }}</b>
         </template>
@@ -1025,6 +1024,13 @@ function delayBad(ms: number | null): boolean {
       </template>
     </ReDialog>
   </div>
+    <!-- Agent 自动部署进度弹窗（socket 实时推送，支持最小化和断点续传） -->
+    <AgentDeployDialog
+      v-model="deployDialogVisible"
+      v-model:minimized="deployMinimized"
+      :task="deployTask"
+      :logs="deployLogs.map(l => ({ time: new Date().toLocaleTimeString(), msg: l }))"
+    />
 </template>
 
 <style scoped lang="scss">
@@ -1099,9 +1105,8 @@ function delayBad(ms: number | null): boolean {
   border: 1px solid var(--status-error-border);
   border-radius: var(--radius-sm);
 }
-.h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); }
+.h-os { display: inline-flex; align-items: center; vertical-align: middle; color: var(--brand-500); font-size: 17px; }
 .h-os :deep(svg) { display: block; }
-.os-img { width: 17px; height: 17px; display: block; object-fit: contain; }
 .kpi-ico { position: absolute; top: 12px; right: 12px; opacity: 0.14; pointer-events: none; }
 .st-cell { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 .delay-live { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-secondary, #8b90a0); }
@@ -1117,18 +1122,33 @@ function delayBad(ms: number | null): boolean {
   padding: 8px 0;
 }
 /* ReCard koi 主题 margin 覆盖：按网格排布时去掉多余边距 */
+.host-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+  padding: 8px 0;
+}
 .host-card-grid :deep(.koi-card) {
   margin: 0;
   padding: 0;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.host-card-grid :deep(.koi-card:hover) {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  border-color: rgba(109, 93, 252, 0.25);
 }
 .hc-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; }
 .hc-os {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; border-radius: 10px;
   background: var(--bg-fill, #f5f6fa); flex-shrink: 0; color: var(--brand-500);
+  font-size: 24px;
 }
 .hc-os :deep(svg) { display: block; }
-.hc-os .os-img { width: 24px; height: 24px; display: block; object-fit: contain; }
 .hc-name-wrap { flex: 1; min-width: 0; }
 .hc-name {
   display: block; font-size: 15px; font-weight: 600; color: var(--text-primary);
@@ -1136,9 +1156,20 @@ function delayBad(ms: number | null): boolean {
 }
 .hc-addr { font-size: 12px; color: var(--text-tertiary, #a0a4b0); margin-top: 2px; }
 .hc-status {
-  display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
-  flex-shrink: 0; padding: 3px 10px; border-radius: 20px;
-  background: var(--bg-fill, #f5f6fa);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.hc-status.online {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+}
+.hc-status.offline {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
 }
 .hc-status .on { color: var(--status-success-text, #34c759); font-weight: 500; }
 .hc-status .off { color: var(--status-error-text, #f56c6c); font-weight: 500; }
@@ -1154,9 +1185,38 @@ function delayBad(ms: number | null): boolean {
 .hc-m-val.mono { font-family: var(--font-mono, monospace); }
 .hc-m-val.bad { color: var(--danger, #f56c6c); font-weight: 600; }
 .hc-rt { padding: 8px 20px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f1f5f9; }
-.hc-bars { padding: 10px 20px; display: flex; flex-direction: column; gap: 5px; border-top: 1px solid #f1f5f9; }
-.hc-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.hc-bar-label { width: 30px; color: #94a3b8; }
+.hc-bars {
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle, #f1f5f9);
+  background: linear-gradient(180deg, rgba(109, 93, 252, 0.02) 0%, transparent 100%);
+}
+.hc-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.hc-bar-label {
+  width: 32px;
+  color: #64748b;
+  font-weight: 500;
+}
+.hc-bar-progress {
+  flex: 1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hc-bar-progress :deep(.el-progress-bar__outer) {
+  background-color: #f1f5f9;
+  border-radius: 4px;
+}
+.hc-bar-progress :deep(.el-progress-bar__inner) {
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .hc-bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
 .hc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
 .hc-bar-val { width: 40px; text-align: right; font-weight: 600; color: #0f172a; }
@@ -1166,3 +1226,11 @@ function delayBad(ms: number | null): boolean {
 .hc-actions { display: flex; gap: 6px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }
 .hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
 </style>
+
+.deploy-progress { padding: 10px 0; }
+.deploy-msg { margin-top: 12px; font-size: 13px; color: #475569; }
+.deploy-msg.success { color: #10b981; }
+.deploy-msg.error { color: #ef4444; }
+.deploy-container { display: flex; flex-direction: column; gap: 16px; }
+.deploy-log { max-height: 200px; overflow-y: auto; background: #1e293b; border-radius: 8px; padding: 12px; font-family: 'Consolas', monospace; font-size: 12px; }
+.deploy-log-line { color: #94a3b8; line-height: 1.6; }

@@ -67,7 +67,7 @@ async function refresh() {
 
 function openCreate(parentId = 0) {
   editingId.value = null;
-  form.value = { msServerGroupName: '', msServerGroupParentId: parentId, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' };
+  form.value = { msServerGroupName: '', msServerGroupParentId: parentId || null, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' };
   formVisible.value = true;
 }
 
@@ -76,7 +76,7 @@ function openEdit(node: GroupNode) {
   const anyNode = node as unknown as Record<string, unknown>;
   form.value = {
     msServerGroupName: node.name,
-    msServerGroupParentId: node.parentId,
+    msServerGroupParentId: node.parentId || null,
     msServerGroupSort: node.sort,
     msServerGroupRemark: node.remark || '',
     msServerGroupColor: String(anyNode.msServerGroupColor ?? anyNode.color ?? ''),
@@ -89,7 +89,8 @@ async function submitForm() {
     message.warning('分组名称不能为空');
     return;
   }
-  await saveGroup(editingId.value, { ...form.value });
+  const payload = { ...form.value, msServerGroupParentId: form.value.msServerGroupParentId ?? 0 };
+  await saveGroup(editingId.value, payload);
   message.success('已保存');
   formVisible.value = false;
   refresh();
@@ -154,27 +155,25 @@ async function removeGroup(node: GroupNode) {
         default-expand-all
         highlight-current
       >
-        <template #default="{ node, data }">
-          <div class="tree-node">
-            <span class="tree-label">
-              <span
-                v-if="data?.color"
-                class="color-dot"
-                :style="{ background: data.color }"
-              ></span>
-              <span v-else class="color-dot color-dot--default"></span>
-              <span class="node-name">{{ node.label }}</span>
-              <span v-if="data?.children?.length" class="node-badge">{{ data.children.length }}</span>
-              <span v-if="data?.remark" class="node-remark" :title="data.remark">
-                <el-icon><ChatLineRound /></el-icon>
-              </span>
+        <template #label="{ node }">
+          <span class="tree-label">
+            <span
+              v-if="node?.color"
+              class="color-dot"
+              :style="{ background: node.color }"
+            ></span>
+            <span v-else class="color-dot color-dot--default"></span>
+            <span class="node-name">{{ node?.name }}</span>
+            <span v-if="node?.children?.length" class="node-badge">{{ node.children.length }}</span>
+            <span v-if="node?.remark" class="node-remark" :title="node.remark">
+              <el-icon><ChatLineRound /></el-icon>
             </span>
-            <span class="tree-actions">
-              <ReButton link size="small" @click="openCreate(data.id)">添加子</ReButton>
-              <ReButton link size="small" @click="openEdit(data)">编辑</ReButton>
-              <ReButton link size="small" type="danger" @click="removeGroup(data)">删除</ReButton>
-            </span>
-          </div>
+          </span>
+        </template>
+        <template #actions="{ node }">
+          <ReButton link size="small" @click="openCreate(node.id)">添加子</ReButton>
+          <ReButton link size="small" @click="openEdit(node)">编辑</ReButton>
+          <ReButton link size="small" type="danger" @click="removeGroup(node)">删除</ReButton>
         </template>
       </ReTree>
     </ReCard>

@@ -14,7 +14,7 @@
       <LTooltip :content="t('chat.messageActions.regenerate')" placement="top">
         <div class="message-action-button" @click="$emit('generate')">
           <el-icon :size="16">
-            <ArrowDownwardTwotone />
+            <ArrowClockwise16Regular />
           </el-icon>
         </div>
       </LTooltip>

@@ -4,6 +4,7 @@ import type { Session, SessionGroup, SessionListResponse, SearchSessionResponse,
 export interface SessionApi {
   createSession(data: any): Promise<Session>;
   deleteSession(sessionId: string, deleteWorkspace?: boolean): Promise<{ success: boolean }>;
+  batchDeleteSessions(sessionIds: string[]): Promise<{ success: boolean; deletedCount: number }>;
   fetchSession(sessionId: string): Promise<Session>;
   fetchSessions(skip?: number, limit?: number, groupId?: string | null, keyword?: string, includeArchived?: boolean): Promise<SessionListResponse>;
   fetchSidebarSessions(limit?: number): Promise<SidebarSessionsResponse>;
@@ -299,6 +300,13 @@ export const sessionApi: SessionApi = {
       ? `/sessions/${sessionId}?deleteWorkspace=true`
       : `/sessions/${sessionId}`;
     return await this._request(url, { method: "DELETE" });
+  },
+
+  async batchDeleteSessions(this: ApiContext, sessionIds: string[]) {
+    return await this._request(`/sessions/batch`, {
+      method: "DELETE",
+      data: { ids: sessionIds }
+    });
   },
 
   async fetchSession(this: ApiContext, sessionId: string) {

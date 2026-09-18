@@ -864,6 +864,7 @@ export default {
     keyword: "关键字搜索",
     configFail: "配置失败",
     logIn: "请重新登录",
+    logInFail: "登录失败，请检查账号或密码",
     yzmFail: "验证码获取失败",
     requestFailed: "请求失败",
     http: {

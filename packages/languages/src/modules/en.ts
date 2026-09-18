@@ -861,6 +861,7 @@ export default {
     keyword: "Keyword search",
     configFail: "Configuration failed",
     logIn: "Please log in again",
+    logInFail: "Login failed, please check your account or password",
     yzmFail: "Captcha acquisition failed",
     requestFailed: "Request failed",
     http: {

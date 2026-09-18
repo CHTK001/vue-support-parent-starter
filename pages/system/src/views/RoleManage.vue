@@ -113,8 +113,8 @@ async function handleSubmit() {
     return;
   }
   
-  // 自动清理后的编码
-  form.value.sysRoleCode = cleanedCode;
+  // 自动清理后的编码，统一转成大写存储
+  form.value.sysRoleCode = cleanedCode.toUpperCase();
   saving.value = true;
   try {
     if (isEdit.value) {

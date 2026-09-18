@@ -139,8 +139,8 @@ export interface Manufacturer {
 /**
  * 内置默认提供商列表。
  *
- * 后端 /v2/manufacturer/list 为空或未配置时使用，确保本地模型（OCR/人脸/图像等）
- * 能通过 ollama / onnxruntime / python / pytorch 等本地运行时注册。
+ * 后端 /v2/manufacturer/list 为空或未配置时使用，覆盖本地运行时（OCR/人脸/图像等）
+ * 与常见国内外云服务商。code 与 ProviderIcon 的图标键对齐，确保下拉框能显示内置图标。
  * id 使用负数避免与后端自增 ID 冲突。
  */
 export const DEFAULT_MANUFACTURERS: Manufacturer[] = [
@@ -171,6 +171,97 @@ export const DEFAULT_MANUFACTURERS: Manufacturer[] = [
   { id: -23, name: 'PaddleOCR（百度飞桨）', code: 'paddleocr', enabled: true },
   { id: -24, name: 'InsightFace（人脸分析）', code: 'insightface', enabled: true },
   { id: -25, name: 'MediaPipe（Google 视觉）', code: 'mediapipe', enabled: true },
+  // —— 本地推理 / 部署框架 ——
+  { id: -26, name: 'vLLM（本地推理）', code: 'vllm', enabled: true },
+  { id: -27, name: 'LM Studio（本地推理）', code: 'lmstudio', enabled: true },
+  { id: -28, name: 'llama.cpp（GGUF 本地推理）', code: 'llamacpp', enabled: true },
+  { id: -29, name: 'MindSpore（昇思本地推理）', code: 'mindspore', enabled: true },
+  { id: -30, name: 'Xinference（本地部署）', code: 'xinference', enabled: true },
+  { id: -31, name: 'GPUStack（本地部署）', code: 'gpustack', enabled: true },
+  { id: -32, name: 'ComfyUI（图像工作流）', code: 'comfyui', enabled: true },
+  // —— 海外云服务商 ——
+  { id: -33, name: 'Mistral AI', code: 'mistral', enabled: true },
+  { id: -34, name: 'xAI（Grok）', code: 'xai', enabled: true },
+  { id: -35, name: 'Cohere', code: 'cohere', enabled: true },
+  { id: -36, name: 'Groq', code: 'groq', enabled: true },
+  { id: -37, name: 'Together AI', code: 'together', enabled: true },
+  { id: -38, name: 'Fireworks AI', code: 'fireworks', enabled: true },
+  { id: -39, name: 'Cerebras', code: 'cerebras', enabled: true },
+  { id: -40, name: 'SambaNova', code: 'sambanova', enabled: true },
+  { id: -41, name: 'AI21 Labs', code: 'ai21', enabled: true },
+  { id: -42, name: 'Aleph Alpha', code: 'alephalpha', enabled: true },
+  { id: -43, name: 'Reka', code: 'reka', enabled: true },
+  { id: -44, name: 'Perplexity', code: 'perplexity', enabled: true },
+  { id: -45, name: 'Replicate', code: 'replicate', enabled: true },
+  { id: -46, name: 'Modal', code: 'modal', enabled: true },
+  { id: -47, name: 'OpenRouter（聚合网关）', code: 'openrouter', enabled: true },
+  { id: -48, name: 'Clarifai', code: 'clarifai', enabled: true },
+  { id: -49, name: 'Hugging Face', code: 'huggingface', enabled: true },
+  { id: -50, name: 'DeepMind（Google）', code: 'deepmind', enabled: true },
+  { id: -51, name: 'Azure OpenAI', code: 'azure', enabled: true },
+  { id: -52, name: 'AWS Bedrock', code: 'aws', enabled: true },
+  { id: -53, name: 'Google Cloud Vertex AI', code: 'gcp', enabled: true },
+  // —— 国内云服务商 / 社区平台 ——
+  { id: -54, name: '火山方舟（豆包）', code: 'volcengine', enabled: true },
+  { id: -55, name: '腾讯混元', code: 'tencent', enabled: true },
+  { id: -56, name: '华为盘古', code: 'huawei', enabled: true },
+  { id: -57, name: '小米（MiMo）', code: 'xiaomi', enabled: true },
+  { id: -58, name: '百川智能', code: 'baichuan', enabled: true },
+  { id: -59, name: '零一万物', code: 'lingyi', enabled: true },
+  { id: -60, name: '阶跃星辰', code: 'stepfun', enabled: true },
+  { id: -61, name: '商汤日日新', code: 'sensetime', enabled: true },
+  { id: -62, name: 'Noematrix（诺瓦聚变）', code: 'noematrix', enabled: true },
+  { id: -63, name: '昆仑万维天工', code: 'skywork', enabled: true },
+  { id: -64, name: 'TeleChat（电信星辰）', code: 'telechat', enabled: true },
+  { id: -65, name: 'InternLM（上海 AI Lab 书生）', code: 'internlm', enabled: true },
+  { id: -66, name: '元象 XVERSE', code: 'xverse', enabled: true },
+  { id: -67, name: '硅基流动', code: 'siliconflow', enabled: true },
+  { id: -68, name: '无问芯穹', code: 'infinigence', enabled: true },
+  { id: -69, name: 'AIHubMix（聚合网关）', code: 'aihubmix', enabled: true },
+  { id: -70, name: 'One API（聚合网关）', code: 'oneapi', enabled: true },
+  { id: -71, name: '魔搭社区 ModelScope', code: 'modelscope', enabled: true },
+  // —— 图像 / 视频生成 ——
+  { id: -72, name: 'Flux（Black Forest Labs）', code: 'flux', enabled: true },
+  { id: -73, name: 'Runway', code: 'runway', enabled: true },
+  { id: -74, name: 'Luma AI', code: 'luma', enabled: true },
+  { id: -75, name: 'Pika', code: 'pika', enabled: true },
+  { id: -76, name: 'Ideogram', code: 'ideogram', enabled: true },
+  { id: -77, name: 'Recraft', code: 'recraft', enabled: true },
+  { id: -78, name: 'PixVerse（爱诗科技）', code: 'pixverse', enabled: true },
+  { id: -79, name: 'Vidu（生数科技）', code: 'vidu', enabled: true },
+  // —— 语音合成 / 识别 / 音乐 ——
+  { id: -80, name: 'ElevenLabs', code: 'elevenlabs', enabled: true },
+  { id: -81, name: 'Deepgram', code: 'deepgram', enabled: true },
+  { id: -82, name: 'Suno（AI 音乐）', code: 'suno', enabled: true },
+  { id: -83, name: 'Udio（AI 音乐）', code: 'udio', enabled: true },
+  { id: -84, name: 'FunASR（通义语音）', code: 'funasr', enabled: true },
+  { id: -85, name: 'ChatTTS', code: 'chattts', enabled: true },
+  { id: -86, name: 'Fish Speech', code: 'fishspeech', enabled: true },
+  { id: -87, name: 'SoVITS（歌声合成）', code: 'sovits', enabled: true },
+  { id: -88, name: 'Kokoro TTS', code: 'kokoro', enabled: true },
+  { id: -89, name: 'Bark', code: 'bark', enabled: true },
+  { id: -90, name: 'Piper TTS', code: 'piper', enabled: true },
+  // —— 视觉 / 检测 / 学术机构 ——
+  { id: -91, name: 'OpenCV（视觉库）', code: 'opencv', enabled: true },
+  { id: -92, name: 'Ultralytics YOLO', code: 'ultralytics', enabled: true },
+  { id: -93, name: 'OpenMMLab（多模态开发套件）', code: 'openmmlab', enabled: true },
+  { id: -94, name: '智源 BAAI', code: 'baai', enabled: true },
+  { id: -95, name: 'Jina AI', code: 'jina', enabled: true },
+  { id: -96, name: 'AllenAI（OLMo）', code: 'allenai', enabled: true },
+  // —— 向量库 / 应用编排 ——
+  { id: -97, name: 'Milvus（向量库）', code: 'milvus', enabled: true },
+  { id: -98, name: 'Qdrant（向量库）', code: 'qdrant', enabled: true },
+  { id: -99, name: 'Chroma（向量库）', code: 'chroma', enabled: true },
+  { id: -100, name: 'Weaviate（向量库）', code: 'weaviate', enabled: true },
+  { id: -101, name: 'Pinecone（向量库）', code: 'pinecone', enabled: true },
+  { id: -102, name: 'LangChain', code: 'langchain', enabled: true },
+  { id: -103, name: 'LlamaIndex', code: 'llamaindex', enabled: true },
+  { id: -104, name: 'LangFlow', code: 'langflow', enabled: true },
+  { id: -105, name: 'RAGFlow', code: 'ragflow', enabled: true },
+  { id: -106, name: 'n8n（工作流）', code: 'n8n', enabled: true },
+  { id: -107, name: 'CrewAI（多智能体）', code: 'crewai', enabled: true },
+  { id: -108, name: 'Dify（应用编排）', code: 'dify', enabled: true },
+  { id: -109, name: 'Weights & Biases（实验管理）', code: 'weightsandbiases', enabled: true },
 ];
 
 /** 供应商密钥 */
