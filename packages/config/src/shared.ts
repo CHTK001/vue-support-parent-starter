@@ -89,7 +89,8 @@ export function parseAppYaml(yaml: string): Partial<AppConfig> {
  * 注意：只用于**静态资源**路径，后端接口路径（/v2/...）不要走这里。
  */
 function assetBase(): string {
-  const env = (import.meta as unknown as { env?: { BASE_URL?: string } })?.env;
+  // 必须是字面量 import.meta.env：vite 按该文本做常量替换，写成可选链会替换不到
+  const env = (import.meta as unknown as { env: { BASE_URL?: string } }).env;
   return (env?.BASE_URL ?? "/").replace(/\/+$/, "");
 }
 

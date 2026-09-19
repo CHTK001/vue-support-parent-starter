@@ -178,6 +178,8 @@ const router = useRouter();
 const loginFormRef = ref<FormInstance>();
 const sliderRef = ref<InstanceType<typeof ReSliderVerify>>();
 const otpDialogRef = ref<InstanceType<typeof ReOtpDialog>>();
+// 服务端要求补录动态码时的提示语，用于把登录失败转成动态口令弹窗
+const OTP_REQUIRED_MESSAGE = "请输入动态验证码";
 const sliderPassed = ref(false);
 const loading = ref(false);
 
@@ -359,6 +361,10 @@ const submitLogin = async (otpCode: string) => {
     sliderRef.value?.reset();
     // 显示登录失败错误提示
     const errorMsg = error?.message || error?.msg || t("msg.logInFail");
+    if (String(errorMsg).includes(OTP_REQUIRED_MESSAGE)) {
+      otpDialogRef.value?.open();
+      return;
+    }
     msgError(errorMsg);
   } finally {
     loading.value = false;

@@ -345,6 +345,16 @@ export const useSessionStore = defineStore('session', () => {
         }
     }
 
+    const reorderQueue = (sessionId: string, fromId: string, toId: string): void => {
+        const state = getSessionState(sessionId)
+        const fromIdx = state.messageQueue.findIndex(m => m.id === fromId)
+        const toIdx = state.messageQueue.findIndex(m => m.id === toId)
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
+        
+        const [moved] = state.messageQueue.splice(fromIdx, 1)
+        state.messageQueue.splice(toIdx, 0, moved)
+    }
+
     const getQueueLength = (sessionId: string): number => {
         return getSessionState(sessionId).messageQueue.length
     }
@@ -544,6 +554,7 @@ export const useSessionStore = defineStore('session', () => {
         getMessageQueue,
         removeQueuedMessage,
         updateQueuedMessage,
+        reorderQueue,
         getQueueLength,
         getInputMessage,
         setInputMessage,

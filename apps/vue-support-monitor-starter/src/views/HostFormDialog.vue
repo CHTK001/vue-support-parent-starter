@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 主机新增/编辑弹窗（独立子组件）
  * 从 AssetsView 拆出：弹窗打开/渲染只在自身组件内进行，不再触发 AssetsView 巨型组件全量 diff
@@ -20,6 +20,7 @@ interface Host {
   serverHostPort?: number;
   serverHostOsType?: string;
   serverHostCollectMode?: string;
+  serverHostAgentPort?: number;
   serverHostCollectEnabled?: number;
   serverHostCollectInterval?: number;
   serverHostOnlineEnabled?: number;
@@ -57,6 +58,7 @@ const router = useRouter();
 const emit = defineEmits<{
   (e: "update:modelValue", v: boolean): void;
   (e: "saved"): void;
+  (e: "deploy-agent", hostId: number): void;
 }>();
 
 // ---- 表单状态（从 AssetsView 迁入）----
@@ -127,6 +129,33 @@ const collectModes = [
   { label: "Agent采集", value: "AGENT" },
   { label: "Prometheus采集", value: "PROMETHEUS" },
 ];
+/** 远控协议：空值表示按平台推断（Windows→RDP，macOS→VNC，其余 SSH） */
+const remoteProtocols = [
+  { label: "自动（按平台）", value: "" },
+  { label: "SSH", value: "SSH" },
+  { label: "RDP", value: "RDP" },
+  { label: "VNC", value: "VNC" },
+];
+/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（当前仅 SSH 支持） */
+const remoteModes = [
+  { label: "Guacd 中转", value: "GUACD" },
+  { label: "直连", value: "DIRECT" },
+];
+/** 生效协议（含按平台推断），决定默认端口与口令字段 */
+const effectiveRemoteProtocol = computed(() => {
+  const p = (form.value.serverHostRemoteProtocol ?? "").toUpperCase();
+  if (p === "SSH" || p === "RDP" || p === "VNC") return p;
+  const os = (form.value.serverHostOsType ?? "").toUpperCase();
+  if (os.includes("WIN")) return "RDP";
+  if (os.includes("MAC")) return "VNC";
+  return "SSH";
+});
+/** 各协议默认端口 */
+const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
+/** 端口占位提示（留空即按默认端口连接） */
+const remotePortPlaceholder = computed(() => `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`);
+/** 仅 SSH 支持直连；RDP/VNC 必须经 guacd */
+const directSupported = computed(() => effectiveRemoteProtocol.value === "SSH");
 
 // ---- 凭据校验与 Agent ----
 const verifying = ref(false);
@@ -164,8 +193,17 @@ async function testAgentConnection(): Promise<void> {
 async function deployAgent(): Promise<void> {
   deploying.value = true;
   try {
-    await new Promise(r => setTimeout(r, 1500));
-    ElMessage.success("Agent 部署中...");
+    // 调用后端部署接口
+    const hostId = form.value.id;
+    if (!hostId) {
+      ElMessage.warning("请先保存主机信息");
+      return;
+    }
+    // 关闭编辑弹窗，打开部署弹窗
+    emit("update:modelValue", false);
+    // 触发部署事件，传递主机信息和操作类型
+    emit("deploy-agent", { id: hostId, serverHostName: form.value.serverHostName, action: 'install' });
+    ElMessage.success("Agent 部署已启动");
   } catch (e) {
     ElMessage.error("Agent 部署失败");
   } finally {
@@ -214,7 +252,8 @@ function resetForm(): void {
     serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
     serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
     // 远控
-    serverHostRemoteEnabled: 1, serverHostAgentEnabled: 0, serverHostDelayEnabled: 1, serverHostDelayInterval: 60,
+    serverHostRemoteEnabled: 1, serverHostRemoteProtocol: "", serverHostRemoteMode: "GUACD", serverHostRemotePort: null, serverHostVncPassword: "",
+    serverHostAgentEnabled: 0, serverHostDelayEnabled: 1, serverHostDelayInterval: 60,
   };
   tagsText.value = "";
   formAuthMethod.value = "IDENTITY";
@@ -251,6 +290,15 @@ async function submitForm(): Promise<void> {
   form.value.serverHostRemoteEnabled = form.value.serverHostRemoteEnabled ? 1 : 0;
   form.value.serverHostAgentEnabled = form.value.serverHostAgentEnabled ? 1 : 0;
   form.value.serverHostDelayEnabled = form.value.serverHostDelayEnabled ? 1 : 0;
+  // 远控配置归一：协议留空=按平台推断，非 SSH 不允许直连，非 VNC 不存口令
+  const remoteProtocol = (form.value.serverHostRemoteProtocol || "").toUpperCase() || null;
+  form.value.serverHostRemoteProtocol = remoteProtocol;
+  if (form.value.serverHostRemoteMode === "DIRECT" && remoteProtocol && remoteProtocol !== "SSH") {
+    form.value.serverHostRemoteMode = "GUACD";
+  }
+  if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
+  if (remoteProtocol && remoteProtocol !== "VNC") form.value.serverHostVncPassword = null;
+  if (form.value.serverHostRemotePort === 0) form.value.serverHostRemotePort = null;
   // 注入认证凭据（瞬态字段，后端不落库，用于 SSH 连接建立）
   if (formAuthMethod.value === "PASSWORD") {
     form.value.serverHostAccount = formAccount.value || null;
@@ -297,6 +345,7 @@ watch(() => props.modelValue, (v) => {
     if (form.value.serverHostRemoteEnabled == null) form.value.serverHostRemoteEnabled = 1;
     if (form.value.serverHostDelayEnabled == null) form.value.serverHostDelayEnabled = 1;
     if (form.value.serverHostAgentEnabled == null) form.value.serverHostAgentEnabled = 0;
+    if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
     if (!form.value.serverHostCollectMode) form.value.serverHostCollectMode = "AGENT";
     tagsText.value = splitTags(form.value.serverHostTags).join(", ");
     formAuthMethod.value = "IDENTITY";
@@ -436,10 +485,47 @@ watch(() => props.modelValue, (v) => {
           </div>
         </ReFormItem>
 
+        <!-- ─── 远控配置（原主机画像中的远控设置，统一在此维护）─── -->
+        <div class="form-section full">远控配置</div>
+        <ReFormItem label="远程控制" class="col-span-2">
+          <div class="switch-row">
+            <ReSwitch layout="square" v-model="form.serverHostRemoteEnabled" :active-value="1" :inactive-value="0" />
+            <span class="switch-extra-label">{{ form.serverHostRemoteEnabled === 1 ? "允许从资产页发起远控" : "禁止远控" }}</span>
+          </div>
+        </ReFormItem>
+        <template v-if="form.serverHostRemoteEnabled === 1">
+          <ReFormItem label="远控协议">
+            <ReSelect v-model="form.serverHostRemoteProtocol" size="small" style="width:100%" :options="remoteProtocols" />
+          </ReFormItem>
+          <ReFormItem label="远控通道">
+            <ReSelect
+              v-model="form.serverHostRemoteMode"
+              size="small"
+              style="width:100%"
+              :disabled="!directSupported"
+              :options="remoteModes"
+            />
+          </ReFormItem>
+          <ReFormItem label="远控端口">
+            <ReInputNumber v-model="form.serverHostRemotePort" :min="1" :max="65535" :placeholder="remotePortPlaceholder" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem v-if="effectiveRemoteProtocol === 'VNC'" label="VNC 密码">
+            <ReInput v-model="form.serverHostVncPassword" type="password" show-password placeholder="VNC 服务端口令" style="width:100%" />
+          </ReFormItem>
+          <ReFormItem class="col-span-2" label=" ">
+            <span class="remote-tip">
+              直连由平台原生客户端实现（当前支持 SSH，不经过 guacd）；RDP / VNC 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
+            </span>
+          </ReFormItem>
+        </template>
+
         <!-- ─── 凭据校验与 Agent（仅 AGENT 模式、非本机时显示；本机由 monitor 自采集推送，无需凭据）─── -->
         <template v-if="form.serverHostCollectMode === 'AGENT' && form.serverHostOsType !== 'LOCAL'">
           <div class="form-section full">凭据校验与 Agent</div>
-          <ReFormItem label="凭据状态" class="col-span-2">
+          <ReFormItem label="Agent 端口">
+            <ReInputNumber v-model="form.serverHostAgentPort" :min="1" :max="65535" style="width:100%" placeholder="默认 19876" />
+          </ReFormItem>
+          <ReFormItem label="凭据状态">
             <div style="display:flex;gap:8px;align-items:center;">
               <ReButton size="small" @click="verifyCredentials" :loading="verifying">校验凭据</ReButton>
               <span v-if="credVerified" style="color:#67c23a;">✓ 校验成功</span>
@@ -611,5 +697,11 @@ watch(() => props.modelValue, (v) => {
   font-size: 13px;
   color: var(--text-secondary, #606266);
   white-space: nowrap;
+}
+/* 远控配置说明 */
+.remote-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary, #909399);
 }
 </style>

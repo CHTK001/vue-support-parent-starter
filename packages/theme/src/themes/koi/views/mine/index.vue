@@ -8,7 +8,7 @@
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
               <div class="mine-avatar-frame-box">
-                <div v-if="mineFrameImage" class="mine-avatar-frame-layer" :style="mineFrameStyle()"></div>
+                <div v-if="mineFrameVisible" class="mine-avatar-frame-layer" :style="mineFrameLayer(104)"></div>
                 <ReAvatarCrop
                   v-model="mineAvatar"
                   :action="avatarUploadUrl"
@@ -94,7 +94,7 @@
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
                     <el-form-item label="手机号码" prop="sysUserPhone">
-                      <el-input v-model="mineForm.sysUserPhone" placeholder="请输入手机号码" clearable />
+                      <el-input v-model="mineForm.sysUserPhone" placeholder="请输入手机号码（选填）" clearable />
                     </el-form-item>
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
@@ -159,6 +159,76 @@
                   </el-col>
                 </el-row>
               </el-form>
+            </el-tab-pane>
+
+            <!-- 账号安全：两步验证 -->
+            <el-tab-pane name="secure">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Iphone /></el-icon>
+                  <span>账号安全</span>
+                </span>
+              </template>
+              <div class="secure-panel">
+                <div class="secure-panel__header">
+                  <div class="secure-panel__icon">
+                    <el-icon :size="26"><Iphone /></el-icon>
+                  </div>
+                  <div class="secure-panel__title">两步验证（TOTP）</div>
+                  <div class="secure-panel__desc">
+                    开启后登录需额外输入验证器 App 生成的 6 位动态码；需系统设置「登录校验动态验证码」同时开启才会生效
+                  </div>
+                </div>
+
+                <div class="secure-status" :class="totpEnabled ? 'secure-status--enabled' : 'secure-status--disabled'">
+                  <div class="secure-status__badge">
+                    <span class="secure-status__dot"></span>
+                    {{ totpEnabled ? "已开启" : "未开启" }}
+                  </div>
+                  <div class="secure-status__text">
+                    {{ totpEnabled ? "当前账号已绑定验证器，登录时会校验动态验证码" : "当前账号未绑定验证器，仅凭密码即可登录" }}
+                  </div>
+                  <div class="secure-actions">
+                    <el-button v-if="!totpEnabled" type="primary" :loading="totpLoading" @click="openTotpBind">
+                      开启两步验证
+                    </el-button>
+                    <el-button v-else type="danger" plain :loading="totpUnbinding" @click="handleTotpUnbind">
+                      关闭两步验证
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+
+              <el-dialog v-model="totpDialogVisible" title="开启两步验证" width="520px" @closed="handleTotpDialogClosed">
+                <div class="totp-bind">
+                  <div class="totp-bind__tip">
+                    请用验证器 App（Google Authenticator / Microsoft Authenticator 等）添加下面的密钥，再输入 App 生成的 6
+                    位动态码完成绑定。
+                  </div>
+                  <div class="totp-bind__row">
+                    <span class="totp-bind__label">密钥</span>
+                    <code class="totp-bind__value">{{ totpSecret || "-" }}</code>
+                    <el-button link type="primary" @click="copyTotpText(totpSecret)">复制</el-button>
+                  </div>
+                  <div class="totp-bind__row">
+                    <span class="totp-bind__label">绑定链接</span>
+                    <span class="totp-bind__value totp-bind__value--uri">{{ totpUri }}</span>
+                    <el-button link type="primary" @click="copyTotpText(totpUri)">复制</el-button>
+                  </div>
+                  <el-input
+                    v-model="totpCode"
+                    class="mt-12px"
+                    placeholder="请输入 6 位动态码"
+                    maxlength="6"
+                    clearable
+                    @keyup.enter="handleTotpConfirm"
+                  />
+                </div>
+                <template #footer>
+                  <el-button @click="totpDialogVisible = false">取消</el-button>
+                  <el-button type="primary" :loading="totpVerifying" @click="handleTotpConfirm">确认开启</el-button>
+                </template>
+              </el-dialog>
             </el-tab-pane>
 
             <el-tab-pane v-if="frameEnabled" name="frame">
@@ -251,10 +321,10 @@
 import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
 import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
-import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo } from "@repo/utils";
+import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo, Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
-import { getAvatarFrameImage, getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
+import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -292,8 +362,8 @@ async function handleAvatarSuccess(_response: unknown, url: string): Promise<voi
     const res = await getApiHttp()
       .put("/v2/user/update")
       .data({ sysUserAvatar: url } as Record<string, unknown>)
-      .then<{ code?: number; msg?: string }>((r) => r.data);
-    if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
+      .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
       msgSuccess("头像已更新");
       await authStore.getLoginUserInfo();
       refreshMine();
@@ -340,14 +410,8 @@ const mineAvatar = computed<string>({
   },
 });
 
-/** 头像框图片：开关开启时映射位图/APNG 帧（渐变框不在此渲染；生日框为普通帧 id=100） */
-const mineFrameImage = computed(() => {
-  const info = mine.value;
-  if (Number(info.avatarFrameShow) !== 1) return "";
-  return getAvatarFrameImage(info.avatarFrame);
-});
-/** 头像框叠加层样式：按头像尺寸 ÷ 洞径比 缩放层，使环贴合头像边缘（头像裁剪区 104px） */
-const mineFrameStyle = (): Record<string, string> => getAvatarFrameLayerStyle(mine.value.avatarFrame, 104);
+/** 头像框：数据源取 /me 最新结果（个人中心刚改完要立刻看到），层尺寸按头像裁剪区 104px */
+const { visible: mineFrameVisible, layerStyle: mineFrameLayer } = useWornAvatarFrame(() => mine.value);
 
 /** 读取登录用户信息到展示区与表单 */
 const refreshMine = async () => {
@@ -403,12 +467,34 @@ const resetMineForm = () => {
   refreshMine();
 };
 
-/** 表单规则 */
+/** 表单规则：手机号/邮箱选填，填了才校验格式（存量账号手机号为空时不应阻断保存） */
 const mineRules = reactive({
   sysUserUsername: [{ required: true, message: "请输入登录名称", trigger: "blur" }],
   sysUserNickname: [{ required: true, message: "请输入用户名称", trigger: "blur" }],
-  sysUserPhone: [{ required: true, message: "请输入手机号码", trigger: "blur" }],
-  sysUserEmail: [{ required: false, message: "请输入邮箱", trigger: "blur" }],
+  sysUserPhone: [
+    {
+      validator: (_rule: unknown, value: string, callback: (e?: Error) => void) => {
+        if (!value || /^1[3-9]\d{9}$/.test(value)) {
+          callback();
+        } else {
+          callback(new Error("手机号格式不正确"));
+        }
+      },
+      trigger: "blur",
+    },
+  ],
+  sysUserEmail: [
+    {
+      validator: (_rule: unknown, value: string, callback: (e?: Error) => void) => {
+        if (!value || /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(value)) {
+          callback();
+        } else {
+          callback(new Error("邮箱格式不正确"));
+        }
+      },
+      trigger: "blur",
+    },
+  ],
 });
 
 /** 保存基本资料（PUT /v2/user/update，不传 sysUserId 时后端更新当前账号） */
@@ -427,8 +513,8 @@ const handleMineSave = () => {
       const res = await getApiHttp()
         .put("/v2/user/update")
         .data(payload)
-        .then<{ code?: number; msg?: string }>((r) => r.data);
-      if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
+        .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
+      if (Http.isSuccessful(res)) {
         msgSuccess("保存成功");
         // 刷新用户信息到 storage 与 auth store
         await authStore.getLoginUserInfo();
@@ -502,8 +588,8 @@ const handlePwdSave = () => {
       const res = await getApiHttp()
         .put("/v2/user/updateOwner")
         .data(pwdForm.value)
-        .then<{ code?: number; msg?: string }>((r) => r.data);
-      if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
+        .then<{ code?: string; msg?: string; success?: boolean }>((r) => r.data);
+      if (Http.isSuccessful(res)) {
         msgSuccess("密码修改成功");
         resetPwdForm();
       } else {
@@ -517,6 +603,142 @@ const handlePwdSave = () => {
   });
 };
 /** 修改密码 End */
+
+/** 账号安全（TOTP 两步验证）Begin */
+const totpEnabled = ref(false);
+const totpLoading = ref(false);
+const totpUnbinding = ref(false);
+const totpVerifying = ref(false);
+const totpDialogVisible = ref(false);
+const totpUri = ref("");
+const totpSecret = ref("");
+const totpCode = ref("");
+/** 本次是否由「未开启」状态新拉取了密钥：取消时需回滚，否则会留下未验证的密钥 */
+const totpPendingRollback = ref(false);
+
+/** 动态码校验使用的账号名（verify 接口按用户名查库） */
+const totpUsername = computed(() => mine.value.loginName || userStore.username || "");
+
+/** 读取当前账号的 2FA 绑定状态（后端返回裸 Boolean） */
+const loadTotpStatus = async () => {
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .get("/v2/user/totp/status")
+      .then((r: any) => r.data);
+    totpEnabled.value = res?.data === true;
+  } catch (e) {
+    console.error("[mine] 获取 2FA 状态失败", e);
+    totpEnabled.value = false;
+  }
+};
+
+/** 拉取绑定链接：后端会在密钥为空时生成并落库，因此取消时需要回滚 */
+const openTotpBind = async () => {
+  totpLoading.value = true;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .get("/v2/user/totp/generateUri")
+      .then((r: any) => r.data);
+    const uri = String(res?.data ?? "");
+    if (!uri) {
+      msgError(res?.msg || "获取绑定链接失败");
+      return;
+    }
+    totpUri.value = uri;
+    totpSecret.value = uri.match(/[?&]secret=([^&]+)/)?.[1] ?? "";
+    totpCode.value = "";
+    totpPendingRollback.value = !totpEnabled.value;
+    totpDialogVisible.value = true;
+  } catch (e) {
+    msgError("获取绑定链接失败：" + ((e as Error)?.message || "网络异常"));
+  } finally {
+    totpLoading.value = false;
+  }
+};
+
+/** 用验证器生成的动态码完成绑定（校验通过即视为已开启，密钥已落库） */
+const handleTotpConfirm = async () => {
+  if (!/^\d{6}$/.test(totpCode.value)) {
+    msgError("请输入 6 位动态码");
+    return;
+  }
+  if (!totpUsername.value) {
+    msgError("未获取到登录账号，请刷新后重试");
+    return;
+  }
+  totpVerifying.value = true;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .get("/v2/user/totp/verify")
+      .query({ code: totpCode.value, username: totpUsername.value } as Record<string, unknown>)
+      .then<{ code?: string; data?: boolean; msg?: string; success?: boolean }>((r) => r.data);
+    if (Http.isSuccessful(res) && res?.data === true) {
+      totpPendingRollback.value = false;
+      totpEnabled.value = true;
+      totpDialogVisible.value = false;
+      msgSuccess("两步验证已开启");
+    } else {
+      msgError(res?.msg || "验证码错误或已过期");
+    }
+  } catch (e) {
+    msgError("验证码校验失败：" + ((e as Error)?.message || "网络异常"));
+  } finally {
+    totpVerifying.value = false;
+  }
+};
+
+/** 解绑 2FA；silent 用于取消绑定时的静默回滚 */
+const doTotpUnbind = async (silent: boolean) => {
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .put("/v2/user/totp/unbind")
+      .then<{ code?: string; data?: boolean; msg?: string; success?: boolean }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
+      totpEnabled.value = false;
+      if (!silent) msgSuccess("两步验证已关闭");
+    } else if (!silent) {
+      msgError(res?.msg || "操作失败");
+    }
+  } catch (e) {
+    if (!silent) msgError("操作失败：" + ((e as Error)?.message || "网络异常"));
+  }
+};
+
+const handleTotpUnbind = async () => {
+  try {
+    await msgBox("关闭后登录不再校验动态验证码，确认关闭两步验证？", "关闭两步验证", "确定", "取消", "warning");
+  } catch {
+    return;
+  }
+  totpUnbinding.value = true;
+  await doTotpUnbind(false);
+  totpUnbinding.value = false;
+};
+
+/** 绑定弹窗关闭：未确认成功的密钥回滚，避免留下形同开启的未验证密钥 */
+const handleTotpDialogClosed = async () => {
+  if (!totpPendingRollback.value) return;
+  totpPendingRollback.value = false;
+  totpUri.value = "";
+  totpSecret.value = "";
+  totpCode.value = "";
+  await doTotpUnbind(true);
+};
+
+const copyTotpText = async (text: string) => {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    msgSuccess("已复制");
+  } catch {
+    msgError("复制失败，请手动选择文本复制");
+  }
+};
+/** 账号安全（TOTP 两步验证）End */
 
 /** 锁屏设置 Begin */
 const lockHasPassword = ref(false);
@@ -593,6 +815,7 @@ onMounted(async () => {
   await authStore.getLoginUserInfo();
   refreshMine();
   initLockState();
+  loadTotpStatus();
   // 监听 Storage 事件（跨标签页同步）
   window.addEventListener("storage", (e) => {
     if (e.key === LOCK_KEY) {
@@ -737,6 +960,91 @@ onMounted(async () => {
 .lock-status__text {
   margin-top: 12px;
   font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 账号安全面板复用锁屏面板的视觉规范 */
+.secure-panel {
+  @extend .lock-panel;
+  max-width: 560px;
+}
+
+.secure-panel__header {
+  @extend .lock-panel__header;
+}
+
+.secure-panel__icon {
+  @extend .lock-panel__icon;
+}
+
+.secure-panel__title {
+  @extend .lock-panel__title;
+}
+
+.secure-panel__desc {
+  @extend .lock-panel__desc;
+  text-align: center;
+  max-width: 420px;
+}
+
+.secure-status {
+  @extend .lock-status;
+}
+
+.secure-status--enabled {
+  @extend .lock-status--enabled;
+}
+
+.secure-status--disabled {
+  @extend .lock-status--disabled;
+}
+
+.secure-status__badge {
+  @extend .lock-status__badge;
+}
+
+.secure-status__dot {
+  @extend .lock-status__dot;
+}
+
+.secure-status__text {
+  @extend .lock-status__text;
+}
+
+.secure-actions {
+  @extend .lock-actions;
+}
+
+.totp-bind__tip {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 14px;
+}
+
+.totp-bind__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.totp-bind__label {
+  flex: none;
+  width: 64px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.totp-bind__value {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  word-break: break-all;
+  color: var(--el-text-color-primary);
+}
+
+.totp-bind__value--uri {
   color: var(--el-text-color-secondary);
 }
 

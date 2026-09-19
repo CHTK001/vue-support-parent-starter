@@ -66,21 +66,9 @@
       <div class="input-actions w-full flex justify-between">
         <div class="tools left-tools flex gap-0.5 items-center">
           <slot name="buttons"></slot>
-          <!-- 运行模式按钮 -->
+          <!-- 左侧工具按钮组 -->
           <template v-if="!props.readonly">
-            <button ref="runModeButtonRef" class="tool-btn" @click.stop="toggleRunModePopover">
-              <el-icon size="16">
-                <component :is="runModeIcon" class="text-gray-600" />
-              </el-icon>
-              <span class="text-xs font-medium">{{ runModeLabel }}</span>
-            </button>
-            <RunModePopover v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
-              :current-value="currentRunMode" @select="handleRunModeChange" />
-            <el-divider direction="vertical"></el-divider>
-          </template>
-
-          <!-- 附件/图片/知识库按钮 -->
-          <template v-if="!props.readonly">
+            <!-- 附件/图片/知识库按钮（放到最左侧） -->
             <button ref="attachButtonRef" class="tool-btn" @click.stop="toggleAttachPopover">
               <el-icon size="16">
                 <Add24Regular />
@@ -91,24 +79,35 @@
               :selected-attachments="props.config?.attachments || {}" @select-image="triggerImageInput"
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
               @toggle-attachment="toggleAttachmentSelection" />
-            
-            <!-- 技能按钮 -->
+
+            <!-- 运行模式按钮 -->
+            <button ref="runModeButtonRef" class="tool-btn" @click.stop="toggleRunModePopover">
+              <el-icon size="16">
+                <component :is="runModeIcon" class="text-gray-600" />
+              </el-icon>
+              <span class="text-xs font-medium">{{ runModeLabel }}</span>
+            </button>
+            <RunModePopover v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
+              :current-value="currentRunMode" @select="handleRunModeChange" />
+            <el-divider direction="vertical"></el-divider>
+
+            <!-- 技能按钮（响应式：小窗口只显示图标） -->
             <button class="tool-btn skill-btn" @click.stop="openCommandPicker('', 'slash')">
               <el-icon size="16">
                 <Wrench24Regular />
               </el-icon>
-              <span class="text-xs font-medium">技能</span>
+              <span class="text-xs font-medium btn-label">技能</span>
             </button>
           </template>
-            <!-- 深度思考开关 -->
+            <!-- 深度思考开关（响应式：小窗口只显示图标） -->
             <button class="tool-btn" :class="{ 'tool-btn-active': thinkingEnabled }" @click.stop="thinkingEnabled = !thinkingEnabled"
               title="深度思考">
-              <el-icon size="16"><BrainCircuit20Regular /></el-icon><span class="text-xs font-medium">深度思考</span>
+              <el-icon size="16"><BrainCircuit20Regular /></el-icon><span class="text-xs font-medium btn-label">深度思考</span>
             </button>
-            <!-- 网页搜索开关 -->
+            <!-- 网页搜索开关（响应式：小窗口只显示图标） -->
             <button class="tool-btn" :class="{ 'tool-btn-active': webSearchEnabled }" @click.stop="webSearchEnabled = !webSearchEnabled"
               title="在线检索">
-              <el-icon size="16"><GlobeShield20Regular /></el-icon><span class="text-xs font-medium">在线检索</span>
+              <el-icon size="16"><GlobeShield20Regular /></el-icon><span class="text-xs font-medium btn-label">在线检索</span>
             </button>
         </div>
         <div class="right-actions flex items-center gap-1">
@@ -125,14 +124,6 @@
                 currentModelNameOnly }}</span>
             <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
           </button>
-          <!-- 会话设置按钮 -->
-          <LTooltip v-if="!props.readonly" :content="t('chat.input.tokenLimit')" placement="top">
-            <button ref="settingsButtonRef" class="tool-btn" @click.stop="toggleSettingsPopover">
-              <span class="text-xs font-medium">{{ maxTokensLabel }}</span>
-            </button>
-          </LTooltip>
-          <MaxTokensPopover v-model:visible="settingsPopoverVisible" :anchor-el="settingsButtonRef"
-            :current-value="props.config?.maxTokensLimit ?? null" @change="handleMaxTokensChange" />
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" @click="abortResponse">
@@ -1352,10 +1343,23 @@ watch(() => props.buttons, (value) => {
   });
 }, { immediate: true });
 
+// 全局点击事件：点击外部关闭技能弹层
+const handleClickOutside = (e: MouseEvent) => {
+  if (commandPickerVisible.value) {
+    const pickerEl = commandPickerRef.value?.$el as HTMLElement;
+    const skillBtn = document.querySelector('.skill-btn') as HTMLElement;
+    if (pickerEl && !pickerEl.contains(e.target as Node) && 
+        skillBtn && !skillBtn.contains(e.target as Node)) {
+      closeCommandPicker();
+    }
+  }
+};
+
 onMounted(() => {
   adjustTextareaHeight();
   loadModels();
   initThinkingEffort(); // 初始化思考强度
+  document.addEventListener('click', handleClickOutside);
 
   // 初始化 Tiptap 编辑器
   try {
@@ -1463,6 +1467,7 @@ onMounted(() => {
 
 // 清理事件监听器和预览 URL
 onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
   if (modelOpenTimer) clearTimeout(modelOpenTimer)
   if (modelCloseTimer) clearTimeout(modelCloseTimer)
 
@@ -1674,6 +1679,22 @@ defineExpose({ insertText, insertBadge });
 }
 
 /* 模型选择器按钮 - 原生 button */
+/* 响应式：窗口太窄时隐藏按钮文字 */
+@media (max-width: 1100px) {
+  .btn-label {
+    display: none;
+  }
+}
+
+/* 响应式：更窄窗口隐藏技能/深度思考/在线检索按钮，收敛到 + 菜单 */
+@media (max-width: 900px) {
+  .skill-btn,
+  .thinking-toggle,
+  .search-toggle {
+    display: none !important;
+  }
+}
+
 /* 技能按钮 */
 .skill-btn {
   display: flex;

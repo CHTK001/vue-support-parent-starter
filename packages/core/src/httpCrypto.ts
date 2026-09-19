@@ -15,7 +15,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
-import { getAccessToken } from "@repo/utils";
+import { getAccessToken, clearAllAuthData } from "@repo/utils";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
 import { msgError, setSuppressNextMsg } from "./msg";
@@ -40,6 +40,18 @@ export const SIGN_HEADER = "x-sign";
 
 /** 幂等方法白名单：默认仅这些方法自动失败重试（避免非幂等写操作被重复执行） */
 const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+
+/**
+ * 需要重新登录的业务码：令牌失效、账号被禁用/锁定/过期、密码过期
+ * 不含 A0403S0001（仅本次操作无权限，会话仍然有效）
+ */
+const RELOGIN_CODES = new Set([
+  "A0403S0000",
+  "A0403S0002",
+  "A0403S0003",
+  "A0403S0004",
+  "A0403S0005",
+]);
 
 /** 请求加密配置 */
 export interface HttpCryptoOptions {
@@ -349,11 +361,18 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       if (status === 401 || status === 403) {
         const loginUrl = getConfig().route?.loginPath || LOGIN_URL || "/login";
         const action = getConfig().http?.authFailAction || "confirm";
+        // 应用部署在子路径时，登录页要拼上 base，否则跳出应用
+        const loginHref = (import.meta.env.BASE_URL || "/") + loginUrl.replace(/^\//, "");
+        const bizCode = (error?.response?.data as { code?: string } | undefined)?.code;
+        // 会话已失效：清掉本地令牌，否则守卫会凭旧令牌把用户弹回首页反复 403
+        if (status === 401 || (bizCode && RELOGIN_CODES.has(bizCode))) {
+          clearAllAuthData();
+        }
         // 如果当前已经在登录页，就不弹了
         const currentPath = window.location.pathname;
         const isOnLoginPage = currentPath.includes("/login") || currentPath.endsWith("/login");
         if (action === "redirect") {
-          window.location.href = loginUrl;
+          window.location.href = loginHref;
         } else if (!isOnLoginPage) {
           // 防止多个请求同时 403 导致弹窗叠在一起
           if (!(window as any).__authDialogOpen) {
@@ -368,7 +387,7 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
                 type: "warning",
               }
             ).then(() => {
-              window.location.href = loginUrl;
+              window.location.replace(loginHref);
             }).finally(() => {
               (window as any).__authDialogOpen = false;
             });

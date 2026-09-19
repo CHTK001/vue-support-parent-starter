@@ -467,7 +467,7 @@ export function kickUser(userId: string) {
 export function kickUsers(userIds: string[]) {
   return http()
     .delete("/v2/online/kick/batch")
-    .data({ userIds })
+    .data(userIds)
     .then<ApiResult<number>>((r) => r.data);
 }
 

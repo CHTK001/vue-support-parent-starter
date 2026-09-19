@@ -9,7 +9,7 @@
  * 没有再请求接口并写回（setMenuCache / setLayoutCache）。登出 / 强制重登时
  * 调用 clearAuthCache() 静默清除，避免跨账号串数据。
  */
-import { getConfig } from "@repo/config";
+import { getConfig, CACHE_PREFIX } from "@repo/config";
 import { browserLocalStorage, createStorage } from "./../storage";
 import type { StorageValue } from "./../types";
 
@@ -203,6 +203,8 @@ export function clearAuthToken(): void {
     storage.remove(accessKey());
     storage.remove(refreshKey());
     storage.remove(USER_INFO_KEY);
+    // pinia user store 的持久化副本里也存着 token，不清掉守卫会凭它把用户弹回首页
+    storage.remove(CACHE_PREFIX + "user");
   } catch {
     /* ignore */
   }

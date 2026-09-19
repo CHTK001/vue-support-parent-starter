@@ -19,6 +19,7 @@ const treeData = ref<GroupNode[]>([]);
 const flatGroups = ref<any[]>([]);
 
 const formVisible = ref(false);
+const currentNode = ref<GroupNode | null>(null);
 const editingId = ref<number | null>(null);
 const form = ref({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
 
@@ -63,6 +64,10 @@ async function refresh() {
   } finally {
     loading.value = false;
   }
+}
+
+function onNodeClick(node: GroupNode) {
+  currentNode.value = node;
 }
 
 function openCreate(parentId = 0) {
@@ -113,72 +118,94 @@ async function removeGroup(node: GroupNode) {
       </template>
     </ReSectionHead>
 
-    <!-- 统计卡片 -->
-    <div class="stat-row">
-      <div class="stat-card">
-        <ReButton icon="Folder" layout="square" size="small" />
-        <div class="stat-body">
-          <div class="stat-value">{{ totalGroups }}</div>
-          <div class="stat-label">全部分组</div>
+    <div class="group-layout">
+      <!-- 左侧树 -->
+      <ReCard class="tree-card" v-loading="loading">
+        <ReEmptyState
+          v-if="!loading && treeData.length === 0"
+          title="暂无分组"
+          description="点击右上角「新建根分组」创建第一个分组"
+          size="compact"
+        >
+          <template #icon><FolderOpened /></template>
+        </ReEmptyState>
+        <ReTree
+          v-else
+          :data="treeData"
+          node-key="id"
+          :props="{ children: 'children', label: 'name' }"
+          default-expand-all
+          highlight-current
+          @node-click="onNodeClick"
+        >
+          <template #label="{ node }">
+            <span class="tree-label">
+              <span
+                v-if="node?.color"
+                class="color-dot"
+                :style="{ background: node.color }"
+              ></span>
+              <span v-else class="color-dot color-dot--default"></span>
+              <span class="node-name">{{ node?.name }}</span>
+              <span v-if="node?.children?.length" class="node-badge">{{ node.children.length }}</span>
+            </span>
+          </template>
+        </ReTree>
+      </ReCard>
+
+      <!-- 右侧详情 -->
+      <ReCard class="detail-card">
+        <div v-if="currentNode" class="detail-content">
+          <div class="detail-header">
+            <div class="detail-title">{{ currentNode.name }}</div>
+            <div class="detail-actions">
+              <ReButton show-text icon="Plus" size="small" @click="openCreate(currentNode.id)">添加子分组</ReButton>
+              <ReButton show-text icon="EditPen" size="small" @click="openEdit(currentNode)">编辑</ReButton>
+              <ReButton show-text icon="Delete" size="small" type="danger" @click="removeGroup(currentNode)">删除</ReButton>
+            </div>
+          </div>
+          <div class="detail-body">
+            <div class="detail-item">
+              <div class="detail-label">分组 ID</div>
+              <div class="detail-value">{{ currentNode.id }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">分组名称</div>
+              <div class="detail-value">{{ currentNode.name }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">子分组数</div>
+              <div class="detail-value">{{ currentNode.children?.length || 0 }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">排序</div>
+              <div class="detail-value">{{ currentNode.sort || 0 }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">颜色</div>
+              <div class="detail-value">
+                <span v-if="currentNode.color" class="color-dot" :style="{ background: currentNode.color }"></span>
+                <span v-else>默认</span>
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">备注</div>
+              <div class="detail-value">{{ currentNode.remark || '无' }}</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="stat-card">
-        <ReButton icon="FolderOpened" layout="square" size="small" />
-        <div class="stat-body">
-          <div class="stat-value">{{ rootGroups }}</div>
-          <div class="stat-label">根分组</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <ReButton icon="FolderAdd" layout="square" size="small" />
-        <div class="stat-body">
-          <div class="stat-value">{{ subGroups }}</div>
-          <div class="stat-label">子分组</div>
-        </div>
-      </div>
+        <ReEmptyState
+          v-else
+          title="选择分组查看详情"
+          description="点击左侧分组查看详细信息"
+          size="compact"
+        >
+          <template #icon><FolderOpened /></template>
+        </ReEmptyState>
+      </ReCard>
     </div>
 
-    <ReCard class="tree-card" v-loading="loading">
-      <ReEmptyState
-        v-if="!loading && treeData.length === 0"
-        title="暂无分组"
-        description="点击右上角「新建根分组」创建第一个分组"
-        size="compact"
-      >
-        <template #icon><FolderOpened /></template>
-      </ReEmptyState>
-      <ReTree
-        v-else
-        :data="treeData"
-        node-key="id"
-        :props="{ children: 'children', label: 'name' }"
-        default-expand-all
-        highlight-current
-      >
-        <template #label="{ node }">
-          <span class="tree-label">
-            <span
-              v-if="node?.color"
-              class="color-dot"
-              :style="{ background: node.color }"
-            ></span>
-            <span v-else class="color-dot color-dot--default"></span>
-            <span class="node-name">{{ node?.name }}</span>
-            <span v-if="node?.children?.length" class="node-badge">{{ node.children.length }}</span>
-            <span v-if="node?.remark" class="node-remark" :title="node.remark">
-              <el-icon><ChatLineRound /></el-icon>
-            </span>
-          </span>
-        </template>
-        <template #actions="{ node }">
-          <ReButton link size="small" @click="openCreate(node.id)">添加子</ReButton>
-          <ReButton link size="small" @click="openEdit(node)">编辑</ReButton>
-          <ReButton link size="small" type="danger" @click="removeGroup(node)">删除</ReButton>
-        </template>
-      </ReTree>
-    </ReCard>
-
-    <ReDialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="480" :height="380" confirm-text="保存" cancel-text="取消" @confirm="submitForm" @cancel="formVisible = false">
+    <ReDialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="480" :height="380" :close-on-click-modal="false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
           <ReInput v-model="form.msServerGroupName" placeholder="分组名称" />
@@ -207,6 +234,10 @@ async function removeGroup(node: GroupNode) {
           <ReInput v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
         </ReFormItem>
       </ReForm>
+      <template #footer>
+        <ReButton @click="formVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="saving" icon="Check" :show-text="true" @click="submitForm">保存</ReButton>
+      </template>
     </ReDialog>
   </div>
 </template>
@@ -325,6 +356,62 @@ async function removeGroup(node: GroupNode) {
 .tree-node:hover .tree-actions,
 .tree-node:focus-within .tree-actions {
   opacity: 1;
+}
+
+.group-layout {
+  display: flex;
+  gap: 16px;
+  height: calc(100vh - 220px);
+}
+
+.tree-card {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.detail-card {
+  flex: 1;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.detail-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .color-field {

@@ -294,7 +294,7 @@ export default {
     apiKey: 'API KEY',
     test: '测试',
     getApiKey: '获取 API Key',
-    customHeaders: '自定义请求头',
+    customHeaders: '请求头',
     customHeadersPlaceholder: '每行一个请求头，格式为: Key: Value',
     customHeadersDesc: '用于 API Gateway 认证等场景，格式示例: Authorization: Bearer token',
     editProvider: '编辑供应商',

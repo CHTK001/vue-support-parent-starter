@@ -6,7 +6,9 @@ import {
   type TokenizerAndRendererExtension,
 } from "marked";
 import { markedHighlight } from "marked-highlight";
+import markedKatex from "marked-katex-extension";
 import hljs from "highlight.js/lib/core";
+import 'katex/dist/katex.min.css';
 import markdownCssRaw from "@/assets/markdown.css?raw";
 import hljsCssRaw from "highlight.js/styles/foundation.css?raw";
 import styleCssRaw from "@/style.css?raw";
@@ -160,6 +162,10 @@ export function createMarkedInstance(options?: MarkdownOptions): Marked {
         return hljs.highlight(code, { language }).value;
       },
     }),
+    markedKatex({
+      throwOnError: false,
+      errorColor: '#cc0000',
+    })
   );
 
   const renderer: Partial<CustomRenderer> = {

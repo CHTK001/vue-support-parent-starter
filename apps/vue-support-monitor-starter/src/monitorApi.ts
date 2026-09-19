@@ -1321,3 +1321,33 @@ export const updateZkNode = (request: { path: string; data: string }) =>
  */
 export const deleteZkNode = (path: string) =>
   http().delete("/ms/monitor/zookeeper/node", { params: { path } }).then(r => unwrap<boolean>(r));
+
+/* ==================== 主机画像（数据全部来自目标机 Agent） ==================== */
+
+/** 画像概览负载 */
+export interface HostProfile {
+  info: Record<string, any>;
+  metrics: Record<string, any>;
+  host: Record<string, any>;
+  port: number;
+  osMismatch?: string | null;
+  collectedAt?: string;
+}
+
+/**
+ * 拉取主机画像概览
+ * @param hostId 主机 id
+ * @param persist 是否让后端把快照回写主机台账
+ */
+export const fetchHostProfile = (hostId: number, persist = true) =>
+  http().get(`/ms/server/host/profile/${hostId}`).query({ persist }).then(r => unwrap<HostProfile>(r));
+
+/**
+ * 拉取主机画像某个分区
+ * @param hostId 主机 id
+ * @param section ports/processes/services/disks/network/env
+ * @param page 页码（进程/服务）
+ * @param size 每页条数（进程/服务）
+ */
+export const fetchHostProfileSection = (hostId: number, section: string, page?: number, size?: number) =>
+  http().get(`/ms/server/host/profile/${hostId}/${section}`).query({ page, size }).then(r => unwrap<any[]>(r));

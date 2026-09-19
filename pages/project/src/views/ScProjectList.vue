@@ -188,6 +188,13 @@ async function refresh() {
       keyword: keyword.value || undefined,
       type: filterType.value || undefined,
     });
+    // 详情抽屉持的是旧行对象引用，列表刷新后必须按 id 重新绑定，
+    // 否则启停/停用之后的状态标签与「停用/启用」按钮文案会一直停在旧值。
+    if (detailProject.value) {
+      const fresh = projects.value.find(r => r.id === detailProject.value!.id) || null;
+      detailProject.value = fresh;
+      if (!fresh) detailVisible.value = false;
+    }
   } catch (e) {
     message.error((e as Error).message);
   } finally {
@@ -810,6 +817,8 @@ function healthTypeLabel(type?: string): string {
           <ReButton layout="square" icon="Document" @click="openLiveLog(detailProject)">实时日志</ReButton>
           <ReButton layout="square" icon="Tickets" @click="openDeployLog(detailProject)">部署日志</ReButton>
           <ReButton layout="square" icon="UploadBack" @click="openRollback(detailProject)">回滚</ReButton>
+          <ReButton layout="square" :icon="detailProject.msProjectEnabled === 1 ? 'TurnOff' : 'Open'"
+            @click="toggleEnabled(detailProject)">{{ detailProject.msProjectEnabled === 1 ? '停用' : '启用' }}</ReButton>
           <ReButton layout="square" icon="Edit" @click="openEdit(detailProject)">编辑</ReButton>
           <ReButton layout="square" icon="Delete" @click="removeProject(detailProject)">删除</ReButton>
         </div>

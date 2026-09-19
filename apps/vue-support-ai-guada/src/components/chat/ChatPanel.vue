@@ -69,7 +69,7 @@
           <Transition name="queue-drawer">
             <div v-if="queueLength > 0"
               class="queue-drawer bg-(--color-surface)/80 backdrop-blur-xl rounded-(--size-dialog-rounded-radius) w-[calc(100%-48px)] margin-auto px-0.5 py-0.5 border-radius-6px mx-auto mb-2">
-              <QueuedMessages :queue="messageQueue" @edit="handleEditQueued" @remove="handleRemoveQueued" />
+              <QueuedMessages :queue="messageQueue" @edit="handleEditQueued" @remove="handleRemoveQueued" @reorder="handleReorderQueue" />
             </div>
           </Transition>
 
@@ -97,31 +97,28 @@
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
               <template #right-actions-before>
-                <!-- 上下文使用率：横向进度条 -->
-                <el-popover placement="top" :width="280" trigger="hover">
+                <!-- 上下文使用率：圆形小图标 -->
+                <el-popover placement="top" :width="240" trigger="hover">
                   <template #reference>
-                    <button class="context-bar-btn" @click="contextPopoverVisible = !contextPopoverVisible">
-                      <span class="context-bar-text">{{ contextDisplayText }}</span>
-                      <div class="context-bar">
-                        <div class="context-bar-fill" :style="{ width: ringPercent + '%', background: ringColor }"></div>
-                      </div>
+                    <button class="context-ring-btn" @click="contextPopoverVisible = !contextPopoverVisible">
+                      <svg class="context-ring-svg" width="20" height="20" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="15" fill="none" stroke="#e4e7ed" stroke-width="4"/>
+                        <circle cx="20" cy="20" r="15" fill="none" :stroke="ringColor" stroke-width="4"
+                          :stroke-dasharray="ringCircumference"
+                          :stroke-dashoffset="ringDashOffset"
+                          transform="rotate(-90 20 20)"
+                          stroke-linecap="round"/>
+                      </svg>
+                      <span class="context-ring-text">{{ ringPercent }}%</span>
                     </button>
                   </template>
                   <div class="context-detail-card">
                     <div class="context-detail-row">
                       <span class="context-detail-label">上下文用量</span>
-                      <span class="context-detail-value">{{ contextUsedText }} · {{ ringPercent }}%</span>
+                      <span class="context-detail-value">{{ contextUsedText }}</span>
                     </div>
                     <div class="context-detail-progress">
                       <div class="context-detail-progress-fill" :style="{ width: ringPercent + '%', background: ringColor }"></div>
-                    </div>
-                    <div class="context-detail-section">额度用量</div>
-                    <div class="context-detail-row">
-                      <span class="context-detail-label">当前时段</span>
-                      <span class="context-detail-value">已用 {{ ringPercent }}%</span>
-                    </div>
-                    <div class="context-detail-progress small">
-                      <div class="context-detail-progress-fill" :style="{ width: ringPercent + '%', background: '#409eff' }"></div>
                     </div>
                   </div>
                 </el-popover>
@@ -560,6 +557,12 @@ const handleConfigChange = (config: any) => {
   // 处理模型 ID 变更
   if (typeof config.modelId !== 'undefined') {
     currentSession.value.modelId = config.modelId;
+    // 异步保存到后端
+    if (currentSession.value.id) {
+      apiService.updateSession(String(currentSession.value.id), {
+        modelId: config.modelId
+      }).catch(err => console.error('Failed to save modelId:', err));
+    }
   }
 
   // 处理 Token 上限（会话级别独立配置）
@@ -618,6 +621,18 @@ watch(() => isStreaming.value, async (newVal, oldVal) => {
   if (oldVal === true && newVal === false) {
     if (activeMessages.value.length == 2 && !hasGeneratedTitle.value) {
       await generateTitleIfNeeded(currentSessionId.value!, activeMessages.value, currentSession);
+    }
+    // 自动消费消息队列
+    if (currentSessionId.value) {
+      const queuedMsg = sessionStore.dequeueMessage(currentSessionId.value);
+      if (queuedMsg) {
+        console.log('Auto-sending queued message:', queuedMsg);
+        await handleSendMessage({
+          content: queuedMsg.content,
+          files: queuedMsg.files || [],
+          knowledgeBaseIds: queuedMsg.knowledgeBaseIds || [],
+        });
+      }
     }
   }
 }, { immediate: true });
@@ -876,6 +891,7 @@ async function handleStreamResponseWithCreate(
   knowledgeBaseIds?: string[],
   think?: boolean,
   search?: boolean,
+  model?: string,
 ) {
   try {
     const handler = useStreamResponse(sessionStore, apiService)
@@ -887,6 +903,7 @@ async function handleStreamResponseWithCreate(
       knowledgeBaseIds,
       think,
       search,
+      model,
     )
   } catch (error) {
     if ((error as Error).message.includes('SessionBusyError')) {
@@ -934,30 +951,8 @@ async function deleteMessage(message: any) {
   }
 }
 
-async function editMessage(message: any) {
-  try {
-    const turns = getCurrentTurns(message)
-    const currentContent = turns[turns.length - 1]
-
-    const result = await editText({
-      title: t('chat.panel.editMessageTitle'),
-      defaultValue: currentContent.content || "",
-      confirmText: t('common.save'),
-      cancelText: t('common.cancel')
-    }) as string | null;
-
-    if (result != null && currentSessionId.value) {
-      currentContent.content = result;
-      await apiService.updateMessage(message.id, { content: result });
-      sessionStore.updateMessage(currentSessionId.value, message.id, message);
-      toast.success(t('common.updateSuccess'));
-    } else if (result === null || result === undefined) {
-      toast.info(t('chat.panel.editCancelled'));
-    }
-  } catch (error) {
-    toast.error(t('common.error.operationFailed'));
-    console.error("更新消息失败:", error);
-  }
+function editMessage(message: any) {
+  enterEditMode(message)
 }
 
 async function copyMessage(message: any) {
@@ -1029,6 +1024,7 @@ async function handleSendMessage(payload?: InputMessageState) {
         prepared.knowledgeBaseIds,
         think,
         search,
+        currentModelId.value,
       );
     }
   } catch (error: any) {
@@ -1040,6 +1036,12 @@ async function handleSendMessage(payload?: InputMessageState) {
 /**
  * 处理队列消息撤回
  */
+function handleReorderQueue(fromId: string, toId: string) {
+  if (currentSessionId.value) {
+    sessionStore.reorderQueue(currentSessionId.value, fromId, toId)
+  }
+}
+
 function handleRemoveQueued(id: string) {
   if (currentSessionId.value) {
     sessionStore.removeQueuedMessage(currentSessionId.value, id);
@@ -1317,11 +1319,11 @@ function scrollToMessage(messageId: string) {
   transition: all 0.2s;
 }
 
-/* 横向进度条按钮 */
-.context-bar-btn {
+/* 圆形进度条按钮 */
+.context-ring-btn {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1329,32 +1331,20 @@ function scrollToMessage(messageId: string) {
   border-radius: 6px;
   transition: background 0.2s;
   outline: none;
-  gap: 2px;
-  min-width: 140px;
 }
 
-.context-bar-btn:hover {
+.context-ring-btn:hover {
   background: var(--color-sidebar-bg-hover);
 }
 
-.context-bar-text {
+.context-ring-svg {
+  display: block;
+}
+
+.context-ring-text {
   font-size: 12px;
   color: var(--color-text-secondary, #666);
   white-space: nowrap;
-}
-
-.context-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--color-border, #e5e7eb);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.context-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
 }
 
 /* 详细信息卡片 */

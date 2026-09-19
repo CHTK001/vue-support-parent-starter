@@ -112,9 +112,9 @@
                   </el-select>
                   <div class="text-xs text-gray-400 mt-1">多Key时的分配策略，支持限流自动切换</div>
                 </el-form-item>
-                <!-- 限流自动切换 -->
-                <el-form-item label="限流自动切换" prop="autoSwitchOnRateLimit">
-                  <el-switch v-model="currentProviderEdit.autoSwitchOnRateLimit" />
+                <!-- 自动限流 -->
+                <el-form-item label="自动限流" prop="autoSwitchOnRateLimit">
+                  <el-switch v-model="currentProviderEdit.autoSwitchOnRateLimit" class="block"/>
                   <div class="text-xs text-gray-400 mt-1">当前Key限流时自动切换到下一个可用Key</div>
                 </el-form-item>
                 <!-- 自定义请求头 -->

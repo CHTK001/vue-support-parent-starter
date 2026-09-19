@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 主机资产 v2 —— 对齐 prototype.html §4.2
  * KPI + FilterBar + 表格 + 完整 CRUD（新增/编辑/删除/启停/批量）+ 行内「连接」直达远控
@@ -14,7 +14,6 @@ import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIde
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
 import HostProfileView from "./HostProfileView.vue";
-import SystemManageDialog from "./SystemManageDialog.vue";
 import ServerManageDialog from "./ServerManageDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
@@ -244,14 +243,26 @@ function groupColorStyle(id?: number | null): Record<string, string> {
 }
 
 /**
- * 推断主机默认协议
+ * 生效远控协议：主机配置优先，未配置时按平台推断
  * @param h 主机
  */
 function protocolOf(h: Host): string {
+  const p = (h.serverHostRemoteProtocol ?? "").toUpperCase();
+  if (p === "SSH" || p === "RDP" || p === "VNC") return p.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
   return "ssh";
+}
+/**
+ * 生效远控端口：主机配置优先，SSH 沿用端口字段，其余按协议默认
+ * @param h 主机
+ */
+function remotePortOf(h: Host): number {
+  if (h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
+  const p = protocolOf(h);
+  if (p === "ssh") return h.serverHostPort || 22;
+  return p === "rdp" ? 3389 : 5900;
 }
 /**
  * 在线状态：online/offline/unknown
@@ -406,34 +417,23 @@ const configVisible = ref(false);
 useDialogPrerender(configVisible);
 const configHost = ref<Host | null>(null);
 const configMode = ref<"online" | "metric" | "delay">("metric");
-// 系统管理弹窗
-const sysMgrVisible = ref(false);
-const sysMgrType = ref("process");
-const sysMgrHost = ref<Host | null>(null);
+// 画像抽屉定位：打开时预选的主机与分区
+const profileHostId = ref<number | null>(null);
+const profileTab = ref("overview");
+/** 每次打开自增，保证重复打开同一台主机也会重新定位并刷新 */
+const profileSeq = ref(0);
 
 // 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 配置）
 const serverMgrVisible = ref(false);
 const serverMgrHost = ref<Host | null>(null);
-
-// 远控配置弹窗
-const remoteCfgVisible = ref(false);
-const remoteCfgHost = ref<Host | null>(null);
-const remoteCfgForm = ref({
-  protocol: 'ssh',
-  sipEnabled: false,
-  sipProviderId: '',
-  sipService: 'rdp',
-  sipLocalPort: 13389,
-  vncPort: 5900,
-});
 
 // ---- 主机画像（master-detail：左主机列表 + 右 ReTab 详情） ----
 const profileVisible = ref(false);
 const deployDialogVisible = ref(false);
 const deployProgress = ref(0);
 const deployMessage = ref("");
-const deployStatus = ref<"info" | "success" | "error">("info");
-const deployInfo = reactive({ hostId: 0, hostName: "", action: "" as "install" | "reinstall" | "upgrade" });
+const deployStatus = ref<"info" | "success" | "warn" | "error">("info");
+const deployInfo = reactive({ hostId: 0, hostName: "", action: "" as "install" | "reinstall" | "upgrade" | "uninstall" });
 const deployMinimized = ref(false);
 const deployLogs = ref<string[]>([]);
 const deployTask = ref<any>({
@@ -454,21 +454,18 @@ function openProfile(): void {
 const profileSize = computed(() => Math.round(window.innerWidth * 0.9));
 
 function openSysMgr(type: string, row: Host): void {
-  // 主机画像依赖 Agent，未安装时提示
-  if (row.serverHostCollectMode !== 'AGENT' || !row.serverHostAgentInstalled) {
-    ElMessage.warning(row.serverHostCollectMode !== 'AGENT' ? '当前采集方式不是 Agent，无法使用主机画像' : '主机画像需要先安装 Agent，请点击「安装 Agent」按钮');
-    return;
-  }
-  sysMgrType.value = type;
-  sysMgrHost.value = row;
-  sysMgrVisible.value = true;
+  // 画像页现在全量走 Agent：未安装时不再拦在门外，进去后由画像页给出
+  // 「Agent 未就绪 + 最近错误 + 安装 Agent」的引导，避免用户完全看不到主机状态
+  profileHostId.value = row.id;
+  profileTab.value = type;
+  profileSeq.value++;
+  profileVisible.value = true;
 }
 
 function onMoreCommand(cmd: string, row: Host): void {
   if (cmd === "remote-config") {
-    remoteCfgHost.value = row;
-    remoteCfgForm.value.protocol = row.serverHostOsType === 'WINDOWS' ? 'rdp' : 'ssh';
-    remoteCfgVisible.value = true;
+    // 远控配置已并入编辑弹窗的「远控配置」区块
+    openEdit(row);
     return;
   }
   // 所有系统管理项都合并到主机画像弹窗
@@ -501,19 +498,47 @@ function openEdit(h: Host): void {
   formVisible.value = true;
 }
 // ---- 删除 / 启停 / 批量 ----
+/** Agent 动作文案 */
+const AGENT_ACTION_LABEL: Record<string, string> = {
+  install: "安装", reinstall: "重装", upgrade: "升级", uninstall: "卸载",
+};
+
 // 打开 Agent 自动部署弹窗
-async function openDeploy(h: Host, action: 'install' | 'reinstall' | 'upgrade') {
-  deployInfo.hostId = h.id;
-  deployInfo.hostName = h.serverHostName;
-  deployInfo.action = action;
+async function openDeploy(
+  h: Host | { id: number; serverHostName: string; action: string },
+  action?: 'install' | 'reinstall' | 'upgrade' | 'uninstall',
+) {
+  // 支持两种调用方式：openDeploy(h, 'upgrade') 或 openDeploy({ id, serverHostName, action })
+  let hostId: number, hostName: string, act: 'install' | 'reinstall' | 'upgrade' | 'uninstall';
+  if (action) {
+    hostId = (h as Host).id;
+    hostName = (h as Host).serverHostName || '';
+    act = action;
+  } else {
+    hostId = (h as any).id;
+    hostName = (h as any).serverHostName || '';
+    act = (((h as any).action || 'install') as typeof act);
+  }
+  if (act === 'uninstall') {
+    try {
+      await ElMessageBox.confirm(
+        `卸载主机「${hostName}」上的 Agent？卸载后主机画像、实时指标与远程控制将全部停用，需要重新安装才能恢复。`,
+        "卸载确认", { type: "warning", confirmButtonText: "卸载", cancelButtonText: "取消" },
+      );
+    } catch { return; }
+  }
+  deployInfo.hostId = hostId;
+  deployInfo.hostName = hostName;
+  deployInfo.action = act;
   deployProgress.value = 0;
   deployMessage.value = '准备中...';
   deployStatus.value = 'info';
   deployDialogVisible.value = true;
-  deployLogs.value = [`[${new Date().toLocaleTimeString()}] 开始${action === 'install' ? '安装' : action === 'reinstall' ? '重装' : '升级'} Agent...`];
+  const label = AGENT_ACTION_LABEL[act] ?? act;
+  deployLogs.value = [`[${new Date().toLocaleTimeString()}] 开始${label} Agent...`];
   deployTask.value = {
     id: "agent-deploy",
-    title: `${action === 'install' ? '安装' : action === 'reinstall' ? '重装' : '升级'} Agent - ${h.serverHostName}`,
+    title: `${label} Agent - ${hostName}`,
     progress: 0.05,
     status: "running",
     text: "准备中...",
@@ -522,15 +547,17 @@ async function openDeploy(h: Host, action: 'install' | 'reinstall' | 'upgrade') 
     history: [{ time: Date.now(), progress: 0.05, status: "running" }],
   };
   try {
-    const r = await fetch(`/ms/server/host/agent/${h.id}/${action === 'install' ? 'deploy' : action}`, { method: 'POST' });
+    const r = await fetch(`/ms/server/host/agent/${hostId}/${act === 'install' ? 'deploy' : act}`, { method: 'POST' });
     const j = await r.json();
     if (!j.success) {
       deployStatus.value = 'error';
       deployMessage.value = j.msg || '启动部署失败';
+      deployTask.value = { ...deployTask.value, status: "failed", text: j.msg || '启动失败' };
     }
   } catch (e: any) {
     deployStatus.value = 'error';
     deployMessage.value = '请求失败: ' + e.message;
+    deployTask.value = { ...deployTask.value, status: "failed", text: '请求失败' };
   }
 }
 
@@ -600,6 +627,10 @@ onMounted(() => {
           text: d.message ?? '',
           history: [...deployTask.value.history, { time: Date.now(), progress: pct, status: d.status === 'success' ? 'success' : d.status === 'error' ? 'failed' : 'running' }],
         };
+        // 终态意味着台账里的 installed/版本/端口都已变更，列表必须跟着刷新
+        if (d.status === 'success' || d.status === 'error') {
+          fetchAll();
+        }
       }
     } catch { /* 静默 */ }
   });
@@ -825,11 +856,12 @@ function delayBad(ms: number | null): boolean {
               <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(h)" />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(h)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(h)" />
-              <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', h)" />
-              <ReButton v-if="h.serverHostCollectMode === 'AGENT' && !h.serverHostAgentInstalled" icon="Download" layout="square" size="small" type="success" title="安装 Agent" @click="openDeploy(h, 'install')" />
-              <template v-else>
-                <ReButton v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled" icon="RefreshRight" layout="square" size="small" type="warning" title="重装 Agent" @click="openDeploy(h, 'reinstall')" />
-                <ReButton v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled" icon="Top" layout="square" size="small" type="primary" title="升级 Agent" @click="openDeploy(h, 'upgrade')" />
+              <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', h)">主机画像</ReButton>
+              <ReButton v-if="h.serverHostCollectMode === 'AGENT' && !h.serverHostAgentInstalled" icon="Download" layout="square" size="small" type="success" @click="openDeploy(h, 'install')">安装 Agent</ReButton>
+              <template v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled">
+                <ReButton icon="RefreshRight" layout="square" size="small" type="warning" @click="openDeploy(h, 'reinstall')">重装 Agent</ReButton>
+                <ReButton icon="Top" layout="square" size="small" type="primary" @click="openDeploy(h, 'upgrade')">升级 Agent</ReButton>
+                <ReButton icon="DeleteFilled" layout="square" size="small" type="danger" @click="openDeploy(h, 'uninstall')">卸载 Agent</ReButton>
               </template>
             </div>
           </template>
@@ -920,6 +952,7 @@ function delayBad(ms: number | null): boolean {
       :identity-options="identityOptions"
       :group-options="groupOptions"
       @saved="fetchAll"
+      @deploy-agent="openDeploy"
     />
 
     <!-- 连接弹窗（选择登录身份） -->
@@ -945,84 +978,30 @@ function delayBad(ms: number | null): boolean {
       </template>
     </ReDialog>
 
-    <!-- 采集配置（行操作「更多」入口） -->
-    <!-- 系统管理弹窗（主机画像） -->
-    <SystemManageDialog
-      v-model="sysMgrVisible"
-      :type="sysMgrType"
-      :host-id="sysMgrHost?.id"
-      :host-name="sysMgrHost?.serverHostName"
-      :host-address="sysMgrHost ? `${sysMgrHost.serverHostAddress}:${sysMgrHost.serverHostPort}` : ''"
-      :host-os-type="sysMgrHost?.serverHostOsType"
-      :host-protocol="sysMgrHost?.serverHostOsType === 'WINDOWS' ? 'RDP' : 'SSH'"
-      :host-delay="sysMgrHost?.serverHostDelayMs"
-      :host-online="sysMgrHost?.serverHostOnline === 1"
-      :host-group="sysMgrHost?.msServerGroupId ? groupName(sysMgrHost.msServerGroupId) : '未分组'"
-    />
-
     <!-- 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 实时配置） -->
     <ServerManageDialog v-model="serverMgrVisible" />
 
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
 
-    <!-- 主机画像（全屏 Drawer：左主机列表 + 右 ReTab 详情） -->
+    <!-- 主机画像（全屏 Drawer：左主机列表 + 右分区详情，数据全部来自 Agent） -->
     <ReDrawer v-model="profileVisible" title="主机画像" :size="profileSize" direction="rtl" :footer-hidden="true" :close-only="true">
       <HostProfileView
         :hosts="hosts"
         :groups="groups"
         :live-delay="liveDelay"
         :live-online="liveOnline"
+        :initial-host-id="profileHostId"
+        :initial-tab="profileTab"
+        :open-seq="profileSeq"
         @connect="(h) => openConnect(h)"
         @edit="(h) => openEdit(h)"
         @detail="(h) => openDetail(h)"
-        @scan-ports="(h) => scanHostPorts(h)"
+        @deploy-agent="(h) => openDeploy(h, 'install')"
+        @refreshed="fetchAll"
       />
     </ReDrawer>
 
-    <!-- 远控配置弹窗 -->
-    <ReDialog v-model="remoteCfgVisible" :title="`远控配置 - ${remoteCfgHost?.serverHostName ?? ''}`" width="520px" class="no-anim-dialog">
-      <div class="form-grid">
-        <div class="form-vertical">
-          <label class="form-label">远控协议</label>
-          <el-select v-model="remoteCfgForm.protocol" placeholder="选择协议">
-            <el-option label="SSH (Linux)" value="ssh" />
-            <el-option label="RDP (Windows)" value="rdp" />
-            <el-option label="VNC" value="vnc" />
-          </el-select>
-        </div>
-        <div class="form-vertical">
-          <label class="form-label">VNC 端口</label>
-          <el-input-number v-model="remoteCfgForm.vncPort" :min="5900" :max="6999" />
-        </div>
-      </div>
-      <el-divider content-position="left">SIP 内网穿透</el-divider>
-      <div class="form-grid">
-        <div class="form-vertical">
-          <label class="form-label">启用 SIP 隧道</label>
-          <el-switch v-model="remoteCfgForm.sipEnabled" />
-        </div>
-        <div class="form-vertical">
-          <label class="form-label">Provider ID</label>
-          <el-input v-model="remoteCfgForm.sipProviderId" placeholder="如 win-test-01" />
-        </div>
-        <div class="form-vertical">
-          <label class="form-label">暴露服务</label>
-          <el-select v-model="remoteCfgForm.sipService" placeholder="选择服务">
-            <el-option label="RDP (3389)" value="rdp" />
-            <el-option label="SSH (22)" value="ssh" />
-            <el-option label="VNC (5900)" value="vnc" />
-          </el-select>
-        </div>
-        <div class="form-vertical">
-          <label class="form-label">Visit 本地端口</label>
-          <el-input-number v-model="remoteCfgForm.sipLocalPort" :min="1024" :max="65535" />
-        </div>
-      </div>
-      <template #footer>
-        <ReButton @click="remoteCfgVisible = false">取消</ReButton>
-        <ReButton type="primary" @click="remoteCfgVisible = false">保存</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 远控配置已并入主机编辑弹窗（HostFormDialog 的「远控配置」区块） -->
   </div>
     <!-- Agent 自动部署进度弹窗（socket 实时推送，支持最小化和断点续传） -->
     <AgentDeployDialog

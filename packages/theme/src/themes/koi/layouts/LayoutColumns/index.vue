@@ -47,7 +47,7 @@
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
               <el-image class="column-user-avatar" fit="cover" :src="avatar"></el-image>
-              <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="avatarFrameStyle(36)"></div>
+              <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(36)"></div>
             </div>
           </template>
           <div class="user-card-content">
@@ -58,7 +58,7 @@
               /> -->
               <div class="user-card-avatar-wrap">
                 <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
-                <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
+                <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
               </div>
               <div class="user-info">
                 <!-- <div class="user-name">{{ authStore.loginUser?.userName || "无名" }}</div>
@@ -131,7 +131,7 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
-import { getAvatarFrameImage, getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
+import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -343,29 +343,17 @@ const avatar = computed(
     (getUserInfo<Record<string, unknown>>()?.avatar as string) ||
     defaultAvatarUrl,
 );
-// 头像框图片
-const avatarFrameImage = computed(() => {
-  if (!getConfig()?.other?.avatarFrame?.enable) return "";
-  const frameId = authStore.loginUser?.avatarFrame ?? 0;
-  const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
-  if (Number(frameShow) !== 1) return "";
-  // 位图 / APNG 图片帧：按 ID 映射（渐变框不在此渲染，生日框由后端按窗口下发）
-  return getAvatarFrameImage(frameId);
-});
-/** 头像框叠加层样式：按头像尺寸 ÷ 洞径比 缩放层，使环贴合头像边缘 */
-const avatarFrameStyle = (avatarSize: number): Record<string, string> => {
-  const frameId = authStore.loginUser?.avatarFrame ?? 0;
-  return getAvatarFrameLayerStyle(frameId, avatarSize);
-};
+// 头像框：开关 + 显示位 + 帧内容三重判断，与 Header / 个人中心共用同一实现
+const { visible: avatarFrameVisible, layerStyle: avatarFrameStyle } = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
 /** 退出登录 */
-const handleLayout = () => {
+const handleLayout = async () => {
+  // 先通知后端吊销令牌，再清理本地状态，否则旧令牌在服务端仍然可用
+  await userStore.logOut();
   // 清除 sessionStorage
   clearSessionStorage();
-  // 清除用户 token
-  userStore.setToken("");
   // 清除 tabs 数据
   tabsStore.$reset();
   // 清除 keepAlive 缓存

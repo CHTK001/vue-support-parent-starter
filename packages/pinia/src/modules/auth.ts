@@ -64,9 +64,10 @@ const authStore = defineStore("auth", {
       );
       this.breadcrumbList = staticRouter.concat(generateRoutes(remoteMenu, 0));
     },
-    async getLoginUserInfo() {
+    /** loading=false 时静默刷新（不触发顶部进度条） */
+    async getLoginUserInfo(loading = true) {
       try {
-        const res = await getMe();
+        const res = await getMe(loading);
         const data = res?.data as any;
         if (data) {
           this.roleList = data.roles ?? data.roleInfos?.map((r: any) => r.roleCode) ?? [];

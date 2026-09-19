@@ -18,6 +18,8 @@ const props = defineProps<{
     protocol: string;
     identityId: number | null;
     targetPort: number | null;
+    /** 远控通道；DIRECT 由 ScSshDirectViewer 接管，本组件只处理 GUACD */
+    mode?: string | null;
   } | null;
   /** inline 模式：不包 drawer，直接渲染在父容器内 */
   inline?: boolean;

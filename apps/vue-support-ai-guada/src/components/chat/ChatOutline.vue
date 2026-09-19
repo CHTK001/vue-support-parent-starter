@@ -1,16 +1,24 @@
 <template>
   <div v-if="outlineItems.length > 0" class="chat-outline-container"
-    @mouseenter="isExpanded = true"
-    @mouseleave="isExpanded = false">
-    <div class="outline-panel" :class="{ 'is-expanded': isExpanded }">
+    @mouseleave="closeCard">
+    <!-- 竖条指示器 -->
+    <div class="outline-lines">
       <div v-for="item in outlineItems" :key="item.id"
-        class="outline-item"
-        :class="{ 'is-active': activeId === item.id }"
-        @click="handleItemClick(item.id)">
-        <span class="outline-title">{{ item.title }}</span>
+        class="outline-line-item"
+        :class="{ 'is-active': activeId === item.id, 'is-hover': hoverItem?.id === item.id }"
+        @click="handleItemClick(item.id)"
+        @mouseenter="showCard(item.id, $event)">
         <span class="outline-line"></span>
       </div>
     </div>
+
+    <!-- 悬停卡片 -->
+    <transition name="card-fade">
+      <div v-if="hoverItem && isHoverCard" class="outline-card" :style="{ top: cardTop + 'px' }">
+        <div class="card-title">{{ hoverItem.title }}</div>
+        <div class="card-preview">{{ hoverItem.preview }}</div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -29,17 +37,31 @@ const emit = defineEmits<{
   scrollToMessage: [messageId: string]
 }>()
 
-const isExpanded = ref(false)
 const activeId = ref<string | null>(null)
+const hoverItem = ref<{ id: string; title: string; preview: string } | null>(null)
+const isHoverCard = ref(false)
+const cardTop = ref(0)
+let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 const outlineItems = computed(() => {
   return props.messages
     .filter(msg => msg.role === 'user')
-    .map(msg => ({
-      id: msg.id,
-      title: extractMessageTitle(msg),
-      index: msg.index ?? 0
-    }))
+    .map(msg => {
+      const title = extractMessageTitle(msg)
+      // 获取消息内容预览（去掉 markdown 标记）
+      const content = msg.contents?.[0]?.content || ''
+      const preview = content
+        .replace(/[#*`\[\]()]/g, '')
+        .replace(/\n+/g, ' ')
+        .trim()
+        .slice(0, 80)
+      return {
+        id: msg.id,
+        title,
+        preview,
+        index: msg.index ?? 0
+      }
+    })
 })
 
 let observer: IntersectionObserver | null = null
@@ -89,6 +111,53 @@ function setupObserver() {
   if (last) activeId.value = last.id
 }
 
+function showCard(id: string, event: MouseEvent) {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+  const itemIndex = outlineItems.value.findIndex(i => i.id === id)
+  const item = outlineItems.value[itemIndex]
+  if (item) {
+    hoverItem.value = item
+    isHoverCard.value = true
+    
+    // 标记上下相邻的线
+    nextTick(() => {
+      const lineItems = document.querySelectorAll('.outline-line-item')
+      lineItems.forEach((el, index) => {
+        el.classList.remove('is-hover-prev', 'is-hover-next')
+        if (index === itemIndex - 1) {
+          el.classList.add('is-hover-prev')
+        } else if (index === itemIndex + 1) {
+          el.classList.add('is-hover-next')
+        }
+      })
+    })
+    
+    // 获取悬停线条的位置，设置卡片 top
+    const target = event.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+    const containerRect = (document.querySelector('.chat-outline-container') as HTMLElement)?.getBoundingClientRect()
+    if (containerRect) {
+      cardTop.value = rect.top - containerRect.top
+    }
+  }
+}
+
+function closeCard() {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+  }
+  closeTimer = setTimeout(() => {
+    isHoverCard.value = false
+    hoverItem.value = null
+    // 清除相邻线的样式
+    document.querySelectorAll('.outline-line-item.is-hover-prev, .outline-line-item.is-hover-next')
+      .forEach(el => el.classList.remove('is-hover-prev', 'is-hover-next'))
+  }, 200)
+}
+
 function handleItemClick(messageId: string) {
   emit('scrollToMessage', messageId)
 }
@@ -97,124 +166,124 @@ function handleItemClick(messageId: string) {
 <style scoped>
 .chat-outline-container {
   position: fixed;
-  right: 12px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 30;
 }
 
-.outline-panel {
+/* —— 竖条指示器 —— */
+
+.outline-lines {
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
-  width: 20px;
-  padding: 6px 2px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 80vh;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  transition: width 0.25s ease, padding 0.25s ease, background-color 0.25s ease,
-    box-shadow 0.25s ease, border-color 0.25s ease;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  gap: 6px;
+  align-items: flex-end;
+  padding: 4px 0;
 }
 
-.outline-panel::-webkit-scrollbar {
-  display: none;
-}
-
-.outline-panel.is-expanded {
-  width: 280px;
-  padding: 6px 10px 6px 10px;
-  background-color: var(--el-bg-color, #fff);
-  border-color: var(--el-border-color-light, #e4e7ed);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.dark .outline-panel.is-expanded {
-  background-color: #232428;
-  border-color: #2e3035;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-/* —— 列表项 —— */
-
-.outline-item {
+.outline-line-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 26px;
+  justify-content: flex-end;
   cursor: pointer;
-  border-radius: 6px;
-  transition: none;
+  padding: 2px 0;
 }
-
-/* —— 标题文字（展开时淡入） —— */
-
-.outline-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 13px;
-  color: var(--el-text-color-placeholder, #a8abb2);
-  opacity: 0;
-  transition: opacity 0.1s ease, color 0.2s ease;
-}
-
-.dark .outline-title {
-  color: #6b6d75;
-}
-
-.outline-panel.is-expanded .outline-title {
-  opacity: 1;
-  transition: opacity 0.15s ease 0.1s, color 0.2s ease;
-}
-
-.outline-panel.is-expanded .outline-item:hover .outline-title {
-  color: var(--el-text-color-primary, #303133);
-}
-
-.dark .outline-panel.is-expanded .outline-item:hover .outline-title {
-  color: #e8e9ed;
-}
-
-.outline-panel.is-expanded .outline-item.is-active .outline-title {
-  color: var(--el-color-primary, #409eff);
-  font-weight: 500;
-}
-
-.dark .outline-panel.is-expanded .outline-item.is-active .outline-title {
-  color: #79bbff;
-}
-
-/* —— 短横线指示器（始终可见） —— */
 
 .outline-line {
-  flex-shrink: 0;
-  width: 12px;
+  width: 8px;
   height: 2px;
   border-radius: 1px;
-  background-color: var(--el-text-color-disabled, #c0c4cc);
-  transition: background-color 0.2s ease, width 0.2s ease;
+  background-color: #d1d5db;
+  transition: background-color 0.15s ease, width 0.15s ease, height 0.15s ease;
 }
 
 .dark .outline-line {
-  background-color: #3a3c40;
+  background-color: #4b5563;
 }
 
-.outline-item:hover .outline-line {
-  background-color: var(--el-text-color-secondary, #909399);
+/* 只有 is-hover 或 is-active 时才变粗变黑 */
+.outline-line-item.is-hover .outline-line,
+.outline-line-item.is-active .outline-line {
+  background-color: #1f2937;
+  width: 14px;
+  height: 3px;
 }
 
-.dark .outline-item:hover .outline-line {
-  background-color: #55575c;
+.dark .outline-line-item.is-hover .outline-line,
+.dark .outline-line-item.is-active .outline-line {
+  background-color: #e5e7eb;
 }
 
-.outline-item.is-active .outline-line {
-  background-color: var(--el-color-primary, #409eff);
-  width: 16px;
+/* 悬停项上下相邻的线也稍微变粗 */
+.outline-line-item.is-hover-prev .outline-line,
+.outline-line-item.is-hover-next .outline-line {
+  background-color: #9ca3af;
+  width: 10px;
+  height: 2.5px;
+}
+
+.dark .outline-line-item.is-hover-prev .outline-line,
+.dark .outline-line-item.is-hover-next .outline-line {
+  background-color: #6b7280;
+}
+
+/* —— 悬停卡片 —— */
+
+.outline-card {
+  position: absolute;
+  right: 24px;
+  width: 320px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.dark .outline-card {
+  background-color: #232428;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.dark .card-title {
+  color: #e5e7eb;
+}
+
+.card-preview {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dark .card-preview {
+  color: #9ca3af;
+}
+
+/* —— 卡片过渡动画 —— */
+
+.card-fade-enter-active,
+.card-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.card-fade-enter-from,
+.card-fade-leave-to {
+  opacity: 0;
+  transform: translateX(8px) translateY(-50%);
 }
 </style>

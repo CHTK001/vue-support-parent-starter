@@ -166,7 +166,6 @@ function loginDuration(loginTime?: string): string {
 }
 
 const columns: ReTableColumn[] = [
-  { type: "selection", width: 50, align: "center" },
   { prop: "index", label: "#", width: 60, slot: "index" },
   { prop: "username", label: "账号", minWidth: 120 },
   { prop: "nickname", label: "昵称", minWidth: 120 },
@@ -220,6 +219,8 @@ onMounted(() => {
         :columns="columns"
         :pagination="false"
         :loading="loading"
+        row-key="userId"
+        show-selection
         :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
         :search-gap="16"
         v-model:search-model="query"
@@ -238,8 +239,8 @@ onMounted(() => {
             批量踢出{{ selectedRows.length ? `（${selectedRows.length}）` : "" }}
           </ReButton>
         </template>
-        <template #index="{ $index }">
-          <span>{{ $index + 1 }}</span>
+        <template #index="{ row }">
+          <span>{{ list.indexOf(row as OnlineUser) + 1 }}</span>
         </template>
         <template #duration="{ row }">
           <span class="text-xs">{{ loginDuration(row.loginTime) }}</span>

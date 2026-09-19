@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <!-- 最小化悬浮窗（右下角） -->
   <div
     v-if="minimized"
@@ -41,6 +41,14 @@
 
     <template #footer>
       <ReButton size="small" @click="toggleMinimize">最小化</ReButton>
+      <ReButton
+        v-if="!isFinished"
+        size="small"
+        type="danger"
+        @click="visible = false"
+      >
+        取消
+      </ReButton>
       <ReButton
         v-if="isFinished"
         size="small"
