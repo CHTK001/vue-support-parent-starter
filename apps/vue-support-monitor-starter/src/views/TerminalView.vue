@@ -10,8 +10,10 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { queryHosts, getHost } from "@pages/server/src/api";
 import ScGuacViewer from "@pages/server/src/components/ScGuacViewer.vue";
+import ScSshDirectViewer from "@pages/server/src/components/ScSshDirectViewer.vue";
 import ReInput from "@repo/ui/re-input";
 import ReScrollbar from "@repo/ui/re-scrollbar";
+import { osIconSvg } from "../utils/osIcon";
 
 interface Host {
   id: number;
@@ -21,6 +23,12 @@ interface Host {
   serverHostOsType: string;
   serverHostOnline: number;
   serverHostRemoteEnabled: number;
+  /** 远控协议（空表示按平台推断） */
+  serverHostRemoteProtocol?: string | null;
+  /** 远控端口（空表示按协议默认） */
+  serverHostRemotePort?: number | null;
+  /** 远控通道：GUACD 中转 / DIRECT 直连 */
+  serverHostRemoteMode?: string | null;
 }
 /** 复杂/新信息类型尽量少展开，读取必需字段用 any 规约 */
 const layout = { railWidth: 288, railCollapsed: 48 };
@@ -36,36 +44,28 @@ const railOpen = ref(true);
 const keyword = ref("");
 
 /**
- * 操作系统型式归一化
- * @param t 原始值
- */
-function normalizeOs(t?: string): string {
-  const s = (t ?? "").toUpperCase();
-  if (s.includes("WIN")) return "Windows";
-  if (s.includes("LINUX")) return "Linux";
-  if (s.includes("MAC")) return "macOS";
-  return s || "其他";
-}
-/**
- * 操作系统图标（标准 PNG 图片路径）
- * @param t 操作系统类型
- */
-function osIcon(t?: string): string {
-  const s = (t ?? "").toUpperCase();
-  if (s.includes("WIN")) return "/os/os-windows.png";
-  if (s.includes("LINUX")) return "/os/os-linux.png";
-  if (s.includes("MAC")) return "/os/os-macos.png";
-  return "/os/os-linux.png";
-}
-/**
- * 推断主机默认协议
+ * 生效远控协议：主机配置优先，未配置时按平台推断
  * @param h 主机
  */
 function protocolOf(h: Host): string {
+  const q = (route.query.protocol as string) || "";
+  const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
+  if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
+  if (q) return q.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
   return "ssh";
+}
+/**
+ * 生效远控端口：主机配置优先，SSH 沿用端口字段，其余按协议默认
+ * @param h 主机
+ */
+function remotePortOf(h: Host): number | null {
+  const p = protocolOf(h);
+  if (h.serverHostRemotePort && h.serverHostRemotePort > 0) return h.serverHostRemotePort;
+  // SSH 交由后端按 ms_server_host_port 处理，避免前端重复推断
+  return p === "ssh" ? null : (p === "rdp" ? 3389 : 5900);
 }
 
 const railWidth = computed(() => (railOpen.value ? `${layout.railWidth}px` : `${layout.railCollapsed}px`));
@@ -73,20 +73,34 @@ const railWidth = computed(() => (railOpen.value ? `${layout.railWidth}px` : `${
 /** 当前选中资产 */
 const selectedHost = computed(() => hosts.value.find(h => h.id === selectedId.value) ?? null);
 
-/** 传给 ScGuacViewer 的连接对象 */
+/** 手动断开标记：切换主机或点关闭时复位 */
+const disconnected = ref(false);
+
+/** 传给远控渲染组件的连接对象 */
 const connection = computed(() => {
   const h = selectedHost.value;
-  if (!h) return null;
+  if (!h || disconnected.value) return null;
   const qIdentity = route.query.identityId ? Number(route.query.identityId) : null;
+  const mode = (h.serverHostRemoteMode ?? "").toUpperCase();
   return {
     hostId: h.id,
     hostName: `${h.serverHostName} (${h.serverHostAddress})`,
-    protocol: (route.query.protocol as string) || protocolOf(h),
+    protocol: protocolOf(h),
     identityId: Number.isFinite(qIdentity as number) ? (qIdentity as number) : null,
-    targetPort: null,
-
+    targetPort: remotePortOf(h),
+    mode: mode === "DIRECT" ? "DIRECT" : "GUACD",
   };
 });
+
+/** 选中主机：复位断开标记 */
+function selectHost(h: Host): void {
+  selectedId.value = h.id;
+  disconnected.value = false;
+  const q: Record<string, string> = { hostId: String(h.id), protocol: protocolOf(h) };
+  const qId = route.query.identityId;
+  if (qId) q.identityId = String(qId);
+  router.replace({ path: "/terminal", query: q });
+}
 
 const filteredHosts = computed(() => {
   let list = hosts.value;
@@ -160,6 +174,7 @@ function syncFromQuery(qid: string | string[] | undefined): void {
   const id = Number(base);
   if (!Number.isFinite(id)) return;
   selectedId.value = id;
+  disconnected.value = false;
 }
 
 /** 从资产页直达时：先按 query 选中，若无该 host 再从后端补拉 */
@@ -184,6 +199,9 @@ async function selectFromQuery(): Promise<void> {
         serverHostOsType: h.serverHostOsType,
         serverHostOnline: h.serverHostOnline,
         serverHostRemoteEnabled: h.serverHostRemoteEnabled,
+        serverHostRemoteProtocol: h.serverHostRemoteProtocol,
+        serverHostRemotePort: h.serverHostRemotePort,
+        serverHostRemoteMode: h.serverHostRemoteMode,
       };
       hosts.value = [mapped, ...hosts.value];
       selectedId.value = id;
@@ -194,14 +212,6 @@ async function selectFromQuery(): Promise<void> {
 }
 
 /** 左列表点选：就地断言 + 更新 URL（同路由不重建整页，保留 identityId） */
-function selectHost(h: Host): void {
-  selectedId.value = h.id;
-  const q: Record<string, string> = { hostId: String(h.id), protocol: protocolOf(h) };
-  const qId = route.query.identityId;
-  if (qId) q.identityId = String(qId);
-  router.replace({ path: "/terminal", query: q });
-}
-
 watch(() => route.query.hostId, (val) => { if (val != null) syncFromQuery(val as string | string[]); });
 
 async function onMountedInit(): Promise<void> {
@@ -235,7 +245,7 @@ onMounted(onMountedInit);
                 :class="['rail-item', { active: selectedId === h.id }]"
                 @click="selectHost(h)"
               >
-                <img class="ri-os" :src="osIcon(h.serverHostOsType)" :alt="h.serverHostOsType" />
+                <span class="ri-os"><span v-html="osIconSvg(h.serverHostOsType)"></span></span>
                 <span class="ri-name">{{ h.serverHostName }}</span>
                 <span :class="['pdot', h.serverHostOnline === 1 ? 'pdot-online' : 'pdot-offline']" />
                 <span :class="['ri-proto', `proto-${protocolOf(h)}`]">{{ protocolOf(h).toUpperCase() }}</span>
@@ -253,9 +263,10 @@ onMounted(onMountedInit);
       <div v-else class="rail-collapsed" @click="railOpen = true" title="展开资源条">☰</div>
     </aside>
 
-    <!-- 右侧控制台：ScGuacViewer（guacamole-common-js 客户端直连 /ws/ms/server/terminal 隧道） -->
+    <!-- 右侧控制台：SSH 直连走自研终端（xterm + /ws/.../terminal/ssh），其余经 guacd 隧道 -->
     <main class="term-main">
-      <ScGuacViewer :connection="connection" inline @close="connection = null" />
+      <ScSshDirectViewer v-if="connection && connection.protocol === 'ssh' && connection.mode === 'DIRECT'" :connection="connection" @close="disconnected = true" />
+      <ScGuacViewer v-else :connection="connection" inline @close="disconnected = true" />
       <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
     </main>
   </div>
@@ -345,7 +356,17 @@ onMounted(onMountedInit);
     border-color: var(--brand-100);
   }
 }
-.ri-os { width: 16px; height: 16px; flex-shrink: 0; object-fit: contain; }
+.ri-os {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--brand-500);
+}
+.ri-os :deep(svg) { display: block; }
 .ri-name {
   flex: 1;
   min-width: 0;

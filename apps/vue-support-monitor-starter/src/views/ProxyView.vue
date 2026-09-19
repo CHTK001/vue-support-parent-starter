@@ -26,6 +26,7 @@ interface FreeProxy {
 
 const freeList = ref<FreeProxy[]>([]);
 const fetching = ref(false);
+const checking = ref(false);
 
 async function api<T>(path: string): Promise<T> {
   const res = await http().get(BASE + path);
@@ -42,7 +43,8 @@ async function loadList(): Promise<void> {
 async function fetchFree(): Promise<void> {
   fetching.value = true;
   try {
-    const list = await api<FreeProxy[]>("/free");
+    const res = await http().get(BASE + "/free", { timeout: 120000 });
+    const list = unwrapResult<FreeProxy[]>(res);
     freeList.value = list ?? [];
     if (!freeList.value.length) ElMessage.warning("暂未获取到免费代理（外部代理源可能超时）");
     else ElMessage.success(`获取到 ${freeList.value.length} 个免费代理（已录入代理表）`);
@@ -50,6 +52,32 @@ async function fetchFree(): Promise<void> {
     ElMessage.error(`获取失败: ${e}`);
   } finally {
     fetching.value = false;
+  }
+}
+
+/** 批量检测 */
+async function checkAll(): Promise<void> {
+  checking.value = true;
+  try {
+    await api("/check");
+    ElMessage.success("批量检测已开始");
+    // 5秒后刷新列表
+    setTimeout(loadList, 5000);
+  } catch (e) {
+    ElMessage.error(`批量检测失败: ${e}`);
+  } finally {
+    checking.value = false;
+  }
+}
+
+/** 检测单个 */
+async function checkOne(id: number): Promise<void> {
+  try {
+    await api(`/check/${id}`);
+    ElMessage.success("检测完成");
+    loadList();
+  } catch (e) {
+    ElMessage.error(`检测失败: ${e}`);
   }
 }
 
@@ -64,30 +92,52 @@ onMounted(loadList);
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="fetching" @click="fetchFree">
           {{ fetching ? "获取中…" : "获取免费代理" }}
         </ReButton>
+        <ReButton icon="Connection" :show-text="true" size="small" type="primary" :loading="checking" @click="checkAll">
+          {{ checking ? "检测中…" : "批量检测" }}
+        </ReButton>
       </template>
     </ReSectionHead>
 
     <!-- 免费代理列表（从数据表读取——快） -->
-    <ReCard :radius="12" shadow="never">
-      <template #header><span class="card-h">免费代理（数据表）</span></template>
+    <ReCard :radius="12" shadow="never" :bordered="false">
       <div v-if="fetching" class="fetching">
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>正在获取免费代理…（抓取外部源较慢，请稍候）</span>
       </div>
       <ReEmpty v-else-if="!freeList.length" description="点击右上角「获取免费代理」拉取代理源" :image-size="80" style="padding: 24px 0" />
-      <ReTable
-        v-else
-        :data="freeList.map((p, i) => ({ id: i, host: p.host, port: p.port, protocol: p.protocol || 'Http', source: p.source || 'databay' }))"
-        :columns="[
-          { prop: 'addr', label: '代理地址', minWidth: 220, slot: 'addr' },
-          { prop: 'protocol', label: '协议', width: 110 },
-          { prop: 'source', label: '来源', width: 120 },
-        ]"
-        size="small"
-        table-id="proxy-list"
-      >
-        <template #col-addr="{ row }"><span class="mono">{{ row.host }}:{{ row.port }}</span></template>
-      </ReTable>
+      <el-scrollbar v-else height="calc(100vh - 180px)">
+        <ReTable
+          :data="freeList.map((p, i) => ({ id: i, host: p.host, port: p.port, protocol: p.protocol || 'Http', source: p.source || 'databay' }))"
+          :columns="[
+            { prop: 'addr', label: '代理地址', minWidth: 220, slot: 'addr' },
+            { prop: 'protocol', label: '协议', width: 110 },
+            { prop: 'source', label: '来源', width: 120 },
+            { prop: 'delay', label: '延迟', width: 100, slot: 'delay' },
+            { prop: 'reachable', label: '状态', width: 100, slot: 'reachable' },
+            { prop: 'actions', label: '操作', width: 100, slot: 'actions' },
+          ]"
+          size="small"
+          :border="false"
+          table-id="proxy-list"
+        >
+          <template #col-addr="{ row }"><span class="mono">{{ row.host }}:{{ row.port }}</span></template>
+          <template #col-delay="{ row }">
+            <span v-if="row.delay != null" :class="row.delay < 1000 ? 'delay-good' : row.delay < 3000 ? 'delay-warn' : 'delay-bad'">
+              {{ row.delay }}ms
+            </span>
+            <span v-else class="text-secondary">-</span>
+          </template>
+          <template #col-reachable="{ row }">
+            <el-tag v-if="row.reachable != null" :type="row.reachable ? 'success' : 'danger'" size="small">
+              {{ row.reachable ? '可达' : '不可达' }}
+            </el-tag>
+            <span v-else class="text-secondary">未检测</span>
+          </template>
+          <template #col-actions="{ row }">
+            <ReButton link size="small" @click="checkOne(row.id)">检测</ReButton>
+          </template>
+        </ReTable>
+      </el-scrollbar>
     </ReCard>
   </div>
 </template>
@@ -103,5 +153,13 @@ onMounted(loadList);
   padding: 24px 0;
   color: var(--text-secondary);
   font-size: 13px;
+}
+.delay-good { color: #67c23a; }
+.delay-warn { color: #e6a23c; }
+.delay-bad { color: #f56c6c; }
+.text-secondary { color: var(--text-secondary); }
+
+:deep(.el-table__body tr:hover > td.el-table__cell) {
+  background: transparent !important;
 }
 </style>

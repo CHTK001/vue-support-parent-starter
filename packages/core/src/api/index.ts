@@ -100,9 +100,12 @@ export function logout(data?: Record<string, unknown>) {
   return getApiHttp().delete(getConfig().url.logout).data(data ?? {}).then<ApiResult<LoginResult>>((r) => r.data);
 }
 
-/** 当前用户信息 */
-export function getMe() {
-  return getApiHttp().get(getConfig().url.me).then<ApiResult<LoginResult>>((r) => r.data);
+/** 当前用户信息（loading=false 时不触发顶部进度条，供头像框等静默刷新使用） */
+export function getMe(loading = true) {
+  return getApiHttp()
+    .get(getConfig().url.me)
+    .loading(loading)
+    .then<ApiResult<LoginResult>>((r) => r.data);
 }
 
 /** 刷新 token */

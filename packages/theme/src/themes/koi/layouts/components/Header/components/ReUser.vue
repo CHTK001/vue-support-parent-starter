@@ -11,7 +11,7 @@
       <template #reference>
         <div class="user-avatar-ring">
             <div class="user-avatar-frame">
-            <div v-if="avatarFrameImage" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
+            <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
             <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
           </div>
         </div>
@@ -21,7 +21,7 @@
       <div class="user-card-content">
         <div class="user-card-header">
           <div class="user-avatar-card-wrap">
-            <div v-if="avatarFrameImage" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
+            <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
             <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
           </div>
           <div class="user-info">
@@ -69,7 +69,7 @@ import useUserStore from "@repo/pinia/modules/user";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import KoiLockScreen from "../../LockScreen/index.vue";
-import { getAvatarFrameImage, getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
+import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
@@ -103,29 +103,17 @@ const avatar = computed(
     display.value.avatar ||
     defaultAvatarUrl,
 );
-// 头像框图片：生日框由后端按生日窗口动态下发，前端仅按 ID 映射（渐变框不在此渲染）
-const avatarFrameImage = computed(() => {
-  if (!getConfig()?.other?.avatarFrame?.enable) return "";
-  const frameId = authStore.loginUser?.avatarFrame ?? 0;
-  const frameShow = authStore.loginUser?.avatarFrameShow ?? 0;
-  // 开关默认关闭，仅当用户开启显示时才渲染头像框
-  if (Number(frameShow) !== 1) return "";
-  return getAvatarFrameImage(frameId);
-});
-/** 头像框叠加层样式：按头像尺寸 ÷ 洞径比 缩放层，使环贴合头像边缘 */
-const avatarFrameStyle = (avatarSize: number): Record<string, string> => {
-  const frameId = authStore.loginUser?.avatarFrame ?? 0;
-  return getAvatarFrameLayerStyle(frameId, avatarSize);
-};
+// 头像框：开关 + 显示位 + 帧内容三重判断，与侧栏布局 / 个人中心共用同一实现
+const { visible: avatarFrameVisible, layerStyle: avatarFrameStyle } = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
 
 /** 退出登录 */
-const handleLayout = () => {
+const handleLayout = async () => {
+  // 先通知后端吊销令牌，再清理本地状态，否则旧令牌在服务端仍然可用
+  await userStore.logOut();
   // 清除 sessionStorage
   clearSessionStorage();
-  // 清除用户 token
-  userStore.setToken("");
   // 清除 tabs 数据
   tabsStore.$reset();
   // 清除 keepAlive 缓存

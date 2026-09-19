@@ -1,13 +1,17 @@
 <script setup lang="ts">
 /**
- * 主机画像 —— master-detail 布局
+ * 主机画像 —— master-detail 布局（数据全部来自目标机 Agent）
  * 左侧：主机列表（OS 图标 + 名称 + 地址 + 在线状态），点选切换
- * 右侧：ReTab 分区（概览 / 实时指标 / 端口 / 采集配置 / 远控），展示选中主机详情
+ * 右侧：概览条 + 资源仪表 + 分段区（概览 / 监听端口 / 进程 / 服务 / 磁盘 / 网络 / 环境变量）
+ *
+ * 约定：
+ *  - 每一项远端数据都经 /ms/server/host/profile/** 由后端转发到主机上的 Agent，页面不再自己走 SSH/WinRM；
+ *  - Agent 不可达时必须把原因显式呈现在页面上，不能留一片空白让人以为「这台机器没数据」。
  * @author CH
  * @since 4.0.0
  */
-import { computed, ref, watch } from "vue";
-import { useSocketService } from "@repo/core";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { fetchHostProfile, fetchHostProfileSection } from "../monitorApi";
 import { osIconSvg } from "../utils/osIcon";
 import type { Host, Group } from "./AssetsView.vue";
 
@@ -18,30 +22,120 @@ interface Props {
   liveDelay?: Record<number, number>;
   /** 实时在线（hostId → 1/0） */
   liveOnline?: Record<number, number>;
+  /** 打开画像时预选主机 */
+  initialHostId?: number | null;
+  /** 打开画像时预选分区 */
+  initialTab?: string | null;
+  /** 父组件每打开一次画像自增，保证重复打开同一台主机也会重新定位刷新 */
+  openSeq?: number;
 }
 const props = withDefaults(defineProps<Props>(), {
   liveDelay: () => ({}),
   liveOnline: () => ({}),
+  initialHostId: null,
+  initialTab: null,
+  openSeq: 0,
 });
 
 const emit = defineEmits<{
   (e: "connect", host: Host): void;
   (e: "edit", host: Host): void;
   (e: "detail", host: Host): void;
-  (e: "scan-ports", host: Host): void;
+  (e: "deploy-agent", host: Host): void;
+  (e: "refreshed"): void;
 }>();
+
+/** 画像分区 */
+type SectionKey = "overview" | "ports" | "processes" | "services" | "disks" | "network" | "env";
+
+/** 分区定义（概览走 /info+/metrics，其余走对应 agent 端点） */
+const sections: Array<{ name: SectionKey; label: string }> = [
+  { name: "overview", label: "概览" },
+  { name: "ports", label: "监听端口" },
+  { name: "processes", label: "进程" },
+  { name: "services", label: "服务" },
+  { name: "disks", label: "磁盘" },
+  { name: "network", label: "网络" },
+  { name: "env", label: "环境变量" },
+];
+
+/** 各分区的列定义 */
+const COLUMNS: Record<SectionKey, Array<{ key: string; label: string; width?: string }>> = {
+  overview: [],
+  ports: [
+    { key: "proto", label: "协议", width: "72px" },
+    { key: "local", label: "监听地址", width: "170px" },
+    { key: "port", label: "端口", width: "88px" },
+    { key: "state", label: "状态", width: "120px" },
+    { key: "pid", label: "PID", width: "88px" },
+    { key: "pidName", label: "进程" },
+  ],
+  processes: [
+    { key: "pid", label: "PID", width: "88px" },
+    { key: "name", label: "进程名", width: "220px" },
+    { key: "cpu", label: "CPU%", width: "88px" },
+    { key: "mem", label: "MEM%", width: "88px" },
+    { key: "rss", label: "RSS(KB)", width: "110px" },
+    { key: "args", label: "命令行" },
+  ],
+  services: [
+    { key: "name", label: "服务名", width: "280px" },
+    { key: "status", label: "状态", width: "140px" },
+    { key: "pid", label: "PID", width: "100px" },
+  ],
+  disks: [
+    { key: "mount", label: "挂载点", width: "170px" },
+    { key: "name", label: "名称", width: "200px" },
+    { key: "size", label: "容量", width: "110px" },
+    { key: "used", label: "已用", width: "110px" },
+    { key: "avail", label: "可用", width: "110px" },
+    { key: "use%", label: "使用率", width: "96px" },
+  ],
+  network: [
+    { key: "ifname", label: "网卡", width: "150px" },
+    { key: "mac", label: "MAC", width: "170px" },
+    { key: "ipv4", label: "IPv4" },
+    { key: "ipv6", label: "IPv6" },
+    { key: "mtu", label: "MTU", width: "90px" },
+  ],
+  env: [
+    { key: "name", label: "变量", width: "260px" },
+    { key: "value", label: "值" },
+  ],
+};
+
+/** 自动刷新周期（毫秒） */
+const AUTO_REFRESH_MILLIS = 10000;
 
 /** 左侧选中的主机 id */
 const selectedId = ref<number | null>(null);
 /** 左侧搜索关键词 */
 const search = ref("");
+/** 当前分区 */
+const active = ref<SectionKey>("overview");
+/** 分页（仅进程/服务生效） */
+const page = ref(1);
+const pageSize = ref(50);
 
-/** 当前选中主机 */
-const selectedHost = computed(() =>
-  props.hosts.find(h => h.id === selectedId.value) ?? null,
-);
+const info = ref<Record<string, any>>({});
+const metrics = ref<Record<string, any>>({});
+const snapshot = ref<Record<string, any>>({});
+const agentPort = ref(0);
+const osMismatch = ref("");
+const rows = ref<Record<string, any>[]>([]);
 
-/** 左侧过滤后的主机列表 */
+const loadingProfile = ref(false);
+const loadingSection = ref(false);
+const profileError = ref("");
+const sectionError = ref("");
+const autoRefresh = ref(true);
+let timer: number | undefined;
+
+const selectedHost = computed(() => props.hosts.find(h => h.id === selectedId.value) ?? null);
+const agentReady = computed(() => Object.keys(info.value).length > 0);
+const agentVersion = computed(() => String(info.value.agentVersion || snapshot.value.serverHostAgentVersion || ""));
+const columns = computed(() => COLUMNS[active.value] ?? []);
+
 const visibleHosts = computed(() => {
   const kw = search.value.toLowerCase();
   if (!kw) return props.hosts;
@@ -49,22 +143,135 @@ const visibleHosts = computed(() => {
     h.serverHostName.toLowerCase().includes(kw) || h.serverHostAddress.toLowerCase().includes(kw));
 });
 
-/** 首次打开默认选中第一台 */
+/* ================== 选择与切换 ================== */
+
+function selectHost(id: number): void {
+  if (selectedId.value === id) return;
+  selectedId.value = id;
+  rows.value = [];
+  sectionError.value = "";
+  page.value = 1;
+  loadProfile(true);
+  if (active.value !== "overview") loadSection();
+}
+
+function pickSection(name: SectionKey): void {
+  active.value = name;
+  page.value = 1;
+  if (name !== "overview") loadSection();
+}
+
 watch(visibleHosts, (list) => {
-  if (list.length && !selectedHost.value) {
-    selectedId.value = list[0].id;
+  if (list.length && !list.some(h => h.id === selectedId.value)) {
+    selectHost(list[0].id);
   }
 }, { immediate: true });
 
-function selectHost(id: number): void {
+watch([() => props.openSeq, () => props.initialHostId], () => focusRequested());
+
+/** 父组件请求定位到某台主机（重复打开同一台也要重新拉数据） */
+function focusRequested(): void {
+  const id = props.initialHostId;
+  if (id == null || !props.hosts.some(h => h.id === id)) return;
+  const target = mapTab(props.initialTab) ?? "overview";
   selectedId.value = id;
+  active.value = target;
+  page.value = 1;
+  rows.value = [];
+  sectionError.value = "";
+  loadProfile();
+  if (target !== "overview") loadSection();
+  if (autoRefresh.value && !timer) restartTimer();
 }
 
-/** 在线状态（socket 优先） */
+/** 兼容旧入口传来的分区名（原「系统管理」那套 key） */
+function mapTab(tab?: string | null): SectionKey | null {
+  if (!tab) return null;
+  const key = tab.trim().toLowerCase();
+  if (key.startsWith("network-interface") || key.startsWith("network-connection")) return "network";
+  if (key === "partition") return "disks";
+  if (key === "system-service") return "services";
+  if (key === "online" || key === "delay" || key === "metric" || key === "firewall" || key === "driver") return "overview";
+  return sections.some(s => s.name === key) ? (key as SectionKey) : "overview";
+}
+
+/* ================== 数据加载 ================== */
+
+/**
+ * 拉取概览与实时指标。
+ *
+ * @param manual 是否用户主动刷新（只有主动刷新才回通知父组件重载列表，避免自动刷新把整表反复拉下来）
+ */
+async function loadProfile(manual = false): Promise<void> {
+  const host = selectedHost.value;
+  if (!host) return;
+  loadingProfile.value = true;
+  profileError.value = "";
+  try {
+    const data = await fetchHostProfile(host.id, true);
+    info.value = data?.info ?? {};
+    metrics.value = data?.metrics ?? {};
+    snapshot.value = data?.host ?? {};
+    agentPort.value = Number(data?.port) || 0;
+    osMismatch.value = data?.osMismatch ?? "";
+    if (manual) emit("refreshed");
+  } catch (e) {
+    profileError.value = String((e as Error)?.message ?? e);
+    info.value = {};
+    metrics.value = {};
+  } finally {
+    loadingProfile.value = false;
+  }
+}
+
+async function loadSection(): Promise<void> {
+  const host = selectedHost.value;
+  if (!host || active.value === "overview") return;
+  loadingSection.value = true;
+  sectionError.value = "";
+  try {
+    const paged = active.value === "processes" || active.value === "services";
+    rows.value = await fetchHostProfileSection(host.id, active.value, paged ? page.value : undefined, paged ? pageSize.value : undefined);
+  } catch (e) {
+    rows.value = [];
+    sectionError.value = String((e as Error)?.message ?? e);
+  } finally {
+    loadingSection.value = false;
+  }
+}
+
+function changePage(delta: number): void {
+  const next = page.value + delta;
+  if (next < 1) return;
+  page.value = next;
+  loadSection();
+}
+
+/* ================== 自动刷新 ================== */
+
+function restartTimer(): void {
+  if (timer) {
+    window.clearInterval(timer);
+    timer = undefined;
+  }
+  if (!autoRefresh.value) return;
+  timer = window.setInterval(() => {
+    if (!selectedHost.value || document.hidden) return;
+    loadProfile();
+    if (active.value !== "overview") loadSection();
+  }, AUTO_REFRESH_MILLIS);
+}
+watch(autoRefresh, restartTimer);
+watch(selectedId, () => { if (autoRefresh.value && !timer) restartTimer(); });
+onBeforeUnmount(() => {
+  if (timer) window.clearInterval(timer);
+});
+
+/* ================== 展示辅助 ================== */
+
 function onlineState(h: Host): number {
   return props.liveOnline[h.id] ?? h.serverHostOnline;
 }
-/** 延迟（socket 优先） */
 function delayOf(h: Host): number | null {
   const v = props.liveDelay[h.id];
   if (v != null) return v;
@@ -78,61 +285,79 @@ function delayText(ms: number | null): string {
 function delayBad(ms: number | null): boolean {
   return ms != null && (ms < 0 || ms > 200);
 }
-
-/** 平台图标统一走 utils/osIcon 的常规单色图标 */
 function protocolOf(h: Host): string {
+  const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
+  if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
   return "ssh";
 }
-function collectModeLabel(m?: string | null): string {
-  const map: Record<string, string> = { SCHEDULED: "定时采集", AGENT: "Agent采集", HTTP: "HTTP采集", PROMETHEUS: "Prometheus采集" };
-  return map[m ?? ""] ?? m ?? "—";
-}
 function groupName(id?: number | null): string {
   if (!id) return "未分组";
   return props.groups.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
 }
-function splitTags(tags?: string | null): string[] {
-  if (!tags || !tags.trim()) return [];
-  return tags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+function show(v: unknown, fallback = "—"): string {
+  if (v === null || v === undefined) return fallback;
+  const text = String(v).trim();
+  return text === "" ? fallback : text;
 }
-interface PortItem { port: string; protocol?: string; service?: string; }
-function parsePorts(raw?: string | null): PortItem[] {
-  if (!raw) return [];
-  try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch { return []; }
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : 0;
 }
-function portText(p: PortItem): string {
-  const parts = [`${p.port}${p.protocol ? "/" + p.protocol : ""}`];
-  if (p.service) parts.push(p.service);
-  return parts.join(" ");
+function fmtNum(v: unknown): string {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(Math.round(n * 10) / 10) : "—";
+}
+function humanUptime(sec: number): string {
+  if (!sec || sec <= 0) return "—";
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${d} 天 ${h} 小时`;
+  if (h > 0) return `${h} 小时 ${m} 分`;
+  return `${m} 分`;
 }
 
-/** ReTab 配置 */
-const tabs = [
-  { name: "overview", label: "概览", icon: "Monitor" },
-  { name: "metrics", label: "实时指标", icon: "DataLine" },
-  { name: "ports", label: "端口", icon: "Connection" },
-  { name: "collect", label: "采集配置", icon: "Timer" },
-  { name: "remote", label: "远控", icon: "VideoCamera" },
-];
+const uptimeText = computed(() => humanUptime(Number(metrics.value.uptimeSec ?? info.value.uptimeSec ?? 0)));
 
-/** 基本信息行 */
-interface InfoRow { label: string; value: string; mono?: boolean; }
-const overviewRows = computed<InfoRow[]>(() => {
-  const h = selectedHost.value;
-  if (!h) return [];
+interface Gauge { label: string; percent: number; detail: string; bad: boolean; }
+const gauges = computed<Gauge[]>(() => {
+  const m = metrics.value;
+  const cpu = num(m.cpuPercent);
+  const memPct = num(m.memoryPercent);
+  const diskPct = num(m.diskPercent);
   return [
-    { label: "主机编码", value: h.serverHostCode || "—", mono: true },
-    { label: "操作系统", value: h.serverHostOsType || "—" },
-    { label: "架构", value: h.serverHostOsArch || "—" },
-    { label: "系统版本", value: h.serverHostOsVersion || "—" },
-    { label: "公网 IP", value: h.serverHostPublicIp || "—", mono: true },
-    { label: "内网 IP", value: h.serverHostPrivateIp || "—", mono: true },
-    { label: "分组", value: groupName(h.msServerGroupId) },
-    { label: "最后在线", value: h.serverHostOnlineTime || "—" },
-    { label: "备注", value: h.serverHostDescription || "—" },
+    { label: "CPU", percent: cpu, detail: `${m.processCount ?? "—"} 进程 · ${m.threadCount ?? "—"} 线程`, bad: cpu >= 85 },
+    { label: "内存", percent: memPct, detail: `${fmtNum(m.memoryUsedMb)} / ${fmtNum(m.memoryTotalMb)} MB`, bad: memPct >= 90 },
+    { label: "磁盘", percent: diskPct, detail: `${fmtNum(m.diskUsedGb)} / ${fmtNum(m.diskTotalGb)} GB`, bad: diskPct >= 90 },
+  ];
+});
+
+const overviewRows = computed<Array<{ label: string; value: string; mono?: boolean }>>(() => {
+  const i = info.value;
+  const h = selectedHost.value;
+  const row: any = snapshot.value || {};
+  return [
+    { label: "主机名", value: show(i.hostname) },
+    { label: "操作系统", value: `${show(i.os, h?.serverHostOsType ?? "—")} ${show(i.osVersion, "")}`.trim() },
+    { label: "架构", value: show(i.arch) },
+    { label: "CPU 核数", value: show(i.cpuCores) },
+    { label: "内存", value: i.memoryMb ? `${fmtNum(i.memoryMb)} MB` : "—" },
+    { label: "磁盘总量", value: i.diskTotalGb ? `${fmtNum(i.diskTotalGb)} GB` : "—" },
+    { label: "内网 IP", value: show(i.privateIp), mono: true },
+    { label: "公网 IP", value: show(i.publicIp), mono: true },
+    { label: "网卡 MAC", value: show(i.mac), mono: true },
+    { label: "运行时长", value: uptimeText.value },
+    { label: "Java 版本", value: show(i.javaVersion) },
+    { label: "Agent 版本", value: show(agentVersion.value) },
+    { label: "Agent 端口", value: show(agentPort.value || i.agentPort) },
+    { label: "Agent PID", value: show(i.pid) },
+    { label: "主机编码", value: show(h?.serverHostCode), mono: true },
+    { label: "分组", value: groupName(h?.msServerGroupId) },
+    { label: "最后采集", value: show(row.serverHostAgentTime || row.serverHostLastCollectTime) },
+    { label: "备注", value: show(h?.serverHostDescription) },
   ];
 });
 </script>
@@ -143,7 +368,7 @@ const overviewRows = computed<InfoRow[]>(() => {
     <aside class="profile-rail">
       <div class="rail-head">
         <span class="rail-title">主机画像</span>
-        <ReBadge :model-value="hosts.length" />
+        <span class="rail-count">{{ hosts.length }}</span>
       </div>
       <ReInput v-model="search" placeholder="搜索名称 / IP" clearable size="small" class="rail-search" />
       <ReScrollbar class="rail-list">
@@ -153,12 +378,10 @@ const overviewRows = computed<InfoRow[]>(() => {
           :class="['rail-item', { active: selectedId === h.id }]"
           @click="selectHost(h.id)"
         >
-          <span class="ri-os">
-            <span v-html="osIconSvg(h.serverHostOsType)"></span>
-          </span>
+          <span class="ri-os"><span v-html="osIconSvg(h.serverHostOsType)"></span></span>
           <div class="ri-meta">
             <b class="ri-name">{{ h.serverHostName }}</b>
-            <span class="ri-addr mono">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
+            <span class="ri-addr mono">{{ h.serverHostAddress }}</span>
           </div>
           <ReStatusIndicator :type="onlineState(h) === 1 ? 'success' : 'danger'" />
         </div>
@@ -166,265 +389,224 @@ const overviewRows = computed<InfoRow[]>(() => {
       </ReScrollbar>
     </aside>
 
-    <!-- 右侧：ReTab 详情 -->
+    <!-- 右侧：画像详情 -->
     <section class="profile-detail">
       <div v-if="!selectedHost" class="detail-empty">
         <ReEmpty description="从左侧选择一台主机查看画像" />
       </div>
       <template v-else>
-        <!-- 头部：主机概览条（图标 + 名称 + 关键状态） -->
         <div class="profile-head">
-          <span class="ph-os">
-            <img
-              v-if="osImgSrc(osKey(selectedHost.serverHostOsType))"
-              :src="osImgSrc(osKey(selectedHost.serverHostOsType))"
-              class="ph-os-img"
-              alt=""
-            />
-          </span>
+          <span class="ph-os"><span v-html="osIconSvg(selectedHost.serverHostOsType)"></span></span>
           <div class="ph-name-wrap">
             <b class="ph-name">{{ selectedHost.serverHostName }}</b>
-            <span class="ph-addr mono">{{ selectedHost.serverHostAddress }}:{{ selectedHost.serverHostPort }} · {{ protocolOf(selectedHost).toUpperCase() }}</span>
+            <span class="ph-addr mono">
+              {{ selectedHost.serverHostAddress }}:{{ selectedHost.serverHostPort }} ·
+              {{ protocolOf(selectedHost).toUpperCase() }} · Agent :{{ agentPort || '—' }}
+            </span>
           </div>
-          <div class="ph-status">
-            <ReStatusIndicator :type="onlineState(selectedHost) === 1 ? 'success' : 'danger'" />
-            <span :class="onlineState(selectedHost) === 1 ? 'on' : 'off'">{{ onlineState(selectedHost) === 1 ? '在线' : '离线' }}</span>
+          <div class="ph-pills">
+            <span :class="['pill', onlineState(selectedHost) === 1 ? 'pill-ok' : 'pill-bad']">
+              {{ onlineState(selectedHost) === 1 ? '在线' : '离线' }}
+            </span>
+            <span :class="['pill', delayBad(delayOf(selectedHost)) ? 'pill-warn' : 'pill-mute']">
+              {{ delayText(delayOf(selectedHost)) }}
+            </span>
+            <span v-if="agentReady" class="pill pill-agent">Agent v{{ agentVersion || '?' }}</span>
+            <span v-else class="pill pill-bad">Agent 未就绪</span>
           </div>
           <div class="ph-actions">
-            <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接" @click="emit('connect', selectedHost)" />
-            <ReButton icon="TrendCharts" layout="square" size="small" title="监控详情" @click="emit('detail', selectedHost)" />
-            <ReButton icon="Search" layout="square" size="small" type="warning" title="端口扫描" @click="emit('scan-ports', selectedHost)" />
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="emit('edit', selectedHost)" />
+            <ReButton icon="Refresh" layout="square" size="small" type="primary" :loading="loadingProfile"
+              @click="loadProfile(true)">刷新主机</ReButton>
+            <ReButton v-if="!agentReady" icon="Download" layout="square" size="small" type="success"
+              @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
+            <ReButton icon="Connection" layout="square" size="small" @click="emit('connect', selectedHost)">连接</ReButton>
+            <ReButton icon="TrendCharts" layout="square" size="small" @click="emit('detail', selectedHost)">监控详情</ReButton>
+            <ReButton icon="EditPen" layout="square" size="small" @click="emit('edit', selectedHost)">编辑</ReButton>
+            <label class="auto-switch">
+              <ReSwitch v-model="autoRefresh" />
+              <span>10s 自动刷新</span>
+            </label>
           </div>
         </div>
 
-        <!-- ReTab 分区 -->
-        <ReTab :tabs="tabs" variant="capsule" class="profile-tabs">
-          <!-- 概览 -->
-          <template #overview>
-            <div class="tab-grid">
-              <div class="tab-item" v-for="row in overviewRows" :key="row.label">
-                <span class="tab-label">{{ row.label }}</span>
-                <span :class="['tab-value', { mono: row.mono, dim: row.value === '—' }]">{{ row.value }}</span>
-              </div>
-            </div>
-          </template>
+        <div v-if="profileError" class="alert alert-error">
+          <b>读取 Agent 失败：</b>{{ profileError }}
+          <div class="dim">
+            画像各分区都依赖 Agent。主机台账记录的最近错误：{{ show(snapshot.serverHostAgentError, '无') }}；
+            未安装时可点右上「安装 Agent」。
+          </div>
+        </div>
+        <div v-else-if="osMismatch" class="alert alert-warn">{{ osMismatch }}</div>
 
-          <!-- 实时指标 -->
-          <template #metrics>
-            <div class="metrics-grid">
-              <div class="metric">
-                <span class="metric-label">延迟</span>
-                <span class="metric-val mono" :class="{ bad: delayBad(delayOf(selectedHost)) }">{{ delayText(delayOf(selectedHost)) }}</span>
-                <span class="metric-sub">socket 实时 / 最近检测</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">在线状态</span>
-                <span class="metric-val" :class="onlineState(selectedHost) === 1 ? 'good' : 'bad'">{{ onlineState(selectedHost) === 1 ? '在线' : '离线' }}</span>
-                <span class="metric-sub">{{ selectedHost.serverHostOnlineTime || '未知' }}</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">采集模式</span>
-                <span class="metric-val">{{ collectModeLabel(selectedHost.serverHostCollectMode) }}</span>
-                <span class="metric-sub">间隔 {{ selectedHost.serverHostCollectInterval ?? '—' }}s</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">Agent</span>
-                <span class="metric-val">{{ selectedHost.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</span>
-                <span class="metric-sub mono">{{ selectedHost.serverHostAgentKey ? selectedHost.serverHostAgentKey.slice(0, 12) + '…' : '—' }}</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">CPU 核数</span>
-                <span class="metric-val mono">{{ selectedHost.serverHostCpuCores ?? '—' }}</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">内存</span>
-                <span class="metric-val mono">{{ selectedHost.serverHostMemoryMb ? (selectedHost.serverHostMemoryMb / 1024).toFixed(1) + ' GB' : '—' }}</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">磁盘</span>
-                <span class="metric-val mono">{{ selectedHost.serverHostDiskGb ? selectedHost.serverHostDiskGb + ' GB' : '—' }}</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">远控</span>
-                <span class="metric-val">{{ selectedHost.serverHostRemoteEnabled === 1 ? '启用' : '停用' }}</span>
-              </div>
+        <!-- 资源仪表 -->
+        <div class="gauges">
+          <div v-for="g in gauges" :key="g.label" class="gauge">
+            <div class="gauge-top">
+              <span class="gauge-label">{{ g.label }}</span>
+              <span :class="['gauge-val', { bad: g.bad }]">{{ g.percent }}%</span>
             </div>
-          </template>
+            <div class="gauge-bar"><i :class="{ bad: g.bad }" :style="{ width: Math.min(100, g.percent) + '%' }" /></div>
+            <div class="gauge-sub mono">{{ agentReady ? g.detail : '等待 Agent 数据' }}</div>
+          </div>
+          <div class="gauge gauge-facts">
+            <div class="fact"><span>核数</span><b class="mono">{{ show(info.cpuCores) }}</b></div>
+            <div class="fact"><span>内存</span><b class="mono">{{ info.memoryMb ? fmtNum(info.memoryMb) + ' MB' : '—' }}</b></div>
+            <div class="fact"><span>运行</span><b class="mono">{{ uptimeText }}</b></div>
+            <div class="fact"><span>采集</span><b class="mono dim">{{ show(metrics.collectTime) }}</b></div>
+          </div>
+        </div>
 
-          <!-- 端口 -->
-          <template #ports>
-            <div class="ports-box">
-              <div v-if="parsePorts(selectedHost.serverHostPorts).length" class="ports-list">
-                <ReTag
-                  v-for="p in parsePorts(selectedHost.serverHostPorts)"
-                  :key="p.port"
-                  size="small"
-                  :value="p.port"
-                  :tag-options="[{ dictValue: p.port, dictLabel: portText(p), dictTag: 'info' }]"
-                />
-              </div>
-              <div v-else class="dim">未扫描，点右上「端口扫描」触发</div>
-              <div v-if="selectedHost.serverHostLastPortScanTime" class="dim ports-time">
-                最后扫描：{{ selectedHost.serverHostLastPortScanTime }}
-              </div>
-            </div>
-          </template>
+        <!-- 分段切换 -->
+        <div class="seg">
+          <button
+            v-for="s in sections"
+            :key="s.name"
+            :class="['seg-item', { active: active === s.name }]"
+            @click="pickSection(s.name)"
+          >{{ s.label }}</button>
+        </div>
 
-          <!-- 采集配置 -->
-          <template #collect>
-            <div class="tab-grid">
-              <div class="tab-item"><span class="tab-label">采集开关</span><span class="tab-value">{{ selectedHost.serverHostCollectEnabled === 1 ? '启用' : '停用' }}</span></div>
-              <div class="tab-item"><span class="tab-label">采集模式</span><span class="tab-value">{{ collectModeLabel(selectedHost.serverHostCollectMode) }}</span></div>
-              <div class="tab-item"><span class="tab-label">采集间隔</span><span class="tab-value mono">{{ selectedHost.serverHostCollectInterval ?? '—' }} s</span></div>
-              <div class="tab-item"><span class="tab-label">最后采集</span><span class="tab-value">{{ selectedHost.serverHostLastCollectTime || '—' }}</span></div>
-              <div class="tab-item"><span class="tab-label">在离线检测</span><span class="tab-value">{{ selectedHost.serverHostOnlineEnabled === 1 ? '启用' : '停用' }}</span></div>
-              <div class="tab-item"><span class="tab-label">检测间隔</span><span class="tab-value mono">{{ selectedHost.serverHostOnlineInterval ?? '—' }} s</span></div>
-              <div class="tab-item"><span class="tab-label">延迟检测</span><span class="tab-value">{{ selectedHost.serverHostDelayEnabled === 1 ? '启用' : '停用' }}</span></div>
-              <div class="tab-item"><span class="tab-label">延迟间隔</span><span class="tab-value mono">{{ selectedHost.serverHostDelayInterval ?? '—' }} s</span></div>
+        <div class="seg-body">
+          <div v-if="active === 'overview'" class="tab-grid">
+            <div v-for="row in overviewRows" :key="row.label" class="tab-item">
+              <span class="tab-label">{{ row.label }}</span>
+              <span :class="['tab-value', { mono: row.mono, dim: row.value === '—' }]">{{ row.value }}</span>
             </div>
-          </template>
+          </div>
 
-          <!-- 远控 -->
-          <template #remote>
-            <div class="tab-grid">
-              <div class="tab-item"><span class="tab-label">远控协议</span><span class="tab-value">{{ protocolOf(selectedHost).toUpperCase() }}</span></div>
-              <div class="tab-item"><span class="tab-label">目标端口</span><span class="tab-value mono">{{ selectedHost.serverHostPort }}</span></div>
-              <div class="tab-item"><span class="tab-label">远控开关</span><span class="tab-value">{{ selectedHost.serverHostRemoteEnabled === 1 ? '启用' : '停用' }}</span></div>
-              <div class="tab-item"><span class="tab-label">连接</span><span class="tab-value">
-                <ReButton icon="Connection" :show-text="true" size="small" type="primary" @click="emit('connect', selectedHost)">连接</ReButton>
-              </span></div>
+          <template v-else>
+            <div class="sec-bar">
+              <span class="dim">共 {{ rows.length }} 条{{ page > 1 ? `（第 ${page} 页）` : '' }}</span>
+              <div class="sec-pager">
+                <ReButton size="small" :disabled="page <= 1 || loadingSection" @click="changePage(-1)">上一页</ReButton>
+                <span class="mono page-no">{{ page }}</span>
+                <ReButton size="small" :disabled="loadingSection || rows.length < pageSize" @click="changePage(1)">下一页</ReButton>
+                <ReButton size="small" type="primary" :loading="loadingSection" @click="loadSection">刷新</ReButton>
+              </div>
+            </div>
+            <div v-if="sectionError" class="alert alert-error">{{ sectionError }}</div>
+            <div v-else-if="loadingSection && !rows.length" class="dim sec-loading">正在从 Agent 拉取…</div>
+            <div v-else-if="!rows.length" class="dim sec-loading">该分区无数据</div>
+            <div v-else class="tbl-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th v-for="col in columns" :key="col.key" :style="col.width ? { width: col.width } : {}">{{ col.label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(r, idx) in rows" :key="idx">
+                    <td v-for="col in columns" :key="col.key">{{ show(r[col.key], '') }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </template>
-        </ReTab>
+        </div>
       </template>
     </section>
   </div>
 </template>
 
 <style scoped lang="scss">
-.profile {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-}
-/* 左侧主机列表 */
+.profile { display: flex; height: 100%; min-height: 0; }
+/* 左侧列表 */
 .profile-rail {
-  width: 320px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
-  background: var(--bg-container);
+  width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border-subtle); background: var(--bg-container);
 }
-.rail-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 14px 8px;
-}
+.rail-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 8px; }
 .rail-title { font-size: 15px; font-weight: 600; }
+.rail-count {
+  font-size: 11px; color: var(--brand-600, #6d5ce7); background: var(--brand-50, #f3f1ff);
+  border: 1px solid var(--brand-200, #d5ccff); border-radius: 999px; padding: 0 7px; line-height: 18px;
+}
 .rail-search { padding: 0 14px 8px; }
 .rail-list { flex: 1; min-height: 0; padding: 0 10px; }
 .rail-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all .15s;
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; transition: all .15s;
   &:hover { background: var(--brand-50, #f3f1ff); }
   &.active { background: var(--brand-100, #e8e4ff); border-color: var(--brand-200, #d5ccff); }
 }
 .ri-os {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--bg-fill, #f5f6fa); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px;
+  font-size: 18px; color: var(--brand-500); background: var(--bg-fill, #f5f6fa); flex-shrink: 0;
 }
-.ri-os-img { width: 18px; height: 18px; object-fit: contain; }
+.ri-os :deep(svg) { display: block; }
 .ri-meta { flex: 1; min-width: 0; }
-.ri-name {
-  display: block; font-size: 13px; font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.ri-name { display: block; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ri-addr { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
 .rail-empty { text-align: center; padding: 30px; color: var(--text-tertiary); font-size: 13px; }
 
-/* 右侧详情 */
-.profile-detail {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 16px 20px;
-}
+/* 右侧 */
+.profile-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 16px 20px; }
 .detail-empty { height: 100%; display: flex; align-items: center; justify-content: center; }
-/* 头部概览条 */
-.profile-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 14px;
-}
+.profile-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); }
 .ph-os {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 48px; height: 48px; border-radius: 12px;
-  background: var(--bg-fill, #f5f6fa); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 12px;
+  font-size: 24px; color: var(--brand-500); background: var(--bg-fill, #f5f6fa); flex-shrink: 0;
 }
-.ph-os-img { width: 26px; height: 26px; object-fit: contain; }
-.ph-name-wrap { flex: 1; min-width: 0; }
-.ph-name { display: block; font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.ph-os :deep(svg) { display: block; }
+.ph-name-wrap { flex: 1; min-width: 220px; }
+.ph-name { display: block; font-size: 17px; font-weight: 700; }
 .ph-addr { font-size: 12px; color: var(--text-tertiary, #a0a4b0); margin-top: 3px; }
-.ph-status {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
-  padding: 4px 12px; border-radius: 20px; background: var(--bg-fill, #f5f6fa);
+.ph-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-subtle);
+  background: var(--bg-fill, #f5f6fa); white-space: nowrap;
 }
-.ph-status .on { color: var(--status-success-text, #34c759); font-weight: 500; }
-.ph-status .off { color: var(--status-error-text, #f56c6c); font-weight: 500; }
-.ph-actions { display: flex; gap: 6px; }
-/* ReTab 区域 */
-.profile-tabs { flex: 1; }
-/* 概览/配置网格 */
-.tab-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px 24px;
-  padding: 14px 0;
+.pill-ok { color: var(--status-success-text, #34c759); border-color: rgba(52, 199, 89, .35); }
+.pill-bad { color: var(--status-error-text, #f56c6c); border-color: rgba(245, 108, 108, .35); }
+.pill-warn { color: var(--status-warning-text, #e6a23c); border-color: rgba(230, 162, 60, .35); }
+.pill-mute { color: var(--text-tertiary, #a0a4b0); }
+.pill-agent { color: var(--brand-600, #6d5ce7); border-color: var(--brand-200, #d5ccff); background: var(--brand-50, #f3f1ff); }
+.ph-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.auto-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-tertiary); margin-left: 4px; }
+
+.alert { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.7; }
+.alert-error { background: rgba(245, 108, 108, .1); border: 1px solid rgba(245, 108, 108, .3); color: var(--status-error-text, #d9484b); }
+.alert-warn { background: rgba(230, 162, 60, .1); border: 1px solid rgba(230, 162, 60, .3); color: var(--status-warning-text, #b8741a); }
+
+.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 4px; }
+.gauge { padding: 12px 14px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-fill, #f8f9fc); }
+.gauge-top { display: flex; align-items: baseline; justify-content: space-between; }
+.gauge-label { font-size: 11px; letter-spacing: .4px; text-transform: uppercase; color: var(--text-tertiary); }
+.gauge-val { font-size: 18px; font-weight: 600; &.bad { color: var(--danger, #f56c6c); } }
+.gauge-bar {
+  height: 6px; border-radius: 999px; background: var(--border-subtle); overflow: hidden; margin: 8px 0 6px;
+  i { display: block; height: 100%; background: var(--brand-500, #6d5ce7); transition: width .3s; &.bad { background: var(--danger, #f56c6c); } }
 }
+.gauge-sub { font-size: 11px; color: var(--text-tertiary); }
+.gauge-facts { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.fact { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text-tertiary); }
+.fact b { font-size: 13px; color: var(--text-primary); font-weight: 600; }
+
+.seg { display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0 0; padding: 4px; border-radius: 10px; background: var(--bg-fill, #f5f6fa); }
+.seg-item {
+  border: 0; background: transparent; color: var(--text-secondary, #5c6070); font-size: 13px; padding: 6px 14px;
+  border-radius: 8px; cursor: pointer; transition: all .15s;
+  &:hover { color: var(--brand-600, #6d5ce7); }
+  &.active { background: var(--bg-container, #fff); color: var(--brand-600, #6d5ce7); font-weight: 600; box-shadow: 0 1px 4px rgba(20, 20, 40, .08); }
+}
+.seg-body { padding: 6px 0 20px; }
+.tab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 24px; padding: 14px 0; }
 .tab-item { display: flex; flex-direction: column; gap: 4px; }
 .tab-label { font-size: 12px; color: var(--text-tertiary, #a0a4b0); }
-.tab-value { font-size: 14px; color: var(--text-primary); }
+.tab-value { font-size: 14px; word-break: break-all; }
 .tab-value.mono { font-family: var(--font-mono, monospace); }
 .tab-value.dim { color: var(--text-tertiary); }
-/* 实时指标 */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 14px 0;
-}
-.metric {
-  display: flex; flex-direction: column; gap: 4px;
-  padding: 12px 14px;
-  background: var(--bg-fill, #f8f9fc);
-  border-radius: 10px;
-}
-.metric-label { font-size: 11px; color: var(--text-tertiary, #a0a4b0); text-transform: uppercase; letter-spacing: .4px; }
-.metric-val { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.metric-val.mono { font-family: var(--font-mono, monospace); }
-.metric-val.bad { color: var(--danger, #f56c6c); }
-.metric-val.good { color: var(--status-success-text, #34c759); }
-.metric-sub { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
-.metric-sub.mono { font-family: var(--font-mono, monospace); }
-/* 端口 */
-.ports-box { padding: 14px 0; }
-.ports-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.ports-time { margin-top: 10px; font-size: 12px; }
+
+.sec-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 12px 0 10px; }
+.sec-pager { display: flex; align-items: center; gap: 6px; }
+.page-no { font-size: 12px; color: var(--text-tertiary); min-width: 22px; text-align: center; }
+.sec-loading { padding: 24px; text-align: center; font-size: 13px; }
+.tbl-wrap { overflow: auto; border: 1px solid var(--border-subtle); border-radius: 10px; max-height: calc(100vh - 420px); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tbl th, .tbl td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.tbl td { white-space: pre-wrap; word-break: break-all; font-family: var(--font-mono, monospace); }
+.tbl th { position: sticky; top: 0; background: var(--bg-fill, #f8f9fc); font-weight: 600; color: var(--text-tertiary); z-index: 1; }
+.tbl tbody tr:hover td { background: var(--brand-50, #f3f1ff); }
 .mono { font-family: var(--font-mono, monospace); }
-.dim { color: var(--text-tertiary, #a0a4b0); font-size: 13px; }
+.dim { color: var(--text-tertiary, #a0a4b0); }
 </style>

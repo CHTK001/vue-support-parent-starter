@@ -16,17 +16,6 @@ import type { StaticMenuItem } from "@repo/pinia";
  */
 export const systemRoutes: RouteConfigsTable[] = [
   {
-    path: "/personage",
-    name: "SystemPersonage",
-    component: () => import("../views/Personage.vue"),
-    meta: {
-      title: "涓汉涓績",
-      icon: "User",
-      showLink: true,
-      keepAlive: true,
-    },
-  },
-  {
     path: "/settings",
     name: "SystemSettings",
     component: () => import("../views/PersonalSettings.vue"),

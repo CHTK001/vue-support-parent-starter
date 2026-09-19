@@ -587,6 +587,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     lastContentId?: string | null,
     think?: boolean,
     search?: boolean,
+    model?: string,
   ): Promise<void> {
     sessionStore.setSessionIsStreaming(streamingSessionId, true);
 
@@ -606,6 +607,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         lastContentId,
         think,
         search,
+        model,
       };
       if (userMessage) {
         chatParams.userMessage = userMessage;
@@ -822,13 +824,14 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     knowledgeBaseIds?: string[],
     think?: boolean,
     search?: boolean,
+    model?: string,
   ): Promise<void> {
     await processStreamLoop(streamingSessionId, null, null, {
       content,
       files: fileIds,
       replaceMessageId: replaceMessageId || undefined,
       knowledgeBaseIds,
-    }, null, think, search);
+    }, null, think, search, model);
   }
 
   return {

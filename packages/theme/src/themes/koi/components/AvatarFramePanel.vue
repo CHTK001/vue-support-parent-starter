@@ -1,26 +1,39 @@
 <template>
   <div class="avatar-frame-panel">
-    <div v-if="avatarFrames.length" class="avatar-frame-grid">
-      <div
-        v-for="frame in avatarFrames"
-        :key="frame.id"
-        class="avatar-frame-item"
-        :class="{ 'is-selected': selectedFrame === frame.id }"
-        @click="activateFrame(frame.id)"
-      >
-        <div class="avatar-frame-preview">
-          <div
-            v-if="frame.image"
-            class="avatar-frame-img"
-            :style="getAvatarFrameLayerStyle(frame.id, 52)"
-          ></div>
-          <el-avatar :size="52" :src="avatar" />
-        </div>
-        <span class="avatar-frame-name">{{ frame.name }}</span>
-        <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
-      </div>
+    <div class="avatar-frame-toolbar">
+      <span class="avatar-frame-toolbar-label">显示头像框</span>
+      <el-switch v-model="frameShow" size="small" @change="persistShow" />
     </div>
-    <el-empty v-else description="暂无可用头像框" :image-size="80" />
+
+    <template v-if="frameShow">
+      <template v-if="groups.length">
+        <section v-for="group in groups" :key="group.title" class="avatar-frame-group">
+          <h4 class="avatar-frame-group-title">{{ group.title }}</h4>
+          <div class="avatar-frame-grid">
+            <div
+              v-for="frame in group.items"
+              :key="frame.id"
+              class="avatar-frame-item"
+              :class="{ 'is-selected': selectedFrame === frame.id }"
+              @click="activateFrame(frame)"
+            >
+              <div class="avatar-frame-preview">
+                <div
+                  v-if="hasFrameVisual(frame)"
+                  class="avatar-frame-img"
+                  :style="frameLayerStyle(frame, 52)"
+                ></div>
+                <el-avatar :size="52" :src="avatar" />
+                <el-icon v-if="isLocked(frame)" class="avatar-frame-lock" :size="14"><Lock /></el-icon>
+              </div>
+              <span class="avatar-frame-name">{{ frame.name }}</span>
+              <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
+            </div>
+          </div>
+        </section>
+      </template>
+      <el-empty v-else description="暂无可用头像框" :image-size="80" />
+    </template>
   </div>
 </template>
 
@@ -28,48 +41,33 @@
 /**
  * 头像框设置面板（组件化）
  *
- * 提供头像框选择宫格，供个人中心等页面复用；点选即佩戴并自动开启显示。
- * 头像框来源：服务端 /v2/avatar-frame/list 动态返回（生日框为数据库真实记录，
- * 仅生日窗口内在列表中出现，前端不再做生日框追加），失败时回退本地默认图片帧。
- * 佩戴持久化：PUT /v2/user/update，成功后刷新登录用户信息并 emit updated。
+ * 供个人中心等页面复用：分组展示「不佩戴 / 生肖 / 神兽 / 限定」头像框，点选即佩戴。
+ * 字典来源：GET /v2/avatar-frame/list（服务端已按生日窗口过滤生日框）；
+ * 限定帧（acquire 非 default）需先 POST /v2/avatar-frame/acquire 解锁，解锁记录取
+ * GET /v2/avatar-frame/user。佩戴与显隐持久化：PUT /v2/user/update，
+ * 成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
-import { CircleCheckFilled } from "@element-plus/icons-vue";
+import { CircleCheckFilled, Lock } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
-import { resolveUserDisplayInfo } from "@repo/utils";
-import { getConfig } from "@repo/config";
-import { getAvatarFrameLayerStyle } from "@repo/theme/koi/components/avatarFrames";
+import { resolveUserDisplayInfo, Http } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
+import {
+  avatarFrameDict,
+  frameLayerStyle,
+  hasFrameVisual,
+  isAvatarFrameEnabled,
+  isAvatarFrameLocked,
+  loadAvatarFrames,
+  type AvatarFrame,
+} from "./avatarFrames";
 
 const props = defineProps<{ avatar?: string }>();
 const emit = defineEmits<{ (e: "updated"): void }>();
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
-
-/** 头像框开关：由 app.yaml 的 other.avatarFrame.enable 控制（默认关闭） */
-const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? false);
-
-interface FrameItem {
-  id: number;
-  name: string;
-  image?: string;
-}
-
-/** 本地默认图片帧（与后端 sys_avatar_frame 种子 23-28 保持一致） */
-const baseFrames: FrameItem[] = [
-  { id: 23, name: "鎏金", image: "/assets/avatar-frames/frame-gold.png" },
-  { id: 24, name: "皇室蓝", image: "/assets/avatar-frames/frame-royal.png" },
-  { id: 25, name: "玫瑰金", image: "/assets/avatar-frames/frame-rose.png" },
-  { id: 26, name: "焰光", image: "/assets/avatar-frames/frame-flame.apng" },
-  { id: 27, name: "晶蓝", image: "/assets/avatar-frames/frame-azure.apng" },
-  { id: 28, name: "玄黑", image: "/assets/avatar-frames/frame-onyx.png" },
-  { id: 29, name: "像素风", image: "/assets/avatar-frames/frame-pixel.png" },
-];
-
-const avatarFrames = ref<FrameItem[]>([]);
-const selectedFrame = ref(1);
 
 /** 统一用户信息（authStore > storage > userStore） */
 const display = computed(() =>
@@ -79,60 +77,150 @@ const display = computed(() =>
   }),
 );
 
-/**
- * 初始化头像框列表
- * <p>优先服务端 /v2/avatar-frame/list（后端已按生日窗口过滤生日框），
- * 服务端失败时回退本地默认图片帧（23-27）</p>
- */
-async function initFrames(): Promise<void> {
-  if (!frameEnabled.value) return;
-  let frames: FrameItem[] = [...baseFrames];
+interface FrameGroup {
+  title: string;
+  items: AvatarFrame[];
+}
+
+/** 面板分组：不佩戴 → 生肖 → 神兽 → 限定 */
+const groups = computed<FrameGroup[]>(() => {
+  if (!isAvatarFrameEnabled()) return [];
+  const frames = avatarFrameDict.value.filter(hasFrameVisual);
+  const byType = (type: string) => frames.filter((f) => f.type === type);
+  const limited = frames.filter((f) => f.type !== "zodiac" && f.type !== "beast");
+  return [
+    { title: "不佩戴", items: avatarFrameDict.value.filter((f) => !hasFrameVisual(f)) },
+    { title: "生肖", items: byType("zodiac") },
+    { title: "神兽", items: byType("beast") },
+    { title: "限定", items: limited },
+  ].filter((g) => g.items.length);
+});
+
+const selectedFrame = ref<number>(0);
+const frameShow = ref(false);
+/** 已解锁的限定帧 ID（含未过期判断） */
+const ownedIds = ref<Set<number>>(new Set());
+
+/** 未解锁的限定帧才展示锁标记 */
+function isLocked(frame: AvatarFrame): boolean {
+  return isAvatarFrameLocked(frame) && !ownedIds.value.has(frame.id);
+}
+
+/** 读取用户已获取的限定帧（过期记录视为未持有） */
+async function loadOwned(): Promise<void> {
   try {
     const { getApiHttp } = await import("@repo/core");
     const res = await getApiHttp()
-      .get("/v2/avatar-frame/list")
-      .then<{ code?: number; msg?: string; data?: Array<Record<string, unknown>> }>((r) => r.data);
-    const list = res?.data;
-    if (Array.isArray(list) && list.length) {
-      frames = list
-        .filter((f) => f.sysAvatarFrameStatus === 1)
-        .map((f) => ({
-          id: f.sysAvatarFrameId as number,
-          name: f.sysAvatarFrameName as string,
-          image: f.sysAvatarFrameImage as string | undefined,
-        }));
-    }
+      .get("/v2/avatar-frame/user")
+      .loading(false)
+      .then<{ data?: Array<Record<string, unknown>> }>((r) => r.data);
+    const rows = Array.isArray(res?.data) ? res.data : [];
+    const now = Date.now();
+    ownedIds.value = new Set(
+      rows
+        .filter((row) => {
+          const expire = row.expireTime as string | undefined;
+          return !expire || new Date(expire).getTime() > now;
+        })
+        .map((row) => row.sysAvatarFrameId as number),
+    );
   } catch {
-    // 服务端不可用时使用本地默认列表
+    // 解锁记录拉取失败时按未解锁展示，点击仍会尝试获取
   }
-  avatarFrames.value = frames;
-  selectedFrame.value = avatarFrames.value.some((f) => f.id === display.value.avatarFrame)
-    ? (display.value.avatarFrame ?? 1)
-    : 1;
 }
 
-/** 佩戴头像框：PUT /v2/user/update 持久化后刷新登录用户信息 */
-async function activateFrame(id: number): Promise<void> {
-  if (selectedFrame.value === id) return;
-  selectedFrame.value = id;
+/** 佩戴限定帧前先解锁 */
+async function acquireFrame(frameId: number): Promise<boolean> {
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .post(`/v2/avatar-frame/acquire?frameId=${frameId}`)
+      .loading(false)
+      .then<{ code?: string; msg?: string }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
+      await loadOwned();
+      return true;
+    }
+    msgError(res?.msg || "解锁失败");
+    return false;
+  } catch (e) {
+    msgError("解锁失败：" + ((e as Error)?.message || "网络异常"));
+    return false;
+  }
+}
+
+/** 提交佩戴结果并刷新登录用户信息 */
+async function persistWear(
+  payload: Record<string, unknown>,
+  rollbackTo: number,
+): Promise<boolean> {
   try {
     const { getApiHttp } = await import("@repo/core");
     const res = await getApiHttp()
       .put("/v2/user/update")
-      .data({ sysUserAvatarFrame: id, sysUserAvatarFrameShow: 1 } as Record<string, unknown>)
-      .then<{ code?: number; msg?: string }>((r) => r.data);
-    if (res?.code === 200 || res?.code === 0 || res?.msg === "操作成功" || res?.msg == null) {
-      msgSuccess("已佩戴头像框");
-      await authStore.getLoginUserInfo();
+      .loading(false)
+      .data(payload as Record<string, unknown>)
+      .then<{ code?: string; msg?: string }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
+      await authStore.getLoginUserInfo(false);
       emit("updated");
-    } else {
-      msgError(res?.msg || "佩戴失败");
-      selectedFrame.value = display.value.avatarFrame ?? 1;
+      return true;
     }
+    msgError(res?.msg || "佩戴失败");
+    selectedFrame.value = rollbackTo;
+    return false;
   } catch (e) {
     msgError("佩戴失败：" + ((e as Error)?.message || "网络异常"));
-    selectedFrame.value = display.value.avatarFrame ?? 1;
+    selectedFrame.value = rollbackTo;
+    return false;
   }
+}
+
+/** 点选头像框：限定帧先解锁，佩戴同时打开显示 */
+async function activateFrame(frame: AvatarFrame): Promise<void> {
+  if (selectedFrame.value === frame.id) return;
+  const previous = selectedFrame.value;
+  if (isLocked(frame) && !(await acquireFrame(frame.id))) return;
+  const visible = hasFrameVisual(frame);
+  selectedFrame.value = frame.id;
+  const ok = await persistWear({ sysUserAvatarFrame: frame.id, sysUserAvatarFrameShow: visible ? 1 : 0 }, previous);
+  if (ok) {
+    frameShow.value = visible;
+    msgSuccess(visible ? "已佩戴头像框" : "已取下头像框");
+  }
+}
+
+/** 显隐开关：关闭后仍保留佩戴记录，只隐藏头像框 */
+async function persistShow(value: boolean | string | number): Promise<void> {
+  const next = value ? 1 : 0;
+  const { getApiHttp } = await import("@repo/core");
+  try {
+    const res = await getApiHttp()
+      .put("/v2/user/update")
+      .loading(false)
+      .data({ sysUserAvatarFrameShow: next } as Record<string, unknown>)
+      .then<{ code?: string; msg?: string }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
+      await authStore.getLoginUserInfo(false);
+      emit("updated");
+    } else {
+      frameShow.value = next === 1;
+      msgError(res?.msg || "设置失败");
+    }
+  } catch (e) {
+    frameShow.value = next === 1;
+    msgError("设置失败：" + ((e as Error)?.message || "网络异常"));
+  }
+}
+
+/** 初始化：载入字典与解锁记录，并把选中态对齐当前用户 */
+async function initFrames(): Promise<void> {
+  if (!isAvatarFrameEnabled()) return;
+  await loadAvatarFrames();
+  await loadOwned();
+  const worn = display.value.avatarFrame ?? 0;
+  selectedFrame.value = avatarFrameDict.value.some((f) => f.id === worn) ? worn : 0;
+  frameShow.value = Number(display.value.avatarFrameShow ?? 0) === 1;
 }
 
 onMounted(() => {
@@ -145,9 +233,32 @@ onMounted(() => {
   padding: 0 16px;
 }
 
+.avatar-frame-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.avatar-frame-toolbar-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.avatar-frame-group {
+  margin-bottom: 18px;
+}
+
+.avatar-frame-group-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
 .avatar-frame-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
   gap: 14px;
 }
 
@@ -176,8 +287,11 @@ onMounted(() => {
 
 .avatar-frame-preview {
   position: relative;
-  width: 52px;
-  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
 }
 
 .avatar-frame-img {
@@ -195,6 +309,17 @@ onMounted(() => {
 .avatar-frame-name {
   font-size: 12px;
   color: var(--el-text-color-regular);
+}
+
+.avatar-frame-lock {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2;
+  padding: 2px;
+  border-radius: 50%;
+  color: var(--el-color-warning);
+  background: var(--el-bg-color);
 }
 
 .avatar-frame-check {

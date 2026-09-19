@@ -30,6 +30,9 @@ export interface ChatStreamParams {
     replaceMessageId?: string;
     knowledgeBaseIds?: string[];
   };
+  think?: boolean;
+  search?: boolean;
+  model?: string;
 }
 
 export class ChatStreamService {
@@ -65,6 +68,7 @@ export class ChatStreamService {
       userMessage,
       think,
       search,
+      model,
     } = params;
 
     const isSubscribeMode = regenerationMode === "subscribe";
@@ -97,6 +101,7 @@ export class ChatStreamService {
           userMessage,
           think,
           search,
+          model,
         }),
         signal: controller.signal,
       });
