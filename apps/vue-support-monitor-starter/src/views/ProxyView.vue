@@ -118,7 +118,9 @@ onMounted(loadList);
           ]"
           size="small"
           :border="false"
+          :stripe="false"
           table-id="proxy-list"
+          class="proxy-table"
         >
           <template #col-addr="{ row }"><span class="mono">{{ row.host }}:{{ row.port }}</span></template>
           <template #col-delay="{ row }">
@@ -161,5 +163,37 @@ onMounted(loadList);
 
 :deep(.el-table__body tr:hover > td.el-table__cell) {
   background: transparent !important;
+  border-right: none !important;
+  border-left: none !important;
+}
+:deep(.el-table__body tr:hover) {
+  background: transparent !important;
+}
+
+/* 删除表格边框 */
+.proxy-table .el-table,
+.proxy-table .el-table__inner-wrapper,
+.proxy-table .el-table__body-wrapper,
+.proxy-table .el-table__header-wrapper {
+  border: none !important;
+  --el-table-border-color: transparent !important;
+}
+.proxy-table .el-table td.el-table__cell,
+.proxy-table .el-table th.el-table__cell,
+.proxy-table .el-table tr,
+.proxy-table .el-table__row {
+  border-right: 0 !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
+}
+.proxy-table .el-table--border,
+.proxy-table .el-table--border .el-table__cell,
+.proxy-table .el-table__border-left-patch {
+  border-right: 0 !important;
+  border-left: 0 !important;
+}
+/* 强制删除所有竖线 */
+.proxy-table .el-table__body-wrapper .el-table__cell::before {
+  display: none !important;
 }
 </style>

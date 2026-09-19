@@ -25,7 +25,18 @@ interface Host {
   serverHostCollectInterval?: number;
   serverHostOnlineEnabled?: number;
   serverHostOnlineInterval?: number;
+  /** 延迟检测开关（1 启用） */
+  serverHostDelayEnabled?: number;
+  /** 延迟检测间隔（秒） */
+  serverHostDelayInterval?: number;
+  /** 最近一次测得延迟 ms（-1 不可达） */
+  serverHostDelayMs?: number | null;
+  serverHostLastDelayTime?: string | null;
   serverHostAgentEnabled?: number;
+  /** Agent 是否已安装（1 已装） */
+  serverHostAgentInstalled?: number | null;
+  /** Agent 版本号 */
+  serverHostAgentVersion?: string | null;
   serverHostRemoteEnabled?: number;
   msServerGroupId?: number | null;
   serverHostTags?: string | null;
@@ -38,7 +49,7 @@ interface Host {
   serverHostRemoteProtocol?: string | null;
   /** 远控端口（空表示按协议默认） */
   serverHostRemotePort?: number | null;
-  /** 远控通道：GUACD 中转 / DIRECT 直连 */
+  /** 远控通道：GUACD 中转 / DIRECT 直连 / NONE 无需通道（RDP 强制 GUACD） */
   serverHostRemoteMode?: string | null;
   /** VNC 口令（落库 AES 加密，详情接口回显明文） */
   serverHostVncPassword?: string | null;

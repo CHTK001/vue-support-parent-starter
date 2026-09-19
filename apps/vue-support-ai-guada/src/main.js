@@ -159,6 +159,18 @@ const routes = [
         component: () => import("./components/management/UsagePage.vue"),
       },
       {
+        path: "connectors",
+        name: "Connectors",
+        meta: { title: "连接器", requiresAuth: true },
+        component: () => import("./components/connectors/ConnectorsPage.vue"),
+      },
+      {
+        path: "connectors/chat/:id",
+        name: "ConnectorChat",
+        meta: { title: "连接器聊天", requiresAuth: true },
+        component: () => import("./components/connectors/ConnectorChatPage.vue"),
+      },
+      {
         path: "usage/sync-logs",
         name: "UsageSyncLogs",
         meta: { title: "同步日志", requiresAuth: true },

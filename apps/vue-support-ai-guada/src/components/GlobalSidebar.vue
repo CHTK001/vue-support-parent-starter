@@ -444,6 +444,12 @@ const navItems = computed(() => {
       showKey: 'showUsageMenu'
     },
     {
+      key: 'connectors',
+      label: '连接器',
+      icon: PlugConnected20Regular,
+      showKey: 'showConnectorsMenu'
+    },
+    {
       key: 'scheduler',
       label: t('ui.sidebar.navScheduler'),
       icon: ClockAlarm20Regular,
