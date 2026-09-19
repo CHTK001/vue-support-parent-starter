@@ -1,7 +1,7 @@
 /**
- * 服务管理 API 封装（Server 接口 + ServerFilter 插件）
+ * 服务管理 API 封装
  *
- * 对应后端 ServerManageController（spring-support-monitor-starter）暴露的 REST 接口：
+ * 对应后端监控服务暴露的 REST 接口：
  *   1) GET    /ms/monitor/server                        — 节点列表（含运行状态）
  *   2) GET    /ms/monitor/server/{id}                   — 节点详情
  *   3) POST   /ms/monitor/server                        — 创建节点（enabled=1 立即拉起）

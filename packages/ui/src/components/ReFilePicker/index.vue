@@ -87,7 +87,7 @@
  * ReFilePicker —— 文件选择器
  *
  * 支持树形浏览、搜索、多选、文件类型过滤
- * 适配后端 spring-support-filesystem-starter（可通过 listUrl 接入）
+ * 适配后端文件存储服务（可通过 listUrl 接入）
  *
  *   <ReFilePicker
  *     v-model="showPicker"

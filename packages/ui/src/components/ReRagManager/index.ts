@@ -1,7 +1,7 @@
 /**
  * ReRagManager —— RAG 知识库管理组件
  *
- * 适配 spring-support-ai-starter
+ * 适配后端 RAG 服务
  *   <ReRagManager base-url="/v2/ai/rag" />
  */
 import type { App, Plugin } from "vue";

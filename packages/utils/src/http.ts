@@ -370,7 +370,7 @@ export class Http {
   }
 
   /**
-   * 创建 Spring AI 协议 SSE 客户端（适配 spring-support-ai-starter 的流式响应）。
+   * 创建 Spring AI 协议 SSE 客户端（适配后端 AI 服务的流式响应）。
    *
    * 自动处理 chunk.done / chunk.error 收尾、content 增量累积。
    * 复用本 Http 实例的 baseURL 与全局 headers。

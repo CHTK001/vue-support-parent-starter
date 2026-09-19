@@ -1,7 +1,7 @@
 /**
- * 独立文件存储服务器 API 封装（FileStorageServerFilter）
+ * 独立文件存储服务器 API 封装
  *
- * 对应后端 FileStorageServerFilter（spring-support-filesystem-starter）暴露的 REST 接口：
+ * 对应后端文件存储服务暴露的 REST 接口：
  *   1) 路径规则 /{bucket}/{key}，bucket 为注册的存储名（如 local）
  *   2) GET  /{bucket}          — 根目录对象列表（JSON）
  *   3) GET  /{bucket}/{dir}    — 子目录浏览（目录 Key 自动回退列表 JSON）

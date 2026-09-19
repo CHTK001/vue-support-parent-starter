@@ -1,5 +1,5 @@
 /**
- * 针对 spring-support-ai-starter 的 SSE 客户端
+ * 针对后端 Spring AI 服务的 SSE 客户端
  *
  * 适配 Spring AI 的 MediaType.APPLICATION_NDJSON_VALUE / TEXT_EVENT_STREAM_VALUE
  * 支持 ChatClient 流式响应。

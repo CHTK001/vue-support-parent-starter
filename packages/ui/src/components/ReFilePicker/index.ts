@@ -2,7 +2,7 @@
  * ReFilePicker —— 文件选择器
  *
  * 支持树形浏览、搜索、多选、文件类型过滤
- * 适配后端 spring-support-filesystem-starter
+ * 适配后端文件存储服务
  *   <ReFilePicker v-model="show" @select="onSelect" />
  */
 import type { App, Plugin } from "vue";

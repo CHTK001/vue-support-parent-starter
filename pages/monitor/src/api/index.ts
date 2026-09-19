@@ -163,7 +163,7 @@ export const getMetricSeries = (
     .then(r => unwrapResultSeries(r))
     .catch(() => []);
 
-/** series 接口解包：404/错误时静默返回空数组（前端降级到 MySQL 历史） */
+/** series 接口解包：404/错误时静默返回空数组（前端降级到历史接口） */
 const unwrapResultSeries = (res: any): SeriesPoint[] => {
   try {
     const data = res?.data;

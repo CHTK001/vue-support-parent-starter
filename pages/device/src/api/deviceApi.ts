@@ -1,7 +1,7 @@
 /**
  * 设备管理 API 封装
  *
- * 与后端 spring-support-device-starter 对接：
+ * 与设备后端服务对接：
  *   设备/通道增删改查、视频拉流 URL、云台控制、门禁、事件、Excel 导出、地图位置等。
  *
  * 统一走 @repo/core 的 createModuleHttp('device')：

@@ -229,7 +229,7 @@
 /**
  * ReRagManager —— RAG 知识库管理
  *
- * 适配 spring-support-ai-starter：
+ * 适配后端 RAG 服务：
  *   GET    /v2/ai/rag/status
  *   GET    /v2/ai/rag/document/list
  *   POST   /v2/ai/rag/document/upload

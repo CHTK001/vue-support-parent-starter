@@ -2,7 +2,7 @@
  * vue-support-geo-starter Vite 配置
  *
  * GeoDownloader Web 版：影像/高程/历史影像/3D Tiles/MVT/OSM 矢量下载。
- * 代理 /geo/api -> 后端 Spring Boot（端口 18171）。
+ * 代理 /geo/api -> 后端服务。
  */
 import { createVite } from "../../turbo/vite/createVite.ts";
 
