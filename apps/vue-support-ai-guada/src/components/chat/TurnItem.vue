@@ -6,7 +6,7 @@
     <!-- ============================================ -->
     <div v-if="turn.user" class="user-section">
       <div class="message-item__wrapper">
-        <div class="message-item__card">
+        <div class="message-item__card message-item--hover" :title="userTime.full">
           <!-- 用户文本 -->
           <div class="message-item__text break-all whitespace-pre-wrap">
             <template v-if="isSystemMessage">
@@ -67,7 +67,7 @@
             </div>
           </div>
         </div>
-        <div class="message-item__card">
+        <div class="message-item__card message-item--hover" :title="assistantTime.full">
           <!-- 展示分组：content / think / tool -->
           <template v-for="(group, groupIndex) in displayGroups" :key="group.id">
             <template v-if="group.type === 'content'">
@@ -163,8 +163,14 @@
               </el-alert>
             </div>
           </template>
-          <!-- 流式期间：工作中 / 重试中状态 -->
-          <div v-if="streamingState.isStreaming" class="mt-5 flex items-center gap-2 text-xs text-gray-400">
+          <!-- 流式期间：三点动画 + 工作中状态 -->
+          <div v-if="streamingState.isStreaming" class="mt-3 flex items-center gap-2 text-xs text-gray-400">
+            <!-- 三点动画 -->
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
             <template v-if="assistantMetadata?.retryInfo">
               <span class="text-amber-500 dark:text-amber-400">{{ assistantMetadata.retryInfo.message }}</span>
             </template>
@@ -615,6 +621,48 @@ const handleClick = (event: MouseEvent) => {
 </script>
 
 <style scoped>
+/* 三点打字动画 */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 消息卡片悬停效果 */
+.message-item--hover {
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.message-item--hover:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 .turn-wrapper {
   width: 100%;
   margin-top: 20px;

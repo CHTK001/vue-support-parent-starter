@@ -373,6 +373,9 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const isOnLoginPage = currentPath.includes("/login") || currentPath.endsWith("/login");
         if (action === "redirect") {
           window.location.href = loginHref;
+        } else if (!isOnLoginPage && !getAccessToken()) {
+          // 本地压根没有令牌：属于未登录访客，弹窗只会反复打扰，直接静默去登录页
+          window.location.replace(loginHref);
         } else if (!isOnLoginPage) {
           // 防止多个请求同时 403 导致弹窗叠在一起
           if (!(window as any).__authDialogOpen) {

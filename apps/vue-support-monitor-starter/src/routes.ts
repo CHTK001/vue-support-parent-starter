@@ -24,10 +24,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "监控管理", icon: "Odometer", showLink: true, rank: 1 },
     children: [
       {
-        path: "/",
-        redirect: "/groups",
-      },
-      {
         path: "/workbench",
         name: "Workbench",
         component: () => import("./views/WorkbenchView.vue"),
@@ -130,7 +126,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/groups",
         name: "Groups",
         component: () => import("@pages/server/src/views/ScGroupTree.vue"),
-        meta: { title: "分组管理", icon: "FolderOpened", showLink: true, rank: 32 },
+        meta: { title: "分组管理", icon: "FolderOpened", showLink: false, rank: 32 },
       },
       {
         path: "/account",

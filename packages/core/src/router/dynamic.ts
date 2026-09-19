@@ -65,6 +65,9 @@ export function registerDynamicRoutes(
       return;
     }
     if (router.hasRoute(item.name)) {
+      log.warn(
+        `[route] 菜单 name 与已有路由重名，已跳过注册（点击会 404）: name=${String(item.name)} path=${String(item.path ?? "")}`
+      );
       return;
     }
     router.addRoute(layoutName, item as never);

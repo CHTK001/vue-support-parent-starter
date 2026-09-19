@@ -1,7 +1,5 @@
 <template>
   <div class="global-sidebar flex flex-col h-full sidebar-transparent-bg overflow-hidden ">
-    <!-- 标题栏左侧面板 -->
-    <TitlebarLeftPanel />
     <!-- 导航菜单 -->
     <div class="px-2 py-2 space-y-0.5">
       <div v-for="item in navItems" :key="item.key" @click="handleNavClick(item.key)"
@@ -303,7 +301,7 @@ import {
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
-import TitlebarLeftPanel from './TitlebarLeftPanel.vue'
+
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
 
@@ -399,45 +397,69 @@ const openNewSession = (groupId: string) => {
   }
 }
 
-// 导航项配置
-const navItems = computed(() => [
-  {
-    key: 'chat',
-    label: t('ui.sidebar.navNewTask'),
-    icon: AddSquare20Regular,
-    shortcut: isElectron ? 'Ctrl N' : 'Ctrl Alt N'
-  },
-  {
-    key: 'characters',
-    label: t('ui.sidebar.navCharacters'),
-    icon: ContactCard20Regular
-  },
-  {
-    key: 'bots',
-    label: t('ui.sidebar.navBots'),
-    icon: Bot20Regular
-  },
-  {
-    key: 'knowledge-base',
-    label: t('ui.sidebar.navKnowledgeBase'),
-    icon: BookSearch20Regular
-  },
-  {
-    key: 'plugins',
-    label: t('ui.sidebar.navPlugins'),
-    icon: Apps20Regular
-  },
-  {
-    key: 'models',
-    label: '模型管理',
-    icon: Apps20Regular
-  },
-  {
-    key: 'scheduler',
-    label: t('ui.sidebar.navScheduler'),
-    icon: ClockAlarm20Regular
-  },
-])
+// 导航项配置（根据用户设置过滤）
+const navItems = computed(() => {
+  const allItems = [
+    {
+      key: 'chat',
+      label: '会话',
+      icon: AddSquare20Regular,
+      shortcut: isElectron ? 'Ctrl N' : 'Ctrl Alt N',
+      alwaysShow: true
+    },
+    {
+      key: 'characters',
+      label: t('ui.sidebar.navCharacters'),
+      icon: ContactCard20Regular,
+      showKey: 'showCharactersMenu'
+    },
+    {
+      key: 'bots',
+      label: t('ui.sidebar.navBots'),
+      icon: Bot20Regular,
+      showKey: 'showBotsMenu'
+    },
+    {
+      key: 'knowledge-base',
+      label: t('ui.sidebar.navKnowledgeBase'),
+      icon: BookSearch20Regular,
+      showKey: 'showKnowledgeBaseMenu'
+    },
+    {
+      key: 'plugins',
+      label: t('ui.sidebar.navPlugins'),
+      icon: Apps20Regular,
+      showKey: 'showPluginsMenu'
+    },
+    {
+      key: 'models',
+      label: '模型管理',
+      icon: Apps20Regular,
+      showKey: 'showModelsMenu'
+    },
+    {
+      key: 'usage',
+      label: '用量管理',
+      icon: BarChart20Regular,
+      showKey: 'showUsageMenu'
+    },
+    {
+      key: 'scheduler',
+      label: t('ui.sidebar.navScheduler'),
+      icon: ClockAlarm20Regular,
+      showKey: 'showSchedulerMenu'
+    },
+  ]
+  
+  // 从 localStorage 读取菜单显示配置（默认全部显示）
+  const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
+  
+  return allItems.filter(item => {
+    if (item.alwaysShow) return true
+    if (!item.showKey) return true
+    return menuSettings[item.showKey] !== false
+  })
+})
 
 // 当前激活的 tab（根据路由）
 const currentActiveTab = computed(() => {

@@ -355,6 +355,30 @@ export const useSessionStore = defineStore('session', () => {
         state.messageQueue.splice(toIdx, 0, moved)
     }
 
+    /**
+     * 提前发送：将指定消息移到队列最前面
+     */
+    const moveToFront = (sessionId: string, msgId: string): void => {
+        const state = getSessionState(sessionId)
+        const idx = state.messageQueue.findIndex(m => m.id === msgId)
+        if (idx === -1 || idx === 0) return
+        
+        const [moved] = state.messageQueue.splice(idx, 1)
+        state.messageQueue.unshift(moved)
+    }
+
+    /**
+     * 从队列中取出指定消息（手动发送时使用）
+     */
+    const removeFromQueue = (sessionId: string, msgId: string): QueuedMessage | null => {
+        const state = getSessionState(sessionId)
+        const idx = state.messageQueue.findIndex(m => m.id === msgId)
+        if (idx === -1) return null
+        
+        const [removed] = state.messageQueue.splice(idx, 1)
+        return removed
+    }
+
     const getQueueLength = (sessionId: string): number => {
         return getSessionState(sessionId).messageQueue.length
     }
@@ -555,6 +579,8 @@ export const useSessionStore = defineStore('session', () => {
         removeQueuedMessage,
         updateQueuedMessage,
         reorderQueue,
+        moveToFront,
+        removeFromQueue,
         getQueueLength,
         getInputMessage,
         setInputMessage,

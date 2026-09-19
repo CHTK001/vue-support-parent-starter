@@ -53,7 +53,7 @@ export const saveKey = (id: number | null, d: any) => id != null
   : http().post(`${B}/key`).data(d).then(r => unwrapResult<any>(r));
 export const delKey = (id: number) => http().delete(`${B}/key/${id}`).then(r => unwrapResult<boolean>(r));
 export const generateKeyPair = (name: string, type: string, password?: string, remark?: string) =>
-  http().post(`${B}/key/generate?name=${encodeURIComponent(name)}&type=${type}${password ? `&password=${encodeURIComponent(password)}` : ''}${remark ? `&remark=${encodeURIComponent(remark)}` : ''}`).then(r => unwrapResult<{ publicKey: string; privateKey: string }>(r));
+  http().post(`${B}/key/generate?name=${encodeURIComponent(name)}&type=${type}${password ? `&password=${encodeURIComponent(password)}` : ''}${remark ? `&remark=${encodeURIComponent(remark)}` : ''}`).timeout(60000).then(r => unwrapResult<{ publicKey: string; privateKey: string }>(r));
 
 // ===== 身份 MsServerIdentity（脱敏返回）=====
 export const getIdentities = () => http().get(`${B}/identity`).then(r => unwrapResult<any[]>(r));

@@ -9,8 +9,8 @@
       popper-style="border-radius: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);"
     >
       <template #reference>
-        <div class="user-avatar-ring">
-            <div class="user-avatar-frame">
+        <div class="user-avatar-ring" :style="{ padding: frameSpill(32) + 'px' }">
+          <div class="user-avatar-frame">
             <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
             <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
           </div>
@@ -20,7 +20,7 @@
       <!-- 用户信息卡片内容 -->
       <div class="user-card-content">
         <div class="user-card-header">
-          <div class="user-avatar-card-wrap">
+          <div class="user-avatar-card-wrap" :style="{ padding: frameSpill(36) + 'px' }">
             <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
             <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
           </div>
@@ -104,7 +104,11 @@ const avatar = computed(
     defaultAvatarUrl,
 );
 // 头像框：开关 + 显示位 + 帧内容三重判断，与侧栏布局 / 个人中心共用同一实现
-const { visible: avatarFrameVisible, layerStyle: avatarFrameStyle } = useWornAvatarFrame();
+const {
+  visible: avatarFrameVisible,
+  layerStyle: avatarFrameStyle,
+  spillPx: frameSpill,
+} = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
 
@@ -153,12 +157,11 @@ const handleCommand = (command: string | number) => {
 }
 
 // 头像环形边框占位（预留后续边框样式能力）
-// 后续如需启用边框，只需在此补充 border / box-shadow / outline 等属性。
+// padding 由 frameSpill(32) 内联下发：为头像框的外溢部分留位，避免压到 header 与其它工具项
 .user-avatar-ring {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px;
   border-radius: 9999px;
   // ===== 边框占位（默认关闭，预留后续开启）=====
   border: 1px solid transparent;
@@ -239,8 +242,9 @@ const handleCommand = (command: string | number) => {
 }
 
 .user-info {
-  margin-left: 12px;
+  margin-left: 4px;
   flex: 1;
+  min-width: 0;
 }
 
 .user-name {

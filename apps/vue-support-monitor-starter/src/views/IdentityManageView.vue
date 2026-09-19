@@ -97,20 +97,29 @@ async function load(): Promise<void> {
     list.value = (idList ?? []) as Identity[];
     keys.value = (keyList ?? []) as KeyRow[];
     hosts.value = (hostList ?? []) as HostRow[];
-    // 批量加载绑定关系（host → identity）
+    // 批量加载绑定关系（优化 N+1 查询）
     const map: Record<number, number[]> = {};
-    await Promise.all(
-      (hostList ?? []).map(async (h: HostRow) => {
-        try {
-          const ids = ((await listBoundIdentities(h.id)) ?? []) as number[];
-          for (const id of ids) {
-            (map[id] ??= []).push(h.id);
+    try {
+      // 并行加载所有主机的绑定关系
+      const results = await Promise.all(
+        (hostList ?? []).map(async (h: HostRow) => {
+          try {
+            const ids = ((await listBoundIdentities(h.id)) ?? []) as number[];
+            return { hostId: h.id, identityIds: ids };
+          } catch {
+            return { hostId: h.id, identityIds: [] as number[] };
           }
-        } catch {
-          /* 忽略单主机绑定加载失败 */
+        }),
+      );
+      // 构建缓存
+      for (const r of results) {
+        for (const id of r.identityIds) {
+          (map[id] ??= []).push(r.hostId);
         }
-      }),
-    );
+      }
+    } catch {
+      /* 忽略批量加载失败 */
+    }
     bindCache.value = map;
   } catch (e) {
     ElMessage.error(`加载失败: ${String((e as Error)?.message ?? e)}`);
@@ -396,16 +405,16 @@ function downloadKeyMaterial(row: KeyRow, which: "public" | "private"): void {
 async function batchDelete(rows: Record<string, unknown>[]): Promise<void> {
   let ok = 0;
   for (const r of rows) {
-    const id = Number(r.id);
+    const id = Number((r as Identity).id);
     if (!id) continue;
     try {
       await delIdentity(id);
       ok++;
-    } catch {
-      /* 单条失败继续 */
+    } catch (e) {
+      console.error('删除失败:', e);
     }
   }
-  ElMessage.success(`删除 ${ok}/${rows.length}`);
+  ElMessage.success(`删除 ${ok}/${rows.length} 条`);
   selection.value = [];
   await load();
 }
@@ -667,11 +676,10 @@ async function submitAdd(): Promise<void> {
         empty-text="暂无身份"
         :toolbar="true"
         :toolbar-config="{
-          position: 'bottom',
+          position: 'top',
           refresh: true,
           columnSettings: true,
           tableSettings: true,
-          batchSelect: { enabled: true, tip: '批量选择' },
           batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的身份？', handler: batchDelete },
         }"
         @selection-change="selection = $event"
@@ -686,15 +694,21 @@ async function submitAdd(): Promise<void> {
           <span v-else class="dim">—</span>
         </template>
         <template #col-hosts="{ row }">
-          <ReTag v-if="boundHostCountOf(row.id) > 0" size="small" effect="plain" type="primary" @click="openBind(row)" class="clickable">{{ boundHostCountOf(row.id) }} 台</ReTag>
-          <span v-else class="dim">—</span>
+          <div v-if="boundHostCountOf(row.id) > 0" class="host-count" @click="openBind(row)">
+            <ReTag size="small" effect="plain" type="primary">{{ boundHostCountOf(row.id) }} 台</ReTag>
+            <span v-if="boundHostsOf(row.id).length > 0" class="host-preview dim">
+              {{ boundHostsOf(row.id).slice(0, 2).map(h => h.serverHostName).join(', ') }}
+              <span v-if="boundHostsOf(row.id).length > 2">...</span>
+            </span>
+          </div>
+          <span v-else class="dim">未绑定</span>
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
-            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" size="small" title="收件箱" @click="openMail(row)" />
-            <ReButton icon="Connection" layout="square" size="small" title="绑定主机" @click="openBind(row)" />
-            <ReButton icon="CopyDocument" layout="square" size="small" title="复制用户名" @click="copyUsername(row)" />
             <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
+            <ReButton icon="Connection" layout="square" size="small" title="绑定主机" @click="openBind(row)" />
+            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" size="small" title="收件箱" @click="openMail(row)" />
+            <ReButton icon="CopyDocument" layout="square" size="small" title="复制用户名" @click="copyUsername(row)" />
             <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
           </div>
         </template>
@@ -728,11 +742,10 @@ async function submitAdd(): Promise<void> {
           empty-text="暂无密钥"
           :toolbar="true"
           :toolbar-config="{
-            position: 'bottom',
+            position: 'top',
             refresh: true,
             columnSettings: true,
             tableSettings: true,
-            batchSelect: { enabled: true, tip: '批量选择' },
             batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的密钥？' },
           }"
         >
@@ -744,8 +757,8 @@ async function submitAdd(): Promise<void> {
           </template>
           <template #col-actions="{ row }">
             <div class="op-cell">
-              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadKeyMaterial(row, 'public')" />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openKeyEdit(row)" />
+              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadKeyMaterial(row, 'public')" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeKey(row)" />
             </div>
           </template>

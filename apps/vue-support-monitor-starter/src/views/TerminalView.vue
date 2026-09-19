@@ -85,10 +85,11 @@ const connection = computed(() => {
   return {
     hostId: h.id,
     hostName: `${h.serverHostName} (${h.serverHostAddress})`,
+    address: h.serverHostAddress,
     protocol: protocolOf(h),
     identityId: Number.isFinite(qIdentity as number) ? (qIdentity as number) : null,
     targetPort: remotePortOf(h),
-    mode: mode === "DIRECT" ? "DIRECT" : "GUACD",
+    mode: mode === "DIRECT" || mode === "NONE" ? mode : "GUACD",
   };
 });
 
@@ -265,7 +266,12 @@ onMounted(onMountedInit);
 
     <!-- 右侧控制台：SSH 直连走自研终端（xterm + /ws/.../terminal/ssh），其余经 guacd 隧道 -->
     <main class="term-main">
-      <ScSshDirectViewer v-if="connection && connection.protocol === 'ssh' && connection.mode === 'DIRECT'" :connection="connection" @close="disconnected = true" />
+      <ScSshDirectViewer v-if="connection && connection.protocol === 'ssh' && connection.mode !== 'GUACD'" :connection="connection" @close="disconnected = true" />
+      <div v-else-if="connection && connection.mode === 'NONE'" class="remote-empty">
+        「{{ connection.hostName }}」的远控通道为「无需通道」，平台不做中转：VNC 请用本机客户端连接
+        <b class="mono">{{ connection.address }}:{{ connection.targetPort ?? 5900 }}</b>
+        ；需要网页远控请把该主机的远控通道改为「Guacd 中转」。
+      </div>
       <ScGuacViewer v-else :connection="connection" inline @close="disconnected = true" />
       <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
     </main>
