@@ -32,8 +32,13 @@
       
       <!-- 操作按钮 -->
       <div class="queue-actions" v-if="item.status === 'queued'">
-        <button class="interject-btn" @click="emit('interject', item)">
-          插话
+        <!-- 提前发送 -->
+        <button class="queue-action-btn" @click="emit('moveToFront', item.id)" title="提前发送">
+          <el-icon size="14"><ArrowUp24Regular /></el-icon>
+        </button>
+        <!-- 手动发送 -->
+        <button class="send-now-btn" @click="emit('sendNow', item)" title="立即发送">
+          发送
         </button>
         <button class="queue-action-btn" @click="emit('edit', item)" :title="t('chat.queue.edit')">
           <el-icon size="14"><Edit24Regular /></el-icon>
@@ -49,20 +54,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
-import { Edit24Regular, Dismiss24Regular, Attach24Regular } from '@vicons/fluent'
+import { Edit24Regular, Dismiss24Regular, Attach24Regular, ArrowUp24Regular } from '@vicons/fluent'
 import { useI18n } from 'vue-i18n'
 import type { QueuedMessage } from '@/types/session'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+defineProps<{
   queue: QueuedMessage[]
 }>()
 
 const emit = defineEmits<{
   edit: [item: QueuedMessage]
   remove: [id: string]
-  interject: [item: QueuedMessage]
+  sendNow: [item: QueuedMessage]
+  moveToFront: [id: string]
   reorder: [fromId: string, toId: string]
 }>()
 
@@ -197,20 +203,19 @@ const handleDrop = (e: DragEvent, targetItem: QueuedMessage) => {
   padding-top: 2px;
 }
 
-.interject-btn {
-  padding: 2px 8px;
+.send-now-btn {
+  padding: 2px 10px;
   border: none;
   border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-gray, #666);
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.interject-btn:hover {
-  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.1));
-  color: var(--el-color-primary, #409eff);
+.send-now-btn:hover {
+  background: var(--el-color-primary-dark-2, #337ecc);
 }
 
 .queue-action-btn {

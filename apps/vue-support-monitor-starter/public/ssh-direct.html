@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>SSH 直连终端</title>
+  <link rel="stylesheet" href="/term/xterm.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+    #term { width: 100%; height: 100%; padding: 4px 0 0 6px; box-sizing: border-box; }
+    #status { position: fixed; top: 8px; right: 14px;
+              color: #eee; background: rgba(0,0,0,.72); padding: 5px 12px; border-radius: 4px;
+              font: 12px/1.4 monospace; z-index: 9; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="status">正在连接…</div>
+  <div id="term"></div>
+  <script src="/term/xterm.js"></script>
+  <script src="/term/addon-fit.js"></script>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+      var params = new URLSearchParams(location.search);
+      var hostId = params.get('hostId') || '';
+      var identityId = params.get('identityId') || '';
+
+      var term = new Terminal({
+        cursorBlink: true,
+        fontFamily: 'Consolas, Menlo, "Courier New", monospace',
+        fontSize: 13,
+        scrollback: 8000,
+        theme: { background: '#111111', foreground: '#e6e6e6' }
+      });
+      var fit = new FitAddon.FitAddon();
+      term.loadAddon(fit);
+      term.open(document.getElementById('term'));
+      fit.fit();
+
+      var wsProto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      var wsUrl = wsProto + location.host + '/ws/ms/server/terminal/ssh?hostId=' + encodeURIComponent(hostId)
+        + '&cols=' + term.cols + '&rows=' + term.rows
+        + (identityId ? '&identityId=' + encodeURIComponent(identityId) : '');
+      var ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+      var encoder = new TextEncoder();
+
+      term.onData(function (data) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(encoder.encode(data));
+      });
+      term.onResize(function (size) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ c: 'resize', cols: size.cols, rows: size.rows }));
+        }
+      });
+
+      ws.onopen = function () {
+        statusEl.textContent = '已连接（SSH 直连）';
+        term.focus();
+      };
+      ws.onmessage = function (event) {
+        if (typeof event.data === 'string') {
+          // 控制通道：后端只在拒绝连接时回一条 JSON 错误
+          var msg = event.data;
+          try { msg = JSON.parse(msg).msg || msg; } catch (e) { /* 原样显示 */ }
+          statusEl.textContent = msg;
+          term.writeln('\r\n\x1b[31m' + msg + '\x1b[0m');
+          return;
+        }
+        term.write(new Uint8Array(event.data));
+      };
+      ws.onclose = function () {
+        statusEl.textContent = '已断开';
+        term.writeln('\r\n\x1b[33m连接已关闭\x1b[0m');
+      };
+      ws.onerror = function () {
+        statusEl.textContent = '连接异常';
+      };
+
+      function doFit() {
+        try { fit.fit(); } catch (e) { return; }
+        term.focus();
+      }
+      window.addEventListener('resize', doFit);
+      setTimeout(doFit, 100);
+      setTimeout(doFit, 600);
+      setInterval(function () {
+        if (ws.readyState === WebSocket.OPEN) { try { fit.fit(); } catch (e) { /* 忽略 */ } }
+      }, 2000);
+    })();
+  </script>
+</body>
+</html>

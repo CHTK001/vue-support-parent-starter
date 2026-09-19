@@ -69,7 +69,12 @@
           <Transition name="queue-drawer">
             <div v-if="queueLength > 0"
               class="queue-drawer bg-(--color-surface)/80 backdrop-blur-xl rounded-(--size-dialog-rounded-radius) w-[calc(100%-48px)] margin-auto px-0.5 py-0.5 border-radius-6px mx-auto mb-2">
-              <QueuedMessages :queue="messageQueue" @edit="handleEditQueued" @remove="handleRemoveQueued" @reorder="handleReorderQueue" />
+              <QueuedMessages :queue="messageQueue" 
+                @edit="handleEditQueued" 
+                @remove="handleRemoveQueued" 
+                @reorder="handleReorderQueue"
+                @sendNow="handleSendNow"
+                @moveToFront="handleMoveToFront" />
             </div>
           </Transition>
 
@@ -1039,6 +1044,26 @@ async function handleSendMessage(payload?: InputMessageState) {
 function handleReorderQueue(fromId: string, toId: string) {
   if (currentSessionId.value) {
     sessionStore.reorderQueue(currentSessionId.value, fromId, toId)
+  }
+}
+
+function handleSendNow(item: QueuedMessage) {
+  if (!currentSessionId.value) return
+  // 从队列中移除该消息
+  const msg = sessionStore.removeFromQueue(currentSessionId.value, item.id)
+  if (msg) {
+    // 立即发送
+    handleSendMessage({
+      content: msg.content,
+      files: msg.files || [],
+      knowledgeBaseIds: msg.knowledgeBaseIds || [],
+    })
+  }
+}
+
+function handleMoveToFront(msgId: string) {
+  if (currentSessionId.value) {
+    sessionStore.moveToFront(currentSessionId.value, msgId)
   }
 }
 

@@ -128,3 +128,10 @@ debug-*.cjs
 
 start-vite-ps.ps1
 vite.pid
+
+# 崩溃/回放/JVM dump 与运行时数据残留
+replay_pid*
+hs_err*
+thread-dump*
+__pycache__/
+.data/

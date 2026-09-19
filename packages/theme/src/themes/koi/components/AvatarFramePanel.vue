@@ -82,14 +82,16 @@ interface FrameGroup {
   items: AvatarFrame[];
 }
 
-/** 面板分组：不佩戴 → 生肖 → 神兽 → 限定 */
+/** 面板分组：不佩戴 → 常规 → 生肖 → 神兽 → 限定（生日等） */
 const groups = computed<FrameGroup[]>(() => {
   if (!isAvatarFrameEnabled()) return [];
   const frames = avatarFrameDict.value.filter(hasFrameVisual);
   const byType = (type: string) => frames.filter((f) => f.type === type);
-  const limited = frames.filter((f) => f.type !== "zodiac" && f.type !== "beast");
+  const listed = new Set(["regular", "zodiac", "beast"]);
+  const limited = frames.filter((f) => !listed.has(f.type ?? ""));
   return [
     { title: "不佩戴", items: avatarFrameDict.value.filter((f) => !hasFrameVisual(f)) },
+    { title: "常规", items: byType("regular") },
     { title: "生肖", items: byType("zodiac") },
     { title: "神兽", items: byType("beast") },
     { title: "限定", items: limited },

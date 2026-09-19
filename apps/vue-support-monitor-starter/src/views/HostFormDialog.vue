@@ -58,7 +58,7 @@ const router = useRouter();
 const emit = defineEmits<{
   (e: "update:modelValue", v: boolean): void;
   (e: "saved"): void;
-  (e: "deploy-agent", hostId: number): void;
+  (e: "deploy-agent", host: { id: number; serverHostName: string; action: string }): void;
 }>();
 
 // ---- 表单状态（从 AssetsView 迁入）----
@@ -136,10 +136,11 @@ const remoteProtocols = [
   { label: "RDP", value: "RDP" },
   { label: "VNC", value: "VNC" },
 ];
-/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（当前仅 SSH 支持） */
+/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（仅 SSH）；NONE 不经平台通道 */
 const remoteModes = [
   { label: "Guacd 中转", value: "GUACD" },
-  { label: "直连", value: "DIRECT" },
+  { label: "平台直连", value: "DIRECT" },
+  { label: "无需通道", value: "NONE" },
 ];
 /** 生效协议（含按平台推断），决定默认端口与口令字段 */
 const effectiveRemoteProtocol = computed(() => {
@@ -154,8 +155,23 @@ const effectiveRemoteProtocol = computed(() => {
 const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
 /** 端口占位提示（留空即按默认端口连接） */
 const remotePortPlaceholder = computed(() => `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`);
-/** 仅 SSH 支持直连；RDP/VNC 必须经 guacd */
+/** 仅 SSH 支持平台直连；RDP/VNC 必须经 guacd */
 const directSupported = computed(() => effectiveRemoteProtocol.value === "SSH");
+/** RDP 只能由 guacd 渲染，通道锁定不可选 */
+const channelEditable = computed(() => effectiveRemoteProtocol.value !== "RDP");
+/** 当前协议下可选通道 */
+const channelOptions = computed(() =>
+  remoteModes.filter(m => m.value !== "DIRECT" || directSupported.value),
+);
+
+// 协议切换即纠正通道，避免下拉已锁定却仍提交后端会拒绝的组合
+watch(effectiveRemoteProtocol, (protocol) => {
+  if (protocol === "RDP") {
+    form.value.serverHostRemoteMode = "GUACD";
+  } else if (form.value.serverHostRemoteMode === "DIRECT" && protocol !== "SSH") {
+    form.value.serverHostRemoteMode = "GUACD";
+  }
+});
 
 // ---- 凭据校验与 Agent ----
 const verifying = ref(false);
@@ -202,7 +218,7 @@ async function deployAgent(): Promise<void> {
     // 关闭编辑弹窗，打开部署弹窗
     emit("update:modelValue", false);
     // 触发部署事件，传递主机信息和操作类型
-    emit("deploy-agent", { id: hostId, serverHostName: form.value.serverHostName, action: 'install' });
+    emit("deploy-agent", { id: hostId, serverHostName: form.value.serverHostName ?? '', action: 'install' });
     ElMessage.success("Agent 部署已启动");
   } catch (e) {
     ElMessage.error("Agent 部署失败");
@@ -293,7 +309,8 @@ async function submitForm(): Promise<void> {
   // 远控配置归一：协议留空=按平台推断，非 SSH 不允许直连，非 VNC 不存口令
   const remoteProtocol = (form.value.serverHostRemoteProtocol || "").toUpperCase() || null;
   form.value.serverHostRemoteProtocol = remoteProtocol;
-  if (form.value.serverHostRemoteMode === "DIRECT" && remoteProtocol && remoteProtocol !== "SSH") {
+  if (effectiveRemoteProtocol.value === "RDP"
+    || (form.value.serverHostRemoteMode === "DIRECT" && effectiveRemoteProtocol.value !== "SSH")) {
     form.value.serverHostRemoteMode = "GUACD";
   }
   if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
@@ -502,8 +519,8 @@ watch(() => props.modelValue, (v) => {
               v-model="form.serverHostRemoteMode"
               size="small"
               style="width:100%"
-              :disabled="!directSupported"
-              :options="remoteModes"
+              :disabled="!channelEditable"
+              :options="channelOptions"
             />
           </ReFormItem>
           <ReFormItem label="远控端口">
@@ -514,7 +531,7 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
           <ReFormItem class="col-span-2" label=" ">
             <span class="remote-tip">
-              直连由平台原生客户端实现（当前支持 SSH，不经过 guacd）；RDP / VNC 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
+              Guacd 中转：网页端经 guacd 渲染；平台直连：由平台自研客户端连接（当前仅 SSH）；无需通道：不经平台中转，SSH 用平台终端、VNC 用本机客户端。RDP 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
             </span>
           </ReFormItem>
         </template>

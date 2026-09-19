@@ -6,9 +6,10 @@
  * 本模块把字典缓存在模块级 ref 上，渲染函数直接读缓存，因此组件里调用即响应式。
  *
  * 目录构成（种子 id=1 为透明占位「经典」，即不佩戴）：
+ *  - 常规 2-7：只有 `sys_avatar_frame_color`（完整 CSS 渐变串），前端按
+ *    「渐变 + 径向遮罩挖孔」画细素环。
  *  - 生肖 201-212、神兽 221-226、生日 100：`sys_avatar_frame_image` 指向
  *    public/assets/avatar-frames/*.svg，统一 200 画布、暗珐琅底 + 描金剪影。
- *  - 若某行只有 `sys_avatar_frame_color`（完整 CSS 渐变串），仍按「渐变 + 径向遮罩挖孔」画环。
  */
 import { shallowRef } from "vue";
 import { getConfig } from "@repo/config";
@@ -30,23 +31,50 @@ export interface AvatarFrame {
 }
 
 /**
- * 孔径占画布的比例（洞径 ÷ 画布边长）。
- * <p>素材统一为 200 画布、中心透明孔半径 58（环带外径 78，剪影可伸出环带），
- * 故渐变环与图片环共用一个比例，叠加层尺寸 = 头像尺寸 ÷ 该比例即可让环贴合头像边缘。</p>
+ * 特效帧素材的孔径占画布比例（洞径 ÷ 画布边长）。
+ * <p>素材统一 200 画布、中心透明孔半径 58（环带外径 78，剪影可伸出环带），
+ * 故叠加层需放大到 1.72 倍头像才能把孔对准头像。</p>
  */
-const HOLE_RATIO = 0.58;
+const HOLE_RATIO_IMG = 0.58;
 
-/** 遮罩：中心挖空到 HOLE_RATIO，其余保留，用于把渐变画成环 */
-const HOLE_MASK =
-  "radial-gradient(circle farthest-side, rgba(0,0,0,0) 0 58%, #000 58.4%)";
+/**
+ * 渐变环（常规款）的孔径比例。
+ * <p>素环没有剪影，按素材的 1.72 倍画只会糊成一大块；但收到 3px 以下时
+ * 浅色款（素环）在白底上等于看不见，故取 0.74：层约 1.35 倍头像，环带 5~6px。</p>
+ */
+const HOLE_RATIO_GRAD = 0.74;
+
+/**
+ * 佩戴位（Header / 侧栏 / 个人中心）头像框超出头像的最大倍数。
+ * <p>素材剪影可伸到画布边缘（1.72 倍），小尺寸下会压到卡片圆角与文字，
+ * 所以佩戴时按该倍数同心裁掉外溢的尖角，只留环带 + 轻微破环；
+ * 面板预览位不裁剪，保留完整画面。</p>
+ */
+export const WORN_FRAME_MAX_MULTIPLE = 1.55;
+
+/** 遮罩：中心挖空到渐变环的孔径比例，其余保留，用于把渐变画成环 */
+const HOLE_MASK = `radial-gradient(circle farthest-side, rgba(0,0,0,0) 0 ${
+  HOLE_RATIO_GRAD * 100
+}%, #000 ${HOLE_RATIO_GRAD * 100 + 0.4}%)`;
 
 /** 生肖框资源路径（种子 201-212 与兜底字典共用） */
 function zodiac(file: string): string {
   return `/assets/avatar-frames/${file}.svg`;
 }
 
+/** 兜底渐变帧（与种子 id=2-7 一致：只有 color，前端画素环） */
+function grad(id: number, name: string, color: string): AvatarFrame {
+  return { id, name, type: "regular", acquire: "default", color };
+}
+
 /** 服务端不可用、或生日窗口外仍可解析生日框时的兜底字典 */
 export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
+  grad(2, "素环", "linear-gradient(135deg, #f2f5f8 0%, #b9c2cc 35%, #ffffff 55%, #8e97a1 100%)"),
+  grad(3, "墨玉", "linear-gradient(135deg, #3a3f47 0%, #6b7480 35%, #1b1e23 60%, #59616c 100%)"),
+  grad(4, "鎏金", "linear-gradient(135deg, #fff3c4 0%, #d4a531 30%, #a9772a 55%, #f7e59b 100%)"),
+  grad(5, "青瓷", "linear-gradient(135deg, #e2f5ee 0%, #6fbfa9 35%, #38796d 65%, #bfe6d8 100%)"),
+  grad(6, "绛朱", "linear-gradient(135deg, #ffd9c9 0%, #d9534a 35%, #9b241c 65%, #ffb3a0 100%)"),
+  grad(7, "星辉", "linear-gradient(135deg, #dfe4ff 0%, #7c6ff0 30%, #34296e 60%, #a8b6ff 100%)"),
   { id: 201, name: "子鼠", type: "zodiac", acquire: "default", image: zodiac("zodiac-rat") },
   { id: 202, name: "丑牛", type: "zodiac", acquire: "default", image: zodiac("zodiac-ox") },
   { id: 203, name: "寅虎", type: "zodiac", acquire: "default", image: zodiac("zodiac-tiger") },
@@ -162,20 +190,45 @@ export function hasAvatarFrame(frameId: number): boolean {
 }
 
 /**
- * 头像框叠加层样式：层尺寸 = 头像尺寸 ÷ 洞径比，使环贴合头像
+ * 头像框叠加层样式：层尺寸 = 头像尺寸 ÷ 对应素材的洞径比，使孔洞正好罩住头像
+ *
+ * <p>层盒始终按素材比例取尺寸（孔洞才能与头像同心），`maxMultiple` 只做同心
+ * 圆形裁剪：把超出头像 N 倍的剪影尖角切掉，不改变孔洞位置。</p>
  *
  * @param frame 字典项
  * @param avatarSize 头像渲染尺寸（px）
+ * @param maxMultiple 头像框最大外溢倍数，0 表示不裁剪（预览位用）
  */
-export function frameLayerStyle(frame: AvatarFrame | undefined, avatarSize: number): Record<string, string> {
+export function frameLayerStyle(
+  frame: AvatarFrame | undefined,
+  avatarSize: number,
+  maxMultiple = 0,
+): Record<string, string> {
   if (!hasFrameVisual(frame)) return {};
-  const size = `${Math.round(avatarSize / HOLE_RATIO)}px`;
-  const box = { width: size, height: size };
   if (frame.image) {
-    return { ...box, backgroundImage: `url("${resolveAvatarFrameUrl(frame.image)}")` };
+    const layer = Math.round(avatarSize / HOLE_RATIO_IMG);
+    const style: Record<string, string> = {
+      width: `${layer}px`,
+      height: `${layer}px`,
+      "background-size": "100% 100%",
+      "background-repeat": "no-repeat",
+      "background-position": "center",
+      "filter": "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28))",
+    };
+    if (maxMultiple > 0) {
+      const outer = Math.round(avatarSize * maxMultiple);
+      if (outer < layer) {
+        const clip = `circle(${outer / 2}px at 50% 50%)`;
+        style["-webkit-clip-path"] = clip;
+        style["clip-path"] = clip;
+      }
+    }
+    style["background-image"] = `url("${resolveAvatarFrameUrl(frame.image)}")`;
+    return style;
   }
   return {
-    ...box,
+    width: `${Math.round(avatarSize / HOLE_RATIO_GRAD)}px`,
+    height: `${Math.round(avatarSize / HOLE_RATIO_GRAD)}px`,
     background: frame.color as string,
     "border-radius": "50%",
     "-webkit-mask-image": HOLE_MASK,
@@ -184,11 +237,28 @@ export function frameLayerStyle(frame: AvatarFrame | undefined, avatarSize: numb
 }
 
 /**
- * 按头像框 ID 取叠加层样式
+ * 佩戴位头像框相对头像需要预留的外边距（px）
+ *
+ * @param avatarSize 头像渲染尺寸（px）
+ * @param maxMultiple 与叠加层一致的裁剪倍数，0 表示不裁剪
+ */
+export function wornFrameSpillPx(avatarSize: number, maxMultiple = WORN_FRAME_MAX_MULTIPLE): number {
+  const outer = maxMultiple > 0
+    ? Math.min(avatarSize / HOLE_RATIO_IMG, Math.round(avatarSize * maxMultiple))
+    : Math.round(avatarSize / HOLE_RATIO_IMG);
+  return Math.max(0, Math.round((outer - avatarSize) / 2));
+}
+
+/**
+ * 按头像框 ID 取佩戴位叠加层样式
  *
  * @param frameId 头像框ID
  * @param avatarSize 头像渲染尺寸（px）
  */
-export function getAvatarFrameLayerStyle(frameId: number, avatarSize: number): Record<string, string> {
-  return frameLayerStyle(findAvatarFrame(frameId), avatarSize);
+export function getAvatarFrameLayerStyle(
+  frameId: number,
+  avatarSize: number,
+  maxMultiple = WORN_FRAME_MAX_MULTIPLE,
+): Record<string, string> {
+  return frameLayerStyle(findAvatarFrame(frameId), avatarSize, maxMultiple);
 }

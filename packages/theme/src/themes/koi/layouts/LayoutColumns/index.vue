@@ -56,7 +56,7 @@
                 class="w-36px h-36px rounded-full select-none"
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
-              <div class="user-card-avatar-wrap">
+              <div class="user-card-avatar-wrap" :style="{ padding: frameSpill(36) + 'px' }">
                 <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
                 <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
               </div>
@@ -344,7 +344,11 @@ const avatar = computed(
     defaultAvatarUrl,
 );
 // 头像框：开关 + 显示位 + 帧内容三重判断，与 Header / 个人中心共用同一实现
-const { visible: avatarFrameVisible, layerStyle: avatarFrameStyle } = useWornAvatarFrame();
+const {
+  visible: avatarFrameVisible,
+  layerStyle: avatarFrameStyle,
+  spillPx: frameSpill,
+} = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
 
@@ -459,11 +463,12 @@ watch(
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 6px;
+    // 头像框会溢出 40px 按钮约 6px，这里留出净空避免贴到列边缘
+    bottom: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
     pointer-events: none;
 
     > * {
@@ -668,8 +673,9 @@ watch(
   }
 
   .user-info {
-    margin-left: 12px;
+    margin-left: 4px;
     flex: 1;
+    min-width: 0;
   }
 
   .user-name {

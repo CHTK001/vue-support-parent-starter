@@ -155,6 +155,75 @@
           </div>
         </div>
       </div>
+
+      <!-- 菜单显示控制分组 -->
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">菜单显示控制</h3>
+        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
+          <!-- 显示角色管理 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示角色管理</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示角色管理入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showCharactersMenu" size="large" />
+          </div>
+
+          <!-- 显示机器人管理 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示机器人管理</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示机器人管理入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showBotsMenu" size="large" />
+          </div>
+
+          <!-- 显示知识库 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示知识库</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示知识库入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showKnowledgeBaseMenu" size="large" />
+          </div>
+
+          <!-- 显示插件市场 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示插件市场</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示插件市场入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showPluginsMenu" size="large" />
+          </div>
+
+          <!-- 显示模型管理 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示模型管理</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示模型管理入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showModelsMenu" size="large" />
+          </div>
+
+          <!-- 显示用量管理 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示用量管理</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示用量管理入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showUsageMenu" size="large" />
+          </div>
+
+          <!-- 显示定时任务 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示定时任务</span>
+              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示定时任务入口</span>
+            </div>
+            <el-switch v-model="settingsForm.showSchedulerMenu" size="large" />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -190,6 +259,13 @@ const settingsForm = reactive({
   chatCompressTriggerRounds: 100,  // 压缩触发轮数
   chatCompressTokenThreshold: 80,  // 上下文阈值（百分比）
   chatCompressRetainRounds: 6,     // 压缩保留轮数
+  showCharactersMenu: true,         // 显示角色管理
+  showBotsMenu: true,               // 显示机器人管理
+  showKnowledgeBaseMenu: true,      // 显示知识库
+  showPluginsMenu: true,            // 显示插件市场
+  showModelsMenu: true,             // 显示模型管理
+  showUsageMenu: true,              // 显示用量管理
+  showSchedulerMenu: true,          // 显示定时任务
 })
 
 // 原始设置备份，用于对比是否有改动
@@ -217,7 +293,14 @@ watch(() => ({
   chatCompressType: settingsForm.chatCompressType,
   chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
   chatCompressTokenThreshold: settingsForm.chatCompressTokenThreshold,
-  chatCompressRetainRounds: settingsForm.chatCompressRetainRounds
+  chatCompressRetainRounds: settingsForm.chatCompressRetainRounds,
+  showCharactersMenu: settingsForm.showCharactersMenu,
+  showBotsMenu: settingsForm.showBotsMenu,
+  showKnowledgeBaseMenu: settingsForm.showKnowledgeBaseMenu,
+  showPluginsMenu: settingsForm.showPluginsMenu,
+  showModelsMenu: settingsForm.showModelsMenu,
+  showUsageMenu: settingsForm.showUsageMenu,
+  showSchedulerMenu: settingsForm.showSchedulerMenu
 }), () => {
   debouncedSave()
 }, { deep: true })
@@ -239,6 +322,16 @@ const loadSettings = async () => {
     settingsForm.chatCompressTriggerRounds = Number(data.chatCompressTriggerRounds) || 100
     settingsForm.chatCompressTokenThreshold = Number(data.chatCompressTokenThreshold) || 80
     settingsForm.chatCompressRetainRounds = Number(data.chatCompressRetainRounds) || 6
+    
+    // 从 localStorage 加载菜单显示配置
+    const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
+    settingsForm.showCharactersMenu = menuSettings.showCharactersMenu !== false
+    settingsForm.showBotsMenu = menuSettings.showBotsMenu !== false
+    settingsForm.showKnowledgeBaseMenu = menuSettings.showKnowledgeBaseMenu !== false
+    settingsForm.showPluginsMenu = menuSettings.showPluginsMenu !== false
+    settingsForm.showModelsMenu = menuSettings.showModelsMenu !== false
+    settingsForm.showUsageMenu = menuSettings.showUsageMenu !== false
+    settingsForm.showSchedulerMenu = menuSettings.showSchedulerMenu !== false
     // 备份原始数据
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
   } catch (error: any) {
@@ -268,6 +361,18 @@ const selectFolder = async () => {
 // 保存设置
 const handleSave = async () => {
   try {
+    // 保存菜单显示配置到 localStorage
+    const menuSettings = {
+      showCharactersMenu: settingsForm.showCharactersMenu,
+      showBotsMenu: settingsForm.showBotsMenu,
+      showKnowledgeBaseMenu: settingsForm.showKnowledgeBaseMenu,
+      showPluginsMenu: settingsForm.showPluginsMenu,
+      showModelsMenu: settingsForm.showModelsMenu,
+      showUsageMenu: settingsForm.showUsageMenu,
+      showSchedulerMenu: settingsForm.showSchedulerMenu,
+    }
+    localStorage.setItem('menuDisplaySettings', JSON.stringify(menuSettings))
+    
     // 验证工作目录基路径
     const path = settingsForm.workspaceBaseDir.trim()
     if (path) {

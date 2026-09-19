@@ -7,8 +7,8 @@
         <el-card class="rounded-md" shadow="never">
           <div class="text-13px text-#303133 dark:text-#E5EAF3">
             <div class="flex flex-justify-center">
-              <div class="mine-avatar-frame-box">
-                <div v-if="mineFrameVisible" class="mine-avatar-frame-layer" :style="mineFrameLayer(104)"></div>
+              <div class="mine-avatar-frame-box" :style="{ padding: frameSpill(104, 0) + 'px' }">
+                <div v-if="mineFrameVisible" class="mine-avatar-frame-layer" :style="mineFrameLayer(104, 0)"></div>
                 <ReAvatarCrop
                   v-model="mineAvatar"
                   :action="avatarUploadUrl"
@@ -411,7 +411,11 @@ const mineAvatar = computed<string>({
 });
 
 /** 头像框：数据源取 /me 最新结果（个人中心刚改完要立刻看到），层尺寸按头像裁剪区 104px */
-const { visible: mineFrameVisible, layerStyle: mineFrameLayer } = useWornAvatarFrame(() => mine.value);
+const {
+  visible: mineFrameVisible,
+  layerStyle: mineFrameLayer,
+  spillPx: frameSpill,
+} = useWornAvatarFrame(() => mine.value);
 
 /** 读取登录用户信息到展示区与表单 */
 const refreshMine = async () => {

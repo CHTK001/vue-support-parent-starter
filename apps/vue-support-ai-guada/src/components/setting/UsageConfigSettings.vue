@@ -23,8 +23,24 @@
         <span class="form-tip">开启后同步时只同步已开启的Provider</span>
       </el-form-item>
       <el-form-item label="手动全量同步">
-        <el-button type="primary" @click="manualSync" :loading="syncing">立即全量同步</el-button>
-        <span class="form-tip">手动触发全量用量数据同步</span>
+        <div class="sync-actions">
+          <el-button 
+            type="primary" 
+            @click="manualSync" 
+            :loading="taskStatus.aggregateAllRunning"
+            :disabled="taskStatus.aggregateAllRunning"
+          >
+            {{ taskStatus.aggregateAllRunning ? '同步中...' : '立即全量同步' }}
+          </el-button>
+          <el-button 
+            v-if="taskStatus.aggregateAllRunning" 
+            type="danger" 
+            @click="cancelSync"
+          >
+            取消
+          </el-button>
+        </div>
+        <span class="form-tip">手动触发全量用量数据同步，重复点击会取消前一次任务</span>
       </el-form-item>
     </el-form>
     <div class="form-actions">
@@ -34,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { usageApi } from '@/services/javaApi'
 
@@ -46,7 +62,13 @@ const form = ref({
 })
 
 const saving = ref(false)
-const syncing = ref(false)
+const taskStatus = ref({
+  aggregateRunning: false,
+  aggregateAllRunning: false,
+})
+
+// SSE 连接
+let eventSource: EventSource | null = null
 
 const load = async () => {
   try {
@@ -57,6 +79,36 @@ const load = async () => {
     }
   } catch (e) {
     console.error('加载用量配置失败:', e)
+  }
+  // 连接 SSE
+  connectSSE()
+}
+
+// 连接 SSE
+const connectSSE = () => {
+  disconnectSSE()
+  eventSource = new EventSource('/v2/usage/task-status/stream')
+  
+  eventSource.addEventListener('status', (e) => {
+    try {
+      const data = JSON.parse((e as MessageEvent).data)
+      taskStatus.value = data
+    } catch (err) {
+      console.error('SSE 解析错误:', err)
+    }
+  })
+  
+  eventSource.onerror = () => {
+    console.warn('SSE 连接断开，5秒后重连')
+    setTimeout(connectSSE, 5000)
+  }
+}
+
+// 断开 SSE
+const disconnectSSE = () => {
+  if (eventSource) {
+    eventSource.close()
+    eventSource = null
   }
 }
 
@@ -74,19 +126,27 @@ const save = async () => {
 }
 
 const manualSync = async () => {
-  syncing.value = true
   try {
     await usageApi.syncAll()
     ElMessage.success('全量同步已触发')
   } catch (e) {
     console.error('手动同步失败:', e)
     ElMessage.error('同步失败')
-  } finally {
-    syncing.value = false
+  }
+}
+
+const cancelSync = async () => {
+  try {
+    await fetch('/v2/usage/aggregate-all/cancel', { method: 'POST' })
+    ElMessage.success('已取消全量同步任务')
+  } catch (e) {
+    console.error('取消同步失败:', e)
+    ElMessage.error('取消失败')
   }
 }
 
 onMounted(load)
+onUnmounted(disconnectSSE)
 </script>
 
 <style scoped>
@@ -105,6 +165,11 @@ onMounted(load)
   margin-left: 12px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+.sync-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .form-actions {

@@ -89,10 +89,10 @@ onMounted(loadList);
     <ReSectionHead description="免费代理获取 · 后台代理表每次获取清空重录 · 页面从数据表读取">
       <template #title>代理管理</template>
       <template #actions>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="fetching" @click="fetchFree">
+        <ReButton icon="RefreshRight" :show-text="true" size="small" type="primary" :loading="fetching" @click="fetchFree">
           {{ fetching ? "获取中…" : "获取免费代理" }}
         </ReButton>
-        <ReButton icon="Connection" :show-text="true" size="small" type="primary" :loading="checking" @click="checkAll">
+        <ReButton icon="Connection" :show-text="true" size="small" :loading="checking" @click="checkAll">
           {{ checking ? "检测中…" : "批量检测" }}
         </ReButton>
       </template>
