@@ -28,7 +28,7 @@
     <div class="flex-1 overflow-y-auto px-4 py-6">
       <div class="max-w-3xl mx-auto space-y-6">
         <!-- 欢迎消息 -->
-        <div v-if="messages.length === 0" class="text-center py-12">
+        <div v-if="messages.length === 0 && !loading" class="text-center py-12">
           <div class="text-4xl mb-4">{{ connectorIcon }}</div>
           <h2 class="text-xl font-medium text-gray-900 dark:text-[#e8e9ed] mb-2">
             欢迎使用 {{ connectorName }}
@@ -36,6 +36,13 @@
           <p class="text-sm text-gray-500 dark:text-[#8b8d95]">
             在这里与 {{ connectorName }} 上的联系人聊天，AI 会自动回复消息
           </p>
+        </div>
+
+        <!-- 加载中 -->
+        <div v-if="loading" class="text-center py-8">
+          <el-icon class="is-loading" size="24">
+            <LoadingOutlined />
+          </el-icon>
         </div>
 
         <!-- 消息列表 -->
@@ -56,7 +63,7 @@
             "
           >
             <div class="text-sm whitespace-pre-wrap">{{ message.content }}</div>
-            <div class="text-xs mt-1 opacity-70">{{ message.createTime }}</div>
+            <div class="text-xs mt-1 opacity-70">{{ formatTime(message.createTime) }}</div>
           </div>
         </div>
       </div>
@@ -88,7 +95,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft16Regular } from '@fluentui/vue-icons'
+import { ArrowLeft16Regular, LoadingOutlined } from '@fluentui/vue-icons'
 import { apiService } from '@/services/ApiService'
 
 const route = useRoute()
@@ -102,6 +109,7 @@ const connectorInfo = ref<any>({})
 const messages = ref<any[]>([])
 const inputMessage = ref('')
 const sending = ref(false)
+const loading = ref(false)
 
 // 连接器类型相关
 const connectorType = computed(() => connectorInfo.value.type || 'ilink')
@@ -132,6 +140,13 @@ const iconBgClass = computed(() => {
 })
 const modelName = computed(() => connectorInfo.value.modelName || '')
 
+// 格式化时间
+const formatTime = (time: any) => {
+  if (!time) return ''
+  const date = new Date(time)
+  return date.toLocaleTimeString()
+}
+
 // 返回
 const goBack = () => {
   router.push('/connectors')
@@ -147,6 +162,21 @@ const fetchConnectorInfo = async () => {
   }
 }
 
+// 获取历史消息
+const fetchMessages = async () => {
+  loading.value = true
+  try {
+    const res = await apiService.get(`/v2/connectors/${connectorId.value}/messages`, {
+      params: { limit: 50 }
+    })
+    messages.value = res.data || []
+  } catch (error) {
+    console.error('获取历史消息失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 发送消息
 const sendMessage = async () => {
   if (!inputMessage.value.trim()) return
@@ -157,7 +187,7 @@ const sendMessage = async () => {
     id: Date.now(),
     role: 'user',
     content: inputMessage.value,
-    createTime: new Date().toLocaleTimeString()
+    createTime: new Date().toISOString()
   })
 
   const content = inputMessage.value
@@ -174,7 +204,7 @@ const sendMessage = async () => {
         id: Date.now() + 1,
         role: 'assistant',
         content: `收到消息："${content}"，AI 正在回复...`,
-        createTime: new Date().toLocaleTimeString()
+        createTime: new Date().toISOString()
       })
     }, 1000)
   } catch (error) {
@@ -186,6 +216,7 @@ const sendMessage = async () => {
 
 onMounted(() => {
   fetchConnectorInfo()
+  fetchMessages()
 })
 </script>
 
