@@ -5,6 +5,14 @@
         <el-switch v-model="form.enabled" />
         <span class="form-tip">开启后记录所有API调用用量</span>
       </el-form-item>
+      <el-form-item label="会话用量统计开关">
+        <el-switch v-model="form.sessionUsageEnabled" />
+        <span class="form-tip">开启后记录会话聊天用量</span>
+      </el-form-item>
+      <el-form-item label="连接器聊天用量开关">
+        <el-switch v-model="form.connectorUsageEnabled" />
+        <span class="form-tip">开启后记录连接器聊天用量</span>
+      </el-form-item>
       <el-form-item label="定时同步时间">
         <el-time-picker
           v-model="form.syncTime"
@@ -56,6 +64,8 @@ import { usageApi } from '@/services/javaApi'
 
 const form = ref({
   enabled: true,
+  sessionUsageEnabled: true,
+  connectorUsageEnabled: false,
   syncTime: '02:00',
   pollInterval: 60,
   providerSpiEnabled: true,

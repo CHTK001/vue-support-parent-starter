@@ -574,12 +574,10 @@ html.dark {
   transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
 }
 .el-table .el-table__body tr:hover > td.el-table__cell {
-  background-color: var(--brand-50) !important;
-  box-shadow: inset 3px 0 0 var(--brand-500);
+  background-color: var(--el-table-row-hover-bg-color) !important;
 }
 .el-table .el-table__body tr.current-row > td.el-table__cell {
-  background-color: var(--brand-100) !important;
-  box-shadow: inset 3px 0 0 var(--brand-500);
+  background-color: var(--el-color-primary-light-9) !important;
 }
 .el-table .el-table__header-wrapper {
   position: relative;

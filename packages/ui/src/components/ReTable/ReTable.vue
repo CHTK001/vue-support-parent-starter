@@ -530,8 +530,8 @@ function onRowDragEnd(): void {
 }
 
 /** ========== 缺陷6: 列宽调整 ========== */
-/** border 模式 + resizable 设置 → 列宽拖拽 */
-const borderResizable = computed(() => (localSettings.value.resizable ?? true) && (localSettings.value.border ?? false));
+/** resizable 设置 → 列宽拖拽 */
+const borderResizable = computed(() => (localSettings.value.resizable ?? true));
 
 /** ========== 缺陷8: inline edit 编辑值缓存 ========== */
 const editCache = ref<Record<string, Record<string, unknown>>>({});

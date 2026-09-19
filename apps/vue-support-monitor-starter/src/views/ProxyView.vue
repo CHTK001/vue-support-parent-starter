@@ -136,7 +136,7 @@ onMounted(loadList);
             <span v-else class="text-secondary">未检测</span>
           </template>
           <template #col-actions="{ row }">
-            <ReButton link size="small" @click="checkOne(row.id)">检测</ReButton>
+            <ReButton icon="Connection" layout="square" size="small" title="检测" @click="checkOne(row.id)" />
           </template>
         </ReTable>
       </el-scrollbar>
@@ -170,30 +170,5 @@ onMounted(loadList);
   background: transparent !important;
 }
 
-/* 删除表格边框 */
-.proxy-table .el-table,
-.proxy-table .el-table__inner-wrapper,
-.proxy-table .el-table__body-wrapper,
-.proxy-table .el-table__header-wrapper {
-  border: none !important;
-  --el-table-border-color: transparent !important;
-}
-.proxy-table .el-table td.el-table__cell,
-.proxy-table .el-table th.el-table__cell,
-.proxy-table .el-table tr,
-.proxy-table .el-table__row {
-  border-right: 0 !important;
-  border-left: 0 !important;
-  border-top: 0 !important;
-}
-.proxy-table .el-table--border,
-.proxy-table .el-table--border .el-table__cell,
-.proxy-table .el-table__border-left-patch {
-  border-right: 0 !important;
-  border-left: 0 !important;
-}
-/* 强制删除所有竖线 */
-.proxy-table .el-table__body-wrapper .el-table__cell::before {
-  display: none !important;
-}
+
 </style>
