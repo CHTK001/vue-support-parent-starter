@@ -69,8 +69,14 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.maxToolIterations') }}</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.maxToolIterationsDesc') }}</span>
             </div>
-            <div class="shrink-0">
-              <el-input-number v-model="settingsForm.maxToolIterations" :min="1" :max="500" :step="1" size="default" controls-position="right" />
+            <div class="shrink-0 w-32">
+              <el-select v-model="settingsForm.maxToolIterations" size="default">
+                <el-option label="10" :value="10" />
+                <el-option label="50" :value="50" />
+                <el-option label="100" :value="100" />
+                <el-option label="200" :value="200" />
+                <el-option label="500" :value="500" />
+              </el-select>
             </div>
           </div>
           <!-- 请求超时 -->
@@ -79,10 +85,14 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.llmRequestTimeout') }}</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.llmRequestTimeoutDesc') }}</span>
             </div>
-            <div class="shrink-0">
-              <el-input-number v-model="settingsForm.llmRequestTimeoutMs" :min="10" :max="3600" :step="10" size="default" controls-position="right">
-                <template #suffix>{{ t('settings.general.secondsUnit') }}</template>
-              </el-input-number>
+            <div class="shrink-0 w-36">
+              <el-select v-model="settingsForm.llmRequestTimeoutMs" size="default">
+                <el-option label="30 秒" :value="30" />
+                <el-option label="60 秒" :value="60" />
+                <el-option label="120 秒" :value="120" />
+                <el-option label="300 秒" :value="300" />
+                <el-option label="600 秒" :value="600" />
+              </el-select>
             </div>
           </div>
           <!-- 空闲超时 -->
@@ -91,10 +101,14 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.llmIdleTimeout') }}</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.llmIdleTimeoutDesc') }}</span>
             </div>
-            <div class="shrink-0">
-              <el-input-number v-model="settingsForm.llmIdleTimeoutMs" :min="5" :max="600" :step="5" size="default" controls-position="right">
-                <template #suffix>{{ t('settings.general.secondsUnit') }}</template>
-              </el-input-number>
+            <div class="shrink-0 w-36">
+              <el-select v-model="settingsForm.llmIdleTimeoutMs" size="default">
+                <el-option label="10 秒" :value="10" />
+                <el-option label="30 秒" :value="30" />
+                <el-option label="60 秒" :value="60" />
+                <el-option label="120 秒" :value="120" />
+                <el-option label="300 秒" :value="300" />
+              </el-select>
             </div>
           </div>
         </div>
@@ -125,8 +139,14 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩触发轮数</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">会话累计达到该轮数后自动压缩（默认 100 轮）</span>
             </div>
-            <div class="shrink-0">
-              <el-input-number v-model="settingsForm.chatCompressTriggerRounds" :min="10" :max="1000" :step="10" size="default" controls-position="right" />
+            <div class="shrink-0 w-32">
+              <el-select v-model="settingsForm.chatCompressTriggerRounds" size="default">
+                <el-option label="10 轮" :value="10" />
+                <el-option label="20 轮" :value="20" />
+                <el-option label="50 轮" :value="50" />
+                <el-option label="100 轮" :value="100" />
+                <el-option label="200 轮" :value="200" />
+              </el-select>
             </div>
           </div>
 
@@ -136,10 +156,14 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">上下文阈值</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">当上下文占用模型窗口的百分比超过此值时触发压缩（默认 80%）</span>
             </div>
-            <div class="shrink-0">
-              <el-input-number v-model="settingsForm.chatCompressTokenThreshold" :min="50" :max="95" :step="5" size="default" controls-position="right">
-                <template #suffix>%</template>
-              </el-input-number>
+            <div class="shrink-0 w-32">
+              <el-select v-model="settingsForm.chatCompressTokenThreshold" size="default">
+                <el-option label="50%" :value="50" />
+                <el-option label="60%" :value="60" />
+                <el-option label="70%" :value="70" />
+                <el-option label="80%" :value="80" />
+                <el-option label="90%" :value="90" />
+              </el-select>
             </div>
           </div>
 
@@ -149,8 +173,95 @@
               <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩保留轮数</span>
               <span class="text-xs text-gray-500 dark:text-[#8b8d95]">压缩后保留最近 N 轮原始对话（默认 6 轮）</span>
             </div>
+            <div class="shrink-0 w-32">
+              <el-select v-model="settingsForm.chatCompressRetainRounds" size="default">
+                <el-option label="2 轮" :value="2" />
+                <el-option label="4 轮" :value="4" />
+                <el-option label="6 轮" :value="6" />
+                <el-option label="8 轮" :value="8" />
+                <el-option label="10 轮" :value="10" />
+              </el-select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对话过程设置分组 -->
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">对话过程</h3>
+        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
+          <!-- 折叠回复过程 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex items-start gap-3 flex-1">
+              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
+                <el-icon size="18"><Document16Regular /></el-icon>
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">折叠回复过程</span>
+                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">回复成功完成后，将最终正文前的过程文本、思考和工具调用收进活动详情。</span>
+              </div>
+            </div>
             <div class="shrink-0">
-              <el-input-number v-model="settingsForm.chatCompressRetainRounds" :min="1" :max="50" :step="1" size="default" controls-position="right" />
+              <el-switch v-model="settingsForm.collapseReplyProcess" />
+            </div>
+          </div>
+
+          <!-- 耗时显示格式 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex items-start gap-3 flex-1">
+              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
+                <el-icon size="18"><Clock16Regular /></el-icon>
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">耗时显示格式</span>
+                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">控制会话流和回复结果里的执行耗时精度。</span>
+              </div>
+            </div>
+            <div class="shrink-0 w-32">
+              <el-select v-model="settingsForm.durationDisplayFormat" size="default">
+                <el-option label="整数秒" value="seconds" />
+                <el-option label="精确到毫秒" value="milliseconds" />
+                <el-option label="分秒格式" value="mmss" />
+              </el-select>
+            </div>
+          </div>
+
+          <!-- 思考状态 Loader -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
+            <div class="flex items-start gap-3 flex-1">
+              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
+                <el-icon size="18"><Sparkle16Regular /></el-icon>
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">思考状态 Loader</span>
+                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">选择思考状态文案左侧的加载动效。</span>
+              </div>
+            </div>
+            <div class="shrink-0 w-40">
+              <el-select v-model="settingsForm.thinkingLoaderStyle" size="default">
+                <el-option label="Matrix（默认）" value="matrix" />
+                <el-option label="Music" value="music" />
+                <el-option label="Bird" value="bird" />
+                <el-option label="Fish" value="fish" />
+                <el-option label="ASCII" value="ascii" />
+                <el-option label="Dots" value="dots" />
+              </el-select>
+            </div>
+          </div>
+
+          <!-- 思考状态文案 -->
+          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-start gap-3 flex-1">
+              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
+                <el-icon size="18"><TextBulletListSquare16Regular /></el-icon>
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">思考状态文案</span>
+                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">同时自定义思考期间轮换显示的中文和英文文案。</span>
+              </div>
+            </div>
+            <div class="shrink-0">
+              <el-button size="small" @click="openThinkingTextDialog">编辑文案</el-button>
             </div>
           </div>
         </div>
@@ -231,7 +342,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
@@ -265,7 +376,13 @@ const settingsForm = reactive({
   showPluginsMenu: true,            // 显示插件市场
   showModelsMenu: true,             // 显示模型管理
   showUsageMenu: true,              // 显示用量管理
+  showConnectorsMenu: true,         // 显示连接器
   showSchedulerMenu: true,          // 显示定时任务
+  collapseReplyProcess: true,        // 折叠回复过程
+  durationDisplayFormat: 'seconds',  // 耗时显示格式
+  thinkingLoaderStyle: 'matrix',     // 思考状态 Loader
+  thinkingTextCN: '思考中',          // 思考状态中文文案
+  thinkingTextEN: 'Thinking',        // 思考状态英文文案
 })
 
 // 原始设置备份，用于对比是否有改动
@@ -300,7 +417,13 @@ watch(() => ({
   showPluginsMenu: settingsForm.showPluginsMenu,
   showModelsMenu: settingsForm.showModelsMenu,
   showUsageMenu: settingsForm.showUsageMenu,
-  showSchedulerMenu: settingsForm.showSchedulerMenu
+  showConnectorsMenu: settingsForm.showConnectorsMenu,
+  showSchedulerMenu: settingsForm.showSchedulerMenu,
+  collapseReplyProcess: settingsForm.collapseReplyProcess,
+  durationDisplayFormat: settingsForm.durationDisplayFormat,
+  thinkingLoaderStyle: settingsForm.thinkingLoaderStyle,
+  thinkingTextCN: settingsForm.thinkingTextCN,
+  thinkingTextEN: settingsForm.thinkingTextEN
 }), () => {
   debouncedSave()
 }, { deep: true })
@@ -331,7 +454,13 @@ const loadSettings = async () => {
     settingsForm.showPluginsMenu = menuSettings.showPluginsMenu !== false
     settingsForm.showModelsMenu = menuSettings.showModelsMenu !== false
     settingsForm.showUsageMenu = menuSettings.showUsageMenu !== false
+    settingsForm.showConnectorsMenu = menuSettings.showConnectorsMenu !== false
     settingsForm.showSchedulerMenu = menuSettings.showSchedulerMenu !== false
+    settingsForm.collapseReplyProcess = data.collapseReplyProcess !== false
+    settingsForm.durationDisplayFormat = data.durationDisplayFormat || 'seconds'
+    settingsForm.thinkingLoaderStyle = data.thinkingLoaderStyle || 'matrix'
+    settingsForm.thinkingTextCN = data.thinkingTextCN || '思考中'
+    settingsForm.thinkingTextEN = data.thinkingTextEN || 'Thinking'
     // 备份原始数据
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
   } catch (error: any) {
@@ -369,6 +498,7 @@ const handleSave = async () => {
       showPluginsMenu: settingsForm.showPluginsMenu,
       showModelsMenu: settingsForm.showModelsMenu,
       showUsageMenu: settingsForm.showUsageMenu,
+      showConnectorsMenu: settingsForm.showConnectorsMenu,
       showSchedulerMenu: settingsForm.showSchedulerMenu,
     }
     localStorage.setItem('menuDisplaySettings', JSON.stringify(menuSettings))
@@ -410,6 +540,18 @@ const handleSave = async () => {
     console.error('保存设置失败:', error)
     notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
   }
+}
+
+// 打开思考文案编辑弹窗
+const openThinkingTextDialog = () => {
+  ElMessageBox.prompt('请输入思考状态中文文案（多个用逗号分隔）', '编辑思考状态文案', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputValue: settingsForm.thinkingTextCN,
+  }).then(({ value }) => {
+    settingsForm.thinkingTextCN = value
+    ElMessage.success('思考状态文案已更新')
+  }).catch(() => {})
 }
 
 // 生命周期
