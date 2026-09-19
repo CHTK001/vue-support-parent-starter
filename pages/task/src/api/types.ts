@@ -1,9 +1,9 @@
 /**
- * 浠诲姟绠＄悊妯″潡绫诲瀷瀹氫箟锛園pages/task锛?
+ * 任务管理模块类型定义（@pages/task）
  *
- * 瑕嗙洊涓や釜鍚庣妯″潡锛?
- *   1) 浠诲姟娲惧彂 spring-support-taskdistribution-starter锛?v2/taskdistribution锛?
- *   2) 璋冨害涓績 spring-support-scheduler-starter锛?scheduler/api/v1/job-platform锛?
+ * 覆盖两个后端服务：
+ *   1) 任务派发服务（/v2/taskdistribution）
+ *   2) 调度中心服务（/scheduler/api/v1/job-platform）
  */
 
 /** 缁熶竴杩斿洖缁撴瀯锛堝悗绔?ReturnResult锛?*/

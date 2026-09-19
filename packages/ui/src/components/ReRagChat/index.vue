@@ -98,7 +98,7 @@
 /**
  * ReRagChat —— RAG 问答组件
  *
- * 适配 spring-support-ai-starter /v2/ai/rag/query
+ * 适配后端 RAG 接口 /v2/ai/rag/query
  *   <ReRagChat base-url="/v2/ai/rag" library-id="my-lib" />
  */
 import { http } from "@repo/core";

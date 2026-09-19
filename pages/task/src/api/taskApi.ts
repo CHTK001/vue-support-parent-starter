@@ -2,8 +2,8 @@
  * 任务管理模块 API 封装（@pages/task）
  *
  * 对应两个后端模块：
- *   1) 任务派发 TaskDistributionController（/v2/taskdistribution）
- *   2) 调度中心 SchedulerJobPlatformController（/scheduler/api/v1/job-platform）
+ *   1) 任务派发服务（/v2/taskdistribution）
+ *   2) 调度中心服务（/scheduler/api/v1/job-platform）
  *
  * 使用 http() 链式调用，返回 Promise<ApiResult<T>>。
  */

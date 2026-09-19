@@ -56,7 +56,7 @@ const src = resolve(__dirname, 'src');
 
 export default defineConfig(({ mode }) => {
   // Local gateway backend port (desktop-shell mode). Overridable at build/dev
-  // time via VITE_BACKEND_PORT; defaults to the AI starter gateway port 8787.
+  // time via VITE_BACKEND_PORT; defaults to the local gateway port.
   const backendPort = process.env.VITE_BACKEND_PORT ?? '8787';
   // WebUI dev mode (`vite --mode webdev`, driven by the UI `dev:web` script and
   // the root `dev:webui` one-click). The SPA is served by Vite (with HMR) but the
@@ -79,8 +79,8 @@ export default defineConfig(({ mode }) => {
   const proxy = webdev
     ? {
         '/api': httpProxy,
-        // Spring AI starter 管理端契约（/v2/v1/chat/completions、/v2/ai/bot-binding 等）。
-        // 与 /api 同目标：本地开发即 8787 网关本身；部署态由 nomifun-web 反代。
+        // Spring AI 管理端契约（/v2/v1/chat/completions、/v2/ai/bot-binding 等）。
+        // 与 /api 同目标：本地开发即默认网关端口；部署态由 nomifun-web 反代。
         '/v2': httpProxy,
         '/login': httpProxy,
         '/logout': httpProxy,

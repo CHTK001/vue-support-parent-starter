@@ -113,7 +113,7 @@
 /**
  * ReChat —— AI 对话组件
  *
- * 支持多模型切换（OpenAI / Claude / Gemini / 自定义），与 spring-support-ai-starter 集成。
+ * 支持多模型切换（OpenAI / Claude / Gemini / 自定义），与后端 AI 服务集成。
  * 使用 @microsoft/fetch-event-source 实现流式响应。
  *
  *   <ReChat

@@ -298,7 +298,7 @@
 
     <ReEmpty v-else description="请从顶部选择一台服务器" :image-size="60" />
 
-    <!-- 指标趋势曲线(echarts)：优先 InfluxDB series，未启用时降级 MySQL 历史 -->
+    <!-- 指标趋势曲线(echarts)：优先时序接口，未启用时降级历史接口 -->
     <ReCard v-if="selectedMonitorId" layout="simple" :radius="14" :padding="0" shadow="never">
       <template #header>
         <div class="viz-head">
@@ -488,7 +488,7 @@ const seriesSourceLabel = ref('InfluxDB')
 
 /**
  * 渲染趋势曲线：CPU / 内存 / JVM 堆
- * series 接口(InfluxDB)失败时降级为 MySQL 历史接口数据。
+ * series 接口失败时降级为历史接口数据。
  *
  * @param monitorId 监控目标 ID
  */
@@ -502,7 +502,7 @@ const renderTrendChart = async (monitorId: number) => {
     getMetricSeries('ms_monitor_metric_memory', monitorId, 1, '1m'),
     getMetricSeries('ms_monitor_metric_jvm', monitorId, 1, '1m'),
   ])
-  // InfluxDB 无数据时降级：用 MySQL 历史构造 [[now-12*i, v],...] 序列
+  // 时序接口无数据时降级：用历史接口构造 [[now-12*i, v],...] 序列
   const fallback = (arr: number[]): [number, number][] => {
     const now = Date.now()
     return arr.map((v, i) => [now - (arr.length - i) * 5_000, v] as [number, number])

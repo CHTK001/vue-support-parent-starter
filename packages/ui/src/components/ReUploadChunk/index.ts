@@ -1,7 +1,7 @@
 /**
  * ReUploadChunk —— 分片上传组件
  *
- * 适配 spring-support-filesystem-starter 分片上传接口
+ * 适配后端分片上传接口
  *   <ReUploadChunk v-model="files" base-url="/api/filesystem" />
  */
 import type { App, Plugin } from "vue";

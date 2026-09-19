@@ -2,7 +2,7 @@
  * OpenAI 协议 SSE 客户端
  *
  * 适配 OpenAI /v1/chat/completions 的流式响应格式。
- * 兼容 spring-support-ai-starter 的 OpenAI 协议实现。
+ * 兼容后端 AI 服务的 OpenAI 协议实现。
  *   const client = createOpenAiSseClient('/v1/chat/completions', { onChunk: (chunk) => {...} })
  */
 import { createSseClient } from "./client";

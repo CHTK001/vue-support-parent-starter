@@ -102,7 +102,7 @@
 /**
  * ReUploadChunk —— 分片上传组件
  *
- * 适配 spring-support-filesystem-starter 分片上传接口：
+ * 适配后端分片上传接口：
  *   POST /chunk/create          初始化
  *   POST /chunk/{id}/part       上传分片
  *   POST /chunk/{id}/complete  完成

@@ -11,7 +11,7 @@ const AI_SRC = path.resolve(__dirname, "../../pages/ai/src");
  * - framework: "react" → 启用 @vitejs/plugin-react，入口 /src/main.tsx
  * - plugins: 追加 @vitejs/plugin-vue（@repo/app 统一导出含 .vue 组件，需解析）
  * - alias: 注入 pages/ai 的 @ / @common / @renderer 别名（与 pages/ai/vite.config.ts 对齐）
- * - 后端代理指向 spring-support-ai-starter（默认 8787）
+ * - 后端代理指向 AI 后端服务（端口见 proxy 配置）
  */
 export default createVite({
   appName: "vue-support-ai-starter",
