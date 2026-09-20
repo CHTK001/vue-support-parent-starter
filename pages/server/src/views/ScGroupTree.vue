@@ -21,7 +21,9 @@ const flatGroups = ref<any[]>([]);
 const formVisible = ref(false);
 const currentNode = ref<GroupNode | null>(null);
 const editingId = ref<number | null>(null);
-const form = ref({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
+const form = ref<{ msServerGroupName: string; msServerGroupParentId: number | null; msServerGroupSort: number; msServerGroupRemark: string; msServerGroupColor: string }>({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
+/** 保存中状态，供弹窗「保存」按钮的 loading 使用 */
+const saving = ref(false);
 
 /** 预设分组色板 */
 const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#0ea5e9'];
@@ -95,10 +97,15 @@ async function submitForm() {
     return;
   }
   const payload = { ...form.value, msServerGroupParentId: form.value.msServerGroupParentId ?? 0 };
-  await saveGroup(editingId.value, payload);
-  message.success('已保存');
-  formVisible.value = false;
-  refresh();
+  saving.value = true;
+  try {
+    await saveGroup(editingId.value, payload);
+    message.success('已保存');
+    formVisible.value = false;
+    refresh();
+  } finally {
+    saving.value = false;
+  }
 }
 
 async function removeGroup(node: GroupNode) {

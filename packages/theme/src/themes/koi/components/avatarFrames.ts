@@ -173,7 +173,7 @@ export function findAvatarFrame(frameId: number): AvatarFrame | undefined {
 }
 
 /** 该帧是否有可视内容（透明占位帧「经典」返回 false，即不佩戴） */
-export function hasFrameVisual(frame: AvatarFrame | undefined): boolean {
+export function hasFrameVisual(frame: AvatarFrame | undefined): frame is AvatarFrame {
   if (!frame) return false;
   if (frame.image) return true;
   return Boolean(frame.color) && frame.color !== "transparent";
