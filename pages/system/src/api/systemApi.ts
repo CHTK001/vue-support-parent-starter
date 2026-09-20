@@ -1,16 +1,17 @@
 /**
  * 系统管理模块 API 封装（@pages/system）
  *
- * 覆盖 8 个核心 Controller，调用规范：
+ * 覆盖系统管理 8 个核心接口域，调用规范：
  *   1) 全部走 http()，URL 形如 /v2/{module}/{action}
  *   2) 链式 API：.get(url).query(params) / .post(url).data(body) / .put / .delete
  *   3) 返回 Promise<ApiResult<T>>，由业务代码 .then(r => r.data) 解包
- *   4) 路径与后端 spring-api-support-common-system-starter / common-service-starter 一致
+ *   4) 路径与后端系统管理接口契约保持一致
  */
 import { http } from "@repo/utils";
 import type {
   ApiResult,
   FeedbackIssue,
+  FeedbackStatistic,
   OnlineUser,
   PageResult,
   RoleMenuUpdate,
@@ -24,6 +25,7 @@ import type {
   SysRole,
   SysService,
   SysSetting,
+  SysSettingHistory,
   SysSettingVO,
   SysTenant,
   SysTenantStats,
@@ -1223,7 +1225,7 @@ export function updateUserPreference(preference: string) {
 }
 
 /* ================== 备注 ==================
- * 后端 SysRoleController 未提供 /v2/role/copy 与 /v2/role/users 接口：
+ * 后端角色接口未提供 /v2/role/copy 与 /v2/role/users：
  *   - 角色复制：后端无此接口，前端 RoleManage 保留本地兜底实现；
  *   - 角色下用户分页：后端无此接口，前端 RoleManage 使用 pageForUser 兜底。
  * 因此此处不导出 copyRole / pageForRoleUsers。

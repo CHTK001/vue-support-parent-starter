@@ -3,7 +3,7 @@
  *
  * 为 useSystemCrud 提供类型约束，覆盖列表查询、分页、弹窗表单等常见模式。
  */
-import type { PageQuery } from "./types";
+import type { PageQuery } from "../api/types";
 
 /** 通用弹窗模式 */
 export type DialogMode = "create" | "edit";

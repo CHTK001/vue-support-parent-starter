@@ -1,8 +1,8 @@
 /**
  * 系统管理模块类型定义（@pages/system）
  *
- * 覆盖后端 spring-api-system 的 8 个核心 Controller：
- *   SysUser / SysRole / SysMenu / SysDept / SysDict / SysDictItem / SysOnline / SysSetting
+ * 覆盖后端系统管理接口的 8 类核心实体：
+ *   User / Role / Menu / Dept / Dict / DictItem / Online / Setting
  */
 
 /** 分页返回 */
