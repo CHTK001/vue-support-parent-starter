@@ -17,6 +17,8 @@ import { installKoi } from "@repo/theme/koi/framework";
 import "./styles/tokens.css";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
+// 路由树直引 @pages/filesystem 的视图（不经包 barrel），故样式也显式引：barrel 里的 registerMenuViewModules 对本 app 无用
+import "@pages/filesystem/styles/filesystem-page.css";
 import { installUi } from "@repo/ui";
 import monitorRoutes from "./routes";
 
@@ -53,6 +55,9 @@ const MONITOR_RE_COMPONENTS = [
   "ReEmptyState",
   "ReTab",
   "ReKit",
+  // @pages/filesystem 的文件管理页用到：列表上方的搜索条与分片上传控件
+  "ReSearch",
+  "ReUpload",
 ];
 
 /**

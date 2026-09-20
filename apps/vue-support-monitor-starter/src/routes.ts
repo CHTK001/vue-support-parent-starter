@@ -63,10 +63,28 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
       },
       {
-        path: "/files",
-        name: "FileAssets",
-        component: () => import("./views/FileAssetView.vue"),
-        meta: { title: "文件资产", icon: "Document", showLink: true, rank: 11 },
+        path: "/filesystem/list",
+        name: "FileSystemList",
+        component: () => import("@pages/filesystem/views/FileManage.vue"),
+        meta: { title: "文件管理", icon: "Document", showLink: true, rank: 11, keepAlive: true },
+      },
+      {
+        path: "/filesystem/group",
+        name: "FileSystemGroup",
+        component: () => import("@pages/filesystem/views/GroupManage.vue"),
+        meta: { title: "文件分组", icon: "Files", showLink: true, rank: 12, keepAlive: true },
+      },
+      {
+        path: "/filesystem/setting",
+        name: "FileSystemSetting",
+        component: () => import("@pages/filesystem/views/SettingManage.vue"),
+        meta: { title: "存储配置", icon: "Setting", showLink: true, rank: 13, keepAlive: true },
+      },
+      {
+        path: "/filesystem/filestorage",
+        name: "FileSystemStorage",
+        component: () => import("@pages/filesystem/views/FileStorageManage.vue"),
+        meta: { title: "文件存储服务", icon: "UploadFilled", showLink: true, rank: 14, keepAlive: true },
       },
       {
         path: "/datasource",
