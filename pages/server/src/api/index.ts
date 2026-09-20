@@ -1,5 +1,8 @@
 import { http, unwrapResult } from '@repo/utils';
 
+// 服务管理走后端 `/ms/monitor/server`，与下面的 `/ms/server` 不是一套前缀，故独立成文件后在此并入
+export * from './serviceManage';
+
 const B = '/ms/server';
 
 // ===== 主机 MsServerHost =====

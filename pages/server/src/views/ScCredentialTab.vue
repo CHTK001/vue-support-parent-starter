@@ -278,6 +278,7 @@ async function deleteIdentity(row: IdentityRow): Promise<void> {
   await delIdentity(row.id);
   message.success('已删除');
   refresh();
+}
 
 // ===== 邮箱账号信箱 (MAILBOX 身份, IMAP) =====
 /** 邮件箱对话框可见性 */
@@ -414,8 +415,6 @@ async function viewMessage(email: any): Promise<void> {
   } finally {
     mailboxDetailLoading.value = false;
   }
-}
-
 }
 </script>
 
