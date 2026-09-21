@@ -39,7 +39,13 @@ import {
   type Http,
 } from "@repo/utils";
 import { createAppRouter, setRouter, type RemoteRoutesLoader } from "./router";
-import { setApiHttp } from "./api";
+import {
+  setApiHttp,
+  probeBackend,
+  WEATHER_OVERVIEW_PATH,
+  LOCATION_RESOLVE_PATH,
+  TYPHOON_ACTIVE_PATH,
+} from "./api";
 import { setAppStorage } from "./storage";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
 import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
@@ -171,6 +177,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
   // （Worker 独立线程每秒推送，不受主线程 setInterval 节流影响）
   initGlobalTimer(config.other?.timer?.zones ?? []);
 
+  // ⑪ 顶栏天气/台风：启动期预热后台能力探测（HEAD），组件挂载时直接复用探测结果，
+  // 不必串行等待「探测 → 取数」两次往返
+  warmHeaderCapabilityProbes(config);
+
   return {
     appName,
     crypto,
@@ -193,6 +203,24 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
 /** 反调试热更新：配置变更（setConfig）后调用，按需安装/卸载 */
 export function refreshSecurity(): void {
   refreshAntiDebug();
+}
+
+/**
+ * 预热顶栏天气/台风的后台能力探测（HEAD）。
+ *
+ * 探测结果由 probeBackend 按路径缓存 10 分钟，组件挂载时直接命中；
+ * 这里只提前发起，失败不影响启动（探测内部已吞掉异常并回落三方）。
+ */
+function warmHeaderCapabilityProbes(config: AppConfig): void {
+  const other = config.other;
+  if (other?.toolbar?.weather && other?.weather?.enable !== false) {
+    void probeBackend(WEATHER_OVERVIEW_PATH);
+    void probeBackend(LOCATION_RESOLVE_PATH);
+  }
+  if (other?.toolbar?.typhoon) {
+    // 详情接口与列表同属一个后台控制器，探测列表即可
+    void probeBackend(TYPHOON_ACTIVE_PATH);
+  }
 }
 
 /**

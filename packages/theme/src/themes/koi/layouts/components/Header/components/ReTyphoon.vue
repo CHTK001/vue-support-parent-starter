@@ -119,33 +119,19 @@ const ReDialog = defineAsyncComponent(() => import("@repo/ui/re-dialog").then((m
 const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 import ReMap from "@repo/re-map";
 import { MapType, MapTile, ShapeType, genAsymRing4, scaleRing } from "@repo/re-map";
-
-const API_BASE = "https://typhoon.slt.zj.gov.cn/Api";
-
-interface TyphoonItem {
-  id: string;
-  name?: string;
-  strong?: string;
-}
-
-interface TrackPoint {
-  time: string;
-  lng: number;
-  lat: number;
-  strong?: string;
-  speed?: number;
-  pressure?: number | string;
-  /** 不对称风圈半径（公里），四方位：[东北, 东南, 西南, 西北]
-   *  浙水利 API 常见字段：radius7 / radius10（管道分隔四方位字符串）、r7NE/r7SE/r7SW/r7NW 等 */
-  r7?: [number, number, number, number];
-  r10?: [number, number, number, number];
-  [key: string]: any;
-}
+import { log } from "@repo/utils";
+import {
+  getActiveTyphoonList,
+  getTyphoonDetail,
+  type TrackPoint,
+  type TyphoonDetail,
+  type TyphoonItem,
+} from "@repo/core";
 
 const activeList = ref<TyphoonItem[]>([]);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
-const detailInfo = ref<TyphoonItem & { path?: TrackPoint[]; forecast?: { points: TrackPoint[] }[] }>({ id: "" });
+const detailInfo = ref<TyphoonDetail>({ id: "", path: [], forecast: [] });
 const selectedId = ref<string>("");
 const reMapRef = ref<any>(null);
 const mapReady = ref(false);
@@ -166,133 +152,30 @@ const mapCenter = computed((): [number, number] => {
   ];
 });
 
-async function fetchActiveList() {
-  try {
-    const res = await fetch(`${API_BASE}/TyhoonActivity`, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      activeList.value = data.map((t: any) => ({
-        id: t.tfid ?? t.id ?? "",
-        name: t.name ?? t.typhoonName ?? "",
-        strong: t.strong ?? t.level ?? "",
-      })).filter((t: TyphoonItem) => t.id);
-    }
-  } catch { /* ignore */ }
+/** 契约时间（yyyy-MM-ddTHH:mm）→ 气泡展示串 */
+function showTime(value?: string) {
+  return value ? value.replace("T", " ") : "-";
 }
 
-/**
- * 从浙水利台风点数据中提取某级风圈的四方位半径数组
- *
- * 浙水利报文实测只有 4 方位（东北/东南/西南/西北），不再硬塞成 8 方位
- * （之前会把"东=NE"塞进 polygon，导致形状相对真实风圈整体偏转 45°）。
- * 这里统一返回 4 方位 [NE, SE, SW, NW]，交给 genAsymRing4 在 90° 扇区内做平滑插值。
- *
- * 兼容多种字段形态：
- *  - `radius7: "250|150|250|150"`（管道分隔 4 段 = 东北|东南|西南|西北）
- *  - `radius7: [NE,SE,SW,NW]`（数组）
- *  - `radius7: 80`（单一数值，四方向同半径）
- *  - `r7NE / r7SE / r7SW / r7NW`（四方向分开字段）
- *
- * @param p      原始点对象
- * @param level  风圈等级："7" 或 "10"
- * @returns 四方位半径数组 [NE, SE, SW, NW]；全部缺失返回 undefined
- */
-function pickRadii(
-  p: Record<string, any>,
-  level: "7" | "10",
-): [number, number, number, number] | undefined {
-  // 兼容 radius7 / r7 两种字段名（实测浙水利为 radius7/radius10）
-  const raw = p?.[`radius${level}`] ?? p?.[`r${level}`];
-
-  // 数组形态：[NE, SE, SW, NW]
-  if (Array.isArray(raw)) {
-    if (!raw.length) return undefined;
-    const [ne, se, sw, nw] = raw.map((v) => Number(v) || 0);
-    if (!(ne || se || sw || nw)) return undefined;
-    return [ne, se, sw, nw];
-  }
-  // 管道分隔字符串："NE|SE|SW|NW"
-  if (typeof raw === "string" && raw.includes("|")) {
-    const parts = raw.split("|").map((v) => Number(v.trim()));
-    const ne = parts[0] ?? 0;
-    const se = parts[1] ?? 0;
-    const sw = parts[2] ?? 0;
-    const nw = parts[3] ?? 0;
-    if (!(ne || se || sw || nw)) return undefined;
-    return [ne, se, sw, nw];
-  }
-  // 单一数值或数字字符串：四方向同半径
-  if (typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")) {
-    const v = Number(raw);
-    if (!Number.isFinite(v) || v <= 0) return undefined;
-    return [v, v, v, v];
-  }
-  // 四方向分开字段：r7NE/r7SE/r7SW/r7NW（部分 API 也叫 radius7NE 等）
-  const ne = Number(p?.[`r${level}NE`] ?? p?.[`radius${level}NE`] ?? 0);
-  const se = Number(p?.[`r${level}SE`] ?? p?.[`radius${level}SE`] ?? 0);
-  const sw = Number(p?.[`r${level}SW`] ?? p?.[`radius${level}SW`] ?? 0);
-  const nw = Number(p?.[`r${level}NW`] ?? p?.[`radius${level}NW`] ?? 0);
-  if (!(ne || se || sw || nw)) return undefined;
-  return [ne, se, sw, nw];
+async function fetchActiveList() {
+  activeList.value = await getActiveTyphoonList();
 }
 
 /**
  * 拉取单个台风的路径与预报，写入 detailInfo
+ *
+ * 后台优先、三方兜底的链路选择与风圈字段归一化都在 @repo/core 完成。
  */
 async function fetchTyphoonDetail(id: string) {
   detailLoading.value = true;
   try {
-    const res = await fetch(`${API_BASE}/TyphoonInfo/${id}`, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    const path = Array.isArray(data.points)
-        ? data.points.map((p: any) => ({
-            time: p.time ?? "",
-            lng: Number(p.lng ?? p.longitude ?? 0),
-            lat: Number(p.lat ?? p.latitude ?? 0),
-            strong: p.strong ?? "",
-            speed: p.speed,
-            pressure: p.pressure,
-            r7: pickRadii(p, "7"),
-            r10: pickRadii(p, "10"),
-          }))
-        : [];
-      const forecast = Array.isArray(data.points) && data.points.length > 0
-        ? (() => {
-            const sources = Array.isArray(data.points[data.points.length - 1].forecast)
-              ? data.points[data.points.length - 1].forecast
-              : [];
-            const src = sources.find((f: any) => String(f.tm ?? "").includes("中国")) ?? sources[0];
-            return src && Array.isArray(src.forecastpoints)
-              ? [{ points: src.forecastpoints.map((fp: any) => ({
-                  time: fp.time ?? "",
-                  lng: Number(fp.lng ?? 0),
-                  lat: Number(fp.lat ?? 0),
-                  strong: fp.strong ?? "",
-                  speed: fp.speed,
-                  pressure: fp.pressure,
-                })) }]
-              : [];
-          })()
-        : [];
-      detailInfo.value = {
-        id: data.tfid ?? data.id ?? id,
-        name: data.name ?? data.typhoonName ?? "",
-        strong: data.points?.[0]?.strong ?? "",
-        path,
-        forecast,
-      };
-  } catch { /* ignore */ }
-  detailLoading.value = false;
+    detailInfo.value = await getTyphoonDetail(id);
+  } catch (e) {
+    log.warn("ReTyphoon", `台风 ${id} 详情获取失败`, e);
+    detailInfo.value = { id, path: [], forecast: [] };
+  } finally {
+    detailLoading.value = false;
+  }
 }
 
 /**
@@ -432,7 +315,7 @@ function drawTyphoonPath() {
         title: p.strong || "历史点",
         popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
           <b>历史位置</b><br>
-          时间：${p.time}<br>
+          时间：${showTime(p.time)}<br>
           强度：${p.strong || "-"}<br>
           风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
@@ -453,7 +336,7 @@ function drawTyphoonPath() {
         title: p.strong || "预测点",
         popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
           <b>预测位置</b><br>
-          时间：${p.time}<br>
+          时间：${showTime(p.time)}<br>
           强度：${p.strong || "-"}<br>
           风速：${p.speed != null ? p.speed + " km/h" : "-"}<br>
           气压：${p.pressure != null ? p.pressure + " hPa" : "-"}
@@ -478,7 +361,7 @@ function drawTyphoonPath() {
       title: "当前位置",
       popupContent: `<div style="min-width:140px;font-size:12px;line-height:1.8">
         <b>台风当前位置</b><br>
-        时间：${current.time}<br>
+        时间：${showTime(current.time)}<br>
         强度：${current.strong || "-"}<br>
         风速：${current.speed != null ? current.speed + " km/h" : "-"}<br>
         气压：${current.pressure != null ? current.pressure + " hPa" : "-"}
