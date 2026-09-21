@@ -1,0 +1,77 @@
+# ===========================================
+# 应用配置（vue-support-collect-starter）
+# 采集调度一体化平台：可视化流程编排 / 定时调度 / 任务监控 / 结果落库
+#
+# 后端：spring-api-support-collect-starter（18190，context-path /collect/api）
+# 鉴权：由采集模块自身的会话接口 /collect-console/auth/** 提供（Cookie 会话），
+#       因此关闭框架 openAuth，登录用本应用自带的全屏浮层 AuthGate。
+# dev 走 vite 代理：/collect/api -> http://127.0.0.1:18190（见 vite.config.ts）
+# ===========================================
+
+# 远程配置中心（/v2/setting/default 属 system 服务，采集后端未实现）关闭拉取
+configConfig:
+  enable: false
+
+# 系统信息
+appConfig:
+  title: 采集调度一体化平台
+  openAuth: false
+
+# 路由：静态路由（路由树即菜单树，由 .routes() 注入）
+# homePath 指向本应用的总览页；它已在菜单树里，框架就不再注入「主控台/工作台」分组
+routeConfig:
+  mode: static
+  homePath: /collect/dashboard
+
+# API 基础路径：采集模块接口统一挂在 /collect/api 下
+httpConfig:
+  baseUrl: "/collect/api"
+  moduleBaseUrl:
+    collect: "/collect/api"
+  # 框架层不再托管登录态，鉴权失败由业务侧自行处理
+  authFailAction: confirm
+
+# 登录页配置（框架登录页不使用，仅保留品牌信息）
+loginConfig:
+  captcha: false
+  otp: false
+  slider: false
+  brandName: 采集调度一体化平台
+  title: 采集调度一体化平台
+  description: 可视化流程编排 · 定时调度 · 结果落库
+  beiAnHao: ""
+
+# 其他配置
+other:
+  themeId: "koi"
+  toolbar:
+    searchMenu: false
+    refresh: true
+    dark: true
+    language: false
+    fullScreen: true
+    themeSetting: true
+    user: true
+    breadcrumb: true
+    breadcrumbDropdown: true
+    breadcrumbIcon: false
+    tabIcon: false
+    logo: true
+    message: false
+    # 平台公告接口属 system 服务，采集后端未实现（403 会被判为会话失效并跳登录）
+    announcement: false
+    weather: false
+    # 台风组件走外部实时台风数据，采集控制台用不到；且无数据时 popover reference 为空会触发 ElOnlyChild 告警
+    typhoon: false
+    collapse: false
+  weather:
+    enable: false
+
+# 布局配置
+layoutConfig:
+  enable: true
+  source: local
+
+# 菜单配置
+menuConfig:
+  collapseSingleChild: false

@@ -58,6 +58,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReGraphCenter: () => import("./components/ReGraphCenter"),
   ReGraphFixed: () => import("./components/ReGraphFixed"),
   ReGraphRelation: () => import("./components/ReGraphRelation"),
+  ReFlowGraph: () => import("./components/ReFlowGraph"),
   ReEcharts: () => import("./components/ReEcharts"),
   ReCropper: () => import("./components/ReCropper"),
   ReCode: () => import("./components/ReCode"),

@@ -103,6 +103,10 @@
       "types": "./src/components/ReTrend/index.ts",
       "default": "./src/components/ReTrend/index.ts"
     },
+    "./re-flow-graph": {
+      "types": "./src/components/ReFlowGraph/index.ts",
+      "default": "./src/components/ReFlowGraph/index.ts"
+    },
     "./re-graph": {
       "types": "./src/components/ReGraph/index.ts",
       "default": "./src/components/ReGraph/index.ts"
