@@ -306,8 +306,8 @@ export interface ReTableSortChangePayload {
 
 /** 行拖拽排序事件载荷 */
 export interface ReTableRowSortPayload {
-  /** 拖拽行数据 */
-  row: Record<string, unknown>;
+  /** 拖拽行数据；工具栏「确认排序」整体提交时为 null */
+  row: Record<string, unknown> | null;
   /** 原始索引 */
   fromIndex: number;
   /** 目标索引 */
