@@ -41,11 +41,17 @@ otherConfig:
   toolbar:
     # 用户信息下拉
     user: true
+    # 顶栏天气：后台 /v2/weather/overview 优先，未实现时回落三方数据源
+    weather: true
+    # 顶栏台风：后台 /v2/typhoon/active 优先，未实现时回落三方数据源
+    typhoon: true
     # 用户下拉子项显隐（个人中心 / 锁屏 / 设置，默认全开）
     userMenu:
       personalCenter: true
       lock: true
       settings: true
+  weather:
+    enable: true
 
 # 布局配置
 layoutConfig:

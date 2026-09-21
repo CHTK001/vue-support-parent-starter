@@ -37,6 +37,12 @@ export default createVite({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/ip-api/, ""),
       },
+      // 台风：浙江省水利厅台风网开放接口（后台未实现 /v2/typhoon/* 时的兜底数据源）
+      "/typhoon-api": {
+        target: "https://typhoon.slt.zj.gov.cn",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/typhoon-api/, "/Api"),
+      },
     },
   },
 });
