@@ -8,22 +8,23 @@
  */
 import { computed } from "vue";
 import X6Graph from "../../internals/X6Graph.vue";
-import type {
-  ReGraphConfig,
-  ReGraphData,
-  ReGraphEdge,
-  ReGraphExpandFetcher,
+import {
   ReGraphMode,
-  ReGraphNode,
-  ReGraphNodeMenuAction,
-  ReGraphToolbarOptions,
+  type ReGraphConfig,
+  type ReGraphData,
+  type ReGraphEdge,
+  type ReGraphExpandFetcher,
+  type ReGraphModeInput,
+  type ReGraphNode,
+  type ReGraphNodeMenuAction,
+  type ReGraphToolbarOptions,
 } from "../../internals/x6";
 
 defineOptions({ name: "ReGraph", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    mode?: ReGraphMode;
+    mode?: ReGraphModeInput;
     data?: ReGraphData;
     nodes?: ReGraphNode[];
     /** 连线列表（兼容旧 API，等价于 edges） */
@@ -47,7 +48,7 @@ const props = withDefaults(
     config?: ReGraphConfig;
   }>(),
   {
-    mode: "force",
+    mode: ReGraphMode.FORCE,
     data: undefined,
     nodes: undefined,
     lines: undefined,

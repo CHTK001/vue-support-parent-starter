@@ -35,11 +35,13 @@ import {
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_NODE_TYPES,
+  ReGraphMode,
+  normalizeReGraphMode,
   type ReGraphConfig,
   type ReGraphData,
   type ReGraphEdge,
   type ReGraphExpandFetcher,
-  type ReGraphMode,
+  type ReGraphModeInput,
   type ReGraphNode,
   type ReGraphNodeMenuAction,
   type ReGraphNodeTypeDef,
@@ -56,7 +58,7 @@ import {
 const props = withDefaults(
   defineProps<{
     /** 布局模式 */
-    mode?: ReGraphMode;
+    mode?: ReGraphModeInput;
     /** 完整数据 */
     data?: ReGraphData;
     /** 节点列表 */
@@ -95,7 +97,7 @@ const props = withDefaults(
     debug?: boolean;
   }>(),
   {
-    mode: "force",
+    mode: ReGraphMode.FORCE,
     data: undefined,
     nodes: undefined,
     edges: undefined,
@@ -155,7 +157,7 @@ const showPalette = computed(() => props.config?.palette ?? ((props.config?.edit
 const resolved = computed(() => {
   const cfg = props.config ?? {};
   return {
-    mode: cfg.mode ?? props.mode,
+    mode: normalizeReGraphMode(cfg.mode ?? props.mode),
     editable: cfg.editable ?? props.editable,
     palette: cfg.palette ?? props.palette,
     showToolbar: cfg.showToolbar ?? props.showToolbar,
@@ -361,17 +363,17 @@ async function handleMenuAction(action: ReGraphNodeMenuAction) {
   engine.value.handleMenuAction(action, node);
 }
 async function expandNode(node: ReGraphNode) {
-  if (!props.fetchExpand || !engine.value) {
-    if (props.fetchExpand) {
-      ElMessage.info("未配置 fetchExpand，无法扩线");
-    }
+  const fetchExpand = props.fetchExpand;
+  if (!fetchExpand) {
+    ElMessage.info("未配置 fetchExpand，无法扩线");
     return;
   }
+  if (!engine.value) return;
   if (loadingMap[node.id]) return;
   loadingMap[node.id] = true;
   stat.loading += 1;
   try {
-    const payload = await engine.value.expand(node.id, props.fetchExpand);
+    const payload = await engine.value.expand(node.id, fetchExpand);
     refreshStat();
     emit("expand", node, payload);
     ElMessage.success(`已扩展 ${payload.nodes.length} 个节点`);

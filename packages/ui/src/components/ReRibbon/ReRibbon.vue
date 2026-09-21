@@ -84,7 +84,6 @@ const props = withDefaults(
 const ribbonStyle = computed<CSSProperties>(() => {
   const s: CSSProperties = {};
   if (props.color) {
-    s.setProperty?.("--ribbon-bg", props.color);
     (s as Record<string, string>)["--ribbon-bg"] = props.color;
   }
   if (props.textColor) {
