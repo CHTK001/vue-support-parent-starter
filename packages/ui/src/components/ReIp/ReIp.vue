@@ -250,7 +250,7 @@ defineExpose({
         class="re-ip__segment"
         @update:model-value="(v) => onSegmentInput(index, v as string | number)"
         @keydown="(e) => onSegmentKeydown(index, e as KeyboardEvent)"
-        @paste="(e) => onSegmentPaste(index, e as ClipboardEvent)"
+        @paste="(e: ClipboardEvent) => onSegmentPaste(index, e)"
       />
       <span v-if="index < segmentCount - 1" class="re-ip__separator">{{ separator }}</span>
     </template>

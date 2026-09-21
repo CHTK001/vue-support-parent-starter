@@ -138,7 +138,7 @@
             <template #default="{ row }">
               <div class="re-rag-manager__doc-name">
                 <el-icon class="re-rag-manager__doc-icon">
-                  <component :is="getDocumentIcon(row)" />
+                  <component :is="getDocumentIcon(row as RagDocument)" />
                 </el-icon>
                 <span :title="row.name">{{ row.name }}</span>
               </div>
@@ -180,7 +180,7 @@
                 link
                 type="primary"
                 size="small"
-                @click="handlePreview(row)"
+                @click="handlePreview(row as RagDocument)"
               >
                 预览
               </el-button>
@@ -188,7 +188,7 @@
                 link
                 type="danger"
                 size="small"
-                @click="handleDelete(row)"
+                @click="handleDelete(row as RagDocument)"
               >
                 删除
               </el-button>
@@ -242,6 +242,7 @@
  */
 import { http } from "@repo/core";
 import { ref, computed, onMounted } from "vue";
+import type { Component } from "vue";
 import {
   ElTabs,
   ElTabPane,
@@ -552,7 +553,7 @@ const statusTag = (status: string): "success" | "warning" | "danger" | "info" =>
   }
 };
 
-const getDocumentIcon = (doc: RagDocument): string => {
+const getDocumentIcon = (doc: RagDocument): Component => {
   if (doc.source === "URL") return LinkIcon;
   return Files;
 };

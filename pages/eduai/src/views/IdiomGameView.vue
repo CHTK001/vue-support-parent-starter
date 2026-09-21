@@ -73,7 +73,7 @@
             <div class="text-xs text-gray-500">得分</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-orange-500">{{ currentIndex + 1 }}/{{ gameData.items.length }}</div>
+            <div class="text-2xl font-bold text-orange-500">{{ currentIndex + 1 }}/{{ gameData?.items.length ?? 0 }}</div>
             <div class="text-xs text-gray-500">进度</div>
           </div>
           <el-button @click="resetGame">重新开始</el-button>

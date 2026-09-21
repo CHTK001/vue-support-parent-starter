@@ -36,6 +36,7 @@ import {
   ElIcon,
 } from "element-plus";
 import { ArrowDown, ArrowUp, Setting, Refresh, Search } from "@element-plus/icons-vue";
+import type { ModelValueType, SelectProps } from "element-plus";
 import type { ReFilterItem } from "./types";
 
 defineOptions({ name: "ReFilter", inheritAttrs: true });
@@ -85,6 +86,16 @@ const emit = defineEmits<{
 
 /** 表单数据 */
 const formData = ref<Record<string, unknown>>({});
+
+/** 动态表单值按 ElSelect 的 model-value 类型收窄 */
+function selectModel(prop: string): SelectProps["modelValue"] {
+  return formData.value[prop] as SelectProps["modelValue"];
+}
+
+/** 动态表单值按 ElDatePicker 的 model-value 类型收窄 */
+function dateModel(prop: string): ModelValueType | undefined {
+  return formData.value[prop] as ModelValueType | undefined;
+}
 
 /** 展开状态 */
 const isExpanded = ref(props.expanded);
@@ -235,7 +246,7 @@ defineExpose({
               <!-- select 类型 -->
               <ElSelect
                 v-else-if="item.type === 'select'"
-                :model-value="formData[item.prop]"
+                :model-value="selectModel(item.prop)"
                 :placeholder="item.placeholder || `请选择${item.label}`"
                 :clearable="item.clearable !== false"
                 :multiple="item.multiple"
@@ -255,7 +266,7 @@ defineExpose({
               <!-- date 类型 -->
               <ElDatePicker
                 v-else-if="item.type === 'date'"
-                :model-value="formData[item.prop]"
+                :model-value="dateModel(item.prop)"
                 :placeholder="item.placeholder || `请选择${item.label}`"
                 :clearable="item.clearable !== false"
                 :disabled="item.disabled"
@@ -267,7 +278,7 @@ defineExpose({
               <!-- daterange 类型 -->
               <ElDatePicker
                 v-else-if="item.type === 'daterange'"
-                :model-value="formData[item.prop]"
+                :model-value="dateModel(item.prop)"
                 :start-placeholder="'开始日期'"
                 :end-placeholder="'结束日期'"
                 :clearable="item.clearable !== false"
@@ -363,7 +374,7 @@ defineExpose({
           />
           <ElSelect
             v-else-if="item.type === 'select'"
-            :model-value="formData[item.prop]"
+            :model-value="selectModel(item.prop)"
             :placeholder="item.placeholder || `请选择${item.label}`"
             :clearable="item.clearable !== false"
             :multiple="item.multiple"
@@ -379,7 +390,7 @@ defineExpose({
           </ElSelect>
           <ElDatePicker
             v-else-if="item.type === 'date'"
-            :model-value="formData[item.prop]"
+            :model-value="dateModel(item.prop)"
             :placeholder="item.placeholder || `请选择${item.label}`"
             :clearable="item.clearable !== false"
             :disabled="item.disabled"
@@ -390,7 +401,7 @@ defineExpose({
           />
           <ElDatePicker
             v-else-if="item.type === 'daterange'"
-            :model-value="formData[item.prop]"
+            :model-value="dateModel(item.prop)"
             :start-placeholder="'开始日期'"
             :end-placeholder="'结束日期'"
             :clearable="item.clearable !== false"

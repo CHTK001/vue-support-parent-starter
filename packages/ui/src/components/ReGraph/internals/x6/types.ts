@@ -94,6 +94,18 @@ export enum ReGraphMode {
   RELATION = 'relation',
 }
 
+/** 布局模式的入参类型：枚举本身，或等价的字面量取值 */
+export type ReGraphModeInput = ReGraphMode | `${ReGraphMode}`;
+
+const GRAPH_MODE_VALUES = Object.values(ReGraphMode) as string[];
+
+/** 把字面量 / 远端配置归一化为 ReGraphMode，未知值回落 FORCE */
+export function normalizeReGraphMode(value: ReGraphModeInput | string | undefined): ReGraphMode {
+  return GRAPH_MODE_VALUES.includes(value ?? '')
+    ? (value as ReGraphMode)
+    : ReGraphMode.FORCE;
+}
+
 /** 工具栏功能开关 */
 export interface ReGraphToolbarOptions {
   search?: boolean;
