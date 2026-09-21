@@ -9,10 +9,7 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "app.yaml",
-    "../../packages/core/src/**/*.d.ts"
-  ],
-  "exclude": [
-    "../../packages/ui",
-    "../../packages/theme"
+    "../../packages/core/src/**/*.d.ts",
+    "../../packages/ui/src/env.d.ts"
   ]
 }
