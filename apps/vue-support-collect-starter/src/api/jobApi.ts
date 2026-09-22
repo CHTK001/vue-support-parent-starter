@@ -50,8 +50,8 @@ export const startJob = (jobNo: string) => post<boolean>(`${API}/job/no/${encode
 export const stopJob = (jobNo: string) => post<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}/stop`);
 
 /**
- * 立即触发：后端只把下次触发时刻改写成当前时间，因此作业必须处于启用状态才会被派发，
- * 停用的作业点了不会有任何反应——页面据此禁用该按钮。
+ * 立即派发一次：后端经 JobOperator 的命令通道投递，不改变启停状态也不打乱后续 cron 序列。
+ * 页面对停用的作业禁用该按钮——停用的作业不该被点一下就跑。
  */
 export const triggerJob = (jobNo: string, param?: string) =>
   post<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}/trigger`, undefined, { param });
@@ -72,6 +72,6 @@ export async function pageJobLogs(query: SysJobLogQuery): Promise<CollectPage<Sy
   };
 }
 
-/** 清理过期执行日志，返回后端的中文结果文案 */
+/** 清理执行日志（含日志文件），retentionDays=0 表示清空全部；返回后端的中文结果文案 */
 export const cleanupJobLogs = (retentionDays: number) =>
   post<string>(`${API}/job-log/cleanup`, undefined, { retentionDays });
