@@ -23,7 +23,7 @@ import type { ReOption } from "@repo/ui/re-select";
 import type { RePageResult, ReTableColumn, ReTableLoadParams } from "@repo/ui/re-table";
 import { cleanupJobLogs, pageJobs, pageJobLogs } from "../api/jobApi";
 import type { SysJobLog } from "../types/job";
-import { errText, useCollectGated } from "../composables/useCollectView";
+import { confirmAction, errText, useCollectGated } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 
 defineOptions({ name: "CollectJobLog" });
@@ -149,9 +149,11 @@ function showDetail(input: Record<string, unknown>): void {
 }
 
 async function clean(): Promise<void> {
-  const days = Number(retentionDays.value) || 0;
-  if (days <= 0) {
-    msgError("保留天数必须大于 0");
+  const days = Math.max(Number(retentionDays.value) || 0, 0);
+  const message = days === 0
+    ? "确认清空全部作业执行日志？该操作不可恢复。"
+    : `确认删除 ${days} 天前的作业执行日志及其日志文件？`;
+  if (!(await confirmAction(message, "清理作业日志"))) {
     return;
   }
   try {
@@ -228,9 +230,9 @@ onUnmounted(() => {
       <span class="collect-hint">自动刷新</span>
       <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto(autoRefresh === true)"/>
       <span class="collect-hint">保留</span>
-      <ReInputNumber v-model="retentionDays" size="small" :min="1" :max="3650" controls-position="right" style="width: 110px"/>
-      <span class="collect-hint">天</span>
-      <ReButton size="small" icon="Delete" @click="clean">清理过期日志</ReButton>
+      <ReInputNumber v-model="retentionDays" size="small" :min="0" :max="3650" controls-position="right" style="width: 110px"/>
+      <span class="collect-hint">{{ retentionDays === 0 ? "天(0=清空全部)" : "天" }}</span>
+      <ReButton size="small" icon="Delete" @click="clean">清理日志</ReButton>
     </div>
 
     <ReTable
