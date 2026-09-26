@@ -32,6 +32,22 @@ const instance = await createContextApp({
   title: "采集调度一体化平台",
   mode: "router",
   routerMode: "hash",
+  /**
+   * 资源基础路径，必须显式传。
+   *
+   * core 的 createApp 里是 `options.baseUrl ?? ""`，缺省空串会让运行时配置请求打到
+   * 站点根路径 `/apps/{appName}/app.yaml`。开发环境看不出问题：vite 插件正好把
+   * app.yaml 托管在根路径上，所以空 baseUrl 也能取到配置。
+   *
+   * 一旦部署到带 context-path 的子路径（例如后端托管在 /collect/api/static/），
+   * 根路径的 /apps/** 会直接 404，配置加载失败后应用不会抛异常、只是静默不挂载，
+   * 表现为一片空白加一个转圈，非常难查。
+   *
+   * 取值用构建基路径去掉末尾斜杠：
+   *   dev（base=/）              -> ""                 行为与原先完全一致
+   *   生产（base=/collect/api/static/）-> "/collect/api/static"
+   */
+  baseUrl: import.meta.env.BASE_URL.replace(/\/+$/, ""),
   install: installCollect,
 })
   .routes(collectRoutes as never)
