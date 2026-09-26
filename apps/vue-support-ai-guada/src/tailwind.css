@@ -1,2 +1,9 @@
 @import "tailwindcss" source("../src");
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* 把 Tailwind 的 primary 颜色映射到 Element Plus 运行时主色变量，
+   这样 bg-primary / text-primary / border-primary 及 /透明度 变体都可用，
+   且跟随 Element 主题（含自定义主题色）动态变化。 */
+@theme {
+  --color-primary: var(--el-color-primary);
+}

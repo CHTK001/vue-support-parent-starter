@@ -13,7 +13,7 @@
         <el-icon :size="28"><Lock /></el-icon>
       </div>
       <div class="otp-dialog-desc">
-        {{ $t("menu.login.otpTip") }}
+        {{ $t("menu.login.totpTip") }}
       </div>
 
       <div class="otp-dialog-cells-wrap">

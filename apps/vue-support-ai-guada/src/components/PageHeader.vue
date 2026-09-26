@@ -18,6 +18,8 @@
 
     <!-- 右侧：操作按钮组 -->
     <div class="flex items-center justify-end min-w-10 gap-2 no-drag mr-3">
+      <!-- 顶栏环境信息（天气 / 活跃台风，开关关闭时组件内不渲染） -->
+      <TopEnvironment />
       <slot name="actions" />
     </div>
 
@@ -32,6 +34,7 @@ import { useI18n } from 'vue-i18n'
 import LeftBarIcon from './icons/LeftBarIcon.vue'
 import WindowControls from '@/components/WindowControls.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
+import TopEnvironment from '@/components/TopEnvironment.vue'
 
 const { t } = useI18n()
 

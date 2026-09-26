@@ -5,6 +5,7 @@
     :effect="effect"
     :round="round"
     :closable="closable"
+    :disable-transitions="true"
     @close="$emit('close', $event)"
     class="re-tag"
     :class="`re-tag--${type}`"

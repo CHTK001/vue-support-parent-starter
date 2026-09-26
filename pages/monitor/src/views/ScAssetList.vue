@@ -339,7 +339,8 @@ function onServerHostChange(hostId: number | null) {
 }
 
 const handleSave = async () => {
-  try { await saveMonitor(editId.value || 0, form.value); showDialog.value = false; await fetchList() }
+  // editId 为 null 表示新增：必须传 null，不能 `|| 0`（0 会被判定成"更新 0 号"而走 PUT）
+  try { await saveMonitor(editId.value, form.value); showDialog.value = false; await fetchList() }
   catch (e: any) { message.error(e.message || '保存失败') }
 }
 
@@ -361,13 +362,7 @@ onMounted(fetchList)
   gap: 14px;
   margin-bottom: 20px;
 }
-.summary-row :deep(.re-stat-card) {
-  transition: box-shadow 200ms ease, transform 200ms ease, opacity 200ms ease;
-}
-.summary-row :deep(.re-stat-card:hover) {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
+/* 统计卡视觉与悬停由 ReStatCard 的 re-surface 基线提供，此处不再覆写 */
 .stat-bar {
   height: 3px;
   width: 32px;

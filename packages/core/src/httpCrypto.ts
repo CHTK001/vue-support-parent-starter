@@ -142,6 +142,26 @@ function isSilentError(data: ApiResponseBody): boolean {
   return skip.includes(data.code ?? "");
 }
 
+/** 相同错误文案的合并窗口（毫秒） */
+const RECENT_ERROR_MS = 1500;
+const recentErrorToast = new Map<string, number>();
+
+/**
+ * 认领一次错误提示：同一文案在窗口期内只允许第一次通过
+ *
+ * 一次页面刷新往往并发多个请求，同一后端故障会返回完全相同的 msg，
+ * 不去重就会叠出 N 条一样的红条。调用方拿到 false 时应完全静默（连带跳过抑制标记）。
+ */
+function claimErrorToast(msg: string): boolean {
+  const now = Date.now();
+  for (const [key, at] of recentErrorToast) {
+    if (now - at > RECENT_ERROR_MS) recentErrorToast.delete(key);
+  }
+  if (recentErrorToast.has(msg)) return false;
+  recentErrorToast.set(msg, now);
+  return true;
+}
+
 /** 统一响应校验：失败时弹提示 + reject，成功时透传 */
 function checkApiResponse(
   response: AxiosResponse<unknown>,
@@ -153,7 +173,7 @@ function checkApiResponse(
     const toastEnable = cfg.http?.toast?.enable ?? true;
     if (toastEnable && !noToast && !isSilentError(data)) {
       const msg = data.msg || data.message || i18n.global.t("msg.requestFailed");
-      msgError(msg);
+      if (claimErrorToast(msg)) msgError(msg);
     }
     return Promise.reject({
       code: data.code,
@@ -239,6 +259,12 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       }
     }
 
+    // 设备指纹：独立于签名开关，所有请求都注入稳定指纹，供登录日志/系统日志关联浏览器
+    const fingerprint = generateFingerprint();
+    if (!config.headers.has(SIGN_FINGERPRINT_HEADER)) {
+      config.headers.set(SIGN_FINGERPRINT_HEADER, fingerprint);
+    }
+
     // 重试请求：跳过重新签名/加密，直接复用首次生成的密文与签名头
     const isRetry = ((config as InternalAxiosRequestConfig & { __retryCount?: number }).__retryCount ?? 0) > 0;
 
@@ -246,12 +272,10 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     if (!isRetry && options.sign && options.signSecret && config.method !== "get") {
       const nonce = crypto.generateNonce();
       const timestamp = String(Date.now());
-      const fingerprint = generateFingerprint();
       const sorted = sortParams(collectParams(config));
       const sign = crypto.signRequest(sorted, nonce, fingerprint, timestamp, options.signSecret);
       config.headers.set(SIGN_NONCE_HEADER, nonce);
       config.headers.set(SIGN_TIMESTAMP_HEADER, timestamp);
-      config.headers.set(SIGN_FINGERPRINT_HEADER, fingerprint);
       config.headers.set(SIGN_HEADER, sign);
     }
 
@@ -347,8 +371,10 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
           return "";
         })();
         if (msg) {
-          setSuppressNextMsg(true);
-          msgError(msg);
+          if (claimErrorToast(msg)) {
+            setSuppressNextMsg(true);
+            msgError(msg);
+          }
           if (error) {
             error.__toasted = true;
             // 清除原始错误信息，防止调用方 ElMessage.error 直接展示原始错误
@@ -358,19 +384,24 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       }
 
       // 401/403 未授权/无权限：跳转登录页，加锁防止重复弹窗
-      if (status === 401 || status === 403) {
+      const bizCode = (error?.response?.data as { code?: string } | undefined)?.code;
+      // 只有会话失效才需要重新登录：401，或后端明确给出重新登录业务码；
+      // 其余 403 是「越权/无权限」，登录态仍然有效，交给调用方按普通业务错误提示
+      const sessionExpired = status === 401 || Boolean(bizCode && RELOGIN_CODES.has(bizCode));
+      if ((status === 401 || status === 403) && sessionExpired) {
         const loginUrl = getConfig().route?.loginPath || LOGIN_URL || "/login";
         const action = getConfig().http?.authFailAction || "confirm";
         // 应用部署在子路径时，登录页要拼上 base，否则跳出应用
         const loginHref = (import.meta.env.BASE_URL || "/") + loginUrl.replace(/^\//, "");
-        const bizCode = (error?.response?.data as { code?: string } | undefined)?.code;
         // 会话已失效：清掉本地令牌，否则守卫会凭旧令牌把用户弹回首页反复 403
-        if (status === 401 || (bizCode && RELOGIN_CODES.has(bizCode))) {
-          clearAllAuthData();
-        }
-        // 如果当前已经在登录页，就不弹了
+        clearAllAuthData();
+        // 如果当前已经在登录页，就不弹了（精确匹配登录页完整路径，
+        // 不能用 includes("/login")，否则会误匹配业务路由，如 /system/manage/login）
         const currentPath = window.location.pathname;
-        const isOnLoginPage = currentPath.includes("/login") || currentPath.endsWith("/login");
+        const __baseNoSlash = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+        const __loginFullPath = __baseNoSlash + "/" + loginUrl.replace(/^\//, "");
+        const isOnLoginPage =
+          currentPath === __loginFullPath || currentPath === __loginFullPath + "/";
         if (action === "redirect") {
           window.location.href = loginHref;
         } else if (!isOnLoginPage && !getAccessToken()) {

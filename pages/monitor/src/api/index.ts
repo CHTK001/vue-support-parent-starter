@@ -12,7 +12,13 @@ const B = '/ms/monitor';
 // ===== 资产 MsMonitor =====
 export const getMonitors = () => http().get(B).then(r => unwrap<any[]>(r));
 export const getMonitor = (id: number) => http().get(`${B}/${id}`).then(r => unwrap<any>(r));
-export const saveMonitor = (id: number, d: any) => id != null
+/**
+ * 保存资产：id 为 null 时新增（POST 集合），否则更新（PUT /{id}）。
+ *
+ * 注意 id 必须传 null 而不是 0：实现以 `id != null` 判定新增/更新，
+ * 传 0 会被判定为"更新 0 号"从而走错分支。
+ */
+export const saveMonitor = (id: number | null, d: any) => id != null
   ? http().put(`${B}/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(B).data(d).then(r => unwrap<any>(r));
 export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => unwrap<any>(r));
@@ -20,6 +26,66 @@ export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => 
 // ===== 关联服务器主机 =====
 export const getServerHosts = () => http().get(`${B}/server-hosts`).then(r => unwrap<any[]>(r));
 export const getServerHost = (id: number) => http().get(`${B}/server-host/${id}`).then(r => unwrap<any>(r));
+
+/**
+ * 资产聚合详情里挂在该主机上的监控项摘要
+ *
+ * monitorId 才是指标/告警查询的 ID 域，主机页拿到的 route id 是 hostId，两者不可混用。
+ */
+export interface AssetMonitorRef {
+  /** 监控项标识（指标接口的 monitorId） */
+  monitorId: number;
+  /** 监控项名称 */
+  name?: string;
+  /** 监控主机地址 */
+  host?: string;
+  /** 服务类型 */
+  serviceType?: string;
+  /** 是否启用 */
+  enabled?: boolean;
+  /** 未处理告警数 */
+  activeAlarmCount?: number;
+  /** 最高告警级别 */
+  maxLevel?: string;
+}
+
+/**
+ * 主机台账聚合视图：基础信息 + 通道开关 + 关联监控项 + 告警量
+ */
+export interface AssetDetail {
+  /** 主机台账标识（AI 分析接口的 hostId） */
+  hostId: number;
+  /** 资产名称 */
+  name?: string;
+  /** 资产 IP/域名 */
+  address?: string;
+  /** SSH/默认端口 */
+  port?: number;
+  /** 操作系统类型 */
+  osType?: string;
+  /** 在线状态：1=在线 0=离线 */
+  online?: number;
+  /** 是否开启采集 */
+  collectEnabled?: boolean;
+  /** 是否开启 Agent */
+  agentEnabled?: boolean;
+  /** 是否开启远控 */
+  remoteEnabled?: boolean;
+  /** 关联监控项数量 */
+  monitorCount?: number;
+  /** 未处理告警数 */
+  activeAlarmCount?: number;
+  /** 关联监控项列表 */
+  monitors?: AssetMonitorRef[];
+}
+
+/**
+ * 资产聚合详情：主机台账 + 其名下监控项，用于把 hostId 解析成 monitorId
+ * @param hostId 主机台账标识
+ * @returns 资产聚合视图
+ */
+export const getAssetDetail = (hostId: number) =>
+  http().get(`${B}/asset/${hostId}`).timeout(15_000).then(r => unwrap<AssetDetail>(r));
 
 // ===== Agent 在线状态（心跳上下文快照）=====
 export const getAgentStatus = () =>
@@ -174,6 +240,40 @@ const unwrapResultSeries = (res: any): SeriesPoint[] => {
   return [];
 };
 
+// ===== 主机内置指标历史（不依赖监控项，供监控详情近1h基础数据/图表历史）=====
+/** [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s]，缺失值为 null */
+export type HostMetricPoint = [
+  number,
+  number | null,
+  number | null,
+  number | null,
+  number | null,
+  number | null,
+];
+/** 软件实例（进程识别结果，同软件支持多实例） */
+export interface SoftwareInstance {
+  type: string;
+  displayName: string;
+  pid: number;
+  cpu: number;
+  memMb: number;
+  uptimeSec: number;
+  cmd: string;
+  port?: number;
+}
+export const getHostMetricHistory = (hostId: number, hours = 1): Promise<HostMetricPoint[]> =>
+  http()
+    .get(`${B}/host/${hostId}/metric-history?hours=${hours}`)
+    .timeout(30000)
+    .then(r => {
+      const d = r?.data;
+      if (d && (d.code === '00000' || d.code === '200')) {
+        return (d.data ?? []) as HostMetricPoint[];
+      }
+      return [];
+    })
+    .catch(() => []);
+
 // ===== 告警策略 / 规则 / 事件 =====
 export const getAlarmPolicies = () => http().get(`${B}/alarm/policy`).then(r => unwrap<any[]>(r));
 export const saveAlarmPolicy = (id: number | null, d: any) => id != null
@@ -210,7 +310,7 @@ export const getAlarmTrend = (hours = 24, interval = '1h') =>
 export const getAgentList = () =>
   http().get(`${B}/agent/list`).then(r => unwrap<{ monitorId: number; monitorName: string; monitorHost: string; monitorAgentKey: string; online: boolean; lastHeartbeat: string }[]>(r));
 export const getAgentConfig = (monitorId: number) =>
-  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ intervals: Record<string, number>; tasks: any[] }>(r));
+  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ collectIntervalMs: number; tasks: { taskName: string; taskType: string; taskCron: string }[] }>(r));
 
 // ===== TShark 网络抓包 =====
 export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<boolean>(r));

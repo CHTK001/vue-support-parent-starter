@@ -64,10 +64,13 @@ const form = ref({
 const lastDelayMs = ref<number | null | undefined>(undefined);
 
 const collectModes = [
+  { label: "不采集", value: "NONE" },
+  { label: "OpenSSH采集", value: "OPENSSH" },
   { label: "定时采集", value: "SCHEDULED" },
   { label: "Agent采集", value: "AGENT" },
   { label: "HTTP采集", value: "HTTP" },
   { label: "Prometheus采集", value: "PROMETHEUS" },
+  { label: "本机自采集(OSHI)", value: "LOCAL" },
 ];
 
 const title = computed(() => `${MODE_TITLE[props.mode]} · ${props.host?.serverHostName ?? ""}`);

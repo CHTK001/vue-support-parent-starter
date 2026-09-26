@@ -97,6 +97,20 @@ export function createMenuRouteResolver(
     if (i.meta?.isVisible !== undefined) return i.meta.isVisible;
     return i.meta?.showLink ?? true;
   };
+  // remind = true 表示该行脱离菜单控制：只注册路由，不被 router 当作菜单处理（缺省 false）
+  const _remind = (i: any) => {
+    const v = i.remind ?? i.meta?.remind;
+    return v === true || v === 1 || v === "1";
+  };
+  // 菜单徽标：兼容短字段名(isTag) 与 sysMenu* 命名；isTag 仅在明确为 1/true 时开启
+  const _isTag = (i: any) => {
+    const v = i.isTag ?? i.sysMenuIsTag ?? i.meta?.isTag;
+    return v === 1 || v === "1" || v === true ? 1 : 0;
+  };
+  const _tagType = (i: any) =>
+    i.tagType ?? i.sysMenuTagType ?? i.meta?.tagType;
+  const _tagName = (i: any) =>
+    i.tagName ?? i.sysMenuTagName ?? i.meta?.tagName;
 
   // 扁平化：API 可能返回嵌套 children 树，也可能返回扁平数组，两种都兼容
   function flattenMenu(items: any[]): any[] {
@@ -177,9 +191,12 @@ export function createMenuRouteResolver(
             title: String(_menuName(item)),
             icon: _menuIcon(item),
             isVisible: _isVisible(item),
+            remind: _remind(item),
             isKeepAlive: item.isKeepAlive ?? item.meta?.keepAlive,
             linkUrl: item.linkUrl,
-            isTag: item.isTag,
+            isTag: _isTag(item),
+            tagType: _tagType(item),
+            tagName: _tagName(item),
             isAffix: item.isAffix,
             activeMenu: item.activeMenu,
           },
@@ -213,9 +230,12 @@ export function createMenuRouteResolver(
           title: _menuName(item),
           icon: _menuIcon(item),
           isVisible: _isVisible(item),
+          remind: _remind(item),
           isKeepAlive: item.isKeepAlive ?? item.meta?.keepAlive,
           linkUrl: item.linkUrl,
-          isTag: item.isTag,
+          isTag: _isTag(item),
+          tagType: _tagType(item),
+          tagName: _tagName(item),
           isAffix: item.isAffix,
           activeMenu: item.activeMenu,
         },

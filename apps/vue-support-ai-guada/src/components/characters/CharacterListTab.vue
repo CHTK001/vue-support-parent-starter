@@ -15,6 +15,12 @@
           </template>
           {{ t('characters.list.import') }}
         </el-button>
+        <el-button @click="$emit('openMarket')" class="flex items-center">
+          <template #icon>
+            <Apps20Regular />
+          </template>
+          {{ t('characters.list.market') }}
+        </el-button>
         <input ref="fileInputRef" type="file" accept=".md,.markdown" multiple class="hidden" @change="handleFileSelect" />
       </div>
     </div>
@@ -29,12 +35,17 @@
       </div>
 
       <div v-for="group in groups" :key="group.id"
-        class="px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm flex items-center gap-1"
+        class="char-group-tag px-3 py-1 rounded cursor-pointer transition-all duration-200 select-none text-sm flex items-center gap-1"
         :class="currentGroupId === group.id
           ? 'bg-gray-100 dark:bg-[#2a2c30] text-(--color-text-primary) font-medium'
           : 'text-gray-500 dark:text-[#8b8d95] hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50'"
         @click="$emit('selectGroup', group.id)" @contextmenu.prevent="$emit('renameGroup', group)">
         <span>{{ group.name }}</span>
+        <el-icon :size="12" class="char-group-tag__del"
+          :aria-label="t('characters.list.deleteGroup')"
+          @click.stop="$emit('deleteGroup', group)">
+          <Close />
+        </el-icon>
       </div>
 
       <div
@@ -120,7 +131,9 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElIcon, ElButton, ElMessage } from 'element-plus'
 import { People } from '@vicons/ionicons5'
+import { Close } from '@element-plus/icons-vue'
 import { PlusOutlined, DeleteOutlineOutlined, UploadOutlined } from '@vicons/material'
+import { Apps20Regular } from '@vicons/fluent'
 import { QuestionCircleOutlined } from '@vicons/antd'
 import { Avatar } from '../ui'
 import { apiService } from '../../services/ApiService'
@@ -144,6 +157,7 @@ const emit = defineEmits<{
   deleteGroup: [group: CharacterGroup]
   openDocs: []
   imported: []
+  openMarket: []
 }>()
 
 const fileInputRef = ref<HTMLInputElement>()
@@ -203,5 +217,20 @@ const handleFileSelect = async (event: Event) => {
 
 .delete-btn:hover {
   background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* 分组标签删除 ×：默认隐藏，悬停该标签时显示，不引起布局跳动 */
+.char-group-tag__del {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  color: var(--el-text-color-secondary);
+  border-radius: 3px;
+}
+.char-group-tag:hover .char-group-tag__del {
+  opacity: 0.85;
+}
+.char-group-tag__del:hover {
+  opacity: 1 !important;
+  color: var(--el-color-danger);
 }
 </style>

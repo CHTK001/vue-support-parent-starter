@@ -38,6 +38,21 @@ registerThemeContext({
 
 // 注册主题安装器：context 为 core createApp 的 AppContext，路由取自 context.router
 registerThemeInstaller("koi", async (app: App, context: unknown) => {
+  // 默认菜单必须在安装器执行阶段兜底，不能在模块顶层注册：
+  // 业务 main.ts 通常会先由 createVueApp 注册自己的静态菜单，提前写入“主控台”会覆盖业务菜单。
+  if (!getStaticMenu().length) {
+    registerStaticMenu([
+      {
+        path: "/",
+        name: "layout",
+        redirect: "/home",
+        meta: { title: "menu.home.auth", icon: "koi-home", isVisible: "1" },
+        children: [
+          { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work", isVisible: "1" } },
+        ],
+      },
+    ]);
+  }
   const { router } = (context ?? {}) as Partial<AppContext>;
   await installKoi(app, { router });
 });
@@ -63,23 +78,6 @@ registerMenuResolver(
     notFoundComponent: () => import("@repo/pages/error/404.vue"),
   }),
 );
-
-// 注册静态菜单（layout / home 基础结构）
-// 仅当业务应用未注册自己的静态菜单时才写入默认菜单，
-// 避免框架加载晚于业务 main.ts 时覆盖业务注册的菜单。
-if (!getStaticMenu().length) {
-  registerStaticMenu([
-    {
-      path: "/",
-      name: "layout",
-      redirect: "/home",
-      meta: { title: "menu.home.auth", icon: "koi-home", isVisible: "1" },
-      children: [
-        { path: "/home", name: "homePage", meta: { title: "menu.home.work.name", icon: "koi-work", isVisible: "1" } },
-      ],
-    },
-  ]);
-}
 
 export { default as installKoi, default } from "./install";
 export type { InstallKoiOptions } from "./install";

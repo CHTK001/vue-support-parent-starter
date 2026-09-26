@@ -61,6 +61,17 @@ function getTokenStorage() {
   return tokenStorage;
 }
 
+/**
+ * 通用框架 storage（与 token / userInfo / 菜单写入方完全一致）
+ *
+ * 所有前端缓存读写都应使用本实例，禁止直接调用 localStorage：
+ * 前缀 / noPrefixKeys / userScopeKeys / 加解密均实时从 getConfig() 获取，
+ * 避免直接用 localStorage 造成加密、前缀、按账号隔离规则不统一。
+ */
+export function getFrameworkStorage() {
+  return getTokenStorage();
+}
+
 /** accessToken 存储 key */
 function accessKey(): string {
   const cfg = getConfig();

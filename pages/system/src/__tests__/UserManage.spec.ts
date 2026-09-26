@@ -2,10 +2,10 @@
  * 用户管理页面（UserManage.vue）扩展功能测试
  *
  * 覆盖：
- *  1. 批量操作按钮：选中行后批量启用/禁用/删除按钮可用
+ *  1. 批量删除：ReTable 回调删除有效用户并自动跳过当前登录账号
  *  2. 详情抽屉：点击用户名打开抽屉，展示基本信息与安全信息
- *  3. 操作列“更多”下拉：包含 编辑/重置密码/分配角色/详情/删除 等
- *  4. 锁定状态展示：锁定用户显示“已锁定”标签
+ *  3. 操作列“更多”下拉：包含编辑/重置密码/详情/删除，并验证编辑弹窗内分配角色
+ *  4. 状态展示：列表状态开关反映用户启用状态
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
@@ -21,13 +21,16 @@ const api = vi.hoisted(() => ({
   updateUser: vi.fn(),
   deleteUser: vi.fn(),
   deleteUsers: vi.fn(),
-  updateUsersStatus: vi.fn(),
   resetUserPassword: vi.fn(),
   listForRole: vi.fn(),
   listForPost: vi.fn(),
   listDept: vi.fn(),
-  lockUser: vi.fn(),
   unbindTotp: vi.fn(),
+}));
+
+const auth = vi.hoisted(() => ({
+  loginUser: { userId: 0 } as Record<string, unknown>,
+  getLoginUserInfo: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
@@ -38,6 +41,9 @@ vi.mock("@element-plus/icons-vue", () => {
 vi.mock("../api/systemApi", () => api);
 vi.mock("@repo/pinia/modules/user", () => ({
   default: () => ({ loginName: "admin", username: "admin", userInfo: {} }),
+}));
+vi.mock("@repo/pinia/modules/auth", () => ({
+  default: () => auth,
 }));
 
 import UserManage from "../views/UserManage.vue";
@@ -61,7 +67,6 @@ const rows = [
     sysUserUsername: "alice",
     sysUserNickname: "爱丽丝",
     sysUserStatus: 0,
-    sysUserLock: 0,
     userRoles: [{ sysRoleId: 1, sysRoleName: "管理员", sysRoleCode: "ADMIN" }],
     userPosts: [],
   },
@@ -69,8 +74,7 @@ const rows = [
     sysUserId: 2,
     sysUserUsername: "bob",
     sysUserNickname: "鲍勃",
-    sysUserStatus: 0,
-    sysUserLock: 1,
+    sysUserStatus: 1,
     userRoles: [],
     userPosts: [],
   },
@@ -104,37 +108,35 @@ describe("UserManage 用户管理页面（扩展）", () => {
     api.listForRole.mockResolvedValue({ data: [] });
     api.listForPost.mockResolvedValue({ data: [] });
     api.listDept.mockResolvedValue({ data: [] });
-    api.updateUsersStatus.mockResolvedValue({ data: 2 });
     api.deleteUsers.mockResolvedValue({ data: 2 });
-    api.lockUser.mockResolvedValue({ data: true });
   });
 
-  it("disables batch buttons until rows are selected", async () => {
+  it("batch delete skips the current login account", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
-    const enableBtn = wrapper.findAll("button").find((b) => b.text().includes("批量启用"))!;
-    expect(enableBtn.attributes("disabled")).toBeDefined();
+    auth.loginUser = { userId: 1 };
+    const vm = wrapper.vm as unknown as {
+      handleBatchDeleteRows: (rows: Record<string, unknown>[]) => Promise<void>;
+    };
 
-    // 选中一行后批量按钮可用
-    const vm = wrapper.vm as unknown as { selectedRows: unknown[] };
-    vm.selectedRows = [rows[0]];
-    await wrapper.vm.$nextTick();
-    expect((wrapper.findAll("button").find((b) => b.text().includes("批量启用"))!.attributes("disabled"))).toBeUndefined();
+    await vm.handleBatchDeleteRows(rows as unknown as Record<string, unknown>[]);
+
+    expect(api.deleteUsers).toHaveBeenCalledWith([2]);
+    expect(ep.msg.success).toHaveBeenCalledWith("已删除 1 个用户");
+    expect(ep.msg.warning).toHaveBeenCalledWith("已自动跳过当前登录账号");
   });
 
-  it("confirms then batch-enables selected users", async () => {
+  it("rejects batch delete when only the current account is selected", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
-    (wrapper.vm as unknown as { selectedRows: unknown[] }).selectedRows = [rows[0], rows[1]];
-    await wrapper.vm.$nextTick();
+    auth.loginUser = { userId: 1 };
+    const vm = wrapper.vm as unknown as {
+      handleBatchDeleteRows: (rows: Record<string, unknown>[]) => Promise<void>;
+    };
 
-    const enableBtn = wrapper.findAll("button").find((b) => b.text().includes("批量启用"))!;
-    await enableBtn.trigger("click");
-    await settle(wrapper);
-
-    expect(ep.box.confirm).toHaveBeenCalled();
-    expect(api.updateUsersStatus).toHaveBeenCalledWith([1, 2], 0);
-    expect(ep.msg.success).toHaveBeenCalledWith("已批量启用");
+    await expect(vm.handleBatchDeleteRows([rows[0]])).rejects.toThrow("no-valid-delete-target");
+    expect(api.deleteUsers).not.toHaveBeenCalled();
+    expect(ep.msg.warning).toHaveBeenCalledWith("不允许删除当前登录账号");
   });
 
   it("opens detail drawer with basic & security sections", async () => {
@@ -154,21 +156,81 @@ describe("UserManage 用户管理页面（扩展）", () => {
     expect(drawer.text()).toContain("安全信息");
   });
 
-  it("more dropdown contains edit/reset-password/assign-role/detail/delete", async () => {
+  it("more dropdown matches the current actions", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
     const items = wrapper.findAll(".dropdown-item").map((d) => d.text());
     expect(items).toContain("编辑");
     expect(items).toContain("重置密码");
-    expect(items).toContain("分配角色");
     expect(items).toContain("详情");
     expect(items).toContain("删除");
+    expect(items).not.toContain("分配角色");
   });
 
-  it("shows '已锁定' tag for locked users", async () => {
+  it("edits role assignments from the user edit dialog", async () => {
+    api.listForRole.mockResolvedValue({
+      data: [{ sysRoleId: 9, sysRoleName: "审计员", sysRoleCode: "AUDIT" }],
+    });
     const wrapper = mountPage();
     await settle(wrapper);
-    // bob(sysUserLock=1) 行的状态插槽渲染“已锁定”
-    expect(wrapper.text()).toContain("已锁定");
+    const vm = wrapper.vm as unknown as {
+      handleEdit: (row: Record<string, unknown>) => void;
+    };
+
+    vm.handleEdit(rows[0] as unknown as Record<string, unknown>);
+    await settle(wrapper);
+
+    const dialog = wrapper.find(".re-dialog-stub");
+    expect(dialog.exists()).toBe(true);
+    expect(dialog.text()).toContain("角色");
+    expect(dialog.text()).toContain("审计员");
+  });
+
+  it("renders the enabled state in the status switch", async () => {
+    const wrapper = mountPage();
+    await settle(wrapper);
+    const switches = wrapper.findAll('.re-row input[type="checkbox"]');
+    expect(switches).toHaveLength(2);
+    expect((switches[0].element as HTMLInputElement).checked).toBe(false);
+    expect((switches[1].element as HTMLInputElement).checked).toBe(true);
+  });
+
+  describe("更新自己后刷新 /me 登录缓存", () => {
+    /** 取 script-setup 暴露的 refreshSelfCache（改自己/改别人的判定逻辑） */
+    function refreshSelfCache(wrapper: ReturnType<typeof mountPage>) {
+      return (wrapper.vm as unknown as { refreshSelfCache: (u: Record<string, unknown>) => Promise<void> })
+        .refreshSelfCache;
+    }
+
+    it("按 sysUserId 命中当前登录用户：静默调用 /me", async () => {
+      const wrapper = mountPage();
+      await settle(wrapper);
+      auth.loginUser = { userId: 1 };
+
+      await refreshSelfCache(wrapper)({ sysUserId: 1, sysUserUsername: "someone" });
+
+      expect(auth.getLoginUserInfo).toHaveBeenCalledTimes(1);
+      expect(auth.getLoginUserInfo).toHaveBeenCalledWith(false);
+    });
+
+    it("按登录账号命中当前用户（authStore 尚未拉到 userId）：同样调用 /me", async () => {
+      const wrapper = mountPage();
+      await settle(wrapper);
+      auth.loginUser = { userId: "" };
+
+      await refreshSelfCache(wrapper)({ sysUserId: 8, sysUserUsername: "admin" });
+
+      expect(auth.getLoginUserInfo).toHaveBeenCalledTimes(1);
+    });
+
+    it("改的是别人：不动 /me 缓存", async () => {
+      const wrapper = mountPage();
+      await settle(wrapper);
+      auth.loginUser = { userId: 1 };
+
+      await refreshSelfCache(wrapper)({ sysUserId: 99, sysUserUsername: "other" });
+
+      expect(auth.getLoginUserInfo).not.toHaveBeenCalled();
+    });
   });
 });

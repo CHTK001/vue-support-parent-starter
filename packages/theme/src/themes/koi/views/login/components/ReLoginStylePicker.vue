@@ -6,7 +6,7 @@
       trigger="hover"
       :offset="12"
       popper-class="login-style-popover"
-      popper-style="padding: 0; border-radius: 10px;"
+      popper-style="padding: 0; border-radius: 16px;"
     >
       <template #reference>
         <div class="style-picker-trigger">
@@ -23,53 +23,16 @@
           <div
             v-for="opt in styleOptions"
             :key="opt.value"
-            class="style-option"
+            class="style-card"
             :class="{ 'is-active': loginStyle === opt.value }"
+            role="button"
+            :aria-pressed="loginStyle === opt.value"
             @click="selectStyle(opt.value)"
           >
-            <div class="style-option__badge" :class="{ 'is-active': loginStyle === opt.value }"></div>
-            <div class="style-option__preview" :class="`style-preview--${opt.preview}`">
-              <div v-if="opt.preview === 'dual'" class="preview-inner">
-                <div class="preview-block preview-block--aside"></div>
-                <div class="preview-form">
-                  <span class="preview-line preview-line--title"></span>
-                  <span class="preview-line"></span>
-                  <span class="preview-btn"></span>
-                </div>
-              </div>
-              <div v-else-if="opt.preview === 'center'" class="preview-inner preview-inner--center">
-                <div class="preview-bubble preview-bubble--1"></div>
-                <div class="preview-bubble preview-bubble--2"></div>
-                <div class="preview-bubble preview-bubble--3"></div>
-                <div class="preview-card preview-card--center">
-                  <span class="preview-line preview-line--title"></span>
-                  <span class="preview-line"></span>
-                  <span class="preview-btn"></span>
-                </div>
-              </div>
-              <div v-else-if="opt.preview === 'immersive'" class="preview-inner">
-                <div class="preview-block preview-block--immersive"></div>
-                <div class="preview-form">
-                  <span class="preview-line preview-line--title"></span>
-                  <span class="preview-line"></span>
-                  <span class="preview-btn"></span>
-                </div>
-              </div>
-              <div v-else-if="opt.preview === 'pixel'" class="preview-inner preview-inner--pixel">
-                <div class="preview-sky"></div>
-                <div class="preview-grass"></div>
-                <div class="preview-dirt"></div>
-                <div class="preview-block preview-block--mc">
-                  <span class="preview-line preview-line--title"></span>
-                  <span class="preview-line"></span>
-                  <span class="preview-btn"></span>
-                </div>
-              </div>
+            <div class="style-card__preview">
+              <LoginStylePreview :type="opt.preview" />
             </div>
-            <div class="style-option__info">
-              <span class="style-option__label">{{ t(opt.label) }}</span>
-              <span class="style-option__desc">{{ t(opt.desc) }}</span>
-            </div>
+            <div class="style-card__label">{{ t(opt.label) }}</div>
           </div>
         </div>
       </div>
@@ -78,11 +41,18 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 登录页样式选择弹层（登录页右上角）
+ *
+ * 与设置抽屉共用同一套缩略图（LoginStylePreview）与卡片视觉：
+ * 预览 + 居中名称，选中态 = 缩略图主色描边 + 名称主色加粗，全部走 koi 令牌。
+ */
 import { Grid } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { loginStyleOptions } from "../loginStyles";
+import LoginStylePreview from "./LoginStylePreview.vue";
 
 const { t } = useI18n();
 const globalStore = useGlobalStore();
@@ -108,36 +78,25 @@ const selectStyle = (value: string) => {
   width: 36px;
   height: 36px;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.5s ease;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
 
   .trigger-icon {
     color: var(--el-text-color-primary);
+    transition: transform 0.4s ease;
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--el-header-icon-hover-bg-color, var(--el-fill-color-light));
 
     .trigger-icon {
+      color: var(--el-color-primary);
       transform: scale(1.05);
     }
   }
 
   &:active {
-    background: rgba(0, 0, 0, 0.1);
     transform: scale(0.94);
-
-    .trigger-icon {
-      transform: scale(0.9);
-    }
-  }
-}
-
-html.dark {
-  .style-picker-trigger {
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
   }
 }
 </style>
@@ -145,14 +104,15 @@ html.dark {
 <style lang="scss">
 .login-style-popover {
   padding: 12px 14px !important;
-  border-radius: 12px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12) !important;
+  background: var(--el-bg-color-overlay) !important;
   border: 1px solid var(--el-border-color-lighter) !important;
+  border-radius: var(--el-radius-xl, 16px) !important;
+  box-shadow: var(--el-box-shadow-light) !important;
 
   .popover-header {
     padding: 0 4px 10px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
 
     .popover-title {
       font-size: 14px;
@@ -163,270 +123,66 @@ html.dark {
     .popover-desc {
       margin-top: 4px;
       font-size: 11px;
-      color: var(--el-text-color-secondary);
       line-height: 1.5;
+      color: var(--el-text-color-secondary);
     }
   }
 
   .popover-body {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     max-height: 420px;
     overflow-y: auto;
   }
 
-  .style-option {
-    position: relative;
-    padding: 10px;
+  /* 卡片视觉与设置抽屉的选择器保持一致 */
+  .style-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
     cursor: pointer;
     background: var(--el-bg-color);
-    border: 2px solid var(--el-border-color-lighter);
-    border-radius: 10px;
-    overflow: hidden;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--el-radius-lg, 12px);
     transition:
-      border-color 0.25s ease,
-      box-shadow 0.25s ease,
-      transform 0.2s ease,
-      background-color 0.25s ease;
+      transform var(--el-transition-duration, 0.2s) ease,
+      border-color var(--el-transition-duration, 0.2s) ease;
 
     &:hover:not(.is-active) {
       border-color: var(--el-color-primary-light-5);
-      background: var(--el-color-primary-light-10, var(--el-fill-color));
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
-    }
-
-    &:active:not(.is-active) {
-      transform: translateY(-2px) scale(0.98);
-    }
-
-    &.is-active {
-      border-color: var(--el-color-primary);
-      background: linear-gradient(135deg, var(--el-color-primary-light-10, var(--el-color-primary-light-9)) 0%, var(--el-bg-color) 60%);
-      box-shadow:
-        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1),
-        0 4px 16px rgba(var(--el-color-primary-rgb), 0.18);
-      transform: translateY(-2px);
-      cursor: not-allowed;
-
-      .style-option__label {
-        color: var(--el-color-primary);
-        font-weight: 700;
-      }
-
-      .style-option__preview {
-        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
-      }
-    }
-
-    &__badge {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 0;
-      height: 0;
-      opacity: 0;
-      border-radius: 50%;
-      background: var(--el-color-primary);
-      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-      z-index: 5;
-      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.3);
-    }
-
-    &__badge::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 7px;
-      height: 4px;
-      border: 2px solid #fff;
-      border-top: none;
-      border-right: none;
-      transform: translate(-50%, -60%) rotate(-45deg);
-      opacity: 0;
-      transition: opacity 0.2s ease 0.15s;
-    }
-
-    &.is-active &__badge {
-      width: 22px;
-      height: 22px;
-      opacity: 1;
-      &::after {
-        opacity: 1;
-      }
     }
 
     &__preview {
-      height: 56px;
-      margin-bottom: 8px;
+      position: relative;
+      aspect-ratio: 16 / 10;
       overflow: hidden;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-      transition: box-shadow 0.25s ease;
-      border: 1px solid var(--el-border-color-lighter);
-    }
-
-    html.dark &__preview {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-
-    .preview-inner {
-      display: flex;
-      height: 100%;
-      padding: 4px;
-      box-sizing: border-box;
-      gap: 3px;
-    }
-
-    .preview-inner--center {
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .preview-block--aside {
-      width: 24%;
-      background: #c0c4cc;
-      border-radius: 3px;
-    }
-    .preview-block--immersive {
-      width: 45%;
-      background: linear-gradient(135deg, #909399, #c0c4cc);
-      border-radius: 3px;
-    }
-    .preview-form {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .preview-line {
-      display: block;
-      height: 4px;
-      background: #909399;
-      border-radius: 2px;
-    }
-    .preview-line--title {
-      width: 60%;
-    }
-    .preview-btn {
-      width: 40%;
-      height: 7px;
-      margin-top: auto;
-      background: var(--el-color-primary, #409eff);
-      border-radius: 4px;
-    }
-
-    .preview-bubble {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.3;
-    }
-    .preview-bubble--1 {
-      width: 12px; height: 12px;
-      background: var(--el-color-primary, #409eff);
-      top: 6px; left: 14px;
-    }
-    .preview-bubble--2 {
-      width: 8px; height: 8px;
-      background: #a855f7;
-      top: 12px; right: 20px;
-    }
-    .preview-bubble--3 {
-      width: 9px; height: 9px;
-      background: #06b6d4;
-      bottom: 8px; left: 28px;
-    }
-
-    .preview-card {
-      position: relative; z-index: 1;
-      display: flex; flex-direction: column;
-      gap: 3px; padding: 5px 7px;
-      border-radius: 5px; width: 55%;
-      background: #fff;
-      border: 1px solid #e4e7ed;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    }
-
-    .preview-panel {
-      flex: 1;
-      border-radius: 3px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      padding: 4px;
-    }
-    .preview-panel--brand {
-      background: linear-gradient(135deg, #c0c4cc, #dcdfe6);
-    }
-    .preview-panel--form {
-      background: #fff;
-      border: 1px solid #e4e7ed;
-    }
-
-    .preview-inner--pixel {
-      position: relative;
-      background: #87ceeb;
-    }
-    .preview-sky {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, #78a7e0 0%, #a8d8ea 60%, #4caf50 100%);
-    }
-    .preview-grass {
-      position: absolute;
-      bottom: 18px;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: #4caf50;
-    }
-    .preview-dirt {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 18px;
-      background: repeating-linear-gradient(90deg, #8b6914 0 4px, #6d5010 4px 8px);
-    }
-    .preview-block--mc {
-      position: relative;
-      z-index: 1;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 3px 5px;
-      background: #c6a664;
-      border: 2px solid #5d4037;
-      box-shadow: inset 0 1px 0 #e8d4a0;
-      align-self: center;
-      width: 60%;
-    }
-
-    &__info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-right: 26px;
+      background: var(--el-fill-color-lighter);
+      border: 2px solid transparent;
+      border-radius: var(--el-radius-md, 8px);
+      transition: border-color var(--el-transition-duration, 0.2s) ease;
     }
 
     &__label {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
+      line-height: 1.3;
       color: var(--el-text-color-primary);
-      transition: color 0.25s ease;
+      text-align: center;
     }
 
-    &__desc {
-      font-size: 10px;
-      color: var(--el-text-color-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    &.is-active {
+      .style-card__preview {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+      }
+
+      .style-card__label {
+        color: var(--el-color-primary);
+        font-weight: 700;
+      }
     }
   }
 }

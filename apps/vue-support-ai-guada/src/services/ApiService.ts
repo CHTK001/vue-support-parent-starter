@@ -4,18 +4,18 @@
  *
  * 领域方法按模块拆分到 services/modules/*.api.ts，
  * 通过 Object.assign 挂载到原型，通过 interface 声明合并保证类型安全。
+ *
+ * 请求出口统一为 @/framework/context 的请求模块客户端（底层是 @repo/utils 的 Http
+ * + @repo/core createApp 注入的拦截器）：Bearer 头、统一响应校验、401/403 处理
+ * 全部由框架负责，本文件不再持有 axios 实例、也不再读写 localStorage 里的 token。
  */
 
-import axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-  type AxiosResponse,
-} from "axios";
-import { useStorage } from "@vueuse/core";
 import type { StreamEvent } from "@/types/service";
 import { getClientId } from "@/utils/clientId";
 import { NetworkError, AuthError, ApiError } from "@/utils/errors";
 import { t } from "@/locales";
+import { createClient, httpAt } from "@/framework/context";
+import type { HttpClient, RequestOptions } from "@/framework/context";
 import { ChatStreamService } from "./modules/ChatStreamService";
 import {
   WorkspaceWatcherService,
@@ -44,6 +44,8 @@ import { botApi, type BotApi } from "./modules/bot.api";
 import { schedulerApi, type SchedulerApi } from "./modules/scheduler.api";
 import { pluginApi, type PluginApi } from "./modules/plugin.api";
 import { remoteWorkspaceApi, type RemoteWorkspaceApi } from "./modules/remote-workspace.api";
+import { tavernApi, type TavernApi } from "./modules/tavern.api";
+import { generateApi, type GenerateApi } from "./modules/generate.api";
 
 export type { FileChangeEvent };
 export type { SessionEvent, SessionEventType };
@@ -66,17 +68,48 @@ interface ApiService
     BotApi,
     SchedulerApi,
     PluginApi,
-    RemoteWorkspaceApi {}
+    RemoteWorkspaceApi,
+    TavernApi,
+    GenerateApi {}
+
+/**
+ * 框架请求管线错误 → 本项目错误类型。
+ *
+ * 401/403 的清理令牌与跳登录由 @repo/core 的 http 拦截器统一负责，
+ * 这里只做类型归一化，不再重复触发登录重定向。
+ */
+function normalizeApiError(error: any): Error {
+  const status: number | undefined = error?.response?.status ?? error?.status;
+
+  if (status === undefined && !error?.response) {
+    return new NetworkError(t("session.api.cannotConnect"));
+  }
+  if (status === 401) {
+    return new AuthError("Authentication required", 401);
+  }
+
+  const data = error?.response?.data ?? error;
+  const rawMessage =
+    data?.msg ||
+    data?.message ||
+    (typeof data?.error === "string" ? data.error : data?.error?.message);
+  const errorMessage =
+    typeof rawMessage === "string" && rawMessage ? rawMessage : t("session.api.requestFailed");
+
+  return new ApiError(errorMessage, status);
+}
 
 class ApiService {
   baseURL: string;
-  tokenStore: any;
-  axiosInstance: AxiosInstance;
+  /** axios 风格请求客户端（内部挂在框架 http 实例上） */
+  client: HttpClient;
   chatStreamService: ChatStreamService;
   workspaceWatcherService: WorkspaceWatcherService;
   sessionEventsService: SessionEventsService;
   /** Electron 环境下后端地址是否已初始化（幂等标记） */
   private backendUrlInitialized = false;
+  /** 惰性持有的底层客户端：首次请求时框架上下文已装配完成 */
+  private http: ReturnType<typeof httpAt> | null = null;
 
   constructor(baseURL?: string) {
     // Electron 环境使用动态获取的后端地址，Web 环境使用相对路径
@@ -91,97 +124,23 @@ class ApiService {
       this.baseURL = "/v2";
     }
 
-    this.tokenStore = useStorage("token", "");
-
-    // 创建 Axios 实例
-    this.axiosInstance = axios.create({
-      baseURL: this.baseURL,
-      timeout: 60000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    // 添加响应拦截器处理通用错误
-    this.axiosInstance.interceptors.response.use(
-      (response: AxiosResponse) => {
-        // 解包后端统一响应格式 {code, data, msg, ok, success}
-        const res = response.data;
-        if (res && typeof res === 'object' && 'data' in res && 'code' in res) {
-          // 后端统一格式，返回 data 部分
-          return res.data;
-        }
-        return response.data ? response.data : response;
-      },
-      (error) => {
-        console.error("API 请求失败:", error);
-
-        if (
-          error.code === "ECONNREFUSED" ||
-          error.code === "ERR_CONNECTION_REFUSED" ||
-          !error.response
-        ) {
-          console.warn("后端服务连接失败，请稍后重试");
-          throw new NetworkError(
-            t("session.api.cannotConnect"),
-          );
-        }
-
-        if (
-          error.response?.status === 401 &&
-          !error.config?.url?.includes("/auth/login")
-        ) {
-          const authError = new AuthError("Authentication required", 401);
-
-          setTimeout(() => {
-            import("@/utils/globalErrorHandler").then(
-              ({ triggerAuthRedirect }) => {
-                triggerAuthRedirect();
-              },
-            );
-          }, 0);
-
-          return Promise.reject(authError);
-        }
-
-        let errorMessage = t("session.api.requestFailed");
-        if (error.response?.data) {
-          const responseData = error.response.data;
-          if (responseData.message) {
-            errorMessage =
-              typeof responseData.message === "string"
-                ? responseData.message
-                : responseData.message.error || t("session.api.requestFailed");
-          } else if (responseData.error) {
-            errorMessage = responseData.error;
-          }
-        }
-
-        throw new ApiError(errorMessage, error.response?.status);
-      },
-    );
-
-    // 添加请求拦截器动态设置 token 和 clientId
-    this.axiosInstance.interceptors.request.use(
-      (config) => {
-        const token =
-          sessionStorage.getItem("token") || localStorage.getItem("token");
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        config.headers["X-Client-Id"] = getClientId();
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      },
-    );
-
+    this.client = createClient(() => this.httpClient());
     this.chatStreamService = new ChatStreamService(() => this.baseURL);
     this.workspaceWatcherService = new WorkspaceWatcherService(
       () => this.baseURL,
     );
     this.sessionEventsService = new SessionEventsService(() => this.baseURL);
+  }
+
+  /**
+   * 首次使用时才创建客户端：apiService 在模块加载期即实例化，
+   * 而框架请求管线要等 bootstrapFramework() 装配完才可用。
+   */
+  private httpClient() {
+    if (!this.http) {
+      this.http = httpAt(this.baseURL, { "X-Client-Id": getClientId() });
+    }
+    return this.http;
   }
 
   /**
@@ -197,8 +156,7 @@ class ApiService {
 
     // 刷新场景：端口已通过同步 IPC 拿到，直接设置，无需再走异步 getAppInfo()
     if (knownPort) {
-      this.baseURL = `http://localhost:${knownPort}/api/v1`;
-      this.axiosInstance.defaults.baseURL = this.baseURL;
+      this.setBaseUrl(`http://localhost:${knownPort}/api/v1`);
       this.backendUrlInitialized = true;
       console.log(`🔗 API 服务已连接到后端端口: ${knownPort}`);
       return;
@@ -207,14 +165,19 @@ class ApiService {
     try {
       const info = await window.electronAPI!.getAppInfo();
       if (info.backendPort) {
-        this.baseURL = `http://localhost:${info.backendPort}/api/v1`;
-        this.axiosInstance.defaults.baseURL = this.baseURL;
+        this.setBaseUrl(`http://localhost:${info.backendPort}/api/v1`);
         this.backendUrlInitialized = true;
         console.log(`🔗 API 服务已连接到后端端口: ${info.backendPort}`);
       }
     } catch (error) {
       console.error("❌ 获取后端端口失败:", error);
     }
+  }
+
+  /** 同步更新 baseURL 与已创建的客户端实例 */
+  private setBaseUrl(url: string): void {
+    this.baseURL = url;
+    this.http?.setBaseURL(url);
   }
 
   /**
@@ -230,23 +193,22 @@ class ApiService {
   }
 
   /**
-   * 通用请求方法
+   * 通用请求方法：走框架请求管线，返回已解包的业务数据。
+   *
+   * 框架拦截器对失败响应给出的是原始错误对象，这里按本项目既有约定归一化为
+   * NetworkError / AuthError / ApiError，页面的 statusCode、isNetworkError 判断保持不变。
    */
   async _request<T = any>(
     endpoint: string,
-    options?: AxiosRequestConfig,
+    options?: RequestOptions,
   ): Promise<T> {
     // Electron 环境下确保后端地址已初始化，避免请求抢在端口就绪前发出
     await this.ensureBackendUrlReady();
     try {
-      const response = await this.axiosInstance({
-        url: endpoint,
-        ...options,
-      });
-      return response as T;
-    } catch (error) {
+      return (await this.client.request(endpoint, options)) as T;
+    } catch (error: any) {
       console.error(`API 请求失败：${endpoint}`, error);
-      throw error;
+      throw normalizeApiError(error);
     }
   }
 
@@ -265,6 +227,21 @@ class ApiService {
     };
   }): AsyncGenerator<StreamEvent, void, unknown> {
     return yield* this.chatStreamService.chat(params);
+  }
+
+  /**
+   * 人工确认恢复（plan_exit 批准/拒绝后继续 Agent）
+   */
+  async *resume(params: {
+    sessionId: string;
+    replyId: string;
+    decisions: Array<{ toolCallId: string; confirmed: boolean }>;
+    model?: string;
+    characterId?: string | null;
+    think?: boolean;
+    feedback?: string;
+  }): AsyncGenerator<StreamEvent, void, unknown> {
+    return yield* this.chatStreamService.resume(params);
   }
 
   async cancelResponse(sessionId: string): Promise<void> {
@@ -356,6 +333,8 @@ Object.assign(
   schedulerApi,
   pluginApi,
   remoteWorkspaceApi,
+  tavernApi,
+  generateApi,
 );
 
 /**

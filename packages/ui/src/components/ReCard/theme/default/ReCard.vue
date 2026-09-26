@@ -14,6 +14,8 @@
 import { computed } from "vue";
 import { ElCard } from "element-plus";
 import "../../../shared/modern-vars.css";
+// 卡片视觉基线（库级共享，ReStatCard 风格）：圆角 / 边框 / 投影
+import "../../../shared/re-surface.css";
 
 defineOptions({ name: "ReCard", inheritAttrs: true });
 
@@ -28,7 +30,7 @@ const props = withDefaults(
     subtitle?: string;
     shadow?: "always" | "hover" | "never";
     bodyStyle?: Record<string, string>;
-    /** 圆角（px） */
+    /** 圆角（px）；不传时用基线圆角 var(--re-surface-radius) */
     radius?: number;
     /** 是否可悬浮 */
     hoverable?: boolean;
@@ -44,25 +46,41 @@ const props = withDefaults(
     subtitle: "",
     shadow: "never",
     bodyStyle: undefined,
-    radius: 8,
+    // 缺省交回基线（16px），不再由本组件硬编码 8px
+    radius: undefined,
     hoverable: false,
     bordered: true,
     padding: 16,
   },
 );
 
-/** simple 布局：自动关闭边框 + 加大圆角 + 强制 hover 浮起，shadow 不生效 */
+/** simple 布局：自动关闭边框 + 强制 hover 浮起，shadow 不生效 */
 const isSimple = computed<boolean>(() => props.layout === "simple");
 const finalBordered = computed<boolean>(() => (isSimple.value ? false : props.bordered));
-const finalRadius = computed<number>(() => (isSimple.value ? Math.max(props.radius, 16) : props.radius));
+/** 圆角：未显式指定时用基线圆角（simple 下不小于基线圆角） */
+const finalRadius = computed<number | undefined>(() => {
+  if (props.radius != null) {
+    return isSimple.value ? Math.max(props.radius, 16) : props.radius;
+  }
+  return undefined;
+});
 const finalHoverable = computed<boolean>(() => (isSimple.value ? true : props.hoverable));
 
 const finalHeader = computed<string>(() => props.header || props.title);
 
-const customStyle = computed<Record<string, string>>(() => ({
-  "--re-card-radius": `${finalRadius.value}px`,
-  "--re-card-padding": typeof props.padding === "number" ? `${props.padding}px` : props.padding,
-}));
+/**
+ * 圆角未显式指定时**不写** --re-card-radius，让 CSS 回落到基线
+ * var(--re-surface-radius)；写 `undefinedpx` 会产生非法值。
+ */
+const customStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {
+    "--re-card-padding": typeof props.padding === "number" ? `${props.padding}px` : props.padding,
+  };
+  if (finalRadius.value != null) {
+    style["--re-card-radius"] = `${finalRadius.value}px`;
+  }
+  return style;
+});
 
 const mergedBodyStyle = computed<Record<string, string>>(() => ({
   ...(props.bodyStyle ?? {}),
@@ -105,20 +123,22 @@ const mergedBodyStyle = computed<Record<string, string>>(() => ({
 </template>
 
 <style scoped>
+/* 圆角缺省走基线（--re-surface-radius，16px），显式传 radius 时才用 --re-card-radius */
 .re-card {
   --re-card-shadow-color: 15, 23, 42;
-  border-radius: var(--re-card-radius, 12px);
+  border-radius: var(--re-card-radius, var(--re-surface-radius, 16px));
   overflow: hidden;
   transition: border-color var(--rm-transition);
 }
 .re-card :deep(.el-card__body) {
   padding: var(--re-card-padding, 16px);
 }
+/* bordered：基线语言是"透明边框 + 柔光投影"，实色边框仅作可选的强调形态 */
 .re-card--hoverable:hover {
   border-color: var(--rm-border-hover);
 }
 .re-card--bordered {
-  border: 1px solid var(--rm-border);
+  border: 1px solid var(--color-surface-border, var(--rm-border));
 }
 /* simple 布局：无边框 + 大圆角 */
 .re-card--simple {

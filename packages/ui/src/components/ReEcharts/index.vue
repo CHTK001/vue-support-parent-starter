@@ -13,6 +13,7 @@
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import { ref, onMounted, onBeforeUnmount, watch, shallowRef } from "vue";
+import { normalizeColor } from "./colorSpace";
 
 interface Props {
   /** ECharts 配置 */
@@ -61,7 +62,7 @@ const injectTheme = (option: EChartsOption): EChartsOption => {
     readCssVar("--el-color-warning", "#e6a23c"),
     readCssVar("--el-color-danger", "#f56c6c"),
     readCssVar("--el-color-info", "#909399"),
-  ];
+  ].map(normalizeColor);
   const textColor = props.theme === "dark"
     ? readCssVar("--el-text-color-primary", "#e5eaf3")
     : readCssVar("--el-text-color-regular", "#606266");

@@ -15,9 +15,14 @@ const props = defineProps<{
     identityId: number | null;
     targetPort: number | null;
   } | null;
+  /** 由外层工具条接管断开时，隐藏 viewer 自带的「断开」按钮 */
+  hideClose?: boolean;
 }>();
 
-const emit = defineEmits<{ (e: 'close'): void }>();
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'files'): void;
+}>();
 
 /** iframe src：直连端点只需主机与身份定位，端口由后端按主机配置解析 */
 const iframeSrc = computed(() => {
@@ -35,7 +40,10 @@ const iframeSrc = computed(() => {
       <span class="ssh-status-tag is-ok">
         {{ connection.hostName }} · SSH 直连
       </span>
-      <button class="ssh-close" type="button" @click="emit('close')">断开</button>
+      <div class="ssh-actions">
+        <button v-if="!hideClose" class="ssh-btn" type="button" @click="emit('close')">断开</button>
+        <button class="ssh-btn ssh-btn--files" type="button" title="打开 SFTP 文件面板" @click="emit('files')">文件</button>
+      </div>
     </div>
     <iframe
       v-if="connection"
@@ -70,17 +78,28 @@ const iframeSrc = computed(() => {
   font-weight: 600;
 }
 .ssh-status-tag.is-ok { background: #e6f4ea; color: #137333; }
-.ssh-close {
+.ssh-actions {
   margin-left: auto;
-  padding: 2px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ssh-btn {
+  padding: 3px 14px;
   font-size: 12px;
   color: var(--text-secondary, #606266);
   background: transparent;
   border: 1px solid var(--border-subtle, #dcdfe6);
   border-radius: 4px;
   cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
-.ssh-close:hover { color: var(--brand-600, #5a4ae0); border-color: var(--brand-400, #8b7ffb); }
+.ssh-btn:hover { color: var(--brand-600, #5a4ae0); border-color: var(--brand-400, #8b7ffb); }
+.ssh-btn--files {
+  color: var(--brand-600, #5a4ae0);
+  border-color: var(--brand-400, #8b7ffb);
+}
+.ssh-btn--files:hover { background: var(--brand-50, rgba(90, 74, 224, .08)); }
 .ssh-iframe {
   flex: 1;
   width: 100%;

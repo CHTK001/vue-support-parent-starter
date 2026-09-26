@@ -20,7 +20,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import { deleteFunction, fetchRuntime, listFunctions, saveFunction, testFunction, updateFunction } from "../api/collectApi";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFunction, CollectFunctionTestResult } from "../types/collect";
 
 defineOptions({ name: "CollectFunction" });
@@ -42,7 +42,8 @@ const EXAMPLE_SCRIPT = "{ a, b -> a + b }";
 const builtinNames = ref<string[]>([]);
 
 const rows = ref<CollectFunction[]>([]);
-const keyword = ref("");
+/** 内置搜索区的草稿值：keyword 为空表示不按关键字过滤 */
+const searchModel = ref<Record<string, unknown>>({ keyword: "" });
 const visible = ref(false);
 const saving = ref(false);
 const testing = ref(false);
@@ -58,14 +59,25 @@ const form = reactive({
   collectFunctionEnabled: 1,
 });
 
+const SEARCH: ReTableSearchConfig = {
+  title: "搜索函数",
+  showRefreshBtn: false,
+  filters: [{ key: "keyword", label: "关键字", type: "input", placeholder: "函数名或说明" }],
+};
+
 const { loading, reload } = useCollectView(async () => {
   const [list, runtimeInfo] = await Promise.all([
-    listFunctions(keyword.value.trim() || undefined),
+    listFunctions(String(searchModel.value.keyword ?? "").trim() || undefined),
     fetchRuntime().catch(() => null),
   ]);
   rows.value = list ?? [];
   builtinNames.value = runtimeInfo?.builtinFunctions ?? [];
 });
+
+/** 查询/重置：本页是前端整表加载，ReTable 不会替我们回源，必须重拉一次清单 */
+function applySearch(): void {
+  void reload();
+}
 
 /** 试跑对话框里的实参个数，跟闭包签名走 */
 const argumentCount = computed<number>(() => Math.max(0, testTarget.value?.collectFunctionParameters ?? 0));
@@ -80,7 +92,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFunctionDescription", label: "说明", minWidth: 140, slot: "description", showOverflowTooltip: true },
   { prop: "collectFunctionEnabled", label: "启用", width: 76, slot: "enabled", align: "center" },
   { prop: "collectFunctionLastResult", label: "最近结果", minWidth: 220, slot: "last" },
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" },
 ]);
 
 function openCreate(): void {
@@ -204,24 +216,6 @@ function showHelp(): void {
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-filters">
-      <ReInput
-        v-model="keyword"
-        size="small"
-        style="width: 190px"
-        placeholder="函数名或说明"
-        clearable
-        @keyup.enter="reload"
-        @clear="reload"
-      />
-      <ReButton size="small" icon="Search" @click="reload">查询</ReButton>
-      <ReButton size="small" icon="QuestionFilled" @click="showHelp">写法说明</ReButton>
-      <span class="collect-hint">保存前编译，登记后流程参数表达式 ${name(...)} 与脚本节点里的 fn.name(...) 都能调</span>
-      <span class="spacer"/>
-      <ReButton size="small" icon="Refresh" @click="reload">刷新</ReButton>
-      <ReButton size="small" type="primary" icon="Plus" @click="openCreate">新建函数</ReButton>
-    </div>
-
     <ReTable
       class="collect-card"
       table-id="collect-function"
@@ -230,9 +224,20 @@ function showHelp(): void {
       :columns="columns"
       :pagination="false"
       row-key="collectFunctionId"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
       empty-text="暂无自定义函数"
       stripe
+      @search="applySearch"
+      @search-reset="applySearch"
+      @refresh="reload"
     >
+      <template #toolbar>
+        <ReButton icon="QuestionFilled" title="查看函数调用写法与内置函数名单" @click="showHelp">查看函数调用写法与内置函数名单</ReButton>
+        <ReButton icon="Plus" type="primary" title="新建函数" @click="openCreate">新建函数</ReButton>
+        <span class="collect-hint">保存前编译，登记后流程参数表达式 ${name(...)} 与脚本节点里的 fn.name(...) 都能调</span>
+      </template>
+
       <template #args="{ row }">{{ row.collectFunctionParameters ?? 0 }}</template>
       <template #script="{ row }">
         <span class="collect-cell-mono">{{ row.collectFunctionScript }}</span>
@@ -256,9 +261,9 @@ function showHelp(): void {
         </span>
       </template>
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="openEdit(row)">编辑</ReButton>
-        <ReButton size="small" text type="warning" @click="openTest(row)">试跑</ReButton>
-        <ReButton size="small" text type="danger" @click="remove(row)">删除</ReButton>
+        <ReButton layout="square" icon="Edit" type="primary" title="编辑这个函数" @click="openEdit(row)"/>
+        <ReButton layout="square" icon="VideoPlay" type="warning" title="试跑这个函数" @click="openTest(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" title="删除这个函数" @click="remove(row)"/>
       </template>
     </ReTable>
 

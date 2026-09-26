@@ -1,0 +1,59 @@
+/**
+ * 默认头像光环（未佩戴头像框时的底款，四处渲染点共用）
+ *
+ * 纯 CSS 自绘：conic 渐变环 + 柔光 + 缓慢旋转；颜色全部走 koi / Element 令牌，
+ * 主题色、亮暗模式切换自动适配；不依赖素材文件与后端字典。
+ *
+ * 用法（头像容器 position: relative，头像居中）：
+ *   <span
+ *     v-if="defaultVisible"
+ *     class="koi-avatar-default-frame"
+ *     :style="defaultStyle(avatarSize)"
+ *   />
+ * 样式函数见 components/avatarFrames.ts -> defaultFrameLayerStyle()。
+ */
+
+.koi-avatar-default-frame {
+  --koi-avatar-ring-w: 3px;
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 210deg,
+    var(--el-color-primary) 0deg,
+    var(--el-color-primary-light-3) 90deg,
+    var(--el-color-primary-light-5) 170deg,
+    var(--el-color-primary-light-3) 260deg,
+    var(--el-color-primary) 360deg
+  );
+  // 挖空中心：只保留贴着头像外沿的一圈渐变环
+  -webkit-mask: radial-gradient(
+    circle farthest-side,
+    transparent 0 calc(100% - var(--koi-avatar-ring-w)),
+    #000 calc(100% - var(--koi-avatar-ring-w) + 0.5px)
+  );
+  mask: radial-gradient(
+    circle farthest-side,
+    transparent 0 calc(100% - var(--koi-avatar-ring-w)),
+    #000 calc(100% - var(--koi-avatar-ring-w) + 0.5px)
+  );
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--el-color-primary) 45%, transparent));
+  // 12s 一圈：慢速流光足够优雅，也避免快速旋转造成的"闪烁"观感
+  animation: koi-avatar-ring-spin 12s linear infinite;
+}
+
+@keyframes koi-avatar-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .koi-avatar-default-frame {
+    animation: none;
+  }
+}

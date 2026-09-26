@@ -26,6 +26,7 @@ export default {
   list: {
     create: '新建助手',
     import: '导入',
+    market: '角色市场',
     docs: '使用说明',
     all: '全部',
     newGroup: '新建分组',
@@ -92,6 +93,10 @@ export default {
     targetHint: '压缩后保留至最大窗口的此比例',
     summaryMode: '摘要模式',
     summaryHint: '选择摘要生成方式：关闭、快速或记忆同步',
+    capThink: '默认深度思考',
+    capThinkHint: '使用此角色进入会话时自动开启深度思考',
+    capSearch: '默认在线检索',
+    capSearchHint: '使用此角色进入会话时自动开启联网检索',
     summaryPlaceholder: '请选择摘要模式',
     summaryDisabled: '关闭摘要',
     summaryDisabledDesc: '关闭摘要 - 仅裁剪工具结果，不生成语义摘要',

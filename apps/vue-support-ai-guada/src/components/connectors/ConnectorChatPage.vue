@@ -1,227 +1,429 @@
 <template>
-  <div class="connector-chat-page h-full flex flex-col bg-white dark:bg-[#1a1b1e]">
-    <!-- 顶部导航 -->
-    <div class="flex items-center px-4 py-3 border-b border-gray-200 dark:border-[#2e3035]">
-      <el-button
-        size="small"
-        @click="goBack"
-        class="mr-3"
-      >
-        <el-icon><ArrowLeft16Regular /></el-icon>
-        返回
-      </el-button>
-      <div class="flex items-center gap-3 flex-1">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="iconBgClass">
-          <span class="text-lg">{{ connectorIcon }}</span>
-        </div>
-        <div>
-          <div class="font-medium text-gray-900 dark:text-[#e8e9ed]">{{ connectorName }}</div>
-          <div class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ connectorTypeName }}</div>
-        </div>
-      </div>
-      <div v-if="modelName" class="text-sm text-gray-500 dark:text-[#8b8d95]">
-        模型: {{ modelName }}
-      </div>
-    </div>
-
-    <!-- 消息列表 -->
-    <div class="flex-1 overflow-y-auto px-4 py-6">
-      <div class="max-w-3xl mx-auto space-y-6">
-        <!-- 欢迎消息 -->
-        <div v-if="messages.length === 0 && !loading" class="text-center py-12">
-          <div class="text-4xl mb-4">{{ connectorIcon }}</div>
-          <h2 class="text-xl font-medium text-gray-900 dark:text-[#e8e9ed] mb-2">
-            欢迎使用 {{ connectorName }}
-          </h2>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95]">
-            在这里与 {{ connectorName }} 上的联系人聊天，AI 会自动回复消息
-          </p>
-        </div>
-
-        <!-- 加载中 -->
-        <div v-if="loading" class="text-center py-8">
-          <el-icon class="is-loading" size="24">
-            <LoadingOutlined />
-          </el-icon>
-        </div>
-
-        <!-- 消息列表 -->
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          class="flex gap-3"
-          :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
-        >
-          <div v-if="message.role === 'assistant'" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
-            <span class="text-sm">{{ connectorIcon }}</span>
-          </div>
-          <div
-            class="max-w-[70%] rounded-2xl px-4 py-2.5"
-            :class="message.role === 'user'
-              ? 'bg-primary text-white rounded-tr-sm'
-              : 'bg-gray-100 dark:bg-[#2e3035] text-gray-900 dark:text-[#e8e9ed] rounded-tl-sm'
-            "
-          >
-            <div class="text-sm whitespace-pre-wrap">{{ message.content }}</div>
-            <div class="text-xs mt-1 opacity-70">{{ formatTime(message.createTime) }}</div>
-          </div>
+  <div class="connector-chat">
+    <!-- 顶部栏 -->
+    <header class="chat-topbar">
+      <div class="topbar-left">
+        <button type="button" class="back-btn" title="返回连接器列表" @click="router.back()">
+          <el-icon :size="18"><ArrowLeft24Regular /></el-icon>
+        </button>
+        <span class="topbar-badge">
+          <ConnectorIcon :type="connectorInfo.type" :size="18" />
+        </span>
+        <div class="topbar-id">
+          <span class="topbar-name">{{ connectorInfo.name || '连接器' }}</span>
+          <span class="topbar-sub">
+            <span class="status-dot" :class="connectorInfo.status === 'online' ? 'is-online' : 'is-off'" />
+            {{ connectorInfo.status === 'online' ? '在线' : '离线' }}
+            <span class="topbar-type">{{ platformLabel }}</span>
+          </span>
         </div>
       </div>
-    </div>
 
-    <!-- 输入区域 -->
-    <div class="border-t border-gray-200 dark:border-[#2e3035] px-4 py-3">
-      <div class="max-w-3xl mx-auto">
-        <el-input
-          v-model="inputMessage"
-          type="textarea"
-          :rows="3"
-          placeholder="输入消息..."
-          @keydown.enter.prevent="sendMessage"
+      <div class="topbar-right">
+        <McpSelectorPopover
+          v-if="admin"
+          v-model="selectedMcpServerIds"
+          @clear="handleClearMcp"
         />
-        <div class="flex justify-end mt-2">
-          <el-button
-            type="primary"
-            @click="sendMessage"
-            :loading="sending"
-          >发送</el-button>
-        </div>
       </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="chat-body">
+      <ConversationRail
+        :conversations="conversations"
+        :active-chat-id="activeChatId"
+        :online="connectorInfo.status === 'online'"
+        :loading="loadingConversations"
+        @select="handleSelectConversation"
+        @refresh="loadConversations"
+        @clear="handleClearConversation"
+      />
+
+      <section class="chat-panel">
+        <!-- 会话子头 -->
+        <div v-if="activeConversation" class="chat-subheader">
+          <span class="sub-avatar" :class="activeConversation.fromGroup ? 'is-group' : 'is-person'">
+            <el-icon :size="15">
+              <People24Regular v-if="activeConversation.fromGroup" />
+              <Person24Regular v-else />
+            </el-icon>
+          </span>
+          <div class="sub-id">
+            <span class="sub-title">{{ conversationTitle(activeConversation) }}</span>
+            <span class="sub-desc">
+              {{ activeConversation.messageCount }} 条消息
+              <span v-if="activeConversation.fromGroup" class="sub-tag">群聊</span>
+            </span>
+          </div>
+        </div>
+
+        <MessageStream
+          ref="messageStreamRef"
+          :messages="messages"
+          :active="!!activeChatId"
+          :platform="connectorInfo.type"
+          :connector-name="connectorInfo.name || '连接器'"
+          :loading="loadingMessages"
+        />
+
+        <MessageComposer
+          v-model="inputMessage"
+          v-model:context-count="contextCount"
+          :sending="sending"
+          :ai-sending="aiSending"
+          :disabled="!activeChatId"
+          @send="handleSend"
+          @ai-send="handleAiSend"
+        />
+      </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft16Regular, LoadingOutlined } from '@fluentui/vue-icons'
-import { apiService } from '@/services/ApiService'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  ArrowLeft24Regular, Person24Regular, People24Regular,
+} from '@vicons/fluent'
+import { isAdmin } from '@repo/core'
+import { api } from '@/framework/context'
+import ConnectorIcon from './ConnectorIcon.vue'
+import McpSelectorPopover from '../chat/chat-input/McpSelectorPopover.vue'
+import ConversationRail from './chat/ConversationRail.vue'
+import MessageStream from './chat/MessageStream.vue'
+import MessageComposer from './chat/MessageComposer.vue'
+import { conversationTitle } from './chat/format'
+
+defineOptions({ name: 'ConnectorChatPage' })
 
 const route = useRoute()
 const router = useRouter()
 
-// 连接器 ID
-const connectorId = computed(() => route.params.id as string)
+const connectorId = computed(() => Number(route.params.id))
+const admin = isAdmin()
 
-// 连接器信息
 const connectorInfo = ref<any>({})
+const conversations = ref<any[]>([])
+const activeChatId = ref('')
 const messages = ref<any[]>([])
 const inputMessage = ref('')
+const contextCount = ref(10)
+const selectedMcpServerIds = ref<string[]>([])
+
+const loadingConversations = ref(false)
+const loadingMessages = ref(false)
 const sending = ref(false)
-const loading = ref(false)
+const aiSending = ref(false)
 
-// 连接器类型相关
-const connectorType = computed(() => connectorInfo.value.type || 'ilink')
-const connectorName = computed(() => connectorInfo.value.name || '微信')
-const connectorTypeName = computed(() => {
-  const names: Record<string, string> = {
-    ilink: '微信 (iLink)',
-    feishu: '飞书',
-    wecom: '企业微信',
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+const activeConversation = computed(() =>
+  conversations.value.find(c => c.chatId === activeChatId.value),
+)
+
+const platformLabel = computed(() => {
+  const map: Record<string, string> = {
+    wechat: '微信', qq: 'QQ', dingtalk: '钉钉',
+    feishu: '飞书', lark: 'Lark', telegram: 'Telegram',
   }
-  return names[connectorType.value] || connectorType.value
+  const t = connectorInfo.value.type
+  return t ? `· ${map[t] || t}` : ''
 })
-const connectorIcon = computed(() => {
-  const icons: Record<string, string> = {
-    ilink: '💬',
-    feishu: '🐦',
-    wecom: '💼',
-  }
-  return icons[connectorType.value] || '🔌'
-})
-const iconBgClass = computed(() => {
-  const colors: Record<string, string> = {
-    ilink: 'bg-green-100 dark:bg-green-900/30',
-    feishu: 'bg-blue-100 dark:bg-blue-900/30',
-    wecom: 'bg-teal-100 dark:bg-teal-900/30',
-  }
-  return colors[connectorType.value] || 'bg-gray-100 dark:bg-gray-800'
-})
-const modelName = computed(() => connectorInfo.value.modelName || '')
 
-// 格式化时间
-const formatTime = (time: any) => {
-  if (!time) return ''
-  const date = new Date(time)
-  return date.toLocaleTimeString()
-}
-
-// 返回
-const goBack = () => {
-  router.push('/connectors')
-}
-
-// 获取连接器信息
-const fetchConnectorInfo = async () => {
+async function loadConnectorInfo() {
   try {
-    const res = await apiService.get(`/v2/connectors/${connectorId.value}`)
-    connectorInfo.value = res.data || {}
-  } catch (error) {
-    console.error('获取连接器信息失败:', error)
+    const data = await api.get(`/connectors/${connectorId.value}`)
+    connectorInfo.value = data || {}
+    if (data?.mcpServerIds) selectedMcpServerIds.value = data.mcpServerIds
+    if (data?.randomContextCount != null) contextCount.value = data.randomContextCount
+  } catch (e) {
+    console.error('加载连接器信息失败', e)
   }
 }
 
-// 获取历史消息
-const fetchMessages = async () => {
-  loading.value = true
+async function loadConversations() {
+  loadingConversations.value = true
   try {
-    const res = await apiService.get(`/v2/connectors/${connectorId.value}/messages`, {
-      params: { limit: 50 }
-    })
-    messages.value = res.data || []
-  } catch (error) {
-    console.error('获取历史消息失败:', error)
+    const data = await api.get(`/connectors/${connectorId.value}/conversations`)
+    conversations.value = data || []
+    if (!activeChatId.value && conversations.value.length) {
+      handleSelectConversation(conversations.value[0].chatId)
+    }
+  } catch (e) {
+    console.error('加载会话列表失败', e)
   } finally {
-    loading.value = false
+    loadingConversations.value = false
   }
 }
 
-// 发送消息
-const sendMessage = async () => {
-  if (!inputMessage.value.trim()) return
-  sending.value = true
-
-  // 添加用户消息
-  messages.value.push({
-    id: Date.now(),
-    role: 'user',
-    content: inputMessage.value,
-    createTime: new Date().toISOString()
-  })
-
-  const content = inputMessage.value
-  inputMessage.value = ''
-
+async function loadMessages() {
+  if (!activeChatId.value) return
+  loadingMessages.value = true
   try {
-    // 发送消息到后端
-    await apiService.post(`/v2/connectors/${connectorId.value}/send`, { content })
+    const data = await api.get(
+      `/connectors/${connectorId.value}/messages`,
+      { params: { chatId: activeChatId.value } },
+    )
+    messages.value = data || []
+  } catch (e) {
+    console.error('加载消息失败', e)
+  } finally {
+    loadingMessages.value = false
+  }
+}
 
-    // TODO: 等待 AI 回复（通过 SSE 或轮询）
-    // 暂时模拟 AI 回复
-    setTimeout(() => {
-      messages.value.push({
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: `收到消息："${content}"，AI 正在回复...`,
-        createTime: new Date().toISOString()
-      })
-    }, 1000)
-  } catch (error) {
-    ElMessage.error('发送失败')
+function handleSelectConversation(chatId: string) {
+  activeChatId.value = chatId
+  messages.value = []
+  loadMessages()
+}
+
+async function handleSend() {
+  if (!inputMessage.value.trim() || !activeChatId.value || sending.value) return
+  sending.value = true
+  try {
+    const data = await api.post(`/connectors/${connectorId.value}/send`, {
+      chatId: activeChatId.value,
+      content: inputMessage.value,
+      mcpServerIds: selectedMcpServerIds.value,
+    })
+    if (data?.sent === false) {
+      ElMessage.warning(data.errorMessage || data.message || '消息未能送达，对方可能暂时不可达')
+    } else {
+      ElMessage.success('消息已发送')
+    }
+    inputMessage.value = ''
+    await loadMessages()
+    await loadConversations()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '发送失败')
   } finally {
     sending.value = false
   }
 }
 
-onMounted(() => {
-  fetchConnectorInfo()
-  fetchMessages()
+async function handleAiSend() {
+  if (!inputMessage.value.trim() || !activeChatId.value || aiSending.value) return
+  aiSending.value = true
+  try {
+    const data = await api.post(`/connectors/${connectorId.value}/ai-send`, {
+      chatId: activeChatId.value,
+      prompt: inputMessage.value,
+      contextCount: contextCount.value,
+      mcpServerIds: selectedMcpServerIds.value,
+    })
+    if (data?.sent === false) {
+      ElMessage.warning(data.errorMessage || data.message || 'AI 回复未能送达，对方可能暂时不可达')
+    } else {
+      ElMessage.success('AI 回复已发送')
+    }
+    inputMessage.value = ''
+    await loadMessages()
+    await loadConversations()
+  } catch (e: any) {
+    ElMessage.error(e?.message || 'AI 发送失败')
+  } finally {
+    aiSending.value = false
+  }
+}
+
+async function handleClearConversation(conv: any) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要清除与「${conversationTitle(conv)}」的会话记录吗？`,
+      '清除会话',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await api.delete(`/connectors/${connectorId.value}/conversations`, {
+      params: { chatId: conv.chatId },
+    })
+    ElMessage.success('会话已清除')
+    if (activeChatId.value === conv.chatId) {
+      activeChatId.value = ''
+      messages.value = []
+    }
+    await loadConversations()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '清除失败')
+  }
+}
+
+function handleClearMcp() {
+  selectedMcpServerIds.value = []
+}
+
+onMounted(async () => {
+  await loadConnectorInfo()
+  await loadConversations()
+  pollTimer = setInterval(() => {
+    loadConversations()
+    if (activeChatId.value) loadMessages()
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 
 <style scoped>
-.connector-chat-page {
+.connector-chat {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+/* 顶部栏 */
+.chat-topbar {
+  height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-surface-border);
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.back-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-gray);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.back-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--color-text);
+}
+.topbar-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.topbar-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.topbar-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.topbar-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-gray);
+}
+.topbar-type {
+  color: var(--color-text-disabled);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.status-dot.is-online {
+  background: var(--el-color-success);
+}
+.status-dot.is-off {
+  background: var(--el-color-info-light-5);
+}
+
+/* 主体 */
+.chat-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.chat-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+/* 会话子头 */
+.chat-subheader {
+  flex-shrink: 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 24px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-surface-border);
+}
+.sub-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sub-avatar.is-group {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+}
+.sub-avatar.is-person {
+  color: var(--color-text-gray);
+  background: var(--el-fill-color-light);
+}
+.sub-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sub-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.sub-desc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-gray);
+}
+.sub-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--el-color-warning-dark-2);
+  background: var(--el-color-warning-light-9);
 }
 </style>

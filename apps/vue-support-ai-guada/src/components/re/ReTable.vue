@@ -11,6 +11,7 @@
       :loading="loading"
       :empty-text="emptyText"
       :row-key="rowKey"
+      :row-style="rowStyle"
       class="re-table"
       @selection-change="$emit('selection-change', $event)"
       @row-click="$emit('row-click', $event)"
@@ -49,12 +50,13 @@ defineProps({
   loading: { type: Boolean, default: false },
   emptyText: { type: String, default: '暂无数据' },
   rowKey: { type: [String, Function], default: 'id' },
+  rowStyle: { type: [Object, Function], default: () => ({}) },
   selectable: { type: Boolean, default: false },
   showIndex: { type: Boolean, default: true },
   toolbar: { type: Boolean, default: false },
   pagination: { type: Boolean, default: false },
   total: { type: Number, default: 0 },
-  pageSizes: { type: Array, default: () => [10, 20, 50, 100] },
+  pageSizes: { type: Array, default: () => [20, 50, 100] },
 })
 
 const emit = defineEmits([
@@ -63,56 +65,48 @@ const emit = defineEmits([
 ])
 
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(50)
 </script>
 
 <style scoped>
 .re-table-wrapper {
-  background: #ffffff;
-  border-radius: 12px;
+  background: transparent;
+  border-radius: var(--mp-radius, 12px);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .re-table-toolbar {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #f1f5f9);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fafbfc;
+  background: var(--el-fill-color-light, transparent);
 }
 
-.re-table :deep(.el-table__header-wrapper) {
-  border-radius: 12px 12px 0 0;
+.re-table :deep(.el-table) {
+  background: transparent;
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
 }
 
 .re-table :deep(.el-table__header th) {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--el-table-header-bg-color, var(--el-fill-color-light));
+  color: var(--el-table-header-text-color, var(--el-text-color-secondary));
   font-weight: 600;
   font-size: 13px;
-  height: 48px;
-  border-bottom: 2px solid #e2e8f0;
+  height: 46px;
 }
 
 .re-table :deep(.el-table__body tr) {
   transition: background 0.15s ease;
 }
 
-.re-table :deep(.el-table__body tr:hover > td) {
-  background: #f0f4ff !important;
-}
-
 .re-table :deep(.el-table__body td) {
-  height: 52px;
-  font-size: 14px;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.re-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
-  background: #fafbfc;
+  height: 50px;
+  font-size: 13.5px;
+  color: var(--el-table-text-color, var(--el-text-color-regular));
+  border-bottom-color: var(--el-border-color-lighter, #f1f5f9);
 }
 
 .re-table-index {
@@ -122,30 +116,26 @@ const pageSize = ref(10)
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--el-fill-color, #f1f5f9);
+  color: var(--el-text-color-secondary, #64748b);
   font-size: 12px;
   font-weight: 500;
 }
 
 .re-table-pagination {
-  padding: 16px 20px;
-  border-top: 1px solid #f1f5f9;
+  padding: 14px 18px;
+  border-top: 1px solid var(--el-border-color-lighter, #f1f5f9);
   display: flex;
   justify-content: flex-end;
-  background: #fafbfc;
+  background: var(--el-fill-color-light, transparent);
 }
 
 .re-table-pagination :deep(.el-pagination) {
-  --el-pagination-button-bg-color: #ffffff;
-  --el-pagination-hover-color: #667eea;
-}
-
-.re-table-pagination :deep(.el-pagination.is-background .el-pager li:not(.is-active):hover) {
-  color: #667eea;
+  --el-pagination-hover-color: var(--el-color-primary);
 }
 
 .re-table-pagination :deep(.el-pagination.is-background .el-pager li.is-active) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--el-color-primary, #667eea);
+  color: var(--el-color-white, #ffffff);
 }
 </style>

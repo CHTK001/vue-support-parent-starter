@@ -1,4 +1,11 @@
 import type { ApiContext } from "./api-context";
+import { currentToken } from "@/framework/context";
+
+/** 无法携带请求头的资源地址（img / iframe）用查询参数传令牌，参数名与后端 oauth 客户端 tokenName 一致 */
+function authTokenQuery(): string {
+  const token = currentToken();
+  return token ? `x-oauth-token=${encodeURIComponent(token)}` : '';
+}
 
 export interface WorkspaceApi {
   getWorkspaceTree(sessionId: string): Promise<{ tree: any[] }>;
@@ -29,27 +36,23 @@ export const workspaceApi: WorkspaceApi = {
   },
 
   async getWorkspaceFile(this: ApiContext, sessionId: string, filePath: string) {
-    // 非 file:// 页面（Web / Electron Dev）覆盖为相对路径，走 Vite proxy（同源），
-    // 使 Set-Cookie 作用在页面源上，后续 img 请求才能携带 cookie
-    const isFileProto = typeof window !== 'undefined' && window.location.protocol === 'file:';
     return await this._request(
       `/sessions/${sessionId}/workspace/file?path=${encodeURIComponent(filePath)}`,
-      isFileProto ? undefined : { baseURL: '/api/v1' },
     );
   },
 
   getWorkspaceRawFileUrl(this: ApiContext, sessionId: string, filePath: string) {
     const baseUrl = this.baseURL.replace(/\/$/, '');
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token") || '';
-    return `${baseUrl}/sessions/${sessionId}/workspace/raw-file?path=${encodeURIComponent(filePath)}&token=${encodeURIComponent(token)}`;
+    const query = authTokenQuery();
+    return `${baseUrl}/sessions/${sessionId}/workspace/raw-file?path=${encodeURIComponent(filePath)}${query ? `&${query}` : ''}`;
   },
 
   getWorkspaceHtmlPreviewUrl(this: ApiContext, sessionId: string, filePath: string) {
     const baseUrl = this.baseURL.replace(/\/$/, '');
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token") || '';
     // 按路径段编码，保留 / 作为路径分隔符，使浏览器能正确解析相对资源（CSS/JS 等）
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-    return `${baseUrl}/sessions/${sessionId}/workspace/html-preview/${encodedPath}?token=${encodeURIComponent(token)}`;
+    const query = authTokenQuery();
+    return `${baseUrl}/sessions/${sessionId}/workspace/html-preview/${encodedPath}${query ? `?${query}` : ''}`;
   },
 
   async deleteWorkspaceFile(this: ApiContext, sessionId: string, filePath: string) {

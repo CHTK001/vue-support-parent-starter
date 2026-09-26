@@ -67,7 +67,7 @@ import { apiService } from '@/services/ApiService';
 import { usePopup } from "../../composables/usePopup";
 import { useTitle } from "../../composables/useTitle";
 import { useRouter, useRoute } from 'vue-router';
-import { fixFrontendAssetUrl } from '@/utils/url'
+import { resolveBrandLogoLarge } from '@/utils/branding'
 import { useWorkspaceStore } from '@/stores/workspace';
 import { usePrefillInput } from '@/composables/usePrefillInput';
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter';
@@ -90,11 +90,8 @@ const route = useRoute();
 // 响应式数据 - 类型化
 const title = useTitle();
 
-// 计算属性：自适应 Banner 路径
-// const bannerPath = computed(() => fixFrontendAssetUrl('/images/chat_banner.webp'))
-
-// Logo 路径（使用 fixFrontendAssetUrl 适配 Electron 环境）
-const bannerPath = computed(() => fixFrontendAssetUrl('/images/guada_logo.png'))
+// 计算属性：Banner 图（取自 app.yaml 的 app.logoLargeUrl，内部已适配 Electron 资源前缀）
+const bannerPath = computed(() => resolveBrandLogoLarge())
 
 // 角色数据
 const characters = ref<any[]>([]);
@@ -164,6 +161,7 @@ const clearTypewriterTimer = (): void => {
 const currentSession = ref<any>({
   characterId: null,  // 必须绑定角色
   model_id: null,
+  mcpServerIds: '',  // MCP 服务器选择（仅管理员）
   avatar_url: null,
   title: t('chat.welcome.newSession'),
   workspacePath: null,  // 工作目录路径，默认为 null 使用系统默认目录
@@ -194,26 +192,44 @@ const currentCharacter = computed(() => {
   return null;
 });
 
-// 当前使用的模型 ID（三级回退逻辑）
-const currentModelId = computed(() => {
-  // 第一优先级：如果用户手动选择过模型，使用用户选择的
-  if (userSelectedModelId.value) {
-    return userSelectedModelId.value;
-  }
+// 系统默认模型（系统设置 → 默认模型 → runtime/default_model）
+const systemDefaultModelId = ref<string | null>(null);
 
-  // 第二优先级：使用角色的默认模型
-  if (currentCharacter.value?.model_id) {
-    return currentCharacter.value.model_id;
-  }
+// 模型是否在本地可用列表中
+const isModelAvailable = (id: string | null | undefined): boolean =>
+  !!id && models.value.some(m => m.id === id);
 
-  // 第三优先级：使用模型列表的第一个模型
-  if (models.value.length > 0) {
-    return models.value[0].id;
-  }
+// 兜底选择：优先可用的 agnes 文本模型，其次第一个非图片模型，最后第一个模型
+const fallbackModelId = (): string | null => {
+  if (models.value.length === 0) return null;
+  const agnes = models.value.find(m => m.model && /^agnes-(?!image)/.test(m.model));
+  if (agnes) return agnes.id;
+  const text = models.value.find(m => m.model && !/image/.test(m.model));
+  return (text || models.value[0]).id;
+};
 
-  // 兜底：返回 null
-  return null;
-});
+// 自动模式统一解析：用户手选 → 角色默认 → 系统默认 → 智能兜底
+const resolveAutoModelId = (): string | null => {
+  if (isModelAvailable(userSelectedModelId.value)) return userSelectedModelId.value;
+  if (isModelAvailable(currentCharacter.value?.model_id)) return currentCharacter.value.model_id;
+  if (isModelAvailable(systemDefaultModelId.value)) return systemDefaultModelId.value;
+  return fallbackModelId();
+};
+
+// 当前使用的模型 ID
+const currentModelId = computed(() => resolveAutoModelId());
+
+// 加载系统默认模型
+const loadSystemDefaultModel = async (): Promise<void> => {
+  try {
+    const resp = await apiService.fetchGroupSettings('runtime');
+    const data = (resp?.data || resp || {}) as Record<string, any>;
+    const v = data.default_model;
+    systemDefaultModelId.value = v ? String(v) : null;
+  } catch (error) {
+    systemDefaultModelId.value = null;
+  }
+};
 
 // 标记是否正在初始化，避免 watch 重复处理
 const isInitializing = ref(false);
@@ -229,22 +245,11 @@ watch(() => currentSession.value.characterId, (newCharId, oldCharId) => {
     // 角色切换时，使用三级回退逻辑选择模型
     const newCharacter = characters.value.find(c => c.id === newCharId);
     if (newCharacter) {
-      let selectedModelId: string | null = null;
-
-      // 第一优先级：角色的默认模型
+      // 角色有推荐模型时清空用户手选，再统一解析
       if (newCharacter.model_id) {
-        selectedModelId = newCharacter.model_id;
-        // 清空用户手动选择的模型 ID（因为角色有推荐模型）
         userSelectedModelId.value = null;
       }
-      // 第二优先级：用户之前手动选择的模型
-      else if (userSelectedModelId.value) {
-        selectedModelId = userSelectedModelId.value;
-      }
-      // 第三优先级：模型列表的第一个模型
-      else if (models.value.length > 0) {
-        selectedModelId = models.value[0].id;
-      }
+      let selectedModelId: string | null = resolveAutoModelId();
 
       // 设置模型 ID
       if (selectedModelId) {
@@ -293,7 +298,7 @@ const loadModels = async (): Promise<void> => {
     (response.items || []).forEach(provider => {
       const availableModels = provider.models?.filter((m: any) => m.enabled).map((m: any) => ({
         ...m,
-        id: m.model,
+        id: m.id,
         name: m.model
       })) || [];
       models.value.push(...availableModels);
@@ -315,27 +320,14 @@ const loadCharacters = async (): Promise<void> => {
       // 设置初始化标志，防止 watch 干扰
       isInitializing.value = true;
 
-      const savedCharacter = characters.value.find(c => c.id === lastSelectedCharacterId.value);
+      const savedCharacter = characters.value.find(c => String(c.id) === String(lastSelectedCharacterId.value));
       const targetCharacter = savedCharacter || characters.value[0];
 
       if (targetCharacter) {
         currentSession.value.characterId = targetCharacter.id;
 
-        // 三级回退逻辑确定模型 ID
-        let selectedModelId: string | null = null;
-
-        // 第一优先级：用户手动选择的模型
-        if (userSelectedModelId.value) {
-          selectedModelId = userSelectedModelId.value;
-        }
-        // 第二优先级：角色的默认模型
-        else if (targetCharacter.model_id) {
-          selectedModelId = targetCharacter.model_id;
-        }
-        // 第三优先级：模型列表的第一个模型
-        else if (models.value.length > 0) {
-          selectedModelId = models.value[0].id;
-        }
+        // 统一自动解析确定模型 ID
+        let selectedModelId: string | null = resolveAutoModelId();
 
         // 设置模型 ID
         if (selectedModelId) {
@@ -372,17 +364,11 @@ const handleCharacterSelect = (character: any): void => {
   currentSession.value.characterId = character.id;
   lastSelectedCharacterId.value = character.id;
 
-  // 切换角色时的模型选择逻辑
-  let selectedModelId: string | null = null;
-
+  // 切换角色时统一解析模型
   if (character.model_id) {
-    selectedModelId = character.model_id;
     userSelectedModelId.value = null;
-  } else if (userSelectedModelId.value) {
-    selectedModelId = userSelectedModelId.value;
-  } else if (models.value.length > 0) {
-    selectedModelId = models.value[0].id;
   }
+  let selectedModelId: string | null = resolveAutoModelId();
 
   if (selectedModelId) {
     currentSession.value.model_id = selectedModelId;
@@ -440,6 +426,13 @@ const chatInputConfig = computed(() => ({
 
   // 附件
   attachments: currentSession.value?.settings?.attachments || {},
+
+  // MCP 服务器选择（仅管理员，ChatInput 内部按管理员身份决定是否显示入口）
+  mcpServerIds: currentSession.value?.mcpServerIds || '',
+
+  // 角色级默认能力（深度思考 / 在线检索），进入会话即预置
+  defaultThink: currentCharacter.value?.settings?.capabilities?.defaultThink === true,
+  defaultSearch: currentCharacter.value?.settings?.capabilities?.defaultSearch === true,
 }));
 
 /**
@@ -499,6 +492,11 @@ const handleConfigChange = (config: any): void => {
     if (!currentSession.value.settings) currentSession.value.settings = {};
     currentSession.value.settings.attachments = config.attachments;
   }
+
+  // 处理 MCP 服务器选择（仅管理员可写）
+  if (typeof config.mcpServerIds !== 'undefined') {
+    currentSession.value.mcpServerIds = config.mcpServerIds;
+  }
 };
 
 // 前往角色管理页面
@@ -509,12 +507,12 @@ const { consumeSelectedCharacter } = useSelectedCharacter()
 
 onMounted(() => {
   title.value = t('chat.welcome.pageTitle');
-  // 先加载模型列表，再加载角色列表
-  Promise.all([loadModels(), loadCharacters()]).then(() => {
+  // 先加载模型列表、系统默认模型，再加载角色列表
+  Promise.all([loadModels(), loadSystemDefaultModel(), loadCharacters()]).then(() => {
     // 角色列表加载完成后，检查是否有跨页面传递的预选角色
     const preSelectedId = consumeSelectedCharacter();
     if (preSelectedId) {
-      const character = characters.value.find(c => c.id === preSelectedId);
+      const character = characters.value.find(c => String(c.id) === String(preSelectedId));
       if (character) {
         handleCharacterSelect(character);
       }
@@ -599,30 +597,37 @@ onUnmounted(() => {
   clearTypewriterTimer();
 });
 
-const autoTitle = (): string => {
-  if (inputMessage.value.content && inputMessage.value.content.length > 0) {
-    return inputMessage.value.content.substring(0, 20);
+const autoTitle = (content?: string): string => {
+  const c = typeof content === 'string' ? content : inputMessage.value.content;
+  if (c && c.trim().length > 0) {
+    return c.trim().substring(0, 20);
   }
   return t('chat.welcome.newSession')
 }
 
-const sendMessage = async (): Promise<void> => {
+const sendMessage = async (payload?: any): Promise<void> => {
   if (!currentSession.value.characterId) {
     notify.error(t('common.createFailed'), t('chat.welcome.createFailedNoCharacter'));
     return;
   }
-  // 修复：传递完整的 payload，包含 knowledgeBaseIds
+  // 优先使用 payload 中已剥离技能徽标的干净正文，避免 [/skill:...] 污染消息与标题
+  const cleanContent = typeof payload?.content === 'string' ? payload.content : inputMessage.value.content;
+  const skillNames = Array.isArray(payload?.skillNames) ? payload.skillNames : [];
   emit("create-session", {
     characterId: currentSession.value.characterId,
     modelId: currentModelId.value,
-    title: autoTitle(),
+    mcpServerIds: currentSession.value.mcpServerIds || '',
+    title: autoTitle(cleanContent),
     settings: currentSession.value.settings,
     workspacePath: currentSession.value.workspacePath || null,
     groupId: currentSession.value.groupId || null
   }, {
-    content: inputMessage.value.content,      // 使用 content 字段
-    files: inputMessage.value.files || [],    // 使用 files 字段
-    knowledgeBaseIds: currentSession.value.settings?.referencedKbs || []  // 新增：传递知识库 ID
+    content: cleanContent,
+    files: inputMessage.value.files || [],
+    knowledgeBaseIds: currentSession.value.settings?.referencedKbs || [],
+    think: typeof payload?.think === 'boolean' ? payload.think : false,
+    search: typeof payload?.search === 'boolean' ? payload.search : false,
+    skillNames,
   });
 }
 

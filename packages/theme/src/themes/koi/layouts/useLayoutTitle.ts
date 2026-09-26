@@ -8,7 +8,7 @@
 import { getMenuLanguage, translateConfigText } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { getConfig } from "@repo/config";
-import { resolveAssetUrl } from "@repo/assets";
+import { resolveAssetUrl, defaultLogoUrl } from "@repo/assets";
 
 /** 在递归菜单树中按路径精确查找菜单 meta */
 function findMetaExact(
@@ -129,12 +129,11 @@ export function resolvePageTitle(
   return finalTitle === "home" || !finalTitle ? "" : finalTitle;
 }
 
-/** 同步浏览器标签页图标（favicon）：跟随 app.yaml loginConfig.logoUrl */
+/** 同步浏览器标签页图标（favicon）：跟随 app.yaml loginConfig.logoUrl，未配置则回退打包 logo */
 export function setDocumentFavicon(): void {
   try {
     const logoUrl = getConfig().login.logoUrl;
-    if (!logoUrl) return;
-    const resolved = resolveAssetUrl(logoUrl);
+    const resolved = logoUrl ? resolveAssetUrl(logoUrl) : defaultLogoUrl;
     let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (!icon) {
       icon = document.createElement("link");

@@ -13,14 +13,15 @@
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
+import { createVNode, render } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
 import "./styles/tokens.css";
 import "./styles/pages.css";
 import "./styles/telemetry.css";
-// 路由树直引 @pages/filesystem 的视图（不经包 barrel），故样式也显式引：barrel 里的 registerMenuViewModules 对本 app 无用
-import "@pages/filesystem/styles/filesystem-page.css";
 import { installUi } from "@repo/ui";
+import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./routes";
+import { registerMonitorDatasourceSchema } from "./datasourceSchemaProvider";
 
 /** 本页可能用到的 Re* 组件（ReIcon / ReScrollNav / ReDrawer 已由 installKoi 注册） */
 const MONITOR_RE_COMPONENTS = [
@@ -55,9 +56,9 @@ const MONITOR_RE_COMPONENTS = [
   "ReEmptyState",
   "ReTab",
   "ReKit",
-  // @pages/filesystem 的文件管理页用到：列表上方的搜索条与分片上传控件
-  "ReSearch",
-  "ReUpload",
+  "ReProcessTask",
+  "ReCommand",
+  "ReIconSelect",
 ];
 
 /**
@@ -75,7 +76,25 @@ const MONITOR_RE_COMPONENTS = [
 async function installKoiSinglePage(app: VueApp): Promise<void> {
   await installKoi(app);
   await installUi(app, { components: MONITOR_RE_COMPONENTS });
+  mountProcessHost(app);
 }
+
+/**
+ * 挂载全局过程任务浮层宿主（共享主 app context，独立于布局）
+ *
+ * @param app 主 Vue 应用
+ */
+function mountProcessHost(app: VueApp): void {
+  const container = document.createElement("div");
+  container.setAttribute("data-process-host", "");
+  document.body.appendChild(container);
+  const vnode = createVNode(ProcessHost);
+  vnode.appContext = (app as unknown as { _context: unknown })._context as never;
+  render(vnode, container);
+}
+
+// 数据源中心「浏览表结构」改走监控后端 /ms/monitor/db/*（不依赖采集平台）
+registerMonitorDatasourceSchema();
 
 await createContextApp({
   appName: "vue-support-monitor-starter",

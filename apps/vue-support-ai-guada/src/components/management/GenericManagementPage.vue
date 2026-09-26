@@ -319,14 +319,11 @@ defineExpose({ loadData, formData });
 
 <style scoped>
 :deep(.el-table) {
-  border-radius: 8px;
+  border-radius: var(--mp-radius-lg);
   overflow: hidden;
 }
 :deep(.el-table th) {
-  background-color: #f8f9fa !important;
+  background-color: var(--el-fill-color-light) !important;
   font-weight: 600;
-}
-.dark :deep(.el-table th) {
-  background-color: #252525 !important;
 }
 </style>

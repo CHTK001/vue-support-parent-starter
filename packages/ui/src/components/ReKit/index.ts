@@ -355,6 +355,12 @@ const ReDropdownItem = defineComponent({
 });
 
 /* ==================== ReDescriptions / ReDescriptionsItem ==================== */
+/**
+ * 子项不可包装：ElDescriptions 在自身 render 阶段按 vnode 类型名收集子项，
+ * 且 ElDescriptionsItem 是无 render 的标记组件，包一层即丢失全部内容。
+ */
+const ReDescriptionsItem = ElDescriptionsItem;
+
 const ReDescriptions = defineComponent({
   name: "ReDescriptions",
   inheritAttrs: true,
@@ -382,26 +388,6 @@ const ReDescriptions = defineComponent({
           contentStyle: props.contentStyle,
           class: "re-descriptions",
         } as any,
-        slots.default?.(),
-      );
-  },
-});
-
-const ReDescriptionsItem = defineComponent({
-  name: "ReDescriptionsItem",
-  inheritAttrs: true,
-  props: {
-    label: { type: String, default: "" },
-    span: { type: Number, default: 1 },
-    minWidth: { type: [String, Number] },
-    align: { type: String },
-    labelAlign: { type: String },
-  },
-  setup(props, { attrs, slots }) {
-    return () =>
-      h(
-        ElDescriptionsItem,
-        { ...attrs, label: props.label, span: props.span, minWidth: props.minWidth, align: props.align, labelAlign: props.labelAlign } as any,
         slots.default?.(),
       );
   },

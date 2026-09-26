@@ -19,6 +19,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTab from "@repo/ui/re-tab";
 import FieldTable from "./FieldTable.vue";
+import MappingEditor from "./MappingEditor.vue";
 import PairsEditor from "./PairsEditor.vue";
 import {
   createNode,
@@ -41,6 +42,7 @@ import type {
   FlowSelection,
 } from "@repo/ui/re-flow-graph";
 import type {
+  CollectColumn,
   CollectDsl,
   CollectEdge,
   CollectExtractField,
@@ -58,6 +60,12 @@ const props = defineProps<{
   states?: Record<string, CollectTaskLog>;
   /** 子流程节点可选的流程，未传时 flow 参数退回手填流程ID */
   flowOptions?: CollectOption[];
+  /** 数据源下拉候选，首项固定是应用主库 */
+  datasourceOptions?: CollectOption[];
+  /** 读某个数据源的表清单；未传时 table 参数退回手填表名 */
+  loadTables?: (datasource: string) => Promise<string[]>;
+  /** 读某张表的列元数据，供字段映射控件用 */
+  loadColumns?: (datasource: string, table: string) => Promise<CollectColumn[]>;
 }>();
 
 const emit = defineEmits<{ (event: "change"): void }>();
@@ -182,9 +190,14 @@ const selectedMeta = computed(() =>
   nodeForm.value ? metaMap.value[nodeForm.value.shape] ?? null : null,
 );
 
-const flowOptionsOf = computed(() =>
-  (props.flowOptions ?? []).map(item => ({ value: item.value, label: item.label })),
-);
+  const flowOptionsOf = computed(() =>
+    (props.flowOptions ?? []).map(item => ({ value: item.value, label: item.label })),
+  );
+
+  /** 数据源候选同样要摊成 ReOption：CollectOption 是 interface，没有隐式索引签名 */
+  const datasourceOptionsOf = computed(() =>
+    (props.datasourceOptions ?? []).map(item => ({ value: item.value, label: item.label })),
+  );
 
 const panelTitle = computed(() => {
   if (nodeForm.value) return "节点参数";
@@ -361,6 +374,103 @@ function paramNumber(name: string): number | undefined {
   const value = paramOf(name);
   return value === "" ? undefined : Number(value);
 }
+
+/* --------------------------- 数据源联动（表 / 字段映射） --------------------------- */
+
+/*
+ * 这段必须放在 paramOf / selectedMeta / nodeForm 之后：
+ * 下面的 watch 开了 immediate，会在 setup 阶段同步求值，
+ * 若这些 const 还没初始化就会抛 ReferenceError（TDZ），整个属性面板直接白屏。
+ */
+
+/** 当前选中节点里 type=table 的参数名，一个节点至多一个 */
+const tableParamName = computed<string | null>(() => {
+  const params = selectedMeta.value?.params ?? [];
+  return params.find(item => item.type === "table")?.name ?? null;
+});
+
+/** 当前选中节点里 type=mapping 的参数名 */
+const mappingParamName = computed<string | null>(() => {
+  const params = selectedMeta.value?.params ?? [];
+  return params.find(item => item.type === "mapping")?.name ?? null;
+});
+
+const activeTable = computed<string>(() =>
+  tableParamName.value ? paramOf(tableParamName.value).trim() : "",
+);
+
+const activeDatasource = computed<string>(() => {
+  const params = selectedMeta.value?.params ?? [];
+  const source = params.find(item => item.type === "datasource");
+  return source ? paramOf(source.name).trim() : "";
+});
+
+/** 表清单：跟着数据源走，key 换成数据源+节点，避免切节点时串数据 */
+const tablesByKey = ref<Record<string, string[]>>({});
+const tablesLoading = ref(false);
+const tablesError = ref<string | null>(null);
+
+const activeTableKey = computed(
+  () => `${nodeForm.value?.id ?? "-"}|${activeDatasource.value || "app"}`,
+);
+
+const tableOptions = computed(() => (tablesByKey.value[activeTableKey.value] ?? []).map(name => ({ value: name, label: name })));
+
+async function loadTablesForActive(): Promise<void> {
+  const key = activeTableKey.value;
+  if (!tableParamName.value) return;
+  if (tablesByKey.value[key]) return;
+  if (!props.loadTables) return;
+  tablesLoading.value = true;
+  tablesError.value = null;
+  try {
+    tablesByKey.value = { ...tablesByKey.value, [key]: await props.loadTables(activeDatasource.value || "app") };
+  } catch (error) {
+    tablesError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    tablesLoading.value = false;
+  }
+}
+
+/** 列元数据：跟着「数据源 + 表」走 */
+const columnsByKey = ref<Record<string, CollectColumn[]>>({});
+const columnsLoading = ref(false);
+const columnsError = ref<string | null>(null);
+
+const activeColumnKey = computed(
+  () => `${activeTableKey.value}|${activeTable.value}`,
+);
+
+const activeColumns = computed<CollectColumn[]>(
+  () => columnsByKey.value[activeColumnKey.value] ?? [],
+);
+
+async function loadColumnsForActive(force = false): Promise<void> {
+  const key = activeColumnKey.value;
+  if (!mappingParamName.value || !activeTable.value) return;
+  if (!force && columnsByKey.value[key]) return;
+  if (!props.loadColumns) return;
+  columnsLoading.value = true;
+  columnsError.value = null;
+  try {
+    const columns = await props.loadColumns(activeDatasource.value || "app", activeTable.value);
+    columnsByKey.value = { ...columnsByKey.value, [key]: columns };
+  } catch (error) {
+    columnsByKey.value = { ...columnsByKey.value, [key]: [] };
+    columnsError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    columnsLoading.value = false;
+  }
+}
+
+watch(
+  [activeTableKey, activeColumnKey, () => nodeForm.value?.id],
+  () => {
+    void loadTablesForActive();
+    void loadColumnsForActive();
+  },
+  { immediate: true },
+);
 
 function nodePairs(param: CollectParamMeta): ParamPair[] {
   return pairsOf({ params: nodeForm.value?.params }, pairPrefix(param.name));
@@ -633,7 +743,7 @@ defineExpose({ load, getGraph, addNode, startWith });
       @edge-connected="onEdgeConnected"
     >
       <template #toolbar>
-        <ReButton layout="square" icon="Camera" @click="exportPng">导出图片</ReButton>
+        <ReButton icon="Camera" @click="exportPng">导出图片</ReButton>
       </template>
 
       <template #properties>
@@ -676,7 +786,16 @@ defineExpose({ load, getGraph, addNode, startWith });
               <div
                 v-for="param in selectedMeta.params"
                 :key="param.name"
-                :class="['field', { 'field-wide': param.type === 'textarea' || param.type === 'pairs' }]"
+                  :class="[
+                    'field',
+                    {
+                      'field-wide':
+                        param.type === 'textarea' ||
+                        param.type === 'pairs' ||
+                        param.type === 'mapping' ||
+                        param.type === 'table',
+                    },
+                  ]"
                 :data-param="param.name"
               >
                 <div class="field-label">
@@ -728,8 +847,45 @@ defineExpose({ load, getGraph, addNode, startWith });
                     (v: string | number | (string | number)[] | null) => setParam(param, v)
                   "
                 />
-                <PairsEditor
-                  v-else-if="param.type === 'pairs'"
+                  <ReSelect
+                    v-else-if="param.type === 'datasource'"
+                    size="small"
+                    filterable
+                    class="pane-fill"
+                    placeholder="选择数据源"
+                    :model-value="paramOf(param.name) || param.defaultValue || ''"
+                    :options="datasourceOptionsOf"
+                    @update:model-value="
+                      (v: string | number | (string | number)[] | null) => setParam(param, v)
+                    "
+                  />
+                  <ReSelect
+                    v-else-if="param.type === 'table'"
+                    size="small"
+                    filterable
+                    clearable
+                    class="pane-fill"
+                    :loading="tablesLoading"
+                    :placeholder="tablesError ? '读取表清单失败，可直接输入表名' : '选择目标表'"
+                    :model-value="paramOf(param.name)"
+                    :options="tableOptions"
+                    @update:model-value="
+                      (v: string | number | (string | number)[] | null) => setParam(param, v)
+                    "
+                  />
+                  <MappingEditor
+                    v-else-if="param.type === 'mapping'"
+                    :key="`${nodeForm.id}:${param.name}:${activeColumnKey}`"
+                    :model-value="nodePairs(param)"
+                    :columns="activeColumns"
+                    :table="activeTable"
+                    :loading="columnsLoading"
+                    :load-error="columnsError"
+                    :on-refresh="() => loadColumnsForActive(true)"
+                    @update:model-value="(v: ParamPair[]) => writeNodePairs(param, v)"
+                  />
+                  <PairsEditor
+                    v-else-if="param.type === 'pairs'"
                   :key="`${nodeForm.id}:${param.name}`"
                   :model-value="nodePairs(param)"
                   :key-placeholder="pairPlaceholder(param.name)"

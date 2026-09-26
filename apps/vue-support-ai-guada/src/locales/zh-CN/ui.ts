@@ -17,6 +17,21 @@ export default {
     checkInput: '请检查输入信息',
   },
 
+  // ── 顶栏环境信息（天气 / 台风）──
+  weather: {
+    local: '本地',
+    unknown: '天气',
+    unavailable: '天气数据暂不可用',
+    feelsLike: '体感',
+    humidity: '湿度',
+    wind: '风速',
+  },
+  typhoon: {
+    loading: '台风数据加载中...',
+    none: '当前无活跃台风',
+    active: '个活跃台风',
+  },
+
   // ── 密码设置页 ──
   password: {
     securityTitle: '设置安全密码',

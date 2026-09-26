@@ -1,4 +1,12 @@
 export default {
+  // ── RAG 未配置拦截（知识库依赖 RAG，未配置不给入口）──
+  ragGate: {
+    title: '知识库暂不可用',
+    desc: '知识库依赖 RAG，请先在「系统配置 → 默认模型」中配置好 RAG 所需的模型与存储参数。',
+    goConfig: '去配置',
+    fetchFailed: '无法获取 RAG 配置状态，请稍后重试或先完成配置。',
+  },
+
   // ── 共用状态文本 ──
   status: {
     queued: '待上传',
@@ -23,6 +31,7 @@ export default {
     tagPrivate: '私有',
     noDescription: '暂无描述',
     enter: '进入',
+    readonlyHint: '该知识库为他人公开的只读知识库，可查看与搜索，但不能上传、编辑或删除。',
     notFound: '未找到匹配的知识库',
     empty: '暂无知识库',
     notFoundHint: '尝试调整搜索关键词',
@@ -42,6 +51,7 @@ export default {
     chunkMaxSize: '最大分块大小',
     chunkOverlapSize: '重叠大小',
     chunkMinSize: '最小分块大小',
+    chunkSection: '分块配置',
     visibility: '可见性',
     visibilityHint: '公开的知识库可被其他人查看',
     inputNameWarning: '请输入知识库名称',
@@ -62,6 +72,7 @@ export default {
     deleteFileConfirm: '确定要删除文件“{name}”吗？此操作不可恢复。',
     deleteKbTitle: '警告',
     deleteKbConfirm: '确定要删除知识库“{name}”吗？此操作不可恢复。',
+    deleteKbNote: '删除后将解除该知识库与所有会话、角色的绑定；托管目录中的原始文件默认保留在服务器，如需彻底清理请先在「文件」中删除。',
   },
 
   // ── 文件项 (KBFileItem.vue) ──

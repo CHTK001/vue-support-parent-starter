@@ -19,11 +19,11 @@
           </div>
           <div class="ml-4">
             <h3 class="text-lg font-semibold text-gray-800">昆虫识图</h3>
-            <p class="text-sm text-gray-500">交互式3D昆虫图鉴</p>
+            <p class="text-sm text-gray-500">昆虫图鉴配对挑战</p>
           </div>
         </div>
         <p class="text-gray-600 text-sm mb-4">
-          认识63种昆虫的身体构造、生活史与生态角色。每一只虫都是代码实时生成的3D模型。
+          认识63种昆虫的身体构造、生活史与生态角色。把中文名和学名配对消除，顺带记住它们的长相与习性。
         </p>
         <div class="flex items-center justify-between">
           <span class="text-xs text-gray-400">63种昆虫 · 14个目</span>
@@ -91,14 +91,7 @@
         </div>
         <div class="p-4">
           <!-- 根据模块类型显示不同内容 -->
-          <iframe
-            v-if="currentModule.moduleCode === 'INSECT'"
-            :src="getModuleConfig('INSECT')?.url || 'https://insect-world.pages.dev'"
-            :width="getModuleConfig('INSECT')?.width || '100%'"
-            :height="getModuleConfig('INSECT')?.height || '800px'"
-            frameborder="0"
-            class="rounded-lg"
-          />
+          <InsectView v-if="currentModule.moduleCode === 'INSECT'" />
           <IdiomGameView
             v-else-if="currentModule.moduleCode === 'IDIOM_GAME'"
             @close="currentModule = null"
@@ -117,6 +110,7 @@
 import { ref, onMounted } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
+import InsectView from "./InsectView.vue";
 import IdiomGameView from "./IdiomGameView.vue";
 import IdiomBankView from "./IdiomBankView.vue";
 
@@ -137,17 +131,5 @@ const isModuleEnabled = (code: string) => {
 
 const openModule = (code: string) => {
   currentModule.value = configs.value.find((c) => c.moduleCode === code) || null;
-};
-
-const getModuleConfig = (code: string) => {
-  const config = configs.value.find((c) => c.moduleCode === code);
-  if (config?.configJson) {
-    try {
-      return JSON.parse(config.configJson);
-    } catch {
-      return null;
-    }
-  }
-  return null;
 };
 </script>

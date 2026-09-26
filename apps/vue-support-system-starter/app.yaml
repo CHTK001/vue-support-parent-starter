@@ -7,9 +7,14 @@ appConfig:
   title: 系统管理平台
   openAuth: false
 
-# 路由：本地+远程合并
+# 站内消息
+messageConfig:
+  # 开启站内消息 HTTP 查询（头部铃铛 / 消息面板拉历史、未读、已读）
+  query: true
+
+# 路由：菜单完全由后端 /v2/user/menu 动态提供（本地路由仅注册 URL 兜底，不显示菜单）
 routeConfig:
-  mode: all
+  mode: remote
 
 # API 基础路径
 httpConfig:
@@ -23,7 +28,7 @@ httpConfig:
 loginConfig:
   captcha: false
   otp: false
-  slider: true
+  slider: false
   brandName: 系统管理
   title: 系统管理平台
   description: 系统管理平台
@@ -37,6 +42,14 @@ loginConfig:
 otherConfig:
   avatarFrame:
     enable: true
+  # 文件服务器（独立文件存储网关，默认值与后端 plugin.filesystem.storage-server 对齐）
+  filestorage:
+    # 连接地址（本机默认 18080）
+    server: http://127.0.0.1:18080
+    # 默认存储桶（后端 provider 名）
+    bucket: local
+    # 存储配额（GB）：用于"存储用量"进度展示，页面 localStorage filestorage.quotaGb 可覆盖
+    quotaGb: 5
   # 工具栏显隐开关（other.toolbar）
   toolbar:
     # 用户信息下拉

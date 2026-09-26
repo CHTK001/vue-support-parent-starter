@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 系统管理页面统一布局规范
  *
  * 所有 system 子页面共享的间距 / 标题 / 卡片 / 搜索区 / 操作栏样式，
@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
   box-sizing: border-box;
 }
@@ -66,7 +66,7 @@
 /* 响应式：移动端适当减小内边距 */
 @media screen and (max-width: 768px) {
   .system-page {
-    padding: 16px;
+    padding: 0;
     gap: 12px;
   }
 

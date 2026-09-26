@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page w-screen h-screen overflow-hidden">
+  <div class="login-page w-screen h-screen overflow-hidden" :class="{ 'anim-ready-fallback': animFallback }">
     <el-row class="h-100%">
       <el-col :lg="16" :md="12" :sm="15" :xs="0" class="flex flex-items-center flex-justify-center">
         <div class="login-background w-100% h-100%">
@@ -24,7 +24,7 @@
             <!-- 品牌徽章 -->
             <div class="brand-badge flex flex-items-center gap-10px animate-fade-in-up" style="animation-delay: 0s">
               <div class="brand-logo-wrap">
-                <img class="brand-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+                <img class="brand-logo" :src="fallbackLogoUrl" :alt="loginConfig.brandName" />
               </div>
               <span class="brand-text">{{ translateConfigText(loginConfig.title) }}</span>
             </div>
@@ -36,18 +36,16 @@
               </div>
             </div>
 
+            <!-- 大标题用「欢迎登录」，平台名已由上方品牌徽标给出，避免同栏重复 -->
             <h2 class="hero-title animate-fade-in-up" style="animation-delay: 0.3s">
-              {{ translateConfigText(loginConfig.title) }}
-            </h2>
-            <p class="hero-welcome animate-fade-in-up" style="animation-delay: 0.45s">
               {{ translateConfigText(loginConfig.welcome) }}
-            </p>
+            </h2>
             <p class="hero-desc animate-fade-in-up" style="animation-delay: 0.6s">
               {{ translateConfigText(loginConfig.description) }}
             </p>
 
             <div class="hero-tags flex flex-justify-center gap-8px flex-wrap animate-fade-in-up" style="animation-delay: 0.75s">
-              <span class="hero-tag" v-for="tag in loginConfig.featureTags" :key="tag.text">
+              <span class="hero-tag" v-for="tag in defaultTags" :key="tag.text">
                 <el-icon :size="13" class="hero-tag-icon"><component :is="ElementPlusIcons[tag.icon]" /></el-icon>
                 <span class="hero-tag-text">{{ translateConfigText(tag.text) }}</span>
               </span>
@@ -79,7 +77,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, toRef } from "vue";
+import { computed, onMounted, ref, toRef } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
@@ -88,10 +86,33 @@ import { translateConfigText } from "@repo/languages";
 import ReLoginForm from "../components/ReLoginForm.vue";
 
 const loginConfig = toRef(getConfig(), "login");
-const resolvedLogoUrl = computed(() =>
-  loginConfig.value.logoUrl ? resolveAssetUrl(loginConfig.value.logoUrl) : fallbackLogoUrl
+const resolvedLogoUrl = computed(() => {
+  const custom = loginConfig.value.logoUrl;
+  if (custom && typeof custom === "string" && custom.trim() && !custom.includes("null")) {
+    return resolveAssetUrl(custom);
+  }
+  return fallbackLogoUrl;
+});
+const resolvedImageUrl = computed(() =>
+  loginConfig.value.imageUrl ? resolveAssetUrl(loginConfig.value.imageUrl) : ""
 );
-const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageUrl));
+/** 内置默认标签，不依赖后端配置避免异常空标签 */
+const defaultTags = [
+  { icon: "DataAnalysis", text: "高效管理" },
+  { icon: "Brush", text: "现代设计" },
+  { icon: "Lock", text: "安全可靠" },
+];
+
+/**
+ * 入场动画兜底：正常环境动画在 0.9s 内播完并保持可见，本兜底无感知；
+ * 若动画时间轴被冻结（后台/自动化/异常），最迟 1.3s 强制内容可见，避免登录页永久空白。
+ */
+const animFallback = ref(false);
+onMounted(() => {
+  setTimeout(() => {
+    animFallback.value = true;
+  }, 1300);
+});
 </script>
 
 <style lang="scss" scoped>
@@ -101,7 +122,7 @@ const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageU
   overflow: hidden;
   background:
     radial-gradient(ellipse 800px 600px at 80% 20%, rgba(var(--el-color-primary-rgb), 0.18), transparent 60%),
-    radial-gradient(600px circle at 20% 80%, rgba(168, 85, 247, 0.12), transparent 65%),
+    radial-gradient(600px circle at 20% 80%, color-mix(in srgb, var(--el-color-primary-light-3) 12%, transparent), transparent 65%),
     radial-gradient(500px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.06), transparent 60%),
     var(--el-bg-color-page, #f6f7fb);
 }
@@ -109,7 +130,7 @@ const resolvedImageUrl = computed(() => resolveAssetUrl(loginConfig.value.imageU
 html.dark .login-background {
   background:
     radial-gradient(ellipse 700px 500px at 80% 15%, rgba(var(--el-color-primary-rgb), 0.3), transparent 60%),
-    radial-gradient(500px circle at 20% 85%, rgba(168, 85, 247, 0.22), transparent 65%),
+    radial-gradient(500px circle at 20% 85%, color-mix(in srgb, var(--el-color-primary-light-3) 22%, transparent), transparent 65%),
     radial-gradient(400px circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.12), transparent 60%),
     #08080e;
 }
@@ -137,7 +158,7 @@ html.dark .login-background {
   left: 3%;
   width: 320px;
   height: 320px;
-  background: color-mix(in srgb, var(--el-color-primary) 55%, #a855f7 45%);
+  background: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-primary-light-3) 45%);
   animation: orb-drift-2 18s ease-in-out infinite;
 }
 
@@ -146,7 +167,7 @@ html.dark .login-background {
   left: 38%;
   width: 240px;
   height: 240px;
-  background: color-mix(in srgb, var(--el-color-primary) 50%, #06b6d4 50%);
+  background: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-color-primary-light-5) 50%);
   opacity: 0.6;
   animation: orb-drift-3 20s ease-in-out infinite;
 }
@@ -156,7 +177,7 @@ html.dark .login-background {
   left: -5%;
   width: 200px;
   height: 200px;
-  background: rgba(168, 85, 247, 0.35);
+  background: color-mix(in srgb, var(--el-color-primary-light-3) 35%, transparent);
   animation: orb-drift-1 22s ease-in-out infinite reverse;
 }
 
@@ -311,15 +332,6 @@ html.dark .orb { opacity: 0.5; }
   line-height: 1.3;
 }
 
-.hero-welcome {
-  margin: 0 0 10px;
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  letter-spacing: 3px;
-  opacity: 0.9;
-}
-
 .hero-desc {
   margin: 0;
   font-size: 15px;
@@ -451,10 +463,17 @@ html.dark .login-form-side {
   animation: fade-in-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* 入场动画兜底：时间轴被冻结/不推进时，强制内容可见，登录页不得永久空白 */
+.anim-ready-fallback .animate-fade-in-up,
+.anim-ready-fallback .animate-fade-in-right {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
 /* ==================== 响应式 ==================== */
 @media (max-width: 1024px) {
   .hero-title { font-size: 24px; }
-  .hero-welcome { font-size: 18px; }
   .hero-card {
     margin-bottom: 28px;
   }

@@ -13,6 +13,9 @@
     featureTools: 'Tool Calls',
     featureThinking: 'Hybrid Thinking',
     editorPlaceholder: "Press / for skills, {'@'} to summon agent, Shift+Enter for newline",
+    optimizeFailed: 'Optimization failed, please try again later',
+    optimizeUnavailable: 'Optimization service is unavailable. Please configure an optimizer model in settings',
+    optimizeNoChange: 'The content is already clear enough; no optimization needed',
     previewTitle: 'Raw Content Preview - {name}',
     overwriteTitle: 'Overwrite {type}',
     overwriteConfirmDesc: 'Uploading both images and files simultaneously is not supported. Do you want to overwrite all {type}?',
@@ -22,6 +25,7 @@
     sendDirectly: 'Send Directly',
     runModeNormal: 'Normal Mode',
     runModeSandbox: 'Lightweight Sandbox Mode',
+    runModeBuild: 'Build Mode',
     runModePlan: 'Plan Mode',
 
     // AttachmentPopover.vue
@@ -59,7 +63,8 @@
     runModeSandboxTest: 'Lightweight Sandbox Mode (Test)',
     runModeNormalDesc: 'No restrictions on tools, normal read/write to working directory, except command line',
     runModeSandboxDesc: 'Shell commands can write within the working directory, read-only outside',
-    runModePlanDesc: 'Only read-only tools and read-only terminals are allowed, suitable for read-only planning',
+    runModeBuildDesc: 'Tools and actions are allowed, with read/write to the working directory',
+    runModePlanDesc: 'The first turn is read-only research that produces a plan, with no side-effect actions',
 
     // ThinkingEffortPopover.vue
     thinkingEffortTitle: 'Thinking Effort',
@@ -145,6 +150,30 @@
     importRecords: 'Import Records',
   },
 
+  // ── 会话上下文面板 ──
+  context: {
+    memory: 'Memories',
+    memoryRefresh: 'Refresh memories',
+    memoryEmpty: 'No memories yet — they are captured during chat',
+    memoryStats: 'Active {active} / cap {capacity} · recallable {recallable}',
+    memoryScopeGlobal: 'Global',
+    memoryScopeConversation: 'This chat',
+    memorySourceManual: 'Manual',
+    memorySourceAuto: 'Auto',
+    memorySourceTool: 'Tool',
+    memorySourceImport: 'Import',
+    memoryHit: 'Hits {n}',
+    memoryDelete: 'Delete this memory',
+    memoryDeleteTitle: 'Delete Memory',
+    memoryDeleteDesc: 'Delete this memory? It will no longer be injected into replies. This cannot be undone.',
+    memoryClearConversation: 'Clear this chat',
+    memoryClearTitle: 'Clear This Chat\'s Memories',
+    memoryClearDesc: 'Delete all conversation-scoped memories of this chat? Global memories are kept. This cannot be undone.',
+    memoryDeleted: 'Memory deleted',
+    memoryCleared: 'Cleared this chat\'s memories ({n})',
+    memoryLoadFailed: 'Failed to load memories',
+  },
+
   // ── 侧边栏 ──
   sidebar: {
     chatSessions: 'Chat Sessions',
@@ -196,6 +225,8 @@
     codeCopied: 'Code copied to clipboard',
     thinkingActive: 'Thinking...',
     thinkingDone: 'Deep Thinking Complete',
+    searchActive: 'Searching the web...',
+    searchDone: 'Web Search · {n} sources',
     executingSteps: 'Executing {n} steps',
     executingStepsWithCompleted: 'Executing {n} steps, {m} completed',
     executedSteps: '{n} steps executed',

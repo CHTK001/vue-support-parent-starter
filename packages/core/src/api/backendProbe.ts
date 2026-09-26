@@ -6,6 +6,7 @@
  * 未命中则回落到三方数据源，并把三方响应归一化成后台的同一套结构。
  *
  * 判定口径：
+ *  - 能力开关关闭（app.yaml other.capabilities）→ 直接判定未实现，连请求都不发
  *  - 2xx / 3xx                    → 已实现（Spring MVC 的 @GetMapping 自动接受 HEAD）
  *  - 400 / 405 / 415 / 422        → 已实现（路径有映射，只是不接受本次 HEAD 的参数/方法）
  *  - 401 / 403                    → 视为未实现（接口未开放匿名访问，走后台同样取不到数据）
@@ -13,8 +14,10 @@
  *
  * 探测结果按路径缓存（默认 10 分钟），同一路径的并发探测共享一次请求。
  * 后台补齐接口后最迟一个缓存周期自动切换，前端无需改动。
+ * 能力开关不缓存：每次调用都实时判定，改配置后立即生效。
  */
-import { getConfig } from "@repo/config";
+import { getConfig, isCapabilityEnabled } from "@repo/config";
+import { capabilityOfPath } from "./capability";
 
 /** 探测超时（ms）：探测在关键渲染路径上，必须短 */
 const PROBE_TIMEOUT = 3000;
@@ -50,6 +53,12 @@ function resolveProbeUrl(path: string): string {
  * @param ttl 结果缓存有效期（ms），默认 10 分钟
  */
 export function probeBackend(path: string, ttl: number = PROBE_TTL): Promise<boolean> {
+  // 能力开关（app.yaml other.capabilities）关闭：直接判定未实现，不发请求、不入缓存。
+  // 后端本就没有该接口时，这条 HEAD 只会稳定换来一次 404 噪音。
+  const capability = capabilityOfPath(path);
+  if (capability && !isCapabilityEnabled(capability.key)) {
+    return Promise.resolve(false);
+  }
   const hit = probeCache.get(path);
   if (hit && Date.now() - hit.at < ttl) {
     return Promise.resolve(hit.available);

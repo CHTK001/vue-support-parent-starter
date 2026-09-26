@@ -1,106 +1,89 @@
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
+  <div class="conn-page">
+    <div class="conn-head">
       <div>
-        <h2 class="text-lg font-bold">{{ t('settings.connection.title') }}</h2>
-        <p class="text-sm text-gray-400 mt-0.5">{{ t('settings.connection.desc') }}</p>
+        <h2 class="conn-title">{{ t('settings.connection.title') }}</h2>
+        <p class="conn-sub">{{ t('settings.connection.desc') }}</p>
       </div>
       <el-button type="primary" @click="startNew">{{ t('settings.connection.newConnection') }}</el-button>
     </div>
 
     <!-- 连接列表 -->
-    <div v-if="connections.length > 0" class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
-      <div v-for="conn in connections" :key="conn.id"
-        class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-        <div class="flex items-start justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-              :style="{ background: `hsl(${hue(conn.name)}, 55%, 90%)` }">
-              <span class="text-xs font-bold" :style="{ color: `hsl(${hue(conn.name)}, 50%, 40%)` }">
-                {{ conn.name.charAt(0).toUpperCase() }}
-              </span>
-            </div>
-            <div>
-              <div class="text-sm font-medium">{{ conn.name }}</div>
-              <div class="text-xs text-gray-400">SSH</div>
+    <div v-if="connections.length > 0" class="conn-grid">
+      <div v-for="conn in connections" :key="conn.id" class="conn-card">
+        <div class="conn-card-top">
+          <div class="conn-card-id">
+            <span class="conn-avatar">{{ conn.name.charAt(0).toUpperCase() }}</span>
+            <div class="min-w-0">
+              <div class="conn-card-name">{{ conn.name }}</div>
+              <div class="conn-card-type">SSH</div>
             </div>
           </div>
-          <div class="flex gap-1">
+          <div class="conn-card-ops">
             <el-button text size="small" @click="editConn(conn)">{{ t('common.edit') }}</el-button>
             <el-button text size="small" type="danger" @click="deleteConn(conn.id)">{{ t('common.delete') }}</el-button>
           </div>
         </div>
-        <div class="text-xs text-gray-400 truncate">
-          {{ conn.config.username }}@{{ conn.config.host }}:{{ conn.config.port || 22 }}
-        </div>
-        <div class="text-xs text-gray-400 truncate mt-0.5">
-          {{ conn.config.path }}
-        </div>
+        <div class="conn-card-line">{{ conn.config.username }}@{{ conn.config.host }}:{{ conn.config.port || 22 }}</div>
+        <div class="conn-card-line">{{ conn.config.path }}</div>
       </div>
     </div>
-    <div v-else class="text-center py-12 text-gray-400">
-      <p class="text-sm">{{ t('settings.connection.noConnections') }}</p>
-      <p class="text-xs mt-1">{{ t('settings.connection.noConnectionsDesc') }}</p>
-    </div>
 
-    <!-- 新建/编辑弹窗：分步向导 -->
-    <LDialog v-model="editing" width="640px"
-      :close-on-click-modal="false" append-to-body class="conn-dialog">
-      <div class="flex" style="height: 480px;">
-        <!-- 左侧步骤导航 -->
-        <div class="shrink-0 pr-5 pt-4 flex flex-col gap-5">
-          <div v-for="(step, i) in stepLabels" :key="i"
-            class="flex items-center gap-2 text-xs whitespace-nowrap"
-            :class="currentStep === i
-              ? 'font-medium text-gray-800 dark:text-gray-200'
-              : currentStep > i
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-gray-400 dark:text-gray-500'">
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0"
-              :class="currentStep === i
-                ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800'
-                : currentStep > i
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400'">
-              <span v-if="currentStep > i">✓</span>
+    <SettingsCard v-else flush>
+      <div class="conn-empty">
+        <p class="conn-empty-main">{{ t('settings.connection.noConnections') }}</p>
+        <p class="conn-empty-sub">{{ t('settings.connection.noConnectionsDesc') }}</p>
+      </div>
+    </SettingsCard>
+
+    <!-- 新建/编辑：分步向导 -->
+    <LDialog v-model="editing" width="640px" :close-on-click-modal="false" append-to-body class="conn-dialog">
+      <div class="wiz" style="height: 480px;">
+        <!-- 步骤导航 -->
+        <div class="wiz-steps">
+          <div v-for="(step, i) in stepLabels" :key="i" class="wiz-step"
+            :class="currentStep === i ? 'is-active' : currentStep > i ? 'is-done' : ''">
+            <span class="wiz-dot">
+              <el-icon v-if="currentStep > i"><Check /></el-icon>
               <span v-else>{{ i + 1 }}</span>
             </span>
-            <span>{{ step }}</span>
+            <span class="wiz-step-label">{{ step }}</span>
           </div>
         </div>
 
-        <!-- 右侧内容区 -->
-        <div class="flex-1 pl-6 flex flex-col min-w-0">
-          <!-- Step 0: 填写配置 -->
-          <div v-if="currentStep === 0" class="flex flex-col gap-4 flex-1">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('settings.connection.fillConfig') }}</h3>
-              <p class="text-xs text-gray-400 mt-0.5">{{ t('settings.connection.fillConfigDesc') }}</p>
+        <!-- 内容区 -->
+        <div class="wiz-content">
+          <!-- Step 0 配置 -->
+          <div v-if="currentStep === 0" class="wiz-pane">
+            <div class="pane-head">
+              <h3 class="pane-title">{{ t('settings.connection.fillConfig') }}</h3>
+              <p class="pane-sub">{{ t('settings.connection.fillConfigDesc') }}</p>
             </div>
 
             <div>
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{{ t('settings.connection.connectionName') }} <span class="text-red-500">*</span></label>
+              <label class="f-label">{{ t('settings.connection.connectionName') }} <span class="req">*</span></label>
               <el-input v-model="editName" placeholder="my-server" />
             </div>
 
             <div class="flex gap-3 items-end">
               <div class="flex-1 min-w-0">
-                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Host <span class="text-red-500">*</span></label>
+                <label class="f-label">Host <span class="req">*</span></label>
                 <el-input v-model="editConfig.host" placeholder="192.168.1.100" />
               </div>
-              <div class="shrink-0" style="width: 110px;">
-                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Port</label>
-                <el-input-number v-model="editConfig.port" :min="1" :max="65535" controls-position="right" style="width: 110px;" />
+              <div style="width: 110px;">
+                <label class="f-label">Port</label>
+                <el-input-number v-model="editConfig.port" :min="1" :max="65535" controls-position="right"
+                  style="width: 110px;" />
               </div>
             </div>
 
             <div class="flex gap-3 items-end">
               <div class="flex-1 min-w-0">
-                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Username <span class="text-red-500">*</span></label>
+                <label class="f-label">Username <span class="req">*</span></label>
                 <el-input v-model="editConfig.username" placeholder="root" />
               </div>
-              <div class="shrink-0" style="width: 130px;">
-                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Auth</label>
+              <div style="width: 130px;">
+                <label class="f-label">Auth</label>
                 <el-select v-model="editConfig.authMethod" style="width: 130px;">
                   <el-option :label="t('settings.connection.connectionName') === '连接名称' ? '密码' : 'Password'" value="password" />
                   <el-option :label="t('settings.connection.connectionName') === '连接名称' ? '私钥' : 'Private Key'" value="privateKey" />
@@ -109,150 +92,116 @@
             </div>
 
             <div v-if="editConfig.authMethod === 'password'">
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{{ t('settings.connection.connectionName') === '连接名称' ? '密码' : 'Password' }}</label>
+              <label class="f-label">{{ t('settings.connection.connectionName') === '连接名称' ? '密码' : 'Password' }}</label>
               <el-input v-model="editConfig.password" type="password" show-password />
             </div>
             <div v-if="editConfig.authMethod === 'privateKey'">
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{{ t('settings.connection.connectionName') === '连接名称' ? '私钥内容' : 'Private Key' }}</label>
+              <label class="f-label">{{ t('settings.connection.connectionName') === '连接名称' ? '私钥内容' : 'Private Key' }}</label>
               <el-input v-model="editConfig.privateKey" type="textarea" :rows="6"
                 placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEpAIBAAKCAQEA...&#10;-----END RSA PRIVATE KEY-----" />
-              <div class="text-xs text-gray-400 dark:text-[#8b8d95] mt-1">
-                请粘贴完整的私钥内容，包括 BEGIN/END 标记
-              </div>
+              <div class="f-hint">请粘贴完整的私钥内容，包括 BEGIN/END 标记</div>
             </div>
 
-            <!-- 权限模式:横向切换按钮 -->
+            <!-- 权限模式 -->
             <div>
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                {{ t('settings.connection.permTitle') }}
-              </label>
-              <div class="flex w-fit rounded-lg overflow-hidden border border-(--color-border) dark:border-gray-700">
-                <button
-                  v-for="opt in permOptions"
-                  :key="opt.value"
-                  type="button"
-                  class="px-4 py-1.5 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer"
-                  :class="editConfig.perm === opt.value
-                    ? 'bg-(--color-primary) text-white border-(--color-primary)'
-                    : 'text-(--color-text-gray) hover:bg-(--color-primary-100) hover:text-(--color-primary)'"
-                  @click="editConfig.perm = opt.value">
-                  {{ opt.label }}
-                </button>
-              </div>
-              <div class="text-xs text-gray-400 dark:text-[#8b8d95] mt-1">
-                {{ t('settings.connection.permDesc') }}
-              </div>
+              <label class="f-label">{{ t('settings.connection.permTitle') }}</label>
+              <SegmentedToggle :model-value="editConfig.perm" :options="permOptions"
+                @update:model-value="editConfig.perm = $event" />
+              <div class="f-hint">{{ t('settings.connection.permDesc') }}</div>
             </div>
           </div>
 
-          <!-- Step 1: 测试连接 -->
-          <div v-if="currentStep === 1" class="flex flex-col flex-1 gap-3 min-h-0">
+          <!-- Step 1 测试 -->
+          <div v-if="currentStep === 1" class="wiz-pane">
             <div class="flex items-center gap-3">
-              <div v-if="testing" class="w-8 h-8 border-3 border-gray-200 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin shrink-0"></div>
-              <div v-else-if="testResult?.success" class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                <span class="text-lg text-green-600 dark:text-green-400">✓</span>
-              </div>
-              <div v-else-if="testResult" class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                <span class="text-lg text-red-500">✗</span>
-              </div>
+              <div v-if="testing" class="state-spinner"></div>
+              <div v-else-if="testResult?.success" class="state-ok"><el-icon><Check /></el-icon></div>
+              <div v-else-if="testResult" class="state-bad"><el-icon><Close /></el-icon></div>
               <div class="flex-1 min-w-0">
-                <p v-if="testing" class="text-sm text-gray-500">{{ t('settings.connection.testing') }} {{ editConfig.username }}@{{ editConfig.host }}:{{ editConfig.port }}...</p>
-                <p v-else-if="testResult?.success" class="text-sm text-green-600 dark:text-green-400 font-medium">{{ t('settings.connection.sshConnected') }}</p>
-                <p v-else-if="testResult" class="text-sm text-red-500 font-medium">{{ t('settings.connection.sshFailed') }}</p>
+                <p v-if="testing" class="state-line">
+                  {{ t('settings.connection.testing') }} {{ editConfig.username }}@{{ editConfig.host }}:{{ editConfig.port }}...
+                </p>
+                <p v-else-if="testResult?.success" class="state-line state-line-ok">{{ t('settings.connection.sshConnected') }}</p>
+                <p v-else-if="testResult" class="state-line state-line-bad">{{ t('settings.connection.sshFailed') }}</p>
               </div>
             </div>
-
-            <div v-if="testLog || testing" class="flex-1 min-h-0 bg-gray-900 dark:bg-black rounded-lg p-3 overflow-auto font-mono text-xs leading-relaxed">
-              <pre class="text-gray-300 whitespace-pre-wrap">{{ testLog || 'Connecting...' }}</pre>
-              <span v-if="testing" class="inline-block w-2 h-4 bg-green-400 animate-pulse align-middle"></span>
+            <div v-if="testLog || testing" class="term">
+              <pre class="term-pre">{{ testLog || 'Connecting...' }}</pre>
+              <span v-if="testing" class="term-cursor"></span>
             </div>
           </div>
 
-          <!-- Step 2: 部署验证 -->
-          <div v-if="currentStep === 2" class="flex flex-col flex-1 gap-3 min-h-0">
+          <!-- Step 2 部署 -->
+          <div v-if="currentStep === 2" class="wiz-pane">
             <div class="flex items-center gap-3">
-              <div v-if="deploying" class="w-8 h-8 border-3 border-gray-200 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin shrink-0"></div>
-              <div v-else-if="deployResult?.success" class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                <span class="text-lg text-green-600 dark:text-green-400">✓</span>
-              </div>
-              <div v-else-if="deployResult" class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                <span class="text-lg text-red-500">✗</span>
-              </div>
+              <div v-if="deploying" class="state-spinner"></div>
+              <div v-else-if="deployResult?.success" class="state-ok"><el-icon><Check /></el-icon></div>
+              <div v-else-if="deployResult" class="state-bad"><el-icon><Close /></el-icon></div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('settings.connection.deployTitle') }}</h3>
-                <p class="text-xs text-gray-400 mt-0.5">{{ t('settings.connection.deployDesc') }}</p>
-                <p v-if="deploying" class="text-sm text-gray-500 mt-1">{{ t('settings.connection.deploying') }}</p>
-                <p v-else-if="deployResult?.success && deployResult?.installed" class="text-sm text-green-600 dark:text-green-400 font-medium mt-1">{{ t('settings.connection.deployInstalled') }}</p>
-                <p v-else-if="deployResult?.success" class="text-sm text-green-600 dark:text-green-400 font-medium mt-1">{{ t('settings.connection.deploySuccess') }}</p>
-                <p v-else-if="deployResult" class="text-sm text-red-500 font-medium mt-1">{{ t('settings.connection.deployFailed') }}</p>
+                <h3 class="pane-title">{{ t('settings.connection.deployTitle') }}</h3>
+                <p class="pane-sub">{{ t('settings.connection.deployDesc') }}</p>
+                <p v-if="deploying" class="state-line mt-1">{{ t('settings.connection.deploying') }}</p>
+                <p v-else-if="deployResult?.success && deployResult?.installed" class="state-line state-line-ok mt-1">{{ t('settings.connection.deployInstalled') }}</p>
+                <p v-else-if="deployResult?.success" class="state-line state-line-ok mt-1">{{ t('settings.connection.deploySuccess') }}</p>
+                <p v-else-if="deployResult" class="state-line state-line-bad mt-1">{{ t('settings.connection.deployFailed') }}</p>
               </div>
             </div>
-
-            <div ref="deployLogBox" v-if="deployLog || deploying" class="flex-1 min-h-0 bg-gray-900 dark:bg-black rounded-lg p-3 overflow-auto font-mono text-xs leading-relaxed log-scroll">
-              <pre class="text-gray-300 whitespace-pre-wrap">{{ deployLog || 'Deploying...' }}</pre>
-              <span v-if="deploying" class="inline-block w-2 h-4 bg-green-400 animate-pulse align-middle"></span>
+            <div ref="deployLogBox" v-if="deployLog || deploying" class="term log-scroll">
+              <pre class="term-pre">{{ deployLog || 'Deploying...' }}</pre>
+              <span v-if="deploying" class="term-cursor"></span>
             </div>
           </div>
 
-          <!-- Step 3: 选择远端目录 -->
-          <div v-if="currentStep === 3" class="flex flex-col flex-1 min-h-0 gap-3">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('settings.connection.browseTitle') }}</h3>
-              <p class="text-xs text-gray-400 mt-0.5">{{ t('settings.connection.browseDesc') }}</p>
+          <!-- Step 3 选目录 -->
+          <div v-if="currentStep === 3" class="wiz-pane">
+            <div class="pane-head">
+              <h3 class="pane-title">{{ t('settings.connection.browseTitle') }}</h3>
+              <p class="pane-sub">{{ t('settings.connection.browseDesc') }}</p>
             </div>
-            <!-- 路径栏 -->
             <div class="flex gap-2 shrink-0">
-              <el-input v-model="browserPath" placeholder="/" @keyup.enter="navigateBrowser" size="small" />
-              <el-button size="small" @click="navigateBrowser" :loading="browserLoading">{{ t('settings.connection.goTo') }}</el-button>
+              <el-input v-model="browserPath" placeholder="/" size="small" @keyup.enter="navigateBrowser" />
+              <el-button size="small" :loading="browserLoading" @click="navigateBrowser">{{ t('settings.connection.goTo') }}</el-button>
             </div>
-            <!-- 目录列表 -->
-            <div class="flex-1 min-h-0 border rounded-lg overflow-hidden" style="border-color: var(--el-border-color, #dcdfe6);">
-              <!-- 标题栏（风格与 item 一致，但不可点击） -->
-              <div
-                class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 select-none"
-                :class="browserPath === '/' ? 'opacity-30 pointer-events-none' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'"
-                @click="goUp"
-              >
-                <span class="text-amber-500">📁</span>
+            <div class="fb">
+              <div class="fb-up" :class="browserPath === '/' ? 'is-disabled' : ''" @click="goUp">
+                <el-icon class="fb-up-ico"><Top /></el-icon>
                 <span>{{ t('settings.connection.goUp') }}</span>
               </div>
-              <!-- 目录/文件列表 -->
-              <div class="overflow-auto" style="max-height: calc(100% - 38px);">
-                <div v-if="browserLoading" class="text-center py-8 text-gray-400 text-sm">{{ t('settings.connection.loading') }}</div>
-                <div v-else-if="browserEntries.length === 0" class="text-center py-8 text-gray-400 text-sm">{{ t('settings.connection.emptyDir') }}</div>
-                <div v-for="entry in browserEntries" :key="entry.name"
-                  class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
+              <div class="fb-list">
+                <div v-if="browserLoading" class="fb-info">{{ t('settings.connection.loading') }}</div>
+                <div v-else-if="browserEntries.length === 0" class="fb-info">{{ t('settings.connection.emptyDir') }}</div>
+                <div v-for="entry in browserEntries" :key="entry.name" class="fb-entry"
                   @click="entry.isDirectory ? enterDir(entry.name) : null">
-                  <span v-if="entry.isDirectory" class="text-amber-500">📁</span>
-                  <span v-else class="text-gray-400">📄</span>
-                  <span :class="entry.isDirectory ? 'font-medium' : 'text-gray-500'">{{ entry.name }}</span>
+                  <el-icon v-if="entry.isDirectory" class="fb-ico fb-ico-dir"><Folder /></el-icon>
+                  <el-icon v-else class="fb-ico fb-ico-file"><Document /></el-icon>
+                  <span :class="entry.isDirectory ? 'fb-name' : 'fb-file-name'">{{ entry.name }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 底部按钮 -->
-          <div class="flex justify-between items-center mt-auto pt-4 shrink-0">
+          <div class="wiz-footer">
             <el-button v-if="currentStep > 0" text @click="currentStep--">{{ t('settings.connection.prev') }}</el-button>
             <span v-else></span>
             <div class="flex gap-2">
-              <el-button v-if="currentStep === 0" type="primary" @click="goToTest"
-                :disabled="!editConfig.host || !editConfig.username || !editName.trim()">
+              <el-button v-if="currentStep === 0" type="primary"
+                :disabled="!editConfig.host || !editConfig.username || !editName.trim()" @click="goToTest">
                 {{ t('settings.connection.next') }}
               </el-button>
-              <el-button v-if="currentStep === 1 && !testing" @click="testConn" :disabled="!editConfig.host">
+              <el-button v-if="currentStep === 1 && !testing" :disabled="!editConfig.host" @click="testConn">
                 {{ t('settings.connection.retest') }}
               </el-button>
               <el-button v-if="currentStep === 1 && testResult?.success" type="primary" @click="goToDeploy">
                 {{ t('settings.connection.next') }}
               </el-button>
-              <el-button v-if="currentStep === 2 && !deploying" @click="deployConn" :disabled="!testResult?.success">
+              <el-button v-if="currentStep === 2 && !deploying" :disabled="!testResult?.success" @click="deployConn">
                 {{ t('settings.connection.deployRetry') }}
               </el-button>
               <el-button v-if="currentStep === 2 && deployResult?.success" type="primary" @click="goToBrowse">
                 {{ t('settings.connection.next') }}
               </el-button>
-              <el-button v-if="currentStep === 3" type="primary" @click="saveConn" :loading="saving">
+              <el-button v-if="currentStep === 3" type="primary" :loading="saving" @click="saveConn">
                 {{ t('settings.connection.save') }}
               </el-button>
             </div>
@@ -266,18 +215,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Check, Close, Top, Folder, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import LDialog from '@/components/ui/LDialog.vue'
+import SegmentedToggle from '../ui/SegmentedToggle.vue'
+import SettingsCard from './SettingsCard.vue'
 import { apiService } from '@/services/ApiService'
 
 const { t } = useI18n()
 
-// 部署轮询取消:组件卸载/窗口关闭时置 true 终止轮询,并通知后端中止部署任务
+// 部署轮询取消
 let deployPollingCancelled = false
 let activeDeployJobId: string | null = null
 function cancelDeployPolling() {
   deployPollingCancelled = true
-  // 窗口/组件已关闭,后端无需继续部署 — 通知取消,释放 SSH/下载资源
   const jobId = activeDeployJobId
   activeDeployJobId = null
   if (jobId) {
@@ -285,7 +236,6 @@ function cancelDeployPolling() {
   }
 }
 onUnmounted(() => cancelDeployPolling())
-// 窗口关闭/刷新时也终止轮询并通知后端取消
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', cancelDeployPolling)
 }
@@ -320,21 +270,9 @@ const editName = ref('')
 const editConfig = ref<ConnectionConfig>({
   host: '', port: 22, username: 'root', authMethod: 'password', password: '', privateKey: '', path: '', perm: 'workspace'
 })
-// Electron 环境判断(有文件选择能力)
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI
 
-// Electron 下打开文件选择框选择私钥路径;Web 下手写路径
-async function selectPrivateKeyFile() {
-  try {
-    const selected = await window.electronAPI?.selectFile?.()
-    if (selected) {
-      editConfig.value.privateKeyPath = selected
-    }
-  } catch (error) {
-    console.error('选择私钥文件失败:', error)
-  }
-}
-// 权限模式横向切换选项
+// 权限模式
 const permOptions = computed(() => [
   { value: 'workspace', label: t('settings.connection.permWorkspace') },
   { value: 'readonly', label: t('settings.connection.permReadonly') },
@@ -369,12 +307,6 @@ async function loadData() {
 }
 loadData()
 
-function hue(name: string): number {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360
-  return h
-}
-
 function startNew() {
   editing.value = true
   editConnId.value = null
@@ -391,7 +323,6 @@ function editConn(conn: Connection) {
   editing.value = true
   editConnId.value = conn.id
   editName.value = conn.name
-  // 从未选择过权限的旧连接:默认 workspace(按钮高亮体现)
   editConfig.value = { ...conn.config, perm: conn.config.perm || 'workspace' }
   testResult.value = null
   testLog.value = ''
@@ -432,7 +363,6 @@ async function deployConn() {
   deployLog.value = ''
   deployPollingCancelled = false
   try {
-    // 启动后台部署任务,返回 jobId;轮询日志实现实时进度反馈
     const { jobId } = await apiService.deployConnection(editConfig.value)
     activeDeployJobId = jobId
     while (!deployPollingCancelled) {
@@ -477,6 +407,7 @@ function enterDir(name: string) {
 }
 
 function goUp() {
+  if (browserPath.value === '/') return
   const parts = browserPath.value.replace(/\/$/, '').split('/')
   parts.pop()
   browserPath.value = parts.join('/') || '/'
@@ -517,30 +448,123 @@ async function deleteConn(id: string) {
 </script>
 
 <style scoped>
-:deep(.conn-dialog .l-dialog__body) {
-  padding: 0;
+:deep(.conn-dialog .l-dialog__body) { padding: 0; }
+
+/* ===== 顶部 ===== */
+.conn-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.conn-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--el-text-color-primary); }
+.conn-sub { margin: 5px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+
+/* ===== 卡片网格 ===== */
+.conn-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
-.border-3 {
-  border-width: 3px;
+.conn-card {
+  padding: 14px; border-radius: 14px;
+  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  background: var(--color-surface, var(--el-bg-color));
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
-/* 部署日志区域:滚动条始终可见,便于查看历史进度 */
-.log-scroll {
-  scrollbar-width: thin;           /* Firefox */
-  scrollbar-color: #4b5563 #111827;
+.conn-card:hover {
+  border-color: var(--el-border-color);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
 }
-.log-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.conn-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.conn-card-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.conn-avatar {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  color: var(--el-color-primary); background: var(--el-color-primary-light-9);
 }
-.log-scroll::-webkit-scrollbar-track {
-  background: #111827;
-  border-radius: 4px;
+.conn-card-name { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.conn-card-type { font-size: 11px; color: var(--el-text-color-secondary); }
+.conn-card-ops { display: flex; flex-shrink: 0; }
+.conn-card-line { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conn-card-line + .conn-card-line { margin-top: 2px; }
+
+.conn-empty { padding: 56px 0; text-align: center; }
+.conn-empty-main { margin: 0; font-size: 14px; color: var(--el-text-color-regular); }
+.conn-empty-sub { margin: 6px 0 0; font-size: 12.5px; color: var(--el-text-color-secondary); }
+
+/* ===== 向导 ===== */
+.wiz { display: flex; }
+.wiz-steps { flex-shrink: 0; padding: 18px 20px 18px 18px; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--color-surface-border, var(--el-border-color-lighter)); }
+.wiz-step { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.wiz-dot {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: var(--el-fill-color-light); color: var(--el-text-color-secondary);
 }
-.log-scroll::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
+.wiz-step.is-active { color: var(--el-text-color-primary); font-weight: 600; }
+.wiz-step.is-active .wiz-dot { background: var(--el-color-primary); color: #fff; }
+.wiz-step.is-done { color: var(--el-color-success); }
+.wiz-step.is-done .wiz-dot { background: var(--el-color-success); color: #fff; }
+.wiz-step-label { line-height: 1; }
+
+.wiz-content { flex: 1; min-width: 0; padding: 20px 22px; display: flex; flex-direction: column; }
+.wiz-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+.pane-head { display: flex; flex-direction: column; gap: 3px; }
+.pane-title { margin: 0; font-size: 14px; font-weight: 700; color: var(--el-text-color-primary); }
+.pane-sub { margin: 0; font-size: 12.5px; color: var(--el-text-color-secondary); }
+
+.f-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; color: var(--el-text-color-secondary); }
+.req { color: var(--el-color-danger); }
+.f-hint { margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); }
+
+/* 状态 */
+.state-spinner {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  border: 3px solid var(--el-border-color-lighter);
+  border-top-color: var(--el-text-color-regular);
+  animation: spin 0.7s linear infinite;
 }
-.log-scroll::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+@keyframes spin { to { transform: rotate(360deg); } }
+.state-ok, .state-bad {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
 }
+.state-ok { background: var(--el-color-success-light-9); color: var(--el-color-success); }
+.state-bad { background: var(--el-color-danger-light-9); color: var(--el-color-danger); }
+.state-line { margin: 0; font-size: 13px; color: var(--el-text-color-regular); }
+.state-line-ok { color: var(--el-color-success); font-weight: 600; }
+.state-line-bad { color: var(--el-color-danger); font-weight: 600; }
+
+/* 终端（固定深色） */
+.term {
+  flex: 1; min-height: 120px; border-radius: 10px; padding: 12px;
+  background: #14161a; overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.term-pre { margin: 0; font-size: 12px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; }
+.term-cursor { display: inline-block; width: 7px; height: 15px; background: var(--el-color-success); vertical-align: middle; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.log-scroll { scrollbar-width: thin; scrollbar-color: #3f444d #14161a; }
+.log-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.log-scroll::-webkit-scrollbar-track { background: #14161a; }
+.log-scroll::-webkit-scrollbar-thumb { background: #3f444d; border-radius: 4px; }
+
+/* 文件浏览 */
+.fb { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--el-border-color-lighter); border-radius: 10px; overflow: hidden; }
+.fb-up {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px; flex-shrink: 0;
+  font-size: 12.5px; color: var(--el-text-color-regular); cursor: pointer;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.fb-up:hover { background: var(--el-fill-color-light); }
+.fb-up.is-disabled { opacity: 0.4; pointer-events: none; }
+.fb-up-ico { color: var(--el-text-color-secondary); }
+.fb-list { flex: 1; min-height: 0; overflow: auto; }
+.fb-info { padding: 30px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
+.fb-entry { display: flex; align-items: center; gap: 9px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+.fb-entry:hover { background: var(--el-fill-color-light); }
+.fb-ico { font-size: 16px; flex-shrink: 0; }
+.fb-ico-dir { color: var(--el-color-warning); }
+.fb-ico-file { color: var(--el-text-color-secondary); }
+.fb-name { font-weight: 600; color: var(--el-text-color-primary); }
+.fb-file-name { color: var(--el-text-color-secondary); }
+
+.wiz-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; margin-top: auto; flex-shrink: 0; }
 </style>

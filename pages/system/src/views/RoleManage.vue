@@ -1,19 +1,39 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 角色管理页面
  *
  * 角色分页查询 + 增删改查 + 分配菜单权限（drawer 树形勾选）。
  * 全部使用 ReXxx modern 组件渲染。
  */
-import { computed, defineAsyncComponent, nextTick, onMounted, ref } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox, ElTree } from "element-plus";
-import { UserFilled, Plus, Edit, Delete, Search, Refresh, Menu as MenuIcon } from "@element-plus/icons-vue";
+import {
+  UserFilled,
+  Plus,
+  Edit,
+  Delete,
+  Search,
+  Refresh,
+  Menu as MenuIcon,
+  DocumentCopy,
+  Key,
+  ArrowDown,
+  ArrowUp,
+  Select,
+  RefreshLeft,
+  Check,
+  InfoFilled,
+} from "@element-plus/icons-vue";
+// 统一使用组件引用，保证按钮渲染大小一致
+const EditIcon = Edit;
+const DeleteIcon = Delete;
 /** ReIcon 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
 const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 import {
   pageForRole,
   saveRole,
   updateRole,
+  updateRoleDataScope,
   deleteRole,
   getRoleMenu,
   updateRoleMenu,
@@ -162,7 +182,7 @@ const checkedCount = ref(0);
 const currentRole = ref<SysRole | null>(null);
 const menuTreeRef = ref<InstanceType<typeof ElTree>>();
 const permSearchText = ref("");
-const permTreeExpanded = ref<string[]>([]);
+const permTreeExpanded = ref<(string | number)[]>([]);
 const activePermTab = ref("menu");
 
 /** 树勾选变化时刷新已选数量 */
@@ -217,12 +237,26 @@ function filterTreeByText(nodes: SysMenu[], q: string): SysMenu[] {
   return result;
 }
 
+/**
+ * default-expanded-keys 只在树数据重建时被 store 应用一次，单纯改这个 ref 对已渲染的树无效，
+ * 所以展开/收起必须逐节点调 expand()/collapse()，同时把 ref 同步好供下次重建使用。
+ */
+function setPermTreeExpanded(expanded: boolean) {
+  const nodesMap = (
+    menuTreeRef.value as unknown as
+      | { store?: { nodesMap?: Record<string, { expand?: () => void; collapse?: () => void }> } }
+      | undefined
+  )?.store?.nodesMap;
+  Object.values(nodesMap ?? {}).forEach((node) => (expanded ? node.expand?.() : node.collapse?.()));
+  permTreeExpanded.value = expanded ? collectKeys(menuTree.value) : [];
+}
+
 function expandAllPermTree() {
-  permTreeExpanded.value = collectKeys(menuTree.value);
+  setPermTreeExpanded(true);
 }
 
 function collapsePermTree() {
-  permTreeExpanded.value = [];
+  setPermTreeExpanded(false);
 }
 
 function collectKeys(nodes: SysMenu[]): string[] {
@@ -236,6 +270,82 @@ function collectKeys(nodes: SysMenu[]): string[] {
   walk(nodes);
   return keys;
 }
+
+/** 树中全部节点键 */
+function collectAllKeys(nodes: SysMenu[]): number[] {
+  const keys: number[] = [];
+  const walk = (arr: SysMenu[]) => {
+    arr.forEach((n) => {
+      if (n.sysMenuId != null) keys.push(n.sysMenuId);
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return keys;
+}
+
+/** 前 depth 层节点键（用于默认展开到菜单层，按钮层保持收起） */
+function collectKeysToDepth(nodes: SysMenu[], depth: number): number[] {
+  const keys: number[] = [];
+  const walk = (arr: SysMenu[], level: number) => {
+    if (level > depth) return;
+    arr.forEach((n) => {
+      if (n.sysMenuId != null) keys.push(n.sysMenuId);
+      if (n.children?.length) walk(n.children, level + 1);
+    });
+  };
+  walk(nodes, 1);
+  return keys;
+}
+
+/** 叶子节点键（无 children 的节点） */
+function collectLeafKeys(nodes: SysMenu[]): number[] {
+  const keys: number[] = [];
+  const walk = (arr: SysMenu[]) => {
+    arr.forEach((n) => {
+      if (n.children?.length) walk(n.children);
+      else if (n.sysMenuId != null) keys.push(n.sysMenuId);
+    });
+  };
+  walk(nodes);
+  return keys;
+}
+
+/** 节点总数（含按钮），用于「已选 N / 共 M」 */
+const totalMenuCount = computed(() => collectAllKeys(menuTree.value).length);
+
+/** 节点类型文案：3 按钮、1 iframe、2 外链，其余按结构区分目录/菜单（与后端 directoryIds、菜单管理同一规则） */
+function menuTypeOf(node: SysMenu): string {
+  if (node.sysMenuType === 3) return "按钮";
+  if (node.sysMenuType === 1) return "iframe";
+  if (node.sysMenuType === 2) return "外链";
+  return node.children?.some((child) => child.sysMenuType !== 3 && child.sysMenuRemind !== 1) ? "目录" : "菜单";
+}
+
+function menuTypeTag(node: SysMenu): "info" | "primary" | "warning" {
+  if (node.sysMenuType === 3) return "warning";
+  return menuTypeOf(node) === "目录" ? "info" : "primary";
+}
+
+/** 全选当前过滤结果 */
+function handleCheckAllMenu() {
+  menuTreeRef.value?.setCheckedKeys(collectAllKeys(filteredMenuTree.value));
+  onMenuCheck();
+}
+
+/** 反选当前过滤结果 */
+function handleInvertMenu() {
+  const current = new Set((menuTreeRef.value?.getCheckedKeys() ?? []) as number[]);
+  menuTreeRef.value?.setCheckedKeys(collectAllKeys(filteredMenuTree.value).filter((k) => !current.has(k)));
+  onMenuCheck();
+}
+
+/** 搜索时自动展开命中分支，清空后回到默认层级 */
+watch(permSearchText, () => {
+  permTreeExpanded.value = permSearchText.value.trim()
+    ? collectAllKeys(filteredMenuTree.value)
+    : collectKeysToDepth(menuTree.value, 2);
+});
 
 async function openPermDialog(row: Record<string, unknown>) {
   const role = row as unknown as SysRole;
@@ -256,8 +366,12 @@ async function openPermDialog(row: Record<string, unknown>) {
       listDept(),
     ]);
     menuTree.value = (menuRes?.data ?? []) as SysMenu[];
-    checkedMenuIds.value = (checkedRes?.data ?? []) as number[];
+    // 后端存的是「勾选节点 + 半选父链」，只回填叶子键：
+    // 把半选父级直接交给 el-tree 会被级联成全选，连带勾上它未授权的兄弟菜单
+    const saved = new Set((checkedRes?.data ?? []) as number[]);
+    checkedMenuIds.value = collectLeafKeys(menuTree.value).filter((k) => saved.has(k));
     deptTree.value = (deptRes?.data ?? []) as SysDept[];
+    permTreeExpanded.value = collectKeysToDepth(menuTree.value, 2);
     await nextTick();
     onMenuCheck();
   } catch (e) {
@@ -269,14 +383,17 @@ async function handleSavePerm() {
   if (!currentRole.value) return;
   permSaving.value = true;
   try {
-    const checked = menuTreeRef.value?.getCheckedKeys() as number[];
+    const checked = (menuTreeRef.value?.getCheckedKeys() ?? []) as number[];
+    // 半选的父级目录/菜单必须一起保存，否则子节点因缺少父链而无法渲染
+    const halfChecked = (menuTreeRef.value?.getHalfCheckedKeys() ?? []) as number[];
     // 保存菜单权限
-    await updateRoleMenu({ roleId: currentRole.value.sysRoleId, menuId: checked });
-    // 保存数据权限
-    const customDeptIds = dataScope.value === 5
-      ? (deptTreeRef.value?.getCheckedKeys() as number[] ?? []).join(",")
-      : "";
-    await updateRole({
+    await updateRoleMenu({ roleId: currentRole.value.sysRoleId, menuId: [...checked, ...halfChecked] });
+    // 保存数据权限（走专用接口：只写数据权限两列，管理员即可调整，系统内置角色同样适用）
+    const customDeptIds =
+      dataScope.value === 5
+        ? ((deptTreeRef.value?.getCheckedKeys() as number[]) ?? []).join(",")
+        : "";
+    await updateRoleDataScope({
       sysRoleId: currentRole.value.sysRoleId,
       sysRoleDataScope: dataScope.value,
       sysRoleDataScopeDeptIds: customDeptIds,
@@ -334,7 +451,7 @@ async function openRoleUsers(row: Record<string, unknown>) {
 }
 
 const columns: ReTableColumn[] = [
-  { prop: "sysRoleName", label: "角色名称", minWidth: 140, slot: "roleName" },
+  { prop: "sysRoleName", label: "角色名称", minWidth: 220, slot: "roleName" },
   { prop: "sysRoleCode", label: "角色编码", minWidth: 140 },
   { prop: "sysRoleSort", label: "排序", width: 80, align: "center" },
   { prop: "sysRoleStatus", label: "状态", width: 90, slot: "status", align: "center" },
@@ -367,7 +484,7 @@ onMounted(() => {
         @search-reset="handleReset"
       >
         <template #toolbar>
-          <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">新增</ReButton>
+          <el-button type="primary" icon="Plus" @click="handleAdd" text>新增</el-button>
         </template>
         <template #roleName="{ row }">
           <div class="flex items-center gap-2">
@@ -380,9 +497,8 @@ onMounted(() => {
         <template #status="{ row }">
           <!-- 内置角色不允许显示切换按钮（连 disabled 状态也不显示，避免误操作） -->
           <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" size="small">已启用</ReTag>
-          <ReSwitch
+          <el-switch
             v-else
-            layout="modern"
             :model-value="row.sysRoleStatus === 1"
             @update:model-value="() => handleStatus(row)"
           />
@@ -392,11 +508,13 @@ onMounted(() => {
           <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #action="{ row }">
-          <ReButton layout="square" type="primary" :icon="MenuIcon" @click="openPermDialog(row)">分配菜单</ReButton>
-          <ReButton layout="square" type="primary" icon="Edit" @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="square" type="success" @click="handleCopy(row)">复制</ReButton>
-          <ReButton layout="square" type="info" @click="openRoleUsers(row)">用户</ReButton>
-          <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
+          <div class="flex items-center gap-2">
+            <ReButton layout="square" type="primary" icon="Key" @click="openPermDialog(row)">分配权限</ReButton>
+            <ReButton layout="square" type="primary" icon="Edit" @click="handleEdit(row)">编辑</ReButton>
+            <ReButton layout="square" type="success" icon="DocumentCopy" @click="handleCopy(row)">复制</ReButton>
+            <ReButton layout="square" type="info" icon="User" @click="openRoleUsers(row)">用户</ReButton>
+            <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
+          </div>
         </template>
       </ReTable>
 
@@ -426,10 +544,11 @@ onMounted(() => {
           <el-segmented v-model="form.sysRoleStatus" :options="roleStatusOptions" />
         </el-form-item>
         <el-form-item label="只读角色">
-          <div class="readonly-switch">
-            <el-switch v-model="form.sysRoleReadonly" :active-value="1" :inactive-value="0" />
-            <span v-if="form.sysRoleReadonly === 1" class="readonly-switch__tip">只读角色无法执行任何新增/修改/删除操作</span>
-          </div>
+          <el-segmented v-model="form.sysRoleReadonly" :options="[
+            { label: '普通角色', value: 0 },
+            { label: '只读角色', value: 1 }
+          ]" />
+          <span v-if="form.sysRoleReadonly === 1" class="readonly-switch__tip">只读角色无法执行任何新增/修改/删除操作</span>
         </el-form-item>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="form.sysRoleRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
@@ -441,7 +560,7 @@ onMounted(() => {
     <ReDialog
       v-model="permVisible"
       :title="`分配权限 - ${currentRole?.sysRoleName ?? ''}`"
-      width="600"
+      width="760"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
@@ -460,12 +579,26 @@ onMounted(() => {
               clearable
               class="flex-1"
             />
-            <ReButton layout="square" type="primary" @click="expandAllPermTree">展开</ReButton>
-            <ReButton layout="square" type="info" @click="collapsePermTree">收起</ReButton>
-            <span class="checked-count">已选 {{ checkedCount }} 个菜单/按钮</span>
-            <ReButton layout="square" type="danger" @click="handleClearMenu">清空</ReButton>
+            <el-button-group class="perm-toolbar__ops">
+              <el-button size="small" :icon="ArrowDown" @click="expandAllPermTree">展开</el-button>
+              <el-button size="small" :icon="ArrowUp" @click="collapsePermTree">收起</el-button>
+            </el-button-group>
+            <el-button-group class="perm-toolbar__ops">
+              <el-button size="small" :icon="Select" @click="handleCheckAllMenu">全选</el-button>
+              <el-button size="small" :icon="RefreshLeft" @click="handleInvertMenu">反选</el-button>
+            </el-button-group>
+            <el-button size="small" type="danger" plain :icon="Delete" @click="handleClearMenu">清空</el-button>
           </div>
-          <el-scrollbar max-height="360px">
+          <div class="perm-summary">
+            <span class="checked-count">已选 <b>{{ checkedCount }}</b> / 共 {{ totalMenuCount }} 项</span>
+            <el-progress
+              class="perm-summary__bar"
+              :percentage="totalMenuCount ? Math.round((checkedCount / totalMenuCount) * 100) : 0"
+              :stroke-width="6"
+              :show-text="false"
+            />
+          </div>
+          <el-scrollbar max-height="420px">
             <el-tree
               ref="menuTreeRef"
               :data="filteredMenuTree"
@@ -479,34 +612,56 @@ onMounted(() => {
               @check="onMenuCheck"
             >
               <template #default="{ data }">
-                <div class="flex items-center gap-2">
-                  <ReIcon v-if="data.sysMenuIcon" :name="data.sysMenuIcon" :size="14" class="text-[--el-color-primary]" />
-                  <span>{{ data.sysMenuTitle }}</span>
-                  <span v-if="data.sysMenuType === 3" class="text-xs text-[--el-text-color-placeholder]">(按钮)</span>
+                <div class="perm-node">
+                  <ReIcon v-if="data.sysMenuIcon" :name="data.sysMenuIcon" :size="14" class="perm-node__icon" />
+                  <span class="perm-node__title">{{ data.sysMenuTitle }}</span>
+                  <ReTag :type="menuTypeTag(data)" effect="plain" size="small">
+                    {{ menuTypeOf(data) }}
+                  </ReTag>
+                  <code v-if="data.sysMenuPerm" class="perm-node__perm">{{ data.sysMenuPerm }}</code>
+                  <span v-if="data.children?.length" class="perm-node__count">{{ data.children.length }}</span>
                 </div>
               </template>
             </el-tree>
+            <el-empty v-if="!filteredMenuTree.length" description="没有匹配的菜单" :image-size="60" />
           </el-scrollbar>
         </el-tab-pane>
 
         <!-- 数据权限 Tab -->
         <el-tab-pane label="数据权限" name="data">
-          <div class="data-scope-desc">
-            <el-alert type="info" :closable="false" show-icon>
+          <!-- 说明条 -->
+          <div class="data-scope-tip">
+            <span class="data-scope-tip__icon">
+              <el-icon><InfoFilled /></el-icon>
+            </span>
+            <p class="data-scope-tip__text">
               数据权限控制该角色用户可查看哪些部门的用户数据，取该用户所有角色中最宽松的配置。超级管理员不受限制。
-            </el-alert>
+            </p>
           </div>
-          <el-radio-group v-model="dataScope" class="data-scope-group">
-            <el-radio
+
+          <!-- 权限卡片（3 列单选） -->
+          <div class="data-scope-cards">
+            <label
               v-for="opt in dataScopeOptions"
               :key="opt.value"
-              :value="opt.value"
-              class="data-scope-item"
+              class="data-scope-card"
+              :class="{ 'is-active': dataScope === opt.value }"
             >
-              <div class="data-scope-item__label">{{ opt.label }}</div>
-              <div class="data-scope-item__desc">{{ opt.desc }}</div>
-            </el-radio>
-          </el-radio-group>
+              <input
+                v-model="dataScope"
+                class="data-scope-card__radio"
+                type="radio"
+                :value="opt.value"
+              />
+              <span class="data-scope-card__head">
+                <span class="data-scope-card__dot">
+                  <el-icon v-if="dataScope === opt.value" :size="12"><Check /></el-icon>
+                </span>
+                <span class="data-scope-card__label">{{ opt.label }}</span>
+              </span>
+              <span class="data-scope-card__desc">{{ opt.desc }}</span>
+            </label>
+          </div>
 
           <!-- 自定义部门选择 -->
           <div v-if="dataScope === 5" class="custom-dept">
@@ -544,8 +699,8 @@ onMounted(() => {
           <el-table-column prop="sysUserPhone" label="手机号" min-width="130" />
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.sysUserStatus === 0 ? 'success' : 'danger'" size="small" effect="plain">
-                {{ row.sysUserStatus === 0 ? '启用' : '禁用' }}
+              <el-tag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+                {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
               </el-tag>
             </template>
           </el-table-column>
@@ -561,7 +716,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
 .system-page__header {
@@ -592,7 +747,82 @@ onMounted(() => {
 .checked-count {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin-left: auto;
+
+  b {
+    color: var(--el-color-primary);
+    font-weight: 600;
+  }
+}
+
+.perm-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  &__bar {
+    flex: 1;
+    min-width: 60px;
+  }
+}
+
+.perm-toolbar__ops {
+  flex-shrink: 0;
+}
+
+.perm-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+
+  &__icon {
+    color: var(--el-color-primary);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    flex-shrink: 0;
+  }
+
+  &__perm {
+    font-family: var(--el-font-family-mono, ui-monospace, monospace);
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    background: var(--el-fill-color-light);
+    border-radius: 4px;
+    padding: 0 5px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    padding: 0 6px;
+    line-height: 16px;
+  }
+}
+
+.perm-tree {
+  :deep(.el-tree-node__content) {
+    height: 34px;
+    border-radius: 6px;
+    transition: background-color 0.16s;
+  }
+
+  :deep(.el-tree-node__content:hover) {
+    background: var(--el-color-primary-light-9);
+  }
+
+  :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    background: var(--el-color-primary-light-8);
+  }
 }
 
 .readonly-switch {
@@ -618,38 +848,118 @@ onMounted(() => {
   }
 }
 
-.data-scope-desc {
+/* ==================== 数据权限（卡片式单选） ==================== */
+.data-scope-tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   margin-bottom: 16px;
+  border: 1px solid var(--el-color-primary-light-8);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-primary-light-9);
 }
 
-.data-scope-group {
+.data-scope-tip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.data-scope-tip__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
+
+
+.data-scope-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.data-scope-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition:
+    border-color var(--el-transition-duration, 0.2s) ease,
+    background-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
 }
 
-.data-scope-item {
-  margin-right: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  transition: border-color 0.2s;
-  height: auto;
+.data-scope-card:hover {
+  border-color: var(--el-color-primary-light-5);
+}
 
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-  }
+.data-scope-card.is-active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
 
-  &__label {
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-  }
+.data-scope-card__radio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 
-  &__desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 2px;
-  }
+.data-scope-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.data-scope-card__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-color-white);
+  transition:
+    border-color var(--el-transition-duration, 0.2s) ease,
+    background-color var(--el-transition-duration, 0.2s) ease;
+}
+
+.data-scope-card.is-active .data-scope-card__dot {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+
+.data-scope-card__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.data-scope-card__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 .custom-dept {
@@ -671,4 +981,5 @@ onMounted(() => {
   }
 }
 </style>
+
 

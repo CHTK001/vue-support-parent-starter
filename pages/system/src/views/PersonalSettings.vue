@@ -13,6 +13,7 @@ import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
+import { getFrameworkStorage } from "@repo/utils";
 import {
   getUserPreference,
   updateUserPreference,
@@ -49,15 +50,14 @@ const syncState = computed<{ text: string; type: "success" | "warning" | "danger
 
 function readLocalPrefs(): Record<string, unknown> {
   try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    return (getFrameworkStorage().get<Record<string, unknown>>(PREFS_KEY)) ?? {};
   } catch {
     return {};
   }
 }
 
 function writeLocalPrefs(data: Record<string, unknown>): void {
-  localStorage.setItem(PREFS_KEY, JSON.stringify(data));
+  getFrameworkStorage().set(PREFS_KEY, data);
 }
 
 function applyPrefs(saved: Record<string, unknown>): void {
@@ -412,7 +412,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
 .system-page__header {

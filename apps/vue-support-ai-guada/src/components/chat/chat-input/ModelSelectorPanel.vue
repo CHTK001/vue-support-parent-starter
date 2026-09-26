@@ -3,7 +3,8 @@
     popper-class="model-popover simple-model-popover">
     <div class="model-panel">
       <!-- 当前选中模型 -->
-      <div v-if="currentModel" class="current-model-item" @click="closePanel">
+      <div v-if="currentModel" class="current-model-item" @click="closePanel"
+        @mouseenter="onItemEnter(currentModel, $event)" @mouseleave="onItemLeave">
         <div class="w-6 h-6 shrink-0">
           <Avatar :src="getModelAvatarPath(currentModel.modelName, currentModelProviderName) || undefined"
             :name="getModelDisplayName(currentModel.modelName)" type="assistant" :round="false"
@@ -16,7 +17,7 @@
       </div>
 
       <!-- 所有模型列表 -->
-      <div class="models-list">
+      <div class="models-list" @scroll.passive="repositionInfoCard">
         <!-- 空状态：显示添加模型按钮 -->
         <div v-if="allModels.length === 0" class="empty-models">
           <div class="add-model-btn" @click="goToModelSettings">
@@ -32,7 +33,8 @@
         <div v-for="model in allModels" :key="model.id"
           class="model-item"
           :class="{ 'model-item-active': currentModelId === model.id }"
-          @click="handleSelect(model.id)">
+          @click="handleSelect(model.id)"
+          @mouseenter="onItemEnter(model, $event)" @mouseleave="onItemLeave">
           <div class="w-6 h-6 shrink-0">
             <Avatar :src="getModelAvatarPath(model.modelName, getModelProviderName(model)) || undefined"
               :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" class="w-full h-full" />
@@ -65,34 +67,53 @@
       </div>
     </div>
   </CustomPopover>
+
+  <!-- 悬停模型 → 右侧信息卡（能力 / 模态 / 成本 / 限制 / 元数据） -->
+  <ModelInfoCard :model="hoverModel" :position="hoverPos" :provider-name="hoverProviderName"
+    :width="INFO_CARD_WIDTH" :max-height="INFO_CARD_HEIGHT" @mouseenter="onCardEnter" @mouseleave="onCardLeave"
+    @close="closeHoverCard" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElIcon } from 'element-plus'
 import { Checkmark24Regular, Add24Regular } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import Avatar from '../../ui/Avatar.vue'
+import ModelInfoCard from './ModelInfoCard.vue'
 import { getModelDisplayName, getModelAvatarPath, getThinkingEffortLabel } from '@/utils/modelUtils'
 
 interface Model {
   id: string
   modelName: string
-  providerId: string
+  providerId?: string
+  /** 后端 /api/providers 的原始字段：供应商 id */
+  provider_id?: string
+  model?: string
   modelType?: string
   description?: string
+  /** 后端能力数组：{ task, traits }，用于派生模态与特性 */
+  capabilities?: unknown
+  context_window?: number | null
+  max_tokens?: number | null
   config?: {
     inputCapabilities?: string[]
     outputCapabilities?: string[]
     features?: string[]
+    contextWindow?: number | null
+    maxOutputTokens?: number | null
   }
+  /** 官方指标（sys_ai_model_metrics 快照合并进模型行） */
+  metrics?: Record<string, any>
   isFavorite?: boolean
   thinkingEfforts?: string[]
 }
 
 interface Provider {
-  id: string
+  id?: string
+  /** 后端 /api/providers 的原始字段：供应商 id */
+  provider_id?: string
   name: string
   models?: Model[]
 }
@@ -133,9 +154,48 @@ const allModels = computed(() => {
   return [...favorites, ...others]
 })
 
+/**
+ * 供应商 id：模型侧优先 providerId（模型管理页映射后的字段）→ provider_id（后端原始字段）
+ * → 复合主键 id 的前缀（后端为 providerId:model）。
+ *
+ * @param model 模型行
+ * @returns 供应商 id，取不到时返回空串
+ */
+function providerIdOfModel(model: Model): string {
+  if (!model) {
+    return ''
+  }
+  if (model.providerId) {
+    return model.providerId
+  }
+  if (model.provider_id) {
+    return model.provider_id
+  }
+  const id = model.id || ''
+  const idx = id.indexOf(':')
+  return idx > 0 ? id.slice(0, idx) : ''
+}
+
+/**
+ * 供应商 id：供应商侧 id → provider_id（后端原始字段）
+ *
+ * @param provider 供应商行
+ * @returns 供应商 id，取不到时返回空串
+ */
+function providerIdOfProvider(provider: Provider): string {
+  return provider?.id || provider?.provider_id || ''
+}
+
+/**
+ * 模型所属供应商名
+ *
+ * @param model 模型行
+ * @returns 供应商展示名，未关联到时返回空串
+ */
 function getModelProviderName(model: Model): string {
-  if (!model || !model.providerId) return ''
-  const provider = props.providers.find(p => p.id === model.providerId)
+  const pid = providerIdOfModel(model)
+  if (!pid) return ''
+  const provider = props.providers.find(p => providerIdOfProvider(p) === pid)
   return provider ? provider.name : ''
 }
 
@@ -161,9 +221,124 @@ function onMainShowChange(val: boolean) {
   emit('update:visible', val)
 }
 
+/* ==================== 悬停信息卡 ==================== */
+
+/** 悬停中的模型（null = 不显示信息卡） */
+const hoverModel = ref<Model | null>(null)
+/** 信息卡的视口坐标（fixed），按条目位置算出 */
+const hoverPos = ref<{ left: number; top: number } | null>(null)
+/** 悬停条目元素：列表滚动时按它重新定位 */
+const hoverTarget = ref<HTMLElement | null>(null)
+/** 信息卡尺寸：定位计算与卡片渲染共用同一份，避免宽度不一致导致越界 */
+const INFO_CARD_WIDTH = 252
+const INFO_CARD_HEIGHT = 420
+/** 延迟显示：沿列表快速划过时不逐个弹卡 */
+const HOVER_OPEN_DELAY = 140
+/** 延迟隐藏：条目与卡片之间有 8px 间隙，留出移动到卡片的时间 */
+const HOVER_CLOSE_DELAY = 240
+/** 卡片与条目的间距 / 视口留白 */
+const CARD_GAP = 8
+const VIEWPORT_PAD = 10
+
+let openTimer: number | undefined
+let closeTimer: number | undefined
+
+const hoverProviderName = computed(() =>
+  hoverModel.value ? getModelProviderName(hoverModel.value) : '',
+)
+
+/** 按条目位置把卡片放到条目右侧；右侧放不下则翻到左侧 */
+function placeInfoCard(rect: DOMRect): { left: number; top: number } {
+  let left = rect.right + CARD_GAP
+  if (left + INFO_CARD_WIDTH > window.innerWidth - VIEWPORT_PAD) {
+    left = rect.left - INFO_CARD_WIDTH - CARD_GAP
+  }
+  if (left < VIEWPORT_PAD) {
+    left = VIEWPORT_PAD
+  }
+  // 贴近条目顶部；同时夹住视口上下边界，超高时由卡片内部滚动
+  const top = Math.max(
+    VIEWPORT_PAD,
+    Math.min(rect.top, window.innerHeight - INFO_CARD_HEIGHT - VIEWPORT_PAD),
+  )
+  return { left, top }
+}
+
+/** 列表滚动后卡片跟随条目（条目被滚出可视区时直接收起） */
+function repositionInfoCard() {
+  if (!hoverModel.value || !hoverTarget.value) {
+    return
+  }
+  const rect = hoverTarget.value.getBoundingClientRect()
+  if (rect.bottom < 0 || rect.top > window.innerHeight) {
+    closeHoverCard()
+    return
+  }
+  hoverPos.value = placeInfoCard(rect)
+}
+
+/**
+ * 指针进入模型条目：延迟后弹出信息卡
+ *
+ * @param model 悬停的模型行
+ * @param event 鼠标事件（currentTarget 必须在同步段取出，回调里已被置空）
+ */
+function onItemEnter(model: Model, event: MouseEvent) {
+  window.clearTimeout(closeTimer)
+  // 同一行重复进入不重置计时，避免卡片反复重绘
+  if (hoverModel.value?.id === model.id) {
+    return
+  }
+  const target = event.currentTarget as HTMLElement | null
+  window.clearTimeout(openTimer)
+  openTimer = window.setTimeout(() => {
+    hoverTarget.value = target
+    hoverModel.value = model
+    hoverPos.value = target ? placeInfoCard(target.getBoundingClientRect()) : null
+  }, HOVER_OPEN_DELAY)
+}
+
+/** 指针离开模型条目：延迟收起，给移动到卡片留时间 */
+function onItemLeave() {
+  window.clearTimeout(openTimer)
+  scheduleClose()
+}
+
+/** 指针进入信息卡：取消收起 */
+function onCardEnter() {
+  window.clearTimeout(closeTimer)
+}
+
+/** 指针离开信息卡：延迟收起 */
+function onCardLeave() {
+  scheduleClose()
+}
+
+/** 清空悬停态 */
+function resetHover() {
+  hoverModel.value = null
+  hoverPos.value = null
+  hoverTarget.value = null
+}
+
+function scheduleClose() {
+  window.clearTimeout(closeTimer)
+  closeTimer = window.setTimeout(resetHover, HOVER_CLOSE_DELAY)
+}
+
+/** 立即收起信息卡（面板关闭 / Esc / 点击外部 / 组件卸载） */
+function closeHoverCard() {
+  window.clearTimeout(openTimer)
+  window.clearTimeout(closeTimer)
+  resetHover()
+}
+
+onUnmounted(closeHoverCard)
+
 watch(() => props.visible, (newVal) => {
+  // 面板关闭时一并收起信息卡
   if (!newVal) {
-    // 面板关闭时清理
+    closeHoverCard()
   }
 })
 </script>

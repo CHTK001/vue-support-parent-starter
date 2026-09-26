@@ -2,60 +2,95 @@
 /**
  * 主机监控详情 —— 遥测控制台（mission-control telemetry）
  *
- * 数据源：
- *   1) HTTP 拉取：最新指标（CPU/内存/磁盘/网络/JVM）+ 24h 历史
- *   2) Socket 实时推送：订阅 monitor:metric（dataId=monitorId），
- *      命中当前主机时立即更新仪表并追加趋势点（最多保留 MAX_LIVE 点），
- *      推送心跳（计数 / 最后时间 / 连接状态）显示在面板头。
+ * 数据源（前端不做 HTTP 轮询，全部由 socket 推送或事件触发的一次性拉取）：
+ *   1) 进入页面一次性拉取：主机台账 + 近1h内置历史 + 资产监控项解析 + 一次新鲜画像；
+ *   2) Socket 实时推送：
+ *      - monitor:host-metrics（按 hostId 过滤）：CPU/内存/磁盘/磁盘IO/软件；
+ *      - monitor:metric（按 monitorId 过滤）：监控项明细（含 JVM）。
+ *   3) AI 智能分析：事件触发，后端按主机取数，前端只传分析重点。
  *
- * 设计语言：深色遥测面板 + 发光刻度环 + 网格趋势 + 等宽数字，
- * 与外壳 koi 浅色主题形成“任务控制室”的对比记忆点。
+ * 所有仪表/趋势均来自真实采集值，点击趋势卡打开的历史弹窗与外侧口径一致；
+ * 弹窗内只选择时间范围，指标由被点击的卡片确定。
+ *
  * @author CH
  * @since 4.0.0
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useSocketService } from "@repo/core";
-import { queryHosts } from "@pages/server/src/api";
+import * as echarts from "echarts";
+import { Loading } from "@element-plus/icons-vue";
 import {
-  getLatestCpu, getCpuHistory, getLatestMemory, getMemoryHistory, getLatestDisk,
-  getLatestNetwork, getNetworkHistory, getLatestJvm, getJvmHistory,
+  getAssetDetail, getLatestCpu, getCpuHistory, getLatestMemory, getMemoryHistory, getLatestDisk,
+  getLatestNetwork, getNetworkHistory, getLatestJvm, getJvmHistory, getHostMetricHistory,
+  getAllConfig, saveConfig,
+  type AssetMonitorRef, type SoftwareInstance,
 } from "@pages/monitor/src/api";
+import { getHost } from "@pages/server/src/api";
+import { aiAnalyzeHost, fetchAiStatus, fetchHostProfile, type HostProfile } from "../monitorApi";
 
 const route = useRoute();
 const router = useRouter();
-const monitorId = ref<number>(Number(route.params.id) || 0);
+
+/** 路由参数是主机台账标识（AssetsView 用 /host/${h.id} 跳转），不是监控项标识 */
+const hostId = ref<number>(Number(route.params.id) || 0);
+/** 指标查询用监控项标识，由资产详情解析得到 */
+const monitorId = ref<number>(0);
 const hostName = ref("");
+const monitors = ref<AssetMonitorRef[]>([]);
 const loading = ref(false);
 const error = ref("");
+/** 主机台账记录（内置指标的初始来源，即使没有监控项也能出数） */
+const hostRecord = ref<any>(null);
 
 const cpu = ref<{ usage?: number; cores?: number } | null>(null);
 const mem = ref<{ usagePercent?: number; usage?: number; total?: number } | null>(null);
 const disk = ref<any[]>([]);
 const net = ref<{ rx?: number; tx?: number } | null>(null);
 const jvm = ref<{ heapUsed?: number; heapMax?: number; heapUsagePercent?: number } | null>(null);
+/** 磁盘读写速率 KB/s */
+const diskRead = ref(0);
+const diskWrite = ref(0);
+/** 主机上识别到的软件实例（动态，按主机实际存在渲染） */
+const software = ref<SoftwareInstance[]>([]);
+
 const cpuHist = ref<number[]>([]);
 const memHist = ref<number[]>([]);
+const diskHist = ref<number[]>([]);
+const diskReadHist = ref<number[]>([]);
+const diskWriteHist = ref<number[]>([]);
 const netHist = ref<number[]>([]);
 const jvmHist = ref<number[]>([]);
 
 // ---------------- 格式化工具 ----------------
 function pct(v?: number): string { return v == null ? "—" : `${v.toFixed(0)}%`; }
-/**
- * 数值展示，null 显示 —
- * @param v 数值
- */
 function num(v?: number): string { return v == null ? "—" : String(Math.round(v)); }
-/**
- * 数值格式化
- * @param v 数值
- */
 function fmt(v?: number): string {
   if (v == null) return "—";
   if (v >= 1073741824) return `${(v / 1073741824).toFixed(1)}G`;
   if (v >= 1048576) return `${(v / 1048576).toFixed(1)}M`;
   if (v >= 1024) return `${(v / 1024).toFixed(1)}K`;
   return String(Math.round(v));
+}
+/** 速率（KB/s）展示：自动升到 MB/s */
+function fmtKbs(v?: number): string {
+  if (v == null) return "—";
+  if (v >= 1024) return `${(v / 1024).toFixed(1)} MB/s`;
+  return `${v.toFixed(0)} KB/s`;
+}
+/** 运行时长：2d 3h / 4h 12m / 30m */
+function fmtUptime(sec?: number): string {
+  if (sec == null || sec < 0) return "—";
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+function numOr0(v: unknown): number {
+  const n = Number(v);
+  return v == null || Number.isNaN(n) ? 0 : n;
 }
 /** 把 ISO 时间 / 时间戳转成 HH:MM:SS */
 function fmtClock(t?: string | number): string {
@@ -64,65 +99,58 @@ function fmtClock(t?: string | number): string {
   if (Number.isNaN(d.getTime())) return "—";
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 }
+/** 解析软件 JSON（后端可能给字符串或数组） */
+function parseSoftware(raw: unknown): SoftwareInstance[] {
+  if (!raw) return [];
+  let arr: any = raw;
+  if (typeof raw === "string") {
+    try { arr = JSON.parse(raw); } catch { return []; }
+  }
+  return Array.isArray(arr) ? arr : [];
+}
 
 // ---------------- 趋势 sparkline（纯 SVG） ----------------
-function spark(data: number[]): string {
+function sparkScaled(data: number[], min: number, max: number): string {
   if (data.length === 0) return "";
-  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1, w = 200, h = 56, pad = 3;
+  const range = max - min || 1, w = 200, h = 56, pad = 3;
   return data.map((v, i) => {
     const x = pad + (i / (data.length - 1 || 1)) * (w - pad * 2);
     const y = h - pad - ((v - min) / range) * (h - pad * 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
 }
-/**
- * 序列面积估算文本
- * @param data 数值序列
- */
+function spark(data: number[]): string {
+  if (data.length === 0) return "";
+  return sparkScaled(data, Math.min(...data), Math.max(...data));
+}
 function area(data: number[]): string {
   if (data.length === 0) return "";
   return `${spark(data)} 200,56 0,56`;
 }
-/**
- * 序列最小值
- * @param data 数值序列
- */
+/** 磁盘IO 两条线共用纵轴（读+写一起取 min/max，便于对比） */
+function ioSpark(which: "read" | "write"): string {
+  const all = [...diskReadHist.value, ...diskWriteHist.value];
+  if (!all.length) return "";
+  const min = Math.min(...all), max = Math.max(...all);
+  return sparkScaled(which === "read" ? diskReadHist.value : diskWriteHist.value, min, max);
+}
 function trendMin(data: number[]): string { return data.length ? data.reduce((a, b) => Math.min(a, b), Infinity).toFixed(0) : "—"; }
-/**
- * 序列最大值
- * @param data 数值序列
- */
 function trendMax(data: number[]): string { return data.length ? data.reduce((a, b) => Math.max(a, b), -Infinity).toFixed(0) : "—"; }
-/**
- * 序列最新值
- * @param data 数值序列
- */
 function trendLast(data: number[]): string { return data.length ? data[data.length - 1].toFixed(0) : "—"; }
-/** 网络字节趋势的 min/max/last（空数据返回 —，有数据按 fmt 压缩显示） */
 function netMin(data: number[]): string { return data.length ? fmt(data.reduce((a, b) => Math.min(a, b), Infinity)) : "—"; }
-/**
- * 网络峰值
- * @param data 数值序列
- */
 function netMax(data: number[]): string { return data.length ? fmt(data.reduce((a, b) => Math.max(a, b), -Infinity)) : "—"; }
-/**
- * 网络最新值
- * @param data 数值序列
- */
 function netLast(data: number[]): string { return data.length ? fmt(data[data.length - 1]) : "—"; }
+/** 磁盘IO 趋势的最新读/写文本 */
+const ioLastRead = computed(() => diskReadHist.value.length ? fmtKbs(diskReadHist.value[diskReadHist.value.length - 1]) : "—");
+const ioLastWrite = computed(() => diskWriteHist.value.length ? fmtKbs(diskWriteHist.value[diskWriteHist.value.length - 1]) : "—");
 
 // ---------------- 仪表 ----------------
 const ticks = Array.from({ length: 60 }, (_, i) => i);
-/** SVG 圆环进度：返回 stroke-dasharray 片段 */
 function ringDash(p: number): string {
   const r = 50, circ = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(100, p));
   return `${(circ * v / 100).toFixed(2)} ${circ.toFixed(2)}`;
 }
-/**
- * 进度环样式
- * @param p 百分比
- */
 function ringStyle(p: number): Record<string, string> {
   return { strokeDasharray: ringDash(p) };
 }
@@ -141,7 +169,7 @@ const jvmPct = computed(() => jvm.value?.heapUsagePercent ?? 0);
 
 // ---------------- Socket 实时推送 ----------------
 const socket = useSocketService();
-const MAX_LIVE = 120;                       // 实时追加保留的最大点数
+const MAX_LIVE = 240;                       // 实时追加保留的最大点数（滚动近1h，15s粒度≈240点）
 const sockOn = computed(() => socket?.connected.value ?? false);
 const pushCount = ref(0);
 const lastPushText = ref("—");
@@ -149,8 +177,9 @@ const lastPushAt = ref(0);                  // 最近一次推送的毫秒时间
 const LIVE_TTL = 30_000;                    // 30s 内无推送则 LIVE 变灰
 const liveActive = computed(() => sockOn.value && Date.now() - lastPushAt.value < LIVE_TTL);
 let unsubMetric: (() => void) | undefined;
+let unsubHostMetric: (() => void) | undefined;
 
-function pushPoint(arr: typeof cpuHist, v: number | null | undefined): void {
+function pushPoint(arr: { value: number[] }, v: number | null | undefined): void {
   if (v == null || Number.isNaN(Number(v))) return;
   const next = [...arr.value, Number(v)];
   arr.value = next.length > MAX_LIVE ? next.slice(next.length - MAX_LIVE) : next;
@@ -164,7 +193,7 @@ function pickMetric(metrics: Record<string, unknown>, keys: string[]): number | 
   }
   return null;
 }
-/** 应用一次实时指标推送 */
+/** 应用一次实时指标推送（monitor:metric，监控项明细） */
 function applyLivePayload(payload: any): void {
   const metrics = payload?.metrics as Record<string, unknown> | undefined;
   if (!metrics) return;
@@ -177,7 +206,7 @@ function applyLivePayload(payload: any): void {
 
   const diskVal = pickMetric(metrics, ["disk_usage", "diskUsage", "disk"]);
   if (diskVal != null && disk.value.length === 0) {
-    disk.value = [{ mount: "—", device: "", used: 0, total: 0, usedText: "—", usagePercent: diskVal }];
+    disk.value = [{ mount: "/", device: "", used: 0, total: 0, usedText: "—", usagePercent: diskVal }];
   }
 
   const rx = pickMetric(metrics, ["network_rx_bytes", "networkRx", "rx"]);
@@ -194,7 +223,7 @@ function applyLivePayload(payload: any): void {
   lastPushAt.value = Date.now();
   lastPushText.value = fmtClock(payload.collectTime ?? Date.now());
 }
-/** 订阅当前主机的实时指标推送 */
+/** 订阅当前主机的监控项明细推送 */
 function bindLive(): void {
   unsubMetric?.();
   if (!socket) return;
@@ -209,80 +238,768 @@ function bindLive(): void {
   });
 }
 
+// ---------------- 主机内置指标（无监控项也出数） ----------------
+/** 聚合磁盘的合成标签：Linux 根「/」，Windows「此电脑」 */
+const aggDiskLabel = computed(() => {
+  const os = String(hostRecord.value?.serverHostOsType ?? "").toUpperCase();
+  return os.includes("WIN") ? "此电脑" : "/";
+});
+/** 主机是否曾被成功画像：成功采集会写入 CPU 核数/内存/磁盘规格，失败主机这些列为 null */
+function isProfiled(r: any): boolean {
+  return !!r && (r.serverHostCpuCores != null || r.serverHostMemoryMb != null || r.serverHostDiskGb != null);
+}
+/** 主机是否已采到过内置指标（决定无监控项时是否仍渲染仪表） */
+const hasHostMetrics = computed(() => {
+  const r = hostRecord.value;
+  if (!r || !isProfiled(r)) return false;   // 仅有持久化 0 值、从未成功画像的主机不显示假仪表
+  return r.serverHostCpuUsage != null || r.serverHostMemUsage != null || r.serverHostDiskUsage != null;
+});
+/** 趋势口径：有监控项为 24h 历史，否则仅本次会话的实时序列 */
+const trendIsRealtime = computed(() => !monitorId.value);
+
+/** 记录一次推送/采集的心跳（LIVE 活性、推送计数、最后时间） */
+function markPushHeart(clock?: string | number): void {
+  pushCount.value++;
+  lastPushAt.value = Date.now();
+  lastPushText.value = fmtClock(clock ?? Date.now());
+}
+
+/**
+ * 用主机台账记录初始化仪表（CPU/内存/磁盘/磁盘IO/软件 + 硬件规格），并给实时趋势种起点。
+ * 监控项存在时，监控项的明细（网络/JVM/24h）会在 fetchMetrics 中覆盖更精确的值。
+ */
+function applyHostRecord(r: any): void {
+  if (!r) return;
+  hostRecord.value = r;
+  if (!hostName.value) hostName.value = r.serverHostName ?? "";
+  // 从未成功画像的主机（硬件规格全 null）不填充 0 值假仪表
+  if (!isProfiled(r)) return;
+
+  const cores = r.serverHostCpuCores != null ? Number(r.serverHostCpuCores) : undefined;
+  if (r.serverHostCpuUsage != null) {
+    const v = Number(r.serverHostCpuUsage);
+    cpu.value = { usage: v, cores };
+    if (trendIsRealtime.value) pushPoint(cpuHist, v);
+  } else if (cores != null) {
+    cpu.value = { ...(cpu.value ?? {}), cores };
+  }
+
+  const memMb = r.serverHostMemoryMb != null ? Number(r.serverHostMemoryMb) : undefined;
+  const memTotal = memMb != null ? memMb * 1024 * 1024 : undefined;
+  if (r.serverHostMemUsage != null) {
+    const v = Number(r.serverHostMemUsage);
+    const used = memTotal != null ? (memTotal * v) / 100 : undefined;
+    mem.value = { usagePercent: v, usage: used, total: memTotal };
+    if (trendIsRealtime.value) pushPoint(memHist, v);
+  } else if (memTotal != null) {
+    mem.value = { ...(mem.value ?? {}), total: memTotal };
+  }
+
+  if (r.serverHostDiskUsage != null && disk.value.length === 0) {
+    const v = Number(r.serverHostDiskUsage);
+    const total = r.serverHostDiskGb != null ? Number(r.serverHostDiskGb) * 1024 * 1024 * 1024 : undefined;
+    disk.value = [{ mount: aggDiskLabel.value, device: r.serverHostOsType ?? "", used: total ? (total * v) / 100 : 0, total, usedText: "—", usagePercent: v }];
+  }
+  if (r.serverHostDiskReadKbs != null) diskRead.value = Number(r.serverHostDiskReadKbs);
+  if (r.serverHostDiskWriteKbs != null) diskWrite.value = Number(r.serverHostDiskWriteKbs);
+  const sw = parseSoftware(r.serverHostSoftware);
+  if (sw.length) software.value = sw;
+}
+
+/** 拉取主机台账，初始化内置指标 */
+async function loadHostRecord(): Promise<void> {
+  try {
+    const r = await getHost(hostId.value);
+    applyHostRecord(r);
+  } catch (e) {
+    error.value = String((e as Error)?.message ?? e);
+  }
+}
+
+/** 订阅主机内置实时推送（host-metrics，按 hostId 过滤），无监控项时这是主实时源 */
+function bindHostMetrics(): void {
+  unsubHostMetric?.();
+  if (!socket) return;
+  unsubHostMetric = socket.subscribe("monitor", "host-metrics", (msg: any) => {
+    try {
+      const d = (msg.data ?? msg) as {
+        hostId?: number; cpu?: number; mem?: number; disk?: number;
+        diskRead?: number; diskWrite?: number; software?: unknown; collectTime?: string;
+      };
+      if (!d || d.hostId == null || String(d.hostId) !== String(hostId.value)) return;
+
+      if (d.cpu != null && !Number.isNaN(Number(d.cpu))) {
+        const v = Number(d.cpu);
+        cpu.value = { ...(cpu.value ?? {}), usage: v };
+        if (trendIsRealtime.value) pushPoint(cpuHist, v);
+      }
+      if (d.mem != null && !Number.isNaN(Number(d.mem))) {
+        const v = Number(d.mem);
+        mem.value = { ...(mem.value ?? {}), usagePercent: v };
+        if (trendIsRealtime.value) pushPoint(memHist, v);
+      }
+      if (d.disk != null && !Number.isNaN(Number(d.disk))) {
+        const v = Number(d.disk);
+        if (disk.value.length === 0) {
+          disk.value = [{ mount: aggDiskLabel.value, device: "", used: 0, total: 0, usedText: "—", usagePercent: v }];
+        } else {
+          disk.value = disk.value.map((d0, i) => (i === 0 ? { ...d0, usagePercent: v } : d0));
+        }
+        pushPoint(diskHist, v);
+      }
+      if (d.diskRead != null) { const v = Number(d.diskRead); diskRead.value = v; if (trendIsRealtime.value) pushPoint(diskReadHist, v); }
+      if (d.diskWrite != null) { const v = Number(d.diskWrite); diskWrite.value = v; if (trendIsRealtime.value) pushPoint(diskWriteHist, v); }
+      const sw = parseSoftware(d.software);
+      if (sw.length) software.value = sw;
+      markPushHeart(d.collectTime);
+    } catch { /* 静默 */ }
+  });
+}
+
+// ---------------- 画像即时采集（强制一次新鲜采集，含网络速率） ----------------
+/** 把画像概览（HostProfile，metrics 为 HostMetricsVO 形状）映射到仪表与趋势 */
+function applyFreshProfile(p: HostProfile): void {
+  if (!p) return;
+  if (p.host) {
+    hostRecord.value = p.host;
+    if (!hostName.value) hostName.value = (p.host as any).serverHostName ?? "";
+  }
+  const m = p.metrics as Record<string, any> | undefined;
+  if (!m) { markPushHeart(p.collectedAt); return; }
+
+  const realtime = trendIsRealtime.value;
+  const cpuVal = numOr0(m.cpuPercent);
+  const cores = cpu.value?.cores ?? ((p.host as any)?.serverHostCpuCores != null ? numOr0((p.host as any).serverHostCpuCores) : undefined);
+  cpu.value = { usage: cpuVal, cores };
+  if (realtime) pushPoint(cpuHist, cpuVal);
+
+  const totalMb = numOr0(m.memoryTotalMb), usedMb = numOr0(m.memoryUsedMb);
+  mem.value = { usagePercent: numOr0(m.memoryPercent), usage: usedMb * 1024 * 1024, total: totalMb * 1024 * 1024 };
+  if (realtime) pushPoint(memHist, numOr0(m.memoryPercent));
+
+  if (realtime) {
+    const totalGb = numOr0(m.diskTotalGb), usedGb = numOr0(m.diskUsedGb);
+    disk.value = [{ mount: aggDiskLabel.value, device: (p.host as any)?.serverHostOsType ?? "", used: usedGb * 1073741824, total: totalGb * 1073741824, usedText: "—", usagePercent: numOr0(m.diskPercent) }];
+    pushPoint(diskHist, numOr0(m.diskPercent));
+  }
+
+  // 磁盘IO KB/s
+  const rKbs = numOr0(m.diskReadKbs), wKbs = numOr0(m.diskWriteKbs);
+  diskRead.value = rKbs; diskWrite.value = wKbs;
+  if (realtime) { pushPoint(diskReadHist, rKbs); pushPoint(diskWriteHist, wKbs); }
+
+  // 软件（画像已在台账派生，优先读 host 字段）
+  const sw = parseSoftware((p.host as any)?.serverHostSoftware);
+  if (sw.length) software.value = sw;
+
+  // 网络速率 KB/s → 转字节供 fmt 显示
+  const rxKb = Number(m.networkRxKb ?? 0), txKb = Number(m.networkTxKb ?? 0);
+  net.value = { rx: rxKb * 1024, tx: txKb * 1024 };
+  if (realtime) pushPoint(netHist, Math.max(txKb, rxKb) * 1024);
+
+  markPushHeart(m.collectTime ?? p.collectedAt);
+}
+
+/** 强制一次新鲜采集：画像接口拉全量（含网络/磁盘IO/软件），有监控项再补 JVM/24h */
+async function refreshNow(silent = false): Promise<void> {
+  if (!silent) loading.value = true;
+  error.value = "";
+  try {
+    const p = await fetchHostProfile(hostId.value, { live: true, persist: true });
+    applyFreshProfile(p);
+    if (monitorId.value) await fetchMetrics();
+  } catch (e) {
+    error.value = String((e as Error)?.message ?? e);
+  } finally {
+    loading.value = false;
+  }
+}
+
 // ---------------- 数据拉取 ----------------
 async function fetchMetrics(): Promise<void> {
+  if (!monitorId.value) {
+    resetMetrics();
+    return;
+  }
   loading.value = true;
   error.value = "";
   try {
     const id = monitorId.value;
     const [c, m, d, n, j] = await Promise.allSettled([getLatestCpu(id), getLatestMemory(id), getLatestDisk(id), getLatestNetwork(id), getLatestJvm(id)]);
-    if (c.status === "fulfilled") cpu.value = c.value;
-    if (m.status === "fulfilled") mem.value = m.value;
-    if (d.status === "fulfilled") disk.value = d.value ?? [];
-    if (n.status === "fulfilled") net.value = n.value;
-    if (j.status === "fulfilled") jvm.value = j.value;
-    const pick = (v: any): number => (v == null ? 0 : Number(v));
+    // 指标端点返回的是实体行（cpuUsage / usedBytes / mountPoint / rxBytes / heapUsedBytes…），
+    // 页面统一按下面的形状渲染，故只在取数边界做一次归一，模板不再猜字段名。
+    if (c.status === "fulfilled") {
+      cpu.value = c.value ? { usage: numOr0(c.value.cpuUsage), cores: c.value.cpuCores } : null;
+    }
+    if (m.status === "fulfilled") {
+      mem.value = m.value
+        ? { usagePercent: numOr0(m.value.usagePercent), usage: numOr0(m.value.usedBytes), total: numOr0(m.value.totalBytes) }
+        : null;
+    }
+    if (d.status === "fulfilled") {
+      disk.value = (d.value ?? []).map(r => ({
+        mount: r.mountPoint, device: r.fileSystem, used: r.usedBytes, total: r.totalBytes,
+        usagePercent: r.usagePercent,
+      }));
+    }
+    if (n.status === "fulfilled") {
+      net.value = n.value ? { rx: numOr0(n.value.rxBytes), tx: numOr0(n.value.txBytes) } : null;
+    }
+    if (j.status === "fulfilled") {
+      jvm.value = j.value
+        ? { heapUsed: numOr0(j.value.heapUsedBytes), heapMax: numOr0(j.value.heapMaxBytes), heapUsagePercent: numOr0(j.value.heapUsagePercent) }
+        : null;
+    }
     const [ch, mh, nh, jh] = await Promise.allSettled([
       getCpuHistory(id, 24), getMemoryHistory(id, 24), getNetworkHistory(id, 24), getJvmHistory(id, 24),
     ]);
-    if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => pick((r as any).value));
-    if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => pick((r as any).value));
-    if (nh.status === "fulfilled") netHist.value = (nh.value ?? []).map(r => pick((r as any).tx ?? r.value));
-    if (jh.status === "fulfilled") jvmHist.value = (jh.value ?? []).map(r => pick((r as any).value));
+    if (ch.status === "fulfilled") cpuHist.value = (ch.value ?? []).map(r => numOr0(r.cpuUsage));
+    if (mh.status === "fulfilled") memHist.value = (mh.value ?? []).map(r => numOr0(r.usagePercent));
+    if (nh.status === "fulfilled") netHist.value = (nh.value ?? []).map(r => numOr0(r.txBytes));
+    if (jh.status === "fulfilled") jvmHist.value = (jh.value ?? []).map(r => numOr0(r.heapUsagePercent));
   } catch (e) { error.value = String((e as Error)?.message ?? e); }
   finally { loading.value = false; }
 }
-async function resolveHost(): Promise<void> {
+/** 清空仪表与趋势，避免显示上一台主机/上一个监控项的数据 */
+function resetMetrics(): void {
+  cpu.value = null;
+  mem.value = null;
+  disk.value = [];
+  net.value = null;
+  jvm.value = null;
+  diskRead.value = 0; diskWrite.value = 0;
+  software.value = [];
+  cpuHist.value = [];
+  memHist.value = [];
+  diskHist.value = [];
+  diskReadHist.value = [];
+  diskWriteHist.value = [];
+  netHist.value = [];
+  jvmHist.value = [];
+}
+/**
+ * 解析资产聚合详情：主机名 + 名下监控项，并把 monitorId 定位到可用监控项
+ * @param preferred 优先选中的监控项标识（下拉切换时用）
+ */
+async function resolveAsset(preferred?: number): Promise<void> {
   try {
-    const hosts = (await queryHosts()) ?? [];
-    const hit = hosts.find((h: any) => h.id === monitorId.value);
-    if (hit) hostName.value = hit.serverHostName;
-  } catch { /* 忽略 */ }
+    const detail = await getAssetDetail(hostId.value);
+    hostName.value = detail?.name ?? "";
+    monitors.value = detail?.monitors ?? [];
+    const hit = preferred != null
+      ? monitors.value.find(m => Number(m.monitorId) === Number(preferred))
+      : (monitors.value.find(m => m.enabled !== false) ?? monitors.value[0]);
+    const next = hit ? Number(hit.monitorId) : 0;
+    if (next === monitorId.value) return;
+    monitorId.value = next;
+    bindLive();
+    await fetchMetrics();
+  } catch (e) {
+    error.value = String((e as Error)?.message ?? e);
+  }
+}
+/** 下拉切换监控项 */
+function onMonitorChange(id: number): void {
+  void resolveAsset(id);
+}
+
+// ---------------- AI 智能分析 ----------------
+const aiEnabled = ref(false);
+const aiModel = ref("");
+const aiDialogVisible = ref(false);
+const aiLoading = ref(false);
+const aiError = ref("");
+const aiResult = ref("");
+const aiUsedModel = ref("");
+const aiDimension = ref("");
+/** 分析重点候选：后端把该值原样拼进提示词的"分析重点"，空值即综合评估 */
+const AI_DIMENSIONS = [
+  { label: "综合评估", value: "" },
+  { label: "CPU 与负载", value: "CPU 使用率与系统负载" },
+  { label: "内存压力", value: "内存占用与泄漏风险" },
+  { label: "磁盘容量", value: "磁盘使用率与容量趋势" },
+  { label: "网络与延迟", value: "网络吞吐与延迟" },
+];
+/** 按钮可用态：AI 未配置时禁用并在提示里说明原因 */
+const aiDisabled = computed(() => !aiEnabled.value || !hostId.value);
+
+/** 读取 AI 配置状态，决定入口是否可用 */
+async function loadAiStatus(): Promise<void> {
+  try {
+    const st = await fetchAiStatus();
+    aiEnabled.value = !!st?.enabled;
+    aiModel.value = st?.model ?? "";
+  } catch {
+    aiEnabled.value = false;
+  }
+}
+/** 打开弹窗并发起一次分析 */
+function runAiAnalysis(): void {
+  aiError.value = "";
+  aiResult.value = "";
+  aiUsedModel.value = "";
+  aiDialogVisible.value = true;
+  void requestAnalysis();
+}
+/** 调用主机指标分析接口（指标快照由后端按 hostId 取，前端不回传） */
+async function requestAnalysis(): Promise<void> {
+  if (aiLoading.value || !hostId.value) return;
+  aiLoading.value = true;
+  aiError.value = "";
+  aiResult.value = "";
+  try {
+    const res = await aiAnalyzeHost(hostId.value, { dimension: aiDimension.value || undefined });
+    aiResult.value = res?.content ?? "";
+    aiUsedModel.value = res?.model ?? "";
+    if (!aiResult.value) aiError.value = "模型未返回内容，请稍后重试。";
+  } catch (e: unknown) {
+    aiError.value = String((e as { message?: string })?.message ?? e);
+  } finally {
+    aiLoading.value = false;
+  }
 }
 
 // ---------------- 生命周期 ----------------
 watch(() => route.params.id, id => {
   const n = Number(id);
-  if (n && n !== monitorId.value) { monitorId.value = n; bindLive(); fetchMetrics(); resolveHost(); }
+  if (!n || n === hostId.value) return;
+  hostId.value = n;
+  monitorId.value = 0;
+  hostRecord.value = null;
+  if (histChart) { histChart.dispose(); histChart = null; }
+  resetMetrics();
+  void (async () => {
+    await loadHostRecord();      // 即时种子
+    await loadHostBaseHistory(); // 近1h历史基础
+    await resolveAsset();       // 解析监控项（监控项24h覆盖）
+    await refreshNow(true);     // 强制新鲜采集（含网络）
+  })();
 });
-onMounted(() => { bindLive(); fetchMetrics(); resolveHost(); });
-onBeforeUnmount(() => { unsubMetric?.(); });
+onMounted(() => {
+  bindHostMetrics();
+  void (async () => {
+    await loadSwSetting();
+    await loadHostRecord();
+    await loadHostBaseHistory();
+    await resolveAsset();
+    await refreshNow(true);
+    void loadAiStatus();
+  })();
+});
+onBeforeUnmount(() => {
+  unsubMetric?.(); unsubHostMetric?.();
+  if (histChart) { histChart.dispose(); histChart = null; }
+});
 
-// ---------------- 磁盘表 ----------------
-const diskColumns = [
-  { prop: "mount", label: "挂载点" },
-  { prop: "device", label: "设备" },
-  { prop: "usedText", label: "已用 / 总量" },
-  { prop: "usagePercent", label: "使用率" },
+// ---------------- 近1h历史基础数据 + 图表历史弹窗 ----------------
+/** 进页面先取近 1 小时主机历史，作为趋势基础数据（无监控项也可） */
+async function loadHostBaseHistory(): Promise<void> {
+  try {
+    const rows = await getHostMetricHistory(hostId.value, 1);
+    if (!rows.length) return;
+    const cpuVals: number[] = [];
+    const memVals: number[] = [];
+    const diskVals: number[] = [];
+    const rVals: number[] = [];
+    const wVals: number[] = [];
+    for (const r of rows) {
+      if (r[1] != null) cpuVals.push(Number(r[1]));
+      if (r[2] != null) memVals.push(Number(r[2]));
+      if (r[3] != null) diskVals.push(Number(r[3]));
+      if (r[4] != null) rVals.push(Number(r[4]));
+      if (r[5] != null) wVals.push(Number(r[5]));
+    }
+    // 仅在无监控项时用主机历史种趋势；监控项的 24h 明细在 fetchMetrics 中覆盖
+    if (!monitorId.value) {
+      if (cpuVals.length) cpuHist.value = cpuVals.slice(-MAX_LIVE);
+      if (memVals.length) memHist.value = memVals.slice(-MAX_LIVE);
+      if (diskVals.length) diskHist.value = diskVals.slice(-MAX_LIVE);
+      if (rVals.length) diskReadHist.value = rVals.slice(-MAX_LIVE);
+      if (wVals.length) diskWriteHist.value = wVals.slice(-MAX_LIVE);
+    }
+  } catch { /* 静默，实时推送仍可出数 */ }
+}
+
+/** 历史弹窗指标：单序列百分比（cpu/mem/disk）或双序列磁盘IO（diskio） */
+type HostMetricKind = "cpu" | "mem" | "disk" | "diskio";
+const histDialogVisible = ref(false);
+const histKind = ref<HostMetricKind>("cpu");
+const histHours = ref(1);
+const histLoading = ref(false);
+/** 单序列（百分比） */
+const histSeries = ref<[number, number][]>([]);
+/** 双序列（磁盘IO，KB/s）：读 / 写 */
+const histIoRead = ref<[number, number][]>([]);
+const histIoWrite = ref<[number, number][]>([]);
+const histRangeOptions = [
+  { label: "近1小时", value: 1 },
+  { label: "近6小时", value: 6 },
+  { label: "近24小时", value: 24 },
+  { label: "近7天", value: 168 },
 ];
-/**
- * 磁盘已用/总量文本
- * @param r 分区行
- */
-function diskUsed(r: any): string { return `${fmt(r.used)} / ${fmt(r.total)}`; }
-/**
- * 磁盘使用率进度条宽度
- * @param r 分区行
- */
-function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usagePercent ?? 0))}%`; }
+const KIND_LABEL: Record<HostMetricKind, string> = {
+  cpu: "CPU 使用率", mem: "内存使用率", disk: "磁盘使用率", diskio: "磁盘读写速率",
+};
+const histTitle = computed(() =>
+  `${hostName.value || ("主机 #" + hostId.value)} · ${KIND_LABEL[histKind.value]}`);
+const histChartRef = ref<HTMLDivElement>();
+let histChart: echarts.ECharts | null = null;
+/** 各指标主题色（与趋势 sparkline 一致） */
+const HIST_COLOR: Record<Exclude<HostMetricKind, "diskio">, string> = {
+  cpu: "#3b82f6", mem: "#8b5cf6", disk: "#f59e0b",
+};
+
+/** 点击趋势卡片打开历史弹窗（指标即被点击卡片，弹窗内只选时间范围） */
+function openHistDialog(kind: HostMetricKind): void {
+  histKind.value = kind;
+  histDialogVisible.value = true;
+  void fetchHistSeries();
+}
+/** 弹窗内切换时间范围后重新拉取 */
+function onHistHoursChange(v: number | string): void {
+  histHours.value = Number(v);
+  void fetchHistSeries();
+}
+
+/** 按当前指标与时间范围拉取真实历史并渲染大图 */
+async function fetchHistSeries(): Promise<void> {
+  histLoading.value = true;
+  try {
+    const rows = await getHostMetricHistory(hostId.value, histHours.value);
+    if (histKind.value === "diskio") {
+      const rPts: [number, number][] = [];
+      const wPts: [number, number][] = [];
+      for (const r of rows) {
+        if (r[4] != null) rPts.push([Number(r[0]), Number(r[4])]);
+        if (r[5] != null) wPts.push([Number(r[0]), Number(r[5])]);
+      }
+      histIoRead.value = rPts;
+      histIoWrite.value = wPts;
+    } else {
+      const idx = histKind.value === "cpu" ? 1 : histKind.value === "mem" ? 2 : 3;
+      const pts: [number, number][] = [];
+      for (const r of rows) {
+        const v = r[idx];
+        if (v != null) pts.push([Number(r[0]), Number(v)]);
+      }
+      histSeries.value = pts;
+    }
+    await nextTick(() => renderHistChart());
+  } finally { histLoading.value = false; }
+}
+/** 渲染历史大图 */
+function renderHistChart(): void {
+  if (!histChartRef.value) return;
+  if (!histChart) histChart = echarts.init(histChartRef.value);
+
+  if (histKind.value === "diskio") {
+    // 双序列磁盘IO（KB/s）
+    histChart.setOption({
+      grid: { left: 60, right: 20, top: 36, bottom: 42 },
+      legend: {
+        top: 6, right: 12, itemWidth: 14, itemHeight: 8, textStyle: { fontSize: 11 },
+        data: [
+          { name: "读取" }, { name: "写入" },
+        ],
+      },
+      tooltip: {
+        trigger: "axis",
+        valueFormatter: (v: unknown) => fmtKbs(Number(v)),
+      },
+      xAxis: { type: "time", axisLabel: { fontSize: 10, hideOverlap: true } },
+      yAxis: {
+        type: "value", min: 0,
+        axisLabel: { formatter: (v: number) => v >= 1024 ? `${(v / 1024).toFixed(0)}M` : `${v}K`, fontSize: 10 },
+      },
+      dataZoom: [
+        { type: "inside" },
+        { type: "slider", height: 16, bottom: 12 },
+      ],
+      series: [
+        {
+          name: "读取", type: "line", data: histIoRead.value, showSymbol: false, smooth: false,
+          lineStyle: { color: "#f59e0b", width: 2 }, itemStyle: { color: "#f59e0b" },
+          areaStyle: { color: "rgba(245,158,11,0.08)" },
+        },
+        {
+          name: "写入", type: "line", data: histIoWrite.value, showSymbol: false, smooth: false,
+          lineStyle: { color: "#06b6d4", width: 2 }, itemStyle: { color: "#06b6d4" },
+          areaStyle: { color: "rgba(6,182,212,0.08)" },
+        },
+      ],
+    }, true);
+  } else {
+    const color = HIST_COLOR[histKind.value as Exclude<HostMetricKind, "diskio">];
+    histChart.setOption({
+      grid: { left: 48, right: 20, top: 20, bottom: 42 },
+      tooltip: {
+        trigger: "axis",
+        valueFormatter: (v: unknown) => `${Number(v).toFixed(1)}%`,
+      },
+      xAxis: {
+        type: "time",
+        axisLabel: { fontSize: 10, hideOverlap: true },
+      },
+      yAxis: {
+        type: "value", min: 0, max: 100,
+        axisLabel: { formatter: "{value}%", fontSize: 10 },
+      },
+      dataZoom: [
+        { type: "inside" },
+        { type: "slider", height: 16, bottom: 12 },
+      ],
+      series: [{
+        type: "line", data: histSeries.value, showSymbol: false, smooth: false,
+        lineStyle: { color, width: 2 },
+        itemStyle: { color },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: color + "40" },
+            { offset: 1, color: color + "05" },
+          ]),
+        },
+      }],
+    }, true);
+  }
+  histChart.resize();
+}
+// 关闭弹窗即释放图表实例，重开时重新初始化（避免容器尺寸异常）
+watch(histDialogVisible, (v) => {
+  if (!v && histChart) { histChart.dispose(); histChart = null; }
+});
+
+// ---------------- 磁盘卡片（Windows 风格驱动器磁片） ----------------
+function diskFree(r: any): number {
+  const t = Number(r.total ?? 0), u = Number(r.used ?? 0);
+  return Math.max(0, t - u);
+}
+function diskCapacityText(r: any): string {
+  return `${fmt(diskFree(r))} 可用 · 共 ${fmt(r.total)}`;
+}
+/** 容量是否紧张（使用率 ≥90%）→ 进度条红色 */
+function diskLow(r: any): boolean {
+  return Number(r.usagePercent ?? 0) >= 90;
+}
+function diskUsageWidth(r: any): string {
+  return `${Math.max(0, Math.min(100, Number(r.usagePercent ?? 0)))}%`;
+}
+
+// ---------------- 软件实例（显示设置持久化 + 按类型聚合 + 实例明细） ----------------
+/** 软件显示设置在 ms_monitor_config 中的 key；值为逗号分隔可见类型，空串=全部显示 */
+const SW_VISIBLE_KEY = "monitor.host.software.visible.types";
+
+/** 已知软件类型（与后端 SoftwareCatalog 对齐）的中文标签 */
+const SOFTWARE_LABELS: Record<string, string> = {
+  java: "Java 进程",
+  mysql: "MySQL",
+  mariadb: "MariaDB",
+  postgres: "PostgreSQL",
+  redis: "Redis",
+  "redis-sentinel": "Redis Sentinel",
+  mongodb: "MongoDB",
+  nginx: "Nginx",
+  node: "Node.js",
+  docker: "Docker",
+  containerd: "containerd",
+  elasticsearch: "Elasticsearch",
+  kafka: "Kafka",
+  zookeeper: "ZooKeeper",
+  rabbitmq: "RabbitMQ",
+  tomcat: "Tomcat",
+  arthas: "Arthas",
+  skywalking: "SkyWalking",
+  memcached: "Memcached",
+  etcd: "etcd",
+  minio: "MinIO",
+  "node-exporter": "Node Exporter",
+  "redis-exporter": "Redis Exporter",
+};
+function swLabel(t: string): string {
+  return SOFTWARE_LABELS[t] || t;
+}
+
+/** 可见类型集合：null=全部显示（默认），Set=仅显示其中类型 */
+const visibleTypes = ref<Set<string> | null>(null);
+/** 显示设置弹窗 */
+const swSettingVisible = ref(false);
+const swSettingSaving = ref(false);
+function openSwSetting(): void {
+  swSettingVisible.value = true;
+}
+/** 设置弹窗候选类型（已知类型 ∪ 当前检测类型），按标签排序 */
+const swSettingTypes = computed<string[]>(() => {
+  const set = new Set<string>(Object.keys(SOFTWARE_LABELS));
+  for (const s of software.value) set.add(s.type);
+  return [...set].sort((a, b) => swLabel(a).localeCompare(swLabel(b), "zh"));
+});
+function swSettingChecked(t: string): boolean {
+  return visibleTypes.value ? visibleTypes.value.has(t) : true;
+}
+function swSettingToggle(t: string): void {
+  // 首次切换时把当前“全选”物化成 Set
+  if (!visibleTypes.value) visibleTypes.value = new Set(swSettingTypes.value);
+  if (visibleTypes.value.has(t)) visibleTypes.value.delete(t);
+  else visibleTypes.value.add(t);
+}
+function swSettingAll(on: boolean): void {
+  visibleTypes.value = on ? new Set(swSettingTypes.value) : new Set();
+}
+async function loadSwSetting(): Promise<void> {
+  try {
+    const all = await getAllConfig();
+    const raw = all?.[SW_VISIBLE_KEY];
+    if (raw == null || String(raw).trim() === "") {
+      visibleTypes.value = null;
+    } else {
+      visibleTypes.value = new Set(
+        String(raw).split(",").map(s => s.trim()).filter(Boolean));
+    }
+  } catch {
+    visibleTypes.value = null;
+  }
+}
+async function saveSwSetting(): Promise<void> {
+  swSettingSaving.value = true;
+  try {
+    // 全选（或候选为空）→ 存空串表示全部；否则存逗号列表
+    const allOn = !visibleTypes.value
+      || visibleTypes.value.size === swSettingTypes.value.length;
+    const value = allOn ? "" : [...(visibleTypes.value ?? [])].join(",");
+    await saveConfig([{
+      monitorConfigKey: SW_VISIBLE_KEY,
+      monitorConfigValue: value,
+      monitorConfigDesc: "主机软件实例可见类型(逗号分隔,空=全部)",
+    }]);
+    visibleTypes.value = value ? new Set(value.split(",")) : null;
+    swSettingVisible.value = false;
+  } finally {
+    swSettingSaving.value = false;
+  }
+}
+
+interface SoftwareGroup {
+  type: string;
+  label: string;
+  instances: SoftwareInstance[];
+  count: number;
+  totalCpu: number;
+  totalMem: number;
+  pids: number[];
+  ports: number[];
+  maxUptime: number;
+}
+/** 按可见设置过滤后的软件实例 */
+const softwareVisible = computed<SoftwareInstance[]>(() => {
+  if (!visibleTypes.value) return software.value;
+  return software.value.filter(s => visibleTypes.value!.has(s.type));
+});
+/** 按类型聚合的软件分组，按总 CPU 降序 */
+const softwareGroups = computed<SoftwareGroup[]>(() => {
+  const map = new Map<string, SoftwareInstance[]>();
+  for (const s of softwareVisible.value) {
+    if (!map.has(s.type)) map.set(s.type, []);
+    map.get(s.type)!.push(s);
+  }
+  const groups: SoftwareGroup[] = [];
+  for (const [type, instances] of map) {
+    const ins = [...instances].sort((a, b) => numOr0(b.cpu) - numOr0(a.cpu));
+    groups.push({
+      type,
+      label: swLabel(type),
+      instances: ins,
+      count: ins.length,
+      totalCpu: ins.reduce((acc, x) => acc + numOr0(x.cpu), 0),
+      totalMem: ins.reduce((acc, x) => acc + numOr0(x.memMb), 0),
+      pids: ins.map(x => numOr0(x.pid)),
+      ports: ins.map(x => numOr0(x.port)).filter(Boolean),
+      maxUptime: Math.max(0, ...ins.map(x => numOr0(x.uptimeSec))),
+    });
+  }
+  return groups.sort((a, b) => b.totalCpu - a.totalCpu);
+});
+/** 软件类型数（顶部统计，按可见后） */
+const softwareTypeCount = computed(() => softwareGroups.value.length);
+/** 可见软件实例总数 */
+const softwareInstanceCount = computed(() => softwareVisible.value.length);
+/** 分组徽章首字母 */
+function swMonogram(g: SoftwareGroup): string {
+  return (g.label || g.type || "?").trim().charAt(0).toUpperCase();
+}
+/** 卡片上展示的 PID（最多 3 个，超出显示 +N） */
+function swCardPids(g: SoftwareGroup): { pids: number[]; rest: number } {
+  return { pids: g.pids.slice(0, 3), rest: Math.max(0, g.pids.length - 3) };
+}
+/** 内联迷你条：某实例 CPU 相对组内最大值的宽度百分比 */
+function swBarWidth(g: SoftwareGroup, v: number): number {
+  const max = Math.max(1, ...g.instances.map(x => numOr0(x.cpu)));
+  return Math.max(4, Math.round((numOr0(v) / max) * 100));
+}
+/** 分组配色角色（循环取 el 主题色，全部走 CSS 变量） */
+const SW_COLOR_ROLES = ["primary", "success", "warning", "danger", "info"];
+function swColorRole(i: number): string {
+  return SW_COLOR_ROLES[i % SW_COLOR_ROLES.length];
+}
+
+// ---- 分组详情弹窗（实例明细表 + 合并占比图）----
+const swDetailVisible = ref(false);
+const swDetailGroup = ref<SoftwareGroup | null>(null);
+const swDetailChartRef = ref<HTMLDivElement>();
+let swDetailChart: echarts.ECharts | null = null;
+function openSwDetail(g: SoftwareGroup): void {
+  swDetailGroup.value = g;
+  swDetailVisible.value = true;
+}
+function renderSwDetailChart(): void {
+  const g = swDetailGroup.value;
+  if (!swDetailChartRef.value || !g) return;
+  if (!swDetailChart) swDetailChart = echarts.init(swDetailChartRef.value);
+  swDetailChart.setOption({
+    tooltip: { trigger: "item", valueFormatter: (v: unknown) => `${v}%` },
+    legend: { bottom: 0, type: "scroll", textStyle: { fontSize: 11 } },
+    series: [{
+      type: "pie",
+      radius: ["42%", "68%"],
+      center: ["50%", "44%"],
+      avoidLabelOverlap: true,
+      itemStyle: { borderWidth: 2 },
+      label: { show: true, formatter: "{b}\n{d}%", fontSize: 10 },
+      data: g.instances.map(x => ({
+        name: `PID ${numOr0(x.pid)}`,
+        value: Number(numOr0(x.cpu).toFixed(2)),
+      })),
+    }],
+  }, true);
+  swDetailChart.resize();
+}
+watch(swDetailVisible, (v) => {
+  if (v) nextTick(renderSwDetailChart);
+  else if (swDetailChart) { swDetailChart.dispose(); swDetailChart = null; }
+});
+onBeforeUnmount(() => {
+  if (swDetailChart) { swDetailChart.dispose(); swDetailChart = null; }
+});
 </script>
 
 <template>
   <div class="hd tel-page">
     <!-- 页头（外壳浅色区域，保持与整体一致） -->
-    <ReSectionHead :description="`主机 #${monitorId} · 实时遥测与 24h 趋势`">
-      <template #title>{{ hostName || `主机 #${monitorId}` }}</template>
+    <ReSectionHead :description="`主机 #${hostId} · 实时遥测与趋势`">
+      <template #title>{{ hostName || `主机 #${hostId}` }}</template>
       <template #actions>
         <ReButton icon="Back" :show-text="true" size="small" @click="router.push('/assets')">资产</ReButton>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchMetrics">刷新</ReButton>
-        <ReButton icon="MagicStick" :show-text="true" size="small" :loading="aiLoading" @click="runAiAnalysis">AI 分析</ReButton>
-        <ReButton icon="Connection" :show-text="true" type="primary" size="small" @click="router.push({ path: '/terminal', query: { hostId: String(monitorId) } })">连接远控</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="refreshNow()">刷新</ReButton>
+        <ReButton
+          icon="MagicStick" :show-text="true" size="small" :disabled="aiDisabled"
+          :title="aiDisabled ? '未配置 AI 模型，请先在系统配置中接入' : '按主机指标调用大模型分析'"
+          @click="runAiAnalysis"
+        >AI 分析</ReButton>
+        <ReButton icon="Connection" :show-text="true" type="primary" size="small" @click="router.push({ path: '/terminal', query: { hostId: String(hostId) } })">连接远控</ReButton>
       </template>
     </ReSectionHead>
 
-    <div v-if="error" class="hd-error">
+    <div v-if="error && (monitorId || hasHostMetrics)" class="hd-error">
       <span>部分数据加载失败：{{ error }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchMetrics">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="refreshNow()">重试</ReButton>
     </div>
 
     <!-- ================= 遥测控制台 ================= -->
@@ -290,14 +1007,23 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
       <!-- 面板头 -->
       <header class="ph">
         <div class="ph-left">
-          <div class="ph-idx">HOST · {{ String(monitorId).padStart(3, "0") }}</div>
-          <div class="ph-title">{{ hostName || `主机 #${monitorId}` }}</div>
+          <div class="ph-idx">HOST · {{ String(hostId).padStart(3, "0") }}</div>
+          <div class="ph-title">{{ hostName || `主机 #${hostId}` }}</div>
           <div class="ph-meta">
             <span>CPU {{ cpu?.cores ? cpu.cores + " 核" : "—" }}</span>
             <i class="dot-sep"></i>
             <span>内存 {{ mem?.total ? fmt(mem.total) : "—" }}</span>
             <i class="dot-sep"></i>
-            <span>24h 趋势</span>
+            <span>软件 {{ softwareTypeCount || "—" }} 类</span>
+          </div>
+          <div v-if="monitors.length" class="ph-monitor">
+            <span class="pm-k">监控项</span>
+            <ReSelect
+              :model-value="monitorId" size="small" class="pm-sel"
+              :options="monitors.map(m => ({ label: `${m.name || ('#' + m.monitorId)}（告警 ${m.activeAlarmCount ?? 0}）`, value: Number(m.monitorId) }))"
+              @change="onMonitorChange(Number($event))"
+            />
+            <span class="pm-hint">指标按监控项存储，切换后下方仪表与趋势随之刷新</span>
           </div>
         </div>
         <div class="ph-right">
@@ -310,14 +1036,34 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
             <b class="stat-v mono">{{ lastPushText }}</b>
           </div>
           <span class="sock" :class="{ ok: sockOn }">{{ sockOn ? "● 实时已连接" : "○ 实时未连接" }}</span>
-          <button class="btn-refresh" :disabled="loading" @click="fetchMetrics">
+          <button class="btn-refresh" :disabled="loading" @click="refreshNow()">
             <i class="ico" :class="{ spin: loading }"></i>刷新
           </button>
         </div>
       </header>
       <div class="scanline"></div>
 
-      <!-- 实时仪表 -->
+      <!-- 既无监控项、也从未成功采到内置指标：不给全 0 假仪表，区分「采集失败」与「未配置」 -->
+      <div v-if="!monitorId && !hasHostMetrics" class="no-monitor">
+        <template v-if="error">
+          <b>主机当前不可采集</b>
+          <span>{{ error }}。请检查主机采集方式、端口与凭据，或确认 Agent 是否已部署并运行。</span>
+          <ReButton type="primary" size="small" :show-text="true" :loading="loading" @click="refreshNow()">重新连接</ReButton>
+        </template>
+        <template v-else>
+          <b>该主机尚未关联监控项</b>
+          <span>遥测指标按监控项存储。请到「监控配置」新建监控项并绑定本机，或开启主机采集以获取内置 CPU/内存/磁盘指标。</span>
+          <ReButton type="primary" size="small" :show-text="true" @click="router.push('/config')">去配置监控项</ReButton>
+        </template>
+      </div>
+
+      <template v-else>
+      <!-- 无监控项但有内置指标：软提示，不阻断仪表 -->
+      <div v-if="!monitorId" class="builtin-hint">
+        <span>当前显示主机内置实时指标（CPU / 内存 / 磁盘 / 磁盘IO / 网络 / 软件）；配置监控项后可获得 JVM 堆与 24h 历史。</span>
+        <ReButton icon="Setting" link size="small" :show-text="true" @click="router.push('/config')">配置监控项</ReButton>
+      </div>
+      <!-- 实时仪表（响应式自适应） -->
       <section class="gauge-grid">
         <!-- CPU -->
         <div class="gauge" :class="{ hot: heat(cpuPct) === 1, danger: heat(cpuPct) === 2 }">
@@ -353,7 +1099,7 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
           <div class="g-sub mono">{{ fmt(mem?.usage) }}/{{ fmt(mem?.total) }}</div>
         </div>
 
-        <!-- 磁盘 -->
+        <!-- 磁盘容量 -->
         <div class="gauge" :class="{ hot: heat(diskPct) === 1, danger: heat(diskPct) === 2 }">
           <div class="g-ring">
             <svg viewBox="0 0 120 120" class="g-svg">
@@ -366,11 +1112,30 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
             </svg>
             <div class="g-center"><b class="g-num mono">{{ num(diskPct) }}</b><span class="g-unit">%</span></div>
           </div>
-          <div class="g-label">磁盘</div>
+          <div class="g-label">磁盘容量</div>
           <div class="g-sub mono">{{ disk.length }} MOUNT</div>
         </div>
 
-        <!-- 网络 -->
+        <!-- 磁盘IO -->
+        <div class="gauge">
+          <div class="g-ring">
+            <svg viewBox="0 0 120 120" class="g-svg">
+              <g class="ticks">
+                <line v-for="t in ticks" :key="t" :class="{ major: t % 15 === 0 }"
+                  :transform="`rotate(${t * 6} 60 60)`" x1="60" y1="8" x2="60" y2="13" />
+              </g>
+              <circle class="ring-bg" cx="60" cy="60" r="50" />
+            </svg>
+            <div class="g-center io-c">
+              <span class="io-row"><i class="io-k">R</i><b class="mono">{{ diskRead >= 1024 ? (diskRead / 1024).toFixed(1) + 'M' : diskRead.toFixed(0) + 'K' }}</b></span>
+              <span class="io-row"><i class="io-k">W</i><b class="mono">{{ diskWrite >= 1024 ? (diskWrite / 1024).toFixed(1) + 'M' : diskWrite.toFixed(0) + 'K' }}</b></span>
+            </div>
+          </div>
+          <div class="g-label">磁盘 IO</div>
+          <div class="g-sub mono">READ / WRITE</div>
+        </div>
+
+        <!-- 网络（画像采集即有速率） -->
         <div class="gauge">
           <div class="g-ring net">
             <svg viewBox="0 0 120 120" class="g-svg">
@@ -389,8 +1154,8 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
           <div class="g-sub mono">RX / TX</div>
         </div>
 
-        <!-- JVM -->
-        <div class="gauge" :class="{ hot: heat(jvmPct) === 1, danger: heat(jvmPct) === 2 }">
+        <!-- JVM（需监控项明细） -->
+        <div v-if="monitorId" class="gauge" :class="{ hot: heat(jvmPct) === 1, danger: heat(jvmPct) === 2 }">
           <div class="g-ring">
             <svg viewBox="0 0 120 120" class="g-svg">
               <g class="ticks">
@@ -400,17 +1165,20 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
               <circle class="ring-bg" cx="60" cy="60" r="50" />
               <circle class="ring-fg jvm" cx="60" cy="60" r="50" :style="ringStyle(jvmPct)" transform="rotate(-90 60 60)" />
             </svg>
-            <div class="g-center"><b class="g-num mono">{{ num(jvmPct) }}</b><span class="g-unit">%</span></div>
+            <div class="g-center"><b class="g-num mono">{{ jvm ? num(jvmPct) : "—" }}</b><span class="g-unit">%</span></div>
           </div>
           <div class="g-label">JVM</div>
           <div class="g-sub mono">{{ fmt(jvm?.heapUsed) }}/{{ fmt(jvm?.heapMax) }}</div>
         </div>
       </section>
 
-      <!-- 24h 趋势 -->
+      <!-- 趋势（点击卡片弹窗，弹窗内只选时间段，口径与外侧一致） -->
       <section class="trend-grid">
-        <div class="trend">
-          <div class="t-head"><span class="t-label">CPU · 24H</span><span class="t-now mono">{{ trendLast(cpuHist) }}%</span></div>
+        <div class="trend clickable" title="点击查看 CPU 历史" @click="openHistDialog('cpu')">
+          <div class="t-head">
+            <span class="t-label">CPU · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-right"><span class="t-now mono">{{ trendLast(cpuHist) }}%</span><i class="t-zoom"></i></span>
+          </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-cpu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6" stop-opacity=".30"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -420,8 +1188,11 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
           <div class="t-foot mono"><span>MIN {{ trendMin(cpuHist) }}</span><span>MAX {{ trendMax(cpuHist) }}</span></div>
         </div>
 
-        <div class="trend">
-          <div class="t-head"><span class="t-label">内存 · 24H</span><span class="t-now mono">{{ trendLast(memHist) }}%</span></div>
+        <div class="trend clickable" title="点击查看内存历史" @click="openHistDialog('mem')">
+          <div class="t-head">
+            <span class="t-label">内存 · {{ trendIsRealtime ? "近1H" : "24H" }}</span>
+            <span class="t-right"><span class="t-now mono">{{ trendLast(memHist) }}%</span><i class="t-zoom"></i></span>
+          </div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-mem" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".30"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -431,7 +1202,38 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
           <div class="t-foot mono"><span>MIN {{ trendMin(memHist) }}</span><span>MAX {{ trendMax(memHist) }}</span></div>
         </div>
 
-        <div class="trend">
+        <div class="trend clickable" title="点击查看磁盘容量历史" @click="openHistDialog('disk')">
+          <div class="t-head">
+            <span class="t-label">磁盘容量 · 近1H</span>
+            <span class="t-right"><span class="t-now mono">{{ trendLast(diskHist) }}%</span><i class="t-zoom"></i></span>
+          </div>
+          <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
+            <defs><linearGradient id="tg-disk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity=".30"/><stop offset="1" stop-color="#f59e0b" stop-opacity="0"/></linearGradient></defs>
+            <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
+            <polygon class="t-area" :points="area(diskHist)" fill="url(#tg-disk)" />
+            <polyline class="t-line disk" :points="spark(diskHist)" />
+          </svg>
+          <div class="t-foot mono"><span>MIN {{ trendMin(diskHist) }}</span><span>MAX {{ trendMax(diskHist) }}</span></div>
+        </div>
+
+        <!-- 磁盘IO（双序列，点击查看读写历史） -->
+        <div class="trend clickable" title="点击查看磁盘读写历史" @click="openHistDialog('diskio')">
+          <div class="t-head">
+            <span class="t-label">磁盘 IO · 近1H</span>
+            <span class="t-right"><i class="t-zoom"></i></span>
+          </div>
+          <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
+            <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
+            <polyline class="t-line io-r" :points="ioSpark('read')" />
+            <polyline class="t-line io-w" :points="ioSpark('write')" />
+          </svg>
+          <div class="t-foot io-legend mono">
+            <span><i class="lg-dot r"></i>R {{ ioLastRead }}</span>
+            <span><i class="lg-dot w"></i>W {{ ioLastWrite }}</span>
+          </div>
+        </div>
+
+        <div v-if="monitorId" class="trend">
           <div class="t-head"><span class="t-label">JVM · 24H</span><span class="t-now mono">{{ trendLast(jvmHist) }}%</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-jvm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14b8a6" stop-opacity=".30"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></linearGradient></defs>
@@ -443,7 +1245,7 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
         </div>
 
         <div class="trend">
-          <div class="t-head"><span class="t-label">网络 · 24H</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
+          <div class="t-head"><span class="t-label">网络 · {{ trendIsRealtime ? "实时" : "24H" }}</span><span class="t-now mono">{{ netLast(netHist) }}</span></div>
           <svg class="t-svg" viewBox="0 0 200 56" preserveAspectRatio="none">
             <defs><linearGradient id="tg-net" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#06b6d4" stop-opacity=".30"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></linearGradient></defs>
             <g class="t-grid"><line x1="0" y1="14" x2="200" y2="14"/><line x1="0" y1="28" x2="200" y2="28"/><line x1="0" y1="42" x2="200" y2="42"/></g>
@@ -454,47 +1256,182 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
         </div>
       </section>
 
-      <!-- 磁盘挂载点 -->
-      <section class="disk-panel">
-        <div class="dp-head"><span class="dp-title">磁盘挂载点</span><span class="dp-count mono">{{ disk.length }} DEVICE</span></div>
-        <table class="disk-table">
-          <thead><tr><th v-for="c in diskColumns" :key="c.prop">{{ c.label }}</th></tr></thead>
-          <tbody>
-            <tr v-for="(r, i) in disk" :key="i">
-              <td class="mono">{{ r.mount || "—" }}</td>
-              <td class="mono dim">{{ r.device || "—" }}</td>
-              <td class="mono">{{ diskUsed(r) }}</td>
-              <td>
-                <div class="use-row">
-                  <div class="bar"><div class="bar-fill" :class="{ danger: Number(r.usagePercent ?? 0) >= 85 }" :style="{ width: diskUsageWidth(r) }" /></div>
-                  <span class="mono pct">{{ pct(r.usagePercent) }}</span>
+      <!-- 软件实例（按类型聚合为分组卡，多实例合并展示，点击查看实例明细） -->
+      <section v-if="softwareGroups.length" class="sw-panel">
+        <div class="sp-head">
+          <span class="sp-title">软件实例</span>
+          <div class="sp-actions">
+            <span class="sp-count mono">{{ softwareInstanceCount }} INSTANCE · {{ softwareTypeCount }} TYPE</span>
+            <ReButton icon="Setting" size="small" @click="openSwSetting">显示设置</ReButton>
+          </div>
+        </div>
+        <div class="sw-grid">
+          <div
+            v-for="(g, gi) in softwareGroups" :key="g.type"
+            class="sw-card" :class="`is-${swColorRole(gi)}`"
+          >
+            <div class="sw-top">
+              <div class="sw-badge">{{ swMonogram(g) }}</div>
+              <div class="sw-head">
+                <div class="sw-name-line">
+                  <span class="sw-dn">{{ g.label }}</span>
+                  <span v-if="g.count > 1" class="sw-chip mono">×{{ g.count }}</span>
                 </div>
-              </td>
-            </tr>
-            <tr v-if="disk.length === 0"><td colspan="4" class="empty">暂无磁盘数据</td></tr>
-          </tbody>
-        </table>
+                <div class="sw-pidchips">
+                  <span v-for="p in swCardPids(g).pids" :key="p" class="sw-pid mono">PID {{ p }}</span>
+                  <span v-if="swCardPids(g).rest" class="sw-pid sw-pid-more mono">+{{ swCardPids(g).rest }}</span>
+                </div>
+              </div>
+              <ReButton class="sw-detail-btn" icon="View" size="small" @click="openSwDetail(g)">详情</ReButton>
+            </div>
+
+            <div class="sw-stats mono">
+              <div class="sw-stat"><span class="sw-k">CPU</span><span class="sw-v">{{ g.totalCpu.toFixed(1) }}%</span></div>
+              <div class="sw-stat"><span class="sw-k">MEM</span><span class="sw-v">{{ g.totalMem.toFixed(0) }}M</span></div>
+              <div class="sw-stat"><span class="sw-k">UP</span><span class="sw-v">{{ fmtUptime(g.maxUptime) }}</span></div>
+            </div>
+
+            <!-- 多实例：内联迷你条形（按 PID 的 CPU 分布）；单实例：端口 + 命令行 -->
+            <div v-if="g.count > 1" class="sw-bars">
+              <div v-for="x in g.instances.slice(0, 5)" :key="x.pid" class="sw-bar-row">
+                <span class="sw-bar-label mono">{{ x.pid }}</span>
+                <span class="sw-bar-track"><span class="sw-bar-fill" :style="{ width: swBarWidth(g, x.cpu) + '%' }" /></span>
+                <span class="sw-bar-val mono">{{ numOr0(x.cpu).toFixed(1) }}</span>
+              </div>
+              <div v-if="g.instances.length > 5" class="sw-bars-more mono">其余 {{ g.instances.length - 5 }} 个实例见详情</div>
+            </div>
+            <div v-else class="sw-single">
+              <span v-if="g.ports.length" class="sw-port mono">端口 :{{ g.ports.join(' / :') }}</span>
+              <span class="sw-cmd mono" :title="g.instances[0].cmd">{{ g.instances[0].cmd }}</span>
+            </div>
+          </div>
+        </div>
       </section>
+
+      <!-- 磁盘（Windows「此电脑」风格驱动器磁片，响应式自适应） -->
+      <section class="disk-panel">
+        <div class="dp-head"><span class="dp-title">磁盘驱动器</span><span class="dp-count mono">{{ disk.length }} DEVICE</span></div>
+        <div class="drive-grid">
+          <div v-for="(r, i) in disk" :key="i" class="drive-tile" :class="{ low: diskLow(r) }">
+            <svg class="drive-ico" viewBox="0 0 48 48" aria-hidden="true">
+              <path class="di-body" d="M6 16 h36 a3 3 0 0 1 3 3 v14 a3 3 0 0 1-3 3 H6 a3 3 0 0 1-3-3 V19 a3 3 0 0 1 3-3 z"/>
+              <rect class="di-slot" x="9" y="20" width="22" height="4" rx="1.5"/>
+              <circle class="di-led" cx="39" cy="22" r="2.2"/>
+              <rect class="di-base" x="9" y="29" width="30" height="3" rx="1.5"/>
+            </svg>
+            <div class="drive-info">
+              <div class="drive-name" :title="r.mount || ''">{{ r.mount || "—" }}</div>
+              <div class="drive-bar"><div class="drive-fill" :style="{ width: diskUsageWidth(r) }" /></div>
+              <div class="drive-cap">{{ diskCapacityText(r) }}</div>
+            </div>
+          </div>
+          <div v-if="disk.length === 0" class="empty drive-empty">暂无磁盘数据</div>
+        </div>
+      </section>
+      </template>
     </div>
 
     <!-- AI 智能分析弹窗 -->
     <ReDialog v-model="aiDialogVisible" title="AI 主机指标智能分析" width="700px">
-      <div v-if="aiLoading" class="ai-loading">
-        <el-icon class="is-loading"><Loading /></el-icon>
-        <span>AI 正在分析主机指标，请稍候...</span>
+      <div class="ai-bar">
+        <span class="ai-bar-k">分析重点</span>
+        <ReSelect v-model="aiDimension" size="small" class="ai-bar-sel" :options="AI_DIMENSIONS" />
+        <ReButton type="primary" size="small" :show-text="true" :loading="aiLoading" @click="requestAnalysis">
+          {{ aiResult || aiError ? "重新分析" : "开始分析" }}
+        </ReButton>
+        <span class="ai-bar-hint">指标快照与趋势由后端按主机取数，前端不回传</span>
       </div>
-      <div v-else-if="aiError" class="ai-error">
-        <span>分析失败：{{ aiError }}</span>
-        <p style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary)">
-          可能原因：AI 模型未配置、网络超时、或后端服务不可用。请检查系统配置中的 AI 模型设置。
-        </p>
+
+      <div v-if="!aiEnabled" class="ai-state">
+        <b>AI 分析未启用</b>
+        <span>未检测到可用的模型配置，请先到「系统配置 → AI 设置」接入模型后再试。</span>
+        <ReButton size="small" :show-text="true" @click="router.push('/system-config')">前往配置</ReButton>
       </div>
-      <div v-else class="ai-result">
+      <div v-else-if="aiLoading" class="ai-state">
+        <el-icon class="is-loading ai-spin"><Loading /></el-icon>
+        <span>AI 正在分析主机 {{ hostName || `#${hostId}` }} 的指标，请稍候…</span>
+      </div>
+      <div v-else-if="aiError" class="ai-state is-error">
+        <b>分析失败</b>
+        <span>{{ aiError }}</span>
+      </div>
+      <div v-else-if="aiResult" class="ai-result">
         <pre class="ai-content">{{ aiResult }}</pre>
+        <div class="ai-meta">
+          <span>模型：{{ aiUsedModel || aiModel || "默认模型" }}</span>
+          <span>对象：{{ hostName || `#${hostId}` }}（监控项 #{{ monitorId }}）</span>
+        </div>
       </div>
+      <div v-else class="ai-state">
+        <span>点击上方「开始分析」生成主机指标诊断结论。</span>
+      </div>
+
       <template #footer>
         <ReButton @click="aiDialogVisible = false">关闭</ReButton>
-        <ReButton type="primary" :loading="aiLoading" @click="runAiAnalysis">重新分析</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 历史数据弹窗：只保留时间范围过滤，指标由被点击卡片确定 -->
+    <ReDialog v-model="histDialogVisible" :title="histTitle" width="860px">
+      <div class="hist-bar">
+        <ReSelect
+          :model-value="histHours" size="small" class="hist-sel"
+          :options="histRangeOptions"
+          @change="onHistHoursChange"
+        />
+        <span class="hist-hint">数据来自主机采集历史，按主机维度持久化，口径与外侧卡片一致</span>
+      </div>
+      <div v-if="histLoading" class="hist-loading">
+        <el-icon class="is-loading"><Loading /></el-icon><span>正在加载历史数据…</span>
+      </div>
+      <div v-else-if="!histSeries.length && !(histIoRead.length || histIoWrite.length)" class="hist-loading">
+        <span>该时间段内暂无历史数据，请确认主机已开启自动采集。</span>
+      </div>
+      <div ref="histChartRef" class="hist-canvas" />
+    </ReDialog>
+
+    <!-- 软件实例显示设置（持久化到 ms_monitor_config） -->
+    <ReDialog v-model="swSettingVisible" title="软件实例显示设置" width="580px">
+      <div class="swset-bar">
+        <ReButton size="small" @click="swSettingAll(true)">全选</ReButton>
+        <ReButton size="small" @click="swSettingAll(false)">全不选</ReButton>
+        <span class="swset-hint">仅勾选的软件类型会在主机详情中展示，对所有主机生效并持久化。</span>
+      </div>
+      <div class="swset-list">
+        <label v-for="t in swSettingTypes" :key="t" class="swset-item">
+          <el-checkbox :model-value="swSettingChecked(t)" @change="swSettingToggle(t)" />
+          <span class="swset-label">{{ swLabel(t) }}</span>
+          <span class="swset-type mono">{{ t }}</span>
+        </label>
+      </div>
+      <template #footer>
+        <ReButton @click="swSettingVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="swSettingSaving" @click="saveSwSetting">保存</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 软件分组实例明细（合并占比图 + 实例表） -->
+    <ReDialog v-model="swDetailVisible" :title="`${swDetailGroup?.label ?? ''} · 实例明细`" width="800px">
+      <div v-if="swDetailGroup" class="swdet">
+        <div ref="swDetailChartRef" class="swdet-chart" />
+        <table class="swdet-table">
+          <thead>
+            <tr><th>PID</th><th>端口</th><th>CPU %</th><th>内存 M</th><th>运行时长</th><th>命令行</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="x in swDetailGroup.instances" :key="x.pid">
+              <td class="mono">{{ x.pid }}</td>
+              <td class="mono">{{ x.port || "—" }}</td>
+              <td class="mono">{{ numOr0(x.cpu).toFixed(1) }}</td>
+              <td class="mono">{{ numOr0(x.memMb).toFixed(0) }}</td>
+              <td class="mono">{{ fmtUptime(x.uptimeSec) }}</td>
+              <td class="swdet-cmd mono" :title="x.cmd">{{ x.cmd }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <template #footer>
+        <ReButton type="primary" @click="swDetailVisible = false">关闭</ReButton>
       </template>
     </ReDialog>
   </div>
@@ -514,6 +1451,12 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   --p-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Consolas, "Liberation Mono", monospace;
   --p-glow: 0 0 12px rgba(59, 130, 246, 0.3);
 }
+/* 覆盖全局 .tel-page 的固定高度 + overflow:hidden，让外层 .main 出滚动条 */
+.hd.tel-page {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
 .hd-error {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px; margin-bottom: 16px;
@@ -526,8 +1469,8 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(1100px 480px at 12% -12%, rgba(109, 93, 252, 0.18), transparent 62%),
-    radial-gradient(900px 440px at 108% 112%, rgba(6, 182, 212, 0.12), transparent 60%),
+    radial-gradient(1100px 480px at 12% -12%, var(--el-color-primary-light-8, rgba(109, 93, 252, 0.18)), transparent 62%),
+    radial-gradient(900px 440px at 108% 112%, var(--el-color-info-light-8, rgba(6, 182, 212, 0.12)), transparent 60%),
     var(--p-bg);
   border: 1px solid var(--p-line);
   border-radius: 16px;
@@ -570,6 +1513,32 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   margin-top: 5px; font-size: 12px; color: var(--p-text-2);
 }
 .dot-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--p-text-3); }
+.ph-monitor {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 9px;
+}
+.pm-k { font-size: 11px; letter-spacing: 0.08em; color: var(--p-text-3); }
+.pm-sel { width: 220px; }
+.pm-hint { font-size: 11px; color: var(--p-text-3); }
+.no-monitor {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  margin-top: 18px; padding: 22px 20px;
+  background: var(--p-card);
+  border: 1px dashed var(--p-line); border-radius: 12px;
+}
+.no-monitor b { font-size: 14px; color: var(--p-text); }
+.no-monitor span { font-size: 12.5px; color: var(--p-text-2); line-height: 1.7; }
+/* 无监控项但有内置指标的软提示条 */
+.builtin-hint {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 4px; padding: 9px 14px;
+  font-size: 12px; color: var(--p-text-2);
+  background: var(--el-color-info-light-9, rgba(148, 163, 184, 0.1));
+  border: 1px solid var(--p-line-2); border-radius: 10px;
+}
+.builtin-hint span { line-height: 1.5; }
 .ph-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 .live {
@@ -581,24 +1550,24 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   transition: color 0.25s, border-color 0.25s, box-shadow 0.25s;
 }
 .live.on {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.45);
-  box-shadow: 0 0 14px rgba(74, 222, 128, 0.22), inset 0 0 8px rgba(74, 222, 128, 0.08);
+  color: var(--el-color-success, #4ade80);
+  border-color: var(--el-color-success-light-5, rgba(74, 222, 128, 0.45));
+  box-shadow: 0 0 14px var(--el-color-success-light-7, rgba(74, 222, 128, 0.22));
 }
 .live-dot {
   width: 6px; height: 6px; border-radius: 50%; background: currentColor;
 }
 .live.on .live-dot { animation: livePulse 1.6s ease-in-out infinite; }
 @keyframes livePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); }
-  50% { box-shadow: 0 0 0 5px rgba(74, 222, 128, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--el-color-success-light-5, rgba(74, 222, 128, 0.55)); }
+  50% { box-shadow: 0 0 0 5px transparent; }
 }
 
 .ph-stat {
   display: inline-flex; align-items: baseline; gap: 6px;
   padding: 4px 10px;
   font-size: 11px; color: var(--p-text-3);
-  background: rgba(148, 163, 184, 0.07);
+  background: var(--el-color-info-light-9, rgba(148, 163, 184, 0.07));
   border: 1px solid var(--p-line-2); border-radius: 8px;
 }
 .stat-k { font-size: 11px; color: var(--p-text-3); }
@@ -607,22 +1576,22 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
 .mono { font-family: var(--p-mono); }
 
 .sock { font-size: 11.5px; color: var(--p-text-3); }
-.sock.ok { color: #4ade80; }
+.sock.ok { color: var(--el-color-success, #4ade80); }
 .btn-refresh {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 12px;
   font-size: 12px; color: var(--p-text);
-  background: rgba(148, 163, 184, 0.08);
+  background: var(--el-color-info-light-9, rgba(148, 163, 184, 0.08));
   border: 1px solid var(--p-line); border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
-.btn-refresh:hover { border-color: rgba(109, 93, 252, 0.6); background: rgba(109, 93, 252, 0.12); box-shadow: 0 0 12px rgba(109, 93, 252, 0.25); }
+.btn-refresh:hover { border-color: var(--el-color-primary-light-5); background: var(--el-color-primary-light-9); }
 .btn-refresh:disabled { opacity: 0.55; cursor: default; }
 .ico {
   width: 10px; height: 10px; border-radius: 50%;
-  border: 2px solid rgba(148, 163, 184, 0.35);
-  border-top-color: #a5b4fc;
+  border: 2px solid var(--el-color-info-light-5, rgba(148, 163, 184, 0.35));
+  border-top-color: var(--el-color-primary, #a5b4fc);
 }
 .ico.spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -633,7 +1602,7 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   z-index: 1;
   height: 1px;
   margin: 0 -20px;
-  background: linear-gradient(90deg, transparent, rgba(109, 93, 252, 0.6), rgba(6, 182, 212, 0.6), transparent);
+  background: linear-gradient(90deg, transparent, var(--el-color-primary, rgba(109, 93, 252, 0.6)), var(--el-color-info, rgba(6, 182, 212, 0.6)), transparent);
   background-size: 240px 100%;
   background-repeat: no-repeat;
   animation: scan 3.2s ease-in-out infinite;
@@ -645,46 +1614,42 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   100% { background-position: calc(100% + 260px) 0; opacity: 0.2; }
 }
 
-/* ---------- 仪表 ---------- */
+/* ---------- 仪表（响应式自适应） ---------- */
 .gauge-grid {
   position: relative; z-index: 1;
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
   margin-top: 16px;
 }
 .gauge {
   display: flex; flex-direction: column; align-items: center;
   padding: 16px 8px 14px;
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), rgba(148, 163, 184, 0.02));
+  background: linear-gradient(180deg, var(--el-color-info-light-9, rgba(148, 163, 184, 0.06)), transparent);
   border: 1px solid var(--p-line-2); border-radius: 12px;
   animation: cardIn 0.4s var(--ease-out, ease) both;
   transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
 }
-.gauge:nth-child(2) { animation-delay: 0.05s; }
-.gauge:nth-child(3) { animation-delay: 0.1s; }
-.gauge:nth-child(4) { animation-delay: 0.15s; }
-.gauge:nth-child(5) { animation-delay: 0.2s; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .gauge:hover {
-  border-color: rgba(148, 163, 184, 0.3);
+  border-color: var(--el-color-info-light-5, rgba(148, 163, 184, 0.3));
   transform: translateY(-2px);
 }
-.gauge.hot { border-color: rgba(245, 158, 11, 0.4); }
-.gauge.danger { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 18px rgba(239, 68, 68, 0.12); }
+.gauge.hot { border-color: var(--el-color-warning-light-5, rgba(245, 158, 11, 0.4)); }
+.gauge.danger { border-color: var(--el-color-danger-light-5, rgba(239, 68, 68, 0.5)); box-shadow: 0 0 18px var(--el-color-danger-light-8, rgba(239, 68, 68, 0.12)); }
 
 .g-ring { position: relative; width: 108px; height: 108px; }
 .g-svg { width: 108px; height: 108px; display: block; }
-.ticks line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
-.ticks line.major { stroke: rgba(148, 163, 184, 0.5); stroke-width: 1.6; }
-.ring-bg { fill: none; stroke: rgba(148, 163, 184, 0.1); stroke-width: 7; }
+.ticks line { stroke: var(--el-color-info-light-5, rgba(148, 163, 184, 0.22)); stroke-width: 1; }
+.ticks line.major { stroke: var(--el-color-info-light-3, rgba(148, 163, 184, 0.5)); stroke-width: 1.6; }
+.ring-bg { fill: none; stroke: var(--el-color-info-light-8, rgba(148, 163, 184, 0.1)); stroke-width: 7; }
 .ring-fg {
-  fill: none; stroke: #3b82f6; stroke-width: 7; stroke-linecap: round;
-  filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.65));
+  fill: none; stroke: var(--el-color-primary, #3b82f6); stroke-width: 7; stroke-linecap: round;
+  filter: drop-shadow(0 0 5px var(--el-color-primary-light-5, rgba(59, 130, 246, 0.65)));
   transition: stroke-dasharray 0.5s var(--ease-out, ease);
 }
-.ring-fg.mem { stroke: #8b5cf6; filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.65)); }
-.ring-fg.disk { stroke: #f59e0b; filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6)); }
-.ring-fg.jvm { stroke: #14b8a6; filter: drop-shadow(0 0 5px rgba(20, 184, 166, 0.6)); }
-.gauge.danger .ring-fg { stroke: #ef4444; filter: drop-shadow(0 0 7px rgba(239, 68, 68, 0.7)); }
+.ring-fg.mem { stroke: var(--el-color-success, #8b5cf6); filter: drop-shadow(0 0 5px var(--el-color-success-light-5, rgba(139, 92, 246, 0.65))); }
+.ring-fg.disk { stroke: var(--el-color-warning, #f59e0b); filter: drop-shadow(0 0 5px var(--el-color-warning-light-5, rgba(245, 158, 11, 0.6))); }
+.ring-fg.jvm { stroke: var(--el-color-info, #14b8a6); filter: drop-shadow(0 0 5px var(--el-color-info-light-5, rgba(20, 184, 166, 0.6))); }
+.gauge.danger .ring-fg { stroke: var(--el-color-danger, #ef4444); filter: drop-shadow(0 0 7px var(--el-color-danger-light-5, rgba(239, 68, 68, 0.7))); }
 
 .g-center {
   position: absolute; inset: 0;
@@ -692,22 +1657,47 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
 }
 .g-num { font-size: 24px; font-weight: 700; color: var(--p-text); line-height: 1; }
 .g-unit { font-size: 11px; color: var(--p-text-3); align-self: flex-start; margin-top: 3px; }
-.g-ring.net .g-center { flex-direction: column; gap: 4px; }
-.net-dir { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #67e8f9; }
+.g-ring.net .g-center, .g-center.io-c { flex-direction: column; gap: 4px; }
+.io-c { gap: 3px; }
+.io-row { display: inline-flex; align-items: center; gap: 5px; }
+.io-k {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 4px;
+  font-style: normal; font-size: 9px;
+  background: var(--el-color-info-light-8); color: var(--el-color-info, #64748b);
+}
+.io-row b { font-size: 13px; color: var(--p-text); }
+.net-dir { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
 .net-dir b { font-size: 15px; color: var(--p-text); }
 .rx-arr, .tx-arr { width: 0; height: 0; }
-.rx-arr { border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid #06b6d4; }
-.tx-arr { border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #22d3ee; }
+.rx-arr { border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid var(--el-color-info, #06b6d4); }
+.tx-arr { border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--el-color-primary, #22d3ee); }
 
 .g-label { margin-top: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--p-text-2); }
 .g-sub { margin-top: 3px; font-size: 10.5px; color: var(--p-text-3); }
 
-/* ---------- 趋势 ---------- */
+/* ---------- 趋势（响应式自适应） ---------- */
 .trend-grid {
   position: relative; z-index: 1;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px;
   margin-top: 12px;
 }
+.trend.clickable { cursor: pointer; }
+.trend.clickable:hover { border-color: var(--el-color-primary-light-5, rgba(109, 93, 252, 0.5)); }
+.t-right { display: inline-flex; align-items: center; gap: 6px; }
+/* 放大镜提示图标 */
+.t-zoom {
+  position: relative;
+  width: 12px; height: 12px;
+  border: 1.6px solid var(--p-text-3); border-radius: 50%;
+  opacity: 0; transition: opacity 0.2s, border-color 0.2s;
+}
+.t-zoom::after {
+  content: ""; position: absolute; right: -3px; bottom: -3px;
+  width: 5px; height: 1.6px; background: var(--p-text-3);
+  transform: rotate(45deg); transform-origin: center;
+}
+.trend.clickable:hover .t-zoom { opacity: 1; }
 .trend {
   padding: 12px 12px 8px;
   background: var(--p-card);
@@ -715,23 +1705,152 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
   animation: cardIn 0.4s var(--ease-out, ease) 0.12s both;
   transition: border-color 0.25s, box-shadow 0.25s;
 }
-.trend:hover { border-color: rgba(148, 163, 184, 0.3); box-shadow: 0 2px 8px rgba(7, 11, 26, 0.06); }
+.trend:hover { border-color: var(--el-color-info-light-5, rgba(148, 163, 184, 0.3)); box-shadow: 0 2px 8px rgba(7, 11, 26, 0.06); }
 .t-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
 .t-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--p-text-3); }
 .t-now { font-size: 13px; font-weight: 700; color: var(--p-text); }
 .t-svg { width: 100%; height: 56px; display: block; }
-.t-grid line { stroke: rgba(148, 163, 184, 0.08); stroke-width: 1; }
+.t-grid line { stroke: var(--el-color-info-light-8, rgba(148, 163, 184, 0.08)); stroke-width: 1; }
 .t-area { transition: d 0.4s var(--ease-out, ease); }
 .t-line {
   fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round;
 }
-.t-line.cpu { stroke: #3b82f6; filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5)); }
-.t-line.mem { stroke: #8b5cf6; filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.5)); }
-.t-line.jvm { stroke: #14b8a6; filter: drop-shadow(0 0 4px rgba(20, 184, 166, 0.5)); }
-.t-line.net { stroke: #06b6d4; filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5)); }
+.t-line.cpu { stroke: var(--el-color-primary, #3b82f6); }
+.t-line.mem { stroke: var(--el-color-success, #8b5cf6); }
+.t-line.jvm { stroke: var(--el-color-info, #14b8a6); }
+.t-line.net { stroke: var(--el-color-info, #06b6d4); }
+.t-line.io-r { stroke: var(--el-color-warning, #f59e0b); }
+.t-line.io-w { stroke: var(--el-color-info, #06b6d4); }
 .t-foot {
-  display: flex; justify-content: space-between; margin-top: 5px;
+  display: flex; justify-content: space-between; gap: 8px; margin-top: 5px;
   font-size: 10px; color: var(--p-text-3);
+}
+.t-foot.io-legend { flex-direction: column; gap: 2px; }
+.lg-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+.lg-dot.r { background: var(--el-color-warning, #f59e0b); }
+.lg-dot.w { background: var(--el-color-info, #06b6d4); }
+
+/* ---------- 软件实例 ---------- */
+.sw-panel {
+  position: relative; z-index: 1;
+  margin-top: 12px;
+  background: var(--p-card);
+  border: 1px solid var(--p-line-2); border-radius: 12px;
+  overflow: hidden;
+  animation: cardIn 0.4s var(--ease-out, ease) 0.15s both;
+}
+.sp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--p-line-2);
+}
+.sp-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
+.sp-actions { display: flex; align-items: center; gap: 10px; }
+.sp-count { font-size: 10.5px; color: var(--p-text-3); letter-spacing: 0.12em; }
+.sw-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 12px; padding: 14px;
+}
+.sw-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter); border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.sw-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: var(--el-box-shadow-light);
+}
+.sw-top { display: flex; align-items: flex-start; gap: 10px; }
+.sw-badge {
+  flex: none;
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 9px;
+  font-size: 16px; font-weight: 800;
+}
+.sw-head { flex: 1; min-width: 0; }
+.sw-name-line { display: flex; align-items: center; gap: 8px; }
+.sw-dn { font-size: 14px; font-weight: 700; color: var(--el-text-color-primary); }
+.sw-chip {
+  font-size: 10px; padding: 1px 6px; border-radius: 6px;
+  background: var(--el-fill-color); color: var(--el-text-color-secondary);
+}
+.sw-pidchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.sw-pid {
+  font-size: 10.5px; padding: 2px 7px; border-radius: 6px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-regular);
+}
+.sw-pid-more { color: var(--el-text-color-secondary); }
+.sw-detail-btn { flex: none; }
+.sw-stats { display: flex; gap: 8px; }
+.sw-stat {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
+  padding: 7px 9px; border-radius: 8px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-extra-light);
+}
+.sw-k { font-size: 10px; color: var(--el-text-color-secondary); letter-spacing: 0.08em; }
+.sw-v { font-size: 13px; font-weight: 700; color: var(--el-text-color-primary); }
+.sw-bars { display: flex; flex-direction: column; gap: 4px; }
+.sw-bar-row { display: flex; align-items: center; gap: 8px; }
+.sw-bar-label { width: 48px; font-size: 10px; color: var(--el-text-color-secondary); }
+.sw-bar-track {
+  flex: 1; height: 8px; border-radius: 5px;
+  background: var(--el-fill-color); overflow: hidden;
+}
+.sw-bar-fill {
+  display: block; height: 100%; border-radius: 5px;
+  background: var(--el-color-primary); opacity: 0.85;
+}
+.sw-bar-val { width: 38px; text-align: right; font-size: 10px; color: var(--el-text-color-secondary); }
+.sw-bars-more { font-size: 10px; color: var(--el-text-color-placeholder); }
+.sw-single { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sw-port { font-size: 10.5px; color: var(--el-text-color-secondary); }
+.sw-cmd {
+  font-size: 10.5px; color: var(--el-text-color-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 分组配色角色：徽章/条形全部走 el 变量，随主题切换 */
+.sw-card.is-primary .sw-badge { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.sw-card.is-success .sw-badge { background: var(--el-color-success-light-9); color: var(--el-color-success); }
+.sw-card.is-warning .sw-badge { background: var(--el-color-warning-light-9); color: var(--el-color-warning); }
+.sw-card.is-danger  .sw-badge { background: var(--el-color-danger-light-9);  color: var(--el-color-danger); }
+.sw-card.is-info    .sw-badge { background: var(--el-color-info-light-9);    color: var(--el-color-info); }
+.sw-card.is-success .sw-bar-fill { background: var(--el-color-success); }
+.sw-card.is-warning .sw-bar-fill { background: var(--el-color-warning); }
+.sw-card.is-danger  .sw-bar-fill { background: var(--el-color-danger); }
+.sw-card.is-info    .sw-bar-fill { background: var(--el-color-info); }
+
+/* ---------- 软件显示设置弹窗 ---------- */
+.swset-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.swset-hint { font-size: 11px; color: var(--el-text-color-secondary); }
+.swset-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px;
+  max-height: 340px; overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter); border-radius: 8px;
+}
+.swset-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
+.swset-label { font-size: 13px; color: var(--el-text-color-primary); }
+.swset-type { margin-left: auto; font-size: 10px; color: var(--el-text-color-placeholder); }
+
+/* ---------- 软件实例明细弹窗 ---------- */
+.swdet { display: flex; flex-direction: column; gap: 12px; }
+.swdet-chart { width: 100%; height: 200px; }
+.swdet-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.swdet-table th, .swdet-table td {
+  padding: 7px 8px; text-align: left;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.swdet-table th { font-size: 11px; font-weight: 600; color: var(--el-text-color-secondary); }
+.swdet-table td { color: var(--el-text-color-regular); }
+.swdet-cmd {
+  max-width: 240px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--el-text-color-secondary);
 }
 
 /* ---------- 磁盘 ---------- */
@@ -750,45 +1869,96 @@ function diskUsageWidth(r: any): string { return `${Math.min(100, Number(r.usage
 }
 .dp-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
 .dp-count { font-size: 10.5px; color: var(--p-text-3); letter-spacing: 0.12em; }
-.disk-table { width: 100%; border-collapse: collapse; }
-.disk-table th {
-  padding: 8px 14px; text-align: left;
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
-  color: var(--p-text-3);
-  background: rgba(148, 163, 184, 0.05);
-  border-bottom: 1px solid var(--p-line-2);
+/* 驱动器响应式栅格（Windows「此电脑」磁片，自适应换行） */
+.drive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  padding: 14px;
 }
-.disk-table td { padding: 8px 14px; font-size: 12px; color: var(--p-text); border-bottom: 1px solid var(--p-line-2); }
-.disk-table tbody tr:last-child td { border-bottom: none; }
-.disk-table tbody tr { transition: background 0.15s; }
-.disk-table tbody tr:hover { background: rgba(109, 93, 252, 0.07); }
-.dim { color: var(--p-text-3); }
-.empty { text-align: center; color: var(--p-text-3); padding: 18px 0; }
-.use-row { display: flex; align-items: center; gap: 8px; }
-.bar { flex: 1; height: 6px; background: rgba(148, 163, 184, 0.14); border-radius: 3px; overflow: hidden; }
-.bar-fill {
+.drive-tile {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--p-bg-2);
+  border: 1px solid var(--p-line-2); border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.drive-tile:hover {
+  border-color: var(--el-color-info-light-5, rgba(148, 163, 184, 0.4));
+  box-shadow: 0 2px 10px rgba(7, 11, 26, 0.06);
+  transform: translateY(-1px);
+}
+.drive-ico { width: 40px; height: 40px; flex: none; }
+.di-body { fill: var(--el-color-info-light-7, #cbd5e1); }
+.di-slot { fill: var(--el-color-info-light-9, #f1f5f9); }
+.di-led { fill: var(--el-color-success, #22c55e); }
+.di-base { fill: var(--el-color-info-light-5, #94a3b8); }
+.drive-info { flex: 1; min-width: 0; }
+.drive-name {
+  font-size: 13px; font-weight: 600; color: var(--p-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.drive-bar {
+  height: 5px; margin: 6px 0 5px;
+  background: var(--el-color-info-light-8, rgba(148, 163, 184, 0.16)); border-radius: 3px; overflow: hidden;
+}
+.drive-fill {
   height: 100%; border-radius: 3px;
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  background: var(--el-color-primary, #3b82f6);
   transition: width 0.5s var(--ease-out, ease);
 }
-.bar-fill.danger { background: linear-gradient(90deg, #ef4444, #f87171); box-shadow: 0 0 8px rgba(239, 68, 68, 0.55); }
-.pct { min-width: 42px; text-align: right; color: var(--p-text-2); }
+.drive-cap { font-size: 10.5px; color: var(--p-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 容量紧张：图标变红、进度条红色 */
+.drive-tile.low .di-led { fill: var(--el-color-danger, #ef4444); }
+.drive-tile.low .drive-fill { background: var(--el-color-danger, #ef4444); }
+.drive-empty { grid-column: 1 / -1; text-align: center; padding: 26px 0; }
+
+/* ---------- AI 分析弹窗 ---------- */
+.ai-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+}
+.ai-bar-k { font-size: 12px; color: var(--text-tertiary, #94a3b8); }
+.ai-bar-sel { width: 190px; }
+.ai-bar-hint { font-size: 11.5px; color: var(--text-tertiary, #94a3b8); }
+.ai-state {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 26px 6px; font-size: 13px; color: var(--text-secondary, #64748b);
+}
+.ai-state b { font-size: 14px; color: var(--text-primary, #1e293b); }
+.ai-state.is-error b { color: var(--status-error-text, #ef4444); }
+.ai-spin { font-size: 18px; color: var(--el-color-primary, #6d5dfc); }
+.ai-result .ai-content {
+  margin: 0; padding: 12px 14px; max-height: 460px; overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; line-height: 1.75;
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--bg-fill, rgba(148, 163, 184, 0.07));
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-radius: 8px; color: var(--text-primary, #1e293b);
+}
+.ai-meta {
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 8px; font-size: 11px; color: var(--text-tertiary, #94a3b8);
+}
+
+/* ---------- 历史数据弹窗 ---------- */
+.hist-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.hist-sel { width: 150px; }
+.hist-hint { font-size: 11.5px; color: var(--p-text-3); }
+.hist-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 380px; font-size: 13px; color: var(--p-text-2);
+}
+.hist-canvas { width: 100%; height: 380px; }
 
 /* ---------- 响应式 ---------- */
-@media (max-width: 1280px) {
-  .gauge-grid { grid-template-columns: repeat(3, 1fr); }
-  .trend-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 860px) {
-  .gauge-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 560px) {
-  .gauge-grid { grid-template-columns: 1fr; }
-  .trend-grid { grid-template-columns: 1fr; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .panel, .gauge, .trend, .disk-panel { animation: none; }
+  .panel, .gauge, .trend, .disk-panel, .sw-panel { animation: none; }
   .scanline, .live.on .live-dot, .ico.spin { animation: none; }
 }
 </style>

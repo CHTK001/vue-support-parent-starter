@@ -1,15 +1,11 @@
 /**
  * 采集控制台视图的公共装载逻辑。
  *
- * 三件事统一做掉，避免每个页面重复：
- * 1. 等鉴权状态就绪再首次取数——否则未登录时每个接口各报一次 401；
- * 2. 登录成功（epoch 自增）后自动重载当前页；
- * 3. 集中把 ConsoleError 转成一条中文提示。
+ * 登录态由框架的路由守卫保证（未登录根本进不了页面，令牌过期由接口层跳登录页），
+ * 这里只负责取数的 loading/错误提示，以及确认框与操作执行的收敛封装。
  */
-import { computed, onMounted, ref, watch } from "vue";
-import type { ComputedRef } from "vue";
+import { onMounted, ref } from "vue";
 import { msgBox, msgError } from "@repo/core";
-import { bootstrap, state } from "./useCollectAuth";
 
 /** 取接口错误文案，后端 400/409 的 msg 都是可直接展示的中文 */
 export function errText(error: unknown): string {
@@ -57,31 +53,8 @@ export function useCollectView(load: () => Promise<unknown>) {
   }
 
   onMounted(() => {
-    void bootstrap().then(reload);
+    void reload();
   });
-
-  watch(
-    () => state.epoch,
-    () => {
-      if (state.authenticated) {
-        void reload();
-      }
-    },
-  );
 
   return { loading, reload };
-}
-
-/**
- * 登录浮层是否已让开界面。
- *
- * ReTable 这类"挂载即自取数"的组件用它做 `v-if`，否则未登录时会各自报一次 401。
- * 状态查询失败时算 ready——鉴权未启用的部署不该被门挡住。
- */
-export function useCollectGated(): { ready: ComputedRef<boolean> } {
-  const ready = computed(() => state.ready && !state.needLogin);
-  onMounted(() => {
-    void bootstrap();
-  });
-  return { ready };
 }

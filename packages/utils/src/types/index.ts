@@ -6,6 +6,7 @@
  */
 import type {
   AxiosInstance,
+  AxiosProgressEvent,
   AxiosResponse,
   InternalAxiosRequestConfig,
   ResponseType,
@@ -43,6 +44,8 @@ export interface ChainableRequest {
   retry(on: boolean): ChainableRequest;
   /** 静默失败提示（禁用统一 toast，仍 reject；默认 false） */
   noToast(on: boolean): ChainableRequest;
+  /** 上传进度回调（大文件上传场景，替代业务侧自建 axios 实例） */
+  uploadProgress(handler: (event: AxiosProgressEvent) => void): ChainableRequest;
   /**
    * 把当前链式请求转换为 SSE 客户端。
    *

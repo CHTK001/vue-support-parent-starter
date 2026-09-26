@@ -27,8 +27,20 @@ loginConfig:
 
 # 其他配置
 otherConfig:
+  # 头像框字典/佩戴记录来自 system 服务的 /v2/avatar-frame/**，监控后端未实现，
+  # 开着只会在每次启动留一条 404（同 hotspot 应用的处理）
   avatarFrame:
-    enable: true
+    enable: false
+  toolbar:
+    # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
+    announcement: false
+  # 文件资产（pages/filesystem / FileStorageManage）指向的独立文件服务器：
+  # 由「服务管理」的文件服务器节点（file-storage 插件，端口 18082）提供，
+  # 桶名 = FileStorage Bean 名（localFileStorage），与监控文件资产网关同源
+  filestorage:
+    server: http://127.0.0.1:18082
+    bucket: localFileStorage
+    quotaGb: 5
 
 # Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）
 # urls 为空回退 http.baseUrl/当前源 → 经 vite proxy /socket.io → 后端 netty-socketio 29181

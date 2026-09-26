@@ -135,31 +135,10 @@ export const reCronMeta: TemplateMeta = {
   name: "ReCron",
   component: () => import("@repo/ui/re-cron").then((m) => ({ default: m.default })),
   title: "Cron 表达式",
-  description: "Cron 表达式生成器（card 卡片式 / default 默认）",
+  description: "Cron 表达式生成器（可视化面板 + 表达式直填 + 触发时间预览，后端同源 6 字段方言）",
   modelable: true,
   modelDefault: "0 0 12 * * ?",
   props: [
-    {
-      key: "layout",
-      label: "布局",
-      type: "select",
-      default: "card",
-      options: [
-        { label: "card（rin-card 风格）", value: "card", icon: "Postcard" },
-        { label: "default（el-popover）", value: "default", icon: "Menu" },
-      ],
-    },
-    {
-      key: "fields",
-      label: "字段数",
-      type: "select",
-      default: 6,
-      options: [
-        { label: "6 字段（秒 分 时 日 月 周）", value: 6, icon: "Clock" },
-        { label: "5 字段（分 时 日 月 周）", value: 5, icon: "Calendar" },
-      ],
-      description: "quartz 风格 6 字段 / Linux 风格 5 字段",
-    },
     { key: "placeholder", label: "占位符", type: "string", default: "请选择 cron 表达式" },
     { key: "disabled", label: "禁用", type: "boolean", default: false },
     { key: "width", label: "宽度（px）", type: "number", default: 0, min: 0, max: 1200, step: 10, description: "0 = 自适应" },
@@ -167,8 +146,6 @@ export const reCronMeta: TemplateMeta = {
   generate(state) {
     const props: string[] = [];
     const values = state.values;
-    if (values.layout && values.layout !== "card") props.push(`layout="${values.layout}"`);
-    if (values.fields && values.fields !== 6) props.push(`:fields="${values.fields}"`);
     if (values.placeholder && values.placeholder !== "请选择 cron 表达式")
       props.push(`placeholder="${values.placeholder}"`);
     if (values.disabled) props.push(`disabled`);
@@ -310,10 +287,6 @@ export const reSearchMeta: TemplateMeta = {
     { key: "resetText", label: "重置按钮文案", type: "string", default: "重置" },
     { key: "showResetBtn", label: "显示重置按钮", type: "boolean", default: true },
     { key: "loading", label: "搜索 loading", type: "boolean", default: false },
-    { key: "showRefreshBtn", label: "显示刷新按钮", type: "boolean", default: true, description: "组件默认值 true（工具栏内、纯图标）" },
-    { key: "showAddBtn", label: "显示新增按钮", type: "boolean", default: false },
-    { key: "addText", label: "新增按钮文案", type: "string", default: "新增" },
-    { key: "showToggle", label: "显示隐藏/显示按钮", type: "boolean", default: false, description: "ReSearchToolbar 里的整区显示切换" },
   ],
 };
 

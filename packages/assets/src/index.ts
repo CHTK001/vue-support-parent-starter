@@ -7,3 +7,5 @@ export * from "./svgSprite";
 export * from "./resolveAssetUrl";
 import defaultAvatarUrl from "./images/avatar/default-avatar.png";
 export { defaultAvatarUrl };
+import defaultLogoUrl from "./images/logo/logo.svg";
+export { defaultLogoUrl };

@@ -9,6 +9,7 @@
     "src/**/*.vue",
     "vite.config.ts",
     "app.yaml",
-    "../../packages/ui/src/env.d.ts"
+    "../../packages/ui/src/env.d.ts",
+    "../../pages/eduai/src/env.d.ts"
   ]
 }

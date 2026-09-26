@@ -1,8 +1,8 @@
 /**
  * Cron 表达式解析引擎
  *
- * 负责解析标准的 6 字段 Cron 表达式（秒 分 时 日 月 周），并提供基于时间点的
- * 匹配和计算能力。将表达式编译为布尔位图（boolean[]）以实现高效的匹配判定。
+ * 本文件是服务端 `com.chua.common.support.task.scheduler.CronExpression` 的逐行镜像，
+ * 判定与触发时刻必须与服务端一致（ReCron 的合法性提示与预览时间依赖此处）。
  *
  * 支持的表达式语法：
  *  - `*` —— 所有值
@@ -14,19 +14,29 @@
  *  - `W` —— 最近的工作日
  *  - `#` —— 第 N 个星期几（如 3#2 表示第二个星期二）
  */
+
+/** 位图容量：与 BitSet 一样允许越界置位（如周字段写 8），置位后永不匹配即判非法 */
+const BITS_CAPACITY = 64;
+
+/** 计算下一次执行时间的最大回溯年数，超过即认定表达式永不匹配 */
+const MAX_LOOKAHEAD_YEARS = 5;
+
+/** 单次推进最少 1 秒，5 年回溯的步数上界兜底，防止表达式病态时拖住 UI 线程 */
+const MAX_ITERATIONS = 400000;
+
 export class CronExpression {
   /** 秒字段位图（0-59） */
-  private seconds: boolean[] = new Array(60).fill(false);
+  private seconds: boolean[] = new Array(BITS_CAPACITY).fill(false);
   /** 分钟字段位图（0-59） */
-  private minutes: boolean[] = new Array(60).fill(false);
+  private minutes: boolean[] = new Array(BITS_CAPACITY).fill(false);
   /** 小时字段位图（0-23） */
-  private hours: boolean[] = new Array(24).fill(false);
+  private hours: boolean[] = new Array(BITS_CAPACITY).fill(false);
   /** 日期字段位图（1-31） */
-  private daysOfMonth: boolean[] = new Array(32).fill(false);
+  private daysOfMonth: boolean[] = new Array(BITS_CAPACITY).fill(false);
   /** 月份字段位图（1-12） */
-  private months: boolean[] = new Array(13).fill(false);
+  private months: boolean[] = new Array(BITS_CAPACITY).fill(false);
   /** 星期字段位图（0-7，0 和 7 均表示周日） */
-  private daysOfWeek: boolean[] = new Array(8).fill(false);
+  private daysOfWeek: boolean[] = new Array(BITS_CAPACITY).fill(false);
 
   /** 是否使用月末标记（L） */
   private lastDayOfMonth = false;
@@ -34,14 +44,16 @@ export class CronExpression {
   private lastDayOfWeek = false;
   /** 最近的工作日（W 修饰符） */
   private nearestWeekday: number | null = null;
-  /** 第 N 个星期几（# 修饰符） */
+  /** 第几个星期（5#3 表示当月第 3 个星期五，# 后是序号，# 前按 0=周日 编号表示星期） */
   private nthDayOfWeek: number | null = null;
+  /** 星期字段写成 `dL` 时的星期编号（0=周日），表示当月最后一个星期 d */
+  private lastWeekdayOfMonth: number | null = null;
 
   /**
    * 构造一个 Cron 表达式解析器
    *
    * @param expression 6 字段 Cron 表达式
-   * @throws Error 如果表达式格式不正确或字段数不为 6
+   * @throws Error 如果表达式格式不正确、字段数不为 6 或含无法解析的数值
    */
   constructor(expression: string) {
     const fields = expression.trim().split(/\s+/);
@@ -87,38 +99,66 @@ export class CronExpression {
     if (field === "?") {
       return;
     }
-    if (field === "L" || field.startsWith("LW")) {
+    if (field === "L") {
+      this.lastDayOfMonth = true;
+      return;
+    }
+    if (field.startsWith("LW")) {
       this.lastDayOfMonth = true;
       return;
     }
     if (field.endsWith("W") && field.length > 1) {
-      this.nearestWeekday = Number.parseInt(field.substring(0, field.length - 1), 10);
+      this.nearestWeekday = this.parseInt(field.substring(0, field.length - 1));
       return;
     }
     this.parseField(field, 1, 31, this.daysOfMonth);
   }
 
-  /** 解析星期字段（0-7），支持 L、# 修饰符和 SUN-SAT 英文缩写 */
+  /** 解析星期字段（0-7），支持 L、dL、# 修饰符和 SUN-SAT 英文缩写 */
   private parseDaysOfWeek(field: string): void {
     if (field === "?") {
       return;
     }
-    const resolved = this.resolveNames(field, "SUN,MON,TUE,WED,THU,FRI,SAT")
-      .replace(/7/g, "0");
+    const resolved = this.resolveWeekdayNames(field).replace(/7/g, "0");
     if (resolved === "L") {
       this.lastDayOfWeek = true;
       return;
     }
+    if (resolved.endsWith("L") && resolved.length > 1) {
+      const weekday = this.parseInt(resolved.substring(0, resolved.length - 1));
+      this.lastDayOfWeek = true;
+      this.lastWeekdayOfMonth = weekday;
+      this.daysOfWeek[weekday] = true;
+      return;
+    }
     if (resolved.includes("#")) {
+      // # 前是星期几（统一 0/7=周日），# 后是当月第几个
       const parts = resolved.split("#");
-      this.nthDayOfWeek = Number.parseInt(parts[0], 10);
-      this.daysOfWeek[Number.parseInt(parts[1], 10)] = true;
+      this.nthDayOfWeek = this.parseInt(parts[1]);
+      this.daysOfWeek[this.parseInt(parts[0]) % 7] = true;
       return;
     }
     this.parseField(resolved, 0, 7, this.daysOfWeek);
     if (this.daysOfWeek[7]) {
       this.daysOfWeek[0] = true;
     }
+  }
+
+  /**
+   * 将英文星期名解析为标准 cron 数字（SUN=0、MON=1 … SAT=6）
+   *
+   * 不复用 resolveNames：该方法按数组下标从 1 开始编号，用于星期字段会让 MON-FRI 整体偏移一天。
+   *
+   * @param field 原始字段值
+   * @returns 名称替换为数字后的字段值
+   */
+  private resolveWeekdayNames(field: string): string {
+    const names = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    let result = field.toUpperCase();
+    for (let i = 0; i < names.length; i++) {
+      result = result.replace(names[i], String(i));
+    }
+    return result;
   }
 
   /**
@@ -132,7 +172,7 @@ export class CronExpression {
     const nameArr = names.split(",");
     let result = field.toUpperCase();
     for (let i = 0; i < nameArr.length; i++) {
-      result = result.replace(new RegExp(nameArr[i], "g"), String(i + 1));
+      result = result.replace(nameArr[i], String(i + 1));
     }
     return result;
   }
@@ -153,7 +193,7 @@ export class CronExpression {
     let step = 1;
     const slash = part.indexOf("/");
     if (slash !== -1) {
-      step = Number.parseInt(part.substring(slash + 1), 10);
+      step = this.parseInt(part.substring(slash + 1));
       part = part.substring(0, slash);
     }
     let rangeMin: number;
@@ -163,19 +203,30 @@ export class CronExpression {
       rangeMin = min;
       rangeMax = max;
     } else if (dash !== -1) {
-      rangeMin = Number.parseInt(part.substring(0, dash), 10);
-      rangeMax = Number.parseInt(part.substring(dash + 1), 10);
+      rangeMin = this.parseInt(part.substring(0, dash));
+      rangeMax = this.parseInt(part.substring(dash + 1));
     } else {
-      rangeMin = Number.parseInt(part, 10);
-      rangeMax = Number.parseInt(part, 10);
+      rangeMin = this.parseInt(part);
+      rangeMax = rangeMin;
     }
     // 步进场景（如 0/5、5/15）：若未显式指定范围上限，则将上限扩展到字段最大值
+    // 否则 0/5 只会匹配 0 一个值，而非 0,5,10,...,55
     if (slash !== -1 && rangeMax === rangeMin) {
       rangeMax = max;
     }
     for (let i = rangeMin; i <= rangeMax; i += step) {
-      if (i >= 0 && i < bits.length) bits[i] = true;
+      // 越界值与 BitSet 一样照常置位：位图非空但永不被匹配到，等价于服务端「算不出触发时间」
+      if (i >= 0 && i < BITS_CAPACITY) bits[i] = true;
     }
+  }
+
+  /** 解析整数字段，非法字符与 Java Integer.parseInt 一样报错 */
+  private parseInt(text: string): number {
+    const value = Number(text.trim());
+    if (!Number.isInteger(value)) {
+      throw new Error(`For input string: "${text}"`);
+    }
+    return value;
   }
 
   /** 判断位图是否为空 */
@@ -188,27 +239,33 @@ export class CronExpression {
    *
    * 按照年-月-日-时-分-秒的层级逐级递增匹配：
    *  1. 先匹配月份，不匹配则跳到下个月第一天
-   *  2. 再匹配日期和星期，日和周采用或逻辑（只要一个满足即可）
+   *  2. 再匹配日期和星期，日期与星期各自独立约束，写 `?` 的一侧不参与判定
    *  3. 然后匹配小时、分钟、秒
    *
    * @param from 基准时间
-   * @returns 下一个匹配的 Cron 时间点
+   * @returns 下一个匹配的 Cron 时间点，表达式永不匹配时为 null
    */
   nextExecutionTime(from: Date): Date | null {
-    let candidate = new Date(from);
+    const candidate = new Date(from);
     candidate.setMilliseconds(0);
     candidate.setSeconds(candidate.getSeconds() + 1);
 
-    // 防止极端异常表达式导致死循环
-    let guard = 0;
-    const MAX_ITERATIONS = 2000;
+    const deadline = new Date(from);
+    deadline.setFullYear(deadline.getFullYear() + MAX_LOOKAHEAD_YEARS);
 
+    // 2 月 30 日这类永不匹配的表达式若不限步数，会把调用线程拖进死循环
+    let guard = 0;
     while (guard++ < MAX_ITERATIONS) {
+      if (candidate > deadline) {
+        return null;
+      }
+
       const y = candidate.getFullYear();
       const m = candidate.getMonth() + 1;
 
       if (!this.months[m]) {
-        candidate = new Date(y, m, 1, 0, 0, 0, 0);
+        candidate.setFullYear(y, m, 1);
+        candidate.setHours(0, 0, 0, 0);
         continue;
       }
 
@@ -222,45 +279,48 @@ export class CronExpression {
       let dowMatch =
         this.daysOfWeek[dow] || (this.lastDayOfWeek && this.isLastWeekDay(candidate));
 
-      if (this.nthDayOfWeek !== null && this.daysOfWeek[this.nthDayOfWeek]) {
+      if (this.nthDayOfWeek !== null) {
         dowMatch = this.isNthDayOfWeek(candidate);
+      }
+      if (this.lastWeekdayOfMonth !== null) {
+        dowMatch = dow === this.lastWeekdayOfMonth && dom + 7 > this.lengthOfMonth(y, m);
       }
       if (this.nearestWeekday !== null) {
         domMatch = this.isNearestWeekday(y, m, candidate);
       }
-      // 日/周字段全未设置时，放宽为任意日期
-      if (
-        (this.isEmpty(this.daysOfMonth) && !this.lastDayOfMonth && this.nearestWeekday === null) ||
-        (this.isEmpty(this.daysOfWeek) && !this.lastDayOfWeek && this.nthDayOfWeek === null)
-      ) {
+      // 未指定的一侧（写 ? 或整个字段缺省）放宽为任意值，另一侧继续独立约束
+      if (this.isEmpty(this.daysOfMonth) && !this.lastDayOfMonth && this.nearestWeekday === null) {
         domMatch = true;
+      }
+      if (this.isEmpty(this.daysOfWeek) && !this.lastDayOfWeek && this.nthDayOfWeek === null) {
         dowMatch = true;
       }
 
       if (!domMatch || !dowMatch) {
-        candidate = new Date(y, m, dom + 1, 0, 0, 0, 0);
+        candidate.setDate(dom + 1);
+        candidate.setHours(0, 0, 0, 0);
         continue;
       }
 
       const h = candidate.getHours();
       if (!this.hours[h]) {
-        candidate = new Date(y, m, dom, h + 1, 0, 0, 0);
+        candidate.setHours(h + 1, 0, 0, 0);
         continue;
       }
 
       const min = candidate.getMinutes();
       if (!this.minutes[min]) {
-        candidate = new Date(y, m, dom, h, min + 1, 0, 0);
+        candidate.setMinutes(min + 1, 0, 0);
         continue;
       }
 
       const sec = candidate.getSeconds();
       if (!this.seconds[sec]) {
-        candidate = new Date(y, m, dom, h, min, sec + 1, 0);
+        candidate.setSeconds(sec + 1, 0);
         continue;
       }
 
-      return candidate;
+      return new Date(candidate);
     }
 
     return null;
@@ -293,20 +353,29 @@ export class CronExpression {
     return new Date(year, month, 0).getDate();
   }
 
-  /** 判断是否为该月最后一个工作日 */
+  /** 判断是否为该月最后一个工作日（周五为最后一个工作日时，周六日往后顺延） */
   private isLastWeekDay(dt: Date): boolean {
-    const lastDay = this.lengthOfMonth(dt.getFullYear(), dt.getMonth() + 1);
-    return dt.getDate() === lastDay || dt.getDay() === new Date(dt.getFullYear(), dt.getMonth(), lastDay).getDay();
+    const year = dt.getFullYear();
+    const month = dt.getMonth() + 1;
+    const lastDay = this.lengthOfMonth(year, month);
+    return (
+      dt.getDate() === lastDay ||
+      dt.getDay() === new Date(year, month - 1, lastDay).getDay()
+    );
   }
 
   /** 判断是否为第 N 个星期几 */
   private isNthDayOfWeek(dt: Date): boolean {
     const weekOfMonth = Math.floor((dt.getDate() - 1) / 7) + 1;
     const dow = dt.getDay();
-    return this.daysOfWeek[dow] && dow === this.nthDayOfWeek;
+    return this.daysOfWeek[dow] && weekOfMonth === this.nthDayOfWeek;
   }
 
-  /** 判断是否为最近的工作日（W 修饰符） */
+  /**
+   * 判断是否为最近的工作日（W 修饰符）
+   *
+   * 如果指定日期是周六，则返回周五；如果是周日，则返回周一；如果调整后跨月，则向前取最近的工作日。
+   */
   private isNearestWeekday(year: number, month: number, dt: Date): boolean {
     const nearest = this.nearestWeekday!;
     const target = new Date(year, month - 1, nearest);
@@ -320,8 +389,10 @@ export class CronExpression {
     if (adjusted.getMonth() + 1 !== month) {
       adjusted = new Date(year, month - 1, nearest - 1);
     }
-    return dt.getFullYear() === adjusted.getFullYear() &&
+    return (
+      dt.getFullYear() === adjusted.getFullYear() &&
       dt.getMonth() === adjusted.getMonth() &&
-      dt.getDate() === adjusted.getDate();
+      dt.getDate() === adjusted.getDate()
+    );
   }
 }

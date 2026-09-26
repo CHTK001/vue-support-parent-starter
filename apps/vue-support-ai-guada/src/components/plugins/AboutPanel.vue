@@ -77,7 +77,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElButton, ElIcon } from 'element-plus'
 import { Loading, CircleCheck, Link } from '@element-plus/icons-vue'
-import { fixFrontendAssetUrl } from '@/utils/url'
+import { resolveBrandLogoLarge } from '@/utils/branding'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI
@@ -98,8 +98,8 @@ const openRepo = (url: string) => {
     openInExternalBrowser(url)
 }
 
-// 计算属性：自适应 Logo 路径
-const logoPath = computed(() => fixFrontendAssetUrl('/images/logo.png'))
+// 计算属性：自适应 Logo 路径（取自 app.yaml 的 app.logoLargeUrl）
+const logoPath = computed(() => resolveBrandLogoLarge())
 
 const checkForUpdates = async () => {
     if (!window.electronAPI) return

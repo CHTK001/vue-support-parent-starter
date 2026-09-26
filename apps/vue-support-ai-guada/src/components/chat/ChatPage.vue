@@ -19,13 +19,6 @@
                     <PanelRightExpand20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
-                  <!-- 上下文面板切换 -->
-                  <LTooltip v-if="mainSession?.id" content="会话上下文" placement="bottom">
-                  <div class="header-icon-btn" :class="{ active: showContextPanel }"
-                    @click="showContextPanel = !showContextPanel">
-                    <Info20Filled class="w-5 h-5" />
-                  </div>
-                  </LTooltip>
                   <!-- 更多操作下拉菜单 -->
                   <DropdownMenu @command="handleMoreSelect">
                     <div class="header-icon-btn">
@@ -61,16 +54,6 @@
                   <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
                     :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
                 </div>
-
-                <!-- 上下文信息面板 -->
-                <ContextPanel
-                  v-if="showContextPanel && mainSession"
-                  :session-id="mainSession.id"
-                  :current-model="mainSession.model || mainSession.settings?.model"
-                  :messages="chatPanelRef?.activeMessages || []"
-                  :system-prompt="mainSession.systemPrompt || mainSession.settings?.systemPrompt"
-                  :max-context="mainSession.settings?.maxTokens || 8192"
-                />
               </div>
             </div>
           </template>
@@ -133,15 +116,11 @@ import {
   // FileDownloadOutlined,
   // FileUploadOutlined
 } from "@vicons/material";
-import { PanelRightExpand20Filled, Info20Filled } from "@vicons/fluent";
+import { PanelRightExpand20Filled } from "@vicons/fluent";
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
 const WorkspaceSidebar = defineAsyncComponent(() => import("./workspace/WorkspaceSidebar.vue"));
-const ContextPanel = defineAsyncComponent(() => import("./ContextPanel.vue"));
-
-// 上下文面板显示状态
-const showContextPanel = ref(false);
 
 // 子 Agent Tab 状态
 const agentTabs = ref<AgentTab[]>([

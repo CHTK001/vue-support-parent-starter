@@ -1,190 +1,249 @@
 <template>
-  <div class="usage-config-settings">
-    <el-form :model="form" label-width="180px" class="settings-form">
-      <el-form-item label="用量统计开关">
-        <el-switch v-model="form.enabled" />
-        <span class="form-tip">开启后记录所有API调用用量</span>
-      </el-form-item>
-      <el-form-item label="会话用量统计开关">
-        <el-switch v-model="form.sessionUsageEnabled" />
-        <span class="form-tip">开启后记录会话聊天用量</span>
-      </el-form-item>
-      <el-form-item label="连接器聊天用量开关">
-        <el-switch v-model="form.connectorUsageEnabled" />
-        <span class="form-tip">开启后记录连接器聊天用量</span>
-      </el-form-item>
-      <el-form-item label="定时同步时间">
-        <el-time-picker
-          v-model="form.syncTime"
-          format="HH:mm"
-          value-format="HH:mm"
-          placeholder="选择每日同步时间"
-        />
-        <span class="form-tip">每天定时同步用量数据（仅同步当天数据）</span>
-      </el-form-item>
-      <el-form-item label="后台时间轮询间隔">
-        <el-input-number v-model="form.pollInterval" :min="1" :max="1440" />
-        <span class="form-tip">分钟，后台轮询用量数据的间隔</span>
-      </el-form-item>
-      <el-form-item label="Provider SPI开关">
-        <el-switch v-model="form.providerSpiEnabled" />
-        <span class="form-tip">开启后同步时只同步已开启的Provider</span>
-      </el-form-item>
-      <el-form-item label="手动全量同步">
+  <div class="usage-config">
+    <el-alert type="info" :closable="false" show-icon class="usage-intro">
+      配置用量记录、定时聚合、时间轮调度与显示单位；保存后实时生效。
+    </el-alert>
+
+    <!-- 用量统计 -->
+    <SettingsCard title="用量统计">
+      <SettingsRow v-for="item in switchItems" :key="item.field"
+        :label="item.label" :description="item.desc">
+        <el-switch v-model="item.value" />
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 聚合与调度 -->
+    <SettingsCard title="聚合与调度">
+      <SettingsRow label="定时聚合间隔" description="最小 60 秒，默认 3600（1 小时）" control-width="140">
+        <el-input-number v-model="byField('usage_report_interval').value"
+          :min="60" :step="60" controls-position="right" />
+      </SettingsRow>
+      <SettingsRow label="Provider 白名单" description="逗号分隔数据源，留空 = 全部启用" control-width="240">
+        <el-input v-model="byField('usage_sync_providers').value" placeholder="留空 = 全部" clearable />
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 单位设置 -->
+    <SettingsCard title="单位设置">
+      <SettingsRow label="货币单位" description="用量管理页所有费用显示的货币" control-width="200">
+        <el-select v-model="byField('usage_currency').value">
+          <el-option v-for="opt in byField('usage_currency').options"
+            :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow label="货币自动换算" description="开启后切换货币按汇率换算金额，关闭则仅切换符号">
+        <el-switch v-model="byField('usage_currency_auto_convert').value" />
+      </SettingsRow>
+      <template v-if="byField('usage_currency_auto_convert').value">
+        <SettingsRow label="美元汇率 (CNY / USD)" description="1 美元可兑换的人民币数量" control-width="150">
+          <el-input-number v-model="byField('usage_rate_usd').value"
+            :min="0.01" :step="0.1" :precision="3" controls-position="right" />
+        </SettingsRow>
+        <SettingsRow label="欧元汇率 (CNY / EUR)" description="1 欧元可兑换的人民币数量" control-width="150">
+          <el-input-number v-model="byField('usage_rate_eur').value"
+            :min="0.01" :step="0.1" :precision="3" controls-position="right" />
+        </SettingsRow>
+      </template>
+      <SettingsRow label="Token 显示量级" description="自动缩写（K/M/B）或完整数值" control-width="200">
+        <el-select v-model="byField('usage_token_scale').value">
+          <el-option v-for="opt in byField('usage_token_scale').options"
+            :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 数据同步 -->
+    <SettingsCard title="数据同步">
+      <div class="sync-wrap">
+        <el-alert v-if="syncAllProgress.running"
+          :title="`全量回填进行中：已处理 ${syncAllProgress.processed} / ${syncAllProgress.total}（${syncAllProgress.percent}%）`"
+          :type="syncAllProgress.error ? 'error' : 'info'" :closable="false" show-icon />
         <div class="sync-actions">
-          <el-button 
-            type="primary" 
-            @click="manualSync" 
-            :loading="taskStatus.aggregateAllRunning"
-            :disabled="taskStatus.aggregateAllRunning"
-          >
-            {{ taskStatus.aggregateAllRunning ? '同步中...' : '立即全量同步' }}
+          <el-button type="primary" :loading="syncAllLoading" @click="handleSyncAll">
+            {{ syncAllProgress.running ? '全量回填进行中…' : '立即全量同步' }}
           </el-button>
-          <el-button 
-            v-if="taskStatus.aggregateAllRunning" 
-            type="danger" 
-            @click="cancelSync"
-          >
-            取消
-          </el-button>
+          <el-button v-if="syncAllProgress.running" @click="handleCancelSyncAll">取消</el-button>
         </div>
-        <span class="form-tip">手动触发全量用量数据同步，重复点击会取消前一次任务</span>
-      </el-form-item>
-    </el-form>
-    <div class="form-actions">
-      <el-button type="primary" @click="save" :loading="saving">保存用量配置</el-button>
+      </div>
+    </SettingsCard>
+
+    <div class="actions-bar">
+      <el-button @click="load">重置</el-button>
+      <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { usageApi } from '@/services/javaApi'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { usageApi } from '@/services/javaApi';
+import SettingsCard from './SettingsCard.vue';
+import SettingsRow from './SettingsRow.vue';
 
-const form = ref({
-  enabled: true,
-  sessionUsageEnabled: true,
-  connectorUsageEnabled: false,
-  syncTime: '02:00',
-  pollInterval: 60,
-  providerSpiEnabled: true,
-})
+interface SettingSchema {
+  field: string;
+  label: string;
+  valueType: 'BOOLEAN' | 'NUMBER' | 'STRING';
+  type: 'switch' | 'number' | 'text' | 'select';
+  value: any;
+  desc?: string;
+  options?: { value: string; label: string }[];
+}
 
-const saving = ref(false)
-const taskStatus = ref({
-  aggregateRunning: false,
-  aggregateAllRunning: false,
-})
+const schema = reactive<SettingSchema[]>([
+  { field: 'enable_usage_analysis', label: '用量统计开关', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '关闭后跳过定时同步与聚合' },
+  { field: 'enable_usage_recorder', label: '会话用量统计开关', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '关闭后不记录每次调用到明细表' },
+  { field: 'enable_connector_usage', label: '连接器聊天用量开关', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后连接器 AI 回复计入用量统计' },
+  { field: 'usage_timewheel_enabled', label: '后台时间轮调度', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后用量同步改用时间轮调度' },
+  { field: 'usage_report_interval', label: '定时聚合间隔', valueType: 'NUMBER', type: 'number', value: 3600 },
+  { field: 'usage_sync_providers', label: 'Provider 白名单', valueType: 'STRING', type: 'text', value: '' },
+  {
+    field: 'usage_currency', label: '货币单位', valueType: 'STRING', type: 'select', value: 'CNY',
+    options: [
+      { value: 'CNY', label: '人民币 ¥ (CNY)' },
+      { value: 'USD', label: '美元 $ (USD)' },
+      { value: 'EUR', label: '欧元 € (EUR)' },
+    ],
+  },
+  {
+    field: 'usage_token_scale', label: 'Token 显示量级', valueType: 'STRING', type: 'select', value: 'auto',
+    options: [
+      { value: 'auto', label: '自动缩写（K / M / B）' },
+      { value: 'raw', label: '完整数值' },
+    ],
+  },
+  { field: 'usage_currency_auto_convert', label: '货币自动换算', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '开启后切换货币按汇率换算金额' },
+  { field: 'usage_rate_usd', label: '美元汇率', valueType: 'NUMBER', type: 'number', value: 7.1 },
+  { field: 'usage_rate_eur', label: '欧元汇率', valueType: 'NUMBER', type: 'number', value: 7.8 },
+]);
 
-// SSE 连接
-let eventSource: EventSource | null = null
+const switchItems = computed(() => schema.filter((i) => i.type === 'switch' && i.field !== 'usage_currency_auto_convert'));
+function byField(field: string) {
+  return schema.find((i) => i.field === field)!;
+}
 
-const load = async () => {
+const saving = ref(false);
+
+function coerce(item: SettingSchema, raw: any) {
+  if (item.valueType === 'BOOLEAN') return String(raw) === 'true';
+  if (item.valueType === 'NUMBER') {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : item.value;
+  }
+  return raw == null ? '' : String(raw);
+}
+
+async function load() {
   try {
-    const res = await usageApi.config()
-    const data = res?.data || res
-    if (data) {
-      form.value = { ...form.value, ...data }
+    const res = await usageApi.config();
+    const list = res?.data || res;
+    if (Array.isArray(list)) {
+      for (const row of list) {
+        const item = schema.find((i) => i.field === row.field);
+        if (item) item.value = coerce(item, row.value);
+      }
     }
-  } catch (e) {
-    console.error('加载用量配置失败:', e)
-  }
-  // 连接 SSE
-  connectSSE()
-}
-
-// 连接 SSE
-const connectSSE = () => {
-  disconnectSSE()
-  eventSource = new EventSource('/v2/usage/task-status/stream')
-  
-  eventSource.addEventListener('status', (e) => {
-    try {
-      const data = JSON.parse((e as MessageEvent).data)
-      taskStatus.value = data
-    } catch (err) {
-      console.error('SSE 解析错误:', err)
-    }
-  })
-  
-  eventSource.onerror = () => {
-    console.warn('SSE 连接断开，5秒后重连')
-    setTimeout(connectSSE, 5000)
+  } catch (e: any) {
+    ElMessage.error('加载用量配置失败：' + (e?.message || e));
   }
 }
 
-// 断开 SSE
-const disconnectSSE = () => {
-  if (eventSource) {
-    eventSource.close()
-    eventSource = null
-  }
-}
-
-const save = async () => {
-  saving.value = true
+async function save() {
+  saving.value = true;
   try {
-    await usageApi.updateConfig(form.value)
-    ElMessage.success('用量配置保存成功')
-  } catch (e) {
-    console.error('保存用量配置失败:', e)
-    ElMessage.error('保存失败')
+    const fields = schema.map((item) => ({
+      field: item.field,
+      value: item.value,
+      valueType: item.valueType,
+      description: item.desc || '',
+    }));
+    await usageApi.updateConfig({ fields });
+    ElMessage.success('用量配置已保存');
+    await load();
+  } catch (e: any) {
+    ElMessage.error('保存用量配置失败：' + (e?.message || e));
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
-const manualSync = async () => {
+// ===== 手动全量同步（SSE） =====
+const syncAllLoading = ref(false);
+const syncAllProgress = reactive({
+  running: false, total: 0, processed: 0, percent: 0, error: '',
+});
+let es: EventSource | null = null;
+
+function closeEventSource() {
+  if (es) {
+    es.close();
+    es = null;
+  }
+}
+
+async function handleSyncAll() {
+  if (syncAllProgress.running) return;
+  syncAllLoading.value = true;
   try {
-    await usageApi.syncAll()
-    ElMessage.success('全量同步已触发')
-  } catch (e) {
-    console.error('手动同步失败:', e)
-    ElMessage.error('同步失败')
+    await usageApi.syncAll();
+    Object.assign(syncAllProgress, {
+      running: true, total: 0, processed: 0, percent: 0, error: '',
+    });
+    closeEventSource();
+    es = new EventSource('/v2/usage/task-status/stream');
+    es.onmessage = (ev) => {
+      try {
+        const d = JSON.parse(ev.data);
+        if (d.total) syncAllProgress.total = d.total;
+        if (d.processed != null) syncAllProgress.processed = d.processed;
+        if (d.total) syncAllProgress.percent = Math.min(100, Math.round((d.processed / d.total) * 100));
+        if (d.status === 'done' || d.status === 'completed' || d.status === 'cancelled') {
+          syncAllProgress.running = false;
+          closeEventSource();
+          ElMessage.success(d.status === 'cancelled' ? '全量回填已取消' : '全量回填完成');
+        }
+        if (d.status === 'failed' || d.error) {
+          syncAllProgress.running = false;
+          syncAllProgress.error = d.error || '任务失败';
+          closeEventSource();
+          ElMessage.error('全量回填失败：' + (d.error || ''));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    es.onerror = () => {
+      if (syncAllProgress.running) {
+        syncAllProgress.running = false;
+        closeEventSource();
+      }
+    };
+  } catch (e: any) {
+    ElMessage.error('触发全量同步失败：' + (e?.message || e));
+  } finally {
+    syncAllLoading.value = false;
   }
 }
 
-const cancelSync = async () => {
+async function handleCancelSyncAll() {
   try {
-    await fetch('/v2/usage/aggregate-all/cancel', { method: 'POST' })
-    ElMessage.success('已取消全量同步任务')
-  } catch (e) {
-    console.error('取消同步失败:', e)
-    ElMessage.error('取消失败')
+    await usageApi.cancelSyncAll();
+    ElMessage.success('已请求取消全量回填');
+  } catch (e: any) {
+    ElMessage.error('取消失败：' + (e?.message || e));
   }
 }
 
-onMounted(load)
-onUnmounted(disconnectSSE)
+onMounted(load);
+onBeforeUnmount(closeEventSource);
 </script>
 
 <style scoped>
-.usage-config-settings {
-  max-width: 700px;
-}
+.usage-intro { margin-bottom: 18px; }
 
-.settings-form {
-  background: #ffffff;
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
+.sync-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.sync-actions { display: flex; gap: 12px; }
 
-.form-tip {
-  margin-left: 12px;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.sync-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.form-actions {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
+.actions-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
 </style>

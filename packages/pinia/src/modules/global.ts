@@ -8,10 +8,26 @@
  */
 import { defineStore } from "pinia";
 import { DEFAULT_THEME } from "@repo/config";
+import { getFrameworkStorage } from "@repo/utils";
+
+/** 一次性迁移标记：历史默认布局为 group，系统默认导航应为垂直(vertical) */
+const LAYOUT_DEFAULT_MIGRATION_KEY = "layout-default-vertical-v1";
 
 const globalStore = defineStore("global", {
   persist: {
     key: "global",
+    afterRestore: (ctx) => {
+      // 首启动时把旧的默认值 group 纠正为 vertical（用户后续手动切换仍会持久化生效）
+      try {
+        const storage = getFrameworkStorage();
+        if (!storage.get(LAYOUT_DEFAULT_MIGRATION_KEY)) {
+          ctx.store.layout = "vertical";
+          storage.set(LAYOUT_DEFAULT_MIGRATION_KEY, true);
+        }
+      } catch {
+        // 迁移失败忽略：保留已存布局值，不影响功能
+      }
+    },
   },
   state: () => {
     return {
@@ -29,7 +45,7 @@ const globalStore = defineStore("global", {
       layout: "vertical",
       tabsStyle: "google",
       transition: "none",
-      /** 登录页样式（default 臻享双栏 / glass 动感玻璃 / slide 滑动登录 / bubble 气泡简约 / split 分屏沉浸 / simple 经典点阵） */
+      /** 登录页样式，取值见 themes/koi/views/login/loginStyles.ts 的 loginStyleOptions */
       loginStyle: "default",
       uniqueOpened: true,
       isGrey: false,

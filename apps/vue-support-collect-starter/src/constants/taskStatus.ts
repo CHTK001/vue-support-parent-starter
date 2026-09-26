@@ -23,11 +23,29 @@ export const STATUS_TAG: Record<string, "primary" | "success" | "danger" | "info
   SKIPPED: "info",
 };
 
-/** 触发方式 → 中文 */
+/** 触发方式 → 中文（采集任务用 CRON/MANUAL/TEST，作业日志带的是台账调度类型） */
 export const TRIGGER_TEXT: Record<string, string> = {
   CRON: "定时",
   MANUAL: "手动",
   TEST: "试运行",
+  FIXED: "固定频率",
+  DELAY: "固定延迟",
+  NONE: "不自动",
+};
+
+/**
+ * 触发方式 → ReTag 语义色。
+ *
+ * 定时/固定频率/固定延迟是系统自己发起的（primary），手动与试运行是人点的（warning），
+ * 不自动的没有 ReTag 语义，归 info。未知值同样落 info，与 statusTagType 的兜底一致。
+ */
+export const TRIGGER_TAG: Record<string, "primary" | "success" | "danger" | "info" | "warning"> = {
+  CRON: "primary",
+  FIXED: "primary",
+  DELAY: "primary",
+  MANUAL: "warning",
+  TEST: "warning",
+  NONE: "info",
 };
 
 /**
@@ -57,6 +75,15 @@ export function statusTagType(status: unknown): "primary" | "success" | "danger"
 export function triggerText(trigger: unknown): string {
   const key = String(trigger ?? "");
   return TRIGGER_TEXT[key] ?? key;
+}
+
+/**
+ * 触发方式对应的 ReTag 类型。
+ *
+ * @param trigger 后端触发类型字面值
+ */
+export function triggerTagType(trigger: unknown): "primary" | "success" | "danger" | "info" | "warning" {
+  return TRIGGER_TAG[String(trigger ?? "")] ?? "info";
 }
 
 /**

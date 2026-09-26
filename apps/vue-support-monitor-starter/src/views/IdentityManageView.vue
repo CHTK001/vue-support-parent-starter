@@ -60,12 +60,12 @@ function keyTypeLabel(t: string | undefined): string {
 
 const columns = [
   { prop: "msServerIdentityName", label: "名称", minWidth: 140 },
-  { prop: "auth", label: "类型", width: 110, slot: "auth" },
+  { prop: "auth", label: "类型", width: 130, slot: "auth" },
   { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
   { prop: "key", label: "密钥", width: 130, slot: "key" },
   { prop: "hosts", label: "绑定主机", width: 90, slot: "hosts" },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 140 },
-  { prop: "id", label: "操作", width: 180, slot: "actions" },
+  { prop: "id", label: "操作", width: 220, slot: "actions" },
 ];
 
 const keyColumns = [
@@ -386,17 +386,24 @@ async function selectMail(m: { id?: string; subject?: string }, idx: number): Pr
   }
 }
 
-// ---- 密钥私钥/公钥下载 ----
-function downloadKeyMaterial(row: KeyRow, which: "public" | "private"): void {
-  if (which === "private" && !row.msServerKeyPrivateKey) {
-    ElMessage.warning("私钥内容不可见（出于安全考虑，后端不回显），请用「生成密钥对」重建或查看密钥库");
+/**
+ * 下载密钥公钥。
+ *
+ * <p>后端 {@code ServerCredentialController} 约定「私钥、口令永不出现在响应体中」，
+ * 私钥仅加密留存于密钥库，因此此处只支持公钥导出。
+ *
+ * @param row 密钥行
+ */
+function downloadPublicKey(row: KeyRow): void {
+  const content = row.msServerKeyPublicKey ?? "";
+  if (!content) {
+    ElMessage.warning("该密钥暂无公钥内容");
     return;
   }
-  const content = which === "public" ? row.msServerKeyPublicKey ?? "" : (row.msServerKeyPrivateKey ?? "");
-  const blob = new Blob([content || "（空）"], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${row.msServerKeyName}.${which === "public" ? "pub" : "key"}`;
+  a.download = `${row.msServerKeyName}.pub`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -405,7 +412,7 @@ function downloadKeyMaterial(row: KeyRow, which: "public" | "private"): void {
 async function batchDelete(rows: Record<string, unknown>[]): Promise<void> {
   let ok = 0;
   for (const r of rows) {
-    const id = Number((r as Identity).id);
+    const id = Number((r as unknown as Identity).id);
     if (!id) continue;
     try {
       await delIdentity(id);
@@ -608,41 +615,8 @@ async function submitAdd(): Promise<void> {
 
     <!-- 身份 tab -->
     <template v-if="tab === 'identity'">
-    <!-- KPI 统计 -->
-    <section class="kpi-row cols-4">
-      <div class="kpi c-brand">
-        <div class="kpi-head">
-          <ReButton icon="User" layout="square" size="small" />
-          <span class="kpi-label">身份总数</span>
-        </div>
-        <div class="kpi-value">{{ list.length }}</div>
-        <div class="kpi-sub">全部登录身份</div>
-      </div>
-      <div class="kpi c-green">
-        <div class="kpi-head">
-          <ReButton icon="Monitor" layout="square" size="small" />
-          <span class="kpi-label">主机身份</span>
-        </div>
-        <div class="kpi-value">{{ hostCount }}</div>
-        <div class="kpi-sub">密码 / 公钥</div>
-      </div>
-      <div class="kpi c-blue">
-        <div class="kpi-head">
-          <ReButton icon="Message" layout="square" size="small" />
-          <span class="kpi-label">通用账号</span>
-        </div>
-        <div class="kpi-value">{{ genericCount }}</div>
-        <div class="kpi-sub">邮箱 / Token / API Key 等</div>
-      </div>
-      <div class="kpi c-amber">
-        <div class="kpi-head">
-          <ReButton icon="Key" layout="square" size="small" />
-          <span class="kpi-label">密钥引用</span>
-        </div>
-        <div class="kpi-value">{{ keyCount }}</div>
-        <div class="kpi-sub">SSH 私钥登录</div>
-      </div>
-    </section>
+    <el-scrollbar >
+
 
     <div class="card">
       <ReSectionHead description="身份即登录凭据；主机可绑定多个身份，连接时按所选身份建连">
@@ -662,9 +636,8 @@ async function submitAdd(): Promise<void> {
           @reset="onFilterReset"
           style="width:100%"
         />
-        <span class="muted" style="margin-left:auto">{{ filteredList.length }} / {{ list.length }}</span>
       </div>
-
+  
       <ReTable
         :data="filteredList"
         :columns="columns"
@@ -680,7 +653,6 @@ async function submitAdd(): Promise<void> {
           refresh: true,
           columnSettings: true,
           tableSettings: true,
-          batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的身份？', handler: batchDelete },
         }"
         @selection-change="selection = $event"
       >
@@ -718,10 +690,12 @@ async function submitAdd(): Promise<void> {
         <ReButton icon="Delete" size="small" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
       </div>
     </div>
+      </el-scrollbar >
     </template>
-
+  
     <!-- 密钥库 tab -->
     <template v-else>
+     <el-scrollbar >
       <div class="card">
         <ReSectionHead description="SSH 密钥库：密钥名称 / 类型 / 公钥指纹；身份选「公钥登录」时引用密钥">
           <template #title>SSH 密钥库</template>
@@ -746,7 +720,6 @@ async function submitAdd(): Promise<void> {
             refresh: true,
             columnSettings: true,
             tableSettings: true,
-            batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的密钥？' },
           }"
         >
           <template #col-type="{ row }">
@@ -758,12 +731,20 @@ async function submitAdd(): Promise<void> {
           <template #col-actions="{ row }">
             <div class="op-cell">
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openKeyEdit(row)" />
-              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadKeyMaterial(row, 'public')" />
+              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadPublicKey(row)" />
+              <ReButton
+                icon="Key"
+                layout="square"
+                size="small"
+                title="私钥不出库"
+                disabled
+              />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeKey(row)" />
             </div>
           </template>
         </ReTable>
       </div>
+      </el-scrollbar >
     </template>
 
     <!-- 新增身份 -->

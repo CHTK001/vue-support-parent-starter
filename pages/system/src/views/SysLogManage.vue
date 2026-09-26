@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 操作日志管理页面 —— 查看系统操作日志，只读，不提供删除功能
  *
@@ -7,11 +7,15 @@
  */
 import { computed, ref, defineAsyncComponent } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, Search, Download } from "@element-plus/icons-vue";
+import { ArrowRight, Document, Download, Refresh, Search, Stamp } from "@element-plus/icons-vue";
 import { pageForSysLog, exportSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 /** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
 const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
+/** 耗时着色文本：绿 / 黄 / 红标识请求快慢 */
+const ReCostText = defineAsyncComponent(() => import("@repo/ui/re-cost-text").then((m) => m.default));
+/** 品牌图标（浏览器 / 操作系统）：走 Iconify logos 集合 */
+const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 
 const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogFrom?: string; sysLogStatus?: number }>({
   page: 1,
@@ -78,6 +82,59 @@ function prettyParams(raw: unknown): string {
   }
 }
 
+/** 请求方法标签配色 */
+function methodTagType(method?: unknown): "primary" | "success" | "warning" | "danger" {
+  const m = String(method ?? "").toUpperCase();
+  if (m === "POST") return "success";
+  if (m === "PUT" || m === "PATCH") return "warning";
+  if (m === "DELETE") return "danger";
+  return "primary";
+}
+
+/** 浏览器品牌图标（Iconify logos，未识别返回空） */
+function browserIcon(name?: unknown): string {
+  const n = String(name ?? "").toLowerCase();
+  if (!n || n === "unknown") return "";
+  if (n.includes("chrome") || n.includes("chromium")) return "logos:chrome";
+  if (n.includes("edge")) return "logos:microsoft-edge";
+  if (n.includes("firefox") || n.includes("gecko")) return "logos:firefox";
+  if (n.includes("safari")) return "logos:safari";
+  if (n.includes("opera")) return "logos:opera";
+  if (n.includes("brave")) return "logos:brave";
+  return "";
+}
+
+/** 操作系统品牌图标（Iconify logos，未识别返回空） */
+function osIcon(name?: unknown): string {
+  const n = String(name ?? "").toLowerCase();
+  if (!n || n === "unknown") return "";
+  if (n.includes("windows")) return "logos:microsoft-windows-icon";
+  if (n.includes("android")) return "logos:android-icon";
+  if (n.includes("linux") || n.includes("ubuntu")) return "logos:linux-tux";
+  if (
+    n.includes("mac") ||
+    n.includes("darwin") ||
+    n.includes("ios") ||
+    n.includes("iphone") ||
+    n.includes("ipad")
+  ) {
+    return "logos:apple";
+  }
+  return "";
+}
+
+/** IP：系统日志接口把 IP 放在 sysLogAddress（无 sysLogIp 字段） */
+const detailIp = computed(() => {
+  const v = currentLog.value?.sysLogIp || currentLog.value?.sysLogAddress;
+  return String(v ?? "").trim() || "-";
+});
+
+/** 归属地：为空或与 IP 相同时显示「未知」 */
+const detailAddress = computed(() => {
+  const addr = String(currentLog.value?.sysLogAddress ?? "").trim();
+  return addr && addr !== detailIp.value ? addr : "未知";
+});
+
 async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForSysLog({
     page,
@@ -96,10 +153,11 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogUsername", label: "操作人", width: 110 },
   { prop: "sysLogFrom", label: "模块", width: 120 },
   { prop: "sysLogContent", label: "操作内容", minWidth: 220, slot: "content" },
-  { prop: "sysLogUrl", label: "请求URL", minWidth: 180 },
+  { prop: "sysLogUrl", label: "请求地址", minWidth: 180 },
   { prop: "sysLogIp", label: "IP / 归属地", minWidth: 140, slot: "ip" },
   { prop: "sysLogBrowser", label: "浏览器/系统", minWidth: 140, slot: "info" },
-  { prop: "sysLogCost", label: "耗时(ms)", width: 90 },
+  { prop: "sysLogFingerprint", label: "指纹", width: 125, slot: "fingerprint" },
+  { prop: "sysLogCost", label: "耗时(ms)", width: 100, slot: "cost", align: "center" },
   { prop: "sysLogStatus", label: "状态", width: 80, slot: "status" },
   { prop: "createTime", label: "操作时间", width: 170 },
   { prop: "action", label: "操作", width: 80, slot: "action", fixed: "right", align: "center" },
@@ -124,8 +182,7 @@ const columns: ReTableColumn[] = [
         v-model:page-size="query.pageSize"
       >
         <template #toolbar>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
-          <ReButton layout="modern" type="success" icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
+          <ReButton type="success" text icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
         </template>
         <template #content="{ row }">
           <span class="log-content-link" @click="openDetail(row)">{{ row.sysLogContent ?? '-' }}</span>
@@ -144,36 +201,173 @@ const columns: ReTableColumn[] = [
             <span>{{ row.sysLogSystem ?? '--' }}</span>
           </div>
         </template>
+        <template #cost="{ row }">
+          <ReCostText :cost="row.sysLogCost == null ? null : Number(row.sysLogCost)" />
+        </template>
+        <template #fingerprint="{ row }">
+          <el-tooltip
+            v-if="row.sysLogFingerprint"
+            :content="row.sysLogFingerprint"
+            placement="top"
+            :show-after="200"
+          >
+            <span class="fp-cell">
+              <el-icon class="fp-cell__icon"><Stamp /></el-icon>
+              <span class="fp-cell__text">{{ String(row.sysLogFingerprint).slice(0, 8) }}</span>
+            </span>
+          </el-tooltip>
+          <span v-else class="fp-empty">-</span>
+        </template>
         <template #action="{ row }">
-          <ReButton layout="square" type="primary" @click="openDetail(row)">详情</ReButton>
+          <ReButton layout="square" type="primary" icon="View" @click="openDetail(row)">详情</ReButton>
         </template>
       </ReTable>
 
-    <!-- 日志详情弹窗 -->
-    <ReDialog v-model="detailVisible" title="操作日志详情" width="700" :footer-hidden="true">
-      <el-descriptions v-if="currentLog" :column="1" border>
-        <el-descriptions-item label="日志ID">{{ currentLog.sysLogId }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ currentLog.sysLogUsername ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="模块">{{ currentLog.sysLogFrom ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="操作内容">{{ currentLog.sysLogContent ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="请求URL">{{ currentLog.sysLogUrl ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="请求方法">{{ currentLog.sysLogMethod ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="请求参数">
-          <pre class="log-detail-params">{{ prettyParams(currentLog.sysLogParam) }}</pre>
-        </el-descriptions-item>
-        <el-descriptions-item label="IP地址">{{ currentLog.sysLogIp ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="归属地">{{ currentLog.sysLogAddress ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="浏览器">{{ currentLog.sysLogBrowser ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="操作系统">{{ currentLog.sysLogSystem ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="耗时">{{ currentLog.sysLogCost ?? '-' }} ms</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <ReTag :type="currentLog.sysLogStatus === 1 ? 'success' : 'danger'" size="small">
-            {{ currentLog.sysLogStatus === 1 ? '成功' : '失败' }}
+    <!-- 操作日志详情弹窗（与登录日志详情同款） -->
+    <ReDialog
+      v-model="detailVisible"
+      class="syslog-detail-dialog"
+      width="700px"
+      headless
+      :show-footer="false"
+      :footer-hidden="true"
+    >
+      <div v-if="currentLog" class="sl-detail">
+        <!-- 头部：圆形图标 + 标题 + 副标题 -->
+        <header class="sl-detail__header">
+          <span class="sl-detail__icon">
+            <el-icon :size="24"><Document /></el-icon>
+          </span>
+          <div class="sl-detail__heading">
+            <h3 class="sl-detail__title">操作日志详情</h3>
+            <p class="sl-detail__subtitle">操作人 {{ currentLog.sysLogUsername || '-' }} 的操作记录</p>
+          </div>
+        </header>
+
+        <!-- 状态 + 耗时 -->
+        <div class="sl-detail__summary">
+          <ReTag
+            round
+            effect="light"
+            size="large"
+            :type="currentLog.sysLogStatus === 1 ? 'success' : 'danger'"
+          >
+            {{ currentLog.sysLogStatus === 1 ? "操作成功" : "操作失败" }}
           </ReTag>
-        </el-descriptions-item>
-        <el-descriptions-item label="错误信息" v-if="currentLog.sysLogError">{{ currentLog.sysLogError }}</el-descriptions-item>
-        <el-descriptions-item label="操作时间">{{ currentLog.createTime ?? '-' }}</el-descriptions-item>
-      </el-descriptions>
+          <span
+            class="sl-detail__cost"
+            :class="{ 'sl-detail__cost--fail': currentLog.sysLogStatus === 0 }"
+          >
+            {{ currentLog.sysLogCost == null ? "-" : `${currentLog.sysLogCost}ms` }}
+          </span>
+        </div>
+
+        <div class="sl-detail__divider"></div>
+
+        <!-- 2×2 信息卡 -->
+        <div class="sl-detail__grid">
+          <div class="sl-detail__cell">
+            <span class="sl-detail__cell-label">
+              操作时间
+              <el-icon class="sl-detail__cell-arrow"><ArrowRight /></el-icon>
+            </span>
+            <span class="sl-detail__cell-value">
+              <span class="sl-detail__cell-text">{{ currentLog.createTime || '-' }}</span>
+            </span>
+          </div>
+          <div class="sl-detail__cell">
+            <span class="sl-detail__cell-label">
+              IP地址
+              <el-icon class="sl-detail__cell-arrow"><ArrowRight /></el-icon>
+            </span>
+            <span class="sl-detail__cell-value">
+              <span class="sl-detail__cell-text">{{ detailIp }}</span>
+            </span>
+          </div>
+          <div class="sl-detail__cell">
+            <span class="sl-detail__cell-label">
+              浏览器
+              <el-icon class="sl-detail__cell-arrow"><ArrowRight /></el-icon>
+            </span>
+            <span class="sl-detail__cell-value">
+              <ReIcon
+                v-if="browserIcon(currentLog.sysLogBrowser)"
+                :name="browserIcon(currentLog.sysLogBrowser)"
+                :size="18"
+                class="sl-detail__cell-icon"
+              />
+              <span class="sl-detail__cell-text">{{ currentLog.sysLogBrowser || '-' }}</span>
+            </span>
+          </div>
+          <div class="sl-detail__cell">
+            <span class="sl-detail__cell-label">
+              操作系统
+              <el-icon class="sl-detail__cell-arrow"><ArrowRight /></el-icon>
+            </span>
+            <span class="sl-detail__cell-value">
+              <ReIcon
+                v-if="osIcon(currentLog.sysLogSystem)"
+                :name="osIcon(currentLog.sysLogSystem)"
+                :size="18"
+                class="sl-detail__cell-icon"
+              />
+              <span class="sl-detail__cell-text">{{ currentLog.sysLogSystem || '-' }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- 模块 -->
+        <div class="sl-detail__block">
+          <span class="sl-detail__block-label">模块：</span>
+          <span class="sl-detail__block-value">{{ currentLog.sysLogFrom || '-' }}</span>
+          <el-icon class="sl-detail__block-chevron"><ArrowRight /></el-icon>
+        </div>
+
+        <!-- 操作内容 -->
+        <div class="sl-detail__block sl-detail__block--text">
+          <span class="sl-detail__block-label">操作内容</span>
+          <p class="sl-detail__text">{{ currentLog.sysLogContent || '-' }}</p>
+        </div>
+
+        <!-- 请求地址 -->
+        <div class="sl-detail__block">
+          <span class="sl-detail__block-label">请求地址：</span>
+          <ReTag
+            v-if="currentLog.sysLogMethod"
+            size="small"
+            effect="light"
+            :type="methodTagType(currentLog.sysLogMethod)"
+          >
+            {{ currentLog.sysLogMethod }}
+          </ReTag>
+          <span class="sl-detail__block-value">{{ currentLog.sysLogUrl || '-' }}</span>
+        </div>
+
+        <!-- 请求参数 -->
+        <div class="sl-detail__block sl-detail__block--text">
+          <span class="sl-detail__block-label">请求参数</span>
+          <pre class="sl-detail__pre">{{ prettyParams(currentLog.sysLogParam) }}</pre>
+        </div>
+
+        <!-- 浏览器指纹 -->
+        <div class="sl-detail__block">
+          <span class="sl-detail__block-label">浏览器指纹：</span>
+          <span class="sl-detail__block-value">{{ currentLog.sysLogFingerprint || '-' }}</span>
+          <el-icon class="sl-detail__block-chevron"><ArrowRight /></el-icon>
+        </div>
+
+        <!-- 错误信息 -->
+        <div v-if="currentLog.sysLogStatus === 0 && currentLog.sysLogError" class="sl-detail__fail">
+          <span class="sl-detail__fail-label">错误信息</span>
+          <span class="sl-detail__fail-text">{{ currentLog.sysLogError }}</span>
+        </div>
+
+        <!-- 底部 -->
+        <footer class="sl-detail__footer">
+          <span class="sl-detail__address">归属地：{{ detailAddress }}</span>
+          <ReButton class="sl-detail__close" @click="detailVisible = false">关闭</ReButton>
+        </footer>
+      </div>
     </ReDialog>
   </div>
 </template>
@@ -183,7 +377,7 @@ const columns: ReTableColumn[] = [
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
 .system-page__header {
@@ -203,16 +397,229 @@ const columns: ReTableColumn[] = [
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
-.log-detail-params {
+/* ==================== 操作日志详情弹窗 ==================== */
+.sl-detail {
+  padding: 22px 24px 20px;
+}
+
+.sl-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 44px; /* 给右上角关闭圆钮留位 */
+}
+
+.sl-detail__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-color-white);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+}
+
+.sl-detail__heading {
+  min-width: 0;
+}
+
+.sl-detail__title {
   margin: 0;
-  padding: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.sl-detail__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.sl-detail__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.sl-detail__cost {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--el-color-success);
+}
+
+.sl-detail__cost--fail {
+  color: var(--el-color-danger);
+}
+
+.sl-detail__divider {
+  height: 1px;
+  margin: 16px 0;
+  background: var(--el-border-color-lighter);
+}
+
+.sl-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sl-detail__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+}
+
+.sl-detail__cell-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+
+.sl-detail__cell-arrow {
+  font-size: 13px;
+  color: var(--el-text-color-placeholder);
+}
+
+.sl-detail__cell-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.sl-detail__cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-detail__cell-icon {
+  flex: none;
+}
+
+.sl-detail__block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-all;
+}
+
+.sl-detail__block--text {
+  display: block;
+}
+
+.sl-detail__block-label {
+  flex: none;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+
+.sl-detail__block-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-detail__block-chevron {
+  flex: none;
+  color: var(--el-text-color-placeholder);
+}
+
+.sl-detail__text {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  word-break: break-word;
+}
+
+.sl-detail__pre {
+  margin: 6px 0 0;
   max-height: 200px;
   overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.sl-detail__fail {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-danger-light-9);
+  font-size: 13px;
+}
+
+.sl-detail__fail-label {
+  flex: none;
+  color: var(--el-color-danger);
+}
+
+.sl-detail__fail-text {
+  color: var(--el-color-danger);
+  word-break: break-all;
+}
+
+.sl-detail__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.sl-detail__address {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.sl-detail__footer :deep(.sl-detail__close) {
+  height: 36px;
+  padding: 0 22px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .sl-detail__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .log-content-link {
@@ -223,4 +630,36 @@ const columns: ReTableColumn[] = [
     text-decoration: underline;
   }
 }
+
+.fp-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+
+  &__icon {
+    font-size: 14px;
+    color: var(--el-color-primary);
+  }
+
+  &__text {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+  }
+}
+
+.fp-empty {
+  color: var(--el-text-color-placeholder);
+}
 </style>
+
+<!-- 详情弹窗为 headless（teleport 到 body），弹窗外壳样式需非 scoped -->
+<style>
+.syslog-detail-dialog {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--el-dialog-border-radius, var(--el-radius-xl, 16px));
+}
+</style>
+

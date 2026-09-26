@@ -1,5 +1,6 @@
 <template>
-  <div class="re-stat" :class="[`re-stat--${size}`, { 'is-loading': loading }]">
+  <!-- re-surface 基类提供圆角/无边框/双层柔光/悬停上浮，与 ReStatCard 同一规格 -->
+  <div class="re-stat re-surface re-surface--hover" :class="[`re-stat--${size}`, { 'is-loading': loading }]">
     <div class="re-stat__header">
       <div class="re-stat__title">
         <span v-if="icon" class="re-stat__icon" :style="{ color: iconColor }">
@@ -45,6 +46,8 @@
 import type { Component } from "vue";
 import ReCountup from "../ReCountup/index.vue";
 import ReTrend from "../ReTrend";
+// 卡片视觉基线（库级共享，与 ReStatCard 同一规格）
+import "../shared/re-surface.css";
 
 interface Props {
   /** 标题 */
@@ -85,17 +88,11 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <style scoped>
+/* 卡片视觉（圆角/边框/投影/悬停）来自库级基线 components/shared/re-surface.css，
+   此处只保留本组件独有的排版与尺寸变体，不再各写一套边框+投影。 */
 .re-stat {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-  padding: 20px;
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.re-stat:hover {
-  border-color: var(--el-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* 内距按 size 变体覆写（基线默认 16px 18px） */
+  padding: var(--re-surface-padding);
 }
 
 .re-stat.is-loading {
@@ -114,7 +111,8 @@ withDefaults(defineProps<Props>(), {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--el-text-color-secondary);
 }
 
@@ -132,9 +130,10 @@ withDefaults(defineProps<Props>(), {
 
 .re-stat__value {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 800;
+  line-height: 1.1;
   color: var(--el-text-color-primary);
-  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .re-stat__trend {
@@ -143,11 +142,11 @@ withDefaults(defineProps<Props>(), {
 
 .re-stat__footer {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
 }
 
 .re-stat__description {
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
 }
 
 .re-stat--small {

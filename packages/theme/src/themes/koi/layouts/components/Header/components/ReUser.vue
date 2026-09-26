@@ -12,6 +12,7 @@
         <div class="user-avatar-ring" :style="{ padding: frameSpill(32) + 'px' }">
           <div class="user-avatar-frame">
             <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
+            <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(32)"></span>
             <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
           </div>
         </div>
@@ -22,6 +23,7 @@
         <div class="user-card-header">
           <div class="user-avatar-card-wrap" :style="{ padding: frameSpill(36) + 'px' }">
             <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
+            <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
             <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
           </div>
           <div class="user-info">
@@ -46,6 +48,10 @@
             <el-icon :size="15"><Lock /></el-icon>
             <span>锁屏</span>
           </div>
+          <div v-if="isLoggedIn" class="user-menu-item" @click="handleClearCache">
+            <el-icon :size="15"><RefreshRight /></el-icon>
+            <span>清除缓存</span>
+          </div>
         </div>
         <div class="user-card-footer">
           <el-button icon="SwitchButton" plain @click="handleCommand('logout')">
@@ -59,8 +65,15 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { User, Lock } from "@element-plus/icons-vue";
-import { clearSessionStorage, resolveUserDisplayInfo, getAccessToken } from "@repo/utils";
+import { ElMessage } from "element-plus";
+import { User, Lock, RefreshRight } from "@element-plus/icons-vue";
+import {
+  clearSessionStorage,
+  resolveUserDisplayInfo,
+  getAccessToken,
+  clearAuthCacheKeepToken,
+} from "@repo/utils";
+import { resetRouter, registerDynamicRoutes } from "@repo/pinia";
 import { LOGIN_URL, getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { useRouter } from "vue-router";
@@ -108,6 +121,7 @@ const {
   visible: avatarFrameVisible,
   layerStyle: avatarFrameStyle,
   spillPx: frameSpill,
+  defaultStyle: defaultAvatarFrame,
 } = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
@@ -131,11 +145,50 @@ const handleLayout = async () => {
   window.location.replace(baseUrl + loginPath);
 };
 
+/** 清除缓存中（防重复点击） */
+const clearingCache = ref(false);
+
+/**
+ * 清除本地缓存并重新拉取菜单 / 用户信息覆盖缓存（原地生效，不刷新页面）
+ *
+ * 流程：
+ *   1. clearAuthCacheKeepToken 清菜单 / 布局 / 用户信息缓存，但保留 token（无需重新登录）；
+ *   2. resetRouter 先用旧菜单表移除已注册的动态路由（否则新菜单重名会被跳过、无法真正生效）；
+ *   3. 重新查询菜单、当前用户信息：写入 store 并覆盖 storage 缓存（cache-aside 回写）；
+ *   4. registerDynamicRoutes 把新菜单原地注册回 layout，侧边栏 / 权限 / 面包屑即时生效；
+ *   5. 若当前页面已不在新菜单中，回首页，避免停留在已移除的路由上。
+ */
+const handleClearCache = async () => {
+  if (clearingCache.value) return;
+  clearingCache.value = true;
+  try {
+    // ① 删除缓存（保留 token）
+    clearAuthCacheKeepToken();
+    // ② 用旧菜单移除动态路由（必须在重新拉取菜单之前）
+    resetRouter();
+    // ③ 重新拉取菜单 / 用户信息并覆盖缓存
+    await authStore.listRouters();
+    await authStore.getLoginUserInfo(true);
+    // ④ 原地重建动态路由
+    registerDynamicRoutes(router, authStore.menuList, "layout");
+    // ⑤ 当前路由已被移除时回首页
+    const current = router.currentRoute.value;
+    if (current.name && !router.hasRoute(current.name)) {
+      await router.replace(getConfig().route.homePath || "/home");
+    }
+    ElMessage.success("缓存已清理，菜单已刷新");
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "缓存清理失败，请重试");
+  } finally {
+    clearingCache.value = false;
+  }
+};
+
 // 下拉折叠
 const handleCommand = (command: string | number) => {
   switch (command) {
     case "koiMine":
-      router.push("/system/personage");
+      router.push(getConfig().route.personagePath || "/personage");
       break;
     case "lock":
       window.dispatchEvent(new CustomEvent("lock:screen"));

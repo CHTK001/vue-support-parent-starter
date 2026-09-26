@@ -108,11 +108,11 @@ export const defaultAppConfig: AppConfig = {
     title: "应用",
     version: "0.7.0",
     systemCode: "system",
-    openAuth: false,
+    openAuth: true,
   },
   permission: {
-    superadmin: "superadmin",
-    admin: ["admin", "superadmin"],
+    superadmin: "SUPER_ADMIN",
+    admin: ["ADMIN", "SUPER_ADMIN"],
   },
   token: {
     refresh: false,
@@ -132,8 +132,12 @@ export const defaultAppConfig: AppConfig = {
   },
   menu: {
     collapseSingleChild: true,
+    // 单根炸开默认关闭：保持「系统管理」二级分组，不自动提升子菜单
+    flattenSingleRoot: false,
     // 菜单缺省图标：菜单未配置 icon 时兜底，避免图标位空白
     defaultIcon: DEFAULT_MENU_ICON,
+    // 折叠形态：false=mini 图标菜单条（默认）；true=整个菜单收缩为一个展开按钮（仅垂直布局）
+    collapseToButton: false,
   },
   upload: {
     enable: true,
@@ -150,6 +154,10 @@ export const defaultAppConfig: AppConfig = {
     menu: "/v2/user/menu",
     layout: "/v2/user/layout",
     upload: "/v2/file/upload",
+    smsSend: "/v2/sms/send",
+    smsLogin: "/v2/sms/login",
+    emailSend: "/v2/email/send",
+    emailLogin: "/v2/email/login",
   },
   env: {
     env: "dev",
@@ -190,6 +198,8 @@ export const defaultAppConfig: AppConfig = {
       "tabs",
       "layout",
       "user-config",
+      // 改名后的用户可调配置快照（user-config 只用于丢弃旧数据），同样按账号隔离
+      "user-config.v2",
       "global",
       "double-second-fixed",
       "weather-location",
@@ -227,7 +237,10 @@ export const defaultAppConfig: AppConfig = {
     otp: false,
     slider: false,
     brandName: "应用",
-    logoUrl: asset("/assets/images/logo/logo.svg"),
+    // 留空：Logo 组件改用 `import` 内置 logo（经 Vite 处理，内联/带 hash，保证可加载），
+    // 避免运行时字符串路径 /assets/images/logo/logo.svg 未被构建到 dist 而 404。
+    // 业务仍可在 app.yaml 配置 logoUrl 自定义覆盖。
+    logoUrl: "",
     avatarUrl: "",
     welcome: "欢迎登录",
     title: "应用",
@@ -251,7 +264,9 @@ export const defaultAppConfig: AppConfig = {
     whiteList: ["/login", "/403", "/404", "/500"],
     loginPath: "/login",
     homePath: "/home",
-    personagePath: "/system/personage",
+    // 与其它 route 路径一致：这是 router 路径，不含 vite base（base=/system 时浏览器地址是 /system/personage）。
+    // 写成 "/system/personage" 会注册出 /system/system/personage，直接访问或 F5 个人中心即命中 404 兜底。
+    personagePath: "/personage",
     notFoundPath: "/404",
     forbiddenPath: "/403",
     serverErrorPath: "/500",
@@ -302,6 +317,14 @@ export const defaultAppConfig: AppConfig = {
       danger: "#F56C6C",
       info: "#909399",
     },
+    // 业务能力开关：默认全部启用（保持"探测后台 → 未命中回落三方"的既有行为）。
+    // 后端确实没有该接口的应用，在 app.yaml 里写 false 即可彻底不发探测请求。
+    capabilities: {
+      weather: true,
+      location: true,
+      typhoon: true,
+      ipLookup: true,
+    },
     toolbar: {
       searchMenu: true,
       refresh: true,
@@ -321,6 +344,7 @@ export const defaultAppConfig: AppConfig = {
       tabIcon: true,
       logo: true,
       message: true,
+      announcement: true,
       weather: true,
       typhoon: true,
       collapse: true,

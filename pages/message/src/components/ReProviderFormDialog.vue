@@ -85,7 +85,7 @@ watch(
 /** 选择渠道后自动推导提供商类型 */
 function handleChannelChange() {
   const channel = model.value?.sysMessageProviderVender;
-  const type = channel ? CHANNEL_TYPE_MAP[channel] : undefined;
+  const type = channel ? CHANNEL_TYPE_MAP[channel.toLowerCase()] : undefined;
   if (type) {
     model.value!.sysMessageProviderType = type;
   }
@@ -97,12 +97,13 @@ async function loadChannels() {
   const list = res?.data ?? [];
   channels.value = list.map((c) => {
     const channel = c.channel ?? "";
+    const key = channel.toLowerCase();
     return {
       value: channel,
-      type: c.type ?? CHANNEL_TYPE_MAP[channel] ?? "OTHER",
+      type: c.type ?? CHANNEL_TYPE_MAP[key] ?? "OTHER",
       label: c.label
         ? `${c.label}（${channel}）`
-        : `${CHANNEL_LABEL_MAP[channel] ?? channel}（${channel}）`,
+        : `${CHANNEL_LABEL_MAP[key] ?? channel}（${channel}）`,
     };
   });
 }
@@ -210,6 +211,14 @@ onMounted(loadChannels);
       </el-form-item>
       <el-form-item label="SMTP 端口">
         <el-input-number v-model="model.sysMessageProviderSmtpPort" :min="1" :max="65535" />
+      </el-form-item>
+      <el-form-item label="SMTP 授权码">
+        <el-input
+          v-model="model.sysMessageProviderSmtpPassword"
+          type="password"
+          show-password
+          placeholder="邮箱三方客户端授权码，非登录密码"
+        />
       </el-form-item>
       <el-form-item label="SMTP 发件人">
         <el-input v-model="model.sysMessageProviderSmtpFrom" placeholder="发件人邮箱地址" />

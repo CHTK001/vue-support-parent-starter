@@ -1,341 +1,156 @@
 <template>
-  <div class="flex-1 overflow-hidden">
-    <div class="space-y-8">
-      <!-- 语言设置 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('common.language') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.language') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.languageDesc') }}</span>
-            </div>
-            <div class="shrink-0 w-52">
-              <el-select v-model="selectedLanguage" @change="handleLanguageChange" size="default">
-                <el-option label="简体中文" value="zh-CN" />
-                <el-option label="English" value="en-US" />
-              </el-select>
-            </div>
-          </div>
+  <div class="flex-1">
+    <!-- 语言设置 -->
+    <SettingsCard :title="t('common.language')">
+      <SettingsRow :label="t('settings.general.language')" :description="t('settings.general.languageDesc')" control-width="208px">
+        <el-select v-model="selectedLanguage" @change="handleLanguageChange">
+          <el-option label="简体中文" value="zh-CN" />
+          <el-option label="English" value="en-US" />
+        </el-select>
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 登录设置 -->
+    <SettingsCard :title="t('settings.general.login')">
+      <SettingsRow :label="t('settings.general.autoLoginMode')" :description="t('settings.general.autoLoginDesc')">
+        <el-switch v-model="settingsForm.autoLoginEnabled" />
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 工作目录 -->
+    <SettingsCard :title="t('settings.general.workspace')">
+      <SettingsRow :label="t('settings.general.workspaceBaseDir')" :description="t('settings.general.workspaceBaseDirDesc')" control-flex>
+        <div class="flex gap-2 w-full">
+          <el-input v-model="settingsForm.workspaceBaseDir" :placeholder="t('settings.general.workspaceBaseDirPlaceholder')" clearable />
+          <el-button @click="selectFolder" type="primary" plain>
+            {{ t('settings.general.selectFolder') }}
+          </el-button>
         </div>
-      </div>
+      </SettingsRow>
+    </SettingsCard>
 
-      <!-- 登录设置分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.general.login') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 免登录模式 -->
-          <div
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] last:border-b-0">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.autoLoginMode') }}</span>
-              <span
-                class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.autoLoginDesc') }}</span>
-            </div>
-            <el-switch v-model="settingsForm.autoLoginEnabled" size="large" />
-          </div>
+    <!-- Agent 设置 -->
+    <SettingsCard :title="t('settings.general.agent')">
+      <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')" control-width="128px">
+        <el-select v-model="settingsForm.maxToolIterations">
+          <el-option label="10" :value="10" />
+          <el-option label="50" :value="50" />
+          <el-option label="100" :value="100" />
+          <el-option label="200" :value="200" />
+          <el-option label="500" :value="500" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow :label="t('settings.general.llmRequestTimeout')" :description="t('settings.general.llmRequestTimeoutDesc')" control-width="144px">
+        <el-select v-model="settingsForm.llmRequestTimeoutMs">
+          <el-option label="30 秒" :value="30" />
+          <el-option label="60 秒" :value="60" />
+          <el-option label="120 秒" :value="120" />
+          <el-option label="300 秒" :value="300" />
+          <el-option label="600 秒" :value="600" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow :label="t('settings.general.llmIdleTimeout')" :description="t('settings.general.llmIdleTimeoutDesc')" control-width="144px">
+        <el-select v-model="settingsForm.llmIdleTimeoutMs">
+          <el-option label="10 秒" :value="10" />
+          <el-option label="30 秒" :value="30" />
+          <el-option label="60 秒" :value="60" />
+          <el-option label="120 秒" :value="120" />
+          <el-option label="300 秒" :value="300" />
+        </el-select>
+      </SettingsRow>
+    </SettingsCard>
 
-        </div>
-      </div>
+    <!-- 对话上下文 -->
+    <SettingsCard title="对话上下文">
+      <SettingsRow label="压缩触发类型" description="选择何时触发上下文压缩" control-width="208px">
+        <el-select v-model="settingsForm.chatCompressType">
+          <el-option label="按轮数触发" value="rounds" />
+          <el-option label="按上下文阈值触发" value="tokens" />
+          <el-option label="两者都触发" value="both" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow v-if="settingsForm.chatCompressType === 'rounds' || settingsForm.chatCompressType === 'both'"
+        label="压缩触发轮数" description="会话累计达到该轮数后自动压缩（默认 100 轮）" control-width="128px">
+        <el-select v-model="settingsForm.chatCompressTriggerRounds">
+          <el-option label="10 轮" :value="10" />
+          <el-option label="20 轮" :value="20" />
+          <el-option label="50 轮" :value="50" />
+          <el-option label="100 轮" :value="100" />
+          <el-option label="200 轮" :value="200" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow v-if="settingsForm.chatCompressType === 'tokens' || settingsForm.chatCompressType === 'both'"
+        label="上下文阈值" description="当上下文占用模型窗口的百分比超过此值时触发压缩（默认 80%）" control-width="128px">
+        <el-select v-model="settingsForm.chatCompressTokenThreshold">
+          <el-option label="50%" :value="50" />
+          <el-option label="60%" :value="60" />
+          <el-option label="70%" :value="70" />
+          <el-option label="80%" :value="80" />
+          <el-option label="90%" :value="90" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow label="压缩保留轮数" description="压缩后保留最近 N 轮原始对话（默认 6 轮）" control-width="128px">
+        <el-select v-model="settingsForm.chatCompressRetainRounds">
+          <el-option label="2 轮" :value="2" />
+          <el-option label="4 轮" :value="4" />
+          <el-option label="6 轮" :value="6" />
+          <el-option label="8 轮" :value="8" />
+          <el-option label="10 轮" :value="10" />
+        </el-select>
+      </SettingsRow>
+    </SettingsCard>
 
-      <!-- 工作目录分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.general.workspace') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 工作目录基路径 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.workspaceBaseDir') }}</span>
-              <span
-                class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.workspaceBaseDirDesc') }}</span>
-            </div>
-            <div class="flex gap-2 shrink-0 max-w-md w-full">
-              <el-input v-model="settingsForm.workspaceBaseDir" :placeholder="t('settings.general.workspaceBaseDirPlaceholder')" clearable />
-              <el-button @click="selectFolder" type="primary" plain>
-                {{ t('settings.general.selectFolder') }}
-              </el-button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 对话过程 -->
+    <SettingsCard title="对话过程">
+      <SettingsRow label="折叠回复过程" description="回复成功完成后，将最终正文前的过程文本、思考和工具调用收进活动详情。">
+        <el-switch v-model="settingsForm.collapseReplyProcess" />
+      </SettingsRow>
+      <SettingsRow label="耗时显示格式" description="控制会话流和回复结果里的执行耗时精度。" control-width="128px">
+        <el-select v-model="settingsForm.durationDisplayFormat">
+          <el-option label="整数秒" value="seconds" />
+          <el-option label="精确到毫秒" value="milliseconds" />
+          <el-option label="分秒格式" value="mmss" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow label="思考状态 Loader" description="选择思考状态文案左侧的加载动效。" control-width="160px">
+        <el-select v-model="settingsForm.thinkingLoaderStyle">
+          <el-option label="Matrix（默认）" value="matrix" />
+          <el-option label="Music" value="music" />
+          <el-option label="Bird" value="bird" />
+          <el-option label="Fish" value="fish" />
+          <el-option label="ASCII" value="ascii" />
+          <el-option label="Dots" value="dots" />
+        </el-select>
+      </SettingsRow>
+      <SettingsRow label="思考状态文案" description="同时自定义思考期间轮换显示的中文和英文文案。">
+        <el-button size="small" @click="openThinkingTextDialog">编辑文案</el-button>
+      </SettingsRow>
+    </SettingsCard>
 
-      <!-- Agent 设置分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.general.agent') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 最大工具调用轮次 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] last:border-b-0">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.maxToolIterations') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.maxToolIterationsDesc') }}</span>
-            </div>
-            <div class="shrink-0 w-32">
-              <el-select v-model="settingsForm.maxToolIterations" size="default">
-                <el-option label="10" :value="10" />
-                <el-option label="50" :value="50" />
-                <el-option label="100" :value="100" />
-                <el-option label="200" :value="200" />
-                <el-option label="500" :value="500" />
-              </el-select>
-            </div>
-          </div>
-          <!-- 请求超时 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] last:border-b-0">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.llmRequestTimeout') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.llmRequestTimeoutDesc') }}</span>
-            </div>
-            <div class="shrink-0 w-36">
-              <el-select v-model="settingsForm.llmRequestTimeoutMs" size="default">
-                <el-option label="30 秒" :value="30" />
-                <el-option label="60 秒" :value="60" />
-                <el-option label="120 秒" :value="120" />
-                <el-option label="300 秒" :value="300" />
-                <el-option label="600 秒" :value="600" />
-              </el-select>
-            </div>
-          </div>
-          <!-- 空闲超时 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.general.llmIdleTimeout') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.general.llmIdleTimeoutDesc') }}</span>
-            </div>
-            <div class="shrink-0 w-36">
-              <el-select v-model="settingsForm.llmIdleTimeoutMs" size="default">
-                <el-option label="10 秒" :value="10" />
-                <el-option label="30 秒" :value="30" />
-                <el-option label="60 秒" :value="60" />
-                <el-option label="120 秒" :value="120" />
-                <el-option label="300 秒" :value="300" />
-              </el-select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 对话上下文分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">对话上下文</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 压缩触发类型 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩触发类型</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">选择何时触发上下文压缩</span>
-            </div>
-            <div class="shrink-0 w-52">
-              <el-select v-model="settingsForm.chatCompressType" size="default">
-                <el-option label="按轮数触发" value="rounds" />
-                <el-option label="按上下文阈值触发" value="tokens" />
-                <el-option label="两者都触发" value="both" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 压缩触发轮数（轮数模式） -->
-          <div v-if="settingsForm.chatCompressType === 'rounds' || settingsForm.chatCompressType === 'both'" class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩触发轮数</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">会话累计达到该轮数后自动压缩（默认 100 轮）</span>
-            </div>
-            <div class="shrink-0 w-32">
-              <el-select v-model="settingsForm.chatCompressTriggerRounds" size="default">
-                <el-option label="10 轮" :value="10" />
-                <el-option label="20 轮" :value="20" />
-                <el-option label="50 轮" :value="50" />
-                <el-option label="100 轮" :value="100" />
-                <el-option label="200 轮" :value="200" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 上下文阈值（tokens 模式） -->
-          <div v-if="settingsForm.chatCompressType === 'tokens' || settingsForm.chatCompressType === 'both'" class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">上下文阈值</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">当上下文占用模型窗口的百分比超过此值时触发压缩（默认 80%）</span>
-            </div>
-            <div class="shrink-0 w-32">
-              <el-select v-model="settingsForm.chatCompressTokenThreshold" size="default">
-                <el-option label="50%" :value="50" />
-                <el-option label="60%" :value="60" />
-                <el-option label="70%" :value="70" />
-                <el-option label="80%" :value="80" />
-                <el-option label="90%" :value="90" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 压缩保留轮数 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">压缩保留轮数</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">压缩后保留最近 N 轮原始对话（默认 6 轮）</span>
-            </div>
-            <div class="shrink-0 w-32">
-              <el-select v-model="settingsForm.chatCompressRetainRounds" size="default">
-                <el-option label="2 轮" :value="2" />
-                <el-option label="4 轮" :value="4" />
-                <el-option label="6 轮" :value="6" />
-                <el-option label="8 轮" :value="8" />
-                <el-option label="10 轮" :value="10" />
-              </el-select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 对话过程设置分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">对话过程</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 折叠回复过程 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex items-start gap-3 flex-1">
-              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
-                <el-icon size="18"><Document16Regular /></el-icon>
-              </div>
-              <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">折叠回复过程</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">回复成功完成后，将最终正文前的过程文本、思考和工具调用收进活动详情。</span>
-              </div>
-            </div>
-            <div class="shrink-0">
-              <el-switch v-model="settingsForm.collapseReplyProcess" />
-            </div>
-          </div>
-
-          <!-- 耗时显示格式 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex items-start gap-3 flex-1">
-              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
-                <el-icon size="18"><Clock16Regular /></el-icon>
-              </div>
-              <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">耗时显示格式</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">控制会话流和回复结果里的执行耗时精度。</span>
-              </div>
-            </div>
-            <div class="shrink-0 w-32">
-              <el-select v-model="settingsForm.durationDisplayFormat" size="default">
-                <el-option label="整数秒" value="seconds" />
-                <el-option label="精确到毫秒" value="milliseconds" />
-                <el-option label="分秒格式" value="mmss" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 思考状态 Loader -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex items-start gap-3 flex-1">
-              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
-                <el-icon size="18"><Sparkle16Regular /></el-icon>
-              </div>
-              <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">思考状态 Loader</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">选择思考状态文案左侧的加载动效。</span>
-              </div>
-            </div>
-            <div class="shrink-0 w-40">
-              <el-select v-model="settingsForm.thinkingLoaderStyle" size="default">
-                <el-option label="Matrix（默认）" value="matrix" />
-                <el-option label="Music" value="music" />
-                <el-option label="Bird" value="bird" />
-                <el-option label="Fish" value="fish" />
-                <el-option label="ASCII" value="ascii" />
-                <el-option label="Dots" value="dots" />
-              </el-select>
-            </div>
-          </div>
-
-          <!-- 思考状态文案 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex items-start gap-3 flex-1">
-              <div class="w-5 h-5 mt-0.5 flex items-center justify-center text-gray-400">
-                <el-icon size="18"><TextBulletListSquare16Regular /></el-icon>
-              </div>
-              <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">思考状态文案</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">同时自定义思考期间轮换显示的中文和英文文案。</span>
-              </div>
-            </div>
-            <div class="shrink-0">
-              <el-button size="small" @click="openThinkingTextDialog">编辑文案</el-button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 菜单显示控制分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">菜单显示控制</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 显示角色管理 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示角色管理</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示角色管理入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showCharactersMenu" size="large" />
-          </div>
-
-          <!-- 显示机器人管理 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示机器人管理</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示机器人管理入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showBotsMenu" size="large" />
-          </div>
-
-          <!-- 显示知识库 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示知识库</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示知识库入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showKnowledgeBaseMenu" size="large" />
-          </div>
-
-          <!-- 显示插件市场 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示插件市场</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示插件市场入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showPluginsMenu" size="large" />
-          </div>
-
-          <!-- 显示模型管理 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示模型管理</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示模型管理入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showModelsMenu" size="large" />
-          </div>
-
-          <!-- 显示用量管理 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示用量管理</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示用量管理入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showUsageMenu" size="large" />
-          </div>
-
-          <!-- 显示定时任务 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示定时任务</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">在左侧菜单显示定时任务入口</span>
-            </div>
-            <el-switch v-model="settingsForm.showSchedulerMenu" size="large" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 菜单显示控制 -->
+    <SettingsCard title="菜单显示控制">
+      <SettingsRow label="显示角色管理" description="在左侧菜单显示角色管理入口">
+        <el-switch v-model="settingsForm.showCharactersMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示机器人管理" description="在左侧菜单显示机器人管理入口">
+        <el-switch v-model="settingsForm.showBotsMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示知识库" description="在左侧菜单显示知识库入口">
+        <el-switch v-model="settingsForm.showKnowledgeBaseMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示插件市场" description="在左侧菜单显示插件市场入口">
+        <el-switch v-model="settingsForm.showPluginsMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示模型管理" description="在左侧菜单显示模型管理入口">
+        <el-switch v-model="settingsForm.showModelsMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示用量管理" description="在左侧菜单显示用量管理入口">
+        <el-switch v-model="settingsForm.showUsageMenu" />
+      </SettingsRow>
+      <SettingsRow label="显示定时任务" description="在左侧菜单显示定时任务入口">
+        <el-switch v-model="settingsForm.showSchedulerMenu" />
+      </SettingsRow>
+    </SettingsCard>
   </div>
 </template>
 
@@ -348,6 +163,8 @@ import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import { useAuthStore } from '@/stores/auth'
 import { useLanguage } from '@/composables/useLanguage'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
 
 const authStore = useAuthStore()
 const { notify } = usePopup()
@@ -401,11 +218,11 @@ const debouncedSave = useDebounceFn(async () => {
 }, 300)
 
 // 监听设置变化自动保存
-watch(() => ({ 
-  autoLoginEnabled: settingsForm.autoLoginEnabled, 
-  workspaceBaseDir: settingsForm.workspaceBaseDir, 
-  maxToolIterations: settingsForm.maxToolIterations, 
-  llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs, 
+watch(() => ({
+  autoLoginEnabled: settingsForm.autoLoginEnabled,
+  workspaceBaseDir: settingsForm.workspaceBaseDir,
+  maxToolIterations: settingsForm.maxToolIterations,
+  llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs,
   llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs,
   chatCompressType: settingsForm.chatCompressType,
   chatCompressTriggerRounds: settingsForm.chatCompressTriggerRounds,
@@ -445,7 +262,7 @@ const loadSettings = async () => {
     settingsForm.chatCompressTriggerRounds = Number(data.chatCompressTriggerRounds) || 100
     settingsForm.chatCompressTokenThreshold = Number(data.chatCompressTokenThreshold) || 80
     settingsForm.chatCompressRetainRounds = Number(data.chatCompressRetainRounds) || 6
-    
+
     // 从 localStorage 加载菜单显示配置
     const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
     settingsForm.showCharactersMenu = menuSettings.showCharactersMenu !== false
@@ -502,7 +319,7 @@ const handleSave = async () => {
       showSchedulerMenu: settingsForm.showSchedulerMenu,
     }
     localStorage.setItem('menuDisplaySettings', JSON.stringify(menuSettings))
-    
+
     // 验证工作目录基路径
     const path = settingsForm.workspaceBaseDir.trim()
     if (path) {

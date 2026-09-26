@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // ── 页面 (CharactersPage.vue) ──
   page: {
     title: 'Assistants',
@@ -26,6 +26,7 @@
   list: {
     create: 'New Assistant',
     import: 'Import',
+    market: 'Market',
     docs: 'Documentation',
     all: 'All',
     newGroup: 'New Group',
@@ -92,6 +93,10 @@
     targetHint: 'Retain up to this ratio of the maximum window after compression',
     summaryMode: 'Summary Mode',
     summaryHint: 'Choose the summary generation method: Off, Fast, or Memory Sync',
+    capThink: 'Deep Thinking by default',
+    capThinkHint: 'Auto-enable deep thinking when starting a chat with this character',
+    capSearch: 'Online Search by default',
+    capSearchHint: 'Auto-enable web search when starting a chat with this character',
     summaryPlaceholder: 'Select summary mode',
     summaryDisabled: 'Summary Off',
     summaryDisabledDesc: 'Summary Off - only trims tool results without generating semantic summaries',

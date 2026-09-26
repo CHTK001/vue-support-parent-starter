@@ -42,6 +42,107 @@ export const fetchMonitors = () =>
   http().get("/ms/monitor").then(r => unwrap<MonitorItem[]>(r));
 
 /**
+ * 新增/更新监控资产请求体（/ms/monitor）
+ * @author CH
+ * @since 4.0.0
+ */
+export type MonitorPayload = {
+  monitorName: string;
+  monitorHost: string;
+  monitorPort: number;
+  serviceType: string;
+  serverType?: string;
+  monitorGroup?: string;
+  monitorDescription?: string;
+  monitorEnabled?: number;
+};
+
+/**
+ * 监控采集任务（/ms/monitor/task）
+ * @author CH
+ * @since 4.0.0
+ */
+export interface MonitorTaskItem {
+  id: number;
+  monitorId: number;
+  monitorTaskName: string;
+  serviceType: string;
+  /** 采集方式: LOCAL / TERMINAL / HTTP / PROMETHEUS */
+  provider: string;
+  /** 采集参数 JSON 串 */
+  collectConfig: string;
+  monitorTaskCron: string;
+  monitorTaskTimeout?: number;
+  monitorTaskEnabled: number;
+  lastRunTime?: string;
+}
+
+/**
+ * 新增/更新采集任务请求体
+ * @author CH
+ * @since 4.0.0
+ */
+export type MonitorTaskPayload = {
+  monitorId: number;
+  monitorTaskName: string;
+  serviceType: string;
+  provider: string;
+  collectConfig: string;
+  monitorTaskCron: string;
+  monitorTaskTimeout?: number;
+  monitorTaskEnabled: number;
+  monitorTaskRemark?: string;
+};
+
+/**
+ * 保存监控资产（id 为 null 时创建，否则更新）
+ * @param id 资产 ID，null 表示新建
+ * @param d 资产数据
+ * @returns 保存后的资产
+ */
+export const saveMonitor = (id: number | null, d: MonitorPayload) =>
+  id != null
+    ? http().put(`/ms/monitor/${id}`).data(d).then(r => unwrap<MonitorItem>(r))
+    : http().post("/ms/monitor").data(d).then(r => unwrap<MonitorItem>(r));
+
+/**
+ * 删除监控资产
+ * @param id 资产 ID
+ * @returns 删除结果
+ */
+export const delMonitor = (id: number) =>
+  http().delete(`/ms/monitor/${id}`).then(r => unwrap<boolean>(r));
+
+/**
+ * 查询采集任务列表
+ * @param monitorId 资产 ID（可选，不传则返回全部启用任务）
+ * @returns 任务列表
+ */
+export const fetchMonitorTasks = (monitorId?: number) =>
+  http()
+    .get(`/ms/monitor/task${monitorId != null ? `?monitorId=${monitorId}` : ""}`)
+    .then(r => unwrap<MonitorTaskItem[]>(r));
+
+/**
+ * 保存采集任务（id 为 null 时创建，否则更新）
+ * @param id 任务 ID，null 表示新建
+ * @param d 任务数据
+ * @returns 保存后的任务
+ */
+export const saveMonitorTask = (id: number | null, d: MonitorTaskPayload) =>
+  id != null
+    ? http().put(`/ms/monitor/task/${id}`).data(d).then(r => unwrap<MonitorTaskItem>(r))
+    : http().post("/ms/monitor/task").data(d).then(r => unwrap<MonitorTaskItem>(r));
+
+/**
+ * 手动触发一次采集（后端异步执行，返回仅表示已受理）
+ * @param taskId 任务 ID
+ * @returns 是否受理
+ */
+export const triggerCollect = (taskId: number) =>
+  http().post(`/ms/monitor/task/${taskId}/trigger`).then(r => unwrap<boolean>(r));
+
+/**
  * 获取全部告警事件列表
  * @returns 告警事件列表
  */
@@ -173,6 +274,51 @@ export const testAlarmRule = (ruleId: number, metricName?: string, value?: numbe
     .get(`/ms/monitor/alarm/rule/${ruleId}/test?metricName=${encodeURIComponent(metricName ?? "")}&value=${value ?? 0}`)
     .then(r => unwrap<boolean>(r));
 
+/**
+ * 告警维护窗口（静默时段）
+ *
+ * 后端在产生告警事件前会按「启用 + 级别 + 星期 + 每日时段」匹配窗口，命中则跳过告警。
+ * startTime/endTime 为 HH:mm，weekdays 为逗号分隔的星期数字（周日=0，留空表示每天）。
+ * @author CH
+ * @since 4.0.0
+ */
+export interface AlarmMaintenanceWindow {
+  id: number;
+  policyId: number | null;
+  windowName: string;
+  msMonitorAlarmMaintenanceWindowLevel: string | null;
+  startTime: string;
+  endTime: string;
+  weekdays: string | null;
+  msMonitorAlarmMaintenanceWindowEnabled: number;
+  remark: string | null;
+}
+
+/**
+ * 获取维护窗口列表
+ * @param policyId 策略 ID（可选，不传则查全部）
+ * @returns 维护窗口列表
+ */
+export const fetchAlarmWindows = (policyId?: number) =>
+  http().get("/ms/monitor/alarm/maintenance-window").query({ policyId }).then(r => unwrap<AlarmMaintenanceWindow[]>(r));
+/**
+ * 保存维护窗口（id 为 null 时创建，否则更新）
+ * @param id 窗口 ID，null 表示新建
+ * @param d 窗口数据
+ * @returns 保存后的窗口
+ */
+export const saveAlarmWindow = (id: number | null, d: Partial<AlarmMaintenanceWindow>) =>
+  id != null
+    ? http().put(`/ms/monitor/alarm/maintenance-window/${id}`).data(d).then(r => unwrap<AlarmMaintenanceWindow>(r))
+    : http().post("/ms/monitor/alarm/maintenance-window").data(d).then(r => unwrap<AlarmMaintenanceWindow>(r));
+/**
+ * 删除维护窗口
+ * @param id 窗口 ID
+ * @returns 删除结果
+ */
+export const delAlarmWindow = (id: number) =>
+  http().delete(`/ms/monitor/alarm/maintenance-window/${id}`).then(r => unwrap<boolean>(r));
+
 // ==================== 系统 Redis 信息（当前应用自身连接的 Redis，与监控资产/Agent 无关） ====================
 
 /**
@@ -256,7 +402,41 @@ export interface RedisScanResult {
 }
 
 /**
+ * Redis 哈希字段 / 流消息字段
+ * @author CH
+ * @since 4.0.0
+ */
+export type RedisHashField = {
+  field: string;
+  value: string;
+};
+
+/**
+ * Redis 有序集合成员
+ * @author CH
+ * @since 4.0.0
+ */
+export type RedisMemberScore = {
+  member: string;
+  score: number;
+};
+
+/**
+ * Redis 流消息
+ * @author CH
+ * @since 4.0.0
+ */
+export interface RedisStreamEntry {
+  id: string;
+  fields: RedisHashField[];
+}
+
+/**
  * Redis Key 详细信息
+ *
+ * <p>value 随 type 变化：STRING 为字符串，LIST/SET 为数组，HASH 为字段值对象，
+ * ZSET 为成员分值数组，STREAM 为流消息数组。</p>
+ *
  * @author CH
  * @since 4.0.0
  */
@@ -264,7 +444,8 @@ export interface RedisKeyDetail {
   key: string;
   type: string;
   ttl: number;
-  value: string | null;
+  value: string | string[] | RedisHashField[] | RedisMemberScore[] | RedisStreamEntry[] | Record<string, string> | null;
+  size: number | null;
 }
 
 /**
@@ -276,7 +457,7 @@ export interface RedisKeyDetail {
  */
 export const scanSystemRedisKeys = (pattern = "*", cursor = "0", count = 100) =>
   http()
-    .get("/ms/monitor/system/redis/keys", { params: { pattern, cursor, count } })
+    .get("/ms/monitor/system/redis/keys").query({ pattern, cursor, count })
     .then(r => unwrap<RedisScanResult>(r));
 
 /**
@@ -308,7 +489,7 @@ export const getSystemRedisKeyDetail = (key: string) =>
  */
 export const setSystemRedisKey = (key: string, value: string, ttl = -1) =>
   http()
-    .put(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}`, value, { params: { ttl } })
+    .put(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}`).data({ value }).query({ ttl })
     .then(r => unwrap<boolean>(r));
 
 /**
@@ -318,7 +499,7 @@ export const setSystemRedisKey = (key: string, value: string, ttl = -1) =>
  */
 export const deleteSystemRedisKeys = (keys: string[]) =>
   http()
-    .delete("/ms/monitor/system/redis/keys", { data: keys })
+    .delete("/ms/monitor/system/redis/keys").data(keys)
     .then(r => unwrap<number>(r));
 
 /**
@@ -329,8 +510,121 @@ export const deleteSystemRedisKeys = (keys: string[]) =>
  */
 export const expireSystemRedisKey = (key: string, ttl: number) =>
   http()
-    .post(`/ms/monitor/system/redis/expire/${encodeURIComponent(key)}`, null, { params: { ttl } })
+    .post(`/ms/monitor/system/redis/expire/${encodeURIComponent(key)}`).query({ ttl })
     .then(r => unwrap<boolean>(r));
+
+// ==================== 集合类型元素级操作（HASH/LIST/SET/ZSET/STREAM） ====================
+
+/**
+ * 写入哈希字段（字段已存在则覆盖）
+ * @param key 键名
+ * @param field 字段
+ * @returns 是否新增字段
+ */
+export const putRedisHashField = (key: string, field: RedisHashField) =>
+  http()
+    .post(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/hash`).data(field)
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除哈希字段
+ * @param key 键名
+ * @param field 字段名
+ * @returns 删除数量
+ */
+export const removeRedisHashField = (key: string, field: string) =>
+  http()
+    .delete(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/hash`).query({ field })
+    .then(r => unwrap<number>(r));
+
+/**
+ * 追加列表元素
+ * @param key 键名
+ * @param value 元素值
+ * @returns 追加后的列表长度
+ */
+export const pushRedisListItem = (key: string, value: string) =>
+  http()
+    .post(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/list`).data({ value })
+    .then(r => unwrap<number>(r));
+
+/**
+ * 按下标覆盖列表元素
+ * @param key 键名
+ * @param index 下标
+ * @param value 元素值
+ * @returns 是否成功
+ */
+export const setRedisListItem = (key: string, index: number, value: string) =>
+  http()
+    .put(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/list`).data({ index, value })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 按下标删除列表元素
+ * @param key 键名
+ * @param index 下标
+ * @returns 删除数量
+ */
+export const removeRedisListItem = (key: string, index: number) =>
+  http()
+    .delete(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/list`).query({ index })
+    .then(r => unwrap<number>(r));
+
+/**
+ * 添加集合成员
+ * @param key 键名
+ * @param value 成员值
+ * @returns 是否新增成员
+ */
+export const addRedisSetMember = (key: string, value: string) =>
+  http()
+    .post(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/set`).data({ value })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除集合成员
+ * @param key 键名
+ * @param value 成员值
+ * @returns 删除数量
+ */
+export const removeRedisSetMember = (key: string, value: string) =>
+  http()
+    .delete(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/set`).query({ value })
+    .then(r => unwrap<number>(r));
+
+/**
+ * 写入有序集合成员
+ * @param key 键名
+ * @param member 成员与分值
+ * @returns 是否新增成员
+ */
+export const addRedisZsetMember = (key: string, member: RedisMemberScore) =>
+  http()
+    .post(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/zset`).data(member)
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除有序集合成员
+ * @param key 键名
+ * @param member 成员值
+ * @returns 删除数量
+ */
+export const removeRedisZsetMember = (key: string, member: string) =>
+  http()
+    .delete(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/zset`).query({ member })
+    .then(r => unwrap<number>(r));
+
+/**
+ * 追加流消息（消息 ID 由 Redis 生成）
+ * @param key 键名
+ * @param fields 字段列表
+ * @returns 新消息 ID
+ */
+export const appendRedisStreamEntry = (key: string, fields: RedisHashField[]) =>
+  http()
+    .post(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}/stream`).data({ fields })
+    .then(r => unwrap<string>(r));
 
 // ==================== AI 智能分析 ====================
 
@@ -381,110 +675,29 @@ export const aiAnalyze = (prompt: string, options?: { systemPrompt?: string; mod
 
 /**
  * 主机指标智能分析
- * @param hostId 主机 ID
- * @param options 可选配置（metrics / dimension）
+ * @param hostId 主机 ID（ms_server_host.id）
+ * @param options 可选配置（dimension 分析重点 / systemPrompt / model）
  * @returns AI 分析结果
  */
-export const aiAnalyzeHost = (hostId: number, options?: { metrics?: unknown; dimension?: string }) =>
+export const aiAnalyzeHost = (
+  hostId: number,
+  options?: { dimension?: string; systemPrompt?: string; model?: string }
+) =>
   http()
     .post(`/ms/monitor/ai/host/${hostId}/analyze`)
-    .data({ metrics: options?.metrics, dimension: options?.dimension })
+    .data({
+      dimension: options?.dimension,
+      systemPrompt: options?.systemPrompt,
+      model: options?.model,
+    })
+    // 大模型同步回包可能超过默认 10s，超时后前端会误报"分析失败"
+    .timeout(120_000)
     .then(r => unwrap<AiAnalyzeResult>(r));
 
 // ==================== 数据源管理（jdbc/redis/influxdb/neo4j/nacos/zookeeper） ====================
-
-/**
- * 数据源信息
- * @author CH
- * @since 4.0.0
- */
-export interface DataSourceInfo {
-  id: number;
-  name: string;
-  type: string;
-  host?: string;
-  port?: number;
-  username?: string;
-  password?: string;
-  database?: string;
-  url?: string;
-  remark?: string;
-  config?: Record<string, unknown>;
-  createTime?: string;
-  updateTime?: string;
-  [key: string]: unknown;
-}
-
-/**
- * 获取所有数据源
- * @returns 数据源列表
- */
-export const fetchDataSources = () =>
-  http()
-    .get("/ms/monitor/datasource/list")
-    .then(r => unwrap<DataSourceInfo[]>(r));
-
-/**
- * 获取数据源详情
- * @param id 数据源 ID
- * @returns 数据源信息
- */
-export const fetchDataSource = (id: number) =>
-  http()
-    .get(`/ms/monitor/datasource/${id}`)
-    .then(r => unwrap<DataSourceInfo>(r));
-
-/**
- * 创建数据源
- * @param data 数据源定义
- * @returns 创建后的数据源
- */
-export const createDataSource = (data: Partial<DataSourceInfo>) =>
-  http()
-    .post("/ms/monitor/datasource")
-    .data(data)
-    .then(r => unwrap<DataSourceInfo>(r));
-
-/**
- * 更新数据源
- * @param id 数据源 ID
- * @param data 数据源定义
- * @returns 更新后的数据源
- */
-export const updateDataSource = (id: number, data: Partial<DataSourceInfo>) =>
-  http()
-    .put(`/ms/monitor/datasource/${id}`)
-    .data(data)
-    .then(r => unwrap<DataSourceInfo>(r));
-
-/**
- * 删除数据源
- * @param id 数据源 ID
- * @returns 删除结果
- */
-export const deleteDataSource = (id: number) =>
-  http()
-    .delete(`/ms/monitor/datasource/${id}`)
-    .then(r => unwrap<boolean>(r));
-
-/**
- * 测试数据源连接
- * @param id 数据源 ID
- * @returns 连接测试结果
- */
-export const testDataSource = (id: number) =>
-  http()
-    .post(`/ms/monitor/datasource/${id}/test`)
-    .then(r => unwrap<{ success: boolean; message: string; type: string }>(r));
-
-/**
- * 获取支持的数据源类型列表
- * @returns 数据源类型列表
- */
-export const fetchDataSourceTypes = () =>
-  http()
-    .get("/ms/monitor/datasource/types")
-    .then(r => unwrap<string[]>(r));
+// 数据源能力已抽为共享包 @pages/datasource（页面 + API + 类型），
+// 后端为独立模块 spring-support-datasource-hub-starter。
+// 此处不再重复实现 /ms/datasource/* 端点，请从 "@pages/datasource/src/api" 引入。
 
 // ==================== 数据库 web 管理器（使用默认主 datasource） ====================
 
@@ -514,6 +727,18 @@ export interface DbColumnInfo {
   position?: number;
   isPrimaryKey?: boolean;
 }
+
+/**
+ * 新建数据库请求
+ * @author CH
+ * @since 4.0.0
+ */
+export type DbDatabasePayload = {
+  name: string;
+  datasourceId?: number;
+  charset?: string;
+  collation?: string;
+};
 
 /**
  * 表数据结果
@@ -549,7 +774,9 @@ export interface DbQueryResult {
  */
 export const fetchDbDatabases = (datasourceId?: number) =>
   http()
-    .get("/ms/monitor/db/databases" + (datasourceId ? `?datasourceId=${datasourceId}` : ""))
+    .get("/ms/monitor/db/databases")
+    .noToast(true)
+    .query({ datasourceId })
     .then(r => unwrap<string[]>(r));
 
 /**
@@ -560,7 +787,9 @@ export const fetchDbDatabases = (datasourceId?: number) =>
  */
 export const fetchDbTables = (datasourceId?: number, database?: string) =>
   http()
-    .get("/ms/monitor/db/tables" + (datasourceId || database ? `?${datasourceId ? `datasourceId=${datasourceId}` : ""}${database ? `&database=${encodeURIComponent(database)}` : ""}` : ""))
+    .get("/ms/monitor/db/tables")
+    .noToast(true)
+    .query({ datasourceId, database })
     .then(r => unwrap<DbTableInfo[]>(r));
 
 /**
@@ -572,7 +801,9 @@ export const fetchDbTables = (datasourceId?: number, database?: string) =>
  */
 export const fetchTableColumns = (tableName: string, datasourceId?: number, database?: string) =>
   http()
-    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/columns` + (datasourceId || database ? `?${datasourceId ? `datasourceId=${datasourceId}` : ""}${database ? `&database=${encodeURIComponent(database)}` : ""}` : ""))
+    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/columns`)
+    .noToast(true)
+    .query({ datasourceId, database })
     .then(r => unwrap<DbColumnInfo[]>(r));
 
 /**
@@ -584,34 +815,115 @@ export const fetchTableColumns = (tableName: string, datasourceId?: number, data
  * @param orderDir 排序方向（可选）
  * @param datasourceId 数据源 ID（可选）
  * @param database 数据库名（可选）
+ * @param countTotal 是否统计总数（false 跳过大表 COUNT，total 返回 -1 表示未知）
+ * @param where WHERE 过滤条件（Navicat 式自由条件，可选）
  * @returns 表数据分页结果
  */
-export const fetchTableData = (tableName: string, page = 1, pageSize = 50, orderBy?: string, orderDir?: string, datasourceId?: number, database?: string) =>
+export const fetchTableData = (tableName: string, page = 1, pageSize = 50, orderBy?: string, orderDir?: string, datasourceId?: number, database?: string, countTotal = true, where?: string) =>
   http()
-    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/data?page=${page}&pageSize=${pageSize}` + (orderBy ? `&orderBy=${encodeURIComponent(orderBy)}&orderDir=${orderDir || "ASC"}` : "") + (datasourceId ? `&datasourceId=${datasourceId}` : "") + (database ? `&database=${encodeURIComponent(database)}` : ""))
+    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/data`)
+    .noToast(true)
+    .query({
+      page,
+      pageSize,
+      orderBy,
+      orderDir: orderBy ? orderDir || "ASC" : undefined,
+      datasourceId,
+      database,
+      count: countTotal,
+      where: where?.trim() ? where.trim() : undefined,
+    })
     .then(r => unwrap<DbTableDataResult>(r));
+
+/**
+ * 获取表的建表语句（DDL）
+ * @param tableName 表名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 数据库名（可选）
+ * @returns 建表语句
+ */
+export const fetchTableDdl = (tableName: string, datasourceId?: number, database?: string) =>
+  http()
+    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/ddl`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<string>(r));
+
+/** 外键信息 */
+export interface DbForeignKeyInfo {
+  fkName?: string;
+  columnName?: string;
+  refTable?: string;
+  refColumn?: string;
+  updateRule?: number;
+  deleteRule?: number;
+}
+
+/**
+ * 获取表的外键列表
+ * @param tableName 表名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 数据库名（可选）
+ * @returns 外键列表
+ */
+export const fetchForeignKeys = (tableName: string, datasourceId?: number, database?: string) =>
+  http()
+    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/foreign-keys`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<DbForeignKeyInfo[]>(r));
 
 /**
  * 执行 SQL（支持 SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER/DROP）
  * @param sql SQL 语句
  * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选，为空用连接默认库）
  * @returns SQL 执行结果
  */
-export const executeDbSql = (sql: string, datasourceId?: number) =>
+export const executeDbSql = (sql: string, datasourceId?: number, database?: string) =>
   http()
     .post("/ms/monitor/db/execute")
-    .data({ sql, datasourceId })
+    .noToast(true)
+    .data({ sql, datasourceId, database })
     .then(r => unwrap<DbQueryResult>(r));
 
 /**
  * 删除表
  * @param tableName 表名
  * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选）
  * @returns 删除结果
  */
-export const dropDbTable = (tableName: string, datasourceId?: number) =>
+export const dropDbTable = (tableName: string, datasourceId?: number, database?: string) =>
   http()
-    .delete(`/ms/monitor/db/table/${encodeURIComponent(tableName)}` + (datasourceId ? `?datasourceId=${datasourceId}` : ""))
+    .delete(`/ms/monitor/db/table/${encodeURIComponent(tableName)}`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 新建数据库（后端按内核选择 DATABASE / SCHEMA 语法）
+ * @param payload 库名、数据源与可选字符集
+ * @returns 创建结果
+ */
+export const createDbDatabase = (payload: DbDatabasePayload) =>
+  http()
+    .post("/ms/monitor/db/database")
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除数据库
+ * @param name 数据库名
+ * @param datasourceId 数据源 ID（可选）
+ * @returns 删除结果
+ */
+export const dropDbDatabase = (name: string, datasourceId?: number) =>
+  http()
+    .delete("/ms/monitor/db/database")
+    .noToast(true)
+    .query({ name, datasourceId })
     .then(r => unwrap<boolean>(r));
 
 // ==================== 系统管理（进程/服务/网络/磁盘/防火墙/驱动） ====================
@@ -648,6 +960,8 @@ export interface ThreadInfo {
   memory?: number;
   state?: string;
   name?: string;
+  priority?: string;
+  waitReason?: string;
   cpuTime?: string;
   [key: string]: unknown;
 }
@@ -756,28 +1070,30 @@ export interface DriverInfo {
 }
 
 /** 获取进程列表 */
-export const fetchProcesses = (params?: { keyword?: string; sortBy?: string; sortOrder?: string; limit?: number; hostId?: number }) =>
+export const fetchProcesses = (params?: { keyword?: string; sortBy?: string; sortOrder?: string; limit?: number; page?: number; pageSize?: number; hostId?: number }) =>
   http()
     .get("/ms/system/processes")
     .query(params ?? {})
-    .then(r => unwrap<ProcessInfo[]>(r));
+    .then(r => unwrap<{ list: ProcessInfo[]; total: number }>(r));
 
 /** 关闭进程 */
-export const killProcess = (pid: number) =>
+export const killProcess = (pid: number, hostId?: number) =>
   http()
-    .post(`/ms/system/process/${pid}/kill`)
+    .post(`/ms/system/process/${pid}/kill${hostId ? `?hostId=${hostId}` : ""}`)
     .then(r => unwrap<string>(r));
 
 /** 获取进程子进程 */
-export const fetchProcessChildren = (pid: number) =>
+export const fetchProcessChildren = (pid: number, hostId?: number) =>
   http()
     .get(`/ms/system/process/${pid}/children`)
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<ProcessInfo[]>(r));
 
 /** 获取进程线程列表 */
-export const fetchProcessThreads = (pid: number) =>
+export const fetchProcessThreads = (pid: number, hostId?: number) =>
   http()
     .get(`/ms/system/process/${pid}/threads`)
+    .query(hostId ? { hostId } : {})
     .then(r => unwrap<ThreadInfo[]>(r));
 
 /** 获取服务列表 */
@@ -785,24 +1101,24 @@ export const fetchServices = (keyword?: string, hostId?: number) =>
   http()
     .get("/ms/system/services")
     .query({ ...(keyword ? { keyword } : {}), ...(hostId ? { hostId } : {}) })
-    .then(r => unwrap<ServiceInfo[]>(r));
+    .then(r => unwrap<{ list: ServiceInfo[]; total: number }>(r));
 
 /** 启动服务 */
-export const startService = (name: string) =>
+export const startService = (name: string, hostId?: number) =>
   http()
-    .post(`/ms/system/service/${name}/start`)
+    .post(`/ms/system/service/${encodeURIComponent(name)}/start${hostId ? `?hostId=${hostId}` : ""}`)
     .then(r => unwrap<string>(r));
 
 /** 停止服务 */
-export const stopService = (name: string) =>
+export const stopService = (name: string, hostId?: number) =>
   http()
-    .post(`/ms/system/service/${name}/stop`)
+    .post(`/ms/system/service/${encodeURIComponent(name)}/stop${hostId ? `?hostId=${hostId}` : ""}`)
     .then(r => unwrap<string>(r));
 
 /** 重启服务 */
-export const restartService = (name: string) =>
+export const restartService = (name: string, hostId?: number) =>
   http()
-    .post(`/ms/system/service/${name}/restart`)
+    .post(`/ms/system/service/${encodeURIComponent(name)}/restart${hostId ? `?hostId=${hostId}` : ""}`)
     .then(r => unwrap<string>(r));
 
 /** 获取网络接口列表 */
@@ -841,10 +1157,66 @@ export const fetchFirewallRules = (hostId?: number) =>
 
 /** 获取驱动列表 */
 export const fetchDrivers = (hostId?: number) =>
-  http()
-    .get("/ms/system/drivers")
-    .query(hostId ? { hostId } : {})
+  http().get("/ms/system/drivers").query(hostId ? { hostId } : {})
     .then(r => unwrap<DriverInfo[]>(r));
+
+/** 重启进程（后端按原命令行与工作目录重新拉起） */
+export const restartHostProcess = (pid: number, hostId?: number) =>
+  http().post("/ms/system/process/restart").query({ pid, ...(hostId ? { hostId } : {}) })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/** 关闭占用端口的进程 */
+export const closeNetProcess = (pid: number, port?: number, hostId?: number) =>
+  http().post("/ms/system/netproc/close").query({ pid, ...(port ? { port } : {}), ...(hostId ? { hostId } : {}) })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/* ---------- 环境变量 增/删（系统级，按平台经 SPI 下发） ---------- */
+
+/** 环境变量写入载荷 */
+export type EnvVarInput = { name: string; value: string };
+
+/** 新增/更新系统级环境变量（Windows 写 Machine，Linux 写 /etc/environment） */
+export const setHostEnvVar = (hostId: number, name: string, value: string) =>
+  http().post("/ms/system/env/set").query({ hostId }).data({ name, value })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/** 删除系统级环境变量 */
+export const deleteHostEnvVar = (hostId: number, name: string) =>
+  http().post("/ms/system/env/delete").query({ hostId, name })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/* ---------- 防火墙规则 增/删（按平台经 SPI 下发） ---------- */
+
+/** 防火墙规则新增载荷：name 规则名；direction in/out；action allow/block；protocol tcp/udp；localPort 端口；program 程序路径（可选） */
+export type FirewallRuleInput = {
+  name: string;
+  direction?: string;
+  action?: string;
+  protocol?: string;
+  localPort?: string;
+  program?: string;
+};
+
+/** 新增防火墙规则（Windows netsh advfirewall，Linux iptables） */
+export const addHostFirewallRule = (hostId: number, rule: FirewallRuleInput) =>
+  http().post("/ms/system/firewall/add").query({ hostId }).data(rule)
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/**
+ * 删除防火墙规则：Windows 按规则名 name；Linux 按 chain + num（行号）。
+ */
+export const deleteHostFirewallRule = (
+  hostId: number, name: string, chain?: string, num?: number
+) =>
+  http().post("/ms/system/firewall/delete")
+    .query({ hostId, name, ...(chain ? { chain } : {}), ...(num ? { num } : {}) })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
 
 // ==================== 协议服务器管理（Server / ServerFilter） ====================
 
@@ -891,7 +1263,7 @@ export interface ServerNodeView {
  * @author CH
  * @since 4.0.0
  */
-export interface ServerNodeRequest {
+export type ServerNodeRequest = {
   name: string;
   protocol: string;
   engine?: string;
@@ -901,7 +1273,7 @@ export interface ServerNodeRequest {
   remark?: string;
   config?: Record<string, unknown>;
   filters?: ServerFilterDescriptor[];
-}
+};
 
 /** 协议类型元数据 */
 /**
@@ -935,6 +1307,14 @@ export interface ServerFilterTypeMeta {
     | Record<string, string>;
   require?: string;
   spi?: boolean;
+  /** 分组标识：storage / discovery / routing / proxy / other / custom（custom 为 FQCN 说明项，不可选） */
+  group?: string;
+  /** 深度查看页路由（仅 detailKind=route 时有值） */
+  detailPage?: string;
+  /** 深度查看目标：node=插件自身 HTTP 服务，route=宿主应用托管页面 */
+  detailKind?: "node" | "route";
+  /** 深度查看按钮文案 */
+  detailLabel?: string;
   [key: string]: unknown;
 }
 
@@ -942,6 +1322,7 @@ export interface ServerFilterTypeMeta {
 export const fetchServerNodes = () =>
   http()
     .get("/ms/monitor/server")
+    .noToast(true)
     .then(r => unwrap<ServerNodeView[]>(r));
 
 /** 查询单个协议服务器节点 */
@@ -954,6 +1335,7 @@ export const fetchServerNode = (id: number) =>
 export const createServerNode = (data: ServerNodeRequest) =>
   http()
     .post("/ms/monitor/server")
+    .noToast(true)
     .data(data)
     .then(r => unwrap<ServerNodeView>(r));
 
@@ -961,6 +1343,7 @@ export const createServerNode = (data: ServerNodeRequest) =>
 export const updateServerNode = (id: number, data: ServerNodeRequest) =>
   http()
     .put(`/ms/monitor/server/${id}`)
+    .noToast(true)
     .data(data)
     .then(r => unwrap<ServerNodeView>(r));
 
@@ -968,24 +1351,35 @@ export const updateServerNode = (id: number, data: ServerNodeRequest) =>
 export const deleteServerNode = (id: number) =>
   http()
     .delete(`/ms/monitor/server/${id}`)
+    .noToast(true)
     .then(r => unwrap<void>(r));
+
+/** 查询代理类协议服务器节点（反向代理 / TCP 代理） */
+export const fetchProxyServers = () =>
+  http()
+    .get("/ms/monitor/server/proxies")
+    .noToast(true)
+    .then(r => unwrap<ServerNodeView[]>(r));
 
 /** 启动协议服务器节点 */
 export const startServerNode = (id: number) =>
   http()
     .post(`/ms/monitor/server/${id}/start`)
+    .noToast(true)
     .then(r => unwrap<ServerNodeView>(r));
 
 /** 停止协议服务器节点 */
 export const stopServerNode = (id: number) =>
   http()
     .post(`/ms/monitor/server/${id}/stop`)
+    .noToast(true)
     .then(r => unwrap<ServerNodeView>(r));
 
 /** 查询支持的协议类型 */
 export const fetchServerProtocols = () =>
   http()
     .get("/ms/monitor/server/protocols")
+    .noToast(true)
     .then(r => unwrap<ServerProtocolMeta[]>(r));
 
 /** 查询支持的 ServerFilter 插件类型 */
@@ -996,46 +1390,95 @@ export const fetchServerFilterTypes = () =>
 
 // ==================== 外部服务管理（InfluxDB / Neo4j / Nacos / ZooKeeper） ====================
 
+/**
+ * 中间件连通性测试载荷，与后端 `MiddlewareTestDTO` 同形
+ *
+ * <p>带 datasourceId 时按库里登记的配置测；不带时用 host/port/username/password 做即席测试。</p>
+ * @author CH
+ * @since 4.0.0
+ */
+export type MiddlewareTestConfig = {
+  datasourceId?: number;
+  host?: string;
+  port?: number;
+  contextPath?: string;
+  username?: string;
+  password?: string;
+};
+
+/**
+ * 中间件连通性测试结果
+ * @author CH
+ * @since 4.0.0
+ */
+export type MiddlewareTestResult = {
+  connected: boolean;
+  version: string;
+  message: string;
+};
+
 // ---------- InfluxDB 时序数据库管理 ----------
 
 /**
  * InfluxDB Bucket 信息
+ *
+ * <p>序列基数不在 {@code /api/v2/buckets} 的回传字段里，逐桶统计又要各跑一次高开销 Flux，
+ * 因此这里不提供该字段，页面也不显示空的「序列数」列。</p>
  * @author CH
  * @since 4.0.0
  */
-export interface InfluxdbBucket {
+export type InfluxdbBucket = {
   id: string;
   name: string;
-  retentionHours: number;
-  seriesCount: number;
+  /** 保留时长（小时），0 表示永久保留，服务端未给规则时为 null */
+  retentionHours: number | null;
   createdAt: string;
-}
+};
 
 /**
  * InfluxDB 度量信息
  * @author CH
  * @since 4.0.0
  */
-export interface InfluxdbMeasurement {
+export type InfluxdbMeasurement = {
   name: string;
-  fieldCount: number;
-  tagCount: number;
-  lastWriteTime: string;
-}
+  /** 字段数，聚合失败时为 null */
+  fieldCount: number | null;
+  /** 标签数，聚合失败时为 null */
+  tagCount: number | null;
+  /** 回看窗口内的最后写入时间，窗口内无数据时为 null */
+  lastWriteTime: string | null;
+};
+
+/**
+ * InfluxDB Flux 查询结果
+ * @author CH
+ * @since 4.0.0
+ */
+export type InfluxdbQueryResult = {
+  query: string;
+  executionTimeMs: number;
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  /** 截断前的总行数 */
+  totalRows: number;
+  /** 行数超过后端上限时为 true，rows 已被截断 */
+  truncated: boolean;
+};
 
 /**
  * 测试 InfluxDB 连接
  * @param config 连接配置
  */
-export const testInfluxdbConnection = (config: Record<string, unknown>) =>
-  http().post("/ms/monitor/influxdb/test").data(config).then(r => unwrap<{ connected: boolean; version: string; message: string }>(r));
+export const testInfluxdbConnection = (config: MiddlewareTestConfig) =>
+  http().post("/ms/monitor/influxdb/test").data(config).then(r => unwrap<MiddlewareTestResult>(r));
 
 /**
  * 获取 InfluxDB Bucket 列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchInfluxdbBuckets = (datasourceId?: number) =>
-  http().get("/ms/monitor/influxdb/buckets", { params: { datasourceId } }).then(r => unwrap<InfluxdbBucket[]>(r));
+  http().get("/ms/monitor/influxdb/buckets").query({ datasourceId }).then(r => unwrap<InfluxdbBucket[]>(r));
 
 /**
  * 获取 InfluxDB 度量列表
@@ -1043,7 +1486,7 @@ export const fetchInfluxdbBuckets = (datasourceId?: number) =>
  * @param bucket Bucket 名（可选）
  */
 export const fetchInfluxdbMeasurements = (datasourceId?: number, bucket?: string) =>
-  http().get("/ms/monitor/influxdb/measurements", { params: { datasourceId, bucket } }).then(r => unwrap<InfluxdbMeasurement[]>(r));
+  http().get("/ms/monitor/influxdb/measurements").query({ datasourceId, bucket }).then(r => unwrap<InfluxdbMeasurement[]>(r));
 
 /**
  * 执行 InfluxDB Flux 查询
@@ -1051,52 +1494,82 @@ export const fetchInfluxdbMeasurements = (datasourceId?: number, bucket?: string
  * @param datasourceId 数据源 ID（可选）
  */
 export const executeInfluxdbQuery = (flux: string, datasourceId?: number) =>
-  http().post("/ms/monitor/influxdb/query").data({ flux, datasourceId }).then(r => unwrap<{ query: string; executionTimeMs: number; rows: Record<string, unknown>[]; rowCount: number }>(r));
+  http().post("/ms/monitor/influxdb/query").data({ flux, datasourceId }).then(r => unwrap<InfluxdbQueryResult>(r));
 
 // ---------- Neo4j 图数据库管理 ----------
 
 /**
  * Neo4j 标签信息
+ *
+ * <p>图规模超过后端扫描预算时，后端宁可不统计也不打满图库 CPU，计数列会被省略，故为可选。</p>
  * @author CH
  * @since 4.0.0
  */
 export interface Neo4jLabel {
   name: string;
-  nodeCount: number;
-  propertyCount: number;
+  nodeCount?: number;
+  propertyCount?: number;
 }
 
 /**
  * Neo4j 关系类型信息
+ *
+ * <p>计数列同 {@link Neo4jLabel}，超预算时省略。</p>
  * @author CH
  * @since 4.0.0
  */
 export interface Neo4jRelationship {
   type: string;
-  relationshipCount: number;
-  propertyCount: number;
+  relationshipCount?: number;
+  propertyCount?: number;
 }
+
+/**
+ * Neo4j 连通性测试结果
+ * @author CH
+ * @since 4.0.0
+ */
+export interface Neo4jTestResult extends MiddlewareTestResult {
+  /** 版本类型（community/enterprise），服务端未给出时为空 */
+  edition?: string;
+}
+
+/**
+ * Neo4j Cypher 执行结果
+ * @author CH
+ * @since 4.0.0
+ */
+export type Neo4jQueryResult = {
+  query: string;
+  executionTimeMs: number;
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  /** 截断前的总行数 */
+  totalRows: number;
+  /** 行数超过后端上限时为 true，rows 已被截断 */
+  truncated: boolean;
+};
 
 /**
  * 测试 Neo4j 连接
  * @param config 连接配置
  */
-export const testNeo4jConnection = (config: Record<string, unknown>) =>
-  http().post("/ms/monitor/neo4j/test").data(config).then(r => unwrap<{ connected: boolean; version: string; edition: string; message: string }>(r));
+export const testNeo4jConnection = (config: MiddlewareTestConfig) =>
+  http().post("/ms/monitor/neo4j/test").data(config).then(r => unwrap<Neo4jTestResult>(r));
 
 /**
  * 获取 Neo4j 标签列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNeo4jLabels = (datasourceId?: number) =>
-  http().get("/ms/monitor/neo4j/labels", { params: { datasourceId } }).then(r => unwrap<Neo4jLabel[]>(r));
+  http().get("/ms/monitor/neo4j/labels").query({ datasourceId }).then(r => unwrap<Neo4jLabel[]>(r));
 
 /**
  * 获取 Neo4j 关系类型列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNeo4jRelationships = (datasourceId?: number) =>
-  http().get("/ms/monitor/neo4j/relationships", { params: { datasourceId } }).then(r => unwrap<Neo4jRelationship[]>(r));
+  http().get("/ms/monitor/neo4j/relationships").query({ datasourceId }).then(r => unwrap<Neo4jRelationship[]>(r));
 
 /**
  * 执行 Neo4j Cypher 查询
@@ -1104,7 +1577,7 @@ export const fetchNeo4jRelationships = (datasourceId?: number) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const executeNeo4jQuery = (cypher: string, datasourceId?: number) =>
-  http().post("/ms/monitor/neo4j/query").data({ cypher, datasourceId }).then(r => unwrap<{ query: string; executionTimeMs: number; rows: Record<string, unknown>[]; rowCount: number }>(r));
+  http().post("/ms/monitor/neo4j/query").data({ cypher, datasourceId }).then(r => unwrap<Neo4jQueryResult>(r));
 
 // ---------- Nacos 配置中心管理 ----------
 
@@ -1173,45 +1646,45 @@ export interface NacosClusterNode {
  * 测试 Nacos 连接
  * @param config 连接配置
  */
-export const testNacosConnection = (config: Record<string, unknown>) =>
-  http().post("/ms/monitor/nacos/test").data(config).then(r => unwrap<{ connected: boolean; version: string; message: string }>(r));
+export const testNacosConnection = (config: MiddlewareTestConfig) =>
+  http().post("/ms/monitor/nacos/test").data(config).then(r => unwrap<MiddlewareTestResult>(r));
 
 /**
  * 获取 Nacos 命名空间列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNacosNamespaces = (datasourceId?: number) =>
-  http().get("/ms/monitor/nacos/namespaces", { params: { datasourceId } }).then(r => unwrap<NacosNamespace[]>(r));
+  http().get("/ms/monitor/nacos/namespaces").query({ datasourceId }).then(r => unwrap<NacosNamespace[]>(r));
 
 /**
  * 分页获取 Nacos 配置列表
  * @param params 查询参数（命名空间/分组/dataId/分页）
  */
 export const fetchNacosConfigs = (params: { datasourceId?: number; namespace?: string; group?: string; dataId?: string; page?: number; pageSize?: number }) =>
-  http().get("/ms/monitor/nacos/configs", { params }).then(r => unwrap<{ list: NacosConfig[]; total: number; page: number; pageSize: number }>(r));
+  http().get("/ms/monitor/nacos/configs").query(params).then(r => unwrap<{ list: NacosConfig[]; total: number; page: number; pageSize: number }>(r));
 
 /**
  * 获取 Nacos 配置详情
  * @param dataId 配置 dataId
- * @param params 命名空间/分组
+ * @param params 数据源/命名空间/分组
  */
-export const fetchNacosConfigDetail = (dataId: string, params: { namespace?: string; group?: string }) =>
-  http().get(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`, { params }).then(r => unwrap<NacosConfigDetail>(r));
+export const fetchNacosConfigDetail = (dataId: string, params: { datasourceId?: number; namespace?: string; group?: string }) =>
+  http().get(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`).query(params).then(r => unwrap<NacosConfigDetail>(r));
 
 /**
  * 保存 Nacos 配置
- * @param config 配置内容
+ * @param config 配置内容（含目标数据源）
  */
-export const saveNacosConfig = (config: Partial<NacosConfigDetail>) =>
+export const saveNacosConfig = (config: Partial<NacosConfigDetail> & { datasourceId?: number }) =>
   http().post("/ms/monitor/nacos/config").data(config).then(r => unwrap<boolean>(r));
 
 /**
  * 删除 Nacos 配置
  * @param dataId 配置 dataId
- * @param params 命名空间/分组
+ * @param params 数据源/命名空间/分组
  */
-export const deleteNacosConfig = (dataId: string, params: { namespace?: string; group?: string }) =>
-  http().delete(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`, { params }).then(r => unwrap<boolean>(r));
+export const deleteNacosConfig = (dataId: string, params: { datasourceId?: number; namespace?: string; group?: string }) =>
+  http().delete(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`).query(params).then(r => unwrap<boolean>(r));
 
 /**
  * 获取 Nacos 服务列表
@@ -1219,14 +1692,14 @@ export const deleteNacosConfig = (dataId: string, params: { namespace?: string; 
  * @param namespace 命名空间（可选）
  */
 export const fetchNacosServices = (datasourceId?: number, namespace?: string) =>
-  http().get("/ms/monitor/nacos/services", { params: { datasourceId, namespace } }).then(r => unwrap<NacosService[]>(r));
+  http().get("/ms/monitor/nacos/services").query({ datasourceId, namespace }).then(r => unwrap<NacosService[]>(r));
 
 /**
  * 获取 Nacos 集群节点列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNacosClusterNodes = (datasourceId?: number) =>
-  http().get("/ms/monitor/nacos/cluster/nodes", { params: { datasourceId } }).then(r => unwrap<NacosClusterNode[]>(r));
+  http().get("/ms/monitor/nacos/cluster/nodes").query({ datasourceId }).then(r => unwrap<NacosClusterNode[]>(r));
 
 // ---------- ZooKeeper 注册中心管理 ----------
 
@@ -1271,11 +1744,22 @@ export interface ZkChildNode {
 }
 
 /**
+ * ZooKeeper 连通性测试结果
+ *
+ * <p>会话 ID 用于判断临时节点归属：临时节点只在建立它的那个会话内存活。</p>
+ * @author CH
+ * @since 4.0.0
+ */
+export interface ZookeeperTestResult extends MiddlewareTestResult {
+  sessionId: string;
+}
+
+/**
  * 测试 ZooKeeper 连接
  * @param config 连接配置
  */
-export const testZookeeperConnection = (config: Record<string, unknown>) =>
-  http().post("/ms/monitor/zookeeper/test").data(config).then(r => unwrap<{ connected: boolean; version: string; sessionId: string; message: string }>(r));
+export const testZookeeperConnection = (config: MiddlewareTestConfig) =>
+  http().post("/ms/monitor/zookeeper/test").data(config).then(r => unwrap<ZookeeperTestResult>(r));
 
 /**
  * 获取 ZooKeeper 节点树
@@ -1283,7 +1767,7 @@ export const testZookeeperConnection = (config: Record<string, unknown>) =>
  * @param path 节点路径
  */
 export const fetchZkTree = (datasourceId?: number, path = "/") =>
-  http().get("/ms/monitor/zookeeper/tree", { params: { datasourceId, path } }).then(r => unwrap<ZkNode[]>(r));
+  http().get("/ms/monitor/zookeeper/tree").query({ datasourceId, path }).then(r => unwrap<ZkNode[]>(r));
 
 /**
  * 获取 ZooKeeper 节点详情
@@ -1291,7 +1775,7 @@ export const fetchZkTree = (datasourceId?: number, path = "/") =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchZkNodeDetail = (path: string, datasourceId?: number) =>
-  http().get("/ms/monitor/zookeeper/node", { params: { path, datasourceId } }).then(r => unwrap<ZkNodeDetail>(r));
+  http().get("/ms/monitor/zookeeper/node").query({ path, datasourceId }).then(r => unwrap<ZkNodeDetail>(r));
 
 /**
  * 获取 ZooKeeper 子节点列表
@@ -1299,28 +1783,29 @@ export const fetchZkNodeDetail = (path: string, datasourceId?: number) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchZkChildren = (path: string, datasourceId?: number) =>
-  http().get("/ms/monitor/zookeeper/children", { params: { path, datasourceId } }).then(r => unwrap<ZkChildNode[]>(r));
+  http().get("/ms/monitor/zookeeper/children").query({ path, datasourceId }).then(r => unwrap<ZkChildNode[]>(r));
 
 /**
  * 创建 ZooKeeper 节点
  * @param request 节点请求
  */
-export const createZkNode = (request: { path: string; data?: string; ephemeral?: boolean }) =>
+export const createZkNode = (request: { path: string; data?: string; ephemeral?: boolean; datasourceId?: number }) =>
   http().post("/ms/monitor/zookeeper/node").data(request).then(r => unwrap<boolean>(r));
 
 /**
  * 更新 ZooKeeper 节点数据
  * @param request 节点请求
  */
-export const updateZkNode = (request: { path: string; data: string }) =>
+export const updateZkNode = (request: { path: string; data: string; datasourceId?: number }) =>
   http().put("/ms/monitor/zookeeper/node").data(request).then(r => unwrap<boolean>(r));
 
 /**
  * 删除 ZooKeeper 节点
  * @param path 节点路径
+ * @param datasourceId 数据源 ID（可选）
  */
-export const deleteZkNode = (path: string) =>
-  http().delete("/ms/monitor/zookeeper/node", { params: { path } }).then(r => unwrap<boolean>(r));
+export const deleteZkNode = (path: string, datasourceId?: number) =>
+  http().delete("/ms/monitor/zookeeper/node").query({ path, datasourceId }).then(r => unwrap<boolean>(r));
 
 /* ==================== 主机画像（数据全部来自目标机 Agent） ==================== */
 
@@ -1337,10 +1822,18 @@ export interface HostProfile {
 /**
  * 拉取主机画像概览
  * @param hostId 主机 id
- * @param persist 是否让后端把快照回写主机台账
+ * @param opts.live    是否实时采集：默认 false 只读台账快照（进入画像不触发采集）；true 经通道实时拉取
+ * @param opts.persist 实时采集时是否回写主机台账，默认 true（仅 live=true 生效）
  */
-export const fetchHostProfile = (hostId: number, persist = true) =>
-  http().get(`/ms/server/host/profile/${hostId}`).query({ persist }).then(r => unwrap<HostProfile>(r));
+export const fetchHostProfile = (
+  hostId: number,
+  opts: { live?: boolean; persist?: boolean } = {}
+) =>
+  http().get(`/ms/server/host/profile/${hostId}`)
+    .query({ live: opts.live ?? false, persist: opts.persist ?? true })
+    // 高延迟/不稳定链路（如 Tailscale 远程）整段画像较慢，放宽到 90s 避免误报失败
+    .timeout(90_000)
+    .then(r => unwrap<HostProfile>(r));
 
 /**
  * 拉取主机画像某个分区
@@ -1348,6 +1841,310 @@ export const fetchHostProfile = (hostId: number, persist = true) =>
  * @param section ports/processes/services/disks/network/env
  * @param page 页码（进程/服务）
  * @param size 每页条数（进程/服务）
+ * @param keyword 关键字（进程/服务，匹配 PID/名称/用户/命令行，跨页命中）
  */
-export const fetchHostProfileSection = (hostId: number, section: string, page?: number, size?: number) =>
-  http().get(`/ms/server/host/profile/${hostId}/${section}`).query({ page, size }).then(r => unwrap<any[]>(r));
+export const fetchHostProfileSection = (hostId: number, section: string, page?: number, size?: number, keyword?: string) =>
+  http().get(`/ms/server/host/profile/${hostId}/${section}`).query({ page, size, keyword })
+    // 慢链路分区采集放宽到 60s
+    .timeout(60_000)
+    .then(r => unwrap<any[]>(r));
+
+/* ==================== 主机网卡（/ms/server/host/network） ==================== */
+
+/** 网卡详情（状态/属性） */
+export type NetworkAdapterDetail = {
+  name: string;
+  ifIndex: number;
+  description: string;
+  status: string;
+  macAddress: string;
+  linkSpeed: string;
+  mtu: number;
+  dhcpEnabled: boolean;
+  ipv4Addresses: string[];
+  ipv6Addresses: string[];
+  gateways: string[];
+  dnsServers: string[];
+};
+
+/** IPv4 配置 */
+export type IPv4Config = {
+  adapterName?: string;
+  ifIndex?: number;
+  dhcp?: boolean;
+  address?: string;
+  prefixLength?: number;
+  gateway?: string;
+  dnsDhcp?: boolean;
+  dnsPreferred?: string;
+  dnsAlternate?: string;
+};
+
+/** 读取网卡详情 */
+export const fetchAdapterDetail = (hostId: number, name: string) =>
+  http().get(`/ms/server/host/network/${hostId}/adapter`).query({ name })
+    .timeout(30_000)
+    .then(r => unwrap<NetworkAdapterDetail>(r));
+
+/** 列出主机全部可见网卡（Windows，名称与系统一致） */
+export const fetchAdapters = (hostId: number) =>
+  http().get(`/ms/server/host/network/${hostId}/adapters`)
+    .timeout(30_000)
+    .then(r => unwrap<NetworkAdapterDetail[]>(r));
+
+/** 读取 IPv4 配置 */
+export const fetchIPv4Config = (hostId: number, name: string) =>
+  http().get(`/ms/server/host/network/${hostId}/ipv4`).query({ name })
+    .timeout(30_000)
+    .then(r => unwrap<IPv4Config>(r));
+
+/** 下发 IPv4 配置（DHCP / 静态地址、网关、DNS） */
+export const saveIPv4Config = (hostId: number, config: IPv4Config) =>
+  http().put(`/ms/server/host/network/${hostId}/ipv4`).data(config)
+    .timeout(30_000)
+    .then(r => unwrap<void>(r));
+
+/* ==================== 文件资产（/ms/monitor/file-assets） ==================== */
+
+/**
+ * 文件资产条目
+ * @author CH
+ * @since 4.0.0.42
+ */
+export type FileAssetItem = {
+  name: string;
+  path: string;
+  directory: boolean;
+  size: number;
+  lastModified: number;
+};
+
+/**
+ * 列出可用存储桶
+ * @returns 存储桶名称列表
+ */
+export const fetchFileAssetBuckets = () =>
+  http().get("/ms/monitor/file-assets/buckets").then(r => unwrap<string[]>(r));
+
+/**
+ * 列出目录内容
+ * @param path 目录路径，空串表示根目录
+ * @param bucket 存储桶，留空取默认存储
+ * @returns 条目列表
+ */
+export const fetchFileAssets = (path: string, bucket?: string) =>
+  http().get("/ms/monitor/file-assets/list").query({ path, bucket }).then(r => unwrap<FileAssetItem[]>(r));
+
+/**
+ * 上传文件
+ * @param path 目标目录
+ * @param file 文件
+ * @param bucket 存储桶，留空取默认存储
+ * @returns 写入后的条目
+ */
+export const uploadFileAsset = (path: string, file: File, bucket?: string) => {
+  const form = new FormData();
+  form.append("file", file);
+  return http().post("/ms/monitor/file-assets/upload")
+    .query({ path, bucket })
+    .data(form)
+    .then(r => unwrap<FileAssetItem>(r));
+};
+
+/**
+ * 删除文件或目录
+ * @param path 对象路径
+ * @param bucket 存储桶，留空取默认存储
+ * @returns 是否删除成功
+ */
+export const deleteFileAsset = (path: string, bucket?: string) =>
+  http().delete("/ms/monitor/file-assets").query({ path, bucket }).then(r => unwrap<boolean>(r));
+
+/**
+ * 下载文件（走统一请求管线以携带鉴权头）
+ * @param path 对象路径
+ * @param bucket 存储桶，留空取默认存储
+ * @param inline 是否内联预览
+ * @returns 文件内容 Blob
+ */
+export const downloadFileAsset = (path: string, bucket?: string, inline = false) =>
+  http().get("/ms/monitor/file-assets/download").query({ path, bucket, inline })
+    .responseType("blob")
+    .then(r => r.data as Blob);
+
+// ==================== Agent 生命周期（/ms/server/host/agent） ====================
+
+/**
+ * Agent 生命周期动作
+ */
+export type AgentLifecycleAction = "install" | "reinstall" | "upgrade" | "uninstall";
+
+/**
+ * 提交 Agent 生命周期动作（安装/重装/升级/卸载）。
+ * <p>
+ * 安装对应后端 deploy 端点，其余动作同名；进度通过 socket 的 monitor/agent-deploy 事件推送。
+ * @param hostId 主机 ID
+ * @param action 生命周期动作
+ * @returns 后端受理的动作标识
+ */
+export const submitAgentAction = (hostId: number, action: AgentLifecycleAction) => {
+  const endpoint = action === "install" ? "deploy" : action;
+  return http()
+    .post(`/ms/server/host/agent/${hostId}/${endpoint}`)
+    .then(r => unwrap<string>(r));
+};
+
+// ==================== 主机文件管理（/ms/server/host/file，按采集通道路由） ====================
+
+/**
+ * 主机文件条目
+ */
+export interface HostFileItem {
+  name: string;
+  /** 是否目录（后端 @JsonProperty("isDir")） */
+  isDir: boolean;
+  size: number;
+  modified?: string;
+  owner?: string;
+  perms?: string;
+}
+
+/**
+ * 主机文件接口前缀
+ * @param hostId 主机 ID
+ * @returns 前缀路径
+ */
+const hostFileBase = (hostId: number) => `/ms/server/host/file/${hostId}`;
+
+/**
+ * 列出主机目录
+ * @param hostId 主机 ID
+ * @param path 目录路径
+ */
+export const fetchHostFiles = (hostId: number, path?: string) =>
+  http().get(hostFileBase(hostId)).query({ path }).then(r => unwrap<HostFileItem[]>(r));
+
+/**
+ * 读取主机文本文件
+ * @param hostId 主机 ID
+ * @param path 文件路径
+ */
+export const readHostFileContent = (hostId: number, path: string) =>
+  http().get(`${hostFileBase(hostId)}/content`).query({ path }).then(r => unwrap<string>(r));
+
+/**
+ * 写入主机文本文件
+ * @param hostId 主机 ID
+ * @param path 文件路径
+ * @param content 内容
+ */
+export const writeHostFileContent = (hostId: number, path: string, content: string) =>
+  http().put(`${hostFileBase(hostId)}/content`).query({ path }).headers({ "Content-Type": "text/plain;charset=utf-8" }).data(content).then(r => unwrap<boolean>(r));
+
+/**
+ * 创建主机目录
+ * @param hostId 主机 ID
+ * @param path 目录路径
+ */
+export const mkdirHostFile = (hostId: number, path: string) =>
+  http().post(`${hostFileBase(hostId)}/mkdir`).query({ path }).then(r => unwrap<boolean>(r));
+
+/**
+ * 删除主机文件 / 目录
+ * @param hostId 主机 ID
+ * @param path 目标路径
+ */
+export const deleteHostFile = (hostId: number, path: string) =>
+  http().delete(hostFileBase(hostId)).query({ path }).then(r => unwrap<boolean>(r));
+
+/**
+ * 重命名 / 移动主机文件
+ * @param hostId 主机 ID
+ * @param from 源路径
+ * @param to 目标路径
+ */
+export const renameHostFile = (hostId: number, from: string, to: string) =>
+  http().put(`${hostFileBase(hostId)}/rename`).query({ from, to }).then(r => unwrap<boolean>(r));
+
+/**
+ * 上传文件到主机目录
+ * @param hostId 主机 ID
+ * @param dir 目标目录
+ * @param file 文件
+ */
+export const uploadHostFile = (hostId: number, dir: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return http().post(`${hostFileBase(hostId)}/upload`).query({ path: dir }).data(form)
+    .then(r => unwrap<string>(r));
+};
+
+/**
+ * 下载主机文件，返回 Blob（由组件触发浏览器保存）
+ * @param hostId 主机 ID
+ * @param path 文件路径
+ */
+export const downloadHostFile = (hostId: number, path: string) =>
+  http().get(`${hostFileBase(hostId)}/download`).query({ path }).responseType("blob")
+    .then(r => r.data as Blob);
+
+/**
+ * 主机文件/目录权限信息（类 Unix）
+ */
+export interface HostFilePerms {
+  /** 八进制权限，如 755 */
+  mode: string;
+  owner: string;
+  group: string;
+}
+
+/**
+ * 读取主机文件/目录权限（类 Unix）
+ * @param hostId 主机 ID
+ * @param path 目标路径
+ */
+export const fetchHostPerms = (hostId: number, path: string) =>
+  http().get(`${hostFileBase(hostId)}/chmod`).query({ path }).then(r => unwrap<HostFilePerms>(r));
+
+/**
+ * 下发主机文件/目录权限（类 Unix）
+ * @param hostId 主机 ID
+ * @param path 目标路径
+ * @param mode 八进制权限（3~4 位）
+ */
+export const saveHostPerms = (hostId: number, path: string, mode: string) =>
+  http().put(`${hostFileBase(hostId)}/chmod`).query({ path, mode }).then(r => unwrap<boolean>(r));
+
+/* ==================== 磁盘占用分析（WizTree 风格） ==================== */
+
+/** 磁盘占用树节点 */
+export interface DiskUsageNode {
+  name: string;
+  path: string;
+  /** 字节（目录为累计值） */
+  size: number;
+  directory: boolean;
+  children?: DiskUsageNode[];
+  /** 节点下（含子孙）文件总数 */
+  fileCount?: number;
+  /** 节点下（含子孙）目录总数 */
+  dirCount?: number;
+  /** 修改时间展示文本（文件为自身 mtime，目录取最近修改子项） */
+  modified?: string | null;
+  /** 所在卷总容量（字节，仅根节点） */
+  totalSpace?: number;
+  /** 所在卷可用容量（字节，仅根节点） */
+  freeSpace?: number;
+}
+
+/**
+ * 磁盘占用分析：递归统计目录/文件大小
+ * @param hostId 主机 ID
+ * @param path   起始路径
+ * @param depth  递归深度
+ */
+export const fetchDiskUsage = (hostId: number, path?: string, depth = 4) =>
+  http().get(`${hostFileBase(hostId)}/usage`).query({ path, depth })
+    // 整盘递归可能较慢，放宽到 120s
+    .timeout(120_000)
+    .then(r => unwrap<DiskUsageNode>(r));
