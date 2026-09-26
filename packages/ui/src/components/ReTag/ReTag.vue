@@ -52,7 +52,6 @@ const props = withDefaults(
   {
     layout: "el",
     type: "",
-    size: "",
     closable: false,
     disableTransitions: false,
     hit: false,
@@ -74,7 +73,10 @@ const mapped = computed<ReTagMapItem | null>(() => {
   return props.map[key] ?? null;
 });
 
-const displayType = computed(() => mapped.value?.type ?? props.type);
+const displayType = computed(() => {
+  const type = mapped.value?.type ?? props.type;
+  return type || undefined;
+});
 const displayColor = computed(() => mapped.value?.color ?? props.color);
 const displayIcon = computed(() => mapped.value?.icon ?? props.icon);
 const displayText = computed(() => mapped.value?.label);

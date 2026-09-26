@@ -39,7 +39,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/redis",
         name: "Redis",
         component: () => import("./views/RedisView.vue"),
-        meta: { title: "Redis 监控", icon: "Coin", showLink: true, rank: 3 },
+        meta: { title: "Redis 监控", icon: "Coin", showLink: false, rank: 3 },
       },
       {
         path: "/tshark",
@@ -63,46 +63,47 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
       },
       {
-        path: "/filesystem/list",
-        name: "FileSystemList",
-        component: () => import("@pages/filesystem/views/FileManage.vue"),
-        meta: { title: "文件管理", icon: "Document", showLink: true, rank: 11, keepAlive: true },
-      },
-      {
-        path: "/filesystem/group",
-        name: "FileSystemGroup",
-        component: () => import("@pages/filesystem/views/GroupManage.vue"),
-        meta: { title: "文件分组", icon: "Files", showLink: true, rank: 12, keepAlive: true },
-      },
-      {
-        path: "/filesystem/setting",
-        name: "FileSystemSetting",
-        component: () => import("@pages/filesystem/views/SettingManage.vue"),
-        meta: { title: "存储配置", icon: "Setting", showLink: true, rank: 13, keepAlive: true },
-      },
-      {
-        path: "/filesystem/filestorage",
-        name: "FileSystemStorage",
-        component: () => import("@pages/filesystem/views/FileStorageManage.vue"),
-        meta: { title: "文件存储服务", icon: "UploadFilled", showLink: true, rank: 14, keepAlive: true },
+        path: "/files",
+        name: "FileAssets",
+        component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
+        meta: { title: "文件资产", icon: "Document", showLink: true, rank: 11 },
       },
       {
         path: "/datasource",
         name: "DataSource",
-        component: () => import("./views/DataSourceView.vue"),
-        meta: { title: "数据源管理", icon: "Coin", showLink: true, rank: 11 },
+        // 数据源已抽为独立包 @pages/datasource（后端 spring-support-datasource-hub-starter）
+        component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"),
+        meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 11 },
       },
       {
         path: "/db-manager",
         name: "DbManager",
         component: () => import("./views/DatabaseManagerView.vue"),
-        meta: { title: "数据库管理", icon: "Coin", showLink: true, rank: 12 },
+        meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/datasource", rank: 12 },
       },
       {
         path: "/terminal",
         name: "Terminal",
         component: () => import("./views/TerminalView.vue"),
         meta: { title: "远程控制", icon: "Position", showLink: true, rank: 13 },
+      },
+      {
+        path: "/sessions",
+        name: "TerminalSessions",
+        component: () => import("@pages/server/src/views/ScSessionTab.vue"),
+        meta: { title: "会话审计", icon: "Document", showLink: true, rank: 14 },
+      },
+      {
+        path: "/exec",
+        name: "BatchExec",
+        component: () => import("@pages/server/src/views/ScExecTab.vue"),
+        meta: { title: "批量作业", icon: "Promotion", showLink: true, rank: 15 },
+      },
+      {
+        path: "/snippets",
+        name: "TerminalSnippets",
+        component: () => import("@pages/server/src/views/ScTerminalSnippetManager.vue"),
+        meta: { title: "片段管理", icon: "DocumentCopy", showLink: true, rank: 16 },
       },
     ],
   },
@@ -114,10 +115,16 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "发布管理", icon: "Promotion", showLink: true, rank: 20 },
     children: [
       {
-        path: "/project",
-        name: "Project",
-        component: () => import("@pages/project/src/views/ScProjectList.vue"),
-        meta: { title: "发布项目管理", icon: "Box", showLink: true, rank: 20 },
+        path: "/release",
+        name: "Release",
+        component: () => import("./views/ReleaseView.vue"),
+        meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
+      },
+      {
+        path: "/projects",
+        name: "Projects",
+        component: () => import("./views/ProjectsView.vue"),
+        meta: { title: "项目管理", icon: "Folder", showLink: false, rank: 21 },
       },
     ],
   },
@@ -140,6 +147,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/ProxyView.vue"),
         meta: { title: "代理管理", icon: "Connection", showLink: true, rank: 31 },
       },
+    
       {
         path: "/groups",
         name: "Groups",
@@ -191,6 +199,26 @@ export const monitorRoutes: RouteConfigsTable[] = [
     name: "Zookeeper",
     component: () => import("./views/ZookeeperManageView.vue"),
     meta: { title: "ZooKeeper 管理", icon: "Share", showLink: false, activeMenu: "/datasource" },
+  },
+  {
+    path: "/nginx",
+    name: "Nginx",
+    component: () => import("./views/NginxManageView.vue"),
+    meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
+  },
+  {
+    path: "/discovery",
+    name: "Discovery",
+    component: () => import("./views/DiscoveryView.vue"),
+    meta: { title: "服务发现", icon: "Connection", showLink: false, activeMenu: "/assets" },
+  },
+
+  // ==================== 独立全屏路由（不套 layout，不进菜单） ====================
+  {
+    path: "/terminal-standalone",
+    name: "TerminalStandalone",
+    component: () => import("./views/StandaloneTerminal.vue"),
+    meta: { title: "远程控制", showLink: false, standalone: true },
   },
 ];
 

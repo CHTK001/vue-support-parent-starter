@@ -1,16 +1,18 @@
 <template>
-  <div class="h-full overflow-hidden flex flex-col bg-white dark:bg-[#1a1a1a]">
+  <div class="h-full overflow-hidden flex flex-col">
     <!-- 页面头部 -->
-    <div class="shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#2f2f2f]">
+    <div class="shrink-0 px-6 py-4 svc-header">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">服务管理</h1>
-          <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">管理聚合ChatClient服务，支持端口配置、启动停止、usage开关</p>
+          <h1 class="svc-title">服务运行状态</h1>
+          <p class="svc-subtitle">
+            查看聚合 ChatClient 服务的运行状态、进程号与运行时长，支持登记启动与停止（仅管理员）
+          </p>
         </div>
         <div class="flex items-center gap-2">
-          <el-button type="primary" @click="handleCreate">
+          <el-button v-if="admin" type="primary" @click="handleCreate">
             <el-icon><Plus /></el-icon>
-            新增服务
+            登记服务
           </el-button>
           <el-button @click="loadData">
             <el-icon><Refresh /></el-icon>
@@ -22,179 +24,134 @@
 
     <!-- 数据表格 -->
     <div class="flex-1 overflow-auto p-6">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="服务名称" min-width="150" />
-        <el-table-column prop="port" label="端口" width="100" />
-        <el-table-column prop="protocol" label="协议" width="120">
+     <div class="panel-card">
+      <el-table :data="tableData" v-loading="loading" stripe class="flat-table" style="width: 100%">
+        <el-table-column prop="name" label="服务名称" min-width="180" />
+        <el-table-column prop="running" label="运行状态" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.ccEnabled" type="success" size="small">CC</el-tag>
-            <el-tag v-if="row.codexEnabled" type="warning" size="small" class="ml-1">Codex</el-tag>
-            <el-tag v-if="row.geminiEnabled" type="info" size="small" class="ml-1">Gemini</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="usageEnabled" label="Usage记录" width="120">
-          <template #default="{ row }">
-            <el-tag :type="row.usageEnabled ? 'success' : 'info'" size="small">
-              {{ row.usageEnabled ? '开启' : '关闭' }}
+            <el-tag :type="row.running ? 'success' : 'info'" size="small">
+              {{ row.running ? '运行中' : '已停止' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="运行状态" width="120">
+        <el-table-column prop="pid" label="进程 PID" width="140">
+          <template #default="{ row }">{{ row.pid ?? '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="uptime" label="运行时长" min-width="160">
+          <template #default="{ row }">{{ formatUptime(row.uptime) }}</template>
+        </el-table-column>
+        <el-table-column v-if="admin" label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'running' ? 'success' : 'danger'" size="small">
-              {{ row.status === 'running' ? '运行中' : '已停止' }}
-            </el-tag>
+            <el-button v-if="!row.running" type="success" link @click="handleStart(row.name)">启动</el-button>
+            <el-button v-else type="warning" link @click="handleStop(row.name)">停止</el-button>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <el-button v-if="row.status !== 'running'" type="success" link @click="handleStart(row)">启动</el-button>
-            <el-button v-else type="warning" link @click="handleStop(row)">停止</el-button>
-            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
+        <template #empty>
+          <span class="svc-empty">暂无服务记录，登记启动后此处展示运行状态</span>
+        </template>
       </el-table>
+     </div>
     </div>
 
-    <!-- 编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" :close-on-click-modal="false">
-      <el-form :model="formData" label-width="120px">
+    <!-- 登记服务弹窗 -->
+    <el-dialog v-model="dialogVisible" title="登记服务" width="460px" :close-on-click-modal="false" append-to-body>
+      <el-form label-width="90px">
         <el-form-item label="服务名称">
-          <el-input v-model="formData.name" placeholder="请输入服务名称" />
-        </el-form-item>
-        <el-form-item label="端口">
-          <el-input-number v-model="formData.port" :min="1024" :max="65535" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="Usage记录">
-          <el-switch v-model="formData.usageEnabled" />
-        </el-form-item>
-        <el-form-item label="CC协议">
-          <el-switch v-model="formData.ccEnabled" />
-        </el-form-item>
-        <el-form-item label="Codex协议">
-          <el-switch v-model="formData.codexEnabled" />
-        </el-form-item>
-        <el-form-item label="Gemini协议">
-          <el-switch v-model="formData.geminiEnabled" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="formData.description" type="textarea" :rows="2" />
+          <el-input v-model="newServiceName" placeholder="请输入要登记并启动的服务名称" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSubmit">启动</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
+import { isAdmin } from '@repo/core';
 import { serviceApi } from '@/services/javaApi';
 
+const admin = ref(isAdmin());
 const loading = ref(false);
 const saving = ref(false);
 const tableData = ref<any[]>([]);
 const dialogVisible = ref(false);
-const isEdit = ref(false);
-const formData = reactive({
-  id: '',
-  name: '',
-  port: 8080,
-  usageEnabled: false,
-  ccEnabled: false,
-  codexEnabled: false,
-  geminiEnabled: false,
-  description: '',
-  status: 'stopped',
-});
+const newServiceName = ref('');
 
-const dialogTitle = computed(() => isEdit.value ? '编辑服务' : '新增服务');
+/** 后端返回 {code,data,msg} 信封，data 为状态数组 */
+function asArray(res: any): any[] {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+function formatUptime(seconds?: number | null): string {
+  if (!seconds || seconds <= 0) return '-';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (d > 0) return `${d}天${h}小时${m}分`;
+  if (h > 0) return `${h}小时${m}分${s}秒`;
+  if (m > 0) return `${m}分${s}秒`;
+  return `${s}秒`;
+}
 
 async function loadData() {
   loading.value = true;
   try {
-    const res: any = await serviceApi.list();
-    tableData.value = res?.data || res?.records || res || [];
+    tableData.value = asArray(await serviceApi.list());
   } catch (e: any) {
-    ElMessage.error(`加载失败: ${e.message}`);
+    ElMessage.error(`加载失败: ${e?.msg || e?.message || ''}`);
   } finally {
     loading.value = false;
   }
 }
 
 function handleCreate() {
-  isEdit.value = false;
-  Object.assign(formData, {
-    id: '',
-    name: '',
-    port: 8080,
-    usageEnabled: false,
-    ccEnabled: false,
-    codexEnabled: false,
-    geminiEnabled: false,
-    description: '',
-    status: 'stopped',
-  });
+  newServiceName.value = '';
   dialogVisible.value = true;
 }
 
-function handleEdit(row: any) {
-  isEdit.value = true;
-  Object.assign(formData, row);
-  dialogVisible.value = true;
-}
-
-async function handleStart(row: any) {
+async function handleStart(name: string) {
   try {
-    await serviceApi.start(row.id);
-    ElMessage.success('服务启动成功');
+    await serviceApi.start(name);
+    ElMessage.success('服务已启动');
     loadData();
   } catch (e: any) {
-    ElMessage.error(`启动失败: ${e.message}`);
+    ElMessage.error(`启动失败: ${e?.msg || e?.message || ''}`);
   }
 }
 
-async function handleStop(row: any) {
+async function handleStop(name: string) {
   try {
-    await serviceApi.stop(row.id);
-    ElMessage.success('服务停止成功');
+    await ElMessageBox.confirm(`确定要停止服务「${name}」吗？`, '停止确认', { type: 'warning' });
+    await serviceApi.stop(name);
+    ElMessage.success('服务已停止');
     loadData();
   } catch (e: any) {
-    ElMessage.error(`停止失败: ${e.message}`);
-  }
-}
-
-async function handleDelete(row: any) {
-  try {
-    await ElMessageBox.confirm(`确定要删除服务「${row.name}」吗？`, '删除确认', { type: 'warning' });
-    await serviceApi.delete(row.id);
-    ElMessage.success('删除成功');
-    loadData();
-  } catch (e: any) {
-    if (e !== 'cancel') ElMessage.error(`删除失败: ${e.message}`);
+    if (e !== 'cancel') ElMessage.error(`停止失败: ${e?.msg || e?.message || ''}`);
   }
 }
 
 async function handleSubmit() {
+  const name = newServiceName.value.trim();
+  if (!name) {
+    ElMessage.warning('请输入服务名称');
+    return;
+  }
   saving.value = true;
   try {
-    if (isEdit.value) {
-      await serviceApi.update(formData.id, formData);
-      ElMessage.success('更新成功');
-    } else {
-      await serviceApi.create(formData);
-      ElMessage.success('创建成功');
-    }
+    await serviceApi.start(name);
+    ElMessage.success('登记并启动成功');
     dialogVisible.value = false;
     loadData();
   } catch (e: any) {
-    ElMessage.error(`保存失败: ${e.message}`);
+    ElMessage.error(`保存失败: ${e?.msg || e?.message || ''}`);
   } finally {
     saving.value = false;
   }
@@ -202,3 +159,23 @@ async function handleSubmit() {
 
 onMounted(loadData);
 </script>
+
+<style scoped>
+.svc-header { border-bottom: 1px solid var(--el-border-color-lighter); }
+.svc-title { font-size: 19px; font-weight: 700; color: var(--el-text-color-primary); margin: 0; }
+.svc-subtitle { font-size: 13px; color: var(--el-text-color-secondary); margin: 5px 0 0; }
+.svc-empty { font-size: 13px; color: var(--el-text-color-secondary); }
+.panel-card {
+  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-radius: 18px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+}
+.flat-table { --el-table-border-color: var(--el-border-color-lighter); }
+.flat-table :deep(th.el-table__cell) {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-weight: 600;
+}
+</style>

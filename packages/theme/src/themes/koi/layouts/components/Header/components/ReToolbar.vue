@@ -27,9 +27,9 @@
     <!-- 多时区计时器（@repo/work Worker 驱动，app.yaml other.timer 控制，始终显示本地时间） -->
     <ReTimer v-if="timerConfig.enable"></ReTimer>
     <!-- 天气 -->
-    <ReWeather v-if="toolbarConfig.weather && weatherConfig.enable"></ReWeather>
+    <ReWeather v-if="toolbarConfig.weather && weatherConfig.enable && weatherCapability"></ReWeather>
     <!-- 台风 -->
-    <ReTyphoon v-if="toolbarConfig.typhoon"></ReTyphoon>
+    <ReTyphoon v-if="toolbarConfig.typhoon && typhoonCapability"></ReTyphoon>
 
     <!-- 工具栏折叠（始终显示；默认折叠只显示头像，点击展开/收起图标） -->
     <div class="toolbar-toggle-wrap">
@@ -61,7 +61,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { storeToRefs } from "pinia";
 import { DArrowLeft, DArrowRight } from "@element-plus/icons-vue";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { getConfig } from "@repo/config";
+import { getConfig, isCapabilityEnabled } from "@repo/config";
 import { useI18n } from "vue-i18n";
 import ReUser from "@repo/theme/koi/layouts/components/Header/components/ReUser.vue";
 import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
@@ -95,6 +95,9 @@ const toolbarConfig = computed(() => getConfig().other.toolbar);
 const timerConfig = computed(() => getConfig().other.timer);
 // 天气（app.yaml other.weather 配置）
 const weatherConfig = computed(() => getConfig().other.weather);
+// 业务能力开关（app.yaml other.capabilities）：关闭后台能力时对应入口一并隐藏
+const weatherCapability = computed(() => isCapabilityEnabled("weather"));
+const typhoonCapability = computed(() => isCapabilityEnabled("typhoon"));
 // 大屏（app.yaml other.bigscreen 配置；enable 控制顶栏入口显隐，yaml-only，UI 不暴露）
 const bigscreenConfig = computed(() => getConfig().other.bigscreen);
 

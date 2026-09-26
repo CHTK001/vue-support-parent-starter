@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 岗位管理页面
  *
@@ -7,7 +7,7 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { pageForPost, savePost, updatePost, deletePost } from "../api/systemApi";
+import { pageForPost, savePost, updatePost, deletePost, updatePostSortBatch } from "../api/systemApi";
 import type { SysPost } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
@@ -105,6 +105,25 @@ async function handleSubmit() {
   }
 }
 
+async function handleDragSort({ newData }: { newData: SysPost[] }) {
+  try {
+    // 使用拖拽后各行自身的排序值（两行交换，其他行不变）
+    const list = newData.flatMap((row) =>
+      row.sysPostId == null || row.sysPostSort == null
+        ? []
+        : [{
+            sysPostId: row.sysPostId,
+            sysPostSort: row.sysPostSort,
+          }],
+    );
+    await updatePostSortBatch(list);
+    ElMessage.success("排序已更新");
+    tableRef.value?.reload();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "排序更新失败");
+  }
+}
+
 async function handleDelete(row: Record<string, unknown>) {
   const post = row as unknown as SysPost;
   if (deleteLoading.value) return;
@@ -135,6 +154,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysPostStatus", label: "状态", width: 100, slot: "status", align: "center" },
   { prop: "userCount", label: "关联用户数", width: 110, align: "center" },
   { prop: "createTime", label: "创建时间", width: 170 },
+  { prop: "remark", label: "备注", minWidth: 150, showOverflowTooltip: true },
   { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
 ];
 
@@ -151,7 +171,7 @@ onMounted(() => {
         :loader="loadPosts"
         :columns="columns"
         :pagination="true"
-        :params="query"
+        :params="{}"
         row-key="sysPostId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
@@ -159,10 +179,12 @@ onMounted(() => {
         :search-gap="16"
         v-model:search-model="query"
         @search-reset="handleReset"
+        row-draggable
+        sort-field="sysPostSort"
+        @row-sort="handleDragSort"
       >
         <template #toolbar>
-          <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">新增</ReButton>
-          <ReButton layout="modern" icon="Refresh" @click="tableRef?.reload()">刷新</ReButton>
+          <el-button type="primary" icon="Plus" v-admin @click="handleAdd" text>新增</el-button>
         </template>
         <template #status="{ row }">
           <ReTag :type="row.sysPostStatus === 0 ? 'success' : 'danger'" size="small">
@@ -170,8 +192,8 @@ onMounted(() => {
           </ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleEdit(row)">编辑</ReButton>
-          <ReButton layout="square" type="danger" icon="Delete" v-admin :loading="deleteLoading === row.sysPostId" @click="handleDelete(row)">删除</ReButton>
+          <ReButton layout="square" type="primary" icon="Edit" title="编辑" v-admin @click="handleEdit(row)" />
+          <ReButton layout="square" type="danger" icon="Delete" title="删除" v-admin :loading="deleteLoading === row.sysPostId" @click="handleDelete(row)" />
         </template>
       </ReTable>
 
@@ -201,7 +223,7 @@ onMounted(() => {
           <el-segmented v-model="form.sysPostStatus" :options="postStatusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="form.sysPostRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
+          <ReInput layout="modern" v-model="form.remark" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
     </ReDialog>
@@ -213,7 +235,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
 </style>

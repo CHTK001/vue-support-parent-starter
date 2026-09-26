@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 路由守卫 —— 三模式 + 权限校验 + 登录拦截 + 标题设置
  *
  * 守卫逻辑（与 getConfig() 联动，路径均来自 config.route）：
@@ -157,3 +157,6 @@ export function setupRouterGuard(
 
   void layoutName;
 }
+
+
+

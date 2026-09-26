@@ -8,28 +8,18 @@
     <!-- 网格纹理 -->
     <div class="glass-grid" aria-hidden="true"></div>
 
-    <!-- 品牌标识（左上角） -->
-    <div class="glass-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
-      <div class="glass-brand-logo">
-        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-      </div>
-      <span class="glass-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
-    </div>
-
-    <!-- 居中毛玻璃卡片 -->
+    <!-- 居中毛玻璃卡片：品牌只在卡片内出现一次 -->
     <div class="glass-card relative z-10 w-440px max-w-92vw rounded-24px p-40px">
       <div class="glass-card-inner">
         <div class="glass-card-header text-center m-b-36px">
-          <div class="flex flex-items-center flex-justify-center gap-10px m-b-24px md:hidden">
-            <div class="glass-brand-logo glass-brand-logo--mobile">
-              <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-            </div>
+          <div class="glass-card-mark">
+            <img class="glass-card-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
           </div>
           <h3 class="text-28px font-800 m-b-8px text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</h3>
           <p class="text-14px text-[--el-text-color-regular]">{{ translateConfigText(loginConfig.description) }}</p>
         </div>
 
-        <ReLoginForm :show-mobile-brand="false" form-class="glass-form" />
+        <ReLoginForm :show-mobile-brand="false" :show-header="false" form-class="glass-form" />
 
         <div class="glass-footer m-t-24px text-center">
           <span v-if="loginConfig.beiAnHao" class="text-12px text-[--el-text-color-secondary]">
@@ -95,7 +85,7 @@ html.dark .login-glass {
     left: -3%;
     width: 340px;
     height: 340px;
-    background: color-mix(in srgb, var(--el-color-primary) 55%, #06b6d4 45%);
+    background: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-primary-light-5) 45%);
     animation-delay: -5s;
   }
 
@@ -104,7 +94,7 @@ html.dark .login-glass {
     left: 55%;
     width: 220px;
     height: 220px;
-    background: color-mix(in srgb, var(--el-color-primary) 50%, #a855f7 50%);
+    background: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-color-primary-light-3) 50%);
     animation-delay: -10s;
   }
 }
@@ -125,24 +115,20 @@ html.dark .glass-bg {
   pointer-events: none;
 }
 
-/* 品牌 */
-.glass-brand {
-  &-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+/* 卡片内的品牌标识 */
+.glass-card-mark {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+}
 
-    &--mobile {
-      width: 40px;
-      height: 40px;
-    }
-  }
-
-  &-name {
-    letter-spacing: 1px;
-  }
+.glass-card-logo {
+  display: block;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 6px 18px rgba(var(--el-color-primary-rgb), 0.28);
 }
 
 /* 毛玻璃卡片 */

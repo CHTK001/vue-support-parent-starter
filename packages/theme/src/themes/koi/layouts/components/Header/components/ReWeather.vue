@@ -16,83 +16,144 @@
         </div>
       </template>
 
-      <div class="weather-panel" v-loading="loading">
+    <div class="kw-panel" v-loading="loading">
       <template v-if="hasWeather">
-        <div class="weather-panel__head">
-          <span class="weather-panel__head-icon">
-            <ReIcon :name="wmoToFluentIcon(weatherCode)" size="36" class="panel-icon" />
-          </span>
-          <div class="weather-panel__head-info">
-            <span class="weather-panel__city">{{ location }}</span>
-            <span class="weather-panel__status">{{ weatherDesc }}</span>
-          </div>
-          <span class="weather-panel__temp">{{ temp }}°C</span>
-        </div>
+        <!-- ① 天区：定位 / 天气描述 + 大图标 + 大温度，下方三项玻璃指标卡 -->
+        <section class="kw-hero">
+          <i class="kw-hero__glow kw-hero__glow--a" aria-hidden="true"></i>
+          <i class="kw-hero__glow kw-hero__glow--b" aria-hidden="true"></i>
 
-        <div class="weather-panel__detail">
-          <div class="weather-detail-item">
-            <span class="weather-detail-label">湿度</span>
-            <span class="weather-detail-value">{{ humidity }}%</span>
+          <div class="kw-hero__main">
+            <div class="kw-hero__info">
+              <span class="kw-hero__city">{{ location }}</span>
+              <span class="kw-hero__desc">{{ weatherDesc }}</span>
+            </div>
+            <div class="kw-hero__icon">
+              <el-tooltip :content="weatherDesc" placement="top" :show-after="150">
+                <span class="kw-hero__icon-btn" role="img" :aria-label="weatherDesc">
+                  <ReIcon :name="heroIcon" size="64" class="kw-hero__icon-svg" />
+                </span>
+              </el-tooltip>
+            </div>
+            <div class="kw-hero__temp">
+              <span class="kw-hero__temp-num">{{ temp }}</span>
+              <span class="kw-hero__temp-unit">°C</span>
+            </div>
           </div>
-          <div class="weather-detail-item">
-            <span class="weather-detail-label">风速</span>
-            <span class="weather-detail-value">{{ windSpeed }} km/h</span>
-          </div>
-          <div class="weather-detail-item">
-            <span class="weather-detail-label">体感</span>
-            <span class="weather-detail-value">{{ feelsLike }}°C</span>
-          </div>
-        </div>
 
-        <div v-if="hourlyForecast.length" class="weather-panel__hourly">
-          <div class="weather-forecast-head">
-            <span class="weather-forecast-title">逐小时</span>
-            <span class="weather-forecast-days-count">未来 24h</span>
+          <div class="kw-metrics">
+            <div v-for="item in metrics" :key="item.label" class="kw-metric">
+              <el-tooltip :content="item.tip" placement="top" :show-after="150">
+                <span class="kw-metric__icon" role="img" :aria-label="item.tip"><ReIcon :name="item.icon" size="15" /></span>
+              </el-tooltip>
+              <div class="kw-metric__body">
+                <span class="kw-metric__label">{{ item.label }}</span>
+                <span class="kw-metric__value">{{ item.value }}</span>
+              </div>
+            </div>
           </div>
-          <div class="weather-hourly-list">
+        </section>
+
+        <!-- ② 逐小时 + 温度曲线 -->
+        <section v-if="hourlyForecast.length" class="kw-section">
+          <header class="kw-section__head">
+            <span class="kw-section__title">逐小时</span>
+            <span class="kw-section__extra">未来 24h</span>
+          </header>
+
+          <div ref="hoursEl" class="kw-hours">
             <div
               v-for="(item, index) in hourlyForecast"
               :key="index"
-              :class="['weather-hourly-item', getHourlyClass(item.weatherCode), item.isPast ? 'weather-hourly--past' : '', item.isNow ? 'weather-hourly--now' : '']"
+              :ref="(el) => setHourRef(el, index)"
+              class="kw-hour"
+              :class="{ 'is-now': item.isNow, 'is-past': item.isPast }"
             >
-              <span class="weather-hourly-time" :class="{ 'weather-hourly-time--past': item.isPast, 'weather-hourly-time--now': item.isNow }">{{ item.hour }}</span>
-              <span class="weather-hourly-icon">
-                <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="24" class="hourly-icon" />
-              </span>
-              <span class="weather-hourly-temp">{{ item.temp }}°</span>
+              <span class="kw-hour__time">{{ item.hour }}</span>
+              <el-tooltip :content="hourTip(item)" placement="top" :show-after="150">
+                <span class="kw-hour__icon" role="img" :aria-label="hourTip(item)">
+                  <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="26" />
+                </span>
+              </el-tooltip>
+              <span class="kw-hour__temp">{{ item.temp }}°</span>
             </div>
           </div>
-        </div>
-        <div v-if="forecast.length" class="weather-panel__forecast">
-          <div class="weather-forecast-head">
-            <span class="weather-forecast-title">一周预报</span>
-            <span class="weather-forecast-days-count">{{ forecast.length }} / 7 天</span>
+
+          <div
+            v-if="chart"
+            class="kw-chart"
+            @pointermove="onChartMove"
+            @pointerleave="onChartLeave"
+            @pointercancel="onChartLeave"
+          >
+            <svg class="kw-chart__svg" :viewBox="`0 0 ${CHART_W} ${CHART_H}`" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="koi-weather-area" x1="0" y1="0" x2="0" y2="1">
+                  <stop class="kw-chart__stop-a" offset="0%" />
+                  <stop class="kw-chart__stop-b" offset="100%" />
+                </linearGradient>
+              </defs>
+              <path class="kw-chart__area" :d="chart.area" fill="url(#koi-weather-area)" />
+              <path class="kw-chart__line kw-chart__line--ghost" :d="chart.feels" vector-effect="non-scaling-stroke" />
+              <path class="kw-chart__line" :d="chart.line" vector-effect="non-scaling-stroke" />
+            </svg>
+            <i class="kw-chart__dot" :style="{ left: `${chart.dotX}%`, top: `${chart.dotY}%` }" aria-hidden="true"></i>
+
+            <!-- 悬浮取数：竖线 + 跟随点 + 数据气泡 -->
+            <template v-if="hoverPoint">
+              <i class="kw-chart__guide" :style="{ left: `${hoverPoint.x}%` }" aria-hidden="true"></i>
+              <i
+                class="kw-chart__dot kw-chart__dot--hover"
+                :style="{ left: `${hoverPoint.x}%`, top: `${hoverPoint.y}%` }"
+                aria-hidden="true"
+              ></i>
+              <div
+                class="kw-tip"
+                :class="{ 'kw-tip--below': tipBelow }"
+                :style="{ left: `${tipLeft}%`, top: `${hoverPoint.y}%` }"
+              >
+                <span class="kw-tip__time">{{ hoverPoint.item.hour }}</span>
+                <span class="kw-tip__main">{{ wmoToDesc(hoverPoint.item.weatherCode) }} <b>{{ hoverPoint.item.temp }}°</b></span>
+                <span class="kw-tip__sub">
+                  体感 {{ hoverPoint.item.feelsLike }}°{{ hoverPoint.item.precip ? ` · 降水 ${hoverPoint.item.precip}mm` : "" }}
+                </span>
+              </div>
+            </template>
           </div>
-          <div class="weather-forecast-list">
+        </section>
+
+        <!-- ③ 一周预报 -->
+        <section v-if="forecast.length" class="kw-section">
+          <header class="kw-section__head">
+            <span class="kw-section__title">一周预报</span>
+            <span class="kw-legend"><i class="kw-legend__dot" aria-hidden="true"></i>最低°/最高°</span>
+          </header>
+
+          <div class="kw-week">
             <div
               v-for="(item, index) in forecast"
               :key="item.date"
-              class="weather-forecast-item"
+              class="kw-week__col"
             >
-              <span class="weather-forecast-day">{{ index === 0 ? "今天" : item.day }}</span>
-              <span class="weather-forecast-icon">
-                <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="24" class="forecast-icon" />
-              </span>
-              <span class="weather-forecast-temp">
-                <span class="temp-min">{{ item.tempMin }}°</span>
-                <span class="temp-sep">/</span>
-                <span class="temp-max">{{ item.tempMax }}°</span>
+              <span class="kw-week__day">{{ index === 0 ? "今天" : item.day }}</span>
+              <el-tooltip :content="weekTip(item, index)" placement="top" :show-after="150">
+                <span class="kw-week__icon" role="img" :aria-label="weekTip(item, index)">
+                  <ReIcon :name="wmoToFluentIcon(item.weatherCode)" size="28" />
+                </span>
+              </el-tooltip>
+              <span class="kw-week__temp">
+                <span class="kw-week__min">{{ item.tempMin }}°</span>
+                <span class="kw-week__sep">/</span>
+                <span class="kw-week__max">{{ item.tempMax }}°</span>
               </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="weather-panel__updated">
-          更新于 {{ updatedAt }} · 每小时缓存
-        </div>
+        <p class="kw-foot">更新于 {{ updatedAt }} · 每小时缓存</p>
       </template>
 
-      <div v-else-if="!loading" class="weather-panel__empty">
+      <div v-else-if="!loading" class="kw-empty">
         <el-icon :size="14"><Warning /></el-icon>
         <span>天气数据暂不可用</span>
       </div>
@@ -101,39 +162,226 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { Loading, Warning } from "@element-plus/icons-vue";
-import { useWeather } from "@repo/theme/composables/useWeather";
+import { useWeather, wmoToDesc } from "@repo/theme/composables/useWeather";
 import { getGlobalTimer } from "@repo/work/timer";
 
 const {
-  weatherCode, temp, feelsLike, humidity, windSpeed,
-  location, updatedAt, forecast, hourlyForecast, loading, error,
+  weatherCode, temp, feelsLike, humidity, windSpeed, windDir,
+  location, updatedAt, forecast, hourlyForecast, loading,
   hasWeather, weatherDesc,
   fetchWeather, markHourlyNow, wmoToFluentIcon,
 } = useWeather();
 
-function getForecastIcon(code: number): string {
-  if (code === 0) return "sunny";
-  if (code <= 3) return "partly";
-  if (code <= 49) return "fog";
-  if (code <= 60) return "drizzle";
-  if (code <= 67) return "rain";
-  if (code <= 77) return "snow";
-  if (code <= 82) return "rain";
-  if (code <= 86) return "snow";
-  if (code <= 99) return "thunderstorm";
-  return "cloudy";
+/**
+ * 天区大图标：命中 fluent filled 变体的天气图标。
+ * 雪阵雨无 filled 变体（iconify fluent 集合），保持 regular。
+ */
+function wmoToHeroIcon(wmo: number | null | undefined): string {
+  const regular = wmoToFluentIcon(wmo);
+  if (regular === "fluent:weather-snow-showers-day-24-regular") return regular;
+  return regular.replace("-24-regular", "-24-filled");
 }
 
-function getHourlyClass(code: number): string {
-  return `weather-hourly--${getForecastIcon(code)}`;
+const heroIcon = computed(() => wmoToHeroIcon(weatherCode.value));
+
+/** 曲线/滚动/悬浮提示只消费的逐小时字段（部分 app 的 tsconfig 未映射 @repo/theme/*，此处显式收窄） */
+interface HourlyPointLike {
+  hour: string;
+  temp: number;
+  feelsLike: number;
+  weatherCode: number;
+  precip?: number;
+  isNow: boolean;
 }
+
+/** 逐日悬浮提示只消费的字段 */
+interface ForecastDayLike {
+  day: string;
+  weatherCode: number;
+  tempMin: number;
+  tempMax: number;
+  precipProb?: number;
+}
+
+/** 逐小时图标悬浮信息：时间 + 天气 + 温度（有降水追加） */
+function hourTip(item: HourlyPointLike): string {
+  const base = `${item.hour} ${wmoToDesc(item.weatherCode)} ${item.temp}°`;
+  return item.precip ? `${base} · 降水 ${item.precip}mm` : base;
+}
+
+/** 逐日图标悬浮信息：日期 + 天气 + 最低/最高温（有降水概率追加） */
+function weekTip(item: ForecastDayLike, index: number): string {
+  const base = `${index === 0 ? "今天" : item.day} ${wmoToDesc(item.weatherCode)} ${item.tempMin}°/${item.tempMax}°`;
+  return item.precipProb ? `${base} · 降水概率 ${item.precipProb}%` : base;
+}
+
+/** 三项指标卡（湿度 / 风速 / 体感），图标沿用系统 iconify 前缀约定；tip 为图标悬浮补充信息 */
+const metrics = computed(() => [
+  {
+    label: "湿度",
+    value: `${humidity.value ?? 0}%`,
+    icon: "fluent:drop-24-regular",
+    tip: `相对湿度 ${humidity.value ?? 0}% · 今日降水 ${forecast.value[0]?.precip ?? 0}mm`,
+  },
+  {
+    label: "风速",
+    value: `${windSpeed.value ?? 0}km/h`,
+    icon: "humbleicons:wind",
+    tip: `${windDir.value || "无持续风向"} · ${windSpeed.value ?? 0}km/h`,
+  },
+  {
+    label: "体感",
+    value: `${feelsLike.value ?? 0}°`,
+    icon: "fluent:temperature-24-regular",
+    tip: `体感 ${feelsLike.value ?? 0}°C · 实况 ${temp.value ?? 0}°C`,
+  },
+]);
+
+/* ==================== 温度曲线（SVG 平滑折线 + 面积） ==================== */
+
+/** 曲线坐标系宽高（等比缩放到容器，曲线描边用 non-scaling-stroke 保持粗细） */
+const CHART_W = 100;
+const CHART_H = 36;
+
+interface ChartPaths {
+  line: string;
+  area: string;
+  feels: string;
+  dotX: number;
+  dotY: number;
+}
+
+/** 曲线点（百分比坐标 + 原始数据）：路径生成与悬浮取数共用同一份归一化结果 */
+interface ChartPoint {
+  /** 横向百分比 0-100 */
+  x: number;
+  /** 实况温度纵向百分比 0-100 */
+  y: number;
+  /** 体感温度纵向百分比 0-100 */
+  yFeels: number;
+  item: HourlyPointLike;
+}
+
+const r2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** Catmull-Rom → 三次贝塞尔，生成平滑路径 */
+function smoothPath(points: Array<{ x: number; y: number }>): string {
+  if (points.length < 2) return "";
+  let d = `M ${r2(points[0].x)} ${r2(points[0].y)}`;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+    d +=
+      ` C ${r2(p1.x + (p2.x - p0.x) / 6)} ${r2(p1.y + (p2.y - p0.y) / 6)},` +
+      ` ${r2(p2.x - (p3.x - p1.x) / 6)} ${r2(p2.y - (p3.y - p1.y) / 6)},` +
+      ` ${r2(p2.x)} ${r2(p2.y)}`;
+  }
+  return d;
+}
+
+const chartPoints = computed<ChartPoint[]>(() => {
+  const list = (hourlyForecast.value ?? []) as HourlyPointLike[];
+  if (list.length < 2) return [];
+
+  const temps = list.map((p) => p.temp);
+  const feels = list.map((p) => p.feelsLike);
+  const min = Math.min(...temps, ...feels);
+  const span = Math.max(Math.max(...temps, ...feels) - min, 1);
+  const top = 5;
+  const height = CHART_H - top - 7;
+  const yPct = (v: number): number => ((top + height * (1 - (v - min) / span)) / CHART_H) * 100;
+
+  return list.map((item, i) => ({
+    x: r2((100 * i) / (list.length - 1)),
+    y: r2(yPct(item.temp)),
+    yFeels: r2(yPct(item.feelsLike)),
+    item,
+  }));
+});
+
+const chart = computed<ChartPaths | null>(() => {
+  const points = chartPoints.value;
+  if (points.length < 2) return null;
+
+  const toView = (p: { x: number; y: number }): { x: number; y: number } => ({
+    x: (p.x * CHART_W) / 100,
+    y: (p.y * CHART_H) / 100,
+  });
+  const line = smoothPath(points.map(toView));
+  const now = points.find((p) => p.item.isNow) ?? points[0];
+
+  return {
+    line,
+    area: `${line} L ${CHART_W} ${CHART_H} L 0 ${CHART_H} Z`,
+    feels: smoothPath(points.map((p) => toView({ x: p.x, y: p.yFeels }))),
+    dotX: now.x,
+    dotY: now.y,
+  };
+});
+
+/* ==================== 曲线悬浮取数 ==================== */
+
+/** 当前悬浮点下标（-1 = 未悬浮） */
+const hoverIndex = ref(-1);
+
+const hoverPoint = computed<ChartPoint | null>(() =>
+  hoverIndex.value >= 0 ? chartPoints.value[hoverIndex.value] ?? null : null,
+);
+
+/** 气泡横向钳制，避免贴边溢出面板 */
+const tipLeft = computed(() => Math.min(84, Math.max(16, hoverPoint.value?.x ?? 50)));
+
+/** 点位靠上时气泡翻到下方，避免被面板上缘裁剪 */
+const tipBelow = computed(() => (hoverPoint.value?.y ?? 0) < 40);
+
+/** 指针位置 → 最近数据点（点等距分布，直接按比例取整） */
+function onChartMove(event: PointerEvent): void {
+  const count = chartPoints.value.length;
+  if (count < 2) return;
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  if (!rect.width) return;
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+  hoverIndex.value = Math.round(ratio * (count - 1));
+}
+
+function onChartLeave(): void {
+  hoverIndex.value = -1;
+}
+
+/* ==================== 逐小时横向滚动：初始定位到当前小时 ==================== */
+
+const hoursEl = ref<HTMLElement | null>(null);
+const hourEls: Array<HTMLElement | null> = [];
+
+function setHourRef(el: unknown, index: number): void {
+  hourEls[index] = (el as HTMLElement | null) ?? null;
+}
+
+function scrollToNow(): void {
+  const index = (hourlyForecast.value as HourlyPointLike[]).findIndex((item) => item.isNow);
+  if (index < 0) return;
+  nextTick(() => {
+    const parent = hoursEl.value;
+    const target = hourEls[index];
+    if (!parent || !target) return;
+    parent.scrollTo({
+      left: target.offsetLeft - (parent.clientWidth - target.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  });
+}
+
+watch(hourlyForecast, () => scrollToNow(), { immediate: true });
 
 let unsubscribeTimer: (() => void) | null = null;
 
 onMounted(async () => {
   await fetchWeather();
+  scrollToNow();
   unsubscribeTimer = getGlobalTimer().subscribe((tick) => {
     markHourlyNow(tick.timestamp);
   });
@@ -146,6 +394,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+/* ==================== 触发器（顶栏） ==================== */
 .weather-trigger {
   display: flex;
   align-items: center;
@@ -154,503 +403,529 @@ onBeforeUnmount(() => {
   height: 36px;
   padding: 0 10px;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--el-radius-sm, 6px);
   transition:
-    background-color 0.3s ease,
+    background-color var(--el-transition-duration, 0.2s) ease,
     transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   .trigger-icon {
     width: 20px;
     height: 20px;
+    color: var(--el-header-text-color, var(--el-text-color-primary));
     object-fit: contain;
-    transition: transform 0.3s ease;
+    transition:
+      transform 0.3s ease,
+      color 0.2s ease;
   }
 
   .trigger-temp {
     font-size: 13px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    color: var(--el-text-color-primary);
+    color: var(--el-header-text-color, var(--el-text-color-primary));
     letter-spacing: 0.5px;
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+    background: var(--el-header-icon-hover-bg-color, var(--el-fill-color-light));
 
     .trigger-icon {
       color: var(--el-color-primary);
+      transform: scale(1.06);
     }
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 }
 
-html.dark {
-  .weather-trigger {
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-  }
-}
-
-/* ==================== popover 面板内容 ==================== */
-.weather-panel {
+/* ==================== 面板容器 ==================== */
+.kw-panel {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  padding: 14px;
+  gap: 12px;
+  max-height: min(76vh, 640px);
+  padding: 12px;
+  overflow-y: auto;
+  background: var(--el-bg-color);
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-dark) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color-dark);
+    border-radius: var(--el-radius-sm, 6px);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
-.weather-panel__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+/* ==================== ① 天区 ==================== */
+.kw-hero {
+  position: relative;
+  padding: 16px;
+  overflow: hidden;
+  color: var(--el-color-white);
+  border-radius: var(--el-radius-xl, 16px);
+  background:
+    radial-gradient(120% 95% at 88% -12%, var(--el-color-primary-light-3) 0%, transparent 58%),
+    linear-gradient(
+      160deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 58%,
+      var(--el-color-primary-light-5) 100%
+    );
 
-  .weather-panel__head-icon {
+  &__glow {
+    position: absolute;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+    pointer-events: none;
+
+    &--a {
+      top: -46px;
+      right: -30px;
+      width: 130px;
+      height: 130px;
+    }
+
+    &--b {
+      bottom: -56px;
+      left: -34px;
+      width: 150px;
+      height: 150px;
+      opacity: 0.55;
+    }
+  }
+
+  &__main {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 6px;
+    align-items: center;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__city {
+    overflow: hidden;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__desc {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--el-color-primary-dark-2, var(--el-color-primary)) 45%, transparent));
+  }
+
+  &__icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__icon-svg {
+    color: var(--el-color-white);
+  }
+
+  &__temp {
+    display: flex;
+    align-items: flex-start;
+    justify-self: end;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__temp-num {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -1px;
+  }
+
+  &__temp-unit {
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--el-color-white) 80%, transparent);
+  }
+}
+
+/* ==================== 三项玻璃指标卡 ==================== */
+.kw-metrics {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.kw-metric {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 8px;
+  background: color-mix(in srgb, var(--el-color-white) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 30%, transparent);
+  border-radius: var(--el-radius-lg, 12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  &__icon {
     display: flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-  }
-
-  .weather-panel__head-info {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-
-    .weather-panel__city {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--el-text-color-primary);
-    }
-
-    .weather-panel__status {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-    }
-  }
-
-  .weather-panel__temp {
-    font-size: 28px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
+    width: 26px;
+    height: 26px;
     color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-color-white) 92%, transparent);
+    border-radius: 50%;
   }
-}
 
-.weather-panel__detail {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-
-  .weather-detail-item {
+  &__body {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 4px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 8px;
+    min-width: 0;
+  }
 
-    .weather-detail-label {
-      font-size: 11px;
-      color: var(--el-text-color-secondary);
-    }
+  &__label {
+    font-size: 11px;
+    line-height: 1.2;
+    color: color-mix(in srgb, var(--el-color-white) 82%, transparent);
+  }
 
-    .weather-detail-value {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-    }
+  &__value {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }
 
-.weather-panel__updated {
-  font-size: 11px;
-  text-align: center;
-  color: var(--el-text-color-secondary);
+/* ==================== 分节通用 ==================== */
+.kw-section {
+  display: flex;
+  flex-direction: column;
 }
 
-.weather-panel__forecast {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.weather-forecast-head {
+.kw-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.weather-forecast-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-}
-
-.weather-forecast-days-count {
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.weather-forecast-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.weather-forecast-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 2px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
-
-  &:last-child { border-bottom: none; }
-}
-
-.weather-forecast-day {
-  width: 30px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  flex-shrink: 0;
-}
-
-.weather-forecast-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.weather-forecast-temp {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  flex: 1;
-}
-
-.temp-min {
-  color: var(--el-text-color-secondary);
-}
-
-.temp-sep {
-  color: var(--el-border-color);
-  font-size: 11px;
-}
-
-.temp-max {
+.kw-section__title {
+  font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-primary);
 }
 
-.weather-forecast-precip {
+.kw-section__extra {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ==================== ② 逐小时 ==================== */
+.kw-hours {
   display: flex;
+  gap: 7px;
+  margin: 0 -2px;
+  padding: 2px 2px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.kw-hour {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 5px;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-}
-
-.weather-panel__hourly {
-  margin-top: 12px;
-}
-
-.weather-hourly-list {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  margin-top: 6px;
-  padding: 8px;
+  width: 58px;
+  padding: 9px 0;
+  color: var(--el-text-color-primary);
   background: var(--el-bg-color);
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  transition:
+    border-color var(--el-transition-duration, 0.2s),
+    background-color var(--el-transition-duration, 0.2s),
+    transform var(--el-transition-duration, 0.2s);
+
+  &__time {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    color: var(--el-text-color-primary);
+  }
+
+  &__temp {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-past {
+    opacity: 0.5;
+  }
+
+  &.is-now {
+    color: var(--el-color-white);
+    background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    border-color: transparent;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+
+    .kw-hour__time,
+    .kw-hour__icon {
+      color: var(--el-color-white);
+    }
+  }
+
+  &:not(.is-now):hover {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-7);
+  }
 }
 
-.weather-hourly-item {
+/* ==================== 温度曲线 ==================== */
+.kw-chart {
   position: relative;
+  height: 92px;
+  margin-top: 2px;
+  cursor: crosshair;
+
+  &__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__stop-a {
+    stop-color: var(--el-color-primary);
+    stop-opacity: 0.32;
+  }
+
+  &__stop-b {
+    stop-color: var(--el-color-primary);
+    stop-opacity: 0;
+  }
+
+  &__line {
+    fill: none;
+    stroke: var(--el-color-primary);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &__line--ghost {
+    stroke: color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+    stroke-width: 1.5;
+  }
+
+  &__dot {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    pointer-events: none;
+    background: var(--el-bg-color);
+    border: 3px solid var(--el-color-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+    transform: translate(-50%, -50%);
+  }
+
+  /* 悬浮跟随点：略大、光环加强 */
+  &__dot--hover {
+    z-index: 1;
+    width: 13px;
+    height: 13px;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  }
+
+  /* 悬浮竖向指示线 */
+  &__guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+    transform: translateX(-50%);
+  }
+}
+
+/* 曲线数据气泡（跟随悬浮点） */
+.kw-tip {
+  position: absolute;
+  z-index: 2;
   display: flex;
   flex-direction: column;
+  gap: 1px;
   align-items: center;
-  gap: 2px;
-  border-radius: 6px;
-  padding: 4px 2px;
-  overflow: hidden;
+  padding: 5px 9px;
+  pointer-events: none;
+  white-space: nowrap;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: var(--el-box-shadow-light);
+  transform: translate(-50%, calc(-100% - 12px));
+
+  &--below {
+    transform: translate(-50%, 12px);
+  }
+
+  &__time {
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--el-text-color-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__main {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--el-text-color-primary);
+
+    b {
+      font-weight: 700;
+      color: var(--el-color-primary);
+    }
+  }
+
+  &__sub {
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--el-text-color-placeholder);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* 天气场景动画背景 */
-
-/* 晴：旋转光晕 */
-.weather-hourly--sunny {
-  background: radial-gradient(circle at 50% 40%, #FFF7E6 0%, #FFF7E6 40%, transparent 70%);
-  animation: sunny-pulse 3s ease-in-out infinite;
+/* ==================== ③ 一周预报 ==================== */
+.kw-legend {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
-.weather-hourly--sunny::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  margin: -20px 0 0 -20px;
+
+.kw-legend__dot {
+  width: 7px;
+  height: 7px;
+  background: var(--el-text-color-placeholder);
   border-radius: 50%;
-  background: radial-gradient(circle, #FFD700 0%, transparent 70%);
-  opacity: 0.35;
-  animation: sunny-pulse 3s ease-in-out infinite;
 }
 
-/* 多云/晴间多云：缓慢移动的云朵 */
-.weather-hourly--partly {
-  background: linear-gradient(180deg, #E8F0F5 0%, #EEF4F8 100%);
-}
-.weather-hourly--partly::before {
-  content: "";
-  position: absolute;
-  top: 6px;
-  left: -30%;
-  width: 60%;
-  height: 8px;
-  border-radius: 4px;
-  background: #C8D8E2;
-  opacity: 0.4;
-  animation: cloud-drift 6s linear infinite;
-}
-.weather-hourly--partly::after {
-  content: "";
-  position: absolute;
-  top: 14px;
-  left: 80%;
-  width: 40%;
-  height: 6px;
-  border-radius: 3px;
-  background: #D8E4EC;
-  opacity: 0.3;
-  animation: cloud-drift 8s linear infinite reverse;
+.kw-week {
+  display: flex;
+  align-items: stretch;
 }
 
-/* 阴：均匀灰暗 */
-.weather-hourly--cloudy {
-  background: #E5E8EB;
-}
-.weather-hourly--cloudy::before {
-  content: "";
-  position: absolute;
-  top: 4px;
-  left: -40%;
-  width: 80%;
-  height: 10px;
-  border-radius: 5px;
-  background: #B8BEC4;
-  opacity: 0.3;
-  animation: cloud-drift 7s linear infinite;
-}
-.weather-hourly--cloudy::after {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: 70%;
-  width: 60%;
-  height: 8px;
-  border-radius: 4px;
-  background: #C8CED4;
-  opacity: 0.25;
-  animation: cloud-drift 9s linear infinite reverse;
+.kw-week__col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 2px 2px;
+
+  & + & {
+    border-left: 1px solid var(--el-border-color-extra-light);
+  }
 }
 
-/* 雾：模糊白雾层 */
-.weather-hourly--fog {
-  background: #E8EAEC;
-}
-.weather-hourly--fog::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.5);
-  animation: fog-fade 4s ease-in-out infinite;
-  border-radius: 6px;
+.kw-week__day {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
-/* 毛毛雨：细碎浅雨线 */
-.weather-hourly--drizzle {
-  background: #E0E8EE;
-}
-.weather-hourly--drizzle::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    75deg,
-    transparent 0,
-    transparent 3px,
-    rgba(120, 160, 190, 0.3) 3px,
-    rgba(120, 160, 190, 0.3) 4px
-  );
-  animation: rain-fall 0.6s linear infinite;
+.kw-week__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  color: var(--el-text-color-primary);
 }
 
-/* 雨：密集斜雨线 */
-.weather-hourly--rain {
-  background: #D6E4EC;
-}
-.weather-hourly--rain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    70deg,
-    transparent 0,
-    transparent 4px,
-    rgba(80, 130, 170, 0.45) 4px,
-    rgba(80, 130, 170, 0.45) 5px
-  );
-  animation: rain-fall 0.4s linear infinite;
-}
-.weather-hourly--rain::after {
-  content: "";
-  position: absolute;
-  bottom: 2px;
-  left: 20%;
-  width: 30%;
-  height: 3px;
-  background: rgba(80, 130, 170, 0.25);
-  border-radius: 50%;
-  animation: puddle-splash 2s ease-in-out infinite;
+.kw-week__temp {
+  display: flex;
+  gap: 1px;
+  align-items: baseline;
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 雪：下落雪花点 */
-.weather-hourly--snow {
-  background: #EDF2F5;
-}
-.weather-hourly--snow::before {
-  content: "❄";
-  position: absolute;
-  top: -4px;
-  left: 20%;
-  font-size: 8px;
-  color: rgba(120, 160, 200, 0.5);
-  animation: snow-fall 3s linear infinite;
-}
-.weather-hourly--snow::after {
-  content: "❄";
-  position: absolute;
-  top: -8px;
-  left: 70%;
-  font-size: 6px;
-  color: rgba(150, 180, 210, 0.4);
-  animation: snow-fall 4s linear infinite reverse;
+.kw-week__min {
+  color: var(--el-text-color-secondary);
 }
 
-/* 雷暴：暗紫背景 + 闪电闪烁 */
-.weather-hourly--thunderstorm {
-  background: #D8D5E0;
-}
-.weather-hourly--thunderstorm::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.7);
-  animation: lightning-flash 2.5s ease-in-out infinite;
-  border-radius: 6px;
-}
-.weather-hourly--thunderstorm::after {
-  content: "⚡";
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: 8px;
-  color: rgba(255, 200, 50, 0.6);
-  animation: lightning-bolt 2.5s ease-in-out infinite;
-}
-
-/* 已过/当前时间样式 */
-.weather-hourly--past {
-  opacity: 0.45;
-  filter: grayscale(0.6);
-}
-.weather-hourly--now {
-  box-shadow: 0 0 0 2px var(--el-color-primary);
-  background: var(--el-fill-color);
-}
-
-.weather-hourly-time {
-  position: relative;
-  z-index: 1;
+.kw-week__sep {
   font-size: 10px;
   color: var(--el-text-color-placeholder);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
 }
-.weather-hourly-time--past {
-  color: var(--el-text-color-placeholder);
-}
-.weather-hourly-time--now {
-  color: var(--el-color-primary);
+
+.kw-week__max {
   font-weight: 700;
-}
-
-.weather-hourly-icon {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 22px;
-}
-
-.weather-hourly-temp {
-  font-size: 13px;
-  font-weight: 600;
   color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
 }
 
-.weather-detail-card {
+/* ==================== 页脚 / 空态 ==================== */
+.kw-foot {
+  margin: 0;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  text-align: center;
+}
+
+.kw-empty {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px 2px;
-}
-
-.weather-detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
-  font-size: 12px;
-}
-
-.weather-detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  color: var(--el-text-color-secondary);
-  flex-shrink: 0;
-}
-
-.detail-value {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.weather-panel__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
-  padding: 20px 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
@@ -661,10 +936,9 @@ html.dark {
 .koi-weather-popover {
   padding: 0 !important;
   overflow: hidden;
+  background: var(--el-bg-color) !important;
   border: 1px solid var(--el-border-color-lighter) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-radius: var(--el-radius-xl, 16px) !important;
+  box-shadow: var(--el-box-shadow-light) !important;
 }
 </style>

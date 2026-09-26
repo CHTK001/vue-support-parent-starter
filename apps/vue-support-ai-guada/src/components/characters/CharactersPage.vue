@@ -8,7 +8,7 @@
             :loading="loading" @create-character="createCharacter" @edit-character="editCharacter"
             @delete-character="deleteCharacter" @start-new-chat="startNewChat" @select-group="selectGroup"
             @create-group="showCreateGroupDialog" @rename-group="handleRenameGroup" @delete-group="handleDeleteGroup"
-            @open-docs="openDocs" @imported="handleImported" />
+            @open-docs="openDocs" @imported="handleImported" @open-market="openMarket" />
         </div>
       </div>
     </div>
@@ -161,6 +161,10 @@ const handleSaved = async (characterData: any): Promise<void> => {
 
 const handleImported = async (): Promise<void> => {
   await loadCharacters(currentGroupId.value || undefined)
+}
+
+const openMarket = (): void => {
+  router.push({ name: 'Plugins', params: { tab: 'characters' } })
 }
 
 // ========== 生命周期 ==========

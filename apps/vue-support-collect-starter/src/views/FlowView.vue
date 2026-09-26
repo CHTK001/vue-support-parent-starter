@@ -6,7 +6,7 @@
   cron 用 ReCron：面板生成 + 合法性 + 未来触发时间都在页面上算，与服务端同一套 6 字段方言。
 -->
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onUnmounted, reactive, ref } from "vue";
+  import { computed, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref } from "vue";
 import { msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReCron from "@repo/ui/re-cron";
@@ -22,9 +22,12 @@ import FlowDesigner from "../components/FlowDesigner.vue";
 import {
   copyFlow,
   deleteFlow,
-  dryRun,
-  fetchCategoryOptions,
-  fetchMetas,
+    dryRun,
+    fetchCategoryOptions,
+    fetchDatasourceColumns,
+    fetchDatasourceOptions,
+    fetchDatasourceTables,
+    fetchMetas,
   fetchNodeStates,
   fetchRuntime,
   getFlow,
@@ -37,19 +40,18 @@ import {
   updateFlow,
   validateDsl,
 } from "../api/collectApi";
-import { state as authState, logout } from "../composables/useCollectAuth";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
-import { peekCanvasFlowId, takeCanvasFlowId } from "../composables/useCanvasTarget";
-import type {
-  CollectDsl,
-  CollectFlow,
-  CollectFlowSave,
-  CollectOption,
-  CollectRuntime,
-  CollectShapeMeta,
-  CollectTask,
-  CollectTaskLog,
-} from "../types/collect";
+  import type {
+    CollectColumn,
+    CollectDsl,
+    CollectFlow,
+    CollectFlowSave,
+    CollectOption,
+    CollectRuntime,
+    CollectShapeMeta,
+    CollectTask,
+    CollectTaskLog,
+  } from "../types/collect";
 
 defineOptions({ name: "CollectDesign" });
 
@@ -96,7 +98,6 @@ const { loading, reload } = useCollectView(async () => {
     form.threadCount = runtimeInfo.defaultThreadCount ?? 4;
   }
   loaded.value = true;
-  await openPendingFlow();
 });
 
 /**
@@ -114,37 +115,15 @@ async function reloadFlowList(): Promise<void> {
   }
 }
 
-/**
- * 打开调度作业台账「去画布」指定的流程。
- *
- * 目标是一次性登记在模块作用域里的，不能改成路由 query：布局按 route.fullPath 做
- * keepAlive 的 key，改 query 等于换 key，画布实例被重建，刚 load 的流程留在旧实例上。
- */
-async function openPendingFlow(): Promise<void> {
-  const flowId = takeCanvasFlowId();
-  if (!flowId) {
-    return;
-  }
-  if (!(await confirmDiscard("跳转到该流程"))) {
-    return;
-  }
-  try {
-    applyFlow(await getFlow(flowId));
-  } catch (error) {
-    msgError(errText(error));
-  }
-}
-
-/** 画布页是 keepAlive 的，命中缓存时挂载加载不会重跑，重进页面靠激活钩子重载（含跳转目标） */
+/** 画布页是 keepAlive 的，命中缓存时挂载加载不会重跑，重进页面靠激活钩子重载 */
 onActivated(() => {
   if (!loaded.value) {
     return;
   }
-  if (dirty.value && !peekCanvasFlowId()) {
+  if (dirty.value) {
     // 脏画布不能整条重载：metas 换身份会重建调色板与画布，刚摆上去还没存的节点会被抹掉
     void reloadFlowList();
   } else {
-    // 有深链目标时照旧整条重载，openPendingFlow 会先弹丢弃确认
     void reload();
   }
   resumePolling();
@@ -168,6 +147,27 @@ const categorySelectOptions = computed<ReOption[]>(() => [
 const subflowOptions = computed<CollectOption[]>(() => flows.value
   .filter(flow => flow.collectFlowId !== currentId.value)
   .map(flow => ({ value: String(flow.collectFlowId), label: flow.collectFlowName })));
+
+/* ------------------------- 入库节点：数据源 / 表 / 列 ------------------------- */
+
+/** 数据源下拉候选，后端已把应用主库固定为首项 */
+const datasourceOptions = ref<CollectOption[]>([]);
+
+onMounted(() => {
+  void fetchDatasourceOptions()
+    .then(rows => (datasourceOptions.value = rows ?? []))
+    .catch(() => (datasourceOptions.value = []));
+});
+
+/** 读表清单：设计器按需调用并自行缓存，这里只做透传 */
+async function loadTables(datasource: string): Promise<string[]> {
+  return (await fetchDatasourceTables(datasource)) ?? [];
+}
+
+/** 读列元数据：字段映射控件的左列候选 */
+async function loadColumns(datasource: string, table: string): Promise<CollectColumn[]> {
+  return (await fetchDatasourceColumns(datasource, table)) ?? [];
+}
 
 /* -------------------------------- 任务轮询 -------------------------------- */
 
@@ -497,10 +497,6 @@ async function refreshStates(): Promise<void> {
   }
   await refreshTask();
 }
-
-async function doLogout(): Promise<void> {
-  await logout();
-}
 </script>
 
 <template>
@@ -576,14 +572,12 @@ async function doLogout(): Promise<void> {
         <span>当前任务 {{ activeTask.collectTaskNo }}（{{ activeTask.collectTaskStatus }}）</span>
       </template>
       <span class="spacer"/>
-      <span>采集会话：{{ authState.username || "未登录" }}</span>
-      <ReButton v-if="authState.authenticated && authState.authEnabled" size="small" text @click="doLogout">
-        退出
-      </ReButton>
     </div>
 
-    <FlowDesigner ref="designer" :metas="metas" :states="states" :flow-options="subflowOptions"
-                  @change="dirty = true"/>
+      <FlowDesigner ref="designer" :metas="metas" :states="states" :flow-options="subflowOptions"
+                    :datasource-options="datasourceOptions" :load-tables="loadTables"
+                    :load-columns="loadColumns"
+                    @change="dirty = true"/>
 
     <CategoryDialog v-model="categoryVisible"/>
 

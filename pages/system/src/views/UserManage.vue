@@ -1,20 +1,19 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 用户管理页面
  *
- * 用户分页查询 + 增删改查 + 重置密码 + 分配角色。
+ * 用户分页查询 + 增删改查 + 重置密码；角色/岗位统一在编辑弹窗内分配。
  * 全部使用 ReXxx modern 组件渲染。
  */
 import { computed, nextTick, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, Lock, Unlock, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
   updateUser,
   deleteUser,
   deleteUsers,
-  updateUsersStatus,
   resetUserPassword,
   listForRole,
   listForPost,
@@ -22,15 +21,16 @@ import {
   exportUsers,
   importUsers,
   downloadUserTemplate,
-  lockUser,
   unbindTotp,
 } from "../api/systemApi";
 import type { SysDept, SysPost, SysRole, SysUser, SysUserUpdate, SysUserLog, SysLog } from "../api/types";
 import { pageForUserLog, pageForSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import useUserStore from "@repo/pinia/modules/user";
+import useAuthStore from "@repo/pinia/modules/auth";
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const statusLoading = ref<number>(0);
 const deleteLoading = ref<number>(0);
 const resettingPwd = ref<number>(0);
@@ -62,7 +62,7 @@ const searchFilters = computed(() => [
   { key: 'sysUserPhone', label: '手机号', type: 'input' as const, placeholder: '请输入' },
   {
     key: 'sysDeptId', label: '部门', type: 'treeselect' as const, placeholder: '请选择',
-    options: depts.value as any,
+    options: depts.value,
     attrs: {
       props: { value: 'sysDeptId', label: 'sysDeptName', children: 'children' },
       checkStrictly: true, clearable: true,
@@ -85,9 +85,33 @@ async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise
     sysUserPhone: (params.sysUserPhone as string) || undefined,
     sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
     sysDeptId: params.sysDeptId === "" ? undefined : (params.sysDeptId as number),
-  } as any);
+  });
+  const rows = (res?.data?.data ?? []) as Record<string, unknown>[];
+  // 记录 id -> 完整行，供 el-dropdown 命令回调可靠取行（避免命令处理器闭包捕获到 el-table 的空占位行）
+  rows.forEach((r) => {
+    if (r.sysUserId != null) loadedRowMap.set(r.sysUserId as number, r);
+  });
   total.value = res?.data?.total ?? 0;
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  return { total: res?.data?.total ?? 0, data: rows };
+}
+
+/** 已加载行（id -> 完整行），供「更多」下拉命令回调按 id 取回完整 row */
+const loadedRowMap = new Map<number, Record<string, unknown>>();
+
+/** 当前打开「更多」菜单的行：在触发按钮 click 时记录（该 click 与编辑按钮同样可靠、row 完整），
+ *  规避操作列 fixed=right 时 el-dropdown 在空占位 row 上渲染并缓存空 row 的问题 */
+const currentActionRow = ref<Record<string, unknown> | null>(null);
+
+/**
+ * 「更多」触发按钮点击：不依赖操作列 slot 的 row（el-dropdown 内可能是空占位 row），
+ * 而是通过事件所在行 tr，反查账号列上由完整 row 写入的 data-uid，再从 loadedRowMap 取完整行。
+ */
+function onMoreTrigger(e: Event) {
+  const tr = (e.currentTarget as HTMLElement | null)?.closest?.("tr");
+  const uid = tr?.querySelector("[data-uid]")?.getAttribute("data-uid");
+  if (uid != null && uid !== "") {
+    currentActionRow.value = loadedRowMap.get(Number(uid)) ?? null;
+  }
 }
 
 const tableRef = ref();
@@ -130,26 +154,47 @@ async function loadPosts() {
   }
 }
 
-/* ================== 多选与批量操作 ================== */
-const selectedRows = ref<SysUser[]>([]);
-const batchLoading = ref(false);
-
-function handleSelectionChange(rows: SysUser[]) {
-  selectedRows.value = rows;
-}
-
-/** 选中的用户ID（过滤掉当前登录用户） */
-function selectedUserIds(): number[] {
-  return selectedRows.value
-    .map((u) => u.sysUserId)
-    .filter((v): v is number => !!v);
-}
-
+/* ================== 批量删除（ReTable 内置模式回调） ================== */
 function isSelf(user: SysUser): boolean {
   return user.sysUserUsername === userStore.loginName || user.sysUserUsername === userStore.username;
 }
 
-/* ================== 只读 / 锁定 / 2FA 辅助 ================== */
+/** ReTable 批量删除 handler：删除选中行（自动跳过当前登录账号）；失败抛错以保留选择模式 */
+async function handleBatchDeleteRows(rows: Record<string, unknown>[]): Promise<void> {
+  const selfId = String(authStore.loginUser?.userId ?? "");
+  const picked = rows
+    .map((r) => (r as unknown as SysUser).sysUserId)
+    .filter((v): v is number => v != null);
+  const selfHit = picked.some((id) => String(id) === selfId);
+  const ids = picked.filter((id) => String(id) !== selfId);
+  if (!ids.length) {
+    ElMessage.warning(selfHit ? "不允许删除当前登录账号" : "请选择要删除的用户");
+    throw new Error("no-valid-delete-target");
+  }
+  await deleteUsers(ids);
+  ElMessage.success(`已删除 ${ids.length} 个用户`);
+  if (selfHit) ElMessage.warning("已自动跳过当前登录账号");
+}
+
+/**
+ * 改的是自己时拉一次 /me，刷新前端登录缓存（头像/昵称/邮箱等展示源）。
+ * 按 userId 兜底比对，避免连登录账号一起改动时按用户名判不出。
+ */
+async function refreshSelfCache(user: Partial<SysUser>): Promise<void> {
+  const selfUser = user as SysUser;
+  const isSelfById =
+    user.sysUserId != null && String(user.sysUserId) === String(authStore.loginUser?.userId ?? "");
+  if (!isSelf(selfUser) && !isSelfById) {
+    return;
+  }
+  try {
+    await authStore.getLoginUserInfo(false);
+  } catch (e) {
+    console.warn("[UserManage] /me 刷新失败", e);
+  }
+}
+
+/* ================== 只读 / 2FA 辅助 ================== */
 
 /** 任意角色编码命中 readonly（忽略大小写）即视为只读用户 */
 function isReadonlyUser(user: SysUser): boolean {
@@ -157,47 +202,25 @@ function isReadonlyUser(user: SysUser): boolean {
   return codes.some((c) => c.includes("readonly") || c === "read_only" || c === "ro");
 }
 
+function uniqueUserRoles(row: Record<string, unknown>): SysRole[] {
+  const values: unknown[] = Array.isArray(row.userRoles) ? row.userRoles : [];
+  const roles = values.filter(
+    (role): role is SysRole => typeof role === 'object' && role !== null,
+  );
+  const entries = roles.map(
+    (role): [number | undefined, SysRole] => [role.sysRoleId, role],
+  );
+  return [...new Map(entries).values()];
+}
+
 /** 是否已绑定 2FA（列表返回 sysUserTotpCode 非空即视为已绑定） */
 function hasTotp(user: SysUser): boolean {
   return !!(user as unknown as Record<string, unknown>).sysUserTotpCode;
 }
 
-/** 是否已锁定（sysUserLock=1） */
-function isLocked(user: SysUser): boolean {
-  return Number((user as unknown as Record<string, unknown>).sysUserLock) === 1;
-}
-
-/** 锁定用户行浅红背景 */
-function rowClassName({ row }: { row: Record<string, unknown> }): string {
-  return Number((row as Record<string, unknown>).sysUserLock) === 1 ? "user-locked-row" : "";
-}
-
-const lockLoading = ref<number>(0);
-
-/** 锁定 / 解锁切换 */
-async function handleToggleLock(row: Record<string, unknown>) {
-  const user = row as unknown as SysUser;
-  if (!user.sysUserId) return;
-  const locking = !isLocked(user);
-  try {
-    await ElMessageBox.confirm(
-      `确认${locking ? "锁定" : "解锁"}用户「${user.sysUserNickname ?? user.sysUserUsername}」？`,
-      locking ? "锁定确认" : "解锁确认",
-      { type: "warning" },
-    );
-  } catch {
-    return;
-  }
-  lockLoading.value = user.sysUserId;
-  try {
-    await lockUser(user.sysUserId, locking ? 1 : 0);
-    ElMessage.success(locking ? "已锁定" : "已解锁");
-    tableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "操作失败");
-  } finally {
-    lockLoading.value = 0;
-  }
+/** 是否为系统内置账号（sysUserInSystem=1：禁止删除，仅可编辑资料） */
+function isInSystem(user: SysUser): boolean {
+  return Number((user as unknown as Record<string, unknown>).sysUserInSystem) === 1;
 }
 
 /** 管理员强制解绑 2FA */
@@ -219,55 +242,6 @@ async function handleUnbindTotp(row: Record<string, unknown>) {
     tableRef.value?.reload();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "解绑失败");
-  }
-}
-
-async function handleBatchStatus(status: number) {
-  const ids = selectedUserIds();
-  if (!ids.length) {
-    ElMessage.warning("请先选择用户");
-    return;
-  }
-  const actionText = status === 1 ? "禁用" : "启用";
-  try {
-    await ElMessageBox.confirm(`确认批量${actionText}选中的 ${ids.length} 个用户？`, "批量操作确认", { type: "warning" });
-  } catch {
-    return;
-  }
-  batchLoading.value = true;
-  try {
-    await updateUsersStatus(ids, status);
-    ElMessage.success(`已批量${actionText}`);
-    selectedRows.value = [];
-    tableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批量操作失败");
-  } finally {
-    batchLoading.value = false;
-  }
-}
-
-async function handleBatchDelete() {
-  const ids = selectedUserIds();
-  if (!ids.length) {
-    ElMessage.warning("请先选择用户");
-    return;
-  }
-  try {
-    await ElMessageBox.confirm(`确认批量删除选中的 ${ids.length} 个用户？此操作不可恢复`, "批量删除确认", { type: "warning" });
-  } catch {
-    return;
-  }
-  batchLoading.value = true;
-  try {
-    await deleteUsers(ids);
-    ElMessage.success("批量删除成功");
-    selectedRows.value = [];
-    tableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "批量删除失败");
-  } finally {
-    batchLoading.value = false;
   }
 }
 
@@ -384,7 +358,16 @@ const operLogs = ref<SysLog[]>([]);
 const loadingLogs = ref(false);
 const saving = ref(false);
 const isEdit = ref(false);
-const form = ref<SysUserUpdate>({});
+interface UserForm extends SysUserUpdate {
+  sysUserPasswordConfirm?: string;
+}
+
+const form = ref<UserForm>({});
+
+/** 内置 admin 超管账号：角色固定、拥有全部权限菜单，不允许在编辑页修改角色 */
+const isProtectedAdminAccount = computed(() =>
+  isEdit.value && form.value.sysUserUsername === "admin",
+);
 const avatarInputRef = ref<HTMLInputElement | null>(null);
 const rowAvatarInputRef = ref<HTMLInputElement | null>(null);
 const currentAvatarRow = ref<Record<string, unknown> | null>(null);
@@ -400,12 +383,6 @@ function onIdCardChange(val: string) {
   if (!isNaN(sexDigit)) {
     form.value.sysUserSex = sexDigit % 2 === 1 ? 0 : 1;
   }
-  // 年龄
-  const birthYear = parseInt(val.substring(6, 10), 10);
-  if (!isNaN(birthYear)) {
-    const now = new Date().getFullYear();
-    form.value.sysUserAge = now - birthYear;
-  }
 }
 
 function triggerAvatarUploadForRow(row: Record<string, unknown>) {
@@ -414,8 +391,11 @@ function triggerAvatarUploadForRow(row: Record<string, unknown>) {
 }
 
 function handleRowAvatarChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file || !currentAvatarRow.value) return;
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  const row = currentAvatarRow.value;
+  if (!file || !row) return;
+
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
@@ -427,22 +407,23 @@ function handleRowAvatarChange(e: Event) {
       if (!ctx) return;
       ctx.drawImage(img, 0, 0, 64, 64);
       const base64 = canvas.toDataURL('image/jpeg', 0.4);
-      const userId = currentAvatarRow.value.sysUserId;
-      if (userId) {
+      const userId = row.sysUserId;
+      if (typeof userId === "number") {
         try {
-          await updateUser({ sysUserId: userId, sysUserAvatar: base64 } as any);
+          await updateUser({ sysUserId: userId, sysUserAvatar: base64 });
+          await refreshSelfCache(row as unknown as SysUser);
           ElMessage.success('头像已更新');
           tableRef.value?.reload();
-        } catch (e: any) {
-          console.error('头像更新失败:', e);
-          ElMessage.error(e?.msg || e?.message || '头像更新失败');
+        } catch (error: unknown) {
+          console.error('头像更新失败:', error);
+          ElMessage.error(error instanceof Error ? error.message : '头像更新失败');
         }
       }
     };
     img.src = ev.target?.result as string;
   };
   reader.readAsDataURL(file);
-  (e.target as HTMLInputElement).value = '';
+  input.value = '';
 }
 
 function handleAvatarChange(e: Event) {
@@ -479,8 +460,8 @@ async function loadProfileLogs(username?: string) {
       pageForUserLog({ page: 1, pageSize: 10, sysLogUsername: username }),
       pageForSysLog({ page: 1, pageSize: 10, sysLogUsername: username }),
     ]);
-    loginLogs.value = (loginRes?.data?.data?.list ?? []) as SysUserLog[];
-    operLogs.value = (operRes?.data?.data?.list ?? []) as SysLog[];
+    loginLogs.value = (loginRes?.data?.data ?? []) as SysUserLog[];
+    operLogs.value = (operRes?.data?.data ?? []) as SysLog[];
   } catch {
     loginLogs.value = [];
     operLogs.value = [];
@@ -530,20 +511,22 @@ async function handleSubmit() {
     return;
   }
   
-  // 账号校验：不允许特殊字符和保留字
+  // 账号校验（仅新增；编辑时账号禁用不可改，无需重复校验，否则会误拦截 admin/sa）
   const username = form.value.sysUserUsername.trim();
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    ElMessage.warning("账号只能使用字母、数字和下划线，不允许特殊字符");
-    return;
-  }
-  // 不允许保留字作为账号
-  const reservedUsernames = ["null", "void", "undefined", "admin", "sa", "root", "test", "guest", "anonymous"];
-  if (reservedUsernames.includes(username.toLowerCase())) {
-    ElMessage.warning("该名称为系统保留字，不允许作为账号");
-    return;
+  if (!isEdit.value) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      ElMessage.warning("账号只能使用字母、数字和下划线，不允许特殊字符");
+      return;
+    }
+    // 不允许保留字作为账号
+    const reservedUsernames = ["null", "void", "undefined", "admin", "sa", "root", "test", "guest", "anonymous"];
+    if (reservedUsernames.includes(username.toLowerCase())) {
+      ElMessage.warning("该名称为系统保留字，不允许作为账号");
+      return;
+    }
   }
   
-  if (!isEdit.value && form.value.sysUserPassword !== (form.value as any).sysUserPasswordConfirm) {
+  if (!isEdit.value && form.value.sysUserPassword !== form.value.sysUserPasswordConfirm) {
     ElMessage.warning("两次输入的密码不一致");
     return;
   }
@@ -552,21 +535,26 @@ async function handleSubmit() {
   form.value.sysUserUsername = username;
   saving.value = true;
   try {
-    const data: SysUserUpdate = { ...form.value, updateRole: form.value.roleIds && form.value.roleIds.length > 0 };
+    // 编辑时角色以编辑页为准，始终同步(含清空全部角色)；新增按 roleIds 是否非空处理
+    const payload: UserForm = { ...form.value };
+    delete payload.sysUserPasswordConfirm;
+    const data: SysUserUpdate = {
+      ...payload,
+      updateRole: isEdit.value ? true : !!(form.value.roleIds && form.value.roleIds.length > 0),
+    };
     if (isEdit.value) {
-      const res: any = await updateUser(data);
-      if (res && res.ok === false) throw new Error(res.msg || "修改失败");
+      await updateUser(data);
+      await refreshSelfCache(data);
       ElMessage.success("修改成功");
     } else {
-      const res: any = await saveUser(data);
-      if (res && res.ok === false) throw new Error(res.msg || "新增失败");
+      await saveUser(data);
       ElMessage.success("新增成功");
     }
     dialogVisible.value = false;
     tableRef.value?.reload();
-  } catch (e: any) {
-    console.error('handleSubmit error:', e);
-    ElMessage.error(e?.msg || e?.message || e?.response?.data?.msg || "保存失败");
+  } catch (error: unknown) {
+    console.error('handleSubmit error:', error);
+    ElMessage.error(error instanceof Error ? error.message : "保存失败");
   } finally {
     saving.value = false;
   }
@@ -614,19 +602,6 @@ async function handleStatus(row: Record<string, unknown>) {
   }
 }
 
-async function handleChangeMyPwd() {
-  try {
-    const { value } = await ElMessageBox.prompt("请输入新密码", "修改密码", {
-      inputPlaceholder: "新密码",
-      inputPattern: /.{6,}/,
-      inputErrorMessage: "密码至少6位",
-    });
-    await resetOwner();
-    ElMessage.success("密码已重置，请使用新密码登录");
-  } catch {
-    // 用户取消
-  }
-}
 
 // 重置密码对话框状态
 const resetPwdDialogVisible = ref(false);
@@ -692,47 +667,12 @@ async function handleResetPwdSubmit() {
   }
 }
 
-const roleDialogVisible = ref(false);
-const roleSaving = ref(false);
-const currentUser = ref<SysUser | null>(null);
-const userRoleIds = ref<number[]>([]);
-
-function openRoleDialog(row: Record<string, unknown>) {
-  const user = row as unknown as SysUser;
-  currentUser.value = user;
-  userRoleIds.value = (user.userRoles ?? [])
-    .map((r) => r.sysRoleId)
-    .filter((v): v is number => !!v);
-  roleDialogVisible.value = true;
-}
-
-async function handleSaveRoles() {
-  if (!currentUser.value) return;
-  roleSaving.value = true;
-  try {
-    await updateUser({
-      ...currentUser.value,
-      roleIds: userRoleIds.value,
-      updateRole: true,
-    });
-    ElMessage.success("角色已更新");
-    roleDialogVisible.value = false;
-    tableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "保存失败");
-  } finally {
-    roleSaving.value = false;
-  }
-}
-
 /** 「更多」下拉命令分发 */
 function handleActionCommand(cmd: string, row: Record<string, unknown>) {
   if (cmd === "detail") openDetail(row);
   else if (cmd === "edit") handleEdit(row);
-  else if (cmd === "role") openRoleDialog(row);
   else if (cmd === "resetPwd") openResetPwdDialog(row);
   else if (cmd === "delete") handleDelete(row);
-  else if (cmd === "lock" || cmd === "unlock") handleToggleLock(row);
   else if (cmd === "unbindTotp") handleUnbindTotp(row);
 }
 
@@ -781,29 +721,36 @@ onMounted(() => {
         row-key="sysUserId"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
-        :row-class-name="rowClassName"
+        :batch-delete="true"
+        :batch-delete-handler="handleBatchDeleteRows"
         @search-reset="handleReset"
-        @selection-change="handleSelectionChange"
       >
-        <!-- 工具栏：页面业务按钮（内置只保留 显示/隐藏搜索、刷新、搜索、重置） -->
+        <!-- 工具栏：页面业务按钮（批量删除由 ReTable 内置工具按钮提供） -->
         <template #toolbar>
-          <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">添加</ReButton>
-          <ReButton layout="modern" icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
-          <ReButton layout="modern" icon="Upload" :loading="importing" @click="triggerImport">导入用户</ReButton>
-          <ReButton layout="modern" icon="Download" type="success" :loading="exporting" @click="handleExport">导出</ReButton>
+          <ReButton type="primary" icon="Plus" @click="handleAdd" text>添加</ReButton>
+          <ReButton type="primary" icon="Download" @click="handleDownloadTemplate" text>下载模板</ReButton>
+          <ReButton type="primary" icon="Upload" :loading="importing" @click="triggerImport" text>导入用户</ReButton>
+          <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
         </template>
 
         <template #username="{ row }">
-          <div class="flex items-center gap-2">
-            <el-avatar :size="28" :src="row.sysUserAvatar" class="cursor-pointer" @click="triggerAvatarUploadForRow(row)">
-              <el-icon><User /></el-icon>
-            </el-avatar>
+          <div class="flex items-center gap-2" :data-uid="row.sysUserId">
+            <div class="user-cell__avatar">
+              <el-avatar :size="28" :src="row.sysUserAvatar" class="cursor-pointer" @click="triggerAvatarUploadForRow(row)">
+                <el-icon><User /></el-icon>
+              </el-avatar>
+              <span
+                class="user-cell__dot"
+                :class="row.online ? 'is-online' : 'is-offline'"
+                :title="row.online ? '在线' : '离线'"
+              ></span>
+            </div>
             <div class="flex flex-col">
               <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
               <div class="flex gap-1 mt-0.5">
+                <ReTag v-if="isInSystem(row)" type="warning" effect="dark" size="small">内置</ReTag>
                 <el-tag v-if="row.sysUserStatus !== 1" type="danger" effect="plain" size="small">禁用</el-tag>
                 <el-tag v-else type="success" effect="plain" size="small">启用</el-tag>
-                <el-tag v-if="row.sysUserLock === 1" type="warning" effect="plain" size="small">锁定</el-tag>
                 <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small">只读</el-tag>
               </div>
             </div>
@@ -838,15 +785,17 @@ onMounted(() => {
           </div>
         </template>
         <template #ip="{ row }">
-          <span v-if="row.sysUserLastIp" class="flex items-center gap-1 text-xs">
-            <span>{{ row.sysUserLastIp }}</span>
-            <span v-if="row.sysUserLastAddress" class="text-[--el-text-color-secondary]">{{ row.sysUserLastAddress }}</span>
-          </span>
+          <ReIpText
+            v-if="row.sysUserLastIp"
+            :ip="row.sysUserLastIp"
+            :address="row.sysUserLastAddress"
+            third-party-fix
+          />
           <span v-else class="text-[--el-text-color-secondary]">-</span>
         </template>
         <template #roles="{ row }">
           <el-tag
-            v-for="role in [...new Map((row.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]"
+            v-for="role in uniqueUserRoles(row)"
             :key="role.sysRoleId"
             type="primary"
             effect="plain"
@@ -858,14 +807,11 @@ onMounted(() => {
           <span v-if="!row.userRoles?.length" class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #status="{ row }">
-          <div class="flex flex-col items-center gap-1">
-            <el-switch
-              :model-value="row.sysUserStatus === 1"
-              :disabled="statusLoading === row.sysUserId"
-              @change="() => handleStatus(row)"
-            />
-            <ReTag v-if="isLocked(row)" type="danger" effect="dark" size="small">已锁定</ReTag>
-          </div>
+          <el-switch
+            :model-value="row.sysUserStatus === 1"
+            :disabled="statusLoading === row.sysUserId"
+            @change="() => handleStatus(row)"
+          />
         </template>
         <template #totp="{ row }">
           <ReTag v-if="hasTotp(row)" type="success" effect="plain" size="small">已启用</ReTag>
@@ -873,10 +819,20 @@ onMounted(() => {
         </template>
         <template #action="{ row }">
           <div class="row-actions">
-            <ReButton layout="square" type="primary" :icon="View" title="画像" @click="handleProfile(row)" />
-            <ReButton layout="square" type="primary" :icon="Edit" title="编辑" :disabled="isSelf(row)" @click="handleEdit(row)" />
-            <ReButton layout="square" type="warning" :icon="Key" title="重置密码" :loading="resettingPwd === row.sysUserId" @click="openResetPwdDialog(row)" />
-            <ReButton layout="square" type="danger" :icon="Delete" title="删除" :disabled="isSelf(row)" @click="handleDelete(row)" />
+            <ReButton layout="square" type="primary" icon="View" title="画像" @click="handleProfile(row)" />
+            <ReButton layout="square" type="primary" icon="Edit" title="编辑" @click="handleEdit(row)" />
+            <el-dropdown trigger="click" @command="(cmd: string) => handleActionCommand(cmd, currentActionRow as Record<string, unknown>)">
+              <ReButton layout="square" type="info" icon="More" title="更多" @click="onMoreTrigger" />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="detail" icon="View">详情</el-dropdown-item>
+                  <el-dropdown-item command="edit" icon="Edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="resetPwd" icon="Key">重置密码</el-dropdown-item>
+                  <el-dropdown-item v-if="hasTotp(row)" command="unbindTotp" icon="Delete">解绑2FA</el-dropdown-item>
+                  <el-dropdown-item v-if="!isInSystem(row)" command="delete" icon="Delete" :disabled="isSelf(row)">删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </template>
       </ReTable>
@@ -942,8 +898,12 @@ onMounted(() => {
                 multiple
                 placeholder="分配角色"
                 class="w-full"
+                :disabled="isProtectedAdminAccount"
                 :data="roles.map((r) => ({ label: r.sysRoleName, value: r.sysRoleId }))"
               />
+              <div v-if="isProtectedAdminAccount" class="user-dialog__tip">
+                内置管理员账号默认拥有全部权限与菜单，角色固定；后端同样拒绝任何角色变更
+              </div>
             </el-form-item>
             <el-form-item label="岗位" class="user-dialog__full">
               <ReSelect
@@ -961,8 +921,8 @@ onMounted(() => {
         </el-form>
       </div>
       <template #footer>
-        <ReButton type="default" @click="dialogVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="saving" @click="handleSubmit">确定</ReButton>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSubmit">确定</el-button>
       </template>
     </ReDialog>
 
@@ -996,8 +956,8 @@ onMounted(() => {
         </el-form>
       </div>
       <template #footer>
-        <ReButton type="default" @click="resetPwdDialogVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="resetPwdSaving" @click="handleResetPwdSubmit">确定重置</ReButton>
+        <el-button type="default" @click="resetPwdDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetPwdSaving" @click="handleResetPwdSubmit">确定重置</el-button>
       </template>
     </ReDialog>
 
@@ -1020,7 +980,6 @@ onMounted(() => {
             <el-tag size="small" :type="profileUser.sysUserStatus === 1 ? 'success' : 'danger'">
               {{ profileUser.sysUserStatus === 1 ? '启用' : '禁用' }}
             </el-tag>
-            <el-tag size="small" v-if="profileUser.sysUserLock === 1" type="warning">已锁定</el-tag>
           </div>
           <div class="profile-info-grid profile-info-grid--compact">
             <div class="profile-info-item"><span class="label">账号</span><span>{{ profileUser.sysUserUsername }}</span></div>
@@ -1071,7 +1030,7 @@ onMounted(() => {
                       <span class="log-item__url">{{ log.sysLogUrl || '-' }}</span>
                     </div>
                     <div class="log-item__meta">
-                      <span>{{ log.sysLogContent || log.sysLogMessage || '-' }}</span>
+                      <span>{{ log.sysLogContent || '-' }}</span>
                       <span>{{ log.createTime || '-' }}</span>
                     </div>
                   </div>
@@ -1084,24 +1043,6 @@ onMounted(() => {
       </div>
     </el-dialog>
 
-    <!-- 分配角色弹窗 -->
-    <ReDialog
-      v-model="roleDialogVisible"
-      :title="`分配角色 - ${currentUser?.sysUserNickname ?? currentUser?.sysUserUsername ?? ''}`"
-      width="480"
-      :close-on-click-modal="false"
-      destroy-on-close
-      layout="modern"
-      compact
-      :confirm-loading="roleSaving"
-      @ok="handleSaveRoles"
-    >
-      <el-checkbox-group v-model="userRoleIds">
-        <div v-for="r in roles" :key="r.sysRoleId" class="py-1">
-          <el-checkbox :value="r.sysRoleId">{{ r.sysRoleName }} ({{ r.sysRoleCode }})</el-checkbox>
-        </div>
-      </el-checkbox-group>
-    </ReDialog>
 
     <!-- 用户详情抽屉 -->
     <ReDrawer
@@ -1154,10 +1095,6 @@ onMounted(() => {
 
         <div class="detail-section-title">安全信息</div>
         <el-descriptions :column="1" border :label-style="{ width: '110px', fontWeight: 600 }">
-          <el-descriptions-item label="锁定状态">
-            <ReTag v-if="isLocked(detailUser)" type="danger" effect="plain" size="small">已锁定</ReTag>
-            <ReTag v-else type="success" effect="plain" size="small">正常</ReTag>
-          </el-descriptions-item>
           <el-descriptions-item label="2FA 状态">
             <ReTag v-if="hasTotp(detailUser)" type="success" effect="plain" size="small">已启用</ReTag>
             <ReTag v-else type="info" effect="plain" size="small">未启用</ReTag>
@@ -1267,7 +1204,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
 .system-page__header {
@@ -1337,16 +1274,48 @@ onMounted(() => {
 .user-dialog__full {
   grid-column: 1 / -1;
 }
+.user-dialog__tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
 .detail-section-title {
   margin: 16px 0 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
-:deep(.user-locked-row) {
-  background: var(--el-color-danger-light-9);
+.user-cell__avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+.user-cell__dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  box-sizing: content-box;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--el-bg-color);
+  border-radius: 50%;
+}
+.user-cell__dot.is-online {
+  background: var(--el-color-success);
+  animation: user-cell__pulse 2s ease-in-out infinite;
+}
+.user-cell__dot.is-offline {
+  background: var(--el-text-color-disabled);
+}
+@keyframes user-cell__pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 </style>
-
-
-

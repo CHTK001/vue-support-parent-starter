@@ -1,41 +1,56 @@
 <template>
   <div class="p-4">
-    <div class="flex items-center justify-between mb-6">
-      <h3 class="text-xl font-bold text-gray-800">趣味模块配置</h3>
-      <el-button type="primary" @click="showAddDialog">添加模块</el-button>
-    </div>
+    <h3 class="text-xl font-bold text-gray-800 mb-3">趣味模块配置</h3>
 
     <!-- 配置列表 -->
-    <el-table :data="configs" stripe border style="width: 100%">
-      <el-table-column prop="moduleCode" label="模块编码" width="120" />
-      <el-table-column prop="moduleName" label="模块名称" width="150" />
-      <el-table-column prop="moduleDesc" label="描述" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="moduleIcon" label="图标" width="80" align="center">
+    <ReTable
+      :data="filtered"
+      :loading="loading"
+      :search="searchConfig"
+      v-model:search-model="searchModel"
+      row-key="configId"
+      :pagination="false"
+      border
+      stripe
+      style="width: 100%"
+      @refresh="loadConfigs"
+    >
+      <template #toolbar>
+        <ReButton type="primary" icon="Plus" @click="showAddDialog">添加模块</ReButton>
+      </template>
+      <ReTableColumn prop="moduleCode" label="模块编码" width="120" />
+      <ReTableColumn prop="moduleName" label="模块名称" width="150" />
+      <ReTableColumn prop="moduleDesc" label="描述" min-width="200" show-overflow-tooltip />
+      <ReTableColumn prop="moduleIcon" label="图标" width="80" align="center">
         <template #default="{ row }">
           <el-icon :size="20">
             <component :is="row.moduleIcon" />
           </el-icon>
         </template>
-      </el-table-column>
-      <el-table-column prop="modulePath" label="路径" width="150" />
-      <el-table-column prop="enabled" label="状态" width="100" align="center">
+      </ReTableColumn>
+      <ReTableColumn prop="modulePath" label="路径" width="150" />
+      <ReTableColumn prop="enabled" label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-switch
+          <ReSwitch
             v-model="row.enabled"
             :active-value="1"
             :inactive-value="0"
+            size="small"
+            inline-prompt
+            active-text="启"
+            inactive-text="停"
             @change="toggleEnabled(row)"
           />
         </template>
-      </el-table-column>
-      <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
-      <el-table-column label="操作" width="150" fixed="right">
+      </ReTableColumn>
+      <ReTableColumn prop="sortOrder" label="排序" width="80" align="center" />
+      <ReTableColumn label="操作" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button text size="small" @click="editConfig(row)">编辑</el-button>
-          <el-button text size="small" type="danger" @click="deleteConfig(row)">删除</el-button>
+          <ReButton icon="Edit" :show-text="false" type="primary" @click="editConfig(row)">编辑</ReButton>
+          <ReButton icon="Delete" :show-text="false" type="danger" @click="deleteConfig(row)">删除</ReButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ReTableColumn>
+    </ReTable>
 
     <!-- 编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑模块' : '添加模块'" width="500px">
@@ -71,13 +86,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
+import type { ReTableSearchConfig } from "@repo/ui/re-table";
 
 const configs = ref<FunConfig[]>([]);
 const loading = ref(false);
+
+/** 模块清单是一次性拉回的全量数据，检索只在本地做，不产生请求 */
+const searchModel = ref<Record<string, unknown>>({ moduleName: "", moduleCode: "", enabled: null });
+
+const searchConfig: ReTableSearchConfig = {
+  title: "模块检索",
+  filters: [
+    { key: "moduleName", label: "模块名称", placeholder: "名称关键字" },
+    { key: "moduleCode", label: "模块编码", placeholder: "如 INSECT" },
+    {
+      key: "enabled",
+      label: "状态",
+      type: "select",
+      options: [
+        { label: "已启用", value: 1 },
+        { label: "已停用", value: 0 },
+      ],
+    },
+  ],
+};
+
+const filtered = computed(() => {
+  const name = String(searchModel.value.moduleName ?? "").trim().toLowerCase();
+  const code = String(searchModel.value.moduleCode ?? "").trim().toLowerCase();
+  const enabled = searchModel.value.enabled;
+  return configs.value.filter(
+    (c) =>
+      (!name || String(c.moduleName ?? "").toLowerCase().includes(name)) &&
+      (!code || String(c.moduleCode ?? "").toLowerCase().includes(code)) &&
+      (typeof enabled !== "number" || c.enabled === enabled),
+  );
+});
 
 const dialogVisible = ref(false);
 const isEdit = ref(false);

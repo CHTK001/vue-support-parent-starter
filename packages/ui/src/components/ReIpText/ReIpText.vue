@@ -14,7 +14,7 @@
  */
 import { ref, computed, onMounted, watch } from "vue";
 import { ElDialog, ElTag } from "element-plus";
-import { getApiHttp, type ApiResult } from "@repo/core";
+import { getApiHttp, isCapabilityPathEnabled, IP_LOOKUP_PATH, type ApiResult } from "@repo/core";
 
 const props = withDefaults(
   defineProps<{
@@ -48,8 +48,22 @@ const CACHE_TTL = 86400000;
 
 const hasAddress = computed(() => !!(resolvedAddress.value || props.address));
 
+/** 判断是否为内网/回环地址 */
+function isInternalIp(ip: string): boolean {
+  if (!ip) return false;
+  const v = ip.toLowerCase();
+  if (v === "::1" || v === "0:0:0:0:0:0:0:1" || v === "localhost" || v === "0.0.0.0") return true;
+  if (v.startsWith("fc") || v.startsWith("fd") || v.startsWith("fe8") || v.startsWith("fe9") || v.startsWith("fea") || v.startsWith("feb")) return true;
+  if (v.startsWith("127.") || v.startsWith("10.") || v.startsWith("192.168.")) return true;
+  const m = v.match(/^172\.(\d{1,3})\./);
+  if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return true;
+  return false;
+}
+const internalIp = computed(() => isInternalIp(props.ip));
+
 const displayAddress = computed(() => {
   if (props.address) return props.address;
+  if (internalIp.value) return "本地网络";
   if (resolvedAddress.value) return resolvedAddress.value;
   return props.placeholder || "";
 });
@@ -87,10 +101,13 @@ function writeCache(ip: string, address: string) {
 
 async function doLookup() {
   if (loading.value || !props.ip) return;
+  // 业务能力开关（app.yaml other.capabilities.ipLookup）关闭：不做后台归属地查询，
+  // 后端没有该接口时这条 GET 只会稳定换来一次 404
+  if (!isCapabilityPathEnabled(IP_LOOKUP_PATH)) return;
   loading.value = true;
   try {
     const res = await getApiHttp()
-      .get("/v2/ip/lookup")
+      .get(IP_LOOKUP_PATH)
       .query({ ip: props.ip })
       .then<ApiResult<{ country?: string; province?: string; city?: string; isp?: string }>>((r) => r.data);
     const data = res?.data;
@@ -114,11 +131,13 @@ function resolve() {
     resolvedAddress.value = "";
     return;
   }
-  const cached = readCache(props.ip);
-  if (cached) {
-    resolvedAddress.value = cached;
+  if (isInternalIp(props.ip)) {
+    resolvedAddress.value = "";
     return;
   }
+  const cached = readCache(props.ip);
+  resolvedAddress.value = cached || "";
+  if (cached) return;
   if (props.thirdPartyFix) {
     doLookup();
   }
@@ -137,7 +156,7 @@ function handleClick() {
   dialogVisible.value = true;
 }
 
-watch(() => props.ip, resolve);
+watch(() => [props.ip, props.address], resolve);
 onMounted(resolve);
 </script>
 

@@ -9,6 +9,7 @@
  * 通过 getAdminRoles / getSuperadminRole / isAdmin / isSuperadmin 间接读取。
  */
 import { getConfig } from "@repo/config";
+import { getFrameworkStorage } from "@repo/utils";
 
 /** 存储中的用户信息 key */
 export const USER_INFO_KEY = "userInfo";
@@ -40,18 +41,15 @@ let userPerms: string[] = [];
 /** 角色在 localStorage 的持久化 key（与 v-role 指令 / 面板 isAdmin 读取一致） */
 const ROLES_STORAGE_KEY = "user-roles";
 
-/** 初始化：优先取内存，其次从 localStorage 恢复（跨页面/刷新保持一致） */
+/** 初始化：优先取内存，其次从框架 storage 恢复（跨页面/刷新保持一致） */
 function initUserRoles(): string[] {
   if (userRoles.length > 0) {
     return userRoles;
   }
   try {
-    const raw = localStorage.getItem(ROLES_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        userRoles = parsed;
-      }
+    const parsed = getFrameworkStorage().get<string[]>(ROLES_STORAGE_KEY);
+    if (Array.isArray(parsed)) {
+      userRoles = parsed;
     }
   } catch { /* 忽略解析失败 */ }
   return userRoles;
@@ -61,7 +59,7 @@ function initUserRoles(): string[] {
 export function setUserRoles(roles: string[]): void {
   userRoles = roles;
   try {
-    localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
+    getFrameworkStorage().set(ROLES_STORAGE_KEY, roles);
   } catch { /* 忽略存储失败 */ }
 }
 

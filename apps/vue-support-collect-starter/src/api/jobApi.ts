@@ -1,77 +1,52 @@
 /**
- * 调度作业台账接口层（scheduler-starter 的控制台 API）。
+ * 调度中心接口层（job-starter 治理接口在采集宿主里的控制台出口）。
  *
- * 合并后这套接口跑在采集宿主同一进程里，受采集控制台会话保护（控制器自带 @Ignore，
- * 不需要平台令牌）。路径里的 default 是命名空间段，后端把它当作 sys_job_group 过滤条件，
- * "default" 映射为不过滤；本控制台按台账全量展示，分组差异用列标记区分。
+ * 走 `/v2/scheduler/**`：它是带 `@Ignore` 的控制台出口，复用 job-starter 的
+ * `JobGovernanceService`，由采集控制台会话把关（`CollectConsoleAuthInterceptor`）。
+ * job-starter 自带的 `/v2/job/**` 要求平台统一认证，本宿主没接认证服务端，不要用。
  *
- * 只走 /job-console/api/**：/v1/job-platform/** 没有 @Ignore，仍需平台令牌。
- * /job-console/api/{ns}/task/** 属于调度平台旧的任务视图接口，当前后端实现有缺陷，不要接。
+ * 分页出参是 `PageResult`（`data` 直接是 {pageNo,pageSize,totalPages,total,data:[]}），
+ * http 层已逐层剥掉信封，所以这里拿到的是分页体本身。
  */
 import { get, post, put, del } from "./http";
-import type { JobPage, SysJob, SysJobLog, SysJobLogQuery, SysJobQuery, SysJobSave } from "../types/job";
-import type { CollectPage } from "../types/collect";
+import type { JobExecutor, JobLog, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
 
-/** 命名空间段：default = 不按分组过滤 */
-const NS = "default";
-const API = `/job-console/api/${NS}`;
+const API = "/v2/scheduler";
 
-/** 作业分页（ReturnResult 单层信封，data 直接是 mybatis-plus 分页体） */
-export async function pageJobs(query: SysJobQuery): Promise<CollectPage<SysJob>> {
-  const data = await get<JobPage<SysJob>>(
-    `${API}/job/page`,
-    { pageNum: query.pageNum, pageSize: query.pageSize, jobName: query.sysJobName, triggerStatus: query.sysJobTriggerStatus } as Record<string, unknown>,
-  );
-  return {
-    rows: Array.isArray(data?.records) ? data.records : [],
-    total: Number(data?.total ?? 0),
-    pageNo: Number(data?.current ?? query.pageNum),
-    pageSize: Number(data?.size ?? query.pageSize),
-  };
-}
+/** 工作台概览：角色、选主态、任务与日志计数 */
+export const getSummary = () => get<JobSummary>(`${API}/summary`);
 
-/** 按任务编号取台账详情 */
-export const getJob = (jobNo: string) => get<SysJob>(`${API}/job/no/${encodeURIComponent(jobNo)}`);
+/** 任务运行态分页 */
+export const pageJobs = (query: JobQuery) => get<JobPage<JobRuntime>>(`${API}/page`, { ...query });
 
-/** 新建外部作业，分组由命名空间段决定（default 即不落分组） */
-export const createJob = (job: SysJobSave) => post<SysJob>(`${API}/job`, job);
+/** 按任务键取运行态 */
+export const getJob = (jobKey: string) => get<JobRuntime>(`${API}/detail/${encodeURIComponent(jobKey)}`);
 
-/** 按任务编号更新外部作业 */
-export const updateJob = (jobNo: string, job: SysJobSave) =>
-  put<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}`, job);
+/** 登记或更新任务（调度配置与启停一次写入） */
+export const saveJob = (job: JobSave) => post<boolean>(`${API}/save`, job);
 
-/** 逻辑删除外部作业（后端先停调度再置删除标记） */
-export const deleteJob = (jobNo: string) => del<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}`);
-
-/** 启用调度：置 triggerStatus=1 并算好下次触发时刻 */
-export const startJob = (jobNo: string) => post<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}/start`);
-
-/** 停止调度：置 0 并把下次触发时刻清零，台账行保留 */
-export const stopJob = (jobNo: string) => post<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}/stop`);
+/** 启停自动调度 */
+export const setJobStatus = (jobKey: string, enabled: boolean) =>
+  put<boolean>(`${API}/status`, { jobKey, enabled });
 
 /**
- * 立即派发一次：后端经 JobOperator 的命令通道投递，不改变启停状态也不打乱后续 cron 序列。
- * 页面对停用的作业禁用该按钮——停用的作业不该被点一下就跑。
+ * 立即派发一次：经 JobOperator 命令通道投递，不改变启停状态。
+ * 页面对停用的任务禁用该按钮——停用的任务不该被点一下就跑。
  */
-export const triggerJob = (jobNo: string, param?: string) =>
-  post<boolean>(`${API}/job/no/${encodeURIComponent(jobNo)}/trigger`, undefined, { param });
+export const triggerJob = (jobKey: string) => post<boolean>(`${API}/trigger`, undefined, { jobKey });
 
-/** 作业执行日志分页 */
-export async function pageJobLogs(query: SysJobLogQuery): Promise<CollectPage<SysJobLog>> {
-  const data = await get<JobPage<SysJobLog>>(`${API}/job-log/page`, {
-    pageNum: query.pageNum,
-    pageSize: query.pageSize,
-    beanName: query.beanName,
-    executeCode: query.executeCode,
-  });
-  return {
-    rows: Array.isArray(data?.records) ? data.records : [],
-    total: Number(data?.total ?? 0),
-    pageNo: Number(data?.current ?? query.pageNum),
-    pageSize: Number(data?.size ?? query.pageSize),
-  };
-}
+/** 删除任务（先停调度再删台账行） */
+export const deleteJob = (jobKey: string) => del<boolean>(`${API}/${encodeURIComponent(jobKey)}`);
 
-/** 清理执行日志（含日志文件），retentionDays=0 表示清空全部；返回后端的中文结果文案 */
+/** 本节点已注册执行器清单：@Job 扫描 + 三方编程式注入 */
+export const listExecutors = () => get<JobExecutor[]>(`${API}/executors`);
+
+/** 在线执行器节点清单：远程作业页用（节点身份 / 长链地址 / 处理器） */
+export const listNodes = () => get<JobNode[]>(`${API}/nodes`);
+
+/** 执行日志分页（按触发时刻倒序） */
+export const pageJobLogs = (query: JobLogQuery) => get<JobPage<JobLog>>(`${API}/log/page`, { ...query });
+
+/** 清理执行日志，retentionDays=0 表示清空全部 */
 export const cleanupJobLogs = (retentionDays: number) =>
-  post<string>(`${API}/job-log/cleanup`, undefined, { retentionDays });
+  post<number>(`${API}/log/cleanup`, undefined, { retentionDays });

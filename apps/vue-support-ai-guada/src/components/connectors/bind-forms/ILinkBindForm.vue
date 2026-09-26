@@ -1,64 +1,168 @@
 <template>
-  <div class="ilink-bind-form">
-    <p class="text-sm text-gray-600 dark:text-[#c5c7cc] mb-4 text-center">请使用微信扫描下方二维码完成绑定</p>
-    <div class="qrcode-container inline-block p-4 bg-white rounded-lg mx-auto block w-fit">
-      <img v-if="qrcodeUrl" :src="qrcodeUrl" alt="微信二维码" class="w-48 h-48" />
-      <div v-else class="w-48 h-48 flex items-center justify-center bg-gray-100">
-        <el-icon class="is-loading" size="32">
+  <div class="ilink-bind-form flex flex-col items-center px-2 pb-1">
+    <p class="text-sm text-gray-600 dark:text-[#c5c7cc] text-center min-h-[20px] leading-5">{{ statusText }}</p>
+
+    <div class="qr-card mt-3 p-4 bg-white rounded-2xl border border-gray-100">
+      <img v-if="qrDataUrl" :src="qrDataUrl" alt="微信二维码" class="w-52 h-52 rounded-lg block" />
+      <div v-else class="w-52 h-52 rounded-lg bg-gray-50 flex items-center justify-center text-gray-300">
+        <el-icon class="is-loading" size="34">
           <LoadingOutlined />
         </el-icon>
       </div>
     </div>
-    <div v-if="qrcodeCountdown > 0" class="mt-4 text-sm text-gray-500 text-center">
-      二维码将在 <span class="font-medium text-primary">{{ qrcodeCountdown }}</span> 秒后刷新
+
+    <div class="mt-4 h-5 text-xs text-center">
+      <span v-if="confirmed" class="text-green-600">绑定成功，正在刷新…</span>
+      <span v-else-if="qrcodeCountdown > 0" class="text-gray-400 dark:text-[#6b6d75]">
+        二维码将在 {{ qrcodeCountdown }} 秒后自动刷新
+      </span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { LoadingOutlined } from '@ant-design/icons-vue'
-import { apiService } from '@/services/ApiService'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { LoadingOutlined } from '@vicons/antd'
+import QRCode from 'qrcode'
+import { api } from '@/framework/context'
 
+const props = defineProps<{ modelValue?: Record<string, any> }>()
 const emit = defineEmits<{
-  (e: 'bind', data: Record<string, any>): void
+  (e: 'update:modelValue', v: Record<string, any>): void
+  (e: 'confirmed', data: { botId?: string }): void
 }>()
 
 const qrcodeUrl = ref('')
+const qrDataUrl = ref('')
+const qrcodeKey = ref('')
 const qrcodeCountdown = ref(0)
-let qrcodeTimer: any = null
+const sessionStatus = ref('pending')
+const confirmed = ref(false)
 
-const fetchQrcode = async () => {
-  try {
-    const res = await apiService.post('/v2/connectors/ilink/qrcode')
-    qrcodeUrl.value = res.data.qrcodeUrl
-    qrcodeCountdown.value = res.data.countdown || 60
-  } catch (error) {
-    console.error('获取二维码失败:', error)
-    qrcodeCountdown.value = 60
+let pollTimer: any = null
+let countdownTimer: any = null
+let retryTimer: any = null
+let stopped = false
+
+const statusText = computed(() => {
+  switch (sessionStatus.value) {
+    case 'scanned':
+      return '已扫码，请在微信中点击确认'
+    case 'confirmed':
+      return '绑定成功'
+    case 'expired':
+      return '二维码已过期，正在自动刷新…'
+    case 'error':
+      return '二维码获取失败，正在重试…'
+    default:
+      return '请使用微信扫描下方二维码完成绑定'
+  }
+})
+
+const clearTimers = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = null
   }
 }
 
-onMounted(() => {
-  fetchQrcode()
-  qrcodeTimer = setInterval(() => {
-    if (qrcodeCountdown.value > 0) {
-      qrcodeCountdown.value--
-    } else {
-      fetchQrcode()
-    }
-  }, 1000)
-})
-
-onUnmounted(() => {
-  if (qrcodeTimer) {
-    clearInterval(qrcodeTimer)
+// 二维码页面 URL 是 HTML（X-Frame-Options: SAMEORIGIN，无法直接 img/iframe），
+// 其二维码内容即该完整 URL，这里用 qrcode 库本地渲染成 PNG dataURL
+const renderQr = async (text: string) => {
+  if (!text) return
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(text, {
+      width: 256,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+  } catch (error) {
+    qrDataUrl.value = ''
   }
+}
+
+const startCountdown = (expireAt?: number | null) => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  const base = expireAt ? Number(expireAt) : Date.now() + 180_000
+  const tick = () => {
+    const remain = Math.max(0, Math.round((base - Date.now()) / 1000))
+    qrcodeCountdown.value = remain
+    if (remain <= 0) {
+      begin()
+    }
+  }
+  tick()
+  countdownTimer = setInterval(tick, 1000)
+}
+
+const begin = async () => {
+  if (stopped || confirmed.value) return
+  clearTimers()
+  sessionStatus.value = 'pending'
+  try {
+    const data = await api.post('/connectors/ilink/qrcode', {})
+    if (stopped) return
+    qrcodeKey.value = data?.key || ''
+    if (data?.qrcodeUrl) {
+      qrcodeUrl.value = data.qrcodeUrl
+      renderQr(data.qrcodeUrl)
+    }
+    startCountdown(data?.expireAt)
+    pollTimer = setInterval(poll, 2000)
+    poll()
+  } catch (error: any) {
+    if (stopped) return
+    sessionStatus.value = 'error'
+    retryTimer = setTimeout(begin, 3000)
+  }
+}
+
+const poll = async () => {
+  if (!qrcodeKey.value || stopped || confirmed.value) return
+  try {
+    const s = await api.get('/connectors/ilink/qrcode/status', {
+      params: { key: qrcodeKey.value },
+    })
+    if (stopped) return
+    sessionStatus.value = s?.status || 'pending'
+    if (s?.qrcodeUrl && s.qrcodeUrl !== qrcodeUrl.value) {
+      qrcodeUrl.value = s.qrcodeUrl
+      renderQr(s.qrcodeUrl)
+      startCountdown(s?.expireAt)
+    }
+    if (s?.status === 'confirmed') {
+      confirmed.value = true
+      emit('update:modelValue', { ...(props.modelValue || {}), confirmed: true, botId: s.botId })
+      emit('confirmed', { botId: s.botId })
+      clearTimers()
+    } else if (s?.status === 'expired') {
+      begin()
+    }
+  } catch (error) {
+    // 瞬时错误忽略，下一轮继续
+  }
+}
+
+onMounted(begin)
+onUnmounted(() => {
+  stopped = true
+  clearTimers()
 })
 </script>
 
 <style scoped>
-.qrcode-container {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.qr-card {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 </style>

@@ -9,6 +9,7 @@
             <div class="flex flex-justify-center">
               <div class="mine-avatar-frame-box" :style="{ padding: frameSpill(104, 0) + 'px' }">
                 <div v-if="mineFrameVisible" class="mine-avatar-frame-layer" :style="mineFrameLayer(104, 0)"></div>
+                <span v-else class="koi-avatar-default-frame" :style="defaultFrame(104)"></span>
                 <ReAvatarCrop
                   v-model="mineAvatar"
                   :action="avatarUploadUrl"
@@ -48,7 +49,20 @@
                 <el-icon size="15"><Message /></el-icon>
                 <div class="p-l-2px">用户邮箱</div>
               </div>
-              <div v-text="mine.email"></div>
+              <div class="flex flex-items-center flex-wrap gap-6px">
+                <span v-text="mine.email || '-'"></span>
+                <el-tooltip v-if="mine.emailVerified === 1" :content="`验证于 ${mine.emailVerifyTime || '-'}`" placement="top">
+                  <el-tag type="success" size="small" effect="plain">已验证</el-tag>
+                </el-tooltip>
+                <el-button
+                  v-else-if="emailVerifyEnabled && mine.email"
+                  link
+                  type="primary"
+                  @click="openEmailVerifyDialog"
+                >
+                  验证
+                </el-button>
+              </div>
             </div>
             <div class="flex flex-justify-between flex-wrap p-y-12px">
               <div class="flex flex-items-center">
@@ -99,7 +113,12 @@
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
                     <el-form-item label="邮箱" prop="sysUserEmail">
-                      <el-input v-model="mineForm.sysUserEmail" placeholder="请输入邮箱（选填）" clearable />
+                      <div class="w-full">
+                        <el-input v-model="mineForm.sysUserEmail" placeholder="请输入邮箱（选填）" clearable />
+                        <div v-if="emailPendingTip" class="text-12px leading-18px text-[--el-text-color-secondary]">
+                          {{ emailPendingTip }}
+                        </div>
+                      </div>
                     </el-form-item>
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
@@ -124,6 +143,38 @@
                   </el-col>
                 </el-row>
               </el-form>
+
+              <el-dialog v-model="emailDialogVisible" title="邮箱验证" width="440px" @closed="resetEmailVerify">
+                <div class="flex flex-column gap-10px">
+                  <div class="text-13px text-[--el-text-color-regular]">
+                    验证码将发送至
+                    <b>{{ maskedEmailTarget || mine.email }}</b>
+                    ，请在有效期内填回本页。
+                  </div>
+                  <div class="flex flex-items-center gap-8px">
+                    <el-input
+                      v-model="emailCode"
+                      class="flex-1"
+                      placeholder="请输入验证码"
+                      maxlength="8"
+                      clearable
+                      @keyup.enter="handleEmailVerifyConfirm"
+                    />
+                    <el-button type="primary" plain :loading="emailSending" :disabled="emailCountdown > 0" @click="handleSendEmailCode">
+                      {{ emailCountdown > 0 ? `${emailCountdown}s` : emailSent ? "重新发送" : "获取验证码" }}
+                    </el-button>
+                  </div>
+                  <div v-if="emailSent" class="text-12px text-[--el-text-color-secondary]">
+                    {{ emailExpireCountdown > 0 ? `有效期剩余 ${formatCountdown(emailExpireCountdown)}` : "验证码已过期，请重新获取" }}
+                  </div>
+                </div>
+                <template #footer>
+                  <el-button @click="emailDialogVisible = false">取消</el-button>
+                  <el-button type="primary" :loading="emailVerifying" :disabled="!emailCode" @click="handleEmailVerifyConfirm">
+                    确认验证
+                  </el-button>
+                </template>
+              </el-dialog>
             </el-tab-pane>
 
             <!-- 修改密码 -->
@@ -201,20 +252,38 @@
 
               <el-dialog v-model="totpDialogVisible" title="开启两步验证" width="520px" @closed="handleTotpDialogClosed">
                 <div class="totp-bind">
-                  <div class="totp-bind__tip">
-                    请用验证器 App（Google Authenticator / Microsoft Authenticator 等）添加下面的密钥，再输入 App 生成的 6
-                    位动态码完成绑定。
-                  </div>
-                  <div class="totp-bind__row">
-                    <span class="totp-bind__label">密钥</span>
-                    <code class="totp-bind__value">{{ totpSecret || "-" }}</code>
-                    <el-button link type="primary" @click="copyTotpText(totpSecret)">复制</el-button>
-                  </div>
-                  <div class="totp-bind__row">
-                    <span class="totp-bind__label">绑定链接</span>
-                    <span class="totp-bind__value totp-bind__value--uri">{{ totpUri }}</span>
-                    <el-button link type="primary" @click="copyTotpText(totpUri)">复制</el-button>
-                  </div>
+                  <el-radio-group v-model="totpBindMode" class="totp-bind__mode">
+                    <el-radio-button value="scan">扫码添加</el-radio-button>
+                    <el-radio-button value="manual">手动输入密钥</el-radio-button>
+                  </el-radio-group>
+
+                  <template v-if="totpBindMode === 'scan'">
+                    <div class="totp-bind__tip">
+                      用验证器 App（Google Authenticator / Microsoft Authenticator 等）的「扫码添加」功能扫描下面的二维码，再输入 App 生成的 6
+                      位动态码完成绑定。
+                    </div>
+                    <div class="totp-bind__qr">
+                      <img v-if="totpQrcode" :src="totpQrcode" alt="两步验证二维码" />
+                      <span v-else class="totp-bind__qr-placeholder">二维码生成中…</span>
+                    </div>
+                  </template>
+
+                  <template v-else>
+                    <div class="totp-bind__tip">
+                      无法扫码时，请在验证器 App 中选择「手动输入密钥」，填入下面的密钥，再输入 App 生成的 6 位动态码完成绑定。
+                    </div>
+                    <div class="totp-bind__row">
+                      <span class="totp-bind__label">密钥</span>
+                      <code class="totp-bind__value">{{ totpSecret || "-" }}</code>
+                      <el-button link type="primary" @click="copyTotpText(totpSecret)">复制</el-button>
+                    </div>
+                    <div class="totp-bind__row">
+                      <span class="totp-bind__label">绑定链接</span>
+                      <span class="totp-bind__value totp-bind__value--uri">{{ totpUri }}</span>
+                      <el-button link type="primary" @click="copyTotpText(totpUri)">复制</el-button>
+                    </div>
+                  </template>
+
                   <el-input
                     v-model="totpCode"
                     class="mt-12px"
@@ -239,6 +308,72 @@
                 </span>
               </template>
               <AvatarFramePanel :avatar="mineAvatar" @updated="refreshMine" />
+            </el-tab-pane>
+
+            <el-tab-pane name="logs">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Document /></el-icon>
+                  <span>登录日志</span>
+                </span>
+              </template>
+              <div class="login-log">
+                <div class="login-log__header">
+                  <div class="login-log__title">近期登录记录</div>
+                  <div class="login-log__desc">仅展示当前账号的登录记录，发现异常登录请立即修改密码</div>
+                  <el-button class="login-log__refresh" size="small" :loading="loginLogLoading" @click="loadLoginLogs">
+                    刷新
+                  </el-button>
+                </div>
+                <el-table
+                  v-loading="loginLogLoading"
+                  :data="loginLogRows"
+                  size="small"
+                  :row-class-name="loginLogRowClass"
+                  class="login-log__table"
+                >
+                  <el-table-column prop="createTime" label="登录时间" width="165" />
+                  <el-table-column label="IP / 归属地" min-width="200">
+                    <template #default="{ row }">
+                      <ReIpText :ip="row.sysLogIp || ''" :address="row.sysLogAddress || ''" :third-party-fix="true">
+                        <template #address="{ address }">
+                          <span>{{ [address, row.sysLogIsp].filter(Boolean).join(" · ") }}</span>
+                        </template>
+                      </ReIpText>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="浏览器 / 系统" min-width="170">
+                    <template #default="{ row }">
+                      <div class="login-log__stack">
+                        <span>{{ row.sysLogBrowser || "--" }}</span>
+                        <span>{{ row.sysLogSystem || "--" }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="sysLogLoginType" label="方式" width="90" />
+                  <el-table-column label="状态" width="80">
+                    <template #default="{ row }">
+                      <el-tooltip v-if="row.sysLogStatus === 0 && row.sysLogMessage" :content="row.sysLogMessage" placement="top">
+                        <el-tag type="danger" size="small" effect="plain">失败</el-tag>
+                      </el-tooltip>
+                      <el-tag v-else :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+                        {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-pagination
+                  v-if="loginLogTotal > loginLogPageSize"
+                  class="login-log__pager"
+                  layout="prev, pager, next, total"
+                  size="small"
+                  background
+                  :current-page="loginLogPage"
+                  :page-size="loginLogPageSize"
+                  :total="loginLogTotal"
+                  @current-change="handleLoginLogPage"
+                />
+              </div>
             </el-tab-pane>
 
             <el-tab-pane name="third">
@@ -318,8 +453,8 @@
 
 <script setup lang="ts" name="minePage">
 // @ts-nocheck
-import { nextTick, onMounted, reactive, ref, computed, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture } from "@element-plus/icons-vue";
+import { nextTick, onMounted, onUnmounted, reactive, ref, computed, watch, defineAsyncComponent } from "vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, Document } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo, Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
@@ -387,6 +522,8 @@ const mine = ref({
   nickname: "",
   phone: "",
   email: "",
+  emailVerified: 0,
+  emailVerifyTime: "",
   roles: "",
   avatarFrame: 0,
   avatarFrameShow: 0,
@@ -396,8 +533,9 @@ const mine = ref({
 /** el-card 标签选择 name */
 const activeName = ref("first");
 
-/** 头像框开关：由 app.yaml 的 other.avatarFrame.enable 控制（默认关闭） */
-const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? false);
+/** 能力开关：进入系统时由 /v2/setting/default 下发（sys_setting_code = other.xxx.enable），默认开启 */
+const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? true);
+const personalConfigEnabled = computed(() => getConfig()?.other?.personalConfig?.enable ?? true);
 
 /** 默认头像（与顶部 ReUser 一致） */
 const DEFAULT_AVATAR = defaultAvatarUrl;
@@ -415,6 +553,7 @@ const {
   visible: mineFrameVisible,
   layerStyle: mineFrameLayer,
   spillPx: frameSpill,
+  defaultStyle: defaultFrame,
 } = useWornAvatarFrame(() => mine.value);
 
 /** 读取登录用户信息到展示区与表单 */
@@ -431,6 +570,8 @@ const refreshMine = async () => {
       nickname: data.sysUserNickname || "",
       phone: data.sysUserPhone || "",
       email: data.sysUserEmail || "",
+      emailVerified: data.sysUserEmailVerified ?? 0,
+      emailVerifyTime: data.sysUserEmailVerifyTime || "",
       roles: data.roles?.join("、") || authStore.roleList?.join("、") || "",
       avatarFrame: data.sysUserAvatarFrame ?? 0,
       avatarFrameShow: data.sysUserAvatarFrameShow ?? 0,
@@ -535,6 +676,134 @@ const handleMineSave = () => {
 };
 /** 基本资料 End */
 
+/** 邮箱验证 Begin */
+/** 服务器邮箱通道能力开关：由 /v2/setting/default 下发（sys_setting_code = other.emailVerify.enable），未配置则不渲染验证入口 */
+const emailVerifyEnabled = computed(() => getConfig()?.other?.emailVerify?.enable === true);
+const emailDialogVisible = ref(false);
+const emailCode = ref("");
+const emailSending = ref(false);
+const emailVerifying = ref(false);
+const emailSent = ref(false);
+const maskedEmailTarget = ref("");
+const emailCountdown = ref(0);
+const emailExpireCountdown = ref(0);
+let emailCountdownTimer: ReturnType<typeof setInterval> | undefined;
+let emailExpireTimer: ReturnType<typeof setInterval> | undefined;
+
+/** 表单邮箱与已保存邮箱不一致时，验证入口尚不可用，提示先保存 */
+const emailPendingTip = computed(() => {
+  if (!emailVerifyEnabled.value) return "";
+  const typed = String(mineForm.value.sysUserEmail || "").trim();
+  if (!typed) return "";
+  if (typed !== String(mine.value.email || "").trim()) return "邮箱已修改，保存后可重新验证";
+  if (mine.value.emailVerified !== 1) return "未验证，可在左侧「用户邮箱」处点击验证";
+  return "";
+});
+
+/** 剩余秒数 → mm:ss */
+function formatCountdown(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
+function clearEmailTimers(): void {
+  if (emailCountdownTimer) clearInterval(emailCountdownTimer);
+  if (emailExpireTimer) clearInterval(emailExpireTimer);
+  emailCountdownTimer = undefined;
+  emailExpireTimer = undefined;
+}
+
+/** 关闭弹窗后重置一次性状态（倒计时随 @closed 清理，避免泄漏定时器） */
+function resetEmailVerify(): void {
+  clearEmailTimers();
+  emailCode.value = "";
+  emailSent.value = false;
+  maskedEmailTarget.value = "";
+  emailCountdown.value = 0;
+  emailExpireCountdown.value = 0;
+}
+
+function openEmailVerifyDialog(): void {
+  if (!mine.value.email) {
+    msgError("请先在基本资料中填写邮箱并保存");
+    return;
+  }
+  emailDialogVisible.value = true;
+}
+
+/** 发送验证码：投递地址由后端取本人档案，前端不传邮箱 */
+async function handleSendEmailCode(): Promise<void> {
+  if (emailCountdown.value > 0 || emailSending.value) return;
+  emailSending.value = true;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .post("/v2/user/verify-code/send")
+      .data({ channel: "EMAIL" })
+      .then<{
+        msg?: string;
+        success?: boolean;
+        data?: { maskedTarget?: string; expireSeconds?: number; intervalSeconds?: number };
+      }>((r) => r.data);
+    if (Http.isSuccessful(res)) {
+      emailSent.value = true;
+      maskedEmailTarget.value = res.data?.maskedTarget || "";
+      const interval = res.data?.intervalSeconds ?? 60;
+      const expire = res.data?.expireSeconds ?? 300;
+      clearEmailTimers();
+      emailCountdown.value = interval;
+      emailExpireCountdown.value = expire;
+      emailCountdownTimer = setInterval(() => {
+        emailCountdown.value = emailCountdown.value > 0 ? emailCountdown.value - 1 : 0;
+        if (emailCountdown.value === 0 && emailCountdownTimer) clearInterval(emailCountdownTimer);
+      }, 1000);
+      emailExpireTimer = setInterval(() => {
+        emailExpireCountdown.value = emailExpireCountdown.value > 0 ? emailExpireCountdown.value - 1 : 0;
+        if (emailExpireCountdown.value === 0 && emailExpireTimer) clearInterval(emailExpireTimer);
+      }, 1000);
+      msgSuccess("验证码已发送");
+    } else {
+      msgError(res?.msg || "验证码发送失败");
+    }
+  } catch (e) {
+    msgError("验证码发送失败：" + ((e as Error)?.message || "网络异常"));
+  } finally {
+    emailSending.value = false;
+  }
+}
+
+/** 校验验证码：通过后后端已把结论写入 sys_user，重新拉取 /me 以刷新标签 */
+async function handleEmailVerifyConfirm(): Promise<void> {
+  if (!emailCode.value) {
+    msgError("请输入验证码");
+    return;
+  }
+  emailVerifying.value = true;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .post("/v2/user/verify-code/verify")
+      .data({ channel: "EMAIL", code: emailCode.value })
+      .then<{ msg?: string; success?: boolean; data?: boolean }>((r) => r.data);
+    if (Http.isSuccessful(res) && res.data === true) {
+      msgSuccess("邮箱验证成功");
+      emailDialogVisible.value = false;
+      await authStore.getLoginUserInfo();
+      refreshMine();
+    } else {
+      msgError(res?.msg || "验证码错误或已过期");
+    }
+  } catch (e) {
+    msgError("验证失败：" + ((e as Error)?.message || "网络异常"));
+  } finally {
+    emailVerifying.value = false;
+  }
+}
+
+onUnmounted(() => clearEmailTimers());
+/** 邮箱验证 End */
+
 /** 修改密码 Begin */
 const pwdFormRef = ref<any>();
 const pwdSaving = ref(false);
@@ -617,11 +886,32 @@ const totpDialogVisible = ref(false);
 const totpUri = ref("");
 const totpSecret = ref("");
 const totpCode = ref("");
+/** 绑定方式：scan 扫码（默认）/ manual 手动输入密钥 */
+const totpBindMode = ref<"scan" | "manual">("scan");
+/** 由 otpauth 绑定链接渲染出的二维码 dataURL */
+const totpQrcode = ref("");
 /** 本次是否由「未开启」状态新拉取了密钥：取消时需回滚，否则会留下未验证的密钥 */
 const totpPendingRollback = ref(false);
 
 /** 动态码校验使用的账号名（verify 接口按用户名查库） */
 const totpUsername = computed(() => mine.value.loginName || userStore.username || "");
+
+/** 把绑定链接渲染成二维码；失败则退回手动方式，不留空白面板 */
+const renderTotpQrcode = async (uri: string) => {
+  totpQrcode.value = "";
+  try {
+    const { default: QRCode } = await import("qrcode");
+    totpQrcode.value = await QRCode.toDataURL(uri, {
+      width: 240,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#1f2329ff", light: "#ffffffff" },
+    });
+  } catch (e) {
+    console.error("[mine] 生成两步验证二维码失败", e);
+    totpBindMode.value = "manual";
+  }
+};
 
 /** 读取当前账号的 2FA 绑定状态（后端返回裸 Boolean） */
 const loadTotpStatus = async () => {
@@ -653,8 +943,10 @@ const openTotpBind = async () => {
     totpUri.value = uri;
     totpSecret.value = uri.match(/[?&]secret=([^&]+)/)?.[1] ?? "";
     totpCode.value = "";
+    totpBindMode.value = "scan";
     totpPendingRollback.value = !totpEnabled.value;
     totpDialogVisible.value = true;
+    await renderTotpQrcode(uri);
   } catch (e) {
     msgError("获取绑定链接失败：" + ((e as Error)?.message || "网络异常"));
   } finally {
@@ -725,6 +1017,8 @@ const handleTotpUnbind = async () => {
 
 /** 绑定弹窗关闭：未确认成功的密钥回滚，避免留下形同开启的未验证密钥 */
 const handleTotpDialogClosed = async () => {
+  totpQrcode.value = "";
+  totpBindMode.value = "scan";
   if (!totpPendingRollback.value) return;
   totpPendingRollback.value = false;
   totpUri.value = "";
@@ -743,6 +1037,54 @@ const copyTotpText = async (text: string) => {
   }
 };
 /** 账号安全（TOTP 两步验证）End */
+
+/** 登录日志 Begin */
+/** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
+const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
+
+const loginLogLoading = ref(false);
+const loginLogLoaded = ref(false);
+const loginLogRows = ref<Record<string, any>[]>([]);
+const loginLogTotal = ref(0);
+const loginLogPage = ref(1);
+const loginLogPageSize = 5;
+
+/** 拉取当前账号的登录记录（后端已按 create_by / 登录名过滤并按时间倒序） */
+async function loadLoginLogs(): Promise<void> {
+  loginLogLoading.value = true;
+  try {
+    const { getApiHttp } = await import("@repo/core");
+    const res = await getApiHttp()
+      .get("/v2/user/log/mine-logs")
+      .query({ page: loginLogPage.value, pageSize: loginLogPageSize })
+      .then((r) => r.data);
+    loginLogRows.value = res?.data?.data ?? [];
+    loginLogTotal.value = res?.data?.total ?? 0;
+    loginLogLoaded.value = true;
+  } catch (e) {
+    console.error("登录日志加载失败", e);
+    msgError("登录日志加载失败");
+  } finally {
+    loginLogLoading.value = false;
+  }
+}
+
+function handleLoginLogPage(page: number): void {
+  loginLogPage.value = page;
+  loadLoginLogs();
+}
+
+/** 登录失败行标红 */
+function loginLogRowClass({ row }: { row: Record<string, any> }): string {
+  return row.sysLogStatus === 0 ? "login-log__row--fail" : "";
+}
+
+watch(activeName, (name) => {
+  if (name === "logs" && !loginLogLoaded.value && !loginLogLoading.value) {
+    loadLoginLogs();
+  }
+});
+/** 登录日志 End */
 
 /** 锁屏设置 Begin */
 const lockHasPassword = ref(false);
@@ -1019,6 +1361,34 @@ onMounted(async () => {
   @extend .lock-actions;
 }
 
+.totp-bind__mode {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.totp-bind__qr {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 256px;
+  margin-bottom: 14px;
+}
+
+.totp-bind__qr img {
+  width: 240px;
+  height: 240px;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+}
+
+.totp-bind__qr-placeholder {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 .totp-bind__tip {
   font-size: 13px;
   line-height: 1.6;
@@ -1079,5 +1449,54 @@ onMounted(async () => {
 .lock-form__submit {
   width: 100%;
   margin-top: 4px;
+}
+
+.login-log__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.login-log__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.login-log__desc {
+  flex: 1;
+  min-width: 200px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.login-log__table {
+  width: 100%;
+}
+
+.login-log__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+
+.login-log__stack span:first-child {
+  color: var(--el-text-color-regular);
+}
+
+.login-log__pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.login-log :deep(.login-log__row--fail) td.el-table__cell {
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
 }
 </style>

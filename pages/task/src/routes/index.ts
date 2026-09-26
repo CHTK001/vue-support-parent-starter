@@ -1,5 +1,7 @@
 /**
- * 任务管理模块路由配置（@pages/task）
+ * 任务派发模块路由配置（@pages/task）
+ *
+ * 只保留任务派发。调度中心与调度控制台已迁至 @pages/job（路由 /job/console）。
  *
  * 嵌套结构：/task 父节点 + 叶子子路由。
  * 父节点无 component（仅 redirect），叶子节点挂到 koi layout 下。
@@ -13,7 +15,7 @@ export const taskRoutes: RouteConfigsTable[] = [
     name: "Task",
     redirect: "/task/dispatch",
     meta: {
-      title: "任务管理",
+      title: "任务派发",
       icon: "Position",
       showLink: true,
     },
@@ -29,17 +31,6 @@ export const taskRoutes: RouteConfigsTable[] = [
           keepAlive: true,
         },
       },
-      {
-        path: "/task/scheduler",
-        name: "TaskScheduler",
-        component: () => import("../views/SchedulerManage.vue"),
-        meta: {
-          title: "调度中心",
-          icon: "Timer",
-          showLink: true,
-          keepAlive: true,
-        },
-      },
     ],
   },
 ];
@@ -47,27 +38,17 @@ export const taskRoutes: RouteConfigsTable[] = [
 /**
  * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
  */
-/**
- * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
- * @author CH
- * @since 4.0.0
- */
 export const taskMenus: StaticMenuItem[] = [
   {
     path: "/task",
     name: "Task",
     redirect: "/task/dispatch",
-    meta: { title: "任务管理", icon: "Position", isVisible: "1" },
+    meta: { title: "任务派发", icon: "Position", isVisible: "1" },
     children: [
       {
         path: "/task/dispatch",
         name: "TaskDispatch",
         meta: { title: "任务派发", icon: "Position", isVisible: "1" },
-      },
-      {
-        path: "/task/scheduler",
-        name: "TaskScheduler",
-        meta: { title: "调度中心", icon: "Timer", isVisible: "1" },
       },
     ],
   },

@@ -19,6 +19,7 @@ interface StreamingState {
 interface ContentState {
   isStreaming: boolean;
   isThinking: boolean;
+  isSearching?: boolean;
 }
 
 interface MessageContent {
@@ -32,8 +33,11 @@ interface MessageContent {
   updatedAt: string;
   thinkingStartedAt: number | null;
   thinkingDurationMs: number | null;
+  searchResults?: Array<{ title: string; url: string }>;
+  searchQuery?: string;
   state: ContentState;
   _thinkingTimer?: ReturnType<typeof setInterval> | null;
+  traceLog?: any[];
 }
 
 interface Message {
@@ -59,6 +63,9 @@ interface StreamResponse {
   reasoningContent?: string;
   toolCalls?: any[];
   toolCallsResponse?: any[];
+  status?: string;
+  results?: Array<{ title: string; url: string }>;
+  query?: string;
   usage?: any;
   finishReason?: string;
   error?: string;
@@ -72,6 +79,15 @@ interface StreamResponse {
   retryMaxAttempts?: number;
   retryDelayMs?: number;
   message?: string;
+  trace?: any;
+  // 人工确认（plan_exit）
+  replyId?: string;
+  confirmations?: Array<{
+    toolCallId: string;
+    toolName?: string;
+    title?: string;
+    description?: string;
+  }>;
 }
 
 export function useStreamResponse(sessionStore: any, apiService: any) {
@@ -333,6 +349,27 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
   }
 
   /**
+   * 处理在线检索事件（searching / done）
+   */
+  function handleSearch(
+    content: MessageContent,
+    status: string,
+    query: string | undefined,
+    results: Array<{ title: string; url: string }> | undefined,
+  ): void {
+    if (status === "searching") {
+      content.state.isSearching = true;
+      content.searchQuery = query;
+      return;
+    }
+    if (status === "done") {
+      content.state.isSearching = false;
+      content.searchQuery = query ?? content.searchQuery;
+      content.searchResults = results ?? [];
+    }
+  }
+
+  /**
    * 处理工具调用（增量更新）
    */
   function handleToolCall(content: MessageContent, toolCalls: any[]): void {
@@ -483,6 +520,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     // 更新状态
     content.state.isStreaming = false;
     content.state.isThinking = false;
+    content.state.isSearching = false;
   }
 
   /**
@@ -547,6 +585,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       const msgState = message.state;
       msgState.isStreaming = false;
       msgState.isThinking = false;
+      msgState.isSearching = false;
 
       // 清理计时器，防止内存泄漏
       const content = message.contents[contentIndex];
@@ -561,6 +600,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         if (content.state) {
           content.state.isStreaming = false;
           content.state.isThinking = false;
+          content.state.isSearching = false;
         }
         content.updatedAt = new Date().toISOString();
       }
@@ -590,6 +630,10 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     think?: boolean,
     search?: boolean,
     model?: string,
+    skillNames?: string[],
+    characterId?: string | null,
+    mcpServerIds?: string,
+    mode?: string | null,
   ): Promise<void> {
     sessionStore.setSessionIsStreaming(streamingSessionId, true);
 
@@ -612,6 +656,10 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         think,
         search,
         model,
+        skillNames,
+        characterId,
+        mcpServerIds,
+        mode,
       };
       if (userMessage) {
         chatParams.userMessage = userMessage;
@@ -736,6 +784,18 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
           handleThinkEnd(message.contents[contentIndex]);
         }
 
+        // 处理在线检索
+        if (response.type === "search") {
+          if (message)
+            handleSearch(
+              message.contents[contentIndex],
+              response.status || "done",
+              response.query,
+              response.results,
+            );
+          continue;
+        }
+
         // 处理工具调用（增量更新）
         if (response.type === "tool_call") {
           if (toolPhaseStart === null) toolPhaseStart = Date.now();
@@ -754,6 +814,37 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
             message!.contents[contentIndex],
             response.toolCallsResponse,
           );
+          continue;
+        }
+
+        // 人工确认（plan_exit）：挂到当前助手内容，渲染批准/拒绝卡片
+        if (response.type === "confirmation") {
+          if (message && contentIndex !== undefined) {
+            const content = message.contents[contentIndex];
+            if (content) {
+              content.metadata = {
+                ...content.metadata,
+                confirmationRequest: {
+                  replyId: response.replyId,
+                  items: response.confirmations || [],
+                },
+              };
+            }
+          }
+          continue;
+        }
+
+        // 处理执行轨迹（agentscope 全量日志）
+        if (response.type === "trace") {
+          if (message && contentIndex !== undefined) {
+            const content = message.contents[contentIndex];
+            if (content) {
+              if (!Array.isArray(content.traceLog)) {
+                content.traceLog = [];
+              }
+              content.traceLog.push(response.trace);
+            }
+          }
           continue;
         }
 
@@ -842,17 +933,227 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     think?: boolean,
     search?: boolean,
     model?: string,
+    skillNames?: string[],
+    characterId?: string | null,
+    mcpServerIds?: string,
+    mode?: string | null,
   ): Promise<void> {
     await processStreamLoop(streamingSessionId, null, null, {
       content,
       files: fileIds,
       replaceMessageId: replaceMessageId || undefined,
       knowledgeBaseIds,
-    }, null, think, search, model);
+    }, null, think, search, model, skillNames, characterId, mcpServerIds, mode);
+  }
+
+  /**
+   * 人工确认恢复：批准/拒绝后用决策再次驱动 Agent，并处理恢复后的流。
+   *
+   * 恢复流以 create 帧开始（新的助手消息承载 BUILD 执行），批准卡片保留在
+   * 规划轮的（空）气泡中。
+   */
+  async function processResume(
+    streamingSessionId: string,
+    req: {
+      replyId: string;
+      decisions: Array<{ toolCallId: string; confirmed: boolean }>;
+      model?: string;
+      characterId?: string | null;
+      think?: boolean;
+      feedback?: string;
+    },
+  ): Promise<void> {
+    sessionStore.setSessionIsStreaming(streamingSessionId, true);
+
+    let message: Message | null = null;
+    let contentIndex = 0;
+
+    // 决策结果：用于把旧卡片标记为终态
+    const isApproved = req.decisions.some((d) => d.confirmed);
+
+    // 找到当前已渲染、携带该 replyId 的待批助手消息，
+    // 取其 parentId（当前渲染的用户消息 id）作为恢复新消息的挂载点
+    let liveParentId = "";
+    let pendingAssistant: Message | null = null;
+    for (const m of sessionStore.getMessages(streamingSessionId)) {
+      if (
+        m.role === "assistant" &&
+        (m.contents || []).some(
+          (c: MessageContent) =>
+            c.metadata?.confirmationRequest?.replyId === req.replyId,
+        )
+      ) {
+        pendingAssistant = m;
+        break;
+      }
+    }
+    if (pendingAssistant) {
+      liveParentId = pendingAssistant.parentId || "";
+      // 旧卡片立即进入终态（隐藏操作按钮）
+      for (const c of pendingAssistant.contents) {
+        const cr = c.metadata?.confirmationRequest;
+        if (cr && cr.replyId === req.replyId) {
+          c.metadata = {
+            ...c.metadata,
+            confirmationRequest: {
+              ...cr,
+              status: isApproved ? "approved" : "rejected",
+            },
+          };
+        }
+      }
+    }
+
+    try {
+      let responseContent = "";
+      let thinkingContent = "";
+
+      for await (const response of apiService.resume({
+        sessionId: streamingSessionId,
+        replyId: req.replyId,
+        decisions: req.decisions,
+        model: req.model,
+        characterId: req.characterId ?? null,
+        think: req.think,
+        feedback: req.feedback,
+      })) {
+        if (response.type === "create") {
+          const result = handleNewMessage(response, streamingSessionId);
+          message = result.message;
+          contentIndex = result.contentIndex;
+          // 覆盖为当前渲染的用户消息 id，保证恢复消息在同一轮次内渲染
+          if (liveParentId && message.parentId !== liveParentId) {
+            message.parentId = liveParentId;
+          }
+          // 回写 live 父用户消息的 currentVersionId：create 帧携带的 parentId 是
+          // DB 主键，未刷新页面渲染的用户消息是前端 UUID，handleNewMessage 可能匹配不到，
+          // 导致新助手不成为 active 版本、后续 confirmation 卡片不渲染。
+          if (liveParentId) {
+            const liveParent = sessionStore
+              .getMessages(streamingSessionId)
+              .find(
+                (pm: Message) => pm.id === liveParentId && pm.role === "user",
+              );
+            if (liveParent) {
+              liveParent.currentVersionId = message.id;
+            }
+          }
+          startDurationTimer(message);
+          continue;
+        }
+
+        if (response.type === "confirmation") {
+          if (message && contentIndex !== undefined) {
+            const content = message.contents[contentIndex];
+            if (content) {
+              content.metadata = {
+                ...content.metadata,
+                confirmationRequest: {
+                  replyId: response.replyId,
+                  items: response.confirmations || [],
+                },
+              };
+            }
+          }
+          continue;
+        }
+
+        if (response.type === "think") {
+          thinkingContent += response.reasoningContent;
+          if (message)
+            handleThink(
+              message.contents[contentIndex],
+              thinkingContent,
+              message,
+              contentIndex,
+            );
+          continue;
+        }
+
+        if (
+          message?.contents[contentIndex]?.state?.isThinking &&
+          response.type !== "think"
+        ) {
+          handleThinkEnd(message.contents[contentIndex]);
+        }
+
+        if (response.type === "search") {
+          if (message)
+            handleSearch(
+              message.contents[contentIndex],
+              response.status || "done",
+              response.query,
+              response.results,
+            );
+          continue;
+        }
+
+        if (response.type === "tool_call") {
+          handleToolCall(message!.contents[contentIndex], response.toolCalls);
+          continue;
+        }
+
+        if (response.type === "tool_calls_response") {
+          handleToolCallsResponse(
+            message!.contents[contentIndex],
+            response.toolCallsResponse,
+          );
+          continue;
+        }
+
+        if (response.type === "trace") {
+          if (message && contentIndex !== undefined) {
+            const content = message.contents[contentIndex];
+            if (content) {
+              if (!Array.isArray(content.traceLog)) {
+                content.traceLog = [];
+              }
+              content.traceLog.push(response.trace);
+            }
+          }
+          continue;
+        }
+
+        if (response.type === "text") {
+          responseContent = responseContent + response.content;
+          handleText(
+            message!.contents[contentIndex],
+            responseContent,
+            message!,
+            contentIndex,
+          );
+          continue;
+        }
+
+        if (response.type === "finish") {
+          handleStreamFinish(response, message, contentIndex);
+          responseContent = "";
+          thinkingContent = "";
+          continue;
+        }
+
+        if (response.type === "turn_end") {
+          handleTurnEnd(response, message);
+          responseContent = "";
+          thinkingContent = "";
+          continue;
+        }
+      }
+    } catch (error) {
+      handleStreamCatchError(error as Error, message, contentIndex);
+      if ((error as Error).message.includes("SessionBusyError")) {
+        return;
+      }
+      console.error("resume stream error:", error);
+      throw error;
+    } finally {
+      cleanupStreaming(streamingSessionId, message, contentIndex);
+    }
   }
 
   return {
     processStream,
     processStreamWithCreate,
+    processResume,
   };
 }

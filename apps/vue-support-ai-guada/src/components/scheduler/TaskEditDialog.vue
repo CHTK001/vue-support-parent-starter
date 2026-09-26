@@ -8,97 +8,53 @@
           <el-input v-model="form.name" :placeholder="t('scheduler.edit.namePlaceholder')" clearable />
         </el-form-item>
 
+        <el-form-item :label="t('scheduler.edit.descLabel')" prop="description">
+          <el-input v-model="form.description" :placeholder="t('scheduler.edit.descPlaceholder')" clearable />
+        </el-form-item>
+
         <el-form-item :label="t('scheduler.edit.promptLabel')" prop="prompt">
           <el-input v-model="form.prompt" type="textarea" :rows="3"
             :placeholder="t('scheduler.edit.promptPlaceholder')" />
         </el-form-item>
 
-        <!-- 时间设置 -->
+        <!-- 时间设置：对应后端 schedule 对象（kind=cron / kind=every） -->
         <el-form-item :label="t('scheduler.edit.timeLabel')" required class="time-setting-item">
           <div class="time-mode-wrapper">
             <el-radio-group v-model="timeMode" size="small" class="time-mode-tabs">
-              <el-radio-button value="period">{{ t('scheduler.edit.modePeriod') }}</el-radio-button>
-              <el-radio-button value="interval">{{ t('scheduler.edit.modeInterval') }}</el-radio-button>
-              <el-radio-button value="once">{{ t('scheduler.edit.modeOnce') }}</el-radio-button>
-              <el-radio-button value="advanced">{{ t('scheduler.edit.modeAdvanced') }}</el-radio-button>
+              <el-radio-button value="preset">{{ t('scheduler.edit.modePreset') }}</el-radio-button>
+              <el-radio-button value="every">{{ t('scheduler.edit.modeEvery') }}</el-radio-button>
+              <el-radio-button value="cron">{{ t('scheduler.edit.modeCron') }}</el-radio-button>
             </el-radio-group>
 
-            <!-- 周期模式 -->
-            <div v-if="timeMode === 'period'" class="period-panel">
-              <el-radio-group v-model="periodType" size="small" class="period-sub-tabs">
-                <el-radio-button value="monthly">{{ t('scheduler.edit.periodMonthly') }}</el-radio-button>
-                <el-radio-button value="weekly">{{ t('scheduler.edit.periodWeekly') }}</el-radio-button>
-                <el-radio-button value="daily">{{ t('scheduler.edit.periodDaily') }}</el-radio-button>
-              </el-radio-group>
-
-              <!-- 每月 -->
-              <div v-if="periodType === 'monthly'" class="space-y-3">
-                <div>
-                  <div class="text-xs text-gray-500 mb-1.5">{{ t('scheduler.edit.selectDate') }}</div>
-                  <el-checkbox-group v-model="periodConfig.monthly.days" size="small">
-                    <el-checkbox-button v-for="d in 31" :key="d" :value="d">{{ d }}{{ t('scheduler.edit.dayUnit') }}</el-checkbox-button>
-                  </el-checkbox-group>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500">{{ t('scheduler.edit.time') }}</span>
-                  <el-time-picker v-model="periodConfig.monthly.time" format="HH:mm" value-format="HH:mm"
-                    :placeholder="t('scheduler.edit.selectTimePlaceholder')" style="width: 120px" />
-                </div>
-              </div>
-
-              <!-- 每周 -->
-              <div v-if="periodType === 'weekly'" class="space-y-3">
-                <div>
-                  <div class="text-xs text-gray-500 mb-1.5">{{ t('scheduler.edit.selectWeek') }}</div>
-                  <el-checkbox-group v-model="periodConfig.weekly.days" size="small">
-                    <el-checkbox-button v-for="(label, index) in weekDays" :key="index" :value="index">
-                      {{ label }}
-                    </el-checkbox-button>
-                  </el-checkbox-group>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500">{{ t('scheduler.edit.time') }}</span>
-                  <el-time-picker v-model="periodConfig.weekly.time" format="HH:mm" value-format="HH:mm"
-                    :placeholder="t('scheduler.edit.selectTimePlaceholder')" style="width: 120px" />
-                </div>
-              </div>
-
-              <!-- 每日 -->
-              <div v-if="periodType === 'daily'" class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">{{ t('scheduler.edit.time') }}</span>
-                <el-time-picker v-model="periodConfig.daily.time" format="HH:mm" value-format="HH:mm"
-                  :placeholder="t('scheduler.edit.selectTimePlaceholder')" style="width: 120px" />
-              </div>
+            <!-- 常用调度：GET /api/cron/jobs/cron-presets -->
+            <div v-if="timeMode === 'preset'" class="schedule-panel">
+              <el-select v-model="form.presetCron" :placeholder="t('scheduler.edit.presetPlaceholder')" style="width: 260px">
+                <el-option v-for="preset in cronPresets" :key="preset.value" :label="preset.label" :value="preset.value">
+                  <div class="flex items-center justify-between gap-3">
+                    <span>{{ preset.label }}</span>
+                    <span class="text-gray-400 text-xs font-mono">{{ preset.value }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+              <div class="text-xs text-gray-400 mt-1 font-mono">{{ form.presetCron || '-' }}</div>
             </div>
 
-            <!-- 间隔模式 -->
-            <div v-if="timeMode === 'interval'" class="interval-panel space-y-3">
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">{{ t('scheduler.edit.every') }}</span>
-                <el-input-number v-model="intervalConfig.hours" :min="1" :max="168" controls-position="right"
-                  style="width: 100px" />
-                <span class="text-xs text-gray-500">{{ t('scheduler.edit.hoursExec') }}</span>
-              </div>
-              <div>
-                <div class="text-xs text-gray-500 mb-1.5">{{ t('scheduler.edit.effectiveWeek') }}</div>
-                <el-checkbox-group v-model="intervalConfig.days" size="small">
-                  <el-checkbox-button v-for="(label, index) in weekDays" :key="index" :value="index">
-                    {{ label }}
-                  </el-checkbox-button>
-                </el-checkbox-group>
-              </div>
+            <!-- 固定间隔：schedule.kind = every + every_ms -->
+            <div v-else-if="timeMode === 'every'" class="schedule-panel flex items-center gap-2">
+              <span class="text-xs text-gray-500">{{ t('scheduler.edit.every') }}</span>
+              <el-input-number v-model="everyConfig.value" :min="1" :max="9999" controls-position="right"
+                style="width: 120px" />
+              <el-select v-model="everyConfig.unit" style="width: 100px">
+                <el-option :label="t('scheduler.edit.unitMinute')" value="minute" />
+                <el-option :label="t('scheduler.edit.unitHour')" value="hour" />
+              </el-select>
+              <span class="text-xs text-gray-500">{{ t('scheduler.edit.execOnce') }}</span>
             </div>
 
-            <!-- 一次性模式 -->
-            <div v-if="timeMode === 'once'" class="once-panel flex items-center gap-2">
-              <el-date-picker v-model="onceConfig.datetime" type="datetime" :placeholder="t('scheduler.edit.selectExecTime')"
-                format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss" style="width: 220px" />
-            </div>
-
-            <!-- 高级模式 -->
-            <div v-if="timeMode === 'advanced'" class="advanced-panel">
-              <el-input v-model="form.cronExpression" placeholder="* * * * *" class="font-mono text-sm"
-                style="width: 200px" />
+            <!-- 自定义 Cron：六段表达式（秒 分 时 日 月 周） -->
+            <div v-else class="schedule-panel">
+              <el-input v-model="form.cronExpression" placeholder="0 0 9 * * *" class="font-mono text-sm"
+                style="width: 260px" />
               <div class="text-xs text-gray-400 mt-1">
                 {{ t('scheduler.edit.cronFormat') }}
               </div>
@@ -106,10 +62,10 @@
           </div>
         </el-form-item>
 
-        <!-- 执行目标 -->
+        <!-- 执行目标：新建会话 / 指定会话（metadata.conversation_id） -->
         <el-form-item :label="t('scheduler.edit.targetLabel')" prop="targetMode">
-          <el-radio-group v-model="form.targetMode">
-            <el-radio-button value="new_session">
+          <el-radio-group v-model="form.targetMode" :disabled="isEdit">
+            <el-radio-button value="new_conversation">
               <span class="flex items-center gap-1">
                 <el-icon :size="14">
                   <AddCircleOutlineRound />
@@ -117,7 +73,7 @@
                 {{ t('scheduler.edit.newSession') }}
               </span>
             </el-radio-button>
-            <el-radio-button value="existing_session">
+            <el-radio-button value="existing_conversation">
               <span class="flex items-center gap-1">
                 <el-icon :size="14">
                   <LogInRound />
@@ -129,24 +85,29 @@
         </el-form-item>
 
         <!-- 已有会话时需要选择会话ID -->
-        <el-form-item v-if="form.targetMode === 'existing_session'" :label="t('scheduler.edit.targetSessionLabel')" prop="targetSessionId">
-          <el-input v-model="form.targetSessionId" :placeholder="t('scheduler.edit.targetSessionPlaceholder')" clearable />
+        <el-form-item v-if="form.targetMode === 'existing_conversation'" :label="t('scheduler.edit.targetSessionLabel')"
+          prop="conversationId">
+          <el-input v-model="form.conversationId" :placeholder="t('scheduler.edit.targetSessionPlaceholder')" clearable
+            :disabled="isEdit" />
+          <div v-if="isEdit" class="text-xs text-gray-400 mt-1">{{ t('scheduler.edit.createOnlyHint') }}</div>
         </el-form-item>
 
-        <!-- 新建会话时可选配置助手和模型 -->
-        <el-form-item v-if="form.targetMode === 'new_session'" :label="t('scheduler.edit.characterLabel')" prop="characterId">
-          <el-select v-model="form.characterId" :placeholder="t('scheduler.edit.characterPlaceholder')" style="width: 100%" filterable>
-            <el-option v-for="character in characters" :key="character.id" :label="character.title"
-              :value="character.id">
-              <div class="flex items-center gap-2">
-                <img v-if="character.avatarUrl" :src="character.avatarUrl" class="w-5 h-5 rounded object-cover" />
-                <span>{{ character.title }}</span>
+        <!-- Agent 类型（metadata.agent_type），来自 GET /api/agents 目录 -->
+        <el-form-item :label="t('scheduler.edit.agentLabel')" prop="agentType">
+          <el-select v-model="form.agentType" :placeholder="t('scheduler.edit.agentPlaceholder')" style="width: 100%"
+            filterable :disabled="isEdit">
+            <el-option v-for="agent in agents" :key="agent.agent_id" :label="agent.name" :value="agent.agent_id">
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ agent.name }}</span>
+                <span class="text-gray-400 text-xs">{{ agent.agent_source }}</span>
               </div>
             </el-option>
           </el-select>
+          <div v-if="isEdit" class="text-xs text-gray-400 mt-1">{{ t('scheduler.edit.createOnlyHint') }}</div>
         </el-form-item>
 
-        <el-form-item v-if="form.targetMode === 'new_session'" :label="t('scheduler.edit.modelLabel')" prop="modelId">
+        <!-- 模型（metadata.agent_config：provider_id + model），后端执行时按此建会话 -->
+        <el-form-item :label="t('scheduler.edit.modelLabel')" prop="modelId">
           <el-select v-model="form.modelId" :placeholder="t('scheduler.edit.modelPlaceholder')" style="width: 100%" filterable clearable>
             <el-option v-for="model in availableModels" :key="model.id" :label="model.modelName" :value="model.id">
               <div class="flex items-center gap-2">
@@ -160,24 +121,10 @@
         <!-- 可选配置 -->
         <el-divider content-position="left">{{ t('scheduler.edit.advanced') }}</el-divider>
 
-        <el-form-item :label="t('scheduler.edit.maxExecutions')">
-          <el-input-number v-model="form.maxExecutions" :min="1" :max="9999" controls-position="right"
-            style="width: 160px" :placeholder="t('scheduler.edit.unlimited')" />
-          <span class="text-xs text-gray-400 ml-2">{{ t('scheduler.edit.maxExecutionsHint') }}</span>
-        </el-form-item>
-
+        <!-- state.max_retries：后端仅此一个重试字段，无重试间隔与最大执行次数 -->
         <el-form-item :label="t('scheduler.edit.retryCount')">
           <el-input-number v-model="form.maxRetries" :min="0" :max="10" controls-position="right"
             style="width: 120px" />
-        </el-form-item>
-
-        <el-form-item :label="t('scheduler.edit.retryInterval')">
-          <el-input-number v-model="form.retryInterval" :min="10" :max="3600" controls-position="right"
-            style="width: 140px">
-            <template #suffix>
-              <span class="text-gray-400 text-xs">{{ t('scheduler.edit.seconds') }}</span>
-            </template>
-          </el-input-number>
         </el-form-item>
 
         <el-form-item :label="t('scheduler.edit.enabledLabel')">
@@ -188,9 +135,6 @@
 
     <template #footer>
       <div class="dialog-footer flex justify-end gap-2">
-        <el-button v-if="isEdit" type="warning" plain @click="handleTest" :loading="testing">
-          {{ t('scheduler.edit.testTrigger') }}
-        </el-button>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">{{ t('scheduler.edit.save') }}</el-button>
       </div>
@@ -199,19 +143,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElInputNumber, ElDivider, ElIcon, ElButton, ElCheckboxGroup, ElCheckboxButton, ElTimePicker, ElDatePicker, ElMessage, ElSelect, ElOption } from 'element-plus'
+import { ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadioButton, ElSwitch, ElInputNumber, ElDivider, ElIcon, ElButton, ElSelect, ElOption, ElMessage } from 'element-plus'
 import { AddCircleOutlineRound, LogInRound } from '@vicons/material'
-import type { ScheduledTask } from '../../types/scheduler'
-import type { Character } from '../../types/character'
+import type { ScheduledTask, ScheduledTaskForm, CronSchedule } from '../../types/scheduler'
 import type { Model, ModelProvider } from '../../types/api'
 import { apiService } from '../../services/ApiService'
+import { agentApi } from '@/services/javaApi'
 import LDialog from '@/components/ui/LDialog.vue'
 
 const { t } = useI18n()
-type TimeMode = 'period' | 'interval' | 'once' | 'advanced'
-type PeriodType = 'monthly' | 'weekly' | 'daily'
+/** 三种调度输入模式，全部落到后端 schedule 的两种 kind 上 */
+type TimeMode = 'preset' | 'every' | 'cron'
+/** every 的单位换算成后端要的毫秒数 */
+type EveryUnit = 'minute' | 'hour'
+/** 执行目标，与后端 execution_mode 取值一致 */
+type TargetMode = 'new_conversation' | 'existing_conversation'
 
 interface Props {
   modelValue: boolean
@@ -223,7 +171,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  'save': [data: any]
+  'save': [data: ScheduledTaskForm]
 }>()
 
 const dialogVisible = computed({
@@ -233,37 +181,18 @@ const dialogVisible = computed({
 
 const formRef = ref<any>(null)
 const submitting = ref(false)
-const testing = ref(false)
 
 // 时间模式
-const timeMode = ref<TimeMode>('period')
-const periodType = ref<PeriodType>('daily')
+const timeMode = ref<TimeMode>('preset')
 
-// 周期配置
-const periodConfig = ref({
-  monthly: { days: [] as number[], time: '09:00' },
-  weekly: { days: [0, 1, 2, 3, 4, 5, 6] as number[], time: '09:00' },
-  daily: { time: '09:00' }
-})
+// 固定间隔配置（提交时换算为 schedule.every_ms）
+const everyConfig = ref<{ value: number; unit: EveryUnit }>({ value: 1, unit: 'hour' })
 
-// 间隔配置
-const intervalConfig = ref({ hours: 1, days: [0, 1, 2, 3, 4, 5, 6] as number[] })
+/** 编辑态：后端已存的 agent_config 在模型下拉里解析不到时，不提交该键以免被清空 */
+const keepStoredAgentConfig = ref(false)
 
-// 一次性配置
-const onceConfig = ref({ datetime: '' })
-
-const weekDays = computed(() => [
-  t('common.time.sunday'),
-  t('common.time.monday'),
-  t('common.time.tuesday'),
-  t('common.time.wednesday'),
-  t('common.time.thursday'),
-  t('common.time.friday'),
-  t('common.time.saturday')
-])
-
-// 角色列表
-const characters = ref<Character[]>([])
+// Agent 目录（GET /api/agents）
+const agents = ref<any[]>([])
 
 // 模型列表
 const modelProviders = ref<ModelProvider[]>([])
@@ -274,266 +203,63 @@ const availableModels = computed(() => {
   return allModels.value.filter(model => model.isActive)
 })
 
-const form = ref({
+/** 选中的模型对象：后端 agent_config 需要 provider_id + model 名 */
+const selectedModel = computed(() => {
+  if (!form.value.modelId) return null
+  return allModels.value.find(model => model.id === form.value.modelId) || null
+})
+
+const emptyForm = () => ({
   name: '',
+  description: '',
   prompt: '',
-  cronExpression: '0 9 * * *',
-  targetMode: 'new_session' as 'new_session' | 'existing_session',
-  targetSessionId: '',
-  characterId: '',
+  presetCron: props.cronPresets[0]?.value || '0 0 9 * * *',
+  cronExpression: '0 0 9 * * *',
+  targetMode: 'new_conversation' as TargetMode,
+  conversationId: '',
+  agentType: agents.value[0]?.agent_id || '',
   modelId: '',
-  maxExecutions: undefined as number | undefined,
-  maxRetries: 3,
-  retryInterval: 60,
+  maxRetries: 0,
   enabled: true
 })
 
-/**
- * 根据配置生成 cron 表达式
- */
-function generateCron(): string {
-  if (timeMode.value === 'advanced') {
-    return form.value.cronExpression
-  }
+const form = ref(emptyForm())
 
-  if (timeMode.value === 'once') {
-    if (!onceConfig.value.datetime) return '0 0 * * *'
-    const date = new Date(onceConfig.value.datetime)
-    const min = date.getMinutes()
-    const hour = date.getHours()
-    const day = date.getDate()
-    const month = date.getMonth() + 1
-    return `${min} ${hour} ${day} ${month} *`
-  }
-
-  if (timeMode.value === 'interval') {
-    const hours = intervalConfig.value.hours
-    const days = intervalConfig.value.days.sort((a, b) => a - b).join(',')
-    if (hours >= 24) {
-      const dayInterval = Math.floor(hours / 24)
-      return `0 0 */${dayInterval} * ${days}`
-    }
-    return `0 */${hours} * * ${days}`
-  }
-
-  // period mode
-  const [hour, min] = (periodConfig.value[periodType.value].time || '09:00').split(':').map(Number)
-
-  if (periodType.value === 'daily') {
-    return `${min} ${hour} * * *`
-  }
-
-  if (periodType.value === 'weekly') {
-    const days = periodConfig.value.weekly.days
-    if (days.length === 0) return `${min} ${hour} * * 1`
-    const dayStr = days.sort((a, b) => a - b).join(',')
-    return `${min} ${hour} * * ${dayStr}`
-  }
-
-  if (periodType.value === 'monthly') {
-    const days = periodConfig.value.monthly.days
-    if (days.length === 0) return `${min} ${hour} 1 * *`
-    const dayStr = days.sort((a, b) => a - b).join(',')
-    return `${min} ${hour} ${dayStr} * *`
-  }
-
-  return '0 9 * * *'
-}
-
-/**
- * 从 cron 表达式解析时间配置
- */
-function parseCron(cron: string) {
-  const parts = cron.trim().split(/\s+/)
-  if (parts.length !== 5) return
-
-  const [minStr, hourStr, dayStr, monthStr, weekStr] = parts
-
-  // 尝试识别一次性模式：具体日期时间
-  const monthNum = parseInt(monthStr, 10)
-  const dayNum = parseInt(dayStr, 10)
-  if (!monthStr.includes('*') && !monthStr.includes('/') && monthNum >= 1 && monthNum <= 12
-    && !dayStr.includes('*') && !dayStr.includes('/') && dayNum >= 1 && dayNum <= 31
-    && weekStr === '*') {
-    timeMode.value = 'once'
-    const now = new Date()
-    const year = now.getFullYear()
-    const hour = parseInt(hourStr, 10)
-    const min = parseInt(minStr, 10)
-    onceConfig.value.datetime = `${year}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
-    return
-  }
-
-  // 尝试识别间隔模式
-  if (hourStr.startsWith('*/') && dayStr === '*' && monthStr === '*') {
-    timeMode.value = 'interval'
-    intervalConfig.value.hours = parseInt(hourStr.slice(2), 10)
-    const days = weekStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d) && d >= 0 && d <= 6)
-    intervalConfig.value.days = days.length > 0 ? days : [0, 1, 2, 3, 4, 5, 6]
-    return
-  }
-  if (minStr === '0' && hourStr === '0' && dayStr.startsWith('*/') && monthStr === '*') {
-    timeMode.value = 'interval'
-    intervalConfig.value.hours = parseInt(dayStr.slice(2), 10) * 24
-    const days = weekStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d) && d >= 0 && d <= 6)
-    intervalConfig.value.days = days.length > 0 ? days : [0, 1, 2, 3, 4, 5, 6]
-    return
-  }
-
-  // 周期模式
-  timeMode.value = 'period'
-
-  const hour = parseInt(hourStr, 10)
-  const min = parseInt(minStr, 10)
-  const time = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`
-
-  if (dayStr === '*' && weekStr === '*') {
-    periodType.value = 'daily'
-    periodConfig.value.daily.time = time
-    return
-  }
-
-  if (dayStr === '*' && weekStr !== '*') {
-    periodType.value = 'weekly'
-    periodConfig.value.weekly.time = time
-    const days = weekStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d) && d >= 0 && d <= 6)
-    periodConfig.value.weekly.days = days
-    return
-  }
-
-  if (dayStr !== '*' && weekStr === '*') {
-    periodType.value = 'monthly'
-    periodConfig.value.monthly.time = time
-    const days = dayStr.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d) && d >= 1 && d <= 31)
-    periodConfig.value.monthly.days = days
-    return
-  }
-
-  // 无法识别，归为高级模式
-  timeMode.value = 'advanced'
-}
-
-const rules = computed(() => ({
-  name: [
-    { required: true, message: t('scheduler.edit.nameRequired'), trigger: 'blur' },
-    { min: 1, max: 100, message: t('scheduler.edit.nameLength'), trigger: 'blur' }
-  ],
-  prompt: [
-    { required: true, message: t('scheduler.edit.promptRequired'), trigger: 'blur' }
-  ],
-  targetMode: [
-    { required: true, message: t('scheduler.edit.targetRequired'), trigger: 'change' }
-  ],
-  targetSessionId: [
-    {
-      validator: (_rule: any, value: string, callback: Function) => {
-        if (form.value.targetMode === 'existing_session' && !value) {
-          callback(new Error(t('scheduler.edit.targetSessionRequired')))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
-  ],
-  characterId: [
-    {
-      validator: (_rule: any, value: string, callback: Function) => {
-        if (form.value.targetMode === 'new_session' && !value) {
-          callback(new Error(t('scheduler.edit.characterRequired')))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'change'
-    }
-  ]
-}))
-
-/**
- * 初始化表单数据
- */
-function initForm() {
-  if (props.isEdit && props.task) {
-    form.value = {
-      name: props.task.name || '',
-      prompt: props.task.prompt || '',
-      cronExpression: props.task.cronExpression || '0 9 * * *',
-      targetMode: props.task.targetMode || 'new_session',
-      targetSessionId: props.task.targetSessionId || '',
-      characterId: props.task.characterId || '',
-      modelId: props.task.modelId || '',
-      maxExecutions: props.task.maxExecutions ?? undefined,
-      maxRetries: props.task.maxRetries ?? 3,
-      retryInterval: props.task.retryInterval ?? 60,
-      enabled: props.task.enabled ?? true
-    }
-    // 一次性任务优先使用 executeAt 恢复时间配置
-    if (props.task.scheduleType === 'once' && props.task.executeAt) {
-      timeMode.value = 'once'
-      onceConfig.value.datetime = props.task.executeAt
-    } else {
-      parseCron(form.value.cronExpression)
-    }
-  } else {
-    form.value = {
-      name: '',
-      prompt: '',
-      cronExpression: '0 9 * * *',
-      targetMode: 'new_session',
-      targetSessionId: '',
-      characterId: '',
-      modelId: '',
-      maxExecutions: undefined,
-      maxRetries: 3,
-      retryInterval: 60,
-      enabled: true
-    }
-    timeMode.value = 'period'
-    periodType.value = 'daily'
-    periodConfig.value = {
-      monthly: { days: [], time: '09:00' },
-      weekly: { days: [0, 1, 2, 3, 4, 5, 6], time: '09:00' },
-      daily: { time: '09:00' }
-    }
-    intervalConfig.value = { hours: 1, days: [0, 1, 2, 3, 4, 5, 6] }
-    onceConfig.value = { datetime: '' }
-  }
-}
+/** 六段 cron 校验：后端预设目录（cron-presets）全部是秒级的六段表达式 */
+const CRON_PATTERN = /^\S+(\s+\S+){5}$/
 
 /**
  * 校验时间配置合法性
  */
 function validateTimeConfig(): string | null {
-  if (timeMode.value === 'period') {
-    if (periodType.value === 'monthly' && periodConfig.value.monthly.days.length === 0) {
-      return t('scheduler.edit.monthlyAtLeastDay')
-    }
-    if (periodType.value === 'weekly' && periodConfig.value.weekly.days.length === 0) {
-      return t('scheduler.edit.weeklyAtLeastDay')
-    }
+  if (timeMode.value === 'preset' && !form.value.presetCron) {
+    return t('scheduler.edit.presetRequired')
   }
-
-  if (timeMode.value === 'interval' && intervalConfig.value.days.length === 0) {
-    return t('scheduler.edit.intervalAtLeastDay')
+  if (timeMode.value === 'cron' && !CRON_PATTERN.test(form.value.cronExpression.trim())) {
+    return t('scheduler.edit.cronInvalid')
   }
-
-  if (timeMode.value === 'once' && !onceConfig.value.datetime) {
-    return t('scheduler.edit.selectTime')
-  }
-
-  if (timeMode.value === 'advanced') {
-    const cronPattern = /^([0-9*,/-]+)\s+([0-9*,/-]+)\s+([0-9*,/-]+)\s+([0-9*,/-]+)\s+([0-9*,/-]+)$/
-    if (!cronPattern.test(form.value.cronExpression.trim())) {
-      return t('scheduler.edit.cronInvalid')
-    }
-  }
-
   return null
 }
 
 /**
- * 提交表单
+ * 组装后端 schedule 对象
+ */
+function buildSchedule(): CronSchedule {
+  if (timeMode.value === 'every') {
+    const unitMs = everyConfig.value.unit === 'hour' ? 3600000 : 60000
+    return {
+      kind: 'every',
+      every_ms: everyConfig.value.value * unitMs,
+      description: `${everyConfig.value.value} ${t(everyConfig.value.unit === 'hour' ? 'scheduler.edit.unitHour' : 'scheduler.edit.unitMinute')}`
+    }
+  }
+  const cron = (timeMode.value === 'preset' ? form.value.presetCron : form.value.cronExpression).trim()
+  const preset = props.cronPresets.find(item => item.value === cron)
+  return { kind: 'cron', cron, description: preset?.label || null }
+}
+
+/**
+ * 提交表单：emit 视图层表单，snake_case body 由 scheduler.api 模块转换
  */
 async function handleSubmit() {
   try {
@@ -547,44 +273,22 @@ async function handleSubmit() {
 
     submitting.value = true
 
-    const cronExpression = generateCron()
-
-    const data: any = {
+    const model = selectedModel.value
+    const data: ScheduledTaskForm = {
       name: form.value.name.trim(),
+      description: form.value.description.trim() || null,
       prompt: form.value.prompt.trim(),
-      scheduleType: timeMode.value === 'once' ? 'once' : 'cron',
-      cronExpression,
-      targetMode: form.value.targetMode,
+      schedule: buildSchedule(),
       enabled: form.value.enabled,
       maxRetries: form.value.maxRetries,
-      retryInterval: form.value.retryInterval
-    }
-
-    if (timeMode.value === 'once' && onceConfig.value.datetime) {
-      data.executeAt = new Date(onceConfig.value.datetime).toISOString()
-    } else {
-      data.executeAt = null
-    }
-
-    if (form.value.targetMode === 'existing_session' && form.value.targetSessionId) {
-      data.targetSessionId = form.value.targetSessionId.trim()
-    }
-
-    if (form.value.characterId) {
-      data.characterId = form.value.characterId.trim()
-    }
-
-    if (form.value.modelId) {
-      data.modelId = form.value.modelId.trim()
-    }
-
-    if (form.value.maxExecutions !== undefined && form.value.maxExecutions > 0) {
-      data.maxExecutions = form.value.maxExecutions
-    }
-
-    // 一次性任务默认设置 maxExecutions 为 1
-    if (timeMode.value === 'once' && data.maxExecutions === undefined) {
-      data.maxExecutions = 1
+      // 编辑态下这两个键后端 PUT 不接受，api 模块会直接丢弃
+      agentType: form.value.agentType || undefined,
+      conversationId: form.value.targetMode === 'existing_conversation'
+        ? form.value.conversationId.trim()
+        : null,
+      agentConfig: model
+        ? { providerId: model.providerId || null, model: model.modelName || model.id }
+        : (keepStoredAgentConfig.value ? undefined : null)
     }
 
     emit('save', data)
@@ -596,41 +300,101 @@ async function handleSubmit() {
 }
 
 /**
- * 测试触发任务
+ * 初始化表单数据：把后端 job 反解成三种输入模式之一
  */
-async function handleTest() {
-  if (!props.task?.id) return
-  testing.value = true
-  try {
-    const result = await apiService.testScheduledTask(props.task.id)
-    ElMessage.success(result.message || t('scheduler.edit.testSuccess'))
-  } catch (err: any) {
-    console.error('测试触发失败:', err)
-    ElMessage.error(err.message || t('scheduler.edit.testFailed'))
-  } finally {
-    testing.value = false
+function initForm() {
+  if (props.isEdit && props.task) {
+    const task = props.task
+    const cron = task.schedule.cron || ''
+    const matched = props.cronPresets.some(item => item.value === cron)
+    if (task.schedule.kind === 'every') {
+      timeMode.value = 'every'
+      const everyMs = task.schedule.every_ms || 3600000
+      everyConfig.value = everyMs % 3600000 === 0
+        ? { value: everyMs / 3600000, unit: 'hour' }
+        : { value: Math.max(1, Math.round(everyMs / 60000)), unit: 'minute' }
+    } else if (cron && matched) {
+      timeMode.value = 'preset'
+      form.value.presetCron = cron
+    } else {
+      timeMode.value = 'cron'
+      form.value.cronExpression = cron || '0 0 9 * * *'
+    }
+    form.value = {
+      name: task.name || '',
+      description: task.description || '',
+      prompt: task.prompt || '',
+      presetCron: cron && matched ? cron : (props.cronPresets[0]?.value || '0 0 9 * * *'),
+      cronExpression: cron || '0 0 9 * * *',
+      targetMode: task.conversationId ? 'existing_conversation' : 'new_conversation',
+      conversationId: task.conversationId || '',
+      agentType: task.agentType || '',
+      modelId: resolveModelId(task.agentConfig),
+      maxRetries: task.state.maxRetries || 0,
+      enabled: task.enabled ?? true
+    }
+    keepStoredAgentConfig.value = !!task.agentConfig?.model && !form.value.modelId
+  } else {
+    form.value = emptyForm()
+    timeMode.value = 'preset'
+    everyConfig.value = { value: 1, unit: 'hour' }
+    keepStoredAgentConfig.value = false
   }
 }
+
+/**
+ * 回填模型下拉：后端只存 provider_id + model 名，按此反查前端模型 id
+ */
+function resolveModelId(agentConfig: ScheduledTask['agentConfig']): string {
+  if (!agentConfig?.model) return ''
+  const hit = allModels.value.find(model =>
+    model.modelName === agentConfig.model &&
+    (!agentConfig.providerId || (model.providerId || '') === agentConfig.providerId))
+  return hit?.id || ''
+}
+
+const rules = computed(() => ({
+  name: [
+    { required: true, message: t('scheduler.edit.nameRequired'), trigger: 'blur' },
+    { min: 1, max: 100, message: t('scheduler.edit.nameLength'), trigger: 'blur' }
+  ],
+  prompt: [
+    { required: true, message: t('scheduler.edit.promptRequired'), trigger: 'blur' }
+  ],
+  targetMode: [
+    { required: true, message: t('scheduler.edit.targetRequired'), trigger: 'change' }
+  ],
+  conversationId: [
+    {
+      validator: (_rule: any, value: string, callback: Function) => {
+        if (form.value.targetMode === 'existing_conversation' && !value) {
+          callback(new Error(t('scheduler.edit.targetSessionRequired')))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}))
 
 // 监听弹窗打开，初始化表单
 watch(() => props.modelValue, (val) => {
   if (val) {
-    initForm()
-    loadCharacters()
-    loadModels()
-    setTimeout(() => {
-      formRef.value?.clearValidate()
-    }, 100)
+    Promise.all([loadAgents(), loadModels()]).finally(() => {
+      initForm()
+      nextTick(() => formRef.value?.clearValidate())
+    })
   }
 })
 
-// 加载角色列表
-async function loadCharacters() {
+// 加载 Agent 目录（GET /api/agents）
+async function loadAgents() {
   try {
-    const response = await apiService.fetchCharacters()
-    characters.value = response.items || []
+    const res: any = await agentApi.list()
+    agents.value = res?.data || []
   } catch (error) {
-    console.error('获取助手列表失败:', error)
+    console.error('获取 Agent 列表失败:', error)
   }
 }
 
@@ -666,17 +430,13 @@ async function loadModels() {
   width: 100%;
 }
 
-.time-mode-tabs,
-.period-sub-tabs {
+.time-mode-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.period-panel,
-.interval-panel,
-.once-panel,
-.advanced-panel {
+.schedule-panel {
   padding: 12px;
   border-radius: 8px;
   background-color: var(--el-fill-color-light);
@@ -684,11 +444,6 @@ async function loadModels() {
   max-width: 100%;
   box-sizing: border-box;
   display: block;
-}
-
-:deep(.el-checkbox-button__inner) {
-  padding: 5px 10px;
-  font-size: 12px;
 }
 
 :deep(.time-setting-item .el-form-item__content) {

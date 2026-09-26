@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * ReSearch koi 主题 —— 横向搜索条（按截图重排版）
  *
@@ -9,15 +9,16 @@
  *   └────────────────────────────────────────────────────────────┘
  *
  * 设计要点：
- *   - 顶部条：徽标（搜索图标 + 标题）在左，折叠切换在右上
- *   - 内容行：字段左对齐（label 叠在 input 上方）、按钮右对齐
+ *   - 顶部条：徽标（搜索图标 + 标题）在左，字段超宽时的「展开/收起」在右上
+ *   - 内容行：字段左对齐（label 叠在 input 上方）、搜索/重置右对齐
  *   - 右上折叠按钮：仅当 hasOverflow（max>0 && item>max）时显示，
  *     控制 localExpanded（点击显示被 max 隐藏的多余字段）
- *   - filterVisible 切换仍走 ReSearchToolbar 里的"显示/隐藏"按钮（保持原 API）
+ *   - 工具栏不渲染 新增/刷新/隐藏过滤区 三个按钮（已从组件移除）
  */
 import { ref, watch, computed, useSlots, defineAsyncComponent, onMounted, onBeforeUnmount, type CSSProperties, nextTick } from "vue";
 import { ElInput, ElSelect, ElOption, ElDatePicker, ElTreeSelect } from "element-plus";
 import ReButton from "../../../ReButton/ReButton.vue";
+import ReSelect from "../../../ReSelect/ReSelect.vue";
 import ReSearchToolbar from "../../ReSearchToolbar.vue";
 import "../../shared/research-vars.css";
 
@@ -34,8 +35,8 @@ export interface SearchFilter {
   key: string;
   /** 标签文案（form 模式下显示） */
   label?: string;
-  /** 组件类型：input / select / date / daterange / treeselect（默认 input） */
-  type?: "input" | "select" | "date" | "daterange" | "treeselect";
+  /** 组件类型：input / select / square（ReSelect 按钮式，全部选项直接铺开） / date / daterange / treeselect（默认 input） */
+  type?: "input" | "select" | "square" | "date" | "daterange" | "treeselect";
   /** 占位文案 */
   placeholder?: string;
   /** select / treeselect 选项数据 */
@@ -62,19 +63,12 @@ const props = withDefaults(
     filterVisible?: boolean;
     /** 工具栏按钮模式：icon=图标+tooltip，text=图标+文字 */
     btnMode?: "icon" | "text";
-    /** ReSearchToolbar：显示/隐藏过滤区按钮 */
-    showToggle?: boolean;
     /** ReSearchToolbar：搜索按钮 */
     showSearchBtn?: boolean;
     searchText?: string;
     /** ReSearchToolbar：重置按钮 */
     showResetBtn?: boolean;
     resetText?: string;
-    /** ReSearchToolbar：刷新按钮 */
-    showRefreshBtn?: boolean;
-    /** ReSearchToolbar：新增按钮 */
-    showAddBtn?: boolean;
-    addText?: string;
     /** ReSearchToolbar：批量删除按钮 */
     showBatchDeleteBtn?: boolean;
     batchDeleteText?: string;
@@ -106,14 +100,10 @@ const props = withDefaults(
     title: "搜索",
     filterVisible: true,
     btnMode: "icon",
-    showToggle: true,
     showSearchBtn: true,
     searchText: "搜索",
     showResetBtn: true,
     resetText: "重置",
-    showRefreshBtn: true,
-    showAddBtn: false,
-    addText: "新增",
     showBatchDeleteBtn: false,
     batchDeleteText: "批量删除",
     batchDeleteDisabled: false,
@@ -130,11 +120,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: "update:filterVisible", visible: boolean): void;
-  (e: "toggle"): void;
   (e: "search"): void;
   (e: "reset"): void;
-  (e: "refresh"): void;
-  (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
   (e: "update:modelValue", value: Record<string, unknown>): void;
@@ -161,11 +148,6 @@ watch(
   () => props.filterVisible,
   (v) => { localFilterVisible.value = v; },
 );
-function toggleFilter(): void {
-  localFilterVisible.value = !localFilterVisible.value;
-  emit("update:filterVisible", localFilterVisible.value);
-  emit("toggle");
-}
 
 /** 右上角"展开/收起"折叠（仅作用于被 max 隐藏的多余字段） */
 const localExpanded = ref(false);
@@ -336,10 +318,9 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
     </template>
   </ModernLayout>
 
-  <!-- Default 布局：横向搜索条 -->
+  <!-- Default 布局：横向搜索条（根卡片常驻，隐藏过滤区时至少留下工具栏可以还原） -->
   <div
     v-else
-    v-show="localFilterVisible"
     class="koi-search"
     :class="{ 'koi-search--bordered': bordered }"
     :style="containerStyle"
@@ -369,13 +350,11 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
       </button>
     </div>
 
-    <!-- 内容行：字段（左）+ 操作按钮（右） -->
-    <transition name="re-search-collapse">
-      <div
-        v-show="localFilterVisible && hasFilterContent"
-        class="koi-search__body"
-      >
+    <!-- 内容行：字段（左）随过滤区收放，操作按钮（右）常驻，否则隐藏后没有还原入口 -->
+    <div v-show="hasFilterContent" class="koi-search__body">
+      <transition name="re-search-collapse">
         <div
+          v-show="localFilterVisible"
           ref="contentEl"
           class="koi-search__fields"
           :class="{
@@ -417,6 +396,16 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                   :value="opt.value"
                 />
               </ElSelect>
+              <!-- 按钮式：选项全部铺成按钮，直点直筛。默认走 ReSelect 的纯图标档（含义靠字段标签 + tooltip），
+                   要图标+文字胶囊在 attrs 里传 { iconOnly: false } -->
+              <ReSelect
+                v-else-if="filter.type === 'square'"
+                :model-value="filterValues[filter.key]"
+                layout="square"
+                :data="filter.options || []"
+                v-bind="filter.attrs || {}"
+                @update:model-value="(val: any) => onFilterInput(filter.key, val)"
+              />
               <ElDatePicker
                 v-else-if="filter.type === 'date'"
                 v-model="filterValues[filter.key]"
@@ -453,55 +442,53 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
           <!-- slot 自定义过滤项 -->
           <slot />
         </div>
+      </transition>
 
-        <!-- 操作按钮（与字段同行右对齐） -->
-        <div class="koi-search__actions">
-          <ReButton
-            v-if="showSearchBtn"
-            type="primary"
-            icon="Search"
-            show-text
-            :loading="loading"
-            @click="emit('search')"
-          >{{ searchText }}</ReButton>
-          <ReButton
-            v-if="showResetBtn"
-            type="danger"
-            icon="RefreshLeft"
-            show-text
-            @click="resetForm"
-          >{{ resetText }}</ReButton>
-          <!-- 额外按钮（新增 / 批量 / 刷新 / 显示隐藏）走 ReSearchToolbar -->
-          <ReSearchToolbar
-            v-if="showAddBtn || showBatchDeleteBtn || showBatchSelectBtn || showRefreshBtn || showToggle || !!slots.footer"
-            :filter-visible="localFilterVisible"
-            :btn-mode="btnMode"
-            :show-toggle="showToggle"
-            :show-search="false"
-            :show-reset="false"
-            :show-refresh="showRefreshBtn"
-            :show-add="showAddBtn"
-            :add-text="addText"
-            :show-batch-delete="showBatchDeleteBtn"
-            :batch-delete-text="batchDeleteText"
-            :batch-delete-disabled="batchDeleteDisabled"
-            :show-batch-select="showBatchSelectBtn"
-            :batch-select-text="batchSelectText"
-            :batch-select-active="batchSelectActive"
-            :batch-select-text-active="batchSelectTextActive"
-            @toggle="toggleFilter"
-            @refresh="emit('refresh')"
-            @add="emit('add')"
-            @batch-delete="emit('batch-delete')"
-            @batch-select="emit('batch-select')"
-          >
-            <template #toolbar>
-              <slot name="footer" />
-            </template>
-          </ReSearchToolbar>
-        </div>
+      <!-- 操作按钮（常驻，隐藏过滤区时它是唯一的还原入口） -->
+      <div class="koi-search__actions">
+        <ReButton
+          v-if="showSearchBtn"
+          v-show="localFilterVisible"
+          type="primary"
+          icon="Search"
+          show-text
+          :loading="loading"
+          @click="emit('search')"
+        >{{ searchText }}</ReButton>
+        <ReButton
+          v-if="showResetBtn"
+          v-show="localFilterVisible"
+          icon="RefreshLeft"
+          show-text
+          @click="resetForm"
+        >{{ resetText }}</ReButton>
+        <span v-show="!localFilterVisible" class="koi-search__hint">{{ title }}已收起</span>
+        <!-- 批量按钮 / footer 插槽走 ReSearchToolbar（无 新增/刷新/隐藏） -->
+        <ReSearchToolbar
+          v-if="showBatchDeleteBtn || showBatchSelectBtn || !!slots.footer"
+          :filter-visible="localFilterVisible"
+          :btn-mode="btnMode"
+          :show-toggle="false"
+          :show-search="false"
+          :show-reset="false"
+          :show-refresh="false"
+          :show-add="false"
+          :show-batch-delete="showBatchDeleteBtn"
+          :batch-delete-text="batchDeleteText"
+          :batch-delete-disabled="batchDeleteDisabled"
+          :show-batch-select="showBatchSelectBtn"
+          :batch-select-text="batchSelectText"
+          :batch-select-active="batchSelectActive"
+          :batch-select-text-active="batchSelectTextActive"
+          @batch-delete="emit('batch-delete')"
+          @batch-select="emit('batch-select')"
+        >
+          <template #toolbar>
+            <slot name="footer" />
+          </template>
+        </ReSearchToolbar>
       </div>
-    </transition>
+    </div>
   </div>
 </template>
 
@@ -510,7 +497,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
   margin: 4px 4px 0;
   background: var(--rs-bg-card);
   border: 1px solid transparent;
-  border-radius: var(--rs-radius-md);
+  border-radius: var(--rs-radius-lg);
   color: var(--rs-text);
   box-sizing: border-box;
   transition: border-color var(--rs-transition), box-shadow var(--rs-transition);
@@ -612,6 +599,13 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
 /* 响应式收纳：折叠态隐藏放不下的字段 */
 .koi-search__field--hidden {
   display: none;
+}
+
+/* 过滤区收起时的占位提示 */
+.koi-search__hint {
+  font-size: 12px;
+  color: var(--rs-text-secondary, #909399);
+  white-space: nowrap;
 }
 
 /* 操作按钮：与字段同行右对齐 */

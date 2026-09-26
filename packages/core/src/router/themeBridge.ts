@@ -77,7 +77,7 @@ export function buildBaseRoutes(
   const route = getConfig().route;
   const loginPath = route.loginPath || "/login";
   const homePath = route.homePath || "/home";
-  const personagePath = route.personagePath || "/system/personage";
+  const personagePath = route.personagePath || "/personage";
 
   return [
     // 登录页

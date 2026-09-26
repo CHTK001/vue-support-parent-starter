@@ -1,6 +1,10 @@
 /**
- * 监控管理平台路由 —�?对齐 prototype.html 7 �? * / 概览 · /alarms 告警 · /redis Redis · /tshark 抓包 · /assets 资产
- * · /host/:id 主机详情 · /terminal 远控 · /config 监控配置
+ * 监控管理平台路由 —— 对齐 prototype.html 的页面清单：
+ * 概览 · 告警 · Redis 监控 · 抓包分析 · 主机资产 · 主机详情 · 远程控制 · 监控配置
+ *
+ * 说明：当前主入口 main.ts 走 routes.ts + koi 布局，本文件保留为独立路由配置。
+ * @author CH
+ * @since 4.0.0
  */
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router";
 
@@ -12,18 +16,15 @@ const routes: RouteRecordRaw[] = [
   { path: "/assets", name: "assets", component: () => import("./views/AssetsView.vue"), meta: { title: "主机资产" } },
   { path: "/host/:id", name: "host-detail", component: () => import("./views/HostDetailView.vue"), meta: { title: "主机监控详情" } },
   { path: "/terminal", name: "terminal", component: () => import("./views/TerminalView.vue"), meta: { title: "远程控制" } },
+  { path: "/terminal-standalone", name: "terminal-standalone", component: () => import("./views/StandaloneTerminal.vue"), meta: { title: "远程控制", standalone: true } },
   { path: "/config", name: "config", component: () => import("./views/ConfigView.vue"), meta: { title: "监控配置" } },
   { path: "/system-config", name: "system-config", component: () => import("./views/SystemConfigView.vue"), meta: { title: "系统配置" } },
   { path: "/proxy", name: "proxy", component: () => import("./views/ProxyView.vue"), meta: { title: "代理管理" } },
-  { path: "/datasource", name: "datasource", component: () => import("./views/DataSourceView.vue"), meta: { title: "数据源管理" } },
+  { path: "/datasource", name: "datasource", component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"), meta: { title: "数据源管理" } },
   { path: "/db-manager", name: "db-manager", component: () => import("./views/DatabaseManagerView.vue"), meta: { title: "数据库管理" } },
   { path: "/account", name: "account", component: () => import("./views/IdentityManageView.vue"), meta: { title: "账号管理" } },
-  { path: "/filesystem/list", name: "filesystem-list", component: () => import("@pages/filesystem/views/FileManage.vue"), meta: { title: "文件管理" } },
-  { path: "/filesystem/group", name: "filesystem-group", component: () => import("@pages/filesystem/views/GroupManage.vue"), meta: { title: "文件分组" } },
-  { path: "/filesystem/setting", name: "filesystem-setting", component: () => import("@pages/filesystem/views/SettingManage.vue"), meta: { title: "存储配置" } },
-  { path: "/filesystem/filestorage", name: "filesystem-filestorage", component: () => import("@pages/filesystem/views/FileStorageManage.vue"), meta: { title: "文件存储服务" } },
+  { path: "/files", name: "files", component: () => import("./views/FileAssetView.vue"), meta: { title: "文件资产" } },
   { path: "/groups", name: "groups", component: () => import("@pages/server/src/views/ScGroupTree.vue"), meta: { title: "分组管理" } },
-  { path: "/project", name: "project", component: () => import("@pages/project/src/views/ScProjectList.vue"), meta: { title: "发布项目管理" } },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
 

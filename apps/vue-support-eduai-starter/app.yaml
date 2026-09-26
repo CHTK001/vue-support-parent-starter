@@ -1,14 +1,14 @@
 # ===========================================
 # 应用配置（vue-support-eduai-starter）
 # 教育 AI 工作台：题库 / 组卷 / 扫描识别 / AI 阅卷 / 知识库 / 错题库 / 考试
-# 说明：eduai 为免登录即可体验的功能型应用，鉴权关闭（无登录页路由）
-# API 走 dev 代理：/v2/edu -> /system/api/v2/edu（见 vite.config.ts）
+# 说明：数据按用户隔离（edu_*_user_id），必须登录后才读得到自己的题库与采集任务
+# API 走 dev 代理：/v2/edu -> 本地 eduai 后端（见 vite.config.ts）
 # ===========================================
 
 # 系统信息
 appConfig:
   title: 教育 AI 工作台
-  openAuth: false
+  openAuth: true
 
 # 路由：静态路由（路由树即菜单树，由 .routes() 注入）
 routeConfig:
@@ -34,7 +34,7 @@ loginConfig:
 other:
   # 主题（koi）
   themeId: "koi"
-  # 工具栏显隐：免登录场景仅保留必要项
+  # 工具栏显隐：登录后可见用户入口，其余按本应用需要裁剪
   toolbar:
     searchMenu: false
     refresh: true
@@ -42,11 +42,11 @@ other:
     language: false
     fullScreen: true
     themeSetting: true
-    user: false
+    user: true
     breadcrumb: true
     breadcrumbDropdown: true
     breadcrumbIcon: false
-    tabIcon: false
+    tabIcon: true
     logo: true
     message: false
     weather: false

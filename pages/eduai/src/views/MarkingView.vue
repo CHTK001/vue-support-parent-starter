@@ -2,9 +2,9 @@
   <div class="page-container">
     <el-card shadow="never" class="toolbar">
       <div class="flex items-center gap-3">
-        <el-button type="primary" :icon="Promotion" @click="openSubmit">提交答题卡</el-button>
+        <ReButton type="primary" icon="Promotion" @click="openSubmit">提交答题卡</ReButton>
         <el-input v-model="taskId" placeholder="已有 taskId 可直接查询" clearable style="width: 260px" />
-        <el-button :icon="Search" @click="fetchResult">查询</el-button>
+        <ReButton icon="Search" @click="fetchResult">查询</ReButton>
       </div>
     </el-card>
 
@@ -20,25 +20,34 @@
           <el-tag v-if="result" type="info">{{ result.results?.length || 0 }} 题</el-tag>
         </div>
       </template>
-      <el-table v-loading="loading" :data="result?.results ?? []" border stripe>
-        <el-table-column prop="questionId" label="题号" width="120" />
-        <el-table-column label="AI 得分" width="100">
-          <template #default="{ row }">{{ row.score }}</template>
-        </el-table-column>
-        <el-table-column prop="comment" label="AI 评语" min-width="240" show-overflow-tooltip />
-        <el-table-column label="教师修正" width="180">
+      <ReTable
+        :data="result?.results ?? []"
+        :loading="loading"
+        row-key="resultId"
+        :toolbar="false"
+        :pagination="false"
+        border
+        stripe
+        @refresh="fetchResult"
+      >
+        <ReTableColumn prop="questionId" label="题号" width="120" />
+        <ReTableColumn label="AI 得分" width="130">
+          <template #default="{ row }">{{ row.score }} / {{ row.maxScore ?? '-' }}</template>
+        </ReTableColumn>
+        <ReTableColumn prop="comment" label="AI 评语" min-width="240" show-overflow-tooltip />
+        <ReTableColumn label="教师修正" width="180">
           <template #default="{ row }">
-            <el-input-number v-model="row.teacherScore" :min="0" :max="100" size="small" controls-position="right" />
+            <el-input-number v-model="row.teacherScore" :min="0" :max="row.maxScore ?? 100" size="small" controls-position="right" />
           </template>
-        </el-table-column>
-        <el-table-column label="教师评语" min-width="220">
+        </ReTableColumn>
+        <ReTableColumn label="教师评语" min-width="220">
           <template #default="{ row }">
             <el-input v-model="row.teacherComment" size="small" />
           </template>
-        </el-table-column>
-      </el-table>
+        </ReTableColumn>
+      </ReTable>
       <div v-if="result?.finished" class="flex justify-end mt-3">
-        <el-button type="primary" :loading="confirming" @click="confirmAdjust">教师确认/修正</el-button>
+        <ReButton type="primary" icon="CircleCheck" :loading="confirming" @click="confirmAdjust">教师确认/修正</ReButton>
       </div>
     </el-card>
 
@@ -74,7 +83,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Promotion, Reading, Search } from '@element-plus/icons-vue';
+import { Reading } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { MarkingResultVO } from '../api/types';
 
@@ -172,6 +181,7 @@ const confirmAdjust = async () => {
   try {
     await eduaiApi.confirmMarking({ taskId: taskId.value, adjustments });
     ElMessage.success('教师确认已提交');
+    await fetchResult();
   } catch (e) {
     ElMessage.error('确认失败: ' + (e instanceof Error ? e.message : String(e)));
   } finally {

@@ -2,64 +2,66 @@
   <div class="flex flex-col h-full">
     <CustomTitlebar />
     <div class="flex-1 flex items-center justify-center bg-surface p-5">
-    <div class="w-full max-w-md p-10 transition-all duration-300 ease-in-out">
-      <div class="text-center mb-8">
-        <div class="flex items-center justify-center gap-3 mb-3"> 
-          <h1 class="text-4xl font-semibold text-text m-0">GuaDa</h1>
+      <!-- 统一表面卡片（re-surface = 组件库 ReStatCard 规格：16px 圆角 / 无边框 / 双层柔光） -->
+      <div class="w-full max-w-md re-surface">
+        <div class="text-center mb-7">
+          <div class="flex items-center justify-center gap-3 mb-3">
+            <h1 class="text-3xl font-semibold text-(--color-text) m-0">{{ brandTitle }}</h1>
+          </div>
+          <p class="text-sm text-(--color-text-gray) m-0">{{ t('ui.login.welcome') }}</p>
         </div>
-        <p class="text-sm text-text-gray m-0">{{ t('ui.login.welcome') }}</p>
+
+        <el-form :model="form" :rules="rules" ref="formRef" label-position="top" class="flex flex-col gap-4"
+          @keyup.enter="handleLogin">
+          <el-form-item prop="username" class="mb-0">
+            <el-input v-model="form.username" :placeholder="t('ui.login.username')" size="large" clearable>
+              <template #prefix>
+                <el-icon class="text-(--color-text-gray)">
+                  <UserIcon />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item prop="password" class="mb-0">
+            <el-input v-model="form.password" type="password" show-password :placeholder="t('ui.login.password')"
+              size="large">
+              <template #prefix>
+                <el-icon class="text-(--color-text-gray)">
+                  <LockIcon />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <div class="flex justify-between items-center">
+            <el-checkbox v-model="rememberMe">{{ t('ui.login.rememberMe') }}</el-checkbox>
+          </div>
+
+          <UiButton type="primary" size="large" block :disabled="loading" class="mt-1" @click="handleLogin">
+            {{ loading ? t('ui.login.logging') : t('ui.login.submit') }}
+          </UiButton>
+        </el-form>
       </div>
-
-      <el-form :model="form" :rules="rules" ref="formRef" label-position="top" class="flex flex-col gap-5" @keyup.enter="handleLogin">
-        <el-form-item prop="username">
-          <el-input v-model="form.username" :placeholder="t('ui.login.username')" size="large" clearable>
-            <template #prefix>
-              <el-icon class="text-gray-400">
-                <UserIcon />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" show-password :placeholder="t('ui.login.password')" size="large">
-            <template #prefix>
-              <el-icon class="text-gray-400">
-                <LockIcon />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <div class="flex justify-between items-center">
-          <el-checkbox v-model="rememberMe">{{ t('ui.login.rememberMe') }}</el-checkbox>
-        </div>
-
-        <el-button type="primary" size="large" :loading="loading" @click="handleLogin" class="mt-2 h-11 text-base font-medium rounded-xl">
-          {{ loading ? t('ui.login.logging') : t('ui.login.submit') }}
-        </el-button>
-      </el-form>
     </div>
   </div>
-</div>
 </template>
 
-<!-- @ts-ignore - Element Plus 组件类型缺失 -->
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
     PersonOutlined as UserIcon,
-    LockOutlined as LockIcon,
-    LogInOutlined as LoginIcon
+    LockOutlined as LockIcon
 } from '@vicons/material'
 
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '../stores/auth'
 import { usePopup } from '../composables/usePopup'
-import { useStorage } from '@vueuse/core'
 import CustomTitlebar from './CustomTitlebar.vue'
+import UiButton from './ui/UiButton.vue'
+import { resolveBrandTitle } from '@/utils/branding'
 
 // Element Plus 组件导入
 import {
@@ -67,8 +69,7 @@ import {
   ElFormItem,
   ElInput,
   ElIcon,
-  ElCheckbox,
-  ElButton
+  ElCheckbox
 } from 'element-plus'
 
 const authStore = useAuthStore()
@@ -77,6 +78,9 @@ const { toast } = usePopup()
 const { t } = useI18n()
 
 const router = useRouter()
+
+// 品牌名统一取自 app.yaml（app.title），与标题栏、浏览器标题同源，此处不再硬编码
+const brandTitle = computed(() => resolveBrandTitle())
 
 // 登录方式 - 固定为邮箱登录
 const loginType = 'email'
@@ -141,7 +145,13 @@ const handleLogin = async (): Promise<void> => {
         }
 
         await authStore.login(loginData)
-        router.replace('/')
+        const redirect = router.currentRoute.value.query?.redirect
+        // 只接受站内相对路径，避免开放重定向
+        const target =
+          typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+            ? redirect
+            : '/'
+        router.replace(target)
       } catch (error: any) {
         console.error('登录失败:', error)
         
@@ -177,37 +187,26 @@ const handleLogin = async (): Promise<void> => {
 </script>
 
 <style scoped>
-/* Element Plus 深度样式定制 */
+/* Element Plus 控件外观统一到本应用的表面/边框变量（暗色模式自动跟随） */
 :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px var(--color-border) inset;
-  border-radius: 10px;
-  background-color: #ffffff;
+  border-radius: var(--size-surface-radius);
+  background-color: var(--color-surface, #ffffff);
   transition: all 0.2s ease;
   padding: 4px 12px;
-}
-
-.dark :deep(.el-input__wrapper) {
-  background-color: #2a2a2a;
 }
 
 :deep(.el-input.is-focus .el-input__wrapper) {
   box-shadow: 0 0 0 1px var(--color-primary) inset;
 }
 
-:deep(.el-button--primary) {
-  --el-button-bg-color: var(--color-primary);
-  --el-button-border-color: var(--color-primary);
-  --el-button-hover-bg-color: var(--color-primary-hover);
-  --el-button-hover-border-color: var(--color-primary-hover);
-  --el-button-active-bg-color: var(--color-primary-active);
-  --el-button-active-border-color: var(--color-primary-active);
+:deep(.el-form-item) {
+  margin-bottom: 0;
 }
 
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: var(--color-text);
-  font-size: 14px;
-  padding-bottom: 6px;
+:deep(.el-form-item__error) {
+  padding-top: 4px;
+  font-size: 12px;
 }
 
 :deep(.el-checkbox__label) {

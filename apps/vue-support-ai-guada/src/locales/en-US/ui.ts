@@ -17,6 +17,21 @@
     checkInput: 'Please check your input',
   },
 
+  // ── 顶栏环境信息（天气 / 台风）──
+  weather: {
+    local: 'Local',
+    unknown: 'Weather',
+    unavailable: 'Weather data is currently unavailable',
+    feelsLike: 'Feels like',
+    humidity: 'Humidity',
+    wind: 'Wind',
+  },
+  typhoon: {
+    loading: 'Loading typhoon data...',
+    none: 'No active typhoons',
+    active: 'active typhoons',
+  },
+
   // ── 密码设置页 ──
   password: {
     securityTitle: 'Set a Security Password',

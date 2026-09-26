@@ -94,19 +94,21 @@ describe("PostManage 岗位管理页面", () => {
   it("renders search form, table and add button correctly", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
-    const text = wrapper.text();
-    // 搜索区占位
-    expect(text).toContain("岗位名称");
-    expect(text).toContain("岗位编码");
+    // 搜索区由 ReTable 内置 :search filters 渲染，断言限定在搜索区内
+    const search = wrapper.find(".re-table__search");
+    expect(search.exists()).toBe(true);
+    expect(search.text()).toContain("岗位名称");
+    expect(search.text()).toContain("岗位编码");
     // 表格渲染出一行数据（行级操作列含 编辑/删除）
     expect(wrapper.find(".re-table-stub").exists()).toBe(true);
     expect(wrapper.findAll(".re-row").length).toBeGreaterThan(0);
-    const rowButtons = wrapper.findAll(".re-row button").map((b) => b.text());
-    expect(rowButtons).toContain("编辑");
-    expect(rowButtons).toContain("删除");
-    // 工具栏按钮
+    // 行级操作为方形图标按钮，可访问名取 title
+    const rowActions = wrapper.findAll(".re-row button").map((b) => (b.attributes("title") || b.text()).trim());
+    expect(rowActions).toContain("编辑");
+    expect(rowActions).toContain("删除");
+    // 工具栏按钮（搜索区内置 搜索/重置，#toolbar 插槽提供 新增）
     const labels = wrapper.findAll("button").map((b) => b.text());
-    expect(labels).toContain("查询");
+    expect(labels).toContain("搜索");
     expect(labels).toContain("重置");
     expect(labels).toContain("新增");
   });
@@ -174,8 +176,8 @@ describe("PostManage 岗位管理页面", () => {
     await settle(wrapper);
     api.deletePost.mockClear();
 
-    // 行内“删除”按钮
-    const delBtn = wrapper.findAll("button").find((b) => b.text().trim() === "删除");
+    // 行内“删除”为方形图标按钮，按 title 定位
+    const delBtn = wrapper.findAll(".re-row button").find((b) => (b.attributes("title") || "").trim() === "删除");
     expect(delBtn).toBeTruthy();
     await delBtn!.trigger("click");
     await settle(wrapper);
@@ -190,10 +192,23 @@ describe("PostManage 岗位管理页面", () => {
     await settle(wrapper);
     const before = api.pageForPost.mock.calls.length;
 
-    const queryBtn = wrapper.findAll("button").find((b) => b.text().includes("查询"))!;
+    // 在内置搜索区填写“岗位名称”过滤项，再点击搜索按钮
+    const nameInput = wrapper.find<HTMLInputElement>(
+      '.re-search-filter[data-filter-key="sysPostName"] input',
+    );
+    expect(nameInput.exists()).toBe(true);
+    await nameInput.setValue("工程师");
+
+    const queryBtn = wrapper.find(".re-search-query-btn");
+    expect(queryBtn.exists()).toBe(true);
+    expect(queryBtn.text()).toContain("搜索");
     await queryBtn.trigger("click");
     await settle(wrapper);
 
     expect(api.pageForPost.mock.calls.length).toBeGreaterThan(before);
+    // 搜索按钮必须把当前过滤条件真正带给接口
+    expect(api.pageForPost).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sysPostName: "工程师" }),
+    );
   });
 });

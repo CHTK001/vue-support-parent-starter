@@ -1,0 +1,136 @@
+/*
+ * 全局 markdown 正文样式（.markdown-doc）
+ * 从技能市场 Skills.vue 的 scoped :deep 规则抽出，供技能市场、技能管理详情等所有
+ * 渲染 SKILL.md / markdown 正文的位置复用，避免样式缺失与重复维护。
+ */
+
+/* 代码块容器 */
+.markdown-doc .custom-code-block {
+    margin-bottom: 1em;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e3e3e7;
+}
+.dark .markdown-doc .custom-code-block {
+    border-color: #333;
+}
+
+/* 代码块头部 */
+.markdown-doc .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 12px;
+    background: #f3f3f5;
+    color: #222;
+    font-size: 0.8em;
+    border-bottom: 1px solid #e3e3e7;
+}
+.dark .markdown-doc .code-header {
+    background: #2a2c30;
+    color: #e8e9ed;
+    border-color: #333;
+}
+
+.markdown-doc .code-language {
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #666;
+}
+.dark .markdown-doc .code-language {
+    color: #8b8d95;
+}
+
+/* 代码块内容 */
+.markdown-doc pre.hljs {
+    margin: 0;
+    border-radius: 0;
+    background: #fafafb !important;
+    padding: 16px;
+    overflow-x: auto;
+}
+.dark .markdown-doc pre.hljs {
+    background: #1a1c20 !important;
+}
+
+.markdown-doc code.hljs {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875em;
+    background: transparent !important;
+    display: block;
+    overflow-x: auto;
+}
+
+/* 行内代码 */
+.markdown-doc :not(pre) > code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875em;
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e83e8c;
+}
+.dark .markdown-doc :not(pre) > code {
+    background-color: #2a2c30;
+    color: #ff7b72;
+}
+
+.markdown-doc p {
+    margin-bottom: 1em;
+    line-height: 1.6;
+}
+
+.markdown-doc h1,
+.markdown-doc h2,
+.markdown-doc h3,
+.markdown-doc h4 {
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    font-weight: 600;
+}
+
+.markdown-doc ul,
+.markdown-doc ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+}
+
+.markdown-doc li {
+    margin-bottom: 0.25em;
+}
+
+.markdown-doc blockquote {
+    border-left: 4px solid #ddd;
+    padding-left: 1em;
+    color: #666;
+    margin-bottom: 1em;
+}
+.dark .markdown-doc blockquote {
+    border-left-color: #444;
+    color: #999;
+}
+
+.markdown-doc table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+.markdown-doc th,
+.markdown-doc td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    text-align: left;
+}
+.dark .markdown-doc th,
+.dark .markdown-doc td {
+    border-color: #444;
+}
+
+.markdown-doc th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+}
+.dark .markdown-doc th {
+    background-color: #2a2c30;
+}

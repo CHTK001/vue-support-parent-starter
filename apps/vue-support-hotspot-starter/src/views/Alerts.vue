@@ -130,7 +130,7 @@
         <ReInputNumber v-model="newRule.threshold" placeholder="阈值" size="small" class="grow" :min="0" />
         <ReSelect v-model="newRule.severity" :data="severityOptions" placeholder="级别" size="small" class="grow" />
         <ReInputNumber v-model="newRule.debounceMs" placeholder="去抖(ms)" size="small" class="grow" :min="0" />
-        <ReButton type="primary" size="small" :icon="Plus" show-text :loading="addingRule" @click="addRule">新增规则</ReButton>
+        <el-button type="primary" size="small" :icon="Plus" show-text :loading="addingRule" @click="addRule" text>新增规则</el-button>
       </div>
       <div class="rule-list">
         <div v-for="r in rules" :key="r.metric" class="rule-item">

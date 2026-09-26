@@ -1,8 +1,7 @@
 /**
  * @pages/system —— 系统管理共享包
  *
- * 提供 8 个核心管理页面：用户/角色/菜单/部门/字典/在线用户/系统设置，
- * 以及后端 API 封装、路由表、静态菜单。
+ * 提供系统管理与监控管理页面，以及后端 API 封装、路由表、静态菜单。
  *
  * 菜单由后端 /v2/user/menu 提供（route.mode=remote），页面组件通过
  * registerMenuViewModules 以懒加载（异步组件）注册：后端菜单 component
@@ -19,20 +18,18 @@ registerMenuViewModules({
   "views/system/menu/index.vue": () => import("./views/MenuManage.vue"),
   "views/system/dept/index.vue": () => import("./views/DeptManage.vue"),
   "views/system/dict/index.vue": () => import("./views/DictManage.vue"),
-  "views/system/online/index.vue": () => import("./views/OnlineUser.vue"),
   "views/system/setting/index.vue": () => import("./views/SettingManage.vue"),
   "views/system/settings/index.vue": () => import("./views/PersonalSettings.vue"),
   "views/system/feedback/index.vue": () => import("./views/FeedbackManage.vue"),
   "views/system/userlog/index.vue": () => import("./views/UserLogManage.vue"),
   "views/system/syslog/index.vue": () => import("./views/SysLogManage.vue"),
-  "views/system/tenant/index.vue": () => import("./views/TenantManage.vue"),
   "views/system/announcement/index.vue": () => import("./views/AnnouncementManage.vue"),
   "views/system/post/index.vue": () => import("./views/PostManage.vue"),
-  "views/system/cache/index.vue": () => import("./views/CacheManage.vue"),
   "views/system/message/index.vue": () => import("./views/MessageManage.vue"),
-  "views/system/errorlog/index.vue": () => import("./views/ErrorLogManage.vue"),
-  "views/system/ip/index.vue": () => import("./views/IpManage.vue"),
-  "views/system/monitor/index.vue": () => import("./views/MonitorManage.vue"),
+  "views/system/monitor/redis/index.vue": () => import("./views/monitor/RedisMonitor.vue"),
+  "views/system/monitor/cache/index.vue": () => import("./views/monitor/CacheMonitor.vue"),
+  "views/system/monitor/server/index.vue": () => import("./views/monitor/ServerMonitor.vue"),
+  "views/system/monitor/policy/index.vue": () => import("./views/monitor/PolicyTask.vue"),
 });
 
 export { systemRoutes, systemMenus } from "./routes";

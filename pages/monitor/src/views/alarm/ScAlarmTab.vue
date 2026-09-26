@@ -544,13 +544,7 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.stats-row :deep(.re-stat-card) {
-  transition: box-shadow var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
-}
-.stats-row :deep(.re-stat-card:hover) {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
+  /* 统计卡视觉与悬停由 ReStatCard 的 re-surface 基线提供，此处不再覆写 */
 .stat-dist {
   font-size: 13px;
   font-weight: 600;

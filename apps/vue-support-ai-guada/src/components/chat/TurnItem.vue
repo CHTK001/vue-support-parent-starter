@@ -110,6 +110,10 @@
                         :is-streaming="item.source.state?.isStreaming || false"
                         :thinking-duration-ms="item.source.thinkingDurationMs ?? item.source.metadata?.thinkingDurationMs"
                         :metadata="item.source.metadata" />
+                      <MessageSearchSection v-if="item.type === 'search'"
+                        :search-results="item.searchResults || []"
+                        :is-searching="item.source.state?.isSearching || false"
+                        :search-query="item.searchQuery" />
                       <MessageToolCalls v-if="item.type === 'tool'" :tool-calls="item.toolCalls || []"
                         :tool-responses="item.toolResponses" :content-id="item.source.id"
                         :is-streaming="streamingState.isStreaming" />
@@ -119,6 +123,33 @@
               </div>
             </div>
           </template>
+
+          <!-- 计划批准卡片（plan_exit 人工确认） -->
+          <PlanApprovalCard
+            v-if="confirmationRequest"
+            :request="confirmationRequest"
+            @decision="handleConfirmationDecision"
+          />
+
+          <!-- 执行日志（agentscope 全量 trace：thinking/输出/轮次/工具/用量/边缘） -->
+          <div v-if="allTraceLog.length" class="trace-console">
+            <div class="trace-console__header" @click="traceExpanded = !traceExpanded">
+              <el-icon size="13" class="trace-console__icon"><CodeOutlined /></el-icon>
+              <span class="trace-console__title">执行日志</span>
+              <span class="trace-console__count">{{ allTraceLog.length }}</span>
+              <el-icon size="12" class="trace-console__chevron" :class="{ 'is-open': traceExpanded }">
+                <ChevronDown12Regular />
+              </el-icon>
+            </div>
+            <div v-show="traceExpanded" class="trace-console__body">
+              <div v-for="(tr, i) in allTraceLog" :key="i" class="trace-line" :class="'trace-line--' + tr.kind">
+                <span class="trace-line__time">{{ formatTraceTime(tr.timestamp) }}</span>
+                <span class="trace-line__tag">{{ traceKindLabel(tr.kind) }}</span>
+                <span v-if="tr.toolName" class="trace-line__tool">{{ tr.toolName }}</span>
+                <span class="trace-line__text">{{ tr.text }}</span>
+              </div>
+            </div>
+          </div>
 
           <!-- 错误提示 -->
           <el-alert v-if="assistantMetadata?.finishReason === 'error'" :title="t('chat.turn.apiError')" type="error" :closable="false">
@@ -231,9 +262,9 @@
 import { computed, ref, watch, nextTick, inject } from "vue";
 import { ElAlert, ElIcon, ElImageViewer, ElButton } from "element-plus";
 import { useI18n } from "vue-i18n";
-import { InsightsTwotone, MenuBookOutlined } from "@vicons/material";
-import { Alert16Regular, BrainCircuit20Regular, Wrench24Filled, ChevronDown12Regular } from "@vicons/fluent";
-import { Loading } from "@element-plus/icons-vue";
+import { InsightsTwotone, MenuBookOutlined, CodeOutlined } from "@vicons/material";
+import { Alert16Regular, BrainCircuit20Regular, Wrench24Filled, ChevronDown12Regular, GlobeShield20Regular } from "@vicons/fluent";
+import { Loading, Bottom, Top, Box, InfoFilled } from "@element-plus/icons-vue";
 import { FileItem, Avatar } from "../ui";
 import { formatTime } from '../../utils';
 import { getCurrentTurns, groupContentsForDisplay, type DisplayGroup, type DisplayItem, type Message } from '@/utils/messageUtils';
@@ -241,10 +272,12 @@ import { getToolConfig, getToolIcon, resolveToolName as _resolveToolName, getArg
 import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
 import MessageThinkingSection from './message-item/MessageThinkingSection.vue';
+import MessageSearchSection from './message-item/MessageSearchSection.vue';
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
+import PlanApprovalCard from './message-item/PlanApprovalCard.vue';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
 
 const { toast } = usePopup();
@@ -267,6 +300,7 @@ const emit = defineEmits<{
   generate: [message: Message]
   regenerate: [message: Message]
   continue: [message: Message]
+  resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
 }>();
 
 // ============================================
@@ -361,6 +395,62 @@ const displayGroups = computed<DisplayGroup[]>(() => {
   return groupContentsForDisplay(turnsCache.value);
 });
 
+// ============================================
+// 执行日志（agentscope trace）
+// ============================================
+const traceExpanded = ref(false);
+const allTraceLog = computed(() => {
+  const out: any[] = [];
+  const msg = activeAssistant.value;
+  if (!msg) return out;
+  for (const c of msg.contents || []) {
+    if (Array.isArray(c.traceLog)) out.push(...c.traceLog);
+  }
+  return out;
+});
+// 计划批准请求（plan_exit）：从助手内容 metadata 读取
+const confirmationRequest = computed<{ replyId: string; items: any[] } | null>(() => {
+  const msg = activeAssistant.value;
+  if (!msg) return null;
+  for (const c of msg.contents || []) {
+    const req = c?.metadata?.confirmationRequest;
+    if (req && req.replyId) return req;
+  }
+  return null;
+});
+
+const handleConfirmationDecision = (payload: { replyId: string; confirmed: boolean; feedback?: string }) => {
+  emit('resumeConfirmation', {
+    replyId: payload.replyId,
+    confirmed: payload.confirmed,
+    items: confirmationRequest.value?.items || [],
+    feedback: payload.feedback,
+  });
+};
+
+const formatTraceTime = (ts: number): string => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const p = (n: number) => n.toString().padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+const traceKindLabel = (kind: string): string => {
+  const map: Record<string, string> = {
+    agent_start: "启动",
+    agent_end: "结束",
+    turn: "轮次",
+    thinking: "思考",
+    text: "输出",
+    tool_call: "工具",
+    tool_args: "参数",
+    tool_result: "结果",
+    usage: "用量",
+    hint: "提示",
+    edge: "等待",
+  };
+  return map[kind] || kind || "";
+};
+
 // 文件变更记录
 const { fileChanges } = useFileChanges(turnsCache);
 const diffDialogVisible = ref(false);
@@ -413,15 +503,32 @@ const getGroupTitleParts = (group: DisplayGroup, active: boolean) => {
   const toolItems = items.filter(i => i.type === 'tool');
   const allToolCalls = toolItems.flatMap(i => i.toolCalls || []);
 
-  // 纯思考（无工具）
+  // 纯思考/检索（无工具）
   if (allToolCalls.length === 0) {
     const thinkItem = items.find(i => i.type === 'think');
+    const searchItem = items.find(i => i.type === 'search');
     const isThinking = thinkItem?.source.state?.isThinking;
+    const isSearching = searchItem?.source.state?.isSearching;
+
+    // 正在思考（检索已完成）→ 思考优先
     if (isThinking) {
       const lines = (thinkItem?.reasoningContent || '').split('\n').map(l => l.trim()).filter(Boolean);
       const lastLine = lines[lines.length - 1] || '';
       const preview = lastLine.length > 200 ? lastLine.substring(0, 200) + '...' : lastLine;
       return { icon: BrainCircuit20Regular, action: t('chat.turn.thinkingActive'), args: preview };
+    }
+    // 正在检索（尚未思考）→ 检索状态
+    if (isSearching) {
+      const q = searchItem?.searchQuery || '';
+      return { icon: GlobeShield20Regular, action: t('chat.turn.searchActive'), args: q };
+    }
+    // 均已结束：有思考显示思考，否则显示检索
+    if (thinkItem) {
+      return { icon: BrainCircuit20Regular, action: t('chat.turn.thinkingDone'), args: '' };
+    }
+    if (searchItem) {
+      const n = searchItem.searchResults?.length || 0;
+      return { icon: GlobeShield20Regular, action: t('chat.turn.searchDone', { n }), args: '' };
     }
     return { icon: BrainCircuit20Regular, action: t('chat.turn.thinkingDone'), args: '' };
   }
@@ -931,8 +1038,91 @@ const handleClick = (event: MouseEvent) => {
 .max-iterations-notice {
   margin-top: 12px;
 }
+.token-arrow { display: inline-flex; align-items: center; }
+.token-arrow-input { color: #52c41a; }
+.token-arrow-output { color: #722ed1; }
+.token-arrow-cache { color: #1677ff; }
+.token-info-icon { color: var(--el-text-color-secondary); }
+.token-popover { min-width: 160px; }
+.token-popover-title { font-weight: 600; margin-bottom: 6px; }
+.token-popover-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; padding: 2px 0; font-size: 12px; }
+.token-popover-val { font-weight: 500; }
+.token-popover-divider { border-top: 1px solid var(--el-border-color); margin: 4px 0; }
+.token-popover-total { font-weight: 600; }
+
+/* 执行日志控制台 */
+.trace-console {
+  margin: 8px 0 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--el-fill-color-blank);
+}
+.trace-console__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--el-text-color-regular);
+  transition: background-color 0.2s ease;
+}
+.trace-console__header:hover { background: var(--el-fill-color-light); }
+.trace-console__icon { color: var(--el-text-color-secondary); }
+.trace-console__title { font-size: 12px; font-weight: 500; }
+.trace-console__count {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-radius: 9px;
+  padding: 0 7px;
+  line-height: 16px;
+}
+.trace-console__chevron {
+  margin-left: auto;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.25s ease;
+  transform: rotate(-90deg);
+}
+.trace-console__chevron.is-open { transform: rotate(0deg); }
+.trace-console__body {
+  max-height: 280px;
+  overflow-y: auto;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 6px 10px;
+  font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+.trace-line { display: flex; align-items: baseline; gap: 8px; white-space: pre-wrap; word-break: break-word; }
+.trace-line__time { color: var(--el-text-color-placeholder); flex-shrink: 0; }
+.trace-line__tag {
+  flex-shrink: 0;
+  min-width: 30px;
+  color: var(--el-color-info);
+}
+.trace-line__tool { flex-shrink: 0; color: var(--el-color-primary); }
+.trace-line__text { color: var(--el-text-color-regular); }
+.trace-line--thinking .trace-line__tag { color: var(--el-color-primary); }
+.trace-line--tool_call .trace-line__tag,
+.trace-line--tool_args .trace-line__tag,
+.trace-line--tool_result .trace-line__tag { color: var(--el-color-success); }
+.trace-line--usage .trace-line__tag { color: var(--el-color-warning); }
+.trace-line--edge .trace-line__tag { color: var(--el-color-danger); }
 </style>
 <style>
 @import "@/assets/markdown.css";
 @import 'highlight.js/styles/foundation.css';
+.token-arrow { display: inline-flex; align-items: center; }
+.token-arrow-input { color: #52c41a; }
+.token-arrow-output { color: #722ed1; }
+.token-arrow-cache { color: #1677ff; }
+.token-info-icon { color: var(--el-text-color-secondary); }
+.token-popover { min-width: 160px; }
+.token-popover-title { font-weight: 600; margin-bottom: 6px; }
+.token-popover-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; padding: 2px 0; font-size: 12px; }
+.token-popover-val { font-weight: 500; }
+.token-popover-divider { border-top: 1px solid var(--el-border-color); margin: 4px 0; }
+.token-popover-total { font-weight: 600; }
 </style>

@@ -20,7 +20,8 @@
       </div>
     </div>
 
-    <el-table :data="filteredData" v-loading="loading" border stripe style="width: 100%">
+    <div class="panel-card">
+    <el-table :data="filteredData" v-loading="loading" stripe class="flat-table" style="width: 100%">
       <el-table-column prop="appName" label="应用名称" min-width="150" />
       <el-table-column prop="appKey" label="AppKey" min-width="200">
         <template #default="{ row }">
@@ -54,8 +55,9 @@
         layout="total, sizes, prev, pager, next"
       />
     </div>
+    </div>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px" append-to-body>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="应用名称" prop="appName">
           <el-input v-model="form.appName" placeholder="请输入应用名称" />
@@ -189,10 +191,32 @@ onMounted(() => loadData());
 </script>
 
 <style scoped>
-.app-keys-page { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.page-header h2 { margin: 0; font-size: 20px; font-weight: 600; }
-.header-actions { display: flex; align-items: center; }
-.key-text { font-family: monospace; font-size: 13px; color: #606266; margin-right: 8px; }
-.pagination-wrapper { margin-top: 20px; display: flex; justify-content: flex-end; }
+.app-keys-page { padding: 22px 24px; height: 100%; overflow: auto; }
+.page-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.page-header h2 {
+  position: relative; margin: 0; font-size: 21px; font-weight: 700;
+  color: var(--el-text-color-primary); padding-left: 12px;
+}
+.page-header h2::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 19px; border-radius: 4px;
+  background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+}
+.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.panel-card {
+  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-radius: 18px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+}
+.flat-table { --el-table-border-color: var(--el-border-color-lighter); }
+.flat-table :deep(th.el-table__cell) {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-weight: 600;
+}
+.key-text { font-family: ui-monospace, monospace; font-size: 13px; color: var(--el-text-color-secondary); margin-right: 8px; }
+.pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>

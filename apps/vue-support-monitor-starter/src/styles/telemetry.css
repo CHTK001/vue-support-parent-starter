@@ -1,20 +1,17 @@
-/* ============================================================
- * telemetry.css —— 监控平台全局样式覆盖
+﻿/* ============================================================
+ * telemetry.css 鈥斺€?鐩戞帶骞冲彴鍏ㄥ眬鏍峰紡瑕嗙洊
  *
- * 职责：
- *   1. 将应用自定义令牌映射到 element-plus / ReXxx 组件变量
- *   2. 覆盖 element-plus 硬编码白色，使其跟随 CSS 变量
- *   3. 弹窗 / 表单 / 按钮 / 表格 统一美化
- *   4. 明暗双主题自动适配（html.dark 切换）
- * ============================================================ */
+ * 鑱岃矗锛? *   1. 灏嗗簲鐢ㄨ嚜瀹氫箟浠ょ墝鏄犲皠鍒?element-plus / ReXxx 缁勪欢鍙橀噺
+ *   2. 瑕嗙洊 element-plus 纭紪鐮佺櫧鑹诧紝浣垮叾璺熼殢 CSS 鍙橀噺
+ *   3. 寮圭獥 / 琛ㄥ崟 / 鎸夐挳 / 琛ㄦ牸 缁熶竴缇庡寲
+ *   4. 鏄庢殫鍙屼富棰樿嚜鍔ㄩ€傞厤锛坔tml.dark 鍒囨崲锛? * ============================================================ */
 
 /* ============================================================
-   第一部分：全局变量映射（:root = 亮色，html.dark = 暗色）
-   将自定义 --bg-* / --text-* 映射到 element-plus 和 ReXxx 组件
-   必须放在全局（:root），因为弹窗/下拉层 teleport 到 body
+   绗竴閮ㄥ垎锛氬叏灞€鍙橀噺鏄犲皠锛?root = 浜壊锛宧tml.dark = 鏆楄壊锛?   灏嗚嚜瀹氫箟 --bg-* / --text-* 鏄犲皠鍒?element-plus 鍜?ReXxx 缁勪欢
+   蹇呴』鏀惧湪鍏ㄥ眬锛?root锛夛紝鍥犱负寮圭獥/涓嬫媺灞?teleport 鍒?body
    ============================================================ */
 :root {
-  /* ===== element-plus 基础变量映射 ===== */
+  /* ===== element-plus 鍩虹鍙橀噺鏄犲皠 ===== */
   --el-bg-color: var(--bg-container);
   --el-bg-color-overlay: var(--bg-elevated);
   --el-fill-color-blank: var(--bg-elevated);
@@ -32,7 +29,7 @@
   --el-text-color-placeholder: var(--text-tertiary);
   --el-mask-color: rgba(15, 18, 33, 0.5);
 
-  /* ===== element-plus 表格变量 ===== */
+  /* ===== element-plus 琛ㄦ牸鍙橀噺 ===== */
   --el-table-bg-color: transparent;
   --el-table-row-hover-bg-color: var(--brand-50);
   --el-table-border-color: var(--border-subtle);
@@ -43,12 +40,12 @@
   --el-table-expanded-cell-bg-color: transparent;
   --el-table-border-color: var(--border-subtle);
 
-  /* ===== element-plus 禁用态 ===== */
+  /* ===== element-plus 绂佺敤鎬?===== */
   --el-disabled-bg-color: var(--bg-elevated);
   --el-disabled-border-color: var(--border-subtle);
   --el-disabled-text-color: var(--text-tertiary);
 
-  /* ===== element-plus 输入框 ===== */
+  /* ===== element-plus 杈撳叆妗?===== */
   --el-input-bg-color: var(--bg-elevated);
   --el-input-border-color: var(--border-default);
   --el-input-hover-border-color: var(--brand-500);
@@ -58,13 +55,13 @@
   --el-input-icon-color: var(--text-tertiary);
   --el-input-clear-hover-color: var(--text-secondary);
 
-  /* ===== element-plus 分页 ===== */
+  /* ===== element-plus 鍒嗛〉 ===== */
   --el-pagination-bg-color: transparent;
   --el-pagination-button-bg-color: transparent;
   --el-pagination-hover-color: var(--brand-500);
   --el-pagination-text-color: var(--text-secondary);
 
-  /* ===== element-plus 按钮 ===== */
+  /* ===== element-plus 鎸夐挳 ===== */
   --el-button-bg-color: var(--bg-fill);
   --el-button-border-color: var(--border-default);
   --el-button-text-color: var(--text-primary);
@@ -72,7 +69,7 @@
   --el-button-hover-border-color: var(--brand-500);
   --el-button-hover-text-color: var(--text-primary);
 
-  /* ===== ReXxx 组件变量（--rm-*） ===== */
+  /* ===== ReXxx 缁勪欢鍙橀噺锛?-rm-*锛?===== */
   --rm-bg: var(--bg-elevated);
   --rm-bg-elevated: var(--bg-container);
   --rm-bg-hover: var(--bg-hover);
@@ -89,7 +86,7 @@
   --rm-shadow: 0 4px 16px var(--shadow-md);
   --rm-radius: 8px;
 
-  /* ===== ReTable 变量（--rt-*） ===== */
+  /* ===== ReTable 鍙橀噺锛?-rt-*锛?===== */
   --rt-bg: var(--bg-elevated);
   --rt-bg-header: var(--bg-fill);
   --rt-bg-strip: var(--bg-fill);
@@ -104,7 +101,7 @@
   --rt-text-placeholder: var(--text-tertiary);
   --rt-header-bg: var(--bg-fill);
 
-  /* ===== koi 主题变量（ReCard / ReDrawer 等使用 --theme-color-*） ===== */
+  /* ===== koi 涓婚鍙橀噺锛圧eCard / ReDrawer 绛変娇鐢?--theme-color-*锛?===== */
   --theme-color-bg: var(--bg-page);
   --theme-color-bg-container: var(--bg-container);
   --theme-color-text: var(--text-primary);
@@ -115,12 +112,12 @@
   --theme-color-warning: #f5a524;
   --theme-color-error: #f04a5d;
 
-  /* ===== 过渡动画 ===== */
+  /* ===== 杩囨浮鍔ㄧ敾 ===== */
   --tel-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --tel-glow-brand: 0 0 0 1px var(--brand-500), 0 0 16px rgba(109, 93, 252, 0.25);
   --tel-glow-soft: 0 4px 20px var(--shadow-md);
 
-  /* ===== --tel-* 变量（数据库/中间件管理页面使用） ===== */
+  /* ===== --tel-* 鍙橀噺锛堟暟鎹簱/涓棿浠剁鐞嗛〉闈娇鐢級 ===== */
   --tel-bg: var(--bg-page);
   --tel-panel: var(--bg-container);
   --tel-border: var(--border-subtle);
@@ -132,17 +129,20 @@
   --tel-text-dim: var(--text-tertiary);
 }
 
-/* 深色主题下调整遮罩色（更深） */
+/* 娣辫壊涓婚涓嬭皟鏁撮伄缃╄壊锛堟洿娣憋級 */
 html.dark {
   --el-mask-color: rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================================
-   第二部分：页面容器 .tel-page
+   绗簩閮ㄥ垎锛氶〉闈㈠鍣?.tel-page
    ============================================================ */
 .tel-page {
   position: relative;
-  overflow: hidden;
+  /* 页面容器自身纵向滚动：内容超高时出滚动条（原先 overflow:hidden 直接裁掉内容），
+     同时作为内部 el-table 表头 sticky 的滚动容器 */
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 100%;
   height: 100%;
   background: var(--bg-container);
@@ -152,19 +152,9 @@ html.dark {
   color: var(--text-primary);
   box-shadow: var(--shadow-1);
 }
-/* 背景网格（两主题共用，用半透明色） */
-.tel-page::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
-  background-size: 30px 30px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
-}
-/* 顶部扫描线 */
+/* 鑳屾櫙缃戞牸锛堜袱涓婚鍏辩敤锛岀敤鍗婇€忔槑鑹诧級 */
+/* tel-page grid background removed */
+/* 椤堕儴鎵弿绾?*/
 .tel-page::after {
   content: "";
   position: absolute;
@@ -190,11 +180,11 @@ html.dark {
 }
 
 /* ============================================================
-   第三部分：element-plus 组件内部背景覆盖
-   （EP 内部有硬编码白色，需强制覆盖为变量）
+   绗笁閮ㄥ垎锛歟lement-plus 缁勪欢鍐呴儴鑳屾櫙瑕嗙洊
+   锛圗P 鍐呴儴鏈夌‖缂栫爜鐧借壊锛岄渶寮哄埗瑕嗙洊涓哄彉閲忥級
    ============================================================ */
 
-/* 输入框 / 下拉框 / 数字输入框 / 日期选择器 背景与边框 */
+/* 杈撳叆妗?/ 涓嬫媺妗?/ 鏁板瓧杈撳叆妗?/ 鏃ユ湡閫夋嫨鍣?鑳屾櫙涓庤竟妗?*/
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper,
@@ -254,7 +244,7 @@ html.dark {
   background-color: var(--el-disabled-bg-color) !important;
 }
 
-/* el-table 透明背景，露出父容器 */
+/* el-table 閫忔槑鑳屾櫙锛岄湶鍑虹埗瀹瑰櫒 */
 .el-table,
 .el-table__body-wrapper,
 .el-table__inner-wrapper,
@@ -285,12 +275,12 @@ html.dark {
   background-color: var(--border-subtle);
 }
 
-/* 表单标签 */
+/* 琛ㄥ崟鏍囩 */
 .el-form-item__label {
   color: var(--text-secondary);
 }
 
-/* 默认按钮（非 primary/success/warning/danger） */
+/* 榛樿鎸夐挳锛堥潪 primary/success/warning/danger锛?*/
 .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info) {
   background-color: var(--bg-fill);
   border-color: var(--border-default);
@@ -302,7 +292,7 @@ html.dark {
   color: var(--brand-500);
 }
 
-/* 分页 */
+/* 鍒嗛〉 */
 .el-pagination {
   color: var(--text-secondary);
 }
@@ -322,15 +312,14 @@ html.dark {
 }
 
 /* ============================================================
-   第四部分：弹窗 / 浮层 / 下拉（全局，teleport 到 body）
-   ============================================================ */
+   绗洓閮ㄥ垎锛氬脊绐?/ 娴眰 / 涓嬫媺锛堝叏灞€锛宼eleport 鍒?body锛?   ============================================================ */
 
-/* 遮罩层 */
+/* 閬僵灞?*/
 .el-overlay {
   background-color: var(--el-mask-color);
 }
 
-/* ---- 弹窗美化（统一后台样式规范） ---- */
+/* ---- 寮圭獥缇庡寲锛堢粺涓€鍚庡彴鏍峰紡瑙勮寖锛?---- */
 .el-dialog {
   border-radius: var(--radius-dialog, 8px);
   box-shadow: var(--shadow-lg);
@@ -341,38 +330,49 @@ html.dark {
 }
 .el-dialog__header {
   position: relative;
-  padding: 20px 24px 16px !important;
+  padding: 8px 24px 8px !important;
   margin-right: 0 !important;
-  margin-bottom: 0 !important;
+  margin-bottom: 8px !important;
   background: var(--bg-fill);
 }
 .el-dialog__title {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
 }
 .el-dialog__headerbtn {
-  top: 18px;
+  top: 8px;
   right: 20px;
 }
 .el-dialog__headerbtn .el-dialog__close {
   color: var(--text-tertiary);
-  font-size: 18px;
+  font-size: 16px;
 }
 .el-dialog__headerbtn:hover .el-dialog__close {
   color: var(--text-primary);
 }
+.el-dialog {
+  max-height: 85vh;
+  margin-top: 7vh !important;
+  display: flex;
+  flex-direction: column;
+}
 .el-dialog__body {
-  padding: 20px 24px !important;
+  /* 弹窗内容内边距统一归零，由各弹窗内部组件自行控制间距 */
+  padding: 0 !important;
   color: var(--text-primary);
+  flex: 0 0 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .el-dialog__footer {
   position: relative;
-  padding: 14px 24px 18px !important;
+  padding: 6px 24px 8px !important;
   border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
-/* koi 弹窗壳（ReDialog koi 主题） */
+/* koi 寮圭獥澹筹紙ReDialog koi 涓婚锛?*/
 .koi-dialog-shell {
   border-radius: var(--radius-dialog, 8px) !important;
 }
@@ -387,7 +387,7 @@ html.dark {
   background: var(--bg-container);
 }
 
-/* 弹窗出现动画 */
+/* 寮圭獥鍑虹幇鍔ㄧ敾 */
 .el-overlay-dialog {
   animation: telDialogIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -396,7 +396,7 @@ html.dark {
   to { opacity: 1; transform: none; }
 }
 
-/* ---- 下拉浮层（最常见的黑色块来源） ---- */
+/* ---- 涓嬫媺娴眰锛堟渶甯歌鐨勯粦鑹插潡鏉ユ簮锛?---- */
 .el-popper,
 .el-select-dropdown,
 .el-picker-panel,
@@ -416,7 +416,7 @@ html.dark {
   border-color: var(--border-subtle);
 }
 
-/* 下拉菜单项 */
+/* 涓嬫媺鑿滃崟椤?*/
 .el-select-dropdown__item {
   color: var(--text-primary) !important;
 }
@@ -433,7 +433,7 @@ html.dark {
   color: var(--text-tertiary) !important;
 }
 
-/* 下拉菜单（dropdown） */
+/* 涓嬫媺鑿滃崟锛坉ropdown锛?*/
 .el-dropdown-menu {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -450,7 +450,7 @@ html.dark {
   color: var(--text-tertiary);
 }
 
-/* 消息框 */
+/* 娑堟伅妗?*/
 .el-message-box {
   border-radius: var(--radius-dialog, 8px);
   background: var(--bg-container);
@@ -464,14 +464,14 @@ html.dark {
   color: var(--text-secondary);
 }
 
-/* 消息提示 */
+/* 娑堟伅鎻愮ず */
 .el-message {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md);
   background: var(--bg-elevated);
 }
 
-/* 日期选择器内部 */
+/* 鏃ユ湡閫夋嫨鍣ㄥ唴閮?*/
 .el-date-picker,
 .el-picker-panel {
   --el-datepicker-bg-color: var(--bg-elevated);
@@ -494,10 +494,9 @@ html.dark {
 }
 
 /* ============================================================
-   第五部分：组件美化增强
-   ============================================================ */
+   绗簲閮ㄥ垎锛氱粍浠剁編鍖栧寮?   ============================================================ */
 
-/* ---- 输入框 / 下拉框 focus 发光 ---- */
+/* ---- 杈撳叆妗?/ 涓嬫媺妗?focus 鍙戝厜 ---- */
 .el-input__wrapper,
 .el-select__wrapper,
 .el-textarea__inner,
@@ -510,7 +509,7 @@ html.dark {
   box-shadow: var(--tel-glow-brand) !important;
 }
 
-/* ---- 按钮美化 ---- */
+/* ---- 鎸夐挳缇庡寲 ---- */
 .el-button {
   transition: all var(--tel-transition);
   font-weight: 500;
@@ -569,7 +568,7 @@ html.dark {
   filter: brightness(1.05);
 }
 
-/* ---- 表格行 hover 发光 ---- */
+/* ---- 琛ㄦ牸琛?hover 鍙戝厜 ---- */
 .el-table .el-table__body tr {
   transition: background-color var(--tel-transition), box-shadow var(--tel-transition);
 }
@@ -580,7 +579,11 @@ html.dark {
   background-color: var(--el-color-primary-light-9) !important;
 }
 .el-table .el-table__header-wrapper {
-  position: relative;
+  /* 固定表头：随最近滚动容器吸顶，仅表体内容滚动 */
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--el-table-header-bg-color, var(--el-fill-color-light));
 }
 .el-table .el-table__header-wrapper::after {
   content: "";
@@ -599,7 +602,7 @@ html.dark {
   padding: 40px 0;
 }
 
-/* ---- ReCard / koi-card 美化 ---- */
+/* ---- ReCard / koi-card 缇庡寲 ---- */
 .koi-card {
   background-color: var(--theme-color-bg-container, var(--bg-container));
   border-color: var(--theme-color-border, var(--border-default));
@@ -613,7 +616,7 @@ html.dark {
   border-color: var(--brand-500);
 }
 
-/* ---- Tag 美化 ---- */
+/* ---- Tag 缇庡寲 ---- */
 .el-tag {
   border-radius: 6px;
   font-weight: 500;
@@ -626,7 +629,7 @@ html.dark {
   filter: brightness(1.08);
 }
 
-/* ---- 分页美化 ---- */
+/* ---- 鍒嗛〉缇庡寲 ---- */
 .el-pagination .el-pager li {
   transition: all var(--tel-transition);
   border-radius: 6px;
@@ -647,7 +650,7 @@ html.dark {
   color: var(--brand-500);
 }
 
-/* ---- Empty 空态 ---- */
+/* ---- Empty 绌烘€?---- */
 .el-empty {
   padding: 40px 0;
 }
@@ -678,7 +681,7 @@ html.dark {
   box-shadow: 0 0 10px rgba(109, 93, 252, 0.4);
 }
 
-/* ---- Checkbox / Radio 选中发光 ---- */
+/* ---- Checkbox / Radio 閫変腑鍙戝厜 ---- */
 .el-checkbox__inner,
 .el-radio__inner {
   transition: all var(--tel-transition);
@@ -694,7 +697,7 @@ html.dark {
   color: var(--brand-500);
 }
 
-/* ---- Dropdown 菜单项 ---- */
+/* ---- Dropdown 鑿滃崟椤?---- */
 .el-dropdown-menu__item {
   transition: all var(--tel-transition);
 }
@@ -705,10 +708,10 @@ html.dark {
 }
 
 /* ============================================================
-   第六部分：页面内通用卡片 / KPI / 筛选栏
+   绗叚閮ㄥ垎锛氶〉闈㈠唴閫氱敤鍗＄墖 / KPI / 绛涢€夋爮
    ============================================================ */
 
-/* KPI 卡片 */
+/* KPI 鍗＄墖 */
 .tel-page .kpi {
   background: var(--bg-container);
   border-color: var(--border-subtle);
@@ -719,7 +722,7 @@ html.dark {
 }
 .tel-kpi .kpi-sub b { color: var(--text-primary); }
 
-/* 通用卡片 */
+/* 閫氱敤鍗＄墖 */
 .tel-page .card {
   background: var(--bg-container);
   border-color: var(--border-subtle);
@@ -727,7 +730,7 @@ html.dark {
 }
 .tel-page .card-title { color: var(--text-primary); }
 
-/* 筛选栏 */
+/* 绛涢€夋爮 */
 .tel-page .filter {
   background: var(--bg-fill);
   border-color: var(--border-subtle);
@@ -765,7 +768,7 @@ html.dark {
 }
 .tel-page .quick .q-meta b { color: var(--text-primary); }
 
-/* 辅助类 */
+/* 杈呭姪绫?*/
 .tel-page .as-error {
   background: var(--status-error-bg);
   border-color: var(--status-error-border);
@@ -775,18 +778,18 @@ html.dark {
 .tel-page .muted { color: var(--text-tertiary); }
 
 /* ============================================================
-   第七部分：顶部区域（App.vue sidebar + topbar）主题适配
-   这些组件使用 var(--bg-container) / var(--text-primary) 等，
-   已在 tokens.css html.dark 中覆盖，此处补充 koi 框架 header 变量
+   绗竷閮ㄥ垎锛氶《閮ㄥ尯鍩燂紙App.vue sidebar + topbar锛変富棰橀€傞厤
+   杩欎簺缁勪欢浣跨敤 var(--bg-container) / var(--text-primary) 绛夛紝
+   宸插湪 tokens.css html.dark 涓鐩栵紝姝ゅ琛ュ厖 koi 妗嗘灦 header 鍙橀噺
    ============================================================ */
 
-/* koi 布局顶栏变量（如果使用了 koi 默认布局） */
+/* koi 甯冨眬椤舵爮鍙橀噺锛堝鏋滀娇鐢ㄤ簡 koi 榛樿甯冨眬锛?*/
 .el-header.layout-header {
   background-color: var(--bg-container);
   color: var(--text-primary);
 }
 
-/* App.vue 自定义顶栏补充适配 */
+/* App.vue 鑷畾涔夐《鏍忚ˉ鍏呴€傞厤 */
 .app .sidebar {
   background: var(--bg-container);
   border-right: 1px solid var(--border-subtle);
@@ -845,7 +848,7 @@ html.dark {
 }
 
 /* ============================================================
-   第八部分：响应式
+   绗叓閮ㄥ垎锛氬搷搴斿紡
    ============================================================ */
 @media (max-width: 860px) {
   .tel-page { padding: 14px 14px 16px; border-radius: 12px; }

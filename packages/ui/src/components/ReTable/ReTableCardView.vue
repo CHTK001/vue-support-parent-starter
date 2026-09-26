@@ -10,6 +10,8 @@
 import { computed, ref, type PropType } from "vue";
 import { ElCheckbox, ElEmpty } from "element-plus";
 import type { ReCardField, ReCardLayoutProps, ReTableColumn, ReTableContextMenuItem, ReTableContextMenuContext } from "./types";
+// 卡片视觉基线（库级共享）：圆角 / 投影 / 悬停令牌
+import "../shared/re-surface.css";
 
 defineOptions({ name: "ReTableCardView" });
 
@@ -134,19 +136,38 @@ const fields = computed<ReCardField[]>(() => {
   return list;
 });
 
-/** 标题字段 */
-const titleField = computed<ReCardField | undefined>(() =>
-  fields.value.find((f) => f.title),
-);
+/** 字段在该行为空（渲染会变成 "-"） */
+function isBlankField(field: ReCardField): boolean {
+  if (!props.rows.length) return false;
+  return props.rows.every((row) => {
+    const v = row[field.prop];
+    return v == null || v === "";
+  });
+}
+
+/** 标题字段：显式 title 优先；未配置时取第一个有值的非封面字段 */
+const titleField = computed<ReCardField | undefined>(() => {
+  const explicit = fields.value.find((f) => f.title);
+  if (explicit) return explicit;
+  return fields.value.find((f) => !f.cover && !isBlankField(f));
+});
+
+/** 副标题字段：显式 desc */
+const descField = computed<ReCardField | undefined>(() => fields.value.find((f) => f.desc));
+
+/** 标签字段：显式 tag / type=tag */
+const tagFields = computed<ReCardField[]>(() => fields.value.filter((f) => f.tag || f.type === "tag"));
 
 /** 封面字段 */
 const coverField = computed<ReCardField | undefined>(() =>
   fields.value.find((f) => f.cover),
 );
 
-/** 非标题/封面字段（按 fields 顺序） */
+/** 非标题/副标题/封面/标签字段（按 fields 顺序） */
 const bodyFields = computed<ReCardField[]>(() =>
-  fields.value.filter((f) => !f.title && !f.cover),
+  fields.value.filter(
+    (f) => f !== titleField.value && f !== descField.value && f !== coverField.value && !tagFields.value.includes(f),
+  ),
 );
 
 /** 卡片容器样式 */
@@ -154,18 +175,22 @@ const containerStyle = computed(() => ({
   display: "grid",
   gridTemplateColumns: `repeat(${props.layout.columns ?? 3}, minmax(${props.layout.minWidth ?? 240}px, 1fr))`,
   gap: `${props.layout.gap ?? 12}px`,
+  alignItems: "start",
 }));
 
-/** 单卡样式 */
+/**
+ * 单卡样式。
+ *
+ * 圆角缺省走基线令牌 --re-surface-radius（与 ReStatCard / ReCard 同一规格），
+ * 调用方传 layout.radius 时仍以传入值为准（保持既有 API 语义）。
+ */
 function cardStyle(): Record<string, string> {
-  const radius = props.layout.radius ?? 8;
   const bg = props.layout.background ?? "var(--el-bg-color-overlay)";
   const hover = props.layout.hoverable !== false;
   return {
     background: bg,
-    borderRadius: `${radius}px`,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-    transition: "all 0.2s",
+    borderRadius:
+      props.layout.radius != null ? `${props.layout.radius}px` : "var(--re-surface-radius, 12px)",
     ...(hover ? { cursor: "pointer" } : {}),
   };
 }
@@ -243,16 +268,23 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
         />
 
         <div class="re-table__card-body">
-          <!-- 标题 -->
-          <div
-            v-if="titleField"
-            class="re-table__card-title"
-          >
+          <!-- 标题（显式 title 或兜底首个字段） -->
+          <div v-if="titleField" class="re-table__card-title">
             {{ renderValue(row, titleField) }}
           </div>
 
-          <!-- 字段列表 -->
-          <div class="re-table__card-fields">
+          <!-- 副标题 -->
+          <div v-if="descField" class="re-table__card-desc">
+            {{ renderValue(row, descField) }}
+          </div>
+
+          <!-- 标签行 -->
+          <div v-if="tagFields.length" class="re-table__card-tags">
+            <span v-for="f in tagFields" :key="f.prop" class="re-table__card-tag">{{ renderValue(row, f) }}</span>
+          </div>
+
+          <!-- 字段网格 -->
+          <div v-if="bodyFields.length" class="re-table__card-fields">
             <div
               v-for="field in bodyFields"
               :key="field.prop"
@@ -273,6 +305,7 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
 </template>
 
 <style scoped>
+/* 卡片默认模板：与视图模式同一套视觉语言（koi / element-plus 令牌，亮暗自适应） */
 .re-table__card-layout {
   padding: 4px;
 }
@@ -291,20 +324,31 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
   border-bottom: 1px solid var(--el-border-color-lighter);
   margin-bottom: 8px;
 }
+/* 卡片外壳：圆角 / 投影 / 悬停走库级基线令牌（components/shared/re-surface.css），
+   不再自写一套实色边框 + 独立阴影值；--selected 等组件特有状态保留。 */
 .re-table__card {
+  position: relative;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid transparent;
+  box-shadow: var(--re-surface-shadow);
+  transition:
+    box-shadow var(--el-transition-duration, 0.2s) ease,
+    transform var(--el-transition-duration, 0.2s) ease;
 }
 .re-table__card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--re-surface-shadow-hover);
   transform: translateY(-2px);
 }
 .re-table__card--selected {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 1px var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-bg-color-overlay));
+  box-shadow:
+    var(--re-surface-shadow),
+    0 0 0 1px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
 .re-table__card--selected:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--el-color-primary);
+  box-shadow:
+    var(--re-surface-shadow-hover),
+    0 0 0 1px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
 .re-table__card-check {
   position: absolute;
@@ -319,35 +363,69 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
   background-color: var(--el-fill-color-light);
 }
 .re-table__card-body {
-  padding: 12px;
+  padding: 12px 14px 14px;
   position: relative;
 }
 .re-table__card-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.re-table__card-desc {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.re-table__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.re-table__card-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 26%, transparent);
 }
 .re-table__card-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+}
+.re-table__card:hover .re-table__card-title {
+  color: var(--el-color-primary);
 }
 .re-table__card-field {
   display: flex;
+  align-items: baseline;
   font-size: 13px;
   line-height: 1.5;
+  min-width: 0;
 }
 .re-table__card-field-label {
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
   flex: 0 0 auto;
   margin-right: 8px;
-  min-width: 60px;
+  min-width: 56px;
 }
 .re-table__card-field-value {
-  color: var(--el-text-color-primary);
-  word-break: break-word;
+  color: var(--el-text-color-regular);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

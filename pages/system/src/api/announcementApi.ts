@@ -78,3 +78,11 @@ export function getActiveAnnouncements() {
     .get("/v2/announcement/active")
     .then<ApiResult<SysAnnouncement[]>>((r) => r.data);
 }
+
+/** 标记公告已读（当前用户，幂等） */
+export function markAnnouncementRead(announcementId: number) {
+  return http()
+    .put("/v2/announcement/read")
+    .query({ announcementId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}

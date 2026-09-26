@@ -27,7 +27,7 @@ export interface DynamicMenuItem {
 export interface DynamicRouterContext {
   /** 获取扁平菜单列表（通常来自 auth store） */
   getMenuList: () => DynamicMenuItem[];
-  /** 菜单为空时是否重新拉取（可选，默认 false） */
+  /** 菜单为空时重新拉取（可选）：拉取失败须抛错（走强退登），确无菜单则返回空列表（保持登录） */
   loadMenus?: () => Promise<unknown>;
   /** 强制重登：清 token / 重置权限（默认不处理，由主题注入） */
   onForceRelogin?: (message?: string) => Promise<void> | void;
@@ -110,13 +110,21 @@ export async function initDynamicRoutes(
   if (initPromise) {
     return initPromise;
   }
-  initPromise = doInitDynamicRoutes(router, context).catch(() => {
-    initPromise = null;
-  });
+  initPromise = doInitDynamicRoutes(router, context)
+    .then((isEmpty) => {
+      // 空菜单不缓存初始化结果：角色可能随后被分配菜单，下次登录/刷新要能重新拉取
+      if (isEmpty) {
+        initPromise = null;
+      }
+    })
+    .catch(() => {
+      initPromise = null;
+    });
   return initPromise;
 }
 
-async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext): Promise<void> {
+/** @returns 菜单为空（未注册任何动态路由）时为 true，供上层决定是否重开初始化 */
+async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext): Promise<boolean> {
   const { getMenuList, loadMenus, onForceRelogin, notify } = context;
   const warn = notify ?? ((m: string) => log.warn(`logger`, m));
   const err = notify ?? ((m: string) => log.error(`logger`, m));
@@ -129,8 +137,10 @@ async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext
     }
 
     if (!menuList?.length) {
-      await forceRelogin(router, context, "未获取到菜单权限，请重新登录");
-      throw new Error("当前账号无菜单权限");
+      // 空菜单是合法状态（角色未被分配任何菜单）：保持登录态，不再踢回登录页形成死循环。
+      // 拉取失败由 loadMenus 抛错，落到下面的 catch 走强退登。
+      warn("当前账号未分配任何菜单");
+      return true;
     }
 
     const addedCount = registerDynamicRoutes(router, menuList);
@@ -150,4 +160,5 @@ async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext
     }
     throw error;
   }
+  return false;
 }

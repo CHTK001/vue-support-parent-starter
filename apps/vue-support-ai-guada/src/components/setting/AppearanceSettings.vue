@@ -1,287 +1,126 @@
 <template>
-  <div class="flex-1 overflow-hidden">
-    <div class="space-y-8">
-      <!-- 主题模式分组（含主题预设） -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">主题模式</h3>
-        <div
-          class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden"
+  <div class="flex-1">
+    <!-- 主题模式 -->
+    <SettingsCard title="主题模式">
+      <SettingsRow label="显示模式" description="选择浅色、深色或跟随系统主题">
+        <SegmentedToggle
+          :model-value="themeMode"
+          :options="themeOptions"
+          @update:model-value="setTheme($event as ThemeMode)"
+        />
+      </SettingsRow>
+      <SettingsRow
+        label="配色主题"
+        :description="`浅色/深色可分别设置，当前：${isDark ? '深色' : '浅色'}`"
+        control-width="208px"
+      >
+        <el-select
+          v-model="selectedThemePreset"
+          @change="handleThemePresetChange"
+          placeholder="选择主题"
         >
-          <!-- 显示模式 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示模式</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                选择浅色、深色或跟随系统主题
-              </span>
-            </div>
-            <div class="flex items-center gap-1 p-1 rounded-lg bg-gray-100 dark:bg-[#1a1b1e] shrink-0">
-              <button
-                v-for="option in themeOptions"
-                :key="option.value"
-                @click="setTheme(option.value)"
-                class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5"
-                :class="themeMode === option.value
-                  ? 'bg-white dark:bg-[#3a3b3f] text-gray-900 dark:text-[#e8e9ed] shadow-sm'
-                  : 'text-gray-500 dark:text-[#8b8d95] hover:text-gray-700 dark:hover:text-[#c0c1c5]'"
-              >
-                <component :is="option.icon" class="w-4 h-4" />
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 配色主题（当前模式） -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">配色主题</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-               浅色/深色可分别设置, 当前：<span class="font-bold">{{ isDark ? '深色' : '浅色' }}</span>
-              </span>
-            </div>
-            <div class="shrink-0 w-52">
-              <el-select
-                v-model="selectedThemePreset"
-                @change="handleThemePresetChange"
-                placeholder="选择主题"
-                size="default"
-              >
-                <el-option
-                  v-for="theme in themePresetList"
-                  :key="theme.id"
-                  :label="themeName(theme)"
-                  :value="theme.id"
-                >
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="inline-block w-3 h-3 rounded-full shrink-0"
-                      :style="{ backgroundColor: theme.primaryColor }"
-                    />
-                    <span
-                      class="inline-block w-3 h-3 rounded-full shrink-0"
-                      :style="{ backgroundColor: theme.secondaryColor }"
-                    />
-                    <span>{{ themeName(theme) }}</span>
-                  </div>
-                </el-option>
-                <template #prefix>
-                  <span
-                    v-if="currentThemeInfo"
-                    class="inline-block w-3 h-3 rounded-full shrink-0"
-                    :style="{ backgroundColor: currentThemeInfo.primaryColor }"
-                  />
-                </template>
-              </el-select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 壁纸设置分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">背景壁纸</h3>
-        <div
-          class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden"
-        >
-          <!-- 壁纸预览与上传 -->
-          <div class="px-4 py-3.5 flex flex-col gap-4">
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex flex-col gap-1 min-w-0">
-                <span class="text-base text-gray-900 dark:text-[#e8e9ed]">自定义壁纸</span>
-                <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                  上传一张图片作为应用背景，支持 JPG、PNG、WebP 格式
-                </span>
-              </div>
-            </div>
-
-            <!-- 壁纸预览区域 -->
-            <div
-              v-if="previewUrl"
-              class="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2e3035]"
-            >
-              <img :src="previewUrl" class="w-full h-full object-cover" />
-              <div
-                class="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
-              >
-                <el-button type="danger" size="small" @click="handleRemoveWallpaper">
-                  <el-icon class="mr-1">
-                    <Delete />
-                  </el-icon>
-                  删除
-                </el-button>
-              </div>
-            </div>
-
-            <!-- 上传按钮 -->
-            <div v-else class="w-full">
-              <el-upload
-                ref="uploadRef"
-                class="wallpaper-uploader"
-                :auto-upload="false"
-                :show-file-list="false"
-                :on-change="handleFileChange"
-                accept="image/jpeg,image/png,image/webp"
-              >
-                <div
-                  class="w-full h-40 rounded-lg border-2 border-dashed border-gray-300 dark:border-[#2e3035] flex flex-col items-center justify-center cursor-pointer hover:border-(--color-primary) transition-colors"
-                >
-                  <el-icon class="text-3xl text-gray-400 mb-2">
-                    <Plus />
-                  </el-icon>
-                  <span class="text-sm text-gray-500 dark:text-[#8b8d95]">
-                    点击或拖拽上传壁纸
-                  </span>
-                </div>
-              </el-upload>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 透明度设置分组（仅在有壁纸时显示） -->
-      <div v-if="previewUrl">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">透明度调节</h3>
-        <div
-          class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden"
-        >
-          <!-- 侧边栏透明度 -->
-          <div
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]"
+          <el-option
+            v-for="theme in themePresetList"
+            :key="theme.id"
+            :label="themeName(theme)"
+            :value="theme.id"
           >
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">侧边栏透明度</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                调节侧边栏背景的不透明度
-              </span>
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-3 h-3 rounded-full shrink-0"
+                :style="{ backgroundColor: theme.primaryColor }" />
+              <span class="inline-block w-3 h-3 rounded-full shrink-0"
+                :style="{ backgroundColor: theme.secondaryColor }" />
+              <span>{{ themeName(theme) }}</span>
             </div>
-            <div class="flex items-center gap-3 shrink-0 w-48">
-              <el-slider
-                v-model="settingsForm.sidebarOpacity"
-                :min="0"
-                :max="100"
-                :step="1"
-                class="flex-1"
-                @change="handleOpacityChange"
-              />
-              <span class="text-sm text-gray-600 dark:text-[#8b8d95] w-10 text-right">
-                {{ settingsForm.sidebarOpacity }}%
-              </span>
-            </div>
-          </div>
+          </el-option>
+          <template #prefix>
+            <span v-if="currentThemeInfo" class="inline-block w-3 h-3 rounded-full shrink-0"
+              :style="{ backgroundColor: currentThemeInfo.primaryColor }" />
+          </template>
+        </el-select>
+      </SettingsRow>
+    </SettingsCard>
 
-          <!-- 内容区透明度 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">内容区透明度</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                调节主内容区域背景的不透明度
-              </span>
-            </div>
-            <div class="flex items-center gap-3 shrink-0 w-48">
-              <el-slider
-                v-model="settingsForm.contentOpacity"
-                :min="0"
-                :max="100"
-                :step="1"
-                class="flex-1"
-                @change="handleOpacityChange"
-              />
-              <span class="text-sm text-gray-600 dark:text-[#8b8d95] w-10 text-right">
-                {{ settingsForm.contentOpacity }}%
-              </span>
-            </div>
+    <!-- 背景壁纸 -->
+    <SettingsCard title="背景壁纸">
+      <SettingsRow label="自定义壁纸" description="上传一张图片作为应用背景，支持 JPG、PNG、WebP 格式" stack>
+        <!-- 壁纸预览 -->
+        <div v-if="previewUrl" class="wall-preview">
+          <img :src="previewUrl" class="wall-img" />
+          <div class="wall-overlay">
+            <el-button type="danger" size="small" @click="handleRemoveWallpaper">
+              <el-icon class="mr-1"><Delete /></el-icon>
+              删除
+            </el-button>
           </div>
         </div>
-      </div>
-
-      <!-- 毛玻璃效果分组（仅在有壁纸时显示） -->
-      <div v-if="previewUrl">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">毛玻璃效果</h3>
-        <div
-          class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden"
+        <!-- 上传区 -->
+        <el-upload
+          v-else
+          ref="uploadRef"
+          class="wallpaper-uploader"
+          :auto-upload="false"
+          :show-file-list="false"
+          :on-change="handleFileChange"
+          accept="image/jpeg,image/png,image/webp"
         >
-          <!-- 毛玻璃开关 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">启用毛玻璃效果</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                为背景添加毛玻璃模糊效果
-              </span>
-            </div>
-            <el-switch v-model="settingsForm.acrylicEnabled" size="large" @change="handleAcrylicChange" />
+          <div class="wall-dropzone">
+            <el-icon class="wall-drop-ico"><Plus /></el-icon>
+            <span class="wall-drop-text">点击或拖拽上传壁纸</span>
           </div>
+        </el-upload>
+      </SettingsRow>
+    </SettingsCard>
 
-          <!-- 模糊程度 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">模糊程度</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                调节背景壁纸的模糊半径
-              </span>
-            </div>
-            <div class="flex items-center gap-3 shrink-0 w-48">
-              <el-slider
-                v-model="settingsForm.blurRadius"
-                :min="0"
-                :max="50"
-                :step="1"
-                class="flex-1"
-                @change="handleBlurChange"
-              />
-              <span class="text-sm text-gray-600 dark:text-[#8b8d95] w-10 text-right">
-                {{ settingsForm.blurRadius }}px
-              </span>
-            </div>
-          </div>
+    <!-- 透明度调节（仅有壁纸时） -->
+    <SettingsCard v-if="previewUrl" title="透明度调节">
+      <SettingsRow label="侧边栏透明度" description="调节侧边栏背景的不透明度" control-width="200px">
+        <div class="slider-line">
+          <el-slider v-model="settingsForm.sidebarOpacity" :min="0" :max="100" :step="1"
+            class="flex-1" @change="handleOpacityChange" />
+          <span class="slider-val">{{ settingsForm.sidebarOpacity }}%</span>
         </div>
-      </div>
-
-      <!-- 悬浮任务状态分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">悬浮任务状态</h3>
-        <div
-          class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden"
-        >
-          <!-- 显隐开关 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">显示悬浮窗</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                最小化到托盘时显示任务运行和未读统计
-              </span>
-            </div>
-            <el-switch v-model="settingsForm.floatWidgetEnabled" size="large" @change="handleFloatWidgetChange" />
-          </div>
-
-          <!-- 透明度调节 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">悬浮窗透明度</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                调节悬浮窗卡片的不透明度
-              </span>
-            </div>
-            <div class="flex items-center gap-3 shrink-0 w-48">
-              <el-slider
-                v-model="settingsForm.floatWidgetOpacity"
-                :min="30"
-                :max="100"
-                :step="1"
-                class="flex-1"
-                @change="handleFloatWidgetChange"
-              />
-              <span class="text-sm text-gray-600 dark:text-[#8b8d95] w-10 text-right">
-                {{ settingsForm.floatWidgetOpacity }}%
-              </span>
-            </div>
-          </div>
+      </SettingsRow>
+      <SettingsRow label="内容区透明度" description="调节主内容区域背景的不透明度" control-width="200px">
+        <div class="slider-line">
+          <el-slider v-model="settingsForm.contentOpacity" :min="0" :max="100" :step="1"
+            class="flex-1" @change="handleOpacityChange" />
+          <span class="slider-val">{{ settingsForm.contentOpacity }}%</span>
         </div>
-      </div>
+      </SettingsRow>
+    </SettingsCard>
 
-      <!-- 重置按钮 -->
-      <div class="flex justify-end">
-        <el-button @click="handleReset">恢复默认设置</el-button>
-      </div>
+    <!-- 毛玻璃效果（仅有壁纸时） -->
+    <SettingsCard v-if="previewUrl" title="毛玻璃效果">
+      <SettingsRow label="启用毛玻璃效果" description="为背景添加毛玻璃模糊效果">
+        <el-switch v-model="settingsForm.acrylicEnabled" @change="handleAcrylicChange" />
+      </SettingsRow>
+      <SettingsRow label="模糊程度" description="调节背景壁纸的模糊半径" control-width="200px">
+        <div class="slider-line">
+          <el-slider v-model="settingsForm.blurRadius" :min="0" :max="50" :step="1"
+            class="flex-1" @change="handleBlurChange" />
+          <span class="slider-val">{{ settingsForm.blurRadius }}px</span>
+        </div>
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 悬浮任务状态 -->
+    <SettingsCard title="悬浮任务状态">
+      <SettingsRow label="显示悬浮窗" description="最小化到托盘时显示任务运行和未读统计">
+        <el-switch v-model="settingsForm.floatWidgetEnabled" @change="handleFloatWidgetChange" />
+      </SettingsRow>
+      <SettingsRow label="悬浮窗透明度" description="调节悬浮窗卡片的不透明度" control-width="200px">
+        <div class="slider-line">
+          <el-slider v-model="settingsForm.floatWidgetOpacity" :min="30" :max="100" :step="1"
+            class="flex-1" @change="handleFloatWidgetChange" />
+          <span class="slider-val">{{ settingsForm.floatWidgetOpacity }}%</span>
+        </div>
+      </SettingsRow>
+    </SettingsCard>
+
+    <!-- 重置 -->
+    <div class="flex justify-end mt-5">
+      <el-button @click="handleReset">恢复默认设置</el-button>
     </div>
   </div>
 </template>
@@ -297,6 +136,9 @@ import { useLayoutStore } from '@/stores/layout'
 import { useTheme, type ThemeMode } from '@/composables/useTheme'
 import { themePresets, type ThemePresetInfo } from '@/themes'
 import { useI18n } from 'vue-i18n'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
+import SegmentedToggle from '../ui/SegmentedToggle.vue'
 
 const { t } = useI18n()
 
@@ -574,7 +416,37 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.wallpaper-uploader :deep(.el-upload) {
-  width: 100%;
+.wallpaper-uploader :deep(.el-upload) { width: 100%; }
+
+/* 壁纸预览 */
+.wall-preview {
+  position: relative; width: 100%; height: 160px;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+}
+.wall-img { width: 100%; height: 100%; object-fit: cover; }
+.wall-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.32); opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.wall-preview:hover .wall-overlay { opacity: 1; }
+
+/* 上传拖放区 */
+.wall-dropzone {
+  width: 100%; height: 160px; border-radius: 10px;
+  border: 1.5px dashed var(--el-border-color);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color 0.18s ease;
+}
+.wall-dropzone:hover { border-color: var(--el-color-primary); }
+.wall-drop-ico { font-size: 28px; color: var(--el-text-color-secondary); margin-bottom: 8px; }
+.wall-drop-text { font-size: 13px; color: var(--el-text-color-secondary); }
+
+/* 滑杆行 */
+.slider-line { display: flex; align-items: center; gap: 12px; width: 100%; }
+.slider-val {
+  width: 42px; text-align: right; font-size: 12.5px;
+  color: var(--el-text-color-regular); flex-shrink: 0;
 }
 </style>

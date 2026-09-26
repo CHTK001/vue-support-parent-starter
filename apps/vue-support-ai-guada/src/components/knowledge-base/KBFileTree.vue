@@ -194,9 +194,10 @@ import filePdfIcon from '@/assets/file_zip.svg'
 
 interface Props {
   kbId: string  // 知识库ID
+  readonly?: boolean  // 只读模式（他人公开库）：不弹写操作菜单
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { readonly: false })
 
 const { t } = useI18n()
 
@@ -886,6 +887,10 @@ function formatDate(dateString: string | null): string {
  */
 function handleContextMenu(event: MouseEvent, item: KBFile) {
   event.preventDefault()
+  // 只读公开库：不提供重命名/移动/重试/删除等写操作菜单
+  if (props.readonly) {
+    return
+  }
   contextMenu.value = {
     visible: true,
     x: event.clientX,

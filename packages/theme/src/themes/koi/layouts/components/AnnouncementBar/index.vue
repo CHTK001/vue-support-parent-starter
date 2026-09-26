@@ -7,7 +7,9 @@
  * 支持关闭单条公告（关闭后当天不再显示）。
  */
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { getConfig } from "@repo/config";
 import { Close } from "@element-plus/icons-vue";
+import useUserStore from "@repo/pinia/modules/user";
 
 interface Announcement {
   sysAnnouncementId: number;
@@ -18,20 +20,27 @@ interface Announcement {
   sysAnnouncementTargetUrl: string;
 }
 
-const CACHE_KEY = "announcement-active-cache";
 const CACHE_TTL = 5 * 60 * 1000;
-/** 请求失败时的短缓存，避免后端异常时重复轰炸 */
-const FAIL_CACHE_KEY = "announcement-active-fail-cache";
 const FAIL_CACHE_TTL = 30 * 1000;
-const DISMISS_PREFIX = "announcement-dismiss-";
+
+// 当前登录用户标识：缓存 / 关闭标记都按用户隔离，避免同一浏览器切换账号后串号。
+const userStore = useUserStore();
+const userKey = computed(() => {
+  const info = (userStore.userInfo || {}) as Record<string, unknown>;
+  const id = info.userId ?? info.sysUserId ?? userStore.username;
+  return id === undefined || id === "" ? "anonymous" : String(id);
+});
+const cacheKey = computed(() => `announcement-active-cache:${userKey.value}`);
+const failCacheKey = computed(() => `announcement-active-fail-cache:${userKey.value}`);
+const dismissPrefix = computed(() => `announcement-dismiss:${userKey.value}:`);
 
 /**
- * 模块级单例：并发/多次挂载共享同一个请求 Promise，
+ * 模块级单例：按用户隔离的并发请求 Promise，
  * 避免 fixed-top 与 default 两个实例重复请求同一接口。
  */
-let inflight: Promise<Announcement[]> | null = null;
-/** 模块级内存缓存（成功 5 分钟） */
-let memCache: { list: Announcement[]; timestamp: number } | null = null;
+const inflights = new Map<string, Promise<Announcement[]>>();
+/** 模块级内存缓存（成功 5 分钟），按用户隔离 */
+const memCaches = new Map<string, { list: Announcement[]; timestamp: number }>();
 
 const props = withDefaults(defineProps<{
   /** 显示的公告位置，空表示显示所有 */
@@ -47,6 +56,10 @@ const props = withDefaults(defineProps<{
 });
 
 const announcements = ref<Announcement[]>([]);
+
+// 显隐开关（app.yaml other.toolbar.announcement，缺省显示）。
+// 后端未实现平台公告接口的独立应用关掉它，可避免 403 被 http 拦截器判为会话失效。
+const enabled = computed(() => getConfig().other?.toolbar?.announcement !== false);
 
 const filtered = computed(() => {
   if (!props.position) return announcements.value;
@@ -78,7 +91,7 @@ let timer: ReturnType<typeof setInterval> | null = null;
 
 function readCache(): Announcement[] | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(cacheKey.value);
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (Date.now() - data.timestamp > CACHE_TTL) return null;
@@ -90,7 +103,7 @@ function readCache(): Announcement[] | null {
 
 function writeCache(list: Announcement[]) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ list, timestamp: Date.now() }));
+    localStorage.setItem(cacheKey.value, JSON.stringify({ list, timestamp: Date.now() }));
   } catch {
     /* ignore */
   }
@@ -99,7 +112,7 @@ function writeCache(list: Announcement[]) {
 /** 读取失败缓存（持久化到 sessionStorage，HMR 不丢失） */
 function readFailCache(): boolean {
   try {
-    const raw = sessionStorage.getItem(FAIL_CACHE_KEY);
+    const raw = sessionStorage.getItem(failCacheKey.value);
     if (!raw) return false;
     const ts = parseInt(raw, 10);
     return Date.now() - ts < FAIL_CACHE_TTL;
@@ -111,7 +124,7 @@ function readFailCache(): boolean {
 /** 写入失败缓存 */
 function writeFailCache() {
   try {
-    sessionStorage.setItem(FAIL_CACHE_KEY, String(Date.now()));
+    sessionStorage.setItem(failCacheKey.value, String(Date.now()));
   } catch {
     /* ignore */
   }
@@ -119,7 +132,7 @@ function writeFailCache() {
 
 function isDismissed(id: number): boolean {
   try {
-    const key = DISMISS_PREFIX + id;
+    const key = dismissPrefix.value + id;
     const val = localStorage.getItem(key);
     if (!val) return false;
     const ts = parseInt(val, 10);
@@ -132,49 +145,74 @@ function isDismissed(id: number): boolean {
 
 function dismiss(id: number) {
   try {
-    localStorage.setItem(DISMISS_PREFIX + id, String(Date.now()));
+    localStorage.setItem(dismissPrefix.value + id, String(Date.now()));
     announcements.value = announcements.value.filter((a) => a.sysAnnouncementId !== id);
+  } catch {
+    /* ignore */
+  }
+  // 主动关闭即视为已读，上报服务端（best-effort）
+  reportRead(id);
+}
+
+/** 上报单条公告已读到服务端（best-effort，失败静默；本地关闭逻辑不受影响） */
+async function reportRead(id: number) {
+  try {
+    const { markAnnouncementRead } = await import("@pages/system/api/announcementApi");
+    await markAnnouncementRead(id);
   } catch {
     /* ignore */
   }
 }
 
+/** 批量上报已读（公告已展示给当前用户，视为已读） */
+function reportReads(list: Announcement[]) {
+  list.forEach((a) => {
+    if (a.sysAnnouncementId) reportRead(a.sysAnnouncementId);
+  });
+}
+
 async function fetchAnnouncements(force = false) {
+  const uk = userKey.value;
   // 失败短缓存（sessionStorage 持久化，HMR 不丢失）：后端异常期间不重复请求
   if (!force && readFailCache()) return;
   // 内存成功缓存（timed 轮询用 force=true 强制刷新）
-  if (!force && memCache && Date.now() - memCache.timestamp < CACHE_TTL) {
-    announcements.value = memCache.list.filter((a) => !isDismissed(a.sysAnnouncementId));
+  const mem = memCaches.get(uk);
+  if (!force && mem && Date.now() - mem.timestamp < CACHE_TTL) {
+    announcements.value = mem.list.filter((a) => !isDismissed(a.sysAnnouncementId));
     return;
   }
   // localStorage 成功缓存
   if (!force) {
     const cached = readCache();
     if (cached) {
-      memCache = { list: cached, timestamp: Date.now() };
+      memCaches.set(uk, { list: cached, timestamp: Date.now() });
       announcements.value = cached.filter((a) => !isDismissed(a.sysAnnouncementId));
       return;
     }
   }
 
-  // 单例去重：多个实例 / 并发挂载只发一次请求
+  // 单例去重：同一用户的多个实例 / 并发挂载只发一次请求
+  let inflight = inflights.get(uk);
   if (!inflight) {
     inflight = (async () => {
       const { getActiveAnnouncements } = await import("@pages/system/api/announcementApi");
       const res = await getActiveAnnouncements();
       const list = (res?.data ?? []) as Announcement[];
       writeCache(list);
-      memCache = { list, timestamp: Date.now() };
+      memCaches.set(uk, { list, timestamp: Date.now() });
       // 请求成功，清除失败缓存
-      try { sessionStorage.removeItem(FAIL_CACHE_KEY); } catch { /* ignore */ }
+      try { sessionStorage.removeItem(failCacheKey.value); } catch { /* ignore */ }
+      // 公告已展示给当前用户，上报已读（best-effort）
+      reportReads(list);
       return list;
     })().catch((error) => {
       // 失败也短缓存（持久化到 sessionStorage），防止异常期间反复轰炸后端
       writeFailCache();
       throw error;
     }).finally(() => {
-      inflight = null;
+      inflights.delete(uk);
     });
+    inflights.set(uk, inflight);
   }
 
   try {
@@ -186,6 +224,7 @@ async function fetchAnnouncements(force = false) {
 }
 
 onMounted(() => {
+  if (!enabled.value) return;
   fetchAnnouncements();
   // timed 模式才开启定时轮询（后端 @Cacheable 缓存兜底，轮询不压垮数据库）
   if (props.loadMode === "timed") {

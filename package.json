@@ -14,12 +14,15 @@
     "version:patch": "node scripts/sync-version.mjs --bump patch",
     "version:minor": "node scripts/sync-version.mjs --bump minor",
     "version:major": "node scripts/sync-version.mjs --bump major",
-    "config:check": "node scripts/validate-app-config.mjs"
+    "config:check": "node scripts/validate-app-config.mjs",
+    "surface:check": "node scripts/check-ui-surface.mjs",
+    "surface:baseline": "node scripts/check-ui-surface.mjs --update"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.0",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.0",
+    "@types/sortablejs": "^1.15.9",
     "@types/three": "^0.185.4",
     "@unocss/preset-attributify": "catalog:",
     "@unocss/preset-icons": "catalog:",
@@ -27,8 +30,8 @@
     "@unocss/preset-wind3": "catalog:",
     "@unocss/transformer-directives": "catalog:",
     "@unocss/transformer-variant-group": "catalog:",
-    "@vitejs/plugin-vue": "^6.0.7",
     "@vitejs/plugin-react": "catalog:",
+    "@vitejs/plugin-vue": "^6.0.7",
     "axios": "^1.8.0",
     "element-plus": "^2.10.7",
     "eslint": "^9.17.0",
@@ -54,6 +57,8 @@
     "pnpm": ">=8.0.0"
   },
   "dependencies": {
-    "@microsoft/fetch-event-source": "^2.0.1"
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "sortablejs": "^1.15.7",
+    "vue3-slide-verify": "^1.1.8"
   }
 }

@@ -86,8 +86,8 @@ export const useBotStore = defineStore('bot', () => {
         bot.runtimeStatus = 'CONNECTING'
       }
       ElMessage.success(t('session.bot.starting'))
-    } catch (error) {
-      ElMessage.error(t('session.bot.startFailed'))
+    } catch (error: any) {
+      ElMessage.error(error?.message || t('session.bot.startFailed'))
       throw error
     }
   }
@@ -101,8 +101,8 @@ export const useBotStore = defineStore('bot', () => {
         bot.runtimeStatus = 'DISCONNECTED'
       }
       ElMessage.success(t('session.bot.stopped'))
-    } catch (error) {
-      ElMessage.error(t('session.bot.stopFailed'))
+    } catch (error: any) {
+      ElMessage.error(error?.message || t('session.bot.stopFailed'))
       throw error
     }
   }
@@ -116,8 +116,8 @@ export const useBotStore = defineStore('bot', () => {
         bot.runtimeStatus = 'CONNECTING'
       }
       ElMessage.success(t('session.bot.restarting'))
-    } catch (error) {
-      ElMessage.error(t('session.bot.restartFailed'))
+    } catch (error: any) {
+      ElMessage.error(error?.message || t('session.bot.restartFailed'))
       throw error
     }
   }

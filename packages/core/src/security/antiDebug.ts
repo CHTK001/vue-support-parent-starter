@@ -44,6 +44,8 @@ const DEFAULT_OPTIONS: AntiDebugOptions = {
 let stopFns: Array<() => void> = [];
 let installed = false;
 let externalScript: HTMLScriptElement | null = null;
+/** 记录本次会话已执行过的跳转目标，避免 SPA 路由改写 hash 后反复刷新 */
+const PUNISH_FLAG = "__repo_antidebug_punished__";
 
 /** 从全局配置读取反调试运行期选项 */
 function readOptions(): AntiDebugOptions {
@@ -80,13 +82,39 @@ function clearLocalStorage(): void {
   }
 }
 
+/** 读取已跳转目标标记（必须在清缓存之前调用） */
+function readPunishFlag(): string | null {
+  try {
+    return window.sessionStorage.getItem(PUNISH_FLAG);
+  } catch {
+    // 忽略隐私模式等场景的异常
+    return null;
+  }
+}
+
+/** 写入已跳转目标标记（清缓存之后调用） */
+function writePunishFlag(target: string): void {
+  try {
+    window.sessionStorage.setItem(PUNISH_FLAG, target);
+  } catch {
+    // 忽略
+  }
+}
+
 /** 触发调试惩罚动作：先清缓存，再按策略跳转 */
 function punish(): void {
   const { action, jumpUrl } = readOptions();
+  const target = jumpUrl || "/";
+  // 同一目标已跳转过：不再重复清缓存与跳转（标记需在清缓存前读取）
+  if (action === "redirect" && readPunishFlag() === target) {
+    return;
+  }
   clearLocalStorage();
   if (action === "redirect") {
-    const target = jumpUrl || "/";
-    if (location.pathname !== target) {
+    writePunishFlag(target);
+    // 比较完整地址（而非仅 pathname），否则 jumpUrl 为 "/" 时子路由永远不跳转
+    const resolved = new URL(target, location.origin).href;
+    if (resolved !== location.href) {
       location.href = target;
     }
   } else {

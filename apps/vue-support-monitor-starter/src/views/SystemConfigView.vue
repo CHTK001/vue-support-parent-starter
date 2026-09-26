@@ -204,7 +204,7 @@ onMounted(load);
                 >{{ clientMode(c) }}</ReTag>
               </span>
               <ReInput v-if="it.type === 'text'" v-model="values[it.key]" :placeholder="it.placeholder" class="sc-mono" style="width:100%" />
-              <ReInputNumber v-else v-model="values[it.key]" :min="0" :max="65535" controls-position="right" class="sc-mono" style="width:100%" />
+              <ReInputNumber v-else :model-value="values[it.key] === '' || values[it.key] == null ? null : Number(values[it.key])" :min="0" :max="65535" controls-position="right" class="sc-mono" style="width:100%" @update:model-value="values[it.key] = $event == null ? '' : String($event)" />
               <div v-if="it.hint" class="sc-hint">{{ it.hint }}</div>
             </label>
           </div>

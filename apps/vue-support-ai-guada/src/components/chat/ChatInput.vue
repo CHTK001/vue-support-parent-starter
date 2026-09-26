@@ -80,35 +80,58 @@
               @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
               @toggle-attachment="toggleAttachmentSelection" />
 
-            <!-- 运行模式按钮 -->
-            <button ref="runModeButtonRef" class="tool-btn" @click.stop="toggleRunModePopover">
-              <el-icon size="16">
-                <component :is="runModeIcon" class="text-gray-600" />
-              </el-icon>
-              <span class="text-xs font-medium">{{ runModeLabel }}</span>
-            </button>
-            <RunModePopover v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
+            <!-- 运行模式按钮（仅管理员：Build/Plan，图标+tip） -->
+            <LTooltip v-if="admin" :content="runModeLabel" placement="top">
+              <button ref="runModeButtonRef" class="tool-btn" @click.stop="toggleRunModePopover">
+                <el-icon size="16">
+                  <component :is="runModeIcon" class="text-gray-600" />
+                </el-icon>
+              </button>
+            </LTooltip>
+            <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
               :current-value="currentRunMode" @select="handleRunModeChange" />
-            <el-divider direction="vertical"></el-divider>
+            <el-divider v-if="admin" direction="vertical"></el-divider>
 
-            <!-- 技能按钮（响应式：小窗口只显示图标） -->
-            <button class="tool-btn skill-btn" @click.stop="openCommandPicker('', 'slash')">
-              <el-icon size="16">
-                <Wrench24Regular />
-              </el-icon>
-              <span class="text-xs font-medium btn-label">技能</span>
-            </button>
+            <!-- 技能按钮（图标+tip） -->
+            <LTooltip content="技能" placement="top">
+              <button class="tool-btn skill-btn" @click.stop="openCommandPicker('', 'slash')">
+                <el-icon size="16">
+                  <Wrench24Regular />
+                </el-icon>
+              </button>
+            </LTooltip>
+
+            <!-- MCP 选择按钮（仅管理员；图标+tip） -->
+            <LTooltip v-if="admin" content="MCP 工具" placement="top">
+              <button ref="mcpButtonRef" class="tool-btn"
+                :class="{ 'tool-btn-active': mcpSelectedIds.length }" @click.stop="toggleMcpPopover">
+                <el-icon size="16"><PlugConnected20Regular /></el-icon>
+              </button>
+            </LTooltip>
+            <McpSelectorPopover v-if="admin" v-model:visible="mcpPopoverVisible"
+              :anchor-el="mcpButtonRef" :selected-ids="mcpSelectedIds" @change="handleMcpChange" />
           </template>
-            <!-- 深度思考开关（响应式：小窗口只显示图标） -->
-            <button class="tool-btn" :class="{ 'tool-btn-active': thinkingEnabled }" @click.stop="thinkingEnabled = !thinkingEnabled"
-              title="深度思考">
-              <el-icon size="16"><BrainCircuit20Regular /></el-icon><span class="text-xs font-medium btn-label">深度思考</span>
-            </button>
-            <!-- 网页搜索开关（响应式：小窗口只显示图标） -->
-            <button class="tool-btn" :class="{ 'tool-btn-active': webSearchEnabled }" @click.stop="webSearchEnabled = !webSearchEnabled"
-              title="在线检索">
-              <el-icon size="16"><GlobeShield20Regular /></el-icon><span class="text-xs font-medium btn-label">在线检索</span>
-            </button>
+            <!-- 深度思考开关（图标+tip） -->
+            <LTooltip content="深度思考" placement="top">
+              <button class="tool-btn" :class="{ 'tool-btn-active': thinkingEnabled }"
+                @click.stop="thinkingEnabled = !thinkingEnabled">
+                <el-icon size="16"><BrainCircuit20Regular /></el-icon>
+              </button>
+            </LTooltip>
+            <!-- 网页搜索开关（图标+tip） -->
+            <LTooltip content="在线检索" placement="top">
+              <button class="tool-btn" :class="{ 'tool-btn-active': webSearchEnabled }"
+                @click.stop="webSearchEnabled = !webSearchEnabled">
+                <el-icon size="16"><GlobeShield20Regular /></el-icon>
+              </button>
+            </LTooltip>
+            <!-- 输入优化按钮（图标+tip） -->
+            <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
+              <button class="tool-btn" :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
+                <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
+                <el-icon size="16" v-else class="is-loading"><Loading /></el-icon>
+              </button>
+            </LTooltip>
         </div>
         <div class="right-actions flex items-center gap-1">
           <slot name="right-actions-before" />
@@ -167,7 +190,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick, onUnmounted, onMounted, reactive, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElButton, ElDialog, ElTag, ElMessageBox } from 'element-plus';
+import { ElIcon, ElButton, ElDialog, ElTag, ElMessageBox, ElMessage } from 'element-plus';
 import type { Model, ModelProvider } from '@/types/api';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
@@ -178,6 +201,7 @@ import AttachmentPopover from './chat-input/AttachmentPopover.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
+import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel } from '@/utils/modelUtils';
@@ -187,11 +211,12 @@ import { detectModelProvider } from '@/utils/modelUtils';
 import {
 
   Send24Filled, Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  DrinkCoffee16Regular, ClipboardTask24Regular, ShieldLock24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular
+  Flash24Regular, ClipboardTask24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular
 } from '@vicons/fluent'
 import { usePopup } from '@/composables/usePopup';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
+import { isAdmin } from '@repo/core';
 
 /** File object managed by ChatInput (created via createFileObject) */
 interface ChatFile {
@@ -220,6 +245,8 @@ interface ChatConfig {
   knowledgeBaseIds?: string[]
   runMode?: string
   attachments?: Record<string, string[]>
+  defaultThink?: boolean
+  defaultSearch?: boolean
 }
 
 /** File with optional _originalContent attached by paste handler */
@@ -466,16 +493,12 @@ const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 
 const runModeButtonRef = ref<any>(null);
 const runModePopoverVisible = ref(false);
 
-const currentRunMode = computed(() => props.config?.runMode || 'normal');
+const currentRunMode = computed(() => props.config?.runMode === 'plan' ? 'plan' : 'build');
 const runModeLabel = computed(() => {
-  if (currentRunMode.value === 'plan') return t('chat.input.runModePlan');
-  if (currentRunMode.value === 'sandbox') return t('chat.input.runModeSandbox');
-  return t('chat.input.runModeNormal');
+  return currentRunMode.value === 'plan' ? t('chat.input.runModePlan') : t('chat.input.runModeBuild');
 });
 const runModeIcon = computed(() => {
-  if (currentRunMode.value === 'plan') return ClipboardTask24Regular;
-  if (currentRunMode.value === 'sandbox') return ShieldLock24Regular;
-  return DrinkCoffee16Regular;
+  return currentRunMode.value === 'plan' ? ClipboardTask24Regular : Flash24Regular;
 });
 
 const toggleRunModePopover = () => {
@@ -1110,8 +1133,82 @@ const triggerImageInput = () => imageInputRef.value?.click();
 const thinkingEnabled = ref(false);
 const webSearchEnabled = ref(false);
 
+// MCP 工具选择（仅管理员，会话级持久化）
+// 响应式管理员标记：组件可能在角色写入前挂载，挂载时再校正一次，避免登录后按钮缺失
+const admin = ref(isAdmin());
+onMounted(() => { admin.value = isAdmin(); });
+const mcpButtonRef = ref<any>(null);
+const mcpPopoverVisible = ref(false);
+const mcpSelectedIds = computed(() => {
+  const v = props.config?.mcpServerIds;
+  if (!v) return [];
+  return String(v).split(',').map((s) => s.trim()).filter(Boolean);
+});
+function toggleMcpPopover() {
+  mcpPopoverVisible.value = !mcpPopoverVisible.value;
+}
+function handleMcpChange(ids: string[]) {
+  emit('config-change', { mcpServerIds: ids.join(',') });
+}
+const optimizing = ref(false);
+const handleOptimize = async () => {
+  const text = editor.value ? editor.value.getText() : "";
+  if (!text.trim() || optimizing.value) return;
+  optimizing.value = true;
+  try {
+    const res = await apiService._request("/input/optimize", {
+      method: "POST",
+      data: { input: text },
+    });
+    const payload = res?.data ?? res;
+    const optimized = payload?.optimized || payload?.optimizedContent;
+    if (!optimized || !optimized.trim()) {
+      ElMessage.warning(t('chat.input.optimizeUnavailable'));
+    } else if (optimized.trim() === text.trim()) {
+      ElMessage.info(t('chat.input.optimizeNoChange'));
+    } else if (editor.value) {
+      editor.value.commands.setContent(optimized);
+    }
+  } catch (e) {
+    console.warn("优化失败", e);
+    ElMessage.error(t('chat.input.optimizeFailed'));
+  } finally {
+    optimizing.value = false;
+  }
+};
+
+// 从编辑器文档提取发送内容：纯文本（跳过技能徽标，避免 [/skill:...] 序列化文本污染消息）
+// 同时收集显式选中的技能名
+const extractSendContent = (): { text: string; skillNames: string[] } => {
+  if (!editor.value) {
+    return { text: inputContent.value, skillNames: [] };
+  }
+  const blocks: string[] = [];
+  const skillNames: string[] = [];
+  editor.value.state.doc.forEach((block: any) => {
+    let line = '';
+    block.descendants((node: any) => {
+      const t = node.type.name;
+      if (t === 'text') {
+        line += node.text || '';
+      } else if (t === 'hardBreak') {
+        line += '\n';
+      } else if (t === 'command') {
+        const provider = node.attrs.providerId;
+        const name = node.attrs.name;
+        if (provider === 'skill' && name && !skillNames.includes(name)) {
+          skillNames.push(name);
+        }
+      }
+      return true;
+    });
+    blocks.push(line);
+  });
+  return { text: blocks.join('\n'), skillNames };
+};
+
 const sendMessage = async () => {
-  const content = editor.value ? editor.value.getText() : inputContent.value;
+  const { text: content, skillNames } = extractSendContent();
   if (!content.trim() && uploadFiles.value.length === 0) {
     return;
   }
@@ -1138,11 +1235,15 @@ const sendMessage = async () => {
     f.uploadStatus === 'uploaded' || !f.uploadStatus
   );
 
-  // 发送消息(仅包含已上传完成的文件)
+  // 发送消息(仅包含已上传完成的文件)；content 已剥离技能徽标，skillNames 单独透传
   emit('send', {
-    content: editor.value ? editor.value.getText() : inputContent.value,
+    content,
     files: uploadedFiles,
-    knowledgeBaseIds: props.config?.knowledgeBaseIds || []
+    knowledgeBaseIds: props.config?.knowledgeBaseIds || [],
+    think: thinkingEnabled.value,
+    search: webSearchEnabled.value,
+    skillNames,
+    useSkill: skillNames.length > 0,
   });
 
   // 清空编辑器和文件列表
@@ -1331,6 +1432,14 @@ watch(() => props.config?.thinkingEffort, (newEffort) => {
   if (newEffort !== undefined && newEffort !== localThinkingEffort.value) {
     localThinkingEffort.value = newEffort;
   }
+}, { immediate: true });
+
+// 角色/会话级默认能力：进入会话时预置深度思考、在线检索开关
+watch(() => props.config?.defaultThink, (val) => {
+  if (val === true || val === false) thinkingEnabled.value = val;
+}, { immediate: true });
+watch(() => props.config?.defaultSearch, (val) => {
+  if (val === true || val === false) webSearchEnabled.value = val;
 }, { immediate: true });
 
 watch(() => props.buttons, (value) => {

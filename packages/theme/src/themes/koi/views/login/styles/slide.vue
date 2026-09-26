@@ -8,22 +8,23 @@
     <!-- 网格装饰 -->
     <div class="slide-mesh" aria-hidden="true"></div>
 
-    <!-- 品牌标识 -->
-    <div class="slide-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
-      <div class="slide-brand-logo">
-        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-      </div>
-      <span class="slide-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
-    </div>
-
-    <!-- 居中登录卡片 -->
+    <!-- 居中登录卡片：品牌只在卡片内出现一次 -->
     <div class="slide-card relative z-10 w-440px max-w-94vw rounded-24px overflow-hidden p-36px">
       <!-- 卡片装饰光斑 -->
       <div class="slide-card-glow slide-card-glow--1"></div>
       <div class="slide-card-glow slide-card-glow--2"></div>
 
       <div class="relative z-1">
-        <ReLoginForm :show-mobile-brand="false" form-class="slide-form" />
+        <!-- 卡片自带标题，故 ReLoginForm 传 show-header=false，避免双标题 -->
+        <div class="slide-card-head">
+          <div class="slide-card-mark">
+            <img class="slide-card-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+          </div>
+          <h3 class="slide-card-title">{{ translateConfigText(loginConfig.title) }}</h3>
+          <p class="slide-card-desc">{{ translateConfigText(loginConfig.description) }}</p>
+        </div>
+
+        <ReLoginForm :show-mobile-brand="false" :show-header="false" form-class="slide-form" />
 
         <div class="slide-footer m-t-24px text-center text-12px text-[--el-text-color-secondary]">
           <span v-if="loginConfig.beiAnHao">
@@ -85,7 +86,7 @@ html.dark .login-slide {
     left: -3%;
     width: 320px;
     height: 320px;
-    background: color-mix(in srgb, var(--el-color-primary) 55%, #06b6d4 45%);
+    background: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-primary-light-5) 45%);
   }
 
   &--3 {
@@ -115,14 +116,20 @@ html.dark .slide-bg {
   pointer-events: none;
 }
 
-.slide-brand {
-  &-logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  }
+/* 卡片内的品牌标识 */
+.slide-card-mark {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.slide-card-logo {
+  display: block;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 6px 18px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 /* 居中卡片 */
@@ -137,6 +144,27 @@ html.dark .slide-card {
   background: rgba(15, 15, 21, 0.85);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* 卡片标题区 */
+.slide-card-head {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.slide-card-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+}
+
+.slide-card-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 /* 卡片内装饰光斑 */
@@ -160,7 +188,7 @@ html.dark .slide-card {
     height: 150px;
     bottom: -40px;
     left: -30px;
-    background: color-mix(in srgb, var(--el-color-primary) 50%, #06b6d4 50%);
+    background: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-color-primary-light-5) 50%);
     filter: blur(40px);
   }
 }

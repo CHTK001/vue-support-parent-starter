@@ -2,6 +2,7 @@ export default {
   // ── 插件页面 (PluginsPage.vue) ──
   page: {
     title: '插件',
+    tabCharacters: '助手',
     tabLocalTools: '本地工具',
     tabSkills: 'Skills',
     tabMcp: 'MCP 服务器',
@@ -130,6 +131,15 @@ export default {
     installBtn: '安装',
     installSelectWarning: '请选择要安装的 ZIP 文件',
     installFailed: '安装失败',
+    // 安装弹窗：模式与检索
+    modeUpload: '上传 ZIP',
+    modeSearch: '检索安装',
+    sourceLocal: '本地',
+    sourceOnline: '在线',
+    searchPlaceholder: '搜索技能名称或描述',
+    searchHint: '输入关键词后回车，将同时检索本地与在线技能',
+    searchNoResult: '本地与在线均未找到匹配的技能',
+    localEmpty: '未找到本地技能，可在系统设置的 Skills 配置中开启来源',
     // 市场推荐
     marketTitle: '技能推荐',
     marketRefresh: '换一批',
@@ -138,8 +148,15 @@ export default {
     marketInstalled: '已安装',
     marketUpdatable: '可更新',
     marketInstallBtn: '安装',
-    marketUpgradeBtn: '升级',
+    marketUpgradeBtn: '更新',
     marketReinstallBtn: '重新安装',
+    installedBtn: '已安装',
+    detailAdd: '添加',
+    detailTruncated: '完整内容暂不支持展示',
+    manage: '管理',
+    add: '添加',
+    uploadSkill: '上传技能',
+    searchInstall: '检索安装',
     marketInstalling: '安装中...',
     marketNoZip: '该技能暂无 ZIP 安装包',
     marketNoGit: '该技能暂无源码链接',
@@ -158,6 +175,7 @@ export default {
   localTools: {
     title: '本地工具',
     subtitle: '全局工具设置决定了哪些工具对所有角色可用。角色级别的工具设置会在此基础上进一步限制。',
+    addTool: '添加工具',
     loading: '加载中...',
     noDescription: '暂无描述',
     sourceDev: 'DEV',

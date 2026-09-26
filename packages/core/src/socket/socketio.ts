@@ -51,10 +51,17 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     urls: config.urls,
     blacklistTtlMs: config.blacklistTtlMs,
   });
+  // 默认先 polling 建连再升级 websocket：纯 websocket 在代理/停机场景下可能一直握手失败，
+  // polling 能保证连接建立（socket.io 会在可用时自动升级到 websocket），兼顾可靠与实时性。
   const transports =
     config.transports && config.transports.length > 0
       ? config.transports
-      : ["websocket"];
+      : ["polling", "websocket"];
+
+  /** 看门狗定时器：长时间未连接时强制重建，避免库自身重连卡死导致永久失联 */
+  let watchdog: ReturnType<typeof setInterval> | null = null;
+  /** 连续未连接起始时间戳，0 表示当前已连 */
+  let downSince = 0;
 
   const connect = () => {
     if (socketInstance?.connected) {
@@ -78,8 +85,10 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       transports,
       autoConnect,
       reconnection: config.reconnection ?? true,
-      reconnectionAttempts: config.reconnectionAttempts ?? 3,
+      reconnectionAttempts: config.reconnectionAttempts ?? Infinity,
       reconnectionDelay: config.reconnectionDelay ?? 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 8000,
       query: {
         "x-oauth-token": token || "",
         ...config.query,
@@ -88,24 +97,37 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
     socketInstance.on("connect", () => {
       isConnected.value = true;
+      downSince = 0;
       // 连接成功：恢复该地址健康状态
       selector.markSuccess(url);
     });
 
     socketInstance.on("disconnect", () => {
       isConnected.value = false;
+      if (!downSince) downSince = Date.now();
+    });
+
+    // 重连次数耗尽（理论上 Infinity 不触发，兜底）：强制整体重建
+    socketInstance.io.on("reconnect_failed", () => {
+      forceRebuild("reconnect_failed");
     });
 
     socketInstance.on("connect_error", (error) => {
       log.error(`[Socket.IO] 连接错误 ${url}:`, error);
-      // 连接失败：降级该地址（进入黑名单），后续重连走其他地址
+      // 连接失败：降级该地址（进入黑名单）
       selector.markFailure(url);
-      // 主动 tear-down 并重建，让后续 connect() 选取下一个健康地址
-      if (socketInstance) {
-        socketInstance.disconnect();
-        socketInstance = null;
-        isConnected.value = false;
+      if (selector.availableCount() > 0) {
+        // 多地址且仍有健康地址：销毁当前连接，重建到下一地址
+        if (socketInstance) {
+          socketInstance.removeAllListeners();
+          socketInstance.disconnect();
+          socketInstance = null;
+          isConnected.value = false;
+        }
+        connect();
       }
+      // 单地址（或全部地址都在黑名单）：不销毁，交给 socket.io 自身 reconnection
+      // 持续重试，后端恢复 / 黑名单到期后自动连上，避免永久失联。
     });
 
     // message 事件分发（必须在 socketInstance 创建后注册）
@@ -132,13 +154,66 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     if (!autoConnect) {
       socketInstance.connect();
     }
+    startWatchdog();
   };
 
+  /**
+   * 彻底拆除当前连接并整体重建（看门狗 / 重连失败兜底）。
+   *
+   * @param reason 触发原因，用于日志
+   */
+  function forceRebuild(reason: string): void {
+    log.warn(`[Socket.IO] 强制重建连接（${reason}）`);
+    try {
+      socketInstance?.removeAllListeners();
+      socketInstance?.disconnect();
+    } catch {
+      /* 忽略拆除异常 */
+    }
+    socketInstance = null;
+    isConnected.value = false;
+    downSince = Date.now();
+    connect();
+  }
+
+  /**
+   * 启动连接看门狗：未连接超过 20s 则强制重建，从未建连时主动发起。
+   */
+  function startWatchdog(): void {
+    if (watchdog) {
+      return;
+    }
+    watchdog = setInterval(() => {
+      if (isConnected.value) {
+        downSince = 0;
+        return;
+      }
+      if (!socketInstance) {
+        if (!downSince) downSince = Date.now();
+        connect();
+      }
+      if (!downSince) downSince = Date.now();
+      if (Date.now() - downSince > 20000) {
+        forceRebuild("watchdog-timeout");
+      }
+    }, 5000);
+  }
+
+  /** 停止看门狗（主动关闭时） */
+  function stopWatchdog(): void {
+    if (watchdog) {
+      clearInterval(watchdog);
+      watchdog = null;
+    }
+  }
+
   const disconnect = () => {
+    stopWatchdog();
     if (socketInstance) {
       socketInstance.disconnect();
       socketInstance = null;
       isConnected.value = false;
+      downSince = 0;
     }
   };
 
@@ -190,6 +265,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   };
 
   const close = () => {
+    stopWatchdog();
     disconnect();
     eventListeners.clear();
   };
@@ -209,6 +285,12 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     subscribeHandlers.get(key)!.add(handler);
     return () => subscribeHandlers.get(key)?.delete(handler);
   };
+
+  // autoConnect=true：创建服务即发起首次连接（io 实例在 connect() 内才创建，
+  // 不主动调用则只能等 on/subscribe 懒触发，导致页面加载后长时间未连接）
+  if (autoConnect) {
+    connect();
+  }
 
   return {
     protocol: "socketio",

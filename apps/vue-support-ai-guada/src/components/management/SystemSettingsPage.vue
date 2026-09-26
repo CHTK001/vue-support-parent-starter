@@ -82,62 +82,7 @@
       <!-- 模型指标采集 -->
       <el-tab-pane label="模型指标采集" name="model-metrics">
         <div class="settings-content">
-          <el-alert
-            title="模型指标采集配置：定时采集模型调用指标，同步到表，每次同步清空（@Cacheable），用量金额使用官方金额"
-            type="info"
-            :closable="false"
-            style="margin-bottom: 16px"
-          />
-          <el-form :model="modelMetricsForm" label-width="180px">
-            <el-form-item label="指标采集开关">
-              <el-switch v-model="modelMetricsForm.enabled" />
-              <span class="form-tip">开启后定时采集模型调用指标</span>
-            </el-form-item>
-            <el-form-item label="定时同步时间">
-              <el-time-picker
-                v-model="modelMetricsForm.syncTime"
-                format="HH:mm"
-                value-format="HH:mm"
-                placeholder="选择每日同步时间"
-              />
-              <span class="form-tip">每天定时同步指标数据（仅同步当天）</span>
-            </el-form-item>
-            <el-form-item label="同步间隔(分钟)">
-              <el-input-number v-model="modelMetricsForm.interval" :min="1" :max="1440" />
-              <span class="form-tip">定时任务执行间隔</span>
-            </el-form-item>
-            <el-form-item label="缓存清空策略">
-              <el-select v-model="modelMetricsForm.cacheStrategy" style="width: 200px">
-                <el-option label="每次同步清空(@Cacheable)" value="clear_on_sync" />
-                <el-option label="保留最近7天" value="keep_7_days" />
-                <el-option label="保留最近30天" value="keep_30_days" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="金额计算方式">
-              <el-radio-group v-model="modelMetricsForm.pricingSource">
-                <el-radio value="official">官方金额</el-radio>
-                <el-radio value="custom">自定义单价</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-divider content-position="left">操作</el-divider>
-            <el-form-item>
-              <el-button type="primary" @click="saveModelMetricsConfig" :loading="savingMetrics">保存配置</el-button>
-              <el-button @click="refreshModelMetrics" :loading="refreshingMetrics">立即刷新指标</el-button>
-              <el-button @click="syncPricing" :loading="syncingPricing">同步官方定价</el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 指标数据预览 -->
-          <el-divider content-position="left">指标数据预览</el-divider>
-          <el-table :data="modelMetricsList" v-loading="loadingMetrics" border size="small" style="width: 100%">
-            <el-table-column prop="modelName" label="模型名称" min-width="150" />
-            <el-table-column prop="provider" label="提供商" width="120" />
-            <el-table-column prop="callCount" label="调用次数" width="100" align="center" />
-            <el-table-column prop="totalTokens" label="总Token" width="120" align="center" />
-            <el-table-column prop="totalCost" label="总费用(USD)" width="120" align="center" />
-            <el-table-column prop="avgLatency" label="平均延迟(ms)" width="120" align="center" />
-            <el-table-column prop="lastSyncTime" label="最后同步时间" min-width="160" />
-          </el-table>
+          <ModelMetricsSettings />
         </div>
       </el-tab-pane>
 
@@ -255,6 +200,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Checkmark20Regular } from '@vicons/fluent';
 import { settingsApi, usageApi, modelMetricsApi } from '@/services/javaApi';
+import ModelMetricsSettings from '@/components/setting/ModelMetricsSettings.vue';
 
 const activeTab = ref('global-beans');
 const saving = ref(false);

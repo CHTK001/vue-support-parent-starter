@@ -15,6 +15,8 @@ export type ResolvedThemeInstaller = (
 
 /** themeId → 框架模块动态加载器（保持懒加载，避免打包进 @repo/theme 主包） */
 const FRAMEWORK_LOADERS: Record<string, () => Promise<unknown>> = {
+  // 主题框架由宿主应用提供，theme 主包不把具体主题作为构建依赖。
+  // @ts-ignore 运行时由 Vite 解析具体主题子路径
   koi: () => import("@repo/theme/koi/framework"),
 };
 

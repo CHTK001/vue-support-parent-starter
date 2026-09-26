@@ -27,7 +27,6 @@ const api = vi.hoisted(() => ({
   listSettingHistoryByBatch: vi.fn(),
   decryptSettingValue: vi.fn(),
   exportSetting: vi.fn(),
-  importSetting: vi.fn(),
 }));
 
 vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
@@ -98,7 +97,7 @@ function mountPage() {
   return mount(SettingManage, {
     global: {
       stubs: {
-        ReTable: makeReTableStub(["name", "group", "type", "value", "preview", "action"]),
+        ReTable: makeReTableStub(["info", "value", "action"]),
         ReSearch: ReSearchStub,
         ReButton: ReButtonStub,
         ReInput: ReInputStub,
@@ -112,6 +111,13 @@ function mountPage() {
       },
     },
   });
+}
+
+/** 卡片先行：挂载后点击第一个分组卡片，进入详情表格 */
+async function enterGroup(wrapper: ReturnType<typeof mountPage>) {
+  await settle(wrapper);
+  await wrapper.find(".group-card").trigger("click");
+  await settle(wrapper);
 }
 
 describe("SettingManage 系统设置页面（扩展）", () => {
@@ -128,11 +134,11 @@ describe("SettingManage 系统设置页面（扩展）", () => {
 
   it("opens history drawer when '历史' clicked", async () => {
     const wrapper = mountPage();
-    await settle(wrapper);
+    await enterGroup(wrapper);
     expect(wrapper.findAll(".re-drawer-stub").length).toBe(0);
 
-    const row = wrapper.findAll(".re-row").find((r) => r.text().includes("站点标题"))!;
-    const histBtn = row.findAll("button").find((b) => b.text().includes("历史"))!;
+    const row = wrapper.findAll(".re-row").find((r) => r.text().includes("site.title"))!;
+    const histBtn = row.findAll("button").find((b) => b.attributes("data-icon") === "Clock")!;
     await histBtn.trigger("click");
     await settle(wrapper);
 
@@ -162,14 +168,16 @@ describe("SettingManage 系统设置页面（扩展）", () => {
 
   it("masks sensitive value and calls decrypt on reveal", async () => {
     const wrapper = mountPage();
-    await settle(wrapper);
+    await enterGroup(wrapper);
 
     // 掩码渲染
     expect(wrapper.text()).toContain("••••••••");
 
-    const sensitiveRow = wrapper.findAll(".re-row").find((r) => r.text().includes("数据库密码"))!;
-    // preview 插槽内的显示按钮是无文本的图标按钮（区别于 编辑/历史/删除）
-    const reveal = sensitiveRow.findAll("button").find((b) => b.text().trim().length === 0);
+    const sensitiveRow = wrapper.findAll(".re-row").find((r) => r.text().includes("db.password"))!;
+    // 预览/编辑列的显示按钮是无文本的图标按钮（区别于操作列：可按 data-icon 排除）
+    const reveal = sensitiveRow
+      .findAll("button")
+      .find((b) => b.text().trim().length === 0 && !b.attributes("data-icon"));
     expect(reveal).toBeTruthy();
     await reveal!.trigger("click");
     await settle(wrapper);

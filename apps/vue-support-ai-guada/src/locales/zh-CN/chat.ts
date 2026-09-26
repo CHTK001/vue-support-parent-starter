@@ -13,6 +13,9 @@ export default {
     featureTools: '工具调用',
     featureThinking: '混合思考',
     editorPlaceholder: "按 / 使用技能，{'@'} 召唤agent，Shift+Enter 换行",
+    optimizeFailed: '优化失败，请稍后重试',
+    optimizeUnavailable: '优化服务暂不可用，请在设置中配置优化模型',
+    optimizeNoChange: '内容已经足够清晰，无需优化',
     previewTitle: '原始内容预览 - {name}',
     overwriteTitle: '覆盖{type}',
     overwriteConfirmDesc: '暂不支持同时上传图片和文件，是否要覆盖全部{type}？',
@@ -22,7 +25,8 @@ export default {
     sendDirectly: '直接发送',
     runModeNormal: '工作模式',
     runModeSandbox: '轻沙盒模式',
-    runModePlan: '计划模式',
+    runModeBuild: '构建模式',
+    runModePlan: '规划模式',
 
     // AttachmentPopover.vue
     uploadImage: '上传图片',
@@ -59,7 +63,8 @@ export default {
     runModeSandboxTest: '轻沙盒模式（测试）',
     runModeNormalDesc: '不对工具进行限制,正常读写工作目录，命令行除外',
     runModeSandboxDesc: 'Shell命令工作目录内可写，外部只读',
-    runModePlanDesc: '仅允许只读工具和只读终端,适合做只读规划',
+    runModeBuildDesc: '允许执行工具与动作，可读写工作目录',
+    runModePlanDesc: '首轮仅做只读调研并产出计划，不执行任何副作用动作',
 
     // ThinkingEffortPopover.vue
     thinkingEffortTitle: '思考强度',
@@ -145,6 +150,30 @@ export default {
     importRecords: '导入记录',
   },
 
+  // ── 会话上下文面板 ──
+  context: {
+    memory: '记忆体',
+    memoryRefresh: '刷新记忆',
+    memoryEmpty: '暂无记忆，对话中会自动沉淀',
+    memoryStats: '活跃 {active} / 上限 {capacity} · 可召回 {recallable}',
+    memoryScopeGlobal: '全局',
+    memoryScopeConversation: '本会话',
+    memorySourceManual: '手动',
+    memorySourceAuto: '自动',
+    memorySourceTool: '工具',
+    memorySourceImport: '导入',
+    memoryHit: '命中 {n}',
+    memoryDelete: '删除这条记忆',
+    memoryDeleteTitle: '删除记忆',
+    memoryDeleteDesc: '确定要删除这条记忆吗？后续对话不再注入，此操作不可撤销。',
+    memoryClearConversation: '清空本会话',
+    memoryClearTitle: '清空本会话记忆',
+    memoryClearDesc: '确定要清空本会话的会话级记忆吗？全局记忆不受影响，此操作不可撤销。',
+    memoryDeleted: '已删除该记忆',
+    memoryCleared: '已清空本会话记忆（{n} 条）',
+    memoryLoadFailed: '记忆加载失败',
+  },
+
   // ── 侧边栏 ──
   sidebar: {
     chatSessions: '聊天对话',
@@ -196,6 +225,8 @@ export default {
     codeCopied: '代码已复制到剪贴板',
     thinkingActive: '正在思考...',
     thinkingDone: '已深度思考',
+    searchActive: '在线检索中...',
+    searchDone: '已在线检索 · {n} 条来源',
     executingSteps: '正在执行{n}个步骤',
     executingStepsWithCompleted: '正在执行{n}个步骤,已完成{m}个步骤',
     executedSteps: '已执行{n}个步骤',

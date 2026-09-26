@@ -110,7 +110,6 @@ export interface AppContext {
 export async function createApp(options: CreateAppOptions = {}): Promise<AppContext> {
   const baseUrl = options.baseUrl ?? "";
   const appName = options.appName ?? "default";
-(window as any).__createApp = "started";
 
   log.info("createApp", "① loadCrypto...");
   const crypto = await loadCrypto({

@@ -107,9 +107,12 @@ const error = ref("");
 
 const hasWeather = computed(() => temp.value != null);
 
-const weatherDesc = computed(() => {
-  return weatherCode.value != null ? WMO_DESC[weatherCode.value] ?? "天气" : "天气";
-});
+/** WMO 天气代码 → 中文描述（实况 / 逐小时 / 逐日图标悬浮提示共用同一份表） */
+export function wmoToDesc(wmo: number | null | undefined): string {
+  return wmo != null ? WMO_DESC[wmo] ?? "天气" : "天气";
+}
+
+const weatherDesc = computed(() => wmoToDesc(weatherCode.value));
 
 function wmoToFluentIcon(wmo: number | null | undefined): string {
   if (wmo == null) return "fluent:weather-sunny-24-regular";

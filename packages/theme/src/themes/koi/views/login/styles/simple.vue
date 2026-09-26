@@ -6,21 +6,16 @@
     <div class="simple-glow simple-glow--1"></div>
     <div class="simple-glow simple-glow--2"></div>
 
-    <!-- 左上角品牌 -->
-    <div class="simple-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
-      <div class="simple-brand-logo">
-        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-      </div>
-      <span class="simple-brand-name text-16px font-700 text-[--el-text-color-primary]">{{ translateConfigText(loginConfig.title) }}</span>
-    </div>
-
-    <!-- 居中终端面板 -->
+    <!-- 居中终端面板：品牌只在终端标题栏出现一次，不再另设左上角浮动标识 -->
     <div class="simple-shell relative z-10 w-460px max-w-94vw rounded-16px overflow-hidden">
       <!-- 终端标题栏 -->
       <div class="simple-shell-bar flex items-center gap-8px px-16px py-10px">
         <span class="simple-dot simple-dot--red"></span>
         <span class="simple-dot simple-dot--yellow"></span>
         <span class="simple-dot simple-dot--green"></span>
+        <span class="simple-shell-logo">
+          <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+        </span>
         <span class="simple-shell-title ml-12px text-12px font-500">{{ translateConfigText(loginConfig.title) }}</span>
       </div>
 
@@ -31,7 +26,7 @@
           <span class="ml-8px text-[--el-text-color-secondary]">{{ translateConfigText(loginConfig.welcome) }}</span>
         </div>
 
-        <ReLoginForm :show-mobile-brand="false" form-class="simple-form" />
+        <ReLoginForm :show-mobile-brand="false" form-class="simple-form"  :show-header="false" />
 
         <div class="simple-footer m-t-24px flex items-center justify-between text-12px text-[--el-text-color-secondary]">
           <span>{{ $t("menu.login.account") }}</span>
@@ -122,21 +117,20 @@ html.dark .simple-glow {
   opacity: 0.2;
 }
 
-/* 品牌 */
-.simple-brand {
-  &-logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  }
-}
-
 /* 终端面板 */
 .simple-shell {
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+/* 标题栏内的品牌图标 */
+.simple-shell-logo {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 html.dark .simple-shell {

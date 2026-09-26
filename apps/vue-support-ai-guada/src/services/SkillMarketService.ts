@@ -3,14 +3,18 @@
  * 直接调用官网 API 获取推荐技能列表
  */
 
-import axios from "axios";
+import { createClient, httpAt } from "@/framework/context";
 
 const MARKET_BASE_URL = "https://ai.dingd.cn";
 
-const marketClient = axios.create({
-  baseURL: MARKET_BASE_URL,
-  timeout: 15000,
-});
+/**
+ * 官网市场是第三方域名，不能把本站 OAuth Bearer 带过去：
+ * 框架拦截器仅在请求未携带 Authorization 头时注入 token，这里显式置空即可屏蔽。
+ */
+const marketClient = createClient(
+  () => httpAt(MARKET_BASE_URL, { Authorization: "" }, 15000),
+  { unwrap: false },
+);
 
 /** 安装地址 */
 export interface InstallUrl {
@@ -83,8 +87,7 @@ export const SkillMarketService = {
       }
     }
 
-    const { data } =
-      await marketClient.get<MarketSkill[]>("/api/market/skills");
+    const data = (await marketClient.get("/api/market/skills")) as MarketSkill[];
     setCachedSkills(data);
     return data;
   },
@@ -93,9 +96,8 @@ export const SkillMarketService = {
    * 下载技能 ZIP 包
    */
   async downloadSkillZip(skillId: string): Promise<Blob> {
-    const { data } = await marketClient.get(`/skills/${skillId}.zip`, {
+    return (await marketClient.get(`/skills/${skillId}.zip`, {
       responseType: "blob",
-    });
-    return data;
+    })) as Blob;
   },
 };

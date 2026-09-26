@@ -5,9 +5,9 @@
  */
 import { del, get, post, put } from "./http";
 import type {
-  CollectAuthStatus,
   CollectCategory,
   CollectCategoryNode,
+  CollectColumn,
   CollectDatasource,
   CollectDatasourceVO,
   CollectDsl,
@@ -36,7 +36,6 @@ import type {
 } from "../types/collect";
 
 const API = "/v2/collect";
-const AUTH = "/collect-console/auth";
 
 /** 解包分页对象为统一形状（空分页时后端 data 为 null） */
 function toPage<T>(value: unknown): CollectPage<T> {
@@ -48,18 +47,6 @@ function toPage<T>(value: unknown): CollectPage<T> {
     pageSize: Number(p.pageSize ?? 10),
   };
 }
-
-/* --------------------------------- 鉴权 ---------------------------------- */
-
-/** 查询控制台登录状态（免鉴权接口） */
-export const authStatus = () => get<CollectAuthStatus>(`${AUTH}/status`);
-
-/** 控制台登录 */
-export const authLogin = (username: string, password: string) =>
-  post<CollectAuthStatus>(`${AUTH}/login`, { username, password });
-
-/** 控制台退出 */
-export const authLogout = () => post<string>(`${AUTH}/logout`, {});
 
 /* -------------------------------- 设计器元数据 ---------------------------- */
 
@@ -206,23 +193,16 @@ export const deleteVariable = (variableId: number) => del<boolean>(`${API}/varia
 
 /* ---------------------------------- 数据源 --------------------------------- */
 
-/** 数据源列表 */
-export const listDatasources = () => get<CollectDatasourceVO[]>(`${API}/datasource/list`);
-
-/** 数据源下拉（首项固定 app＝应用主库） */
-export const fetchDatasourceOptions = () => get<CollectOption[]>(`${API}/datasource/options`);
-
-/** 新增数据源 */
-export const saveDatasource = (dto: CollectDatasource) => post<CollectDatasourceVO>(`${API}/datasource/save`, dto);
-
-/** 修改数据源，密码留空表示不改 */
-export const updateDatasource = (dto: CollectDatasource) => put<boolean>(`${API}/datasource/update`, dto);
-
-/** 删除数据源（被流程引用时拒绝） */
-export const deleteDatasource = (datasourceId: number) => del<boolean>(`${API}/datasource/delete`, { datasourceId });
-
-/** 测试连接，返回数据库产品信息 */
-export const testDatasource = (dto: CollectDatasource) => post<string>(`${API}/datasource/test`, dto);
+/**
+ * 数据源台账只有一份实现：@pages/datasource（后端数据源中心 /ms/datasource）。
+ * 这里只做再导出，页面与 API 都不在本 app 里另放一份。
+ */
+export {
+  fetchDatasourceOptions,
+  fetchDatasourceTables,
+  fetchDatasourceColumns,
+} from "@pages/datasource";
+export type { CollectColumn } from "@pages/datasource";
 
 /* --------------------------------- 执行通知 -------------------------------- */
 

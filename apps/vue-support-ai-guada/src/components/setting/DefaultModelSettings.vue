@@ -1,151 +1,146 @@
 <template>
-    <div class="flex-1 overflow-hidden">
-        <div class="space-y-8">
-            <!-- 动态渲染所有配置分组 -->
-            <div v-for="group in settingGroups" :key="group.group">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ group.groupName }}</h3>
-                <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-                    <!-- 模型字段：始终显示 -->
-                    <template v-for="(item, index) in group.items" :key="item.field">
-                    <div v-if="isModelField(group.group, item.field) && shouldShowField(group.group, item.field)"
-                        class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-                        <div class="flex flex-col gap-1 min-w-0">
-                            <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ getFieldLabel(item) }}</span>
-                            <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ item.description }}</span>
-                        </div>
-                        <div class="w-full max-w-md shrink-0">
-                            <!-- STRING 类型：模型选择器（如果是模型字段）或文本输入 -->
-                            <el-input v-if="item.valueType === 'STRING' && isModelField(group.group, item.field)"
-                                :model-value="getFieldValue(group.group, item.field) || '请选择模型'" readonly
-                                class="cursor-pointer" @click="openModelDialog(group.group, item.field)">
-                                <template #prefix>
-                                    <OpenAI class="w-4 h-4" />
-                                </template>
-                                <template #suffix>
-                                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                                </template>
-                            </el-input>
-                            <!-- STRING 类型：枚举下拉 -->
-                            <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
-                                :model-value="getFieldValue(group.group, item.field)"
-                                @update:model-value="updateFieldValue(group.group, item.field, $event)"
-                                class="w-full">
-                                <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
-                            </el-select>
-                            <!-- STRING 类型：普通文本输入 -->
-                            <el-input v-else-if="item.valueType === 'STRING'"
-                                :model-value="getFieldValue(group.group, item.field)"
-                                @input="updateFieldValue(group.group, item.field, $event)">
-                            </el-input>
-                            <!-- NUMBER 类型：数字输入 -->
-                            <el-input-number v-else-if="item.valueType === 'NUMBER'"
-                                :model-value="Number(getFieldValue(group.group, item.field))"
-                                @change="(val) => updateFieldValue(group.group, item.field, val)"
-                                :step="0.1"
-                                :precision="2"
-                                class="w-full">
-                            </el-input-number>
-                            <!-- BOOLEAN 类型：开关 -->
-                            <el-switch v-else-if="item.valueType === 'BOOLEAN'"
-                                :model-value="getFieldValue(group.group, item.field) === 'true'"
-                                @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')">
-                            </el-switch>
-                        </div>
-                    </div>
-                    </template>
+  <div class="flex-1">
+    <!-- 动态渲染所有配置分组 -->
+    <SettingsCard v-for="group in settingGroups" :key="group.group" :title="group.groupName">
+      <!-- 模型字段：始终显示 -->
+      <SettingsRow
+        v-for="item in modelFields(group)"
+        :key="item.field"
+        :label="getFieldLabel(item)"
+        :description="item.description"
+        control-flex
+      >
+        <!-- STRING：模型选择器 -->
+        <el-input
+          v-if="item.valueType === 'STRING' && isModelField(group.group, item.field)"
+          :model-value="getFieldValue(group.group, item.field) || '请选择模型'"
+          readonly
+          class="cursor-pointer"
+          @click="openModelDialog(group.group, item.field)"
+        >
+          <template #prefix>
+            <img v-if="getFieldModelLogo(group.group, item.field)" :src="getFieldModelLogo(group.group, item.field)"
+              alt="" class="w-4 h-4 object-contain" />
+            <OpenAI v-else class="w-4 h-4" />
+          </template>
+          <template #suffix>
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </template>
+        </el-input>
+        <!-- STRING：枚举下拉 -->
+        <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
+          :model-value="getFieldValue(group.group, item.field)"
+          @update:model-value="updateFieldValue(group.group, item.field, $event)"
+          class="w-full">
+          <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
+        </el-select>
+        <!-- STRING：普通文本 -->
+        <el-input v-else-if="item.valueType === 'STRING'"
+          :model-value="getFieldValue(group.group, item.field)"
+          @input="updateFieldValue(group.group, item.field, $event)" />
+        <!-- NUMBER -->
+        <el-input-number v-else-if="item.valueType === 'NUMBER'"
+          :model-value="Number(getFieldValue(group.group, item.field))"
+          @change="(val) => updateFieldValue(group.group, item.field, val)"
+          :step="0.1" :precision="2" class="w-full" />
+        <!-- BOOLEAN -->
+        <el-switch v-else-if="item.valueType === 'BOOLEAN'"
+          :model-value="getFieldValue(group.group, item.field) === 'true'"
+          @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+      </SettingsRow>
 
-                    <!-- 高级选项：折叠显示 -->
-                    <el-collapse v-if="hasAdvancedSettings(group)" class="border-none custom-collapse">
-                        <el-collapse-item>
-                            <template #title>
-                                <div class="px-4 py-3 flex items-center justify-between bg-gray-50 dark:bg-[#2a2c30]">
-                                    <span class="text-sm font-medium text-gray-600 dark:text-[#b8babf]">高级选项</span>
-                                </div>
-                            </template>
-                            <template v-for="(item, index) in group.items" :key="item.field">
-                            <div v-if="!isModelField(group.group, item.field) && shouldShowField(group.group, item.field)"
-                                class="px-4 py-3.5 flex items-center justify-between gap-4"
-                                :class="{ 'border-b border-gray-100 dark:border-[#2e3035]': index < group.items.length - 1 }">
-                                <div class="flex flex-col gap-1 min-w-0">
-                                    <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ getFieldLabel(item) }}</span>
-                                    <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ item.description }}</span>
-                                </div>
-                                <div class="w-full max-w-md shrink-0">
-                                    <!-- STRING 类型：usage_sync_providers 多选下拉 -->
-                                    <el-select v-if="item.field === 'usage_sync_providers'"
-                                        :model-value="getFieldValue(group.group, item.field) ? getFieldValue(group.group, item.field).split(',') : []"
-                                        @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','))"
-                                        multiple
-                                        clearable
-                                        placeholder="留空=全部启用"
-                                        class="w-full">
-                                        <el-option v-for="parser in usageParsers" :key="parser.name" :label="parser.name" :value="parser.name" />
-                                    </el-select>
-                                    <!-- STRING 类型：枚举下拉 -->
-                                    <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
-                                        :model-value="getFieldValue(group.group, item.field)"
-                                        @update:model-value="updateFieldValue(group.group, item.field, $event)"
-                                        class="w-full">
-                                        <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
-                                    </el-select>
-                                    <!-- STRING 类型：普通文本输入 -->
-                                    <el-input v-else-if="item.valueType === 'STRING'"
-                                        :model-value="getFieldValue(group.group, item.field)"
-                                        @input="updateFieldValue(group.group, item.field, $event)">
-                                    </el-input>
-                                    <!-- NUMBER 类型：数字输入 -->
-                                    <el-input-number v-else-if="item.valueType === 'NUMBER'"
-                                        :model-value="Number(getFieldValue(group.group, item.field))"
-                                        @change="(val) => updateFieldValue(group.group, item.field, val)"
-                                        :step="0.1"
-                                        :precision="2"
-                                        class="w-full">
-                                    </el-input-number>
-                                    <!-- BOOLEAN 类型：开关 -->
-                                    <el-switch v-else-if="item.valueType === 'BOOLEAN'"
-                                        :model-value="getFieldValue(group.group, item.field) === 'true'"
-                                        @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')">
-                                    </el-switch>
-                                </div>
-                            </div>
-                            </template>
-                        </el-collapse-item>
-                    </el-collapse>
-                </div>
+      <!-- 高级选项：折叠显示 -->
+      <el-collapse v-if="hasAdvancedSettings(group)" v-model="activeAdvanced" class="adv-collapse">
+        <el-collapse-item :name="group.group">
+          <template #title>
+            <div class="adv-head">
+              <span class="adv-title">高级选项</span>
+              <el-icon class="adv-chevron"><ArrowDown /></el-icon>
             </div>
+          </template>
+          <SettingsRow
+            v-for="item in advancedFields(group)"
+            :key="item.field"
+            :label="getFieldLabel(item)"
+            :description="item.description"
+            control-flex
+          >
+            <!-- usage_sync_providers 多选 -->
+            <el-select v-if="item.field === 'usage_sync_providers'"
+              :model-value="getFieldValue(group.group, item.field) ? getFieldValue(group.group, item.field).split(',') : []"
+              @update:model-value="(val) => updateFieldValue(group.group, item.field, val.join(','))"
+              multiple clearable placeholder="留空=全部启用" class="w-full">
+              <el-option v-for="parser in usageParsers" :key="parser.name" :label="parser.name" :value="parser.name" />
+            </el-select>
+            <!-- 系统提示词：多行文本 -->
+            <el-input v-else-if="item.valueType === 'STRING' && isPromptField(item.field)"
+              :model-value="getFieldValue(group.group, item.field)"
+              type="textarea" :rows="4" maxlength="2000" show-word-limit
+              @input="updateFieldValue(group.group, item.field, $event)" />
+            <!-- 枚举下拉 -->
+            <el-select v-else-if="item.valueType === 'STRING' && isEnumField(item)"
+              :model-value="getFieldValue(group.group, item.field)"
+              @update:model-value="updateFieldValue(group.group, item.field, $event)"
+              class="w-full">
+              <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
+            </el-select>
+            <!-- 普通文本 -->
+            <el-input v-else-if="item.valueType === 'STRING'"
+              :model-value="getFieldValue(group.group, item.field)"
+              @input="updateFieldValue(group.group, item.field, $event)" />
+            <!-- NUMBER -->
+            <el-input-number v-else-if="item.valueType === 'NUMBER'"
+              :model-value="Number(getFieldValue(group.group, item.field))"
+              @change="(val) => updateFieldValue(group.group, item.field, val)"
+              :step="0.1" :precision="2" class="w-full" />
+            <!-- BOOLEAN -->
+            <el-switch v-else-if="item.valueType === 'BOOLEAN'"
+              :model-value="getFieldValue(group.group, item.field) === 'true'"
+              @update:model-value="updateFieldValue(group.group, item.field, $event ? 'true' : 'false')" />
+          </SettingsRow>
+        </el-collapse-item>
+      </el-collapse>
+    </SettingsCard>
+
+    <!-- 模型选择对话框 -->
+    <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
+      <div class="md-body">
+        <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+
+        <div class="md-list">
+          <div v-for="provider in filteredProviders" :key="provider.id">
+            <div class="md-provider">{{ provider.name }}</div>
+            <div v-for="model in provider.models" :key="model.id" class="md-row"
+              @click="selectModel(model.id)">
+              <div class="md-row-left">
+                <img v-if="getModelRowLogo(model)" :src="getModelRowLogo(model)" alt=""
+                  class="w-4 h-4 object-contain shrink-0" />
+                <span class="md-name">{{ model.model }}</span>
+                <span class="md-tags">
+                  <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType" size="small">
+                    {{ tag.label }}
+                  </ReTag>
+                </span>
+              </div>
+              <el-icon v-if="tempModelId === model.id" class="md-check" :size="18">
+                <CheckCircleFilled />
+              </el-icon>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="filteredProviders.length === 0" class="md-empty">
+            <div class="md-empty-main">没有匹配「{{ currentTypeLabel }}」类型的模型</div>
+            <div class="md-empty-sub">请先在「模型管理」中添加对应类型的模型</div>
+          </div>
         </div>
-
-        <!-- 模型选择对话框 -->
-        <LDialog v-model="modelDialogVisible" title="选择模型" width="600px">
-            <div class="space-y-4">
-                <!-- 搜索框 -->
-                <el-input v-model="modelSearchText" placeholder="搜索模型..." clearable>
-                    <template #prefix>
-                        <el-icon><Search /></el-icon>
-                    </template>
-                </el-input>
-
-                <!-- 模型列表 -->
-                <div class="max-h-96 overflow-y-auto space-y-4">
-                    <div v-for="provider in filteredProviders" :key="provider.id">
-                        <div class="text-sm font-medium text-gray-500 dark:text-[#8b8d95] mb-2">{{ provider.name }}</div>
-                        <div v-for="model in provider.models" :key="model.id"
-                            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2e3035] cursor-pointer"
-                            @click="selectModel(model.id)">
-                            <div class="flex items-center gap-3">
-                                <div>
-                                    <div class="text-sm text-gray-900 dark:text-[#e8e9ed]">{{ model.modelName }}</div>
-                                </div>
-                            </div>
-                            <el-icon v-if="tempModelId === model.id" class="text-primary" size="18">
-                                <CheckCircleFilled />
-                            </el-icon>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </LDialog>
-    </div>
+      </div>
+    </LDialog>
+  </div>
 </template>
 
 <script setup>
@@ -156,8 +151,13 @@ import { ArrowDown, Search } from "@element-plus/icons-vue";
 import { CheckCircleFilled } from "@vicons/material";
 
 import { apiService } from '@/services/ApiService'
+import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReTag from '@/components/re/ReTag.vue'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
+import { getModelAvatarPath } from '@/utils/modelUtils'
 
 // Element Plus 组件导入
 import {
@@ -167,7 +167,9 @@ import {
     ElIcon,
     ElButton,
     ElSelect,
-    ElOption
+    ElOption,
+    ElCollapse,
+    ElCollapseItem
 } from 'element-plus'
 
 const { t } = useI18n()
@@ -186,12 +188,151 @@ const providers = ref([])
 // Usage Parser SPI 列表
 const usageParsers = ref([])
 
+// 高级选项展开的分组
+const activeAdvanced = ref([])
+
 // 模型选择对话框相关
 const modelDialogVisible = ref(false)
 const modelSearchText = ref('')
 const tempModelId = ref(null)
 const currentDialogGroup = ref('')
 const currentDialogField = ref('')
+
+// ===================== 字段分组辅助 =====================
+const modelFields = (group) =>
+    (group.items || []).filter(item => isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+const advancedFields = (group) =>
+    (group.items || []).filter(item => !isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+
+// ===================== 模型类型体系 =====================
+// 规范类型中文标签
+const TYPE_LABELS = {
+    text: '对话',
+    embedding: '嵌入',
+    asr: '语音识别',
+    tts: '语音合成',
+    image: '文生图',
+    video: '文生视频',
+    rerank: '重排序',
+    ocr: 'OCR识别',
+    face: '人脸识别',
+    layout: '布局识别',
+    image_cv: '图片识别'
+}
+// 规范类型 → ReTag 配色
+const TYPE_TAG_TYPE = {
+    text: 'primary',
+    embedding: 'success',
+    asr: 'info',
+    tts: 'info',
+    image: 'warning',
+    video: 'danger',
+    rerank: 'info',
+    ocr: 'info',
+    face: 'info',
+    layout: 'info',
+    image_cv: 'info'
+}
+// 后端 capability.task → 规范类型
+const TASK_TO_TYPE = {
+    chat: 'text',
+    text_generation: 'text',
+    realtime_conversation: 'text',
+    embedding: 'embedding',
+    rerank: 'rerank',
+    speech_recognition: 'asr',
+    asr: 'asr',
+    speech_synthesis: 'tts',
+    tts: 'tts',
+    image_generation: 'image',
+    'text-to-image': 'image',
+    image: 'image',
+    video_generation: 'video',
+    'text-to-video': 'video',
+    video: 'video',
+    ocr: 'ocr',
+    ocr_recognition: 'ocr',
+    face: 'face',
+    face_recognition: 'face',
+    layout: 'layout'
+}
+// feature 类 capability（属于附加能力，不是主类型）
+const FEATURE_LABELS = {
+    thinking: '深度思考',
+    'web-search': '在线检索',
+    tools: '工具调用',
+    tool_calls: '工具调用'
+}
+
+// 依据模型名推断规范类型（与后端 inferTasks 对齐）
+const inferTypeByName = (modelName) => {
+    const l = String(modelName || '').toLowerCase()
+    if (l.includes('embedding') || l.includes('embed') || l.includes('-bge-')) return 'embedding'
+    if (l.includes('rerank')) return 'rerank'
+    if (l.includes('tts') || l.includes('speech-synthesis') || l.includes('speech_synthesis')) return 'tts'
+    if (l.includes('whisper') || l.includes('asr') || l.includes('speech-recognition')) return 'asr'
+    if (l.includes('dall-e') || l.includes('image-gen') || l.includes('cogview') || l.includes('flux') || l.includes('image')) return 'image'
+    if (l.includes('cogvideo') || l.includes('video-gen') || l.includes('video')) return 'video'
+    return 'text'
+}
+
+// 从 capabilities + 模型名解析模型的类型与特性
+const resolveModelMeta = (modelName, capabilities) => {
+    const types = []
+    const features = []
+    ;(capabilities || []).forEach((cap) => {
+        const task = cap?.task
+        if (!task) return
+        if (TASK_TO_TYPE[task]) {
+            const t = TASK_TO_TYPE[task]
+            if (!types.includes(t)) types.push(t)
+        } else if (FEATURE_LABELS[task]) {
+            if (!features.includes(task)) features.push(task)
+        }
+    })
+    // 名称强类型优先（修正 capabilities 误标，如 agnes-image 被标为 chat）
+    const nameType = inferTypeByName(modelName)
+    if (nameType !== 'text') {
+        for (let i = types.length - 1; i >= 0; i--) {
+            if (types[i] === 'text') types.splice(i, 1)
+        }
+        if (!types.includes(nameType)) types.unshift(nameType)
+    }
+    if (types.length === 0) types.push(nameType)
+
+    const primaryType = types[0]
+    const displayTags = [
+        { value: `type:${primaryType}`, label: TYPE_LABELS[primaryType] || primaryType, tagType: TYPE_TAG_TYPE[primaryType] || 'info' }
+    ]
+    // thinking / web-search / tools 等特性仅对话模型有意义
+    if (primaryType === 'text') {
+        features.slice(0, 2).forEach((f) =>
+            displayTags.push({ value: `feat:${f}`, label: FEATURE_LABELS[f], tagType: 'info' })
+        )
+    }
+    return { types, features, primaryType, displayTags }
+}
+
+// 根据配置分组与字段，确定该字段需要的规范模型类型
+const requiredTypeFor = (group, field) => {
+    const g = String(group || '')
+    const f = String(field || '').toLowerCase()
+    // CV / ONNX 管线分组（非 OpenAI 兼容接口模型）
+    if (g === 'face') return 'face'
+    if (g === 'ocr') return 'ocr'
+    if (g === 'layout') return 'layout'
+    if (g === 'image') return 'image_cv'
+    if (g === 'asr') return 'asr'
+    // RAG / 其它字段按名称判断
+    if (f.includes('embedding')) return 'embedding'
+    if (f.includes('ocr')) return 'ocr'
+    if (f.includes('rerank')) return 'rerank'
+    if (f.includes('tts') || f.includes('speech_synthesis')) return 'tts'
+    if (f.includes('video')) return 'video'
+    if (f.includes('image')) return 'image'
+    // 其余 LLM（runtime default/compression、bot、optimizer、memory extract、rag llm）→ 对话
+    return 'text'
+}
 
 // 判断是否是模型字段（包含 model 关键词）
 const isModelField = (group, field) => {
@@ -201,6 +342,12 @@ const isModelField = (group, field) => {
     // 用量配置分组的"用量开关"直接显示，不放在高级选项里
     if (group === 'global' && field === 'enable_usage_analysis') return true
     return field.toLowerCase().includes('model')
+}
+
+// 判断是否是系统提示词字段（渲染为多行文本框）
+const isPromptField = (field) => {
+    if (!field) return false
+    return field === 'system_prompt' || field.toLowerCase().endsWith('system_prompt')
 }
 
 // 获取字段中文标签
@@ -341,13 +488,13 @@ const shouldShowField = (group, field) => {
     }
     // 文生图/文生视频分组：隐藏provider、api_key、base_url等，只显示模型选择
     if (group === 'generate') {
-        const hiddenFields = ['image_provider', 'image_api_key', 'image_base_url', 
+        const hiddenFields = ['image_provider', 'image_api_key', 'image_base_url',
                               'video_provider', 'video_api_key', 'video_base_url']
         return !hiddenFields.includes(field)
     }
     // 对话路由（runtime）分组：隐藏provider、api_key、app_key、app_secret、base_url等，只显示模型选择
     if (group === 'runtime') {
-        const hiddenFields = ['provider', 'provider_api_key', 'provider_app_key', 
+        const hiddenFields = ['provider', 'provider_api_key', 'provider_app_key',
                               'provider_app_secret', 'provider_base_url']
         return !hiddenFields.includes(field)
     }
@@ -376,6 +523,17 @@ const isEnumField = (item) => {
 const getFieldValue = (group, field) => {
     return groupValues[group]?.[field] || ''
 }
+
+// 取字段当前所选模型的提供商 logo（字段值形如 providerId:modelName）
+const getFieldModelLogo = (group, field) => {
+    const v = getFieldValue(group, field)
+    if (!v) return null
+    const name = v.includes(':') ? v.split(':').slice(1).join(':') : v
+    return getModelAvatarPath(name)
+}
+
+// 取弹框模型行的提供商 logo
+const getModelRowLogo = (model) => getModelAvatarPath(model?.model || '')
 
 // 更新字段值
 const updateFieldValue = (group, field, value) => {
@@ -412,55 +570,28 @@ const selectModel = (modelId) => {
     modelDialogVisible.value = false
 }
 
+// 当前字段需要的类型中文标签
+const currentTypeLabel = computed(() => {
+    const t = requiredTypeFor(currentDialogGroup.value, currentDialogField.value)
+    return TYPE_LABELS[t] || t
+})
+
 // 过滤后的模型列表
 const filteredModels = computed(() => {
     let result = models.value
-    
-    // 根据当前打开对话框的分组和字段，过滤模型类型
+
+    // 按当前字段需要的模型类型过滤
     if (currentDialogGroup.value && currentDialogField.value) {
-        const group = currentDialogGroup.value
-        const field = currentDialogField.value
-        
-        // 根据分组和字段，确定需要的模型能力类型
-        let requiredCapability = ''
-        if (group === 'asr' && field === 'default_model') {
-            requiredCapability = 'asr'
-        } else if (group === 'image' && field === 'classify_model') {
-            requiredCapability = 'image-classify'
-        } else if (group === 'image' && field === 'detect_model') {
-            requiredCapability = 'image-detect'
-        } else if (group === 'image' && field === 'segment_model') {
-            requiredCapability = 'image-segment'
-        } else if (group === 'image' && field === 'captioning_model') {
-            requiredCapability = 'image-caption'
-        } else if (group === 'face' && field === 'detector_model') {
-            requiredCapability = 'face-detect'
-        } else if (group === 'face' && field === 'liveness_model') {
-            requiredCapability = 'face-liveness'
-        } else if (group === 'ocr' && field === 'det_model') {
-            requiredCapability = 'ocr-detect'
-        } else if (group === 'ocr' && field === 'rec_model') {
-            requiredCapability = 'ocr-rec'
-        } else if (group === 'generate' && field === 'image_model') {
-            requiredCapability = 'text-to-image'
-        } else if (group === 'generate' && field === 'video_model') {
-            requiredCapability = 'text-to-video'
-        } else if (group === 'chat' || group === 'models') {
-            // 聊天相关的分组，默认显示chat类型的模型
-            requiredCapability = 'chat'
-        }
-        
-        // 如果指定了需要的能力类型，过滤模型列表
-        if (requiredCapability) {
-            result = result.filter(model => 
-                model.capabilities && model.capabilities.includes(requiredCapability)
-            )
+        const required = requiredTypeFor(currentDialogGroup.value, currentDialogField.value)
+        if (required) {
+            result = result.filter((model) => model.types?.includes(required))
         }
     }
-    
+
     if (modelSearchText.value) {
         const searchText = modelSearchText.value.toLowerCase()
-        result = result.filter(model =>
+        result = result.filter((model) =>
+            model.model?.toLowerCase().includes(searchText) ||
             model.modelName?.toLowerCase().includes(searchText)
         )
     }
@@ -486,36 +617,54 @@ const loadUsageParsers = async () => {
     }
 }
 
-// 加载模型列表
-const loadModels = async () => {
-    try {
-        const res = await fetch('/api/providers')
-        const data = await res.json()
-        const providersData = data.data || data || []
+// 加载模型列表（in-flight 去重：onMounted 与 openModelDialog 可能在数据尚未就绪时
+// 并发触发本函数，共享同一个 Promise 可避免竞态导致 providers/models 翻倍）
+let modelsLoadPromise = null
+const loadModels = () => {
+    if (modelsLoadPromise) return modelsLoadPromise
+    modelsLoadPromise = (async () => {
+        try {
+            models.value = []
+            providers.value = []
+            const providersBody = await adminApi.get('/api/providers')
+            // adminApi 可能已解包为数组，也可能返回 {data}，两种形态都要兼容
+            const providersData = Array.isArray(providersBody) ? providersBody : providersBody?.data || []
 
-        providersData.forEach((provider) => {
-            const providerModels = (provider.models || [])
-                .filter(m => m.enabled !== false)
-                .map(m => ({
-                    id: `${provider.provider_id}:${m.model}`,
-                    modelName: `${provider.name}/${m.model}`,
-                    model: m.model,
-                    providerId: provider.provider_id,
-                    providerName: provider.name,
-                }))
-            models.value.push(...providerModels)
-            if (providerModels.length > 0) {
-                providers.value.push({
-                    id: provider.provider_id,
-                    name: provider.name,
-                    models: providerModels,
-                })
-            }
-        })
-    } catch (error) {
-        console.error('获取模型列表失败:', error)
-        notify.error('加载模型列表失败', error)
-    }
+            providersData.forEach((provider) => {
+                // ONNX 本地提供商：模型描述来自各门户注册表，但必须先「绑定本地目录」
+                // （external=true）才真正可用、可被选为默认；未配置时不出现在下拉中。
+                const isOnnxProvider = provider.provider_id === 'onnx' || provider.platform === 'onnx'
+                const providerModels = (provider.models || [])
+                    .filter(m => m.enabled !== false)
+                    .filter(m => isOnnxProvider ? m.external === true : true)
+                    .map((m) => {
+                        const meta = resolveModelMeta(m.model, m.capabilities)
+                        return {
+                            id: `${provider.provider_id}:${m.model}`,
+                            modelName: `${provider.name}/${m.model}`,
+                            model: m.model,
+                            providerId: provider.provider_id,
+                            providerName: provider.name,
+                            ...meta
+                        }
+                    })
+                models.value.push(...providerModels)
+                if (providerModels.length > 0) {
+                    providers.value.push({
+                        id: provider.provider_id,
+                        name: provider.name,
+                        models: providerModels,
+                    })
+                }
+            })
+        } catch (error) {
+            console.error('获取模型列表失败:', error)
+            notify.error('加载模型列表失败', error)
+        } finally {
+            modelsLoadPromise = null
+        }
+    })()
+    return modelsLoadPromise
 }
 
 // 加载所有配置分组定义
@@ -567,14 +716,51 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-:deep(.model-item) {
-    transition: all 0.2s;
+/* ============ 高级选项折叠 ============ */
+:deep(.adv-collapse) { border: none; }
+:deep(.adv-collapse .el-collapse-item__wrap) {
+  border-bottom: none;
+  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
 }
-:deep(.model-item:hover) {
-    border-color: var(--el-color-primary-light-5);
+:deep(.adv-collapse .el-collapse-item__header) {
+  height: auto; min-height: 0; line-height: normal;
+  border-bottom: none; background: transparent; padding: 0;
 }
-/* 隐藏 el-collapse 自带的箭头 */
-:deep(.custom-collapse .el-collapse-item__arrow) {
-    display: none;
+/* 隐藏 el-collapse 自带箭头，使用自定义 adv-chevron（避免右侧双图标） */
+:deep(.adv-collapse .el-collapse-item__arrow) { display: none; }
+:deep(.adv-collapse .el-collapse-item__header:hover) { background: transparent; }
+:deep(.adv-collapse .el-collapse-item__content) { padding: 0; }
+
+.adv-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer;
+  transition: background 0.16s ease;
 }
+.adv-head:hover { background: var(--color-surface-hover, var(--el-fill-color-light)); }
+.adv-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-regular); }
+:deep(.adv-chevron) {
+  color: var(--el-text-color-secondary);
+  transition: transform 0.22s ease;
+}
+:deep(.adv-collapse .el-collapse-item__header.is-active .adv-chevron) {
+  transform: rotate(180deg);
+}
+
+/* ============ 模型选择对话框 ============ */
+.md-body { display: flex; flex-direction: column; gap: 14px; }
+.md-list { max-height: 384px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.md-provider { font-size: 12px; font-weight: 600; color: var(--el-text-color-secondary); margin-bottom: 4px; }
+.md-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  transition: background 0.16s ease;
+}
+.md-row:hover { background: var(--color-surface-hover, var(--el-fill-color-light)); }
+.md-row-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.md-name { font-size: 13px; color: var(--el-text-color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-tags { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.md-check { color: var(--el-color-primary); flex-shrink: 0; }
+.md-empty { padding: 40px 0; text-align: center; }
+.md-empty-main { font-size: 13px; color: var(--el-text-color-regular); }
+.md-empty-sub { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
 </style>

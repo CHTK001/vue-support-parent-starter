@@ -7,20 +7,20 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
+import { ElMessage, ElMessageBox, ElProgress, ElDropdown, ElDropdownMenu, ElDropdownItem, ElPopover } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { queryHosts, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "@pages/server/src/api";
 import HostFormDialog from "./HostFormDialog.vue";
 import HostConfigDialog from "./HostConfigDialog.vue";
-import HostProfileView from "./HostProfileView.vue";
-import ServerManageDialog from "./ServerManageDialog.vue";
+import HostProfileDialog from "./HostProfileDialog.vue";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import { osIconSvg } from "../utils/osIcon";
 import { useSocketService } from "@repo/core";
 import ReMaskDialog from "../components/ReMaskDialog.vue";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
+import { submitAgentAction } from "../monitorApi";
 
 export interface Host {
   id: number;
@@ -96,6 +96,8 @@ const groups = ref<Group[]>([]);
 const identities = ref<Identity[]>([]);
 const loading = ref(false);
 const loadError = ref("");
+/** fetchAll 序号：并发触发时只采用最新一次结果，丢弃过期响应 */
+let fetchSeq = 0;
 const selection = ref<Host[]>([]);
 /** 实时延迟（hostId → delayMs，socket host-delay 推送更新；-1 表不可达） */
 const liveDelay = ref<Record<number, number>>({});
@@ -105,6 +107,7 @@ let unsubDelay: (() => void) | undefined;
 let unsubOnline: (() => void) | undefined;
 let unsubMetrics: (() => void) | undefined;
 let unsubDeploy: (() => void) | undefined;
+let unsubPortScan: (() => void) | undefined;
 
 /** 视图模式：card（默认，卡片网格）/ table（表格） */
 const viewMode = ref<"card" | "table">("card");
@@ -193,13 +196,11 @@ function portText(p: PortItem): string {
   return parts.join(" ");
 }
 
-/** 端口扫描 */
+/** 端口扫描（后台异步，完成后由 host-portscan socket 事件回填，不阻塞/轮询） */
 async function scanHostPorts(h: Host): Promise<void> {
-  ElMessage.info(`正在扫描 ${h.serverHostAddress} 端口，全量扫描可能需要几分钟 …`);
   try {
     const r: any = await scanPorts(h.id);
-    ElMessage.success(r?.msg || "端口扫描完成");
-    await fetchAll();
+    ElMessage.success(r?.msg || `端口扫描已开始，完成后自动更新 ${h.serverHostAddress}`);
   } catch (e) {
     ElMessage.error(String((e as Error)?.message ?? e));
   }
@@ -220,9 +221,9 @@ const realtimeEnabled = ref(localStorage.getItem('assets-realtime-enabled') !== 
 const rtMetrics = reactive<Record<number, { cpu: number; mem: number; disk: number; tx: string; rx: string }>>({});
 
 function barColor(pct: number): string {
-  if (pct >= 90) return '#ef4444';
-  if (pct >= 70) return '#f59e0b';
-  return '#10b981';
+  if (pct >= 90) return 'var(--el-color-danger)';
+  if (pct >= 70) return 'var(--el-color-warning)';
+  return 'var(--el-color-success)';
 }
 
 function onRealtimeToggle(v: boolean): void {
@@ -248,9 +249,9 @@ function syncRtFromHosts(): void {
     }
     const prev = rtMetrics[h.id];
     rtMetrics[h.id] = {
-      cpu: Math.round(Number(h.serverHostCpuUsage) || 0),
-      mem: Math.round(Number(h.serverHostMemUsage) || 0),
-      disk: Math.round(Number(h.serverHostDiskUsage) || 0),
+      cpu: Math.round((Number(h.serverHostCpuUsage) || 0) * 10) / 10,
+      mem: Math.round((Number(h.serverHostMemUsage) || 0) * 10) / 10,
+      disk: Math.round((Number(h.serverHostDiskUsage) || 0) * 10) / 10,
       tx: prev?.tx ?? '—',
       rx: prev?.rx ?? '—',
     };
@@ -333,11 +334,20 @@ const filtered = computed(() => {
   if (status === "online") list = list.filter(h => h.serverHostOnline === 1);
   else if (status === "offline") list = list.filter(h => h.serverHostOnline !== 1);
   else if (status === "remote") list = list.filter(h => h.serverHostRemoteEnabled === 1);
-  if (fs.group != null && fs.group !== "") list = list.filter(h => h.msServerGroupId === fs.group);
-  if (fs.tag) list = list.filter(h => splitTags(h.serverHostTags).includes(String(fs.tag)));
-  const kw = String(fs.keyword ?? "").toLowerCase();
+  // 仅当分组值是有效分组（非 null/空串/0）时才过滤，避免组件回传脏值把整列清空
+  if (fs.group != null && fs.group !== "" && fs.group !== 0) {
+    const gid = String(fs.group);
+    list = list.filter(h => String(h.msServerGroupId ?? "") === gid);
+  }
+  // 标签仅在为非空字符串时过滤
+  if (typeof fs.tag === "string" && fs.tag) {
+    // 先取出到常量，避免闭包内丢失 typeof 收窄
+    const tag = fs.tag;
+    list = list.filter(h => splitTags(h.serverHostTags).includes(tag));
+  }
+  const kw = typeof fs.keyword === "string" ? fs.keyword.toLowerCase() : "";
   if (kw) {
-    list = list.filter(h => h.serverHostName.toLowerCase().includes(kw) || h.serverHostAddress.toLowerCase().includes(kw));
+    list = list.filter(h => (h.serverHostName ?? "").toLowerCase().includes(kw) || (h.serverHostAddress ?? "").toLowerCase().includes(kw));
   }
   return list;
 });
@@ -372,18 +382,20 @@ const batchDeleteToolbar = computed(() => ({
 }));
 
 async function fetchAll(): Promise<void> {
+  const seq = ++fetchSeq;
   loading.value = true;
   loadError.value = "";
   try {
     const [h, g, i] = await Promise.all([queryHosts(), getGroups(), getIdentities()]);
-    hosts.value = (h ?? []).sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0));
+    if (seq !== fetchSeq) return; // 已被更新的一次 fetch 取代，丢弃过期结果，避免旧数据覆盖新数据
+    hosts.value = Array.isArray(h) ? h.sort((a, b) => (b.serverHostOnline ?? 0) - (a.serverHostOnline ?? 0)) : [];
     groups.value = g ?? [];
     identities.value = i ?? [];
     syncRtFromHosts();
   } catch (e) {
-    loadError.value = String((e as Error)?.message ?? e);
+    if (seq === fetchSeq) loadError.value = String((e as Error)?.message ?? e);
   } finally {
-    loading.value = false;
+    if (seq === fetchSeq) loading.value = false;
   }
 }
 
@@ -409,7 +421,9 @@ const formIsEdit = ref(false);
 const editHost = ref<Host | null>(null);
 
 function collectModeLabel(m?: string | null): string {
-  const map: Record<string, string> = { SCHEDULED: "定时采集", AGENT: "Agent采集", HTTP: "HTTP采集", PROMETHEUS: "Prometheus采集" };
+  const map: Record<string, string> = {
+    NONE: "不采集", OPENSSH: "OpenSSH采集", SCHEDULED: "定时采集", WINRM: "WinRM采集", AGENT: "Agent采集", LOCAL: "本机自采集", PROMETHEUS: "Prometheus采集", HTTP: "HTTP采集",
+  };
   return map[m ?? ""] ?? m ?? "—";
 }
 
@@ -463,9 +477,7 @@ const profileTab = ref("overview");
 /** 每次打开自增，保证重复打开同一台主机也会重新定位并刷新 */
 const profileSeq = ref(0);
 
-// 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 配置）
-const serverMgrVisible = ref(false);
-const serverMgrHost = ref<Host | null>(null);
+// 协议服务器管理弹窗已移除
 
 // ---- 主机画像（master-detail：左主机列表 + 右 ReTab 详情） ----
 const profileVisible = ref(false);
@@ -487,11 +499,6 @@ const deployTask = ref<any>({
   history: [],
 });
 useDialogPrerender(profileVisible);
-function openProfile(): void {
-  profileVisible.value = true;
-}
-/** 画像抽屉宽度：约 90% 窗口宽（koi ReDrawer size 传像素值，组件内部自适应百分比） */
-const profileSize = computed(() => Math.round(window.innerWidth * 0.9));
 
 function openSysMgr(type: string, row: Host): void {
   // 画像页现在全量走 Agent：未安装时不再拦在门外，进去后由画像页给出
@@ -587,16 +594,10 @@ async function openDeploy(
     history: [{ time: Date.now(), progress: 0.05, status: "running" }],
   };
   try {
-    const r = await fetch(`/ms/server/host/agent/${hostId}/${act === 'install' ? 'deploy' : act}`, { method: 'POST' });
-    const j = await r.json();
-    if (!j.success) {
-      deployStatus.value = 'error';
-      deployMessage.value = j.msg || '启动部署失败';
-      deployTask.value = { ...deployTask.value, status: "failed", text: j.msg || '启动失败' };
-    }
+    await submitAgentAction(hostId, act);
   } catch (e: any) {
     deployStatus.value = 'error';
-    deployMessage.value = '请求失败: ' + e.message;
+    deployMessage.value = '请求失败: ' + (e?.message ?? e);
     deployTask.value = { ...deployTask.value, status: "failed", text: '请求失败' };
   }
 }
@@ -632,7 +633,8 @@ function runRowCommand(cmd: string, h: Host): void {
   switch (cmd) {
     case "detail": openDetail(h); break;
     case "scan": scanHostPorts(h); break;
-    case "profile": openSysMgr("process", h); break;
+    case "profile": openSysMgr("disk", h); break;
+    case "edit": openEdit(h); break;
     case "agent-install": openDeploy(h, "install"); break;
     case "agent-reinstall": openDeploy(h, "reinstall"); break;
     case "agent-upgrade": openDeploy(h, "upgrade"); break;
@@ -640,6 +642,55 @@ function runRowCommand(cmd: string, h: Host): void {
     case "delete": removeHost(h); break;
     default: break;
   }
+}
+
+/** 右键上下文菜单状态 */
+const ctxMenu = reactive<{ visible: boolean; x: number; y: number; host: Host | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  host: null,
+});
+/** 菜单估算尺寸，用于边缘翻转避免超出视口 */
+const CTX_MENU_W = 208;
+const CTX_MENU_H = 380;
+/** 打开右键菜单（卡片/表格行右键触发） */
+function openCtxMenu(event: MouseEvent, h: Host): void {
+  event.preventDefault();
+  let x = event.clientX;
+  let y = event.clientY;
+  if (x + CTX_MENU_W > window.innerWidth - 8) x = window.innerWidth - CTX_MENU_W - 8;
+  if (y + CTX_MENU_H > window.innerHeight - 8) y = window.innerHeight - CTX_MENU_H - 8;
+  ctxMenu.host = h;
+  ctxMenu.x = Math.max(8, x);
+  ctxMenu.y = Math.max(8, y);
+  ctxMenu.visible = true;
+}
+/** 关闭右键菜单 */
+function closeCtxMenu(): void {
+  ctxMenu.visible = false;
+  ctxMenu.host = null;
+}
+/** 右键菜单命令分发（连接/编辑直连本组件方法，其余走行命令） */
+function ctxCommand(cmd: string): void {
+  const h = ctxMenu.host;
+  closeCtxMenu();
+  if (!h) return;
+  if (cmd === "connect") { openConnect(h); return; }
+  if (cmd === "edit") { openEdit(h); return; }
+  runRowCommand(cmd, h);
+}
+/** 表格根上的原生右键：把 <tr> 按行序号映射回主机并打开统一菜单（主表体/固定列同序） */
+function onTableContextMenu(event: MouseEvent): void {
+  const target = event.target as HTMLElement | null;
+  const tr = target?.closest?.("tr.el-table__row") as HTMLElement | null;
+  if (!tr) return;
+  const tbody = tr.parentElement;
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll(":scope > tr.el-table__row"));
+  const idx = rows.indexOf(tr);
+  const h = filtered.value[idx];
+  if (h) openCtxMenu(event, h);
 }
 async function toggleHost(h: Host): Promise<void> {
   try {
@@ -710,11 +761,31 @@ onMounted(() => {
       if (!realtimeEnabled.value) return;
       if (d && d.hostId != null) {
         rtMetrics[d.hostId] = {
-          cpu: Math.round(Number(d.cpu) || 0),
-          mem: Math.round(Number(d.mem) || 0),
-          disk: Math.round(Number(d.disk) || 0),
+          cpu: Math.round((Number(d.cpu) || 0) * 10) / 10,
+          mem: Math.round((Number(d.mem) || 0) * 10) / 10,
+          disk: Math.round((Number(d.disk) || 0) * 10) / 10,
           tx: '—', rx: '—'
         };
+      }
+    } catch { /* 静默 */ }
+  });
+  // 端口扫描完成：后台异步扫描落库后推送，实时回填端口字段与扫描时间
+  unsubPortScan = socket?.subscribe("monitor", "host-portscan", (msg) => {
+    try {
+      const d = (msg.data ?? msg) as {
+        hostId?: number; success?: boolean; openCount?: number;
+        elapsedSeconds?: number; portsJson?: string | null; scanTime?: string; error?: string;
+      };
+      if (!d || d.hostId == null) return;
+      const target = hosts.value.find(h => h.id === d.hostId);
+      if (target) {
+        target.serverHostPorts = d.portsJson ?? "[]";
+        target.serverHostLastPortScanTime = d.scanTime ?? null;
+      }
+      if (d.success) {
+        ElMessage.success(`端口扫描完成：发现 ${d.openCount ?? 0} 个开放端口（耗时 ${d.elapsedSeconds ?? 0}s）`);
+      } else {
+        ElMessage.error(`端口扫描失败：${d.error ?? "未知错误"}`);
       }
     } catch { /* 静默 */ }
   });
@@ -724,14 +795,21 @@ onBeforeUnmount(() => {
   unsubOnline?.();
   unsubMetrics?.();
   unsubDeploy?.();
+  unsubPortScan?.();
 });
 
-/** 实时在线状态（socket 优先，回退 host.serverHostOnline） */
+/** 实时在线状态（socket 优先，回退 host.serverHostOnline；本机恒在线） */
 function liveOnlineState(h: Host): number {
+  if (h.serverHostCollectMode === "LOCAL") {
+    return 1;
+  }
   return liveOnline.value[h.id] ?? h.serverHostOnline;
 }
-/** 实时延迟（socket 优先，回退 host.serverHostDelayMs） */
+/** 实时延迟（socket 优先，回退 host.serverHostDelayMs；本机恒 0ms） */
 function liveDelayMs(h: Host): number | null {
+  if (h.serverHostCollectMode === "LOCAL") {
+    return 0;
+  }
   const v = liveDelay.value[h.id];
   if (v != null) return v;
   return h.serverHostDelayMs ?? null;
@@ -746,23 +824,35 @@ function delayText(ms: number | null): string {
 function delayBad(ms: number | null): boolean {
   return ms != null && (ms < 0 || ms > 200);
 }
+
+/**
+ * OS 图标底纹类（按系统类型给卡片图标一个品牌语义淡底）
+ * @param h 主机
+ */
+function osTileClass(h: Host): string {
+  const os = (h.serverHostOsType ?? "").toLowerCase();
+  if (os.includes("win")) return "is-windows";
+  if (os.includes("mac") || os.includes("darwin")) return "is-macos";
+  if (os.includes("linux") || os.includes("ubuntu") || os.includes("centos")
+      || os.includes("red hat") || os.includes("unix")) return "is-linux";
+  return "is-other";
+}
 </script>
 
 <template>
-  <div class="as tel-page">
+  <div class="as">
     <div class="page-header">
       <div>
         <h1 class="page-title">主机资产</h1>
         <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
       </div>
       <div class="page-actions">
-
         <label class="color-switch">
-          <span>实时指标</span>
+          <span>实时监控</span>
           <el-switch v-model="realtimeEnabled" size="small" @change="onRealtimeToggle" />
         </label>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
-        <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openAdd">新增资产</ReButton>
+        <el-button icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll" text>刷新</el-button>
+        <el-button icon="Plus" :show-text="true" type="primary" @click="openAdd" text>新增资产</el-button>
       </div>
     </div>
 
@@ -771,44 +861,40 @@ function delayBad(ms: number | null): boolean {
       <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <!-- KPI -->
-    <section class="kpi-row cols-4">
+    <!-- KPI（对齐 UI 稿：圆形渐变图标 + 数值/说明） -->
+    <section class="kpi-row cols-4 host-kpis">
       <div class="kpi c-brand">
-        <div class="kpi-head">
-          <ReButton icon="Monitor" layout="square" size="small" />
-          <span class="kpi-label">资产总数</span>
+        <span class="hk-tile"><ReIcon name="DocumentChecked" :size="26" /></span>
+        <div class="hk-body">
+          <div class="hk-value">{{ hosts.length }}<span class="hk-unit">台</span></div>
+          <div class="hk-label">共注册可远控目标</div>
         </div>
-        <div class="kpi-value">{{ hosts.length }}<span class="kpi-unit">台</span></div>
-        <div class="kpi-sub">共注册可远控目标</div>
       </div>
       <div class="kpi c-green">
-        <div class="kpi-head">
-          <ReButton icon="CircleCheck" layout="square" size="small" />
-          <span class="kpi-label">在线</span>
+        <span class="hk-tile"><ReIcon name="CircleCheck" :size="26" /></span>
+        <div class="hk-body">
+          <div class="hk-value">{{ onlineCount }}<span class="hk-unit">/ {{ hosts.length }}</span></div>
+          <div class="hk-label">当前可连接资产</div>
         </div>
-        <div class="kpi-value">{{ onlineCount }}<span class="kpi-unit">/ {{ hosts.length }}</span></div>
-        <div class="kpi-sub">当前可连接资产</div>
       </div>
       <div class="kpi c-gray">
-        <div class="kpi-head">
-          <ReButton icon="CircleClose" layout="square" size="small" />
-          <span class="kpi-label">离线</span>
+        <span class="hk-tile"><ReIcon name="Tickets" :size="26" /></span>
+        <div class="hk-body">
+          <div class="hk-value">{{ offlineCount }}<span class="hk-unit">台</span></div>
+          <div class="hk-label">需关注处理</div>
         </div>
-        <div class="kpi-value">{{ offlineCount }}<span class="kpi-unit">台</span></div>
-        <div class="kpi-sub">需关注处理</div>
       </div>
       <div class="kpi c-blue">
-        <div class="kpi-head">
-          <ReButton icon="Connection" layout="square" size="small" />
-          <span class="kpi-label">远控启用</span>
+        <span class="hk-tile"><ReIcon name="Download" :size="26" /></span>
+        <div class="hk-body">
+          <div class="hk-value">{{ remoteCount }}<span class="hk-unit">台</span></div>
+          <div class="hk-label">支持远程连接</div>
         </div>
-        <div class="kpi-value">{{ remoteCount }}<span class="kpi-unit">台</span></div>
-        <div class="kpi-sub">支持远程连接</div>
       </div>
     </section>
 
-    <!-- 表格 / 卡片 视图 -->
-    <div class="card">
+    <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
+    <div class="as-panel as-filter">
       <div class="filter">
         <ReFilter
           :items="filterItems"
@@ -817,7 +903,7 @@ function delayBad(ms: number | null): boolean {
           :show-actions="false"
           @change="onFilterChange"
           @reset="onFilterReset"
-          style="width:100%"
+          style="flex:1;min-width:0"
         >
           <template #tag>
             <div v-if="allTags.length" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
@@ -831,12 +917,17 @@ function delayBad(ms: number | null): boolean {
             </div>
           </template>
         </ReFilter>
-        <span v-if="filtered.length !== hosts.length" class="muted" style="margin-left:auto">{{ filtered.length }} / {{ hosts.length }}</span>
-        <div style="display:flex;gap:4px;align-items:center">
-          <ReButton layout="square" :type="viewMode === 'card' ? 'primary' : ''" size="small" icon="Grid" @click="viewMode = 'card'">卡片视图</ReButton>
-          <ReButton layout="square" :type="viewMode === 'table' ? 'primary' : ''" size="small" icon="Menu" @click="viewMode = 'table'">表格视图</ReButton>
+        <span v-if="filtered.length !== hosts.length" class="muted">{{ filtered.length }} / {{ hosts.length }}</span>
+        <div class="view-toggle">
+          <button class="vt-btn" :class="{ active: viewMode === 'card' }" @click="viewMode = 'card'">
+            <ReIcon name="Grid" :size="14" />卡片
+          </button>
+          <button class="vt-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'">
+            <ReIcon name="Menu" :size="14" />列表
+          </button>
         </div>
       </div>
+    </div>
 
       <!-- 卡片视图（默认）：吃满一行，显示详细指标 -->
       <div v-if="viewMode === 'card'" class="host-card-grid">
@@ -844,61 +935,81 @@ function delayBad(ms: number | null): boolean {
           v-for="h in filtered"
           :key="h.id"
           :body-style="{ paddingTop: '10px', paddingBottom: '10px' }"
+          @contextmenu="openCtxMenu($event, h)"
         >
           <template #header>
             <div class="hc-head">
-              <span class="hc-os">
+              <span class="hc-os" :class="osTileClass(h)">
                 <span v-html="osIconSvg(h.serverHostOsType)"></span>
               </span>
               <div class="hc-name-wrap">
-                <b class="hc-name">{{ h.serverHostName }}</b>
-                <span class="hc-addr mono">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
+                <div class="hc-title-row">
+                  <b class="hc-name">{{ h.serverHostName }}</b>
+                  <span v-if="h.serverHostOsType" class="hc-os-tag" :title="h.serverHostOsVersion || h.serverHostOsType">{{ h.serverHostOsType }}</span>
+                  <span class="hc-online" :class="liveOnlineState(h) === 1 ? 'is-on' : 'is-off'">
+                    <i class="hc-dot" />{{ liveOnlineState(h) === 1 ? '在线' : '离线' }}
+                  </span>
+                </div>
+                <div class="hc-addr mono">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</div>
+                <div v-if="h.serverHostPublicIp || h.serverHostPrivateIp" class="hc-ip mono">
+                  <span v-if="h.serverHostPublicIp">公网 {{ h.serverHostPublicIp }}</span>
+                  <span v-if="h.serverHostPublicIp && h.serverHostPrivateIp" class="hc-ip-sep">·</span>
+                  <span v-if="h.serverHostPrivateIp">内网 {{ h.serverHostPrivateIp }}</span>
+                </div>
               </div>
-              <span class="hc-status">
-                <ReStatusIndicator :type="liveOnlineState(h) === 1 ? 'success' : 'danger'" />
-                <span :class="liveOnlineState(h) === 1 ? 'on' : 'off'">{{ liveOnlineState(h) === 1 ? '在线' : '离线' }}</span>
-              </span>
             </div>
           </template>
 
-          <!-- 实时指标行 -->
-          <div class="hc-metrics">
-            <div class="hc-metric">
-              <span class="hc-m-label">延迟</span>
-              <span class="hc-m-val mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</span>
-            </div>
-            <div class="hc-metric">
-              <span class="hc-m-label">采集</span>
-              <span class="hc-m-val">{{ collectModeLabel(h.serverHostCollectMode) }}</span>
-            </div>
-            <div class="hc-metric">
-              <span class="hc-m-label">协议</span>
-              <span class="hc-m-val">{{ protocolOf(h).toUpperCase() }}</span>
-            </div>
-            <div class="hc-metric">
-              <span class="hc-m-label">Agent</span>
-              <span class="hc-m-val">{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</span>
-            </div>
+          <!-- 关键属性胶囊（延迟 / 采集 / 协议 / Agent） -->
+          <div class="hc-chips">
+            <span class="hc-chip">
+              <i>延迟</i>
+              <b class="mono" :class="{ bad: delayBad(liveDelayMs(h)) }">{{ delayText(liveDelayMs(h)) }}</b>
+            </span>
+            <span class="hc-chip"><i>采集</i><b>{{ collectModeLabel(h.serverHostCollectMode) }}</b></span>
+            <span class="hc-chip"><i>协议</i><b>{{ protocolOf(h).toUpperCase() }}</b></span>
+            <span class="hc-chip"><i>Agent</i><b>{{ h.serverHostAgentEnabled === 1 ? '已注册' : '未注册' }}</b></span>
           </div>
 
-          <!-- 实时指标条（socket host-metrics 推送） -->
+          <!-- 实时指标条（socket host-metrics 推送）：标签 + 胶囊长条 + 数值，对齐 UI 稿 -->
           <div v-if="realtimeEnabled && rtMetrics[h.id]" class="hc-bars">
             <div class="hc-bar-row">
               <span class="hc-bar-label">CPU</span>
-              <ElProgress :percentage="rtMetrics[h.id].cpu" :color="barColor(rtMetrics[h.id].cpu)" :stroke-width="10" class="hc-bar-progress" />
+              <ElProgress
+                :percentage="Math.round(rtMetrics[h.id].cpu ?? 0)"
+                :color="barColor(rtMetrics[h.id].cpu)"
+                :stroke-width="16"
+                :show-text="false"
+                class="hc-bar-progress"
+              />
+              <span class="hc-bar-val">{{ (rtMetrics[h.id].cpu ?? 0).toFixed(1) }}%</span>
             </div>
             <div class="hc-bar-row">
               <span class="hc-bar-label">内存</span>
-              <ElProgress :percentage="rtMetrics[h.id].mem" :color="barColor(rtMetrics[h.id].mem)" :stroke-width="10" class="hc-bar-progress" />
+              <ElProgress
+                :percentage="Math.round(rtMetrics[h.id].mem ?? 0)"
+                :color="barColor(rtMetrics[h.id].mem)"
+                :stroke-width="16"
+                :show-text="false"
+                class="hc-bar-progress"
+              />
+              <span class="hc-bar-val">{{ (rtMetrics[h.id].mem ?? 0).toFixed(1) }}%</span>
             </div>
             <div class="hc-bar-row">
               <span class="hc-bar-label">磁盘</span>
-              <ElProgress :percentage="rtMetrics[h.id].disk" :color="barColor(rtMetrics[h.id].disk)" :stroke-width="10" class="hc-bar-progress" />
+              <ElProgress
+                :percentage="Math.round(rtMetrics[h.id].disk ?? 0)"
+                :color="barColor(rtMetrics[h.id].disk)"
+                :stroke-width="16"
+                :show-text="false"
+                class="hc-bar-progress"
+              />
+              <span class="hc-bar-val">{{ (rtMetrics[h.id].disk ?? 0).toFixed(1) }}%</span>
             </div>
           </div>
 
-          <!-- 标签 + 分组 -->
-          <div class="hc-tags">
+          <!-- 分组 + 标签（无分组无标签时整块不渲染，不再显示“未分组”） -->
+          <div v-if="h.msServerGroupId || splitTags(h.serverHostTags).length" class="hc-tags">
             <ReTag
               v-if="h.msServerGroupId"
               size="small"
@@ -912,28 +1023,42 @@ function delayBad(ms: number | null): boolean {
               :value="t"
               :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]"
             />
-            <span v-if="!h.msServerGroupId && splitTags(h.serverHostTags).length === 0" class="dim">未分组</span>
           </div>
 
-          <!-- 端口 -->
+          <!-- 端口：收敛为单个标签，hover 弹层列出全部 -->
           <div v-if="parsePorts(h.serverHostPorts).length" class="hc-ports">
-            <ReTag v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" size="small" effect="plain" type="info">{{ portText(p) }}</ReTag>
+            <ElPopover trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
+              <template #reference>
+                <ReTag size="small" effect="plain" type="info">端口 {{ parsePorts(h.serverHostPorts).length }}</ReTag>
+              </template>
+              <div class="ports-pop-list">
+                <div v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
+              </div>
+            </ElPopover>
           </div>
 
-          <!-- 卡片操作 -->
+          <!-- 卡片操作（对齐 UI 稿：主操作 + 更多） -->
           <template #footer>
             <div class="hc-actions">
-              <ReButton icon="Connection" layout="square" size="small" type="primary" title="连接" @click="openConnect(h)" />
-              <ReButton icon="TrendCharts" layout="square" size="small" title="监控" @click="openDetail(h)" />
-              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(h)" />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeHost(h)" />
-              <ReButton icon="Histogram" layout="square" size="small" title="主机画像" @click="openSysMgr('process', h)">主机画像</ReButton>
-              <ReButton v-if="h.serverHostCollectMode === 'AGENT' && !h.serverHostAgentInstalled" icon="Download" layout="square" size="small" type="success" @click="openDeploy(h, 'install')">安装 Agent</ReButton>
-              <template v-if="h.serverHostCollectMode === 'AGENT' && h.serverHostAgentInstalled">
-                <ReButton icon="RefreshRight" layout="square" size="small" type="warning" @click="openDeploy(h, 'reinstall')">重装 Agent</ReButton>
-                <ReButton icon="Top" layout="square" size="small" type="primary" @click="openDeploy(h, 'upgrade')">升级 Agent</ReButton>
-                <ReButton icon="DeleteFilled" layout="square" size="small" type="danger" @click="openDeploy(h, 'uninstall')">卸载 Agent</ReButton>
-              </template>
+              <ReButton icon="Connection" :show-text="true" type="primary" @click="openConnect(h)">远控</ReButton>
+              <ReButton icon="TrendCharts" :show-text="true" @click="openDetail(h)">监控</ReButton>
+              <ReButton icon="Aim" :show-text="true" @click="scanHostPorts(h)">扫描</ReButton>
+              <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, h)">
+                <ReButton icon="MoreFilled" :show-text="true">更多</ReButton>
+                <template #dropdown>
+                  <ElDropdownMenu>
+                    <ElDropdownItem command="profile"><ReIcon name="Histogram" />主机画像</ElDropdownItem>
+                    <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑主机</ElDropdownItem>
+                    <ElDropdownItem v-if="isAgentMode(h) && !isAgentInstalled(h)" command="agent-install" divided><ReIcon name="Download" />安装 Agent</ElDropdownItem>
+                    <template v-else-if="isAgentMode(h)">
+                      <ElDropdownItem command="agent-reinstall" divided><ReIcon name="RefreshRight" />重装 Agent</ElDropdownItem>
+                      <ElDropdownItem command="agent-upgrade"><ReIcon name="Top" />升级 Agent</ElDropdownItem>
+                      <ElDropdownItem command="agent-uninstall"><ReIcon name="DeleteFilled" />卸载 Agent</ElDropdownItem>
+                    </template>
+                    <ElDropdownItem command="delete" divided style="color:var(--el-color-danger,#f56c6c)"><ReIcon name="Delete" />删除主机</ElDropdownItem>
+                  </ElDropdownMenu>
+                </template>
+              </ElDropdown>
             </div>
           </template>
         </ReCard>
@@ -954,6 +1079,7 @@ function delayBad(ms: number | null): boolean {
         :toolbar="true"
         :toolbar-config="{ position: 'top', refresh: true, columnSettings: true, tableSettings: true, batchSelect: { enabled: true, tip: '批量选择' }, batchDelete: { enabled: true, confirmMessage: '确认批量删除选中的主机？', handler: batchDelete } }"
         @selection-change="selection = $event"
+        @contextmenu="onTableContextMenu"
       >
         <template #col-name="{ row }">
           <span class="h-os">
@@ -969,7 +1095,6 @@ function delayBad(ms: number | null): boolean {
             :value="String(row.msServerGroupId)"
             :tag-options="[{ dictValue: String(row.msServerGroupId), dictLabel: groupName(row.msServerGroupId), dictTag: 'primary' }]"
           />
-          <span v-else class="dim">未分组</span>
         </template>
         <template #col-tags="{ row }">
           <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
@@ -997,9 +1122,14 @@ function delayBad(ms: number | null): boolean {
           ]" />
         </template>
         <template #col-ports="{ row }">
-          <div v-if="parsePorts(row.serverHostPorts).length" style="display:flex;gap:4px;flex-wrap:wrap">
-            <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" size="small" :value="p.port" :tag-options="[{ dictValue: p.port, dictLabel: portText(p), dictTag: 'info' }]" />
-          </div>
+          <ElPopover v-if="parsePorts(row.serverHostPorts).length" trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
+            <template #reference>
+              <ReTag size="small" effect="plain" type="info">端口 {{ parsePorts(row.serverHostPorts).length }}</ReTag>
+            </template>
+            <div class="ports-pop-list">
+              <div v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
+            </div>
+          </ElPopover>
           <span v-else class="dim">未扫描</span>
         </template>
         <template #col-actions="{ row }">
@@ -1007,7 +1137,7 @@ function delayBad(ms: number | null): boolean {
             <ReButton icon="Connection" layout="square" size="small" type="primary" @click="openConnect(row)">连接</ReButton>
             <ReButton icon="EditPen" layout="square" size="small" @click="openEdit(row)">编辑</ReButton>
             <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, row)">
-              <ReButton icon="MoreFilled" layout="square" size="small">更多</ReButton>
+              <ReButton icon="MoreFilled" layout="square" size="small" aria-label="更多" />
               <template #dropdown>
                 <ElDropdownMenu>
                   <ElDropdownItem command="detail"><ReIcon name="TrendCharts" />监控</ElDropdownItem>
@@ -1026,7 +1156,6 @@ function delayBad(ms: number | null): boolean {
           </div>
         </template>
       </ReTable>
-    </div>
 
     <!-- 新增/编辑弹窗（独立子组件——弹窗渲染只在子组件内进行，不再触发本组件全量 diff） -->
     <HostFormDialog
@@ -1043,7 +1172,7 @@ function delayBad(ms: number | null): boolean {
     <ReDialog v-model="connectVisible" :title="`连接 ${connectTarget?.serverHostName ?? ''}`" width="460px">
       <div v-if="!connectTarget" />
       <template v-else>
-        <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ connectTarget.serverHostPort }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
+        <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ remotePortOf(connectTarget) }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
         <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
         <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="[
           ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
@@ -1062,28 +1191,26 @@ function delayBad(ms: number | null): boolean {
       </template>
     </ReDialog>
 
-    <!-- 协议服务器管理弹窗（Server 实现的 web 操作 + ServerFilter 实时配置） -->
-    <ServerManageDialog v-model="serverMgrVisible" />
+    <!-- 协议服务器管理弹窗已移除 -->
 
     <HostConfigDialog v-model="configVisible" :host="configHost" :mode="configMode" @saved="fetchAll" />
 
-    <!-- 主机画像（全屏 Drawer：左主机列表 + 右分区详情，数据全部来自 Agent） -->
-    <ReDrawer v-model="profileVisible" title="主机画像" :size="profileSize" direction="rtl" :footer-hidden="true" :close-only="true">
-      <HostProfileView
-        :hosts="hosts"
-        :groups="groups"
-        :live-delay="liveDelay"
-        :live-online="liveOnline"
-        :initial-host-id="profileHostId"
-        :initial-tab="profileTab"
-        :open-seq="profileSeq"
-        @connect="(h) => openConnect(h)"
-        @edit="(h) => openEdit(h)"
-        @detail="(h) => openDetail(h)"
-        @deploy-agent="(h) => openDeploy(h, 'install')"
-        @refreshed="fetchAll"
-      />
-    </ReDrawer>
+    <!-- 主机画像弹窗（独立子组件：左主机列表 + 右分区详情，数据全部来自 Agent） -->
+    <HostProfileDialog
+      v-model="profileVisible"
+      :hosts="hosts"
+      :groups="groups"
+      :live-delay="liveDelay"
+      :live-online="liveOnline"
+      :initial-host-id="profileHostId"
+      :initial-tab="profileTab"
+      :open-seq="profileSeq"
+      @connect="(h) => openConnect(h)"
+      @edit="(h) => openEdit(h)"
+      @detail="(h) => openDetail(h)"
+      @deploy-agent="(h) => openDeploy(h, 'install')"
+      @refreshed="fetchAll"
+    />
 
     <!-- 远控配置已并入主机编辑弹窗（HostFormDialog 的「远控配置」区块） -->
   </div>
@@ -1094,9 +1221,181 @@ function delayBad(ms: number | null): boolean {
       :task="deployTask"
       :logs="deployLogs.map(l => ({ time: new Date().toLocaleTimeString(), msg: l }))"
     />
+
+    <!-- 主机右键上下文菜单（卡片/表格统一，动作直连，点击外侧关闭） -->
+    <Teleport to="body">
+      <div v-if="ctxMenu.visible" class="host-ctx-backdrop" @click="closeCtxMenu" @contextmenu.prevent="closeCtxMenu" />
+      <div
+        v-if="ctxMenu.visible && ctxMenu.host"
+        class="host-ctx-menu"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <div class="host-ctx-item" @click="ctxCommand('connect')">
+          <ReIcon name="Connection" /><span>连接远控</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('detail')">
+          <ReIcon name="TrendCharts" /><span>监控详情</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('profile')">
+          <ReIcon name="Histogram" /><span>主机画像</span>
+        </div>
+        <div class="host-ctx-item" @click="ctxCommand('scan')">
+          <ReIcon name="Aim" /><span>端口扫描</span>
+        </div>
+        <div class="host-ctx-sep" />
+        <div class="host-ctx-item" @click="ctxCommand('edit')">
+          <ReIcon name="EditPen" /><span>编辑主机</span>
+        </div>
+        <template v-if="ctxMenu.host && isAgentMode(ctxMenu.host)">
+          <div class="host-ctx-sep" />
+          <div v-if="!isAgentInstalled(ctxMenu.host)" class="host-ctx-item" @click="ctxCommand('agent-install')">
+            <ReIcon name="Download" /><span>安装 Agent</span>
+          </div>
+          <template v-else>
+            <div class="host-ctx-item" @click="ctxCommand('agent-reinstall')">
+              <ReIcon name="RefreshRight" /><span>重装 Agent</span>
+            </div>
+            <div class="host-ctx-item" @click="ctxCommand('agent-upgrade')">
+              <ReIcon name="Top" /><span>升级 Agent</span>
+            </div>
+            <div class="host-ctx-item is-danger" @click="ctxCommand('agent-uninstall')">
+              <ReIcon name="DeleteFilled" /><span>卸载 Agent</span>
+            </div>
+          </template>
+        </template>
+        <div class="host-ctx-sep" />
+        <div class="host-ctx-item is-danger" @click="ctxCommand('delete')">
+          <ReIcon name="Delete" /><span>删除主机</span>
+        </div>
+      </div>
+    </Teleport>
 </template>
 
 <style scoped lang="scss">
+/* 页面容器：直接铺在布局灰底上（白卡片浮于其上，对齐 UI 稿） */
+.as {
+  padding: 4px 4px 24px;
+}
+
+/* ============================================================
+   页头（对齐 UI 稿：大标题 + 圆角主操作）
+   ============================================================ */
+.as .page-header { align-items: flex-start; }
+.as .page-title {
+  margin: 0;
+  font-size: clamp(26px, 2.3vw, 34px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--el-text-color-primary);
+}
+.as .page-desc {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+.as-add { border-radius: var(--el-radius-full, 9999px) !important; }
+.as .page-actions .color-switch { padding: 0 4px; font-size: 13px; }
+
+/* ============================================================
+   KPI（对齐 UI 稿：圆形渐变图标 + 数值/说明）
+   ============================================================ */
+.host-kpis .kpi {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  overflow: visible;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+/* 去掉全局 KPI 的左侧色条与顶部柔光，改为图标承担语义色 */
+.host-kpis .kpi::before,
+.host-kpis .kpi::after { display: none; }
+.host-kpis .kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow, var(--shadow-2));
+  border-color: var(--el-border-color);
+}
+.hk-tile {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  flex: none;
+  --tile: var(--el-color-primary);
+  border-radius: var(--el-border-radius-circle, 50%);
+  color: var(--el-color-white, #fff);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tile) 62%, var(--el-bg-color)), var(--tile));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--tile) 30%, transparent);
+}
+.host-kpis .kpi.c-brand .hk-tile { --tile: var(--brand-500, var(--el-color-primary)); }
+.host-kpis .kpi.c-green .hk-tile { --tile: var(--el-color-success); }
+.host-kpis .kpi.c-gray .hk-tile { --tile: var(--el-text-color-placeholder); }
+.host-kpis .kpi.c-blue .hk-tile { --tile: var(--metric-cpu, var(--el-color-primary)); }
+.hk-body { min-width: 0; }
+.hk-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+}
+.hk-unit { margin-left: 6px; font-size: 14px; font-weight: 500; color: var(--el-text-color-secondary); }
+.hk-label { margin-top: 4px; font-size: 13px; color: var(--el-text-color-secondary); }
+
+/* ============================================================
+   筛选面板（对齐 UI 稿：独立白色圆角条）
+   ============================================================ */
+.as-panel {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+}
+.as-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+.as-filter .filter { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+/* 视图切换（UI 稿：胶囊分段） */
+.view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  flex: none;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.vt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.vt-btn:hover { color: var(--el-text-color-primary); }
+.vt-btn.active {
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  font-weight: 600;
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1176,117 +1475,222 @@ function delayBad(ms: number | null): boolean {
 .delay-live.bad { color: var(--danger, #f56c6c); font-weight: 600; }
 .color-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary,#8b90a0); }
 
-/* ---- 卡片视图（ReCard）---- */
+/* ============================================================
+   主机卡片（对齐 UI 稿：OS 图标 + 名称/地址 + 属性胶囊 + 指标条 + 操作）
+   ============================================================ */
 .host-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 14px;
-  padding: 8px 0;
-}
-/* ReCard koi 主题 margin 覆盖：按网格排布时去掉多余边距 */
-.host-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   gap: 16px;
-  padding: 8px 0;
+  padding: 0 0 8px;
+}
+@media (max-width: 1100px) {
+  .host-card-grid { grid-template-columns: 1fr; }
 }
 .host-card-grid :deep(.koi-card) {
   margin: 0;
   padding: 0;
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .host-card-grid :deep(.koi-card:hover) {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
-  border-color: rgba(109, 93, 252, 0.25);
+  transform: translateY(-3px);
+  box-shadow: var(--el-box-shadow, var(--shadow-2));
+  border-color: var(--el-color-primary-light-7, var(--el-border-color));
 }
-.hc-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; }
+
+/* 头部：OS 图标 + 名称/地址 + 状态 */
+.hc-head { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 12px; }
 .hc-os {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 10px;
-  background: var(--bg-fill, #f5f6fa); flex-shrink: 0; color: var(--brand-500);
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  font-size: 30px;
+  line-height: 1;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-light);
 }
 .hc-os :deep(svg) { display: block; }
-.hc-name-wrap { flex: 1; min-width: 0; }
+.hc-os.is-windows { background: color-mix(in srgb, var(--metric-mem, #8b5cf6) 12%, var(--el-bg-color)); }
+.hc-os.is-linux { background: color-mix(in srgb, var(--metric-disk, #f59e0b) 14%, var(--el-bg-color)); }
+.hc-os.is-macos { background: color-mix(in srgb, var(--el-text-color-placeholder) 14%, var(--el-bg-color)); }
+
+.hc-name-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hc-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .hc-name {
-  display: block; font-size: 15px; font-weight: 600; color: var(--text-primary);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.hc-addr { font-size: 12px; color: var(--text-tertiary, #a0a4b0); margin-top: 2px; }
-.hc-status {
+.hc-os-tag {
+  flex: none;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.hc-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.hc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--el-color-success); }
+.hc-online.is-off .hc-dot { background: var(--el-color-danger); }
+.hc-online.is-on .hc-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 18%, transparent); }
+.hc-addr { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.hc-ip { font-size: 12px; color: var(--el-text-color-placeholder); }
+.hc-ip-sep { margin: 0 4px; }
+
+/* 关键属性胶囊 */
+.hc-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 20px 14px; }
+.hc-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 26px;
+  padding: 0 10px;
   font-size: 12px;
-  flex-shrink: 0;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-weight: 500;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
 }
-.hc-status.online {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
-}
-.hc-status.offline {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-}
-.hc-status .on { color: var(--status-success-text, #34c759); font-weight: 500; }
-.hc-status .off { color: var(--status-error-text, #f56c6c); font-weight: 500; }
-.hc-metrics {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-  padding: 12px 20px; border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.hc-metric { display: flex; flex-direction: column; gap: 3px; }
-.hc-metric + .hc-metric { padding-left: 12px; border-left: 1px solid var(--border-subtle); }
-.hc-m-label { font-size: 11px; color: var(--text-tertiary, #a0a4b0); }
-.hc-m-val { font-size: 13px; color: var(--text-primary); font-weight: 500; }
-.hc-m-val.mono { font-family: var(--font-mono, monospace); }
-.hc-m-val.bad { color: var(--danger, #f56c6c); font-weight: 600; }
-.hc-rt { padding: 8px 20px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f1f5f9; }
-.hc-bars {
-  padding: 14px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border-subtle, #f1f5f9);
-  background: linear-gradient(180deg, rgba(109, 93, 252, 0.02) 0%, transparent 100%);
-}
-.hc-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-}
+.hc-chip i { font-style: normal; color: var(--el-text-color-placeholder); }
+.hc-chip b { font-weight: 600; color: var(--el-text-color-primary); }
+.hc-chip b.bad { color: var(--el-color-danger); }
+
+/* 实时指标条：标签 + 胶囊长条 + 数值（对齐 UI 稿的粗条与大号数值） */
+.hc-bars { display: flex; flex-direction: column; gap: 12px; padding: 2px 20px 16px; }
+.hc-bar-row { display: flex; align-items: center; gap: 12px; }
 .hc-bar-label {
-  width: 32px;
-  color: #64748b;
-  font-weight: 500;
+  width: 42px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
-.hc-bar-progress {
-  flex: 1;
-  border-radius: 4px;
-  overflow: hidden;
-}
+.hc-bar-progress { flex: 1; min-width: 0; }
 .hc-bar-progress :deep(.el-progress-bar__outer) {
-  background-color: #f1f5f9;
-  border-radius: 4px;
+  background-color: var(--el-fill-color);
+  border-radius: var(--el-radius-full, 9999px);
 }
 .hc-bar-progress :deep(.el-progress-bar__inner) {
-  border-radius: 4px;
+  border-radius: var(--el-radius-full, 9999px);
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.hc-bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-.hc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
-.hc-bar-val { width: 40px; text-align: right; font-weight: 600; color: #0f172a; }
-.hc-bar-net { flex: 1; text-align: right; color: #64748b; }
-.hc-tags { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 20px; }
-.hc-ports { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px 10px; }
-.hc-actions { display: flex; gap: 6px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }
-.hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
+.hc-bar-val {
+  width: 56px;
+  flex: none;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+}
+
+/* 标签 / 端口 / 操作 */
+.hc-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 12px; }
+.hc-ports { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 14px; }
+.hc-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--el-text-color-placeholder); font-size: 13px; }
 /* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
 .op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+</style>
+
+<style lang="scss">
+/* 端口弹层（teleport 到 body，需全局样式） */
+.ports-popover.el-popover {
+  padding: 8px;
+}
+.ports-pop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.ports-pop-item {
+  font-size: 12px;
+  color: var(--el-text-color-regular, #4b5563);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.ports-pop-item:hover {
+  background: var(--el-fill-color-light, #f3f4f6);
+}
+
+/* 主机右键上下文菜单（teleport 到 body） */
+.host-ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2990;
+  background: transparent;
+}
+.host-ctx-menu {
+  position: fixed;
+  z-index: 2991;
+  min-width: 176px;
+  padding: 5px;
+  background: var(--el-bg-color-overlay, #fff);
+  border: 1px solid var(--el-border-color-lighter, #e6e8eb);
+  border-radius: var(--el-border-radius-base, 8px);
+  box-shadow: var(--el-box-shadow-light, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+.host-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #4b5563);
+  border-radius: var(--el-border-radius-small, 6px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.host-ctx-item .re-icon,
+.host-ctx-item svg {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.host-ctx-item:hover {
+  background: var(--el-fill-color-light, #f3f4f6);
+  color: var(--el-color-primary, #409eff);
+}
+.host-ctx-item.is-danger {
+  color: var(--el-color-danger, #f56c6c);
+}
+.host-ctx-item.is-danger:hover {
+  background: var(--el-color-danger-light-9, #fef0f0);
+  color: var(--el-color-danger, #f56c6c);
+}
+.host-ctx-sep {
+  height: 1px;
+  margin: 5px 7px;
+  background: var(--el-border-color-lighter, #eceef1);
+}
 </style>

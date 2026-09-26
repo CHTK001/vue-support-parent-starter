@@ -10,13 +10,21 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:",
-    "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
-    "axios": "catalog:",
     "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/ui": "workspace:*"
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-placeholder": "^3.26.0",
+    "@tiptap/extension-text-align": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
+    "@tiptap/vue-3": "^3.26.0",
+    "axios": "catalog:",
+    "element-plus": "catalog:",
+    "katex": "^0.16.47",
+    "mammoth": "^1.12.3",
+    "three": "^0.185.1",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   }
 }

@@ -7,7 +7,9 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*"
+    "./*": "./src/*",
+    "./*.ts": "./src/*.ts",
+    "./api/*": "./src/api/*.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -24,6 +26,7 @@
     "@repo/pinia": "workspace:*",
     "@repo/theme": "workspace:*",
     "sortablejs": "^1.15.7",
+    "echarts": "catalog:",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

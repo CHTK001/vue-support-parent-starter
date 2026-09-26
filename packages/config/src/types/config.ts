@@ -20,6 +20,12 @@ export interface AppSystemConfig {
   systemCode: string;
   /** 是否开启鉴权 */
   openAuth: boolean;
+  /** 品牌 Logo 地址（标题栏/侧边栏展示；可空，回退内置默认） */
+  logoUrl?: string;
+  /** 大尺寸品牌 Logo（欢迎页横幅、关于面板；缺省时依次回退 logoUrl → favicon） */
+  logoLargeUrl?: string;
+  /** 浏览器 favicon 地址（可空，回退内置默认） */
+  favicon?: string;
 }
 
 /** HttpConfig 请求配置 */
@@ -181,8 +187,22 @@ export interface LayoutConfig {
 export interface MenuConfig {
   /** 父菜单只有单个子菜单时是否折叠到父级（默认 true） */
   collapseSingleChild: boolean;
+  /**
+   * 单根炸开：当顶级只有一个一级分组菜单时，是否把它的子菜单提升为顶级显示（默认 false）。
+   * 例如顶级仅有「系统管理」时，开启后其下子菜单直接作为一级菜单，不再包一层分组。
+   */
+  flattenSingleRoot?: boolean;
   /** 菜单缺省图标：菜单未配置 icon 时兜底显示，避免图标位空白（默认 koi-text-menu） */
   defaultIcon?: string;
+  /**
+   * 折叠时整个菜单是否收缩为一个按钮（默认 false）。
+   *
+   * - false：折叠后显示 mini 图标菜单条（Element Plus 默认行为）
+   * - true：折叠后不渲染菜单，只保留一个「展开菜单」按钮，点击恢复完整菜单
+   *
+   * 仅垂直布局（layout=vertical）生效；支持 app.yaml 与顶部设置抽屉（可持久化）。
+   */
+  collapseToButton?: boolean;
 }
 
 /** 上传配置 */
@@ -215,6 +235,14 @@ export interface UrlConfig {
   layout: string;
   /** 文件上传接口（GET/POST，如 /v2/file/upload） */
   upload: string;
+  /** 短信验证码发送接口 */
+  smsSend: string;
+  /** 短信验证码登录接口 */
+  smsLogin: string;
+  /** 邮箱验证码发送接口 */
+  emailSend: string;
+  /** 邮箱验证码登录接口 */
+  emailLogin: string;
 }
 
 /** 环境配置 */
@@ -314,6 +342,17 @@ export interface RouteConfig {
   serverErrorPath: string;
 }
 
+/**
+ * 业务能力开关表
+ *
+ * 键为能力 key（见 @repo/core 的 BACKEND_CAPABILITIES 注册表），值为是否启用：
+ *   - true / 未配置：启用。前端按注册表探测后台接口，命中走后台，未命中回落三方；
+ *   - false：停用。不发探测/不请求后台接口（避免无谓 404），对应入口一并隐藏。
+ *
+ * 键是开放的：注册表新增能力后 app.yaml 直接写同名键即可，无需改本类型。
+ */
+export type CapabilityConfig = Record<string, boolean>;
+
 /** 其它配置 */
 export interface OtherConfig {
   /** 主题（default / koi） */
@@ -324,6 +363,8 @@ export interface OtherConfig {
   themeConfigCloseConfirm: boolean;
   /** 状态颜色（与主题色一致的基础色，用于按钮/标签等状态组件） */
   statusColors: StatusColorConfig;
+  /** 业务能力开关（app.yaml other.capabilities；关闭后不探测不请求，抽屉里不再显示该项） */
+  capabilities: CapabilityConfig;
   /** 框架组件显隐开关（Header 工具栏 / 布局组件） */
   toolbar: ToolbarConfig;
   /** 顶部计时器（@repo/work 定时器 Worker，多时区最多 3 个，UTC ±12） */
@@ -408,6 +449,8 @@ export interface ToolbarConfig {
   logo: boolean;
   /** 站内消息（铃铛徽标） */
   message: boolean;
+  /** 全局公告条（活跃公告横幅，数据来自平台 /v2/announcement/active） */
+  announcement: boolean;
   /** 顶栏天气组件 */
   weather: boolean;
   /** 顶栏台风组件 */

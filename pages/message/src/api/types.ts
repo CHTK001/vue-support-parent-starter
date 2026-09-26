@@ -21,8 +21,6 @@ export interface MessageProvider {
   sysMessageProviderSign?: string;
   /** 端点地址 */
   sysMessageProviderEndpoint?: string;
-  /** API地址 */
-  sysMessageProviderApiAddress?: string;
   /** SMTP主机 */
   sysMessageProviderSmtpHost?: string;
   /** SMTP端口 */
@@ -33,8 +31,6 @@ export interface MessageProvider {
   sysMessageProviderSmtpFrom?: string;
   /** Webhook地址 */
   sysMessageProviderWebhookUrl?: string;
-  /** 是否删除 */
-  sysMessageProviderDelete?: number;
   /** 是否启用 */
   sysMessageProviderStatus?: number;
   /** 重复消息间隔（分钟），0 表示不限制 */
@@ -70,22 +66,18 @@ export interface MessageTemplate {
   sysMessageTemplateCode?: string;
   /** 模板名称 */
   sysMessageTemplateName?: string;
+  /** 模板标题（消息标题/邮件主题，支持 ${param} 占位符） */
+  sysMessageTemplateTitle?: string;
   /** 模板类型 */
   sysMessageTemplateType?: string;
-  /** 子类型 */
-  sysMessageTemplateCategory?: number;
   /** 模板内容 */
   sysMessageTemplateContent?: string;
   /** 回调地址 */
   sysMessageTemplateCallbackUrl?: string;
-  /** 是否删除 */
-  sysMessageTemplateDelete?: number;
   /** 是否启用 */
   sysMessageTemplateStatus?: number;
   /** 优先级 */
   sysMessageTemplateSort?: number;
-  /** 是否默认 */
-  sysMessageTemplateDefault?: number;
   /** 备注 */
   sysMessageTemplateRemark?: string;
   createTime?: string;

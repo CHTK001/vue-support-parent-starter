@@ -75,7 +75,7 @@ const userStore = defineStore("user", {
     },
     /** 登录（走 core api） */
     async loginByUsername(data: Record<string, unknown>) {
-      const { login, setUserRoles, setUserPerms } = await import("@repo/core");
+      const { login, setUserRoles, setUserPerms, refreshDefaultSetting } = await import("@repo/core");
       const res = await login(data);
       const result = res?.data;
       if (!result) {
@@ -84,6 +84,8 @@ const userStore = defineStore("user", {
       this.setToken(result);
       if (result.roles?.length) setUserRoles(result.roles);
       if (result.perms?.length) setUserPerms(result.perms);
+      // 令牌就绪后补拉后端配置（能力开关等），失败静默降级为本地配置
+      void refreshDefaultSetting();
       return result;
     },
     /** 刷新 token */

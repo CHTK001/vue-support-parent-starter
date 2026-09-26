@@ -48,6 +48,7 @@
               /> -->
               <el-image class="column-user-avatar" fit="cover" :src="avatar"></el-image>
               <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(36)"></div>
+              <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
             </div>
           </template>
           <div class="user-card-content">
@@ -59,6 +60,7 @@
               <div class="user-card-avatar-wrap" :style="{ padding: frameSpill(36) + 'px' }">
                 <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
                 <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
+                <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
               </div>
               <div class="user-info">
                 <!-- <div class="user-name">{{ authStore.loginUser?.userName || "无名" }}</div>
@@ -348,6 +350,7 @@ const {
   visible: avatarFrameVisible,
   layerStyle: avatarFrameStyle,
   spillPx: frameSpill,
+  defaultStyle: defaultAvatarFrame,
 } = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token));
@@ -372,7 +375,7 @@ const handleLayout = async () => {
 const handleCommand = (command: string | number) => {
   switch (command) {
     case "koiMine":
-      router.push("/system/personage");
+      router.push(getConfig().route.personagePath || "/personage");
       break;
     case "lock":
       window.dispatchEvent(new CustomEvent("lock:screen"));

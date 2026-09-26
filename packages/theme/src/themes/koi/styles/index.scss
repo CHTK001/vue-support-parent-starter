@@ -8,6 +8,8 @@
 @use "./nprogress.scss";
 // element配置
 @use "./element.scss";
+// 默认头像光环（未佩戴头像框时的底款）
+@use "./avatar-frame.scss";
 // 动画配置
 @use "./transition.scss";
 
@@ -62,4 +64,9 @@
 .user-avatar:hover {
   transform: scale(1.05) rotate(360deg);
   box-shadow: 0 0 0 2px var(--el-color-primary-light-7);
+}
+
+/* 主内容区通用内边距（纵向/横向布局共用） */
+.main-content {
+  padding: 8px;
 }

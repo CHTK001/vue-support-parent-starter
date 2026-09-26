@@ -12,7 +12,7 @@
  */
 import type { App, Directive } from "vue";
 import { getConfig } from "@repo/config";
-import { hasRole, hasPerm } from "../permission";
+import { hasRole, hasPerm, isAdmin } from "../permission";
 
 /** 菜单项结构（兼容常见路由菜单：meta 中声明权限） */
 export interface MenuAuthMeta {
@@ -45,15 +45,13 @@ function checkMenu(item: MenuAuthItem | undefined): boolean {
   return true;
 }
 
-/** v-admin：当前用户是管理员才显示 */
+/** v-admin：当前用户是管理员（含超级管理员）才显示 */
 export const vAdmin: Directive<HTMLElement> = {
   mounted(el) {
-    const { admin } = getConfig().permission;
-    setVisible(el, hasRole(admin));
+    setVisible(el, isAdmin());
   },
   updated(el) {
-    const { admin } = getConfig().permission;
-    setVisible(el, hasRole(admin));
+    setVisible(el, isAdmin());
   },
 };
 

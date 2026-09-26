@@ -5,7 +5,8 @@
  *   ① 默认值 defaultAppConfig
  *   ② app.example.yaml（全局默认模板，项目根目录）
  *   ③ app.yaml（本地，apps/{appName}/app.yaml）
- *   ④ app.{env}.yaml（环境级，apps/{appName}/app.{env}.yaml，如 app.dev.yaml）
+ *   ④ app.{env}.yaml（环境级，apps/{appName}/app.{env}.yaml，如 app.dev.yaml；
+ *      仅当应用提供了该文件才请求，名单由 createVite 注入 VITE_APP_ENV_CONFIGS）
  *   ⑤ 远程配置（url.setting 拼接 http.baseUrl，远程为主，失败忽略）
  *   ⑥ 环境变量（import.meta.env 中的 VITE_* 映射，本地运行最高优先级）
  *
@@ -39,9 +40,21 @@ let inFlightConfig: Promise<AppConfig> | null = null;
 /** 远程设置列表缓存（供 loadDefaultSetting 复用，避免重复请求） */
 let remoteSettingList: Array<Record<string, unknown>> | null = null;
 
+/** 远程设置是否已成功取回（200 且解析完成）；失败时保持 false，让 bootstrap 重试 */
+let remoteSettingFetched = false;
+
 /** 获取远程设置列表缓存（null = 未加载或不是 JSON 数组格式） */
 export function getRemoteSettingList(): Array<Record<string, unknown>> | null {
   return remoteSettingList;
+}
+
+/**
+ * 远程设置是否已成功取回。
+ * 空列表也算成功：平台没有任何默认设置时，loader 与 loadDefaultSetting 各发一次
+ * 同一请求纯属浪费；未登录 403 时该标记为 false，bootstrap 仍需重试。
+ */
+export function hasRemoteSettingFetched(): boolean {
+  return remoteSettingFetched;
 }
 
 /** 加载配置的输入 */
@@ -133,9 +146,11 @@ export async function loadConfig(
     const appPartial = await loadAppYamlPartial({ appName, baseUrl, configUrl: options.configUrl, timeout });
 
     // ③ 加载环境级 app.{env}.yaml（如 app.dev.yaml，覆盖 app.yaml）
+    //    只有应用确实提供了该文件才请求：可选文件靠 404 探测回退，会让每一页启动时
+    //    都在浏览器控制台留下一条网络错误（fetch 捕获不掉）
     let envPartial: Partial<AppConfig> | undefined;
     const envName = getEnvName(env);
-    if (envName) {
+    if (envName && hasEnvYaml(env, envName)) {
       envPartial = await loadEnvYamlPartial({ appName, baseUrl, envName, timeout });
     }
 
@@ -262,6 +277,21 @@ function getEnvName(env: EnvLike): string {
 }
 
 /**
+ * 应用是否提供了 `app.{envName}.yaml`。
+ *
+ * 名单由 createVite 按 app 根目录的真实文件注入（逗号分隔的环境名，如 `"dev"`）；
+ * 未注入时（非 vite 环境、外部托管的构建）无从判断，按"存在"处理，保持原有探测行为。
+ */
+function hasEnvYaml(env: EnvLike, envName: string): boolean {
+  const manifest = env.VITE_APP_ENV_CONFIGS;
+  if (manifest === undefined) return true;
+  return manifest
+    .split(",")
+    .map((s) => s.trim())
+    .includes(envName);
+}
+
+/**
  * 拼接远程配置地址：http.baseUrl + url.setting。
  * 两者均为空时返回 ""（此时不拉取远程配置）。
  */
@@ -294,14 +324,22 @@ async function loadRemoteConfig(
       ct.includes("json") || ct.includes("yaml") || ct.includes("yml") || ct === "";
     if (!looksLikeConfig) return undefined;
     const text = await res.text();
+    // 拿到可用响应体即视为已取回（哪怕列表为空）：避免 loadDefaultSetting 重复请求同一接口
+    remoteSettingFetched = true;
     const trimmed = text.trim();
     // 尝试 JSON
     try {
       const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
+      // 后端统一响应信封 {code,msg,data}：设置列表在 data 里，裸数组是旧格式
+      const settingList = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.data)
+          ? parsed.data
+          : null;
+      if (settingList) {
         // 缓存原始设置列表，供 loadDefaultSetting 复用（避免二次请求同一接口）
-        remoteSettingList = parsed;
-        return flattenSettingToConfig(parsed);
+        remoteSettingList = settingList;
+        return flattenSettingToConfig(settingList);
       }
       remoteSettingList = null;
       return normalizeTopLevelKeys(parsed) as Partial<AppConfig>;
@@ -321,15 +359,19 @@ async function loadRemoteConfig(
 function flattenSettingToConfig(list: Array<Record<string, unknown>>): Partial<AppConfig> {
   const partial: Record<string, unknown> = {};
   for (const item of list) {
+    const code = String(item.sysSettingCode ?? item.code ?? "");
     const name = String(item.sysSettingName ?? item.name ?? "");
     const rawValue = item.sysSettingValue ?? item.value;
-    if (!name) continue;
+    // 与 core/setting.ts 对齐：优先按「编码」点号路径（如 login.brandName）；
+    // 编码为空的旧数据才回退按名称
+    const pathKey = code.includes(".") ? code : name || code;
+    if (!pathKey) continue;
     let value: unknown = rawValue;
     const lower = String(rawValue).toLowerCase();
     if (lower === "true") value = true;
     else if (lower === "false") value = false;
     else if (!Number.isNaN(Number(rawValue)) && String(rawValue).trim() !== "") value = Number(rawValue);
-    const keys = name.split(".");
+    const keys = pathKey.split(".");
     // 顶层键做与 YAML 一致的归一化（appConfig → app，去掉 Config 后缀）
     keys[0] = normalizeTopKey(keys[0]);
     let cur = partial;

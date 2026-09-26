@@ -64,9 +64,9 @@ export const useSessionGroupStore = defineStore('sessionGroup', () => {
   /**
    * 加载分组列表（已加载过则不再重复请求）
    */
-  const loadGroups = async (): Promise<void> => {
-    // 如果已经加载过且已有数据，直接复用
-    if (hasLoaded.value && groups.value.length > 0) {
+  const loadGroups = async (force = false): Promise<void> => {
+    // 如果已经加载过且已有数据，直接复用（force 时强制刷新）
+    if (!force && hasLoaded.value && groups.value.length > 0) {
       return
     }
     isLoadingGroups.value = true
@@ -171,6 +171,23 @@ export const useSessionGroupStore = defineStore('sessionGroup', () => {
   }
 
   /**
+   * 批量删除分组
+   */
+  const batchDeleteGroups = async (ids: string[]): Promise<boolean> => {
+    try {
+      await apiService.batchDeleteSessionGroups(ids)
+      const idSet = new Set(ids)
+      groups.value = groups.value.filter(g => !idSet.has(g.id))
+      ids.forEach(id => expandedState.value.delete(id))
+      saveExpandedState(expandedState.value)
+      return true
+    } catch (error) {
+      console.error('批量删除分组失败:', error)
+      return false
+    }
+  }
+
+  /**
    * 调整分组顺序
    */
   const reorderGroups = async (orderedIds: string[]): Promise<boolean> => {
@@ -219,6 +236,7 @@ export const useSessionGroupStore = defineStore('sessionGroup', () => {
     createGroup,
     updateGroup,
     deleteGroup,
+    batchDeleteGroups,
     reorderGroups,
     setLoadingMore,
   }

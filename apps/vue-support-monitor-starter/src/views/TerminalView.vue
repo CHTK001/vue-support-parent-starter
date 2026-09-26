@@ -6,12 +6,21 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ElMessage, ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
 import { queryHosts, getHost } from "@pages/server/src/api";
 import ScGuacViewer from "@pages/server/src/components/ScGuacViewer.vue";
 import ScSshDirectViewer from "@pages/server/src/components/ScSshDirectViewer.vue";
+import ScVncDirectViewer from "@pages/server/src/components/ScVncDirectViewer.vue";
+import ScSftpPanel from "@pages/server/src/components/ScSftpPanel.vue";
+import {
+  SPECIAL_KEY_COMBOS,
+  TASK_MANAGER_KEYS,
+  type SpecialKeyStep,
+} from "@pages/server/src/components/specialKeys";
 import ReInput from "@repo/ui/re-input";
+import ReDrawer from "@repo/ui/re-drawer";
 import ReScrollbar from "@repo/ui/re-scrollbar";
 import { osIconSvg } from "../utils/osIcon";
 
@@ -43,19 +52,38 @@ const selectedId = ref<number | null>(null);
 const railOpen = ref(true);
 const keyword = ref("");
 
+/** SFTP 文件面板抽屉开关 */
+const sftpVisible = ref(false);
+
 /**
- * 生效远控协议：主机配置优先，未配置时按平台推断
+ * 读取路由上显式指定的协议（直达链接 / 资产页指定协议入口）
+ * @returns 规范化协议名或空串
+ */
+function protocolQuery(): string {
+  const raw = route.query.protocol;
+  const q = (Array.isArray(raw) ? raw[0] : raw) || "";
+  const v = q.toLowerCase();
+  return v === "ssh" || v === "rdp" || v === "vnc" ? v : "";
+}
+/**
+ * 主机默认协议：主机配置优先，未配置时按平台推断
  * @param h 主机
  */
-function protocolOf(h: Host): string {
-  const q = (route.query.protocol as string) || "";
+function defaultProtocolOf(h: Host): string {
   const configured = (h.serverHostRemoteProtocol ?? "").toUpperCase();
   if (configured === "SSH" || configured === "RDP" || configured === "VNC") return configured.toLowerCase();
-  if (q) return q.toLowerCase();
   const s = (h.serverHostOsType ?? "").toUpperCase();
   if (s.includes("WIN")) return "rdp";
   if (s.includes("MAC")) return "vnc";
   return "ssh";
+}
+/**
+ * 当前生效协议：直达链接显式指定的协议优先（可在 VNC 主机上临时开 SSH），
+ * 未显式指定时回落到主机默认协议
+ * @param h 主机
+ */
+function protocolOf(h: Host): string {
+  return protocolQuery() || defaultProtocolOf(h);
 }
 /**
  * 生效远控端口：主机配置优先，SSH 沿用端口字段，其余按协议默认
@@ -93,11 +121,153 @@ const connection = computed(() => {
   };
 });
 
-/** 选中主机：复位断开标记 */
+/**
+ * 「无需通道」时本机客户端的连接目标：远控端口优先，SSH 回落资产接入端口，RDP/VNC 用协议默认端口
+ */
+const noneTarget = computed(() => {
+  const c = connection.value;
+  if (!c) return "";
+  if (c.targetPort) return `${c.address}:${c.targetPort}`;
+  if (c.protocol === "ssh") return `${c.address}:${selectedHost.value?.serverHostPort ?? 22}`;
+  return `${c.address}:${c.protocol === "rdp" ? 3389 : 5900}`;
+});
+
+/* ================== 远控工具条：断开 / 全屏 / 可视范围全屏 / 弹出独立页面 ================== */
+const termMainRef = ref<HTMLElement | null>(null);
+/** 应用内沉浸：隐藏左侧资源条，显示区铺满内容区（不触发浏览器全屏） */
+const immersive = ref(false);
+/** 浏览器/OS 级全屏状态（Fullscreen API） */
+const isFullscreen = ref(false);
+
+/* ===== 特殊按键下发：Ctrl+Alt+Del 等本机 OS 会截获、键盘无法透传的组合 ===== */
+/** 特殊按键候选项（工具条下拉） */
+const specialKeyCombos = SPECIAL_KEY_COMBOS;
+/** guacd 渲染组件实例（内嵌 Guacamole 客户端） */
+const guacViewerRef = ref<any>(null);
+/** VNC 直连渲染组件实例（noVNC） */
+const vncViewerRef = ref<any>(null);
+
+/** 当前连接是否支持特殊按键下发（SSH 终端无桌面语义、NONE 无线上通道，仅 RDP/VNC 显示） */
+const supportsSpecialKeys = computed(() => {
+  const c = connection.value;
+  return !!c && c.protocol !== "ssh" && c.mode !== "NONE";
+});
+
+/**
+ * 把按键序列下发给当前生效的渲染组件
+ * @param keys 按键序列
+ */
+function sendSpecialKeys(keys: SpecialKeyStep[]): void {
+  const c = connection.value;
+  if (!c) return;
+  const viewer = c.protocol === "vnc" && c.mode === "DIRECT" ? vncViewerRef.value : guacViewerRef.value;
+  viewer?.sendSpecialKey?.(keys);
+}
+
+/** 「任务管理器」按钮：Ctrl+Alt+Del（Windows 安全注意序列） */
+function triggerTaskManager(): void {
+  sendSpecialKeys(TASK_MANAGER_KEYS);
+}
+
+/**
+ * 特殊按键下拉选择
+ * @param command 组合 key
+ */
+function onSpecialCommand(command: string): void {
+  const combo = specialKeyCombos.find((c) => c.value === command);
+  if (combo) sendSpecialKeys(combo.keys);
+}
+
+/** 断开当前连接：渲染区回到空态 */
+function disconnect(): void {
+  disconnected.value = true;
+}
+
+/** 切换浏览器/OS 级全屏（作用于右侧显示区），ESC 退出；环境禁止时回落到应用内沉浸 */
+async function toggleFullscreen(): Promise<void> {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else if (termMainRef.value) {
+      await termMainRef.value.requestFullscreen();
+    }
+  } catch (e) {
+    // 内嵌 / 自动化浏览器可能禁止 Fullscreen API：回落到应用内沉浸，仍把显示区最大化
+    immersive.value = true;
+    ElMessage.warning("浏览器未允许全屏，已切换为应用内全屏");
+  }
+}
+function onFsChange(): void {
+  isFullscreen.value = !!document.fullscreenElement;
+}
+
+/* ===== 全屏/沉浸下工具条自动隐显：默认收起，鼠标移到显示区顶部或悬停工具条时滑出 ===== */
+const toolbarHidden = ref(false);
+const hoverToolbar = ref(false);
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+function inFullView(): boolean {
+  return immersive.value || isFullscreen.value;
+}
+function revealToolbar(): void {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+  toolbarHidden.value = false;
+}
+function scheduleHide(): void {
+  if (hideTimer) clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    if (inFullView() && !hoverToolbar.value) toolbarHidden.value = true;
+  }, 1600);
+}
+function onTermMouseMove(e: MouseEvent): void {
+  if (!inFullView()) {
+    toolbarHidden.value = false;
+    return;
+  }
+  const top = termMainRef.value ? termMainRef.value.getBoundingClientRect().top : 0;
+  if (e.clientY - top <= 26) revealToolbar();
+  else if (!hoverToolbar.value) scheduleHide();
+}
+function onToolbarEnter(): void {
+  hoverToolbar.value = true;
+  revealToolbar();
+}
+function onToolbarLeave(): void {
+  hoverToolbar.value = false;
+  scheduleHide();
+}
+watch([immersive, isFullscreen], () => {
+  if (inFullView()) { revealToolbar(); scheduleHide(); }
+  else revealToolbar();
+});
+
+/** 切换应用内沉浸（可视范围全屏） */
+function toggleImmersive(): void {
+  immersive.value = !immersive.value;
+}
+
+/** 弹出不带应用外壳、独占可视范围的独立全屏窗口（用 a[target=_blank] 兼容弹窗策略） */
+function popout(): void {
+  const h = selectedHost.value;
+  if (!h) return;
+  const q = new URLSearchParams({ hostId: String(h.id), protocol: protocolOf(h) });
+  const c = connection.value;
+  if (c && c.identityId != null) q.set("identityId", String(c.identityId));
+  const url = `${window.location.origin}${window.location.pathname}#/terminal-standalone?${q.toString()}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/** 选中主机：复位断开标记；写入该主机的默认协议（不沿用上个主机的显式协议） */
 function selectHost(h: Host): void {
   selectedId.value = h.id;
   disconnected.value = false;
-  const q: Record<string, string> = { hostId: String(h.id), protocol: protocolOf(h) };
+  const q: Record<string, string> = { hostId: String(h.id), protocol: defaultProtocolOf(h) };
   const qId = route.query.identityId;
   if (qId) q.identityId = String(qId);
   router.replace({ path: "/terminal", query: q });
@@ -220,10 +390,15 @@ async function onMountedInit(): Promise<void> {
   await selectFromQuery();
 }
 onMounted(onMountedInit);
+onMounted(() => document.addEventListener("fullscreenchange", onFsChange));
+onMounted(() => termMainRef.value?.addEventListener("mousemove", onTermMouseMove));
+onBeforeUnmount(() => document.removeEventListener("fullscreenchange", onFsChange));
+onBeforeUnmount(() => termMainRef.value?.removeEventListener("mousemove", onTermMouseMove));
+onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
 </script>
 
 <template>
-  <div class="tw tel-page">
+  <div :class="['tw', 'tel-page', { immersive }]">
     <!-- 左侧主机资源条 -->
     <aside :style="{ width: railWidth }" class="rail tel-rail">
       <div v-if="railOpen" class="rail-inner">
@@ -249,7 +424,7 @@ onMounted(onMountedInit);
                 <span class="ri-os"><span v-html="osIconSvg(h.serverHostOsType)"></span></span>
                 <span class="ri-name">{{ h.serverHostName }}</span>
                 <span :class="['pdot', h.serverHostOnline === 1 ? 'pdot-online' : 'pdot-offline']" />
-                <span :class="['ri-proto', `proto-${protocolOf(h)}`]">{{ protocolOf(h).toUpperCase() }}</span>
+                <span :class="['ri-proto', `proto-${defaultProtocolOf(h)}`]">{{ defaultProtocolOf(h).toUpperCase() }}</span>
               </div>
               <div class="g-meta" v-if="false">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</div>
             </div>
@@ -264,16 +439,87 @@ onMounted(onMountedInit);
       <div v-else class="rail-collapsed" @click="railOpen = true" title="展开资源条">☰</div>
     </aside>
 
-    <!-- 右侧控制台：SSH 直连走自研终端（xterm + /ws/.../terminal/ssh），其余经 guacd 隧道 -->
-    <main class="term-main">
-      <ScSshDirectViewer v-if="connection && connection.protocol === 'ssh' && connection.mode !== 'GUACD'" :connection="connection" @close="disconnected = true" />
-      <div v-else-if="connection && connection.mode === 'NONE'" class="remote-empty">
-        「{{ connection.hostName }}」的远控通道为「无需通道」，平台不做中转：VNC 请用本机客户端连接
-        <b class="mono">{{ connection.address }}:{{ connection.targetPort ?? 5900 }}</b>
-        ；需要网页远控请把该主机的远控通道改为「Guacd 中转」。
+    <!-- 右侧控制台：SSH/VNC 直连走自研终端与自研 RFB 桥接，其余经 guacd 隧道 -->
+    <main ref="termMainRef" class="term-main">
+      <!-- 远控工具条：断开 / 全屏 / 可视范围全屏 / 弹出独立页面 -->
+      <div
+        v-if="selectedHost"
+        :class="['term-toolbar', { 'is-hidden': toolbarHidden }]"
+        @mouseenter="onToolbarEnter"
+        @mouseleave="onToolbarLeave"
+      >
+        <ReButton layout="square" size="small" icon="SwitchButton" title="断开连接" @click="disconnect" />
+        <!-- 特殊按键：Ctrl+Alt+Del 等会被本机 OS 截获，需显式下发 -->
+        <template v-if="supportsSpecialKeys">
+          <span class="tt-sep" />
+          <ReButton
+            layout="square"
+            size="small"
+            icon="Tools"
+            title="任务管理器（Ctrl+Alt+Del）"
+            @click="triggerTaskManager"
+          />
+          <ElDropdown trigger="click" placement="bottom" @command="onSpecialCommand">
+            <ReButton layout="square" size="small" icon="MoreFilled" title="其它无法透传的按键" />
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem v-for="c in specialKeyCombos" :key="c.value" :command="c.value">
+                  {{ c.label }}
+                  <span class="tt-key-hint">{{ c.hint }}</span>
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
+          <span class="tt-sep" />
+        </template>
+        <ReButton
+          layout="square"
+          size="small"
+          :icon="isFullscreen ? 'Aim' : 'FullScreen'"
+          :type="isFullscreen ? 'primary' : 'default'"
+          :title="isFullscreen ? '退出全屏' : '全屏（浏览器/OS）'"
+          @click="toggleFullscreen"
+        />
+        <ReButton
+          layout="square"
+          size="small"
+          :icon="immersive ? 'Rank' : 'Expand'"
+          :type="immersive ? 'primary' : 'default'"
+          :title="immersive ? '退出可视范围全屏' : '可视范围全屏（应用内）'"
+          @click="toggleImmersive"
+        />
+        <ReButton layout="square" size="small" icon="TopRight" title="弹出独立页面（独占可视范围）" @click="popout" />
       </div>
-      <ScGuacViewer v-else :connection="connection" inline @close="disconnected = true" />
+      <div v-if="connection && connection.mode === 'NONE'" class="remote-empty">
+        「{{ connection.hostName }}」的远控通道为「无需通道」，平台不做中转：请用本机
+        <b class="mono">{{ connection.protocol.toUpperCase() }}</b> 客户端连接
+        <b class="mono">{{ noneTarget }}</b>
+        ；需要网页远控请把该主机的远控通道改为「平台直连」或「Guacd 中转」。
+      </div>
+      <!-- SSH 始终走自研原生 PTY 直连桥（不依赖 guacd）；NONE 已在上方分支提示用本地客户端 -->
+      <ScSshDirectViewer
+        v-else-if="connection && connection.protocol === 'ssh'"
+        :connection="connection"
+        hide-close
+        @close="disconnected = true"
+        @files="sftpVisible = true"
+      />
+      <ScVncDirectViewer v-else-if="connection && connection.protocol === 'vnc' && connection.mode === 'DIRECT'" ref="vncViewerRef" :connection="connection" hide-close @close="disconnected = true" />
+      <ScGuacViewer v-else ref="guacViewerRef" :connection="connection" inline @close="disconnected = true" />
       <div v-if="!connection" class="remote-empty">从左侧选择一台主机开始控制</div>
+
+      <ReDrawer
+        v-model="sftpVisible"
+        :title="connection ? `文件管理 · ${connection.hostName}` : '文件管理'"
+        direction="rtl"
+        size="720px"
+        destroy-on-close
+        :footer-hidden="true"
+      >
+        <template #content>
+          <ScSftpPanel v-if="connection" :host-id="connection.hostId" />
+        </template>
+      </ReDrawer>
     </main>
   </div>
 </template>
@@ -281,6 +527,7 @@ onMounted(onMountedInit);
 <style scoped lang="scss">
 .tw {
   display: flex;
+  position: relative;
   width: 100%;
   height: calc(100vh - 56px); /* 顶栏 56px */
   min-height: 0;
@@ -410,10 +657,55 @@ onMounted(onMountedInit);
   cursor: pointer;
 }
 .term-main {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
+/* 应用内沉浸（可视范围全屏）：隐藏资源条，显示区铺满整个工作区 */
+.tw.immersive .rail { display: none; }
+.tw.immersive .term-main { position: absolute; inset: 0; }
+/* 浏览器/OS 全屏时显示区底色 */
+.term-main:fullscreen { background: #000; }
+
+/* 远控工具条：悬浮于显示区顶部居中 */
+.term-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg-container, #fff) 88%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, .08));
+  border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(0, 0, 0, .18));
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+/* 全屏/沉浸下收起：向上滑出可视范围，鼠标移到顶部再滑下 */
+.term-toolbar.is-hidden {
+  transform: translate(-50%, -130%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 工具条分组分隔线 */
+.tt-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 1px;
+  background: var(--border-subtle, rgba(0, 0, 0, .12));
+}
+/* 特殊按键下拉项：组合键提示 */
+.tt-key-hint {
+  margin-left: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-tertiary, #909399);
+}
+
 .remote-frame {
   width: 100%;
   height: 100%;

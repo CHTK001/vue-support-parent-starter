@@ -4,18 +4,18 @@
   后端不下发原始 payload，只给有序的 cells；因此动态列必须由流程的字段定义驱动。
   未选流程时没有稳定 schema，只展示固定列，字段值在「详情」里看。
   动态列用 formatter 渲染（列名随流程而变，无法预先声明插槽）。
+  查询条件走 ReTable 内置搜索区（ReSearch）：输入框里的值是草稿，只有点「查询」才取数，
+  所以流程相关的展示（动态列、清空范围）以最近一次取数真正用到的流程为准。
 -->
 <script setup lang="ts">
 import { computed, onActivated, ref } from "vue";
 import { msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReInput from "@repo/ui/re-input";
-import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import { clearRecords, countRecords, deleteRecord, deleteRecords, fetchFields, listFlows, pageRecords } from "../api/collectApi";
-import { confirmAction, errText, useCollectGated, useCollectView } from "../composables/useCollectView";
-import type { RePageResult, ReTableColumn, ReTableLoadParams } from "@repo/ui/re-table";
+import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
+import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFieldDef, CollectFlow, CollectRecord } from "../types/collect";
 
 defineOptions({ name: "CollectRecord" });
@@ -23,11 +23,6 @@ defineOptions({ name: "CollectRecord" });
 interface RecordQuery {
   page: number;
   pageSize: number;
-  collectRecordFlowId?: string;
-  collectRecordTaskId?: string;
-  collectRecordNodeId?: string;
-  collectRecordKey?: string;
-  collectRecordUrl?: string;
 }
 
 const flows = ref<CollectFlow[]>([]);
@@ -36,18 +31,18 @@ const countAll = ref(0);
 const selected = ref<CollectRecord[]>([]);
 const detailVisible = ref(false);
 const detail = ref<CollectRecord | null>(null);
-const tableRef = ref<{ reload: () => void; clearAllSelection: () => void } | null>(null);
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null);
 
 const query = ref<RecordQuery>({ page: 1, pageSize: 20 });
-const draft = ref({
-  collectRecordFlowId: "" as string | number,
-  collectRecordTaskId: "" as string | number,
+/** 内置搜索区的草稿值，点「查询」时由 ReTable 合并进 loader 的 params */
+const searchModel = ref<Record<string, unknown>>({
+  collectRecordFlowId: "",
+  collectRecordTaskId: "",
   collectRecordNodeId: "",
   collectRecordKey: "",
   collectRecordUrl: "",
 });
 
-const { ready } = useCollectGated();
 const { reload: reloadFlows } = useCollectView(async () => {
   flows.value = (await listFlows()) ?? [];
 });
@@ -70,6 +65,28 @@ const flowOptions = computed(() =>
   })),
 );
 
+/** 最近一次取数真正用到的流程：搜索框里的值只是草稿，改了没查之前不作数 */
+const activeFlowId = ref("");
+
+/** 内置搜索区：必须是 computed，流程下拉的选项要跟着流程列表刷新 */
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索采集结果",
+  filters: [
+    {
+      key: "collectRecordFlowId",
+      label: "流程",
+      type: "select",
+      placeholder: "全部流程",
+      options: flowOptions.value,
+      attrs: { filterable: true },
+    },
+    { key: "collectRecordTaskId", label: "任务 ID", type: "input", placeholder: "任务 ID" },
+    { key: "collectRecordNodeId", label: "节点 ID", type: "input", placeholder: "节点 ID" },
+    { key: "collectRecordKey", label: "业务主键", type: "input", placeholder: "业务主键模糊" },
+    { key: "collectRecordUrl", label: "来源地址", type: "input", placeholder: "来源地址模糊" },
+  ],
+}));
+
 function cellOf(record: unknown, name: string): string {
   const cells = (record as CollectRecord)?.cells ?? [];
   return cells.find(cell => cell.name === name)?.value ?? "";
@@ -79,7 +96,7 @@ function cellOf(record: unknown, name: string): string {
 const columns = computed<ReTableColumn[]>(() => {
   const base: ReTableColumn[] = [
     { prop: "collectRecordId", label: "ID", width: 80 },
-    ...(query.value.collectRecordFlowId
+    ...(activeFlowId.value
       ? []
       : [{ prop: "collectRecordFlowId", label: "流程", width: 80 } as ReTableColumn]),
     { prop: "collectRecordTaskId", label: "任务", width: 80 },
@@ -94,7 +111,7 @@ const columns = computed<ReTableColumn[]>(() => {
     formatter: (row: Record<string, unknown>) => cellOf(row, column.name),
   }));
   return [...base, ...dynamic, { prop: "createTime", label: "采集时间", width: 176 },
-    { prop: "action", label: "操作", width: 120, slot: "action", fixed: "right" }];
+    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right" }];
 });
 
 /** 字段定义驱动列：未选流程时没有稳定 schema，只展示固定列 */
@@ -110,6 +127,7 @@ const cellColumns = computed<{ name: string; label: string }[]>(() =>
 
 async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const flowId = params.collectRecordFlowId ? Number(params.collectRecordFlowId) : 0;
+  activeFlowId.value = flowId ? String(flowId) : "";
   const [page1, defs, count] = await Promise.all([
     pageRecords({
       page,
@@ -128,28 +146,16 @@ async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promi
   return { total: page1.total, data: page1.rows as unknown as Record<string, unknown>[] };
 }
 
-function search(): void {
-  const picked = draft.value;
-  query.value = {
-    page: 1,
-    pageSize: query.value.pageSize,
-    collectRecordFlowId: picked.collectRecordFlowId ? String(picked.collectRecordFlowId) : undefined,
-    collectRecordTaskId: picked.collectRecordTaskId ? String(picked.collectRecordTaskId) : undefined,
-    collectRecordNodeId: String(picked.collectRecordNodeId ?? "").trim() || undefined,
-    collectRecordKey: String(picked.collectRecordKey ?? "").trim() || undefined,
-    collectRecordUrl: String(picked.collectRecordUrl ?? "").trim() || undefined,
-  };
+/** 点「查询」：ReTable 自己会带新条件重载，本页只负责不在第一页时跳回去 */
+function backToFirstPage(): void {
+  if (query.value.page !== 1) {
+    void tableRef.value?.goto(1);
+  }
 }
 
-function reset(): void {
-  draft.value = {
-    collectRecordFlowId: "",
-    collectRecordTaskId: "",
-    collectRecordNodeId: "",
-    collectRecordKey: "",
-    collectRecordUrl: "",
-  };
-  query.value = { page: 1, pageSize: 20 };
+/** 点「重置」：内置搜索区只清值不取数，必须回到第一页重查一次 */
+function reloadFromFirstPage(): void {
+  void tableRef.value?.goto(1);
 }
 
 function pickSelection(rows: Record<string, unknown>[]): void {
@@ -189,12 +195,13 @@ async function removeSelected(): Promise<void> {
 }
 
 async function clearFlowRecords(): Promise<void> {
-  const flowId = draft.value.collectRecordFlowId;
+  const flowId = activeFlowId.value;
   if (!flowId) {
-    msgWarning("请先选择流程，清空必须带流程或任务");
+    msgWarning("请先按流程筛选，清空必须带流程或任务");
     return;
   }
-  if (!(await confirmAction("确认清空该流程的全部采集结果？该操作不可撤销。", "清空结果"))) {
+  const flowName = flowOptions.value.find(item => item.value === flowId)?.label ?? flowId;
+  if (!(await confirmAction(`确认清空流程「${flowName}」的全部采集结果？该操作不可撤销。`, "清空结果"))) {
     return;
   }
   try {
@@ -214,31 +221,7 @@ function showDetail(input: Record<string, unknown>): void {
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-filters">
-      <ReSelect
-        v-model="draft.collectRecordFlowId"
-        size="small"
-        clearable
-        filterable
-        placeholder="全部流程"
-        :options="flowOptions"
-        style="width: 200px"
-        @update:model-value="search"
-      />
-      <ReInput v-model="draft.collectRecordTaskId" size="small" clearable placeholder="任务 ID" style="width: 140px" @keyup.enter="search"/>
-      <ReInput v-model="draft.collectRecordNodeId" size="small" clearable placeholder="节点 ID" style="width: 120px" @keyup.enter="search"/>
-      <ReInput v-model="draft.collectRecordKey" size="small" clearable placeholder="业务主键模糊" style="width: 160px" @keyup.enter="search"/>
-      <ReInput v-model="draft.collectRecordUrl" size="small" clearable placeholder="来源地址模糊" style="width: 200px" @keyup.enter="search"/>
-      <ReButton size="small" type="primary" icon="Search" @click="search">查询</ReButton>
-      <ReButton size="small" @click="reset">重置</ReButton>
-      <span class="spacer"/>
-      <span class="collect-hint">{{ query.collectRecordFlowId ? `共 ${countAll} 条结果` : "选择流程后按字段定义展开结果列" }}</span>
-      <ReButton size="small" :disabled="!selected.length" @click="removeSelected">删除所选</ReButton>
-      <ReButton size="small" type="danger" plain @click="clearFlowRecords">清空结果</ReButton>
-    </div>
-
     <ReTable
-      v-if="ready"
       ref="tableRef"
       class="collect-card"
       table-id="collect-record"
@@ -249,14 +232,30 @@ function showDetail(input: Record<string, unknown>): void {
       row-key="collectRecordId"
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
       :page-sizes="[10, 20, 50, 100]"
       empty-text="暂无采集结果"
-      @selection-change="pickSelection"
       stripe
+      @selection-change="pickSelection"
+      @search="backToFirstPage"
+      @search-reset="reloadFromFirstPage"
     >
+      <template #toolbar>
+        <span class="collect-hint">
+          {{ activeFlowId ? `该流程共 ${countAll} 条结果` : "按流程筛选后展开字段列" }}
+        </span>
+        <ReButton
+          icon="Delete"
+          :disabled="!selected.length"
+          :title="selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'"
+          @click="removeSelected">selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'</ReButton>
+        <ReButton icon="CircleClose" type="danger" title="清空当前流程的全部结果" @click="clearFlowRecords">清空当前流程的全部结果</ReButton>
+      </template>
+
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="showDetail(row)">详情</ReButton>
-        <ReButton size="small" text type="danger" @click="removeOne(row)">删除</ReButton>
+        <ReButton layout="square" icon="View" type="primary" title="查看这条结果的字段" @click="showDetail(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" title="删除这条结果" @click="removeOne(row)"/>
       </template>
     </ReTable>
 

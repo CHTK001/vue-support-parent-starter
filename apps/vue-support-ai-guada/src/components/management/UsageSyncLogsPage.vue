@@ -67,11 +67,11 @@ async function loadData() {
   try {
     const res: any = await usageApi.syncLogs({
       page: currentPage.value,
-      pageSize: pageSize.value,
+      size: pageSize.value,
     });
     const data = res?.data || res?.records || res?.list || res || [];
     tableData.value = Array.isArray(data) ? data : (data.records || data.list || []);
-    total.value = res?.total || res?.count || tableData.value.length;
+    total.value = Number(data.total ?? res?.total ?? res?.count) || tableData.value.length;
   } catch (e: any) {
     ElMessage.error(`加载失败: ${e.message}`);
   } finally {

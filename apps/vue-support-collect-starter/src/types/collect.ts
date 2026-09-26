@@ -29,9 +29,23 @@ export interface CollectPage<T> {
 /* ------------------------------- 设计器元数据 ------------------------------- */
 
 /** 属性面板控件类型；switch 为后端预留，flow 是子流程下拉 */
-export type CollectParamType = "text" | "textarea" | "number" | "switch" | "select" | "pairs" | "fields" | "flow";
+export type CollectParamType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "switch"
+  | "select"
+  | "pairs"
+  | "fields"
+  | "flow"
+  /** 数据源下拉，候选项由数据源选项接口给出 */
+  | "datasource"
+  /** 数据表下拉，候选项随 dependsOn 指向的数据源级联刷新 */
+  | "table"
+  /** 字段映射表，左列取自 columnsFrom 指向的表 */
+  | "mapping";
 
-/** 单个参数元数据 */
+/** 参数元数据（/designer/metas 节点元数据） */
 export interface CollectParamMeta {
   name: string;
   label: string;
@@ -40,6 +54,21 @@ export interface CollectParamMeta {
   defaultValue: string | null;
   required: boolean;
   tip: string | null;
+  /** 级联来源参数名：table 候选项要从哪个数据源读 */
+  dependsOn?: string | null;
+  /** 取列来源参数名：mapping 左列候选取自哪个表参数 */
+  columnsFrom?: string | null;
+}
+
+/** 数据表列元数据，字段映射控件的左列候选项 */
+export interface CollectColumn {
+  name: string;
+  label: string | null;
+  position: number | null;
+  typeName: string | null;
+  size: number | null;
+  nullable: boolean | null;
+  primaryKey: boolean | null;
 }
 
 /** 节点类型元数据（/designer/metas 的元素） */
@@ -370,14 +399,6 @@ export interface CollectFunctionTestResult {
   resultType?: string | null;
   costMs?: number | null;
   errorMessage?: string | null;
-}
-
-/* ---------------------------------- 鉴权 ----------------------------------- */
-
-export interface CollectAuthStatus {
-  authEnabled: boolean;
-  authenticated: boolean;
-  username: string | null;
 }
 
 /* --------------------------------- 查询条件 -------------------------------- */

@@ -19,22 +19,6 @@
                     <PanelRightExpand20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
-                  <!-- 上下文面板切换 -->
-                  <LTooltip v-if="mainSession?.id" content="会话上下文" placement="bottom">
-                  <div class="header-icon-btn" :class="{ active: showContextPanel }"
-                    @click="showContextPanel = !showContextPanel">
-                    <Info20Filled class="w-5 h-5" />
-                  </div>
-                  </LTooltip>
-                  <!-- 会话工作状态面板切换 -->
-                  <LTooltip v-if="mainSession?.id" content="会话工作状态" placement="bottom">
-                  <div class="header-icon-btn" :class="{ active: showStatusPanel }" title="会话工作状态"
-                    role="button" tabindex="0" aria-label="会话工作状态" :aria-pressed="showStatusPanel"
-                    @click="showStatusPanel = !showStatusPanel"
-                    @keydown.enter.prevent="showStatusPanel = !showStatusPanel">
-                    <DataUsage20Filled class="w-5 h-5" />
-                  </div>
-                  </LTooltip>
                   <!-- 更多操作下拉菜单 -->
                   <DropdownMenu @command="handleMoreSelect">
                     <div class="header-icon-btn">
@@ -70,24 +54,6 @@
                   <ChatOutline v-if="mainSession && activeTabId === 'main'" :messages="chatPanelRef?.activeMessages || []"
                     :chat-panel-ref="chatPanelRef" @scroll-to-message="handleScrollToMessage" />
                 </div>
-
-                <!-- 上下文信息面板 -->
-                <ContextPanel
-                  v-if="showContextPanel && mainSession"
-                  :session-id="mainSession.id"
-                  :current-model="mainSession.model || mainSession.settings?.model"
-                  :messages="chatPanelRef?.activeMessages || []"
-                  :system-prompt="mainSession.systemPrompt || mainSession.settings?.systemPrompt"
-                  :max-context="mainSession.settings?.maxTokens || 8192"
-                />
-
-                <!-- 会话工作状态面板 -->
-                <SessionStatusPanel
-                  v-if="showStatusPanel && mainSession"
-                  :session-id="mainSession.id"
-                  :messages="chatPanelRef?.activeMessages || []"
-                  @close="showStatusPanel = false"
-                />
               </div>
             </div>
           </template>
@@ -150,16 +116,11 @@ import {
   // FileDownloadOutlined,
   // FileUploadOutlined
 } from "@vicons/material";
-import { PanelRightExpand20Filled, Info20Filled, DataUsage20Filled } from "@vicons/fluent";
+import { PanelRightExpand20Filled } from "@vicons/fluent";
 
 
 const ChatOutline = defineAsyncComponent(() => import("./ChatOutline.vue"));
 const WorkspaceSidebar = defineAsyncComponent(() => import("./workspace/WorkspaceSidebar.vue"));
-const ContextPanel = defineAsyncComponent(() => import("./ContextPanel.vue"));
-const SessionStatusPanel = defineAsyncComponent(() => import("./SessionStatusPanel.vue"));
-
-// 上下文面板显示状态
-const showContextPanel = ref(false);
 
 // 会话工作状态面板显示状态
 const showStatusPanel = ref(false);

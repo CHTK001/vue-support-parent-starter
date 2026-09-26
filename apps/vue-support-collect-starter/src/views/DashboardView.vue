@@ -1,8 +1,9 @@
 <!--
   平台总览：登录后的落地页（app.yaml 的 routeConfig.homePath 指向本页）。
 
-  数据全部来自现网接口，不做前端推算：runtime 给执行器与统计，task/flow 分页给最近执行与流程健康，
-  变量/数据源/函数/通知取列表长度；调度面直接读 sys_job 台账与作业日志的总数。
+  数据全部来自现网接口，不做前端推算：采集面读 runtime 与 task/flow 分页，变量/数据源/函数/通知取列表长度；
+  调度面只读 job-starter 的 /v2/scheduler/summary 一份概览，不再自己数台账行——概览里的
+  totalJobs / runningJobs / recentFailures 与工作台显示的是同一个口径。
   任一接口失败由 useCollectView 统一弹一条中文提示。
   keepAlive 命中时（从其它页签切回）重新取数，保证刚跑完的任务能立刻看到。
 -->
@@ -17,21 +18,21 @@ import ReTag from "@repo/ui/re-tag";
 import ReStatCard from "@repo/ui/re-stat-card";
 import {
   fetchRuntime,
-  listDatasources,
   listFunctions,
   listNotices,
   listVariables,
   pageFlows,
   pageTasks,
 } from "../api/collectApi";
-import { pageJobs, pageJobLogs } from "../api/jobApi";
+import { getSummary, pageJobs } from "../api/jobApi";
 import { costText, statusTagType, statusText, triggerText } from "../constants/taskStatus";
-import { useCollectGated, useCollectView } from "../composables/useCollectView";
+import { COLLECT_FLOW_GROUP, type JobRuntime, type JobSummary } from "../types/job";
+import { useCollectView } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import type { SysJob } from "../types/job";
+// 数据源台账已统一到 @pages/datasource（后端数据源中心），本页按其字段口径统计
+import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import type {
-  CollectDatasourceVO,
   CollectFlow,
   CollectFunction,
   CollectNotice,
@@ -54,45 +55,38 @@ interface Kpi {
 
 const router = useRouter();
 const runtime = ref<CollectRuntime | null>(null);
+const summary = ref<JobSummary | null>(null);
 const recentTasks = ref<CollectTask[]>([]);
 const flows = ref<CollectFlow[]>([]);
+const jobs = ref<JobRuntime[]>([]);
 const variables = ref<CollectVariable[]>([]);
-const datasources = ref<CollectDatasourceVO[]>([]);
+const datasources = ref<DataSourceInfo[]>([]);
 const functions = ref<CollectFunction[]>([]);
 const notices = ref<CollectNotice[]>([]);
-const jobs = ref<SysJob[]>([]);
-const jobTotal = ref(0);
-const enabledJobCount = ref(0);
-const failureLogCount = ref(0);
 const updatedAt = ref("");
 const autoRefresh = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const { ready } = useCollectGated();
 const { loading, reload } = useCollectView(async () => {
-  const [rt, taskPage, flowPage, vars, ds, fns, nts, jobPage, enabledPage, failedLogPage] = await Promise.all([
+  const [rt, sum, taskPage, flowPage, jobPage, vars, ds, fns, nts] = await Promise.all([
     fetchRuntime(),
+    getSummary(),
     pageTasks({ page: 1, pageSize: 8 }),
     pageFlows({ page: 1, pageSize: 8 }),
+    pageJobs({ pageNum: 1, pageSize: 6 }),
     listVariables(),
-    listDatasources(),
+    fetchDataSources(),
     listFunctions(),
     listNotices(),
-    pageJobs({ pageNum: 1, pageSize: 6 }),
-    pageJobs({ pageNum: 1, pageSize: 1, sysJobTriggerStatus: 1 }),
-    pageJobLogs({ pageNum: 1, pageSize: 1, executeCode: "FAILURE" }),
   ]);
   runtime.value = rt;
+  summary.value = sum;
   recentTasks.value = taskPage.rows;
   flows.value = flowPage.rows;
+  jobs.value = jobPage?.data ?? [];
   variables.value = vars ?? [];
   datasources.value = ds ?? [];
-  functions.value = fns ?? [];
-  notices.value = nts ?? [];
-  jobs.value = jobPage.rows;
-  jobTotal.value = jobPage.total;
-  enabledJobCount.value = enabledPage.total;
-  failureLogCount.value = failedLogPage.total;
+  functions.value = fns ?? [];  notices.value = nts ?? [];
   updatedAt.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
 });
 
@@ -113,6 +107,7 @@ onDeactivated(() => toggleAuto(false));
 
 const kpis = computed<Kpi[]>(() => {
   const rt = runtime.value;
+  const s = summary.value;
   const num = (value: number | undefined) => (value ?? 0).toLocaleString("zh-CN");
   return [
     {
@@ -128,19 +123,28 @@ const kpis = computed<Kpi[]>(() => {
       key: "task",
       title: "执行任务",
       value: num(rt?.taskCount),
-      desc: `运行中 ${rt?.runningTasks ?? 0} · 采集流程登记 ${rt?.scheduledJobCount ?? 0} 个`,
+      desc: `运行中 ${rt?.runningTasks ?? 0} · 登记调度 ${rt?.scheduledJobCount ?? 0} 个`,
       icon: "Timer",
       color: "var(--el-color-success)",
       path: "/collect/task",
     },
     {
       key: "job",
-      title: "调度作业",
-      value: num(jobTotal.value),
-      desc: `启用 ${enabledJobCount.value} · 失败轮次 ${failureLogCount.value}`,
+      title: "调度任务",
+      value: num(s?.totalJobs),
+      desc: `启用 ${s?.runningJobs ?? 0} · 未注册 ${s?.unregisteredJobs ?? 0}`,
       icon: "AlarmClock",
-      color: "var(--el-color-info)",
+      color: (s?.unregisteredJobs ?? 0) > 0 ? "var(--el-color-warning)" : "var(--el-color-info)",
       path: "/collect/job",
+    },
+    {
+      key: "fail",
+      title: "24 小时失败",
+      value: num(s?.recentFailures),
+      desc: `本地 ${s?.localJobs ?? 0} · 远程 ${s?.remoteJobs ?? 0}`,
+      icon: "WarningFilled",
+      color: (s?.recentFailures ?? 0) > 0 ? "var(--el-color-danger)" : "var(--el-color-info)",
+      path: "/collect/job-log",
     },
     {
       key: "record",
@@ -164,7 +168,7 @@ const kpis = computed<Kpi[]>(() => {
       key: "datasource",
       title: "数据源",
       value: num(datasources.value.length),
-      desc: `启用 ${datasources.value.filter(item => item.collectDatasourceStatus === 1).length} 个`,
+      desc: `启用 ${datasources.value.filter(item => item.status === null || item.status === 1).length} 个`,
       icon: "Coin",
       color: "var(--el-color-primary)",
       path: "/collect/datasource",
@@ -173,60 +177,80 @@ const kpis = computed<Kpi[]>(() => {
       key: "function",
       title: "自定义函数",
       value: num(functions.value.length),
-      desc: `启用 ${functions.value.filter(item => item.collectFunctionEnabled !== 0).length} 个`,
+      desc: `启用 ${functions.value.filter(item => item.collectFunctionEnabled !== 0).length} 个 · 通知 ${notices.value.length}`,
       icon: "Operation",
       color: "var(--el-color-success)",
       path: "/collect/function",
     },
-    {
-      key: "notice",
-      title: "执行通知",
-      value: num(notices.value.length),
-      desc: `启用 ${notices.value.filter(item => item.collectNoticeEnabled !== 0).length} 个`,
-      icon: "Bell",
-      color: "var(--el-color-danger)",
-      path: "/collect/notice",
-    },
   ];
+});
+
+/** 引擎身份：调度面只有一个事实来源，就是概览接口 */
+const engineRow = computed(() => {
+  const s = summary.value;
+  if (!s) {
+    return { tone: "info" as const, text: "未取到调度概览，说明 job-starter 治理接口在当前后端未启用" };
+  }
+  if (!s.leader) {
+    return { tone: "warning" as const, text: `${s.role ?? "—"} 角色 · 本节点 ${s.nodeId ?? "—"} 不是 Leader，到点任务不会被派发` };
+  }
+  if (s.unregisteredJobs > 0) {
+    return { tone: "warning" as const, text: `${s.unregisteredJobs} 个启用任务没有同名处理器，去工作台看「未注册」标记` };
+  }
+  if (s.unclaimedRemoteJobs > 0) {
+    return { tone: "warning" as const, text: `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发` };
+  }
+  return {
+    tone: "success" as const,
+    text: `${s.role ?? "—"} 角色 · Leader ${s.nodeId ?? "—"} · 已登记处理器 ${s.registeredHandlers} 个`,
+  };
 });
 
 const schedulerRows = computed<{ label: string; value: string }[]>(() => {
   const rt = runtime.value;
-  if (!rt) {
-    return [];
+  const s = summary.value;
+  const rows: { label: string; value: string }[] = [];
+  if (s) {
+    rows.push(
+      { label: "调度分组", value: s.group || "—" },
+      { label: "扫描节奏", value: `每 ${s.scanIntervalMs}ms 扫描 · 提前 ${s.preReadMs}ms 预读` },
+      { label: "台账任务", value: `${s.totalJobs} 个 · 启用 ${s.runningJobs} · 停用 ${s.stoppedJobs}` },
+      { label: "分发构成", value: `本地 ${s.localJobs} · 远程 ${s.remoteJobs}${s.remoteDispatchOwnedByMe ? "（由本节点下发）" : `（${s.unclaimedRemoteJobs} 个本节点不领取）`}` },
+    );
   }
-  return [
-    { label: "执行器", value: rt.executorId || "—" },
-    { label: "调度台账", value: `${rt.schedulerGroup} · 采集流程登记 ${rt.scheduledJobCount} / 全台账 ${jobTotal.value} 个作业` },
-    { label: "启用中作业", value: `${enabledJobCount.value} 个 · 失败轮次 ${failureLogCount.value}` },
-    { label: "任务超时", value: `${rt.taskTimeoutMs / 1000}s` },
-    { label: "请求超时", value: `${rt.requestTimeoutMs / 1000}s` },
-    { label: "默认线程", value: String(rt.defaultThreadCount) },
-    { label: "单任务结果上限", value: rt.maxRecordPerTask.toLocaleString("zh-CN") },
-  ];
+  if (rt) {
+    rows.push(
+      { label: "采集执行器", value: rt.executorId || "—" },
+      { label: "流程登记", value: `采集流程 ${rt.scheduledJobCount} 个 / 全台账 ${s?.totalJobs ?? 0} 个` },
+      { label: "任务超时", value: `${rt.taskTimeoutMs / 1000}s` },
+      { label: "请求超时", value: `${rt.requestTimeoutMs / 1000}s` },
+      { label: "默认线程", value: String(rt.defaultThreadCount) },
+      { label: "单任务结果上限", value: rt.maxRecordPerTask.toLocaleString("zh-CN") },
+    );
+  }
+  return rows;
 });
 
 const taskColumns = computed<ReTableColumn[]>(() => [
-  { prop: "status", label: "状态", width: 78, slot: "status" },
+  { prop: "collectTaskStatus", label: "状态", width: 78, slot: "status" },
   { prop: "collectTaskFlowName", label: "流程", minWidth: 130, showOverflowTooltip: true },
   { prop: "collectTaskTriggerType", label: "触发", width: 68, slot: "trigger" },
   { prop: "collectTaskCost", label: "耗时", width: 78, slot: "cost", align: "right" },
-  { prop: "collectTaskBeginTime", label: "开始", width: 150, slot: "begin" },
+  { prop: "collectTaskBeginTime", label: "开始", width: 132, slot: "begin" },
 ]);
 
 const flowColumns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowName", label: "流程", minWidth: 140, showOverflowTooltip: true },
-  { prop: "collectFlowCron", label: "调度", width: 120, slot: "cron", showOverflowTooltip: true },
-  { prop: "collectFlowLastExecTime", label: "最近执行", width: 150, slot: "last" },
-  { prop: "collectFlowExecCount", label: "次数", width: 74, align: "right" },
-  { prop: "action", label: "操作", width: 72, slot: "action" },
+  { prop: "collectFlowCron", label: "调度", width: 118, slot: "cron" },
+  { prop: "collectFlowLastExecTime", label: "最近执行", width: 132, slot: "last" },
+  { prop: "collectFlowExecCount", label: "次数", width: 66, align: "right" },
 ]);
 
 const jobColumns = computed<ReTableColumn[]>(() => [
-  { prop: "sysJobName", label: "作业", minWidth: 130, showOverflowTooltip: true },
-  { prop: "sysJobScheduleType", label: "调度", width: 60, align: "center" },
-  { prop: "sysJobTriggerStatus", label: "状态", width: 62, slot: "status", align: "center" },
-  { prop: "sysJobTriggerNextTime", label: "下次触发", width: 150, slot: "next" },
+  { prop: "jobName", label: "任务", minWidth: 130, slot: "name", showOverflowTooltip: true },
+  { prop: "scheduleType", label: "调度", width: 58, slot: "type" },
+  { prop: "enabled", label: "状态", width: 62, slot: "status", align: "center" },
+  { prop: "nextFireTime", label: "下次触发", width: 140, slot: "next" },
 ]);
 
 /**
@@ -260,31 +284,40 @@ function go(path: string): void {
   void router.push(path);
 }
 
+function scheduleText(job: JobRuntime): string {
+  if (job.scheduleType === "NONE" || !job.scheduleTime) {
+    return "不自动调度";
+  }
+  return job.scheduleType === "CRON" ? `CRON · ${job.scheduleTime}` : `${job.scheduleType} · ${job.scheduleTime}ms`;
+}
+
 /** 只保留 "MM-DD HH:mm:ss"，总览里年份占宽且无信息量 */
 function shortTime(value: unknown): string {
   const text = String(value ?? "");
-  return text.length >= 16 ? text.slice(5) : text || "—";
+  return text.length >= 16 ? text.slice(5, 19) : text || "—";
 }
 </script>
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-card--head">
+    <div class="collect-head">
       <ReIcon name="Odometer" :size="18"/>
-      <b>平台总览</b>
+      <h2 class="collect-head__title">平台总览</h2>
       <ReTag size="small" :type="runtime?.enable ? 'success' : 'danger'" effect="plain">
-        {{ runtime?.enable ? "调度已启用" : "调度未启用" }}
+        {{ runtime?.enable ? "采集已启用" : "采集未启用" }}
       </ReTag>
       <span class="collect-pulse" :class="{ 'is-idle': !runtime?.runningTasks }"/>
-      <span class="collect-hint">运行中 {{ runtime?.runningTasks ?? 0 }} · 执行器 {{ runtime?.executorId || "—" }}</span>
+      <span class="collect-head__sub">
+        运行中 {{ runtime?.runningTasks ?? 0 }} · 执行器 {{ runtime?.executorId || "—" }} ·
+        更新于 {{ updatedAt || "—" }}
+      </span>
       <span class="spacer"/>
-      <span class="collect-hint collect-hint--muted">更新于 {{ updatedAt || "—" }}</span>
-      <span class="collect-hint">自动刷新</span>
-      <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto"/>
-      <ReButton size="small" icon="Refresh" :loading="loading" @click="reload">刷新</ReButton>
+      <span class="collect-hint collect-hint--muted">自动刷新</span>
+      <ReSwitch v-model="autoRefresh" size="small" aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
+      <ReButton size="small" icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新总览</ReButton>
     </div>
 
-    <div class="dash-kpis">
+    <div class="collect-stats">
       <ReStatCard
         v-for="kpi in kpis"
         :key="kpi.key"
@@ -300,21 +333,26 @@ function shortTime(value: unknown): string {
       </ReStatCard>
     </div>
 
+    <div class="collect-callout" :class="`is-${engineRow.tone === 'info' ? 'warn' : engineRow.tone}`">
+      <ReIcon :name="engineRow.tone === 'success' ? 'CircleCheck' : 'Warning'" :size="14"/>
+      <span>{{ engineRow.text }}</span>
+    </div>
+
     <div class="dash-grid">
       <div class="collect-card dash-panel">
-        <div class="collect-card--head dash-panel__head">
+        <div class="collect-rail__title dash-panel__head">
+          <ReIcon name="Timer" :size="14"/>
           <b>最近执行</b>
           <span class="spacer"/>
           <ReButton size="small" text type="primary" @click="go('/collect/task')">任务监控</ReButton>
         </div>
         <ReTable
-          v-if="ready"
           :data="recentTasks as unknown as Record<string, unknown>[]"
           :columns="taskColumns"
           :pagination="false"
           :toolbar="false"
           row-key="collectTaskId"
-          size="small"
+          :layout-table="{ minHeight: 0 }"
           empty-text="还没有执行记录，去「流程设计」运行一个流程"
         >
           <template #status="{ row }">
@@ -323,83 +361,86 @@ function shortTime(value: unknown): string {
             </ReTag>
           </template>
           <template #trigger="{ row }">{{ triggerText(row.collectTaskTriggerType) }}</template>
-          <template #cost="{ row }">{{ costText(row.collectTaskCost) }}</template>
+          <template #cost="{ row }"><span class="collect-num">{{ costText(row.collectTaskCost) }}</span></template>
           <template #begin="{ row }">
-            <span class="collect-cell-mono">{{ shortTime(row.collectTaskBeginTime) }}</span>
+            <span class="collect-num">{{ shortTime(row.collectTaskBeginTime) }}</span>
           </template>
         </ReTable>
       </div>
 
       <div class="collect-card dash-panel">
-        <div class="collect-card--head dash-panel__head">
+        <div class="collect-rail__title dash-panel__head">
+          <ReIcon name="Share" :size="14"/>
           <b>流程健康</b>
           <span class="spacer"/>
           <ReButton size="small" text type="primary" @click="go('/collect/design')">流程设计</ReButton>
         </div>
         <ReTable
-          v-if="ready"
           :data="flows as unknown as Record<string, unknown>[]"
           :columns="flowColumns"
           :pagination="false"
           :toolbar="false"
           row-key="collectFlowId"
-          size="small"
+          :layout-table="{ minHeight: 0 }"
           empty-text="还没有流程"
         >
           <template #cron="{ row }">
             <span class="collect-cell-mono">{{ row.collectFlowCron || "手动" }}</span>
           </template>
           <template #last="{ row }">
-            <span class="collect-cell-mono">{{ shortTime(row.collectFlowLastExecTime) }}</span>
-          </template>
-          <template #action="{ row }">
-            <ReButton size="small" text type="primary" @click="go('/collect/design')">
-              {{ row.running ? "运行中" : "编排" }}
-            </ReButton>
+            <span class="collect-num">{{ shortTime(row.collectFlowLastExecTime) }}</span>
           </template>
         </ReTable>
       </div>
+
       <div class="collect-card dash-panel">
-        <div class="collect-card--head dash-panel__head">
-          <b>调度作业</b>
+        <div class="collect-rail__title dash-panel__head">
+          <ReIcon name="AlarmClock" :size="14"/>
+          <b>调度任务</b>
           <span class="spacer"/>
-          <ReButton size="small" text type="primary" @click="go('/collect/job')">调度作业台</ReButton>
+          <ReButton size="small" text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
         </div>
         <ReTable
-          v-if="ready"
           :data="jobs as unknown as Record<string, unknown>[]"
           :columns="jobColumns"
           :pagination="false"
           :toolbar="false"
-          row-key="sysJobNo"
-          size="small"
-          empty-text="台账为空，去「调度作业」新建或在流程设计页给流程配 cron"
+          row-key="jobKey"
+          :layout-table="{ minHeight: 0 }"
+          empty-text="台账里还没有任务，去工作台新建或在流程设计页给流程配 cron"
         >
+          <template #name="{ row }">
+            <span>{{ row.jobName || row.jobKey }}</span>
+            <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline" size="small" type="primary" effect="plain">
+              采集流程
+            </ReTag>
+          </template>
+          <template #type="{ row }">
+            <span class="collect-cell-mono" :title="scheduleText(row as unknown as JobRuntime)">{{ row.scheduleType }}</span>
+          </template>
           <template #status="{ row }">
-            <ReTag size="small" :type="Number(row.sysJobTriggerStatus) === 1 ? 'success' : 'info'" effect="plain">
-              {{ Number(row.sysJobTriggerStatus) === 1 ? "启用" : "停用" }}
+            <ReTag size="small" :type="row.enabled === true ? 'success' : 'info'" effect="plain">
+              {{ row.enabled === true ? "启用" : "停用" }}
             </ReTag>
           </template>
           <template #next="{ row }">
-            <span class="collect-cell-mono">
-              {{ Number(row.sysJobTriggerStatus) === 1 ? fmtMs(row.sysJobTriggerNextTime) : "—" }}
-            </span>
+            <span class="collect-num">{{ row.enabled === true ? fmtMs(row.nextFireTime) : "—" }}</span>
           </template>
         </ReTable>
       </div>
     </div>
 
     <div class="collect-card">
-      <div class="collect-card--head dash-panel__head">
-        <b>调度与执行参数</b>
+      <div class="collect-rail__title dash-panel__head">
+        <ReIcon name="Setting" :size="14"/>
+        <b>运行时参数</b>
         <span class="spacer"/>
-        <ReButton size="small" icon="DocumentAdd" @click="go('/collect/design')">新建流程</ReButton>
-        <ReButton size="small" icon="SetUp" @click="go('/collect/variable')">变量</ReButton>
-        <ReButton size="small" icon="Coin" @click="go('/collect/datasource')">数据源</ReButton>
-        <ReButton size="small" icon="Operation" @click="go('/collect/function')">函数库</ReButton>
-        <ReButton size="small" icon="Bell" @click="go('/collect/notice')">通知</ReButton>
-        <ReButton size="small" icon="AlarmClock" @click="go('/collect/job')">调度作业</ReButton>
-        <ReButton size="small" icon="Tickets" @click="go('/collect/job-log')">作业日志</ReButton>
+        <ReButton size="small" text icon="Share" @click="go('/collect/design')">新建流程</ReButton>
+        <ReButton size="small" text icon="SetUp" @click="go('/collect/variable')">变量</ReButton>
+        <ReButton size="small" text icon="Coin" @click="go('/collect/datasource')">数据源</ReButton>
+        <ReButton size="small" text icon="Operation" @click="go('/collect/function')">函数库</ReButton>
+        <ReButton size="small" text icon="Bell" @click="go('/collect/notice')">通知</ReButton>
+        <ReButton size="small" text icon="Tickets" @click="go('/collect/job-log')">作业日志</ReButton>
       </div>
       <dl class="collect-kv dash-kv">
         <div v-for="item in schedulerRows" :key="item.label" class="dash-kv__item">
@@ -408,23 +449,16 @@ function shortTime(value: unknown): string {
         </div>
       </dl>
       <p v-if="!schedulerRows.length" class="collect-hint collect-hint--muted">
-        未取到运行时参数，说明采集模块在当前后端未启用。
+        未取到运行时参数，说明采集与调度接口在当前后端都不可用。
       </p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.dash-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
 .dash-kpi {
   cursor: pointer;
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transition: box-shadow var(--cc-duration) var(--cc-ease), transform var(--cc-duration) var(--cc-ease);
 }
 
 .dash-kpi:hover {
@@ -434,38 +468,35 @@ function shortTime(value: unknown): string {
 
 .dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--cc-gap);
 }
 
 .dash-panel {
   padding-bottom: 6px;
+  min-width: 0;
 }
 
 .dash-panel__head {
-  padding: 2px 2px 8px;
-  border: none;
-  box-shadow: none;
+  padding-bottom: 8px;
 }
 
 .dash-kv {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: 1fr;
+  gap: var(--cc-gap-sm) var(--cc-gap);
 }
 
 .dash-kv__item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px;
   align-items: baseline;
-  gap: 10px;
   min-width: 0;
 }
 
-.dash-kv__item dt {
-  flex: 0 0 auto;
-}
-
-.dash-kv__item dd {
-  flex: 1 1 auto;
-  min-width: 0;
+@media (min-width: 1100px) {
+  .dash-kv {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

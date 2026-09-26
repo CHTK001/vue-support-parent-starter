@@ -10,7 +10,11 @@
       "@pages/server/*": ["../../pages/server/*"],
       "@pages/server": ["../../pages/server/src/index.ts"],
       "@pages/monitor/*": ["../../pages/monitor/*"],
-      "@pages/monitor": ["../../pages/monitor/src/index.ts"]
+      "@pages/monitor": ["../../pages/monitor/src/index.ts"],
+      "@pages/filesystem/*": ["../../pages/filesystem/*"],
+      "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
+      "@pages/datasource/*": ["../../pages/datasource/*"],
+      "@pages/datasource": ["../../pages/datasource/src/index.ts"]
     }
   },
   "include": [
@@ -20,6 +24,8 @@
     "../../packages/core/src/**/*.d.ts",
     "../../pages/server/src/**/*.d.ts",
     "../../pages/message/src/**/*.d.ts",
-    "../../pages/hotsport/src/**/*.d.ts"
+    "../../pages/hotsport/src/**/*.d.ts",
+    "../../pages/filesystem/src/**/*.d.ts",
+    "../../pages/datasource/src/**/*.d.ts"
   ]
 }

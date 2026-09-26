@@ -8,6 +8,7 @@ import { computed, type ComputedRef } from "vue";
 import { resolveUserDisplayInfo } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import {
+  defaultFrameLayerStyle,
   getAvatarFrameLayerStyle,
   hasAvatarFrame,
   isAvatarFrameEnabled,
@@ -32,6 +33,10 @@ export function useWornAvatarFrame(
   visible: ComputedRef<boolean>;
   layerStyle: (avatarSize: number, maxMultiple?: number) => Record<string, string>;
   spillPx: (avatarSize: number, maxMultiple?: number) => number;
+  /** 未佩戴头像框（或功能关闭/隐藏）时展示默认光环 */
+  defaultVisible: ComputedRef<boolean>;
+  /** 默认光环叠加层样式（配合全局类 .koi-avatar-default-frame） */
+  defaultStyle: (avatarSize: number) => Record<string, string>;
 } {
   const authStore = useAuthStore();
   // 刷新页面时守卫可能命中菜单缓存而不再调 /v2/user/me，loginUser 仍是初始零值；
@@ -55,5 +60,9 @@ export function useWornAvatarFrame(
   // 预留外边距：无帧时也占同样的位置，避免佩戴/取下时布局跳动
   const spillPx = (avatarSize: number, maxMultiple?: number): number =>
     wornFrameSpillPx(avatarSize, maxMultiple);
-  return { visible, layerStyle, spillPx };
+  // 未佩戴（或隐藏/功能关闭）时用默认光环兜底，保证头像始终有精致的收边
+  const defaultVisible = computed(() => !visible.value);
+  const defaultStyle = (avatarSize: number): Record<string, string> =>
+    defaultFrameLayerStyle(avatarSize);
+  return { visible, layerStyle, spillPx, defaultVisible, defaultStyle };
 }

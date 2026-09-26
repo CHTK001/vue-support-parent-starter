@@ -6,14 +6,18 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { fetchAlarmEvents, fetchMonitors, alarmLevel, isUnhandled, type AlarmEvent, type MonitorItem } from "../monitorApi";
+import { useSocketService } from "@repo/core";
+import { queryHosts } from "@pages/server/src/api";
+import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "../monitorApi";
 
 const router = useRouter();
+const socket = useSocketService();
 const loading = ref(false);
 const loadError = ref("");
-const monitors = ref<MonitorItem[]>([]);
+/** 资产口径改为主机台账（而非监控项），初始 HTTP 拉取后由 socket 实时更新，不做轮询 */
+const hosts = ref<any[]>([]);
 const events = ref<AlarmEvent[]>([]);
 const lastRefresh = ref("");
 
@@ -21,7 +25,8 @@ const LEVELS = ["P0", "P1", "P2", "P3", "P4"] as const;
 const LEVEL_COLORS: Record<string, string> = { P0: "var(--sev-p0-text)", P1: "var(--sev-p1-text)", P2: "var(--sev-p2-text)", P3: "var(--sev-p3-text)", P4: "var(--sev-p4-text)" };
 const LEVEL_LABELS: Record<string, string> = { P0: "严重", P1: "高", P2: "中", P3: "低", P4: "信息" };
 
-const onlineCount = computed(() => monitors.value.filter(m => m.monitorEnabled === 1).length);
+const enabledCount = computed(() => hosts.value.filter(h => Number(h.serverHostStatus) !== 0).length);
+const onlineCount = computed(() => hosts.value.filter(h => Number(h.serverHostOnline) === 1).length);
 const unhandledCount = computed(() => events.value.filter(isUnhandled).length);
 const totalAlarms = computed(() => events.value.length);
 const levelCounts = computed(() => {
@@ -45,16 +50,63 @@ const recentAlarms = computed(() =>
   [...events.value].sort((a, b) => (b.msMonitorAlarmEventTriggerTime ?? "").localeCompare(a.msMonitorAlarmEventTriggerTime ?? "")).slice(0, 5),
 );
 
-async function fetchAll(): Promise<void> {
-  loading.value = true; loadError.value = "";
-  try {
-    const [m, ev] = await Promise.all([fetchMonitors(), fetchAlarmEvents()]);
-    monitors.value = m ?? []; events.value = ev ?? [];
-    const d = new Date(); lastRefresh.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-  } catch (e) { loadError.value = String((e as Error)?.message ?? e); }
-  finally { loading.value = false; }
+/** 写入最近更新时钟 */
+function stampClock(): void {
+  const d = new Date();
+  lastRefresh.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 }
-onMounted(fetchAll);
+
+async function fetchAll(silent = false): Promise<void> {
+  if (!silent) loading.value = true;
+  loadError.value = "";
+  try {
+    const [hs, ev] = await Promise.all([queryHosts({}), fetchAlarmEvents()]);
+    hosts.value = hs ?? []; events.value = ev ?? [];
+    stampClock();
+  } catch (e) { loadError.value = String((e as Error)?.message ?? e); }
+  finally { if (!silent) loading.value = false; }
+}
+
+// ---------------- Socket 实时（不轮询） ----------------
+let unsubOnline: (() => void) | undefined;
+let unsubMetrics: (() => void) | undefined;
+let unsubAlarm: (() => void) | undefined;
+function bindSocket(): void {
+  if (!socket) return;
+  unsubOnline = socket.subscribe("monitor", "host-online", (msg: any) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; online?: number };
+      const t = d?.hostId != null ? hosts.value.find(h => h.id === d.hostId) : null;
+      if (t) t.serverHostOnline = d.online ? 1 : 0;
+    } catch { /* 静默 */ }
+  });
+  unsubMetrics = socket.subscribe("monitor", "host-metrics", (msg: any) => {
+    try {
+      const d = (msg.data ?? msg) as { hostId?: number; cpu?: number; mem?: number; disk?: number };
+      const t = d?.hostId != null ? hosts.value.find(h => h.id === d.hostId) : null;
+      if (t) {
+        if (d.cpu != null) t.serverHostCpuUsage = Number(d.cpu);
+        if (d.mem != null) t.serverHostMemUsage = Number(d.mem);
+        if (d.disk != null) t.serverHostDiskUsage = Number(d.disk);
+        stampClock();
+      }
+    } catch { /* 静默 */ }
+  });
+  // 告警事件由 socket 广播触发一次增量拉取（非定时轮询）
+  unsubAlarm = socket.subscribe("monitor", "alarm", () => {
+    void fetchAlarmEvents()
+      .then(ev => { events.value = ev ?? []; stampClock(); })
+      .catch(() => { /* 静默 */ });
+  });
+}
+
+onMounted(() => {
+  void fetchAll();
+  bindSocket();
+});
+onBeforeUnmount(() => {
+  unsubOnline?.(); unsubMetrics?.(); unsubAlarm?.();
+});
 </script>
 
 <template>
@@ -62,10 +114,10 @@ onMounted(fetchAll);
     <div class="page-header">
       <div>
         <h1 class="page-title">监控概览</h1>
-        <p class="page-desc">资产健康一览 · 最近更新 {{ lastRefresh || "—" }} <span class="muted">· 每 10s 自动刷新</span></p>
+        <p class="page-desc">资产健康一览 · 最近更新 {{ lastRefresh || "—" }} <span class="muted">· 实时更新</span></p>
       </div>
       <div class="page-actions">
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll()">刷新</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="router.push('/assets')">新建资产</ReButton>
       </div>
     </div>
@@ -73,15 +125,15 @@ onMounted(fetchAll);
     <div v-if="loadError" class="as-error">
       <ReStatusIndicator type="danger" />
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll()">重试</ReButton>
     </div>
 
     <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字） -->
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
-        <ReStatCard title="资产总数" :desc="`运行中 ${onlineCount} · 离线 ${monitors.length - onlineCount}`" icon-color="var(--brand-500)">
+        <ReStatCard title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
           <template #icon><ReButton icon="DataBoard" layout="square" size="small" /></template>
-          <template #value><span class="kpi-big">{{ monitors.length }}</span></template>
+          <template #value><span class="kpi-big">{{ hosts.length }}</span></template>
         </ReStatCard>
         <ReStatCard title="未处理告警" :desc="`累计事件 ${totalAlarms}`" icon-color="var(--status-alarm)">
           <template #icon><ReButton icon="Bell" layout="square" size="small" type="danger" /></template>

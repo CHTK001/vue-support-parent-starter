@@ -1,4 +1,12 @@
 ﻿export default {
+  // RAG not configured gate (knowledge base depends on RAG)
+  ragGate: {
+    title: 'Knowledge base unavailable',
+    desc: 'The knowledge base requires RAG. Configure the RAG model and storage parameters in "Settings → Default Models" first.',
+    goConfig: 'Configure now',
+    fetchFailed: 'Unable to read RAG configuration status. Please retry or finish the configuration first.',
+  },
+
   status: {
     queued: 'Queued',
     uploading: 'Uploading',
@@ -21,6 +29,7 @@
     tagPrivate: 'Private',
     noDescription: 'No description',
     enter: 'Open',
+    readonlyHint: 'This is a read-only public knowledge base owned by someone else. You can view and search it, but not upload, edit, or delete.',
     notFound: 'No matching knowledge base found',
     empty: 'No knowledge bases',
     notFoundHint: 'Try adjusting your search keywords',
@@ -39,6 +48,7 @@
     chunkMaxSize: 'Max Chunk Size',
     chunkOverlapSize: 'Overlap Size',
     chunkMinSize: 'Min Chunk Size',
+    chunkSection: 'Chunking',
     visibility: 'Visibility',
     visibilityHint: 'Public knowledge bases can be viewed by others',
     inputNameWarning: 'Please enter a knowledge base name',
@@ -57,6 +67,7 @@
     deleteFileConfirm: 'Are you sure you want to delete file "{name}"? This action cannot be undone.',
     deleteKbTitle: 'Warning',
     deleteKbConfirm: 'Are you sure you want to delete knowledge base "{name}"? This action cannot be undone.',
+    deleteKbNote: 'This unbinds the knowledge base from all sessions and characters. Files in managed directories are kept on the server by default; remove them in the Files view first to purge them.',
   },
 
   file: {

@@ -92,6 +92,14 @@ export function formatByPattern(date: Date, pattern: string): string {
 export function formatValue(value: ReTimeValue, format: ReTimeFormat): string {
   const ms = toMs(value);
   if (!Number.isFinite(ms)) return "";
+  // 时长类输入是「毫秒数」而不是时间戳：必须在 toMs 之前分流，
+  // 否则 800（毫秒）会被当成秒级时间戳放大成 800000。
+  if (format === "duration") {
+    return formatDuration(value);
+  }
+  if (format === "ms") {
+    return String(Math.round(ms));
+  }
   const date = new Date(ms);
   switch (format) {
     case "timestamp":

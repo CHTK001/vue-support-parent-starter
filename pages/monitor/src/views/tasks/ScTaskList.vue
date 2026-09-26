@@ -309,17 +309,8 @@ onMounted(fetchList)
   gap: 14px;
   margin-bottom: 14px;
 }
-.summary-row :deep(.re-stat-card) {
-  background: var(--bg-container-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg, var(--border-radius));
-  box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-}
-.summary-row :deep(.re-stat-card:hover) {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
+/* 统计卡视觉（圆角/无边框/双层柔光/悬停上浮）由 ReStatCard 的 re-surface 基线提供，
+   此处不再覆写一遍，避免与基线重复且互相打架。 */
 
 .filter-bar {
   display: flex;

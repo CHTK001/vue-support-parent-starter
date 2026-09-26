@@ -1,121 +1,211 @@
 /**
- * 调度作业台账类型（对应 job-starter 的 sys_job / sys_job_log）。
+ * 调度中心的前端类型，对应 job-starter 治理接口的出参 VO。
  *
- * 合并后这张表是采集与调度共用的唯一调度账本：分组为 collect-flow 的行由采集流程
- * 托管（cron 存在 collect_flow 上，这里只是台账镜像），其余行是外部作业。
- *
- * 主键 sys_job_id 是雪花 ID，数值超过 Number.MAX_SAFE_INTEGER，JSON 反序列化即失精，
- * 因此所有按行操作的接口都用 sysJobNo 定位，id 只作展示。
+ * 接口面是「任务运行态」（JobRuntimeVO）而不是 sys_job 台账行：哨兵值已由后端归一为 null
+ * （lastFireTime=0 → null 表示从未派发，nextFireTime=-1 → null 表示不参与自动调度），
+ * 前端不再判断 -1/0。所有写操作按 jobKey（执行器名 / 采集流程的 collect-flow-&lt;流程ID&gt;）定位，
+ * jobNo 只作展示——雪花 ID 在 JS 里会失精，后端已统一按字符串出参。
  */
 
-/** 台账行（JobEntity 序列化结果） */
-export interface SysJob {
-  sysJobId: number;
-  sysJobNo: string;
-  sysJobName: string;
-  sysJobGroup: string | null;
+/** 任务运行态（JobRuntimeVO） */
+export interface JobRuntime {
+  /** 业务编号 */
+  jobNo: string;
+  /** 任务键：派发标识，与处理器名一致，所有操作的定位键 */
+  jobKey: string;
+  jobName: string | null;
+  desc: string | null;
+  /** 分组，collect-flow 表示这一行由采集流程托管 */
+  group: string | null;
   /** CRON / FIXED / DELAY / NONE */
-  sysJobScheduleType: string;
+  scheduleType: string;
   /** cron 表达式或毫秒间隔，NONE 时为空 */
-  sysJobScheduleTime: string | null;
-  /** 1 启用 0 停用 */
-  sysJobTriggerStatus: number;
-  sysJobDesc: string | null;
-  /** BEAN / GLUE 等 */
-  sysJobGlueType: string;
+  scheduleTime: string | null;
+  /** 是否启用自动调度 */
+  enabled: boolean;
+  executeParam: string | null;
+  /** 最近一次派发时刻（毫秒），空表示无记录 */
+  lastFireTime: number | null;
+  /** 下一次触发时刻（毫秒），空表示不参与自动调度 */
+  nextFireTime: number | null;
+  /** 本节点是否登记了同名处理器 */
+  handlerRegistered: boolean;
   /** LOCAL / REMOTE */
-  sysJobDispatchMode: string | null;
-  sysJobStorageMode: string | null;
-  sysJobFailRetry: number | null;
-  sysJobRetryInterval: number | null;
-  /** 执行超时秒，0 表示不限 */
-  sysJobExecuteTimeout: number | null;
-  /** 执行器：@Job 处理器名，采集流程固定 collect-flow-<流程ID> */
-  sysJobExecuteBean: string | null;
-  sysJobExecuteParam: string | null;
-  /** 错过触发策略：DO_NOTHING / FIRE_ONCE_NOW 等 */
-  sysJobExecuteMisfireStrategy: string | null;
-  /** 最近一次触发时刻（毫秒时间戳，0 表示没有） */
-  sysJobTriggerLastTime: number;
-  /** 下次触发时刻（毫秒时间戳，停用时后端可能残留旧值，展示须先看 triggerStatus） */
-  sysJobTriggerNextTime: number;
-  sysJobIsDeleted: number;
-  sysJobVersion: number;
-  sysJobGlueUpdatetime: number | null;
-  createTime: string | null;
-  updateTime: string | null;
+  dispatchMode: string | null;
+  /** 远程执行器地址，仅 REMOTE 有意义 */
+  remoteExecutorAddress: string | null;
+  author: string | null;
+  failRetry: number | null;
+  /** 重试间隔秒，0 为立即重试 */
+  retryInterval?: number | null;
+  /** 执行超时秒，0 为不限 */
+  executeTimeout: number | null;
+  /** DO_NOTHING / FIRE_ONCE_NOW */
+  misfireStrategy: string | null;
+  /** 执行类型：BEAN=本机处理器；其它值为脚本引擎名（如 groovy） */
+  glueType?: string | null;
+  /** 脚本正文，仅脚本任务有值 */
+  glueSource?: string | null;
+  /** 脚本版本时刻（毫秒），正文变更后递增，执行器据此失效缓存 */
+  glueUpdatetimeMs?: number | null;
+  /** 重试前回调处理器名，每次重试前调用 */
+  retryCallbackBean?: string | null;
+  /** 异常回调处理器名，最终失败时调用 */
+  exceptionCallbackBean?: string | null;
+  /** 失败告警目标：邮箱（逗号分隔）或 webhook 地址 */
+  alarmEmail?: string | null;
+  /** 失败告警类型：EMAIL / WEBHOOK，空按 EMAIL */
+  alarmType?: string | null;
 }
 
-/** 新建/编辑外部作业提交的字段子集 */
-export interface SysJobSave {
-  sysJobName: string;
-  sysJobGroup?: string;
-  sysJobScheduleType: string;
-  sysJobScheduleTime?: string;
-  sysJobExecuteBean: string;
-  sysJobExecuteParam?: string;
-  sysJobDesc?: string;
-  sysJobFailRetry?: number;
-  sysJobExecuteTimeout?: number;
-  sysJobExecuteMisfireStrategy?: string;
-  /** 1 立即启用调度，0 只登记不调度 */
-  sysJobTriggerStatus?: number;
+/** 登记/更新任务入参（JobSpecDTO） */
+export interface JobSave {
+  jobKey: string;
+  jobName?: string;
+  desc?: string;
+  group?: string;
+  scheduleType: string;
+  scheduleTime?: string;
+  enabled?: boolean;
+  executeParam?: string;
+  dispatchMode?: string;
+  remoteExecutorAddress?: string;
+  author?: string;
+  failRetry?: number;
+  /** 重试间隔秒，0/空为立即重试 */
+  retryInterval?: number;
+  executeTimeout?: number;
+  misfireStrategy?: string;
+  /** 执行类型：BEAN（默认，本机处理器）/ 脚本引擎名（如 groovy） */
+  glueType?: string;
+  /** 脚本正文，执行类型非 BEAN 时必填 */
+  glueSource?: string;
+  /** 重试前回调处理器名 */
+  retryCallbackBean?: string;
+  /** 异常回调处理器名 */
+  exceptionCallbackBean?: string;
+  /** 失败告警目标：邮箱（逗号分隔）或 webhook 地址 */
+  alarmEmail?: string;
+  /** 失败告警类型：EMAIL / WEBHOOK，空按 EMAIL */
+  alarmType?: string;
+  /** 编辑前的任务键：与 jobKey 不同时按重命名处理（编辑全字段放开） */
+  originJobKey?: string;
 }
 
-/** 作业执行日志行（JobLogEntity 序列化结果） */
-export interface SysJobLog {
-  sysJobLogId: number;
-  sysJobLogNo: string;
-  sysJobId: number;
-  sysJobNo: string | null;
-  sysJobLogApp: string | null;
-  /** 处理器 Bean 名（派发事件的 jobName）；台账名称不落日志行，要靠下面的 sysJobNo 回查台账 */
-  sysJobLogTriggerBean: string | null;
-  /** CRON / API / MANUAL 等触发方式 */
-  sysJobLogTriggerType: string | null;
-  sysJobLogProfile: string | null;
-  sysJobLogTriggerTime: string | null;
-  sysJobLogTriggerDate: string | null;
-  /** 派发结果码，如 SUCCESS / 200 */
-  sysJobLogTriggerCode: string | null;
-  /** 执行结果码，如 SUCCESS / FAIL */
-  sysJobLogExecuteCode: string | null;
-  sysJobLogCost: number | null;
-  sysJobLogTriggerMsg: string | null;
-  sysJobLogTriggerParam: string | null;
-  sysJobLogTriggerAddress: string | null;
-  sysJobLogNodeId: string | null;
-  sysJobLogFilePath: string | null;
-  sysJobLogIsDeleted: number | null;
-  createTime: string | null;
-  updateTime: string | null;
+/** 执行日志行（JobLogVO） */
+export interface JobLog {
+  logId: string;
+  jobId: string | null;
+  jobNo: string | null;
+  /** 触发键；台账任务名要靠它回查，日志行本身不存名称 */
+  jobKey: string | null;
+  app: string | null;
+  /** CRON / API / MANUAL 等 */
+  triggerType: string | null;
+  triggerCode: string | null;
+  /** SUCCESS / FAILURE / SKIPPED 等 */
+  executeCode: string | null;
+  costMs: number | null;
+  message: string | null;
+  executeParam: string | null;
+  address: string | null;
+  nodeId: string | null;
+  filePath: string | null;
+  /** 触发时刻（毫秒） */
+  triggerTime: number | null;
 }
 
-/** 控制台分页信封（ReturnResult.data） */
+/** 调度概览（JobSummaryVO） */
+export interface JobSummary {
+  /** SCHEDULER / EXECUTOR / SINGLE */
+  role: string | null;
+  nodeId: string | null;
+  leader: boolean;
+  group: string | null;
+  scanIntervalMs: number;
+  preReadMs: number;
+  totalJobs: number;
+  runningJobs: number;
+  stoppedJobs: number;
+  localJobs: number;
+  remoteJobs: number;
+  /** 启用中但本节点没有同名处理器的任务数：这些行每一拍都会记「处理器未注册」 */
+  unregisteredJobs: number;
+  /**
+   * 本机不领取的远程任务数（单机/执行器角色下启用的 REMOTE 行）：这些行既不会被本机单秒循环领走
+   * （领取只过 LOCAL），本机也不是下发方，所以在本机永远不出日志。不是调度坏了，是归属在别的节点。
+   */
+  unclaimedRemoteJobs: number;
+  registeredHandlers: number;
+  /** 24 小时内的失败派发数 */
+  recentFailures: number;
+  /** 远程分发是否由本节点下发（单机/执行器角色为 false，远程行在本机不会跑） */
+  remoteDispatchOwnedByMe: boolean;
+  onlineExecutors: string[];
+}
+
+/** 已注册执行器（JobExecutorVO），来自后端处理器注册表 */
+export interface JobExecutor {
+  /** 执行器名，即 jobKey */
+  name: string;
+  desc: string | null;
+  /** ANNOTATION=@Job 注解扫描；INJECTED=三方模块运行期 register 注入；REMOTE=在线执行器上报 */
+  source: "ANNOTATION" | "INJECTED" | "REMOTE";
+  /** 处理器实现类全名 */
+  handlerClass: string | null;
+}
+
+/** 执行器节点（JobNodeVO，远程作业页） */
+export interface JobNode {
+  /** 同步通道客户端标识 */
+  clientId: string;
+  /** 执行器自述节点标识（通常带进程号） */
+  nodeId: string | null;
+  /** 角色（EXECUTOR 等） */
+  role: string | null;
+  /** 调度中心长链地址（执行器侧配置） */
+  serverUrl: string | null;
+  /** 处理器清单 */
+  handlers: string[];
+  /** 处理器数量 */
+  handlerCount: number;
+  /** 在线状态 */
+  online: boolean;
+  /** 首次登记时间（毫秒） */
+  registeredAt: number;
+}
+
+/** 后端统一分页信封（PageResult） */
 export interface JobPage<T> {
-  records: T[];
+  pageNo: number;
+  pageSize: number;
+  totalPages: number;
   total: number;
-  current: number;
-  size: number;
-  pages: number;
+  data: T[];
 }
 
-/** 作业分页查询条件 */
-export interface SysJobQuery {
+/** 任务分页查询条件 */
+export interface JobQuery {
   pageNum: number;
   pageSize: number;
-  sysJobName?: string;
+  /** 关键字：任务名 / 处理器名 / 描述 / 编号 / 负责人 */
+  keyword?: string;
+  group?: string;
   /** 1 启用 0 停用，空为全部 */
-  sysJobTriggerStatus?: number;
+  status?: number;
+  /** LOCAL / REMOTE，空为全部 */
+  dispatchMode?: string;
 }
 
-/** 作业日志分页查询条件 */
-export interface SysJobLogQuery {
+/** 日志分页查询条件 */
+export interface JobLogQuery {
   pageNum: number;
   pageSize: number;
-  /** 关键字：处理器 Bean 名 / 任务编号 / 台账任务名称 */
-  beanName?: string;
+  keyword?: string;
+  jobKey?: string;
   executeCode?: string;
+  startTime?: number;
+  endTime?: number;
 }
 
 /** 采集流程在台账里的固定分组，与后端 CollectFlowJobHandler.JOB_GROUP 一致 */

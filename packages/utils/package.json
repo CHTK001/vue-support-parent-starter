@@ -43,14 +43,24 @@
       "types": "./src/trigger/index.ts",
       "default": "./src/trigger/index.ts"
     },
+    "./sse": {
+      "types": "./src/sse/index.ts",
+      "default": "./src/sse/index.ts"
+    },
+    "./sse/*": {
+      "types": "./src/sse/*.ts",
+      "default": "./src/sse/*.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
     "mitt": "^3.0.1",
@@ -60,6 +70,7 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "typescript": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vitest": "^1.6.0"
   }
 }

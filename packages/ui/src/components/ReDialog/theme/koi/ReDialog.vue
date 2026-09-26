@@ -1,10 +1,10 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
- * ReDialog koi 涓婚 鈥斺€?寮圭獥缁勪欢锛圞oiDialog 绉绘锛?
+ * ReDialog koi 主题 —— 弹窗组件（KoiDialog 移植）
  *
- * 鎻愪緵绐楀彛澹宠兘鍔涳細鏈€灏忓寲娴爣銆佸叏灞忓垏鎹€佸叧闂簩娆＄‘璁ゃ€?
- * 浣跨敤鏂瑰紡涓?default 涓婚瀵归綈锛坴-model 鎺у埗鏄鹃殣锛夛紝
- * 棰濆鏀寔 koi 涓撳睘鑳藉姏锛歴howWindowShell / fullscreen / footerHidden銆?
+ * 提供窗口壳能力：最小化浮标、全屏切换、关闭二次确认。
+ * 使用方式与 default 主题对齐（v-model 控制显隐），
+ * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
 import { ref, toRefs, computed, watch, onMounted, onUnmounted, type Component } from "vue";
 import { ElDialog, ElButton } from "element-plus";
@@ -19,39 +19,39 @@ defineOptions({ name: "ReDialog", inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     title?: string;
-    /** 鏍囬鏍忓浘鏍囷紙Element Plus 鍥炬爣缁勪欢锛?*/
+    /** 标题栏图标（Element Plus 图标组件） */
     icon?: Component;
     width?: number | string;
-    /** 璺濊鍙ｉ《閮ㄧ殑鍋忕Щ锛屽搴?el-dialog 鐨?top锛堝 6vh锛?*/
+    /** 距视口顶部的偏移，对应 el-dialog 的 top（如 6vh） */
     top?: string;
-    /** 鏍囬涓庨〉鑴氬唴瀹规槸鍚﹀眳涓帓鐗?*/
+    /** 标题与页脚内容是否居中排列 */
     center?: boolean;
-    /** 寮圭獥鏄惁鍦ㄨ鍙ｄ腑姘村钩銆佸瀭鐩村眳涓?*/
+    /** 弹窗是否在视口中水平、垂直居中 */
     alignCenter?: boolean;
     height?: number;
     closeOnClickModal?: boolean;
     confirmText?: string;
     cancelText?: string;
     destroyOnClose?: boolean;
-    /** 鎵撳紑鏃舵槸鍚﹀叏灞忥紙鍙敤鍙充笂瑙掓寜閽垏鎹級 */
+    /** 打开时是否全屏（可用右上角按钮切换） */
     fullscreen?: boolean;
     loading?: boolean;
     footerHidden?: boolean;
-    /** 鏄惁鏄剧ず鍙充笂瑙掔獥鍙ｅ３鎿嶄綔鍖猴紙鏀惰捣 / 鍏ㄥ睆 / 鍏抽棴锛?*/
+    /** 是否显示右上角窗口壳操作区（收起 / 全屏 / 关闭） */
     showWindowShell?: boolean;
-    /** 鏈€灏忓寲鎸夐挳鏄惁鏄剧ず锛堥粯璁や粎鍏抽棴鍙锛?*/
+    /** 最小化按钮是否显示（默认仅关闭可见） */
     showMinimize?: boolean;
-    /** 鍏ㄥ睆鎸夐挳鏄惁鏄剧ず锛堥粯璁や粎鍏抽棴鍙锛?*/
+    /** 全屏按钮是否显示（默认仅关闭可见） */
     showFullscreen?: boolean;
-    /** headless锛氶殣钘忔爣棰樻爮锛屽彸涓婅鍦嗗舰鎮诞鍏抽棴鎸夐挳鏇夸唬 */
+    /** headless：隐藏标题栏，右上角圆形悬浮关闭按钮替代 */
     headless?: boolean;
-    /** 绱у噾妯″紡锛氬噺灏忓脊绐楀唴杈硅窛 */
+    /** 紧凑模式：减小弹窗内边距 */
     compact?: boolean;
   }>(),
   {
     title: "ReDialog",
     icon: Aim,
-    height: 300,
+    height: 0,
     width: 650,
     top: "",
     center: true,
@@ -71,12 +71,12 @@ const props = withDefaults(
   },
 );
 
-/** v-model 鎺у埗鏄鹃殣锛堜笌 default 涓婚 API 瀵归綈锛?*/
+/** v-model 控制显隐（与 default 主题 API 对齐） */
 const visible = defineModel<boolean>({ default: false });
 
 /**
- * 鏈湴鍙鎬ч暅鍍忥細鍏抽棴鏃舵湰鍦扮珛鍗崇敓鏁堬紝涓嶄緷璧栫埗缁勪欢鏄惁鍝嶅簲 update:modelValue
- * 锛堥槻寰?v-model 缁戝畾鍙 props 绛夐敊璇敤娉曗€斺€旂埗涓嶅搷搴旀椂寮圭獥涔熻兘鍏抽棴锛涚埗閲嶆柊鎵撳紑鏃跺啀鍚屾锛?
+ * 本地可见性镜像：关闭时本地立即生效，不依赖父组件是否响应 update:modelValue
+ * （防止 v-model 绑定只读 props 等错误用法——父不响应时弹窗也能关闭；父重新打开时再同步）
  */
 const localOpen = ref(false);
 watch(visible, (v) => { localOpen.value = v; }, { immediate: true });
@@ -93,6 +93,18 @@ const {
   clearMinimized,
   dockStackIndex,
 } = useKoiWindowShell(visible, () => props.fullscreen);
+
+/**
+ * localOpen 与 visible 双向闭环：
+ * el-dialog 内部关闭（ESC / 遮罩 / v-model）只更新 localOpen，
+ * 这里把状态回传父级 v-model，并在关闭时清理最小化停靠。
+ */
+watch(localOpen, (v) => {
+  visible.value = v;
+  if (!v) {
+    clearMinimized();
+  }
+});
 
 const dialogFullscreen = computed(() => windowFullscreen.value);
 
@@ -116,6 +128,7 @@ onUnmounted(() => window.removeEventListener("resize", handleResize));
 
 const emit = defineEmits<{
   (e: "confirm"): void;
+  (e: "ok"): void;
   (e: "cancel"): void;
 }>();
 
@@ -126,6 +139,8 @@ function koiClose() {
 }
 
 function koiConfirm() {
+  // 通用版 ReDialog 发 ok，koi 版历史只发 confirm：两个都发，页面两种写法才能都生效
+  emit("ok");
   emit("confirm");
 }
 
@@ -136,12 +151,12 @@ function koiCancel() {
   clearMinimized();
 }
 
-/** 缂栫▼寮忔墦寮€ */
+/** 编程式打开 */
 function koiOpen() {
   visible.value = true;
 }
 
-/** 缂栫▼寮忓揩閫熷叧闂紙璺宠繃浜屾纭锛?*/
+/** 编程式快速关闭（跳过二次确认） */
 function koiQuickClose() {
   clearMinimized();
   localOpen.value = false;
@@ -155,7 +170,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   <ElDialog
     class="koi-dialog-shell"
     :class="{ 'is-headless': headless, 'koi-dialog-compact': compact }"
-    :model-value="localOpen"
+    v-model="localOpen"
     :title="title"
     :width="dialogWidth"
     :top="top"
@@ -166,7 +181,6 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     modal-class="koi-dialog-modal"
     draggable
     :destroy-on-close="destroyOnClose"
-    :before-close="koiClose"
     :fullscreen="dialogFullscreen"
     :loading="loading"
     :show-close="!showWindowShell"
@@ -190,7 +204,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
             @close="koiClose"
           />
         </template>
-        <!-- headless锛氶殣钘忔爣棰樻爮鍐呭锛屼粎淇濈暀涓€鏉℃瀬绐勬嫋鎷芥潯 + 鍙充笂瑙掑叧闂寜閽?-->
+        <!-- headless：隐藏标题栏内容，仅保留一条极窄拖拽条 + 右上角关闭按钮 -->
         <template v-else>
           <span class="koi-dialog-header-drag" />
         </template>
@@ -204,7 +218,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     />
     <div
       class="dialog-content-wrapper"
-      :style="dialogFullscreen ? { height: 'auto' } : { height: height + 'px' }"
+      :style="dialogFullscreen || !height ? { height: 'auto' } : { maxHeight: height + 'px' }"
     >
       <slot name="content">
         <slot></slot>
@@ -240,12 +254,12 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   width: 100%;
   min-width: 0;
   padding-right: 0;
-  padding-bottom: 4px;
+  padding-bottom: 0;
 
   .koi-dialog-header-left {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
   }
 
@@ -253,16 +267,16 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     border: 1px solid var(--el-border-color);
-    border-radius: var(--el-radius-md, 8px);
+    border-radius: var(--el-radius-md, 6px);
     background: var(--el-bg-color);
   }
 
   .koi-dialog-header-icon {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--el-color-primary);
     flex-shrink: 0;
   }
@@ -270,7 +284,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   .el-dialog__title {
     flex: 1;
     min-width: 0;
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -281,6 +296,9 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   box-sizing: border-box;
   padding-right: 4px;
   overflow: hidden auto;
+  /* 由弹窗 flex 布局约束高度：占满中间剩余空间并在内部滚动 */
+  flex: 1 1 auto;
+  min-height: 0;
 
   & > * {
     padding-right: 4px;
@@ -296,7 +314,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   box-shadow: none;
 }
 
-/* compact 妯″紡锛堜娇鐢ㄥ叡浜护鐗岋級 */
+/* compact 模式（使用共享令牌） */
 .koi-dialog-compact .koi-dialog-custom-header {
   padding-bottom: var(--rm-compact-koi-header-padding-bottom);
 }
@@ -326,14 +344,60 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 <style lang="scss">
 .koi-dialog-shell .el-dialog__header {
   margin-right: 0;
+  /* 紧凑 header：大幅降低上下内边距，header 高度由约 48px 降到约 26px */
+  padding: 3px 20px !important;
+  /* 去除头部底色，并与下方内容留出一点间距 */
+  background: transparent !important;
+  margin-bottom: 8px;
 }
 
-/* 绱у噾 body 鍐呰竟璺?*/
+/* 紧凑 body 内边距 */
 .koi-dialog-shell .el-dialog__body {
-  padding: 16px 20px;
+  padding: 8px 20px !important;
 }
 
-/* compact 妯″紡锛氳繘涓€姝ョ缉灏?body 鍐呰竟璺?*/
+/* 全屏时内容区放开最大高度，允许铺满整个屏幕 */
+.koi-dialog-shell.is-fullscreen .dialog-content-wrapper {
+  max-height: none;
+}
+
+/* 整个弹窗：flex 纵向布局，整体不超过视口高度（头尾固定、中间 body 滚动） */
+.koi-dialog-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+}
+.koi-dialog-shell .el-dialog__header {
+  flex: 0 0 auto;
+}
+.koi-dialog-shell .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.koi-dialog-shell .el-dialog__footer {
+  flex: 0 0 auto;
+}
+/* 全屏时铺满，不受 92vh 限制 */
+.koi-dialog-shell.is-fullscreen {
+  max-height: 100vh;
+}
+
+/* 紧凑 footer：降低上下内边距，footer 高度由约 47px 降到约 34px */
+.koi-dialog-shell .el-dialog__footer {
+  padding: 4px 20px 6px !important;
+}
+
+/* footer 内按钮统一紧凑高度（业务侧传入的 ReButton 默认偏大，弹窗内收窄） */
+.koi-dialog-shell .el-dialog__footer .el-button {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+/* compact 模式：进一步缩小 body 内边距 */
 .koi-dialog-shell.koi-dialog-compact .el-dialog__body {
   padding: var(--rm-compact-body-padding);
 }
@@ -342,17 +406,17 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   display: none;
 }
 
-/* 寮圭獥閬僵锛氱函鑹叉墎骞抽伄缃?*/
+/* 弹窗遮罩：纯色扁平遮罩 */
 .koi-dialog-modal {
   background-color: rgba(0, 0, 0, 0.45);
 }
 
-/* headless锛氶殣钘忔爣棰樺唴瀹癸紝浠呬繚鐣欎竴鏉℃偓娴簬椤堕儴鐨勬嫋鎷界儹鍖烘潯锛堜笉鍗犲唴瀹归珮搴︼紝鍙嫋鍔級锛孋loseFab 娴簬鍙充笂瑙?*/
+/* headless：隐藏标题内容，仅保留一条悬浮于顶部的拖拽热区条（不占内容高度，可拖动），CloseFab 浮于右上角 */
 .koi-dialog-shell.is-headless {
   position: relative;
 }
 
-/* 鎷栨嫿鐑尯锛?4px 閫忔槑鏉¤鐩栧湪 body 椤堕儴锛屾墿澶у彲鎷栨嫿鑼冨洿 */
+/* 拖拽热区：44px 透明条覆盖在 body 顶部，扩大可拖拽范围 */
 .koi-dialog-shell.is-headless .el-dialog__header {
   position: absolute;
   top: 0;
@@ -380,7 +444,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   padding-top: 0;
 }
 
-/* 寮圭獥鏈綋锛氬姞澶у渾瑙掞紙淇濇寔涓嶉€忔槑鐧借壊鑳屾櫙锛?*/
+/* 弹窗本体：加大圆角（保持不透明白色背景） */
 .koi-dialog-shell {
   --el-dialog-border-radius: var(--el-radius-xl);
   border-radius: var(--el-radius-xl);

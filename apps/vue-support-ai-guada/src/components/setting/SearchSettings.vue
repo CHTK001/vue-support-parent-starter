@@ -1,89 +1,80 @@
 <template>
-  <div class="flex-1 overflow-hidden">
-    <div class="space-y-8">
-      <!-- 搜索设置分组 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.search.title') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 网络搜索插件开关 -->
-          <div
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.search.webSearchPlugin') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.search.webSearchPluginDesc') }}</span>
-            </div>
-            <el-switch v-model="pluginEnabled" :loading="pluginLoading" @update:model-value="handlePluginToggle"
-              size="large" />
-          </div>
+  <div class="flex-1">
+    <SettingsCard :title="t('settings.search.title')">
+      <!-- 网络搜索插件开关 -->
+      <SettingsRow
+        :label="t('settings.search.webSearchPlugin')"
+        :description="t('settings.search.webSearchPluginDesc')"
+      >
+        <el-switch
+          v-model="pluginEnabled"
+          :loading="pluginLoading"
+          @update:model-value="handlePluginToggle"
+        />
+      </SettingsRow>
 
-          <!-- 搜索供应商 -->
-          <div
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.search.provider') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.search.providerDesc') }}</span>
-            </div>
-            <el-select v-model="selectedProvider" @update:model-value="handleProviderChange" style="width: 220px;"
-              class="shrink-0">
-              <el-option :label="t('settings.search.bocha')" value="bocha" />
-              <el-option label="Tavily" value="tavily" />
-              <el-option :label="t('settings.search.metaso')" value="metaso" />
-            </el-select>
-          </div>
+      <!-- 搜索供应商 -->
+      <SettingsRow
+        :label="t('settings.search.provider')"
+        :description="t('settings.search.providerDesc')"
+        control-width="220px"
+      >
+        <el-select v-model="selectedProvider" @update:model-value="handleProviderChange">
+          <el-option :label="t('settings.search.bocha')" value="bocha" />
+          <el-option label="Tavily" value="tavily" />
+          <el-option :label="t('settings.search.metaso')" value="metaso" />
+        </el-select>
+      </SettingsRow>
 
-          <!-- 秘塔 API Key -->
-          <div v-if="selectedProvider === 'metaso'"
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.search.metasoApiKey') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.search.metasoApiKeyDesc') }}<span
-                  class="text-[#409eff] cursor-pointer hover:underline" @click="openMetasoUrl">{{ t('settings.search.getApiKey') }}</span></span>
-            </div>
-            <el-input v-model="providerKeys.metaso" type="password" show-password placeholder="mk-..."
-              style="width: 360px;" class="shrink-0" clearable />
-          </div>
+      <!-- 秘塔 API Key -->
+      <SettingsRow
+        v-if="selectedProvider === 'metaso'"
+        :label="t('settings.search.metasoApiKey')"
+        control-flex
+      >
+        <template #description>
+          {{ t('settings.search.metasoApiKeyDesc') }}
+          <span class="key-link" @click="openMetasoUrl">{{ t('settings.search.getApiKey') }}</span>
+        </template>
+        <el-input v-model="providerKeys.metaso" type="password" show-password
+          placeholder="mk-..." clearable />
+      </SettingsRow>
 
-          <!-- 博查 API Key -->
-          <div v-if="selectedProvider === 'bocha'"
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.search.bochaApiKey') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.search.bochaApiKeyDesc') }}<span
-                  class="text-[#409eff] cursor-pointer hover:underline" @click="openBochaUrl">{{ t('settings.search.getApiKey') }}</span></span>
-            </div>
-            <el-input v-model="providerKeys.bocha" type="password" show-password placeholder="sk-..."
-              style="width: 360px;" class="shrink-0" clearable />
-          </div>
+      <!-- 博查 API Key -->
+      <SettingsRow
+        v-if="selectedProvider === 'bocha'"
+        :label="t('settings.search.bochaApiKey')"
+        control-flex
+      >
+        <template #description>
+          {{ t('settings.search.bochaApiKeyDesc') }}
+          <span class="key-link" @click="openBochaUrl">{{ t('settings.search.getApiKey') }}</span>
+        </template>
+        <el-input v-model="providerKeys.bocha" type="password" show-password
+          placeholder="sk-..." clearable />
+      </SettingsRow>
 
-          <!-- Tavily API Key -->
-          <div v-if="selectedProvider === 'tavily'"
-            class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0 flex-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">Tavily API Key</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.search.tavilyApiKeyDesc') }}<span
-                  class="text-[#409eff] cursor-pointer hover:underline" @click="openTavilyUrl">{{ t('settings.search.getApiKey') }}</span></span>
-            </div>
-            <el-input v-model="providerKeys.tavily" type="password" show-password placeholder="tvly-..."
-              style="width: 360px;" class="shrink-0" clearable />
-          </div>
+      <!-- Tavily API Key -->
+      <SettingsRow
+        v-if="selectedProvider === 'tavily'"
+        label="Tavily API Key"
+        control-flex
+      >
+        <template #description>
+          {{ t('settings.search.tavilyApiKeyDesc') }}
+          <span class="key-link" @click="openTavilyUrl">{{ t('settings.search.getApiKey') }}</span>
+        </template>
+        <el-input v-model="providerKeys.tavily" type="password" show-password
+          placeholder="tvly-..." clearable />
+      </SettingsRow>
 
-          <!-- 提示信息 -->
-          <div class="px-4 py-3.5 bg-gray-50 dark:bg-[#1e1f23]">
-            <div class="text-xs text-gray-500 dark:[#8b8d95] space-y-1">
-              <template v-if="selectedProvider === 'bocha'">
-                <div>{{ t('settings.search.bochaTip') }}</div>
-              </template>
-              <template v-else-if="selectedProvider === 'tavily'">
-                <div>{{ t('settings.search.tavilyTip') }}</div>
-              </template>
-              <template v-else>
-                <div>{{ t('settings.search.metasoTip') }}</div>
-              </template>
-            </div>
-          </div>
-        </div>
+      <!-- 提示信息 -->
+      <div class="search-tip">
+        <template v-if="selectedProvider === 'bocha'">{{ t('settings.search.bochaTip') }}</template>
+        <template v-else-if="selectedProvider === 'tavily'">{{ t('settings.search.tavilyTip') }}</template>
+        <template v-else>{{ t('settings.search.metasoTip') }}</template>
       </div>
-    </div>
+    </SettingsCard>
   </div>
 </template>
 
@@ -96,6 +87,8 @@ import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import { ElMessage } from 'element-plus'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
 
 const { notify } = usePopup()
 const { t } = useI18n()
@@ -226,3 +219,20 @@ onMounted(() => {
   loadSettings()
 })
 </script>
+
+<style scoped>
+.key-link {
+  color: var(--el-color-primary);
+  cursor: pointer;
+  margin-left: 2px;
+}
+.key-link:hover { text-decoration: underline; }
+
+.search-tip {
+  padding: 11px 16px;
+  font-size: 12px; line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+}
+</style>

@@ -15,9 +15,6 @@
  * 解决「setConfig 后已有 ref(getConfig().xxx) 监听不到」的隐性 bug。
  */
 import { reactive, watch } from "vue";
-import type { StorageWrapper } from "@repo/utils";
-import { getUserInfo, createStorage, browserLocalStorage } from "@repo/utils";
-import { log } from "@repo/utils";
 import {
   defaultAppConfig,
   deepMerge,
@@ -92,8 +89,13 @@ export function resolveMenuDefaultIcon(): string {
 export function getCurrentUserId(): string {
   if (typeof window === "undefined") return "anonymous";
   try {
-    const data = getUserInfo() as { userId?: string | number; sysUserId?: string | number } | null;
-    if (!data) return "anonymous";
+    const prefix = currentConfig.storage?.prefix || currentConfig.app?.systemCode || "system";
+    const key = currentConfig.storage?.noPrefixKeys?.includes("userInfo")
+      ? "userInfo"
+      : `${prefix}:userInfo`;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return "anonymous";
+    const data = JSON.parse(raw) as { userId?: string | number; sysUserId?: string | number };
     const id = data?.userId ?? data?.sysUserId;
     if (id === undefined || id === null || id === "") return "anonymous";
     return String(id);
@@ -149,7 +151,7 @@ export function setConfig(partial: Partial<AppConfig>): AppConfig {
     try {
       cb(currentConfig);
     } catch (error) {
-      log.warn(`[config] subscriber error`, error);
+      console.warn(`[config] subscriber error`, error);
     }
   });
   return currentConfig;
@@ -196,10 +198,22 @@ function applyMerge(target: AppConfig, source: AppConfig): void {
 // ==================== 用户配置持久化（设置面板可调项写回 storage，刷新不丢） ====================
 
 /** 用户可调配置在 storage 的 key 后缀（统一前缀由 getStorageKey 加） */
-const USER_CONFIG_KEY = "user-config";
+const USER_CONFIG_KEY = "user-config.v2";
 
-/** 缓存用户配置专用 StorageWrapper，避免重复动态 import */
-let userConfigStorageInstance: StorageWrapper | null = null;
+/**
+ * 旧版 key：整片持久化，分不清"用户改过"和"首访时的默认值"，
+ * 会把 app.yaml 的开关永久压住。读到就直接丢弃（用户改动重新积累即可）。
+ */
+const LEGACY_USER_CONFIG_KEY = "user-config";
+
+/** 缓存用户配置专用 storage，避免重复动态 import */
+type UserConfigValue = string | number | boolean | null | object;
+type UserConfigStorage = {
+  set: <T extends UserConfigValue>(key: string, value: T, expires?: number) => boolean;
+  get: <T>(key: string, defaultValue?: T | null) => T | null;
+  remove: (key: string) => void;
+};
+let userConfigStorageInstance: UserConfigStorage | null = null;
 
 /**
  * 返回用户配置专用的加密 StorageWrapper。
@@ -209,33 +223,122 @@ let userConfigStorageInstance: StorageWrapper | null = null;
  * 若 config.ts 顶部静态 import @repo/utils，会在 currentConfig 初始化前触发 TDZ 崩溃。
  * 此函数仅在运行时（saveUserConfig / restoreUserConfig 被调用时）执行，故安全。
  */
-async function getUserConfigStorage(): Promise<StorageWrapper> {
+async function getUserConfigStorage(): Promise<UserConfigStorage> {
   if (userConfigStorageInstance) return userConfigStorageInstance;
-  userConfigStorageInstance = createStorage(browserLocalStorage, {
+  // @ts-ignore @repo/utils 是运行时可选依赖，config 不在构建图上静态依赖它
+  const { createStorage, browserLocalStorage } = await import("@repo/utils");
+  const storage = createStorage(browserLocalStorage, {
     prefix: currentConfig.storage?.prefix || currentConfig.app?.systemCode || "app",
     noPrefixKeys: currentConfig.storage?.noPrefixKeys,
     userScopeKeys: currentConfig.storage?.userScopeKeys,
     resolveUserId: getCurrentUserId,
     encode: currentConfig.storage?.encode,
   });
-  return userConfigStorageInstance;
+  userConfigStorageInstance = storage;
+  return storage;
+}
+
+/** 用户可调配置的持久化范围（与 restoreUserConfig 读取的字段一致） */
+type UserConfigSlice = "other" | "message" | "security" | "menu" | "login";
+
+/**
+ * 部署侧（app.yaml / 远程配置）决定的用户可调切片基线。
+ * 在 restoreUserConfig 合并本地快照之前捕获，持久化时只写偏离基线的叶子。
+ * 不这么做的话，首次访问就会把整份 other 快照下来，此后 app.yaml 里改掉的开关
+ * （如 other.toolbar.announcement）永远被旧快照压住，关不掉。
+ */
+let userConfigBaseline: Partial<Record<UserConfigSlice, unknown>> | undefined;
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** 递归剔除与基线取值相同的叶子；整块相同返回 undefined */
+function diffFromBaseline(base: unknown, cur: unknown): unknown {
+  if (isPlainObject(base) && isPlainObject(cur)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(cur)) {
+      const kept = diffFromBaseline(base[k], v);
+      if (kept !== undefined) out[k] = kept;
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+  return JSON.stringify(base) === JSON.stringify(cur) ? undefined : cur;
+}
+
+/** 取用户可调切片的纯数据副本（脱离 reactive 引用） */
+function sliceSnapshot(): Partial<Record<UserConfigSlice, unknown>> {
+  return {
+    other: JSON.parse(JSON.stringify(currentConfig.other ?? null)),
+    message: JSON.parse(JSON.stringify(currentConfig.message ?? null)),
+    // 菜单展示项（如 collapseToButton）：设置抽屉可调，随用户配置持久化
+    menu: JSON.parse(JSON.stringify(currentConfig.menu ?? null)),
+    // 登录页可调项（验证码 / 滑块 / OTP）：设置抽屉可调，随用户配置持久化
+    login: JSON.parse(JSON.stringify(currentConfig.login ?? null)),
+    // 安全防护：整片持久化（watermark / baiduJs / dynamicFont / ocrObfuscation 均可在设置抽屉调整）
+    security: JSON.parse(JSON.stringify(currentConfig.security ?? null)),
+  };
+}
+
+// ==================== 业务能力开关（app.yaml other.capabilities） ====================
+
+/**
+ * 读取业务能力开关。
+ *
+ * 未配置（或配置为 true）视为启用，保持"探测后台 → 未命中回落三方"的既有行为；
+ * 显式写 false 即停用该能力：调用方据此跳过探测与请求，对应入口一并隐藏。
+ *
+ * @param key 能力 key（@repo/core BACKEND_CAPABILITIES 注册表中的键）
+ * @returns 该能力当前是否启用
+ */
+export function isCapabilityEnabled(key: string): boolean {
+  const capabilities = currentConfig.other?.capabilities;
+  if (!capabilities || typeof capabilities !== "object") {
+    return true;
+  }
+  return capabilities[key] !== false;
+}
+
+/**
+ * 判断某能力是否被部署侧（app.yaml / 远程配置）显式关闭。
+ *
+ * 主题配置抽屉据此隐藏该项：部署侧关掉的能力不再提供 UI 开关（避免用户在界面上
+ * 打开一个部署侧已声明不存在的能力）。用户在抽屉里自己关掉的不算部署侧关闭，
+ * 项仍然显示、可以再打开。
+ *
+ * @param key 能力 key
+ * @returns 部署侧是否显式关闭了该能力
+ */
+export function isCapabilityDeployOff(key: string): boolean {
+  const baseline = userConfigBaseline?.other as { capabilities?: Record<string, boolean> } | undefined;
+  return baseline?.capabilities?.[key] === false;
 }
 
 /**
  * 保存用户可调配置到 storage。
- * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、security.watermark，
- * 不保存接口地址 / 登录页 / 路由等系统级配置（仍由 app.yaml / 后端决定）。
+ * 只持久化设置面板能改的切片：other（工具栏/计时器/状态色）、message、menu、login、
+ * security（水印/反调试/动态字体/OCR 混淆），
+ * 不保存接口地址 / 路由等系统级配置（仍由 app.yaml / 后端决定）。
  */
 export async function saveUserConfig(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
-    const snapshot = {
-      other: JSON.parse(JSON.stringify(currentConfig.other)),
-      message: JSON.parse(JSON.stringify(currentConfig.message)),
-      security: currentConfig.security?.watermark
-        ? { watermark: JSON.parse(JSON.stringify(currentConfig.security.watermark)) }
-        : undefined,
-    };
+    const current = sliceSnapshot();
+    const snapshot: Record<string, unknown> = {};
+    for (const key of Object.keys(current) as UserConfigSlice[]) {
+      const value = current[key];
+      if (value == null) continue;
+      const base = userConfigBaseline?.[key];
+      // 未捕获基线（不走 createApp 的宿主）时沿用整片持久化
+      const kept = userConfigBaseline ? diffFromBaseline(base, value) : value;
+      if (kept !== undefined) snapshot[key] = kept;
+    }
+    if (!Object.keys(snapshot).length && userConfigBaseline) {
+      // 用户没有任何偏离部署配置的改动：不保留历史快照，让 app.yaml 完全生效
+      const emptyStorage = await getUserConfigStorage();
+      emptyStorage.remove(USER_CONFIG_KEY);
+      return;
+    }
     const storage = await getUserConfigStorage();
     storage.set(USER_CONFIG_KEY, snapshot);
   } catch {
@@ -247,16 +350,21 @@ export async function saveUserConfig(): Promise<void> {
 export async function restoreUserConfig(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
+    // 先记录部署侧的值：此刻本地快照尚未合并，即 app.yaml / 远程配置的最终结果
+    userConfigBaseline = sliceSnapshot();
     const storage = await getUserConfigStorage();
+    storage.remove(LEGACY_USER_CONFIG_KEY);
     const saved = storage.get<Partial<AppConfig>>(USER_CONFIG_KEY);
     if (saved && typeof saved === "object") {
       // 仅恢复用户可调字段（与上方 watch 写入的字段保持一致），
       // 避免历史 user-config 中的 app/route/http 等覆盖 yaml 加载值
-      const { other, message, security } = saved;
+      const { other, message, security, menu, login } = saved;
       const filtered: Partial<AppConfig> = {};
       if (other) filtered.other = other;
       if (message) filtered.message = message;
       if (security) filtered.security = security;
+      if (menu) filtered.menu = menu as AppConfig["menu"];
+      if (login) filtered.login = login as AppConfig["login"];
       if (Object.keys(filtered).length > 0) {
         setConfig(filtered);
       }
@@ -273,7 +381,9 @@ if (typeof window !== "undefined") {
     () => [
       currentConfig.other,
       currentConfig.message,
-      currentConfig.security?.watermark,
+      currentConfig.menu,
+      currentConfig.login,
+      currentConfig.security,
     ],
     () => {
       if (saveTimer) clearTimeout(saveTimer);

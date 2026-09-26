@@ -1,6 +1,13 @@
 <template>
   <Teleport to="body">
-    <Transition name="mask-fade">
+    <Transition
+      name="mask-fade"
+      @enter="onEnter"
+      @after-enter="onAfterEnter"
+      @leave="onLeave"
+      @after-leave="onAfterLeave"
+      @leave-cancelled="onAfterLeave"
+    >
       <div v-if="modelValue" class="rmd-mask" @click.self="onMaskClick">
         <div class="rmd-dialog" :style="{ width: width }">
           <div class="rmd-header">
@@ -23,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
   title?: string;
   width?: string;
@@ -42,7 +49,61 @@ function close() {
 }
 
 function onMaskClick() {
-  if (closeOnClickMask) close();
+  if (props.closeOnClickMask) close();
+}
+
+// 兜底：浏览器在过渡类被提前移除时，可能残留一个 running、fill:backwards 的
+// CSSTransition，持续施加起始帧 opacity:0，导致弹窗永久不可见。这里强制收尾。
+function settleAnimations(el: Element, finish: boolean) {
+  const node = el as HTMLElement;
+  if (typeof node.getAnimations !== 'function') return;
+  node.getAnimations().forEach((a) => {
+    let touchesOpacity = true;
+    try {
+      const frames = (a.effect as KeyframeEffect).getKeyframes();
+      touchesOpacity = frames.some((k) => k.opacity !== undefined && k.opacity !== '');
+    } catch {
+      touchesOpacity = true;
+    }
+    if (!touchesOpacity) return;
+    try {
+      if (finish) a.finish();
+      else a.cancel();
+    } catch {
+      try {
+        a.cancel();
+      } catch {
+        /* noop */
+      }
+    }
+  });
+}
+
+let enterTimer: ReturnType<typeof setTimeout> | undefined;
+
+function onEnter(el: Element) {
+  // CSS 过渡时长 0.2s；给兜底，transitionend 丢失也能收尾
+  if (enterTimer) clearTimeout(enterTimer);
+  enterTimer = setTimeout(() => settleAnimations(el, true), 320);
+}
+
+function onAfterEnter(el: Element) {
+  if (enterTimer) {
+    clearTimeout(enterTimer);
+    enterTimer = undefined;
+  }
+  settleAnimations(el, true);
+}
+
+function onLeave() {
+  if (enterTimer) {
+    clearTimeout(enterTimer);
+    enterTimer = undefined;
+  }
+}
+
+function onAfterLeave(el: Element) {
+  settleAnimations(el, false);
 }
 </script>
 
@@ -74,4 +135,5 @@ function onMaskClick() {
 }
 .mask-fade-enter-active, .mask-fade-leave-active { transition: opacity 0.2s; }
 .mask-fade-enter-from, .mask-fade-leave-to { opacity: 0; }
+.mask-fade-enter-to, .mask-fade-leave-from { opacity: 1; }
 </style>
