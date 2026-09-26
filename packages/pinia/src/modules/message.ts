@@ -63,16 +63,39 @@ const messageStore = defineStore("message", {
           this.lastReadId = result.lastReadId;
         }
         if (result.list?.length) {
-          const known = new Set(this.messages.map((m) => m.id));
-          const history = result.list.filter((m) => !known.has(m.id));
-          this.messages = [...history, ...this.messages];
-          if (this.messages.length > MAX_MESSAGES) {
-            this.messages.length = MAX_MESSAGES;
+          const fetched = result.list;
+          const fetchedIds = new Set(fetched.map((m) => m.id));
+          // 游标体系可能是数字或字符串：这里只跟踪数字型 id（混合类型无法可靠排序）
+          const minFetchedId = fetched.reduce<number>(
+            (mn, m) => (typeof m.id === "number" && m.id < mn ? m.id : mn),
+            Number.POSITIVE_INFINITY,
+          );
+          // 以服务端首页顺序为权威：刷新同 id 的最新字段（如 readStatus）。
+          // 加载第 1 页时，本地若存在 id >= 本页最旧项却未返回的消息，
+          // 说明已在服务端被删除，需剔除（避免“幽灵”消息）；
+          // 仅比本页最旧项更早的本地消息才作为更旧页保留。
+          const merged: StationMessage[] = [];
+          for (const fresh of fetched) {
+            merged.push(fresh);
           }
+          for (const old of this.messages) {
+            if (fetchedIds.has(old.id)) {
+              continue;
+            }
+            if (
+              page === 1 &&
+              Number.isFinite(minFetchedId) &&
+              typeof old.id === "number" &&
+              old.id >= minFetchedId
+            ) {
+              continue;
+            }
+            merged.push(old);
+          }
+          this.messages = merged.slice(0, MAX_MESSAGES);
         }
-        if (result.total !== undefined) {
-          this.unread = Math.max(0, result.total - this.messages.length);
-        }
+        // 注意：分页 total 是「消息总数」而非「未读数」，不能据此计算 unread；
+        // 未读数统一由 refreshUnread() 调用 /unread-count 获取，避免竞态覆盖。
         this.initialized = true;
       } finally {
         this.loading = false;
@@ -103,10 +126,20 @@ const messageStore = defineStore("message", {
       }
       try {
         await adapter.markRead(lastId ?? this.latest?.id ?? this.lastReadId);
-        this.unread = 0;
+        // 本地同步已读态：未传 lastId（全部已读）或按游标已读时，
+        // 将 id <= lastId 的消息标记为已读，避免 UI 仍显示未读（后端字段为 readStatus）。
+        const cursor = lastId ?? this.latest?.id ?? this.lastReadId;
+        this.messages = this.messages.map((m) => {
+          const hit = cursor === undefined || cursor === null || (m.id !== undefined && m.id <= cursor);
+          return hit ? { ...m, readStatus: 1, isRead: true } : m;
+        });
+        this.unread = cursor === undefined || cursor === null
+          ? 0
+          : this.messages.filter((m) => m.readStatus !== 1).length;
       } catch {
         // 忽略
       }
+      return this.unread;
     },
 
     /** 实时推送回调写入一条新消息（最新在前，未读 +1） */

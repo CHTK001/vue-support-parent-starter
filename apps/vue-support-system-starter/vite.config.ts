@@ -10,7 +10,7 @@ export default createVite({
     proxy: {
       // 系统管理后台网关（服务器 nginx 8080）
       "/system/api": {
-        target: "http://124.221.230.112:8080",
+        target: "http://localhost:18170",
         changeOrigin: true,
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）

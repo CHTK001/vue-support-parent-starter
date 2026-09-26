@@ -8,7 +8,7 @@
       </template>
     </ReSectionHead>
 
-    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false" empty-text="暂无命令片段，点击右上角「新增片段」创建">
+    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false" highlight-current-row empty-text="暂无命令片段，点击右上角「新增片段」创建" @row-click="selectRow">
       <ReTableColumn prop="id" label="编号" width="60" />
       <ReTableColumn prop="msTerminalSnippetName" label="片段名称" min-width="150" />
       <ReTableColumn prop="msTerminalSnippetRemark" label="备注" min-width="200" />
@@ -24,13 +24,13 @@
     <ReDialog v-model="dialogVisible" :title="editing ? '编辑片段' : '新增片段'" width="520" :height="380" confirm-text="保存" cancel-text="取消" @confirm="save" @cancel="dialogVisible = false">
       <ReForm :model="formData" label-width="100px" label-position="right">
         <ReFormItem label="片段名称" required>
-          <ReInput v-model="formData.name" />
+          <ReInput v-model="formData.msTerminalSnippetName" />
         </ReFormItem>
         <ReFormItem label="片段内容">
-          <ReInput v-model="formData.content" type="textarea" :rows="4" />
+          <ReInput v-model="formData.msTerminalSnippetContent" type="textarea" :rows="4" />
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="formData.remark" />
+          <ReInput v-model="formData.msTerminalSnippetRemark" />
         </ReFormItem>
       </ReForm>
     </ReDialog>
@@ -40,14 +40,15 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { message } from '@repo/core'
-import { getSnippets, saveSnippet as apiSaveSnippet, delSnippet as apiDelSnippet } from '../api'
+import { getSnippets, saveSnippet as apiSaveSnippet, updateSnippet as apiUpdateSnippet, delSnippet as apiDelSnippet, type TerminalSnippetPayload } from '../api'
 const snippets = ref<any[]>([])
 const dialogVisible = ref(false)
 const editing = ref(false)
-const formData = ref({
-  name: '',
-  content: '',
-  remark: ''
+const editingId = ref<number | null>(null)
+const formData = ref<TerminalSnippetPayload>({
+  msTerminalSnippetName: '',
+  msTerminalSnippetContent: '',
+  msTerminalSnippetRemark: ''
 })
 const selectedRow = ref<any>(null)
 const filterName = ref('')
@@ -78,18 +79,19 @@ async function loadSnippets(): Promise<void> {
 // 本地函数：打开弹窗
 function editRow(row?: any): void {
   editing.value = !!row
+  editingId.value = row?.id ?? null
   if (row) {
     formData.value = {
-      name: row.msTerminalSnippetName ?? '',
-      content: row.msTerminalSnippetContent ?? '',
-      remark: row.msTerminalSnippetRemark ?? ''
+      msTerminalSnippetName: row.msTerminalSnippetName ?? '',
+      msTerminalSnippetContent: row.msTerminalSnippetContent ?? '',
+      msTerminalSnippetRemark: row.msTerminalSnippetRemark ?? ''
     }
     selectedRow.value = row
   } else {
     formData.value = {
-      name: '',
-      content: '',
-      remark: ''
+      msTerminalSnippetName: '',
+      msTerminalSnippetContent: '',
+      msTerminalSnippetRemark: ''
     }
     selectedRow.value = null
   }
@@ -98,18 +100,32 @@ function editRow(row?: any): void {
 
 // 本地函数：保存片段
 async function save(): Promise<void> {
-  if (!formData.value.name.trim()) {
+  if (!formData.value.msTerminalSnippetName.trim()) {
     message.warning('片段名称不能为空');
     return;
   }
   try {
-    await apiSaveSnippet({ ...formData.value });
+    const payload = {
+      msTerminalSnippetName: formData.value.msTerminalSnippetName.trim(),
+      msTerminalSnippetContent: formData.value.msTerminalSnippetContent ?? '',
+      msTerminalSnippetRemark: formData.value.msTerminalSnippetRemark ?? ''
+    };
+    if (editingId.value) {
+      await apiUpdateSnippet(editingId.value, payload);
+    } else {
+      await apiSaveSnippet(payload);
+    }
     message.success('已保存');
     dialogVisible.value = false;
     loadSnippets();
   } catch (e) {
     message.error((e as Error).message);
   }
+}
+
+// 本地函数：点行选中（顶栏「删除」的目标行）
+function selectRow(row: any): void {
+  selectedRow.value = row;
 }
 
 // 本地函数：删除片段

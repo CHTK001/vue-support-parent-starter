@@ -1,82 +1,114 @@
 <template>
   <div class="voxel-page">
-    <div class="voxel-world">
+    <!-- 3D 世界：底色 / 地面网格 / 背景墙 / 粒子 / 旋转体素结构 / 光环 -->
+    <div class="voxel-world" aria-hidden="true">
       <div class="voxel-bg"></div>
-      <div class="voxel-grid-floor"></div>
       <div class="voxel-grid-wall"></div>
+      <div class="voxel-grid-floor"></div>
       <div class="voxel-particles">
-        <span v-for="i in 30" :key="'s'+i" class="voxel-particle" :style="particle(i)"></span>
+        <span v-for="i in 30" :key="'s' + i" class="voxel-particle" :style="particle(i)"></span>
       </div>
-      <div class="voxel-viewport">
-        <div class="voxel-scene">
-          <div class="voxel-structure" :style="{ transform: 'rotateX(-25deg) rotateY(' + sceneRotation + 'deg)' }">
-            <div v-for="b in sceneBlocks" :key="b.k" class="voxel-cube" :class="'cube--' + b.c" :style="blockStyle(b.x, b.y, b.z)"></div>
-            <div v-for="beam in sceneBeams" :key="beam.k" class="voxel-beam" :class="'beam--' + beam.c" :style="beamStyle(beam)"></div>
-          </div>
+
+      <!-- 左右两座体素结构，缓慢反向旋转，形成景深并夹住中轴内容 -->
+      <div class="voxel-stage">
+        <div
+          v-for="side in ['left', 'right']"
+          :key="side"
+          class="voxel-structure"
+          :class="`voxel-structure--${side}`"
+          :style="structureStyle(side)"
+        >
+          <div v-for="b in sceneBlocks" :key="b.k" class="voxel-cube" :class="'cube--' + b.c" :style="blockStyle(b.x, b.y, b.z)"></div>
+          <div v-for="beam in sceneBeams" :key="beam.k" class="voxel-beam" :class="'beam--' + beam.c" :style="beamStyle(beam)"></div>
         </div>
       </div>
+
       <div class="voxel-ring voxel-ring--a"></div>
       <div class="voxel-ring voxel-ring--b"></div>
       <div class="voxel-ring voxel-ring--c"></div>
     </div>
-    <div class="voxel-brand">
-      <div class="voxel-cube-logo">
-        <div class="face f-top"></div>
-        <div class="face f-bottom"></div>
-        <div class="face f-left"></div>
-        <div class="face f-right"></div>
-        <div class="face f-front"></div>
-        <div class="face f-back"></div>
-      </div>
-      <div class="voxel-brand-lines">
-        <span class="line l-1"></span>
-        <span class="line l-2"></span>
-        <span class="line l-3"></span>
-      </div>
-      <div class="voxel-brand-text">
-        <span class="t1">{{ translateConfigText(loginConfig.title) }}</span>
-        <span class="t2">{{ translateConfigText(loginConfig.description) }}</span>
-      </div>
-    </div>
-    <div class="voxel-panel">
-      <div class="voxel-panel-inner">
-        <div class="voxel-panel-bar">
-          <div class="panel-bars">
-            <span v-for="i in 6" :key="'bar'+i" class="p-bar" :style="{ height: (12 + (i*7)%24) + 'px' }"></span>
+
+    <!-- 中轴内容：品牌与表单合并进同一块控制台卡片，避免两块脱节 -->
+    <div class="voxel-content">
+      <section class="voxel-panel">
+        <!-- 品牌头：旋转立方体标识 + 平台名 + 副标题 -->
+        <header class="vp-head">
+          <div class="voxel-cube-logo">
+            <div class="face f-top"></div>
+            <div class="face f-bottom"></div>
+            <div class="face f-left"></div>
+            <div class="face f-right"></div>
+            <div class="face f-front"></div>
+            <div class="face f-back"></div>
           </div>
-          <span class="panel-title">{{ t('menu.login.account') }}</span>
-          <div class="panel-status">
+          <div class="vp-head-text">
+            <h1 class="vp-title">{{ translateConfigText(loginConfig.title) }}</h1>
+            <p class="vp-desc">{{ translateConfigText(loginConfig.description) }}</p>
+          </div>
+        </header>
+
+        <!-- 状态条：频谱 + 在线指示，替代原来重复的「账号密码登录」标题 -->
+        <div class="vp-status">
+          <div class="vp-bars">
+            <span v-for="i in 6" :key="'bar' + i" class="p-bar" :style="{ height: 10 + ((i * 7) % 22) + 'px' }"></span>
+          </div>
+          <span class="vp-status-label">{{ t("menu.login.account") }}</span>
+          <div class="vp-online">
             <span class="dot"></span>
             <span>ONLINE</span>
           </div>
         </div>
-        <div class="voxel-panel-body">
-          <ReLoginForm :show-mobile-brand="false" form-class="voxel-form"></ReLoginForm>
+
+        <div class="vp-body">
+          <ReLoginForm :show-mobile-brand="false" :show-header="false" form-class="voxel-form"></ReLoginForm>
         </div>
-        <div class="voxel-panel-base">
+
+        <div class="vp-base">
           <div class="base-line"></div>
           <div class="base-markers">
-            <span v-for="i in 12" :key="'mk'+i" class="marker" :class="{ active: i <= markerCount }"></span>
+            <span v-for="i in 12" :key="'mk' + i" class="marker" :class="{ active: i <= markerCount }"></span>
           </div>
         </div>
-      </div>
+      </section>
+
+      <footer v-if="loginConfig.beiAnHao" class="voxel-legal">
+        <el-icon :size="12"><InfoFilled /></el-icon>
+        <span>{{ $t("menu.login.beiAnHao") }}：{{ loginConfig.beiAnHao }}</span>
+      </footer>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, toRef } from "vue";
+/**
+ * 现代立体（voxel）
+ *
+ * 设计要点：
+ *  1. 品牌与表单合并为同一块控制台卡片。原实现把品牌浮在顶部、表单另起一块，
+ *     视觉上被割裂且浪费了下半屏；合并后中轴只有一列，构图完整。
+ *  2. 标题只保留一处 —— 状态条用 menu.login.account 作为「分区标签」，
+ *     ReLoginForm 传 show-header=false，避免与卡片标题叠成双标题。
+ *  3. 两座体素结构分居左右、反向缓慢旋转，兼作前景框与景深，
+ *     立方体不再被表单面板遮住。
+ *  4. OTP 弹窗被 teleport 到 body，scoped 样式无法命中，
+ *     故末尾保留一段全局样式，并用 body:has(.voxel-page) 严格限定只在本体生效。
+ */
+import { onBeforeUnmount, onMounted, ref, toRef } from "vue";
 import { useI18n } from "vue-i18n";
+import { InfoFilled } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { translateConfigText } from "@repo/languages";
 import ReLoginForm from "../components/ReLoginForm.vue";
 
 const loginConfig = toRef(getConfig(), "login");
 const { t } = useI18n();
-const sceneRotation = ref(0);
-const markerCount = ref(Math.floor(Math.random() * 12));
-let raf: number = 0;
 
+/** 结构旋转角（左右反向） */
+const sceneRotation = ref(0);
+const markerCount = ref(6);
+let raf = 0;
+
+/** 体素结构定义：坐标单位 20px */
 const sceneBlocks: Array<{ k: string; x: number; y: number; z: number; c: string }> = [
   { k: "b0", x: 0, y: 0, z: 0, c: "a" }, { k: "b1", x: 1, y: 0, z: 0, c: "a" }, { k: "b2", x: 2, y: 0, z: 0, c: "a" }, { k: "b3", x: 3, y: 0, z: 0, c: "a" },
   { k: "b4", x: 0, y: 0, z: 1, c: "a" }, { k: "b5", x: 1, y: 0, z: 1, c: "a" }, { k: "b6", x: 2, y: 0, z: 1, c: "a" }, { k: "b7", x: 3, y: 0, z: 1, c: "a" },
@@ -96,638 +128,720 @@ const sceneBlocks: Array<{ k: string; x: number; y: number; z: number; c: string
   { k: "b40", x: 1, y: 6, z: -1, c: "e" }, { k: "b41", x: 2, y: 6, z: 3, c: "e" },
 ];
 
+/** 光柱：给结构加纵向光感 */
 const sceneBeams: Array<{ k: string; x1: number; y1: number; z1: number; y2: number; z2: number; c: string }> = [
   { k: "bm1", x1: 1.5, y1: 0, z1: 1.5, y2: 5, z2: 1.5, c: "a" },
   { k: "bm2", x1: 0.5, y1: 0, z1: 1.5, y2: 0, z2: 1.5, c: "a" },
 ];
 
-const blockStyle = (x: number, y: number, z: number) => {
-  const s = 20;
-  return {
-    left: (x * s) + "px",
-    top: (y * s) + "px",
-    position: "absolute",
-    transform: "translateZ(" + (z * s) + "px)",
-    animationDelay: ((x + y + z) * 0.1) + "s",
-  };
-};
+const GRID = 20;
 
-const beamStyle = (b: any) => {
-  return {
-    left: (b.x1 * 20) + "px",
-    top: (b.y1 * 20) + "px",
-    height: ((b.y2 - b.y1) * 20) + "px",
-    position: "absolute",
-    transform: "translateZ(" + ((b.z1 + (b.z2 - b.z1) / 2) * 20) + "px)",
-    animationDelay: "0.5s",
-  };
-};
+/** 单个立方体定位 */
+const blockStyle = (x: number, y: number, z: number) => ({
+  left: `${x * GRID}px`,
+  top: `${y * GRID}px`,
+  transform: `translateZ(${z * GRID}px)`,
+  animationDelay: `${((x + y + z) * 0.1).toFixed(2)}s`,
+});
 
+/** 光柱定位 */
+const beamStyle = (b: (typeof sceneBeams)[number]) => ({
+  left: `${b.x1 * GRID}px`,
+  top: `${b.y1 * GRID}px`,
+  height: `${(b.y2 - b.y1) * GRID}px`,
+  transform: `translateZ(${(b.z1 + (b.z2 - b.z1) / 2) * GRID}px)`,
+});
+
+/** 左右两座结构的朝向：左侧反向旋转，形成向中轴汇聚的观感 */
+const structureStyle = (side: string) => ({
+  transform: `rotateX(-24deg) rotateY(${side === "left" ? -sceneRotation.value : sceneRotation.value}deg)`,
+});
+
+/** 漂浮粒子 */
 const particle = (i: number) => ({
-  left: ((i * 7) % 100) + "%",
-  top: ((i * 13) % 100) + "%",
-  animationDelay: (-i * 0.7) + "s",
-  animationDuration: (6 + (i % 5) * 2) + "s",
-  width: (2 + (i % 3)) + "px",
-  height: (2 + (i % 3)) + "px",
-  background: i % 3 === 0 ? "#06B6D4" : i % 3 === 1 ? "#8B5CF6" : "#0EA5E9",
+  left: `${(i * 7) % 100}%`,
+  top: `${(i * 13) % 100}%`,
+  width: `${2 + (i % 3)}px`,
+  height: `${2 + (i % 3)}px`,
+  background:
+    i % 3 === 0 ? "var(--el-color-primary-light-5)" : i % 3 === 1 ? "var(--el-color-primary)" : "var(--el-color-primary-light-3)",
+  animationDelay: `${-i * 0.7}s`,
+  animationDuration: `${6 + (i % 5) * 2}s`,
 });
 
 onMounted(() => {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    markerCount.value = 8;
+    return;
+  }
   const start = performance.now();
   const animate = (ts: number) => {
-    sceneRotation.value = ((ts - start) / 1000 * 15) % 360;
+    sceneRotation.value = ((ts - start) / 1000 * 14) % 360;
     raf = requestAnimationFrame(animate);
   };
   raf = requestAnimationFrame(animate);
 });
 
 onBeforeUnmount(() => {
-  if (raf) cancelAnimationFrame(raf);
+  if (raf) {
+    cancelAnimationFrame(raf);
+  }
 });
 </script>
 
 <style lang="scss" scoped>
+/* ============ 页面骨架 ============ */
 .voxel-page {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
   position: relative;
-  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
   background: #050510;
+  color: #e2e8f0;
+  font-family:
+    "SF Mono", "Fira Code", "Consolas", "PingFang SC", "Microsoft YaHei", monospace;
 }
+
+/* ============ 3D 世界 ============ */
 .voxel-world {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  perspective: 1400px;
-  perspective-origin: 50% 40%;
+  pointer-events: none;
 }
+
 .voxel-bg {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 600px 400px at 30% 70%, rgba(6,182,212,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 500px 350px at 70% 30%, rgba(139,92,246,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 800px 500px at 50% 100%, rgba(14,165,233,0.06) 0%, transparent 60%),
-    linear-gradient(180deg, #050510 0%, #080820 40%, #050510 100%);
+    radial-gradient(1100px 700px at 50% 8%, #0d1b4a 0%, transparent 62%),
+    radial-gradient(900px 620px at 12% 92%, #0a1030 0%, transparent 60%),
+    radial-gradient(900px 620px at 88% 88%, #0a1030 0%, transparent 60%),
+    linear-gradient(180deg, #050510 0%, #070a20 55%, #04040c 100%);
 }
-.voxel-grid-floor {
-  position: absolute;
-  bottom: 0; left: 0; right: 0; height: 45%;
-  background:
-    repeating-linear-gradient(90deg, transparent 0, transparent 49px, rgba(6,182,212,0.06) 49px, rgba(6,182,212,0.06) 50px),
-    repeating-linear-gradient(0deg, transparent 0, transparent 49px, rgba(139,92,246,0.04) 49px, rgba(139,92,246,0.04) 50px);
-  transform: perspective(600px) rotateX(60deg);
-  transform-origin: bottom center;
-  mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 100%);
-}
+
+/* 背景墙网格 */
 .voxel-grid-wall {
-  position: absolute; inset: 0;
-  background: repeating-linear-gradient(0deg, transparent 0, transparent 49px, rgba(99,102,241,0.03) 49px, rgba(99,102,241,0.03) 50px);
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 20%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 20%, transparent 100%);
-}
-.voxel-particles { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.voxel-particle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.5;
-  animation: voxel-float-up linear infinite;
-  box-shadow: 0 0 6px currentColor;
-}
-@keyframes voxel-float-up {
-  0% { transform: translateY(100vh); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.3; }
-  100% { transform: translateY(-20vh) translateX(30px); opacity: 0; }
-}
-.voxel-viewport {
-  position: absolute;
-  top: 15%; right: 5%;
-  width: 300px; height: 300px;
-  perspective: 900px;
-  z-index: 2; pointer-events: none;
-}
-.voxel-scene {
-  position: relative;
-  width: 100%; height: 100%;
-  transform-style: preserve-3d;
-}
-.voxel-structure {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform-style: preserve-3d;
-  width: 0; height: 0;
-  transition: transform 0.05s linear;
-}
-.voxel-cube {
-  position: absolute;
-  width: 20px; height: 20px;
-  transform-style: preserve-3d;
-  opacity: 0;
-  animation: voxel-appear 0.6s ease-out forwards, voxel-pulse 3s ease-in-out infinite;
-}
-.voxel-cube::before,
-.voxel-cube::after {
-  content: "";
   position: absolute;
   inset: 0;
-  background: var(--face-color, #06B6D4);
-  border: 1px solid var(--face-edge, rgba(0,217,255,0.4));
-  box-shadow: var(--face-glow, 0 0 4px rgba(6,182,212,0.3));
+  background-image:
+    linear-gradient(rgba(var(--el-color-primary-rgb), 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 72%);
 }
-.voxel-cube::before { transform: translateZ(10px); }
-.voxel-cube::after {
-  transform: rotateX(90deg) translateZ(10px);
-  background: var(--top-color, #0EA5E9);
+
+/* 地面网格：透视 + 缓慢滚动，制造纵深 */
+.voxel-grid-floor {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 45%;
+  background-image:
+    linear-gradient(rgba(var(--el-color-primary-rgb), 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.14) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(600px) rotateX(60deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 42%, #000 100%);
+  animation: voxel-grid-scroll 9s linear infinite;
 }
-.voxel-cube.cube--a {
-  --face-color: rgba(6,182,212,0.15);
-  --face-edge: rgba(6,182,212,0.3);
-  --face-glow: 0 0 4px rgba(6,182,212,0.2);
-  --top-color: rgba(14,165,233,0.2);
+
+/* 漂浮粒子 */
+.voxel-particles {
+  position: absolute;
+  inset: 0;
 }
-.voxel-cube.cube--b {
-  --face-color: rgba(139,92,246,0.12);
-  --face-edge: rgba(139,92,246,0.3);
-  --face-glow: 0 0 4px rgba(139,92,246,0.2);
-  --top-color: rgba(167,139,250,0.2);
+
+.voxel-particle {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  opacity: 0.55;
+  animation-name: voxel-float-up;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
-.voxel-cube.cube--c {
-  --face-color: rgba(99,102,241,0.18);
-  --face-edge: rgba(129,140,248,0.4);
-  --face-glow: 0 0 6px rgba(99,102,241,0.4);
-  --top-color: rgba(129,140,248,0.3);
-  animation-delay: 0.1s, 0s;
+
+/* 左右体素结构 */
+.voxel-stage {
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
 }
-.voxel-cube.cube--d {
-  --face-color: rgba(236,72,153,0.2);
-  --face-edge: rgba(236,72,153,0.4);
-  --face-glow: 0 0 8px rgba(236,72,153,0.5);
-  --top-color: rgba(244,114,182,0.3);
-  animation-delay: 0.2s, 0s;
+
+.voxel-structure {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.12s linear;
+
+  &--left {
+    left: 6%;
+    margin-top: -80px;
+    transform: scale(1.05);
+  }
+
+  &--right {
+    right: 6%;
+    margin-top: -80px;
+    transform: scale(1.05);
+  }
 }
-.voxel-cube.cube--e {
-  --face-color: rgba(6,182,212,0.1);
-  --face-edge: rgba(6,182,212,0.3);
-  --face-glow: 0 0 6px rgba(6,182,212,0.4);
-  --top-color: rgba(14,165,233,0.15);
-  animation-delay: 0.3s, 0s;
+
+/* 立方体：三面 + 发光描边 */
+.voxel-cube {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: var(--face-color);
+  border: 1px solid var(--face-edge);
+  box-shadow: 0 0 10px var(--face-glow);
+  transform-style: preserve-3d;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    content: "";
+    background: var(--top-color);
+    transform: translateZ(10px);
+  }
+
+  /* 左右侧面：造出立体体积 */
+  &::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    content: "";
+    background: linear-gradient(90deg, var(--face-edge), transparent 60%);
+    transform: rotateY(90deg) translateZ(10px);
+    transform-origin: left center;
+    opacity: 0.5;
+  }
+
+  &.cube--a {
+    --face-color: rgba(var(--el-color-primary-rgb), 0.32);
+    --face-edge: rgba(var(--el-color-primary-rgb), 0.75);
+    --face-glow: rgba(var(--el-color-primary-rgb), 0.4);
+    --top-color: rgba(var(--el-color-primary-rgb), 0.5);
+  }
+
+  &.cube--b {
+    --face-color: rgba(var(--el-color-primary-rgb), 0.2);
+    --face-edge: rgba(var(--el-color-primary-rgb), 0.55);
+    --face-glow: rgba(var(--el-color-primary-rgb), 0.28);
+    --top-color: rgba(var(--el-color-primary-rgb), 0.34);
+  }
+
+  &.cube--c {
+    --face-color: rgba(var(--el-color-primary-rgb), 0.42);
+    --face-edge: rgba(var(--el-color-primary-rgb), 0.95);
+    --face-glow: rgba(var(--el-color-primary-rgb), 0.55);
+    --top-color: rgba(var(--el-color-primary-rgb), 0.62);
+  }
+
+  &.cube--d {
+    --face-color: rgba(56, 189, 248, 0.26);
+    --face-edge: rgba(56, 189, 248, 0.7);
+    --face-glow: rgba(56, 189, 248, 0.35);
+    --top-color: rgba(56, 189, 248, 0.4);
+  }
+
+  &.cube--e {
+    --face-color: rgba(167, 139, 250, 0.22);
+    --face-edge: rgba(167, 139, 250, 0.6);
+    --face-glow: rgba(167, 139, 250, 0.3);
+    --top-color: rgba(167, 139, 250, 0.34);
+  }
 }
-@keyframes voxel-appear { 0% { opacity: 0; } 100% { opacity: 1; } }
-@keyframes voxel-pulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3); } }
+
+/* 光柱 */
 .voxel-beam {
   position: absolute;
-  width: 1px;
-  background: linear-gradient(180deg, transparent 0%, rgba(6,182,212,0.6) 50%, transparent 100%);
-  box-shadow: 0 0 4px rgba(6,182,212,0.4);
-  opacity: 0;
-  animation: voxel-appear 0.8s ease-out 0.5s forwards, voxel-beam-flicker 2s ease-in-out infinite 1.3s;
+  width: 6px;
+  background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.05), rgba(var(--el-color-primary-rgb), 0.42));
+  border-radius: 3px;
+  box-shadow: 0 0 14px rgba(var(--el-color-primary-rgb), 0.4);
+  transform-style: preserve-3d;
+  animation: voxel-beam-flicker 3.4s ease-in-out infinite;
 }
-.voxel-beam.beam--a {
-  background: linear-gradient(180deg, transparent 0%, rgba(99,102,241,0.5) 50%, transparent 100%);
-  box-shadow: 0 0 4px rgba(99,102,241,0.3);
-}
-@keyframes voxel-beam-flicker { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* 光环 */
 .voxel-ring {
   position: absolute;
-  border: 1px solid rgba(6,182,212,0.08);
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.14);
   border-radius: 50%;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 1;
+  transform: translate(-50%, -50%) rotateX(72deg);
 }
-.voxel-ring--a { width: 500px; height: 500px; animation: voxel-ring-spin 30s linear infinite; border-color: rgba(6,182,212,0.06); }
-.voxel-ring--b { width: 700px; height: 700px; animation: voxel-ring-spin 50s linear infinite reverse; border-color: rgba(139,92,246,0.05); border-style: dashed; }
-.voxel-ring--c { width: 900px; height: 900px; animation: voxel-ring-spin 70s linear infinite; border-color: rgba(99,102,241,0.04); }
-@keyframes voxel-ring-spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-.voxel-brand {
-  position: absolute;
-  top: 32px; left: 0; right: 0;
-  display: flex; flex-direction: column; align-items: center;
-  z-index: 10; pointer-events: none;
+
+.voxel-ring--a {
+  width: 640px;
+  height: 640px;
+  animation: voxel-ring-spin 34s linear infinite;
 }
-.voxel-cube-logo {
-  width: 36px; height: 36px;
+
+.voxel-ring--b {
+  width: 900px;
+  height: 900px;
+  border-style: dashed;
+  opacity: 0.6;
+  animation: voxel-ring-spin 52s linear infinite reverse;
+}
+
+.voxel-ring--c {
+  width: 1180px;
+  height: 1180px;
+  opacity: 0.35;
+  animation: voxel-ring-spin 76s linear infinite;
+}
+
+/* ============ 中轴内容 ============ */
+.voxel-content {
   position: relative;
-  transform-style: preserve-3d;
-  animation: voxel-logo-rotate 10s linear infinite;
-  margin-bottom: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 460px;
+  padding: 32px 20px;
+  animation: voxel-appear 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.voxel-cube-logo .face {
-  position: absolute;
-  width: 36px; height: 36px;
-  border: 1px solid rgba(139,92,246,0.5);
-  background: rgba(99,102,241,0.08);
-  box-shadow: 0 0 8px rgba(99,102,241,0.2), inset 0 0 4px rgba(139,92,246,0.1);
-}
-.f-front { transform: translateZ(18px); }
-.f-back { transform: rotateY(180deg) translateZ(18px); background: rgba(6,182,212,0.06); border-color: rgba(6,182,212,0.4); }
-.f-left { transform: rotateY(-90deg) translateZ(18px); background: rgba(6,182,212,0.08); border-color: rgba(6,182,212,0.4); }
-.f-right { transform: rotateY(90deg) translateZ(18px); background: rgba(6,182,212,0.08); border-color: rgba(6,182,212,0.4); }
-.f-top { transform: rotateX(90deg) translateZ(18px); background: rgba(99,102,241,0.15); border-color: rgba(129,140,248,0.5); }
-.f-bottom { transform: rotateX(-90deg) translateZ(18px); background: rgba(99,102,241,0.04); border-color: rgba(99,102,241,0.3); }
-@keyframes voxel-logo-rotate { 0% { transform: rotateX(-20deg) rotateY(0deg); } 100% { transform: rotateX(-20deg) rotateY(360deg); } }
-.voxel-brand-lines { display: flex; gap: 3px; margin-bottom: 6px; }
-.voxel-brand-lines .line { width: 20px; height: 2px; background: rgba(139,92,246,0.3); }
-.voxel-brand-lines .l-1 { width: 30px; background: rgba(6,182,212,0.5); }
-.voxel-brand-lines .l-2 { width: 20px; background: rgba(139,92,246,0.4); }
-.voxel-brand-lines .l-3 { width: 10px; background: rgba(99,102,241,0.3); }
-.voxel-brand-text { text-align: center; }
-.voxel-brand-text .t1 {
-  display: block;
-  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-  font-size: 17px; font-weight: 600;
-  color: #E2E8F0; letter-spacing: 4px;
-  text-shadow: 0 0 12px rgba(99,102,241,0.4);
-}
-.voxel-brand-text .t2 {
-  display: block; margin-top: 4px;
-  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-  font-size: 9px; color: #64748B; letter-spacing: 3px;
-}
+
+/* ============ 控制台面板 ============ */
 .voxel-panel {
-  position: absolute;
-  top: 150px; left: 50%;
-  transform: translateX(-50%);
-  width: 380px; max-width: 90vw;
-  z-index: 10;
-}
-.voxel-panel-inner {
-  background: rgba(10, 10, 30, 0.88);
-  border: 1px solid rgba(99,102,241,0.25);
-  border-radius: 8px; overflow: hidden;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 0 30px rgba(99,102,241,0.1), 0 0 60px rgba(139,92,246,0.06), inset 0 1px 0 rgba(255,255,255,0.04);
   position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(10, 14, 32, 0.94));
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.28);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08),
+    0 30px 70px rgba(0, 0, 0, 0.65),
+    0 0 44px rgba(var(--el-color-primary-rgb), 0.16);
+  backdrop-filter: blur(14px) saturate(140%);
+
+  /* 四角标记，强化「控制台」质感 */
+  &::before,
+  &::after {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    content: "";
+    border-color: var(--el-color-primary);
+    opacity: 0.75;
+  }
+
+  &::before {
+    top: 8px;
+    left: 8px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+  }
+
+  &::after {
+    right: 8px;
+    bottom: 8px;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+  }
 }
-.voxel-panel-inner::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.4) 50%, transparent 100%);
+
+/* 品牌头 */
+.vp-head {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 24px 24px 18px;
 }
-.voxel-panel-inner::after {
-  content: "";
-  position: absolute;
-  bottom: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.3) 50%, transparent 100%);
+
+.vp-head-text {
+  min-width: 0;
 }
-.voxel-panel-bar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px;
-  background: rgba(15,15,35,0.6);
-  border-bottom: 1px solid rgba(99,102,241,0.15);
+
+.vp-title {
+  margin: 0 0 5px;
+  overflow: hidden;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.5px;
+  color: #f1f5f9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.panel-bars { display: flex; align-items: flex-end; gap: 2px; }
+
+.vp-desc {
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 旋转立方体标识 */
+.voxel-cube-logo {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  transform-style: preserve-3d;
+  animation: voxel-logo-rotate 9s linear infinite;
+
+  .face {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.85);
+    background: rgba(var(--el-color-primary-rgb), 0.14);
+    box-shadow: inset 0 0 14px rgba(var(--el-color-primary-rgb), 0.22);
+  }
+
+  .f-front {
+    transform: translateZ(21px);
+  }
+
+  .f-back {
+    transform: rotateY(180deg) translateZ(21px);
+  }
+
+  .f-left {
+    transform: rotateY(-90deg) translateZ(21px);
+  }
+
+  .f-right {
+    transform: rotateY(90deg) translateZ(21px);
+  }
+
+  .f-top {
+    transform: rotateX(90deg) translateZ(21px);
+    background: rgba(var(--el-color-primary-rgb), 0.3);
+  }
+
+  .f-bottom {
+    transform: rotateX(-90deg) translateZ(21px);
+  }
+}
+
+/* 状态条 */
+.vp-status {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 24px;
+  background: rgba(var(--el-color-primary-rgb), 0.07);
+  border-top: 1px solid rgba(var(--el-color-primary-rgb), 0.16);
+  border-bottom: 1px solid rgba(var(--el-color-primary-rgb), 0.16);
+}
+
+.vp-bars {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 24px;
+}
+
 .p-bar {
   width: 3px;
-  background: rgba(6,182,212,0.5);
-  border-radius: 1px;
-  animation: voxel-bar-wave 1.5s ease-in-out infinite;
+  background: var(--el-color-primary);
+  border-radius: 2px;
+  opacity: 0.85;
+  animation: voxel-bar-wave 1.3s ease-in-out infinite;
 }
-.p-bar:nth-child(2) { animation-delay: 0.1s; background: rgba(99,102,241,0.5); }
-.p-bar:nth-child(3) { animation-delay: 0.2s; background: rgba(139,92,246,0.5); }
-.p-bar:nth-child(4) { animation-delay: 0.3s; background: rgba(6,182,212,0.4); }
-.p-bar:nth-child(5) { animation-delay: 0.4s; background: rgba(99,102,241,0.4); }
-.p-bar:nth-child(6) { animation-delay: 0.5s; background: rgba(139,92,246,0.4); }
-@keyframes voxel-bar-wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
-.panel-title {
-  margin-left: 8px;
-  font-family: "SF Mono","Consolas",monospace;
-  font-size: 10px; color: #94A3B8; letter-spacing: 2px;
+
+.vp-status-label {
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #94a3b8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.panel-status {
-  margin-left: auto;
-  display: flex; align-items: center; gap: 5px;
-  font-family: "SF Mono","Consolas",monospace;
-  font-size: 8px; color: #10B981; letter-spacing: 1px;
+
+.vp-online {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #34d399;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #34d399;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #34d399;
+    animation: voxel-dot-pulse 1.8s ease-in-out infinite;
+  }
 }
-.panel-status .dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 4px rgba(16,185,129,0.6);
-  animation: voxel-dot-pulse 2s ease-in-out infinite;
+
+/* 表单区 */
+.vp-body {
+  padding: 24px;
 }
-@keyframes voxel-dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.voxel-panel-body { padding: 14px 16px 12px; }
-.voxel-panel-base {
-  padding: 6px 14px 10px;
-  border-top: 1px solid rgba(99,102,241,0.1);
-  background: rgba(5,5,20,0.4);
+
+/* 底座 */
+.vp-base {
+  padding: 0 24px 20px;
 }
+
 .base-line {
   height: 1px;
-  background: linear-gradient(90deg, rgba(6,182,212,0.3) 0%, rgba(99,102,241,0.3) 50%, rgba(139,92,246,0.3) 100%);
-  margin-bottom: 6px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.45), transparent);
 }
-.base-markers { display: flex; justify-content: space-between; gap: 2px; }
+
+.base-markers {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+}
+
 .marker {
-  width: 100%; height: 2px;
-  background: rgba(99,102,241,0.15);
-  border-radius: 1px;
+  width: 14px;
+  height: 3px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 2px;
+  transition: background-color 0.4s ease;
+
+  &.active {
+    background: var(--el-color-primary);
+    box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.7);
+  }
 }
-.marker.active {
-  background: rgba(99,102,241,0.5);
-  box-shadow: 0 0 4px rgba(99,102,241,0.3);
+
+/* 备案信息 */
+.voxel-legal {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 11px;
+  color: #475569;
 }
+
+/* ============ 表单内部视觉增强 ============ */
 .voxel-form {
-  :deep(.koi-login-form) { width: 100%; }
-  :deep(.login-form) { width: 100%; max-width: none !important; }
-  :deep(.el-form-item) { margin-bottom: 8px; }
-  :deep(.form-header) { text-align: center; margin-bottom: 12px; }
-  :deep(.form-header h3) { font-family: "SF Mono","Consolas",monospace; font-size: 12px; letter-spacing: 3px; margin-bottom: 4px; color: #E2E8F0; }
-  :deep(.form-header p) { font-family: "SF Mono","Consolas",monospace; font-size: 9px; color: #64748B; letter-spacing: 1px; }
   :deep(.login-input) {
     .el-input__wrapper {
-      background: rgba(30,27,75,0.4) !important;
-      border: 1px solid rgba(99,102,241,0.2) !important;
-      box-shadow: none !important;
-      border-radius: 4px !important;
-      padding: 2px 10px !important;
-      transition: all 0.2s ease !important;
+      background: rgba(2, 6, 23, 0.6);
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.2) inset;
+      transition: box-shadow 0.25s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.45) inset;
+      }
+
+      &.is-focus {
+        box-shadow:
+          0 0 0 1px var(--el-color-primary) inset,
+          0 0 18px rgba(var(--el-color-primary-rgb), 0.3);
+      }
     }
-    .el-input__wrapper.is-focus {
-      border-color: #8B5CF6 !important;
-      box-shadow: 0 0 0 2px rgba(139,92,246,0.15), 0 0 12px rgba(139,92,246,0.1) !important;
-    }
+
     .el-input__inner {
-      font-family: "SF Mono","Consolas",monospace !important;
-      font-size: 12px !important;
-      color: #E2E8F0 !important;
+      color: #e2e8f0;
     }
-    .el-input__inner::placeholder { color: #475569 !important; }
-    .el-input__prefix { color: #64748B !important; }
   }
+
   :deep(.login-btn) {
-    .el-button {
-      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
-      border: none !important;
-      border-radius: 4px !important;
-      box-shadow: 0 4px 12px rgba(99,102,241,0.25) !important;
-      color: #FFFFFF !important;
-      font-family: "SF Mono","Consolas",monospace !important;
-      font-size: 11px !important; font-weight: 600 !important;
-      letter-spacing: 3px !important;
-      transition: all 0.2s ease !important;
-      width: 100%;
-    }
-    .el-button:hover {
-      transform: translateY(-1px) !important;
-      box-shadow: 0 6px 16px rgba(99,102,241,0.4) !important;
-    }
-    .el-button:active { transform: translateY(0) !important; }
-  }
-  :deep(.login-input-row) { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-  :deep(.login-extras) { margin-bottom: 6px; }
-  :deep(.login-tip) { color: #64748B; font-family: "SF Mono","Consolas",monospace; font-size: 9px; }
-  :deep(.login-verify-wrap) { gap: 8px !important; align-items: center !important; }
-  :deep(.login-verify-img) {
-    width: 80px !important; height: 32px !important;
-    border-radius: 3px !important;
-    border: 1px solid rgba(99,102,241,0.2) !important;
-    background: rgba(30,27,75,0.4) !important;
-    transition: all 0.2s ease !important;
-    overflow: hidden;
-  }
-  :deep(.login-verify-img:hover) { border-color: #8B5CF6 !important; }
-  :deep(.login-verify-placeholder) { background: rgba(30,27,75,0.4) !important; color: #64748B !important; }
-  :deep(.otp-input-cells) { gap: 5px; }
-  :deep(.otp-cell) {
-    height: 36px !important;
-    font-family: "SF Mono","Consolas",monospace !important;
-    font-size: 14px !important; font-weight: 600 !important;
-    background: rgba(30,27,75,0.4) !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(99,102,241,0.2) !important;
-    border-radius: 3px !important;
-    box-shadow: none !important;
-    outline: none !important;
-    text-align: center;
-    transition: all 0.2s ease !important;
-  }
-  :deep(.otp-cell--filled) { border-color: #8B5CF6 !important; background: rgba(99,102,241,0.06) !important; }
-  :deep(.otp-cell--focused) { border-color: #8B5CF6 !important; box-shadow: 0 0 0 2px rgba(139,92,246,0.15) !important; }
-  :deep(.slider-verify) { height: 32px !important; }
-  :deep(.slider-verify-track) {
-    background: rgba(30,27,75,0.4) !important;
-    border: 1px solid rgba(99,102,241,0.2) !important;
-    border-radius: 3px !important;
-  }
-  :deep(.slider-verify-bg) { background: rgba(99,102,241,0.15) !important; border-radius: 3px; }
-  :deep(.slider-verify-thumb) {
-    background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
-    border: none !important;
-    border-radius: 3px !important;
-    box-shadow: 0 2px 6px rgba(99,102,241,0.3) !important;
-    top: 1px; height: 30px !important;
-  }
-  :deep(.slider-verify-thumb--success) { background: #10B981 !important; }
-  :deep(.slider-verify-text) { font-family: "SF Mono","Consolas",monospace !important; font-size: 9px !important; color: #64748B !important; letter-spacing: 1px; }
-  :deep(.slider-verify-text--success) { color: #10B981 !important; }
+    height: 44px;
+    font-size: 15px;
+    letter-spacing: 6px;
+    border-radius: 10px;
+    box-shadow: 0 10px 26px rgba(var(--el-color-primary-rgb), 0.45);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
 
-  :deep(.otp-dialog) {
-    --otp-bg: rgba(15,23,42,0.92);
-    --otp-border: rgba(99,102,241,0.25);
-    --otp-card-bg: rgba(30,27,75,0.6);
-    --otp-card-border: rgba(99,102,241,0.2);
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(var(--el-color-primary-rgb), 0.6);
+    }
+  }
+}
 
-    :deep(.el-dialog) {
-      background: var(--otp-bg) !important;
-      border: 1px solid var(--otp-border) !important;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(99,102,241,0.08) !important;
-      border-radius: 4px !important;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      margin-top: 10vh !important;
-    }
-    :deep(.el-overlay-dialog) {
-      background: rgba(0,0,0,0.6);
-    }
-    :deep(.el-dialog__header) {
-      border-bottom: 1px solid rgba(99,102,241,0.15) !important;
-      padding: 14px 20px 0 !important;
-    }
-    :deep(.el-dialog__title) {
-      font-family: "SF Mono","Consolas",monospace !important;
-      font-size: 15px !important;
-      font-weight: 700 !important;
-      color: #E2E8F0 !important;
-      letter-spacing: 0.5px;
-    }
-    :deep(.el-dialog__headerbtn) {
-      color: #94A3B8 !important;
-      top: 12px !important; right: 16px !important;
-    }
-    :deep(.el-dialog__headerbtn:focus) {
-      color: #8B5CF6 !important;
-    }
-    :deep(.el-dialog__body) {
-      padding: 16px 20px 20px !important;
-    }
-    .otp-dialog-icon {
-      background: rgba(99,102,241,0.12) !important;
-      border: 1px solid rgba(99,102,241,0.3) !important;
-      box-shadow: 0 0 12px rgba(99,102,241,0.15) !important;
-      color: #8B5CF6 !important;
-    }
-    .otp-dialog-desc {
-      color: #94A3B8 !important;
-      font-size: 12px !important;
-    }
-    :deep(.otp-cell) {
-      height: 38px !important;
-      font-family: "SF Mono","Consolas",monospace !important;
-      font-size: 16px !important; font-weight: 700 !important;
-      background: rgba(30,27,75,0.5) !important;
-      color: #E2E8F0 !important;
-      border: 1px solid rgba(99,102,241,0.25) !important;
-      border-radius: 3px !important;
-    }
-    :deep(.otp-cell--filled) {
-      border-color: #8B5CF6 !important;
-      background: rgba(99,102,241,0.08) !important;
-      box-shadow: 0 0 8px rgba(139,92,246,0.2) !important;
-    }
-    :deep(.otp-cell--focused) {
-      border-color: #8B5CF6 !important;
-      box-shadow: 0 0 0 2px rgba(139,92,246,0.2) !important;
-    }
-    :deep(.otp-dialog-footer) {
-      padding-top: 4px;
-    }
-    :deep(.otp-cancel-text) {
-      color: #94A3B8 !important;
-      font-size: 12px !important;
-    }
-    :deep(.otp-cancel-text:hover) {
-      color: #E2E8F0 !important;
-    }
-    :deep(.el-button--primary) {
-      background: #6366F1 !important;
-      border: 1px solid #6366F1 !important;
-      border-radius: 3px !important;
-      font-family: "SF Mono","Consolas",monospace !important;
-      font-weight: 600 !important;
-      font-size: 12px !important;
-      color: #FFFFFF !important;
-      letter-spacing: 1px;
-      padding: 8px 20px !important;
-      height: 32px !important;
-      box-shadow: 0 0 12px rgba(99,102,241,0.3) !important;
-    }
-    :deep(.el-button--primary:disabled) {
-      background: rgba(99,102,241,0.25) !important;
-      border-color: rgba(99,102,241,0.25) !important;
-      color: #64748B !important;
-      box-shadow: none !important;
-    }
-    :deep(.el-button--primary:not(:disabled):hover) {
-      background: #8B5CF6 !important;
-      border-color: #8B5CF6 !important;
-      box-shadow: 0 0 16px rgba(139,92,246,0.4) !important;
-    }
+/* ============ 动画 ============ */
+@keyframes voxel-float-up {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  85% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes voxel-grid-scroll {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 50px;
+  }
+}
+
+@keyframes voxel-ring-spin {
+  from {
+    transform: translate(-50%, -50%) rotateX(72deg) rotateZ(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotateX(72deg) rotateZ(360deg);
+  }
+}
+
+@keyframes voxel-beam-flicker {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes voxel-logo-rotate {
+  from {
+    transform: rotateX(-24deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-24deg) rotateY(360deg);
+  }
+}
+
+@keyframes voxel-bar-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes voxel-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes voxel-appear {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============ 窄屏：体素结构让位给内容 ============ */
+@media (max-width: 1180px) {
+  .voxel-structure {
+    opacity: 0.32;
+  }
+}
+
+@media (max-width: 860px) {
+  .voxel-stage {
+    display: none;
+  }
+
+  .voxel-ring--c {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .voxel-content {
+    padding: 24px 16px;
+  }
+
+  .vp-head {
+    padding: 20px 18px 14px;
+  }
+
+  .vp-body {
+    padding: 18px;
+  }
+
+  .vp-title {
+    font-size: 18px;
+  }
+}
+
+/* ============ 无障碍：尊重减少动效偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .voxel-cube,
+  .voxel-particle,
+  .voxel-ring,
+  .voxel-beam,
+  .voxel-cube-logo,
+  .p-bar,
+  .vp-online .dot,
+  .voxel-grid-floor {
+    animation: none;
   }
 }
 </style>
 
+<!--
+  OTP 动态口令弹窗由 ReOtpDialog teleport 到 body，scoped 样式无法命中，
+  因此这里需要一段全局样式；已用 body:has(.voxel-page) 严格限定只在本体存在时生效。
+-->
 <style lang="scss">
 body:has(.voxel-page) .otp-dialog {
-  .el-dialog {
-    background: rgba(15,23,42,0.92) !important;
-    border: 1px solid rgba(99,102,241,0.25) !important;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(99,102,241,0.08) !important;
-    border-radius: 4px !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    margin-top: 10vh !important;
-  }
-  .el-overlay-dialog {
-    background: rgba(0,0,0,0.6);
-  }
-  .el-dialog__header {
-    border-bottom: 1px solid rgba(99,102,241,0.15) !important;
-    padding: 14px 20px 0 !important;
-  }
-  .el-dialog__title {
-    font-family: "SF Mono","Consolas",monospace !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    color: #E2E8F0 !important;
-    letter-spacing: 0.5px;
-  }
-  .el-dialog__headerbtn {
-    color: #94A3B8 !important;
-    top: 12px !important; right: 16px !important;
-  }
-  .el-dialog__headerbtn:focus {
-    color: #8B5CF6 !important;
-  }
-  .el-dialog__body {
-    padding: 16px 20px 20px !important;
-  }
-  .otp-dialog-icon {
-    background: rgba(99,102,241,0.12) !important;
-    border: 1px solid rgba(99,102,241,0.3) !important;
-    box-shadow: 0 0 12px rgba(99,102,241,0.15) !important;
-    color: #8B5CF6 !important;
-  }
-  .otp-dialog-desc {
-    color: #94A3B8 !important;
-    font-size: 12px !important;
-  }
-  .otp-cell {
-    height: 38px !important;
-    font-family: "SF Mono","Consolas",monospace !important;
-    font-size: 16px !important; font-weight: 700 !important;
-    background: rgba(30,27,75,0.5) !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(99,102,241,0.25) !important;
-    border-radius: 3px !important;
-  }
-  .otp-cell--filled {
-    border-color: #8B5CF6 !important;
-    background: rgba(99,102,241,0.08) !important;
-    box-shadow: 0 0 8px rgba(139,92,246,0.2) !important;
-  }
-  .otp-cell--focused {
-    border-color: #8B5CF6 !important;
-    box-shadow: 0 0 0 2px rgba(139,92,246,0.2) !important;
-  }
-  .otp-cancel-text {
-    color: #94A3B8 !important;
-    font-size: 12px !important;
-  }
-  .otp-cancel-text:hover {
-    color: #E2E8F0 !important;
-  }
-  .el-button--primary {
-    background: #6366F1 !important;
-    border: 1px solid #6366F1 !important;
-    border-radius: 3px !important;
-    font-family: "SF Mono","Consolas",monospace !important;
-    font-weight: 600 !important;
-    font-size: 12px !important;
-    color: #FFFFFF !important;
-    letter-spacing: 1px;
-    padding: 8px 20px !important;
-    height: 32px !important;
-    box-shadow: 0 0 12px rgba(99,102,241,0.3) !important;
-  }
-  .el-button--primary:disabled {
-    background: rgba(99,102,241,0.25) !important;
-    border-color: rgba(99,102,241,0.25) !important;
-    color: #64748B !important;
-    box-shadow: none !important;
-  }
-  .el-button--primary:not(:disabled):hover {
-    background: #8B5CF6 !important;
-    border-color: #8B5CF6 !important;
-    box-shadow: 0 0 16px rgba(139,92,246,0.4) !important;
-  }
+  --otp-bg: rgba(10, 16, 34, 0.96);
+  --otp-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --otp-card-bg: rgba(2, 6, 23, 0.7);
+  --otp-card-border: rgba(var(--el-color-primary-rgb), 0.18);
+
+  background: var(--otp-bg);
+  border: 1px solid var(--otp-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+}
+
+body:has(.voxel-page) .otp-cell {
+  background: var(--otp-card-bg);
+  border-color: var(--otp-card-border);
+  color: #e2e8f0;
+}
+
+body:has(.voxel-page) .otp-cell--focused {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 12px rgba(var(--el-color-primary-rgb), 0.5);
 }
 </style>

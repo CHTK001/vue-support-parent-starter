@@ -34,38 +34,51 @@ const emit = defineEmits<{
 }>()
 
 const slots = useSlots()
-const visible = ref(props.modelValue)
-const rendered = ref(true) // when destroyOnClose, controls inner DOM existence
+/** mounted：overlay 是否在 DOM 中；rendered：body 内容是否存在（destroyOnClose）；shown：是否已应用可见态（opacity） */
+const mounted = ref(props.modelValue)
+const rendered = ref(true)
+const shown = ref(props.modelValue)
+
+let closeTimer: ReturnType<typeof setTimeout> | undefined
+const FADE_MS = 180
+
+/** overlay 根元素引用，用于在进入过渡前强制 reflow，锁定 opacity:0 起始态 */
+const overlayEl = ref<HTMLElement | null>(null)
 
 watch(() => props.modelValue, (val) => {
-  if (val === visible.value) return
-  if (val) {
-    open()
-  } else {
-    close()
-  }
+  if (val) open()
+  else close()
 })
 
 function open() {
-  visible.value = true
+  clearTimeout(closeTimer)
+  mounted.value = true
   rendered.value = true
   emit('update:modelValue', true)
   emit('open')
+  // 等 overlay 真正插入 DOM（opacity:0），强制一次 reflow 锁定起始态，
+  // 再添加 is-shown，保证 opacity 0→1 过渡必定触发且收敛到 1。
+  void nextTick(() => {
+    const el = overlayEl.value
+    if (el) {
+      void el.offsetWidth
+    }
+    shown.value = true
+  })
 }
 
 function close() {
-  visible.value = false
+  shown.value = false
   emit('update:modelValue', false)
   emit('close')
-  if (props.destroyOnClose) {
-    // wait for transition to finish before destroying inner DOM
-    nextTick(() => {
+  // 等待淡出结束后再卸载 overlay / 销毁内容（定时器在隐藏页也会触发，仅可能被节流）
+  closeTimer = setTimeout(() => {
+    mounted.value = false
+    if (props.destroyOnClose) {
       rendered.value = false
-      emit('closed')
-    })
-  } else {
-    nextTick(() => emit('closed'))
-  }
+    }
+    emit('closed')
+  }, FADE_MS)
 }
 
 function handleOverlayClick() {
@@ -94,7 +107,8 @@ const dialogStyle = computed(() => {
 })
 
 onBeforeUnmount(() => {
-  if (visible.value) {
+  clearTimeout(closeTimer)
+  if (mounted.value) {
     emit('update:modelValue', false)
     emit('close')
   }
@@ -103,42 +117,31 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport :to="appendToBody ? 'body' : undefined" :disabled="!appendToBody">
-    <Transition name="l-dialog-fade">
+    <div
+      v-if="mounted"
+      ref="overlayEl"
+      class="l-dialog__overlay"
+      :class="{ 'l-dialog__overlay--top': !alignCenter, 'is-shown': shown }"
+      :style="{ opacity: shown ? 1 : 0 }"
+      @click.self="handleOverlayClick"
+      @keydown.esc="handleKeydown"
+      tabindex="-1"
+    >
       <div
-        v-if="visible"
-        class="l-dialog__overlay"
-        :class="{ 'l-dialog__overlay--top': !alignCenter }"
-        @click.self="handleOverlayClick"
-        @keydown.esc="handleKeydown"
-        tabindex="-1"
+        class="l-dialog"
+        v-bind="attrs"
+        :style="dialogStyle"
+        role="dialog"
+        aria-modal="true"
       >
-        <div
-          class="l-dialog"
-          v-bind="attrs"
-          :style="dialogStyle"
-          role="dialog"
-          aria-modal="true"
-        >
-          <!-- Header: only rendered when title or header slot exists -->
-          <div v-if="hasHeader" class="l-dialog__header">
-            <slot name="header">
-              <span class="l-dialog__title">{{ title }}</span>
-            </slot>
-            <button
-              v-if="showClose"
-              class="l-dialog__close-btn"
-              type="button"
-              @click="close"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-              </svg>
-            </button>
-          </div>
-          <!-- Floating close button when no header -->
+        <!-- Header: only rendered when title or header slot exists -->
+        <div v-if="hasHeader" class="l-dialog__header">
+          <slot name="header">
+            <span class="l-dialog__title">{{ title }}</span>
+          </slot>
           <button
-            v-else-if="showClose"
-            class="l-dialog__close-btn l-dialog__close-btn--floating"
+            v-if="showClose"
+            class="l-dialog__close-btn"
             type="button"
             @click="close"
           >
@@ -146,19 +149,30 @@ onBeforeUnmount(() => {
               <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
             </svg>
           </button>
+        </div>
+        <!-- Floating close button when no header -->
+        <button
+          v-else-if="showClose"
+          class="l-dialog__close-btn l-dialog__close-btn--floating"
+          type="button"
+          @click="close"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
 
-          <!-- Body -->
-          <div v-if="rendered" class="l-dialog__body">
-            <slot />
-          </div>
+        <!-- Body -->
+        <div v-if="rendered" class="l-dialog__body">
+          <slot />
+        </div>
 
-          <!-- Footer -->
-          <div v-if="hasFooter" class="l-dialog__footer">
-            <slot name="footer" />
-          </div>
+        <!-- Footer -->
+        <div v-if="hasFooter" class="l-dialog__footer">
+          <slot name="footer" />
         </div>
       </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
@@ -172,6 +186,18 @@ onBeforeUnmount(() => {
   justify-content: center;
   overflow: auto;
   padding: 5vh 16px;
+  /* 初始隐藏；显隐由内联 opacity 直接驱动（不使用 CSS 过渡，避免挂载时序下冻结在 0） */
+  opacity: 0;
+}
+
+.l-dialog__overlay.is-shown {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .l-dialog__overlay {
+    transition: none;
+  }
 }
 
 .l-dialog__overlay::before {
@@ -269,24 +295,5 @@ html.dark .l-dialog {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-/* Transition - 简化动画，确保对话框能正常显示 */
-.l-dialog-fade-enter-active,
-.l-dialog-fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.l-dialog-fade-enter-active .l-dialog {
-  transition: opacity 0.15s ease;
-}
-
-.l-dialog-fade-leave-active .l-dialog {
-  transition: opacity 0.15s ease;
-}
-
-/* 进入时不再隐藏opacity，直接显示 */
-.l-dialog-fade-leave-to {
-  opacity: 0;
 }
 </style>

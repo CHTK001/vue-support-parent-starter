@@ -4,6 +4,7 @@ import axios, {
   AxiosHeaders,
   AxiosError,
   AxiosInstance,
+  AxiosProgressEvent,
   Method,
   ResponseType,
   InternalAxiosRequestConfig,
@@ -122,6 +123,11 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
 
   noToast(on: boolean): ChainableRequest {
     this.config.hc = { ...this.config.hc, noToast: on };
+    return this;
+  }
+
+  uploadProgress(handler: (event: AxiosProgressEvent) => void): ChainableRequest {
+    this.config.onUploadProgress = handler;
     return this;
   }
 

@@ -43,8 +43,8 @@
                     <span class="text-sm font-semibold text-gray-800 dark:text-[#e8e9ed]">{{ currentTabLabel }}</span>
                 </template>
             </PageHeader>
-            <div class="flex-1 overflow-hidden flex flex-col md:max-w-220 md:mx-auto w-full">
-                <div class="flex-1 overflow-hidden py-3">
+            <div class="flex-1 overflow-hidden flex flex-col w-full" :class="contentMaxWidthClass">
+                <div class="flex-1 overflow-hidden py-3 min-w-0">
                     <ScrollContainer class="h-full p-4">
                         <template v-if="currentTabValue === 'general'">
                             <GeneralSettings />
@@ -77,14 +77,26 @@
                         <template v-else-if="currentTabValue === 'session-archived'">
                             <ArchivedSessions />
                         </template>
-                        <template v-else-if="currentTabValue === 'profile'">
-                            <UserProfile />
-                        </template>
                         <template v-else-if="currentTabValue === 'security'">
                             <UserSecurity />
                         </template>
                         <template v-else-if="currentTabValue === 'connections'">
                             <ConnectionSettings />
+                        </template>
+                        <template v-else-if="currentTabValue === 'usage'">
+                            <UsageConfigSettings />
+                        </template>
+                        <template v-else-if="currentTabValue === 'model-metrics'">
+                            <ModelMetricsSettings />
+                        </template>
+                        <template v-else-if="currentTabValue === 'skills-source'">
+                            <SkillsSourceSettings />
+                        </template>
+                        <template v-else-if="currentTabValue === 'services'">
+                            <ServiceManagementPage />
+                        </template>
+                        <template v-else-if="currentTabValue === 'service-tokens'">
+                            <ServiceTokensPage />
                         </template>
                     </ScrollContainer>
                 </div>
@@ -105,9 +117,13 @@ import ModelsProviderList from './ModelsProviderList.vue'
 import AboutPanel from '../plugins/AboutPanel.vue'
 import SessionGroupManage from './SessionGroupManage.vue'
 import ArchivedSessions from './ArchivedSessions.vue'
-import UserProfile from './UserProfile.vue'
 import UserSecurity from './UserSecurity.vue'
 import ConnectionSettings from './ConnectionSettings.vue'
+import ModelMetricsSettings from './ModelMetricsSettings.vue'
+import UsageConfigSettings from './UsageConfigSettings.vue'
+import SkillsSourceSettings from './SkillsSourceSettings.vue'
+import ServiceManagementPage from '../management/ServiceManagementPage.vue'
+import ServiceTokensPage from '../management/ServiceTokensPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
 
@@ -123,14 +139,19 @@ import {
     Archive20Regular,
     Cloud24Regular,
     Chat24Regular,
+    DataHistogram24Regular,
+    DataUsage24Regular,
+    PuzzlePiece24Regular,
+    Server24Regular,
 } from '@vicons/fluent'
 
-import { ArrowBackIosNewTwotone, PersonOutlineOutlined, VerifiedUserOutlined } from '@vicons/material'
+import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
 
 import { useAuthStore } from '../../stores/auth'
 import PageHeader from '@/components/PageHeader.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { isAdmin } from '@repo/core'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -150,8 +171,12 @@ const groupMap = computed<Record<string, string>>(() => ({
     community: t('settings.system.groups.system'),
     'session-groups': t('settings.system.groups.dataManagement'),
     'session-archived': t('settings.system.groups.dataManagement'),
-    profile: t('settings.system.groups.account'),
+    'model-metrics': t('settings.system.groups.dataManagement'),
+    'skills-source': t('settings.system.groups.dataManagement'),
+    usage: t('settings.system.groups.dataManagement'),
     security: t('settings.system.groups.account'),
+    services: t('settings.system.groups.system'),
+    'service-tokens': t('settings.system.groups.system'),
 }))
 
 // 设置项菜单
@@ -205,12 +230,46 @@ const sidebarItems = computed(() => [
         icon: Archive20Regular,
         roles: ['primary'],
     },
+    {
+        label: '用量配置',
+        path: 'usage',
+        icon: DataUsage24Regular,
+        roles: ['primary'],
+    },
+    {
+        label: '模型指标采集',
+        path: 'model-metrics',
+        icon: DataHistogram24Regular,
+        roles: ['primary'],
+    },
+    {
+        label: 'Skills 配置',
+        path: 'skills-source',
+        icon: PuzzlePiece24Regular,
+        roles: ['primary'],
+    },
+    {
+        label: '账号安全',
+        path: 'security',
+        icon: VerifiedUserOutlined,
+        roles: ['primary'],
+    },
+    {
+        label: '服务配置',
+        path: 'services',
+        icon: Server24Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
 ])
 
 // 根据用户角色过滤菜单项
 const filteredSidebarItems = computed(() => {
     const userRole = authStore.user?.role || 'primary'
-    return sidebarItems.value.filter(item => !item.roles || item.roles.includes(userRole))
+    return sidebarItems.value.filter(item => {
+        if (item.adminOnly && !isAdmin()) return false
+        return !item.roles || item.roles.includes(userRole)
+    })
 })
 
 // 按分组组织侧边栏项
@@ -249,11 +308,19 @@ const getDefaultTabPath = () => {
 
 const currentTabValue = ref(getDefaultTabPath())
 
+// 宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
+// 这些页签放开 max-w 限制；其余窄内容页签保持居中定宽，避免长行难读。
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
+const contentMaxWidthClass = computed(() =>
+    WIDE_TABS.includes(currentTabValue.value) ? '' : 'md:max-w-220 md:mx-auto',
+)
+
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM
 const portalReady = ref(false)
 
 // 当前标签标题
 const currentTabLabel = computed(() => {
+    if (currentTabValue.value === 'service-tokens') return '访问令牌'
     const item = filteredSidebarItems.value.find(i => i.path === currentTabValue.value)
     return item?.label || t('settings.system.settings')
 })

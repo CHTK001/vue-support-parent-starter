@@ -1,15 +1,16 @@
 /**
  * 系统管理模块 API 封装（@pages/system）
  *
- * 覆盖系统管理 8 个核心接口域，调用规范：
+ * 覆盖 8 个核心 Controller，调用规范：
  *   1) 全部走 http()，URL 形如 /v2/{module}/{action}
  *   2) 链式 API：.get(url).query(params) / .post(url).data(body) / .put / .delete
  *   3) 返回 Promise<ApiResult<T>>，由业务代码 .then(r => r.data) 解包
- *   4) 路径与后端系统管理接口契约保持一致
+ *   4) 路径与后端 spring-api-support-common-system-starter / common-service-starter 一致
  */
 import { http } from "@repo/utils";
 import type {
   ApiResult,
+  CacheStats,
   FeedbackIssue,
   FeedbackStatistic,
   OnlineUser,
@@ -48,12 +49,32 @@ import type {
   SysPostQuery,
   SysCacheInfo,
   SysMessageTemplate,
+  SysMessageLog,
+  TemplatePreviewRequest,
+  TemplatePreviewResponse,
+  MessageTemplateSendRequest,
+  MessageByCodeSendRequest,
   SysMessageSendRequest,
   ErrorLogStatistic,
   AnnouncementReadStat,
   TotpStatus,
   TotpUriResponse,
+  EmailConnectivity,
+  RedisInfo,
+  CacheModuleInfo,
+  CacheValueInfo,
+  ServerInfo,
+  RestfulApiStats,
+  RateLimitRule,
+  RateLimitGlobal,
+  AccountBlackwhite,
+  AccountBlackwhitePage,
+  HotReloadRuntimeResult,
+  HotReloadConfig,
 } from "./types";
+
+/** 将领域 DTO 适配为 HTTP 客户端接受的 JSON 对象，不创建运行时副本。 */
+type JsonRequestObject<T extends object> = T & Record<string, unknown>;
 
 /* ================== 用户管理 ================== */
 
@@ -217,6 +238,21 @@ export function saveRole(data: SysRole) {
 export function updateRole(data: SysRole) {
   return http()
     .put("/v2/role/update")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/**
+ * 更新角色数据权限（只写数据权限两列）
+ * 数据权限属于角色配置项，管理员即可调整（系统内置角色同样适用），不走系统角色的「不允许修改」限制。
+ */
+export function updateRoleDataScope(data: {
+  sysRoleId?: number;
+  sysRoleDataScope?: number;
+  sysRoleDataScopeDeptIds?: string;
+}) {
+  return http()
+    .put("/v2/role/update_data_scope")
     .data(data as Record<string, unknown>)
     .then<ApiResult<boolean>>((r) => r.data);
 }
@@ -491,6 +527,7 @@ export function pageForSetting(params: {
   sysSettingGroup?: string;
   sysSettingValueType?: string;
   sysSettingInSystem?: number;
+  scope?: string;
 }) {
   return http()
     .get("/v2/setting/page")
@@ -569,19 +606,22 @@ export function exportSetting(group?: string) {
     .then<ApiResult<string>>((r) => r.data);
 }
 
-/** 导入配置（后端接收原始 JSON 字符串 body + overwrite 查询参数，非 multipart） */
-export function importSetting(json: string, overwrite = false) {
-  return http()
-    .post("/v2/setting/import")
-    .query({ overwrite })
-    .data(json)
-    .then<ApiResult<string>>((r) => r.data);
-}
-
 /* ================== 反馈管理 ================== */
 
 /** 反馈分页 */
-export function pageForFeedback(params: { page?: number; pageSize?: number; sysFeedbackType?: string }) {
+export function pageForFeedback(params: {
+  page?: number;
+  pageSize?: number;
+  sysFeedbackType?: string;
+  sysFeedbackPlatform?: string;
+  sysFeedbackContent?: string;
+  sysFeedbackPriority?: number;
+  createTimeStart?: string;
+  createTimeEnd?: string;
+  recoverTimeStart?: string;
+  recoverTimeEnd?: string;
+  order?: string;
+}) {
   return http()
     .get("/v2/feedback/page")
     .query(params as Record<string, unknown>)
@@ -606,7 +646,12 @@ export function getFeedbackStatistic() {
 /* ================== 登录日志 ================== */
 
 /** 登录日志分页 */
-export function pageForUserLog(params: { page?: number; pageSize?: number; sysLogUsername?: string }) {
+export function pageForUserLog(params: {
+  page?: number;
+  pageSize?: number;
+  sysLogUsername?: string;
+  sysLogStatus?: number;
+}) {
   return http()
     .get("/v2/user/log/page")
     .query(params as Record<string, unknown>)
@@ -778,7 +823,30 @@ export function updatePost(data: SysPost) {
 export function deletePost(sysPostId: number) {
   return http()
     .delete("/v2/post/delete")
-    .query({ sysPostId })
+    .query({ postId: sysPostId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 批量更新字典子项排序 */
+export function updateDictItemSortBatch(list: Array<{ sysDictItemId: number; sysDictItemSort: number }>) {
+  return http()
+    .put("/v2/dict/item/update-sort")
+    .data(list)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 批量更新字典分类排序 */
+export function updateDictSortBatch(list: Array<{ sysDictId: number; sysDictSort: number }>) {
+  return http()
+    .put("/v2/dict/update-sort")
+    .data(list)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+/** 批量更新岗位排序 */
+export function updatePostSortBatch(list: Array<{ sysPostId: number; sysPostSort: number }>) {
+  return http()
+    .put("/v2/post/update-sort")
+    .data(list)
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
@@ -833,6 +901,7 @@ export function pageForMessageAdmin(params: {
   sysMessageLevel?: string;
   sysMessageStatus?: number;
   sysMessageReceiverId?: number;
+  sysMessageChannel?: string;
 }) {
   return http()
     .get("/v2/message/sys-message/admin/page")
@@ -901,14 +970,6 @@ export function deleteIp(sysIpId: number) {
     .delete("/v2/ip/delete")
     .query({ sysIpId })
     .then<ApiResult<boolean>>((r) => r.data);
-}
-
-/** IP 归属地查询 */
-export function lookupIp(ip: string) {
-  return http()
-    .get("/v2/ip/lookup")
-    .query({ ip })
-    .then<ApiResult<string>>((r) => r.data);
 }
 
 /* ================== 错误日志 ================== */
@@ -994,7 +1055,7 @@ export function refreshAllCache() {
 export function sendMessage(data: SysMessageSendRequest) {
   return http()
     .post("/v2/message/sys-message/admin/send")
-    .data(data as Record<string, unknown>)
+    .data(data as JsonRequestObject<SysMessageSendRequest>)
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
@@ -1022,6 +1083,13 @@ export function pageForMessageTemplate(params: {
   pageSize?: number;
   sysMessageTemplateName?: string;
   sysMessageTemplateCode?: string;
+  sysMessageTemplateType?: string;
+  sysMessageChannel?: string;
+  /**
+   * 状态：1=启用 0=禁用；传空串表示「全部」。
+   * 后端实体该字段默认值为 1，不显式传会被默认按「启用」过滤，导致禁用模板不显示。
+   */
+  sysMessageTemplateStatus?: number | string;
 }) {
   return http()
     .get("/v2/message/template/page")
@@ -1040,7 +1108,7 @@ export function listForMessageTemplate() {
 export function saveMessageTemplate(data: SysMessageTemplate) {
   return http()
     .post("/v2/message/template/save")
-    .data(data as Record<string, unknown>)
+    .data(data as JsonRequestObject<SysMessageTemplate>)
     .then<ApiResult<SysMessageTemplate>>((r) => r.data);
 }
 
@@ -1048,7 +1116,7 @@ export function saveMessageTemplate(data: SysMessageTemplate) {
 export function updateMessageTemplate(data: SysMessageTemplate) {
   return http()
     .put("/v2/message/template/update")
-    .data(data as Record<string, unknown>)
+    .data(data as JsonRequestObject<SysMessageTemplate>)
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
@@ -1060,6 +1128,62 @@ export function deleteMessageTemplate(sysMessageTemplateId: number) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
+/* ================== 模板预览与发送 ================== */
+
+/** 模板预览 */
+export function previewMessageTemplate(data: TemplatePreviewRequest) {
+  return http()
+    .post("/v2/message/template/preview")
+    .data(data as JsonRequestObject<TemplatePreviewRequest>)
+    .then<ApiResult<TemplatePreviewResponse>>((r) => r.data);
+}
+
+/** 按模板发送消息 */
+export function sendMessageByTemplate(data: MessageTemplateSendRequest) {
+  return http()
+    .post("/v2/message/send")
+    .data(data as JsonRequestObject<MessageTemplateSendRequest>)
+    .then<ApiResult<Array<{ success: boolean; errorMessage?: string; durationMillis?: number; messageId?: string }>>>((r) => r.data);
+}
+
+/** 按模板编码发送消息 */
+export function sendMessageByCode(data: MessageByCodeSendRequest) {
+  return http()
+    .post("/v2/message/send/by-code")
+    .data(data as JsonRequestObject<MessageByCodeSendRequest>)
+    .then<ApiResult<Array<{ success: boolean; errorMessage?: string; durationMillis?: number; messageId?: string }>>>((r) => r.data);
+}
+
+/** 同步运营商模板（按渠道同步：EMAIL/SMS，不传则全量） */
+export function syncMessageTemplate(channel?: string) {
+  const url = channel ? `/v2/message/template/sync?channel=${channel}` : "/v2/message/template/sync";
+  return http()
+    .post(url)
+    .then<ApiResult<number>>((r) => r.data);
+}
+
+/* ================== 消息推送日志 ================== */
+
+/** 消息推送日志分页 */
+export function pageForMessageLog(params: {
+  page?: number;
+  pageSize?: number;
+  sysMessageLogTarget?: string;
+  sysMessageCode?: string;
+}) {
+  return http()
+    .get("/v2/message/log/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysMessageLog>>>((r) => r.data);
+}
+
+/** 清理消息推送日志 */
+export function cleanMessageLog(beforeTime: string) {
+  return http()
+    .post("/v2/message/log/clean")
+    .query({ beforeTime })
+    .then<ApiResult<number>>((r) => r.data);
+}
 /* ================== 异常日志（新口径） ================== */
 
 /** 异常日志统计 */
@@ -1182,14 +1306,13 @@ export function verifyTotp(code: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/* ================== 用户锁定 ================== */
+/* ================== 服务器邮箱通道 ================== */
 
-/** 锁定/解锁用户 */
-export function lockUser(sysUserId: number, lock: number) {
+/** 探测服务器 SMTP 发信与 IMAP 收信通道（仅管理员），返回两侧握手结论 */
+export function checkEmailConnectivity() {
   return http()
-    .put("/v2/user/lock")
-    .query({ sysUserId, lock })
-    .then<ApiResult<boolean>>((r) => r.data);
+    .post("/v2/email/check")
+    .then<ApiResult<EmailConnectivity>>((r) => r.data);
 }
 
 /* ================== 菜单按钮批量操作 ================== */
@@ -1224,8 +1347,266 @@ export function updateUserPreference(preference: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
+/* ================== Redis 监控 ================== */
+
+/** Redis 运行信息 */
+export function getRedisInfo() {
+  return http()
+    .get("/v2/redis/info")
+    .then<ApiResult<RedisInfo>>((r) => r.data);
+}
+
+/* ================== 缓存监控（三栏钻取） ================== */
+
+/** 缓存统计概览 */
+export function getCacheStats() {
+  return http()
+    .get("/v2/cache/stats")
+    .then<ApiResult<CacheStats>>((r) => r.data);
+}
+
+/** 缓存模块列表 */
+export function listCacheMonitorModules() {
+  return http()
+    .get("/v2/cache/modules")
+    .then<ApiResult<CacheModuleInfo[]>>((r) => r.data);
+}
+
+/** 指定模块下的 Key 列表（返回 string[]） */
+export function listCacheMonitorKeys(module: string) {
+  return http()
+    .get("/v2/cache/keys")
+    .query({ module })
+    .then<ApiResult<string[]>>((r) => r.data);
+}
+
+/** 获取单个缓存值 */
+export function getCacheValue(key: string, module?: string) {
+  return http()
+    .get("/v2/cache/value")
+    .query(module ? { key, module } : { key })
+    .then<ApiResult<CacheValueInfo>>((r) => r.data);
+}
+
+/**
+ * 修改缓存值（仅 Spring Cache 管理的缓存）
+ *
+ * value 传「业务 JSON」（不含 @class 类型信封），后端按原类型还原后写回。
+ * Spring Cache 无单条 TTL，写入不改变 TTL；嵌套泛型集合会退化为通用结构。
+ */
+export function updateCacheValue(data: { module: string; key: string; value: string }) {
+  return http()
+    .put("/v2/cache/value")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除单个缓存 Key */
+export function deleteCacheMonitorKey(key: string) {
+  return http()
+    .delete("/v2/cache/key")
+    .query({ key })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 清空整个缓存模块（返回删除数量） */
+export function clearCacheMonitorModule(module: string) {
+  return http()
+    .delete("/v2/cache/module")
+    .query({ module })
+    .then<ApiResult<number>>((r) => r.data);
+}
+
+/* ================== 服务监控 ================== */
+
+/** 服务器运行信息 */
+export function getServerInfo() {
+  return http()
+    .get("/v2/server/info")
+    .then<ApiResult<ServerInfo>>((r) => r.data);
+}
+
+/** RESTful 实时统计（常规请求趋势 + QPS）——轮询专用，关进度条/静默失败 */
+export function getRestfulApiStats() {
+  return http()
+    .get("/v2/server/api/stats")
+    .loading(false)
+    .noToast(true)
+    .then<ApiResult<RestfulApiStats>>((r) => r.data);
+}
+
+/** Actuator 端点原始 JSON（actuator 不走 ApiResult 包装，直接取 response body） */
+export function getActuatorEndpoint(path: string) {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return http()
+    .get(`/actuator${p === "/" ? "" : p}`)
+    .then((r) => r.data as unknown);
+}
+
+/** 修改指定 logger 的日志级别（actuator loggers 写接口，返回 204） */
+export function setActuatorLogger(name: string, level: string) {
+  return http()
+    .post(`/actuator/loggers/${encodeURIComponent(name)}`)
+    .data({ configuredLevel: level === "INHERITED" ? null : level })
+    .loading(false)
+    .noToast(true)
+    .then((r) => r.data as unknown);
+}
+
+/** 可编辑定时任务（动态调度注册中心） */
+export interface ManagedScheduleTask {
+  key?: string;
+  label?: string;
+  cron?: string;
+  enabled?: boolean;
+  nextTime?: string;
+  lastTime?: string;
+  lastStatus?: string;
+}
+
+/** 定时任务列表 */
+export function getScheduleTasks() {
+  return http()
+    .get("/v2/schedule/tasks")
+    .loading(false)
+    .noToast(true)
+    .then<ApiResult<ManagedScheduleTask[]>>((r) => r.data);
+}
+
+/** 更新定时任务 cron / 启停 */
+export function updateScheduleTask(key: string, data: { cron?: string; enabled?: boolean }) {
+  return http()
+    .put(`/v2/schedule/tasks/${encodeURIComponent(key)}`)
+    .data(data)
+    .loading(false)
+    .noToast(true)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 立即执行一次定时任务 */
+export function runScheduleTask(key: string) {
+  return http()
+    .post(`/v2/schedule/tasks/${encodeURIComponent(key)}/run`)
+    .loading(false)
+    .noToast(true)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/* ================== 策略任务 - 限流 ================== */
+
+/** 限流规则列表（按维度） */
+export function listRateLimit(dimension?: RateLimitRule["dimension"]) {
+  return http()
+    .get("/v2/policy/ratelimit/list")
+    .query({ dimension })
+    .then<ApiResult<RateLimitRule[]>>((r) => r.data);
+}
+
+/** 新增限流规则 */
+export function saveRateLimit(data: RateLimitRule) {
+  return http()
+    .post("/v2/policy/ratelimit/save")
+    .data(data as JsonRequestObject<RateLimitRule>)
+    .then<ApiResult<RateLimitRule>>((r) => r.data);
+}
+
+/** 更新限流规则 */
+export function updateRateLimit(data: RateLimitRule) {
+  return http()
+    .put("/v2/policy/ratelimit/update")
+    .data(data as JsonRequestObject<RateLimitRule>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除限流规则 */
+export function deleteRateLimit(id: number) {
+  return http()
+    .delete("/v2/policy/ratelimit/delete")
+    .query({ id })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 全局限流配置 */
+export function getRateLimitGlobal() {
+  return http()
+    .get("/v2/policy/ratelimit/global")
+    .then<ApiResult<RateLimitGlobal>>((r) => r.data);
+}
+
+/** 应用全局限流配置（后端返回提示文本） */
+export function applyRateLimitGlobal(data: RateLimitGlobal) {
+  return http()
+    .post("/v2/policy/ratelimit/global/apply")
+    .data(data as JsonRequestObject<RateLimitGlobal>)
+    .then<ApiResult<string>>((r) => r.data);
+}
+
+/* ================== 策略任务 - 账号黑白名单 ================== */
+
+/** 账号黑白名单分页（后端记录位于 list） */
+export function pageForAccountBw(params: {
+  page?: number;
+  pageSize?: number;
+  account?: string;
+  type?: AccountBlackwhite["type"];
+  status?: AccountBlackwhite["status"];
+}) {
+  return http()
+    .get("/v2/policy/account-bw/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<AccountBlackwhitePage>>((r) => r.data);
+}
+
+/** 新增账号黑白名单 */
+export function saveAccountBw(data: AccountBlackwhite) {
+  return http()
+    .post("/v2/policy/account-bw/save")
+    .data(data as JsonRequestObject<AccountBlackwhite>)
+    .then<ApiResult<AccountBlackwhite>>((r) => r.data);
+}
+
+/** 更新账号黑白名单 */
+export function updateAccountBw(data: AccountBlackwhite) {
+  return http()
+    .put("/v2/policy/account-bw/update")
+    .data(data as JsonRequestObject<AccountBlackwhite>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除账号黑白名单 */
+export function deleteAccountBw(id: number) {
+  return http()
+    .delete("/v2/policy/account-bw/delete")
+    .query({ id })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/* ================== 策略任务 - 热更新 ================== */
+
+/** 热更新配置列表 */
+export function listHotReload() {
+  return http()
+    .get("/v2/policy/hotreload/list")
+    .then<ApiResult<HotReloadConfig[]>>((r) => r.data);
+}
+
+/** 保存热更新配置（有 ID 更新，无 ID 新增） */
+export function saveHotReload(data: HotReloadConfig) {
+  return http()
+    .post("/v2/policy/hotreload/save")
+    .data(data as JsonRequestObject<HotReloadConfig>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 主动热重载全部配置（清理 AOP 使用的 Redis 缓存，下一次访问按需回填） */
+export function reloadHotReload() {
+  return http()
+    .post("/v2/policy/hotreload/reload")
+    .then<ApiResult<HotReloadRuntimeResult>>((r) => r.data);
+}
+
 /* ================== 备注 ==================
- * 后端角色接口未提供 /v2/role/copy 与 /v2/role/users：
+ * 后端 SysRoleController 未提供 /v2/role/copy 与 /v2/role/users 接口：
  *   - 角色复制：后端无此接口，前端 RoleManage 保留本地兜底实现；
  *   - 角色下用户分页：后端无此接口，前端 RoleManage 使用 pageForUser 兜底。
  * 因此此处不导出 copyRole / pageForRoleUsers。

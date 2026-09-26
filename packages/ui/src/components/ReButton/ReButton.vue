@@ -12,6 +12,9 @@
  *   - showText：默认 undefined=自动（有插槽文字就显示，没有则仅图标+tooltip）；
  *                显式 false=强制仅图标+tooltip（文字只做悬浮提示）；显式 true=强制显示文字
  *   - iconSize：按钮宽高（默认 32px，仅 iconOnly 时生效）
+ * 维护约束：模板必须保持单根，v-if/v-else-if 分支之间不得放顶层注释 ——
+ *   dev 下编译器会保留注释并把条件链拆成多根 Fragment，$el 不再是按钮元素，
+ *   外层 el-popconfirm / el-tooltip 便解析不到触发元素（确认框弹不出来）。
  *
  * 【square 布局注意】"square" 是纯图标正方形按钮，不允许带文字：
  *   - 传入的文字不会渲染到按钮上，仅作为 tooltip 悬浮提示与 aria-label 辅助信息
@@ -100,7 +103,8 @@ const labelText = computed<string>(() => {
   if (!nodes || nodes.length === 0) return "";
   return nodes
     .map((n) => (typeof n === "string" ? n : (typeof n.children === "string" ? n.children : "")))
-    .join("");
+    .join("")
+    .trim();
 });
 
 /**
@@ -128,6 +132,7 @@ const visible = computed<boolean>(() => {
 
 /** 防抖控制 */
 let lastClick = 0;
+
 function onClick(e: MouseEvent): void {
   if (props.disabled || props.loading) return;
   if (props.debounce > 0) {
@@ -140,7 +145,6 @@ function onClick(e: MouseEvent): void {
 </script>
 
 <template>
-  <!-- Square 布局（正方形图标按钮） -->
   <ElTooltip
     v-if="layout === 'square' && visible && labelText"
     :content="labelText"
@@ -173,7 +177,6 @@ function onClick(e: MouseEvent): void {
     @click="onClick"
   />
 
-  <!-- Modern 布局 -->
   <ModernLayout
     v-else-if="layout === 'modern' && visible"
     :type="type"
@@ -194,7 +197,6 @@ function onClick(e: MouseEvent): void {
     <slot />
   </ModernLayout>
 
-  <!-- 默认 el-button 布局：仅图标+tooltip 模式 -->
   <ElTooltip
     v-else-if="visible && iconOnly && props.showText === false && labelText"
     :content="labelText"
@@ -212,6 +214,7 @@ function onClick(e: MouseEvent): void {
       :text="text"
       :bg="bg"
       :native-type="nativeType"
+      :aria-label="labelText"
       :style="iconOnly ? { width: props.iconSize + 'px', height: props.iconSize + 'px' } : undefined"
       :class="{ 're-button--icon-only': iconOnly }"
       v-bind="$attrs"
@@ -224,7 +227,6 @@ function onClick(e: MouseEvent): void {
     </ElButton>
   </ElTooltip>
 
-  <!-- 默认 el-button 布局：显示文字 -->
   <ElButton
     v-else-if="visible"
     :type="type"

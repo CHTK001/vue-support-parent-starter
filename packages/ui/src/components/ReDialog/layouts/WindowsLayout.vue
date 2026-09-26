@@ -117,7 +117,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { getStorageKey } from "@repo/config";
 import { useMediaQuery } from "@vueuse/core";
-import { ReDialogCloseFab } from "../CloseFab.vue";
+import ReDialogCloseFab from "../CloseFab.vue";
 
 defineOptions({ name: "WindowsLayout", inheritAttrs: true });
 

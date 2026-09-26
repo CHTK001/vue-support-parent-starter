@@ -13,10 +13,16 @@ import NProgress from "nprogress";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import "./tailwind.css";
-import "./style.css";
+import "./styles/refactor.css";
+import "./styles/markdown-doc.css";
 import "nprogress/nprogress.css";
+// 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
+import "@repo/ui/surface";
 
 import { apiService } from "@/services/ApiService";
+import { bootstrapFramework, hasToken } from "@/framework/context";
+import { isAdmin } from "@repo/core";
+import { applyBranding, watchBranding } from "@/utils/branding";
 import { initGlobalErrorHandler } from "@/utils/globalErrorHandler";
 import { useLayoutStore } from "./stores/layout";
 import {
@@ -86,6 +92,12 @@ const routes = [
         component: () => import("./components/bot/BotCenterPage.vue"),
       },
       {
+        path: "tavern/:groupId?",
+        name: "Tavern",
+        meta: { title: "酒馆", requiresAuth: true },
+        component: () => import("./components/tavern/TavernPage.vue"),
+      },
+      {
         path: "setting/:tab?",
         name: "SystemSettings",
         meta: { title: "系统设置", requiresAuth: true },
@@ -117,6 +129,12 @@ const routes = [
         component: () => import("./components/models/ModelsPage.vue"),
       },
       {
+        path: "image-generate",
+        name: "ImageGenerate",
+        meta: { title: "图像生成", requiresAuth: true },
+        component: () => import("./components/generate/ImageGeneratePage.vue"),
+      },
+      {
         path: "app-keys",
         name: "AppKeys",
         meta: { title: "AppKey管理", requiresAuth: true },
@@ -145,12 +163,6 @@ const routes = [
         name: "Agents",
         meta: { title: "Agent管理", requiresAuth: true },
         component: () => import("./components/management/AgentsPage.vue"),
-      },
-      {
-        path: "services",
-        name: "Services",
-        meta: { title: "服务管理", requiresAuth: true },
-        component: () => import("./components/management/ServicesPage.vue"),
       },
       {
         path: "usage",
@@ -246,7 +258,20 @@ router.beforeEach(async (to, from, next) => {
   if (!isElectron) {
     NProgress.start();
   }
-  // 跳过登录验证，直接放行
+  // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）
+  const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);
+  if (requiresAuth && !hasToken()) {
+    return next({ path: "/login", query: { redirect: to.fullPath } });
+  }
+  // 管理员专属路由：非管理员直接回到首页，不暴露管理面
+  const adminOnly = to.matched.some((record) => record.meta?.adminOnly);
+  if (adminOnly && !isAdmin()) {
+    return next({ path: "/" });
+  }
+  if (to.path === "/login" && hasToken()) {
+    const redirect = to.query?.redirect;
+    return next(typeof redirect === "string" && redirect ? redirect : "/");
+  }
   next();
 });
 
@@ -258,58 +283,78 @@ router.afterEach(() => {
   }
 });
 
-const app = createApp(App);
-const pinia = createPinia();
+/**
+ * 启动流程：先装配框架上下文（统一配置 / 框架 storage / token 管理器 /
+ * 带鉴权拦截器的请求模块），业务侧所有请求（含 SSE）都必须晚于它，
+ * 再挂载 Vue 应用。
+ */
+async function bootstrapAndMount() {
+  await bootstrapFramework();
+  // app.yaml 已加载：将标题 / favicon 从 getConfig('app') 同步到浏览器，
+  // 并订阅后续配置变更（远程设置 / 环境级 yaml 覆盖）保持品牌同步。
+  applyBranding();
+  watchBranding();
 
-app.use(pinia);
-app.use(router);
-app.use(i18n);
+  const app = createApp(App);
+  const pinia = createPinia();
 
-// 初始化全局错误处理器（在 router 挂载后）
-initGlobalErrorHandler(router);
+  app.use(pinia);
+  app.use(router);
+  app.use(i18n);
 
-// 加载链接打开方式设置（从后端同步到 localStorage 缓存）。
-// 必须在后端就绪后调用：冷启动时若抢在 NestJS 监听端口之前发请求，
-// 会产生 ERR_CONNECTION_REFUSED 噪音日志（功能无影响，但干扰排查）。
-function loadLinkOpenModeWhenReady() {
-  import("@/utils/workspacePreview").then(({ loadLinkOpenMode }) => {
-    loadLinkOpenMode();
-  });
-}
+  // 初始化全局错误处理器（在 router 挂载后）
+  initGlobalErrorHandler(router);
 
-// 后端未就绪时才注册异步等待（已就绪说明是刷新场景，无需再监听）
-if (isElectron && !backendReady.value && window.electronAPI?.waitBackendReady) {
-  // 超时保护：60 秒后显示错误
-  const timeoutId = setTimeout(() => {
-    if (!backendReady.value) {
-      backendError.value = "后端启动超时，请检查后端进程或重启应用";
-      // 兜底：后端超时仍尝试加载（内部 catch 会降级到 localStorage 缓存）
-      loadLinkOpenModeWhenReady();
-    }
-  }, 60000);
+  // 刷新场景：用后端 /v2/user/me 校验令牌，失效则清除登录态，由守卫跳登录页
+  await useAuthStore().initializeAuth();
 
-  window.electronAPI.waitBackendReady().then((data) => {
-    clearTimeout(timeoutId);
-    if (backendError.value) return; // 已显示超时错误，不再覆盖
-    if (data.port) {
-      console.log(` 后端已就绪，端口: ${data.port}`);
-      apiService.initBackendUrl().then(() => {
-        backendReady.value = true;
+  // 加载链接打开方式设置（从后端同步到 localStorage 缓存）。
+  // 必须在后端就绪后调用：冷启动时若抢在 NestJS 监听端口之前发请求，
+  // 会产生 ERR_CONNECTION_REFUSED 噪音日志（功能无影响，但干扰排查）。
+  function loadLinkOpenModeWhenReady() {
+    import("@/utils/workspacePreview").then(({ loadLinkOpenMode }) => {
+      loadLinkOpenMode();
+    });
+  }
+
+  // 后端未就绪时才注册异步等待（已就绪说明是刷新场景，无需再监听）
+  if (isElectron && !backendReady.value && window.electronAPI?.waitBackendReady) {
+    // 超时保护：60 秒后显示错误
+    const timeoutId = setTimeout(() => {
+      if (!backendReady.value) {
+        backendError.value = "后端启动超时，请检查后端进程或重启应用";
+        // 兜底：后端超时仍尝试加载（内部 catch 会降级到 localStorage 缓存）
         loadLinkOpenModeWhenReady();
-        // 如果当前在加载页，跳回原始目标
-        if (router.currentRoute.value.path === "/empty") {
-          const redirect = router.currentRoute.value.query.redirect || "/";
-          router.replace(typeof redirect === "string" ? redirect : "/");
-        }
-      });
-    } else {
-      console.error("❌ 后端启动失败:", data.error);
-      backendError.value = data.error || "后端启动失败";
-    }
-  });
-} else {
-  // 非 Electron（Web 直连）或后端已就绪（刷新场景）：直接加载
-  loadLinkOpenModeWhenReady();
+      }
+    }, 60000);
+
+    window.electronAPI.waitBackendReady().then((data) => {
+      clearTimeout(timeoutId);
+      if (backendError.value) return; // 已显示超时错误，不再覆盖
+      if (data.port) {
+        console.log(` 后端已就绪，端口: ${data.port}`);
+        apiService.initBackendUrl().then(() => {
+          backendReady.value = true;
+          loadLinkOpenModeWhenReady();
+          // 如果当前在加载页，跳回原始目标
+          if (router.currentRoute.value.path === "/empty") {
+            const redirect = router.currentRoute.value.query.redirect || "/";
+            router.replace(typeof redirect === "string" ? redirect : "/");
+          }
+        });
+      } else {
+        console.error("❌ 后端启动失败:", data.error);
+        backendError.value = data.error || "后端启动失败";
+      }
+    });
+  } else {
+    // 非 Electron（Web 直连）或后端已就绪（刷新场景）：直接加载
+    loadLinkOpenModeWhenReady();
+  }
+
+  app.mount("#app");
 }
 
-app.mount("#app");
+void bootstrapAndMount().catch((error) => {
+  console.error("应用启动失败（框架上下文装配异常）:", error);
+});

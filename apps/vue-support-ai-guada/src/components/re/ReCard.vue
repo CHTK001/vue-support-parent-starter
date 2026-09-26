@@ -28,38 +28,39 @@ defineProps({
 
 <style scoped>
 .re-card {
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  background: var(--el-bg-color, var(--color-surface, #ffffff));
+  border-radius: var(--mp-radius, 12px);
+  border: 1px solid var(--el-border-color-lighter, var(--color-surface-border, #e2e8f0));
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .re-card--hoverable:hover {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light, 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06));
   transform: translateY(-2px);
-  border-color: #cbd5e1;
+  border-color: var(--el-border-color, #cbd5e1);
 }
 
 .re-card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #f1f5f9);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+  gap: 10px;
+  background: var(--el-fill-color-light, transparent);
 }
 
 .re-card-title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--el-text-color-primary, #1e293b);
   letter-spacing: 0.01em;
 }
 
 .re-card-subtitle {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--el-text-color-secondary, #94a3b8);
   margin-left: 8px;
 }
 
@@ -70,14 +71,14 @@ defineProps({
 }
 
 .re-card-body {
-  padding: 20px;
-  color: #475569;
+  padding: 18px;
+  color: var(--el-text-color-regular, #475569);
   line-height: 1.6;
 }
 
 .re-card-footer {
-  padding: 12px 20px;
-  border-top: 1px solid #f1f5f9;
-  background: #fafbfc;
+  padding: 12px 18px;
+  border-top: 1px solid var(--el-border-color-lighter, #f1f5f9);
+  background: var(--el-fill-color-light, #fafbfc);
 }
 </style>

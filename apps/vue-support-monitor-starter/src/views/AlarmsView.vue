@@ -178,7 +178,7 @@ onMounted(fetchAll);
       <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel" :options="[
         { label: '未处理', value: 'NEW' },
         { label: '已处理', value: 'PROCESSED' },
-        { label: '误报', value: 'FALSE' },
+        { label: '误报', value: 'FALSE_ALARM' },
       ]" />
       <span class="f-count">{{ filtered.length }} 条</span>
     </div>
@@ -187,6 +187,7 @@ onMounted(fetchAll);
     <ReCard :radius="12" shadow="never">
       <ReTable
         :data="filtered"
+        :pagination="false"
         :columns="alarmColumns"
         :loading="loading"
         :border="false"

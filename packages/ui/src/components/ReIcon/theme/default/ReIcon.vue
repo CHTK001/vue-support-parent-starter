@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <!-- HTTP 图床 -->
   <img
     v-if="isHttp"
@@ -70,14 +70,14 @@
     <component :is="iconifyRenderer" :icon="effectiveIcon" />
   </ElIcon>
 
-  <!-- 退化兜底 -->
+  <!-- 全局兜底图标：任何图标不存在时显示Menu，永不空白 -->
   <ElIcon
     v-else
     v-bind="$attrs"
     :size="size"
     :color="color"
   >
-    <span class="re-icon__placeholder" />
+    <component :is="fallbackMenuIcon" />
   </ElIcon>
 </template>
 
@@ -163,6 +163,8 @@ function readIconReg(): IconReg {
   return w.__reIcon ?? {};
 }
 const iconReg = ref<IconReg>(readIconReg());
+/** 全局兜底Menu图标 */
+const fallbackMenuIcon = computed(() => (ElementPlusIconsVue as Record<string, unknown>).Menu as Component);
 
 /** v-model 双向 */
 const localName = computed<string>({

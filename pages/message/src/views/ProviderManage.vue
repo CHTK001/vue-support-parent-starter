@@ -61,13 +61,24 @@ async function loadChannels() {
     const map: Record<string, string> = {};
     (res?.data ?? []).forEach((c) => {
       if (c.channel) {
-        map[c.channel] = c.label || c.channel;
+        map[c.channel.toLowerCase()] = c.label || c.channel;
       }
     });
     channelLabelMap.value = map;
   } catch {
     channelLabelMap.value = {};
   }
+}
+
+/** 渠道中文名：SPI 键为大写，库里的厂家编码可能是小写，统一按小写比对 */
+function channelLabel(vender?: string) {
+  if (!vender) return "-";
+  return channelLabelMap.value[vender.toLowerCase()] ?? vender;
+}
+
+/** 端点展示：后端允许用 Webhook 地址代替端点，列表同样兜底 */
+function endpointOf(row: MessageProvider) {
+  return row.sysMessageProviderEndpoint || row.sysMessageProviderWebhookUrl || "";
 }
 
 const providerTypeOptions = [
@@ -304,11 +315,15 @@ onMounted(() => {
         <el-table-column prop="sysMessageProviderVender" label="渠道" min-width="140">
           <template #default="{ row }">
             <span class="text-[--el-text-color-secondary]">
-              {{ channelLabelMap[row.sysMessageProviderVender] ?? row.sysMessageProviderVender }}
+              {{ channelLabel(row.sysMessageProviderVender) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="sysMessageProviderEndpoint" label="端点地址" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="sysMessageProviderEndpoint" label="端点地址" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="text-[--el-text-color-secondary]">{{ endpointOf(row) || "-" }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="防抖间隔" width="110">
           <template #default="{ row }">
             <template v-if="row.sysMessageProviderInterval && row.sysMessageProviderInterval > 0">

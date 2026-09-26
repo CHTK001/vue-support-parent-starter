@@ -6,7 +6,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import {
@@ -17,15 +17,20 @@ import {
   saveAlarmRule,
   delAlarmRule,
   testAlarmRule,
+  fetchAlarmWindows,
+  saveAlarmWindow,
+  delAlarmWindow,
   fetchMonitors,
   type AlarmPolicy,
   type AlarmRule,
+  type AlarmMaintenanceWindow,
 } from "../monitorApi";
 import { ReFormItem } from "@repo/ui/re-kit";
 
-const tab = ref<"policy" | "rule">("policy");
+const tab = ref<"policy" | "rule" | "window">("policy");
 const policies = ref<AlarmPolicy[]>([]);
 const rules = ref<AlarmRule[]>([]);
+const windows = ref<AlarmMaintenanceWindow[]>([]);
 const monitors = ref<{ id: number; monitorName: string }[]>([]);
 const loading = ref(false);
 
@@ -42,9 +47,10 @@ const METRICS = ["cpu_usage", "memory_usage", "disk_usage", "network_rx", "netwo
 async function fetchAll(): Promise<void> {
   loading.value = true;
   try {
-    const [p, r, m] = await Promise.all([fetchAlarmPolicies(), fetchAlarmRules(), fetchMonitors()]);
+    const [p, r, m, w] = await Promise.all([fetchAlarmPolicies(), fetchAlarmRules(), fetchMonitors(), fetchAlarmWindows()]);
     policies.value = p ?? [];
     rules.value = r ?? [];
+    windows.value = w ?? [];
     monitors.value = (m ?? []).map(x => ({ id: x.id, monitorName: x.monitorName }));
   } catch (e) {
     ElMessage.error(`加载失败：${String((e as Error)?.message ?? e)}`);
@@ -200,6 +206,124 @@ async function runRuleTest(r: AlarmRule): Promise<void> {
   }
 }
 
+// ---- 维护窗口弹窗（后端在产生告警事件前按 启用+级别+星期+每日时段 命中即跳过） ----
+const WEEKDAYS = [
+  { value: "1", label: "周一" },
+  { value: "2", label: "周二" },
+  { value: "3", label: "周三" },
+  { value: "4", label: "周四" },
+  { value: "5", label: "周五" },
+  { value: "6", label: "周六" },
+  { value: "0", label: "周日" },
+];
+const HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+const windowVisible = ref(false);
+useDialogPrerender(windowVisible);
+const windowSaving = ref(false);
+const windowForm = ref<Partial<AlarmMaintenanceWindow>>({});
+const windowDays = ref<string[]>([]);
+/**
+ * 打开新建维护窗口弹窗
+ */
+function openWindowAdd(): void {
+  windowForm.value = {
+    windowName: "",
+    msMonitorAlarmMaintenanceWindowLevel: "P1",
+    startTime: "00:00",
+    endTime: "06:00",
+    msMonitorAlarmMaintenanceWindowEnabled: 1,
+    remark: "",
+  };
+  windowDays.value = [];
+  windowVisible.value = true;
+}
+/**
+ * 打开编辑维护窗口弹窗
+ * @param w 维护窗口
+ */
+function openWindowEdit(w: AlarmMaintenanceWindow): void {
+  windowForm.value = { ...w };
+  windowDays.value = (w.weekdays ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  windowVisible.value = true;
+}
+async function submitWindow(): Promise<void> {
+  const f = windowForm.value;
+  if (!f.windowName?.trim()) {
+    ElMessage.warning("请输入窗口名称");
+    return;
+  }
+  if (!HHMM.test(f.startTime ?? "") || !HHMM.test(f.endTime ?? "")) {
+    ElMessage.warning("时段须为 HH:mm（如 22:00）");
+    return;
+  }
+  windowSaving.value = true;
+  try {
+    await saveAlarmWindow(f.id ?? null, {
+      ...f,
+      msMonitorAlarmMaintenanceWindowLevel: f.msMonitorAlarmMaintenanceWindowLevel ?? "",
+      weekdays: windowDays.value.join(","),
+    });
+    ElMessage.success("保存成功");
+    windowVisible.value = false;
+    await fetchAll();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  } finally {
+    windowSaving.value = false;
+  }
+}
+async function removeWindow(w: AlarmMaintenanceWindow): Promise<void> {
+  await ElMessageBox.confirm(`删除维护窗口「${w.windowName}」？删除后该时段将不再静默告警。`, "删除确认", { type: "warning" });
+  try {
+    await delAlarmWindow(w.id);
+    ElMessage.success("已删除");
+    await fetchAll();
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  }
+}
+/**
+ * 窗口的星期展示文本
+ * @param w 维护窗口
+ */
+function windowDaysText(w: AlarmMaintenanceWindow): string {
+  const days = (w.weekdays ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  if (days.length === 0) return "每天";
+  return days.map(d => WEEKDAYS.find(x => x.value === d)?.label ?? `?${d}`).join("、");
+}
+/**
+ * 窗口的级别展示文本（空级别为全局静默，命中任意级别的规则）
+ * @param w 维护窗口
+ */
+function windowLevelText(w: AlarmMaintenanceWindow): string {
+  return w.msMonitorAlarmMaintenanceWindowLevel || "全局（所有级别）";
+}
+
+/** 窗口「当前生效」徽章的刷新节拍，避免长时间失真又不至于每分钟全量重渲染 */
+const WINDOW_TICK_MS = 30_000;
+const now = ref(new Date());
+let windowTimer: number | undefined;
+
+/**
+ * 判定维护窗口此刻是否命中，口径与后端触发前的静默检查一致
+ * @param w 维护窗口
+ */
+function windowActiveNow(w: AlarmMaintenanceWindow): boolean {
+  if (w.msMonitorAlarmMaintenanceWindowEnabled !== 1) return false;
+  const d = now.value;
+  const weekday = String(d.getDay()); // 与后端 getValue() % 7 一致：周日=0、周一=1……周六=6
+  const days = (w.weekdays ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  if (days.length > 0 && !days.includes(weekday)) return false;
+  const [sh, sm] = (w.startTime ?? "").split(":").map(Number);
+  const [eh, em] = (w.endTime ?? "").split(":").map(Number);
+  if ([sh, sm, eh, em].some(n => Number.isNaN(n))) return false;
+  const cur = d.getHours() * 60 + d.getMinutes();
+  const start = sh * 60 + sm;
+  const end = eh * 60 + em;
+  return start < end ? cur >= start && cur < end : cur >= start || cur < end;
+}
+
 // 规则按策略分组
 const rulesGrouped = computed(() => {
   const map = new Map<number, AlarmRule[]>();
@@ -210,7 +334,13 @@ const rulesGrouped = computed(() => {
   return [...map.entries()];
 });
 
-onMounted(fetchAll);
+onMounted(() => {
+  fetchAll();
+  windowTimer = window.setInterval(() => { now.value = new Date(); }, WINDOW_TICK_MS);
+});
+onUnmounted(() => {
+  if (windowTimer !== undefined) window.clearInterval(windowTimer);
+});
 </script>
 
 <template>
@@ -218,7 +348,7 @@ onMounted(fetchAll);
     <div class="page-header">
       <div>
         <h1 class="page-title">监控配置</h1>
-        <p class="page-desc">告警策略与规则管理 · 推送渠道依赖后端补全</p>
+        <p class="page-desc">告警策略 · 规则 · 维护窗口管理 · 通知渠道当前仅日志实现（webhook/邮件待补）</p>
       </div>
       <div class="page-actions">
         <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
@@ -228,6 +358,7 @@ onMounted(fetchAll);
     <div class="tabs">
       <ReButton :class="['tab-btn', { active: tab === 'policy' }]" size="small" :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
       <ReButton :class="['tab-btn', { active: tab === 'rule' }]" size="small" :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
+      <ReButton :class="['tab-btn', { active: tab === 'window' }]" size="small" :show-text="true" @click="tab = 'window'">维护窗口</ReButton>
     </div>
 
     <!-- 策略 -->
@@ -287,6 +418,34 @@ onMounted(fetchAll);
       </div>
     </ReCard>
 
+    <!-- 维护窗口 -->
+    <ReCard v-if="tab === 'window'" :radius="12" shadow="never">
+      <template #header>
+        <div class="card-bar">
+          <span class="card-title">告警静默时段</span>
+          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openWindowAdd">新增窗口</ReButton>
+        </div>
+      </template>
+      <ReEmpty v-if="windows.length === 0" description="暂无维护窗口 —— 命中窗口时段的告警不产生事件，用于发布/巡检静默" style="padding: 36px 0" />
+      <div v-else class="p-list">
+        <div v-for="w in windows" :key="w.id" class="p-row">
+          <div class="p-main">
+            <ReStatusIndicator :type="w.msMonitorAlarmMaintenanceWindowEnabled === 1 ? 'success' : 'info'" :pulse="windowActiveNow(w)" />
+            <b class="p-name">{{ w.windowName }}</b>
+            <ReTag :type="w.msMonitorAlarmMaintenanceWindowLevel ? 'warning' : 'info'" size="small" effect="dark">{{ windowLevelText(w) }}</ReTag>
+            <span class="r-meta mono">{{ w.startTime || "—" }} ~ {{ w.endTime || "—" }}</span>
+            <span class="r-meta">{{ windowDaysText(w) }}</span>
+            <ReTag v-if="windowActiveNow(w)" type="success" size="small">此刻生效</ReTag>
+            <span class="p-hint">{{ w.remark || "—" }}</span>
+          </div>
+          <div class="p-ops">
+            <ReButton icon="EditPen" layout="square" size="small" title="编辑窗口" @click="openWindowEdit(w)" />
+            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除窗口" @click="removeWindow(w)" />
+          </div>
+        </div>
+      </div>
+    </ReCard>
+
     <!-- 策略弹窗 -->
     <ReDialog v-model="policyVisible" :title="policyForm.id ? '编辑策略' : '新增策略'" width="440px">
       <ReForm label-width="80px">
@@ -333,6 +492,33 @@ onMounted(fetchAll);
         <ReButton type="primary" icon="Check" :show-text="true" :loading="ruleSaving" @click="submitRule">保存</ReButton>
       </template>
     </ReDialog>
+    <!-- 维护窗口弹窗 -->
+    <ReDialog v-model="windowVisible" :title="windowForm.id ? '编辑维护窗口' : '新增维护窗口'" width="480px">
+      <ReForm label-width="92px">
+        <ReFormItem label="名称"><ReInput v-model="windowForm.windowName" placeholder="如 夜间发布静默" /></ReFormItem>
+        <ReFormItem label="级别">
+          <ReSelect v-model="windowForm.msMonitorAlarmMaintenanceWindowLevel" size="small" clearable style="width: 100%" :options="LEVELS.map(lv => ({ label: lv, value: lv }))" />
+          <div class="w-hint">只静默该级别的规则；留空表示全局静默（命中所有级别）</div>
+        </ReFormItem>
+        <ReFormItem label="每日时段">
+          <ReInput v-model="windowForm.startTime" size="small" placeholder="22:00" style="width: 104px" class="mr" />
+          <span class="w-sep">至</span>
+          <ReInput v-model="windowForm.endTime" size="small" placeholder="06:00" style="width: 104px" class="ml" />
+          <div class="w-hint">格式 HH:mm，支持跨午夜（22:00 ~ 06:00）；起止相同表示全天静默</div>
+        </ReFormItem>
+        <ReFormItem label="星期">
+          <ReSelect v-model="windowDays" size="small" multiple clearable collapse-tags style="width: 100%" :options="WEEKDAYS" placeholder="不选表示每天" />
+        </ReFormItem>
+        <ReFormItem label="备注"><ReInput v-model="windowForm.remark" type="textarea" :rows="2" placeholder="可选" /></ReFormItem>
+        <ReFormItem label="状态">
+          <ReSwitch v-model="windowForm.msMonitorAlarmMaintenanceWindowEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
+        </ReFormItem>
+      </ReForm>
+      <template #footer>
+        <ReButton @click="windowVisible = false">取消</ReButton>
+        <ReButton type="primary" icon="Check" :show-text="true" :loading="windowSaving" @click="submitWindow">保存</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -371,4 +557,7 @@ onMounted(fetchAll);
 .st-tag { font-size: 12px; &.st-ok { color: var(--pulse-online); } &.st-info { color: var(--text-tertiary); } }
 .lv-tag { padding: 0 6px; font-size: 11px; font-weight: 700; font-family: monospace; border: 1px solid transparent; border-radius: 4px; }
 .mr { margin-right: 8px; }
+.ml { margin-left: 8px; }
+.w-sep { font-size: 12px; color: var(--text-tertiary); margin: 0 8px; }
+.w-hint { width: 100%; margin-top: 4px; font-size: 11px; line-height: 1.5; color: var(--text-tertiary); }
 </style>

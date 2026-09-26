@@ -11,13 +11,22 @@
       @click="toggle"
     >
       <span class="re-switch-square__label">
-        <slot />
-        <template v-if="!hasSlotContent">
-          <svg class="re-switch-square__default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="7" width="18" height="10" rx="5"/>
-            <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-          </svg>
-        </template>
+        <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
+        <ReIcon v-else-if="centerIcon" :name="centerIcon" :size="iconSize" />
+        <slot v-else-if="hasSlotContent" />
+        <svg
+          v-else
+          class="re-switch-square__default-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="7" width="18" height="10" rx="5"/>
+          <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+        </svg>
       </span>
       <span v-if="isActive" class="re-switch-square__check">
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -38,13 +47,22 @@
     @click="toggle"
   >
     <span class="re-switch-square__label">
-      <slot />
-      <template v-if="!hasSlotContent">
-        <svg class="re-switch-square__default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="7" width="18" height="10" rx="5"/>
-          <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-        </svg>
-      </template>
+      <slot v-if="useNamedSlot" :name="isActive ? 'active' : 'inactive'" />
+      <ReIcon v-else-if="centerIcon" :name="centerIcon" :size="iconSize" />
+      <slot v-else-if="hasSlotContent" />
+      <svg
+        v-else
+        class="re-switch-square__default-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="7" width="18" height="10" rx="5"/>
+        <circle cx="17" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
     </span>
     <span v-if="isActive" class="re-switch-square__check">
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -63,6 +81,7 @@
  */
 import { computed, useSlots } from "vue";
 import { ElTooltip } from "element-plus";
+import ReIcon from "../../ReIcon";
 
 defineOptions({ name: "SquareReSwitch", inheritAttrs: true });
 
@@ -78,6 +97,14 @@ const hasSlotContent = computed(() => {
   });
 });
 
+/** 命名插槽是否有实际内容 */
+function hasNamedSlot(name: "active" | "inactive") {
+  const nodes = slots[name]?.() ?? [];
+  return nodes.some((n) => typeof n.type !== "symbol");
+}
+const hasActiveSlot = computed(() => hasNamedSlot("active"));
+const hasInactiveSlot = computed(() => hasNamedSlot("inactive"));
+
 const props = withDefaults(
   defineProps<{
     /** 主标题（tooltip） */
@@ -90,6 +117,12 @@ const props = withDefaults(
     activeValue?: boolean | string | number;
     /** 非激活值 */
     inactiveValue?: boolean | string | number;
+    /** 通用图标名（激活/非激活都用它，如 ep:star）；配置后两态相同 */
+    icon?: string;
+    /** 激活态图标名（缺省回退到 icon） */
+    activeIcon?: string;
+    /** 非激活态图标名（缺省回退到 icon） */
+    inactiveIcon?: string;
   }>(),
   {
     title: "",
@@ -97,12 +130,31 @@ const props = withDefaults(
     size: "default",
     activeValue: true,
     inactiveValue: false,
+    icon: "",
+    activeIcon: "",
+    inactiveIcon: "",
   },
 );
 
 const modelValue = defineModel<boolean | string | number>({ default: false });
 
 const isActive = computed(() => modelValue.value === props.activeValue);
+
+/** 中心图标尺寸（随按钮尺寸） */
+const iconSize = computed(() =>
+  props.size === "small" ? 15 : props.size === "large" ? 22 : 18,
+);
+
+/** 当前态解析出的图标名（0 长度表示未配置，回退到默认插槽/内置图形） */
+const centerIcon = computed(() => {
+  const specific = isActive.value ? props.activeIcon : props.inactiveIcon;
+  return specific || props.icon || "";
+});
+
+/** 当前态是否使用专属命名插槽 */
+const useNamedSlot = computed(() =>
+  isActive.value ? hasActiveSlot.value : hasInactiveSlot.value,
+);
 
 function toggle() {
   if (props.disabled) return;

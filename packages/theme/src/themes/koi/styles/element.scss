@@ -1,6 +1,6 @@
-@use "./variable.scss" as *;
+﻿@use "./variable.scss" as *;
 
-/* popper/tooltip 弹层背景跟随主题亮暗色 */
+/* popper/tooltip 寮瑰眰鑳屾櫙璺熼殢涓婚浜殫鑹?*/
 :root {
   --el-bg-color-overlay: #ffffff;
 }
@@ -8,7 +8,7 @@ html.dark {
   --el-bg-color-overlay: #141414;
 }
 
-/* 当前页面最大化CSS */
+/* 褰撳墠椤甸潰鏈€澶у寲CSS */
 .main-maximize {
   .el-aside,
   .el-header,
@@ -19,30 +19,30 @@ html.dark {
   }
 }
 
-/* 各布局顶栏 el-header.layout-header */
+/* 鍚勫竷灞€椤舵爮 el-header.layout-header */
 .el-header.layout-header {
   --el-header-padding: 0 #{$layout-header-padding-x};
 }
 
-/* 图标颜色 */
+/* 鍥炬爣棰滆壊 */
 .koi-icon {
-  // 翻转色字体颜色
+  // 缈昏浆鑹插瓧浣撻鑹?
   color: var(--el-header-text-color);
-  outline: none; // 去除伪元素
+  outline: none; // 鍘婚櫎浼厓绱?
   &:hover {
     color: var(--el-color-primary);
     cursor: pointer;
   }
 }
 
-/* el-table 表头颜色配置 */
+/* el-table 琛ㄥご棰滆壊閰嶇疆 */
 .el-table .el-table__header-wrapper th {
   font-weight: 600;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
 }
 
-/* el-table 行 hover / 斑马纹 / 边框 */
+/* el-table 琛?hover / 鏂戦┈绾?/ 杈规 */
 .el-table {
   --el-table-row-hover-bg-color: var(--el-color-primary-light-9);
   --el-table-border-color: var(--el-border-color-lighter);
@@ -53,23 +53,23 @@ html.dark {
   background: var(--el-fill-color-light);
 }
 
-/* DIV 顶级自适应 */
+/* DIV 椤剁骇鑷€傚簲 */
 .koi-flex {
   @apply flex flex-col flex-1 h-100% min-w-0;
 }
 
-/* DIV el-tabs 或 el-segmented 中 el-table 自适应 */
+/* DIV el-tabs 鎴?el-segmented 涓?el-table 鑷€傚簲 */
 .koi-flex-tabs {
   @apply flex flex-col flex-1 overflow-hidden h-100% min-w-0;
 }
 
-/* el-form 标签样式 */
+/* el-form 鏍囩鏍峰紡 */
 .el-form-item__label {
   color: var(--el-text-color-regular);
   font-weight: 500;
 }
 
-/* el-card 圆角 / 阴影 / 边框 */
+/* el-card 鍦嗚 / 闃村奖 / 杈规 */
 .el-card {
   border-radius: var(--el-card-border-radius);
   border: 1px solid var(--el-border-color-lighter);
@@ -84,7 +84,7 @@ html.dark .el-card.is-hover-shadow:hover {
   box-shadow: none;
 }
 
-/* el-pagination 简洁样式 */
+/* el-pagination 绠€娲佹牱寮?*/
 .el-pagination {
   --el-pagination-button-bg-color: transparent;
 }
@@ -99,13 +99,13 @@ html.dark .el-card.is-hover-shadow:hover {
   border-radius: var(--el-pagination-border-radius);
 }
 
-/* ==================== el-dialog 内容区内边距（全局） ==================== */
-/* 全局把 el-dialog 内容区（body）内边距置 0：留白交由对话框内容自行控制。
- * 覆盖范围需包含三种形态，否则会被组件内更高优先级的 padding 规则加回来：
- *   1. 原生 el-dialog
- *   2. ReDialog koi 主题壳（.koi-dialog-shell，packages/ui ReDialog/theme/koi）
- *   3. ReDialog 默认主题壳（.re-dialog，packages/ui ReDialog/ReDialog.vue）
- * 需要恢复留白时：不必再写 !important，只要在对话框 / 页面作用域内覆盖变量即可，例如
+/* ==================== el-dialog 鍐呭鍖哄唴杈硅窛锛堝叏灞€锛?==================== */
+/* 鍏ㄥ眬鎶?el-dialog 鍐呭鍖猴紙body锛夊唴杈硅窛缃?0锛氱暀鐧戒氦鐢卞璇濇鍐呭鑷鎺у埗銆?
+ * 瑕嗙洊鑼冨洿闇€鍖呭惈涓夌褰㈡€侊紝鍚﹀垯浼氳缁勪欢鍐呮洿楂樹紭鍏堢骇鐨?padding 瑙勫垯鍔犲洖鏉ワ細
+ *   1. 鍘熺敓 el-dialog
+ *   2. ReDialog koi 涓婚澹筹紙.koi-dialog-shell锛宲ackages/ui ReDialog/theme/koi锛?
+ *   3. ReDialog 榛樿涓婚澹筹紙.re-dialog锛宲ackages/ui ReDialog/ReDialog.vue锛?
+ * 闇€瑕佹仮澶嶇暀鐧芥椂锛氫笉蹇呭啀鍐?!important锛屽彧瑕佸湪瀵硅瘽妗?/ 椤甸潰浣滅敤鍩熷唴瑕嗙洊鍙橀噺鍗冲彲锛屼緥濡?
  *   .my-dialog { --el-dialog-body-padding: 16px 20px; }
  */
 :root {
@@ -118,16 +118,16 @@ html.dark .el-card.is-hover-shadow:hover {
   padding: var(--el-dialog-body-padding) !important;
 }
 
-/* ==================== el-dialog 头部（压缩高度，把空间让给内容） ==================== */
-/* 头部实际高度 = .el-dialog 上内边距 + 标题行 + .el-dialog__header 下内边距，
- * Element Plus 默认这三段的上下留白均为 16px，这里把上下留白压到 8px，
- * 左右内边距保持 16px 不变（内容不被挤到贴边）。
- * 覆盖范围包含 ReDialog koi 壳（.koi-dialog-shell 的自定义头部）与关闭按钮热区。
- * 需要恢复 / 进一步压缩的场景：覆盖下列变量即可，无需再写 !important，例如
+/* ==================== el-dialog 澶撮儴锛堝帇缂╅珮搴︼紝鎶婄┖闂磋缁欏唴瀹癸級 ==================== */
+/* 澶撮儴瀹為檯楂樺害 = .el-dialog 涓婂唴杈硅窛 + 鏍囬琛?+ .el-dialog__header 涓嬪唴杈硅窛锛?
+ * Element Plus 榛樿杩欎笁娈电殑涓婁笅鐣欑櫧鍧囦负 16px锛岃繖閲屾妸涓婁笅鐣欑櫧鍘嬪埌 8px锛?
+ * 宸﹀彸鍐呰竟璺濅繚鎸?16px 涓嶅彉锛堝唴瀹逛笉琚尋鍒拌创杈癸級銆?
+ * 瑕嗙洊鑼冨洿鍖呭惈 ReDialog koi 澹筹紙.koi-dialog-shell 鐨勮嚜瀹氫箟澶撮儴锛変笌鍏抽棴鎸夐挳鐑尯銆?
+ * 闇€瑕佹仮澶?/ 杩涗竴姝ュ帇缂╃殑鍦烘櫙锛氳鐩栦笅鍒楀彉閲忓嵆鍙紝鏃犻渶鍐嶅啓 !important锛屼緥濡?
  *   .my-dialog { --el-dialog-header-padding-top: 16px; --el-dialog-header-padding-bottom: 16px; }
  */
 :root {
-  --el-dialog-header-padding-top: 8px;
+  --el-dialog-header-padding-top: 16px;
   --el-dialog-header-padding-bottom: 8px;
 }
 
@@ -140,12 +140,12 @@ html.dark .el-card.is-hover-shadow:hover {
   padding-bottom: var(--el-dialog-header-padding-bottom) !important;
 }
 
-/* koi 壳自定义头部自身的下内边距（组件内为 4px）一并去掉，避免叠加留白 */
+/* koi 澹宠嚜瀹氫箟澶撮儴鑷韩鐨勪笅鍐呰竟璺濓紙缁勪欢鍐呬负 4px锛変竴骞跺幓鎺夛紝閬垮厤鍙犲姞鐣欑櫧 */
 .el-dialog.koi-dialog-shell .koi-dialog-custom-header {
   padding-bottom: 0;
 }
 
-/* 关闭按钮：原 48×48 顶部对齐，会在压缩后的头部下压住正文，改为跟随头部高度 */
+/* 鍏抽棴鎸夐挳锛氬師 48脳48 椤堕儴瀵归綈锛屼細鍦ㄥ帇缂╁悗鐨勫ご閮ㄤ笅鍘嬩綇姝ｆ枃锛屾敼涓鸿窡闅忓ご閮ㄩ珮搴?*/
 .el-dialog__headerbtn {
   top: 0;
   right: 6px;
@@ -153,14 +153,14 @@ html.dark .el-card.is-hover-shadow:hover {
   height: 36px;
 }
 
-/* el-table 表格样式 和 表格自适应 */
+/* el-table 琛ㄦ牸鏍峰紡 鍜?琛ㄦ牸鑷€傚簲 */
 .el-table {
   flex: 1;
-  // 修复 safari 浏览器表格错位
+  // 淇 safari 娴忚鍣ㄨ〃鏍奸敊浣?
   table {
     width: 100%;
   }
-  // 解决表格数据为空时样式不居中问题[仅在element-plus中]
+  // 瑙ｅ喅琛ㄦ牸鏁版嵁涓虹┖鏃舵牱寮忎笉灞呬腑闂[浠呭湪element-plus涓璢
   .el-table__empty-block {
     position: absolute;
     top: 50%;

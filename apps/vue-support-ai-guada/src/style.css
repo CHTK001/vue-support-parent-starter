@@ -1,24 +1,25 @@
 /* 通用重置和基础样式 */
 
 :root {
-  --color-primary-0f: #fb72990f;
+  --color-primary-0f: #2563eb0f;
 
-  --color-primary: oklab(72.117% 0.17379 0.01397);
-  --color-primary-50: oklch(98.921% 0.00548 3.3339);
-  --color-primary-100: oklch(96.614% 0.01843 356.42);
-  --color-primary-200: oklch(92.119% 0.04192 359.34);
-  --color-primary-300: oklch(87.574% 0.06833 358.92);
-  --color-primary-400: oklch(83.432% 0.09481 0.91169);
-  --color-primary-500: oklch(79.406% 0.12101 1.7634);
-  --color-primary-600: oklch(75.718% 0.14788 3.5877);
-  --color-primary-700: oklch(72.118% 0.17434 4.6237);
-  --color-primary-800: oklch(69.574% 0.19291 5.8639);
-  --color-primary-900: oklch(68.911% 0.1982 6.5103);
-  --color-primary-950: oklch(66.081% 0.22168 9.2391);
+  /* 主色：纯蓝 #2563EB（Tailwind blue-600） */
+  --color-primary: #2563eb;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
 
   --color-primary-disabled: var(--color-primary-200);
-  --color-primary-hover: var(--color-primary-800);
-  --color-primary-active: var(--color-primary-900);
+  --color-primary-hover: var(--color-primary-700);
+  --color-primary-active: var(--color-primary-800);
   --color-primary-text: #fff;
   --color-primary-text-disabled: var(--color-primary-text);
 
@@ -51,12 +52,12 @@
   --color-surface: #fff;
   --color-secondary-surface: var(--color-sidebar-bg);
   /*#fcfcfc*/
-  --color-surface-border: #efefef;
+  --color-surface-border: #e7edf6;
   --color-surface-hover: var(--color-sidebar-bg-hover);
-  --size-surface-radius: 12px;
-  --color-bg: #fff;
-  --color-border: #e0e0e0;
-  --code-block-bg: #f8f8f8;
+  --size-surface-radius: 20px;
+  --color-bg: #f2f6fc;
+  --color-border: #e2e9f3;
+  --code-block-bg: #f6f8fc;
 
   --color-bubble-user-bg: #f0f0f0;
   --color-bubble-user-text: #1f2937;
@@ -95,11 +96,11 @@
   --color-overlay-bg: var(--color-surface);
   --color-dialog-bg: #fff;
   --color-dialog-border: var(--color-border);
-  --size-dialog-rounded-radius: 12px;
+  --size-dialog-rounded-radius: 18px;
 
   --size-text-base: 15px;
   --size-text-sm: 14px;
-  --size-rounded-radius: 18px;
+  --size-rounded-radius: 20px;
 
   /* --color-gray-50: #f9fafb;
     --color-gray-100: #f3f4f6;
@@ -120,32 +121,32 @@ html.dark {
        设计理念：护眼舒适、层次分明、柔和对比
        ==================== */
 
-  /* 主色调 - 在暗色模式下稍微降低饱和度，提升可读性 */
-  --color-primary: oklch(70% 0.14 355);
-  /* 柔和的粉红色 */
-  --color-primary-hover: oklch(75% 0.16 355);
-  --color-primary-active: oklch(65% 0.12 355);
-  --color-primary-disabled: oklch(45% 0.08 355);
-  --color-primary-text: #d3d3d3;
+  /* 主色调 - 暗色模式下提亮以保证对比度 */
+  --color-primary: #3b82f6;
+  /* 柔和亮蓝 */
+  --color-primary-hover: #60a5fa;
+  --color-primary-active: #2563eb;
+  --color-primary-disabled: #2b3a55;
+  --color-primary-text: #ffffff;
   --color-primary-text-disabled: rgba(255, 255, 255, 0.5);
 
-  /* 主色调渐变系列 - 用于背景和状态 */
-  --color-primary-50: oklch(25% 0.03 355);
-  /* 极淡粉 - 最浅背景 */
-  --color-primary-100: oklch(30% 0.05 355);
-  /* 淡粉 - 悬停/选中背景 */
-  --color-primary-200: oklch(35% 0.07 355);
-  /* 浅粉 - 边框/分隔线 */
-  --color-primary-300: oklch(40% 0.09 355);
-  /* 中粉 - 强调元素 */
-  --color-primary-500: oklch(55% 0.11 355);
-  /* 标准粉 - 主要交互 */
-  --color-primary-700: oklch(65% 0.13 355);
-  /* 深粉 - 激活状态 */
-  --color-primary-900: oklch(70% 0.14 355);
-  /* 最深粉 - 重点强调 */
-  --color-primary-950: oklch(72% 0.15 355);
-  /* 最深变体 */
+  /* 主色调渐变系列 - 用于背景和状态（深色端为暗蓝底） */
+  --color-primary-50: #15202f;
+  /* 极暗蓝 - 最浅背景 */
+  --color-primary-100: #172554;
+  /* 暗蓝 - 悬停/选中背景 */
+  --color-primary-200: #1e3a8a;
+  /* 深蓝 - 边框/分隔 */
+  --color-primary-300: #1e40af;
+  /* 中深蓝 - 强调元素 */
+  --color-primary-500: #1d4ed8;
+  /* 标准深蓝 - 主要交互 */
+  --color-primary-700: #2563eb;
+  /* 蓝 - 激活状态 */
+  --color-primary-900: #60a5fa;
+  /* 亮蓝 - 重点强调 */
+  --color-primary-950: #93c5fd;
+  /* 最亮蓝 */
 
   /* 次要颜色 - 蓝灰色调，与主色形成互补 */
   --color-secondary: oklch(55% 0.08 240);
@@ -609,6 +610,8 @@ html.dark *::-webkit-scrollbar-thumb:hover {
   border-radius: 4px;
   max-width: 300px;
   word-break: break-word;
+  /* 内容用 textContent 写入，多行提示（天气/台风）靠 \n 换行 */
+  white-space: pre-line;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 

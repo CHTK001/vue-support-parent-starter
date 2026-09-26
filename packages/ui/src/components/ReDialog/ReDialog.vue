@@ -11,14 +11,14 @@
  *   - 默认带 footer 插槽 + 取消/确认按钮，无需每次写
  *   - headless：隐藏 header，右上角圆形关闭按钮替代（圆心定位）
  *   - responsive：基于 @vueuse/core 自动响应式（移动端默认全屏）
- *   - windows 布局已自带 8 方向缩放（边缘拖拽放大）与左右边缘半屏
- */
+ *   - windows 布局已自带 8 方向缩放（边缘拖拽放大）与左右边缘半宽 */
 import { computed, defineAsyncComponent, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
-import { ReDialogCloseFab } from "./CloseFab.vue";
+import { FullScreen, Crop } from "@element-plus/icons-vue";
+import ReDialogCloseFab from "./CloseFab.vue";
 import { useResponsiveDialog } from "./composables/useResponsiveDialog";
-import "./shared/modern-vars.css";
+import "../shared/modern-vars.css";
 
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 const WindowsLayout = defineAsyncComponent(() => import("./layouts/WindowsLayout.vue"));
@@ -125,7 +125,7 @@ const responsive = useResponsiveDialog(
   },
 );
 
-// 同步窗口尺寸变化给 composable，避免 ref 引起的耦合
+// 同步窗口尺寸变化到 composable，避免 ref 引起的耦合
 const resolved = computed(() => {
   if (!props.responsive) {
     return {
@@ -137,13 +137,9 @@ const resolved = computed(() => {
   return {
     width: responsive.width.value,
     top: responsive.top.value,
-    fullscreen: responsive.fullscreen.value,
+    // 显式全屏（按钮切换）与响应式自动全屏取并集
+    fullscreen: isFullscreen.value || responsive.fullscreen.value,
   };
-});
-
-watch(isFullscreen, (v) => {
-  // 全屏变化 → 透传响应式
-  if (props.responsive) responsive.fullscreen.value = v;
 });
 
 /* ===== 拖拽状态（el/modern 头部拖拽） ===== */
@@ -225,10 +221,10 @@ const fullscreenStyle = computed<CSSProperties>(() => {
   if (Object.keys(dialogStyle.value).length) return dialogStyle.value;
   // 响应式宽度样式
   if (props.responsive) return responsive.elStyle.value as CSSProperties;
-  return { margin: "0 auto" };
+  return { marginTop: props.top, marginLeft: "auto", marginRight: "auto" };
 });
 
-/* ===== headless 下显隐关闭 FAB ===== */
+/* ===== headless 下显示隐藏关闭 FAB ===== */
 const showCloseFab = computed(() => props.headless);
 </script>
 
@@ -351,7 +347,7 @@ const showCloseFab = computed(() => props.headless);
             :title="isFullscreen ? '退出全屏' : '全屏'"
             @click="toggleFullscreen"
           >
-            <span>{{ isFullscreen ? '⤢' : '⤡' }}</span>
+            <el-icon><Crop v-if="isFullscreen" /><FullScreen v-else /></el-icon>
           </ElButton>
         </div>
       </div>
@@ -375,8 +371,8 @@ const showCloseFab = computed(() => props.headless);
 <style scoped>
 .re-dialog :deep(.el-dialog__header) {
   cursor: default;
-  padding: 12px 20px 0;
-  margin-right: 0;
+  padding: 4px 20px 0 !important;
+  margin-right: 0 !important;
 }
 .re-dialog__header-inner {
   display: flex;
@@ -386,7 +382,7 @@ const showCloseFab = computed(() => props.headless);
 }
 .re-dialog__title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 .re-dialog__header-actions {
   display: inline-flex;
@@ -402,7 +398,12 @@ const showCloseFab = computed(() => props.headless);
   display: none;
 }
 .re-dialog :deep(.el-dialog__body) {
-  padding: 16px 20px;
+  padding: 8px 20px 12px;
+}
+/* 非全屏弹窗：body 超过视口高度时出现滚动条，避免内容被裁切（footer 保持在滚动区外） */
+.re-dialog:not(.re-dialog--fullscreen) :deep(.el-dialog__body) {
+  max-height: calc(84vh - 96px);
+  overflow-y: auto;
 }
 .re-dialog--headless :deep(.el-dialog__body) {
   padding-top: 24px;

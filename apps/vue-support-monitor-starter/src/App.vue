@@ -72,7 +72,7 @@ function logout(): void {
 /** 跳转个人中心（koi 体系默认路径，不存在则跳转到首页） */
 function goProfile(): void {
   userMenuVisible.value = false;
-  const personagePath = getConfig()?.route?.personagePath || "/system/personage";
+  const personagePath = getConfig()?.route?.personagePath || "/personage";
   router.push(personagePath).catch(() => router.push("/"));
 }
 
@@ -194,10 +194,14 @@ function go(path: string): void {
 }
 
 const sidebarW = computed(() => (collapse.value ? "64px" : "224px"));
+
+/** standalone 路由（如独立全屏终端）不渲染应用外壳，只给裸 router-view */
+const bare = computed(() => route.meta.standalone === true);
 </script>
 
 <template>
-  <div class="app" :class="{ collapsed: collapse }">
+  <router-view v-if="bare" />
+  <div v-else class="app" :class="{ collapsed: collapse }">
     <!-- 侧栏 -->
     <aside class="sidebar">
       <div class="brand">

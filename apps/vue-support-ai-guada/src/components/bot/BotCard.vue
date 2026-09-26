@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bot-card flex flex-col overflow-hidden p-2.5 rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) transition-all hover:bg-(--color-surface-hover) hover:shadow-sm">
+    class="bot-card re-surface re-surface--dense flex flex-col overflow-hidden">
     <!-- Header: icon + name + platform tag -->
     <div class="flex items-center gap-2.5 mb-3">
       <div
@@ -29,7 +29,8 @@
 
     <!-- Footer: action buttons + switch -->
     <div class="flex items-center justify-end gap-2 mt-3">
-      <el-button v-if="bot.platform === 'wechat-personal'" link size="small" @click="handleShowQrCode">
+      <!-- 后端 platform 只会回 wechat/wecom/feishu，wechat-personal 为历史值 -->
+      <el-button v-if="bot.platform === 'wechat' || bot.platform === 'wechat-personal'" link size="small" @click="handleShowQrCode">
         {{ t('bot.card.qrCode') }}
       </el-button>
       <el-button link size="small" @click="$emit('edit', bot)">
@@ -153,7 +154,7 @@ const fetchQrStatus = async () => {
       qrMessage.value = result.message || ''
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || t('bot.card.getQrFailed'))
+    ElMessage.error(error?.message || error.response?.data?.msg || t('bot.card.getQrFailed'))
   }
 }
 
@@ -202,7 +203,7 @@ const handleLogout = async () => {
       ElMessage.warning(result.message)
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || t('bot.card.logoutFailed'))
+    ElMessage.error(error?.message || error.response?.data?.msg || t('bot.card.logoutFailed'))
   }
 }
 

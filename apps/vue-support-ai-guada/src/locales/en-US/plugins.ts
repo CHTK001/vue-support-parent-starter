@@ -1,7 +1,8 @@
-﻿export default {
+export default {
   // ── 插件页面 (PluginsPage.vue) ──
   page: {
     title: 'Plugins',
+    tabCharacters: 'Assistants',
     tabLocalTools: 'Local Tools',
     tabSkills: 'Skills',
     tabMcp: 'MCP Servers',
@@ -130,6 +131,19 @@
     installBtn: 'Install',
     installSelectWarning: 'Please select a ZIP file to install',
     installFailed: 'Install failed',
+    // 安装弹窗：模式与检索
+    modeUpload: 'Upload ZIP',
+    modeSearch: 'Search & Install',
+    sourceLocal: 'Local',
+    sourceOnline: 'Online',
+    searchPlaceholder: 'Search by skill name or description',
+    searchHint: 'Enter a keyword and press Enter to search local and online skills',
+    searchNoResult: 'No matching skills found locally or online',
+    localEmpty: 'No local skills found; enable sources in Skills settings',
+    manage: 'Manage',
+    add: 'Add',
+    uploadSkill: 'Upload Skill',
+    searchInstall: 'Search & Install',
     // 市场推荐
     marketTitle: 'Featured Skills',
     marketRefresh: 'Refresh',
@@ -158,6 +172,7 @@
   localTools: {
     title: 'Local Tools',
     subtitle: 'Global tool settings determine which tools are available to all characters. Character-level tool settings further restrict on top of this.',
+    addTool: 'Add Tool',
     loading: 'Loading...',
     noDescription: 'No description',
     sourceDev: 'DEV',

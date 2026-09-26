@@ -130,6 +130,8 @@ function toStationMessage(item: StationMessageItem): import("../hooks/useStation
     subject: item.subject,
     content: item.content,
     sendTime: item.sendTime,
+    readStatus: item.readStatus,
+    isRead: item.readStatus === 1,
     ...item,
   };
 }

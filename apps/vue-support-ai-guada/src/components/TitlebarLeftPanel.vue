@@ -2,7 +2,7 @@
   <div class="flex items-center px-2 h-10 select-none drag-region shrink-0">
     <div class="flex items-center h-full no-drag">
       <img :src="logoPath" class="h-6 ml-2 mr-2" />
-      <span class="text-xs font-normal text-(--titlebar-text-color) opacity-80 mr-3">GuaDa AI</span>
+      <span class="text-xs font-normal text-(--titlebar-text-color) opacity-80 mr-3">{{ brandTitle }}</span>
 
       <!-- 搜索按钮 -->
       <LTooltip v-if="authStore.isAuthenticated" :content="t('ui.titlebar.searchSession')" placement="bottom">
@@ -79,7 +79,7 @@ import { useI18n } from 'vue-i18n'
 import { Bug16Regular, Search16Regular } from '@vicons/fluent'
 import UpdateDialog from './UpdateDialog.vue'
 import SessionSearchDialog from './SessionSearchDialog.vue'
-import { fixFrontendAssetUrl } from '@/utils/url'
+import { resolveBrandLogoSmall, resolveBrandTitle } from '@/utils/branding'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import { useAuthStore } from '@/stores/auth'
 import LTooltip from '@/components/ui/LTooltip.vue'
@@ -90,7 +90,10 @@ const authStore = useAuthStore()
 
 const { t } = useI18n()
 
-const logoPath = computed(() => fixFrontendAssetUrl('/images/guada_logo_small.png'))
+// 品牌资源统一取自 app.yaml（app.logoUrl / app.title），此处不再硬编码路径
+const logoPath = computed(() => resolveBrandLogoSmall())
+
+const brandTitle = computed(() => resolveBrandTitle())
 
 const isMaximized = ref(false)
 const updateAvailable = ref(false)

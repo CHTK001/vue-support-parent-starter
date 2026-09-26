@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * ReIcon koi 主题 —— 图标组件（KoiSvgIcon / KoiGlobalIcon 移植）
  *
@@ -72,6 +72,14 @@ const iconifyRenderer = computed<Component | null>(() => {
   const reg = (w as unknown as { __reIcon?: { iconify?: Component } })?.__reIcon;
   return reg?.iconify ? markRaw(reg.iconify) : null;
 });
+
+/** 全局兜底图标：任何图标加载失败/不存在时，显示Menu图标，永远不空白 */
+const fallbackIcon = computed(() => {
+  if (isLocalSvg.value) return null;
+  if (isIconify.value && iconifyRenderer.value) return null;
+  if (elementIcon.value) return null;
+  return (ElementPlusIconsVue as Record<string, unknown>).Menu as Component;
+});
 </script>
 
 <template>
@@ -87,8 +95,8 @@ const iconifyRenderer = computed<Component | null>(() => {
     </svg>
     <!-- iconify 在线渲染器（ri:/mdi:/carbon: 等前缀） -->
     <component :is="iconifyRenderer" :icon="props.name" v-else-if="isIconify && iconifyRenderer" />
-    <!-- element-plus 图标 -->
-    <component :is="elementIcon" v-else />
+    <!-- element-plus 图标 / 全局兜底图标 -->
+    <component :is="elementIcon || fallbackIcon" v-else />
   </ElIcon>
 </template>
 

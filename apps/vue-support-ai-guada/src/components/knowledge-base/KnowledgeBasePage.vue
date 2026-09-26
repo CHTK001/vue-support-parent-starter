@@ -1,8 +1,27 @@
 <template>
   <div class="h-full w-full flex flex-col min-h-0">
     <PageHeader :title="t('knowledge.page.title')" />
-    <!-- 视图模式：卡片列表 -->
-    <div v-if="viewMode === 'list'" class="flex-1 flex flex-col overflow-hidden">
+    
+    <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据 -->
+    <div v-if="!ragReady" class="flex-1 flex flex-col min-h-0">
+      <div class="flex-1 flex items-center justify-center px-4 py-10">
+        <div class="rag-gate">
+          <el-icon class="rag-gate__icon" :size="46">
+            <MenuBookOutlined />
+          </el-icon>
+          <h2 class="rag-gate__title">{{ t('knowledge.ragGate.title') }}</h2>
+          <p class="rag-gate__desc">
+            {{ ragStatus?.message || t('knowledge.ragGate.desc') }}
+          </p>
+          <el-button type="primary" round @click="goToConfig(ragStatus?.configPath)">
+            {{ t('knowledge.ragGate.goConfig') }}
+          </el-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图模式：卡片列表（RAG 已配置才渲染） -->
+    <div v-else-if="viewMode === 'list'" class="flex-1 flex flex-col overflow-hidden">
       <!-- 标题区（固定不滚动） -->
       <div class="shrink-0 flex items-center justify-between gap-4 mb-8 mt-2 px-4 w-full md:max-w-260 md:mx-auto">
             <div class="min-w-0">
@@ -15,10 +34,6 @@
                   <el-icon><Search /></el-icon>
                 </template>
               </el-input>
-              <el-button @click="handleOpenDocs">
-                <template #icon><Document /></template>
-                {{ t('knowledge.page.docs') }}
-              </el-button>
               <el-button type="primary" @click="handleOpenCreate">
                 <template #icon><Plus /></template>
                 {{ t('knowledge.page.createKb') }}
@@ -32,7 +47,7 @@
           <!-- 知识库卡片网格 -->
           <div v-if="filteredKnowledgeBases.length > 0" class="grid gap-y-4 gap-x-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
             <div v-for="kb in filteredKnowledgeBases" :key="kb.id"
-              class="kb-card flex flex-col overflow-hidden p-2.5 rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) transition-all hover:bg-(--color-surface-hover) hover:shadow-sm cursor-pointer"
+              class="kb-card re-surface re-surface--dense flex flex-col overflow-hidden cursor-pointer"
               @click="handleSelectKB(kb)">
               <!-- Header: icon + name + tag -->
               <div class="flex items-center gap-2.5 mb-3">
@@ -48,17 +63,19 @@
                 {{ kb.description || t('knowledge.page.noDescription') }}
               </div>
 
-              <!-- Footer: edit/delete + enter button -->
+              <!-- Footer: edit/delete (owner only) + enter button -->
               <div class="flex items-center justify-end gap-2 mt-3">
-                <el-button link size="small" @click.stop="handleEdit(kb)">{{ t('common.edit') }}</el-button>
-                <el-button link size="small" type="danger" @click.stop="handleDelete(kb)">{{ t('common.delete') }}</el-button>
+                <template v-if="isOwnerKb(kb)">
+                  <el-button link size="small" @click.stop="handleEdit(kb)">{{ t('common.edit') }}</el-button>
+                  <el-button link size="small" type="danger" @click.stop="handleDelete(kb)">{{ t('common.delete') }}</el-button>
+                </template>
                 <el-button link size="small" type="primary" @click.stop="handleSelectKB(kb)">{{ t('knowledge.page.enter') }}</el-button>
               </div>
             </div>
           </div>
 
           <!-- 空状态 -->
-          <div v-else-if="!store.loading" class="rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) p-12 text-center">
+          <div v-else-if="!store.loading" class="re-surface p-12 text-center">
             <el-icon size="48" class="text-gray-300 dark:text-[#3e4046] mb-3">
               <MenuBookOutlined />
             </el-icon>
@@ -115,16 +132,19 @@
         <div class="max-w-260 mx-auto w-full">
           <!-- 文件列表 Tab -->
           <div v-show="activeTab === 'files'" class="flex-1 flex flex-col min-h-0">
-            <!-- 上传区域 -->
-            <div class="px-4 pt-1 pb-1">
+            <!-- 上传区域（仅 owner；他人公开库只读） -->
+            <div v-if="canEditCurrent" class="px-4 pt-1 pb-1">
               <KBFileUploader :kb-id="store.activeKnowledgeBaseId!" :current-folder-path="getCurrentFolderPath()"
                 :get-current-files="getCurrentFiles" @uploaded="handleUploadComplete"
                 @show-upload-task="showUploadTaskModal = true" @folder-created="handleFolderCreated" />
             </div>
+            <div v-else class="re-surface mx-4 mt-2 px-4 py-2.5 text-sm text-(--color-text-secondary)">
+              {{ t('knowledge.page.readonlyHint') }}
+            </div>
 
             <!-- 文件列表内容区 -->
             <div class="w-full m-4  min-h-0 rounded-lg p-2 bg-white dark:bg-[#232428]">
-              <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" @view="handleViewFile"
+              <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent" @view="handleViewFile"
                 @retry="handleRetryFile" @delete="handleDeleteFile" @folder-change="handleFolderChange"
                 @files-loaded="handleFilesLoaded" />
             </div>
@@ -142,58 +162,70 @@
   </div>
 
   <!-- 创建/编辑知识库对话框 -->
-  <LDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" width="600px" :close-on-click-modal="false" append-to-body>
-    <el-form :model="dialogForm" label-width="140px" size="large">
-      <el-form-item :label="t('knowledge.page.kbName')" required>
-        <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
-      </el-form-item>
+  <LDialog v-model="showKbDialog" :title="dialogMode === 'create' ? t('knowledge.page.createTitle') : t('knowledge.page.editTitle')" width="620px" :close-on-click-modal="false" append-to-body class="kb-dialog">
+    <div class="kb-form">
+      <!-- 基本信息 -->
+      <section class="kb-sec">
+        <div class="kb-field">
+          <label class="kb-label">{{ t('knowledge.page.kbName') }}<i class="kb-req">*</i></label>
+          <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
+        </div>
+        <div class="kb-field">
+          <label class="kb-label">{{ t('common.description') }}</label>
+          <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
+            maxlength="2000" show-word-limit resize="none" />
+        </div>
+      </section>
 
-      <el-form-item :label="t('common.description')">
-        <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
-          maxlength="2000" show-word-limit />
-      </el-form-item>
+      <!-- 检索模型 -->
+      <section class="kb-sec">
+        <div class="kb-field">
+          <label class="kb-label">{{ t('knowledge.page.embeddingModel') }}<i class="kb-req">*</i></label>
+          <el-select v-model="dialogForm.embeddingModelId" :placeholder="t('knowledge.page.embeddingModelPlaceholder')" class="kb-select" filterable>
+            <template v-for="provider in embeddingProviders" :key="provider.id">
+              <el-option-group :label="provider.name">
+                <el-option v-for="model in provider.models" :key="model.id" :label="model.modelName" :value="model.id" />
+              </el-option-group>
+            </template>
+          </el-select>
+        </div>
+      </section>
 
-      <el-form-item :label="t('knowledge.page.embeddingModel')" required>
-        <el-select v-model="dialogForm.embeddingModelId" :placeholder="t('knowledge.page.embeddingModelPlaceholder')" class="w-full">
-          <template v-for="provider in embeddingProviders" :key="provider.id">
-            <el-option :label="provider.name" :value="''" disabled />
-            <el-option v-for="model in provider.models" :key="model.id" :label="model.modelName" :value="model.id" />
-          </template>
-        </el-select>
-      </el-form-item>
+      <!-- 分块配置 -->
+      <section class="kb-sec">
+        <div class="kb-sec__title">{{ t('knowledge.page.chunkSection') }}</div>
+        <div class="kb-grid">
+          <div class="kb-field">
+            <label class="kb-label">{{ t('knowledge.page.chunkMaxSize') }}</label>
+            <el-input-number v-model="dialogForm.chunkMaxSize" :min="100" :max="5000" :step="100" controls-position="right" class="kb-num" />
+          </div>
+          <div class="kb-field">
+            <label class="kb-label">{{ t('knowledge.page.chunkOverlapSize') }}</label>
+            <el-input-number v-model="dialogForm.chunkOverlapSize" :min="0" :max="500" :step="10" controls-position="right" class="kb-num" />
+          </div>
+          <div class="kb-field">
+            <label class="kb-label">{{ t('knowledge.page.chunkMinSize') }}</label>
+            <el-input-number v-model="dialogForm.chunkMinSize" :min="10" :max="500" :step="10" controls-position="right" class="kb-num" />
+          </div>
+        </div>
+      </section>
 
-      <el-divider />
-
-      <!-- 分块大小配置 -->
-      <el-form-item>
-        <template #label>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('knowledge.page.chunkMaxSize') }}</span>
-        </template>
-        <el-input-number v-model="dialogForm.chunkMaxSize" :min="100" :max="5000" :step="100" class="w-full" />
-      </el-form-item>
-
-      <el-form-item>
-        <template #label>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('knowledge.page.chunkOverlapSize') }}</span>
-        </template>
-        <el-input-number v-model="dialogForm.chunkOverlapSize" :min="0" :max="500" :step="10" class="w-full" />
-      </el-form-item>
-
-      <el-form-item>
-        <template #label>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('knowledge.page.chunkMinSize') }}</span>
-        </template>
-        <el-input-number v-model="dialogForm.chunkMinSize" :min="10" :max="500" :step="10" class="w-full" />
-      </el-form-item>
-
-      <el-form-item :label="t('knowledge.page.visibility')">
-        <el-switch v-model="dialogForm.isPublic" />
-        <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">{{ t('knowledge.page.visibilityHint') }}</span>
-      </el-form-item>
-    </el-form>
+      <!-- 可见性 -->
+      <section class="kb-visibility" :class="{ 'is-public': dialogForm.isPublic }" @click="dialogForm.isPublic = !dialogForm.isPublic">
+        <span class="kb-visibility__icon">
+          <Globe24Regular v-if="dialogForm.isPublic" />
+          <LockClosed24Regular v-else />
+        </span>
+        <span class="kb-visibility__text">
+          <span class="kb-visibility__title">{{ t('knowledge.page.visibility') }}</span>
+          <span class="kb-visibility__hint">{{ t('knowledge.page.visibilityHint') }}</span>
+        </span>
+        <el-switch v-model="dialogForm.isPublic" @click.stop />
+      </section>
+    </div>
 
     <template #footer>
-      <div class="flex justify-end gap-3">
+      <div class="kb-footer">
         <el-button @click="showKbDialog = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" @click="handleKbSave" :loading="store.loading">
           {{ dialogMode === 'create' ? t('common.create') : t('common.save') }}
@@ -213,20 +245,21 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Search, Document } from '@element-plus/icons-vue'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
+import { useAuthStore } from '@/stores/auth'
 import { useFileUploadStore } from '@/stores/fileUpload'
 import type { KnowledgeBase, KBFile } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import { FileChunksViewer, KBFileUploader, KBFileTree, KBSearchPanel, UploadTaskModal } from './index'
 import { useStorage, useDebounceFn } from '@vueuse/core'
 import { usePopup } from '@/composables/usePopup'
-import { BookOpen24Regular, Search24Regular, ArrowLeft24Filled } from '@vicons/fluent'
+import { BookOpen24Regular, Search24Regular, ArrowLeft24Filled, Globe24Regular, LockClosed24Regular } from '@vicons/fluent'
 import { MenuBookOutlined } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
 import { apiService } from '@/services/ApiService'
-import { openInExternalBrowser } from '@/utils/browserUtils'
+import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 
@@ -234,6 +267,7 @@ import LDialog from '@/components/ui/LDialog.vue'
 const { confirm, toast } = usePopup()
 const { t } = useI18n()
 const store = useKnowledgeBaseStore()
+const authStore = useAuthStore()
 const uploadStore = useFileUploadStore()
 const route = useRoute()
 const router = useRouter()
@@ -250,6 +284,37 @@ const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详�
 const searchKeyword = ref('')  // 知识库搜索关键词
 const embeddingModels = ref<any[]>([]) // 嵌入模型列表
 const embeddingProviders = ref<any[]>([]) // 嵌入模型供应商列表
+
+// RAG 配置状态
+const ragStatus = ref<any>(null)
+
+/**
+ * RAG 是否可用。
+ *
+ * <p>知识库依赖 RAG：未在「系统配置 → 默认模型」配好 RAG 所需参数时，
+ * 不渲染搜索框、新建按钮与卡片数据，只提示用户去配置，避免点了必然失败。</p>
+ *
+ * <p>状态接口未返回时按「未就绪」处理：先提示、后放行，避免用未验证的半成品数据。</p>
+ */
+const ragReady = computed(() => ragStatus.value?.available === true)
+
+// 获取 RAG 状态
+const fetchRagStatus = async () => {
+  try {
+    ragStatus.value = await api.get('/rag/status')
+  } catch (error) {
+    console.error('获取 RAG 状态失败:', error)
+    // 拉取失败视为未就绪，页面走提示分支
+    ragStatus.value = { available: false, message: t('knowledge.ragGate.fetchFailed') }
+  }
+}
+
+// 跳转到配置页面
+const goToConfig = (path: string) => {
+  if (path) {
+    router.push(path)
+  }
+}
 
 // 上传任务列表(独立于文件列表)
 const uploadTasksList = ref<KBFile[]>([])
@@ -290,6 +355,19 @@ const currentKB = computed(() => {
 })
 
 /**
+ * 判断知识库是否归当前登录用户所有（公开库对非 owner 只读）。
+ * 无法取得当前用户 id 时默认按可写处理，避免误伤 owner；后端仍有归属兜底。
+ */
+function isOwnerKb(kb: KnowledgeBase | null | undefined): boolean {
+  const uid = (authStore.user as any)?.userId ?? (authStore.user as any)?.id
+  if (!uid || !kb) return true
+  return String(kb.userId ?? '') === String(uid)
+}
+
+/** 当前详情库是否可写（非 owner 的公开库只读） */
+const canEditCurrent = computed(() => isOwnerKb(currentKB.value))
+
+/**
  * 过滤后的知识库列表（支持搜索）
  */
 const filteredKnowledgeBases = computed(() => {
@@ -308,24 +386,32 @@ const filteredKnowledgeBases = computed(() => {
 /**
  * 加载嵌入模型列表
  */
+/** 判断模型是否为向量（embedding）模型：兼容顶层 modelType 与 capabilities[].task 两种口径 */
+const isEmbeddingModel = (m: any) =>
+  m?.modelType === 'embedding' ||
+  (Array.isArray(m?.capabilities) && m.capabilities.some((c: any) => c.task === 'embedding'))
+
 const loadEmbeddingModels = async () => {
   try {
     const response = await apiService.fetchModels()
 
-    // 只保留 embedding 类型的模型
+    // 只保留 embedding 类型的模型；/api/providers 原始模型用 provider_id/model 字段，需归一化出 id/modelName
     embeddingModels.value = []
-    embeddingProviders.value = response.items
-      .filter((provider: any) => {
-        const embeddingModels_ = provider.models.filter(
-          (m: any) => m.modelType === 'embedding'
-        )
-        return embeddingModels_.length > 0
+    embeddingProviders.value = (response.items || [])
+      .map((provider: any) => {
+        const pid = provider.provider_id || provider.id
+        const models = (provider.models || [])
+          .filter(isEmbeddingModel)
+          .map((m: any) => {
+            const mid = m.model || m.id || m.name
+            return {
+              id: `${pid}:${mid}`,
+              modelName: m.modelName || m.alias || mid
+            }
+          })
+        return { id: pid, name: provider.name, models }
       })
-      .map((provider: any) => ({
-        id: provider.id,
-        name: provider.name,
-        models: provider.models.filter((m: any) => m.modelType === 'embedding')
-      }))
+      .filter((provider: any) => provider.models.length > 0)
   } catch (error: any) {
     console.error('获取嵌入模型列表失败:', error)
   }
@@ -487,9 +573,12 @@ function handleEdit(kb: KnowledgeBase) {
  */
 async function handleDelete(kb: KnowledgeBase) {
   try {
+    const deleteMessage =
+      t('knowledge.page.deleteKbConfirm', { name: kb.name }) +
+      `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--el-fill-color-light);border:1px solid var(--el-border-color-lighter);font-size:12px;line-height:1.6;color:var(--el-text-color-secondary);">${t('knowledge.page.deleteKbNote')}</div>`
     const confirmed = await confirm(
       t('knowledge.page.deleteKbTitle'),
-      t('knowledge.page.deleteKbConfirm', { name: kb.name }),
+      deleteMessage,
       { type: 'warning' }
     )
 
@@ -740,6 +829,7 @@ function getCurrentFiles(): KBFile[] {
 
 // ========== Lifecycle ==========
 onMounted(async () => {
+  fetchRagStatus()
   await loadEmbeddingModels() // 加载嵌入模型列表
   await store.fetchKnowledgeBases()
 
@@ -932,13 +1022,6 @@ function checkAndAutoCloseModal(allTasks: any[]) {
 }
 
 /**
- * 打开使用说明文档
- */
-const handleOpenDocs = () => {
-  openInExternalBrowser('https://ai.dingd.cn/docs/knowledge')
-}
-
-/**
  * 刷新文件列表
  * 注意：KBFileTree 现在内部管理文件列表和轮询，此函数仅用于触发 KBFileTree 重新加载
  */
@@ -990,6 +1073,36 @@ watch(
 </script>
 
 <style scoped>
+/* ===== RAG 未配置拦截页 ===== */
+.rag-gate {
+  max-width: 460px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 28px;
+  border-radius: 18px;
+  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+}
+.rag-gate__icon {
+  color: var(--el-color-warning);
+}
+.rag-gate__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.rag-gate__desc {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-gray);
+}
+
 /* Tab 样式优化 */
 .kb-tabs :deep(.el-tabs__header) {
   margin-bottom: 0;
@@ -1004,5 +1117,103 @@ watch(
   height: 44px;
   line-height: 44px;
   font-size: 14px;
+}
+
+/* ── 创建/编辑知识库弹窗 ── */
+.kb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.kb-sec {
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.kb-sec__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
+}
+.kb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.kb-field:last-child { margin-bottom: 0; }
+.kb-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+.kb-req {
+  color: var(--el-color-danger);
+  font-style: normal;
+  margin-left: 2px;
+}
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.kb-grid .kb-field { margin-bottom: 0; }
+.kb-select { width: 100%; }
+.kb-num { width: 100%; }
+.kb-num :deep(.el-input-number) { width: 100%; }
+.kb-visibility {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.kb-visibility:hover { border-color: var(--el-border-color-hover); }
+.kb-visibility.is-public {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.kb-visibility__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+.kb-visibility.is-public .kb-visibility__icon {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+.kb-visibility__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kb-visibility__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.kb-visibility__hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.kb-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

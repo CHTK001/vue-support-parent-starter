@@ -13,6 +13,7 @@
  */
 import { computed } from "vue";
 import { ElTag } from "element-plus";
+import ReIcon from "../../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReTag", inheritAttrs: false });
 
@@ -27,6 +28,8 @@ interface TagOption {
   dictTag?: TagType;
   /** 自定义 div 标签的 class */
   dictClass?: string;
+  /** 左侧图标名 */
+  icon?: string;
 }
 
 const props = withDefaults(
@@ -35,8 +38,8 @@ const props = withDefaults(
     tagOptions?: TagOption[];
     /** 当前值（字典匹配与 map 映射共用） */
     value?: string | number;
-    /** 值 → { label, type } 映射（与 default 主题一致） */
-    map?: Record<string, { label?: string; type?: TagType | "" }>;
+    /** 值 → { label, type, icon } 映射（与 default 主题一致） */
+    map?: Record<string, { label?: string; type?: TagType | ""; icon?: string }>;
     type?: TagType | "";
     size?: "large" | "default" | "small";
     closable?: boolean;
@@ -45,6 +48,12 @@ const props = withDefaults(
     disableTransitions?: boolean;
     hit?: boolean;
     color?: string;
+    /** 左侧图标名（字典/map 命中项的 icon 优先） */
+    icon?: string;
+    /** 状态小圆点 */
+    dot?: boolean;
+    /** 圆点颜色，留空则用 color / 主色 */
+    dotColor?: string;
   }>(),
   {
     tagOptions: () => [],
@@ -58,6 +67,9 @@ const props = withDefaults(
     disableTransitions: true,
     hit: false,
     color: "",
+    icon: "",
+    dot: false,
+    dotColor: "",
   },
 );
 
@@ -85,6 +97,9 @@ const displayType = computed<TagType | undefined>(
 const displayText = computed<string | undefined>(
   () => matched.value?.dictLabel ?? mapped.value?.label ?? undefined,
 );
+
+/** 最终图标：字典 > map > 显式 icon */
+const displayIcon = computed(() => matched.value?.icon || mapped.value?.icon || props.icon);
 </script>
 
 <template>
@@ -95,6 +110,8 @@ const displayText = computed<string | undefined>(
       class="koi-tag__custom"
       :class="matched.dictClass"
     >
+      <span v-if="dot" class="koi-tag__dot" :style="{ background: dotColor || color || 'var(--el-color-primary)' }" />
+      <ReIcon v-if="displayIcon" :name="displayIcon" class="koi-tag__icon" />
       {{ matched.dictLabel || "ERROR" }}
     </div>
 
@@ -115,6 +132,8 @@ const displayText = computed<string | undefined>(
       :effect="effect"
       :round="round"
     >
+      <span v-if="dot" class="koi-tag__dot" :style="{ background: dotColor || color || 'var(--el-color-primary)' }" />
+      <ReIcon v-if="displayIcon" :name="displayIcon" class="koi-tag__icon" />
       <slot>{{ displayText }}</slot>
     </ElTag>
   </span>
@@ -122,6 +141,20 @@ const displayText = computed<string | undefined>(
 
 <style scoped lang="scss">
 .koi-tag {
+  &__dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-radius: 50%;
+  }
+
+  &__icon {
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
   &__custom {
     display: inline-flex;
     align-items: center;

@@ -12,7 +12,13 @@ const B = '/ms/monitor';
 // ===== 资产 MsMonitor =====
 export const getMonitors = () => http().get(B).then(r => unwrap<any[]>(r));
 export const getMonitor = (id: number) => http().get(`${B}/${id}`).then(r => unwrap<any>(r));
-export const saveMonitor = (id: number, d: any) => id != null
+/**
+ * 保存资产：id 为 null 时新增（POST 集合），否则更新（PUT /{id}）。
+ *
+ * 注意 id 必须传 null 而不是 0：实现以 `id != null` 判定新增/更新，
+ * 传 0 会被判定为"更新 0 号"从而走错分支。
+ */
+export const saveMonitor = (id: number | null, d: any) => id != null
   ? http().put(`${B}/${id}`).data(d).then(r => unwrap<any>(r))
   : http().post(B).data(d).then(r => unwrap<any>(r));
 export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => unwrap<any>(r));
@@ -21,119 +27,65 @@ export const delMonitor = (id: number) => http().delete(`${B}/${id}`).then(r => 
 export const getServerHosts = () => http().get(`${B}/server-hosts`).then(r => unwrap<any[]>(r));
 export const getServerHost = (id: number) => http().get(`${B}/server-host/${id}`).then(r => unwrap<any>(r));
 
-// ===== 统一资产视图（主机与设备同级）=====
-// 资产分两个并列大类：HOST=服务器主机(ms_server_host)，DEVICE=设备(device_info)。
-// 两者主键类型不同（主机为数字自增，设备为 UUID），故 assetId 一律按字符串处理。
-export type AssetType = 'HOST' | 'DEVICE';
-
-/** 资产简表行（主机与设备共用） */
-export interface AssetBrief {
-  assetType: AssetType;
-  assetId: string;
-  name: string;
-  address: string;
-  port?: number;
-  /** 类型标签：主机为操作系统类型，设备为设备大类 */
-  category?: string;
-  categoryLabel?: string;
-  /** 厂商（仅设备） */
-  vendor?: string;
-  /** 分组标识（仅主机） */
-  groupId?: number;
-  online: boolean;
-  enabled: boolean;
-}
-
-/** 资产关联的监控项及告警摘要（主机与设备结构一致） */
-export interface AssetMonitorItem {
+/**
+ * 资产聚合详情里挂在该主机上的监控项摘要
+ *
+ * monitorId 才是指标/告警查询的 ID 域，主机页拿到的 route id 是 hostId，两者不可混用。
+ */
+export interface AssetMonitorRef {
+  /** 监控项标识（指标接口的 monitorId） */
   monitorId: number;
-  name: string;
-  host: string;
-  serviceType: string;
-  enabled: boolean;
-  activeAlarmCount: number;
+  /** 监控项名称 */
+  name?: string;
+  /** 监控主机地址 */
+  host?: string;
+  /** 服务类型 */
+  serviceType?: string;
+  /** 是否启用 */
+  enabled?: boolean;
+  /** 未处理告警数 */
+  activeAlarmCount?: number;
+  /** 最高告警级别 */
   maxLevel?: string;
 }
 
-/** 主机资产详情 */
-export interface HostAssetDetail {
-  assetType: 'HOST';
+/**
+ * 主机台账聚合视图：基础信息 + 通道开关 + 关联监控项 + 告警量
+ */
+export interface AssetDetail {
+  /** 主机台账标识（AI 分析接口的 hostId） */
   hostId: number;
-  name: string;
-  address: string;
+  /** 资产名称 */
+  name?: string;
+  /** 资产 IP/域名 */
+  address?: string;
+  /** SSH/默认端口 */
   port?: number;
+  /** 操作系统类型 */
   osType?: string;
-  online: boolean;
-  onlineTime?: string;
-  collectEnabled: boolean;
-  agentEnabled: boolean;
-  remoteEnabled: boolean;
-  nodeCount: number;
-  runningCount: number;
-  channels: { nodeId: number; name: string; protocol: string; port?: number; status: string; url?: string }[];
-  monitorCount: number;
-  activeAlarmCount: number;
-  monitors: AssetMonitorItem[];
-}
-
-/** 设备资产详情 */
-export interface DeviceAssetDetail {
-  assetType: 'DEVICE';
-  assetId: string;
-  name: string;
-  address: string;
-  port?: number;
-  category?: string;
-  categoryLabel?: string;
-  subCategory?: string;
-  vendor?: string;
-  model?: string;
-  serial?: string;
-  firmware?: string;
-  orgId?: string;
-  orgName?: string;
-  online: boolean;
-  /** 会话在线（内存注册表中存在活跃会话），区别于 online 落库快照 */
-  sessionOnline: boolean;
-  offlineThreshold?: number;
-  createdAt?: string;
-  geo?: { latitude?: number; longitude?: number; address?: string; located: boolean };
-  channelCount: number;
-  enabledChannelCount: number;
-  channels: {
-    channelId: string;
-    deviceId: string;
-    channelNo?: number;
-    channelName?: string;
-    channelType?: string;
-    channelStatus?: string;
-    sort?: number;
-  }[];
-  monitorCount: number;
-  activeAlarmCount: number;
-  monitors: AssetMonitorItem[];
+  /** 在线状态：1=在线 0=离线 */
+  online?: number;
+  /** 是否开启采集 */
+  collectEnabled?: boolean;
+  /** 是否开启 Agent */
+  agentEnabled?: boolean;
+  /** 是否开启远控 */
+  remoteEnabled?: boolean;
+  /** 关联监控项数量 */
+  monitorCount?: number;
+  /** 未处理告警数 */
+  activeAlarmCount?: number;
+  /** 关联监控项列表 */
+  monitors?: AssetMonitorRef[];
 }
 
 /**
- * 按关键字与大类检索资产，主机与设备统一返回。
- *
- * 设备为可选能力：宿主未引入设备模块时结果只含主机，前端无需特殊处理。
+ * 资产聚合详情：主机台账 + 其名下监控项，用于把 hostId 解析成 monitorId
+ * @param hostId 主机台账标识
+ * @returns 资产聚合视图
  */
-export const searchAssets = (keyword?: string, assetType?: AssetType) => {
-  const qs = new URLSearchParams();
-  if (keyword) qs.set('keyword', keyword);
-  if (assetType) qs.set('assetType', assetType);
-  const q = qs.toString();
-  return http().get(`${B}/asset/search${q ? `?${q}` : ''}`).then(r => unwrap<AssetBrief[]>(r));
-};
-
-/** 主机资产聚合详情（服务节点 + 监控项 + 活跃告警） */
-export const getHostAssetDetail = (hostId: number | string) =>
-  http().get(`${B}/asset/host/${hostId}`).then(r => unwrap<HostAssetDetail>(r));
-
-/** 设备资产聚合详情（设备通道 + 监控项 + 活跃告警） */
-export const getDeviceAssetDetail = (deviceId: string) =>
-  http().get(`${B}/asset/device/${encodeURIComponent(deviceId)}`).then(r => unwrap<DeviceAssetDetail>(r));
+export const getAssetDetail = (hostId: number) =>
+  http().get(`${B}/asset/${hostId}`).timeout(15_000).then(r => unwrap<AssetDetail>(r));
 
 // ===== Agent 在线状态（心跳上下文快照）=====
 export const getAgentStatus = () =>
@@ -288,6 +240,40 @@ const unwrapResultSeries = (res: any): SeriesPoint[] => {
   return [];
 };
 
+// ===== 主机内置指标历史（不依赖监控项，供监控详情近1h基础数据/图表历史）=====
+/** [时间戳ms, CPU%, 内存%, 磁盘%, 磁盘读KB/s, 磁盘写KB/s]，缺失值为 null */
+export type HostMetricPoint = [
+  number,
+  number | null,
+  number | null,
+  number | null,
+  number | null,
+  number | null,
+];
+/** 软件实例（进程识别结果，同软件支持多实例） */
+export interface SoftwareInstance {
+  type: string;
+  displayName: string;
+  pid: number;
+  cpu: number;
+  memMb: number;
+  uptimeSec: number;
+  cmd: string;
+  port?: number;
+}
+export const getHostMetricHistory = (hostId: number, hours = 1): Promise<HostMetricPoint[]> =>
+  http()
+    .get(`${B}/host/${hostId}/metric-history?hours=${hours}`)
+    .timeout(30000)
+    .then(r => {
+      const d = r?.data;
+      if (d && (d.code === '00000' || d.code === '200')) {
+        return (d.data ?? []) as HostMetricPoint[];
+      }
+      return [];
+    })
+    .catch(() => []);
+
 // ===== 告警策略 / 规则 / 事件 =====
 export const getAlarmPolicies = () => http().get(`${B}/alarm/policy`).then(r => unwrap<any[]>(r));
 export const saveAlarmPolicy = (id: number | null, d: any) => id != null
@@ -324,7 +310,7 @@ export const getAlarmTrend = (hours = 24, interval = '1h') =>
 export const getAgentList = () =>
   http().get(`${B}/agent/list`).then(r => unwrap<{ monitorId: number; monitorName: string; monitorHost: string; monitorAgentKey: string; online: boolean; lastHeartbeat: string }[]>(r));
 export const getAgentConfig = (monitorId: number) =>
-  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ intervals: Record<string, number>; tasks: any[] }>(r));
+  http().get(`${B}/agent/config/${monitorId}`).then(r => unwrap<{ collectIntervalMs: number; tasks: { taskName: string; taskType: string; taskCron: string }[] }>(r));
 
 // ===== TShark 网络抓包 =====
 export const checkTshark = () => http().get(`${B}/tshark/check`).then(r => unwrap<boolean>(r));

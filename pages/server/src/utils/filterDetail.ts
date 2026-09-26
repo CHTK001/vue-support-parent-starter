@@ -21,7 +21,9 @@ export type FilterDetailTarget =
   | { kind: 'unavailable'; reason: string; label: string };
 
 /** 该插件是否提供深度查看入口（用于按钮显隐） */
-export function hasFilterDetail(meta: FilterTypeMeta | null | undefined): boolean {
+export function hasFilterDetail(
+  meta: Pick<FilterTypeMeta, 'detailPage' | 'detailKind' | 'detailLabel'> | null | undefined,
+): boolean {
   return resolveFilterDetail(meta, null, null) !== null;
 }
 
@@ -34,9 +36,9 @@ export function hasFilterDetail(meta: FilterTypeMeta | null | undefined): boolea
  * @returns 解析结果；`null` 表示该插件没有深度查看入口
  */
 export function resolveFilterDetail(
-  meta: FilterTypeMeta | null | undefined,
-  filter?: ServerFilterDescriptor | null,
-  node?: ServerNodeView | null,
+  meta: Pick<FilterTypeMeta, 'detailPage' | 'detailKind' | 'detailLabel'> | null | undefined,
+  filter?: Pick<ServerFilterDescriptor, 'params'> | null,
+  node?: Pick<ServerNodeView, 'serverUrl'> | null,
 ): FilterDetailTarget | null {
   if (!meta) return null;
   const label = meta.detailLabel || '查看详情';

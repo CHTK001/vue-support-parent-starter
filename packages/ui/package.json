@@ -63,6 +63,14 @@
       "types": "./src/components/ReIp/index.ts",
       "default": "./src/components/ReIp/index.ts"
     },
+    "./re-ip-text": {
+      "types": "./src/components/ReIpText/index.ts",
+      "default": "./src/components/ReIpText/index.ts"
+    },
+    "./re-cost-text": {
+      "types": "./src/components/ReCostText/index.ts",
+      "default": "./src/components/ReCostText/index.ts"
+    },
     "./re-time": {
       "types": "./src/components/ReTime/index.ts",
       "default": "./src/components/ReTime/index.ts"
@@ -74,6 +82,10 @@
     "./re-scroll-nav": {
       "types": "./src/components/ReScrollNav/index.ts",
       "default": "./src/components/ReScrollNav/index.ts"
+    },
+    "./re-rich-text": {
+      "types": "./src/components/ReRichText/index.ts",
+      "default": "./src/components/ReRichText/index.ts"
     },
     "./re-search": {
       "types": "./src/components/ReSearch/index.ts",
@@ -211,6 +223,14 @@
       "types": "./src/components/ReStatCard/index.ts",
       "default": "./src/components/ReStatCard/index.ts"
     },
+    "./surface": {
+      "types": "./src/components/shared/surface.ts",
+      "default": "./src/components/shared/surface.ts"
+    },
+    "./re-stats-card": {
+      "types": "./src/components/ReStatsCard/index.ts",
+      "default": "./src/components/ReStatsCard/index.ts"
+    },
     "./re-carousel": {
       "types": "./src/components/ReCarousel/index.ts",
       "default": "./src/components/ReCarousel/index.ts"
@@ -342,7 +362,30 @@
     "@microsoft/fetch-event-source": "catalog:",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
+    "@repo/pinia": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@tiptap/core": "^3.26.0",
+    "@tiptap/extension-blockquote": "^3.26.0",
+    "@tiptap/extension-bold": "^3.26.0",
+    "@tiptap/extension-bullet-list": "^3.26.0",
+    "@tiptap/extension-code": "^3.26.0",
+    "@tiptap/extension-code-block": "^3.26.0",
+    "@tiptap/extension-document": "^3.26.0",
+    "@tiptap/extension-heading": "^3.26.0",
+    "@tiptap/extension-horizontal-rule": "^3.26.0",
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-italic": "^3.26.0",
+    "@tiptap/extension-link": "^3.26.0",
+    "@tiptap/extension-list-item": "^3.26.0",
+    "@tiptap/extension-ordered-list": "^3.26.0",
+    "@tiptap/extension-paragraph": "^3.26.0",
+    "@tiptap/extension-placeholder": "^3.26.0",
+    "@tiptap/extension-strike": "^3.26.0",
+    "@tiptap/extension-text": "^3.26.0",
+    "@tiptap/extension-text-align": "^3.26.0",
+    "@tiptap/extension-underline": "^3.26.0",
+    "@tiptap/extensions": "^3.26.0",
+    "@tiptap/vue-3": "^3.26.0",
     "@vueuse/core": "catalog:",
     "ag-grid-community": "^36.1.0",
     "ag-grid-vue3": "^36.1.0",
@@ -350,15 +393,21 @@
     "d3-force": "^3.0.0",
     "echarts": "catalog:",
     "element-plus": "catalog:",
+    "katex": "^0.16.47",
+    "sortablejs": "1.15.6",
     "three": "^0.185.1",
     "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-advanced-chat": "^2.1.0",
+    "vue-draggable-plus": "^0.6.1",
     "vue-element-plus-x": "workspace:*",
-    "vue3-compare-image": "catalog:"
+    "vue3-compare-image": "catalog:",
+    "vxe-table": "4.6.25",
+    "xe-utils": "3.7.4"
   },
   "devDependencies": {
     "@types/d3-force": "^3.0.10",
+    "@types/sortablejs": "1.15.8",
     "@types/three": "^0.185.4",
     "rimraf": "catalog:",
     "typescript": "catalog:",

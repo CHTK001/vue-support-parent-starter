@@ -1,9 +1,14 @@
 // stores/fileUpload.ts
 import { defineStore } from 'pinia'
 import { ref, type Ref } from 'vue'
-import type { AxiosError } from 'axios'
 import type { KBFile } from './knowledgeBase'
 import { t } from '@/locales'
+
+/** 从请求模块抛出的错误里取可展示的失败原因 */
+function extractUploadError(error: any): string {
+    const data = error?.response?.data ?? error
+    return data?.detail || data?.msg || data?.message || t('common.uploadFailed')
+}
 
 /**
  * 文件上传任务(仅负责上传阶段)
@@ -184,29 +189,19 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
             })
             onProgressUpdate?.(task)
 
-            // 使用 axios 直接调用以获取上传进度
-            const { default: axios } = await import('axios')
             const formData = new FormData()
             formData.append('file', file)
             formData.append('relativePath', relativePath) // 附加相对路径
 
-            // 从 auth store 获取 token
-            const { useAuthStore } = await import('@/stores/auth')
-            const authStore = useAuthStore()
-            const token = authStore.token
-
             try {
-                // 使用 apiService 的 baseURL 构造完整 URL
+                // 上传进度通过请求模块客户端获取（Authorization 头由框架拦截器注入）
                 const { apiService } = await import('@/services/ApiService')
-                const uploadUrl = `${apiService.baseURL}/knowledge-bases/${task.knowledgeBaseId}/files/upload`
-                
-                const response = await axios.post(
-                    uploadUrl,
+                const record: any = await apiService.client.post(
+                    `/knowledge-bases/${task.knowledgeBaseId}/files/upload`,
                     formData,
                     {
                         headers: {
                             'Content-Type': 'multipart/form-data',
-                            'Authorization': `Bearer ${token}`
                         },
                         onUploadProgress: (progressEvent) => {
                             if (!progressEvent.total) return
@@ -229,22 +224,22 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
                 // 上传成功,更新为真实 ID 和状态
                 const taskToUpdate = uploadTasks.value.get(task.id)
                 if (taskToUpdate) {
-                    taskToUpdate.fileId = response.data.id
+                    taskToUpdate.fileId = record?.id ?? record?.fileId
                     taskToUpdate.status = 'uploaded'
                     taskToUpdate.progress = 100
                     taskToUpdate.currentStep = t('chat.upload.completed')
-                    taskToUpdate.serverFileRecord = response.data  // 保存后端返回的完整文件记录
+                    taskToUpdate.serverFileRecord = record  // 保存后端返回的完整文件记录
                     onProgressUpdate?.(taskToUpdate)
                 }
 
                 // 关键:上传完成后,处理队列中的下一个任务
                 console.log(`[DEBUG] 上传完成: ${task.fileName}, 检查队列...`)
                 setTimeout(() => processUploadQueue(), 100)
-            } catch (error) {
+            } catch (error: any) {
                 console.error('上传失败:', error)
                 updateUploadStatus(task.id, {
                     status: 'failed',
-                    errorMessage: (error as AxiosError<{ detail?: string }>).response?.data?.detail || t('common.uploadFailed')
+                    errorMessage: extractUploadError(error)
                 })
                 onProgressUpdate?.(task)
                 setTimeout(() => processUploadQueue(), 100)
@@ -418,27 +413,17 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
             })
             onProgressUpdate?.(task)
 
-            // 使用 axios 直接调用以获取上传进度
-            const { default: axios } = await import('axios')
             const formData = new FormData()
             formData.append('file', file, file.name)
 
-            // 从 auth store 获取 token
-            const { useAuthStore } = await import('@/stores/auth')
-            const authStore = useAuthStore()
-            const token = authStore.token
-
-            // 使用 apiService 的 baseURL 构造完整 URL
+            // 上传进度通过请求模块客户端获取（Authorization 头由框架拦截器注入）
             const { apiService } = await import('@/services/ApiService')
-            const uploadUrl = `${apiService.baseURL}/sessions/${task.knowledgeBaseId}/files`
-
-            const response = await axios.post(
-                uploadUrl,
+            const record: any = await apiService.client.post(
+                `/sessions/${task.knowledgeBaseId}/files`,
                 formData,
                 {
                     headers: {
                         'Content-Type': 'multipart/form-data',
-                        'Authorization': `Bearer ${token}`
                     },
                     onUploadProgress: (progressEvent) => {
                         if (!progressEvent.total) return
@@ -461,7 +446,7 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
             // 上传成功,更新为真实 ID 和状态
             const taskToUpdate = uploadTasks.value.get(task.id)
             if (taskToUpdate) {
-                taskToUpdate.fileId = response.data.id
+                taskToUpdate.fileId = record?.id ?? record?.fileId
                 taskToUpdate.status = 'uploaded'
                 taskToUpdate.progress = 100
                 taskToUpdate.currentStep = t('chat.upload.completedShort')
@@ -474,12 +459,12 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
                 }, 2000)
             }
 
-            return response.data
-        } catch (error) {
+            return record
+        } catch (error: any) {
             console.error('会话文件上传失败:', error)
             updateUploadStatus(task.id, {
                 status: 'failed',
-                errorMessage: (error as AxiosError<{ detail?: string }>).response?.data?.detail || t('common.uploadFailed')
+                errorMessage: extractUploadError(error)
             })
             onProgressUpdate?.(task)
             throw error

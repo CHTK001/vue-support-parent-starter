@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { message } from '@repo/core';
-import { http } from '@repo/utils';
 import {
   sftpDelete,
   sftpList,
   sftpMkdir,
   sftpReadContent,
   sftpRename,
+  sftpUpload,
   sftpWriteContent,
   sftpDownloadUrl,
   getBookmarks,
   createBookmark,
   delBookmark,
 } from '../api';
+import { ElSkeleton, vLoading } from 'element-plus';
 
 /**
  * SFTP 文件管理面板
@@ -215,15 +216,12 @@ async function onUpload(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  const form = new FormData();
-  form.append('file', file);
-  const q = `path=${encodeURIComponent(currentPath.value)}`;
   try {
-    await http().post(`/ms/server/sftp/${props.hostId}/upload?${q}`).data(form);
+    await sftpUpload(props.hostId, currentPath.value, file);
     message.success('上传成功');
     go();
   } catch (e) {
-    message.error('上传失败');
+    message.error(`上传失败: ${(e as Error).message}`);
   }
   input.value = '';
 }
@@ -322,33 +320,45 @@ async function removeBookmark(id: number): Promise<void> {
       </ReTag>
     </div>
 
-    <!-- 文件表格 -->
-    <ReTable :data="entries" :loading="loading" size="small" border :pagination="false" :toolbar="false"
-      empty-text="当前目录为空"
-      :layout-table="{ minHeight: 0, height: 'calc(100vh - 320px)' }">
-      <ReTableColumn label="名称" min-width="240">
-        <template #default="{ row }">
-          <ReLink type="primary" :underline="false" @click="enter(row)">
-            <ReIcon style="margin-right: 4px" :name="row.directory ? 'Folder' : 'Document'" />
-            {{ row.name }}
-          </ReLink>
-        </template>
-      </ReTableColumn>
-      <ReTableColumn label="类型" width="90">
-        <template #default="{ row }">{{ row.directory ? '目录' : '文件' }}</template>
-      </ReTableColumn>
-      <ReTableColumn label="大小" width="110">
-        <template #default="{ row }">{{ row.directory ? '-' : formatSize(row.size) }}</template>
-      </ReTableColumn>
-      <ReTableColumn label="操作" width="200">
-        <template #default="{ row }">
-          <ReButton v-if="!row.directory" link size="small" @click="openEditor(joint(row.name))">编辑</ReButton>
-          <ReButton v-if="!row.directory" link size="small" @click="download(row)">下载</ReButton>
-          <ReButton link size="small" @click="onRename(row)">改名</ReButton>
-          <ReButton link size="small" type="danger" @click="onDelete(row)">删除</ReButton>
-        </template>
-      </ReTableColumn>
-    </ReTable>
+    <!-- 文件表格：首次加载骨架屏，后续刷新遮罩 -->
+    <div class="sftp-table-wrap">
+      <el-skeleton v-if="loading && !entries.length" :rows="9" animated class="sftp-skeleton" />
+      <ReTable
+        v-else
+        v-loading="loading"
+        element-loading-text="正在读取远程目录…"
+        :data="entries"
+        size="small"
+        border
+        :pagination="false"
+        :toolbar="false"
+        empty-text="当前目录为空"
+        :layout-table="{ minHeight: 0, height: 'calc(100vh - 320px)' }"
+      >
+        <ReTableColumn label="名称" min-width="240">
+          <template #default="{ row }">
+            <ReLink type="primary" :underline="false" @click="enter(row)">
+              <ReIcon style="margin-right: 4px" :name="row.directory ? 'Folder' : 'Document'" />
+              {{ row.name }}
+            </ReLink>
+          </template>
+        </ReTableColumn>
+        <ReTableColumn label="类型" width="90">
+          <template #default="{ row }">{{ row.directory ? '目录' : '文件' }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="大小" width="110">
+          <template #default="{ row }">{{ row.directory ? '-' : formatSize(row.size) }}</template>
+        </ReTableColumn>
+        <ReTableColumn label="操作" width="200">
+          <template #default="{ row }">
+            <ReButton v-if="!row.directory" link size="small" @click="openEditor(joint(row.name))">编辑</ReButton>
+            <ReButton v-if="!row.directory" link size="small" @click="download(row)">下载</ReButton>
+            <ReButton link size="small" @click="onRename(row)">改名</ReButton>
+            <ReButton link size="small" type="danger" @click="onDelete(row)">删除</ReButton>
+          </template>
+        </ReTableColumn>
+      </ReTable>
+    </div>
 
     <!-- 文本编辑器 -->
     <ReDialog v-model="editorVisible" :title="editorPath" width="760" :height="560" confirm-text="保存" cancel-text="取消" @confirm="saveEditor" @cancel="editorVisible = false">
@@ -406,5 +416,15 @@ async function removeBookmark(id: number): Promise<void> {
 .upload-btn {
   cursor: pointer;
   display: inline-flex;
+}
+
+.sftp-table-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.sftp-skeleton {
+  padding: 12px 8px;
 }
 </style>

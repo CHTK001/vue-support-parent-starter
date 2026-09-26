@@ -32,6 +32,25 @@ export interface StreamSubAgentFinishEvent {
 }
 
 /**
+ * 执行轨迹事件（agentscope 全量日志：thinking/输出/轮次/工具/用量/边缘）
+ */
+export interface StreamTraceEvent {
+    type: 'trace'
+    trace: TraceEntry
+}
+
+/**
+ * 单条执行轨迹
+ */
+export interface TraceEntry {
+    kind: string
+    agentId?: string
+    toolName?: string
+    text?: string
+    timestamp: number
+}
+
+/**
  * 流式事件类型联合
  */
 export type StreamEvent =
@@ -46,6 +65,27 @@ export type StreamEvent =
     | StreamCompressionErrorEvent
     | StreamSubAgentStartEvent       // 新增
     | StreamSubAgentFinishEvent      // 新增
+    | StreamTraceEvent               // 执行轨迹
+    | StreamConfirmationEvent        // 人工确认（plan_exit）
+
+/**
+ * 人工确认视图项（与后端 ConfirmationItem 对应）
+ */
+export interface ConfirmationViewItem {
+    toolCallId: string
+    toolName?: string
+    title?: string
+    description?: string
+}
+
+/**
+ * 人工确认事件：Agent 暂停等待批准，前端渲染批准/拒绝卡片
+ */
+export interface StreamConfirmationEvent {
+    type: 'confirmation'
+    replyId: string
+    confirmations: ConfirmationViewItem[]
+}
 
 /**
  * 创建消息事件

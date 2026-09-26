@@ -6,10 +6,8 @@
  * 本模块把字典缓存在模块级 ref 上，渲染函数直接读缓存，因此组件里调用即响应式。
  *
  * 目录构成（种子 id=1 为透明占位「经典」，即不佩戴）：
- *  - 常规 2-7：只有 `sys_avatar_frame_color`（完整 CSS 渐变串），前端按
- *    「渐变 + 径向遮罩挖孔」画细素环。
- *  - 生肖 201-212、神兽 221-226、生日 100：`sys_avatar_frame_image` 指向
- *    public/assets/avatar-frames/*.svg，统一 200 画布、暗珐琅底 + 描金剪影。
+ *  - 生肖 201-212、生日 100：`sys_avatar_frame_image` 指向
+ *    public/assets/avatar-frames/*.apng，统一 400 画布、静态珐琅环 + 动物动画。
  */
 import { shallowRef } from "vue";
 import { getConfig } from "@repo/config";
@@ -32,10 +30,11 @@ export interface AvatarFrame {
 
 /**
  * 特效帧素材的孔径占画布比例（洞径 ÷ 画布边长）。
- * <p>素材统一 200 画布、中心透明孔半径 58（环带外径 78，剪影可伸出环带），
- * 故叠加层需放大到 1.72 倍头像才能把孔对准头像。</p>
+ * <p>素材统一 400 画布、中心孔径 0.72（环带较细、外径 1.39 倍头像），
+ * 叠加层放大到 1/0.72 ≈ 1.39 倍头像即可把孔对准头像。</p>
+ * <p>与 generate_avatar_frames.py 的 HOLE_SIZE 保持一致；改素材需同步改这里。</p>
  */
-const HOLE_RATIO_IMG = 0.58;
+const HOLE_RATIO_IMG = 0.72;
 
 /**
  * 渐变环（常规款）的孔径比例。
@@ -46,11 +45,10 @@ const HOLE_RATIO_GRAD = 0.74;
 
 /**
  * 佩戴位（Header / 侧栏 / 个人中心）头像框超出头像的最大倍数。
- * <p>素材剪影可伸到画布边缘（1.72 倍），小尺寸下会压到卡片圆角与文字，
- * 所以佩戴时按该倍数同心裁掉外溢的尖角，只留环带 + 轻微破环；
- * 面板预览位不裁剪，保留完整画面。</p>
+ * <p>当前素材环带外径 1.39 倍头像（孔径 0.72），已小于该上限，正常不触发裁剪；
+ * 保留此上限用于兜底更宽的旧素材，避免小尺寸下压到卡片圆角与文字。</p>
  */
-export const WORN_FRAME_MAX_MULTIPLE = 1.55;
+export const WORN_FRAME_MAX_MULTIPLE = 1.45;
 
 /** 遮罩：中心挖空到渐变环的孔径比例，其余保留，用于把渐变画成环 */
 const HOLE_MASK = `radial-gradient(circle farthest-side, rgba(0,0,0,0) 0 ${
@@ -59,22 +57,18 @@ const HOLE_MASK = `radial-gradient(circle farthest-side, rgba(0,0,0,0) 0 ${
 
 /** 生肖框资源路径（种子 201-212 与兜底字典共用） */
 function zodiac(file: string): string {
-  return `/assets/avatar-frames/${file}.svg`;
+  return `/assets/avatar-frames/${file}.apng`;
 }
 
-/** 兜底渐变帧（与种子 id=2-7 一致：只有 color，前端画素环） */
-function grad(id: number, name: string, color: string): AvatarFrame {
-  return { id, name, type: "regular", acquire: "default", color };
-}
 
-/** 服务端不可用、或生日窗口外仍可解析生日框时的兜底字典 */
+/** 服务端不可用时的兜底字典（常规 + 十二生肖） */
 export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
-  grad(2, "素环", "linear-gradient(135deg, #f2f5f8 0%, #b9c2cc 35%, #ffffff 55%, #8e97a1 100%)"),
-  grad(3, "墨玉", "linear-gradient(135deg, #3a3f47 0%, #6b7480 35%, #1b1e23 60%, #59616c 100%)"),
-  grad(4, "鎏金", "linear-gradient(135deg, #fff3c4 0%, #d4a531 30%, #a9772a 55%, #f7e59b 100%)"),
-  grad(5, "青瓷", "linear-gradient(135deg, #e2f5ee 0%, #6fbfa9 35%, #38796d 65%, #bfe6d8 100%)"),
-  grad(6, "绛朱", "linear-gradient(135deg, #ffd9c9 0%, #d9534a 35%, #9b241c 65%, #ffb3a0 100%)"),
-  grad(7, "星辉", "linear-gradient(135deg, #dfe4ff 0%, #7c6ff0 30%, #34296e 60%, #a8b6ff 100%)"),
+  { id: 101, name: "鎏金", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-gold.apng" },
+  { id: 102, name: "银辉", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-silver.apng" },
+  { id: 103, name: "玫瑰金", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-rose.apng" },
+  { id: 104, name: "宝蓝", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-sapphire.apng" },
+  { id: 105, name: "翡翠", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-emerald.apng" },
+  { id: 106, name: "紫晶", type: "regular", acquire: "default", image: "/assets/avatar-frames/reg-amethyst.apng" },
   { id: 201, name: "子鼠", type: "zodiac", acquire: "default", image: zodiac("zodiac-rat") },
   { id: 202, name: "丑牛", type: "zodiac", acquire: "default", image: zodiac("zodiac-ox") },
   { id: 203, name: "寅虎", type: "zodiac", acquire: "default", image: zodiac("zodiac-tiger") },
@@ -87,13 +81,6 @@ export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
   { id: 210, name: "酉鸡", type: "zodiac", acquire: "default", image: zodiac("zodiac-rooster") },
   { id: 211, name: "戌狗", type: "zodiac", acquire: "default", image: zodiac("zodiac-dog") },
   { id: 212, name: "亥猪", type: "zodiac", acquire: "default", image: zodiac("zodiac-pig") },
-  { id: 221, name: "狮鹫", type: "beast", acquire: "limit", image: zodiac("beast-griffin") },
-  { id: 222, name: "独角兽", type: "beast", acquire: "limit", image: zodiac("beast-unicorn") },
-  { id: 223, name: "凤凰", type: "beast", acquire: "limit", image: zodiac("beast-phoenix") },
-  { id: 224, name: "麒麟", type: "beast", acquire: "limit", image: zodiac("beast-qilin") },
-  { id: 225, name: "九尾狐", type: "beast", acquire: "limit", image: zodiac("beast-fox") },
-  { id: 226, name: "天马", type: "beast", acquire: "limit", image: zodiac("beast-pegasus") },
-  { id: BIRTHDAY_FRAME_ID, name: "生日快乐", type: "birthday", acquire: "birthday", image: zodiac("birthday") },
 ];
 
 /** 当前生效的头像框字典（响应式；初始为兜底字典） */
@@ -101,9 +88,9 @@ export const avatarFrameDict = shallowRef<AvatarFrame[]>(FALLBACK_AVATAR_FRAMES)
 
 let loadPromise: Promise<void> | null = null;
 
-/** 头像框总开关：app.yaml 的 other.avatarFrame.enable（默认关闭） */
+/** 头像框总开关：系统设置 other.avatarFrame.enable（默认开启，显式 false 才关闭） */
 export function isAvatarFrameEnabled(): boolean {
-  return getConfig()?.other?.avatarFrame?.enable ?? false;
+  return getConfig()?.other?.avatarFrame?.enable ?? true;
 }
 
 /** 取应用 base（vite BASE_URL，末位不带斜杠）；非 vite 环境回退根路径 */
@@ -261,4 +248,34 @@ export function getAvatarFrameLayerStyle(
   maxMultiple = WORN_FRAME_MAX_MULTIPLE,
 ): Record<string, string> {
   return frameLayerStyle(findAvatarFrame(frameId), avatarSize, maxMultiple);
+}
+
+/* ==================== 默认光环（未佩戴头像框时的底款） ==================== */
+
+/**
+ * 默认光环宽度（px）：随头像尺寸轻微缩放，
+ * 保证小头像看得见、大头像不过粗（32→2 / 56→3 / 104→5）。
+ */
+export function defaultRingWidth(avatarSize: number): number {
+  return Math.min(5, Math.max(2, Math.round(avatarSize * 0.05)));
+}
+
+/**
+ * 默认光环叠加层样式（四处渲染点共用，配合全局类 `.koi-avatar-default-frame`）
+ *
+ * <p>层尺寸 = 头像 + 2×环宽（环正好贴在头像外沿）；居中用 50%/50% + 负 margin，
+ * 不使用 transform —— 留给光环自身的旋转动画。</p>
+ *
+ * @param avatarSize 头像渲染尺寸（px）
+ */
+export function defaultFrameLayerStyle(avatarSize: number): Record<string, string> {
+  const width = defaultRingWidth(avatarSize);
+  const size = avatarSize + width * 2;
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    "margin-left": `${-size / 2}px`,
+    "margin-top": `${-size / 2}px`,
+    "--koi-avatar-ring-w": `${width}px`,
+  };
 }

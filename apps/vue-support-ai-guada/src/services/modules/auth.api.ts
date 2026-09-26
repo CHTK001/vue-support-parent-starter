@@ -16,7 +16,7 @@ export interface AuthApi {
   getProfile(): Promise<User>;
   updateProfile(data: any): Promise<User>;
   checkUsername(username: string): Promise<{ available: boolean }>;
-  changePassword(oldPassword: string, newPassword: string): Promise<any>;
+  changePassword(oldPassword: string, newPassword: string, confirmPassword: string): Promise<any>;
   checkResetPassword(): Promise<ResetPasswordCheckResponse>;
   resetPrimayPassword(data: ResetPasswordRequest): Promise<any>;
   createSubaccount(data: any): Promise<Subaccount>;
@@ -62,10 +62,15 @@ export const authApi: AuthApi = {
     });
   },
 
-  async changePassword(this: ApiContext, oldPassword: string, newPassword: string) {
-    return await this._request("/user/password/change", {
-      method: "POST",
-      data: { oldPassword: oldPassword, newPassword: newPassword },
+  async changePassword(
+    this: ApiContext,
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) {
+    return await this._request("/user/updateOwner", {
+      method: "PUT",
+      data: { oldPassword, newPassword, confirmPassword },
     });
   },
 

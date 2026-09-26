@@ -11,9 +11,10 @@
       :style="logoContainerStyle"
     >
       <el-image
-        :src="resolvedLogoUrl"
+        :src="displayLogoUrl"
         fit="cover"
         class="w-100% h-100% rounded-full"
+        @error="handleLogoError"
       >
         <template #error>
           <el-icon class="w-100% h-100% rounded-full text-[--el-color-primary]" :size="34">
@@ -41,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "@repo/utils";
 import settings from "@repo/theme/koi/settings";
@@ -85,12 +86,28 @@ const brandName = computed(() => {
   return translateConfigText(cfg.login.brandName) || translateConfigText(cfg.login.title) || "";
 });
 
-// Logo 图片地址（app.yaml loginConfig.logoUrl，为空时回退内置 logo）
+// Logo 图片地址（app.yaml / 远程配置 login.logoUrl，为空时回退内置 logo）
 const resolvedLogoUrl = computed(() => {
   const cfg = getConfig();
   const url = cfg.login.logoUrl;
   return url ? resolveAssetUrl(url) : fallbackLogoUrl;
 });
+
+// 实际显示地址：配置的 logo 加载失败时自动回退内置 logo，避免出现 X 错误图标。
+// 这样无论远程配置了什么（含无效路径），logo 都能正常显示；用户自定义有效时优先自定义。
+const displayLogoUrl = ref<string>(resolvedLogoUrl.value);
+const usingFallback = ref<boolean>(false);
+watch(resolvedLogoUrl, (val) => {
+  // 配置变化（如后台改 logo）：重置为新配置并允许再次回退
+  usingFallback.value = false;
+  displayLogoUrl.value = val;
+});
+const handleLogoError = () => {
+  if (!usingFallback.value && displayLogoUrl.value !== fallbackLogoUrl) {
+    usingFallback.value = true;
+    displayLogoUrl.value = fallbackLogoUrl;
+  }
+};
 
 const isHeaderLayout = computed(() => props.layout === "horizontal" || props.layout === "classic");
 

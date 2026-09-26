@@ -18,7 +18,8 @@
         <ReInput v-model="filter" placeholder="BPF 过滤，如 tcp port 8080" clearable class="filter-input" />
         <ReInputNumber v-model="count" :min="0" :max="1000000" placeholder="包数" class="count-input" />
         <ReInputNumber v-model="timeout" :min="0" :max="86400" placeholder="时长/s" class="count-input" />
-        <ReButton show-text icon="VideoPlay" type="primary" :loading="starting" @click="startCapture">开始抓包</ReButton>
+        <ReButton show-text icon="VideoPlay" type="primary" :loading="starting" :disabled="!tsharkOk"
+          :title="tsharkOk ? '' : 'tshark 未安装或不在 PATH 中，无法抓包'" @click="startCapture">开始抓包</ReButton>
       </div>
     </div>
 

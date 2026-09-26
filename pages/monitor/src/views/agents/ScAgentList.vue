@@ -36,10 +36,9 @@
     <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true" compact>
       <ReSkeleton v-if="configLoading" :loading="true" :rows="4" :count="1" animated />
       <div v-else>
-        <h4>采集间隔</h4>
         <ReDescriptions :column="1" border size="small">
-          <ReDescriptionsItem v-for="(v, k) in configData.intervals || {}" :key="k" :label="k">
-            {{ v }}ms
+          <ReDescriptionsItem label="采集间隔">
+            {{ configData.collectIntervalMs ?? '-' }}ms
           </ReDescriptionsItem>
         </ReDescriptions>
         <h4 style="margin-top: 12px">采集任务</h4>
@@ -104,12 +103,13 @@ onMounted(load)
   gap: 12px;
   margin-bottom: 12px;
 }
+/* 统计卡视觉与悬停由 ReStatCard 的 re-surface 基线提供，此处不再覆写 */
+
+/* 入场动画需要 opacity 过渡，保留（只针对动画本身，不覆盖卡片阴影/位移） */
 .stats-row :deep(.re-stat-card) {
-  transition: box-shadow 200ms ease, transform 200ms ease, opacity 200ms ease;
-}
-.stats-row :deep(.re-stat-card:hover) {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  transition-property: transform, box-shadow, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
 }
 
 .agent-list :deep(:focus-visible) {

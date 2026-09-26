@@ -154,17 +154,9 @@ const downloadMetrics = async () => {
   gap: 14px;
   margin-bottom: 16px;
 }
-.stats-grid :deep(.re-stat-card) {
-  background: var(--bg-container-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg, var(--border-radius));
-  box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-}
-.stats-grid :deep(.re-stat-card:hover) {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
+/* 统计卡视觉（圆角/无边框/双层柔光/悬停上浮）由 ReStatCard 自身的
+   re-surface 基线提供（packages/ui/src/components/shared/re-surface.css），
+   此处不再覆写一遍，避免与基线重复且互相打架。 */
 
 .export-head {
   margin-bottom: 16px;
@@ -175,13 +167,9 @@ const downloadMetrics = async () => {
   gap: 8px;
 }
 
+/* 圆角沿用本页令牌；悬停视觉由 ReCard 自身 hoverable / re-surface 基线提供，不再重复写 */
 .chart-card {
   border-radius: var(--radius-lg, var(--border-radius));
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-}
-.chart-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
 }
 
 .dist-chart, .status-chart {

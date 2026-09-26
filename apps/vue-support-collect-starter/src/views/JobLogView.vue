@@ -1,32 +1,47 @@
 <!--
-  作业执行日志：sys_job_log 的查询与清理（合并后的调度面）。
+  调度执行日志：job-starter 落库的 sys_job_log 查询面。
 
-  一行代表一轮派发到执行的过程记录：采集流程每触发一次写一条，外部作业同理。
-  日志行只落处理器 Bean 名和任务编号（后端落库时按 Bean 名回查 sys_job 补 sysJobNo），
-  台账任务名称不在日志表里，所以名称列由本页拿台账列表做一次前端关联；作业被删后
-  日志仍保留，取不到名称就退回显示处理器/编号。
-  过滤框走后端的 beanName 参数，语义是关键字：处理器 Bean 名 / 任务编号 / 台账任务名称 三选一命中。
-  清理按保留天数删除，默认与调度平台一致留 30 天。
+   一行代表一轮派发：定时命中、手动触发或采集流程运行都会写一条。日志行只存 jobKey（处理器名 /
+   collect-flow-<流程ID>），不存任务名称，所以本页拿一次台账做 jobKey → 名称 的关联，同时给
+   「任务」过滤项提供下拉数据；台账行被删掉后日志仍然保留，取不到名称就退回显示 jobKey。
+   从调度工作台行内「查看日志」跳来时带 jobKey 查询参数，进页即落到该任务的筛选上。
+
+   过滤条件全部是后端 JobLogQuery 的原生字段：keyword 一个参数同时命中 jobKey / 任务编号 / 节点 /
+   结果说明；时间上有两条路——预设时间窗（rangeDays 换算成 startTime）与自定义日期区间
+   （customRange 的 [开始, 结束] 按本地日界展开成闭区间），自定义区间优先，都不用页面自己推导时区。
+   清理按保留天数删除，0 表示清空全部，与工作台上的「清理 30 天前日志」是同一个接口。
+
+   台账映射分页拉全（后端单页上限 500，超过就换页累积），台账行数不会再让后面的任务名从下拉里消失；
+   「导出 CSV」按当前筛选条件分页拉全后交给 @repo/ui 的导出能力落盘，导的是整个结果集而非当前页。
 -->
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onActivated, onDeactivated, onUnmounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { msgError, msgInfo } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReInput from "@repo/ui/re-input";
+import ReIcon from "@repo/ui/re-icon";
 import ReInputNumber from "@repo/ui/re-input-number";
-import ReSelect from "@repo/ui/re-select";
+import ReStatCard from "@repo/ui/re-stat-card";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
-import type { RePageResult, ReTableColumn, ReTableLoadParams } from "@repo/ui/re-table";
-import { cleanupJobLogs, pageJobs, pageJobLogs } from "../api/jobApi";
-import type { SysJobLog } from "../types/job";
-import { confirmAction, errText, useCollectGated } from "../composables/useCollectView";
+import { useTableExport } from "@repo/ui/re-table";
+import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
+import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs } from "../api/jobApi";
+import { statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
+import { COLLECT_FLOW_GROUP, type JobLog, type JobSummary } from "../types/job";
+import { confirmAction, errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 
 defineOptions({ name: "CollectJobLog" });
+
+const route = useRoute();
+const router = useRouter();
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const CODE_OPTIONS: ReOption[] = [
   { label: "成功 SUCCESS", value: "SUCCESS" },
@@ -34,133 +49,318 @@ const CODE_OPTIONS: ReOption[] = [
   { label: "跳过 SKIPPED", value: "SKIPPED" },
 ];
 
-interface JobLogQuery {
-  page: number;
-  pageSize: number;
-  beanName?: string;
-  executeCode?: string;
-}
+/** 时间窗：value 是天数，0/空 表示不限，loader 里换算成 startTime */
+const RANGE_OPTIONS: ReOption[] = [
+  { label: "不限", value: "" },
+  { label: "最近 1 小时", value: -1 },
+  { label: "今天", value: 1 },
+  { label: "近 3 天", value: 3 },
+  { label: "近 7 天", value: 7 },
+  { label: "近 30 天", value: 30 },
+];
 
-const query = ref<JobLogQuery>({ page: 1, pageSize: 20 });
-const draft = reactive({ beanName: "", executeCode: "" });
+/** 分页快照：page/pageSize 由 ReTable 同步，过滤条件走内置搜索区 */
+const query = ref({ page: 1, pageSize: 20 });
+
+/**
+ * 从调度工作台「查看日志」跳转带过来的 jobKey：作为搜索区初值，首次进入即按该任务过滤。
+ * 只读一次而不清 query，保证直接刷新地址仍保持同一筛选；缓存命中时由 onActivated 再接管。
+ */
+const routedJobKey = typeof route.query.jobKey === "string" ? route.query.jobKey.trim() : "";
+
+/** 内置搜索区的实时草稿值 */
+const searchModel = ref<Record<string, unknown>>({
+  keyword: "",
+  executeCode: "",
+  jobKey: routedJobKey,
+  rangeDays: "",
+  customRange: null,
+});
+
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
+const summary = ref<JobSummary | null>(null);
 const retentionDays = ref(30);
 const autoRefresh = ref(false);
-const tableRef = ref<{ reload: () => void } | null>(null);
+const hitTotal = ref(0);
+const exporting = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const { ready } = useCollectGated();
+/** 导出复用 @repo/ui 的 CSV 能力：这里只拼数据与列标题，编码 / BOM / 下载都交给它 */
+const { exportToCsv } = useTableExport({ enabled: true });
 
 const detailVisible = ref(false);
-const detail = ref<SysJobLog | null>(null);
+const detail = ref<JobLog | null>(null);
 
-/** 台账编号 → 任务名称：日志表不存名称，只能拿台账列表关联 */
+/** 台账 jobKey → 任务名称：日志表不存名称，只能拿台账列表关联 */
 const jobNames = ref<Record<string, string>>({});
+const taskOptions = computed<ReOption[]>(() =>
+  Object.entries(jobNames.value).map(([jobKey, name]) => ({ label: name === jobKey ? jobKey : `${name} · ${jobKey}`, value: jobKey })),
+);
 
-async function loadLedgerNames(): Promise<void> {
-  try {
-    const ledger = await pageJobs({ pageNum: 1, pageSize: 200 });
-    const map: Record<string, string> = {};
-    for (const job of ledger.rows) {
-      if (job.sysJobNo) {
-        map[job.sysJobNo] = job.sysJobName;
-      }
-    }
-    jobNames.value = map;
-  } catch {
-    // 台账取不到只影响名称列，编号与处理器仍够定位到那一行
-    jobNames.value = {};
-  }
-}
-
-/** 日志行的任务名称：优先台账名，作业已删除时退回处理器或编号 */
-function jobNameOf(input: unknown): string {
-  const row = (input ?? {}) as { sysJobNo?: string | null; sysJobLogTriggerBean?: string | null };
-  const jobNo = row.sysJobNo ?? "";
-  return (jobNo ? jobNames.value[jobNo] : "") || row.sysJobLogTriggerBean || jobNo || "—";
-}
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索日志",
+  filters: [
+    { key: "keyword", label: "关键字", type: "input", placeholder: "任务 / 编号 / 节点 / 说明" },
+    { key: "jobKey", label: "任务", type: "select", placeholder: "全部任务", options: taskOptions.value },
+    { key: "executeCode", label: "结果", type: "select", placeholder: "全部结果", options: CODE_OPTIONS },
+    { key: "rangeDays", label: "时间窗", type: "select", placeholder: "不限", options: RANGE_OPTIONS },
+    {
+      key: "customRange",
+      label: "自定义区间",
+      type: "daterange",
+      placeholder: "开始日期",
+      attrs: { style: "width: 240px" },
+    },
+  ],
+}));
 
 const columns = computed<ReTableColumn[]>(() => [
-  { prop: "sysJobLogNo", label: "日志号", width: 168, slot: "no" },
-  { prop: "ledgerJobName", label: "任务名称", minWidth: 150, slot: "jobName", showOverflowTooltip: true },
-  { prop: "sysJobLogTriggerBean", label: "处理器", minWidth: 140, showOverflowTooltip: true },
-  { prop: "sysJobNo", label: "任务编号", width: 168, slot: "jobNo" },
-  { prop: "sysJobLogTriggerType", label: "触发方式", width: 92, align: "center" },
-  { prop: "sysJobLogTriggerTime", label: "触发时刻", width: 168, slot: "time" },
-  { prop: "sysJobLogExecuteCode", label: "结果", width: 100, slot: "code", align: "center" },
-  { prop: "sysJobLogCost", label: "耗时", width: 88, slot: "cost", align: "right" },
-  { prop: "sysJobLogTriggerMsg", label: "消息", minWidth: 180, slot: "msg", showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 76, slot: "action", fixed: "right" },
+  { prop: "triggerTime", label: "触发时刻", width: 160, slot: "time" },
+  { prop: "jobKey", label: "任务", minWidth: 190, slot: "job", showOverflowTooltip: true },
+  { prop: "triggerType", label: "触发方式", width: 88, slot: "trigger", align: "center" },
+  { prop: "executeCode", label: "结果", width: 88, slot: "code", align: "center" },
+  { prop: "costMs", label: "耗时", width: 96, slot: "cost", align: "right" },
+  { prop: "message", label: "消息", minWidth: 220, slot: "msg", showOverflowTooltip: true },
+  { prop: "nodeId", label: "节点", width: 120, slot: "node", showOverflowTooltip: true },
+  { prop: "action", label: "操作", maxWidth: 80, slot: "action", fixed: "right" },
 ]);
 
-function codeTagType(code: unknown): "success" | "danger" | "warning" | "info" {
-  if (code === "SUCCESS") {
-    return "success";
+const kpis = computed(() => {
+  const s = summary.value;
+  return [
+    {
+      key: "hit",
+      title: "当前条件命中",
+      value: hitTotal.value.toLocaleString("zh-CN"),
+      desc: `每页 ${query.value.pageSize} 条`,
+      icon: "Tickets",
+      color: "var(--el-color-primary)",
+    },
+    {
+      key: "fail",
+      title: "24 小时失败",
+      value: String(s?.recentFailures ?? 0),
+      desc: (s?.recentFailures ?? 0) > 0 ? "点「结果=失败」定位这一批" : "暂无失败派发",
+      icon: "WarningFilled",
+      color: (s?.recentFailures ?? 0) > 0 ? "var(--el-color-danger)" : "var(--el-color-info)",
+    },
+    {
+      key: "job",
+      title: "台账任务",
+      value: String(s?.totalJobs ?? 0),
+      desc: `启用 ${s?.runningJobs ?? 0} · 未注册 ${s?.unregisteredJobs ?? 0}`,
+      icon: "AlarmClock",
+      color: "var(--el-color-success)",
+    },
+    {
+      key: "node",
+      title: "本节点",
+      value: s?.leader ? "Leader" : "Follower",
+      desc: `${s?.role ?? "—"} 角色 · 执行器 ${s?.registeredHandlers ?? 0} 个`,
+      icon: "Cpu",
+      color: s?.leader ? "var(--el-color-primary)" : "var(--el-color-warning)",
+    },
+  ];
+});
+
+/** 时间窗 → 触发时刻下界（毫秒）；-1 是「最近 1 小时」的特殊值 */
+function startOfRange(days: unknown): number | undefined {
+  const value = Number(days ?? "");
+  if (!Number.isFinite(value) || value === 0) {
+    return undefined;
   }
-  if (code === "FAILURE") {
-    return "danger";
+  if (value < 0) {
+    return Date.now() - 60 * 60 * 1000;
   }
-  return code ? "warning" : "info";
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return start.getTime() - (value - 1) * DAY_MS;
 }
 
-/** 触发时刻：后端把 Date 序列化成毫秒戳，历史行也可能是字符串形态，两种都要能读 */
-function timeText(input: unknown): string {
-  if (typeof input === "string" && input.trim()) {
-    return input.replace("T", " ").slice(0, 19);
-  }
-  return fmtMs(input);
+/** 日志行的任务名称：优先台账名，作业已删除时退回 jobKey */
+function jobNameOf(row: JobLog): string {
+  const key = row.jobKey ?? "";
+  return jobNames.value[key] || key || "—";
 }
 
-function costText(cost: unknown): string {
-  const value = Number(cost ?? 0);
-  if (!Number.isFinite(value) || value <= 0) {
-    return "—";
+function isFlowKey(row: JobLog): boolean {
+  return row.jobKey?.startsWith(`${COLLECT_FLOW_GROUP}-`) === true;
+}
+
+/**
+ * 台账 jobKey → 任务名称映射：日志表不存名称，只能拿台账列表关联。
+ *
+ * 台账分页拉全而不是只取一页 500：后端单页上限就是 500，台账超过 500 行时
+ * 后面的任务名会从下拉与列表里凭空消失。这里按页累积，最多 LEDGER_MAX_PAGES 页
+ * （单页上限的 20 倍），台账异常膨胀时不至于把日志页拖垮；中途失败保留已取到的部分。
+ */
+const LEDGER_PAGE_SIZE = 500;
+const LEDGER_MAX_PAGES = 20;
+
+async function loadLedger(): Promise<void> {
+  const map: Record<string, string> = {};
+  try {
+    for (let pageNum = 1; pageNum <= LEDGER_MAX_PAGES; pageNum++) {
+      const page = await pageJobs({ pageNum, pageSize: LEDGER_PAGE_SIZE });
+      const rows = Array.isArray(page?.data) ? page.data : [];
+      for (const job of rows) {
+        if (job.jobKey) {
+          map[job.jobKey] = job.jobName || job.jobKey;
+        }
+      }
+      const total = Number(page?.total ?? 0);
+      if (rows.length < LEDGER_PAGE_SIZE || pageNum * LEDGER_PAGE_SIZE >= total) {
+        break;
+      }
+    }
+  } catch {
+    // 台账取不到只影响名称列与任务下拉，关键字仍能定位；已取到的部分保留
   }
-  return value < 1000 ? `${value} ms` : `${(value / 1000).toFixed(2)} s`;
+  jobNames.value = map;
+}
+
+async function loadSummary(): Promise<void> {
+  try {
+    summary.value = await getSummary();
+  } catch {
+    // 概览取不到不打断日志列表
+  }
+}
+
+/**
+ * 解析时间范围：自定义区间优先于预设时间窗。
+ *
+ * 自定义区间的值是 daterange 组件的 [开始日期, 结束日期]（YYYY-MM-DD），按本地日界展开成
+ * [当天 00:00:00, 结束当天 23:59:59.999] 的毫秒闭区间；未选自定义时回落到预设时间窗。
+ *
+ * @param params 搜索区参数
+ * @returns 触发时刻的起止毫秒，未限定的一端不返回
+ */
+function resolveRange(params: Record<string, unknown>): { startTime?: number; endTime?: number } {
+  const custom = params.customRange;
+  if (Array.isArray(custom) && custom.length >= 2 && custom[0] && custom[1]) {
+    const start = new Date(`${custom[0]}T00:00:00`).getTime();
+    const end = new Date(`${custom[1]}T23:59:59`).getTime() + 999;
+    if (Number.isFinite(start) && Number.isFinite(end)) {
+      return { startTime: start, endTime: end };
+    }
+  }
+  return { startTime: startOfRange(params.rangeDays) };
 }
 
 async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const result = await pageJobLogs({
     pageNum: page,
     pageSize,
-    beanName: params.beanName as string | undefined,
+    keyword: params.keyword as string | undefined,
+    jobKey: params.jobKey as string | undefined,
     executeCode: params.executeCode as string | undefined,
+    ...resolveRange(params),
   });
-  return { total: result.total, data: result.rows as unknown as Record<string, unknown>[] };
+  const rows = Array.isArray(result?.data) ? result.data : [];
+  hitTotal.value = Number(result?.total ?? 0);
+  return { total: hitTotal.value, data: rows as unknown as Record<string, unknown>[] };
 }
 
-function search(): void {
-  query.value = {
-    page: 1,
-    pageSize: query.value.pageSize,
-    beanName: draft.beanName.trim() || undefined,
-    executeCode: draft.executeCode || undefined,
-  };
-}
-
-function reset(): void {
-  draft.beanName = "";
-  draft.executeCode = "";
-  query.value = { page: 1, pageSize: 20 };
+async function reloadAll(): Promise<void> {
+  await Promise.all([Promise.resolve(tableRef.value?.reload()), loadSummary(), loadLedger()]);
 }
 
 function showDetail(input: Record<string, unknown>): void {
-  detail.value = input as unknown as SysJobLog;
+  detail.value = input as unknown as JobLog;
   detailVisible.value = true;
 }
 
 async function clean(): Promise<void> {
-  const days = Math.max(Number(retentionDays.value) || 0, 0);
+  const days = Number(retentionDays.value) || 0;
   const message = days === 0
     ? "确认清空全部作业执行日志？该操作不可恢复。"
-    : `确认删除 ${days} 天前的作业执行日志及其日志文件？`;
+    : `确认删除 ${days} 天前的作业执行日志？`;
   if (!(await confirmAction(message, "清理作业日志"))) {
     return;
   }
   try {
-    msgInfo((await cleanupJobLogs(days)) || "清理完成");
-    tableRef.value?.reload();
+    const removed = await cleanupJobLogs(days);
+    msgInfo(`已清理 ${removed ?? 0} 条作业日志`);
+    await reloadAll();
   } catch (error) {
     msgError(errText(error));
+  }
+}
+
+/** 导出列与表头：与页面列一致，时刻转可读文本、任务列用台账名 */
+const EXPORT_COLUMNS = [
+  "triggerTime", "jobName", "jobKey", "triggerType", "executeCode", "costMs", "message", "nodeId", "jobNo",
+];
+const EXPORT_TITLES: Record<string, string> = {
+  triggerTime: "触发时刻",
+  jobName: "任务",
+  jobKey: "任务键",
+  triggerType: "触发方式",
+  executeCode: "结果",
+  costMs: "耗时(ms)",
+  message: "消息",
+  nodeId: "节点",
+  jobNo: "业务编号",
+};
+
+/** 导出单页上限与最多拉取的页数：避免"导出"被理解成"把整张日志表读进浏览器" */
+const EXPORT_PAGE_SIZE = 200;
+const EXPORT_MAX_PAGES = 50;
+
+/**
+ * 导出当前筛选条件下的全部日志为 CSV。
+ *
+ * 按当前搜索条件分页拉全（不受列表当前页限制），到上限仍在增长时只导出已取部分并如实说明，
+ * 不做静默截断。筛选换算与列表 loader 同一套（startOfRange / jobNameOf），避免两处口径漂移。
+ */
+async function exportLogs(): Promise<void> {
+  if (exporting.value) {
+    return;
+  }
+  exporting.value = true;
+  try {
+    const params = searchModel.value;
+    const range = resolveRange(params);
+    const rows: JobLog[] = [];
+    let truncated = false;
+    for (let pageNum = 1; pageNum <= EXPORT_MAX_PAGES; pageNum++) {
+      const page = await pageJobLogs({
+        pageNum,
+        pageSize: EXPORT_PAGE_SIZE,
+        keyword: params.keyword as string | undefined,
+        jobKey: params.jobKey as string | undefined,
+        executeCode: params.executeCode as string | undefined,
+        ...range,
+      });
+      const data = Array.isArray(page?.data) ? page.data : [];
+      rows.push(...data);
+      if (data.length < EXPORT_PAGE_SIZE) {
+        break;
+      }
+      if (pageNum === EXPORT_MAX_PAGES && rows.length < Number(page?.total ?? 0)) {
+        truncated = true;
+      }
+    }
+    if (!rows.length) {
+      msgInfo("当前条件没有可导出的日志");
+      return;
+    }
+    const flat = rows.map(row => ({
+      ...row,
+      jobName: jobNameOf(row),
+      triggerTime: fmtMs(row.triggerTime),
+    }));
+    await exportToCsv(flat, {
+      filename: `job-log-${fmtMs(Date.now()).replace(/[: ]/g, "-")}`,
+      columns: EXPORT_COLUMNS,
+      columnTitles: EXPORT_TITLES,
+    });
+    msgInfo(`已导出 ${rows.length} 条日志${truncated ? `（到导出上限，仅前 ${rows.length} 条）` : ""}`);
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    exporting.value = false;
   }
 }
 
@@ -170,31 +370,36 @@ function toggleAuto(value: boolean): void {
     timer = null;
   }
   if (value) {
-    timer = setInterval(() => tableRef.value?.reload(), 5000);
+    timer = setInterval(() => void reloadAll(), 5000);
   }
 }
 
-onMounted(() => {
-  void loadLedgerNames();
-});
-
-/** keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据；首次激活交给挂载链 */
+/** keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据 */
 let firstActivation = true;
 onActivated(() => {
-  if (firstActivation) {
-    firstActivation = false;
+  // 从工作台「查看日志」跳来：带 jobKey 时先把搜索区切到该任务再取数，随后抹掉 query 防止重复套用
+  const incoming = typeof route.query.jobKey === "string" ? route.query.jobKey.trim() : "";
+  if (incoming && incoming !== String(searchModel.value.jobKey ?? "")) {
+    searchModel.value = { ...searchModel.value, jobKey: incoming };
+    void router.replace({ path: route.path, query: {} });
+    void reloadAll();
+    if (autoRefresh.value) {
+      toggleAuto(true);
+    }
     return;
   }
-  void loadLedgerNames();
-  tableRef.value?.reload();
+  if (firstActivation) {
+    firstActivation = false;
+    void Promise.all([loadSummary(), loadLedger()]);
+    return;
+  }
+  void reloadAll();
   if (autoRefresh.value) {
     toggleAuto(true);
   }
 });
 
-onDeactivated(() => {
-  toggleAuto(false);
-});
+onDeactivated(() => toggleAuto(false));
 
 onUnmounted(() => {
   if (timer) {
@@ -205,104 +410,247 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="collect-page">
-    <div class="collect-card collect-filters">
-      <ReInput
-        v-model="draft.beanName"
-        size="small"
-        clearable
-        placeholder="任务名称 / 编号 / 处理器"
-        style="width: 200px"
-        @keyup.enter="search"
-      />
-      <ReSelect
-        v-model="draft.executeCode"
-        size="small"
-        clearable
-        placeholder="全部结果"
-        :options="CODE_OPTIONS"
-        style="width: 150px"
-        @update:model-value="search"
-      />
-      <ReButton size="small" type="primary" icon="Search" @click="search">查询</ReButton>
-      <ReButton size="small" @click="reset">重置</ReButton>
-      <span class="spacer"/>
-      <span class="collect-hint">自动刷新</span>
-      <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto(autoRefresh === true)"/>
-      <span class="collect-hint">保留</span>
-      <ReInputNumber v-model="retentionDays" size="small" :min="0" :max="3650" controls-position="right" style="width: 110px"/>
-      <span class="collect-hint">{{ retentionDays === 0 ? "天(0=清空全部)" : "天" }}</span>
-      <ReButton size="small" icon="Delete" @click="clean">清理日志</ReButton>
+  <div class="collect-page job-log ">
+    <div class="collect-stats">
+      <ReStatCard
+        v-for="item in kpis"
+        :key="item.key"
+        :title="item.title"
+        :value="item.value"
+        :desc="item.desc"
+      >
+        <template #icon>
+          <ReIcon :name="item.icon" :size="16" :style="{ color: item.color }"/>
+        </template>
+      </ReStatCard>
     </div>
 
     <ReTable
-      v-if="ready"
       ref="tableRef"
       class="collect-card"
       table-id="collect-job-log"
       :loader="loadLogs"
       :params="query"
       :columns="columns"
-      row-key="sysJobLogNo"
+      row-key="logId"
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
-      :page-sizes="[10, 20, 50, 100]"
-      empty-text="暂无作业执行日志，先去「调度作业」启用一个作业或到任务监控页手动运行流程"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
+      :page-sizes="[20, 50, 100, 200]"
+      empty-text="还没有派发记录，去「调度工作台」启用一个任务或手动触发一次"
       stripe
+      @search="query.page !== 1 && tableRef?.goto(1)"
+      @search-reset="tableRef?.goto(1)"
     >
-      <template #no="{ row }">
-        <span class="collect-cell-mono">{{ row.sysJobLogNo }}</span>
+      <template #toolbar>
+        <span class="collect-hint">保留</span>
+        <ReInputNumber v-model="retentionDays" size="small" :min="0" :max="3650" controls-position="right"
+                       style="width: 104px" aria-label="日志保留天数"/>
+        <span class="collect-hint collect-hint--muted">{{ retentionDays === 0 ? "天（0=清空全部）" : "天" }}</span>
+        <ReButton icon="Delete" type="danger" title="按保留天数清理日志" @click="clean">按保留天数清理日志</ReButton>
+        <ReButton
+          icon="Download"
+          :loading="exporting"
+          :disabled="exporting"
+          title="把当前筛选条件下的日志导出为 CSV"
+          @click="exportLogs"
+        >
+          导出 CSV
+        </ReButton>
       </template>
-      <template #jobName="{ row }">
-        <span class="collect-cell-ellipsis">{{ jobNameOf(row) }}</span>
-      </template>
-      <template #jobNo="{ row }">
-        <span class="collect-cell-mono">{{ row.sysJobNo || "—" }}</span>
-      </template>
-      <template #time="{ row }">{{ timeText(row.sysJobLogTriggerTime ?? row.createTime) }}</template>
-      <template #code="{ row }">
-        <ReTag size="small" :type="codeTagType(row.sysJobLogExecuteCode)" effect="plain">
-          {{ row.sysJobLogExecuteCode || "—" }}
+
+      <template #time="{ row }"><span class="collect-num">{{ fmtMs(row.triggerTime) }}</span></template>
+      <template #job="{ row }">
+        <span>{{ jobNameOf(row as unknown as JobLog) }}</span>
+        <ReTag v-if="isFlowKey(row as unknown as JobLog)" class="collect-tag-inline" size="small" type="primary" effect="plain">
+          采集流程
         </ReTag>
       </template>
-      <template #cost="{ row }">{{ costText(row.sysJobLogCost) }}</template>
-      <template #msg="{ row }">
-        <span class="collect-cell-ellipsis">{{ row.sysJobLogTriggerMsg || "—" }}</span>
+      <template #trigger="{ row }">
+        <ReTag size="small" :type="triggerTagType(row.triggerType)" effect="plain">
+          {{ triggerText(row.triggerType) }}
+        </ReTag>
       </template>
+      <template #code="{ row }">
+        <ReTag size="small" :type="statusTagType(row.executeCode)" effect="plain">
+          {{ statusText(row.executeCode) }}
+        </ReTag>
+      </template>
+      <template #cost="{ row }">
+        <span class="collect-num">
+          <ReTime :value="row.costMs || null" format="duration" placeholder="—" />
+        </span>
+      </template>
+      <template #msg="{ row }">
+        <span class="collect-cell-ellipsis">{{ row.message || "—" }}</span>
+      </template>
+      <template #node="{ row }"><span class="collect-cell-mono">{{ row.nodeId || row.address || "—" }}</span></template>
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="showDetail(row)">详情</ReButton>
+        <ReButton layout="square" icon="View" type="primary" title="查看这条日志的完整字段" @click="showDetail(row)"/>
       </template>
     </ReTable>
 
-    <ReDialog v-model="detailVisible" title="作业执行日志详情" width="720px" top="8vh" footer-hidden>
-      <dl v-if="detail" class="collect-kv">
-        <dt>日志号</dt>
-        <dd>{{ detail.sysJobLogNo }}</dd>
-        <dt>任务名称</dt>
-        <dd>{{ jobNameOf(detail) }}</dd>
-        <dt>处理器</dt>
-        <dd>{{ detail.sysJobLogTriggerBean || "—" }}</dd>
-        <dt>任务编号</dt>
-        <dd>{{ detail.sysJobNo || "—" }}</dd>
-        <dt>应用 / 环境</dt>
-        <dd>{{ detail.sysJobLogApp || "—" }} / {{ detail.sysJobLogProfile || "—" }}</dd>
-        <dt>触发方式</dt>
-        <dd>{{ detail.sysJobLogTriggerType || "—" }}</dd>
-        <dt>触发时刻</dt>
-        <dd>{{ timeText(detail.sysJobLogTriggerTime ?? detail.createTime) }}</dd>
-        <dt>派发码 / 执行码</dt>
-        <dd>{{ detail.sysJobLogTriggerCode || "—" }} / {{ detail.sysJobLogExecuteCode || "—" }}</dd>
-        <dt>耗时</dt>
-        <dd>{{ costText(detail.sysJobLogCost) }}</dd>
-        <dt>触发参数</dt>
-        <dd>{{ detail.sysJobLogTriggerParam || "—" }}</dd>
-        <dt>执行器地址 / 节点</dt>
-        <dd>{{ detail.sysJobLogTriggerAddress || "—" }} / {{ detail.sysJobLogNodeId || "—" }}</dd>
-        <dt>消息</dt>
-        <dd>{{ detail.sysJobLogTriggerMsg || "—" }}</dd>
-        <dt>日志文件</dt>
-        <dd>{{ detail.sysJobLogFilePath || "—" }}</dd>
-      </dl>
+    <ReDialog v-model="detailVisible" title="执行日志详情" width="660px" top="8vh">
+      <div v-if="detail" class="log-detail">
+        <h4 class="log-detail__title">基本信息</h4>
+        <div class="log-detail__grid">
+          <div class="log-detail__cell">
+            <span class="log-detail__label">日志号</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.logId }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">任务</span>
+            <span class="log-detail__value">
+              {{ jobNameOf(detail) }}
+              <ReTag
+                v-if="isFlowKey(detail)"
+                class="collect-tag-inline"
+                size="small"
+                type="primary"
+                effect="plain"
+              >
+                采集流程
+              </ReTag>
+            </span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">任务键</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.jobKey || "—" }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">业务编号</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.jobNo || "—" }}</span>
+          </div>
+          <div class="log-detail__cell log-detail__cell--wide">
+            <span class="log-detail__label">应用 / 节点</span>
+            <span class="log-detail__value">{{ detail.app || "—" }} / {{ detail.nodeId || "—" }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">触发方式</span>
+            <span class="log-detail__value">{{ triggerText(detail.triggerType) }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">触发时刻</span>
+            <span class="log-detail__value collect-num">{{ fmtMs(detail.triggerTime) }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">派发码 / 执行码</span>
+            <span class="log-detail__value">
+              <span class="collect-cell-mono">{{ detail.triggerCode || "—" }}</span>
+              <ReTag
+                class="collect-tag-inline"
+                size="small"
+                :type="statusTagType(detail.executeCode)"
+                effect="dark"
+              >
+                {{ statusText(detail.executeCode) }}
+              </ReTag>
+            </span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">耗时</span>
+            <span class="log-detail__value collect-num">
+              <ReTime :value="detail.costMs || null" format="duration" placeholder="—" />
+            </span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">触发参数</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.executeParam || "—" }}</span>
+          </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">日志文件</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.filePath || "—" }}</span>
+          </div>
+        </div>
+
+        <h4 class="log-detail__title">执行消息</h4>
+        <pre class="log-detail__message">{{ detail.message || "（无执行消息）" }}</pre>
+      </div>
+
     </ReDialog>
   </div>
 </template>
+
+<style scoped>
+.log-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.log-detail__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--el-text-color-primary);
+}
+
+/* 单元格之间用 1px gap + 底色当作分隔线，两个方向都均匀，不用逐格写边框 */
+.log-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md);
+}
+
+.log-detail__cell {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 14px 10px 16px;
+  background: var(--el-bg-color-overlay);
+}
+
+/* 每格左侧的主色竖条，是这套详情卡片的识别特征 */
+.log-detail__cell::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--el-color-primary);
+}
+
+.log-detail__cell--wide {
+  grid-column: 1 / -1;
+}
+
+.log-detail__label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.log-detail__value {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * 消息用反转面板：底色取主文本色、文字取页面底色，亮色下是深色控制台、暗色下自动翻成浅色，
+ * 全程只用 koi 的 --el-* 变量，不引入主题外的固定色。
+ */
+.log-detail__message {
+  margin: 0;
+  padding: 14px 16px;
+  max-height: 260px;
+  overflow: auto;
+  border-radius: var(--el-radius-md);
+  background: var(--el-text-color-primary);
+  color: var(--el-bg-color);
+  font-family: var(--cc-font-num);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

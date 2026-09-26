@@ -2,14 +2,13 @@
 /**
  * ReSearchToolbar —— ReSearch 内置操作按钮组
  *
- * 每个按钮均可通过 prop 配置显示 / 隐藏、文案、图标、类型，点击时向上派发对应事件：
- *   - 显示/隐藏过滤区（toggle）
+ * 每个按钮均可通过 prop 配置显示 / 隐藏，点击时向上派发对应事件：
  *   - 搜索（search）
  *   - 重置（reset）
- *   - 新增（add）
  *   - 批量删除（batch-delete）
  *   - 批量勾选（batch-select）
  *
+ * 新增 / 刷新 / 显示隐藏过滤区 三个按钮已从组件移除。
  * 全部按钮复用 ReButton 渲染，保持与后台管理 UI 设计语言一致。
  */
 import ReButton from "../ReButton/ReButton.vue";
@@ -27,15 +26,15 @@ const props = withDefaults(
     filterVisible?: boolean;
     /** 按钮模式：icon=图标+tooltip，text=图标+文字 */
     btnMode?: "icon" | "text";
-    /** 是否显示“显示/隐藏过滤区”按钮 */
+    /** 是否显示“显示/隐藏过滤区”按钮（已废弃：组件不再渲染） */
     showToggle?: boolean;
     /** 是否显示“搜索”按钮 */
     showSearch?: boolean;
     /** 是否显示“重置”按钮 */
     showReset?: boolean;
-    /** 是否显示“刷新”按钮 */
+    /** 是否显示“刷新”按钮（已废弃：组件不再渲染） */
     showRefresh?: boolean;
-    /** 是否显示“新增”按钮 */
+    /** 是否显示“新增”按钮（已废弃：组件不再渲染） */
     showAdd?: boolean;
     /** 是否显示“批量删除”按钮 */
     showBatchDelete?: boolean;
@@ -57,10 +56,10 @@ const props = withDefaults(
   {
     filterVisible: true,
     btnMode: "icon",
-    showToggle: true,
+    showToggle: false,
     showSearch: true,
     showReset: true,
-    showRefresh: true,
+    showRefresh: false,
     showAdd: false,
     showBatchDelete: false,
     showBatchSelect: false,
@@ -77,11 +76,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: "toggle"): void;
   (e: "search"): void;
   (e: "reset"): void;
-  (e: "refresh"): void;
-  (e: "add"): void;
   (e: "batch-delete"): void;
   (e: "batch-select"): void;
 }>();
@@ -115,23 +111,16 @@ function btnProps(): Record<string, unknown> {
       </ReButton>
       <ReButton
         v-if="showBatchDelete"
-        v-bind="btnProps()" type="danger" icon="Delete"
+        v-bind="btnProps()" type="" icon="Delete"
         :disabled="batchDeleteDisabled"
         @click="emit('batch-delete')"
       >
         {{ batchDeleteText }}
       </ReButton>
       <ReButton
-        v-if="showAdd"
-        v-bind="btnProps()" type="primary"
-        icon="Plus"
-        @click="emit('add')"
-      >
-        {{ addText }}
-      </ReButton>
-      <ReButton
         v-if="showReset"
-        v-bind="btnProps()" icon="Refresh"
+        v-bind="btnProps()" type="" icon="RefreshLeft"
+        style="background: var(--el-bg-color); border-color: var(--el-border-color); color: var(--el-text-color-regular)"
         @click="emit('reset')"
       >
         {{ resetText }}
@@ -143,20 +132,6 @@ function btnProps(): Record<string, unknown> {
         @click="emit('search')"
       >
         {{ searchText }}
-      </ReButton>
-      <ReButton
-        v-if="showRefresh"
-        v-bind="btnProps()" icon="RefreshRight"
-        @click="emit('refresh')"
-      >
-        刷新
-      </ReButton>
-      <ReButton
-        v-if="showToggle"
-        v-bind="btnProps()" :icon="filterVisible ? 'Hide' : 'View'"
-        @click="emit('toggle')"
-      >
-        {{ filterVisible ? "隐藏" : "显示" }}
       </ReButton>
     </div>
   </div>
@@ -203,3 +178,4 @@ function btnProps(): Record<string, unknown> {
   color: #fff;
 }
 </style>
+

@@ -2,8 +2,8 @@
  * 消息管理页面（MessageManage.vue）组件测试
  *
  * 覆盖：
- *  1. 双 Tab 渲染：消息列表 / 消息模板 两个 Tab 各自的表格加载
- *  2. 发送消息弹窗：点击“发送消息”打开弹窗；选择模板后自动填充标题与内容
+ *  1. Tab 懒加载：消息列表先加载，模板表格在切换到模板 Tab 后加载
+ *  2. 发送消息弹窗：点击消息工具栏的新增图标打开弹窗；选择模板后自动填充标题与内容
  *  3. 撤回消息：点击撤回触发确认弹窗，确认后调用撤回接口
  *  4. 广播消息：接收者 ID 为 0 时展示“全体用户”
  */
@@ -25,7 +25,37 @@ const api = vi.hoisted(() => ({
   saveMessageTemplate: vi.fn(),
   updateMessageTemplate: vi.fn(),
   deleteMessageTemplate: vi.fn(),
+  previewMessageTemplate: vi.fn(),
+  sendMessageByCode: vi.fn(),
+  pageForMessageLog: vi.fn(),
+  cleanMessageLog: vi.fn(),
+  listForRole: vi.fn(),
 }));
+
+const ReTabStub = {
+  name: "ReTab",
+  props: ["tabs", "modelValue", "variant", "collapsed", "collapsible", "navOnly"],
+  emits: ["update:modelValue", "tab-change"],
+  methods: {
+    selectTab(name: string) {
+      this.$emit("update:modelValue", name);
+      this.$emit("tab-change", name);
+    },
+  },
+  template: `
+    <div class="re-tab-stub">
+      <button
+        v-for="tab in tabs"
+        :key="tab.name"
+        type="button"
+        class="re-tab-stub__nav"
+        :data-tab="tab.name"
+        @click="selectTab(tab.name)"
+      >{{ tab.label }}</button>
+      <slot :name="modelValue" />
+    </div>
+  `,
+};
 
 vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box }));
 vi.mock("@element-plus/icons-vue", () => {
@@ -42,6 +72,7 @@ import {
   ReInputStub,
   ReSelectStub,
   ReInputNumberStub,
+  ReSwitchStub,
   ReTagStub,
   ReDialogStub,
   elementPlusLayoutStubs,
@@ -84,13 +115,15 @@ function mountPage() {
   return mount(MessageManage, {
     global: {
       stubs: {
-        // 两个表格：消息列表槽位 + 模板槽位
+        // 消息列表、模板和日志按激活 Tab 懒加载
+        ReTab: ReTabStub,
         ReTable: makeReTableStub(["type", "level", "receiver", "mstatus", "tstatus", "action"]),
         ReSearch: ReSearchStub,
         ReButton: ReButtonStub,
         ReInput: ReInputStub,
         ReSelect: ReSelectStub,
         ReInputNumber: ReInputNumberStub,
+        ReSwitch: ReSwitchStub,
         ReTag: ReTagStub,
         ReDialog: ReDialogStub,
         ...elementPlusLayoutStubs(),
@@ -108,15 +141,26 @@ describe("MessageManage 消息管理页面", () => {
     api.sendMessage.mockResolvedValue({ data: true });
     api.recallMessage.mockResolvedValue({ data: true });
     api.deleteMessage.mockResolvedValue({ data: true });
+    api.previewMessageTemplate.mockResolvedValue({ data: { content: "预览内容" } });
+    api.sendMessageByCode.mockResolvedValue({ data: [] });
+    api.pageForMessageLog.mockResolvedValue({ data: { total: 0, data: [] } });
+    api.cleanMessageLog.mockResolvedValue({ data: 0 });
+    api.listForRole.mockResolvedValue({ data: [] });
   });
 
-  it("renders both message list and template tabs (both tables load)", async () => {
+  it("loads the template table only after its tab is activated", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
-    // 消息列表表格与消息模板表格均在挂载时加载
     expect(api.pageForMessageAdmin).toHaveBeenCalled();
-    expect(api.pageForMessageTemplate).toHaveBeenCalled();
     expect(api.listForMessageTemplate).toHaveBeenCalled();
+    expect(api.pageForMessageTemplate).not.toHaveBeenCalled();
+
+    const templateTab = wrapper.find('[data-tab="template"]');
+    expect(templateTab.exists()).toBe(true);
+    await templateTab.trigger("click");
+    await settle(wrapper);
+
+    expect(api.pageForMessageTemplate).toHaveBeenCalled();
   });
 
   it("shows '全体用户' when receiver id is 0", async () => {
@@ -126,14 +170,14 @@ describe("MessageManage 消息管理页面", () => {
     expect(wrapper.text()).toContain("全体用户");
   });
 
-  it("opens send-message dialog when '发送消息' clicked", async () => {
+  it("opens the send-message dialog from the toolbar add button", async () => {
     const wrapper = mountPage();
     await settle(wrapper);
     expect(wrapper.find(".re-dialog-stub").exists()).toBe(false);
 
-    const sendBtn = wrapper.findAll("button").find((b) => b.text().includes("发送消息"));
-    expect(sendBtn).toBeTruthy();
-    await sendBtn!.trigger("click");
+    const sendBtn = wrapper.find('.re-table__toolbar-left button[data-icon="Plus"]');
+    expect(sendBtn.exists()).toBe(true);
+    await sendBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
     const dialog = wrapper.find(".re-dialog-stub");

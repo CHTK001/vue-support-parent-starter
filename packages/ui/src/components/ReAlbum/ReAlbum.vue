@@ -75,6 +75,8 @@
 
 <script setup lang="ts">
 import type { ReAlbumItem } from "./types";
+// 卡片视觉基线（库级共享）：圆角 / 投影 / 悬停令牌
+import "../shared/re-surface.css";
 
 const props = withDefaults(
   defineProps<{
@@ -152,19 +154,24 @@ export default { name: "ReAlbum" };
   gap: 8px;
 }
 
-/* Grid mode items */
+/* Grid 模式条目：圆角 / 投影 / 悬停上浮走库级基线令牌
+   （components/shared/re-surface.css），不再自写一套边框 + 阴影值；
+   --selected 是组件特有状态，保留。 */
 .re-album-item {
-  border-radius: 8px;
+  border-radius: var(--re-surface-radius-dense, 8px);
   overflow: hidden;
   cursor: pointer;
   background: var(--el-fill-color-light);
-  transition: transform 0.15s, box-shadow 0.15s;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid transparent;
+  box-shadow: var(--re-surface-shadow-dense);
+  transition:
+    transform var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
 }
 
 .re-album-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--re-surface-shadow-dense-hover);
 }
 
 .re-album-item--selected {

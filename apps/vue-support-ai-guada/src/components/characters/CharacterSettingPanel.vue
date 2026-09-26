@@ -98,6 +98,40 @@
                 </el-form-item>
               </div>
 
+              <!-- 默认能力（深度思考 / 在线检索） -->
+              <div class="mt-3 rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
+                <!-- 深度思考 -->
+                <el-form-item class="mb-0!">
+                  <div class="px-4 py-3 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035] w-full">
+                    <div class="flex items-center gap-2.5">
+                      <el-icon size="18" class="text-gray-500 dark:text-[#8b8d95]">
+                        <BrainCircuit20Regular />
+                      </el-icon>
+                      <div class="flex flex-col">
+                        <span class="text-sm text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.capThink') }}</span>
+                        <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.capThinkHint') }}</span>
+                      </div>
+                    </div>
+                    <el-switch v-model="characterForm.defaultThink" />
+                  </div>
+                </el-form-item>
+                <!-- 在线检索 -->
+                <el-form-item class="mb-0!">
+                  <div class="px-4 py-3 flex items-center justify-between gap-4 w-full">
+                    <div class="flex items-center gap-2.5">
+                      <el-icon size="18" class="text-gray-500 dark:text-[#8b8d95]">
+                        <GlobeShield20Regular />
+                      </el-icon>
+                      <div class="flex flex-col">
+                        <span class="text-sm text-gray-900 dark:text-[#e8e9ed]">{{ t('characters.setting.capSearch') }}</span>
+                        <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('characters.setting.capSearchHint') }}</span>
+                      </div>
+                    </div>
+                    <el-switch v-model="characterForm.defaultSearch" />
+                  </div>
+                </el-form-item>
+              </div>
+
               <!-- 记忆与压缩 -->
               <div class="mt-3 rounded-xl border border-gray-200 dark:border-[#2e3035] bg-white dark:bg-[#232428] overflow-hidden">
                 <!-- 触发阈值 -->
@@ -446,7 +480,7 @@ import {
   ThunderboltOutlined
 } from '@vicons/antd'
 
-import { Code24Regular, Bot24Regular } from '@vicons/fluent'
+import { Code24Regular, Bot24Regular, BrainCircuit20Regular, GlobeShield20Regular } from '@vicons/fluent'
 
 import { apiService } from '../../services/ApiService'
 
@@ -581,6 +615,8 @@ const characterForm = reactive({
   compressionTriggerRatio: 0.8, // 触发阈值
   compressionTargetRatio: 0.5, // 保留目标
   summaryMode: DEFAULT_SUMMARY_MODE, // 摘要模式：'disabled' | 'fast' | 'memory_sync'
+  defaultThink: false, // 默认开启深度思考
+  defaultSearch: false, // 默认开启在线检索
 })
 
 // 验证规则
@@ -772,7 +808,7 @@ watch(() => props.data, (newVal, oldVal) => {
 
   characterForm.assistantName = newVal.settings?.assistantName || '';
   characterForm.assistantIdentity = newVal.settings?.assistantIdentity || '';
-  characterForm.systemPrompt = newVal.settings?.systemPrompt || '';
+  characterForm.systemPrompt = newVal.settings?.systemPrompt || newVal.systemPrompt || '';
   characterForm.memoryType = newVal.settings?.memoryType || 'sliding_window';
 
   // 从 memory 分组加载记忆与压缩配置
@@ -780,6 +816,10 @@ watch(() => props.data, (newVal, oldVal) => {
   characterForm.compressionTriggerRatio = memoryConfig.compressionTriggerRatio ?? newVal.settings?.compressionTriggerRatio ?? 0.8;
   characterForm.compressionTargetRatio = memoryConfig.compressionTargetRatio ?? newVal.settings?.compressionTargetRatio ?? 0.5;
   characterForm.summaryMode = memoryConfig.summaryMode ?? DEFAULT_SUMMARY_MODE;
+  // 默认能力（深度思考 / 在线检索），缺省关闭
+  const capabilities = newVal.settings?.capabilities || {};
+  characterForm.defaultThink = capabilities.defaultThink === true;
+  characterForm.defaultSearch = capabilities.defaultSearch === true;
   // 加载已启用的插件
   characterForm.enabledTools = newVal.settings?.plugins || [];
   // 加载角色插件设置（新格式：{ pluginId: { enabled: true/false } }）
@@ -1201,6 +1241,15 @@ const getFormData = () => {
         'compressionTargetRatio': characterForm.compressionTargetRatio,
         'summaryMode': characterForm.summaryMode,
       },
+      // 默认能力（进入会话时预置深度思考 / 在线检索开关）
+      'capabilities': {
+        'defaultThink': characterForm.defaultThink,
+        'defaultSearch': characterForm.defaultSearch,
+      },
+      // 角色默认启用的技能名（已按黑白名单计算最终生效结果，供后端直接注入）
+      'defaultSkillNames': skillsList.value
+        .filter(s => getSkillEffectiveEnabled(s) === true && s.enabled !== false)
+        .map(s => s.name || s.id),
       // 插件配置
       'plugins': (() => {
         const buildCustom = () => {

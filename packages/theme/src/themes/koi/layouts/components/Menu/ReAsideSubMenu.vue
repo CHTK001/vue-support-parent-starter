@@ -1,29 +1,39 @@
 <template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
-<!-- 分组菜单：meta.isGroup → 分组标题 + 组内平铺 items -->
-    <el-menu-item-group v-if="item.meta?.isGroup && item.children?.length" :title="getMenuLanguage(item.meta?.title)">
-      <ReAsideSubMenu :menuList="item.children" />
+    <!-- 分组菜单：分组布局(provide 标记)或 meta.isGroup → 分组标题 + 组内平铺可见 items（子项常显，不折叠） -->
+    <el-menu-item-group v-if="isGroupItem(item)" :title="getMenuLanguage(item.meta?.title)">
+      <ReAsideSubMenu :menuList="groupChildren(item)" />
     </el-menu-item-group>
-<!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
-	<el-menu-item
-		v-else-if="collapseSingleChild && item.children?.length === 1"
-		:index="item.children[0].path"
-		@click="handleMenuRouter(item.children[0])"
-	>
-		<template #title>
-			<el-tooltip :content="getMenuLanguage(item.children[0].meta?.title)" :show-after="1500" placement="right">
-				<div class="menu-title-wrap">
-					<div class="icon-container">
-						<ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
-					</div>
-					<span class="menu-ellipsis" v-text="getMenuLanguage(item.children[0].meta?.title)"></span>
-				</div>
-			</el-tooltip>
-		</template>
-	</el-menu-item>
-	<!-- 有下级且多于1个 -->
-	<el-sub-menu v-else-if="item.children?.length" :index="item.path">
+    <!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
+    <el-menu-item
+      v-else-if="collapseSingleChild && item.children?.length === 1"
+      :index="item.children[0].path"
+      @click="handleMenuRouter(item.children[0])"
+    >
+      <!-- 图标放默认插槽：菜单折叠时 Element Plus 以默认插槽作为折叠触发器内容 -->
+      <div class="icon-container">
+        <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
+      </div>
+      <template #title>
+        <el-tooltip :content="getMenuLanguage(item.children[0].meta?.title)" :show-after="1500" placement="right">
+          <div class="menu-title-row">
+            <span class="menu-ellipsis" v-text="getMenuLanguage(item.children[0].meta?.title)"></span>
+            <template v-if="item.children[0].meta?.isTag == 1">
+              <span
+                v-if="item.children[0].meta.tagName"
+                class="menu-badge"
+                :class="`menu-badge--${item.children[0].meta.tagType || 'primary'}`"
+                v-text="item.children[0].meta.tagName"
+              ></span>
+              <span v-else class="menu-badge-dot" :style="{ background: badgeColor(item.children[0].meta.tagType) }"></span>
+            </template>
+          </div>
+        </el-tooltip>
+      </template>
+    </el-menu-item>
+    <!-- 有下级且多于1个 -->
+    <el-sub-menu v-else-if="item.children?.length" :index="item.path">
       <template #title>
         <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
           <div class="menu-title-wrap">
@@ -38,18 +48,25 @@
       </template>
       <ReAsideSubMenu :menuList="item.children" />
     </el-sub-menu>
-    <!-- 叶子节点[功能节点]；空分组（isGroup 且无子项）不渲染，避免悬空分组标题 -->
-    <el-menu-item v-else-if="!(item.meta?.isGroup && !item.children?.length)" :index="item.path" @click="handleMenuRouter(item)">
+    <!-- 叶子节点[功能节点]；空分组（isGroup 且无可见子项）不渲染，避免悬空分组标题与不可点的分组路径项 -->
+    <el-menu-item v-else-if="!(item.meta?.isGroup && !groupChildren(item).length)" :index="item.path" @click="handleMenuRouter(item)">
+      <!-- 图标放默认插槽：菜单折叠时 Element Plus 以默认插槽作为折叠触发器内容 -->
+      <div class="icon-container">
+        <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
+      </div>
       <template #title>
         <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
-          <div class="menu-title-wrap">
-            <!-- 图标容器 - 负责偏移 -->
-            <div class="icon-container">
-              <!-- 图标本身 - 负责动画 -->
-              <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="18" class="menu-icon"></ReIcon>
-            </div>
+          <div class="menu-title-row">
             <span class="menu-ellipsis" v-text="getMenuLanguage(item.meta?.title)"></span>
-            <span v-if="item.meta?.badge" class="menu-badge">{{ item.meta.badge }}</span>
+            <template v-if="item.meta?.isTag == 1">
+              <span
+                v-if="item.meta.tagName"
+                class="menu-badge"
+                :class="`menu-badge--${item.meta.tagType || 'primary'}`"
+                v-text="item.meta.tagName"
+              ></span>
+              <span v-else class="menu-badge-dot" :style="{ background: badgeColor(item.meta.tagType) }"></span>
+            </template>
           </div>
         </el-tooltip>
       </template>
@@ -61,10 +78,14 @@
 import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
+import { inject } from "vue";
 import { getMenuLanguage } from "@repo/languages";
 import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
 const router = useRouter();
+
+/** 是否处于「分组导航」布局：仅 LayoutGroup 通过 provide 置 true，vertical 等同级布局保持可折叠子菜单 */
+const groupMenuMode = inject<boolean>("koi-group-menu-mode", false);
 
 // 获取父组件传递过来的数据
 defineProps(["menuList"]);
@@ -73,6 +94,35 @@ const collapseSingleChild = getConfig().menu.collapseSingleChild;
 
 /** 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白 */
 const menuDefaultIcon = resolveMenuDefaultIcon();
+
+/** 徽标类型 → 主题色（圆点徽标使用；标签徽标用 class 控制，适配深色模式） */
+const badgeColorMap: Record<string, string> = {
+  primary: "var(--el-color-primary)",
+  success: "var(--el-color-success)",
+  warning: "var(--el-color-warning)",
+  danger: "var(--el-color-danger)",
+  info: "var(--el-color-info)",
+};
+const badgeColor = (type?: string): string => badgeColorMap[type || "primary"] || badgeColorMap.primary;
+
+/**
+ * 分组（meta.isGroup）内的可见子项：showLink/isVisible 关闭的子页面只注册路由、不占菜单位。
+ * 只服务 isGroup 分支，普通 el-sub-menu 的子项行为保持原样。
+ */
+const groupChildren = (item: any): any[] =>
+  (item?.children ?? []).filter((child: any) => {
+    const meta = child?.meta ?? {};
+    if (meta.showLink === false) return false;
+    const visible = meta.isVisible;
+    return visible == null || visible === 1 || visible === true || visible === "1";
+  });
+
+/**
+ * 是否按「平铺分组」渲染：分组布局（provide 标记）下任何含可见子项的父节点，或显式 meta.isGroup，
+ * 渲染为分组标题 + 组内平铺 items（无折叠箭头）；vertical 等布局 groupMenuMode=false，保持 el-sub-menu。
+ */
+const isGroupItem = (item: any): boolean =>
+  (groupMenuMode === true || item?.meta?.isGroup === true) && groupChildren(item).length > 0;
 
 /** 打开标签页 或 外部链接 */
 const handleMenuRouter = (value: any) => {
@@ -213,30 +263,60 @@ const handleMenuRouter = (value: any) => {
   }
 }
 
-/** 菜单徽标（meta.badge） */
+/** 菜单标题行：文字 + 右侧徽标 */
+.menu-title-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+
+  .menu-ellipsis {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/** 菜单徽标（类型由修饰类控制，适配深色模式） */
 .menu-badge {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 16px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 6px;
   margin-left: auto;
   font-size: 11px;
+  font-weight: 600;
   line-height: 1;
-  color: var(--el-menu-active-text-color);
-  background: var(--el-color-danger);
+  color: #fff;
   border-radius: 8px;
 }
+.menu-badge--primary { background: var(--el-color-primary); }
+.menu-badge--success { background: var(--el-color-success); }
+.menu-badge--warning { background: var(--el-color-warning); }
+.menu-badge--danger { background: var(--el-color-danger); }
+.menu-badge--info { background: var(--el-color-info); }
 
-/** 分组菜单标题（meta.isGroup） */
+.menu-badge-dot {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+}
+
+/** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色、不可点 */
 :deep(.el-menu-item-group__title) {
+  --el-menu-base-level-padding: 10px; // 与二级菜单图标起点对齐（EP 用该变量算 padding-left，直接写 padding-left 会被更高特异性规则覆盖）
   padding-top: 12px;
-  padding-bottom: 4px;
-  padding-left: 20px;
+  padding-bottom: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--el-menu-text-color, #909399);
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: var(--el-text-color-secondary);
   text-transform: none;
   pointer-events: none;
 }

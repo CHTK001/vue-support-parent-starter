@@ -20,8 +20,14 @@
     "@pages/eduai": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@repo/theme": "workspace:*",
     "@repo/config": "workspace:*",
-    "@repo/pinia": "workspace:*"
+    "@repo/pinia": "workspace:*",
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-placeholder": "^3.26.0",
+    "@tiptap/extension-text-align": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
+    "@tiptap/vue-3": "^3.26.0"
   },
   "devDependencies": {
     "typescript": "catalog:",

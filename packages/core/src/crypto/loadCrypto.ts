@@ -42,7 +42,7 @@ export const DEFAULT_CRYPTO_URL = `${resolveBaseUrl()}/wasm/crypto-wasm.js`;
  * @param url 产物 JS 的 URL（部署到子路径时相对当前 origin 请求）
  */
 export async function loadCryptoFromUrl(url: string): Promise<CryptoModule> {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} ${res.statusText}`);
   }
@@ -65,7 +65,7 @@ export async function loadCryptoFromUrl(url: string): Promise<CryptoModule> {
     // 以对象形式传参，避免 wasm-bindgen 的 deprecated 参数警告
     await init({ module_or_path: wasmUrl });
   } else if (typeof mod.initSync === "function") {
-    const wasmRes = await fetch(wasmUrl);
+    const wasmRes = await fetch(wasmUrl, { cache: "no-store" });
     mod.initSync(await wasmRes.arrayBuffer());
   } else {
     throw new Error("加载到的模块缺少 init 入口");

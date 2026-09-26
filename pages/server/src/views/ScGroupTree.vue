@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { message } from '@repo/core';
-import { ChatLineRound } from '@element-plus/icons-vue';
 import { getGroupTree, getGroups, saveGroup, delGroup } from '../api';
 
 interface GroupNode {
@@ -15,15 +14,16 @@ interface GroupNode {
 }
 
 const loading = ref(false);
+/** 保存分组中：提交按钮 loading，防重复提交 */
+const saving = ref(false);
 const treeData = ref<GroupNode[]>([]);
 const flatGroups = ref<any[]>([]);
+const searchKeyword = ref('');
 
 const formVisible = ref(false);
 const currentNode = ref<GroupNode | null>(null);
 const editingId = ref<number | null>(null);
-const form = ref<{ msServerGroupName: string; msServerGroupParentId: number | null; msServerGroupSort: number; msServerGroupRemark: string; msServerGroupColor: string }>({ msServerGroupName: '', msServerGroupParentId: 0, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
-/** 保存中状态，供弹窗「保存」按钮的 loading 使用 */
-const saving = ref(false);
+const form = ref({ msServerGroupName: '', msServerGroupParentId: null as number | null, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
 
 /** 预设分组色板 */
 const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#0ea5e9'];
@@ -32,6 +32,26 @@ const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f
 const totalGroups = computed(() => flatGroups.value.length);
 const rootGroups = computed(() => treeData.value.length);
 const subGroups = computed(() => totalGroups.value - rootGroups.value);
+
+/** 过滤后的树数据 */
+const filteredTreeData = computed(() => {
+  if (!searchKeyword.value) return treeData.value;
+  
+  function filterNodes(nodes: GroupNode[]): GroupNode[] {
+    return nodes
+      .map(node => {
+        const children = node.children ? filterNodes(node.children) : [];
+        const match = node.name.includes(searchKeyword.value);
+        if (match || children.length) {
+          return { ...node, children };
+        }
+        return null;
+      })
+      .filter(Boolean) as GroupNode[];
+  }
+  
+  return filterNodes(treeData.value);
+});
 
 function countDescendants(node: GroupNode): number {
   if (!node.children?.length) return 0;
@@ -43,11 +63,21 @@ function isRoot(node: GroupNode): boolean {
   return node.parentId === 0 || node.parentId === null;
 }
 
-/** 统计分组下的主机数（从 flatGroups 或 hosts 推导） */
+/** 统计分组下的主机数 */
 function hostCount(node: GroupNode): number {
-  // 从 flatGroups 里查 msServerHostCount 字段
   const g = flatGroups.value.find((x: any) => x.id === node.id);
   return g?.msServerHostCount ?? 0;
+}
+
+/** 统计在线主机数 */
+function onlineHostCount(node: GroupNode): number {
+  const g = flatGroups.value.find((x: any) => x.id === node.id);
+  return g?.msServerHostOnlineCount ?? 0;
+}
+
+/** 获取子分组数 */
+function subGroupCount(node: GroupNode): number {
+  return node.children?.length || 0;
 }
 
 onMounted(refresh);
@@ -91,22 +121,26 @@ function openEdit(node: GroupNode) {
   formVisible.value = true;
 }
 
-async function submitForm() {
-  if (!form.value.msServerGroupName.trim()) {
-    message.warning('分组名称不能为空');
-    return;
+  async function submitForm() {
+    if (!form.value.msServerGroupName.trim()) {
+      message.warning('分组名称不能为空');
+      return;
+    }
+    if (saving.value) {
+      return;
+    }
+    const payload = { ...form.value, msServerGroupParentId: form.value.msServerGroupParentId ?? 0 };
+    saving.value = true;
+    try {
+      await saveGroup(editingId.value, payload);
+      message.success('已保存');
+      formVisible.value = false;
+      refresh();
+    } finally {
+      // 失败时由调用方处理提示，这里只负责解除按钮 loading
+      saving.value = false;
+    }
   }
-  const payload = { ...form.value, msServerGroupParentId: form.value.msServerGroupParentId ?? 0 };
-  saving.value = true;
-  try {
-    await saveGroup(editingId.value, payload);
-    message.success('已保存');
-    formVisible.value = false;
-    refresh();
-  } finally {
-    saving.value = false;
-  }
-}
 
 async function removeGroup(node: GroupNode) {
   await message.confirm(`确认删除分组 ${node.name}? 若存在子分组或主机将拒绝删除`, '删除');
@@ -128,8 +162,19 @@ async function removeGroup(node: GroupNode) {
     <div class="group-layout">
       <!-- 左侧树 -->
       <ReCard class="tree-card" v-loading="loading">
+        <div class="tree-header">
+          <span class="tree-title">分组列表</span>
+          <ReButton icon="Plus" layout="square" size="small" title="新建分组" @click="openCreate()" />
+        </div>
+        
+        <div class="tree-search">
+          <ReInput v-model="searchKeyword" placeholder="搜索分组..." clearable size="small">
+            <template #prefix><ReIcon icon="Search" /></template>
+          </ReInput>
+        </div>
+
         <ReEmptyState
-          v-if="!loading && treeData.length === 0"
+          v-if="!loading && filteredTreeData.length === 0"
           title="暂无分组"
           description="点击右上角「新建根分组」创建第一个分组"
           size="compact"
@@ -138,7 +183,7 @@ async function removeGroup(node: GroupNode) {
         </ReEmptyState>
         <ReTree
           v-else
-          :data="treeData"
+          :data="filteredTreeData"
           node-key="id"
           :props="{ children: 'children', label: 'name' }"
           default-expand-all
@@ -154,7 +199,7 @@ async function removeGroup(node: GroupNode) {
               ></span>
               <span v-else class="color-dot color-dot--default"></span>
               <span class="node-name">{{ node?.name }}</span>
-              <span v-if="node?.children?.length" class="node-badge">{{ node.children.length }}</span>
+              <span v-if="hostCount(node) > 0" class="node-badge">{{ hostCount(node) }}</span>
             </span>
           </template>
         </ReTree>
@@ -163,44 +208,85 @@ async function removeGroup(node: GroupNode) {
       <!-- 右侧详情 -->
       <ReCard class="detail-card">
         <div v-if="currentNode" class="detail-content">
+          <!-- 详情头部 -->
           <div class="detail-header">
-            <div class="detail-title">{{ currentNode.name }}</div>
+            <div class="detail-title-area">
+              <h2 class="detail-title">{{ currentNode.name }}</h2>
+              <p class="detail-desc">{{ currentNode.remark || '暂无描述' }}</p>
+            </div>
             <div class="detail-actions">
               <ReButton show-text icon="Plus" size="small" @click="openCreate(currentNode.id)">添加子分组</ReButton>
               <ReButton show-text icon="EditPen" size="small" @click="openEdit(currentNode)">编辑</ReButton>
               <ReButton show-text icon="Delete" size="small" type="danger" @click="removeGroup(currentNode)">删除</ReButton>
             </div>
           </div>
-          <div class="detail-body">
-            <div class="detail-item">
-              <div class="detail-label">分组 ID</div>
-              <div class="detail-value">{{ currentNode.id }}</div>
+
+          <!-- 统计卡片 -->
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-label">主机总数</div>
+              <div class="info-value">{{ hostCount(currentNode) }}</div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">分组名称</div>
-              <div class="detail-value">{{ currentNode.name }}</div>
+            <div class="info-card">
+              <div class="info-label">在线主机</div>
+              <div class="info-value info-value--success">{{ onlineHostCount(currentNode) }}</div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">子分组数</div>
-              <div class="detail-value">{{ currentNode.children?.length || 0 }}</div>
+            <div class="info-card">
+              <div class="info-label">子分组</div>
+              <div class="info-value">{{ subGroupCount(currentNode) }}</div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">排序</div>
-              <div class="detail-value">{{ currentNode.sort || 0 }}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">颜色</div>
-              <div class="detail-value">
-                <span v-if="currentNode.color" class="color-dot" :style="{ background: currentNode.color }"></span>
-                <span v-else>默认</span>
+          </div>
+
+          <!-- 分组信息 -->
+          <div class="detail-section">
+            <h3 class="section-title">分组信息</h3>
+            <div class="detail-body">
+              <div class="detail-item">
+                <div class="detail-label">分组 ID</div>
+                <div class="detail-value">{{ currentNode.id }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">分组名称</div>
+                <div class="detail-value">{{ currentNode.name }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">排序</div>
+                <div class="detail-value">{{ currentNode.sort || 0 }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">颜色</div>
+                <div class="detail-value">
+                  <span v-if="currentNode.color" class="color-dot" :style="{ background: currentNode.color }"></span>
+                  <span v-else>默认</span>
+                </div>
+              </div>
+              <div class="detail-item detail-item--full">
+                <div class="detail-label">备注</div>
+                <div class="detail-value">{{ currentNode.remark || '无' }}</div>
               </div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">备注</div>
-              <div class="detail-value">{{ currentNode.remark || '无' }}</div>
+          </div>
+
+          <!-- 关联主机列表 -->
+          <div class="detail-section">
+            <h3 class="section-title">关联主机</h3>
+            <ReEmptyState
+              v-if="hostCount(currentNode) === 0"
+              title="暂无关联主机"
+              description="该分组下暂无主机"
+              size="compact"
+            />
+            <div v-else class="host-list">
+              <div class="host-item" v-for="i in hostCount(currentNode)" :key="i">
+                <div class="host-status host-status--online"></div>
+                <span class="host-name">主机 {{ i }}</span>
+                <span class="host-ip">192.168.1.{{ i }}</span>
+                <span class="host-os">Linux</span>
+              </div>
             </div>
           </div>
         </div>
+        
         <ReEmptyState
           v-else
           title="选择分组查看详情"
@@ -256,76 +342,52 @@ async function removeGroup(node: GroupNode) {
   gap: 16px;
 }
 
-/* ---- 统计卡片 ---- */
-.stat-row {
+.group-layout {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  height: calc(100vh - 220px);
 }
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-  background: var(--bg-container, #fff);
-  border: 1px solid var(--border-subtle, #e8e8ef);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-color: var(--border-default, #d0d0d8);
-}
-.stat-body {
+
+/* ---- 左侧树 ---- */
+.tree-card {
+  padding: 0;
   display: flex;
   flex-direction: column;
-}
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text-primary, #1a1a2e);
-  font-variant-numeric: tabular-nums;
-}
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary, #8a8a9e);
-  margin-top: 2px;
+  overflow: hidden;
 }
 
-/* ---- 树卡片 ---- */
-.tree-card {
-  padding: 12px 8px;
-  background: var(--bg-container-card, #fff);
-  border-radius: var(--border-radius, 12px);
-  box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.06));
-}
-
-/* ---- 树节点 ---- */
-.tree-node {
+.tree-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.15s ease;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
 }
-.tree-node:hover {
-  background: var(--el-fill-color-light, #f5f7fa);
+
+.tree-title {
+  font-size: 14px;
+  font-weight: 600;
 }
+
+.tree-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+
 .tree-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
+
 .node-name {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary, #1a1a2e);
 }
+
 .color-dot {
   width: 10px;
   height: 10px;
@@ -333,9 +395,11 @@ async function removeGroup(node: GroupNode) {
   flex-shrink: 0;
   box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
 }
+
 .color-dot--default {
   background: #c0c4cc;
 }
+
 .node-badge {
   display: inline-flex;
   align-items: center;
@@ -349,54 +413,88 @@ async function removeGroup(node: GroupNode) {
   font-size: 11px;
   font-weight: 600;
 }
-.node-remark {
-  font-size: 12px;
-  opacity: 0.5;
-  cursor: help;
-}
-.tree-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.tree-node:hover .tree-actions,
-.tree-node:focus-within .tree-actions {
-  opacity: 1;
-}
 
-.group-layout {
-  display: flex;
-  gap: 16px;
-  height: calc(100vh - 220px);
-}
-
-.tree-card {
-  width: 320px;
-  flex-shrink: 0;
-}
-
+/* ---- 右侧详情 ---- */
 .detail-card {
-  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+.detail-content {
+  padding: 20px;
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--el-border-color);
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+}
+
+.detail-title-area {
+  flex: 1;
 }
 
 .detail-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.detail-desc {
+  color: var(--text-secondary, #8a8a9e);
+  font-size: 13px;
+  margin: 0;
 }
 
 .detail-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 统计卡片 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.info-card {
+  background: var(--bg-fill, #f5f7fa);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-secondary, #8a8a9e);
+  margin-bottom: 8px;
+}
+
+.info-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.info-value--success {
+  color: #67c23a;
+}
+
+/* 详情区块 */
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
 }
 
 .detail-body {
@@ -411,14 +509,71 @@ async function removeGroup(node: GroupNode) {
   gap: 4px;
 }
 
+.detail-item--full {
+  grid-column: span 2;
+}
+
 .detail-label {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, #8a8a9e);
 }
 
 .detail-value {
   font-size: 14px;
   font-weight: 500;
+}
+
+/* 主机列表 */
+.host-list {
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.host-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+  transition: background 0.2s;
+}
+
+.host-item:last-child {
+  border-bottom: none;
+}
+
+.host-item:hover {
+  background: var(--bg-elevated, #fbfbff);
+}
+
+.host-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.host-status--online {
+  background: #67c23a;
+}
+
+.host-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.host-ip {
+  color: var(--text-secondary, #8a8a9e);
+  font-size: 13px;
+  margin-right: 16px;
+}
+
+.host-os {
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+  background: var(--bg-fill, #f5f7fa);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .color-field {

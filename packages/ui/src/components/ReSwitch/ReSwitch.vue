@@ -31,11 +31,20 @@ const props = withDefaults(
     cardHideSwitch?: boolean;
     /** card 布局：以 radio 样式展示（隐藏 el-switch，仅靠边框/背景表示状态，默认 false） */
     cardShowRadio?: boolean;
+    /** square 布局：通用图标名（激活/非激活都用它，两态相同，如 ep:star） */
+    icon?: string;
+    /** square 布局：激活态图标名（缺省回退到 icon） */
+    activeIcon?: string;
+    /** square 布局：非激活态图标名（缺省回退到 icon） */
+    inactiveIcon?: string;
   }>(),
   {
     layout: "default",
     cardHideSwitch: true,
     cardShowRadio: false,
+    icon: "",
+    activeIcon: "",
+    inactiveIcon: "",
   },
 );
 
@@ -78,6 +87,9 @@ watch(
     :description="description"
     :card-hide-switch="cardHideSwitch"
     :card-show-radio="cardShowRadio"
+    :icon="icon"
+    :active-icon="activeIcon"
+    :inactive-icon="inactiveIcon"
     v-model="modelValue"
   >
     <slot />

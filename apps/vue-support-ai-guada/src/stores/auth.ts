@@ -1,172 +1,131 @@
 // stores/auth.ts
 import { defineStore } from 'pinia'
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
-import { apiService } from '@/services/ApiService'
+import { getMe, login as loginApi, syncUserPerm } from '@repo/core'
+import { unwrapResult } from '@repo/utils'
 import { t } from '@/locales'
+import {
+    api,
+    cachedUserInfo,
+    clearAuth,
+    currentToken,
+    hasToken,
+    saveAuth,
+} from '@/framework/context'
 import type { User, LoginRequest } from '@/types/api'
+
+/** 后端 /v2/user/me 契约（ReturnResult.data） */
+interface MePayload {
+    userId?: string
+    username?: string
+    nickname?: string
+    readonly?: boolean
+    roles?: string[]
+}
+
+/** 后端 /v2/user/login 契约（ReturnResult.data） */
+interface LoginPayload extends MePayload {
+    accessToken?: string
+    refreshToken?: string
+    user?: MePayload
+    expires?: number
+}
 
 /**
  * 认证状态 Store
+ *
+ * 令牌与用户信息统一由框架 storage 持有（@repo/utils token 模块），请求侧的
+ * Authorization 头与 401/403 跳登录由 @repo/core 的 http 拦截器负责，
+ * 本 store 只做状态镜像与登录 / 登出 / 校验动作。
  */
 export const useAuthStore = defineStore('auth', () => {
-    // Token 存储：优先从 localStorage 读取（记住我），否则使用 sessionStorage
-    const getStoredToken = (): string | null => {
-        return localStorage.getItem('token') || sessionStorage.getItem('token')
-    }
-
-    const getStoredUser = (): User | null => {
-        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-        if (storedUser) {
-            try {
-                return JSON.parse(storedUser)
-            } catch {
-                return null
-            }
-        }
-        return null
-    }
-
-    // 状态：store 创建时立即从 storage 恢复，确保刷新后数据不丢失
-    const user: Ref<User | null> = ref(getStoredUser())
-    const token: Ref<string | null> = ref(getStoredToken())
+    // 状态：store 创建时立即从框架 storage 恢复，确保刷新后数据不丢失
+    const user: Ref<User | null> = ref((cachedUserInfo<MePayload>() as User | null) ?? null)
+    const token: Ref<string | null> = ref(currentToken() || null)
 
     // 免登录状态
     const autoLoginEnabled: Ref<boolean> = ref(false)
 
-    // 计算属性：默认已登录（跳过登录页）
-    const isAuthenticated: ComputedRef<boolean> = computed(() => true)
+    // 计算属性：持有令牌才算已登录（路由守卫据此拦截）
+    const isAuthenticated: ComputedRef<boolean> = computed(() => Boolean(token.value))
 
     // 定时验证定时器引用
     let refreshTimer: number | null = null
     const REFRESH_INTERVAL = 30 * 60 * 1000 // 30分钟
 
+    /** 令牌与用户信息写入框架 storage（用户级存储前缀依赖 userId） */
+    function remember(accessToken: string, profile: MePayload): void {
+        const { roles, ...rest } = profile
+        const profileWithRoles = { ...rest, roles: roles ?? [] }
+        saveAuth(accessToken, profileWithRoles as unknown as Record<string, unknown>)
+        // 关键：SPA 登录不会重新执行 createApp 的 syncUserPerm，需在此立即同步角色，
+        // 否则 isAdmin() 读不到角色，MCP 等仅管理员入口在登录后不显示（刷新才恢复）
+        syncUserPerm(profileWithRoles)
+        token.value = accessToken
+        user.value = rest as unknown as User
+    }
+
     // Actions
-    async function login(credentials: LoginRequest & { rememberMe?: boolean }): Promise<boolean> {
-        try {
-            const result = await apiService.login(credentials)
-            console.log('登录响应:', result)
-
-            const accessToken = result.accessToken
-            const userData = result.user
-
-            if (!accessToken) {
-                throw new Error(t('common.auth.loginFailed'))
-            }
-
-            // 根据 rememberMe 决定存储位置，并清除另一位置的旧数据避免残留
-            const shouldRemember = credentials.rememberMe === true
-            if (shouldRemember) {
-                localStorage.setItem('token', accessToken)
-                localStorage.setItem('user', JSON.stringify(userData))
-                sessionStorage.removeItem('token')
-                sessionStorage.removeItem('user')
-            } else {
-                sessionStorage.setItem('token', accessToken)
-                sessionStorage.setItem('user', JSON.stringify(userData))
-                localStorage.removeItem('token')
-                localStorage.removeItem('user')
-            }
-
-            token.value = accessToken
-            user.value = userData
-
-            // 启动定时验证
-            startAuthRefreshTimer()
-
-            return true
-        } catch (error: any) {
-            console.error("登录失败:", error)
-            // 直接抛出原始错误，保留 statusCode 等信息
-            throw error
+    async function login(credentials: LoginRequest): Promise<boolean> {
+        const payload = unwrapResult<LoginPayload>(
+            await loginApi({ username: credentials.username, password: credentials.password }),
+        )
+        const accessToken = payload?.accessToken
+        if (!accessToken) {
+            throw new Error(t('common.auth.loginFailed'))
         }
+        remember(accessToken, payload.user ?? payload)
+        startAuthRefreshTimer()
+        return true
     }
 
     function logout(): void {
-        // 清除所有存储中的认证信息
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('user')
-
+        // 通知后端登出，失败不阻断本地清理（令牌失效场景由拦截器跳转处理）
+        void api.post('/user/logout').catch(() => undefined)
+        clearAuth()
         token.value = null
         user.value = null
-
-        // 停止定时验证
         stopAuthRefreshTimer()
     }
 
     /**
      * 页面刷新时初始化认证状态
-     * 优先从 storage 恢复 token，然后异步验证 token 有效性并刷新用户信息
+     * 有令牌则异步验证有效性并刷新用户信息，无效时清除登录态
      */
     async function initializeAuth(): Promise<boolean> {
-        const storedToken = getStoredToken()
-        if (!storedToken) {
+        if (!hasToken()) {
+            token.value = null
             return false
         }
-
-        // 先恢复 token，让 isAuthenticated 立即为 true，避免路由守卫拦截
-        token.value = storedToken
-
-        // 尝试从 storage 恢复用户信息（作为临时展示，后续会被验证结果覆盖）
-        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-        if (storedUser) {
-            try {
-                user.value = JSON.parse(storedUser)
-            } catch {
-                user.value = null
-            }
-        }
-
-        // 同步验证 token 并刷新用户信息
-        const isValid = await checkAuth()
-        if (isValid) {
-            startAuthRefreshTimer()
-        }
-        return isValid
+        token.value = currentToken()
+        return checkAuth()
     }
 
     async function checkAuth(): Promise<boolean> {
-        const storedToken = getStoredToken()
-        if (!storedToken) return false
-
+        if (!hasToken()) return false
         try {
-            const userData = await apiService.getProfile()
-            user.value = userData
-            token.value = storedToken
-
-            // 同步用户信息到存储，保持与 token 相同的位置
-            const tokenInLocalStorage = !!localStorage.getItem('token')
-            if (tokenInLocalStorage) {
-                localStorage.setItem('user', JSON.stringify(userData))
-            } else {
-                sessionStorage.setItem('user', JSON.stringify(userData))
-            }
-
+            const me = unwrapResult<MePayload>(await getMe(false))
+            remember(currentToken(), me ?? {})
+            if (refreshTimer === null) startAuthRefreshTimer()
             return true
         } catch (error: any) {
-            console.error('认证检查失败:', error)
-
-            // 如果是连接错误，不要清除token，保留登录状态
-            if (error.message?.includes('无法连接到后端服务') ||
-                error.message?.includes('API服务初始化中')) {
-                console.warn('后端服务未就绪，保留登录状态')
-                // 保留token和用户信息，等待后端就绪
-                return true
+            // 只按传输层错误判断「暂不可达」：业务失败（HTTP 200 的 {code,msg}）不含
+            // status/response，若一并放过会让失效令牌长期保留登录态
+            const status = error?.response?.status ?? error?.status;
+            const transportDown =
+                (error?.isAxiosError === true && error?.response === undefined) ||
+                status === 502 ||
+                status === 503 ||
+                status === 504;
+            if (transportDown) {
+                // 后端不可达（未启动 / 网络中断）：保留登录态，等待下次验证
+                console.warn('认证检查暂不可达，保留登录态:', error?.message ?? error);
+                return true;
             }
-
-            // 兼容 ApiService 拦截器转换后的 401 错误
-            if (error.response?.status === 401 ||
-                error.statusCode === 401 ||
-                error.isAuthError === true ||
-                error.message?.includes('Invalid token') ||
-                error.message?.includes('Authentication required')) {
-                logout()
-                return false
-            }
-
-            // 其他错误也保留登录状态
-            return true
+            console.warn('认证检查失败:', error?.message ?? error);
+            // 令牌被后端明确拒绝（含「未登录」）：清除登录态，由路由守卫跳登录页
+            logout();
+            return false;
         }
     }
 
@@ -176,12 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
     function startAuthRefreshTimer(): void {
         stopAuthRefreshTimer()
         refreshTimer = window.setInterval(() => {
-            console.log('[AuthStore] 执行定时认证验证')
-            checkAuth().then((isValid) => {
-                if (!isValid) {
-                    console.warn('[AuthStore] 定时验证失败，用户已登出')
-                }
-            })
+            void checkAuth()
         }, REFRESH_INTERVAL)
     }
 
@@ -192,56 +146,6 @@ export const useAuthStore = defineStore('auth', () => {
         if (refreshTimer !== null) {
             window.clearInterval(refreshTimer)
             refreshTimer = null
-        }
-    }
-
-    async function checkAutoLoginStatus(): Promise<boolean> {
-        try {
-            // 使用新的分组设置接口
-            const result = await apiService.fetchGroupSettings('system')
-            autoLoginEnabled.value = result.autoLoginEnabled || false
-            return autoLoginEnabled.value
-        } catch (error) {
-            console.error("获取免登录状态失败:", error)
-            return false
-        }
-    }
-
-    async function setAutoLoginEnabled(enabled: boolean): Promise<void> {
-        try {
-            // 使用新的分组设置接口
-            await apiService.updateGroupSettings('system', { autoLoginEnabled: enabled })
-            autoLoginEnabled.value = enabled
-        } catch (error) {
-            console.error("设置免登录状态失败:", error)
-            throw error
-        }
-    }
-
-    async function tryAutoLogin(): Promise<boolean> {
-        try {
-            const result = await apiService.autoLogin()
-
-            if (!result || !result.accessToken) {
-                console.warn('自动登录失败：未获取到 token')
-                return false
-            }
-
-            // 自动登录使用 sessionStorage，不记住
-            sessionStorage.setItem('token', result.accessToken)
-            sessionStorage.setItem('user', JSON.stringify(result.user))
-
-            token.value = result.accessToken
-            user.value = result.user
-
-            // 启动定时验证
-            startAuthRefreshTimer()
-
-            console.log('自动登录成功')
-            return true
-        } catch (error) {
-            console.error("自动登录失败:", error)
-            return false
         }
     }
 
@@ -256,8 +160,5 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         initializeAuth,
         checkAuth,
-        checkAutoLoginStatus,
-        setAutoLoginEnabled,
-        tryAutoLogin
     }
 })

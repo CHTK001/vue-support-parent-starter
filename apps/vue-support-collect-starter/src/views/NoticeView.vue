@@ -20,7 +20,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReOption } from "@repo/ui/re-select";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import {
   deleteNotice,
   fetchNoticeChannels,
@@ -62,8 +62,8 @@ const TEMPLATE_VARS = "${flowName} ${flowId} ${taskId} ${taskNo} ${status} ${sta
 const rows = ref<CollectNotice[]>([]);
 const channels = ref<CollectNotifyChannel[]>([]);
 const flows = ref<ReOption[]>([]);
-/** "" 表示不加流程条件，与后端的 flowId 缺省语义一致 */
-const filterFlowId = ref<number | string>("");
+/** 内置搜索区的草稿值：collectNoticeFlowId 为 "" 表示不加流程条件 */
+const searchModel = ref<Record<string, unknown>>({ collectNoticeFlowId: "" });
 const visible = ref(false);
 const saving = ref(false);
 const testingId = ref<number | null>(null);
@@ -109,6 +109,28 @@ const filterOptions = computed<ReOption[]>(() => [
   ...flows.value.map(f => ({ label: f.label, value: Number(f.value) })),
 ]);
 
+/** 内置搜索区：必须是 computed，流程下拉的选项要跟着流程列表刷新 */
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索通知配置",
+  showRefreshBtn: false,
+  filters: [
+    {
+      key: "collectNoticeFlowId",
+      label: "适用流程",
+      type: "select",
+      placeholder: "不限流程",
+      options: filterOptions.value,
+      attrs: { filterable: true },
+    },
+  ],
+}));
+
+/** 搜索区选出来的流程：空=不限流程，0=只看全局配置（后端是严格等值过滤） */
+function pickedFlowId(): number | undefined {
+  const picked = searchModel.value.collectNoticeFlowId;
+  return picked === "" || picked === undefined || picked === null ? undefined : Number(picked);
+}
+
 /** 当前所选渠道的目标填写提示，未选渠道时给通用说明 */
 const targetHint = computed<string>(() => {
   const matched = channels.value.find(c => c.value === form.collectNoticeChannel);
@@ -124,12 +146,12 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectNoticeEnabled", label: "启用", width: 76, slot: "enabled", align: "center" },
   { prop: "collectNoticeLastResult", label: "最近结果", minWidth: 220, slot: "last" },
   { prop: "collectNoticeLastTime", label: "最近发送", width: 176 },
-  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" },
 ]);
 
 const { loading, reload } = useCollectView(async () => {
   const [notices, registered, flowList] = await Promise.all([
-    listNotices(filterFlowId.value === "" ? undefined : Number(filterFlowId.value)),
+    listNotices(pickedFlowId()),
     fetchNoticeChannels(),
     listFlows(),
   ]);
@@ -143,6 +165,11 @@ const { loading, reload } = useCollectView(async () => {
     form.collectNoticeChannel = channels.value[0].value;
   }
 });
+
+/** 查询/重置：本页是前端整表加载，ReTable 不会替我们回源，必须重拉一次清单 */
+function applySearch(): void {
+  void reload();
+}
 
 function flowLabel(flowId?: number | null): string {
   if (flowId === null || flowId === undefined || flowId === ALL_FLOWS) {
@@ -285,24 +312,6 @@ function showHelp(): void {
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-filters">
-      <ReSelect
-        v-model="filterFlowId"
-        size="small"
-        style="width: 210px"
-        :options="filterOptions"
-        placeholder="不限流程"
-        clearable
-        filterable
-        @change="reload"
-      />
-      <ReButton size="small" icon="QuestionFilled" @click="showHelp">模板变量</ReButton>
-      <span class="collect-hint">任务进入终态后按命中时机异步投递，投递失败只记在「最近结果」，不改任务终态</span>
-      <span class="spacer"/>
-      <ReButton size="small" icon="Refresh" @click="reload">刷新</ReButton>
-      <ReButton size="small" type="primary" icon="Plus" @click="openCreate">新建通知</ReButton>
-    </div>
-
     <ReTable
       class="collect-card"
       table-id="collect-notice"
@@ -311,9 +320,20 @@ function showHelp(): void {
       :columns="columns"
       :pagination="false"
       row-key="collectNoticeId"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
       empty-text="暂无通知配置"
       stripe
+      @search="applySearch"
+      @search-reset="applySearch"
+      @refresh="reload"
     >
+      <template #toolbar>
+        <ReButton icon="QuestionFilled" title="查看标题与正文可用的模板变量" @click="showHelp">查看标题与正文可用的模板变量</ReButton>
+        <ReButton icon="Plus" type="primary" title="新建通知" @click="openCreate">新建通知</ReButton>
+        <span class="collect-hint">任务进入终态后按命中时机异步投递，投递失败只记在「最近结果」，不改任务终态</span>
+      </template>
+
       <template #flow="{ row }">{{ flowLabel(row.collectNoticeFlowId as number | undefined) }}</template>
       <template #channel="{ row }">
         <ReTag size="small" effect="plain">{{ channelLabels[row.collectNoticeChannel as string] ?? row.collectNoticeChannel }}</ReTag>
@@ -341,17 +361,16 @@ function showHelp(): void {
         </span>
       </template>
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="openEdit(row)">编辑</ReButton>
+        <ReButton layout="square" icon="Edit" type="primary" title="编辑这条通知配置" @click="openEdit(row)"/>
         <ReButton
-          size="small"
-          text
+          layout="square"
+          icon="Promotion"
           type="warning"
           :loading="testingId === row.collectNoticeId"
+          title="按这条配置试发一次（试运行不发通知，只能用这里验证渠道）"
           @click="test(row)"
-        >
-          试发
-        </ReButton>
-        <ReButton size="small" text type="danger" @click="remove(row)">删除</ReButton>
+        />
+        <ReButton layout="square" icon="Delete" type="danger" title="删除这条通知配置" @click="remove(row)"/>
       </template>
     </ReTable>
 

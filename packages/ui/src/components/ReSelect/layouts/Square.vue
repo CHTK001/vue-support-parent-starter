@@ -1,5 +1,12 @@
 <template>
-  <div class="re-select-square" :class="{ 're-select-square--compact': compact }">
+  <div
+    class="re-select-square"
+    :class="{
+      're-select-square--compact': compact,
+      're-select-square--text': !iconOnly,
+      're-select-square--vertical': vertical,
+    }"
+  >
     <div
       v-for="opt in displayOptions"
       :key="String(opt.value)"
@@ -11,8 +18,8 @@
       @click="select(opt)"
     >
       <ReIcon v-if="opt.icon" :name="opt.icon" :size="iconSize" />
-      <span v-else class="re-select-square__fallback">{{ String(opt.label).charAt(0) }}</span>
-      <span v-if="!iconOnly" class="re-select-square__label">{{ opt.label }}</span>
+      <span v-if="!vertical && !opt.icon" class="re-select-square__fallback">{{ String(opt.label).charAt(0) }}</span>
+      <span v-if="!iconOnly || vertical" class="re-select-square__label">{{ opt.label }}</span>
       <span v-if="isSelected(opt)" class="re-select-square__check">
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="2 6 5 9 10 3" />
@@ -33,11 +40,13 @@
  * 支持 compact 紧凑模式（默认开启）：
  *   - 紧凑正方形按钮（iconOnly 时固定小宽高）
  *   - 关闭时为大卡片样式（图标在上、文字在下、留白更足）
+ * 支持 vertical 竖向档（vertical=true）：一行一档、整行走菜单感底色，选中态是整行高亮 + 右侧对勾。
  * 选项图标通过 ReIcon 渲染，自动支持：
  *   - element-plus PascalCase
  *   - ep:xxx / ri:xxx / mdi:xxx
  *   - iconfont class / uni / svg
  *   - HTTP URL
+ * 没有 icon 的选项：横向档取 label 首字占位，竖向档直接显示 label 文字。
  */
 import { computed } from "vue";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
@@ -57,6 +66,8 @@ const props = withDefaults(
     iconOnly?: boolean;
     /** 紧凑模式（默认 true） */
     compact?: boolean;
+    /** 竖向档位列表：一行一档，文字优先、选中态走整行 */
+    vertical?: boolean;
     /** 是否禁用 */
     disabled?: boolean;
   }>(),
@@ -66,6 +77,7 @@ const props = withDefaults(
     size: 22,
     iconOnly: true,
     compact: true,
+    vertical: false,
     disabled: false,
   },
 );
@@ -133,6 +145,22 @@ function select(opt: ReOption) {
   height: 8px;
 }
 
+/* ===== 紧凑 + 文字（iconOnly=false）：横向文字按钮，用于搜索区等窄行高场景 =====
+   纯图标紧凑档把按钮锁成 40x40 方块，直接塞文字会被裁掉，故这一档另算尺寸 */
+.re-select-square--compact.re-select-square--text .re-select-square__item {
+  width: auto;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+.re-select-square--compact.re-select-square--text .re-select-square__fallback,
+.re-select-square--compact.re-select-square--text .re-select-square__check {
+  display: none;
+}
+.re-select-square--compact.re-select-square--text .re-select-square__label {
+  font-size: 13px;
+}
+
 .re-select-square__item {
   position: relative;
   display: flex;
@@ -171,6 +199,11 @@ function select(opt: ReOption) {
   box-shadow: none;
 }
 
+/* 文字紧凑档的选中态：留在 32px 胶囊尺寸里，不回落到方块档的 0 内边距 */
+.re-select-square--compact.re-select-square--text .re-select-square__item--active {
+  padding: 0 12px;
+}
+
 .re-select-square__label {
   font-size: 12px;
   font-weight: 500;
@@ -207,5 +240,59 @@ function select(opt: ReOption) {
 .re-select-square__check svg {
   width: 10px;
   height: 10px;
+}
+
+/* ===== 竖向档位档（vertical）：一行一档，用于浮层里选间隔 =====
+   整行走「无边框 + 底色」的菜单感，不走方块档的描边选中，避免窄浮层里出现一串框 */
+.re-select-square--vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+}
+.re-select-square--vertical .re-select-square__item {
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  gap: 10px;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+}
+.re-select-square--vertical .re-select-square__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+}
+.re-select-square--vertical .re-select-square__item:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-color: transparent;
+}
+.re-select-square--vertical .re-select-square__item--active {
+  padding: 0 10px;
+  border: 1px solid transparent;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  box-shadow: none;
+}
+.re-select-square--vertical .re-select-square__item--active .re-select-square__label {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
+}
+/* 选中态用整行右侧的对勾，不飘在方块角上 */
+.re-select-square--vertical .re-select-square__check {
+  position: static;
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  background: transparent;
+  color: var(--el-color-primary, #409eff);
+  box-shadow: none;
+}
+.re-select-square--vertical .re-select-square__check svg {
+  width: 14px;
+  height: 14px;
 }
 </style>

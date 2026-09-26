@@ -9,23 +9,33 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
-import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { ElIcon, ElMessage, ElMessageBox } from "element-plus";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  ArrowRight,
+  ArrowLeft,
+  Close,
   CopyDocument,
+  Delete,
+  DeleteFilled,
+  Document,
   DocumentAdd,
   DocumentCopy,
   Download,
   EditPen,
   Files,
+  Folder,
   FolderAdd,
   FolderOpened,
+  Grid,
   InfoFilled,
+  List,
+  Lock,
+  Menu,
+  Operation,
   Refresh,
   Scissor,
-  Search,
   Setting,
+  Tickets,
   Upload,
 } from "@element-plus/icons-vue";
 import {
@@ -38,9 +48,7 @@ import {
   deleteObject,
   downloadZip,
   existObject,
-  fetchObjectText,
   getBucketConfig,
-  getBucketTree,
   getCapabilities,
   getDefaultBucket,
   getServerBase,
@@ -54,9 +62,10 @@ import {
   setBucketConfig,
   setDefaultBucket,
 } from "../api/filestorageApi";
-import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
+import type { BucketConfig, CapabilitiesResponse, StorageObject } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
-import PreviewImagePanel from "../components/PreviewImagePanel.vue";
+import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
+import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 
 /**
  * Windows 风格彩色类型图标（SVG 标记，viewBox 48x48）。
@@ -172,91 +181,6 @@ function fileSvg(name: string, isDir: boolean): string {
   }
 }
 
-/**
- * 递归目录树节点组件（KodExplorer 式左侧文件树）。
- *
- * <p>通过 props.node 渲染当前目录，若有 children 递归展开为子节点；
- * 点击节点通过 {@code select} 事件通知父组件切换当前目录。</p>
- */
-const FsTreeNode = defineComponent({
-  name: "FsTreeNode",
-  props: {
-    node: { type: Object as () => TreeItem, required: true },
-    depth: { type: Number, default: 0 },
-    activePath: { type: String, default: "" },
-  },
-  emits: ["select", "drop"],
-  setup(props, { emit }) {
-    const open = ref(false);
-    /** 拖拽悬停（内部移动/复制放置目标高亮） */
-    const dropHover = ref(false);
-    const hasChildren = computed(() =>
-      Array.isArray(props.node.children) && props.node.children.length > 0);
-    const isActive = computed(() => props.activePath === props.node.path);
-    function toggle(): void { if (hasChildren.value) open.value = !open.value; }
-    function go(): void { emit("select", props.node.path, props.node.name); }
-    /** 内部拖拽悬停在目录节点上 */
-    function onDragOver(e: DragEvent): void {
-      if (!e.dataTransfer || !e.dataTransfer.types.includes("application/x-fs-keys")) return;
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = e.ctrlKey ? "copy" : "move";
-      dropHover.value = true;
-    }
-    function onDragLeave(): void { dropHover.value = false; }
-    function onDrop(e: DragEvent): void {
-      if (!e.dataTransfer || !e.dataTransfer.types.includes("application/x-fs-keys")) return;
-      e.preventDefault();
-      e.stopPropagation();
-      dropHover.value = false;
-      emit("drop", e, props.node.path);
-    }
-    return { open, hasChildren, isActive, toggle, go, dropHover, onDragOver, onDragLeave, onDrop };
-  },
-  render() {
-    const props = this.$props as { node: TreeItem; depth: number; activePath: string };
-    const ind = (8 + (props.depth || 0) * 14) + "px";
-    const row = h("div", {
-      class: [
-        "fs-tree-node__row",
-        this.isActive ? "fs-tree-node__row--active" : "",
-        this.dropHover ? "fs-tree-node__row--drop" : "",
-      ],
-      style: { paddingLeft: ind },
-      onClick: this.go,
-      onDragover: this.onDragOver,
-      onDragleave: this.onDragLeave,
-      onDrop: this.onDrop,
-    }, [
-      h(ElIcon, {
-        class: ["fs-tree-node__arrow", this.open ? "fs-tree-node__arrow--open" : ""],
-        // 显式尺寸：render 函数生成的内部节点不受父组件 scoped 样式控制
-        style: { fontSize: "12px", width: "12px", height: "12px", visibility: this.hasChildren ? "visible" : "hidden" },
-        onClick: (e: MouseEvent) => { e.stopPropagation(); this.toggle(); },
-      }, () => h(ArrowRight)),
-      h("span", {
-        class: "fs-typeicon",
-        style: { fontSize: "16px", margin: "0 5px 0 2px", flexShrink: "0" },
-        innerHTML: FS_TYPE_SVG.folder,
-        "aria-hidden": "true",
-      }),
-      h("span", { class: "fs-tree-node__label", title: props.node.name }, props.node.name),
-    ]);
-    const children = this.open && this.hasChildren
-      ? h("div", {}, (props.node.children || []).map((child) =>
-          h(FsTreeNode, {
-            key: child.path,
-            node: child,
-            depth: (props.depth || 0) + 1,
-            activePath: props.activePath,
-            onSelect: (p: string, n: string) => this.$emit("select", p, n),
-            onDrop: (e: DragEvent, p: string) => this.$emit("drop", e, p),
-          })))
-      : null;
-    return h("div", {}, [row, children]);
-  },
-});
-
 /** 预览类型 */
 type PreviewKind =
   | "image"
@@ -341,15 +265,8 @@ const ARCHIVE_EXTS = [
   "7z", "rar", "zst", "tzst", "jar", "war", "apk",
 ];
 
-/** 走 iframe 调用后端 SPI 预览的全部类型 */
-const SPI_IFRAME_KINDS: PreviewKind[] = [
-  "office", "font", "archive", "code", "markdown", "csv",
-  "email", "calendar", "contact", "notebook",
-  "webpage", "data", "design", "model",
-];
-
-/** 视图模式（Windows 资源管理器风格） */
-type ViewMode = "details" | "largeIcons" | "mediumIcons" | "smallIcons";
+/** 视图模式：columns=分栏（macOS Finder 风格，默认）/ details / largeIcons / mediumIcons / smallIcons */
+type ViewMode = "columns" | "details" | "largeIcons" | "mediumIcons" | "smallIcons";
 
 /* ================== 连接 & 状态 ================== */
 
@@ -358,12 +275,18 @@ type ViewMode = "details" | "largeIcons" | "mediumIcons" | "smallIcons";
  *
  * 服务返回的 Vue 壳页面 URL 即 {@code /{bucket}}，第一段路径即 bucket；
  * query 参数 bucket 优先级最高，便于测试覆盖。
+ * 仅当页面由文件服务器自身提供（origin 与文件服务器一致）时才取首段路径，
+ * 系统应用内嵌页面（/{appBase}/manage/filestorage）的首段是应用前缀，不能当作桶名。
  */
 function resolveBucket(): string {
   try {
     const qs = new URLSearchParams(window.location.search);
     const qb = (qs.get("bucket") || "").trim();
     if (qb) return qb;
+    const serverBase = getServerBase();
+    if (serverBase && window.location.origin !== new URL(serverBase).origin) {
+      return "";
+    }
     const seg = (window.location.pathname || "").split("/").filter((s) => s.length > 0);
     const first = (seg[0] || "").trim();
     if (first && !["fs", "assets", "ot", "config"].includes(first.toLowerCase())) {
@@ -379,8 +302,8 @@ const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
 const keyword = ref("");
-/** 视图模式：details=详细信息 / largeIcons=大图标 / mediumIcons=中图标 / smallIcons=小图标 */
-const viewMode = ref<ViewMode>("details");
+/** 视图模式：columns=分栏（默认，macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons / details */
+const viewMode = ref<ViewMode>("columns");
 /** 排序字段 */
 const sortKey = ref<"name" | "size" | "lastModified">("name");
 /** 排序方向：asc 升序 / desc 降序 */
@@ -397,10 +320,6 @@ const configLoading = ref(false);
 const selected = ref<Set<string>>(new Set());
 /** 最近一次点击的选中项（用于 Shift 连续多选） */
 let lastSelectedIndex = -1;
-/** 目录树数据 */
-const tree = ref<TreeItem[]>([]);
-/** 目录树加载状态 */
-const treeLoading = ref(false);
 /** 历史栈（KodExplorer 地址栏前进/后退） */
 const historyStack = ref<string[]>([]);
 /** 当前历史索引 */
@@ -410,7 +329,7 @@ let suppressHistory = false;
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
-  return [{ name: "全部文件", path: "" }, ...segments.map((name, index) => ({
+  return [{ name: "根目录", path: "" }, ...segments.map((name, index) => ({
     name,
     path: segments.slice(0, index + 1).join("/"),
   }))];
@@ -640,12 +559,250 @@ const canUnzip = computed(() => {
   return !!target && !target.directory && isArchive(target.name);
 });
 
+/* ================== 左侧导航（目录树 + 快捷访问）/ 回收站 ================== */
+
+/** 左侧导航视图：all=文件浏览 / recycle=回收站 */
+type NavKey = "all" | "recycle";
+const nav = ref<NavKey>("all");
+
+/** 回收站目录（桶内隐藏目录，常规列表不展示） */
+const RECYCLE_DIR = ".recycle";
+/** localStorage：最近访问路径 */
+const RECENT_KEY = "filestorage.recent";
+/** localStorage：收藏夹路径 */
+const FAVORITE_KEY = "filestorage.favorites";
+
+/**
+ * 读取 localStorage 列表（损坏时回退空数组）
+ *
+ * @param key 存储键
+ * @return 列表
+ */
+function readList<T>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 写入 localStorage 列表（写入失败静默）
+ *
+ * @param key 存储键
+ * @param list 列表
+ */
+function writeList(key: string, list: unknown[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch { /* ignore */ }
+}
+
+const recentPaths = ref<string[]>(readList<string>(RECENT_KEY));
+const favoritePaths = ref<string[]>(readList<string>(FAVORITE_KEY));
+
+/** 快捷访问：收藏在前、最近访问在后，去重 */
+const quickPaths = computed<string[]>(() => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const p of [...favoritePaths.value, ...recentPaths.value]) {
+    if (p && !seen.has(p)) {
+      seen.add(p);
+      out.push(p);
+    }
+  }
+  return out;
+});
+
+/** 回收站条目 */
+const recycleItems = ref<StorageObject[]>([]);
+/** 回收站加载中 */
+const recycleLoading = ref(false);
+/** 回收站数量（导航徽标） */
+const recycleCount = computed(() => recycleItems.value.length);
+
+/**
+ * 记录最近访问目录（去重、最多 12 条）
+ *
+ * @param path 目录路径
+ */
+function recordRecent(path: string): void {
+  if (!path) return;
+  recentPaths.value = [path, ...recentPaths.value.filter((p) => p !== path)].slice(0, 12);
+  writeList(RECENT_KEY, recentPaths.value);
+}
+
+/**
+ * 是否已收藏路径
+ *
+ * @param path 目录路径
+ * @return 是否收藏
+ */
+function isFavorite(path: string): boolean {
+  return favoritePaths.value.includes(path);
+}
+
+/**
+ * 切换收藏状态
+ *
+ * @param path 目录路径
+ */
+function toggleFavorite(path: string): void {
+  const has = isFavorite(path);
+  favoritePaths.value = has ? favoritePaths.value.filter((p) => p !== path) : [path, ...favoritePaths.value];
+  writeList(FAVORITE_KEY, favoritePaths.value);
+  ElMessage.success(has ? "已取消收藏" : "已加入收藏夹");
+}
+
+/**
+ * 从快捷访问移除（同时清掉收藏与最近记录）
+ *
+ * @param path 目录路径
+ */
+function removeQuick(path: string): void {
+  favoritePaths.value = favoritePaths.value.filter((p) => p !== path);
+  recentPaths.value = recentPaths.value.filter((p) => p !== path);
+  writeList(FAVORITE_KEY, favoritePaths.value);
+  writeList(RECENT_KEY, recentPaths.value);
+}
+
+/** 路径显示名（最后一段） */
+function pathLabel(path: string): string {
+  return path.split("/").filter(Boolean).pop() || path;
+}
+
+/** 从快捷访问进入目录 */
+function enterPath(path: string): void {
+  nav.value = "all";
+  goCrumb(path);
+}
+
+/** 加载回收站列表（不存在时按空处理） */
+async function loadRecycle(): Promise<void> {
+  recycleLoading.value = true;
+  try {
+    recycleItems.value = await listObjects(bucket.value, RECYCLE_DIR);
+  } catch {
+    recycleItems.value = [];
+  } finally {
+    recycleLoading.value = false;
+  }
+}
+
+/** 确保回收站目录存在（已存在时忽略） */
+async function ensureRecycleDir(): Promise<void> {
+  try {
+    await createDirectory(bucket.value, "", RECYCLE_DIR);
+  } catch { /* 已存在忽略 */ }
+}
+
+/**
+ * 将对象移入回收站（删除语义：先入回收站，可还原/彻底删除）
+ *
+ * @param targets 待删除对象
+ */
+async function moveToRecycle(targets: StorageObject[]): Promise<void> {
+  if (!targets.length) return;
+  await ensureRecycleDir();
+  await moveObjects(bucket.value, targets.map((t) => fullKey(t.name)), RECYCLE_DIR);
+}
+
+/** 从回收站还原对象 */
+async function restoreRecycleItem(item: StorageObject): Promise<void> {
+  actionRunning.value = true;
+  try {
+    await moveObjects(bucket.value, [`${RECYCLE_DIR}/${item.name}`], "");
+    ElMessage.success(`已还原「${item.name}」`);
+    await Promise.all([loadRecycle(), loadObjects()]);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "还原失败");
+  } finally {
+    actionRunning.value = false;
+  }
+}
+
+/** 彻底删除回收站对象 */
+async function purgeRecycleItem(item: StorageObject): Promise<void> {
+  try {
+    await ElMessageBox.confirm(`彻底删除「${item.name}」？该操作不可恢复`, "彻底删除", { type: "warning" });
+  } catch { return; }
+  actionRunning.value = true;
+  try {
+    await deleteObject(bucket.value, `${RECYCLE_DIR}/${item.name}`);
+    ElMessage.success("已彻底删除");
+    await loadRecycle();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "删除失败");
+  } finally {
+    actionRunning.value = false;
+  }
+}
+
+/** 清空回收站 */
+async function emptyRecycle(): Promise<void> {
+  if (!recycleItems.value.length) {
+    ElMessage.warning("回收站为空");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm("清空回收站？所有对象将被彻底删除", "清空回收站", { type: "warning" });
+  } catch { return; }
+  actionRunning.value = true;
+  try {
+    await deleteObject(bucket.value, RECYCLE_DIR);
+    ElMessage.success("回收站已清空");
+    await loadRecycle();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "清空失败");
+  } finally {
+    actionRunning.value = false;
+  }
+}
+
+/**
+ * 切换左侧导航视图
+ *
+ * @param key 视图 key
+ */
+function switchNav(key: NavKey): void {
+  nav.value = key;
+  clearSelect();
+  if (key === "all") {
+    // 回到"根目录"：回桶根
+    currentPath.value = "";
+    void loadObjects();
+  }
+  if (key === "recycle") void loadRecycle();
+}
+
+/** 视图下拉切换 */
+function setView(mode: ViewMode): void {
+  viewMode.value = mode;
+}
+
+/**
+ * 卡片第二行元信息
+ *
+ * @param item 对象
+ * @return 元信息文案
+ */
+function cardMeta(item: StorageObject): string {
+  const time = item.lastModified ? new Date(item.lastModified).toLocaleString() : "";
+  if (item.directory) return time ? `文件夹 · ${time}` : "文件夹";
+  return [formatSize(item.size), time].filter(Boolean).join(" · ");
+}
+
 /* ================== 目录导航 ================== */
 
 async function loadObjects(): Promise<void> {
   loading.value = true;
   try {
-    objects.value = await listObjects(bucket.value, currentPath.value);
+    const list = await listObjects(bucket.value, currentPath.value);
+    // 回收站为桶内隐藏目录，常规列表不展示
+    objects.value = list.filter((o) => o.name !== RECYCLE_DIR);
+    // 同步分栏缓存（当前列）
+    colObjects.value = { ...colObjects.value, [currentPath.value]: objects.value };
     setDefaultBucket(bucket.value);
     // 记录历史（前进/后退导航时 suppressHistory=true 跳过）
     if (!suppressHistory) {
@@ -705,17 +862,76 @@ async function deleteSelected(): Promise<void> {
   if (selectedCount.value === 0) return;
   const targets = objects.value.filter((o) => selected.value.has(o.name));
   try {
-    await ElMessageBox.confirm(`确认删除选中的 ${targets.length} 个对象？`, "删除确认", { type: "warning" });
+    await ElMessageBox.confirm(`确认将选中的 ${targets.length} 个对象移入回收站？`, "移入回收站", { type: "warning" });
   } catch { return; }
   try {
-    for (const t of targets) {
-      await deleteObject(bucket.value, fullKey(t.name));
-    }
-    ElMessage.success(`已删除 ${targets.length} 个对象`);
+    await moveToRecycle(targets);
+    ElMessage.success(`已移入回收站 ${targets.length} 个对象`);
     clearSelect();
-    await loadObjects();
-    await loadTree();
+    await Promise.all([loadObjects(), loadRecycle()]);
   } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
+}
+
+/* ============== 分发到服务器（URL 参数开启，数据经 postMessage 交宿主） ============== */
+
+/**
+ * 读取启用标记：优先 location.search，其次 hash 查询串（如 #/files?distribute=1）
+ *
+ * @param name 参数名
+ * @return 参数值（不存在为空串）
+ */
+function urlFlag(name: string): string {
+  const fromSearch = new URLSearchParams(window.location.search).get(name);
+  if (fromSearch != null) return fromSearch;
+  const hash = window.location.hash || "";
+  const qIndex = hash.indexOf("?");
+  if (qIndex >= 0) {
+    return new URLSearchParams(hash.slice(qIndex + 1)).get(name) ?? "";
+  }
+  return "";
+}
+
+/** 是否开启「分发到服务器」（默认关闭，需地址栏 distribute=1/true/on/yes） */
+const DISTRIBUTE_ENABLED = ["1", "true", "on", "yes"].includes(urlFlag("distribute").toLowerCase());
+
+/** 当前可分发对象：恰好选中一个非目录文件 */
+const distributableTarget = computed<StorageObject | null>(() => {
+  if (selectedCount.value !== 1) return null;
+  const t = objects.value.find((o) => selected.value.has(o.name)) ?? null;
+  return t && !t.directory ? t : null;
+});
+
+/**
+ * 触发分发：把所选文件信息经 postMessage 交给宿主页面处理
+ *
+ * <p>文件资产可能作为独立存储页嵌入宿主（iframe）运行，本页不直接调用业务后端；
+ * 由宿主负责选择服务器并调用分发接口。仅当 URL 带 distribute 参数时该入口才出现，
+ * 数据通过 postMessage 传递（bucket/key/name/size/lastModified）。</p>
+ *
+ * @param target 指定文件（右键菜单传入）；缺省取当前选中的唯一文件
+ */
+function openDistribute(target?: StorageObject | null): void {
+  const file = target ?? distributableTarget.value;
+  if (!file || file.directory) {
+    ElMessage.warning("请选择一个文件进行分发");
+    return;
+  }
+  const payload = {
+    source: "file-storage",
+    type: "distribute",
+    bucket: bucket.value,
+    key: fullKey(file.name),
+    name: file.name,
+    size: file.size,
+    lastModified: file.lastModified,
+  };
+  const host = window.parent && window.parent !== window ? window.parent : window.opener;
+  if (host) {
+    host.postMessage(payload, "*");
+    ElMessage.success(`已发送分发请求：${file.name}`);
+  } else {
+    ElMessage.warning("当前页面未嵌入宿主，无法分发");
+  }
 }
 
 /* ============== 新建/重命名/复制/剪切/粘贴/压缩/解压（KodExplorer） ============== */
@@ -752,10 +968,11 @@ async function promptInput(title: string, initial = ""): Promise<string | null> 
   }
 }
 
-/** 动作完成后统一刷新列表与目录树 */
+/** 动作完成后统一刷新列表、分栏与回收站 */
 async function refreshAfterAction(): Promise<void> {
   clearSelect();
-  await Promise.all([loadObjects(), loadTree()]);
+  await Promise.all([loadObjects(), loadRecycle()]);
+  refreshColumns();
 }
 
 /** 新建文件夹 */
@@ -1002,33 +1219,6 @@ async function onRowDrop(e: DragEvent, item: StorageObject): Promise<void> {
   await dropKeysTo(targetDir, e);
 }
 
-/** 放置到左侧目录树节点 */
-async function onTreeDrop(e: DragEvent, targetDir: string): Promise<void> {
-  if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
-  e.preventDefault();
-  e.stopPropagation();
-  await dropKeysTo(targetDir, e);
-}
-
-/** 加载左侧目录树（失败静默） */
-async function loadTree(): Promise<void> {
-  treeLoading.value = true;
-  try {
-    tree.value = await getBucketTree(bucket.value);
-  } catch {
-    tree.value = [];
-  } finally {
-    treeLoading.value = false;
-  }
-}
-
-/** 目录树点击：进入该目录 */
-function onTreeSelect(path: string, name: string): void {
-  currentPath.value = path;
-  clearSelect();
-  loadObjects();
-}
-
 /** 容错地从服务端拉取 bucket 公开配置（失败静默，页面不受影响） */
 async function loadBucketConfig(): Promise<void> {
   configLoading.value = true;
@@ -1090,6 +1280,8 @@ const adminForm = reactive({
   showTime: true,
   /** 图片滤镜（ImageFilter SPI 扩展名，NONE 表示原图） */
   imageFilter: "NONE",
+  /** 是否私有桶（私有桶请求需携带访问令牌，由 OAuthServerFilter 鉴权；保存后实时生效） */
+  privateBucket: false,
 });
 
 /** 能力接口不可用时的内置兜底选项（纯前端 CSS 滤镜） */
@@ -1170,6 +1362,7 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
   adminForm.showSize = cfg.showSize ?? true;
   adminForm.showTime = cfg.showTime ?? true;
   adminForm.imageFilter = cfg.imageFilter || "NONE";
+  adminForm.privateBucket = cfg.private ?? false;
 }
 
 /**
@@ -1194,7 +1387,12 @@ async function saveAdminConfig(): Promise<void> {
   }
   adminSaving.value = true;
   try {
-    await setBucketConfig(bucket.value, tokenValue, { ...adminForm, watermark: adminForm.watermark.trim() });
+    const { privateBucket, ...rest } = adminForm;
+    await setBucketConfig(bucket.value, tokenValue, {
+      ...rest,
+      watermark: adminForm.watermark.trim(),
+      private: privateBucket,
+    });
     localStorage.setItem(ADMIN_TOKEN_KEY, tokenValue);
     adminVisible.value = false;
     ElMessage.success("配置已保存并实时生效");
@@ -1210,24 +1408,217 @@ async function saveAdminConfig(): Promise<void> {
 const allowPreview = computed(() => bucketConfig.value?.openPreview ?? true);
 /** 服务端是否允许下载 */
 const allowDownload = computed(() => bucketConfig.value?.openDownload ?? true);
-/** 存储类型显示名 */
-const storageType = computed(() => bucketConfig.value?.storage ?? "--");
+/** 当前桶是否私有（私有桶请求需登录令牌） */
+const bucketPrivate = computed(() => bucketConfig.value?.private ?? false);
 
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
+  recordRecent(currentPath.value);
+  clearSelect();
+  lastSelectedIndex = -1;
   loadObjects();
 }
 
 function goCrumb(path: string): void {
+  nav.value = "all";
   currentPath.value = path;
+  if (path) recordRecent(path);
+  clearSelect();
+  lastSelectedIndex = -1;
   loadObjects();
 }
 
 function goUp(): void {
   if (!currentPath.value) return;
+  nav.value = "all";
   const i = currentPath.value.lastIndexOf("/");
   currentPath.value = i > 0 ? currentPath.value.slice(0, i) : "";
+  clearSelect();
+  lastSelectedIndex = -1;
   loadObjects();
+}
+
+/* ================== 分栏视图（macOS Finder 风格） ================== */
+
+/** 分栏每列缓存的目录内容（key 为列对应目录路径） */
+const colObjects = ref<Record<string, StorageObject[]>>({});
+/** 分栏每列加载状态 */
+const colLoading = ref<Record<string, boolean>>({});
+
+/** 路径链：["", "a", "a/b", ...]（含当前目录，用于渲染各列） */
+const segmentPaths = computed<string[]>(() => {
+  const segs = currentPath.value ? currentPath.value.split("/") : [];
+  const out: string[] = [""];
+  let cur = "";
+  for (const s of segs) {
+    cur = cur ? `${cur}/${s}` : s;
+    out.push(cur);
+  }
+  return out;
+});
+
+/**
+ * 确保某一列的目录内容已加载
+ *
+ * @param path 列目录路径
+ */
+async function ensureColumn(path: string): Promise<void> {
+  if (colObjects.value[path] !== undefined) return;
+  colLoading.value = { ...colLoading.value, [path]: true };
+  try {
+    const list = await listObjects(bucket.value, path);
+    colObjects.value = { ...colObjects.value, [path]: list.filter((o) => o.name !== RECYCLE_DIR) };
+  } catch {
+    colObjects.value = { ...colObjects.value, [path]: [] };
+  } finally {
+    colLoading.value = { ...colLoading.value, [path]: false };
+  }
+}
+
+/** 清空并重新加载分栏各列 */
+function refreshColumns(): void {
+  colObjects.value = {};
+  segmentPaths.value.forEach((p) => { void ensureColumn(p); });
+}
+
+watch(segmentPaths, (paths) => {
+  paths.forEach((p) => { void ensureColumn(p); });
+});
+
+/**
+ * 列内对象键（列路径 + 名称）
+ *
+ * @param path 列目录路径
+ * @param name 对象名
+ * @return 桶内相对键
+ */
+function joinKey(path: string, name: string): string {
+  return path ? `${path}/${name}` : name;
+}
+
+/**
+ * 分栏点击：目录向右侧展开一列；文件执行选中
+ *
+ * @param e       鼠标事件
+ * @param item    对象
+ * @param colPath 列目录路径
+ * @param index   序号（Ctrl 多选用）
+ */
+function onColumnClick(e: MouseEvent | KeyboardEvent, item: StorageObject, colPath: string, index: number): void {
+  if (item.directory) {
+    currentPath.value = joinKey(colPath, item.name);
+    recordRecent(currentPath.value);
+    clearSelect();
+    lastSelectedIndex = -1;
+    loadObjects();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    toggleSelect(item.name);
+    lastSelectedIndex = index;
+    return;
+  }
+  selected.value = new Set([item.name]);
+  lastSelectedIndex = index;
+}
+
+/**
+ * 分栏拖拽开始（源键按列路径计算）
+ *
+ * @param e       拖拽事件
+ * @param item    源对象
+ * @param colPath 列目录路径
+ */
+function onColumnDragStart(e: DragEvent, item: StorageObject, colPath: string): void {
+  if (!e.dataTransfer) return;
+  e.dataTransfer.setData(DRAG_MIME, "1");
+  e.dataTransfer.setData("text/plain", JSON.stringify([joinKey(colPath, item.name)]));
+  e.dataTransfer.effectAllowed = "copyMove";
+}
+
+/**
+ * 分栏目录行拖拽悬停
+ *
+ * @param e       拖拽事件
+ * @param colPath 列目录路径
+ * @param item    目标对象
+ */
+function onColumnRowDragOver(e: DragEvent, colPath: string, item: StorageObject): void {
+  if (!e.dataTransfer || !item.directory || !e.dataTransfer.types.includes(DRAG_MIME)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.dataTransfer.dropEffect = e.ctrlKey ? "copy" : "move";
+  dragOverDir.value = joinKey(colPath, item.name);
+}
+
+/**
+ * 分栏目录行拖拽离开
+ *
+ * @param colPath 列目录路径
+ * @param item    目标对象
+ */
+function onColumnRowDragLeave(colPath: string, item: StorageObject): void {
+  if (dragOverDir.value === joinKey(colPath, item.name)) {
+    dragOverDir.value = "";
+  }
+}
+
+/**
+ * 分栏目录行放置（移动到该目录）
+ *
+ * @param e       拖拽事件
+ * @param colPath 列目录路径
+ * @param item    目标目录
+ */
+async function onColumnDrop(e: DragEvent, colPath: string, item: StorageObject): Promise<void> {
+  if (!item.directory || !e.dataTransfer?.types.includes(DRAG_MIME)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  await dropKeysTo(joinKey(colPath, item.name), e);
+}
+
+/** 分栏空白拖拽悬停 */
+function onColumnBlankDragOver(e: DragEvent): void {
+  if (e.dataTransfer?.types.includes(DRAG_MIME)) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = e.ctrlKey ? "copy" : "move";
+  }
+}
+
+/**
+ * 分栏空白放置（移动到该列目录）
+ *
+ * @param e       拖拽事件
+ * @param colPath 列目录路径
+ */
+async function onColumnBlankDrop(e: DragEvent, colPath: string): Promise<void> {
+  if (!e.dataTransfer?.types.includes(DRAG_MIME)) return;
+  e.preventDefault();
+  await dropKeysTo(colPath, e);
+}
+
+/**
+ * 某目录是否为路径链分支（右侧已展开其子列）
+ *
+ * @param colPath  列目录路径
+ * @param item     对象
+ * @param colIndex 列下标
+ * @return 是否分支
+ */
+function isTrailDir(colPath: string, item: StorageObject, colIndex: number): boolean {
+  const next = segmentPaths.value[colIndex + 1];
+  return !!next && next === joinKey(colPath, item.name);
+}
+
+/**
+ * 分栏最后一列的文件选中态
+ *
+ * @param colIndex 列下标
+ * @param item     对象
+ * @return 是否选中
+ */
+function isColumnSelected(colIndex: number, item: StorageObject): boolean {
+  return colIndex === segmentPaths.value.length - 1 && isSelected(item.name);
 }
 
 /* ================== 右键菜单 ================== */
@@ -1271,6 +1662,12 @@ function ctxAction(action: string) {
     case "onetime":
       if (row) openOneTime(row);
       break;
+    case "distribute":
+      if (row && !row.directory) openDistribute(row);
+      break;
+    case "favorite":
+      if (row && row.directory) toggleFavorite(fullKey(row.name));
+      break;
     case "rename":
       void onRename(row);
       break;
@@ -1297,6 +1694,12 @@ function ctxAction(action: string) {
       break;
     case "refresh":
       void loadObjects();
+      break;
+    case "upload":
+      openUpload();
+      break;
+    case "selectAll":
+      selectAll();
       break;
     case "delete":
       if (row) void handleDelete(row);
@@ -1415,7 +1818,6 @@ const previewVisible = ref(false);
 const previewLoading = ref(false);
 const previewName = ref("");
 const previewKind = ref<PreviewKind>("unknown");
-const previewText = ref("");
 const previewKey = ref("");
 const previewZoom = ref(100);
 const previewError = ref(false);
@@ -1427,35 +1829,83 @@ async function openPreview(row: StorageObject): Promise<void> {
   const kind = kindOf(row.name);
   previewName.value = row.name;
   previewKind.value = kind;
-  previewText.value = "";
   previewKey.value = fullKey(row.name);
   previewZoom.value = 100;
   previewError.value = false;
-  // PDF 使用浏览器内置查看器，其余文档类走后端 SPI iframe 预览
-  iframeLoading.value = kind === "pdf" || SPI_IFRAME_KINDS.includes(kind);
+  previewForceServer.value = false;
+  officeLoading.value = false;
+  iframeLoading.value = true;
+  previewLoading.value = false;
   previewMeta.value = { size: row.size, lastModified: row.lastModified };
   previewVisible.value = true;
-  if (kind === "text") {
-    // 文本：骨架屏加载后填入内容
-    previewLoading.value = true;
-    try { previewText.value = await fetchObjectText(bucket.value, fullKey(row.name)); }
-    catch (e) { ElMessage.error((e as Error)?.message ?? "读取失败"); previewVisible.value = false; }
-    finally { previewLoading.value = false; }
-  } else {
-    // 图片/PDF/Office/视频等：原生渲染，无需骨架屏阻塞
-    previewLoading.value = false;
-  }
 }
 
 const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
+
+/**
+ * 当前文件是否走客户端直渲染（Vue3 Office 组件解析，服务端不转换）。
+ *
+ * 与后端 `ClientPreviewSupport` 清单严格一致；doc / ppt / odt 等
+ * 客户端无法解析的格式返回 false，继续走服务端渲染链路。
+ */
+const previewUsesClient = computed(() => isClientRenderable(previewName.value));
+
+/**
+ * 是否已退回服务端渲染。
+ *
+ * 客户端组件解析失败时置位，iframe 地址追加 render=server，
+ * 触发后端 ConvertSupport / SPI 提供者渲染。
+ */
+const previewForceServer = ref(false);
+
+/** 客户端渲染加载中状态 */
+const officeLoading = ref(false);
+
+/** 客户端渲染面板引用 */
+const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
+
+/**
+ * 预览 iframe 地址：统一走后端预览通道 {@code ?preview=true}。
+ *
+ * <p>所有类型（图片/文本/PDF/Office/音视频/压缩包等）一致，由后端按类型内联渲染或直出字节；
+ * objectUrl 可能已带令牌查询参数，故分隔符按需取 &/?。
+ * 客户端渲染失败退回时追加 {@code render=server}，要求后端走服务端渲染链路。</p>
+ */
+const previewFrameSrc = computed(() => {
+  const base = previewSrc.value;
+  const sep = base.includes("?") ? "&" : "?";
+  const server = previewForceServer.value ? `&render=${RENDER_SERVER}` : "";
+  return `${base}${sep}preview=true${server}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
+});
+
+
 const iframePanelRef = ref<InstanceType<typeof PreviewIframePanel>>();
-const imagePanelRef = ref<InstanceType<typeof PreviewImagePanel>>();
 
 function onFrameLoad(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = false; }
 function onFrameError(): void { previewLoading.value = false; iframeLoading.value = false; previewError.value = true; }
-function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = previewKind.value === "pdf" || SPI_IFRAME_KINDS.includes(previewKind.value); iframeKey.value++; }
+function retryPreview(): void { previewError.value = false; previewLoading.value = true; iframeLoading.value = true; iframeKey.value++; }
+
+/** 客户端直渲染完成 */
+function onOfficeRendered(): void { officeLoading.value = false; previewLoading.value = false; }
+
+/**
+ * 客户端直渲染失败：退回服务端渲染链路。
+ *
+ * 追加 {@code render=server} 让后端改走 SPI 提供者 / ConvertSupport，
+ * 覆盖"客户端组件无法解析该文档"的情况（如个别非标准 OOXML 文件）。
+ */
+function onOfficeError(): void {
+  officeLoading.value = false;
+  if (!previewForceServer.value) {
+    previewForceServer.value = true;
+    return;
+  }
+  // 已退回服务端仍失败，交给通用错误态
+  previewError.value = true;
+}
+
 function toggleFullscreen(el?: HTMLElement): void {
-  const t = el || iframePanelRef.value?.wrapRef || imagePanelRef.value?.wrapRef;
+  const t = el || officePanelRef.value?.wrapRef || iframePanelRef.value?.wrapRef;
   if (!t) return;
   document.fullscreenElement ? document.exitFullscreen() : t.requestFullscreen();
 }
@@ -1468,7 +1918,7 @@ function onPreviewKeydown(e: KeyboardEvent): void {
     case "-": e.preventDefault(); previewZoom.value = Math.max(previewZoom.value - 25, 25); break;
     case "0": case "r": case "R": e.preventDefault(); previewZoom.value = 100; break;
     case "f": case "F": if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFullscreen(); } break;
-    case "?": e.preventDefault(); previewKind.value === "image" ? imagePanelRef.value?.toggleHelp() : iframePanelRef.value?.toggleHelp(); break;
+    case "?": e.preventDefault(); (officePanelRef.value ?? iframePanelRef.value)?.toggleHelp(); break;
     case "Escape": if (document.fullscreenElement) { e.preventDefault(); e.stopPropagation(); document.exitFullscreen(); } break;
   }
 }
@@ -1491,16 +1941,13 @@ async function handleDelete(row: StorageObject): Promise<void> {
   const targets = selected.value.size > 1 && selected.value.has(row.name)
     ? [...selected.value].map((name) => ({ name } as StorageObject))
     : [row];
-  const label = targets.length > 1 ? `确认删除选中的 ${targets.length} 个对象？` : `确认删除「${row.name}」？`;
-  try { await ElMessageBox.confirm(label, "删除确认", { type: "warning" }); } catch { return; }
+  const label = targets.length > 1 ? `确认将选中的 ${targets.length} 个对象移入回收站？` : `确认将「${row.name}」移入回收站？`;
+  try { await ElMessageBox.confirm(label, "移入回收站", { type: "warning" }); } catch { return; }
   try {
-    for (const t of targets) {
-      await deleteObject(bucket.value, fullKey(t.name));
-    }
-    ElMessage.success(`已删除 ${targets.length} 个对象`);
+    await moveToRecycle(targets);
+    ElMessage.success(`已移入回收站 ${targets.length} 个对象`);
     clearSelect();
-    await loadObjects();
-    await loadTree();
+    await Promise.all([loadObjects(), loadRecycle()]);
   } catch (e) { ElMessage.error((e as Error)?.message ?? "删除失败"); }
 }
 
@@ -1567,7 +2014,7 @@ onMounted(() => {
   loadBucketConfig();
   loadCapabilities();
   loadObjects();
-  loadTree();
+  loadRecycle();
   bindDragEvents();
 });
 
@@ -1580,200 +2027,162 @@ onUnmounted(() => {
 <template>
   <div class="fs-app" :style="imageFilterCss ? { '--fs-image-filter': imageFilterCss } : undefined" @click="closeContextMenu">
     <!-- ===== 顶部地址栏（KodExplorer 风格） ===== -->
-    <header class="fs-header">
-      <div class="fs-brand">
-        <svg class="fs-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="currentColor" stroke="none" opacity="0.12"/>
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        </svg>
-        <span>FileStorage</span>
-        <span class="fs-bucket-badge" :title="`存储桶：${bucket}`">{{ bucket }}</span>
-      </div>
-
-      <!-- 历史前进/后退 -->
-      <div class="fs-addr-nav">
-        <button type="button" class="fs-icon-btn" :disabled="!canGoBack" title="后退" aria-label="后退" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button type="button" class="fs-icon-btn" :disabled="!canGoForward" title="前进" aria-label="前进" @click="goForward">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <button type="button" class="fs-icon-btn" title="根目录" aria-label="根目录" @click="goCrumb('')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </button>
-        <button type="button" class="fs-icon-btn" :disabled="!currentPath" title="上级目录" aria-label="上级目录" @click="goUp">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-      </div>
-
-      <!-- 面包屑地址栏 -->
-      <div class="fs-addr">
-        <span class="fs-pathbar__crumbs">
-          <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
-            <span v-if="i > 0" class="fs-pathbar__sep" aria-hidden="true">/</span>
-            <span
-              class="fs-pathbar__item"
-              :class="{ 'fs-pathbar__item--active': crumb.path === currentPath }"
-              @click="goCrumb(crumb.path)"
-            ><span
-                v-if="crumb.path === ''"
-                class="fs-typeicon fs-pathbar__icon"
-                v-html="FS_TYPE_SVG.folder"
-                aria-hidden="true"
-              />{{ crumb.name }}</span>
-          </template>
-        </span>
-      </div>
-
-      <div class="fs-header__right">
-        <button
-          v-admin
-          type="button"
-          class="fs-icon-btn"
-          title="系统配置（管理员）"
-          aria-label="系统配置"
-          @click="openAdminConfig"
-        >
-          <el-icon aria-hidden="true"><Setting /></el-icon>
-        </button>
-        <el-input
-          v-model="keyword"
-          placeholder="搜索文件..."
-          clearable
-          size="default"
-          class="fs-search"
-          :prefix-icon="Search"
-          :aria-label="'搜索文件'"
-        />
-      </div>
-    </header>
-
-    <!-- ===== 主体区域 ===== -->
+    <!-- ===== 主体区域：左侧导航 + 内容 ===== -->
     <div class="fs-body">
-      <!-- 左侧边栏 -->
-      <aside class="fs-sidebar">
-        <div class="fs-sidebar__section">
-          <div class="fs-sidebar__title">文件树</div>
-          <div class="fs-tree" v-loading="treeLoading">
-            <div
-              v-if="tree.length === 0 && !treeLoading"
-              class="fs-tree__empty"
-            >暂无目录</div>
-            <div
-              v-for="node in tree"
-              :key="node.path"
-              class="fs-tree-node"
-              :class="{ 'fs-tree-node--active': currentPath === node.path }"
-            >
-              <FsTreeNode
-                :node="node"
-                :depth="0"
-                :active-path="currentPath"
-                @select="onTreeSelect"
-                @drop="onTreeDrop"
-              />
-            </div>
-          </div>
+      <aside class="fs-nav">
+        <div class="fs-nav__section fs-nav__section--quick">
+          <div class="fs-nav__title">快捷访问</div>
+          <div v-if="!quickPaths.length" class="fs-nav__empty">暂无收藏 / 最近访问</div>
+          <button
+            v-for="p in quickPaths"
+            :key="p"
+            type="button"
+            class="fs-nav__item fs-nav__item--quick"
+            :class="{ 'is-active': nav === 'all' && currentPath === p }"
+            :title="p"
+            @click="enterPath(p)"
+          >
+            <el-icon class="fs-nav__icon" :size="15"><Folder /></el-icon>
+            <span class="fs-nav__label">{{ pathLabel(p) }}</span>
+            <el-icon
+              class="fs-nav__del"
+              :size="12"
+              title="移除"
+              @click.stop="removeQuick(p)"
+            ><Close /></el-icon>
+          </button>
         </div>
-        <div class="fs-sidebar__section">
-          <div class="fs-sidebar__title">统计</div>
-          <div class="fs-sidebar__stat"><span>存储类型</span><b>{{ storageType }}</b></div>
-          <div class="fs-sidebar__stat"><span>文件</span><b>{{ fileCount }}</b></div>
-          <div class="fs-sidebar__stat"><span>目录</span><b>{{ dirCount }}</b></div>
-          <div class="fs-sidebar__stat"><span>总大小</span><b>{{ formatSize(totalSize) }}</b></div>
-        </div>
-        <div class="fs-sidebar__section">
-          <div class="fs-sidebar__title">功能开关</div>
-          <div class="fs-sidebar__stat"><span>预览</span><b class="fs-stat-badge" :class="allowPreview ? 'on' : 'off'">{{ bucketConfig == null ? '…' : (allowPreview ? '开' : '关') }}</b></div>
-          <div class="fs-sidebar__stat"><span>下载</span><b class="fs-stat-badge" :class="allowDownload ? 'on' : 'off'">{{ bucketConfig == null ? '…' : (allowDownload ? '开' : '关') }}</b></div>
-        </div>
-        <div class="fs-sidebar__section">
-          <div class="fs-sidebar__title">当前路径</div>
-          <div class="fs-sidebar__path">{{ currentPath || '/' }}</div>
+
+        <div class="fs-nav__foot">
+          <button
+            type="button"
+            class="fs-nav__foot-btn"
+            :class="{ 'is-active': nav === 'recycle' }"
+            @click="switchNav('recycle')"
+          >
+            <el-icon :size="15"><Delete /></el-icon>
+            <span>回收站</span>
+            <b v-if="recycleCount > 0" class="fs-nav__badge">{{ recycleCount }}</b>
+          </button>
+          <button
+            v-admin
+            type="button"
+            class="fs-nav__foot-btn fs-nav__foot-btn--icon"
+            title="系统配置"
+            aria-label="系统配置"
+            @click="openAdminConfig"
+          >
+            <el-icon :size="16"><Setting /></el-icon>
+          </button>
         </div>
       </aside>
 
-      <!-- 主内容区 -->
-      <main class="fs-content">
-        <!-- KodExplorer 工具栏 -->
-        <div class="fs-toolbar">
-          <div class="fs-toolbar__left">
-            <button type="button" class="fs-tb-btn" title="全选" aria-label="全选" @click="selectAll">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              <span>全选</span>
-            </button>
-            <button type="button" class="fs-tb-btn" title="新建文件夹" aria-label="新建文件夹" :disabled="actionRunning" @click="onCreateDir">
-              <el-icon aria-hidden="true"><FolderAdd /></el-icon>
-              <span>新建文件夹</span>
-            </button>
-            <button type="button" class="fs-tb-btn" title="新建文件" aria-label="新建文件" :disabled="actionRunning" @click="onCreateFile">
-              <el-icon aria-hidden="true"><DocumentAdd /></el-icon>
-              <span>新建文件</span>
-            </button>
-            <button v-if="selectedCount === 1" type="button" class="fs-tb-btn" title="重命名" aria-label="重命名" :disabled="actionRunning" @click="onRename()">
-              <el-icon aria-hidden="true"><EditPen /></el-icon>
-              <span>重命名</span>
-            </button>
-            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="复制" aria-label="复制" @click="onCopySelected">
-              <el-icon aria-hidden="true"><CopyDocument /></el-icon>
-              <span>复制</span>
-            </button>
-            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="剪切" aria-label="剪切" @click="onCutSelected">
-              <el-icon aria-hidden="true"><Scissor /></el-icon>
-              <span>剪切</span>
-            </button>
-            <button v-if="clipboard != null" type="button" class="fs-tb-btn" title="粘贴到当前目录" aria-label="粘贴" :disabled="actionRunning" @click="onPaste">
-              <el-icon aria-hidden="true"><DocumentCopy /></el-icon>
-              <span>粘贴</span>
-            </button>
-            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="压缩下载" aria-label="压缩下载" :disabled="actionRunning" @click="onZipSelected">
-              <el-icon aria-hidden="true"><Files /></el-icon>
-              <span>压缩</span>
-            </button>
-            <button v-if="canUnzip" type="button" class="fs-tb-btn" title="解压到当前目录" aria-label="解压" :disabled="actionRunning" @click="onUnzip()">
-              <el-icon aria-hidden="true"><FolderOpened /></el-icon>
-              <span>解压</span>
-            </button>
-            <button type="button" class="fs-tb-btn" title="上传" aria-label="上传" @click="openUpload">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>上传</span>
-            </button>
-            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn" title="下载选中" aria-label="下载选中" @click="downloadSelected">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>下载</span>
-            </button>
-            <button v-if="selectedCount > 0" type="button" class="fs-tb-btn fs-tb-btn--danger" title="删除选中" aria-label="删除选中" @click="deleteSelected">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              <span>删除</span>
-            </button>
-            <button type="button" class="fs-tb-btn" title="刷新" aria-label="刷新" :disabled="loading" @click="loadObjects">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-              <span>刷新</span>
-            </button>
+      <main class="fs-main">
+        <!-- 路径栏：后退 / 刷新 / 面包屑 -->
+        <div class="fs-pathbar">
+          <button
+            type="button"
+            class="fs-icon-btn"
+            title="后退"
+            aria-label="后退"
+            :disabled="!canGoBack"
+            @click="goBack"
+          >
+            <el-icon :size="16"><ArrowLeft /></el-icon>
+          </button>
+          <button
+            type="button"
+            class="fs-icon-btn"
+            title="刷新"
+            aria-label="刷新"
+            :disabled="loading"
+            @click="loadObjects"
+          >
+            <el-icon :size="16" :class="{ 'is-spin': loading }"><Refresh /></el-icon>
+          </button>
+          <div class="fs-crumbs">
+            <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
+              <span v-if="i > 0" class="fs-crumbs__sep" aria-hidden="true">&gt;</span>
+              <span
+                class="fs-crumbs__item"
+                :class="{ 'is-current': crumb.path === currentPath }"
+                @click="goCrumb(crumb.path)"
+              >{{ crumb.name }}</span>
+            </template>
           </div>
-          <span v-if="selectedCount > 0" class="fs-toolbar__sel">已选 {{ selectedCount }} 项</span>
-          <div class="fs-toolbar__right">
-            <span class="fs-pathbar__count">{{ filteredObjects.length }} 项</span>
-            <div class="fs-view-toggle" role="group" aria-label="查看方式">
-              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'details' }" title="详细信息" aria-label="详细信息" aria-pressed="viewMode === 'details'" @click="viewMode = 'details'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="2.5" cy="6" r="0.5" fill="currentColor"/><circle cx="2.5" cy="12" r="0.5" fill="currentColor"/><circle cx="2.5" cy="18" r="0.5" fill="currentColor"/></svg>
-              </button>
-              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'largeIcons' }" title="大图标" aria-label="大图标" aria-pressed="viewMode === 'largeIcons'" @click="viewMode = 'largeIcons'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
-              </button>
-              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'mediumIcons' }" title="中图标" aria-label="中图标" aria-pressed="viewMode === 'mediumIcons'" @click="viewMode = 'mediumIcons'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="10" y="2" width="6" height="6" rx="1.2"/><rect x="18" y="2" width="4" height="6" rx="1.2"/><rect x="2" y="10" width="6" height="6" rx="1.2"/><rect x="10" y="10" width="6" height="6" rx="1.2"/><rect x="18" y="10" width="4" height="6" rx="1.2"/><rect x="2" y="18" width="6" height="4" rx="1.2"/><rect x="10" y="18" width="6" height="4" rx="1.2"/><rect x="18" y="18" width="4" height="4" rx="1.2"/></svg>
-              </button>
-              <button type="button" class="fs-view-btn" :class="{ 'fs-view-btn--active': viewMode === 'smallIcons' }" title="小图标" aria-label="小图标" aria-pressed="viewMode === 'smallIcons'" @click="viewMode = 'smallIcons'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="4" cy="6" r="1.2" fill="currentColor"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.2" fill="currentColor"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.2" fill="currentColor"/><line x1="8" y1="18" x2="20" y2="18"/></svg>
-              </button>
+          <span v-if="bucketPrivate" class="fs-main__lock">
+            <el-icon :size="12"><Lock /></el-icon>私有
+          </span>
+          <span v-if="selectedCount > 0" class="fs-main__sel">已选 {{ selectedCount }} 项</span>
+        </div>
+
+        <!-- 操作工具栏：仅保留上传与下载，其余操作收敛到右键菜单 -->
+        <div class="fs-toolbar">
+          <button type="button" class="fs-tb-btn" title="上传" :disabled="nav !== 'all'" @click="openUpload">
+            <el-icon :size="15"><Upload /></el-icon>上传
+          </button>
+          <button
+            v-if="selectedCount > 0 && nav === 'all'"
+            type="button"
+            class="fs-tb-btn"
+            title="下载选中"
+            @click="downloadSelected"
+          >
+            <el-icon :size="15"><Download /></el-icon>下载
+          </button>
+          <span class="fs-toolbar__hint">右键文件或文件夹查看更多操作</span>
+        </div>
+
+        <!-- ===== 全部文件视图 ===== -->
+        <template v-if="nav === 'all'">
+        <!-- 分栏（macOS Finder 风格）：点击目录向右逐级展开 -->
+        <div
+          v-if="viewMode === 'columns'"
+          class="fs-files fs-files--columns"
+          v-loading="loading"
+          @contextmenu="openBlankContextMenu"
+        >
+          <div v-for="(colPath, ci) in segmentPaths" :key="colPath || 'root'" class="fs-col">
+            <div
+              class="fs-col__body"
+              @dragover="onColumnBlankDragOver"
+              @drop="onColumnBlankDrop($event, colPath)"
+              @contextmenu="openBlankContextMenu"
+            >
+              <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
+              <div v-else-if="colObjects[colPath].length === 0" class="fs-col__hint">空目录</div>
+              <div
+                v-for="(item, index) in colObjects[colPath]"
+                :key="item.name"
+                class="fs-col__row"
+                :class="{
+                  'is-trail': isTrailDir(colPath, item, ci),
+                  'is-selected': isColumnSelected(ci, item),
+                  'is-dragover': item.directory && dragOverDir === joinKey(colPath, item.name),
+                }"
+                role="button"
+                tabindex="0"
+                :aria-label="item.name"
+                draggable="true"
+                @click="onColumnClick($event, item, colPath, index)"
+                @dblclick="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
+                @keydown.enter="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
+                @contextmenu.stop="openContextMenu($event, item)"
+                @dragstart="onColumnDragStart($event, item, colPath)"
+                @dragover="onColumnRowDragOver($event, colPath, item)"
+                @dragleave="onColumnRowDragLeave(colPath, item)"
+                @drop="onColumnDrop($event, colPath, item)"
+              >
+                <span class="fs-typeicon fs-col__icon" v-html="fileSvg(item.name, item.directory)" aria-hidden="true" />
+                <span class="fs-col__name" :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 详细信息（Details）：列显示由服务端配置动态控制（showFormat/showSize/showTime） -->
         <div
-          v-if="viewMode === 'details'"
+          v-else-if="viewMode === 'details'"
           class="fs-files fs-files--details"
           :class="{ 'fs-details--no-format': !showFormatCol, 'fs-details--no-size': !showSizeCol, 'fs-details--no-time': !showTimeCol }"
           v-loading="loading"
@@ -1855,23 +2264,21 @@ onUnmounted(() => {
             @dragleave="onRowDragLeave(item)"
             @drop="onRowDrop($event, item)"
           >
+            <span v-if="isSelected(item.name)" class="fs-lg-card__x" aria-hidden="true"><el-icon :size="10"><Close /></el-icon></span>
             <div class="fs-lg-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
-              <iframe
-                v-if="!item.directory && objectThumbUrl(item.name)"
-                :src="objectThumbUrl(item.name)"
+              <img
+                v-if="!item.directory && kindOf(item.name) === 'image'"
+                :src="objectUrl(bucket, fullKey(item.name))"
                 class="fs-lg-card__frame"
+                :alt="item.name"
                 loading="lazy"
-                title=""
-                scrolling="no"
-                sandbox="allow-same-origin"
               />
-              <template v-else>
-                <span
-                  class="fs-typeicon fs-card-icon"
-                  v-html="fileSvg(item.name, item.directory)"
-                  aria-hidden="true"
-                />
-              </template>
+              <span
+                v-else
+                class="fs-typeicon fs-card-icon"
+                v-html="fileSvg(item.name, item.directory)"
+                aria-hidden="true"
+              />
             </div>
             <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
           </div>
@@ -1903,6 +2310,7 @@ onUnmounted(() => {
             @dragleave="onRowDragLeave(item)"
             @drop="onRowDrop($event, item)"
           >
+            <span v-if="isSelected(item.name)" class="fs-md-card__x" aria-hidden="true"><el-icon :size="10"><Close /></el-icon></span>
             <div class="fs-md-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
               <span
                 class="fs-typeicon fs-card-icon"
@@ -1950,19 +2358,79 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+        </template>
 
-        <!-- 状态栏（KodExplorer 风格：当前目录/选中/统计） -->
+        <!-- ===== 回收站 ===== -->
+        <div v-else-if="nav === 'recycle'" class="fs-files fs-files--large" v-loading="recycleLoading">
+          <div class="fs-recycle-head">
+            <span>{{ recycleCount }} 项 · 删除的对象会先进入回收站</span>
+            <button type="button" class="fs-pill-btn fs-pill-btn--danger" :disabled="actionRunning || recycleCount === 0" @click="emptyRecycle">
+              <el-icon :size="14"><Delete /></el-icon>清空回收站
+            </button>
+          </div>
+          <div v-if="recycleItems.length === 0 && !recycleLoading" class="fs-files__empty">
+            <el-icon :size="42"><DeleteFilled /></el-icon>
+            <span>回收站为空</span>
+          </div>
+          <div v-for="item in recycleItems" :key="item.name" class="fs-lg-card">
+            <div class="fs-lg-card__thumb" :class="fileIconClass(item.name, item.directory)">
+              <span class="fs-typeicon fs-card-icon" v-html="fileSvg(item.name, item.directory)" aria-hidden="true" />
+            </div>
+            <div class="fs-lg-card__label" :title="item.name">{{ item.name }}</div>
+            <div class="fs-lg-card__meta">{{ cardMeta(item) }}</div>
+            <div class="fs-lg-card__ops">
+              <button type="button" class="fs-mini-btn" :disabled="actionRunning" @click="restoreRecycleItem(item)">还原</button>
+              <button type="button" class="fs-mini-btn fs-mini-btn--danger" :disabled="actionRunning" @click="purgeRecycleItem(item)">彻底删除</button>
+            </div>
+          </div>
+        </div>
+        <!-- 状态栏：项数 + 视图切换 -->
         <div class="fs-statusbar">
-          <span class="fs-statusbar__item">
-            {{ currentPath || '/' }} · {{ filteredObjects.length }} 项
+          <span class="fs-statusbar__info">
+            {{ nav === 'recycle' ? recycleCount : filteredObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
           </span>
-          <span v-if="selectedCount > 0" class="fs-statusbar__item fs-statusbar__item--selected">
-            已选 {{ selectedCount }} 项{{ selectedSize > 0 ? `（${formatSize(selectedSize)}）` : '' }}
-          </span>
-          <span class="fs-statusbar__spacer" />
-          <span class="fs-statusbar__item">文件 {{ fileCount }}</span>
-          <span class="fs-statusbar__item">目录 {{ dirCount }}</span>
-          <span class="fs-statusbar__item">共 {{ formatSize(totalSize) }}</span>
+          <div class="fs-statusbar__views" role="group" aria-label="查看方式">
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'columns' }"
+              title="分栏"
+              aria-label="分栏"
+              @click="setView('columns')"
+            ><el-icon :size="15"><Operation /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'details' }"
+              title="详细信息"
+              aria-label="详细信息"
+              @click="setView('details')"
+            ><el-icon :size="15"><List /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'largeIcons' }"
+              title="大图标"
+              aria-label="大图标"
+              @click="setView('largeIcons')"
+            ><el-icon :size="15"><Grid /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'mediumIcons' }"
+              title="中图标"
+              aria-label="中图标"
+              @click="setView('mediumIcons')"
+            ><el-icon :size="15"><Menu /></el-icon></button>
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': viewMode === 'smallIcons' }"
+              title="小图标"
+              aria-label="小图标"
+              @click="setView('smallIcons')"
+            ><el-icon :size="15"><Tickets /></el-icon></button>
+          </div>
         </div>
       </main>
     </div>
@@ -1998,6 +2466,16 @@ onUnmounted(() => {
             下载
           </button>
           <button
+            v-if="DISTRIBUTE_ENABLED && !ctxMenu.row!.directory"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('distribute')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+            分发到服务器
+          </button>
+          <button
             v-if="!ctxMenu.row!.directory"
             type="button"
             class="fs-ctx__item"
@@ -2006,6 +2484,16 @@ onUnmounted(() => {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             创建链接
+          </button>
+          <button
+            v-if="ctxMenu.row!.directory"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('favorite')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {{ isFavorite(fullKey(ctxMenu.row!.name)) ? '取消收藏' : '加入收藏夹' }}
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('rename')">
@@ -2054,6 +2542,10 @@ onUnmounted(() => {
             <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentAdd /></el-icon>
             新建文件
           </button>
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('upload')">
+            <el-icon class="fs-ctx__icon" aria-hidden="true"><Upload /></el-icon>
+            上传
+          </button>
           <button
             v-if="clipboard != null"
             type="button"
@@ -2065,6 +2557,10 @@ onUnmounted(() => {
             粘贴到此处
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
+          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('selectAll')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            全选
+          </button>
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('refresh')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             刷新
@@ -2074,147 +2570,104 @@ onUnmounted(() => {
     </Teleport>
 
     <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性） ===== -->
-    <el-dialog v-model="adminVisible" title="系统配置（管理员）" width="500px" :append-to-body="true" :close-on-click-modal="false" destroy-on-close>
+    <!-- ===== 系统配置对话框（管理员，v-admin 指令控制入口按钮可见性） ===== -->
+    <el-dialog
+      v-model="adminVisible"
+      class="fs-admin-dialog"
+      width="680px"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <template #header>
+        <div class="fs-admin__head">
+          <h3 class="fs-admin__title">系统配置</h3>
+          <p class="fs-admin__subtitle">管理员设置 · 保存后立即生效</p>
+        </div>
+      </template>
       <div class="fs-admin">
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            内联预览
-            <el-tooltip content="开启后浏览器可直接在线预览文本、图片、音视频等（关闭后仅能下载）" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openPreview" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            附件下载
-            <el-tooltip content="开启后支持 ?download=true 强制以附件形式下载文件" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openDownload" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            分段下载
-            <el-tooltip content="开启后支持 HTTP Range 请求，大文件可断点续传/分段加载" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openRange" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            水印响应头
-            <el-tooltip content="开启后文件响应附带 X-Watermark 头（内容为下方水印文字，非 ASCII 字符按 URL 编码输出）" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openWatermark" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            Webjars 资源
-            <el-tooltip content="开启后允许通过 /webjars/ 路径访问内置前端静态资源" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openWebjars" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            远程文件透传
-            <el-tooltip content="开启后允许以 http(s) 地址作为 Key 访问，服务器代理拉取远程文件" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.openRemoteFile" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            目录列表页
-            <el-tooltip content="关闭后直接访问目录地址返回 404，仅保留对象读写接口" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.layout" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            布局类型
-            <el-tooltip content="浏览器直接访问目录时的页面：资源管理器（Vue 独立 UI）或简单列表" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-radio-group v-model="adminForm.layoutType" size="small">
-            <el-radio-button value="SYSTEM">资源管理器</el-radio-button>
-            <el-radio-button value="SIMPLE">简单列表</el-radio-button>
-          </el-radio-group>
-        </div>
-        <el-divider class="fs-admin__divider" />
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            显示"类型"列
-            <el-tooltip content="详细信息视图中的文件类型列（如 JPG 文件、文件夹）" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.showFormat" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            显示"大小"列
-            <el-tooltip content="详细信息视图中的文件大小列（目录不显示）" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.showSize" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            显示"修改时间"列
-            <el-tooltip content="详细信息视图中的最后修改时间列" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-switch v-model="adminForm.showTime" />
-        </div>
-        <div class="fs-admin__row">
-          <span class="fs-admin__label">
-            图片滤镜
-            <el-tooltip content="图片滤镜，选项来自后端 ImageFilter SPI 真实实现，应用于图片缩略图与预览" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-select v-model="adminForm.imageFilter" style="width: 140px" size="small">
-            <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
-          </el-select>
-        </div>
-        <el-divider class="fs-admin__divider" />
-        <div class="fs-admin__row fs-admin__row--col">
-          <span class="fs-admin__label">
-            水印文字（留空清除）
-            <el-tooltip content="作为 X-Watermark 响应头内容下发，供下游水印组件使用" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-input v-model="adminForm.watermark" placeholder="如：内部资料" clearable />
-        </div>
-        <div class="fs-admin__row fs-admin__row--col">
-          <span class="fs-admin__label">
-            管理员令牌
-            <el-tooltip content="后端每次启动随机生成：见启动日志或 /config?token= 页面，本机持久化后无需重复输入" placement="top">
-              <el-icon class="fs-admin__info"><InfoFilled /></el-icon>
-            </el-tooltip>
-          </span>
-          <el-input
-            v-model="adminToken"
-            type="password"
-            show-password
-            placeholder="后端启动日志 getToken() 或 /config 页获取"
-          />
-        </div>
-        <p class="fs-admin__tip">保存后立即对后续请求生效，无需重启服务。</p>
+        <section class="fs-admin__card">
+          <div class="fs-admin__group">文件功能</div>
+          <div class="fs-admin__grid">
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">内联预览 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openPreview" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">附件下载 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openDownload" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">分段下载 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openRange" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">水印响应头 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openWatermark" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">Webjars 资源 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openWebjars" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">远程文件透传 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.openRemoteFile" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">目录列表页 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.layout" />
+            </div>
+          </div>
+
+          <div class="fs-admin__divider" aria-hidden="true" />
+          <div class="fs-admin__group">布局显示</div>
+          <div class="fs-admin__grid">
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">布局类型 <i class="fs-admin__arrow">→</i></span>
+              <el-radio-group v-model="adminForm.layoutType" class="fs-admin__pills">
+                <el-radio-button value="SYSTEM">资源管理器</el-radio-button>
+                <el-radio-button value="SIMPLE">简单列表</el-radio-button>
+              </el-radio-group>
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">显示"类型"列 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.showFormat" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">显示"大小"列 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.showSize" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">显示"修改时间"列 <i class="fs-admin__arrow">→</i></span>
+              <el-switch v-model="adminForm.showTime" />
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">图片滤镜 <i class="fs-admin__arrow">→</i></span>
+              <el-select v-model="adminForm.imageFilter" size="small" class="fs-admin__select">
+                <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
+              </el-select>
+            </div>
+            <div class="fs-admin__row">
+              <span class="fs-admin__label">访问权限 <i class="fs-admin__arrow">→</i></span>
+              <el-radio-group v-model="adminForm.privateBucket" class="fs-admin__pills">
+                <el-radio-button :value="false">公共</el-radio-button>
+                <el-radio-button :value="true">私有</el-radio-button>
+              </el-radio-group>
+            </div>
+          </div>
+        </section>
+
+        <div class="fs-admin__section-title">水印与安全</div>
+        <el-input v-model="adminForm.watermark" placeholder="如：内部资料" clearable />
+
+        <div class="fs-admin__section-title">管理员令牌</div>
+        <el-input
+          v-model="adminToken"
+          type="password"
+          show-password
+          placeholder="后端启动日志 getToken() 或 /config 页获取"
+        />
+        <p class="fs-admin__tip">保存后立即对后续请求生效，无需重启服务</p>
       </div>
       <template #footer>
         <el-button @click="adminVisible = false">取消</el-button>
@@ -2277,30 +2730,28 @@ onUnmounted(() => {
             <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
           </el-empty>
         </div>
-        <template v-else-if="previewKind === 'image'">
-          <div class="fs-preview__img-wrap">
-            <img
-              :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')"
-              :alt="previewName"
-              class="fs-preview__img"
-              @load="previewLoading = false"
-              @error="previewError = true"
-            />
-          </div>
-        </template>
-        <template v-else-if="previewKind === 'pdf'">
-          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '#toolbar=0&zoom=page-width'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
-        </template>
-        <!-- Office / 压缩包 / 代码 / Markdown / CSV / 邮件等：统一走后端 SPI 渲染 -->
-        <template v-else-if="SPI_IFRAME_KINDS.includes(previewKind)">
-          <PreviewIframePanel ref="iframePanelRef" v-model:zoom="previewZoom" :src="previewSrc + '?preview=true'" :loading="iframeLoading" :frame-key="iframeKey" @fullscreen="toggleFullscreen()" @load="onFrameLoad" @error="onFrameError" />
-        </template>
-        <video v-else-if="previewKind === 'video'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
-        <audio v-else-if="previewKind === 'audio'" :src="previewSrc + (iframeKey > 0 ? '?_t=' + iframeKey : '')" controls class="fs-preview__media" @loadeddata="previewLoading = false" @error="previewError = true" />
-        <pre v-else-if="previewKind === 'text'" class="fs-preview__code">{{ previewText }}</pre>
-        <el-empty v-else description="该类型不支持在线预览">
-          <el-button type="primary" :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
-        </el-empty>
+        <PreviewOfficePanel
+          v-if="!previewError && previewUsesClient && !previewForceServer"
+          ref="officePanelRef"
+          v-model:zoom="previewZoom"
+          v-model:loading="officeLoading"
+          :src="previewFrameSrc"
+          :file-name="previewName"
+          @fullscreen="toggleFullscreen()"
+          @rendered="onOfficeRendered"
+          @error="onOfficeError"
+        />
+        <PreviewIframePanel
+          v-else-if="!previewError"
+          ref="iframePanelRef"
+          v-model:zoom="previewZoom"
+          :src="previewFrameSrc"
+          :loading="iframeLoading"
+          :frame-key="iframeKey"
+          @fullscreen="toggleFullscreen()"
+          @load="onFrameLoad"
+          @error="onFrameError"
+        />
       </div>
     </el-dialog>
   </div>
@@ -2308,201 +2759,679 @@ onUnmounted(() => {
 
 <style scoped>
 /* ========================================================
-   FileStorage · KodExplorer 风格
-   深蓝导航条 #4267b2 / 白底文件树 / 蓝灰按钮 / #cce8ff 选中
+   FileStorage · 云盘风格（koi / Element Plus 变量体系）
+   页面底 --el-bg-color-page；白色圆角面板；主色渐变按钮
    ======================================================== */
 .fs-app {
-  --kd-blue: #4267b2;
-  --kd-blue-hover: #5074be;
-  --kd-select: #cce8ff;
-  --kd-hover: #e5f3ff;
-  --kd-border: #ddd;
-  --kd-text: #333;
-  --kd-text-2: #666;
-
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", sans-serif;
-  background: #fff;
-  color: var(--kd-text);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px;
+  background: var(--el-bg-color-page, var(--el-fill-color-light));
+  color: var(--el-text-color-primary);
   overflow: hidden;
 }
 
-/* ===== 顶部导航条（KodExplorer 深蓝 topbar） ===== */
-.fs-header {
+/* ===== 顶栏：搜索 + 上传 ===== */
+.fs-top {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fs-searchbox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-searchbox__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-searchbox__icon:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-searchbox__input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
+}
+
+.fs-searchbox__input::placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-searchbox__input:focus {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.fs-searchbox__clear {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  margin-left: -40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+
+.fs-searchbox__clear:hover {
+  color: var(--el-color-primary);
+}
+
+.fs-top__right {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.fs-ghost-btn {
+  width: 40px;
   height: 40px;
-  padding: 0 14px;
-  background: var(--kd-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-ghost-btn:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-upload-btn {
+  height: 44px;
+  padding: 0 26px;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
   color: #fff;
-  z-index: 30;
-}
-.fs-brand { display: flex; align-items: center; gap: 8px; white-space: nowrap; color: #fff; font-size: 15px; font-weight: 600; }
-.fs-logo { width: 20px; height: 20px; color: #fff; }
-.fs-bucket-badge {
-  font-size: 12px; font-weight: 400; color: #e8f0ff;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 3px; padding: 1px 8px;
-  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: linear-gradient(135deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info)));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  transition: transform var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
 }
 
-/* 地址导航按钮 */
-.fs-addr-nav { display: flex; align-items: center; gap: 2px; }
-.fs-icon-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border: none; background: transparent;
-  color: #fff; border-radius: 3px; cursor: pointer; transition: background 0.15s;
+.fs-upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-primary) 38%, transparent);
 }
-.fs-icon-btn svg { width: 16px; height: 16px; }
-.fs-icon-btn:hover:not(:disabled) { background: var(--kd-blue-hover); }
-.fs-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* 地址栏（面包屑） */
-.fs-addr {
-  flex: 1; min-width: 0; display: flex; align-items: center;
-  background: #fff; border: 1px solid rgba(0,0,0,0.2);
-  border-radius: 3px; padding: 0 8px; height: 28px; overflow: hidden; margin: 0 6px;
+.fs-upload-btn:active {
+  transform: translateY(0);
 }
-.fs-addr .fs-pathbar__crumbs { flex: 1; display: flex; flex-wrap: nowrap; gap: 2px; align-items: center; overflow: hidden; }
-.fs-addr .fs-pathbar__sep { color: #999; margin: 0 1px; }
-.fs-addr .fs-pathbar__item {
-  cursor: pointer; color: #333; padding: 1px 5px; border-radius: 2px; white-space: nowrap;
-  font-size: 13px; transition: background 0.15s;
-}
-.fs-addr .fs-pathbar__item:hover { background: var(--kd-hover); color: #333; }
-.fs-addr .fs-pathbar__item--active { font-weight: 600; cursor: default; }
 
-/* 搜索 */
-.fs-header__right { display: flex; align-items: center; }
-.fs-search { width: 160px; }
-.fs-search :deep(.el-input__wrapper) {
-  background: #fff; border-radius: 3px; border: 1px solid rgba(0,0,0,0.2); box-shadow: none; height: 28px;
+/* ===== 统计卡 ===== */
+.fs-stats {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr;
+  gap: 14px;
 }
-.fs-search :deep(.el-input__inner) { font-size: 12px; }
 
-/* ===== 主体 ===== */
-.fs-body { flex: 1; display: flex; overflow: hidden; }
-
-/* 左侧文件树 */
-.fs-sidebar {
-  width: 220px; flex-shrink: 0; display: flex; flex-direction: column;
-  background: #fff; border-right: 1px solid #eee; overflow: hidden;
+.fs-stat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color, #fff);
+  min-width: 0;
+  text-align: left;
+  font-family: inherit;
 }
-.fs-sidebar__section { padding: 8px 6px; }
-.fs-sidebar__title {
-  font-size: 12px; font-weight: 600; color: var(--kd-text-2);
-  padding: 0 6px; margin-bottom: 4px;
-}
-.fs-tree { flex: 1; overflow-y: auto; }
-.fs-tree__empty { padding: 8px; font-size: 12px; color: var(--kd-text-2); text-align: center; }
 
-/* 树节点（render 递归组件内部节点无 scopeId，统一通过 .fs-tree :deep 穿透） */
-.fs-tree :deep(.fs-tree-node) { width: 100%; }
-.fs-tree :deep(.fs-tree-node__row) {
-  display: flex; align-items: center; gap: 4px;
-  padding: 3px 6px; border-radius: 0; cursor: pointer;
-  font-size: 13px; color: #333; border: 1px solid transparent;
-  transition: background 0.15s;
-  white-space: nowrap; overflow: hidden;
+button.fs-stat {
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
 }
-.fs-tree :deep(.fs-tree-node__row:hover) { background: var(--kd-hover); border-color: transparent; }
-.fs-tree :deep(.fs-tree-node__row--active) { background: var(--kd-select); border-color: #99d1ff; color: #335; font-weight: 600; }
-.fs-tree :deep(.fs-tree-node__row--drop) { background: #d9ecff; outline: 1px dashed #409eff; outline-offset: -1px; }
-/* 树节点（render 函数生成的内部节点需用 :deep 穿透作用域） */
-.fs-tree :deep(.fs-tree-node__arrow) {
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: #888; transition: transform 0.15s;
+
+button.fs-stat:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 5%);
 }
-.fs-tree :deep(.fs-tree-node__arrow--open) { transform: rotate(90deg); }
-.fs-tree :deep(.fs-tree-node__label) { overflow: hidden; text-overflow: ellipsis; }
 
-/* 侧边栏底部统计 */
-.fs-sidebar__stat { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 12px; }
-.fs-sidebar__stat span { color: var(--kd-text-2); }
-.fs-stat-badge { display: inline-flex; padding: 0 7px; border-radius: 2px; font-size: 11px; font-weight: 600; }
-.fs-stat-badge.on { color: #2e7d32; background: #e8f5e9; }
-.fs-stat-badge.off { color: #666; background: #f1f1f1; }
-.fs-sidebar__path { padding: 6px 8px; font-size: 12px; color: var(--kd-text-2); background: #f8f8f8; word-break: break-all; line-height: 1.5; }
-
-/* ===== 右侧 ===== */
-.fs-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-
-/* 工具栏 */
-.fs-toolbar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 6px 10px;
-  background: #fff; border-bottom: 1px solid #eee; flex-shrink: 0;
+.fs-stat__avatar {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-full, 9999px);
+  color: #fff;
 }
-.fs-toolbar__left { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; row-gap: 4px; }
-.fs-toolbar__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.fs-toolbar__sel { font-size: 12px; color: #1a73e8; font-weight: 600; margin-left: 8px; }
-.fs-pathbar__count { color: var(--kd-text-2); font-size: 12px; white-space: nowrap; }
 
-.fs-tb-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; font-size: 12px;
-  background: #fff; border: 1px solid var(--kd-border);
-  border-radius: 2px; color: var(--kd-text); cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+.fs-stat__avatar--primary {
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
 }
-.fs-tb-btn svg { width: 14px; height: 14px; }
-.fs-tb-btn .el-icon { font-size: 14px; }
-.fs-tb-btn:hover { background: #e4f8ff; border-color: #aedaff; }
-.fs-tb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.fs-tb-btn--danger { color: #d32f2f; border-color: rgba(211,47,47,0.3); }
-.fs-tb-btn--danger:hover { background: #ffe9e9; border-color: #f2a0a0; }
 
-/* 视图切换 */
-.fs-view-toggle { display: inline-flex; background: #fff; border: 1px solid var(--kd-border); border-radius: 2px; padding: 1px; }
-.fs-view-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 24px; border: none; background: transparent; cursor: pointer; color: #888;
-  transition: background 0.15s, color 0.15s;
+.fs-stat__avatar--blue {
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
 }
-.fs-view-btn svg { width: 15px; height: 15px; }
-.fs-view-btn:hover { background: #e4f8ff; color: #1a73e8; }
-.fs-view-btn--active { background: #cce8ff; color: #1a73e8; }
+
+.fs-stat__avatar--green {
+  background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-success) 28%, transparent);
+}
+
+.fs-stat__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-stat__label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-stat__value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-stat__value b {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.fs-stat__sep {
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-stat__bar {
+  margin-top: 8px;
+  height: 6px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.fs-stat__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info)));
+  transition: width var(--el-transition-duration, 0.2s);
+}
+
+.fs-stat__side {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px 6px 14px;
+  border: none;
+  border-left: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.fs-stat__side b {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-stat__chev {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  transition: transform var(--el-transition-duration, 0.2s);
+}
+
+.fs-stat__chev.is-open {
+  transform: rotate(180deg);
+}
+
+.fs-stat__detail {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay, #fff);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 10%);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-stat__detail b {
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+
+.fs-stat__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-stat__num {
+  margin-left: auto;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-stat__badge {
+  margin-left: auto;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-warning);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 主体：左导航 + 内容 ===== */
+.fs-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+}
+
+.fs-nav {
+  flex-shrink: 0;
+  width: 208px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color, #fff);
+  overflow-y: auto;
+}
+
+.fs-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--el-radius-lg, 12px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-nav__item:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.fs-nav__item.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-nav__label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-nav__chev {
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-nav__item.is-active .fs-nav__chev {
+  color: var(--el-color-primary);
+}
+
+.fs-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color, #fff);
+  overflow: hidden;
+}
+
+/* 内容头 */
+.fs-main__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.fs-crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.fs-crumbs__sep {
+  color: var(--el-text-color-placeholder);
+  font-weight: 400;
+}
+
+.fs-crumbs__item {
+  color: var(--el-text-color-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: color var(--el-transition-duration, 0.2s);
+}
+
+.fs-crumbs__item:hover {
+  color: var(--el-color-primary);
+}
+
+.fs-crumbs__item.is-current {
+  color: var(--el-text-color-primary);
+  font-weight: 700;
+  cursor: default;
+}
+
+.fs-main__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fs-main__sel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+
+/* 胶囊按钮 */
+.fs-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-pill-btn:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.fs-pill-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fs-pill-btn--icon {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
+.fs-pill-btn--danger {
+  color: var(--el-color-danger);
+  border-color: color-mix(in srgb, var(--el-color-danger) 35%, transparent);
+}
+
+.fs-pill-btn--danger:hover:not(:disabled) {
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
+.fs-pill-btn__chev {
+  margin-left: 2px;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-mini-btn {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-mini-btn:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-mini-btn--danger {
+  color: var(--el-color-danger);
+  border-color: color-mix(in srgb, var(--el-color-danger) 35%, transparent);
+}
+
+.fs-mini-btn--danger:hover:not(:disabled) {
+  border-color: var(--el-color-danger);
+}
 
 /* ===== 文件列表区域 ===== */
-.fs-files { flex: 1; overflow-y: auto; padding: 10px 14px 20px; background: #fff; }
+.fs-files {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 16px;
+}
+
+/* 空状态 */
+.fs-files__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 56px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.fs-files__empty small {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
 
 /* 详细信息 */
-.fs-details-head, .fs-details-row {
+.fs-details-head,
+.fs-details-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px 90px 160px;
-  align-items: center; gap: 8px; padding: 0 8px; font-size: 13px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 13px;
 }
+
 .fs-details-head {
-  position: sticky; top: 0; background: #f8f8f8; z-index: 5;
-  padding-top: 8px; padding-bottom: 6px; border-bottom: 1px solid #ddd;
-  font-size: 12px; font-weight: 600; color: #666;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: var(--el-bg-color, #fff);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
 }
-.fs-details-head__col { cursor: pointer; user-select: none; }
-.fs-details-head__col:hover { background: var(--kd-hover); }
-.fs-details-head__size { text-align: right; }
-.fs-sort-arrow { color: #1a73e8; font-weight: 700; }
-.fs-details-row { padding-top: 5px; padding-bottom: 5px; cursor: pointer; border: 1px solid transparent; }
-.fs-details-row:hover { background: var(--kd-hover); border-color: transparent; }
-.fs-details-row--selected { background: var(--kd-select); border-color: #99d1ff; }
-.fs-details-row__name { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
-.fs-details-row__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fs-details-row__icon { width: 18px; height: 18px; font-size: 18px; flex-shrink: 0; color: #e2a03f; }
-.fs-details-row__icon.icon-image { color: #34a853; }
-.fs-details-row__icon.icon-video { color: #9333ea; }
-.fs-details-row__icon.icon-audio { color: #d97706; }
-.fs-details-row__icon.icon-pdf { color: #d93025; }
-.fs-details-row__icon.icon-office { color: #1a73e8; }
-.fs-details-row__icon.icon-archive { color: #6b7280; }
-.fs-details-row__icon.icon-text,
-.fs-details-row__icon.icon-file { color: #4b5563; }
-.fs-name--dir { font-weight: 600; color: #333; }
-.fs-details-row__type { color: var(--kd-text-2); font-size: 12px; }
-.fs-details-row__size { color: var(--kd-text-2); font-size: 12px; text-align: right; }
-.fs-details-row__time { color: var(--kd-text-2); font-size: 12px; }
+
+.fs-details-head__col {
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--el-radius-sm, 6px);
+}
+
+.fs-details-head__size {
+  text-align: right;
+}
+
+.fs-sort-arrow {
+  color: var(--el-color-primary);
+  font-weight: 700;
+}
+
+.fs-details-row {
+  height: 40px;
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--el-transition-duration, 0.2s);
+}
+
+.fs-details-row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.fs-details-row--selected {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.fs-details-row__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fs-details-row__name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-details-row__icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.fs-name--dir {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-details-row__type,
+.fs-details-row__size,
+.fs-details-row__time {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.fs-details-row__size {
+  text-align: right;
+}
+
 /* 管理员配置控制详情列显隐（showFormat/showSize/showTime），网格随可见列收缩 */
 .fs-files--details.fs-details--no-format .fs-details-head, .fs-files--details.fs-details--no-format .fs-details-row { grid-template-columns: minmax(0, 1fr) 90px 160px; }
 .fs-files--details.fs-details--no-size .fs-details-head, .fs-files--details.fs-details--no-size .fs-details-row { grid-template-columns: minmax(0, 1fr) 110px 160px; }
@@ -2512,162 +3441,1262 @@ onUnmounted(() => {
 .fs-files--details.fs-details--no-format.fs-details--no-time .fs-details-head, .fs-files--details.fs-details--no-format.fs-details--no-time .fs-details-row { grid-template-columns: minmax(0, 1fr) 90px; }
 .fs-files--details.fs-details--no-format.fs-details--no-size.fs-details--no-time .fs-details-head, .fs-files--details.fs-details--no-format.fs-details--no-size.fs-details--no-time .fs-details-row { grid-template-columns: minmax(0, 1fr); }
 
-/* 大图标 */
-.fs-files--large { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; align-content: start; }
-.fs-lg-card {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px; border: 1px solid transparent; cursor: pointer;
-  transition: background 0.15s; user-select: none;
+/* 大图标（云盘卡片） */
+.fs-files--large {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 14px;
+  align-content: start;
 }
-.fs-lg-card:hover { background: var(--kd-hover); }
-.fs-lg-card--selected { background: var(--kd-select); border-color: #99d1ff; }
-.fs-lg-card__thumb { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; background: #fafafa; }
-.fs-lg-card__thumb svg { width: 56px; height: 56px; }
-.fs-lg-card__thumb .fs-card-icon { font-size: 56px; }
-.fs-lg-card__thumb.icon-folder { color: #e2a03f; background: #fff8e8; }
-.fs-lg-card__thumb.icon-image { color: #34a853; background: #e6f4ea; }
-.fs-lg-card__thumb.icon-video { color: #9333ea; background: #f3e8ff; }
-.fs-lg-card__thumb.icon-audio { color: #d97706; background: #fef3c7; }
-.fs-lg-card__thumb.icon-pdf { color: #d93025; background: #fce8e6; }
-.fs-lg-card__thumb.icon-office { color: #1a73e8; background: #e8f0fe; }
-.fs-lg-card__thumb.icon-archive { color: #6b7280; background: #f3f4f6; }
-.fs-lg-card__thumb.icon-text { color: #4b5563; background: #f3f4f6; }
-.fs-lg-card__thumb.icon-file { color: #4b5563; background: #f3f4f6; }
-.fs-lg-card__frame { width: 100%; height: 100%; border: none; pointer-events: none; filter: var(--fs-image-filter, none); }
+
+.fs-lg-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 20px 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color, #fff);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s), transform var(--el-transition-duration, 0.2s);
+}
+
+.fs-lg-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 6%);
+  transform: translateY(-2px);
+}
+
+.fs-lg-card--selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary), 0 8px 20px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
+.fs-lg-card__thumb {
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fs-lg-card__thumb svg {
+  width: 76px;
+  height: 76px;
+}
+
+.fs-lg-card__thumb .fs-card-icon {
+  font-size: 76px;
+}
+
+/* 目录图标：默认灰阶，悬停/选中恢复黄色（对齐设计稿） */
+.fs-lg-card__thumb.icon-folder .fs-card-icon {
+  filter: grayscale(1);
+  opacity: 0.55;
+  transition: filter var(--el-transition-duration, 0.2s), opacity var(--el-transition-duration, 0.2s);
+}
+
+.fs-lg-card:hover .fs-lg-card__thumb.icon-folder .fs-card-icon,
+.fs-lg-card--selected .fs-lg-card__thumb.icon-folder .fs-card-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.fs-lg-card__frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  object-fit: cover;
+  pointer-events: none;
+  filter: var(--fs-image-filter, none);
+}
+
 .fs-lg-card__label {
-  width: 100%; text-align: center; font-size: 12px; font-weight: 400; color: #333;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-lg-card__meta {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-lg-card__ops {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 选中态右上角 X 徽标 */
+.fs-lg-card__x,
+.fs-md-card__x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
 
 /* 中图标 */
-.fs-files--medium { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; align-content: start; }
-.fs-md-card {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 8px 4px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s; user-select: none;
+.fs-files--medium {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  align-content: start;
 }
-.fs-md-card:hover { background: var(--kd-hover); }
-.fs-md-card--selected { background: var(--kd-select); border-color: #99d1ff; }
-.fs-md-card__thumb { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
-.fs-md-card__thumb svg { width: 30px; height: 30px; }
-.fs-md-card__thumb .fs-card-icon { font-size: 30px; }
-.fs-md-card__thumb.icon-folder { color: #e2a03f; }
-.fs-md-card__thumb.icon-image { color: #34a853; }
-.fs-md-card__thumb.icon-video { color: #9333ea; }
-.fs-md-card__thumb.icon-audio { color: #d97706; }
-.fs-md-card__thumb.icon-pdf { color: #d93025; }
-.fs-md-card__thumb.icon-office { color: #1a73e8; }
-.fs-md-card__thumb.icon-archive { color: #6b7280; }
-.fs-md-card__thumb.icon-text { color: #4b5563; }
-.fs-md-card__thumb.icon-file { color: #4b5563; }
-.fs-md-card__label { width: 100%; text-align: center; font-size: 12px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.fs-md-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-lg, 12px);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-md-card:hover {
+  background: var(--el-fill-color-light);
+}
+
+.fs-md-card--selected {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.fs-md-card__thumb {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-md-card__thumb svg {
+  width: 38px;
+  height: 38px;
+}
+
+.fs-md-card__thumb .fs-card-icon {
+  font-size: 38px;
+}
+
+.fs-md-card__label {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* 小图标 */
-.fs-files--small { padding: 0 10px 16px; }
-.fs-files__small-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px; }
+.fs-files__small-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 2px;
+}
+
 .fs-sm-row {
-  display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: pointer;
-  border: 1px solid transparent; font-size: 12.5px; overflow: hidden; transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  font-size: 12.5px;
+  overflow: hidden;
+  transition: background var(--el-transition-duration, 0.2s);
 }
-.fs-sm-row:hover { background: var(--kd-hover); }
-.fs-sm-row--selected { background: var(--kd-select); border-color: #99d1ff; }
-.fs-sm-row__icon { width: 16px; height: 16px; font-size: 16px; flex-shrink: 0; color: #e2a03f; }
-.fs-sm-row__icon.icon-image { color: #34a853; }
-.fs-sm-row__icon.icon-video { color: #9333ea; }
-.fs-sm-row__icon.icon-audio { color: #d97706; }
-.fs-sm-row__icon.icon-pdf { color: #d93025; }
-.fs-sm-row__icon.icon-office { color: #1a73e8; }
-.fs-sm-row__icon.icon-archive { color: #6b7280; }
-.fs-sm-row__icon.icon-text,
-.fs-sm-row__icon.icon-file { color: #4b5563; }
-.fs-sm-row__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 空状态 */
-.fs-files__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 40px 0; color: var(--kd-text-2); font-size: 13px; }
-.fs-files__empty small { font-size: 12px; }
-
-/* ===== 状态栏 ===== */
-.fs-statusbar {
-  flex-shrink: 0; display: flex; align-items: center; gap: 16px;
-  padding: 5px 14px; background: #f1f1f1; border-top: 1px solid #ddd;
-  font-size: 12px; color: #555; user-select: none;
+.fs-sm-row:hover {
+  background: var(--el-fill-color-light);
 }
-.fs-statusbar__item { white-space: nowrap; }
-.fs-statusbar__item--selected { color: #1a73e8; font-weight: 600; }
-.fs-statusbar__spacer { flex: 1; }
+
+.fs-sm-row--selected {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.fs-sm-row__icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.fs-sm-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 最近访问 / 收藏夹 ===== */
+.fs-files--paths {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.fs-path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 18px 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
+}
+
+.fs-path-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 6%);
+}
+
+.fs-path-card__icon {
+  width: 64px;
+  height: 64px;
+  display: inline-flex;
+}
+
+.fs-path-card__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fs-path-card__name {
+  margin-top: 8px;
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-path-card__path {
+  max-width: 100%;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-path-card__del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-path-card:hover .fs-path-card__del {
+  opacity: 1;
+}
+
+.fs-path-card__del:hover {
+  color: var(--el-color-danger);
+}
+
+/* ===== 共享文件 ===== */
+.fs-files--shared {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fs-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color, #fff);
+}
+
+.fs-link-row__icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.fs-link-row__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fs-link-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-link-row__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-link-row__url {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-link-row__type {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ===== 回收站 ===== */
+.fs-recycle-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ===== 拖拽放置目标高亮（四种视图通用） ===== */
+.fs-row--drop {
+  outline: 2px dashed var(--el-color-primary);
+  outline-offset: -2px;
+  background: var(--el-color-primary-light-9) !important;
+}
 
 /* ===== 右键菜单 ===== */
 .fs-ctx {
-  position: fixed; z-index: 100000; min-width: 160px;
-  background: #fff; border: 1px solid rgba(0,0,0,0.2);
-  border-radius: 2px; padding: 4px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 13px;
+  position: fixed;
+  z-index: 100000;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay, #fff);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+  font-size: 13px;
 }
-.fs-ctx__item {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 5px 10px; border: none; background: transparent; border-radius: 0;
-  cursor: pointer; text-align: left; color: #333; font-size: 13px; font-family: inherit; transition: background 0.12s;
-}
-.fs-ctx__item:hover { background: var(--kd-hover); }
-.fs-ctx__item svg { flex-shrink: 0; color: #888; }
-.fs-ctx__item .el-icon { font-size: 14px; flex-shrink: 0; color: #888; }
-.fs-ctx__item--danger { color: #d32f2f; }
-.fs-ctx__item--danger:hover { background: #ffe9e9; }
-.fs-ctx__sep { height: 1px; background: #eee; margin: 4px 6px; }
 
-/* 拖拽放置目标高亮（四种视图通用） */
-.fs-row--drop { outline: 2px solid #409eff; outline-offset: -2px; background: #ecf5ff !important; }
+.fs-ctx__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-family: inherit;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-ctx__item:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-ctx__item svg,
+.fs-ctx__item .el-icon {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-ctx__item--danger {
+  color: var(--el-color-danger);
+}
+
+.fs-ctx__item--danger:hover {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.fs-ctx__sep {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
 
 /* ===== 预览 ===== */
-.fs-preview { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-.fs-preview__meta { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 0; font-size: 12px; color: var(--kd-text-2); border-bottom: 1px solid #eee; margin-bottom: 8px; width: 100%; }
-.fs-preview__media { max-width: 100%; border-radius: 4px; }
-.fs-preview__img-wrap { display: flex; align-items: center; justify-content: center; padding: 6px; }
-.fs-preview__img { max-width: 100%; max-height: 64vh; border-radius: 4px; box-shadow: 0 1px 6px rgba(0,0,0,0.15); filter: var(--fs-image-filter, none); }
-.fs-preview__code { width: 100%; max-height: 60vh; margin: 0; padding: 12px; overflow: auto; border-radius: 4px; background: #f8f8f8; border: 1px solid #eee; color: #333; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
-.fs-preview__error { width: 100%; display: flex; align-items: center; justify-content: center; }
-.fs-preview__skeleton { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
-.fs-preview__loading-text { font-size: 13px; color: var(--kd-text-2); }
-.sk { border-radius: 4px; background: linear-gradient(90deg, #eee 25%, #ddd 50%, #eee 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+.fs-preview {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.fs-preview__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  width: 100%;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-preview__media {
+  max-width: 100%;
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.fs-preview__img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.fs-preview__img {
+  max-width: 100%;
+  max-height: 64vh;
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 15%);
+  filter: var(--fs-image-filter, none);
+}
+
+.fs-preview__code {
+  width: 100%;
+  max-height: 60vh;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.fs-preview__error {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-preview__skeleton {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.fs-preview__loading-text {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.sk {
+  border-radius: var(--el-radius-sm, 6px);
+  background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color) 50%, var(--el-fill-color-light) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
 .sk--w40 { width: 40%; height: 22px; }
 .sk--w60 { width: 60%; height: 110px; }
 .sk--full { width: 100%; height: 180px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* ===== Element Plus 弹窗圆角 ===== */
-.fs-app :deep(.el-dialog) { border-radius: 6px; overflow: hidden; }
-.fs-app :deep(.el-dialog__header) { padding: 12px 16px; margin-right: 0; border-bottom: 1px solid #eee; background: #f8f8f8; }
-.fs-app :deep(.el-dialog__title) { font-size: 14px; font-weight: 600; color: #333; }
-.fs-app :deep(.el-dialog__headerbtn) { top: 10px; right: 10px; }
-.fs-app :deep(.el-dialog__body) { padding: 16px; }
-.fs-app :deep(.el-dialog__footer) { padding: 10px 16px 14px; border-top: 1px solid #f1f1f1; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
-/* 响应式 */
-@media (max-width: 768px) {
-  .fs-sidebar { display: none; }
-  .fs-search { width: 110px; }
-  .fs-header { padding: 0 8px; }
-  .fs-addr { margin: 0 4px; }
-  .fs-files--large { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-  .fs-files--medium { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
-  .fs-details-head, .fs-details-row { grid-template-columns: minmax(0, 1fr) 70px 56px; }
-  .fs-details-head__type, .fs-details-row__type { display: none; }
+/* ===== Element Plus 弹窗对齐 koi 圆角 ===== */
+.fs-app :deep(.el-dialog) {
+  border-radius: var(--el-radius-xl, 16px);
+  overflow: hidden;
+}
+
+.fs-app :deep(.el-dialog__header) {
+  padding: 14px 18px;
+  margin-right: 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.fs-app :deep(.el-dialog__title) {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-app :deep(.el-dialog__body) {
+  padding: 16px 18px;
+}
+
+.fs-app :deep(.el-dialog__footer) {
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
 }
 
 /* ===== 管理员系统配置弹窗 ===== */
-.fs-admin { display: flex; flex-direction: column; gap: 12px; }
-.fs-admin__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--kd-text); }
-.fs-admin__row--col { flex-direction: column; align-items: stretch; }
-.fs-admin__row--col > .fs-admin__label { font-weight: 600; }
-.fs-admin__label { display: inline-flex; align-items: center; gap: 4px; }
-.fs-admin__info { font-size: 14px; color: var(--kd-text-2, #999); cursor: help; }
-.fs-admin__divider { margin: 2px 0; }
-.fs-admin__tip { margin: 2px 0 0; font-size: 12px; color: var(--kd-text-2); }
+.fs-admin__head {
+  min-width: 0;
+}
 
-/* 面包屑最左侧文件夹图标 */
-.fs-pathbar__icon { font-size: 14px; margin-right: 4px; }
+.fs-admin__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--el-text-color-primary);
+}
 
-/* header 管理员配置按钮内的 EP 图标尺寸 */
-.fs-icon-btn .el-icon { font-size: 16px; }
+.fs-admin__subtitle {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin {
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-admin__card {
+  padding: 18px 20px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color, #fff);
+}
+
+.fs-admin__group {
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-admin__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+}
+
+.fs-admin__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  min-width: 0;
+}
+
+.fs-admin__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+}
+
+.fs-admin__arrow {
+  font-style: normal;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-admin__divider {
+  height: 1px;
+  margin: 14px 0 16px;
+  background: var(--el-border-color-lighter);
+}
+
+.fs-admin__section-title {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-admin__tip {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin__select {
+  width: 148px;
+  flex-shrink: 0;
+}
+
+.fs-admin__pills {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .fs-admin__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 992px) {
+  .fs-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fs-stat--usage {
+    grid-column: 1 / -1;
+  }
+  .fs-nav {
+    width: 168px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fs-app {
+    padding: 8px;
+  }
+  .fs-top {
+    flex-wrap: wrap;
+  }
+  .fs-upload-btn {
+    padding: 0 16px;
+  }
+  .fs-body {
+    flex-direction: column;
+  }
+  .fs-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .fs-nav__item {
+    width: auto;
+    flex-shrink: 0;
+  }
+  .fs-nav__chev {
+    display: none;
+  }
+  .fs-files--large {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  }
+  .fs-files--medium {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  }
+  .fs-details-head,
+  .fs-details-row {
+    grid-template-columns: minmax(0, 1fr) 70px 56px;
+  }
+  .fs-details-head__type,
+  .fs-details-row__type {
+    display: none;
+  }
+}
+
+/* ========================================================
+   目录树导航 / 路径栏 / 工具栏 / 状态栏（对齐资源管理器布局）
+   ======================================================== */
+.fs-app {
+  gap: 0;
+}
+
+.fs-nav {
+  width: 232px;
+  gap: 0;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.fs-nav__section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fs-nav__section--quick {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fs-nav__title {
+  padding: 6px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-nav__empty {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-nav__item {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--el-radius-md, 8px);
+  font-size: 13px;
+}
+
+.fs-nav__item--quick .fs-nav__del {
+  margin-left: auto;
+  color: var(--el-text-color-placeholder);
+  opacity: 0;
+}
+
+.fs-nav__item--quick:hover .fs-nav__del {
+  opacity: 1;
+}
+
+.fs-nav__item--quick .fs-nav__del:hover {
+  color: var(--el-color-danger);
+}
+
+.fs-nav__foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-nav__foot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-nav__foot-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.fs-nav__foot-btn.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-nav__foot-btn--icon {
+  margin-left: auto;
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.fs-nav__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-warning);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 目录树（复用 FsTreeNode 渲染组件，样式走 :deep 穿透） */
+.fs-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  max-height: 40%;
+}
+
+.fs-tree :deep(.fs-tree-node__row) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding-right: 8px;
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--el-transition-duration, 0.2s);
+}
+
+.fs-tree :deep(.fs-tree-node__row:hover) {
+  background: var(--el-fill-color-light);
+}
+
+.fs-tree :deep(.fs-tree-node__row--active) {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-tree :deep(.fs-tree-node__row--drop) {
+  outline: 1px dashed var(--el-color-primary);
+  outline-offset: -1px;
+}
+
+.fs-tree :deep(.fs-tree-node__arrow) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder);
+  transition: transform var(--el-transition-duration, 0.2s);
+}
+
+.fs-tree :deep(.fs-tree-node__arrow--open) {
+  transform: rotate(90deg);
+}
+
+.fs-tree :deep(.fs-tree-node__label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 路径栏 */
+.fs-pathbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-icon-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-icon-btn:hover:not(:disabled) {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fs-icon-btn .is-spin {
+  animation: fs-spin 1s linear infinite;
+}
+
+@keyframes fs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fs-crumbs {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fs-crumbs__sep {
+  margin: 0 2px;
+}
+
+.fs-crumbs__item {
+  font-weight: 500;
+}
+
+.fs-crumbs__item.is-current {
+  font-weight: 700;
+}
+
+.fs-main__sel {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+}
+
+.fs-main__lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fs-main__lock + .fs-main__sel {
+  margin-left: 0;
+}
+
+/* 操作工具栏 */
+.fs-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  overflow-x: auto;
+}
+
+.fs-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-tb-btn:hover:not(:disabled) {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-tb-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fs-tb-btn--danger {
+  color: var(--el-color-danger);
+}
+
+.fs-tb-btn--danger:hover:not(:disabled) {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.fs-toolbar__hint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-toolbar__sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--el-border-color-lighter);
+}
+
+/* ===== 分栏视图（macOS Finder 风格） ===== */
+.fs-files--columns {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 8px 0 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.fs-col {
+  flex: 0 0 232px;
+  min-width: 232px;
+  max-width: 232px;
+  border-right: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  overflow: hidden;
+}
+
+.fs-col:last-child {
+  flex: 1 1 auto;
+  border-right: none;
+}
+
+.fs-col__body {
+  height: 100%;
+  overflow-y: auto;
+  padding: 2px 6px;
+}
+
+.fs-col__hint {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-col__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-col__row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.fs-col__row.is-trail {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-col__row.is-selected {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.fs-col__row.is-selected .fs-col__name {
+  color: #fff;
+}
+
+.fs-col__row.is-dragover {
+  outline: 1px dashed var(--el-color-primary);
+  outline-offset: -1px;
+}
+
+.fs-col__icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.fs-col__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 状态栏 */
+.fs-statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-statusbar__info {
+  flex: 1;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-statusbar__views {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.fs-view-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-view-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-view-btn.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+/* 空状态：在内容区居中 */
+.fs-files {
+  position: relative;
+}
+
+.fs-files__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  pointer-events: none;
+}
+
+.fs-files__empty > * {
+  pointer-events: auto;
+}
+
+/* 卡片：更紧凑的网格（对齐设计稿） */
+.fs-files--large {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.fs-lg-card {
+  gap: 0;
+  padding: 14px 8px 10px;
+  border-color: transparent;
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: none;
+}
+
+.fs-lg-card:hover {
+  border-color: transparent;
+  background: var(--el-fill-color-light);
+  box-shadow: none;
+  transform: none;
+}
+
+.fs-lg-card--selected {
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+  box-shadow: none;
+}
+
+.fs-lg-card__thumb {
+  width: 62px;
+  height: 62px;
+}
+
+.fs-lg-card__thumb svg {
+  width: 56px;
+  height: 56px;
+}
+
+.fs-lg-card__thumb .fs-card-icon {
+  font-size: 56px;
+}
+
+.fs-lg-card__label {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fs-lg-card__frame {
+  border-radius: var(--el-radius-sm, 6px);
+}
 </style>
 
 <style>
@@ -2708,5 +4737,80 @@ onUnmounted(() => {
   width: 1em;
   height: 1em;
   display: block;
+}
+
+/* ── 系统配置弹窗外壳（append-to-body 需非 scoped）：标题/分栏单选/按钮对齐 koi ── */
+.fs-admin-dialog.el-dialog {
+  border-radius: var(--el-radius-xl, 16px);
+}
+
+.fs-admin-dialog .el-dialog__header {
+  padding: 22px 26px 4px;
+  margin-right: 0;
+}
+
+.fs-admin-dialog .el-dialog__headerbtn {
+  top: 20px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+}
+
+.fs-admin-dialog .el-dialog__headerbtn .el-dialog__close {
+  font-size: 20px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-admin-dialog .el-dialog__body {
+  padding: 8px 26px 0;
+}
+
+.fs-admin-dialog .el-dialog__footer {
+  padding: 10px 26px 22px;
+}
+
+.fs-admin-dialog .el-dialog__footer .el-button {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+.fs-admin-dialog .el-dialog__footer .el-button--primary {
+  border: none;
+  background: linear-gradient(135deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info)));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+}
+
+.fs-admin-dialog .el-dialog__footer .el-button--primary:hover {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+}
+
+.fs-admin-dialog .el-radio-button__inner {
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px) !important;
+  box-shadow: none !important;
+  padding: 7px 16px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+}
+
+.fs-admin-dialog .el-radio-button:first-child .el-radio-button__inner {
+  margin-right: 8px;
+}
+
+.fs-admin-dialog .el-radio-button.is-active .el-radio-button__inner,
+.fs-admin-dialog .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-admin-dialog .el-input__wrapper,
+.fs-admin-dialog .el-select__wrapper {
+  border-radius: var(--el-radius-md, 8px);
 }
 </style>

@@ -9,9 +9,9 @@
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import {
-  fetchDiscoveryStatus, fetchDiscoveryServices, fetchDiscoveryProtocols,
+  getDiscoveryStatus, queryDiscoveryInstances, listDiscoveryProtocols,
   type DiscoveryStatus, type DiscoveryInstance,
-} from "../monitorApi";
+} from "@pages/server/src/api";
 
 /** 发现服务状态 */
 const status = ref<DiscoveryStatus | null>(null);
@@ -41,8 +41,8 @@ async function loadStatus() {
   loading.value = true;
   try {
     [status.value, protocolOptions.value] = await Promise.all([
-      fetchDiscoveryStatus(),
-      fetchDiscoveryProtocols().catch(() => []),
+      getDiscoveryStatus(),
+      listDiscoveryProtocols().catch(() => []),
     ]);
   } catch (e: any) {
     ElMessage.error(`加载失败：${e?.message ?? e}`);
@@ -58,7 +58,7 @@ async function loadServices() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await fetchDiscoveryServices(
+    const result = await queryDiscoveryInstances(
       queryProtocol.value || undefined,
       queryUriSpec.value || undefined,
     );
@@ -101,10 +101,11 @@ onMounted(refresh);
         <span :class="['status-badge', status?.enabled ? 'status-on' : 'status-off']">
           {{ status?.enabled ? "已启用" : "未启用" }}
         </span>
-        <span v-if="status?.enabled && status.protocols.length" class="muted">
-          支持协议：{{ status.protocols.join("、") }}
+        <span v-if="status?.enabled && status.availableProtocols?.length" class="muted">
+          支持协议：{{ status.availableProtocols.join("、") }}
         </span>
         <span v-else-if="status" class="muted">暂无启用的发现协议配置</span>
+        <span v-if="status" class="muted">运行中发现插件：{{ status.runningDiscoveryFilters }} 个</span>
         <span v-else class="muted">加载中…</span>
       </div>
       <div v-if="!status?.enabled" class="hint">

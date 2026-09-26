@@ -64,8 +64,8 @@
   --rt-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --rt-transition: var(--rt-duration) var(--rt-ease);
 
-  /* 空数据最小高度 */
-  --rt-empty-height: 300px;
+  /* 空数据最小高度（撑开空态，避免表格无行时塌成一条线；与 ReTable.tableMinHeight 默认一致） */
+  --rt-empty-height: 440px;
 }
 
 @media (prefers-color-scheme: dark) {

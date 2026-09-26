@@ -4,6 +4,8 @@
   两条后端语义必须在界面上体现：
   1. 密文变量读回恒为掩码 "******"，update 时原样提交掩码表示不改值；
   2. 变量名规则 [A-Za-z_][A-Za-z0-9_]{0,63} 且全局唯一，重名后端直接 400。
+
+  清单一次性拉全，所以 ReTable 内置搜索区的关键字在前端过滤，但仍是「点查询才生效」的草稿语义。
 -->
 <script setup lang="ts">
 import { computed, onActivated, reactive, ref } from "vue";
@@ -16,7 +18,7 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { deleteVariable, listVariables, saveVariable, updateVariable } from "../api/collectApi";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
-import type { ReTableColumn } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectVariable } from "../types/collect";
 
 defineOptions({ name: "CollectVariable" });
@@ -36,6 +38,14 @@ const MASK = "******";
 const NAME_RULE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
 
 const rows = ref<CollectVariable[]>([]);
+/** 搜索区里的草稿值与真正生效的条件：清单是一次性拉全的，所以过滤在前端做，但同样只在点「查询」时才生效 */
+const searchModel = ref({ keyword: "" });
+const applied = ref({ keyword: "" });
+const SEARCH: ReTableSearchConfig = {
+  title: "搜索变量",
+  showRefreshBtn: false,
+  filters: [{ key: "keyword", label: "关键字", type: "input", placeholder: "变量名或说明" }],
+};
 const visible = ref(false);
 const saving = ref(false);
 const form = reactive({
@@ -50,13 +60,35 @@ const { loading, reload } = useCollectView(async () => {
   rows.value = (await listVariables()) ?? [];
 });
 
+const visibleRows = computed(() => {
+  const kw = applied.value.keyword.trim().toLowerCase();
+  if (!kw) {
+    return rows.value;
+  }
+  return rows.value.filter(row =>
+    [row.collectVariableName, row.collectVariableDescription]
+      .some(text => String(text ?? "").toLowerCase().includes(kw)),
+  );
+});
+
+/** 点「查询」：把搜索区里的草稿值提交给过滤逻辑 */
+function applySearch(): void {
+  applied.value = { keyword: String(searchModel.value.keyword ?? "") };
+}
+
+/** 点「重置」：不依赖组件清空与事件的先后，直接把草稿与生效条件一起归零 */
+function resetSearch(): void {
+  searchModel.value = { keyword: "" };
+  applied.value = { keyword: "" };
+}
+
 const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectVariableName", label: "变量名", minWidth: 160 },
   { prop: "collectVariableValue", label: "值", minWidth: 220, slot: "value" },
   { prop: "collectVariableEncrypted", label: "密文", width: 80, slot: "encrypted", align: "center" },
   { prop: "collectVariableDescription", label: "说明", minWidth: 180, showOverflowTooltip: true },
   { prop: "updateTime", label: "更新时间", width: 160 },
-  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right" },
 ]);
 
 function openCreate(): void {
@@ -129,24 +161,26 @@ async function remove(input: Record<string, unknown>): Promise<void> {
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-card--head">
-      <span class="collect-hint">全局变量在每次执行时合并进上下文，流程同名变量优先级更高</span>
-      <span class="spacer"/>
-      <ReButton size="small" icon="Refresh" @click="reload">刷新</ReButton>
-      <ReButton size="small" type="primary" icon="Plus" @click="openCreate">新建变量</ReButton>
-    </div>
-
     <ReTable
       class="collect-card"
       table-id="collect-variable"
       :loading="loading"
-      :data="rows"
+      :data="visibleRows"
       :columns="columns"
       :pagination="false"
+      :search="SEARCH"
+      v-model:search-model="searchModel"
       row-key="collectVariableId"
-      empty-text="暂无全局变量"
+      :empty-text="applied.keyword ? `没有匹配「${applied.keyword}」的全局变量` : '暂无全局变量'"
       stripe
+      @search="applySearch"
+      @search-reset="resetSearch"
+      @refresh="reload"
     >
+      <template #toolbar>
+        <ReButton icon="Plus" type="primary" title="新建变量" @click="openCreate">新建变量</ReButton>
+        <span class="collect-hint">全局变量在每次执行时合并进上下文，流程同名变量优先级更高；密文变量的值读回恒为掩码</span>
+      </template>
       <template #value="{ row }">
         <span class="collect-cell-ellipsis" :title="String(row.collectVariableValue ?? '')">
           {{ row.collectVariableValue == null || row.collectVariableValue === "" ? "—" : row.collectVariableValue }}
@@ -158,8 +192,8 @@ async function remove(input: Record<string, unknown>): Promise<void> {
         </ReTag>
       </template>
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="openEdit(row)">编辑</ReButton>
-        <ReButton size="small" text type="danger" @click="remove(row)">删除</ReButton>
+        <ReButton layout="square" icon="Edit" type="primary" title="编辑这个变量" @click="openEdit(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" title="删除这个变量" @click="remove(row)"/>
       </template>
     </ReTable>
 
@@ -211,16 +245,3 @@ async function remove(input: Record<string, unknown>): Promise<void> {
     </ReDialog>
   </div>
 </template>
-
-<style scoped>
-.collect-card--head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.collect-card--head .spacer {
-  flex: 1 1 auto;
-}
-</style>

@@ -95,7 +95,7 @@ export const registry: ComponentMeta[] = [
   { name: "ReForm", title: "表单", description: "表单组件（el-form 封装，支持配置驱动）", category: "form", icon: "Memo" },
   { name: "ReSelect", title: "下拉选择", description: "下拉选择组件（el-select 封装）", category: "form", icon: "CaretBottom" },
   { name: "ReDatePicker", title: "日期选择", description: "日期选择器（el-date-picker 封装）", category: "form", icon: "Calendar" },
-  { name: "ReCron", title: "Cron 表达式", description: "Cron 表达式生成器（卡片式/默认）", category: "form", icon: "AlarmClock" },
+  { name: "ReCron", title: "Cron 表达式", description: "Cron 表达式生成器（可视化面板 + 触发时间预览）", category: "form", icon: "AlarmClock" },
   { name: "ReTree", title: "树形控件", description: "树形控件（基于 el-tree）", category: "form", icon: "Share" },
   { name: "ReFilePicker", title: "文件选择", description: "文件选择器（el-upload 二次封装）", category: "form", icon: "FolderOpened" },
   { name: "ReUpload", title: "上传", description: "上传组件（el-upload 封装）", category: "form", icon: "UploadFilled" },

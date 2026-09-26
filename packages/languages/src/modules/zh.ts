@@ -17,7 +17,8 @@ export default {
       systemUnavailable: "系统暂时不可用",
       systemUnavailableDesc: "系统配置加载失败，请稍后重试",
       retry: "重新加载",
-      otpTip: "请输入手机或邮箱收到的 6 位动态口令",
+      otpTip: "请输入验证器 App 生成的 6 位动态口令",
+      totpTip: "请输入验证器 App 生成的 6 位动态码",
       otpTitle: "动态口令验证",
       otpConfirm: "确认",
       otpCancel: "取消",
@@ -27,16 +28,26 @@ export default {
       style: "登录页风格",
       styleDesc: "切换不同布局与视觉样式",
       styleOptions: {
-        defaultLabel: "臻享双栏",
+        defaultLabel: "简单双栏",
         defaultDesc: "品牌展示 + 登录表单",
+        cardLabel: "居中卡片",
+        cardDesc: "悬浮分栏卡片布局",
         bubbleLabel: "气泡简约",
         bubbleDesc: "气泡背景轻量卡片",
+        glassLabel: "玻璃拟态",
+        glassDesc: "毛玻璃质感卡片",
+        slideLabel: "流光卡片",
+        slideDesc: "渐变流光悬浮卡片",
         splitLabel: "分屏沉浸",
         splitDesc: "大屏分栏沉浸布局",
-        minecraftLabel: "我的世界",
-        minecraftDesc: "像素方块风格",
-        voxelLabel: "现代体素",
-        voxelDesc: "3D 体素粒子风格",
+        splitReverseLabel: "左右分屏沉浸式登录页",
+        splitReverseDesc: "左表单 · 右品牌沉浸区",
+        voxelLabel: "现代立体",
+        voxelDesc: "3D 立体粒子风格",
+        monoLabel: "等宽终端",
+        monoDesc: "极客等宽终端风格",
+        simpleLabel: "轻终端",
+        simpleDesc: "简洁终端风格",
       },
       featureTags: {
         manage: "高效管理",
@@ -51,7 +62,7 @@ export default {
       rules: {
         loginName: {
           required: "用户名不能为空",
-          validator: "账号只能包含数字和字母",
+          validator: "账号只能包含数字、字母、下划线和中划线",
         },
         password: {
           required: "密码不能为空",
@@ -209,7 +220,7 @@ export default {
       },
     },
     monitor: {
-      auth: "系统监控",
+      auth: "监控管理",
       scheduled: {
         name: "定时任务",
       },
@@ -217,7 +228,7 @@ export default {
         name: "在线用户",
       },
       service: {
-        name: "服务监控",
+        name: "监控大盘",
       },
       redis: {
         name: "Redis监控",
@@ -235,7 +246,7 @@ export default {
         name: "代码生成",
       },
       config: {
-        name: "代码配置",
+        name: "配置管理",
       },
       file: {
         name: "文件管理",
@@ -390,6 +401,69 @@ export default {
       homeConfig: "首页配置",
       watermarkConfig: "水印配置",
       weatherConfig: "天气配置",
+      capabilityConfig: "业务开关",
+      loginVerify: "登录验证",
+    },
+    loginVerify: {
+      captcha: {
+        title: "图形验证码",
+        sub: "验证码",
+        tip: "登录时要求输入图形验证码（login.captcha）",
+        description: "登录时要求输入图形验证码；支持 app.yaml / 后台 default 接口下发",
+      },
+      slider: {
+        title: "滑块验证",
+        sub: "滑块",
+        tip: "登录时需向右滑动完成验证（login.slider）",
+        description: "登录时需向右滑动完成验证；支持 app.yaml / 后台 default 接口下发",
+      },
+      otp: {
+        title: "动态口令",
+        sub: "OTP / TOTP",
+        tip: "登录需输入验证器 6 位动态口令（login.otp）",
+        description: "登录需输入验证器 App 生成的 6 位动态口令；支持 app.yaml / 后台 default 接口下发",
+      },
+    },
+    security: {
+      watermark: {
+        enable: {
+          title: "全局水印",
+          sub: "防录屏",
+          tip: "在页面上叠加全局水印（security.watermark.enable）",
+          description: "在整个应用上叠加文字水印，可配置文案/颜色/透明度/角度",
+        },
+        text: {
+          label: "水印文案",
+          placeholder: "留空则不显示文案",
+        },
+        color: {
+          label: "水印颜色",
+        },
+        alpha: {
+          label: "透明度",
+        },
+        rotate: {
+          label: "旋转角度",
+        },
+      },
+      antiDebug: {
+        title: "反调试",
+        sub: "安全",
+        tip: "检测到调试模式时按配置清空页面或跳转（security.baiduJs.enable）",
+        description: "检测到开发者工具/自动化时按 action 处理；调试期间建议关闭",
+      },
+      dynamicFont: {
+        title: "动态字体加密",
+        sub: "防 OCR",
+        tip: "ReText 使用动态字体渲染文本，防止 OCR 抓取（security.dynamicFont.enable）",
+        description: "ReText 未显式指定时回退该全局开关",
+      },
+      ocrObfuscation: {
+        title: "OCR 混淆",
+        sub: "防抓取",
+        tip: "ReText 以 canvas 渲染文本，阻止页面文本被抓取（security.ocrObfuscation.enable）",
+        description: "ReText 未显式指定时回退该全局开关",
+      },
     },
     io: {
       export: "导出配置",
@@ -500,6 +574,12 @@ export default {
         tip: "侧边栏收起为图标条",
         description: "侧边栏收起为图标条",
       },
+      collapseToButton: {
+        title: "折叠为按钮",
+        sub: "仅垂直布局",
+        tip: "折叠时不显示图标菜单，整个菜单收缩为一个展开按钮（仅垂直布局生效）",
+        description: "折叠时不显示图标菜单，整个菜单收缩为一个展开按钮（仅垂直布局生效）",
+      },
     },
     message: {
       position: {
@@ -538,6 +618,32 @@ export default {
         sub: "工具栏",
         tip: "顶部工具栏右侧显示天气信息",
         description: "显示当前天气和一周预报",
+      },
+    },
+    capability: {
+      weather: {
+        title: "天气接口",
+        sub: "后台能力",
+        tip: "后台提供 /v2/weather/overview 时走后台取数（other.capabilities.weather）",
+        description: "开启后先探测后台天气总览接口，未命中回落三方数据源；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
+      },
+      location: {
+        title: "定位接口",
+        sub: "后台能力",
+        tip: "后台提供 /v2/location/resolve 时由服务端按来源 IP 定位（other.capabilities.location）",
+        description: "开启后先探测后台定位解析接口，未命中回落浏览器定位 / IP 定位 / app.yaml 配置坐标",
+      },
+      typhoon: {
+        title: "台风接口",
+        sub: "后台能力",
+        tip: "后台提供 /v2/typhoon/active 时走后台取数（other.capabilities.typhoon）",
+        description: "开启后先探测后台活跃台风接口，未命中回落三方台风网；后台没有该接口时建议在 app.yaml 关闭，避免每次启动都出现探测 404",
+      },
+      ipLookup: {
+        title: "IP 归属地",
+        sub: "后台能力",
+        tip: "后台提供 /v2/ip/lookup 时由服务端把 IP 解析为物理地址（other.capabilities.ipLookup）",
+        description: "开启后 IP 缺少归属地时请求后台解析；后台没有该接口时建议在 app.yaml 关闭，避免无谓的 404 请求",
       },
     },
     toolbar: {

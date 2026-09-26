@@ -10,6 +10,7 @@ export interface SettingsApi {
   updateWorkspaceBaseDir(workspaceBaseDir: string | null): Promise<{ success: boolean }>;
   queryPlugins(config?: any, lang?: string): Promise<any>;
   updateGlobalToolStatus(pluginId: string, enabled: boolean): Promise<{ success: boolean }>;
+  addCustomTool(name: string, path: string): Promise<{ success: boolean; message?: string; count?: number }>;
   reloadPlugin(pluginId: string): Promise<{ success: boolean }>;
   fetchToolDisplays(lang?: string): Promise<Record<string, any>>;
 }
@@ -58,6 +59,13 @@ export const settingsApi: SettingsApi = {
     return await this._request("/plugins/global", {
       method: "PUT",
       data: { pluginId, enabled },
+    });
+  },
+
+  async addCustomTool(this: ApiContext, name: string, path: string) {
+    return await this._request("/plugins/custom", {
+      method: "POST",
+      data: { name, path },
     });
   },
 

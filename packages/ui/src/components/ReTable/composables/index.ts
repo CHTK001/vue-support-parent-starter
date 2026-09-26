@@ -10,8 +10,5 @@ export type { ColumnSearchOptions, ColumnSearchReturn } from "./useTableColumnSe
 export { useTableSelection } from "./useTableSelection";
 export type { UseTableSelectionOptions, UseTableSelectionReturn } from "./useTableSelection";
 
-export { useTableLocalPagination } from "./useTableLocalPagination";
-export type { LocalPaginationOptions, LocalPaginationReturn } from "./useTableLocalPagination";
-
 export { useTableBatchAction } from "./useTableBatchAction";
 export type { BatchAction, BatchActionOptions, BatchActionReturn } from "./useTableBatchAction";

@@ -103,6 +103,15 @@
           </template>
           <template #col-actions="{ row, $index }">
             <div class="op-cell">
+              <ReButton
+                v-if="hasFilterDetail(filterMeta(row.type))"
+                icon="View"
+                layout="square"
+                size="small"
+                type="primary"
+                :title="filterDetailLabel(row.type)"
+                @click="openFilterDetail(row)"
+              />
               <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="editFilter(row, $index)" />
               <ReButton icon="Delete" layout="square" size="small" type="danger" title="移除" @click="removeFilter($index)" />
             </div>
@@ -160,7 +169,12 @@
  * @since 4.0.0
  */
 import { ref, computed, watch, nextTick } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  hasFilterDetail,
+  resolveFilterDetail,
+} from "@pages/server/src/utils/filterDetail";
 import {
   fetchServerNodes, createServerNode, updateServerNode, deleteServerNode,
   startServerNode, stopServerNode, fetchServerProtocols, fetchServerFilterTypes,
@@ -172,6 +186,8 @@ const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
 const visible = computed({ get: () => props.modelValue, set: v => emit("update:modelValue", v) });
+
+const router = useRouter();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -206,7 +222,7 @@ const filterColumns = [
   { prop: "order", label: "顺序", width: 70 },
   { prop: "enabled", label: "启用", width: 70, formatter: (r: any) => r.enabled === false ? "否" : "是" },
   { prop: "params", label: "参数", width: 100, slot: "params" },
-  { prop: "actions", label: "操作", width: 100, slot: "actions" },
+  { prop: "actions", label: "操作", width: 140, slot: "actions" },
 ];
 
 // 协议/引擎选项
@@ -338,12 +354,54 @@ const filterForm = ref<any>({ name: "", type: "", order: 100, enabled: true, par
 const paramKeys = ref<Record<string, string>>({});
 const filterTypeOptions = computed(() =>
   filterTypeMetas.value
-    .filter((f) => f.type === "file-storage" || f.spi === true)
+    .filter((f) => f.group !== "custom")
     .map((f) => ({
       label: f.desc ? `${f.type}（${f.desc}）` : f.type,
       value: f.type,
     })),
 );
+
+/**
+ * 按过滤器类型取插件元数据（后端 /filters 下发，含深度查看入口信息）
+ * @param type 过滤器类型
+ */
+function filterMeta(type?: string): ServerFilterTypeMeta | undefined {
+  if (!type) return undefined;
+  return filterTypeMetas.value.find(m => m.type === type);
+}
+
+/**
+ * 深度查看按钮文案
+ * @param type 过滤器类型
+ */
+function filterDetailLabel(type?: string): string {
+  return filterMeta(type)?.detailLabel || "查看详情";
+}
+
+/**
+ * 打开某个过滤器的深度查看页。
+ *
+ * node 型由插件自身 HTTP 服务托管，新窗口直开节点地址；route 型由本应用托管，
+ * 必须先校验路由已注册，否则跳进死链。
+ * @param row 过滤器配置
+ */
+function openFilterDetail(row: ServerFilterDescriptor) {
+  const target = resolveFilterDetail(filterMeta(row.type), row, filterTarget.value);
+  if (!target) return;
+  if (target.kind === "node") {
+    window.open(target.url, "_blank", "noopener");
+    return;
+  }
+  if (target.kind === "unavailable") {
+    ElMessage.info(target.reason);
+    return;
+  }
+  if (!router.resolve(target.path).matched.length) {
+    ElMessage.info(`当前应用未接入该插件的深度查看页（${target.path}）`);
+    return;
+  }
+  router.push(target.path);
+}
 
 /**
  * 打开 ServerFilter 配置面板
@@ -400,17 +458,18 @@ function addParam() {
  * @param oldKey 参数键
  * @param val 参数值
  */
-function updateParam(oldKey: string, val: string) {
-  filterForm.value.params[oldKey] = val;
+function updateParam(oldKey: string | number, val: string) {
+  filterForm.value.params[String(oldKey)] = val;
 }
 
 /**
  * 删除过滤器参数
  * @param key 参数键
  */
-function removeParam(key: string) {
-  delete filterForm.value.params[key];
-  delete paramKeys.value[key];
+function removeParam(key: string | number) {
+  const k = String(key);
+  delete filterForm.value.params[k];
+  delete paramKeys.value[k];
 }
 
 /**

@@ -1,18 +1,20 @@
 /**
  * 采集调度一体化控制台的传输层。
  *
- * 传输层用自包含的 fetch 客户端，不走 @repo/utils 的 http()：
- * 框架全局拦截器把 HTTP 401 判定为「平台令牌失效」，会清空 token 并跳转平台登录页，
- * 而本控制台用的是自己的会话（JSESSIONID），两者语义不同，必须由本层自行处理。
+ * 传输层用自包含的 fetch 客户端，不走 @repo/utils 的 http()（要自己剥信封、拼 query），
+ * 但登录态完全交给框架：请求头带框架存的 accessToken（Authorization: Bearer），
+ * 收到 401 就清掉本地令牌并跳框架登录页，本层不自带登录界面、也不弹自己的提示。
  *
  * 后端契约要点（详见 .tmp/collect-rest-api.md）：
  * 1. 单层信封 {code:"00000",data,ok,success}；采集分页再包一层，真实路径 data.data
  *    → {pageNo,pageSize,totalPages,total,data:[]}，内层 code 是 int 0；
- * 2. 未登录时受保护接口返回 HTTP 401 + 裸 {code:"401",msg}，需在 UI 唤起登录；
+ * 2. 未登录时受保护接口返回 HTTP 401 + 裸 {code:"401",msg}，据此判定令牌失效；
  * 3. 登录失败是 HTTP 200 + 业务码，只能看 code 判成败；
  * 4. copy/stop/clean/delete 等 POST/DELETE 用 query 参数而非 body。
  */
 import { getConfig } from "@repo/config";
+import { getRouter } from "@repo/core";
+import { clearAllAuthData, getAccessToken } from "@repo/utils";
 
 const SUCCESS_CODES: unknown[] = ["00000", "200", 0, "0"];
 
@@ -68,12 +70,18 @@ function peel(value: unknown, depth: number): unknown {
   return peel(env.data, depth + 1);
 }
 
-/** 会话失效回调（由鉴权状态模块注册，唤起登录） */
-let unauthorizedHandler: (() => void) | null = null;
-
-/** 注册未鉴权回调，登录态变化时由 useCollectAuth 调用 */
-export function onUnauthorized(handler: (() => void) | null): void {
-  unauthorizedHandler = handler;
+/**
+ * 令牌失效：清掉框架登录态并回框架登录页，语义与 httpCrypto 的 axios 分支一致。
+ *
+ * 并发请求会同时收到 401，先比对当前路由再跳，避免重复导航。
+ */
+function handleSessionExpired(): void {
+  const loginPath = getConfig().route?.loginPath || "/login";
+  const router = getRouter();
+  clearAllAuthData();
+  if (router.currentRoute.value.path !== loginPath) {
+    void router.replace(loginPath);
+  }
 }
 
 /** 接口基址：dev 由 vite 代理到 18190，生产为同源反代前缀 */
@@ -115,6 +123,10 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
     credentials: "same-origin",
     headers: { Accept: "application/json" },
   };
+  const token = getAccessToken();
+  if (token) {
+    (init.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+  }
   if (body !== undefined) {
     (init.headers as Record<string, string>)["Content-Type"] = "application/json;charset=UTF-8";
     init.body = JSON.stringify(body);
@@ -126,7 +138,7 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
     throw new ConsoleError("无法连接采集服务，请确认后端已启动");
   }
   if (response.status === 401) {
-    unauthorizedHandler?.();
+    handleSessionExpired();
     throw new ConsoleError("请先登录采集控制台", { code: "401", httpStatus: 401, unauthorized: true });
   }
   const payload = await response.json().catch(() => null);

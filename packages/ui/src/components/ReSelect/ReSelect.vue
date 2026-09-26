@@ -7,7 +7,7 @@
  *   - "card"：卡片式下拉弹窗（支持标签/高阶标记/消耗说明/分组，popover 自动上下适配）
  *   - "card-dropdown"：已合并至 "card"（历史别名，行为相同）
  *   - "table"：表格形式（多列），适合用户列表等场景
- *   - "square"：正方形图标选择器，支持纯图标（默认）/ 图标+文字，直接展示所有选项
+ *   - "square"：正方形图标选择器，支持纯图标（默认）/ 图标+文字，直接展示所有选项；传 vertical 改为竖向档位菜单（一行一档）
  *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
@@ -81,6 +81,8 @@ const props = withDefaults(
     triggerIcon?: boolean;
     /** square 布局：仅显示图标（默认 true），false 时图标+文字 */
     iconOnly?: boolean;
+    /** square 布局：竖向档位列表（一行一档，整行高亮 + 右侧对勾），用于浮层里选间隔等场景 */
+    vertical?: boolean;
     /** 紧凑模式：square/card 布局下拉框宽度自适应文字，默认 false */
     compact?: boolean;
     /** 卡片多选时：是否显示全选 / 反选（默认 false） */
@@ -108,6 +110,7 @@ const props = withDefaults(
     title: "",
     triggerIcon: true,
     iconOnly: true,
+    vertical: false,
     compact: undefined,
     bulkActions: false,
   },
@@ -333,6 +336,7 @@ defineExpose({
     :multiple="multiple"
     :disabled="disabled"
     :icon-only="iconOnly"
+    :vertical="vertical"
     :compact="isCompact"
     v-bind="$attrs"
   />
@@ -356,8 +360,10 @@ defineExpose({
     class="re-select"
     :class="[`re-select--${layout}`, { 're-select--compact': isCompact }]"
   >
-    <!-- 自定义选中态回显（仅单选模式；multiple 走 el-select 默认 tag 渲染，避免重复/错乱） -->
-    <template v-if="!multiple" #label="slotProps">
+    <!-- 自定义选中态回显：仅当使用者显式提供 #selected 插槽时才覆盖 el-select 原生 label 渲染；
+         否则交给 el-select 根据已注册的 el-option 原生回显 label（默认插槽/数据源选项均能正确解析）。
+         multiple 模式走 el-select 默认 tag 渲染。 -->
+    <template v-if="!multiple && $slots.selected" #label="slotProps">
       <slot name="selected" :value="slotProps.value" :labels="selectedLabels">
         <span>{{ slotProps.value !== '' && slotProps.value != null ? (slotProps.label ?? labelFor(slotProps.value)) : placeholder }}</span>
       </slot>

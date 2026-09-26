@@ -1,61 +1,25 @@
 /**
  * 定时任务模块类型定义
+ *
+ * 视图模型对齐后端 ApiCronController 的 /api/cron/jobs 契约：
+ * 后端字段为 snake_case（cron_job_id / execution_mode / metadata.agent_type ...），
+ * snake_case ↔ camelCase 的转换集中在 services/modules/scheduler.api.ts 内完成，
+ * 组件只消费本文件定义的视图模型。时间戳为后端返回的毫秒 epoch。
  */
-
-import type { PaginatedResponse } from './common'
 
 /**
- * 执行目标模式
+ * 调度描述（后端 schedule 对象）
+ * kind=cron 使用 cron 表达式；kind=every 使用固定毫秒间隔
  */
-export type TargetMode = 'new_session' | 'existing_session'
-
-/**
- * 任务执行状态
- */
-export type TaskLogStatus = 'pending' | 'running' | 'completed' | 'failed'
-
-/**
- * 定时任务对象
- */
-export interface ScheduledTask {
-  id: string
-  userId: string
-  name: string
-  prompt: string
-  scheduleType: 'cron' | 'once'
-  cronExpression: string
-  executeAt?: string | null
-  targetMode: TargetMode
-  targetSessionId?: string | null
-  characterId?: string | null
-  modelId?: string | null
-  settings?: Record<string, any> | null
-  enabled: boolean
-  maxExecutions?: number | null
-  executionCount?: number
-  maxRetries?: number
-  retryInterval?: number
-  lastRunAt?: string | null
-  nextRunAt?: string | null
-  createdAt: string
-  updatedAt: string
+export interface CronSchedule {
+  kind: 'cron' | 'every'
+  cron?: string | null
+  every_ms?: number | null
+  description?: string | null
 }
 
 /**
- * 定时任务执行日志
- */
-export interface ScheduledTaskLog {
-  id: string
-  taskId: string
-  sessionId?: string | null
-  status: TaskLogStatus
-  error?: string | null
-  startedAt: string
-  finishedAt?: string | null
-}
-
-/**
- * Cron 预设项
+ * Cron 预设项（GET /api/cron/jobs/cron-presets，value 为六段 Spring cron 表达式）
  */
 export interface CronPreset {
   label: string
@@ -63,47 +27,73 @@ export interface CronPreset {
 }
 
 /**
- * 创建任务请求
+ * 任务运行态（后端 state，只读：由 POST /{id}/run 与调度器写入）
  */
-export interface CreateTaskRequest {
+export interface ScheduledTaskState {
+  nextRunAt: number | null
+  lastRunAt: number | null
+  lastStatus: string | null
+  lastError: string | null
+  runCount: number
+  retryCount: number
+  maxRetries: number
+}
+
+/**
+ * 定时任务对象
+ */
+export interface ScheduledTask {
+  /** 后端 cron_job_id */
+  id: string
   name: string
+  description: string | null
+  /** 后端 message：触发时发给 AI 的提示词 */
   prompt: string
-  cronExpression: string
-  targetMode: TargetMode
-  targetSessionId?: string
-  characterId?: string
-  modelId?: string
-  settings?: Record<string, any>
-  enabled?: boolean
-  maxExecutions?: number
-  maxRetries?: number
-  retryInterval?: number
+  enabled: boolean
+  /** 后端 execution_mode */
+  executionMode: string
+  schedule: CronSchedule
+  /** 后端 metadata.agent_type */
+  agentType: string
+  /** 后端 metadata.conversation_id（仅新建任务时可指定） */
+  conversationId: string | null
+  /** 后端 metadata.conversation_title */
+  conversationTitle: string | null
+  /** 后端 metadata.agent_config（provider_id / model） */
+  agentConfig: { providerId?: string | null; model?: string | null } | null
+  state: ScheduledTaskState
+  /** 后端 metadata.created_at（毫秒 epoch） */
+  createdAt: number | null
+  /** 后端 metadata.updated_at（毫秒 epoch） */
+  updatedAt: number | null
 }
 
 /**
- * 更新任务请求
+ * 编辑表单提交给 api 模块的数据（api 模块再翻成后端 body 的 snake_case 键）
  */
-export interface UpdateTaskRequest {
-  name?: string
-  prompt?: string
-  cronExpression?: string
-  targetMode?: TargetMode
-  targetSessionId?: string | null
-  characterId?: string | null
-  modelId?: string | null
-  settings?: Record<string, any> | null
-  enabled?: boolean
-  maxExecutions?: number
+export interface ScheduledTaskForm {
+  name: string
+  description?: string | null
+  prompt: string
+  schedule: CronSchedule
+  enabled: boolean
+  agentType?: string
+  conversationId?: string | null
+  agentConfig?: { providerId?: string | null; model?: string | null } | null
   maxRetries?: number
-  retryInterval?: number
 }
 
 /**
- * 任务列表响应
+ * 单次运行记录
+ *
+ * 后端 GET /api/cron/jobs/{cronJobId}/runs 目前是内存实现的空桩（恒返回空列表），
+ * 这里只按契约声明字段，页面不得伪造数据填充。
  */
-export type ScheduledTaskListResponse = PaginatedResponse<ScheduledTask>
-
-/**
- * 任务日志列表响应
- */
-export type ScheduledTaskLogListResponse = PaginatedResponse<ScheduledTaskLog>
+export interface ScheduledTaskRun {
+  id: string
+  status: string
+  startedAt: number | null
+  finishedAt: number | null
+  error?: string | null
+  conversationId?: string | null
+}

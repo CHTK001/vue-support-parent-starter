@@ -27,7 +27,7 @@
 import { computed } from 'vue'
 import { ElIcon } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { DrinkCoffee20Regular, ShieldLock20Regular, ClipboardTask20Regular, CheckmarkCircle20Filled } from '@vicons/fluent'
+import { Flash20Regular, ClipboardTask20Regular, CheckmarkCircle20Filled } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 
 const { t } = useI18n()
@@ -44,8 +44,7 @@ const emit = defineEmits<{
 }>()
 
 const options = computed(() => [
-  { value: 'normal', label: t('chat.input.runModeNormal'), desc: t('chat.input.runModeNormalDesc'), icon: DrinkCoffee20Regular },
-  { value: 'sandbox', label: t('chat.input.runModeSandboxTest'), desc: t('chat.input.runModeSandboxDesc'), icon: ShieldLock20Regular },
+  { value: 'build', label: t('chat.input.runModeBuild'), desc: t('chat.input.runModeBuildDesc'), icon: Flash20Regular },
   { value: 'plan', label: t('chat.input.runModePlan'), desc: t('chat.input.runModePlanDesc'), icon: ClipboardTask20Regular },
 ])
 

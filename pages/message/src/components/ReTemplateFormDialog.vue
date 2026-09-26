@@ -98,6 +98,12 @@ async function handleSave() {
       <el-form-item label="模板名称" prop="sysMessageTemplateName">
         <el-input v-model="model.sysMessageTemplateName" placeholder="模板名称" />
       </el-form-item>
+      <el-form-item label="模板标题">
+        <el-input
+          v-model="model.sysMessageTemplateTitle"
+          placeholder="消息标题/邮件主题，支持 ${param} 占位符"
+        />
+      </el-form-item>
       <el-form-item label="模板类型">
         <el-input v-model="model.sysMessageTemplateType" placeholder="EMAIL / SMS / WECHAT 等" />
       </el-form-item>

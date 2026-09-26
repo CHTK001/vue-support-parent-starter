@@ -38,15 +38,23 @@
               <span class="text-sm font-medium">{{ group.name }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <!-- 新建会话按钮（始终显示） -->
-              <LTooltip :content="t('ui.sidebar.newSessionInGroup', { name: group.name })" placement="bottom">
-                <div @click.stop="openNewSession(group.id)">
-                  <div
-                    class="session-action-trigger p-0.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700">
-                    <Add12Regular class="w-2.5 h-2.5 text-gray-500 dark:text-gray-300" />
-                  </div>
+              <!-- 新建会话 / 多选 -->
+              <DropdownMenu @command="(cmd: string) => handleGroupPlusCommand(cmd, group)">
+                <div
+                  class="session-action-trigger p-0.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700">
+                  <Add12Regular class="w-2.5 h-2.5 text-gray-500 dark:text-gray-300" />
                 </div>
-              </LTooltip>
+                <template #dropdown>
+                  <DropdownMenuItem command="new">
+                    <Add12Regular class="w-3.5 h-3.5 mr-2 inline-block" />
+                    新建会话
+                  </DropdownMenuItem>
+                  <DropdownMenuItem command="multi">
+                    <CheckBoxOutlined class="w-4 h-4 mr-2 inline-block" />
+                    多选
+                  </DropdownMenuItem>
+                </template>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -62,11 +70,18 @@
               <div v-for="session in getGroupSessions(group.id)" :key="session.id"
                 class="session-item flex items-center gap-2 py-1.5 pr-1 pl-2 ml-1 mr-0.5  rounded-md cursor-pointer transition-all duration-200 ease-in-out group"
                 :class="{
-                  'session-item-active': session.id === currentSessionId,
-                  'session-item-inactive': session.id !== currentSessionId
-                }" @click="selectSession(session)">
+                  'session-item-active': !multiSelectMode && session.id === currentSessionId,
+                  'session-item-inactive': !multiSelectMode && session.id !== currentSessionId,
+                  'session-in-check': multiSelectMode,
+                  'session-checked': multiSelectMode && isSelected(session)
+                }" @click="onSessionClick(session)">
+                <!-- 多选框 -->
+                <el-checkbox v-if="multiSelectMode" class="ms-row-check shrink-0"
+                  :model-value="isSelected(session)" tabindex="-1">
+                  <span></span>
+                </el-checkbox>
                 <!-- 状态指示器 -->
-                <div class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
+                <div v-else class="status-indicator w-3 h-3 shrink-0 flex items-center justify-center">
                   <div v-if="getSessionWorking(session.id)"
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                   <div v-else-if="getSessionUnread(session.id) && (session.id !== currentSessionId || windowHidden)"
@@ -79,7 +94,7 @@
                     {{ session.title }}
                   </div>
                 </div>
-                <div class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
+                <div v-if="!multiSelectMode" class="session-actions shrink-0 relative min-w-5 h-full flex items-center">
                   <!-- 最后活跃时间（非当前会话时显示，hover 时隐藏，右对齐悬浮） -->
                   <span v-if="session.id !== currentSessionId"
                     class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 group-hover:hidden whitespace-nowrap">
@@ -138,6 +153,21 @@
         </div>
       </ScrollContainer>
     </div>
+
+    <!-- 多选操作栏 -->
+    <div v-if="multiSelectMode" class="ms-bar">
+      <el-checkbox :model-value="allSelected" :indeterminate="someSelected" @change="toggleAll">
+        全选
+      </el-checkbox>
+      <span class="ms-count">已选 {{ selectedSessionIds.length }} 项</span>
+      <div class="ms-spacer"></div>
+      <el-button size="small" round @click="exitMultiSelect">取消</el-button>
+      <el-button size="small" type="danger" round :disabled="selectedSessionIds.length === 0"
+        @click="handleBatchDelete">
+        删除<template v-if="selectedSessionIds.length"> ({{ selectedSessionIds.length }})</template>
+      </el-button>
+    </div>
+
     <!-- 底部：头像 + 设置 -->
     <div class="px-3 py-1.5 flex items-center justify-between gap-2">
       <!-- 用户头像+名字 下拉 -->
@@ -267,17 +297,20 @@ import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
 import LTooltip from './ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import { apiService } from '@/services/ApiService'
+import { isAdmin } from '@repo/core'
 import type { SessionGroup } from '@/types/session'
 import { ElMessageBox } from 'element-plus'
 
 import {
   PersonOutlined,
   LogOutOutlined,
+  CheckBoxOutlined,
 } from '@vicons/material'
 
 import {
   Bot20Regular,
   BookSearch20Regular,
+  BrainCircuit20Regular,
   ContactCard20Regular,
   AddSquare20Regular,
   Add12Regular,
@@ -297,9 +330,10 @@ import {
   Server20Regular,
   DataArea20Regular,
   DataBarVertical20Regular,
+  PlugConnected20Regular,
   Image20Regular,
   Key20Regular,
-  PlugConnected20Regular,
+  ChatMultiple24Regular,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -333,6 +367,88 @@ const moveGroupDialogVisible = ref(false)
 const moveGroupOptions = ref<{ label: string; value: string }[]>([])
 const moveSelectedGroupId = ref('')
 const moveTargetSession = ref<any>(null)
+
+// ===== 多选（批量删除）模式 =====
+const multiSelectMode = ref(false)
+const selectedSessionIds = ref<string[]>([])
+
+const isSelected = (session: any) => selectedSessionIds.value.includes(session.id)
+
+const onSessionClick = (session: any) => {
+  if (multiSelectMode.value) {
+    toggleSelect(session)
+    return
+  }
+  selectSession(session)
+}
+const toggleSelect = (session: any) => {
+  const cur = selectedSessionIds.value
+  selectedSessionIds.value = cur.includes(session.id)
+    ? cur.filter((id) => id !== session.id)
+    : [...cur, session.id]
+}
+const enterMultiSelect = () => {
+  selectedSessionIds.value = []
+  multiSelectMode.value = true
+}
+const exitMultiSelect = () => {
+  multiSelectMode.value = false
+  selectedSessionIds.value = []
+}
+const handleGroupPlusCommand = (cmd: string, group: any) => {
+  if (cmd === 'new') openNewSession(group.id)
+  else if (cmd === 'multi') enterMultiSelect()
+}
+
+// 当前已加载（可见）的全部会话，用于全选
+const allVisibleSessions = computed(() => {
+  const out: any[] = []
+  for (const g of displayGroups.value) {
+    for (const s of getGroupSessions(g.id)) out.push(s)
+  }
+  return out
+})
+const allSelected = computed(
+  () =>
+    allVisibleSessions.value.length > 0 &&
+    allVisibleSessions.value.every((s) => selectedSessionIds.value.includes(s.id)),
+)
+const someSelected = computed(
+  () => selectedSessionIds.value.length > 0 && !allSelected.value,
+)
+const toggleAll = () => {
+  selectedSessionIds.value = allSelected.value
+    ? []
+    : allVisibleSessions.value.map((s) => s.id)
+}
+
+// 批量删除选中会话
+const handleBatchDelete = async () => {
+  const ids = [...selectedSessionIds.value]
+  if (ids.length === 0) return
+  const ok = await confirm(
+    '批量删除会话',
+    `确定删除选中的 ${ids.length} 个会话吗？会话内所有消息将一并删除，且不可恢复。`,
+    { type: 'error', confirmText: '删除' },
+  )
+  if (!ok) return
+  try {
+    const res = await apiService.batchDeleteSessions(ids)
+    const deleted = new Set(ids)
+    if (currentSessionId.value && deleted.has(currentSessionId.value)) {
+      router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
+    }
+    ids.forEach((id) => {
+      sessionStore.removeSession(id)
+      sessionStore.clearSidebarState(id)
+    })
+    toast.success(`已删除 ${res?.deletedCount ?? ids.length} 个会话`)
+    selectedSessionIds.value = []
+  } catch (error) {
+    console.error('批量删除失败:', error)
+    toast.error('批量删除失败，请稍后重试')
+  }
+}
 
 // 是否正在初始化加载
 const isInitializing = ref(false)
@@ -416,10 +532,10 @@ const navItems = computed(() => {
       showKey: 'showCharactersMenu'
     },
     {
-      key: 'bots',
-      label: t('ui.sidebar.navBots'),
-      icon: Bot20Regular,
-      showKey: 'showBotsMenu'
+      key: 'tavern',
+      label: '酒馆',
+      icon: ChatMultiple24Regular,
+      alwaysShow: true
     },
     {
       key: 'knowledge-base',
@@ -434,9 +550,15 @@ const navItems = computed(() => {
       showKey: 'showPluginsMenu'
     },
     {
+      key: 'image-generate',
+      label: '图像生成',
+      icon: Image20Regular,
+      alwaysShow: true
+    },
+    {
       key: 'models',
       label: '模型管理',
-      icon: Apps20Regular,
+      icon: BrainCircuit20Regular,
       showKey: 'showModelsMenu'
     },
     {
@@ -455,7 +577,8 @@ const navItems = computed(() => {
       key: 'scheduler',
       label: t('ui.sidebar.navScheduler'),
       icon: ClockAlarm20Regular,
-      showKey: 'showSchedulerMenu'
+      showKey: 'showSchedulerMenu',
+      adminOnly: true
     },
   ]
   
@@ -464,6 +587,7 @@ const navItems = computed(() => {
   
   return allItems.filter(item => {
     if (item.alwaysShow) return true
+    if (item.adminOnly && !isAdmin()) return false
     if (!item.showKey) return true
     return menuSettings[item.showKey] !== false
   })
@@ -480,10 +604,12 @@ const currentActiveTab = computed(() => {
   }
   if (routeName === 'Characters') return 'characters'
   if (routeName === 'Bots') return 'bots'
+  if (routeName === 'Tavern') return 'tavern'
   if (routeName === 'SystemSettings') return 'setting'
   if (routeName === 'KnowledgeBase') return 'knowledge-base'
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
+  if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -675,6 +801,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
   } else if (tab === 'characters') {
     router.replace({ name: 'Characters' })
+  } else if (tab === 'tavern') {
+    router.replace({ name: 'Tavern' })
   } else if (tab === 'bots') {
     router.replace({ name: 'Bots' })
   } else if (tab === 'setting') {
@@ -685,6 +813,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Plugins' })
   } else if (tab === 'scheduler') {
     router.replace({ name: 'Scheduler' })
+  } else if (tab === 'image-generate') {
+    router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {
@@ -701,6 +831,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Services' })
   } else if (tab === 'usage') {
     router.replace({ name: 'Usage' })
+  } else if (tab === 'connectors') {
+    router.replace({ name: 'Connectors' })
   } else if (tab === 'skills') {
     router.replace({ name: 'Skills' })
   } else if (tab === 'capabilities') {
@@ -1057,5 +1189,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ===== 多选（批量删除）模式 ===== */
+.ms-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 8px 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, var(--color-surface-border, transparent));
+  background: var(--color-surface, transparent);
+}
+.ms-count { font-size: 12px; color: var(--color-text-gray); white-space: nowrap; }
+.ms-spacer { flex: 1; }
+.ms-row-check { pointer-events: none; }
+.ms-row-check :deep(.el-checkbox__label) { display: none; }
+.session-in-check { padding-left: 8px; }
+.session-checked {
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
 </style>
