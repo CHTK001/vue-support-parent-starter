@@ -5,8 +5,9 @@ packages:
   - "apps/*"
   - "pages/*"
   # vue-support-spider-starter 已下线 (2026-09-26)：旧爬虫控制台，能力已被 apps/vue-support-collect-starter 承接。
-  # 与后端 spring-support-spider-starter 同步退役。源码未删除，保留在 backups/spider-retire-20260926/ 以便回滚，
-  # 需要恢复时删掉下面这行即可。
+  # 与后端 spring-support-spider-starter 同步退役。源码已删除（见下方 ! 条目对应的删除提交），
+  # 完整副本留在 backups/spider-retire-20260926/ 以便回滚；
+  # 恢复时需同时还原 apps/vue-support-spider-starter 目录并删掉下面这行。
   - "!apps/vue-support-spider-starter"
 
 catalog:
