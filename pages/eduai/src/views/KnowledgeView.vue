@@ -978,7 +978,6 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  padding: 16px;
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);

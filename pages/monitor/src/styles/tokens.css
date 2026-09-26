@@ -136,7 +136,6 @@ body {
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
 }
 
 /* 卡片 */
@@ -187,7 +186,6 @@ body {
 /* 响应式 */
 @media (max-width: 900px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .page-container { padding: 12px; }
 }
 
 /* KPI 卡片（对齐 monolith pages.css） */

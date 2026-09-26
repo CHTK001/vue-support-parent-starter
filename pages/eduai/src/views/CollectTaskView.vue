@@ -143,7 +143,7 @@
           <span v-else class="text-gray-400 text-xs">未执行</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="160" fixed="right" align="center">
+      <ReTableColumn label="操作" width="220" fixed="right" align="center">
         <template #default="{ row }">
           <ReButton
             icon="VideoPlay"
@@ -1268,7 +1268,6 @@ onUnmounted(() => {
 
 <style scoped>
 .page-container {
-  padding: 16px;
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);

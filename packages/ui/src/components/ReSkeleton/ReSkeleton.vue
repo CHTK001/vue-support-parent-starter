@@ -1,22 +1,6 @@
 <template>
-  <!-- Modern 布局（异步加载） -->
-  <ModernLayout
-    v-if="layout === 'modern'"
-    :animated="animated"
-    :count="count"
-    :loading="loading"
-    :rows="rows"
-    :throttle="throttle"
-    v-bind="$attrs"
-  >
-    <template v-if="$slots.default" #default>
-      <slot />
-    </template>
-  </ModernLayout>
-
-  <!-- 默认 el-skeleton 布局 -->
+  <!-- 透传 el-skeleton 全部能力 -->
   <el-skeleton
-    v-else
     v-bind="$attrs"
     :animated="animated"
     :count="count"
@@ -38,19 +22,15 @@
  * ReSkeleton —— 骨架屏组件
  *
  * 透传 el-skeleton 全部能力。
- *   - layout：布局变体，"el"（默认，el-skeleton）/ "modern"（现代化扁平骨架屏，异步加载）
+ *
+ * 说明：原 `layout="modern"` 变体（layouts/Modern.vue）经审计确认全仓无人使用，
+ * 已随统一表面方案一并移除；如需现代化骨架屏，请直接在业务侧按统一表面规格实现，
+ * 或从 backups/ui-unused-layouts-retire-20260926/ 取回原实现。
  */
-import { defineAsyncComponent } from "vue";
-
-/** Modern 布局组件（按需异步加载） */
-const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-
 defineOptions({ name: "ReSkeleton" });
 
 withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-skeleton）/ "modern"（现代化扁平骨架屏） */
-    layout?: "el" | "modern";
     animated?: boolean;
     count?: number;
     loading?: boolean;
@@ -58,7 +38,6 @@ withDefaults(
     throttle?: number;
   }>(),
   {
-    layout: "el",
     animated: false,
     count: 1,
     loading: false,

@@ -812,14 +812,6 @@ onMounted(() => {
 <style scoped>
 /* ---------- 页头 / 统计（对齐知识库） ---------- */
 .page-container {
-  padding: 16px;
-  height: 100%;
-  overflow: auto;
-  background: var(--el-bg-color-page);
-}
-
-.page-container {
-  padding: 16px;
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
