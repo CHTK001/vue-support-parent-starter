@@ -12,11 +12,23 @@
   <div class="home-card">
     <div class="home-card__welcome">
       <div class="home-welcome">
-        <img
-          class="home-welcome__avatar"
-:src="authStore.loginUser?.avatar || defaultAvatarUrl"
-          alt="avatar"
-        />
+        <div class="home-welcome__avatar-box" :style="{ padding: frameSpill(56) + 'px' }">
+          <img
+            class="home-welcome__avatar"
+            :src="authStore.loginUser?.avatar || defaultAvatarUrl"
+            alt="avatar"
+          />
+          <div
+            v-if="frameVisible"
+            class="home-welcome__frame-layer"
+            :style="frameLayer(56)"
+          ></div>
+          <span
+            v-else
+            class="koi-avatar-default-frame"
+            :style="defaultFrame(56)"
+          ></span>
+        </div>
         <div class="home-welcome__content">
           <div class="home-welcome__greeting">{{ greetingText }}</div>
           <div class="home-welcome__subtitle">
@@ -83,6 +95,7 @@ import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { getUserPermission } from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
+import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
 import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
@@ -94,6 +107,14 @@ import { filterCatalogByPermission, findWidgetCatalogItem, WIDGET_CATALOG } from
 import type { GridPosition, WidgetItem, WidgetType } from "./types";
 
 const authStore = useAuthStore();
+
+// 欢迎区头像：佩戴头像框优先，未佩戴时展示默认光环（与顶栏 / 个人中心同一套实现）
+const {
+  visible: frameVisible,
+  layerStyle: frameLayer,
+  spillPx: frameSpill,
+  defaultStyle: defaultFrame,
+} = useWornAvatarFrame();
 
 const greetingText = computed(() => {
   return getDayText() || "您好，愿您天天开心，事事如意！";
@@ -287,7 +308,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   width: 100%;
-  padding: 12px 16px 16px;
+  padding: 0;
   border-radius: 8px;
   gap: 12px;
 }
@@ -312,13 +333,32 @@ onBeforeUnmount(() => {
   border-radius: 8px;
 }
 
+.home-welcome__avatar-box {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
 .home-welcome__avatar {
+  display: block;
   width: 56px;
   height: 56px;
   object-fit: cover;
-  border: 2px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
   border-radius: 50%;
   user-select: none;
+}
+
+.home-welcome__frame-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .home-welcome__content {

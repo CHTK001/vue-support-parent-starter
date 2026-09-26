@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import type { SpecialKeyStep } from './specialKeys';
 
 /**
- * guacd 远控渲染组件 —— iframe 嵌入后端 /ms/server/remote/connect 页面
+ * guacd 远控渲染组件 —— iframe 嵌入本地 /remote.html 页面
  *
  * 后端集中管理 guacamole-common-js 客户端 + WS 隧道，
  * 前端只负责拼 URL 和容器尺寸。
  *
  * inline=true 时直接在父容器内渲染（终端页右侧主区域），
  * inline=false 时以 ReDrawer 弹出（资产页等独立场景）。
+ *
+ * 父组件可通过模板 ref 调用 {@link sendSpecialKey} 下发
+ * 本机 OS 会截获的特殊组合键（Ctrl+Alt+Del 等），经 postMessage 交给
+ * iframe 内的 Guacamole 客户端发送。
  */
 
 const props = defineProps<{
@@ -41,6 +46,26 @@ const iframeSrc = computed(() => {
   if (c.targetPort != null) params.set('targetPort', String(c.targetPort));
   return `/remote.html?${params.toString()}`;
 });
+
+/** 内嵌远控页 iframe（drawer / inline 二选一挂载，共用同一 ref） */
+const iframeRef = ref<HTMLIFrameElement | null>(null);
+
+/**
+ * 向 iframe 内的 Guacamole 客户端下发特殊按键序列
+ *
+ * 本机操作系统会截获 Ctrl+Alt+Del / Alt+Tab / Win 等组合，浏览器键盘事件
+ * 无法透传到被控端；由远控工具条显式调用本方法，经 postMessage 让页内客户端
+ * 直接构造 Guacamole key 指令。
+ *
+ * @param keys 按键序列（按顺序按下，客户端会逆序松开）
+ */
+function sendSpecialKey(keys: SpecialKeyStep[]): void {
+  const win = iframeRef.value?.contentWindow;
+  if (!win || !keys?.length) return;
+  win.postMessage({ source: 'sc-remote', type: 'send-special-key', keys }, window.location.origin);
+}
+
+defineExpose({ sendSpecialKey });
 
 /** iframe 加载完成后触发 resize，确保 guacd 客户端拿到正确尺寸 */
 function onIframeLoad(): void {
@@ -77,6 +102,7 @@ if (!props.inline) {
   >
     <template #content>
       <iframe
+        ref="iframeRef"
         v-if="connection"
         :src="iframeSrc"
         class="guac-iframe"
@@ -95,6 +121,7 @@ if (!props.inline) {
       </span>
     </div>
     <iframe
+      ref="iframeRef"
       v-if="connection"
       :src="iframeSrc"
       class="guac-iframe"

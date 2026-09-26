@@ -140,7 +140,7 @@ describe("RoleManage 角色管理页面（扩展）", () => {
     await settle(wrapper);
 
     const row = wrapper.findAll(".re-row").find((r) => r.text().includes("内容管理员"))!;
-    const permBtn = row.findAll("button").find((b) => b.text().includes("分配菜单"))!;
+    const permBtn = row.findAll("button").find((b) => b.text().includes("分配权限"))!;
     await permBtn.trigger("click");
     await settle(wrapper);
 

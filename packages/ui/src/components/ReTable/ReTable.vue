@@ -17,6 +17,7 @@
  *
  * 工具栏（分页上方右侧）：
  *   - 刷新：触发 reload()
+ *   - 自动刷新（传 autoRefresh 才出现）：工具栏一个纯图标入口，浮层里用 ReSelect 方块档选间隔（含「关」= 不刷新），定时器随组件卸载 / keep-alive 失活停止
  *   - 列设置：popover 中可搜索 / 排序 / 隐藏 / 显示
  *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行 / 可调整列宽
  *
@@ -36,40 +37,41 @@
  *   - row-sort（行拖拽排序）
  *   - batch-delete / batch-edit / batch-save
  */
-import { computed, defineAsyncComponent, inject, ref, useSlots, watch, nextTick } from "vue";
-import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon } from "element-plus";
-import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
+import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, useSlots, watch, nextTick } from "vue";
+import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption } from "element-plus";
+import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid } from "@element-plus/icons-vue";
 import { http, useDataSource, type ReDataSource } from "@repo/core";
-import ReTableVirtualView from "./ReTableVirtualView.vue";
 import ReTableCardView from "./ReTableCardView.vue";
+// 视图模式：默认模板已就绪，随主包加载，切换时零延迟（与卡片模式同一套选择/右键/空态能力）
+import ReTableView from "./ReTableView.vue";
 import ReTableToolbar from "./ReTableToolbar.vue";
 import ReTableContextMenu from "./ReTableContextMenu.vue";
-import ReTableRadialView from "./ReTableRadialView.vue";
 import ReButton from "../ReButton/ReButton.vue";
+import ReSelect from "../ReSelect/ReSelect.vue";
 import ReSearch from "../ReSearch/index";
-
-/** Modern 表格布局组件（按需异步加载） */
-const ReTableModernView = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-
-/** Canvas 表格布局组件（按需异步加载，AG Grid 体积较大） */
-const ReTableCanvasView = defineAsyncComponent(() => import("./ReTableCanvasView.vue"));
+import type { ReOption } from "../ReSelect/types";
 
 import ReSwitch from "../ReSwitch/ReSwitch.vue";
+import RePagination from "../RePagination/RePagination.vue";
 import "./shared/table-vars.css";
+import Sortable from "sortablejs";
+import { VxeTable, VxeColumn } from "vxe-table";
+import "vxe-table/lib/style.css";
 import type {
-  ReCanvasLayoutProps,
   ReCardLayoutProps,
+  ReViewLayoutProps,
+  EditOptionValue,
   RePageResult,
-  ReRadialLayoutProps,
   ReTableColumn,
   ReTableColumnState,
   ReTableFullState,
   ReTableLayout,
+  ReTableSwitchLayout,
   ReTableLoader,
   ReTableSettings,
-  ReVirtualLayoutProps,
   ReTableToolbarConfig,
   ReTableSearchConfig,
+  ReTableAutoRefresh,
   ReTableContextMenuItem,
   ReTableContextMenuContext,
   ReTableCellClickPayload,
@@ -118,6 +120,8 @@ const props = withDefaults(
     loading?: boolean;
     /** 表格外观设置（受控，可被工具栏修改） */
     settings?: ReTableSettings;
+    /** 斑马纹外观默认值；无默认值以便区分「未传」与「传 false」，被 settings / 表格设置覆盖 */
+    stripe?: boolean;
     /** 行 key 字段 */
     rowKey?: string;
     /** 空数据文案 */
@@ -148,16 +152,24 @@ const props = withDefaults(
     columnsTriggerText?: string;
     /** 表格设置 popover 触发文案 */
     settingsTriggerText?: string;
-    /** 布局模式：默认表格 / 虚拟表格 / 卡片（瀑布流）/ 现代化扁平 / Canvas(AG Grid) */
+    /** 布局模式：默认表格 / 视图 / 卡片（栅格）/ 现代化扁平 */
     layout?: ReTableLayout;
+    /**
+     * 是否显示布局切换器（表格 / 视图 / 卡片）。
+     *
+     * <p>默认 true；传 false 关闭。切换器属于系统级工具，渲染在工具栏右侧
+     * （与刷新、列设置、表格设置同组）。只在"有东西可切"时出现：候选布局 ≥ 2，
+     * 否则不渲染——空表格上不该出现切了也没区别的按钮。</p>
+     */
+    layoutSwitch?: boolean;
+    /** 布局切换器候选布局（默认 table + view + card，页面可裁剪） */
+    layouts?: ReTableSwitchLayout[];
+    /** 布局切换器文案覆盖（键：table / view / card） */
+    layoutLabels?: Partial<Record<ReTableSwitchLayout, string>>;
     /** 卡片模式专属属性（layout-card-*） */
     layoutCard?: ReCardLayoutProps;
-    /** 虚拟表格模式专属属性（layout-virtual-*） */
-    layoutVirtual?: ReVirtualLayoutProps;
-    /** Canvas 表格模式专属属性（layout-canvas-*，基于 AG Grid） */
-    layoutCanvas?: ReCanvasLayoutProps;
-    /** 放射菜单模式专属属性（layout-radial-*） */
-    layoutRadial?: ReRadialLayoutProps;
+    /** 视图模式专属属性（layout-view-*） */
+    layoutView?: ReViewLayoutProps;
     /** 默认表格模式专属属性（layout-table-*） */
     layoutTable?: {
       /** 是否显示表头 */
@@ -173,6 +185,12 @@ const props = withDefaults(
     treeProps?: ReTableTreeProps;
     /** 是否启用行拖拽排序 */
     rowDraggable?: boolean;
+    /** 拖拽排序字段名，默认sort */
+    sortField?: string;
+    /** 是否启用内置「批量删除」工具按钮（点击进入选择模式，与拖拽排序互斥） */
+    batchDelete?: boolean;
+    /** 批量删除实际执行函数；确认时调用，成功才退出选择模式，失败保留勾选 */
+    batchDeleteHandler?: (rows: Record<string, unknown>[]) => Promise<void> | void;
     /** 是否可调整列宽（需 border 模式，默认 true） */
     resizable?: boolean;
     /** 默认展开所有树节点 */
@@ -191,6 +209,8 @@ const props = withDefaults(
     searchGap?: number;
     /** 搜索值（v-model:search-model，内置 ReSearch filters 模式下双向绑定） */
     searchModel?: Record<string, unknown>;
+    /** 内置自动刷新：工具栏纯图标入口 + 浮层选间隔，轮询定时器由表格持有（不传则无该能力） */
+    autoRefresh?: ReTableAutoRefresh;
   }>(),
   {
     data: () => [],
@@ -205,8 +225,8 @@ const props = withDefaults(
     pagination: true,
     total: 0,
     page: 1,
-    pageSize: 10,
-    pageSizes: () => [10, 20, 50, 100],
+    pageSize: 50,
+    pageSizes: () => [20, 50, 100],
     autoReload: true,
     tableId: "",
     storage: undefined,
@@ -216,17 +236,21 @@ const props = withDefaults(
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
     layout: "table",
+    layoutSwitch: true,
+    layouts: () => ["table", "view", "card"],
+    layoutLabels: () => ({}),
     layoutCard: () => ({}),
-    layoutVirtual: () => ({}),
-    layoutCanvas: () => ({}),
-    layoutRadial: () => ({}),
+    layoutView: () => ({}),
     layoutTable: () => ({}),
     treeProps: undefined,
     rowDraggable: false,
+    sortField: "sort",
+    batchDelete: false,
+    batchDeleteHandler: undefined,
     resizable: true,
     defaultExpandAll: false,
     showSearch: false,
-    searchVisible: true,
+    searchVisible: undefined,
     showSearchToggle: true,
     showSearchTitle: true,
     showSelection: false,
@@ -297,9 +321,45 @@ const selectedRowsMap = ref<Record<string, Record<string, unknown>>>(loadSelecti
 /** 当前页选中行（el-table selection-change 回调更新） */
 const currentPageSelection = ref<Record<string, unknown>[]>([]);
 
+/** 默认每页条数（props.pageSize 未传时的兜底，与 props 默认值保持一致） */
+const DEFAULT_PAGE_SIZE = 50;
+
+/**
+ * 判断每页条数是否在允许档位内。
+ *
+ * <p>用于恢复 localStorage 持久化状态时校验：默认档位调整后，历史存档里
+ * 可能存着已不在 pageSizes 中的旧值（如 10），照搬会让分页器显示的档位
+ * 与实际每页条数不一致。</p>
+ *
+ * @param size 待校验的每页条数
+ * @returns 在允许档位内返回 true
+ */
+function isAllowedPageSize(size: number): boolean {
+  const sizes = Array.isArray(props.pageSizes) ? props.pageSizes : [];
+  return sizes.length === 0 || sizes.includes(size);
+}
+
+/**
+ * 分页器上「每页条数」下拉的档位。
+ *
+ * <p>props.pageSizes 未传时用组件默认档（20/50/100）；做了去重与过滤，
+ * 避免调用方给出重复值或非正数时下拉里出现两个一样的项或 0 条/页。</p>
+ */
+const pageSizeOptions = computed<number[]>(() => {
+  const raw = Array.isArray(props.pageSizes) ? props.pageSizes : [];
+  const seen = new Set<number>();
+  for (const size of raw) {
+    const value = Number(size);
+    if (Number.isFinite(value) && value > 0) {
+      seen.add(Math.floor(value));
+    }
+  }
+  return [...seen];
+});
+
 /** 内部分页状态（与 props 同步，确保 reload 时读到最新值） */
 const internalPage = ref(props.page ?? 1);
-const internalPageSize = ref(props.pageSize ?? 10);
+const internalPageSize = ref(props.pageSize ?? DEFAULT_PAGE_SIZE);
 // 强制响应式：用 shallowRef 或 triggerRef
 import { triggerRef } from "vue";
 watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
@@ -316,6 +376,9 @@ const hasSelected = computed(() => selectedCount.value > 0);
 
 /** 批量选择模式是否激活 */
 const batchSelectActive = ref(false);
+
+/** 批量删除模式是否激活（与拖拽模式互斥） */
+const batchDeleteMode = ref(false);
 
 /** 编辑模式 */
 const batchEditing = ref(false);
@@ -352,6 +415,57 @@ function toggleBatchSelect(): void {
   if (!batchSelectActive.value) {
     // 退出批量选择模式，清空选中
     clearAllSelection();
+  }
+}
+
+/** 退出拖拽模式（互斥复用）：执行与 toggleDragMode 退出分支相同的清理 */
+function exitDragMode(): void {
+  if (!dragMode.value) return;
+  dragMode.value = false;
+  stopVxeTbodyObserver();
+  vxeSortableInstance.value?.destroy();
+  vxeSortableInstance.value = null;
+  destroySortable();
+  vxeDragData.value = [];
+  dragChanged.value = false;
+}
+
+/** 切换批量删除模式（与拖拽排序互斥） */
+function toggleBatchDeleteMode(): void {
+  if (batchProcessing.value) return;
+  if (batchDeleteMode.value) {
+    cancelBatchDelete();
+    return;
+  }
+  // 互斥：进入批量删除前先退出拖拽
+  exitDragMode();
+  batchDeleteMode.value = true;
+}
+
+/** 取消批量删除：清空勾选并退出模式 */
+function cancelBatchDelete(): void {
+  batchDeleteMode.value = false;
+  clearAllSelection();
+}
+
+/** 确认批量删除：有 handler 则 await（失败保留勾选），否则 emit 事件 */
+async function confirmBatchDelete(): Promise<void> {
+  const rows = allSelectedRows.value;
+  if (!rows.length) return;
+  batchProcessing.value = true;
+  try {
+    if (typeof props.batchDeleteHandler === "function") {
+      await props.batchDeleteHandler(rows);
+    } else {
+      emit("batch-delete", rows);
+    }
+    batchDeleteMode.value = false;
+    clearAllSelection();
+    await reload();
+  } catch {
+    // 删除失败：保留模式与勾选，错误提示由 handler / 父组件负责
+  } finally {
+    batchProcessing.value = false;
   }
 }
 
@@ -498,37 +612,323 @@ const filteredColumnsForSettings = computed<ReTableColumn[]>(() => {
   return allColumnsForSettings.value.filter((c) => c.label.toLowerCase().includes(key) || c.prop.toLowerCase().includes(key));
 });
 
-/** ========== 缺陷5: 行拖拽排序 ========== */
-const rowDragIndex = ref<number>(-1);
+/** ========== Sortable 行拖拽排序 ========== */
+const dragMode = ref(false);
+const dragChanged = ref(false);
+const sortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
+const sortedRows = ref<Array<Record<string, unknown>>>([]);
+const originalRows = ref<Array<Record<string, unknown>>>([]);
+const dragToggleLoading = ref(false);
+const sortableInitLock = ref(false);
+const vxeTableRef = ref<InstanceType<typeof VxeTable> | null>(null);
+const vxeDragData = ref<Array<Record<string, unknown>>>([]);
 
-function onRowDragStart(index: number, event: DragEvent): void {
-  rowDragIndex.value = index;
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+const vxeSortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
+let vxeTbodyObserver: MutationObserver | null = null;
+const vxeRenderKey = ref(0);
+
+/** 查找VXE主tbody（排除fixed区域） */
+function findVxeMainTbody(): HTMLElement | null {
+  const mainWrapper = document.querySelector(
+    ".vxe-table--body-wrapper.body--wrapper"
+  ) as HTMLElement | null;
+  if (!mainWrapper) return null;
+  const tbody = mainWrapper.querySelector("tbody") as HTMLElement | null;
+  if (!tbody || tbody.children.length === 0) return null;
+  const rect = tbody.getBoundingClientRect();
+  if (rect.width === 0) return null;
+  return tbody;
 }
 
-function onRowDragOver(event: DragEvent): void {
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+/** 初始化VXE表格Sortable拖拽 */
+function initVxeSortable(): boolean {
+  const vxeTbody = findVxeMainTbody();
+  if (!vxeTbody) {
+    return false;
+  }
+  // 已绑定在同一个tbody上则跳过，避免重复创建导致document事件残留冲突
+  const inst = vxeSortableInstance.value as unknown as { el?: HTMLElement } | null;
+  if (inst && inst.el === vxeTbody) return true;
+  vxeSortableInstance.value?.destroy();
+  vxeSortableInstance.value = null;
+  vxeSortableInstance.value = Sortable.create(vxeTbody, {
+    handle: ".vxe-drag-handle",
+    draggable: "tr",
+    animation: 180,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    ghostClass: "vxe-drag-ghost",
+    chosenClass: "vxe-drag-chosen",
+    fallbackClass: "drag-sort-fallback",
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 3,
+    scroll: true,
+    onChoose: () => {
+      document.body.style.userSelect = "none";
+    },
+    onUnchoose: () => {
+      document.body.style.userSelect = "";
+    },
+    onEnd: (evt) => {
+      document.body.style.userSelect = "";
+      const { oldIndex, newIndex, item } = evt;
+      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+      // Sortable(forceFallback) 移动后的真实 DOM 即目标顺序，无需手动还原；
+      // 纯数据驱动：先按目标顺序重排，再交换这两行原有的排序字段值（仅两条记录变更）
+      const oldList = vxeDragData.value;
+      const movedRow = oldList[oldIndex];
+      const targetRow = oldList[newIndex];
+      const movedSort = movedRow[props.sortField];
+      const targetSort = targetRow[props.sortField];
+      const list = [...oldList];
+      const [moved] = list.splice(oldIndex, 1);
+      list.splice(newIndex, 0, moved);
+      // 交换发生在 list 内同一批行对象上，保证 VXE 渲染读取到的就是交换后的值
+      movedRow[props.sortField] = targetSort;
+      targetRow[props.sortField] = movedSort;
+      vxeDragData.value = list;
+      sortedRows.value = list;
+      dragChanged.value = true;
+      // 拖拽过程中 Sortable 移动过真实 tr，会破坏 VXE 内部 tr-行映射；
+      // 更新数据后递增 key，让 VXE 销毁并按新数据全新渲染，保证顺序与字段正确
+      vxeRenderKey.value++;
+    },
+  });
+
+  // VXE 重挂载后重新绑定 Sortable
+  watch(vxeRenderKey, async () => {
+    if (!dragMode.value) return;
+    for (let i = 0; i < 10; i++) {
+      await nextTick();
+      await waitFrame();
+      if (initVxeSortable()) break;
+    }
+    // 重挂载后 VXE $el 是全新节点，重新监听并确保 Sortable 绑定
+    startVxeTbodyObserver();
+  });
+  return true;
 }
 
-function onRowDrop(index: number): void {
-  if (rowDragIndex.value === -1 || rowDragIndex.value === index) return;
-  const data = [...(dataList.value ?? [])];
-  const [moved] = data.splice(rowDragIndex.value, 1);
-  data.splice(index, 0, moved);
-  rowDragIndex.value = -1;
-  emit("row-sort", {
-    row: moved,
-    fromIndex: rowDragIndex.value,
-    toIndex: index,
-    newData: data,
+/** 启动 VXE tbody 监听：表格重渲染替换 tbody 后自动重绑 Sortable */
+function startVxeTbodyObserver() {
+  stopVxeTbodyObserver();
+  const rootEl = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el
+    || (document.querySelector(".vxe-table") as HTMLElement | null);
+  if (!rootEl || typeof MutationObserver === "undefined") return;
+  let scheduled = false;
+  vxeTbodyObserver = new MutationObserver(() => {
+    if (scheduled || !dragMode.value) return;
+    scheduled = true;
+    nextTick(() => {
+      scheduled = false;
+      if (dragMode.value) initVxeSortable();
+    });
+  });
+  vxeTbodyObserver.observe(rootEl, { childList: true, subtree: true });
+}
+
+function stopVxeTbodyObserver() {
+  if (vxeTbodyObserver) {
+    vxeTbodyObserver.disconnect();
+    vxeTbodyObserver = null;
+  }
+}
+
+/** VXE内置拖拽结束回调 */
+function onVxeDragEnd() {
+  const list = [...vxeDragData.value];
+  list.forEach((row, idx) => {
+    row[props.sortField] = idx + 1;
+  });
+  vxeDragData.value = list;
+  sortedRows.value = list;
+  // 仅当顺序与原始数据不同时才显示确认按钮
+  const changed = list.some((row, idx) => {
+    const orig = originalRows.value[idx];
+    return !orig || row[props.rowKey as string] !== orig[props.rowKey as string];
+  });
+  dragChanged.value = changed;
+}
+
+function waitFrame(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }
 
-function onRowDragEnd(): void {
-  rowDragIndex.value = -1;
+function findDragTbody(): HTMLElement | null {
+  const tableEl = elTableRef.value?.$el as HTMLElement | undefined;
+  if (!tableEl) return null;
+  const tbodies = Array.from(tableEl.querySelectorAll("tbody"));
+  // 仅找可见、有数据行的tbody，不要求手柄已渲染（Sortable事件委托自动处理后续插入的手柄）
+  const target = tbodies.find((tb) => {
+    const rect = tb.getBoundingClientRect();
+    return rect.width > 0 && tb.children.length > 0;
+  });
+  return target ?? null;
 }
 
+async function toggleDragMode() {
+  if (dragToggleLoading.value) return;
+  dragToggleLoading.value = true;
+  const willEnable = !dragMode.value;
+  dragChanged.value = false;
+  try {
+    if (willEnable) {
+      // 互斥：进入拖拽前先退出批量删除
+      if (batchDeleteMode.value) cancelBatchDelete();
+      // 先从ElTable取数据，再切换模式，避免ElTable销毁后拿不到数据
+      const tableRows: Array<Record<string, unknown>> = elTableRef.value?.store?.states?.data?.value || [];
+      const snapshot = tableRows.map((r) => ({ ...r }));
+      sortedRows.value = snapshot;
+      originalRows.value = snapshot.map((r) => ({ ...r }));
+      vxeDragData.value = snapshot;
+      vxeRenderKey.value = 0;
+      await nextTick();
+      dragMode.value = true;
+      // 等待VXE表格渲染完成，多轮重试初始化Sortable
+      for (let i = 0; i < 10; i++) {
+        await nextTick();
+        await waitFrame();
+        if (initVxeSortable()) break;
+      }
+      // 延迟做一次最终重绑，规避VXE列宽计算后重渲染替换tbody
+      window.setTimeout(() => {
+        if (dragMode.value) initVxeSortable();
+      }, 350);
+      // 监听 tbody 替换，自动重绑
+      nextTick(() => startVxeTbodyObserver());
+    } else {
+      dragMode.value = false;
+      stopVxeTbodyObserver();
+      vxeSortableInstance.value?.destroy();
+      vxeSortableInstance.value = null;
+      destroySortable();
+      vxeDragData.value = [];
+    }
+  } finally {
+    dragToggleLoading.value = false;
+  }
+}
+
+async function initSortable(retryCount = 0): Promise<boolean> {
+  if (sortableInitLock.value) return false;
+  sortableInitLock.value = true;
+  try {
+  destroySortable();
+  await nextTick();
+  await waitFrame();
+
+  const tableInstance = elTableRef.value;
+  const tbody = findDragTbody();
+  if (!tbody || !tableInstance) {
+    if (retryCount < 5) {
+      await waitFrame();
+      return initSortable(retryCount + 1);
+    }
+    return false;
+  }
+
+  const tableRows: Array<Record<string, unknown>> = tableInstance.store?.states?.data?.value || [];
+  const snapshot = tableRows.map((r) => ({ ...r }));
+  sortedRows.value = snapshot;
+  originalRows.value = snapshot.map((r) => ({ ...r }));
+
+  sortableInstance.value = Sortable.create(tbody, {
+    handle: ".drag-handle",
+    draggable: "tr",
+    animation: 160,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    ghostClass: "drag-sort-ghost",
+    chosenClass: "drag-sort-chosen",
+    dragClass: "drag-sort-drag",
+    fallbackClass: "drag-sort-fallback",
+    preventOnFilter: false,
+    // 核心：强制JS模拟拖拽，GPU硬件加速，彻底解决原生HTML5拖拽卡顿/延迟/不跟手
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 3,
+    scroll: true,
+    scrollSensitivity: 70,
+    scrollSpeed: 12,
+    onChoose: () => {
+      document.body.style.userSelect = "none";
+      document.body.style.webkitUserSelect = "none";
+    },
+    onUnchoose: () => {
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+    },
+    onEnd: ({ oldIndex, newIndex }) => {
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+      const list = [...sortedRows.value];
+      const [moved] = list.splice(oldIndex, 1);
+      list.splice(newIndex, 0, moved);
+      list.forEach((row, idx) => {
+        row[props.sortField] = idx + 1;
+      });
+      sortedRows.value = list;
+      dragChanged.value = true;
+    },
+  });
+  return true;
+  } finally {
+    sortableInitLock.value = false;
+  }
+}
+
+function destroySortable() {
+  sortableInstance.value?.destroy();
+  sortableInstance.value = null;
+  // 主动清理页面残留的拖拽元素，避免DOM堆积导致卡顿
+  document.querySelectorAll('.drag-sort-fallback, .drag-sort-ghost, .drag-sort-chosen, .drag-sort-drag').forEach((el) => el.remove());
+  document.body.style.userSelect = "";
+  document.body.style.webkitUserSelect = "";
+}
+
+watch(
+  () => elTableRef.value?.store?.states?.data?.value,
+  async () => {
+    if (!dragMode.value || dragChanged.value || sortableInitLock.value) return;
+    await nextTick();
+    await waitFrame();
+    // 数据行数变化说明是分页/外部刷新，重新初始化；仅拖拽换位不重绑
+    const newRows = elTableRef.value?.store?.states?.data?.value || [];
+    if (newRows.length !== originalRows.value.length) {
+      await initSortable();
+    }
+  },
+  { flush: "post" },
+);
+
+function confirmDragSort() {
+  stopVxeTbodyObserver();
+  emit("row-sort", {
+    row: null,
+    fromIndex: -1,
+    toIndex: -1,
+    newData: vxeDragData.value,
+  });
+  destroySortable();
+  dragMode.value = false;
+  dragChanged.value = false;
+  originalRows.value = [];
+  vxeDragData.value = [];
+}
+
+/** 取消拖拽排序，放弃修改恢复原始顺序 */
+function cancelDragSort() {
+  stopVxeTbodyObserver();
+  destroySortable();
+  vxeDragData.value = originalRows.value.map((r) => ({ ...r }));
+  dragMode.value = false;
+  dragChanged.value = false;
+  originalRows.value = [];
+  // 刷新表格恢复原始顺序
+  setTimeout(()=>onBuiltinSearchRefresh(), 50);
+}
 /** ========== 缺陷6: 列宽调整 ========== */
 /** resizable 设置 → 列宽拖拽 */
 const borderResizable = computed(() => (localSettings.value.resizable ?? true));
@@ -543,6 +943,17 @@ function getEditValue(row: Record<string, unknown>, col: ReTableColumn): unknown
     return editCache.value[key][col.prop];
   }
   return row[col.prop];
+}
+
+/**
+ * 取 select 绑定用值：行数据本身是 {@code Record<string, unknown>}，
+ * 而 el-select 的 model-value 期望具体类型，这里按 Element Plus 接受的取值范围收窄。
+ */
+function getSelectValue(row: Record<string, unknown>, col: ReTableColumn): EditOptionValue {
+  const v = getEditValue(row, col);
+  return v === null || v === undefined
+    ? undefined
+    : (v as EditOptionValue);
 }
 
 /** 设置编辑值 */
@@ -596,14 +1007,23 @@ const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.load
 
 /** 远程模式：总条数由接口返回 */
 const remoteTotal = ref<number>(0);
-const totalToShow = computed<number>(() => (isRemote.value ? remoteTotal.value : props.total));
+const totalToShow = computed<number>(() => {
+  if (isRemote.value) return remoteTotal.value;
+  if (props.total > 0) return props.total;
+  return dataList.value?.length ?? 0;
+});
 
 /** 表格外观设置：受控（v-model:settings），并写入 props.settings 响应 */
-const localSettings = ref<ReTableSettings>({ border: true, ...props.settings });
+// props.settings 是局部覆盖语义，重建时必须带上属性推导出的默认值，否则 immediate 回调会把它们冲掉
+function resolveSettings(v?: ReTableSettings): ReTableSettings {
+  return { border: true, stripe: props.stripe, ...v };
+}
+
+const localSettings = ref<ReTableSettings>(resolveSettings(props.settings));
 watch(
   () => props.settings,
   (v) => {
-    localSettings.value = { ...v };
+    localSettings.value = resolveSettings(v);
   },
   { deep: true, immediate: true },
 );
@@ -657,8 +1077,12 @@ function loadColumnState(): void {
     let restoredPage = false;
     try {
       const full = saved as ReTableFullState;
-      if (typeof full.page === "number") { emit("update:page", full.page); restoredPage = true; }
-      if (typeof full.pageSize === "number") emit("update:pageSize", full.pageSize);
+        if (typeof full.page === "number") { emit("update:page", full.page); restoredPage = true; }
+        // pageSize 需校验档位：默认档位调整后，老用户 localStorage 里存的旧值（如 10）
+        // 不在 pageSizes 中，若照搬会渲染出「分页器档位」与「实际每页条数」不一致的界面
+        if (typeof full.pageSize === "number" && isAllowedPageSize(full.pageSize)) {
+          emit("update:pageSize", full.pageSize);
+        }
       if (full.settings) {
         localSettings.value = { ...localSettings.value, ...full.settings };
         emitSettings();
@@ -799,9 +1223,10 @@ function resetColumns(): void {
 /** 远程数据加载 */
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
-    const paramObj = { ...(props.params ?? {}), ...(props.searchModel ?? {}) };
+    /** params 是页面显式声明的查询对象（提交快照），优先级高于搜索区的实时草稿值 */
+    const paramObj = { ...(props.searchModel ?? {}), ...(props.params ?? {}) };
     const curPage = internalPage.value || props.page || 1;
-    const curSize = internalPageSize.value || props.pageSize || 10;
+    const curSize = internalPageSize.value || props.pageSize || DEFAULT_PAGE_SIZE;
     const loadParams = {
       page: curPage,
       pageSize: curSize,
@@ -901,28 +1326,12 @@ watch(internalPage, (p, oldP) => {
   nextTick(() => { void dsReload(); });
 });
 
-/** 原生分页辅助 */
-const paginationTotalPages = computed(() => Math.max(1, Math.ceil(totalToShow.value / internalPageSize.value)));
-const paginationPageList = computed(() => {
-  const total = paginationTotalPages.value;
-  const cur = internalPage.value;
-  const list: number[] = [];
-  for (let i = 1; i <= total; i++) list.push(i);
-  return list;
-});
-function goToPage(p: number) {
-  if (p < 1 || p > paginationTotalPages.value || p === internalPage.value) return;
+/** 页码点击：RePagination 只在合法页码时 emit，这里仍做一次越界钳制作为兜底 */
+function onPageClick(p: number) {
+  const maxPage = Math.max(1, Math.ceil(totalToShow.value / (internalPageSize.value || DEFAULT_PAGE_SIZE)));
+  if (p < 1 || p > maxPage || p === internalPage.value) return;
   internalPage.value = p;
   // watch internalPage 会自动 emit update:page 和 dsReload
-}
-function onPageClick(p: number) {
-  goToPage(p);
-}
-function onPrevPage() {
-  goToPage((props.page || internalPage.value) - 1);
-}
-function onNextPage() {
-  goToPage((props.page || internalPage.value) + 1);
 }
 
 function formatCell(row: Record<string, unknown>, column: ReTableColumn): string {
@@ -963,6 +1372,65 @@ function onSizeChange(s: number): void {
 async function reload(): Promise<void> {
   await dsReload();
 }
+
+/** ========== 内置自动刷新 ========== */
+/** 传 true 用默认档位，传对象可换档位 / 设默认间隔 */
+const autoRefreshCfg = computed(() => (typeof props.autoRefresh === "object" ? props.autoRefresh : null));
+/** 间隔下限 1s，避免误配把接口打穿；0 是「不刷新」这一档 */
+function normalizeInterval(ms?: number): number {
+  return Math.max(1000, Math.round(ms ?? 5000));
+}
+/** 轮询间隔（ms），0 = 关闭；初始档位按 defaultOn 决定 */
+const autoRefreshMs = ref<number>(autoRefreshCfg.value?.defaultOn ? normalizeInterval(autoRefreshCfg.value?.interval) : 0);
+/** 浮层里的候选档位 */
+const autoRefreshSteps = computed<number[]>(() => {
+  const list = autoRefreshCfg.value?.intervals;
+  return Array.isArray(list) && list.length ? list.map((ms) => (ms > 0 ? normalizeInterval(ms) : 0)) : [0, 5000, 15000, 30000, 60000];
+});
+/** 选档浮层：工具栏只留一个纯图标入口，档位铺开在浮层里选 */
+const autoRefreshPop = ref(false);
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 浮层是竖向档位菜单：一行一档，0 档写成「不自动刷新」 */
+const autoRefreshOptions = computed<ReOption[]>(() =>
+  autoRefreshSteps.value.map((ms) => ({
+    value: String(ms),
+    label: ms > 0 ? `每 ${ms / 1000} 秒` : "不自动刷新",
+  })),
+);
+
+/** 选档即起停表，并收起浮层 */
+const autoRefreshValue = computed<string>({
+  get: () => String(autoRefreshMs.value),
+  set: (val: string) => {
+    const ms = Number(val);
+    autoRefreshMs.value = ms > 0 ? normalizeInterval(ms) : 0;
+    autoRefreshPop.value = false;
+    startAutoRefresh();
+  },
+});
+
+function stopAutoRefresh(): void {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+}
+
+function startAutoRefresh(): void {
+  stopAutoRefresh();
+  if (autoRefreshMs.value <= 0) return;
+  autoRefreshTimer = setInterval(() => {
+    // 上一拍还在飞就跳过这一拍，慢接口下不堆请求
+    if (!dataLoading.value) void dsReload();
+  }, autoRefreshMs.value);
+}
+
+onMounted(startAutoRefresh);
+onBeforeUnmount(stopAutoRefresh);
+/* keep-alive 缓存页离开时钩子不会卸载，必须停表，否则后台页面持续打接口 */
+onActivated(startAutoRefresh);
+onDeactivated(stopAutoRefresh);
 /**
  * 跳转到指定页/每页条数。
  * 使用 nextTick 确保 page/pageSize props 更新后再 reload。
@@ -988,10 +1456,121 @@ const tableSize = computed<"default" | "small">(() =>
 /** 空数据状态（用于添加 body 最小高度，避免无行时表格塌陷） */
 const isEmpty = computed(() => !dataList.value || dataList.value.length === 0);
 
-/** 表格最小高度（空数据时保持此高度，默认 300px） */
+/**
+ * 调用方是否指定了固定高度（layout-table height / max-height）。
+ *
+ * <p>固定高度时表格高度由 element-plus 决定：body 区域 = 表格高 − 表头高，
+ * 空态必须填满这块可用区域而不是强撑 440px，否则空块会溢出表格底部。
+ * 供根节点 re-table--fixed-height 类切换空态样式。</p>
+ */
+const hasFixedHeight = computed(() => {
+  const table = props.layoutTable;
+  if (!table) return false;
+  return (table.height !== undefined && table.height !== null) || (table.maxHeight !== undefined && table.maxHeight !== null);
+});
+
+// ==================== 布局切换（表格 / 视图 / 卡片） ====================
+
+/** 布局偏好 localStorage key 前缀（按 tableId 区分，缺省 default） */
+const LAYOUT_STORAGE_PREFIX = "re-table-layout";
+
+/** 读取上次选择的布局 */
+function readStoredLayout(): ReTableSwitchLayout | null {
+  try {
+    const raw = window.localStorage.getItem(`${LAYOUT_STORAGE_PREFIX}:${props.tableId || "default"}`);
+    return raw === "table" || raw === "view" || raw === "card" ? raw : null;
+  } catch {
+    // 隐私模式等场景忽略
+    return null;
+  }
+}
+
+/** 记忆布局选择（同一表格下次进入保持） */
+function persistLayout(value: ReTableSwitchLayout): void {
+  try {
+    window.localStorage.setItem(`${LAYOUT_STORAGE_PREFIX}:${props.tableId || "default"}`, value);
+  } catch {
+    // 忽略写入失败
+  }
+}
+
+/**
+ * 当前生效布局。
+ *
+ * <p>layoutSwitch=false 时完全听 props.layout；否则 localStorage 记忆优先于 props.layout，
+ * 用户切换只改这里，主体分支统一读 activeLayout。</p>
+ */
+const activeLayout = ref<ReTableLayout>(props.layoutSwitch === false ? props.layout : (readStoredLayout() ?? props.layout));
+
+/** props.layout 变化时跟随（受控场景） */
+watch(
+  () => props.layout,
+  (val) => {
+    activeLayout.value = val;
+  },
+);
+
+/** 候选布局：props.layouts 白名单 ∩ 当前可渲染（视图/卡片需要有行数据才有 DOM） */
+const switchLayoutOptions = computed<ReTableSwitchLayout[]>(() => {
+  const allow = (props.layouts ?? ["table", "view", "card"]).filter(Boolean);
+  const hasRows = !isEmpty.value;
+  return allow.filter((key) => (key === "table" ? true : hasRows));
+});
+
+/** 默认文案 / 图标（图标用 element-plus 图标组件，纯图标按钮与刷新等同级） */
+const LAYOUT_TEXT: Record<ReTableSwitchLayout, string> = { table: "表格", view: "视图", card: "卡片" };
+const LAYOUT_ICON: Record<ReTableSwitchLayout, unknown> = { table: Menu, view: View, card: Grid };
+function layoutText(key: ReTableSwitchLayout): string {
+  return props.layoutLabels?.[key] ?? LAYOUT_TEXT[key];
+}
+
+/** 是否显示布局切换器：开关打开 + 候选 ≥ 2（有可切换的 DOM） */
+const showLayoutSwitch = computed<boolean>(() => props.layoutSwitch !== false && switchLayoutOptions.value.length > 1);
+
+/** 当前布局不可用（数据清空 / 白名单变化）时回落到表格；可用则记忆 */
+watch(
+  [() => activeLayout.value, () => switchLayoutOptions.value.join(",")],
+  ([val]) => {
+    if (val !== "table" && val !== "view" && val !== "card") return;
+    if (!(switchLayoutOptions.value as string[]).includes(val)) {
+      // 数据清空后视图/卡片没有可渲染的行，回到表格（表格空态已处理）
+      activeLayout.value = "table";
+      return;
+    }
+    if (props.layoutSwitch !== false) persistLayout(val);
+  },
+);
+
+/** 切换布局 */
+function switchLayout(key: ReTableSwitchLayout): void {
+  if (key === activeLayout.value) return;
+  activeLayout.value = key;
+  // 切回表格后需重排列宽（表头与 body 对齐）
+  nextTick(() => {
+    try {
+      elTableRef.value?.doLayout?.();
+    } catch {
+      // noop
+    }
+  });
+}
+
+/** 视图模式序号跨页连续 */
+const layoutIndexOffset = computed<number>(() =>
+  props.pagination ? Math.max(0, (internalPage.value - 1) * internalPageSize.value) : 0,
+);
+
+/** 数据加载/翻页后重新布局，确保表头与表体列宽始终对齐（异步数据、横向滚动、窗口缩放场景） */
+watch(dataList, () => {
+  nextTick(() => {
+    try { elTableRef.value?.doLayout?.(); } catch { /* noop */ }
+  });
+});
+
+/** 表格最小高度（空数据时保持此高度，默认 440px） */
 const tableMinHeight = computed<string>(() => {
   const mh = props.layoutTable?.minHeight;
-  if (mh === undefined || mh === null) return "300px";
+  if (mh === undefined || mh === null) return "440px";
   return typeof mh === "number" ? `${mh}px` : mh;
 });
 
@@ -1064,12 +1643,19 @@ const iconSelect = Select;
 <template>
   <div
     class="re-table"
-    :class="{ 're-table--empty': isEmpty, 're-table--compact': tableSize === 'small', 're-table--separated': searchSeparated }"
+    :class="{
+      're-table--empty': isEmpty,
+      're-table--compact': tableSize === 'small',
+      're-table--separated': searchSeparated,
+      're-table--fixed-height': hasFixedHeight,
+      [`re-table--layout-${activeLayout}`]: true,
+    }"
     :style="{ '--re-table-min-height': tableMinHeight }"
   >
     <!-- 内置搜索区（search 开启内置 ReSearch；或 showSearch=true 配合 #search 插槽） -->
     <div
       v-if="searchAreaVisible"
+      v-show="!searchEnabled || searchVisible"
       class="re-table__search"
       :style="searchGapStyle"
     >
@@ -1082,18 +1668,14 @@ const iconSelect = Select;
             :max="searchConfig.max ?? 0"
             :btn-mode="searchConfig.btnMode ?? 'icon'"
             :filter-visible="searchVisible"
-            :show-toggle="false"
             :show-search-btn="searchConfig.showSearchBtn ?? true"
             :show-reset-btn="searchConfig.showResetBtn ?? true"
-            :show-refresh-btn="false"
-            :show-add-btn="false"
             :show-batch-delete-btn="false"
             :show-batch-select-btn="false"
             @update:model-value="onSearchModelUpdate"
             @update:filter-visible="searchVisible = $event"
             @search="onBuiltinSearch"
             @reset="onBuiltinSearchReset"
-            @refresh="onBuiltinSearchRefresh"
           />
         </div>
       </template>
@@ -1116,13 +1698,64 @@ const iconSelect = Select;
 
     <!-- 主体区（两卡模式下与搜索区分离，各自成卡） -->
     <div class="re-table__main">
-    <!-- 工具栏行：左侧 #toolbar 自定义按钮，右侧搜索开关 + 刷新（search 开启时） -->
-    <div v-if="$slots.toolbar || searchEnabled" class="re-table__toolbar-row">
+    <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
+    <div
+      v-if="$slots.toolbar || searchEnabled || rowDraggable || batchDelete || autoRefresh || showLayoutSwitch"
+      class="re-table__toolbar-row"
+    >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
         <slot name="toolbar" />
       </div>
-      <div v-if="searchEnabled" class="re-table__toolbar-right">
+      <div
+        v-if="searchEnabled || rowDraggable || batchDelete || autoRefresh || showLayoutSwitch"
+        class="re-table__toolbar-right"
+      >
+        <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
+        <template v-if="batchDeleteMode">
+          <el-button size="small" :disabled="batchProcessing" @click="cancelBatchDelete">取消</el-button>
+          <el-button
+            size="small"
+            type="danger"
+            :disabled="!hasSelected"
+            :loading="batchProcessing"
+            @click="confirmBatchDelete"
+          >
+            删除<span v-if="selectedCount" class="re-table__sel-badge">{{ selectedCount }}</span>
+          </el-button>
+        </template>
+        <!-- 拖拽模式：取消排序 / 确认排序 -->
+        <el-button
+          v-if="dragMode && dragChanged"
+          type="primary"
+          text
+          size="small"
+          @click="cancelDragSort"
+        >取消排序</el-button>
+        <el-button
+          v-if="dragMode && dragChanged"
+          type="primary"
+          text
+          size="small"
+          @click="confirmDragSort"
+        >确认排序</el-button>
         <ReButton
+          v-if="batchDelete"
+          layout="square"
+          icon="Delete"
+          :title="batchDeleteMode ? '退出批量删除' : '批量删除'"
+          :type="batchDeleteMode ? 'primary' : ''"
+          @click="toggleBatchDeleteMode"
+        />
+        <ReButton
+          v-if="rowDraggable"
+          layout="square"
+          icon="Rank"
+          :title="dragMode ? '退出拖拽' : '拖拽排序'"
+          :type="dragMode ? 'primary' : ''"
+          @click="toggleDragMode"
+        />
+        <ReButton
+          v-if="searchEnabled && (searchConfig.showToggle ?? true)"
           layout="square"
           :icon="searchVisible ? 'Hide' : 'View'"
           :title="searchVisible ? '隐藏搜索' : '显示搜索'"
@@ -1135,6 +1768,57 @@ const iconSelect = Select;
           :loading="dataLoading || loading"
           @click="onBuiltinSearchRefresh"
         />
+        <!-- 自动刷新：工具栏只留一个纯图标入口，间隔在浮层里选（含「关」= 不刷新） -->
+        <ElPopover
+          v-if="autoRefresh"
+          v-model:visible="autoRefreshPop"
+          placement="bottom-end"
+          :width="196"
+          trigger="click"
+          :persistent="false"
+          popper-class="re-table__popover"
+        >
+          <template #reference>
+            <ReButton
+              layout="square"
+              icon="Timer"
+              :title="autoRefreshMs > 0 ? `自动刷新中：每 ${Math.round(autoRefreshMs / 1000)} 秒` : '自动刷新：已关闭'"
+              :type="autoRefreshMs > 0 ? 'primary' : ''"
+            />
+          </template>
+          <div class="re-table__auto-refresh-panel">
+            <div class="re-table__auto-refresh-head">
+              <span class="re-table__auto-refresh-title">自动刷新</span>
+              <span
+                class="re-table__auto-refresh-state"
+                :class="{ 'is-off': autoRefreshMs <= 0 }"
+              >{{ autoRefreshMs > 0 ? `每 ${Math.round(autoRefreshMs / 1000)} 秒` : "已关闭" }}</span>
+            </div>
+            <ReSelect v-model="autoRefreshValue" layout="square" vertical :data="autoRefreshOptions" />
+            <div class="re-table__auto-refresh-hint">选中即生效，表格按该间隔自动重取当前页</div>
+          </div>
+        </ElPopover>
+        <!-- 布局切换（系统级按钮组，位于自动刷新右侧）：表格 / 视图 / 卡片
+             候选 <2 或无数据时不渲染（没有可切换的 DOM 就不出现） -->
+        <div
+          v-if="showLayoutSwitch"
+          class="re-table__layout-switch"
+          role="group"
+          aria-label="布局切换"
+        >
+          <button
+            v-for="key in switchLayoutOptions"
+            :key="key"
+            type="button"
+            class="re-table__layout-switch-item"
+            :class="{ 'is-active': activeLayout === key }"
+            :aria-pressed="activeLayout === key"
+            :title="`${layoutText(key)}视图`"
+            @click="switchLayout(key)"
+          >
+            <component :is="LAYOUT_ICON[key]" :size="16" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1155,9 +1839,65 @@ const iconSelect = Select;
       />
     </div>
 
-    <!-- 默认表格模式 -->
+    <!-- VXE高性能表格：拖拽模式使用，内置原生流畅行拖拽 -->
+    <VxeTable
+      v-if="dragMode && activeLayout === 'table'"
+      :key="'vxe-drag-' + vxeRenderKey"
+      ref="vxeTableRef"
+      :data="vxeDragData"
+      :border="localSettings.border ?? true"
+      :stripe="localSettings.stripe ?? false"
+      :height="layoutTable?.height"
+      :max-height="layoutTable?.maxHeight"
+      :row-config="{ keyField: rowKey, isHover: true, height: 48 }"
+      :column-config="{ resizable: borderResizable }"
+    >
+      <VxeColumn
+        v-if="showSelection || batchSelectActive"
+        type="checkbox"
+        width="50"
+        fixed="left"
+      />
+      <VxeColumn width="48" align="center">
+        <template #default>
+          <ElIcon class="vxe-drag-handle" style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none">
+            <Rank />
+          </ElIcon>
+        </template>
+      </VxeColumn>
+
+      <VxeColumn
+        v-for="col in visibleColumns"
+        :key="col.prop || col.label"
+          :field="col.prop"
+          :title="col.label"
+          :width="col.width"
+          :min-width="col.minWidth"
+          :max-width="col.maxWidth"
+        :fixed="col.fixed === true ? 'left' : col.fixed || ''"
+        :align="col.align"
+        :sortable="Boolean(col.sortable)"
+      >
+        <template v-if="hasColSlot(col)" #default="{ row }">
+          <slot
+            :name="resolveColSlotName(col)"
+            :row="row"
+            :value="row[col.prop]"
+            :editing="batchEditing"
+          />
+        </template>
+        <template v-else #default="{ row }">
+          {{ formatCell(row, col) }}
+        </template>
+      </VxeColumn>
+      <template #empty>
+        <el-empty description="暂无数据" />
+      </template>
+    </VxeTable>
+
+    <!-- 默认ElTable：非拖拽模式 -->
     <ElTable
-      v-if="layout === 'table'"
+      v-if="!dragMode && activeLayout === 'table'"
       ref="elTableRef"
       v-bind="$attrs"
       :data="dataList ?? []"
@@ -1181,27 +1921,53 @@ const iconSelect = Select;
       @selection-change="onSelectionChange"
       @sort-change="(payload: any) => onSortChange(payload)"
     >
-      <!-- 批量选择 checkbox 列 -->
+      <!-- 批量选择 checkbox 列（批量选择 / 批量删除模式 / 常驻选择） -->
       <ElTableColumn
-        v-if="showSelection || batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
+        v-if="showSelection || batchSelectActive || batchDeleteMode || isBatchEnabled(toolbarConfig.batchSelect)"
         type="selection"
         width="50"
         fixed="left"
       />
+      <!-- 拖拽排序列 -->
+      <ElTableColumn
+        v-if="dragMode"
+        width="55"
+        fixed="left"
+        align="center"
+      >
+        <template #header>
+          <ElIcon><Rank /></ElIcon>
+        </template>
+        <template #default>
+          <ElIcon
+            class="drag-handle"
+            style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none"
+          ><Rank /></ElIcon>
+        </template>
+      </ElTableColumn>
       <template v-for="col in visibleColumns" :key="col.prop || col.label">
         <ElTableColumn
           v-if="hasColSlot(col)"
+          :prop="col.prop"
           :label="col.label"
           :width="col.width"
           :min-width="col.minWidth"
+          :max-width="col.maxWidth"
           :fixed="col.fixed"
           :align="col.align"
           :sortable="col.sortable"
           :resizable="col.resizable ?? borderResizable"
           :show-overflow-tooltip="col.showOverflowTooltip"
         >
-          <template #default="{ row }">
-            <slot :name="resolveColSlotName(col)" :row="row" :value="row[col.prop]" :editing="batchEditing" />
+          <template #default="scope">
+            <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件，避免脏值回写 -->
+            <slot
+              v-if="Number(scope.$index) > -1"
+              :name="resolveColSlotName(col)"
+              :row="scope.row"
+              :value="scope.row[col.prop]"
+              :editing="batchEditing"
+            />
           </template>
         </ElTableColumn>
         <ElTableColumn
@@ -1210,100 +1976,91 @@ const iconSelect = Select;
           :label="col.label"
           :width="col.width"
           :min-width="col.minWidth"
+          :max-width="col.maxWidth"
           :fixed="col.fixed"
           :align="col.align"
           :sortable="col.sortable"
           :resizable="col.resizable ?? borderResizable"
           :show-overflow-tooltip="col.showOverflowTooltip"
         >
-          <template #default="{ row }">
-            <!-- 缺陷8: inline edit -->
-            <template v-if="isColEditable(col)">
-              <ElInput
-                v-if="col.editType === 'text' || !col.editType"
-                :model-value="String(getEditValue(row, col) ?? '')"
-                size="small"
-                @input="(v: string) => setEditValue(row, col, v)"
-              />
-              <ElInput
-                v-else-if="col.editType === 'number'"
-                type="number"
-                :model-value="String(getEditValue(row, col) ?? '')"
-                size="small"
-                @input="(v: string) => setEditValue(row, col, Number(v))"
-              />
-              <el-select
-                v-else-if="col.editType === 'select'"
-                :model-value="getEditValue(row, col)"
-                size="small"
-                @change="(v: unknown) => setEditValue(row, col, v)"
-              >
-                <el-option
-                  v-for="opt in (col.editOptions ?? [])"
-                  :key="String(opt.value)"
-                  :label="opt.label"
-                  :value="opt.value"
+          <template #default="{ row, $index }">
+            <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件 -->
+            <template v-if="Number($index) > -1">
+              <!-- 缺陷8: inline edit -->
+              <template v-if="isColEditable(col)">
+                <ElInput
+                  v-if="col.editType === 'text' || !col.editType"
+                  :model-value="String(getEditValue(row, col) ?? '')"
+                  size="small"
+                  @input="(v: string) => setEditValue(row, col, v)"
                 />
-              </el-select>
-              <ElInput
-                v-else-if="col.editType === 'date'"
-                type="date"
-                :model-value="String(getEditValue(row, col) ?? '')"
-                size="small"
-                @input="(v: string) => setEditValue(row, col, v)"
-              />
-            </template>
-            <template v-else>
-              {{ formatCell(row, col) }}
+                <ElInput
+                  v-else-if="col.editType === 'number'"
+                  type="number"
+                  :model-value="String(getEditValue(row, col) ?? '')"
+                  size="small"
+                  @input="(v: string) => setEditValue(row, col, Number(v))"
+                />
+                <el-select
+                  v-else-if="col.editType === 'select'"
+                  :model-value="getEditValue(row, col) as string | number"
+                  size="small"
+                  @change="(v: unknown) => setEditValue(row, col, v)"
+                >
+                  <el-option
+                    v-for="opt in (col.editOptions ?? [])"
+                    :key="String(opt.value)"
+                    :label="opt.label"
+                    :value="opt.value as string | number"
+                  />
+                </el-select>
+                <ElInput
+                  v-else-if="col.editType === 'date'"
+                  type="date"
+                  :model-value="String(getEditValue(row, col) ?? '')"
+                  size="small"
+                  @input="(v: string) => setEditValue(row, col, v)"
+                />
+              </template>
+              <template v-else>
+                <span :class="{ 're-table__cell-ellipsis': col.showOverflowTooltip }"
+                  :title="String(row[col.prop] ?? '')">
+                  {{ formatCell(row, col) }}
+                </span>
+              </template>
             </template>
           </template>
         </ElTableColumn>
       </template>
       <template #empty>
-        <div class="re-table__empty">
-          <svg viewBox="0 0 64 41" class="re-table__empty-icon">
-            <g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-width="2">
-              <ellipse cx="32" cy="33" rx="32" ry="7" fill="var(--el-fill-color-light)"/>
-              <g fill="var(--el-fill-color)" stroke-linecap="round">
-                <path d="M12 14l8-8h16l8 8v14a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z"/>
-                <path d="M20 6l-8 8h16l8-8"/>
-              </g>
-            </g>
-          </svg>
-          <p>{{ emptyText }}</p>
-        </div>
+        <el-empty :description="emptyText" :image-size="96" />
       </template>
       <slot />
     </ElTable>
 
-    <!-- 虚拟表格模式 -->
-    <ReTableVirtualView
-      v-else-if="layout === 'virtual'"
+    <!-- 视图模式（一行一块；默认模板可被 #view 插槽整体替换） -->
+    <ReTableView
+      v-else-if="activeLayout === 'view'"
       :rows="dataList ?? []"
       :columns="visibleColumns"
-      :layout="layoutVirtual ?? {}"
+      :layout="layoutView ?? {}"
       :row-key="rowKey"
       :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
       :context-menu="contextMenu"
       :empty-text="emptyText"
-      :loading="loading || dataLoading"
-      :pagination="pagination"
-      :page="page"
-      :page-size="pageSize"
-      :total="totalToShow"
-      :page-sizes="pageSizes"
+      :index-offset="layoutIndexOffset"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
       @selection-change="onSelectionChange"
       @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
-      @sort-change="(payload: any) => onSortChange(payload)"
-      @update:page="(p: number) => onPageChange(p)"
-      @update:page-size="(s: number) => onSizeChange(s)"
-    />
+    >
+      <template v-if="$slots.view" #view="slotProps">
+        <slot name="view" v-bind="slotProps" />
+      </template>
+    </ReTableView>
 
-    <!-- 卡片模式（瀑布流） -->
+    <!-- 卡片模式（栅格） -->
     <ReTableCardView
-      v-else-if="layout === 'card'"
+      v-else-if="activeLayout === 'card'"
       :rows="dataList ?? []"
       :columns="visibleColumns"
       :layout="layoutCard ?? {}"
@@ -1314,86 +2071,33 @@ const iconSelect = Select;
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @selection-change="onSelectionChange"
       @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
-    />
-
-    <!-- Modern 扁平表格模式（异步加载） -->
-    <ReTableModernView
-      v-else-if="layout === 'modern'"
-      :rows="dataList ?? []"
-      :columns="visibleColumns"
-      :loading="loading || dataLoading"
-      :empty-text="emptyText"
-      :row-key="rowKey"
-      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
-      :pagination="pagination"
-      :page="page"
-      :page-size="pageSize"
-      :total="totalToShow"
-      :page-sizes="pageSizes"
-      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
-      @selection-change="onSelectionChange"
-      @row-contextmenu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
-      @update:page="(p: number) => onPageChange(p)"
-      @update:page-size="(s: number) => onSizeChange(s)"
-    />
-
-    <!-- Canvas 表格模式（AG Grid，异步加载） -->
-    <ReTableCanvasView
-      v-else-if="layout === 'canvas'"
-      :rows="dataList ?? []"
-      :columns="visibleColumns"
-      :layout="layoutCanvas ?? {}"
-      :row-key="rowKey"
-      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
-      :context-menu="contextMenu"
-      :empty-text="emptyText"
-      :loading="loading || dataLoading"
-      :pagination="pagination"
-      :page="page"
-      :page-size="pageSize"
-      :total="totalToShow"
-      :page-sizes="pageSizes"
-      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @cell-click="(payload: ReTableCellClickPayload) => emit('cell-click', payload)"
-      @selection-change="onSelectionChange"
-      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
-      @sort-change="(payload: any) => onSortChange(payload)"
-      @update:page="(p: number) => onPageChange(p)"
-      @update:page-size="(s: number) => onSizeChange(s)"
-    />
-
-    <!-- 放射菜单模式 -->
-    <ReTableRadialView
-      v-else-if="layout === 'radial'"
-      :rows="dataList ?? []"
-      :columns="visibleColumns"
-      :layout="layoutRadial ?? {}"
-      :row-key="rowKey"
-      :selectable="batchSelectActive || isBatchEnabled(toolbarConfig.batchSelect)"
-      :context-menu="contextMenu"
-      :empty-text="emptyText"
-      @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @cell-click="(payload: any) => emit('cell-click', payload)"
-      @selection-change="onSelectionChange"
-      @context-menu="(ctx: ReTableContextMenuContext) => { ctxMenuX = ctx.event.clientX; ctxMenuY = ctx.event.clientY; ctxMenuContext = ctx; ctxMenuVisible = true; }"
-      @menu-select="(payload: any) => emit('row-click', payload.row)"
-    />
+    >
+      <template v-if="$slots.card" #card="slotProps">
+        <slot name="card" v-bind="slotProps" />
+      </template>
+    </ReTableCardView>
 
     <div v-if="pagination || toolbar" class="re-table__footer">
       <div class="re-table__toolbar" v-if="toolbar || pagination">
-        <!-- 左侧：分页 -->
+        <!--
+          左侧分页：复用设计体系的 RePagination（layout=modern 即胶囊分页），
+          不再在本组件内重写「总数 / 每页条数 / 省略号页码 / 上下页」——那套逻辑
+          （页码数组、越界钳制、切换页长回第 1 页）与 RePagination 的 modern 布局逐行等价，
+          重复实现会导致两处样式/边界行为漂移。
+          size 变更走 onSizeChange 而不是直接 v-model：它顺带 emit 回父级、把页码收回第 1 页、
+          并在远程模式下重新取数，直接 v-model 会漏掉这些副作用。
+        -->
         <div v-if="pagination" class="re-table__pagination">
-          <span class="re-table__pagination-total">共 {{ totalToShow }} 条</span>
-          <button class="page-nav-btn" :disabled="internalPage <= 1" @click="onPrevPage">‹</button>
-          <button
-            v-for="p in paginationPageList"
-            :key="p"
-            class="page-nav-btn"
-            :class="{ 'page-nav-btn--active': p === internalPage }"
-            @click="onPageClick(p)"
-          >{{ p }}</button>
-          <button class="page-nav-btn" :disabled="internalPage >= paginationTotalPages" @click="onNextPage">›</button>
+          <RePagination
+            layout="modern"
+            :total="totalToShow"
+            :current-page="internalPage"
+            :page-size="internalPageSize"
+            :page-sizes="pageSizeOptions"
+            :small="tableSize === 'small'"
+            @current-change="onPageClick"
+            @size-change="onSizeChange"
+          />
         </div>
 
         <!-- 使用 ReTableToolbar 统一组件；position=top 时分页行只保留右侧工具区，默认模式保持完整工具栏 -->
@@ -1576,8 +2280,92 @@ const iconSelect = Select;
   background: var(--rt-bg);
   font-size: var(--rt-font);
 }
+/* 纯展示列的省略号：show-overflow-tooltip 未透传给 el-table-column，长值需自带单行截断 */
+.re-table__cell-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
 .re-table__search {
   margin-bottom: 12px;
+}
+/* ============ 默认表格视觉增强 ============
+   只作用于 .re-table 内的 el-table，全部走 element-plus / koi 令牌，亮暗自适应：
+     · 外框圆角 + 细描边 + 柔和投影，把表格从"裸网格"变成一块面板
+     · 表头渐变底 + 600 字重 + 横向滚动时的投影，避免头行与内容糊在一起
+     · 行高 44px（紧凑模式 36px）、斑马纹更淡、hover 混主色
+     · hover / 选中行首列左侧主色条，弱化但可定位
+   ⚠ 分页条同步这套语言（见文件末尾分页样式），否则表格与分页会像两个组件。 */
+.re-table .el-table {
+  --el-table-border-color: var(--el-border-color-lighter);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
+  --el-table-header-text-color: var(--el-text-color-primary);
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+  font-size: 13.5px;
+  border-radius: calc(var(--rt-radius) + 2px);
+
+}
+/* 表头：渐变底 + 600 字重 + 底部描边
+   ⚠ 两个外部约束（都是"应用层全局样式晚于组件样式加载"的既有现实）：
+     1) 行高由内容决定（ReTag / 按钮等），不用 height 硬压；
+     2) 部分应用层样式用 `.el-table th.el-table__cell { padding: 12px !important }`
+        全局锁死表头内边距，这里用 !important 提权，保证组件内表头样式可控。 */
+.re-table .el-table__header-wrapper th.el-table__cell {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-fill-color-extra-light));
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  /* 应用层常给表头加 uppercase / 大字距（对中文表头是视觉噪声），组件内归一 */
+  text-transform: none;
+  letter-spacing: 0.2px;
+  border-bottom: 1px solid var(--el-border-color);
+}
+.re-table--compact .el-table__header-wrapper th.el-table__cell {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+/* 横向滚动时表头投影，提示"右边还有列" */
+.re-table .el-table__header-wrapper.is-scrolling-middle,
+.re-table .el-table__header-wrapper.is-scrolling-left,
+.re-table .el-table__header-wrapper.is-scrolling-right {
+  box-shadow: 0 8px 14px -12px rgb(0 0 0 / 45%);
+}
+/* 表体：内边距 + 更淡的分割线（行高由内容决定，不硬压 height）
+   !important 原因同表头：应用层 pages.css 用 `.el-table td.el-table__cell
+   { padding: 10px 12px !important }` 全局锁死。 */
+.re-table .el-table__body td.el-table__cell {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  border-bottom-color: var(--el-border-color-lighter);
+  transition: background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
+}
+.re-table--compact .el-table__body td.el-table__cell {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+/* 斑马纹（开启时更淡，不喧宾夺主） */
+.re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--el-fill-color-extra-light);
+}
+/* hover / 选中行首列主色条 */
+.re-table .el-table__body tr.el-table__row:hover > td.el-table__cell:first-child,
+.re-table .el-table__body tr.current-row > td.el-table__cell:first-child,
+.re-table .el-table__body tr.el-table__row--striped.current-row > td.el-table__cell:first-child {
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
+}
+.re-table .el-table__body tr.current-row > td.el-table__cell {
+  background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+}
+/* 单元格内容：横向内边距与行高节奏（element-plus 默认 line-height:23px 会把
+   44px 行高顶到 49/56，这里统一为 20px，配合 10px 上下内边距 ≈ 41px） */
+.re-table .el-table__cell .cell {
+  padding: 0 12px;
+  line-height: 20px;
 }
 /* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色 */
 .re-table--separated {
@@ -1596,11 +2384,11 @@ const iconSelect = Select;
   padding: var(--rt-padding, 12px);
   border: 1px solid var(--el-border-color);
 }
-/* 工具栏行：左侧业务按钮（#toolbar 插槽），右侧搜索开关/刷新 */
+/* 工具栏行：左侧业务按钮（#toolbar 插槽）；右侧系统工具组 */
 .re-table__toolbar-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
@@ -1610,11 +2398,116 @@ const iconSelect = Select;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-right: auto;
 }
 .re-table__toolbar-right {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+/* 布局切换：系统级「按钮组」（joined group），位于自动刷新右侧。
+   单个按钮与相邻的刷新 / 自动刷新 / 列设置同规格
+   （rs-btn：30×30、圆角 10px、白底 1px 边框、16px 图标），
+   三个布局按钮合并成一组：共享边框、中间项去掉左边框、两端保留圆角，
+   既与系统工具一致，又在视觉上表达"这几个是一组互斥选项"。 */
+.re-table__layout-switch {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+.re-table__layout-switch-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: 0;
+  /* 按钮组：相邻项边框重叠 1px，视觉上只有一条分隔线 */
+  margin-left: -1px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--rt-duration, 200ms) var(--rt-ease, ease),
+    border-color var(--rt-duration, 200ms) var(--rt-ease, ease),
+    color var(--rt-duration, 200ms) var(--rt-ease, ease);
+}
+.re-table__layout-switch-item:first-child {
+  margin-left: 0;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+.re-table__layout-switch-item:last-child {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+.re-table--compact .re-table__layout-switch-item {
+  width: 26px;
+  height: 26px;
+}
+.re-table--compact .re-table__layout-switch-item:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+.re-table--compact .re-table__layout-switch-item:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+/* element-plus 图标 svg 是 1em + 内联 width/height，需提权才能压到 16px */
+.re-table__layout-switch-item svg,
+.re-table__layout-switch-item .el-icon svg,
+.re-table--compact .re-table__layout-switch-item svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+.re-table__layout-switch-item:hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-bg-color));
+  z-index: 1;
+}
+/* 选中态：主色实心 + 白图标（与 rs-btn--primary 一致） */
+.re-table__layout-switch-item.is-active,
+.re-table__layout-switch-item.is-active:hover {
+  color: #fff;
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  z-index: 2;
+}
+/* 自动刷新浮层：状态行 + 竖向档位菜单 + 一行说明 */
+.re-table__auto-refresh-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.re-table__auto-refresh-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.re-table__auto-refresh-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+.re-table__auto-refresh-state {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-color-primary, #409eff);
+}
+.re-table__auto-refresh-state.is-off {
+  color: var(--el-text-color-secondary, #909399);
+}
+.re-table__auto-refresh-hint {
+  padding-top: 6px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary, #909399);
 }
 .re-table__search-bar {
   display: flex;
@@ -1666,9 +2559,9 @@ const iconSelect = Select;
   gap: var(--rt-gap);
   flex-wrap: wrap;
   /* 抵消根容器内边距，让分页行保持在原来的容器边缘位置 */
-  margin-left: calc(var(--rt-padding, 12px) * -1);
-  margin-right: calc(var(--rt-padding, 12px) * -1);
-  margin-bottom: calc(var(--rt-padding, 12px) * -1);
+  margin-left: calc(var(--rt-padding, 12px) * 1);
+  margin-right: calc(var(--rt-padding, 12px) * 1);
+  margin-bottom: calc(var(--rt-padding, 12px) * 1);
 }
 .re-table__toolbar {
   display: flex;
@@ -1679,21 +2572,64 @@ const iconSelect = Select;
   margin-left: auto;
   width: 100%;
 }
+/* ============ 分页条（与表格同一套视觉语言） ============
+   旧样式问题：总数在左、页码在右但都是 30px 方块 + 4px 小圆角，
+   和 12px 圆角 + 44px 行高 + 柔和投影的新表格明显不搭。
+   现在：左侧「共 N 条」次要文字，右侧 32px 胶囊页码（选中为主色实心），
+   尺寸跟随 default/compact（34/30），全部走令牌，暗色自动适配。 */
 .re-table__pagination {
   display: flex;
-  justify-content: flex-start;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 8px;
   flex: none;
   order: 0;
-  border-right: none;
   position: relative;
   z-index: 1;
   padding: 12px 0;
+  font-size: 13px;
 }
-.re-table__pagination-total {
-  margin-right: 8px;
-  color: var(--el-text-color-secondary);
+/*
+ * 分页本体样式全部来自 RePagination（layout=modern），此处只做两件事：
+ *  1) 把它的 --rm-* 令牌映射到 Element/koi 令牌 —— RePagination 默认的 --rm-primary
+ *     是硬编码靛蓝 #6366f1，不跟主题走；不映射会让分页配色脱离当前主题；
+ *  2) 尺寸/圆角/字重对齐本组件既有的胶囊分页视觉（32 高、9px 圆角、选中 600 字重）。
+ */
+.re-table__pagination {
+  --rm-primary: var(--el-color-primary);
+  --rm-primary-hover: var(--el-color-primary-light-3);
+  --rm-text: var(--el-text-color-primary);
+  --rm-text-regular: var(--el-text-color-regular);
+  --rm-text-secondary: var(--el-text-color-secondary);
+  --rm-text-disabled: var(--el-text-color-placeholder);
+  --rm-border: var(--el-border-color-lighter);
+  --rm-border-light: var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  --rm-bg: var(--el-bg-color);
+  --rm-bg-hover: var(--el-fill-color-light);
+  --rm-bg-overlay: var(--el-bg-color-overlay, var(--el-bg-color));
+  --rm-radius: 9px;
+  --rm-font-md: 13px;
+  --rm-font-sm: 12px;
+}
+/*
+ * 权重说明：RePagination 的 Modern 布局是 <style scoped>，选择器编译为
+ * `.rm-pager__btn[data-v-xxx]`，权重 (0,2,0)；本文件是**非 scoped** 的 <style>。
+ * 若只写 `.re-table__pagination .rm-pager__btn--active`，双方同为 (0,2,0)，
+ * 而 Modern 是 defineAsyncComponent 动态注入的，样式后于本表插入 → 后者胜，
+ * 覆盖会被静默吃掉（实测 font-weight 覆盖不生效）。因此统一加 `.re-table`
+ * 祖选择器提到 (0,3,0)，不依赖样式注入顺序。
+ */
+.re-table .re-table__pagination .rm-pager {
+  margin-right: auto;
+}
+.re-table .re-table__pagination .rm-pager__btn--active {
+  font-weight: 600;
+}
+.re-table--compact .re-table__pagination .rm-pager__btn {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 :deep(.el-popper.is-dark),
 :deep(.el-tooltip__popper) {
@@ -1712,97 +2648,17 @@ const iconSelect = Select;
 .el-table__body tr.hover-row td.el-table-fixed-column--right {
   background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
 }
-.re-table__pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex: none;
-  order: 0;
-  border-right: none;
-  position: relative;
-  z-index: 1;
-  padding: 12px 0;
-  font-size: 13px;
-}
-.page-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin: 0 2px;
-  border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 10px;
-  background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-secondary, #909399);
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-.page-nav-btn:hover:not(:disabled) {
-  border-color: var(--el-color-primary-light-3, #a0cfff);
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-}
-.page-nav-btn:active:not(:disabled) {
-  transform: scale(0.92);
-}
-.page-nav-btn--active {
-  border-color: var(--el-color-primary, #409eff);
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-}
-.page-nav-btn--active:hover {
-  background: var(--el-color-primary, #409eff);
-  color: #fff;
-}
-.page-nav-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.re-page-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  background: var(--el-bg-color);
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-}
-.re-page-btn:hover:not(:disabled):not(.re-page-btn--active) {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-}
-.re-page-btn--active {
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: #fff;
-}
-.re-page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-/* 统一分页行控件大小：「前往」输入框与每页条数下拉框同高，避免视觉大小不一致 */
-.re-table__pagination .el-pagination__jump .el-input {
-  --el-input-height: 32px;
-}
-.re-table--compact .re-table__pagination .el-pagination__jump .el-input {
-  --el-input-height: 24px;
-}
-.re-table__pagination .el-select__wrapper {
-  min-height: 32px;
-}
-.re-table--compact .re-table__pagination .el-select__wrapper {
-  min-height: 24px;
-}
-/* 空数据时 body 保持最小高度，避免表格塌陷 */
-.re-table--empty .el-table__empty-block {
-  min-height: var(--re-table-min-height, var(--rt-empty-height));
-}
+/* 空数据：撑满最小高度并居中。
+   ⚠ 权重陷阱：koi 主题 element.scss 里有同为一处 `.el-table .el-table__empty-block`
+   { position: absolute; top/left: 50%; transform: translate(-50%,-50%) }，
+   与本组件旧的 `.re-table .el-table__empty-block { position: static }` 权重完全相同
+   （都是 0,2,0），胜负只取决于样式表加载顺序。一旦主题样式晚于组件样式加载
+   （另一应用、懒加载主题 chunk），空块脱离文档流，整条链会塌成：
+     .el-table__body-wrapper 高度正常 → 其下 .el-scrollbar 只剩 20px
+     → table.el-table__body 高度 0 → 空块整体飘到 body-wrapper 之外
+     → .el-empty 只有一小截落在 body-wrapper 内。
+   因此空块相关规则统一挂 `.re-table .el-table__body-wrapper .el-xxx`（0,3,0），
+   无论加载顺序都压得住主题规则。 */
 .re-table--empty .el-table__body-wrapper {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
@@ -1811,22 +2667,40 @@ const iconSelect = Select;
 }
 .re-table--empty .el-table__body-wrapper .el-scrollbar__wrap {
   height: 100% !important;
+}
+/* 视口兜底高度：element-plus 给空块写的是内联 height:100%，需要父级有确定高度，
+   否则视口与空块一起塌成一条线 */
+.re-table--empty .el-table__body-wrapper .el-scrollbar__view {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
-/* 空态文本居中修复：
-   el-table 默认 .el-table__empty-text 宽 50% 且 empty-block sticky 定位，
-   有固定列/横向滚动时文本按内容总宽居中，在可视窗口内偏移；窄容器下 50% 宽也不居中。
-   这里改为文本自适应宽度，并强制水平垂直居中于可视区域。 */
-.re-table .el-table__empty-block {
+.re-table .el-table__body-wrapper .el-table__empty-block {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  width: 100%;
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.re-table .el-table__empty-text {
-  width: auto;
-  min-width: 50%;
+/* 调用方给了固定高度（layout-table height/max-height）：表格高已确定，
+   空态填满 body 剩余区域即可，取消 440px 强撑，避免空块溢出表格底部 */
+.re-table--empty.re-table--fixed-height .el-table__body-wrapper,
+.re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-scrollbar__view,
+.re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-table__empty-block {
+  min-height: 0;
+}
+.re-table .el-table__body-wrapper .el-table__empty-text {
+  width: 100%;
+  min-width: 0;
   line-height: inherit;
   padding: 0 16px;
+}
+.re-table .el-table__body-wrapper .el-empty {
+  padding: 28px 0 36px;
 }
 .re-table__empty {
   display: flex;
@@ -1978,5 +2852,33 @@ const iconSelect = Select;
   background: var(--el-color-primary);
   border-radius: var(--rt-radius-sm);
   line-height: 1;
+}
+.drag-sort-fallback {
+  position: fixed !important;
+  z-index: 3000 !important;
+  pointer-events: none !important;
+  margin: 0 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  background: var(--el-bg-color, #fff) !important;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  cursor: grabbing !important;
+}
+.drag-sort-fallback td {
+  background: var(--el-bg-color, #fff) !important;
+}
+.drag-sort-ghost {
+  opacity: 0.4;
+  background: var(--el-color-primary-light-9) !important;
+}
+/* 拖拽模式下全局禁止表格文字选中 */
+.re-table:has(.drag-handle) .el-table__body,
+.re-table:has(.drag-handle) .el-table__body td .cell {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+.drag-handle:active {
+  cursor: grabbing;
 }
 </style>

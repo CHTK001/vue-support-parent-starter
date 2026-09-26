@@ -155,7 +155,6 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :show-close="!showWindowShell"
     :lock-scroll="lockScroll"
     :modal-class="modalClass"
-    append-to-body
   >
     <template v-if="showWindowShell" #header="{ titleId, titleClass }">
       <div class="koi-drawer-custom-header">

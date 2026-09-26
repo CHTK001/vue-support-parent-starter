@@ -1,60 +1,42 @@
 <template>
-  <div class="flex-1 overflow-hidden">
-    <div class="space-y-8">
-      <!-- 链接打开方式 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.browser.linkOpenMode') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.browser.markdownLinkOpenMode') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.browser.markdownLinkOpenModeDesc') }}</span>
-            </div>
-            <el-select v-model="linkOpenMode" @change="onLinkOpenModeChange" style="width: 140px">
-              <el-option :label="t('settings.browser.internalBrowser')" value="internal" />
-              <el-option :label="t('settings.browser.externalBrowser')" value="external" />
-              <el-option :label="t('settings.browser.askEveryTime')" value="ask" />
-            </el-select>
-          </div>
+  <div class="flex-1">
+    <!-- 链接打开方式 -->
+    <SettingsCard :title="t('settings.browser.linkOpenMode')">
+      <SettingsRow
+        :label="t('settings.browser.markdownLinkOpenMode')"
+        :description="t('settings.browser.markdownLinkOpenModeDesc')"
+        control-width="140px"
+      >
+        <el-select v-model="linkOpenMode" @change="onLinkOpenModeChange">
+          <el-option :label="t('settings.browser.internalBrowser')" value="internal" />
+          <el-option :label="t('settings.browser.externalBrowser')" value="external" />
+          <el-option :label="t('settings.browser.askEveryTime')" value="ask" />
+        </el-select>
+      </SettingsRow>
 
-          <!-- AI 浏览器侧边栏自动展开 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.browser.autoExpandSidebar') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.browser.autoExpandSidebarDesc') }}</span>
-            </div>
-            <el-switch v-model="autoShowSidebar" @change="onAutoShowSidebarChange" />
-          </div>
-        </div>
-      </div>
+      <SettingsRow
+        :label="t('settings.browser.autoExpandSidebar')"
+        :description="t('settings.browser.autoExpandSidebarDesc')"
+      >
+        <el-switch v-model="autoShowSidebar" @change="onAutoShowSidebarChange" />
+      </SettingsRow>
+    </SettingsCard>
 
-      <!-- 数据管理 -->
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e8e9ed] mb-3">{{ t('settings.browser.dataManagement') }}</h3>
-        <div class="rounded-xl border border-gray-200 dark:border-[#2e3035] bg-(--color-surface) overflow-hidden">
-          <!-- 说明 -->
-          <div class="px-4 py-3.5 border-b border-gray-100 dark:border-[#2e3035]">
-            <div class="flex flex-col gap-1">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.browser.automationData') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
-                {{ t('settings.browser.automationDataDesc') }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 清空按钮 -->
-          <div class="px-4 py-3.5 flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-base text-gray-900 dark:text-[#e8e9ed]">{{ t('settings.browser.clearAllData') }}</span>
-              <span class="text-xs text-gray-500 dark:text-[#8b8d95]">{{ t('settings.browser.clearAllDataDesc') }}</span>
-            </div>
-            <el-button type="danger" plain :loading="clearing" @click="handleClearData">
-              {{ t('settings.browser.clearData') }}
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 数据管理 -->
+    <SettingsCard :title="t('settings.browser.dataManagement')">
+      <SettingsRow
+        :label="t('settings.browser.automationData')"
+        :description="t('settings.browser.automationDataDesc')"
+      />
+      <SettingsRow
+        :label="t('settings.browser.clearAllData')"
+        :description="t('settings.browser.clearAllDataDesc')"
+      >
+        <el-button type="danger" plain :loading="clearing" @click="handleClearData">
+          {{ t('settings.browser.clearData') }}
+        </el-button>
+      </SettingsRow>
+    </SettingsCard>
   </div>
 </template>
 
@@ -64,6 +46,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { apiService } from '@/services/ApiService'
 import { setLinkOpenMode, setAutoShowSidebar, type LinkOpenMode } from '@/utils/workspacePreview'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
 const { t } = useI18n()

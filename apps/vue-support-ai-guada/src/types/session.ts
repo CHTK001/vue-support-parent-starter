@@ -23,6 +23,7 @@ export interface InputMessageState {
     files: any[]
     knowledgeBaseIds?: string[]
     isWaiting: boolean
+    skillNames?: string[]
 }
 
 /**
@@ -33,6 +34,7 @@ export interface QueuedMessage {
     content: string         // 消息文本
     files: any[]            // 已上传的文件对象列表
     knowledgeBaseIds?: string[]
+    skillNames?: string[]   // 显式选中的技能名（随队列消息透传）
     createdAt: number       // 创建时间戳
     status: 'queued' | 'sending'  // 状态
 }

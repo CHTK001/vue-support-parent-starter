@@ -15,13 +15,8 @@ import { getConfig } from "@repo/config";
 import { log } from "@repo/utils";
 import { http } from "./index";
 import { probeBackend } from "./backendProbe";
+import { WEATHER_OVERVIEW_PATH, LOCATION_RESOLVE_PATH } from "./capability";
 import type { ApiResult } from "./index";
-
-/** 后台天气总览接口 */
-export const WEATHER_OVERVIEW_PATH = "/v2/weather/overview";
-
-/** 后台定位解析接口（按客户端 IP / 坐标反查城市） */
-export const LOCATION_RESOLVE_PATH = "/v2/location/resolve";
 
 /** 逐小时天气点（本系统契约） */
 export interface WeatherHour {

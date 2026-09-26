@@ -129,14 +129,34 @@ export function selectDictLabel(dataList: any, value: any) {
   return actions.join("");
 }
 
-/** 使用递归过滤出需要渲染在左侧菜单动态数据的列表（剔除 isVisible == 0 隐藏菜单） */
+/** 使用递归过滤出需要渲染在左侧菜单动态数据的列表（剔除 isVisible == 0 隐藏菜单与 remind 脱离菜单控制的行） */
 export function getShowStaticAndDynamicMenuList(menuList: any) {
   const newMenuList: any = JSON.parse(JSON.stringify(menuList));
   return newMenuList.filter((item: any) => {
+    // remind = true 只注册路由，不被当作菜单处理
+    const remind = item.remind !== undefined ? item.remind : item.meta?.remind;
+    if (remind === true || remind === 1 || remind === "1") return false;
     const v = item.isVisible !== undefined ? item.isVisible : item.meta?.isVisible;
     if (v == null) return true;
     return v == 1 || v === true;
   });
+}
+
+/**
+ * 单根炸开：当顶级只有一个一级「分组菜单」（含 children）时，把它的子菜单提升为顶级。
+ * 首页/工作台等非分组节点始终保留，不参与分组计数。
+ *
+ * 判定「非分组节点」：path 为 "/" 或 name 为 "layout"（首页 layout 节点）。
+ * @returns 新数组；不满足条件时原样返回（深拷贝后）。
+ */
+export function applyFlattenSingleRoot(menuList: any) {
+  const list: any[] = JSON.parse(JSON.stringify(menuList || []));
+  const isHomeNode = (it: any) => it.path === "/" || it.name === "layout";
+  const groups = list.filter((it) => !isHomeNode(it) && Array.isArray(it.children) && it.children.length > 0);
+  if (groups.length !== 1) return list;
+  const root = groups[0];
+  // 用该分组的子菜单替换它在顶级的位置；首页等其它节点保持原位
+  return list.flatMap((it) => (it === root ? it.children : [it]));
 }
 
 /** 使用递归找出所有面包屑存储到 pinia 中 */

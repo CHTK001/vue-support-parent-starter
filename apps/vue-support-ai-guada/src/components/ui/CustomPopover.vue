@@ -1,20 +1,17 @@
 <template>
     <teleport to="body">
-        <transition name="popover-fade">
-            <div v-if="show" ref="popoverRef"
-                class="fixed rounded-(--size-dialog-rounded-radius) border border-white/40 dark:border-white/10 shadow-[0_0_16px_rgba(0,0,0,0.10)] dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 bg-(--color-surface)/70 backdrop-blur-xl backdrop-saturate-150"
-                :class="popperClass" :style="popoverStyle" @click.stop
-                @mouseenter="$emit('mouseenter', $event)" @mouseleave="$emit('mouseleave', $event)">
+        <div v-if="show" ref="popoverRef"
+            class="fixed rounded-(--size-dialog-rounded-radius) border border-white/40 dark:border-white/10 shadow-[0_0_16px_rgba(0,0,0,0.10)] dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 bg-(--color-surface)/70 backdrop-blur-xl backdrop-saturate-150"
+            :class="[popperClass, entering ? 'pop-init' : 'pop-run']" :style="popoverStyle" @click.stop
+            @mouseenter="$emit('mouseenter', $event)" @mouseleave="$emit('mouseleave', $event)">
                 <!-- Header 槽位 -->
                 <div v-if="$slots.header" class="">
                     <slot name="header"></slot>
                 </div>
-                <!-- 默认内容 -->
                 <div class="popover-content">
                     <slot></slot>
                 </div>
             </div>
-        </transition>
     </teleport>
 </template>
 <style scoped>
@@ -52,7 +49,18 @@ const emit = defineEmits<{
 
 const popoverRef = ref<HTMLElement | null>(null)
 const positionStyle = ref<Record<string, any>>({})
+// 进入中：初始 opacity:0，下一帧切到 opacity:1 触发 transition；不依赖会被暂停的 rAF/动画
+const entering = ref(true)
 let resizeObserver: ResizeObserver | null = null
+
+// rAF 在隐藏页面会被暂停，导致定位不执行；隐藏时退化为 setTimeout 兜底
+const safeRaf = (cb: () => void) => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible'
+        && typeof window.requestAnimationFrame === 'function') {
+        return window.requestAnimationFrame(cb)
+    }
+    return window.setTimeout(cb, 18)
+}
 
 // 计算并更新位置
 const updatePosition = () => {
@@ -72,7 +80,7 @@ const updatePosition = () => {
     const popoverElement = popoverRef.value
 
     // 等待下一帧确保元素已渲染
-    requestAnimationFrame(() => {
+    safeRaf(() => {
         const actualHeight = popoverElement.offsetHeight
         const popoverWidth = typeof props.width === 'number' ? props.width : 320
         const spacing = 8
@@ -179,9 +187,12 @@ const handleWindowEvent = (e: Event) => {
 // 监听可见性变化，统一管理所有副作用
 watch(() => props.show, async (newVal) => {
     if (newVal) {
+        entering.value = true
         // DOM 更新后计算位置
         await nextTick()
         updatePosition()
+        // 下一帧（隐藏时 safeRaf 退化为 setTimeout）切换到 opacity:1，触发淡入 transition
+        safeRaf(() => { entering.value = false })
 
         // 监听内容尺寸变化，自动重新定位
         if (popoverRef.value && !resizeObserver) {
@@ -198,6 +209,7 @@ watch(() => props.show, async (newVal) => {
         window.addEventListener('resize', handleWindowEvent)
         window.addEventListener('scroll', handleWindowEvent, true)
     } else {
+        entering.value = true
         // 移除所有监听器
         if (resizeObserver) {
             resizeObserver.disconnect()
@@ -224,25 +236,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 淡入淡出动画 - 只动画透明度，不动画位置 */
-.popover-fade-enter-active,
-.popover-fade-leave-active {
-    transition: opacity 0.2s ease-out;
-}
-
-.popover-fade-enter-from {
+/* 进入淡入：初始 pop-init opacity:0，下一帧切到 pop-run opacity:1 并带 transition。
+   类切换由 safeRaf（隐藏时退化为 setTimeout）驱动，不依赖会在隐藏页面暂停的 rAF/动画。*/
+.pop-init {
     opacity: 0;
 }
 
-.popover-fade-leave-to {
-    opacity: 0;
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-    .custom-popover {
-        max-width: calc(100vw - 32px);
-        max-height: 50vh;
-    }
+.pop-run {
+    opacity: 1;
+    transition: opacity 0.18s ease-out;
 }
 </style>

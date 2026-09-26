@@ -124,8 +124,11 @@ export function useResponsiveDialog(
         borderRadius: "0",
       };
     }
+    // 仅控制水平居中，垂直间距用 marginTop，避免 margin 简写把 ElDialog 的 top 覆盖成 0 导致贴顶
     const style: CSSProperties = {
-      margin: "0 auto",
+      marginTop: resolved.value.top,
+      marginLeft: "auto",
+      marginRight: "auto",
       width: resolved.value.width,
       maxWidth: options.maxWidth ? `${options.maxWidth}px` : undefined,
     };

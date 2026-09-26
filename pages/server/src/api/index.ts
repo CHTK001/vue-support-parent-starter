@@ -1,14 +1,12 @@
 import { http, unwrapResult } from '@repo/utils';
 
-// 服务管理走后端 `/ms/monitor/server`，与下面的 `/ms/server` 不是一套前缀，故独立成文件后在此并入
-export * from './serviceManage';
-
 const B = '/ms/server';
 
 // ===== 主机 MsServerHost =====
 export const queryHosts = (params: { keyword?: string; groupId?: number | null; status?: number | null } = {}) =>
   http().get(`${B}/host`).query(params as Record<string, unknown>).then(r => unwrapResult<any[]>(r));
 export const getHost = (id: number) => http().get(`${B}/host/${id}`).then(r => unwrapResult<any>(r));
+export const fetchLocalAddress = () => http().get(`${B}/host/local-address`).then(r => unwrapResult<string>(r));
 export const saveHost = (id: number | null, d: any) => id != null
   ? http().put(`${B}/host/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/host`).data(d).then(r => unwrapResult<any>(r));
@@ -17,6 +15,10 @@ export const switchHost = (id: number, enabled: boolean) =>
   http().put(`${B}/host/${id}/status?enabled=${enabled}`).then(r => unwrapResult<boolean>(r));
 export const testConnectHost = (id: number) =>
   http().post(`${B}/host/${id}/test-connect`).then(r => unwrapResult<string>(r));
+/** 获取 VNC 直连凭据（noVNC 浏览器端 RFB 口令认证） */
+export const getVncCredential = (hostId: number, identityId?: number | null) =>
+  http().get(`${B}/host/${hostId}/vnc-credential${identityId != null ? `?identityId=${identityId}` : ''}`)
+    .then(r => unwrapResult<{ username: string; password: string }>(r));
 export const detectHost = (id: number) =>
   http().post(`${B}/host/${id}/detect`).then(r => unwrapResult<any>(r));
 export const scanPorts = (id: number) =>
@@ -86,7 +88,11 @@ export const sftpReadContent = (hostId: number, path: string, identityId?: numbe
     .then(r => unwrapResult<{ content: string; truncated: boolean; size: number }>(r));
 export const sftpWriteContent = (hostId: number, path: string, content: string, identityId?: number | null) => {
   const q = `path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`;
-  return http().put(`${B}/sftp/${hostId}/content?${q}`).data(content).then(r => unwrapResult<boolean>(r));
+  // 后端 @RequestBody String 只吃 text/plain；axios 对字符串体会默认打 form-urlencoded 而 415
+  return http().put(`${B}/sftp/${hostId}/content?${q}`)
+    .headers({ 'Content-Type': 'text/plain;charset=UTF-8' })
+    .data(content)
+    .then(r => unwrapResult<boolean>(r));
 };
 export const sftpMkdir = (hostId: number, path: string, identityId?: number | null) =>
   http().post(`${B}/sftp/${hostId}/mkdir?path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`)
@@ -97,6 +103,12 @@ export const sftpDelete = (hostId: number, path: string, recursive: boolean, ide
 export const sftpRename = (hostId: number, fromPath: string, toPath: string, identityId?: number | null) => {
   const q = identityId ? `identityId=${identityId}` : '';
   return http().put(`${B}/sftp/${hostId}/rename${q ? '?' + q : ''}`).data({ fromPath, toPath }).then(r => unwrapResult<boolean>(r));
+};
+export const sftpUpload = (hostId: number, path: string, file: File, identityId?: number | null) => {
+  const form = new FormData();
+  form.append('file', file);
+  const q = `path=${encodeURIComponent(path)}${identityId ? `&identityId=${identityId}` : ''}`;
+  return http().post(`${B}/sftp/${hostId}/upload?${q}`).data(form).then(r => unwrapResult<string>(r));
 };
 /** 下载：直接以浏览器地址栏/链接方式触发（走同源代理） */
 export const sftpDownloadUrl = (hostId: number, path: string, identityId?: number | null) =>
@@ -120,9 +132,17 @@ export const saveJob = (id: number | null, d: any) => id != null
   ? http().put(`${B}/exec/job/${id}`).data(d).then(r => unwrapResult<any>(r))
   : http().post(`${B}/exec/job`).data(d).then(r => unwrapResult<any>(r));
 export const delJob = (id: number) => http().delete(`${B}/exec/job/${id}`).then(r => unwrapResult<boolean>(r));
-export const runJobNow = (id: number) => http().post(`${B}/exec/job/${id}/run`).then(r => unwrapResult<any[]>(r));
-export const getExecLogs = (type?: string, hostId?: number) =>
-  http().get(`${B}/exec/log?type=${type ?? ''}${hostId ? `&hostId=${hostId}` : ''}`).then(r => unwrapResult<any[]>(r));
+/** 立即触发任务；hostIds 为空时用任务自身配置的主机 */
+export const runJobNow = (id: number, hostIds?: number[], timeoutSeconds?: number) =>
+  http().post(`${B}/exec/job/${id}/run`).data({ hostIds, timeoutSeconds }).then(r => unwrapResult<any[]>(r));
+/** 执行日志；可按类型 / 主机 / 计划任务过滤 */
+export const getExecLogs = (type?: string, hostId?: number, jobId?: number) => {
+  const qs = new URLSearchParams();
+  if (type) qs.set('type', type);
+  if (hostId) qs.set('hostId', String(hostId));
+  if (jobId) qs.set('jobId', String(jobId));
+  return http().get(`${B}/exec/log${qs.toString() ? `?${qs.toString()}` : ''}`).then(r => unwrapResult<any[]>(r));
+};
 
 // ===== 远控短令牌 =====
 /**
@@ -153,8 +173,17 @@ export const closeSession = (recordId: number) =>
   http().post(`${B}/terminal/session/${recordId}/close`).then(r => unwrapResult<boolean>(r));
 
 // ===== 命令片段 / 路径书签 =====
+/** 命令片段载荷（字段名与后端实体 MsTerminalSnippet 对齐；须为 type 以获得隐式索引签名） */
+export type TerminalSnippetPayload = {
+  msTerminalSnippetName: string;
+  msTerminalSnippetContent: string;
+  msTerminalSnippetRemark?: string;
+};
 export const getSnippets = () => http().get(`${B}/terminal/snippet`).then(r => unwrapResult<any[]>(r));
-export const saveSnippet = (d: any) => http().post(`${B}/terminal/snippet`).data(d).then(r => unwrapResult<any>(r));
+export const saveSnippet = (d: TerminalSnippetPayload) =>
+  http().post(`${B}/terminal/snippet`).data(d).then(r => unwrapResult<any>(r));
+export const updateSnippet = (id: number, d: TerminalSnippetPayload) =>
+  http().put(`${B}/terminal/snippet/${id}`).data(d).then(r => unwrapResult<any>(r));
 export const delSnippet = (id: number) => http().delete(`${B}/terminal/snippet/${id}`).then(r => unwrapResult<boolean>(r));
 export const getBookmarks = (hostId: number) =>
   http().get(`${B}/terminal/bookmark?hostId=${hostId}`).then(r => unwrapResult<any[]>(r));
@@ -247,3 +276,6 @@ export const listHardware = (keyword?: string) =>
 // ===== 主机扫描发现 =====
 export const scanIpRange = (cidr: string) =>
   http().post(`${B}/host/scan?cidr=${encodeURIComponent(cidr)}`).then(r => unwrapResult<{ ip: string; port: number; osType: string; hostname: string }[]>(r));
+
+// ===== 服务管理与发现服务（实现见 serviceManage.ts，统一从本文件转出）=====
+export * from './serviceManage';

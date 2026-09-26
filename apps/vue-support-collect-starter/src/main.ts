@@ -5,30 +5,18 @@
  * install 阶段只需 installKoi（Element Plus 全量 + 图标 + koi 主题）；
  * 页面控件一律显式引入 @repo/ui 的 Re* 组件，不依赖全局注册。
  *
- * 登录不走路由：采集模块用自身 Servlet 会话，鉴权门是挂在 body 上的全屏浮层，
- * 未登录（含会话过期后接口返回 401）时盖住界面，不参与导航。
+ * 登录用框架自带能力：openAuth + /login 路由 + 令牌守卫，登录/登出接口在 app.yaml 的
+ * urlConfig 指向框架 oauth 体系的 /v2/user/**，本应用不自带登录界面。
  */
 import { createContextApp } from "@repo/app";
 import type { App as VueApp } from "vue";
-import { createVNode, render } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
-import AuthGate from "./views/AuthGate.vue";
+import { getAccessToken } from "@repo/utils";
+import { useAuthStore } from "@repo/pinia";
 import { collectRoutes } from "./routes";
+import { registerCollectKeepAlive } from "./composables/useCollectKeepAlive";
 import "./styles/collect.css";
-
-/**
- * 挂载采集控制台登录浮层（与主 app 共享 context，才能用 Element Plus 组件）。
- *
- * @param app 主 Vue 应用
- */
-function mountAuthGate(app: VueApp): void {
-  const container = document.createElement("div");
-  container.setAttribute("data-collect-auth-gate", "");
-  document.body.appendChild(container);
-  const vnode = createVNode(AuthGate);
-  vnode.appContext = (app as unknown as { _context: unknown })._context as never;
-  render(vnode, container);
-}
+import "./styles/scheduler.css";
 
 /**
  * 安装 koi 主题与 Element Plus。
@@ -37,10 +25,9 @@ function mountAuthGate(app: VueApp): void {
  */
 async function installCollect(app: VueApp): Promise<void> {
   await installKoi(app);
-  mountAuthGate(app);
 }
 
-await createContextApp({
+const instance = await createContextApp({
   appName: "vue-support-collect-starter",
   title: "采集调度一体化平台",
   mode: "router",
@@ -49,3 +36,18 @@ await createContextApp({
 })
   .routes(collectRoutes as never)
   .mount("#app");
+
+// keep-alive 白名单按路由 name 登记，不能依赖标签页流程（见 useCollectKeepAlive）
+registerCollectKeepAlive();
+
+/**
+ * 静态菜单灌入 store 的时机：守卫只在 remote/all 模式拉菜单，静态路由没人灌进 store 时
+ * 侧边栏只剩空壳（整页刷新、直接打开深层路由都会命中）。openAuth 关闭时没有登录流程，
+ * 开启时则只认已拿到令牌的场景——未登录会先被守卫弹回登录页，登录后由 initAuthRouter 负责。
+ */
+const { config } = instance.context;
+const menuMode = config.route.mode;
+const guardOwnsMenu = menuMode === "remote" || menuMode === "all";
+if (!guardOwnsMenu && (!config.app.openAuth || getAccessToken())) {
+  await useAuthStore(instance.pinia).listRouters();
+}

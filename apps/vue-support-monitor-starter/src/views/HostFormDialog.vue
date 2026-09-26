@@ -10,7 +10,7 @@ import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { http, unwrapResult } from "@repo/utils";
 import { ReFormItem } from "@repo/ui/re-kit";
-import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost } from "@pages/server/src/api";
+import { getHost, listBoundIdentities, bindIdentity, saveHost, testPrometheusHost, fetchLocalAddress } from "@pages/server/src/api";
 import { osIconSvg } from "../utils/osIcon";
 /** 主机表单结构（与 AssetsView.Host 保持一致——避免跨 .vue 文件的类型导入解析问题） */
 interface Host {
@@ -19,6 +19,7 @@ interface Host {
   serverHostAddress?: string;
   serverHostPort?: number;
   serverHostOsType?: string;
+  serverHostSshEnabled?: number;
   serverHostCollectMode?: string;
   serverHostAgentPort?: number;
   serverHostCollectEnabled?: number;
@@ -76,14 +77,13 @@ const emit = defineEmits<{
 const formSaving = ref(false);
 /** 标签编辑用文本（逗号分隔），提交时写成 serverHostTags */
 const tagsText = ref("");
-const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostCollectMode: "AGENT" });
+const form = ref<Partial<Host>>({ serverHostName: "", serverHostAddress: "", serverHostPort: 22, serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "AGENT" });
 
-/** 平台选项（图标统一走 utils/osIcon 的常规单色图标） */
+/** 平台选项（只表达操作系统；图标统一走 utils/osIcon 的常规单色图标） */
 const osOptions = [
   { label: "Linux", value: "LINUX" },
   { label: "Windows", value: "WINDOWS" },
   { label: "macOS", value: "MACOS" },
-  { label: "本机", value: "LOCAL" },
 ];
 /** 认证方式 */
 const formAuthMethod = ref("IDENTITY");
@@ -137,9 +137,43 @@ const authMethods = [
 ];
 const collectModes = [
   { label: "不采集", value: "NONE" },
+  { label: "OpenSSH采集", value: "OPENSSH" },
   { label: "Agent采集", value: "AGENT" },
   { label: "Prometheus采集", value: "PROMETHEUS" },
+  { label: "本机自采集(OSHI)", value: "LOCAL" },
 ];
+/** 本机自采集：被管对象就是服务端所在机器，平台由后端按本机操作系统判定 */
+const isLocalCollect = computed(() => form.value.serverHostCollectMode === "LOCAL");
+/**
+ * 平台选择：本机切到 LOCAL 采集（真实平台由后端按本机 OS 覆盖、地址识别物理网卡 IP），
+ * 其余为真实操作系统。
+ * @param value 平台值
+ */
+function selectPlatform(value: string): void {
+  if (value === "LOCAL") {
+    form.value.serverHostCollectMode = "LOCAL";
+    form.value.serverHostRemoteProtocol = "VNC";
+    void loadLocalAddress();
+    return;
+  }
+  form.value.serverHostOsType = value;
+  // 「开启 SSH」默认值随平台切换：Linux/macOS 默认开，Windows 默认关（可手动覆盖）
+  form.value.serverHostSshEnabled = value === "WINDOWS" ? 0 : 1;
+  // 离开本机：LOCAL 采集只适用于被管对象即服务端自身，必须切走
+  if (form.value.serverHostCollectMode === "LOCAL") {
+    form.value.serverHostCollectMode = "AGENT";
+  }
+}
+/**
+ * 平台项是否选中：本机以采集方式判定，其余以操作系统判定。
+ * @param value 平台值
+ */
+function platformActive(value: string): boolean {
+  if (value === "LOCAL") {
+    return isLocalCollect.value;
+  }
+  return !isLocalCollect.value && form.value.serverHostOsType === value;
+}
 /** 远控协议：空值表示按平台推断（Windows→RDP，macOS→VNC，其余 SSH） */
 const remoteProtocols = [
   { label: "自动（按平台）", value: "" },
@@ -147,7 +181,33 @@ const remoteProtocols = [
   { label: "RDP", value: "RDP" },
   { label: "VNC", value: "VNC" },
 ];
-/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（仅 SSH）；NONE 不经平台通道 */
+/** 本机采集方式仅「不采集 / 本机自采集」，其余主机显示全部 */
+const collectModeOptions = computed(() =>
+  isLocalCollect.value
+    ? collectModes.filter(m => m.value === "NONE" || m.value === "LOCAL")
+    : collectModes,
+);
+/** 本机远控仅支持 VNC，其余主机显示全部协议 */
+const remoteProtocolOptions = computed(() =>
+  isLocalCollect.value
+    ? [{ label: "VNC", value: "VNC" }]
+    : remoteProtocols,
+);
+/** 识别本机首选网卡 IP（远控不使用回环），写入地址字段 */
+async function loadLocalAddress(): Promise<void> {
+  try {
+    const ip = await fetchLocalAddress();
+    if (ip) form.value.serverHostAddress = ip;
+  } catch {}
+}
+// 切到本机：强制远控协议 VNC 并识别本机 IP
+watch(isLocalCollect, (local) => {
+  if (local) {
+    form.value.serverHostRemoteProtocol = "VNC";
+    void loadLocalAddress();
+  }
+});
+/** 远控通道：GUACD 走 guacd 中转；DIRECT 由平台自身协议客户端直连（SSH/VNC）；NONE 不经平台通道 */
 const remoteModes = [
   { label: "Guacd 中转", value: "GUACD" },
   { label: "平台直连", value: "DIRECT" },
@@ -166,8 +226,9 @@ const effectiveRemoteProtocol = computed(() => {
 const REMOTE_DEFAULT_PORT: Record<string, number> = { SSH: 22, RDP: 3389, VNC: 5900 };
 /** 端口占位提示（留空即按默认端口连接） */
 const remotePortPlaceholder = computed(() => `默认 ${REMOTE_DEFAULT_PORT[effectiveRemoteProtocol.value]}`);
-/** 仅 SSH 支持平台直连；RDP/VNC 必须经 guacd */
-const directSupported = computed(() => effectiveRemoteProtocol.value === "SSH");
+/** 平台自研直连通道覆盖 SSH（MINA SSHD）与 VNC（RFB）；RDP 必须经 guacd */
+const DIRECT_SUPPORTED = ["SSH", "VNC"];
+const directSupported = computed(() => DIRECT_SUPPORTED.includes(effectiveRemoteProtocol.value));
 /** RDP 只能由 guacd 渲染，通道锁定不可选 */
 const channelEditable = computed(() => effectiveRemoteProtocol.value !== "RDP");
 /** 当前协议下可选通道 */
@@ -179,7 +240,7 @@ const channelOptions = computed(() =>
 watch(effectiveRemoteProtocol, (protocol) => {
   if (protocol === "RDP") {
     form.value.serverHostRemoteMode = "GUACD";
-  } else if (form.value.serverHostRemoteMode === "DIRECT" && protocol !== "SSH") {
+  } else if (form.value.serverHostRemoteMode === "DIRECT" && !DIRECT_SUPPORTED.includes(protocol)) {
     form.value.serverHostRemoteMode = "GUACD";
   }
 });
@@ -190,14 +251,27 @@ const deploying = ref(false);
 const credVerified = ref(false);
 
 async function verifyCredentials(): Promise<void> {
+  if (!form.value.id) {
+    ElMessage.warning("请先保存主机后再校验凭据");
+    return;
+  }
   verifying.value = true;
   try {
-    await new Promise(r => setTimeout(r, 800));
+    // 真正调用后端探测：建立连接、采集硬件并识别包管理器（无占位）
+    // 硬件探测需建立 WinRM/SSH 连接并执行 PowerShell，可能耗时数十秒，单独放宽超时
+    const detected = await http()
+      .post(`/ms/server/host/${form.value.id}/detect`)
+      .timeout(120_000)
+      .then((r: any) => unwrapResult<any>(r));
+    // 合并探测回写结果（CPU/内存/磁盘 + packageManager 等）
+    if (detected && typeof detected === "object") {
+      form.value = { ...(form.value as any), ...detected };
+    }
     credVerified.value = true;
     ElMessage.success("凭据校验成功");
   } catch (e) {
     credVerified.value = false;
-    ElMessage.error("凭据校验失败");
+    ElMessage.error("凭据校验失败：" + String((e as Error)?.message ?? e));
   } finally {
     verifying.value = false;
   }
@@ -272,11 +346,11 @@ function splitTags(tags?: string | null): string[] {
 function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
-    serverHostOsType: "LINUX", serverHostCollectMode: "AGENT",
+    serverHostOsType: "LINUX", serverHostSshEnabled: 1, serverHostCollectMode: "AGENT",
     msServerGroupId: null, serverHostTags: "", serverHostDescription: "",
     serverHostCode: "",
     // 采集（开关用 1/0 number，与后端一致）
-    serverHostCollectEnabled: 1, serverHostCollectInterval: 3600,
+    serverHostCollectEnabled: 1, serverHostCollectInterval: 15,
     serverHostOnlineEnabled: 1, serverHostOnlineInterval: 60,
     // 远控
     serverHostRemoteEnabled: 1, serverHostRemoteProtocol: "", serverHostRemoteMode: "GUACD", serverHostRemotePort: null, serverHostVncPassword: "",
@@ -317,11 +391,11 @@ async function submitForm(): Promise<void> {
   form.value.serverHostRemoteEnabled = form.value.serverHostRemoteEnabled ? 1 : 0;
   form.value.serverHostAgentEnabled = form.value.serverHostAgentEnabled ? 1 : 0;
   form.value.serverHostDelayEnabled = form.value.serverHostDelayEnabled ? 1 : 0;
-  // 远控配置归一：协议留空=按平台推断，非 SSH 不允许直连，非 VNC 不存口令
+  // 远控配置归一：协议留空=按平台推断，不支持直连的协议回落 guacd，非 VNC 不存口令
   const remoteProtocol = (form.value.serverHostRemoteProtocol || "").toUpperCase() || null;
   form.value.serverHostRemoteProtocol = remoteProtocol;
   if (effectiveRemoteProtocol.value === "RDP"
-    || (form.value.serverHostRemoteMode === "DIRECT" && effectiveRemoteProtocol.value !== "SSH")) {
+    || (form.value.serverHostRemoteMode === "DIRECT" && !directSupported.value)) {
     form.value.serverHostRemoteMode = "GUACD";
   }
   if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
@@ -373,6 +447,9 @@ watch(() => props.modelValue, (v) => {
     if (form.value.serverHostRemoteEnabled == null) form.value.serverHostRemoteEnabled = 1;
     if (form.value.serverHostDelayEnabled == null) form.value.serverHostDelayEnabled = 1;
     if (form.value.serverHostAgentEnabled == null) form.value.serverHostAgentEnabled = 0;
+    if (form.value.serverHostSshEnabled == null) {
+      form.value.serverHostSshEnabled = (form.value.serverHostOsType || "").toUpperCase() === "WINDOWS" ? 0 : 1;
+    }
     if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "GUACD";
     if (!form.value.serverHostCollectMode) form.value.serverHostCollectMode = "AGENT";
     tagsText.value = splitTags(form.value.serverHostTags).join(", ");
@@ -396,6 +473,11 @@ watch(() => props.modelValue, (v) => {
         formIdentityId.value = bindList[0];
       }
       hostBoundIdentities.value = bindList;
+      // 本机：详情回填后再次锁定首选网卡 IP（覆盖库中可能残留的回环地址）
+      if (isLocalCollect.value) {
+        form.value.serverHostRemoteProtocol = "VNC";
+        void loadLocalAddress();
+      }
     });
   } else {
     resetForm();
@@ -416,11 +498,12 @@ watch(() => props.modelValue, (v) => {
       <div class="form-grid">
         <!-- ─── 基本信息 ─── -->
         <div class="form-section full">基本信息</div>
-        <ReFormItem label="主机名称" class="col-span-2">
+        <ReFormItem label="主机名称" class="col-span-2" required>
           <ReInput v-model="form.serverHostName" placeholder="如 prod-nginx-01" style="width:100%" />
         </ReFormItem>
-        <ReFormItem label="主机地址">
+        <ReFormItem label="主机地址" required>
           <ReInput v-model="form.serverHostAddress" placeholder="IP 或域名" style="width:100%" />
+          <div v-if="isLocalCollect" class="addr-hint">本机地址由系统识别（物理网卡 IP），远控不使用回环地址</div>
         </ReFormItem>
         <ReFormItem label="端口">
           <ReInputNumber v-model="form.serverHostPort" :min="1" :max="65535" style="width:100%" />
@@ -428,11 +511,19 @@ watch(() => props.modelValue, (v) => {
         <ReFormItem label="平台" class="col-span-2">
           <div class="os-picker">
             <div
+              class="os-picker-item"
+              :class="{ active: platformActive('LOCAL') }"
+              @click="selectPlatform('LOCAL')"
+            >
+              <span class="os-picker-ico" v-html="osIconSvg('LOCAL')"></span>
+              <span class="os-picker-label">本机</span>
+            </div>
+            <div
               v-for="opt in osOptions"
               :key="opt.value"
               class="os-picker-item"
-              :class="{ active: form.serverHostOsType === opt.value }"
-              @click="form.serverHostOsType = opt.value"
+              :class="{ active: platformActive(opt.value) }"
+              @click="selectPlatform(opt.value)"
             >
               <span class="os-picker-ico" v-html="osIconSvg(opt.value)"></span>
               <span class="os-picker-label">{{ opt.label }}</span>
@@ -443,7 +534,8 @@ watch(() => props.modelValue, (v) => {
           <ReInput v-model="form.serverHostCode" placeholder="唯一编码（可选）" style="width:100%" />
         </ReFormItem>
 
-        <!-- ─── 认证方式 ─── -->
+        <!-- ─── 认证方式（本机自采集无需凭据）─── -->
+        <template v-if="!isLocalCollect">
         <div class="form-section full">认证方式</div>
         <ReFormItem label="登录方式">
           <ReSelect v-model="formAuthMethod" size="small" style="width:100%" :options="authMethods" />
@@ -467,6 +559,7 @@ watch(() => props.modelValue, (v) => {
             <ReInput v-model="formPrivateKey" type="textarea" :rows="3" placeholder="粘贴 PEM 格式私钥内容" style="width:100%" />
           </ReFormItem>
         </template>
+        </template>
 
         <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
@@ -480,17 +573,26 @@ watch(() => props.modelValue, (v) => {
           <ReInput v-model="form.serverHostDescription" type="textarea" :rows="1" placeholder="主机用途 / 备注（可选）" style="width:100%" />
         </ReFormItem>
 
+        <!-- ─── 执行通道 ─── -->
+        <div class="form-section full">执行通道</div>
+        <ReFormItem label="开启 SSH" class="col-span-2">
+          <div class="switch-row">
+            <ReSwitch layout="square" v-model="form.serverHostSshEnabled" :active-value="1" :inactive-value="0" />
+            <span class="switch-extra-label">{{ form.serverHostSshEnabled === 1 ? "发布/命令执行等基于 OpenSSH 的能力可用" : "未开启 SSH（Windows 需先启用 OpenSSH）" }}</span>
+          </div>
+        </ReFormItem>
+
         <!-- ─── 采集配置 ─── -->
         <div class="form-section full">采集配置</div>
-        <ReFormItem v-if="form.serverHostOsType !== 'LOCAL'" label="采集方式" class="col-span-2">
-          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
+        <ReFormItem label="采集方式" class="col-span-2">
+          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModeOptions" />
         </ReFormItem>
-        <ReFormItem label="自动采集" class="col-span-2">
+        <ReFormItem v-if="form.serverHostCollectMode !== 'NONE'" label="自动采集" class="col-span-2">
           <div class="switch-row">
             <ReSwitch layout="square" v-model="form.serverHostCollectEnabled" :active-value="1" :inactive-value="0" />
             <div v-if="form.serverHostCollectEnabled === 1" class="switch-extra">
               <span class="switch-extra-label">间隔(秒)</span>
-              <ReInputNumber v-model="form.serverHostCollectInterval" :min="10" :max="86400" style="width:180px" />
+              <ReInputNumber v-model="form.serverHostCollectInterval" :min="5" :max="86400" style="width:180px" />
             </div>
           </div>
         </ReFormItem>
@@ -523,7 +625,7 @@ watch(() => props.modelValue, (v) => {
         </ReFormItem>
         <template v-if="form.serverHostRemoteEnabled === 1">
           <ReFormItem label="远控协议">
-            <ReSelect v-model="form.serverHostRemoteProtocol" size="small" style="width:100%" :options="remoteProtocols" />
+            <ReSelect v-model="form.serverHostRemoteProtocol" size="small" style="width:100%" :options="remoteProtocolOptions" />
           </ReFormItem>
           <ReFormItem label="远控通道">
             <ReSelect
@@ -542,13 +644,13 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
           <ReFormItem class="col-span-2" label=" ">
             <span class="remote-tip">
-              Guacd 中转：网页端经 guacd 渲染；平台直连：由平台自研客户端连接（当前仅 SSH）；无需通道：不经平台中转，SSH 用平台终端、VNC 用本机客户端。RDP 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
+              Guacd 中转：网页端经 guacd 渲染；平台直连：由平台自研客户端连接（当前仅 SSH、VNC）；无需通道：平台不做任何中转，网页端只显示本机客户端的连接地址，SSH 用系统终端、VNC 用本机客户端。RDP 必须经 guacd 中转。端口留空按协议默认（SSH 22 / RDP 3389 / VNC 5900）。
             </span>
           </ReFormItem>
         </template>
 
-        <!-- ─── 凭据校验与 Agent（仅 AGENT 模式、非本机时显示；本机由 monitor 自采集推送，无需凭据）─── -->
-        <template v-if="form.serverHostCollectMode === 'AGENT' && form.serverHostOsType !== 'LOCAL'">
+        <!-- ─── 凭据校验与 Agent（仅 Agent 采集模式显示；本机自采集由 monitor 进程直读，无需凭据）─── -->
+        <template v-if="form.serverHostCollectMode === 'AGENT'">
           <div class="form-section full">凭据校验与 Agent</div>
           <ReFormItem label="Agent 端口">
             <ReInputNumber v-model="form.serverHostAgentPort" :min="1" :max="65535" style="width:100%" placeholder="默认 19876" />
@@ -572,8 +674,8 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
         </template>
 
-        <!-- ─── 凭据校验与 Prometheus（仅 PROMETHEUS 模式、非本机时显示）─── -->
-        <template v-if="form.serverHostCollectMode === 'PROMETHEUS' && form.serverHostOsType !== 'LOCAL'">
+        <!-- ─── 凭据校验与 Prometheus（仅 PROMETHEUS 模式显示）─── -->
+        <template v-if="form.serverHostCollectMode === 'PROMETHEUS'">
           <div class="form-section full">凭据校验与 Prometheus</div>
           <ReFormItem label="凭据状态" class="col-span-2">
             <div style="display:flex;gap:8px;align-items:center;">
@@ -659,6 +761,25 @@ watch(() => props.modelValue, (v) => {
   grid-column: span 2;
 }
 /* 平台图片选择器 */
+.os-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border-subtle, #dcdfe6);
+  border-radius: 10px;
+  background: var(--fill-light, #f8f9fb);
+  width: 100%;
+}
+.os-locked-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+}
+.os-locked-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+}
 .os-picker {
   display: flex;
   gap: 12px;
@@ -731,5 +852,12 @@ watch(() => props.modelValue, (v) => {
   font-size: 12px;
   line-height: 1.6;
   color: var(--text-tertiary, #909399);
+}
+/* 本机地址提示 */
+.addr-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary, #909399);
 }
 </style>

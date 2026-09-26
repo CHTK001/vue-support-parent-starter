@@ -1,46 +1,48 @@
 <template>
-    <div class="flex-1 skills-page">
-        <!-- 头部区域 -->
-        <div class="flex items-center justify-between gap-4 mb-8 mt-2">
-            <div class="min-w-0">
-                <h1 class="text-xl font-bold text-gray-900 dark:text-[#e8e9ed]">{{ t('plugins.skills.title') }}</h1>
-                <p class="text-sm text-gray-500 dark:text-[#8b8d95] mt-1">{{ t('plugins.skills.subtitle') }}</p>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <el-button @click="handleShowInstallDialog">
-                    <template #icon>
-                        <UploadOutlined />
-                    </template>
-                    {{ t('plugins.skills.install') }}
-                </el-button>
-                <el-button v-if="loading" :loading="true" size="small">
-                    {{ t('common.loading') }}
-                </el-button>
-                <el-button @click="handleScan" :loading="scanning">
-                    <template #icon>
-                        <RefreshOutlined />
-                    </template>
-                    {{ t('plugins.skills.scan') }}
-                </el-button>
-                <el-button @click="handleOpenSkillsDocs">
-                    <template #icon>
-                        <Document />
-                    </template>
-                    {{ t('plugins.skills.docs') }}
-                </el-button>
-            </div>
+    <div class="flex-1 skills-page skill-market-page">
+        <!-- 顶部操作栏：搜索 + 管理 + 添加 -->
+        <div class="market-topbar">
+            <el-input v-model="marketKeyword" size="default" clearable class="market-topbar__search"
+                :placeholder="t('plugins.skills.searchPlaceholder')"
+                @keyup.enter="handleMarketSearch" @clear="handleMarketClear">
+                <template #prefix>
+                    <el-icon><SearchOutlined /></el-icon>
+                </template>
+            </el-input>
+            <el-button size="default" @click="openManage">{{ t('plugins.skills.manage') }}</el-button>
+            <el-popover :width="208" placement="bottom-end" trigger="click"
+                popper-class="skill-add-popover" v-model:visible="addPopoverVisible">
+                <template #reference>
+                    <el-button size="default" type="primary">
+                        <el-icon class="mr-1"><PlusOutlined /></el-icon>
+                        {{ t('plugins.skills.add') }}
+                    </el-button>
+                </template>
+                <div class="add-menu">
+                    <button type="button" class="add-menu__item" @click="triggerUploadZip">
+                        <el-icon><UploadOutlined /></el-icon>
+                        <span>{{ t('plugins.skills.uploadSkill') }}</span>
+                    </button>
+                    <button type="button" class="add-menu__item" @click="openSearchInstall">
+                        <el-icon><SearchOutlined /></el-icon>
+                        <span>{{ t('plugins.skills.searchInstall') }}</span>
+                    </button>
+                </div>
+            </el-popover>
         </div>
+        <input ref="zipInputRef" type="file" accept=".zip,application/zip" class="hidden-file-input"
+            @change="onZipPicked" />
 
-        <!-- Skills 列表 -->
-        <div class="space-y-4">
+        <!-- Skills 列表（已合并到下方市场，保留占位避免布局抖动） -->
+        <div class="space-y-4" v-if="false">
             <!-- 技能卡片列表 -->
             <div class="grid gap-y-4 gap-x-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
                 <div v-for="skill in skills" :key="skill.id"
-                    class="plugin-card flex flex-col overflow-hidden p-2.5 rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) transition-all hover:bg-(--color-surface-hover) hover:shadow-sm cursor-pointer"
+                    class="plugin-card re-surface re-surface--dense flex flex-col overflow-hidden cursor-pointer"
                     :style="skill.enabled === false ? { opacity: 0.6 } : {}"
                     @click="handleViewDocumentation(skill.id)">
                     <div class="flex items-center gap-2.5 mb-3">
-                        <CardAvatar :name="skill.manifest.name || skill.id" :disabled="skill.enabled === false" />
+                        <PluginIcon :icon="skill.manifest.icon" :name="skill.manifest.name || skill.id" />
                         <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
                             {{ skill.manifest.name || skill.id }}
                         </h3>
@@ -84,7 +86,7 @@
 
             <!-- 空状态 -->
             <div v-if="!loading && skills.length === 0"
-                class="rounded-[var(--size-surface-radius)] border border-(--color-surface-border) overflow-hidden bg-(--color-surface)">
+                class="re-surface overflow-hidden">
                 <div class="p-12 text-center">
                     <el-icon size="64" class="mb-4 opacity-50 text-gray-400">
                         <InboxOutlined />
@@ -95,33 +97,21 @@
                     <div class="text-sm text-gray-500 dark:text-[#8b8d95] mb-4">
                         {{ t('plugins.skills.emptyHint') }}
                     </div>
-                    <el-button type="primary" @click="handleScan" :loading="scanning">
+                    <el-button type="primary" @click="handleShowInstallDialog">
                         <template #icon>
-                            <RefreshOutlined />
+                            <UploadOutlined />
                         </template>
-                        {{ t('plugins.skills.scanNow') }}
+                        {{ t('plugins.skills.install') }}
                     </el-button>
                 </div>
             </div>
         </div>
 
-        <!-- 技能市场推荐 -->
-        <div class="mt-8">
-            <div class="sessions-header py-1 text-lg font-semibold flex items-center gap-3 mb-4">
-                <span>{{ t('plugins.skills.marketTitle') }}</span>
-                <el-button link size="small" :loading="loadingMarket" @click="() => loadMarketSkills(true)">
-                    <template #icon>
-                        <el-icon :class="{ 'is-loading': loadingMarket }">
-                            <ArrowClockwise16Regular />
-                        </el-icon>
-                    </template>
-                    {{ loadingMarket ? t('common.loading') : t('plugins.skills.marketRefresh') }}
-                </el-button>
-            </div>
-
+        <!-- 技能市场（整页：分类标签 + 分组 + 紧凑条目） -->
+        <div class="skill-market">
             <!-- 错误提示 -->
             <div v-if="marketError"
-                class="rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) p-6 text-center">
+                class="market-error re-surface p-6 text-center">
                 <el-icon size="32" class="mb-2 opacity-50 text-gray-400">
                     <InboxOutlined />
                 </el-icon>
@@ -130,45 +120,137 @@
                 </div>
             </div>
 
-            <!-- 推荐列表 -->
-            <div v-else-if="marketSkills.length > 0" class="grid gap-3"
-                style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-                <div v-for="skill in marketSkills" :key="skill.id"
-                    class="plugin-card flex flex-col overflow-hidden p-2.5 rounded-[var(--size-surface-radius)] border border-(--color-surface-border) bg-(--color-surface) transition-all hover:bg-(--color-surface-hover) hover:shadow-sm cursor-pointer"
-                    @click="handleShowMarketInstallDialog(skill)">
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <CardAvatar :name="skill.name" />
-                        <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
-                            {{ skill.name }}
-                        </h3>
-                        <el-tag v-if="skill.localStatus === 'installed'" type="success" size="small" effect="plain">{{ t('plugins.skills.marketInstalled') }}</el-tag>
-                        <el-tag v-else-if="skill.localStatus === 'updatable'" type="warning" size="small" effect="plain">{{ t('plugins.skills.marketUpdatable') }}</el-tag>
+            <template v-else>
+                <!-- 骨架屏：后端在线/离线 Provider SPI 聚合期间 -->
+                <div v-if="loadingMarket" class="market-skeleton" aria-hidden="true">
+                    <div class="market-skeleton__tabs">
+                        <div v-for="n in 7" :key="'st-'+n" class="skel skel--tab"></div>
                     </div>
-
-                    <p class="text-gray-400 dark:text-[#6b6d75] line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
-                    {{ skill.description || t('plugins.skills.noDescription') }}
-                    </p>
-
-                    <div class="flex items-center justify-between gap-2 mt-3">
-                        <div class="flex flex-wrap gap-1 min-w-0 overflow-hidden">
-                            <el-tag v-if="skill.labels && skill.labels.length > 0" v-for="label in skill.labels"
-                                :key="label" size="small" effect="light">
-                                {{ label }}
-                            </el-tag>
+                    <div v-for="g in 3" :key="'sg-'+g" class="market-skeleton__group">
+                        <div class="skel skel--grouphead"></div>
+                        <div class="market-skeleton__grid">
+                            <div v-for="c in 4" :key="'sc-'+g+'-'+c" class="market-skeleton__cell">
+                                <div class="skel skel--circle"></div>
+                                <div class="market-skeleton__lines">
+                                    <div class="skel skel--title"></div>
+                                    <div class="skel skel--desc"></div>
+                                </div>
+                                <div class="skel skel--btn"></div>
+                            </div>
                         </div>
-                        <el-button link size="small" shrink-0
-                            :type="skill.localStatus === 'updatable' ? 'warning' : 'primary'"
-                            @click.stop="handleShowMarketInstallDialog(skill)">
-                            {{ installingFromMarket.has(skill.id) ? t('plugins.skills.marketInstalling') : getMarketButtonLabel(skill) }}
-                        </el-button>
                     </div>
                 </div>
-            </div>
 
-            <!-- 底部提示 -->
-            <div class="mt-6 text-center text-sm text-gray-500 dark:text-[#8b8d95]">
-                访问<span class="text-blue-500 cursor-pointer hover:underline" @click="openInExternalBrowser('https://ai.dingd.cn/skills')">{{ t('plugins.skills.marketLink') }}</span>获取更多推荐技能
-            </div>
+                <template v-else>
+                 <!-- 默认浏览：未发起顶部搜索 -->
+                 <template v-if="!marketHasSearch">
+                    <!-- 分类标签栏 -->
+                    <div class="market-tabs" role="tablist">
+                        <div v-for="tab in marketTabs" :key="tab" role="tab"
+                            class="market-tab" :class="{ active: marketTab === tab }"
+                            @click="marketTab = tab">
+                            {{ tab }}
+                        </div>
+                    </div>
+
+                    <!-- 分组列表 -->
+                    <div v-for="g in marketGroups" :key="g.cat" class="market-group">
+                        <div class="market-group-head" @click="toggleGroup(g.cat)">
+                            <span class="market-group-title">{{ g.cat }}</span>
+                            <span class="market-group-arrow" :class="{ collapsed: collapsedGroups.has(g.cat) }">›</span>
+                        </div>
+                        <div v-show="!collapsedGroups.has(g.cat)" class="market-grid">
+                            <div v-for="skill in g.items" :key="skill.id" class="market-cell market-cell--clickable"
+                                @click="openSkillDetail(skill)">
+                                <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
+                                <div class="market-cell-body">
+                                    <div class="market-cell-title">{{ skill.name }}</div>
+                                    <div class="market-cell-desc">
+                                        {{ skill.description || t('plugins.skills.noDescription') }}
+                                    </div>
+                                </div>
+                                <el-button size="small" class="market-cell-btn" plain
+                                    :type="skill.localStatus === 'installed' ? 'success'
+                                        : skill.localStatus === 'updatable' ? 'warning' : ''"
+                                    :disabled="skill.localStatus === 'installed'"
+                                    :loading="installingFromMarket.has(skill.id)"
+                                    @click.stop="handleInstallFromMarketUrl(skill)">
+                                    {{ getMarketButtonLabel(skill) }}
+                                </el-button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索无结果空态 -->
+                    <div v-if="marketGroups.length === 0" class="market-empty">
+                        <svg class="market-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <div class="market-empty__title">{{ t('plugins.skills.searchNoResult') }}</div>
+                        <div class="market-empty__hint">&ldquo;{{ marketKeyword }}&rdquo;</div>
+                    </div>
+                 </template>
+
+                 <!-- 顶部搜索结果：后台「本地 + 在线」Provider SPI 实时检索 -->
+                 <template v-else>
+                    <div v-if="marketSearching" class="market-skeleton" aria-hidden="true">
+                        <div class="market-skeleton__group">
+                            <div class="skel skel--grouphead"></div>
+                            <div class="market-skeleton__grid">
+                                <div v-for="c in 4" :key="'mss-'+c" class="market-skeleton__cell">
+                                    <div class="skel skel--circle"></div>
+                                    <div class="market-skeleton__lines">
+                                        <div class="skel skel--title"></div>
+                                        <div class="skel skel--desc"></div>
+                                    </div>
+                                    <div class="skel skel--btn"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <template v-else>
+                        <div v-if="marketSearchResults.length > 0" class="market-group">
+                            <div class="market-group-head market-group-head--static">
+                                <span class="market-group-title">搜索结果（{{ marketSearchResults.length }}）</span>
+                            </div>
+                            <div class="market-grid">
+                                <div v-for="skill in marketSearchResults" :key="'msr-'+skill.id"
+                                    class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
+                                    <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
+                                    <div class="market-cell-body">
+                                        <div class="market-cell-title">{{ skill.name }}</div>
+                                        <div class="market-cell-desc">
+                                            {{ skill.description || t('plugins.skills.noDescription') }}
+                                        </div>
+                                    </div>
+                                    <el-button size="small" class="market-cell-btn" plain
+                                        :type="skill.localStatus === 'installed' ? 'success'
+                                            : skill.localStatus === 'updatable' ? 'warning' : ''"
+                                        :disabled="skill.localStatus === 'installed'"
+                                        :loading="!!marketSearchLocalMap[skill.id]
+                                            ? installingCatalog === skill.id
+                                            : installingFromMarket.has(skill.id)"
+                                        @click.stop="handleSearchResultInstall(skill)">
+                                        {{ getMarketButtonLabel(skill) }}
+                                    </el-button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="market-empty">
+                            <svg class="market-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <div class="market-empty__title">{{ t('plugins.skills.searchNoResult') }}</div>
+                            <div class="market-empty__hint">&ldquo;{{ marketKeyword }}&rdquo;</div>
+                        </div>
+                    </template>
+                 </template>
+                </template>
+            </template>
         </div>
 
         <!-- 查看文档对话框 -->
@@ -205,44 +287,151 @@
         </LDialog>
 
         <!-- 安装 Skill 对话框 -->
-        <LDialog v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="500px" align-center destroy-on-close>
-            <div class="py-4">
-                <div class="text-sm text-gray-600 dark:text-[#8b8d95] mb-4">
-                    {{ t('plugins.skills.installDesc') }}
+        <LDialog v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="760px" align-center destroy-on-close>
+            <div class="install-dialog-body">
+                <el-radio-group v-model="installMode" class="install-mode-group mb-4">
+                    <el-radio-button label="upload">
+                        <el-icon class="mr-1"><UploadOutlined /></el-icon>{{ t('plugins.skills.modeUpload') }}
+                    </el-radio-button>
+                    <el-radio-button label="search">
+                        <el-icon class="mr-1"><SearchOutlined /></el-icon>{{ t('plugins.skills.modeSearch') }}
+                    </el-radio-button>
+                </el-radio-group>
+
+                <!-- 上传 ZIP -->
+                <div v-if="installMode === 'upload'">
+                    <div class="text-sm text-gray-600 dark:text-[#8b8d95] mb-4">
+                        {{ t('plugins.skills.installDesc') }}
+                    </div>
+
+                    <el-upload ref="uploadRef" class="upload-demo" drag :auto-upload="false" :show-file-list="false" :on-change="handleFileChange"
+                        :limit="1" accept=".zip">
+                        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                        <div class="el-upload__text">
+                            {{ t('plugins.skills.uploadText') }} <em>{{ t('plugins.skills.uploadClick') }}</em>
+                        </div>
+                        <template #tip>
+                            <div class="el-upload__tip text-xs text-gray-500 mt-2">
+                                {{ t('plugins.skills.uploadTip') }}
+                            </div>
+                        </template>
+                    </el-upload>
+
+                    <div v-if="selectedFile" class="mt-4 p-3 rounded-lg bg-(--color-surface-hover)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <el-icon>
+                                    <Document />
+                                </el-icon>
+                                <span class="text-sm">{{ selectedFile.name }}</span>
+                            </div>
+                            <el-button link type="danger" @click="clearSelectedFile">
+                                <el-icon>
+                                    <Close />
+                                </el-icon>
+                            </el-button>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ t('plugins.skills.fileSize', { size: formatFileSize(selectedFile.size) }) }}
+                        </div>
+                    </div>
                 </div>
 
-                <el-upload ref="uploadRef" class="upload-demo" drag :auto-upload="false" :show-file-list="false" :on-change="handleFileChange"
-                    :limit="1" accept=".zip">
-                    <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                    <div class="el-upload__text">
-                        {{ t('plugins.skills.uploadText') }} <em>{{ t('plugins.skills.uploadClick') }}</em>
-                    </div>
-                    <template #tip>
-                        <div class="el-upload__tip text-xs text-gray-500 mt-2">
-                            {{ t('plugins.skills.uploadTip') }}
-                        </div>
-                    </template>
-                </el-upload>
+                <!-- 检索安装（同时检索本地与在线，匹配结果直接显示） -->
+                <div v-else class="install-search">
+                    <el-input v-model="searchKeyword" class="mb-3" size="small" clearable
+                        :placeholder="t('plugins.skills.searchPlaceholder')" @keyup.enter="handleSearch"
+                        @clear="handleSearch">
+                        <template #append>
+                            <el-button @click="handleSearch">
+                                <el-icon><SearchOutlined /></el-icon>
+                            </el-button>
+                        </template>
+                    </el-input>
 
-                <div v-if="selectedFile" class="mt-4 p-3 bg-gray-50 dark:bg-[#2a2c30] rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <el-icon>
-                                <Document />
-                            </el-icon>
-                            <span class="text-sm">{{ selectedFile.name }}</span>
+                    <div class="catalog-results">
+                        <!-- 加载中：骨架屏 -->
+                        <div v-if="loadingCatalog || loadingMarket" class="market-skeleton" aria-hidden="true">
+                            <div class="market-skeleton__grid">
+                                <div v-for="c in 6" :key="'dc-'+c" class="market-skeleton__cell">
+                                    <div class="skel skel--circle"></div>
+                                    <div class="market-skeleton__lines">
+                                        <div class="skel skel--title"></div>
+                                        <div class="skel skel--desc"></div>
+                                    </div>
+                                    <div class="skel skel--btn"></div>
+                                </div>
+                            </div>
                         </div>
-                        <el-button link type="danger" @click="clearSelectedFile">
-                            <el-icon>
-                                <Close />
-                            </el-icon>
-                        </el-button>
-                    </div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        {{ t('plugins.skills.fileSize', { size: formatFileSize(selectedFile.size) }) }}
+
+                        <template v-else-if="hasSearched">
+                            <!-- 本地匹配结果 -->
+                            <div v-if="localCatalog.length > 0" class="catalog-result-block">
+                                <div class="catalog-result-label">{{ t('plugins.skills.sourceLocal') }}</div>
+                                <div class="catalog-list">
+                                    <div v-for="item in localCatalog" :key="'l-'+item.name" class="catalog-item">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-sm font-medium truncate">{{ item.name }}</span>
+                                                <el-tag v-if="item.installed" size="small" type="success" effect="plain">
+                                                    {{ t('plugins.skills.marketInstalled') }}
+                                                </el-tag>
+                                            </div>
+                                            <p class="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                                                {{ item.description || t('plugins.skills.noDescription') }}
+                                            </p>
+                                            <div class="flex flex-wrap gap-1 mt-1">
+                                                <el-tag v-for="src in item.sources" :key="src" size="small" effect="light">{{ src }}</el-tag>
+                                            </div>
+                                        </div>
+                                        <el-button size="small" type="primary" plain
+                                            :loading="installingCatalog === item.name"
+                                            @click="handleInstallLocal(item)">
+                                            {{ t('plugins.skills.install') }}
+                                        </el-button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 在线匹配结果 -->
+                            <div v-if="filteredMarketCatalog.length > 0" class="catalog-result-block">
+                                <div v-if="localCatalog.length > 0" class="catalog-result-label">{{ t('plugins.skills.sourceOnline') }}</div>
+                                <div class="market-grid dialog-market-grid">
+                                    <div v-for="skill in filteredMarketCatalog" :key="'o-'+skill.id"
+                                        class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
+                                        <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
+                                        <div class="market-cell-body">
+                                            <div class="market-cell-title">{{ skill.name }}</div>
+                                            <div class="market-cell-desc">
+                                                {{ skill.description || t('plugins.skills.noDescription') }}
+                                            </div>
+                                        </div>
+                                        <el-button size="small" class="market-cell-btn" plain
+                                            :type="skill.localStatus === 'installed' ? 'success'
+                                                : skill.localStatus === 'updatable' ? 'warning' : 'primary'"
+                                            :disabled="skill.localStatus === 'installed'"
+                                            :loading="installingFromMarket.has(skill.id)"
+                                            @click.stop="handleInstallFromMarketUrl(skill)">
+                                            {{ getMarketButtonLabel(skill) }}
+                                        </el-button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 本地与在线均无匹配 -->
+                            <div v-if="searchNoResult" class="py-8 text-center text-sm text-gray-500">
+                                {{ t('plugins.skills.searchNoResult') }}
+                            </div>
+                        </template>
+
+                        <!-- 尚未检索 -->
+                        <div v-else class="py-8 text-center text-sm text-gray-500">
+                            {{ t('plugins.skills.searchHint') }}
+                        </div>
                     </div>
                 </div>
 
+                <!-- 强制覆盖（对上传与检索安装均生效） -->
                 <div class="mt-4">
                     <el-checkbox v-model="forceOverwrite">
                         <span class="text-sm">{{ t('plugins.skills.forceOverwrite') }}</span>
@@ -255,7 +444,8 @@
 
             <template #footer>
                 <el-button @click="showInstallDialog = false">{{ t('common.cancel') }}</el-button>
-                <el-button type="primary" @click="handleInstallSkill" :loading="installing" :disabled="!selectedFile">
+                <el-button v-if="installMode === 'upload'" type="primary" @click="handleInstallSkill"
+                    :loading="installing" :disabled="!selectedFile">
                     {{ t('plugins.skills.installBtn') }}
                 </el-button>
             </template>
@@ -301,29 +491,41 @@
                 <el-button @click="showMarketInstallDialog = false">{{ t('common.cancel') }}</el-button>
             </template>
         </LDialog>
+
+        <!-- 技能详情弹窗：安装前查看 SKILL.md 正文 -->
+        <!-- 技能详情弹窗：复用统一组件（已安装读本地 SKILL.md，未安装 ZIP 预览） -->
+        <SkillDetailDialog
+            v-model="showDetailDialog"
+            :skill="detailTarget"
+            :installing="detailInstalling"
+            @install="handleDetailAdd"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus'
-import { RefreshOutlined, InboxOutlined, DescriptionOutlined, UploadOutlined, DeleteOutlined } from '@vicons/material'
+import { RefreshOutlined, InboxOutlined, DescriptionOutlined, UploadOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@vicons/material'
 import { RefreshRight, Loading, UploadFilled, Document, Close } from '@element-plus/icons-vue'
 import { ArrowDownload16Regular, ArrowClockwise16Regular } from '@vicons/fluent'
 import { apiService } from '@/services/ApiService'
-import { SkillMarketService, type MarketSkill, type MarketSkillWithStatus } from '@/services/SkillMarketService'
+import { type MarketSkillWithStatus } from '@/services/SkillMarketService'
 import { useMarkdown } from '@/composables/useMarkdown'
 import { openInExternalBrowser } from '@/utils/browserUtils'
-import CardAvatar from '@/components/ui/CardAvatar.vue'
+import PluginIcon from '@/components/ui/PluginIcon.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
+import SkillDetailDialog from './SkillDetailDialog.vue'
 
 interface SkillManifest {
     name: string
     description?: string
     version?: string
     author?: string
+    icon?: string
     tags?: string[]
 }
 
@@ -475,6 +677,54 @@ const selectedFile = ref<File | null>(null)
 const uploadRef = ref()
 const forceOverwrite = ref(false)
 
+// 安装弹窗：模式与检索
+type InstallMode = 'upload' | 'search'
+const installMode = ref<InstallMode>('upload')
+const searchKeyword = ref('')
+const hasSearched = ref(false)
+const activeCategory = ref('')
+
+// 本地检索结果
+interface LocalCatalogItem {
+    name: string
+    description: string
+    sources: string[]
+    localPath?: string
+    installed: boolean
+}
+const localCatalog = ref<LocalCatalogItem[]>([])
+const loadingCatalog = ref(false)
+const installingCatalog = ref('')
+
+// 在线市场分类与筛选
+const marketCategories = computed<string[]>(() => {
+    const set = new Set<string>()
+    marketSkills.value.forEach(s => (s.labels || []).forEach(l => set.add(l)))
+    return Array.from(set)
+})
+
+const filteredMarketCatalog = computed<MarketSkillWithStatus[]>(() => {
+    let list = marketSkills.value
+    if (activeCategory.value) {
+        list = list.filter(s => (s.labels || []).includes(activeCategory.value))
+    }
+    const kw = searchKeyword.value.trim().toLowerCase()
+    if (kw) {
+        list = list.filter(s =>
+            s.name.toLowerCase().includes(kw) || (s.description || '').toLowerCase().includes(kw))
+    }
+    return list
+})
+
+// 检索后本地与在线均无匹配
+const searchNoResult = computed(() =>
+    hasSearched.value
+    && !loadingCatalog.value
+    && !loadingMarket.value
+    && localCatalog.value.length === 0
+    && filteredMarketCatalog.value.length === 0
+)
+
 // 卸载相关状态
 const uninstallingSkills = ref<Set<string>>(new Set())
 const updatingSkills = ref<Set<string>>(new Set())
@@ -484,10 +734,170 @@ const marketSkills = ref<MarketSkillWithStatus[]>([])
 const loadingMarket = ref(false)
 const marketError = ref<string | null>(null)
 
+// 主页面市场：搜索 / 分类标签 / 分组
+const MARKET_FEATURED = '精选'
+const marketTab = ref<string>(MARKET_FEATURED)
+const marketKeyword = ref('')
+const collapsedGroups = ref<Set<string>>(new Set())
+
+const marketLabels = computed<string[]>(() => {
+    const order: string[] = []
+    const seen = new Set<string>()
+    marketSkills.value.forEach(s => (s.labels || []).forEach(l => {
+        if (!seen.has(l)) { seen.add(l); order.push(l) }
+    }))
+    return order
+})
+
+/** 顶部快捷分类上限（含「精选」）；「精选」已按全部标签分组展示，超出的分类无需再占标签位，避免出现横向滚动条 */
+const MAX_MARKET_TABS = 7
+const marketTabs = computed<string[]>(() => [MARKET_FEATURED, ...marketLabels.value].slice(0, MAX_MARKET_TABS))
+
+function firstLabel(s: MarketSkillWithStatus): string {
+    return (s.labels && s.labels.length > 0) ? s.labels[0] : '其它'
+}
+
+function marketKeywordMatch(s: MarketSkillWithStatus): boolean {
+    const k = marketKeyword.value.trim().toLowerCase()
+    if (!k) return true
+    return s.name.toLowerCase().includes(k) || (s.description || '').toLowerCase().includes(k)
+}
+
+const marketGroups = computed<{ cat: string; items: MarketSkillWithStatus[] }[]>(() => {
+    if (marketTab.value === MARKET_FEATURED) {
+        return marketLabels.value
+            .map(l => ({ cat: l, items: marketSkills.value.filter(s => firstLabel(s) === l && marketKeywordMatch(s)) }))
+            .filter(g => g.items.length > 0)
+    }
+    const l = marketTab.value
+    return [{ cat: l, items: marketSkills.value.filter(s => (s.labels || []).includes(l) && marketKeywordMatch(s)) }]
+})
+
+function toggleGroup(cat: string) {
+    if (collapsedGroups.value.has(cat)) {
+        collapsedGroups.value.delete(cat)
+    } else {
+        collapsedGroups.value.add(cat)
+    }
+}
+
+// ===== 市场顶部搜索：调用后台「本地 + 在线」Provider SPI，而非前端过滤内置 =====
+const marketSearching = ref(false)
+const marketSearchResults = ref<MarketSkillWithStatus[]>([])
+const marketSearchLocalMap = ref<Record<string, LocalCatalogItem>>({})
+const marketHasSearch = computed(() => marketKeyword.value.trim() !== '')
+
+function mapLocalCatalogSearchEntry(it: any): MarketSkillWithStatus {
+    return {
+        id: String(it.name ?? ''),
+        name: String(it.name ?? ''),
+        description: String(it.description ?? ''),
+        icon: it.icon ?? null,
+        labels: ['本地'],
+        installUrls: [],
+        localStatus: it.installed ? 'installed' as const : 'not_installed' as const,
+    }
+}
+
+async function handleMarketSearch() {
+    const kw = marketKeyword.value.trim()
+    if (!kw) { handleMarketClear(); return }
+    marketSearching.value = true
+    const localTask = apiService.fetchLocalCatalog(kw)
+        .then((items: any) => (Array.isArray(items) ? items : []))
+        .catch((e: any) => { console.error('市场本地搜索失败:', e); return [] as any[] })
+    const onlineTask = apiService.fetchMarketCatalog(kw)
+        .then((items: any) => (Array.isArray(items) ? items : []))
+        .catch((e: any) => { console.error('市场在线搜索失败:', e); return [] as any[] })
+    const res = await Promise.all([localTask, onlineTask])
+    const localItems = res[0] as any[]
+    const onlineItems = res[1] as any[]
+    const localMap: Record<string, LocalCatalogItem> = {}
+    const localMapped = localItems.map((it) => {
+        const li: LocalCatalogItem = {
+            name: String(it.name ?? ''),
+            description: String(it.description ?? ''),
+            sources: Array.isArray(it.sources) ? it.sources : [],
+            localPath: it.localPath,
+            installed: !!it.installed,
+        }
+        localMap[li.name] = li
+        return mapLocalCatalogSearchEntry(it)
+    })
+    const localIds = new Set(localMapped.map(s => s.id.toLowerCase()))
+    const onlineMapped = onlineItems.map(mapMarketEntry)
+        .filter(s => !localIds.has(s.id.toLowerCase()))
+    marketSearchLocalMap.value = localMap
+    marketSearchResults.value = [...localMapped, ...onlineMapped]
+    marketSearching.value = false
+}
+
+function handleMarketClear() {
+    marketKeyword.value = ''
+    marketSearchResults.value = []
+    marketSearchLocalMap.value = {}
+    marketSearching.value = false
+}
+
+function handleSearchResultInstall(skill: MarketSkillWithStatus) {
+    const local = marketSearchLocalMap.value[skill.id]
+    if (local) return handleInstallLocal(local)
+    return handleInstallFromMarketUrl(skill)
+}
+
 // 市场安装弹窗相关状态
 const showMarketInstallDialog = ref(false)
 const selectedMarketSkill = ref<MarketSkillWithStatus | null>(null)
 const installingFromMarket = ref<Set<string>>(new Set())
+
+// 顶部「添加 / 管理」相关
+const router = useRouter()
+const addPopoverVisible = ref(false)
+const zipInputRef = ref<HTMLInputElement | null>(null)
+const uploadingZip = ref(false)
+
+/** 管理：新标签打开 Skills 管理页 */
+function openManage() {
+    const href = router.resolve({ name: 'Skills' }).href
+    window.open(href, '_blank', 'noopener')
+}
+
+/** 添加 → 上传技能：弹出文件选择 */
+function triggerUploadZip() {
+    addPopoverVisible.value = false
+    zipInputRef.value?.click()
+}
+
+/** 选择 ZIP 后直接上传安装 */
+async function onZipPicked(e: Event) {
+    const input = e.target as HTMLInputElement
+    const file = input.files && input.files[0]
+    if (!file) return
+    uploadingZip.value = true
+    try {
+        const res = await apiService.installSkill(file, false)
+        if (res.success) {
+            ElMessage.success(res.message || t('common.createSuccess'))
+            await loadSkills()
+            await loadMarketSkills()
+        } else {
+            ElMessage.error(res.message || t('plugins.skills.installFailed'))
+        }
+    } catch (err: any) {
+        console.error('上传技能失败:', err)
+        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+    } finally {
+        uploadingZip.value = false
+        input.value = ''
+    }
+}
+
+/** 添加 → 检索安装：打开安装弹窗并切到检索模式 */
+function openSearchInstall() {
+    addPopoverVisible.value = false
+    handleShowInstallDialog()
+    installMode.value = 'search'
+}
 
 /**
  * 获取指定类型的安装 URL
@@ -504,14 +914,51 @@ function handleShowMarketInstallDialog(marketSkill: MarketSkillWithStatus) {
     showMarketInstallDialog.value = true
 }
 
+// ───── 技能详情弹窗（安装前可查看 SKILL.md 正文） ─────
+const showDetailDialog = ref(false)
+/** 详情目标：归一化后交给 SkillDetailDialog 渲染 */
+const detailTarget = ref<{
+    id: string
+    name: string
+    description?: string
+    installed: boolean
+    zipUrl?: string
+} | null>(null)
+/** 打开详情时保留的原始市场技能对象（供详情内「添加」复用安装逻辑） */
+const detailSourceSkill = ref<MarketSkillWithStatus | null>(null)
+/** 详情内「添加」按钮 loading：跟随市场安装队列 */
+const detailInstalling = computed(() =>
+    detailTarget.value ? installingFromMarket.value.has(detailTarget.value.id) : false,
+)
+
+/** 打开技能详情：归一化目标，由统一组件决定读本地文档还是 ZIP 预览 */
+function openSkillDetail(skill: MarketSkillWithStatus) {
+    detailSourceSkill.value = skill
+    detailTarget.value = {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        installed: skill.localStatus === 'installed',
+        zipUrl: getInstallUrl(skill, 'zip') || undefined,
+    }
+    showDetailDialog.value = true
+}
+
+/** 详情弹窗「添加」：安装成功后关闭弹窗 */
+async function handleDetailAdd() {
+    if (!detailSourceSkill.value) return
+    const ok = await handleInstallFromMarketUrl(detailSourceSkill.value)
+    if (ok) showDetailDialog.value = false
+}
+
 /**
  * 从市场安装技能（ZIP 方式）
  */
-async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus) {
+async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus): Promise<boolean> {
     const zipUrl = getInstallUrl(marketSkill, 'zip')
     if (!zipUrl) {
         ElMessage.warning(t('plugins.skills.marketNoZip'))
-        return
+        return false
     }
 
     installingFromMarket.value.add(marketSkill.id)
@@ -524,12 +971,14 @@ async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus) {
             selectedMarketSkill.value = null
             // 刷新本地技能列表
             await loadSkills()
-        } else {
-            ElMessage.error(response.message || '安装失败')
+            return true
         }
+        ElMessage.error(response.message || '安装失败')
+        return false
     } catch (err: any) {
         console.error('从市场安装技能失败:', err)
         ElMessage.error(err.message || t('plugins.skills.installFailed'))
+        return false
     } finally {
         installingFromMarket.value.delete(marketSkill.id)
     }
@@ -554,7 +1003,8 @@ function refreshMarketSkillStatus() {
     const localSkills = skills.value
     marketSkills.value = marketSkills.value.map(marketSkill => {
         const match = localSkills.find(
-            local => local.manifest.name?.toLowerCase() === marketSkill.id?.toLowerCase()
+            local => local.id?.toLowerCase() === marketSkill.id?.toLowerCase()
+                || local.manifest.name?.toLowerCase() === marketSkill.id?.toLowerCase()
         )
         if (!match) {
             return { ...marketSkill, localStatus: 'not_installed' as const }
@@ -576,7 +1026,7 @@ function refreshMarketSkillStatus() {
     function getMarketButtonLabel(skill: MarketSkillWithStatus): string {
     switch (skill.localStatus) {
         case 'updatable': return t('plugins.skills.marketUpgradeBtn')
-        case 'installed': return t('plugins.skills.marketReinstallBtn')
+        case 'installed': return t('plugins.skills.installedBtn')
         default: return t('plugins.skills.marketInstallBtn')
     }
 }
@@ -627,26 +1077,6 @@ async function handleToggleSkill(skillId: string, enabled: boolean) {
         ElMessage.error(err.message || t('plugins.skills.toggleFailed'))
     } finally {
         updatingSkills.value.delete(skillId)
-    }
-}
-
-/**
- * 触发手动扫描
- */
-async function handleScan() {
-    scanning.value = true
-
-    try {
-        await apiService.scanSkills()
-        ElMessage.success(t('plugins.skills.scanSuccess'))
-        // 扫描后重新加载列表
-        await loadSkills()
-    } catch (err: any) {
-        console.error('扫描 Skills 失败:', err)
-        const errorMsg = err.message || t('plugins.skills.scanFailed')
-        ElMessage.error(errorMsg)
-    } finally {
-        scanning.value = false
     }
 }
 
@@ -705,6 +1135,76 @@ function handleShowInstallDialog() {
     showInstallDialog.value = true
     selectedFile.value = null
     forceOverwrite.value = false
+    installMode.value = 'upload'
+    searchKeyword.value = ''
+    hasSearched.value = false
+    activeCategory.value = ''
+    localCatalog.value = []
+}
+
+/**
+ * 检索安装：同时检索本地（catalog/local）与在线（市场 SPI），
+ * 无需切换来源，匹配结果合并显示在下方。
+ */
+async function handleSearch() {
+    hasSearched.value = true
+    const kw = searchKeyword.value.trim()
+
+    // 本地检索
+    loadingCatalog.value = true
+    const localTask = apiService.fetchLocalCatalog(kw)
+        .then((items: any) => {
+            localCatalog.value = Array.isArray(items)
+                ? items.map((it: any) => ({
+                    name: String(it.name ?? ''),
+                    description: String(it.description ?? ''),
+                    sources: Array.isArray(it.sources) ? it.sources : [],
+                    localPath: it.localPath,
+                    installed: !!it.installed,
+                }))
+                : []
+        })
+        .catch((err: any) => {
+            console.error('检索本地技能失败:', err)
+            localCatalog.value = []
+        })
+        .finally(() => { loadingCatalog.value = false })
+
+    // 在线：确保市场数据已加载，关键词筛选由 computed 完成
+    const onlineTask = (marketSkills.value.length === 0
+        ? loadMarketSkills()
+        : Promise.resolve()).catch((err: any) => {
+            console.error('检索在线技能失败:', err)
+        })
+
+    await Promise.allSettled([localTask, onlineTask])
+}
+
+/**
+ * 安装本地工具技能（复制目录到 skills/user）。
+ */
+async function handleInstallLocal(item: LocalCatalogItem) {
+    const tool = item.sources && item.sources.length > 0 ? item.sources[0] : ''
+    if (!tool) {
+        ElMessage.warning(t('plugins.skills.localEmpty'))
+        return
+    }
+    installingCatalog.value = item.name
+    try {
+        const res = await apiService.installLocalSkill(tool, item.name, forceOverwrite.value)
+        if (res.success) {
+            ElMessage.success(res.message || t('common.createSuccess'))
+            await loadSkills()
+            item.installed = true
+        } else {
+            ElMessage.error(res.message || t('plugins.skills.installFailed'))
+        }
+    } catch (err: any) {
+        console.error('安装本地技能失败:', err)
+        ElMessage.error(err.message || t('plugins.skills.installFailed'))
+    } finally {
+        installingCatalog.value = ''
+    }
 }
 
 /**
@@ -808,39 +1308,66 @@ async function handleUninstallSkill(skillId: string) {
 }
 
 /**
- * 打开 Skills 使用说明文档
+ * 将后端市场 SPI 返回的条目映射为 MarketSkillWithStatus。
  */
-function handleOpenSkillsDocs() {
-    openInExternalBrowser('https://ai.dingd.cn/docs/skills')
+function mapMarketEntry(e: any): MarketSkillWithStatus {
+    const installUrls: Array<{ type: 'zip' | 'git'; url: string }> = []
+    if (e.zipUrl) {
+        installUrls.push({ type: 'zip', url: String(e.zipUrl) })
+    }
+    if (e.gitUrl) {
+        installUrls.push({ type: 'git', url: String(e.gitUrl) })
+    }
+    return {
+        id: String(e.id ?? ''),
+        name: String(e.name ?? e.id ?? ''),
+        description: e.description ?? '',
+        icon: e.icon ?? null,
+        labels: Array.isArray(e.labels) ? e.labels.map(String) : [],
+        installUrls,
+        detailUrl: e.detailUrl ?? undefined,
+        version: e.version ?? undefined,
+        localStatus: 'not_installed',
+    }
 }
 
 /**
- * 加载市场推荐技能列表
- * @param forceRefresh 是否强制刷新（来自用户手动点击"换一批"）
+ * 将内置技能条目映射为 MarketSkillWithStatus（默认已安装、不可卸载）。
  */
-async function loadMarketSkills(forceRefresh: boolean = false) {
+function mapBuiltinEntry(e: any): MarketSkillWithStatus {
+    return {
+        id: String(e.id ?? ''),
+        name: String(e.name ?? e.id ?? ''),
+        description: e.description ?? '',
+        icon: e.icon ?? null,
+        labels: Array.isArray(e.labels) ? e.labels.map(String) : [],
+        installUrls: [],
+        version: e.version ?? undefined,
+        localStatus: 'installed',
+    }
+}
+
+/**
+ * 加载市场技能：内置技能（classpath 同步到 builtin）与官网市场 SPI 并行加载，
+ * 数据均来自后端，前端不直连第三方站点。
+ */
+async function loadMarketSkills() {
     if (loadingMarket.value) return
 
     loadingMarket.value = true
     marketError.value = null
 
-    const startTime = Date.now()
-
     try {
-        const remoteSkills = await SkillMarketService.fetchMarketSkills(!forceRefresh)
-
-        // 仅手动刷新时确保至少显示 500ms 的加载动画
-        if (forceRefresh) {
-            const elapsed = Date.now() - startTime
-            if (elapsed < 500) {
-                await new Promise(resolve => setTimeout(resolve, 500 - elapsed))
-            }
-        }
-
-        marketSkills.value = remoteSkills.map(skill => ({
-            ...skill,
-            localStatus: 'not_installed' as const,
-        }))
+        const [builtinRes, remote] = await Promise.all([
+            apiService.fetchBuiltinCatalog().catch((err: any) => {
+                console.error('加载内置技能失败:', err)
+                return []
+            }),
+            apiService.fetchMarketCatalog(),
+        ])
+        const builtin = Array.isArray(builtinRes) ? builtinRes.map(mapBuiltinEntry) : []
+        const market = Array.isArray(remote) ? remote.map(mapMarketEntry) : []
+        marketSkills.value = [...builtin, ...market]
         // 与本地技能做名字匹配，更新状态
         refreshMarketSkillStatus()
     } catch (err: any) {
@@ -1078,5 +1605,438 @@ onMounted(async () => {
 html.dark .skills-page :deep(.el-tag) {
     background-color: #2a2a2e;
     color: #8b8d95;
+}
+
+/* ===== 安装弹窗：模式与检索结果 ===== */
+.install-mode-group {
+    width: 100%;
+    display: flex;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--el-fill-color-light);
+}
+.install-mode-group :deep(.el-radio-button) {
+    flex: 1;
+}
+.install-mode-group :deep(.el-radio-button__inner) {
+    width: 100%;
+    border: none;
+    background: transparent;
+    box-shadow: none !important;
+    border-radius: 9px !important;
+    padding: 8px 0;
+    font-weight: 600;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.install-mode-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+    background: var(--el-bg-color);
+    color: var(--el-color-primary);
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+}
+
+.catalog-results {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.catalog-result-block + .catalog-result-block {
+    margin-top: 14px;
+}
+.catalog-result-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 8px;
+}
+
+.catalog-category-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* 上传拖拽区 */
+.upload-demo :deep(.el-upload-dragger) {
+    width: 100%;
+    border-radius: 12px;
+    border: 1.5px dashed var(--el-border-color);
+    background: var(--el-bg-color);
+    padding: 26px 20px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.upload-demo :deep(.el-upload-dragger:hover),
+.upload-demo :deep(.el-upload-dragger.is-dragover) {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+}
+.upload-demo :deep(.el-icon--upload) {
+    color: var(--el-color-primary);
+}
+.upload-demo :deep(.el-upload__text) {
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+}
+.upload-demo :deep(.el-upload__text em) {
+    color: var(--el-color-primary);
+}
+
+/* 本地结果：行式列表 */
+.catalog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.catalog-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    border-radius: 11px;
+    background: var(--color-surface, var(--el-bg-color));
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+.catalog-item:hover {
+    border-color: var(--el-color-primary-light-5);
+    background: var(--color-surface-hover, var(--el-fill-color-light));
+}
+
+/* 在线结果：两列卡片网格 */
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.catalog-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    border-radius: 11px;
+    background: var(--color-surface, var(--el-bg-color));
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+.catalog-card:hover {
+    border-color: var(--el-color-primary-light-5);
+    background: var(--color-surface-hover, var(--el-fill-color-light));
+}
+
+/* ===== 主页面技能市场（参考市场版式） ===== */
+.market-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 16px;
+}
+.market-topbar__search {
+    width: 260px;
+    max-width: 42%;
+}
+.market-topbar > .el-button--primary {
+    margin-left: auto;
+}
+.hidden-file-input {
+    display: none;
+}
+
+.market-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.market-toolbar-title {
+    font-size: var(--size-text-lg, 16px);
+    font-weight: 600;
+}
+.market-search {
+    max-width: 260px;
+    margin-left: auto;
+}
+.market-tabs {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    overflow-x: hidden;
+    white-space: nowrap;
+    padding: 2px 2px 10px;
+    border-bottom: 1px solid var(--color-surface-border, var(--el-border-color));
+    margin-bottom: 14px;
+}
+.market-tab {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    cursor: pointer;
+    padding-bottom: 6px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    flex: none;
+}
+.market-tab:hover {
+    color: var(--el-text-color-primary);
+}
+.market-tab.active {
+    color: var(--el-color-primary);
+    border-bottom-color: var(--el-color-primary);
+    font-weight: 600;
+}
+.market-group {
+    margin-bottom: 20px;
+}
+.market-group-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+.market-group-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+.market-group-arrow {
+    color: var(--el-text-color-secondary);
+    font-size: 16px;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+.market-group-arrow.collapsed {
+    transform: rotate(90deg);
+}
+.market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    gap: 12px;
+}
+.market-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+    padding: 14px;
+    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    border-radius: var(--mp-radius-lg, 14px);
+    background: var(--color-surface, var(--el-bg-color));
+    min-width: 0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.market-cell:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+}
+.market-cell-icon {
+    flex: none;
+    align-self: flex-start;
+}
+.market-cell-body {
+    flex: 1;
+    min-width: 0;
+}
+.market-cell-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--el-text-color-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.market-cell-desc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--el-text-color-secondary);
+    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.market-cell-btn {
+    width: 100%;
+    margin: 0;
+}
+.market-cell-btn.el-button--success.is-disabled,
+.market-cell-btn.el-button--success.is-disabled:hover,
+.market-cell-btn.el-button--success.is-disabled:focus {
+    background: var(--el-color-success-light-9);
+    color: var(--el-color-success);
+    border-color: transparent;
+}
+.market-cell-btn.el-button--success.is-disabled::before {
+    content: "\2713";
+    margin-right: 5px;
+    font-weight: 700;
+}
+.market-cell--clickable {
+    cursor: pointer;
+}
+
+/* ───── 搜索无结果空态 ───── */
+.market-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 16px;
+    color: var(--el-text-color-secondary);
+}
+.market-empty__icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+    opacity: 0.45;
+}
+.market-empty__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+}
+.market-empty__hint {
+    font-size: 12px;
+    margin-top: 4px;
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ───── 骨架屏 ───── */
+.skel {
+    flex: none;
+    border-radius: 6px;
+    background: linear-gradient(90deg,
+        var(--el-fill-color) 25%,
+        var(--el-fill-color-light) 37%,
+        var(--el-fill-color) 63%);
+    background-size: 400% 100%;
+    animation: skel-shimmer 1.4s ease infinite;
+}
+@keyframes skel-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+.market-skeleton__tabs {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 2px 2px 10px;
+    border-bottom: 1px solid var(--color-surface-border, var(--el-border-color));
+    margin-bottom: 14px;
+}
+.skel--tab { width: 56px; max-width: 12%; height: 15px; }
+.market-skeleton__group { margin-bottom: 20px; }
+.skel--grouphead { width: 120px; height: 13px; margin-bottom: 12px; }
+.market-skeleton__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px 12px;
+}
+.market-skeleton__cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-surface-border, var(--el-border-color));
+    border-radius: 10px;
+    background: var(--color-surface, var(--el-bg-color));
+}
+.skel--circle { width: 34px; height: 34px; border-radius: 50%; }
+.market-skeleton__lines { flex: 1; min-width: 0; }
+.skel--title { height: 12px; width: 62%; }
+.skel--desc { height: 10px; width: 92%; margin-top: 7px; }
+.skel--btn { width: 52px; height: 26px; }
+@media (prefers-reduced-motion: reduce) {
+    .skel { animation: none; }
+}
+
+/* ───── 技能详情弹窗 ───── */
+.detail-header-icon {
+    display: inline-flex;
+}
+.detail-body {
+    display: flex;
+    flex-direction: column;
+}
+.detail-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+}
+.detail-desc {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.detail-content-card {
+    margin-top: 14px;
+    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    border-radius: var(--size-surface-radius, 10px);
+    padding: 14px 16px;
+    background: var(--color-surface, var(--el-fill-color-blank));
+    max-height: 46vh;
+    overflow-y: auto;
+}
+.detail-content-card .markdown-doc {
+    font-size: 13.5px;
+    line-height: 1.65;
+}
+.detail-truncated {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    font-size: 12.5px;
+    color: var(--el-text-color-secondary);
+}
+.market-footer {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+}
+.market-link {
+    color: var(--el-color-primary);
+    cursor: pointer;
+    margin: 0 2px;
+}
+.market-link:hover {
+    text-decoration: underline;
+}
+</style>
+
+<style>
+/* 添加技能 popover（teleport 到 body，需全局样式） */
+.skill-add-popover .add-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: -4px;
+}
+.skill-add-popover .add-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+.skill-add-popover .add-menu__item:hover {
+    background: var(--el-fill-color-light);
 }
 </style>

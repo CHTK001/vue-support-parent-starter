@@ -17,6 +17,7 @@ export interface SessionApi {
   createSessionGroup(data: { name: string }): Promise<SessionGroup>;
   updateSessionGroup(groupId: string, data: { name: string }): Promise<SessionGroup>;
   deleteSessionGroup(groupId: string): Promise<{ success: boolean }>;
+  batchDeleteSessionGroups(ids: string[]): Promise<{ success: boolean }>;
   reorderSessionGroups(groupIds: string[]): Promise<{ success: boolean }>;
   generateSessionTitle(sessionId: string): Promise<{ title: string; skipped?: boolean }>;
   
@@ -396,6 +397,13 @@ export const sessionApi: SessionApi = {
   async deleteSessionGroup(this: ApiContext, groupId: string) {
     return await this._request(`/session-groups/${groupId}`, {
       method: "DELETE",
+    });
+  },
+
+  async batchDeleteSessionGroups(this: ApiContext, ids: string[]) {
+    return await this._request(`/session-groups/batch-delete`, {
+      method: "POST",
+      data: { ids },
     });
   },
 

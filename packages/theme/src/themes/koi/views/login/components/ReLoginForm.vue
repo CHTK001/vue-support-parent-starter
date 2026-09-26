@@ -15,12 +15,13 @@
     <!-- 移动端 Logo -->
     <div v-else-if="showMobileBrand" class="login-mobile-brand md:hidden">
       <div class="login-logo-wrap login-logo-wrap--mobile">
-        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+        <img class="login-logo" :src="fallbackLogoUrl" :alt="loginConfig.brandName" />
       </div>
       <div class="font-600 text-xl">{{ translateConfigText(loginConfig.title) }}</div>
     </div>
 
-    <div v-if="!systemUnavailable" class="form-header text-center m-b-32px">
+    <!-- 标题：默认显示；页面自带标题时传 showHeader=false 避免重复 -->
+    <div v-if="!systemUnavailable && showHeader" class="form-header text-center m-b-32px">
       <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t("menu.login.account") }}</h3>
       <p class="text-14px text-[--el-text-color-regular]">
         {{ $t("menu.login.form.loginName") }} / {{ $t("menu.login.form.password") }}
@@ -35,6 +36,7 @@
           :placeholder="$t('menu.login.form.loginName')"
           size="large"
           class="login-input"
+          @keydown.enter="handleKoiLogin"
         >
           <template #prefix>
             <el-icon :size="16"><User /></el-icon>
@@ -50,6 +52,7 @@
           show-password
           size="large"
           class="login-input"
+          @keydown.enter="handleKoiLogin"
         >
           <template #prefix>
             <el-icon :size="16"><Lock /></el-icon>
@@ -120,7 +123,7 @@
           class="login-btn w-100% tracking-4px"
           size="large"
           :loading="loading"
-          v-throttle:3000="handleKoiLogin"
+          @click="handleKoiLogin"
         >
           {{ loading ? $t("menu.login.loading") : $t("menu.login.in") }}
         </el-button>
@@ -156,20 +159,31 @@ import { useI18n } from "vue-i18n";
 import ReOtpDialog from "./ReOtpDialog.vue";
 import ReSliderVerify from "./ReSliderVerify.vue";
 
-defineProps<{
-  /** 是否显示移动端品牌 Logo */
-  showMobileBrand?: boolean;
-  /** 样式主题额外 class */
-  formClass?: string;
-}>();
+withDefaults(
+  defineProps<{
+    /** 是否显示移动端品牌 Logo */
+    showMobileBrand?: boolean;
+    /** 是否显示「账号密码登录」标题（页面自带标题时传 false，避免重复） */
+    showHeader?: boolean;
+    /** 样式主题额外 class */
+    formClass?: string;
+  }>(),
+  {
+    showHeader: true,
+  },
+);
 
 const { t } = useI18n();
 // loginConfig 跟随 getConfig().login 响应式变化；loadDefaultSetting() 后自动同步
 const loginConfig = toRef(getConfig(), "login");
 // 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL），为空时回退内置 logo
-const resolvedLogoUrl = computed(() =>
-  loginConfig.value.logoUrl ? resolveAssetUrl(loginConfig.value.logoUrl) : fallbackLogoUrl
-);
+const resolvedLogoUrl = computed(() => {
+  const custom = loginConfig.value.logoUrl;
+  if (custom && typeof custom === "string" && custom.trim() && !custom.includes("null")) {
+    return resolveAssetUrl(custom);
+  }
+  return fallbackLogoUrl;
+});
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const tabsStore = useTabsStore();
@@ -206,7 +220,7 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
     { required: true, message: t("menu.login.rules.loginName.required"), trigger: "blur" },
     {
       validator: (_rule: any, value: any, callback: any) => {
-        if (!/^[a-zA-Z0-9]+$/.test(value)) {
+        if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
           callback(new Error(t("menu.login.rules.loginName.validator")));
         } else {
           callback();
@@ -218,16 +232,6 @@ const loginRules: any = reactive<FormRules<ILoginUser>>({
   password: [
     { required: true, message: t("menu.login.rules.password.required"), trigger: "blur" },
     { min: 6, max: 20, message: t("menu.login.rules.password.validator1"), trigger: "blur" },
-    {
-      validator: (_rule: any, value: any, callback: any) => {
-        if (!/^(?=.*\d)(?=.*[a-zA-Z]).+$/.test(value)) {
-          callback(new Error(t("menu.login.rules.password.validator2")));
-        } else {
-          callback();
-        }
-      },
-      trigger: "blur"
-    }
   ],
 });
 
@@ -299,11 +303,7 @@ const handleKoiLogin = () => {
       msgError(t("msg.validFail"));
       return;
     }
-    // OTP 开启：弹出动态口令弹窗
-    if (loginConfig.value.otp) {
-      otpDialogRef.value?.open();
-      return;
-    }
+    // 不做前端全局预判：直接提交，由后端按该用户是否已绑定 TOTP 决定是否要求动态码
     await submitLogin("");
   });
 };
@@ -427,11 +427,18 @@ const submitLogin = async (otpCode: string) => {
   font-size: 16px;
   font-weight: 600;
   border-radius: 10px;
+  /* 登录页主按钮固定跟随主题主色（--el-color-primary）。
+     应用级 telemetry.css 会给 .el-button--primary 上自定义品牌渐变（--brand-gradient），
+     这里用高特异度 + !important 覆盖，保证登录页是主色纯蓝而不是品牌紫。 */
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%) !important;
+  border: none !important;
+  color: #fff !important;
   box-shadow: 0 4px 14px rgba(var(--el-color-primary-rgb), 0.35);
   transition: all 0.3s;
 
   &:hover {
     transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%) !important;
     box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.45);
   }
 

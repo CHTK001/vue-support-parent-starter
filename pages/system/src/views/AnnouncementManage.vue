@@ -5,12 +5,13 @@
  * 维护 sys_announcement 表的公告数据，支持新增/编辑/发布/下架/删除。
  * 公告类型支持全局和指定角色，位置支持默认和固定顶部。
  */
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Bell, Plus, Edit, Delete, Search, Refresh, Upload, Download } from "@element-plus/icons-vue";
+import { ArrowRight, BellFilled, Clock } from "@element-plus/icons-vue";
 import { pageForAnnouncement, saveAnnouncement, updateAnnouncement, deleteAnnouncement, publishAnnouncement, unpublishAnnouncement } from "../api/announcementApi";
 import type { SysAnnouncement } from "../api/announcementApi";
-import { getAnnouncementReadStat, pageForAnnouncementReadUsers } from "../api/systemApi";
+import { getAnnouncementReadStat, pageForAnnouncementReadUsers, listForRole } from "../api/systemApi";
+import type { SysRole } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 
 const query = ref<{
@@ -21,7 +22,7 @@ const query = ref<{
   sysAnnouncementLevel?: string;
 }>({
   page: 1,
-  pageSize: 20,
+  pageSize: 10,
 });
 
 async function loadAnnouncements({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
@@ -29,7 +30,10 @@ async function loadAnnouncements({ page, pageSize, params }: ReTableLoadParams):
     page,
     pageSize,
     sysAnnouncementTitle: (params.sysAnnouncementTitle as string) || undefined,
-    sysAnnouncementStatus: (params.sysAnnouncementStatus as number) || undefined,
+    sysAnnouncementStatus:
+      params.sysAnnouncementStatus === "" || params.sysAnnouncementStatus === undefined
+        ? undefined
+        : (params.sysAnnouncementStatus as number),
     sysAnnouncementLevel: (params.sysAnnouncementLevel as string) || undefined,
   });
   const rows = (res?.data?.data ?? []) as Record<string, unknown>[];
@@ -51,13 +55,39 @@ const tableRef = ref();
 /** 已读统计缓存：id -> { readCount, unreadCount } */
 const readStatMap = ref<Record<number, { readCount: number; unreadCount: number }>>({});
 
-/** 是否定时发布开关 */
-const scheduledPublish = ref(false);
+/** 角色选项（用于「指定角色」定向） */
+const roleOptions = ref<SysRole[]>([]);
+/** 编辑表单中选中的目标角色ID列表 */
+const targetRoleIds = ref<number[]>([]);
+
+/** 加载角色选项 */
+async function loadRoles() {
+  try {
+    const res = await listForRole();
+    roleOptions.value = res?.data ?? [];
+  } catch {
+    roleOptions.value = [];
+  }
+}
+
+/** 解析后端存储的目标角色 JSON（形如 "[1,2]"），容错逗号分隔字符串 */
+function parseTargetRoles(raw?: string): number[] {
+  if (!raw) return [];
+  const text = String(raw).trim();
+  if (!text) return [];
+  try {
+    const arr = JSON.parse(text);
+    if (Array.isArray(arr)) return arr.map(Number).filter((n) => !Number.isNaN(n));
+  } catch {
+    /* fall through to comma split */
+  }
+  return text.split(/[,，]/).map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n));
+}
 
 /* ================== 已读用户抽屉 ================== */
 const readDrawerVisible = ref(false);
 const readDrawerLoading = ref(false);
-const readUsers = ref<Array<{ username?: string; readTime?: string }>>([]);
+const readUsers = ref<Array<{ sysUserName?: string; readTime?: string }>>([]);
 const readDrawerTitle = ref("");
 
 /** 已读用户列表 */
@@ -81,9 +111,27 @@ async function openReadUsers(row: SysAnnouncement) {
 }
 
 function handleReset() {
-  query.value = { page: 1, pageSize: 20 };
+  query.value = { page: 1, pageSize: 10 };
   tableRef.value?.reload();
 }
+
+/** 内置搜索区字段 */
+const searchFilters = computed(() => [
+  { key: 'sysAnnouncementTitle', label: '标题', type: 'input' as const, placeholder: '搜索标题' },
+  {
+    key: 'sysAnnouncementStatus', label: '状态', type: 'select' as const, placeholder: '全部',
+    options: [
+      { label: '草稿', value: 0 },
+      { label: '待发布', value: 3 },
+      { label: '已发布', value: 1 },
+      { label: '已下线', value: 2 },
+    ],
+  },
+  {
+    key: 'sysAnnouncementLevel', label: '级别', type: 'select' as const, placeholder: '全部',
+    options: levelOptions,
+  },
+]);
 
 const dialogVisible = ref(false);
 const saving = ref(false);
@@ -114,18 +162,50 @@ const statusMap: Record<number, string> = {
   3: "待发布",
 };
 
+/** 编辑弹窗中状态标签的配色（状态仅由发布/下架动作驱动，故只读展示） */
+function statusTagType(status?: number): "success" | "warning" | "info" {
+  if (status === 1) return "success";
+  if (status === 3) return "warning";
+  return "info";
+}
+
+/** 预览弹窗内级别标签配色 */
+function levelTagType(level?: string): "primary" | "warning" | "danger" {
+  if (level === "warning") return "warning";
+  if (level === "important" || level === "emergency") return "danger";
+  return "primary";
+}
+
+/** 级别文案 */
+function levelLabel(level?: string): string {
+  return levelOptions.find((o) => o.value === level)?.label ?? "-";
+}
+
+/** 位置文案 */
+function positionLabel(pos?: string): string {
+  return positionOptions.find((o) => o.value === pos)?.label ?? "-";
+}
+
+/** 类型文案 */
+function typeLabel(type?: string): string {
+  return typeOptions.find((o) => o.value === type)?.label ?? "-";
+}
+
 /** 预览弹窗 */
 const previewVisible = ref(false);
 const previewData = ref<SysAnnouncement | null>(null);
+/** 「查看详情」展开的附加信息 */
+const previewDetailExpanded = ref(false);
 
 function handlePreview(row: SysAnnouncement) {
   previewData.value = row;
+  previewDetailExpanded.value = false;
   previewVisible.value = true;
 }
 
 function handleAdd() {
   isEdit.value = false;
-  scheduledPublish.value = false;
+  targetRoleIds.value = [];
   form.value = {
     sysAnnouncementLevel: "info",
     sysAnnouncementPosition: "default",
@@ -137,12 +217,28 @@ function handleAdd() {
 
 async function handleEdit(row: SysAnnouncement) {
   isEdit.value = true;
-  scheduledPublish.value = Boolean(row.sysAnnouncementPublishTime);
+  targetRoleIds.value = parseTargetRoles(row.sysAnnouncementTargetRoles);
   form.value = { ...row };
   dialogVisible.value = true;
 }
 
 async function handleSave() {
+  // 基础校验
+  const title = (form.value.sysAnnouncementTitle ?? "").trim();
+  if (!title) {
+    ElMessage.warning("请输入公告标题");
+    return;
+  }
+  if (form.value.sysAnnouncementType === "role" && !targetRoleIds.value.length) {
+    ElMessage.warning("指定角色时请至少选择一个目标角色");
+    return;
+  }
+  // 序列化目标角色：指定角色且有选择时写 JSON 数组，否则置空
+  if (form.value.sysAnnouncementType === "role" && targetRoleIds.value.length) {
+    form.value.sysAnnouncementTargetRoles = JSON.stringify(targetRoleIds.value);
+  } else if (form.value.sysAnnouncementType === "global") {
+    form.value.sysAnnouncementTargetRoles = undefined;
+  }
   saving.value = true;
   try {
     if (isEdit.value) {
@@ -206,10 +302,12 @@ const columns: ReTableColumn[] = [
   { prop: "sysAnnouncementPublishTime", label: "发布时间", width: 160 },
   { prop: "sysAnnouncementExpireTime", label: "过期时间", width: 160 },
   { prop: "sysAnnouncementPublisherName", label: "发布人", width: 100 },
+  { prop: "action", label: "操作", slot: "action", fixed: "right", width: 240, align: "center" },
 ];
 
 onMounted(() => {
-  /* 挂载后自动加载 */
+  /* 挂载后加载角色选项（供指定角色定向使用）与公告数据 */
+  loadRoles();
 });
 </script>
 
@@ -217,124 +315,163 @@ onMounted(() => {
   <div class="system-page">
     <ReTable
       ref="tableRef"
-      :load="loadAnnouncements"
+      table-id="system-announcement"
+      :loader="loadAnnouncements"
       :columns="columns"
-      :query="query"
+      :pagination="true"
+      :params="{}"
       row-key="sysAnnouncementId"
-      stripe
+      v-model:page="query.page"
+      v-model:page-size="query.pageSize"
+      :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+      :search-gap="16"
+      v-model:search-model="query"
+      @search-reset="handleReset"
     >
-      <template #search>
-        <el-form-item label="标题">
-          <el-input v-model="query.sysAnnouncementTitle" placeholder="搜索标题" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.sysAnnouncementStatus" placeholder="全部" clearable style="width: 120px">
-            <el-option label="草稿" :value="0" />
-            <el-option label="待发布" :value="3" />
-            <el-option label="已发布" :value="1" />
-            <el-option label="已下线" :value="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="tableRef?.reload()">
-            <el-icon :size="14"><Search /></el-icon> 查询
-          </el-button>
-          <el-button @click="handleReset">
-            <el-icon :size="14"><Refresh /></el-icon> 重置
-          </el-button>
-        </el-form-item>
+
+      <template #toolbar>
+        <el-button type="primary" icon="Plus" @click="handleAdd" text></el-button>
       </template>
 
-      <template #actions>
-        <el-button type="primary" @click="handleAdd">
-          <el-icon :size="14"><Plus /></el-icon> 新增公告
-        </el-button>
-      </template>
-
-      <template #default="{ row }">
-        <el-button size="small" @click="handlePreview(row as SysAnnouncement)">预览</el-button>
-        <el-button size="small" type="info" @click="openReadUsers(row as SysAnnouncement)">已读详情</el-button>
-        <el-button size="small" @click="handleEdit(row as SysAnnouncement)">编辑</el-button>
-        <el-button v-if="row.sysAnnouncementStatus === 0" size="small" type="primary" @click="handlePublish(row as SysAnnouncement)">发布</el-button>
-        <el-button v-if="row.sysAnnouncementStatus === 1" size="small" warning @click="handleUnpublish(row as SysAnnouncement)">下架</el-button>
-        <el-button size="small" type="danger" @click="handleDelete(row as SysAnnouncement)">删除</el-button>
+      <template #action="{ row }">
+        <ReButton layout="square" icon="View" type="primary" title="预览" @click="handlePreview(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="DataAnalysis" type="info" title="已读详情" @click="openReadUsers(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="Edit" type="primary" title="编辑" v-admin @click="handleEdit(row as SysAnnouncement)" />
+        <ReButton v-if="row.sysAnnouncementStatus === 0" layout="square" icon="Promotion" type="success" title="发布" v-admin @click="handlePublish(row as SysAnnouncement)" />
+        <ReButton v-if="row.sysAnnouncementStatus === 1" layout="square" icon="Download" type="warning" title="下架" v-admin @click="handleUnpublish(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="Delete" type="danger" title="删除" v-admin @click="handleDelete(row as SysAnnouncement)" />
       </template>
     </ReTable>
 
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="700px" @confirm="handleSave" :confirm-loading="saving">
-      <el-form :model="form" label-width="100px" label-position="top">
-        <el-form-item label="公告标题" required>
-          <el-input v-model="form.sysAnnouncementTitle" placeholder="请输入公告标题" maxlength="200" show-word-limit />
-        </el-form-item>
-        <el-form-item label="内容">
-          <el-input v-model="form.sysAnnouncementContent" type="textarea" :rows="6" placeholder="请输入公告内容(支持HTML)" />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="级别">
-              <el-select v-model="form.sysAnnouncementLevel">
-                <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="位置">
-              <el-select v-model="form.sysAnnouncementPosition">
-                <el-option v-for="o in positionOptions" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="排序">
-              <el-input-number v-model="form.sysAnnouncementSort" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="类型">
-              <el-select v-model="form.sysAnnouncementType">
-                <el-option v-for="o in typeOptions" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="跳转链接">
-              <el-input v-model="form.sysAnnouncementTargetUrl" placeholder="可选" maxlength="500" show-word-limit />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="过期时间">
-              <el-date-picker v-model="form.sysAnnouncementExpireTime" type="datetime" placeholder="永不过期" style="width: 100%" value-format="YYYY-MM-DDTHH:mm:ss" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="状态">
-              <el-select v-model="form.sysAnnouncementStatus">
-                <el-option label="草稿" :value="0" />
-                <el-option label="待发布（到点自动发布）" :value="3" />
-                <el-option label="已发布" :value="1" />
-                <el-option label="已下线" :value="2" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="定时发布">
-              <el-switch v-model="scheduledPublish" />
-            </el-form-item>
-            <el-form-item v-if="scheduledPublish" label="发布时间">
-              <el-date-picker
-                v-model="form.sysAnnouncementPublishTime"
-                type="datetime"
-                placeholder="选择发布时间，留空立即发布"
-                style="width: 100%"
-                value-format="YYYY-MM-DDTHH:mm:ss"
+      <el-form :model="form" label-position="top" class="ann-form">
+        <!-- 编辑时：只读展示当前状态（状态由 发布/下架 动作控制） -->
+        <div v-if="isEdit" class="ann-form__status">
+          <span class="ann-form__status-label">当前状态</span>
+          <el-tag size="small" :type="statusTagType(form.sysAnnouncementStatus)">
+            {{ statusMap[form.sysAnnouncementStatus ?? 0] }}
+          </el-tag>
+        </div>
+
+        <!-- 分组：公告内容 -->
+        <section class="ann-form__section">
+          <h4 class="ann-form__section-title">公告内容</h4>
+          <el-form-item label="公告标题" required>
+            <el-input
+              v-model="form.sysAnnouncementTitle"
+              placeholder="请输入公告标题"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+          <el-form-item label="公告内容">
+            <el-input
+              v-model="form.sysAnnouncementContent"
+              type="textarea"
+              :rows="5"
+              placeholder="请输入公告内容（支持 HTML）"
+            />
+          </el-form-item>
+        </section>
+
+        <!-- 分组：展示与时效 -->
+        <section class="ann-form__section">
+          <h4 class="ann-form__section-title">展示与时效</h4>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="级别">
+                <el-select v-model="form.sysAnnouncementLevel" style="width: 100%">
+                  <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="展示位置">
+                <el-select v-model="form.sysAnnouncementPosition" style="width: 100%">
+                  <el-option v-for="o in positionOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="排序">
+                <el-input-number
+                  v-model="form.sysAnnouncementSort"
+                  :min="0"
+                  controls-position="right"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="过期时间">
+                <el-date-picker
+                  v-model="form.sysAnnouncementExpireTime"
+                  type="datetime"
+                  placeholder="永不过期"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </section>
+
+        <!-- 分组：可见范围与跳转 -->
+        <section class="ann-form__section">
+          <h4 class="ann-form__section-title">可见范围与跳转</h4>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="可见类型">
+                <el-select v-model="form.sysAnnouncementType" style="width: 100%">
+                  <el-option v-for="o in typeOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="跳转链接">
+                <el-input
+                  v-model="form.sysAnnouncementTargetUrl"
+                  placeholder="可选，点击标题跳转"
+                  maxlength="500"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item v-if="form.sysAnnouncementType === 'role'" label="目标角色" required>
+            <el-select
+              v-model="targetRoleIds"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="选择可见该公告的角色"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="r in roleOptions"
+                :key="r.sysRoleId"
+                :label="r.sysRoleName || r.sysRoleCode"
+                :value="r.sysRoleId"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </el-select>
+          </el-form-item>
+        </section>
+
+        <!-- 分组：发布设置（仅草稿可设置定时发布） -->
+        <section v-if="!isEdit || form.sysAnnouncementStatus === 0" class="ann-form__section">
+          <h4 class="ann-form__section-title">发布设置</h4>
+          <el-form-item label="定时发布时间">
+            <el-date-picker
+              v-model="form.sysAnnouncementPublishTime"
+              type="datetime"
+              placeholder="留空则保存为草稿，需手动发布"
+              style="width: 100%"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+            />
+            <p class="ann-form__hint">选择未来时间后，系统将在该时间自动发布；留空则仅保存为草稿。</p>
+          </el-form-item>
+        </section>
       </el-form>
     </ReDialog>
 
@@ -342,22 +479,106 @@ onMounted(() => {
     <el-drawer v-model="readDrawerVisible" :title="readDrawerTitle" size="480px">
       <el-table v-loading="readDrawerLoading" :data="readUsers" border stripe size="small" style="width: 100%">
         <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="username" label="用户名" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="sysUserName" label="用户名" min-width="160" show-overflow-tooltip />
         <el-table-column prop="readTime" label="阅读时间" min-width="180" />
       </el-table>
       <p v-if="!readDrawerLoading && !readUsers.length" style="margin-top: 12px; color: var(--el-text-color-secondary); font-size: 13px">暂无已读用户</p>
     </el-drawer>
 
-    <!-- 公告预览弹窗（纯文本渲染，避免 XSS） -->
-    <ReDialog v-model="previewVisible" title="公告预览" width="640px" :footer-hidden="true">
-      <div v-if="previewData" class="announcement-preview">
-        <h2 class="announcement-preview__title">{{ previewData.sysAnnouncementTitle || "无标题" }}</h2>
-        <div class="announcement-preview__meta">
-          <span>级别：{{ levelOptions.find(o => o.value === previewData.sysAnnouncementLevel)?.label ?? "-" }}</span>
-          <span>状态：{{ statusMap[previewData.sysAnnouncementStatus ?? 0] ?? "-" }}</span>
-          <span>发布时间：{{ previewData.sysAnnouncementPublishTime || "未发布" }}</span>
+    <!-- 公告预览弹窗（参考 UI 图；纯文本渲染，避免 XSS） -->
+    <ReDialog
+      v-model="previewVisible"
+      class="ann-preview-dialog"
+      width="640px"
+      headless
+      :show-footer="false"
+      :footer-hidden="true"
+    >
+      <div v-if="previewData" class="ann-preview">
+        <!-- 头部：圆形图标 + 标题 -->
+        <header class="ann-preview__header">
+          <span class="ann-preview__icon">
+            <el-icon :size="22"><BellFilled /></el-icon>
+          </span>
+          <h3 class="ann-preview__heading">公告预览</h3>
+        </header>
+
+        <!-- 公告标题 -->
+        <h2 class="ann-preview__title">{{ previewData.sysAnnouncementTitle || "无标题" }}</h2>
+
+        <!-- 级别 / 状态 / 发布时间 -->
+        <div class="ann-preview__meta">
+          <div class="ann-preview__tags">
+            <ReTag
+              round
+              effect="plain"
+              :type="levelTagType(previewData.sysAnnouncementLevel)"
+            >
+              {{ levelLabel(previewData.sysAnnouncementLevel) }}
+            </ReTag>
+            <ReTag
+              round
+              effect="plain"
+              :type="statusTagType(previewData.sysAnnouncementStatus)"
+            >
+              {{ statusMap[previewData.sysAnnouncementStatus ?? 0] ?? "-" }}
+            </ReTag>
+          </div>
+          <span class="ann-preview__time">
+            <el-icon><Clock /></el-icon>
+            {{ previewData.sysAnnouncementPublishTime || "未发布" }}
+          </span>
         </div>
-        <div class="announcement-preview__content" v-html="previewData.sysAnnouncementContent || '（无内容）'"></div>
+
+        <div class="ann-preview__divider"></div>
+
+        <!-- 正文 -->
+        <div
+          class="ann-preview__content"
+          v-html="previewData.sysAnnouncementContent || '（无内容）'"
+        ></div>
+
+        <!-- 附加信息（「查看详情」展开） -->
+        <dl v-if="previewDetailExpanded" class="ann-preview__details">
+          <div class="ann-preview__detail">
+            <dt>位置</dt>
+            <dd>{{ positionLabel(previewData.sysAnnouncementPosition) }}</dd>
+          </div>
+          <div class="ann-preview__detail">
+            <dt>类型</dt>
+            <dd>{{ typeLabel(previewData.sysAnnouncementType) }}</dd>
+          </div>
+          <div class="ann-preview__detail">
+            <dt>发布人</dt>
+            <dd>{{ previewData.sysAnnouncementPublisherName || "-" }}</dd>
+          </div>
+          <div class="ann-preview__detail">
+            <dt>过期时间</dt>
+            <dd>{{ previewData.sysAnnouncementExpireTime || "-" }}</dd>
+          </div>
+        </dl>
+
+        <!-- 底部操作 -->
+        <footer class="ann-preview__footer">
+          <button
+            type="button"
+            class="ann-preview__link"
+            @click="previewDetailExpanded = !previewDetailExpanded"
+          >
+            <span>查看详情</span>
+            <el-icon><ArrowRight /></el-icon>
+          </button>
+          <div class="ann-preview__actions">
+            <ReButton class="ann-preview__btn-ghost" @click="previewVisible = false">关闭</ReButton>
+            <ReButton
+              type="primary"
+              class="ann-preview__btn-primary"
+              @click="previewVisible = false"
+            >
+              知道了
+            </ReButton>
+          </div>
+        </footer>
       </div>
     </ReDialog>
   </div>
@@ -365,7 +586,7 @@ onMounted(() => {
 
 <style scoped>
 .system-page {
-  padding: 16px;
+  padding: 0;
 }
 
 .system-page__header {
@@ -390,27 +611,259 @@ onMounted(() => {
   margin: 0;
 }
 
-.announcement-preview {
-  &__title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 12px;
-  }
-  &__meta {
+.ann-form {
+  &__status {
     display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    padding-bottom: 12px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin-bottom: 18px;
+    background: var(--el-fill-color-light);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--el-border-radius-base);
   }
-  &__content {
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.7;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
+  &__status-label {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
+  &__section {
+    padding: 0;
+  }
+  &__section + &__section {
+    margin-top: 6px;
+    padding-top: 18px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+  &__section-title {
+    display: flex;
+    align-items: center;
+    margin: 0 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 3px;
+      height: 13px;
+      margin-right: 8px;
+      border-radius: 2px;
+      background: var(--el-color-primary);
+    }
+  }
+  &__hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--el-text-color-secondary);
+  }
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+  :deep(.el-form-item:last-child) {
+    margin-bottom: 0;
+  }
+}
+
+/* ==================== 公告预览弹窗 ==================== */
+.ann-preview {
+  padding: 22px 24px 20px;
+}
+
+.ann-preview__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 44px; /* 给右上角关闭圆钮留位 */
+}
+
+.ann-preview__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-color-white);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+}
+
+.ann-preview__heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.ann-preview__title {
+  margin: 18px 0 16px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--el-text-color-primary);
+}
+
+.ann-preview__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ann-preview__tags {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ann-preview__time {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.ann-preview__divider {
+  height: 1px;
+  margin-bottom: 16px;
+  background: var(--el-border-color-lighter);
+}
+
+.ann-preview__content {
+  padding: 18px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-primary-light-9);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ann-preview__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-light);
+}
+
+.ann-preview__detail {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ann-preview__detail dt {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.ann-preview__detail dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ann-preview__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.ann-preview__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s);
+}
+
+.ann-preview__link:hover {
+  color: var(--el-color-primary-dark-2);
+}
+
+.ann-preview__actions {
+  display: inline-flex;
+  gap: 10px;
+}
+
+.ann-preview__actions :deep(.ann-preview__btn-ghost) {
+  height: 36px;
+  padding: 0 22px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-weight: 600;
+}
+
+.ann-preview__actions :deep(.ann-preview__btn-primary) {
+  height: 36px;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info))
+  );
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+}
+
+.ann-preview__actions :deep(.ann-preview__btn-primary:hover) {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3),
+    var(--el-color-primary)
+  );
+}
+
+@media (max-width: 640px) {
+  .ann-preview__meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ann-preview__details {
+    grid-template-columns: 1fr;
   }
 }
 </style>
+
+<!-- 预览弹窗为 headless（teleport 到 body），弹窗外壳样式需非 scoped -->
+<style>
+.ann-preview-dialog {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--el-dialog-border-radius, var(--el-radius-xl, 16px));
+}
+</style>
+

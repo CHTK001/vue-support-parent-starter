@@ -3,6 +3,7 @@
  */
 
 import type { ISODateString } from './common'
+import type { TraceEntry } from './service'
 
 /**
  * 消息角色类型
@@ -48,6 +49,8 @@ export interface MessageContent {
     _thinkingTimer?: number
     isCurrent?: boolean
     files?: FileAttachment[]
+    /** 执行轨迹日志（agentscope thinking/输出/轮次/工具/用量/边缘），仅本次会话展示 */
+    traceLog?: TraceEntry[]
 }
 
 /**

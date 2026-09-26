@@ -96,18 +96,20 @@ const handleSave = async (): Promise<void> => {
     try {
         const data = settingPanelRef.value.getFormData();
         let character: any = null;
+        let characterId: any = currentCharacter.value?.id ?? null;
         const { avatarFile, avatarUrl: _avatarUrl, ...characterData } = data;
 
-        if (currentCharacter.value && currentCharacter.value.id) {
-            const response = await apiService.updateCharacter(currentCharacter.value.id, characterData);
-            character = response;
+        if (characterId) {
+            // 更新接口返回 boolean（非实体），不能依赖其返回 id
+            await apiService.updateCharacter(characterId, characterData);
+            character = { ...currentCharacter.value, ...characterData, id: characterId };
         } else {
-            const response = await apiService.createCharacter(characterData);
-            character = response;
+            character = await apiService.createCharacter(characterData);
+            characterId = character?.id ?? null;
         }
 
-        if (character && avatarFile) {
-            const response = await apiService.uploadAvatar(character['id'], avatarFile);
+        if (avatarFile && characterId) {
+            const response = await apiService.uploadAvatar(characterId, avatarFile);
             character.avatarUrl = response.url;
             settingPanelRef.value.clearAvatarFile();
         }

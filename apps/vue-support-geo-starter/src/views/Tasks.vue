@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="tasks-actions">
         <el-button :icon="'Refresh'" :loading="loading" @click="refresh">刷新</el-button>
-        <el-button type="primary" :icon="'Plus'" @click="goWorkspace">新建任务</el-button>
+        <el-button type="primary" :icon="'Plus'" @click="goWorkspace" text>新建任务</el-button>
       </div>
     </div>
 

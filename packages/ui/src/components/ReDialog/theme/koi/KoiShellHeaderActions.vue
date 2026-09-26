@@ -2,18 +2,18 @@
   <div class="koi-shell-header-actions">
     <el-tooltip v-if="showMinimize" content="最小化" placement="bottom">
       <button type="button" class="koi-toolbar-btn" @click="$emit('minimize')">
-        <el-icon size="18"><Minus /></el-icon>
+        <el-icon size="14"><Minus /></el-icon>
       </button>
     </el-tooltip>
     <el-tooltip v-if="showFullscreen" :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
       <button type="button" class="koi-toolbar-btn" @click="$emit('toggleFullscreen')">
-        <el-icon size="18" v-if="!isFullscreen"><FullScreen /></el-icon>
-        <el-icon size="18" v-else><Aim /></el-icon>
+        <el-icon size="14" v-if="!isFullscreen"><FullScreen /></el-icon>
+        <el-icon size="14" v-else><Aim /></el-icon>
       </button>
     </el-tooltip>
     <el-tooltip content="关闭" placement="bottom">
       <button type="button" class="koi-toolbar-btn koi-toolbar-btn--close" @click="$emit('close')">
-        <el-icon size="18"><Close /></el-icon>
+        <el-icon size="14"><Close /></el-icon>
       </button>
     </el-tooltip>
   </div>
@@ -50,9 +50,9 @@ defineEmits<{
 .koi-shell-header-actions {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: 8px;
 }
 
 .koi-toolbar-btn {
@@ -60,13 +60,13 @@ defineEmits<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   color: var(--el-text-color-regular);
   cursor: pointer;
   user-select: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--el-fill-color-light);
   transition: all 0.2s ease;
 
@@ -85,7 +85,7 @@ defineEmits<{
   }
 
   :deep(.el-icon) {
-    font-size: 16px;
+    font-size: 13px;
   }
 }
 </style>

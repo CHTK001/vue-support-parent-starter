@@ -46,12 +46,19 @@
 
         <div v-if="questions.length" class="space-y-2">
           <div class="text-xs text-gray-500">解析题目（{{ questions.length }} 题）</div>
-          <el-table :data="questions" border stripe size="small">
-            <el-table-column type="index" label="#" width="50" />
-            <el-table-column prop="questionType" label="题型" width="130" />
-            <el-table-column prop="stem" label="题干" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="answer" label="答案" width="100" />
-          </el-table>
+          <ReTable
+            :data="questions"
+            border
+            stripe
+            size="small"
+            :toolbar="false"
+            :pagination="false"
+          >
+            <ReTableColumn type="index" label="#" width="50" />
+            <ReTableColumn prop="questionType" label="题型" width="130" />
+            <ReTableColumn prop="stem" label="题干" min-width="200" show-overflow-tooltip />
+            <ReTableColumn prop="answer" label="答案" width="100" />
+          </ReTable>
         </div>
 
         <div v-if="scanRecord.status === 2 && questions.length" class="flex gap-3 mt-4">

@@ -1,0 +1,220 @@
+/* ============================================
+   全局现代化统一视觉层（扁平化 / 圆角 / 柔和）
+   仅基于项目 CSS 变量，自动适配手动配色与深色主题；
+   各页面 scoped 样式特异度更高，可覆盖本层。
+   ============================================ */
+
+:root {
+  --mp-radius-sm: 9px;
+  --mp-radius: 11px;
+  --mp-radius-lg: 14px;
+  --mp-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --mp-shadow-pop: 0 10px 30px -10px rgba(16, 24, 40, 0.22);
+}
+html.dark {
+  --mp-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --mp-shadow-pop: 0 14px 36px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- @repo/ui 现代组件的设计令牌重映射 ----------
+   ReSelect 等组件的 modern 布局读 --rm-*（packages/ui/.../shared/modern-vars.css），
+   其默认值是组件库内置的 indigo 色板，与本应用的 koi / Element Plus 主题不一致。
+   这里把 --rm-* 统一桥接到 --el-* 与 --mp-radius*，使组件跟随应用主题；
+   定义在 :root 而非某个容器上，是因为 select 的弹层默认 teleport 到 body，
+   只写在容器里会拿不到覆盖值（弹层仍是 indigo）。
+   深色下必须用 html.dark（特异度高于 modern-vars.css 的 .dark），否则被其反向覆盖。 */
+/* 用 html:root（特异度 0,1,1）而非 :root（0,1,0）——modern-vars.css 的 :root 与本文件
+   同为 (0,1,0)，谁生效取决于打包后的 CSS 顺序，实测会被它压掉；html:root 同时高于
+   它的 .dark（0,1,0），因此深浅色都不再被反向覆盖。 */
+html:root {
+  --rm-primary: var(--el-color-primary);
+  --rm-primary-hover: var(--el-color-primary-dark-2);
+  --rm-primary-light-9: var(--el-color-primary-light-9);
+  --rm-bg: var(--el-bg-color-overlay);
+  --rm-bg-hover: var(--el-fill-color-light);
+  --rm-bg-subtle: var(--el-fill-color-lighter);
+  --rm-bg-disabled: var(--el-fill-color-light);
+  --rm-bg-overlay: var(--el-bg-color-overlay);
+  --rm-border: var(--el-border-color-light);
+  --rm-border-light: var(--el-border-color-lighter);
+  --rm-border-hover: var(--el-border-color);
+  --rm-border-focus: var(--el-color-primary);
+  --rm-text: var(--el-text-color-primary);
+  --rm-text-regular: var(--el-text-color-regular);
+  --rm-text-secondary: var(--el-text-color-regular);
+  --rm-text-disabled: var(--el-text-color-disabled);
+  --rm-text-white: var(--el-color-white);
+  --rm-radius-sm: var(--mp-radius-sm);
+  --rm-radius: var(--mp-radius);
+  --rm-radius-md: var(--mp-radius);
+  --rm-radius-lg: var(--mp-radius-lg);
+  --rm-radius-xl: var(--mp-radius-lg);
+  --rm-shadow-lg: var(--mp-shadow-pop);
+}
+
+/* ---------- 按钮 ---------- */
+.el-button {
+  border-radius: var(--mp-radius);
+  font-weight: 500;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.el-button:focus-visible { box-shadow: 0 0 0 3px var(--el-color-primary-light-9); }
+.el-button--default {
+  background: var(--color-surface);
+  border-color: var(--color-surface-border);
+  color: var(--color-text);
+}
+.el-button--default:hover,
+.el-button--default:focus {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+.el-button.is-text,
+.el-button.is-link { box-shadow: none; }
+
+/* ---------- 输入 / 文本域 / 选择器 ---------- */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: var(--mp-radius);
+  transition: box-shadow 0.18s ease;
+}
+.el-input__wrapper,
+.el-select__wrapper {
+  box-shadow: 0 0 0 1px var(--color-surface-border) inset;
+}
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px var(--color-surface-border);
+}
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+}
+.el-textarea__inner:hover { border-color: var(--el-border-color); }
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow:
+    0 0 0 1px var(--el-color-primary) inset,
+    0 0 0 3px var(--el-color-primary-light-9);
+}
+.el-textarea__inner:focus {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px var(--el-color-primary-light-9);
+}
+
+/* ---------- 卡片 ---------- */
+.el-card {
+  border-radius: var(--mp-radius-lg);
+  border-color: var(--color-surface-border);
+  box-shadow: var(--mp-shadow);
+}
+
+/* ---------- 对话框 / 抽屉 / 消息框 ---------- */
+.el-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--mp-shadow-pop);
+}
+.el-message-box {
+  border-radius: var(--mp-radius-lg);
+  box-shadow: var(--mp-shadow-pop);
+}
+.el-drawer.rtl,
+.el-drawer.ltr { border-radius: 0; }
+.el-drawer__header { margin-bottom: 0; padding: 18px 20px; }
+
+/* ---------- 浮层 / 下拉菜单 ---------- */
+.el-popper.is-light {
+  border-radius: var(--mp-radius);
+  border-color: var(--color-surface-border);
+  box-shadow: var(--mp-shadow-pop);
+}
+.el-select__popper.el-popper.is-light,
+.el-dropdown { border-radius: var(--mp-radius); }
+.el-select-dropdown,
+.el-dropdown-menu {
+  border-radius: var(--mp-radius);
+  padding: 4px;
+}
+.el-select-dropdown__item,
+.el-dropdown-menu__item {
+  border-radius: var(--mp-radius-sm);
+}
+
+/* ReSelect 弹层（@repo/ui）：触发栏走组件自带样式，弹层这里统一到应用圆角与阴影，
+   否则弹层是 Element Plus 默认的 4px 直角观感，与 11px 的选项圆角不搭。
+   弹层 teleport 到 body，必须用全局选择器（组件 scoped 的 :deep 覆盖不到）。
+   注意不能用 popper-class 定点：ReSelect 内部在 v-bind="$attrs" 之后又硬编码了
+   :popper-class，会把外部传入的值覆盖掉。 */
+.el-select__popper .el-select-dropdown {
+  border-radius: var(--mp-radius);
+}
+.el-select__popper {
+  border-radius: var(--mp-radius);
+  border-color: var(--el-border-color-light);
+  box-shadow: var(--mp-shadow-pop);
+}
+/* 两行选项（名称 + 说明）需要放开 EP 写死的 34px 行高 */
+.el-select__popper .el-select-dropdown__item:has(.opt-two-line) {
+  height: auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  margin: 2px 4px;
+  line-height: 1.4;
+}
+/* 弹层里的两行选项排版（类名由业务侧定义，全局可用） */
+.el-select__popper .opt-two-line { display: flex; flex-direction: column; gap: 1px; }
+.el-select__popper .opt-main { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); }
+.el-select__popper .opt-sub { font-size: 11px; color: var(--el-text-color-regular); }
+.el-select__popper .el-select-dropdown__item.is-selected .opt-main { color: var(--el-color-primary); }
+
+/* ---------- 表格 ---------- */
+.el-table {
+  --el-table-border-color: var(--color-surface-border);
+  --el-table-header-bg-color: var(--el-fill-color-light);
+  border-radius: var(--mp-radius-lg);
+}
+.el-table th.el-table__cell {
+  background: var(--el-fill-color-light) !important;
+  color: var(--color-text-gray);
+  font-weight: 600;
+}
+.el-table__body tr:hover > td.el-table__cell {
+  background: var(--el-color-primary-light-9) !important;
+}
+
+/* ---------- 标签页 ---------- */
+.el-tabs__item { font-weight: 500; }
+.el-tabs__active-bar {
+  height: 2.5px;
+  border-radius: 2px;
+}
+
+/* ---------- 标签 ---------- */
+.el-tag {
+  border-radius: var(--mp-radius-sm);
+  font-weight: 500;
+}
+
+/* ---------- 开关 ---------- */
+.el-switch__core { transition: background-color 0.2s ease, border-color 0.2s ease; }
+
+/* ---------- 分页 ---------- */
+.el-pagination { --el-pagination-button-bg-color: transparent; }
+.el-pagination .btn-prev,
+.el-pagination .el-pager li { border-radius: var(--mp-radius-sm); }
+
+/* ---------- 描述列表 / 分割线 ---------- */
+.el-descriptions { border-radius: var(--mp-radius-lg); overflow: hidden; }
+.el-divider { border-color: var(--color-surface-border); }
+
+/* ---------- 进度条 ---------- */
+.el-progress-bar__outer { border-radius: 999px; }
+
+/* ---------- 加载遮罩 ---------- */
+.el-loading-mask { backdrop-filter: blur(2px); }

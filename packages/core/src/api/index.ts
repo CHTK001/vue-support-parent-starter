@@ -10,6 +10,7 @@ import type { Http } from "@repo/utils";
 import { createHttp } from "@repo/utils";
 import { getMenuCache, setMenuCache, getLayoutCache, setLayoutCache } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { log } from "@repo/utils";
 
 /** http 单例（由 createApp 注入） */
 let httpInstance: Http | null = null;
@@ -127,23 +128,51 @@ export function getDefaultSetting() {
     .then<ApiResult<SettingItem[]>>((r) => r.data);
 }
 
+/** 发送短信验证码（body: { phone, bizType }） */
+export function sendSmsCode(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post(getConfig().url.smsSend)
+    .data(data)
+    .then<ApiResult<unknown>>((r) => r.data);
+}
+
+/** 短信验证码登录（body: { phone, code }） */
+export function smsLogin(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post(getConfig().url.smsLogin)
+    .data(data)
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
+/** 发送邮箱验证码（body: { email, bizType }） */
+export function sendEmailCode(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post(getConfig().url.emailSend)
+    .data(data)
+    .then<ApiResult<unknown>>((r) => r.data);
+}
+
+/** 邮箱验证码登录（body: { email, code }） */
+export function emailLogin(data: Record<string,unknown>) {
+  return getApiHttp()
+    .post(getConfig().url.emailLogin)
+    .data(data)
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
 /**
- * 获取远程菜单（cache-aside + 并发去重）
+ * 获取远程菜单（并发去重 + 网络优先 + 缓存兜底）
  *
  * 策略：
- *   1. 先读 storage 缓存（getMenuCache），有直接返回，避免刷新 / 重复进入反复请求；
- *   2. 缓存未命中且已有「进行中请求」时复用同一 Promise，避免登录/导航并发触发时
- *      在缓存写回前重复请求 /v2/user/menu；
- *   3. 请求成功且返回数组时写回缓存。
- * 登出 / 强制重登时由 clearAuthCache() 静默清除缓存，下次登录重新拉取。
+ *   1. 每次应用初始化都请求 `/v2/user/menu`，避免菜单结构或角色授权调整后长期命中旧缓存；
+ *   2. 同一批并发调用复用进行中的请求，避免登录/导航重复拉取；
+ *   3. 请求成功且返回非空数组时写回用户级缓存；请求失败时回退最近一次成功缓存；
+ *   4. 确认无菜单的 `[]` 不写缓存，角色后续被授权菜单时下次启动即可生效。
+ * 登出 / 强制重登时由 clearAuthCache() 静默清除缓存，避免跨账号串数据。
  */
 let menuRequestPromise: Promise<ApiResult<unknown[]>> | null = null;
 
 export function getMenu(params?: Record<string, unknown>): Promise<ApiResult<unknown[]>> {
-  const cached = getMenuCache();
-  if (cached) {
-    return Promise.resolve({ data: cached });
-  }
   if (menuRequestPromise) {
     return menuRequestPromise;
   }
@@ -154,18 +183,21 @@ export function getMenu(params?: Record<string, unknown>): Promise<ApiResult<unk
         req.query(params);
       }
       const res = await req.then<ApiResult<unknown[]>>((r) => r.data);
-      // 仅成功响应才缓存菜单；登录前（未带 token）的 403 响应 data 可能为空数组，
-      // 若不排除会缓存空菜单导致登录后无法重新拉取
       const ok = (res as unknown as { success?: boolean; ok?: boolean })?.success;
-      if (ok !== false && Array.isArray(res?.data)) {
+      if (ok !== false && Array.isArray(res?.data) && res.data.length > 0) {
         setMenuCache(res.data);
       }
       return res;
-    } catch (e) {
-      // 请求失败（如未登录 403 时 axios reject）必须重置 promise，
-      // 否则登录后 getMenu() 会复用失败的请求导致菜单始终拉取不到
+    } catch (error) {
+      const cached = getMenuCache();
+      if (cached) {
+        log.warn("[api] 远程菜单请求失败，已回退本地缓存", error);
+        return { data: cached };
+      }
+      throw error;
+    } finally {
+      // promise 只用于「同一批并发请求」去重，settle 后必须释放；
       menuRequestPromise = null;
-      throw e;
     }
   })();
   return menuRequestPromise;
@@ -247,5 +279,6 @@ export function saveLayout(data: UserLayoutData) {
 
 export * from "./stationMessage";
 export * from "./backendProbe";
+export * from "./capability";
 export * from "./weather";
 export * from "./typhoon";

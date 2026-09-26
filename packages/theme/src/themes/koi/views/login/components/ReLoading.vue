@@ -1,7 +1,7 @@
 <template>
   <div>
     <transition name="el-fade-in-linear">
-      <div class="loading-box" :transition-style="loading ? '' : 'out:circle:center'">
+      <div v-show="loading" class="loading-box">
         <div class="loading">
           <span :style="`--i: ${i}`" v-for="i in 7"></span>
         </div>

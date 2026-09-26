@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getMonitors, saveMonitor, delMonitor } from '../api'
+import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
 interface Asset {
   id: number

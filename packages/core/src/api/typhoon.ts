@@ -15,27 +15,38 @@
 import { log } from "@repo/utils";
 import { http } from "./index";
 import { probeBackend } from "./backendProbe";
+import { TYPHOON_ACTIVE_PATH, TYPHOON_DETAIL_PATH } from "./capability";
 import type { ApiResult } from "./index";
-
-/** 后台活跃台风列表接口 */
-export const TYPHOON_ACTIVE_PATH = "/v2/typhoon/active";
-
-/** 后台单台风详情接口 */
-export const TYPHOON_DETAIL_PATH = "/v2/typhoon/detail";
 
 /** 台风列表项（本系统契约） */
 export interface TyphoonItem {
   /** 台风编号 */
   id: string;
   name?: string;
+  /** 英文名（如 SURIGAE） */
+  enname?: string;
   /** 强度等级中文名（如"台风""强台风"） */
   strong?: string;
   lat?: number;
   lng?: number;
   /** 观测时间 */
   time?: string;
+  /** 报文时间文本（如 "9月24日8时"） */
+  timeformate?: string;
+  /** 中心风速 */
   speed?: number;
+  /** 中心气压（hPa） */
   pressure?: number;
+  /** 中心风力等级（如 8） */
+  power?: number;
+  /** 预警级别（蓝色/黄色/橙色/红色；数据源未发布预警时缺省） */
+  warnlevel?: string;
+  /** 移动方向（如"西北偏西"） */
+  movedirection?: string;
+  /** 移动速度（km/h） */
+  movespeed?: number;
+  /** 预计影响时段（如"今明两天"；数据源未提供时 UI 回退展示移动信息） */
+  impact?: string;
   /** 数据来源：backend / zhejiang-slt-direct */
   source?: string;
 }
@@ -51,6 +62,8 @@ export interface TrackPoint {
   /** 不对称风圈半径（公里），四方位：[东北, 东南, 西南, 西北] */
   r7?: [number, number, number, number];
   r10?: [number, number, number, number];
+  /** 十二级风圈半径（公里），四方位；源未发布该级别时缺省 */
+  r12?: [number, number, number, number];
 }
 
 /** 单条预报通道（本系统契约） */
@@ -65,6 +78,8 @@ export interface TyphoonDetail {
   id: string;
   name?: string;
   strong?: string;
+  /** 预警级别（white/blue/yellow/orange/red 或中文；未发布预警时缺省） */
+  warnlevel?: string;
   path: TrackPoint[];
   forecast: TyphoonForecastTrack[];
   source?: string;
@@ -127,7 +142,7 @@ async function fetchJson(candidates: string[], path: string): Promise<unknown> {
  */
 export function pickRadii(
   p: Record<string, unknown>,
-  level: "7" | "10",
+  level: "7" | "10" | "12",
 ): [number, number, number, number] | undefined {
   const raw = p?.[`radius${level}`] ?? p?.[`r${level}`];
 
@@ -199,6 +214,7 @@ type RawTyphoonItem = Record<string, unknown> & {
   id?: string;
   name?: string;
   typhoonName?: string;
+  enname?: string;
   strong?: string;
   level?: string;
   lat?: number | string;
@@ -211,8 +227,14 @@ type RawTyphoonItem = Record<string, unknown> & {
   uptime?: string;
   updateTime?: string;
   datetime?: string;
+  timeformate?: string;
   speed?: number | string;
   pressure?: number | string;
+  power?: number | string;
+  warnlevel?: string | null;
+  movedirection?: string;
+  movespeed?: number | string;
+  impact?: string;
 };
 
 /** 三方单台风详情原始结构 */
@@ -221,6 +243,8 @@ interface RawTyphoonDetail {
   id?: string;
   name?: string;
   typhoonName?: string;
+  /** 预警级别（浙水利详情顶层返回，如 white） */
+  warnlevel?: string;
   points?: Record<string, unknown>[];
   [key: string]: unknown;
 }
@@ -243,6 +267,7 @@ function toTrackPoint(p: Record<string, unknown>): TrackPoint {
     pressure: numOr(p.pressure),
     r7: pickRadii(p, "7"),
     r10: pickRadii(p, "10"),
+    r12: pickRadii(p, "12"),
   };
 }
 
@@ -282,6 +307,7 @@ function toTyphoonDetail(raw: RawTyphoonDetail, fallbackId: string): TyphoonDeta
     id: String(raw.tfid ?? raw.id ?? fallbackId),
     name: raw.name ?? raw.typhoonName ?? "",
     strong: (points[0]?.strong as string) ?? "",
+    warnlevel: String(raw.warnlevel ?? "").trim() || undefined,
     path,
     forecast,
     source: "zhejiang-slt-direct",
@@ -321,12 +347,19 @@ export async function getActiveTyphoonList(): Promise<TyphoonItem[]> {
         return {
           id: String(t.tfid ?? t.id ?? ""),
           name: t.name ?? t.typhoonName ?? "",
+          enname: t.enname || undefined,
           strong: t.strong ?? t.level ?? "",
           lat: numOr(t.lat ?? t.latitude ?? t.latNorth),
           lng: numOr(t.lng ?? t.longitude ?? t.lon),
           time: canonTime(t.time ?? t.uptime ?? t.updateTime ?? t.datetime ?? ""),
+          timeformate: t.timeformate || undefined,
           speed: numOr(t.speed),
           pressure: numOr(t.pressure),
+          power: numOr(t.power),
+          warnlevel: typeof t.warnlevel === "string" && t.warnlevel ? t.warnlevel : undefined,
+          movedirection: t.movedirection || undefined,
+          movespeed: numOr(t.movespeed),
+          impact: t.impact || undefined,
           source: "zhejiang-slt-direct",
         };
       })

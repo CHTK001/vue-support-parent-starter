@@ -1,5 +1,19 @@
 import type { ReTableColumnStorage } from "./columnStorage";
 
+/**
+ * 行内编辑 select 可用的选项值类型。
+ *
+ * <p>与 {@link ReTableColumn.editOptions} 的 value 保持一致，取 Element Plus
+ * {@code el-option} / {@code el-select} 接受的取值范围。</p>
+ */
+export type EditOptionValue =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>
+  | Array<unknown>
+  | undefined;
+
 /** ReTable 列定义 */
 export interface ReTableColumn {
   /** 字段名（对应行数据的属性） */
@@ -8,8 +22,10 @@ export interface ReTableColumn {
   label: string;
   /** 列宽 */
   width?: string | number;
-  /** 最小宽度 */
+  /** 最小宽度（拖拽列宽时的下限） */
   minWidth?: string | number;
+  /** 最大宽度（拖拽列宽时的上限）；不传表示不限 */
+  maxWidth?: string | number;
   /** 固定列 */
   fixed?: boolean | "left" | "right";
   /** 对齐方式 */
@@ -28,8 +44,14 @@ export interface ReTableColumn {
   editable?: boolean;
   /** 编辑类型：text / number / select / date */
   editType?: "text" | "number" | "select" | "date";
-  /** 编辑选项（editType='select' 时生效） */
-  editOptions?: Array<{ label: string; value: unknown }>;
+  /**
+   * 编辑选项（editType='select' 时生效）
+   *
+   * <p>value 用 {@link EditOptionValue}：基础为 string / number / boolean，
+   * 另允许对象与数组以覆盖多选值等场景。用 unknown 会让 el-option 的 value 绑定
+   * 报 TS2322，故此处给出可赋值的宽类型。</p>
+   */
+  editOptions?: Array<{ label: string; value: EditOptionValue }>;
   /** 是否可拖拽调整列宽（默认 true，需 border 模式） */
   resizable?: boolean;
 }
@@ -97,8 +119,53 @@ export interface ReTableSettings {
   resizable?: boolean;
 }
 
-/** 表格布局模式 */
-export type ReTableLayout = "table" | "virtual" | "card" | "modern" | "canvas" | "radial";
+/** 表格布局模式：table（默认）/ view / card；modern / virtual / canvas / radial 已随功能下线移除 */
+export type ReTableLayout = "table" | "view" | "card";
+
+/** 布局切换器里可展示的布局（视图/卡片自带默认模板，调用方无需额外传模板） */
+export type ReTableSwitchLayout = Extract<ReTableLayout, "table" | "view" | "card">;
+
+/** 视图模式单个字段定义（默认模板用；也可整体用 #view 插槽替换） */
+export interface ReViewField {
+  /** 字段名（对应行数据的属性） */
+  prop: string;
+  /** 标签（省略则只显示值） */
+  label?: string;
+  /** 自定义渲染函数（返回字符串） */
+  render?: (row: Record<string, unknown>, value: unknown) => string;
+  /** 作为视图主标题（最多一个） */
+  title?: boolean;
+  /** 作为副标题（最多一个） */
+  desc?: boolean;
+  /** 作为标签徽标（可多个，渲染为一排 chip） */
+  tag?: boolean;
+  /** 字段值类型：text 默认；tag 走 chip 样式；time 走等宽数字 */
+  type?: "text" | "tag" | "time";
+  /** 固定宽度（px），用于数值列 */
+  width?: number;
+}
+
+/** 视图模式专属属性（CSS 类名前缀 layout-view） */
+export interface ReViewLayoutProps {
+  /** 视图内展示的字段；不传则用 columns 转视图字段 */
+  fields?: ReViewField[];
+  /** 自定义字段顺序的 prop 列表（默认 columns 顺序） */
+  fieldOrder?: string[];
+  /** 单条视图最小高度（px），默认 72 */
+  minHeight?: number;
+  /** 视图间距（px），默认 10 */
+  gap?: number;
+  /** 视图圆角（px），默认 12 */
+  radius?: number;
+  /** 是否显示序号（默认 true） */
+  showIndex?: boolean;
+  /** 序号起始值（配合分页，默认 1） */
+  indexStart?: number;
+  /** 悬浮高亮（默认 true） */
+  hoverable?: boolean;
+  /** 视图背景色（CSS color） */
+  background?: string;
+}
 
 /** 卡片模式单卡渲染字段定义 */
 export interface ReCardField {
@@ -110,6 +177,12 @@ export interface ReCardField {
   render?: (row: Record<string, unknown>, value: unknown) => string;
   /** 是否作为卡片的"标题"字段（用于卡片头部放大展示） */
   title?: boolean;
+  /** 是否作为"副标题"字段 */
+  desc?: boolean;
+  /** 是否作为标签徽标（渲染为一排 chip） */
+  tag?: boolean;
+  /** 字段值类型：text 默认；tag 走 chip 样式；time 走等宽数字 */
+  type?: "text" | "tag" | "time";
   /** 是否作为"封面图"字段（值为 url，渲染为 img） */
   cover?: boolean;
 }
@@ -136,20 +209,6 @@ export interface ReCardLayoutProps {
   fieldOrder?: string[];
 }
 
-/** 虚拟表格模式专属属性（CSS 类名前缀 layout-virtual） */
-export interface ReVirtualLayoutProps {
-  /** 行高（px），默认 50 */
-  rowHeight?: number;
-  /** 可见行数（不传则自动计算） */
-  visibleRows?: number;
-  /** 预估总行数（用于优化滚动条） */
-  estimatedRowHeight?: number;
-  /** 是否启用固定表头 */
-  fixedHeader?: boolean;
-  /** 表头高度（px），默认 50 */
-  headerHeight?: number;
-}
-
 /** 表格默认模式专属属性（CSS 类名前缀 layout-table） */
 export interface ReTableLayoutProps {
   /** el-table 原生 props 透传（已在 props 中直接接收） */
@@ -158,38 +217,6 @@ export interface ReTableLayoutProps {
   height?: string | number;
   /** 最大高度 */
   maxHeight?: string | number;
-}
-
-/** Canvas 表格模式专属属性（基于 AG Grid，CSS 类名前缀 layout-canvas） */
-export interface ReCanvasLayoutProps {
-  /** 行高（px），默认 40 */
-  rowHeight?: number;
-  /** 表头高度（px），默认 48 */
-  headerHeight?: number;
-  /** 表格高度（px 或 'auto'） */
-  height?: string | number;
-  /** 是否启用固定表头（默认 true） */
-  fixedHeader?: boolean;
-  /** 是否启用固定列（默认 false） */
-  fixedColumns?: boolean;
-  /** 是否显示边框（默认 true） */
-  bordered?: boolean;
-  /** 是否显示斑马纹（默认 false） */
-  striped?: boolean;
-  /** 是否启用行悬停高亮（默认 true） */
-  hoverable?: boolean;
-  /** 是否启用列宽拖拽调整（默认 true） */
-  resizable?: boolean;
-  /** 是否启用列排序（默认 true） */
-  sortable?: boolean;
-  /** 是否启用列筛选（默认 false） */
-  filterable?: boolean;
-  /** 行选择模式：不选 / 单选 / 多选 */
-  rowSelection?: "none" | "single" | "multiple";
-  /** 主题：alpine（默认）/ balham / material */
-  theme?: "alpine" | "balham" | "material";
-  /** AG Grid 原生 gridOptions 透传（高级用法，会覆盖上述配置） */
-  gridOptions?: Record<string, unknown>;
 }
 
 /** 右键菜单项 */
@@ -336,64 +363,8 @@ export interface ReTableLayoutConfig {
   mode: ReTableLayout;
   /** 表格模式专属属性 */
   table?: ReTableLayoutProps;
-  /** 虚拟表格模式专属属性 */
-  virtual?: ReVirtualLayoutProps;
   /** 卡片模式专属属性 */
   card?: ReCardLayoutProps;
-  /** Canvas 表格模式专属属性（AG Grid） */
-  canvas?: ReCanvasLayoutProps;
-  /** 放射菜单模式专属属性 */
-  radial?: ReRadialLayoutProps;
-}
-
-/** 放射菜单模式单行子菜单项 */
-export interface ReRadialMenuItem {
-  /** 唯一标识 */
-  key: string;
-  /** 显示文字（留空时仅显示图标） */
-  label?: string;
-  /** 是否纯图标模式（不渲染文字） */
-  iconOnly?: boolean;
-  /** 图标（Element Plus 图标组件或 SVG 字符串） */
-  icon?: any;
-  /** 颜色类型：primary / success / warning / danger / info */
-  type?: "primary" | "success" | "warning" | "danger" | "info";
-  /** 是否禁用 */
-  disabled?: boolean;
-  /** tooltip 提示文字（纯图标模式下默认用 label，否则显示此字段） */
-  tip?: string;
-}
-
-/** 放射菜单模式专属属性（CSS 类名前缀 layout-radial） */
-export interface ReRadialLayoutProps {
-  /** 中心图表尺寸（px），默认 48 */
-  chartSize?: number;
-  /** 中心图表形状：square / circle，默认 circle */
-  chartShape?: "square" | "circle";
-  /** 中心图表颜色字段名（对应行数据属性），不传则用 type 字段 */
-  chartTypeField?: string;
-  /** 中心图表背景色（CSS color 或函数） */
-  chartColor?: string | ((row: Record<string, unknown>) => string);
-  /** 子菜单方向：'auto'（根据位置自动选择）| 'all'（四个方向全开）| 字符串数组 */
-  menuDirections?: "auto" | "all" | ("top" | "bottom" | "left" | "right")[];
-  /** 子菜单项数据（静态） */
-  menuItems?: ReRadialMenuItem[];
-  /** 子菜单项数据生成函数 */
-  menuItemsFn?: (row: Record<string, unknown>) => ReRadialMenuItem[];
-  /** 子菜单展开方向偏移量（px），默认 60 */
-  menuOffset?: number;
-  /** 子菜单项宽度（px），默认 80 */
-  menuItemWidth?: number;
-  /** 是否可多选展开（默认 true = 同时展开多个） */
-  multipleOpen?: boolean;
-  /** 纯图标模式：子菜单项仅显示图标 + tooltip，不显示文字 */
-  iconOnly?: boolean;
-  /** 行高（px），默认 56 */
-  rowHeight?: number;
-  /** 是否显示 checkbox */
-  selectable?: boolean;
-  /** 点击行本身是否也触发展开 */
-  rowExpandable?: boolean;
 }
 
 /** ReTable 内置搜索过滤项（透传 ReSearch filters 模式） */
@@ -434,3 +405,19 @@ export interface ReTableSearchConfig {
 
 /** ReTable 内置搜索区属性（search 属性类型） */
 export type ReTableSearch = boolean | ReTableSearchConfig;
+
+/**
+ * ReTable 内置自动刷新：工具栏出现计时按钮，点亮后由表格自身持有定时器轮询 reload。
+ *
+ * <p>页面不要再自己 setInterval —— 定时器跟着组件与 keep-alive 的激活态一起起停。
+ * 只需开关时传 {@code true}，要调间隔 / 默认开启时传对象。</p>
+ */
+export type ReTableAutoRefresh = boolean | {
+  /** 默认轮询间隔（ms），下限 1000 */
+  interval?: number;
+  /** 挂载即按 interval 开启（默认 false，关闭态由用户在浮层里选档） */
+  defaultOn?: boolean;
+  /** 浮层里的可选档位（ms）；传 0 表示「关闭」这一档 */
+  intervals?: number[];
+};
+

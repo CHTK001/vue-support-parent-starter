@@ -8,9 +8,10 @@
  */
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Plus, Edit, Delete, Refresh } from "@element-plus/icons-vue";
+import { Edit, Delete } from "@element-plus/icons-vue";
 import ReCard from "@repo/ui/re-card";
 import ReTable from "@repo/ui/re-table";
+import ReButton from "@repo/ui/re-button";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import { pageTiers, deleteTier, listTypes } from "../api/achievementApi";
 import ReAchievementTierDialog from "../components/ReAchievementTierDialog.vue";
@@ -106,23 +107,22 @@ onMounted(loadTypes);
                 <el-option v-for="t in types" :key="t" :label="t" :value="t" />
               </el-select>
               <div class="flex-1" />
-              <el-button
+              <ReButton
                 v-admin
-                class="!rounded-xl !bg-gradient-to-r !from-emerald-500 !to-teal-600 !border-0 !text-white hover:!from-emerald-600 hover:!to-teal-700 !shadow-lg !shadow-emerald-200/50 dark:!shadow-emerald-900/30 !transition-all !duration-300"
-                :icon="Plus"
+                type="success"
                 size="small"
+                icon="Plus"
                 @click="handleAdd"
               >
                 Add Tier
-              </el-button>
-              <el-button
-                class="!rounded-xl !border-slate-200 dark:!border-slate-600 !text-slate-600 dark:!text-slate-300 hover:!bg-slate-100 dark:hover:!bg-slate-700 !transition-all !duration-300"
-                :icon="Refresh"
+              </ReButton>
+              <ReButton
                 size="small"
+                icon="Refresh"
                 @click="tableRef?.reload()"
               >
                 Refresh
-              </el-button>
+              </ReButton>
             </div>
           </template>
 

@@ -9,9 +9,10 @@
  * 不注入 adapter 时（后端接口未就绪）静默降级为仅实时推送。
  */
 import { ref, watch, onMounted } from "vue";
-import { ElNotification, ElMessage } from "element-plus";
+import { ElNotification, ElMessage, ElMessageBox } from "element-plus";
 import { Bell, Refresh } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
+import { useRouter } from "vue-router";
 import { useMessageStore } from "@repo/pinia";
 import { getStationMessageAdapter } from "@repo/core";
 
@@ -102,10 +103,60 @@ async function handleMarkAllRead() {
   await messageStore.markAllRead();
   ElMessage.success("已全部标记为已读");
 }
+
+/** 判断消息是否未读：后端字段 readStatus（0 未读 / 1 已读），兼容 isRead */
+function isUnread(message: unknown): boolean {
+  const msg = (message ?? {}) as { readStatus?: number; isRead?: boolean };
+  if (typeof msg.readStatus === "number") {
+    return msg.readStatus !== 1;
+  }
+  return msg.isRead !== true;
+}
+
+const router = useRouter();
+
+/** 点击消息项：标记该消息（及更早）已读；有跳转链接则路由跳转，否则弹出完整详情 */
+async function handleItemClick(msg: {
+  id?: number | string;
+  subject?: string;
+  content?: string;
+  sendTime?: string;
+  url?: string;
+}) {
+  if (msg.id !== undefined) {
+    await messageStore.markAllRead(msg.id);
+  }
+  if (msg.url && msg.url.trim()) {
+    popoverVisible.value = false;
+    let target = msg.url.trim();
+    // 外部 http(s) 链接：新标签页打开
+    if (/^https?:\/\//i.test(target)) {
+      window.open(target, "_blank", "noopener");
+      return;
+    }
+    // 兼容把部署前缀 /system 一并写入的情况：路由 base 已含 /system，需去掉，否则 404
+    if (target.startsWith("/system/")) {
+      target = target.slice("/system".length);
+    }
+    try {
+      await router.push(target);
+    } catch {
+      // 非法/不可达路由时忽略，保留在当前页
+    }
+    return;
+  }
+  popoverVisible.value = false;
+  await ElMessageBox.alert(
+    msg.content || "暂无内容",
+    msg.subject || "站内消息",
+    { confirmButtonText: "关闭" },
+  );
+}
 </script>
 
 <template>
   <el-popover
+    v-model:visible="popoverVisible"
     ref="popoverRef"
     placement="bottom-end"
     :width="width"
@@ -170,11 +221,15 @@ async function handleMarkAllRead() {
             v-for="(msg, index) in messages"
             :key="index"
             class="re-station-message-item"
-            :class="{ 're-station-message-item--unread': !msg.isRead }"
+            :class="{ 're-station-message-item--unread': isUnread(msg) }"
+            role="button"
+            tabindex="0"
+            @click="handleItemClick(msg)"
+            @keydown.enter.prevent="handleItemClick(msg)"
           >
             <div class="re-station-message-item__row">
               <span class="re-station-message-item__subject">
-                <span v-if="!msg.isRead" class="unread-dot"></span>
+                <span v-if="isUnread(msg)" class="unread-dot"></span>
                 {{ msg.subject || "站内消息" }}
               </span>
               <span class="re-station-message-item__time">{{ msg.sendTime }}</span>

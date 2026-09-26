@@ -1,8 +1,8 @@
 /**
  * 系统管理模块类型定义（@pages/system）
  *
- * 覆盖后端系统管理接口的 8 类核心实体：
- *   User / Role / Menu / Dept / Dict / DictItem / Online / Setting
+ * 覆盖后端 spring-api-system 的 8 个核心 Controller：
+ *   SysUser / SysRole / SysMenu / SysDept / SysDict / SysDictItem / SysOnline / SysSetting
  */
 
 /** 分页返回 */
@@ -19,7 +19,7 @@ export interface PageResult<T> {
 /** 统一返回结构 */
 export interface ApiResult<T = unknown> {
   status?: number;
-  code?: number;
+  code?: string | number;
   msg?: string;
   data?: T;
 }
@@ -65,8 +65,14 @@ export interface SysUser extends Auditable {
   sysUserPhone?: string;
   /** 邮箱 */
   sysUserEmail?: string;
+  /** 邮箱验证状态 0:未验证 1:已验证 */
+  sysUserEmailVerified?: number;
+  /** 邮箱验证通过时间 */
+  sysUserEmailVerifyTime?: string;
   /** 性别 0:男 1:女 */
   sysUserSex?: number;
+  /** 身份证号 */
+  sysUserIdCard?: string;
   /** 生日 */
   sysUserBirthday?: string;
   /** 头像框ID */
@@ -89,10 +95,6 @@ export interface SysUser extends Auditable {
   postIds?: number[];
   /** 岗位列表（只读） */
   userPosts?: SysPost[];
-  /** 锁定状态 0正常 1锁定 */
-  sysUserLock?: number;
-  /** 锁定时间 */
-  sysUserLockTime?: string;
   /** 登录次数 */
   sysUserLoginCount?: number;
   /** 最后登录时间 */
@@ -213,6 +215,16 @@ export interface SysMenu extends Auditable {
   sysMenuHome?: number;
   /** 端类型 0:PC 1:小程序 */
   sysMenuEngine?: number;
+  /** 是否脱离菜单控制 0:作为菜单处理 1:只注册路由不被当作菜单 */
+  sysMenuRemind?: number;
+  /** 动态显示条件类型 ALWAYS/CLASS/SPEL/SWITCH/PROPERTY */
+  sysMenuShowType?: string;
+  /** 条件值：类全名 / SpEL 表达式 / 配置键 */
+  sysMenuShowValue?: string;
+  /** 开关型条件放行值 0:隐藏 1:放行 */
+  sysMenuShowSwitch?: number;
+  /** 开关型条件联动的功能键（统一策略配置 type=FEATURE 的 biz_key） */
+  sysMenuShowKey?: string;
   /** 子菜单（树形） */
   children?: SysMenu[];
 }
@@ -233,6 +245,8 @@ export interface SysDept extends Auditable {
   sysDeptTreeId?: string;
   /** 机构编码 */
   sysDeptCode?: string;
+  /** 自定义图标（Element 图标名 / Iconify 名） */
+  sysDeptIcon?: string;
   /** 部门负责人 */
   sysDeptPrincipal?: string;
   /** 负责人联系方式 */
@@ -278,14 +292,27 @@ export interface SysDict extends Auditable {
   children?: SysDict[];
 }
 
+/** 字典子项配置项 */
+export interface SysDictItemProperty {
+  sysDictItemPropertyId?: number;
+  sysDictItemId?: number;
+  sysDictItemPropertyGroup?: string;
+  sysDictItemPropertyName?: string;
+  sysDictItemPropertyValue?: string;
+  sysDictItemPropertySelectedType?: string;
+}
+
 /** 字典子项 */
 export interface SysDictItem extends Auditable {
   sysDictItemId?: number;
   sysDictId?: number;
   sysDictPid?: number;
+  /** 子项编码/存储值 */
   sysDictItemCode?: string;
-  sysDictItemValue?: string;
-  sysDictItemLabel?: string;
+  /** 子项显示名称 */
+  sysDictItemName?: string;
+  /** 子项图标 */
+  sysDictItemIcon?: string;
   sysDictItemSort?: number;
   /** 0:禁用 1:启用 */
   sysDictItemStatus?: number;
@@ -295,6 +322,8 @@ export interface SysDictItem extends Auditable {
   sysDictItemI18n?: string;
   /** 备注 */
   sysDictItemRemark?: string;
+  /** 扩展配置 */
+  property?: SysDictItemProperty[];
 }
 
 /* ================== 在线用户 ================== */
@@ -321,6 +350,8 @@ export interface SysSetting extends Auditable {
   sysSettingName?: string;
   sysSettingCode?: string;
   sysSettingValue?: string;
+  /** 出厂默认值（与当前运行值分离，用于“恢复默认”） */
+  sysSettingDefaultValue?: string;
   sysSettingValueType?: string;
   sysSettingGroup?: string;
   sysSettingSort?: number;
@@ -391,7 +422,7 @@ export interface FeedbackStatistic {
   pending?: number;
   resolved?: number;
   typeStatistics?: Array<{ name?: string; type?: string; value?: number }>;
-  trendStatistics?: Array<{ date?: string; count?: number }>;
+  trendStatistics?: Array<{ date?: string; count?: number; pendingCount?: number; resolvedCount?: number }>;
 }
 
 /* ================== 登录日志 ================== */
@@ -647,17 +678,81 @@ export interface SysMessageAdmin extends Auditable {
   sysMessageStatus?: number;
   /** 跳转链接 */
   sysMessageUrl?: string;
+  /** 消息渠道: PLATFORM/EMAIL/SMS */
+  sysMessageChannel?: string;
 }
 
 /** 消息模板 */
 export interface SysMessageTemplate {
   sysMessageTemplateId?: number;
   sysMessageTemplateCode: string;
-  sysMessageTemplateName: string;
+  sysMessageTemplateName?: string;
   sysMessageTemplateTitle?: string;
   sysMessageTemplateContent?: string;
+  /** 消息渠道: EMAIL/SMS */
+  sysMessageChannel?: string;
+  /** text/html/markdown */
+  sysMessageTemplateType?: string;
+  sysMessageTemplateCallbackUrl?: string;
+  sysMessageTemplateSort?: number;
+  sysMessageTemplateRemark?: string;
   /** 0禁用 1启用 */
   sysMessageTemplateStatus?: number;
+  /** 外部/运营商模板码(短信必填，如阿里云SMS_xxx) */
+  sysMessageExternalCode?: string;
+  /** 模板变量说明(逗号分隔变量名) */
+  sysMessageParamSchema?: string;
+}
+
+/** 消息推送日志 */
+export interface SysMessageLog {
+  sysMessageLogId?: number;
+  sysMessageLogTarget?: string;
+  sysMessageTemplateId?: number;
+  sysMessageLogChannel?: string;
+  sysMessageLogContent?: string;
+  sysMessageLogParam?: string;
+  sysMessageCost?: number;
+  /** SUCCESS/FAILURE */
+  sysMessageCode?: string;
+  sysMessageMessage?: string;
+  sysMessageLogSubject?: string;
+  sysMessageLogMessageId?: string;
+  sysMessageBatchId?: string;
+  sysMessageReadStatus?: number;
+  createTime?: string;
+}
+
+/** 模板预览请求 */
+export interface TemplatePreviewRequest {
+  sysMessageTemplateId: number;
+  params?: Record<string, unknown>;
+}
+
+/** 模板预览响应 */
+export interface TemplatePreviewResponse {
+  sysMessageTemplateId?: number;
+  title?: string;
+  content?: string;
+  unresolvedParams?: string[];
+  complete?: boolean;
+}
+
+/** 按模板发送请求（按模板ID） */
+export interface MessageTemplateSendRequest {
+  sysMessageTemplateId: number;
+  target: string[];
+  subject?: string;
+  params?: Record<string, unknown>;
+}
+
+/** 按模板编码发送请求 */
+export interface MessageByCodeSendRequest {
+  templateCode: string;
+  target?: string[];
+  roleKeys?: string[];
+  subject?: string;
+  params?: Record<string, unknown>;
 }
 
 /** 发送消息请求 */
@@ -848,4 +943,388 @@ export interface TotpStatus {
 /** TOTP 绑定 URI 响应 */
 export interface TotpUriResponse {
   uri: string;
+}
+
+/* ================== 服务器邮箱通道 ================== */
+
+/** 服务器邮箱连通性探测结果（POST /v2/email/check） */
+export interface EmailConnectivity {
+  /** SMTP 发信通道是否握手并认证成功 */
+  smtpSuccess: boolean;
+  /** SMTP 探测结论（成功为服务端标识，失败为异常原因） */
+  smtpMessage: string;
+  /** SMTP 探测耗时（毫秒） */
+  smtpCost: number;
+  /** IMAP 收信通道是否握手并认证成功 */
+  imapSuccess: boolean;
+  /** IMAP 探测结论 */
+  imapMessage: string;
+  /** IMAP 探测耗时（毫秒） */
+  imapCost: number;
+  /** 发信配置是否齐备（决定个人中心是否出现邮箱验证入口） */
+  emailVerifyEnable: boolean;
+}
+
+/* ================== Redis 监控 ================== */
+
+/** Redis 命令统计 */
+export interface RedisCommandStat {
+  command?: string;
+  calls?: number;
+  percentage?: number;
+}
+
+/** Redis keyspace 详情 */
+export interface RedisKeyspaceDetail {
+  db?: string;
+  keys?: number;
+  expires?: number;
+  avgTtl?: number;
+}
+
+/** Redis 运行信息 */
+export interface RedisInfo {
+  version?: string;
+  mode?: string;
+  port?: number;
+  connectedClients?: number;
+  uptimeDays?: number;
+  usedMemory?: string;
+  usedMemoryBytes?: number;
+  usedMemoryPeakBytes?: number;
+  usedMemoryRss?: string;
+  usedMemoryPeak?: string;
+  memFragmentationRatio?: number;
+  memAllocator?: string;
+  maxMemory?: string;
+  maxMemoryBytes?: number;
+  usedCpuPercent?: number;
+  aofEnabled?: boolean;
+  rdbLastStatus?: string;
+  keyCount?: number;
+  netInputKps?: number;
+  netOutputKps?: number;
+  commandStats?: RedisCommandStat[];
+  keyspaceDetails?: RedisKeyspaceDetail[];
+}
+
+/* ================== 缓存监控（三栏钻取） ================== */
+
+/** 缓存模块（带 module 标识） */
+export interface CacheModuleInfo {
+  /** 模块标识（SCAN 前缀用） */
+  module?: string;
+  /** 模块名称 */
+  name?: string;
+  /** Key 前缀 */
+  keyPrefix?: string;
+  /** 模块描述 */
+  description?: string;
+  /** Key 数量 */
+  keyCount?: number;
+  /** 缓存管理器列表 */
+  cacheManagers?: string[];
+}
+
+/** 缓存统计概览 */
+export interface CacheStats {
+  /** 缓存实例数 */
+  cacheCount?: number;
+  /** 总键数 */
+  totalKeys?: number;
+  /** 内存占用（格式化字符串） */
+  usedMemory?: string;
+  /** 内存占用（字节） */
+  usedMemoryBytes?: number;
+  /** 命中率百分比 */
+  hitRate?: number;
+  /** 是否支持命中率统计 */
+  hitRateAvailable?: boolean;
+}
+
+/** 缓存值详情 */
+export interface CacheValueInfo {
+  key?: string;
+  type?: string;
+  value?: string;
+  ttl?: number;
+  size?: number;
+  /** 是否可在线编辑（仅 Spring Cache 管理的缓存可编辑） */
+  editable?: boolean;
+  /** 业务 JSON（去掉 Jackson 类型信封，供在线编辑） */
+  plainValue?: string;
+  /** 值根类型全限定名 */
+  rootType?: string;
+}
+
+/* ================== 服务监控 ================== */
+
+/** CPU 信息 */
+export interface ServerCpu {
+  logicalCores?: number;
+  userPercent?: number;
+  systemPercent?: number;
+  idlePercent?: number;
+  usagePercent?: number;
+}
+
+/** 内存用量 */
+export interface ServerMemory {
+  total?: number;
+  used?: number;
+  free?: number;
+  usagePercent?: number;
+  /** 最大堆（JVM 可选） */
+  max?: number;
+}
+
+/** 磁盘分区 */
+export interface ServerDisk {
+  path?: string;
+  usagePercent?: number;
+  fsType?: string;
+  total?: number;
+  used?: number;
+  available?: number;
+  /** 剩余空间（后端 getFree 兼容字段） */
+  free?: number;
+}
+
+/** 服务器信息 */
+export interface ServerHost {
+  hostname?: string;
+  osName?: string;
+  osVersion?: string;
+  ip?: string;
+  arch?: string;
+}
+
+/** JVM 信息（服务监控口径） */
+export interface ServerJvm {
+  name?: string;
+  version?: string;
+  startTime?: number;
+  uptime?: number;
+  javaHome?: string;
+  projectPath?: string;
+  inputArgs?: string[];
+}
+
+/** 内存池信息 */
+export interface MemoryPoolInfo {
+  name?: string;
+  type?: string; // heap / non-heap
+  init?: number;
+  used?: number;
+  committed?: number;
+  max?: number;
+}
+
+/** GC 收集器 */
+export interface GcCollector {
+  name?: string;
+  collectionCount?: number;
+  collectionTime?: number;
+}
+
+/** Top CPU 线程 */
+export interface TopThread {
+  name?: string;
+  state?: string;
+  cpuTime?: number;
+  userTime?: number;
+}
+
+/** 网络接口信息 */
+export interface NetworkInterfaceInfo {
+  name?: string;
+  displayName?: string;
+  bytesRecv?: number;
+  bytesSent?: number;
+  packetsRecv?: number;
+  packetsSent?: number;
+  speed?: number;
+  /** IP 地址列表 */
+  addresses?: string[];
+  /** 丢包（接收/发送） */
+  dropRecv?: number;
+  dropSent?: number;
+}
+
+/** 服务监控完整信息 */
+export interface ServerInfo {
+  cpu?: ServerCpu;
+  systemMemory?: ServerMemory;
+  jvmMemory?: ServerMemory;
+  diskPeak?: { usagePercent?: number; partitionCount?: number };
+  disks?: ServerDisk[];
+  server?: ServerHost;
+  jvm?: ServerJvm;
+  /** 系统运行时间（秒） */
+  systemUptime?: number;
+  /** 进程运行时间（秒） */
+  processUptime?: number;
+  /** 进程数 */
+  processCount?: number;
+  /** 活跃线程数 */
+  threadCount?: number;
+  /** 峰值线程数 */
+  peakThreadCount?: number;
+  /** 守护线程数 */
+  daemonThreadCount?: number;
+  /** 系统负载平均值 */
+  systemLoadAverage?: number;
+  /** 每核使用率（%） */
+  coreUsages?: number[];
+  /** JVM 内存池 */
+  memoryPools?: MemoryPoolInfo[];
+  /** GC 收集器 */
+  gcCollectors?: GcCollector[];
+  /** 已加载类数 */
+  loadedClassCount?: number;
+  /** 累计加载类数 */
+  totalLoadedClassCount?: number;
+  /** 已卸载类数 */
+  unloadedClassCount?: number;
+  /** 线程状态计数 */
+  threadStates?: Record<string, number>;
+  /** 死锁线程数 */
+  deadlockedThreadCount?: number;
+  /** Top CPU 线程 */
+  topThreads?: TopThread[];
+  /** 网络接口 */
+  networkInterfaces?: NetworkInterfaceInfo[];
+  /** Spring 核心参数（key → value） */
+  springConfig?: Record<string, string>;
+}
+
+/** RESTful 秒级趋势点 */
+export interface RestfulTrendPoint {
+  /** Unix 秒 */
+  second?: number;
+  /** 本秒内请求数（即 QPS） */
+  count?: number;
+  qps?: number;
+  success?: number;
+  fail?: number;
+  avgMs?: number;
+  /** 本秒内各来源 IP 请求数（最多 8 个） */
+  ips?: RestfulIpCount[];
+}
+
+/** IP 计数 */
+export interface RestfulIpCount {
+  ip?: string;
+  count?: number;
+}
+
+/** Top IP 统计 */
+export interface RestfulTopIp {
+  ip?: string;
+  count?: number;
+  success?: number;
+  fail?: number;
+  avgMs?: number;
+  lastTime?: number;
+  topUrl?: string;
+}
+
+/** RESTful 汇总 */
+export interface RestfulStatsSummary {
+  total?: number;
+  success?: number;
+  fail?: number;
+  avgMs?: number;
+  windowCount?: number;
+  windowSuccess?: number;
+  windowFail?: number;
+  windowAvgMs?: number;
+  windowQps?: number;
+}
+
+/** Top URL 统计 */
+export interface RestfulTopUrl {
+  key?: string;
+  url?: string;
+  method?: string;
+  count?: number;
+  success?: number;
+  fail?: number;
+  avgMs?: number;
+  /** 该接口的来源 IP 明细（最多 10 个） */
+  ips?: RestfulIpCount[];
+}
+
+/** RESTful 实时统计快照 */
+export interface RestfulApiStats {
+  trend?: RestfulTrendPoint[];
+  summary?: RestfulStatsSummary;
+  topUrls?: RestfulTopUrl[];
+  /** IP 排行（按请求数） */
+  topIps?: RestfulTopIp[];
+}
+
+/* ================== 策略任务 - 限流 ================== */
+
+/** 限流规则（后端 0/1 状态口径） */
+export interface RateLimitRule {
+  sysRateLimitRuleId?: number;
+  dimension?: "interface" | "ip" | "account";
+  target?: string;
+  qps?: number;
+  burstSize?: number;
+  /** 1 启用，0 禁用 */
+  enabled?: 0 | 1;
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/** 全局限流配置 */
+export interface RateLimitGlobal {
+  enabled?: boolean;
+  qps?: number;
+  burstSize?: number;
+  dimension?: "global" | string;
+}
+
+/* ================== 策略任务 - 账号黑白名单 ================== */
+
+/** 账号黑白名单（后端 1=黑名单、2=白名单；1=启用、0=禁用） */
+export interface AccountBlackwhite {
+  sysAccountBwId?: number;
+  account?: string;
+  type?: 1 | 2;
+  status?: 0 | 1;
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/** 账号名单后端分页结构 */
+export interface AccountBlackwhitePage {
+  list: AccountBlackwhite[];
+  total: number;
+  pageNo: number;
+  pageSize: number;
+  pages: number;
+}
+
+/* ================== 策略任务 - 热更新 ================== */
+
+/** 热重载执行结果 */
+export interface HotReloadRuntimeResult {
+  reloaded?: boolean;
+  enabledCount?: number;
+  reloadTime?: string;
+}
+
+/** 热更新配置项复用设置实体，并补齐策略接口返回的运行时字段 */
+export interface HotReloadConfig extends SysSetting {
+  sysSettingConfig?: string;
+  sysSettingVersion?: number;
+  sysSettingStatus?: number;
+  sysSettingAdmin?: number;
+  sysSettingCollect?: number;
+  sysSettingAppInner?: number;
 }

@@ -37,7 +37,7 @@
         <ReTag :class="['mode-tag', modeColor]" effect="light">
           <span class="mode-dot"></span>
           {{ mode }}
-        </el-tag>
+        </ReTag>
       </div>
       <div class="detail-grid">
         <div v-for="cell in detailCells" :key="cell.label" class="detail-cell">

@@ -57,7 +57,7 @@
           </p>
         </div>
 
-        <ReLoginForm :show-mobile-brand="false" />
+        <ReLoginForm :show-mobile-brand="false"  :show-header="false" />
 
         <div class="split-footer m-t-28px text-center text-12px text-[--el-text-color-secondary] md:hidden">
           <span v-if="loginConfig.beiAnHao">
@@ -130,7 +130,7 @@ html.dark .split-brand {
     right: -5%;
     width: 300px;
     height: 300px;
-    background: color-mix(in srgb, var(--el-color-primary) 60%, #a855f7 40%);
+    background: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-color-primary-light-3) 40%);
   }
 
   &--2 {
@@ -138,7 +138,7 @@ html.dark .split-brand {
     left: -3%;
     width: 260px;
     height: 260px;
-    background: color-mix(in srgb, var(--el-color-primary) 60%, #06b6d4 40%);
+    background: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-color-primary-light-5) 40%);
   }
 }
 

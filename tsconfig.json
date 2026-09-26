@@ -48,8 +48,6 @@
       "@pages/eduai": ["pages/eduai/src"],
       "@pages/filesystem": ["pages/filesystem/src"],
       "@pages/task": ["pages/task/src"],
-      "@pages/ai": ["pages/ai/src"],
-      "@pages/ai/*": ["pages/ai/src/*"],
       "@pages/monitor": ["pages/monitor/src"],
       "@pages/monitor/*": ["pages/monitor/src/*"],
       "@pages/system": ["pages/system/src"],

@@ -68,6 +68,15 @@ import {
   statisticErrorLog,
   cleanErrorLog,
   getJvmInfo,
+  listRateLimit,
+  saveRateLimit,
+  updateRateLimit,
+  deleteRateLimit,
+  applyRateLimitGlobal,
+  pageForAccountBw,
+  saveAccountBw,
+  deleteAccountBw,
+  saveHotReload,
 } from "../api/systemApi";
 
 describe("systemApi URL/方法构造", () => {
@@ -102,11 +111,11 @@ describe("systemApi URL/方法构造", () => {
     expect(mockHttp.calls.put.at(-1)).toMatchObject({ method: "put", url: "/v2/post/update" });
   });
 
-  it("岗位：删除 DELETE /v2/post/delete 携带 sysPostId", async () => {
+  it("岗位：删除 DELETE /v2/post/delete 携带 postId", async () => {
     await deletePost(5);
     const c = mockHttp.calls.delete.at(-1)!;
     expect(c.url).toBe("/v2/post/delete");
-    expect(c.params.sysPostId).toBe(5);
+    expect(c.params.postId).toBe(5);
   });
 
   it("缓存：模块列表 GET /v2/cache/modules", async () => {
@@ -140,9 +149,9 @@ describe("systemApi URL/方法构造", () => {
     expect(mockHttp.calls.delete.at(-1)?.url).toBe("/v2/cache/all");
   });
 
-  it("消息：分页 GET /v2/message/admin/page", async () => {
+  it("消息：分页 GET /v2/message/sys-message/admin/page", async () => {
     await pageForMessageAdmin({ page: 1 });
-    expect(mockHttp.calls.get.at(-1)?.url).toBe("/v2/message/admin/page");
+    expect(mockHttp.calls.get.at(-1)?.url).toBe("/v2/message/sys-message/admin/page");
   });
 
   it("消息：新增 POST /v2/message/admin/save", async () => {
@@ -201,5 +210,77 @@ describe("systemApi URL/方法构造", () => {
   it("监控：JVM 信息 GET /v2/jvm/info", async () => {
     await getJvmInfo();
     expect(mockHttp.calls.get.at(-1)?.url).toBe("/v2/jvm/info");
+  });
+
+  it("策略：限流列表携带真实 dimension", async () => {
+    await listRateLimit("ip");
+    const c = mockHttp.calls.get.at(-1)!;
+    expect(c.url).toBe("/v2/policy/ratelimit/list");
+    expect(c.params).toEqual({ dimension: "ip" });
+  });
+
+  it("策略：新增限流规则保留数字状态与请求体引用", async () => {
+    const payload = {
+      dimension: "account" as const,
+      target: "admin",
+      qps: 50,
+      burstSize: 100,
+      enabled: 1 as const,
+    };
+    await saveRateLimit(payload);
+    const c = mockHttp.calls.post.at(-1)!;
+    expect(c.url).toBe("/v2/policy/ratelimit/save");
+    expect(c.body).toBe(payload);
+  });
+
+  it("策略：更新与删除限流规则使用后端主键参数", async () => {
+    await updateRateLimit({ sysRateLimitRuleId: 7, qps: 20, enabled: 0 });
+    expect(mockHttp.calls.put.at(-1)?.url).toBe("/v2/policy/ratelimit/update");
+
+    await deleteRateLimit(7);
+    const c = mockHttp.calls.delete.at(-1)!;
+    expect(c.url).toBe("/v2/policy/ratelimit/delete");
+    expect(c.params).toEqual({ id: 7 });
+  });
+
+  it("策略：应用全局限流使用 Boolean 与数值参数", async () => {
+    const payload = { enabled: true, qps: 200, burstSize: 400, dimension: "global" };
+    await applyRateLimitGlobal(payload);
+    const c = mockHttp.calls.post.at(-1)!;
+    expect(c.url).toBe("/v2/policy/ratelimit/global/apply");
+    expect(c.body).toBe(payload);
+  });
+
+  it("策略：账号名单查询使用 1/2 类型与 0/1 状态", async () => {
+    await pageForAccountBw({ page: 2, pageSize: 20, account: "ops", type: 2, status: 1 });
+    const c = mockHttp.calls.get.at(-1)!;
+    expect(c.url).toBe("/v2/policy/account-bw/page");
+    expect(c.params).toEqual({ page: 2, pageSize: 20, account: "ops", type: 2, status: 1 });
+  });
+
+  it("策略：账号名单保存和删除使用真实字段口径", async () => {
+    const payload = { sysAccountBwId: 9, account: "blocked", type: 1 as const, status: 1 as const };
+    await saveAccountBw(payload);
+    expect(mockHttp.calls.post.at(-1)?.body).toBe(payload);
+
+    await deleteAccountBw(9);
+    const c = mockHttp.calls.delete.at(-1)!;
+    expect(c.url).toBe("/v2/policy/account-bw/delete");
+    expect(c.params).toEqual({ id: 9 });
+  });
+
+  it("策略：热更新保存保留完整配置实体", async () => {
+    const payload = {
+      sysSettingId: 3,
+      sysSettingName: "Feature Flag",
+      sysSettingCode: "feature.flag",
+      sysSettingValue: "true",
+      sysSettingValueType: "boolean",
+      sysSettingVersion: 2,
+    };
+    await saveHotReload(payload);
+    const c = mockHttp.calls.post.at(-1)!;
+    expect(c.url).toBe("/v2/policy/hotreload/save");
+    expect(c.body).toBe(payload);
   });
 });

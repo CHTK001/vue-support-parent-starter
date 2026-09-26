@@ -16,7 +16,10 @@
             </div>
             <div class="flex-1 overflow-auto pb-4" style="scrollbar-gutter: stable both-edges;">
                 <div class="py-3 px-4 w-full md:max-w-260 md:mx-auto">
-                    <template v-if="currentTabValue === 'mcp'">
+                    <template v-if="currentTabValue === 'characters'">
+                        <CharacterMarket />
+                    </template>
+                    <template v-else-if="currentTabValue === 'mcp'">
                         <MCPServers />
                     </template>
                     <template v-else-if="currentTabValue === 'local-tools'">
@@ -35,14 +38,17 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElTabs, ElTabPane } from 'element-plus'
+import { isAdmin } from '@repo/core'
 import MCPServers from './MCPServers.vue'
 import LocalTools from './LocalTools.vue'
 import Skills from './Skills.vue'
+import CharacterMarket from './CharacterMarket.vue'
 
 import {
     Dumbbell16Regular,
     WrenchScrewdriver24Regular,
-    Code24Regular
+    Code24Regular,
+    ContactCard20Regular
 } from '@vicons/fluent'
 
 import PageHeader from '@/components/PageHeader.vue'
@@ -52,8 +58,17 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 
+// MCP / 本地工具仅对 v-admin 开放
+const admin = ref(isAdmin())
+const ADMIN_ONLY = new Set(['local-tools', 'mcp'])
+
 // 插件设置 Tab 菜单
 const sidebarItems = computed(() => [
+    {
+        label: t('plugins.page.tabCharacters'),
+        path: 'characters',
+        icon: ContactCard20Regular,
+    },
     {
         label: t('plugins.page.tabLocalTools'),
         path: 'local-tools',
@@ -69,7 +84,7 @@ const sidebarItems = computed(() => [
         path: 'mcp',
         icon: Dumbbell16Regular,
     },
-])
+].filter((item) => admin.value || !ADMIN_ONLY.has(item.path)))
 
 // Tab 数据（用于模板渲染）
 const tabItems = computed(() => sidebarItems.value)
@@ -90,7 +105,11 @@ const handleTabChange = (tabName: string | number) => {
 // 监听路由参数变化
 watch(() => route.params.tab, (newPath) => {
     // 确保 newPath 是字符串类型
-    const tabPath = Array.isArray(newPath) ? newPath[0] : (newPath as string)
+    let tabPath = Array.isArray(newPath) ? newPath[0] : (newPath as string)
+    // 非管理员访问受限 tab：回退到默认
+    if (tabPath && ADMIN_ONLY.has(tabPath) && !admin.value) {
+        tabPath = getDefaultTabPath()
+    }
     if (tabPath && tabPath !== currentTabValue.value) {
         currentTabValue.value = tabPath
     }
@@ -103,7 +122,12 @@ onMounted(() => {
         router.replace({ name: 'Plugins', params: { tab: defaultTab } })
     } else {
         // 确保 route.params.tab 是字符串类型
-        const tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string)
+        let tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string)
+        // 非管理员直接访问受限 tab：重定向到默认
+        if (ADMIN_ONLY.has(tabParam) && !admin.value) {
+            tabParam = getDefaultTabPath()
+            router.replace({ name: 'Plugins', params: { tab: tabParam } })
+        }
         currentTabValue.value = tabParam
     }
 })

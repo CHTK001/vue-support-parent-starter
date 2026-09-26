@@ -43,7 +43,8 @@
               :allow-generate="!isStreaming && index === lastUserMessageIndex"
               :animate-in="animateIds.includes(turn.user.id)" @delete="deleteMessage" @edit="editMessage"
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
-              @continue="continueResponse" @switch="switchContent" />
+              @continue="continueResponse" @switch="switchContent"
+              @resume-confirmation="resumeConfirmation" />
             <!-- <div class="min-h-60"></div> -->
 
             <!-- 压缩中状态显示 -->
@@ -101,33 +102,6 @@
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
-              <template #right-actions-before>
-                <!-- 上下文使用率：圆形小图标 -->
-                <el-popover placement="top" :width="240" trigger="hover">
-                  <template #reference>
-                    <button class="context-ring-btn" @click="contextPopoverVisible = !contextPopoverVisible">
-                      <svg class="context-ring-svg" width="20" height="20" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="15" fill="none" stroke="#e4e7ed" stroke-width="4"/>
-                        <circle cx="20" cy="20" r="15" fill="none" :stroke="ringColor" stroke-width="4"
-                          :stroke-dasharray="ringCircumference"
-                          :stroke-dashoffset="ringDashOffset"
-                          transform="rotate(-90 20 20)"
-                          stroke-linecap="round"/>
-                      </svg>
-                      <span class="context-ring-text">{{ ringPercent }}%</span>
-                    </button>
-                  </template>
-                  <div class="context-detail-card">
-                    <div class="context-detail-row">
-                      <span class="context-detail-label">上下文用量</span>
-                      <span class="context-detail-value">{{ contextUsedText }}</span>
-                    </div>
-                    <div class="context-detail-progress">
-                      <div class="context-detail-progress-fill" :style="{ width: ringPercent + '%', background: ringColor }"></div>
-                    </div>
-                  </div>
-                </el-popover>
-              </template>
             </ChatInput>
           </div>
         </div>
@@ -198,57 +172,6 @@ let expectingNewMessage = false;
 // 记忆管理弹窗显隐
 const memoPanelVisible = ref(false);
 
-// 上下文使用率：圆形进度条
-const ringPercent = computed(() => {
-  if (!sharedTokenStats.value) return 0;
-  return Math.round(sharedTokenStats.value.percentage);
-});
-
-const ringCircumference = 2 * Math.PI * 15; // r=15
-
-const ringDashOffset = computed(() => {
-  const pct = ringPercent.value;
-  return ringCircumference * (1 - pct / 100);
-});
-
-const ringColor = computed(() => {
-  const pct = ringPercent.value;
-  if (pct >= 80) return '#f56c6c';
-  if (pct >= 60) return '#e6a23c';
-  return '#67c23a';
-});
-
-const contextTooltip = computed(() => {
-  if (!sharedTokenStats.value) return t('chat.panel.contextUsage');
-  const pct = ringPercent.value;
-  return t('chat.panel.contextUsagePercent', { pct });
-});
-
-// 上下文使用率弹窗
-const contextPopoverVisible = ref(false);
-
-// 格式化 token 数量为 K/M 单位
-function formatTokens(tokens: number): string {
-  if (!tokens) return '0';
-  if (tokens >= 1000000) return (tokens / 1000000).toFixed(1) + 'M';
-  if (tokens >= 1000) return (tokens / 1000).toFixed(1) + 'K';
-  return tokens.toString();
-}
-
-const contextDisplayText = computed(() => {
-  if (!sharedTokenStats.value) return '上下文';
-  const used = formatTokens(sharedTokenStats.value.usedTokens);
-  const total = formatTokens(sharedTokenStats.value.totalTokens);
-  return `${used} / ${total}`;
-});
-
-const contextUsedText = computed(() => {
-  if (!sharedTokenStats.value) return '0 / 0';
-  const used = formatTokens(sharedTokenStats.value.usedTokens);
-  const total = formatTokens(sharedTokenStats.value.totalTokens);
-  return `${used}/${total}`;
-});
-
 // Props & Emits - 类型化
 const props = defineProps<{
   session: Session | null;
@@ -278,7 +201,7 @@ const currentSessionId = ref<string | null>(null);
 
 // 共享的 Token 统计（useSessionTokenStats 自动监听流状态刷新）
 const currentSessionIdRef = computed(() => currentSessionId.value);
-const { tokenStats: sharedTokenStats, fetchTokenStats } = useSessionTokenStats(currentSessionIdRef);
+useSessionTokenStats(currentSessionIdRef);
 
 /**
  * 有效的会话 ID
@@ -527,6 +450,14 @@ const currentModelId = computed({
   }
 });
 
+/**
+ * 当前运行模式（Build/Plan），归一化历史值 normal/sandbox：除 plan 外统一为 build
+ */
+const currentRunMode = computed(() => {
+  const runMode = currentSession.value?.settings?.runMode;
+  return runMode === 'plan' ? 'plan' : 'build';
+});
+
 
 // ========== ChatInput 配置管理 ==========
 
@@ -540,8 +471,9 @@ const chatInputConfig = computed(() => ({
   maxTokensLimit: currentSession.value?.settings?.maxTokensLimit ?? null,
   knowledgeBaseIds: inputMessage.value?.knowledgeBaseIds || currentSession.value?.settings?.referencedKbs || [],
   workspacePath: currentSession.value?.workspacePath || null,
-  runMode: currentSession.value?.settings?.runMode || 'normal',
+  runMode: currentRunMode.value,
   attachments: currentSession.value?.settings?.attachments || {},
+  mcpServerIds: currentSession.value?.mcpServerIds || '',
 }));
 
 onMounted(() => {
@@ -604,6 +536,16 @@ const handleConfigChange = (config: any) => {
     currentSession.value.settings.attachments = config.attachments;
   }
 
+  // 处理 MCP 选择（会话级，立即持久化）
+  if (typeof config.mcpServerIds !== 'undefined') {
+    currentSession.value.mcpServerIds = config.mcpServerIds;
+    if (currentSession.value.id) {
+      apiService.updateSession(String(currentSession.value.id), {
+        mcpServerIds: config.mcpServerIds
+      }).catch(err => console.error('Failed to save mcpServerIds:', err));
+    }
+  }
+
   debouncedSaveSession();
 };
 
@@ -636,6 +578,7 @@ watch(() => isStreaming.value, async (newVal, oldVal) => {
           content: queuedMsg.content,
           files: queuedMsg.files || [],
           knowledgeBaseIds: queuedMsg.knowledgeBaseIds || [],
+          skillNames: queuedMsg.skillNames || [],
         });
       }
     }
@@ -897,6 +840,10 @@ async function handleStreamResponseWithCreate(
   think?: boolean,
   search?: boolean,
   model?: string,
+  skillNames?: string[],
+  characterId?: string | null,
+  mcpServerIds?: string,
+  mode?: string | null,
 ) {
   try {
     const handler = useStreamResponse(sessionStore, apiService)
@@ -909,6 +856,10 @@ async function handleStreamResponseWithCreate(
       think,
       search,
       model,
+      skillNames,
+      characterId,
+      mcpServerIds,
+      mode,
     )
   } catch (error) {
     if ((error as Error).message.includes('SessionBusyError')) {
@@ -984,7 +935,7 @@ async function handleSendMessage(payload?: InputMessageState) {
   if (!data || (!data.content?.trim() && !data.files.length)) return;
 
   try {
-    const { content, files, knowledgeBaseIds, think, search } = data;
+    const { content, files, knowledgeBaseIds, think, search, skillNames } = data;
 
     // 流式进行中：消息入队，等 stream_finished 后自动消费
     if (currentSessionId.value && isStreaming.value) {
@@ -994,6 +945,7 @@ async function handleSendMessage(payload?: InputMessageState) {
         content: prepared.content,
         files: prepared.updatedFiles.filter((f: any) => f.id),
         knowledgeBaseIds: prepared.knowledgeBaseIds,
+        skillNames: Array.isArray(skillNames) ? skillNames : [],
       });
       return;
     }
@@ -1030,6 +982,10 @@ async function handleSendMessage(payload?: InputMessageState) {
         think,
         search,
         currentModelId.value,
+        skillNames,
+        props.session?.characterId || null,
+        currentSession.value?.mcpServerIds || '',
+        currentRunMode.value,
       );
     }
   } catch (error: any) {
@@ -1057,6 +1013,7 @@ function handleSendNow(item: QueuedMessage) {
       content: msg.content,
       files: msg.files || [],
       knowledgeBaseIds: msg.knowledgeBaseIds || [],
+      skillNames: msg.skillNames || [],
     })
   }
 }
@@ -1122,6 +1079,36 @@ function regenerateResponse(message: any) {
       handleStreamResponse(message.sessionId, "multi_version", message.id, userMessageId);
     }
   });
+}
+
+/**
+ * 计划批准/拒绝（plan_exit 人工确认）：决策回传恢复 Agent
+ */
+async function resumeConfirmation(payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }) {
+  const sid = currentSessionId.value;
+  if (!sid) return;
+  const decisions = (payload.items || []).map((it: any) => ({
+    toolCallId: it.toolCallId,
+    confirmed: payload.confirmed,
+  }));
+  try {
+    const handler = useStreamResponse(sessionStore, apiService);
+    await handler.processResume(sid, {
+      replyId: payload.replyId,
+      decisions,
+      model: currentModelId.value || undefined,
+      characterId: props.session?.characterId || null,
+      feedback: payload.feedback,
+    });
+  } catch (error: any) {
+    if ((error as Error).message?.includes('SessionBusyError')) {
+      notify.warning(t('chat.panel.sessionBusy'), t('chat.panel.sessionBusyDesc'));
+      return;
+    }
+    if ((error as Error).name !== 'AbortError') {
+      notify.error(t('common.error.unknown'), error.message);
+    }
+  }
 }
 
 /**
@@ -1344,80 +1331,4 @@ function scrollToMessage(messageId: string) {
   transition: all 0.2s;
 }
 
-/* 圆形进度条按钮 */
-.context-ring-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s;
-  outline: none;
-}
-
-.context-ring-btn:hover {
-  background: var(--color-sidebar-bg-hover);
-}
-
-.context-ring-svg {
-  display: block;
-}
-
-.context-ring-text {
-  font-size: 12px;
-  color: var(--color-text-secondary, #666);
-  white-space: nowrap;
-}
-
-/* 详细信息卡片 */
-.context-detail-card {
-  padding: 4px 0;
-}
-
-.context-detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.context-detail-label {
-  color: var(--color-text-secondary, #666);
-}
-
-.context-detail-value {
-  color: var(--color-text-primary, #333);
-  font-weight: 500;
-}
-
-.context-detail-progress {
-  width: 100%;
-  height: 6px;
-  background: var(--color-border, #e5e7eb);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.context-detail-progress.small {
-  height: 4px;
-  margin-bottom: 0;
-}
-
-.context-detail-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.context-detail-section {
-  font-size: 12px;
-  color: var(--color-text-secondary, #999);
-  margin-bottom: 8px;
-  margin-top: 4px;
-}
 </style>

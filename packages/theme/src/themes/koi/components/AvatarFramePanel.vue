@@ -23,6 +23,12 @@
                   class="avatar-frame-img"
                   :style="frameLayerStyle(frame, 52)"
                 ></div>
+                <!-- 不佩戴：预览默认光环，让用户看到取下后的实际效果 -->
+                <span
+                  v-else
+                  class="koi-avatar-default-frame"
+                  :style="defaultFrameLayerStyle(52)"
+                ></span>
                 <el-avatar :size="52" :src="avatar" />
                 <el-icon v-if="isLocked(frame)" class="avatar-frame-lock" :size="14"><Lock /></el-icon>
               </div>
@@ -55,6 +61,7 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import {
   avatarFrameDict,
+  defaultFrameLayerStyle,
   frameLayerStyle,
   hasFrameVisual,
   isAvatarFrameEnabled,
@@ -62,6 +69,14 @@ import {
   loadAvatarFrames,
   type AvatarFrame,
 } from "./avatarFrames";
+
+/** 兜底「默认光环」选项（id=0）：字典不含透明占位帧时，保证始终能取下头像框 */
+const DEFAULT_FRAME_OPTION: AvatarFrame = {
+  id: 0,
+  name: "默认光环",
+  type: "none",
+  acquire: "default",
+};
 
 const props = defineProps<{ avatar?: string }>();
 const emit = defineEmits<{ (e: "updated"): void }>();
@@ -89,8 +104,10 @@ const groups = computed<FrameGroup[]>(() => {
   const byType = (type: string) => frames.filter((f) => f.type === type);
   const listed = new Set(["regular", "zodiac", "beast"]);
   const limited = frames.filter((f) => !listed.has(f.type ?? ""));
+  // 「不佩戴」项：优先用字典里的透明占位帧（经典），没有时用虚拟的「默认光环」
+  const noneItems = avatarFrameDict.value.filter((f) => !hasFrameVisual(f));
   return [
-    { title: "不佩戴", items: avatarFrameDict.value.filter((f) => !hasFrameVisual(f)) },
+    { title: "不佩戴", items: noneItems.length ? noneItems : [DEFAULT_FRAME_OPTION] },
     { title: "常规", items: byType("regular") },
     { title: "生肖", items: byType("zodiac") },
     { title: "神兽", items: byType("beast") },

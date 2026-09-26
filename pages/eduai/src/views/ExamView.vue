@@ -1,49 +1,44 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never" class="toolbar">
-      <div class="flex items-center gap-3">
-        <el-button type="primary" :icon="Plus" @click="openCreate">新建考试</el-button>
-        <el-input v-model="keyword" placeholder="考试名称" clearable style="width: 200px" />
-        <el-button :icon="Search" @click="reload">查询</el-button>
-      </div>
-    </el-card>
-
     <el-card shadow="never" class="mt-3 flex-1">
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="examId" label="ID" width="80" />
-        <el-table-column prop="examName" label="考试名" min-width="220" />
-        <el-table-column prop="examPaperId" label="试卷ID" width="100" />
-        <el-table-column prop="examClassId" label="班级" width="120" />
-        <el-table-column prop="examStartTime" label="开始时间" width="180" />
-        <el-table-column prop="examEndTime" label="结束时间" width="180" />
-        <el-table-column prop="examDuration" label="时长(分)" width="100" />
-        <el-table-column label="状态" width="100">
+      <ReTable
+        ref="tableRef"
+        :loader="loadExams"
+        :params="queryParams"
+        :search="searchConfig"
+        v-model:search-model="searchModel"
+        row-key="examId"
+        v-model:page="pageNo"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        border
+        stripe
+        @search="commitSearch"
+        @search-reset="resetSearch"
+        @load-error="pageLoadError"
+      >
+        <template #toolbar>
+          <ReButton type="primary" icon="Plus" @click="openCreate">新建考试</ReButton>
+        </template>
+        <ReTableColumn prop="examId" label="ID" width="80" />
+        <ReTableColumn prop="examName" label="考试名" min-width="220" />
+        <ReTableColumn prop="examPaperId" label="试卷ID" width="100" />
+        <ReTableColumn prop="examClassId" label="班级" width="120" />
+        <ReTableColumn prop="examStartTime" label="开始时间" width="180" />
+        <ReTableColumn prop="examEndTime" label="结束时间" width="180" />
+        <ReTableColumn prop="examDuration" label="时长(分)" width="100" />
+        <ReTableColumn label="状态" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        </ReTableColumn>
+        <ReTableColumn label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-popconfirm :title="`确认删除考试 ${row.examName}?`" @confirm="remove(row)">
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
+            <ReButton icon="Edit" :show-text="false" type="primary" @click="openEdit(row)">编辑</ReButton>
+            <ReButton icon="Delete" :show-text="false" type="danger" @click="remove(row)">删除</ReButton>
           </template>
-        </el-table-column>
-      </el-table>
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          v-model:current-page="pageNo"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="reload"
-          @size-change="reload"
-        />
-      </div>
+        </ReTableColumn>
+      </ReTable>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.examId ? '编辑考试' : '新建考试'" width="560">
@@ -76,37 +71,72 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Plus, Search } from '@element-plus/icons-vue';
+import { reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
+import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { Exam } from '../api/types';
+import type { ReTableSearchConfig } from '@repo/ui/re-table';
 
-const keyword = ref('');
 const pageNo = ref(1);
 const pageSize = ref(20);
-const total = ref(0);
-const loading = ref(false);
-const list = ref<Exam[]>([]);
+const tableRef = ref();
+
+const EXAM_STATUS_OPTIONS = [
+  { label: '未开始', value: 0 },
+  { label: '进行中', value: 1 },
+  { label: '已结束', value: 2 },
+];
+
+/** 内置搜索区字段：三项都是服务端 pageQuery 真实支持的条件 */
+const searchConfig: ReTableSearchConfig = {
+  title: '考试检索',
+  filters: [
+    { key: 'examName', label: '考试名称', placeholder: '名称关键字' },
+    { key: 'examClassId', label: '班级', placeholder: '班级标识' },
+    { key: 'examStatus', label: '状态', type: 'select', options: EXAM_STATUS_OPTIONS },
+  ],
+};
+
+function blankSearch(): Record<string, unknown> {
+  return { examName: '', examClassId: '', examStatus: null };
+}
+
+const { searchModel, applied, queryParams, commit, reset: resetDraft } = useSnapshotSearch<Record<string, unknown>>(blankSearch);
+
+/** 筛选交给服务端：本地过滤只能过滤当前页，总条数与翻页都会是错的 */
+const loadExams = createPageLoader((page, size) =>
+  eduaiApi.pageExams({
+    page,
+    pageSize: size,
+    examName: strParam(applied.value.examName),
+    examClassId: strParam(applied.value.examClassId),
+    examStatus: numParam(applied.value.examStatus),
+  }),
+);
+
+/** 增删改后留在当前页重拉 */
+const reload = () => {
+  void tableRef.value?.reload();
+};
+
+/** 查询：提交草稿并回到第一页（停在旧页码会让筛选看起来没生效） */
+const commitSearch = () => {
+  commit();
+  void tableRef.value?.goto(1);
+};
+
+/** 重置：清空草稿与快照后重查 */
+const resetSearch = () => {
+  resetDraft();
+  void tableRef.value?.goto(1);
+};
 
 const dialogVisible = ref(false);
 const saving = ref(false);
 const form = reactive<Partial<Exam>>({});
 
-const reload = async () => {
-  loading.value = true;
-  try {
-    const res = await eduaiApi.pageExams({ page: pageNo.value, pageSize: pageSize.value });
-    list.value = ((res?.data ?? []) as Exam[]).filter((it: any) => !keyword.value || (it.examName || '').includes(keyword.value));
-    total.value = res?.total ?? 0;
-  } catch (e) {
-    ElMessage.error('加载失败: ' + (e instanceof Error ? e.message : String(e)));
-  } finally {
-    loading.value = false;
-  }
-};
-
-const reset = () => {
+const resetForm = () => {
   Object.assign(form, {
     examId: undefined,
     examName: '',
@@ -120,7 +150,7 @@ const reset = () => {
 };
 
 const openCreate = () => {
-  reset();
+  resetForm();
   dialogVisible.value = true;
 };
 
@@ -153,6 +183,15 @@ const save = async () => {
 
 const remove = async (row: Exam) => {
   try {
+    await ElMessageBox.confirm(`确认删除考试 ${row.examName}？`, "删除考试", {
+      type: "warning",
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return;
+  }
+  try {
     await eduaiApi.deleteExam(row.examId);
     ElMessage.success('已删除');
     reload();
@@ -166,10 +205,8 @@ const examStatusType = (n?: number) =>
 const examStatusLabel = (n?: number) =>
   ({ 1: '进行中', 2: '已结束', 0: '未开始' } as Record<number, string>)[n ?? 0] || '-';
 
-onMounted(reload);
 </script>
 
 <style scoped>
 .page-container { padding: 16px; height: 100%; display: flex; flex-direction: column; }
-.toolbar :deep(.el-card__body) { padding: 12px 16px; }
 </style>

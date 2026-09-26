@@ -3,21 +3,16 @@
     <!-- 点阵背景（无网格叠加） -->
     <div class="mono-dots" aria-hidden="true"></div>
 
-    <!-- 左上角品牌 -->
-    <div class="mono-brand pos-absolute top-8 left-8 flex items-center gap-10px z-10">
-      <div class="mono-brand-logo">
-        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
-      </div>
-      <span class="mono-brand-name text-16px font-700 text-white/90">{{ translateConfigText(loginConfig.title) }}</span>
-    </div>
-
-    <!-- 居中终端面板 -->
+    <!-- 居中终端面板：品牌只在终端标题栏出现一次，不再另设左上角浮动标识 -->
     <div class="mono-shell relative z-10 w-520px max-w-94vw rounded-20px overflow-hidden">
       <!-- 终端标题栏 -->
       <div class="mono-shell-bar flex items-center gap-10px px-18px py-12px">
         <span class="mono-dot mono-dot--red"></span>
         <span class="mono-dot mono-dot--yellow"></span>
         <span class="mono-dot mono-dot--green"></span>
+        <span class="mono-shell-logo">
+          <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
+        </span>
         <span class="mono-shell-title ml-14px text-13px font-500">{{ translateConfigText(loginConfig.title) }}</span>
       </div>
 
@@ -28,7 +23,7 @@
           <span class="ml-8px text-white/50">{{ translateConfigText(loginConfig.welcome) }}</span>
         </div>
 
-        <ReLoginForm :show-mobile-brand="false" form-class="mono-form" />
+        <ReLoginForm :show-mobile-brand="false" form-class="mono-form"  :show-header="false" />
 
         <div class="mono-footer m-t-28px flex items-center justify-between text-12px text-white/30">
           <span>{{ $t("menu.login.account") }}</span>
@@ -73,22 +68,21 @@ const resolvedLogoUrl = computed(() =>
   pointer-events: none;
 }
 
-/* 品牌 */
-.mono-brand {
-  &-logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-}
-
 /* 终端面板 */
 .mono-shell {
   background: #0a0a0a;
   border: 2px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* 标题栏内的品牌图标 */
+.mono-shell-logo {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 .mono-shell-bar {

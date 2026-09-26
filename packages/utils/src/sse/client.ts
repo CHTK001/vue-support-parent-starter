@@ -116,6 +116,12 @@ export function createSseClient<T = unknown>(
         throw new Error(`SSE 连接失败: ${response.status}`);
       },
       onmessage: (msg) => {
+        // 仅心跳注释（如 `: keep-alive`）时该事件没有 data 字段。
+        // 底层 parser 遇到空行会无条件派发事件，若原样透传，
+        // parseData("") 会得到空字符串并把调用方状态清空，故此处丢弃。
+        if (msg.data === undefined || msg.data === null || msg.data === "") {
+          return;
+        }
         const data = parseData(msg.data);
         onMessage?.({
           event: msg.event || "message",

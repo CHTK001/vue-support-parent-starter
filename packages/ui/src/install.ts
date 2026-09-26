@@ -42,12 +42,14 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReIconSelect: () => import("./components/ReIconSelect"),
   ReScrollNav: () => import("./components/ReScrollNav"),
   ReSearch: () => import("./components/ReSearch"),
+  ReRichText: () => import("./components/ReRichText"),
   ReTagFilter: () => import("./components/ReTagFilter"),
   ReLoading: () => import("./components/ReLoading"),
   ReDrawer: () => import("./components/ReDrawer"),
   ReSeamlessScroll: () => import("./components/ReSeamlessScroll"),
   ReStatusIndicator: () => import("./components/ReStatusIndicator"),
   ReStatCard: () => import("./components/ReStatCard"),
+  ReStatsCard: () => import("./components/ReStatsCard"),
   ReSectionHead: () => import("./components/ReSectionHead"),
   ReTrend: () => import("./components/ReTrend"),
   ReGraph: () => import("./components/ReGraph"),
@@ -93,6 +95,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReRibbon: () => import("./components/ReRibbon"),
   ReFilter: () => import("./components/ReFilter"),
   ReProgress: () => import("./components/ReProgress"),
+  ReProcessTask: () => import("./components/ReProcessTask"),
   ReRemoteSelect: () => import("./components/ReRemoteSelect"),
   ReAvatar3D: () => import("./components/ReAvatar3D"),
   ReClineCharacter: () => import("./components/ReClineCharacter"),
@@ -100,6 +103,7 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReMap3D: () => import("./components/ReMap3D"),
   ReCanvasUi: () => import("./components/ReCanvasUi"),
   ReKit: () => import("./components/ReKit"),
+  ReCommand: () => import("./components/ReCommand"),
 };
 
 /**

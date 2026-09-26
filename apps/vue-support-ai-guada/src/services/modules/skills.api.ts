@@ -17,6 +17,14 @@ export interface SkillsApi {
   disableSkill(skillId: string): Promise<{ success: boolean; message: string }>;
   batchToggleSkills(ids: string[], enabled: boolean): Promise<{ success: boolean; message: string }>;
   fetchSkillsEnabledStatus(): Promise<Array<{ id: string; enabled: boolean }>>;
+  fetchSkillCatalogConfig(): Promise<any>;
+  updateSkillCatalogConfig(config: Record<string, boolean>): Promise<any>;
+  fetchLocalCatalog(keyword?: string): Promise<any[]>;
+  fetchBuiltinCatalog(): Promise<any[]>;
+  fetchMarketCatalog(keyword?: string): Promise<any[]>;
+  previewMarketSkill(url: string): Promise<{ name?: string; description?: string; version?: string; content: string }>;
+  fetchAggregatorCatalog(keyword?: string): Promise<any[]>;
+  installLocalSkill(tool: string, name: string, force?: boolean): Promise<{ success: boolean; message: string }>;
 }
 
 export const skillsApi: SkillsApi = {
@@ -113,5 +121,49 @@ export const skillsApi: SkillsApi = {
 
   async fetchSkillsEnabledStatus(this: ApiContext) {
     return await this._request("/skills/enabled-status");
+  },
+
+  async fetchSkillCatalogConfig(this: ApiContext) {
+    return await this._request("/skills/catalog/config");
+  },
+
+  async updateSkillCatalogConfig(this: ApiContext, config: Record<string, boolean>) {
+    return await this._request("/skills/catalog/config", {
+      method: "PUT",
+      data: config,
+    });
+  },
+
+  async fetchLocalCatalog(this: ApiContext, keyword?: string) {
+    const q = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+    return await this._request(`/skills/catalog/local${q}`);
+  },
+
+  async fetchBuiltinCatalog(this: ApiContext) {
+    return await this._request(`/skills/catalog/builtin`);
+  },
+
+  async fetchMarketCatalog(this: ApiContext, keyword?: string) {
+    const q = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+    return await this._request(`/skills/catalog/market${q}`);
+  },
+
+  async previewMarketSkill(this: ApiContext, url: string) {
+    return await this._request("/skills/market/preview", {
+      method: "POST",
+      data: { url },
+    });
+  },
+
+  async fetchAggregatorCatalog(this: ApiContext, keyword?: string) {
+    const q = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+    return await this._request(`/skills/catalog/aggregators${q}`);
+  },
+
+  async installLocalSkill(this: ApiContext, tool: string, name: string, force: boolean = false) {
+    return await this._request("/skills/catalog/install-local", {
+      method: "POST",
+      data: { tool, name, force },
+    });
   },
 };

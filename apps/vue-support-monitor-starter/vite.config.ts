@@ -2,9 +2,6 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 
 const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8081";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://127.0.0.1:29181";
-// /v2/** 属 spring-support-api-starter 那一系后端（默认 19170，context-path=/monitor/api），
-// 与 8081 上的 /ms/** 不是同一个进程
-const apiV2Target = process.env.MS_API_V2_TARGET ?? "http://127.0.0.1:19170";
 
 export default createVite({
   appName: "vue-support-monitor-starter",
@@ -17,6 +14,8 @@ export default createVite({
     "@pages/server": "pages/server",
     "@pages/monitor": "pages/monitor",
     "@pages/project": "pages/project",
+    "@pages/filesystem": "pages/filesystem",
+    "@pages/datasource": "pages/datasource",
   },
   server: {
     port: 8848,
@@ -32,6 +31,24 @@ export default createVite({
       ],
     },
     proxy: {
+      // 后端 v2 基础接口：默认设置 /v2/setting/default、用户菜单 /v2/user/menu、
+      // 布局 /v2/user/layout 等。缺失会导致启动期“远程登录页配置拉取失败 404”。
+      "/v2": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      // 天气组件 IP 定位：freeipapi（HTTPS）
+      "/freeip-api": {
+        target: "https://freeipapi.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/freeip-api/, ""),
+      },
+      // 天气组件 IP 定位：ip-api（HTTP 免费版，HTTPS 返回 403）
+      "/ip-api": {
+        target: "http://ip-api.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ip-api/, ""),
+      },
       "/ms/monitor/system": {
         target: apiTarget,
         changeOrigin: true,
@@ -44,6 +61,11 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 数据源中心（spring-support-datasource-hub-starter）
+      "/ms/datasource": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
       "/ms/server": {
         target: apiTarget,
         changeOrigin: true,
@@ -51,12 +73,6 @@ export default createVite({
       "/ms/project": {
         target: apiTarget,
         changeOrigin: true,
-      },
-      // 文件管理（@pages/filesystem）走 /v2/file/**，后端在 api 系进程上带 /monitor/api 前缀
-      "/v2": {
-        target: apiV2Target,
-        changeOrigin: true,
-        rewrite: (p) => `/monitor/api${p}`,
       },
       "/ws/ms/server": {
         target: apiTarget,

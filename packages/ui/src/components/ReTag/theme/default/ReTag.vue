@@ -7,6 +7,7 @@
  */
 import { computed } from "vue";
 import { ElTag } from "element-plus";
+import ReIcon from "../../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReTag", inheritAttrs: true });
 
@@ -22,8 +23,14 @@ const props = withDefaults(
     round?: boolean;
     /** 当前值（配合 map 使用） */
     value?: string | number;
-    /** 值 → { label, type } 映射 */
-    map?: Record<string, { label?: string; type?: "primary" | "success" | "warning" | "info" | "danger" | "" }>;
+    /** 值 → { label, type, color, icon } 映射 */
+    map?: Record<string, { label?: string; type?: "primary" | "success" | "warning" | "info" | "danger" | ""; color?: string; icon?: string }>;
+    /** 左侧图标名（map 命中项的 icon 优先） */
+    icon?: string;
+    /** 状态小圆点 */
+    dot?: boolean;
+    /** 圆点颜色，留空则用 color / 主色 */
+    dotColor?: string;
   }>(),
   {
     type: undefined as undefined | "primary" | "success" | "warning" | "info" | "danger",
@@ -36,6 +43,9 @@ const props = withDefaults(
     round: false,
     value: "",
     map: () => ({}),
+    icon: "",
+    dot: false,
+    dotColor: "",
   },
 );
 
@@ -48,6 +58,7 @@ const mapped = computed(() => {
 
 const displayType = computed(() => (mapped.value?.type || props.type) as "primary" | "success" | "warning" | "info" | "danger" | undefined);
 const displayText = computed(() => mapped.value?.label ?? undefined);
+const displayIcon = computed(() => mapped.value?.icon || props.icon);
 </script>
 
 <template>
@@ -62,6 +73,23 @@ const displayText = computed(() => mapped.value?.label ?? undefined);
     :effect="effect"
     :round="round"
   >
+    <span v-if="dot" class="re-tag__dot" :style="{ background: dotColor || color || 'var(--el-color-primary)' }" />
+    <ReIcon v-if="displayIcon" :name="displayIcon" class="re-tag__icon" />
     <slot>{{ displayText }}</slot>
   </ElTag>
 </template>
+
+<style scoped>
+.re-tag__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+}
+.re-tag__icon {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+</style>

@@ -40,7 +40,7 @@ export function useLayoutTabs(
   const { tabMenuRef, scrollNavRef } = refs;
 
   const tabList = computed(() => tabsStore.getTabs);
-  const activeTab = ref(route.fullPath);
+  const activeTab = ref(route.path);
 
   const activeTabSelector = computed(() => {
     const index = tabList.value.findIndex((item: any) => item.path === activeTab.value);
@@ -50,7 +50,7 @@ export function useLayoutTabs(
   const getClosable = (item: any) => item.isAffix !== "1";
 
   const setActiveTab = () => {
-    activeTab.value = route.fullPath;
+    activeTab.value = route.path;
   };
 
   const initTabs = () => {
@@ -69,24 +69,25 @@ export function useLayoutTabs(
   };
 
   const addTab = () => {
-    const { meta, fullPath } = route;
-    const existingTab = tabsStore.tabList.find((item: any) => item.path === fullPath);
+    const { meta, path, fullPath } = route;
+    // 只用路由path作为tab唯一标识，忽略url里的查询参数，避免带?v=xxx这类刷新参数时重复生成tab
+    const existingTab = tabsStore.tabList.find((item: any) => item.path === path);
     const isAffixed = existingTab && existingTab.isAffix === "1";
     // 从菜单树补齐标题与图标（考虑 activeMenu + 路径前缀匹配）
     const menuMeta = resolveRouteMenuMeta(route, authStore.recursiveMenuList);
     // 标题优先级：路由有效 meta.title > 菜单 meta.title > 兜底空串（避免 undefined）
     const title = (meta.title && meta.title !== "home" ? meta.title : (menuMeta?.title ?? "")) as string;
     // home 占位符 "home" 未匹配到菜单时，使用默认翻译
-    const resolvedTitle = title || (fullPath === HOME_URL ? "menu.home.work.name" : title);
+    const resolvedTitle = title || (path === HOME_URL ? "menu.home.work.name" : title);
     const tab = {
       icon: meta.icon || menuMeta?.icon,
       title: resolvedTitle,
-      path: fullPath,
+      path: path,
       name: route.name as string,
       isKeepAlive: route.meta.isKeepAlive,
       isAffix: isAffixed ? "1" : (route.meta.isAffix || "0")
     };
-    if (fullPath == HOME_URL) {
+    if (path == HOME_URL) {
       tab.isAffix = "1";
     }
     // 已存在的旧标签（如持久化的 "home" 占位）补齐标题/图标，避免 addTab 直接跳过导致不更新

@@ -17,7 +17,8 @@ export default {
       systemUnavailable: "System temporarily unavailable",
       systemUnavailableDesc: "Failed to load system configuration, please try again later",
       retry: "Retry",
-      otpTip: "Enter the 6-digit code sent to your phone or email",
+      otpTip: "Enter the 6-digit code from your authenticator app",
+      totpTip: "Enter the 6-digit code from your authenticator app",
       otpTitle: "OTP Verification",
       otpConfirm: "Confirm",
       otpCancel: "Cancel",
@@ -27,16 +28,27 @@ export default {
       style: "Login Style",
       styleDesc: "Switch between different layouts and visual styles",
       styleOptions: {
-        defaultLabel: "Premium Dual-pane",
+        defaultLabel: "Simple Dual-pane",
         defaultDesc: "Brand showcase + login form",
+        cardLabel: "Centered Card",
+        cardDesc: "Floating split-card layout",
         bubbleLabel: "Bubble Minimal",
         bubbleDesc: "Bubble background lightweight card",
+        glassLabel: "Glassmorphism",
+        glassDesc: "Frosted glass card",
+        slideLabel: "Gradient Flow",
+        slideDesc: "Gradient glow floating card",
         splitLabel: "Split Immersive",
         splitDesc: "Large-screen split immersive layout",
-        minecraftLabel: "Minecraft",
+        splitReverseLabel: "Mirrored Split Immersive",
+        splitReverseDesc: "Form left · brand immersive right",
         minecraftDesc: "Pixel block style",
-        voxelLabel: "Voxel Modern",
-        voxelDesc: "3D voxel particle style",
+        voxelLabel: "Modern 3D",
+        voxelDesc: "3D dimensional particle style",
+        monoLabel: "Monochrome Terminal",
+        monoDesc: "Geek monospace terminal style",
+        simpleLabel: "Light Terminal",
+        simpleDesc: "Clean terminal style",
       },
       featureTags: {
         manage: "Efficient Management",
@@ -51,7 +63,7 @@ export default {
       rules: {
         loginName: {
           required: "The user name cannot be empty",
-          validator: "The account can only contain numbers and letters"
+          validator: "The account can only contain letters, numbers, underscores and hyphens"
         },
         password: {
           required: "The password cannot be empty",
@@ -232,7 +244,7 @@ export default {
         name: "Code Generate"
       },
       config: {
-        name: "Code Config"
+        name: "Config Management"
       },
       file: {
         name: "Files Manage"
@@ -388,6 +400,69 @@ export default {
       homeConfig: "Home Config",
       watermarkConfig: "Watermark Config",
       weatherConfig: "Weather Config",
+      capabilityConfig: "Capability Switches",
+      loginVerify: "Login Verification",
+    },
+    loginVerify: {
+      captcha: {
+        title: "Image Captcha",
+        sub: "Captcha",
+        tip: "Require an image captcha at login (login.captcha)",
+        description: "Require an image captcha at login; also configurable via app.yaml / backend default API",
+      },
+      slider: {
+        title: "Slider Verify",
+        sub: "Slider",
+        tip: "Require sliding to the right at login (login.slider)",
+        description: "Require sliding to the right at login; also configurable via app.yaml / backend default API",
+      },
+      otp: {
+        title: "Dynamic Password",
+        sub: "OTP / TOTP",
+        tip: "Require a 6-digit authenticator code at login (login.otp)",
+        description: "Require a 6-digit TOTP code at login; also configurable via app.yaml / backend default API",
+      },
+    },
+    security: {
+      watermark: {
+        enable: {
+          title: "Global Watermark",
+          sub: "Screen Capture",
+          tip: "Overlay a global watermark (security.watermark.enable)",
+          description: "Overlay a text watermark across the app; text/color/opacity/angle configurable",
+        },
+        text: {
+          label: "Watermark Text",
+          placeholder: "Empty = no text",
+        },
+        color: {
+          label: "Watermark Color",
+        },
+        alpha: {
+          label: "Opacity",
+        },
+        rotate: {
+          label: "Rotation",
+        },
+      },
+      antiDebug: {
+        title: "Anti Debug",
+        sub: "Security",
+        tip: "Clear the page or redirect when a debug context is detected (security.baiduJs.enable)",
+        description: "Handles devtools / automation per configured action; keep it off while debugging",
+      },
+      dynamicFont: {
+        title: "Dynamic Font",
+        sub: "Anti OCR",
+        tip: "ReText renders text with a dynamic font to block OCR scraping (security.dynamicFont.enable)",
+        description: "Used by ReText when no explicit prop is given",
+      },
+      ocrObfuscation: {
+        title: "OCR Obfuscation",
+        sub: "Anti Scraping",
+        tip: "ReText renders text into canvas so page text cannot be scraped (security.ocrObfuscation.enable)",
+        description: "Used by ReText when no explicit prop is given",
+      },
     },
     io: {
       export: "Export Config",
@@ -498,6 +573,12 @@ export default {
         tip: "Collapse aside to icon bar",
         description: "Collapse aside to icon bar",
       },
+      collapseToButton: {
+        title: "Collapse to Button",
+        sub: "Vertical layout only",
+        tip: "When collapsed, hide the icon menu and shrink the entire menu into one expand button (vertical layout only)",
+        description: "When collapsed, hide the icon menu and shrink the entire menu into one expand button (vertical layout only)",
+      },
     },
     message: {
       position: {
@@ -536,6 +617,32 @@ export default {
         sub: "Toolbar",
         tip: "Show weather info at top-right of toolbar",
         description: "Show current weather and weekly forecast",
+      },
+    },
+    capability: {
+      weather: {
+        title: "Weather API",
+        sub: "Backend Capability",
+        tip: "Use /v2/weather/overview when the backend provides it (other.capabilities.weather)",
+        description: "Probe the backend weather overview first and fall back to third-party sources; set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
+      },
+      location: {
+        title: "Location API",
+        sub: "Backend Capability",
+        tip: "Let the backend resolve the location by source IP via /v2/location/resolve (other.capabilities.location)",
+        description: "Probe the backend location API first, then fall back to browser geolocation / IP lookup / coordinates from app.yaml",
+      },
+      typhoon: {
+        title: "Typhoon API",
+        sub: "Backend Capability",
+        tip: "Use /v2/typhoon/active when the backend provides it (other.capabilities.typhoon)",
+        description: "Probe the backend typhoon API first and fall back to the third-party typhoon service; set false in app.yaml when the backend has no such API, otherwise every startup logs a probe 404",
+      },
+      ipLookup: {
+        title: "IP Location",
+        sub: "Backend Capability",
+        tip: "Let the backend resolve an IP into a physical address via /v2/ip/lookup (other.capabilities.ipLookup)",
+        description: "Request the backend to resolve missing IP addresses; set false in app.yaml when the backend has no such API to avoid pointless 404 requests",
       },
     },
     toolbar: {

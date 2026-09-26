@@ -50,9 +50,12 @@ export interface MessageContent {
   updatedAt?: string;
   thinkingStartedAt?: number | null;
   thinkingDurationMs?: number | null;
+  searchResults?: Array<{ title: string; url: string }>;
+  searchQuery?: string;
   state: {
     isStreaming: boolean;
     isThinking: boolean;
+    isSearching?: boolean;
   };
   _thinkingTimer?: number;
   isCurrent?: boolean;
@@ -158,7 +161,7 @@ export type DisplayGroupType = "content" | "process";
  * 展示项类型
  * 将大 content 拆分为独立的展示单元
  */
-export type DisplayItemType = "content" | "think" | "tool";
+export type DisplayItemType = "content" | "think" | "tool" | "search";
 
 /**
  * 展示项接口
@@ -174,6 +177,9 @@ export interface DisplayItem {
   // tool 类型的内容
   toolCalls?: any[];
   toolResponses?: any[];
+  // search 类型的内容
+  searchResults?: Array<{ title: string; url: string }>;
+  searchQuery?: string;
   // 引用原始 MessageContent，用于获取状态等元数据
   source: MessageContent;
 }
@@ -206,6 +212,17 @@ export function countSteps(items: DisplayItem[]): number {
  */
 function flattenSingleContent(content: MessageContent): DisplayItem[] {
   const items: DisplayItem[] = [];
+
+  // 0. search（在线检索，发生在思考/正文之前）
+  if (content.state?.isSearching || content.searchResults?.length) {
+    items.push({
+      id: `${content.id}-search`,
+      type: "search",
+      searchResults: content.searchResults,
+      searchQuery: content.searchQuery,
+      source: content,
+    });
+  }
 
   // 1. think
   if (content.reasoningContent) {

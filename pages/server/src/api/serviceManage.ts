@@ -218,7 +218,19 @@ export const queryDiscoveryInstances = (protocol?: string, uriSpec?: string) => 
 export const listDiscoveryProtocols = () =>
   http().get('/ms/monitor/discovery/protocols').then(r => unwrapResult<string[]>(r));
 
+/** 发现服务状态（对齐后端 DiscoveryStatusVO） */
+export interface DiscoveryStatus {
+  /** 运行中节点上挂载的发现插件数量 */
+  runningDiscoveryFilters: number;
+  /** SPI 可用的发现协议名 */
+  availableProtocols: string[];
+  /** 容器内是否装配 DiscoveryService */
+  discoveryServicePresent: boolean;
+  /** 是否存在可用的发现能力 */
+  enabled: boolean;
+}
+
 /** 发现服务状态 */
 export const getDiscoveryStatus = () =>
-  http().get('/ms/monitor/discovery/status').then(r => unwrapResult<Record<string, unknown>>(r));
+  http().get('/ms/monitor/discovery/status').then(r => unwrapResult<DiscoveryStatus>(r));
 

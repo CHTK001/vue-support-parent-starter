@@ -1,230 +1,157 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
- * 字典管理页面
- *
- * 双 Tab：字典分类 + 字典子项
- *   字典分类：分页 + 增删改查（/v2/dict/*）
- *   字典子项：按字典 ID 分页 + 增删改查（/v2/dict/item/*）
- * 全部使用 ReXxx modern 组件渲染。
+ * 字典管理 - 左右分栏布局
+ * 左侧：字典分类列表，支持搜索、新增
+ * 右侧上下：上方字典详情，下方 ReTable 字典项（支持拖拽排序、图标、扩展配置）
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import Sortable from "sortablejs";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Collection, Plus, Edit, Delete, Search, Refresh, Upload, Download, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
-import * as XLSX from "xlsx";
+import { Search, Collection } from "@element-plus/icons-vue";
+import type { ReTableColumn } from "@repo/ui/re-table";
 import {
-  pageForDict,
+  listForDict,
   saveDict,
   updateDict,
   deleteDict,
-  pageForDictItem,
+  listDictItem,
   saveDictItem,
   updateDictItem,
   deleteDictItem,
-  listForDict,
-  listDictItemByCode,
-  refreshDictCache,
+  updateDictItemSortBatch,
+  updateDictSortBatch,
 } from "../api/systemApi";
-import type { SysDict, SysDictItem } from "../api/types";
-import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import type { SysDict, SysDictItem, SysDictItemProperty } from "../api/types";
 
-const activeTab = ref<"dict" | "item">("dict");
-
-/* 刷新字典缓存 */
-const cacheRefreshing = ref(false);
-async function handleRefreshCache() {
-  cacheRefreshing.value = true;
-  try {
-    await refreshDictCache();
-    ElMessage.success("字典缓存已刷新");
-    dictTableRef.value?.reload();
-    itemTableRef.value?.reload();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "刷新缓存失败");
-  } finally {
-    cacheRefreshing.value = false;
-  }
-}
-
-const dictStatusOptions = [
+const statusOptions = [
   { label: "启用", value: 1 },
   { label: "禁用", value: 0 },
 ];
 
-/* ===== 字典分类 ===== */
-const dictQuery = ref<{
-  page: number;
-  pageSize: number;
-  sysDictName?: string;
-  sysDictCode?: string;
-}>({
-  page: 1,
-  pageSize: 10,
-});
-
-async function loadDicts({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
-  const res = await pageForDict({
-    page,
-    pageSize,
-    sysDictName: (params.sysDictName as string) || undefined,
-    sysDictCode: (params.sysDictCode as string) || undefined,
-  });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
-}
-
-const dictTableRef = ref();
+/* ================== 左侧字典分类 ================== */
 const dictList = ref<SysDict[]>([]);
-
-async function refreshDictOptions() {
-  try {
-    const res = await listForDict();
-    dictList.value = (res?.data ?? []) as SysDict[];
-  } catch (e) {
-    console.warn("[dict] 字典选项加载失败", e);
-  }
-}
-
-/** 隐藏 file input 触发导入 */
-const importInput = ref<HTMLInputElement>();
-
-function triggerImport() {
-  importInput.value?.click();
-}
-
-/** 导出全部字典（分类 + 子项）为 Excel */
-async function handleExport() {
-  try {
-    const dictRes = await listForDict();
-    const dicts = (dictRes?.data ?? []) as SysDict[];
-    const dictRows = dicts.map((d) => ({
-      字典名称: d.sysDictName ?? "",
-      字典编码: d.sysDictCode ?? "",
-      排序: d.sysDictSort ?? 0,
-      状态: d.sysDictStatus === 1 ? "显示" : "隐藏",
-      备注: d.sysDictRemark ?? "",
-    }));
-    const itemRows: Record<string, string | number>[] = [];
-    for (const d of dicts) {
-      if (!d.sysDictCode) continue;
-      const itemRes = await listDictItemByCode(d.sysDictCode);
-      const items = (itemRes?.data ?? []) as SysDictItem[];
-      items.forEach((it) => {
-        itemRows.push({
-          字典编码: d.sysDictCode ?? "",
-          标签: it.sysDictItemLabel ?? "",
-          值: it.sysDictItemValue ?? "",
-          编码: it.sysDictItemCode ?? "",
-          排序: it.sysDictItemSort ?? 0,
-          状态: it.sysDictItemStatus === 1 ? "启用" : "禁用",
-          备注: it.sysDictItemRemark ?? "",
-        });
-      });
-    }
-    const wb = XLSX.utils.book_new();
-    const dictSheet = XLSX.utils.json_to_sheet(dictRows);
-    const itemSheet = XLSX.utils.json_to_sheet(itemRows);
-    XLSX.utils.book_append_sheet(wb, dictSheet, "字典分类");
-    XLSX.utils.book_append_sheet(wb, itemSheet, "字典子项");
-    XLSX.writeFile(wb, `字典数据_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    ElMessage.success(`已导出 ${dicts.length} 个字典`);
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "导出失败");
-  }
-}
-
-/** 从 Excel 导入字典分类 + 子项 */
-async function handleImportFile(evt: Event) {
-  const input = evt.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  try {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf);
-    const dictSheet = wb.Sheets["字典分类"];
-    const itemSheet = wb.Sheets["字典子项"];
-    if (!dictSheet) {
-      ElMessage.warning("Excel 缺少「字典分类」工作表");
-      return;
-    }
-    const dictRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(dictSheet);
-    const itemRows = itemSheet
-      ? (XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet) as Record<string, unknown>[])
-      : [];
-    if (!dictRows.length) {
-      ElMessage.warning("Excel 无字典分类数据");
-      return;
-    }
-    let dictCount = 0;
-    let itemCount = 0;
-    for (const row of dictRows) {
-      const name = String(row["字典名称"] ?? "").trim();
-      const code = String(row["字典编码"] ?? "").trim();
-      if (!name || !code) continue;
-      const sort = Number(row["排序"]) || 0;
-      const status = String(row["状态"]).includes("显示") ? 1 : 0;
-      const remark = String(row["备注"] ?? "");
-      let existing = dictList.value.find((d) => d.sysDictCode === code);
-      let dictId: number;
-      if (existing) {
-        await updateDict({ ...existing, sysDictName: name, sysDictSort: sort, sysDictStatus: status, sysDictRemark: remark });
-        dictId = existing.sysDictId!;
-      } else {
-        const res = await saveDict({ sysDictName: name, sysDictCode: code, sysDictSort: sort, sysDictStatus: status, sysDictRemark: remark });
-        dictId = (res?.data as SysDict)?.sysDictId ?? 0;
-      }
-      dictCount++;
-      // 导入子项：按编码匹配当前分类
-      const dictItems = itemRows.filter((r) => String(r["字典编码"] ?? "") === code);
-      for (const it of dictItems) {
-        const label = String(it["标签"] ?? "").trim();
-        const value = String(it["值"] ?? "").trim();
-        if (!label || !value) continue;
-        const itemSort = Number(it["排序"]) || 0;
-        const itemStatus = String(it["状态"]).includes("启用") ? 1 : 0;
-        const itemCode = String(it["编码"] ?? "");
-        const itemRemark = String(it["备注"] ?? "");
-        await saveDictItem({ sysDictId: dictId, sysDictItemLabel: label, sysDictItemValue: value, sysDictItemCode: itemCode, sysDictItemSort: itemSort, sysDictItemStatus: itemStatus, sysDictItemRemark: itemRemark });
-        itemCount++;
-      }
-    }
-    ElMessage.success(`导入完成：${dictCount} 个字典，${itemCount} 个字典项`);
-    dictTableRef.value?.reload();
-    refreshDictOptions();
-  } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "导入失败");
-  }
-}
-
-const dictSearchFilters = computed(() => [
-  { key: 'sysDictName', label: '字典名称', type: 'input' as const, placeholder: '请输入' },
-  { key: 'sysDictCode', label: '字典编码', type: 'input' as const, placeholder: '请输入' },
-]);
-
-function handleDictReset() {
-  dictQuery.value = { page: 1, pageSize: 10 };
-  dictTableRef.value?.reload();
-}
-
+const dictLoading = ref(false);
+const filterText = ref("");
+const currentDict = ref<SysDict | null>(null);
 const dictDialogVisible = ref(false);
 const dictSaving = ref(false);
 const isEditDict = ref(false);
 const dictForm = ref<SysDict>({});
+const dictListBodyRef = ref<HTMLElement | null>(null);
+let dictSortable: ReturnType<typeof Sortable.create> | null = null;
+
+const filteredDictList = computed(() => {
+  if (!filterText.value) return dictList.value;
+  const kw = filterText.value.toLowerCase();
+  return dictList.value.filter(
+    (d) =>
+      d.sysDictName?.toLowerCase().includes(kw) ||
+      d.sysDictCode?.toLowerCase().includes(kw)
+  );
+});
+
+async function loadDictList() {
+  dictLoading.value = true;
+  try {
+    const res = await listForDict();
+    dictList.value = (res?.data ?? []) as SysDict[];
+    if (dictList.value.length && !currentDict.value) {
+      currentDict.value = dictList.value[0];
+      await nextTickReload();
+    }
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "字典列表加载失败");
+  } finally {
+    dictLoading.value = false;
+    await nextTick();
+    initDictSortable();
+  }
+}
+
+function nextTickReload() {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      itemTableRef.value?.reload();
+      resolve();
+    }, 50);
+  });
+}
+
+/** 初始化左侧字典分类拖拽 */
+function initDictSortable() {
+  if (!dictListBodyRef.value) return;
+  // 已存在先销毁
+  dictSortable?.destroy();
+  dictSortable = Sortable.create(dictListBodyRef.value, {
+    handle: ".dict-drag-handle",
+    animation: 150,
+    ghostClass: "dict-sort-ghost",
+    chosenClass: "dict-sort-chosen",
+    dragClass: "dict-sort-drag",
+    disabled: !!filterText.value,
+    onEnd: async (evt) => {
+      const { oldIndex, newIndex } = evt;
+      // 位置未变化直接返回
+      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+      // 还原DOM移动，交给Vue响应式更新
+      const nodes = Array.from(dictListBodyRef.value!.children);
+      const movedNode = nodes[newIndex];
+      if (oldIndex < newIndex) {
+        nodes[newIndex + 1]?.before(movedNode);
+      } else {
+        nodes[oldIndex]?.after(movedNode);
+      }
+      // 更新数组顺序
+      const list = [...dictList.value];
+      const [moved] = list.splice(oldIndex, 1);
+      list.splice(newIndex, 0, moved);
+      // 重算排序字段
+      const sortPayload = list.map((item, idx) => ({
+        sysDictId: item.sysDictId!,
+        sysDictSort: idx + 1,
+      }));
+      list.forEach((item, idx) => item.sysDictSort = idx + 1);
+      dictList.value = list;
+      try {
+        await updateDictSortBatch(sortPayload);
+        ElMessage.success("字典排序已更新");
+      } catch (e) {
+        ElMessage.error((e as Error)?.message ?? "排序保存失败，正在刷新");
+        await loadDictList();
+      }
+    },
+  });
+}
+
+async function handleSelectDict(dict: SysDict) {
+  currentDict.value = dict;
+  itemSearch.value = {};
+  await nextTickReload();
+}
 
 function handleDictAdd() {
   isEditDict.value = false;
-  dictForm.value = { sysDictStatus: 1, sysDictSort: 0, sysDictInSystem: 0 };
+  dictForm.value = {
+    sysDictStatus: 1,
+    sysDictSort: dictList.value.length,
+  };
   dictDialogVisible.value = true;
 }
 
-function handleDictEdit(row: Record<string, unknown>) {
+function handleDictEdit() {
+  if (!currentDict.value) return;
   isEditDict.value = true;
-  dictForm.value = { ...(row as unknown as SysDict) };
+  dictForm.value = { ...currentDict.value };
   dictDialogVisible.value = true;
 }
 
 async function handleDictSubmit() {
-  if (!dictForm.value.sysDictName || !dictForm.value.sysDictCode) {
-    ElMessage.warning("请输入字典名称和编码");
+  if (!dictForm.value.sysDictName) {
+    ElMessage.warning("请输入字典名称");
+    return;
+  }
+  if (!dictForm.value.sysDictCode) {
+    ElMessage.warning("请输入字典编码");
     return;
   }
   dictSaving.value = true;
@@ -237,8 +164,7 @@ async function handleDictSubmit() {
       ElMessage.success("新增成功");
     }
     dictDialogVisible.value = false;
-    dictTableRef.value?.reload();
-    refreshDictOptions();
+    await loadDictList();
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -246,93 +172,99 @@ async function handleDictSubmit() {
   }
 }
 
-async function handleDictDelete(row: Record<string, unknown>) {
-  const dict = row as unknown as SysDict;
-  await ElMessageBox.confirm(`确认删除字典「${dict.sysDictName}」？子项将一并失效`, "提示", { type: "warning" });
-  await deleteDict(dict.sysDictId!);
-  ElMessage.success("删除成功");
-  dictTableRef.value?.reload();
-  refreshDictOptions();
-}
-
-const dictColumns: ReTableColumn[] = [
-  { prop: "sysDictName", label: "字典名称", minWidth: 160, slot: "dictName" },
-  { prop: "sysDictCode", label: "字典编码", minWidth: 160 },
-  { prop: "sysDictSort", label: "排序", width: 80, align: "center" },
-  { prop: "sysDictStatus", label: "状态", width: 100, slot: "status", align: "center" },
-  { prop: "sysDictInSystem", label: "系统内置", width: 100, slot: "system", align: "center" },
-  { prop: "sysDictRemark", label: "备注", minWidth: 180, showOverflowTooltip: true },
-  { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 260, slot: "action", fixed: "right" },
-];
-
-const itemSearchFilters = computed(() => [
-  {
-    key: 'sysDictId', label: '字典分类', type: 'select' as const, placeholder: '选择字典分类',
-    options: dictList.value.map((d) => ({ label: `${d.sysDictName} (${d.sysDictCode})`, value: d.sysDictId })),
-  },
-  { key: 'sysDictItemLabel', label: '标签', type: 'input' as const, placeholder: '请输入' },
-]);
-
-function handleItemReset() {
-  itemQuery.value = { page: 1, pageSize: 10 };
-  itemTableRef.value?.reload();
-}
-
-/* ===== 字典子项 ===== */
-const itemQuery = ref<{
-  page: number;
-  pageSize: number;
-  sysDictId?: number;
-  sysDictItemLabel?: string;
-}>({
-  page: 1,
-  pageSize: 10,
-});
-
-async function loadItems({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
-  if (!params.sysDictId) {
-    return { total: 0, data: [] };
+async function handleDictDelete() {
+  if (!currentDict.value) return;
+  if (currentDict.value.sysDictInSystem === 1) {
+    ElMessage.warning("内置字典不允许删除");
+    return;
   }
-  const res = await pageForDictItem({
-    page,
-    pageSize,
-    sysDictId: (params.sysDictId as number) || undefined,
-    sysDictItemLabel: (params.sysDictItemLabel as string) || undefined,
-  });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  try {
+    await ElMessageBox.confirm(
+      `确定删除字典「${currentDict.value.sysDictName}」吗？字典下所有子项也会被删除。`,
+      "删除确认",
+      { type: "warning" }
+    );
+    await deleteDict(currentDict.value.sysDictId!);
+    ElMessage.success("删除成功");
+    currentDict.value = null;
+    await loadDictList();
+    if (dictList.value.length) {
+      currentDict.value = dictList.value[0];
+      await nextTickReload();
+    }
+  } catch (error: unknown) {
+    if (error !== "cancel") ElMessage.error(error instanceof Error ? error.message : "删除失败");
+  }
 }
 
+/* ================== 右侧下方 ReTable 字典项 ================== */
 const itemTableRef = ref();
-
 const itemDialogVisible = ref(false);
 const itemSaving = ref(false);
 const isEditItem = ref(false);
 const itemForm = ref<SysDictItem>({});
+const itemSearch = ref<Record<string, unknown>>({});
+
+const itemColumns: ReTableColumn[] = [
+  { prop: "sysDictItemName", label: "名称", minWidth: 160 },
+  { prop: "sysDictItemCode", label: "值", minWidth: 120 },
+  { prop: "sysDictItemSort", label: "排序", width: 80, align: "center" },
+  { prop: "sysDictItemStatus", label: "状态", width: 90, align: "center" },
+  { prop: "action", label: "操作", width: 110, align: "center", fixed: "right" },
+];
+
+async function loadDictItems(params: Record<string, unknown>) {
+  if (!currentDict.value?.sysDictId) {
+    return { total: 0, data: [] };
+  }
+  try {
+    const res = await listDictItem(currentDict.value.sysDictId);
+    let list = (res?.data ?? []) as SysDictItem[];
+    // 前端关键字过滤
+    const kw = (params?.sysDictItemName as string) || "";
+    if (kw) {
+      const k = kw.toLowerCase();
+      list = list.filter(
+        (i) =>
+          i.sysDictItemName?.toLowerCase().includes(k) ||
+          i.sysDictItemCode?.toLowerCase().includes(k)
+      );
+    }
+    return { total: list.length, data: list };
+  } catch {
+    return { total: 0, data: [] };
+  }
+}
 
 function handleItemAdd() {
-  if (!itemQuery.value.sysDictId) {
-    ElMessage.warning("请先选择字典分类");
-    return;
-  }
+  if (!currentDict.value) return;
   isEditItem.value = false;
   itemForm.value = {
-    sysDictId: itemQuery.value.sysDictId,
+    sysDictId: currentDict.value.sysDictId,
     sysDictItemStatus: 1,
     sysDictItemSort: 0,
+    property: [],
   };
   itemDialogVisible.value = true;
 }
 
 function handleItemEdit(row: Record<string, unknown>) {
   isEditItem.value = true;
-  itemForm.value = { ...(row as unknown as SysDictItem) };
+  const item = row as unknown as SysDictItem;
+  itemForm.value = {
+    ...item,
+    property: item.property ? JSON.parse(JSON.stringify(item.property)) : [],
+  };
   itemDialogVisible.value = true;
 }
 
 async function handleItemSubmit() {
-  if (!itemForm.value.sysDictItemLabel || !itemForm.value.sysDictItemValue) {
-    ElMessage.warning("请输入字典项标签和值");
+  if (!itemForm.value.sysDictItemName) {
+    ElMessage.warning("请输入子项名称");
+    return;
+  }
+  if (!itemForm.value.sysDictItemCode) {
+    ElMessage.warning("请输入子项值");
     return;
   }
   itemSaving.value = true;
@@ -355,254 +287,393 @@ async function handleItemSubmit() {
 
 async function handleItemDelete(row: Record<string, unknown>) {
   const item = row as unknown as SysDictItem;
-  await ElMessageBox.confirm(`确认删除字典项「${item.sysDictItemLabel}」？`, "提示", { type: "warning" });
-  await deleteDictItem(item.sysDictItemId!);
-  ElMessage.success("删除成功");
-  itemTableRef.value?.reload();
+  try {
+    await ElMessageBox.confirm(
+      `确定删除子项「${item.sysDictItemName}」吗？`,
+      "删除确认",
+      { type: "warning" }
+    );
+    await deleteDictItem(item.sysDictItemId!);
+    ElMessage.success("删除成功");
+    itemTableRef.value?.reload();
+  } catch (error: unknown) {
+    if (error !== "cancel") ElMessage.error(error instanceof Error ? error.message : "删除失败");
+  }
 }
 
-/** 字典子项上移/下移：与相邻行交换 sysDictItemSort */
-async function handleItemMove(row: Record<string, unknown>, dir: "up" | "down") {
-  const item = row as unknown as SysDictItem;
-  if (!itemQuery.value.sysDictId) return;
+/* ReTable 拖拽排序 */
+async function handleItemDragSort({ newData }: { newData: SysDictItem[] }) {
   try {
-    const res = await pageForDictItem({ page: 1, pageSize: 999, sysDictId: itemQuery.value.sysDictId });
-    const all = ((res?.data?.data ?? res?.data?.records ?? []) as SysDictItem[])
-      .slice()
-      .sort((a, b) => (a.sysDictItemSort ?? 0) - (b.sysDictItemSort ?? 0));
-    const idx = all.findIndex((it) => it.sysDictItemId === item.sysDictItemId);
-    const target = dir === "up" ? all[idx - 1] : all[idx + 1];
-    if (idx < 0 || !target) {
-      ElMessage.warning(dir === "up" ? "已是第一项" : "已是最后一项");
-      return;
-    }
-    const mySort = item.sysDictItemSort ?? 0;
-    const targetSort = target.sysDictItemSort ?? 0;
-    await updateDictItem({ ...item, sysDictItemSort: targetSort });
-    await updateDictItem({ ...target, sysDictItemSort: mySort });
-    ElMessage.success(dir === "up" ? "已上移" : "已下移");
+    // 使用拖拽后各行自身排序值（两行交换，其他行不变）
+    const list = newData.flatMap((row) =>
+      row.sysDictItemId == null || row.sysDictItemSort == null
+        ? []
+        : [{
+            sysDictItemId: row.sysDictItemId,
+            sysDictItemSort: row.sysDictItemSort,
+          }],
+    );
+    await updateDictItemSortBatch(list);
+    ElMessage.success("排序已更新");
     itemTableRef.value?.reload();
   } catch (e) {
-    ElMessage.error((e as Error)?.message ?? "排序调整失败");
+    ElMessage.error((e as Error)?.message ?? "排序更新失败");
   }
 }
 
-function switchToItem(dict: SysDict) {
-  activeTab.value = "item";
-  itemQuery.value.sysDictId = dict.sysDictId;
-  itemQuery.value.page = 1;
-  itemTableRef.value?.reload();
+/* 扩展配置 property 动态增删 */
+function addProperty() {
+  if (!itemForm.value.property) itemForm.value.property = [];
+  itemForm.value.property.push({
+    sysDictItemPropertyGroup: "default",
+    sysDictItemPropertyName: "",
+    sysDictItemPropertyValue: "",
+    sysDictItemPropertySelectedType: "input",
+  } as SysDictItemProperty);
+}
+function removeProperty(idx: number) {
+  itemForm.value.property?.splice(idx, 1);
 }
 
-watch(activeTab, (tab) => {
-  if (tab === "item" && itemQuery.value.sysDictId) {
-    itemTableRef.value?.reload();
-  }
+// 搜索过滤时禁用拖拽，避免顺序错乱
+watch(filterText, (val) => {
+  if (dictSortable) dictSortable.option("disabled", !!val);
 });
 
-const itemColumns: ReTableColumn[] = [
-  { prop: "sysDictItemLabel", label: "标签", minWidth: 160 },
-  { prop: "sysDictItemValue", label: "值", minWidth: 160 },
-  { prop: "preview", label: "翻译预览", minWidth: 160, slot: "preview" },
-  { prop: "sysDictItemCode", label: "编码", minWidth: 120 },
-  { prop: "sysDictItemSort", label: "排序", width: 80, align: "center" },
-  { prop: "sysDictItemStatus", label: "状态", width: 100, slot: "status", align: "center" },
-  { prop: "sysDictItemRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 240, slot: "action", fixed: "right" },
-];
-
 onMounted(() => {
-  refreshDictOptions();
+  loadDictList();
+});
+
+onUnmounted(() => {
+  dictSortable?.destroy();
+  dictSortable = null;
 });
 </script>
 
 <template>
-  <div class="system-page">
-    <el-tabs v-model="activeTab" type="border-card" class="rounded-xl">
-      <!-- 字典分类 -->
-      <el-tab-pane label="字典分类" name="dict">
-          <ReTable
-            ref="dictTableRef"
-            table-id="system-dict"
-            :loader="loadDicts"
-            :columns="dictColumns"
-            :pagination="true"
-            :params="dictQuery"
-            row-key="sysDictId"
-            v-model:page="dictQuery.page"
-            v-model:page-size="dictQuery.pageSize"
-            :search="{ filters: dictSearchFilters, title: '搜索', btnMode: 'text' }"
-            :search-gap="16"
-            v-model:search-model="dictQuery"
-            @search-reset="handleDictReset"
+  <div class="dict-page system-page" style="display:flex !important;flex-direction:row !important;gap:8px;padding:0;width:100%;height:calc(100vh - 100px);box-sizing:border-box;">
+    <!-- 左侧：字典分类列表 -->
+    <div class="dict-tree-card" style="width:320px;flex-shrink:0;background:var(--el-bg-color);border-radius:8px;border:1px solid var(--el-border-color-lighter);display:flex;flex-direction:column;overflow:hidden;">
+      <div class="dict-tree-header">
+        <div class="dict-tree-title">
+          <el-icon><Collection /></el-icon>
+          <span>字典分类</span>
+        </div>
+        <ReButton
+          layout="square"
+          icon="Plus"
+          type="primary"
+          title="新增字典"
+          @click="handleDictAdd"
+        />
+      </div>
+      <div class="dict-tree-search">
+        <el-input
+          v-model="filterText"
+          placeholder="搜索字典名称/编码"
+          clearable
+          :prefix-icon="Search"
+        />
+      </div>
+      <div v-loading="dictLoading" class="dict-tree-body" ref="dictListBodyRef">
+        <div
+          v-for="dict in filteredDictList"
+          :key="dict.sysDictId"
+          class="dict-tree-node"
+          :class="{ active: currentDict?.sysDictId === dict.sysDictId }"
+          @click="handleSelectDict(dict)"
+          :data-id="dict.sysDictId"
+        >
+          <ReIcon name="Rank" size="14" class="dict-drag-handle" />
+          <ReIcon name="Collection" size="14" color="var(--el-color-primary)" />
+          <span class="node-label">{{ dict.sysDictName }}</span>
+          <span class="node-id">#{{ dict.sysDictId }}</span>
+          <ReTag
+            size="small"
+            :type="dict.sysDictStatus === 1 ? 'success' : 'danger'"
+            effect="plain"
           >
-            <template #toolbar>
-              <ReButton layout="modern" type="warning" icon="Refresh" :loading="cacheRefreshing" @click="handleRefreshCache">刷新缓存</ReButton>
-              <ReButton layout="modern" icon="Download" @click="handleExport">导出</ReButton>
-              <ReButton layout="modern" icon="Upload" @click="triggerImport">导入</ReButton>
-              <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleDictAdd">新增字典</ReButton>
-              <input
-                ref="importInput"
-                type="file"
-                accept=".xlsx,.xls"
-                class="hidden"
-                @change="handleImportFile"
-              />
-            </template>
-            <template #dictName="{ row }">
-              <div class="flex items-center gap-2">
-                <el-icon :size="16" color="var(--el-color-primary)"><Collection /></el-icon>
-                <span>{{ row.sysDictName }}</span>
-                <ReTag v-if="row.sysDictInSystem === 1" type="warning" effect="plain" size="small">内置</ReTag>
-              </div>
-            </template>
-            <template #status="{ row }">
-              <ReTag :type="row.sysDictStatus === 1 ? 'success' : 'info'" effect="plain" size="small">
-                {{ row.sysDictStatus === 1 ? "显示" : "隐藏" }}
-              </ReTag>
-            </template>
-            <template #system="{ row }">
-              <ReTag v-if="row.sysDictInSystem === 1" type="warning" effect="plain" size="small">内置</ReTag>
-              <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
-            </template>
-            <template #action="{ row }">
-              <ReButton layout="square" type="primary" @click="switchToItem(row)">字典项</ReButton>
-              <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleDictEdit(row)">编辑</ReButton>
-              <ReButton v-if="row.sysDictInSystem !== 1" layout="square" type="danger" icon="Delete" v-admin @click="handleDictDelete(row)">删除</ReButton>
-            </template>
-          </ReTable>
-      </el-tab-pane>
+            {{ dict.sysDictStatus === 1 ? "启用" : "禁用" }}
+          </ReTag>
+        </div>
+        <el-empty v-if="!filteredDictList.length" description="暂无字典" :image-size="60" />
+      </div>
+    </div>
 
-      <!-- 字典子项 -->
-      <el-tab-pane label="字典子项" name="item">
+    <!-- 右侧：上下结构 -->
+    <div class="dict-detail-card" style="flex:1 1 0%;min-width:0;background:var(--el-bg-color);border-radius:8px;border:1px solid var(--el-border-color-lighter);overflow:auto;display:flex;flex-direction:column;">
+      <template v-if="currentDict">
+        <!-- 上方：字典详情 -->
+        <div class="dict-detail-header">
+          <div class="dict-detail-title">
+            <ReIcon name="Collection" size="20" color="var(--el-color-primary)" />
+            <div>
+              <h3>{{ currentDict.sysDictName }}</h3>
+              <p>字典编码：{{ currentDict.sysDictCode || '-' }}</p>
+            </div>
+          </div>
+          <div class="dict-detail-actions">
+            <ReButton
+              layout="square"
+              icon="Edit"
+              type="primary"
+              title="编辑字典"
+              @click="handleDictEdit"
+            />
+            <ReButton
+              layout="square"
+              icon="Delete"
+              type="danger"
+              title="删除字典"
+              @click="handleDictDelete"
+            />
+          </div>
+        </div>
+        <div class="dict-detail-top">
+          <el-descriptions :column="2" border size="default">
+            <el-descriptions-item label="字典名称">{{ currentDict.sysDictName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="字典编码">{{ currentDict.sysDictCode || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="排序">{{ currentDict.sysDictSort ?? 0 }}</el-descriptions-item>
+            <el-descriptions-item label="状态">
+              <ReTag :type="currentDict.sysDictStatus === 1 ? 'success' : 'danger'" size="small">
+                {{ currentDict.sysDictStatus === 1 ? "启用" : "禁用" }}
+              </ReTag>
+            </el-descriptions-item>
+            <el-descriptions-item label="内置字典">
+              {{ currentDict.sysDictInSystem === 1 ? "是" : "否" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="备注">{{ currentDict.sysDictRemark || '-' }}</el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <!-- 下方：ReTable 字典子项 -->
+        <div class="dict-items-section">
           <ReTable
             ref="itemTableRef"
             table-id="system-dict-item"
-            :loader="loadItems"
+            :loader="loadDictItems"
             :columns="itemColumns"
-            :pagination="true"
-            :params="itemQuery"
+            :params="itemSearch"
             row-key="sysDictItemId"
-            v-model:page="itemQuery.page"
-            v-model:page-size="itemQuery.pageSize"
-            :search="{ filters: itemSearchFilters, title: '搜索', btnMode: 'text' }"
-            :search-gap="16"
-            v-model:search-model="itemQuery"
-            @search-reset="handleItemReset"
+            row-draggable
+            sort-field="sysDictItemSort"
+            @row-sort="handleItemDragSort"
           >
             <template #toolbar>
-              <ReButton layout="modern" type="primary" v-admin icon="Plus" @click="handleItemAdd">新增字典项</ReButton>
+              <el-button type="primary" icon="Plus" @click="handleItemAdd" text>新增子项</el-button>
             </template>
-            <template #preview="{ row }">
-              <ReTag type="primary" effect="plain" size="small">
-                {{ row.sysDictItemLabel }}({{ row.sysDictItemValue }})
-              </ReTag>
+            <template #col-sysDictItemName="{ row }">
+              <span class="dict-item-name-cell">
+                <ReIcon v-if="row.sysDictItemIcon" :name="row.sysDictItemIcon" size="16" class="dict-item-name-icon" />
+                <span>{{ row.sysDictItemName }}</span>
+                <span class="dict-item-id">#{{ row.sysDictItemId }}</span>
+              </span>
             </template>
-            <template #status="{ row }">
-              <ReTag :type="row.sysDictItemStatus === 1 ? 'success' : 'info'" effect="plain" size="small">
+            <template #col-sysDictItemStatus="{ row }">
+              <ReTag :type="row.sysDictItemStatus === 1 ? 'success' : 'danger'" size="small">
                 {{ row.sysDictItemStatus === 1 ? "启用" : "禁用" }}
               </ReTag>
             </template>
-            <template #action="{ row }">
-              <ReButton layout="square" type="warning" icon="ArrowUp" @click="handleItemMove(row, 'up')">上移</ReButton>
-              <ReButton layout="square" type="warning" icon="ArrowDown" @click="handleItemMove(row, 'down')">下移</ReButton>
-              <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleItemEdit(row)">编辑</ReButton>
-              <ReButton layout="square" type="danger" icon="Delete" v-admin @click="handleItemDelete(row)">删除</ReButton>
+            <template #col-action="{ row }">
+              <ReButton layout="square" type="primary" icon="Edit" title="编辑" @click="handleItemEdit(row)" />
+              <ReButton layout="square" type="danger" icon="Delete" title="删除" @click="handleItemDelete(row)" />
             </template>
           </ReTable>
-      </el-tab-pane>
-    </el-tabs>
+        </div>
+      </template>
+      <el-empty v-else description="请选择左侧字典查看详情" class="dict-empty" />
+    </div>
 
-    <!-- 字典分类弹窗 -->
-    <ReDialog
+    <!-- 字典新增/编辑弹窗 -->
+    <el-dialog
       v-model="dictDialogVisible"
       :title="isEditDict ? '编辑字典' : '新增字典'"
-      width="560"
-      :close-on-click-modal="false"
+      width="500px"
       destroy-on-close
-      layout="modern"
-      compact
-      :confirm-loading="dictSaving"
-      @ok="handleDictSubmit"
     >
-      <el-form label-width="100px" :model="dictForm">
+      <el-form label-width="90px" :model="dictForm">
         <el-form-item label="字典名称" required>
-          <ReInput layout="modern" v-model="dictForm.sysDictName" placeholder="如：用户性别" maxlength="255" show-word-limit />
+          <el-input v-model="dictForm.sysDictName" placeholder="如：用户性别" maxlength="100" />
         </el-form-item>
         <el-form-item label="字典编码" required>
-          <ReInput layout="modern" v-model="dictForm.sysDictCode" placeholder="如：user_sex" :disabled="isEditDict" maxlength="255" show-word-limit />
+          <el-input v-model="dictForm.sysDictCode" placeholder="如：sys_user_sex" maxlength="100" :disabled="isEditDict" />
         </el-form-item>
         <el-form-item label="排序">
-          <ReInputNumber layout="modern" v-model="dictForm.sysDictSort" :min="0" class="!w-full" />
+          <el-input-number v-model="dictForm.sysDictSort" :min="0" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-segmented v-model="dictForm.sysDictStatus" :options="dictStatusOptions" />
+          <el-segmented v-model="dictForm.sysDictStatus" :options="statusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="dictForm.sysDictRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
+          <el-input v-model="dictForm.sysDictRemark" type="textarea" :rows="2" maxlength="255" />
         </el-form-item>
       </el-form>
-    </ReDialog>
+      <template #footer>
+        <el-button @click="dictDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="dictSaving" @click="handleDictSubmit">确定</el-button>
+      </template>
+    </el-dialog>
 
-    <!-- 字典子项弹窗 -->
-    <ReDialog
+    <!-- 字典项新增/编辑弹窗 -->
+    <el-dialog
       v-model="itemDialogVisible"
       :title="isEditItem ? '编辑字典项' : '新增字典项'"
-      width="560"
-      :close-on-click-modal="false"
+      width="600px"
       destroy-on-close
-      layout="modern"
-      compact
-      :confirm-loading="itemSaving"
-      @ok="handleItemSubmit"
     >
-      <el-form label-width="100px" :model="itemForm">
-        <el-form-item label="标签" required>
-          <ReInput layout="modern" v-model="itemForm.sysDictItemLabel" placeholder="显示文本" maxlength="255" show-word-limit />
+      <el-form label-width="90px" :model="itemForm">
+        <el-form-item label="名称" required>
+          <el-input v-model="itemForm.sysDictItemName" placeholder="如：男" maxlength="100" />
         </el-form-item>
         <el-form-item label="值" required>
-          <ReInput layout="modern" v-model="itemForm.sysDictItemValue" placeholder="存储值" maxlength="255" show-word-limit />
+          <el-input v-model="itemForm.sysDictItemCode" placeholder="如：1" maxlength="100" />
         </el-form-item>
-        <el-form-item label="编码">
-          <ReInput layout="modern" v-model="itemForm.sysDictItemCode" placeholder="业务编码（可选）" maxlength="255" show-word-limit />
+        <el-form-item label="图标">
+          <ReIconSelect v-model="itemForm.sysDictItemIcon" placeholder="选择子项图标" class="w-full" />
+        </el-form-item>
+        <el-form-item label="国际化Key">
+          <el-input v-model="itemForm.sysDictItemI18n" placeholder="如：dict.male" maxlength="100" />
         </el-form-item>
         <el-form-item label="排序">
-          <ReInputNumber layout="modern" v-model="itemForm.sysDictItemSort" :min="0" class="!w-full" />
+          <el-input-number v-model="itemForm.sysDictItemSort" :min="0" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-segmented v-model="itemForm.sysDictItemStatus" :options="dictStatusOptions" />
+          <el-segmented v-model="itemForm.sysDictItemStatus" :options="statusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <ReInput layout="modern" v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
+          <el-input v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" maxlength="255" />
+        </el-form-item>
+
+        <!-- 扩展配置 -->
+        <el-form-item label="扩展配置">
+          <div style="width:100%">
+            <div
+              v-for="(p, idx) in itemForm.property"
+              :key="idx"
+              style="display:flex;gap:6px;margin-bottom:6px;align-items:center;"
+            >
+              <el-input v-model="p.sysDictItemPropertyGroup" placeholder="分组" style="width:90px" size="small" />
+              <el-input v-model="p.sysDictItemPropertyName" placeholder="配置名" style="flex:1" size="small" />
+              <el-input v-model="p.sysDictItemPropertyValue" placeholder="配置值" style="flex:1" size="small" />
+              <ReButton layout="square" type="danger" icon="Delete" size="small" title="删除" @click="removeProperty(idx)" />
+            </div>
+            <el-button size="small" icon="Plus" @click="addProperty">添加配置</el-button>
+          </div>
         </el-form-item>
       </el-form>
-    </ReDialog>
+      <template #footer>
+        <el-button @click="itemDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="itemSaving" @click="handleItemSubmit">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped lang="scss">
-.system-page {
+.dict-tree-header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  height: 100%;
-}
-.system-page__header {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.system-page__title {
-  font-size: 18px;
+.dict-tree-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 15px;
 }
-.system-page__subtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+.dict-tree-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dict-tree-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+}
+.dict-drag-handle { cursor: grab; color: var(--el-text-color-placeholder); opacity:0; transition:opacity .2s; } .dict-tree-node:hover .dict-drag-handle { opacity:1; } .dict-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
+  &.active {
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+  }
+  .node-id {
+    font-size: 12px;
+    color: var(--el-text-color-placeholder);
+    font-weight: 400;
+    margin-left: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .node-label {
+    flex: 1;
+    font-size: 14px;
+  }
+}
+.dict-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dict-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  h3 { margin:0; font-size: 18px; }
+  p { margin:2px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+}
+.dict-detail-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.dict-detail-top {
+  padding: 16px;
+}
+.dict-empty {
+  padding-top: 100px;
+}
+.dict-items-section {
+  flex: 1;
+  margin: 0 16px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 12px;
+  display:flex;
+  flex-direction:column;
+}
+.dict-items-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+.dict-item-name-cell { display:inline-flex; align-items:center; gap:6px; } .dict-item-id { font-size:12px; color:var(--el-text-color-placeholder); font-weight:400; font-variant-numeric:tabular-nums; } .dict-item-name-icon { color:var(--el-color-primary); } .dict-items-bar-title {
+  font-weight:600;
+  font-size:14px;
+}
+:deep(.el-table) {
+  user-select: none;
+}
+.dict-sort-ghost {
+  opacity: 0.4;
+  background: var(--el-color-primary-light-8) !important;
+}
+.dict-sort-chosen {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+}
+.dict-sort-drag {
+  cursor: grabbing !important;
 }
 </style>

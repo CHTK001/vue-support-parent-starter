@@ -16,8 +16,9 @@
  * 该服务为独立 HTTP 服务（非网关代理），通过 createHttp 指定 baseUrl，
  * 与业务接口共用统一链式请求封装。
  */
-import { AxiosError, createHttp } from "@repo/utils";
+import { AxiosError, createHttp, getAccessToken } from "@repo/utils";
 import type { Http } from "@repo/utils";
+import { getConfig } from "@repo/config";
 
 /** localStorage 中服务器地址的键名 */
 const SERVER_KEY = "filestorage.server";
@@ -25,11 +26,41 @@ const SERVER_KEY = "filestorage.server";
 /** localStorage 中默认存储桶的键名 */
 const BUCKET_KEY = "filestorage.bucket";
 
-/** 默认服务器地址 */
+/** localStorage 中存储配额（GB）的键名 */
+const QUOTA_KEY = "filestorage.quotaGb";
+
+/** 默认服务器地址（app.yaml otherConfig.filestorage.server 未配置时兜底） */
 export const DEFAULT_SERVER = "http://127.0.0.1:18080";
 
-/** 默认存储桶名称 */
+/** 默认存储桶名称（app.yaml otherConfig.filestorage.bucket 未配置时兜底） */
 export const DEFAULT_BUCKET = "local";
+
+/** 默认存储配额 GB（app.yaml otherConfig.filestorage.quotaGb 未配置时兜底） */
+export const DEFAULT_QUOTA_GB = 5;
+
+/** app.yaml 中文件服务器配置节（otherConfig.filestorage） */
+interface FileStorageAppConfig {
+  /** 文件服务器地址 */
+  server?: string;
+  /** 默认存储桶（provider 名） */
+  bucket?: string;
+  /** 存储配额（GB），用于"存储用量"进度展示 */
+  quotaGb?: number;
+}
+
+/**
+ * 读取 app.yaml 中 otherConfig.filestorage 配置（未配置或加载失败返回空对象）
+ *
+ * @return 文件服务器配置
+ */
+function appFileStorageConfig(): FileStorageAppConfig {
+  try {
+    const cfg = getConfig() as unknown as { other?: { filestorage?: FileStorageAppConfig } };
+    return cfg?.other?.filestorage ?? {};
+  } catch {
+    return {};
+  }
+}
 
 /**
  * 对象元数据（列表项）
@@ -79,6 +110,10 @@ export interface BucketConfig {
   showTime: boolean;
   /** 图片滤镜（NONE/GRAYSCALE/SEPIA/INVERT/BLUR/SATURATE） */
   imageFilter: string;
+  /** 是否私有桶（私有桶请求需携带访问令牌，由 OAuthServerFilter 鉴权） */
+  private?: boolean;
+  /** 全部私有桶（provider 名） */
+  privateBuckets?: string[];
   /** 一次性链接默认有效期（毫秒） */
   oneTimeTtlMs: number;
 }
@@ -94,12 +129,23 @@ interface ListResponse {
 }
 
 /**
- * 读取已保存的服务器地址
+ * 读取文件服务器地址
  *
- * @return 服务器地址（未配置时返回默认值）
+ * <p>优先级：localStorage（页面级覆盖）＞ getConfig（app.yaml / `/v2/setting/default` 下发的
+ * {@code other.filestorage.server}）＞ 当前地址（window.location.origin）。</p>
+ *
+ * @return 文件服务器地址（已去除尾部斜杠）
  */
 export function getServerBase(): string {
-  return localStorage.getItem(SERVER_KEY) || DEFAULT_SERVER;
+  const stored = localStorage.getItem(SERVER_KEY);
+  if (stored) {
+    return stored.replace(/\/+$/, "");
+  }
+  const configured = appFileStorageConfig().server;
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+  return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
 }
 
 /**
@@ -117,7 +163,21 @@ export function setServerBase(value: string): void {
  * @return 存储桶名称
  */
 export function getDefaultBucket(): string {
-  return localStorage.getItem(BUCKET_KEY) || DEFAULT_BUCKET;
+  return localStorage.getItem(BUCKET_KEY) || appFileStorageConfig().bucket || DEFAULT_BUCKET;
+}
+
+/**
+ * 读取存储配额（字节）
+ *
+ * <p>优先级：localStorage（页面级覆盖）＞ app.yaml otherConfig.filestorage.quotaGb ＞ 默认 5GB。</p>
+ *
+ * @return 配额字节数
+ */
+export function getQuotaBytes(): number {
+  const rawLocal = localStorage.getItem(QUOTA_KEY);
+  const gb = Number(rawLocal || appFileStorageConfig().quotaGb || DEFAULT_QUOTA_GB);
+  const safe = Number.isFinite(gb) && gb > 0 ? gb : DEFAULT_QUOTA_GB;
+  return safe * 1024 * 1024 * 1024;
 }
 
 /**
@@ -133,14 +193,18 @@ export function setDefaultBucket(value: string): void {
  * 创建指向文件服务器的请求实例
  *
  * 每次调用按最新配置创建，保证地址修改后即时生效。
+ * 显式附带应用登录令牌（Authorization: Bearer &lt;accessToken&gt;），
+ * 供文件服务器私有桶（OAuthServerFilter）鉴权；未登录时保持匿名，公共桶不受影响。
  *
  * @return Http 实例
  */
 function storageHttp(): Http {
+  const token = getAccessToken();
   return createHttp({
     baseUrl: getServerBase(),
     useAppConfig: false,
     timeout: 30_000,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
 
@@ -159,7 +223,10 @@ function objectPath(bucket: string, key = ""): string {
 }
 
 /**
- * 构建对象完整访问 URL（用于 window.open 直链）
+ * 构建对象完整访问 URL（用于 window.open / img / iframe 直链）
+ *
+ * <p>私有桶直链无法携带请求头，登录态下把令牌拼到查询参数（OAuthServerFilter 支持 query 取令牌），
+ * 公共桶或未登录场景不带参数，行为不变。</p>
  *
  * @param bucket   存储桶名
  * @param key      对象 Key
@@ -167,8 +234,16 @@ function objectPath(bucket: string, key = ""): string {
  * @return 完整 URL
  */
 export function objectUrl(bucket: string, key: string, download = false): string {
-  const suffix = download ? "?download=true" : "";
-  return `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix}`;
+  const params = new URLSearchParams();
+  if (download) {
+    params.set("download", "true");
+  }
+  const token = getAccessToken();
+  if (token) {
+    params.set("x-oauth-token", token);
+  }
+  const suffix = params.toString();
+  return `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix ? `?${suffix}` : ""}`;
 }
 
 /**
@@ -383,24 +458,6 @@ export async function createOneTimeLink(
   }
 }
 
-/**
- * 拉取对象文本内容（用于文本类文件预览）
- *
- * @param bucket 存储桶名
- * @param key    对象 Key
- * @return 文本内容
- */
-export async function fetchObjectText(bucket: string, key: string): Promise<string> {
-  try {
-    return await storageHttp()
-      .get(objectPath(bucket, key))
-      .responseType("text")
-      .then<string>((r) => r.data as string);
-  } catch (e) {
-    throw new Error(toErrorMessage(e, "内容读取"));
-  }
-}
-
 /* ================== 文件管理动作（KodExplorer 风格） ================== */
 
 /**
@@ -571,3 +628,5 @@ export async function downloadZip(bucket: string, sources: string[]): Promise<Bl
     throw new Error(toErrorMessage(e, "打包下载"));
   }
 }
+
+

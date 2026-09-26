@@ -1,9 +1,8 @@
-/* pages.css — 全局页面级样式，对齐 prototype.html 视觉（去掉 page-wrap，响应式） */
-/* 引入方式：main.ts import "./styles/pages.css" */
+﻿/* pages.css 鈥?鍏ㄥ眬椤甸潰绾ф牱寮忥紝瀵归綈 prototype.html 瑙嗚锛堝幓鎺?page-wrap锛屽搷搴斿紡锛?*/
+/* 寮曞叆鏂瑰紡锛歮ain.ts import "./styles/pages.css" */
 
 /* ============================================================
-   Page header（替代手动 .page-header）
-   ============================================================ */
+   Page header锛堟浛浠ｆ墜鍔?.page-header锛?   ============================================================ */
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -16,9 +15,8 @@
 .page-actions { display: flex; gap: 8px; align-items: center; }
 
 /* ============================================================
-   KPI 卡片行（prototype .kpi-row + .kpi + 左侧色条 ::before）
-   用法：<div class="kpi-row cols-4"> <div class="kpi c-blue">...</div> ...
-   左侧色条颜色类：c-brand / c-blue / c-violet / c-amber / c-cyan / c-teal / c-red / c-green / c-gray
+   KPI 鍗＄墖琛岋紙prototype .kpi-row + .kpi + 宸︿晶鑹叉潯 ::before锛?   鐢ㄦ硶锛?div class="kpi-row cols-4"> <div class="kpi c-blue">...</div> ...
+   宸︿晶鑹叉潯棰滆壊绫伙細c-brand / c-blue / c-violet / c-amber / c-cyan / c-teal / c-red / c-green / c-gray
    ============================================================ */
 .kpi-row {
   display: grid;
@@ -41,7 +39,7 @@
   transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
 }
 .kpi::after {
-  /* 顶部柔光，增强卡片层次 */
+  /* 椤堕儴鏌斿厜锛屽寮哄崱鐗囧眰娆?*/
   content: "";
   position: absolute;
   inset: 0 0 auto;
@@ -104,7 +102,7 @@
 }
 
 /* ============================================================
-   Filter bar（独立容器，不在卡片 header 里）
+   Filter bar锛堢嫭绔嬪鍣紝涓嶅湪鍗＄墖 header 閲岋級
    ============================================================ */
 .filter {
   display: flex;
@@ -121,7 +119,7 @@
 }
 .filter:focus-within { border-color: var(--brand-100); box-shadow: var(--shadow-1), var(--focus-ring); }
 .filter .grow { flex: 1; min-width: 200px; }
-/* ReFilter 组件已接管 input/select 样式，无需再覆盖原生控件边框 */
+/* ReFilter 缁勪欢宸叉帴绠?input/select 鏍峰紡锛屾棤闇€鍐嶈鐩栧師鐢熸帶浠惰竟妗?*/
 .filter .chip {
   display: inline-flex;
   align-items: center;
@@ -140,8 +138,7 @@
 .filter .chip.active { background: var(--brand-50); border-color: var(--brand-500); color: var(--brand-600); font-weight: 600; }
 
 /* ============================================================
-   Tabs（底部边框活跃指示，prototype §Tabs）
-   ============================================================ */
+   Tabs锛堝簳閮ㄨ竟妗嗘椿璺冩寚绀猴紝prototype 搂Tabs锛?   ============================================================ */
 .tabs {
   display: flex;
   gap: 4px;
@@ -175,8 +172,7 @@
 }
 
 /* ============================================================
-   Card（统一）
-   ============================================================ */
+   Card锛堢粺涓€锛?   ============================================================ */
 .card {
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
@@ -194,8 +190,7 @@
 .card-title { font-size: 15px; font-weight: 600; }
 
 /* ============================================================
-   Columns（grid 变体）
-   ============================================================ */
+   Columns锛坓rid 鍙樹綋锛?   ============================================================ */
 .cols-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .cols-2-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -222,13 +217,14 @@
 }
 
 /* ============================================================
-   Table（light hover, prototype §Table）
-   ============================================================ */
+   Table锛坙ight hover, prototype 搂Table锛?   ============================================================ */
 .table-wrap {
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg, 12px);
+  /* clip 保留圆角裁剪，同时放行内部 sticky 表头 */
   overflow: hidden;
+  overflow: clip;
   box-shadow: var(--shadow-1);
 }
 .t { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -255,8 +251,7 @@
 .t tbody tr:last-child td { border-bottom: 0; }
 
 /* ============================================================
-   Pulse dots（prototype §Pulse）
-   ============================================================ */
+   Pulse dots锛坧rototype 搂Pulse锛?   ============================================================ */
 .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
 .pulse-online { background: var(--status-online); animation: pulse 1.6s ease-in-out infinite; }
 .pulse-offline { background: var(--status-offline); }
@@ -266,8 +261,7 @@
 @keyframes blink { 50% { opacity: .35; } }
 
 /* ============================================================
-   空态 / 加载态
-   ============================================================ */
+   绌烘€?/ 鍔犺浇鎬?   ============================================================ */
 .empty-state {
   padding: 48px 0;
   text-align: center;
@@ -284,8 +278,7 @@
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ============================================================
-   Tag / 级别徽标（WorkbenchView · AlarmsView 历史引用但从未定义，此处兜底）
-   用法：<span class="tag sev-P0">P0</span>
+   Tag / 绾у埆寰芥爣锛圵orkbenchView 路 AlarmsView 鍘嗗彶寮曠敤浣嗕粠鏈畾涔夛紝姝ゅ鍏滃簳锛?   鐢ㄦ硶锛?span class="tag sev-P0">P0</span>
    ============================================================ */
 .tag {
   display: inline-flex;
@@ -308,8 +301,7 @@
 .tag.sev-P4 { color: var(--sev-p4-text); background: var(--sev-p4-bg); border-color: var(--sev-p4-border); }
 
 /* ============================================================
-   迷你进度条（Tshark/HostDetail 协议占比、磁盘使用率）
-   ============================================================ */
+   杩蜂綘杩涘害鏉★紙Tshark/HostDetail 鍗忚鍗犳瘮銆佺鐩樹娇鐢ㄧ巼锛?   ============================================================ */
 .bar-fill {
   transition: width 0.4s var(--ease-out, ease);
   background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%);
@@ -317,8 +309,7 @@
 }
 
 /* ============================================================
-   空态（图标 + 主副文案）
-   ============================================================ */
+   绌烘€侊紙鍥炬爣 + 涓诲壇鏂囨锛?   ============================================================ */
 .empty-state {
   padding: 48px 0;
   text-align: center;
@@ -331,7 +322,10 @@
     var(--bg-elevated);
 }
 .empty-state::before {
-  content: "◎";
+  /* 原字符在一次 GBK 误解码中丢失且未闭合引号，导致 vite build 整体失败。
+     用 ASCII 转义表示"空集"符号：语义一致，且纯 ASCII 写法不会再被编码往返破坏。
+     如需换成别的图标，直接替换 \2205 即可（CSS 十六进制转义，不带引号）。 */
+  content: "\2205";
   display: block;
   font-size: 22px;
   margin-bottom: 8px;
@@ -340,8 +334,7 @@
 }
 
 /* ============================================================
-   Donut 环图（WorkbenchView 告警等级分布）
-   ============================================================ */
+   Donut 鐜浘锛圵orkbenchView 鍛婅绛夌骇鍒嗗竷锛?   ============================================================ */
 .donut-wrap {
   display: flex;
   align-items: center;
@@ -399,10 +392,10 @@
 .legend-item .tag { font-size: 11px; padding: 1px 6px; }
 
 /* ============================================================
-   Dialog 预渲染防闪（已禁用，保留空规则）
+   Dialog 棰勬覆鏌撻槻闂紙宸茬鐢紝淇濈暀绌鸿鍒欙級
    ============================================================ */
 
-/* 全局禁用 el-dialog 打开/关闭动画，避免闪一下 */
+/* 鍏ㄥ眬绂佺敤 el-dialog 鎵撳紑/鍏抽棴鍔ㄧ敾锛岄伩鍏嶉棯涓€涓?*/
 .el-overlay,
 .el-overlay *,
 .el-dialog,
@@ -429,13 +422,15 @@
 }
 
 /* ============================================================
-   全局生产级设计系统 — 统一所有表格/卡片/表单外观
+   鍏ㄥ眬鐢熶骇绾ц璁＄郴缁?鈥?缁熶竴鎵€鏈夎〃鏍?鍗＄墖/琛ㄥ崟澶栬
    ============================================================ */
 
-/* --- 表格统一美化 --- */
+/* --- 琛ㄦ牸缁熶竴缇庡寲 --- */
 .el-table {
   border-radius: 12px !important;
+  /* 圆角裁剪但不产生滚动容器（overflow:clip），否则内部表头 sticky 失效 */
   overflow: hidden;
+  overflow: clip !important;
   --el-table-header-bg-color: var(--tel-bg-2, #f8fafc) !important;
   --el-table-header-text-color: var(--tel-text-2, #64748b) !important;
   --el-table-row-hover-bg-color: var(--tel-brand-50, #eef2ff) !important;
@@ -456,48 +451,48 @@
   background: var(--tel-bg-2, #f8fafc) !important;
 }
 
-/* --- 卡片容器统一 --- */
+/* --- 鍗＄墖瀹瑰櫒缁熶竴 --- */
 .el-card, .re-card {
   border-radius: 12px !important;
   border: 1px solid var(--tel-border, #e2e8f0) !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
 }
 
-/* --- 页面内容区统一间距 --- */
+/* --- 椤甸潰鍐呭鍖虹粺涓€闂磋窛 --- */
 .app-main-content, .page-content {
   padding: 20px 24px !important;
 }
 
-/* --- 统计数字统一 --- */
+/* --- 缁熻鏁板瓧缁熶竴 --- */
 .kpi-value, .stat-value {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-/* --- 空状态美化 --- */
+/* --- 绌虹姸鎬佺編鍖?--- */
 .el-empty__description p {
   font-size: 13px;
   color: var(--tel-text-muted, #94a3b8);
 }
 
-/* --- 按钮统一圆角 --- */
+/* --- 鎸夐挳缁熶竴鍦嗚 --- */
 .el-button, .re-btn {
   border-radius: 8px !important;
   font-weight: 500;
 }
 
-/* --- 输入框统一 --- */
+/* --- 杈撳叆妗嗙粺涓€ --- */
 .el-input__wrapper, .el-select__wrapper {
   border-radius: 8px !important;
 }
 
-/* --- 分页器统一 --- */
+/* --- 鍒嗛〉鍣ㄧ粺涓€ --- */
 .el-pagination {
   padding: 16px 0 0;
   justify-content: flex-end;
 }
 
-/* --- 标签页统一 --- */
+/* --- 鏍囩椤电粺涓€ --- */
 .el-tabs__item {
   font-size: 14px;
   font-weight: 500;
@@ -506,35 +501,48 @@
   font-weight: 600;
 }
 
-/* --- 描述列表统一 --- */
+/* --- 鎻忚堪鍒楄〃缁熶竴 --- */
 .el-descriptions__label {
   font-weight: 500 !important;
   color: var(--tel-text-2, #64748b) !important;
 }
 
-/* --- 面包屑统一 --- */
+/* --- 闈㈠寘灞戠粺涓€ --- */
 .el-breadcrumb__inner {
   font-size: 13px;
 }
 
-/* --- 对话框统一 --- */
+/* --- 瀵硅瘽妗嗙粺涓€ --- */
 .el-dialog {
   border-radius: 16px !important;
   overflow: hidden;
 }
 .el-dialog__header {
   margin-right: 0 !important;
-  padding: 20px 24px 0 !important;
+  padding: 8px 24px 0 !important;
 }
 .el-dialog__title {
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
 }
+.el-dialog {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .el-dialog__body {
-  padding: 16px 24px 24px !important;
+  /* 弹窗内容内边距统一归零，由各弹窗内部组件自行控制间距 */
+  padding: 0 !important;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.el-dialog__footer {
+  flex-shrink: 0;
 }
 
-/* --- 下拉菜单统一 --- */
+/* --- 涓嬫媺鑿滃崟缁熶竴 --- */
 .el-dropdown-menu {
   border-radius: 10px !important;
   padding: 6px !important;
@@ -546,17 +554,17 @@
   padding: 8px 12px !important;
 }
 
-/* --- 消息提示统一 --- */
+/* --- 娑堟伅鎻愮ず缁熶竴 --- */
 .el-message {
   border-radius: 10px !important;
 }
 
-/* --- 加载骨架屏统一 --- */
+/* --- 鍔犺浇楠ㄦ灦灞忕粺涓€ --- */
 .el-skeleton__item {
   border-radius: 6px !important;
 }
 
-/* --- 工作台 KPI 卡片修复 --- */
+/* --- 宸ヤ綔鍙?KPI 鍗＄墖淇 --- */
 .workbench-kpi-row .kpi {
   min-height: 120px;
   display: flex;
@@ -581,7 +589,7 @@
   opacity: 0.5;
 }
 
-/* --- 页面标题统一 --- */
+/* --- 椤甸潰鏍囬缁熶竴 --- */
 .page-header h2, .page-header .page-title {
   font-size: 22px;
   font-weight: 700;

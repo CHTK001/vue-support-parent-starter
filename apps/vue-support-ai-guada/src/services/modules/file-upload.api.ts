@@ -16,7 +16,7 @@ export const fileUploadApi: FileUploadApi = {
 
     try {
       const url = type === "character" ? "characters" : "sessions";
-      return await this.axiosInstance.post(`/${url}/${uid}/avatars`, formData, {
+      return await this.client.post(`/${url}/${uid}/avatars`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -32,7 +32,7 @@ export const fileUploadApi: FileUploadApi = {
     formData.append("avatar", file);
 
     try {
-      return await this.axiosInstance.post("/user/avatars", formData, {
+      return await this.client.post("/user/avatars", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -48,7 +48,7 @@ export const fileUploadApi: FileUploadApi = {
     formData.append("wallpaper", file);
 
     try {
-      return await this.axiosInstance.post("/user/wallpaper", formData, {
+      return await this.client.post("/user/wallpaper", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -61,7 +61,7 @@ export const fileUploadApi: FileUploadApi = {
 
   async deleteWallpaper(this: ApiContext) {
     try {
-      return await this.axiosInstance.delete("/user/wallpaper");
+      return await this.client.delete("/user/wallpaper");
     } catch (error) {
       console.error("壁纸删除错误:", error);
       throw error;
@@ -74,7 +74,7 @@ export const fileUploadApi: FileUploadApi = {
     formData.append("conversation_id", sessionId);
 
     try {
-      return await this.axiosInstance.post(
+      return await this.client.post(
         `/api/fs/upload`,
         formData,
         {

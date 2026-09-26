@@ -5,11 +5,20 @@
  * 业务页面统一挂在 koi layout 之下，菜单由本树推导，无需另配静态菜单。
  *
  * 路由模式：hash（见 main.ts 的 routerMode）。
+ *
+ * 数据源台账已统一到 @pages/datasource，页面与 API 都只此一份。
  */
 import type { RouteConfigsTable } from "@repo/core";
 
 /** 采集调度一体化平台路由树 */
 export const collectRoutes: RouteConfigsTable[] = [
+  {
+    // 框架登录成功跳的是常量 HOME_URL（/home），这里接回平台总览，否则登录后落 404
+    path: "/home",
+    name: "CollectHome",
+    redirect: "/collect/dashboard",
+    meta: { title: "平台首页", showLink: false },
+  },
   {
     path: "/collect/dashboard",
     name: "CollectDashboard",
@@ -46,9 +55,10 @@ export const collectRoutes: RouteConfigsTable[] = [
         meta: { title: "变量管理", icon: "SetUp", showLink: true, keepAlive: true, rank: 4, isVisible: "1" },
       },
       {
-        path: "/collect/datasource",
-        name: "CollectDatasource",
-        component: () => import("./views/DatasourceView.vue"),
+        // 数据源台账只有一份实现：@pages/datasource（对接数据源中心 /ms/datasource）
+        path: "/collect/datasource/list",
+        name: "CollectDatasourceList",
+        component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"),
         meta: { title: "数据源", icon: "Coin", showLink: true, keepAlive: true, rank: 5, isVisible: "1" },
       },
       {
@@ -74,13 +84,19 @@ export const collectRoutes: RouteConfigsTable[] = [
         path: "/collect/job",
         name: "CollectJob",
         component: () => import("./views/JobView.vue"),
-        meta: { title: "调度作业", icon: "Clock", showLink: true, keepAlive: true, rank: 1, isVisible: "1" },
+        meta: { title: "调度作业", icon: "Clock", showLink: true, keepAlive: true, rank: 2, isVisible: "1" },
+      },
+      {
+        path: "/collect/remote-node",
+        name: "CollectRemoteNode",
+        component: () => import("./views/RemoteNodeView.vue"),
+        meta: { title: "远程节点", icon: "Connection", showLink: true, keepAlive: true, rank: 3, isVisible: "1" },
       },
       {
         path: "/collect/job-log",
         name: "CollectJobLog",
         component: () => import("./views/JobLogView.vue"),
-        meta: { title: "作业日志", icon: "Tickets", showLink: true, keepAlive: true, rank: 2, isVisible: "1" },
+        meta: { title: "作业日志", icon: "Tickets", showLink: true, keepAlive: true, rank: 4, isVisible: "1" },
       },
     ],
   },

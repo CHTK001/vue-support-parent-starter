@@ -1,13 +1,23 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 消息管理页面（管理端）
  *
- * 顶部 Tab：消息列表 / 消息模板。
- * 消息列表：分页查询 + 发送消息 + 撤回 + 删除。
- * 消息模板：分页查询 + 新增/编辑/删除。
+ * 顶部 ReTab 胶囊导航：消息记录 / 消息模板 / 发送日志。
+ * - 消息记录：渠道过滤 + 分页 + 发送 + 撤回 + 删除 + 详情（送达/已读回执）。
+ * - 消息模板：CRUD + 渠道(EMAIL/SMS) + TEXT/HTML/RICHTEXT + 预览(左右布局动态表单) + 按角色编码发送 + 同步运营商。
+ * - 发送日志：推送记录 + 详情 + 按日期清理。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import ReTab from "@repo/ui/re-tab";
+/** 耗时着色文本：绿 / 黄 / 红标识推送快慢（同系统日志页） */
+const ReCostText = defineAsyncComponent(() =>
+  import("@repo/ui/re-cost-text").then((m) => m.default),
+);
+/** 时间展示：格式化 + 相对时间（同系统日志页） */
+const ReTime = defineAsyncComponent(() =>
+  import("@repo/ui/re-time").then((m) => m.default),
+);
 import {
   pageForMessageAdmin,
   sendMessage,
@@ -18,9 +28,22 @@ import {
   saveMessageTemplate,
   updateMessageTemplate,
   deleteMessageTemplate,
+  previewMessageTemplate,
+  sendMessageByCode,
+  pageForMessageLog,
+  cleanMessageLog,
+  listForRole,
 } from "../api/systemApi";
-import type { SysMessageAdmin, SysMessageTemplate, SysMessageSendRequest } from "../api/types";
+import type {
+  SysMessageAdmin,
+  SysMessageTemplate,
+  SysMessageSendRequest,
+  SysMessageLog,
+  SysRole,
+  TemplatePreviewResponse,
+} from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import type { ReTabItem } from "@repo/ui/re-tab";
 
 /* ================== 字典 ================== */
 const typeOptions = [
@@ -44,11 +67,36 @@ const msgStatusOptions = [
   { value: 2, label: "已撤回" },
 ];
 
-const templateStatusOptions = [
-  { value: 0, label: "禁用" },
-  { value: 1, label: "启用" },
+const channelOptions = [
+  { value: "EMAIL", label: "邮件" },
+  { value: "SMS", label: "短信" },
 ];
 
+const msgChannelFilterOptions = [
+  { value: "", label: "全部" },
+  { value: "PLATFORM", label: "平台消息" },
+  { value: "EMAIL", label: "邮件消息" },
+  { value: "SMS", label: "短信消息" },
+];
+
+const templateTypeOptions = [
+  { value: "TEXT", label: "纯文本" },
+  { value: "HTML", label: "HTML" },
+  { value: "RICHTEXT", label: "富文本" },
+];
+
+const logStatusOptions = [
+  { value: "SUCCESS", label: "成功" },
+  { value: "FAILURE", label: "失败" },
+];
+
+/** 内置变量（后端自动注入，无需前端传入） */
+const builtInVars = [
+  { key: "date", label: "日期" },
+  { key: "time", label: "时间" },
+];
+
+/* ================== 工具函数 ================== */
 function typeLabel(v?: string) {
   return typeOptions.find((o) => o.value === v)?.label ?? v ?? "-";
 }
@@ -63,16 +111,95 @@ function levelLabel(v?: string) {
 function msgStatusLabel(v?: number) {
   return msgStatusOptions.find((o) => o.value === v)?.label ?? "-";
 }
-function msgStatusTagType(v?: number): "info" | "success" | "danger" {
+function msgStatusTagType(v?: number): "info" | "success" | "warning" | "danger" {
   if (v === 2) return "info";
   if (v === 1) return "success";
   return "warning";
 }
+function channelLabel(v?: string): string {
+  return channelOptions.find((o) => o.value === v)?.label ?? v ?? "-";
+}
+function msgChannelLabel(v?: string): string {
+  if (!v) return "平台";
+  const map: Record<string, string> = { PLATFORM: "平台", EMAIL: "邮件", SMS: "短信" };
+  return map[v] ?? v;
+}
+function msgChannelTagType(v?: string): "primary" | "success" | "warning" {
+  if (v === "EMAIL") return "success";
+  if (v === "SMS") return "warning";
+  return "primary";
+}
+function templateTypeLabel(t?: string): string {
+  return templateTypeOptions.find((o) => o.value === t)?.label ?? t ?? "--";
+}
+function logStatusTagType(code?: string): "success" | "danger" | "info" {
+  if (code === "SUCCESS") return "success";
+  if (code === "FAILURE") return "danger";
+  return "info";
+}
+function logStatusLabel(code?: string): string {
+  return logStatusOptions.find((o) => o.value === code)?.label ?? code ?? "--";
+}
 
-/* ================== 当前 Tab ================== */
+/** 解析变量说明 schema（逗号分隔） */
+function parseParamSchema(schema?: string): string[] {
+  if (!schema) return [];
+  return schema
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** 内置变量集合 */
+const builtInVarSet = new Set(builtInVars.map((v) => v.key));
+
+/** 根据变量名推断输入控件类型 */
+function inferFieldType(varName: string): "text" | "number" | "date" {
+  const n = varName.toLowerCase();
+  if (/(count|num|amount|age|price|total|quantity)/.test(n)) return "number";
+  if (/(date|time|expire|deadline)/.test(n)) return "date";
+  return "text";
+}
+
+interface DynamicField {
+  key: string;
+  label: string;
+  type: "text" | "number" | "date";
+  isBuiltIn: boolean;
+}
+
+function buildDynamicFields(schema?: string): DynamicField[] {
+  const vars = parseParamSchema(schema);
+  return vars.map((v) => ({
+    key: v,
+    label: v,
+    type: inferFieldType(v),
+    isBuiltIn: builtInVarSet.has(v),
+  }));
+}
+
+/* ================== ReTab 主导航 ================== */
 const activeTab = ref("message");
+/** 图标页签是否收起（收起后仅显示当前激活项） */
+const tabsCollapsed = ref(false);
+const mainTabs: ReTabItem[] = [
+    { name: "message", label: "消息记录", icon: "ChatDotRound" },
+    { name: "template", label: "消息模板", icon: "Document" },
+    { name: "log", label: "发送日志", icon: "Tickets" },
+  ];
 
-/* ================== 消息列表 ================== */
+/* ================== 角色列表 ================== */
+const roleOptions = ref<SysRole[]>([]);
+async function loadRoles() {
+  try {
+    const res = await listForRole();
+    roleOptions.value = (res?.data ?? []).filter((r) => r.sysRoleStatus === 1);
+  } catch (e) {
+    console.warn("[message] 角色列表加载失败", e);
+  }
+}
+
+/* ================== Tab1: 消息记录 ================== */
 const msgQuery = ref<{
   page: number;
   pageSize: number;
@@ -80,6 +207,7 @@ const msgQuery = ref<{
   sysMessageType?: string;
   sysMessageStatus?: number;
   sysMessageReceiverId?: number;
+  sysMessageChannel?: string;
 }>({
   page: 1,
   pageSize: 10,
@@ -102,6 +230,7 @@ async function loadMessages({ page, pageSize, params }: ReTableLoadParams): Prom
       params.sysMessageReceiverId === "" || params.sysMessageReceiverId === undefined
         ? undefined
         : (params.sysMessageReceiverId as number),
+    sysMessageChannel: (params.sysMessageChannel as string) || undefined,
   });
   return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
 }
@@ -116,6 +245,7 @@ const msgSearchFilters = computed(() => [
   { key: 'sysMessageType', label: '消息类型', type: 'select' as const, placeholder: '请选择', options: typeOptions },
   { key: 'sysMessageStatus', label: '状态', type: 'select' as const, placeholder: '请选择', options: msgStatusOptions },
   { key: 'sysMessageReceiverId', label: '接收者ID', type: 'input' as const, placeholder: '请输入' },
+  { key: 'sysMessageChannel', label: '消息渠道', type: 'select' as const, placeholder: '全部', options: msgChannelFilterOptions },
 ]);
 
 async function handleRecall(row: Record<string, unknown>) {
@@ -164,7 +294,18 @@ async function handleDeleteMsg(row: Record<string, unknown>) {
   }
 }
 
-/* ================== 发送消息弹窗 ================== */
+/* --- 消息详情弹窗 --- */
+const msgDetailVisible = ref(false);
+const msgDetailRow = ref<SysMessageAdmin | null>(null);
+const msgDetailLoading = ref(false);
+
+function handleMsgDetail(row: Record<string, unknown>) {
+  msgDetailRow.value = row as unknown as SysMessageAdmin;
+  msgDetailVisible.value = true;
+  msgDetailLoading.value = false;
+}
+
+/* ================== 发送消息弹窗（站内消息） ================== */
 const sendVisible = ref(false);
 const sendSaving = ref(false);
 const templates = ref<SysMessageTemplate[]>([]);
@@ -184,7 +325,6 @@ function handleAdd() {
   sendVisible.value = true;
 }
 
-/** 选择模板后自动填充标题与内容 */
 function onTemplateChange(code?: string) {
   if (!code) return;
   const tpl = templates.value.find((t) => t.sysMessageTemplateCode === code);
@@ -215,12 +355,14 @@ async function handleSend() {
   }
 }
 
-/* ================== 消息模板 ================== */
+/* ================== Tab2: 消息模板 ================== */
 const tplQuery = ref<{
   page: number;
   pageSize: number;
   sysMessageTemplateName?: string;
   sysMessageTemplateCode?: string;
+  sysMessageTemplateType?: string;
+  sysMessageTemplateStatus?: number;
 }>({
   page: 1,
   pageSize: 10,
@@ -230,13 +372,19 @@ const tplTableRef = ref();
 const tplActionLoading = ref<number>(0);
 
 async function loadTemplatesPage({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  // 状态未选择时传空串（后端实体默认值为 1，不传会把禁用模板过滤掉）
+  const tplStatus = params.sysMessageTemplateStatus;
   const res = await pageForMessageTemplate({
     page,
     pageSize,
     sysMessageTemplateName: (params.sysMessageTemplateName as string) || undefined,
     sysMessageTemplateCode: (params.sysMessageTemplateCode as string) || undefined,
+    sysMessageTemplateType: (params.sysMessageTemplateType as string) || undefined,
+    sysMessageTemplateStatus:
+      tplStatus === undefined || tplStatus === null || tplStatus === "" ? "" : Number(tplStatus),
   });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  const rows: Record<string, unknown>[] = (res?.data?.data ?? []).map((row) => ({ ...row }));
+  return { total: res?.data?.total ?? 0, data: rows };
 }
 
 function handleTplReset() {
@@ -247,16 +395,42 @@ function handleTplReset() {
 const tplSearchFilters = computed(() => [
   { key: 'sysMessageTemplateName', label: '模板名称', type: 'input' as const, placeholder: '请输入' },
   { key: 'sysMessageTemplateCode', label: '模板编码', type: 'input' as const, placeholder: '请输入' },
+  {
+    key: 'sysMessageTemplateType',
+    label: '模板类型',
+    type: 'select' as const,
+    placeholder: '全部',
+    options: templateTypeOptions,
+  },
+  {
+    key: 'sysMessageTemplateStatus',
+    label: '状态',
+    type: 'select' as const,
+    placeholder: '全部',
+    options: [
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 },
+    ],
+  },
 ]);
 
+/* --- 模板新增/编辑弹窗 --- */
 const tplDialogVisible = ref(false);
 const tplSaving = ref(false);
 const tplIsEdit = ref(false);
 const tplForm = ref<SysMessageTemplate>({} as SysMessageTemplate);
+const richEditorRef = ref<HTMLDivElement | null>(null);
 
 function handleTplAdd() {
   tplIsEdit.value = false;
-  tplForm.value = { sysMessageTemplateName: "", sysMessageTemplateCode: "", sysMessageTemplateStatus: 1 };
+  tplForm.value = {
+    sysMessageTemplateCode: "",
+    sysMessageTemplateName: "",
+    sysMessageChannel: "EMAIL",
+    sysMessageTemplateType: "TEXT",
+    sysMessageTemplateStatus: 1,
+    sysMessageTemplateSort: 0,
+  };
   tplDialogVisible.value = true;
 }
 
@@ -264,17 +438,39 @@ function handleTplEdit(row: Record<string, unknown>) {
   tplIsEdit.value = true;
   tplForm.value = { ...(row as unknown as SysMessageTemplate) };
   tplDialogVisible.value = true;
+  initRichEditor();
+}
+
+function initRichEditor() {
+  nextTick(() => {
+    if (richEditorRef.value && tplForm.value.sysMessageTemplateContent !== undefined) {
+      richEditorRef.value.innerHTML = tplForm.value.sysMessageTemplateContent || "";
+    }
+  });
+}
+
+function syncRichEditorContent() {
+  if (richEditorRef.value && tplForm.value.sysMessageTemplateType === "RICHTEXT") {
+    tplForm.value.sysMessageTemplateContent = richEditorRef.value.innerHTML;
+  }
+}
+
+function execRichCommand(cmd: string, value?: string) {
+  richEditorRef.value?.focus();
+  document.execCommand(cmd, false, value);
+  syncRichEditorContent();
 }
 
 async function handleTplSubmit() {
-  if (!tplForm.value.sysMessageTemplateName) {
-    ElMessage.warning("请输入模板名称");
-    return;
-  }
-  if (!tplForm.value.sysMessageTemplateCode) {
+  if (!tplForm.value.sysMessageTemplateCode?.trim()) {
     ElMessage.warning("请输入模板编码");
     return;
   }
+  if (!tplForm.value.sysMessageChannel) {
+    ElMessage.warning("请选择消息渠道");
+    return;
+  }
+  syncRichEditorContent();
   tplSaving.value = true;
   try {
     if (tplIsEdit.value) {
@@ -291,6 +487,18 @@ async function handleTplSubmit() {
     ElMessage.error((e as Error)?.message ?? "保存失败");
   } finally {
     tplSaving.value = false;
+  }
+}
+
+async function handleTplStatus(row: SysMessageTemplate) {
+  if (!row.sysMessageTemplateId) return;
+  const newStatus = row.sysMessageTemplateStatus === 1 ? 0 : 1;
+  try {
+    await updateMessageTemplate({ ...row, sysMessageTemplateStatus: newStatus });
+    ElMessage.success(newStatus === 1 ? "已启用" : "已禁用");
+    tplTableRef.value?.reload();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "状态切换失败");
   }
 }
 
@@ -318,37 +526,283 @@ async function handleTplDelete(row: Record<string, unknown>) {
   }
 }
 
+/* --- 模板预览弹窗（左右布局 + 动态表单） --- */
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewResult = ref<TemplatePreviewResponse | null>(null);
+const previewRow = ref<SysMessageTemplate | null>(null);
+const previewFields = ref<DynamicField[]>([]);
+const previewParams = ref<Record<string, string>>({});
+let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function handleTplPreview(row: Record<string, unknown>) {
+  const tpl = row as unknown as SysMessageTemplate;
+  previewRow.value = tpl;
+  previewResult.value = null;
+  previewFields.value = buildDynamicFields(tpl.sysMessageParamSchema);
+  const params: Record<string, string> = {};
+  previewFields.value.forEach((f) => {
+    if (!f.isBuiltIn) params[f.key] = "";
+  });
+  previewParams.value = params;
+  previewVisible.value = true;
+  await doPreview();
+}
+
+async function doPreview() {
+  if (!previewRow.value?.sysMessageTemplateId) return;
+  previewLoading.value = true;
+  try {
+    const res = await previewMessageTemplate({
+      sysMessageTemplateId: previewRow.value.sysMessageTemplateId,
+      params: { ...previewParams.value },
+    });
+    previewResult.value = res?.data ?? null;
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "预览失败");
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+watch(previewParams, () => {
+  if (!previewVisible.value || !previewRow.value) return;
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => doPreview(), 500);
+}, { deep: true });
+
+/* --- 按模板发送弹窗（角色选择 + 手工地址） --- */
+const tplSendVisible = ref(false);
+const tplSendLoading = ref(false);
+const tplSendForm = ref<{
+  roleKeys: string[];
+  targetText: string;
+  subject: string;
+  params: Record<string, string>;
+}>({
+  roleKeys: [],
+  targetText: "",
+  subject: "",
+  params: {},
+});
+const tplSendRow = ref<SysMessageTemplate | null>(null);
+const sendFields = ref<DynamicField[]>([]);
+
+async function handleTplSend(row: Record<string, unknown>) {
+  const tpl = row as unknown as SysMessageTemplate;
+  tplSendRow.value = tpl;
+  sendFields.value = buildDynamicFields(tpl.sysMessageParamSchema);
+  tplSendForm.value = {
+    roleKeys: [],
+    targetText: "",
+    subject: tpl.sysMessageTemplateTitle ?? "",
+    params: {},
+  };
+  const params: Record<string, string> = {};
+  sendFields.value.forEach((f) => {
+    if (!f.isBuiltIn) params[f.key] = "";
+  });
+  tplSendForm.value.params = params;
+  tplSendVisible.value = true;
+}
+
+async function doTplSend() {
+  if (!tplSendRow.value?.sysMessageTemplateCode) {
+    ElMessage.warning("模板缺少编码，无法发送");
+    return;
+  }
+  const hasRoles = tplSendForm.value.roleKeys.length > 0;
+  const targets = tplSendForm.value.targetText
+    .split(/[,，\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!hasRoles && !targets.length) {
+    ElMessage.warning("请选择接收角色或输入接收人地址");
+    return;
+  }
+  tplSendLoading.value = true;
+  try {
+    const sendData: Record<string, unknown> = {
+      templateCode: tplSendRow.value.sysMessageTemplateCode,
+      subject: tplSendForm.value.subject || undefined,
+      params: tplSendForm.value.params,
+    };
+    if (hasRoles) sendData.roleKeys = tplSendForm.value.roleKeys;
+    if (targets.length) sendData.target = targets;
+    const res = await sendMessageByCode(sendData as never);
+    const list = res?.data ?? [];
+    const okCount = list.filter((r) => r.success).length;
+    const failCount = list.length - okCount;
+    if (failCount === 0) {
+      ElMessage.success(`发送成功（${okCount} 条）`);
+    } else {
+      ElMessage.warning(`完成：成功 ${okCount} 条，失败 ${failCount} 条`);
+    }
+    tplSendVisible.value = false;
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "发送失败");
+  } finally {
+    tplSendLoading.value = false;
+  }
+}
+
+/* ================== Tab3: 发送日志 ================== */
+const logQuery = ref<{
+  page: number;
+  pageSize: number;
+  sysMessageLogTarget?: string;
+  sysMessageCode?: string;
+}>({
+  page: 1,
+  pageSize: 10,
+});
+
+const logTableRef = ref();
+
+async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  const res = await pageForMessageLog({
+    page,
+    pageSize,
+    sysMessageLogTarget: (params.sysMessageLogTarget as string) || undefined,
+    sysMessageCode: (params.sysMessageCode as string) || undefined,
+  });
+  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+}
+
+function handleLogReset() {
+  logQuery.value = { page: 1, pageSize: 10 };
+  logTableRef.value?.reload();
+}
+
+const logSearchFilters = computed(() => [
+  { key: "sysMessageLogTarget", label: "接收人", type: "input" as const, placeholder: "邮箱/手机号" },
+  {
+    key: "sysMessageCode",
+    label: "状态",
+    type: "select" as const,
+    placeholder: "全部",
+    options: logStatusOptions,
+  },
+]);
+
+/* --- 日志详情弹窗 --- */
+const logDetailVisible = ref(false);
+const logDetailRow = ref<SysMessageLog | null>(null);
+
+function handleLogDetail(row: Record<string, unknown>) {
+  logDetailRow.value = row as unknown as SysMessageLog;
+  logDetailVisible.value = true;
+}
+
+/* --- 日志清理弹窗 --- */
+const logCleanVisible = ref(false);
+const logCleanLoading = ref(false);
+const logCleanBeforeTime = ref<string>("");
+
+function handleLogOpenClean() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  logCleanBeforeTime.value = d.toISOString().slice(0, 10);
+  logCleanVisible.value = true;
+}
+
+async function doLogClean() {
+  if (!logCleanBeforeTime.value) {
+    ElMessage.warning("请选择截止日期");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认清理 ${logCleanBeforeTime.value} 之前的日志？此操作不可恢复。`, "危险操作", {
+      type: "warning",
+    });
+  } catch {
+    return;
+  }
+  logCleanLoading.value = true;
+  try {
+    const res = await cleanMessageLog(logCleanBeforeTime.value);
+    ElMessage.success(`清理完成，共删除 ${res?.data ?? 0} 条`);
+    logCleanVisible.value = false;
+    logTableRef.value?.reload();
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "清理失败");
+  } finally {
+    logCleanLoading.value = false;
+  }
+}
+
 /* ================== 列定义 ================== */
 const msgColumns: ReTableColumn[] = [
   { prop: "sysMessageTitle", label: "标题", minWidth: 200, showOverflowTooltip: true },
-  { prop: "sysMessageType", label: "类型", width: 100, slot: "type", align: "center" },
-  { prop: "sysMessageLevel", label: "级别", width: 90, slot: "level", align: "center" },
-  { prop: "sysMessageSenderName", label: "发送者", width: 120 },
-  { prop: "sysMessageReceiverName", label: "接收者", width: 120, slot: "receiver" },
-  { prop: "sysMessageSendTime", label: "发送时间", width: 170 },
-  { prop: "sysMessageStatus", label: "状态", width: 100, slot: "mstatus", align: "center" },
-  { prop: "action", label: "操作", width: 170, slot: "action", fixed: "right" },
+  { prop: "sysMessageType", label: "类型", width: 90, slot: "type", align: "center" },
+  { prop: "sysMessageChannel", label: "渠道", width: 90, slot: "mchannel", align: "center" },
+  { prop: "sysMessageLevel", label: "级别", width: 80, slot: "level", align: "center" },
+  { prop: "sysMessageSenderName", label: "发送者", width: 110 },
+  { prop: "sysMessageReceiverName", label: "接收者", width: 110, slot: "receiver" },
+  { prop: "sysMessageSendTime", label: "发送时间", width: 170, slot: "sendTime" },
+  { prop: "sysMessageStatus", label: "状态", width: 90, slot: "mstatus", align: "center" },
+  { prop: "action", label: "操作", width: 220, slot: "action", fixed: "right" },
 ];
 
 const tplColumns: ReTableColumn[] = [
-  { prop: "sysMessageTemplateName", label: "模板名称", minWidth: 160 },
-  { prop: "sysMessageTemplateCode", label: "模板编码", minWidth: 150 },
-  { prop: "sysMessageTemplateTitle", label: "模板标题", minWidth: 180, showOverflowTooltip: true },
-  { prop: "sysMessageTemplateStatus", label: "状态", width: 100, slot: "tstatus", align: "center" },
-  { prop: "action", label: "操作", width: 170, slot: "action", fixed: "right" },
+  { prop: "sysMessageTemplateCode", label: "编码", width: 160 },
+  { prop: "sysMessageTemplateName", label: "名称", minWidth: 140 },
+  { prop: "sysMessageTemplateTitle", label: "标题", minWidth: 160, showOverflowTooltip: true },
+  {
+    prop: "sysMessageChannel",
+    label: "渠道",
+    width: 90,
+    align: "center",
+    formatter: (_r: Record<string, unknown>, _c: ReTableColumn, v: unknown) => channelLabel(v as string),
+  },
+  {
+    prop: "sysMessageTemplateType",
+    label: "类型",
+    width: 90,
+    align: "center",
+    formatter: (_r: Record<string, unknown>, _c: ReTableColumn, v: unknown) => templateTypeLabel(v as string),
+  },
+  { prop: "sysMessageExternalCode", label: "外部模板码", width: 140, showOverflowTooltip: true },
+  { prop: "status", label: "状态", slot: "tstatus", width: 80, align: "center" },
+  { prop: "action", label: "操作", slot: "taction", fixed: "right", width: 240, align: "center" },
+];
+
+const logColumns: ReTableColumn[] = [
+  { prop: "sysMessageLogTarget", label: "接收人", minWidth: 160, showOverflowTooltip: true },
+  {
+    prop: "sysMessageLogChannel",
+    label: "渠道",
+    width: 90,
+    align: "center",
+    formatter: (_r: Record<string, unknown>, _c: ReTableColumn, v: unknown) => channelLabel(v as string),
+  },
+  { prop: "sysMessageLogSubject", label: "主题", minWidth: 160, showOverflowTooltip: true },
+  { prop: "sysMessageLogContent", label: "内容摘要", minWidth: 200, showOverflowTooltip: true },
+  { prop: "status", label: "状态", slot: "logstatus", width: 80, align: "center" },
+  { prop: "sysMessageCost", label: "耗时(ms)", width: 100, slot: "cost", align: "center" },
+  { prop: "sysMessageLogMessageId", label: "消息ID", width: 160, showOverflowTooltip: true },
+  { prop: "createTime", label: "发送时间", width: 170, slot: "logTime" },
+  { prop: "action", label: "操作", slot: "logaction", fixed: "right", width: 90, align: "center" },
 ];
 
 onMounted(() => {
   loadTemplates();
+  loadRoles();
 });
 </script>
 
 <template>
   <div class="system-page">
-    <el-card shadow="never" class="system-page__card">
-      <el-tabs v-model="activeTab">
-        <!-- ============ 消息列表 ============ -->
-        <el-tab-pane label="消息列表" name="message">
+    <ReTab
+      v-model="activeTab"
+      v-model:collapsed="tabsCollapsed"
+      :tabs="mainTabs"
+      variant="icon"
+      tab-position="right"
+      collapsible
+    >
+        <!-- ============ Tab1: 消息记录 ============ -->
+        <template #message>
           <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
@@ -366,14 +820,18 @@ onMounted(() => {
             class="mt-2"
           >
             <template #toolbar>
-              <ReButton layout="modern" icon="Refresh" @click="msgTableRef?.reload()">刷新</ReButton>
-              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleAdd">发送消息</ReButton>
+              <el-button type="primary" icon="Plus" v-admin @click="handleAdd" text></el-button>
             </template>
             <template #type="{ row }">
-              <ReTag type="primary" effect="plain" size="small">{{ typeLabel(row.sysMessageType) }}</ReTag>
+              <ReTag type="primary" effect="light" round size="small">{{ typeLabel(row.sysMessageType) }}</ReTag>
+            </template>
+            <template #mchannel="{ row }">
+              <ReTag :type="msgChannelTagType(row.sysMessageChannel)" effect="light" round size="small">
+                {{ msgChannelLabel(row.sysMessageChannel) }}
+              </ReTag>
             </template>
             <template #level="{ row }">
-              <ReTag :type="levelTagType(row.sysMessageLevel)" effect="plain" size="small">
+              <ReTag :type="levelTagType(row.sysMessageLevel)" effect="light" round size="small">
                 {{ levelLabel(row.sysMessageLevel) }}
               </ReTag>
             </template>
@@ -383,13 +841,18 @@ onMounted(() => {
               </span>
               <span v-else>{{ row.sysMessageReceiverName || row.sysMessageReceiverId }}</span>
             </template>
+            <template #sendTime="{ row }">
+              <ReTime :value="row.sysMessageSendTime" format="YYYY-MM-DD HH:mm:ss" relative />
+            </template>
             <template #mstatus="{ row }">
-              <ReTag :type="msgStatusTagType(row.sysMessageStatus)" size="small">{{ msgStatusLabel(row.sysMessageStatus) }}</ReTag>
+              <ReTag :type="msgStatusTagType(row.sysMessageStatus)" effect="light" round size="small">{{ msgStatusLabel(row.sysMessageStatus) }}</ReTag>
             </template>
             <template #action="{ row }">
+              <ReButton layout="square" icon="View" type="primary" title="详情" @click="handleMsgDetail(row)" />
               <ReButton
                 layout="square"
                 type="warning"
+                icon="RefreshLeft"
                 v-admin
                 :disabled="row.sysMessageStatus === 2"
                 :loading="msgActionLoading === row.sysMessageId"
@@ -409,10 +872,10 @@ onMounted(() => {
               </ReButton>
             </template>
           </ReTable>
-        </el-tab-pane>
+        </template>
 
-        <!-- ============ 消息模板 ============ -->
-        <el-tab-pane label="消息模板" name="template">
+        <!-- ============ Tab2: 消息模板 ============ -->
+        <template #template>
           <ReTable
             ref="tplTableRef"
             table-id="system-message-template"
@@ -430,33 +893,74 @@ onMounted(() => {
             class="mt-2"
           >
             <template #toolbar>
-              <ReButton layout="modern" icon="Refresh" @click="tplTableRef?.reload()">刷新</ReButton>
-              <ReButton layout="modern" type="success" icon="Plus" v-admin @click="handleTplAdd">新增</ReButton>
+              <el-tooltip content="新增模板" placement="top">
+                <el-button icon="Plus" v-admin @click="handleTplAdd" text/>
+              </el-tooltip>
             </template>
             <template #tstatus="{ row }">
-              <ReTag :type="row.sysMessageTemplateStatus === 1 ? 'success' : 'info'" size="small">
-                {{ row.sysMessageTemplateStatus === 1 ? "启用" : "禁用" }}
-              </ReTag>
+              <ReSwitch
+                layout="square"
+                :model-value="row.sysMessageTemplateStatus === 1"
+                @update:model-value="() => handleTplStatus(row as SysMessageTemplate)"
+              />
             </template>
-            <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" v-admin @click="handleTplEdit(row)">编辑</ReButton>
+            <template #taction="{ row }">
+              <ReButton layout="square" icon="View" type="primary" title="预览" @click="handleTplPreview(row)" />
+              <ReButton layout="square" icon="Promotion" type="success" title="发送" v-admin @click="handleTplSend(row)" />
+              <ReButton layout="square" icon="Edit" type="primary" title="编辑" v-admin @click="handleTplEdit(row)" />
               <ReButton
                 layout="square"
-                type="danger"
                 icon="Delete"
+                type="danger"
+                title="删除"
                 v-admin
                 :loading="tplActionLoading === row.sysMessageTemplateId"
                 @click="handleTplDelete(row)"
-              >
-                删除
-              </ReButton>
+              />
             </template>
           </ReTable>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
+        </template>
 
-    <!-- 发送消息弹窗 -->
+        <!-- ============ Tab3: 发送日志 ============ -->
+        <template #log>
+          <ReTable
+            ref="logTableRef"
+            table-id="system-message-log"
+            :search="{ filters: logSearchFilters, title: '搜索', btnMode: 'text' }"
+            :search-gap="16"
+            v-model:search-model="logQuery"
+            @search-reset="handleLogReset"
+            :loader="loadLogs"
+            :columns="logColumns"
+            :pagination="true"
+            :params="logQuery"
+            row-key="sysMessageLogId"
+            v-model:page="logQuery.page"
+            v-model:page-size="logQuery.pageSize"
+            class="mt-2"
+          >
+            <template #toolbar>
+              <el-button type="danger" icon="Delete" v-admin @click="handleLogOpenClean" text></el-button>
+            </template>
+            <template #logstatus="{ row }">
+              <ReTag :type="logStatusTagType(row.sysMessageCode)" effect="plain" size="small">
+                {{ logStatusLabel(row.sysMessageCode) }}
+              </ReTag>
+            </template>
+            <template #cost="{ row }">
+              <ReCostText :cost="row.sysMessageCost == null ? null : Number(row.sysMessageCost)" />
+            </template>
+            <template #logTime="{ row }">
+              <ReTime :value="row.createTime" format="YYYY-MM-DD HH:mm:ss" relative />
+            </template>
+            <template #logaction="{ row }">
+              <ReButton layout="square" icon="View" type="primary" title="详情" @click="handleLogDetail(row)" />
+            </template>
+          </ReTable>
+        </template>
+    </ReTab>
+
+    <!-- ========== 发送消息弹窗（站内消息） ========== -->
     <ReDialog
       v-model="sendVisible"
       title="发送消息"
@@ -495,47 +999,381 @@ onMounted(() => {
           <ReInputNumber layout="modern" v-model="sendForm.sysMessageReceiverId" :min="0" class="!w-full" placeholder="留空或填 0 表示广播给全体用户" />
         </el-form-item>
         <el-form-item label="跳转链接">
-          <ReInput layout="modern" v-model="sendForm.sysMessageUrl" placeholder="选填，如 /system/xxx" maxlength="255" />
+          <ReInput layout="modern" v-model="sendForm.sysMessageUrl" placeholder="选填，应用内路径如 /manage/post，或 https:// 外链" maxlength="255" />
         </el-form-item>
       </el-form>
     </ReDialog>
 
-    <!-- 模板新增/编辑弹窗 -->
+    <!-- ========== 消息详情弹窗（送达/已读回执） ========== -->
+    <ReDialog v-model="msgDetailVisible" title="消息详情" width="760px" :footer-hidden="true">
+      <div v-if="msgDetailRow" v-loading="msgDetailLoading">
+        <el-descriptions :column="2" border size="small" class="mb-4">
+          <el-descriptions-item label="标题">{{ msgDetailRow.sysMessageTitle || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="渠道">{{ msgChannelLabel(msgDetailRow.sysMessageChannel) }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ typeLabel(msgDetailRow.sysMessageType) }}</el-descriptions-item>
+          <el-descriptions-item label="级别">{{ levelLabel(msgDetailRow.sysMessageLevel) }}</el-descriptions-item>
+          <el-descriptions-item label="发送者">{{ msgDetailRow.sysMessageSenderName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="发送时间">{{ msgDetailRow.sysMessageSendTime || '--' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div class="receipt-section">
+          <h4 class="receipt-section__title">送达统计</h4>
+          <el-alert
+            v-if="msgDetailRow.sysMessageChannel && msgDetailRow.sysMessageChannel !== 'PLATFORM'"
+            type="info"
+            :closable="false"
+            style="margin-bottom: 12px"
+          >
+            <span style="font-size: 12px">邮件/短信消息已读回执受限，仅展示送达状态</span>
+          </el-alert>
+          <div class="receipt-stats">
+            <div class="receipt-stat-card">
+              <div class="receipt-stat-card__num">{{ msgDetailRow.readCount ?? '-' }}</div>
+              <div class="receipt-stat-card__label">已读</div>
+            </div>
+            <div class="receipt-stat-card">
+              <div class="receipt-stat-card__num">{{ msgDetailRow.unreadCount ?? '-' }}</div>
+              <div class="receipt-stat-card__label">未读</div>
+            </div>
+          </div>
+          <div class="receipt-empty">送达名单与已读名单待后端详情端点对接后展示</div>
+        </div>
+
+        <div class="receipt-section">
+          <h4 class="receipt-section__title">消息内容</h4>
+          <div class="receipt-content">{{ msgDetailRow.sysMessageContent || '--' }}</div>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- ========== 模板新增/编辑弹窗 ========== -->
     <ReDialog
       v-model="tplDialogVisible"
       :title="tplIsEdit ? '编辑模板' : '新增模板'"
-      width="600"
+      width="760"
       :close-on-click-modal="false"
       destroy-on-close
       layout="modern"
-      compact
       :confirm-loading="tplSaving"
       @ok="handleTplSubmit"
     >
-      <el-form label-width="90px" :model="tplForm">
-        <el-form-item label="模板名称" required>
-          <ReInput layout="modern" v-model="tplForm.sysMessageTemplateName" placeholder="请输入模板名称" maxlength="255" show-word-limit />
+      <el-form :model="tplForm" label-position="top">
+        <el-alert
+          v-if="!tplIsEdit"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px"
+        >
+          <template #title>
+            <span style="font-size: 12px">短信模板建议通过「同步模板」从运营商拉取；手工新增仅用于无模板列表 API 的提供商或自定义场景。</span>
+          </template>
+        </el-alert>
+
+        <section class="tpl-section">
+          <h4 class="tpl-section__title">基本信息</h4>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="模板编码" required>
+                <el-input v-model="tplForm.sysMessageTemplateCode" placeholder="如 order_created" :disabled="tplIsEdit" maxlength="100" />
+                <div class="form-tip">编码全局唯一，新增后不可修改</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="模板名称">
+                <el-input v-model="tplForm.sysMessageTemplateName" placeholder="如 订单创建通知" maxlength="100" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="消息渠道" required>
+                <el-select v-model="tplForm.sysMessageChannel" style="width: 100%" placeholder="选择渠道">
+                  <el-option v-for="o in channelOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item v-if="tplForm.sysMessageChannel !== 'SMS'" label="内容类型">
+                <el-select v-model="tplForm.sysMessageTemplateType" style="width: 100%">
+                  <el-option v-for="o in templateTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </section>
+
+        <!-- EMAIL 渠道：标题 + 内容 -->
+        <section v-if="tplForm.sysMessageChannel !== 'SMS'" class="tpl-section">
+          <h4 class="tpl-section__title">邮件内容</h4>
+          <el-form-item label="标题（支持 ${变量}）">
+            <el-input v-model="tplForm.sysMessageTemplateTitle" placeholder="如 您的订单 ${orderNo} 已创建" maxlength="200" />
+          </el-form-item>
+          <el-form-item v-if="tplForm.sysMessageTemplateType !== 'RICHTEXT'" label="内容（支持 ${变量}）">
+            <el-input v-model="tplForm.sysMessageTemplateContent" type="textarea" :rows="6" placeholder="请输入模板内容，变量用 ${varName} 占位" />
+          </el-form-item>
+          <el-form-item v-else label="内容（富文本编辑器）">
+            <div class="rich-editor">
+              <div class="rich-editor__toolbar">
+                <el-button-group size="small">
+                  <el-button @click="execRichCommand('bold')" title="加粗"><b>B</b></el-button>
+                  <el-button @click="execRichCommand('italic')" title="斜体"><i>I</i></el-button>
+                  <el-button @click="execRichCommand('underline')" title="下划线"><u>U</u></el-button>
+                  <el-button @click="execRichCommand('strikeThrough')" title="删除线"><s>S</s></el-button>
+                </el-button-group>
+                <el-button-group size="small" style="margin-left: 8px">
+                  <el-button @click="execRichCommand('formatBlock', 'h3')" title="标题">H3</el-button>
+                  <el-button @click="execRichCommand('insertUnorderedList')" title="列表">•</el-button>
+                  <el-button @click="execRichCommand('insertOrderedList')" title="编号">1.</el-button>
+                </el-button-group>
+                <el-button-group size="small" style="margin-left: 8px">
+                  <el-button @click="execRichCommand('justifyLeft')" title="左对齐">左</el-button>
+                  <el-button @click="execRichCommand('justifyCenter')" title="居中">中</el-button>
+                  <el-button @click="execRichCommand('justifyRight')" title="右对齐">右</el-button>
+                </el-button-group>
+                <el-button size="small" style="margin-left: 8px" @click="execRichCommand('removeFormat')" title="清除格式">清除</el-button>
+              </div>
+              <div
+                ref="richEditorRef"
+                class="rich-editor__body"
+                contenteditable="true"
+                @input="syncRichEditorContent"
+              ></div>
+            </div>
+          </el-form-item>
+        </section>
+
+        <!-- SMS 渠道：外部模板码 + 变量说明 -->
+        <section v-if="tplForm.sysMessageChannel === 'SMS'" class="tpl-section">
+          <h4 class="tpl-section__title">短信配置</h4>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="外部运营商模板码" required>
+                <el-input v-model="tplForm.sysMessageExternalCode" placeholder="如 SMS_123456789" maxlength="100" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="变量说明（逗号分隔）">
+                <el-input v-model="tplForm.sysMessageParamSchema" placeholder="如 name,orderNo,amount" maxlength="200" />
+                <div class="form-tip">内置变量 ${date}、${time} 由后端自动注入，无需填写</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="短信标题（可选）">
+            <el-input v-model="tplForm.sysMessageTemplateTitle" placeholder="如 订单通知" maxlength="200" />
+          </el-form-item>
+          <el-form-item label="短信内容（可选）">
+            <el-input v-model="tplForm.sysMessageTemplateContent" type="textarea" :rows="3" placeholder="短信正文示例" />
+          </el-form-item>
+        </section>
+
+        <!-- EMAIL 渠道：业务变量说明 -->
+        <section v-if="tplForm.sysMessageChannel !== 'SMS'" class="tpl-section">
+          <h4 class="tpl-section__title">变量说明</h4>
+          <el-form-item label="业务变量（逗号分隔）">
+            <el-input v-model="tplForm.sysMessageParamSchema" placeholder="如 name,orderNo,amount" maxlength="200" />
+            <div class="form-tip">内置变量 ${date}、${time} 由后端自动注入，无需在发送时传入</div>
+          </el-form-item>
+        </section>
+
+        <section class="tpl-section">
+          <h4 class="tpl-section__title">其他设置</h4>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="回调 URL">
+                <el-input v-model="tplForm.sysMessageTemplateCallbackUrl" placeholder="发送后回调地址（可选）" maxlength="500" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="排序">
+                <el-input-number v-model="tplForm.sysMessageTemplateSort" :min="0" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="状态">
+                <ReSwitch layout="square" :model-value="tplForm.sysMessageTemplateStatus === 1" @update:model-value="(v: boolean) => tplForm.sysMessageTemplateStatus = v ? 1 : 0" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="备注">
+            <el-input v-model="tplForm.sysMessageTemplateRemark" type="textarea" :rows="2" maxlength="500" />
+          </el-form-item>
+        </section>
+      </el-form>
+    </ReDialog>
+
+    <!-- ========== 模板预览弹窗（左右布局） ========== -->
+    <ReDialog v-model="previewVisible" title="模板预览" width="880px" :footer-hidden="true">
+      <div class="preview-layout">
+        <div class="preview-layout__left">
+          <h4 class="preview-layout__heading">参数填写</h4>
+          <template v-if="previewFields.filter((f) => !f.isBuiltIn).length">
+            <el-form-item v-for="f in previewFields.filter((f) => !f.isBuiltIn)" :key="f.key" :label="f.key" label-position="top">
+              <el-input-number
+                v-if="f.type === 'number'"
+                v-model="previewParams[f.key]"
+                :controls="false"
+                style="width: 100%"
+                :placeholder="`请输入 ${f.key}`"
+              />
+              <el-date-picker
+                v-else-if="f.type === 'date'"
+                v-model="previewParams[f.key]"
+                type="date"
+                style="width: 100%"
+                placeholder="选择日期"
+                value-format="YYYY-MM-DD"
+              />
+              <el-input v-else v-model="previewParams[f.key]" :placeholder="`请输入 ${f.key}`" />
+            </el-form-item>
+          </template>
+          <el-empty v-if="!previewFields.filter((f) => !f.isBuiltIn).length" description="无业务变量" :image-size="40" />
+
+          <div v-if="previewFields.filter((f) => f.isBuiltIn).length" class="built-in-section">
+            <div class="built-in-section__title">内置变量（系统自动生成）</div>
+            <div v-for="f in previewFields.filter((f) => f.isBuiltIn)" :key="f.key" class="built-in-section__item">
+              <span class="built-in-section__key">{{ f.key }}</span>
+              <span class="built-in-section__desc">{{ builtInVars.find((v) => v.key === f.key)?.label || '' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-layout__right" v-loading="previewLoading">
+          <h4 class="preview-layout__heading">渲染结果</h4>
+          <div v-if="previewResult" class="preview-result">
+            <div class="preview-result__tags">
+              <el-tag v-if="!previewResult.complete" type="warning" size="small">存在未解析变量</el-tag>
+              <el-tag v-else type="success" size="small">全部解析</el-tag>
+            </div>
+            <div v-if="previewResult.unresolvedParams?.length" class="preview-result__unresolved">
+              未解析变量：{{ previewResult.unresolvedParams.join(', ') }}
+            </div>
+            <div class="preview-result__title">{{ previewResult.title || "（无标题）" }}</div>
+            <div
+              class="preview-result__content"
+              :class="{ 'preview-result__content--text': previewRow?.sysMessageTemplateType === 'TEXT' }"
+              v-html="previewResult.content || '（无内容）'"
+            ></div>
+          </div>
+          <el-empty v-else description="填写参数后自动渲染" :image-size="60" />
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- ========== 按模板发送弹窗（角色选择） ========== -->
+    <ReDialog
+      v-model="tplSendVisible"
+      title="发送测试消息"
+      width="680px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      :confirm-loading="tplSendLoading"
+      @ok="doTplSend"
+    >
+      <el-form :model="tplSendForm" label-position="top">
+        <el-form-item label="接收角色（多选）">
+          <el-select
+            v-model="tplSendForm.roleKeys"
+            multiple
+            filterable
+            clearable
+            placeholder="选择角色，将发送给该角色下所有用户"
+            style="width: 100%"
+          >
+            <el-option v-for="r in roleOptions" :key="r.sysRoleCode" :label="r.sysRoleName" :value="r.sysRoleCode" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="模板编码" required>
-          <ReInput layout="modern" v-model="tplForm.sysMessageTemplateCode" placeholder="请输入模板编码" maxlength="255" show-word-limit />
-        </el-form-item>
-        <el-form-item label="模板标题">
-          <ReInput layout="modern" v-model="tplForm.sysMessageTemplateTitle" placeholder="请输入模板标题" maxlength="255" show-word-limit />
-        </el-form-item>
-        <el-form-item label="模板内容">
-          <ReInput
-            layout="modern"
-            v-model="tplForm.sysMessageTemplateContent"
+        <el-form-item label="手工接收人（兜底）">
+          <el-input
+            v-model="tplSendForm.targetText"
             type="textarea"
-            :rows="5"
-            placeholder="支持变量 {username}、{date}"
-            maxlength="2000"
-            show-word-limit
+            :rows="3"
+            placeholder="邮箱地址或手机号，多个用逗号或换行分隔"
           />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-segmented v-model="tplForm.sysMessageTemplateStatus" :options="templateStatusOptions" />
+        <el-form-item label="标题（可选，覆盖模板标题）">
+          <el-input v-model="tplSendForm.subject" maxlength="200" />
         </el-form-item>
+
+        <template v-if="sendFields.filter((f) => !f.isBuiltIn).length">
+          <el-divider content-position="left" style="font-size: 12px">业务变量</el-divider>
+          <el-form-item v-for="f in sendFields.filter((f) => !f.isBuiltIn)" :key="f.key" :label="f.key">
+            <el-input-number
+              v-if="f.type === 'number'"
+              v-model="tplSendForm.params[f.key]"
+              :controls="false"
+              style="width: 100%"
+              :placeholder="`请输入 ${f.key}`"
+            />
+            <el-date-picker
+              v-else-if="f.type === 'date'"
+              v-model="tplSendForm.params[f.key]"
+              type="date"
+              style="width: 100%"
+              placeholder="选择日期"
+              value-format="YYYY-MM-DD"
+            />
+            <el-input v-else v-model="tplSendForm.params[f.key]" :placeholder="`请输入 ${f.key}`" />
+          </el-form-item>
+        </template>
+
+        <div v-if="sendFields.filter((f) => f.isBuiltIn).length" class="built-in-tip">
+          内置变量（{{ sendFields.filter((f) => f.isBuiltIn).map((f) => '${' + f.key + '}').join('、') }}）由系统自动填充，无需填写
+        </div>
+      </el-form>
+    </ReDialog>
+
+    <!-- ========== 日志详情弹窗 ========== -->
+    <ReDialog v-model="logDetailVisible" title="日志详情" width="680px" :footer-hidden="true">
+      <div v-if="logDetailRow" class="log-detail">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="接收人">{{ logDetailRow.sysMessageLogTarget || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="渠道">{{ channelLabel(logDetailRow.sysMessageLogChannel) }}</el-descriptions-item>
+          <el-descriptions-item label="模板ID">{{ logDetailRow.sysMessageTemplateId ?? '--' }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <ReTag :type="logStatusTagType(logDetailRow.sysMessageCode)" size="small">{{ logStatusLabel(logDetailRow.sysMessageCode) }}</ReTag>
+          </el-descriptions-item>
+          <el-descriptions-item label="耗时">{{ logDetailRow.sysMessageCost != null ? logDetailRow.sysMessageCost + ' ms' : '--' }}</el-descriptions-item>
+          <el-descriptions-item label="消息ID" :span="2">{{ logDetailRow.sysMessageLogMessageId || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="批次号" :span="2">{{ logDetailRow.sysMessageBatchId || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="发送时间" :span="2">{{ logDetailRow.createTime || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="返回消息" :span="2">{{ logDetailRow.sysMessageMessage || '--' }}</el-descriptions-item>
+        </el-descriptions>
+        <div class="log-detail__section">
+          <h4 class="log-detail__label">主题</h4>
+          <div class="log-detail__value">{{ logDetailRow.sysMessageLogSubject || '--' }}</div>
+        </div>
+        <div class="log-detail__section">
+          <h4 class="log-detail__label">内容</h4>
+          <div class="log-detail__value log-detail__value--content">{{ logDetailRow.sysMessageLogContent || '--' }}</div>
+        </div>
+        <div class="log-detail__section">
+          <h4 class="log-detail__label">参数</h4>
+          <pre class="log-detail__value log-detail__value--pre">{{ logDetailRow.sysMessageLogParam || '--' }}</pre>
+        </div>
+      </div>
+    </ReDialog>
+
+    <!-- ========== 日志清理弹窗 ========== -->
+    <ReDialog
+      v-model="logCleanVisible"
+      title="清理历史日志"
+      width="480px"
+      :close-on-click-modal="false"
+      :confirm-loading="logCleanLoading"
+      @ok="doLogClean"
+    >
+      <el-form label-position="top">
+        <el-form-item label="清理截止日期之前的日志" required>
+          <el-date-picker
+            v-model="logCleanBeforeTime"
+            type="date"
+            placeholder="选择截止日期"
+            style="width: 100%"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <p class="clean-tip">将物理删除该日期之前的所有推送日志，操作不可恢复。</p>
       </el-form>
     </ReDialog>
   </div>
@@ -546,17 +1384,220 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  padding: 0;
   height: 100%;
 }
-.system-page__card {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
+/* ==================== 消息管理：按 UI 图改造 ==================== */
+/* 搜索区：胶囊输入 / 按钮 + 主色渐变搜索按钮 */
+.system-page :deep(.koi-search .el-input__wrapper),
+.system-page :deep(.koi-search .el-select__wrapper) {
+  border-radius: var(--el-radius-full, 9999px);
 }
-.system-page__divider {
-  display: inline-block;
-  width: 1px;
-  height: 18px;
-  background: var(--el-border-color);
+
+.system-page :deep(.koi-search .el-button) {
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+.system-page :deep(.koi-search .el-button--primary) {
+  border: none;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info))
+  );
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+}
+
+/* 表格：浅灰表头 + 宽松行高 + 胶囊标签 */
+.system-page :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-light);
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+
+.system-page :deep(.el-table td.el-table__cell) {
+  padding: 14px 0;
+}
+
+.system-page :deep(.el-table .el-tag) {
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+
+
+.tpl-section {
+  & + & {
+    margin-top: 6px;
+    padding-top: 18px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+  &__title {
+    display: flex;
+    align-items: center;
+    margin: 0 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 3px;
+      height: 13px;
+      margin-right: 8px;
+      border-radius: 2px;
+      background: var(--el-color-primary);
+    }
+  }
+}
+
+.rich-editor {
+  width: 100%;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    background: var(--el-fill-color-light);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+  &__body {
+    min-height: 180px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--el-text-color-primary);
+    outline: none;
+    background: var(--el-bg-color);
+    h3 { margin: 8px 0; font-size: 16px; font-weight: 700; }
+  }
+}
+
+.preview-layout {
+  display: flex;
+  gap: 0;
+  min-height: 400px;
+  &__left {
+    width: 40%;
+    padding: 0 20px 0 0;
+    border-right: 1px solid var(--el-border-color);
+    overflow-y: auto;
+  }
+  &__right {
+    flex: 1;
+    padding: 0 0 0 20px;
+    overflow-y: auto;
+  }
+  &__heading {
+    margin: 0 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+  }
+}
+
+.preview-result {
+  &__tags { display: flex; gap: 8px; margin-bottom: 8px; }
+  &__unresolved { margin-bottom: 8px; font-size: 12px; color: var(--el-color-warning); }
+  &__title { margin: 0 0 12px; font-size: 16px; font-weight: 700; color: var(--el-text-color-primary); }
+  &__content {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--el-border-radius-base);
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--el-text-color-primary);
+    word-break: break-word;
+    &--text { white-space: pre-wrap; }
+  }
+}
+
+.built-in-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-border-radius-base);
+  &__title { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--el-text-color-secondary); }
+  &__item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+  &__key { font-family: monospace; color: var(--el-color-primary); }
+  &__desc { color: var(--el-text-color-secondary); }
+}
+
+.built-in-tip {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-border-radius-base);
+}
+
+.receipt-section {
+  margin-top: 20px;
+  &__title { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--el-text-color-regular); }
+}
+.receipt-stats { display: flex; gap: 12px; margin-bottom: 12px; }
+.receipt-stat-card {
+  flex: 1;
+  padding: 16px;
+  text-align: center;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  &__num { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
+  &__label { margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary); }
+}
+.receipt-empty {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+}
+.receipt-content {
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-border-radius-base);
+}
+
+.log-detail {
+  &__section { margin-top: 16px; }
+  &__label { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--el-text-color-secondary); }
+  &__value {
+    font-size: 14px; color: var(--el-text-color-primary); word-break: break-word;
+    &--content { white-space: pre-wrap; line-height: 1.7; }
+    &--pre {
+      margin: 0; padding: 12px; background: var(--el-fill-color-light);
+      border-radius: var(--el-border-radius-base); font-size: 12px; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word;
+    }
+  }
+}
+
+.clean-tip { margin: 0; font-size: 12px; color: var(--el-color-danger); }
+.form-tip { font-size: 12px; line-height: 1.5; color: var(--el-text-color-secondary); margin-top: 4px; }
+
+:deep(.el-form-item) { margin-bottom: 18px; }
+:deep(.el-form-item:last-child) { margin-bottom: 0; }
+
+@media (max-width: 768px) {
+  .preview-layout {
+    flex-direction: column;
+    &__left { width: 100%; padding: 0 0 16px; border-right: none; border-bottom: 1px solid var(--el-border-color); }
+    &__right { padding: 16px 0 0; }
+  }
 }
 </style>

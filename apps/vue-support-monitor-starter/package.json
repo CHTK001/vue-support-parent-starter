@@ -11,7 +11,15 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
     "@element-plus/icons-vue": "catalog:",
+    "@pages/datasource": "workspace:*",
+    "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",
     "@pages/server": "workspace:*",

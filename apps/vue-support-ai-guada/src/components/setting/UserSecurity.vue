@@ -1,114 +1,102 @@
 <template>
-  <div class="max-w-128">
-    <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-position="left" label-width="80px"
-      size="large">
-      <el-form-item :label="t('settings.userSecurity.oldPassword')" prop="oldPassword">
-        <el-input v-model="passwordForm.oldPassword" type="password" show-password
-          :placeholder="t('settings.userSecurity.oldPasswordPlaceholder')" />
-      </el-form-item>
-      <el-form-item :label="t('settings.userSecurity.newPassword')" prop="newPassword">
-        <el-input v-model="passwordForm.newPassword" type="password" show-password
-          :placeholder="t('settings.userSecurity.newPasswordPlaceholder')" />
-      </el-form-item>
-      <el-form-item :label="t('settings.userSecurity.confirmPassword')" prop="confirmPassword">
-        <el-input v-model="passwordForm.confirmPassword" type="password" show-password
-          :placeholder="t('settings.userSecurity.confirmPasswordPlaceholder')" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="handleChangePassword">{{ t('settings.userSecurity.confirmChange') }}</el-button>
-      </el-form-item>
-    </el-form>
+  <div class="security-page">
+    <SettingsCard title="修改密码" subtitle="定期更换密码以保障账号安全">
+      <SettingsRow label="原密码" description="请输入当前正在使用的密码">
+        <el-input
+          v-model="passwordForm.oldPassword"
+          type="password"
+          show-password
+          placeholder="请输入原密码"
+          class="security-control"
+        />
+      </SettingsRow>
+
+      <SettingsRow label="新密码" description="至少 6 位，建议字母与数字组合">
+        <el-input
+          v-model="passwordForm.newPassword"
+          type="password"
+          show-password
+          placeholder="请输入新密码"
+          class="security-control"
+        />
+      </SettingsRow>
+
+      <SettingsRow label="确认新密码" description="再次输入新密码以确认">
+        <el-input
+          v-model="passwordForm.confirmPassword"
+          type="password"
+          show-password
+          placeholder="请再次输入新密码"
+          class="security-control"
+          @keyup.enter="handleChangePassword"
+        />
+      </SettingsRow>
+    </SettingsCard>
+
+    <div class="security-actions">
+      <el-button @click="resetForm">清空</el-button>
+      <el-button type="primary" :loading="changing" @click="handleChangePassword">
+        确认修改
+      </el-button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 import { usePopup } from '../../composables/usePopup'
 import { apiService } from '../../services/ApiService'
-// Element Plus 组件导入
-import {
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElButton
-} from 'element-plus'
+import SettingsCard from './SettingsCard.vue'
+import SettingsRow from './SettingsRow.vue'
 
-const { t } = useI18n()
 const { toast } = usePopup()
 
-const passwordFormRef = ref(null)
-
+const changing = ref(false)
 const passwordForm = ref({
   oldPassword: '',
   newPassword: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
-// 添加密码表单验证规则
-const passwordRules = computed(() => ({
-  oldPassword: [
-    {
-      required: true,
-      message: t('settings.userSecurity.oldPasswordRequired'),
-      trigger: 'blur'
-    }
-  ],
-  newPassword: [
-    {
-      required: true,
-      message: t('settings.userSecurity.newPasswordRequired'),
-      trigger: 'blur'
-    },
-    {
-      min: 6,
-      message: t('settings.userSecurity.passwordMinLength'),
-      trigger: 'blur'
-    }
-  ],
-  confirmPassword: [
-    {
-      required: true,
-      message: t('settings.userSecurity.confirmPasswordRequired'),
-      trigger: 'blur'
-    },
-    {
-      validator: (rule, value, callback) => {
-        if (value !== passwordForm.value.newPassword) {
-          callback(new Error(t('settings.userSecurity.passwordMismatch')))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
-  ]
-}))
-
-// 添加修改密码处理函数
-const handleChangePassword = (e) => {
-  e.preventDefault()
-  passwordFormRef.value?.validate(async (valid) => {
-    if (valid) {
-      try {
-        await apiService.changePassword(passwordForm.value.oldPassword, passwordForm.value.newPassword)
-        // 重置表单
-        passwordForm.value = {
-          oldPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        }
-        toast.success(t('settings.userSecurity.passwordChanged'))
-      } catch (error) {
-        toast.error(error.message || t('settings.userSecurity.passwordChangeFailed'))
-      }
-    } else {
-      console.log('验证失败')
-    }
-  })
+function resetForm() {
+  passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
 }
 
-defineExpose({
-  passwordFormRef
-})
+const handleChangePassword = async () => {
+  const { oldPassword, newPassword, confirmPassword } = passwordForm.value
+  if (!oldPassword) { toast.error('请输入原密码'); return }
+  if (!newPassword || newPassword.length < 6) {
+    toast.error('新密码至少 6 位')
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    toast.error('两次输入的新密码不一致')
+    return
+  }
+
+  changing.value = true
+  try {
+    await apiService.changePassword(oldPassword, newPassword, confirmPassword)
+    resetForm()
+    toast.success('密码修改成功')
+  } catch (error) {
+    toast.error(error.message || '密码修改失败')
+  } finally {
+    changing.value = false
+  }
+}
+
+defineExpose({ resetForm })
 </script>
+
+<style scoped>
+.security-page { max-width: 640px; }
+.security-control { width: 260px; max-width: 100%; }
+
+.security-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+</style>

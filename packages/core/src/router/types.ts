@@ -19,6 +19,8 @@ export interface RouteMeta {
   showLink?: boolean;
   /** 是否缓存页面（keep-alive） */
   keepAlive?: boolean;
+  /** 是否脱离菜单控制（true = 只注册路由，不被 router 当作菜单处理） */
+  remind?: boolean;
   /** 是否固定标签页 */
   affix?: boolean;
   /** 访问所需角色 */

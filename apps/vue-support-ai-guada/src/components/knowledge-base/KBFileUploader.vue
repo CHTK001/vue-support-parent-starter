@@ -113,6 +113,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
 import LDialog from '@/components/ui/LDialog.vue'
+import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 
 /**
  * 上传冲突信息
@@ -523,35 +524,61 @@ async function executeUpload(
     emit('show-upload-task')
 
     for (const { file, relativePath } of filesWithPath) {
-        try {
-            // 验证文件大小
-            const maxSize = 1024 * 1024 * 1024 // 1GB
-            if (file.size > maxSize) {
-                ElMessage.warning(t('knowledge.upload.fileTooLarge', { path: relativePath }))
-                failCount++
-                continue
-            }
+        // 验证文件大小
+        const maxSize = 1024 * 1024 * 1024 // 1GB
+        if (file.size > maxSize) {
+            ElMessage.warning(t('knowledge.upload.fileTooLarge', { path: relativePath }))
+            failCount++
+            continue
+        }
 
-            // TODO: 传递 conflictMode 参数到后端
-            // 调用上传方法(传递 relativePath)
-            await uploadStore.uploadToKnowledgeBaseWithPath(
-                props.kbId,
-                file,
-                relativePath,
-                (task) => {
-                    // 进度更新回调
-                    if (task.status === 'uploaded') {
-                        // ElMessage.success(`${task.fileName} 处理完成`)
-                        emit('uploaded', task)
-                        successCount++
-                    } else if (task.status === 'failed') {
-                        ElMessage.error(`${task.fileName} 处理失败：${task.errorMessage}`)
-                        failCount++
-                    }
-                }
-            )
+        // 目标目录（relativePath 去掉文件名部分），用于当前文件夹 / 文件夹上传
+        const dirPart = relativePath.includes('/')
+            ? relativePath.slice(0, relativePath.lastIndexOf('/'))
+            : ''
+
+        // 建立上传任务以驱动任务弹窗进度
+        const task = uploadStore.addUploadTask({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            fileId: 'pending',
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type || 'unknown',
+            fileExtension: file.name.includes('.') ? file.name.split('.').pop()! : '',
+            uploadedAt: new Date().toISOString(),
+            processedAt: null,
+            knowledgeBaseId: props.kbId,
+            rawFile: file,
+            relativePath,
+            createdAt: Date.now()
+        })
+
+        try {
+            uploadStore.updateUploadStatus(task.id, {
+                status: 'uploading',
+                progress: 30,
+                currentStep: t('chat.upload.uploading', { pct: 30 })
+            })
+
+            // 后端知识库无 multipart 出口：统一走 /api/knowledge 的文本写入
+            const node = await knowledgeBaseApi.uploadKBFile(props.kbId, file, dirPart || null)
+
+            uploadStore.updateUploadStatus(task.id, {
+                status: 'uploaded',
+                progress: 100,
+                currentStep: t('chat.upload.completed')
+            })
+            // addUploadTask 返回的 task 与 store 内为同一引用，直接复用避免对 Map 解包的依赖
+            task.fileId = node.id
+            task.serverFileRecord = node
+            emit('uploaded', task)
+            successCount++
         } catch (error: any) {
             console.error(`${relativePath} 上传失败:`, error)
+            uploadStore.updateUploadStatus(task.id, {
+                status: 'failed',
+                errorMessage: error?.message || 'failed'
+            })
             ElMessage.error(t('knowledge.upload.uploadFailed', { path: relativePath }))
             failCount++
         }

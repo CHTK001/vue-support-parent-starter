@@ -5,6 +5,8 @@ node_modules/
 # 构建产物
 dist/
 dist-ssr/
+# 交付部署目录（rsync/发布产物，20MB+，不入库）
+dist-deploy/
 .turbo/
 .turbo/**/
 coverage/
@@ -110,7 +112,6 @@ inspect-remote*
 start-dev*.bat
 run-dev*.ps1
 start-be*.ps1
-!pages/ai/test-screenshots/*.png
 *.jpg
 
 # 空文件残留

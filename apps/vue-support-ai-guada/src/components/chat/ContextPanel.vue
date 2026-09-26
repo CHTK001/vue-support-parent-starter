@@ -58,6 +58,55 @@
         </div>
       </div>
 
+      <!-- 记忆体 -->
+      <div class="info-section">
+        <div class="section-head">
+          <span class="section-title">{{ t('chat.context.memory') }}</span>
+          <span class="section-actions">
+            <el-button
+              v-if="conversationMemories.length"
+              size="small"
+              link
+              type="danger"
+              @click="handleClearConversation"
+            >{{ t('chat.context.memoryClearConversation') }}</el-button>
+            <el-button size="small" link :loading="memoryLoading" @click="loadMemories">
+              <el-icon><Refresh /></el-icon>
+            </el-button>
+          </span>
+        </div>
+        <div class="memory-stats" v-if="memoryStats">
+          {{ t('chat.context.memoryStats', {
+            active: memoryStats.active,
+            capacity: memoryStats.capacity,
+            recallable: memoryStats.recallable
+          }) }}
+        </div>
+        <div class="memory-list" v-loading="memoryLoading">
+          <div v-for="item in memories" :key="item.memoryId" class="memory-item">
+            <div class="memory-tags">
+              <span class="memory-tag scope" :class="item.scope">
+                {{ item.scope === 'conversation'
+                  ? t('chat.context.memoryScopeConversation')
+                  : t('chat.context.memoryScopeGlobal') }}
+              </span>
+              <span class="memory-tag source">{{ sourceLabel(item.source) }}</span>
+              <span class="memory-tag hit">{{ t('chat.context.memoryHit', { n: item.hitCount || 0 }) }}</span>
+            </div>
+            <div class="memory-row">
+              <span class="memory-content" :title="item.content">{{ item.title || item.content }}</span>
+              <el-button size="small" link type="danger" :title="t('chat.context.memoryDelete')"
+                @click="handleDeleteMemory(item)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+          </div>
+          <div v-if="!memoryLoading && memories.length === 0" class="empty-text">
+            {{ t('chat.context.memoryEmpty') }}
+          </div>
+        </div>
+      </div>
+
       <!-- 系统提示词 -->
       <div class="info-section" v-if="systemPrompt">
         <div class="section-title">系统提示词</div>
@@ -85,8 +134,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { InfoFilled, Close } from '@element-plus/icons-vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { InfoFilled, Close, Refresh, Delete } from '@element-plus/icons-vue';
+import { memoryApi, type AiMemoryItem } from '@/services/javaApi';
+import { usePopup } from '@/composables/usePopup';
+
+const { t } = useI18n();
+const { confirm, toast } = usePopup();
 
 const props = defineProps<{
   sessionId?: string;
@@ -97,6 +152,68 @@ const props = defineProps<{
 }>();
 
 const visible = ref(true);
+
+const memories = ref<AiMemoryItem[]>([]);
+const memoryStats = ref<{ active: number; capacity: number; recallable: number } | null>(null);
+const memoryLoading = ref(false);
+
+const conversationMemories = computed(() =>
+  memories.value.filter((m) => m.scope === 'conversation')
+);
+
+const sourceLabel = (source?: string) => {
+  const key = (
+    { manual: 'memorySourceManual', 'auto-extract': 'memorySourceAuto', tool: 'memorySourceTool', import: 'memorySourceImport' } as Record<string, string>
+  )[source || ''];
+  return key ? t(`chat.context.${key}`) : source || '-';
+};
+
+const loadMemories = async () => {
+  if (!props.sessionId) {
+    memories.value = [];
+    memoryStats.value = null;
+    return;
+  }
+  memoryLoading.value = true;
+  try {
+    const [listBody, statsBody] = await Promise.all([
+      memoryApi.list({ conversation_id: props.sessionId, limit: 50 }),
+      memoryApi.stats()
+    ]);
+    const rows = listBody?.data;
+    memories.value = Array.isArray(rows) ? rows : [];
+    memoryStats.value = statsBody?.data || null;
+  } catch {
+    toast.error(t('chat.context.memoryLoadFailed'));
+  } finally {
+    memoryLoading.value = false;
+  }
+};
+
+const handleDeleteMemory = async (item: AiMemoryItem) => {
+  const ok = await confirm(
+    t('chat.context.memoryDeleteTitle'),
+    t('chat.context.memoryDeleteDesc')
+  );
+  if (!ok) return;
+  await memoryApi.delete(item.memoryId);
+  toast.success(t('chat.context.memoryDeleted'));
+  await loadMemories();
+};
+
+const handleClearConversation = async () => {
+  if (!props.sessionId) return;
+  const ok = await confirm(
+    t('chat.context.memoryClearTitle'),
+    t('chat.context.memoryClearDesc')
+  );
+  if (!ok) return;
+  const body = await memoryApi.clearConversation(props.sessionId);
+  toast.success(t('chat.context.memoryCleared', { n: Number(body?.data) || 0 }));
+  await loadMemories();
+};
+
+onMounted(loadMemories);
 
 const messageCount = computed(() => props.messages?.length || 0);
 
@@ -140,7 +257,7 @@ const formatNumber = (num: number) => {
 };
 
 watch(() => props.sessionId, () => {
-  // 会话切换时重置
+  loadMemories();
 });
 </script>
 
@@ -190,6 +307,81 @@ watch(() => props.sessionId, () => {
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-head .section-title {
+  margin-bottom: 8px;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memory-stats {
+  font-size: 11px;
+  color: var(--color-text-secondary, #909399);
+  margin-bottom: 8px;
+}
+
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.memory-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--color-bg-secondary, #f5f7fa);
+}
+
+.memory-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.memory-tag {
+  font-size: 10px;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: var(--color-text-secondary, #909399);
+  background: var(--color-bg, #fff);
+  border: 1px solid var(--color-border, #e4e7ed);
+}
+
+.memory-tag.scope.global { color: #409eff; border-color: rgba(64, 158, 255, 0.35); }
+.memory-tag.scope.conversation { color: #67c23a; border-color: rgba(103, 194, 58, 0.35); }
+
+.memory-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.memory-content {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text, #303133);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .info-item {
