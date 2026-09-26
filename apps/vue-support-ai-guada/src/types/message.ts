@@ -64,6 +64,9 @@ export interface Message {
     files?: FileAttachment[]
     index?: number
     totalDurationMs?: number | null
+    /** 工具执行耗时合计（毫秒，流式期间采集，历史消息可能缺失） */
+    toolDurationMs?: number | null
+    metadata?: Record<string, any>
 }
 
 /**

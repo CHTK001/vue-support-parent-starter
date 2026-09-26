@@ -296,8 +296,10 @@ import {
   Settings16Filled,
   Server20Regular,
   DataArea20Regular,
+  DataBarVertical20Regular,
   Image20Regular,
   Key20Regular,
+  PlugConnected20Regular,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -440,7 +442,7 @@ const navItems = computed(() => {
     {
       key: 'usage',
       label: '用量管理',
-      icon: BarChart20Regular,
+      icon: DataBarVertical20Regular,
       showKey: 'showUsageMenu'
     },
     {

@@ -44,6 +44,8 @@ interface Message {
   currentVersionId?: string;
   state: ContentState;
   createdAt: string;
+  /** 工具执行耗时合计（毫秒），流式期间采集 */
+  toolDurationMs?: number | null;
   [key: string]: any;
 }
 
@@ -595,6 +597,8 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     let contentIndex = 0;
     // 修复：添加标志位，确保一次流式会话只更新一次时间戳
     let hasUpdatedActiveTime = false;
+    // 工具执行阶段计时：tool_call 到达时开始，tool_calls_response 到达时结算
+    let toolPhaseStart: number | null = null;
 
     try {
       let responseContent = "";
@@ -675,6 +679,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
           const result = handleNewMessage(response, streamingSessionId);
           message = result.message;
           contentIndex = result.contentIndex;
+          toolPhaseStart = null;
 
           startDurationTimer(message);
 
@@ -696,6 +701,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
           if (result) {
             message = result.message;
             contentIndex = result.contentIndex;
+            toolPhaseStart = null;
 
             startDurationTimer(message);
 
@@ -732,12 +738,18 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
 
         // 处理工具调用（增量更新）
         if (response.type === "tool_call") {
+          if (toolPhaseStart === null) toolPhaseStart = Date.now();
           handleToolCall(message!.contents[contentIndex], response.toolCalls);
           continue;
         }
 
         // 处理工具调用结果（一次性接收）
         if (response.type === "tool_calls_response") {
+          if (toolPhaseStart !== null && message) {
+            message.toolDurationMs =
+              (message.toolDurationMs || 0) + (Date.now() - toolPhaseStart);
+            toolPhaseStart = null;
+          }
           handleToolCallsResponse(
             message!.contents[contentIndex],
             response.toolCallsResponse,
@@ -783,6 +795,11 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       console.error("stream error:", error);
       throw error; // 重新抛出错误，由调用者处理
     } finally {
+      // 流结束仍处于工具执行阶段：把未结算的工具耗时并入消息
+      if (toolPhaseStart !== null && message) {
+        message.toolDurationMs = (message.toolDurationMs || 0) + (Date.now() - toolPhaseStart);
+        toolPhaseStart = null;
+      }
       cleanupStreaming(streamingSessionId, message, contentIndex);
     }
   }
