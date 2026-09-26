@@ -44,22 +44,26 @@ export default createVite({
   appName: "vue-support-eduai-starter",
   title: "教育 AI 工作台",
   plugins: [threeDedupe()],
-  server: {
-    port: 19093,
-    strictPort: false,
-    proxy: {
-      "/v2/edu": {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-      "/v2/user": {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-      "/edu-api": {
-        target: apiTarget,
-        changeOrigin: true,
+    server: {
+      port: 19093,
+      strictPort: false,
+      proxy: {
+        // 后端所有接口都代理过去。
+        // 不能只代理 /v2/edu + /v2/user：登录页还需要
+        // /v1/captcha（验证码图片）与 /v2/setting/default（登录配置），
+        // 漏掉的路径会被 vite 当静态请求处理，表现为验证码不显示、配置读不到。
+        "/v2": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
+        "/v1": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
+        "/edu-api": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
-  },
 });

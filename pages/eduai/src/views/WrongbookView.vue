@@ -145,5 +145,5 @@ const generateReview = async () => {
 </script>
 
 <style scoped>
-.page-container { padding: 16px; height: 100%; display: flex; flex-direction: column; }
+.page-container {  height: 100%; display: flex; flex-direction: column; }
 </style>

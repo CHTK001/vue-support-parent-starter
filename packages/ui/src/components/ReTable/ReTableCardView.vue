@@ -183,12 +183,16 @@ const containerStyle = computed(() => ({
  *
  * 圆角缺省走基线令牌 --re-surface-radius（与 ReStatCard / ReCard 同一规格），
  * 调用方传 layout.radius 时仍以传入值为准（保持既有 API 语义）。
+ *
+ * 底色用**自定义属性**下发而不是直接写 background：
+ * 内联 style 优先级高于类选择器，直接写 background 会让
+ * `.re-table__card--selected` 的选中底色永远被压制（历史 bug）。
  */
 function cardStyle(): Record<string, string> {
   const bg = props.layout.background ?? "var(--el-bg-color-overlay)";
   const hover = props.layout.hoverable !== false;
   return {
-    background: bg,
+    "--re-table-card-bg": bg,
     borderRadius:
       props.layout.radius != null ? `${props.layout.radius}px` : "var(--re-surface-radius, 12px)",
     ...(hover ? { cursor: "pointer" } : {}),
@@ -325,10 +329,13 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
   margin-bottom: 8px;
 }
 /* 卡片外壳：圆角 / 投影 / 悬停走库级基线令牌（components/shared/re-surface.css），
-   不再自写一套实色边框 + 独立阴影值；--selected 等组件特有状态保留。 */
+   不再自写一套实色边框 + 独立阴影值；--selected 等组件特有状态保留。
+   底色由 cardStyle() 以 --re-table-card-bg 下发（不能写成内联 background，
+   否则会压过下面的 --selected 选中底色）。 */
 .re-table__card {
   position: relative;
   overflow: hidden;
+  background: var(--re-table-card-bg, var(--el-bg-color-overlay));
   border: 1px solid transparent;
   box-shadow: var(--re-surface-shadow);
   transition:

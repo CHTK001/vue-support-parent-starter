@@ -1,7 +1,7 @@
 <template>
   <!-- Modern 布局（异步加载） -->
   <ModernLayout
-    v-if="layout === 'modern'"
+    v-if="isModern"
     :total="total"
     :current-page="currentPage"
     :page-size="pageSize"
@@ -27,7 +27,7 @@
     :page-sizes="pageSizes"
     :disabled="disabled"
     :background="background"
-    :layout="paginationLayout"
+    :layout="resolvedPaginationLayout"
     :small="small"
     @update:current-page="emit('update:currentPage', $event)"
     @update:page-size="emit('update:pageSize', $event)"
@@ -45,25 +45,33 @@
  * 透传 el-pagination 全部能力，增加：
  *   - layout：布局变体，"el"（默认，el-pagination）/ "modern"（现代化扁平分页，异步加载）
  *   - paginationLayout：el-pagination 内部布局字符串（如 "total, sizes, prev, pager, next"）
+ *
+ * 兼容说明：历史调用方把 el-pagination 的布局串直接传给了 `layout`（如
+ * `<RePagination layout="prev, pager, next" />`）。为避免这类调用静默失效，
+ * `layout` 取到非变体值时按"布局串"处理（见 resolvedPaginationLayout）。
  */
-import { defineAsyncComponent } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 
 /** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 
 defineOptions({ name: "RePagination" });
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-pagination）/ "modern"（现代化扁平分页） */
-    layout?: "el" | "modern";
+    /**
+     * 布局变体："el"（默认 el-pagination）/ "modern"（现代化扁平分页）。
+     * 兼容历史用法：也可直接传 el-pagination 的布局串（如 "prev, pager, next"），
+     * 此时按布局串处理，等价于 paginationLayout。
+     */
+    layout?: "el" | "modern" | (string & {});
     total: number;
     currentPage?: number;
     pageSize?: number;
     pageSizes?: number[];
     disabled?: boolean;
     background?: boolean;
-    /** el-pagination 内部布局字符串 */
+    /** el-pagination 内部布局字符串（layout 传布局串时以 layout 为准） */
     paginationLayout?: string;
     small?: boolean;
   }>(),
@@ -78,6 +86,23 @@ withDefaults(
     small: false,
   },
 );
+
+/** 是否为 Modern 变体 */
+const isModern = computed<boolean>(() => props.layout === "modern");
+
+/**
+ * el-pagination 实际布局串。
+ *
+ * `layout` 是变体名时用 paginationLayout；否则说明调用方把布局串传给了 `layout`
+ * （历史用法），此时以 `layout` 为准 —— 否则该入参会静默失效。
+ */
+const resolvedPaginationLayout = computed<string>(() => {
+  const value = props.layout;
+  if (value === "el" || value === "modern") {
+    return props.paginationLayout;
+  }
+  return value;
+});
 
 const emit = defineEmits<{
   "update:currentPage": [val: number];
