@@ -3,22 +3,21 @@
 
   状态与触发方式是后端字符串常量（CollectTaskStatus / CollectTriggerType），
   这里只做展示映射，不参与业务判断；日志接口单次上限 1000 条，按执行顺序返回。
-  翻页/筛选都交给 ReTable 的 loader，查询条件整体替换、不逐字段 mutate。
+  翻页交给 ReTable 的 loader，查询条件走内置搜索区（ReSearch）：草稿值点「查询」才生效，
+  「清理 7 天前」跟着最近一次真正生效的流程筛选走，避免按没提交的下拉值误删。
 -->
 <script setup lang="ts">
 import { computed, onActivated, onDeactivated, onUnmounted, ref } from "vue";
 import { msgError, msgInfo, msgSuccess } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
-import ReInput from "@repo/ui/re-input";
-import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
 import { costText, statusTagType, statusText, triggerText } from "../constants/taskStatus";
-import { confirmAction, errText, useCollectGated, useCollectView } from "../composables/useCollectView";
-import type { RePageResult, ReTableColumn, ReTableLoadParams } from "@repo/ui/re-table";
+import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
+import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFlow, CollectTask, CollectTaskLog } from "../types/collect";
 
 defineOptions({ name: "CollectTask" });
@@ -36,19 +35,16 @@ const TRIGGER_OPTIONS = [
   { label: "试运行", value: "TEST" },
 ];
 
-/** 一次查询的全部条件快照：整体替换，ReTable 靠引用变化决定是否重载 */
+/** 分页游标：查询条件不在这里，交给内置搜索区的 searchModel */
 interface TaskQuery {
   page: number;
   pageSize: number;
-  collectTaskFlowId?: string;
-  collectTaskStatus?: string;
-  collectTaskTriggerType?: string;
-  collectTaskNo?: string;
 }
 
 const query = ref<TaskQuery>({ page: 1, pageSize: 20 });
-const draft = ref({
-  collectTaskFlowId: "" as string | number,
+/** 内置搜索区的草稿值，点「查询」时由 ReTable 合并进 loader 的 params */
+const searchModel = ref<Record<string, unknown>>({
+  collectTaskFlowId: "",
   collectTaskStatus: "",
   collectTaskTriggerType: "",
   collectTaskNo: "",
@@ -56,10 +52,9 @@ const draft = ref({
 
 const flows = ref<CollectFlow[]>([]);
 const autoRefresh = ref(false);
-const tableRef = ref<{ reload: () => void } | null>(null);
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const { ready } = useCollectGated();
 const { reload: reloadFlows } = useCollectView(async () => {
   flows.value = (await listFlows()) ?? [];
 });
@@ -70,6 +65,38 @@ const flowOptions = computed(() =>
     value: String(item.collectFlowId),
   })),
 );
+
+/** 最近一次取数真正生效的流程筛选：下拉改了没查之前不作数 */
+const activeFlowId = ref("");
+
+/** 清理历史任务的按钮文案：按是否限定流程给不同说法，标题与按钮文字共用一份 */
+const cleanTitle = computed(() =>
+  activeFlowId.value ? "清理该流程 7 天前的历史任务" : "清理全部流程 7 天前的历史任务",
+);
+
+/** 内置搜索区：必须是 computed，流程下拉的选项要跟着流程列表刷新 */
+const SEARCH = computed<ReTableSearchConfig>(() => ({
+  title: "搜索任务",
+  filters: [
+    {
+      key: "collectTaskFlowId",
+      label: "流程",
+      type: "select",
+      placeholder: "全部流程",
+      options: flowOptions.value,
+      attrs: { filterable: true },
+    },
+    { key: "collectTaskStatus", label: "状态", type: "select", placeholder: "全部状态", options: STATUS_OPTIONS },
+    {
+      key: "collectTaskTriggerType",
+      label: "触发方式",
+      type: "select",
+      placeholder: "全部触发",
+      options: TRIGGER_OPTIONS,
+    },
+    { key: "collectTaskNo", label: "任务号", type: "input", placeholder: "任务号模糊查询" },
+  ],
+}));
 
 const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskNo", label: "任务号", width: 180, slot: "no" },
@@ -82,7 +109,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskNodeCount", label: "节点/请求/结果", width: 126, slot: "counts", align: "center" },
   { prop: "collectTaskExecutorId", label: "执行器", width: 200, showOverflowTooltip: true },
   { prop: "collectTaskError", label: "错误", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right" },
 ]);
 
 const logColumns = computed<ReTableColumn[]>(() => [
@@ -102,6 +129,7 @@ const logsLoading = ref(false);
 const logsTask = ref<CollectTask | null>(null);
 
 async function loadTasks({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  activeFlowId.value = params.collectTaskFlowId ? String(params.collectTaskFlowId) : "";
   const page1 = await pageTasks({
     page,
     pageSize,
@@ -113,21 +141,16 @@ async function loadTasks({ page, pageSize, params }: ReTableLoadParams): Promise
   return { total: page1.total, data: page1.rows as unknown as Record<string, unknown>[] };
 }
 
-function search(): void {
-  const picked = draft.value;
-  query.value = {
-    page: 1,
-    pageSize: query.value.pageSize,
-    collectTaskFlowId: picked.collectTaskFlowId ? String(picked.collectTaskFlowId) : undefined,
-    collectTaskStatus: picked.collectTaskStatus || undefined,
-    collectTaskTriggerType: picked.collectTaskTriggerType || undefined,
-    collectTaskNo: String(picked.collectTaskNo ?? "").trim() || undefined,
-  };
+/** 点「查询」：ReTable 自己会带新条件重载，本页只负责不在第一页时跳回去 */
+function backToFirstPage(): void {
+  if (query.value.page !== 1) {
+    void tableRef.value?.goto(1);
+  }
 }
 
-function reset(): void {
-  draft.value = { collectTaskFlowId: "", collectTaskStatus: "", collectTaskTriggerType: "", collectTaskNo: "" };
-  query.value = { page: 1, pageSize: 20 };
+/** 点「重置」：内置搜索区只清值不取数，必须回到第一页重查一次 */
+function reloadFromFirstPage(): void {
+  void tableRef.value?.goto(1);
 }
 
 async function showLogs(input: Record<string, unknown>): Promise<void> {
@@ -160,8 +183,8 @@ async function removeTask(input: Record<string, unknown>): Promise<void> {
 }
 
 async function cleanHistory(): Promise<void> {
-  const flowId = draft.value.collectTaskFlowId;
-  const scope = flowId ? `流程 ${flowId}` : "全部流程";
+  const flowId = activeFlowId.value;
+  const scope = flowId ? `流程「${flowOptions.value.find(item => item.value === flowId)?.label ?? flowId}」` : "全部流程";
   if (!(await confirmAction(`确认清理 ${scope} 7 天前的历史任务？`, "清理历史"))) {
     return;
   }
@@ -212,53 +235,7 @@ onUnmounted(() => {
 
 <template>
   <div class="collect-page">
-    <div class="collect-card collect-filters">
-      <ReSelect
-        v-model="draft.collectTaskFlowId"
-        size="small"
-        clearable
-        filterable
-        placeholder="全部流程"
-        :options="flowOptions"
-        style="width: 200px"
-        @update:model-value="search"
-      />
-      <ReSelect
-        v-model="draft.collectTaskStatus"
-        size="small"
-        clearable
-        placeholder="全部状态"
-        :options="STATUS_OPTIONS"
-        style="width: 120px"
-        @update:model-value="search"
-      />
-      <ReSelect
-        v-model="draft.collectTaskTriggerType"
-        size="small"
-        clearable
-        placeholder="全部触发"
-        :options="TRIGGER_OPTIONS"
-        style="width: 120px"
-        @update:model-value="search"
-      />
-      <ReInput
-        v-model="draft.collectTaskNo"
-        size="small"
-        clearable
-        placeholder="任务号模糊查询"
-        style="width: 200px"
-        @keyup.enter="search"
-      />
-      <ReButton size="small" type="primary" icon="Search" @click="search">查询</ReButton>
-      <ReButton size="small" @click="reset">重置</ReButton>
-      <span class="spacer"/>
-      <span class="collect-hint">自动刷新</span>
-      <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto(autoRefresh === true)"/>
-      <ReButton size="small" icon="Delete" @click="cleanHistory">清理7天前</ReButton>
-    </div>
-
     <ReTable
-      v-if="ready"
       ref="tableRef"
       class="collect-card"
       table-id="collect-task"
@@ -268,10 +245,24 @@ onUnmounted(() => {
       row-key="collectTaskId"
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
+      v-model:search-model="searchModel"
+      :search="SEARCH"
       :page-sizes="[10, 20, 50, 100]"
       empty-text="暂无任务，先去「流程设计」运行或试运行一个流程"
       stripe
+      @search="backToFirstPage"
+      @search-reset="reloadFromFirstPage"
     >
+      <template #toolbar>
+        <span class="collect-hint">自动刷新</span>
+        <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto(autoRefresh === true)"/>
+        <ReButton
+          icon="Delete"
+          type="danger"
+          :title="cleanTitle"
+          @click="cleanHistory">{{ cleanTitle }}</ReButton>
+      </template>
+
       <template #no="{ row }">
         <span class="collect-cell-mono">{{ row.collectTaskNo }}</span>
       </template>
@@ -287,8 +278,8 @@ onUnmounted(() => {
         {{ row.collectTaskRecordCount ?? 0 }}
       </template>
       <template #action="{ row }">
-        <ReButton size="small" text type="primary" @click="showLogs(row)">日志</ReButton>
-        <ReButton size="small" text type="danger" @click="removeTask(row)">删除</ReButton>
+        <ReButton layout="square" icon="Tickets" type="primary" title="看这个任务的节点日志" @click="showLogs(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" title="删除任务及其节点日志" @click="removeTask(row)"/>
       </template>
     </ReTable>
 
