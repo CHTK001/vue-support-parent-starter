@@ -181,6 +181,7 @@ declare module 'vue' {
     SessionGroupManage: typeof import('./../components/setting/SessionGroupManage.vue')['default']
     SessionGroupManageDialog: typeof import('./../components/session/SessionGroupManageDialog.vue')['default']
     SessionSearchDialog: typeof import('./../components/SessionSearchDialog.vue')['default']
+    SessionStatusPanel: typeof import('./../components/chat/SessionStatusPanel.vue')['default']
     SessionTodoList: typeof import('./../components/chat/workspace/SessionTodoList.vue')['default']
     SetupGuide: typeof import('./../components/SetupGuide.vue')['default']
     SidebarLayout: typeof import('./../components/ui/SidebarLayout.vue')['default']

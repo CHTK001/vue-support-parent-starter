@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getMonitors, saveMonitor, delMonitor } from '../api'
+import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
 interface Asset {
   id: number
@@ -139,7 +139,7 @@ const handleDelete = async (id: number) => {
 
 const handleSubmit = async () => {
   try {
-    await saveMonitor(editId.value, form.value)
+    await saveMonitor(editId.value || 0, form.value)
     showDialog.value = false
     await loadAssets()
   } catch (e) {

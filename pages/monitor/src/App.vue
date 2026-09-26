@@ -48,7 +48,8 @@
 
     <main class="monitor-content">
       <ScOverview v-show="activeTab === 'overview'" />
-      <ScAssetList v-show="activeTab === 'assets'" />
+      <ScAssetCenter v-show="activeTab === 'assets'" />
+      <ScAssetList v-show="activeTab === 'monitor-items'" />
       <ScServerDashboard v-if="activeTab === 'dashboard'" />
       <ScAlarmTab v-if="activeTab === 'alarm'" />
       <ScRedisDashboard v-if="activeTab === 'redis-monitor'" />
@@ -67,6 +68,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ScAssetList from './views/ScAssetList.vue'
+import ScAssetCenter from './views/assets/ScAssetCenter.vue'
 import ScServerDashboard from './views/dashboard/ScServerDashboard.vue'
 import ScRedisDashboard from './views/redis-monitor/ScRedisDashboard.vue'
 import ScCacheMonitor from './views/cache/ScCacheMonitor.vue'
@@ -87,6 +89,7 @@ const route = useRoute()
 const tabs = [
   { key: 'overview', label: '概览', icon: 'DataBoard' },
   { key: 'assets', label: '资产', icon: 'Monitor' },
+  { key: 'monitor-items', label: '监控项', icon: 'Coin' },
   { key: 'dashboard', label: '仪表盘', icon: 'Dashboard' },
   { key: 'alarm', label: '告警', icon: 'Bell' },
   { key: 'redis-monitor', label: 'Redis 监控', icon: 'Coin' },
