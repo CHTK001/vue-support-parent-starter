@@ -1,23 +1,123 @@
 /**
- * 数据采集控制台的公共样式。
+ * 采集调度控制台的公共样式（全站设计层）。
  *
- * 画布与属性面板的图形样式在 ReFlowGraph（@repo/ui）内部，这里只留页面骨架：
- * 卡片、筛选条、栅格表单、状态点，全部走 koi 主题（Element Plus）的 CSS 变量。
+ * 画布与属性面板的图形样式在 ReFlowGraph（@repo/ui）内部，这里只负责：
+ * 1. 设计令牌（间距 / 圆角 / 动效时长 / 数字字体），挂在 :root，
+ *    颜色一律取 koi 主题（Element Plus）的 CSS 变量，不写死十六进制，暗色主题自动跟随；
+ * 2. 页面骨架：页头、统计栅格、主从分栏、卡片、筛选条、栅格表单、状态点。
+ *
+ * 排版取向是「数据密集型控制台」：4/8 间距节奏、数值列用等宽表格数字避免跳动、
+ * 动效只用 transform/opacity 且不超过 200ms，并整体尊重 prefers-reduced-motion。
  */
+
+:root {
+  --cc-gap: 12px;
+  --cc-gap-sm: 8px;
+  --cc-gap-lg: 16px;
+  --cc-radius: 10px;
+  --cc-radius-sm: 8px;
+  --cc-duration: 180ms;
+  --cc-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --cc-font-num: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+}
+
+/* 数值与时刻列：等宽数字，翻页/刷新时列宽不跳 */
+.collect-num {
+  font-family: var(--cc-font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
 
 .collect-page {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--cc-gap);
   height: 100%;
+}
+
+/* ---------------- 页头 ---------------- */
+
+.collect-head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cc-gap-sm);
+  flex-wrap: wrap;
+}
+
+.collect-head__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  color: var(--el-text-color-primary);
+}
+
+.collect-head__sub {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.collect-head .spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------------- 统计栅格 ---------------- */
+
+.collect-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--cc-gap);
+}
+
+/* 控制台要在一屏里看完，卡片比默认更紧 */
+.collect-stats .re-stat-card {
+  padding: 12px 14px;
+}
+
+.collect-stats .re-stat-card__head {
+  margin-bottom: 6px;
+}
+
+.collect-stats .re-stat-card__value {
+  font-size: 24px;
+  margin-bottom: 4px;
+  min-height: 29px;
+  font-variant-numeric: tabular-nums;
+}
+
+.collect-stats .re-stat-card__desc {
+  font-size: 12px;
+}
+
+/* ---------------- 右侧栏 ---------------- */
+
+.collect-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cc-gap);
+  min-width: 0;
+}
+
+.collect-rail__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.collect-rail__title .spacer {
+  flex: 1 1 auto;
 }
 
 /* ---------------- 卡片骨架 ---------------- */
 
 .collect-card {
-  padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  border-radius: var(--cc-radius);
   background: var(--el-fill-color-blank);
   box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
 }
@@ -25,20 +125,12 @@
 .collect-card--head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--cc-gap-sm);
   flex-wrap: wrap;
 }
 
-.collect-card--head .spacer,
-.collect-filters .spacer {
+.collect-card--head .spacer {
   flex: 1 1 auto;
-}
-
-.collect-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .collect-hint {
@@ -56,11 +148,11 @@
 .collect-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--cc-gap-sm);
   flex-wrap: wrap;
   padding: 8px 10px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  border-radius: var(--cc-radius);
   background: var(--el-fill-color-blank);
   box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
 }
@@ -69,12 +161,22 @@
   flex: 1 1 auto;
 }
 
+/*
+ * 运行条：条目多且长度不一（执行器 id 最长可达 30 余字符），
+ * 不允许 flex 项被压缩后把中文标签从中间断成「结 果 0」「节 点类型」。
+ * flex-wrap 让空间不足时整条换行，nowrap 保证单个标签自身不断词。
+ */
 .collect-runtime {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.collect-runtime > span {
+  white-space: nowrap;
 }
 
 /* 运行指示点：总览与设计页运行条共用 */
@@ -92,24 +194,29 @@
   box-shadow: 0 0 0 3px var(--el-color-info-light-9);
 }
 
+.collect-pulse.is-bad {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px var(--el-color-danger-light-9);
+}
+
 /* ---------------- 栅格表单 ---------------- */
 
 .collect-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cc-gap);
 }
 
 .collect-form--grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: var(--cc-gap) var(--cc-gap-lg);
 }
 
 .collect-form__item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--cc-gap-sm);
 }
 
 .collect-form__item--stack {
@@ -138,8 +245,11 @@
 /* ---------------- 结果提示条 ---------------- */
 
 .collect-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--cc-radius-sm);
   font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -157,11 +267,17 @@
   border: 1px solid var(--el-color-danger-light-7);
 }
 
+.collect-callout.is-warn {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-7);
+}
+
 /* ---------------- 详情键值清单 ---------------- */
 
 .collect-kv {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   gap: 6px 12px;
   margin: 0;
   font-size: 13px;
@@ -189,8 +305,14 @@
 }
 
 .collect-cell-mono {
-  font-family: var(--flow-font, ui-monospace, sfmono-regular, consolas, monospace);
+  font-family: var(--cc-font-num);
   font-size: 12px;
+}
+
+/* 多行正文（执行日志消息里的重试轨迹/回调记录/脚本输出）：保留换行、长词可断 */
+.collect-cell-prewrap {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 单元格里跟在文本后面的小标签，靠边距与正文分开 */
@@ -205,41 +327,68 @@
   font-size: 13px;
 }
 
-/* ---------------- 登录浮层 ---------------- */
+/* ---------------- 可点行与键盘可达性 ---------------- */
 
-.collect-login {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 70vh;
+/* 表格里当前选中行加一条左侧标尺，不只靠 el-table 的高亮底色（暗色主题下底色对比不足） */
+.collect-row-current {
+  box-shadow: inset 3px 0 0 var(--el-color-primary);
 }
 
-.collect-login-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--el-bg-color);
+.collect-link {
+  color: var(--el-color-primary);
+  cursor: pointer;
 }
 
-.collect-login-card {
-  width: 340px;
-  padding: 26px 24px;
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 8%);
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
 }
 
-.collect-login-card h2 {
-  margin: 0 0 4px;
-  font-size: 20px;
+/*
+ * ReCron（cron 表达式组件）：app 级全局去动效兜底（面板 teleport 到 body，scoped 覆盖不到）。
+ * 不使用通配选择器（lightningcss 对 `*::before` 之类会报 Delim('*')），改为显式列举关键元素。
+ */
+.re-cron,
+.re-cron .el-input,
+.re-cron .el-input__wrapper,
+.re-cron .el-input__inner,
+.re-cron .el-input-group__append,
+.re-cron .el-input__suffix,
+.re-cron .re-button,
+.re-cron .re-select,
+.re-cron .re-tab,
+.re-cron .el-tabs__header,
+.re-cron .el-tabs__nav-wrap::after,
+.re-cron .el-tabs__active-bar,
+.re-cron__popper,
+.re-cron__popper .el-popover,
+.re-cron__popper .el-tabs__header,
+.re-cron__popper .el-tabs__nav-wrap::after,
+.re-cron__popper .el-tabs__active-bar,
+.re-cron__popper .re-tab,
+.re-cron__popper .re-button,
+.re-cron__popper .re-select {
+  animation: none !important;
+  transition: none !important;
 }
 
-.collect-login-card__sub {
-  margin: 0 0 18px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+/* cron 输入盒：聚焦只做 1px 内描边，不要主题的外发光（外发光在输入时会被看成"呼吸"） */
+.re-cron .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset !important;
 }
+
+.re-cron .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
