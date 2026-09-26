@@ -8,9 +8,10 @@ export default createVite({
     port: 8096,
     strictPort: true,
     proxy: {
-      // 系统管理后台网关（服务器 nginx 8080）
+      // 系统管理控制台后端：部署在 192.168.50.198 的 API（context-path /system/api）。
+      // 前端本地跑，后端在 198，故代理指向远端而不是 localhost。
       "/system/api": {
-        target: "http://localhost:18170",
+        target: "http://192.168.50.198:18170",
         changeOrigin: true,
       },
       // 天气：Open-Meteo 免费天气 API（无需 key）

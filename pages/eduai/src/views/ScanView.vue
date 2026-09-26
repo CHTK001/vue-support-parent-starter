@@ -171,6 +171,6 @@ const doGenerateWrongbook = async () => {
 </script>
 
 <style scoped>
-.page-container { padding: 16px; height: 100%; display: flex; flex-direction: column; }
+.page-container { height: 100%; display: flex; flex-direction: column; }
 .toolbar :deep(.el-card__body) { padding: 12px 16px; }
 </style>
