@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="dsm tel-page">
     <!-- 顶部工具栏 -->
     <div class="dsm-toolbar">
@@ -84,7 +84,9 @@
           </div>
           <div class="dsm-info-row">
             <span class="dsm-info-label">状态</span>
-            <ReTag type="success" size="small">已连接</ReTag>
+            <ReTag :type="connected ? 'success' : 'danger'" size="small">{{
+              connected ? "已连接" : "未连接"
+            }}</ReTag>
           </div>
         </div>
 
@@ -122,7 +124,7 @@
         <!-- 空状态 -->
         <div v-if="!activeBucket && buckets.length === 0" class="dsm-empty">
           <ReIcon name="Collection" size="48" class="dsm-empty-icon" />
-          <p>暂无存储桶，点击刷新加载数据</p>
+          <p>{{ emptyText }}</p>
         </div>
       </div>
     </div>
@@ -164,23 +166,46 @@
  * InfluxDB 管理页
  *
  * 提供 InfluxDB 时序库的 Bucket/度量浏览、连接测试与 Flux 查询执行。
+ * 数据全部来自后端 `/ms/monitor/influxdb/*`，数据源由路由 `datasourceId` 指定。
  * @author CH
  * @since 4.0.0
  */
-import { ref, reactive, onMounted, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
+import {
+  executeInfluxdbQuery,
+  fetchInfluxdbBuckets,
+  fetchInfluxdbMeasurements,
+  testInfluxdbConnection,
+  type InfluxdbBucket,
+  type InfluxdbMeasurement
+} from "../monitorApi";
+import { extraText, useExternalDatasource } from "../utils/externalDatasource";
 
 const route = useRoute();
-const datasourceId = route.query.datasourceId;
+const { datasourceId, datasource, error: datasourceError } = useExternalDatasource(
+  () => route.query,
+  "influxdb",
+  "InfluxDB"
+);
 
-// 连接信息
-const connectionName = ref("InfluxDB 时序数据库");
+// 连接信息（由数据源配置 + 连通性测试回填）
+const connectionName = computed(() => datasource.value?.name ?? "InfluxDB 时序数据库");
 const connectionInfo = reactive({
-  host: "127.0.0.1",
-  port: 8086,
-  organization: "monitor",
-  version: "2.7",
+  host: "-",
+  port: 0,
+  organization: "-",
+  version: "-"
 });
+const connected = ref(false);
+
+/** 侧栏树中度量的展示名（后端返回对象，树里只展示名称） */
+const measurements = computed(() => measurementList.value.map(m => m.name));
+
+const emptyText = computed(() =>
+  datasourceError.value ? datasourceError.value : "暂无存储桶，点击刷新加载数据"
+);
 
 // 树状态
 const expandedNodes = ref(new Set(["root", "buckets"]));
@@ -189,12 +214,8 @@ const activeBucket = ref("");
 // 数据
 const loading = ref(false);
 const dataLoading = ref(false);
-const buckets = ref([
-  { name: "monitor_metrics", retention: "30d", series: 1250, description: "监控指标数据" },
-  { name: "system_metrics", retention: "7d", series: 860, description: "系统指标数据" },
-  { name: "business_events", retention: "90d", series: 3200, description: "业务事件数据" },
-]);
-const measurements = ref(["cpu", "memory", "disk", "network", "process"]);
+const buckets = ref<InfluxdbBucket[]>([]);
+const measurementList = ref<InfluxdbMeasurement[]>([]);
 const recentData = ref<Record<string, unknown>[]>([]);
 
 // 列定义
@@ -202,134 +223,72 @@ const bucketColumns = [
   { prop: "name", label: "存储桶名称", minWidth: 180 },
   { prop: "retention", label: "保留策略", width: 120 },
   { prop: "series", label: "序列数", width: 100 },
-  { prop: "description", label: "描述", minWidth: 200 },
+  { prop: "description", label: "创建时间", minWidth: 200 }
 ];
 const dataColumns = [
   { prop: "_time", label: "时间", width: 180 },
   { prop: "_measurement", label: "测量", width: 120 },
   { prop: "_field", label: "字段", width: 120 },
   { prop: "_value", label: "值", width: 100 },
-  { prop: "host", label: "主机", width: 140 },
+  { prop: "host", label: "主机", width: 140 }
 ];
 
 // 查询
 const queryVisible = ref(false);
-
-// ==================== 数据浏览 ====================
-const influxView = ref<'overview' | 'data' | 'query'>('overview');
-const selectedBucket = ref("");
-const selectedMeasurement = ref("");
-const timeRange = ref("1h");
 const queryLoading = ref(false);
-const queryDataRows = ref<any[]>([]);
-const queryDataColumns = ref<any[]>([]);
-const fluxResult = ref<{ columns: any[]; rows: any[] }>({ columns: [], rows: [] });
-
-const loadMeasurements = async () => {
-  // 模拟加载测量列表
-  measurements.value = ["cpu", "memory", "disk", "network", "temperature"];
-};
-
-const queryData = async () => {
-  if (!selectedBucket.value || !selectedMeasurement.value) {
-    ElMessage.warning("请选择存储桶和测量");
-    return;
-  }
-  queryLoading.value = true;
-  try {
-    // 模拟查询数据
-    const now = Date.now();
-    const rows = [];
-    for (let i = 0; i < 20; i++) {
-      rows.push({
-        time: new Date(now - i * 60000).toISOString(),
-        _measurement: selectedMeasurement.value,
-        _field: "value",
-        _value: (Math.random() * 100).toFixed(2),
-        host: "server-" + (i % 3 + 1),
-      });
-    }
-    queryDataRows.value = rows;
-    queryDataColumns.value = [
-      { prop: "time", label: "时间", minWidth: 180 },
-      { prop: "_measurement", label: "测量", minWidth: 120 },
-      { prop: "_field", label: "字段", minWidth: 100 },
-      { prop: "_value", label: "值", minWidth: 100 },
-      { prop: "host", label: "主机", minWidth: 120 },
-    ];
-  } catch (e) {
-    ElMessage.error(`查询失败: ${String((e as Error)?.message ?? e)}`);
-  } finally {
-    queryLoading.value = false;
-  }
-};
-
-// ==================== 图表展示 ====================
-import * as echarts from "echarts";
-const influxChartRef = ref<HTMLDivElement | null>(null);
-let influxChartInstance: echarts.ECharts | null = null;
-const dataViewMode = ref<'chart' | 'table'>('chart');
-
-const renderInfluxChart = () => {
-  if (!influxChartRef.value || queryDataRows.value.length === 0) return;
-  if (!influxChartInstance) {
-    influxChartInstance = echarts.init(influxChartRef.value);
-  }
-  // 从数据中提取时间和值
-  const times = queryDataRows.value.map((r: any) => r.time?.substring(11, 19) || '');
-  const values = queryDataRows.value.map((r: any) => Number(r._value) || 0);
-  influxChartInstance.setOption({
-    backgroundColor: "transparent",
-    tooltip: { trigger: "axis" },
-    grid: { left: "3%", right: "4%", bottom: "3%", top: "10%", containLabel: true },
-    xAxis: { type: "category", data: times, axisLabel: { fontSize: 10 } },
-    yAxis: { type: "value" },
-    series: [{
-      name: selectedMeasurement.value,
-      type: "line",
-      data: values,
-      smooth: true,
-      areaStyle: { opacity: 0.3 },
-      lineStyle: { width: 2 },
-      itemStyle: { color: "#3b82f6" },
-    }],
-  });
-};
-
-// 监听数据变化，重新渲染图表
-watch(queryDataRows, () => {
-  if (dataViewMode.value === 'chart') {
-    setTimeout(renderInfluxChart, 100);
-  }
-});
-
-watch(dataViewMode, (mode) => {
-  if (mode === 'chart') {
-    setTimeout(renderInfluxChart, 100);
-  }
-});
-
-const executeFluxQuery = async () => {
-  if (!fluxQuery.value.trim()) {
-    ElMessage.warning("请输入 Flux 查询");
-    return;
-  }
-  try {
-    // 模拟执行 Flux 查询
-    const result = await executeInfluxFluxQuery(fluxQuery.value);
-    if (result && Array.isArray(result)) {
-      fluxResult.value = {
-        columns: result.length > 0 ? Object.keys(result[0]).map(k => ({ prop: k, label: k, minWidth: 120 })) : [],
-        rows: result,
-      };
-    }
-    ElMessage.success("查询成功");
-  } catch (e) {
-    ElMessage.error(`查询失败: ${String((e as Error)?.message ?? e)}`);
-  }
-};
-const fluxQuery = ref('from(bucket: "monitor_metrics")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "cpu")');
+const fluxQuery = ref(
+  'from(bucket: "monitor_metrics")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "cpu")'
+);
 const queryResult = reactive({ columns: [] as string[], rows: [] as Record<string, unknown>[] });
+
+/**
+ * 收集结果行的全部列（按首次出现顺序）
+ * @param rows 结果行
+ * @returns 列名数组
+ */
+function columnsOf(rows: Record<string, unknown>[]): string[] {
+  const columns: string[] = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!columns.includes(key)) columns.push(key);
+    }
+  }
+  return columns;
+}
+
+/**
+ * 保留时长格式化
+ * @param hours 保留小时数，0 或负数表示永久
+ * @returns 可读文本
+ */
+function formatRetention(hours: number): string {
+  if (!hours || hours <= 0) return "永久";
+  if (hours % 24 === 0) return `${hours / 24}d`;
+  if (hours % 60 === 0) return `${hours / 60}h`;
+  return `${hours}h`;
+}
+
+/**
+ * ISO 时间转为本地可读时间
+ * @param value ISO 时间文本
+ * @returns 本地时间文本
+ */
+function formatTime(value: unknown): string {
+  const text = String(value ?? "");
+  if (!text) return "-";
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? text : date.toLocaleString();
+}
+
+/**
+ * 回填连接信息（地址、组织）
+ */
+function applyConnectionInfo() {
+  const info = datasource.value;
+  connectionInfo.host = info?.host ?? "-";
+  connectionInfo.port = info?.port ?? 0;
+  connectionInfo.organization = extraText(info, ["organization", "org"], info?.database ?? "-");
+}
 
 /**
  * 展开/收起侧栏树节点
@@ -357,33 +316,119 @@ function selectBucket(name: string) {
  * @param name 度量名
  */
 function selectMeasurement(name: string) {
-  fluxQuery.value = `from(bucket: "${activeBucket.value || 'monitor_metrics'}")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "${name}")`;
+  fluxQuery.value = `from(bucket: "${activeBucket.value}")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == "${name}")`;
   queryVisible.value = true;
+}
+
+/**
+ * 按后端 `InfluxdbAdminService#newClient` 的优先级拼装连接表单
+ *
+ * <p>token 依次取 `config.token` → `password` → `username`，
+ * organization 依次取 `config.organization`/`config.org` → `database`。
+ * 与后端保持一致，避免「测试通过但列表 401」这类不一致。</p>
+ */
+function buildProbeForm(): Record<string, unknown> {
+  const info = datasource.value;
+  return {
+    host: info?.host,
+    port: info?.port,
+    token: extraText(info, ["token"], String(info?.password ?? info?.username ?? "")),
+    organization: extraText(info, ["organization", "org"], String(info?.database ?? ""))
+  };
+}
+
+/**
+ * 探测连通性并回填版本号
+ */
+async function probeConnection() {
+  const info = datasource.value;
+  if (!info) {
+    connected.value = false;
+    connectionInfo.version = "-";
+    return;
+  }
+  try {
+    const result = await testInfluxdbConnection(buildProbeForm());
+    connected.value = !!result?.connected;
+    connectionInfo.version = result?.version || "-";
+  } catch (e) {
+    connected.value = false;
+    connectionInfo.version = "-";
+    ElMessage.error(`连接测试失败：${(e as Error)?.message ?? String(e)}`);
+  }
+}
+
+/**
+ * 加载 Bucket 列表
+ */
+async function loadBuckets() {
+  if (!datasourceId.value) return;
+  loading.value = true;
+  try {
+    const list = await fetchInfluxdbBuckets(datasourceId.value);
+    buckets.value = (list ?? []).map(item => ({
+      ...item,
+      retention: formatRetention(item.retentionHours),
+      series: item.seriesCount ?? 0,
+      description: formatTime(item.createdAt)
+    }));
+    if (buckets.value.length > 0 && !buckets.value.some(b => b.name === activeBucket.value)) {
+      activeBucket.value = buckets.value[0].name;
+    }
+  } catch (e) {
+    buckets.value = [];
+    ElMessage.error(`加载存储桶失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+/**
+ * 加载当前 Bucket 下的度量
+ */
+async function loadMeasurements() {
+  if (!datasourceId.value || !activeBucket.value) {
+    measurementList.value = [];
+    return;
+  }
+  try {
+    measurementList.value =
+      (await fetchInfluxdbMeasurements(datasourceId.value, activeBucket.value)) ?? [];
+  } catch (e) {
+    measurementList.value = [];
+    ElMessage.error(`加载度量失败：${(e as Error)?.message ?? String(e)}`);
+  }
+}
+
+/**
+ * 加载 Bucket 最近数据（取近 24h 的一批点做预览）
+ */
+async function loadBucketData() {
+  if (!datasourceId.value || !activeBucket.value) {
+    recentData.value = [];
+    return;
+  }
+  dataLoading.value = true;
+  try {
+    const flux = `from(bucket: "${activeBucket.value}")\n  |> range(start: -24h)\n  |> limit(n: 200)`;
+    const result = await executeInfluxdbQuery(flux, datasourceId.value);
+    recentData.value = (result?.rows ?? []).map(row => ({ ...row, _time: formatTime(row._time) }));
+  } catch (e) {
+    recentData.value = [];
+    ElMessage.error(`加载数据失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    dataLoading.value = false;
+  }
 }
 
 /**
  * 刷新当前连接下的树数据
  */
-function refresh() {
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 500);
-}
-
-/**
- * 加载 Bucket 与度量数据
- */
-function loadBucketData() {
-  dataLoading.value = true;
-  setTimeout(() => {
-    recentData.value = [
-      { _time: "2024-01-15T10:30:00Z", _measurement: "cpu", _field: "usage", _value: 45.2, host: "web-01" },
-      { _time: "2024-01-15T10:30:10Z", _measurement: "cpu", _field: "usage", _value: 48.1, host: "web-01" },
-      { _time: "2024-01-15T10:30:20Z", _measurement: "cpu", _field: "usage", _value: 52.3, host: "web-01" },
-    ];
-    dataLoading.value = false;
-  }, 300);
+async function refresh() {
+  await probeConnection();
+  await loadBuckets();
+  await loadMeasurements();
+  await loadBucketData();
 }
 
 /**
@@ -396,21 +441,58 @@ function openQuery() {
 /**
  * 执行 Flux 查询
  */
-function executeQuery() {
-  queryResult.columns = ["_time", "_measurement", "_field", "_value", "host"];
-  queryResult.rows = [
-    { _time: "2024-01-15T10:00:00Z", _measurement: "cpu", _field: "usage", _value: 42.1, host: "web-01" },
-    { _time: "2024-01-15T10:05:00Z", _measurement: "cpu", _field: "usage", _value: 45.8, host: "web-01" },
-    { _time: "2024-01-15T10:10:00Z", _measurement: "cpu", _field: "usage", _value: 51.2, host: "web-01" },
-  ];
+async function executeQuery() {
+  if (!fluxQuery.value.trim()) {
+    ElMessage.warning("请输入 Flux 查询语句");
+    return;
+  }
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
+  queryLoading.value = true;
+  try {
+    const result = await executeInfluxdbQuery(fluxQuery.value, datasourceId.value);
+    queryResult.rows = result?.rows ?? [];
+    queryResult.columns = columnsOf(queryResult.rows);
+    ElMessage.success(`查询成功，返回 ${result?.rowCount ?? queryResult.rows.length} 行`);
+  } catch (e) {
+    queryResult.rows = [];
+    queryResult.columns = [];
+    ElMessage.error(`查询失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    queryLoading.value = false;
+  }
 }
 
-onMounted(() => {
-  if (buckets.value.length > 0) {
-    activeBucket.value = buckets.value[0].name;
-    loadBucketData();
-  }
+// 切换 Bucket 后重新拉取度量与数据
+watch(activeBucket, async () => {
+  await loadMeasurements();
+  await loadBucketData();
 });
+
+// 数据源变化（含首次进入）时整体刷新
+watch(
+  [datasourceId, datasourceError],
+  async ([id, err]) => {
+    applyConnectionInfo();
+    if (!id) {
+      buckets.value = [];
+      measurementList.value = [];
+      recentData.value = [];
+      activeBucket.value = "";
+      connected.value = false;
+      connectionInfo.version = "-";
+      if (err) ElMessage.warning(err);
+      return;
+    }
+    await refresh();
+  },
+  { immediate: true }
+);
+
+// 数据源信息变更时刷新连接信息展示
+watch(datasource, applyConnectionInfo);
 </script>
 
 <style scoped>
@@ -659,4 +741,3 @@ onMounted(() => {
   background: var(--border-subtle, rgba(148, 163, 184, 0.2));
 }
 </style>
-

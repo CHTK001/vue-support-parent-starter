@@ -50,7 +50,7 @@
           <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value">{{ connectionInfo.host }}:{{ connectionInfo.port }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">命名空间</span><span class="dsm-info-value">{{ activeNsName }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">版本</span><span class="dsm-info-value">Nacos {{ connectionInfo.version }}</span></div>
-          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag type="success" size="small">已连接</ReTag></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag :type="connected ? 'success' : 'danger'" size="small">{{ connected ? "已连接" : "未连接" }}</ReTag></div>
         </div>
 
         <div v-if="activeView === 'configs'" class="dsm-section">
@@ -139,124 +139,202 @@
 /**
  * Nacos 配置中心管理页
  *
- * 提供命名空间/配置/服务/集群节点浏览、配置增删改查与发布/克隆/导出。
+ * 提供命名空间/配置/服务/集群节点浏览、配置增删改查。
+ * 数据全部来自后端 `/ms/monitor/nacos/*`，数据源由路由 `datasourceId` 指定。
  * @author CH
  * @since 4.0.0
  */
-/**
- * Nacos 管理页
- *
- * 提供 Nacos 配置中心的命名空间/配置/服务/集群节点浏览、配置增删改查。
- * @author CH
- * @since 4.0.0
- */
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
+import {
+  deleteNacosConfig,
+  fetchNacosClusterNodes,
+  fetchNacosConfigDetail,
+  fetchNacosConfigs,
+  fetchNacosNamespaces,
+  fetchNacosServices,
+  saveNacosConfig,
+  testNacosConnection,
+  type NacosConfig,
+  type NacosNamespace
+} from "../monitorApi";
+import { useExternalDatasource } from "../utils/externalDatasource";
 
 const route = useRoute();
-const connectionName = ref("Nacos 配置中心");
-const connectionInfo = reactive({ host: "127.0.0.1", port: 8848, version: "2.3" });
+const { datasourceId, datasource, error: datasourceError } = useExternalDatasource(
+  () => route.query,
+  "nacos",
+  "Nacos"
+);
+
+const connectionName = computed(() => datasource.value?.name ?? "Nacos 配置中心");
+const connectionInfo = reactive({ host: "-", port: 0, version: "-" });
+const connected = ref(false);
 const expandedNodes = ref(new Set(["root", "ns"]));
+/** 选中的命名空间 ID（public 为默认命名空间） */
 const activeNs = ref("public");
 const activeView = ref("configs");
 const loading = ref(false);
 const searchKeyword = ref("");
 
-const namespaces = ref<any[]>([]);
-const configs = ref<any[]>([]);
+const namespaceList = ref<NacosNamespace[]>([]);
+const configs = ref<NacosConfig[]>([]);
 const services = ref<any[]>([]);
 const clusters = ref<any[]>([]);
 
-async function loadNamespaces() {
+/** 侧栏树中的命名空间（附带配置数） */
+const namespaces = computed(() =>
+  namespaceList.value.map(item => ({
+    id: item.id,
+    name: item.name,
+    count: item.configCount ?? 0
+  }))
+);
+
+/**
+ * 当前命名空间未匹配到时给出占位，避免展示错误的空间名
+ */
+const activeNsName = computed(
+  () => namespaceList.value.find(n => n.id === activeNs.value)?.name ?? activeNs.value
+);
+
+/**
+ * 探测连通性并回填版本
+ */
+async function probeConnection() {
+  const info = datasource.value;
+  if (!info) {
+    connected.value = false;
+    connectionInfo.version = "-";
+    return;
+  }
+  connectionInfo.host = info.host ?? "-";
+  connectionInfo.port = info.port ?? 0;
   try {
-    const data = await fetchNacosNamespaces();
-    namespaces.value = (data || []).map((n: any) => ({
-      id: n.id || n.namespace,
-      name: n.name || n.namespace,
-      count: n.configCount || 0,
-    }));
+    const result = await testNacosConnection({
+      host: info.host,
+      port: info.port,
+      username: info.username,
+      password: info.password,
+      namespace: info.database
+    });
+    connected.value = !!result?.connected;
+    connectionInfo.version = result?.version || "-";
   } catch (e) {
-    console.error("加载命名空间失败", e);
+    connected.value = false;
+    connectionInfo.version = "-";
+    ElMessage.error(`连接测试失败：${(e as Error)?.message ?? String(e)}`);
   }
 }
 
-async function loadConfigs() {
+/**
+ * 加载命名空间
+ */
+async function loadNamespaces() {
+  if (!datasourceId.value) return;
   try {
-    loading.value = true;
-    const data = await fetchNacosConfigs({ namespace: activeNs.value, page: 1, pageSize: 50 });
-    configs.value = data?.list || [];
+    namespaceList.value = (await fetchNacosNamespaces(datasourceId.value)) ?? [];
+    if (namespaceList.value.length > 0 && !namespaceList.value.some(n => n.id === activeNs.value)) {
+      activeNs.value = namespaceList.value[0].id;
+    }
   } catch (e) {
-    console.error("加载配置列表失败", e);
+    namespaceList.value = [];
+    ElMessage.error(`加载命名空间失败：${(e as Error)?.message ?? String(e)}`);
+  }
+}
+
+/**
+ * 加载配置列表
+ */
+async function loadConfigs() {
+  if (!datasourceId.value) return;
+  loading.value = true;
+  try {
+    const data = await fetchNacosConfigs({
+      datasourceId: datasourceId.value,
+      namespace: activeNs.value,
+      dataId: searchKeyword.value.trim() || undefined,
+      page: 1,
+      pageSize: 50
+    });
+    configs.value = data?.list ?? [];
+  } catch (e) {
+    configs.value = [];
+    ElMessage.error(`加载配置列表失败：${(e as Error)?.message ?? String(e)}`);
   } finally {
     loading.value = false;
   }
 }
 
+/**
+ * 加载服务列表
+ */
 async function loadServices() {
+  if (!datasourceId.value) return;
   try {
-    const data = await fetchNacosServices(undefined, activeNs.value);
-    services.value = (data || []).map((s: any) => ({
+    const data = await fetchNacosServices(datasourceId.value, activeNs.value);
+    services.value = (data ?? []).map(s => ({
       name: s.name,
       group: "DEFAULT_GROUP",
-      instances: s.clusterCount || 0,
-      healthy: s.healthyInstanceCount || 0,
-      trigger: s.triggerFlag ? "Y" : "N",
+      instances: s.clusterCount ?? 0,
+      healthy: s.healthyInstanceCount ?? 0,
+      unhealthy: s.unhealthyInstanceCount ?? 0,
+      trigger: s.triggerFlag ? "Y" : "N"
     }));
   } catch (e) {
-    console.error("加载服务列表失败", e);
+    services.value = [];
+    ElMessage.error(`加载服务列表失败：${(e as Error)?.message ?? String(e)}`);
   }
 }
 
+/**
+ * 加载集群节点
+ */
 async function loadClusters() {
+  if (!datasourceId.value) return;
   try {
-    const data = await fetchNacosClusterNodes();
-    clusters.value = (data || []).map((n: any, i: number) => ({
+    const data = (await fetchNacosClusterNodes(datasourceId.value)) ?? [];
+    clusters.value = data.map((n, i) => ({
       id: i + 1,
-      node: `nacos-0${i + 1}`,
+      node: `nacos-${i + 1}`,
       ip: n.ip,
       port: n.port,
       status: n.status,
-      leader: n.role === "LEADER",
+      leader: n.role === "LEADER"
     }));
   } catch (e) {
-    console.error("加载集群节点失败", e);
+    clusters.value = [];
+    ElMessage.error(`加载集群节点失败：${(e as Error)?.message ?? String(e)}`);
   }
 }
-
-onMounted(() => {
-  loadNamespaces();
-  loadConfigs();
-  loadServices();
-  loadClusters();
-});
 
 const configColumns = [
   { prop: "dataId", label: "Data ID", minWidth: 200 },
   { prop: "group", label: "Group", width: 140 },
   { prop: "format", label: "格式", width: 100 },
   { prop: "updatedAt", label: "更新时间", width: 180 },
-  { label: "操作", width: 180, fixed: "right", slot: "actions" },
+  { label: "操作", width: 180, fixed: "right", slot: "actions" }
 ];
 const serviceColumns = [
   { prop: "name", label: "服务名", minWidth: 180 },
   { prop: "group", label: "分组", width: 140 },
   { prop: "instances", label: "实例数", width: 100 },
-  { prop: "healthy", label: "健康实例", width: 100 },
+  { prop: "healthy", label: "健康实例", width: 100 }
 ];
 const clusterColumns = [
   { prop: "node", label: "节点名", width: 120 },
   { prop: "ip", label: "IP", width: 140 },
   { prop: "port", label: "端口", width: 80 },
   { prop: "status", label: "状态", width: 100 },
-  { prop: "leader", label: "Leader", width: 80 },
+  { prop: "leader", label: "Leader", width: 80 }
 ];
 
 const filteredConfigs = computed(() => {
-  if (!searchKeyword.value) return configs.value;
-  return configs.value.filter(c => c.dataId.includes(searchKeyword.value));
+  const keyword = searchKeyword.value.trim().toLowerCase();
+  if (!keyword) return configs.value;
+  return configs.value.filter(c => String(c.dataId ?? "").toLowerCase().includes(keyword));
 });
-
-const activeNsName = computed(() => namespaces.value.find(n => n.id === activeNs.value)?.name || "public");
 
 const configVisible = ref(false);
 const editingConfig = ref(false);
@@ -281,11 +359,19 @@ function selectNs(id: string) {
   loadServices();
 }
 
+/**
+ * 查看配置详情
+ * @param row 配置行
+ */
 async function viewConfig(row: any) {
   editingConfig.value = false;
   try {
-    const detail = await fetchNacosConfigDetail(row.dataId, { namespace: activeNs.value, group: row.group });
-    Object.assign(form, detail || row);
+    const detail = await fetchNacosConfigDetail(row.dataId, {
+      namespace: activeNs.value,
+      group: row.group,
+      datasourceId: datasourceId.value ?? undefined
+    });
+    Object.assign(form, detail ?? row);
   } catch (e) {
     Object.assign(form, row);
   }
@@ -296,20 +382,43 @@ async function viewConfig(row: any) {
  * 打开编辑配置弹窗
  * @param row 配置行
  */
-function editConfig(row: any) {
+async function editConfig(row: any) {
   editingConfig.value = true;
-  Object.assign(form, row);
+  Object.assign(form, {
+    dataId: row.dataId,
+    group: row.group || "DEFAULT_GROUP",
+    format: row.format || "yaml",
+    content: ""
+  });
+  try {
+    const detail = await fetchNacosConfigDetail(row.dataId, {
+      namespace: activeNs.value,
+      group: row.group,
+      datasourceId: datasourceId.value ?? undefined
+    });
+    if (detail?.content) form.content = detail.content;
+  } catch (e) {
+    ElMessage.error(`加载配置内容失败：${(e as Error)?.message ?? String(e)}`);
+  }
   configVisible.value = true;
 }
 
+/**
+ * 删除配置
+ * @param row 配置行
+ */
 async function deleteConfig(row: any) {
-  if (confirm(`确定删除配置 ${row.dataId} 吗？`)) {
-    try {
-      await deleteNacosConfig(row.dataId, { namespace: activeNs.value, group: row.group });
-      configs.value = configs.value.filter(c => c.dataId !== row.dataId);
-    } catch (e) {
-      console.error("删除配置失败", e);
-    }
+  if (!confirm(`确定删除配置 ${row.dataId} 吗？`)) return;
+  try {
+    await deleteNacosConfig(row.dataId, {
+      namespace: activeNs.value,
+      group: row.group,
+      datasourceId: datasourceId.value ?? undefined
+    });
+    ElMessage.success("配置已删除");
+    await loadConfigs();
+  } catch (e) {
+    ElMessage.error(`删除配置失败：${(e as Error)?.message ?? String(e)}`);
   }
 }
 
@@ -323,48 +432,116 @@ function openCreate() {
 }
 
 /**
- * 保存配置
+ * 保存（发布）配置
  */
-function saveConfig() {
-  if (editingConfig.value && form.dataId) {
-    const idx = configs.value.findIndex(c => c.dataId === form.dataId);
-    if (idx >= 0) configs.value[idx] = { ...configs.value[idx], ...form, updatedAt: new Date().toLocaleString() };
-    else configs.value.push({ id: Date.now(), ...form, updatedAt: new Date().toLocaleString() });
+async function saveConfig() {
+  if (!form.dataId) {
+    ElMessage.warning("请填写 Data ID");
+    return;
   }
-  configVisible.value = false;
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
+  try {
+    await saveNacosConfig({
+      dataId: form.dataId,
+      group: form.group,
+      content: form.content,
+      type: form.format,
+      namespace: activeNs.value,
+      datasourceId: datasourceId.value
+    });
+    ElMessage.success("配置已保存");
+    configVisible.value = false;
+    await loadConfigs();
+  } catch (e) {
+    ElMessage.error(`保存配置失败：${(e as Error)?.message ?? String(e)}`);
+  }
 }
 
-/**
- * 刷新命名空间/配置/服务列表
- */
 // ==================== 右键菜单 ====================
 const configContextMenu = ref({ visible: false, x: 0, y: 0, config: null as any });
 
-const onConfigContextMenu = (row: any, column: any, event: MouseEvent) => {
+/**
+ * 打开配置右键菜单
+ * @param row 配置行
+ * @param _column 列信息
+ * @param event 鼠标事件
+ */
+const onConfigContextMenu = (row: any, _column: any, event: MouseEvent) => {
   event.preventDefault();
   configContextMenu.value = { visible: true, x: event.clientX, y: event.clientY, config: row };
 };
 
-if (typeof window !== "undefined") {
-  window.addEventListener("click", () => {
-    configContextMenu.value.visible = false;
-  });
-}
-
-const onCloneConfig = (config: any) => {
-  const newDataId = prompt("请输入克隆后的 Data ID:", config.dataId + "_copy");
-  if (!newDataId) return;
-  ElMessage.success("配置已克隆（功能演示）");
-  refresh();
+/** 点击空白处关闭右键菜单 */
+const closeContextMenu = () => {
+  configContextMenu.value.visible = false;
 };
 
-const onExportConfig = (config: any) => {
+if (typeof window !== "undefined") {
+  window.addEventListener("click", closeContextMenu);
+}
+
+onBeforeUnmount(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("click", closeContextMenu);
+  }
+});
+
+/**
+ * 克隆配置：读取原内容后以新 dataId 重新发布
+ * @param config 配置行
+ */
+const onCloneConfig = async (config: any) => {
+  const newDataId = prompt("请输入克隆后的 Data ID:", config.dataId + "_copy");
+  if (!newDataId || !datasourceId.value) return;
+  try {
+    const detail = await fetchNacosConfigDetail(config.dataId, {
+      namespace: activeNs.value,
+      group: config.group,
+      datasourceId: datasourceId.value
+    });
+    await saveNacosConfig({
+      dataId: newDataId,
+      group: config.group,
+      content: detail?.content ?? "",
+      type: config.format,
+      namespace: activeNs.value,
+      datasourceId: datasourceId.value
+    });
+    ElMessage.success("配置已克隆");
+    await loadConfigs();
+  } catch (e) {
+    ElMessage.error(`克隆配置失败：${(e as Error)?.message ?? String(e)}`);
+  }
+};
+
+/**
+ * 导出配置为 JSON 文件
+ * @param config 配置行
+ */
+const onExportConfig = async (config: any) => {
+  let content = config.content ?? "";
+  if (!content && datasourceId.value) {
+    try {
+      const detail = await fetchNacosConfigDetail(config.dataId, {
+        namespace: activeNs.value,
+        group: config.group,
+        datasourceId: datasourceId.value
+      });
+      content = detail?.content ?? "";
+    } catch (e) {
+      ElMessage.error(`读取配置内容失败：${(e as Error)?.message ?? String(e)}`);
+      return;
+    }
+  }
   const exportData = {
     dataId: config.dataId,
     group: config.group,
-    content: config.content,
-    type: config.type,
-    exportTime: new Date().toISOString(),
+    namespace: activeNs.value,
+    content,
+    exportTime: new Date().toISOString()
   };
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const link = document.createElement("a");
@@ -375,16 +552,77 @@ const onExportConfig = (config: any) => {
   ElMessage.success("导出成功");
 };
 
-const onPublishConfig = (config: any) => {
-  ElMessage.success(`配置 ${config.dataId} 已发布（功能演示）`);
+/**
+ * 重新发布配置（覆盖原内容）
+ * @param config 配置行
+ */
+const onPublishConfig = async (config: any) => {
+  if (!datasourceId.value) return;
+  try {
+    const detail = await fetchNacosConfigDetail(config.dataId, {
+      namespace: activeNs.value,
+      group: config.group,
+      datasourceId: datasourceId.value
+    });
+    await saveNacosConfig({
+      dataId: config.dataId,
+      group: config.group,
+      content: detail?.content ?? "",
+      type: config.format,
+      namespace: activeNs.value,
+      datasourceId: datasourceId.value
+    });
+    ElMessage.success(`配置 ${config.dataId} 已发布`);
+    await loadConfigs();
+  } catch (e) {
+    ElMessage.error(`发布配置失败：${(e as Error)?.message ?? String(e)}`);
+  }
 };
 
-function refresh() {
+/**
+ * 刷新命名空间/配置/服务/集群列表
+ */
+async function refresh() {
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
   loading.value = true;
-  setTimeout(() => { loading.value = false; }, 500);
+  try {
+    await probeConnection();
+    await loadNamespaces();
+    await Promise.all([loadConfigs(), loadServices(), loadClusters()]);
+  } finally {
+    loading.value = false;
+  }
 }
 
-onMounted(() => {});
+// 搜索关键字变化时重新向后端查询
+watch(searchKeyword, () => {
+  if (datasourceId.value) loadConfigs();
+});
+
+// 数据源变化（含首次进入）时整体刷新
+watch(
+  [datasourceId, datasourceError],
+  async ([id, err]) => {
+    if (!id) {
+      namespaceList.value = [];
+      configs.value = [];
+      services.value = [];
+      clusters.value = [];
+      activeNs.value = "public";
+      connected.value = false;
+      connectionInfo.host = "-";
+      connectionInfo.port = 0;
+      connectionInfo.version = "-";
+      if (err) ElMessage.warning(err);
+      return;
+    }
+    await refresh();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

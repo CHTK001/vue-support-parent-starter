@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="dsm tel-page">
     <div class="dsm-toolbar">
       <div class="dsm-toolbar-left">
@@ -6,6 +6,7 @@
         <span class="dsm-title">Neo4j 图数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
+        <ReButton size="small" @click="openCreateNode"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
         <ReButton size="small" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
         <ReButton size="small" type="primary" @click="openCypher"><template #icon><ReIcon name="Search" /></template>Cypher 查询</ReButton>
       </div>
@@ -63,7 +64,7 @@
           <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value">bolt://{{ connectionInfo.host }}:{{ connectionInfo.port }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">数据库</span><span class="dsm-info-value">{{ connectionInfo.database }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">版本</span><span class="dsm-info-value">Neo4j {{ connectionInfo.version }}</span></div>
-          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag type="success" size="small">已连接</ReTag></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag :type="connected ? 'success' : 'danger'" size="small">{{ connected ? "已连接" : "未连接" }}</ReTag></div>
         </div>
 
         <div class="dsm-stats-row">
@@ -150,7 +151,7 @@
 
         <div v-if="!activeLabel" class="dsm-empty">
           <ReIcon name="Share" size="48" class="dsm-empty-icon" />
-          <p>从左侧选择节点标签或关系类型查看详情</p>
+          <p>{{ emptyText }}</p>
         </div>
       </div>
     </div>
@@ -215,84 +216,166 @@
  * Neo4j 管理页
  *
  * 提供 Neo4j 图库的标签/关系类型浏览、连接测试与 Cypher 查询执行。
+ * 数据全部来自后端 `/ms/monitor/neo4j/*`，数据源由路由 `datasourceId` 指定。
  * @author CH
  * @since 4.0.0
  */
-import { ref, reactive, onMounted } from "vue";
+import { computed, ref, reactive, watch } from "vue";
 import { useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
+import {
+  executeNeo4jQuery,
+  fetchNeo4jLabels,
+  fetchNeo4jRelationships,
+  testNeo4jConnection,
+  type Neo4jLabel,
+  type Neo4jRelationship
+} from "../monitorApi";
+import { useExternalDatasource } from "../utils/externalDatasource";
 
 const route = useRoute();
-const connectionName = ref("Neo4j 图数据库");
-const connectionInfo = reactive({ host: "127.0.0.1", port: 7687, database: "neo4j", version: "5.12" });
+const { datasourceId, datasource, error: datasourceError } = useExternalDatasource(
+  () => route.query,
+  "neo4j",
+  "Neo4j"
+);
+
+// 连接信息
+const connectionName = computed(() => datasource.value?.name ?? "Neo4j 图数据库");
+const connectionInfo = reactive({ host: "-", port: 0, database: "-", version: "-" });
+const connected = ref(false);
+
+const emptyText = computed(() =>
+  datasourceError.value
+    ? datasourceError.value
+    : "从左侧选择节点标签或关系类型查看详情"
+);
+
 const expandedNodes = ref(new Set(["root", "nodes"]));
 const activeLabel = ref("");
 const loading = ref(false);
 
-const nodeLabels = ref(["Person", "Company", "Product", "Order", "Category"]);
-const relTypes = ref(["WORKS_AT", "PURCHASED", "BELONGS_TO", "FRIEND_OF", "MANAGES"]);
-const stats = reactive({ nodes: 15234, relationships: 45678 });
+const labelList = ref<Neo4jLabel[]>([]);
+const relList = ref<Neo4jRelationship[]>([]);
+/** 侧栏树中的标签名 / 关系类型名 */
+const nodeLabels = computed(() => labelList.value.map(l => l.name));
+const relTypes = computed(() => relList.value.map(r => r.type));
+/** 关系列表视图数据（关系类型 + 数量） */
+const relationshipTypes = computed(() =>
+  relList.value.map(r => ({ type: r.type, count: r.relationshipCount }))
+);
+const stats = reactive({ nodes: 0, relationships: 0 });
 
 const nodes = ref<Record<string, unknown>[]>([]);
 const nodeColumns = [
   { prop: "id", label: "ID", width: 80 },
   { prop: "name", label: "名称", minWidth: 150 },
-  { prop: "properties", label: "属性", minWidth: 250 },
+  { prop: "properties", label: "属性", minWidth: 250 }
 ];
 
 const cypherVisible = ref(false);
+const cypherLoading = ref(false);
+const cypherQuery = ref("MATCH (n)\nRETURN labels(n) AS labels, properties(n) AS properties\nLIMIT 10");
+const queryResult = reactive({ columns: [] as string[], rows: [] as Record<string, unknown>[] });
 
 // ==================== 图可视化 ====================
-const neo4jView = ref<'overview' | 'graph' | 'nodes' | 'rels'>('overview');
+const neo4jView = ref<"overview" | "graph" | "nodes" | "rels">("overview");
 const graphNodes = ref<any[]>([]);
 const graphEdges = ref<any[]>([]);
 const nodeDetailVisible = ref(false);
 const selectedNode = ref<any>(null);
 const nodeColors: Record<string, string> = {
-  'Person': '#3b82f6',
-  'Movie': '#8b5cf6',
-  'Company': '#10b981',
-  'Product': '#f59e0b',
-  'Order': '#ef4444',
-  'User': '#06b6d4',
-  'default': '#64748b',
+  Person: "#3b82f6",
+  Movie: "#8b5cf6",
+  Company: "#10b981",
+  Product: "#f59e0b",
+  Order: "#ef4444",
+  User: "#06b6d4",
+  default: "#64748b"
 };
 
-const renderGraph = () => {
-  // 基于节点标签生成示意图
-  const labels = nodeLabels.value.slice(0, 6);
-  const centerX = 400, centerY = 250, radius = 150;
-  graphNodes.value = labels.map((label, idx) => {
-    const angle = (idx / labels.length) * Math.PI * 2 - Math.PI / 2;
-    return {
-      label: label.substring(0, 8),
-      fullLabel: label,
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-      color: nodeColors[label] || nodeColors['default'],
-      id: idx,
-      properties: { label, sample: '...' },
+/** 图布局常量（与模板中的 viewBox 对应） */
+const GRAPH_CENTER_X = 400;
+const GRAPH_CENTER_Y = 250;
+const GRAPH_RADIUS = 180;
+
+/**
+ * 按真实采样数据渲染节点关系图
+ *
+ * <p>取一批真实边（{@code MATCH (a)-[r]->(b)}），节点按环形布局，
+ * 只保留两端都在采样范围内的边。采样为空时退化为「标签环」示意。</p>
+ */
+const renderGraph = async () => {
+  if (!datasourceId.value) {
+    graphNodes.value = [];
+    graphEdges.value = [];
+    return;
+  }
+  try {
+    const result = await executeNeo4jQuery(
+      "MATCH (a)-[r]->(b) RETURN id(a) AS source, labels(a) AS sourceLabels, id(b) AS target, labels(b) AS targetLabels, type(r) AS type LIMIT 80",
+      datasourceId.value
+    );
+    const rows = result?.rows ?? [];
+    const labelOf = (value: unknown) => {
+      const list = Array.isArray(value) ? value : [];
+      return list.length > 0 ? String(list[0]) : "default";
     };
-  });
-  // 生成关系边（所有节点两两连接）
-  graphEdges.value = [];
-  for (let i = 0; i < graphNodes.value.length; i++) {
-    for (let j = i + 1; j < graphNodes.value.length; j++) {
-      graphEdges.value.push({
-        x1: graphNodes.value[i].x,
-        y1: graphNodes.value[i].y,
-        x2: graphNodes.value[j].x,
-        y2: graphNodes.value[j].y,
-        type: relationshipTypes.value[(i + j) % relationshipTypes.value.length]?.substring(0, 6) || 'REL',
-      });
+    const ids: number[] = [];
+    for (const row of rows) {
+      for (const key of ["source", "target"]) {
+        const id = Number(row[key]);
+        if (Number.isFinite(id) && !ids.includes(id)) ids.push(id);
+      }
     }
+    const positions = new Map<number, { x: number; y: number }>();
+    graphNodes.value = ids.slice(0, 40).map((id, idx) => {
+      const row = rows.find(r => Number(r.source) === id || Number(r.target) === id);
+      const label = labelOf(row?.sourceLabels ?? row?.targetLabels);
+      const angle = (idx / Math.max(1, Math.min(ids.length, 40))) * Math.PI * 2 - Math.PI / 2;
+      const point = {
+        x: GRAPH_CENTER_X + GRAPH_RADIUS * Math.cos(angle),
+        y: GRAPH_CENTER_Y + GRAPH_RADIUS * Math.sin(angle)
+      };
+      positions.set(id, point);
+      return {
+        id,
+        label: label.substring(0, 8),
+        fullLabel: label,
+        x: point.x,
+        y: point.y,
+        color: nodeColors[label] ?? nodeColors.default,
+        properties: { neo4jId: id, label }
+      };
+    });
+    graphEdges.value = rows
+      .map(row => {
+        const from = positions.get(Number(row.source));
+        const to = positions.get(Number(row.target));
+        if (!from || !to) return null;
+        return { x1: from.x, y1: from.y, x2: to.x, y2: to.y, type: String(row.type ?? "") };
+      })
+      .filter((edge): edge is { x1: number; y1: number; x2: number; y2: number; type: string } => !!edge);
+  } catch (e) {
+    graphNodes.value = [];
+    graphEdges.value = [];
+    ElMessage.error(`图数据加载失败：${(e as Error)?.message ?? String(e)}`);
   }
 };
 
+/**
+ * 节点列表行点击
+ * @param row 节点行
+ */
 const onNodeClick = (row: any) => {
-  selectedNode.value = { ...row, properties: row };
+  selectedNode.value = { ...row, properties: row.properties };
   nodeDetailVisible.value = true;
 };
 
+/**
+ * 图中节点点击
+ * @param node 图节点
+ */
 const onGraphNodeClick = (node: any) => {
   selectedNode.value = node;
   nodeDetailVisible.value = true;
@@ -310,31 +393,49 @@ const openCreateNode = () => {
   createNodeVisible.value = true;
 };
 
+/**
+ * 解析 JSON 属性并转成 Cypher 属性字面量
+ * @param text JSON 文本
+ * @returns Cypher 属性字面量
+ * @throws Error JSON 非法
+ */
+function toCypherProps(text: string): string {
+  const parsed = JSON.parse(text || "{}");
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("属性必须是 JSON 对象");
+  }
+  return Object.entries(parsed)
+    .map(([key, value]) => {
+      const literal =
+        typeof value === "string"
+          ? `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`
+          : JSON.stringify(value);
+      return `${/\W/.test(key) ? `\`${key}\`` : key}: ${literal}`;
+    })
+    .join(", ");
+}
+
+/**
+ * 通过 Cypher 创建节点
+ */
 const createNode = async () => {
   if (!newNodeLabel.value.trim()) {
     ElMessage.warning("请输入节点标签");
     return;
   }
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
   creatingNode.value = true;
   try {
-    let props = {};
-    try {
-      props = JSON.parse(newNodeProps.value);
-    } catch {
-      ElMessage.error("属性 JSON 格式错误");
-      return;
-    }
-    // 构建 Cypher 创建节点语句
-    const propsStr = Object.entries(props).map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : v}`).join(", ");
-    const cypher = `CREATE (n:${newNodeLabel.value} {${propsStr}}) RETURN n`;
-    ElMessage.success("节点创建成功（Cypher: " + cypher.substring(0, 50) + "...)");
+    const cypher = `CREATE (n:${newNodeLabel.value.trim()} {${toCypherProps(newNodeProps.value)}}) RETURN n`;
+    await executeNeo4jQuery(cypher, datasourceId.value);
+    ElMessage.success("节点创建成功");
     createNodeVisible.value = false;
-    // 刷新节点列表
-    if (!nodeLabels.value.includes(newNodeLabel.value)) {
-      nodeLabels.value.push(newNodeLabel.value);
-    }
+    await loadLabels();
   } catch (e) {
-    ElMessage.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
+    ElMessage.error(`创建失败: ${(e as Error)?.message ?? String(e)}`);
   } finally {
     creatingNode.value = false;
   }
@@ -356,31 +457,33 @@ const openCreateRel = () => {
   createRelVisible.value = true;
 };
 
+/**
+ * 通过 Cypher 创建关系
+ */
 const createRel = async () => {
   if (!newRelType.value.trim() || !newRelFrom.value.trim() || !newRelTo.value.trim()) {
     ElMessage.warning("请填写关系类型和节点ID");
     return;
   }
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
   creatingRel.value = true;
   try {
-    let props = {};
-    try {
-      props = JSON.parse(newRelProps.value);
-    } catch {
-      ElMessage.error("属性 JSON 格式错误");
+    const from = Number(newRelFrom.value);
+    const to = Number(newRelTo.value);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) {
+      ElMessage.warning("起始/目标节点ID必须是数字");
       return;
     }
-    // 构建 Cypher 创建关系语句
-    const propsStr = Object.entries(props).map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : v}`).join(", ");
-    const cypher = `MATCH (a), (b) WHERE id(a) = ${newRelFrom.value} AND id(b) = ${newRelTo.value} CREATE (a)-[r:${newRelType.value} {${propsStr}}]->(b) RETURN r`;
-    ElMessage.success("关系创建成功（Cypher: " + cypher.substring(0, 50) + "...)");
+    const cypher = `MATCH (a), (b) WHERE id(a) = ${from} AND id(b) = ${to} CREATE (a)-[r:${newRelType.value.trim()} {${toCypherProps(newRelProps.value)}}]->(b) RETURN r`;
+    await executeNeo4jQuery(cypher, datasourceId.value);
+    ElMessage.success("关系创建成功");
     createRelVisible.value = false;
-    // 刷新关系类型列表
-    if (!relationshipTypes.value.includes(newRelType.value)) {
-      relationshipTypes.value.push(newRelType.value);
-    }
+    await loadRelationships();
   } catch (e) {
-    ElMessage.error(`创建失败: ${String((e as Error)?.message ?? e)}`);
+    ElMessage.error(`创建失败: ${(e as Error)?.message ?? String(e)}`);
   } finally {
     creatingRel.value = false;
   }
@@ -388,11 +491,9 @@ const createRel = async () => {
 
 // 关系列定义
 const relColumns = [
-  { prop: 'type', label: '关系类型', minWidth: 200 },
-  { prop: 'count', label: '数量', width: 120, slot: 'count' },
+  { prop: "type", label: "关系类型", minWidth: 200 },
+  { prop: "count", label: "数量", width: 120, slot: "count" }
 ];
-const cypherQuery = ref('MATCH (n:Person)\nRETURN n.name, n.age\nLIMIT 10');
-const queryResult = reactive({ columns: [] as string[], rows: [] as Record<string, unknown>[] });
 
 /**
  * 展开/收起侧栏树节点
@@ -404,20 +505,64 @@ function toggleNode(key: string) {
 }
 
 /**
+ * 加载标签与关系类型
+ */
+async function loadLabels() {
+  if (!datasourceId.value) return;
+  labelList.value = (await fetchNeo4jLabels(datasourceId.value)) ?? [];
+  stats.nodes = labelList.value.reduce((sum, item) => sum + (item.nodeCount ?? 0), 0);
+}
+
+/**
+ * 加载关系类型
+ */
+async function loadRelationships() {
+  if (!datasourceId.value) return;
+  relList.value = (await fetchNeo4jRelationships(datasourceId.value)) ?? [];
+  stats.relationships = relList.value.reduce(
+    (sum, item) => sum + (item.relationshipCount ?? 0),
+    0
+  );
+}
+
+/**
+ * 加载选中标签下的节点
+ */
+async function loadNodes() {
+  if (!datasourceId.value || !activeLabel.value) {
+    nodes.value = [];
+    return;
+  }
+  loading.value = true;
+  try {
+    const cypher = `MATCH (n:\`${activeLabel.value.replace(/`/g, "")}\`) RETURN id(n) AS id, properties(n) AS properties LIMIT 200`;
+    const result = await executeNeo4jQuery(cypher, datasourceId.value);
+    nodes.value = (result?.rows ?? []).map(row => {
+      const properties = (row.properties ?? {}) as Record<string, unknown>;
+      const nameKey = ["name", "title", "label", "code", "id"].find(
+        key => properties[key] !== undefined && properties[key] !== null
+      );
+      return {
+        id: row.id,
+        name: nameKey ? String(properties[nameKey]) : "-",
+        properties: JSON.stringify(properties)
+      };
+    });
+  } catch (e) {
+    nodes.value = [];
+    ElMessage.error(`节点加载失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+/**
  * 选中标签
  * @param label 标签名
  */
 function selectLabel(label: string) {
   activeLabel.value = label;
-  loading.value = true;
-  setTimeout(() => {
-    nodes.value = [
-      { id: 1, name: "张三", properties: "{age: 30, city: '北京'}" },
-      { id: 2, name: "李四", properties: "{age: 25, city: '上海'}" },
-      { id: 3, name: "王五", properties: "{age: 35, city: '广州'}" },
-    ];
-    loading.value = false;
-  }, 300);
+  loadNodes();
 }
 
 /**
@@ -425,37 +570,126 @@ function selectLabel(label: string) {
  * @param rel 关系类型
  */
 function selectRel(rel: string) {
-  cypherQuery.value = `MATCH ()-[r:${rel}]->()\nRETURN count(r) as count`;
+  cypherQuery.value = `MATCH ()-[r:\`${rel}\`]->()\nRETURN count(r) AS count`;
   cypherVisible.value = true;
+}
+
+/**
+ * 探测连通性并回填版本
+ */
+async function probeConnection() {
+  const info = datasource.value;
+  if (!info) {
+    connected.value = false;
+    connectionInfo.version = "-";
+    return;
+  }
+  connectionInfo.host = info.host ?? "-";
+  connectionInfo.port = info.port ?? 0;
+  connectionInfo.database = info.database ?? "neo4j";
+  try {
+    const result = await testNeo4jConnection({
+      host: info.host,
+      port: info.port,
+      username: info.username,
+      password: info.password,
+      database: info.database
+    });
+    connected.value = !!result?.connected;
+    connectionInfo.version = result?.version || "-";
+  } catch (e) {
+    connected.value = false;
+    connectionInfo.version = "-";
+    ElMessage.error(`连接测试失败：${(e as Error)?.message ?? String(e)}`);
+  }
 }
 
 /**
  * 刷新标签/关系类型列表
  */
-function refresh() {
+async function refresh() {
   loading.value = true;
-  setTimeout(() => { loading.value = false; }, 500);
+  try {
+    await probeConnection();
+    await Promise.all([loadLabels(), loadRelationships()]);
+    if (activeLabel.value && !nodeLabels.value.includes(activeLabel.value)) {
+      activeLabel.value = "";
+    }
+    if (!activeLabel.value && nodeLabels.value.length > 0) {
+      activeLabel.value = nodeLabels.value[0];
+    }
+    await loadNodes();
+    await renderGraph();
+  } catch (e) {
+    ElMessage.error(`刷新失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    loading.value = false;
+  }
 }
 
 /**
  * 打开 Cypher 查询面板
  */
-function openCypher() { cypherVisible.value = true; }
+function openCypher() {
+  cypherVisible.value = true;
+}
 
 /**
  * 执行 Cypher 查询
  */
-function executeCypher() {
-  queryResult.columns = ["name", "age", "city"];
-  queryResult.rows = [
-    { name: "张三", age: 30, city: "北京" },
-    { name: "李四", age: 25, city: "上海" },
-  ];
+async function executeCypher() {
+  if (!cypherQuery.value.trim()) {
+    ElMessage.warning("请输入 Cypher 查询语句");
+    return;
+  }
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
+  cypherLoading.value = true;
+  try {
+    const result = await executeNeo4jQuery(cypherQuery.value, datasourceId.value);
+    queryResult.rows = result?.rows ?? [];
+    const columns: string[] = [];
+    for (const row of queryResult.rows) {
+      for (const key of Object.keys(row)) if (!columns.includes(key)) columns.push(key);
+    }
+    queryResult.columns = columns;
+    ElMessage.success(`查询成功，返回 ${result?.rowCount ?? queryResult.rows.length} 行`);
+  } catch (e) {
+    queryResult.rows = [];
+    queryResult.columns = [];
+    ElMessage.error(`查询失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    cypherLoading.value = false;
+  }
 }
 
-onMounted(() => {
-  if (nodeLabels.value.length > 0) selectLabel(nodeLabels.value[0]);
-});
+// 数据源变化（含首次进入）时整体刷新
+watch(
+  [datasourceId, datasourceError],
+  async ([id, err]) => {
+    if (!id) {
+      labelList.value = [];
+      relList.value = [];
+      nodes.value = [];
+      graphNodes.value = [];
+      graphEdges.value = [];
+      activeLabel.value = "";
+      stats.nodes = 0;
+      stats.relationships = 0;
+      connected.value = false;
+      connectionInfo.version = "-";
+      connectionInfo.host = "-";
+      connectionInfo.port = 0;
+      connectionInfo.database = "-";
+      if (err) ElMessage.warning(err);
+      return;
+    }
+    await refresh();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -612,4 +846,3 @@ onMounted(() => {
   background: var(--border-subtle, rgba(148, 163, 184, 0.2));
 }
 </style>
-
