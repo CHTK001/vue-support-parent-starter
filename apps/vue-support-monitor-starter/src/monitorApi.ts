@@ -276,7 +276,8 @@ export interface RedisKeyDetail {
  */
 export const scanSystemRedisKeys = (pattern = "*", cursor = "0", count = 100) =>
   http()
-    .get("/ms/monitor/system/redis/keys", { params: { pattern, cursor, count } })
+    .get("/ms/monitor/system/redis/keys")
+    .query({ pattern, cursor, count })
     .then(r => unwrap<RedisScanResult>(r));
 
 /**
@@ -308,7 +309,9 @@ export const getSystemRedisKeyDetail = (key: string) =>
  */
 export const setSystemRedisKey = (key: string, value: string, ttl = -1) =>
   http()
-    .put(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}`, value, { params: { ttl } })
+    .put(`/ms/monitor/system/redis/kv/${encodeURIComponent(key)}`)
+    .data(value)
+    .query({ ttl })
     .then(r => unwrap<boolean>(r));
 
 /**
@@ -318,7 +321,8 @@ export const setSystemRedisKey = (key: string, value: string, ttl = -1) =>
  */
 export const deleteSystemRedisKeys = (keys: string[]) =>
   http()
-    .delete("/ms/monitor/system/redis/keys", { data: keys })
+    .delete("/ms/monitor/system/redis/keys")
+    .data(keys)
     .then(r => unwrap<number>(r));
 
 /**
@@ -329,7 +333,8 @@ export const deleteSystemRedisKeys = (keys: string[]) =>
  */
 export const expireSystemRedisKey = (key: string, ttl: number) =>
   http()
-    .post(`/ms/monitor/system/redis/expire/${encodeURIComponent(key)}`, null, { params: { ttl } })
+    .post(`/ms/monitor/system/redis/expire/${encodeURIComponent(key)}`)
+    .query({ ttl })
     .then(r => unwrap<boolean>(r));
 
 // ==================== AI 智能分析 ====================
@@ -892,6 +897,7 @@ export interface ServerNodeView {
  * @since 4.0.0
  */
 export interface ServerNodeRequest {
+  [key: string]: unknown;
   name: string;
   protocol: string;
   engine?: string;
@@ -1035,7 +1041,10 @@ export const testInfluxdbConnection = (config: Record<string, unknown>) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchInfluxdbBuckets = (datasourceId?: number) =>
-  http().get("/ms/monitor/influxdb/buckets", { params: { datasourceId } }).then(r => unwrap<InfluxdbBucket[]>(r));
+  http()
+    .get("/ms/monitor/influxdb/buckets")
+    .query({ datasourceId })
+    .then(r => unwrap<InfluxdbBucket[]>(r));
 
 /**
  * 获取 InfluxDB 度量列表
@@ -1043,7 +1052,10 @@ export const fetchInfluxdbBuckets = (datasourceId?: number) =>
  * @param bucket Bucket 名（可选）
  */
 export const fetchInfluxdbMeasurements = (datasourceId?: number, bucket?: string) =>
-  http().get("/ms/monitor/influxdb/measurements", { params: { datasourceId, bucket } }).then(r => unwrap<InfluxdbMeasurement[]>(r));
+  http()
+    .get("/ms/monitor/influxdb/measurements")
+    .query({ datasourceId, bucket })
+    .then(r => unwrap<InfluxdbMeasurement[]>(r));
 
 /**
  * 执行 InfluxDB Flux 查询
@@ -1089,14 +1101,20 @@ export const testNeo4jConnection = (config: Record<string, unknown>) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNeo4jLabels = (datasourceId?: number) =>
-  http().get("/ms/monitor/neo4j/labels", { params: { datasourceId } }).then(r => unwrap<Neo4jLabel[]>(r));
+  http()
+    .get("/ms/monitor/neo4j/labels")
+    .query({ datasourceId })
+    .then(r => unwrap<Neo4jLabel[]>(r));
 
 /**
  * 获取 Neo4j 关系类型列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNeo4jRelationships = (datasourceId?: number) =>
-  http().get("/ms/monitor/neo4j/relationships", { params: { datasourceId } }).then(r => unwrap<Neo4jRelationship[]>(r));
+  http()
+    .get("/ms/monitor/neo4j/relationships")
+    .query({ datasourceId })
+    .then(r => unwrap<Neo4jRelationship[]>(r));
 
 /**
  * 执行 Neo4j Cypher 查询
@@ -1144,6 +1162,25 @@ export interface NacosConfigDetail extends NacosConfig {
 }
 
 /**
+ * Nacos 配置发布请求
+ *
+ * <p>对应后端 {@code ConfigSaveRequest}：{@code type} 为 Nacos 的配置格式
+ * （yaml/json/properties/text/xml），与列表中的 {@code format} 同源。</p>
+ *
+ * @author CH
+ * @since 4.0.0
+ */
+export interface NacosConfigSaveRequest {
+  [key: string]: unknown;
+  dataId: string;
+  group: string;
+  content: string;
+  type?: string;
+  namespace?: string;
+  datasourceId?: number;
+}
+
+/**
  * Nacos 服务信息
  * @author CH
  * @since 4.0.0
@@ -1181,37 +1218,49 @@ export const testNacosConnection = (config: Record<string, unknown>) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNacosNamespaces = (datasourceId?: number) =>
-  http().get("/ms/monitor/nacos/namespaces", { params: { datasourceId } }).then(r => unwrap<NacosNamespace[]>(r));
+  http()
+    .get("/ms/monitor/nacos/namespaces")
+    .query({ datasourceId })
+    .then(r => unwrap<NacosNamespace[]>(r));
 
 /**
  * 分页获取 Nacos 配置列表
  * @param params 查询参数（命名空间/分组/dataId/分页）
  */
 export const fetchNacosConfigs = (params: { datasourceId?: number; namespace?: string; group?: string; dataId?: string; page?: number; pageSize?: number }) =>
-  http().get("/ms/monitor/nacos/configs", { params }).then(r => unwrap<{ list: NacosConfig[]; total: number; page: number; pageSize: number }>(r));
+  http()
+    .get("/ms/monitor/nacos/configs")
+    .query(params)
+    .then(r => unwrap<{ list: NacosConfig[]; total: number; page: number; pageSize: number }>(r));
 
 /**
  * 获取 Nacos 配置详情
  * @param dataId 配置 dataId
- * @param params 命名空间/分组
+ * @param params 命名空间/分组/数据源 ID
  */
-export const fetchNacosConfigDetail = (dataId: string, params: { namespace?: string; group?: string }) =>
-  http().get(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`, { params }).then(r => unwrap<NacosConfigDetail>(r));
+export const fetchNacosConfigDetail = (dataId: string, params: { namespace?: string; group?: string; datasourceId?: number }) =>
+  http()
+    .get(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`)
+    .query(params)
+    .then(r => unwrap<NacosConfigDetail>(r));
 
 /**
  * 保存 Nacos 配置
- * @param config 配置内容
+ * @param config 配置内容，需携带 datasourceId
  */
-export const saveNacosConfig = (config: Partial<NacosConfigDetail>) =>
+export const saveNacosConfig = (config: NacosConfigSaveRequest) =>
   http().post("/ms/monitor/nacos/config").data(config).then(r => unwrap<boolean>(r));
 
 /**
  * 删除 Nacos 配置
  * @param dataId 配置 dataId
- * @param params 命名空间/分组
+ * @param params 命名空间/分组/数据源 ID
  */
-export const deleteNacosConfig = (dataId: string, params: { namespace?: string; group?: string }) =>
-  http().delete(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`, { params }).then(r => unwrap<boolean>(r));
+export const deleteNacosConfig = (dataId: string, params: { namespace?: string; group?: string; datasourceId?: number }) =>
+  http()
+    .delete(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`)
+    .query(params)
+    .then(r => unwrap<boolean>(r));
 
 /**
  * 获取 Nacos 服务列表
@@ -1219,14 +1268,20 @@ export const deleteNacosConfig = (dataId: string, params: { namespace?: string; 
  * @param namespace 命名空间（可选）
  */
 export const fetchNacosServices = (datasourceId?: number, namespace?: string) =>
-  http().get("/ms/monitor/nacos/services", { params: { datasourceId, namespace } }).then(r => unwrap<NacosService[]>(r));
+  http()
+    .get("/ms/monitor/nacos/services")
+    .query({ datasourceId, namespace })
+    .then(r => unwrap<NacosService[]>(r));
 
 /**
  * 获取 Nacos 集群节点列表
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchNacosClusterNodes = (datasourceId?: number) =>
-  http().get("/ms/monitor/nacos/cluster/nodes", { params: { datasourceId } }).then(r => unwrap<NacosClusterNode[]>(r));
+  http()
+    .get("/ms/monitor/nacos/cluster/nodes")
+    .query({ datasourceId })
+    .then(r => unwrap<NacosClusterNode[]>(r));
 
 // ---------- ZooKeeper 注册中心管理 ----------
 
@@ -1283,7 +1338,10 @@ export const testZookeeperConnection = (config: Record<string, unknown>) =>
  * @param path 节点路径
  */
 export const fetchZkTree = (datasourceId?: number, path = "/") =>
-  http().get("/ms/monitor/zookeeper/tree", { params: { datasourceId, path } }).then(r => unwrap<ZkNode[]>(r));
+  http()
+    .get("/ms/monitor/zookeeper/tree")
+    .query({ datasourceId, path })
+    .then(r => unwrap<ZkNode[]>(r));
 
 /**
  * 获取 ZooKeeper 节点详情
@@ -1291,7 +1349,10 @@ export const fetchZkTree = (datasourceId?: number, path = "/") =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchZkNodeDetail = (path: string, datasourceId?: number) =>
-  http().get("/ms/monitor/zookeeper/node", { params: { path, datasourceId } }).then(r => unwrap<ZkNodeDetail>(r));
+  http()
+    .get("/ms/monitor/zookeeper/node")
+    .query({ path, datasourceId })
+    .then(r => unwrap<ZkNodeDetail>(r));
 
 /**
  * 获取 ZooKeeper 子节点列表
@@ -1299,28 +1360,45 @@ export const fetchZkNodeDetail = (path: string, datasourceId?: number) =>
  * @param datasourceId 数据源 ID（可选）
  */
 export const fetchZkChildren = (path: string, datasourceId?: number) =>
-  http().get("/ms/monitor/zookeeper/children", { params: { path, datasourceId } }).then(r => unwrap<ZkChildNode[]>(r));
+  http()
+    .get("/ms/monitor/zookeeper/children")
+    .query({ path, datasourceId })
+    .then(r => unwrap<ZkChildNode[]>(r));
 
 /**
  * 创建 ZooKeeper 节点
  * @param request 节点请求
+ * @param datasourceId 数据源 ID
  */
-export const createZkNode = (request: { path: string; data?: string; ephemeral?: boolean }) =>
-  http().post("/ms/monitor/zookeeper/node").data(request).then(r => unwrap<boolean>(r));
+export const createZkNode = (request: { path: string; data?: string; ephemeral?: boolean }, datasourceId?: number) =>
+  http()
+    .post("/ms/monitor/zookeeper/node")
+    .query({ datasourceId })
+    .data(request)
+    .then(r => unwrap<boolean>(r));
 
 /**
  * 更新 ZooKeeper 节点数据
  * @param request 节点请求
+ * @param datasourceId 数据源 ID
  */
-export const updateZkNode = (request: { path: string; data: string }) =>
-  http().put("/ms/monitor/zookeeper/node").data(request).then(r => unwrap<boolean>(r));
+export const updateZkNode = (request: { path: string; data: string }, datasourceId?: number) =>
+  http()
+    .put("/ms/monitor/zookeeper/node")
+    .query({ datasourceId })
+    .data(request)
+    .then(r => unwrap<boolean>(r));
 
 /**
  * 删除 ZooKeeper 节点
  * @param path 节点路径
+ * @param datasourceId 数据源 ID
  */
-export const deleteZkNode = (path: string) =>
-  http().delete("/ms/monitor/zookeeper/node", { params: { path } }).then(r => unwrap<boolean>(r));
+export const deleteZkNode = (path: string, datasourceId?: number) =>
+  http()
+    .delete("/ms/monitor/zookeeper/node")
+    .query({ path, datasourceId })
+    .then(r => unwrap<boolean>(r));
 
 /* ==================== 主机画像（数据全部来自目标机 Agent） ==================== */
 

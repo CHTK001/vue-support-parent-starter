@@ -21,7 +21,7 @@
           </div>
           <div v-if="expandedNodes.has('/')" class="dsm-tree-children">
             <template v-for="node in treeNodes" :key="node.path">
-              <div class="dsm-tree-node" :class="{ active: activePath === node.path }" @click="selectNode(node.path)">
+              <div class="dsm-tree-node" :class="{ active: activePath === node.path }" @click="selectNode(node.path)" @contextmenu="onNodeContextMenu($event, node.path)">
                 <ReIcon :name="node.children && node.children.length > 0 ? (expandedNodes.has(node.path) ? 'ArrowDown' : 'ArrowRight') : 'MoreFilled'" size="12" @click.stop="toggleNode(node.path)" />
                 <ReIcon :name="node.ephemeral ? 'Lock' : 'Folder'" size="14" class="dsm-tree-icon" :class="{ 'dsm-ephemeral': node.ephemeral }" />
                 <span class="dsm-tree-label">{{ node.name }}</span>
@@ -37,7 +37,7 @@
           <div class="dsm-info-row"><span class="dsm-info-label">连接地址</span><span class="dsm-info-value">{{ connectionInfo.host }}:{{ connectionInfo.port }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">会话 ID</span><span class="dsm-info-value">0x{{ sessionId }}</span></div>
           <div class="dsm-info-row"><span class="dsm-info-label">版本</span><span class="dsm-info-value">ZooKeeper {{ connectionInfo.version }}</span></div>
-          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag type="success" size="small">已连接</ReTag></div>
+          <div class="dsm-info-row"><span class="dsm-info-label">状态</span><ReTag :type="connected ? 'success' : 'danger'" size="small">{{ connected ? "已连接" : "未连接" }}</ReTag></div>
         </div>
 
         <div class="dsm-section" v-if="activePath">
@@ -161,101 +161,150 @@
  * ZooKeeper 管理页
  *
  * 提供 ZooKeeper 注册中心的节点树浏览、节点增删改查与连接测试。
+ * 数据全部来自后端 `/ms/monitor/zookeeper/*`，数据源由路由 `datasourceId` 指定。
  * @author CH
  * @since 4.0.0
  */
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { fetchZkNodeDetail, fetchZkChildren, deleteZkNode } from "../monitorApi";
+import {
+  createZkNode,
+  deleteZkNode,
+  fetchZkChildren,
+  fetchZkNodeDetail,
+  fetchZkTree,
+  testZookeeperConnection,
+  updateZkNode,
+  type ZkChildNode,
+  type ZkNode
+} from "../monitorApi";
+import { useExternalDatasource } from "../utils/externalDatasource";
 
 const route = useRoute();
-const connectionInfo = reactive({ host: "127.0.0.1", port: 2181, version: "3.9" });
-const sessionId = ref("100001234567890");
+const { datasourceId, datasource, error: datasourceError } = useExternalDatasource(
+  () => route.query,
+  "zookeeper",
+  "ZooKeeper"
+);
+
+const connectionInfo = reactive({ host: "-", port: 0, version: "-" });
+const sessionId = ref("");
+const connected = ref(false);
 const expandedNodes = ref(new Set(["/"]));
 const activePath = ref("");
 const loading = ref(false);
 
-const treeNodes = ref([
-  { path: "/services", name: "services", ephemeral: false, children: [] },
-  { path: "/config", name: "config", ephemeral: false, children: [] },
-  { path: "/registry", name: "registry", ephemeral: false, children: [] },
-  { path: "/zookeeper", name: "zookeeper", ephemeral: false, children: [] },
-  { path: "/locks", name: "locks", ephemeral: false, children: [] },
-]);
+/** 展平后的可见节点（模板按单层渲染，children 仅用于判断是否有下级） */
+const treeNodes = ref<Array<ZkNode & { children: unknown[] }>>([]);
+/** 各路径的子节点缓存（key 为父路径） */
+const childrenCache = new Map<string, ZkNode[]>();
 
 const nodeDetail = reactive({
   path: "",
   ephemeral: false,
-  createdAt: "2024-01-10 09:00:00",
-  updatedAt: "2024-01-15 10:30:00",
-  version: 5,
-  numChildren: 3,
-  data: '{\n  "host": "10.0.0.1",\n  "port": 8080,\n  "status": "UP"\n}',
+  createdAt: "",
+  updatedAt: "",
+  version: 0,
+  numChildren: 0,
+  data: ""
 });
 
-const children = ref([
-  { name: "provider-001", ephemeral: true, data: "10.0.0.1:8080" },
-  { name: "provider-002", ephemeral: true, data: "10.0.0.2:8080" },
-  { name: "provider-003", ephemeral: true, data: "10.0.0.3:8080" },
-]);
+const children = ref<ZkChildNode[]>([]);
 
 const childColumns = [
   { prop: "name", label: "子节点名称", minWidth: 200 },
   { prop: "ephemeral", label: "类型", width: 120, slot: "type" },
-  { prop: "data", label: "数据", minWidth: 200 },
+  { prop: "data", label: "数据", minWidth: 200 }
 ];
 
 const nodeDialogVisible = ref(false);
 const editing = ref(false);
 const nodeForm = reactive({ path: "", data: "", ephemeral: false });
 
-/**
- * 展开/收起树节点
- * @param path 节点路径
- */
 // ==================== 右键菜单 ====================
 const nodeContextMenu = ref({ visible: false, x: 0, y: 0, path: "" });
 
+/**
+ * 打开节点右键菜单
+ * @param e    鼠标事件
+ * @param path 节点路径
+ */
 const onNodeContextMenu = (e: MouseEvent, path: string) => {
+  e.preventDefault();
   nodeContextMenu.value = { visible: true, x: e.clientX, y: e.clientY, path };
 };
 
-if (typeof window !== "undefined") {
-  window.addEventListener("click", () => {
-    nodeContextMenu.value.visible = false;
-  });
-}
-
-const onCopyPath = (path: string) => {
-  navigator.clipboard.writeText(path).then(() => {
-    ElMessage.success("已复制路径");
-  }).catch(() => {
-    ElMessage.error("复制失败");
-  });
+/** 点击空白处关闭右键菜单 */
+const closeContextMenu = () => {
+  nodeContextMenu.value.visible = false;
 };
 
-const onEditNodeData = (path: string) => {
-  selectNode(path);
+if (typeof window !== "undefined") {
+  window.addEventListener("click", closeContextMenu);
+}
+
+onBeforeUnmount(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("click", closeContextMenu);
+  }
+});
+
+/**
+ * 复制节点路径
+ * @param path 节点路径
+ */
+const onCopyPath = (path: string) => {
+  navigator.clipboard
+    .writeText(path)
+    .then(() => ElMessage.success("已复制路径"))
+    .catch(() => ElMessage.error("复制失败"));
+};
+
+/**
+ * 从右键菜单进入节点数据编辑
+ * @param path 节点路径
+ */
+const onEditNodeData = async (path: string) => {
+  await selectNode(path);
   editNode();
 };
 
+/**
+ * 新建子节点
+ * @param parentPath 父节点路径
+ */
 const onAddChildNode = (parentPath: string) => {
   editing.value = false;
-  Object.assign(nodeForm, { path: parentPath === "/" ? "/new-node" : parentPath + "/new-node", data: "" });
+  Object.assign(nodeForm, {
+    path: parentPath === "/" ? "/new-node" : `${parentPath}/new-node`,
+    data: "",
+    ephemeral: false
+  });
   nodeDialogVisible.value = true;
 };
 
+/**
+ * 导出节点（含数据与子节点清单）
+ * @param path 节点路径
+ */
 const onExportNode = async (path: string) => {
+  if (!datasourceId.value) return;
   try {
-    const detail = await fetchZkNodeDetail(path);
-    const children = await fetchZkChildren(path);
+    const detail = await fetchZkNodeDetail(path, datasourceId.value);
+    const kids = await fetchZkChildren(path, datasourceId.value);
     const exportData = {
       path,
       data: detail?.data,
-      stat: detail?.stat,
-      children: children.map((c: any) => c.path || c.name),
-      exportTime: new Date().toISOString(),
+      stat: {
+        ephemeral: detail?.ephemeral,
+        version: detail?.version,
+        numChildren: detail?.numChildren,
+        createdAt: detail?.createdAt,
+        updatedAt: detail?.updatedAt
+      },
+      children: kids.map(c => c.path || c.name),
+      exportTime: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
@@ -269,67 +318,153 @@ const onExportNode = async (path: string) => {
   }
 };
 
-const onDeleteNode = (path: string) => {
-  selectNode(path);
-  deleteNode();
-};
-
-const onDeleteRecursive = async (path: string) => {
+/**
+ * 删除节点（后端按递归语义删除，含子节点）
+ * @param path 节点路径
+ */
+const onDeleteNode = async (path: string) => {
+  if (!datasourceId.value) return;
   try {
-    await ElMessageBox.confirm(`确定递归删除节点 "${path}" 及其所有子节点吗？此操作不可恢复！`, "递归删除确认", { type: "warning" });
+    await ElMessageBox.confirm(
+      `确定删除节点 "${path}" 吗？后端按递归语义删除，其子节点会一并移除。`,
+      "删除确认",
+      { type: "warning" }
+    );
   } catch {
     return;
   }
   try {
-    // 递归删除：先获取所有子节点，然后从叶子节点开始删除
-    const deleteRecursive = async (p: string): Promise<void> => {
-      const children = await fetchZkChildren(p);
-      for (const child of children) {
-        const childPath = p === "/" ? "/" + (child.path || child.name) : p + "/" + (child.path || child.name);
-        await deleteRecursive(childPath);
-      }
-      await deleteZkNode(p);
-    };
-    await deleteRecursive(path);
-    ElMessage.success("递归删除成功");
-    refresh();
-    if (activePath.value === path) {
-      activePath.value = "";
-      Object.assign(nodeDetail, { path: "", ephemeral: false, version: 0, numChildren: 0, data: "" });
-    }
+    await deleteZkNode(path, datasourceId.value);
+    ElMessage.success("删除成功");
+    await afterNodeRemoved(path);
   } catch (e) {
     ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
   }
 };
 
+/**
+ * 递归删除节点（含子节点）
+ * @param path 节点路径
+ */
+const onDeleteRecursive = async (path: string) => {
+  if (!datasourceId.value) return;
+  try {
+    await ElMessageBox.confirm(
+      `确定递归删除节点 "${path}" 及其所有子节点吗？此操作不可恢复！`,
+      "递归删除确认",
+      { type: "warning" }
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteZkNode(path, datasourceId.value);
+    ElMessage.success("递归删除成功");
+    await afterNodeRemoved(path);
+  } catch (e) {
+    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
+};
+
+/**
+ * 展开/收起树节点
+ * @param path 节点路径
+ */
 function toggleNode(path: string) {
-  if (expandedNodes.value.has(path)) expandedNodes.value.delete(path);
-  else expandedNodes.value.add(path);
+  if (expandedNodes.value.has(path)) {
+    expandedNodes.value.delete(path);
+  } else {
+    expandedNodes.value.add(path);
+    if (!childrenCache.has(path)) loadChildren(path);
+  }
+  rebuildTree();
+}
+
+/**
+ * 拉取某路径的直接子节点
+ * @param path 父路径
+ */
+async function loadChildren(path: string) {
+  if (!datasourceId.value) return;
+  try {
+    childrenCache.set(path, (await fetchZkTree(datasourceId.value, path)) ?? []);
+  } catch (e) {
+    childrenCache.set(path, []);
+    ElMessage.error(`加载子节点失败：${(e as Error)?.message ?? String(e)}`);
+  }
+  rebuildTree();
+}
+
+/**
+ * 依据展开状态与缓存重建展平节点列表
+ */
+function rebuildTree() {
+  const list: Array<ZkNode & { children: unknown[] }> = [];
+  const walk = (parent: string, depth: number) => {
+    if (depth > 6) return;
+    for (const node of childrenCache.get(parent) ?? []) {
+      list.push({ ...node, children: node.childrenCount > 0 ? [1] : [] });
+      if (expandedNodes.value.has(node.path)) walk(node.path, depth + 1);
+    }
+  };
+  walk("/", 0);
+  treeNodes.value = list;
+}
+
+/**
+ * 拉取根节点并展开
+ */
+async function loadTree() {
+  if (!datasourceId.value) {
+    treeNodes.value = [];
+    return;
+  }
+  await loadChildren("/");
 }
 
 /**
  * 选中节点加载详情
  * @param path 节点路径
  */
-function selectNode(path: string) {
+async function selectNode(path: string) {
   activePath.value = path;
-  nodeDetail.path = path;
-  if (path === "/services") {
-    nodeDetail.numChildren = 3;
-    children.value = [
-      { name: "monitor-service", ephemeral: true, data: "10.0.0.1:8080" },
-      { name: "gateway-service", ephemeral: true, data: "10.0.0.2:8080" },
-      { name: "auth-service", ephemeral: true, data: "10.0.0.3:8080" },
-    ];
+  if (!datasourceId.value) return;
+  await loadNodeDetail(path);
+  if (!childrenCache.has(path)) await loadChildren(path);
+}
+
+/**
+ * 加载节点详情与子节点
+ * @param path 节点路径
+ */
+async function loadNodeDetail(path: string) {
+  if (!datasourceId.value) return;
+  loading.value = true;
+  try {
+    const detail = await fetchZkNodeDetail(path, datasourceId.value);
+    Object.assign(nodeDetail, {
+      path: detail?.path ?? path,
+      ephemeral: !!detail?.ephemeral,
+      createdAt: detail?.createdAt || "-",
+      updatedAt: detail?.updatedAt || "-",
+      version: detail?.version ?? 0,
+      numChildren: detail?.numChildren ?? 0,
+      data: detail?.data ?? ""
+    });
+    children.value = (await fetchZkChildren(path, datasourceId.value)) ?? [];
+  } catch (e) {
+    ElMessage.error(`加载节点详情失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    loading.value = false;
   }
 }
 
 /**
  * 刷新节点详情
  */
-function refreshNode() {
-  loading.value = true;
-  setTimeout(() => { loading.value = false; }, 300);
+async function refreshNode() {
+  if (!activePath.value) return;
+  await loadNodeDetail(activePath.value);
 }
 
 /**
@@ -347,42 +482,142 @@ function editNode() {
  */
 function openCreate() {
   editing.value = false;
-  nodeForm.path = "";
+  nodeForm.path = activePath.value ? `${activePath.value}/new-node` : "/new-node";
   nodeForm.data = "";
   nodeForm.ephemeral = false;
   nodeDialogVisible.value = true;
 }
 
 /**
- * 保存节点
+ * 保存节点（新建或更新数据）
  */
-function saveNode() {
-  if (editing.value) {
-    nodeDetail.data = nodeForm.data;
-    nodeDetail.version++;
-    nodeDetail.updatedAt = new Date().toLocaleString();
+async function saveNode() {
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
   }
-  nodeDialogVisible.value = false;
+  if (!nodeForm.path) {
+    ElMessage.warning("请填写节点路径");
+    return;
+  }
+  try {
+    if (editing.value) {
+      await updateZkNode({ path: nodeForm.path, data: nodeForm.data }, datasourceId.value);
+      ElMessage.success("节点数据已更新");
+    } else {
+      await createZkNode(
+        { path: nodeForm.path, data: nodeForm.data, ephemeral: nodeForm.ephemeral },
+        datasourceId.value
+      );
+      ElMessage.success("节点已创建");
+    }
+    nodeDialogVisible.value = false;
+    const parent = nodeForm.path.slice(0, nodeForm.path.lastIndexOf("/")) || "/";
+    childrenCache.delete(parent);
+    await loadChildren(parent);
+    await selectNode(nodeForm.path);
+  } catch (e) {
+    ElMessage.error(`保存失败：${(e as Error)?.message ?? String(e)}`);
+  }
 }
 
 /**
- * 删除节点
+ * 删除当前选中节点
  */
-function deleteNode() {
-  if (confirm(`确定删除节点 ${activePath.value} 吗？`)) {
+async function deleteNode() {
+  if (!activePath.value) return;
+  await onDeleteNode(activePath.value);
+}
+
+/**
+ * 节点删除后的收尾：清缓存、刷新树与详情
+ * @param path 被删除的路径
+ */
+async function afterNodeRemoved(path: string) {
+  childrenCache.delete(path);
+  const parent = path.slice(0, path.lastIndexOf("/")) || "/";
+  childrenCache.delete(parent);
+  await loadTree();
+  if (activePath.value === path || activePath.value.startsWith(`${path}/`)) {
     activePath.value = "";
+    nodeDetail.path = "";
+    nodeDetail.data = "";
+    nodeDetail.numChildren = 0;
+    nodeDetail.version = 0;
+    children.value = [];
   }
 }
 
 /**
- * 刷新节点树
+ * 探测连通性并回填会话与版本
  */
-function refresh() {
-  loading.value = true;
-  setTimeout(() => { loading.value = false; }, 500);
+async function probeConnection() {
+  const info = datasource.value;
+  if (!info) {
+    connected.value = false;
+    return;
+  }
+  connectionInfo.host = info.host ?? "-";
+  connectionInfo.port = info.port ?? 0;
+  try {
+    const result = await testZookeeperConnection({
+      host: info.host,
+      port: info.port
+    });
+    connected.value = !!result?.connected;
+    sessionId.value = result?.sessionId ?? "";
+    connectionInfo.version = result?.version || "-";
+  } catch (e) {
+    connected.value = false;
+    sessionId.value = "";
+    connectionInfo.version = "-";
+    ElMessage.error(`连接测试失败：${(e as Error)?.message ?? String(e)}`);
+  }
 }
 
-onMounted(() => {});
+/**
+ * 刷新节点树与当前详情
+ */
+async function refresh() {
+  if (!datasourceId.value) {
+    ElMessage.warning(datasourceError.value || "请先选择数据源");
+    return;
+  }
+  loading.value = true;
+  try {
+    await probeConnection();
+    childrenCache.clear();
+    expandedNodes.value = new Set(["/"]);
+    await loadTree();
+    if (activePath.value) {
+      await loadNodeDetail(activePath.value);
+    }
+  } finally {
+    loading.value = false;
+  }
+}
+
+// 数据源变化（含首次进入）时整体刷新
+watch(
+  [datasourceId, datasourceError],
+  async ([id, err]) => {
+    if (!id) {
+      childrenCache.clear();
+      treeNodes.value = [];
+      children.value = [];
+      activePath.value = "";
+      connected.value = false;
+      sessionId.value = "";
+      connectionInfo.host = "-";
+      connectionInfo.port = 0;
+      connectionInfo.version = "-";
+      if (err) ElMessage.warning(err);
+      return;
+    }
+    await refresh();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
