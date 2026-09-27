@@ -52,6 +52,20 @@ export interface MessageContent {
   thinkingDurationMs?: number | null;
   searchResults?: Array<{ title: string; url: string }>;
   searchQuery?: string;
+  /**
+   * 执行日志：助手回合的工具调用轨迹，渲染成「执行日志」控制台。
+   * 非助手消息为 undefined。
+   */
+  traceLog?: Array<{
+    /** 日志类别，决定左侧色条样式与文案（如 tool / think / search） */
+    kind: string;
+    /** 毫秒时间戳 */
+    timestamp?: number;
+    /** 工具名，仅 kind=tool 时有值 */
+    toolName?: string;
+    /** 日志正文 */
+    text?: string;
+  }>;
   state: {
     isStreaming: boolean;
     isThinking: boolean;

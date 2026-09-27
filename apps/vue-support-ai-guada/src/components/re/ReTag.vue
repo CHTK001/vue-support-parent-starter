@@ -15,10 +15,21 @@
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
+
 defineProps({
-  type: { type: String, default: 'info' },
-  size: { type: String, default: 'default' },
-  effect: { type: String, default: 'light' },
+  type: {
+    type: String as PropType<
+      'primary' | 'success' | 'info' | 'warning' | 'danger'
+    >,
+    default: 'info',
+  },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
+  effect: {
+    type: String as PropType<'light' | 'dark' | 'plain'>,
+    default: 'light',
+  },
   round: { type: Boolean, default: true },
   closable: { type: Boolean, default: false },
 })

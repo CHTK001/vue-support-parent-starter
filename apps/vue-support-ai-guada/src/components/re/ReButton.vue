@@ -17,15 +17,23 @@
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
+
 defineProps({
-  type: { type: String, default: 'primary' },
-  size: { type: String, default: 'default' },
+  type: {
+    type: String as PropType<
+      '' | 'default' | 'text' | 'primary' | 'success' | 'info' | 'warning' | 'danger'
+    >,
+    default: 'primary',
+  },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   plain: { type: Boolean, default: false },
   round: { type: Boolean, default: true },
   circle: { type: Boolean, default: false },
-  icon: { type: [String, Object], default: undefined },
+  icon: { type: [String, Object] as PropType<string | object>, default: undefined },
 })
 
 defineEmits(['click'])
