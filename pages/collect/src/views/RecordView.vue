@@ -274,8 +274,8 @@ function showDetail(input: Record<string, unknown>): void {
       </template>
 
       <template #action="{ row }">
-        <ReButton layout="square" icon="View" type="primary" title="查看这条结果的字段" @click="showDetail(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" title="删除这条结果" @click="removeOne(row)"/>
+        <ReButton layout="square" icon="View" type="primary" tip="查看这条结果的字段" @click="showDetail(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除这条结果" @click="removeOne(row)"/>
       </template>
     </ReTable>
 

@@ -25,6 +25,8 @@ registerMenuViewModules({
 
 export {
   APP_DATASOURCE,
+  setDatasourceHubBase,
+  getDatasourceHubBase,
   fetchDataSources,
   fetchDataSource,
   createDataSource,
@@ -36,7 +38,6 @@ export {
   fetchDatasourceTables,
   fetchDatasourceColumns,
   setDatasourceSchemaProvider,
-  setDatasourceHubBase,
   fetchTableExists,
   previewTableDdl,
   executeTableDdl,

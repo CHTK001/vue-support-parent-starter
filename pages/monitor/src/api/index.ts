@@ -87,6 +87,167 @@ export interface AssetDetail {
 export const getAssetDetail = (hostId: number) =>
   http().get(`${B}/asset/${hostId}`).timeout(15_000).then(r => unwrap<AssetDetail>(r));
 
+// ===== 资产检索（主机与设备并列）=====
+
+/** 资产大类 */
+export type AssetType = 'HOST' | 'DEVICE';
+
+/**
+ * 资产简表行 —— 主机与设备统一的列表模型
+ *
+ * 字段取两类资产的公共语义，差异信息放在 category/categoryLabel（主机为系统类型、
+ * 设备为设备大类）与 vendor（仅设备有值）。
+ */
+export interface AssetBrief {
+  /** 资产大类 */
+  assetType: AssetType;
+  /** 资产标识：主机为自增主键十进制形式，设备为 UUID */
+  assetId: string;
+  /** 资产名称 */
+  name?: string;
+  /** 资产地址 */
+  address?: string;
+  /** 端口 */
+  port?: number;
+  /** 类型标签原值 */
+  category?: string;
+  /** 类型标签中文名 */
+  categoryLabel?: string;
+  /** 厂商（仅设备） */
+  vendor?: string;
+  /** 分组标识（仅主机） */
+  groupId?: number;
+  /** 在线状态 */
+  online?: boolean;
+  /** 启用状态：设备表无启用字段，恒为 true */
+  enabled?: boolean;
+  /** 资产详情页路由（前端跳转用） */
+  detailRoute?: string;
+  /** 详情路由携带的查询参数 */
+  detailQuery?: string;
+}
+
+/**
+ * 资产关联的监控项摘要
+ *
+ * 沿用 {@link AssetMonitorRef}，主机与设备详情里的监控项结构一致。
+ */
+export type AssetMonitorItem = AssetMonitorRef;
+
+/** 主机资产聚合详情中的服务节点 */
+export interface AssetNodeChannel {
+  nodeId?: number;
+  name?: string;
+  protocol?: string;
+  port?: number;
+  status?: string;
+  url?: string;
+  extra?: Record<string, unknown>;
+}
+
+/** 主机资产聚合详情：基础信息 + 通道状态 + 服务节点 + 监控项 */
+export interface HostAssetDetail {
+  assetType: AssetType;
+  /** 主机台账标识 */
+  hostId: number;
+  name?: string;
+  address?: string;
+  port?: number;
+  osType?: string;
+  online?: boolean;
+  onlineTime?: string;
+  collectEnabled?: boolean;
+  agentEnabled?: boolean;
+  remoteEnabled?: boolean;
+  nodeCount?: number;
+  runningCount?: number;
+  /** 服务节点清单 */
+  channels?: AssetNodeChannel[];
+  monitorCount?: number;
+  activeAlarmCount?: number;
+  monitors?: AssetMonitorItem[];
+}
+
+/** 设备地理位置 */
+export interface DeviceGeoLocation {
+  latitude?: number | string;
+  longitude?: number | string;
+  address?: string;
+  /** 是否已配置坐标 */
+  located?: boolean;
+}
+
+/** 设备通道摘要 */
+export interface DeviceChannelBrief {
+  channelId?: string;
+  deviceId?: string;
+  channelNo?: number;
+  channelName?: string;
+  channelType?: string;
+  /** 通道状态（设备模块原文透传） */
+  channelStatus?: string;
+  sort?: number;
+}
+
+/** 设备资产聚合详情：基础信息 + 会话状态 + 位置 + 通道 + 监控项 */
+export interface DeviceAssetDetail {
+  assetType: AssetType;
+  /** 设备标识（UUID） */
+  assetId: string;
+  name?: string;
+  address?: string;
+  port?: number;
+  category?: string;
+  categoryLabel?: string;
+  subCategory?: string;
+  vendor?: string;
+  model?: string;
+  serial?: string;
+  firmware?: string;
+  orgId?: string;
+  orgName?: string;
+  /** 探测在线状态（落库快照） */
+  online?: boolean;
+  /** 会话在线状态（内存会话实时值，与 online 有意区分） */
+  sessionOnline?: boolean;
+  offlineThreshold?: number;
+  createdAt?: string;
+  geo?: DeviceGeoLocation;
+  channelCount?: number;
+  enabledChannelCount?: number;
+  channels?: DeviceChannelBrief[];
+  monitorCount?: number;
+  activeAlarmCount?: number;
+  monitors?: AssetMonitorItem[];
+}
+
+/**
+ * 按大类与关键字检索资产
+ *
+ * @param keyword 关键字（主机: 名称/IP；设备: 名称/IP/序列号），空表示全部
+ * @param assetType 资产大类过滤，不传则两类都返回
+ */
+export const searchAssets = (keyword?: string, assetType?: AssetType) =>
+  http()
+    .get(`${B}/asset/search`)
+    .query({ keyword, assetType })
+    .timeout(15_000)
+    .then(r => unwrap<AssetBrief[]>(r));
+
+/** 主机资产聚合详情 */
+export const getHostAssetDetail = (hostId: number | string) =>
+  http()
+    .get(`${B}/asset/host/${hostId}`)
+    .timeout(15_000)
+    .then(r => unwrap<HostAssetDetail>(r));
+
+/** 设备资产聚合详情（设备不存在返回空数据） */
+export const getDeviceAssetDetail = (deviceId: string) =>
+  http()
+    .get(`${B}/asset/device/${deviceId}`)
+    .timeout(15_000)
+    .then(r => unwrap<DeviceAssetDetail>(r));
+
 // ===== Agent 在线状态（心跳上下文快照）=====
 export const getAgentStatus = () =>
   http().get(`${B}/agent/status`).then(r => unwrap<{ monitorId: number; lastHeartbeat: string; online: boolean }[]>(r));

@@ -26,11 +26,14 @@
  *   <ReButton icon="Plus" show-text type="primary">新增用户</ReButton>   <!-- 图标+文字 -->
  *   <ReButton icon="Refresh" class="icon-only" @click="reload" />          <!-- 纯图标 -->
  *   <ReButton layout="square" icon="Refresh" @click="reload" />            <!-- 纯图标正方形，文字仅做 tooltip -->
+ *   <ReButton layout="square" icon="Delete" type="danger" tip="删除这条记录" @click="remove" />
+ *                                                                       <!-- 操作列推荐写法：square + tip -->
  *   <ReButton auth="user:add" type="primary">新增用户</ReButton>
  *   <ReButton layout="modern" type="primary">现代按钮</ReButton>
  */
 import { computed, defineAsyncComponent, inject, useSlots, type Component } from "vue";
 import { ElButton, ElIcon, ElTooltip } from "element-plus";
+import { useAttrs } from "vue";
 import ReIcon from "../ReIcon/theme/default/ReIcon.vue";
 import { RE_AUTH_KEY, type ReAuthFn } from "./auth";
 
@@ -69,6 +72,14 @@ const props = withDefaults(
      *   true  = 强制显示文字
      */
     showText?: boolean;
+    /**
+     * 悬浮提示文案。
+     *
+     * 优先于插槽文字：square 布局本身就是「纯图标 + tooltip」，业务侧把提示语写在
+     * tip 上，不必再塞进插槽（插槽文字只会被当 tooltip 用，不渲染到按钮上）。
+     * 未提供 tip 时回落到插槽文字，再回落到原生 title。
+     */
+    tip?: string;
     /** 图标按钮宽高 px（仅 iconOnly 时生效，默认 32） */
     iconSize?: number;
   }>(),
@@ -90,6 +101,7 @@ const props = withDefaults(
     debounce: 0,
     // showText 不给默认值：undefined = 自动（有文字则显示），见 iconOnly
     showText: undefined,
+    tip: undefined,
     iconSize: 32,
   },
 );
@@ -99,13 +111,38 @@ const emit = defineEmits<{
 }>();
 
 const slots = useSlots();
-const labelText = computed<string>(() => {
+/** 插槽文字（square 布局下只作提示语用，不渲染到按钮上） */
+const slotText = computed<string>(() => {
   const nodes = slots.default?.();
   if (!nodes || nodes.length === 0) return "";
   return nodes
     .map((n) => (typeof n === "string" ? n : (typeof n.children === "string" ? n.children : "")))
     .join("")
     .trim();
+});
+
+/** 原生 title（未声明为 prop，落在 $attrs 里）作为最后回落 */
+const attrs = useAttrs();
+const attrTitle = computed<string>(() => {
+  const t = (attrs as Record<string, unknown>).title;
+  return typeof t === "string" ? t : "";
+});
+
+/**
+ * 提示语文本：tip 优先，其次插槽文字，最后原生 title。
+ *
+ * 之前 labelText 只看插槽，导致「square + title=…」这种写法在有插槽时
+ * 会用错提示语（插槽优先于 title）；加上 tip 后调用方可显式指定，
+ * 且三者优先级明确可预期。
+ */
+const labelText = computed<string>(() => {
+  if (props.tip != null && props.tip.trim() !== "") {
+    return props.tip.trim();
+  }
+  if (slotText.value !== "") {
+    return slotText.value;
+  }
+  return attrTitle.value;
 });
 
 /**

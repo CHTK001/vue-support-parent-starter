@@ -192,8 +192,8 @@ async function remove(input: Record<string, unknown>): Promise<void> {
         </ReTag>
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="Edit" type="primary" title="编辑这个变量" @click="openEdit(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" title="删除这个变量" @click="remove(row)"/>
+        <ReButton layout="square" icon="Edit" type="primary" tip="编辑这个变量" @click="openEdit(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除这个变量" @click="remove(row)"/>
       </template>
     </ReTable>
 

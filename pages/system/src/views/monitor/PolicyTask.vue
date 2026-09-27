@@ -70,6 +70,35 @@ interface TableReloadRef {
   reload: () => Promise<void> | void;
 }
 
+/**
+ * 取一行的业务标识，供操作按钮的 aria-label / tooltip 用
+ *
+ * <p>七个表格的行类型各不相同（热更新 SysSetting、限流 RateLimitRule、IP SysIpBlackwhite、
+ * 账号 AccountBlackwhite、灰度/功能开关/接口管控 PolicyConfig），标识字段也不一样。
+ * 逐个插槽硬写字段名既啰嗦又容易漏，所以这里按优先级兜一次。</p>
+ *
+ * <p><b>为什么必须有它</b>：{@code ReButton} 的 {@code aria-label} 取自插槽文字。
+ * 只写「编辑」「删除」时，同一列所有行的 aria-label 完全一致，屏幕阅读器
+ * 只能报「编辑按钮」，用户无法知道要编辑哪一行。</p>
+ */
+function rowKeyOf(row: unknown): string {
+  const r = (row ?? {}) as Record<string, unknown>;
+  const candidates = [
+    r.bizKey,
+    r.target,
+    r.sysIpIp,
+    r.account,
+    r.sysSettingCode,
+    r.sysSettingName,
+  ];
+  for (const v of candidates) {
+    if (null != v && "" !== v) {
+      return String(v);
+    }
+  }
+  return "";
+}
+
 interface IpQuery {
   page: number;
   pageSize: number;
@@ -584,7 +613,16 @@ const routeActions: Array<{ label: string; value: ApiRouteAction }> = [
 const routeColumns: ReTableColumn[] = [
   { prop: "bizKey", label: "接口路径", minWidth: 240, showOverflowTooltip: true },
   { prop: "actionText", label: "动作", width: 110, slot: "actionText", align: "center" },
-  { prop: "targetText", label: "转发目标", minWidth: 240, showOverflowTooltip: true },
+  {
+    prop: "targetText",
+    label: "转发目标",
+    minWidth: 240,
+    showOverflowTooltip: true,
+    // 必须给 formatter：targetText 是本地函数，不是行上的字段。
+    // 只写 prop 而不配 slot/formatter 时，ReTable 取 row["targetText"] 得到
+    // undefined，单元格恒显示 "-"，看起来像「没配转发目标」。
+    formatter: (row: Record<string, unknown>) => routeTargetText(row as PolicyConfig),
+  },
   { prop: "status", label: "生效", width: 100, slot: "status", align: "center" },
   { prop: "remark", label: "备注", minWidth: 160, showOverflowTooltip: true },
   { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "center" },
@@ -686,8 +724,16 @@ function handleRouteEdit(row: PolicyConfig): void {
   routeDialogVisible.value = true;
 }
 
-/** 动作切换时补齐默认值 */
+/**
+ * 动作切换时补齐默认值
+ *
+ * <p>必须在这里把 {@code action} 本身写回去：单选组是 {@code :model-value} 单向绑定
+ * （不是 v-model），emit 出来的 {@code update:model-value} 不会自动回写。
+ * 只改 status/message/targetKey 而漏掉 action 的话，值永远停在 DISABLE，
+ * v-if 不切换、单选框还会弹回停用 —— 编译和纯接口测试都发现不了。</p>
+ */
 function handleRouteActionChange(action: ApiRouteAction): void {
+  routeRule.value.action = action;
   if (action === "FORWARD") {
     routeRule.value.status = undefined;
     routeRule.value.message = undefined;
@@ -966,21 +1012,26 @@ const ipSearchModel = ref<IpSearchModel>({});
 const accQuery = ref<AccountQuery>({ page: 1, pageSize: 10 });
 const accSearchModel = ref<AccountSearchModel>({});
 
-async function loadIps({ page, pageSize }: ReTableLoadParams): Promise<RePageResult> {
+async function loadIps(params?: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForIp({
-    page,
-    pageSize,
+    page: params?.page ?? ipQuery.value.page,
+    pageSize: params?.pageSize ?? ipQuery.value.pageSize,
     sysIpIp: ipQuery.value.sysIpIp,
     sysIpType: ipQuery.value.sysIpType,
     sysIpStatus: ipQuery.value.sysIpStatus,
   });
+  // 注意：这里读 res.data.total / res.data.data 就是对的。
+  // /v2/ip/page 原始响应确实多一层 {code:0,msg,data:{...}}，但 http 响应拦截器
+  // （packages/core/src/httpCrypto.ts checkApiResponse）已把内层展平，
+  // 业务侧拿到的是 {code:"00000", data:{total, data:[...]}}。
+  // 别再手工多剥一层——那会把本来正确的读法改坏。
   return { total: res.data?.total ?? 0, data: (res.data?.data ?? []) as Record<string, unknown>[] };
 }
 
-async function loadAccounts({ page, pageSize }: ReTableLoadParams): Promise<RePageResult> {
+async function loadAccounts(params?: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForAccountBw({
-    page,
-    pageSize,
+    page: params?.page ?? accQuery.value.page,
+    pageSize: params?.pageSize ?? accQuery.value.pageSize,
     account: accQuery.value.account,
     type: accQuery.value.type,
     status: accQuery.value.status,
@@ -1274,6 +1325,7 @@ async function loadOverview(): Promise<void> {
     hotReloadTotal: hot.status === "fulfilled" ? hot.value.data?.length ?? 0 : 0,
     rateTotal: rules.length,
     rateEnabled: rules.filter((rule) => rule.enabled === 1).length,
+    // 读 data.total 即可：http 响应拦截器已展平 ReturnPageResult 的内层
     ipTotal: ipPage.status === "fulfilled" ? ipPage.value.data?.total ?? 0 : 0,
     accountTotal: accountPage.status === "fulfilled" ? accountPage.value.data?.total ?? 0 : 0,
   };
@@ -1523,7 +1575,7 @@ onMounted(() => {
               <ReTag effect="light" round size="small">{{ (row as HotReloadConfig).sysSettingValueType || "string" }}</ReTag>
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" @click="handleHrEdit(row as HotReloadConfig)">编辑</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleHrEdit(row as HotReloadConfig)">编辑 {{ rowKeyOf(row) }}</ReButton>
             </template>
           </ReTable>
         </section>
@@ -1590,7 +1642,7 @@ onMounted(() => {
               />
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" @click="handleRateEdit(row as RateLimitRule)">编辑</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleRateEdit(row as RateLimitRule)">编辑 {{ rowKeyOf(row) }}</ReButton>
               <ReButton
                 layout="square"
                 type="danger"
@@ -1598,7 +1650,7 @@ onMounted(() => {
                 :loading="rateDeleteLoadingId === (row as RateLimitRule).sysRateLimitRuleId"
                 @click="handleRateDelete(row as RateLimitRule)"
               >
-                删除
+                删除 {{ rowKeyOf(row) }}
               </ReButton>
             </template>
           </ReTable>
@@ -1650,7 +1702,7 @@ onMounted(() => {
                 </ReTag>
               </template>
               <template #action="{ row }">
-                <ReButton layout="square" type="primary" icon="Edit" @click="handleIpEdit(row)">编辑</ReButton>
+                <ReButton layout="square" type="primary" icon="Edit" @click="handleIpEdit(row)">编辑 {{ rowKeyOf(row) }}</ReButton>
                 <ReButton
                   layout="square"
                   type="danger"
@@ -1658,7 +1710,7 @@ onMounted(() => {
                   :loading="ipDeleteLoadingId === (row as SysIpBlackwhite).sysIpId"
                   @click="handleIpDelete(row)"
                 >
-                  删除
+                  删除 {{ rowKeyOf(row) }}
                 </ReButton>
               </template>
             </ReTable>
@@ -1689,7 +1741,7 @@ onMounted(() => {
                 </ReTag>
               </template>
               <template #action="{ row }">
-                <ReButton layout="square" type="primary" icon="Edit" @click="handleAccEdit(row)">编辑</ReButton>
+                <ReButton layout="square" type="primary" icon="Edit" @click="handleAccEdit(row)">编辑 {{ rowKeyOf(row) }}</ReButton>
                 <ReButton
                   layout="square"
                   type="danger"
@@ -1697,7 +1749,7 @@ onMounted(() => {
                   :loading="accDeleteLoadingId === (row as AccountBlackwhite).sysAccountBwId"
                   @click="handleAccDelete(row)"
                 >
-                  删除
+                  删除 {{ rowKeyOf(row) }}
                 </ReButton>
               </template>
             </ReTable>
@@ -1749,7 +1801,7 @@ onMounted(() => {
               />
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" @click="handleGrayEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleGrayEdit(row as PolicyConfig)">编辑 {{ rowKeyOf(row) }}</ReButton>
               <ReButton
                 layout="square"
                 type="danger"
@@ -1757,7 +1809,7 @@ onMounted(() => {
                 :loading="grayDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
                 @click="handleGrayDelete(row as PolicyConfig)"
               >
-                删除
+                删除 {{ rowKeyOf(row) }}
               </ReButton>
             </template>
           </ReTable>
@@ -1821,7 +1873,7 @@ onMounted(() => {
               />
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" @click="handleFeatureEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleFeatureEdit(row as PolicyConfig)">编辑 {{ rowKeyOf(row) }}</ReButton>
               <ReButton
                 layout="square"
                 type="danger"
@@ -1829,7 +1881,7 @@ onMounted(() => {
                 :loading="featureDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
                 @click="handleFeatureDelete(row as PolicyConfig)"
               >
-                删除
+                删除 {{ rowKeyOf(row) }}
               </ReButton>
             </template>
           </ReTable>
@@ -1903,7 +1955,7 @@ onMounted(() => {
               />
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" @click="handleRouteEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleRouteEdit(row as PolicyConfig)">编辑 {{ rowKeyOf(row) }}</ReButton>
               <ReButton
                 layout="square"
                 type="danger"
@@ -1911,7 +1963,7 @@ onMounted(() => {
                 :loading="routeDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
                 @click="handleRouteDelete(row as PolicyConfig)"
               >
-                删除
+                删除 {{ rowKeyOf(row) }}
               </ReButton>
             </template>
           </ReTable>

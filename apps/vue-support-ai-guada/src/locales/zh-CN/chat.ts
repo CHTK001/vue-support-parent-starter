@@ -230,6 +230,19 @@ export default {
     executingSteps: '正在执行{n}个步骤',
     executingStepsWithCompleted: '正在执行{n}个步骤,已完成{m}个步骤',
     executedSteps: '已执行{n}个步骤',
+
+    // ── 回合级执行摘要条 ──
+    expandProcess: '展开执行过程',
+    collapseProcess: '收起执行过程',
+    noProcess: '无执行过程',
+    phaseThink: '思考',
+    phaseSearch: '检索',
+    phaseCommand: '执行命令',
+    phaseEditFile: '编辑文件',
+    phaseRead: '读取文件',
+    phaseWeb: '联网',
+    phaseTool: '工具调用',
+    phaseCompose: '组织回答',
   },
 
   // ── 消息操作 ──
@@ -241,7 +254,25 @@ export default {
     more: '更多',
     editContent: '编辑内容',
     deleteMessage: '删除消息',
+    rewindHere: '从此处回退',
+    forkHere: '从此处分叉',
   },
+
+  // ── 从此处回退确认框 ──
+  rewindDialog: {
+    title: '从此处回退？',
+    message: '将删除本轮提问及之后的全部 {turns} 轮对话（共 {messages} 条消息），此操作不可撤销。',
+    workspaceWarning: '注意：对话可以回退，但工作目录里已被工具写入的文件不会回滚。',
+    confirm: '回退',
+    cancel: '取消',
+    success: '已回退，删除 {messages} 条消息',
+    successLastTurn: '已回退本轮提问',
+    failed: '回退失败',
+  },
+
+  // ── 从此处分叉 ──
+  forkSuccess: '已分叉为新会话「{title}」',
+  forkFailed: '分叉失败',
 
   // ── 工具调用 ──
   toolCalls: {

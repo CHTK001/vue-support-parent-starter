@@ -174,6 +174,11 @@ export default defineConfig({
       // @repo/core 运行时动态 import 的两个包（core 不静态依赖它们）
       { find: '@repo/pages', replacement: path.resolve(WORKSPACE_ROOT, 'packages/pages/src') },
       { find: '@repo/pinia', replacement: path.resolve(WORKSPACE_ROOT, 'packages/pinia/src') },
+      // themeBridge 的动态 import("@repo/theme") 同理：theme → core 构成环，core 无法声明。
+      // 顺序要紧：@repo/theme/koi 必须排在 @repo/theme 之前，否则 @repo/theme/koi/framework
+      // 会被前缀匹配改写成不存在的 packages/theme/src/koi/framework。
+      { find: '@repo/theme/koi', replacement: path.resolve(WORKSPACE_ROOT, 'packages/theme/src/themes/koi') },
+      { find: '@repo/theme', replacement: path.resolve(WORKSPACE_ROOT, 'packages/theme/src') },
       // @repo/ui 的 exports 里没有 re-map，且它不在本应用依赖里，只能显式指到真实目录
       { find: '@repo/re-map', replacement: path.resolve(WORKSPACE_ROOT, 'packages/ui/re-map') },
       // koi layouts/components/{AnnouncementBar,Main} 内是动态 import，编译期才解析；

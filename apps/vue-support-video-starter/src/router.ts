@@ -43,6 +43,25 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "搜索" },
   },
   {
+    path: "/live",
+    name: "live",
+    component: () => import("./views/LiveView.vue"),
+    meta: { title: "电视直播" },
+  },
+  {
+    path: "/live/cctv",
+    name: "live-cctv",
+    component: () => import("./views/LiveView.vue"),
+    props: { cctvOnly: true },
+    meta: { title: "CCTV直播" },
+  },
+  {
+    path: "/config",
+    name: "config",
+    component: () => import("./views/ConfigView.vue"),
+    meta: { title: "配置管理" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/",
   },

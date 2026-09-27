@@ -52,6 +52,20 @@ export interface MessageContent {
   thinkingDurationMs?: number | null;
   searchResults?: Array<{ title: string; url: string }>;
   searchQuery?: string;
+  /**
+   * 执行日志：助手回合的工具调用轨迹，渲染成「执行日志」控制台。
+   * 非助手消息为 undefined。
+   */
+  traceLog?: Array<{
+    /** 日志类别，决定左侧色条样式与文案（如 tool / think / search） */
+    kind: string;
+    /** 毫秒时间戳 */
+    timestamp?: number;
+    /** 工具名，仅 kind=tool 时有值 */
+    toolName?: string;
+    /** 日志正文 */
+    text?: string;
+  }>;
   state: {
     isStreaming: boolean;
     isThinking: boolean;
@@ -269,6 +283,21 @@ function flattenContents(contents: MessageContent[]): DisplayItem[] {
     items.push(...flattenSingleContent(content));
   }
   return items;
+}
+
+/**
+ * 按发生顺序拍平消息内容，供「步骤时间线」渲染。
+ *
+ * <p>与 {@link groupContentsForDisplay} 的区别：不做 content 分隔分组，
+ * 直接返回 search → think → content → tool 的原始顺序，
+ * 便于把中间叙述、思考、工具调用交织成一条时间线。</p>
+ *
+ * @param contents 消息内容数组
+ * @returns 有序展示项
+ */
+export function flattenContentsForTimeline(contents: MessageContent[]): DisplayItem[] {
+  if (!contents || contents.length === 0) return [];
+  return flattenContents(contents);
 }
 
 /**

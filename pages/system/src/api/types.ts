@@ -16,26 +16,6 @@ export interface PageResult<T> {
   rows?: T[];
 }
 
-/**
- * 后端 `ReturnPageResult` 的内层信封
- *
- * <p>与普通 {@code ReturnResult}（{@code data} 直接就是分页体）不同，走
- * {@code ReturnPageResult} 的端点（当前是 {@code /v2/ip/page}）响应是：</p>
- *
- * <pre>
- * { code:"00000", data:{ code:0, msg:"success",
- *                       data:{ total:6, data:[...] } } }
- * </pre>
- *
- * <p>即<b>数组在 {@code data.data.data}、总数在 {@code data.data.total}</b>。
- * 少剥一层会静默拿到 undefined，表格表现为「暂无数据」而不是报错。</p>
- */
-export interface PageResultEnvelope<T> {
-  code?: number;
-  msg?: string;
-  data?: PageResult<T>;
-}
-
 /** 统一返回结构 */
 export interface ApiResult<T = unknown> {
   status?: number;
@@ -1396,4 +1376,26 @@ export interface PolicyConfig {
 export interface RegisteredRoute {
   /** 注册 key，形如 `GET /v2/user/me` */
   key: string;
-  /** HTTP 方法
+  /** HTTP 方法 */
+  method: string;
+  /** 路径模式 */
+  path: string;
+  /** 处理方法，形如 `SysUserController#me` */
+  handler: string;
+}
+
+/** 接口停用/转发规则的动作 */
+export type ApiRouteAction = "PASS" | "DISABLE" | "FORWARD";
+
+/** 接口停用/转发规则内容（存于 PolicyConfig.config，JSON 字符串） */
+export interface ApiRouteRuleConfig {
+  /** 动作：PASS 放行 / DISABLE 停用 / FORWARD 转发 */
+  action: ApiRouteAction;
+  /** 停用响应码，默认 503 */
+  status?: number;
+  /** 停用提示 */
+  message?: string;
+  /** 目标注册 key，仅 FORWARD 需要；必须是已注册路由 */
+  targetKey?: string;
+}
+

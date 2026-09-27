@@ -2,9 +2,14 @@
   <div class="agents-page">
     <div class="page-header">
       <h2>Agent管理</h2>
-      <el-button type="primary" @click="handleAdd">
-        <el-icon><Plus /></el-icon> 新增Agent
-      </el-button>
+      <div class="page-header-actions">
+        <el-button @click="installDialogVisible = true">
+          <el-icon><Download /></el-icon> 安装智能体
+        </el-button>
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon> 新增Agent
+        </el-button>
+      </div>
     </div>
 
     <!-- Agent列表 -->
@@ -33,6 +38,40 @@
           <el-button type="success" link @click="handleRegister(row)">注册为模型</el-button>
           <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
           <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 已安装的智能体包（磁盘 + 落库状态） -->
+    <div class="section-header">
+      <h3>已安装的智能体包</h3>
+      <el-button size="small" @click="loadPackages" :loading="loadingPackages">
+        <el-icon><Refresh /></el-icon> 刷新
+      </el-button>
+    </div>
+    <el-table :data="packageList" v-loading="loadingPackages" border style="width: 100%">
+      <el-table-column prop="name" label="包名" min-width="140" />
+      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="model" label="绑定模型" min-width="120" />
+      <el-table-column label="来源" width="90">
+        <template #default="{ row }">
+          <el-tag size="small" :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="sub_agents" label="子智能体" width="90" align="center" />
+      <el-table-column label="已落库" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" :type="row.installed ? 'success' : 'warning'">{{ row.installed ? '是' : '否' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="启用" width="80" align="center">
+        <template #default="{ row }">
+          <el-switch :model-value="row.enabled" @change="(v: any) => handleTogglePackage(row, v)" />
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button type="danger" link size="small" @click="handleUninstallPackage(row)">卸载</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -173,28 +212,251 @@
         <el-button type="primary" @click="saveSubAgent" :loading="savingSubAgent">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 安装智能体 -->
+    <el-dialog v-model="installDialogVisible" title="安装智能体" width="720px" top="6vh">
+      <el-tabs v-model="installTab">
+        <!-- 市场 -->
+        <el-tab-pane label="市场" name="market">
+          <div class="install-toolbar">
+            <el-select v-model="marketSource" placeholder="来源" style="width: 160px" clearable>
+              <el-option v-for="s in marketSourceList" :key="s.source" :label="s.display_name || s.source" :value="s.source" />
+            </el-select>
+            <el-input v-model="marketKeyword" placeholder="关键词，可空" style="width: 220px" clearable @keyup.enter="handleMarketSearch" />
+            <el-button type="primary" @click="handleMarketSearch" :loading="searchingMarket">搜索</el-button>
+          </div>
+          <el-table :data="marketItems" v-loading="searchingMarket" border size="small" style="width: 100%; margin-top: 10px">
+            <el-table-column prop="name" label="名称" min-width="140" />
+            <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="model" label="模型" width="120" />
+            <el-table-column prop="display_source" label="来源" width="110" />
+            <el-table-column label="操作" width="90" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" link size="small" @click="handleInstallFromMarket(row)">安装</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 本地导入 -->
+        <el-tab-pane label="本地导入" name="local">
+          <el-alert
+            title="智能体包为目录 + AGENT.md（YAML frontmatter + 正文），子智能体放 agents/<name>/AGENT.md"
+            type="info"
+            :closable="false"
+            style="margin-bottom: 12px"
+          />
+          <el-form label-width="90px">
+            <el-form-item label="目录路径">
+              <el-input v-model="importPath" placeholder="如 G:\\work\\agents\\builtin\\coordinator" />
+            </el-form-item>
+          </el-form>
+          <el-button type="primary" @click="handleImportPath" :loading="importing">导入目录</el-button>
+          <el-divider>或</el-divider>
+          <el-upload :auto-upload="false" :show-file-list="false" accept=".zip" :on-change="handleZipSelected">
+            <el-button :loading="importing">选择 zip 上传</el-button>
+          </el-upload>
+          <div class="install-hint" v-if="installHint">{{ installHint }}</div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Refresh } from '@element-plus/icons-vue';
+import { Plus, Refresh, Download } from '@element-plus/icons-vue';
 import { agentApi } from '@/services/javaApi';
 
 // ==================== Agent列表 ====================
 const agentList = ref<any[]>([]);
 const loading = ref(false);
 
+/**
+ * 后端 /api/agents/managed 出参是下划线蛇形（agent_id/parent_id/...），
+ * 列表与表单用的是驼峰。这里统一归一化，避免字段名不一致导致「建了看不到」。
+ */
+const normalizeAgent = (a: any) => ({
+  id: a.agent_id ?? a.id,
+  agentId: a.agent_id ?? a.id,
+  parentId: a.parent_id ?? null,
+  name: a.name,
+  description: a.description,
+  model: a.model,
+  providerId: a.provider_id,
+  // 有 parent_id 即为子 Agent（后端以层级而非类型字段区分）
+  type: a.parent_id ? 'sub' : 'master',
+  role: a.role,
+  instruction: a.instruction,
+  systemPrompt: a.system_prompt || a.instruction || '',
+  mcpIds: a.mcp_ids || [],
+  skillIds: a.skill_ids || [],
+  strategy: a.strategy || {},
+  enabled: a.enabled !== false,
+  sortOrder: a.sort_order,
+  subAgents: a.sub_agents || [],
+});
+
+/** 表单 → 后端请求体（后端只认蛇形键） */
+const toAgentPayload = (f: any) => ({
+  name: f.name,
+  description: f.description,
+  model: f.model,
+  provider_id: f.providerId,
+  instruction: f.instruction,
+  system_prompt: f.systemPrompt,
+  mcp_ids: f.mcpIds,
+  skill_ids: f.skillIds,
+  strategy: f.strategy,
+  enabled: f.enabled,
+});
+
 const loadAgents = async () => {
   loading.value = true;
   try {
     const res = await agentApi.list();
-    agentList.value = res?.data || res || [];
+    const raw = res?.data || res || [];
+    agentList.value = (Array.isArray(raw) ? raw : []).map(normalizeAgent);
   } catch (e) {
     agentList.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+// ==================== 智能体安装包 ====================
+const packageList = ref<any[]>([]);
+const loadingPackages = ref(false);
+
+const loadPackages = async () => {
+  loadingPackages.value = true;
+  try {
+    const res = await agentApi.packages();
+    const raw = res?.data || res || [];
+    packageList.value = Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    packageList.value = [];
+  } finally {
+    loadingPackages.value = false;
+  }
+};
+
+const handleTogglePackage = async (row: any, enabled: boolean) => {
+  try {
+    await agentApi.togglePackage(row.name, enabled);
+    ElMessage.success(enabled ? '已启用' : '已禁用');
+    await Promise.all([loadPackages(), loadAgents()]);
+  } catch (e: any) {
+    ElMessage.error('切换失败: ' + (e?.message || ''));
+  }
+};
+
+const handleUninstallPackage = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定卸载智能体包 "${row.name}" 吗？将同时删除库中记录。`, '确认卸载', { type: 'warning' });
+    await agentApi.uninstallPackage(row.name);
+    ElMessage.success('已卸载');
+    await Promise.all([loadPackages(), loadAgents()]);
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('卸载失败');
+  }
+};
+
+// ==================== 安装弹窗 ====================
+const installDialogVisible = ref(false);
+const installTab = ref('market');
+const installHint = ref('');
+
+// 市场
+const marketSource = ref<string | undefined>(undefined);
+const marketSourceList = ref<any[]>([]);
+const marketKeyword = ref('');
+const marketItems = ref<any[]>([]);
+const searchingMarket = ref(false);
+
+const loadMarketSources = async () => {
+  try {
+    const res = await agentApi.marketSources();
+    const raw = res?.data || res || [];
+    marketSourceList.value = Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    marketSourceList.value = [];
+  }
+};
+
+const handleMarketSearch = async () => {
+  searchingMarket.value = true;
+  try {
+    const res = await agentApi.marketSearch({ keyword: marketKeyword.value || undefined });
+    const data = res?.data || res || {};
+    let items = Array.isArray(data.items) ? data.items : [];
+    if (marketSource.value) {
+      items = items.filter((i: any) => i.source === marketSource.value);
+    }
+    marketItems.value = items;
+  } catch (e: any) {
+    marketItems.value = [];
+    ElMessage.error('检索失败: ' + (e?.message || ''));
+  } finally {
+    searchingMarket.value = false;
+  }
+};
+
+const handleInstallFromMarket = async (row: any) => {
+  installing.value = true;
+  try {
+    await agentApi.installPackage({ source: row.source, path: row.path, url: row.url });
+    ElMessage.success(`已安装 ${row.name}`);
+    installHint.value = `已安装：${row.name}`;
+    await Promise.all([loadPackages(), loadAgents(), handleMarketSearch()]);
+  } catch (e: any) {
+    ElMessage.error('安装失败: ' + (e?.message || ''));
+  } finally {
+    installing.value = false;
+  }
+};
+
+// 本地导入
+const importPath = ref('');
+const importing = ref(false);
+const installing = ref(false);
+
+const handleImportPath = async () => {
+  if (!importPath.value) {
+    ElMessage.warning('请输入目录路径');
+    return;
+  }
+  importing.value = true;
+  try {
+    const res = await agentApi.importPackage({ path: importPath.value });
+    const data = res?.data || res || {};
+    installHint.value = `已安装：${data.name}（子智能体 ${(data.sub_agents || []).length} 个）`;
+    ElMessage.success('导入成功');
+    await Promise.all([loadPackages(), loadAgents()]);
+  } catch (e: any) {
+    ElMessage.error('导入失败: ' + (e?.message || ''));
+  } finally {
+    importing.value = false;
+  }
+};
+
+const handleZipSelected = async (uploadFile: any) => {
+  const file = uploadFile?.raw;
+  if (!file) return;
+  importing.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await agentApi.importPackage(fd);
+    const data = res?.data || res || {};
+    installHint.value = `已安装：${data.name}（子智能体 ${(data.sub_agents || []).length} 个）`;
+    ElMessage.success('上传安装成功');
+    await Promise.all([loadPackages(), loadAgents()]);
+  } catch (e: any) {
+    ElMessage.error('上传安装失败: ' + (e?.message || ''));
+  } finally {
+    importing.value = false;
   }
 };
 
@@ -230,11 +492,12 @@ const saveAgent = async () => {
   }
   saving.value = true;
   try {
+    const payload = toAgentPayload(editForm.value);
     if (editingId.value) {
-      await agentApi.update(editingId.value, editForm.value);
+      await agentApi.update(editingId.value, payload);
       ElMessage.success('更新成功');
     } else {
-      await agentApi.create(editForm.value);
+      await agentApi.create(payload);
       ElMessage.success('创建成功');
     }
     editDialogVisible.value = false;
@@ -454,6 +717,8 @@ const unregisterModel = async () => {
 
 onMounted(() => {
   loadAgents();
+  loadPackages();
+  loadMarketSources();
 });
 </script>
 
@@ -479,5 +744,34 @@ onMounted(() => {
 .orchestration-toolbar {
   display: flex;
   gap: 10px;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0 10px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.install-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.install-hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #67c23a;
 }
 </style>

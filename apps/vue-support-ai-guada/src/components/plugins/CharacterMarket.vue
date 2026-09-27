@@ -129,8 +129,12 @@ import type {
 type DisplayItem = CharacterCatalogItem & {
   custom?: boolean
   roleId?: string
+  /** 角色设定码（自建角色才有，内置目录为空） */
+  code?: string
   systemPrompt?: string
   temperature?: number
+  /** 自建角色绑定的模型 ID */
+  modelId?: string
   avatarUrl?: string
   /** 自建角色用它做去重与跳转（builtinIds 也按 code 比对） */
   code?: string | null

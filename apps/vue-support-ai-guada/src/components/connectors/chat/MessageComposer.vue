@@ -80,11 +80,10 @@ const emit = defineEmits<{
 
 const empty = computed(() => !props.modelValue || !props.modelValue.trim())
 
-// el-input 的原生 keydown 声明为 Event | KeyboardEvent，这里保持同一签名
 function handleKeydown(e: Event | KeyboardEvent) {
-  const keyEvent = e as KeyboardEvent
-  if (keyEvent.key !== 'Enter') return
-  if (keyEvent.shiftKey) return // 换行
+  if (!('key' in e)) return
+  if (e.key !== 'Enter') return
+  if (e.shiftKey) return // 换行
   e.preventDefault()
   if (props.disabled || empty.value || props.sending || props.aiSending) return
   emit('send')

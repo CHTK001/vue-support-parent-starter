@@ -247,7 +247,7 @@ interface ChatConfig {
   attachments?: Record<string, string[]>
   defaultThink?: boolean
   defaultSearch?: boolean
-  /** 会话级 MCP 工具ID，逗号分隔 */
+  /** 逗号分隔的 MCP Server ID 串（会话级绑定，与 types/session.ts 口径一致） */
   mcpServerIds?: string
 }
 

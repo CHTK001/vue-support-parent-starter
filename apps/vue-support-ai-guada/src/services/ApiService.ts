@@ -46,6 +46,7 @@ import { pluginApi, type PluginApi } from "./modules/plugin.api";
 import { remoteWorkspaceApi, type RemoteWorkspaceApi } from "./modules/remote-workspace.api";
 import { tavernApi, type TavernApi } from "./modules/tavern.api";
 import { generateApi, type GenerateApi } from "./modules/generate.api";
+import { faceApi, type FaceApi } from "./modules/face.api";
 
 export type { FileChangeEvent };
 export type { SessionEvent, SessionEventType };
@@ -70,7 +71,8 @@ interface ApiService
     PluginApi,
     RemoteWorkspaceApi,
     TavernApi,
-    GenerateApi {}
+    GenerateApi,
+    FaceApi {}
 
 /**
  * 框架请求管线错误 → 本项目错误类型。
@@ -335,6 +337,7 @@ Object.assign(
   remoteWorkspaceApi,
   tavernApi,
   generateApi,
+  faceApi,
 );
 
 /**

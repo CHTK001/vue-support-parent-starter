@@ -8,6 +8,8 @@
       ]"
       :disabled="disabled"
       type="button"
+      role="switch"
+      :aria-checked="isActive"
       @click="toggle"
     >
       <span class="re-switch-square__label">
@@ -44,6 +46,8 @@
     ]"
     :disabled="disabled"
     type="button"
+    role="switch"
+    :aria-checked="isActive"
     @click="toggle"
   >
     <span class="re-switch-square__label">
@@ -78,6 +82,12 @@
  *
  * 以正方形按钮形式展示，激活时右上角打勾 + 边框高亮。
  * 可通过默认插槽传入图标/文字。
+ *
+ * <p><b>无障碍</b>：激活态只有视觉信号（边框色 + 右上角打勾），颜色/图形本身
+ * 对屏幕阅读器不可见。所以按钮必须带 {@code role="switch"} 与
+ * {@code :aria-checked="isActive"}，否则读屏只会报「某按钮」，
+ * 用户无从判断开关状态（WCAG 4.1.2 名称/角色/值）。两个分支
+ * （有/无 tooltip）都要带，缺一个就有一半场景失效。</p>
  */
 import { computed, useSlots } from "vue";
 import { ElTooltip } from "element-plus";

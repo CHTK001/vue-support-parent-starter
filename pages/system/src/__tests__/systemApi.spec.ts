@@ -11,6 +11,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // 通过 vi.hoisted 在 hoist 之前构造共享的调用记录与 mock http
 const mockHttp = vi.hoisted(() => {
   const calls: Record<string, any[]> = { get: [], post: [], put: [], delete: [] };
+  // 默认响应；setResponse() 可为下一个请求指定真实后端结构（用于钉住分页端点的嵌套层数）
+  let nextResponse: any = { code: 0, data: {} };
 
   function createChain(url: string, method: "get" | "post" | "put" | "delete") {
     const rec: any = { url, method, params: undefined, body: undefined };
@@ -29,8 +31,11 @@ const mockHttp = vi.hoisted(() => {
       },
     };
     // 让链对象 thenable，模拟 .then(r => r.data)
-    chain.then = (resolve: any) =>
-      Promise.resolve({ data: { code: 0, data: {} } }).then(resolve);
+    chain.then = (resolve: any) => {
+      const payload = nextResponse;
+      nextResponse = { code: 0, data: {} };
+      return Promise.resolve({ data: payload }).then(resolve);
+    };
     return chain;
   }
 
@@ -41,7 +46,7 @@ const mockHttp = vi.hoisted(() => {
     delete: (url: string) => createChain(url, "delete"),
   });
 
-  return { calls, http };
+  return { calls, http, setResponse: (p: any) => { nextResponse = p; } };
 });
 
 vi.mock("@repo/utils", () => ({ http: mockHttp.http }));
@@ -169,6 +174,30 @@ describe("systemApi URL/方法构造", () => {
     const c = mockHttp.calls.get.at(-1)!;
     expect(c.url).toBe("/v2/ip/page");
     expect(c.params.sysIpType).toBe(1);
+  });
+
+  it("IP：业务侧拿到的是已展平的分页体（拦截器已剥 ReturnPageResult 内层）", async () => {
+    // /v2/ip/page 的原始响应是 {code:"00000", data:{code:0,msg,data:{total,data}}}，
+    // 但 http 响应拦截器（packages/core/src/httpCrypto.ts checkApiResponse）在
+    // inner.code===0 时会把内层展平，业务侧 res.data 直接就是分页体。
+    // 这里模拟「拦截器之后」的结构 —— 即业务代码实际看到的形状。
+    mockHttp.setResponse({
+      code: "00000",
+      data: { pageNo: 1, pageSize: 10, totalPages: 1, total: 6, data: [{ sysIpId: 1, sysIpIp: "1.1.1.1" }] },
+    });
+    const res = await pageForIp({ page: 1, pageSize: 10 });
+    expect(res.data?.total).toBe(6);
+    expect(res.data?.data).toHaveLength(1);
+  });
+
+  it("账号名单：数组在 list（与 IP 的 data 字段名不同）", async () => {
+    mockHttp.setResponse({
+      code: "00000",
+      data: { list: [{ sysAccountBwId: 1, account: "ops" }], total: 2, pageNo: 1, pageSize: 10, pages: 1 },
+    });
+    const res = await pageForAccountBw({ page: 1, pageSize: 10 });
+    expect(res.data?.total).toBe(2);
+    expect(res.data?.list).toHaveLength(1);
   });
 
   it("IP：新增 POST /v2/ip/save", async () => {

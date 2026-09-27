@@ -40,17 +40,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type PropType } from 'vue'
+import { ref } from 'vue'
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
 
 defineProps({
   data: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
   stripe: { type: Boolean, default: true },
   border: { type: Boolean, default: false },
-  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   loading: { type: Boolean, default: false },
   emptyText: { type: String, default: '暂无数据' },
   rowKey: {
-    type: [String, Function] as PropType<string | ((row: Record<string, any>) => string)>,
+    type: [String, Function] as PropType<
+      string | ((row: Record<string, any>) => string)
+    >,
     default: 'id',
   },
   rowStyle: {

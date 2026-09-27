@@ -22,13 +22,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed } from 'vue'
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   label: { type: String, default: '' },
   placeholder: { type: String, default: '请输入' },
-  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   disabled: { type: Boolean, default: false },
   clearable: { type: Boolean, default: true },
   showPassword: { type: Boolean, default: false },

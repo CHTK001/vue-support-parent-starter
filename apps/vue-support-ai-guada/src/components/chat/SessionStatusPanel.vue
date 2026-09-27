@@ -1,11 +1,14 @@
 <template>
   <!--
     会话工作状态面板
-    聚合展示当前会话的上下文占用与轮次统计（回答速度/模型耗时/工具耗时/步骤）
-    以及上下文来源（技能 / MCP 服务器）。数据来源：
-    - 上下文：useSessionTokenStats（REST + SSE contextStats）
+    聚合展示当前会话的概要、上下文占用与 token 明细、轮次统计（回答速度/模型耗时/工具耗时/步骤）、
+    工具调用明细、上下文来源（技能 / MCP 服务器）以及本次会话修改的文件。数据来源：
+    - 上下文：useSessionTokenStats（REST + SSE contextStats），含 breakdown 五分量
+    - 会话概要：sessionStore.getSession（模型/创建时间）+ 会话消息聚合（消息数/累计 token/时长）
     - 轮次统计：会话消息聚合（usage / totalDurationMs / toolDurationMs / 工具调用数）
+    - 工具调用明细：会话消息的 metadata.toolCalls 按 name 聚合（次数/失败数/占比）
     - 上下文来源：GET /skills、GET /mcp-servers（按启用过滤）
+    - 修改的文件：write/edit 工具调用经 useFileChanges 按 filePath 聚合（自带增删行数）
   -->
   <div class="session-status-panel">
     <div class="panel-header">
@@ -27,6 +30,32 @@
     </div>
 
     <div class="panel-content">
+      <!-- 会话概要 -->
+      <div class="stat-section">
+        <div class="row">
+          <span class="label">模型</span>
+          <span class="value ellipsis" :title="overview.modelName">{{ overview.modelName || '—' }}</span>
+        </div>
+        <div class="row">
+          <span class="label">消息</span>
+          <span class="value">{{ overview.userMessages }} 问 / {{ overview.assistantMessages }} 答</span>
+        </div>
+        <div class="row">
+          <span class="label">会话时长</span>
+          <span class="value">{{ overview.durationText }}</span>
+        </div>
+        <div class="row">
+          <span class="label">累计消耗</span>
+          <span class="value">{{ overview.totalTokensText }}</span>
+        </div>
+        <div class="row">
+          <span class="label">输入 / 输出</span>
+          <span class="value">{{ overview.ioText }}</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <!-- 上下文 -->
       <div class="stat-section">
         <div class="row">
@@ -35,6 +64,21 @@
         </div>
         <div class="progress">
           <div class="progress-fill" :style="{ width: contextPercent + '%', background: progressColor }"></div>
+        </div>
+        <div class="token-numbers">
+          <span>已用 <b>{{ formatTokens(usedTokens) }}</b></span>
+          <span>剩余 <b>{{ formatTokens(remainingTokens) }}</b></span>
+        </div>
+
+        <!-- token 构成明细：系统提示 / 摘要 / 用户输入 / 历史消息 / 工具定义 -->
+        <div v-if="breakdownRows.length" class="breakdown">
+          <div v-for="row in breakdownRows" :key="row.key" class="bd-row">
+            <span class="bd-label" :title="row.label">{{ row.label }}</span>
+            <span class="bd-bar">
+              <i :style="{ width: row.percent + '%', background: row.color }"></i>
+            </span>
+            <span class="bd-value">{{ formatTokens(row.value) }}</span>
+          </div>
         </div>
       </div>
 
@@ -62,10 +106,56 @@
             <span class="label">工具耗时</span>
             <span class="value">{{ toolTimeText }}</span>
           </div>
-          <div class="row">
+          <div class="row row--clickable" @click="stepsExpanded = !stepsExpanded">
             <span class="label">步骤</span>
-            <span class="value">{{ stats.steps }}</span>
+            <span class="value step-toggle-value">
+              {{ stats.steps }}
+              <el-icon class="chevron-inline" :class="{ collapsed: !stepsExpanded }"><ArrowDown /></el-icon>
+            </span>
           </div>
+          <!-- 步骤明细：按发生顺序的时间线（思考 / 检索 / 工具调用逐步展开） -->
+          <div v-show="stepsExpanded" class="step-detail">
+            <template v-if="stepItems.length">
+              <div v-for="(step, i) in stepItems" :key="step.id" class="step-row" :class="{ 'is-failed': step.failed }">
+                <span class="step-index">{{ i + 1 }}</span>
+                <el-icon class="step-icon" :style="step.failed ? { color: '#f56c6c' } : undefined">
+                  <component :is="step.icon" />
+                </el-icon>
+                <span class="step-label" :title="step.label">{{ step.label }}</span>
+                <span v-if="step.detail" class="step-arg" :title="step.detail">{{ step.detail }}</span>
+              </div>
+            </template>
+            <div v-else class="empty-hint">尚未产生步骤</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 工具调用明细 -->
+      <div class="stat-section">
+        <div class="section-header" @click="toolsExpanded = !toolsExpanded">
+          <span class="section-title">
+            <el-icon class="section-icon"><Tools /></el-icon>
+            <span>工具调用</span>
+          </span>
+          <span class="section-side">{{ toolRows.length ? `${stats.steps} 次` : '' }}</span>
+          <el-icon class="chevron" :class="{ collapsed: !toolsExpanded }"><ArrowDown /></el-icon>
+        </div>
+        <div v-show="toolsExpanded" class="section-body">
+          <template v-if="toolRows.length">
+            <div v-for="row in toolRows" :key="row.name" class="tool-row">
+              <span class="tool-name" :title="row.name">{{ row.name }}</span>
+              <span class="bd-bar">
+                <i :style="{ width: row.percent + '%', background: '#409eff' }"></i>
+              </span>
+              <span class="bd-value">{{ row.count }} 次</span>
+            </div>
+            <div v-if="failedToolCount" class="tool-failed">
+              {{ failedToolCount }} 次失败
+            </div>
+          </template>
+          <div v-else class="empty-hint">尚未调用工具</div>
         </div>
       </div>
 
@@ -92,16 +182,44 @@
           </div>
         </div>
       </div>
+
+      <!-- 本次会话修改的文件（来自 write/edit 工具调用，不依赖后端文件树接口） -->
+      <template v-if="fileChanges.length > 0">
+        <div class="divider"></div>
+
+        <div class="stat-section">
+          <div class="section-header" @click="filesExpanded = !filesExpanded">
+            <span class="section-title">
+              <el-icon class="section-icon"><Document /></el-icon>
+              <span>修改的文件</span>
+            </span>
+            <span class="section-side">{{ fileDiffStatText }}</span>
+            <el-icon class="chevron" :class="{ collapsed: !filesExpanded }"><ArrowDown /></el-icon>
+          </div>
+          <div v-show="filesExpanded" class="section-body">
+            <!-- 面板外层已有折叠头，这里让内层列表默认展开，直接看到每个文件的增删行数 -->
+            <FileChangesBar :changes="fileChanges" default-expanded @open-diff="openDiffDialog" />
+          </div>
+        </div>
+      </template>
     </div>
+
+    <FileDiffDialog v-model="diffDialogVisible" :entry="activeDiffEntry" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { Refresh, Close, ArrowDown, Timer, FolderOpened } from '@element-plus/icons-vue';
+import { Refresh, Close, ArrowDown, Timer, FolderOpened, Document, Tools } from '@element-plus/icons-vue';
+import { BrainCircuit20Regular, Search16Filled } from '@vicons/fluent';
 import { apiService } from '@/services/ApiService';
 import { useSessionStore } from '@/stores/session';
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats';
+import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
+import { flattenContentsForTimeline } from '@/utils/messageUtils';
+import { getToolIcon, getToolConfig, getArgsText, resolveToolName } from '@/utils/toolDisplay';
+import FileChangesBar from './message-item/FileChangesBar.vue';
+import FileDiffDialog from './message-item/FileDiffDialog.vue';
 
 const props = defineProps<{
   sessionId?: string;
@@ -124,9 +242,166 @@ const isWorking = computed(() =>
 
 // 折叠状态（默认展开）
 const turnsExpanded = ref(true);
+const toolsExpanded = ref(true);
 const sourcesExpanded = ref(true);
+const filesExpanded = ref(true);
+const stepsExpanded = ref(false);
 
-// 上下文占用
+// 会话级文件变更：把整会话消息的 contents 摊平后交给 useFileChanges，
+// 由它按 filePath 聚合并用 diffLines 算增删行（与单条消息内的展示同一套逻辑）
+const allContents = computed<any[]>(() => {
+  const list: any[] = [];
+  for (const msg of props.messages || []) {
+    for (const content of msg?.contents || []) {
+      list.push(content);
+    }
+  }
+  return list;
+});
+const { fileChanges } = useFileChanges(allContents as any);
+
+// Diff 弹窗
+const diffDialogVisible = ref(false);
+const activeDiffEntry = ref<FileChangeEntry | null>(null);
+
+function openDiffDialog(entry: FileChangeEntry) {
+  activeDiffEntry.value = entry;
+  diffDialogVisible.value = true;
+}
+
+// ============ 通用格式化 ============
+
+/**
+ * token 数格式化：超过 1000 走 k/M，避免在 280px 面板里挤爆。
+ */
+function formatTokens(n: number): string {
+  const value = Number(n) || 0;
+  if (value <= 0) return '0';
+  if (value < 1000) return String(value);
+  if (value < 1000 * 1000) {
+    const k = value / 1000;
+    return `${k < 10 ? k.toFixed(1) : Math.round(k)}k`;
+  }
+  const m = value / (1000 * 1000);
+  return `${m < 10 ? m.toFixed(1) : Math.round(m)}M`;
+}
+
+/**
+ * 时长格式化（单次耗时用）：<60s → "12s"，否则 "22m42s"
+ */
+function formatDuration(ms: number): string {
+  if (!ms || ms <= 0) return '0s';
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m${seconds}s`;
+}
+
+/**
+ * 跨度格式化（会话时长用，跨度可能到小时/天，故与单次耗时分开）
+ */
+function formatSpan(ms: number): string {
+  if (!ms || ms <= 0) return '—';
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return '不到 1 分钟';
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const rest = minutes % 60;
+    return rest ? `${hours} 小时 ${rest} 分` : `${hours} 小时`;
+  }
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  return restHours ? `${days} 天 ${restHours} 小时` : `${days} 天`;
+}
+
+/**
+ * 时间 → 毫秒时间戳；解析不了返回 0。
+ *
+ * 注意后端返回的 createdAt / updatedAt 是**毫秒时间戳的字符串**
+ * （形如 "1790523862000"），不是 ISO 串。直接丢给 new Date() 会得到
+ * Invalid Date，导致会话时长恒为 0，所以必须先识别纯数字。
+ */
+function toTime(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const text = String(value).trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  const parsed = new Date(text).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * 从 modelId 截出模型名：取最后一个冒号之后的部分。
+ * modelId 形如 "<providerId>:<modelName>"，没有冒号时原样返回。
+ */
+function modelNameFromId(modelId?: string | null): string {
+  if (!modelId) return '';
+  const text = String(modelId);
+  const colon = text.lastIndexOf(':');
+  return colon >= 0 ? text.slice(colon + 1) : text;
+}
+
+// ============ 会话概要 ============
+
+const currentSession = computed(() =>
+  props.sessionId ? sessionStore.getSession(props.sessionId) : undefined,
+);
+
+const overview = computed(() => {
+  const messages = props.messages || [];
+
+  let userMessages = 0;
+  let assistantMessages = 0;
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let totalTokens = 0;
+
+  for (const msg of messages) {
+    if (!msg) continue;
+    if (msg.role === 'user') userMessages += 1;
+    if (msg.role !== 'assistant') continue;
+    assistantMessages += 1;
+
+    const usage = msg.metadata?.usage;
+    if (!usage) continue;
+    const p = usage.promptTokens || 0;
+    const c = usage.completionTokens || 0;
+    promptTokens += p;
+    completionTokens += c;
+    // 后端给了 total 就用它，否则自行相加
+    totalTokens += usage.totalTokens || p + c;
+  }
+
+  const created = toTime(currentSession.value?.createdAt);
+  const ended = toTime(currentSession.value?.lastActiveAt || currentSession.value?.updatedAt);
+  const duration = created && ended && ended > created ? ended - created : 0;
+
+  // modelId 形如 "<providerId>:<modelName>"（如 "1790518072240:agnes-3.0-flash"），
+  // 会话详情并不返回 model 对象，故这里从 modelId 截出可读名兜底。
+  const modelName =
+    currentSession.value?.model?.modelName
+    || tokenStats.value?.modelName
+    || modelNameFromId(currentSession.value?.modelId);
+
+  return {
+    modelName,
+    userMessages,
+    assistantMessages,
+    durationText: formatSpan(duration),
+    totalTokensText: totalTokens > 0 ? formatTokens(totalTokens) : '—',
+    ioText:
+      promptTokens || completionTokens
+        ? `${formatTokens(promptTokens)} / ${formatTokens(completionTokens)}`
+        : '—',
+  };
+});
+
+// ============ 上下文占用与 token 明细 ============
+
+const usedTokens = computed(() => tokenStats.value?.usedTokens || 0);
+const remainingTokens = computed(() => tokenStats.value?.remainingTokens || 0);
 const contextPercent = computed(() => Math.round((tokenStats.value?.percentage || 0) * 10) / 10);
 const contextPercentText = computed(() => `${contextPercent.value.toFixed(1)}%`);
 const progressColor = computed(() => {
@@ -135,6 +410,37 @@ const progressColor = computed(() => {
   if (pct >= 60) return '#e6a23c';
   return '#67c23a';
 });
+
+/**
+ * token 构成的五个分量，各自占已用 token 的比例。
+ * 数据来自 useSessionTokenStats 的 breakdown，后端随 contextStats 一起下发。
+ */
+const BREAKDOWN_META = [
+  { key: 'systemPrompt', label: '系统提示', color: '#409eff' },
+  { key: 'summary', label: '摘要', color: '#909399' },
+  { key: 'userPrompt', label: '用户输入', color: '#67c23a' },
+  { key: 'history', label: '历史消息', color: '#e6a23c' },
+  { key: 'tools', label: '工具定义', color: '#f56c6c' },
+] as const;
+
+const breakdownRows = computed(() => {
+  const breakdown = tokenStats.value?.breakdown;
+  if (!breakdown) return [];
+
+  const raw = BREAKDOWN_META
+    .map((meta) => ({ ...meta, value: (breakdown as any)[meta.key] || 0 }))
+    .filter((r) => r.value > 0);
+
+  // 分量之和未必等于 usedTokens（后端可能还有未归类的部分），
+  // 故以分量之和为分母，保证占比之和为 100%，条形长度才不失真。
+  const sum = raw.reduce((acc, r) => acc + r.value, 0);
+  return raw.map((r) => ({
+    ...r,
+    percent: sum > 0 ? Math.round((r.value / sum) * 1000) / 10 : 0,
+  }));
+});
+
+// ============ 轮次统计 ============
 
 /**
  * 从当前会话消息聚合的轮次统计
@@ -177,20 +483,132 @@ const speedText = computed(() => {
   return `~${Math.round(tps)} tok/s`;
 });
 
-// 耗时格式化：<60s → "12s"，否则 "22m42s"
-function formatDuration(ms: number): string {
-  if (!ms || ms <= 0) return '0s';
-  const totalSeconds = Math.round(ms / 1000);
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}m${seconds}s`;
-}
-
 const modelTimeText = computed(() => formatDuration(stats.value.modelDuration));
 const toolTimeText = computed(() => formatDuration(stats.value.toolDuration));
 
-// 上下文来源（技能 / MCP 服务器），模块级缓存避免重复请求
+// ============ 步骤明细（按发生顺序的时间线） ============
+
+/**
+ * 会话级步骤时间线：把每条助手消息的 contents 按发生顺序拍平，
+ * 只取「过程」项（思考 / 检索 / 工具调用），跳过正文。
+ *
+ * 与「工具调用」区块的区别：那边是按工具名聚合的次数统计，
+ * 这里是**有序的逐步列表**，能看清 Agent 先想了什么、再调了什么。
+ *
+ * 说明：后端未下发逐步耗时（traceLog 恒为空），故每行只给名称与参数摘要。
+ */
+const stepItems = computed(() => {
+  const out: Array<{
+    id: string;
+    icon: any;
+    label: string;
+    detail: string;
+    failed: boolean;
+  }> = [];
+
+  for (const msg of props.messages || []) {
+    if (!msg || msg.role !== 'assistant') continue;
+
+    for (const item of flattenContentsForTimeline(msg.contents || [])) {
+      if (item.type === 'think') {
+        const text = (item.reasoningContent || '').replace(/\s+/g, ' ').trim();
+        out.push({
+          id: item.id,
+          icon: BrainCircuit20Regular,
+          label: '思考',
+          detail: text.length > 72 ? `${text.slice(0, 72)}…` : text,
+          failed: false,
+        });
+      } else if (item.type === 'search') {
+        out.push({
+          id: item.id,
+          icon: Search16Filled,
+          label: '检索',
+          detail: item.searchQuery || '',
+          failed: false,
+        });
+      } else if (item.type === 'tool') {
+        for (const [tcIndex, tc] of (item.toolCalls || []).entries()) {
+          const name = resolveToolName(tc);
+          const failed = !!tc.outcome && tc.outcome !== 'success';
+          const config = getToolConfig(tc);
+          out.push({
+            id: `${item.id}-${tc.index ?? tcIndex}`,
+            icon: getToolIcon(tc),
+            label: name || config.text.completed || '工具',
+            detail: getArgsText(tc) || '',
+            failed,
+          });
+        }
+      }
+    }
+  }
+
+  return out;
+});
+
+// ============ 工具调用明细 ============
+
+/**
+ * 按工具名聚合调用次数。
+ *
+ * 注意：只能给出「次数 / 失败数 / 占比」，**给不出单个工具的耗时** ——
+ * 后端 SSE 的 toolCallsResponse 只有 outcome，没有 duration，
+ * 且 trace 事件后端目前完全没发（traceLog 恒为空），
+ * 所以耗时只能在消息级聚合（见 stats.toolDuration）。
+ */
+const toolRows = computed(() => {
+  const counter = new Map<string, { count: number; failed: number }>();
+  let total = 0;
+
+  for (const msg of props.messages || []) {
+    for (const content of msg?.contents || []) {
+      const toolCalls = content?.metadata?.toolCalls;
+      if (!Array.isArray(toolCalls)) continue;
+
+      for (const tc of toolCalls) {
+        const name = tc?.name;
+        if (!name) continue;
+        let row = counter.get(name);
+        if (!row) {
+          row = { count: 0, failed: 0 };
+          counter.set(name, row);
+        }
+        row.count += 1;
+        if (tc.outcome && tc.outcome !== 'success') row.failed += 1;
+        total += 1;
+      }
+    }
+  }
+
+  return Array.from(counter.entries())
+    .map(([name, row]) => ({
+      name,
+      count: row.count,
+      failed: row.failed,
+      percent: total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+});
+
+const failedToolCount = computed(() =>
+  toolRows.value.reduce((sum, r) => sum + r.failed, 0),
+);
+
+// ============ 修改的文件 ============
+
+const fileDiffStatText = computed(() => {
+  let added = 0;
+  let removed = 0;
+  for (const entry of fileChanges.value) {
+    added += entry.totalAdded;
+    removed += entry.totalRemoved;
+  }
+  return `+${added} −${removed}`;
+});
+
+// ============ 上下文来源（技能 / MCP 服务器） ============
+
 const skillCount = ref(0);
 const mcpCount = ref(0);
 let sourcesLoaded = false;
@@ -340,17 +758,28 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 4px 0;
   font-size: 13px;
 }
 
 .label {
   color: var(--color-text-gray, #909399);
+  flex-shrink: 0;
 }
 
 .value {
   color: var(--color-text, #303133);
   font-weight: 500;
+  text-align: right;
+  min-width: 0;
+}
+
+/* 长模型名等在 280px 面板里必须截断，否则会把整行撑开 */
+.value.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progress {
@@ -366,6 +795,87 @@ onMounted(() => {
   height: 100%;
   border-radius: 3px;
   transition: width 0.3s ease;
+}
+
+/* 已用 / 剩余 具体数字 */
+.token-numbers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--color-text-gray, #909399);
+}
+
+.token-numbers b {
+  color: var(--color-text, #303133);
+  font-weight: 600;
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+}
+
+/* token 构成明细：标签 / 占比条 / 数值 三列 */
+.breakdown {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border, #e4e7ed);
+}
+
+.bd-row,
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.bd-label,
+.tool-name {
+  width: 48px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-gray, #909399);
+}
+
+.tool-name {
+  width: 64px;
+  color: var(--color-text, #303133);
+}
+
+.bd-bar {
+  flex: 1;
+  min-width: 20px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border, #e5e7eb);
+  overflow: hidden;
+}
+
+.bd-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.bd-value {
+  width: 40px;
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+  color: var(--color-text, #303133);
+}
+
+.tool-failed {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #f56c6c;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--color-text-gray, #909399);
 }
 
 .section-header {
@@ -395,6 +905,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-gray, #909399);
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 
 .chevron {
@@ -413,5 +924,84 @@ onMounted(() => {
 
 .section-body {
   margin-top: 6px;
+}
+
+/* ============ 步骤明细 ============ */
+
+.row--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.step-toggle-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chevron-inline {
+  font-size: 12px;
+  color: var(--color-text-gray, #909399);
+  transition: transform 0.2s ease;
+}
+
+.chevron-inline.collapsed {
+  transform: rotate(-90deg);
+}
+
+.step-detail {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border, #e4e7ed);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.step-index {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--color-text-gray, #909399);
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+  opacity: 0.7;
+}
+
+.step-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-gray, #909399);
+}
+
+.step-row.is-failed .step-icon {
+  color: #f56c6c;
+}
+
+.step-label {
+  flex-shrink: 0;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text, #303133);
+  font-weight: 500;
+}
+
+.step-arg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-gray, #909399);
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 </style>

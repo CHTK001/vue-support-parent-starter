@@ -13,6 +13,21 @@ export interface SessionApi {
   archiveSession(sessionId: string, archived: boolean): Promise<{ success: boolean; session?: any }>;
   batchArchiveSessions(sessionIds: string[], archived: boolean): Promise<{ success: boolean; skipped: string[] }>;
   updateSession(sessionId: string, data: any): Promise<Session>;
+  /**
+   * 从某一轮起回退：删除该轮及其之后的所有消息（后端按轮次归并，不是删单条）。
+   * 只回退对话，不会回滚工作目录里已被工具写入的文件。
+   */
+  rewindSession(sessionId: string, fromMessageId: string): Promise<{
+    success: boolean;
+    removedTurns: number;
+    removedMessages: number;
+  }>;
+  /** 从某一轮处分叉：复制截至该轮的消息为新会话，原会话保持不变 */
+  forkSession(sessionId: string, messageId: string): Promise<{
+    sessionId: string;
+    title: string;
+    copiedMessages: number;
+  }>;
   fetchSessionGroups(): Promise<SessionGroup[]>;
   createSessionGroup(data: { name: string }): Promise<SessionGroup>;
   updateSessionGroup(groupId: string, data: { name: string }): Promise<SessionGroup>;
@@ -272,6 +287,11 @@ export interface SessionApi {
   fetchSessionSummaries(sessionId: string, limit?: number): Promise<{ items: any[]; total: number }>;
   updateSummary(summaryId: string, data: { summaryContent?: string }): Promise<any>;
   deleteSummary(summaryId: string): Promise<{ success: boolean }>;
+  /** 落库会话上下文用量快照（流式结束时调用） */
+  saveSessionTokenStats(
+    sessionId: string,
+    stats: { usedTokens: number; effectiveContextWindow: number },
+  ): Promise<{ usedTokens?: number; effectiveContextWindow?: number; updatedAt?: number }>;
   fetchSessionTokenStats(sessionId: string): Promise<{
     usedTokens: number;
     totalTokens: number;
@@ -307,6 +327,20 @@ export const sessionApi: SessionApi = {
     return await this._request(`/sessions/batch`, {
       method: "DELETE",
       data: { ids: sessionIds }
+    });
+  },
+
+  async rewindSession(this: ApiContext, sessionId: string, fromMessageId: string) {
+    return await this._request(
+      `/sessions/${sessionId}/messages?fromMessageId=${encodeURIComponent(fromMessageId)}`,
+      { method: "DELETE" }
+    );
+  },
+
+  async forkSession(this: ApiContext, sessionId: string, messageId: string) {
+    return await this._request(`/sessions/${sessionId}/fork`, {
+      method: "POST",
+      data: { messageId }
     });
   },
 
@@ -448,6 +482,23 @@ export const sessionApi: SessionApi = {
 
   async fetchSessionTokenStats(this: ApiContext, sessionId: string) {
     return await this._request(`/sessions/${sessionId}/token-stats`);
+  },
+
+  /**
+   * 落库会话上下文用量快照（流式结束时调用）
+   *
+   * 后端把快照存进 sys_ai_session.settings.contextStats，页面刷新后
+   * fetchSessionTokenStats 即可恢复占用率，无需重新对话。
+   */
+  async saveSessionTokenStats(
+    this: ApiContext,
+    sessionId: string,
+    stats: { usedTokens: number; effectiveContextWindow: number },
+  ) {
+    return await this._request(`/sessions/${sessionId}/token-stats`, {
+      method: "PUT",
+      data: stats,
+    });
   },
 
   async getWorkspacePath(this: ApiContext, sessionId: string) {

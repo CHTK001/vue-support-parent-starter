@@ -331,25 +331,26 @@ function runMore(command: string, flow: CollectFlow): void {
 
       <template #action="{ row }">
         <div class="ops">
-          <ReButton size="small" text type="primary" icon="Share" @click="openDesign(row.collectFlowId)">流程设计</ReButton>
-          <ReButton size="small" text type="primary" icon="Grid" @click="openPreview(asFlow(row))">预览图</ReButton>
+          <ReButton layout="square" icon="Share" type="primary" tip="流程设计" @click="openDesign(row.collectFlowId)"/>
+          <ReButton layout="square" icon="Grid" type="primary" tip="预览图" @click="openPreview(asFlow(row))"/>
           <ReButton
-            size="small"
-            text
+            layout="square"
             type="success"
             icon="VideoPlay"
+            tip="运行"
             :loading="runningIds[row.collectFlowId]"
             @click="runNow(asFlow(row))"
-          >
-            运行
-          </ReButton>
-          <ReButton size="small" text icon="Timer" @click="gotoRuns(asFlow(row))">运行记录</ReButton>
-          <ReButton size="small" text icon="Files" @click="gotoRecords(asFlow(row), latestTaskOf.get(asFlow(row).collectFlowId)?.collectTaskId)">
-            采集结果
-          </ReButton>
-          <ReButton size="small" text icon="Setting" @click="openConfig('variable')">配置</ReButton>
+          />
+          <ReButton layout="square" icon="Timer" tip="运行记录" @click="gotoRuns(asFlow(row))"/>
+          <ReButton
+            layout="square"
+            icon="Files"
+            tip="采集结果"
+            @click="gotoRecords(asFlow(row), latestTaskOf.get(asFlow(row).collectFlowId)?.collectTaskId)"
+          />
+          <ReButton layout="square" icon="Setting" tip="配置" @click="openConfig('variable')"/>
           <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string) => runMore(cmd, asFlow(row))">
-            <ReButton size="small" text icon="MoreFilled" :show-text="false" />
+            <ReButton layout="square" icon="MoreFilled" tip="更多操作" />
             <template #dropdown>
               <ElDropdownMenu>
                 <ElDropdownItem command="variable">变量管理</ElDropdownItem>

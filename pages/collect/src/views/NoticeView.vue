@@ -361,16 +361,16 @@ function showHelp(): void {
         </span>
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="Edit" type="primary" title="编辑这条通知配置" @click="openEdit(row)"/>
+        <ReButton layout="square" icon="Edit" type="primary" tip="编辑这条通知配置" @click="openEdit(row)"/>
         <ReButton
           layout="square"
           icon="Promotion"
           type="warning"
           :loading="testingId === row.collectNoticeId"
-          title="按这条配置试发一次（试运行不发通知，只能用这里验证渠道）"
+          tip="按这条配置试发一次（试运行不发通知，只能用这里验证渠道）"
           @click="test(row)"
         />
-        <ReButton layout="square" icon="Delete" type="danger" title="删除这条通知配置" @click="remove(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除这条通知配置" @click="remove(row)"/>
       </template>
     </ReTable>
 

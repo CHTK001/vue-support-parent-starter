@@ -82,6 +82,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
       },
       {
+        path: "/device-assets",
+        name: "DeviceAssets",
+        component: () => import("./views/DeviceAssetsView.vue"),
+        meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 10 },
+      },
+      {
         path: "/files",
         name: "FileAssets",
         component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
