@@ -78,34 +78,6 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     },
   ]),
 
-  // ==================== 趣味学习 ====================
-  group("/grp-fun", "GroupEduFun", "趣味学习", "Sunny", [
-    {
-      path: "/edu/fun",
-      name: "EduFun",
-      component: () => import("../views/FunView.vue"),
-      meta: { title: "趣味中心", icon: "Star", showLink: true, keepAlive: true, isVisible: "1" },
-    },
-    {
-      path: "/edu/fun/insect",
-      name: "EduFunInsect",
-      component: () => import("../views/InsectView.vue"),
-      meta: { title: "昆虫识图", icon: "Search", showLink: true, keepAlive: true, isVisible: "1" },
-    },
-    {
-      path: "/edu/fun/idiom",
-      name: "EduFunIdiom",
-      component: () => import("../views/IdiomGameView.vue"),
-      meta: { title: "成语消消乐", icon: "Trophy", showLink: true, keepAlive: true, isVisible: "1" },
-    },
-    {
-      path: "/edu/fun/config",
-      name: "EduFunConfig",
-      component: () => import("../views/FunConfigView.vue"),
-      meta: { title: "模块配置", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
-    },
-  ]),
-
   // ==================== 数据配置 ====================
   group("/grp-data", "GroupEduData", "数据配置", "Setting", [
     {
@@ -127,6 +99,27 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "成语库", icon: "Collection", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
+      path: "/edu/insects",
+      name: "EduInsects",
+      component: () => import("../views/InsectBankView.vue"),
+      meta: { title: "昆虫库", icon: "Aim", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
+      // 模块管理：配置**每个学段有哪些趣味模块**（学生端首页卡片由此生成）。
+      // 这是纯配置页，不是用来打开模块的 —— 模块由学生端自己的页面消费。
+      path: "/edu/fun/config",
+      name: "EduFunConfig",
+      component: () => import("../views/FunConfigView.vue"),
+      meta: { title: "模块管理", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
+      // 学生管理：学生 / 班级 / 教师档案（学生端绑定与学习数据由学生自己产生）
+      path: "/edu/students",
+      name: "EduStudents",
+      component: () => import("../views/StudentManageView.vue"),
+      meta: { title: "学生管理", icon: "User", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
       path: "/edu/data-config",
       name: "EduDataConfig",
       component: () => import("../views/DataConfigView.vue"),
@@ -135,6 +128,50 @@ export const eduaiRoutes: RouteConfigsTable[] = [
   ]),
 
   // ==================== 隐藏路由（不进菜单，仍可访问） ====================
+  {
+    // 手动组卷：入口在 PaperView 列表工具栏（带当前检索的学科/学段跳转），不进侧边栏菜单
+    path: "/eduai/paper-compose",
+    name: "EduaiPaperCompose",
+    component: () => import("../views/PaperComposeView.vue"),
+    meta: { title: "手动组卷", icon: "EditPen", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 趣味中心：管理端不再放入口（模块与菜单由「模块管理」按学段配置，
+    // 学生端在 /edu/student 里消费），此路由仅保留可达，供学生端卡片与模块路径引用
+    path: "/edu/fun",
+    name: "EduFun",
+    component: () => import("../views/FunView.vue"),
+    meta: { title: "趣味中心", icon: "Star", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 昆虫识图：学生端模块卡的实际落点，管理端不再放菜单入口
+    path: "/edu/fun/insect",
+    name: "EduFunInsect",
+    component: () => import("../views/InsectView.vue"),
+    meta: { title: "昆虫识图", icon: "Search", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 成语消消乐：学生端模块卡的实际落点，管理端不再放菜单入口
+    path: "/edu/fun/idiom",
+    name: "EduFunIdiom",
+    component: () => import("../views/IdiomGameView.vue"),
+    meta: { title: "成语消消乐", icon: "Trophy", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 学生端：独立全屏页面（position:fixed 脱离管理后台外壳），
+    // 进入未绑定会先弹登记表单；按档案学段渲染小学/初中/高中三套首页
+    path: "/edu/student",
+    name: "EduStudentPortal",
+    component: () => import("../views/portal/StudentPortalView.vue"),
+    meta: { title: "学生端", icon: "Star", showLink: false, isVisible: "0", keepAlive: false },
+  },
+  {
+    // 老师端：独立全屏页面，只看本人带的班级
+    path: "/edu/teacher",
+    name: "EduTeacherPortal",
+    component: () => import("../views/portal/TeacherPortalView.vue"),
+    meta: { title: "老师端", icon: "Reading", showLink: false, isVisible: "0", keepAlive: false },
+  },
   {
     // 昆虫图鉴卡片：昆虫识图配对错误时弹出（remind=true 只注册路由、不进菜单，也不被菜单导航控制）
     path: "/edu/fun/insect-card",

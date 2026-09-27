@@ -77,6 +77,68 @@ export interface Paper {
   questions?: PaperQuestionItem[];
 }
 
+/** 手动组卷 / 编辑试卷的保存载荷（创建与更新共用） */
+export interface PaperComposePayload {
+  /** 试卷名称 */
+  paperName: string;
+  /** 学科 */
+  paperSubject: string;
+  /** 学段 PRIMARY / JUNIOR / SENIOR / UNIVERSITY */
+  paperGradeLevel: string;
+  /** 年级 */
+  paperGrade: string;
+  /** 总分；不传由服务端按题目分值汇总 */
+  paperTotalScore?: number;
+  /** 考试时长（分钟） */
+  paperDuration?: number;
+  /** 来源：AI-智能组卷 / MANUAL-手动组卷，服务端兜底 */
+  paperSource?: string;
+}
+
+/** 手动组卷：加入试卷的题目条目（POST /v2/edu/paper/{paperId}/questions） */
+export interface PaperQuestionAddItem {
+  /** 题目标识 */
+  questionId: number;
+  /** 题目分值；不传按试卷总分均分 */
+  score?: number;
+  /** 题目顺序（从 1 开始）；不传按追加顺序 */
+  order?: number;
+}
+
+/** 试卷修改历史（列表与详情同形，详情多返回快照） */
+export interface PaperHistoryItem {
+  /** 历史记录标识 */
+  historyId: number;
+  /** 所属试卷标识 */
+  paperId: number;
+  /** 操作类型：CREATE / ADD_QUESTION / REMOVE_QUESTION / SORT / EVEN_SCORES / UPDATE / PUBLISH */
+  operateType?: string;
+  /** 操作说明（后端生成的可读文案） */
+  operateDesc?: string;
+  /** 操作人账号 */
+  operator?: string;
+  /** 操作时间 */
+  createTime?: string;
+  /** 试卷快照（历史详情返回，JSON 文本） */
+  snapshot?: string;
+}
+
+/** 扫码识卷：二维码短码解析出的试卷信息 */
+export interface PaperQuestionQr {
+  /** 二维码内容 / 短码 */
+  no: string;
+  /** 试卷标识 */
+  paperId: number;
+  /** 试卷名称 */
+  paperName: string;
+  /** 学科 */
+  paperSubject?: string;
+  /** 学段 */
+  paperGradeLevel?: string;
+  /** 年级 */
+  paperGrade?: string;
+}
+
 /** 答题卡 */
 export interface AnswerSheetItem {
   questionId: number;
@@ -226,10 +288,20 @@ export interface Exam {
 export interface FunConfig {
   configId: number;
   moduleCode: string;
+  /** 适用学段 PRIMARY/JUNIOR/SENIOR；null 表示各学段通用（管理端模块） */
+  funConfigGradeLevel?: string | null;
   moduleName: string;
   moduleDesc: string;
+  /** 学生端卡片副标题 */
+  funConfigSubtitle?: string | null;
   moduleIcon: string;
   modulePath: string;
+  /** 学生端卡片图标渐变起始色 */
+  funConfigColor?: string | null;
+  /** 学生端卡片图标渐变结束色 */
+  funConfigColorTo?: string | null;
+  /** 是否显示未完成角标：0/1 */
+  funConfigShowBadge?: number | null;
   enabled: number;
   sortOrder: number;
   configJson: string;
@@ -322,6 +394,10 @@ export interface Insect {
   insectRelatives: string;
   /** 主题色 hex */
   insectAccent: string;
+  /**
+   * 复用的 3D 建模标识（slug）；为空表示用自身 insectCode 的建模文件
+   */
+  insectModelCode?: string | null;
   insectDifficulty: number;
   createTime: string;
   updateTime: string;
@@ -382,6 +458,19 @@ export interface InsectLibraryItem {
    */
   insectModelCode?: string | null;
   insectDifficulty: number;
+  /**
+   * 该物种全部标注点锚点（后端 /all 一并带出）。
+   *
+   * 用于「看同样有某部位的虫」：在名录里直接判断谁有该部位，
+   * 不必为 63 个物种各请求一次详情。
+   */
+  anchors?: string[];
+  /**
+   * 是否已配深度讲解（后端 /all 一并带出）
+   *
+   * 维护页据此标出漏配讲解的物种；没有讲解时识图页的「分步讲解/小测验」会禁用。
+   */
+  hasGuide?: boolean;
 }
 
 /** 物种详情（后端 /v2/edu/insect/stage 的 insect 段，JSON 列已解析成数组） */
@@ -429,6 +518,181 @@ export interface InsectGuideView {
 export interface InsectStageView {
   insect: InsectDetail | null;
   guide: InsectGuideView | null;
+}
+
+/**
+ * 讲解与测验的保存载荷
+ *
+ * 与读取端 {@link InsectGuideView} 同形，前端不需要自己序列化 JSON 文本。
+ */
+export interface InsectGuideSaveRequest {
+  /** 物种 slug，必填 */
+  insectCode: string;
+  /** 分步讲解；可为空数组 */
+  lesson: InsectLessonStep[];
+  motion: { title: string; body: string };
+  /** 单选题；可为空数组 */
+  quiz: InsectQuizItem[];
+  habitat: { title: string; body: string };
+}
+
+/** 学生档案（学生端展示用） */
+export interface StudentProfile {
+  studentId: number;
+  studentNo: string;
+  studentName: string;
+  /** PRIMARY / JUNIOR / SENIOR */
+  gradeLevel: string;
+  grade: string;
+  classId: number | null;
+}
+
+/** 学生端绑定状态；bound=false 时必须先弹绑定表单 */
+export interface StudentBindState {
+  bound: boolean;
+  /** 该账号绑定的是教师档案（登录了学生端但身份是老师） */
+  teacherBound?: boolean;
+  student?: StudentProfile;
+  className?: string | null;
+  stage?: string | null;
+}
+
+/** 绑定学生档案的请求体 */
+export interface StudentBindRequest {
+  studentNo?: string;
+  studentName?: string;
+  gradeLevel?: string;
+  grade?: string;
+  className?: string;
+}
+
+/** 学习统计项（今日 / 本周 / 累计共用同一形状） */
+export interface StudyStat {
+  studyCount: number;
+  studyMinutes: number;
+  questionCount: number;
+  correctCount: number;
+  stars: number;
+  points: number;
+  /** 正确率百分比，仅 week 段返回 */
+  accuracy?: number;
+}
+
+/** 模块学习进度 */
+export interface ModuleProgress {
+  moduleCode: string;
+  /** 0-100 */
+  progress: number;
+  studyMinutes: number | null;
+  questionCount: number | null;
+  correctCount: number | null;
+  lastStudyTime: string | null;
+}
+
+/** 学生端首页数据 */
+export interface StudentOverview {
+  bound: boolean;
+  student?: StudentProfile;
+  className?: string | null;
+  stage?: string | null;
+  today?: StudyStat;
+  week?: StudyStat;
+  total?: StudyStat;
+  /** 连续打卡天数 */
+  streakDays?: number;
+  /** 待复习错题数 */
+  wrongPending?: number;
+  modules?: ModuleProgress[];
+  /** 已攻克（进度 100）的模块数 */
+  modulesMastered?: number;
+  /** 已开始的模块数 */
+  modulesStarted?: number;
+  /** 班级排名 */
+  classRank?: number;
+  /** 班级人数 */
+  classSize?: number;
+  /** 今日推荐模块编码 */
+  recommend?: string | null;
+}
+
+/** 学习行为上报请求体 */
+export interface StudyReportRequest {
+  moduleCode?: string;
+  studyMinutes?: number;
+  questionCount?: number;
+  correctCount?: number;
+  stars?: number;
+  points?: number;
+  progressDelta?: number;
+}
+
+/** 教师档案 */
+export interface TeacherProfile {
+  teacherId: number;
+  teacherNo: string;
+  teacherName: string;
+  subjectCode: string | null;
+}
+
+/** 教师端绑定状态 */
+export interface TeacherBindState {
+  bound: boolean;
+  teacher?: TeacherProfile;
+}
+
+/** 绑定教师档案的请求体 */
+export interface TeacherBindRequest {
+  teacherNo: string;
+  teacherName?: string;
+  subjectCode?: string;
+}
+
+/** 教师端班级概览行 */
+export interface TeacherClassRow {
+  classId: number;
+  className: string;
+  gradeLevel: string | null;
+  grade: string | null;
+  studentCount: number;
+  /** 已绑定登录账号的学生数 */
+  boundCount: number;
+}
+
+/** 教师端工作台数据 */
+export interface TeacherOverview {
+  bound: boolean;
+  teacher?: TeacherProfile;
+  classes?: TeacherClassRow[];
+  classCount?: number;
+  studentCount?: number;
+}
+
+/**
+ * 趣味模块配置（edu_fun_config） *
+ * 同一张表两用：
+ *   - funConfigGradeLevel 为 null → 管理端「趣味中心」的模块开关（原语义）
+ *   - 指定学段 → 学生端首页该学段的功能卡（moduleCode 可跨学段重复）
+ */
+export interface FunModuleConfig {
+  configId: number;
+  moduleCode: string;
+  /** PRIMARY / JUNIOR / SENIOR；null 表示各学段通用（管理端模块） */
+  funConfigGradeLevel?: string | null;
+  moduleName: string;
+  moduleDesc?: string | null;
+  /** 学生端卡片副标题 */
+  funConfigSubtitle?: string | null;
+  moduleIcon?: string | null;
+  modulePath?: string | null;
+  /** 学生端卡片图标渐变起始色 */
+  funConfigColor?: string | null;
+  /** 学生端卡片图标渐变结束色 */
+  funConfigColorTo?: string | null;
+  /** 是否显示未完成角标 */
+  funConfigShowBadge?: number | null;
+  enabled: number;
+  sortOrder: number;
+  configJson?: string | null;
 }
 
 /** 题库采集任务（列表出参：业务列 + sys_job 调度态） */
@@ -554,4 +818,59 @@ export interface EduGrade {
 export interface GradeLevelOption {
   value: string;
   label: string;
+}
+
+/**
+ * 班级
+ *
+ * 学生挂在班级下；class_teacher_id 是数字 userId，与登录账号（字符串）不同源，
+ * 因此教师绑定走 teacher_account，班级归属走 owner_user_id。
+ */
+export interface EduClass {
+  classId: number;
+  classCode: string;
+  className: string;
+  /** 学段 PRIMARY / JUNIOR / SENIOR */
+  classGradeLevel?: string | null;
+  classGrade?: string | null;
+  classTeacherId?: number | null;
+  classStatus?: number | null;
+}
+
+/**
+ * 学生档案
+ *
+ * studentAccount 非空表示该学生已用登录账号绑定学生端；
+ * 后台新建的学生默认未绑定，学生首次进 /edu/student 时自己绑定。
+ */
+export interface EduStudent {
+  studentId: number;
+  studentUserId?: number | null;
+  /** 绑定的登录账号；null = 未绑定 */
+  studentAccount?: string | null;
+  studentNo: string;
+  studentName?: string | null;
+  studentClassId?: number | null;
+  studentGradeLevel?: string | null;
+  studentGrade?: string | null;
+  studentEnrollYear?: number | null;
+  /** 0-离校 1-在读 */
+  studentStatus?: number | null;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/** 教师档案 */
+export interface EduTeacher {
+  teacherId: number;
+  teacherUserId?: number | null;
+  /** 绑定的登录账号；null = 未绑定 */
+  teacherAccount?: string | null;
+  teacherNo: string;
+  teacherName?: string | null;
+  teacherSubjectCode?: string | null;
+  /** 0-离职 1-在职 */
+  teacherStatus?: number | null;
+  createTime?: string;
+  updateTime?: string;
 }

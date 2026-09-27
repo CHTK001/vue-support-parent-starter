@@ -10,6 +10,10 @@ import type {
   Question,
   QuestionGradeDimension,
   Paper,
+  PaperComposePayload,
+  PaperQuestionAddItem,
+  PaperHistoryItem,
+  PaperQuestionQr,
   MarkingSubmitRequest,
   MarkingResultVO,
   MarkingAdjust,
@@ -27,8 +31,21 @@ import type {
   InsectGameData,
   InsectOrderCount,
   InsectLibraryItem,
+  InsectDetail,
   InsectStageView,
   InsectGuideView,
+  InsectGuideSaveRequest,
+  StudentBindState,
+  StudentBindRequest,
+  StudentOverview,
+  StudyReportRequest,
+  TeacherBindState,
+  TeacherBindRequest,
+  TeacherOverview,
+  FunModuleConfig,
+  EduClass,
+  EduStudent,
+  EduTeacher,
   CollectTask,
   CollectTaskForm,
   CollectLog,
@@ -102,6 +119,62 @@ export const eduaiApi = {
       .put(`/v2/edu/paper/${paperId}/replace`)
       .query({ oldId, newId })
       .then<boolean>(unwrap),
+
+  // 组卷 —— 手动组卷（PaperComposeView 用；草稿 -> 加题 -> 调序/均分 -> 发布）
+  /** 新建试卷（草稿），返回试卷 ID */
+  createPaper: (data: PaperComposePayload) =>
+    http()
+      .post("/v2/edu/paper")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 向试卷追加题目（分值/顺序可随条目传入），返回实际写入条数 */
+  addPaperQuestions: (paperId: number, items: PaperQuestionAddItem[]) =>
+    http()
+      .post(`/v2/edu/paper/${paperId}/questions`)
+      .data(items as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 从试卷移除某道题（questionId 为题库题目标识） */
+  removePaperQuestion: (paperId: number, questionId: number) =>
+    http()
+      .delete(`/v2/edu/paper/${paperId}/questions/${questionId}`)
+      .then<boolean>(unwrap),
+  /** 按新顺序重排题目（questionNos 为试卷题唯一编号列表，数组顺序即目标顺序） */
+  sortPaperQuestions: (paperId: number, questionNos: string[]) =>
+    http()
+      .put(`/v2/edu/paper/${paperId}/questions/sort`)
+      .data(questionNos as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /** 按试卷总分均分题目分值 */
+  evenPaperScores: (paperId: number) =>
+    http()
+      .post(`/v2/edu/paper/${paperId}/questions/even`)
+      .then<boolean>(unwrap),
+  /** 更新试卷基础信息（名称/学科/学段/年级/时长等） */
+  updatePaper: (paperId: number, data: PaperComposePayload) =>
+    http()
+      .put(`/v2/edu/paper/${paperId}`)
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /** 发布试卷（草稿 -> 已发布） */
+  publishPaper: (paperId: number) =>
+    http()
+      .put(`/v2/edu/paper/${paperId}/publish`)
+      .then<boolean>(unwrap),
+  /** 试卷修改历史列表 */
+  getPaperHistory: (paperId: number) =>
+    http()
+      .get(`/v2/edu/paper/${paperId}/history`)
+      .then<PaperHistoryItem[]>(unwrap),
+  /** 试卷修改历史详情（含试卷快照） */
+  getPaperHistoryDetail: (historyId: number) =>
+    http()
+      .get(`/v2/edu/paper/history/${historyId}`)
+      .then<PaperHistoryItem>(unwrap),
+  /** 扫码识卷：按二维码短码取试卷 */
+  getPaperByQr: (no: string) =>
+    http()
+      .get(`/v2/edu/paper/qr/${no}`)
+      .then<PaperQuestionQr>(unwrap),
 
   // 阅卷
   submitMarking: (data: MarkingSubmitRequest) =>
@@ -323,9 +396,9 @@ export const eduaiApi = {
 
   // 昆虫图鉴（后端 EduInsectController；数据源自开源项目 insect-world，63 种 / 14 个目）
   insectLibrary: () =>
-    http()
-      .get("/v2/edu/insect/all")
-      .then<InsectLibraryItem[]>(unwrap),
+      http()
+        .get("/v2/edu/insect/all")
+        .then<InsectLibraryItem[]>(unwrap),
   insectStage: (insectCode: string) =>
     http()
       .get("/v2/edu/insect/stage")
@@ -335,6 +408,11 @@ export const eduaiApi = {
     http()
       .get(`/v2/edu/insect/guide/${insectCode}`)
       .then<InsectGuideView>(unwrap),
+  saveInsectGuide: (data: InsectGuideSaveRequest) =>
+    http()
+      .post("/v2/edu/insect/guide/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
   listInsects: (params: { order?: string; metamorphosis?: string; maxDifficulty?: number; count?: number }) =>
     http()
       .get("/v2/edu/insect/list")
@@ -354,10 +432,13 @@ export const eduaiApi = {
       .post("/v2/edu/insect/game/validate")
       .data(data as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
+  // /detail 与 /stage 返回同一形态的详情视图：四个 JSON 列都已解析成数组，
+  // 所以这里返回 InsectDetail（数组）而不是落库契约 Insect（JSON 字符串）。
+  // 保存走 saveInsect，那才是字符串形态。
   getInsectDetail: (insectId: number) =>
     http()
       .get(`/v2/edu/insect/detail/${insectId}`)
-      .then<Insect>(unwrap),
+      .then<InsectDetail>(unwrap),
   saveInsect: (data: Partial<Insect>) =>
     http()
       .post("/v2/edu/insect/save")
@@ -458,10 +539,104 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/dimension/grades/${id}`)
       .then<boolean>(unwrap),
-  dimensionDropdown: () =>
+    dimensionDropdown: () =>
+      http()
+        .get("/v2/edu/dimension/dropdown")
+        .then<{ gradeLevels: GradeLevelOption[]; subjects: EduSubject[]; grades: EduGrade[] }>(unwrap),
+
+  // 学生中心（学生端 /edu/student 专用；归属取自登录态，不接受客户端传学生 ID）
+  studentMe: () =>
     http()
-      .get("/v2/edu/dimension/dropdown")
-      .then<{ gradeLevels: GradeLevelOption[]; subjects: EduSubject[]; grades: EduGrade[] }>(unwrap),
+      .get("/v2/edu/student/me")
+      .then<StudentBindState>(unwrap),
+  studentBind: (data: StudentBindRequest) =>
+    http()
+      .post("/v2/edu/student/bind")
+      .data(data as unknown as Record<string, unknown>)
+      .then<StudentBindState>(unwrap),
+  studentOverview: () =>
+    http()
+      .get("/v2/edu/student/overview")
+      .then<StudentOverview>(unwrap),
+  reportStudy: (data: StudyReportRequest) =>
+    http()
+      .post("/v2/edu/student/study/report")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+
+  // 教师中心（老师端 /edu/teacher 专用）
+  teacherMe: () =>
+    http()
+      .get("/v2/edu/teacher/me")
+      .then<TeacherBindState>(unwrap),
+  teacherBind: (data: TeacherBindRequest) =>
+    http()
+      .post("/v2/edu/teacher/bind")
+      .data(data as unknown as Record<string, unknown>)
+      .then<TeacherBindState>(unwrap),
+  teacherOverview: () =>
+    http()
+      .get("/v2/edu/teacher/overview")
+      .then<TeacherOverview>(unwrap),
+
+  /**
+   * 指定学段的模块清单（学生端首页用）。
+   * 后台在「模块配置」里按学段增删改排序，学生端不需要改代码。
+   *
+   * @param gradeLevel PRIMARY / JUNIOR / SENIOR
+   */
+  funModules: (gradeLevel: string) =>
+    http()
+      .get("/v2/edu/fun/modules")
+      .query({ gradeLevel })
+      .then<FunModuleConfig[]>(unwrap),
+
+  // ==================== 学生 / 班级 / 教师（数据配置 - 学生管理） ====================
+  // 管理端维护档案；学生本人的绑定与学习数据走 /v2/edu/student/*（学生中心）
+  listStudents: (params: { classId?: number; gradeLevel?: string; grade?: string } = {}) =>
+    http()
+      .get("/v2/edu/dimension/students")
+      .query(params)
+      .then<EduStudent[]>(unwrap),
+  saveStudent: (data: Partial<EduStudent>) =>
+    http()
+      .post("/v2/edu/dimension/students/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  deleteStudent: (id: number) =>
+    http()
+      .delete(`/v2/edu/dimension/students/${id}`)
+      .then<boolean>(unwrap),
+
+  listClasses: (params: { gradeLevel?: string; teacherId?: number } = {}) =>
+    http()
+      .get("/v2/edu/dimension/classes")
+      .query(params)
+      .then<EduClass[]>(unwrap),
+  saveClass: (data: Partial<EduClass>) =>
+    http()
+      .post("/v2/edu/dimension/classes/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  deleteClass: (id: number) =>
+    http()
+      .delete(`/v2/edu/dimension/classes/${id}`)
+      .then<boolean>(unwrap),
+
+  listTeachers: (params: { subjectCode?: string } = {}) =>
+    http()
+      .get("/v2/edu/dimension/teachers")
+      .query(params)
+      .then<EduTeacher[]>(unwrap),
+  saveTeacher: (data: Partial<EduTeacher>) =>
+    http()
+      .post("/v2/edu/dimension/teachers/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  deleteTeacher: (id: number) =>
+    http()
+      .delete(`/v2/edu/dimension/teachers/${id}`)
+      .then<boolean>(unwrap),
 };
 
 export default eduaiApi;
