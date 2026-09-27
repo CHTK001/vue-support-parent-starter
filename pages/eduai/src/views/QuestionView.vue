@@ -480,6 +480,14 @@
               </el-option>
             </el-select>
           </el-form-item>
+          <el-form-item label="来源">
+            <el-input
+              v-model="form.questionSource"
+              maxlength="200"
+              show-word-limit
+              placeholder="题目来源；题库手动新增默认“手动录入”，采集入库自动填任务名"
+            />
+          </el-form-item>
         </el-form>
           </div>
 
@@ -1021,6 +1029,8 @@ const reset = () => {
     questionAnswer: "",
     questionAnalysis: "",
     questionKnowledgePointIds: "",
+    questionSource: "手动录入",
+    questionSourceType: "MANUAL",
     questionAuditStatus: 0,
     questionStatus: 1,
   });

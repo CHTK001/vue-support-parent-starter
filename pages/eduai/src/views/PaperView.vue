@@ -19,6 +19,7 @@
       >
         <template #toolbar>
           <ReButton type="success" icon="MagicStick" @click="openGenerate">AI 组卷</ReButton>
+          <ReButton type="primary" icon="EditPen" @click="goCompose">手动组卷</ReButton>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
         <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
@@ -120,6 +121,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
 import type { Paper } from '../api/types';
@@ -129,6 +131,7 @@ import type { ReTableSearchConfig } from '@repo/ui/re-table';
 const pageNo = ref(1);
 const pageSize = ref(20);
 const tableRef = ref();
+const router = useRouter();
 
 function blankSearch(): Record<string, unknown> {
   return { subject: '', gradeLevel: '', status: null };
@@ -235,6 +238,17 @@ const parseOptions = (raw?: string): string[] => {
       .map((s) => s.trim())
       .filter(Boolean);
   }
+};
+
+/** 手动组卷：带上当前检索的学科/学段跳转，供组卷页预填 */
+const goCompose = () => {
+  void router.push({
+    path: '/eduai/paper-compose',
+    query: {
+      subject: strParam(applied.value.subject),
+      gradeLevel: strParam(applied.value.gradeLevel),
+    },
+  });
 };
 
 const openGenerate = () => {
