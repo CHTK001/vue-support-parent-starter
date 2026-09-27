@@ -135,6 +135,12 @@ const routes = [
         component: () => import("./components/generate/ImageGeneratePage.vue"),
       },
       {
+        path: "face-search",
+        name: "FaceSearch",
+        meta: { title: "人脸识别", requiresAuth: true },
+        component: () => import("./components/management/FaceSearchPage.vue"),
+      },
+      {
         path: "app-keys",
         name: "AppKeys",
         meta: { title: "AppKey管理", requiresAuth: true },

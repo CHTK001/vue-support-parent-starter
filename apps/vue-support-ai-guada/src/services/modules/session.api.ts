@@ -13,6 +13,21 @@ export interface SessionApi {
   archiveSession(sessionId: string, archived: boolean): Promise<{ success: boolean; session?: any }>;
   batchArchiveSessions(sessionIds: string[], archived: boolean): Promise<{ success: boolean; skipped: string[] }>;
   updateSession(sessionId: string, data: any): Promise<Session>;
+  /**
+   * 从某一轮起回退：删除该轮及其之后的所有消息（后端按轮次归并，不是删单条）。
+   * 只回退对话，不会回滚工作目录里已被工具写入的文件。
+   */
+  rewindSession(sessionId: string, fromMessageId: string): Promise<{
+    success: boolean;
+    removedTurns: number;
+    removedMessages: number;
+  }>;
+  /** 从某一轮处分叉：复制截至该轮的消息为新会话，原会话保持不变 */
+  forkSession(sessionId: string, messageId: string): Promise<{
+    sessionId: string;
+    title: string;
+    copiedMessages: number;
+  }>;
   fetchSessionGroups(): Promise<SessionGroup[]>;
   createSessionGroup(data: { name: string }): Promise<SessionGroup>;
   updateSessionGroup(groupId: string, data: { name: string }): Promise<SessionGroup>;
@@ -312,6 +327,20 @@ export const sessionApi: SessionApi = {
     return await this._request(`/sessions/batch`, {
       method: "DELETE",
       data: { ids: sessionIds }
+    });
+  },
+
+  async rewindSession(this: ApiContext, sessionId: string, fromMessageId: string) {
+    return await this._request(
+      `/sessions/${sessionId}/messages?fromMessageId=${encodeURIComponent(fromMessageId)}`,
+      { method: "DELETE" }
+    );
+  },
+
+  async forkSession(this: ApiContext, sessionId: string, messageId: string) {
+    return await this._request(`/sessions/${sessionId}/fork`, {
+      method: "POST",
+      data: { messageId }
     });
   },
 

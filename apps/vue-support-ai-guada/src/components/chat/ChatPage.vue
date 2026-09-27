@@ -56,6 +56,7 @@
                       :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
                       @switch-agent="switchTab"
                       @save-settings="handleSaveSessionSettings"
+                      @open-session="handleOpenSession"
                       @select-character="handleSelectCharacter" />
                   </Teleport>
 
@@ -458,6 +459,16 @@ const goChatRoute = async (sessionId: string | null) => {
     router.replace({ name: 'Chat', params: { sessionId: 'new-session' } });
     mainSession.value = null;
   }
+};
+
+/**
+ * 「从此处分叉」成功后跳到新会话。
+ *
+ * 不需要额外刷会话列表：route.params.sessionId 的 watch 会拉取新会话详情
+ * 并写入 store（sessionsMap），侧边栏列表是 store 的 computed，会自动出现该会话。
+ */
+const handleOpenSession = async (sessionId: string) => {
+  await goChatRoute(sessionId);
 };
 
 
