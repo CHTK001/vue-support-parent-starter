@@ -512,9 +512,9 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     // 正常结束，强制 flush 缓冲区内容并清理
     forceFlushContent(message, contentIndex);
 
-    // SSE finish 携带的上下文统计，直接更新环形指示器
+    // SSE finish 携带的上下文统计，直接更新环形指示器并落库到会话
     if (response.contextStats) {
-      updateTokenStatsFromSSE(response.contextStats);
+      updateTokenStatsFromSSE(response.contextStats, message?.sessionId ?? null);
     }
 
     // 更新状态
@@ -551,7 +551,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
 
     // 更新会话流状态
     if (response.contextStats) {
-      updateTokenStatsFromSSE(response.contextStats);
+      updateTokenStatsFromSSE(response.contextStats, message?.sessionId ?? null);
     }
   }
 

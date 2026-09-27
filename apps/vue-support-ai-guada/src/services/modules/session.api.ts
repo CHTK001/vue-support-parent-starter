@@ -272,6 +272,11 @@ export interface SessionApi {
   fetchSessionSummaries(sessionId: string, limit?: number): Promise<{ items: any[]; total: number }>;
   updateSummary(summaryId: string, data: { summaryContent?: string }): Promise<any>;
   deleteSummary(summaryId: string): Promise<{ success: boolean }>;
+  /** 落库会话上下文用量快照（流式结束时调用） */
+  saveSessionTokenStats(
+    sessionId: string,
+    stats: { usedTokens: number; effectiveContextWindow: number },
+  ): Promise<{ usedTokens?: number; effectiveContextWindow?: number; updatedAt?: number }>;
   fetchSessionTokenStats(sessionId: string): Promise<{
     usedTokens: number;
     totalTokens: number;
@@ -448,6 +453,23 @@ export const sessionApi: SessionApi = {
 
   async fetchSessionTokenStats(this: ApiContext, sessionId: string) {
     return await this._request(`/sessions/${sessionId}/token-stats`);
+  },
+
+  /**
+   * 落库会话上下文用量快照（流式结束时调用）
+   *
+   * 后端把快照存进 sys_ai_session.settings.contextStats，页面刷新后
+   * fetchSessionTokenStats 即可恢复占用率，无需重新对话。
+   */
+  async saveSessionTokenStats(
+    this: ApiContext,
+    sessionId: string,
+    stats: { usedTokens: number; effectiveContextWindow: number },
+  ) {
+    return await this._request(`/sessions/${sessionId}/token-stats`, {
+      method: "PUT",
+      data: stats,
+    });
   },
 
   async getWorkspacePath(this: ApiContext, sessionId: string) {
