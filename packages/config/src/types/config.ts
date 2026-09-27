@@ -256,6 +256,15 @@ export interface UrlConfig {
   emailSend: string;
   /** 邮箱验证码登录接口 */
   emailLogin: string;
+  /**
+   * 调度治理接口前缀（pages/job 整包用）。
+   *
+   * <p>同一份 pages/job 被两个宿主复用，出口不同：采集控制台没有平台统一认证，
+   * 用 job-starter 那个带 {@code @Ignore} 的控制台出口 {@code /v2/scheduler}；
+   * 系统管理应用有平台认证，直接用 job-starter 自带的 {@code /v2/job}。
+   * 写死任何一个都会让另一个宿主的调度页全 404，故交由各应用配置。</p>
+   */
+  jobApi: string;
 }
 
 /** 环境配置 */

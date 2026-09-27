@@ -215,6 +215,7 @@ import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import ReTag from '@/components/re/ReTag.vue';
 import ReButton from '@/components/re/ReButton.vue';
+import type { EChartsOption } from 'echarts';
 import { usageApi } from '@/services/javaApi';
 
 type ChartType = 'token' | 'cost';
@@ -429,16 +430,16 @@ function pieOption(dist: DistRow[], type: ChartType): EChartsOption {
 const modelPieOption = computed(() => pieOption(modelDist.value, modelChartType.value));
 const groupPieOption = computed(() => pieOption(groupDist.value, groupChartType.value));
 
-function percentNum(row: DistRow, all: DistRow[], type: ChartType): number {
-  const total = all.reduce((s, x) => s + (type === 'token' ? x.totalTokens : x.cost), 0);
-  const v = type === 'token' ? row.totalTokens : row.cost;
+function percentNum(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): number {
+  const total = all.reduce((s, x) => (type === 'token' ? x.totalTokens : x.cost), 0);
   if (total <= 0) return 0;
+  const v = (type === 'token' ? row.totalTokens : row.cost) ?? 0;
   return (v / total) * 100;
 }
 
-/** row 来自 el-table 的默认插槽，类型是弱化的 DefaultRow，这里按 DistRow 断言后使用 */
-function percent(row: unknown, all: DistRow[], type: ChartType): string {
-  return percentNum(row as DistRow, all, type).toFixed(1) + '%';
+/** row 来自 el-table 的默认插槽，类型被弱化；这里用结构化类型直接接收，避免断言 */
+function percent(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): string {
+  return percentNum(row, all, type).toFixed(1) + '%';
 }
 
 function distRowStyle(all: DistRow[], type: ChartType) {
@@ -605,7 +606,7 @@ function formatTypeLabel(t: string | null | undefined): string {
   return TYPE_LABEL_MAP[t] || t;
 }
 
-function typeTagType(t: string | null | undefined): 'primary' | 'success' | 'info' | 'warning' {
+function typeTagType(t: string | null | undefined): 'primary' | 'info' | 'warning' | 'success' {
   if (t === 'chat_stream' || t === 'chat') return 'primary';
   if (t === 'external' || t === 'third_party') return 'info';
   if (t === 'memory_extract' || t === 'summary') return 'warning';

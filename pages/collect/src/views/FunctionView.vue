@@ -261,9 +261,9 @@ function showHelp(): void {
         </span>
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="Edit" type="primary" title="编辑这个函数" @click="openEdit(row)"/>
-        <ReButton layout="square" icon="VideoPlay" type="warning" title="试跑这个函数" @click="openTest(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" title="删除这个函数" @click="remove(row)"/>
+        <ReButton layout="square" icon="Edit" type="primary" tip="编辑这个函数" @click="openEdit(row)"/>
+        <ReButton layout="square" icon="VideoPlay" type="warning" tip="试跑这个函数" @click="openTest(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除这个函数" @click="remove(row)"/>
       </template>
     </ReTable>
 

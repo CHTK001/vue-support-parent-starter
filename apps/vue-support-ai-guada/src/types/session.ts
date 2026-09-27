@@ -22,11 +22,16 @@ export interface InputMessageState {
     content: string
     files: any[]
     knowledgeBaseIds?: string[]
+    /**
+     * 输入框等待响应标记。
+     * 仅在作为「编辑中的输入态」时需要；由队列消息 / 立即发送路径临时构造的
+     * 待发对象不携带该字段，故为可选。
+     */
     isWaiting?: boolean
     skillNames?: string[]
-    /** 本次消息是否开启深度思考 */
+    /** 是否开启深度思考（随消息透传给后端） */
     think?: boolean
-    /** 本次消息是否开启在线检索 */
+    /** 是否开启联网搜索（随消息透传给后端） */
     search?: boolean
 }
 
@@ -92,7 +97,7 @@ export interface Session {
     workspacePath?: string | null  // 自定义工作目录路径
     groupId?: string | null         // 会话分组ID
     archived?: boolean               // 是否已归档
-    /** 会话级 MCP 工具ID，逗号分隔（与 ChatInput 的 split/join 口径一致） */
+    /** 逗号分隔的 MCP Server ID 串（会话级绑定，可为空串；与 ChatInput 的 split/join 口径一致） */
     mcpServerIds?: string
     // ==================================
 

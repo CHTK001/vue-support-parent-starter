@@ -48,7 +48,21 @@ registerAnnouncementApi({
 // 后端菜单不可用时仍保证左侧导航可见；远程菜单成功后会由 auth store 自动隐藏这些兜底根节点。
 registerStaticMenu(systemMenus);
 
-createContextApp()
+createContextApp({
+  defaults: {
+    /**
+     * 调度治理出口用 job-starter 自带的 `/v2/job/**`。
+     *
+     * <p>`@repo/config` 的默认值是 `/v2/scheduler`——那是给采集控制台准备的
+     * `@Ignore` 控制台出口（它没接平台统一认证）。本应用有平台认证，后端挂的是
+     * `/v2/job/**`；沿用默认值会让调度页整页 404：列表失败被当成空台账还能渲染，
+     * 保存则打 `/v2/scheduler/save` 拿 404 且无任何提示。</p>
+     *
+     * <p>要打开后端出口还需 `plugin.job.manage.enable=true`（默认关闭）。</p>
+     */
+    url: { jobApi: "/v2/job" },
+  },
+})
   .routes(systemRoutes as never)
   .use([
     ReButtonInstall,

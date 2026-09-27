@@ -160,6 +160,10 @@ export const defaultAppConfig: AppConfig = {
     smsLogin: "/v2/sms/login",
     emailSend: "/v2/email/send",
     emailLogin: "/v2/email/login",
+    // 调度治理出口：默认给采集控制台（@Ignore 控制台出口）。
+    // 接了平台统一认证的宿主（如系统管理应用）要在自己的 app 配置里覆盖成 /v2/job，
+    // 否则 pages/job 的列表/保存/触发会全部 404。
+    jobApi: "/v2/scheduler",
   },
   env: {
     env: "dev",

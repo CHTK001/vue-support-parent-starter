@@ -7,29 +7,28 @@ import type { PaginatedResponse } from "@/types/common";
 const rawApi = createClient(rootHttp, { unwrap: false });
 
 /**
- * 远端模型列表接口的响应信封。
+ * 拉取上游模型列表的响应。
  *
- * 后端在鉴权失败时也返回 200 + success:false，因此 success/error 是必备字段；
- * items 与 data 可能同时缺失（失败分支），也可能二选一（成功分支的两种形态）。
+ * <p>该端点（{@code GET /api/providers/{id}/remote_models}）由外部 API 提供，
+ * 不走统一分页信封：上游鉴权失败时返回 200 + {@code success:false}（避免被
+ * 前端误判为会话过期而登出），成功时模型列表可能落在 {@code items}、
+ * {@code data.items} 或 {@code data} 数组三种位置。</p>
  */
-export interface RemoteModelsEnvelope {
+export interface RemoteModelsResponse {
+  /** 上游鉴权是否成功，缺省视为成功 */
   success?: boolean;
-  msg?: string;
+  /** 失败原因，仅 success=false 时有值 */
   error?: string;
-  items?: any[];
-  data?: { items?: any[] } | any[] | null;
+  /** 模型列表（顶层） */
+  items?: Model[];
+  /** 也可能包一层 data */
+  data?: Model[] | { items?: Model[] };
 }
 
 export interface ModelApi {
   fetchModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchAllModels(): Promise<PaginatedResponse<ModelProvider>>;
-  /**
-   * 拉取供应商远端模型列表。
-   *
-   * 返回的是后端原始信封（可能 200 + success:false），不是分页结构：
-   * 鉴权失败时后端也返回 200，因此调用方必须显式判 success。
-   */
-  fetchRemoteModels(providerId: string): Promise<RemoteModelsEnvelope>;
+  fetchRemoteModels(providerId: string): Promise<RemoteModelsResponse>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;

@@ -622,18 +622,19 @@ const glueSourcePlaceholder = computed(() =>
 );
 
 /**
- * 台账列 sys_job_glue_source 是 VARCHAR(4000)，而后端校验放行到 64000 字符。
+ * 片段正文长度上限：与台账列 sys_job_glue_source 同宽。
  *
- * 超列不会在前端或后端拦下来，只会在 INSERT 时被 MySQL 判成 Data too long 而报 500，
- * 所以这里主动提示；真正的根治是把列放宽（改 db/init DDL，需另行决策）。
+ * DDL（V1.0__init_all_job.sql）把「大文本统一 VARCHAR(4000)」列为跨库兼容约束
+ * （Oracle VARCHAR2 上限），是刻意设计，不能为了塞长脚本去放宽——三库会失配。
+ * 所以上限取 4000，前后端一致，超限在提交前就被拦下，不会等到存库才报 500。
  */
-const GLUE_COLUMN_LIMIT = 4000;
+const GLUE_SOURCE_LIMIT = 4000;
 const glueSourceDesc = computed(() => {
   const length = String(form.glueSource ?? "").length;
-  if (length <= GLUE_COLUMN_LIMIT) {
-    return `正文变更自动递增版本并刷新执行器缓存；当前 ${length} 字符`;
+  if (length <= GLUE_SOURCE_LIMIT) {
+    return `正文变更自动递增版本并刷新执行器缓存；当前 ${length} / ${GLUE_SOURCE_LIMIT} 字符`;
   }
-  return `当前 ${length} 字符，已超过台账列上限 ${GLUE_COLUMN_LIMIT}，保存会失败——请先精简正文或放宽 sys_job_glue_source`;
+  return `当前 ${length} 字符，已超上限 ${GLUE_SOURCE_LIMIT}，保存会被拒绝——请精简正文`;
 });
 
 /**
@@ -903,8 +904,8 @@ async function submit(): Promise<void> {
     msgError("代码片段任务必须填写片段正文");
     return;
   }
-  if (isScriptTask && String(form.glueSource ?? "").length > 64000) {
-    msgError("片段正文过长（上限 64000 字符）");
+  if (isScriptTask && String(form.glueSource ?? "").length > GLUE_SOURCE_LIMIT) {
+    msgError(`片段正文过长（上限 ${GLUE_SOURCE_LIMIT} 字符，与台账列 sys_job_glue_source 同宽）`);
     return;
   }
   if (String(form.alarmType ?? "").trim() && !String(form.alarmEmail ?? "").trim()) {
@@ -1442,15 +1443,15 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
 
 .task-form__type {
   display: grid;
-  /* 三张类型卡片（对象 / 脚本 / Java 片段）一行铺满；窄屏回落成两列 */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /*
+    三张类型卡片（对象 / 脚本 / Java 片段）：按容器实际宽度自适应，不写死列数。
+    写成 repeat(3, minmax(0,1fr)) 在窄弹层下会把三张卡各挤成 ~72px、文案折成竖线；
+    auto-fit + minmax(200px,1fr) 的行为是：容器够宽就一行三列，~420px 两列，再窄一列，
+    不会出现细条。判断依据是容器宽度而非视口宽度——弹层实际宽度受 dialog width 与
+    视口双重约束，两者不一定同步，纯 media query 会判错。
+  */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
-}
-
-@media (width <= 900px) {
-  .task-form__type {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 /* 类型卡片就是按钮本体：点一下即切换，不再在里面套开关 */

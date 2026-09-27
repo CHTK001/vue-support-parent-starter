@@ -289,7 +289,7 @@
           <span class="text-xs text-gray-400 ml-2">停用后不再自动派发，也不能点「立即采集」，需先启用再手动跑</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.collectTaskRemark" type="textarea" :rows="2" placeholder="任务备注" maxlength="500" show-word-limit />
+          <el-input v-model="form.collectTaskRemark" type="textarea" :rows="4" placeholder="任务备注" maxlength="500" show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>

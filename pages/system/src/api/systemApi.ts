@@ -944,6 +944,8 @@ export function pageForIp(params: {
   sysIpType?: number;
   sysIpStatus?: number;
 }) {
+  // 返回类型是 PageResult：/v2/ip/page 原始响应多一层 {code:0,msg,data:{...}}，
+  // 但 http 响应拦截器（checkApiResponse）已展平，业务侧直接就是分页体
   return http()
     .get("/v2/ip/page")
     .query(params as Record<string, unknown>)

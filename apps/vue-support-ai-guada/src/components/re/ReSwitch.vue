@@ -14,12 +14,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed } from 'vue'
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   label: { type: String, default: '' },
-  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   disabled: { type: Boolean, default: false },
   activeText: { type: String, default: '' },
   inactiveText: { type: String, default: '' },

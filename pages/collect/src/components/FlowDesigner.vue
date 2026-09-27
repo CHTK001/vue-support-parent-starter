@@ -9,7 +9,7 @@
   新增节点类型仍然只需后端注册执行器，前端零改动。
 -->
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from "vue";
+import { computed, onMounted, ref, shallowRef, watch } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReFlowGraph from "@repo/ui/re-flow-graph";
@@ -70,6 +70,11 @@ const props = defineProps<{
    *
    * 流程预览图与运行回放都走这个模式——它们要的是同一张画布，
    * 不另写一套渲染，回放时只改 states 就能让节点逐个变色。
+   *
+   * 注意：{@code @repo/ui/re-flow-graph} 是按主题加载的组件，本应用装的是 koi 主题，
+   * 它的开关叫 {@code editable}（内部翻译成 readonly / showPalette / showProperties）。
+   * 往它身上传 readonly 只会被 fallthrough 到外壳、又立刻被包装层的显式绑定覆盖，
+   * 结果是「永远只读」——这里必须传 editable。
    */
   readonly?: boolean;
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
@@ -187,6 +192,19 @@ const edgeForm = ref<EdgeForm | null>(null);
 
 /** 整体灌图后的第一个 change 来自内核 setData，不算用户改动 */
 let pending = true;
+
+/**
+ * 最近一次程序化载入的图签名。
+ *
+ * 用来区分「程序把图画上去」与「用户改了画布」：两者都会触发引擎 change 事件，
+ * 只有后者该把页面标成未保存。
+ */
+let loadedSignature = "";
+
+/** 图内容签名。流程图很小（几十个节点），直接序列化最省事也最不容易漏判 */
+function signatureOf(data: FlowGraphData): string {
+  return JSON.stringify(data);
+}
 /** 补默认参数、状态描边期间产生的 change 同样不算改动 */
 let applying = false;
 
@@ -596,6 +614,12 @@ function onGraphChange(data: FlowGraphData): void {
     pending = false;
     return;
   }
+  // 程序化载入也会回抛 change（prop 同步一次、引擎直灌一次，且都在更晚的微任务里），
+  // 用固定时间窗去抑制不可靠：窗口一过事件才到，页面就会莫名显示「未保存」。
+  // 改成比对内容签名——和刚载入的那张图一样就视为程序行为，用户真编辑才会标脏。
+  if (signatureOf(data) === loadedSignature) {
+    return;
+  }
   emit("change");
 }
 
@@ -642,8 +666,25 @@ function onReady(instance: FlowGraphEngine): void {
   } finally {
     applying = false;
   }
+  // 引擎就绪后补灌声明式传入的图：外壳初始化早于数据到达时（弹窗内容延后挂载、
+  // 异步取详情），这一句保证图最终一定画得出来
+  if (props.initialDsl) {
+    load(props.initialDsl);
+  }
   applyStates();
 }
+
+/**
+ * 挂载即灌图。
+ *
+ * <p>与 onReady 里的补灌是一对：这里覆盖「数据先到、引擎后到」，那里覆盖「引擎先到」。
+ * 只留一处会漏，弹窗里两种顺序都真实发生过（内容延后挂载 vs 详情接口先返回）。</p>
+ */
+onMounted(() => {
+  if (props.initialDsl) {
+    load(props.initialDsl);
+  }
+});
 
 function exportPng(): void {
   engine.value?.exportPNG(`${flow.value.name || "collect-flow"}.png`);
@@ -710,13 +751,8 @@ function load(dsl: CollectDsl | null | undefined): void {
     engine.value.setData(data);
     applyStates();
   }
-  // 上面两条路都会触发 change（一次来自 prop 同步、一次来自直灌），所以不能靠
-  // 「第一个 change 吞掉」那套：那样第二个 change 会被当成用户编辑，打开弹窗就显示
-  // 「未保存」（实测）。这里改成整段宏任务内都算程序行为，任务结束统一放行；
-  // 顺带修掉「载入空图时没有 change 事件、pending 永远为 true，用户第一次真编辑被吞」。
-  setTimeout(() => {
-    pending = false;
-  }, 0);
+  // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
+  loadedSignature = signatureOf(data);
 }
 
 /**
@@ -773,9 +809,7 @@ defineExpose({ load, getGraph, addNode, startWith });
       :data="graphData"
       :node-types="nodeTypes"
       :properties-title="panelTitle"
-      :readonly="readonly"
-      :show-palette="!readonly"
-      :show-properties="!readonly"
+      :editable="!readonly"
       start-type="start"
       end-type="end"
       @ready="onReady"

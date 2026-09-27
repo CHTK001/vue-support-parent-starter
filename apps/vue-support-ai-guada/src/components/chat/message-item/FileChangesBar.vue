@@ -66,13 +66,19 @@ const DiffIcon = () =>
 
 const props = defineProps<{
   changes: FileChangeEntry[];
+  /**
+   * 列表是否默认展开。
+   * 消息气泡里由用户点击摘要行展开；会话工作状态面板外层已有折叠头，
+   * 传 true 让文件列表直接可见，省掉一层重复的折叠。
+   */
+  defaultExpanded?: boolean;
 }>();
 
 defineEmits<{
   openDiff: [entry: FileChangeEntry];
 }>();
 
-const expanded = ref(false);
+const expanded = ref(props.defaultExpanded ?? false);
 
 const totalAdded = computed(() =>
   props.changes.reduce((sum, e) => sum + e.totalAdded, 0),

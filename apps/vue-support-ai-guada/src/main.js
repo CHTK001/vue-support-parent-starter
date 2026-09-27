@@ -135,6 +135,18 @@ const routes = [
         component: () => import("./components/generate/ImageGeneratePage.vue"),
       },
       {
+        path: "face-search",
+        name: "FaceSearch",
+        meta: { title: "人脸识别", requiresAuth: true },
+        component: () => import("./components/management/FaceSearchPage.vue"),
+      },
+      {
+        path: "image-search",
+        name: "ImageSearch",
+        meta: { title: "以图搜图", requiresAuth: true },
+        component: () => import("./components/search/ImageSearchPage.vue"),
+      },
+      {
         path: "app-keys",
         name: "AppKeys",
         meta: { title: "AppKey管理", requiresAuth: true },
@@ -193,6 +205,12 @@ const routes = [
         name: "Skills",
         meta: { title: "Skills管理", requiresAuth: true },
         component: () => import("./components/management/SkillsPage.vue"),
+      },
+      {
+        path: "session-trace",
+        name: "SessionTrace",
+        meta: { title: "执行轨迹", requiresAuth: true },
+        component: () => import("./components/management/SessionTracePage.vue"),
       },
       {
         path: "capabilities/:pipeline",

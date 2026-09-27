@@ -314,10 +314,10 @@ onUnmounted(() => {
         {{ row.collectTaskRecordCount ?? 0 }}
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="VideoPlay" type="primary" title="回放这次运行（只看动画，不重跑）" @click="openReplay(row)"/>
-        <ReButton layout="square" icon="Files" title="看这次运行产出的采集结果" @click="gotoRecords(row)"/>
-        <ReButton layout="square" icon="Tickets" title="看这次运行的节点日志" @click="showLogs(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" title="删除这条运行记录及其节点日志" @click="removeTask(row)"/>
+        <ReButton layout="square" icon="VideoPlay" type="primary" tip="回放这次运行（只看动画，不重跑）" @click="openReplay(row)"/>
+        <ReButton layout="square" icon="Files" tip="看这次运行产出的采集结果" @click="gotoRecords(row)"/>
+        <ReButton layout="square" icon="Tickets" tip="看这次运行的节点日志" @click="showLogs(row)"/>
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除这条运行记录及其节点日志" @click="removeTask(row)"/>
       </template>
     </ReTable>
 

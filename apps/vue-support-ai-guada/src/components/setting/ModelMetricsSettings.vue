@@ -58,7 +58,7 @@
               <td>
                 <div class="model-cell">
                   <img v-if="row.icon" :src="row.icon" class="model-icon" alt=""
-                    @error="(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')" />
+                    @error="onImgError" />
                   <span v-else class="model-icon model-icon--ph">
                     {{ (row.modelName || '?').charAt(0).toUpperCase() }}
                   </span>
@@ -117,9 +117,16 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+
 import { modelMetricsApi } from '@/services/javaApi'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+
+/** 模型图标加载失败时隐藏 img，落到占位首字母 */
+function onImgError(e: Event) {
+  const el = e.target as HTMLElement | null
+  if (el) el.style.visibility = 'hidden'
+}
 
 const form = ref({
   enabled: true,

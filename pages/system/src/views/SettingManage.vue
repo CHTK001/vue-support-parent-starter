@@ -639,7 +639,7 @@ onMounted(() => {
       </div>
 
       <!-- 分类筛选行 + 视图切换 -->
-      <div class="group-filterbar">
+      <div class="group-filterbar group-topbar">
         <div class="group-filterbar__cats">
           <button
             v-for="c in CATEGORY_LIST"
@@ -1101,7 +1101,6 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 48px 1fr auto;
   align-items: center;
-  gap: 14px;
   padding: 12px 16px;
 }
 .group-grid.is-list .group-card__icon {

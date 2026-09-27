@@ -2,7 +2,7 @@
   "name": "crypto-wasm",
   "type": "module",
   "description": "core 的加密 wasm 模块（aes / sm2 / sm3 / sm4），供 loadCrypto 动态加载",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "files": [
     "crypto-wasm_bg.wasm",
