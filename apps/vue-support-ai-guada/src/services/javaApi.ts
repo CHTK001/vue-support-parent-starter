@@ -126,6 +126,31 @@ export const agentApi = {
     apiHttp.get('/api/agents/packages/market/search', { params }),
 };
 
+// ==================== 会话 ↔ 智能体（一个会话多个智能体 / 主从动态子会话） ====================
+export const sessionAgentApi = {
+  /** 会话已绑定的智能体（主 + 子） */
+  list: (sessionId: string | number) =>
+    apiHttp.get(`/api/sessions/${sessionId}/agents`),
+  /** 挂载智能体到会话（幂等） */
+  attach: (sessionId: string | number, agentIds: string[]) =>
+    apiHttp.post(`/api/sessions/${sessionId}/agents`, { agent_ids: agentIds }),
+  /** 解绑 */
+  detach: (sessionId: string | number, agentId: string) =>
+    apiHttp.delete(`/api/sessions/${sessionId}/agents/${agentId}`),
+  /** 会话的子会话列表（页面刷新后恢复多 Tab） */
+  listSubSessions: (sessionId: string | number) =>
+    apiHttp.get(`/api/sessions/${sessionId}/sub-sessions`),
+  /** 主控智能体为子智能体创建真实子会话（后端会广播 sub_agent_create） */
+  spawn: (sessionId: string | number, data: any) =>
+    apiHttp.post(`/api/sessions/${sessionId}/sub-sessions/spawn`, data),
+  /** 结束子会话（广播 sub_agent_closed） */
+  close: (sessionId: string | number, subSessionId: string | number, reason = 'completed') =>
+    apiHttp.post(`/api/sessions/${sessionId}/sub-sessions/${subSessionId}/close`, { reason }),
+  /** 更新子智能体状态（广播 sub_agent_status） */
+  updateStatus: (subSessionId: string | number, status: string) =>
+    apiHttp.post(`/api/sessions/sub-sessions/${subSessionId}/status`, { status }),
+};
+
 // ==================== 服务管理（后端仅有状态查询与按名启停，无 CRUD） ====================
 export const serviceApi = {
   /** 出口返回统一信封 {code,data,msg}，data 为 List<AiServiceStatusDTO> */
