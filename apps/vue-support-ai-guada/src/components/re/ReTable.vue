@@ -41,22 +41,34 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
 
 defineProps({
-  data: { type: Array, default: () => [] },
+  data: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
   stripe: { type: Boolean, default: true },
   border: { type: Boolean, default: false },
-  size: { type: String, default: 'default' },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   loading: { type: Boolean, default: false },
   emptyText: { type: String, default: '暂无数据' },
-  rowKey: { type: [String, Function], default: 'id' },
-  rowStyle: { type: [Object, Function], default: () => ({}) },
+  rowKey: {
+    type: [String, Function] as PropType<
+      string | ((row: Record<string, any>) => string)
+    >,
+    default: 'id',
+  },
+  rowStyle: {
+    type: [Object, Function] as PropType<
+      Record<string, any> | ((row: Record<string, any>) => Record<string, any>)
+    >,
+    default: () => ({}),
+  },
   selectable: { type: Boolean, default: false },
   showIndex: { type: Boolean, default: true },
   toolbar: { type: Boolean, default: false },
   pagination: { type: Boolean, default: false },
   total: { type: Number, default: 0 },
-  pageSizes: { type: Array, default: () => [20, 50, 100] },
+  pageSizes: { type: Array as PropType<number[]>, default: () => [20, 50, 100] },
 })
 
 const emit = defineEmits([

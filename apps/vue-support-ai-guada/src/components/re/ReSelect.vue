@@ -27,18 +27,26 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { PropType } from 'vue'
+import type { ComponentSize } from 'element-plus'
 
 interface Option {
   label: string
-  value: string | number | boolean
+  /** 选项值：el-option 的 value 与 v-for key 均以此为准，故须为可索引类型 */
+  value: string | number
   disabled?: boolean
 }
 
 const props = defineProps({
-  modelValue: { type: [String, Number, Array, Boolean], default: '' },
+  modelValue: {
+    type: [String, Number, Array, Boolean] as PropType<
+      string | number | boolean | (string | number)[]
+    >,
+    default: '',
+  },
   label: { type: String, default: '' },
   placeholder: { type: String, default: '请选择' },
-  size: { type: String, default: 'default' },
+  size: { type: String as PropType<ComponentSize | ''>, default: 'default' },
   disabled: { type: Boolean, default: false },
   clearable: { type: Boolean, default: true },
   filterable: { type: Boolean, default: false },

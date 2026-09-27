@@ -258,6 +258,12 @@ const defaultForm = () => ({
   modelOptionalPipelines: '',
   optionalPipelinesList: [] as string[],
   modelDescription: '',
+  // 模型推理参数：随 modelApi.update 一并提交
+  contextWindow: undefined as number | undefined,
+  maxTokens: undefined as number | undefined,
+  temperature: undefined as number | undefined,
+  topP: undefined as number | undefined,
+  frequencyPenalty: undefined as number | undefined,
   modelSort: 0,
   modelEnabled: true,
 });
