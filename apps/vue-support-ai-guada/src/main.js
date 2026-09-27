@@ -201,6 +201,12 @@ const routes = [
         component: () => import("./components/management/SkillsPage.vue"),
       },
       {
+        path: "session-trace",
+        name: "SessionTrace",
+        meta: { title: "执行轨迹", requiresAuth: true },
+        component: () => import("./components/management/SessionTracePage.vue"),
+      },
+      {
         path: "capabilities/:pipeline",
         name: "Capabilities",
         meta: { title: "视觉管线", requiresAuth: true },

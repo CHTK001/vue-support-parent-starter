@@ -23,7 +23,7 @@
               二者缩放/留白完全一致，检测框坐标即可直接落在原图像素上。
             -->
             <svg
-              v-if="mainHit"
+              v-if="mainHit && showBox"
               class="fs-overlay"
               :viewBox="`0 0 ${natural.w} ${natural.h}`"
               preserveAspectRatio="xMidYMid meet"
@@ -39,7 +39,7 @@
               />
               <!-- 关键点 -->
               <circle
-                v-for="(kp, i) in landmarks"
+                v-for="(kp, i) in showLandmark ? landmarks : []"
                 :key="i"
                 class="fs-kp"
                 :cx="kp[0]"
@@ -100,15 +100,14 @@
           <span class="fs-dots"><i v-for="n in 5" :key="n" /></span>
         </header>
 
-        <!-- 分类切换 -->
+        <!-- 分类切换：按登记档案信息筛选 -->
         <nav class="fs-tabs">
           <button
             v-for="t in TABS"
             :key="t.key"
             class="fs-tab"
-            :class="{ 'is-active': activeTab === t.key, 'is-off': !t.ready }"
-            :disabled="!t.ready"
-            :title="t.ready ? '' : t.reason"
+            :class="{ 'is-active': activeTab === t.key }"
+            :title="t.hint"
             @click="activeTab = t.key"
           >
             {{ t.label }}
@@ -125,10 +124,10 @@
             @click="pickedId = item.id"
           >
             <div class="fs-card-face">
-              <img v-if="item.thumb" :src="item.thumb" :alt="item.label" class="fs-card-img" />
+              <img v-if="item.thumb" :src="item.thumb" :alt="item.name" class="fs-card-img" />
               <div v-else class="fs-card-fallback"><el-icon><User /></el-icon></div>
               <!-- 相似度环 -->
-              <svg class="fs-ring" viewBox="0 0 120 120">
+              <svg v-if="showRing" class="fs-ring" viewBox="0 0 120 120">
                 <circle class="fs-ring-track" cx="60" cy="60" r="54" />
                 <circle
                   class="fs-ring-bar"
@@ -144,8 +143,9 @@
             <p class="fs-card-cap">
               <b class="fs-card-score">{{ percent(item.score) }}%</b>
               <span class="fs-card-sep">|</span>
-              <span class="fs-card-tag">{{ item.label }}</span>
+              <span class="fs-card-tag">{{ item.caption }}</span>
             </p>
+            <p v-if="item.idCardMasked" class="fs-card-id">证件 {{ item.idCardMasked }}</p>
           </article>
         </div>
 
@@ -156,28 +156,29 @@
           <p class="fs-blank-desc">{{ blankDesc }}</p>
         </div>
 
-        <!-- 画廊条 -->
-        <div v-if="gallery.length" class="fs-gallery">
+        <!-- 相册：已登记档案 -->
+        <div v-if="registry.records.value.length" class="fs-gallery">
           <button
-            v-for="g in gallery"
-            :key="g.key"
+            v-for="r in registry.records.value"
+            :key="r.id"
             class="fs-thumb"
-            :class="{ 'is-active': galleryKey === g.key }"
-            @click="galleryKey = g.key"
+            :class="{ 'is-active': galleryKey === r.id }"
+            :title="`${r.name} · ${ageBucket(r.age)}`"
+            @click="galleryKey = r.id"
           >
-            <img :src="g.url" :alt="g.key" />
+            <img v-if="r.thumb" :src="r.thumb" :alt="r.name" />
+            <el-icon v-else><User /></el-icon>
           </button>
         </div>
 
         <!-- 主行动 -->
-        <el-button
-          class="fs-cta"
-          :disabled="busy"
-          :loading="enrolling"
-          @click="enrollCurrent"
-        >
-          <el-icon v-if="!enrolling"><Star /></el-icon>你可能也喜欢
+        <el-button class="fs-cta" :disabled="busy" @click="openEnroll">
+          <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
+        <p class="fs-gallery-hint">
+          已登记 <b>{{ registry.records.value.length }}</b> 张
+          <span v-if="registry.records.value.length && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
+        </p>
 
         <!-- 当前模型（只读，取自系统设置） -->
         <p class="fs-model">
@@ -187,9 +188,24 @@
           <span>特征模型 <b>{{ models.feature_model || '—' }}</b></span>
         </p>
       </aside>
+
+      <!-- ==================== 右缘悬浮工具条 ==================== -->
+      <div class="fs-rail">
+        <button
+          v-for="tool in RAIL"
+          :key="tool.key"
+          class="fs-rail-btn"
+          :class="{ 'is-on': tool.active() }"
+          :title="tool.title"
+          @click="tool.toggle"
+        >
+          <el-icon :size="18"><component :is="tool.icon" /></el-icon>
+        </button>
+      </div>
     </div>
 
     <input ref="fileInput" type="file" accept="image/*" class="fs-hidden" @change="onFilePicked" />
+    <FaceEnrollDialog v-model="enrollVisible" @enrolled="onEnrolled" />
   </div>
 </template>
 
@@ -197,24 +213,16 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  Check, Crop, FolderOpened, Loading, Picture, Refresh, Search, Setting, Star, User, Warning,
+  Aim, Check, Crop, FolderOpened, Loading, Picture, Refresh, Search, Setting, Star, User, View, Warning,
 } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
-import type { FaceBox, FaceHit, FaceMatch } from '@/services/modules/face.api'
+import type { FaceHit, FaceMatch } from '@/services/modules/face.api'
+import { useFaceRegistry, ageBucket, isSameAgeRange, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
+import FaceEnrollDialog from './FaceEnrollDialog.vue'
 
 /** 相似度环周长：r=54 → 2πr */
 const RING_C = 2 * Math.PI * 54
 
-/** 分类页签。属性类筛选依赖 attribute/emotion 权重，本地未就绪时置灰并说明原因。 */
-const TABS = [
-  { key: 'all', label: '全部', ready: true, reason: '' },
-  { key: 'age', label: '同年龄段', ready: false, reason: '需要人脸属性模型（本地权重未下载）' },
-  { key: 'hair', label: '相似发型', ready: false, reason: '需要人脸属性模型（本地权重未下载）' },
-  { key: 'shot', label: '上镜感', ready: false, reason: '需要人脸质量/表情模型（本地权重未下载）' },
-] as const
-
-const activeTab = ref<string>('all')
-const fileInput = ref<HTMLInputElement | null>(null)
 const previewUrl = ref('')
 const natural = ref({ w: 1, h: 1 })
 const hits = ref<FaceHit[]>([])
@@ -222,10 +230,18 @@ const matches = ref<FaceMatch[]>([])
 const models = ref<Record<string, any>>({})
 const pickedId = ref('')
 const galleryKey = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
+const enrollVisible = ref(false)
 
 const detecting = ref(false)
 const identifying = ref(false)
-const enrolling = ref(false)
+
+/** 叠加层显隐，由右缘悬浮条控制 */
+const showBox = ref(true)
+const showLandmark = ref(true)
+const showRing = ref(true)
+
+const registry = useFaceRegistry()
 
 /** 目标人脸（取面积最大的一张） */
 const mainHit = computed<FaceHit | null>(() => {
@@ -239,49 +255,116 @@ const landmarks = computed<number[][]>(() => {
   return kp.filter((p) => Array.isArray(p) && p.length >= 2).map((p) => [Number(p[0]), Number(p[1])])
 })
 
-const busy = computed(() => detecting.value || identifying.value || enrolling.value)
+const busy = computed(() => detecting.value || identifying.value)
 
-/** 命中项：把向量库返回的 score 与 metadata 组装成卡片数据 */
+/**
+ * 推荐卡片。
+ *
+ * <p>档案字段优先取后端命中回传的 {@code metadata}（登记时随向量一起存的），
+ * 缺失时回落到前端登记簿 —— 因为向量库没有列举接口，metadata 不一定带得回来。</p>
+ */
 interface HitCard {
   id: string
   score: number
-  label: string
+  name: string
+  caption: string
   thumb: string
+  age: number | null
+  hair: string
+  photogenic: number
+  idCardMasked: string
 }
 
 const cards = computed<HitCard[]>(() =>
   matches.value.map((m) => {
     const meta = (m.metadata ?? {}) as Record<string, any>
+    const local = registry.byId(String(m.id))
+    const name = String(meta.name ?? meta.label ?? local?.name ?? m.id)
+    const age = meta.age ?? local?.age ?? null
+    const gender = String(meta.gender ?? local?.gender ?? '')
+    const hair = String(meta.hair ?? local?.hair ?? '')
+    const photogenic = Number(meta.photogenic ?? local?.photogenic ?? 0)
+    const idCard = String(meta.idCard ?? local?.idCard ?? '')
+
+    // 真实字段拼说明文案；没有档案字段就只显示相似度，不编造描述
+    const bits: string[] = []
+    if (gender && gender !== '未知') bits.push(gender)
+    if (age != null && Number.isFinite(Number(age))) bits.push(`${age}岁`)
+    if (hair) bits.push(hair)
+    const caption = bits.length ? bits.join(' · ') : name
+
     return {
       id: String(m.id),
       score: Number(m.score ?? 0),
-      label: String(meta.label ?? meta.name ?? m.id),
-      thumb: typeof meta.thumb === 'string' ? meta.thumb : '',
+      name,
+      caption,
+      thumb: local?.thumb ?? (typeof meta.thumb === 'string' ? meta.thumb : ''),
+      age: age == null ? null : Number(age),
+      hair,
+      photogenic,
+      idCardMasked: maskIdCard(idCard),
     }
   }),
 )
 
-const visibleHits = computed(() => (activeTab.value === 'all' ? cards.value : []))
+/**
+ * 分类页签：全部按登记档案信息筛选。
+ *
+ * <p>属性/发型/上镜感<b>不是模型推理出来的</b> —— 年龄性别表情的 onnx 权重本地是空的，
+ * 这里筛的是登记时人工录入的档案字段。</p>
+ */
+const TABS = [
+  { key: 'all', label: '全部', hint: '全部命中' },
+  { key: 'age', label: '同年龄段', hint: '按登记年龄，差 5 岁内' },
+  { key: 'hair', label: '相似发型', hint: '按登记发型' },
+  { key: 'shot', label: '上镜感', hint: '按登记的上镜感评分（4 星以上）' },
+] as const
 
-/** 画廊：当前查询图 + 命中缩略图 */
-const gallery = computed(() => {
-  const list: { key: string; url: string }[] = []
-  if (previewUrl.value) list.push({ key: 'query', url: previewUrl.value })
-  for (const c of cards.value) {
-    if (c.thumb) list.push({ key: c.id, url: c.thumb })
+const activeTab = ref<string>('all')
+
+/** 当前查询图自己的档案（若它也在登记簿里，用于同龄段比较） */
+const queryRecord = computed<FaceRecord | undefined>(() => registry.byId(galleryKey.value))
+
+const visibleHits = computed<HitCard[]>(() => {
+  const list = cards.value
+  if (activeTab.value === 'age') {
+    const base = queryRecord.value?.age
+    return list.filter((c) => c.age != null && isSameAgeRange(base ?? c.age, c.age))
+  }
+  if (activeTab.value === 'hair') {
+    const hair = queryRecord.value?.hair
+    if (!hair) return list.filter((c) => !!c.hair)
+    return list.filter((c) => c.hair === hair)
+  }
+  if (activeTab.value === 'shot') {
+    return list.filter((c) => c.photogenic >= 4).sort((a, b) => b.photogenic - a.photogenic)
   }
   return list
 })
 
-const blankTitle = computed(() =>
-  identifying.value ? '正在比对…' : previewUrl.value ? '人脸库还是空的' : '等待上传照片',
-)
+const blankTitle = computed(() => {
+  if (identifying.value) return '正在比对…'
+  if (!previewUrl.value) return '等待上传照片'
+  if (cards.value.length && !visibleHits.value.length) return '该分类下没有结果'
+  if (registry.records.value.length) return '人脸库为空或已重置'
+  return '还没有登记任何人脸'
+})
 
 const blankDesc = computed(() => {
   if (identifying.value) return '正在与已登记人脸逐一比对'
   if (!previewUrl.value) return '上传一张含人脸的照片，这里会给出最像的几张'
-  return '把当前人脸加入人脸库后再点「重新识别」，即可得到相似面孔推荐'
+  if (cards.value.length && !visibleHits.value.length) return '换个分类看看，或先登记更多档案'
+  if (registry.records.value.length) return '向量库是内存存储，后端重启后会清空，需要重新登记'
+  return '先点「人脸登记入库」录入档案（含年龄、身份证等），再点「重新识别」'
 })
+
+/** 右缘悬浮工具条 */
+const RAIL = [
+  { key: 'box', title: '显示/隐藏人脸框', icon: Crop, active: () => showBox.value, toggle: () => { showBox.value = !showBox.value } },
+  { key: 'landmark', title: '显示/隐藏关键点', icon: Aim, active: () => showLandmark.value, toggle: () => { showLandmark.value = !showLandmark.value } },
+  { key: 'ring', title: '显示/隐藏相似度环', icon: View, active: () => showRing.value, toggle: () => { showRing.value = !showRing.value } },
+  { key: 'enroll', title: '人脸登记入库', icon: Star, active: () => enrollVisible.value, toggle: () => { openEnroll() } },
+]
 
 /** 余弦相似度 → 百分比展示 */
 function percent(score: number): number {
@@ -293,7 +376,15 @@ function ringOffset(score: number): number {
   return RING_C * (1 - Math.max(0, Math.min(1, score <= 1 ? score : score / 100)))
 }
 
-/** 读系统设置里的 face 分组：检测/特征模型等，只读展示 */
+function openEnroll() {
+  enrollVisible.value = true
+}
+
+function onEnrolled() {
+  galleryKey.value = ''
+  matches.value = []
+}
+
 async function loadModels() {
   try {
     models.value = await apiService.getFaceSettings()
@@ -316,7 +407,7 @@ function onFilePicked(e: Event) {
 async function loadFile(file: File) {
   revokePreview()
   previewUrl.value = URL.createObjectURL(file)
-  galleryKey.value = 'query'
+  galleryKey.value = ''
   pickedId.value = ''
   matches.value = []
   hits.value = []
@@ -364,7 +455,11 @@ async function runIdentify() {
     matches.value = res.hits ?? []
     pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
     if (!matches.value.length) {
-      ElMessage.info('人脸库为空，先点「你可能也喜欢」把当前人脸登记进去')
+      ElMessage.info(
+        registry.records.value.length
+          ? '没有命中任何已登记人脸（向量库可能已随服务重启清空）'
+          : '人脸库为空，先点「人脸登记入库」录入档案',
+      )
     }
   } catch (e: any) {
     ElMessage.error(`识别失败：${e?.message ?? e}`)
@@ -393,29 +488,6 @@ async function recognizeCrop() {
     ElMessage.error(`裁剪识别失败：${e?.message ?? e}`)
   } finally {
     identifying.value = false
-  }
-}
-
-/** 把当前人脸登记进向量库，并存缩略图 + 标签供推荐卡片展示 */
-async function enrollCurrent() {
-  if (!previewUrl.value) return
-  const hit = mainHit.value
-  if (!hit) {
-    ElMessage.warning('请先上传含人脸的照片')
-    return
-  }
-  enrolling.value = true
-  try {
-    const id = `face-${Date.now()}`
-    const thumb = hit.faceImage ? `data:image/jpeg;base64,${hit.faceImage}` : previewUrl.value
-    const blob = await (await fetch(previewUrl.value)).blob()
-    await apiService.enrollFace(id, blob, { label: `样本 ${id.slice(-4)}`, thumb }, 'enroll.png')
-    ElMessage.success('已加入人脸库，点「重新识别」查看推荐')
-    await runIdentify()
-  } catch (e: any) {
-    ElMessage.error(`登记失败：${e?.message ?? e}`)
-  } finally {
-    enrolling.value = false
   }
 }
 
@@ -451,6 +523,7 @@ onBeforeUnmount(() => {
   --fs-radius-sm: var(--mp-radius, 11px);
   --fs-shadow: var(--mp-shadow-pop, 0 10px 30px -10px rgba(16, 24, 40, 0.22));
 
+  position: relative;
   height: 100%;
   overflow: hidden;
   background: var(--fs-bg);
@@ -466,6 +539,7 @@ onBeforeUnmount(() => {
 }
 
 .fs-body {
+  position: relative;
   display: flex;
   gap: 24px;
   height: 100%;
@@ -658,7 +732,7 @@ onBeforeUnmount(() => {
   flex: 0 0 400px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   padding: 22px;
   box-sizing: border-box;
   border-radius: var(--fs-radius);
@@ -713,8 +787,6 @@ onBeforeUnmount(() => {
   color: var(--fs-brand);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
-.fs-tab.is-off { opacity: 0.45; cursor: not-allowed; }
 
 /* 结果网格 */
 .fs-grid {
@@ -791,7 +863,7 @@ onBeforeUnmount(() => {
 }
 
 .fs-card-cap {
-  margin: 8px 0 2px;
+  margin: 8px 0 0;
   text-align: center;
   font-size: 12px;
   color: var(--fs-muted);
@@ -802,6 +874,17 @@ onBeforeUnmount(() => {
 
 .fs-card-score { color: var(--fs-brand); font-size: 13px; }
 .fs-card-sep { margin: 0 4px; }
+
+.fs-card-id {
+  margin: 3px 0 2px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fs-muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* 空态 */
 .fs-blank {
@@ -819,7 +902,7 @@ onBeforeUnmount(() => {
 .fs-blank-title { margin: 4px 0 0; font-weight: 600; }
 .fs-blank-desc { margin: 0; font-size: 12px; color: var(--fs-muted); line-height: 1.7; }
 
-/* 画廊 */
+/* 相册 */
 .fs-gallery {
   display: flex;
   gap: 8px;
@@ -835,7 +918,11 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 2px solid transparent;
   background: var(--fs-hover);
+  color: var(--fs-muted);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fs-thumb.is-active { border-color: var(--fs-brand); }
@@ -854,6 +941,15 @@ onBeforeUnmount(() => {
 
 .fs-cta:disabled { opacity: 0.5; }
 
+.fs-gallery-hint {
+  margin: -6px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fs-muted);
+}
+
+.fs-gallery-hint b { color: var(--fs-accent); }
+
 /* 模型说明 */
 .fs-model {
   margin: 0;
@@ -867,6 +963,41 @@ onBeforeUnmount(() => {
 
 .fs-model b { color: var(--fs-accent); font-weight: 600; }
 .fs-dot { opacity: 0.5; }
+
+/* ---------------- 右缘悬浮工具条 ---------------- */
+.fs-rail {
+  position: absolute;
+  right: 440px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+}
+
+.fs-rail-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--fs-radius-sm);
+  border: 1px solid var(--fs-border);
+  background: var(--fs-card);
+  color: var(--fs-muted);
+  cursor: pointer;
+  box-shadow: var(--fs-shadow);
+  transition: color 0.18s, border-color 0.18s, transform 0.18s;
+}
+
+.fs-rail-btn:hover { transform: translateY(-1px); }
+
+.fs-rail-btn.is-on {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
+}
 
 .fs-hidden { display: none; }
 </style>

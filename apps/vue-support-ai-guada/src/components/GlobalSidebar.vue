@@ -332,8 +332,10 @@ import {
   DataBarVertical20Regular,
   PlugConnected20Regular,
   Image20Regular,
+  Person20Regular,
   Key20Regular,
   ChatMultiple24Regular,
+  ClipboardPulse20Filled,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -556,6 +558,13 @@ const navItems = computed(() => {
       alwaysShow: true
     },
     {
+      key: 'face-search',
+      label: '人脸识别',
+      icon: Person20Regular,
+      // /v2/face/* 全是 @Permission("admin")，非管理员看不到入口
+      adminOnly: true
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -578,6 +587,12 @@ const navItems = computed(() => {
       label: t('ui.sidebar.navScheduler'),
       icon: ClockAlarm20Regular,
       showKey: 'showSchedulerMenu',
+      adminOnly: true
+    },
+    {
+      key: 'session-trace',
+      label: '执行轨迹',
+      icon: ClipboardPulse20Filled,
       adminOnly: true
     },
   ]
@@ -610,6 +625,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'ImageGenerate') return 'image-generate'
+  if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -619,6 +635,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
   if (routeName === 'Skills') return 'skills'
+  if (routeName === 'SessionTrace') return 'session-trace'
   if (routeName === 'Capabilities') return 'capabilities'
   return ''
 })
@@ -815,6 +832,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Scheduler' })
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
+  } else if (tab === 'face-search') {
+    router.replace({ name: 'FaceSearch' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {
@@ -835,6 +854,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Connectors' })
   } else if (tab === 'skills') {
     router.replace({ name: 'Skills' })
+  } else if (tab === 'session-trace') {
+    router.replace({ name: 'SessionTrace' })
   } else if (tab === 'capabilities') {
     router.replace({ name: 'Capabilities', params: { pipeline: 'text-to-image' } })
   }
