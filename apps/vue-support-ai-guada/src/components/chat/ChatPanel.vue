@@ -44,6 +44,7 @@
               :animate-in="animateIds.includes(turn.user.id)" @delete="deleteMessage" @edit="editMessage"
               @copy="copyMessage" @generate="generateResponse" @regenerate="regenerateResponse"
               @continue="continueResponse" @switch="switchContent"
+              @rewind="rewindFromHere" @fork="forkFromHere"
               @resume-confirmation="resumeConfirmation" />
             <!-- <div class="min-h-60"></div> -->
 
@@ -188,6 +189,8 @@ const emit = defineEmits<{
   'save-settings': []
   'select-character': [character: Character]  // 切换角色
   'switch-agent': [tabId: string]
+  /** 「从此处分叉」成功：请上层跳转到新会话 */
+  'open-session': [sessionId: string]
 }>();
 
 // 计算属性 - 类型化
@@ -910,6 +913,70 @@ async function deleteMessage(message: any) {
 
 function editMessage(message: any) {
   enterEditMode(message)
+}
+
+/**
+ * 从此处回退：删除本轮及之后的全部消息。
+ *
+ * 破坏性操作，故先弹确认框说清影响范围。回退只动对话，
+ * 工作目录里已被工具写入的文件不会回滚 —— 这点在确认文案里明确告知，
+ * 否则用户会误以为代码也一并还原了。
+ */
+async function rewindFromHere(message: any) {
+  const sessionId = currentSessionId.value
+  if (!sessionId || !message?.id) return
+
+  // 预估影响范围：当前轮 + 之后所有轮
+  const turnIndex = visibleTurns.value.findIndex((turn: any) =>
+    turn.assistants?.some((a: any) => a.id === message.id)
+    || turn.user?.id === message.id
+  )
+  const totalTurns = visibleTurns.value.length
+  const affectedTurns = turnIndex >= 0 ? totalTurns - turnIndex : 1
+
+  const confirmed = await confirm(
+    t('chat.rewindDialog.title'),
+    `${t('chat.rewindDialog.message', { turns: affectedTurns, messages: affectedTurns * 2 })}` +
+      `<div style="margin-top:8px;font-size:12px;opacity:.75">${t('chat.rewindDialog.workspaceWarning')}</div>`,
+    { type: 'error', confirmText: t('chat.rewindDialog.confirm'), cancelText: t('chat.rewindDialog.cancel') }
+  )
+  if (!confirmed) return
+
+  try {
+    const result = await apiService.rewindSession(sessionId, message.id)
+    await loadMessages(sessionId, { isInitial: true })
+    toast.success(
+      affectedTurns <= 1
+        ? t('chat.rewindDialog.successLastTurn')
+        : t('chat.rewindDialog.success', { messages: result?.removedMessages ?? 0 })
+    )
+  } catch (error) {
+    console.error('回退失败:', error)
+    toast.error(t('chat.rewindDialog.failed'))
+  }
+}
+
+/**
+ * 从此处分叉：把截至本轮的消息复制成新会话，原会话保持不变。
+ *
+ * 分叉是非破坏的，不需要确认框；成功后切到新会话，让用户直接在新分支上继续。
+ */
+async function forkFromHere(message: any) {
+  const sessionId = currentSessionId.value
+  if (!sessionId || !message?.id) return
+
+  try {
+    const result = await apiService.forkSession(sessionId, message.id)
+    toast.success(t('chat.forkSuccess', { title: result?.title || '' }))
+    // 跳转由 ChatPage 负责（它持有路由与侧边栏刷新），
+    // ChatPanel 只负责把新会话 id 抛上去。
+    if (result?.sessionId) {
+      emit('open-session', result.sessionId)
+    }
+  } catch (error) {
+    console.error('分叉失败:', error)
+    toast.error(t('chat.forkFailed'))
+  }
 }
 
 async function copyMessage(message: any) {

@@ -106,9 +106,26 @@
             <span class="label">工具耗时</span>
             <span class="value">{{ toolTimeText }}</span>
           </div>
-          <div class="row">
+          <div class="row row--clickable" @click="stepsExpanded = !stepsExpanded">
             <span class="label">步骤</span>
-            <span class="value">{{ stats.steps }}</span>
+            <span class="value step-toggle-value">
+              {{ stats.steps }}
+              <el-icon class="chevron-inline" :class="{ collapsed: !stepsExpanded }"><ArrowDown /></el-icon>
+            </span>
+          </div>
+          <!-- 步骤明细：按发生顺序的时间线（思考 / 检索 / 工具调用逐步展开） -->
+          <div v-show="stepsExpanded" class="step-detail">
+            <template v-if="stepItems.length">
+              <div v-for="(step, i) in stepItems" :key="step.id" class="step-row" :class="{ 'is-failed': step.failed }">
+                <span class="step-index">{{ i + 1 }}</span>
+                <el-icon class="step-icon" :style="step.failed ? { color: '#f56c6c' } : undefined">
+                  <component :is="step.icon" />
+                </el-icon>
+                <span class="step-label" :title="step.label">{{ step.label }}</span>
+                <span v-if="step.detail" class="step-arg" :title="step.detail">{{ step.detail }}</span>
+              </div>
+            </template>
+            <div v-else class="empty-hint">尚未产生步骤</div>
           </div>
         </div>
       </div>
@@ -194,10 +211,13 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { Refresh, Close, ArrowDown, Timer, FolderOpened, Document, Tools } from '@element-plus/icons-vue';
+import { BrainCircuit20Regular, Search16Filled } from '@vicons/fluent';
 import { apiService } from '@/services/ApiService';
 import { useSessionStore } from '@/stores/session';
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
+import { flattenContentsForTimeline } from '@/utils/messageUtils';
+import { getToolIcon, getToolConfig, getArgsText, resolveToolName } from '@/utils/toolDisplay';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
 
@@ -225,6 +245,7 @@ const turnsExpanded = ref(true);
 const toolsExpanded = ref(true);
 const sourcesExpanded = ref(true);
 const filesExpanded = ref(true);
+const stepsExpanded = ref(false);
 
 // 会话级文件变更：把整会话消息的 contents 摊平后交给 useFileChanges，
 // 由它按 filePath 聚合并用 diffLines 算增删行（与单条消息内的展示同一套逻辑）
@@ -296,12 +317,30 @@ function formatSpan(ms: number): string {
 }
 
 /**
- * ISO 时间串 → 毫秒时间戳；解析不了返回 0。
+ * 时间 → 毫秒时间戳；解析不了返回 0。
+ *
+ * 注意后端返回的 createdAt / updatedAt 是**毫秒时间戳的字符串**
+ * （形如 "1790523862000"），不是 ISO 串。直接丢给 new Date() 会得到
+ * Invalid Date，导致会话时长恒为 0，所以必须先识别纯数字。
  */
 function toTime(value: unknown): number {
-  if (!value) return 0;
-  const t = new Date(String(value)).getTime();
-  return Number.isNaN(t) ? 0 : t;
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const text = String(value).trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  const parsed = new Date(text).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * 从 modelId 截出模型名：取最后一个冒号之后的部分。
+ * modelId 形如 "<providerId>:<modelName>"，没有冒号时原样返回。
+ */
+function modelNameFromId(modelId?: string | null): string {
+  if (!modelId) return '';
+  const text = String(modelId);
+  const colon = text.lastIndexOf(':');
+  return colon >= 0 ? text.slice(colon + 1) : text;
 }
 
 // ============ 会话概要 ============
@@ -339,8 +378,12 @@ const overview = computed(() => {
   const ended = toTime(currentSession.value?.lastActiveAt || currentSession.value?.updatedAt);
   const duration = created && ended && ended > created ? ended - created : 0;
 
+  // modelId 形如 "<providerId>:<modelName>"（如 "1790518072240:agnes-3.0-flash"），
+  // 会话详情并不返回 model 对象，故这里从 modelId 截出可读名兜底。
   const modelName =
-    currentSession.value?.model?.modelName || tokenStats.value?.modelName || '';
+    currentSession.value?.model?.modelName
+    || tokenStats.value?.modelName
+    || modelNameFromId(currentSession.value?.modelId);
 
   return {
     modelName,
@@ -442,6 +485,67 @@ const speedText = computed(() => {
 
 const modelTimeText = computed(() => formatDuration(stats.value.modelDuration));
 const toolTimeText = computed(() => formatDuration(stats.value.toolDuration));
+
+// ============ 步骤明细（按发生顺序的时间线） ============
+
+/**
+ * 会话级步骤时间线：把每条助手消息的 contents 按发生顺序拍平，
+ * 只取「过程」项（思考 / 检索 / 工具调用），跳过正文。
+ *
+ * 与「工具调用」区块的区别：那边是按工具名聚合的次数统计，
+ * 这里是**有序的逐步列表**，能看清 Agent 先想了什么、再调了什么。
+ *
+ * 说明：后端未下发逐步耗时（traceLog 恒为空），故每行只给名称与参数摘要。
+ */
+const stepItems = computed(() => {
+  const out: Array<{
+    id: string;
+    icon: any;
+    label: string;
+    detail: string;
+    failed: boolean;
+  }> = [];
+
+  for (const msg of props.messages || []) {
+    if (!msg || msg.role !== 'assistant') continue;
+
+    for (const item of flattenContentsForTimeline(msg.contents || [])) {
+      if (item.type === 'think') {
+        const text = (item.reasoningContent || '').replace(/\s+/g, ' ').trim();
+        out.push({
+          id: item.id,
+          icon: BrainCircuit20Regular,
+          label: '思考',
+          detail: text.length > 72 ? `${text.slice(0, 72)}…` : text,
+          failed: false,
+        });
+      } else if (item.type === 'search') {
+        out.push({
+          id: item.id,
+          icon: Search16Filled,
+          label: '检索',
+          detail: item.searchQuery || '',
+          failed: false,
+        });
+      } else if (item.type === 'tool') {
+        for (const [tcIndex, tc] of (item.toolCalls || []).entries()) {
+          const name = resolveToolName(tc);
+          const failed = !!tc.outcome && tc.outcome !== 'success';
+          const config = getToolConfig(tc);
+          out.push({
+            id: `${item.id}-${tc.index ?? tcIndex}`,
+            icon: getToolIcon(tc),
+            label: name || config.text.completed || '工具',
+            detail: getArgsText(tc) || '',
+            failed,
+          });
+        }
+      }
+    }
+  }
+
+  return out;
+});
 
 // ============ 工具调用明细 ============
 

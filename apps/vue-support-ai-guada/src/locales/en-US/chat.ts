@@ -230,6 +230,19 @@
     executingSteps: 'Executing {n} steps',
     executingStepsWithCompleted: 'Executing {n} steps, {m} completed',
     executedSteps: '{n} steps executed',
+
+    // ── Turn-level process summary ──
+    expandProcess: 'Expand process',
+    collapseProcess: 'Collapse process',
+    noProcess: 'No process',
+    phaseThink: 'thinking',
+    phaseSearch: 'searching',
+    phaseCommand: 'running command',
+    phaseEditFile: 'edit file',
+    phaseRead: 'read file',
+    phaseWeb: 'web',
+    phaseTool: 'tool call',
+    phaseCompose: 'composing',
   },
 
   // ── 消息操作 ──
@@ -241,7 +254,25 @@
     more: 'More',
     editContent: 'Edit Content',
     deleteMessage: 'Delete Message',
+    rewindHere: 'Rewind from here',
+    forkHere: 'Fork from here',
   },
+
+  // ── Rewind confirm dialog ──
+  rewindDialog: {
+    title: 'Rewind from here?',
+    message: 'This will delete this turn and all {turns} turns after it ({messages} messages). This cannot be undone.',
+    workspaceWarning: 'Note: the conversation is rewound, but files already written to the workspace are not rolled back.',
+    confirm: 'Rewind',
+    cancel: 'Cancel',
+    success: 'Rewound, {messages} messages removed',
+    successLastTurn: 'Rewound this turn',
+    failed: 'Rewind failed',
+  },
+
+  // ── Fork ──
+  forkSuccess: 'Forked into new session "{title}"',
+  forkFailed: 'Fork failed',
 
   // ── 工具调用 ──
   toolCalls: {

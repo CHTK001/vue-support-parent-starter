@@ -68,61 +68,22 @@
           </div>
         </div>
         <div class="message-item__card message-item--hover" :title="assistantTime.full">
+          <!-- 回合级执行摘要条：折叠时只显示「模型 · 全部阶段」，展开后放出下面的分组详情 -->
+          <TurnProcessSummary
+            v-if="turnPhases.length"
+            :phases="turnPhases"
+            :model-name="currentModelName"
+            :expanded="processExpanded"
+            :active="streamingState.isStreaming"
+            @toggle="processExpanded = !processExpanded" />
+
           <!-- 展示分组：content / think / tool -->
-          <template v-for="(group, groupIndex) in displayGroups" :key="group.id">
-            <template v-if="group.type === 'content'">
-              <template v-for="item in group.items" :key="item.id">
-                <MarkdownContent class="message-item__text markdown-text" @click="handleClick"
-                  :content="item.content || ''" />
-              </template>
-            </template>
-            <div v-else class="process-group">
-              <!-- 分组标题 -->
-              <div v-if="group.isCollapsible" class="process-group__header text-[14px] group"
-                :class="{ 'shimmer-text': isLastActive(groupIndex), 'text-gray-600 dark:text-gray-400': !isLastActive(groupIndex) }"
-                @click="toggleGroup(isLastActive(groupIndex) ? 'last-active' : group.id)">
-                <template v-for="(parts, _) in [getGroupTitleParts(group, isLastActive(groupIndex))]" :key="_">
-                  <span class="relative w-3.75 h-3.75 shrink-0 flex items-center justify-center">
-                    <!-- <span class="block w-1 h-1 rounded-3xl bg-gray-400 dark:bg-gray-700/50" v-if="!isLastActive(groupIndex)"></span> -->
-                    <component :is="parts.icon" v-if="!isGroupExpanded(group.id)"
-                      class="absolute inset-0 w-3.75 h-3.75 transition-opacity duration-200 group-hover:opacity-0 text-gray-500" />
-                    <ChevronDown12Regular class="absolute inset-0 w-3.75 h-3.75 transition-all duration-200"
-                      :class="isGroupExpanded(group.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-                      :style="isGroupExpanded(group.id) ? {} : { transform: 'rotate(-90deg)' }" />
-                  </span>
-                  <span class="shrink-0 font-medium ml-1.5">{{ parts.action }}</span>
-                  <span v-if="parts.args" class="text-sm truncate ml-1.5"
-                    :class="{ 'text-gray-400 dark:text-gray-400': !isLastActive(groupIndex) }">{{ parts.args }}</span>
-                </template>
-              </div>
-              <!-- 分组内容 -->
-              <div class="process-group__collapsible"
-                :class="{ 'is-expanded': isLastActive(groupIndex) ? isGroupExpanded('last-active') : (!group.isCollapsible || isGroupExpanded(group.id)) }">
-                <div class="process-group__body">
-                  <div class="process-group__body-scroll space-y-2"
-                    :class="{ 'py-2': group.isCollapsible, 'no-mask': !group.isCollapsible && !isLastActive(groupIndex) }"
-                    :ref="isLastActive(groupIndex) ? setActiveBodyRef : undefined"
-                    @scroll="isLastActive(groupIndex) ? onActiveBodyScroll($event) : undefined">
-                    <template v-for="item in group.items" :key="item.id">
-                      <MessageThinkingSection v-if="item.type === 'think'"
-                        :reasoning-content="item.reasoningContent || ''"
-                        :is-thinking="item.source.state?.isThinking || false"
-                        :is-streaming="item.source.state?.isStreaming || false"
-                        :thinking-duration-ms="item.source.thinkingDurationMs ?? item.source.metadata?.thinkingDurationMs"
-                        :metadata="item.source.metadata" />
-                      <MessageSearchSection v-if="item.type === 'search'"
-                        :search-results="item.searchResults || []"
-                        :is-searching="item.source.state?.isSearching || false"
-                        :search-query="item.searchQuery" />
-                      <MessageToolCalls v-if="item.type === 'tool'" :tool-calls="item.toolCalls || []"
-                        :tool-responses="item.toolResponses" :content-id="item.source.id"
-                        :is-streaming="streamingState.isStreaming" />
-                    </template>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
+          <ProcessTimeline
+            v-if="timelineItems.length"
+            :items="timelineItems"
+            :is-streaming="streamingState.isStreaming"
+            :show-process="processExpanded"
+            @click="handleClick" />
 
           <!-- 计划批准卡片（plan_exit 人工确认） -->
           <PlanApprovalCard
@@ -239,13 +200,15 @@
         <FileChangesBar v-if="!streamingState.isStreaming && fileChanges.length > 0" :changes="fileChanges"
           @open-diff="openDiffDialog" />
 
-        <!-- 操作按钮（含版本切换） -->
+        <!-- 操作按钮（含版本切换 / 从此处回退 / 从此处分叉） -->
         <MessageActions v-if="!streamingState.isStreaming" :is-assistant="true" :is-last="isLast"
           :allow-generate="false" :content-versions="siblingVersions" :current-version-index="currentVersionIndex"
           :time-full="assistantTime.full" :time-friendly="assistantTime.firendly" :duration-text="durationText"
           @copy="emit('copy', activeAssistant)" @regenerate="emit('regenerate', activeAssistant)"
           @switch-version="switchContent" @edit="emit('edit', activeAssistant)"
-          @delete="emit('delete', activeAssistant)" />
+          @delete="emit('delete', activeAssistant)"
+          @rewind="activeAssistant && emit('rewind', activeAssistant)"
+          @fork="activeAssistant && emit('fork', activeAssistant)" />
       </div>
     </template>
 
@@ -267,18 +230,21 @@ import { Alert16Regular, BrainCircuit20Regular, Wrench24Filled, ChevronDown12Reg
 import { Loading, Bottom, Top, Box, InfoFilled } from "@element-plus/icons-vue";
 import { FileItem, Avatar } from "../ui";
 import { formatTime } from '../../utils';
-import { getCurrentTurns, groupContentsForDisplay, type DisplayGroup, type DisplayItem, type Message } from '@/utils/messageUtils';
+import { getCurrentTurns, groupContentsForDisplay, flattenContentsForTimeline, type DisplayGroup, type DisplayItem, type Message } from '@/utils/messageUtils';
 import { getToolConfig, getToolIcon, resolveToolName as _resolveToolName, getArgsText, countSteps, DEFAULT_CONFIG, type ToolCall } from '@/utils/toolDisplay';
 import { getModelDisplayName, getModelAvatarPath } from '@/utils/modelUtils';
 import { usePopup } from "../../composables/usePopup";
 import MessageThinkingSection from './message-item/MessageThinkingSection.vue';
 import MessageSearchSection from './message-item/MessageSearchSection.vue';
+import TurnProcessSummary from './message-item/TurnProcessSummary.vue';
 import MessageToolCalls from './message-item/MessageToolCalls.vue';
+import ProcessTimeline from './message-item/ProcessTimeline.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
 import PlanApprovalCard from './message-item/PlanApprovalCard.vue';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
+import { deriveTurnPhases } from '@/utils/turnPhases';
 
 const { toast } = usePopup();
 const { t } = useI18n();
@@ -300,6 +266,10 @@ const emit = defineEmits<{
   generate: [message: Message]
   regenerate: [message: Message]
   continue: [message: Message]
+  /** 从此处回退：删除本轮及之后的全部消息 */
+  rewind: [message: Message]
+  /** 从此处分叉：把截至本轮的消息复制成新会话 */
+  fork: [message: Message]
   resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
 }>();
 
@@ -395,6 +365,21 @@ const displayGroups = computed<DisplayGroup[]>(() => {
   return groupContentsForDisplay(turnsCache.value);
 });
 
+/**
+ * 步骤时间线：按发生顺序拍平 search/think/content/tool，
+ * 用于把中间叙述与思考、工具调用交织展示。
+ */
+const timelineItems = computed<DisplayItem[]>(() => {
+  return flattenContentsForTimeline(turnsCache.value);
+});
+
+// ============================================
+// 回合级执行摘要
+// ============================================
+/** 过程分组默认收起，由摘要条统一控制；正文不受影响 */
+const processExpanded = ref(false);
+
+
 // ============================================
 // 执行日志（agentscope trace）
 // ============================================
@@ -453,6 +438,10 @@ const traceKindLabel = (kind: string): string => {
 
 // 文件变更记录
 const { fileChanges } = useFileChanges(turnsCache);
+/** 本回合发生过的阶段序列（思考 / 执行命令 / 编辑文件 / 组织回答…） */
+const turnPhases = computed(() =>
+  deriveTurnPhases(displayGroups.value, { editedFileCount: fileChanges.value.length }),
+);
 const diffDialogVisible = ref(false);
 const activeDiffEntry = ref<FileChangeEntry | null>(null);
 

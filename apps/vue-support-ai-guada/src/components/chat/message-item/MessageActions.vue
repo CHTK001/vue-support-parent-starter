@@ -50,6 +50,26 @@
       </LTooltip>
     </template>
 
+    <!-- 从此处回退：删除本轮及之后的全部消息（破坏性，需上层确认） -->
+    <template v-if="isAssistant">
+      <LTooltip :content="t('chat.messageActions.rewindHere')" placement="top">
+        <div class="message-action-button" @click="$emit('rewind')">
+          <el-icon :size="16">
+            <ArrowUndo16Regular />
+          </el-icon>
+        </div>
+      </LTooltip>
+
+      <!-- 从此处分叉：把截至本轮的内容复制成新会话，原会话不动 -->
+      <LTooltip :content="t('chat.messageActions.forkHere')" placement="top">
+        <div class="message-action-button" @click="$emit('fork')">
+          <el-icon :size="16">
+            <BranchFork16Regular />
+          </el-icon>
+        </div>
+      </LTooltip>
+    </template>
+
     <LTooltip :content="t('chat.messageActions.more')" placement="top">
       <DropdownMenu @command="handleCommand">
         <div class="message-action-button">
@@ -103,6 +123,8 @@ import {
   ChevronRight24Filled,
   Delete16Regular,
   Edit16Regular,
+  ArrowUndo16Regular,
+  BranchFork16Regular,
 } from '@vicons/fluent';
 import { ArrowDownwardTwotone, AccessTimeTwotone } from '@vicons/material';
 
@@ -124,6 +146,8 @@ const emit = defineEmits<{
   (e: 'switchVersion', direction: 'prev' | 'next'): void;
   (e: 'edit'): void;
   (e: 'delete'): void;
+  (e: 'rewind'): void;
+  (e: 'fork'): void;
 }>();
 
 const hasPrev = computed(() => props.currentVersionIndex > 0);
