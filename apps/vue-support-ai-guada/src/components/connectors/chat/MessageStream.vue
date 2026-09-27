@@ -104,7 +104,7 @@ function isError(content: string): boolean {
 }
 
 function contactName(m: any): string {
-  return contactShortName(m.fromUser, m.chatId)
+  return contactShortName(m?.fromUser, m?.chatId)
 }
 
 function dayKey(time: string): string {
