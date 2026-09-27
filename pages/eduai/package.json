@@ -23,8 +23,12 @@
     "element-plus": "catalog:",
     "katex": "^0.16.47",
     "mammoth": "^1.12.3",
+    "qrcode": "^1.5.4",
     "three": "^0.185.1",
     "vue": "catalog:",
     "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6"
   }
 }

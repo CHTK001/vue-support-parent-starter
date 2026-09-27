@@ -11,8 +11,9 @@
   依赖说明：
     - 拖拽：pages/eduai 未声明任何拖拽库（sortablejs 只在仓库根与 packages/ui 声明），
       按任务约定使用原生 HTML5 drag 事件实现，不新增依赖。
-    - 二维码：仓库内无 qrcode / qrcode.vue / qrcodejs 依赖，二维码位置以「题项编号文本 +
-      预留容器（data-qr-no）」占位，后续引入二维码库后可直接挂载渲染。
+    - 二维码：使用 qrcode（仓库内 packages/theme 与 apps/vue-support-ai-guada 早已在用），
+      以题项唯一编号 paperQuestionNo 为内容本地渲染成 PNG dataURL，
+      扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
     - 接口：统一走 src/api/eduaiApi.ts（不另建请求层）。
 -->
 <template>
@@ -214,12 +215,18 @@
             </div>
             <div class="compose-row__side">
               <!--
-                二维码预留容器：项目未引入二维码库（根 package.json 与 pages/eduai/package.json
-                均无 qrcode / qrcode.vue / qrcodejs），当前以题项唯一编号 paperQuestionNo 文本占位。
-                后续引入二维码库后，可直接取 [data-qr-no] 的值在此 div 内渲染 canvas / img。
+                每题右上角唯一二维码：内容为题项唯一编号 paperQuestionNo，
+                扫码内容即后端 GET /v2/edu/paper/qr/{paperQuestionNo} 的定位凭据。
+                渲染尚未完成或失败时，回退显示编号文本。
               -->
               <div class="qr-slot" :data-qr-no="q.paperQuestionNo" :title="`题项编号：${q.paperQuestionNo}`">
-                {{ q.paperQuestionNo }}
+                <img
+                  v-if="qrImages[q.paperQuestionNo]"
+                  class="qr-slot__img"
+                  :src="qrImages[q.paperQuestionNo]"
+                  :alt="`题项 ${q.paperQuestionNo} 二维码`"
+                />
+                <span v-else class="qr-slot__text">{{ q.paperQuestionNo }}</span>
               </div>
               <div class="compose-row__actions">
                 <el-input-number
@@ -309,8 +316,9 @@
  * - 右栏画布：工具条 + 页头页脚富文本 + 题目清单（原生 HTML5 拖拽）+ 多页预览。
  * - 保存：先建卷 / 改卷头，再同步增删题与分值，最后按题项编号数组提交排序。
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import QRCode from "qrcode";
 import { Delete, Rank, Search, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReRichText from "@repo/ui/re-rich-text";
@@ -356,7 +364,7 @@ interface ComposeQuestion {
   paperQuestionNo: string;
 }
 
-/** 试卷详情内题目（后端 QuestionVO 短字段名） */
+/** 试卷详情内题目（后端 QuestionVO 短字段名；题项编号字段名是 questionNo，不是 paperQuestionNo） */
 interface PaperQuestionVO {
   id: number;
   type: string;
@@ -365,7 +373,8 @@ interface PaperQuestionVO {
   answer?: string;
   analysis?: string;
   score?: number;
-  paperQuestionNo?: string;
+  questionNo?: string;
+  section?: string;
   order?: number;
 }
 
@@ -659,6 +668,58 @@ const removedServerItems = ref<RemovedQuestion[]>([]);
 /** 服务端已确认的分值快照（questionId → score），用于找出本地改过的分值 */
 const savedScores = new Map<number, number>();
 
+/** 题项编号 → 二维码 PNG dataURL */
+const qrImages = ref<Record<string, string>>({});
+
+/**
+ * 渲染单题二维码。
+ *
+ * <p>二维码内容就是题项唯一编号 paperQuestionNo，与后端
+ * {@code GET /v2/edu/paper/qr/{paperQuestionNo}} 的入参一致，扫码即可定位到
+ * 「哪张卷的第几题」。未保存的题项编号是 TMP- 临时号，保存后会被真实编号替换，
+ * 因此编号变化时要重新渲染。</p>
+ *
+ * @param {string} {no} 题项唯一编号
+ */
+async function renderQr(no: string): Promise<void> {
+  if (!no) {
+    return;
+  }
+  try {
+    const url = await QRCode.toDataURL(no, {
+      width: 132,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000ff", light: "#ffffffff" },
+    });
+    qrImages.value = { ...qrImages.value, [no]: url };
+  } catch {
+    // 渲染失败时保留编号文本兜底，不阻断组卷
+  }
+}
+
+/** 题项集合或编号变化时，为所有尚未渲染的题项补出二维码 */
+async function syncQrs(): Promise<void> {
+  const pending = composeQuestions.value
+    .map((q) => q.paperQuestionNo)
+    .filter((no) => no && !qrImages.value[no]);
+  if (pending.length === 0) {
+    return;
+  }
+  await Promise.all(pending.map((no) => renderQr(no)));
+  // 清理已移出试卷的题项，避免 dataURL 无限堆积
+  const alive = new Set(composeQuestions.value.map((q) => q.paperQuestionNo));
+  const next: Record<string, string> = {};
+  for (const [no, url] of Object.entries(qrImages.value)) {
+    if (alive.has(no)) {
+      next[no] = url;
+    }
+  }
+  qrImages.value = next;
+}
+
+watch(composeQuestions, () => void syncQrs(), { deep: true, immediate: true });
+
 const header = reactive({
   name: "",
   subject: "",
@@ -815,8 +876,9 @@ async function refreshPaperQuestionNos(id: number) {
   }
   for (const q of composeQuestions.value) {
     const server = byQuestionId.get(q.questionId);
-    if (server?.paperQuestionNo) {
-      q.paperQuestionNo = server.paperQuestionNo;
+    // 后端 QuestionVO 的题项编号字段名为 questionNo
+    if (server?.questionNo) {
+      q.paperQuestionNo = server.questionNo;
     }
   }
 }
@@ -969,7 +1031,8 @@ async function loadDetail(id: number) {
     answer: item.answer,
     analysis: item.analysis,
     score: clampScore(item.score),
-    paperQuestionNo: item.paperQuestionNo || nextTmpNo(),
+    // 后端 QuestionVO 的题项编号字段名为 questionNo
+    paperQuestionNo: item.questionNo || nextTmpNo(),
   }));
   savedScores.clear();
   for (const q of composeQuestions.value) {
@@ -1520,23 +1583,40 @@ onBeforeUnmount(() => {
   width: 118px;
 }
 
-/* 二维码占位：无二维码库时的编号文本容器（引入库后在 data-qr-no 处渲染） */
+/* 每题唯一二维码：扫码内容为题项唯一编号 paperQuestionNo */
 .qr-slot {
-  max-width: 150px;
-  padding: 3px 8px;
-  border: 1px dashed var(--el-border-color);
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  padding: 2px;
+  border: 1px solid var(--el-border-color);
   border-radius: 6px;
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--el-text-color-placeholder);
-  text-align: center;
+  background: #fff;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--el-fill-color-lighter);
 }
 
-/* ---------- 右栏：预览 ---------- */
+.qr-slot__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* 渲染失败时的编号文本兜底 */
+.qr-slot__text {
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--el-text-color-placeholder);
+  text-align: center;
+  word-break: break-all;
+}
+
+/* ---------- 纸张预览（.canvas-panel 内第二张卡片，纵向堆叠在题目列表下方）---------- */
 .preview-viewport {
   display: flex;
   flex-direction: column;
