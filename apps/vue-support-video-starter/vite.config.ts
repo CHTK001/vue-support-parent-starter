@@ -21,10 +21,9 @@ export default createVite({
     strictPort: true,
     host: "0.0.0.0",
     proxy: {
-      // 后端：spring-api-support-common-video-starter（VideoSearchController）。
-      // 无独立端口配置，随部署宿主调整 target 即可。
+      // 后端：spring-api-support-video-starter（VideoApplication，默认 18172，无 context-path）
       "/video/api": {
-        target: "http://localhost:18171",
+        target: "http://localhost:18172",
         changeOrigin: true,
       },
     },

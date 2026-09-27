@@ -92,16 +92,40 @@
           </div>
         </div>
       </div>
+
+      <!-- 本次会话修改的文件（来自 write/edit 工具调用，不依赖后端文件树接口） -->
+      <template v-if="fileChanges.length > 0">
+        <div class="divider"></div>
+
+        <div class="stat-section">
+          <div class="section-header" @click="filesExpanded = !filesExpanded">
+            <span class="section-title">
+              <el-icon class="section-icon"><Document /></el-icon>
+              <span>修改的文件</span>
+            </span>
+            <span class="section-side">{{ fileChanges.length }} 个</span>
+            <el-icon class="chevron" :class="{ collapsed: !filesExpanded }"><ArrowDown /></el-icon>
+          </div>
+          <div v-show="filesExpanded" class="section-body">
+            <FileChangesBar :changes="fileChanges" @open-diff="openDiffDialog" />
+          </div>
+        </div>
+      </template>
     </div>
+
+    <FileDiffDialog v-model="diffDialogVisible" :entry="activeDiffEntry" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { Refresh, Close, ArrowDown, Timer, FolderOpened } from '@element-plus/icons-vue';
+import { Refresh, Close, ArrowDown, Timer, FolderOpened, Document } from '@element-plus/icons-vue';
 import { apiService } from '@/services/ApiService';
 import { useSessionStore } from '@/stores/session';
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats';
+import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
+import FileChangesBar from './message-item/FileChangesBar.vue';
+import FileDiffDialog from './message-item/FileDiffDialog.vue';
 
 const props = defineProps<{
   sessionId?: string;
@@ -125,6 +149,29 @@ const isWorking = computed(() =>
 // 折叠状态（默认展开）
 const turnsExpanded = ref(true);
 const sourcesExpanded = ref(true);
+const filesExpanded = ref(true);
+
+// 会话级文件变更：把整会话消息的 contents 摊平后交给 useFileChanges，
+// 由它按 filePath 聚合并用 diffLines 算增删行（与单条消息内的展示同一套逻辑）
+const allContents = computed<any[]>(() => {
+  const list: any[] = [];
+  for (const msg of props.messages || []) {
+    for (const content of msg?.contents || []) {
+      list.push(content);
+    }
+  }
+  return list;
+});
+const { fileChanges } = useFileChanges(allContents as any);
+
+// Diff 弹窗
+const diffDialogVisible = ref(false);
+const activeDiffEntry = ref<FileChangeEntry | null>(null);
+
+function openDiffDialog(entry: FileChangeEntry) {
+  activeDiffEntry.value = entry;
+  diffDialogVisible.value = true;
+}
 
 // 上下文占用
 const contextPercent = computed(() => Math.round((tokenStats.value?.percentage || 0) * 10) / 10);

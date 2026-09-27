@@ -23,8 +23,8 @@
                   <LTooltip v-if="mainSession?.id" content="会话工作状态" placement="bottom">
                   <div class="header-icon-btn" :class="{ active: showStatusPanel }" title="会话工作状态"
                     role="button" tabindex="0" aria-label="会话工作状态" :aria-pressed="showStatusPanel"
-                    @click="showStatusPanel = !showStatusPanel"
-                    @keydown.enter.prevent="showStatusPanel = !showStatusPanel">
+                    @click="toggleStatusPanel"
+                    @keydown.enter.prevent="toggleStatusPanel">
                     <DataUsage20Filled class="w-5 h-5" />
                   </div>
                   </LTooltip>
@@ -141,7 +141,49 @@ const WorkspaceSidebar = defineAsyncComponent(() => import("./workspace/Workspac
 const SessionStatusPanel = defineAsyncComponent(() => import("./SessionStatusPanel.vue"));
 
 // 会话工作状态面板显示状态
+// 显隐按会话记忆：写在后台会话 settings.statusPanelVisible（PUT /v2/sessions/{id}），
+// 刷新页面或切走再回来都保持上次的开合，不像 localStorage 那样全局共用一个开关。
 const showStatusPanel = ref(false);
+
+/**
+ * 切换会话工作状态面板，并把新状态记到后台会话
+ */
+function toggleStatusPanel() {
+  showStatusPanel.value = !showStatusPanel.value;
+  persistStatusPanel();
+}
+
+/**
+ * 把面板显隐写回后台会话
+ *
+ * 失败只告警不打断：显隐属于纯 UI 偏好，写不进去不该影响使用。
+ */
+function persistStatusPanel() {
+  const session = mainSession.value;
+  if (!session?.id) return;
+  apiService
+    .updateSession(session.id, {
+      settings: { ...(session.settings || {}), statusPanelVisible: showStatusPanel.value },
+    })
+    .then(() => {
+      // 本地也同步一份，避免下次切换时读到旧值
+      session.settings = { ...(session.settings || {}), statusPanelVisible: showStatusPanel.value };
+    })
+    .catch((error: any) => {
+      console.warn('[ChatPage] 会话状态面板显隐写回后台失败:', error);
+    });
+}
+
+/**
+ * 会话切换时按后台记录恢复面板显隐
+ */
+function restoreStatusPanel(session: Session | null) {
+  if (!session?.id) {
+    showStatusPanel.value = false;
+    return;
+  }
+  showStatusPanel.value = Boolean(session.settings?.statusPanelVisible);
+}
 
 // 子 Agent Tab 状态
 const agentTabs = ref<AgentTab[]>([
@@ -382,6 +424,7 @@ const fetchSession = async (sessionId: string) => {
   try {
     const session = await apiService.fetchSession(sessionId);
     mainSession.value = session;
+    restoreStatusPanel(session);
 
     // 恢复子会话 Tab 状态（页面刷新后从 subSessions 重建，isStreaming 由后端注入）
     subSessions.value = session.subSessions || [];

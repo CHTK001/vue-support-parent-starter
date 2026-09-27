@@ -38,12 +38,29 @@ let sseUpdated = false
  * 后端在 finish 事件中携带轻量上下文统计（usedTokens / effectiveContextWindow），
  * 前端直接更新环形指示器，无需流式结束后再发起 REST 请求重建上下文。
  * 详细 breakdown 仍由弹窗按需通过 REST 获取。
+ *
+ * 同时把快照落库到会话（PUT /sessions/{id}/token-stats），使页面刷新后
+ * 仍能从后台恢复上下文占用率，而不是必须再对话一轮。
  */
-export function updateTokenStatsFromSSE(stats: {
-  usedTokens: number
-  effectiveContextWindow: number
-}) {
+export function updateTokenStatsFromSSE(
+  stats: {
+    usedTokens: number
+    effectiveContextWindow: number
+  },
+  sessionId?: string | null,
+) {
   sseUpdated = true
+  const sid = sessionId ?? currentSessionId
+  if (sid) {
+    apiService
+      .saveSessionTokenStats(sid, {
+        usedTokens: stats.usedTokens,
+        effectiveContextWindow: stats.effectiveContextWindow,
+      })
+      .catch((error: any) => {
+        console.warn('[useSessionTokenStats] 上下文快照落库失败:', error)
+      })
+  }
   const percentage = Math.min(
     (stats.usedTokens / stats.effectiveContextWindow) * 100,
     100,
