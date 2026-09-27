@@ -109,6 +109,21 @@ export const agentApi = {
     apiHttp.get('/api/agents/managed/registered-models'),
   rebuild: (agentId: string) =>
     apiHttp.post(`/api/agents/managed/${agentId}/rebuild`),
+  // ==================== 智能体安装包（安装/配置） ====================
+  // 磁盘上已安装的智能体包（{nomifun.agents-root}/user|builtin）
+  packages: () => apiHttp.get('/api/agents/packages'),
+  packagePaths: () => apiHttp.get('/api/agents/packages/paths'),
+  // 导入：{ path } 本地目录；或 FormData(file) 上传 zip
+  importPackage: (data: any) => apiHttp.post('/api/agents/packages/import', data),
+  // 从市场源安装：{ source, path|url }
+  installPackage: (data: any) => apiHttp.post('/api/agents/packages/install', data),
+  togglePackage: (name: string, enabled: boolean) =>
+    apiHttp.post('/api/agents/packages/toggle', { name, enabled }),
+  uninstallPackage: (name: string) =>
+    apiHttp.delete(`/api/agents/packages/${encodeURIComponent(name)}`),
+  marketSources: () => apiHttp.get('/api/agents/packages/market/sources'),
+  marketSearch: (params?: any) =>
+    apiHttp.get('/api/agents/packages/market/search', { params }),
 };
 
 // ==================== 服务管理（后端仅有状态查询与按名启停，无 CRUD） ====================
