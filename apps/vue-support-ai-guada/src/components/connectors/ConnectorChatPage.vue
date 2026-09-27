@@ -20,10 +20,24 @@
       </div>
 
       <div class="topbar-right">
+          <button
+            ref="mcpButtonRef"
+            class="topbar-btn"
+            :class="{ 'is-active': selectedMcpServerIds.length > 0 }"
+            title="MCP 工具"
+            @click="mcpPopoverVisible = !mcpPopoverVisible"
+          >
+            <Tools />
+            <span v-if="selectedMcpServerIds.length" class="topbar-btn__count">
+              {{ selectedMcpServerIds.length }}
+            </span>
+          </button>
         <McpSelectorPopover
           v-if="admin"
-          v-model="selectedMcpServerIds"
-          @clear="handleClearMcp"
+          v-model:visible="mcpPopoverVisible"
+          :anchor-el="mcpButtonRef"
+          :selected-ids="selectedMcpServerIds"
+          @change="selectedMcpServerIds = $event"
         />
       </div>
     </header>
@@ -85,6 +99,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Tools } from '@element-plus/icons-vue'
 import {
   ArrowLeft24Regular, Person24Regular, People24Regular,
 } from '@vicons/fluent'
@@ -112,7 +127,8 @@ const messages = ref<any[]>([])
 const inputMessage = ref('')
 const contextCount = ref(10)
 const selectedMcpServerIds = ref<string[]>([])
-
+const mcpPopoverVisible = ref(false)
+const mcpButtonRef = ref<HTMLElement | null>(null)
 const loadingConversations = ref(false)
 const loadingMessages = ref(false)
 const sending = ref(false)
@@ -273,6 +289,47 @@ onUnmounted(() => {
 })
 </script>
 
+
+/* MCP 工具选择按钮 */
+.topbar-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+
+.topbar-btn:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+.topbar-btn.is-active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+.topbar-btn__count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+}
 <style scoped>
 .connector-chat {
   height: 100%;

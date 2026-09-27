@@ -80,7 +80,8 @@ const emit = defineEmits<{
 
 const empty = computed(() => !props.modelValue || !props.modelValue.trim())
 
-function handleKeydown(e: KeyboardEvent) {
+function handleKeydown(e: Event | KeyboardEvent) {
+  if (!('key' in e)) return
   if (e.key !== 'Enter') return
   if (e.shiftKey) return // 换行
   e.preventDefault()

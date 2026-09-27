@@ -1,6 +1,6 @@
 <template>
   <!-- 图片 URL -->
-  <img v-if="isUrl" :src="icon" :alt="name" class="plugin-icon object-contain flex-shrink-0"
+  <img v-if="isUrl" :src="icon ?? undefined" :alt="name" class="plugin-icon object-contain flex-shrink-0"
     :class="sizeClass" :style="radiusStyle" @error="onError" />
   <!-- 已知 fluent 组件名 -->
   <el-icon v-else-if="fluentComp" :class="['plugin-icon flex-shrink-0', sizeClass]" :style="radiusStyle">

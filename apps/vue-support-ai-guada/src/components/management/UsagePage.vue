@@ -214,6 +214,7 @@ import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import ReTag from '@/components/re/ReTag.vue';
 import ReButton from '@/components/re/ReButton.vue';
+import type { EChartsOption } from 'echarts';
 import { usageApi } from '@/services/javaApi';
 
 type ChartType = 'token' | 'cost';
@@ -389,7 +390,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => themeObserver?.disconnect());
 
-function pieOption(dist: DistRow[], type: ChartType) {
+function pieOption(dist: DistRow[], type: ChartType): EChartsOption {
   const sorted = [...dist].sort((a, b) =>
     type === 'token' ? b.totalTokens - a.totalTokens : b.cost - a.cost,
   );
@@ -428,14 +429,14 @@ function pieOption(dist: DistRow[], type: ChartType) {
 const modelPieOption = computed(() => pieOption(modelDist.value, modelChartType.value));
 const groupPieOption = computed(() => pieOption(groupDist.value, groupChartType.value));
 
-function percentNum(row: DistRow, all: DistRow[], type: ChartType): number {
-  const total = all.reduce((s, x) => s + (type === 'token' ? x.totalTokens : x.cost), 0);
-  const v = type === 'token' ? row.totalTokens : row.cost;
+function percentNum(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): number {
+  const total = all.reduce((s, x) => (type === 'token' ? x.totalTokens : x.cost), 0);
   if (total <= 0) return 0;
+  const v = (type === 'token' ? row.totalTokens : row.cost) ?? 0;
   return (v / total) * 100;
 }
 
-function percent(row: DistRow, all: DistRow[], type: ChartType): string {
+function percent(row: { totalTokens?: number; cost?: number }, all: DistRow[], type: ChartType): string {
   return percentNum(row, all, type).toFixed(1) + '%';
 }
 
@@ -448,7 +449,7 @@ function distRowStyle(all: DistRow[], type: ChartType) {
   };
 }
 
-const trendOption = computed(() => {
+const trendOption = computed<EChartsOption>(() => {
   const rows = trendData.value;
   return {
     tooltip: {
@@ -603,7 +604,7 @@ function formatTypeLabel(t: string | null | undefined): string {
   return TYPE_LABEL_MAP[t] || t;
 }
 
-function typeTagType(t: string | null | undefined): string {
+function typeTagType(t: string | null | undefined): 'primary' | 'info' | 'warning' | 'success' {
   if (t === 'chat_stream' || t === 'chat') return 'primary';
   if (t === 'external' || t === 'third_party') return 'info';
   if (t === 'memory_extract' || t === 'summary') return 'warning';

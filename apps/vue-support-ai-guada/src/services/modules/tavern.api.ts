@@ -33,6 +33,8 @@ export interface TaverMember {
   randomContextCount?: number;
   sort?: number;
   roleName?: string;
+  /** 成员展示名；后端部分查询返回 name 而非 roleName，模板按 roleName || name 兜底 */
+  name?: string;
   roleDescription?: string;
   roleAvatar?: string | null;
   roleModel?: string | null;

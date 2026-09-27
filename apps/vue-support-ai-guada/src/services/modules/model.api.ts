@@ -6,10 +6,29 @@ import type { PaginatedResponse } from "@/types/common";
 /** /api/** 管理接口客户端：不解包，返回值与后端统一响应体 {code,data,msg} 一致 */
 const rawApi = createClient(rootHttp, { unwrap: false });
 
+/**
+ * 拉取上游模型列表的响应。
+ *
+ * <p>该端点（{@code GET /api/providers/{id}/remote_models}）由外部 API 提供，
+ * 不走统一分页信封：上游鉴权失败时返回 200 + {@code success:false}（避免被
+ * 前端误判为会话过期而登出），成功时模型列表可能落在 {@code items}、
+ * {@code data.items} 或 {@code data} 数组三种位置。</p>
+ */
+export interface RemoteModelsResponse {
+  /** 上游鉴权是否成功，缺省视为成功 */
+  success?: boolean;
+  /** 失败原因，仅 success=false 时有值 */
+  error?: string;
+  /** 模型列表（顶层） */
+  items?: Model[];
+  /** 也可能包一层 data */
+  data?: Model[] | { items?: Model[] };
+}
+
 export interface ModelApi {
   fetchModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchAllModels(): Promise<PaginatedResponse<ModelProvider>>;
-  fetchRemoteModels(providerId: string): Promise<PaginatedResponse<Model>>;
+  fetchRemoteModels(providerId: string): Promise<RemoteModelsResponse>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;
