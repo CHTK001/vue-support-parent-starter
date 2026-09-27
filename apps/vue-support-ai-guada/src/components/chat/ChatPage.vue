@@ -99,6 +99,7 @@ import { ref, onMounted, onUnmounted, watch, computed, nextTick, defineAsyncComp
 import { useI18n } from "vue-i18n";
 const { t } = useI18n()
 import { apiService } from "@/services/ApiService";
+import { sessionAgentApi } from '@/services/javaApi';
 import { useRouter, useRoute } from 'vue-router';
 import { usePopup } from "@/composables/usePopup";
 import { useSessionStore } from "@/stores/session";
@@ -427,8 +428,19 @@ const fetchSession = async (sessionId: string) => {
     mainSession.value = session;
     restoreStatusPanel(session);
 
-    // 恢复子会话 Tab 状态（页面刷新后从 subSessions 重建，isStreaming 由后端注入）
-    subSessions.value = session.subSessions || [];
+    // 恢复子会话 Tab：优先取后端会话层级（一个会话多个智能体 / 主从子会话），
+    // 兼容旧的 session.subSessions 字段（后端从未返回过）。
+    let subs: any[] = [];
+    try {
+      const res: any = await sessionAgentApi.listSubSessions(sessionId);
+      subs = res?.data || res || [];
+    } catch (e) {
+      subs = [];
+    }
+    if (!Array.isArray(subs) || subs.length === 0) {
+      subs = (session as any).subSessions || [];
+    }
+    subSessions.value = subs as Session[];
     if (subSessions.value.length > 0) {
       // 保留 main Tab，重建子 Agent Tabs（状态以 isStreaming 为准）
       const mainTab = agentTabs.value.find(t => t.id === 'main');
