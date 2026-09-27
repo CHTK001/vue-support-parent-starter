@@ -105,8 +105,8 @@
             <!-- 权限模式 -->
             <div>
               <label class="f-label">{{ t('settings.connection.permTitle') }}</label>
-              <SegmentedToggle :model-value="editConfig.perm" :options="permOptions"
-                @update:model-value="editConfig.perm = $event" />
+              <SegmentedToggle :model-value="editConfig.perm ?? ''" :options="permOptions"
+                @update:model-value="editConfig.perm = String($event)" />
               <div class="f-hint">{{ t('settings.connection.permDesc') }}</div>
             </div>
           </div>

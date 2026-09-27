@@ -27,7 +27,7 @@
       <el-table-column prop="name" label="名称" width="140" />
       <el-table-column label="类型" width="90">
         <template #default="{ row }">
-          <el-tag size="small" :type="row.type === 'temporary' ? 'warning' : ''">
+          <el-tag size="small" :type="row.type === 'temporary' ? 'warning' : 'info'">
             {{ row.type === 'temporary' ? '临时' : '永久' }}
           </el-tag>
         </template>

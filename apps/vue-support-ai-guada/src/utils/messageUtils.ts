@@ -284,6 +284,21 @@ function flattenContents(contents: MessageContent[]): DisplayItem[] {
 }
 
 /**
+ * 按发生顺序拍平消息内容，供「步骤时间线」渲染。
+ *
+ * <p>与 {@link groupContentsForDisplay} 的区别：不做 content 分隔分组，
+ * 直接返回 search → think → content → tool 的原始顺序，
+ * 便于把中间叙述、思考、工具调用交织成一条时间线。</p>
+ *
+ * @param contents 消息内容数组
+ * @returns 有序展示项
+ */
+export function flattenContentsForTimeline(contents: MessageContent[]): DisplayItem[] {
+  if (!contents || contents.length === 0) return [];
+  return flattenContents(contents);
+}
+
+/**
  * 执行分组逻辑
  */
 function doGrouping(items: DisplayItem[]): DisplayGroup[] {

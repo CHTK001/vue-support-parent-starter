@@ -66,7 +66,7 @@
     <template #footer>
       <div class="detail-footer">
         <el-button v-if="detail?.added" type="success" disabled>已召唤</el-button>
-        <el-button v-else type="primary" :loading="adding" @click="emit('summon', detail)">
+        <el-button v-else type="primary" :loading="adding" @click="detail && emit('summon', detail)">
           召唤
         </el-button>
       </div>

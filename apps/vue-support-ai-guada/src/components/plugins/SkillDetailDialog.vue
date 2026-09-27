@@ -32,7 +32,7 @@
 
     <template #footer>
       <el-button v-if="skill?.installed" type="success" disabled>已安装</el-button>
-      <el-button v-else type="primary" :loading="installing" @click="emit('install', skill)">
+      <el-button v-else type="primary" :loading="installing" @click="skill && emit('install', skill)">
         添加
       </el-button>
     </template>

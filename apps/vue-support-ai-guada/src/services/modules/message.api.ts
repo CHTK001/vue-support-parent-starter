@@ -1,5 +1,7 @@
 import type { ApiContext } from "./api-context";
-import type { Message } from "@/types/message";
+// Message 统一取自 @/utils/messageUtils：UI 组件（TurnItem 等）的 emit 签名
+// 以该定义为契约，若此处另引 @/types/message 的另一份定义会与之不兼容
+import type { Message } from "@/utils/messageUtils";
 import type { PaginatedResponse } from "@/types/common";
 
 export interface MessageApi {

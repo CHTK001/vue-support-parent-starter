@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { Model } from '@/types/api'
 import LDialog from '@/components/ui/LDialog.vue'
 import LTooltip from '../ui/LTooltip.vue'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
@@ -141,7 +142,12 @@ const open = async (provider: any, models: any[]) => {
     if (data && data.success === false) {
       throw new Error(data.error || t('settings.providerDetail.fetchFailed'))
     }
-    const apiModels = data.items || data.data?.items || (Array.isArray(data.data) ? data.data : [])
+      // 上游返回的模型列表可能落在三处：顶层 items、data.items、data 数组
+      const dataField = data.data
+      const apiModels: Model[] =
+        data.items ??
+        (Array.isArray(dataField) ? dataField : dataField?.items) ??
+        []
     const enriched = apiModels.map((apiModel: any) => {
       const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
       if (existing) {

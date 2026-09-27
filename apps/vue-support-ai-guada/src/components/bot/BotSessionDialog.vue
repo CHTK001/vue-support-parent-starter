@@ -53,7 +53,9 @@ import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import TurnItem from '../chat/TurnItem.vue'
 import type { Session } from '@/types/session'
-import type { Message } from '@/types/message'
+// Message 与 TurnItem 的 emit 签名同源：TurnItem 从 messageUtils 导出该类型，
+// 若此处从 @/types/message 导入另一份定义，emit 回调会因结构不同而不兼容
+import type { Message } from '@/utils/messageUtils'
 import LDialog from '@/components/ui/LDialog.vue'
 
 const props = defineProps<{

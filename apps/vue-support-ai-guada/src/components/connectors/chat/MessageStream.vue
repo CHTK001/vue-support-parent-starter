@@ -38,9 +38,9 @@
               <div class="cluster-content">
                 <div class="cluster-meta">
                   <span class="cluster-name">
-                    {{ block.role === 'assistant' ? connectorName : contactName(block.items[0]) }}
+                    {{ block.role === 'assistant' ? connectorName : contactName(block.items?.[0]) }}
                   </span>
-                  <span class="cluster-time">{{ formatHMS(block.items[block.items.length - 1].createTime) }}</span>
+                  <span class="cluster-time">{{ formatHMS(block.items?.[block.items.length - 1]?.createTime) }}</span>
                 </div>
 
                 <div
