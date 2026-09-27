@@ -333,6 +333,7 @@ import {
   PlugConnected20Regular,
   Image20Regular,
   Person20Regular,
+  ImageSearch20Regular,
   Key20Regular,
   ChatMultiple24Regular,
   ClipboardPulse20Filled,
@@ -565,6 +566,13 @@ const navItems = computed(() => {
       adminOnly: true
     },
     {
+      key: 'image-search',
+      label: '以图搜图',
+      icon: ImageSearch20Regular,
+      // /v2/image-search/* 同为 @Permission("admin")
+      adminOnly: true
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -626,6 +634,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'ImageGenerate') return 'image-generate'
   if (routeName === 'FaceSearch') return 'face-search'
+  if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
   if (routeName === 'ManufacturerKeys') return 'manufacturer-keys'
@@ -834,6 +843,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'ImageGenerate' })
   } else if (tab === 'face-search') {
     router.replace({ name: 'FaceSearch' })
+  } else if (tab === 'image-search') {
+    router.replace({ name: 'ImageSearch' })
   } else if (tab === 'models') {
     router.replace({ name: 'Models' })
   } else if (tab === 'app-keys') {

@@ -148,6 +148,7 @@ declare module 'vue' {
     GlobalSidebar: typeof import('./../components/GlobalSidebar.vue')['default']
     ILinkBindForm: typeof import('./../components/connectors/bind-forms/ILinkBindForm.vue')['default']
     ImageGeneratePage: typeof import('./../components/generate/ImageGeneratePage.vue')['default']
+    ImageSearchPage: typeof import('./../components/search/ImageSearchPage.vue')['default']
     InputTest: typeof import('./../components/test/InputTest.vue')['default']
     KBFileItem: typeof import('./../components/knowledge-base/KBFileItem.vue')['default']
     KBFileTree: typeof import('./../components/knowledge-base/KBFileTree.vue')['default']

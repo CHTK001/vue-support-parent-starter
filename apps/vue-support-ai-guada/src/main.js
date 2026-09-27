@@ -141,6 +141,12 @@ const routes = [
         component: () => import("./components/management/FaceSearchPage.vue"),
       },
       {
+        path: "image-search",
+        name: "ImageSearch",
+        meta: { title: "以图搜图", requiresAuth: true },
+        component: () => import("./components/search/ImageSearchPage.vue"),
+      },
+      {
         path: "app-keys",
         name: "AppKeys",
         meta: { title: "AppKey管理", requiresAuth: true },
