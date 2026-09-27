@@ -24,6 +24,8 @@ registerMenuViewModules({
 
 export {
   APP_DATASOURCE,
+  setDatasourceHubBase,
+  getDatasourceHubBase,
   fetchDataSources,
   fetchDataSource,
   createDataSource,

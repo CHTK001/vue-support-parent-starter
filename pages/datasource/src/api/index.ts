@@ -16,13 +16,45 @@
  *
  * 请求走本包私有客户端（见 ./request），返回已解包的业务数据。
  *
+ * <p><b>接口根路径可注入</b>：本包被采集控制台与监控台共用，两者后端提供的
+ * 数据源接口前缀不同（前者是 hub 的 {@code /ms/datasource}，监控台自带的
+ * {@code /ms/monitor/datasource}）。宿主应用在启动时调用
+ * {@link setDatasourceHubBase} 覆盖，未调用则沿用默认值。</p>
+ *
  * @author CH
  * @since 4.0.0.42
  */
 import { del, get, post, put } from "./request";
 
-/** 数据源中心接口根路径 */
-const HUB = "/ms/datasource";
+/** 数据源台账接口默认根路径（后端 spring-support-datasource-hub-starter） */
+const DEFAULT_HUB = "/ms/datasource";
+
+/**
+ * 当前生效的数据源台账接口根路径。
+ *
+ * <p>模块级可变值：由宿主应用在启动时通过 {@link setDatasourceHubBase} 一次性设定，
+ * 需早于任何数据源接口调用（实践上在 main.ts 挂载前）。</p>
+ */
+let hub: string = DEFAULT_HUB;
+
+/**
+ * 覆盖数据源台账接口根路径。
+ *
+ * <p>宿主后端未部署 hub 模块、而自带同义接口时使用。例如监控台后端把台账挂在
+ * {@code /ms/monitor/datasource}，在 main.ts 里注入该前缀即可让本包全部接口走通。</p>
+ *
+ * @param base 新的接口根路径（可带或不带前导/尾随斜杠，内部会归一）；
+ *             传空串或 null 恢复默认 {@code /ms/datasource}
+ */
+export function setDatasourceHubBase(base?: string | null): void {
+  const normalized = (base ?? "").trim().replace(/\/+$/, "");
+  hub = normalized || DEFAULT_HUB;
+}
+
+/** 当前生效的数据源台账接口根路径（只读，供排查用） */
+export function getDatasourceHubBase(): string {
+  return hub;
+}
 
 /** 采集平台接口根路径 */
 const COLLECT = "/v2/collect/datasource";
@@ -86,7 +118,7 @@ export interface CollectColumn {
  * @return 数据源列表
  */
 export function fetchDataSources(): Promise<DataSourceInfo[]> {
-  return get<DataSourceInfo[]>(`${HUB}/list`);
+  return get<DataSourceInfo[]>(`${hub}/list`);
 }
 
 /**
@@ -95,7 +127,7 @@ export function fetchDataSources(): Promise<DataSourceInfo[]> {
  * @return 数据源信息
  */
 export function fetchDataSource(id: number): Promise<DataSourceInfo> {
-  return get<DataSourceInfo>(`${HUB}/${id}`);
+  return get<DataSourceInfo>(`${hub}/${id}`);
 }
 
 /**
@@ -104,7 +136,7 @@ export function fetchDataSource(id: number): Promise<DataSourceInfo> {
  * @return 创建后的数据源
  */
 export function createDataSource(data: Partial<DataSourceInfo>): Promise<DataSourceInfo> {
-  return post<DataSourceInfo>(HUB, data);
+  return post<DataSourceInfo>(hub, data);
 }
 
 /**
@@ -114,7 +146,7 @@ export function createDataSource(data: Partial<DataSourceInfo>): Promise<DataSou
  * @return 更新后的数据源
  */
 export function updateDataSource(id: number, data: Partial<DataSourceInfo>): Promise<DataSourceInfo> {
-  return put<DataSourceInfo>(`${HUB}/${id}`, data);
+  return put<DataSourceInfo>(`${hub}/${id}`, data);
 }
 
 /**
@@ -123,7 +155,7 @@ export function updateDataSource(id: number, data: Partial<DataSourceInfo>): Pro
  * @return 删除结果
  */
 export function deleteDataSource(id: number): Promise<boolean> {
-  return del<boolean>(`${HUB}/${id}`);
+  return del<boolean>(`${hub}/${id}`);
 }
 
 /**
@@ -132,7 +164,7 @@ export function deleteDataSource(id: number): Promise<boolean> {
  * @return 连接测试结果
  */
 export function testDataSource(id: number): Promise<DataSourceTestResult> {
-  return post<DataSourceTestResult>(`${HUB}/${id}/test`);
+  return post<DataSourceTestResult>(`${hub}/${id}/test`);
 }
 
 /**
@@ -140,7 +172,7 @@ export function testDataSource(id: number): Promise<DataSourceTestResult> {
  * @return 数据源类型列表
  */
 export function fetchDataSourceTypes(): Promise<string[]> {
-  return get<string[]>(`${HUB}/types`);
+  return get<string[]>(`${hub}/types`);
 }
 
 /**
