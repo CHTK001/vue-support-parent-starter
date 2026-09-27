@@ -56,6 +56,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "CCTV直播" },
   },
   {
+    path: "/config",
+    name: "config",
+    component: () => import("./views/ConfigView.vue"),
+    meta: { title: "配置管理" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/",
   },

@@ -134,8 +134,22 @@ function pickPhoto() {
 function onPhotoPicked(e: Event) {
   const input = e.target as HTMLInputElement
   const f = input.files?.[0]
-  if (f) form.photo = URL.createObjectURL(f)
+  if (f) void setPhoto(f)
   input.value = ''
+}
+
+/**
+ * 读成 dataURL 而不是 objectURL。
+ *
+ * <p>档案要落 localStorage，而 objectURL 生命周期跟当前文档绑定，
+ * 一刷新就失效，相册和推荐卡头像会全变空白；dataURL 才能长期保存。</p>
+ */
+function setPhoto(file: File) {
+  const reader = new FileReader()
+  reader.onload = () => {
+    form.photo = String(reader.result ?? '')
+  }
+  reader.readAsDataURL(file)
 }
 
 /** 提交：调 /v2/face/enroll，档案同时落前端登记簿 */

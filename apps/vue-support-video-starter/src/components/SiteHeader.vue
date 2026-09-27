@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { label: "综艺", to: "/channel/variety" },
   { label: "直播", to: "/live" },
   { label: "CCTV直播", to: "/live/cctv" },
+  { label: "配置", to: "/config" },
 ] as const;
 
 /** 当前激活的主导航项 */
@@ -31,6 +32,7 @@ const activeTo = computed(() => {
   if (route.name === "channel") return route.path;
   if (route.name === "live") return "/live";
   if (route.name === "live-cctv") return "/live/cctv";
+  if (route.name === "config") return "/config";
   return "";
 });
 
