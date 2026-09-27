@@ -171,6 +171,33 @@
           </section>
         </div>
 
+        <!-- 失败/取消：没有产物也要留一行，否则用户看不到自己的失败记录 -->
+        <div v-if="voidTasks.length" class="wg-rows">
+          <section v-for="item in voidTasks" :key="item.taskId" class="wg-row">
+            <div class="wg-row-media">
+              <figure class="wg-card">
+                <div
+                  class="wg-void"
+                  :class="{ 'is-canceled': item.status === 'CANCELED' }"
+                  :style="{ aspectRatio: aspectOf(item.size) }"
+                >
+                  <span class="wg-void-mark">
+                    <WgIcon :d="item.status === 'CANCELED' ? ICONS.close : ICONS.error" />
+                  </span>
+                  <span class="wg-void-text">{{ voidText(item) }}</span>
+                </div>
+              </figure>
+            </div>
+
+            <GenerateTaskInfo
+              :task="item"
+              :model-label="modelLabel"
+              :format-elapsed="formatElapsed"
+              :format-time="formatTime"
+            />
+          </section>
+        </div>
+
         <!-- 结果：一次请求一行，图片从左到右，最右是本行参数 -->
         <div v-if="resultRows.length" class="wg-rows" :class="{ 'is-grid': viewStyle === 'grid' }">
           <section v-for="row in resultRows" :key="row.taskId" class="wg-row">
@@ -226,7 +253,7 @@
           </section>
         </div>
 
-        <p v-if="!runningTasks.length && !resultRows.length" class="wg-empty">
+        <p v-if="!runningTasks.length && !resultRows.length && !voidTasks.length" class="wg-empty">
           还没有作品，描述你想象的场景，开始生成
         </p>
       </div>
@@ -470,6 +497,8 @@ const ICONS: Record<string, string> = {
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z',
   close: 'M6 18 18 6M6 6l12 12',
+  error:
+    'M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z',
   at: 'M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25',
   search: 'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z',
   send: 'M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18',
@@ -730,6 +759,21 @@ const runningTasks = computed(() =>
   visibleTasks.value.filter((task) => task.status === 'RUNNING' || task.status === 'PENDING'),
 )
 
+/**
+ * 无结果的终态行：失败 / 已取消 / 成功但结果为空。
+ *
+ * 这类任务既进不了 runningTasks（状态不是 RUNNING/PENDING），
+ * 也进不了 resultRows（没有可用图片），若不做单独渲染会从界面上彻底消失——
+ * 表现为「状态筛选选「失败」永远空白」「GenerateTaskInfo 的错误字段是死代码」。
+ */
+const voidTasks = computed(() =>
+  visibleTasks.value.filter(
+    (task) =>
+      (task.status === 'FAILED' || task.status === 'CANCELED') ||
+      (task.status === 'SUCCESS' && (task.urls?.length ?? 0) === 0),
+  ),
+)
+
 const modelFilterOptions = computed(() => {
   const seen = new Map<string, string>()
   for (const task of tasks.value) {
@@ -786,6 +830,14 @@ const stageText = (task: GenerateTask) => {
     return '结果编码中...'
   }
   return '即将完成...'
+}
+
+/** 无产物行的占位文案；失败原因由右侧信息面板的错误字段承载，这里只做状态区分 */
+const voidText = (task: GenerateTask) => {
+  if (task.status === 'CANCELED') {
+    return '已取消'
+  }
+  return task.status === 'SUCCESS' ? '未返回图片' : '生成失败'
 }
 
 const pickModel = (value: string) => {
@@ -1248,6 +1300,47 @@ onUnmounted(() => {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+}
+
+/*
+ * 失败 / 取消行的占位块。
+ * 与 .wg-generating 同尺寸契约（min-height: var(--wg-media-h)），
+ * 保证右侧信息面板仍然严格等高，不因为「没有图」就塌掉一行。
+ */
+.wg-void {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* 高度锁定令牌、宽度按比例自适应，与 .wg-media 的等高契约一致 */
+  height: var(--wg-media-h);
+  min-width: var(--wg-media-h);
+  overflow: hidden;
+  border-radius: var(--size-rounded-radius);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--color-input-bg));
+}
+
+.wg-void.is-canceled {
+  color: var(--color-text-gray);
+  background: var(--color-secondary-surface);
+}
+
+.wg-void-mark {
+  display: flex;
+}
+
+.wg-void-mark .wg-svg {
+  width: 26px;
+  height: 26px;
+}
+
+.wg-void-text {
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 
