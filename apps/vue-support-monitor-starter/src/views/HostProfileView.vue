@@ -5,7 +5,7 @@
  * 右侧：概览条 + 资源仪表 + 分段区（概览 / 监听端口 / 进程 / 服务 / 磁盘 / 网络 / 环境变量）
  *
  * 约定：
- *  - 每一项远端数据都经 /ms/server/host/profile/** 由后端转发到主机上的 Agent，页面不再自己走 SSH/WinRM；
+ *  - 每一项远端数据都经 /ms/monitor/host/profile/** 由后端转发到主机上的 Agent，页面不再自己走 SSH/WinRM；
  *  - Agent 不可达时必须把原因显式呈现在页面上，不能留一片空白让人以为「这台机器没数据」。
  * @author CH
  * @since 4.0.0

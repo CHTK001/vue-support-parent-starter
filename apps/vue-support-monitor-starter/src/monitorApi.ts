@@ -1850,7 +1850,7 @@ export const fetchHostProfile = (
   hostId: number,
   opts: { live?: boolean; persist?: boolean } = {}
 ) =>
-  http().get(`/ms/server/host/profile/${hostId}`)
+  http().get(`/ms/monitor/host/profile/${hostId}`)
     .query({ live: opts.live ?? false, persist: opts.persist ?? true })
     // 高延迟/不稳定链路（如 Tailscale 远程）整段画像较慢，放宽到 90s 避免误报失败
     .timeout(90_000)
@@ -1865,7 +1865,7 @@ export const fetchHostProfile = (
  * @param keyword 关键字（进程/服务，匹配 PID/名称/用户/命令行，跨页命中）
  */
 export const fetchHostProfileSection = (hostId: number, section: string, page?: number, size?: number, keyword?: string) =>
-  http().get(`/ms/server/host/profile/${hostId}/${section}`).query({ page, size, keyword })
+  http().get(`/ms/monitor/host/profile/${hostId}/${section}`).query({ page, size, keyword })
     // 慢链路分区采集放宽到 60s
     .timeout(60_000)
     .then(r => unwrap<any[]>(r));
@@ -1993,7 +1993,7 @@ export const downloadFileAsset = (path: string, bucket?: string, inline = false)
     .responseType("blob")
     .then(r => r.data as Blob);
 
-// ==================== Agent 生命周期（/ms/server/host/agent） ====================
+// ==================== Agent 生命周期（/ms/monitor/host/agent） ====================
 
 /**
  * Agent 生命周期动作
@@ -2011,7 +2011,7 @@ export type AgentLifecycleAction = "install" | "reinstall" | "upgrade" | "uninst
 export const submitAgentAction = (hostId: number, action: AgentLifecycleAction) => {
   const endpoint = action === "install" ? "deploy" : action;
   return http()
-    .post(`/ms/server/host/agent/${hostId}/${endpoint}`)
+    .post(`/ms/monitor/host/agent/${hostId}/${endpoint}`)
     .then(r => unwrap<string>(r));
 };
 

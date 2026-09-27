@@ -279,7 +279,7 @@ async function verifyCredentials(): Promise<void> {
 
 async function testAgentConnection(): Promise<void> {
   try {
-    const r = await http().get(`/ms/server/host/agent/test/${form.value.id}`).then((r: any) => unwrapResult<any>(r));
+    const r = await http().get(`/ms/monitor/host/agent/test/${form.value.id}`).then((r: any) => unwrapResult<any>(r));
     if (r?.available) {
       form.value.serverHostAgentInstalled = 1;
       ElMessage.success("Agent 连接成功，已标记为已安装");
