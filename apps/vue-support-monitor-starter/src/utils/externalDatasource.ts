@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from "vue";
-import { fetchDataSource, type DataSourceInfo } from "../monitorApi";
+import { fetchDataSource, type DataSourceInfo } from "@pages/datasource";
 
 /**
  * 外部服务管理页（InfluxDB / Neo4j / Nacos / ZooKeeper）共用的数据源解析。

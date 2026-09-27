@@ -210,6 +210,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { ElMessage } from 'element-plus';
 import ReEcharts from '@repo/ui/re-echarts';
+import type { EChartsOption } from 'echarts';
 import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import ReTag from '@/components/re/ReTag.vue';
@@ -389,7 +390,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => themeObserver?.disconnect());
 
-function pieOption(dist: DistRow[], type: ChartType) {
+function pieOption(dist: DistRow[], type: ChartType): EChartsOption {
   const sorted = [...dist].sort((a, b) =>
     type === 'token' ? b.totalTokens - a.totalTokens : b.cost - a.cost,
   );
@@ -435,8 +436,9 @@ function percentNum(row: DistRow, all: DistRow[], type: ChartType): number {
   return (v / total) * 100;
 }
 
-function percent(row: DistRow, all: DistRow[], type: ChartType): string {
-  return percentNum(row, all, type).toFixed(1) + '%';
+/** row 来自 el-table 的默认插槽，类型是弱化的 DefaultRow，这里按 DistRow 断言后使用 */
+function percent(row: unknown, all: DistRow[], type: ChartType): string {
+  return percentNum(row as DistRow, all, type).toFixed(1) + '%';
 }
 
 function distRowStyle(all: DistRow[], type: ChartType) {
@@ -448,7 +450,7 @@ function distRowStyle(all: DistRow[], type: ChartType) {
   };
 }
 
-const trendOption = computed(() => {
+const trendOption = computed<EChartsOption>(() => {
   const rows = trendData.value;
   return {
     tooltip: {
@@ -603,7 +605,7 @@ function formatTypeLabel(t: string | null | undefined): string {
   return TYPE_LABEL_MAP[t] || t;
 }
 
-function typeTagType(t: string | null | undefined): string {
+function typeTagType(t: string | null | undefined): 'primary' | 'success' | 'info' | 'warning' {
   if (t === 'chat_stream' || t === 'chat') return 'primary';
   if (t === 'external' || t === 'third_party') return 'info';
   if (t === 'memory_extract' || t === 'summary') return 'warning';

@@ -1,53 +1,41 @@
 /**
- * 调度中心模块路由配置（@pages/job）
+ * 调度模块路由树（@pages/job）。
  *
- * 嵌套结构：/job 父节点 + 叶子子路由。
- * 父节点无 component（仅 redirect），叶子节点挂到 koi layout 下。
+ * 采集与调度是两个平级系统：采集侧路由在 @pages/collect，这里只保留调度中心分组。
+ * 两者由采集调度系统在 app 入口处拼装成完整菜单树。
+ *
+ * 后端出口是 job-starter 的治理接口 /v2/scheduler/**（见 ./api/jobApi），
+ * 而不是自建台账 —— 调度只读 sys_job，采集只是共用这张表。
  */
 import type { RouteConfigsTable } from "@repo/core";
-import type { StaticMenuItem } from "@repo/pinia";
 
+/** 调度侧路由树（调度中心分组） */
 export const jobRoutes: RouteConfigsTable[] = [
   {
-    path: "/job",
-    name: "Job",
-    redirect: "/job/console",
-    meta: {
-      title: "调度管理",
-      icon: "Timer",
-      showLink: true,
-    },
+    path: "/grp-scheduler",
+    name: "GroupScheduler",
+    meta: { title: "调度中心", icon: "AlarmClock", showLink: true, rank: 2 },
     children: [
       {
-        path: "/job/console",
-        name: "JobConsole",
-        component: () => import("../views/JobConsoleManage.vue"),
-        meta: {
-          title: "调度控制台",
-          icon: "Timer",
-          showLink: true,
-          keepAlive: true,
-        },
+        path: "/collect/job",
+        name: "CollectJob",
+        component: () => import("../views/JobView.vue"),
+        meta: { title: "调度作业", icon: "Clock", showLink: true, keepAlive: true, rank: 2, isVisible: "1" },
+      },
+      {
+        path: "/collect/remote-node",
+        name: "CollectRemoteNode",
+        component: () => import("../views/RemoteNodeView.vue"),
+        meta: { title: "远程节点", icon: "Connection", showLink: true, keepAlive: true, rank: 3, isVisible: "1" },
+      },
+      {
+        path: "/collect/job-log",
+        name: "CollectJobLog",
+        component: () => import("../views/JobLogView.vue"),
+        meta: { title: "作业日志", icon: "Tickets", showLink: true, keepAlive: true, rank: 4, isVisible: "1" },
       },
     ],
   },
 ];
 
-/**
- * 静态菜单（用于 registerStaticMenu，驱动侧边栏）
- */
-export const jobMenus: StaticMenuItem[] = [
-  {
-    path: "/job",
-    name: "Job",
-    redirect: "/job/console",
-    meta: { title: "调度管理", icon: "Timer", isVisible: "1" },
-    children: [
-      {
-        path: "/job/console",
-        name: "JobConsole",
-        meta: { title: "调度控制台", icon: "Timer", isVisible: "1" },
-      },
-    ],
-  },
-];
+export default jobRoutes;

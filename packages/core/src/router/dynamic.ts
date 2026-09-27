@@ -87,7 +87,14 @@ export function isDynamicRoutesMissing(
   return menuList.some((menu) => menu?.name && !router.hasRoute(menu.name));
 }
 
-/** 强制重登：清 token / 重置权限，回登录页 */
+/**
+ * 强制重登：清 token / 重置权限，回登录页。
+ *
+ * <p>已无内部调用方：菜单拉取失败、路由注册失败都不再触发重登
+ * （原因见 {@link doInitDynamicRoutes} 的 catch 分支注释）。
+ * 会话失效统一由 http 拦截器按 401 / RELOGIN_CODES 判定。
+ * 保留导出供外部（如框架集成方）主动调用，语义仍是「确定要踢回登录页」。</p>
+ */
 export async function forceRelogin(
   router: Router,
   context: DynamicRouterContext,
@@ -125,7 +132,7 @@ export async function initDynamicRoutes(
 
 /** @returns 菜单为空（未注册任何动态路由）时为 true，供上层决定是否重开初始化 */
 async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext): Promise<boolean> {
-  const { getMenuList, loadMenus, onForceRelogin, notify } = context;
+  const { getMenuList, loadMenus, notify } = context;
   const warn = notify ?? ((m: string) => log.warn(`logger`, m));
   const err = notify ?? ((m: string) => log.error(`logger`, m));
 
@@ -137,8 +144,8 @@ async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext
     }
 
     if (!menuList?.length) {
-      // 空菜单是合法状态（角色未被分配任何菜单）：保持登录态，不再踢回登录页形成死循环。
-      // 拉取失败由 loadMenus 抛错，落到下面的 catch 走强退登。
+      // 空菜单是合法状态（角色未被分配任何菜单，或本应用菜单全部来自本地路由树）：
+      // 保持登录态，交由上层按「无菜单」降级渲染，不踢回登录页。
       warn("当前账号未分配任何菜单");
       return true;
     }
@@ -146,19 +153,37 @@ async function doInitDynamicRoutes(router: Router, context: DynamicRouterContext
     const addedCount = registerDynamicRoutes(router, menuList);
 
     if (addedCount === 0 && isDynamicRoutesMissing(router, menuList)) {
+      // 路由注册不上（名称冲突 / 组件路径失效）是**部署或代码问题**，不是登录态问题。
+      // 原来的做法是强制重登，但重登解决不了名称冲突，只会让用户反复被踢回登录页
+      // 且把排查线索（到底是哪几条路由没注册上）冲掉。改为记录明细并降级。
       const conflictOrInvalid = menuList.filter(
         (menu) => menu?.name && !router.hasRoute(menu.name)
       );
-      log.error(`[route] 动态路由注册失败`, conflictOrInvalid);
-      await forceRelogin(router, context, "路由加载失败，请重新登录");
-      throw new Error("动态路由注册失败");
+      err("动态路由注册失败，已保留登录态；以下路由未注册，请检查 name 冲突或组件路径：");
+      conflictOrInvalid.forEach((menu) =>
+        err(`  - ${String(menu?.name)} -> ${menu?.component == null ? "(无组件)" : String(menu.component)}`)
+      );
     }
   } catch (error) {
-    log.error(`logger`, error);
-    if (onForceRelogin) {
-      await forceRelogin(router, context);
-    }
-    throw error;
+    // 这里刻意「不」强制重登。
+    //
+    // 会话失效有自己的、且唯一正确的判定位置：http 拦截器里对 401 与
+    // RELOGIN_CODES（后端明确回「令牌失效/请重新登录」）的业务码做处理，
+    // 那才是有服务端依据的判断。
+    //
+    // 而本函数里的失败原因五花八门：菜单接口 404（后端没这个接口）、
+    // 网络抖动、菜单数据结构异常…… 这些都不代表登录态失效。
+    // 原实现在这里无条件 forceRelogin，会把「菜单拉不到」升级成「登录态被清」，
+    // 真实踩过的后果是：后端缺少菜单接口的应用，登录成功后立刻被弹回登录页，
+    // 且因为 token 已被清空而形成死循环。
+    //
+    // 因此改为记录明确日志并继续，由上层按「菜单为空」降级处理；
+    // 真正的会话失效会在拦截器里已经清完 token 并跳登录页。
+    log.error(
+      "[route] 动态路由初始化失败，已保留当前登录态（若为会话失效，http 拦截器会另行跳转登录页）",
+      error
+    );
+    return true;
   }
   return false;
 }

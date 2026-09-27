@@ -30,6 +30,8 @@
         <div class="column-footer-btn column-switch-btn" @click="toggleFirstColumn">
           <ReIcon name="koi-arrow-left-right" size="20"></ReIcon>
         </div>
+        <!-- 系统配置入口（图标栏按钮坞，纯图标模式） -->
+        <NavSettingEntry compact />
         <el-popover
           placement="right-start"
           :width="240"
@@ -133,6 +135,7 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
+import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";

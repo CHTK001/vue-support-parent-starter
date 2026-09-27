@@ -1,7 +1,7 @@
 {
   "name": "vue-support-ai-guada",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port 15689",
@@ -43,6 +43,8 @@
     "simplebar-vue": "^2.4.2",
     "splitpanes": "^4.0.4",
     "tippy.js": "^6.3.7",
+    "v-viewer": "^3.0.23",
+    "viewerjs": "^1.15.0",
     "vue": "^3.5.21",
     "vue-advanced-cropper": "^2.8.9",
     "vue-i18n": "^9.14.4",

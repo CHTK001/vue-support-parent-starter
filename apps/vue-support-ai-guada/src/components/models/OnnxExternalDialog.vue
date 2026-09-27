@@ -98,7 +98,15 @@ const loadTemplates = () => {
     try {
       const res = await adminApi.get('/v2/ai/models/local')
       const rows = Array.isArray(res) ? res : res?.data || []
-      if (rows.length) localModels.value = rows
+      // 只列可用的模板：已登记的外部目录（路径型）或本地已就绪的模型。
+      // 完整目录里还有 200 多个未下载的候选模型，全量列出等于「显示全部数据」。
+      const usable = rows.filter((m) => {
+        const id = String(m?.modelId || '')
+        const external = id.startsWith('/')
+        return external || m?.available === true
+      })
+      if (usable.length) localModels.value = usable
+      else if (rows.length) localModels.value = rows
     } catch (e) {
       console.error('加载模板模型清单失败:', e)
     } finally {
@@ -109,10 +117,15 @@ const loadTemplates = () => {
   return loadPromise
 }
 
+// ONNX 的 appkey 就是本地模型目录，目录浏览必须走 ONNX 专用接口：
+// 它被钉在模型根之下并带禁入规则；通用文件目录接口无边界，能一路浏览到 /etc、/root/.ssh
 const dirLoader = async (path) => {
-  const res = await adminApi.get('/v2/file/dir/list', { params: { path: path || '' } })
-  const rows = Array.isArray(res) ? res : res?.data || []
-  return rows.map((r) => ({ key: r.path, name: r.name, isDir: true }))
+  const res = await adminApi.get('/api/onnx/external/browse', { params: { path: path || '' } })
+  const payload = res?.data || res || {}
+  const rows = Array.isArray(payload) ? payload : payload.items || []
+  return rows
+    .filter((r) => r.isDirectory !== false)
+    .map((r) => ({ key: r.path, name: r.name, isDir: true }))
 }
 
 const onDirPicked = (items) => {

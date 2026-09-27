@@ -84,7 +84,7 @@ function onClearHistory(): void {
       <div class="re-progress-settings__row">
         <span class="re-progress-settings__label">显示模式</span>
         <ReSelect
-          layout="card"
+          layout="default"
           :options="MODE_OPTIONS as any"
           :model-value="displayMode as any"
           @update:model-value="displayMode = $event as any"
@@ -96,7 +96,7 @@ function onClearHistory(): void {
       <div class="re-progress-settings__row">
         <span class="re-progress-settings__label">默认颜色</span>
         <ReSelect
-          layout="card"
+          layout="default"
           :options="COLOR_OPTIONS as any"
           :model-value="defaultColor as any"
           @update:model-value="defaultColor = $event as any"
@@ -108,7 +108,7 @@ function onClearHistory(): void {
       <div class="re-progress-settings__row">
         <span class="re-progress-settings__label">面板位置</span>
         <ReSelect
-          layout="card"
+          layout="default"
           :options="POSITION_OPTIONS as any"
           :model-value="panelPosition as any"
           @update:model-value="panelPosition = $event as any"
@@ -120,7 +120,7 @@ function onClearHistory(): void {
       <div class="re-progress-settings__row">
         <span class="re-progress-settings__label">存在时间</span>
         <ReSelect
-          layout="card"
+          layout="default"
           :options="LIFETIME_OPTIONS as any"
           :model-value="lifetimeValue as any"
           @update:model-value="lifetimeValue = $event as any"

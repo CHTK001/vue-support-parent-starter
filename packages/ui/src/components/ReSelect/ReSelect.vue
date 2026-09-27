@@ -69,8 +69,6 @@ const props = withDefaults(
     size?: "large" | "default" | "small";
     /** 卡片 / 表格模式 popover 宽度 */
     popoverWidth?: number;
-    /** 卡片模式：列数（瀑布流） */
-    cardColumns?: number;
     /** 表格模式：表格列配置 { key, label, width? } */
     tableColumns?: Array<{ key: string; label: string; width?: string | number }>;
     /** 是否自动重新加载（当 params 变化时） */
@@ -104,7 +102,6 @@ const props = withDefaults(
     loading: false,
     size: "default",
     popoverWidth: 280,
-    cardColumns: 1,
     tableColumns: () => [],
     autoReload: true,
     title: "",

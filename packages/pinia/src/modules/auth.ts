@@ -82,7 +82,9 @@ const authStore = defineStore("auth", {
         ? visibleStaticMenus.filter((item: { meta?: Record<string, unknown> }) => item?.meta?.isRemoteFallback !== true)
         : visibleStaticMenus;
       let mergedMenu = baseMenus.concat(
-        generateRoutes(getShowStaticAndDynamicMenuList(remoteMenu), 0),
+        // 侧边栏：visibleOnly 过滤隐藏/脱离菜单控制的行，并应用目录显示规则
+        // （目录无可见子菜单不显示；目录只有一个子菜单且未开启「显示父级」时子菜单直接显示）
+        generateRoutes(getShowStaticAndDynamicMenuList(remoteMenu), 0, { visibleOnly: true }),
       );
       // 单根炸开（默认关闭）：顶级仅一个分组时把子菜单提升为顶级
       if (getConfig().menu.flattenSingleRoot) {

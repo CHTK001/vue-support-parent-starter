@@ -18,17 +18,23 @@
       <template #toolbar>
         <ReButton type="primary" icon="Plus" @click="showAddDialog">添加模块</ReButton>
       </template>
-      <ReTableColumn prop="moduleCode" label="模块编码" width="120" />
-      <ReTableColumn prop="moduleName" label="模块名称" width="150" />
-      <ReTableColumn prop="moduleDesc" label="描述" min-width="200" show-overflow-tooltip />
-      <ReTableColumn prop="moduleIcon" label="图标" width="80" align="center">
+      <ReTableColumn prop="funConfigGradeLevel" label="学段" width="100" align="center">
         <template #default="{ row }">
-          <el-icon :size="20">
-            <component :is="row.moduleIcon" />
-          </el-icon>
+          <el-tag v-if="row.funConfigGradeLevel" size="small" type="primary" effect="plain">
+            {{ stageText(row.funConfigGradeLevel) }}
+          </el-tag>
+          <span v-else class="text-gray-400">通用</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn prop="modulePath" label="路径" width="150" />
+      <ReTableColumn prop="moduleCode" label="模块编码" width="140" />
+      <ReTableColumn prop="moduleName" label="模块名称" width="150" />
+      <ReTableColumn prop="funConfigSubtitle" label="卡片副标题" min-width="180" show-overflow-tooltip />
+      <ReTableColumn prop="moduleIcon" label="图标" width="80" align="center">
+        <template #default="{ row }">
+          <span class="text-lg">{{ row.moduleIcon }}</span>
+        </template>
+      </ReTableColumn>
+      <ReTableColumn prop="modulePath" label="路径" width="150" show-overflow-tooltip />
       <ReTableColumn prop="enabled" label="状态" width="100" align="center">
         <template #default="{ row }">
           <ReSwitch
@@ -54,21 +60,43 @@
 
     <!-- 编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑模块' : '添加模块'" width="500px">
-      <el-form :model="formData" label-width="80px">
+      <el-form :model="formData" label-width="90px">
+        <el-form-item label="适用学段">
+          <el-select v-model="formData.funConfigGradeLevel" clearable placeholder="留空 = 各学段通用（管理端模块）" style="width: 100%">
+            <el-option label="小学" value="PRIMARY" />
+            <el-option label="初中" value="JUNIOR" />
+            <el-option label="高中" value="SENIOR" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="模块编码">
-          <el-input v-model="formData.moduleCode" :disabled="isEdit" placeholder="如: INSECT" />
+          <el-input v-model="formData.moduleCode" :disabled="isEdit" placeholder="如: idiom-game" />
         </el-form-item>
         <el-form-item label="模块名称">
-          <el-input v-model="formData.moduleName" placeholder="如: 昆虫识图" />
+          <el-input v-model="formData.moduleName" placeholder="如: 成语消消乐" />
+        </el-form-item>
+        <el-form-item label="卡片副标题">
+          <el-input v-model="formData.funConfigSubtitle" placeholder="学生端卡片上的一句话，如: 拼成语·练思维" />
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="formData.moduleDesc" type="textarea" :rows="2" />
         </el-form-item>
         <el-form-item label="图标">
-          <el-input v-model="formData.moduleIcon" placeholder="如: Bug" />
+          <el-input v-model="formData.moduleIcon" placeholder="emoji，如: 🀄" />
         </el-form-item>
         <el-form-item label="路径">
-          <el-input v-model="formData.modulePath" placeholder="如: /edu/fun/insect" />
+          <el-input v-model="formData.modulePath" placeholder="如: /edu/fun/idiom" />
+        </el-form-item>
+        <el-form-item label="图标配色">
+          <div class="flex items-center gap-3">
+            <el-color-picker v-model="formData.funConfigColor" />
+            <span class="text-gray-400">→</span>
+            <el-color-picker v-model="formData.funConfigColorTo" />
+            <span class="text-xs text-gray-400">渐变起止色</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="未完成角标">
+          <el-switch v-model="formData.funConfigShowBadge" :active-value="1" :inactive-value="0" />
+          <span class="ml-2 text-xs text-gray-400">小学端会在卡片右上角显示剩余进度</span>
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="formData.sortOrder" :min="0" :max="100" />
@@ -96,13 +124,23 @@ const configs = ref<FunConfig[]>([]);
 const loading = ref(false);
 
 /** 模块清单是一次性拉回的全量数据，检索只在本地做，不产生请求 */
-const searchModel = ref<Record<string, unknown>>({ moduleName: "", moduleCode: "", enabled: null });
+const searchModel = ref<Record<string, unknown>>({ moduleName: "", moduleCode: "", funConfigGradeLevel: null, enabled: null });
 
 const searchConfig: ReTableSearchConfig = {
   title: "模块检索",
   filters: [
+    {
+      key: "funConfigGradeLevel",
+      label: "适用学段",
+      type: "select",
+      options: [
+        { label: "小学", value: "PRIMARY" },
+        { label: "初中", value: "JUNIOR" },
+        { label: "高中", value: "SENIOR" },
+      ],
+    },
     { key: "moduleName", label: "模块名称", placeholder: "名称关键字" },
-    { key: "moduleCode", label: "模块编码", placeholder: "如 INSECT" },
+    { key: "moduleCode", label: "模块编码", placeholder: "如 idiom-game" },
     {
       key: "enabled",
       label: "状态",
@@ -115,14 +153,29 @@ const searchConfig: ReTableSearchConfig = {
   ],
 };
 
+/**
+ * 学段码转中文
+ *
+ * @param v 学段码
+ * @returns 中文名
+ */
+function stageText(v?: string | null): string {
+  if (v === "PRIMARY") return "小学";
+  if (v === "JUNIOR") return "初中";
+  if (v === "SENIOR") return "高中";
+  return v ?? "";
+}
+
 const filtered = computed(() => {
   const name = String(searchModel.value.moduleName ?? "").trim().toLowerCase();
   const code = String(searchModel.value.moduleCode ?? "").trim().toLowerCase();
+  const level = String(searchModel.value.funConfigGradeLevel ?? "");
   const enabled = searchModel.value.enabled;
   return configs.value.filter(
     (c) =>
       (!name || String(c.moduleName ?? "").toLowerCase().includes(name)) &&
       (!code || String(c.moduleCode ?? "").toLowerCase().includes(code)) &&
+      (!level || c.funConfigGradeLevel === level) &&
       (typeof enabled !== "number" || c.enabled === enabled),
   );
 });

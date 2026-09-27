@@ -71,6 +71,8 @@ import type {
   AccountBlackwhitePage,
   HotReloadRuntimeResult,
   HotReloadConfig,
+  PolicyConfig,
+  RegisteredRoute,
 } from "./types";
 
 /** 将领域 DTO 适配为 HTTP 客户端接受的 JSON 对象，不创建运行时副本。 */
@@ -1603,6 +1605,108 @@ export function reloadHotReload() {
   return http()
     .post("/v2/policy/hotreload/reload")
     .then<ApiResult<HotReloadRuntimeResult>>((r) => r.data);
+}
+
+/* ================== 策略任务 - 统一策略配置（灰度 / 功能开关） ================== */
+
+/**
+ * 按 type 分页查询统一策略配置。
+ *
+ * @param params type 必填（GRAY / FEATURE），其余为分页与过滤项
+ */
+export function pagePolicyConfig(params: {
+  type: string;
+  page?: number;
+  pageSize?: number;
+  bizKey?: string;
+  status?: number;
+}) {
+  return http()
+    .get("/v2/policy/config/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<PolicyConfig>>>((r) => r.data);
+}
+
+/** 新增统一策略配置 */
+export function savePolicyConfig(data: PolicyConfig) {
+  return http()
+    .post("/v2/policy/config/save")
+    .data(data as JsonRequestObject<PolicyConfig>)
+    .then<ApiResult<PolicyConfig>>((r) => r.data);
+}
+
+/** 更新统一策略配置（类型与业务键不可改写，后端会强制保留原值） */
+export function updatePolicyConfig(data: PolicyConfig) {
+  return http()
+    .put("/v2/policy/config/update")
+    .data(data as JsonRequestObject<PolicyConfig>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除统一策略配置 */
+export function deletePolicyConfig(id: number) {
+  return http()
+    .delete("/v2/policy/config/delete")
+    .query({ id })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 切换统一策略配置启用状态 */
+export function togglePolicyConfig(id: number, status: number) {
+  return http()
+    .put("/v2/policy/config/toggle")
+    .query({ id, status })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 各类型配置条数统计 */
+export function countPolicyConfig() {
+  return http()
+    .get("/v2/policy/config/count")
+    .then<ApiResult<Record<string, number>>>((r) => r.data);
+}
+
+/** 功能开关在线状态（业务键 → 是否启用） */
+export function listFeatureStates() {
+  return http()
+    .get("/v2/policy/feature/list")
+    .then<ApiResult<Record<string, boolean>>>((r) => r.data);
+}
+
+/** 框架侧已注册、可被在线配置的功能点标识 */
+export function listRegisteredFeatures() {
+  return http()
+    .get("/v2/policy/feature/registered")
+    .then<ApiResult<string[]>>((r) => r.data);
+}
+
+/** 启用中的灰度配置（业务键 → 配置行） */
+export function listEnabledGray() {
+  return http()
+    .get("/v2/policy/gray/list")
+    .then<ApiResult<Record<string, PolicyConfig>>>((r) => r.data);
+}
+
+/* ==================== 接口停用 / 转发 ==================== */
+
+/**
+ * 可作为转发目标的应用内已注册路由
+ *
+ * <p>转发目标只能从这份列表里选：目标路径由服务端从 Spring 已注册的
+ * {@code @RequestMapping} 反查，配置面写不了任意外部地址。</p>
+ */
+export function listApiRouteTargets(keyword?: string) {
+  return http()
+    .get("/v2/policy/api-route/targets")
+    .query({ keyword })
+    .then<ApiResult<RegisteredRoute[]>>((r) => r.data);
+}
+
+/** 重新采集已注册路由并重载停用/转发策略 */
+export function refreshApiRoute() {
+  return http()
+    .post("/v2/policy/api-route/refresh")
+    .then<ApiResult<{ routeCount: number; policyCount: number }>>((r) => r.data);
 }
 
 /* ================== 备注 ==================

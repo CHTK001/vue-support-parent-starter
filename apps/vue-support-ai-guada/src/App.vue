@@ -5,7 +5,6 @@
 
     <!-- 主内容区域 -->
     <div class="flex flex-col h-full">
-        <SetupGuide ref="guideRef" />
         <el-config-provider :locale="elLocale">
             <RouterView></RouterView>
         </el-config-provider>
@@ -31,7 +30,6 @@ import { useTrayStats } from './composables/useTrayStats'
 import { i18n, getLocale } from './locales'
 import { useLanguage } from './composables/useLanguage'
 import MockControlPanel from './components/dev/MockControlPanel.vue'
-import SetupGuide from './components/SetupGuide.vue'
 import ContextMenuManager from './utils/ContextMenuManager'
 
 const router = useRouter()
@@ -39,7 +37,6 @@ const title = useTitle()
 const theme = useTheme() //不要删除，这里会执行dark模式设置
 useTrayStats() // 托盘悬浮窗统计推送（仅 Electron 生效）
 const isDev = import.meta.env.DEV
-const guideRef = ref(null)
 const { initLanguage } = useLanguage()
 
 // Element Plus 组件内置文案随语言切换
@@ -91,13 +88,7 @@ onMounted(() => {
     mgr.init()
 })
 
-// 提供打开引导的方法给全局使用
-const openGuide = () => {
-    if (guideRef.value) {
-        guideRef.value.openGuide()
-    }
-}
-provide('openGuide', openGuide)
+// 新手引导已下线（原 SetupGuide 全局挂载已移除），不再提供 openGuide
 
 router.beforeEach((to, from, next) => {
     if (to.meta.titleKey) {

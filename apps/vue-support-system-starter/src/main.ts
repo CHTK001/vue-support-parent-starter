@@ -10,6 +10,7 @@
  * 这里是固定的应用级入口，不随菜单变更。
  */
 import { createContextApp } from "@repo/app";
+import { registerAnnouncementApi, type AnnouncementItem } from "@repo/theme";
 import { registerStaticMenu } from "@repo/pinia";
 import { install as ReButtonInstall } from "@repo/ui/re-button";
 import { install as ReInputInstall } from "@repo/ui/re-input";
@@ -29,9 +30,20 @@ import { install as ReSearchInstall } from "@repo/ui/re-search";
 import { install as ReIconSelectInstall } from "@repo/ui/re-icon-select";
 import { install as ReIpTextInstall } from "@repo/ui/re-ip-text";
 import { systemMenus, systemRoutes } from "@pages/system";
+import { getActiveAnnouncements, markAnnouncementRead } from "@pages/system/api/announcementApi";
 import "@pages/filesystem";
 import "@pages/job";
 import "@pages/task";
+
+// 主题层不反向依赖 pages/*：由应用把公告接口实现注入 @repo/theme 的注册表，
+// AnnouncementBar 通过 getAnnouncementApi 取用；不注入则静默不请求。
+registerAnnouncementApi({
+  getActiveAnnouncements: async () => {
+    const res = await getActiveAnnouncements();
+    return { data: (res?.data ?? []) as AnnouncementItem[] };
+  },
+  markAnnouncementRead,
+});
 
 // 后端菜单不可用时仍保证左侧导航可见；远程菜单成功后会由 auth store 自动隐藏这些兜底根节点。
 registerStaticMenu(systemMenus);

@@ -224,6 +224,7 @@ export interface TilesetSummary {
  * @since 4.0.0
  */
 export interface AppSettings {
+  tiandituToken?: string
   proxyEnabled?: boolean
   proxyUrl?: string
   defaultConcurrency?: number

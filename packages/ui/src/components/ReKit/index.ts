@@ -16,7 +16,7 @@
  *   import ReKit from "@repo/ui/re-kit";
  *   app.use(ReKit);
  */
-import type { App, Plugin } from "vue";
+import type { App, Plugin, PropType } from "vue";
 import { defineComponent, h } from "vue";
 import {
   ElAlert,
@@ -151,7 +151,9 @@ const ReRadioGroup = defineComponent({
   name: "ReRadioGroup",
   inheritAttrs: true,
   props: {
-    modelValue: { default: undefined },
+    // 不声明 type 会让 TS 把该 prop 推成 undefined，导致 v-model 绑任何值都报
+    // 「Type 'number' is not assignable to type 'undefined'」。这里显式放开。
+    modelValue: { type: [String, Number, Boolean, Object] as PropType<string | number | boolean | object>, default: undefined },
     size: { type: String, default: "default" },
     disabled: { type: Boolean, default: false },
     button: { type: Boolean, default: false },
@@ -164,6 +166,9 @@ const ReRadioGroup = defineComponent({
         ElRadioGroup,
         {
           ...attrs,
+          // modelValue 已声明为 prop，不会出现在 attrs 里；必须显式回传，
+          // 否则 ElRadioGroup 永远拿不到当前值，表现为「点选不切换、不高亮」。
+          modelValue: props.modelValue,
           size: props.size,
           disabled: props.disabled,
           class: [
@@ -171,10 +176,15 @@ const ReRadioGroup = defineComponent({
             `re-radio-group--${props.size}`,
             { "re-radio-group--button": props.button, "re-radio-group--capsule": props.capsule },
           ],
-          onUpdate: (v: unknown) => emit("update:modelValue", v),
-          onUpdateModelValue: (v: unknown) => emit("update:modelValue", v),
+          // 渲染函数里绑定带冒号的事件必须写成 "onXxx:yyy"。
+          // 此前写作 onUpdate / onUpdateModelValue，Vue 分别映射为 "update"
+          // 与 "updateModelValue"，都与 Element Plus 实际派发的
+          // "update:modelValue" 对不上，导致点选后父组件收不到通知、v-model 失效。
+          "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
         } as any,
-        slots.default?.(),
+        // 以函数插槽下发，避免 Element Plus 报
+        // 「Non-function value encountered for default slot」
+        { default: () => slots.default?.() },
       );
   },
 });
@@ -191,7 +201,11 @@ const ReRadio = defineComponent({
   },
   setup(props, { attrs, slots }) {
     return () =>
-      h(ElRadio, { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size } as any, slots.default?.());
+      h(ElRadio, { ...attrs, value: props.value, label: props.label, disabled: props.disabled, border: props.border, size: props.size } as any, {
+        // 以函数插槽下发：直接传 slots.default?.() 会让 Element Plus 报
+        // 「Non-function value encountered for default slot」。同 ReRadioGroup。
+        default: () => slots.default?.(),
+      });
   },
 });
 
@@ -204,7 +218,11 @@ const ReRadioButton = defineComponent({
     disabled: { type: Boolean, default: false },
   },
   setup(props, { attrs, slots }) {
-    return () => h(ElRadioButton, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, slots.default?.());
+    return () =>
+      h(ElRadioButton, { ...attrs, value: props.value, label: props.label, disabled: props.disabled } as any, {
+        // 同 ReRadio：必须用函数插槽，否则 Element Plus 报警告
+        default: () => slots.default?.(),
+      });
   },
 });
 
@@ -248,7 +266,8 @@ const ReTreeSelect = defineComponent({
           disabled: props.disabled,
           class: "re-tree-select",
           modelValue: props.modelValue,
-          onUpdateModelValue: (v: unknown) => emit("update:modelValue", v),
+          // 同 ReRadioGroup：带冒号的事件必须写成 "onXxx:yyy"
+          "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
         } as any,
         slots.default?.(),
       );

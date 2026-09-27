@@ -6,9 +6,9 @@ appConfig:
   title: APM 热点观测台
   openAuth: false
 
-# 路由：本地模式（前后端分离，后端纯 REST）
+# 路由：静态模式（业务路由由代码提供，前后端分离，后端纯 REST）
 routeConfig:
-  mode: local
+  mode: static
 
 # API 基础路径（dev 走 vite proxy → :8086）
 httpConfig:

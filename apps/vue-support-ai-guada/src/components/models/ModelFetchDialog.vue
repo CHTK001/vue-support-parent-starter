@@ -141,7 +141,10 @@ const open = async (provider: any, models: any[]) => {
     if (data && data.success === false) {
       throw new Error(data.error || t('settings.providerDetail.fetchFailed'))
     }
-    const apiModels = data.items || data.data?.items || (Array.isArray(data.data) ? data.data : [])
+    const payload = data.data;
+    const apiModels = data.items
+      || (Array.isArray(payload) ? payload : payload?.items)
+      || []
     const enriched = apiModels.map((apiModel: any) => {
       const existing = existingModels.find((m: any) => m.modelName === apiModel.modelName)
       if (existing) {

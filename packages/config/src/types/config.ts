@@ -203,6 +203,19 @@ export interface MenuConfig {
    * 仅垂直布局（layout=vertical）生效；支持 app.yaml 与顶部设置抽屉（可持久化）。
    */
   collapseToButton?: boolean;
+
+  /**
+   * 分组导航增强：是否启用「分组标题排版 + 子项图标 + 底部设置条目」这套样式（默认 true）。
+   *
+   * - true：分组标题按分区标题排版（加大字号、加粗、深色），子项带图标；
+   *   纵向布局底部显示带文字的「设置」条目（图标 + 文字 + 上方分隔线）
+   * - false：分组标题回退为小号灰色弱化样式，纵向布局底部只保留纯图标按钮
+   *
+   * 仅纵向布局（vertical / classic / columns / double / optimum / group）生效。
+   * 可在 app.yaml 的 menuConfig.groupNav 与 main.ts 的 createContextApp({ defaults }) 两处配置，
+   * app.yaml 优先级更高；两处都不配置时取默认 true。
+   */
+  groupNav?: boolean;
 }
 
 /** 上传配置 */
@@ -684,6 +697,22 @@ export interface MonitorConfig {
   /** 采集资源加载失败（script/img/link 等 onerror） */
   captureResource: boolean;
 }
+
+/**
+ * 深部分配类型。
+ *
+ * 供 {@code main.ts} 的代码级默认配置（createContextApp/createApp 的 {@code defaults}）使用：
+ * 浅层 {@code Partial<AppConfig>} 要求每个嵌套节（如 menu）必须写全，
+ * 于是「只想在代码里声明一个键」也被迫把同节其它必填字段（如 menu.collapseSingleChild）重抄一遍，
+ * 且这份重抄会与 app.yaml 形成两处真相。改成深偏后，main.ts 可以只写自己关心的键：
+ *
+ * <pre>{@code
+ * defaults: { menu: { groupNav: true } }
+ * }</pre>
+ *
+ * AppConfig 全为纯数据字段（无 Date / 函数 / 数组 / 集合），递归到对象即可，无需额外守卫。
+ */
+export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;
 
 /** 应用配置（app.yaml schema） */
 export interface AppConfig {

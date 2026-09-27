@@ -63,3 +63,7 @@ layoutConfig:
 # 菜单配置
 menuConfig:
   collapseSingleChild: true
+  # 分组导航增强（默认 true，main.ts 的 defaults 里也声明了同一项）：
+  # 分组标题按分区标题排版（加大/加粗/深色），纵向布局底部显示「图标 + 设置文字」整行条目。
+  # 分组标题不折叠、子项常显（不显示下拉箭头）。
+  groupNav: true

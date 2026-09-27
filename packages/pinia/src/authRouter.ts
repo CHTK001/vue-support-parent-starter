@@ -7,7 +7,7 @@
 import type { Router } from "vue-router";
 import { msgWarning, getRouter, registerDynamicRoutes, initDynamicRoutes, type DynamicRouterContext } from "@repo/core";
 import { getConfig } from "@repo/config";
-import { clearAuthCache } from "@repo/utils";
+import { clearAllAuthData } from "@repo/utils";
 import useUserStore from "./modules/user";
 import useAuthStore from "./modules/auth";
 
@@ -17,12 +17,18 @@ export const forceRelogin = async (router: Router, message?: string) => {
   const authStore = useAuthStore();
   userStore.$reset();
   authStore.$reset();
-  // 静默清除用户级缓存（远程菜单 / 布局），下次登录重新拉取
-  clearAuthCache();
+  // 必须清空令牌 + 用户信息 + 用户级缓存（远程菜单 / 布局），下次登录重新拉取。
+  // 只清缓存不清令牌时，守卫会凭残留 token 命中「已登录访问登录页」分支把 /login 弹回首页，
+  // 用户看到「请重新登录」提示却永远到不了登录页。
+  clearAllAuthData();
   if (message) {
     msgWarning(message);
   }
-  await router.replace("/login");
+  const loginPath = getConfig().route.loginPath || "/login";
+  // 已在登录页时跳过重复 replace，避免重复导航与潜在的跳转死循环
+  if (router.currentRoute.value.path !== loginPath) {
+    await router.replace(loginPath);
+  }
 };
 
 /** 初始化动态路由：拉取菜单 + 注册到 layout（复用 core 通用逻辑） */
@@ -35,15 +41,24 @@ export const initAuthRouter = async (router: Router) => {
   const useRemoteMenu = mode === "remote" || mode === "all";
   const context: DynamicRouterContext = {
     getMenuList: () => authStore.menuList,
-    loadMenus: async () => {
-      // 菜单与用户信息并行拉取；用户信息失败不阻塞菜单注册
-      const [menu] = await Promise.allSettled([authStore.listRouters(), authStore.getLoginUserInfo()]);
-      // 拉取失败（令牌失效 / 接口异常）必须上抛，由 initDynamicRoutes 强制重登；
-      // 拉取成功但列表为空是「角色未分配菜单」，属合法状态。
-      if (menu.status === "rejected" || menu.value === true) {
-        throw new Error("远程菜单拉取失败");
-      }
-    },
+    // 只有 remote / all 模式才需要拉远程菜单。
+    // static / module 模式下菜单全在本地路由树，authStore.menuList 本就为空，
+    // 若仍注入 loadMenus，doInitDynamicRoutes 会因为「菜单为空」去调它；
+    // 而这类应用的后端（如 spring-support-monitor-starter 打的 ngx-console）
+    // 根本没有 /v2/user/menu 接口，请求 404 会让菜单加载失败。
+    // 更糟的是旧实现在失败时会强制重登，把刚登录的 token 清掉，
+    // 表现为「登录成功后立刻被弹回登录页」的死循环。
+    loadMenus: useRemoteMenu
+      ? async () => {
+          // 菜单与用户信息并行拉取；用户信息失败不阻塞菜单注册
+          const [menu] = await Promise.allSettled([authStore.listRouters(), authStore.getLoginUserInfo()]);
+          // 拉取失败上抛，由 initDynamicRoutes 记录并降级（不再强制重登：
+          // 会话失效由 http 拦截器按 401 / RELOGIN_CODES 判定，那才有服务端依据）
+          if (menu.status === "rejected" || menu.value === true) {
+            throw new Error("远程菜单拉取失败");
+          }
+        }
+      : undefined,
     onForceRelogin: (message) => forceRelogin(router, message),
     notify: (message) => {
       if (useRemoteMenu) {
@@ -51,6 +66,14 @@ export const initAuthRouter = async (router: Router) => {
       }
     },
   };
+  // 用户信息（昵称 / 头像 / 角色 / 权限）任何模式都要拉。
+  // 原来它只在 loadMenus 里被顺带调用；static 模式下 loadMenus 为空，
+  // 不在这里补一次的话，登录后右上角用户信息与角色权限会一直是空的。
+  if (!useRemoteMenu) {
+    void authStore.getLoginUserInfo().catch(() => {
+      // 拉不到不阻断：布局用兜底信息渲染，会话失效由 http 拦截器处理
+    });
+  }
   return initDynamicRoutes(router, context);
 };
 

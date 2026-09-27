@@ -1798,7 +1798,7 @@ const iconSelect = Select;
             <div class="re-table__auto-refresh-hint">选中即生效，表格按该间隔自动重取当前页</div>
           </div>
         </ElPopover>
-        <!-- 布局切换（系统级按钮组，位于自动刷新右侧）：表格 / 视图 / 卡片
+        <!-- 布局切换（系统级分段控件，位于自动刷新右侧）：表格 / 视图 / 卡片
              候选 <2 或无数据时不渲染（没有可切换的 DOM 就不出现） -->
         <div
           v-if="showLayoutSwitch"
@@ -2405,15 +2405,17 @@ const iconSelect = Select;
   align-items: center;
   gap: 2px;
 }
-/* 布局切换：系统级「按钮组」（joined group），位于自动刷新右侧。
-   单个按钮与相邻的刷新 / 自动刷新 / 列设置同规格
-   （rs-btn：30×30、圆角 10px、白底 1px 边框、16px 图标），
-   三个布局按钮合并成一组：共享边框、中间项去掉左边框、两端保留圆角，
-   既与系统工具一致，又在视觉上表达"这几个是一组互斥选项"。 */
+/* 布局切换：分段控件（segmented），位于自动刷新右侧。
+   外层灰底圆角轨道 + 内层浮起白底滑块：选中项主色图标、未选中项常规文字色，
+   暗色/反转由 --el-* 令牌自动跟随，不写死浅色底。 */
 .re-table__layout-switch {
   display: inline-flex;
   align-items: center;
+  gap: 2px;
+  padding: 3px;
   margin-left: 2px;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
 }
 .re-table__layout-switch-item {
   display: inline-flex;
@@ -2422,38 +2424,19 @@ const iconSelect = Select;
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid var(--el-border-color);
-  border-radius: 0;
-  /* 按钮组：相邻项边框重叠 1px，视觉上只有一条分隔线 */
-  margin-left: -1px;
-  background: var(--el-bg-color);
-  color: var(--el-text-color-secondary);
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--el-text-color-regular);
   cursor: pointer;
   transition:
     background-color var(--rt-duration, 200ms) var(--rt-ease, ease),
-    border-color var(--rt-duration, 200ms) var(--rt-ease, ease),
-    color var(--rt-duration, 200ms) var(--rt-ease, ease);
-}
-.re-table__layout-switch-item:first-child {
-  margin-left: 0;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
-}
-.re-table__layout-switch-item:last-child {
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
+    color var(--rt-duration, 200ms) var(--rt-ease, ease),
+    box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--compact .re-table__layout-switch-item {
   width: 26px;
   height: 26px;
-}
-.re-table--compact .re-table__layout-switch-item:first-child {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-}
-.re-table--compact .re-table__layout-switch-item:last-child {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
 }
 /* element-plus 图标 svg 是 1em + 内联 width/height，需提权才能压到 16px */
 .re-table__layout-switch-item svg,
@@ -2462,18 +2445,20 @@ const iconSelect = Select;
   width: 16px !important;
   height: 16px !important;
 }
+/* 键盘可达性：仅键盘聚焦时给焦点环，鼠标点击不显示 */
+.re-table__layout-switch-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .re-table__layout-switch-item:hover {
   color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9, var(--el-bg-color));
-  z-index: 1;
 }
-/* 选中态：主色实心 + 白图标（与 rs-btn--primary 一致） */
+/* 选中态：浮起白底 + 主色图标（对比靠 overlay / light 令牌分层，不硬编码品牌色） */
 .re-table__layout-switch-item.is-active,
 .re-table__layout-switch-item.is-active:hover {
-  color: #fff;
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  z-index: 2;
+  color: var(--el-color-primary);
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
 }
 /* 自动刷新浮层：状态行 + 竖向档位菜单 + 一行说明 */
 .re-table__auto-refresh-panel {

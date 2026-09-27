@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["apps/vue-support-geo-starter/src/*"]
+    }
   },
   "include": [
     "src/**/*.ts",

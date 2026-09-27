@@ -19,7 +19,6 @@
 
       <ReInput
         :model-value="keyword"
-        size="small"
         style="width: 180px"
         placeholder="关键字过滤（本地过滤）"
         @update:model-value="onKeyword"
@@ -365,13 +364,13 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
   min-height: 260px;
   overflow: auto;
   border-radius: var(--el-border-radius-lg, 12px);
-  background: var(--el-fill-color-blank, #1e1e1e);
+  background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
 }
 
 .ngl-empty {
   margin: 0;
-  padding: 24px;
+  padding: 24px 16px;
   font-size: 12.5px;
   color: var(--el-text-color-secondary);
   text-align: center;
@@ -379,10 +378,11 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 
 .ngl-log {
   margin: 0;
-  padding: 10px 12px;
+  padding: 14px 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;
+  font-variant-numeric: tabular-nums;
 
   &.nowrap .ngl-line {
     white-space: pre;

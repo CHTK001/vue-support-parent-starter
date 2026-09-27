@@ -102,6 +102,26 @@ await createContextApp({
   mode: "router",
   routerMode: "hash",
   install: installKoiSinglePage,
+  /**
+   * 本应用的代码级默认配置（优先级最低的一层）。
+   *
+   * <p>这里声明「默认走分组导航」：</p>
+   * <ul>
+   *   <li>{@code collapseSingleChild: true} —— 只有一个子项的分组也渲染成可展开的
+   *       二级菜单，而不是被压平；{@code flattenSingleRoot: false} —— 分组不因
+   *       「单根」被自动提升为顶层项，保证「监控管理 / 数据中心 / 资产管理 /
+   *       发布管理 / 系统管理」五个分组始终存在。</li>
+   * </ul>
+   *
+   * <p>app.example.yaml / app.yaml / app.{env}.yaml / 远程配置 / 环境变量仍能覆盖它
+   * （例如运维临时在 app.yaml 里关掉分组），符合「代码给默认、配置可覆盖」。</p>
+   */
+  defaults: {
+    menu: {
+      collapseSingleChild: true,
+      flattenSingleRoot: false,
+    },
+  },
 })
   .routes(monitorRoutes)
   .mount("#app");

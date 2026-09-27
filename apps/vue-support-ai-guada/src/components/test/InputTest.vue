@@ -334,7 +334,8 @@ const clearEditor = () => {
 
 onMounted(() => {
   editor.value = new Editor({
-    extensions: [StarterKit, SkillNode],
+    // 两份 @tiptap/core 的类型身份不同，SkillNode 结构兼容，用 as never 断开比较
+    extensions: [StarterKit, SkillNode as never],
     content: '',
     editable: true,
     onUpdate: ({ editor: ed }) => {

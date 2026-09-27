@@ -10,6 +10,7 @@ export * from "./tokens";
 export * from "./applyTheme";
 export * from "./appContext";
 export * from "./themeInstallers";
+export * from "./announcementApi";
 export * from "./themeRoutes";
 export * from "./themes";
 export * from "./loadTheme";

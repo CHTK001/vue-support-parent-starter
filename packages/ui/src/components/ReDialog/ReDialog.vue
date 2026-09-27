@@ -4,6 +4,7 @@
  *
  * 透传 el-dialog 全部能力，v-model 控制显隐。
  * 增强：
+ *   - layout："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗，异步加载）
  *   - draggable：可拖拽头部移动弹窗
  *   - fullscreenable：右上角显示全屏切换
  *   - confirmLoading：确认按钮 loading 态（常用于提交场景）
@@ -11,7 +12,10 @@
  *   - 默认带 footer 插槽 + 取消/确认按钮，无需每次写
  *   - headless：隐藏 header，右上角圆形关闭按钮替代（圆心定位）
  *   - responsive：基于 @vueuse/core 自动响应式（移动端默认全屏）
- *   - windows 布局已自带 8 方向缩放（边缘拖拽放大）与左右边缘半宽 */
+ *
+ * 说明：原 `layout="windows"` 变体（layouts/WindowsLayout.vue）经跨行审计确认
+ * 全仓无人使用，已移除；需要时从 backups/ui-unused-layouts-retire-20260926/ 取回。
+ */
 import { computed, defineAsyncComponent, ref, watch } from "vue";
 import type { CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
@@ -20,8 +24,8 @@ import ReDialogCloseFab from "./CloseFab.vue";
 import { useResponsiveDialog } from "./composables/useResponsiveDialog";
 import "../shared/modern-vars.css";
 
+/** Modern 布局组件（按需异步加载） */
 const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-const WindowsLayout = defineAsyncComponent(() => import("./layouts/WindowsLayout.vue"));
 
 defineOptions({ name: "ReDialog", inheritAttrs: true });
 
@@ -29,8 +33,8 @@ const visible = defineModel<boolean>({ default: false });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗）/ "windows"（类 Windows 窗口） */
-    layout?: "el" | "modern" | "windows";
+    /** 布局变体："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗） */
+    layout?: "el" | "modern";
     /** 窗口唯一标识；传入后位置/尺寸/状态自动持久化到 localStorage */
     id?: string;
     title?: string;
@@ -243,7 +247,7 @@ const showCloseFab = computed(() => props.headless);
     :modal="modal"
     :draggable="draggable"
     :fullscreenable="fullscreenable"
-    :fullscreen="fullscreen"
+    :fullscreen="resolved.fullscreen"
     :confirm-loading="confirmLoading"
     :ok-text="okText"
     :cancel-text="cancelText"
@@ -251,7 +255,6 @@ const showCloseFab = computed(() => props.headless);
     :show-cancel="showCancel"
     :show-footer="showFooter"
     :headless="headless"
-    :responsive="responsive"
     :mobile-breakpoint="mobileBreakpoint"
     :compact="compact"
     v-bind="$attrs"
@@ -266,44 +269,6 @@ const showCloseFab = computed(() => props.headless);
       <slot name="footer" v-bind="scope" />
     </template>
   </ModernLayout>
-
-  <!-- Windows 式布局（异步加载） -->
-  <WindowsLayout
-    v-else-if="layout === 'windows'"
-    v-model="visible"
-    :id="id"
-    :title="title"
-    :width="width"
-    :close-on-click-modal="closeOnClickModal"
-    :close-on-press-escape="closeOnPressEscape"
-    :show-close="showClose"
-    :destroy-on-close="destroyOnClose"
-    :modal="modal"
-    :draggable="draggable"
-    :fullscreenable="fullscreenable"
-    :fullscreen="fullscreen"
-    :confirm-loading="confirmLoading"
-    :ok-text="okText"
-    :cancel-text="cancelText"
-    :show-ok="showOk"
-    :show-cancel="showCancel"
-    :show-footer="showFooter"
-    :headless="headless"
-    :responsive="responsive"
-    :mobile-breakpoint="mobileBreakpoint"
-    :compact="compact"
-    v-bind="$attrs"
-    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
-    @ok="onOk"
-    @cancel="onCancel"
-    @fullscreen-change="(v: boolean) => emit('fullscreen-change', v)"
-    @close-fab="closeByFab"
-  >
-    <slot />
-    <template v-if="$slots.footer" #footer="scope">
-      <slot name="footer" v-bind="scope" />
-    </template>
-  </WindowsLayout>
 
   <!-- 默认 el-dialog 布局 -->
   <ElDialog

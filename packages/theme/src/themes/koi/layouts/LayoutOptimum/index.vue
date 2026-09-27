@@ -21,6 +21,8 @@
           </el-menu>
         </div>
       </div>
+      <!-- 底部系统配置入口（不作为菜单） -->
+      <NavSettingEntry />
     </el-aside>
     <el-container>
       <el-header v-if="globalStore.isHeaderShown" class="layout-header">
@@ -74,6 +76,7 @@ import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import ReCollapse from "@repo/theme/koi/layouts/components/Header/components/ReCollapse.vue";
 import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
+import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { ref, computed, watch, onMounted, nextTick } from "vue";

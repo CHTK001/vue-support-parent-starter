@@ -31,27 +31,14 @@
             :collapse-transition="false"
             :uniqueOpened="globalStore.uniqueOpened"
             :router="false"
-            :class="menuAnimate"
+            :class="[menuAnimate, { 'is-group-nav': groupNav }]"
           >
             <ReAsideSubMenu :menuList="menuList"></ReAsideSubMenu>
           </el-menu>
         </div>
       </div>
-      <!-- 底部系统配置入口（图标 + tip；不作为菜单，仅纵向布局提供；横向布局不支持） -->
-      <div class="layout-vertical-foot">
-        <el-tooltip content="系统配置" placement="right" :show-after="200">
-          <button
-            v-admin
-            type="button"
-            class="nav-setting-btn"
-            :class="{ 'is-active': route.path === SYSTEM_CONFIG_PATH }"
-            aria-label="系统配置"
-            @click="goSystemConfig"
-          >
-            <el-icon :size="18"><Setting /></el-icon>
-          </button>
-        </el-tooltip>
-      </div>
+      <!-- 底部系统配置入口（不作为菜单；仅纵向布局提供，横向布局不支持） -->
+      <NavSettingEntry />
     </el-aside>
     <el-container>
       <el-header v-if="globalStore.isHeaderShown" class="layout-header">
@@ -68,18 +55,24 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
+import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { Menu, Setting } from "@element-plus/icons-vue";
-import { getConfig } from "@repo/config";
+import { useRoute } from "vue-router";
+import { Menu } from "@element-plus/icons-vue";
+import { getConfig, resolveGroupNav } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const route = useRoute();
-const router = useRouter();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+
+/**
+ * 分组导航增强（menuConfig.groupNav，默认开启）：给 el-menu 挂 .is-group-nav，
+ * 分组标题改按分区标题排版（加大、加粗、深色），底部显示带文字的「设置」条目。
+ */
+const groupNav = computed(() => resolveGroupNav());
 
 /**
  * 折叠形态：true 时折叠后不渲染 mini 菜单，整个菜单收缩为一个「展开菜单」按钮。
@@ -92,12 +85,6 @@ const collapseToButtonMode = computed(
 /** 展开菜单（点击收缩按钮 / 后续入口共用） */
 function expandMenu() {
   globalStore.setCollapse(false);
-}
-
-/** 产品级系统配置路由（隐藏菜单，仅由底部按钮进入） */
-const SYSTEM_CONFIG_PATH = "/system/config";
-function goSystemConfig() {
-  if (route.path !== SYSTEM_CONFIG_PATH) router.push(SYSTEM_CONFIG_PATH);
 }
 
 // 动态绑定左侧菜单animate动画（路由动画关闭时菜单动画同步关闭）
@@ -198,36 +185,5 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
 .layout-vertical-menu-pad {
   padding-right: $aside-menu-padding-right;
   box-sizing: border-box;
-}
-
-/* 底部系统配置入口 */
-.layout-vertical-foot {
-  flex-shrink: 0;
-  padding: 8px $aside-menu-padding-left 10px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-.nav-setting-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-  padding: 0;
-  border: none;
-  border-radius: var(--el-border-radius-base, 6px);
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background-color var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
-}
-.nav-setting-btn:hover {
-  background: var(--el-menu-hover-bg-color, var(--el-fill-color-light));
-  color: var(--el-color-primary);
-}
-.nav-setting-btn.is-active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
 }
 </style>

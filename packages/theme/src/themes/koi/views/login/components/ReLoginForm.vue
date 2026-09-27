@@ -334,7 +334,11 @@ const submitLogin = async (otpCode: string) => {
     if (userStore?.token) {
       try {
         await initAuthRouter(router);
-      } catch {
+      } catch (e) {
+        // 原来这里是空 return：初始化失败时页面既不跳转、也不给任何提示，
+        // 表现就是「点了登录没反应、还停在登录页」，完全无从排查。
+        // 登录本身已成功（token 已拿到），这里只提示路由初始化失败并留在登录页。
+        msgError(`登录后初始化路由失败：${(e as Error)?.message || e}`);
         return;
       }
     } else {

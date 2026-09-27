@@ -22,8 +22,12 @@ export interface InputMessageState {
     content: string
     files: any[]
     knowledgeBaseIds?: string[]
-    isWaiting: boolean
+    isWaiting?: boolean
     skillNames?: string[]
+    /** 本次消息是否开启深度思考 */
+    think?: boolean
+    /** 本次消息是否开启在线检索 */
+    search?: boolean
 }
 
 /**
@@ -88,6 +92,8 @@ export interface Session {
     workspacePath?: string | null  // 自定义工作目录路径
     groupId?: string | null         // 会话分组ID
     archived?: boolean               // 是否已归档
+    /** 会话级 MCP 工具ID，逗号分隔（与 ChatInput 的 split/join 口径一致） */
+    mcpServerIds?: string
     // ==================================
 
     // === 侧边栏状态字段（后端注入或前端维护） ===

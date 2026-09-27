@@ -14,6 +14,8 @@ import type { PluginOption } from 'vite'
 const APP_NAME = 'vue-support-ai-guada'
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..')
 const SHARED_PUBLIC_DIR = path.join(WORKSPACE_ROOT, 'public')
+// 后端地址：默认本机 8787；前端在本机、后端部署在远端时用 AI_API_TARGET 覆盖
+const AI_API_TARGET = process.env.AI_API_TARGET ?? 'http://localhost:8787'
 
 /** 精确映射：框架 createApp 约定按这些 URL 拉取配置与 wasm 产物 */
 const EXACT_ASSETS: Record<string, string> = {
@@ -202,24 +204,24 @@ export default defineConfig({
     },
     proxy: {
       '/api/v1': {
-        target: 'http://localhost:8787',
+        target: AI_API_TARGET,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/v1/, '/v2'),
       },
       '/v2': {
-        target: 'http://localhost:8787',
+        target: AI_API_TARGET,
         changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:8787',
+        target: AI_API_TARGET,
         changeOrigin: true,
       },
       '/static': {
-        target: 'http://localhost:8787',
+        target: AI_API_TARGET,
         changeOrigin: true
       },
       '/ws/chat': {
-        target: 'http://localhost:8787',
+        target: AI_API_TARGET,
         changeOrigin: true,
         ws: true,
       }

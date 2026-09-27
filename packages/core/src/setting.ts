@@ -15,10 +15,27 @@
  */
 import { getConfig, setConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched } from "@repo/config";
 import { getDefaultSetting, type SettingItem } from "./api";
-import { log } from "@repo/utils";
+import { log, getAccessToken } from "@repo/utils";
 
 function shouldFetchRemoteSetting(): boolean {
   return getConfig()?.config?.enable !== false && !!getConfig()?.url?.setting;
+}
+
+/**
+ * 登录页是否允许发起远程配置请求。
+ *
+ * <p>{@code /v2/setting/default} 受鉴权保护，**未登录时必然失败**：后端以
+ * HTTP 200 返回错误信封 {@code {"code":"A0403S0000","success":false,
+ * "msg":"用户信息不存在/请重新登录!"}}。此时拉取既拿不到任何配置，又只能靠
+ * 回落代码内置默认值（{@code shared.ts} 的 {@code login.captcha: true}），
+ * 覆盖掉 app.yaml 里显式声明的 {@code login.captcha: false}，
+ * 还会让登录页凭空多出一个必填的验证码字段、把用户挡在门外。</p>
+ *
+ * <p>因此未登录直接不发这个请求，沿用本地 app.yaml；登录成功后由
+ * {@link refreshDefaultSetting} 再拉一次并广播热重载。</p>
+ */
+function isLoggedIn(): boolean {
+  return !!getAccessToken();
 }
 
 const SETTING_TO_LOGIN_MAP: Record<string, string> = {
@@ -83,8 +100,8 @@ let bootstrapping = false;
 let defaultSettingPromise: Promise<boolean> | null = null;
 
 export function loadDefaultSetting(): Promise<boolean> {
-  if (!shouldFetchRemoteSetting()) {
-    return Promise.resolve(true);
+  if (!shouldFetchRemoteSetting() || !isLoggedIn()) {
+    return Promise.resolve(false);
   }
   if (defaultSettingPromise) {
     return defaultSettingPromise;

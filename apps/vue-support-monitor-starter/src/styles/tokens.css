@@ -33,6 +33,13 @@
   --metric-redis: #ef4444;
   --metric-db: #0ea5e9;
 
+  /* 状态语义色：图表曲线 / 状态胶囊用。
+     之前只有 --status-online/offline/unknown/alarm 四个别名（见下方别名段），
+     没有 --status-success / --status-warning，导致趋势图这两条线只能回落到
+     --el-color-* 兜底值。这里补齐，让图表配色在两套主题里都有明确来源。 */
+  --status-success: #2fbf71;
+  --status-warning: #f59e0b;
+
   /* 告警级别色（P0~P4） */
   --sev-p0-bg: #fdecef;
   --sev-p0-text: #9b1c2e;
@@ -208,6 +215,11 @@ html.dark {
   --shadow-3: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-brand: 0 2px 8px rgba(109, 93, 252, 0.4);
   --badge-glow: 0 0 6px rgba(109, 93, 252, 0.6);
+
+  /* 状态语义色在深底上需要提亮才够对比度。
+     亮色下的 #2fbf71 / #f59e0b 放到 #1a1d27 上偏暗，曲线细线几乎看不出。 */
+  --status-success: #4ade80;
+  --status-warning: #fbbf24;
 
   /* 滚动条 */
   --scroll-thumb: #3a3f52;

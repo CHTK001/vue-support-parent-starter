@@ -26,11 +26,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type PropType } from 'vue'
 
 interface Option {
   label: string
-  value: string | number | boolean
+  // el-option 的 value 只接受 PropertyKey（string | number），布尔值不合法
+  value: string | number
   disabled?: boolean
 }
 
@@ -38,13 +39,13 @@ const props = defineProps({
   modelValue: { type: [String, Number, Array, Boolean], default: '' },
   label: { type: String, default: '' },
   placeholder: { type: String, default: '请选择' },
-  size: { type: String, default: 'default' },
+  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
   disabled: { type: Boolean, default: false },
   clearable: { type: Boolean, default: true },
   filterable: { type: Boolean, default: false },
   multiple: { type: Boolean, default: false },
   collapseTags: { type: Boolean, default: true },
-  options: { type: Array as () => Option[], default: () => [] },
+  options: { type: Array as PropType<Option[]>, default: () => [] },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])

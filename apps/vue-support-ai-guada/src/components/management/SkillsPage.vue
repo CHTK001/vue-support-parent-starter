@@ -357,6 +357,10 @@ const detailTarget = ref<{
   description?: string;
   installed: boolean;
   zipUrl?: string;
+  /** 市场条目：GitHub 仓库地址（远程预览 SKILL.md 用） */
+  repoUrl?: string;
+  /** 市场条目：仓库内子目录 */
+  subdir?: string;
 } | null>(null);
 /** 详情弹窗当前对应的市场条目（用于在弹窗内直接安装） */
 const detailMarketItem = ref<MarketItem | null>(null);

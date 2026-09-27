@@ -22,7 +22,13 @@ async function installEduAi(app: VueApp): Promise<void> {
   await installUi(app, { components: EDUAI_RE_COMPONENTS });
 }
 
-const instance = await createContextApp({ install: installEduAi })
+const instance = await createContextApp({
+  install: installEduAi,
+  // 代码级默认配置（优先级最低，app.yaml 可覆盖）：
+  // 分组导航增强 —— 分组标题按分区标题排版（加大/加粗/深色）+ 底部带文字的「设置」条目。
+  // 框架默认即 true，这里显式声明是为了让本应用「菜单长相」的意图在入口处可见。
+  defaults: { menu: { groupNav: true } },
+})
   .routes(eduaiRoutes as never)
   .mount("#app");
 

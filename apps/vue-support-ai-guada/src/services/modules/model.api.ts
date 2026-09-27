@@ -6,10 +6,30 @@ import type { PaginatedResponse } from "@/types/common";
 /** /api/** 管理接口客户端：不解包，返回值与后端统一响应体 {code,data,msg} 一致 */
 const rawApi = createClient(rootHttp, { unwrap: false });
 
+/**
+ * 远端模型列表接口的响应信封。
+ *
+ * 后端在鉴权失败时也返回 200 + success:false，因此 success/error 是必备字段；
+ * items 与 data 可能同时缺失（失败分支），也可能二选一（成功分支的两种形态）。
+ */
+export interface RemoteModelsEnvelope {
+  success?: boolean;
+  msg?: string;
+  error?: string;
+  items?: any[];
+  data?: { items?: any[] } | any[] | null;
+}
+
 export interface ModelApi {
   fetchModels(): Promise<PaginatedResponse<ModelProvider>>;
   fetchAllModels(): Promise<PaginatedResponse<ModelProvider>>;
-  fetchRemoteModels(providerId: string): Promise<PaginatedResponse<Model>>;
+  /**
+   * 拉取供应商远端模型列表。
+   *
+   * 返回的是后端原始信封（可能 200 + success:false），不是分页结构：
+   * 鉴权失败时后端也返回 200，因此调用方必须显式判 success。
+   */
+  fetchRemoteModels(providerId: string): Promise<RemoteModelsEnvelope>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
   deleteModel(modelId: string): Promise<boolean>;

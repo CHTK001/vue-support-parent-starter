@@ -1,30 +1,7 @@
 <template>
   <!-- 顶栏环境信息：天气 + 活跃台风（数据取自后台 /v2/**，能力未提供时自动回落三方） -->
   <div class="flex items-center gap-1">
-    <!-- 天气 -->
-    <LTooltip v-if="showWeather" :content="weatherTip" placement="bottom">
-      <div class="header-icon-btn" :class="{ 'header-icon-btn--loading': weatherLoading }">
-        <Loading v-if="weatherLoading" class="w-4 h-4 animate-spin" />
-        <WbSunnyFilled v-else-if="weatherCode == null" class="w-5 h-5" />
-        <component :is="weatherIcon" v-else class="w-5 h-5" />
-        <span v-if="weatherTemp" class="text-xs font-medium ml-0.5">{{ weatherTemp }}</span>
-      </div>
-    </LTooltip>
-
-    <!-- 活跃台风 -->
-    <LTooltip v-if="showTyphoon" :content="typhoonTip" placement="bottom">
-      <div class="header-icon-btn">
-        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3c3 3.5 3 6.5 0 9-3-2.5-3-5.5 0-9Z" />
-          <path d="M12 12c-3.5 0-6.5-3-9 0 2.5 3 5.5 3 9 0Z" />
-          <path d="M12 12c0 3.5 3 6.5 0 9-2.5-2.5-3-5.5 0-9Z" />
-          <path d="M12 12c3.5 0 6.5-3 9 0-2.5 3-5.5 3-9 0Z" />
-          <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-        </svg>
-        <span v-if="typhoonCount > 0" class="text-xs font-medium ml-0.5">{{ typhoonCount }}</span>
-      </div>
-    </LTooltip>
+  
   </div>
 </template>
 

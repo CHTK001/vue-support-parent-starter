@@ -4,6 +4,14 @@
     :class="{ 'is-header-inverted': isHeaderInverted }"
     ref="toolbarRef"
   >
+    <!-- 顶部扩展槽：外部页面可注入大屏按钮等操作入口
+         - 布局内：<template #header-extra>…</template>
+         - 任意组件：<Teleport to="#koi-header-extra">…</Teleport> -->
+    <div id="koi-header-extra" class="header-extra">
+      <slot name="header-extra"></slot>
+    </div>
+    <!-- 顶部菜单（菜单管理里「菜单位置=顶部」的菜单，点击新页面打开） -->
+    <ReTopMenus></ReTopMenus>
     <!-- 搜索菜单 -->
     <ReSearchMenu v-show="isCollapsed && toolbarConfig.searchMenu"></ReSearchMenu>
     <!-- ElementPlus 尺寸配置 -->
@@ -76,6 +84,7 @@ import ReTimer from "@repo/theme/koi/layouts/components/Header/components/ReTime
 import ReWeather from "@repo/theme/koi/layouts/components/Header/components/ReWeather.vue";
 import ReTyphoon from "@repo/theme/koi/layouts/components/Header/components/ReTyphoon.vue";
 import ReBigscreen from "@repo/theme/koi/layouts/components/Header/components/ReBigscreen.vue";
+import ReTopMenus from "@repo/theme/koi/layouts/components/Header/components/ReTopMenus.vue";
 
 const emit = defineEmits(["widthChange"]);
 
@@ -208,6 +217,18 @@ onUnmounted(() => {
         border-color: var(--el-color-primary);
         box-shadow: 0 0 0 2px var(--el-header-toolbar-collapse-hover-bg-color);
       }
+    }
+  }
+
+  /* 顶部扩展槽：空内容不占位，有内容时与图标同排 */
+  .header-extra {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+
+    &:empty {
+      display: none;
     }
   }
 

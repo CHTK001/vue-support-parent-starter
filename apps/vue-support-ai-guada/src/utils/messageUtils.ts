@@ -60,6 +60,8 @@ export interface MessageContent {
   _thinkingTimer?: number;
   isCurrent?: boolean;
   files?: FileAttachment[];
+  /** 智能体轨迹日志（thinking/工具/审批/规划），供会话调试面板展示 */
+  traceLog?: Array<Record<string, any>>;
 }
 
 /**

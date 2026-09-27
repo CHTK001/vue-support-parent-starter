@@ -247,6 +247,8 @@ interface ChatConfig {
   attachments?: Record<string, string[]>
   defaultThink?: boolean
   defaultSearch?: boolean
+  /** 会话级 MCP 工具ID，逗号分隔 */
+  mcpServerIds?: string
 }
 
 /** File with optional _originalContent attached by paste handler */
@@ -882,9 +884,9 @@ const loadModels = async () => {
     response.items.forEach(provider => {
       // 过滤只保留 mode_type 为 'text' 的模型
       const textModels = provider.models?.filter(model => model.modelType === "text") ?? [];
-      // 映射字段：model -> modelName
+      // 兜底：后端多数只给 modelName，个别供应商给 model，这里统一兜底
       textModels.forEach(model => {
-        model.modelName = model.model || model.modelName || model.id;
+        model.modelName = model.modelName || model.id;
       });
       models.value.push(...textModels);
       delete provider.models;
@@ -1475,7 +1477,10 @@ onMounted(() => {
     const tiptapEditor = new Editor({
       extensions: [
         StarterKit,
-        CommandNode,
+        // 仓库内存在两份 @tiptap/core（app 的 node_modules 与 pnpm store），
+        // CommandNode 的 Node<any,any> 与 Editor 期望的 AnyExtension 类型身份不同，
+        // 结构完全兼容，这里用 as never 断开模块身份比较。
+        CommandNode as never,
         Placeholder.configure({
           placeholder: t('chat.input.editorPlaceholder'),
         }),

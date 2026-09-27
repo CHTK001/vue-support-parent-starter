@@ -1,0 +1,382 @@
+/**
+ * 采集调度控制台的公共样式（全站设计层）。
+ *
+ * 画布与属性面板的图形样式在 ReFlowGraph（@repo/ui）内部，这里只负责：
+ * 1. 设计令牌（间距 / 圆角 / 动效时长 / 数字字体），挂在 :root，
+ *    颜色一律取 koi 主题（Element Plus）的 CSS 变量，不写死十六进制，暗色主题自动跟随；
+ * 2. 页面骨架：页头、统计栅格、主从分栏、卡片、筛选条、栅格表单、状态点。
+ *
+ * 排版取向是「数据密集型控制台」：4/8 间距节奏、数值列用等宽表格数字避免跳动、
+ * 动效只用 transform/opacity 且不超过 200ms，并整体尊重 prefers-reduced-motion。
+ */
+
+:root {
+  --cc-gap: 12px;
+  --cc-gap-sm: 8px;
+  --cc-gap-lg: 16px;
+  --cc-radius: 10px;
+  --cc-radius-sm: 8px;
+  --cc-duration: 180ms;
+  --cc-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --cc-font-num: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+}
+
+/* 数值与时刻列：等宽数字，翻页/刷新时列宽不跳 */
+.collect-num {
+  font-family: var(--cc-font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.collect-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cc-gap);
+  height: 100%;
+}
+
+/* ---------------- 页头 ---------------- */
+
+.collect-head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cc-gap-sm);
+  flex-wrap: wrap;
+}
+
+.collect-head__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  color: var(--el-text-color-primary);
+}
+
+.collect-head__sub {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.collect-head .spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------------- 统计栅格 ---------------- */
+
+.collect-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--cc-gap);
+}
+
+/* 控制台要在一屏里看完，卡片比默认更紧 */
+.collect-stats .re-stat-card {
+  padding: 12px 14px;
+}
+
+.collect-stats .re-stat-card__head {
+  margin-bottom: 6px;
+}
+
+.collect-stats .re-stat-card__value {
+  font-size: 24px;
+  margin-bottom: 4px;
+  min-height: 29px;
+  font-variant-numeric: tabular-nums;
+}
+
+.collect-stats .re-stat-card__desc {
+  font-size: 12px;
+}
+
+/* ---------------- 右侧栏 ---------------- */
+
+.collect-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cc-gap);
+  min-width: 0;
+}
+
+.collect-rail__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.collect-rail__title .spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------------- 卡片骨架 ---------------- */
+
+.collect-card {
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--cc-radius);
+  background: var(--el-fill-color-blank);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+}
+
+.collect-card--head {
+  display: flex;
+  align-items: center;
+  gap: var(--cc-gap-sm);
+  flex-wrap: wrap;
+}
+
+.collect-card--head .spacer {
+  flex: 1 1 auto;
+}
+
+.collect-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.collect-hint--muted {
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------------- 工具条 ---------------- */
+
+.collect-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--cc-gap-sm);
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--cc-radius);
+  background: var(--el-fill-color-blank);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+}
+
+.collect-toolbar .spacer {
+  flex: 1 1 auto;
+}
+
+.collect-runtime {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 运行指示点：总览与设计页运行条共用 */
+.collect-pulse {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px var(--el-color-success-light-9);
+}
+
+.collect-pulse.is-idle {
+  background: var(--el-color-info);
+  box-shadow: 0 0 0 3px var(--el-color-info-light-9);
+}
+
+.collect-pulse.is-bad {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px var(--el-color-danger-light-9);
+}
+
+/* ---------------- 栅格表单 ---------------- */
+
+.collect-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cc-gap);
+}
+
+.collect-form--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cc-gap) var(--cc-gap-lg);
+}
+
+.collect-form__item {
+  display: flex;
+  align-items: center;
+  gap: var(--cc-gap-sm);
+}
+
+.collect-form__item--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.collect-form__label {
+  flex: 0 0 92px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+
+.collect-form__item--stack .collect-form__label {
+  flex: none;
+}
+
+.collect-form__label .req {
+  margin-right: 2px;
+  color: var(--el-color-danger);
+  font-style: normal;
+}
+
+/* ---------------- 结果提示条 ---------------- */
+
+.collect-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--cc-radius-sm);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.collect-callout.is-ok {
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-7);
+}
+
+.collect-callout.is-bad {
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-7);
+}
+
+.collect-callout.is-warn {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-7);
+}
+
+/* ---------------- 详情键值清单 ---------------- */
+
+.collect-kv {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.collect-kv dt {
+  color: var(--el-text-color-secondary);
+}
+
+.collect-kv dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--el-text-color-primary);
+}
+
+/* ---------------- 表格辅助 ---------------- */
+
+.collect-cell-ellipsis {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.collect-cell-mono {
+  font-family: var(--cc-font-num);
+  font-size: 12px;
+}
+
+/* 多行正文（执行日志消息里的重试轨迹/回调记录/脚本输出）：保留换行、长词可断 */
+.collect-cell-prewrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 单元格里跟在文本后面的小标签，靠边距与正文分开 */
+.collect-tag-inline {
+  margin-left: 6px;
+}
+
+.collect-empty {
+  padding: 40px 10px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+/* ---------------- 可点行与键盘可达性 ---------------- */
+
+/* 表格里当前选中行加一条左侧标尺，不只靠 el-table 的高亮底色（暗色主题下底色对比不足） */
+.collect-row-current {
+  box-shadow: inset 3px 0 0 var(--el-color-primary);
+}
+
+.collect-link {
+  color: var(--el-color-primary);
+  cursor: pointer;
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+/*
+ * ReCron（cron 表达式组件）：app 级全局去动效兜底。
+ * 组件内已用 scoped 规则关掉自身与其后代，这里再覆盖一层，确保：
+ *  - 触发器、追加齿轮、状态行（合法/非法/预览文案切换）不产生任何过渡/呼吸/闪烁；
+ *  - 可视化面板被 teleport 到 body（scoped 覆盖不到），同样瞬时切换。
+ * 使用 !important 命中所有元素与伪元素，杜绝第三方库（Element Plus / ReTab 等）注入的动画。
+ */
+.re-cron,
+.re-cron *,
+.re-cron__popper,
+.re-cron__popper * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.re-cron::before,
+.re-cron::after,
+.re-cron .el-input__wrapper::before,
+.re-cron .el-input__wrapper::after,
+.re-cron__popper::before,
+.re-cron__popper::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* cron 输入盒：聚焦只做 1px 内描边，不要主题的外发光（外发光在输入时会被看成"呼吸"） */
+.re-cron .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset !important;
+}
+
+.re-cron .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

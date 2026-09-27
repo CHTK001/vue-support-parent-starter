@@ -20,10 +20,22 @@
       </div>
 
       <div class="topbar-right">
+        <!-- MCP 选择：组件契约是 visible + anchorEl + selectedIds，不是 v-model -->
+        <el-button
+          v-if="admin"
+          ref="mcpButtonRef"
+          text
+          size="small"
+          @click="mcpPopoverVisible = true"
+        >
+          MCP
+        </el-button>
         <McpSelectorPopover
           v-if="admin"
-          v-model="selectedMcpServerIds"
-          @clear="handleClearMcp"
+          v-model:visible="mcpPopoverVisible"
+          :anchor-el="mcpButtonRef?.$el ?? null"
+          :selected-ids="selectedMcpServerIds"
+          @change="handleMcpChange"
         />
       </div>
     </header>
@@ -112,6 +124,9 @@ const messages = ref<any[]>([])
 const inputMessage = ref('')
 const contextCount = ref(10)
 const selectedMcpServerIds = ref<string[]>([])
+/** MCP 选择弹层的开关与锚点按钮 */
+const mcpPopoverVisible = ref(false)
+const mcpButtonRef = ref<any>(null)
 
 const loadingConversations = ref(false)
 const loadingMessages = ref(false)
@@ -257,6 +272,11 @@ async function handleClearConversation(conv: any) {
 
 function handleClearMcp() {
   selectedMcpServerIds.value = []
+}
+
+/** MCP 弹层勾选变化 */
+function handleMcpChange(ids: string[]) {
+  selectedMcpServerIds.value = ids
 }
 
 onMounted(async () => {

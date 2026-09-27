@@ -307,7 +307,9 @@ const handleMenuRouter = (value: any) => {
   border-radius: 50%;
 }
 
-/** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色、不可点 */
+/** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色、不可点。
+    这是 menuConfig.groupNav=false 时的基础外观；开启增强后由全局
+    .el-menu.is-group-nav 规则接管（见文件末尾非 scoped 样式块）。 */
 :deep(.el-menu-item-group__title) {
   --el-menu-base-level-padding: 10px; // 与二级菜单图标起点对齐（EP 用该变量算 padding-left，直接写 padding-left 会被更高特异性规则覆盖）
   padding-top: 12px;
@@ -323,6 +325,32 @@ const handleMenuRouter = (value: any) => {
 </style>
 
 <style lang="scss">
+/**
+ * 分组导航增强（menuConfig.groupNav=true，由各纵向布局给 el-menu 加 .is-group-nav）：
+ * 分组标题按「分区标题」排版 —— 加大字号、加粗、去掉灰化弱化。
+ *
+ * 用全局选择器而非组件 scoped：el-menu-item-group__title 由 Element Plus 在
+ * el-menu-item-group 内部渲染，这里只需盖住组件内那条「小号灰字」基础规则。
+ * 特异性 (0,3,0) 高于组件内 :deep() 规则 (0,2,0)，故无需 !important。
+ * 分组标题保持 pointer-events:none —— 不可点、不折叠（子项常显）。
+ */
+.el-menu.is-group-nav .el-menu-item-group__title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  color: var(--el-text-color-primary);
+}
+
+/**
+ * 分组导航增强：菜单折叠成窄图标轨时隐藏分组标题。
+ * 约 33~56px 的窄宽会让横向标题逐字换行成竖排、虚占高度，故直接不显示
+ * （组内条目图标本身已能表达归属）。
+ */
+.el-menu.is-group-nav.el-menu--collapse .el-menu-item-group__title {
+  display: none;
+}
+
 /** 子级菜单字体高亮，父级菜单也高亮 */
 .el-sub-menu.is-active > .el-sub-menu__title {
   color: var(--el-menu-parent-active-text-color) !important;
@@ -374,3 +402,4 @@ const handleMenuRouter = (value: any) => {
   }
 }
 </style>
+                                                             

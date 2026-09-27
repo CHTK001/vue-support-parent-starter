@@ -30,6 +30,9 @@ import {
   DataLine,
   SwitchButton,
   EditPen,
+  Grid,
+  Menu,
+  Search,
 } from "@element-plus/icons-vue";
 import {
   pageForSetting,
@@ -122,6 +125,79 @@ const groupAccentMap: Record<string, string> = {
 function groupAccent(g: string): string {
   if (g.startsWith("startup")) return "info";
   return groupAccentMap[g] ?? "primary";
+}
+
+/* ================== 分类筛选 / 视图切换 / 分组搜索 ================== */
+
+/**
+ * 分类定义。
+ *
+ * <p>分组是平铺的（15 个），直接铺开很难扫读；按语义收成几档后，
+ * 「配置」这类高频分组能一眼定位。</p>
+ */
+const CATEGORY_LIST = [
+  { key: "all", label: "全部" },
+  { key: "basic", label: "基础配置" },
+  { key: "integration", label: "第三方集成" },
+  { key: "message", label: "消息通知" },
+  { key: "startup", label: "启动参数" },
+  { key: "content", label: "内容协议" },
+];
+
+/** 分组 -> 分类 key；未登记的分组归入「基础配置」，避免出现无处安放的卡片 */
+const groupCategoryMap: Record<string, string> = {
+  default: "basic",
+  config: "basic",
+  gitee: "integration",
+  github: "integration",
+  google: "integration",
+  sso: "integration",
+  sms: "message",
+  smtp: "message",
+  userAgreement: "content",
+};
+
+/** 分组归类：startup- 前缀优先判为启动参数（一个前缀抵 5 个分组） */
+function groupCategory(g: string): string {
+  if (g.startsWith("startup")) return "startup";
+  return groupCategoryMap[g] ?? "basic";
+}
+
+/** 当前分类筛选键 */
+const activeCategory = ref<string>("all");
+
+/** 卡片网格 / 列表视图 */
+const viewMode = ref<"grid" | "list">("grid");
+
+/** 顶栏分组搜索关键词 */
+const groupKeyword = ref<string>("");
+
+/** 筛选后的分组：先按分类，再按关键词（同时匹配分组 code 与展示名） */
+const visibleGroups = computed(() => {
+  const kw = groupKeyword.value.trim().toLowerCase();
+  return groups.value.filter((g) => {
+    if (activeCategory.value !== "all" && groupCategory(g.group) !== activeCategory.value) {
+      return false;
+    }
+    if (!kw) {
+      return true;
+    }
+    return g.group.toLowerCase().includes(kw) || groupName(g.group).toLowerCase().includes(kw);
+  });
+});
+
+/** 某分类下的分组数（筛选行上的计数，空分类不展示） */
+function categoryCount(key: string): number {
+  if (key === "all") {
+    return groups.value.length;
+  }
+  return groups.value.filter((g) => groupCategory(g.group) === key).length;
+}
+
+/** 清空筛选与搜索，回到「全部」 */
+function clearGroupFilter(): void {
+  activeCategory.value = "all";
+  groupKeyword.value = "";
 }
 
 /** 单个配置项的图标（按值类型） */
@@ -543,6 +619,13 @@ onMounted(() => {
           </div>
         </div>
         <div class="group-topbar__right">
+          <ReInput
+            v-model="groupKeyword"
+            class="group-topbar__search"
+            prefix-icon="Search"
+            placeholder="搜索配置分组…"
+            clearable
+          />
           <span class="group-chip"><b>{{ groups.length }}</b> 个分组</span>
           <span class="group-chip"><b>{{ totalSettings }}</b> 个配置项</span>
           <ReButton
@@ -555,9 +638,49 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="!groupLoading && groups.length" class="group-grid">
+      <!-- 分类筛选行 + 视图切换 -->
+      <div class="group-filterbar">
+        <div class="group-filterbar__cats">
+          <button
+            v-for="c in CATEGORY_LIST"
+            :key="c.key"
+            type="button"
+            class="group-cat"
+            :class="{ 'is-active': activeCategory === c.key }"
+            :aria-pressed="activeCategory === c.key"
+            @click="activeCategory = c.key"
+          >
+            {{ c.label }}
+            <span v-if="categoryCount(c.key)" class="group-cat__count">{{ categoryCount(c.key) }}</span>
+          </button>
+        </div>
+        <div class="group-filterbar__views">
+          <button
+            type="button"
+            class="group-viewbtn"
+            :class="{ 'is-active': viewMode === 'grid' }"
+            title="卡片视图"
+            aria-label="卡片视图"
+            @click="viewMode = 'grid'"
+          >
+            <el-icon :size="16"><Grid /></el-icon>
+          </button>
+          <button
+            type="button"
+            class="group-viewbtn"
+            :class="{ 'is-active': viewMode === 'list' }"
+            title="列表视图"
+            aria-label="列表视图"
+            @click="viewMode = 'list'"
+          >
+            <el-icon :size="16"><Menu /></el-icon>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="!groupLoading && visibleGroups.length" class="group-grid" :class="`is-${viewMode}`">
         <div
-          v-for="g in groups"
+          v-for="g in visibleGroups"
           :key="g.group"
           class="group-card"
           :class="`is-${groupAccent(g.group)}`"
@@ -582,6 +705,14 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <!-- 筛选/搜索后为空：与「后端确实没有配置项」区分开，避免误导成数据问题 -->
+      <el-empty
+        v-else-if="!groupLoading && groups.length"
+        description="没有匹配的配置分组"
+      >
+        <ReButton type="primary" text icon="Refresh" @click="clearGroupFilter">清除筛选</ReButton>
+      </el-empty>
 
       <el-empty v-else-if="!groupLoading" description="暂无配置项">
         <ReButton type="primary" text icon="Refresh" @click="loadAll">重新加载</ReButton>
@@ -878,6 +1009,134 @@ onMounted(() => {
   gap: 16px;
   min-height: 0;
   overflow: auto;
+}
+
+/* ---- 分类筛选行 + 视图切换（koi 令牌，亮暗色自适应） ---- */
+.group-filterbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.group-filterbar__cats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 分类项：胶囊，激活项为主色实底（与参考图一致） */
+.group-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
+}
+.group-cat:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+.group-cat.is-active {
+  color: #fff;
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.group-cat__count {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.group-filterbar__views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.group-viewbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--el-border-radius-base);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
+}
+.group-viewbtn:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+.group-viewbtn.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 顶栏分组搜索框宽度 */
+.group-topbar :deep(.group-topbar__search) {
+  width: 200px;
+}
+
+/* 列表视图：单列紧凑行，卡片结构不变只压扁高度 */
+.group-grid.is-list {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.group-grid.is-list .group-card {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+.group-grid.is-list .group-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--el-radius-md, 8px);
+}
+.group-grid.is-list .group-card__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.group-grid.is-list .group-card__code {
+  margin-top: 0;
+}
+.group-grid.is-list .group-card__desc {
+  margin-top: 0;
+  -webkit-line-clamp: 1;
+}
+.group-grid.is-list .group-card__foot {
+  padding-top: 0;
+  padding-left: 16px;
+  border-top: none;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+/* 响应式：窄屏下筛选项与视图切换换行 */
+@media (max-width: 768px) {
+  .group-topbar :deep(.group-topbar__search) {
+    width: 100%;
+  }
+  .group-filterbar {
+    justify-content: flex-start;
+  }
 }
 
 /* 顶部卡片（与首页欢迎 / 系统配置 hero 统一为白色圆角卡片） */

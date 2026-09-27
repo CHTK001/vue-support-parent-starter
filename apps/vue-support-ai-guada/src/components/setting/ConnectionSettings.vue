@@ -106,7 +106,7 @@
             <div>
               <label class="f-label">{{ t('settings.connection.permTitle') }}</label>
               <SegmentedToggle :model-value="editConfig.perm" :options="permOptions"
-                @update:model-value="editConfig.perm = $event" />
+                @update:model-value="(v: string | number | boolean) => (editConfig.perm = String(v))" />
               <div class="f-hint">{{ t('settings.connection.permDesc') }}</div>
             </div>
           </div>
@@ -248,7 +248,8 @@ interface ConnectionConfig {
   password?: string
   privateKey?: string
   path: string
-  perm?: string
+  /** 权限模式：workspace / readonly，缺省按 workspace 处理 */
+  perm: string
 }
 
 interface Connection {
@@ -300,7 +301,9 @@ const browserLoading = ref(false)
 
 async function loadData() {
   try {
-    connections.value = await apiService.getConnections()
+    // 后端 ConnectionConfig 的 authMethod 是字面量联合，与本地同名字面量不互相赋值；
+    // 字段结构一致，这里以接口返回类型为准，避免两套定义漂移
+    connections.value = (await apiService.getConnections()) as unknown as Connection[]
   } catch (e) {
     console.error('Failed to load connections:', e)
   }

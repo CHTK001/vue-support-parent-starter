@@ -12,7 +12,7 @@
  * 字段说明：目标站使用简写字段（menuName / name / auth / isVisible ...），
  * 后端为 sysMenuXxx，通过 toVM / toEntity 双向映射。
  */
-import { computed, nextTick, onMounted, ref, defineAsyncComponent } from "vue";
+import { computed, nextTick, onMounted, ref, watch, defineAsyncComponent } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Plus,
@@ -76,7 +76,7 @@ const showTypeOptions = [
 const showValuePlaceholder = computed<string>(() => {
   switch (form.value.showType) {
     case "CLASS":
-      return "类全名，如 com.chua.starter.scheduler.SchedulerApplication";
+      return "类全名，如 com.chua.starter.job.JobSchedulerApplication";
     case "SPEL":
       return "SpEL 表达式，可用 #env 读配置，如 #env.getProperty('plugin.job.enable') == 'true'";
     case "PROPERTY":
@@ -113,8 +113,9 @@ interface MenuVM {
   activeMenu?: string;    // 选中路由
   isVisible?: number;     // 1显示 0隐藏
   isRemind?: number;      // 1脱离菜单控制(只注册路由) 0作为菜单处理
+  position?: string;      // 菜单位置: standard标准(侧边栏) top顶部(顶栏按钮, 强制脱离且不可改)
   isKeepAlive?: number;   // 1缓存 0不缓存
-  isExpanded?: number;    // 1展开 0折叠
+  isExpanded?: number;    // 单子菜单时父级显示方式: 0显示父级 1隐藏父级(子菜单直接显示)
   isFull?: number;        // 1全屏 0不全屏
   isNewTab?: number;      // 1新标签 0当前页
   isHideTab?: number;     // 1隐藏 0显示
@@ -170,8 +171,10 @@ function toVM(m: SysMenu): MenuVM {
     activeMenu: m.sysMenuActivePath,
     isVisible: m.sysMenuHidden === 1 ? 0 : 1,
     isRemind: m.sysMenuRemind ?? 0,
+    position: m.sysMenuPosition === "top" ? "top" : "standard",
     isKeepAlive: m.sysMenuKeepAlive,
-    isExpanded: m.sysMenuShowParent,
+    // 未配置(NULL)时后端按「隐藏父级」处理，子菜单直接显示
+    isExpanded: m.sysMenuShowParent ?? 1,
     isHideTab: m.sysMenuHiddenTag,
     isFixed: m.sysMenuFixedTag,
     isTag: m.sysMenuIsTag ?? 0,
@@ -201,7 +204,8 @@ function toEntity(v: MenuVM): SysMenu {
     sysMenuFrameSrc: v.linkMode === "component" ? undefined : v.linkUrl,
     sysMenuActivePath: v.activeMenu,
     sysMenuHidden: v.isVisible === 1 ? 0 : 1,
-    sysMenuRemind: v.isRemind ?? 0,
+    sysMenuRemind: (v.position === "top" ? 1 : v.isRemind) ?? 0,
+    sysMenuPosition: v.position === "top" ? "top" : "standard",
     sysMenuKeepAlive: v.isKeepAlive,
     sysMenuShowParent: v.isExpanded,
     sysMenuHiddenTag: v.isHideTab,
@@ -477,6 +481,16 @@ const saving = ref(false);
 const form = ref<MenuVM>({});
 const formRef = ref();
 
+// 顶部菜单强制脱离菜单控制(remind=true)，且不允许修改
+watch(
+  () => form.value.position,
+  (position) => {
+    if (position === "top") {
+      form.value.isRemind = 1;
+    }
+  }
+);
+
 /** 表单校验规则（目标站 Ln，必填字段红色星号） */
 const formRules = {
   parentId: [{ required: true, message: "请选择上级菜单", trigger: "blur" }],
@@ -517,10 +531,11 @@ function handleAdd(parent?: MenuVM) {
     activeMenu: "",
     isVisible: 1,
     isRemind: 0,
+    position: "standard",
     menuStatus: 1,
     sort: 0,
     isKeepAlive: 0,
-    isExpanded: 0,
+    isExpanded: 1,
     isFull: 0,
     isNewTab: 0,
     isHideTab: 0,
@@ -805,7 +820,7 @@ const detailItems = computed(() => {
     items.push({ label: "显示条件", value: `${label}：${value}` });
   }
   if (c.menuType === 1 || c.menuType === 2) {
-    items.push({ label: "展开状态", value: c.isExpanded === 1 ? "展开" : "折叠" });
+    items.push({ label: "单子菜单时父级", value: c.isExpanded === 1 ? "隐藏父级(子菜单直接显示)" : "显示父级" });
   }
   if (c.menuType === 2) {
     items.push({ label: "页面缓存", value: c.isKeepAlive === 1 ? "缓存" : "不缓存" });
@@ -1165,7 +1180,7 @@ onMounted(() => {
     <ReDialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="820px"
+      width="900px"
       :close-on-click-modal="false"
       destroy-on-close
       :confirm-loading="saving"
@@ -1181,7 +1196,7 @@ onMounted(() => {
           <span class="menu-form-intro__badge">{{ form.menuType === 3 ? '按钮权限' : typeLabels[form.menuType ?? 0] ?? '菜单' }}</span>
         </div>
 
-        <el-form ref="formRef" class="menu-form" :model="form" :rules="formRules" label-width="92px" status-icon>
+        <el-form ref="formRef" class="menu-form" :model="form" :rules="formRules" label-width="110px" status-icon>
           <!-- 基础信息 -->
           <section class="menu-form-section">
             <div class="menu-form-section__title">基础信息</div>
@@ -1325,11 +1340,20 @@ onMounted(() => {
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
+                <el-form-item label="菜单位置" prop="position">
+                  <el-radio-group v-model="form.position">
+                    <el-radio value="standard">标准</el-radio>
+                    <el-radio value="top">顶部</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+              <el-col :sm="12" :xs="24">
                 <el-form-item label="菜单控制" prop="isRemind">
-                  <el-radio-group v-model="form.isRemind">
+                  <el-radio-group v-model="form.isRemind" :disabled="form.position === 'top'">
                     <el-radio :value="0">作为菜单</el-radio>
                     <el-radio :value="1">脱离菜单</el-radio>
                   </el-radio-group>
+                  <span v-if="form.position === 'top'" class="menu-position-tip">顶部菜单默认脱离(remind=true)，不可修改</span>
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
@@ -1365,10 +1389,10 @@ onMounted(() => {
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
-                <el-form-item label="是否展开" prop="isExpanded">
+                <el-form-item label="单子菜单时父级" prop="isExpanded">
                   <el-radio-group v-model="form.isExpanded">
-                    <el-radio :value="1">展开</el-radio>
-                    <el-radio :value="0">折叠</el-radio>
+                    <el-radio :value="0">显示父级</el-radio>
+                    <el-radio :value="1">隐藏父级(子菜单直接显示)</el-radio>
                   </el-radio-group>
                 </el-form-item>
               </el-col>

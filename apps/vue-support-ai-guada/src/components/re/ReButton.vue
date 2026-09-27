@@ -17,9 +17,16 @@
 </template>
 
 <script setup lang="ts">
+import { type PropType } from 'vue'
+
 defineProps({
-  type: { type: String, default: 'primary' },
-  size: { type: String, default: 'default' },
+  type: {
+    type: String as PropType<
+      '' | 'text' | 'primary' | 'default' | 'success' | 'info' | 'warning' | 'danger'
+    >,
+    default: 'primary',
+  },
+  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   plain: { type: Boolean, default: false },

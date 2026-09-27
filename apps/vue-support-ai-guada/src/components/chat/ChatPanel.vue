@@ -981,7 +981,7 @@ async function handleSendMessage(payload?: InputMessageState) {
         prepared.knowledgeBaseIds,
         think,
         search,
-        currentModelId.value,
+        currentModelId.value ?? undefined,
         skillNames,
         props.session?.characterId || null,
         currentSession.value?.mcpServerIds || '',

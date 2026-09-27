@@ -24,7 +24,15 @@ const props = withDefaults(
     type?: "card" | "border-card" | "";
     /** 是否可关闭 */
     closable?: boolean;
-    /** 是否拉伸填充 */
+    /**
+     * 是否拉伸填充：内容面板吃满父容器的剩余高度。
+     *
+     * 四个变体均已实现：
+     * - default：透传给 el-tabs 的 stretch
+     * - capsule / koi / icon：根节点转纵向 flex，面板吃掉剩余高度（见样式块 stretch 段）
+     *
+     * 前置条件：父容器需为纵向 flex 或有确定高度，否则高度无从解析。
+     */
     stretch?: boolean;
     /**
      * 布局变体：
@@ -105,7 +113,12 @@ function toggleCollapsed(): void {
 
 <template>
   <!-- capsule 胶囊式分段布局：浅灰白底盘 + 白底激活项 + 图标文字均分 -->
-  <div v-if="variant === 'capsule'" class="re-tab re-tab--capsule" v-bind="$attrs">
+  <div
+    v-if="variant === 'capsule'"
+    class="re-tab re-tab--capsule"
+    :class="{ 'is-stretch': stretch }"
+    v-bind="$attrs"
+  >
     <div class="re-tab-capsule__nav">
       <div
         v-for="tab in tabs"
@@ -129,7 +142,7 @@ function toggleCollapsed(): void {
   <div
     v-else-if="variant === 'koi'"
     class="re-tab re-tab--koi"
-    :class="`re-tab--koi-${tabPosition}`"
+    :class="[`re-tab--koi-${tabPosition}`, { 'is-stretch': stretch }]"
     v-bind="$attrs"
   >
     <div class="re-tab-koi__nav">
@@ -155,7 +168,7 @@ function toggleCollapsed(): void {
   <div
     v-else-if="variant === 'icon'"
     class="re-tab re-tab--icon"
-    :class="[`re-tab--icon-${tabPosition}`, { 'is-collapsed': collapsed }]"
+    :class="[`re-tab--icon-${tabPosition}`, { 'is-collapsed': collapsed, 'is-stretch': stretch }]"
     v-bind="$attrs"
   >
     <div class="re-tab-icon__nav">
@@ -309,6 +322,38 @@ function toggleCollapsed(): void {
 
 .re-tab-capsule__panel {
   margin-top: 14px;
+}
+
+/* ===== stretch：内容面板吃满剩余高度 =====
+   此前 stretch 只透传给默认 el-tabs（见下方 default 分支的 :stretch），
+   capsule / koi / icon 三个变体拿到该属性却没有任何样式响应，属于空操作。
+   这里补齐：根节点转纵向 flex 吃掉父级剩余高度，面板再吃掉根节点的剩余高度。
+
+   前置条件（由调用方保证）：父容器是纵向 flex（或有确定高度），否则 min-height:100% 无从解析。
+   面板与根节点都要 min-height:0，否则内容会把面板顶高而不是让内部滚动。 */
+.re-tab--capsule.is-stretch,
+.re-tab--koi.is-stretch,
+.re-tab--icon.is-stretch {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 面板既要自己吃掉根节点的剩余高度，也要转成纵向 flex 容器 ——
+   否则插槽内容（消费方页面里的卡片/面板）只是普通块级子元素，
+   其 flex:1 1 auto 不生效，内容仍按自身高度收尾。 */
+.re-tab--capsule.is-stretch > .re-tab-capsule__panel,
+.re-tab--koi.is-stretch > .re-tab-koi__panel,
+.re-tab--icon.is-stretch > .re-tab-icon__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* 左右磁贴：面板需与磁贴列等高。默认 align-items:flex-start 会让面板按内容收尾。 */
+.re-tab--icon-left.is-stretch,
+.re-tab--icon-right.is-stretch {
+  align-items: stretch;
 }
 
 /* ===== koi 卡片页签：激活项浅主色块 + 白色大圆角内容卡片 ===== */

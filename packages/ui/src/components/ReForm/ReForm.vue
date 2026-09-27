@@ -15,7 +15,7 @@
  *   - 内置 validate() / resetFields() / clearValidate() 暴露给父组件
  *   - actions 插槽：底部操作区（确定/取消等）
  *   - help：字段下方帮助文本
- *   - 支持更多组件类型：slider / rate / color-picker / cascader / tree-select / icon-select
+ *   - 支持更多控件类型：slider / rate / color-picker / cascader / tree-select / icon-select
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, useTemplateRef } from "vue";
 import { defineComponent, h } from "vue";

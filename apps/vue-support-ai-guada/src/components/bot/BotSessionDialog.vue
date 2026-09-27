@@ -28,9 +28,9 @@
           :character-avatar="props.session?.character?.avatarUrl"
           :is-last="index === visibleTurns.length - 1"
           :allow-generate="false"
-          @delete="handleDeleteMessage"
-          @edit="handleEditMessage"
-          @copy="handleCopyMessage"
+          @delete="(m: Message) => void handleDeleteMessage(m)"
+          @edit="(m: Message) => void handleEditMessage(m)"
+          @copy="(m: Message) => void handleCopyMessage(m)"
         />
       </div>
 

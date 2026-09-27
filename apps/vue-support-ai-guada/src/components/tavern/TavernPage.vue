@@ -114,7 +114,7 @@
         <div class="tv-input">
           <div v-if="pendingAt" class="tv-at-chip">
             <el-tag closable size="small" type="primary" @close="pendingAt = null">
-              @{{ pendingAt.roleName || pendingAt.name }}
+              @{{ pendingAt.roleName }}
             </el-tag>
           </div>
 

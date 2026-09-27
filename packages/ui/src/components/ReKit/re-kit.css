@@ -3,51 +3,152 @@
  * 由 packages/ui/src/components/ReKit/index.ts 引入
  * ============================================================ */
 
-/* ---------- ReRadioGroup：胶囊扁平化 ---------- */
+/* ---------- ReRadioGroup：分段控件（Segmented Control） ----------
+ * 设计约束（改动前请先读这段）：
+ *   1. 色值只走 Element Plus / koi 令牌（--el-*），暗色由 html.dark 自动覆盖。
+ *      旧实现依赖 shared/modern-vars.css 的 --rm-* —— 那是一套并行的写死 hex
+ *      色板（#6366f1 靛蓝），与 koi 主题各走各的，暗色下也对不上。
+ *   2. 轨道（track）由 group 承担，item 不再各自画边框。
+ *      Element Plus 默认给每个 inner 加 border，并靠 box-shadow: -1px 0 0 0
+ *      拼接相邻项；一旦选中态把 box-shadow 整体覆盖掉，两项之间就露出白缝
+ *      （改造前截图里的那道白线就是这么来的）。
+ *   3. 只过渡 background-color / color / box-shadow 这类绘制属性，不动布局属性。
+/*   4. 尊重 prefers-reduced-motion。
+ *   5. 选项一律用「重复类」写法（.re-radio-group.re-radio-group）把特异性抬到
+ *      (0,5,0)/(0,6,0)。原因：Element Plus 自身对 radio-button 的
+ *      :first-child / :last-child 圆角规则与本文件的选择器同为 (0,2,0)，
+ *      谁生效纯看 CSS 加载顺序（实测 EP 在后），这种依赖顺序的写法不可控。
+ *      抬特异性后不再需要 !important，也不受 re-kit.css 与 element-plus.css
+ *      引入顺序影响。改动本段时请保持这个写法。
+ */
+
+/* 轨道：浅填充 + 1px 描边；胶囊 / 圆角矩形由 --capsule 决定 */
 .re-radio-group {
   display: inline-flex;
   align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
 }
 
-.re-radio-group .el-radio-button__inner {
-  min-height: var(--rm-height, 34px);
-  padding: 4px 16px;
-  border: 1px solid var(--rm-border, #e2e8f0);
-  border-radius: 0;
-  background: color-mix(in srgb, var(--rm-bg, #ffffff) 94%, transparent);
-  color: var(--rm-text-regular, #475569);
+.re-radio-group.re-radio-group--capsule {
+  border-radius: 999px;
+}
+
+/* Element Plus 用相邻兄弟选择器加 margin-left: -1px 做重叠拼接；
+   改用父级 gap 后必须清掉，否则轨道内会出现双倍缝隙。 */
+.re-radio-group.re-radio-group .el-radio-button + .el-radio-button {
+  margin-left: 0;
+}
+
+.re-radio-group.re-radio-group .el-radio-button__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 64px;
+  min-height: 26px;
+  /* 左右内边距比「无边框」时少 1px：border 常驻 1px（默认透明），
+     补回来后选中/未选中的外框尺寸完全一致，切换时不会横向抖动。 */
+  padding: 0 13px;
+  /* 常驻 1px 透明边框占位，选中时只改 border-color。
+     不用 box-shadow 画环：实测那条 box-shadow 在两个主题下计算值都是 none
+     （同规则的 background / color 都生效，只有它不生效），环根本没画出来；
+     就算画出来，--el-border-color-lighter 在暗色下是 rgb(54,54,55)、
+     轨道是 rgb(38,39,39)，几乎不可见，「浮起」达不到。
+     border-color 属于绘制属性，符合上面约束 3「不动布局属性」。 */
+  border: 1px solid transparent;
+  border-radius: calc(var(--el-border-radius-base) - 2px);
+  background: transparent;
+  box-shadow: none;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
   font-weight: 500;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rm-bg, #ffffff) 60%, transparent);
-  transition: all var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1));
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    background-color var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
 }
 
-.re-radio-group .el-radio-button:first-child .el-radio-button__inner {
-  border-radius: var(--rm-radius, 8px) 0 0 var(--rm-radius, 8px);
+/* 显式复位 EP 的首/末项圆角（EP 给的是「外侧圆、内侧方」的连接式分段）。
+   特异性必须高于 EP 的 :first-child / :last-child 规则。 */
+.re-radio-group.re-radio-group .el-radio-button:first-child .el-radio-button__inner,
+.re-radio-group.re-radio-group .el-radio-button:last-child .el-radio-button__inner {
+  border-radius: calc(var(--el-border-radius-base) - 2px);
 }
 
-.re-radio-group .el-radio-button:last-child .el-radio-button__inner {
-  border-radius: 0 var(--rm-radius, 8px) var(--rm-radius, 8px) 0;
+/* 胶囊形态下每一项都是独立药丸，与轨道同圆角 */
+.re-radio-group.re-radio-group--capsule .el-radio-button__inner,
+.re-radio-group.re-radio-group--capsule .el-radio-button:first-child .el-radio-button__inner,
+.re-radio-group.re-radio-group--capsule .el-radio-button:last-child .el-radio-button__inner {
+  border-radius: 999px;
 }
 
-.re-radio-group .el-radio-button__inner:hover {
-  color: var(--rm-primary, #6366f1);
-  border-color: color-mix(in srgb, var(--rm-primary, #6366f1) 30%, var(--rm-border, #e2e8f0));
+.re-radio-group.re-radio-group .el-radio-button__inner:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-lighter);
 }
 
-.re-radio-group .el-radio-button.is-active .el-radio-button__inner {
-  background: var(--rm-primary-light-9, #eef2ff);
-  border-color: var(--rm-primary, #6366f1);
-  color: var(--rm-primary, #6366f1);
+/* 选中：白底 + 主色文字 + 1px 主色描边环。
+   不用实心主色填充——实心块在密集工具栏里视觉重量过大，且与未选中的浅底
+   明暗跨度太大，长时间看很累。
+   环色用 color-mix 从 --el-color-primary 派生：koi 没有成体系的
+   「主色描边」令牌，而 --el-color-primary-light-N 是写死的主色调浅色阶、
+   暗色模式下不翻转，直接用会在暗色里变成刺眼的亮边。color-mix 出的
+   半透明主色在亮暗下都保持同一「淡主色环」的观感。 */
+.re-radio-group.re-radio-group .el-radio-button.is-active .el-radio-button__inner {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
   font-weight: 600;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg, #ffffff) 60%, transparent),
-    0 2px 8px color-mix(in srgb, var(--rm-primary, #6366f1) 18%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
 }
 
-.re-radio-group--small .el-radio-button__inner {
-  min-height: var(--rm-height-sm, 28px);
-  padding: 2px 12px;
-  font-size: var(--rm-font-sm, 12px);
+/* 复位 EP 选中态的相邻项投影（EP 用 -1px 0 0 0 拼接，本控件用 gap 不需要） */
+.re-radio-group.re-radio-group .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  border-radius: calc(var(--el-border-radius-base) - 2px);
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+}
+
+.re-radio-group.re-radio-group--capsule .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  border-radius: 999px;
+}
+
+.re-radio-group.re-radio-group .el-radio-button.is-disabled .el-radio-button__inner {
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* 焦点环只给键盘焦点，鼠标点击不显示 */
+.re-radio-group.re-radio-group .el-radio-button__original-radio:focus-visible + .el-radio-button__inner {
+  outline: 2px solid var(--el-color-primary-light-5);
+  outline-offset: 1px;
+}
+
+/* 尺寸档：sm 24 / default 26 / lg 32，与相邻 el-input / el-select 对齐 */
+.re-radio-group.re-radio-group--small .el-radio-button__inner {
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.re-radio-group.re-radio-group--large .el-radio-button__inner {
+  min-height: 32px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-radio-group.re-radio-group .el-radio-button__inner {
+    transition: none;
+  }
 }
 
 /* ---------- ReDescriptions：扁平化描述列表 ---------- */
@@ -73,14 +174,32 @@
   border-color: var(--rm-border-light, #f1f5f9) !important;
 }
 
-/* ---------- ReAlert：左色带 + 微色底 ---------- */
-.re-alert {
+/* ---------- ReAlert：左色带 + 微色底 ----------
+ * 高度必须放开、条目顶对齐：
+ * Element Plus 的 .el-alert 是 align-items: center + overflow: hidden，
+ * 标题（.el-alert__title）一旦超过一行就会被裁掉而不是换行，
+ * 表现为「提示文字被压成一行、右边几个字看不见」。
+ * 这里改成顶对齐 + 允许换行，标题高度随内容增长。
+ * 用重复类抬特异性（.re-alert 与 .el-alert 同为 (0,1,0)，只靠加载顺序不可靠）。 */
+.re-alert.re-alert {
+  align-items: flex-start;
+  height: auto;
   border-radius: var(--rm-radius, 8px);
   font-weight: 500;
   box-shadow:
     inset 3px 0 0 currentColor,
     0 2px 10px rgba(15, 23, 42, 0.05);
   border: 1px solid var(--rm-border-light, #f1f5f9);
+}
+
+.re-alert.re-alert .el-alert__title {
+  white-space: normal;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.re-alert.re-alert .el-alert__icon {
+  margin-top: 2px;
 }
 
 /* ---------- ReDivider ---------- */

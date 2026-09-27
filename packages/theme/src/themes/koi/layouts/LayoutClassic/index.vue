@@ -18,12 +18,14 @@
               :collapse-transition="false"
               :uniqueOpened="globalStore.uniqueOpened"
               :router="false"
-              :class="menuAnimate"
+              :class="[menuAnimate, { 'is-group-nav': groupNav }]"
             >
               <ReAsideSubMenu :menuList="menuList"></ReAsideSubMenu>
             </el-menu>
           </div>
         </div>
+        <!-- 底部系统配置入口（不作为菜单） -->
+        <NavSettingEntry />
       </el-aside>
       <el-container class="flex flex-col">
         <!-- 路由页面 -->
@@ -38,15 +40,20 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
+import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
+import { resolveGroupNav } from "@repo/config";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 
 const route = useRoute();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+
+/** 分组导航增强（menuConfig.groupNav，默认开启）：给 el-menu 挂 .is-group-nav */
+const groupNav = computed(() => resolveGroupNav());
 
 // 动态绑定左侧菜单animate动画（路由动画关闭时菜单动画同步关闭）
 const menuAnimate = computed(() => (!globalStore.transition || globalStore.transition === "none" ? "" : settings.menuAnimate));

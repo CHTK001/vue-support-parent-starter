@@ -5,22 +5,37 @@
       校验配置
     </ReButton>
 
-    <ReButton size="small" type="primary" :loading="busy === 'reload'" @click="run('reload')">
+    <!-- 生命周期按钮按真实状态显示：停止中的实例不该出现「重载/重启/停止」，
+         运行中的实例不该出现「启动」。原来 5 个按钮无条件全渲染，且
+         isRunning 算了却没用上。UNKNOWN 视为「未运行」，保留「启动」兜底。 -->
+    <ReButton
+      v-if="canReload"
+      size="small"
+      type="primary"
+      :loading="busy === 'reload'"
+      @click="run('reload')"
+    >
       <template #icon><ReIcon name="Refresh" :size="14" /></template>
       重载
     </ReButton>
 
-    <ReButton size="small" :loading="busy === 'restart'" @click="confirmThen('restart')">
+    <ReButton v-if="canRestart" size="small" :loading="busy === 'restart'" @click="confirmThen('restart')">
       <template #icon><ReIcon name="RefreshRight" :size="14" /></template>
       重启
     </ReButton>
 
-    <ReButton size="small" :loading="busy === 'start'" @click="run('start')">
+    <ReButton v-if="canStart" size="small" :loading="busy === 'start'" @click="run('start')">
       <template #icon><ReIcon name="VideoPlay" :size="14" /></template>
       启动
     </ReButton>
 
-    <ReButton size="small" type="danger" :loading="busy === 'stop'" @click="confirmThen('stop')">
+    <ReButton
+      v-if="canStop"
+      size="small"
+      type="danger"
+      :loading="busy === 'stop'"
+      @click="confirmThen('stop')"
+    >
       <template #icon><ReIcon name="VideoPause" :size="14" /></template>
       停止
     </ReButton>
@@ -94,16 +109,24 @@ const resultVisible = ref(false);
 
 const isRunning = computed(() => props.running === "RUNNING");
 
+/* 各操作的可用性：完全由 running 决定，避免出现「点得动但必然失败」的按钮。
+   reload / restart / stop 需要一个活着的 master 进程；
+   start 只在没跑起来时才有意义（STOPPED 明确停止、UNKNOWN 没探到进程）。 */
+const canReload = computed(() => isRunning.value);
+const canRestart = computed(() => isRunning.value);
+const canStop = computed(() => isRunning.value);
+const canStart = computed(() => !isRunning.value);
+
 /** 操作提示：把"这个按钮现在该点哪个"直接写在按钮旁边 */
 const tipText = computed(() => {
   if (!props.datasourceId) {
     return "请先选择数据源";
   }
   if (props.running === "STOPPED") {
-    return "当前已停止：点「启动」拉起；「重载」对停止中的实例无效";
+    return "当前已停止：只有「启动」可用，拉起后再校验与重载";
   }
   if (props.running === "UNKNOWN") {
-    return "未检测到运行中的进程，可能是 SSH 用户无权执行 pgrep";
+    return "未检测到运行中的进程（可能是 SSH 用户无权 pgrep）：可先「启动」";
   }
   return "改了配置先「校验」，通过后「重载」生效；「重启」会中断连接";
 });
@@ -255,6 +278,7 @@ defineExpose({
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
+  font-variant-numeric: tabular-nums;
   white-space: pre-wrap;
   word-break: break-all;
 

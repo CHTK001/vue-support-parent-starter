@@ -1,5 +1,5 @@
 <template>
-  <div class="dbm">
+  <div class="dbm" :class="{ 'is-embedded': embedded }">
     <!-- 顶部工具栏 -->
     <div class="dbm-toolbar">
       <div class="dbm-toolbar-left">
@@ -20,9 +20,17 @@
         </ReButton>
       </div>
       <div class="dbm-toolbar-right">
-        <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" size="small" style="width: 200px" @change="onDatasourceChange">
-          <ReOption v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
-        </ReSelect>
+        <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
+             再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
+        <template v-if="!embedded">
+          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" size="small" style="width: 200px" @change="onDatasourceChange">
+            <ReOption v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
+          </ReSelect>
+        </template>
+        <span v-else class="dbm-ds-chip">
+          <ReIcon name="Coin" :size="13" />
+          {{ currentDatasourceName }}
+        </span>
       </div>
     </div>
 
@@ -726,7 +734,25 @@ import {
 
 const route = useRoute();
 
-/** 后端把 datasourceId=0/null 解析为主数据源，这里把它显式作为下拉首项 */
+/**
+ * 组件属性。
+ *
+ * <p>内嵌到数据源中心（{@link ScDataCenterView}）时由宿主传入 datasourceId，
+ * 并跟随宿主左栏的选中项切换；独立路由（/db-manager）则回落到 URL 上的
+ * datasourceId。两处都不传时用默认主数据源。</p>
+ */
+const props = withDefaults(
+  defineProps<{
+    /** 宿主持有的数据源 ID；优先级高于路由 query */
+    datasourceId?: number;
+    /** 内嵌模式：隐藏与宿主重复的数据源下拉，并按宿主的栅格撑满高度 */
+    embedded?: boolean;
+  }>(),
+  { datasourceId: undefined, embedded: false },
+);
+const { embedded } = props;
+
+/** 默认主数据源：后端把 datasourceId=0/null 解析为主数据源，这里把它显式作为下拉首项 */
 const DEFAULT_DATASOURCE: DataSourceInfo = { id: 0, name: "默认主数据源", type: "master" };
 
 // 数据源
@@ -906,13 +932,22 @@ async function deleteSelectedRows(): Promise<void> {
     return;
   }
   try {
+    // 统计后端真实影响行数，而不是拿请求条数当成功依据。
+    // 并发场景下（别人刚删过其中几行）DELETE 会影响 0 行，
+    // 原先直接报「已删除 N 行」属于谎报，用户会以为已经清干净。
+    let affected = 0;
     for (const row of rows) {
       const keys = Object.keys(row);
       if (keys.length === 0) continue;
       const wheres = keys.map(k => sqlWhereEq(k, (row as Record<string, unknown>)[k])).join(" AND ");
-      await executeDbSql(`DELETE FROM ${tab.tableName} WHERE ${wheres}`, currentDatasourceId.value, tab.database);
+      const res = await executeDbSql(`DELETE FROM ${tab.tableName} WHERE ${wheres}`, currentDatasourceId.value, tab.database);
+      affected += typeof res?.affectedRows === "number" ? res.affectedRows : 0;
     }
-    ElMessage.success(`已删除 ${rows.length} 行`);
+    if (affected < rows.length) {
+      ElMessage.warning(`已删除 ${affected} 行；请求的 ${rows.length} 行中有 ${rows.length - affected} 行未命中（可能已被他人删除）`);
+    } else {
+      ElMessage.success(`已删除 ${affected} 行`);
+    }
     selection.value = [];
     await refreshTableData();
   } catch (e) {
@@ -1595,7 +1630,7 @@ async function saveCell(row: Record<string, any>, col: string) {
   }
   const newValue = normalizeCellValue(col, cell.value);
   try {
-    await updateDbCell({
+    const affected = await updateDbCell({
       tableName: tab.tableName,
       column: col,
       newValue,
@@ -1603,6 +1638,16 @@ async function saveCell(row: Record<string, any>, col: string) {
       database: tab.database || activeDatabase.value,
       datasourceId: currentDatasourceId.value,
     });
+    // 必须看影响行数，不能只看有没有抛异常。
+    // 后端在「主键定位不到行」时返回 data=0 且 msg 仍是「操作成功」
+    // （实测：主键指向已被删掉的行就是这种结果），不判就会对用户谎报成功，
+    // 而且下面 row[col] = newValue 会把界面改成库里根本没有的值，
+    // 直到下一次刷新才对 —— 现场排查时极具误导性。
+    if (typeof affected === "number" && affected === 0) {
+      ElMessage.warning(`未找到要更新的行（主键 ${JSON.stringify(pk)}），可能已被他人删除，请刷新后重试`);
+      refreshTableData();
+      return;
+    }
     ElMessage.success(`已更新 ${col}`);
     row[col] = newValue;
     loadPkInfo(tab);
@@ -1814,17 +1859,42 @@ onMounted(async () => {
   await loadDatasources();
 });
 
+/**
+ * 当前应当生效的数据源 ID。
+ *
+ * <p>优先级：宿主的 datasourceId 属性 &gt; 路由 query &gt; 默认主数据源（0）。
+ * 属性排在前面是因为内嵌模式下 URL 上根本没有这个参数，而且宿主的选中项
+ * 才是用户当前真正在看的那一个。</p>
+ *
+ * @return 数据源 ID；无有效来源时为默认主数据源的 0
+ */
+function resolveDatasourceId(): number {
+  if (Number.isFinite(props.datasourceId) && (props.datasourceId ?? 0) > 0) {
+    return props.datasourceId as number;
+  }
+  const fromQuery = Number(route.query.datasourceId);
+  if (Number.isFinite(fromQuery) && fromQuery > 0) {
+    return fromQuery;
+  }
+  return DEFAULT_DATASOURCE.id ?? 0;
+}
+
 async function loadDatasources() {
   try {
     const list = await fetchDataSources();
     const jdbc = list.filter(d => d.type === "jdbc");
     datasources.value = [DEFAULT_DATASOURCE, ...jdbc];
-    const requested = Number(route.query.datasourceId);
-    if (Number.isFinite(requested) && requested > 0) {
+    const requested = resolveDatasourceId();
+    if (requested > 0) {
       if (jdbc.some(d => d.id === requested)) {
         currentDatasourceId.value = requested;
       } else {
-        ElMessage.warning(`数据源 #${requested} 未登记或不是 JDBC 类型，已改用默认主数据源`);
+        // 内嵌模式不做弹窗：宿主的左栏可能选中了 Redis/Nginx 这类非 JDBC 数据源，
+        // 弹一次「已改用默认主数据源」会把用户从这个页签里推走，体验比留空更差。
+        if (!embedded) {
+          ElMessage.warning(`数据源 #${requested} 未登记或不是 JDBC 类型，已改用默认主数据源`);
+        }
+        currentDatasourceId.value = DEFAULT_DATASOURCE.id ?? 0;
       }
     }
   } catch (e) {
@@ -1833,6 +1903,31 @@ async function loadDatasources() {
   }
   await loadTree();
 }
+
+/**
+ * 宿主（左栏）切换了数据源时跟随切换。
+ *
+ * <p>独立路由下这个属性恒为 undefined，watch 不会触发，行为与改造前一致。</p>
+ */
+watch(
+  () => props.datasourceId,
+  async (id, old) => {
+    if (id === old || !id || !embedded) {
+      return;
+    }
+    // 内嵌模式下数据源由宿主决定，用户没得选，因此不存在「选到一半改主意」，
+    // 直接整体重置：清空树缓存、库选中、已打开的表页签，再重新拉树。
+    Object.keys(tablesByDb).forEach(k => delete tablesByDb[k]);
+    Object.keys(tableColumnsCache).forEach(k => delete tableColumnsCache[k]);
+    expandedNodes.value = new Set(["root"]);
+    expandedTables.value = new Set();
+    activeDatabase.value = "";
+    activeTable.value = "";
+    tabs.value = [];
+    activeTab.value = "";
+    await loadDatasources();
+  },
+);
 
 async function onDatasourceChange() {
   Object.keys(tablesByDb).forEach(k => delete tablesByDb[k]);
@@ -2525,6 +2620,37 @@ onBeforeUnmount(() => {
   height: calc(100vh - 120px);
   min-height: 560px;
   padding: 4px 4px 8px;
+}
+
+/* 内嵌到数据源中心：宿主已经算好了可用高度（页签面板是 flex:1 + min-height:0），
+   这里必须改成吃满父级而不是再算一次 100vh - 120px，否则会出现双层滚动条。
+   同时去掉自身内边距，避免和宿主页签面板的内边距叠加出两层空白。 */
+.dbm.is-embedded {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+/* 内嵌模式：父容器（数据源中心右栏）本身已占掉约 600px，
+   侧栏再吃 300px 只剩约 520px 给表格，列被压得放不下几列。
+   这里收到 240px，把宽度让给内容。 */
+.dbm.is-embedded .dbm-sidebar {
+  width: 240px;
+}
+
+/* 内嵌模式的数据源标识：替代独立模式的下拉，只读展示当前浏览对象 */
+.dbm-ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 32%, transparent);
 }
 
 /* 工具条 */
