@@ -839,7 +839,8 @@ async function handleStreamResponseWithCreate(
   knowledgeBaseIds?: string[],
   think?: boolean,
   search?: boolean,
-  model?: string,
+  /** 当前模型 ID；未选中模型时为 null（与 currentModelId 的取值一致） */
+  model?: string | null,
   skillNames?: string[],
   characterId?: string | null,
   mcpServerIds?: string,

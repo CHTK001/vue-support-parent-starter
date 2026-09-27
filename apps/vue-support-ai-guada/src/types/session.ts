@@ -22,7 +22,12 @@ export interface InputMessageState {
     content: string
     files: any[]
     knowledgeBaseIds?: string[]
-    isWaiting: boolean
+    /**
+     * 输入框等待响应标记。
+     * 仅在作为「编辑中的输入态」时需要；由队列消息 / 立即发送路径临时构造的
+     * 待发对象不携带该字段，故为可选。
+     */
+    isWaiting?: boolean
     skillNames?: string[]
     /** 是否开启深度思考（随消息透传给后端） */
     think?: boolean

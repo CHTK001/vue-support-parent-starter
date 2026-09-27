@@ -247,6 +247,8 @@ interface ChatConfig {
   attachments?: Record<string, string[]>
   defaultThink?: boolean
   defaultSearch?: boolean
+  /** 逗号分隔的 MCP Server ID 串（会话级绑定） */
+  mcpServerIds?: string
 }
 
 /** File with optional _originalContent attached by paste handler */

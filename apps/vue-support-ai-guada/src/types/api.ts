@@ -13,6 +13,8 @@ import type { Message } from './message'
 export interface Model {
     id: string
     modelName: string
+    /** 模型编码：后端部分接口返回 model 而非 modelName，两者并存时以 model 为准 */
+    model?: string
     modelType: string
     providerId: string
     providerName?: string
