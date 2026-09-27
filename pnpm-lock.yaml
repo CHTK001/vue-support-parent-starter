@@ -1976,6 +1976,9 @@ importers:
       mammoth:
         specifier: ^1.12.3
         version: 1.12.3
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       three:
         specifier: ^0.185.1
         version: 0.185.1
@@ -1985,6 +1988,10 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 4.6.4(vue@3.5.40(typescript@6.0.3))
+    devDependencies:
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
 
   pages/filesystem:
     dependencies:
