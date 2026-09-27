@@ -9,6 +9,7 @@
  * @since 4.0.0
  */
 import { ref, computed } from "vue";
+import { ElMessage } from "element-plus";
 
 const form = ref({
   urlTemplate: "https://tiles.example.com/{z}/{x}/{y}.pbf",
@@ -25,6 +26,25 @@ const previewUrl = computed(() =>
     .replace("{x}", String(x.value))
     .replace("{y}", String(y.value)),
 );
+
+/**
+ * 复制预览 URL 到剪贴板
+ *
+ * navigator 为浏览器全局对象，模板作用域不可见，须在脚本内访问。
+ *
+ * @return 无返回值
+ */
+function copyPreviewUrl(): void {
+  const text = previewUrl.value;
+  if (!navigator.clipboard) {
+    ElMessage.warning("当前环境不支持剪贴板写入");
+    return;
+  }
+  navigator.clipboard
+    .writeText(text)
+    .then(() => ElMessage.success("已复制"))
+    .catch(() => ElMessage.error("复制失败"));
+}
 </script>
 
 <template>
@@ -57,7 +77,7 @@ const previewUrl = computed(() =>
           <template #append>
             <el-button
               :icon="'Link'"
-              @click="navigator.clipboard?.writeText(previewUrl).then(() => $message?.success?.('已复制'))"
+              @click="copyPreviewUrl"
             >
               复制
             </el-button>

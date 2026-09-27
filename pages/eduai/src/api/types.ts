@@ -349,6 +349,49 @@ export interface IdiomGameItem {
   tags: string;
 }
 
+/** 古诗 */
+export interface Poem {
+  poemId: number;
+  poemTitle: string;
+  poemAuthor: string;
+  poemDynasty: string;
+  poemContent: string;
+  poemTranslation: string;
+  poemAppreciation: string;
+  poemNotes: string;
+  poemTags: string;
+  poemDifficulty: number;
+  /** 适用学段列表（保存时同步 edu_poem_grade，详情接口回填） */
+  gradeLevels?: string[];
+  /** 适用年级列表（为空表示该学段通用） */
+  grades?: string[];
+  createTime: string;
+  updateTime: string;
+}
+
+/** 古诗游戏数据（补全下句） */
+export interface PoemGameData {
+  items: PoemGameItem[];
+  totalItems: number;
+  gradeLevel: string;
+  grade: string;
+}
+
+/** 古诗游戏题目：给上一句，从 4 个选项里选下一句 */
+export interface PoemGameItem {
+  poemId: number;
+  title: string;
+  author: string;
+  dynasty: string;
+  /** 题干（上一句，末尾带逗号） */
+  question: string;
+  /** 正确答案（下一句） */
+  answer: string;
+  options: string[];
+  answerIndex: number;
+  difficulty: number;
+}
+
 /** 昆虫形态特征项（对应 insect-world 的 facts） */
 export interface InsectFact {
   key: string;

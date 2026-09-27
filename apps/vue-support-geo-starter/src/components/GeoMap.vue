@@ -5,7 +5,7 @@
  * 与 useSelectionStore 双向同步 bounds / polygon
  */
 <template>
-  <div class="geo-map-wrap" :style="{ height: height + 'px' }">
+  <div class="geo-map-wrap" :style="{ height: heightStyle }">
     <div ref="mapRef" class="geo-map-container" />
     <!-- 工具栏 -->
     <div class="geo-map-toolbar">
@@ -91,7 +91,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue"
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue"
 import { FullScreen, EditPen, Delete, Aim } from "@element-plus/icons-vue"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -105,7 +105,8 @@ import type { GeoBounds } from "@/types"
  */
 const props = withDefaults(
   defineProps<{
-    height?: number
+    /** 地图高度：数字按 px，字符串按 CSS 原样（如 calc(100vh - 156px)） */
+    height?: number | string
     center?: [number, number]
     zoom?: number
   }>(),
@@ -114,6 +115,11 @@ const props = withDefaults(
     center: () => [39.90923, 116.397428],
     zoom: 5,
   }
+)
+
+/** 地图容器高度样式：数字补 px，字符串原样输出 */
+const heightStyle = computed<string>(() =>
+  typeof props.height === "number" ? `${props.height}px` : props.height
 )
 
 const emit = defineEmits<{
@@ -276,13 +282,26 @@ function handleMapClick(e: L.LeafletMouseEvent) {
 }
 
 /**
+ * LatLng 转 [lat, lng] 元组
+ *
+ * Leaflet 的 bounds 表达式（rectangle / setBounds）在类型上只接受 LatLngTuple，
+ * 不接受 LatLng 对象，统一在此转换。
+ *
+ * @param p 经纬度点
+ * @return [纬度, 经度] 元组
+ */
+function toTuple(p: L.LatLng): [number, number] {
+  return [p.lat, p.lng]
+}
+
+/**
  * 开始矩形绘制
  * @param start 矩形起点坐标
  */
 function startRectDraw(start: L.LatLng) {
   if (!map) return
   removeDrawLayer()
-  const rect = L.rectangle([start, start], {
+  const rect = L.rectangle([toTuple(start), toTuple(start)], {
     color: "#409eff",
     weight: 2,
     fillOpacity: 0.15,
@@ -290,12 +309,12 @@ function startRectDraw(start: L.LatLng) {
   drawLayer = rect
 
   const onMove = (ev: L.LeafletMouseEvent) => {
-    rect.setBounds([start, ev.latlng])
+    rect.setBounds([toTuple(start), toTuple(ev.latlng)])
   }
   const onUp = (ev: L.LeafletMouseEvent) => {
     map!.off("mousemove", onMove)
     map!.off("mouseup", onUp)
-    rect.setBounds([start, ev.latlng])
+    rect.setBounds([toTuple(start), toTuple(ev.latlng)])
     const b = rect.getBounds()
     const bounds: GeoBounds = {
       north: b.getNorth(),
@@ -360,7 +379,9 @@ function switchBaseLayer(name: "gaode" | "osm" | "gaode_img") {
   map.eachLayer((layer) => {
     if (layer instanceof L.TileLayer) map!.removeLayer(layer)
   })
-  map.addLayer(layers[name])
+  // 对外键名为 gaode_img，内部图层字段为 gaodeImg，此处做一次映射
+  const layer = name === "gaode_img" ? layers.gaodeImg : layers[name]
+  map.addLayer(layer)
   currentBaseLayer.value = name
 }
 

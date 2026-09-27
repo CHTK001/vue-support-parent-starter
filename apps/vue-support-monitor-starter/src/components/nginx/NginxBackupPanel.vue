@@ -247,6 +247,7 @@ defineExpose({ load });
 .ngb-count {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .ngb-list {
@@ -256,6 +257,10 @@ defineExpose({ load });
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--el-bg-color);
 }
 
 .ngb-item {
@@ -265,6 +270,7 @@ defineExpose({ load });
   padding: 8px 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-base, 6px);
+  transition: background-color var(--el-transition-duration, 0.15s) ease;
 
   &:hover {
     background: var(--el-fill-color-light);
@@ -284,9 +290,10 @@ defineExpose({ load });
 }
 
 .ngb-meta {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .ngb-restore {
@@ -296,7 +303,7 @@ defineExpose({ load });
 }
 
 .ngb-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
   margin-top: 4px;

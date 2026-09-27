@@ -1,43 +1,55 @@
 <template>
   <div ref="rootRef" class="is3d">
-    <canvas ref="canvasRef" class="is3d__canvas" />
+    <!-- 3D 交互层：OrbitControls 绑在这一层（而不是 canvas），
+         这样从标注点上起手的拖拽也能旋转（见 buildScene 里的长注释）。
+         代价是该层会 setPointerCapture，**层内子元素的 click 会被重定向掉** ——
+         所以所有需要原生 click 的 UI（说明卡、水印、遮罩）都必须放在这一层之外。 -->
+    <div ref="surfaceRef" class="is3d__surface">
+      <canvas ref="canvasRef" class="is3d__canvas" />
 
-    <!-- 标注点层：位置每帧由渲染循环直接写 style，不走 Vue 响应式（60fps 不能触发重渲染） -->
-    <div ref="layerRef" class="is3d__layer">
-      <button
-        v-for="h in hotspots"
-        :key="h.id"
-        :ref="(el) => bindMarker(h.id, el)"
-        type="button"
-        class="is3d__dot"
-        :class="[`is-${h.tone}`, { 'is-open': openAnchor === h.anchor }]"
-        :style="{ '--dot-color': toneVar(h.tone) }"
-        :title="h.label"
-        @click.stop="emit('pick', h)"
-      >
-        <span class="is3d__dot-core" />
-      </button>
+      <!-- 标注点层：位置每帧由渲染循环直接写 style，不走 Vue 响应式（60fps 不能触发重渲染）。
+           它在交互层内，所以点按要靠 pointerdown/pointerup 位移判定，不能用 @click。 -->
+      <div ref="layerRef" class="is3d__layer">
+        <button
+          v-for="h in hotspots"
+          :key="h.id"
+          :ref="(el) => bindMarker(h.id, el)"
+          type="button"
+          class="is3d__dot"
+          :class="[`is-${h.tone}`, { 'is-open': openAnchor === h.anchor }]"
+          :style="{ '--dot-color': toneVar(h.tone) }"
+          :title="h.label"
+          @pointerdown="onDotPointerDown(h, $event)"
+          @keydown.enter.prevent="onDotClick(h)"
+          @keydown.space.prevent="onDotClick(h)"
+        >
+          <span class="is3d__dot-core" />
+        </button>
+      </div>
     </div>
 
-    <!-- 标注说明卡：跟随当前打开的标注点 -->
-    <div
-      v-if="activeHotspot"
-      class="is3d__card"
-      :style="cardStyle"
-    >
+    <!-- 以下都在交互层之外：click 不受 pointer capture 影响，关闭/跳转按钮才能正常工作。
+         位置仍相对 .is3d 定位（两者同尺寸），坐标与上一版一致。 -->
+
+    <!-- 标注说明卡：位置由渲染循环每帧直接写 style（与标注点一致），不走响应式 ——
+         放进 ref 会让 60fps 的定位变成 60fps 的组件重渲染。 -->
+    <div v-if="activeHotspot" ref="cardRef" class="is3d__card">
       <div class="is3d__card-head">
         <span class="is3d__card-swatch" :style="{ background: toneVar(activeHotspot.tone) }" />
         <span class="is3d__card-title">{{ activeHotspot.label }}</span>
-        <button type="button" class="is3d__card-close" title="关闭" @click="openAnchor = null">✕</button>
+        <button type="button" class="is3d__card-close" title="关闭" @click="onDotClick(activeHotspot)">✕</button>
       </div>
       <p class="is3d__card-note">{{ activeHotspot.note }}</p>
-      <button v-if="partJumpLabel" type="button" class="is3d__card-jump" @click="emit('part-jump', activeHotspot.anchor)">
-        看同样有{{ partJumpLabel }}的虫 →
+      <button
+        v-if="partJumpLabel"
+        type="button"
+        class="is3d__card-jump"
+        :disabled="jumping"
+        @click="onPartJump(activeHotspot.anchor)"
+      >
+        {{ jumping ? "查找中…" : `看同样有${partJumpLabel}的虫 →` }}
       </button>
     </div>
-
-    <!-- 学名水印：左下角 -->
-    <div v-if="latin" class="is3d__latin">{{ latin }}</div>
 
     <!-- 加载 / 错误 -->
     <div v-if="loading" class="is3d__mask">
@@ -48,6 +60,9 @@
       <span class="is3d__mask-text">{{ errorText }}</span>
       <button type="button" class="is3d__retry" @click="reload">重试</button>
     </div>
+
+    <!-- 学名水印：左下角 -->
+    <div v-if="latin && !loading && !errorText" class="is3d__latin">{{ latin }}</div>
 
     <div v-if="stageLabel" class="is3d__stage-chip">{{ stageLabel }}</div>
   </div>
@@ -137,20 +152,29 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: "pick", hotspot: Hotspot): void;
+  (e: "pick", hotspot: Hotspot, open: boolean): void;
   (e: "part-jump", anchor: string): void;
   (e: "ready", code: string): void;
 }>();
 
 const rootRef = ref<HTMLElement | null>(null);
+const surfaceRef = ref<HTMLElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const layerRef = ref<HTMLElement | null>(null);
+const cardRef = ref<HTMLElement | null>(null);
 
 const loading = ref(true);
 const errorText = ref("");
+/** 正在查找「同样有该部位」的虫（跳转是异步的，先给按钮一个进行中状态防重复点） */
+const jumping = ref(false);
+/**
+ * 当前展开说明卡的标注点 anchor。
+ *
+ * 必须由点击显式写入 —— 之前只写了 `openAnchor = null`（载入模型、点关闭），
+ * 没有任何地方把它设成被点击的 anchor，于是 activeHotspot 恒为 null，
+ * 点标注点只有镜头会动、说明卡永远不出现。
+ */
 const openAnchor = ref<string | null>(null);
-/** 打开的标注卡在视口内的位置（由渲染循环写入） */
-const cardPos = ref({ x: 0, y: 0, side: "left" as "left" | "right" });
 
 // ==================== three 运行时 ====================
 let renderer: THREE.WebGLRenderer | null = null;
@@ -197,18 +221,82 @@ const partJumpLabel = computed(() =>
     ? props.partLabel(activeHotspot.value.anchor)
     : "",
 );
-const cardStyle = computed(() => ({
-  left: cardPos.value.side === "left" ? `${cardPos.value.x}px` : "auto",
-  right: cardPos.value.side === "right" ? `${cardPos.value.x}px` : "auto",
-  top: `${cardPos.value.y}px`,
-}));
 const stageLabel = computed(() => (props.lifeStage ? STAGE_LABEL[props.lifeStage] : ""));
+
+/**
+ * 点击标注点：切换说明卡，并把「开/关」的意图一并抛给父级。
+ *
+ * 卡片开关与镜头对位必须同源：早先两者各自 toggle，父级拿着 focusAnchor 独立翻转，
+ * 一旦中途有别的流程（讲解步骤）改过 focusAnchor，卡片和镜头就会各说各话。
+ * 这里把状态算一次、两边用同一个结果。
+ *
+ * @param h 被点击的标注点
+ */
+function onDotClick(h: Hotspot) {
+  const open = openAnchor.value !== h.anchor;
+  openAnchor.value = open ? h.anchor : null;
+  emit("pick", h, open);
+}
+
+/**
+ * 标注点的「点按」判定。
+ *
+ * 不能直接用 @click：OrbitControls 绑在外层容器上（这样从标注点起手拖拽也能旋转，
+ * 见 buildScene 的注释），它在 pointerdown 时会 setPointerCapture 到容器，
+ * 于是 click 的 target 被重定向到容器，标注点永远收不到 click（实测 card=0）。
+ *
+ * 改为自己判定：pointerdown 记起点并**照常冒泡**（让容器拿到、拖拽能旋转），
+ * 在 window 的 pointerup 上看位移 —— 位移小于阈值才算点按。
+ */
+let dotDown: { anchor: string; x: number; y: number } | null = null;
+
+/** 点按位移阈值（px）：超过它视为拖拽，不触发卡片 */
+const TAP_SLOP = 6;
+
+/**
+ * 记录标注点按下的起点。
+ *
+ * @param h 标注点
+ * @param e 指针事件
+ */
+function onDotPointerDown(h: Hotspot, e: PointerEvent) {
+  dotDown = { anchor: h.anchor, x: e.clientX, y: e.clientY };
+}
+
+/**
+ * 跳到「同样有该部位」的虫：交给父级在名录里找并切换物种。
+ *
+ * 搜索是异步的（可能要看几只虫的标注点），期间把按钮置为进行中，
+ * 避免连点造成连续换虫。新物种模型载入完成后在 loadModel 里复位。
+ *
+ * @param anchor 部位锚点
+ */
+function onPartJump(anchor: string) {
+  if (jumping.value) return;
+  jumping.value = true;
+  emit("part-jump", anchor);
+}
+
+/**
+ * 在 window 上收口 pointerup：位移足够小才当成点按。
+ *
+ * @param e 指针事件
+ */
+function onWindowPointerUp(e: PointerEvent) {
+  const d = dotDown;
+  dotDown = null;
+  if (!d) return;
+  if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > TAP_SLOP) return;
+  const hit = props.hotspots.find((x) => x.anchor === d.anchor);
+  if (hit) onDotClick(hit);
+}
 
 // ==================== 场景搭建 ====================
 function buildScene() {
   const canvas = canvasRef.value;
   const root = rootRef.value;
-  if (!canvas || !root) return false;
+  const surface = surfaceRef.value;
+  if (!canvas || !root || !surface) return false;
 
   const rect = root.getBoundingClientRect();
   const w = Math.max(1, Math.floor(rect.width));
@@ -226,7 +314,21 @@ function buildScene() {
   camera = new THREE.PerspectiveCamera(34, w / h, 0.01, 100);
   camera.position.copy(HOME_DIR).multiplyScalar(3);
 
-  controls = new OrbitControls(camera, canvas);
+  /**
+   * OrbitControls 绑在**3D 交互层**（`.is3d__surface`）而不是 canvas，也不绑最外层容器。
+   *
+   * 为什么不能只绑 canvas：标注点是 canvas 的兄弟节点（为可点击必须
+   * `pointer-events: auto`），从标注点上按下的拖拽落在按钮上、事件到不了 canvas，
+   * OrbitControls 收不到 pointerdown —— 表现就是「按住虫体/标注点附近拖不动」。
+   * 6 个标注点正好聚在虫体周围，正是用户最想按住拖的地方，命中率很高。
+   *
+   * 为什么也不能绑最外层：绑哪一层，那一层就会 setPointerCapture，
+   * **层内子元素的 click 会被重定向到该层**。绑最外层时说明卡的 ✕ 关闭与
+   * 「看同样有…的虫」跳转两个按钮全都收不到 click（实测点了没反应）。
+   * 所以取舍是：交互层只放 canvas + 标注点（点按改用指针位移判定），
+   * 说明卡等需要原生 click 的 UI 全部放在交互层之外。
+   */
+  controls = new OrbitControls(camera, surface);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
@@ -234,6 +336,18 @@ function buildScene() {
   controls.zoomSpeed = 0.9;
   // 相机目标由本组件的插值接管，OrbitControls 只负责用户输入
   controls.target.set(0, 0, 0);
+
+  /**
+   * 用户一上手就放弃相机目标插值。
+   *
+   * 没有这一步时，载入模型 / 聚焦定位后的那段时间里 goalActive 仍为真，
+   * 渲染循环每帧把 camera.position 与 controls.target 拉回目标值 ——
+   * 用户的拖拽刚生效就被拽回去，表现就是「转不动、一转就弹回」。
+   * OrbitControls 在 pointerdown 时派发 start，正好是交还控制权的时机。
+   */
+  controls.addEventListener("start", () => {
+    goalActive = false;
+  });
 
   // 灯光：与上游同款三点布光 + 环境光
   const ambient = new THREE.AmbientLight(0xfff3e4, 0.72);
@@ -337,11 +451,16 @@ async function loadModel() {
     cacheAnchors(m);
     reframe(m, false);
     openAnchor.value = null;
+    // 新物种已就位，解除「查找中」状态（改在成功分支复位而非 finally：
+    // 失败时应让用户能重试，而不是把按钮永久置灰）
+    jumping.value = false;
     loading.value = false;
     emit("ready", props.insectCode);
   } catch (e) {
     if (disposed) return;
     loading.value = false;
+    // 模型载入失败时也要解除「查找中」，否则跳转按钮会一直停在置灰状态
+    jumping.value = false;
     errorText.value = e instanceof Error ? e.message : String(e);
   }
 }
@@ -402,22 +521,23 @@ function tick() {
       el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
     }
 
-    // 说明卡贴在当前标注点旁边，空间不够就换边
+    // 说明卡贴在当前标注点旁边，空间不够就换边。每帧直接写 style，不走响应式。
     const active = activeHotspot.value;
-    if (active) {
+    const cardEl = cardRef.value;
+    if (active && cardEl) {
       const world = anchorWorld.get(active.anchor);
       if (world) {
         tmpV.copy(world).project(camera);
         const x = (tmpV.x * 0.5 + 0.5) * rect.width;
         const y = (-tmpV.y * 0.5 + 0.5) * rect.height;
-        const CARD_W = 200;
+        const CARD_W = 210;
         const room = rect.width - x - 20 - CARD_W;
-        const side: "left" | "right" = room > 0 ? "right" : "left";
-        cardPos.value = {
-          x: side === "right" ? rect.width - x - 18 : x - 18,
-          y: Math.min(Math.max(y - 40, 8), Math.max(8, rect.height - 150)),
-          side,
-        };
+        const side = room > 0 ? "right" : "left";
+        const px = side === "right" ? rect.width - x - 18 : x - 18;
+        const py = Math.min(Math.max(y - 40, 8), Math.max(8, rect.height - 170));
+        cardEl.style.left = side === "left" ? `${px}px` : "auto";
+        cardEl.style.right = side === "right" ? `${px}px` : "auto";
+        cardEl.style.top = `${py}px`;
       }
     }
   }
@@ -445,6 +565,8 @@ onMounted(() => {
   if (!buildScene()) return;
   void loadModel();
   tick();
+  // 标注点的点按判定收口在 window 上（见 onWindowPointerUp 的注释）
+  window.addEventListener("pointerup", onWindowPointerUp);
   ro = new ResizeObserver(onResize);
   if (rootRef.value) ro.observe(rootRef.value);
 });
@@ -453,6 +575,7 @@ onBeforeUnmount(() => {
   disposed = true;
   cancelAnimationFrame(raf);
   ro?.disconnect();
+  window.removeEventListener("pointerup", onWindowPointerUp);
   controls?.dispose();
   if (model) {
     model.group.traverse((o) => {
@@ -478,8 +601,14 @@ watch(() => props.lifeStage, () => void loadModel());
 watch(
   () => props.focusAnchor,
   (a) => {
-    if (a) focusOn(a);
-    else resetFocus();
+    if (a) {
+      focusOn(a);
+    } else {
+      // 父级收起聚焦（换物种、关掉讲解浮层、再点同一点位）时同步收起说明卡，
+      // 否则会留下一张「镜头已经退回全身、卡片还开着」的错位状态
+      openAnchor.value = null;
+      resetFocus();
+    }
   },
 );
 </script>
@@ -493,6 +622,13 @@ watch(
   border-radius: 18px;
   overflow: hidden;
   background: radial-gradient(120% 90% at 50% 0%, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+}
+/* 3D 交互层：铺满 .is3d，OrbitControls 绑它。
+   它只包 canvas 与标注点；说明卡/遮罩是它的兄弟节点，
+   这样 OrbitControls 的 pointer capture 不会吃掉那些按钮的 click。 */
+.is3d__surface {
+  position: absolute;
+  inset: 0;
 }
 .is3d__canvas {
   display: block;

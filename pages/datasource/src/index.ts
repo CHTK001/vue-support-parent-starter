@@ -3,7 +3,8 @@
  *
  * 提供数据源台账页面与后端 API：
  *   - 台账 CRUD/测试  → 后端 spring-support-datasource-hub-starter 的 /ms/datasource
- *   - 表清单/列元数据  → 采集平台 /v2/collect/datasource（hub 只管"连得上"，不管"浏览表结构"）
+ *   - 表结构/DDL/字段映射 → 同一数据源模块：/ms/datasource/tables|columns|ddl/*|mapping/resolve
+ *     （采集侧 /v2/collect/datasource 的同类接口已改为薄委托，能力只此一份）
  *
  * 采集控制台、监控台、nginx 等页面都从这里取数据源，不再各自实现一份。
  *
@@ -35,6 +36,11 @@ export {
   fetchDatasourceTables,
   fetchDatasourceColumns,
   setDatasourceSchemaProvider,
+  setDatasourceHubBase,
+  fetchTableExists,
+  previewTableDdl,
+  executeTableDdl,
+  resolveFieldMapping,
 } from "./api";
 export type {
   CollectColumn,
@@ -43,5 +49,10 @@ export type {
   DataSourceOption,
   DataSourceTestResult,
   DatasourceSchemaProvider,
+  DdlColumn,
+  TableDdlRequest,
+  TableDdlResult,
+  SourceField,
+  FieldMapping,
 } from "./api";
 export { ApiError, setUnauthorizedHandler } from "./api/request";

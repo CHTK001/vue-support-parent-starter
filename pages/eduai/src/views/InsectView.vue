@@ -264,30 +264,56 @@ async function loadStage(code: string) {
 }
 
 // ==================== 交互 ====================
-function onPickHotspot(h: Hotspot) {
-  // 再点同一个则收起
-  focusAnchor.value = focusAnchor.value === h.anchor ? null : h.anchor;
+/**
+ * 点击标注点：展开/收起说明卡，同时把镜头对到该部位。
+ *
+ * `open` 由展台算好后传上来（卡片与镜头必须同源），这里只负责落状态，
+ * 不再自己 toggle —— 之前两边各自翻转，中间被讲解步骤改过 focusAnchor 就会错位。
+ *
+ * @param h    被点击的标注点
+ * @param open true=展开并聚焦，false=收起并退回全身取景
+ */
+function onPickHotspot(h: Hotspot, open: boolean) {
+  focusAnchor.value = open ? h.anchor : null;
 }
 
 /** 同部位还有别的虫时，给出跳转入口 */
 function hasPartPeer(anchor: string): boolean {
-  if (!activeCode.value) return false;
-  const i = insects.value.findIndex((x) => x.insectCode === activeCode.value);
-  if (i < 0) return false;
-  // 名录是轻量的，拿不到热点，只能按「下一只是否有同部位」粗判：
-  // 保守返回 true 让展台显示入口，跳转时由后端 anchor 校验兜底
-  return insects.value.length > 1;
+  return peersWithPart(anchor).length > 0;
+}
+
+/**
+ * 名录里除当前物种外，还有哪些物种带这个部位。
+ *
+ * 依赖 /all 返回的 anchors（每个物种自己的锚点全集），
+ * 早先这里只会返回「名录不只一条」——于是每只虫都显示跳转入口，
+ * 点进去却跳到一只跟该部位毫无关系的虫。
+ *
+ * @param anchor 部位锚点
+ * @returns 带该部位的物种（不含当前选中的）
+ */
+function peersWithPart(anchor: string): InsectLibraryItem[] {
+  return insects.value.filter((i) => i.insectCode !== activeCode.value && (i.anchors ?? []).includes(anchor));
 }
 
 function partJumpLabel(anchor: string): string {
   return partLabel(anchor) || "该部位";
 }
 
+/**
+ * 跳到「同样有该部位」的下一只虫，并把镜头对到该部位。
+ *
+ * 从当前物种在名录里的位置往后找、到末尾回绕，取第一个带该部位的物种。
+ *
+ * @param anchor 部位锚点
+ */
 async function jumpToPart(anchor: string) {
-  if (!activeCode.value) return;
-  const i = insects.value.findIndex((x) => x.insectCode === activeCode.value);
-  if (i < 0) return;
-  const next = insects.value[(i + 1) % insects.value.length];
+  const peers = peersWithPart(anchor);
+  if (!peers.length) return;
+  const all = insects.value;
+  const from = all.findIndex((x) => x.insectCode === activeCode.value);
+  const after = all.slice(from + 1).concat(all.slice(0, Math.max(0, from)));
+  const next = after.find((i) => (i.anchors ?? []).includes(anchor)) ?? peers[0];
   await select(next.insectCode);
   // 换物种后镜头对到同一部位；对方没有这个部位时展台会自动退回全身取景
   focusAnchor.value = anchor;

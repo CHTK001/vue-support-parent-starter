@@ -138,6 +138,8 @@ export const defaultAppConfig: AppConfig = {
     defaultIcon: DEFAULT_MENU_ICON,
     // 折叠形态：false=mini 图标菜单条（默认）；true=整个菜单收缩为一个展开按钮（仅垂直布局）
     collapseToButton: false,
+    // 分组导航增强：分组标题排版 + 子项图标 + 底部「设置」条目（仅纵向布局），默认开启
+    groupNav: true,
   },
   upload: {
     enable: true,

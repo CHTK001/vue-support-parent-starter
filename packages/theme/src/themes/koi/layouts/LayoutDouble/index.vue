@@ -31,6 +31,8 @@
             </div>
           </div>
         </div>
+        <!-- 底部系统配置入口（不作为菜单） -->
+        <NavSettingEntry />
       </div>
 
       <!-- 第二列：二级菜单悬浮栏（鼠标经过第一列才显示，固定后撑开内容区） -->
@@ -99,6 +101,7 @@ import settings from "@repo/theme/koi/settings.ts";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
+import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";

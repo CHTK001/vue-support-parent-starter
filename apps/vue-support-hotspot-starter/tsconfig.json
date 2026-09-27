@@ -4,6 +4,8 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
+      "@repo/ui": ["../../packages/ui/src"],
+      "@repo/ui/*": ["../../packages/ui/src/*"],
       "@repo/ui/components/*": ["../../packages/ui/src/components/*"],
       "@repo/theme/koi/framework": ["../../packages/theme/src/themes/koi/framework"],
       "@repo/theme/koi/*": ["../../packages/theme/src/themes/koi/*"],

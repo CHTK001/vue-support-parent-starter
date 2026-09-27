@@ -14,8 +14,6 @@ import { computed } from 'vue'
 
 import WindowControls from './WindowControls.vue'
 
-defineEmits(['openGuide'])
-
 const isElectron = computed(() => {
   return typeof window !== 'undefined' && window.electronAPI !== undefined
 })

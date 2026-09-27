@@ -20,7 +20,7 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
-import { loadConfig, getConfig, upgrade, setConfig, restoreUserConfig, type AppConfig } from "@repo/config";
+import { loadConfig, getConfig, upgrade, setConfig, restoreUserConfig, type AppConfig, type DeepPartial } from "@repo/config";
 import {
   browserLocalStorage,
   createStorage,
@@ -80,6 +80,18 @@ export interface CreateAppOptions {
   loadRemoteRoutes?: RemoteRoutesLoader;
   /** 路由模式（history / hash），默认 history */
   routerMode?: "history" | "hash";
+  /**
+   * 代码级默认配置（优先级最低的一层），透传给 loadConfig。
+   *
+   * <p>用于让应用在 {@code main.ts} 里声明自身默认，例如分组导航：</p>
+   *
+   * <pre>{@code
+   * await createContextApp({ appName: "xxx", defaults: { menu: { collapseSingleChild: true } } })
+   * }</pre>
+   *
+   * <p>app.example.yaml / app.yaml / app.{env}.yaml / 远程配置 / 环境变量仍会覆盖它。</p>
+   */
+  defaults?: DeepPartial<AppConfig>;
 }
 
 /** createApp 完成后的应用上下文 */
@@ -121,6 +133,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     appName,
     baseUrl,
     configUrl: options.configUrl,
+    defaults: options.defaults,
   });
   await restoreUserConfig();
 

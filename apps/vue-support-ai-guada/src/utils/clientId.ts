@@ -9,6 +9,21 @@
  * 优先使用 crypto.randomUUID()，降级使用 crypto.getRandomValues()
  */
 function generateClientId(): string {
+  return randomUuid();
+}
+
+/**
+ * 生成 UUID v4 字符串（带连字符的标准形态）。
+ *
+ * <p>刻意不直接裸调 `crypto.randomUUID()`：该方法**只在安全上下文可用**
+ * （HTTPS，或 localhost）。用「局域网 IP + 明文 HTTP」打开应用时
+ * （如 `http://192.168.50.198:19093`）它是 `undefined`，
+ * 会抛 `crypto.randomUUID is not a function` 直接中断调用链。
+ * `crypto.getRandomValues` 挂在 `Crypto` 上、不受该限制，作为降级主路径。</p>
+ *
+ * @returns 标准 8-4-4-4-12 形态的 UUID v4 字符串
+ */
+export function randomUuid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }

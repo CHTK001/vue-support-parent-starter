@@ -3,11 +3,12 @@
     <div class="ngc-body">
       <!-- 左：配置文件列表 -->
       <aside class="ngc-side">
-        <div class="ngc-side-head">
-          <span>配置文件</span>
-          <ReButton size="small" text :loading="filesLoading" @click="loadFiles">
-            <template #icon><ReIcon name="Refresh" :size="12" /></template>
-          </ReButton>
+        <div class="ngx-card-head ngc-side-head">
+          <span class="ngx-card-title">配置文件</span>
+          <div class="ngc-side-ops">
+            <ReButton icon="Refresh" size="small" text :loading="filesLoading" title="刷新列表" @click="loadFiles" />
+            <ReButton icon="DocumentAdd" size="small" text title="新建 .conf 文件" @click="openCreateFile" />
+          </div>
         </div>
         <div class="ngc-side-body">
           <div
@@ -177,6 +178,41 @@
         <ReButton type="primary" :disabled="!addName" @click="confirmAdd">确定</ReButton>
       </template>
     </ReDialog>
+    <!-- 新建配置文件 -->
+    <ReDialog v-model="createVisible" title="新建配置文件" width="520px" :height="320">
+      <ReAlert
+        type="info"
+        title="文件会创建在配置根目录下，并在末尾写好 include 提示。创建后可切到表单模式继续编辑。"
+        class="ngc-alert"
+      />
+      <ReForm label-width="88px">
+        <ReFormItem label="文件名">
+          <ReInput
+            v-model="createName"
+            placeholder="如 console-site"
+            @change="normalizeCreatePath"
+          />
+        </ReFormItem>
+        <ReFormItem label="完整路径">
+          <ReInput v-model="createPath" placeholder="如 /etc/nginx/conf.d/console-site.conf" />
+        </ReFormItem>
+        <ReFormItem label="初始内容">
+          <ReInput
+            v-model="createContent"
+            type="textarea"
+            :rows="6"
+            class="ngc-create-content mono"
+            placeholder="server { listen 8080; server_name _; }"
+          />
+        </ReFormItem>
+      </ReForm>
+      <template #footer>
+        <ReButton @click="createVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="creating" :disabled="!createPath" @click="doCreateFile">
+          创建
+        </ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -218,7 +254,6 @@ const BLOCK_NAMES = ["location", "upstream", "if", "limit_except", "map", "types
 
 const mode = ref<"FILE" | "MODEL">("FILE");
 const showHelp = computed(() => props.newbie);
-
 const files = ref<NginxConfigFile[]>([]);
 const filesLoading = ref(false);
 const currentPath = ref("");
@@ -362,8 +397,95 @@ function scrollToFocus() {
   }
 }
 
-async function loadMetas() {
-  if (metaList.value.length) {
+/* ==================== 新建配置文件 ==================== */
+
+const createVisible = ref(false);
+const creating = ref(false);
+const createName = ref("");
+const createPath = ref("");
+const createContent = ref("");
+
+/**
+ * 新文件默认内容。
+ *
+ * <p>刻意用 8090 而不是 8080：被管控主机上 8080 通常已被现有 server 占用，
+ * 预填 8080 会让 {@code nginx -t} 立刻报
+ * {@code conflicting server name} 警告，用户还没改就先把机器弄脏了。</p>
+ */
+const DEFAULT_CREATE_CONTENT = [
+  "# 新建配置：改完记得在 nginx -t 通过后再重载",
+  "server {",
+  "    listen 8090;",
+  "    server_name _;",
+  "",
+  "    location / {",
+  "        root html;",
+  "        index index.html;",
+  "    }",
+  "}",
+  "",
+].join("\n");
+
+/** 打开新建弹窗：路径预填配置根目录下的 conf.d，减少手工输入 */
+function openCreateFile() {
+  if (!props.datasourceId) {
+    ElMessage.warning("请先选择数据源");
+    return;
+  }
+  createName.value = "";
+  createPath.value = "";
+  createContent.value = DEFAULT_CREATE_CONTENT;
+  createVisible.value = true;
+}
+
+/** 输入文件名后自动补全成完整路径（用户仍可手动改） */
+function normalizeCreatePath() {
+  const n = createName.value.trim();
+  if (!n) {
+    return;
+  }
+  const base = currentDir.value || "/etc/nginx/conf.d";
+  createPath.value = `${base.replace(/\/+$/, "")}/${n.replace(/\.conf$/, "")}.conf`;
+}
+
+const currentDir = computed(() => {
+  const p = currentPath.value;
+  const i = p.lastIndexOf("/");
+  return i > 0 ? p.slice(0, i) : "";
+});
+
+async function doCreateFile() {
+  if (!props.datasourceId || !createPath.value) {
+    return;
+  }
+  creating.value = true;
+  try {
+    const r = await applyNginxConfig({
+      datasourceId: props.datasourceId,
+      path: createPath.value,
+      mode: "FILE",
+      content: createContent.value,
+      backup: false,
+      validate: optValidate.value,
+      reload: false,
+    });
+    if (r.saved) {
+      ElMessage.success(`已创建 ${createPath.value}`);
+      createVisible.value = false;
+      await loadFiles();
+      await openFile(createPath.value);
+      emit("changed");
+    } else {
+      ElMessage.warning(r.message);
+    }
+  } catch (e) {
+    ElMessage.error(`创建失败：${(e as Error).message}`);
+  } finally {
+    creating.value = false;
+  }
+}
+
+async function loadMetas() {  if (metaList.value.length) {
     return;
   }
   try {
@@ -510,7 +632,7 @@ watch(
   { immediate: true },
 );
 
-defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas, addCandidates });
+defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas, addCandidates, openCreateFile });
 </script>
 
 <style scoped lang="scss">
@@ -526,26 +648,40 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   min-height: 0;
 }
 
-/* 左侧文件列表 */
+/* 左侧文件列表：卡片容器，与总览面板同款 */
 .ngc-side {
   width: 250px;
   flex: none;
   display: flex;
   flex-direction: column;
+  padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--el-bg-color);
   overflow: hidden;
 }
 
-.ngc-side-head {
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  font-size: 13px;
+  gap: 8px;
+}
+
+.ngx-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ngc-side-head {
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-light);
+  margin-bottom: 8px;
 }
 
 .ngc-side-body {
@@ -557,31 +693,46 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 7px 10px;
   font-size: 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  border-radius: var(--el-border-radius-base, 6px);
 
   &:hover {
-    background: var(--el-color-primary-light-9);
+    background: var(--el-fill-color-light);
   }
 
   &.active {
-    background: var(--el-color-primary-light-8);
+    background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
+    font-weight: 600;
   }
+}
+
+/* 左侧列表头部的操作按钮组：两个 icon 按钮并排，不换行 */
+.ngc-side-ops {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* 新建文件弹窗里的初始内容编辑框占满整行 */
+.ngc-create-content {
+  width: 100%;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .ngc-filename {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  white-space: nowrap;}
 
 .ngc-filedir {
   margin-left: auto;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -590,14 +741,16 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   direction: rtl;
 }
 
-/* 右侧编辑区 */
+/* 右侧编辑区：卡片容器，与总览面板同款 */
 .ngc-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--el-bg-color);
   overflow: hidden;
 }
 
@@ -606,9 +759,8 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-light);
 }
 
 .ngc-path {
@@ -620,22 +772,25 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 }
 
 .ngc-alert {
-  margin: 8px 12px 0;
+  margin: 10px 0 0;
 }
 
 .ngc-warns {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 12px 0;
+  padding: 10px 0 0;
 }
 
-/* 文件编辑器 */
+/* 文件编辑器：内层视口，四周留出卡片内边距 */
 .ngc-editor {
   flex: 1;
   min-height: 0;
+  margin-top: 10px;
   display: flex;
   overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base, 6px);
 }
 
 .ngc-gutter {
@@ -651,6 +806,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.6;
+  font-variant-numeric: tabular-nums;
   color: var(--el-text-color-placeholder);
   text-align: right;
 }
@@ -674,7 +830,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px 14px;
+  padding: 10px 0 0;
 }
 
 /* 底部操作条 */
@@ -684,9 +840,9 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 8px 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-light);
+  margin-top: 10px;
 }
 
 .ngc-opts {
@@ -759,6 +915,7 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
+  font-variant-numeric: tabular-nums;
   white-space: pre-wrap;
   word-break: break-all;
 

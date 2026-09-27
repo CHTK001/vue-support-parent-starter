@@ -6,8 +6,12 @@
       <!-- 面包屑（app.yaml other.toolbar.breadcrumb 控制） -->
       <ReBreadCrumb v-if="showBreadCrumb && toolbarConfig.breadcrumb" class="<md:hidden"></ReBreadCrumb>
     </div>
-    <!-- 工具栏 -->
-    <ReToolbar></ReToolbar>
+    <!-- 工具栏（#header-extra 用于注入顶部操作入口，如大屏按钮） -->
+    <ReToolbar>
+      <template #header-extra>
+        <slot name="header-extra"></slot>
+      </template>
+    </ReToolbar>
   </div>
 </template>
 

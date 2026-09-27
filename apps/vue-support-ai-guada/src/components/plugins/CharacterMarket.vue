@@ -132,6 +132,10 @@ type DisplayItem = CharacterCatalogItem & {
   systemPrompt?: string
   temperature?: number
   avatarUrl?: string
+  /** 自建角色用它做去重与跳转（builtinIds 也按 code 比对） */
+  code?: string | null
+  /** 自建角色绑定的模型 */
+  modelId?: string | null
 }
 
 const router = useRouter()

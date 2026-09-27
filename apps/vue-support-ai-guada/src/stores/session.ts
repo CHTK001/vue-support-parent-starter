@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, type Ref } from 'vue'
 import type { Session, SessionState, SessionSettings, QueuedMessage } from '@/types/session'
+import { randomUuid } from '@/utils/clientId'
 
 /**
  * 未分组的默认分组ID（虚拟ID，不对应后端实体）
@@ -305,7 +306,9 @@ export const useSessionStore = defineStore('session', () => {
         const state = getSessionState(sessionId)
         const item: QueuedMessage = {
             ...msg,
-            id: crypto.randomUUID(),
+            // 不用裸调 crypto.randomUUID()：明文 HTTP + 局域网 IP 下它不存在
+            // （非安全上下文），会抛 TypeError 中断整个入队流程
+            id: randomUuid(),
             createdAt: Date.now(),
             status: 'queued',
         }

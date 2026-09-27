@@ -145,6 +145,11 @@ onMounted(async () => {
         applied = sigOf(props.data ?? { nodes: [], edges: [] });
         syncStat();
         emit("ready", eng);
+        // ready 监听方通常会同步调用 engine.setData 灌图（FlowDesigner.onReady → load），
+        // 那条路走的是引擎直写、不会再触发 data prop 监听的 syncStat，
+        // 于是「节点/连线」计数会停在灌图前的旧值（实测：清单 4 个、计数 0）。
+        // emit 是同步的，这里再统计一次就能拿到灌图后的真实数量。
+        syncStat();
       },
       onSelect: (sel) => {
         selection.value = sel;

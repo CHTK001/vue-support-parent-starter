@@ -70,6 +70,10 @@ export interface GenerateTask {
   duration: number | null;
   count: number | null;
   seed: number | null;
+  style: string | null;
+  referenceImage: string | null;
+  /** 生成耗时（毫秒）：后端实测，不是前端估算 */
+  elapsedMillis: number | null;
   urls: string[];
   errorMessage: string | null;
   createdAt: number | null;

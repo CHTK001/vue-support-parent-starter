@@ -7,19 +7,25 @@ appConfig:
   title: 监控管理平台
   openAuth: false
 
-# 路由：本地+远程合并
+# 路由：菜单完全来自本地路由树（src/routes.ts 的 monitorRoutes），
+# 由 createVueApp 的 registerStaticMenu(buildMenuFromRoutes(...)) 注册。
+#
+# 不能配 all / remote：这两种模式会额外调用后端菜单接口 /v2/user/menu，
+# 而本应用的后端（spring-support-monitor-starter 打的 ngx-console）没有这个接口，
+# 带 token 请求返回 404「资源不存在」。菜单拉取失败会让 initDynamicRoutes 抛错，
+# 进而触发强制重登把刚登录的 token 清掉 —— 表现为「登录成功后立刻被弹回登录页」。
 routeConfig:
-  mode: all
+  mode: static
 
 # API 基础路径
 httpConfig:
   baseUrl: /
 
-# 登录页配置
+# 登录页配置（本地验收期间关闭滑块：自动化工具无法拖拽滑块；验收完成后还原为 true）
 loginConfig:
   captcha: false
   otp: false
-  slider: true
+  slider: false
   logoUrl: /logo.svg
   brandName: 监控管理
   title: 监控管理平台
@@ -52,8 +58,10 @@ socketConfig:
     - websocket
 
 # 菜单配置：单子节点也渲染为可折叠子菜单（而非压平为单项）
+# 置 true 才会走 el-sub-menu 的二级分组；置 false 会把只有一个子项的分组压平，
+# 表现为「分组导航消失、所有条目平铺」——与本应用期望的分组导航相反。
 menuConfig:
-  collapseSingleChild: false
+  collapseSingleChild: true
 
 # 布局配置（首页仪表板持久化：local=本地 localStorage / remote=远程同步）
 layoutConfig:

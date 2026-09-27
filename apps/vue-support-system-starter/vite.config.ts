@@ -4,6 +4,21 @@ export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
   publicDir: "../../public",
+  // @pages/collect、@pages/datasource 未收录在 createVite 共享 REPO_ALIAS
+  // （REPO_ALIAS 里的 @pages/* 指向 pages/xxx/src，@pages/system 等同理）。
+  // 但本应用入口 import "@pages/job"、而 pages/collect 的路由树里用深路径引用
+  // "@pages/datasource/src/views/*.vue"，后者只有在 alias 指向包根时才能解析：
+  //   "@pages/datasource/views/X.vue"     -> pages/datasource/views/X.vue      ✗ 不存在
+  //   "@pages/datasource/src/views/X.vue" -> pages/datasource/src/views/X.vue  ✓
+  // alias 优先于包 exports（见 createVite 的 { ...REPO_ALIAS, ...options.alias }），
+  // 故补齐后与 monitor / hotspot / collect-scheduler 三个应用的写法保持一致。
+  // 别漏：漏 @pages/datasource 会让 collect 的 routes 桶文件 transform 500，
+  // 连带 pages/collect 整包加载失败，调度管理页白屏并渲染成 [object Promise]。
+  alias: {
+    "@pages/collect": "pages/collect",
+    "@pages/job": "pages/job",
+    "@pages/datasource": "pages/datasource",
+  },
   server: {
     port: 8096,
     strictPort: true,

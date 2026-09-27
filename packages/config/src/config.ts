@@ -77,6 +77,20 @@ export function resolveMenuDefaultIcon(): string {
 }
 
 /**
+ * 解析分组导航增强开关：app.yaml 的 menuConfig.groupNav 优先，未配置时默认开启。
+ *
+ * 供 koi 纵向布局（vertical / classic / columns / double / optimum / group）共用：
+ * 返回 true 时分组标题按分区标题排版、子项带图标、底部显示带文字的「设置」条目。
+ * 刻意写成 `!== false` 而不是 `=== true`：app.yaml 与 main.ts 两处都可能不写该键，
+ * 缺省必须是「开启」，否则老应用升级后样式会静默失效。
+ *
+ * @returns 分组导航增强是否开启（默认 true）
+ */
+export function resolveGroupNav(): boolean {
+  return currentConfig.menu?.groupNav !== false;
+}
+
+/**
  * 从 localStorage 中读取当前登录用户 id（用于 userScopeKeys 自动注入）
  *
  * 不反向依赖 @repo/utils / @repo/core，避免循环引用。
@@ -433,6 +447,7 @@ export type {
   PerformanceConfig,
   AiChatConfig,
   AppConfig,
+  DeepPartial,
 } from "./types/config";
 export type { RouteMode } from "./types/config";
 

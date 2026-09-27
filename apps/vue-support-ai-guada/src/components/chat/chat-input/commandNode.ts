@@ -17,6 +17,13 @@ import { Node, mergeAttributes } from '@tiptap/core';
  *   - label: 友好展示名（可选），如 "编程助手"
  *   - trigger: 触发前缀，'/' 或 '@'（默认 '/'）
  */
+/**
+ * Command 内联节点。
+ *
+ * 导出时 cast 成 Node 而不是 AnyExtension：仓库里存在两份 @tiptap/core
+ * （app 内 node_modules 与 pnpm store），两者的 AnyExtension 是不同类型，
+ * 标注 AnyExtension 反而会在 Editor 处报「类型来自不同模块」的 TS2322。
+ */
 export const CommandNode = Node.create({
   name: 'command',
   group: 'inline',

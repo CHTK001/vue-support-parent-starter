@@ -99,6 +99,12 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "成语库", icon: "Collection", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
+      path: "/edu/poems",
+      name: "EduPoems",
+      component: () => import("../views/PoemBankView.vue"),
+      meta: { title: "古诗库", icon: "Reading", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
       path: "/edu/insects",
       name: "EduInsects",
       component: () => import("../views/InsectBankView.vue"),
@@ -156,6 +162,13 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     name: "EduFunIdiom",
     component: () => import("../views/IdiomGameView.vue"),
     meta: { title: "成语消消乐", icon: "Trophy", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 古诗补全：给一句诗选下一句（趣味学习组，学生端消费）
+    path: "/edu/fun/poem",
+    name: "EduFunPoem",
+    component: () => import("../views/PoemGameView.vue"),
+    meta: { title: "古诗补全", icon: "Reading", showLink: false, isVisible: "0", keepAlive: true },
   },
   {
     // 学生端：独立全屏页面（position:fixed 脱离管理后台外壳），

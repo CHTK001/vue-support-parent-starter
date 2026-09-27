@@ -58,7 +58,7 @@
               <td>
                 <div class="model-cell">
                   <img v-if="row.icon" :src="row.icon" class="model-icon" alt=""
-                    @error="(e) => (e.target.style.visibility = 'hidden')" />
+                    @error="(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')" />
                   <span v-else class="model-icon model-icon--ph">
                     {{ (row.modelName || '?').charAt(0).toUpperCase() }}
                   </span>

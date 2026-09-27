@@ -20,7 +20,9 @@ const routes: RouteRecordRaw[] = [
   { path: "/config", name: "config", component: () => import("./views/ConfigView.vue"), meta: { title: "监控配置" } },
   { path: "/system-config", name: "system-config", component: () => import("./views/SystemConfigView.vue"), meta: { title: "系统配置" } },
   { path: "/proxy", name: "proxy", component: () => import("./views/ProxyView.vue"), meta: { title: "代理管理" } },
-  { path: "/datasource", name: "datasource", component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"), meta: { title: "数据源管理" } },
+  // 数据源中心走 ScDataCenterView（共享页 + 注入「数据表」页签），与 routes.ts 保持一致；
+  // /db-manager 独立页保留，供书签 / 外部深链直达。
+  { path: "/datasource", name: "datasource", component: () => import("./views/ScDataCenterView.vue"), meta: { title: "数据源管理" } },
   { path: "/db-manager", name: "db-manager", component: () => import("./views/DatabaseManagerView.vue"), meta: { title: "数据库管理" } },
   { path: "/account", name: "account", component: () => import("./views/IdentityManageView.vue"), meta: { title: "账号管理" } },
   { path: "/files", name: "files", component: () => import("./views/FileAssetView.vue"), meta: { title: "文件资产" } },

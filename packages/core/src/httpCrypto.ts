@@ -16,6 +16,7 @@ import axios, {
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
 import { getAccessToken, clearAllAuthData } from "@repo/utils";
+import { getRouter, hasRouter } from "./router/inject";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
 import { msgError, setSuppressNextMsg } from "./msg";
@@ -94,6 +95,39 @@ export function base64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
+/**
+ * 生成随机十六进制串。
+ *
+ * <p>这里刻意不直接用 {@code crypto.randomUUID()}：它只在**安全上下文**可用
+ * （HTTPS，或 localhost）。用「局域网 IP + 明文 HTTP」打开应用时（例如
+ * {@code http://192.168.50.101:8848}）它是 {@code undefined}，会让
+ * {@link generateFingerprint} 抛「crypto.randomUUID is not a function」，
+ * 整条请求链路（含设备指纹签名）在发出前就中断，页面表现为所有接口静默失败。</p>
+ *
+ * <p>{@code crypto.getRandomValues} 挂在 {@code Crypto} 而非
+ * {@code SubtleCrypto} 上，**不受安全上下文限制**，作为主路径；
+ * 再兜一层 {@code Math.random} 应付连 {@code crypto} 都不存在的环境。</p>
+ *
+ * @param byteLength 随机字节数，返回的十六进制串长度为 byteLength * 2
+ * @return 小写十六进制随机串
+ */
+function randomHex(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
+  const c: Crypto | undefined = globalThis.crypto;
+  if (c && typeof c.getRandomValues === "function") {
+    c.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < byteLength; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    out += bytes[i].toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
 /** 生成设备指纹（首次生成后持久化，避免每次变化导致后端缓存膨胀；按 app 命名空间隔离） */
 let cachedFingerprint: string | null = null;
 function generateFingerprint(): string {
@@ -101,7 +135,8 @@ function generateFingerprint(): string {
   const key = getStorageKey("x-req-fingerprint");
   let fp = localStorage.getItem(key);
   if (!fp) {
-    fp = crypto.randomUUID().replace(/-/g, "");
+    // 32 个十六进制字符 = 128 bit，与去掉连字符的 UUID v4 同等强度
+    fp = randomHex(16);
     localStorage.setItem(key, fp);
   }
   cachedFingerprint = fp;
@@ -395,6 +430,22 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const loginHref = (import.meta.env.BASE_URL || "/") + loginUrl.replace(/^\//, "");
         // 会话已失效：清掉本地令牌，否则守卫会凭旧令牌把用户弹回首页反复 403
         clearAllAuthData();
+        // 去登录页：优先走已注入的 vue-router。hash 模式（#/login）下直接改 pathname
+        // 会丢掉 hash，SPA 只会落回首页而到不了登录页；无 router（React / 尚未挂载）时
+        // 才退化为整页 replace，拼接 base 保证子路径部署不跳出应用。
+        const gotoLogin = (): void => {
+          if (hasRouter()) {
+            const router = getRouter();
+            // 已在登录页时跳过重复导航（幂等），避免 NavigationDuplicated 与死循环
+            if (router.currentRoute.value.path !== loginUrl) {
+              void router.replace(loginUrl).catch(() => {
+                /* 并发 401 导致的重复/取消导航，忽略即可 */
+              });
+            }
+            return;
+          }
+          window.location.replace(loginHref);
+        };
         // 如果当前已经在登录页，就不弹了（精确匹配登录页完整路径，
         // 不能用 includes("/login")，否则会误匹配业务路由，如 /system/manage/login）
         const currentPath = window.location.pathname;
@@ -403,10 +454,10 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const isOnLoginPage =
           currentPath === __loginFullPath || currentPath === __loginFullPath + "/";
         if (action === "redirect") {
-          window.location.href = loginHref;
+          gotoLogin();
         } else if (!isOnLoginPage && !getAccessToken()) {
           // 本地压根没有令牌：属于未登录访客，弹窗只会反复打扰，直接静默去登录页
-          window.location.replace(loginHref);
+          gotoLogin();
         } else if (!isOnLoginPage) {
           // 防止多个请求同时 403 导致弹窗叠在一起
           if (!(window as any).__authDialogOpen) {
@@ -421,7 +472,7 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
                 type: "warning",
               }
             ).then(() => {
-              window.location.replace(loginHref);
+              gotoLogin();
             }).finally(() => {
               (window as any).__authDialogOpen = false;
             });

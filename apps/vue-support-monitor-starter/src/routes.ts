@@ -50,6 +50,25 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 数据中心 ====================
+  // 数据源中心独立成顶层分组，不再挂在「监控管理」下
+  {
+    path: "/grp-data",
+    name: "GroupData",
+    meta: { title: "数据中心", icon: "Coin", showLink: true, rank: 5 },
+    children: [
+      {
+        path: "/datasource",
+        name: "DataSource",
+        // 数据源已抽为独立包 @pages/datasource（后端 spring-support-datasource-hub-starter）。
+        // 本宿主用 ScDataCenterView 包一层：在共享页基础上注入「数据表」页签，
+        // 把数据库管理器并进来；共享页本身不认识宿主组件，采集台继续直接用它。
+        component: () => import("./views/ScDataCenterView.vue"),
+        meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
+      },
+    ],
+  },
+
   // ==================== 资产管理 ====================
   {
     path: "/grp-asset",
@@ -67,19 +86,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "FileAssets",
         component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
         meta: { title: "文件资产", icon: "Document", showLink: true, rank: 11 },
-      },
-      {
-        path: "/datasource",
-        name: "DataSource",
-        // 数据源已抽为独立包 @pages/datasource（后端 spring-support-datasource-hub-starter）
-        component: () => import("@pages/datasource/src/views/ScDataSourceView.vue"),
-        meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 11 },
-      },
-      {
-        path: "/db-manager",
-        name: "DbManager",
-        component: () => import("./views/DatabaseManagerView.vue"),
-        meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/datasource", rank: 12 },
       },
       {
         path: "/terminal",
@@ -205,6 +211,15 @@ export const monitorRoutes: RouteConfigsTable[] = [
     name: "Nginx",
     component: () => import("./views/NginxManageView.vue"),
     meta: { title: "Nginx 管理", icon: "Connection", showLink: false, activeMenu: "/datasource" },
+  },
+  {
+    // 数据库管理：由「数据源中心」页面内进入，仅注册路由不进侧边栏。
+    // 放在顶层隐藏区，才能被 getShowStaticAndDynamicMenuList 的顶层 isVisible=0 过滤掉；
+    // 挂在分组 children 下时该过滤不递归、菜单组件也不校验子项 showLink，会被渲染出来。
+    path: "/db-manager",
+    name: "DbManager",
+    component: () => import("./views/DatabaseManagerView.vue"),
+    meta: { title: "数据库管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
   },
   {
     path: "/discovery",

@@ -182,6 +182,25 @@ const lifeStory = computed(() => {
   return l.length ? l.join(" → ") : "暂无生活史数据";
 });
 
+/**
+ * 换物种、或切换 kind（讲解 ⇄ 小测 ⇄ 生活史）时复位步骤下标与作答。
+ *
+ * 这条不能省：讲解有 4 步、小测通常只有 2 题。停在讲解第 4 步再点「去做小测」，
+ * 旧下标 3 落进小测就越界，`question` 为 null，题面整块渲染不出来（面板空白，
+ * 且不报错）。上游用 key=`kind-source-species` 强制重挂载来回避，
+ * Vue 这里没有重挂载语义，改为显式复位。
+ *
+ * 必须排在下面那个「通知镜头」的 watcher 之前：后者读的是 step（依赖 index），
+ * 先复位才能让切换后的第一帧就把镜头对到新步骤的 anchor。
+ */
+watch(
+  () => [props.kind, props.insect?.insectCode] as const,
+  () => {
+    index.value = 0;
+    picked.value = null;
+  },
+);
+
 /** 讲解步骤带 anchor 时通知父级对镜头 */
 watch(
   () => [props.kind, index.value, props.insect?.insectCode] as const,

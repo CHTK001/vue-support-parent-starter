@@ -16,6 +16,26 @@ export interface PageResult<T> {
   rows?: T[];
 }
 
+/**
+ * 后端 `ReturnPageResult` 的内层信封
+ *
+ * <p>与普通 {@code ReturnResult}（{@code data} 直接就是分页体）不同，走
+ * {@code ReturnPageResult} 的端点（当前是 {@code /v2/ip/page}）响应是：</p>
+ *
+ * <pre>
+ * { code:"00000", data:{ code:0, msg:"success",
+ *                       data:{ total:6, data:[...] } } }
+ * </pre>
+ *
+ * <p>即<b>数组在 {@code data.data.data}、总数在 {@code data.data.total}</b>。
+ * 少剥一层会静默拿到 undefined，表格表现为「暂无数据」而不是报错。</p>
+ */
+export interface PageResultEnvelope<T> {
+  code?: number;
+  msg?: string;
+  data?: PageResult<T>;
+}
+
 /** 统一返回结构 */
 export interface ApiResult<T = unknown> {
   status?: number;
@@ -217,6 +237,8 @@ export interface SysMenu extends Auditable {
   sysMenuEngine?: number;
   /** 是否脱离菜单控制 0:作为菜单处理 1:只注册路由不被当作菜单 */
   sysMenuRemind?: number;
+  /** 菜单位置: standard标准(侧边栏) top顶部(顶栏按钮, 强制确认 remind=1 且不可修改) */
+  sysMenuPosition?: string;
   /** 动态显示条件类型 ALWAYS/CLASS/SPEL/SWITCH/PROPERTY */
   sysMenuShowType?: string;
   /** 条件值：类全名 / SpEL 表达式 / 配置键 */
@@ -1328,3 +1350,50 @@ export interface HotReloadConfig extends SysSetting {
   sysSettingCollect?: number;
   sysSettingAppInner?: number;
 }
+
+/* ================== 统一策略配置（灰度 / 功能开关） ================== */
+
+/**
+ * 统一策略配置（sys_policy_config 一行 = 一条配置）
+ *
+ * 列语义随 `type` 变化：
+ *   GRAY    灰度：bizKey 灰度键、weight 权重百分比、config 命中策略 JSON
+ *   FEATURE 功能开关：bizKey 功能键、status 即开关状态
+ *   IP / ACCOUNT / RATE_LIMIT 由各自的专用接口维护，页面不直接编辑
+ */
+export interface PolicyConfig {
+  sysPolicyConfigId?: number;
+  /** 策略类型: IP/RATE_LIMIT/ACCOUNT/GRAY/FEATURE/API_ROUTE */
+  type?: string;
+  /** 限流维度: interface/ip/account；非限流类型为空串 */
+  dimension?: string;
+  /** 名单方向: 1黑名单 2白名单；非名单类型为 0 */
+  listType?: number;
+  /** 业务键: 灰度键 / 功能键 */
+  bizKey?: string;
+  /** 宽列值 */
+  bizValue?: string;
+  /** 状态: 1启用 0禁用 */
+  status?: number;
+  /** QPS，仅 RATE_LIMIT */
+  qps?: number;
+  /** 突发容量，仅 RATE_LIMIT */
+  burstSize?: number;
+  /** 权重/百分比，仅 GRAY */
+  weight?: number;
+  /** 排序值，越小越靠前 */
+  sort?: number;
+  /** 类型特有配置(JSON) */
+  config?: string;
+  /** 备注 */
+  remark?: string;
+  createName?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/** 已注册路由（接口停用/转发的可选目标） */
+export interface RegisteredRoute {
+  /** 注册 key，形如 `GET /v2/user/me` */
+  key: string;
+  /** HTTP 方法

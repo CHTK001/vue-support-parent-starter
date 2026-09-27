@@ -15,6 +15,7 @@
       "types": "./src/themes/koi/framework.ts",
       "default": "./src/themes/koi/framework.ts"
     },
+    "./koi/*.ts": "./src/themes/koi/*.ts",
     "./koi/*": "./src/themes/koi/*",
     "./*": "./src/*",
     "./*.ts": "./src/*.ts",
@@ -43,7 +44,6 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
-    "@pages/system": "workspace:*",
     "@repo/assets": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",

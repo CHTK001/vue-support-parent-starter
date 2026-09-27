@@ -3,7 +3,6 @@
     <div class="ngs-bar">
       <ReInput
         :model-value="keyword"
-        size="small"
         style="width: 240px"
         placeholder="按域名 / 路径 / 后端搜索"
         @update:model-value="onKeyword"
@@ -36,8 +35,8 @@
         :description="sites.length ? '没有符合筛选条件的站点' : '没有找到任何 server 块。配置可能还没写，或放在了本工具没扫描到的路径下。'"
       />
       <div v-for="s in filtered" :key="`${s.file}#${s.nodePath}`" class="ngs-card" :class="{ 'has-warn': s.warnings.length }">
-        <div class="ngs-card-head">
-          <div class="ngs-name" :title="s.displayName">
+        <div class="ngx-card-head">
+          <div class="ngx-card-title" :title="s.displayName">
             <ReIcon :name="s.https ? 'Lock' : 'Link'" :size="14" />
             {{ s.displayName }}
           </div>
@@ -254,10 +253,11 @@ defineExpose({ load, sites });
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-lg, 12px);
   background: var(--el-bg-color);
+  transition: border-color var(--el-transition-duration, 0.15s) ease;
 
   &.has-warn {
     border-color: color-mix(in srgb, var(--el-color-warning) 40%, var(--el-border-color-lighter));
@@ -268,7 +268,8 @@ defineExpose({ load, sites });
   }
 }
 
-.ngs-card-head {
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -276,12 +277,13 @@ defineExpose({ load, sites });
   flex-wrap: wrap;
 }
 
-.ngs-name {
-  display: flex;
+.ngx-card-title {
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -299,6 +301,7 @@ defineExpose({ load, sites });
   display: flex;
   flex-direction: column;
   gap: 3px;
+  font-variant-numeric: tabular-nums;
 }
 
 .ngs-fact {
@@ -332,7 +335,7 @@ defineExpose({ load, sites });
   padding: 8px 10px 8px 24px;
   border-radius: var(--el-border-radius-base, 6px);
   background: color-mix(in srgb, var(--el-color-warning) 8%, transparent);
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.7;
   color: var(--el-text-color-regular);
 

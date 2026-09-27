@@ -27,7 +27,7 @@
       <el-table-column prop="name" label="名称" width="140" />
       <el-table-column label="类型" width="90">
         <template #default="{ row }">
-          <el-tag size="small" :type="row.type === 'temporary' ? 'warning' : ''">
+          <el-tag size="small" :type="tokenTagType(row.type)">
             {{ row.type === 'temporary' ? '临时' : '永久' }}
           </el-tag>
         </template>
@@ -116,6 +116,10 @@ import {
 } from '@vicons/fluent'
 
 const http = createClient(v2Http, { unwrap: false })
+
+/** el-tag 的 type 不接受空串，永久令牌用 info 区分 */
+const tokenTagType = (t: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' =>
+  t === 'temporary' ? 'warning' : 'info'
 const route = useRoute()
 const router = useRouter()
 const instanceId = String(route.query.instanceId ?? '')

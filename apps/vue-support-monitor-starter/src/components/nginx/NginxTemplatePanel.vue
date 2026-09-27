@@ -15,8 +15,8 @@
         :class="{ active: picked?.key === t.key }"
         @click="pick(t)"
       >
-        <div class="ngt-card-head">
-          <span class="ngt-card-title">{{ t.title }}</span>
+        <div class="ngx-card-head">
+          <span class="ngx-card-title">{{ t.title }}</span>
           <ReTag size="small" :type="t.difficulty === 'easy' ? 'success' : 'warning'">
             {{ t.difficulty === "easy" ? "简单" : "进阶" }}
           </ReTag>
@@ -282,11 +282,13 @@ defineExpose({ load, templates });
 }
 
 .ngt-card {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--el-bg-color);
   cursor: pointer;
-  transition: var(--el-transition-duration, 0.15s);
+  transition: border-color var(--el-transition-duration, 0.15s) ease,
+    background-color var(--el-transition-duration, 0.15s) ease;
 
   &:hover {
     border-color: var(--el-color-primary-light-5);
@@ -299,16 +301,21 @@ defineExpose({ load, templates });
   }
 }
 
-.ngt-card-head {
+/* 卡片头：与总览面板同名同款，保证跨面板一致 */
+.ngx-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.ngt-card-title {
+.ngx-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .ngt-summary {
@@ -320,7 +327,7 @@ defineExpose({ load, templates });
 
 .ngt-scene {
   margin-top: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
@@ -365,6 +372,7 @@ defineExpose({ load, templates });
   border-radius: 9999px;
   border: 1px solid currentColor;
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .ngw-body {
@@ -383,7 +391,7 @@ defineExpose({ load, templates });
 }
 
 .ngw-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
@@ -399,6 +407,7 @@ defineExpose({ load, templates });
   border: 1px solid var(--el-border-color-lighter);
   font-size: 12px;
   line-height: 1.6;
+  font-variant-numeric: tabular-nums;
   white-space: pre-wrap;
   word-break: break-all;
 }

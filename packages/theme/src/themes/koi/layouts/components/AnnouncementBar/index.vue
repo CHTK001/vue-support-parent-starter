@@ -2,14 +2,17 @@
 /**
  * 全局公告条组件
  *
- * 从后端获取当前用户可见的活跃公告列表，按 position 分组渲染。
- * 缓存 5 分钟到 localStorage，减少重复请求。
+ * 从已注入的公告接口（见 announcementApi 注册表）获取当前用户可见的活跃公告，
+ * 按 position 分组渲染。缓存 5 分钟到 localStorage，减少重复请求。
  * 支持关闭单条公告（关闭后当天不再显示）。
+ *
+ * 依赖方向：本组件不直接 import @pages/*；未注入实现时静默不请求。
  */
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { getConfig } from "@repo/config";
 import { Close } from "@element-plus/icons-vue";
 import useUserStore from "@repo/pinia/modules/user";
+import { getAnnouncementApi } from "../../../../../announcementApi";
 
 interface Announcement {
   sysAnnouncementId: number;
@@ -157,8 +160,9 @@ function dismiss(id: number) {
 /** 上报单条公告已读到服务端（best-effort，失败静默；本地关闭逻辑不受影响） */
 async function reportRead(id: number) {
   try {
-    const { markAnnouncementRead } = await import("@pages/system/api/announcementApi");
-    await markAnnouncementRead(id);
+    const api = getAnnouncementApi();
+    if (!api) return;
+    await api.markAnnouncementRead(id);
   } catch {
     /* ignore */
   }
@@ -172,6 +176,8 @@ function reportReads(list: Announcement[]) {
 }
 
 async function fetchAnnouncements(force = false) {
+  // 应用未注入公告实现（后端无该模块或未引入 @pages/system）：静默跳过，不发请求
+  if (!getAnnouncementApi()) return;
   const uk = userKey.value;
   // 失败短缓存（sessionStorage 持久化，HMR 不丢失）：后端异常期间不重复请求
   if (!force && readFailCache()) return;
@@ -195,8 +201,11 @@ async function fetchAnnouncements(force = false) {
   let inflight = inflights.get(uk);
   if (!inflight) {
     inflight = (async () => {
-      const { getActiveAnnouncements } = await import("@pages/system/api/announcementApi");
-      const res = await getActiveAnnouncements();
+      const api = getAnnouncementApi();
+      if (!api) {
+        return [] as Announcement[];
+      }
+      const res = await api.getActiveAnnouncements();
       const list = (res?.data ?? []) as Announcement[];
       writeCache(list);
       memCaches.set(uk, { list, timestamp: Date.now() });

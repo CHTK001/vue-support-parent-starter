@@ -1,138 +1,52 @@
 /**
- * 调度中心模块 API 封装（@pages/job）
+ * 调度中心接口层（job-starter 治理接口在采集宿主里的控制台出口）。
  *
- * 覆盖两个后端入口：
- *   1) 调度平台（/scheduler/api/v1/job-platform）—— 任务 CRUD、启停、触发、日志
- *   2) 调度控制台（/job-console/api）—— 命名空间、执行器
+ * 走 `/v2/scheduler/**`：它是带 `@Ignore` 的控制台出口，复用 job-starter 的
+ * `JobGovernanceService`，由采集控制台会话把关（`CollectConsoleAuthInterceptor`）。
+ * job-starter 自带的 `/v2/job/**` 要求平台统一认证，本宿主没接认证服务端，不要用。
  *
- * 使用 http() 链式调用，返回 Promise<ApiResult<T>>。
+ * 分页出参是 `PageResult`（`data` 直接是 {pageNo,pageSize,totalPages,total,data:[]}），
+ * http 层已逐层剥掉信封，所以这里拿到的是分页体本身。
  */
-import { http } from "@repo/utils";
-import type {
-  ApiResult,
-  JobEntity,
-  JobExecutor,
-  JobLogEntity,
-  JobNamespace,
-  JobPageResult,
-  SchedulerTaskUpdateRequest,
-  SchedulerTaskVO,
-} from "./types";
+import { get, post, put, del } from "./http";
+import type { JobExecutor, JobLog, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
 
-/* ================== 调度平台 ================== */
+const API = "/v2/scheduler";
 
-const JOB = "/scheduler/api/v1/job-platform";
+/** 工作台概览：角色、选主态、任务与日志计数 */
+export const getSummary = () => get<JobSummary>(`${API}/summary`);
 
-/** 任务分页 */
-export function pageForJob(params: {
-  pageNum?: number;
-  pageSize?: number;
-  jobName?: string;
-  triggerStatus?: number;
-  group?: string;
-}) {
-  return http()
-    .get(`${JOB}/job/page`)
-    .query(params as Record<string, unknown>)
-    .then<ApiResult<JobPageResult<JobEntity>>>((r) => r.data);
-}
+/** 任务运行态分页 */
+export const pageJobs = (query: JobQuery) => get<JobPage<JobRuntime>>(`${API}/page`, { ...query });
 
-/** 任务详情 */
-export function getJob(jobId: number) {
-  return http().get(`${JOB}/job/${jobId}`).then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 按任务键取运行态 */
+export const getJob = (jobKey: string) => get<JobRuntime>(`${API}/detail/${encodeURIComponent(jobKey)}`);
 
-/** 新增任务 */
-export function createJob(data: JobEntity) {
-  return http()
-    .post(`${JOB}/job`)
-    .data(data as Record<string, unknown>)
-    .then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 登记或更新任务（调度配置与启停一次写入） */
+export const saveJob = (job: JobSave) => post<boolean>(`${API}/save`, job);
 
-/** 更新任务 */
-export function updateJob(jobId: number, data: JobEntity) {
-  return http()
-    .put(`${JOB}/job/${jobId}`)
-    .data(data as Record<string, unknown>)
-    .then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 启停自动调度 */
+export const setJobStatus = (jobKey: string, enabled: boolean) =>
+  put<boolean>(`${API}/status`, { jobKey, enabled });
 
-/** 删除任务 */
-export function deleteJob(jobId: number) {
-  return http().delete(`${JOB}/job/${jobId}`).then<ApiResult<JobEntity>>((r) => r.data);
-}
+/**
+ * 立即派发一次：经 JobOperator 命令通道投递，不改变启停状态。
+ * 页面对停用的任务禁用该按钮——停用的任务不该被点一下就跑。
+ */
+export const triggerJob = (jobKey: string) => post<boolean>(`${API}/trigger`, undefined, { jobKey });
 
-/** 恢复任务 */
-export function restoreJob(jobId: number) {
-  return http().post(`${JOB}/job/${jobId}/restore`).then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 删除任务（先停调度再删台账行） */
+export const deleteJob = (jobKey: string) => del<boolean>(`${API}/${encodeURIComponent(jobKey)}`);
 
-/** 启动任务 */
-export function startJob(jobId: number) {
-  return http().post(`${JOB}/job/${jobId}/start`).then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 本节点已注册执行器清单：@Job 扫描 + 三方编程式注入 */
+export const listExecutors = () => get<JobExecutor[]>(`${API}/executors`);
 
-/** 停止任务 */
-export function stopJob(jobId: number) {
-  return http().post(`${JOB}/job/${jobId}/stop`).then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 在线执行器节点清单：远程作业页用（节点身份 / 长链地址 / 处理器） */
+export const listNodes = () => get<JobNode[]>(`${API}/nodes`);
 
-/** 手动触发任务 */
-export function triggerJob(jobId: number, param?: string) {
-  return http()
-    .post(`${JOB}/job/${jobId}/trigger`)
-    .data(param !== undefined ? { param } : {})
-    .then<ApiResult<JobEntity>>((r) => r.data);
-}
+/** 执行日志分页（按触发时刻倒序） */
+export const pageJobLogs = (query: JobLogQuery) => get<JobPage<JobLog>>(`${API}/log/page`, { ...query });
 
-/** 任务日志分页 */
-export function pageForJobLog(params: {
-  pageNum?: number;
-  pageSize?: number;
-  beanName?: string;
-  executeCode?: string;
-  group?: string;
-}) {
-  return http()
-    .get(`${JOB}/job-log/page`)
-    .query(params as Record<string, unknown>)
-    .then<ApiResult<JobPageResult<JobLogEntity>>>((r) => r.data);
-}
-
-/** 任务列表（运行态） */
-export function listSchedulerTasks(params?: { includeDeleted?: boolean; group?: string }) {
-  return http()
-    .get(`${JOB}/task/list`)
-    .query((params ?? {}) as Record<string, unknown>)
-    .then<ApiResult<SchedulerTaskVO[]>>((r) => r.data);
-}
-
-/** 更新任务（运行态） */
-export function updateSchedulerTask(taskKey: string, data: SchedulerTaskUpdateRequest) {
-  return http()
-    .put(`${JOB}/task/${taskKey}`)
-    .data(data as Record<string, unknown>)
-    .then<ApiResult<SchedulerTaskVO>>((r) => r.data);
-}
-
-/** 触发任务（运行态） */
-export function triggerSchedulerTask(taskKey: string) {
-  return http().post(`${JOB}/task/${taskKey}/trigger`).then<ApiResult<SchedulerTaskVO>>((r) => r.data);
-}
-
-/* ================== 调度控制台 ================== */
-
-const CONSOLE = "/job-console/api";
-
-/** 命名空间列表 */
-export function listNamespaces() {
-  return http().get(`${CONSOLE}/namespaces`).then<ApiResult<JobNamespace[]>>((r) => r.data);
-}
-
-/** 指定命名空间的执行器列表 */
-export function listExecutors(namespace: string) {
-  return http()
-    .get(`${CONSOLE}/${encodeURIComponent(namespace)}/executors`)
-    .then<ApiResult<JobExecutor[]>>((r) => r.data);
-}
+/** 清理执行日志，retentionDays=0 表示清空全部 */
+export const cleanupJobLogs = (retentionDays: number) =>
+  post<number>(`${API}/log/cleanup`, undefined, { retentionDays });

@@ -14,12 +14,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type PropType } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   label: { type: String, default: '' },
-  size: { type: String, default: 'default' },
+  size: { type: String as PropType<'' | 'small' | 'default' | 'large'>, default: 'default' },
   disabled: { type: Boolean, default: false },
   activeText: { type: String, default: '' },
   inactiveText: { type: String, default: '' },

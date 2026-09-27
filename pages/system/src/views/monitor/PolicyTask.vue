@@ -14,28 +14,42 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import {
   applyRateLimitGlobal,
+  countPolicyConfig,
   deleteAccountBw,
   deleteIp,
+  deletePolicyConfig,
   deleteRateLimit,
   getRateLimitGlobal,
+  listFeatureStates,
   listHotReload,
   listRateLimit,
+  listRegisteredFeatures,
+  listApiRouteTargets,
   pageForAccountBw,
   pageForIp,
+  pagePolicyConfig,
+  refreshApiRoute,
   reloadHotReload,
   saveAccountBw,
   saveHotReload,
   saveIp,
+  savePolicyConfig,
   saveRateLimit,
+  togglePolicyConfig,
   updateAccountBw,
   updateIp,
+  updatePolicyConfig,
   updateRateLimit,
 } from "../../api/systemApi";
 import type {
   AccountBlackwhite,
+  ApiRouteAction,
+  ApiRouteRuleConfig,
   HotReloadConfig,
+  PolicyConfig,
   RateLimitGlobal,
   RateLimitRule,
+  RegisteredRoute,
   SysIpBlackwhite,
 } from "../../api/types";
 import type {
@@ -46,7 +60,7 @@ import type {
 } from "@repo/ui/re-table";
 import ReTab from "@repo/ui/re-tab";
 
-type MainTabName = "overview" | "hotreload" | "ratelimit" | "blackwhite";
+type MainTabName = "overview" | "hotreload" | "ratelimit" | "blackwhite" | "gray" | "feature" | "route";
 type RateDimension = NonNullable<RateLimitRule["dimension"]>;
 type BlackWhiteTabName = "ip" | "account";
 type AccountType = NonNullable<AccountBlackwhite["type"]>;
@@ -99,6 +113,9 @@ const loadedMainTabs = ref<Record<MainTabName, boolean>>({
   hotreload: false,
   ratelimit: false,
   blackwhite: false,
+  gray: false,
+  feature: false,
+  route: false,
 });
 
 const mainTabs = [
@@ -106,6 +123,9 @@ const mainTabs = [
   { name: "hotreload", label: "热更新配置", caption: "运行时参数", icon: "Setting" },
   { name: "ratelimit", label: "限流策略", caption: "QPS 与规则", icon: "Stopwatch" },
   { name: "blackwhite", label: "访问名单", caption: "IP 与账号", icon: "User" },
+  { name: "gray", label: "灰度配置", caption: "流量切分", icon: "DataAnalysis" },
+  { name: "feature", label: "功能开关", caption: "在线开关", icon: "SwitchButton" },
+  { name: "route", label: "接口管控", caption: "停用与转发", icon: "Link" },
 ];
 const rateTabs = [
   { name: "interface", label: "接口维度" },
@@ -268,6 +288,489 @@ const hrColumns: ReTableColumn[] = [
   { prop: "sysSettingRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
   { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right", align: "center" },
 ];
+
+/* ==================== 灰度配置 ==================== */
+const grayTableRef = ref<TableReloadRef>();
+const grayList = ref<PolicyConfig[]>([]);
+const grayLoading = ref(false);
+const grayTotal = ref(0);
+const grayToggleLoadingId = ref<number | null>(null);
+const grayDeleteLoadingId = ref<number | null>(null);
+const grayDialogVisible = ref(false);
+const graySaving = ref(false);
+const grayIsEdit = ref(false);
+const grayForm = ref<PolicyConfig>({});
+const grayQuery = ref({ page: 1, pageSize: 10, bizKey: "" });
+
+/** 灰度配置列 */
+const grayColumns: ReTableColumn[] = [
+  { prop: "bizKey", label: "灰度键", minWidth: 200, showOverflowTooltip: true },
+  { prop: "weight", label: "权重%", width: 100, align: "center" },
+  { prop: "config", label: "命中策略(JSON)", minWidth: 240, showOverflowTooltip: true },
+  { prop: "status", label: "状态", width: 100, slot: "status", align: "center" },
+  { prop: "remark", label: "备注", minWidth: 160, showOverflowTooltip: true },
+  { prop: "action", label: "操作", width: 190, slot: "action", fixed: "right", align: "center" },
+];
+
+/**
+ * 加载灰度配置分页
+ *
+ * <p>同 {@link loadFeature}：必须是 {@link ReTable} loader 契约，返回分页结果并使用传入的
+ * page/pageSize，否则表格空白。</p>
+ */
+async function loadGray(params?: ReTableLoadParams): Promise<RePageResult> {
+  grayLoading.value = true;
+  try {
+    const res = await pagePolicyConfig({
+      type: "GRAY",
+      page: params?.page ?? grayQuery.value.page,
+      pageSize: params?.pageSize ?? grayQuery.value.pageSize,
+      bizKey: grayQuery.value.bizKey || undefined,
+    });
+    const records = (res.data?.records ?? []) as PolicyConfig[];
+    grayList.value = records;
+    grayTotal.value = res.data?.total ?? 0;
+    return { total: res.data?.total ?? 0, data: records as Record<string, unknown>[] };
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "灰度配置加载失败");
+    throw error;
+  } finally {
+    grayLoading.value = false;
+  }
+}
+
+/** 打开新增灰度弹窗 */
+function handleGrayAdd(): void {
+  grayIsEdit.value = false;
+  grayForm.value = { type: "GRAY", dimension: "", listType: 0, status: 1, weight: 10, config: "{}", sort: 0 };
+  grayDialogVisible.value = true;
+}
+
+/** 打开编辑灰度弹窗 */
+function handleGrayEdit(row: PolicyConfig): void {
+  grayIsEdit.value = true;
+  grayForm.value = { ...row };
+  grayDialogVisible.value = true;
+}
+
+/** 保存灰度配置 */
+async function handleGraySubmit(): Promise<void> {
+  if (!grayForm.value.bizKey) {
+    ElMessage.warning("请填写灰度键");
+    return;
+  }
+  if (grayForm.value.config) {
+    try {
+      JSON.parse(grayForm.value.config);
+    } catch {
+      ElMessage.warning("命中策略必须是合法 JSON");
+      return;
+    }
+  }
+  graySaving.value = true;
+  try {
+    if (grayIsEdit.value) {
+      await updatePolicyConfig(grayForm.value);
+      ElMessage.success("灰度配置已更新");
+    } else {
+      await savePolicyConfig(grayForm.value);
+      ElMessage.success("灰度配置已创建");
+    }
+    grayDialogVisible.value = false;
+    // 走 ReTable 实例 reload()，与 IP 名单表一致；直接调 loadGray() 不会让表格重绘
+    await grayTableRef.value?.reload();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "保存失败");
+  } finally {
+    graySaving.value = false;
+  }
+}
+
+/** 切换灰度启停 */
+async function handleGrayToggle(row: PolicyConfig, value: boolean | string | number): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  grayToggleLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await togglePolicyConfig(row.sysPolicyConfigId, value ? 1 : 0);
+    ElMessage.success(value ? "已启用" : "已停用");
+    await grayTableRef.value?.reload();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "切换失败");
+  } finally {
+    grayToggleLoadingId.value = null;
+  }
+}
+
+/** 删除灰度配置 */
+async function handleGrayDelete(row: PolicyConfig): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  try {
+    await ElMessageBox.confirm(`确认删除灰度配置「${row.bizKey}」？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  grayDeleteLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await deletePolicyConfig(row.sysPolicyConfigId);
+    ElMessage.success("已删除");
+    await loadGray();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "删除失败");
+  } finally {
+    grayDeleteLoadingId.value = null;
+  }
+}
+
+/* ==================== 功能开关 ==================== */
+const featureTableRef = ref<TableReloadRef>();
+const featureList = ref<PolicyConfig[]>([]);
+const featureLoading = ref(false);
+const featureTotal = ref(0);
+const featureToggleLoadingId = ref<number | null>(null);
+const featureDeleteLoadingId = ref<number | null>(null);
+const registeredFeatures = ref<string[]>([]);
+const featureDialogVisible = ref(false);
+const featureSaving = ref(false);
+const featureIsEdit = ref(false);
+const featureForm = ref<PolicyConfig>({});
+const featureQuery = ref({ page: 1, pageSize: 10, bizKey: "" });
+
+/** 功能开关列 */
+const featureColumns: ReTableColumn[] = [
+  { prop: "bizKey", label: "功能键", minWidth: 220, showOverflowTooltip: true },
+  { prop: "registered", label: "注解是否注册", width: 140, slot: "registered", align: "center" },
+  { prop: "status", label: "开关", width: 110, slot: "status", align: "center" },
+  { prop: "remark", label: "备注", minWidth: 180, showOverflowTooltip: true },
+  { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "center" },
+];
+
+/**
+ * 加载功能开关分页 + 框架侧已注册功能点
+ *
+ * <p>必须是 {@link ReTable} 的 loader 契约：接收 `ReTableLoadParams`、用<b>传入的</b>
+ * page/pageSize（不是本地 ref，否则 ReTable 内部翻页不生效）、<b>返回</b>分页结果。
+ * 写成 `Promise&lt;void&gt;` + 往本地 ref 塞数据，表格会永远空白 ——
+ * ReTable 只认 loader 的返回值，不读外部 ref。</p>
+ */
+async function loadFeature(params?: ReTableLoadParams): Promise<RePageResult> {
+  featureLoading.value = true;
+  try {
+    const [pageRes, reg] = await Promise.all([
+      pagePolicyConfig({
+        type: "FEATURE",
+        page: params?.page ?? featureQuery.value.page,
+        pageSize: params?.pageSize ?? featureQuery.value.pageSize,
+        bizKey: featureQuery.value.bizKey || undefined,
+      }),
+      listRegisteredFeatures(),
+    ]);
+    registeredFeatures.value = reg.data ?? [];
+    featureTotal.value = pageRes.data?.total ?? 0;
+    featureList.value = pageRes.data?.records ?? [];
+    return {
+      total: pageRes.data?.total ?? 0,
+      data: (pageRes.data?.records ?? []) as Record<string, unknown>[],
+    };
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "功能开关加载失败");
+    throw error;
+  } finally {
+    featureLoading.value = false;
+  }
+}
+
+/** 打开新增功能开关弹窗 */
+function handleFeatureAdd(): void {
+  featureIsEdit.value = false;
+  featureForm.value = { type: "FEATURE", dimension: "", listType: 0, status: 1, sort: 0 };
+  featureDialogVisible.value = true;
+}
+
+/** 打开编辑功能开关弹窗 */
+function handleFeatureEdit(row: PolicyConfig): void {
+  featureIsEdit.value = true;
+  featureForm.value = { ...row };
+  featureDialogVisible.value = true;
+}
+
+/** 保存功能开关 */
+async function handleFeatureSubmit(): Promise<void> {
+  if (!featureForm.value.bizKey) {
+    ElMessage.warning("请填写功能键");
+    return;
+  }
+  featureSaving.value = true;
+  try {
+    if (featureIsEdit.value) {
+      await updatePolicyConfig(featureForm.value);
+      ElMessage.success("功能开关已更新");
+    } else {
+      await savePolicyConfig(featureForm.value);
+      ElMessage.success("功能开关已创建");
+    }
+    featureDialogVisible.value = false;
+    await loadFeature();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "保存失败");
+  } finally {
+    featureSaving.value = false;
+  }
+}
+
+/** 切换功能开关 */
+async function handleFeatureToggle(row: PolicyConfig, value: boolean | string | number): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  featureToggleLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await togglePolicyConfig(row.sysPolicyConfigId, value ? 1 : 0);
+    ElMessage.success(value ? "已开启" : "已关闭");
+    await loadFeature();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "切换失败");
+  } finally {
+    featureToggleLoadingId.value = null;
+  }
+}
+
+/** 删除功能开关 */
+async function handleFeatureDelete(row: PolicyConfig): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  try {
+    await ElMessageBox.confirm(`确认删除功能开关「${row.bizKey}」？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  featureDeleteLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await deletePolicyConfig(row.sysPolicyConfigId);
+    ElMessage.success("已删除");
+    await loadFeature();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "删除失败");
+  } finally {
+    featureDeleteLoadingId.value = null;
+  }
+}
+
+/** 功能键是否已在注解侧注册（未注册时在线开关不会生效，需给管理员提示） */
+function isFeatureRegistered(bizKey?: string): boolean {
+  return !!bizKey && registeredFeatures.value.includes(bizKey);
+}
+
+/* ==================== 接口停用 / 转发 ==================== */
+const routeTableRef = ref<TableReloadRef>();
+const routeList = ref<PolicyConfig[]>([]);
+const routeLoading = ref(false);
+const routeTotal = ref(0);
+const routeToggleLoadingId = ref<number | null>(null);
+const routeDeleteLoadingId = ref<number | null>(null);
+const routeTargets = ref<RegisteredRoute[]>([]);
+const routeTargetLoading = ref(false);
+const routeIndexCount = ref(0);
+const routeRefreshLoading = ref(false);
+const routeDialogVisible = ref(false);
+const routeSaving = ref(false);
+const routeIsEdit = ref(false);
+const routeForm = ref<PolicyConfig>({});
+const routeRule = ref<ApiRouteRuleConfig>({ action: "DISABLE", status: 503 });
+const routeQuery = ref({ page: 1, pageSize: 10, bizKey: "" });
+
+const routeActions: Array<{ label: string; value: ApiRouteAction }> = [
+  { label: "停用（直接拒绝）", value: "DISABLE" },
+  { label: "转发（换到另一个接口）", value: "FORWARD" },
+];
+
+/** 接口停用/转发列 */
+const routeColumns: ReTableColumn[] = [
+  { prop: "bizKey", label: "接口路径", minWidth: 240, showOverflowTooltip: true },
+  { prop: "actionText", label: "动作", width: 110, slot: "actionText", align: "center" },
+  { prop: "targetText", label: "转发目标", minWidth: 240, showOverflowTooltip: true },
+  { prop: "status", label: "生效", width: 100, slot: "status", align: "center" },
+  { prop: "remark", label: "备注", minWidth: 160, showOverflowTooltip: true },
+  { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "center" },
+];
+
+/** 解析一行规则，解析失败按放行展示，不让坏数据把页面白屏 */
+function parseRouteRule(config?: string): ApiRouteRuleConfig {
+  if (!config) return { action: "PASS" };
+  try {
+    // 不用 `{ action: "PASS", ...parsed }`：展开在后面会把前面的默认值整个盖掉，
+    // TS 也会判成 TS2783（action 被指定两次）。默认值改成对解析结果兜底，语义一致且不报歧义。
+    const parsed = JSON.parse(config) as ApiRouteRuleConfig;
+    return { ...parsed, action: parsed.action ?? "PASS" };
+  } catch {
+    return { action: "PASS" };
+  }
+}
+
+function routeActionText(row: PolicyConfig): string {
+  const action = parseRouteRule(row.config).action;
+  if (action === "DISABLE") return "停用";
+  if (action === "FORWARD") return "转发";
+  return "放行";
+}
+
+function routeTargetText(row: PolicyConfig): string {
+  const rule = parseRouteRule(row.config);
+  if (rule.action !== "FORWARD") return "-";
+  const target = routeTargets.value.find((item) => item.key === rule.targetKey);
+  return target ? `${target.key}  (${target.handler})` : (rule.targetKey || "-");
+}
+
+/**
+ * 加载接口停用/转发分页 + 可选目标路由
+ *
+ * <p>同 {@link loadFeature}：必须返回 {@link RePageResult}，且用传入的 page/pageSize。</p>
+ */
+async function loadRoute(params?: ReTableLoadParams): Promise<RePageResult> {
+  routeLoading.value = true;
+  try {
+    const pageRes = await pagePolicyConfig({
+      type: "API_ROUTE",
+      page: params?.page ?? routeQuery.value.page,
+      pageSize: params?.pageSize ?? routeQuery.value.pageSize,
+      bizKey: routeQuery.value.bizKey || undefined,
+    });
+    const records = (pageRes.data?.records ?? []) as PolicyConfig[];
+    routeList.value = records;
+    routeTotal.value = pageRes.data?.total ?? 0;
+    await loadRouteTargets();
+    return { total: pageRes.data?.total ?? 0, data: records as Record<string, unknown>[] };
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "接口停用/转发加载失败");
+    throw error;
+  } finally {
+    routeLoading.value = false;
+  }
+}
+
+/** 加载可转发的已注册路由 */
+async function loadRouteTargets(keyword?: string): Promise<void> {
+  routeTargetLoading.value = true;
+  try {
+    const res = await listApiRouteTargets(keyword);
+    routeTargets.value = res.data ?? [];
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "已注册路由加载失败");
+  } finally {
+    routeTargetLoading.value = false;
+  }
+}
+
+/** 重新采集已注册路由并重载规则 */
+async function handleRouteRefresh(): Promise<void> {
+  routeRefreshLoading.value = true;
+  try {
+    const res = await refreshApiRoute();
+    routeIndexCount.value = res.data?.routeCount ?? 0;
+    ElMessage.success(`已重载：路由 ${res.data?.routeCount ?? 0} 条，规则 ${res.data?.policyCount ?? 0} 条`);
+    await loadRouteTargets();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "重载失败");
+  } finally {
+    routeRefreshLoading.value = false;
+  }
+}
+
+function handleRouteAdd(): void {
+  routeIsEdit.value = false;
+  routeForm.value = { type: "API_ROUTE", dimension: "", listType: 0, status: 1, sort: 0 };
+  routeRule.value = { action: "DISABLE", status: 503, message: "接口已停用，请稍后再试" };
+  routeDialogVisible.value = true;
+}
+
+function handleRouteEdit(row: PolicyConfig): void {
+  routeIsEdit.value = true;
+  routeForm.value = { ...row };
+  routeRule.value = parseRouteRule(row.config);
+  routeDialogVisible.value = true;
+}
+
+/** 动作切换时补齐默认值 */
+function handleRouteActionChange(action: ApiRouteAction): void {
+  if (action === "FORWARD") {
+    routeRule.value.status = undefined;
+    routeRule.value.message = undefined;
+    routeRule.value.targetKey = routeRule.value.targetKey || routeTargets.value[0]?.key;
+  } else {
+    routeRule.value.targetKey = undefined;
+    routeRule.value.status = routeRule.value.status ?? 503;
+    routeRule.value.message = routeRule.value.message ?? "接口已停用，请稍后再试";
+  }
+}
+
+async function handleRouteSubmit(): Promise<void> {
+  if (!routeForm.value.bizKey) {
+    ElMessage.warning("请填写接口路径");
+    return;
+  }
+  if (!routeForm.value.bizKey.startsWith("/")) {
+    ElMessage.warning("接口路径必须以 / 开头");
+    return;
+  }
+  if (routeRule.value.action === "FORWARD" && !routeRule.value.targetKey) {
+    ElMessage.warning("请选择转发目标");
+    return;
+  }
+  const payload: PolicyConfig = {
+    ...routeForm.value,
+    type: "API_ROUTE",
+    listType: 0,
+    config: JSON.stringify(routeRule.value),
+  };
+  routeSaving.value = true;
+  try {
+    if (routeIsEdit.value) {
+      await updatePolicyConfig(payload);
+      ElMessage.success("规则已更新");
+    } else {
+      await savePolicyConfig(payload);
+      ElMessage.success("规则已创建");
+    }
+    routeDialogVisible.value = false;
+    // 必须走 ReTable 实例的 reload()，不能直接调 loadRoute()：
+    // 直接调只是重取数据并写回本地 ref，ReTable 不会因此重绘，
+    // 表现为「保存成功但列表不刷新 / 切页后行消失」。与 IP 名单表保持同一机制。
+    await routeTableRef.value?.reload();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "保存失败");
+  } finally {
+    routeSaving.value = false;
+  }
+}
+
+async function handleRouteToggle(row: PolicyConfig, value: boolean | string | number): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  routeToggleLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await togglePolicyConfig(row.sysPolicyConfigId, value ? 1 : 0);
+    ElMessage.success(value ? "已生效" : "已停用");
+    await routeTableRef.value?.reload();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "切换失败");
+  } finally {
+    routeToggleLoadingId.value = null;
+  }
+}
+
+async function handleRouteDelete(row: PolicyConfig): Promise<void> {
+  if (row.sysPolicyConfigId == null) return;
+  try {
+    await ElMessageBox.confirm(`确认删除「${row.bizKey}」的停用/转发规则？`, "删除确认", { type: "warning" });
+  } catch {
+    return;
+  }
+  routeDeleteLoadingId.value = row.sysPolicyConfigId;
+  try {
+    await deletePolicyConfig(row.sysPolicyConfigId);
+    ElMessage.success("已删除");
+    await routeTableRef.value?.reload();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "删除失败");
+  } finally {
+    routeDeleteLoadingId.value = null;
+  }
+}
 
 /* ==================== 限流配置 ==================== */
 const globalConfig = ref<RateLimitGlobal>({
@@ -815,6 +1318,18 @@ async function handleMainTabChange(name: string): Promise<void> {
   if (tab === "ratelimit" && !loadedMainTabs.value.ratelimit) {
     await loadRateWorkspace();
   }
+  if (tab === "gray" && !loadedMainTabs.value.gray) {
+    loadedMainTabs.value.gray = true;
+    await loadGray();
+  }
+  if (tab === "feature" && !loadedMainTabs.value.feature) {
+    loadedMainTabs.value.feature = true;
+    await loadFeature();
+  }
+  if (tab === "route" && !loadedMainTabs.value.route) {
+    loadedMainTabs.value.route = true;
+    await loadRoute();
+  }
 }
 
 function handleRateTabChange(): void {
@@ -1089,8 +1604,9 @@ onMounted(() => {
           </ReTable>
         </section>
 
-        <!-- 黑白名单 -->
-        <section v-else class="policy-view">
+        <!-- 黑白名单。用显式 v-else-if 而非 v-else：v-else 后面不能再挂 v-else-if，
+             留出位置给后面的灰度/功能开关分支 -->
+        <section v-else-if="activeMainTab === 'blackwhite'" class="policy-view">
           <div class="policy-view__head">
             <div>
               <span class="policy-section__eyebrow">ACCESS CONTROL</span>
@@ -1110,18 +1626,6 @@ onMounted(() => {
           <ReTab v-model="bwTab" :tabs="bwTabs" variant="capsule" nav-only class="policy-subnav" @tab-change="isBlackWhiteLoaded" />
 
           <template v-if="bwTab === 'ip'">
-            <div class="policy-search">
-              <ReSearch
-                v-model="ipSearchModel"
-                :filters="ipSearchFilters"
-                title="筛选 IP 规则"
-                btn-mode="text"
-                @search="handleIpSearch"
-                @reset="handleIpReset"
-              />
-              <span>支持 IPv4 与 CIDR</span>
-            </div>
-
             <ReTable
               ref="ipTableRef"
               table-id="policy-ip"
@@ -1161,18 +1665,6 @@ onMounted(() => {
           </template>
 
           <template v-else>
-            <div class="policy-search">
-              <ReSearch
-                v-model="accSearchModel"
-                :filters="accSearchFilters"
-                title="筛选账号规则"
-                btn-mode="text"
-                @search="handleAccSearch"
-                @reset="handleAccReset"
-              />
-              <span>黑名单优先于白名单判断</span>
-            </div>
-
             <ReTable
               ref="accTableRef"
               table-id="policy-account"
@@ -1210,6 +1702,219 @@ onMounted(() => {
               </template>
             </ReTable>
           </template>
+        </section>
+
+        <!-- 灰度配置 -->
+        <section v-else-if="activeMainTab === 'gray'" class="policy-view">
+          <div class="policy-view__head">
+            <div>
+              <span class="policy-section__eyebrow">GRAY RELEASE</span>
+              <h2>灰度配置</h2>
+              <p>按业务键维护灰度规则：权重决定放量比例，命中策略以 JSON 描述用户/角色/IP 等条件。</p>
+            </div>
+            <ReButton layout="modern" type="primary" icon="Plus" @click="handleGrayAdd">新增灰度</ReButton>
+          </div>
+
+          <div class="policy-contract">
+            <div class="policy-contract__icon"><el-icon :size="18"><InfoFilled /></el-icon></div>
+            <div>
+              <b>配置落点</b>
+              <span>
+                一行为一条配置，存于统一策略表 <code>type=GRAY</code>；顺序按 sort 升序、创建时间降序。
+              </span>
+            </div>
+            <ReTag effect="plain" round size="small">/v2/policy/config/page?type=GRAY</ReTag>
+          </div>
+
+          <ReTable
+            ref="grayTableRef"
+            :loader="loadGray"
+            :columns="grayColumns"
+            :pagination="true"
+            :params="grayQuery"
+            row-key="sysPolicyConfigId"
+            :total="grayTotal"
+            v-model:page="grayQuery.page"
+            v-model:page-size="grayQuery.pageSize"
+            :toolbar-config="TABLE_TOOLBAR"
+            empty-text="暂无灰度配置"
+          >
+            <template #status="{ row }">
+              <ReSwitch
+                layout="square"
+                :model-value="(row as PolicyConfig).status === 1"
+                :disabled="grayToggleLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                :aria-label="`启用灰度 ${(row as PolicyConfig).bizKey ?? ''}`"
+                @update:model-value="(v: boolean | string | number) => handleGrayToggle(row as PolicyConfig, v)"
+              />
+            </template>
+            <template #action="{ row }">
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleGrayEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton
+                layout="square"
+                type="danger"
+                icon="Delete"
+                :loading="grayDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                @click="handleGrayDelete(row as PolicyConfig)"
+              >
+                删除
+              </ReButton>
+            </template>
+          </ReTable>
+        </section>
+
+        <!-- 功能开关 -->
+        <section v-else-if="activeMainTab === 'feature'" class="policy-view">
+          <div class="policy-view__head">
+            <div>
+              <span class="policy-section__eyebrow">FEATURE FLAG</span>
+              <h2>功能开关</h2>
+              <p>在线控制 <code>@ApiFeature</code> 声明的功能点；启动时会按本表状态覆盖注解默认值。</p>
+            </div>
+            <ReButton layout="modern" type="primary" icon="Plus" @click="handleFeatureAdd">新增开关</ReButton>
+          </div>
+
+          <div class="policy-contract">
+            <div class="policy-contract__icon"><el-icon :size="18"><InfoFilled /></el-icon></div>
+            <div>
+              <b>生效前提</b>
+              <span>
+                只有「注解是否注册」为已注册的功能键，在线开关才会被运行时采纳；未注册的键会被忽略并记一条 warn。
+              </span>
+              <template v-if="registeredFeatures.length">
+                当前已注册 {{ registeredFeatures.length }} 个功能点。
+              </template>
+            </div>
+            <ReTag effect="plain" round size="small">/v2/policy/feature/list</ReTag>
+          </div>
+
+          <ReTable
+            ref="featureTableRef"
+            :loader="loadFeature"
+            :columns="featureColumns"
+            :pagination="true"
+            :params="featureQuery"
+            row-key="sysPolicyConfigId"
+            :total="featureTotal"
+            v-model:page="featureQuery.page"
+            v-model:page-size="featureQuery.pageSize"
+            :toolbar-config="TABLE_TOOLBAR"
+            empty-text="暂无功能开关"
+          >
+            <template #registered="{ row }">
+              <ReTag
+                :type="isFeatureRegistered((row as PolicyConfig).bizKey) ? 'success' : 'info'"
+                effect="light"
+                round
+                size="small"
+              >
+                {{ isFeatureRegistered((row as PolicyConfig).bizKey) ? "已注册" : "未注册" }}
+              </ReTag>
+            </template>
+            <template #status="{ row }">
+              <ReSwitch
+                layout="square"
+                :model-value="(row as PolicyConfig).status === 1"
+                :disabled="featureToggleLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                :aria-label="`开关 ${(row as PolicyConfig).bizKey ?? ''}`"
+                @update:model-value="(v: boolean | string | number) => handleFeatureToggle(row as PolicyConfig, v)"
+              />
+            </template>
+            <template #action="{ row }">
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleFeatureEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton
+                layout="square"
+                type="danger"
+                icon="Delete"
+                :loading="featureDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                @click="handleFeatureDelete(row as PolicyConfig)"
+              >
+                删除
+              </ReButton>
+            </template>
+          </ReTable>
+        </section>
+
+        <section v-else-if="activeMainTab === 'route'" class="policy-view">
+          <div class="policy-view__head">
+            <div>
+              <span class="policy-section__eyebrow">API ROUTE</span>
+              <h2>接口管控</h2>
+              <p>在线停用接口，或把一个接口的流量转发到另一个已注册接口。规则改动立即对全节点生效。</p>
+            </div>
+            <div class="policy-view__actions">
+              <ReButton
+                layout="modern"
+                :loading="routeRefreshLoading"
+                icon="Refresh"
+                @click="handleRouteRefresh"
+              >
+                重载路由索引
+              </ReButton>
+              <ReButton layout="modern" type="primary" icon="Plus" @click="handleRouteAdd">新增规则</ReButton>
+            </div>
+          </div>
+
+          <div class="policy-contract">
+            <div class="policy-contract__icon"><el-icon :size="18"><InfoFilled /></el-icon></div>
+            <div>
+              <b>转发目标只能来自应用内已注册路由</b>
+              <span>
+                目标不是手填的地址，而是由服务端从 Spring 已注册的
+                <code>@RequestMapping</code> 反查得到，因此无法把本服务变成跳板去访问外部地址。目标解析不到时按「停用」处理，不会放行。
+              </span>
+              <template v-if="routeIndexCount">
+                当前索引 {{ routeIndexCount }} 条已注册路由。
+              </template>
+            </div>
+            <ReTag effect="plain" round size="small">/v2/policy/api-route/targets</ReTag>
+          </div>
+
+          <ReTable
+            ref="routeTableRef"
+            :loader="loadRoute"
+            :columns="routeColumns"
+            :pagination="true"
+            :params="routeQuery"
+            row-key="sysPolicyConfigId"
+            :total="routeTotal"
+            v-model:page="routeQuery.page"
+            v-model:page-size="routeQuery.pageSize"
+            :toolbar-config="TABLE_TOOLBAR"
+            empty-text="暂无接口管控规则"
+          >
+            <template #actionText="{ row }">
+              <ReTag
+                :type="routeActionText(row as PolicyConfig) === '停用' ? 'danger' : 'warning'"
+                effect="light"
+                round
+                size="small"
+              >
+                {{ routeActionText(row as PolicyConfig) }}
+              </ReTag>
+            </template>
+            <template #status="{ row }">
+              <ReSwitch
+                layout="square"
+                :model-value="(row as PolicyConfig).status === 1"
+                :disabled="routeToggleLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                :aria-label="`生效 ${(row as PolicyConfig).bizKey ?? ''}`"
+                @update:model-value="(v: boolean | string | number) => handleRouteToggle(row as PolicyConfig, v)"
+              />
+            </template>
+            <template #action="{ row }">
+              <ReButton layout="square" type="primary" icon="Edit" @click="handleRouteEdit(row as PolicyConfig)">编辑</ReButton>
+              <ReButton
+                layout="square"
+                type="danger"
+                icon="Delete"
+                :loading="routeDeleteLoadingId === (row as PolicyConfig).sysPolicyConfigId"
+                @click="handleRouteDelete(row as PolicyConfig)"
+              >
+                删除
+              </ReButton>
+            </template>
+          </ReTable>
         </section>
       </main>
     </div>
@@ -1433,6 +2138,170 @@ onMounted(() => {
           <ReInput v-model="accForm.remark" layout="modern" type="textarea" :rows="2" maxlength="255" show-word-limit />
         </el-form-item>
       </el-form>
+    </ReDialog>
+
+    <!-- 灰度配置弹窗 -->
+    <ReDialog
+      v-model="grayDialogVisible"
+      :title="grayIsEdit ? '编辑灰度配置' : '新增灰度配置'"
+      width="620px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      layout="modern"
+      compact
+    >
+      <el-form label-width="110px" label-position="right">
+        <el-form-item label="灰度键" required>
+          <ReInput
+            v-model="grayForm.bizKey"
+            layout="modern"
+            maxlength="255"
+            :disabled="grayIsEdit"
+            placeholder="如 order.submit.v2"
+          />
+        </el-form-item>
+        <el-form-item label="权重(%)">
+          <ReInputNumber v-model="grayForm.weight" :min="0" :max="100" :precision="0" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <ReInputNumber v-model="grayForm.sort" :min="0" :precision="0" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="命中策略">
+          <ReInput
+            v-model="grayForm.config"
+            layout="modern"
+            type="textarea"
+            :rows="4"
+            placeholder='JSON 形式，如 {"users":["sa"],"ips":["10.0.0.0/8"],"rule":"1==1"}'
+          />
+        </el-form-item>
+        <el-form-item label="启用">
+          <ReSwitch v-model="grayForm.status" layout="square" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <ReInput v-model="grayForm.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <ReButton @click="grayDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="graySaving" :disabled="graySaving" @click="handleGraySubmit">保存</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 功能开关弹窗 -->
+    <ReDialog
+      v-model="featureDialogVisible"
+      :title="featureIsEdit ? '编辑功能开关' : '新增功能开关'"
+      width="560px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      layout="modern"
+      compact
+    >
+      <el-form label-width="110px" label-position="right">
+        <el-form-item label="功能键" required>
+          <ReInput
+            v-model="featureForm.bizKey"
+            layout="modern"
+            maxlength="255"
+            :disabled="featureIsEdit"
+            placeholder="与 @ApiFeature('xxx') 的 value 一致"
+          />
+        </el-form-item>
+        <el-form-item label="开关">
+          <ReSwitch v-model="featureForm.status" layout="square" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <ReInputNumber v-model="featureForm.sort" :min="0" :precision="0" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <ReInput v-model="featureForm.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+        </el-form-item>
+        <p class="policy-global-form__tip">
+          功能键需与代码里 <code>@ApiFeature</code> 的 value 完全一致；未注册的键保存成功但运行时不生效。
+        </p>
+      </el-form>
+      <template #footer>
+        <ReButton @click="featureDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="featureSaving" :disabled="featureSaving" @click="handleFeatureSubmit">保存</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 接口停用 / 转发弹窗 -->
+    <ReDialog
+      v-model="routeDialogVisible"
+      :title="routeIsEdit ? '编辑接口管控规则' : '新增接口管控规则'"
+      width="620px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      layout="modern"
+      compact
+    >
+      <el-form label-width="110px" label-position="right">
+        <el-form-item label="接口路径" required>
+          <ReInput
+            v-model="routeForm.bizKey"
+            layout="modern"
+            maxlength="255"
+            :disabled="routeIsEdit"
+            placeholder="应用内路径，不含 context-path，如 /v2/user/me"
+          />
+        </el-form-item>
+        <el-form-item label="动作" required>
+          <el-radio-group
+            :model-value="routeRule.action"
+            @update:model-value="(v: ApiRouteAction) => handleRouteActionChange(v)"
+          >
+            <el-radio v-for="item in routeActions" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <template v-if="routeRule.action === 'DISABLE'">
+          <el-form-item label="响应码">
+            <ReInputNumber v-model="routeRule.status" :min="400" :max="599" :precision="0" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="提示文案">
+            <ReInput
+              v-model="routeRule.message"
+              layout="modern"
+              maxlength="200"
+              placeholder="返回给调用方的 msg"
+              show-word-limit
+            />
+          </el-form-item>
+        </template>
+        <el-form-item v-else label="转发目标" required>
+          <el-select
+            v-model="routeRule.targetKey"
+            filterable
+            :loading="routeTargetLoading"
+            placeholder="从已注册路由中选择"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in routeTargets"
+              :key="item.key"
+              :label="`${item.key}   (${item.handler})`"
+              :value="item.key"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="生效">
+          <ReSwitch v-model="routeForm.status" layout="square" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <ReInput v-model="routeForm.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+        </el-form-item>
+        <p class="policy-global-form__tip">
+          路径请写应用内路径（不含 <code>/system/api</code> 这类 context-path）。转发目标只能从下拉里选，
+          服务端会用 Spring 已注册的路由反查真实路径，<b>无法</b>指向外部地址。
+        </p>
+      </el-form>
+      <template #footer>
+        <ReButton @click="routeDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="routeSaving" :disabled="routeSaving" @click="handleRouteSubmit">保存</ReButton>
+      </template>
     </ReDialog>
   </div>
 </template>

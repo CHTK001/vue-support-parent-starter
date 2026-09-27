@@ -34,9 +34,19 @@ export interface MenuRouteResolverOptions {
 /** 菜单 → 路由解析器 */
 export interface MenuRouteResolver {
   /** 递归生成树形路由 */
-  generateRoutes: (data: any[], parentId: any) => any[];
+  generateRoutes: (data: any[], parentId: any, opts?: MenuRouteBuildOptions) => any[];
   /** 生成扁平一级路由 */
   generateFlattenRoutes: (data: any[]) => any[];
+}
+
+/** 树形路由构建选项 */
+export interface MenuRouteBuildOptions {
+  /**
+   * 仅生成侧边栏可见菜单：各级都过滤隐藏/脱离菜单控制的行，并应用目录显示规则
+   * - 目录（menuType=目录）没有任何可见子菜单 → 整个菜单不显示
+   * - 目录只有一个可见子菜单且未开启「显示父级」→ 子菜单直接显示
+   */
+  visibleOnly?: boolean;
 }
 
 /** 动态 import 失败时回退兜底组件 */
@@ -101,6 +111,33 @@ export function createMenuRouteResolver(
   const _remind = (i: any) => {
     const v = i.remind ?? i.meta?.remind;
     return v === true || v === 1 || v === "1";
+  };
+  // 菜单是否应出现在侧边栏：脱离菜单控制（remind）与隐藏（isVisible）在各级都生效
+  const _menuVisible = (i: any) => {
+    if (_remind(i)) {
+      return false;
+    }
+    const v = _isVisible(i);
+    if (v == null) {
+      return true;
+    }
+    return v == 1 || v === true;
+  };
+  // 单子菜单时是否显示父级菜单：sys_menu_show_parent=0 表示显示父级；1/未配置表示隐藏父级（子菜单直接显示）
+  const _showParent = (i: any) => {
+    const v = i.sysMenuShowParent ?? i.showParent ?? i.meta?.showParent;
+    return v === 0 || v === "0" ? 1 : 0;
+  };
+  // 菜单位置：standard（侧边栏）/ top（顶栏按钮）
+  const _position = (i: any) => ((i.sysMenuPosition ?? i.position ?? i.meta?.position) === "top" ? "top" : "standard");
+  // 节点自身是否是可打开的页面：component 为空或只是布局占位时视为「只有父菜单」
+  const _hasPage = (i: any) => {
+    const c = i?.component;
+    if (typeof c !== "string") {
+      return c != null;
+    }
+    const v = c.trim();
+    return v !== "" && v !== "Layout" && v !== "ParentView" && v !== "layout" && v !== "parentView";
   };
   // 菜单徽标：兼容短字段名(isTag) 与 sysMenu* 命名；isTag 仅在明确为 1/true 时开启
   const _isTag = (i: any) => {
@@ -175,12 +212,19 @@ export function createMenuRouteResolver(
   }
 
   /** 递归生成树形路由 */
-  function generateRoutes(data: any[], parentId: any): any[] {
+  function generateRoutes(data: any[], parentId: any, opts?: MenuRouteBuildOptions): any[] {
     // 扁平化：API 可能返回嵌套 children，也可能返回扁平数组，两种都兼容
     const flat = flattenMenu(data);
+    // visibleOnly：侧边栏模式，过滤隐藏/脱离菜单控制的行并应用目录显示规则；
+    // 面包屑模式（缺省）保持完整层级，便于定位隐藏页面
+    const visibleOnly = opts?.visibleOnly === true;
     const routeList: any[] = [];
     for (const item of flat) {
       if (item && String(_parentId(item)) === String(parentId)) {
+        if (visibleOnly && !_menuVisible(item)) {
+          continue;
+        }
+        const isDirectory = _menuType(item) == menuTypeValue;
         const componentTemplate = item?.component;
         const route: any = {
           path: item.path.startsWith("/") ? item.path : `/${item.path}`,
@@ -199,14 +243,26 @@ export function createMenuRouteResolver(
             tagName: _tagName(item),
             isAffix: item.isAffix,
             activeMenu: item.activeMenu,
+            position: _position(item),
+            showParent: _showParent(item),
+            isDirectory,
           },
         };
         if (_menuType(item) == menuTypeValue) {
           route.redirect = `${item?.redirect || item.meta?.redirect}` || HOME_URL;
         }
-        const children = generateRoutes(flat, _menuId(item));
+        const children = generateRoutes(flat, _menuId(item), opts);
+        // 规则 2：没有任何可见子菜单，且自身也没有可用页面组件（纯父菜单/空目录）→ 整个菜单不显示
+        if (visibleOnly && children.length === 0 && !_hasPage(item)) {
+          continue;
+        }
         if (children.length > 0) {
           route.children = children;
+        }
+        // 规则 2.1：目录只有一个可见子菜单且未开启「显示父级」→ 子菜单直接显示，父级不显示
+        if (visibleOnly && isDirectory && children.length === 1 && _showParent(item) !== 1) {
+          routeList.push(children[0]);
+          continue;
         }
         routeList.push(route);
       }
@@ -238,6 +294,9 @@ export function createMenuRouteResolver(
           tagName: _tagName(item),
           isAffix: item.isAffix,
           activeMenu: item.activeMenu,
+          position: _position(item),
+          showParent: _showParent(item),
+          isDirectory: _menuType(item) == menuTypeValue,
         },
       };
       if (_menuType(item) == menuTypeValue) {

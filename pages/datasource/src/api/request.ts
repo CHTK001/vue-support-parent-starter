@@ -70,6 +70,27 @@ function base(): string {
   return (configured || "/collect/api").replace(/\/+$/, "");
 }
 
+/**
+ * 把接口路径拼成最终 URL。
+ *
+ * <p>常规路径是<b>相对 API 基址</b>的（{@code /ms/datasource/list} → {@code /collect/api/ms/datasource/list}），
+ * context-path 由基址统一带，调用方不要自己再拼一遍。</p>
+ *
+ * <p>但如果调用方传入的路径已经以基址开头，就直接使用、不再叠加：否则会拼出
+ * {@code /collect/api/collect/api/ms/datasource/list} 这种双重前缀，后端对任意未知路径
+ * 都返回「资源不存在」(404)，排查时很容易误判成接口没注册。</p>
+ *
+ * @param path 接口路径（相对基址，或已带基址的完整路径）
+ * @return 最终请求 URL
+ */
+function resolve(path: string): string {
+  const root = base();
+  if (!path.startsWith(root + "/") && path !== root) {
+    return root + path;
+  }
+  return path;
+}
+
 /** 丢掉 undefined / null / 空串，避免拼出 `?a=undefined` 这种脏查询 */
 function clean(params: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -161,7 +182,7 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
   const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
   let response: Response;
   try {
-    response = await fetch(withQuery(base() + path, params ?? {}), { ...init, signal: controller.signal });
+    response = await fetch(withQuery(resolve(path), params ?? {}), { ...init, signal: controller.signal });
   } catch (error) {
     const aborted = (error as Error)?.name === "AbortError";
     throw new ApiError(aborted ? `请求超时（${DEFAULT_TIMEOUT / 1000}s）` : "无法连接采集服务，请确认后端已启动");

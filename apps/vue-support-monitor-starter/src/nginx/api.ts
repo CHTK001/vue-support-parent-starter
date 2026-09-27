@@ -65,6 +65,96 @@ export interface NginxVersion {
   raw: string;
 }
 
+/** 趋势曲线单点 */
+export interface NginxTrendPoint {
+  /** 采样时刻 */
+  time: string;
+  /** 指标名：active / accepts / handled / requests / reading / writing / waiting */
+  name: string;
+  /** 原始值（accepts/handled/requests 是「worker 启动以来」的累计计数） */
+  value: number | null;
+  /** 每秒增量；瞬时类等于 value，累计类为差值/秒，worker 重启处为 null（断点） */
+  rate: number | null;
+}
+
+/** 指标趋势 */
+export interface NginxTrend {
+  datasourceId: number | null;
+  from: string;
+  to: string;
+  /** 实际使用的采样间隔（分钟），点数超上限时后端会自动放大 */
+  interval: number;
+  points: NginxTrendPoint[];
+  /** 无数据时说明原因；正常有数据时为 null */
+  message: string | null;
+}
+
+/**
+ * 查询指标趋势。
+ *
+ * <p>数据来自后台定时采集（默认 30s 一次），保留窗口由后端
+ * `monitor.data.retention.days` 控制（默认 1，即滚动 24 小时）。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @param hours       回溯小时数，缺省 24
+ * @param interval    采样间隔（分钟），缺省 30
+ * @return 趋势数据
+ */
+export const fetchNginxTrend = (datasourceId?: number, hours?: number, interval?: number) =>
+  http()
+    .get(`${B}/metric/trend`)
+    .query({ datasourceId, hours, interval })
+    .noToast(true)
+    .then(r => unwrap<NginxTrend>(r));
+
+/** Top 条目 */
+export interface NginxTopItem {
+  /** 路径 或 IP */
+  key: string;
+  /** 出现次数 */
+  hits: number;
+}
+
+/** 状态码类别条目 */
+export interface NginxTopStatus {
+  /** 2xx 成功 / 3xx 重定向 / 4xx 客户端错误 / 5xx 服务端错误 */
+  category: string;
+  hits: number;
+  /** 占已解析行数的百分比 */
+  pct: number;
+}
+
+/** 访问日志 Top 统计 */
+export interface NginxAccessTop {
+  /** 成功解析的行数 */
+  total: number;
+  /** 实际扫描的行数 */
+  scanned: number;
+  paths: NginxTopItem[];
+  ips: NginxTopItem[];
+  statuses: NginxTopStatus[];
+  /** 统计口径说明 */
+  message: string | null;
+}
+
+/**
+ * 读取访问日志 Top 统计。
+ *
+ * <p>后端 SSH 拉 access log 尾部后解析，<strong>不入库</strong>，所以每次都是实时扫描。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @param lines        扫描尾部行数，缺省 2000
+ * @param minutes      只统计最近 N 分钟，缺省 0（不限）
+ * @param topN         每维度取前几，缺省 10
+ * @return Top 统计
+ */
+export const fetchNginxAccessTop = (datasourceId?: number, lines?: number, minutes?: number, topN?: number) =>
+  http()
+    .get(`${B}/log/top`)
+    .query({ datasourceId, lines, minutes, topN })
+    .noToast(true)
+    .then(r => unwrap<NginxAccessTop>(r));
+
 /** 日志文件条目 */
 export interface NginxLogFile {
   path: string;
@@ -246,7 +336,14 @@ export const applyNginxConfig = (data: NginxApplyRequest) =>
 
 /** 指令元数据 */
 export const fetchNginxDirectives = (scope?: string) =>
-  http().get(`${B}/directives`).query({ scope }).then(r => unwrap<NginxDirectiveMeta[]>(r));
+  http()
+    .get(`${B}/directives`)
+    // 「全部」必须传空值而不是 "all"：后端 NginxManageServiceImpl#directives 只在
+    // scope 为空时返回全量，非空则走 NginxDirectiveRegistry#byScope 做精确匹配，
+    // 而没有任何 directive 的 scopes 含 "all"，传 "all" 会静默返回空数组
+    // （表现为「新增指令」下拉没有任何候选）。
+    .query(scope && scope !== "all" ? { scope } : {})
+    .then(r => unwrap<NginxDirectiveMeta[]>(r));
 
 /** 站点清单：把所有 .conf 里的 server 块抽平 */
 export const fetchNginxSites = (datasourceId?: number) =>

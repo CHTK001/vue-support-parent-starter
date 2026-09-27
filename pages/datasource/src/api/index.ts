@@ -10,9 +10,16 @@
  *   6) POST   /ms/datasource/{id}/test        — 连通性测试（只测已存在的）
  *   7) GET    /ms/datasource/types            — 支持的类型
  *
- * 另外补两个采集平台独有的元数据接口（hub 只管"连得上"，不管"浏览表结构"）：
- *   8) GET    /v2/collect/datasource/tables   — 表清单
- *   9) GET    /v2/collect/datasource/columns  — 列元数据
+ * 另外提供数据源中心（数据源模块）的结构与 DDL 接口：
+ *   8) GET    /ms/datasource/tables          — 表清单
+ *   9) GET    /ms/datasource/columns         — 列元数据
+ *  10) GET    /ms/datasource/table-exists    — 表是否存在
+ *  11) POST   /ms/datasource/ddl/preview     — 预览建表 DDL
+ *  12) POST   /ms/datasource/ddl/execute     — 执行建表 / 补列
+ *  13) POST   /ms/datasource/mapping/resolve — 解析字段映射
+ *
+ * 表结构、建表与字段映射都归数据源模块：采集/监控等系统只消费这些接口，
+ * 不再各自实现一份（采集侧的 /v2/collect/datasource/tables|columns 已改为薄委托）。
  *
  * 请求走本包私有客户端（见 ./request），返回已解包的业务数据。
  *
@@ -21,11 +28,42 @@
  */
 import { del, get, post, put } from "./request";
 
-/** 数据源中心接口根路径 */
-const HUB = "/ms/datasource";
+/**
+ * 数据源中心接口根路径。
+ *
+ * <p>这是<b>相对 API 基址</b>的路径，不要带 context-path：本包的私有客户端（见 ./request）
+ * 已在每个请求前拼上 {@code getConfig().http.baseUrl}，所以默认 {@code /ms/datasource}
+ * 在采集应用里实际请求的就是 {@code /collect/api/ms/datasource}。</p>
+ *
+ * <p>只有当 hub 挂在别的基址下（例如另一个后端）时才需要覆盖，此时传完整路径
+ * （含 context-path）——客户端会识别已带基址的路径，不会重复叠加。</p>
+ */
+let hubBase = "/ms/datasource";
 
-/** 采集平台接口根路径 */
-const COLLECT = "/v2/collect/datasource";
+/**
+ * 覆盖数据源中心接口根路径。
+ *
+ * <p>默认无需调用：私有客户端自带 API 基址（context-path），{@code /ms/datasource}
+ * 就已经指向了宿主 context-path 下的 hub 接口。传入值若不含 context-path 也可以，
+ * 客户端会补齐。</p>
+ *
+ * <p>非法值（不以 {@code /} 开头）会被拒绝并保留原值：一旦让脏值进来，
+ * 本包所有接口都会 404「资源不存在」，而排查方向很容易误判成后端没注册接口。</p>
+ *
+ * @param base 根路径；留空则恢复默认 {@code /ms/datasource}
+ */
+export function setDatasourceHubBase(base?: string | null): void {
+  const candidate = (base ?? "").trim().replace(/\/+$/, "");
+  if (!candidate) {
+    hubBase = "/ms/datasource";
+    return;
+  }
+  if (!candidate.startsWith("/")) {
+    console.warn("[@pages/datasource] setDatasourceHubBase 忽略非法值（必须以 / 开头）：", base);
+    return;
+  }
+  hubBase = candidate;
+}
 
 /** 应用主库保留字，对应容器里的主 DataSource，不是台账里的行 */
 export const APP_DATASOURCE = "app";
@@ -52,8 +90,24 @@ export interface DataSourceInfo {
   status?: number | null;
   /** JDBC 驱动类名 */
   driverClassName?: string | null;
+  /**
+   * 扩展配置（JSON）。
+   *
+   * <p>InfluxDB / Neo4j / Nacos / ZooKeeper 这类中间件数据源，其 organization、
+   * 集群地址等专用参数不在台账主字段里，统一放在这里；
+   * {@code externalDatasource.extraText()} 会按键名逐个回退取值。</p>
+   */
+  config?: Record<string, unknown> | null;
   createTime?: string | null;
   updateTime?: string | null;
+  /** 连接延迟（毫秒），点「测试连接」后由后端回写；从未测试过时为 null */
+  connectLatencyMs?: number | null;
+  /** 会话延迟（毫秒），点「测试连接」后由后端回写；从未测试过时为 null */
+  sessionLatencyMs?: number | null;
+  /** 最近一次测试时间（ISO-8601 文本） */
+  lastTestTime?: string | null;
+  /** 最近一次测试是否连通，null 表示从未测试 */
+  lastTestOk?: number | null;
 }
 
 /** 连通性测试结果 */
@@ -62,6 +116,36 @@ export interface DataSourceTestResult {
   message?: string;
   type?: string;
   version?: string;
+  /** 连接延迟（毫秒）；测试失败时为 null */
+  connectLatencyMs?: number | null;
+  /** 会话延迟（毫秒）；未测出时为 null */
+  sessionLatencyMs?: number | null;
+  /** 本次测试是否经由 SSH 隧道中转 */
+  tunneled?: boolean;
+  /** 测试时间（ISO-8601 文本） */
+  testedAt?: string | null;
+}
+
+/** SSH 隧道配置（高级配置） */
+export interface DataSourceTunnel {
+  id?: number;
+  datasourceId?: number;
+  name?: string | null;
+  /** LOCAL 本地转发(-L) / REMOTE 反向转发(-R) / DYNAMIC 动态SOCKS5 */
+  type?: string | null;
+  sshHost?: string | null;
+  sshPort?: number | null;
+  sshUsername?: string | null;
+  /** PASSWORD 口令 / KEY 私钥 */
+  sshAuthType?: string | null;
+  /** 私钥：PEM 文本或私钥文件路径 */
+  sshPrivateKey?: string | null;
+  localPort?: number | null;
+  remoteHost?: string | null;
+  remotePort?: number | null;
+  bindAddress?: string | null;
+  /** 0 停用、1 启用 */
+  status?: number | null;
 }
 
 /** 通用下拉选项 */
@@ -86,7 +170,7 @@ export interface CollectColumn {
  * @return 数据源列表
  */
 export function fetchDataSources(): Promise<DataSourceInfo[]> {
-  return get<DataSourceInfo[]>(`${HUB}/list`);
+  return get<DataSourceInfo[]>(`${hubBase}/list`);
 }
 
 /**
@@ -95,7 +179,7 @@ export function fetchDataSources(): Promise<DataSourceInfo[]> {
  * @return 数据源信息
  */
 export function fetchDataSource(id: number): Promise<DataSourceInfo> {
-  return get<DataSourceInfo>(`${HUB}/${id}`);
+  return get<DataSourceInfo>(`${hubBase}/${id}`);
 }
 
 /**
@@ -104,7 +188,7 @@ export function fetchDataSource(id: number): Promise<DataSourceInfo> {
  * @return 创建后的数据源
  */
 export function createDataSource(data: Partial<DataSourceInfo>): Promise<DataSourceInfo> {
-  return post<DataSourceInfo>(HUB, data);
+  return post<DataSourceInfo>(hubBase, data);
 }
 
 /**
@@ -114,7 +198,7 @@ export function createDataSource(data: Partial<DataSourceInfo>): Promise<DataSou
  * @return 更新后的数据源
  */
 export function updateDataSource(id: number, data: Partial<DataSourceInfo>): Promise<DataSourceInfo> {
-  return put<DataSourceInfo>(`${HUB}/${id}`, data);
+  return put<DataSourceInfo>(`${hubBase}/${id}`, data);
 }
 
 /**
@@ -123,7 +207,7 @@ export function updateDataSource(id: number, data: Partial<DataSourceInfo>): Pro
  * @return 删除结果
  */
 export function deleteDataSource(id: number): Promise<boolean> {
-  return del<boolean>(`${HUB}/${id}`);
+  return del<boolean>(`${hubBase}/${id}`);
 }
 
 /**
@@ -132,7 +216,7 @@ export function deleteDataSource(id: number): Promise<boolean> {
  * @return 连接测试结果
  */
 export function testDataSource(id: number): Promise<DataSourceTestResult> {
-  return post<DataSourceTestResult>(`${HUB}/${id}/test`);
+  return post<DataSourceTestResult>(`${hubBase}/${id}/test`);
 }
 
 /**
@@ -140,7 +224,52 @@ export function testDataSource(id: number): Promise<DataSourceTestResult> {
  * @return 数据源类型列表
  */
 export function fetchDataSourceTypes(): Promise<string[]> {
-  return get<string[]>(`${HUB}/types`);
+  return get<string[]>(`${hubBase}/types`);
+}
+
+/**
+ * 读取指定类型数据源的运行时信息（版本、模式、状态行等）。
+ *
+ * <p>走类型专属控制器：{@code /ms/datasource/{type}/{id}/info}。
+ * 类型无专属探针（如 jdbc）时后端返回空对象。</p>
+ *
+ * @param id   数据源 ID
+ * @param type 数据源类型
+ * @return 键值信息
+ */
+export function fetchDatasourceRuntimeInfo(id: number, type: string): Promise<Record<string, string>> {
+  return get<Record<string, string>>(`${hubBase}/${type}/${id}/info`);
+}
+
+/**
+ * 查询数据源的 SSH 隧道配置。
+ *
+ * @param id 数据源 ID
+ * @return 隧道配置；未配置时为 null
+ */
+export function fetchDatasourceTunnel(id: number): Promise<DataSourceTunnel | null> {
+  return get<DataSourceTunnel | null>(`${hubBase}/tunnel/${id}`);
+}
+
+/**
+ * 保存数据源的 SSH 隧道配置（存在则覆盖，一个数据源至多一条）。
+ *
+ * @param id   数据源 ID
+ * @param data 隧道配置
+ * @return 保存后的配置
+ */
+export function saveDatasourceTunnel(id: number, data: Partial<DataSourceTunnel>): Promise<DataSourceTunnel> {
+  return put<DataSourceTunnel>(`${hubBase}/tunnel/${id}`, data);
+}
+
+/**
+ * 删除数据源的 SSH 隧道配置并关闭隧道。
+ *
+ * @param id 数据源 ID
+ * @return 是否删除成功
+ */
+export function deleteDatasourceTunnel(id: number): Promise<boolean> {
+  return del<boolean>(`${hubBase}/tunnel/${id}`);
 }
 
 /**
@@ -164,10 +293,9 @@ export async function fetchDatasourceOptions(): Promise<CollectOption[]> {
 /**
  * 表结构元数据提供者。
  *
- * <p>数据源中心（hub）只管「连得上」，不提供库表浏览；默认实现走采集平台的
- * {@code /v2/collect/datasource/tables|columns}。宿主应用的后端另有库表接口时
- * （如监控台的 {@code /ms/monitor/db/*}），可在启动时注入自己的实现，
- * 避免运行期依赖采集平台。</p>
+ * <p>数据源中心（hub）提供结构浏览与 DDL；默认实现走 {@code /ms/datasource/tables|columns}。
+ * 宿主应用的后端另有库表接口时（如监控台的 {@code /ms/monitor/db/*}），可在启动时注入自己的实现，
+ * 避免运行期依赖数据源模块的实现细节。</p>
  *
  * @author CH
  * @since 4.0.0.42
@@ -192,25 +320,25 @@ export interface DatasourceSchemaProvider {
   fetchColumns(datasource: string | number | null | undefined, table: string): Promise<CollectColumn[]>;
 }
 
-/** 默认实现：采集平台元数据接口 */
-const collectSchemaProvider: DatasourceSchemaProvider = {
+/** 默认实现：数据源中心（数据源模块）结构与 DDL 接口 */
+const hubSchemaProvider: DatasourceSchemaProvider = {
 
-  fetchTables: datasource => get<string[]>(`${COLLECT}/tables`, { datasource: normalizeRef(datasource) }),
+  fetchTables: datasource => get<string[]>(`${hubBase}/tables`, { datasource: normalizeRef(datasource) }),
 
   fetchColumns: (datasource, table) =>
-    get<CollectColumn[]>(`${COLLECT}/columns`, { datasource: normalizeRef(datasource), table }),
+    get<CollectColumn[]>(`${hubBase}/columns`, { datasource: normalizeRef(datasource), table }),
 };
 
 /** 当前生效的表结构元数据提供者 */
-let schemaProvider: DatasourceSchemaProvider = collectSchemaProvider;
+let schemaProvider: DatasourceSchemaProvider = hubSchemaProvider;
 
 /**
- * 注入表结构元数据提供者；传 null 恢复采集平台默认实现。
+ * 注入表结构元数据提供者；传 null 恢复数据源中心默认实现。
  *
  * @param provider 宿主应用提供的实现
  */
 export function setDatasourceSchemaProvider(provider: DatasourceSchemaProvider | null): void {
-  schemaProvider = provider ?? collectSchemaProvider;
+  schemaProvider = provider ?? hubSchemaProvider;
 }
 
 /**
@@ -245,4 +373,126 @@ export function fetchDatasourceColumns(
  */
 function normalizeRef(value: string | number | null | undefined): string | undefined {
   return value === undefined || value === null || value === "" ? undefined : String(value);
+}
+
+/** 建表列定义（字段映射的落库侧） */
+export interface DdlColumn {
+  /** 列名 */
+  name: string;
+  /** 列类型（含长度）；留空时按 sourceType 推断 */
+  type?: string | null;
+  /** 是否可空，缺省可空 */
+  nullable?: boolean | null;
+  /** 列注释 */
+  comment?: string | null;
+  /** 默认值 */
+  defaultValue?: string | null;
+  /** 来源字段名 */
+  sourceField?: string | null;
+  /** 来源字段类型（STRING/INTEGER/DECIMAL/BOOLEAN/DATE/DATETIME/JSON） */
+  sourceType?: string | null;
+}
+
+/** 建表 / 补列请求 */
+export interface TableDdlRequest {
+  /** 数据源引用：留空或 app 表示应用主库 */
+  datasource?: string | null;
+  /** 目标表名 */
+  table: string;
+  /** 列定义 */
+  columns: DdlColumn[];
+  /** 主键列名 */
+  primaryKey?: string[] | null;
+  /** 表注释 */
+  comment?: string | null;
+  /** 表已存在策略：APPEND（默认，补缺失列）/ SKIP / ERROR */
+  ifExists?: string | null;
+  /** 是否自动加自增主键列（主键为空时生效） */
+  autoIdPrimaryKey?: boolean | null;
+}
+
+/** 建表 / 补列结果 */
+export interface TableDdlResult {
+  table: string;
+  /** 执行前表是否已存在 */
+  exists: boolean;
+  /** 本次是否建了新表 */
+  created: boolean;
+  /** 本次补上的列 */
+  appendedColumns: string[];
+  /** 解析出的列定义（含推断后的类型） */
+  columns: CollectColumn[];
+  /** 将要执行 / 已执行的 SQL */
+  statements: string[];
+  /** 可读提示 */
+  warnings: string[];
+}
+
+/** 字段映射输入：来源字段 */
+export interface SourceField {
+  name: string;
+  type?: string | null;
+}
+
+/** 字段映射结论 */
+export interface FieldMapping {
+  sourceField: string;
+  sourceType: string;
+  targetColumn: string;
+  targetType: string;
+  matched: boolean;
+  /** USE=直接写、ADD=需新增列、NEW_TABLE=表还不存在 */
+  action: "USE" | "ADD" | "NEW_TABLE" | string;
+  note?: string | null;
+}
+
+/**
+ * 判断表是否存在。
+ *
+ * @param datasource 数据源引用
+ * @param table      表名
+ * @return true=存在
+ */
+export function fetchTableExists(datasource: string | number | null | undefined, table: string): Promise<boolean> {
+  return get<boolean>(`${hubBase}/table-exists`, { datasource: normalizeRef(datasource), table });
+}
+
+/**
+ * 预览建表 / 补列 DDL（不执行）。
+ *
+ * @param request 建表请求
+ * @return 预览结果（含 SQL 文本）
+ */
+export function previewTableDdl(request: TableDdlRequest): Promise<TableDdlResult> {
+  return post<TableDdlResult>(`${hubBase}/ddl/preview`, request);
+}
+
+/**
+ * 执行建表 / 补列。
+ *
+ * @param request 建表请求
+ * @return 执行结果
+ */
+export function executeTableDdl(request: TableDdlRequest): Promise<TableDdlResult> {
+  return post<TableDdlResult>(`${hubBase}/ddl/execute`, request);
+}
+
+/**
+ * 解析字段映射：来源字段 ↔ 目标表列，以及需新增的列与类型建议。
+ *
+ * @param datasource 数据源引用
+ * @param table      目标表名
+ * @param fields     来源字段
+ * @return 每个来源字段的映射结论
+ */
+export function resolveFieldMapping(
+  datasource: string | number | null | undefined,
+  table: string,
+  fields: SourceField[],
+): Promise<FieldMapping[]> {
+  return post<FieldMapping[]>(`${hubBase}/mapping/resolve`, {
+    datasource: normalizeRef(datasource),
+    table,
+    fields,
+  });
 }

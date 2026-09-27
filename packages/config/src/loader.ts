@@ -24,6 +24,7 @@ import {
   resetConfigSilent,
   setConfig,
   type AppConfig,
+  type DeepPartial,
 } from "./config";
 import { deepMerge } from "./shared";
 
@@ -71,6 +72,23 @@ export interface LoadConfigOptions {
   disableRemote?: boolean;
   /** HTTP 请求超时（毫秒），缺省 5000（loader 阶段要快） */
   timeout?: number;
+  /**
+   * 代码级默认值（优先级最低的一层）。
+   *
+   * <p>用于在 {@code main.ts} 里声明本应用的默认配置，例如分组导航：</p>
+   *
+   * <pre>{@code
+   * await createContextApp({
+   *   appName: "xxx",
+   *   defaults: { menu: { collapseSingleChild: true } },
+   * })
+   * }</pre>
+   *
+   * <p>合并顺序上排在 app.example.yaml / app.yaml / app.{env}.yaml / 远程配置 /
+   * 环境变量之前，即「代码给默认、配置文件与远程仍可覆盖」——避免把可运营的配置
+   * 写死在代码里。</p>
+   */
+  defaults?: DeepPartial<AppConfig>;
 }
 
 /**
@@ -80,8 +98,10 @@ export interface LoadConfigOptions {
  *   - 不走 @repo/utils/http()（会反向依赖 @repo/config，造成循环）
  *   - 用原生 fetch 统一处理：超时、404/非 yaml 响应（防 SPA fallback 把 HTML 当 yaml）、
  *     解析失败 → 全部静默返回 undefined，让上层沿用已有配置
- *   - Content-Type 必须含 yaml/yaml-like，否则视为非 yaml 响应（SPA fallback 返回
- *     text/html 时会被识别出来，避免污染解析结果）
+ *   - Content-Type 只用于**拦 HTML**（SPA fallback 返回 text/html 时识别出来，
+ *     避免污染解析结果）；**不要求「含 yaml」**，因为静态服务器常把 .yaml 发成
+ *     application/octet-stream（nginx mime.types 无 yaml 条目时落到 default_type），
+ *     那样会把整份 app.yaml 静默丢弃、让登录页回落 shared.ts 的代码默认值
  *
  * @returns 解析后的 partial 配置；任意环节失败均返回 undefined
  */
@@ -95,18 +115,22 @@ async function safeFetchYaml(
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) return undefined;
-    // 防止 SPA fallback 把 HTML 当 yaml 返回：必须显式声明 yaml-like Content-Type
-    // 或响应内容首字符为 yaml 文档标记（--- / key:）。这里以 Content-Type 为准，
-    // 缺失时保守拒绝（SPA fallback 通常是 text/html）。
+    // 这里的 Content-Type 判定**只为拦 SPA fallback**：不存在的路径被回退成
+    // index.html（text/html）后，会把 HTML 当 yaml 解析，污染出垃圾配置。
+    //
+    // 刻意**不再**要求「必须含 yaml」：静态服务器对 .yaml 常返回
+    // application/octet-stream（nginx 的 mime.types 无 yaml 条目时落到
+    // default_type），按「含 yaml」判定会让整份 app.yaml 被静默丢弃，
+    // 登录页只能回落 shared.ts 的代码默认值（login.captcha: true），
+    // 与 app.yaml 里显式声明的 login.captcha: false 直接冲突。
+    // 因此改为只黑名单 HTML/XHTML，其余类型一律放行，交给下面的内容检查兜底。
     const ct = String(res.headers.get("content-type") ?? "").toLowerCase();
-    const looksLikeYaml =
-      ct.includes("yaml") ||
-      ct.includes("yml") ||
-      ct.includes("x-yaml") ||
-      ct === "text/plain" || // 部分 dev server 用 text/plain 返回 yaml
-      ct === "";
-    if (!looksLikeYaml) return undefined;
+    const isHtml = ct.includes("text/html") || ct.includes("application/xhtml");
+    if (isHtml) return undefined;
     const text = await res.text();
+    // 内容兜底：以 '<' 开头的是 HTML/XML 文档，绝不能当 yaml 解析
+    // （覆盖「服务器用 octet-stream 投递 SPA fallback 页面」的情况）。
+    if (/^\s*</.test(text)) return undefined;
     const partial = parseAppYaml(text);
     // parseAppYaml 在解析失败时返回 {}，无法与"文件不存在"区分。
     // 通过检查 text 是否真的含 yaml 标记简单兜底：含 "key:" 或 "---" 才视为有效。
@@ -175,6 +199,9 @@ export async function loadConfig(
     const envConfig = envToConfig(env);
 
     const allSources: Partial<AppConfig>[] = [
+      // 代码级默认值排在最前：优先级最低，后面的 app.example/app/env/remote/环境变量
+      // 都能覆盖它，保证「main.ts 给默认、配置文件可覆盖」
+      options.defaults,
       examplePartial,
       appPartial,
       envPartial,
@@ -304,6 +331,37 @@ function buildRemoteConfigUrl(cfg: AppConfig): string {
 }
 
 /**
+ * 判断响应体是否为后端统一「错误信封」而非配置内容。
+ *
+ * <p>{@code /v2/setting/default} 受鉴权保护，但后端对未登录请求仍返回
+ * **HTTP 200** + 错误信封：
+ * {@code {"code":"A0403S0000","data":null,"msg":"用户信息不存在/请重新登录!","success":false,"ok":false}}。
+ * 它不是列表（{@code data} 为 null），若继续走「裸对象即配置」分支，
+ * {@code normalizeTopLevelKeys} 会把 code/data/msg/success/ok/temp 这些
+ * **信封字段深合并进 AppConfig 根节点**，同时把 {@code remoteSettingFetched}
+ * 误置为 true —— bootstrap 随即误判「远程配置已取回」而不再重试，
+ * 登录页最终落回代码内置默认值（{@code login.captcha: true}），
+ * 与 app.yaml 里显式写的 {@code captcha: false} 冲突。</p>
+ *
+ * <p>成功码集合与 {@code packages/core/src/httpCrypto.ts} 的 {@code isApiError} 保持一致。</p>
+ *
+ * @param body 已解析的 JSON 响应体
+ * @returns true 表示这是错误信封，绝不能当配置深合并
+ */
+function isApiErrorEnvelope(body: unknown): boolean {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+  const d = body as Record<string, unknown>;
+  if (d.success === false || d.ok === false) {
+    return true;
+  }
+  const SUCCESS_CODES = new Set(["00000", "200", "0", "success", "ok", "true", "1"]);
+  const code = d.code;
+  return code != null && !SUCCESS_CODES.has(String(code).toLowerCase());
+}
+
+/**
  * 拉取远程配置（JSON/YAML 均可），失败或非 yaml/JSON 时返回 undefined。
  */
 async function loadRemoteConfig(
@@ -324,8 +382,6 @@ async function loadRemoteConfig(
       ct.includes("json") || ct.includes("yaml") || ct.includes("yml") || ct === "";
     if (!looksLikeConfig) return undefined;
     const text = await res.text();
-    // 拿到可用响应体即视为已取回（哪怕列表为空）：避免 loadDefaultSetting 重复请求同一接口
-    remoteSettingFetched = true;
     const trimmed = text.trim();
     // 尝试 JSON
     try {
@@ -339,12 +395,22 @@ async function loadRemoteConfig(
       if (settingList) {
         // 缓存原始设置列表，供 loadDefaultSetting 复用（避免二次请求同一接口）
         remoteSettingList = settingList;
+        // 拿到可用响应体即视为已取回（哪怕列表为空）：避免 loadDefaultSetting 重复请求同一接口
+        remoteSettingFetched = true;
         return flattenSettingToConfig(settingList);
       }
       remoteSettingList = null;
+      // 未登录时该接口以 HTTP 200 返回错误信封：既不能当配置深合并，
+      // 也不能置 remoteSettingFetched（否则 bootstrap 误判已取回而不再重试）
+      if (isApiErrorEnvelope(parsed)) {
+        remoteSettingFetched = false;
+        return undefined;
+      }
+      remoteSettingFetched = true;
       return normalizeTopLevelKeys(parsed) as Partial<AppConfig>;
     } catch {
       remoteSettingList = null;
+      remoteSettingFetched = true;
       return parseAppYaml(text);
     }
   } catch {

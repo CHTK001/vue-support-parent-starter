@@ -1,57 +1,6 @@
 <template>
-  <!-- Modern 布局（异步加载） -->
-  <ModernLayout
-    v-if="layout === 'modern'"
-    :value="value"
-    :max="max"
-    :is-dot="isDot"
-    :hidden="hidden"
-    :type="type"
-    :show-zero="showZero"
-    :color="color"
-    :breath="breath"
-    v-bind="$attrs"
-  >
-    <template v-if="$slots.default" #default>
-      <slot />
-    </template>
-  </ModernLayout>
-
-  <!-- Pill 布局（异步加载） -->
-  <PillLayout
-    v-else-if="layout === 'pill'"
-    :value="value"
-    :max="max"
-    :is-dot="isDot"
-    :hidden="hidden"
-    :type="type"
-    :show-zero="showZero"
-    :color="color"
-    :breath="breath"
-    v-bind="$attrs"
-  >
-    <slot />
-  </PillLayout>
-
-  <!-- Status 布局（异步加载） -->
-  <StatusLayout
-    v-else-if="layout === 'status'"
-    :value="value"
-    :max="max"
-    :is-dot="isDot"
-    :hidden="hidden"
-    :type="type"
-    :show-zero="showZero"
-    :color="color"
-    :breath="breath"
-    v-bind="$attrs"
-  >
-    <slot />
-  </StatusLayout>
-
-  <!-- 默认 el-badge 布局 -->
+  <!-- 透传 el-badge 全部能力 -->
   <el-badge
-    v-else
     ref="root"
     v-bind="$attrs"
     :value="value"
@@ -84,28 +33,18 @@
  *   - offset / badgeStyle / badgeClass
  *   - 默认插槽与 content 插槽
  *   - breath：是否开启呼吸动画（仅对 is-dot 红点生效，添加脉冲光圈）
- *   - layout：布局变体
- *     - "el"（默认 el-badge）
- *     - "modern"（现代化扁平徽标，异步加载）
- *     - "pill"（药丸形态，圆角背景色标签）
- *     - "status"（状态指示器，圆点 + 文字标签）
+ *
+ * 说明：原 `layout` 变体（"modern" / "pill" / "status"，对应 layouts/ 三个文件）
+ * 经审计确认全仓无人使用，已随统一表面方案移除；需要时从
+ * backups/ui-unused-layouts-retire-20260926/ 取回。
  */
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { CSSProperties, StyleValue } from "vue";
-
-/** Modern 布局组件（按需异步加载） */
-const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
-/** Pill 布局组件（按需异步加载） */
-const PillLayout = defineAsyncComponent(() => import("./layouts/PillBadge.vue"));
-/** Status 布局组件（按需异步加载） */
-const StatusLayout = defineAsyncComponent(() => import("./layouts/StatusBadge.vue"));
 
 defineOptions({ name: "ReBadge", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局变体："el"（默认 el-badge）/ "modern"（现代化扁平徽标）/ "pill"（药丸形态）/ "status"（状态指示器） */
-    layout?: "el" | "modern" | "pill" | "status";
     /** 显示值 */
     value?: string | number;
     /** 最大值，超过显示 {max}+，仅当 value 为数字时生效 */
@@ -130,7 +69,6 @@ const props = withDefaults(
     breath?: boolean;
   }>(),
   {
-    layout: "el",
     value: "",
     max: 99,
     isDot: false,

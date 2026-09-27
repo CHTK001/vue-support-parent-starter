@@ -302,10 +302,11 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import MiddlewareGap from "../components/MiddlewareGap.vue";
 import { useMiddlewareSource } from "../utils/middlewareSource";
+import { extraText } from "../utils/externalDatasource";
 import {
   executeInfluxdbQuery,
   fetchInfluxdbBuckets,
@@ -342,6 +343,17 @@ const testing = ref(false);
 const influxVersion = ref("");
 const buckets = ref<InfluxdbBucket[]>([]);
 const measurements = ref<InfluxdbMeasurement[]>([]);
+
+/**
+ * 连接信息（地址/端口/组织/版本）。
+ *
+ * <p>由 {@code applyConnectionInfo()} 写入。当前模板不直接读取它，
+ * 但保留写入行为以便后续展示，故此处补上声明（此前迁移遗漏导致引用悬空）。</p>
+ */
+const connectionInfo = { host: "-", port: 0, organization: "-", version: "-" };
+
+/** 连通状态。同上：脚本内写入，模板暂未读取，保留写入行为 */
+const connected = ref(false);
 const recentData = ref<Record<string, unknown>[]>([]);
 
 /**
@@ -454,7 +466,7 @@ function formatTime(value: unknown): string {
  * 回填连接信息（地址、组织）
  */
 function applyConnectionInfo() {
-  const info = datasource.value;
+  const info = source.value;
   connectionInfo.host = info?.host ?? "-";
   connectionInfo.port = info?.port ?? 0;
   connectionInfo.organization = extraText(info, ["organization", "org"], info?.database ?? "-");
@@ -888,12 +900,12 @@ onMounted(async () => {
 
 // 数据源变化（含首次进入）时整体刷新
 watch(
-  [datasourceId, datasourceError],
+  [datasourceId, gap],
   async ([id, err]) => {
     applyConnectionInfo();
     if (!id) {
       buckets.value = [];
-      measurementList.value = [];
+      measurements.value = [];
       recentData.value = [];
       activeBucket.value = "";
       connected.value = false;
@@ -907,7 +919,7 @@ watch(
 );
 
 // 数据源信息变更时刷新连接信息展示
-watch(datasource, applyConnectionInfo);
+watch(source, applyConnectionInfo);
 </script>
 
 <style scoped>

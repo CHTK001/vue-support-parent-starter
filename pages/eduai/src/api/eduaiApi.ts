@@ -27,6 +27,8 @@ import type {
   FunConfig,
   Idiom,
   IdiomGameData,
+  Poem,
+  PoemGameData,
   Insect,
   InsectGameData,
   InsectOrderCount,
@@ -392,6 +394,31 @@ export const eduaiApi = {
   deleteIdiom: (idiomId: number) =>
     http()
       .delete(`/v2/edu/idiom/delete/${idiomId}`)
+      .then<boolean>(unwrap),
+
+  // 古诗库与古诗游戏（补全下句）
+  listPoems: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
+    http()
+      .get("/v2/edu/poem/list")
+      .query(params)
+      .then<Poem[]>(unwrap),
+  generatePoemGame: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
+    http()
+      .get("/v2/edu/poem/game/generate")
+      .query(params)
+      .then<PoemGameData>(unwrap),
+  getPoemDetail: (poemId: number) =>
+    http()
+      .get(`/v2/edu/poem/detail/${poemId}`)
+      .then<Poem>(unwrap),
+  savePoem: (data: Partial<Poem>) =>
+    http()
+      .post("/v2/edu/poem/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  deletePoem: (poemId: number) =>
+    http()
+      .delete(`/v2/edu/poem/delete/${poemId}`)
       .then<boolean>(unwrap),
 
   // 昆虫图鉴（后端 EduInsectController；数据源自开源项目 insect-world，63 种 / 14 个目）

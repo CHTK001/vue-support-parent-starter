@@ -5,7 +5,8 @@
  * 透传 el-button 全部 props / emits / slots。
  * 增强能力：
  *   - icon：可传 Element Plus PascalCase 名 / Iconify 三方库字符串 / HTTP URL，
- *           自动用 ReIcon 渲染（无需手动包 ReIcon）
+ *           自动用 ReIcon 渲染（无需手动包 ReIcon）；
+ *           也支持具名插槽 <template #icon> 手动放任意图标（插槽优先于 icon 属性）
  *   - auth：传入权限标识，配合全局权限函数（provide 注入）控制显隐
  *   - click 自动防抖：传 `debounce` 时，300ms 内多次点击只触发一次
  *   - layout：布局变体，"el"（默认，el-button）/ "modern"（现代化扁平按钮，异步加载）/ "square"（正方形图标按钮，异步加载）
@@ -220,10 +221,12 @@ function onClick(e: MouseEvent): void {
       v-bind="$attrs"
       @click="onClick"
     >
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
-      <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
-        <component :is="icon" />
-      </ElIcon>
+      <slot name="icon">
+        <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+        <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+          <component :is="icon" />
+        </ElIcon>
+      </slot>
     </ElButton>
   </ElTooltip>
 
@@ -244,10 +247,12 @@ function onClick(e: MouseEvent): void {
     v-bind="$attrs"
     @click="onClick"
   >
-    <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
-    <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
-      <component :is="icon" />
-    </ElIcon>
+    <slot name="icon">
+      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+      <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+        <component :is="icon" />
+      </ElIcon>
+    </slot>
     <slot />
   </ElButton>
 </template>
