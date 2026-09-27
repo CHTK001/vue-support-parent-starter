@@ -7,7 +7,7 @@
  *
  * 阶段按**首次出现顺序**保留，这样摘要条读起来就是真实的时间线。
  */
-import type { DisplayGroup } from "./messageUtils";
+import type { DisplayItem } from "./messageUtils";
 
 export type PhaseKind =
   | "search"
@@ -62,15 +62,18 @@ export function toolNameToPhase(rawName: string): PhaseKind {
 }
 
 /**
- * 从展示分组推导本回合的执行阶段序列。
+ * 从时间线条目推导本回合的执行阶段序列。
  *
- * @param groups TurnItem 的 displayGroups
+ * 入参是 `flattenContentsForTimeline` 产出的扁平条目，顺序即真实发生顺序，
+ * 所以直接顺序遍历即可得到时间线。
+ *
+ * @param items 时间线条目
  * @param options.editedFileCount write/edit 归类出的文件数；>0 时确保 editFile 阶段出现
  *                           （工具名被归到 command 等其他类别时也能补上）
  * @returns 去重后的阶段序列，按首次出现顺序
  */
 export function deriveTurnPhases(
-  groups: DisplayGroup[],
+  items: DisplayItem[],
   options: { editedFileCount?: number } = {},
 ): TurnPhase[] {
   const order: PhaseKind[] = [];
@@ -84,35 +87,31 @@ export function deriveTurnPhases(
     counts.set(kind, (counts.get(kind) || 0) + 1);
   };
 
-  let hasCompose = false;
+  // 叙述文本散落在中间，最后统一追加「组织回答」阶段，保持在时间线末尾
+  let textCount = 0;
 
-  for (const group of groups) {
-    if (group.type === "content") {
-      // 有正文即视为「组织回答」阶段
-      const hasText = group.items.some((i) => (i.content || "").trim().length > 0);
-      if (hasText) hasCompose = true;
+  for (const item of items) {
+    if (item.type === "content") {
+      if ((item.content || "").trim().length > 0) textCount += 1;
       continue;
     }
-
-    for (const item of group.items) {
-      if (item.type === "think") {
-        bump("think");
-        continue;
-      }
-      if (item.type === "search") {
-        bump("search");
-        continue;
-      }
-      if (item.type === "tool") {
-        for (const tc of item.toolCalls || []) {
-          const name = tc?.name || tc?.function?.name || "";
-          bump(toolNameToPhase(name));
-        }
+    if (item.type === "think") {
+      bump("think");
+      continue;
+    }
+    if (item.type === "search") {
+      bump("search");
+      continue;
+    }
+    if (item.type === "tool") {
+      for (const tc of item.toolCalls || []) {
+        const name = tc?.name || tc?.function?.name || "";
+        bump(toolNameToPhase(name));
       }
     }
   }
 
-  if (hasCompose) bump("compose");
+  if (textCount > 0) bump("compose");
 
   // 有文件落盘变更时确保 editFile 阶段一定出现，
   // 避免工具名形态特殊时被归到别的类别导致摘要漏掉最显眼的阶段
