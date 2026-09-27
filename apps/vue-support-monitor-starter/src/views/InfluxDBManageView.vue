@@ -451,16 +451,6 @@ function formatTime(value: unknown): string {
 }
 
 /**
- * 回填连接信息（地址、组织）
- */
-function applyConnectionInfo() {
-  const info = datasource.value;
-  connectionInfo.host = info?.host ?? "-";
-  connectionInfo.port = info?.port ?? 0;
-  connectionInfo.organization = extraText(info, ["organization", "org"], info?.database ?? "-");
-}
-
-/**
  * 展开/收起侧栏树节点
  * @param key 节点键
  */
@@ -885,29 +875,6 @@ onMounted(async () => {
     await refresh();
   }
 });
-
-// 数据源变化（含首次进入）时整体刷新
-watch(
-  [datasourceId, datasourceError],
-  async ([id, err]) => {
-    applyConnectionInfo();
-    if (!id) {
-      buckets.value = [];
-      measurementList.value = [];
-      recentData.value = [];
-      activeBucket.value = "";
-      connected.value = false;
-      connectionInfo.version = "-";
-      if (err) ElMessage.warning(err);
-      return;
-    }
-    await refresh();
-  },
-  { immediate: true }
-);
-
-// 数据源信息变更时刷新连接信息展示
-watch(datasource, applyConnectionInfo);
 </script>
 
 <style scoped>

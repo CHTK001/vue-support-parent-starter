@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from "vue";
-import { fetchDataSource, type DataSourceInfo } from "../monitorApi";
+import { fetchDataSource, type DataSourceInfo } from "@pages/datasource/src/api";
 
 /**
  * 外部服务管理页（InfluxDB / Neo4j / Nacos / ZooKeeper）共用的数据源解析。
@@ -98,7 +98,12 @@ export function useExternalDatasource(
 }
 
 /**
- * 读取数据源扩展字段（{@code config} map），值为空时返回兜底文本。
+ * 读取数据源的展示字段，值为空时返回兜底文本。
+ *
+ * <p>数据源详情接口（{@code GET /ms/datasource/{id}}）当前只返回
+ * {@link DataSourceInfo} 上声明的平铺字段，没有额外的 config map，
+ * 因此这里按字段名依次取第一个非空值；未来接口若新增扩展字段，
+ * 只需在此处补一个取值分支。</p>
  *
  * @param datasource 数据源详情
  * @param keys       字段名，按优先级排列
@@ -111,8 +116,9 @@ export function extraText(
   fallback = "-"
 ): string {
   if (!datasource) return fallback;
+  const record = datasource as unknown as Record<string, unknown>;
   for (const key of keys) {
-    const value = datasource.config?.[key];
+    const value = record[key];
     if (value !== undefined && value !== null && String(value).trim() !== "") {
       return String(value);
     }

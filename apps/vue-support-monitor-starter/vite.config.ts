@@ -1,6 +1,10 @@
 import { createVite } from "../../turbo/vite/createVite.ts";
 
-const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8081";
+// 后端端口：spring-support-monitor-starter 与 spring-support-server-starter 的
+// application.yml 均声明 server.port=8082（全后端体系无 8081 服务），
+// 故默认代理到 8082。需指向其他实例时用环境变量覆盖：
+//   MS_API_TARGET=http://127.0.0.1:8082 pnpm dev
+const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8082";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://127.0.0.1:29181";
 
 export default createVite({
