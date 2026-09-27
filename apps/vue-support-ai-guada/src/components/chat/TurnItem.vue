@@ -440,7 +440,7 @@ const traceKindLabel = (kind: string): string => {
 const { fileChanges } = useFileChanges(turnsCache);
 /** 本回合发生过的阶段序列（思考 / 执行命令 / 编辑文件 / 组织回答…） */
 const turnPhases = computed(() =>
-  deriveTurnPhases(displayGroups.value, { editedFileCount: fileChanges.value.length }),
+  deriveTurnPhases(timelineItems.value, { editedFileCount: fileChanges.value.length }),
 );
 const diffDialogVisible = ref(false);
 const activeDiffEntry = ref<FileChangeEntry | null>(null);

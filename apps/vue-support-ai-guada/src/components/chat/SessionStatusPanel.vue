@@ -925,4 +925,83 @@ onMounted(() => {
 .section-body {
   margin-top: 6px;
 }
+
+/* ============ 步骤明细 ============ */
+
+.row--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.step-toggle-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chevron-inline {
+  font-size: 12px;
+  color: var(--color-text-gray, #909399);
+  transition: transform 0.2s ease;
+}
+
+.chevron-inline.collapsed {
+  transform: rotate(-90deg);
+}
+
+.step-detail {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border, #e4e7ed);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.step-index {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--color-text-gray, #909399);
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+  opacity: 0.7;
+}
+
+.step-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-gray, #909399);
+}
+
+.step-row.is-failed .step-icon {
+  color: #f56c6c;
+}
+
+.step-label {
+  flex-shrink: 0;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text, #303133);
+  font-weight: 500;
+}
+
+.step-arg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-gray, #909399);
+  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+}
 </style>
