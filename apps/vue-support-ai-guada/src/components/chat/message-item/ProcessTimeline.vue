@@ -62,12 +62,16 @@ import MessageToolCalls from './MessageToolCalls.vue';
 import MessageSearchSection from './MessageSearchSection.vue';
 import { MarkdownContent } from '@/components/ui';
 
-defineProps<{
+withDefaults(defineProps<{
   items: DisplayItem[];
   isStreaming?: boolean;
   /** 是否展示思考/工具/检索等过程行（叙述文本始终展示） */
   showProcess?: boolean;
-}>();
+}>(), {
+  // 默认全展示，避免调用方忘传导致过程行整段消失（TurnItem 会显式传摘要条状态）
+  showProcess: true,
+  isStreaming: false,
+});
 
 defineEmits<{
   click: [event: MouseEvent];

@@ -186,11 +186,51 @@ import { agentApi } from '@/services/javaApi';
 const agentList = ref<any[]>([]);
 const loading = ref(false);
 
+/**
+ * 后端 /api/agents/managed 出参是下划线蛇形（agent_id/parent_id/...），
+ * 列表与表单用的是驼峰。这里统一归一化，避免字段名不一致导致「建了看不到」。
+ */
+const normalizeAgent = (a: any) => ({
+  id: a.agent_id ?? a.id,
+  agentId: a.agent_id ?? a.id,
+  parentId: a.parent_id ?? null,
+  name: a.name,
+  description: a.description,
+  model: a.model,
+  providerId: a.provider_id,
+  // 有 parent_id 即为子 Agent（后端以层级而非类型字段区分）
+  type: a.parent_id ? 'sub' : 'master',
+  role: a.role,
+  instruction: a.instruction,
+  systemPrompt: a.system_prompt || a.instruction || '',
+  mcpIds: a.mcp_ids || [],
+  skillIds: a.skill_ids || [],
+  strategy: a.strategy || {},
+  enabled: a.enabled !== false,
+  sortOrder: a.sort_order,
+  subAgents: a.sub_agents || [],
+});
+
+/** 表单 → 后端请求体（后端只认蛇形键） */
+const toAgentPayload = (f: any) => ({
+  name: f.name,
+  description: f.description,
+  model: f.model,
+  provider_id: f.providerId,
+  instruction: f.instruction,
+  system_prompt: f.systemPrompt,
+  mcp_ids: f.mcpIds,
+  skill_ids: f.skillIds,
+  strategy: f.strategy,
+  enabled: f.enabled,
+});
+
 const loadAgents = async () => {
   loading.value = true;
   try {
     const res = await agentApi.list();
-    agentList.value = res?.data || res || [];
+    const raw = res?.data || res || [];
+    agentList.value = (Array.isArray(raw) ? raw : []).map(normalizeAgent);
   } catch (e) {
     agentList.value = [];
   } finally {
@@ -230,11 +270,12 @@ const saveAgent = async () => {
   }
   saving.value = true;
   try {
+    const payload = toAgentPayload(editForm.value);
     if (editingId.value) {
-      await agentApi.update(editingId.value, editForm.value);
+      await agentApi.update(editingId.value, payload);
       ElMessage.success('更新成功');
     } else {
-      await agentApi.create(editForm.value);
+      await agentApi.create(payload);
       ElMessage.success('创建成功');
     }
     editDialogVisible.value = false;

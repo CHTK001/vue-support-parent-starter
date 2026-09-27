@@ -77,7 +77,7 @@ export const mcpApi = {
 
 // ==================== Agent 管理 ====================
 export const agentApi = {
-  list: (params?: any) => apiHttp.get('/api/agents', { params }),
+  list: (params?: any) => apiHttp.get('/api/agents/managed', { params }),
   create: (data: any) => apiHttp.post('/api/agents/managed', data),
   update: (id: string, data: any) => apiHttp.put(`/api/agents/managed/${id}`, data),
   delete: (id: string) => apiHttp.delete(`/api/agents/managed/${id}`),
