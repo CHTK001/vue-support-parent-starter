@@ -2,46 +2,10 @@
  * 视频资源 API 层
  *
  * 后端为 spring-api-support-common-video-starter 的 VideoSearchController
- * （/video/api 代理 → 服务端口）。接口失败时直接抛出真实错误，由视图层
- * 展示错误与重试，不做任何演示数据兜底。
+ * （/video/api 代理 → 服务端口）。请求层见 {@link import("./request")}。
  */
 import type { VideoDetail, VideoInfo, VideoQuery, PageResult } from "@/types/video";
-
-const BASE = "/video/api";
-
-/** 统一响应包装（后端 ReturnResult：{ code, data, message }） */
-interface ApiResponse<T> {
-  code?: number | string;
-  data?: T;
-  message?: string;
-}
-
-async function request<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-  const qs = params
-    ? "?" + new URLSearchParams(
-        Object.entries(params)
-          .filter(([, v]) => v !== undefined && v !== null && v !== "")
-          .map(([k, v]) => [k, String(v)]),
-      ).toString()
-    : "";
-  const res = await fetch(`${BASE}${path}${qs}`, { headers: { Accept: "application/json" } });
-  if (!res.ok) {
-    throw new Error(`后端服务请求失败: ${res.status}，请确认视频服务已启动`);
-  }
-  const body = (await res.json()) as ApiResponse<T>;
-  // ReturnResult 错误码非成功时抛出真实 message
-  if (body && typeof body === "object" && "code" in body && body.code !== undefined) {
-    const ok =
-      body.code === 200 || body.code === 0 || body.code === "200" || body.code === "0";
-    if (!ok) {
-      throw new Error(body.message || `接口返回错误码: ${body.code}`);
-    }
-  }
-  if (body && typeof body === "object" && "data" in body && body.data !== undefined) {
-    return body.data;
-  }
-  return body as T;
-}
+import { apiRequest } from "@/api/request";
 
 /** 后端 VideoInfoResult 字段子集（与前端类型不同名） */
 interface RawVideo {
@@ -90,7 +54,7 @@ function mapVideo(raw: RawVideo): VideoInfo {
 
 /** 分页查询视频列表（多源聚合） */
 export async function fetchVideoList(query: VideoQuery): Promise<PageResult<VideoInfo>> {
-  const rawList = await request<RawVideo[]>("/video/list", query as Record<string, unknown>);
+  const rawList = await apiRequest<RawVideo[]>("/video/list", query as Record<string, unknown>);
   const list = (Array.isArray(rawList) ? rawList : []).map(mapVideo);
   return {
     list,
@@ -102,7 +66,7 @@ export async function fetchVideoList(query: VideoQuery): Promise<PageResult<Vide
 
 /** 获取视频详情（聚合检索按 originId 匹配） */
 export async function fetchVideoDetail(id: string): Promise<VideoDetail> {
-  const raw = await request<RawVideo>(`/video/${encodeURIComponent(id)}`);
+  const raw = await apiRequest<RawVideo>(`/video/${encodeURIComponent(id)}`);
   const info = mapVideo(raw);
   // 聚合接口返回单条含 videoUrl 的条目；有地址时作为单线路单集呈现
   return {

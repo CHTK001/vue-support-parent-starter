@@ -21,12 +21,16 @@ const NAV_ITEMS = [
   { label: "电视剧", to: "/channel/tv" },
   { label: "动漫", to: "/channel/anime" },
   { label: "综艺", to: "/channel/variety" },
+  { label: "直播", to: "/live" },
+  { label: "CCTV直播", to: "/live/cctv" },
 ] as const;
 
 /** 当前激活的主导航项 */
 const activeTo = computed(() => {
   if (route.name === "browse") return "/";
   if (route.name === "channel") return route.path;
+  if (route.name === "live") return "/live";
+  if (route.name === "live-cctv") return "/live/cctv";
   return "";
 });
 
