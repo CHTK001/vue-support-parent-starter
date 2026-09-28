@@ -34,6 +34,7 @@ import {
   Operation,
   Refresh,
   Scissor,
+  Search,
   Setting,
   Tickets,
   Upload,
@@ -51,6 +52,7 @@ import {
   getBucketConfig,
   getCapabilities,
   getDefaultBucket,
+  getQuotaBytes,
   getServerBase,
   listObjects,
   moveObjects,
@@ -324,8 +326,6 @@ let lastSelectedIndex = -1;
 const historyStack = ref<string[]>([]);
 /** 当前历史索引 */
 const historyIndex = ref(-1);
-/** 是否阻止历史记录（如前进后退导航本身） */
-let suppressHistory = false;
 
 const breadcrumbs = computed(() => {
   const segments = currentPath.value ? currentPath.value.split("/") : [];
@@ -623,6 +623,24 @@ const recycleLoading = ref(false);
 const recycleCount = computed(() => recycleItems.value.length);
 
 /**
+ * 存储配额（字节）。
+ *
+ * <p>优先级：localStorage 覆盖 ＞ app.yaml {@code otherConfig.filestorage.quotaGb} ＞ 默认 5GB，
+ * 由 {@link getQuotaBytes} 统一解析。</p>
+ */
+const quotaBytes = computed(() => getQuotaBytes());
+
+/** 配额展示文案（GB，保留 1 位） */
+const quotaText = computed(() => `${(quotaBytes.value / 1024 / 1024 / 1024).toFixed(1)} GB`);
+
+/** 当前目录占用占配额的比例（0-100，用于进度条）；占用取既有的 totalSize（排除目录） */
+const usagePercent = computed(() => {
+  if (quotaBytes.value <= 0) return 0;
+  const pct = (totalSize.value / quotaBytes.value) * 100;
+  return Math.min(100, Math.max(0, Number(pct.toFixed(2))));
+});
+
+/**
  * 记录最近访问目录（去重、最多 12 条）
  *
  * @param path 目录路径
@@ -771,6 +789,7 @@ function switchNav(key: NavKey): void {
   if (key === "all") {
     // 回到"根目录"：回桶根
     currentPath.value = "";
+    recordHistory("");
     void loadObjects();
   }
   if (key === "recycle") void loadRecycle();
@@ -804,12 +823,6 @@ async function loadObjects(): Promise<void> {
     // 同步分栏缓存（当前列）
     colObjects.value = { ...colObjects.value, [currentPath.value]: objects.value };
     setDefaultBucket(bucket.value);
-    // 记录历史（前进/后退导航时 suppressHistory=true 跳过）
-    if (!suppressHistory) {
-      historyStack.value = historyStack.value.slice(0, historyIndex.value + 1);
-      historyStack.value.push(currentPath.value);
-      historyIndex.value = historyStack.value.length - 1;
-    }
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
@@ -818,26 +831,46 @@ async function loadObjects(): Promise<void> {
   }
 }
 
+/**
+ * 记录一次目录跳转。
+ *
+ * <p>历史只在这里维护，**不再由 {@link loadObjects} 顺带入栈**：加载数据与记录导航是两件事，
+ * 混在一起有两个问题——入栈发生在 {@code await} 之后，刚进子目录那一刻后退仍不可用；
+ * 且同一目录被重复加载时会塞进重复记录，导致"后退"点了没反应。</p>
+ *
+ * @param path 目标目录路径，空串表示根目录
+ */
+function recordHistory(path: string): void {
+  const target = path || "";
+  if (historyIndex.value >= 0 && historyStack.value[historyIndex.value] === target) {
+    // 同一目录重复加载不产生新记录
+    return;
+  }
+  historyStack.value = historyStack.value.slice(0, historyIndex.value + 1);
+  historyStack.value.push(target);
+  historyIndex.value = historyStack.value.length - 1;
+}
+
+/** 按当前历史位置应用路径并加载（不记录历史） */
+function applyHistory(): void {
+  currentPath.value = historyStack.value[historyIndex.value] || "";
+  clearSelect();
+  lastSelectedIndex = -1;
+  void loadObjects();
+}
+
 /** 历史后退 */
 function goBack(): void {
   if (historyIndex.value <= 0) return;
   historyIndex.value--;
-  suppressHistory = true;
-  currentPath.value = historyStack.value[historyIndex.value];
-  clearSelect();
-  loadObjects();
-  suppressHistory = false;
+  applyHistory();
 }
 
 /** 历史前进 */
 function goForward(): void {
   if (historyIndex.value >= historyStack.value.length - 1) return;
   historyIndex.value++;
-  suppressHistory = true;
-  currentPath.value = historyStack.value[historyIndex.value];
-  clearSelect();
-  loadObjects();
-  suppressHistory = false;
+  applyHistory();
 }
 
 /** 历史是否可后退 */
@@ -1413,6 +1446,7 @@ const bucketPrivate = computed(() => bucketConfig.value?.private ?? false);
 
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
+  recordHistory(currentPath.value);
   recordRecent(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
@@ -1422,6 +1456,7 @@ function enterDir(row: StorageObject): void {
 function goCrumb(path: string): void {
   nav.value = "all";
   currentPath.value = path;
+  recordHistory(path);
   if (path) recordRecent(path);
   clearSelect();
   lastSelectedIndex = -1;
@@ -1433,6 +1468,7 @@ function goUp(): void {
   nav.value = "all";
   const i = currentPath.value.lastIndexOf("/");
   currentPath.value = i > 0 ? currentPath.value.slice(0, i) : "";
+  recordHistory(currentPath.value);
   clearSelect();
   lastSelectedIndex = -1;
   loadObjects();
@@ -1507,6 +1543,7 @@ function joinKey(path: string, name: string): string {
 function onColumnClick(e: MouseEvent | KeyboardEvent, item: StorageObject, colPath: string, index: number): void {
   if (item.directory) {
     currentPath.value = joinKey(colPath, item.name);
+    recordHistory(currentPath.value);
     recordRecent(currentPath.value);
     clearSelect();
     lastSelectedIndex = -1;
@@ -2013,6 +2050,8 @@ function copyOneTimeLink(): void {
 onMounted(() => {
   loadBucketConfig();
   loadCapabilities();
+  // 播种初始历史：起始目录就是历史栈的第一条，否则后退/前进的索引会整体错位一格
+  recordHistory(currentPath.value);
   loadObjects();
   loadRecycle();
   bindDragEvents();
@@ -2116,8 +2155,50 @@ onUnmounted(() => {
           <span v-if="selectedCount > 0" class="fs-main__sel">已选 {{ selectedCount }} 项</span>
         </div>
 
+        <!-- 存储统计：当前目录占用 / 配额（此前只有 .fs-stat* 样式与 getQuotaBytes 未被接线） -->
+        <div class="fs-stats">
+          <div class="fs-stat fs-stat--usage">
+            <span class="fs-stat__avatar fs-stat__avatar--blue" aria-hidden="true">
+              <el-icon :size="16"><InfoFilled /></el-icon>
+            </span>
+            <span class="fs-stat__body">
+              <span class="fs-stat__label">当前目录占用</span>
+              <span class="fs-stat__value">
+                <b>{{ formatSize(totalSize) }}</b>
+                <span class="fs-stat__sep">/</span>
+                配额 {{ quotaText }}
+              </span>
+              <span class="fs-stat__bar"><i :style="{ width: usagePercent + '%' }" /></span>
+            </span>
+            <span class="fs-stat__side">
+              共 <b>{{ objects.length }}</b> 项
+            </span>
+          </div>
+        </div>
+
         <!-- 操作工具栏：仅保留上传与下载，其余操作收敛到右键菜单 -->
         <div class="fs-toolbar">
+          <!-- 当前目录内搜索：keyword 参与 filteredObjects 过滤（此前只有逻辑与样式、没有输入框） -->
+          <div class="fs-searchbox">
+            <span class="fs-searchbox__icon" aria-hidden="true">
+              <el-icon :size="16"><Search /></el-icon>
+            </span>
+            <input
+              v-model="keyword"
+              class="fs-searchbox__input"
+              type="text"
+              placeholder="在当前目录中搜索…"
+              @keydown.esc="keyword = ''"
+            />
+            <button
+              v-if="keyword"
+              type="button"
+              class="fs-searchbox__clear"
+              title="清除搜索"
+              aria-label="清除搜索"
+              @click="keyword = ''"
+            ><el-icon :size="12"><Close /></el-icon></button>
+          </div>
           <button type="button" class="fs-tb-btn" title="上传" :disabled="nav !== 'all'" @click="openUpload">
             <el-icon :size="15"><Upload /></el-icon>上传
           </button>
