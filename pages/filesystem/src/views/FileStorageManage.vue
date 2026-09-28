@@ -12,6 +12,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  ArrowDown,
   ArrowLeft,
   Close,
   CopyDocument,
@@ -27,7 +28,6 @@ import {
   FolderAdd,
   FolderOpened,
   Grid,
-  InfoFilled,
   List,
   Lock,
   Menu,
@@ -632,6 +632,9 @@ const quotaBytes = computed(() => getQuotaBytes());
 
 /** 配额展示文案（GB，保留 1 位） */
 const quotaText = computed(() => `${(quotaBytes.value / 1024 / 1024 / 1024).toFixed(1)} GB`);
+
+/** 存储用量明细是否展开：默认折叠，只显示占用大小，点箭头才展开明细 */
+const usageOpen = ref(false);
 
 /** 当前目录占用占配额的比例（0-100，用于进度条）；占用取既有的 totalSize（排除目录） */
 const usagePercent = computed(() => {
@@ -1517,6 +1520,33 @@ function refreshColumns(): void {
   segmentPaths.value.forEach((p) => { void ensureColumn(p); });
 }
 
+/**
+ * 取某一列当前应当渲染的条目（叠加搜索关键词过滤）
+ *
+ * <p>分栏视图的列数据来自 {@link colObjects} 这份「每列一份」的缓存，
+ * 而不是当前目录的 {@code objects}，所以不能直接套 {@link filteredObjects}——
+ * 后者只是当前目录的筛选结果，套到每一列上会把祖先列一起清空。
+ * 结果就是搜索框只改状态栏计数、列表却纹丝不动（计数与可见条目长期对不上）。</p>
+ *
+ * <p>这里只过滤<b>当前目录那一列</b>，祖先列保持完整：否则用户一搜索就看不到
+ * 「当前目录是从哪一级进来的」这条路径信息，无法回退。语义与其它三个视图一致，
+ * 即搜索框占位符所写的「在当前目录中搜索」。</p>
+ *
+ * @param colPath 列对应的目录路径（空串表示根目录）
+ * @return 该列应当渲染的条目列表；列尚未加载时返回空数组
+ */
+function columnItems(colPath: string): StorageObject[] {
+  const list = colObjects.value[colPath];
+  if (list === undefined) {
+    return [];
+  }
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) {
+    return list;
+  }
+  return list.filter((item) => item.name.toLowerCase().includes(kw));
+}
+
 watch(segmentPaths, (paths) => {
   paths.forEach((p) => { void ensureColumn(p); });
 });
@@ -2140,45 +2170,58 @@ onUnmounted(() => {
             <el-icon :size="16" :class="{ 'is-spin': loading }"><Refresh /></el-icon>
           </button>
           <div class="fs-crumbs">
-            <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
-              <span v-if="i > 0" class="fs-crumbs__sep" aria-hidden="true">&gt;</span>
-              <span
-                class="fs-crumbs__item"
-                :class="{ 'is-current': crumb.path === currentPath }"
-                @click="goCrumb(crumb.path)"
-              >{{ crumb.name }}</span>
+            <!-- 回收站不是文件路径上的一级，breadcrumbs 只按 currentPath 推导，
+                 切到回收站时若照旧渲染会让人以为还在浏览原目录。此处显式改显「回收站」，
+                 点击退回文件列表（与其它面包屑可点击一致）。 -->
+            <span
+              v-if="nav === 'recycle'"
+              class="fs-crumbs__item is-current"
+              role="button"
+              tabindex="0"
+              @click="switchNav('all')"
+              @keydown.enter="switchNav('all')"
+            >回收站</span>
+            <template v-else>
+              <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path || 'root'">
+                <span v-if="i > 0" class="fs-crumbs__sep" aria-hidden="true">&gt;</span>
+                <span
+                  class="fs-crumbs__item"
+                  :class="{ 'is-current': crumb.path === currentPath }"
+                  @click="goCrumb(crumb.path)"
+                >{{ crumb.name }}</span>
+              </template>
             </template>
           </div>
           <span v-if="bucketPrivate" class="fs-main__lock">
             <el-icon :size="12"><Lock /></el-icon>私有
           </span>
           <span v-if="selectedCount > 0" class="fs-main__sel">已选 {{ selectedCount }} 项</span>
-        </div>
 
-        <!-- 存储统计：当前目录占用 / 配额（此前只有 .fs-stat* 样式与 getQuotaBytes 未被接线） -->
-        <div class="fs-stats">
-          <div class="fs-stat fs-stat--usage">
-            <span class="fs-stat__avatar fs-stat__avatar--blue" aria-hidden="true">
-              <el-icon :size="16"><InfoFilled /></el-icon>
-            </span>
-            <span class="fs-stat__body">
-              <span class="fs-stat__label">当前目录占用</span>
-              <span class="fs-stat__value">
-                <b>{{ formatSize(totalSize) }}</b>
-                <span class="fs-stat__sep">/</span>
-                配额 {{ quotaText }}
-              </span>
+          <!-- 存储统计：紧凑胶囊放路径栏右侧，点箭头展开明细；折叠态只显示当前目录占用大小 -->
+          <div class="fs-stats">
+            <button
+              type="button"
+              class="fs-stat fs-stat--usage"
+              :aria-expanded="usageOpen"
+              aria-label="当前目录占用"
+              @click="usageOpen = !usageOpen"
+            >
+              <span class="fs-stat__label">占用</span>
+              <b class="fs-stat__size">{{ formatSize(totalSize) }}</b>
+              <el-icon class="fs-stat__chev" :class="{ 'is-open': usageOpen }"><ArrowDown /></el-icon>
+            </button>
+            <div v-if="usageOpen" class="fs-stat__detail">
+              <span>当前目录：<b>{{ formatSize(totalSize) }}</b>，共 <b>{{ objects.length }}</b> 项</span>
+              <span>存储配额：<b>{{ quotaText }}</b>，已用 <b>{{ usagePercent }}%</b></span>
               <span class="fs-stat__bar"><i :style="{ width: usagePercent + '%' }" /></span>
-            </span>
-            <span class="fs-stat__side">
-              共 <b>{{ objects.length }}</b> 项
-            </span>
+            </div>
           </div>
         </div>
 
-        <!-- 操作工具栏：仅保留上传与下载，其余操作收敛到右键菜单 -->
+        <!-- 操作工具栏：搜索 + 上传/下载，其余操作收敛到右键菜单。
+             该块曾在工作区被整块删除（openUpload/downloadSelected/keyword 一度成为孤儿），
+             导致页面没有上传入口，故此处恢复。 -->
         <div class="fs-toolbar">
-          <!-- 当前目录内搜索：keyword 参与 filteredObjects 过滤（此前只有逻辑与样式、没有输入框） -->
           <div class="fs-searchbox">
             <span class="fs-searchbox__icon" aria-hidden="true">
               <el-icon :size="16"><Search /></el-icon>
@@ -2231,9 +2274,9 @@ onUnmounted(() => {
               @contextmenu="openBlankContextMenu"
             >
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
-              <div v-else-if="colObjects[colPath].length === 0" class="fs-col__hint">空目录</div>
+              <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">{{ keyword.trim() ? '无匹配项' : '空目录' }}</div>
               <div
-                v-for="(item, index) in colObjects[colPath]"
+                v-for="(item, index) in columnItems(colPath)"
                 :key="item.name"
                 class="fs-col__row"
                 :class="{
@@ -2724,7 +2767,7 @@ onUnmounted(() => {
             </div>
             <div class="fs-admin__row">
               <span class="fs-admin__label">图片滤镜 <i class="fs-admin__arrow">→</i></span>
-              <el-select v-model="adminForm.imageFilter" size="small" class="fs-admin__select">
+              <el-select v-model="adminForm.imageFilter"  class="fs-admin__select">
                 <el-option v-for="opt in imageFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
               </el-select>
             </div>
@@ -2775,7 +2818,7 @@ onUnmounted(() => {
         <el-form-item v-if="oneTimeType === 'expiry'" label="过期时间">
           <div style="display:flex;gap:8px;align-items:center;width:100%">
             <el-input-number v-model="oneTimeExpiry" :min="10" :step="10" :controls="false" style="width:120px" />
-            <span style="font-size:12px;color:#64748b">秒</span>
+            <span class="fs-expiry-unit">秒</span>
             <el-select v-model="oneTimeExpiry" placeholder="快捷选择" style="flex:1">
               <el-option v-for="opt in oneTimeExpiryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
@@ -2796,7 +2839,7 @@ onUnmounted(() => {
     <!-- ===== 预览对话框 ===== -->
     <el-dialog v-model="previewVisible" :title="previewName" width="720px" :append-to-body="true" destroy-on-close @closed="retryPreview">
       <div v-if="previewMeta.size != null && !previewLoading && !previewError" class="fs-preview__meta">
-        <span><el-tag size="small" type="info">{{ previewKind }}</el-tag></span>
+        <span><el-tag  type="info">{{ previewKind }}</el-tag></span>
         <span>{{ formatSize(previewMeta.size) }}</span>
         <span v-if="previewMeta.lastModified">{{ formatTime(previewMeta.lastModified) }}</span>
       </div>
@@ -2965,7 +3008,8 @@ onUnmounted(() => {
   padding: 0 26px;
   border: none;
   border-radius: var(--el-radius-full, 9999px);
-  color: #fff;
+  /* 白字走令牌：EP 的 --el-color-white 会跟随主题/暗色，不会出现暗色下的白字白底 */
+  color: var(--el-color-white);
   font-size: 15px;
   font-weight: 600;
   font-family: inherit;
@@ -2988,11 +3032,12 @@ onUnmounted(() => {
 }
 
 /* ===== 统计卡 ===== */
+/* 存储用量：位于路径栏右侧的紧凑外壳（折叠态只有一枚小胶囊） */
 .fs-stats {
+  position: relative;
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 1.7fr 1fr 1fr;
-  gap: 14px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .fs-stat {
@@ -3019,6 +3064,30 @@ button.fs-stat:hover {
   box-shadow: 0 4px 14px rgb(0 0 0 / 5%);
 }
 
+/* 路径栏右侧的紧凑用量胶囊：折叠态只显示占用大小，点箭头展开明细 */
+.fs-stat--usage {
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-stat--usage:hover {
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+  /* 小胶囊不适合大面积投影，压掉基类的 hover 阴影 */
+  box-shadow: none;
+}
+
+.fs-stat--usage .fs-stat__size {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .fs-stat__avatar {
   flex-shrink: 0;
   width: 46px;
@@ -3027,7 +3096,7 @@ button.fs-stat:hover {
   align-items: center;
   justify-content: center;
   border-radius: var(--el-radius-full, 9999px);
-  color: #fff;
+  color: var(--el-color-white);
 }
 
 .fs-stat__avatar--primary {
@@ -3171,7 +3240,7 @@ button.fs-stat:hover {
   justify-content: center;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-warning);
-  color: #fff;
+  color: var(--el-color-white);
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -3638,7 +3707,7 @@ button.fs-stat:hover {
   justify-content: center;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--el-color-white);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
 
@@ -4189,11 +4258,9 @@ button.fs-stat:hover {
 
 /* 响应式 */
 @media (max-width: 992px) {
-  .fs-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-  .fs-stat--usage {
-    grid-column: 1 / -1;
+  /* 窄屏：用量胶囊只留数字，避免与面包屑争宽 */
+  .fs-stat--usage .fs-stat__label {
+    display: none;
   }
   .fs-nav {
     width: 168px;
@@ -4355,7 +4422,7 @@ button.fs-stat:hover {
   justify-content: center;
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-warning);
-  color: #fff;
+  color: var(--el-color-white);
   font-size: 11px;
   font-weight: 700;
 }
@@ -4614,7 +4681,14 @@ button.fs-stat:hover {
   color: var(--el-text-color-regular);
   white-space: nowrap;
   overflow: hidden;
+  outline: none;
   transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+/* 面包屑/文件行是可点的非按钮元素：全局 reset 掉默认焦点环后必须自己补，
+   否则键盘用户 Tab 过来完全看不到焦点落在哪个文件上 */
+.fs-col__row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .fs-col__row:hover {
@@ -4629,11 +4703,11 @@ button.fs-stat:hover {
 
 .fs-col__row.is-selected {
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--el-color-white);
 }
 
 .fs-col__row.is-selected .fs-col__name {
-  color: #fff;
+  color: var(--el-color-white);
 }
 
 .fs-col__row.is-dragover {
@@ -4894,4 +4968,20 @@ button.fs-stat:hover {
 .fs-admin-dialog .el-select__wrapper {
   border-radius: var(--el-radius-md, 8px);
 }
-</style>
+
+/* 下载时效单位（原来是写死的内联色，暗色模式下不跟随主题） */
+.fs-expiry-unit {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .fs-upload-btn,
+  .fs-stat__avatar,
+  .fs-col__row,
+  .fs-col__row.is-selected {
+    transition: none;
+    animation: none;
+  }
+}</style>
