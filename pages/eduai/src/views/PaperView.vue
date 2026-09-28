@@ -31,12 +31,12 @@
         <ReTableColumn prop="paperDuration" label="时长(分)" width="100" />
         <ReTableColumn label="来源" width="80">
           <template #default="{ row }">
-            <el-tag size="small" :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
+            <el-tag  :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
           </template>
         </ReTableColumn>
         <ReTableColumn label="状态" width="100">
           <template #default="{ row }">
-            <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
+            <el-tag  :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
           </template>
         </ReTableColumn>
         <ReTableColumn label="操作" width="200" fixed="right" align="center">
@@ -125,7 +125,7 @@
     <!-- 详情对话框 -->
     <el-dialog v-model="detailVisible" :title="detail?.paperName" width="760">
       <div v-if="detail" class="detail-content">
-        <el-descriptions :column="3" border size="small">
+        <el-descriptions :column="3" border >
           <el-descriptions-item label="学科">{{ detail.paperSubject }}</el-descriptions-item>
           <el-descriptions-item label="学段">{{ detail.paperGradeLevel }}</el-descriptions-item>
           <el-descriptions-item label="年级">{{ detail.paperGrade }}</el-descriptions-item>
@@ -140,8 +140,8 @@
         <div v-for="(q, idx) in detail.questions" :key="q.id" class="question-item">
           <div class="question-head">
             <span class="question-no">{{ idx + 1 }}.</span>
-            <el-tag size="small" type="info">{{ questionTypeLabel(q.type) }}</el-tag>
-            <el-tag size="small" type="warning">{{ q.score ?? '-' }} 分</el-tag>
+            <el-tag  type="info">{{ questionTypeLabel(q.type) }}</el-tag>
+            <el-tag  type="warning">{{ q.score ?? '-' }} 分</el-tag>
             <span class="question-id">题目 ID {{ q.id }}</span>
           </div>
           <div class="question-stem">{{ q.stem }}</div>

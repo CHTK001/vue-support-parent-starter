@@ -22,57 +22,26 @@
 -->
 <template>
   <div class="compose-page">
-    <!-- ==================== 左栏：试卷画布 ==================== -->
-    <section class="canvas-panel">
-      <!-- 卷头信息 + 工具栏 -->
-      <el-card shadow="never" class="canvas-card">
-        <div class="toolbar">
-          <div class="tool-field tool-field--name">
-            <label class="tool-field__label">试卷名称</label>
-            <el-input v-model="header.name" maxlength="100" clearable placeholder="输入试卷名称" />
-          </div>
-          <div class="tool-field">
-            <label class="tool-field__label">学科</label>
-            <el-select v-model="header.subject" filterable allow-create default-first-option clearable placeholder="学科" style="width: 100%">
-              <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
-            </el-select>
-          </div>
-          <div class="tool-field">
-            <label class="tool-field__label">学段</label>
-            <el-select v-model="header.gradeLevel" clearable placeholder="学段" style="width: 100%">
-              <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
-            </el-select>
-          </div>
-          <div class="tool-field">
-            <label class="tool-field__label">年级</label>
-            <el-select v-model="header.grade" filterable allow-create default-first-option clearable placeholder="年级" style="width: 100%">
-              <el-option v-for="g in gradeOptions" :key="g.gradeName" :label="g.gradeName" :value="g.gradeName" />
-            </el-select>
-          </div>
-          <div class="tool-field tool-field--score">
-            <label class="tool-field__label">总分</label>
-            <div class="score-chip" :class="{ 'is-warn': !scoreOk }">
-              <el-icon v-if="!scoreOk"><Warning /></el-icon>
-              当前 {{ totalScore }} / {{ header.targetScore }} 分
-            </div>
-          </div>
-          <div class="toolbar__actions">
-            <ReButton icon="Coin" @click="openMarket">题库</ReButton>
-            <ReButton icon="Setting" @click="openSettings">设置</ReButton>
-            <ReButton icon="Sort" @click="onDistributeEvenly">均分 {{ header.targetScore }} 分</ReButton>
-            <ReButton layout="square" type="primary" icon="Check" tip="保存草稿" :loading="saving" @click="onSaveDraft" />
-            <ReButton layout="square" type="success" icon="Upload" tip="发布" :loading="publishing" @click="onPublish" />
-          </div>
-        </div>
-      </el-card>
-
-      <!-- 题目清单（原生 HTML5 拖拽排序；同时作为购物车拖拽的投放区） -->
-      <el-card shadow="never" class="canvas-card">
+    <!-- ==================== 左栏：试卷题目 ==================== -->
+    <!-- 题目清单（原生 HTML5 拖拽排序；同时作为购物车拖拽的投放区）
+           卷头信息（名称/学科/学段/年级等）在组卷弹框与设置弹框中编辑，
+           这里不再重复铺一屏表单，只保留标题 + 关键操作图标。 -->
+      <el-card shadow="never" class="canvas-card compose-main">
         <template #header>
           <div class="panel-head">
             <span class="panel-head__title">试卷题目</span>
             <span class="panel-head__sub">
-              共 {{ composeQuestions.length }} 题 · 试卷 ID {{ paperId ?? "未保存" }}
+              <span class="score-chip" :class="{ 'is-warn': !scoreOk }">
+                <el-icon v-if="!scoreOk"><Warning /></el-icon>
+                当前 {{ totalScore }} / {{ header.targetScore }} 分
+              </span>
+              <span class="panel-head__meta">共 {{ composeQuestions.length }} 题 · 试卷 ID {{ paperId ?? "未保存" }}</span>
+            </span>
+            <span class="panel-head__actions">
+              <ReButton layout="square" icon="Sort" tip="按题数均分" @click="onDistributeEvenly" />
+              <ReButton layout="square" icon="Setting" tip="设置" @click="openSettings" />
+              <ReButton layout="square" type="primary" icon="Check" tip="保存草稿" :loading="saving" @click="onSaveDraft" />
+              <ReButton layout="square" type="success" icon="Upload" tip="发布" :loading="publishing" @click="onPublish" />
             </span>
           </div>
         </template>
@@ -103,7 +72,7 @@
               <div class="compose-row__main">
                 <el-icon class="compose-row__handle" title="按住拖拽排序"><Rank /></el-icon>
                 <span class="compose-row__no">{{ idx + 1 }}</span>
-                <el-tag size="small" type="info">{{ typeLabel(q.type) }}</el-tag>
+                <el-tag  type="info">{{ typeLabel(q.type) }}</el-tag>
                 <span class="compose-row__stem" v-html="renderMathSummary(q.stem, 72) || '（题干为空）'" />
               </div>
               <div class="compose-row__side">
@@ -126,7 +95,7 @@
                     v-model="q.score"
                     :min="1"
                     :max="maxQuestionScore"
-                    size="small"
+                    
                     controls-position="right"
                     class="compose-row__score"
                   />
@@ -138,8 +107,8 @@
         </div>
       </el-card>
 
-      <!-- 分页预览 -->
-      <el-card shadow="never" class="canvas-card">
+      <!-- ==================== 中栏：纸张预览 ==================== -->
+      <el-card shadow="never" class="canvas-card preview-card">
         <template #header>
           <div class="panel-head">
             <span class="panel-head__title">纸张预览</span>
@@ -197,7 +166,6 @@
           </div>
         </div>
       </el-card>
-    </section>
 
     <!-- ==================== 右栏：试卷购物车 ==================== -->
     <aside class="cart-panel">
@@ -205,7 +173,10 @@
         <template #header>
           <div class="panel-head">
             <span class="panel-head__title">试卷购物车</span>
-            <el-button v-if="cartItems.length" link size="small" type="danger" @click="clearCart">清空</el-button>
+            <span class="panel-head__actions">
+              <ReButton layout="square" type="primary" icon="Plus" tip="继续添加题目" @click="openMarket" />
+              <ReButton v-if="cartItems.length" layout="square" type="danger" icon="Delete" tip="清空购物车" @click="clearCart" />
+            </span>
           </div>
         </template>
 
@@ -229,7 +200,7 @@
           >
             <div class="cart-row__head">
               <el-icon class="cart-row__handle" title="拖拽到左侧题目清单加入试卷"><Rank /></el-icon>
-              <el-tag size="small" type="info">{{ typeLabel(item.type) }}</el-tag>
+              <el-tag  type="info">{{ typeLabel(item.type) }}</el-tag>
               <span v-if="item.difficulty != null" class="diff-pill" :class="diffClass(item.difficulty)">{{ diffLabel(item.difficulty) }}</span>
               <span v-if="item.subject" class="cart-row__subject">{{ item.subject }}</span>
             </div>
@@ -239,12 +210,12 @@
                 :model-value="item.score"
                 :min="1"
                 :max="maxQuestionScore"
-                size="small"
+                
                 controls-position="right"
                 class="cart-row__score"
                 @change="onCartScoreChange(item, $event)"
               />
-              <ReButton size="small" type="primary" icon="Plus" @click="addCartItemToPaper(item)">加入</ReButton>
+              <ReButton  type="primary" icon="Plus" @click="addCartItemToPaper(item)">加入</ReButton>
               <el-button type="danger" link :icon="Delete" title="从购物车移除" @click="removeFromCart(item.questionId)" />
             </div>
           </div>
@@ -1506,55 +1477,37 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color-page);
 }
 
-.canvas-panel {
-  flex: 1;
+/*
+  三栏布局：左=试卷题目 / 中=纸张预览 / 右=购物车。
+  每栏卡片自身是 flex 列，body 承担内部滚动 —— 卡片默认 flex:0 1 auto 会被压缩到
+  小于内容高度并裁切内容，所以这里显式给出各栏的伸缩比例与 min-height:0。
+*/
+.compose-main {
+  flex: 1.15 1 0;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  /* 不再让整列滚动：改为三张卡片各自负责内部滚动，避免内容被 flex 收缩后裁切 */
-  overflow: hidden;
-  padding-right: 4px;
 }
 
-/*
-  左列三张卡片的纵向分配（此前全部是 el-card 默认的 flex:0 1 auto，
-  会被 flex 压缩到小于内容高度，导致工具栏被裁、题目只露 1 行、A4 预览被切）：
-
-    1) 卷头 + 工具栏：内容必须完整可见 → 禁止收缩
-    2) 试卷题目     ：约 45% 剩余高度，列表内部滚动
-    3) 纸张预览     ：约 55% 剩余高度（A4 高约 1123px，给它更多可视区），内部滚动
-*/
-.canvas-panel > .canvas-card:nth-child(1) {
-  flex: 0 0 auto;
-}
-
-.canvas-panel > .canvas-card:nth-child(2) {
-  flex: 0.9 1 0;
+.preview-card {
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-.canvas-panel > .canvas-card:nth-child(3) {
-  flex: 1.1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 题目 / 预览卡片的 body 承担滚动，header 固定 */
-.canvas-panel > .canvas-card:nth-child(2) :deep(.el-card__body),
-.canvas-panel > .canvas-card:nth-child(3) :deep(.el-card__body) {
+/* 题目栏与预览栏的 body 各自滚动，header 固定 */
+.compose-main :deep(.el-card__body),
+.preview-card :deep(.el-card__body) {
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
 }
 
 .cart-panel {
-  width: 340px;
-  flex-shrink: 0;
+  flex: 0 0 340px;
   min-height: 0;
   display: flex;
 }
@@ -1593,7 +1546,7 @@ onBeforeUnmount(() => {
 
 .panel-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
@@ -1602,11 +1555,28 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-primary);
+  white-space: nowrap;
 }
 
 .panel-head__sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.panel-head__meta {
+  white-space: nowrap;
+}
+
+/* 标题右侧的操作图标组（设置/保存/发布、购物车的添加/清空） */
+.panel-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* ---------- 工具条 ---------- */
