@@ -1467,11 +1467,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ---------- 整体两栏布局：左试卷画布 / 右购物车 ---------- */
+/* ---------- 三栏布局：左试卷题目 / 中纸张预览 / 右购物车 ----------
+   注意：不要再给 .compose-page 加 padding / margin。
+   它是 .el-main(.main-content) 的子节点，外壳已提供内边距（实测 8px），
+   子节点自己再加会形成双重边距、内容被往里挤一圈。 */
 .compose-page {
   display: flex;
   gap: 14px;
-  padding: 16px;
   height: 100%;
   overflow: hidden;
   background: var(--el-bg-color-page);
