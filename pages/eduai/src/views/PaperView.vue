@@ -18,8 +18,8 @@
         @load-error="pageLoadError"
       >
         <template #toolbar>
-          <ReButton type="success" icon="MagicStick" @click="openGenerate">AI 组卷</ReButton>
-          <ReButton type="primary" icon="Plus" @click="openCreate">新增</ReButton>
+          <!-- 组卷只有一个入口：AI 组卷是它的功能之一（弹框内切换组卷方式） -->
+          <ReButton type="primary" icon="MagicStick" @click="openCompose">组卷</ReButton>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
         <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
@@ -49,49 +49,15 @@
       </ReTable>
     </el-card>
 
-    <!-- AI 组卷对话框 -->
-    <el-dialog v-model="genDialogVisible" title="AI 智能组卷" width="560">
-      <el-form :model="genForm" label-width="100">
-        <el-form-item label="试卷名称" required>
-          <el-input v-model="genForm.name" />
-        </el-form-item>
-        <el-form-item label="学科" required>
-          <el-input v-model="genForm.subject" />
-        </el-form-item>
-        <el-form-item label="学段">
-          <el-select v-model="genForm.gradeLevel" style="width: 100%">
-            <el-option label="不限" value="" />
-            <el-option label="小学" value="PRIMARY" />
-            <el-option label="初中" value="JUNIOR" />
-            <el-option label="高中" value="SENIOR" />
-            <el-option label="大学" value="UNIVERSITY" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="年级" required>
-          <el-input v-model="genForm.grade" />
-        </el-form-item>
-        <el-form-item label="题目数量">
-          <el-input-number v-model="genForm.questionCount" :min="1" :max="200" />
-        </el-form-item>
-        <el-form-item label="每题分值">
-          <el-input-number v-model="genForm.scorePerQuestion" :min="1" :max="50" />
-        </el-form-item>
-        <el-form-item label="知识点 ID">
-          <el-input v-model="genForm.knowledgePointIdsText" placeholder="逗号分隔" />
-        </el-form-item>
-        <el-form-item label="考试时长">
-          <el-input-number v-model="genForm.duration" :min="10" :max="600" /> 分钟
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="genDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="generating" @click="doGenerate">生成</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 新建试卷对话框（手动组卷的入口，创建成功后直接跳转组卷页） -->
-    <el-dialog v-model="createDialogVisible" title="新建试卷" width="560">
+    <!-- 组卷对话框：手动 / AI 共用一套卷头配置，AI 方式多出题量与分值 -->
+    <el-dialog v-model="createDialogVisible" title="组卷" width="560">
       <el-form :model="createForm" label-width="100">
+        <el-form-item label="组卷方式">
+          <el-radio-group v-model="composeMode">
+            <el-radio value="MANUAL">手动组卷</el-radio>
+            <el-radio value="AI">AI 组卷</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="试卷名称" required>
           <el-input v-model="createForm.name" placeholder="请输入试卷名称" />
         </el-form-item>
@@ -133,10 +99,23 @@
             <el-option v-for="t in templateOptions" :key="t.templateId" :label="t.templateName" :value="t.templateId" />
           </el-select>
         </el-form-item>
+        <template v-if="composeMode === 'AI'">
+          <el-form-item label="题目数量">
+            <el-input-number v-model="aiQuestionCount" :min="1" :max="200" />
+          </el-form-item>
+          <el-form-item label="每题分值">
+            <el-input-number v-model="aiScorePerQuestion" :min="1" :max="100" />
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="doCreate">创建并组卷</el-button>
+        <el-button v-if="composeMode === 'MANUAL'" type="primary" :loading="creating" @click="doCreate">
+          创建并组卷
+        </el-button>
+        <el-button v-else type="primary" :loading="generating" @click="doGenerate">
+          生成试卷
+        </el-button>
       </template>
     </el-dialog>
 
@@ -254,18 +233,7 @@ const reload = () => {
   void tableRef.value?.reload();
 };
 
-const genDialogVisible = ref(false);
 const generating = ref(false);
-const genForm = reactive<any>({
-  name: '',
-  subject: '',
-  gradeLevel: '',
-  grade: '',
-  questionCount: 20,
-  scorePerQuestion: 5,
-  knowledgePointIdsText: '',
-  duration: 90,
-});
 
 const detailVisible = ref(false);
 const detail = ref<Paper | null>(null);
@@ -306,44 +274,32 @@ const goCompose = (row: Paper) => {
   });
 };
 
-const openGenerate = () => {
-  Object.assign(genForm, {
-    name: '',
-    subject: '',
-    gradeLevel: '',
-    grade: '',
-    questionCount: 20,
-    scorePerQuestion: 5,
-    knowledgePointIdsText: '',
-    duration: 90,
-  });
-  genDialogVisible.value = true;
+/** 打开组卷弹框（手动/AI 共用）；手动沿用 openCreate 的默认值填充 */
+const openCompose = () => {
+  composeMode.value = 'MANUAL';
+  openCreate();
 };
 
 const doGenerate = async () => {
-  if (!genForm.name || !genForm.subject || !genForm.grade) {
-    ElMessage.warning('请填写名称/学科/年级');
+  if (!createForm.name || !createForm.subject || !createForm.grade) {
+    ElMessage.warning('请填写试卷名称/学科/年级');
     return;
   }
-  const kpIds = (genForm.knowledgePointIdsText || '')
-    .split(/[,，]/)
-    .map((s: string) => Number(s.trim()))
-    .filter((n: number) => !Number.isNaN(n));
   generating.value = true;
   try {
     const paperId = await eduaiApi.generatePaper({
-      name: genForm.name,
-      subject: genForm.subject,
-      gradeLevel: genForm.gradeLevel,
-      grade: genForm.grade,
-      questionCount: genForm.questionCount,
-      scorePerQuestion: genForm.scorePerQuestion,
-      duration: genForm.duration,
-      knowledgePointIds: kpIds,
+      name: createForm.name,
+      subject: createForm.subject,
+      gradeLevel: createForm.gradeLevel,
+      grade: createForm.grade,
+      questionCount: aiQuestionCount.value,
+      scorePerQuestion: aiScorePerQuestion.value,
+      duration: createForm.duration,
+      knowledgePointIds: [],
       typeConfigs: [],
     });
     ElMessage.success(`生成成功，试卷 ID: ${paperId}`);
-    genDialogVisible.value = false;
+    createDialogVisible.value = false;
     reload();
   } catch (e) {
     ElMessage.error('AI 组卷失败: ' + (e instanceof Error ? e.message : String(e)));
@@ -365,6 +321,10 @@ const GRADE_LEVEL_OPTIONS = [
 
 const createDialogVisible = ref(false);
 const creating = ref(false);
+/** 组卷方式：AI 组卷是「组卷」按钮的一个功能分支，与手动共用卷头配置 */
+const composeMode = ref<'MANUAL' | 'AI'>('MANUAL');
+const aiQuestionCount = ref(20);
+const aiScorePerQuestion = ref(5);
 const createGrades = ref<EduGrade[]>([]);
 const templateOptions = ref<PaperTemplate[]>([]);
 const createForm = reactive({

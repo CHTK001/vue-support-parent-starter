@@ -1297,6 +1297,8 @@ const previewHeader = computed<PaperHeader>(() => (settingsVisible.value ? setti
 
 const previewViewportRef = ref<HTMLElement | null>(null);
 const previewViewportWidth = ref(0);
+/** 预览所在卡片 body 的可用高度（由 ResizeObserver 提供），用于按高度约束缩放 */
+const previewViewportHeight = ref(0);
 let previewObserver: ResizeObserver | null = null;
 
 const previewPaperWidth = computed(() => {
@@ -1309,7 +1311,12 @@ const previewPaperHeight = computed(() => {
   return previewHeader.value.pageOrientation === "LANDSCAPE" ? size.width : size.height;
 });
 
-/** 按容器宽度等比缩放（最大 100%） */
+/**
+ * 预览缩放：按容器宽度等比缩放（最大 100%）。
+ *
+ * <p>不按高度缩放：A4 在 96dpi 下高约 1123px，塞进几百像素高的卡片会缩成 20%~30%，
+ * 文字不可读，反而不如保持 100% 宽度让用户纵向滚动。卡片 body 已是 overflow-y:auto。</p>
+ */
 const previewScale = computed(() => {
   if (previewViewportWidth.value <= 0) {
     return 1;
@@ -1464,15 +1471,21 @@ onMounted(() => {
   void initFromRoute();
   void loadDimensionMeta();
   if (previewViewportRef.value && typeof ResizeObserver !== "undefined") {
+    // 观察滚动容器（卡片 body）而不是预览自身：预览是 overflow:visible，
+    // 其自身高度等于内容高度，量不到「可用高度」。
+    const host = previewViewportRef.value.parentElement ?? previewViewportRef.value;
     previewObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
         previewViewportWidth.value = entry.contentRect.width;
+        previewViewportHeight.value = entry.contentRect.height;
       }
     });
-    previewObserver.observe(previewViewportRef.value);
+    previewObserver.observe(host);
   } else if (previewViewportRef.value) {
     previewViewportWidth.value = previewViewportRef.value.clientWidth;
+    previewViewportHeight.value =
+      previewViewportRef.value.parentElement?.clientHeight ?? previewViewportRef.value.clientHeight;
   }
 });
 
@@ -1496,11 +1509,47 @@ onBeforeUnmount(() => {
 .canvas-panel {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  overflow-y: auto;
+  /* 不再让整列滚动：改为三张卡片各自负责内部滚动，避免内容被 flex 收缩后裁切 */
+  overflow: hidden;
   padding-right: 4px;
+}
+
+/*
+  左列三张卡片的纵向分配（此前全部是 el-card 默认的 flex:0 1 auto，
+  会被 flex 压缩到小于内容高度，导致工具栏被裁、题目只露 1 行、A4 预览被切）：
+
+    1) 卷头 + 工具栏：内容必须完整可见 → 禁止收缩
+    2) 试卷题目     ：约 45% 剩余高度，列表内部滚动
+    3) 纸张预览     ：约 55% 剩余高度（A4 高约 1123px，给它更多可视区），内部滚动
+*/
+.canvas-panel > .canvas-card:nth-child(1) {
+  flex: 0 0 auto;
+}
+
+.canvas-panel > .canvas-card:nth-child(2) {
+  flex: 0.9 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-panel > .canvas-card:nth-child(3) {
+  flex: 1.1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 题目 / 预览卡片的 body 承担滚动，header 固定 */
+.canvas-panel > .canvas-card:nth-child(2) :deep(.el-card__body),
+.canvas-panel > .canvas-card:nth-child(3) :deep(.el-card__body) {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .cart-panel {
@@ -1942,7 +1991,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 0;
-  overflow: hidden;
+  /* 原先 overflow:hidden 会把超出卡片高度的 A4 直接切掉；
+     改为可见溢出交给外层（卡片 body 已是 overflow-y:auto）滚动查看 */
+  overflow: visible;
 }
 
 .preview-group {
