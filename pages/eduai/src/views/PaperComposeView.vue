@@ -29,6 +29,9 @@
       <el-card shadow="never" class="canvas-card compose-main">
         <template #header>
           <div class="panel-head">
+            <span class="panel-head__back">
+              <ReButton layout="square" icon="ArrowLeft" tip="返回试卷列表" @click="onBack" />
+            </span>
             <span class="panel-head__title">试卷题目</span>
             <span class="panel-head__sub">
               <span class="score-chip" :class="{ 'is-warn': !scoreOk }">
@@ -38,8 +41,12 @@
               <span class="panel-head__meta">共 {{ composeQuestions.length }} 题 · 试卷 ID {{ paperId ?? "未保存" }}</span>
             </span>
             <span class="panel-head__actions">
-              <ReButton layout="square" icon="Sort" tip="按题数均分" @click="onDistributeEvenly" />
-              <ReButton layout="square" icon="Setting" tip="设置" @click="openSettings" />
+              <!-- 均分改为打开「分值配置」弹框：题多时在弹框里逐题核对，比行内更好操作 -->
+              <ReButton layout="square" icon="Sort" tip="分值配置 / 按题数均分" @click="openScoreDialog" />
+              <!-- 设置图标带徽章：提示还有多少题没分配分值 -->
+              <el-badge :value="unscoredCount" :hidden="unscoredCount === 0" type="danger" class="panel-head__badge">
+                <ReButton layout="square" icon="Setting" tip="设置" @click="openSettings" />
+              </el-badge>
               <ReButton layout="square" type="primary" icon="Check" tip="保存草稿" :loading="saving" @click="onSaveDraft" />
               <ReButton layout="square" type="success" icon="Upload" tip="发布" :loading="publishing" @click="onPublish" />
             </span>
@@ -72,8 +79,32 @@
               <div class="compose-row__main">
                 <el-icon class="compose-row__handle" title="按住拖拽排序"><Rank /></el-icon>
                 <span class="compose-row__no">{{ idx + 1 }}</span>
-                <el-tag  type="info">{{ typeLabel(q.type) }}</el-tag>
-                <span class="compose-row__stem" v-html="renderMathSummary(q.stem, 72) || '（题干为空）'" />
+                <div class="compose-row__content">
+                  <div class="compose-row__head">
+                    <el-tag type="info">{{ typeLabel(q.type) }}</el-tag>
+                    <span v-if="q.difficulty" class="compose-row__diff">难度 {{ q.difficulty }}</span>
+                    <span v-if="q.source" class="compose-row__diff">来源 {{ sourceLabel(q.source) }}</span>
+                    <span class="compose-row__srcno">{{ q.paperQuestionNo }}</span>
+                  </div>
+                  <!-- 题干全文（不再截断到 72 字，题目信息要看得清） -->
+                  <div class="compose-row__stem" v-html="renderRichWithMath(q.stem) || '（题干为空）'" />
+                  <!-- 选项（选择题才有） -->
+                  <div v-if="parseOptions(q.options).length" class="compose-row__opts">
+                    <div v-for="(opt, oi) in parseOptions(q.options)" :key="oi" class="compose-row__opt">
+                      <span class="compose-row__opt-letter">{{ optionLetter(oi) }}.</span>
+                      <span v-html="renderMixedText(opt)" />
+                    </div>
+                  </div>
+                  <!-- 答案与解析 -->
+                  <div v-if="q.answer" class="compose-row__answer">
+                    <span class="compose-row__answer-label">答案</span>
+                    <span v-html="renderMixedText(q.answer)" />
+                  </div>
+                  <div v-if="q.analysis" class="compose-row__analysis">
+                    <span class="compose-row__answer-label">解析</span>
+                    <span v-html="renderMixedText(q.analysis)" />
+                  </div>
+                </div>
               </div>
               <div class="compose-row__side">
                 <!--
@@ -91,14 +122,13 @@
                   <span v-else class="qr-slot__text">{{ q.paperQuestionNo }}</span>
                 </div>
                 <div class="compose-row__actions">
-                  <el-input-number
+                  <ReInputNumber
                     v-model="q.score"
                     :min="1"
                     :max="maxQuestionScore"
-                    
-                    controls-position="right"
                     class="compose-row__score"
                   />
+                  <el-button type="primary" link :icon="EditPen" title="编辑此题" @click="openEditQuestion(idx)" />
                   <el-button type="danger" link :icon="Delete" title="移出试卷" @click="removeComposeQuestion(idx)" />
                 </div>
               </div>
@@ -113,7 +143,16 @@
           <div class="panel-head">
             <span class="panel-head__title">纸张预览</span>
             <span class="panel-head__sub">
-              {{ previewHeader.pageSize }} · {{ previewHeader.pageOrientation === "LANDSCAPE" ? "横向" : "纵向" }} · 共 {{ pageCount }} 页 · 缩放 {{ Math.round(previewScale * 100) }}%
+              <span class="panel-head__meta">
+                {{ previewHeader.pageSize }} · {{ previewHeader.pageOrientation === "LANDSCAPE" ? "横向" : "纵向" }} · 共 {{ pageCount }} 页
+              </span>
+              <!-- 缩放控制：适应宽度 / 缩小 / 百分比 / 放大 -->
+              <span class="panel-head__actions">
+                <ReButton layout="square" icon="ZoomOut" tip="缩小" :disabled="previewZoom <= ZOOM_MIN" @click="zoomBy(-1)" />
+                <span class="zoom-value" title="点击恢复「适应宽度」" @click="resetZoom">{{ Math.round(previewScale * 100) }}%</span>
+                <ReButton layout="square" icon="ZoomIn" tip="放大" :disabled="previewZoom >= ZOOM_MAX" @click="zoomBy(1)" />
+                <ReButton layout="square" icon="RefreshRight" tip="适应宽度" @click="resetZoom" />
+              </span>
             </span>
           </div>
         </template>
@@ -340,6 +379,74 @@
         <el-button type="primary" @click="confirmSettings">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- ==================== 分值配置弹框 ====================
+         题多时行内逐个改分很吃力，这里集中列出「简化题目 + 分值输入」，
+         并可一键按题数均分，确认后整体写回。 -->
+    <el-dialog v-model="scoreDialogVisible" title="分值配置" width="720px" top="6vh" append-to-body class="score-dialog">
+      <div class="score-dlg__bar">
+        <span class="score-dlg__sum" :class="{ 'is-warn': scoreDraftTotal !== header.targetScore }">
+          合计 {{ scoreDraftTotal }} / {{ header.targetScore }} 分
+        </span>
+        <span class="score-dlg__count">共 {{ scoreDraft.length }} 题</span>
+        <span class="score-dlg__actions">
+          <ReButton icon="Sort" @click="evenScoreDraft">按题数均分</ReButton>
+          <ReButton icon="RefreshLeft" @click="resetScoreDraft">重置</ReButton>
+        </span>
+      </div>
+
+      <div class="score-dlg__list">
+        <div v-for="(row, i) in scoreDraft" :key="row.paperQuestionNo" class="score-dlg__row">
+          <span class="score-dlg__no">{{ i + 1 }}</span>
+          <el-tag type="info">{{ typeLabel(row.type) }}</el-tag>
+          <span class="score-dlg__stem" v-html="renderMathSummary(row.stem, 48) || '（题干为空）'" />
+          <ReInputNumber
+            v-model="row.score"
+            :min="1"
+            :max="maxQuestionScore"
+            class="score-dlg__input"
+          />
+        </div>
+        <el-empty v-if="!scoreDraft.length" :image-size="60" description="试卷还没有题目" />
+      </div>
+
+      <template #footer>
+        <el-button @click="scoreDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="applyScoreDraft">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ==================== 编辑题目弹框 ====================
+         只改「本卷内」这份题的展示内容，不回写题库。 -->
+    <el-dialog v-model="editDialogVisible" title="编辑题目" width="760px" top="6vh" append-to-body class="edit-q-dialog">
+      <el-form v-if="editDraft" label-width="72" @submit.prevent>
+        <el-form-item label="题型">
+          <el-input v-model="editDraft.type" disabled />
+        </el-form-item>
+        <el-form-item label="题干">
+          <el-input v-model="editDraft.stem" type="textarea" :rows="3" placeholder="题干" />
+        </el-form-item>
+        <el-form-item v-if="editOptionRows.length" label="选项">
+          <div class="edit-q__opts">
+            <div v-for="(opt, oi) in editOptionRows" :key="oi" class="edit-q__opt">
+              <span class="edit-q__opt-letter">{{ optionLetter(oi) }}</span>
+              <el-input v-model="editOptionRows[oi]" placeholder="选项内容" />
+            </div>
+            <el-button link type="primary" :icon="Plus" @click="editOptionRows.push('')">添加选项</el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="答案">
+          <el-input v-model="editDraft.answer" type="textarea" :rows="2" placeholder="参考答案" />
+        </el-form-item>
+        <el-form-item label="解析">
+          <el-input v-model="editDraft.analysis" type="textarea" :rows="2" placeholder="题目解析" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="applyEditQuestion">保存到试卷</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -353,11 +460,12 @@
  * - 保存：先建卷 / 改卷头，再同步增删题与分值，最后按题项编号数组提交排序。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import QRCode from "qrcode";
-import { Check, Coin, Delete, Plus, Rank, Setting, Sort, Upload, Warning } from "@element-plus/icons-vue";
+import { Check, Coin, Delete, EditPen, Plus, Rank, Setting, Sort, Upload, Warning } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
+import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
 import { eduaiApi } from "../api/eduaiApi";
 import type { MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
@@ -379,6 +487,10 @@ interface ComposeQuestion {
   analysis?: string;
   score: number;
   paperQuestionNo: string;
+  /** 题目难度 1-5（来自题库，用于在画布上显示更详细的信息） */
+  difficulty?: number;
+  /** 来源（题库原始值，可能是 MANUAL/AI 等码值） */
+  source?: string;
 }
 
 /** 试卷详情内题目（后端 QuestionVO 短字段名；题项编号字段名是 questionNo，不是 paperQuestionNo） */
@@ -592,6 +704,7 @@ function errorText(e: unknown): string {
 /* ==================== 路由参数 ==================== */
 
 const route = useRoute();
+const router = useRouter();
 
 /** 读取路由 query 的字符串值（兼容数组） */
 function queryText(value: unknown): string {
@@ -905,6 +1018,8 @@ function addCartItemToPaper(item: CartItem) {
     analysis: item.analysis,
     score: clampScore(item.score),
     paperQuestionNo: nextTmpNo(),
+    difficulty: item.difficulty,
+    source: item.source,
   });
   removeFromCart(item.questionId);
   ElMessage.success("已加入试卷");
@@ -1168,6 +1283,133 @@ function onDistributeEvenly() {
   void distributeEvenly();
 }
 
+/* ==================== 分值配置弹框 ==================== */
+
+const scoreDialogVisible = ref(false);
+
+/** 弹框内的分值草稿（与 composeQuestions 解耦，确认后才写回） */
+const scoreDraft = ref<{ paperQuestionNo: string; type: string; stem: string; score: number }[]>([]);
+
+/** 草稿合计分 */
+const scoreDraftTotal = computed(() => scoreDraft.value.reduce((sum, r) => sum + (r.score || 0), 0));
+
+/** 未分配分值的题数（试卷 + 购物车），用于设置在图标上的徽章 */
+const unscoredCount = computed(() => {
+  const inPaper = composeQuestions.value.filter((q) => !q.score || q.score <= 0).length;
+  const inCart = cartItems.value.filter((c) => !c.score || c.score <= 0).length;
+  return inPaper + inCart;
+});
+
+/** 打开分值配置弹框（题多时集中核对，比行内逐个改更好操作） */
+function openScoreDialog(): void {
+  if (!composeQuestions.value.length) {
+    ElMessage.warning("请先加入题目");
+    return;
+  }
+  scoreDraft.value = composeQuestions.value.map((q) => ({
+    paperQuestionNo: q.paperQuestionNo,
+    type: q.type,
+    stem: q.stem,
+    score: q.score,
+  }));
+  scoreDialogVisible.value = true;
+}
+
+/** 按题数均分（只改草稿，确认后才写回试卷） */
+function evenScoreDraft(): void {
+  const n = scoreDraft.value.length;
+  if (!n) {
+    return;
+  }
+  const target = header.targetScore > 0 ? header.targetScore : 100;
+  const base = Math.floor(target / n);
+  const rest = target - base * n;
+  scoreDraft.value.forEach((row, i) => {
+    row.score = clampScore(base + (i < rest ? 1 : 0));
+  });
+}
+
+/** 草稿恢复为打开弹框时的分值 */
+function resetScoreDraft(): void {
+  const byNo = new Map(composeQuestions.value.map((q) => [q.paperQuestionNo, q.score]));
+  scoreDraft.value.forEach((row) => {
+    const saved = byNo.get(row.paperQuestionNo);
+    if (saved != null) {
+      row.score = saved;
+    }
+  });
+}
+
+/** 把草稿分值写回试卷 */
+function applyScoreDraft(): void {
+  const byNo = new Map(scoreDraft.value.map((row) => [row.paperQuestionNo, row.score]));
+  composeQuestions.value.forEach((q) => {
+    const next = byNo.get(q.paperQuestionNo);
+    if (next != null) {
+      q.score = clampScore(next);
+    }
+  });
+  scoreDialogVisible.value = false;
+  ElMessage.success(`分值已更新：合计 ${totalScore.value} / ${header.targetScore} 分`);
+}
+
+/* ==================== 编辑题目弹框（只改本卷内这份，不回写题库） ==================== */
+
+const editDialogVisible = ref(false);
+const editIndex = ref(-1);
+const editDraft = ref<ComposeQuestion | null>(null);
+const editOptionRows = ref<string[]>([]);
+
+/**
+ * 打开编辑弹框。
+ *
+ * @param index 题目在 composeQuestions 中的下标
+ */
+function openEditQuestion(index: number): void {
+  const q = composeQuestions.value[index];
+  if (!q) {
+    return;
+  }
+  editIndex.value = index;
+  editDraft.value = { ...q };
+  editOptionRows.value = parseOptions(q.options);
+  editDialogVisible.value = true;
+}
+
+/** 把编辑结果写回当前试卷题目 */
+function applyEditQuestion(): void {
+  const q = composeQuestions.value[editIndex.value];
+  const draft = editDraft.value;
+  if (!q || !draft) {
+    return;
+  }
+  q.stem = draft.stem;
+  q.answer = draft.answer;
+  q.analysis = draft.analysis;
+  q.options = JSON.stringify(editOptionRows.value.filter((s) => s.trim() !== ""));
+  editDialogVisible.value = false;
+  ElMessage.success("已更新到试卷（保存草稿后同步到后端）");
+}
+
+/**
+ * 来源码值 → 中文。
+ *
+ * @param code 题库来源码值（MANUAL/AI/CRAWL/IMPORT）
+ * @returns 中文名称；无法识别时原样返回
+ */
+function sourceLabel(code?: string): string {
+  if (!code) {
+    return "-";
+  }
+  const map: Record<string, string> = {
+    MANUAL: "手动录入",
+    AI: "AI 生成",
+    CRAWL: "采集",
+    IMPORT: "导入",
+  };
+  return map[code.toUpperCase()] ?? code;
+}
+
 async function distributeEvenly() {
   if (!composeQuestions.value.length) {
     ElMessage.warning("请先加入题目");
@@ -1253,6 +1495,8 @@ async function loadDetail(id: number) {
     score: clampScore(item.score),
     // 后端 QuestionVO 的题项编号字段名为 questionNo
     paperQuestionNo: item.questionNo || nextTmpNo(),
+    // 说明：后端 QuestionVO 未返回 difficulty/source，从服务端回读的题这两项为空，
+    // 画布上按「有值才显示」处理；从题库加入的题（购物车路径）带得到这两项。
   }));
   savedScores.clear();
   for (const q of composeQuestions.value) {
@@ -1267,6 +1511,39 @@ async function loadDetail(id: number) {
 const previewHeader = computed<PaperHeader>(() => (settingsVisible.value ? settingsDraft : header));
 
 const previewViewportRef = ref<HTMLElement | null>(null);
+/**
+ * 预览缩放倍数（相对「适应宽度」的倍率）。
+ *
+ * <p>1 = 适应宽度（默认）；用户可用缩放按钮在 [ZOOM_MIN, ZOOM_MAX] 间调整。
+ * 实际上限仍受 previewScale 的 3 倍封顶，避免放大到不可用。</p>
+ */
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const previewZoom = ref(1);
+
+/** 单个缩放档位（每按一次变化的比例） */
+const ZOOM_STEP = 1.25;
+
+/**
+ * 按档位调整缩放。
+ *
+ * @param direction 1 放大 / -1 缩小
+ */
+function zoomBy(direction: number): void {
+  const next = direction > 0 ? previewZoom.value * ZOOM_STEP : previewZoom.value / ZOOM_STEP;
+  previewZoom.value = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(next.toFixed(4))));
+}
+
+/** 恢复「适应宽度」 */
+function resetZoom(): void {
+  previewZoom.value = 1;
+}
+
+/** 返回试卷列表 */
+function onBack(): void {
+  void router.push({ path: "/edu/paper" });
+}
+
 const previewViewportWidth = ref(0);
 /** 预览所在卡片 body 的可用高度（由 ResizeObserver 提供），用于按高度约束缩放 */
 const previewViewportHeight = ref(0);
@@ -1283,20 +1560,23 @@ const previewPaperHeight = computed(() => {
 });
 
 /**
- * 预览缩放：按容器宽度等比缩放（最大 100%）。
+ * 预览缩放：按容器宽度等比缩放（最大 100%），再乘用户手动缩放倍率。
  *
  * <p>不按高度缩放：A4 在 96dpi 下高约 1123px，塞进几百像素高的卡片会缩成 20%~30%，
- * 文字不可读，反而不如保持 100% 宽度让用户纵向滚动。卡片 body 已是 overflow-y:auto。</p>
+ * 文字不可读，反而不如保持宽度自适应 + 纵向滚动。卡片 body 已是 overflow-y:auto。</p>
  */
 const previewScale = computed(() => {
-  if (previewViewportWidth.value <= 0) {
-    return 1;
-  }
-  const available = previewViewportWidth.value - 24;
-  if (available >= previewPaperWidth.value) {
-    return 1;
-  }
-  return Math.max(0.2, available / previewPaperWidth.value);
+  const fit = (() => {
+    if (previewViewportWidth.value <= 0) {
+      return 1;
+    }
+    const available = previewViewportWidth.value - 24;
+    if (available >= previewPaperWidth.value) {
+      return 1;
+    }
+    return Math.max(0.2, available / previewPaperWidth.value);
+  })();
+  return Math.min(3, fit * previewZoom.value);
 });
 
 const pageSlotStyle = computed(() => ({
@@ -1581,6 +1861,13 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+/* 返回按钮：贴在标题左侧 */
+.panel-head__back {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* ---------- 工具条 ---------- */
 .toolbar {
   display: flex;
@@ -1692,14 +1979,50 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: flex-start;
+  /* 用 stretch 让左侧拖拽条能撑满整行高度（flex-start 会让它只有图标那么高） */
+  align-items: stretch;
   gap: 8px;
 }
 
 .compose-row__handle {
-  margin-top: 2px;
+  /* 做成整行高的抓取条：原先只是一个 16px 的小图标，可抓范围太小 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  /* el-icon 自带 height:1em，有显式高度时 stretch 会被忽略，必须置回 auto */
+  height: auto;
+  flex: 0 0 auto;
+  width: 30px;
+  /* 吃掉行的左/上/下内边距，形成贯穿整行高度的抓取条 */
+  margin: -10px 0 -10px -12px;
+  padding: 0 7px;
+  font-size: 18px;
   color: var(--el-text-color-placeholder);
   cursor: grab;
+  border-radius: 10px 0 0 10px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.compose-row__handle:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.compose-row.is-dragging .compose-row__handle {
+  cursor: grabbing;
+}
+
+/* 拖动中禁用行内文本选中，避免拖拽时误选文字 */
+.compose-row {
+  user-select: none;
+}
+
+.compose-row__stem,
+.compose-row__opt,
+.compose-row__answer,
+.compose-row__analysis {
+  user-select: text;
 }
 
 .compose-row__no {
@@ -1707,6 +2030,183 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: var(--el-text-color-primary);
   line-height: 24px;
+  /* 序号与题干顶对齐，不随拖拽条拉伸 */
+  align-self: flex-start;
+  margin-top: 1px;
+}
+
+.compose-row__content {
+  align-self: flex-start;
+}
+
+/* 题干与选项/答案区的容器（题目信息要看得清，不再只是一行标题） */
+.compose-row__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compose-row__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.compose-row__diff {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.compose-row__srcno {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  font-family: var(--el-font-family-mono, monospace);
+}
+
+.compose-row__opts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 4px;
+}
+
+.compose-row__opt {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
+.compose-row__opt-letter {
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.compose-row__answer,
+.compose-row__analysis {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  display: flex;
+  gap: 6px;
+}
+
+.compose-row__answer-label {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+}
+
+/* 预览缩放的百分比数字（可点击恢复适应宽度） */
+.zoom-value {
+  min-width: 46px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.zoom-value:hover {
+  color: var(--el-color-primary);
+}
+
+/* 设置图标上的「未给分」徽章 */
+.panel-head__badge :deep(.el-badge__content) {
+  pointer-events: none;
+}
+
+/* ---------- 分值配置弹框 ---------- */
+.score-dlg__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.score-dlg__sum {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-color-success);
+}
+
+.score-dlg__sum.is-warn {
+  color: var(--el-color-danger);
+}
+
+.score-dlg__count {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.score-dlg__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.score-dlg__list {
+  max-height: 56vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.score-dlg__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+}
+
+.score-dlg__no {
+  flex: 0 0 22px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.score-dlg__stem {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-dlg__input {
+  flex: 0 0 116px;
+}
+
+/* ---------- 编辑题目弹框 ---------- */
+.edit-q__opts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.edit-q__opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-q__opt-letter {
+  flex: 0 0 18px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
 }
 
 .compose-row__stem {
