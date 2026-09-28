@@ -14,6 +14,7 @@ import type {
   PaperQuestionAddItem,
   PaperHistoryItem,
   PaperQuestionQr,
+  PaperTemplate,
   MarkingSubmitRequest,
   MarkingResultVO,
   MarkingAdjust,
@@ -177,6 +178,36 @@ export const eduaiApi = {
     http()
       .get(`/v2/edu/paper/qr/${no}`)
       .then<PaperQuestionQr>(unwrap),
+
+  // 试卷模板（edu_paper_template）
+  /** 模板分页列表（PaperView 选模板下拉用） */
+  getPaperTemplatePage: (params: { pageNum?: number; pageSize?: number; templateName?: string; templateStyle?: string; templateStatus?: number } = {}) =>
+    http()
+      .get("/v2/edu/paper-template/page")
+      .query(params)
+      .then<PageResult<PaperTemplate>>(unwrap),
+  /** 模板详情 */
+  getPaperTemplate: (id: number) =>
+    http()
+      .get(`/v2/edu/paper-template/${id}`)
+      .then<PaperTemplate>(unwrap),
+  /** 新建模板（DataConfigView 保存用），返回模板 ID */
+  savePaperTemplate: (data: Partial<PaperTemplate>) =>
+    http()
+      .post("/v2/edu/paper-template")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 更新模板 */
+  updatePaperTemplate: (id: number, data: Partial<PaperTemplate>) =>
+    http()
+      .put(`/v2/edu/paper-template/${id}`)
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /** 删除模板 */
+  deletePaperTemplate: (id?: number) =>
+    http()
+      .delete(`/v2/edu/paper-template/${id}`)
+      .then<boolean>(unwrap),
 
   // 阅卷
   submitMarking: (data: MarkingSubmitRequest) =>
