@@ -121,6 +121,19 @@ export interface DataSourceInfo {
   lastTestTime?: string | null;
   /** 最近一次测试是否连通，null 表示从未测试 */
   lastTestOk?: number | null;
+  /**
+   * 进程控制方式（仅 nginx 类型使用）
+   *
+   * <p>空串或 undefined 表示自动探测：后端认得出托管单元、且当前 SSH 用户对该单元
+   * 有免密 systemctl 权限时才走 systemd，否则用本地目录方式。这也是本字段引入前的行为。</p>
+   */
+  controlMode?: string | null;
+  /**
+   * 托管单元名，仅 `controlMode === "systemd"` 时有意义
+   *
+   * <p>如 `nginx.service`；留空时仍由后端自动探测。</p>
+   */
+  controlTarget?: string | null;
 }
 
 /** 连通性测试结果 */
