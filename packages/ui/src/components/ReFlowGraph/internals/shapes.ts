@@ -1,19 +1,42 @@
 /**
  * ReFlowGraph 图形注册
  *
- * spider-flow 的观感：小尺寸图标节点 + 下方文字标签 + 正交彩色连线。
- * 这里用两个通用图形（flow-node / flow-edge）承载全部业务类型，差异只体现在
- * attrs（图标 path、主色、描边虚实、标签）上，因此新增节点类型无需注册新图形。
+ * 节点按 X6 官方 DAG 示例（https://x6.antv.antgroup.com/examples/showcase/practices/#dag ，
+ * 源码 site/examples/showcase/practices/demo/dag.tsx）的做法，**节点体交给框架组件渲染**：
+ * 官方用 `@antv/x6-react-shape` 的 `register()`，本组件用 Vue 侧对应物
+ * `@antv/x6-vue-shape` 的 `register()`，注册一个 180×36 的横向卡片节点。
+ *
+ * 连线仍是自绘 SVG 图形：连线的语义色、虚实、箭头都由 attrs 决定，与节点体无关，
+ * 交给框架组件反而要额外维护一份 diff 逻辑，收益为负。
+ *
+ * 业务差异全部落在 data（flowType / flowLabel / flowColor / flowIcon / flowData）上，
+ * **新增节点类型无需注册新图形**。
  */
 import { Graph } from "@antv/x6";
+import { register } from "@antv/x6-vue-shape";
 import { resolveFlowIcon } from "./icons";
+import FlowNodeCard from "./FlowNodeCard.vue";
 import type { FlowEdgeKind, FlowNodeTypeDef } from "./types";
 
-export const FLOW_NODE_SHAPE = "flow-node";
+/** 卡片节点图形名（vue-shape 注册出来的 shape） */
+export const FLOW_NODE_SHAPE = "flow-card";
+
+/** 连线图形名 */
 export const FLOW_EDGE_SHAPE = "flow-edge";
 
-/** 节点徽章尺寸（连线锚点按它算，标签在 bbox 之外） */
-export const NODE_SIZE = 40;
+/**
+ * 卡片宽度，取自官方 DAG 的 180。
+ *
+ * 官方这个尺寸是给「图标 + 104px 标签 + 状态位」排的；本组件去掉了状态位、给类型标签
+ * 让出空间，180 仍能容下约 14 个汉字。
+ */
+export const NODE_WIDTH = 180;
+
+/** 卡片高度，取自官方 DAG 的 36 */
+export const NODE_HEIGHT = 36;
+
+/** 缺省主色，节点类型未给 color 时兜底 */
+export const DEFAULT_NODE_COLOR = "#4f7cff";
 
 /** 连线语义色 */
 export const FLOW_EDGE_COLORS: Record<FlowEdgeKind, string> = {
@@ -23,7 +46,14 @@ export const FLOW_EDGE_COLORS: Record<FlowEdgeKind, string> = {
   else: "#a8b3c0",
 };
 
-/** 四向磁吸锚点（默认隐藏，节点 hover 时由 CSS 淡入） */
+/**
+ * 四向磁吸锚点。
+ *
+ * 官方 DAG 只注册了 top / bottom 两个组，本组件保留四向：持久化数据里
+ * `FlowEdge.fromPort` / `toPort` 可能是 left / right（见 types.ts），砍掉这两个组会让
+ * 已存流程的连线端点落空。四向与「自上而下」的主流程不冲突 —— dagRules 只禁止
+ * `top` 作源、`bottom` 作目标，left / right 仍然放行。
+ */
 export function flowPortGroups() {
   const circle = {
     r: 4,
@@ -40,67 +70,40 @@ export function flowPortGroups() {
   } as const;
 }
 
+/**
+ * 四个端口实例。
+ *
+ * @returns 与 {@link flowPortGroups} 一一对应的端口项，id 与组名同名，
+ *          这样 `data-cell-id` 上的 `port-group` 才能被 dagRules 直接读成方向名
+ */
 export function flowPortItems() {
   return (["top", "right", "bottom", "left"] as const).map((g) => ({ group: g, id: g }));
 }
 
 let registered = false;
 
-/** 注册节点/连线图形，幂等 */
+/**
+ * 注册卡片节点与连线图形，幂等。
+ *
+ * 节点走 `x6-vue-shape` 的 `register`：它内部会 `Graph.registerNode(shape, { inherit: 'vue-shape' })`
+ * 并把 component 记进 `shapeMaps`；view 是 `vue-shape-view`，节点体被挂进 `<foreignObject>`。
+ */
 export function ensureFlowRegistered(): void {
-  if (registered) return;
+  if (registered) {
+    return;
+  }
   registered = true;
 
-  Graph.registerNode(
-    FLOW_NODE_SHAPE,
-    {
-      width: NODE_SIZE,
-      height: NODE_SIZE,
-      markup: [
-        { tagName: "rect", selector: "badge" },
-        { tagName: "path", selector: "icon" },
-        { tagName: "text", selector: "label" },
-      ],
-      attrs: {
-        badge: {
-          refWidth: "100%",
-          refHeight: "100%",
-          rx: 12,
-          ry: 12,
-          fill: "#4f7cff",
-          stroke: "#ffffff",
-          strokeWidth: 1.5,
-          fontFamily: "var(--flow-font, inherit)",
-        },
-        icon: {
-          refX: 0.5,
-          refY: 0.5,
-          x: -12,
-          y: -12,
-          fill: "none",
-          stroke: "#ffffff",
-          strokeWidth: 1.7,
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-          d: resolveFlowIcon(),
-        },
-        label: {
-          refX: 0.5,
-          refY: 1,
-          refDy: 10,
-          textAnchor: "middle",
-          textVerticalAnchor: "top",
-          fontSize: 12,
-          fill: "#4e5969",
-          text: "",
-          fontFamily: "var(--flow-font, inherit)",
-        },
-      },
-      ports: { groups: flowPortGroups(), items: flowPortItems() },
-      zIndex: 1,
+  register({
+    shape: FLOW_NODE_SHAPE,
+    width: NODE_WIDTH,
+    height: NODE_HEIGHT,
+    component: FlowNodeCard,
+    ports: {
+      groups: flowPortGroups(),
+      items: flowPortItems(),
     },
-    true,
-  );
+  });
 
   Graph.registerEdge(
     FLOW_EDGE_SHAPE,
@@ -116,6 +119,9 @@ export function ensureFlowRegistered(): void {
         },
         label: { fontSize: 11, fill: "#86909c" },
       },
+      // 刻意不跟官方一样用自定义贝塞尔连接器（官方 algo-connector）：本组件是
+      // 业务流程编排，正交折线才是这类工具的通行观感（对齐 spider-flow / 宜搭 / 云效），
+      // 换成曲线在多分支时会明显更难读。详见 README 的「与官方实践的差异」一节。
       router: { name: "orth", args: { padding: 28 } },
       connector: { name: "rounded", args: { radius: 8 } },
     },
@@ -123,11 +129,20 @@ export function ensureFlowRegistered(): void {
   );
 }
 
-/** 节点 metadata：业务数据挂 data，图形只吃 attrs */
+/**
+ * 节点 metadata：业务数据挂 data，卡片组件只读 data。
+ *
+ * 这里**不再**设 attrs —— 节点体是 Vue 组件，颜色/图标/文字都从 data 取，
+ * 写了 attrs 也不会被渲染。
+ *
+ * @param input 节点的业务输入
+ * @returns 可直接交给 `graph.addNode` 的节点配置
+ */
 export function buildFlowNodeMetadata(input: {
   id: string;
   type: string;
   label: string;
+  typeLabel?: string;
   x: number;
   y: number;
   color: string;
@@ -139,23 +154,26 @@ export function buildFlowNodeMetadata(input: {
     shape: FLOW_NODE_SHAPE,
     x: input.x,
     y: input.y,
-    width: NODE_SIZE,
-    height: NODE_SIZE,
-    attrs: {
-      badge: { fill: input.color },
-      icon: { d: input.iconPath || resolveFlowIcon(input.type) },
-      label: { text: input.label },
-    },
-    ports: { groups: flowPortGroups(), items: flowPortItems() },
+    width: NODE_WIDTH,
+    height: NODE_HEIGHT,
     data: {
       flowType: input.type,
       flowLabel: input.label,
+      flowTypeLabel: input.typeLabel ?? "",
+      flowColor: input.color || DEFAULT_NODE_COLOR,
+      flowIcon: input.iconPath || resolveFlowIcon(input.type),
       flowData: input.data ?? {},
     },
   };
 }
 
-/** 连线样式：语义色 + 不传递变量走虚线 */
+/**
+ * 连线样式：语义色 + 不传递变量走虚线。
+ *
+ * @param kind 连线语义，决定描边色
+ * @param transfer false 表示「不传递变量」，此时走 `6 4` 虚线
+ * @returns 可直接喂给 `edge.setAttrs` 的 attrs
+ */
 export function flowEdgeAttrs(kind: FlowEdgeKind | undefined, transfer: boolean | undefined) {
   const stroke = FLOW_EDGE_COLORS[kind ?? "normal"];
   return {
@@ -163,13 +181,24 @@ export function flowEdgeAttrs(kind: FlowEdgeKind | undefined, transfer: boolean 
       stroke,
       strokeWidth: 1.8,
       strokeLinecap: "round",
-      strokeDasharray: transfer === false ? "6 4" : undefined,
+      // 必须给空串而不是 undefined：X6 的 setAttrs 是深合并，值为 undefined 的键
+      // **不会**把已有值删掉。拖拽连线的预览边带 strokeDasharray:"5 5"，
+      // 若这里返回 undefined，edge:connected 处的整体重绘就把预览虚线留下了 ——
+      // 每条新连的线都变成虚线，看起来像「没连完的临时线」。
+      // 空串会把 SVG 的 stroke-dasharray 属性置空，即实线。
+      // 这条不是推断：pw-dag-practice.mjs 的「松手后预览边已消失」断言实测命中。
+      strokeDasharray: transfer === false ? "6 4" : "",
       targetMarker: { name: "block", width: 9, height: 7, stroke: "none", fill: stroke },
     },
   };
 }
 
-/** 连线 metadata */
+/**
+ * 连线 metadata。
+ *
+ * @param input 连线的业务输入
+ * @returns 可直接交给 `graph.addEdge` 的连线配置
+ */
 export function buildFlowEdgeMetadata(input: {
   id: string;
   from: string;
@@ -198,7 +227,13 @@ export function buildFlowEdgeMetadata(input: {
   };
 }
 
-/** 供页面构造调色板：type → 主色/图标 的解析 */
+/**
+ * 按 type 取节点类型定义，未命中时兜底成一个同名节点。
+ *
+ * @param types 调色板的全量类型定义
+ * @param type 待查的类型标识
+ * @returns 命中的定义；未命中时返回 `{ type, label: type }`
+ */
 export function resolveFlowType(
   types: FlowNodeTypeDef[],
   type?: string,

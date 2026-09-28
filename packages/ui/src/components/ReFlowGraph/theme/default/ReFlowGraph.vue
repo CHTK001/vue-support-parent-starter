@@ -1,9 +1,12 @@
 <script setup lang="ts">
 /**
- * ReFlowGraph —— 可视化流程设计器（X6 内核，spider-flow 同款交互）
+ * ReFlowGraph —— 可视化流程设计器（X6 内核，对齐官方 DAG 实践）
  *
  * 一个页面内完成整条流程：左侧调色板（点击或拖拽入板）→ 画布连磁吸出正交彩线 →
- * 点节点/连线后面板区直接编辑参数（表单由 #properties 插槽提供，组件不猜业务）。
+ * 点节点/连线后右侧停靠面板直接编辑参数（表单由 #properties 插槽提供，组件不猜业务）。
+ *
+ * 节点是 180×36 的横向卡片，节点体由 Vue 组件渲染（`@antv/x6-vue-shape`），
+ * 与 X6 官方 DAG 示例用 `@antv/x6-react-shape` 的做法一一对应。
  *
  * 提供能力：撤销重做、框选、复制粘贴、辅助线、就地改名、右键菜单、结构预检、
  * 缩放/适配/网格/小地图、PNG 导出、JSON 导入导出。
@@ -28,7 +31,7 @@ const props = withDefaults(
     width?: string | number;
     showToolbar?: boolean;
     showPalette?: boolean;
-    /** 底部属性停靠区，只读视图可关掉 */
+    /** 右侧属性停靠区，只读视图可关掉 */
     showProperties?: boolean;
     /** 开始 / 结束节点类型名，结构预检用 */
     startType?: string;
@@ -71,7 +74,8 @@ const ui = reactive({
   minimap: false,
   grid: true,
   collapsed: false,
-  propsHeight: 236,
+  /** 右侧属性停靠区宽度（px），由面板头拖拽调整 */
+  propsWidth: 340,
   scale: 1,
   canUndo: false,
   canRedo: false,
@@ -123,9 +127,19 @@ function sigOf(d: FlowGraphData): string {
   ]);
 }
 
-function syncStat() {
-  if (!engine.value) return;
-  const d = engine.value.getData();
+/**
+ * 统计画布上的节点/连线数。
+ *
+ * <p>引擎实例可以直接传进来，因为引擎是在构造函数末尾回调 {@code onReady} 的——
+ * 那时外壳自己的 {@code engine.value} 还没被赋值（赋值要等构造函数返回），
+ * 只认 {@code engine.value} 的写法在 onReady 里会整段空转，计数永远停在 0，
+ * 空态遮罩还会因此盖住画布、节点点不动（实测）。</p>
+ *
+ * @param eng 目标引擎；缺省用外壳持有的那个
+ */
+function syncStat(eng: FlowGraphEngine | null = engine.value) {
+  if (!eng) return;
+  const d = eng.getData();
   ui.nodes = d.nodes.length;
   ui.edges = d.edges.length;
 }
@@ -143,13 +157,13 @@ onMounted(async () => {
       onReady: (eng) => {
         eng.setData(props.data ?? { nodes: [], edges: [] });
         applied = sigOf(props.data ?? { nodes: [], edges: [] });
-        syncStat();
+        syncStat(eng);
         emit("ready", eng);
         // ready 监听方通常会同步调用 engine.setData 灌图（FlowDesigner.onReady → load），
         // 那条路走的是引擎直写、不会再触发 data prop 监听的 syncStat，
-        // 于是「节点/连线」计数会停在灌图前的旧值（实测：清单 4 个、计数 0）。
-        // emit 是同步的，这里再统计一次就能拿到灌图后的真实数量。
-        syncStat();
+        // 于是「节点/连线」计数会停在灌图前的旧值（实测：画布 4 个节点、计数 0）。
+        // emit 是同步的，这里显式传 eng 再统计一次就能拿到灌图后的真实数量。
+        syncStat(eng);
       },
       onSelect: (sel) => {
         selection.value = sel;
@@ -190,6 +204,10 @@ watch(
   () => props.data,
   () => {
     if (!engine.value) return;
+    // 计数先刷：签名相同只说明「图没换」，不代表「上一轮灌图的统计已经落过」。
+    // 灌图可能发生在 onReady 内部（引擎直写、绕开 prop），那一次统计是在
+    // 构造函数里跑的、engine.value 尚未赋值，属于空转，这里必须补一次。
+    syncStat();
     const next = sigOf(props.data ?? { nodes: [], edges: [] });
     if (next === applied) return;
     applied = next;
@@ -303,13 +321,18 @@ function menuAction(action: "rename" | "locate" | "copy" | "delete") {
   }
 }
 
-// 面板区拖高
+/**
+ * 面板区拖宽。
+ *
+ * 停靠在右侧，向右拖变宽、变窄要把指针往左拖，所以增量取正向差值；
+ * 上下限按「画布至少还剩 300px、面板不窄于 240px」来卡，避免拖到画布被压没。
+ */
 function startResize(ev: MouseEvent) {
   ev.preventDefault();
-  const startY = ev.clientY;
-  const startH = ui.propsHeight;
+  const startX = ev.clientX;
+  const startW = ui.propsWidth;
   const move = (e: MouseEvent) => {
-    ui.propsHeight = Math.min(520, Math.max(120, startH - (e.clientY - startY)));
+    ui.propsWidth = Math.min(720, Math.max(240, startW + (e.clientX - startX)));
   };
   const up = () => {
     window.removeEventListener("mousemove", move);
@@ -413,29 +436,36 @@ defineExpose({
           <div class="flow-empty-sub">拖动节点边缘的圆点可连线，空格 + 拖拽平移画布，Ctrl + 滚轮缩放</div>
         </div>
       </div>
-    </div>
 
-    <!-- 停靠属性面板 -->
-    <section v-if="showProperties" class="flow-props" :style="{ height: ui.collapsed ? '34px' : ui.propsHeight + 'px' }">
-      <div class="flow-props-head" @mousedown="startResize">
-        <span class="flow-props-grip" />
-        <span class="flow-props-title">
-          {{ propertiesTitle }}
-          <em v-if="selection">{{ selection.kind === 'node' ? selection.node.label : '连线' }}</em>
-          <em v-else class="muted">未选中</em>
-        </span>
-        <ReButton layout="square" size="small" :icon="ui.collapsed ? 'ArrowUp' : 'ArrowDown'"
-                  @click="ui.collapsed = !ui.collapsed">
-          {{ ui.collapsed ? '展开' : '收起' }}
-        </ReButton>
-      </div>
-      <div v-show="!ui.collapsed" class="flow-props-body">
-        <slot name="properties" :selection="selection" :node="selection?.kind === 'node' ? selection.node : null"
-              :edge="selection?.kind === 'edge' ? selection.edge : null" :node-types="nodeTypes" :engine="engine">
-          <div class="flow-props-hint">选中节点或连线后在此编辑参数</div>
-        </slot>
-      </div>
-    </section>
+      <!-- 停靠属性面板：与调色板、画布同处一行，固定在画布右侧 -->
+      <section
+        v-if="showProperties"
+        class="flow-props"
+        :style="{ width: ui.collapsed ? '34px' : ui.propsWidth + 'px' }"
+      >
+        <div class="flow-props-head" @mousedown="startResize">
+          <span class="flow-props-grip" />
+          <span class="flow-props-title">
+            {{ propertiesTitle }}
+            <em v-if="selection">{{ selection.kind === 'node' ? selection.node.label : '连线' }}</em>
+            <em v-else class="muted">未选中</em>
+          </span>
+          <ReButton
+            layout="square"
+            :icon="ui.collapsed ? 'ArrowLeft' : 'ArrowRight'"
+            @click="ui.collapsed = !ui.collapsed"
+          >
+            {{ ui.collapsed ? '展开' : '收起' }}
+          </ReButton>
+        </div>
+        <div v-show="!ui.collapsed" class="flow-props-body">
+          <slot name="properties" :selection="selection" :node="selection?.kind === 'node' ? selection.node : null"
+                :edge="selection?.kind === 'edge' ? selection.edge : null" :node-types="nodeTypes" :engine="engine">
+            <div class="flow-props-hint">选中节点或连线后在此编辑参数</div>
+          </slot>
+        </div>
+      </section>
+    </div>
 
     <!-- 结构问题 -->
     <div v-if="issues.length" class="flow-issues">
@@ -543,8 +573,9 @@ defineExpose({
   display: flex;
   flex-direction: column;
   flex: none;
+  height: 100%;
   background: #fff;
-  border-top: 1px solid var(--flow-line);
+  border-left: 1px solid var(--flow-line);
 }
 .flow-props-head {
   display: flex;
@@ -553,13 +584,13 @@ defineExpose({
   height: 34px;
   flex: none;
   padding: 0 10px;
-  cursor: ns-resize;
+  cursor: ew-resize;
   background: #fbfcfd;
   border-bottom: 1px solid var(--flow-line);
   user-select: none;
 }
-.flow-props-grip { width: 26px; height: 3px; border-radius: 2px; background: #d6dae0; }
-.flow-props-title { flex: 1; font-size: 12px; color: #4e5969; }
+.flow-props-grip { width: 3px; height: 26px; flex: none; border-radius: 2px; background: #d6dae0; }
+.flow-props-title { flex: 1; min-width: 0; font-size: 12px; color: #4e5969; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flow-props-title em { margin-left: 6px; font-style: normal; color: var(--flow-accent); }
 .flow-props-title em.muted { color: #a4abb5; }
 .flow-props-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; }
@@ -610,7 +641,26 @@ defineExpose({
 .flow-menu li { padding: 6px 10px; color: #4e5969; cursor: pointer; border-radius: 5px; }
 .flow-menu li:hover { background: #f2f6ff; color: var(--flow-accent); }
 .flow-menu li.danger:hover { background: #fff1f0; color: #c9403f; }
+/*
+ * 磁吸端口：静止时隐藏、节点 hover 淡入。
+ *
+ * 之前只有 `opacity: 0` 没有任何一条规则把它放回 1，等于端口全程不可见 ——
+ * 注释写着「hover 时由 CSS 淡入」，但那条规则从来没写。40×40 徽章时代端口贴在
+ * 节点四边中点、用户摸得到；换成 180×36 卡片后 left/right 端口在长边中点，
+ * 更需要显形，否则用户根本不知道从哪往外拉线。
+ */
 :deep(.x6-port-body) { opacity: 0; transition: opacity 0.14s ease; }
-:deep(.x6-node:hover .x6-port-body),
+:deep(.x6-node:hover .x6-port-body) { opacity: 1; }
+:deep(.x6-node:hover .x6-edge),
 :deep(.x6-edge:hover) { cursor: pointer; }
+
+/*
+ * 节点体是 foreignObject 里的真实 DOM，`cursor` 要显式给到卡片上：
+ * 外层 `<g class="x6-node">` 上的 cursor 管不到 foreignObject 内部。
+ */
+:deep(.flow-node-card) { cursor: grab; }
+:deep(.x6-node-selected .flow-node-card) {
+  border-color: var(--flow-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--flow-accent) 22%, transparent);
+}
 </style>
