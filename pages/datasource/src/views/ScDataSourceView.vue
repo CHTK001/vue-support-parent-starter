@@ -34,6 +34,8 @@ import ReTab from "@repo/ui/re-tab";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
+import { formatDuration } from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 import {
   fetchDataSources,
   createDataSource,
@@ -136,7 +138,20 @@ const load = async () => {
 /** 打开新增弹窗 */
 const openCreate = () => {
   editing.value = null;
-  form.value = { type: "jdbc", name: "", host: "127.0.0.1", port: 3306, username: "", password: "", database: "", remark: "" };
+  // controlMode/controlTarget 显式给空串而不是不写：
+  // 不写的话字段在 form 里缺失，编辑弹窗里的选择器拿不到当前值
+  form.value = {
+    type: "jdbc",
+    name: "",
+    host: "127.0.0.1",
+    port: 3306,
+    username: "",
+    password: "",
+    database: "",
+    remark: "",
+    controlMode: "",
+    controlTarget: ""
+  };
   dialogVisible.value = true;
 };
 
@@ -321,11 +336,12 @@ const test = async (item: DataSourceInfo) => {
 /** 把测试结果里的两个延迟拼成一句可读文本 */
 function describeLatency(result: DataSourceTestResult): string {
   const parts: string[] = [];
+  // 延迟是真耗时，格式与全站其它耗时展示同源（ReTime 的 formatDuration）
   if (typeof result?.connectLatencyMs === "number") {
-    parts.push(`连接 ${result.connectLatencyMs}ms`);
+    parts.push(`连接 ${formatDuration(costMs(result.connectLatencyMs))}`);
   }
   if (typeof result?.sessionLatencyMs === "number") {
-    parts.push(`会话 ${result.sessionLatencyMs}ms`);
+    parts.push(`会话 ${formatDuration(costMs(result.sessionLatencyMs))}`);
   }
   return parts.join(" / ");
 }
@@ -351,6 +367,19 @@ const openManager = (item: DataSourceInfo) => {
   }
 };
 
+/**
+ * nginx 进程控制方式选项。
+ *
+ * <p>空串代表「自动探测」，与后端 {@code datasource_control_mode} 为空时的语义一致
+ * （即本字段引入前的行为）。刻意不叫「自动」两个字：它是缺省值而非一个独立能力，
+ * 叫「自动」会让人以为存在一个会主动猜测的实现。</p>
+ */
+const controlModeOptions = [
+  { label: "自动探测", value: "" },
+  { label: "systemd 托管（systemctl 启停）", value: "systemd" },
+  { label: "本地目录（nginx -s 与裸启动）", value: "local" }
+];
+
 /** 根据类型显示默认端口 */
 const defaultPort = (type: string): number => {
   const ports: Record<string, number> = {
@@ -370,6 +399,10 @@ const onTypeChange = (type: string) => {
   if (!editing.value) {
     form.value.port = defaultPort(type);
   }
+  // 控制方式只对 nginx 有意义。这里切走时不清空：清掉会让用户切回 nginx 时丢掉刚填的单元名，
+  // 留着也不脏——后端 copy() 有类型闸门，非 nginx 的请求这两个字段一律置空（实测踩过：
+  // 原先后端只校验取值在不在白名单、没看 type，直调 PUT 把 nginx 改成 jdbc 后
+  // controlMode=systemd 被照单全收地留在库里）。
 };
 
 // ------------------------------ 视图派生数据 ------------------------------
@@ -431,7 +464,8 @@ const runtimeText = computed<string>(() => (current.value?.status === 0 ? "已�
 
 /** 毫秒数转卡片文案；无值时统一显示占位符，避免出现 0ms 误导 */
 function formatLatency(value?: number | null): string {
-  return typeof value === "number" && Number.isFinite(value) ? `${value} ms` : "—";
+  const cost = costMs(value);
+  return cost == null ? "—" : formatDuration(cost);
 }
 
 /** 连接延迟卡片值：后端点「测试连接」时回写台账 */
@@ -749,6 +783,38 @@ onMounted(load);
               :placeholder="form.type === 'neo4j' ? '留空按 neo4j；填完整 http(s):// 地址时按反向代理前缀处理' : '数据库名 / Redis DB 编号'"
             />
           </ReFormItem>
+          <!-- 进程控制方式：只对 nginx 有意义。
+               留空 = 自动探测（后端认得出托管单元且当前用户有免密 systemctl 权限才走 systemd），
+               这是本字段引入前的行为，老数据源保持留空即可保持不变。 -->
+          <template v-if="form.type === 'nginx'">
+            <ReFormItem label="控制方式" class="is-full">
+              <ReSelect
+                v-model="form.controlMode"
+                :options="controlModeOptions"
+                placeholder="自动探测"
+              />
+            </ReFormItem>
+            <ReFormItem
+              v-if="form.controlMode === 'systemd'"
+              label="托管单元名"
+              class="is-full"
+            >
+              <ReInput
+                v-model="form.controlTarget"
+                placeholder="例如 nginx.service；留空则由后端自动探测"
+              />
+            </ReFormItem>
+            <p v-if="form.controlMode === 'local'" class="ds-control-hint">
+              直接在本机执行 <code>nginx -s stop</code> 与裸启动，不经过 systemctl。
+              停止后进程不再受任何进程管理器托管，机器重启不会自动拉起。
+            </p>
+            <p v-else-if="form.controlMode === 'systemd'" class="ds-control-hint">
+              启停交给 <code>systemctl</code>。仍要求 SSH 用户对该单元有免密 sudo 权限，没有时自动退回本地目录方式。
+            </p>
+            <p v-else class="ds-control-hint">
+              由后端自动判断：认得出托管单元且 SSH 用户有该单元的免密 sudo 权限才走 systemd，否则用本地目录方式。
+            </p>
+          </template>
           <ReFormItem label="备注" class="is-full">
             <ReInput v-model="form.remark" placeholder="可选备注信息" />
           </ReFormItem>
@@ -768,13 +834,13 @@ onMounted(load);
           <ReSelect
             v-model="schemaTable"
             filterable
-            size="small"
+            
             class="ds-schema__select"
             placeholder="选择表"
             :options="schemaTables.map(name => ({ label: name, value: name }))"
             @update:model-value="() => refreshSchemaColumns()"
           />
-          <ReButton size="small" class="ds-pill" icon="RefreshRight" :show-text="true" :loading="schemaLoading" @click="refreshSchemaTables">刷新</ReButton>
+          <ReButton  class="ds-pill" icon="RefreshRight" :show-text="true" :loading="schemaLoading" @click="refreshSchemaTables">刷新</ReButton>
           <span class="ds-schema__count">共 {{ schemaTables.length }} 张表</span>
         </div>
 
@@ -789,12 +855,12 @@ onMounted(load);
           empty-text="选择一张表查看列结构"
         >
           <template #nullable="{ row }">
-            <ReTag size="small" effect="plain" :type="row.nullable ? 'info' : 'warning'">
+            <ReTag  effect="plain" :type="row.nullable ? 'info' : 'warning'">
               {{ row.nullable ? "可空" : "NOT NULL" }}
             </ReTag>
           </template>
           <template #primaryKey="{ row }">
-            <ReTag v-if="row.primaryKey" size="small" effect="plain" type="danger">主键</ReTag>
+            <ReTag v-if="row.primaryKey"  effect="plain" type="danger">主键</ReTag>
           </template>
         </ReTable>
       </div>
@@ -1249,6 +1315,23 @@ onMounted(load);
 }
 .ds-form :deep(.el-form-item) { margin-bottom: 16px; }
 .ds-form :deep(.is-full) { grid-column: 1 / -1; }
+
+/* 控制方式下方的说明：与 ReFormItem 的 label 同字号弱化一档，
+   整行占满（.is-full 的 grid-column 会传染给相邻兄弟，这里显式复位） */
+.ds-control-hint {
+  grid-column: 1 / -1;
+  margin: -8px 0 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.ds-control-hint code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--el-fill-color-light);
+  font-family: Consolas, Monaco, monospace;
+  font-size: 11px;
+}
 .ds-form :deep(.el-form-item__label) {
   width: auto !important;
   height: auto;
@@ -1326,5 +1409,29 @@ onMounted(load);
   .ds-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------------- 动效降级（prefers-reduced-motion） ----------------
+   逐个列出本文件自带 transition 的选择器，不写 `*` / `.ds *` 通配：
+   通配会把卡片里 ReStatCard / ReInput / el-dropdown 内部的合法过渡一起掐掉。
+   本文件这些选择器都只带 transition（无 animation），故只关 transition。 */
+@media (prefers-reduced-motion: reduce) {
+  .ds-side-card,
+  .ds-status__item,
+  .ds-item,
+  .ds-side__add {
+    transition: none;
+  }
+}
+
+/* ---------------- 键盘焦点可见性 ----------------
+   .ds-status__item 是带 @click 的 li（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。 */
+.ds-status__item {
+  outline: none;
+}
+
+.ds-status__item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>
