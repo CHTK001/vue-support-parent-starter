@@ -37,7 +37,15 @@
       <div class="is3d__card-head">
         <span class="is3d__card-swatch" :style="{ background: toneVar(activeHotspot.tone) }" />
         <span class="is3d__card-title">{{ activeHotspot.label }}</span>
-        <button type="button" class="is3d__card-close" title="关闭" @click="onDotClick(activeHotspot)">✕</button>
+        <button
+          type="button"
+          class="is3d__card-close"
+          title="关闭"
+          aria-label="关闭说明卡"
+          @click="onDotClick(activeHotspot)"
+        >
+          <ReIcon name="Close" :size="13" aria-hidden="true" />
+        </button>
       </div>
       <p class="is3d__card-note">{{ activeHotspot.note }}</p>
       <button
@@ -619,7 +627,8 @@ watch(
   width: 100%;
   height: 100%;
   min-height: 320px;
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   overflow: hidden;
   background: radial-gradient(120% 90% at 50% 0%, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
 }
@@ -657,23 +666,33 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+.is3d__dot:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color, var(--el-color-primary)) 30%, transparent);
 }
 .is3d__dot-core {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  /* 标注点实心核用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--dot-color, var(--el-color-primary));
+  /* 装饰性光环（0 偏移 0 模糊）：只描一圈标注色，不是卡片投影 */
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color, var(--el-color-primary)) 28%, transparent);
-  transition: transform 0.15s;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .is3d__dot::after {
   content: "";
   position: absolute;
   inset: 4px;
-  border-radius: 50%;
+  /* 脉冲圈用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   border: 2px solid var(--dot-color, var(--el-color-primary));
   opacity: 0.55;
+  /* 2.4s 是「刻意慢于微交互」的存在感提示（标注点在 3D 场景里容易被忽略），
+     不并入 -fast 档；降级处理见文末 reduced-motion */
   animation: is3d-pulse 2.4s ease-out infinite;
 }
 .is3d__dot:hover .is3d__dot-core,
@@ -694,9 +713,11 @@ watch(
   position: absolute;
   width: 200px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow);
+  /* 浮在 canvas 上的说明卡：改成半透明深底 + 白字，靠对比度而非投影与 3D 区分，
+     这样模型转动时说明卡不会投出一道假阴影 */
+  border: 1px solid var(--el-border-color-lighter);
   z-index: 3;
 }
 .is3d__card-head {
@@ -708,7 +729,8 @@ watch(
 .is3d__card-swatch {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  /* 色标圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   flex-shrink: 0;
 }
 .is3d__card-title {
@@ -725,6 +747,15 @@ watch(
   color: var(--el-text-color-secondary);
   font-size: 12px;
   padding: 0 2px;
+  /* 换成 ReIcon 后需要 flex 容器让图标居中 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.is3d__card-close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .is3d__card-note {
   margin: 0;
@@ -739,11 +770,16 @@ watch(
   color: var(--el-color-primary);
   font-size: 12px;
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   padding: 4px 8px;
   cursor: pointer;
   width: 100%;
   text-align: left;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.is3d__card-jump:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .is3d__latin {
@@ -769,9 +805,9 @@ watch(
   font-weight: 800;
   color: var(--el-color-white);
   background: var(--el-color-primary);
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 3px 12px;
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.32);
+  /* 阶段标签浮在 3D 场景上：常驻投影去掉，靠主色实心底与白字本身的高对比表达层级 */
 }
 
 .is3d__mask {
@@ -792,9 +828,12 @@ watch(
 .is3d__spinner {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
+  /* 加载圈用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   border: 3px solid var(--el-border-color-lighter);
   border-top-color: var(--el-color-primary);
+  /* 0.8s 是匀速加载指示，属「刻意慢于微交互」的常驻动画，不并入 -fast 档；
+     降级处理见文末 reduced-motion（关动画后必须补静态色块，否则反馈全丢） */
   animation: is3d-spin 0.8s linear infinite;
 }
 @keyframes is3d-spin {
@@ -806,8 +845,42 @@ watch(
   color: var(--el-color-primary);
   font-size: 13px;
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 4px 16px;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.is3d__retry:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
+   三处动画全部关掉，其中两处必须补静态状态，否则会丢掉唯一的视觉反馈：
+   ① .is3d__spinner（正在加载）—— 补主色描边圆点；
+   ② .is3d__dot::after（脉冲圈）—— 原本就有 opacity .55 的静态描边环，
+      animation: none 之后那圈描边仍在，标注点不会消失，无需额外补样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .is3d__dot,
+  .is3d__dot-core {
+    transition: none;
+  }
+  .is3d__dot-core,
+  .is3d__dot:hover .is3d__dot-core,
+  .is3d__dot.is-open .is3d__dot-core {
+    /* 缩放也是动效：关掉后用描边环加粗表达 hover / 展开两态 */
+    transform: none;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot-color, var(--el-color-primary)) 34%, transparent);
+  }
+  .is3d__dot::after {
+    animation: none;
+    opacity: 0.55;
+  }
+  .is3d__spinner {
+    animation: none;
+    /* 静态替代态：整圈主色描边，一眼可辨「还在转」这件事本身 */
+    border-color: var(--el-color-primary);
+    opacity: 0.85;
+  }
 }
 </style>

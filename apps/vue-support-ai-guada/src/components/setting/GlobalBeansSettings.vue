@@ -86,10 +86,11 @@ onMounted(load)
 }
 
 .settings-form {
-  background: #ffffff;
+  background: var(--el-bg-color);
   padding: 24px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .form-actions {

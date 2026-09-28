@@ -54,8 +54,8 @@
     </div>
 
     <div class="guide-footer no-drag">
-      <el-button size="small" @click="skipStep">{{ t('ui.setupGuide.skip') }}</el-button>
-      <el-button size="small" type="primary" @click="nextStep" :disabled="!canProceed">
+      <el-button @click="skipStep">{{ t('ui.setupGuide.skip') }}</el-button>
+      <el-button type="primary" @click="nextStep" :disabled="!canProceed">
         {{ currentStep === 4 ? t('ui.setupGuide.finish') : t('ui.setupGuide.next') }}
       </el-button>
     </div>
@@ -222,10 +222,13 @@ defineExpose({
 .setup-guide-container {
   position: fixed;
   width: 320px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* 浮层面板保持毛玻璃半透（原 90% 白），改为与主题表面色混合，换肤自动跟随 */
+  background: color-mix(in srgb, var(--el-bg-color) 90%, transparent);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  /* 浮层必须浮起，投影改用令牌 */
+  box-shadow: var(--el-box-shadow);
   z-index: 2000;
   user-select: none;
   display: flex;
@@ -266,9 +269,10 @@ defineExpose({
 }
 
 .account-info {
-  background: var(--color-bg-muted);
+  background: var(--el-fill-color-light);
   padding: 12px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   margin-bottom: 12px;
 }
 
@@ -288,8 +292,9 @@ defineExpose({
 }
 
 .provider-card {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   padding: 8px;
   cursor: pointer;
   text-align: center;
@@ -297,8 +302,8 @@ defineExpose({
 }
 
 .provider-card:hover, .provider-card.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .provider-avatar {
@@ -325,13 +330,14 @@ defineExpose({
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: white;
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* 悬浮按钮是常驻浮层，必须浮起，投影改用令牌 */
+  box-shadow: var(--el-box-shadow-light);
   cursor: pointer;
   z-index: 1999;
   transition: all 0.3s ease;
@@ -339,6 +345,30 @@ defineExpose({
 
 .guide-fab:hover {
   transform: scale(1.1);
-  background: var(--color-primary-hover);
+  background: var(--el-color-primary-dark-2);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，供应商卡片与悬浮入口的变化直接到位。
+   逐个列出，不写 `*` / `.setup-guide-container *` 通配，
+   避免把 el-button / el-alert / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   两者都只带 transition（无 animation），.guide-fab 的悬停缩放与 .provider-card 的
+   hover 边框都是静态样式，关掉过渡后依然生效。 */
+@media (prefers-reduced-motion: reduce) {
+  .provider-card,
+  .guide-fab {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：.guide-fab 是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。
+   环的透明度提到 40%（而不是常规的 12%）：这个按钮本身就是一整块主色实心圆，
+   12% 的主色环紧贴同色填充会被当成描边噪点，基本看不出来。 */
+.guide-fab {
+  outline: none;
+}
+
+.guide-fab:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
 </style>

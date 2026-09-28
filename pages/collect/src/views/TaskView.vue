@@ -17,9 +17,11 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import RunReplayDialog from "../components/RunReplayDialog.vue";
 import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
-import { costText, statusTagType, statusText, triggerText } from "../constants/taskStatus";
+import { COLLECT_ACTIONS } from "../constants/actionColumns";
+import { costMs, statusTagType, statusText, triggerText } from "../constants/taskStatus";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFlow, CollectTask, CollectTaskLog } from "../types/collect";
@@ -291,7 +293,7 @@ onUnmounted(() => {
     >
       <template #toolbar>
         <span class="collect-hint">自动刷新</span>
-        <ReSwitch v-model="autoRefresh" size="small" @change="toggleAuto(autoRefresh === true)"/>
+        <ReSwitch v-model="autoRefresh"  @change="toggleAuto(autoRefresh === true)"/>
         <ReButton
           icon="Delete"
           type="danger"
@@ -303,21 +305,23 @@ onUnmounted(() => {
         <span class="collect-cell-mono">{{ row.collectTaskNo }}</span>
       </template>
       <template #status="{ row }">
-        <ReTag size="small" :type="statusTagType(row.collectTaskStatus)" effect="plain">
+        <ReTag  :type="statusTagType(row.collectTaskStatus)" effect="plain">
           {{ statusText(row.collectTaskStatus) }}
         </ReTag>
       </template>
       <template #trigger="{ row }">{{ triggerText(row.collectTaskTriggerType) }}</template>
-      <template #cost="{ row }">{{ costText(row.collectTaskCost) }}</template>
+      <template #cost="{ row }">
+        <ReTime :value="costMs(row.collectTaskCost)" format="duration" placeholder="—" />
+      </template>
       <template #counts="{ row }">
         {{ row.collectTaskNodeCount ?? 0 }} / {{ row.collectTaskRequestCount ?? 0 }} /
         {{ row.collectTaskRecordCount ?? 0 }}
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="VideoPlay" type="primary" tip="回放这次运行（只看动画，不重跑）" @click="openReplay(row)"/>
-        <ReButton layout="square" icon="Files" tip="看这次运行产出的采集结果" @click="gotoRecords(row)"/>
-        <ReButton layout="square" icon="Tickets" tip="看这次运行的节点日志" @click="showLogs(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" tip="删除这条运行记录及其节点日志" @click="removeTask(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.replay" layout="square" @click="openReplay(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.records" layout="square" @click="gotoRecords(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.logs" layout="square" @click="showLogs(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.deleteRun" layout="square" @click="removeTask(row)"/>
       </template>
     </ReTable>
 
@@ -339,11 +343,13 @@ onUnmounted(() => {
         stripe
       >
         <template #status="{ row }">
-          <ReTag size="small" :type="statusTagType(row.collectTaskLogStatus)" effect="plain">
+          <ReTag  :type="statusTagType(row.collectTaskLogStatus)" effect="plain">
             {{ statusText(row.collectTaskLogStatus) }}
           </ReTag>
         </template>
-        <template #cost="{ row }">{{ costText(row.collectTaskLogCost) }}</template>
+        <template #cost="{ row }">
+          <ReTime :value="costMs(row.collectTaskLogCost)" format="duration" placeholder="—" />
+        </template>
         <template #iteration="{ row }">
           {{ row.collectTaskLogIteration == null ? "—" : Number(row.collectTaskLogIteration) + 1 }}
         </template>

@@ -124,9 +124,9 @@ onMounted(() => {
 .hotsport-dashboard { padding: 16px; }
 .stat-card { margin-bottom: 16px; }
 .stat-content { display: flex; align-items: center; gap: 16px; }
-.stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; }
+.stat-icon { width: 48px; height: 48px; border-radius: var(--el-radius-lg, 12px); display: flex; align-items: center; justify-content: center; color: var(--el-color-white); }
 .stat-value { font-size: 24px; font-weight: 600; }
-.stat-label { color: #909399; font-size: 14px; }
+.stat-label { color: var(--el-text-color-secondary); font-size: 14px; }
 .chart-row { margin-top: 16px; }
 .chart-card { margin-bottom: 16px; }
 </style>

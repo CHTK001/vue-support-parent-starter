@@ -170,7 +170,7 @@ watch(
 
             <div class="ai-model-actions">
               <el-button
-                size="small"
+
                 type="primary"
                 plain
                 :loading="modelLoading"
@@ -179,7 +179,7 @@ watch(
                 {{ modelLoading ? t("aiChat.actions.loading") : t("aiChat.actions.loadModel") }}
               </el-button>
               <el-button
-                size="small"
+
                 plain
                 :disabled="modelLoading"
                 @click="handleUnloadModel"

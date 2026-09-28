@@ -30,8 +30,8 @@
         <template #default="{ row }">
           <div class="model-name-cell">
             <span class="model-name">{{ row.modelName }}</span>
-            <el-tag v-if="row.modelEnabled" type="success" size="small" style="margin-left: 8px">启用</el-tag>
-            <el-tag v-else type="info" size="small" style="margin-left: 8px">禁用</el-tag>
+            <el-tag v-if="row.modelEnabled" type="success" style="margin-left: 8px">启用</el-tag>
+            <el-tag v-else type="info" style="margin-left: 8px">禁用</el-tag>
           </div>
         </template>
       </el-table-column>
@@ -42,7 +42,7 @@
             <el-tag
               v-for="(alias, idx) in parseAliases(row.modelAliases)"
               :key="idx"
-              size="small"
+
               type="warning"
               style="margin: 2px"
             >
@@ -58,7 +58,7 @@
           <el-tag
             v-for="(cap, idx) in parseCapabilities(row.modelCapabilities)"
             :key="idx"
-            size="small"
+
             style="margin: 2px"
           >
             {{ cap }}
@@ -78,13 +78,13 @@
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button size="small" type="primary" link @click="testLatency(row)" :loading="row.testing">
+          <el-button type="primary" link @click="testLatency(row)" :loading="row.testing">
             <el-icon><Timer /></el-icon> 测试延迟
           </el-button>
-          <el-button size="small" type="primary" link @click="openEditDialog(row)">
+          <el-button type="primary" link @click="openEditDialog(row)">
             <el-icon><Edit /></el-icon> 编辑
           </el-button>
-          <el-button size="small" type="danger" link @click="deleteModel(row)">
+          <el-button type="danger" link @click="deleteModel(row)">
             <el-icon><Delete /></el-icon> 删除
           </el-button>
         </template>
@@ -145,7 +145,7 @@
             <el-input
               v-model="newAlias"
               placeholder="输入别名后按回车添加"
-              size="small"
+
               style="width: 200px; margin-left: 8px"
               @keyup.enter="addAlias"
             />
@@ -460,6 +460,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 令牌口径：#909399 是 Element Plus 3.x 的「二级文字」旧值，写死会导致暗色下
+   对比度不足；#67c23a / #e6a23c / #f56c6c 同理是 3.x 语义色旧值。
+   全部换成语义等价的 --el-* 令牌，跟随明暗与 9 套配色。
+   本文件样式里没有 transition/animation / 圆角 / 投影，故无需 reduced-motion 分支。 */
 .models-management-page {
   padding: 20px;
 }
@@ -503,9 +507,10 @@ onMounted(() => {
   align-items: center;
 }
 
+/* 次级说明文字：原值 #909399（EP 3.x 旧灰）→ 次级文字色令牌 */
 .form-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   margin-top: 4px;
 }
 
@@ -515,28 +520,31 @@ onMounted(() => {
   align-items: center;
 }
 
+/* 延迟三档是「必须保持可区分的一组身份色」，语义固定为 快/中/慢，
+   因此只把旧调色板值换成同名语义令牌（success / warning / danger），
+   三者之间的相对关系不变。 */
 .latency-fast {
-  color: #67c23a;
+  color: var(--el-color-success);
   font-weight: 600;
 }
 
 .latency-medium {
-  color: #e6a23c;
+  color: var(--el-color-warning);
   font-weight: 600;
 }
 
 .latency-slow {
-  color: #f56c6c;
+  color: var(--el-color-danger);
   font-weight: 600;
 }
 
 .latency-time {
   font-size: 11px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .text-muted {
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .pagination-wrapper {

@@ -15,6 +15,13 @@ export interface FlowNodeTypeDef {
   group?: string;
   /** 图标：24×24 viewBox 的 SVG path d，缺省用通用图形 */
   path?: string;
+  /**
+   * 节点图片 URL，与 `path` 二选一。
+   *
+   * 给了 `image` 时卡片左侧渲染 `<img>` 而不是 SVG path 图标；两者都给时 `image` 优先。
+   * 内部业务图（应用图标、处理器图标之类）用这个比硬凑 path 方便。
+   */
+  image?: string;
   /** 主色 */
   color?: string;
   /** 气泡说明 */
@@ -78,3 +85,31 @@ export type FlowSelection =
   | { kind: "node"; node: FlowNode }
   | { kind: "edge"; edge: FlowEdge }
   | null;
+
+/** 内置右键菜单动作名 */
+export type FlowMenuAction = "rename" | "locate" | "copy" | "delete";
+
+/**
+ * 右键菜单项。
+ *
+ * 两种用法二选一：给 `action` 走内置实现，或给 `onClick` 自己处理。
+ * 两者都给了则以 `action` 为准（内置实现会先跑，`onClick` 不再触发）。
+ */
+export interface FlowMenuItem {
+  /** 唯一 key，v-for 用 */
+  key: string;
+  /** 显示文案 */
+  label: string;
+  /** 内置动作；给了就走内置实现 */
+  action?: FlowMenuAction;
+  /**
+   * 自定义回调；`action` 缺省时才生效。
+   *
+   * `node` 是被右键的那个节点（菜单只在节点上弹，恒非 null）。
+   */
+  onClick?: (ctx: { node: FlowNode; event: MouseEvent }) => void;
+  /** 危险项（删除），走红色样式 */
+  danger?: boolean;
+  /** 禁用项：置灰且不触发 */
+  disabled?: boolean;
+}

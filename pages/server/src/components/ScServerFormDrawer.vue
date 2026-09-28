@@ -547,14 +547,14 @@ async function toggleLive(index: number, enabled: boolean) {
                 v-else-if="field.type === 'number'"
                 :model-value="configValue(field.name) === '' ? undefined : Number(configValue(field.name))"
                 :min="0"
-                size="small"
+
                 style="width: 100%"
                 @update:model-value="(v: any) => setConfig(field.name, v)"
               />
               <ReInput
                 v-else
                 :model-value="String(configValue(field.name))"
-                size="small"
+
                 :placeholder="field.placeholder || ''"
                 @update:model-value="(v: any) => setConfig(field.name, v)"
               />
@@ -573,7 +573,7 @@ async function toggleLive(index: number, enabled: boolean) {
           <div class="picker-col picker-left">
             <div class="picker-head">
               <span>可用插件</span>
-              <ReInput v-model="pickerKeyword" placeholder="搜索" size="small" clearable prefix-icon="Search" style="width: 130px" />
+              <ReInput v-model="pickerKeyword" placeholder="搜索" clearable prefix-icon="Search" style="width: 130px" />
             </div>
             <div class="picker-body">
               <div v-for="group in filterGroups" :key="group.key" class="picker-group">
@@ -589,7 +589,7 @@ async function toggleLive(index: number, enabled: boolean) {
                       <span class="pi-type">{{ item.type }}</span>
                       <span class="pi-desc">{{ item.desc }}</span>
                     </div>
-                    <ReTag size="small" :type="item.spi ? 'success' : 'primary'">{{ item.spi ? 'SPI' : '预设' }}</ReTag>
+                    <ReTag :type="item.spi ? 'success' : 'primary'">{{ item.spi ? 'SPI' : '预设' }}</ReTag>
                     <Plus class="pi-add" />
                   </div>
                 </template>
@@ -618,27 +618,27 @@ async function toggleLive(index: number, enabled: boolean) {
                 <div class="si-main" @click="openFilterConfig(index)">
                   <div class="si-name">
                     {{ f.name }}
-                    <ReTag v-if="f.type && f.type !== f.name" size="small" type="info">{{ f.type }}</ReTag>
+                    <ReTag v-if="f.type && f.type !== f.name" type="info">{{ f.type }}</ReTag>
                   </div>
                   <div class="si-meta">
                     <span class="dim">order {{ f.order ?? 100 }}</span>
                     <span class="dim">·</span>
                     <span class="dim">{{ Object.keys(f.params || {}).length }} 个参数</span>
-                    <ReTag size="small" :type="f.enabled === false ? 'info' : 'success'">
+                    <ReTag :type="f.enabled === false ? 'info' : 'success'">
                       {{ f.enabled === false ? '已停用' : '已启用' }}
                     </ReTag>
                   </div>
                 </div>
                 <div class="si-ops" @click.stop>
-                  <ReButton link size="small" type="primary" @click="openFilterConfig(index)">配置</ReButton>
+                  <ReButton link type="primary" @click="openFilterConfig(index)">配置</ReButton>
                   <ReSwitch
                     :model-value="f.enabled !== false"
-                    size="small"
+
                     @change="(v: any) => { toggleDraft(index, !!v); toggleLive(index, !!v); }"
                   />
-                  <ReButton link size="small" :disabled="index === 0" @click="moveFilter(index, -1)">上移</ReButton>
-                  <ReButton link size="small" :disabled="index === form.filters.length - 1" @click="moveFilter(index, 1)">下移</ReButton>
-                  <ReButton link size="small" type="danger" @click="removeFilter(index)">移除</ReButton>
+                  <ReButton link :disabled="index === 0" @click="moveFilter(index, -1)">上移</ReButton>
+                  <ReButton link :disabled="index === form.filters.length - 1" @click="moveFilter(index, 1)">下移</ReButton>
+                  <ReButton link type="danger" @click="removeFilter(index)">移除</ReButton>
                 </div>
               </div>
             </div>
@@ -659,7 +659,7 @@ async function toggleLive(index: number, enabled: boolean) {
       <!-- ============ 单个插件配置页 ============ -->
       <div v-else class="filter-page">
         <div class="filter-page-bar">
-          <ReButton show-text icon="ArrowLeft" size="small" @click="backToEdit()">返回编排</ReButton>
+          <ReButton show-text icon="ArrowLeft" @click="backToEdit()">返回编排</ReButton>
           <span class="dim">第 {{ activeIndex + 1 }} 个插件 · {{ form.filters[activeIndex]?.name }}</span>
         </div>
         <ScFilterConfigPanel
@@ -677,6 +677,9 @@ async function toggleLive(index: number, enabled: boolean) {
 </template>
 
 <style scoped lang="scss">
+/* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌（--text-* / --bg-*
+   / --border-subtle / --brand-* / --shadow-card / --transition-base），而那份 tokens.css
+   只有 :root、没有暗色变体，暗色模式下这些值全部停留在亮色。已统一改走 EP 语义令牌。 */
 .server-form,
 .filter-page {
   display: flex;
@@ -685,15 +688,15 @@ async function toggleLive(index: number, enabled: boolean) {
 }
 .form-hint {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   margin-left: 8px;
 }
 .spi-badge {
   margin-left: 8px;
   padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--brand-50);
-  color: var(--brand-600);
+  border-radius: var(--el-radius-xs, 4px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
 }
 .cfg-grid {
   display: grid;
@@ -709,7 +712,7 @@ async function toggleLive(index: number, enabled: boolean) {
 }
 .cfg-label {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
 
@@ -723,10 +726,10 @@ async function toggleLive(index: number, enabled: boolean) {
 .picker-col {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
-  background: var(--bg-container-card);
+  background: var(--el-bg-color);
 }
 .picker-head {
   display: flex;
@@ -736,9 +739,9 @@ async function toggleLive(index: number, enabled: boolean) {
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .picker-body {
   flex: 1;
@@ -751,7 +754,7 @@ async function toggleLive(index: number, enabled: boolean) {
 }
 .picker-group-title {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   padding: 4px 6px;
   letter-spacing: 0.3px;
 }
@@ -760,15 +763,27 @@ async function toggleLive(index: number, enabled: boolean) {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  transition: var(--transition-base);
-  background: var(--bg-container);
+  /* 原生可点 div：去掉默认轮廓，改用自绘焦点环。
+     注意——模板里这个 div 目前没有 tabindex，键盘还到不了，
+     焦点环要等模板补上 tabindex/role 才会真正出现（本次不动模板结构） */
+  outline: none;
+  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
+     0.18s 不是任何标准档。显式列出真正会变的四个属性并取 0.2s 档 */
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--el-bg-color);
+}
+.picker-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .picker-item:hover {
-  border-color: var(--brand-300);
-  background: var(--brand-50);
+  border-color: var(--el-color-primary-light-5);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   transform: translateX(2px);
 }
 .pi-main {
@@ -781,11 +796,11 @@ async function toggleLive(index: number, enabled: boolean) {
 .pi-type {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
 .pi-desc {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -793,14 +808,14 @@ async function toggleLive(index: number, enabled: boolean) {
 .pi-add {
   width: 14px;
   height: 14px;
-  color: var(--brand-500);
+  color: var(--el-color-primary);
   flex-shrink: 0;
 }
 .picker-empty {
   padding: 24px 12px;
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   line-height: 1.7;
 }
 .selected-item {
@@ -808,14 +823,17 @@ async function toggleLive(index: number, enabled: boolean) {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-container);
-  transition: var(--transition-base);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .selected-item:hover {
-  border-color: var(--brand-300);
-  box-shadow: var(--shadow-card);
+  border-color: var(--el-color-primary-light-5);
+  /* 允许的两处投影之一：悬浮抬升反馈 */
+  box-shadow: var(--el-box-shadow-lighter);
 }
 .selected-item.is-off {
   opacity: 0.62;
@@ -823,9 +841,10 @@ async function toggleLive(index: number, enabled: boolean) {
 .si-order {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: var(--brand-50);
-  color: var(--brand-600);
+  /* 22px 正圆：50% 与 full 档(9999px) 等价，统一到令牌 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
   font-size: 11px;
   display: flex;
   align-items: center;
@@ -836,13 +855,19 @@ async function toggleLive(index: number, enabled: boolean) {
   flex: 1;
   min-width: 0;
   cursor: pointer;
+  /* 原生可点 div：去掉默认轮廓并自绘焦点环（同样需要模板补 tabindex 才生效） */
+  outline: none;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
+.si-main:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-radius: var(--el-radius-xs, 4px);
+}
 .si-name {
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-family: ui-monospace, SFMono-Regular, monospace;
   display: flex;
   align-items: center;
@@ -867,6 +892,14 @@ async function toggleLive(index: number, enabled: boolean) {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .picker-item,
+  .selected-item {
+    transition: none;
+  }
 }
 </style>

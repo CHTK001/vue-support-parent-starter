@@ -309,7 +309,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column prop="sysMessageProviderType" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.sysMessageProviderType }}</el-tag>
+            <el-tag effect="plain">{{ row.sysMessageProviderType }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="sysMessageProviderVender" label="渠道" min-width="140">

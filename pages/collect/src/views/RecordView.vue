@@ -14,6 +14,7 @@ import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
 import { clearRecords, countRecords, deleteRecord, deleteRecords, fetchFields, listFlows, pageRecords } from "../api/collectApi";
+import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFieldDef, CollectFlow, CollectRecord } from "../types/collect";
@@ -269,13 +270,13 @@ function showDetail(input: Record<string, unknown>): void {
           icon="Delete"
           :disabled="!selected.length"
           :title="selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'"
-          @click="removeSelected">selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果'</ReButton>
+          @click="removeSelected">{{ selected.length ? `删除勾选的 ${selected.length} 条结果` : '先勾选要删除的结果' }}</ReButton>
         <ReButton icon="CircleClose" type="danger" title="清空当前流程的全部结果" @click="clearFlowRecords">清空当前流程的全部结果</ReButton>
       </template>
 
       <template #action="{ row }">
-        <ReButton layout="square" icon="View" type="primary" tip="查看这条结果的字段" @click="showDetail(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" tip="删除这条结果" @click="removeOne(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.viewResult" layout="square" @click="showDetail(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.deleteRecord" layout="square" @click="removeOne(row)"/>
       </template>
     </ReTable>
 

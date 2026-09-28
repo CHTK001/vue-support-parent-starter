@@ -12,6 +12,7 @@
  *
  * 只做副作用引入，不导出任何成员。类名与令牌见 re-surface.css 顶部注释。
  */
+import "./radius-vars.css";
 import "./re-surface.css";
 
 export {};

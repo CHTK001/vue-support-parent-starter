@@ -12,13 +12,13 @@
       </ReStatCard>
     </div>
 
-    <ReTable :data="agents" border size="small" :loading="loading" :pagination="false" :toolbar="false">
+    <ReTable :data="agents" border :loading="loading" :pagination="false" :toolbar="false">
       <ReTableColumn prop="monitorName" label="名称" min-width="140" />
       <ReTableColumn prop="monitorHost" label="地址" min-width="140" />
       <ReTableColumn prop="monitorAgentKey" label="探针标识" min-width="200" show-overflow-tooltip />
       <ReTableColumn label="在线状态" width="100">
         <template #default="{ row }">
-          <ReTag :type="row.online ? 'success' : 'danger'" size="small">
+          <ReTag :type="row.online ? 'success' : 'danger'" >
             {{ row.online ? '在线' : '离线' }}
           </ReTag>
         </template>
@@ -28,7 +28,7 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <ReButton link size="small" type="primary" @click="viewConfig(row)">配置</ReButton>
+          <ReButton link type="primary" @click="viewConfig(row)">配置</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>
@@ -36,13 +36,13 @@
     <ReDialog append-to-body v-model="configVisible" title="Agent 配置" width="500" :height="420" :footer-hidden="true" compact>
       <ReSkeleton v-if="configLoading" :loading="true" :rows="4" :count="1" animated />
       <div v-else>
-        <ReDescriptions :column="1" border size="small">
+        <ReDescriptions :column="1" border >
           <ReDescriptionsItem label="采集间隔">
             {{ configData.collectIntervalMs ?? '-' }}ms
           </ReDescriptionsItem>
         </ReDescriptions>
         <h4 style="margin-top: 12px">采集任务</h4>
-        <ReTable :data="configData.tasks || []" size="small" :pagination="false" :toolbar="false">
+        <ReTable :data="configData.tasks || []" :pagination="false" :toolbar="false">
           <ReTableColumn prop="taskName" label="任务名" />
           <ReTableColumn prop="taskType" label="类型" width="90" />
           <ReTableColumn prop="taskCron" label="Cron" width="120" />

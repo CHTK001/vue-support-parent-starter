@@ -218,12 +218,12 @@ watch(filterValue, () => {
             :pager-count="5"
             layout="pager"
             background
-            size="small"
+
             @current-change="(p: number) => (currentPage = p)"
           />
           <ElButton
             type="danger"
-            size="small"
+
             text
             bg
             @click="onClear"

@@ -6,7 +6,7 @@
         <span>{{ widget.title }}</span>
       </div>
       <div class="smw__header-right">
-        <el-select v-model="selectedServerId" size="small" placeholder="选择服务器" @change="fetchData">
+        <el-select v-model="selectedServerId" placeholder="选择服务器" @change="fetchData">
           <el-option
             v-for="s in serverList"
             :key="s.id"

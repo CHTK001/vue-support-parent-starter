@@ -77,6 +77,14 @@
           <el-button type="primary" :icon="Plus" @click="openCreate" text>新增题目</el-button>
           <el-button :icon="Upload" @click="openImport" text>批量导入</el-button>
         </div>
+        <ReTab
+          v-model="applied.orderBy"
+          class="sort-tabs"
+          variant="capsule"
+          nav-only
+          :tabs="SORT_TABS"
+          @tab-change="onSortTabChange"
+        />
         <div class="view-toggle" role="group" aria-label="视图切换">
           <button
             type="button"
@@ -144,6 +152,17 @@
             <el-table-column label="使用次数" width="100" align="right">
               <template #default="{ row }">{{ row.questionUseCount ?? 0 }}次</template>
             </el-table-column>
+            <!--
+              添加次数：被新加入某张试卷的次数（改分、重复提交不重复计）。
+              与「使用次数」语义不同，单独一列；点上方「添加最多」可按它排序。
+            -->
+            <el-table-column label="添加次数" width="100" align="right">
+              <template #default="{ row }">
+                <span :class="{ 'add-count--hot': (row.questionAddCount ?? 0) > 0 }">
+                  {{ row.questionAddCount ?? 0 }}次
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column label="审核状态" width="100">
               <template #default="{ row }">
                 <span class="tag-pill" :class="auditClass(row.questionAuditStatus)">
@@ -175,10 +194,13 @@
         <!-- 卡片视图 -->
         <template v-else>
           <div v-if="rows.length" class="q-card-grid">
+            <!-- 卡片本身可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
             <div
               v-for="row in rows"
               :key="row.questionId"
               class="q-card"
+              role="button"
+              tabindex="0"
               @click="openEdit(row)"
             >
               <div class="q-card__top">
@@ -203,7 +225,8 @@
                 </span>
                 <span class="status-dot" :class="row.questionStatus === 0 ? 'is-off' : 'is-on'" />
                 <span class="status-text">{{ row.questionStatus === 0 ? "草稿" : "已发布" }}</span>
-                <span class="q-card__use">{{ row.questionUseCount ?? 0 }}次</span>
+                <span class="q-card__use">使用 {{ row.questionUseCount ?? 0 }}次</span>
+                <span class="q-card__use">加入 {{ row.questionAddCount ?? 0 }}次</span>
                 <button
                   type="button"
                   class="row-edit-btn"
@@ -602,6 +625,7 @@ import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduGrade, EduSubject, KnowledgePoint, Question, QuestionGradeDimension } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
+import ReTab from "@repo/ui/re-tab";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 
@@ -687,9 +711,30 @@ const pageSize = ref(20);
 const allQuestions = ref<Question[]>([]);
 const dimensions = ref<QuestionGradeDimension[]>([]);
 
-const blankSearch = () => ({ keyword: "", subject: "", type: "", difficulty: null as number | null, status: null as number | null });
+const blankSearch = () => ({ keyword: "", subject: "", type: "", difficulty: null as number | null, status: null as number | null, orderBy: "createTime" });
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
+
+/**
+ * 排序页签（ReTab nav-only）。
+ *
+ * <p>name 传后端 {@code QuestionQueryDTO.orderBy} 的白名单值（createTime / addCount /
+ * useCount / difficulty），后端用 {@code <choose>} 映射到真实列，不做 ${} 拼接。</p>
+ */
+const SORT_TABS = [
+  { name: "createTime", label: "最新", icon: "Clock" },
+  { name: "addCount", label: "加入最多", icon: "Collection" },
+  { name: "useCount", label: "使用最多", icon: "TrendCharts" },
+  { name: "difficulty", label: "难度", icon: "Sort" },
+];
+
+/** 排序字段 → 本地排序取值函数（用于「全量拉取后前端分页」的既有架构） */
+const SORT_GETTERS: Record<string, (q: Question) => number | string> = {
+  createTime: (q) => String(q.questionCreateTime ?? q.createTime ?? ""),
+  addCount: (q) => q.questionAddCount ?? 0,
+  useCount: (q) => q.questionUseCount ?? 0,
+  difficulty: (q) => q.questionDifficulty ?? 0,
+};
 
 const subjectOptions = computed(() => {
   const names = [...new Set(allQuestions.value.map((q) => q.questionSubject).filter(Boolean))];
@@ -698,7 +743,7 @@ const subjectOptions = computed(() => {
 
 const filtered = computed(() => {
   const kw = applied.keyword.trim().toLowerCase();
-  return allQuestions.value.filter((q) => {
+  const list = allQuestions.value.filter((q) => {
     if (applied.subject && q.questionSubject !== applied.subject) return false;
     if (applied.type && q.questionType !== applied.type) return false;
     if (applied.difficulty != null && q.questionDifficulty !== applied.difficulty) return false;
@@ -709,7 +754,35 @@ const filtered = computed(() => {
     }
     return true;
   });
+  return sortQuestions(list, applied.orderBy);
 });
+
+/**
+ * 本地排序。
+ *
+ * <p>本列表是「一次性全量拉取 + 前端筛选分页」的架构（见 reloadStats），
+ * 所以排序也必须在前端做一遍，否则切页签只会改变服务端请求、页面顺序不变。
+ * 请求仍会带上 orderBy，保证两边口径一致。</p>
+ *
+ * @param list 待排序的题目
+ * @param orderBy 排序字段（SORT_TABS 的 name）
+ * @returns 排序后的新数组；字段未知时保持原序
+ */
+function sortQuestions(list: Question[], orderBy: string): Question[] {
+  const getter = SORT_GETTERS[orderBy];
+  if (!getter) {
+    return list;
+  }
+  // 题目 ID 恒降序做稳定兜底：同一排序值下顺序确定，翻页不会跳行
+  return [...list].sort((a, b) => {
+    const av = getter(a);
+    const bv = getter(b);
+    if (av === bv) {
+      return b.questionId - a.questionId;
+    }
+    return av > bv ? -1 : 1;
+  });
+}
 
 const statCards = computed(() => {
   const list = allQuestions.value;
@@ -768,10 +841,18 @@ const onSizeChange = () => {
 };
 
 const commitSearch = () => {
-  Object.assign(applied, JSON.parse(JSON.stringify(searchDraft)));
+  // 排序页签直接写 applied，不经过 searchDraft（它没有对应的搜索输入框）
+  Object.assign(applied, JSON.parse(JSON.stringify(searchDraft)), { orderBy: applied.orderBy });
   pageNo.value = 1;
   loadPage();
   void loadDimensions();
+};
+
+/** 切换排序页签：立即重排当前页并回到第一页 */
+const onSortTabChange = () => {
+  pageNo.value = 1;
+  loadPage();
+  void reloadStats();
 };
 
 const handleReset = () => {
@@ -791,7 +872,12 @@ const loadDimensions = async () => {
 const reloadStats = async () => {
   loading.value = true;
   try {
-    const res = await eduaiApi.pageQuestions({ pageNum: 1, pageSize: 10000 });
+    const res = await eduaiApi.pageQuestions({
+      pageNum: 1,
+      pageSize: 10000,
+      orderBy: applied.orderBy,
+      orderDir: "desc",
+    });
     allQuestions.value = res?.data ?? [];
     total.value = res?.total ?? allQuestions.value.length;
     loadPage();
@@ -1196,7 +1282,6 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  padding: 16px;
   height: 100%;
   overflow: auto;
   background: var(--el-bg-color-page);
@@ -1247,20 +1332,23 @@ onMounted(() => {
   width: 148px;
   height: 148px;
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  box-shadow: var(--el-box-shadow-light);
-  border: 1px solid var(--el-border-color-light);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
@@ -1293,7 +1381,7 @@ onMounted(() => {
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1304,7 +1392,8 @@ onMounted(() => {
 
 /* ---------- 筛选（被统计卡下半压住） ---------- */
 .filter-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   margin-bottom: 14px;
   border: 0;
   position: relative;
@@ -1343,14 +1432,16 @@ onMounted(() => {
   align-items: center;
 }
 .filter-actions .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 88px;
   font-weight: 600;
 }
 
 /* ---------- 表格卡 ---------- */
 .table-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 0;
   position: relative;
   z-index: 1;
@@ -1365,6 +1456,19 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* 排序页签：占左侧按钮位，与右侧视图切换分居两端 */
+.sort-tabs {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* 「添加次数」大于 0 时标主色，便于一眼看出哪些题已被组卷取用 */
+.add-count--hot {
+  color: var(--el-color-primary);
+  font-weight: 600;
 }
 .table-toolbar__left {
   display: flex;
@@ -1372,7 +1476,8 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 .table-toolbar__left .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   font-weight: 600;
 }
 
@@ -1380,7 +1485,8 @@ onMounted(() => {
   display: inline-flex;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .view-toggle__btn {
@@ -1394,6 +1500,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.view-toggle__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .view-toggle__btn.is-active {
   background: var(--el-color-primary);
@@ -1403,7 +1514,7 @@ onMounted(() => {
 .table-wrap {
   min-height: 440px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -1439,17 +1550,25 @@ onMounted(() => {
 .q-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 16px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .q-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.12);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+.q-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .q-card__top {
   display: flex;
@@ -1481,7 +1600,7 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 2px 8px;
 }
 .tag-pill--sm {
@@ -1531,7 +1650,7 @@ onMounted(() => {
 .dialog-head__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   display: inline-flex;
@@ -1554,7 +1673,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
@@ -1563,10 +1682,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 .dialog-head__close:hover {
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
+}
+.dialog-head__close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .q-dialog__body {
   padding: 0;
@@ -1607,7 +1731,7 @@ onMounted(() => {
 .preview-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -1623,7 +1747,7 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 2px 8px;
 }
 .preview-block__label {
@@ -1641,7 +1765,7 @@ onMounted(() => {
 }
 .preview-stem :deep(img) {
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
 }
 .preview-stem :deep(.katex),
 .preview-option__text :deep(.katex) {
@@ -1663,7 +1787,7 @@ onMounted(() => {
   font-size: 14px;
   color: var(--el-text-color-primary);
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
 }
 .preview-option.is-answer {
@@ -1673,7 +1797,8 @@ onMounted(() => {
 .preview-option__letter {
   flex: 0 0 22px;
   height: 22px;
-  border-radius: 50%;
+  /* 选项序号圆用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-fill-color);
   color: var(--el-text-color-regular);
   font-size: 12px;
@@ -1699,7 +1824,7 @@ onMounted(() => {
 .preview-answer-letter {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-color-success);
   color: var(--el-color-white);
   font-weight: 700;
@@ -1769,7 +1894,8 @@ onMounted(() => {
   flex: 0 0 32px;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  /* 选项字母圆底用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1791,10 +1917,15 @@ onMounted(() => {
   background: transparent;
   color: var(--el-text-color-placeholder);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.option-row__del:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 14%, transparent);
 }
 .option-row__del:disabled {
   color: var(--el-text-color-disabled);
@@ -1809,7 +1940,7 @@ onMounted(() => {
   border: 1px dashed var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   padding: 7px 14px;
   font-size: 13px;
   font-weight: 600;
@@ -1817,9 +1948,14 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 .option-add:hover {
   background: var(--el-color-primary-light-8);
+}
+.option-add:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .answer-row {
   display: flex;
@@ -1843,7 +1979,8 @@ onMounted(() => {
   height: 40px;
   padding: 0 16px;
   border: 1.5px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
   font-size: 15px;
@@ -1852,18 +1989,27 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.12s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .answer-chip:hover:not(:disabled):not(.is-disabled) {
   border-color: var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
+.answer-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .answer-chip.is-active {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary);
   color: var(--el-color-white);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.28);
+  /* 原选中态投影去掉：主色实心底已足够表达「已选」 */
 }
 .answer-chip.is-disabled,
 .answer-chip:disabled {
@@ -1884,7 +2030,8 @@ onMounted(() => {
   gap: 10px;
 }
 .dialog-foot .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 96px;
   font-weight: 600;
 }
@@ -1924,7 +2071,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-color-white);
   line-height: 1.4;
   white-space: nowrap;
@@ -1952,7 +2099,8 @@ onMounted(() => {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  /* 状态圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   margin-right: 6px;
   vertical-align: middle;
 }
@@ -1968,7 +2116,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: transparent;
   color: var(--el-color-primary);
   cursor: pointer;
@@ -1976,9 +2124,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 .row-edit-btn:hover {
   background: var(--el-color-primary-light-8);
+}
+.row-edit-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .table-footer {
@@ -2005,7 +2159,7 @@ onMounted(() => {
   text-align: center;
   font-weight: 600;
   background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-md, 8px);
   color: var(--el-text-color-primary);
 }
 .kp-code { margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
@@ -2021,6 +2175,20 @@ onMounted(() => {
   }
   .stat-card__value {
     font-size: 24px;
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .q-card,
+  .row-edit-btn,
+  .answer-chip {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩边框/颜色/投影反馈 */
+  .stat-card:hover {
+    transform: none;
   }
 }
 </style>

@@ -42,7 +42,7 @@
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
               {{ t('knowledge.search.foundResults', { count: searchResults.length }) }}
             </span>
-            <el-button size="small" link @click="clearResults">
+            <el-button link @click="clearResults">
               {{ t('knowledge.search.clearResults') }}
             </el-button>
           </div>
@@ -54,22 +54,22 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <!-- 混合搜索模式：显示三个分数 -->
                 <template v-if="hasHybridScores(result)">
-                  <el-tag size="small" type="primary" effect="plain">
+                  <el-tag type="primary" effect="plain">
                     <span class="text-xs">{{ t('knowledge.search.semantic') }}</span>
                     <span class="ml-1 font-medium">{{ (result.semanticScore || 0).toFixed(2) }}</span>
                   </el-tag>
-                  <el-tag size="small" type="success" effect="plain">
+                  <el-tag type="success" effect="plain">
                     <span class="text-xs">{{ t('knowledge.search.keyword') }}</span>
                     <span class="ml-1 font-medium">{{ (result.keywordScore || 0).toFixed(2) }}</span>
                   </el-tag>
-                  <el-tag size="small" type="warning">
+                  <el-tag type="warning">
                     <span class="text-xs">{{ t('knowledge.search.comprehensive') }}</span>
                     <span class="ml-1 font-bold">{{ (result.finalScore || 0).toFixed(2) }}</span>
                   </el-tag>
                 </template>
                 <!-- 纯语义搜索模式：显示相似度 -->
                 <template v-else>
-                  <el-tag size="small" type="success">
+                  <el-tag type="success">
                     {{ t('knowledge.search.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%
                   </el-tag>
                 </template>
@@ -79,7 +79,7 @@
 
             <!-- 来源文件 -->
             <div v-if="result.fileName || result.metadata?.fileId" class="mb-2">
-              <el-tag size="small" type="info">
+              <el-tag type="info">
                 {{ result.fileName || t('knowledge.search.unknownFile') }}
               </el-tag>
             </div>

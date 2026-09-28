@@ -8,7 +8,7 @@
             v-if="models.length > 0"
             v-model="selectedModel"
             class="re-chat__model-select"
-            size="small"
+
             :disabled="isStreaming"
             @change="handleModelChange"
           >
@@ -40,7 +40,7 @@
             v-if="showClear"
             link
             type="info"
-            size="small"
+
             :disabled="isStreaming || messages.length === 0"
             @click="handleClear"
           >
@@ -50,7 +50,7 @@
             v-if="isStreaming"
             link
             type="danger"
-            size="small"
+
             @click="stop"
           >
             停止

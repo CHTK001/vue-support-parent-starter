@@ -20,7 +20,7 @@
         <!-- 时间设置：对应后端 schedule 对象（kind=cron / kind=every） -->
         <el-form-item :label="t('scheduler.edit.timeLabel')" required class="time-setting-item">
           <div class="time-mode-wrapper">
-            <el-radio-group v-model="timeMode" size="small" class="time-mode-tabs">
+            <el-radio-group v-model="timeMode" class="time-mode-tabs">
               <el-radio-button value="preset">{{ t('scheduler.edit.modePreset') }}</el-radio-button>
               <el-radio-button value="every">{{ t('scheduler.edit.modeEvery') }}</el-radio-button>
               <el-radio-button value="cron">{{ t('scheduler.edit.modeCron') }}</el-radio-button>
@@ -438,7 +438,8 @@ async function loadModels() {
 
 .schedule-panel {
   padding: 12px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   background-color: var(--el-fill-color-light);
   width: 100%;
   max-width: 100%;

@@ -2,7 +2,7 @@
   <!-- 消息+输入 区域容器 -->
   <div class="flex-1 overflow-hidden w-full relative">
     <ScrollContainer ref="scrollContainerRef" class="h-full chat-scroll-container transition-opacity duration-300 px-5"
-      :auto-scroll="needScrollToBottom" @scroll="handleScroll">
+      :auto-scroll="needScrollToBottom" :aria-label="t('chat.messages')" @scroll="handleScroll">
       <!-- 初始加载时的骨架屏：仅在消息为空时显示 -->
       <div class="chat-messages max-w-186 w-full mx-auto pt-5 flex-1">
         <template v-if="showSkeleton">
@@ -86,7 +86,7 @@
               class="max-w-full w-full flex items-center px-4 py-1.5 rounded-tl-xl rounded-tr-xl bg-gray-200/80 dark:bg-[#2a2a2a]/80 backdrop-blur-xl">
               <span class="flex-1 text-sm mr-10 text-gray-700 dark:text-[#c5c7cc]">{{ t('chat.panel.editingMessage')
                 }}</span>
-              <el-button size="small" @click="exitEditMode" class="cancel-edit-btn" plain>
+              <el-button @click="exitEditMode" class="cancel-edit-btn" plain>
                 {{ t('common.cancel') }}
               </el-button>
             </div>
@@ -1379,17 +1379,18 @@ function scrollToMessage(messageId: string) {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 2px 8px rgba(230, 162, 60, 0.1);
+  /* 提示条是行而非卡片，去掉原 0 2px 8px rgba(230,162,60,.1) 装饰投影 */
   transition: all 0.3s ease;
 }
 
+/* 悬浮浮起反馈，是本段唯一保留的投影，收敛为单层令牌 */
 .edit-mode-banner:hover {
-  box-shadow: 0 3px 12px rgba(230, 162, 60, 0.15);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 /* 工具栏按钮：与 ChatInputToolbar 保持样式一致 */
 .workspace-btn {
-  color: #888;
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   font-size: 14px;
   height: 22px;
@@ -1399,4 +1400,19 @@ function scrollToMessage(messageId: string) {
   transition: all 0.2s;
 }
 
+/* 动效降级：系统开启「减少动态效果」时，抽屉展开、提示条淡入、工具栏按钮
+   全部改为瞬间切换。逐个列出，不写 `*` / `.chat-panel *` 通配，
+   避免把 ScrollContainer / MessageItem 内部 Element Plus 组件的合法过渡一起掐掉。
+   抽屉的展开终态（max-height: 400px / opacity: 1）与提示条的 hover 投影
+   都是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .queue-drawer-enter-active,
+  .queue-drawer-leave-active,
+  .fade-slide-enter-active,
+  .fade-slide-leave-active,
+  .edit-mode-banner,
+  .workspace-btn {
+    transition: none;
+  }
+}
 </style>

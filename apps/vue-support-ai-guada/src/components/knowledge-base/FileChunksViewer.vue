@@ -161,13 +161,16 @@ defineExpose({
 
 .chunk-item {
     border: 1px solid var(--el-border-color);
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     transition: all 0.2s ease;
 }
 
 .chunk-item:hover {
     border-color: var(--el-color-primary);
-    box-shadow: 0 2px 8px var(--el-box-shadow-light);
+    /* 悬浮浮起反馈。原写法 0 2px 8px var(--el-box-shadow-light) 是把阴影值
+       套进了 box-shadow 里，整条声明无效、实际不生效，这里直接用令牌 */
+    box-shadow: var(--el-box-shadow-light);
 }
 
 .chunk-header {
@@ -180,7 +183,8 @@ defineExpose({
     line-height: 1.6;
     padding: 0.75rem;
     background-color: var(--el-bg-color-overlay);
-    border-radius: 4px;
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -208,5 +212,15 @@ defineExpose({
     align-items: center;
     justify-content: center;
     flex-direction: column;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，分块卡的边框与投影直接到位。
+   只关 .chunk-item 自己的 transition，不写 `*` / `.chunk-item *` 通配，
+   避免把 el-pagination / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   本文件只有 transition、没有自己的 animation，hover 描边本身是静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+    .chunk-item {
+        transition: none;
+    }
 }
 </style>

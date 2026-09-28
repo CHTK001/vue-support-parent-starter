@@ -686,10 +686,10 @@ onMounted(load);
             <template #overview>
               <div class="ds-overview">
                 <div class="ds-stats">
-                  <ReStatCard title="连接延迟" :value="connectLatencyText" :icon="Timer" icon-color="var(--metric-cpu, var(--el-color-primary))" />
-                  <ReStatCard title="会话延迟" :value="sessionLatencyText" :icon="Timer" icon-color="var(--el-color-success)" />
-                  <ReStatCard title="最后检测" :value="lastTestText" :icon="Clock" icon-color="var(--status-success, var(--el-color-success))" />
-                  <ReStatCard title="运行状态" :value="runtimeText" :icon="CircleCheck" icon-color="var(--brand-500, var(--el-color-primary))" />
+                  <ReStatCard size="compact" title="连接延迟" :value="connectLatencyText" :icon="Timer" icon-color="var(--metric-cpu, var(--el-color-primary))" />
+                  <ReStatCard size="compact" title="会话延迟" :value="sessionLatencyText" :icon="Timer" icon-color="var(--el-color-success)" />
+                  <ReStatCard size="compact" title="最后检测" :value="lastTestText" :icon="Clock" icon-color="var(--status-success, var(--el-color-success))" />
+                  <ReStatCard size="compact" title="运行状态" :value="runtimeText" :icon="CircleCheck" icon-color="var(--brand-500, var(--el-color-primary))" />
                 </div>
 
                 <section class="ds-panel">

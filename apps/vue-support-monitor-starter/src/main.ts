@@ -22,7 +22,6 @@ import { installUi } from "@repo/ui";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./routes";
 import { registerMonitorDatasourceSchema } from "./datasourceSchemaProvider";
-import { setDatasourceHubBase } from "@pages/datasource";
 
 /** 本页可能用到的 Re* 组件（ReIcon / ReScrollNav / ReDrawer 已由 installKoi 注册） */
 const MONITOR_RE_COMPONENTS = [
@@ -97,10 +96,14 @@ function mountProcessHost(app: VueApp): void {
 // 数据源中心「浏览表结构」改走监控后端 /ms/monitor/db/*（不依赖采集平台）
 registerMonitorDatasourceSchema();
 
-// 数据源台账接口前缀：@pages/datasource 默认打后端 hub 的 /ms/datasource，
-// 而监控台后端自带同义接口在 /ms/monitor/datasource（MonitorController），
-// 未部署 hub 模块，故在此把共享包的根路径指向监控后端。须早于任何数据源接口调用。
-setDatasourceHubBase("/ms/monitor/datasource");
+// 数据源台账接口前缀：沿用 @pages/datasource 的默认 /ms/datasource。
+//
+// 曾经在这里覆盖成 /ms/monitor/datasource，理由是「未部署 hub 模块」。
+// 该前提已不成立：监控后端的 fat jar 里带了 spring-support-datasource-hub-starter，
+// /ms/datasource/list 实测 HTTP 200 且能返回真实台账；
+// 而 /ms/monitor/datasource/list 实测 HTTP 404「资源不存在」——
+// 监控后端里根本没有 datasource 的 Controller，这条覆盖只会让整个数据源中心恒为空。
+// 故删掉覆盖，回到共享包默认值。
 
 await createContextApp({
   appName: "vue-support-monitor-starter",

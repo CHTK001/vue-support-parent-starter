@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="input" :text="data.reText" :subtitle="data.source ? '来源 ' + data.source : '输入节点'" />
+  <BaseNode type="input" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="data.source ? '来源 ' + data.source : '输入节点'" />
 </template>

@@ -3,7 +3,7 @@
     :anchor-el="anchorEl" popper-class="kb-popover compact-popover">
     <template #header>
       <div class="mb-3">
-        <el-input v-model="searchText" :placeholder="t('chat.input.searchKnowledgeBase')" clearable size="small">
+        <el-input v-model="searchText" :placeholder="t('chat.input.searchKnowledgeBase')" clearable >
           <template #prefix>
             <el-icon>
               <Search12Regular />
@@ -27,7 +27,7 @@
                 'kb-item-active': selectedIds.includes(kb.id)
               }" @click="handleToggle(kb.id)">
               <el-checkbox :model-value="selectedIds.includes(kb.id)" @click.stop @change="handleToggle(kb.id)"
-                size="small" />
+ />
               <div class="flex-1 min-w-0 flex items-center gap-2">
                 <div class="font-medium text-sm truncate shrink">{{ kb.name }}</div>
                 <div v-if="kb.description" class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">

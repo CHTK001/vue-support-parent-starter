@@ -192,12 +192,19 @@ onBeforeUnmount(() => observer?.disconnect());
             <div class="spotlight__title">
               <el-icon><MagicStick /></el-icon>
               <span>ReGraph 系列高亮</span>
-              <el-tag type="success" size="small" effect="plain" round>新功能</el-tag>
+              <el-tag type="success" effect="plain" round>新功能</el-tag>
             </div>
-            <el-button text size="small" @click="goDebug('ReGraph')">全部关系图 →</el-button>
+            <el-button text @click="goDebug('ReGraph')">全部关系图 →</el-button>
           </div>
           <div class="spotlight__cards">
-            <div class="spotlight-card" @click="goDebug('ReGraphForce')">
+            <div
+              class="spotlight-card"
+              role="button"
+              tabindex="0"
+              @click="goDebug('ReGraphForce')"
+              @keydown.enter="goDebug('ReGraphForce')"
+              @keydown.space.prevent="goDebug('ReGraphForce')"
+            >
               <div class="spotlight-card__icon"><el-icon><Connection /></el-icon></div>
               <div class="spotlight-card__body">
                 <div class="spotlight-card__title">ReGraphForce · 力导向</div>
@@ -205,14 +212,21 @@ onBeforeUnmount(() => observer?.disconnect());
                   社交网络示例，14 节点 / 16 关系，支持搜索、右键扩线、折叠、锁定、历史回溯。
                 </div>
                 <div class="spotlight-card__meta">
-                  <el-tag size="small" effect="plain" type="success">已配置</el-tag>
+                  <el-tag effect="plain" type="success">已配置</el-tag>
                   <span class="spotlight-card__cat">图表 / 关系图</span>
                 </div>
               </div>
               <el-icon class="spotlight-card__arrow"><Promotion /></el-icon>
             </div>
 
-            <div class="spotlight-card" @click="goDebug('ReGraphTree')">
+            <div
+              class="spotlight-card"
+              role="button"
+              tabindex="0"
+              @click="goDebug('ReGraphTree')"
+              @keydown.enter="goDebug('ReGraphTree')"
+              @keydown.space.prevent="goDebug('ReGraphTree')"
+            >
               <div class="spotlight-card__icon spotlight-card__icon--tree">
                 <el-icon><Share /></el-icon>
               </div>
@@ -222,14 +236,21 @@ onBeforeUnmount(() => observer?.disconnect());
                   树形布局演示：18 节点公司架构（CEO / 总监 / 部门 / 员工）。
                 </div>
                 <div class="spotlight-card__meta">
-                  <el-tag size="small" effect="plain" type="success">已配置</el-tag>
+                  <el-tag effect="plain" type="success">已配置</el-tag>
                   <span class="spotlight-card__cat">图表 / 关系图</span>
                 </div>
               </div>
               <el-icon class="spotlight-card__arrow"><Promotion /></el-icon>
             </div>
 
-            <div class="spotlight-card" @click="goDebug('ReGraphCenter')">
+            <div
+              class="spotlight-card"
+              role="button"
+              tabindex="0"
+              @click="goDebug('ReGraphCenter')"
+              @keydown.enter="goDebug('ReGraphCenter')"
+              @keydown.space.prevent="goDebug('ReGraphCenter')"
+            >
               <div class="spotlight-card__icon spotlight-card__icon--center">
                 <el-icon><Aim /></el-icon>
               </div>
@@ -239,14 +260,21 @@ onBeforeUnmount(() => observer?.disconnect());
                   微服务架构示例：API 网关为中心 + 5 业务服务 + 3 数据存储。
                 </div>
                 <div class="spotlight-card__meta">
-                  <el-tag size="small" effect="plain" type="success">已配置</el-tag>
+                  <el-tag effect="plain" type="success">已配置</el-tag>
                   <span class="spotlight-card__cat">图表 / 关系图</span>
                 </div>
               </div>
               <el-icon class="spotlight-card__arrow"><Promotion /></el-icon>
             </div>
 
-            <div class="spotlight-card" @click="goDebug('ReGraph3D')">
+            <div
+              class="spotlight-card"
+              role="button"
+              tabindex="0"
+              @click="goDebug('ReGraph3D')"
+              @keydown.enter="goDebug('ReGraph3D')"
+              @keydown.space.prevent="goDebug('ReGraph3D')"
+            >
               <div class="spotlight-card__icon spotlight-card__icon--3d">
                 <el-icon><MagicStick /></el-icon>
               </div>
@@ -256,8 +284,8 @@ onBeforeUnmount(() => observer?.disconnect());
                   three.js + d3-force，AI 知识图谱 15 节点，自动旋转 / 拖拽缩放。
                 </div>
                 <div class="spotlight-card__meta">
-                  <el-tag size="small" effect="plain" type="success">已配置</el-tag>
-                  <el-tag size="small" effect="plain" type="warning">3D</el-tag>
+                  <el-tag effect="plain" type="success">已配置</el-tag>
+                  <el-tag effect="plain" type="warning">3D</el-tag>
                   <span class="spotlight-card__cat">图表 / 关系图</span>
                 </div>
               </div>
@@ -284,7 +312,11 @@ onBeforeUnmount(() => observer?.disconnect());
               v-for="item in group.items"
               :key="item.name"
               class="item-card"
+              role="button"
+              tabindex="0"
               @click="goDebug(item.name)"
+              @keydown.enter="goDebug(item.name)"
+              @keydown.space.prevent="goDebug(item.name)"
             >
               <div class="item-card__head">
                 <div class="item-card__icon">
@@ -292,7 +324,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 </div>
                 <el-tag
                   v-if="!hasSchema(item.name)"
-                  size="small"
+
                   effect="plain"
                   type="warning"
                 >
@@ -323,9 +355,11 @@ onBeforeUnmount(() => observer?.disconnect());
 /* Hero（紧凑版） */
 .hero {
   padding: 16px 24px 12px;
+  /* 氛围光改为 --el-color-primary 的低透明度叠加：原蓝紫双色里紫色无对应
+     语义令牌，收敛成单主色氛围光，避免引入体系外的写死色 */
   background:
-    radial-gradient(ellipse 60% 90% at 15% 0%, rgba(91, 141, 239, 0.14), transparent 62%),
-    radial-gradient(ellipse 45% 70% at 85% 100%, rgba(168, 85, 247, 0.1), transparent 62%);
+    radial-gradient(ellipse 60% 90% at 15% 0%, color-mix(in srgb, var(--el-color-primary) 14%, transparent), transparent 62%),
+    radial-gradient(ellipse 45% 70% at 85% 100%, color-mix(in srgb, var(--el-color-primary) 8%, transparent), transparent 62%);
 }
 .hero__inner {
   max-width: 1560px;
@@ -358,7 +392,7 @@ onBeforeUnmount(() => observer?.disconnect());
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-5);
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 .hero__sub {
   font-size: 13px;
@@ -374,7 +408,8 @@ onBeforeUnmount(() => observer?.disconnect());
   padding: 8px 12px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：统计块属卡片层，与 --el-card-border-radius 对齐 */
+  border-radius: var(--el-radius-lg, 12px);
   text-align: center;
 }
 .hero__stat-value {
@@ -420,7 +455,8 @@ onBeforeUnmount(() => observer?.disconnect());
   padding: 12px 10px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：导航面板属卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   align-self: flex-start;
   max-height: calc(100vh - 140px);
   overflow-y: auto;
@@ -444,10 +480,12 @@ onBeforeUnmount(() => observer?.disconnect());
   color: var(--el-text-color-regular);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s),
+    color var(--el-transition-duration-fast, 0.2s);
 }
 .nav__item:hover {
   background: var(--el-fill-color-light);
@@ -458,12 +496,19 @@ onBeforeUnmount(() => observer?.disconnect());
   color: var(--el-color-primary);
   font-weight: 600;
 }
+
+/* 原生 button，键盘焦点环由浏览器默认轮廓提供，这里补主题化焦点环 */
+.nav__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .nav__count {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 .nav__item--active .nav__count {
   background: var(--el-color-primary-light-8);
@@ -486,7 +531,7 @@ onBeforeUnmount(() => observer?.disconnect());
   padding: 14px 16px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
 }
 .spotlight__head {
   display: flex;
@@ -513,15 +558,24 @@ onBeforeUnmount(() => observer?.disconnect());
   padding: 12px;
   background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .spotlight-card:hover {
   border-color: var(--el-color-primary-light-5);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.08);
+  /* 悬浮反馈类投影，色值取 --el-color-primary 的 alpha */
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
+
+/* 可点的非按钮元素（div + role=button），键盘可达，补主题化焦点环 */
+.spotlight-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .spotlight-card__icon {
   display: flex;
   align-items: center;
@@ -529,19 +583,22 @@ onBeforeUnmount(() => observer?.disconnect());
   width: 34px;
   height: 34px;
   font-size: 17px;
-  color: #fff;
-  background: linear-gradient(135deg, #409eff 0%, #6f42c1 100%);
-  border-radius: 8px;
+  /* --el-color-white 是 Element Plus 核心令牌，必然有值，var() 里的 hex 兜底属死代码 */
+  color: var(--el-color-white);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
 }
+/* 四张高亮卡的身份色一律取语义令牌：绿=成功、橙红=警告→危险 */
 .spotlight-card__icon--tree {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-dark-2) 100%);
 }
 .spotlight-card__icon--center {
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  background: linear-gradient(135deg, var(--el-color-warning) 0%, var(--el-color-danger) 100%);
 }
+/* 原为紫→靛渐变，紫色无对应语义令牌，改用主色浅→浓的靛蓝梯度保持可区分 */
 .spotlight-card__icon--3d {
-  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
 }
 .spotlight-card__body {
   flex: 1;
@@ -577,7 +634,7 @@ onBeforeUnmount(() => observer?.disconnect());
   font-size: 15px;
   color: var(--el-text-color-placeholder);
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .spotlight-card:hover .spotlight-card__arrow {
   color: var(--el-color-primary);
@@ -606,7 +663,7 @@ onBeforeUnmount(() => observer?.disconnect());
   color: var(--el-text-color-secondary);
   padding: 1px 6px;
   background: var(--el-fill-color);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 .category__grid {
   display: grid;
@@ -619,9 +676,10 @@ onBeforeUnmount(() => observer?.disconnect());
   padding: 11px 12px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -630,8 +688,16 @@ onBeforeUnmount(() => observer?.disconnect());
 .item-card:hover {
   border-color: var(--el-color-primary-light-5);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.08);
+  /* 悬浮反馈类投影，色值取 --el-color-primary 的 alpha */
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
+
+/* 可点的非按钮元素（div + role=button），键盘可达，补主题化焦点环 */
+.item-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .item-card__head {
   display: flex;
   align-items: center;
@@ -646,7 +712,8 @@ onBeforeUnmount(() => observer?.disconnect());
   font-size: 15px;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  border-radius: 7px;
+  /* 原 7px，取最近档 sm(6px) */
+  border-radius: var(--el-radius-sm, 6px);
 }
 .item-card__title {
   font-size: 13px;
@@ -657,7 +724,7 @@ onBeforeUnmount(() => observer?.disconnect());
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   font-family: monospace;
   align-self: flex-start;
 }
@@ -712,6 +779,19 @@ onBeforeUnmount(() => observer?.disconnect());
   }
   .spotlight__cards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .nav__item,
+  .spotlight-card,
+  .spotlight-card:hover,
+  .spotlight-card__arrow,
+  .item-card,
+  .item-card:hover {
+    transition: none;
+    transform: none;
   }
 }
 </style>

@@ -177,6 +177,15 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余组件统一）：
+   1. 颜色/圆角一律走 --el-*。--color-overlay-bg / --color-dialog-bg / --color-border
+      虽是 refactor.css 里真实存在的令牌，但都锚在 --color-surface（浅色下是纯白）上，
+      遮罩用它会得到一层白幕而不是压暗，故直接换成语义正确的 --el-mask-color。
+   2. 弹窗是浮层，投影属于「浮起」表达：直接用 --el-box-shadow，
+      它在 element-plus/theme-chalk/dark/css-vars.css 的 html.dark 下会自己变重，
+      原先手写的 .dark 覆盖分支可整体去掉。
+   ============================================================================ */
 .l-dialog__overlay {
   position: fixed;
   inset: 0;
@@ -194,23 +203,17 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .l-dialog__overlay {
-    transition: none;
-  }
-}
-
 .l-dialog__overlay::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-color: var(--color-overlay-bg, rgba(0, 0, 0, 0.5));
+  /* 原值 var(--color-overlay-bg, rgba(0,0,0,.5))：--color-overlay-bg 在浅色主题下
+     等于 --color-surface（纯白），0.8 不透明度会糊出一层白幕而不是压暗背景。
+     改用 --el-mask-color：明暗两侧分别是 rgba(15,23,42,.5) / rgba(2,6,14,.65)，
+     配合下面 0.8 的 opacity 得到约 40% / 52% 的压暗，语义与观感都对。 */
+  background-color: var(--el-mask-color);
   opacity: 0.8;
   pointer-events: none;
-}
-
-html.dark .l-dialog__overlay::before {
-  opacity: 0.75;
 }
 
 .l-dialog__overlay > .l-dialog {
@@ -225,18 +228,16 @@ html.dark .l-dialog__overlay::before {
 .l-dialog {
   margin: 0 auto;
   max-height: 85vh;
-  border-radius: var(--size-dialog-rounded-radius, 12px);
-  background-color: var(--color-dialog-bg, var(--color-bg));
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--color-dialog-border, var(--color-border));
+  /* 原值 var(--size-dialog-rounded-radius, 12px)，refactor.css 里实为 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  /* 原值 var(--color-dialog-bg, var(--color-bg)) → 浮层底色令牌（明暗自动切换） */
+  background-color: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow);
+  border: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-}
-
-html.dark .l-dialog {
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .l-dialog__header {
@@ -248,9 +249,10 @@ html.dark .l-dialog {
 }
 
 .l-dialog__title {
+  /* --size-text-sm 是字号令牌（refactor.css 里实为 14px），不属于颜色/圆角口径，保持原样 */
   font-size: var(--size-text-sm, 14px);
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--el-text-color-primary);
   line-height: 1.5;
 }
 
@@ -263,16 +265,26 @@ html.dark .l-dialog {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-text-gray, #999);
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
+  /* 原值 var(--color-text-gray, #999) → 次级文字色令牌 */
+  color: var(--el-text-color-secondary);
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
   flex-shrink: 0;
   padding: 0;
 }
 
+/* 键盘焦点环：28px 的图标按钮上默认 outline 太弱，改用主色光环 */
+.l-dialog__close-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .l-dialog__close-btn:hover {
-  background: var(--color-surface-hover, rgba(0, 0, 0, 0.06));
-  color: var(--color-text);
+  /* 原值 var(--color-surface-hover, rgba(0,0,0,.06)) → 悬停底色令牌 */
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .l-dialog__close-btn--floating {
@@ -295,5 +307,14 @@ html.dark .l-dialog {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   注：overlay 的显隐由内联 opacity 驱动、样式里本就没有 transition，
+   原先那条 .l-dialog__overlay { transition: none } 是空规则，真正需要关的是关闭按钮。 */
+@media (prefers-reduced-motion: reduce) {
+  .l-dialog__close-btn {
+    transition: none;
+  }
 }
 </style>

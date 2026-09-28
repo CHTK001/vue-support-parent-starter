@@ -164,6 +164,16 @@ function handleItemClick(messageId: string) {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*（refactor.css 已把 --el-* 映射到 --color-* 主题层，
+      9 套配色换肤时自动跟随）。原先成套的 .dark 硬编码色已被令牌吞掉，
+      .dark 规则保留仅为可读性与后续按主题微调。
+   2. 阴影取舍：竖条指示器与页面容器不加投影；悬停浮出的预览卡属于
+      「浮起反馈」，保留单层 --el-box-shadow（原为双层，收敛为一层）。
+   3. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
+   ============================================================================ */
+
 .chat-outline-container {
   position: fixed;
   right: 8px;
@@ -187,45 +197,56 @@ function handleItemClick(messageId: string) {
   align-items: center;
   justify-content: flex-end;
   cursor: pointer;
+  outline: none;
   padding: 2px 0;
+}
+
+/* 键盘焦点环。这是 div + @click，当前模板未加 tabindex，
+   环先挂好，模板补上 tabindex="0" 即自动生效 */
+.outline-line-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .outline-line {
   width: 8px;
   height: 2px;
-  border-radius: 1px;
-  background-color: #d1d5db;
-  transition: background-color 0.15s ease, width 0.15s ease, height 0.15s ease;
+  /* 原值 1px，恰为 2px 条高的一半即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
+  background-color: var(--el-border-color);
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    width var(--el-transition-duration-fast, 0.2s) ease,
+    height var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .dark .outline-line {
-  background-color: #4b5563;
+  background-color: var(--el-border-color-darker);
 }
 
-/* 只有 is-hover 或 is-active 时才变粗变黑 */
+/* 只有 is-hover 或 is-active 时才变粗变深 */
 .outline-line-item.is-hover .outline-line,
 .outline-line-item.is-active .outline-line {
-  background-color: #1f2937;
+  background-color: var(--el-text-color-primary);
   width: 14px;
   height: 3px;
 }
 
 .dark .outline-line-item.is-hover .outline-line,
 .dark .outline-line-item.is-active .outline-line {
-  background-color: #e5e7eb;
+  background-color: var(--el-text-color-primary);
 }
 
 /* 悬停项上下相邻的线也稍微变粗 */
 .outline-line-item.is-hover-prev .outline-line,
 .outline-line-item.is-hover-next .outline-line {
-  background-color: #9ca3af;
+  background-color: var(--el-text-color-secondary);
   width: 10px;
   height: 2.5px;
 }
 
 .dark .outline-line-item.is-hover-prev .outline-line,
 .dark .outline-line-item.is-hover-next .outline-line {
-  background-color: #6b7280;
+  background-color: var(--el-text-color-secondary);
 }
 
 /* —— 悬停卡片 —— */
@@ -235,34 +256,36 @@ function handleItemClick(messageId: string) {
   right: 24px;
   width: 320px;
   padding: 16px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12),
-    0 2px 6px rgba(0, 0, 0, 0.06);
+  background-color: var(--el-bg-color-overlay);
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  /* 悬停浮出的预览卡属「浮起反馈」，是本文件唯一保留的投影：
+     原为 0 4px 20px + 0 2px 6px 双层，收敛为单层令牌 */
+  box-shadow: var(--el-box-shadow-light);
   pointer-events: none;
   transform: translateY(-50%);
 }
 
 .dark .outline-card {
-  background-color: #232428;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background-color: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow);
 }
 
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
 .dark .card-title {
-  color: #e5e7eb;
+  color: var(--el-text-color-primary);
 }
 
 .card-preview {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--el-text-color-secondary);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -271,19 +294,30 @@ function handleItemClick(messageId: string) {
 }
 
 .dark .card-preview {
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 
 /* —— 卡片过渡动画 —— */
 
 .card-fade-enter-active,
 .card-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .card-fade-enter-from,
 .card-fade-leave-to {
   opacity: 0;
   transform: translateX(8px) translateY(-50%);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .outline-line,
+  .card-fade-enter-active,
+  .card-fade-leave-active {
+    transition: none;
+  }
 }
 </style>

@@ -143,7 +143,9 @@
           <div class="ig-cleared__grid">
             <div v-for="item in clearedList" :key="'c-' + item.idiomId" class="ig-cleared__item">
               <span class="ig-cleared__text">{{ item.idiom }}</span>
-              <span class="ig-cleared__check">✓</span>
+              <span class="ig-cleared__check" aria-hidden="true">
+                <ReIcon name="Select" :size="13" />
+              </span>
             </div>
             <div v-for="n in placeholderCount" :key="'p-' + n" class="ig-cleared__item is-empty" />
           </div>
@@ -160,7 +162,11 @@
         <div class="ig-board-head">
           <div class="ig-target">
             请找出：<span class="ig-target__name">{{ hintIdiom || "全部消除" }}</span>
-            <span class="ig-target__icons">💛🔥</span>
+            <!-- 图标统一走 ReIcon：emoji 会被读屏念成「黄色爱心」之类的冗余文本 -->
+            <span class="ig-target__icons" aria-hidden="true">
+              <ReIcon name="StarFilled" :size="16" class="is-gold" />
+              <ReIcon name="Lightning" :size="16" class="is-fire" />
+            </span>
           </div>
           <button type="button" class="ig-close" title="退出" @click="exitGame">✕</button>
         </div>
@@ -199,7 +205,9 @@
     <div v-else class="ig-result-wrap">
       <section class="ig-result">
         <button type="button" class="ig-close ig-close--result" title="关闭" @click="exitGame">✕</button>
-        <div class="ig-result__trophy">🏆</div>
+        <div class="ig-result__trophy">
+          <ReIcon name="Trophy" :size="60" aria-hidden="true" />
+        </div>
         <h2 class="ig-result__title">挑战成功！</h2>
         <p class="ig-result__sub">{{ selectedGradeLevel }}{{ selectedGrade }} · 全部成语已消除</p>
 
@@ -222,7 +230,7 @@
           <div class="ig-result__list-title">— 本次消除的成语 —</div>
           <div class="ig-result__tags">
             <span v-for="item in clearedList" :key="'r-' + item.idiomId" class="ig-result__tag">
-              ✔️{{ item.idiom }}
+              <ReIcon name="CircleCheck" :size="14" aria-hidden="true" />{{ item.idiom }}
             </span>
           </div>
         </div>
@@ -713,7 +721,6 @@ onBeforeUnmount(() => {
 /* ==================== 页面底色（主色渐变，白卡） ==================== */
 .ig-page {
   min-height: 100%;
-  padding: 22px 20px 30px;
   background: linear-gradient(160deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
 }
 
@@ -726,7 +733,8 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  /* 白字压在主色带上，靠描边阴影保证可读性；暗色模式色带更深，阴影同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .ig-title--left {
   font-size: 34px;
@@ -734,9 +742,11 @@ onBeforeUnmount(() => {
 .ig-title__dot {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-white);
-  box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
 
 /* ==================== ① 设置页 ==================== */
@@ -753,9 +763,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: flex-end;
   padding: 10px 18px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light);
+  /* koi 卡片不加投影：改用一条边框承载边界，暗色模式下也分得清 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-today__label {
   font-size: 12px;
@@ -779,9 +791,11 @@ onBeforeUnmount(() => {
 
 .ig-card {
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 20px 22px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-card__title {
   margin: 0 0 16px;
@@ -798,7 +812,8 @@ onBeforeUnmount(() => {
 .ig-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
 }
 .ig-dot--green {
@@ -842,7 +857,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   height: 36px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
@@ -850,17 +865,22 @@ onBeforeUnmount(() => {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ig-chip:hover {
   border-color: var(--el-color-primary-light-5);
   color: var(--el-color-primary);
 }
+.ig-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .ig-chip.is-active {
   background: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: var(--el-color-white);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.32);
+  /* 原选中态投影去掉：主色底 + 主色边框已经表达「选中」，投影是冗余噪音 */
 }
 
 /* 数量滑块 + 气泡 */
@@ -877,12 +897,12 @@ onBeforeUnmount(() => {
 }
 .ig-count :deep(.el-slider__runway) {
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color);
 }
 .ig-count :deep(.el-slider__bar) {
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
 }
 .ig-count :deep(.el-slider__button) {
@@ -897,7 +917,8 @@ onBeforeUnmount(() => {
 .ig-count__bubble {
   min-width: 34px;
   height: 34px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-weight: 800;
@@ -929,7 +950,8 @@ onBeforeUnmount(() => {
 .ig-radio__mark {
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  /* 单选圈用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   border: 1.5px solid var(--el-border-color);
   display: inline-block;
   position: relative;
@@ -941,7 +963,7 @@ onBeforeUnmount(() => {
   content: "";
   position: absolute;
   inset: 3px;
-  border-radius: 50%;
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
 }
 .ig-radio__text {
@@ -953,19 +975,26 @@ onBeforeUnmount(() => {
   height: 54px;
   margin-top: 6px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--el-color-white);
   background: var(--el-color-primary);
-  box-shadow: 0 10px 22px rgba(var(--el-color-primary-rgb), 0.35);
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  /* 按钮不是卡片：常驻投影去掉，「浮起」只放在 :hover 上（koi 唯一允许的按钮投影） */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ig-start:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(var(--el-color-primary-rgb), 0.45);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+}
+.ig-start:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .ig-start:disabled {
   opacity: 0.6;
@@ -983,7 +1012,8 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 12px;
   padding: 14px 16px 14px 34px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -993,7 +1023,8 @@ onBeforeUnmount(() => {
   top: 14px;
   width: 22px;
   padding: 4px 0;
-  border-radius: 0 8px 8px 0;
+  /* 只圆右侧两角（左侧贴在卡片边上），8px 正好命中 md 档 */
+  border-radius: 0 var(--el-radius-md, 8px) var(--el-radius-md, 8px) 0;
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 12px;
@@ -1023,7 +1054,7 @@ onBeforeUnmount(() => {
 .ig-rec__meaning-tag {
   font-size: 11px;
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   font-weight: 700;
@@ -1064,16 +1095,16 @@ onBeforeUnmount(() => {
 }
 .ig-bar {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color);
   overflow: hidden;
 }
 .ig-bar__fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
-  transition: width 0.3s;
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .ig-rank {
@@ -1092,7 +1123,8 @@ onBeforeUnmount(() => {
   width: 56px;
   height: 56px;
   margin: 0 auto 6px;
-  border-radius: 50%;
+  /* 纯圆形徽标用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 26px;
@@ -1100,7 +1132,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 18px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 原投影去掉：徽标在卡片内部，卡片本身都不加投影，子元素更不该叠一层 */
 }
 .ig-rank__label {
   font-size: 13px;
@@ -1124,7 +1156,7 @@ onBeforeUnmount(() => {
 .ig-side__level {
   align-self: flex-start;
   padding: 8px 20px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary-dark-2);
   font-size: 16px;
@@ -1132,8 +1164,10 @@ onBeforeUnmount(() => {
 }
 
 .ig-cleared {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
+  /* 玻璃拟态白底：必须用 --el-color-white，换成 --el-bg-color 会在暗色模式下变黑 */
+  background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px;
   backdrop-filter: blur(2px);
 }
@@ -1151,7 +1185,8 @@ onBeforeUnmount(() => {
 }
 .ig-cleared__item {
   min-height: 92px;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   display: flex;
   flex-direction: column;
@@ -1159,11 +1194,13 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 6px;
   padding: 8px 4px;
-  box-shadow: var(--el-box-shadow-lighter);
+  /* 小方块也是卡片：投影换成边框，暗色模式下边界更稳 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-cleared__item.is-empty {
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: none;
+  background: color-mix(in srgb, var(--el-color-white) 12%, transparent);
+  /* 占位块不画边框：画了会看起来像一个"可点但没内容的卡片" */
+  border-color: transparent;
 }
 .ig-cleared__text {
   writing-mode: vertical-rl;
@@ -1176,14 +1213,18 @@ onBeforeUnmount(() => {
   color: var(--el-color-success);
   font-weight: 900;
   font-size: 13px;
+  /* 换成 ReIcon 后需要 flex 容器才能让图标居中 */
+  display: inline-flex;
 }
 
 .ig-side__clock {
   background: var(--el-bg-color);
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px;
   text-align: center;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-clock {
   font-size: 44px;
@@ -1202,9 +1243,11 @@ onBeforeUnmount(() => {
 
 .ig-main {
   background: var(--el-color-primary-light-9);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px 18px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-board-head {
   display: flex;
@@ -1226,13 +1269,23 @@ onBeforeUnmount(() => {
   letter-spacing: 2px;
 }
 .ig-target__icons {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 原来靠 emoji 自带的黄/橙两色区分，改用语义位还原：金=警告橙，火焰=危险红 */
+.ig-target__icons .is-gold {
+  color: var(--el-color-warning);
+}
+.ig-target__icons .is-fire {
+  color: var(--el-color-danger);
 }
 .ig-close {
   width: 38px;
   height: 38px;
   border: 0;
-  border-radius: 50%;
+  /* 纯圆形按钮用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   cursor: pointer;
   background: var(--el-color-primary);
   color: var(--el-color-white);
@@ -1241,17 +1294,23 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 14px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 原投影去掉：小图标按钮不加常驻投影，键盘焦点环见 :focus-visible */
+  outline: none;
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ig-close:hover {
   background: var(--el-color-primary-dark-2);
+}
+.ig-close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .ig-board {
   display: grid;
   gap: 14px;
   padding: 18px;
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-color-primary-light-7);
 }
 .ig-board--4 {
@@ -1264,22 +1323,31 @@ onBeforeUnmount(() => {
 .ig-tile {
   min-height: 92px;
   border: 2px solid var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
   font-size: 26px;
   font-weight: 900;
   letter-spacing: 2px;
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
-  transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s, background 0.15s, opacity 0.25s;
+  /* 原 slate 投影去掉：方块本身已有 2px 描边，再叠投影在浅色棋盘上是脏边 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ig-tile:hover:not(:disabled):not(.is-selected) {
   transform: translateY(-3px);
+  /* 浮起反馈是 koi 唯一允许的方块投影 */
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
 }
 .ig-tile.is-selected {
   border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0.45), 0 8px 18px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 选中环只留描边那一层，第二层投影去掉（koi 卡片不加投影） */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
   transform: translateY(-3px);
 }
 .ig-tile.is-hint {
@@ -1289,10 +1357,22 @@ onBeforeUnmount(() => {
 .ig-tile.is-wrong {
   border-color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
+  /* 0.4s 是「刻意慢于微交互」的警示抖动（配对错误），不并入 -fast 档：
+     并进去错误反馈短到看不清。降级处理见文末 reduced-motion */
   animation: ig-shake 0.4s;
 }
 .ig-tile.is-matched {
   visibility: hidden;
+}
+/* 焦点环必须写在状态类之后：键盘聚焦任何时候都要可见。
+   「选中 + 聚焦」同框时用内外双环把两个语义都保住。 */
+.ig-tile:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.ig-tile.is-selected:focus-visible {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--el-color-primary) 45%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 @keyframes ig-shake {
@@ -1310,7 +1390,7 @@ onBeforeUnmount(() => {
 .ig-btn {
   height: 44px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 0;
   cursor: pointer;
   font-size: 15px;
@@ -1318,16 +1398,24 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ig-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.ig-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .ig-btn--primary {
   background: var(--el-color-primary);
   color: var(--el-color-white);
-  box-shadow: 0 8px 18px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 常驻投影去掉，改由 :hover 统一给浮起反馈 */
 }
 .ig-btn--ghost {
   background: var(--el-bg-color);
@@ -1342,10 +1430,11 @@ onBeforeUnmount(() => {
 .ig-btn--gradient {
   color: var(--el-color-white);
   background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
-  box-shadow: 0 10px 22px rgba(var(--el-color-primary-rgb), 0.4);
 }
 .ig-btn:hover:not(:disabled) {
   transform: translateY(-1px);
+  /* 浮起反馈 */
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
 }
 
 /* ==================== ③ 结算页 ==================== */
@@ -1359,10 +1448,12 @@ onBeforeUnmount(() => {
   position: relative;
   width: min(560px, 100%);
   background: var(--el-bg-color);
-  border-radius: 26px;
+  /* 原 26px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 26px 30px 30px;
   text-align: center;
-  box-shadow: var(--el-box-shadow-dark);
+  /* koi 卡片不加投影：改用边框 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ig-close--result {
   position: absolute;
@@ -1373,9 +1464,11 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 .ig-result__trophy {
-  font-size: 64px;
+  /* 原来的 🏆 是彩色 emoji、自带金色；换成 ReIcon（currentColor）后颜色必须显式给出来 */
+  color: var(--el-color-warning);
   line-height: 1;
   margin-bottom: 6px;
+  display: inline-flex;
 }
 .ig-result__title {
   margin: 0;
@@ -1398,7 +1491,8 @@ onBeforeUnmount(() => {
 .ig-result__stat {
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 12px 8px;
 }
 .ig-result__stat-label {
@@ -1414,7 +1508,7 @@ onBeforeUnmount(() => {
 }
 .ig-result__list {
   background: var(--el-fill-color-lighter);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px;
   margin-bottom: 20px;
 }
@@ -1435,8 +1529,12 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: var(--el-text-color-primary);
   background: var(--el-bg-color);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   padding: 6px 10px;
+  /* 前面接了一个 ReIcon，需要 flex + gap 才能对齐并留出间距 */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .ig-result__ops {
   display: grid;
@@ -1499,5 +1597,28 @@ onBeforeUnmount(() => {
   z-index: 3000;
   overflow: auto;
   background: var(--el-color-primary-dark-2);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
+   .ig-tile.is-wrong 的抖动关掉后**不会丢反馈**：危险色边框 + 浅红底
+   是同一元素的静态样式，抖动只是加强它，所以这里不必再补静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .ig-chip,
+  .ig-start,
+  .ig-bar__fill,
+  .ig-close,
+  .ig-tile,
+  .ig-btn {
+    transition: none;
+  }
+  .ig-tile.is-wrong {
+    animation: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩颜色/投影反馈 */
+  .ig-tile:hover:not(:disabled):not(.is-selected),
+  .ig-btn:hover:not(:disabled),
+  .ig-start:hover:not(:disabled) {
+    transform: none;
+  }
 }
 </style>

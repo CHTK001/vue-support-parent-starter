@@ -45,13 +45,13 @@ const positionOptions = computed(() => [
         <div class="perf-config">
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.position.label") }}</span>
-            <el-select v-model="perf.performanceMonitorPosition" size="small" class="perf-config-select">
+            <el-select v-model="perf.performanceMonitorPosition" class="perf-config-select">
               <el-option v-for="opt in positionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.content.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorMode" size="small" class="perf-radio">
+            <el-radio-group v-model="perf.performanceMonitorMode" class="perf-radio">
               <el-radio-button label="detailed">{{ t("performance.content.detailed") }}</el-radio-button>
               <el-radio-button label="simple">{{ t("performance.content.simple") }}</el-radio-button>
               <el-radio-button label="minimal">{{ t("performance.content.minimal") }}</el-radio-button>
@@ -59,14 +59,14 @@ const positionOptions = computed(() => [
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.layout.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorLayout" size="small" class="perf-radio">
+            <el-radio-group v-model="perf.performanceMonitorLayout" class="perf-radio">
               <el-radio-button label="merged">{{ t("performance.layout.merged") }}</el-radio-button>
               <el-radio-button label="split">{{ t("performance.layout.split") }}</el-radio-button>
             </el-radio-group>
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.direction.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorDirection" size="small" class="perf-radio">
+            <el-radio-group v-model="perf.performanceMonitorDirection" class="perf-radio">
               <el-radio-button label="auto">{{ t("performance.direction.auto") }}</el-radio-button>
               <el-radio-button label="vertical">{{ t("performance.direction.vertical") }}</el-radio-button>
               <el-radio-button label="horizontal">{{ t("performance.direction.horizontal") }}</el-radio-button>

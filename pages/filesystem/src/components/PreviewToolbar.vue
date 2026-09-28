@@ -114,12 +114,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 <template>
   <div class="preview-toolbar">
     <el-button-group>
-      <el-button :icon="ZoomOut" size="small" @click="zoomOut" :disabled="zoom <= 25" title="缩小 (-)" />
-      <el-button size="small" class="!px-3" disabled>{{ zoom }}%</el-button>
-      <el-button :icon="ZoomIn" size="small" @click="zoomIn" :disabled="zoom >= 300" title="放大 (+)" />
-      <el-button :icon="RefreshRight" size="small" @click="zoomReset" title="重置 (0/R)" />
+      <el-button :icon="ZoomOut" @click="zoomOut" :disabled="zoom <= 25" title="缩小 (-)" />
+      <el-button class="!px-3" disabled>{{ zoom }}%</el-button>
+      <el-button :icon="ZoomIn" @click="zoomIn" :disabled="zoom >= 300" title="放大 (+)" />
+      <el-button :icon="RefreshRight" @click="zoomReset" title="重置 (0/R)" />
     </el-button-group>
-    <el-button :icon="FullScreen" size="small" @click="emit('fullscreen')" title="全屏 (F)" />
+    <el-button :icon="FullScreen" @click="emit('fullscreen')" title="全屏 (F)" />
     <el-popover
       placement="bottom"
       :width="280"
@@ -130,7 +130,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
       <template #reference>
         <el-button
           :icon="QuestionFilled"
-          size="small"
+
           circle
           title="快捷键帮助 (?)"
           @click="shortcutPopoverVisible = !shortcutPopoverVisible"
@@ -142,7 +142,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
           <el-input
             v-model="shortcutSearch"
             placeholder="搜索快捷键…"
-            size="small"
+
             clearable
             class="shortcut-help__search"
           />
@@ -163,7 +163,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
             <span class="shortcut-help__empty-hint">试试其他关键词？</span>
             <el-button
               type="primary"
-              size="small"
+
               text
               @click="shortcutSearch = ''"
             >
@@ -229,7 +229,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 }
 
 .shortcut-help__empty-icon {
-  color: var(--el-color-info-light-5, #c0c4cc);
+  color: var(--el-color-info-light-5);
 }
 
 .shortcut-help__empty-hint {
@@ -250,8 +250,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
   justify-content: space-between;
   padding: 4px 6px;
   margin: 0 -6px;
-  border-radius: 4px;
-  transition: background-color 0.15s ease;
+  border-radius: var(--el-radius-xs, 4px);
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .shortcut-help__row:hover {
@@ -269,7 +269,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   text-align: center;
-  box-shadow: 0 1px 0 var(--el-border-color);
+  /* 原来用 box-shadow: 0 1px 0 var(--el-border-color) 模拟按键下沿的立体感，
+     但它自身已经有 1px 边框，阴影纯属冗余装饰（koi 规约：容器不加投影），故去掉 */
 }
 
 .shortcut-help__desc {
@@ -280,7 +281,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 /* ---- 弹窗弹出/收起 fade+scale 过渡 ---- */
 .popover-fade-scale-enter-active,
 .popover-fade-scale-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease, transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .popover-fade-scale-enter-from,
@@ -296,16 +297,33 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
   }
   to {
     opacity: 1;
-    background: var(--el-color-danger-light-9, #fef0f0);
+    background: var(--el-color-danger-light-9);
   }
 }
 
 .shortcut-help :deep(.shortcut-highlight) {
-  background: var(--el-color-danger-light-9, #fef0f0);
-  color: var(--el-color-danger, #f56c6c);
-  border-radius: 2px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  /* 搜索命中的高亮底纹，2px 比 koi 最小档 4px 还小，用 EP 自带的 --el-border-radius-small */
+  border-radius: var(--el-border-radius-small, 2px);
   padding: 0 2px;
   font-weight: 600;
-  animation: highlightFadeIn 0.25s ease-out;
+  animation: highlightFadeIn var(--el-transition-duration-fast, 0.2s) ease-out;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-help__row {
+    transition: none;
+  }
+  .popover-fade-scale-enter-active,
+  .popover-fade-scale-leave-active {
+    transition: none;
+  }
+  /* 命中高亮的淡入可以直接停：.shortcut-highlight 自身已经静态带着同一个浅红底色，
+     关掉动画不会让「命中」这件事消失 */
+  .shortcut-help :deep(.shortcut-highlight) {
+    animation: none;
+  }
 }
 </style>

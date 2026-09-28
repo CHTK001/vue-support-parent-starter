@@ -1,7 +1,7 @@
 <template>
   <div class="re-rich-text" :class="{ 'is-readonly': readonly }">
     <div v-if="!readonly" class="re-rich-text__toolbar">
-      <el-button-group size="small">
+      <el-button-group >
         <el-button title="撤销" :disabled="!editor || !active('undo')" @click="run('undo')">
           <el-icon><RefreshLeft /></el-icon>
         </el-button>
@@ -9,32 +9,32 @@
           <el-icon><RefreshRight /></el-icon>
         </el-button>
       </el-button-group>
-      <el-button-group size="small" class="ml-2">
+      <el-button-group class="ml-2">
         <el-button title="加粗" :class="{ 'is-on': active('bold') }" :disabled="!editor" @click="run('toggleBold')"><b>B</b></el-button>
         <el-button title="斜体" :class="{ 'is-on': active('italic') }" :disabled="!editor" @click="run('toggleItalic')"><i>I</i></el-button>
         <el-button title="下划线" :class="{ 'is-on': active('underline') }" :disabled="!editor" @click="run('toggleUnderline')"><u>U</u></el-button>
         <el-button title="删除线" :class="{ 'is-on': active('strike') }" :disabled="!editor" @click="run('toggleStrike')"><s>S</s></el-button>
         <el-button title="行内代码" :class="{ 'is-on': active('code') }" :disabled="!editor" @click="run('toggleCode')">{"<>"}</el-button>
       </el-button-group>
-      <el-button-group size="small" class="ml-2">
+      <el-button-group class="ml-2">
         <el-button title="正文" :class="{ 'is-on': active('paragraph') }" :disabled="!editor" @click="run('setParagraph')">正文</el-button>
         <el-button title="标题 1" :class="{ 'is-on': active('heading', { level: 1 }) }" :disabled="!editor" @click="run('toggleHeading', { level: 1 })">H1</el-button>
         <el-button title="标题 2" :class="{ 'is-on': active('heading', { level: 2 }) }" :disabled="!editor" @click="run('toggleHeading', { level: 2 })">H2</el-button>
         <el-button title="标题 3" :class="{ 'is-on': active('heading', { level: 3 }) }" :disabled="!editor" @click="run('toggleHeading', { level: 3 })">H3</el-button>
       </el-button-group>
-      <el-button-group size="small" class="ml-2">
+      <el-button-group class="ml-2">
         <el-button title="无序列表" :class="{ 'is-on': active('bulletList') }" :disabled="!editor" @click="run('toggleBulletList')">•</el-button>
         <el-button title="有序列表" :class="{ 'is-on': active('orderedList') }" :disabled="!editor" @click="run('toggleOrderedList')">1.</el-button>
         <el-button title="引用" :class="{ 'is-on': active('blockquote') }" :disabled="!editor" @click="run('toggleBlockquote')">❝</el-button>
         <el-button title="代码块" :class="{ 'is-on': active('codeBlock') }" :disabled="!editor" @click="run('toggleCodeBlock')">{ }</el-button>
         <el-button title="分割线" :disabled="!editor" @click="run('setHorizontalRule')">—</el-button>
       </el-button-group>
-      <el-button-group size="small" class="ml-2">
+      <el-button-group class="ml-2">
         <el-button title="左对齐" :class="{ 'is-on': active('paragraph', { textAlign: 'left' }) || active('heading', { textAlign: 'left' }) }" :disabled="!editor" @click="run('setTextAlign', 'left')">左</el-button>
         <el-button title="居中" :class="{ 'is-on': active('paragraph', { textAlign: 'center' }) || active('heading', { textAlign: 'center' }) }" :disabled="!editor" @click="run('setTextAlign', 'center')">中</el-button>
         <el-button title="右对齐" :class="{ 'is-on': active('paragraph', { textAlign: 'right' }) || active('heading', { textAlign: 'right' }) }" :disabled="!editor" @click="run('setTextAlign', 'right')">右</el-button>
       </el-button-group>
-      <el-button-group size="small" class="ml-2">
+      <el-button-group class="ml-2">
         <el-button title="插入链接" :class="{ 'is-on': active('link') }" :disabled="!editor" @click="setLink">
           <el-icon><Link /></el-icon>
         </el-button>
@@ -43,7 +43,7 @@
         </el-button>
         <el-button title="插入公式" :disabled="!editor" @click="openMathDialog">Σ</el-button>
       </el-button-group>
-      <el-button size="small" class="ml-2" title="清除格式" :disabled="!editor" @click="clearFormat">清除</el-button>
+      <el-button class="ml-2" title="清除格式" :disabled="!editor" @click="clearFormat">清除</el-button>
       <slot name="toolbar-extra" />
     </div>
     <EditorContent :editor="editor" class="re-rich-text__content" />

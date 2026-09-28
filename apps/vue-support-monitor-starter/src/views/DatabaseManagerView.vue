@@ -3,19 +3,19 @@
     <!-- 顶部工具栏 -->
     <div class="dbm-toolbar">
       <div class="dbm-toolbar-left">
-        <ReButton size="small" @click="openNewQuery">
+        <ReButton @click="openNewQuery">
           <template #icon><ReIcon name="Edit" /></template>新建查询
         </ReButton>
-        <ReButton size="small" @click="openCreateDatabase">
+        <ReButton @click="openCreateDatabase">
           <template #icon><ReIcon name="FolderAdd" /></template>新建数据库
         </ReButton>
-        <ReButton size="small" @click="openCreateTable()">
+        <ReButton @click="openCreateTable()">
           <template #icon><ReIcon name="Plus" /></template>新建表
         </ReButton>
-        <ReButton size="small" @click="openImportDataFromToolbar">
+        <ReButton @click="openImportDataFromToolbar">
           <template #icon><ReIcon name="Upload" /></template>导入数据
         </ReButton>
-        <ReButton size="small" @click="refreshTree">
+        <ReButton @click="refreshTree">
           <template #icon><ReIcon name="Refresh" /></template>刷新
         </ReButton>
       </div>
@@ -23,7 +23,7 @@
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
         <template v-if="!embedded">
-          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" size="small" style="width: 200px" @change="onDatasourceChange">
+          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" style="width: 200px" @change="onDatasourceChange">
             <ReOption v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
           </ReSelect>
         </template>
@@ -168,13 +168,13 @@
             </div>
             <span class="dbm-spacer" />
             <label class="dbm-switch">
-              <ReSwitch v-model="showTotal" size="small" />
+              <ReSwitch v-model="showTotal" />
               <span>统计总数</span>
             </label>
-            <ReButton size="small" type="primary" icon="Plus" :show-text="true" @click="openAddRowDialog">新增行</ReButton>
-            <ReButton size="small" icon="Download" :show-text="true" @click="exportTableCsv">导出 CSV</ReButton>
-            <ReButton size="small" icon="RefreshRight" :show-text="true" @click="refreshTableData">刷新</ReButton>
-            <ReButton size="small" type="danger" plain icon="Delete" :show-text="true" @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)">清空表</ReButton>
+            <ReButton type="primary" icon="Plus" :show-text="true" @click="openAddRowDialog">新增行</ReButton>
+            <ReButton icon="Download" :show-text="true" @click="exportTableCsv">导出 CSV</ReButton>
+            <ReButton icon="RefreshRight" :show-text="true" @click="refreshTableData">刷新</ReButton>
+            <ReButton type="danger" plain icon="Delete" :show-text="true" @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)">清空表</ReButton>
             <RePagination
               v-if="showTotal"
               v-model:current-page="tableData.page"
@@ -186,9 +186,9 @@
               @update:page-size="onPageSizeChange"
             />
             <span v-else class="dbm-simple-pager">
-              <ReButton size="small" text :disabled="tableData.page <= 1" @click="onPageChange(tableData.page - 1)">上一页</ReButton>
+              <ReButton text :disabled="tableData.page <= 1" @click="onPageChange(tableData.page - 1)">上一页</ReButton>
               <span class="dbm-hint">第 {{ tableData.page }} 页（未统计总数）</span>
-              <ReButton size="small" text :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize" @click="onPageChange(tableData.page + 1)">下一页</ReButton>
+              <ReButton text :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize" @click="onPageChange(tableData.page + 1)">下一页</ReButton>
             </span>
           </div>
           <!-- 过滤条（Navicat 式 WHERE 条件 + 快捷筛选） -->
@@ -196,19 +196,19 @@
             <span class="dbm-filter-label">WHERE</span>
             <ReInput
               v-model="filterWhere"
-              size="small"
+
               class="dbm-mono dbm-filter-input"
               placeholder="例：status = 1 AND name LIKE 'a%'（留空不过滤）"
               clearable
               @keyup.enter="applyFilter"
             />
-            <ReButton size="small" type="primary" icon="Search" :show-text="true" @click="applyFilter">应用</ReButton>
-            <ReButton size="small" icon="RefreshLeft" :show-text="true" @click="clearFilter">清除</ReButton>
+            <ReButton type="primary" icon="Search" :show-text="true" @click="applyFilter">应用</ReButton>
+            <ReButton icon="RefreshLeft" :show-text="true" @click="clearFilter">清除</ReButton>
             <span class="dbm-spacer" />
             <span v-if="selection.length" class="dbm-sel-count">已选 {{ selection.length }} 行</span>
             <ReButton
               v-if="selection.length"
-              size="small"
+
               type="danger"
               plain
               icon="Delete"
@@ -236,7 +236,7 @@
               <div v-if="editingCell && editingCell.row === row && editingCell.column === col" class="dbm-cell-edit" @click.stop>
                 <ReInput
                   :model-value="editingCell.value"
-                  size="small"
+
                   autofocus
                   :type="longTextColumns.has(col) ? 'textarea' : 'text'"
                   @update:model-value="setEditingCellValue"
@@ -268,16 +268,16 @@
               <span class="dbm-subtab" :class="{ active: designSubTab === 'foreignKeys' }" @click="openForeignKeys">外键</span>
             </div>
             <span class="dbm-context-hint">表结构可编辑：新增 / 修改 / 删除列</span>
-            <ReButton size="small" @click="reloadDesignArea">
+            <ReButton @click="reloadDesignArea">
               <template #icon><ReIcon name="Refresh" /></template>刷新
             </ReButton>
           </div>
 
           <template v-if="designSubTab === 'columns'">
             <div class="dbm-col-actions">
-              <ReButton size="small" type="primary" icon="Plus" :show-text="true" @click="openColumnDialog('add')">新增列</ReButton>
+              <ReButton type="primary" icon="Plus" :show-text="true" @click="openColumnDialog('add')">新增列</ReButton>
               <ReButton
-                size="small"
+
                 type="primary"
                 plain
                 icon="Check"
@@ -285,7 +285,7 @@
                 :disabled="designDirtyCount === 0"
                 @click="saveDesignAll"
               >保存{{ designDirtyCount > 0 ? `（${designDirtyCount}）` : "" }}</ReButton>
-              <ReButton size="small" icon="RefreshRight" :show-text="true" @click="reloadDesignArea">刷新</ReButton>
+              <ReButton icon="RefreshRight" :show-text="true" @click="reloadDesignArea">刷新</ReButton>
               <span class="dbm-hint">单元格可直接编辑，改动行高亮，保存后生效</span>
             </div>
             <div v-loading="designLoading" class="dbm-dgrid">
@@ -307,23 +307,23 @@
                 :class="{ dirty: isDesignDirty(row) }"
               >
                 <span class="dbm-dgrid-idx">{{ i + 1 }}</span>
-                <ReInput v-model="row.name" size="small" class="dbm-mono" />
-                <ReSelect v-model="row.type" size="small" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
-                <ReInputNumber v-model="row.size" size="small" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-                <ReSwitch v-model="row.nullable" size="small" />
+                <ReInput v-model="row.name" class="dbm-mono" />
+                <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
+                <ReInputNumber v-model="row.size" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+                <ReSwitch v-model="row.nullable" />
                 <span class="dbm-dgrid-pk"><ReIcon v-if="row.isPrimaryKey" name="Key" :size="13" /></span>
-                <ReInput v-model="row.defaultValue" size="small" class="dbm-mono" placeholder="默认值" />
-                <ReInput v-model="row.comment" size="small" placeholder="注释" />
+                <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
+                <ReInput v-model="row.comment" placeholder="注释" />
                 <span class="dbm-dgrid-ops">
                   <ReButton
                     icon="Check"
                     layout="square"
-                    size="small"
+
                     title="保存该行"
                     :disabled="!isDesignDirty(row)"
                     @click="saveDesignRow(row)"
                   />
-                  <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除列" @click="removeColumn(row as never)" />
+                  <ReButton icon="Delete" layout="square" type="danger" title="删除列" @click="removeColumn(row as never)" />
                 </span>
               </div>
               <ReEmpty v-if="designRows.length === 0" description="暂无字段" :image-size="40" />
@@ -332,7 +332,7 @@
 
           <template v-else-if="designSubTab === 'indexes'">
             <div class="dbm-col-actions">
-              <ReButton size="small" type="primary" @click="openIndexDialog">
+              <ReButton type="primary" @click="openIndexDialog">
                 <template #icon><ReIcon name="Plus" /></template>新建索引
               </ReButton>
             </div>
@@ -346,7 +346,7 @@
               height="calc(100% - 104px)"
             >
               <template #col-actions="{ row }">
-                <ReButton size="small" text type="danger" @click="removeIndex(row)">删除</ReButton>
+                <ReButton text type="danger" @click="removeIndex(row)">删除</ReButton>
               </template>
             </ReTable>
           </template>
@@ -354,7 +354,7 @@
           <!-- 外键（只读，Navicat 外键页签） -->
           <template v-else>
             <div class="dbm-col-actions">
-              <ReButton size="small" icon="RefreshRight" :show-text="true" @click="loadForeignKeys">刷新外键</ReButton>
+              <ReButton icon="RefreshRight" :show-text="true" @click="loadForeignKeys">刷新外键</ReButton>
               <span class="dbm-hint">外键由建表 DDL 维护；此处只读展示</span>
             </div>
             <ReTable
@@ -373,13 +373,13 @@
         <div v-if="activeTabObj && activeTabObj.type === 'query'" class="dbm-query-view">
           <div class="dbm-query-editor">
             <div class="dbm-query-toolbar">
-              <ReButton size="small" type="primary" @click="executeQuery">
+              <ReButton type="primary" @click="executeQuery">
                 <template #icon><ReIcon name="VideoPlay" /></template>执行 (Ctrl+Enter)
               </ReButton>
-              <ReButton size="small" @click="formatSql">
+              <ReButton @click="formatSql">
                 <template #icon><ReIcon name="MagicStick" /></template>格式化
               </ReButton>
-              <ReSelect v-model="activeTabObj.database" placeholder="目标库" size="small" style="width: 200px">
+              <ReSelect v-model="activeTabObj.database" placeholder="目标库" style="width: 200px">
                 <ReOption v-for="db in databases" :key="db" :label="db" :value="db" />
               </ReSelect>
             </div>
@@ -399,7 +399,7 @@
               <span class="dbm-spacer" />
               <ReButton
                 v-if="queryResult.columns && queryResult.columns.length > 0"
-                size="small"
+
                 icon="Download"
                 :show-text="true"
                 @click="exportQueryCsv"

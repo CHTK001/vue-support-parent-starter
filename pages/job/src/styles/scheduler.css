@@ -14,6 +14,12 @@
   gap: 18px;
   padding: 6px 4px 10px;
   border-radius: var(--el-radius-xl);
+  /*
+   * 与调度工作台同样的高度问题：.collect-page 是 height:100% 的 flex 列且无 overflow，
+   * 面板总高超出一屏时下方内容会被裁掉、又没有滚动条。本页内容天然是纵向长列表
+   * （概览面板 + 两张表），按内容高度纵向滚动最可预期。
+   */
+  overflow-y: auto;
   background:
     radial-gradient(900px 420px at 8% -10%, var(--el-color-primary-light-9), transparent 60%),
     radial-gradient(700px 380px at 96% 0%, var(--el-color-primary-light-9), transparent 55%),

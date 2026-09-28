@@ -299,7 +299,7 @@ onMounted(() => {
     <el-card class="system-page__card settings-card" shadow="never" :body-style="{ paddingTop: '6px' }">
       <div class="settings-header">
         <span class="settings-header__title">个人偏好设置</span>
-        <el-tag :type="syncState.type" effect="plain" size="small">
+        <el-tag :type="syncState.type" effect="plain" >
           <span class="flex items-center gap-1">
             <span class="sync-dot" :class="syncState.type" />
             {{ syncState.text }}
@@ -354,8 +354,8 @@ onMounted(() => {
                 @change="(v: boolean) => onTotpSwitchChange(v)"
               />
             </div>
-            <el-tag v-if="totpEnabled" type="success" effect="plain" size="small">已启用</el-tag>
-            <el-tag v-else type="info" effect="plain" size="small">未启用</el-tag>
+            <el-tag v-if="totpEnabled" type="success" effect="plain" >已启用</el-tag>
+            <el-tag v-else type="info" effect="plain" >未启用</el-tag>
           </div>
         </template>
       </ReTab>

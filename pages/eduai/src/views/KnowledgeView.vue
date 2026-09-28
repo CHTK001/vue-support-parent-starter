@@ -102,20 +102,23 @@
     <!-- 卡片网格 / 列表 -->
     <div v-loading="loading" class="card-grid-wrap">
       <div v-if="viewMode === 'grid'" class="card-grid">
+        <!-- 卡片本身可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
         <div
           v-for="card in sortedCards"
           :key="card.knowledgePointId"
           class="kp-card"
           :class="{ 'is-selected': detailCard?.knowledgePointId === card.knowledgePointId }"
+          role="button"
+          tabindex="0"
           @click="openDetail(card)"
         >
           <div class="kp-card__top">
             <div class="kp-card__title" :title="card.knowledgePointName">{{ card.knowledgePointName }}</div>
             <div class="kp-card__actions" @click.stop>
-              <el-button link type="primary" size="small" @click.stop="openEdit(card)">编辑</el-button>
+              <el-button link type="primary" @click.stop="openEdit(card)">编辑</el-button>
               <el-popconfirm :title="`确认删除 ${card.knowledgePointName}?`" @confirm="removeCard(card)">
                 <template #reference>
-                  <el-button link type="danger" size="small">删除</el-button>
+                  <el-button link type="danger" >删除</el-button>
                 </template>
               </el-popconfirm>
             </div>
@@ -153,7 +156,7 @@
           </div>
         </div>
 
-        <div class="kp-card kp-card--add" @click="openCreate">
+        <div class="kp-card kp-card--add" role="button" tabindex="0" @click="openCreate">
           <el-icon :size="28"><Plus /></el-icon>
           <span>新增卡片</span>
         </div>
@@ -190,10 +193,10 @@
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click.stop="openEdit(row)">编辑</el-button>
+            <el-button link type="primary" @click.stop="openEdit(row)">编辑</el-button>
             <el-popconfirm :title="`确认删除 ${row.knowledgePointName}?`" @confirm="removeCard(row)">
               <template #reference>
-                <el-button link type="danger" size="small">删除</el-button>
+                <el-button link type="danger" >删除</el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -1020,7 +1023,8 @@ onMounted(() => {
   display: inline-flex;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .view-toggle__btn {
@@ -1034,6 +1038,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.view-toggle__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .view-toggle__btn.is-active {
   background: var(--el-color-primary);
@@ -1042,7 +1051,8 @@ onMounted(() => {
 
 /* ---------- 筛选（被统计卡下半压住） ---------- */
 .filter-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   margin-bottom: 14px;
   border: 0;
   position: relative;
@@ -1075,7 +1085,8 @@ onMounted(() => {
   align-items: center;
 }
 .filter-actions .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 88px;
   font-weight: 600;
 }
@@ -1091,24 +1102,27 @@ onMounted(() => {
   width: 148px;
   height: 148px;
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  box-shadow:
-    0 10px 28px rgb(15 23 42 / 8%),
-    0 2px 6px rgb(15 23 42 / 4%);
-  border: 1px solid rgb(255 255 255 / 80%);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* koi 卡片不加投影：两层 slate 常驻投影换成一条主题边框。
+     原来的 rgb(255 255 255 / 80%) 白边在浅色主题下等于隐形，换成
+     --el-border-color-lighter 后暗色模式也能分清卡片边界 */
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 16px 36px rgb(15 23 42 / 12%),
-    0 4px 10px rgb(15 23 42 / 6%);
+  border-color: var(--el-color-primary-light-7);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
@@ -1141,7 +1155,7 @@ onMounted(() => {
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1162,20 +1176,33 @@ onMounted(() => {
 .kp-card {
   background: var(--el-bg-color);
   border: 1.5px solid var(--el-border-color-lighter);
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 16px 18px 12px;
   cursor: pointer;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 200px;
 }
-.kp-card:hover,
+.kp-card:hover {
+  border-color: var(--el-color-primary);
+  transform: translateY(-2px);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+/* 选中态只靠主色边框表达：卡片不加常驻投影（投影只留给 :hover 浮起） */
 .kp-card.is-selected {
   border-color: var(--el-color-primary);
-  box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.12);
-  transform: translateY(-2px);
+}
+.kp-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .kp-card__top {
   display: flex;
@@ -1196,7 +1223,7 @@ onMounted(() => {
   flex-shrink: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .kp-card:hover .kp-card__actions,
 .kp-card.is-selected .kp-card__actions {
@@ -1224,7 +1251,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-color-white);
   line-height: 1.4;
 }
@@ -1260,7 +1287,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 .badge--text {
   background: var(--el-color-primary-light-8);
@@ -1288,7 +1315,7 @@ onMounted(() => {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .kp-card:hover .kp-card__hint,
 .kp-card.is-selected .kp-card__hint {
@@ -1344,13 +1371,18 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   cursor: pointer;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   line-height: 1;
   flex-shrink: 0;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 .detail__close:hover {
   background: var(--el-border-color-lighter);
   color: var(--el-text-color-primary);
+}
+.detail__close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .detail__meta {
   display: flex;
@@ -1359,12 +1391,12 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .detail__meta .pill {
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   font-size: 14px;
   padding: 6px 14px;
 }
 .detail__meta .badge {
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   font-size: 14px;
   padding: 6px 14px;
 }
@@ -1381,9 +1413,10 @@ onMounted(() => {
 .detail__section {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 18px 20px 20px;
-  box-shadow: var(--el-box-shadow-lighter);
+  /* koi 卡片不加投影：已有一条边框承载边界，去掉 --el-box-shadow-lighter */
 }
 .section-head {
   display: flex;
@@ -1403,7 +1436,8 @@ onMounted(() => {
   gap: 8px;
 }
 .section-head .el-button--primary {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   font-weight: 600;
   padding: 8px 16px;
 }
@@ -1415,7 +1449,7 @@ onMounted(() => {
 }
 .body-editor {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .body-editor :deep(.re-rich-text__toolbar) {
@@ -1429,7 +1463,7 @@ onMounted(() => {
   margin-left: 0;
 }
 .body-editor :deep(.re-rich-text__toolbar .el-button) {
-  border-radius: 8px !important;
+  border-radius: var(--el-radius-md, 8px) !important;
   min-width: 36px;
   height: 34px;
   font-weight: 600;
@@ -1453,7 +1487,7 @@ onMounted(() => {
 }
 .body-editor :deep(img) {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
 }
 .hidden-file {
   display: none;
@@ -1470,7 +1504,7 @@ onMounted(() => {
   gap: 14px;
   padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
 }
 .file-item__type {
@@ -1480,7 +1514,7 @@ onMounted(() => {
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 6px 8px;
   letter-spacing: 0.02em;
   min-width: 44px;
@@ -1527,24 +1561,34 @@ onMounted(() => {
   gap: 8px;
   min-height: 120px;
   border: 1.5px dashed var(--el-text-color-disabled);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-secondary);
   font-size: 14px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .upload-drop:hover {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
+.upload-drop:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 
 /* ---------- 新增/编辑卡片对话框（左表单 + 右预览） ---------- */
 .card-dialog--preview :deep(.el-dialog) {
-  border-radius: 20px;
+  /* 原 20px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   overflow: hidden;
   padding: 0;
+  /* 模态对话框是浮层不是卡片，保留 EP 自带的 --el-box-shadow 表达「浮在页面之上」 */
   box-shadow: var(--el-box-shadow);
 }
 .card-dialog--preview :deep(.el-dialog__header) {
@@ -1570,13 +1614,14 @@ onMounted(() => {
 .dialog-head__icon {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  /* 纯圆形图标底用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--el-color-white);
   background: var(--el-color-primary);
-  box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 原投影去掉：圆形图标底自身已是主色实心块，投影只是脏边 */
   flex-shrink: 0;
 }
 .dialog-head__text {
@@ -1598,7 +1643,8 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
@@ -1606,10 +1652,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 .dialog-head__close:hover {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
+}
+.dialog-head__close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .dialog-body {
   display: grid;
@@ -1650,14 +1701,16 @@ onMounted(() => {
 .card-form .el-select,
 .card-form .el-textarea__inner,
 .card-form .el-input-number {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .card-form .el-input-number {
   width: 160px;
 }
 .card-form .el-textarea__inner {
   min-height: 72px;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .status-toggle {
   display: inline-flex;
@@ -1693,9 +1746,9 @@ onMounted(() => {
 .preview-card {
   background: var(--el-bg-color);
   border: 1.5px solid var(--el-color-primary-light-7);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
-  box-shadow: 0 10px 28px rgba(var(--el-color-primary-rgb), 0.08);
+  /* koi 卡片不加投影：已有一条主色浅边承载边界 */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1708,13 +1761,14 @@ onMounted(() => {
 .preview-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  /* 纯圆形图标底用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--el-color-white);
   background: var(--el-color-primary);
-  box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
+  /* 原投影去掉：主色实心圆自身已足够突出 */
   flex-shrink: 0;
 }
 .preview-card__titles {
@@ -1749,7 +1803,8 @@ onMounted(() => {
   gap: 4px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 10px 12px;
 }
 .preview-card__row-label {
@@ -1766,12 +1821,13 @@ onMounted(() => {
 .preview-status {
   background: var(--el-bg-color);
   border: 1.5px solid var(--el-border-color-lighter);
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .preview-status.is-on {
   border-color: var(--el-color-primary-light-8);
-  box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.08);
+  /* 原投影去掉：启用态已由主色浅边表达，不再叠投影 */
 }
 .preview-status.is-off {
   border-color: var(--el-fill-color-light);
@@ -1807,14 +1863,15 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 .dialog-footer__btn {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 96px;
   height: 40px;
 }
 .dialog-footer__btn--primary {
   background: var(--el-color-primary);
   border: 0;
-  box-shadow: 0 8px 18px rgba(var(--el-color-primary-rgb), 0.28);
+  /* 原投影去掉：el-button 自带主色底与 hover 深色态，投影是冗余噪音 */
 }
 .dialog-footer__btn--primary:hover {
   background: var(--el-color-primary-dark-2);
@@ -1842,6 +1899,29 @@ onMounted(() => {
   .page-header {
     flex-direction: column;
     width: 100%;
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .kp-card,
+  .kp-card__actions,
+  .kp-card__hint,
+  .upload-drop {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩边框/颜色反馈 */
+  .stat-card:hover,
+  .kp-card:hover {
+    transform: none;
+  }
+  /* 卡片操作按钮默认隐藏（靠 opacity 过渡显现）：关掉过渡后仍必须
+     在 :hover / 键盘聚焦时出现，否则键盘用户永远看不到「编辑/删除」 */
+  .kp-card:focus-visible .kp-card__actions,
+  .kp-card:focus-visible .kp-card__hint {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 </style>

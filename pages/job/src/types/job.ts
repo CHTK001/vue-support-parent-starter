@@ -42,9 +42,13 @@ export interface JobRuntime {
   executeTimeout: number | null;
   /** DO_NOTHING / FIRE_ONCE_NOW */
   misfireStrategy: string | null;
-  /** 执行类型：BEAN=本机处理器；GLUE_GROOVY=脚本片段；GLUE_JAVA=Java 类片段（存量裸值 groovy 仍等价于脚本） */
+  /**
+   * 执行类型：BEAN=对象处理器；裸引擎名（java / groovy）=脚本（完整文件）；
+   * GLUE_ + 引擎名大写=片段（只写方法体，后端合成）。
+   * 判据只有一条：以 GLUE_ 开头即片段；存量裸值 groovy / GLUE_GROOVY 都按此归一。
+   */
   glueType?: string | null;
-  /** 片段正文，仅代码片段任务（脚本 / Java 片段）有值 */
+  /** 代码正文，仅脚本 / 片段任务有值：脚本是完整文件，片段只写方法体 */
   glueSource?: string | null;
   /** 片段版本时刻（毫秒），正文变更后递增，执行器据此失效缓存 */
   glueUpdatetimeMs?: number | null;
@@ -76,9 +80,9 @@ export interface JobSave {
   retryInterval?: number;
   executeTimeout?: number;
   misfireStrategy?: string;
-  /** 执行类型：BEAN（默认，本机处理器）/ GLUE_GROOVY（脚本）/ GLUE_JAVA（Java 类片段） */
+  /** 执行类型：BEAN（默认，对象处理器）/ 裸引擎名（脚本，完整文件）/ GLUE_+引擎名（片段，方法体） */
   glueType?: string;
-  /** 片段正文，执行类型非 BEAN 时必填；Java 片段要求完整类源码 */
+  /** 代码正文，执行类型非 BEAN 时必填；片段只写方法体，脚本写完整文件，均按 glueType 区分 */
   glueSource?: string;
   /** 重试前回调处理器名 */
   retryCallbackBean?: string;

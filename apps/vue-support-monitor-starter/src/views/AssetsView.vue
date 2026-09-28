@@ -849,16 +849,16 @@ function osTileClass(h: Host): string {
       <div class="page-actions">
         <label class="color-switch">
           <span>实时监控</span>
-          <el-switch v-model="realtimeEnabled" size="small" @change="onRealtimeToggle" />
+          <el-switch v-model="realtimeEnabled" @change="onRealtimeToggle" />
         </label>
-        <el-button icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll" text>刷新</el-button>
+        <el-button icon="RefreshRight" :show-text="true" :loading="loading" @click="fetchAll" text>刷新</el-button>
         <el-button icon="Plus" :show-text="true" type="primary" @click="openAdd" text>新增资产</el-button>
       </div>
     </div>
 
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
     <!-- KPI（对齐 UI 稿：圆形渐变图标 + 数值/说明） -->
@@ -1012,14 +1012,14 @@ function osTileClass(h: Host): string {
           <div v-if="h.msServerGroupId || splitTags(h.serverHostTags).length" class="hc-tags">
             <ReTag
               v-if="h.msServerGroupId"
-              size="small"
+
               :value="String(h.msServerGroupId)"
               :tag-options="[{ dictValue: String(h.msServerGroupId), dictLabel: groupName(h.msServerGroupId), dictTag: 'primary' }]"
             />
             <ReTag
               v-for="t in splitTags(h.serverHostTags)"
               :key="t"
-              size="small"
+
               :value="t"
               :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]"
             />
@@ -1029,7 +1029,7 @@ function osTileClass(h: Host): string {
           <div v-if="parsePorts(h.serverHostPorts).length" class="hc-ports">
             <ElPopover trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
               <template #reference>
-                <ReTag size="small" effect="plain" type="info">端口 {{ parsePorts(h.serverHostPorts).length }}</ReTag>
+                <ReTag effect="plain" type="info">端口 {{ parsePorts(h.serverHostPorts).length }}</ReTag>
               </template>
               <div class="ports-pop-list">
                 <div v-for="p in parsePorts(h.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
@@ -1072,7 +1072,7 @@ function osTileClass(h: Host): string {
         :columns="tableColumns"
         :loading="loading"
         :table-id="'asset-host-list'"
-        size="small"
+
         border
         style="width:100%"
         empty-text="暂无主机"
@@ -1091,19 +1091,19 @@ function osTileClass(h: Host): string {
         <template #col-group="{ row }">
           <ReTag
             v-if="row.msServerGroupId"
-            size="small"
+
             :value="String(row.msServerGroupId)"
             :tag-options="[{ dictValue: String(row.msServerGroupId), dictLabel: groupName(row.msServerGroupId), dictTag: 'primary' }]"
           />
         </template>
         <template #col-tags="{ row }">
           <div v-if="splitTags(row.serverHostTags).length" style="display:flex;gap:4px;flex-wrap:wrap">
-            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" size="small" :value="t" :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]" />
+            <ReTag v-for="t in splitTags(row.serverHostTags)" :key="t" :value="t" :tag-options="[{ dictValue: t, dictLabel: t, dictTag: 'info' }]" />
           </div>
           <span v-else class="dim">—</span>
         </template>
         <template #col-proto="{ row }">
-          <ReTag size="small" :value="protocolOf(row)" :tag-options="[
+          <ReTag :value="protocolOf(row)" :tag-options="[
             { dictValue: 'ssh', dictLabel: 'SSH', dictTag: 'primary' },
             { dictValue: 'rdp', dictLabel: 'RDP', dictTag: 'warning' },
             { dictValue: 'vnc', dictLabel: 'VNC', dictTag: 'info' },
@@ -1116,7 +1116,7 @@ function osTileClass(h: Host): string {
           <span class="delay-live" :class="{ bad: delayBad(liveDelayMs(row)) }">{{ delayText(liveDelayMs(row)) }}</span>
         </template>
         <template #col-agent="{ row }">
-          <ReTag size="small" :value="row.serverHostAgentEnabled === 1 ? 'on' : 'off'" :tag-options="[
+          <ReTag :value="row.serverHostAgentEnabled === 1 ? 'on' : 'off'" :tag-options="[
             { dictValue: 'on', dictLabel: '已注册', dictTag: 'success' },
             { dictValue: 'off', dictLabel: '未注册', dictTag: 'info' },
           ]" />
@@ -1124,7 +1124,7 @@ function osTileClass(h: Host): string {
         <template #col-ports="{ row }">
           <ElPopover v-if="parsePorts(row.serverHostPorts).length" trigger="hover" placement="top-start" :width="260" popper-class="ports-popover">
             <template #reference>
-              <ReTag size="small" effect="plain" type="info">端口 {{ parsePorts(row.serverHostPorts).length }}</ReTag>
+              <ReTag effect="plain" type="info">端口 {{ parsePorts(row.serverHostPorts).length }}</ReTag>
             </template>
             <div class="ports-pop-list">
               <div v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="ports-pop-item mono">{{ portText(p) }}</div>
@@ -1134,10 +1134,10 @@ function osTileClass(h: Host): string {
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
-            <ReButton icon="Connection" layout="square" size="small" type="primary" @click="openConnect(row)">连接</ReButton>
-            <ReButton icon="EditPen" layout="square" size="small" @click="openEdit(row)">编辑</ReButton>
+            <ReButton icon="Connection" layout="square" type="primary" @click="openConnect(row)">连接</ReButton>
+            <ReButton icon="EditPen" layout="square" @click="openEdit(row)">编辑</ReButton>
             <ElDropdown trigger="click" placement="bottom-end" @command="(cmd) => runRowCommand(cmd as string, row)">
-              <ReButton icon="MoreFilled" layout="square" size="small" aria-label="更多" />
+              <ReButton icon="MoreFilled" layout="square" aria-label="更多" />
               <template #dropdown>
                 <ElDropdownMenu>
                   <ElDropdownItem command="detail"><ReIcon name="TrendCharts" />监控</ElDropdownItem>
@@ -1174,14 +1174,14 @@ function osTileClass(h: Host): string {
       <template v-else>
         <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ remotePortOf(connectTarget) }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
         <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
-        <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="[
+        <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable style="width:100%" :options="[
           ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
           ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
         ]" />
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-          <ReButton icon="Key" :show-text="true" size="small" plain title="统一在左侧「账号管理」维护" @click="router.push('/account')">账号管理</ReButton>
+          <ReButton icon="Key" :show-text="true" plain title="统一在左侧「账号管理」维护" @click="router.push('/account')">账号管理</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b">
-            <ReButton icon="Unlink" :show-text="true" size="small" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
+            <ReButton icon="Unlink" :show-text="true" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
           </template>
         </div>
       </template>

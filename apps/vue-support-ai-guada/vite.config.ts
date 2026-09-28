@@ -151,6 +151,15 @@ export default defineConfig({
     // 与 createVite 一致：ol-echarts 走默认导入 echarts，交给预打包会在
     // esbuild 阶段抛 "No matching export ... for import default" 并直接终止 dev server
     exclude: ['ol-echarts'],
+    // 预声明按需路由才会用到的依赖：否则 dev 期间首次访问该路由时 vite 才发现新依赖，
+    // 重新优化后**强制整页 reload**，页面在 reload 期间是空白（浏览器验收时会误判为页面异常）。
+    // 这里把已知的「首访才被发现」的依赖提前纳入预打包，把这些 reload 收敛到启动阶段。
+    include: [
+      '@vicons/ionicons5',
+      'element-plus/es/components/collapse/style/css',
+      'element-plus/es/components/collapse-item/style/css',
+      'element-plus/es/components/drawer/style/css',
+    ],
   },
   resolve: {
     // 用数组而非对象：echarts 必须用锚定正则 /^echarts$/（与 createVite 一致）。

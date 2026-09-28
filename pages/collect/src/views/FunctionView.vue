@@ -18,7 +18,10 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
+import ReTime from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 import { deleteFunction, fetchRuntime, listFunctions, saveFunction, testFunction, updateFunction } from "../api/collectApi";
+import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFunction, CollectFunctionTestResult } from "../types/collect";
@@ -245,7 +248,7 @@ function showHelp(): void {
       <template #description="{ row }">{{ row.collectFunctionDescription || "—" }}</template>
       <template #enabled="{ row }">
         <ReSwitch
-          size="small"
+          
           :model-value="row.collectFunctionEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -261,9 +264,9 @@ function showHelp(): void {
         </span>
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="Edit" type="primary" tip="编辑这个函数" @click="openEdit(row)"/>
-        <ReButton layout="square" icon="VideoPlay" type="warning" tip="试跑这个函数" @click="openTest(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" tip="删除这个函数" @click="remove(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.editFunction" layout="square" @click="openEdit(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.testFunction" layout="square" @click="openTest(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.deleteFunction" layout="square" @click="remove(row)"/>
       </template>
     </ReTable>
 
@@ -276,7 +279,7 @@ function showHelp(): void {
       <div class="collect-form">
         <div class="collect-form__item">
           <span class="collect-form__label"><i class="req">*</i>函数名</span>
-          <ReInput v-model="form.collectFunctionName" size="small" maxlength="64" placeholder="小写字母开头，如 signName"/>
+          <ReInput v-model="form.collectFunctionName"  maxlength="64" placeholder="小写字母开头，如 signName"/>
           <span class="collect-hint collect-hint--muted">不能与内置函数同名，全流程唯一</span>
         </div>
         <div class="collect-form__item collect-form__item--stack">
@@ -294,7 +297,7 @@ function showHelp(): void {
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">说明</span>
-          <ReInput v-model="form.collectFunctionDescription" size="small" maxlength="255" placeholder="这个函数解决什么"/>
+          <ReInput v-model="form.collectFunctionDescription"  maxlength="255" placeholder="这个函数解决什么"/>
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">启用</span>
@@ -302,8 +305,8 @@ function showHelp(): void {
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton size="small" @click="cancel">取消</ReButton>
-        <ReButton size="small" type="primary" :loading="saving" @click="save">保存</ReButton>
+        <ReButton  @click="cancel">取消</ReButton>
+        <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
 
@@ -311,19 +314,19 @@ function showHelp(): void {
       <div class="collect-form">
         <div v-for="index in argumentSlots" :key="index" class="collect-form__item">
           <span class="collect-form__label">实参 {{ index + 1 }}</span>
-          <ReInput v-model="testArgs[index]" size="small" placeholder="按字符串提交，闭包里自行转换"/>
+          <ReInput v-model="testArgs[index]"  placeholder="按字符串提交，闭包里自行转换"/>
         </div>
         <p v-if="!argumentCount" class="collect-hint collect-hint--muted">该函数没有形参，直接试跑</p>
         <div v-if="testResult" class="collect-callout" :class="testResult.success ? 'is-ok' : 'is-bad'">
           <span v-if="testResult.success">
-            返回 {{ testResult.result }}（{{ testResult.resultType }}，{{ testResult.costMs ?? 0 }}ms）
+            返回 {{ testResult.result }}（{{ testResult.resultType }}，<ReTime :value="costMs(testResult.costMs)" format="duration" placeholder="—" />）
           </span>
           <span v-else>{{ testResult.errorMessage || "试跑失败" }}</span>
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton size="small" @click="cancel">关闭</ReButton>
-        <ReButton size="small" type="primary" :loading="testing" @click="runTest">试跑</ReButton>
+        <ReButton  @click="cancel">关闭</ReButton>
+        <ReButton  type="primary" :loading="testing" @click="runTest">试跑</ReButton>
       </template>
     </ReDialog>
   </div>

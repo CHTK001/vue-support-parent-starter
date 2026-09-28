@@ -28,7 +28,7 @@
               {{ tokenStats.usedTokens.toLocaleString() }} / {{ tokenStats.totalTokens.toLocaleString() }} · {{
                 t('chat.memo.messages', { count: tokenStats.messageCount }) }}
             </span>
-            <el-button v-if="tokenStats.breakdown" size="small" text @click="showBreakdown = !showBreakdown"
+            <el-button v-if="tokenStats.breakdown" text @click="showBreakdown = !showBreakdown"
               class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 !px-1 !py-0 !h-auto !text-xs">
               {{ t('chat.memo.details') }}
             </el-button>
@@ -55,13 +55,13 @@
 
         <!-- 操作按钮 -->
         <div class="flex gap-2 pt-3">
-          <el-button size="small" @click="loadTokenStats" :loading="loadingStats" class="flex-1">
+          <el-button @click="loadTokenStats" :loading="loadingStats" class="flex-1">
             <el-icon class="mr-1">
               <Refresh />
             </el-icon>
             {{ t('common.refresh') }}
           </el-button>
-          <el-button size="small" @click="handleCompress" :loading="isCompressing" class="flex-1">
+          <el-button @click="handleCompress" :loading="isCompressing" class="flex-1">
             <el-icon class="mr-1">
               <MagicStick />
             </el-icon>
@@ -120,9 +120,9 @@
               </span>
             </div>
             <div class="flex items-center gap-1.5 text-xs pt-1">
-              <el-tag v-if="summaries[0].pruningMetadata" size="small" type="warning">{{ t('chat.memo.prunedOnly')
+              <el-tag v-if="summaries[0].pruningMetadata" type="warning">{{ t('chat.memo.prunedOnly')
                 }}</el-tag>
-              <el-tag v-else-if="summaries[0].summaryContent" size="small" type="success">{{
+              <el-tag v-else-if="summaries[0].summaryContent" type="success">{{
                 t('chat.memo.summaryCompress') }}</el-tag>
               <span v-if="summaries[0].pruningMetadata" class="text-gray-500 dark:text-[#8b8d95]">
                 {{ Object.keys(summaries[0].pruningMetadata).length }} {{ t('chat.memo.items') }}
@@ -141,21 +141,21 @@
               {{ formatTime(summaries[0].createdAt) }}
             </span>
             <div class="flex gap-1">
-              <el-button size="small" text @click="handleViewHistory"
+              <el-button text @click="handleViewHistory"
                 class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 <el-icon>
                   <List />
                 </el-icon>
                 <span class="ml-1">{{ t('chat.memo.history') }}</span>
               </el-button>
-              <el-button size="small" text @click="handleEdit(summaries[0])"
+              <el-button text @click="handleEdit(summaries[0])"
                 class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 <el-icon>
                   <Edit />
                 </el-icon>
                 <span class="ml-1">{{ t('chat.memo.edit') }}</span>
               </el-button>
-              <el-button size="small" text @click="handleDelete(summaries[0])"
+              <el-button text @click="handleDelete(summaries[0])"
                 class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20">
                 <el-icon>
                   <Delete />
@@ -194,7 +194,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-sm font-semibold text-gray-700 dark:text-[#e8e9ed]">{{ t('chat.memo.compressTime', {
                   n: summaryTotal - index }) }}</span>
-                <el-tag size="small" :type="getStrategyTagType(summary.cleaningStrategy || 'unknown')">
+                <el-tag :type="getStrategyTagType(summary.cleaningStrategy || 'unknown')">
                   {{ getStrategyLabel(summary.cleaningStrategy || 'unknown') }}
                 </el-tag>
               </div>
@@ -258,14 +258,14 @@
             <!-- 操作按钮 -->
             <div v-if="summary.summaryContent"
               class="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-[#2a2c30]">
-              <el-button size="small" text @click="handleEditFromHistory(summary)"
+              <el-button text @click="handleEditFromHistory(summary)"
                 class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300">
                 <el-icon>
                   <Edit />
                 </el-icon>
                 <span class="ml-1">{{ t('chat.memo.edit') }}</span>
               </el-button>
-              <el-button size="small" text @click="handleDeleteFromHistory(summary)"
+              <el-button text @click="handleDeleteFromHistory(summary)"
                 class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300">
                 <el-icon>
                   <Delete />
@@ -556,6 +556,11 @@ async function handleDeleteFromHistory(summary: any) {
 </script>
 
 <style scoped>
+/* 令牌口径：暗色 el-tag 原来写死 rgba(103,194,58,.1) / #85ce61 这类 EP 3.x 亮色
+   调色板值，换肤后与 --el-color-success 完全脱节；统一改成「语义色掺透明」。
+   element-plus 自身在 dist/index.css 的 :root 里已提供 --el-color-xxx-light-N /
+   -dark-2 全套，故下面 :deep(.el-tag) 里那几个 EP 令牌是活的，保持原样。 */
+
 /* 暗色模式下的 el-tag 样式优化 */
 :deep(.el-tag) {
   --el-tag-bg-color: var(--el-color-warning-light-9);
@@ -563,19 +568,26 @@ async function handleDeleteFromHistory(summary: any) {
   --el-tag-text-color: var(--el-color-warning-dark-2);
 }
 
+/* 原值 rgba(103,194,58,.1) / rgba(103,194,58,.2) / #85ce61（EP 亮色成功绿）
+   → 成功色令牌掺透明；暗色下 --el-color-success 为 #22c55e，比 #85ce61 更亮，
+   在深底上对比度反而更高。 */
 .dark :deep(.el-tag--success) {
-  --el-tag-bg-color: rgba(103, 194, 58, 0.1);
-  --el-tag-border-color: rgba(103, 194, 58, 0.2);
-  --el-tag-text-color: #85ce61;
+  --el-tag-bg-color: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  --el-tag-border-color: color-mix(in srgb, var(--el-color-success) 24%, transparent);
+  --el-tag-text-color: var(--el-color-success);
 }
 
+/* 同上，原值 rgba(230,162,60,.1) / rgba(230,162,60,.2) / #ebb563 */
 .dark :deep(.el-tag--warning) {
-  --el-tag-bg-color: rgba(230, 162, 60, 0.1);
-  --el-tag-border-color: rgba(230, 162, 60, 0.2);
-  --el-tag-text-color: #ebb563;
+  --el-tag-bg-color: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+  --el-tag-border-color: color-mix(in srgb, var(--el-color-warning) 24%, transparent);
+  --el-tag-text-color: var(--el-color-warning);
 }
 
-/* 暗色模式下的按钮样式优化 */
+/* 暗色模式下的按钮样式优化
+   注：.el-button--small 是 Element Plus 的 small 尺寸类，本文件模板里的 el-button
+   都没有写 size，故这两条目前命不中任何元素。属既有事实，本次不动 size 相关内容，
+   仅在此标注，避免后来者误判为漏改。 */
 .dark :deep(.el-button--small.is-text) {
   color: var(--el-text-color-regular);
 }
@@ -584,8 +596,16 @@ async function handleDeleteFromHistory(summary: any) {
   background-color: var(--el-fill-color-light);
 }
 
-/* 暗色模式下的进度条颜色优化 */
+/* 暗色模式下的进度条颜色优化：原值 0.3s（其实是 --el-transition-duration 的实值）→ -fast 档 */
 .dark :deep(.el-progress-bar__inner) {
-  transition: all 0.3s ease;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 尊重系统「减少动态效果」偏好：进度条宽度立即跳到目标值，不再渐变。
+   进度本身是「当前/目标」的静态量表达，关掉过渡不丢信息。 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.el-progress-bar__inner) {
+    transition: none;
+  }
 }
 </style>

@@ -41,14 +41,14 @@
         <div class="plan-approval__feedback-actions">
           <el-button
             type="primary"
-            size="small"
+
             :disabled="decided"
             :loading="decided && !confirmed"
             @click="submitFeedback"
           >
             提交修改
           </el-button>
-          <el-button size="small" :disabled="decided" @click="cancelFeedback">
+          <el-button :disabled="decided" @click="cancelFeedback">
             取消
           </el-button>
         </div>
@@ -58,7 +58,7 @@
       <template v-else>
         <el-button
           type="primary"
-          size="small"
+
           :disabled="decided"
           :loading="decided && confirmed"
           @click="handleDecision(true)"
@@ -69,7 +69,7 @@
           <span>批准并执行</span>
         </el-button>
         <el-button
-          size="small"
+
           :disabled="decided"
           @click="startFeedback"
         >
@@ -179,7 +179,8 @@ function submitFeedback() {
 .plan-approval {
   margin: 10px 0 4px;
   border: 1px solid var(--el-border-color);
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-blank);
   overflow: hidden;
   animation: plan-card-in 0.3s ease;
@@ -291,5 +292,15 @@ function submitFeedback() {
 
 .plan-approval :deep(.el-button) {
   cursor: pointer;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，计划批准卡直接出现在终态（不再上移淡入）。
+   本文件只有这一处 animation、且是一次性入场动画，不是加载反馈 ——
+   卡片内容本身就是「待批准」的完整表达，停掉动画不会丢任何信息，
+   所以不需要额外补静态态。 */
+@media (prefers-reduced-motion: reduce) {
+  .plan-approval {
+    animation: none;
+  }
 }
 </style>

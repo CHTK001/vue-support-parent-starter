@@ -206,8 +206,12 @@ export type { CollectColumn } from "@pages/datasource";
 
 /* --------------------------------- 执行通知 -------------------------------- */
 
-/** 通知配置列表，flowId 为空返回全部 */
-export const listNotices = (flowId?: number) => get<CollectNotice[]>(`${API}/notice/list`, { flowId });
+/**
+ * 通知配置列表（全局清单，对所有采集器生效）。
+ *
+ * 不接 flowId：通知已定为平台级配置，后端 `/notice/list` 也没有这个入参了。
+ */
+export const listNotices = () => get<CollectNotice[]>(`${API}/notice/list`);
 
 /** 可用渠道，来自后端注册表（Spring Bean + SPI），前端不写死 */
 export const fetchNoticeChannels = () => get<CollectNotifyChannel[]>(`${API}/notice/channels`);

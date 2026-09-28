@@ -1,57 +1,59 @@
 <template>
   <div class="flex flex-col h-full">
     <CustomTitlebar />
-    <div class="flex-1 min-h-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div class="flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden shadow-xl max-w-4xl w-full">
+    <div class="flex-1 min-h-0 flex items-center justify-center bg-gradient-to-br from-[color-mix(in_srgb,var(--el-color-primary)_8%,var(--el-bg-color))] to-[color-mix(in_srgb,var(--el-color-primary)_18%,var(--el-bg-color))] p-4">
+        <!-- 卡片：koi 规约不加装饰投影，边界由 border 承载（浅色下卡片与页面底色同源，
+             靠这条边框 + rounded-2xl 切出层次；深色下 bg 变深、边框同样跟随主题） -->
+        <div class="flex flex-col md:flex-row bg-[var(--el-bg-color)] border border-[var(--el-border-color-lighter)] rounded-2xl overflow-hidden max-w-4xl w-full">
             <!-- 左侧说明区域 -->
             <div
-                class="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-500 to-purple-600 items-center justify-center p-8">
-                <div class="text-center text-white">
+                class="hidden md:flex md:w-1/2 bg-gradient-to-br from-[var(--el-color-primary)] to-[var(--el-color-primary-dark-2)] items-center justify-center p-8">
+                <div class="text-center text-[var(--el-color-white)]">
                     <h1 class="text-3xl font-bold mb-4">{{ t('ui.password.securityTitle') }}</h1>
-                    <p class="text-indigo-100 mb-6">{{ t('ui.password.securityDesc') }}</p>
+                    <p class="text-[color-mix(in_srgb,var(--el-color-white)_85%,transparent)] mb-6">{{ t('ui.password.securityDesc') }}</p>
                     <div class="space-y-4 text-left">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 leading-none">
-                                <svg class="h-5 w-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[color-mix(in_srgb,var(--el-color-success)_45%,var(--el-color-white))]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <p class="ml-3 text-indigo-100 text-sm">{{ t('ui.password.tip1') }}</p>
+                            <p class="ml-3 text-[color-mix(in_srgb,var(--el-color-white)_85%,transparent)] text-sm">{{ t('ui.password.tip1') }}</p>
                         </div>
 
                         <div class="flex items-center">
                             <div class="flex-shrink-0 leading-none">
-                                <svg class="h-5 w-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[color-mix(in_srgb,var(--el-color-success)_45%,var(--el-color-white))]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <p class="ml-3 text-indigo-100 text-sm">{{ t('ui.password.tip2') }}</p>
+                            <p class="ml-3 text-[color-mix(in_srgb,var(--el-color-white)_85%,transparent)] text-sm">{{ t('ui.password.tip2') }}</p>
                         </div>
 
                         <div class="flex items-center">
                             <div class="flex-shrink-0 leading-none">
-                                <svg class="h-5 w-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[color-mix(in_srgb,var(--el-color-success)_45%,var(--el-color-white))]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <p class="ml-3 text-indigo-100 text-sm">{{ t('ui.password.tip3') }}</p>
+                            <p class="ml-3 text-[color-mix(in_srgb,var(--el-color-white)_85%,transparent)] text-sm">{{ t('ui.password.tip3') }}</p>
                         </div>
 
                         <div class="flex items-center">
                             <div class="flex-shrink-0 leading-none">
-                                <svg class="h-5 w-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[color-mix(in_srgb,var(--el-color-success)_45%,var(--el-color-white))]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <p class="ml-3 text-indigo-100 text-sm">{{ t('ui.password.tip4') }}</p>
+                            <p class="ml-3 text-[color-mix(in_srgb,var(--el-color-white)_85%,transparent)] text-sm">{{ t('ui.password.tip4') }}</p>
                         </div>
                     </div>
                 </div>
@@ -61,9 +63,9 @@
             <!-- 右侧表单区域 -->
             <div class="w-full md:w-1/2 p-8 flex flex-col justify-center">
                 <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ t('ui.password.title') }}</h2>
-                    <p class="text-gray-500" v-if="canReset">{{ t('ui.password.firstLoginDesc') }}</p>
-                    <p class="text-gray-500" v-else>{{ t('ui.password.noPermission') }}</p>
+                    <h2 class="text-3xl font-bold text-[var(--el-text-color-primary)] mb-2">{{ t('ui.password.title') }}</h2>
+                    <p class="text-[var(--el-text-color-secondary)]" v-if="canReset">{{ t('ui.password.firstLoginDesc') }}</p>
+                    <p class="text-[var(--el-text-color-secondary)]" v-else>{{ t('ui.password.noPermission') }}</p>
                 </div>
 
                 <!-- 用户名表单 -->
@@ -72,7 +74,7 @@
                         <el-form-item prop="username" class="mb-4">
                             <el-input v-model="form.username" :placeholder="t('ui.password.inputUsername')" size="large">
                                 <template #prefix>
-                                    <el-icon class="text-gray-400">
+                                    <el-icon class="text-[var(--el-text-color-placeholder)]">
                                         <UserIcon />
                                     </el-icon>
                                 </template>
@@ -83,7 +85,7 @@
                             <el-input v-model="form.password" type="password" show-password :placeholder="t('ui.password.inputPassword')"
                                 size="large">
                                 <template #prefix>
-                                    <el-icon class="text-gray-400">
+                                    <el-icon class="text-[var(--el-text-color-placeholder)]">
                                         <LockIcon />
                                     </el-icon>
                                 </template>
@@ -94,7 +96,7 @@
                             <el-input v-model="form.confirmPassword" type="password" show-password :placeholder="t('ui.password.inputPasswordAgain')"
                                 size="large">
                                 <template #prefix>
-                                    <el-icon class="text-gray-400">
+                                    <el-icon class="text-[var(--el-text-color-placeholder)]">
                                         <LockIcon />
                                     </el-icon>
                                 </template>
@@ -104,10 +106,10 @@
                 </div>
 
                 <div v-else class="w-full text-center py-8">
-                    <div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-5 text-left shadow-sm">
+                    <div class="mt-6 bg-[var(--el-color-danger-light-9)] border border-[var(--el-color-danger-light-5)] rounded-xl p-5 text-left">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                <svg class="h-6 w-6 text-[var(--el-color-danger)]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                                     fill="currentColor">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -115,13 +117,13 @@
                                 </svg>
                             </div>
                             <div class="ml-4">
-                                <h3 class="text-lg font-medium text-red-800">{{ t('ui.password.permissionTitle') }}</h3>
-                                <div class="mt-3 text-sm text-red-700">
+                                <h3 class="text-lg font-medium text-[var(--el-color-danger)]">{{ t('ui.password.permissionTitle') }}</h3>
+                                <div class="mt-3 text-sm text-[var(--el-color-danger)]">
                                     <p class="mb-2">{{ t('ui.password.permissionDesc') }}</p>
                                     <ol class="list-decimal pl-5 space-y-1">
                                         <li>{{ t('ui.password.step1') }}</li>
                                         <li>{{ t('ui.password.step2') }} <code
-                                                class="bg-red-100 px-1.5 py-0.5 rounded text-red-800 font-mono">password_is_set.txt</code>
+                                                class="bg-[color-mix(in_srgb,var(--el-color-danger)_20%,transparent)] px-1.5 py-0.5 rounded text-[var(--el-color-danger)] font-mono">password_is_set.txt</code>
                                             文件</li>
                                         <li>{{ t('ui.password.step3') }}</li>
                                     </ol>
@@ -133,7 +135,7 @@
 
                 <!-- 设置按钮 -->
                 <el-button v-if="canReset" type="primary" round size="large" :loading="loading" @click="handleLogin"
-                    class="mb-6 py-3 font-medium rounded-lg shadow-md hover:shadow-lg transition-shadow w-full">
+                    class="mb-6 py-3 font-medium rounded-lg w-full">
                     <template #icon>
                         <LoginIcon />
                     </template>
@@ -142,36 +144,36 @@
 
                 <!-- 移动端安全提醒 -->
                 <div class="md:hidden space-y-4 mb-6" v-if="canReset">
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <div class="bg-[var(--el-color-info-light-9)] border-l-4 border-l-[var(--el-color-info)] p-4 rounded">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[var(--el-color-info)]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-blue-700">
+                                <p class="text-sm text-[var(--el-color-info)]">
                                     <strong>{{ t('ui.password.securityTip') }}</strong>
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <div class="bg-[var(--el-color-warning-light-9)] border-l-4 border-l-[var(--el-color-warning)] p-4 rounded">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[var(--el-color-warning)]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-yellow-700">
+                                <p class="text-sm text-[var(--el-color-warning)]">
                                     <strong>{{ t('ui.password.resetTip') }}</strong>
-                                        <code class="bg-gray-100 px-1 rounded">password_is_set.txt</code> 文件并刷新本页面。
+                                        <code class="bg-[var(--el-fill-color)] px-1 rounded">password_is_set.txt</code> 文件并刷新本页面。
                                 </p>
                             </div>
                         </div>
@@ -179,17 +181,17 @@
                 </div>
 
                 <div v-else class="md:hidden">
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                    <div class="bg-[var(--el-color-danger-light-9)] border-l-4 border-l-[var(--el-color-danger)] p-4 rounded">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-5 w-5 text-[var(--el-color-danger)]" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-red-700">
+                                <p class="text-sm text-[var(--el-color-danger)]">
                                     {{ t('ui.password.noPermissionContact') }}
                                 </p>
                             </div>
@@ -354,19 +356,30 @@ onMounted(async (): Promise<void> => {
 </script>
 
 <style scoped>
-/* 自定义样式 */
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 本文件原先把一整套靛蓝色（#4f46e5 / #4338ca / #3730a3）硬覆盖到
+      .el-button--primary 上，等于把「设置密码」这个主按钮钉死在单一配色，
+      9 套主题（涂鸦本 / 蒸汽朋克 / 赛博朋克 …）下都不会跟随。
+      改为 --el-color-primary 及其 dark-2 派生档后，这段覆盖退化成对
+      Element Plus 默认取值的复述：既跟随主题，又不改变任何行为。
+   2. 输入框聚焦描边同样写死 #4f46e5，改为 --el-color-primary。
+      保留这条覆盖（而不是删掉交给 EP 默认）是为了不改动现有聚焦观感。
+   3. 卡片 / 容器不加投影；圆角与过渡统一取令牌。
+   ============================================================================ */
 
 .custom-segmented .el-segmented {
     --el-segmented-item-selected-color: var(--el-text-color-primary);
-    --el-segmented-item-selected-bg-color: white;
-    --el-border-radius-base: 12px;
-    /* background-color: rgb(247, 247, 250); */
+    --el-segmented-item-selected-bg-color: var(--el-bg-color);
+    --el-border-radius-base: var(--el-radius-lg, 12px);
     padding: 8px 8px;
 }
 
 .custom-segmented .el-segmented__item {
-    border-radius: 12px;
-    transition: all 0.2s ease;
+    /* 原值 12px → lg 档 */
+    border-radius: var(--el-radius-lg, 12px);
+    transition: background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
     padding: 5px 30px;
     margin-left: 10px;
 
@@ -376,30 +389,40 @@ onMounted(async (): Promise<void> => {
     margin-left: 0;
 }
 
+/* 选中项是从凹槽里「抬起来」的那一块，投影在这里是功能必需的（不是卡片投影）：
+   去掉就分不清选中的是哪一项 */
 .custom-segmented .el-segmented__item.is-selected {
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* 原值 12px → lg 档 */
+    border-radius: var(--el-radius-lg, 12px);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
 }
 
 :deep(.el-input__wrapper) {
-    box-shadow: 0 0 0 1px #e5e7eb inset;
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
 }
 
 :deep(.el-input.is-focus .el-input__wrapper) {
-    box-shadow: 0 0 0 1px #4f46e5 inset;
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
 }
 
 :deep(.el-button--primary) {
-    --el-button-bg-color: #4f46e5;
-    --el-button-border-color: #4f46e5;
-    --el-button-hover-bg-color: #4338ca;
-    --el-button-hover-border-color: #4338ca;
-    --el-button-active-bg-color: #3730a3;
-    --el-button-active-border-color: #3730a3;
+    --el-button-bg-color: var(--el-color-primary);
+    --el-button-border-color: var(--el-color-primary);
+    --el-button-hover-bg-color: var(--el-color-primary-dark-2);
+    --el-button-hover-border-color: var(--el-color-primary-dark-2);
+    --el-button-active-bg-color: var(--el-color-primary-dark-2);
+    --el-button-active-border-color: var(--el-color-primary-dark-2);
 }
 
 :deep(.el-form-item__label) {
     font-weight: 500;
-    color: #374151;
+    color: var(--el-text-color-regular);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .custom-segmented .el-segmented__item {
+        transition: none;
+    }
 }
 </style>

@@ -18,7 +18,7 @@
         <template #default="{ row }">
           <div class="token-cell">
             <span class="token-text">{{ row.token }}</span>
-            <el-button text size="small" class="copy-btn" @click="copy(row.token)">
+            <el-button text class="copy-btn" @click="copy(row.token)">
               <el-icon><Copy24Regular /></el-icon>
             </el-button>
           </div>
@@ -27,7 +27,7 @@
       <el-table-column prop="name" label="名称" width="140" />
       <el-table-column label="类型" width="90">
         <template #default="{ row }">
-          <el-tag size="small" :type="tokenTagType(row.type)">
+          <el-tag :type="tokenTagType(row.type)">
             {{ row.type === 'temporary' ? '临时' : '永久' }}
           </el-tag>
         </template>
@@ -50,17 +50,17 @@
       </el-table-column>
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.enabled ? 'success' : 'danger'" size="small">
+          <el-tag :type="row.enabled ? 'success' : 'danger'" >
             {{ row.enabled ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="150">
         <template #default="{ row }">
-          <el-button size="small" @click="toggle(row)">
+          <el-button @click="toggle(row)">
             {{ row.enabled ? '禁用' : '启用' }}
           </el-button>
-          <el-button size="small" type="danger" plain @click="remove(row)">删除</el-button>
+          <el-button type="danger" plain @click="remove(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -295,11 +295,12 @@ onMounted(() => {
   padding: 4px;
 }
 .panel-card {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px 16px 12px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  /* 表格容器是页面区块，不加投影 */
 }
 .flat-table { --el-table-border-color: var(--el-border-color-lighter); }
 .flat-table :deep(th.el-table__cell) {

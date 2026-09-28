@@ -244,7 +244,7 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
       <ElEmpty :description="emptyText" :image-size="80" />
     </div>
 
-    <div v-else :style="containerStyle">
+    <div v-else class="re-table__card-grid" :style="containerStyle">
       <div
         v-for="(row, idx) in rows"
         :key="idx"
@@ -312,6 +312,22 @@ function onCardContextmenu(row: Record<string, unknown>, index: number, event: M
 /* 卡片默认模板：与视图模式同一套视觉语言（koi / element-plus 令牌，亮暗自适应） */
 .re-table__card-layout {
   padding: 4px;
+  display: flex;
+  flex-direction: column;
+  /* fill 模式（ReTable 的 .re-table--fill）：本组件是 .re-table__main 的最后一个子元素
+     （measureFillHeight 量的就是它），要变成高度确定的列容器才能吃满。
+     与 ReTableView 的 .re-table__view-layout 同一套写法。 */
+  height: 100%;
+  min-height: 0;
+}
+/* 滚动落在网格上而不是根节点：全选栏要留在视口内固定，不能跟着卡片一起滚走
+   （与 .re-table__view-list 的处理一致）。 */
+.re-table__card-grid {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+  /* 抵消网格自身右内边距，避免滚动条压住卡片内容 */
+  padding-right: 2px;
 }
 .re-table__card-layout--empty {
   min-height: var(--re-table-min-height, 300px);

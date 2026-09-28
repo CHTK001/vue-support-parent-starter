@@ -229,7 +229,8 @@ onBeforeUnmount(destroy);
       aria-label="播放"
       @click="play"
     >
-      <span aria-hidden="true">▶</span>
+      <!-- 用图标组件代替 ▶ 字符：emoji/几何字符作图标在不同字体下渲染不一致 -->
+      <ReIcon name="VideoPlay" :size="28" aria-hidden="true" />
     </button>
   </div>
 </template>
@@ -238,14 +239,15 @@ onBeforeUnmount(destroy);
 .vd-player-wrap {
   position: relative;
   width: 100%;
-  background: #000;
+  /* 画布留边用深色主题最深一层（视觉上等同纯黑），不再写死 #000 */
+  background: var(--vd-bg-deep);
 }
 
 .vd-player-el {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #000;
+  background: var(--vd-bg-deep);
 }
 
 /* ── 覆盖层 ─────────────────────────────── */
@@ -257,18 +259,20 @@ onBeforeUnmount(destroy);
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: rgba(11, 18, 32, 0.92);
-  color: #e2f3ff;
+  background: color-mix(in srgb, var(--vd-bg) 92%, transparent);
+  color: var(--vd-text);
   pointer-events: none;
 }
 
 .vd-player-loading {
-  background: rgba(11, 18, 32, 0.55);
+  background: color-mix(in srgb, var(--vd-bg) 55%, transparent);
 }
 
 .vd-player-error {
   pointer-events: auto;
-  color: #fca5a5;
+  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
+     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
+  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
 }
 
 .vd-player-hint-text {
@@ -284,8 +288,9 @@ onBeforeUnmount(destroy);
 .vd-player-spinner {
   width: 38px;
   height: 38px;
-  border: 3px solid rgba(56, 189, 248, 0.25);
-  border-top-color: var(--vd-secondary, #38bdf8);
+  border: 3px solid color-mix(in srgb, var(--vd-secondary) 25%, transparent);
+  border-top-color: var(--vd-secondary);
+  /* 50% 是几何形状（正圆）而非魔法像素，保留 */
   border-radius: 50%;
   animation: vd-spin 0.8s linear infinite;
 }
@@ -306,25 +311,40 @@ onBeforeUnmount(destroy);
   height: 72px;
   border: none;
   border-radius: 50%;
-  background: rgba(99, 102, 241, 0.9);
-  color: #fff;
+  background: color-mix(in srgb, var(--vd-primary) 90%, transparent);
+  color: var(--vd-text);
   font-size: 26px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s var(--vd-ease, ease), background 0.2s ease;
-  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.5);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) var(--vd-ease, ease),
+    background var(--el-transition-duration-fast, 0.2s) ease;
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--vd-primary) 50%, transparent);
 }
 
 .vd-player-bigplay:hover {
-  background: var(--vd-primary, #6366f1);
+  background: var(--vd-primary);
   transform: translate(-50%, -50%) scale(1.06);
 }
 
+.vd-player-bigplay:focus-visible {
+  outline: none;
+  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
+  .vd-player-bigplay {
+    transition: none;
+  }
+  /* 旋转圈是「缓冲中」的唯一动效提示，关掉动画前先把它退化成一枚完整描边的
+     静息环；覆盖层上仍有「加载中…」文案，视觉反馈不会丢 */
   .vd-player-spinner {
-    animation-duration: 1.6s;
+    animation: none;
+    border-color: color-mix(in srgb, var(--vd-secondary) 70%, transparent);
   }
 }
 </style>

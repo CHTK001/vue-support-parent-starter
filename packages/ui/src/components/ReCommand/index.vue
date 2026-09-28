@@ -10,7 +10,7 @@
         <!-- 内置模板 -->
         <el-popover v-model:visible="tplOpen" :width="330" placement="bottom-end" trigger="click">
           <template #reference>
-            <ReButton icon="Files" layout="square" size="small" title="内置模板" />
+            <ReButton icon="Files" layout="square" title="内置模板" />
           </template>
           <div class="rc-tpl-pop">
             <div class="rc-tpl-head">
@@ -30,7 +30,7 @@
         <!-- 占位符 / 内置变量 -->
         <el-popover :width="350" placement="bottom-end" trigger="click">
           <template #reference>
-            <ReButton icon="Histogram" layout="square" size="small" title="插入占位符 / 内置变量" />
+            <ReButton icon="Histogram" layout="square" title="插入占位符 / 内置变量" />
           </template>
           <div class="rc-tok-pop">
             <div class="rc-tok-head">占位符 · 点击插入到光标处</div>
@@ -43,23 +43,23 @@
 
         <!-- AI 生成（无可用模型时整体隐藏） -->
         <template v-if="ai && modelList.length">
-          <ReSelect v-model="aiModel" class="rc-model" :style="{ width: '150px' }" placeholder="选择模型" size="small">
+          <ReSelect v-model="aiModel" class="rc-model" :style="{ width: '150px' }" placeholder="选择模型" >
             <ReOption v-for="m in modelList" :key="m.id" :label="m.name" :value="m.code || m.name" />
           </ReSelect>
           <ReButton
             :icon="generating ? 'Loading' : 'ChatDotSquare'"
             :loading="generating"
             layout="square"
-            size="small"
+
             :title="generating ? '停止生成' : 'AI 生成'"
             @click="aiGenerate"
           />
         </template>
 
         <!-- 复制 / 清空 / 放大 -->
-        <ReButton icon="CopyDocument" layout="square" size="small" title="复制" @click="copy" />
-        <ReButton icon="Delete" layout="square" size="small" title="清空" @click="clearCmd" />
-        <ReButton v-if="!noExpand" icon="FullScreen" layout="square" size="small" title="放大编辑" @click="expandOpen = true" />
+        <ReButton icon="CopyDocument" layout="square" title="复制" @click="copy" />
+        <ReButton icon="Delete" layout="square" title="清空" @click="clearCmd" />
+        <ReButton v-if="!noExpand" icon="FullScreen" layout="square" title="放大编辑" @click="expandOpen = true" />
       </div>
     </div>
     <textarea

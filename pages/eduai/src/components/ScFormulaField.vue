@@ -1,11 +1,15 @@
 <template>
   <div class="sc-formula-field">
     <!-- 展示态：直接渲染文字 + 公式（用户不会看到 $...$ 源码），点击进入编辑模式 -->
+    <!-- 整块可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
     <div
       class="sc-formula-field__box"
       :class="{ 'is-empty': !modelValue }"
-      :title="'点击打开编辑模式（支持公式）'"
+      role="button"
+      tabindex="0"
+      title="点击打开编辑模式（支持公式）"
       @click="openEditor"
+      @keydown.enter="openEditor"
     >
       <span v-if="!modelValue" class="sc-formula-field__ph">{{ placeholder }}</span>
       <span v-else class="sc-formula-field__rendered" v-html="previewHtml" />
@@ -130,13 +134,21 @@ function insertSymbol(tex: string) {
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .sc-formula-field__box:hover {
   border-color: var(--el-border-color-hover);
+}
+.sc-formula-field__box:focus-visible {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .sc-formula-field__box.is-empty .sc-formula-field__ph {
   color: var(--el-text-color-placeholder);
@@ -180,16 +192,25 @@ function insertSymbol(tex: string) {
   height: 30px;
   padding: 0 8px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
   cursor: pointer;
   font-size: 13px;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease;
 }
 .sc-fx-editor__chip:hover {
   border-color: var(--el-color-primary-light-5);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+}
+.sc-fx-editor__chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .sc-fx-editor__tip {
   margin: 8px 0 10px;
@@ -205,7 +226,7 @@ function insertSymbol(tex: string) {
 .sc-fx-editor__preview {
   padding: 8px 12px;
   min-height: 40px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
   border: 1px dashed var(--el-border-color-lighter);
   font-size: 15px;
@@ -217,5 +238,13 @@ function insertSymbol(tex: string) {
 .sc-fx-editor__ph {
   color: var(--el-text-color-placeholder);
   font-size: 13px;
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .sc-formula-field__box,
+  .sc-fx-editor__chip {
+    transition: none;
+  }
 }
 </style>

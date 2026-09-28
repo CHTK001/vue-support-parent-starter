@@ -63,6 +63,18 @@ function phaseLabel(kind: PhaseKind): string {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*（refactor.css 已把 --el-* 映射到 --color-* 主题层，
+      9 套配色换肤时自动跟随）。
+   2. 阶段标签的配色全部改成「语义色 + 透明度」派生：浅底用
+      color-mix 打 tinted 底，深色下自动变暗底，不会再出现「暗色模式下一排
+      亮蓝底」的割裂感。文字取各语义色的 dark-2 档——这正是原代码用
+      #b88230 / #529b2e 而不是基色的原因：8%~16% 的浅底上必须用深一档的
+      同色系文字才够对比度。
+   3. 摘要条是行不是卡片，不加投影；本文件唯一允许的 box-shadow 是焦点环。
+   ============================================================================ */
+
 .turn-summary {
   margin: 2px 0 6px;
 }
@@ -74,22 +86,31 @@ function phaseLabel(kind: PhaseKind): string {
   width: 100%;
   padding: 4px 8px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--color-surface, transparent);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color-overlay);
   cursor: pointer;
   text-align: left;
-  transition: background-color 0.15s, border-color 0.15s;
+  outline: none;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 键盘焦点环：这是原生 button，浏览器默认 outline 会被容器边框压住，改用主色光环 */
+.ts-head:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .ts-head:hover {
-  background: var(--color-surface-hover, var(--el-fill-color-light));
+  background: var(--el-fill-color-light);
   border-color: var(--el-border-color-light);
 }
 
 .ts-icon {
   flex-shrink: 0;
   color: var(--el-text-color-secondary);
-  transition: transform 0.2s ease;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .is-expanded .ts-icon {
@@ -133,7 +154,8 @@ function phaseLabel(kind: PhaseKind): string {
 .ts-chip {
   flex-shrink: 0;
   padding: 1px 7px;
-  border-radius: 999px;
+  /* 原值 999px → full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   line-height: 16px;
   white-space: nowrap;
@@ -141,12 +163,26 @@ function phaseLabel(kind: PhaseKind): string {
   color: var(--el-text-color-regular);
 }
 
-/* 阶段配色：思考/检索偏冷，编辑文件与执行命令是用户最关心的两类，给暖色 */
-.ts-chip--think { background: rgba(64, 158, 255, 0.12); color: #409eff; }
+/* 阶段配色：思考/检索偏冷，编辑文件与执行命令是用户最关心的两类，给暖色。
+   底色一律由语义色按原透明度派生（color-mix），文字取同色系 dark-2 档。
+   原值对照：think #409eff / search #7a7e85 / editFile #b88230 /
+             command #529b2e / read #5b8fd0 / compose #4d8f2c */
+.ts-chip--think { background: color-mix(in srgb, var(--el-color-primary) 12%, transparent); color: var(--el-color-primary); }
 .ts-chip--search,
-.ts-chip--web { background: rgba(144, 147, 153, 0.15); color: #7a7e85; }
-.ts-chip--editFile { background: rgba(230, 162, 60, 0.16); color: #b88230; }
-.ts-chip--command { background: rgba(103, 194, 58, 0.16); color: #529b2e; }
-.ts-chip--read { background: rgba(64, 158, 255, 0.08); color: #5b8fd0; }
-.ts-chip--compose { background: rgba(103, 194, 58, 0.1); color: #4d8f2c; }
+.ts-chip--web { background: color-mix(in srgb, var(--el-text-color-regular) 15%, transparent); color: var(--el-text-color-regular); }
+.ts-chip--editFile { background: color-mix(in srgb, var(--el-color-warning) 16%, transparent); color: var(--el-color-warning-dark-2); }
+.ts-chip--command { background: color-mix(in srgb, var(--el-color-success) 16%, transparent); color: var(--el-color-success-dark-2); }
+.ts-chip--read { background: color-mix(in srgb, var(--el-color-primary) 8%, transparent); color: var(--el-color-primary-dark-2); }
+.ts-chip--compose { background: color-mix(in srgb, var(--el-color-success) 10%, transparent); color: var(--el-color-success-dark-2); }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .ts-head,
+  .ts-icon {
+    transition: none;
+  }
+  .ts-icon.spinning {
+    animation: none;
+  }
+}
 </style>

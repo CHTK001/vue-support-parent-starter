@@ -73,9 +73,14 @@ const runningCount = computed(() =>
 </script>
 
 <style scoped>
+/* 令牌口径：--color-secondary-surface / --size-dialog-rounded-radius 都锚在
+   refactor.css 的主题层上（明暗各有一份），但圆角改走 --el-radius-* 六档统一口径；
+   rgba(0,0,0,.03) 这类手写半透明蒙版在暗色下会变成黑块，一律改用 --el-fill-color-*。 */
 .agent-panel {
-  border-radius: var(--size-dialog-rounded-radius) var(--size-dialog-rounded-radius) 0 0;
-  background: var(--color-secondary-surface);
+  /* 原值 var(--size-dialog-rounded-radius)：refactor.css 里实为 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  /* 原值 var(--color-secondary-surface) → 页面次级底色令牌（明暗自动切换） */
+  background: var(--el-bg-color-page);
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
   overflow: hidden;
@@ -86,26 +91,30 @@ const runningCount = computed(() =>
   backdrop-filter: blur(20px) saturate(1.5);
 }
 
+/* 可点击的折叠头（div + @click）：光标与焦点环都要自己给 */
 .agent-panel-header {
   display: flex;
   align-items: center;
   padding: 8px 16px 4px;
   cursor: pointer;
-  transition: background 0.15s;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+.agent-panel-header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 原值 rgba(0,0,0,.03) / 暗色下 rgba(255,255,255,.04) → 悬停底色令牌，
+   两侧都由 refactor.css 的 html.dark 统一给值，不再需要手写 .dark 分支。 */
 .agent-panel-header:hover {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-.dark .agent-panel-header:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--el-fill-color-lighter);
 }
 
 .agent-panel-list-wrapper {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.25s ease;
+  transition: max-height var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .agent-panel.is-expanded .agent-panel-list-wrapper {
@@ -124,12 +133,9 @@ const runningCount = computed(() =>
 }
 
 .agent-panel-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
-}
-
-.dark .agent-panel-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--el-fill-color-dark);
+  /* 原值 2px（约等于 4px 宽的一半即胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .agent-panel-item {
@@ -137,25 +143,35 @@ const runningCount = computed(() =>
   align-items: center;
   gap: 8px;
   padding: 5px 8px;
-  border-radius: calc(var(--size-dialog-rounded-radius)/2);
+  /* 原值 calc(var(--size-dialog-rounded-radius)/2)，实为 9px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: background 0.15s;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
   margin-top: 2px;
 }
 
-.agent-panel-item:hover {
-  background: rgba(0, 0, 0, 0.04);
+.agent-panel-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-.dark .agent-panel-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+/* 原值 rgba(0,0,0,.04) / 暗色下 rgba(255,255,255,.05) → 悬停底色令牌 */
+.agent-panel-item:hover {
+  background: var(--el-fill-color-lighter);
 }
 
 .agent-panel-item.is-active {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--el-fill-color-light);
 }
 
-.dark .agent-panel-item.is-active {
-  background: rgba(255, 255, 255, 0.08);
+/* 尊重系统「减少动态效果」偏好。
+   注意 .agent-panel-item 的选中态只靠底色区分，关掉过渡后仍然看得见，
+   不需要额外的静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .agent-panel-header,
+  .agent-panel-list-wrapper,
+  .agent-panel-item {
+    transition: none;
+  }
 }
 </style>

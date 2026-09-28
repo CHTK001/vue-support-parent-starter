@@ -56,7 +56,7 @@ defineProps<{
           <ReTag
             v-if="unlocked"
             type="success"
-            size="small"
+
             effect="dark"
             class="!rounded-full"
           >
@@ -65,7 +65,7 @@ defineProps<{
           <ReTag
             v-else
             type="info"
-            size="small"
+
             class="!rounded-full"
           >
             🔒 Locked

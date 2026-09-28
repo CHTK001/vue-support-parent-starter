@@ -986,20 +986,20 @@ onBeforeUnmount(() => {
     <ReSectionHead :description="`主机 #${hostId} · 实时遥测与趋势`">
       <template #title>{{ hostName || `主机 #${hostId}` }}</template>
       <template #actions>
-        <ReButton icon="Back" :show-text="true" size="small" @click="router.push('/assets')">资产</ReButton>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="refreshNow()">刷新</ReButton>
+        <ReButton icon="Back" :show-text="true" @click="router.push('/assets')">资产</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="refreshNow()">刷新</ReButton>
         <ReButton
-          icon="MagicStick" :show-text="true" size="small" :disabled="aiDisabled"
+          icon="MagicStick" :show-text="true" :disabled="aiDisabled"
           :title="aiDisabled ? '未配置 AI 模型，请先在系统配置中接入' : '按主机指标调用大模型分析'"
           @click="runAiAnalysis"
         >AI 分析</ReButton>
-        <ReButton icon="Connection" :show-text="true" type="primary" size="small" @click="router.push({ path: '/terminal', query: { hostId: String(hostId) } })">连接远控</ReButton>
+        <ReButton icon="Connection" :show-text="true" type="primary" @click="router.push({ path: '/terminal', query: { hostId: String(hostId) } })">连接远控</ReButton>
       </template>
     </ReSectionHead>
 
     <div v-if="error && (monitorId || hasHostMetrics)" class="hd-error">
       <span>部分数据加载失败：{{ error }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="refreshNow()">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="refreshNow()">重试</ReButton>
     </div>
 
     <!-- ================= 遥测控制台 ================= -->
@@ -1019,7 +1019,7 @@ onBeforeUnmount(() => {
           <div v-if="monitors.length" class="ph-monitor">
             <span class="pm-k">监控项</span>
             <ReSelect
-              :model-value="monitorId" size="small" class="pm-sel"
+              :model-value="monitorId" class="pm-sel"
               :options="monitors.map(m => ({ label: `${m.name || ('#' + m.monitorId)}（告警 ${m.activeAlarmCount ?? 0}）`, value: Number(m.monitorId) }))"
               @change="onMonitorChange(Number($event))"
             />
@@ -1048,12 +1048,12 @@ onBeforeUnmount(() => {
         <template v-if="error">
           <b>主机当前不可采集</b>
           <span>{{ error }}。请检查主机采集方式、端口与凭据，或确认 Agent 是否已部署并运行。</span>
-          <ReButton type="primary" size="small" :show-text="true" :loading="loading" @click="refreshNow()">重新连接</ReButton>
+          <ReButton type="primary" :show-text="true" :loading="loading" @click="refreshNow()">重新连接</ReButton>
         </template>
         <template v-else>
           <b>该主机尚未关联监控项</b>
           <span>遥测指标按监控项存储。请到「监控配置」新建监控项并绑定本机，或开启主机采集以获取内置 CPU/内存/磁盘指标。</span>
-          <ReButton type="primary" size="small" :show-text="true" @click="router.push('/config')">去配置监控项</ReButton>
+          <ReButton type="primary" :show-text="true" @click="router.push('/config')">去配置监控项</ReButton>
         </template>
       </div>
 
@@ -1061,7 +1061,7 @@ onBeforeUnmount(() => {
       <!-- 无监控项但有内置指标：软提示，不阻断仪表 -->
       <div v-if="!monitorId" class="builtin-hint">
         <span>当前显示主机内置实时指标（CPU / 内存 / 磁盘 / 磁盘IO / 网络 / 软件）；配置监控项后可获得 JVM 堆与 24h 历史。</span>
-        <ReButton icon="Setting" link size="small" :show-text="true" @click="router.push('/config')">配置监控项</ReButton>
+        <ReButton icon="Setting" link :show-text="true" @click="router.push('/config')">配置监控项</ReButton>
       </div>
       <!-- 实时仪表（响应式自适应） -->
       <section class="gauge-grid">
@@ -1262,7 +1262,7 @@ onBeforeUnmount(() => {
           <span class="sp-title">软件实例</span>
           <div class="sp-actions">
             <span class="sp-count mono">{{ softwareInstanceCount }} INSTANCE · {{ softwareTypeCount }} TYPE</span>
-            <ReButton icon="Setting" size="small" @click="openSwSetting">显示设置</ReButton>
+            <ReButton icon="Setting" @click="openSwSetting">显示设置</ReButton>
           </div>
         </div>
         <div class="sw-grid">
@@ -1282,7 +1282,7 @@ onBeforeUnmount(() => {
                   <span v-if="swCardPids(g).rest" class="sw-pid sw-pid-more mono">+{{ swCardPids(g).rest }}</span>
                 </div>
               </div>
-              <ReButton class="sw-detail-btn" icon="View" size="small" @click="openSwDetail(g)">详情</ReButton>
+              <ReButton class="sw-detail-btn" icon="View" @click="openSwDetail(g)">详情</ReButton>
             </div>
 
             <div class="sw-stats mono">
@@ -1335,8 +1335,8 @@ onBeforeUnmount(() => {
     <ReDialog v-model="aiDialogVisible" title="AI 主机指标智能分析" width="700px">
       <div class="ai-bar">
         <span class="ai-bar-k">分析重点</span>
-        <ReSelect v-model="aiDimension" size="small" class="ai-bar-sel" :options="AI_DIMENSIONS" />
-        <ReButton type="primary" size="small" :show-text="true" :loading="aiLoading" @click="requestAnalysis">
+        <ReSelect v-model="aiDimension" class="ai-bar-sel" :options="AI_DIMENSIONS" />
+        <ReButton type="primary" :show-text="true" :loading="aiLoading" @click="requestAnalysis">
           {{ aiResult || aiError ? "重新分析" : "开始分析" }}
         </ReButton>
         <span class="ai-bar-hint">指标快照与趋势由后端按主机取数，前端不回传</span>
@@ -1345,7 +1345,7 @@ onBeforeUnmount(() => {
       <div v-if="!aiEnabled" class="ai-state">
         <b>AI 分析未启用</b>
         <span>未检测到可用的模型配置，请先到「系统配置 → AI 设置」接入模型后再试。</span>
-        <ReButton size="small" :show-text="true" @click="router.push('/system-config')">前往配置</ReButton>
+        <ReButton :show-text="true" @click="router.push('/system-config')">前往配置</ReButton>
       </div>
       <div v-else-if="aiLoading" class="ai-state">
         <el-icon class="is-loading ai-spin"><Loading /></el-icon>
@@ -1375,7 +1375,7 @@ onBeforeUnmount(() => {
     <ReDialog v-model="histDialogVisible" :title="histTitle" width="860px">
       <div class="hist-bar">
         <ReSelect
-          :model-value="histHours" size="small" class="hist-sel"
+          :model-value="histHours" class="hist-sel"
           :options="histRangeOptions"
           @change="onHistHoursChange"
         />
@@ -1393,8 +1393,8 @@ onBeforeUnmount(() => {
     <!-- 软件实例显示设置（持久化到 ms_monitor_config） -->
     <ReDialog v-model="swSettingVisible" title="软件实例显示设置" width="580px">
       <div class="swset-bar">
-        <ReButton size="small" @click="swSettingAll(true)">全选</ReButton>
-        <ReButton size="small" @click="swSettingAll(false)">全不选</ReButton>
+        <ReButton @click="swSettingAll(true)">全选</ReButton>
+        <ReButton @click="swSettingAll(false)">全不选</ReButton>
         <span class="swset-hint">仅勾选的软件类型会在主机详情中展示，对所有主机生效并持久化。</span>
       </div>
       <div class="swset-list">

@@ -889,7 +889,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           <span class="rail-title">主机画像</span>
           <span class="rail-count">{{ hosts.length }}</span>
         </div>
-        <ReInput v-model="search" placeholder="搜索名称 / IP" clearable size="small" class="rail-search" />
+        <ReInput v-model="search" placeholder="搜索名称 / IP" clearable class="rail-search" />
         <ReScrollbar class="rail-list">
           <div
             v-for="h in visibleHosts"
@@ -967,13 +967,13 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             </template>
           </div>
           <div class="ph-actions">
-            <ReButton icon="Refresh" layout="square" size="small" type="primary" :loading="loadingProfile"
+            <ReButton icon="Refresh" layout="square" type="primary" :loading="loadingProfile"
               @click="loadProfile(true)">刷新主机</ReButton>
-            <ReButton v-if="isAgentMode && !agentReady" icon="Download" layout="square" size="small" type="success"
+            <ReButton v-if="isAgentMode && !agentReady" icon="Download" layout="square" type="success"
               @click="emit('deploy-agent', selectedHost)">安装 Agent</ReButton>
-            <ReButton icon="Connection" layout="square" size="small" @click="emit('connect', selectedHost)">连接</ReButton>
-            <ReButton icon="TrendCharts" layout="square" size="small" @click="emit('detail', selectedHost)">监控详情</ReButton>
-            <ReButton icon="EditPen" layout="square" size="small" @click="emit('edit', selectedHost)">编辑</ReButton>
+            <ReButton icon="Connection" layout="square" @click="emit('connect', selectedHost)">连接</ReButton>
+            <ReButton icon="TrendCharts" layout="square" @click="emit('detail', selectedHost)">监控详情</ReButton>
+            <ReButton icon="EditPen" layout="square" @click="emit('edit', selectedHost)">编辑</ReButton>
             <label class="auto-switch">
               <ReSwitch v-model="autoRefresh" />
               <span>10s 自动刷新</span>
@@ -1022,7 +1022,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             <div class="sec-pager">
               <ReInput
                 v-model="sectionKeyword"
-                size="small"
+
                 class="sec-search"
                 :placeholder="keywordPlaceholder"
                 clearable
@@ -1030,13 +1030,13 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
                 @clear="pagedSection && applyKeyword()"
               />
               <template v-if="pagedSection">
-                <ReButton size="small" :disabled="loadingSection" @click="applyKeyword">搜索</ReButton>
-                <ReButton size="small" :disabled="page <= 1 || loadingSection" @click="changePage(-1)">上一页</ReButton>
+                <ReButton :disabled="loadingSection" @click="applyKeyword">搜索</ReButton>
+                <ReButton :disabled="page <= 1 || loadingSection" @click="changePage(-1)">上一页</ReButton>
                 <span class="mono page-no">{{ page }}</span>
-                <ReButton size="small" :disabled="loadingSection || rows.length < pageSize" @click="changePage(1)">下一页</ReButton>
+                <ReButton :disabled="loadingSection || rows.length < pageSize" @click="changePage(1)">下一页</ReButton>
               </template>
-              <ReButton size="small" type="primary" layout="square" icon="Refresh" :loading="loadingSection" @click="loadSection">刷新</ReButton>
-              <ReButton v-if="active === 'processes'" size="small" layout="square" icon="DataAnalysis" :type="analyzeVisible ? 'primary' : ''"
+              <ReButton type="primary" layout="square" icon="Refresh" :loading="loadingSection" @click="loadSection">刷新</ReButton>
+              <ReButton v-if="active === 'processes'" layout="square" icon="DataAnalysis" :type="analyzeVisible ? 'primary' : ''"
                 @click="toggleAnalyze">{{ analyzeVisible ? '收起分析' : '分析' }}</ReButton>
             </div>
           </div>
@@ -1104,7 +1104,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
           <div v-else :class="['tbl-wrap', { 'analyze-split': showAnalyze }]">
             <!-- 环境变量：新增工具条 -->
             <div v-if="active === 'env'" class="tbl-toolbar">
-              <ReButton size="small" type="primary" layout="square" icon="Plus" @click="openEnvDialog()">
+              <ReButton type="primary" layout="square" icon="Plus" @click="openEnvDialog()">
                 新增变量
               </ReButton>
             </div>
@@ -1198,45 +1198,45 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
                   <td v-if="hasActions" class="td-act"><div class="td-act-in">
                     <template v-if="active === 'processes'">
                       <ReButton
-                        size="small" layout="square" icon="RefreshRight"
+ layout="square" icon="RefreshRight"
                         :loading="busyRow === `restart-${r.pid}`"
                         :disabled="!Number(r.pid) || !String(r.command ?? '').trim()"
                         :title="String(r.command ?? '').trim() ? '' : '该进程读不到命令行，无法按原样重启'"
                         @click="onRestartProcess(r)"
                       >重启</ReButton>
                       <ReButton
-                        size="small" type="danger" layout="square" icon="CircleClose"
+ type="danger" layout="square" icon="CircleClose"
                         :loading="busyRow === `kill-${r.pid}`"
                         :disabled="!Number(r.pid)" @click="onKillProcess(r)"
                       >结束</ReButton>
                     </template>
                     <template v-else-if="active === 'services'">
                       <ReButton
-                        v-if="isStoppedService(r)" size="small" type="primary" layout="square" icon="VideoPlay"
+                        v-if="isStoppedService(r)" type="primary" layout="square" icon="VideoPlay"
                         :loading="busyRow === `service-start-${r.name}`"
                         @click="onServiceAction(r, 'start')"
                       >启动</ReButton>
                       <ReButton
-                        v-else size="small" layout="square" icon="RefreshRight"
+                        v-else layout="square" icon="RefreshRight"
                         :loading="busyRow === `service-restart-${r.name}`"
                         @click="onServiceAction(r, 'restart')"
                       >重启</ReButton>
                       <ReButton
-                        v-if="!isStoppedService(r)" size="small" type="danger" layout="square" icon="VideoPause"
+                        v-if="!isStoppedService(r)" type="danger" layout="square" icon="VideoPause"
                         :loading="busyRow === `service-stop-${r.name}`"
                         @click="onServiceAction(r, 'stop')"
                       >停止</ReButton>
                     </template>
                     <template v-else-if="active === 'env'">
                       <ReButton
-                        size="small" type="danger" layout="square" icon="Delete"
+ type="danger" layout="square" icon="Delete"
                         :loading="busyRow === `env-del-${r.name}`"
                         @click="onDeleteEnv(r)"
                       >删除</ReButton>
                     </template>
                     <template v-else>
                       <ReButton
-                        size="small" type="danger" layout="square" icon="CircleClose"
+ type="danger" layout="square" icon="CircleClose"
                         :loading="busyRow === `netproc-${r.pid}-${r.port}`"
                         :disabled="!Number(r.pid)"
                         :title="Number(r.pid) ? '' : '该端口无归属进程，无法结束'"

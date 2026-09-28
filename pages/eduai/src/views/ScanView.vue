@@ -50,7 +50,7 @@
             :data="questions"
             border
             stripe
-            size="small"
+
             :toolbar="false"
             :pagination="false"
           >

@@ -3,13 +3,13 @@
     <!-- 顶部工具栏 -->
     <div class="view-toolbar">
       <div class="toolbar-left">
-        <ReButton size="small" icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
-        <ReTag v-if="traceId" type="info" size="small" round>
+        <ReButton icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
+        <ReTag v-if="traceId" type="info" round>
           <code class="mono">{{ traceId }}</code>
         </ReTag>
       </div>
       <div class="toolbar-right">
-        <ReButton size="small" icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
           :pagination="false"
           :toolbar="false"
           border
-          size="small"
+
           row-key="spanId"
           @row-click="onRowClick"
         />
@@ -64,7 +64,7 @@
         direction="rtl"
       >
         <template v-if="drawerSpan">
-          <ReDescriptions :column="1" border size="small">
+          <ReDescriptions :column="1" border >
             <ReDescriptionsItem label="Span ID">
               <code class="mono">{{ drawerSpan.spanId }}</code>
             </ReDescriptionsItem>
@@ -72,12 +72,12 @@
               {{ drawerSpan.operation || drawerSpan.className || "—" }}
             </ReDescriptionsItem>
             <ReDescriptionsItem label="耗时">
-              <ReTag :type="drawerSpan.durationMs > 100 ? 'danger' : 'success'" size="small" round>
+              <ReTag :type="drawerSpan.durationMs > 100 ? 'danger' : 'success'" round>
                 {{ drawerSpan.durationMs }} ms
               </ReTag>
             </ReDescriptionsItem>
             <ReDescriptionsItem label="状态">
-              <ReTag :type="drawerSpan.status === 'OK' ? 'success' : 'danger'" size="small" round>
+              <ReTag :type="drawerSpan.status === 'OK' ? 'success' : 'danger'" round>
                 {{ drawerSpan.status || "OK" }}
               </ReTag>
             </ReDescriptionsItem>
@@ -116,7 +116,7 @@
 
           <div v-if="drawerSpan.errorType" class="error-block">
             <div class="error-label">
-              <ReTag type="danger" size="small" round>{{ drawerSpan.errorType }}</ReTag>
+              <ReTag type="danger" round>{{ drawerSpan.errorType }}</ReTag>
             </div>
             <pre class="error-msg">{{ drawerSpan.errorMessage || "（无详细信息）" }}</pre>
           </div>
@@ -372,9 +372,9 @@ const spanColumns: ReTableColumn[] = [
   grid-template-columns: repeat(4, 1fr);
 }
 .panel {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 16px;
 }
 .panel-head {
@@ -384,11 +384,11 @@ const spanColumns: ReTableColumn[] = [
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
 }
 .panel-sub {
   font-size: 12px;
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   font-weight: 400;
 }
 .waterfall-panel {
@@ -403,7 +403,7 @@ const spanColumns: ReTableColumn[] = [
 .mono {
   font-family: "JetBrains Mono", Consolas, monospace;
   font-size: 12px;
-  color: var(--apm-accent, #3b82f6);
+  color: var(--apm-accent);
 }
 .attr-line {
   display: flex;
@@ -412,12 +412,12 @@ const spanColumns: ReTableColumn[] = [
   padding: 2px 0;
 }
 .attr-key {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   min-width: 120px;
   flex-shrink: 0;
 }
 .attr-val {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   word-break: break-all;
 }
 .error-block {
@@ -427,11 +427,11 @@ const spanColumns: ReTableColumn[] = [
   margin-bottom: 8px;
 }
 .error-msg {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, transparent);
+  border-radius: var(--el-radius-md, 8px);
   padding: 12px;
-  color: #ef4444;
+  color: var(--apm-danger);
   font-size: 12px;
   font-family: "JetBrains Mono", Consolas, monospace;
   white-space: pre-wrap;
@@ -439,22 +439,22 @@ const spanColumns: ReTableColumn[] = [
   max-height: 200px;
   overflow-y: auto;
 }
-/* ReStatCard 适配深色 APM 主题 */
+/* ReStatCard 适配 APM 主题令牌 */
 .stat-row :deep(.re-stat-card) {
   position: relative;
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
 }
 .stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 .stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   font-variant-numeric: tabular-nums;
 }
 .stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 @media (max-width: 1100px) {
   .panel-row,
@@ -466,6 +466,16 @@ const spanColumns: ReTableColumn[] = [
   .panel-row,
   .stat-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>

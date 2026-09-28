@@ -1,9 +1,9 @@
 <template>
   <div class="re-tree" :class="{ 're-tree--toolbar-visible': showToolbar }">
     <div v-if="showToolbar" class="re-tree__toolbar">
-      <el-button v-if="enableAdd" size="small" plain @click="addRoot">添加根节点</el-button>
-      <el-button v-if="enableExpandAll" size="small" plain @click="expandAll">展开全部</el-button>
-      <el-button v-if="enableCollapseAll" size="small" plain @click="collapseAll">收起全部</el-button>
+      <el-button v-if="enableAdd" plain @click="addRoot">添加根节点</el-button>
+      <el-button v-if="enableExpandAll" plain @click="expandAll">展开全部</el-button>
+      <el-button v-if="enableCollapseAll" plain @click="collapseAll">收起全部</el-button>
       <slot name="toolbar-extra" />
     </div>
 
@@ -62,9 +62,9 @@
 
           <span v-if="editable || $slots.actions" class="re-tree__node-actions" @click.stop>
             <slot name="actions" :node="data" :elNode="node" :edit="() => handleEdit(node, data)" :remove="() => handleRemove(node, data)" :add="() => handleAdd(node, data)">
-              <el-button v-if="enableAdd" size="small" link type="primary" @click.stop="handleAdd(node, data)">添加</el-button>
-              <el-button v-if="enableEdit" size="small" link type="primary" @click.stop="handleEdit(node, data)">编辑</el-button>
-              <el-button v-if="enableRemove" size="small" link type="danger" @click.stop="handleRemove(node, data)">删除</el-button>
+              <el-button v-if="enableAdd" link type="primary" @click.stop="handleAdd(node, data)">添加</el-button>
+              <el-button v-if="enableEdit" link type="primary" @click.stop="handleEdit(node, data)">编辑</el-button>
+              <el-button v-if="enableRemove" link type="danger" @click.stop="handleRemove(node, data)">删除</el-button>
             </slot>
           </span>
         </div>

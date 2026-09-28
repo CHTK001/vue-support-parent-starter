@@ -6,9 +6,9 @@
         <span class="dsm-title">Nacos 配置中心管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton size="small" :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton size="small" :loading="loading" @click="reloadAll"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton size="small" type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建配置</ReButton>
+        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
+        <ReButton :loading="loading" @click="reloadAll"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
+        <ReButton type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建配置</ReButton>
       </div>
     </div>
 
@@ -29,9 +29,9 @@
               <span class="dsm-tree-label">命名空间</span>
               <span class="dsm-tree-count">{{ namespaces.length }}</span>
               <span class="dsm-tree-actions" @click.stop>
-                <ReButton size="small" text @click="openNamespaceDialog('create')"><ReIcon name="Plus" size="13" /></ReButton>
-                <ReButton size="small" text :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')"><ReIcon name="Edit" size="13" /></ReButton>
-                <ReButton size="small" text type="danger" :disabled="!canEditNamespace" @click="removeNamespace"><ReIcon name="Delete" size="13" /></ReButton>
+                <ReButton text @click="openNamespaceDialog('create')"><ReIcon name="Plus" size="13" /></ReButton>
+                <ReButton text :disabled="!canEditNamespace" @click="openNamespaceDialog('edit')"><ReIcon name="Edit" size="13" /></ReButton>
+                <ReButton text type="danger" :disabled="!canEditNamespace" @click="removeNamespace"><ReIcon name="Delete" size="13" /></ReButton>
               </span>
             </div>
             <div v-if="expandedNodes.has('ns')" class="dsm-tree-children">
@@ -72,7 +72,7 @@
           <div class="dsm-info-row">
             <span class="dsm-info-label">状态</span>
             <div class="dsm-info-status">
-              <ReTag :type="gap ? 'danger' : 'success'" size="small">{{ gap ? "读取失败" : "正常" }}</ReTag>
+              <ReTag :type="gap ? 'danger' : 'success'" >{{ gap ? "读取失败" : "正常" }}</ReTag>
               <span class="dsm-info-sub">服务版本 {{ nacosVersion || "未探测" }}</span>
             </div>
           </div>
@@ -82,7 +82,7 @@
           <div class="dsm-section-title">
             配置列表
             <div class="dsm-section-actions">
-              <ReInput v-model="searchKeyword" placeholder="按 Data ID 过滤" size="small" style="width: 200px" clearable />
+              <ReInput v-model="searchKeyword" placeholder="按 Data ID 过滤" style="width: 200px" clearable />
             </div>
           </div>
           <ReTable
@@ -99,9 +99,9 @@
             @context-menu-select="onMenuSelect"
           >
             <template #col-actions="{ row }">
-              <ReButton size="small" text @click="viewConfig(row as unknown as NacosConfig)">查看</ReButton>
-              <ReButton size="small" text type="primary" @click="editConfig(row as unknown as NacosConfig)">编辑</ReButton>
-              <ReButton size="small" text type="danger" @click="deleteConfig(row as unknown as NacosConfig)">删除</ReButton>
+              <ReButton text @click="viewConfig(row as unknown as NacosConfig)">查看</ReButton>
+              <ReButton text type="primary" @click="editConfig(row as unknown as NacosConfig)">编辑</ReButton>
+              <ReButton text type="danger" @click="deleteConfig(row as unknown as NacosConfig)">删除</ReButton>
             </template>
           </ReTable>
         </div>
@@ -110,7 +110,7 @@
           <div class="dsm-section-title">服务列表<span class="dsm-section-hint">点击服务名查看实例</span></div>
           <ReTable :data="services" :columns="serviceColumns" :loading="loading" :pagination="false" stripe border height="400px">
             <template #col-name="{ row }">
-              <ReButton size="small" text type="primary" @click="openInstances(row as unknown as NacosService)">
+              <ReButton text type="primary" @click="openInstances(row as unknown as NacosService)">
                 {{ (row as unknown as NacosService).name }}
               </ReButton>
             </template>
@@ -121,17 +121,17 @@
           <div class="dsm-section-title">集群节点</div>
           <ReTable :data="clusters" :columns="clusterColumns" :loading="loading" :pagination="false" stripe border height="400px">
             <template #col-role="{ row }">
-              <ReTag :type="(row as unknown as NacosClusterNode).role === 'LEADER' ? 'warning' : 'info'" size="small">
+              <ReTag :type="(row as unknown as NacosClusterNode).role === 'LEADER' ? 'warning' : 'info'" >
                 {{ (row as unknown as NacosClusterNode).role || "—" }}
               </ReTag>
             </template>
             <template #col-status="{ row }">
-              <ReTag :type="(row as unknown as NacosClusterNode).status === 'UP' ? 'success' : 'danger'" size="small">
+              <ReTag :type="(row as unknown as NacosClusterNode).status === 'UP' ? 'success' : 'danger'" >
                 {{ (row as unknown as NacosClusterNode).status || "—" }}
               </ReTag>
             </template>
             <template #col-leader="{ row }">
-              <ReTag v-if="(row as unknown as any).leader" type="warning" size="small"><ReIcon name="Star" size="11" /> Leader</ReTag>
+              <ReTag v-if="(row as unknown as any).leader" type="warning" ><ReIcon name="Star" size="11" /> Leader</ReTag>
               <span v-else>—</span>
             </template>
           </ReTable>
@@ -192,23 +192,23 @@
 
     <!-- 服务实例管理弹窗 -->
     <ReDialog v-model="instanceVisible" :title="`服务实例 - ${currentService?.name || ''}`" width="860px">
-      <ReTable :data="instances" :columns="instanceColumns" :loading="instanceLoading" :pagination="false" stripe border size="small">
+      <ReTable :data="instances" :columns="instanceColumns" :loading="instanceLoading" :pagination="false" stripe border >
         <template #col-healthy="{ row }">
-          <ReTag :type="(row as unknown as NacosInstance).healthy ? 'success' : 'danger'" size="small">
+          <ReTag :type="(row as unknown as NacosInstance).healthy ? 'success' : 'danger'" >
             {{ (row as unknown as NacosInstance).healthy ? "健康" : "不健康" }}
           </ReTag>
         </template>
         <template #col-enabled="{ row }">
-          <ReTag :type="(row as unknown as NacosInstance).enabled ? 'success' : 'warning'" size="small">
+          <ReTag :type="(row as unknown as NacosInstance).enabled ? 'success' : 'warning'" >
             {{ (row as unknown as NacosInstance).enabled ? "上线" : "下线" }}
           </ReTag>
         </template>
         <template #col-actions="{ row }">
-          <ReButton size="small" text :type="(row as unknown as NacosInstance).enabled ? 'warning' : 'success'" @click="toggleInstance(row as unknown as NacosInstance)">
+          <ReButton text :type="(row as unknown as NacosInstance).enabled ? 'warning' : 'success'" @click="toggleInstance(row as unknown as NacosInstance)">
             {{ (row as unknown as NacosInstance).enabled ? "下线" : "上线" }}
           </ReButton>
-          <ReButton size="small" text type="primary" @click="editWeight(row as unknown as NacosInstance)">改权重</ReButton>
-          <ReButton size="small" text @click="viewMetadata(row as unknown as NacosInstance)">元数据</ReButton>
+          <ReButton text type="primary" @click="editWeight(row as unknown as NacosInstance)">改权重</ReButton>
+          <ReButton text @click="viewMetadata(row as unknown as NacosInstance)">元数据</ReButton>
         </template>
       </ReTable>
     </ReDialog>

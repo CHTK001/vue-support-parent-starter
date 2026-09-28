@@ -50,6 +50,8 @@ import {
 } from "../api/systemApi";
 import type { SysSetting, SysSettingHistory, EmailConnectivity } from "../api/types";
 import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
+import ReTime from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 import { settingTypeOptions, normType, typeLabel } from "../settingUtils";
 import { settingLabel } from "../settingLabels";
 
@@ -631,7 +633,7 @@ onMounted(() => {
           <ReButton
             layout="square"
             icon="Refresh"
-            title="刷新"
+            tip="刷新"
             :loading="groupLoading"
             @click="loadAll"
           />
@@ -684,7 +686,12 @@ onMounted(() => {
           :key="g.group"
           class="group-card"
           :class="`is-${groupAccent(g.group)}`"
+          role="button"
+          :tabindex="0"
+          :aria-label="`进入「${groupName(g.group)}」配置`"
           @click="openGroup(g.group)"
+          @keydown.enter="openGroup(g.group)"
+          @keydown.space.prevent="openGroup(g.group)"
         >
           <div class="group-card__top">
             <div class="group-card__icon">
@@ -737,7 +744,8 @@ onMounted(() => {
           <el-icon><component :is="groupIcon(activeGroup!)" /></el-icon>
           {{ groupName(activeGroup!) }}
         </span>
-        <ReButton v-if="!isProduct" type="primary" text icon="Plus" v-admin @click="handleAdd">新增配置</ReButton>
+        <!-- 主操作改实底（去掉 text）：工具栏里只有一个主动作，实底才能一眼认出「新增」 -->
+        <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
         <ReButton type="success" text icon="Download" :loading="exporting" @click="handleSettingExport(activeGroup!)">
           导出本组
         </ReButton>
@@ -751,6 +759,25 @@ onMounted(() => {
         >
           邮箱检测
         </ReButton>
+      </template>
+
+      <!--
+        可操作空态：分组详情里一个配置项都没有时，el-empty 只能干看着。
+        这里给出「新建 + 刷新」两个出口，让用户不用退回分组列表就能继续。
+        复用 refreshAll（而不是新造 reload）：它同时刷卡片全量与本表，
+        正是「刷新」在这里该做的事。
+        page-empty 系列样式在 pages/system/src/styles/system-page.css 里全局提供，本页不重复定义。
+      -->
+      <template #empty>
+        <div class="page-empty">
+          <span class="page-empty__icon"><ReIcon name="Tools" :size="22" /></span>
+          <span class="page-empty__title">该分组还没有配置项</span>
+          <span class="page-empty__desc">配置项是一个可被代码读取的参数，例如站点标题、连接地址、邮件开关；先建一条再改值。</span>
+          <span class="page-empty__actions">
+            <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
+            <ReButton icon="Refresh" @click="refreshAll">刷新</ReButton>
+          </span>
+        </div>
       </template>
 
       <template #info="{ row }">
@@ -771,7 +798,7 @@ onMounted(() => {
       <template #value="{ row }">
         <div v-if="isSensitive(row)" class="sensitive-box">
           <code class="sensitive-box__text">{{ revealedMap[row.sysSettingId] ?? "••••••••" }}</code>
-          <el-button link type="primary" size="small" @click.stop="toggleSensitive(row)">
+          <el-button link type="primary"  @click.stop="toggleSensitive(row)">
             <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
           </el-button>
         </div>
@@ -779,9 +806,9 @@ onMounted(() => {
       </template>
 
       <template #action="{ row }">
-        <ReButton layout="square" type="primary" icon="Edit" v-admin @click.stop="handleEdit(row)" />
-        <ReButton layout="square" type="info" icon="Clock" @click.stop="openHistory(row)" />
-        <ReButton v-if="!isProduct" layout="square" type="danger" icon="Delete" v-admin @click.stop="handleDelete(row)" />
+        <ReButton layout="square" type="primary" icon="Edit" tip="编辑" v-admin @click.stop="handleEdit(row)" />
+        <ReButton layout="square" type="info" icon="Clock" tip="变更历史" @click.stop="openHistory(row)" />
+        <ReButton v-if="!isProduct" layout="square" type="danger" icon="Delete" tip="删除" v-admin @click.stop="handleDelete(row)" />
       </template>
     </ReTable>
 
@@ -876,10 +903,10 @@ onMounted(() => {
             <el-button type="primary" :loading="batchLoading" @click="handleViewBatch">查看批次</el-button>
             <el-button v-if="batchMode" link type="info" @click="exitBatchMode">返回普通查看</el-button>
           </div>
-          <el-table :data="batchMode ? batchList : historyList" border stripe style="width: 100%" size="small">
+          <el-table :data="batchMode ? batchList : historyList" border stripe style="width: 100%" >
             <el-table-column prop="sysSettingOperation" label="操作" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never" size="small" effect="plain">
+                <el-tag :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never"  effect="plain">
                   {{ operationMap[row.sysSettingOperation ?? '']?.label ?? row.sysSettingOperation }}
                 </el-tag>
               </template>
@@ -900,7 +927,12 @@ onMounted(() => {
                 <span
                   v-if="row.sysSettingBatchNo"
                   class="batch-link"
+                  role="button"
+                  :tabindex="0"
+                  :aria-label="`按批次 ${row.sysSettingBatchNo} 回滚`"
                   @click="handleRollbackBatch(row.sysSettingBatchNo!)"
+                  @keydown.enter="handleRollbackBatch(row.sysSettingBatchNo!)"
+                  @keydown.space.prevent="handleRollbackBatch(row.sysSettingBatchNo!)"
                 >
                   {{ row.sysSettingBatchNo }}
                 </span>
@@ -910,7 +942,7 @@ onMounted(() => {
             <el-table-column prop="createTime" label="时间" width="170" />
             <el-table-column label="操作" width="90" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button type="primary" link size="small" :loading="rollbackLoading === row.sysSettingHistoryId" @click="handleRollbackSingle(row)">
+                <el-button type="primary" link  :loading="rollbackLoading === row.sysSettingHistoryId" @click="handleRollbackSingle(row)">
                   回滚
                 </el-button>
               </template>
@@ -918,13 +950,13 @@ onMounted(() => {
           </el-table>
           <div class="flex justify-end items-center mt-3 gap-2">
             <template v-if="batchMode">
-              <el-button type="danger" size="small" @click="handleRollbackBatch(batchNoInput.trim())">
+              <el-button type="danger"  @click="handleRollbackBatch(batchNoInput.trim())">
                 整批回滚（{{ batchNoInput.trim() }}）
               </el-button>
               <span class="setting-na">共 {{ batchList.length }} 条记录</span>
             </template>
             <template v-else>
-              <el-button type="warning" size="small" :disabled="!latestBatchNo" @click="handleRollbackBatch(latestBatchNo!)">
+              <el-button type="warning"  :disabled="!latestBatchNo" @click="handleRollbackBatch(latestBatchNo!)">
                 批次回滚（{{ latestBatchNo || "无批次" }}）
               </el-button>
               <el-pagination
@@ -966,8 +998,8 @@ onMounted(() => {
                 <component :is="c.ok ? 'CircleCheckFilled' : 'CircleCloseFilled'" />
               </el-icon>
               <span class="email-card__title">{{ c.title }}</span>
-              <el-tag v-if="c.cost != null" size="small" effect="plain" type="info" class="m-l-auto">
-                {{ c.cost }}ms
+              <el-tag v-if="costMs(c.cost) != null"  effect="plain" type="info" class="m-l-auto">
+                <ReTime :value="costMs(c.cost)" format="duration" />
               </el-tag>
             </div>
             <div class="email-card__desc">{{ c.desc }}</div>
@@ -1033,23 +1065,30 @@ onMounted(() => {
   height: 32px;
   padding: 0 14px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  /* 原 6px 魔法值 → --el-radius-sm */
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
+  outline: none;
   transition:
-    background-color var(--el-transition-duration, 0.2s),
-    color var(--el-transition-duration, 0.2s),
-    border-color var(--el-transition-duration, 0.2s);
+    background-color var(--el-transition-duration-fast, 0.2s),
+    color var(--el-transition-duration-fast, 0.2s),
+    border-color var(--el-transition-duration-fast, 0.2s);
 }
 .group-cat:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary-light-5);
 }
+/* 键盘可达：原生 button 也得有焦点环，否则 Tab 过去看不出焦点落在哪 */
+.group-cat:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .group-cat.is-active {
-  color: #fff;
+  /* 原 #fff → --el-color-white：跟着主题走，暗色下不再写死纯白 */
+  color: var(--el-color-white);
   background: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
@@ -1070,17 +1109,22 @@ onMounted(() => {
   height: 32px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--el-border-radius-base);
+  /* 原 6px 魔法值 → --el-radius-sm */
+  border-radius: var(--el-radius-sm, 6px);
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  outline: none;
   transition:
-    background-color var(--el-transition-duration, 0.2s),
-    color var(--el-transition-duration, 0.2s);
+    background-color var(--el-transition-duration-fast, 0.2s),
+    color var(--el-transition-duration-fast, 0.2s);
 }
 .group-viewbtn:hover {
   color: var(--el-color-primary);
   background: var(--el-fill-color-light);
+}
+.group-viewbtn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .group-viewbtn.is-active {
   color: var(--el-color-primary);
@@ -1146,7 +1190,8 @@ onMounted(() => {
   gap: 16px;
   padding: 14px 18px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 18px;
+  /* 原 18px 魔法值 → --el-radius-xl（16px 档） */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
 }
 .group-topbar__lead {
@@ -1161,7 +1206,8 @@ onMounted(() => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 11px;
+  /* 原 11px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-8);
@@ -1187,7 +1233,8 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  border-radius: 999px;
+  /* 原 999px 魔法值 → --el-radius-full */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 12.5px;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
@@ -1214,15 +1261,22 @@ onMounted(() => {
   gap: 16px;
   padding: 18px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 18px;
+  /* 原 18px 魔法值 → --el-radius-xl（16px 档） */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   cursor: pointer;
+  outline: none;
   transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
 .group-card:hover {
   border-color: var(--card-accent-border);
   box-shadow: var(--el-box-shadow-light);
   transform: translateY(-3px);
+}
+/* 键盘可达：卡片是可点区域，Tab 聚焦时必须有可见焦点环（与 hover 浮起同权重，后声明者胜） */
+.group-card:focus-visible {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .group-card__top {
@@ -1236,7 +1290,8 @@ onMounted(() => {
   justify-content: center;
   width: 54px;
   height: 54px;
-  border-radius: 15px;
+  /* 原 15px 魔法值 → --el-radius-lg（12px 档） */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--card-accent);
   background: var(--card-accent-soft);
   transition: transform 0.22s ease;
@@ -1248,7 +1303,8 @@ onMounted(() => {
   padding: 3px 10px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  border-radius: 999px;
+  /* 原 999px 魔法值 → --el-radius-full */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color-light);
 }
 
@@ -1267,7 +1323,8 @@ onMounted(() => {
   padding: 1px 7px;
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  border-radius: 6px;
+  /* 原 6px 魔法值 → --el-radius-sm */
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-fill-color);
 }
 .group-card__desc {
@@ -1370,9 +1427,30 @@ onMounted(() => {
   color: var(--el-color-success);
 }
 .batch-link {
+  display: inline-block;
   font-size: 12px;
   cursor: pointer;
   color: var(--el-color-primary);
+  outline: none;
+  /* 键盘可达：span 模拟按钮，Tab 聚焦时补焦点环 */
+}
+.batch-link:focus-visible {
+  border-radius: var(--el-radius-xs, 4px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* ============ 表格外壳 ============
+   ReTable 自身不带外框，页面里它就是唯一的「数据区」，
+   补一层边框 + 圆角 + focus-within 变色，卡片区就靠边框分层而不是投影分层。 */
+.system-page :deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.system-page :deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
 }
 
 .setting-history .batch-bar {
@@ -1392,7 +1470,8 @@ onMounted(() => {
 }
 .email-card {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
   padding: 12px 14px;
   background: var(--el-bg-color);
 }
@@ -1424,5 +1503,17 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-regular);
   word-break: break-all;
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增/沿用的过渡一并关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .group-cat,
+  .group-viewbtn,
+  .group-card,
+  .group-card__icon,
+  .group-card__arrow,
+  .system-page :deep(.re-table) {
+    transition: none;
+  }
 }
 </style>

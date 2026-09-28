@@ -261,7 +261,7 @@
                       <div class="flex items-center gap-2 shrink-0">
                         <el-switch :model-value="isToolProviderEnabled(tool.pluginId)"
                           @update:model-value="(val) => handleLocalToolToggle(tool.pluginId, val)"
-                          :disabled="allDisabled" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" size="small" />
+                          :disabled="allDisabled" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
                       </div>
                     </div>
                     <p class="text-xs text-gray-500 line-clamp-2">{{ tool.description }}</p>
@@ -306,10 +306,10 @@
                       <div class="flex-1 mr-4">
                         <div class="font-medium text-base mb-1 text-gray-800 dark:text-gray-200">
                           {{ server.name }}
-                          <el-tag v-if="server.enabled" type="success" size="small" class="ml-2">
+                          <el-tag v-if="server.enabled" type="success" class="ml-2">
                             {{ t('characters.setting.mcpRunning') }}
                           </el-tag>
-                          <el-tag v-else type="info" size="small" class="ml-2">
+                          <el-tag v-else type="info" class="ml-2">
                             {{ t('characters.setting.mcpNotRunning') }}
                           </el-tag>
                         </div>
@@ -378,9 +378,9 @@
                         <el-switch :model-value="getSkillEffectiveEnabled(skill)"
                           :loading="updatingSkills.has(skill.id)"
                           @update:model-value="(val) => handleSkillToggle(skill.id, val)" :disabled="allSkillsDisabled"
-                          size="small" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
-                        <el-tag v-if="skill.source === 'system'" type="success" size="small" effect="light">{{ t('characters.setting.sourceBuiltin') }}</el-tag>
-                        <el-tag v-if="skill.manifest?.version" type="info" size="small" effect="plain">v{{
+ inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
+                        <el-tag v-if="skill.source === 'system'" type="success" effect="light">{{ t('characters.setting.sourceBuiltin') }}</el-tag>
+                        <el-tag v-if="skill.manifest?.version" type="info" effect="plain">v{{
                           skill.manifest.version }}</el-tag>
                       </div>
                     </div>
@@ -432,7 +432,7 @@
                       <div class="flex items-center gap-1.5 shrink-0">
                         <el-switch :model-value="getAgentEffectiveEnabled(char)"
                           @update:model-value="(val) => handleAgentToggle(char.id, val)" :disabled="allAgentsDisabled"
-                          size="small" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
+ inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
                       </div>
                     </div>
                     <p class="text-xs text-gray-500 line-clamp-2 min-h-[2rem]">{{ char.description || t('characters.setting.noDescription') }}</p>
@@ -1426,7 +1426,8 @@ defineExpose({
 .tool-config-item {
   padding: 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   transition: all 0.2s;
   overflow: hidden;
   word-wrap: break-word;
@@ -1473,8 +1474,9 @@ defineExpose({
 .tool-name {
   font-size: 13px;
   padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  background-color: var(--el-fill-color-light);
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   transition: all 0.2s;
 }
 
@@ -1550,5 +1552,24 @@ defineExpose({
   margin-bottom: 0 !important;
 }
 
+/* 动效降级：系统开启「减少动态效果」时，工具卡 / 技能卡 / 配置项 / MCP 卡 / 工具名
+   的悬停底色与描边直接到位。逐个列出，不写 `*` / `.character-setting-panel-root *` 通配，
+   避免把 el-switch / el-checkbox / el-slider 内部 Element Plus 组件的合法过渡一起掐掉
+   （开关轨道的滑块位移是功能表达，不是装饰）。
+   这些都只带 transition（无 animation），hover 与选中态都是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .tool-item,
+  .skill-item,
+  .tool-config-item,
+  .mcp-server-item,
+  .tool-name {
+    transition: none;
+  }
+}
+
+/* 注意：B 段清单里的 flex 是 Tailwind 工具类，不是本项目的可点 class，
+   给它挂 outline: none 会波及组件内所有用到 flex 的元素，属于净损害，因此未在此改动。
+   侧边栏导航项同样没有独立的可点 class（只有 Tailwind 组合），
+   需要焦点环时应由主会话在模板侧补 tabindex 后另行立项。 */
 
 </style>

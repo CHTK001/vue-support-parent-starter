@@ -229,18 +229,18 @@ onBeforeUnmount(teardown);
         <ReTag
           v-if="connection"
           :type="hasError ? 'danger' : statusText === '已连接' ? 'success' : 'info'"
-          size="small"
+
         >
           {{ statusText }}
         </ReTag>
       </div>
       <div v-if="connection" class="it-actions">
         <!-- 字体/缩放 -->
-        <ReSelect v-model="zoomPct" :options="zoomOptions" size="small" style="width:86px" @change="applyZoom($event)" class="zoom-sel" />
+        <ReSelect v-model="zoomPct" :options="zoomOptions" style="width:86px" @change="applyZoom($event)" class="zoom-sel" />
         <!-- ReButton：icon 走 ReIcon 统一渲染（design.md §2 / §4.8） -->
-        <ReButton icon="RefreshRight" show-text size="small" class="reb" @click="reconnect">重连</ReButton>
-        <ReButton icon="FullScreen" show-text size="small" class="reb" @click="fullscreen">全屏</ReButton>
-        <ReButton icon="SwitchButton" show-text size="small" type="danger" plain class="reb" @click="disconnect">断开</ReButton>
+        <ReButton icon="RefreshRight" show-text class="reb" @click="reconnect">重连</ReButton>
+        <ReButton icon="FullScreen" show-text class="reb" @click="fullscreen">全屏</ReButton>
+        <ReButton icon="SwitchButton" show-text type="danger" plain class="reb" @click="disconnect">断开</ReButton>
       </div>
     </div>
     <div v-if="connection" class="it-monstrip">
@@ -286,7 +286,7 @@ onBeforeUnmount(teardown);
         <div class="it-error-title">连接失败</div>
         <div class="it-error-desc">{{ statusText }}</div>
         <div class="it-error-actions">
-          <ReButton icon="RefreshRight" show-text size="small" type="primary" @click="reconnect">重试</ReButton>
+          <ReButton icon="RefreshRight" show-text type="primary" @click="reconnect">重试</ReButton>
         </div>
       </div>
     </div>

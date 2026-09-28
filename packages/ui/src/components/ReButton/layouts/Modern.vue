@@ -7,6 +7,10 @@
  *   - 大圆角（8px）
  *   - 平滑 hover/active 过渡
  *   - 支持 loading 旋转动画
+ *
+ * <p><b>loading 与内容互斥</b>：spinner 出现时按钮内容必须让位。此前 spinner 用
+ * {@code v-if}、内容块是并列的独立节点，loading 态下两者同时渲染（图标/文字会转着圈的
+ * spinner 一起出现）。现在内容整块用 {@code v-else}，与 Square 布局同一套写法。</p>
  */
 import "../../shared/modern-vars.css";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
@@ -82,17 +86,19 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
     @click="onClick"
   >
     <span v-if="loading" class="rm-btn__spinner">
-      <svg viewBox="0 0 24 24" fill="none">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70" stroke-linecap="round" />
       </svg>
     </span>
-    <span class="rm-btn__content">
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="rm-btn__icon" />
-      <ElIcon v-else-if="iconIsComponent" class="rm-btn__icon">
-        <component :is="icon" />
-      </ElIcon>
-      <slot />
-    </span>
+    <template v-else>
+      <span class="rm-btn__content">
+        <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="rm-btn__icon" />
+        <ElIcon v-else-if="iconIsComponent" class="rm-btn__icon">
+          <component :is="icon" />
+        </ElIcon>
+        <slot />
+      </span>
+    </template>
   </button>
 </template>
 
@@ -272,13 +278,15 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rm-btn,
-  .rm-btn__spinner {
+  .rm-btn {
     transition: none;
   }
   .rm-btn:hover:not(.is-disabled):not(:disabled),
   .rm-btn:active:not(.is-disabled):not(:disabled) {
     transform: none;
   }
+  /* 旋转动画本身要停：spinner 靠 animation 而非 transition 驱动，
+     只写 transition: none 停不下来（此前误把它归进上面那条）。 */
+  .rm-btn__spinner { animation: none; }
 }
 </style>

@@ -919,7 +919,7 @@ onMounted(() => {
                   <template v-if="data.isTag === 1">
                     <el-tag
                       v-if="data.tagName"
-                      size="small"
+                      
                       :type="(data.tagType as any) || 'primary'"
                       effect="light"
                       round
@@ -934,13 +934,41 @@ onMounted(() => {
                       :style="{ background: tagTypeColor[data.tagType ?? 'primary'] ?? tagTypeColor.primary }"
                     />
                   </template>
-                  <el-tag v-if="data.menuType === 3" size="small" type="warning" effect="light">按钮</el-tag>
-                  <el-tag v-else-if="isLink(data)" size="small" type="primary" effect="light">外链</el-tag>
-                  <el-tag v-else-if="isIframe(data)" size="small" type="success" effect="light">iframe</el-tag>
+                  <el-tag v-if="data.menuType === 3"  type="warning" effect="light">按钮</el-tag>
+                  <el-tag v-else-if="isLink(data)"  type="primary" effect="light">外链</el-tag>
+                  <el-tag v-else-if="isIframe(data)"  type="success" effect="light">iframe</el-tag>
                 </div>
               </div>
             </template>
           </el-tree>
+
+          <!--
+            树空态：el-tree 数据为空时只留一片白，用户不知道下一步该做什么。
+            「后端确实没有」与「搜索没匹配上」分开措辞，避免把筛选问题误报成数据问题。
+            复用已有的 refresh（内部就是 loadList）与 handleAdd，不新增脚本函数。
+            page-empty 系列样式在 pages/system/src/styles/system-page.css 全局提供，本页不重复定义。
+          -->
+          <div v-if="!loading && !filteredTree.length" class="menu-tree-empty">
+            <div class="page-empty">
+              <span class="page-empty__icon">
+                <ReIcon :name="list.length ? 'Search' : 'Menu'" :size="22" />
+              </span>
+              <span class="page-empty__title">
+                {{ list.length ? '没有匹配的菜单' : '还没有菜单项' }}
+              </span>
+              <span class="page-empty__desc">
+                {{ list.length
+                  ? '换个关键字再试，或刷新重新拉取菜单树。'
+                  : '先建一个顶级目录，再用它挂载下级菜单；菜单下的按钮权限在右侧维护。' }}
+              </span>
+              <span class="page-empty__actions">
+                <ReButton v-if="!list.length" type="primary" icon="Plus" @click="handleAdd()">
+                  新增顶级菜单
+                </ReButton>
+                <ReButton icon="Refresh" @click="refresh">刷新</ReButton>
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- 树节点右键菜单 -->
@@ -951,17 +979,46 @@ onMounted(() => {
             :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
             @click.stop
           >
-            <div class="menu-context-menu__item" @click="onContextMenuSelect('add')">
+            <!-- 右键菜单项是 div 模拟按钮：补 role / tabindex / 回车空格，键盘也能用 -->
+            <div
+              class="menu-context-menu__item"
+              role="menuitem"
+              tabindex="0"
+              @click="onContextMenuSelect('add')"
+              @keydown.enter="onContextMenuSelect('add')"
+              @keydown.space.prevent="onContextMenuSelect('add')"
+            >
               <el-icon><Plus /></el-icon><span>新增</span>
             </div>
-            <div class="menu-context-menu__item" @click="onContextMenuSelect('update')">
+            <div
+              class="menu-context-menu__item"
+              role="menuitem"
+              tabindex="0"
+              @click="onContextMenuSelect('update')"
+              @keydown.enter="onContextMenuSelect('update')"
+              @keydown.space.prevent="onContextMenuSelect('update')"
+            >
               <el-icon><Edit /></el-icon><span>编辑</span>
             </div>
-            <div class="menu-context-menu__item menu-context-menu__item--danger" @click="onContextMenuSelect('delete')">
+            <div
+              class="menu-context-menu__item menu-context-menu__item--danger"
+              role="menuitem"
+              tabindex="0"
+              @click="onContextMenuSelect('delete')"
+              @keydown.enter="onContextMenuSelect('delete')"
+              @keydown.space.prevent="onContextMenuSelect('delete')"
+            >
               <el-icon><Delete /></el-icon><span>删除</span>
             </div>
             <div class="menu-context-menu__divider" />
-            <div class="menu-context-menu__item" @click="onContextMenuSelect('refresh')">
+            <div
+              class="menu-context-menu__item"
+              role="menuitem"
+              tabindex="0"
+              @click="onContextMenuSelect('refresh')"
+              @keydown.enter="onContextMenuSelect('refresh')"
+              @keydown.space.prevent="onContextMenuSelect('refresh')"
+            >
               <el-icon><Refresh /></el-icon><span>刷新</span>
             </div>
           </div>
@@ -1015,21 +1072,21 @@ onMounted(() => {
                   <div class="menu-detail-hero__top">
                     <span class="menu-detail-hero__title">{{ current.menuName }}</span>
                     <div class="menu-detail-hero__meta">
-                      <el-tag size="small" effect="light">{{ typeLabels[current.menuType ?? 0] ?? '-' }}</el-tag>
-                      <el-tag size="small" :type="current.menuStatus === 1 ? 'success' : 'danger'" effect="plain">
+                      <el-tag  effect="light">{{ typeLabels[current.menuType ?? 0] ?? '-' }}</el-tag>
+                      <el-tag  :type="current.menuStatus === 1 ? 'success' : 'danger'" effect="plain">
                         {{ current.menuStatus === 1 ? '启用' : '禁用' }}
                       </el-tag>
-                      <el-tag size="small" :type="current.isVisible === 1 ? 'primary' : 'warning'" effect="plain">
+                      <el-tag  :type="current.isVisible === 1 ? 'primary' : 'warning'" effect="plain">
                         {{ current.isVisible === 1 ? '显示' : '隐藏' }}
                       </el-tag>
-                      <el-tag v-if="current.isRemind === 1" size="small" type="warning" effect="plain">脱离菜单</el-tag>
-                      <el-tag v-if="current.isKeepAlive === 1" size="small" type="primary" effect="plain">缓存</el-tag>
-                      <el-tag v-if="isLink(current)" size="small" type="primary" effect="plain">外链</el-tag>
-                      <el-tag v-if="isIframe(current)" size="small" type="success" effect="plain">iframe</el-tag>
+                      <el-tag v-if="current.isRemind === 1"  type="warning" effect="plain">脱离菜单</el-tag>
+                      <el-tag v-if="current.isKeepAlive === 1"  type="primary" effect="plain">缓存</el-tag>
+                      <el-tag v-if="isLink(current)"  type="primary" effect="plain">外链</el-tag>
+                      <el-tag v-if="isIframe(current)"  type="success" effect="plain">iframe</el-tag>
                       <template v-if="current.isTag === 1">
                         <el-tag
                           v-if="current.tagName"
-                          size="small"
+                          
                           :type="(current.tagType as any) || 'primary'"
                           effect="light"
                           round
@@ -1096,7 +1153,7 @@ onMounted(() => {
               </div>
             </div>
             <div class="menu-action-group menu-button-toolbar">
-              <el-tag size="small" effect="plain">{{ buttonPerms.length }} 项</el-tag>
+              <el-tag  effect="plain">{{ buttonPerms.length }} 项</el-tag>
               <el-tooltip content="新增按钮" placement="top">
                 <el-button type="primary" icon="Plus" circle plain :disabled="!isMenuTypeNode" @click="handleAddButton" />
               </el-tooltip>
@@ -1125,6 +1182,20 @@ onMounted(() => {
             </div>
             <!-- 按钮权限表格 -->
             <el-table v-else :data="buttonPerms" class="menu-button-table" border stripe empty-text="暂无数据" @selection-change="onButtonSelectionChange">
+              <!--
+                按钮权限空态：el-table 默认只写一句「暂无数据」，
+                换成可操作版本，直接把「新建按钮权限」的出口放在空位上。
+              -->
+              <template #empty>
+                <div class="page-empty">
+                  <span class="page-empty__icon"><ReIcon name="Lock" :size="22" /></span>
+                  <span class="page-empty__title">该菜单还没有按钮权限</span>
+                  <span class="page-empty__desc">按钮权限用于细粒度控制页面上的操作入口，如新增、编辑、删除。</span>
+                  <span class="page-empty__actions">
+                    <ReButton type="primary" icon="Plus" @click="handleAddButton">新增按钮权限</ReButton>
+                  </span>
+                </div>
+              </template>
               <el-table-column type="selection" width="44" align="center" />
               <el-table-column type="index" label="序号" width="70px" align="center" />
               <el-table-column label="按钮名称" prop="menuName" min-width="160" show-overflow-tooltip>
@@ -1524,7 +1595,7 @@ onMounted(() => {
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
         将为当前选中菜单批量创建按钮权限（菜单类型为按钮），权限标识建议填写如 system:user:add。
       </el-alert>
-      <el-table :data="batchRows" border size="small" style="width: 100%">
+      <el-table :data="batchRows" border  style="width: 100%">
         <el-table-column label="#" width="60" align="center">
           <template #default="{ $index }">
             <el-button type="danger" link :icon="Delete" @click="removeBatchRow($index)" />
@@ -1580,6 +1651,7 @@ export default defineComponent({
 /* 右栏：详情 + 按钮权限（上下两行） */
 .menu-workspace {
   flex: 1;
+  padding-left: 6px;
   display: grid;
   grid-template-rows: minmax(280px, 1fr) minmax(220px, 0.82fr);
   min-width: 0;
@@ -1590,7 +1662,8 @@ export default defineComponent({
 .koi-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
   min-height: 0;
   overflow: hidden;
 }
@@ -1642,7 +1715,8 @@ export default defineComponent({
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -1687,14 +1761,16 @@ export default defineComponent({
   align-self: flex-end;
 }
 .menu-action-group :deep(.el-button.is-circle) {
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   width: 30px;
   height: 30px;
   margin-left: 0;
   padding: 0;
 }
 .menu-action-group :deep(.el-tag) {
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   height: 28px;
   padding: 0 9px;
   line-height: 26px;
@@ -1717,8 +1793,11 @@ export default defineComponent({
   padding: 4px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
+  /* 原 rgba(0, 0, 0, 0.12) → --el-box-shadow-light：跟随主题的浮层阴影，
+     暗色下不会变成一团黑。这是浮层（popover）不是卡片，属于允许的浮起反馈。 */
+  box-shadow: var(--el-box-shadow-light);
 }
 .menu-context-menu__item {
   display: flex;
@@ -1727,12 +1806,19 @@ export default defineComponent({
   padding: 8px 12px;
   font-size: 13px;
   color: var(--el-text-color-primary);
-  border-radius: 6px;
+  /* 原 6px 魔法值 → --el-radius-sm */
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: background 0.15s;
+  outline: none;
+  transition: background var(--el-transition-duration-fast, 0.2s);
 }
 .menu-context-menu__item:hover {
   background: var(--el-fill-color-light);
+}
+/* 键盘可达：右键菜单项也能用 Tab 走到并看清焦点 */
+.menu-context-menu__item:focus-visible {
+  background: var(--el-fill-color-light);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .menu-context-menu__item--danger {
   color: var(--el-color-danger);
@@ -1764,7 +1850,8 @@ export default defineComponent({
   padding: 6px 0;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
 }
 .menu-tree-stat strong {
   color: var(--el-text-color-primary);
@@ -1781,14 +1868,41 @@ export default defineComponent({
   padding-right: 2px;
   overflow: auto;
 }
+/* 树空态：撑满可视区并垂直居中，避免空态贴在顶部像没加载出来 */
+.menu-tree-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px 4px;
+}
 .menu-tree :deep(.el-tree-node__content) {
   height: 40px;
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   padding-right: 8px;
   user-select: none;
+  /* 节点整行可点（node-click），必须给手型光标 */
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .menu-tree :deep(.el-tree-node__content:hover) {
   background: var(--el-fill-color-light);
+}
+/* 键盘可达：Tab 到节点上时给焦点环；el-tree 用 tabindex 管理 roving 焦点 */
+.menu-tree :deep(.el-tree-node__content:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* 展开 / 收起箭头：可点区域同样要手型光标 + 焦点环 */
+.menu-tree :deep(.el-tree-node__expand-icon) {
+  cursor: pointer;
+  border-radius: var(--el-radius-xs, 4px);
+  color: var(--el-text-color-secondary);
+}
+.menu-tree :deep(.el-tree-node__expand-icon:focus-visible) {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .menu-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
   background: var(--el-color-primary-light-9);
@@ -1821,7 +1935,8 @@ export default defineComponent({
   color: var(--el-color-primary);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -1862,7 +1977,8 @@ export default defineComponent({
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  /* 原 50% → --el-radius-full（圆形点） */
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 /* ==================== 菜单详情 ==================== */
@@ -1870,7 +1986,7 @@ export default defineComponent({
   flex: 1;
   min-height: 0;
   overflow: auto;
-  margin-top: 12px;
+  margin-top: 6px;
 }
 .menu-detail-hero {
   display: flex;
@@ -1889,7 +2005,8 @@ export default defineComponent({
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -1926,7 +2043,8 @@ export default defineComponent({
   width: 10px;
   height: 10px;
   align-self: center;
-  border-radius: 50%;
+  /* 原 50% → --el-radius-full（圆形点） */
+  border-radius: var(--el-radius-full, 9999px);
 }
 .menu-detail-hero__info {
   display: grid;
@@ -1967,8 +2085,10 @@ export default defineComponent({
   align-items: center;
   height: 22px;
   padding: 0 10px;
-  color: #fff;
-  border-radius: 11px;
+  /* 原 #fff → --el-color-white */
+  color: var(--el-color-white);
+  /* 原 11px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -1977,7 +2097,8 @@ export default defineComponent({
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  /* 原 50% → --el-radius-full（圆形点） */
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 /* ==================== 按钮权限 ==================== */
@@ -1986,6 +2107,21 @@ export default defineComponent({
   min-height: 0;
   margin-top: 12px;
   overflow: auto;
+}
+/*
+  表格外壳：本页没有 ReTable，按 el-table 本体加边框 + 圆角 + focus-within 变色。
+  类选择器升到 (0,2,0) 是为了压过 el-table--border 自带的 border，避免双层边框；
+  koi 规约：卡片与表格都不加投影，区域层次靠边框表达。
+*/
+.menu-button-table.el-table {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.menu-button-table.el-table:focus-within {
+  border-color: var(--el-color-primary-light-5);
 }
 .menu-button-placeholder {
   display: flex;
@@ -1997,7 +2133,8 @@ export default defineComponent({
   padding: 22px;
   border: 1px dashed var(--el-border-color);
   background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   text-align: center;
 }
 .menu-button-placeholder__icon {
@@ -2006,7 +2143,8 @@ export default defineComponent({
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -2044,7 +2182,8 @@ export default defineComponent({
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -2081,7 +2220,8 @@ export default defineComponent({
   gap: 6px;
 }
 .menu-table-actions :deep(.el-button.is-circle) {
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   width: 28px;
   height: 28px;
   margin-left: 0;
@@ -2102,7 +2242,8 @@ export default defineComponent({
   padding: 10px 12px 10px 14px;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
 }
 .menu-form-intro__main {
   min-width: 0;
@@ -2127,7 +2268,8 @@ export default defineComponent({
   white-space: nowrap;
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   display: inline-flex;
   justify-content: center;
@@ -2152,7 +2294,8 @@ export default defineComponent({
 .menu-form-section {
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-blank);
-  border-radius: 8px;
+  /* 原 8px 魔法值 → --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
   margin-bottom: 10px;
   padding: 12px 14px 0;
 }
@@ -2177,7 +2320,8 @@ export default defineComponent({
 .menu-form-section__title::before {
   content: "";
   background: var(--el-color-primary);
-  border-radius: 4px;
+  /* 原 4px 魔法值 → --el-radius-xs */
+  border-radius: var(--el-radius-xs, 4px);
   width: 4px;
   height: 14px;
   display: inline-block;
@@ -2208,6 +2352,15 @@ export default defineComponent({
   }
   .menu-workspace {
     grid-template-rows: minmax(240px, 1fr) minmax(200px, 0.8fr);
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增/沿用的过渡一并关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .menu-context-menu__item,
+  .menu-button-table.el-table,
+  .menu-tree :deep(.el-tree-node__content) {
+    transition: none;
   }
 }
 </style>

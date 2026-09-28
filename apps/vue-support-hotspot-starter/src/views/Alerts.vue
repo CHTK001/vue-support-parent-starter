@@ -3,16 +3,16 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">告警中心</span>
-        <ReTag :type="criticalCount ? 'danger' : 'success'" size="small" round>
+        <ReTag :type="criticalCount ? 'danger' : 'success'" round>
           {{ criticalCount ? `${criticalCount} 个 CRITICAL` : "全部正常" }}
         </ReTag>
         <span class="match-hint" v-if="!loading">最近 {{ items.length }} 条事件 · 10s 自动刷新</span>
       </div>
       <div class="toolbar-right">
-        <ReSelect v-model="severityFilter" :options="severityOptions" placeholder="严重级别" size="small" clearable class="sev-filter" />
-        <ReSelect v-model="statusFilter" :options="statusOptions" placeholder="状态" size="small" clearable class="sev-filter" />
-        <ReButton icon="SetUp" show-text size="small" round @click="openRules">规则管理</ReButton>
-        <ReButton icon="Refresh" show-text size="small" round :loading="loading" @click="load">刷新</ReButton>
+        <ReSelect v-model="severityFilter" :options="severityOptions" placeholder="严重级别" clearable class="sev-filter" />
+        <ReSelect v-model="statusFilter" :options="statusOptions" placeholder="状态" clearable class="sev-filter" />
+        <ReButton icon="SetUp" show-text round @click="openRules">规则管理</ReButton>
+        <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -61,7 +61,7 @@
               <ReTag
                 v-if="(row as unknown as ApmAlert).severity === 'CRITICAL'"
                 type="danger"
-                size="small"
+
                 round
                 class="critical-flag"
               >
@@ -75,12 +75,12 @@
               <span class="mono muted">{{ (row as unknown as ApmAlert).threshold }}</span>
             </template>
             <template #col-severity="{ row }">
-              <ReTag :type="sevTag((row as unknown as ApmAlert).severity)" size="small" round>
+              <ReTag :type="sevTag((row as unknown as ApmAlert).severity)" round>
                 {{ (row as unknown as ApmAlert).severity }}
               </ReTag>
             </template>
             <template #col-status="{ row }">
-              <ReTag :type="statusTag((row as unknown as ApmAlert).status)" size="small" round>
+              <ReTag :type="statusTag((row as unknown as ApmAlert).status)" round>
                 {{ (row as unknown as ApmAlert).status || 'OPEN' }}
               </ReTag>
             </template>
@@ -89,7 +89,7 @@
             </template>
             <template #col-actions="{ row }">
               <el-dropdown trigger="click" v-if="(row as unknown as ApmAlert).status !== 'ACKNOWLEDGED'">
-                <el-button size="small" text type="primary">处置</el-button>
+                <el-button text type="primary">处置</el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="handleAction(row, 'acknowledge')">确认</el-dropdown-item>
@@ -126,26 +126,26 @@
     <!-- 规则管理抽屉 -->
     <ReDrawer v-model="rulesVisible" title="告警规则管理" size="560px" direction="rtl">
       <div class="rule-form">
-        <ReInput v-model="newRule.metric" placeholder="指标名（如 heap_percent / error_rate / active_leaks）" size="small" class="grow" />
-        <ReInputNumber v-model="newRule.threshold" placeholder="阈值" size="small" class="grow" :min="0" />
-        <ReSelect v-model="newRule.severity" :data="severityOptions" placeholder="级别" size="small" class="grow" />
-        <ReInputNumber v-model="newRule.debounceMs" placeholder="去抖(ms)" size="small" class="grow" :min="0" />
-        <el-button type="primary" size="small" :icon="Plus" show-text :loading="addingRule" @click="addRule" text>新增规则</el-button>
+        <ReInput v-model="newRule.metric" placeholder="指标名（如 heap_percent / error_rate / active_leaks）" class="grow" />
+        <ReInputNumber v-model="newRule.threshold" placeholder="阈值" class="grow" :min="0" />
+        <ReSelect v-model="newRule.severity" :data="severityOptions" placeholder="级别" class="grow" />
+        <ReInputNumber v-model="newRule.debounceMs" placeholder="去抖(ms)" class="grow" :min="0" />
+        <el-button type="primary" :icon="Plus" show-text :loading="addingRule" @click="addRule" text>新增规则</el-button>
       </div>
       <div class="rule-list">
         <div v-for="r in rules" :key="r.metric" class="rule-item">
           <div class="rule-info">
             <div class="rule-metric mono">{{ r.metric }}</div>
             <div class="rule-threshold">
-              <ReTag :type="r.enabled ? 'success' : 'info'" size="small" round>
+              <ReTag :type="r.enabled ? 'success' : 'info'" round>
                 {{ r.enabled ? "启用" : "停用" }}
               </ReTag>
               <span class="mono muted">阈值 {{ r.threshold }} · {{ r.severity }} · 去抖 {{ r.debounceMs }}ms</span>
             </div>
           </div>
           <div class="rule-actions">
-            <ReButton size="small" text type="primary" @click="toggleRule(r)">{{ r.enabled ? "停用" : "启用" }}</ReButton>
-            <ReButton size="small" text type="danger" @click="deleteRule(r)">删除</ReButton>
+            <ReButton text type="primary" @click="toggleRule(r)">{{ r.enabled ? "停用" : "启用" }}</ReButton>
+            <ReButton text type="danger" @click="deleteRule(r)">删除</ReButton>
           </div>
         </div>
         <ReEmpty v-if="!rules.length" description="暂无自定义规则" />
@@ -439,22 +439,22 @@ onBeforeUnmount(() => {
 }
 
 .stat-row :deep(.re-stat-card) {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg（同详情卡档位） */
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -464,32 +464,32 @@ onBeforeUnmount(() => {
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 8px;
 }
 
 .alert-tabs :deep(.el-tabs__item) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .alert-tabs :deep(.el-tabs__item.is-active) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
 }
 
 .alert-tabs :deep(.el-tabs__active-bar) {
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-5));
 }
 
 .alert-tabs :deep(.el-tabs__nav-wrap::after) {
-  background: var(--apm-border, rgba(255, 255, 255, 0.08));
+  background: var(--apm-border);
 }
 
 .table-panel :deep(.el-table) {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -506,21 +506,21 @@ onBeforeUnmount(() => {
   color: var(--apm-fg);
 }
 
-/* 时间线视图深色适配 */
+/* 时间线视图（跟随 APM 主题令牌） */
 .timeline-wrap {
   padding: 12px;
 }
 
 .timeline-wrap :deep(.re-timeline__title) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
 }
 
 .timeline-wrap :deep(.re-timeline__time) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .timeline-wrap :deep(.re-timeline__description) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .timeline-desc {
@@ -546,7 +546,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 10px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--apm-border);
   margin-bottom: 16px;
 }
 
@@ -562,9 +562,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 10px，取最近档 lg */
 }
 
 .rule-info {
@@ -575,7 +575,7 @@ onBeforeUnmount(() => {
 }
 
 .rule-metric {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   font-weight: 600;
 }
 
@@ -601,6 +601,16 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .stat-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画（第三方组件根节点拿不到 scoped 属性，须走 :deep） */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>

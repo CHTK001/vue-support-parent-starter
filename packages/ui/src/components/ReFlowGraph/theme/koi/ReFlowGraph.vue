@@ -6,9 +6,18 @@
  * 具名插槽按外壳实际提供的 #properties / #toolbar 逐个转发，漏掉任一个页面就拿不到对应区域。
  */
 import { computed, ref } from "vue";
+import type { Component } from "vue";
 import FlowShell from "../default/ReFlowGraph.vue";
 import type { FlowGraphEngine } from "../../internals/engine";
-import type { FlowEdge, FlowGraphData, FlowNode, FlowNodeTypeDef, FlowSelection, FlowStructureIssue } from "../../internals/types";
+import type {
+  FlowEdge,
+  FlowGraphData,
+  FlowMenuItem,
+  FlowNode,
+  FlowNodeTypeDef,
+  FlowSelection,
+  FlowStructureIssue,
+} from "../../internals/types";
 
 defineOptions({ name: "ReFlowGraph" });
 
@@ -24,6 +33,20 @@ const props = withDefaults(
     startType?: string;
     endType?: string;
     propertiesTitle?: string;
+    // 下面这组是原样转发给外壳的细粒度开关；缺省值与外壳一致，转发只是把
+    // 「谁能配置」的口子从 default 主题挪到 koi 主题上，默认行为不受影响。
+    /** 缩略图，缺省 false */
+    showMinimap?: boolean;
+    /** 画布平移，缺省 true；`editable=false` 时仍按只读处理 */
+    panning?: boolean;
+    /** 滚轮缩放，缺省 true */
+    zoom?: boolean;
+    /** 节点可拖动，缺省 true */
+    nodeDraggable?: boolean;
+    /** 右键菜单项，缺省为内置四项 */
+    menuItems?: FlowMenuItem[];
+    /** 自定义节点体组件 */
+    nodeComponent?: Component | null;
   }>(),
   {
     data: () => ({ nodes: [], edges: [] }),
@@ -35,6 +58,10 @@ const props = withDefaults(
     startType: "start",
     endType: "end",
     propertiesTitle: "属性",
+    showMinimap: false,
+    panning: true,
+    zoom: true,
+    nodeDraggable: true,
   },
 );
 
@@ -77,6 +104,12 @@ defineExpose({
     :start-type="startType"
     :end-type="endType"
     :properties-title="propertiesTitle"
+    :show-minimap="showMinimap"
+    :panning="panning"
+    :zoom="zoom"
+    :node-draggable="nodeDraggable"
+    :menu-items="menuItems"
+    :node-component="nodeComponent"
     @ready="(e: FlowGraphEngine) => emit('ready', e)"
     @change="(d: FlowGraphData) => emit('change', d)"
     @select="(s: FlowSelection) => emit('select', s)"

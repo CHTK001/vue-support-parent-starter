@@ -200,22 +200,24 @@ onMounted(() => void load());
   padding: 7px 16px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   font-weight: 500;
 }
 
 .vds-sort-btn:hover {
   color: var(--vd-text);
-  background: rgba(148, 163, 184, 0.12);
+  /* #94a3b8 正是 --vd-text-secondary */
+  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
 }
 
 .vds-sort-btn.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 45%, transparent);
 }
 
+/* 焦点轮廓已由 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
 .vds-sort-btn:focus-visible {
   outline: 2px solid var(--vd-primary);
   outline-offset: 1px;
@@ -232,6 +234,13 @@ onMounted(() => void load());
   .vds-channel-grid {
     grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
     gap: 12px;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vds-sort-btn {
+    transition: none;
   }
 }
 </style>

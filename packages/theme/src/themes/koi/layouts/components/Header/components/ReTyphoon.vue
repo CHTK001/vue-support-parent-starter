@@ -145,7 +145,7 @@
                 <span class="td-panel__title">台风路径图</span>
                 <el-switch
                   v-model="showTrackPoints"
-                  size="small"
+
                   active-text="显示点位"
                   inactive-text="仅路线"
                   inline-prompt
@@ -216,7 +216,7 @@
                       :data="trackRows"
                       :columns="trackColumns"
                       :pagination="false"
-                      size="small"
+
                       stripe
                       border
                       height="228px"

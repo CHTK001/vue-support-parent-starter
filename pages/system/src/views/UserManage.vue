@@ -703,7 +703,7 @@ onMounted(() => {
         ref="importInput"
         type="file"
         accept=".xlsx,.xls,.csv"
-        style="display: none"
+        class="visually-hidden-input"
         @change="handleFileChange"
       />
 
@@ -733,6 +733,21 @@ onMounted(() => {
           <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
         </template>
 
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon">
+              <ReIcon name="User" size="22" />
+            </span>
+            <span class="page-empty__title">还没有用户</span>
+            <span class="page-empty__desc">系统账号是登录与权限的载体。可以手动添加，或下载模板批量导入。</span>
+            <span class="page-empty__actions">
+              <ReButton type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
+              <ReButton icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
+              <ReButton icon="Refresh" @click="handleReset">刷新</ReButton>
+            </span>
+          </div>
+        </template>
+
         <template #username="{ row }">
           <div class="flex items-center gap-2" :data-uid="row.sysUserId">
             <div class="user-cell__avatar">
@@ -748,18 +763,19 @@ onMounted(() => {
             <div class="flex flex-col">
               <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
               <div class="flex gap-1 mt-0.5">
-                <ReTag v-if="isInSystem(row)" type="warning" effect="dark" size="small">内置</ReTag>
-                <el-tag v-if="row.sysUserStatus !== 1" type="danger" effect="plain" size="small">禁用</el-tag>
-                <el-tag v-else type="success" effect="plain" size="small">启用</el-tag>
-                <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small">只读</el-tag>
+                <ReTag v-if="isInSystem(row)" type="warning" effect="dark" >内置</ReTag>
+                <el-tag v-if="row.sysUserStatus !== 1" type="danger" effect="plain" >禁用</el-tag>
+                <el-tag v-else type="success" effect="plain" >启用</el-tag>
+                <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" >只读</el-tag>
               </div>
             </div>
-            <input ref="rowAvatarInputRef" type="file" accept="image/*" style="display:none" @change="handleRowAvatarChange" />
+            <input ref="rowAvatarInputRef" type="file" accept="image/*" class="visually-hidden-input" @change="handleRowAvatarChange" />
           </div>
         </template>
         <template #nickname="{ row }">
           <span v-if="row.sysUserNickname" class="flex items-center gap-1">
-            <el-icon :color="row.sysUserSex === 1 ? '#e91e63' : '#409eff'">
+            <!-- 性别沿用国内后台「男蓝女红」的识别习惯，但改走令牌：主题切换/暗色下会自动跟随 -->
+            <el-icon :color="row.sysUserSex === 1 ? 'var(--el-color-danger)' : 'var(--el-color-primary)'">
               <Female v-if="row.sysUserSex === 1" />
               <Male v-else />
             </el-icon>
@@ -799,7 +815,7 @@ onMounted(() => {
             :key="role.sysRoleId"
             type="primary"
             effect="plain"
-            size="small"
+            
             class="mr-1"
           >
             {{ role.sysRoleName }}
@@ -814,15 +830,15 @@ onMounted(() => {
           />
         </template>
         <template #totp="{ row }">
-          <ReTag v-if="hasTotp(row)" type="success" effect="plain" size="small">已启用</ReTag>
-          <ReTag v-else type="info" effect="plain" size="small">未启用</ReTag>
+          <ReTag v-if="hasTotp(row)" type="success" effect="plain" >已启用</ReTag>
+          <ReTag v-else type="info" effect="plain" >未启用</ReTag>
         </template>
         <template #action="{ row }">
           <div class="row-actions">
-            <ReButton layout="square" type="primary" icon="View" title="画像" @click="handleProfile(row)" />
-            <ReButton layout="square" type="primary" icon="Edit" title="编辑" @click="handleEdit(row)" />
+            <ReButton layout="square" type="primary" icon="View" tip="画像" @click="handleProfile(row)" />
+            <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
             <el-dropdown trigger="click" @command="(cmd: string) => handleActionCommand(cmd, currentActionRow as Record<string, unknown>)">
-              <ReButton layout="square" type="info" icon="More" title="更多" @click="onMoreTrigger" />
+              <ReButton layout="square" type="info" icon="More" tip="更多" @click="onMoreTrigger" />
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="detail" icon="View">详情</el-dropdown-item>
@@ -933,7 +949,7 @@ onMounted(() => {
       width="480px"
       :close-on-click-modal="false"
     >
-      <div style="padding: 20px 0;">
+      <div class="reset-pwd-body">
         <el-form label-width="80px">
           <el-form-item label="重置对象">
             <span>{{ resetPwdUser?.sysUserNickname ?? resetPwdUser?.sysUserUsername }}</span>
@@ -951,7 +967,7 @@ onMounted(() => {
             <ReInput layout="modern" v-model="resetPwdConfirm" type="password" placeholder="请再次输入新密码" show-password />
           </el-form-item>
           <el-form-item v-if="resetPwdMode === 'auto'">
-            <span style="color: #909399; font-size: 13px;">系统将自动生成新密码，重置成功后显示</span>
+            <span class="reset-pwd-tip">系统将自动生成新密码，重置成功后显示</span>
           </el-form-item>
         </el-form>
       </div>
@@ -977,7 +993,7 @@ onMounted(() => {
           <div class="profile-name">{{ profileUser.sysUserNickname || profileUser.sysUserUsername }}</div>
           <div class="profile-account">@{{ profileUser.sysUserUsername }}</div>
           <div class="profile-tags">
-            <el-tag size="small" :type="profileUser.sysUserStatus === 1 ? 'success' : 'danger'">
+            <el-tag  :type="profileUser.sysUserStatus === 1 ? 'success' : 'danger'">
               {{ profileUser.sysUserStatus === 1 ? '启用' : '禁用' }}
             </el-tag>
           </div>
@@ -1003,7 +1019,7 @@ onMounted(() => {
                 <div v-if="loginLogs.length" class="log-list">
                   <div v-for="log in loginLogs" :key="log.sysLogId" class="log-item">
                     <div class="log-item__main">
-                      <el-tag size="small" :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
+                      <el-tag  :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
                         {{ log.sysLogStatus === 1 ? '成功' : '失败' }}
                       </el-tag>
                       <span class="log-item__ip">{{ log.sysLogIp || '-' }}</span>
@@ -1024,7 +1040,7 @@ onMounted(() => {
                 <div v-if="operLogs.length" class="log-list">
                   <div v-for="log in operLogs" :key="log.sysLogId" class="log-item">
                     <div class="log-item__main">
-                      <el-tag size="small" :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
+                      <el-tag  :type="log.sysLogStatus === 1 ? 'success' : 'danger'">
                         {{ log.sysLogStatus === 1 ? '成功' : '失败' }}
                       </el-tag>
                       <span class="log-item__url">{{ log.sysLogUrl || '-' }}</span>
@@ -1067,13 +1083,13 @@ onMounted(() => {
             {{ deptNameOf(detailUser.sysDeptId) }}
           </el-descriptions-item>
           <el-descriptions-item label="状态">
-            <ReTag :type="detailUser.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" size="small">
+            <ReTag :type="detailUser.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" >
               {{ detailUser.sysUserStatus === 1 ? '启用' : '禁用' }}
             </ReTag>
           </el-descriptions-item>
           <el-descriptions-item label="角色">
             <div v-if="detailUser.userRoles?.length" class="flex flex-wrap gap-1">
-              <ReTag v-for="r in [...new Map((detailUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]" :key="r.sysRoleId" type="primary" effect="plain" size="small">
+              <ReTag v-for="r in [...new Map((detailUser.userRoles ?? []).map(r => [r.sysRoleId, r])).values()]" :key="r.sysRoleId" type="primary" effect="plain" >
                 {{ r.sysRoleName }}
               </ReTag>
             </div>
@@ -1081,7 +1097,7 @@ onMounted(() => {
           </el-descriptions-item>
           <el-descriptions-item label="岗位">
             <div v-if="detailUser.userPosts?.length" class="flex flex-wrap gap-1">
-              <ReTag v-for="p in [...new Map((detailUser.userPosts ?? []).map(p => [p.sysPostId, p])).values()]" :key="p.sysPostId" type="success" effect="plain" size="small">
+              <ReTag v-for="p in [...new Map((detailUser.userPosts ?? []).map(p => [p.sysPostId, p])).values()]" :key="p.sysPostId" type="success" effect="plain" >
                 {{ p.sysPostName }}
               </ReTag>
             </div>
@@ -1096,8 +1112,8 @@ onMounted(() => {
         <div class="detail-section-title">安全信息</div>
         <el-descriptions :column="1" border :label-style="{ width: '110px', fontWeight: 600 }">
           <el-descriptions-item label="2FA 状态">
-            <ReTag v-if="hasTotp(detailUser)" type="success" effect="plain" size="small">已启用</ReTag>
-            <ReTag v-else type="info" effect="plain" size="small">未启用</ReTag>
+            <ReTag v-if="hasTotp(detailUser)" type="success" effect="plain" >已启用</ReTag>
+            <ReTag v-else type="info" effect="plain" >未启用</ReTag>
           </el-descriptions-item>
           <el-descriptions-item label="登录次数">
             {{ (detailUser as unknown as Record<string, unknown>).sysUserLoginCount ?? '-' }}
@@ -1113,7 +1129,7 @@ onMounted(() => {
               v-if="Number((detailUser as unknown as Record<string, unknown>).sysUserForcePwd) === 1"
               type="warning"
               effect="plain"
-              size="small"
+              
             >
               是
             </ReTag>
@@ -1139,8 +1155,9 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  /* 浅底用令牌而不是写死 #f8fafc：暗色模式下会自动翻转，写死则暗色下刺眼 */
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
 }
 .profile-left .profile-name {
   font-size: 18px;
@@ -1148,7 +1165,7 @@ onMounted(() => {
 }
 .profile-left .profile-account {
   font-size: 13px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 .profile-left .profile-tags {
   display: flex;
@@ -1165,7 +1182,7 @@ onMounted(() => {
   justify-content: space-between;
   font-size: 13px;
   .label {
-    color: #909399;
+    color: var(--el-text-color-secondary);
   }
 }
 .profile-right {
@@ -1179,8 +1196,8 @@ onMounted(() => {
 }
 .log-item {
   padding: 8px 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
   .log-item__main {
     display: flex;
     align-items: center;
@@ -1192,13 +1209,13 @@ onMounted(() => {
     gap: 12px;
     margin-top: 4px;
     font-size: 12px;
-    color: #909399;
+    color: var(--el-text-color-secondary);
   }
 }
 .profile-empty {
   text-align: center;
   padding: 40px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 .system-page {
   display: flex;
@@ -1245,10 +1262,20 @@ onMounted(() => {
   height: 28px;
   padding: 0 6px;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
   cursor: pointer;
   font-size: 13px;
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+/* 分页是纯自绘按钮（不是 el-button），键盘焦点环必须自己补，否则键盘用户看不见焦点 */
+.page-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .page-btn:hover:not(:disabled):not(.active) {
   color: var(--el-color-primary);
@@ -1257,7 +1284,7 @@ onMounted(() => {
 .page-btn.active {
   background: var(--el-color-primary);
   border-color: var(--el-color-primary);
-  color: #fff;
+  color: var(--el-color-white);
 }
 .page-btn:disabled {
   cursor: not-allowed;
@@ -1278,6 +1305,18 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+/* 隐藏的文件选择框：必须保留在 DOM 里（脚本用 ref 触发 click），只做视觉隐藏 */
+.visually-hidden-input {
+  display: none;
+}
+.reset-pwd-body {
+  padding: 20px 0;
+}
+.reset-pwd-tip {
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--el-text-color-secondary);
 }
 .detail-section-title {
@@ -1316,6 +1355,15 @@ onMounted(() => {
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：脉冲与过渡都要停 */
+@media (prefers-reduced-motion: reduce) {
+  .page-btn,
+  .user-cell__dot {
+    transition: none;
+    animation: none;
   }
 }
 </style>

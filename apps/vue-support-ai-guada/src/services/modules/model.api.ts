@@ -65,22 +65,13 @@ function buildProviderModelBody(data: any) {
   const featureCaps = toList(config.features).map((f) => ({ task: f, traits: [] }));
   const numOrNull = (v: any) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
-  const model: Record<string, any> = {
-    model: data.modelName || data.model || data.name,
-    alias: data.alias || "",
-    sort_order: data.sort_order || 0,
-    capabilities: [{ task: mainTask, traits }, ...featureCaps],
-    context_window: numOrNull(config.contextWindow),
-    max_tokens: numOrNull(config.maxOutputTokens),
-    temperature: numOrNull(config.temperature),
-    top_p: numOrNull(config.topP),
-    frequency_penalty: numOrNull(config.frequencyPenalty),
-  };
-  // 生成参数（image / video）：随模型走 capabilities[].generate 节点。
-  // 后端 GenerateConfigSupport 读同一节点，「图像生成」页据此渲染分辨率/张数/参考图。
+  // 生成参数（image / video）：必须挂在 capabilities[0].generate 下。
+  // 后端 GenerateConfigSupport 只从该节点读取，SysAiProviderModel 也没有顶层 generate 字段——
+  // 之前放在 model.generate 顶层会被直接丢弃，导致模型表单里的生成参数存不下去。
   const gen = config.generate;
+  const mainCap: Record<string, any> = { task: mainTask, traits };
   if (gen && (mainTask === "image_generation" || mainTask === "video_generation")) {
-    model.generate = {
+    mainCap.generate = {
       referenceImage: !!gen.referenceImage,
       negativePrompt: gen.negativePrompt !== false,
       seed: gen.seed !== false,
@@ -90,8 +81,24 @@ function buildProviderModelBody(data: any) {
       stepsMin: gen.stepsMin ?? null,
       stepsMax: gen.stepsMax ?? null,
       stepsDefault: gen.stepsDefault ?? null,
+      // style 表示「允许在提示词里附加风格描述」，不是上游参数；默认 true，
+      // 仅模型显式 false 时前端隐藏风格入口
+      style: gen.style !== false,
+      ...(Array.isArray(gen.styles) && gen.styles.length ? { styles: gen.styles } : {}),
     };
   }
+
+  const model: Record<string, any> = {
+    model: data.modelName || data.model || data.name,
+    alias: data.alias || "",
+    sort_order: data.sort_order || 0,
+    capabilities: [mainCap, ...featureCaps],
+    context_window: numOrNull(config.contextWindow),
+    max_tokens: numOrNull(config.maxOutputTokens),
+    temperature: numOrNull(config.temperature),
+    top_p: numOrNull(config.topP),
+    frequency_penalty: numOrNull(config.frequencyPenalty),
+  };
   // 模型弹框没有这两项，编辑时不下发以免把已有值覆盖成默认值
   if (data.enabled !== undefined) model.enabled = data.enabled !== false;
   if (data.description !== undefined) model.description = data.description;

@@ -69,20 +69,42 @@ defineProps<{
     align-items: center;
     justify-content: center;
     padding: 4px;
-    border-radius: 8px;
-    color: var(--color-text-gray);
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
+    color: var(--el-text-color-secondary);
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
 }
 
 .header-icon-btn:hover {
-    background: var(--color-sidebar-bg-hover);
-    color: var(--color-text);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
 }
 
 .header-icon-btn.active {
     background: var(--color-sidebar-bg-hover);
     color: var(--color-text);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，图标按钮的底色/文字直接到位。
+   只关 .header-icon-btn 自己的 transition，不写通配 *，
+   否则会把 el-tooltip / el-dropdown 内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+    .header-icon-btn {
+        transition: none;
+    }
+}
+
+/* 键盘焦点可见性：图标按钮是带 @click 的 div（不是可聚焦控件），
+   浏览器不给默认焦点环，这里补一个与按钮体系一致的主色环。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。
+   outline 与 :focus-visible 环必须成对出现：只写 outline: none 是净损害。 */
+.header-icon-btn {
+    outline: none;
+}
+
+.header-icon-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

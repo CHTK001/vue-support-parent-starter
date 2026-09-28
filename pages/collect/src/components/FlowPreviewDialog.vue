@@ -138,7 +138,7 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
       <div class="flow-preview__side">
         <div class="side-head">
           <span>节点清单</span>
-          <ReTag size="small" type="info" effect="plain">{{ nodeRows.length }} 个</ReTag>
+          <ReTag type="info" effect="plain">{{ nodeRows.length }} 个</ReTag>
         </div>
         <ol class="node-list">
           <li v-for="row in nodeRows" :key="row.key" class="node-item">
@@ -146,7 +146,7 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
             <div class="node-body">
               <div class="node-title">
                 {{ row.name }}
-                <ReTag size="small" effect="plain">{{ row.label }}</ReTag>
+                <ReTag effect="plain">{{ row.label }}</ReTag>
               </div>
               <div v-if="row.summary" class="node-summary">{{ row.summary }}</div>
             </div>
@@ -167,7 +167,7 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
 }
 .flow-preview__empty {
@@ -182,7 +182,7 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
 }
 .side-head {
@@ -204,7 +204,8 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   display: flex;
   gap: 8px;
   padding: 7px 8px;
-  border-radius: 5px;
+  /* 原为 5px，落在 xs(4)/sm(6) 中间，取 sm(6px) */
+  border-radius: var(--el-radius-sm, 6px);
 }
 .node-item:hover {
   background: var(--el-fill-color-light);
@@ -216,7 +217,8 @@ watch(() => [props.modelValue, props.flowId] as const, ([open]) => {
   line-height: 20px;
   text-align: center;
   font-size: 12px;
-  border-radius: 50%;
+  /* 20px 正圆序号：50% 与 full 档(9999px) 视觉等价，统一到令牌便于全局改圆角风格 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color);
   color: var(--el-text-color-regular);
 }

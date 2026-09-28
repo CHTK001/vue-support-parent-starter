@@ -73,11 +73,14 @@ const iframeSrc = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  border-radius: 999px;
+  /* 原为 999px；胶囊形只需远超半高，改用 EP 的 full 档（9999px），视觉等价 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 12px;
   font-weight: 600;
 }
-.ssh-status-tag.is-ok { background: #e6f4ea; color: #137333; }
+/* 原来是写死的浅绿底 + 深绿字（#e6f4ea / #137333），暗色模式下会变成刺眼亮块；
+   换成 EP 成功色浅底 + 深色档文字，亮暗色自动适配 */
+.ssh-status-tag.is-ok { background: var(--el-color-success-light-9); color: var(--el-color-success-dark-2); }
 .ssh-actions {
   margin-left: auto;
   display: flex;
@@ -87,25 +90,45 @@ const iframeSrc = computed(() => {
 .ssh-btn {
   padding: 3px 14px;
   font-size: 12px;
-  color: var(--text-secondary, #606266);
+  /* 原来的 --text-secondary / --border-subtle / --brand-* 全仓无人定义（只有兜底 hex 生效），
+     等于写死颜色；这里统一换成 EP 真实存在的语义令牌 */
+  color: var(--el-text-color-secondary);
   background: transparent;
-  border: 1px solid var(--border-subtle, #dcdfe6);
-  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xs, 4px);
   cursor: pointer;
-  transition: color .15s ease, border-color .15s ease, background .15s ease;
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-.ssh-btn:hover { color: var(--brand-600, #5a4ae0); border-color: var(--brand-400, #8b7ffb); }
+.ssh-btn:hover { color: var(--el-color-primary); border-color: var(--el-color-primary-light-5); }
+/* 原生 button：自绘焦点环 */
+.ssh-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .ssh-btn--files {
-  color: var(--brand-600, #5a4ae0);
-  border-color: var(--brand-400, #8b7ffb);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
 }
-.ssh-btn--files:hover { background: var(--brand-50, rgba(90, 74, 224, .08)); }
+.ssh-btn--files:hover { background: color-mix(in srgb, var(--el-color-primary) 8%, transparent); }
 .ssh-iframe {
   flex: 1;
   width: 100%;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
+  /* 刻意保留 #111：iframe 里跑的是 xterm 终端，固定深底才能保证终端配色对比度，
+     不能跟随主题切成浅底 */
   background: #111;
   min-height: 300px;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .ssh-btn {
+    transition: none;
+  }
 }
 </style>

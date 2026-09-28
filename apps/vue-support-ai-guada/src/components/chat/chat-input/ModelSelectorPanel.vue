@@ -356,13 +356,14 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .current-model-item:hover {
-  background: var(--color-sidebar-bg-hover);
+  background: var(--el-fill-color-light);
 }
 
 /* 模型列表 */
@@ -377,23 +378,24 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .model-item:hover {
-  background: var(--color-sidebar-bg-hover);
+  background: var(--el-fill-color-light);
 }
 
 .model-item-active {
-  background: var(--color-sidebar-bg-active);
+  background: var(--el-fill-color);
 }
 
 /* 分割线 */
 .divider {
   height: 1px;
-  background: var(--color-surface-border);
+  background: var(--el-border-color-lighter);
   margin: 8px 0;
 }
 
@@ -421,18 +423,19 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   transition: background 0.15s;
   font-size: 14px;
 }
 
 .effort-item:hover {
-  background: var(--color-sidebar-bg-hover);
+  background: var(--el-fill-color-light);
 }
 
 .effort-item-active {
-  background: var(--color-sidebar-bg-active);
+  background: var(--el-fill-color);
 }
 
 /* 滚动条美化 */
@@ -445,11 +448,47 @@ watch(() => props.visible, (newVal) => {
 }
 
 .models-list::-webkit-scrollbar-thumb {
-  background: var(--color-surface-border);
-  border-radius: 3px;
+  background: var(--el-border-color-lighter);
+  /* 原值 3px，恰为 6px 宽的半径即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .models-list::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-gray);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，三类条目的悬停底色直接到位。
+   逐个列出，不写 `*` / `.model-panel *` 通配，
+   避免把 el-icon / Avatar / CustomPopover 内部组件的合法过渡一起掐掉。
+   三者都只带 transition（无 animation），选中态底色是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .current-model-item,
+  .model-item,
+  .effort-item {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：模型行 / 推理强度行 / 「添加模型」入口都是带 @click 的 div
+   （不是可聚焦控件），浏览器不给默认焦点环。
+   前三者原有 cursor: pointer 已在上面声明，不重复写；
+   .add-model-btn 在本文件原本连指针样式都没有（只有模板里的 class 名），
+   属于「可点却看不出可点」，这里一并补上。 */
+.current-model-item,
+.model-item,
+.effort-item,
+.add-model-btn {
+  outline: none;
+}
+
+.add-model-btn {
+  cursor: pointer;
+}
+
+.current-model-item:focus-visible,
+.model-item:focus-visible,
+.effort-item:focus-visible,
+.add-model-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

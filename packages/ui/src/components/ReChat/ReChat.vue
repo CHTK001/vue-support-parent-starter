@@ -46,8 +46,8 @@
         <span class="re-chat__batch-count">已选 {{ selectedIds.size }} 项</span>
         <el-checkbox :model-value="allSelected" @change="toggleAll">全选</el-checkbox>
         <div class="re-chat__batch-ops">
-          <el-button type="danger" size="small" @click="confirmBatchDelete">删除</el-button>
-          <el-button size="small" @click="exitBatchDelete">取消</el-button>
+          <el-button type="danger" @click="confirmBatchDelete">删除</el-button>
+          <el-button @click="exitBatchDelete">取消</el-button>
         </div>
       </div>
 
@@ -294,13 +294,13 @@
                   <el-button
                     v-if="activeSkill?.key === skill.key"
                     type="primary"
-                    size="small"
+
                     plain
                     @click="activeSkill = null"
                   >停用</el-button>
-                  <el-button v-else type="primary" size="small" @click="installSkill(skill)">启用</el-button>
+                  <el-button v-else type="primary" @click="installSkill(skill)">启用</el-button>
                 </template>
-                <el-button v-else size="small" @click="installSkill(skill)">安装</el-button>
+                <el-button v-else @click="installSkill(skill)">安装</el-button>
               </div>
             </div>
           </div>

@@ -438,7 +438,7 @@ async function copyCode() {
                 <div class="capsule-row__desc">{{ mod.description || "—" }}</div>
               </div>
               <ReButton
-                layout="square" type="danger" :icon="Delete" size="small"
+                layout="square" type="danger" :icon="Delete" 
                 class="capsule-row__del"
                 @click.stop="handleDeleteModule(mod)"
               />
@@ -456,7 +456,7 @@ async function copyCode() {
             <span class="col-panel__title">键名列表</span>
           </div>
           <div class="col-panel__head-right">
-            <ReTag v-if="selectedModule && keys.length > 0" effect="light" round size="small" class="type-tag">
+            <ReTag v-if="selectedModule && keys.length > 0" effect="light" round  class="type-tag">
               <el-icon :size="12" class="type-tag__icon"><CircleCheck /></el-icon>
               {{ cacheValue?.type || "string" }}
             </ReTag>
@@ -476,7 +476,7 @@ async function copyCode() {
                 <div class="capsule-row__key">{{ key }}</div>
               </div>
               <ReButton
-                layout="square" type="danger" :icon="Delete" size="small"
+                layout="square" type="danger" :icon="Delete" 
                 class="capsule-row__del"
                 @click.stop="handleDeleteKey(key)"
               />
@@ -530,7 +530,7 @@ async function copyCode() {
             <div class="kv-label">缓存键名</div>
             <div class="kv-row">
               <span class="kv-key" :title="selectedKey">{{ selectedKey }}</span>
-              <ReTag v-if="cacheValue.type" effect="dark" size="small" class="type-tag-blue">{{ cacheValue.type }}</ReTag>
+              <ReTag v-if="cacheValue.type" effect="dark"  class="type-tag-blue">{{ cacheValue.type }}</ReTag>
             </div>
 
             <!-- 查看器工具条：预览切换 + 统计 + 复制 -->
@@ -589,7 +589,7 @@ async function copyCode() {
         <div class="cache-edit__meta">
           <span class="cache-edit__label">Key</span>
           <code class="cache-edit__key" :title="selectedKey || ''">{{ selectedKey }}</code>
-          <ReTag v-if="cacheValue?.rootType" effect="light" round size="small" class="cache-edit__type">
+          <ReTag v-if="cacheValue?.rootType" effect="light" round  class="cache-edit__type">
             {{ cacheValue.rootType }}
           </ReTag>
         </div>
@@ -598,8 +598,8 @@ async function copyCode() {
             业务 JSON（不含类型信封）· Spring Cache 无单条 TTL，写入不改变 TTL
           </span>
           <div class="cache-edit__actions">
-            <el-checkbox v-model="editAsJson" size="small">JSON 校验</el-checkbox>
-            <ReButton layout="modern" size="small" icon="MagicStick" @click="formatEditJson">格式化</ReButton>
+            <el-checkbox v-model="editAsJson" >JSON 校验</el-checkbox>
+            <ReButton layout="modern"  icon="MagicStick" @click="formatEditJson">格式化</ReButton>
           </div>
         </div>
         <el-input
@@ -651,14 +651,25 @@ html.dark .cache-monitor {
 }
 
 .refresh-btn {
-  width: 28px; height: 28px; border-radius: var(--el-radius-full);
+  width: 28px; height: 28px; border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter); cursor: pointer;
   background: var(--el-bg-color);
   display: flex; align-items: center; justify-content: center;
   color: var(--el-text-color-secondary);
-  transition: color 0.2s, border-color 0.2s, transform 0.3s ease;
+  outline: none;
+  /* 微交互走 fast 档（EP base.css 定义为 .2s，与自身 transition-color / -border 同档）；
+     --el-transition-duration 是 .3s，用它会让 28px 小按钮的 hover 明显发滞 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration, 0.3s) ease;
 }
 .refresh-btn:hover { color: var(--el-color-primary); border-color: var(--el-color-primary-light-5); }
+/* 原生 button（非 EP 组件），焦点环要自己补；EP 自带的实线轮廓只存在于 el-* 组件上 */
+.refresh-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* 旋转时长没有对应令牌，保留字面值（与刷新动作的实际时长绑定） */
 .refresh-btn--spinning { animation: spin 0.6s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
@@ -675,15 +686,16 @@ html.dark .cache-monitor {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light);
+  /* koi 规约：卡片静止态不加投影，浮起反馈只保留在 :hover */
   transition:
-    transform var(--el-transition-duration, 0.2s) ease,
-    box-shadow var(--el-transition-duration, 0.2s) ease,
-    border-color var(--el-transition-duration, 0.2s) ease;
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
   border-color: var(--el-color-primary-light-7);
+  /* 允许的两处投影之一：translateY(-2px) 浮起时的反馈 */
   box-shadow: var(--el-box-shadow);
 }
 .stat-card:hover .stat-card__trail { transform: translateX(2px); color: var(--el-color-primary); }
@@ -722,12 +734,15 @@ html.dark .cache-monitor {
   display: block; height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-warning-light-3));
+  /* 进度条填充刻意慢于微交互档：命中率的数值变化要看得见，故不套 fast 令牌 */
   transition: width 0.4s ease;
 }
 .stat-card__trail {
   flex-shrink: 0;
   color: var(--el-text-color-placeholder);
-  transition: transform var(--el-transition-duration, 0.2s) ease, color var(--el-transition-duration, 0.2s) ease;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 /* 三栏 */
@@ -742,7 +757,7 @@ html.dark .cache-monitor {
   display: flex; flex-direction: column;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px); background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light);
+  /* koi 规约：容器静止态不加投影，三栏之间靠边框 + 栅格间距分隔 */
   overflow: hidden; min-width: 0;
 }
 /* 左栏对齐「缓存实例」，中栏对齐「总键数」，右栏跨「内存占用 + 命中率」两列 */
@@ -785,10 +800,12 @@ html.dark .cache-monitor {
   padding: 10px 12px; margin-bottom: 6px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px); cursor: pointer;
+  /* div + @click 承担按钮语义：去掉浏览器默认轮廓，改用自绘焦点环 */
+  outline: none;
   transition:
-    background-color var(--el-transition-duration, 0.2s) ease,
-    border-color var(--el-transition-duration, 0.2s) ease,
-    box-shadow var(--el-transition-duration, 0.2s) ease;
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .capsule-row:hover {
   background: var(--el-fill-color-lighter);
@@ -802,6 +819,16 @@ html.dark .cache-monitor {
 .capsule-row--active:hover {
   background: var(--el-color-primary-light-8);
 }
+.capsule-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* 焦点环与选中态左侧强调条共用 box-shadow，且同特异度：必须合并列出，
+   否则键盘聚焦选中行时后写的 :focus-visible 会把强调条整条顶掉 */
+.capsule-row--active:focus-visible {
+  box-shadow:
+    inset 3px 0 0 var(--el-color-primary),
+    0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .capsule-row__icon {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -809,7 +836,9 @@ html.dark .cache-monitor {
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
-  transition: background-color var(--el-transition-duration, 0.2s) ease, color var(--el-transition-duration, 0.2s) ease;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .capsule-row--active .capsule-row__icon {
   background: var(--el-bg-color);
@@ -830,7 +859,7 @@ html.dark .cache-monitor {
   word-break: break-all; line-height: 1.5;
 }
 .capsule-row--active .capsule-row__key { color: var(--el-color-primary); }
-.capsule-row__del { flex-shrink: 0; opacity: 0; transition: opacity var(--el-transition-duration, 0.2s) ease; }
+.capsule-row__del { flex-shrink: 0; opacity: 0; transition: opacity var(--el-transition-duration-fast, 0.2s) ease; }
 .capsule-row:hover .capsule-row__del { opacity: 1; }
 
 /* 右栏信息块 */
@@ -893,15 +922,20 @@ html.dark .cache-monitor {
   font-weight: 600;
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  outline: none;
   transition:
-    color var(--el-transition-duration, 0.2s) ease,
-    border-color var(--el-transition-duration, 0.2s) ease,
-    background-color var(--el-transition-duration, 0.2s) ease;
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .code-copy:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
+}
+/* 原生 button：自绘焦点环 */
+.code-copy:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .code-mode {
   display: inline-flex;
@@ -912,26 +946,35 @@ html.dark .cache-monitor {
   background: var(--el-fill-color-light);
 }
 .code-mode__btn {
+  box-sizing: border-box;
   height: 26px;
   padding: 0 14px;
-  border: none;
+  /* 透明边框给 .is-active 让位：koi 规约容器不加投影，选中态改用边框表达，
+     预留 1px 边框才能保证 JSON/原始 切换时按钮宽度不抖动 */
+  border: 1px solid transparent;
   border-radius: var(--el-radius-full, 9999px);
   background: transparent;
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  outline: none;
   transition:
-    background-color var(--el-transition-duration, 0.2s) ease,
-    color var(--el-transition-duration, 0.2s) ease;
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .code-mode__btn:hover:not(:disabled) { color: var(--el-color-primary); }
 .code-mode__btn.is-active {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
-  box-shadow: var(--el-box-shadow-lighter);
+  border-color: var(--el-color-primary-light-7);
 }
 .code-mode__btn:disabled { cursor: not-allowed; opacity: 0.45; }
+/* 原生 button：自绘焦点环 */
+.code-mode__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 
 .code-viewer {
   display: flex;
@@ -978,27 +1021,39 @@ html.dark .cache-monitor {
 
 /* 删除圆形按钮 */
 .del-circle-btn {
-  width: 32px; height: 32px; border-radius: var(--el-radius-full);
+  width: 32px; height: 32px; border-radius: var(--el-radius-full, 9999px);
   border: none; cursor: pointer; background: var(--el-color-danger);
   display: flex; align-items: center; justify-content: center;
-  transition: transform 0.15s;
+  outline: none;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .del-circle-btn:hover { transform: scale(1.08); }
+/* 红底上焦点环仍用主色，12% 混色在危险红背景上依旧可辨 */
+.del-circle-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 
 /* 缓存内容头部：编辑图标按钮 */
 .head-icon-btn {
-  width: 28px; height: 28px; border-radius: var(--el-radius-full);
+  width: 28px; height: 28px; border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter); cursor: pointer;
   background: var(--el-bg-color);
   display: flex; align-items: center; justify-content: center;
   color: var(--el-text-color-secondary);
-  transition: color 0.15s, border-color 0.15s;
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .head-icon-btn:hover:not(:disabled) {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary-light-5);
 }
 .head-icon-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+/* 原生 button（外层 el-tooltip 只做浮层，不提供轮廓）：自绘焦点环 */
+.head-icon-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 
 /* ==================== 编辑缓存值弹窗 ==================== */
 .cache-edit { display: flex; flex-direction: column; gap: 10px; }
@@ -1018,7 +1073,9 @@ html.dark .cache-monitor {
   font-size: 12px; line-height: 1.6;
 }
 .cache-edit__editor.is-invalid :deep(.el-textarea__inner) {
-  box-shadow: 0 0 0 1px var(--el-color-danger) inset;
+  /* 错误态改边框色表达，不叠 inset 投影（koi 规约：容器不加投影；
+     下方 .cache-edit__error 文案继续承担第二重提示，不依赖投影） */
+  border-color: var(--el-color-danger);
 }
 .cache-edit__error { margin: 0; font-size: 12px; color: var(--el-color-danger); }
 .cache-edit__note { margin: 0; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
@@ -1035,5 +1092,28 @@ html.dark .cache-monitor {
   .col-panel--center,
   .col-panel--wide { grid-column: span 1; }
   .col-panel { min-height: 200px; }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .refresh-btn,
+  .stat-card,
+  .stat-card__meter > span,
+  .stat-card__trail,
+  .capsule-row,
+  .capsule-row__icon,
+  .capsule-row__del,
+  .code-copy,
+  .code-mode__btn,
+  .del-circle-btn,
+  .head-icon-btn {
+    transition: none;
+  }
+  /* 刷新中的旋转动画必须停掉；但该 class 唯一的表现手段就是动画，
+     直接 animation:none 会让「正在刷新」彻底无感，故改用静态着色兜底 */
+  .refresh-btn--spinning {
+    animation: none;
+    color: var(--el-color-primary);
+  }
 }
 </style>

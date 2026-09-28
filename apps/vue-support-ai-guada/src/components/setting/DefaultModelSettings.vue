@@ -100,6 +100,24 @@
           </SettingsRow>
         </el-collapse-item>
       </el-collapse>
+
+      <!-- 以图搜图图片库：仅管理员可见。
+           底库是全局共享资源且直接决定检索准确度，普通用户能改就等于向量索引可被
+           任意污染，所以管理动作（上传/删除）收敛到这里，检索页只保留「查询」。
+           后端 5 个接口也都带 @Permission("admin")，前端隐藏只是体验。
+           这里直接调 isAdmin()，不要包 computed：isAdmin() 读的是 permission.ts 里的
+           裸 let userRoles，没有任何响应式依赖，computed 会把首次求值结果永久缓存，
+           登录态恢复晚于本组件 setup 时管理员也会永远看不到。与 GlobalSidebar 的
+           adminOnly 过滤写法保持一致。 -->
+      <div v-if="group.group === 'image_search' && isAdmin()" class="lib-slot">
+        <div class="lib-slot-head">
+          <span class="lib-slot-title">图片库</span>
+          <span class="lib-slot-desc">
+            以图搜图的检索底库。上传的图会自动提取特征入库，检索页的结果来自这里。
+          </span>
+        </div>
+        <ImageLibraryPanel />
+      </div>
     </SettingsCard>
 
     <!-- 模型选择对话框 -->
@@ -121,7 +139,7 @@
                   class="w-4 h-4 object-contain shrink-0" />
                 <span class="md-name">{{ model.model }}</span>
                 <span class="md-tags">
-                  <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType" size="small">
+                  <ReTag v-for="tag in model.displayTags" :key="tag.value" :type="tag.tagType" >
                     {{ tag.label }}
                   </ReTag>
                 </span>
@@ -157,6 +175,8 @@ import LDialog from '@/components/ui/LDialog.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import ImageLibraryPanel from './ImageLibraryPanel.vue'
+import { isAdmin } from '@repo/core'
 import { getModelAvatarPath } from '@/utils/modelUtils'
 
 // Element Plus 组件导入
@@ -716,11 +736,36 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 以图搜图图片库：挂在本分组的字段列表之下，作为一块独立管理区 */
+.lib-slot {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--el-border-color-lighter, #ebeef5);
+}
+
+.lib-slot-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.lib-slot-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.lib-slot-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
 /* ============ 高级选项折叠 ============ */
 :deep(.adv-collapse) { border: none; }
 :deep(.adv-collapse .el-collapse-item__wrap) {
   border-bottom: none;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 :deep(.adv-collapse .el-collapse-item__header) {
   height: auto; min-height: 0; line-height: normal;
@@ -736,7 +781,7 @@ onMounted(async () => {
   padding: 12px 16px; cursor: pointer;
   transition: background 0.16s ease;
 }
-.adv-head:hover { background: var(--color-surface-hover, var(--el-fill-color-light)); }
+.adv-head:hover { background: var(--el-fill-color-light); }
 .adv-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-regular); }
 :deep(.adv-chevron) {
   color: var(--el-text-color-secondary);
@@ -752,10 +797,12 @@ onMounted(async () => {
 .md-provider { font-size: 12px; font-weight: 600; color: var(--el-text-color-secondary); margin-bottom: 4px; }
 .md-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  padding: 9px 12px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px); cursor: pointer;
   transition: background 0.16s ease;
 }
-.md-row:hover { background: var(--color-surface-hover, var(--el-fill-color-light)); }
+.md-row:hover { background: var(--el-fill-color-light); }
 .md-row-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .md-name { font-size: 13px; color: var(--el-text-color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .md-tags { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
@@ -763,4 +810,28 @@ onMounted(async () => {
 .md-empty { padding: 40px 0; text-align: center; }
 .md-empty-main { font-size: 13px; color: var(--el-text-color-regular); }
 .md-empty-sub { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
+
+/* 动效降级：系统开启「减少动态效果」时，高级设置折叠头与模型行的底色直接到位、
+   折叠箭头改为瞬间翻转。逐个列出，不写 `*` / .md-list * 通配，
+   避免把 el-collapse / el-tag / el-input 内部 Element Plus 组件的合法过渡一起掐掉。
+   箭头的展开/收起终态是 rotate(180deg) 这条静态声明，停掉过渡后朝向依然可读，
+   信息不会因此丢失。 */
+@media (prefers-reduced-motion: reduce) {
+  .adv-head,
+  .md-row,
+  :deep(.adv-chevron) {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：模型行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 行底色透明、落在弹层表面色上，一档主色描边足够可见。 */
+.md-row {
+  outline: none;
+}
+
+.md-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 </style>

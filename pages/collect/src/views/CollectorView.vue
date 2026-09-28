@@ -21,6 +21,7 @@ import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import FlowDesignDialog from "../components/FlowDesignDialog.vue";
@@ -35,7 +36,8 @@ import {
   runFlow,
   setFlowStatus,
 } from "../api/collectApi";
-import { costText, statusTagType, statusText, triggerText } from "../constants/taskStatus";
+import { COLLECT_ACTIONS } from "../constants/actionColumns";
+import { costMs, statusTagType, statusText, triggerText } from "../constants/taskStatus";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { CollectFlow, CollectOption, CollectTask } from "../types/collect";
 
@@ -131,10 +133,10 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowCategoryId", label: "分类", width: 110, slot: "category", align: "center" },
   { prop: "collectFlowStatus", label: "状态", width: 96, slot: "status", align: "center" },
   { prop: "nodeCount", label: "节点/连线", width: 96, align: "center" },
-  { prop: "collectFlowCron", label: "自动调度", width: 150, slot: "cron", showOverflowTooltip: true },
+  { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron", showOverflowTooltip: true },
   { prop: "collectFlowNextExecTime", label: "下次执行", width: 176, slot: "next" },
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
-  { prop: "action", label: "操作", width: 372, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
 ]);
 
 /* ------------------------------- 行内操作 ------------------------------- */
@@ -154,7 +156,13 @@ function asFlow(input: unknown): CollectFlow {
   return input as CollectFlow;
 }
 
-/** 打开配置弹窗；变量/函数/通知收进来后，采集器行内不再各给一个按钮 */
+/**
+ * 打开全局配置弹窗。
+ *
+ * 变量 / 函数 / 通知 / 操作列定义都是平台级配置，挂在页面顶部的工具栏上，
+ * 每一行都摆一份入口只会让人误以为「这条采集器有自己的一套变量」。
+ * 行内与「更多」里原来的入口已收掉，唯一入口在这里。
+ */
 function openConfig(panel: string): void {
   configPanel.value = panel;
   configVisible.value = true;
@@ -232,11 +240,9 @@ async function doDelete(flow: CollectFlow): Promise<void> {
   }
 }
 
-/** 更多菜单：把行内操作与三个配置页签再放一份，窄屏换行也不至于点不到 */
+/** 更多菜单：只留采集器自身的复制与删除，配置类入口一律在页面顶部 */
 function runMore(command: string, flow: CollectFlow): void {
-  if (command === "variable" || command === "function" || command === "notice") {
-    openConfig(command);
-  } else if (command === "copy") {
+  if (command === "copy") {
     void doCopy(flow);
   } else if (command === "delete") {
     void doDelete(flow);
@@ -249,30 +255,39 @@ function runMore(command: string, flow: CollectFlow): void {
     <div class="collect-toolbar">
       <ReInput
         v-model="keyword"
-        size="small"
         style="width: 220px"
         placeholder="按名称 / 编码搜索"
         clearable
       />
       <ReSelect
         v-model="categoryFilter"
-        size="small"
         style="width: 150px"
         :options="categoryOptions"
         placeholder="全部分类"
       />
-      <ReButton size="small" type="primary" icon="Plus" @click="openDesign(null)">
-        新建采集器
-      </ReButton>
+      <el-button icon="Plus" @click="openDesign(null)" text></el-button>
+      <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
+        <ReButton icon="Setting" text></ReButton>
+        <template #dropdown>
+          <ElDropdownMenu>
+            <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
+            <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
+            <ElDropdownItem command="function">函数库</ElDropdownItem>
+            <ElDropdownItem command="notice">执行通知</ElDropdownItem>
+          </ElDropdownMenu>
+        </template>
+      </ElDropdown>
       <span class="spacer" />
       <span class="tb-label">共 {{ filtered.length }} 个采集器</span>
-      <ReButton size="small" text icon="Refresh" @click="reload">刷新</ReButton>
+      <ReButton text icon="Refresh" @click="reload"></ReButton>
     </div>
 
     <ReTable
+      table-id="collect-collector"
       :data="filtered"
       :columns="columns"
       :pagination="false"
+      :layout-table="{ fill: true }"
       row-key="collectFlowId"
       empty-text="没有匹配的采集器"
       stripe
@@ -286,11 +301,11 @@ function runMore(command: string, flow: CollectFlow): void {
       </template>
 
       <template #category="{ row }">
-        <ReTag size="small" effect="plain">{{ categoryName(asFlow(row)) }}</ReTag>
+        <ReTag  effect="plain">{{ categoryName(asFlow(row)) }}</ReTag>
       </template>
 
       <template #status="{ row }">
-        <ReTag size="small" :type="row.collectFlowStatus === 1 ? 'success' : 'info'" effect="plain">
+        <ReTag  :type="row.collectFlowStatus === 1 ? 'success' : 'info'" effect="plain">
           {{ row.collectFlowStatus === 1 ? "已启用" : "已停用" }}
         </ReTag>
       </template>
@@ -299,7 +314,7 @@ function runMore(command: string, flow: CollectFlow): void {
         <span v-if="row.collectFlowCron">{{ row.collectFlowCron }}</span>
         <span v-else class="muted">未配置</span>
         <ReSwitch
-          size="small"
+          
           :model-value="row.collectFlowStatus === 1"
           style="margin-left: 6px"
           @update:model-value="value => toggleSchedule(asFlow(row), value)"
@@ -314,15 +329,20 @@ function runMore(command: string, flow: CollectFlow): void {
       <template #lastRun="{ row }">
         <template v-if="latestTaskOf.get(row.collectFlowId)">
           <div class="run-line">
-            <ReTag size="small" :type="statusTagType(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus)">
+            <ReTag  :type="statusTagType(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus)">
               {{ statusText(latestTaskOf.get(row.collectFlowId)!.collectTaskStatus) }}
             </ReTag>
             <span class="run-no">{{ latestTaskOf.get(row.collectFlowId)!.collectTaskNo }}</span>
             <span class="muted">{{ triggerText(latestTaskOf.get(row.collectFlowId)!.collectTaskTriggerType) }}</span>
           </div>
           <div class="run-sub">
-            耗时 {{ costText(latestTaskOf.get(row.collectFlowId)!.collectTaskCost) }} ·
-            产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
+            耗时
+            <ReTime
+              :value="costMs(latestTaskOf.get(row.collectFlowId)!.collectTaskCost)"
+              format="duration"
+              placeholder="—"
+            />
+            · 产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
             {{ latestTaskOf.get(row.collectFlowId)!.collectTaskBeginTime || "—" }}
           </div>
         </template>
@@ -331,32 +351,25 @@ function runMore(command: string, flow: CollectFlow): void {
 
       <template #action="{ row }">
         <div class="ops">
-          <ReButton layout="square" icon="Share" type="primary" tip="流程设计" @click="openDesign(row.collectFlowId)"/>
-          <ReButton layout="square" icon="Grid" type="primary" tip="预览图" @click="openPreview(asFlow(row))"/>
+          <ReButton v-bind="COLLECT_ACTIONS.designFlow" layout="square" @click="openDesign(row.collectFlowId)"/>
+          <ReButton v-bind="COLLECT_ACTIONS.previewFlow" layout="square" @click="openPreview(asFlow(row))"/>
           <ReButton
+            v-bind="COLLECT_ACTIONS.runFlow"
             layout="square"
-            type="success"
-            icon="VideoPlay"
-            tip="运行"
             :loading="runningIds[row.collectFlowId]"
             @click="runNow(asFlow(row))"
           />
-          <ReButton layout="square" icon="Timer" tip="运行记录" @click="gotoRuns(asFlow(row))"/>
+          <ReButton v-bind="COLLECT_ACTIONS.flowRuns" layout="square" @click="gotoRuns(asFlow(row))"/>
           <ReButton
+            v-bind="COLLECT_ACTIONS.flowRecords"
             layout="square"
-            icon="Files"
-            tip="采集结果"
             @click="gotoRecords(asFlow(row), latestTaskOf.get(asFlow(row).collectFlowId)?.collectTaskId)"
           />
-          <ReButton layout="square" icon="Setting" tip="配置" @click="openConfig('variable')"/>
           <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string) => runMore(cmd, asFlow(row))">
-            <ReButton layout="square" icon="MoreFilled" tip="更多操作" />
+            <ReButton v-bind="COLLECT_ACTIONS.flowMore" layout="square" />
             <template #dropdown>
               <ElDropdownMenu>
-                <ElDropdownItem command="variable">变量管理</ElDropdownItem>
-                <ElDropdownItem command="function">函数库</ElDropdownItem>
-                <ElDropdownItem command="notice">执行通知</ElDropdownItem>
-                <ElDropdownItem command="copy" divided>复制采集器</ElDropdownItem>
+                <ElDropdownItem command="copy">复制采集器</ElDropdownItem>
                 <ElDropdownItem command="delete" divided>删除采集器</ElDropdownItem>
               </ElDropdownMenu>
             </template>

@@ -7,7 +7,7 @@
           <span class="status-dot"></span>
           <span>{{ tsharkOk ? 'TShark 可用' : 'TShark 不可用' }}</span>
         </div>
-        <ReTag v-if="activeSessionId != null" :type="liveConnected ? 'success' : 'info'" size="small" effect="light">
+        <ReTag v-if="activeSessionId != null" :type="liveConnected ? 'success' : 'info'" effect="light">
           {{ liveConnected ? `实时推送中 +${liveCount}` : '推送未连接' }}
         </ReTag>
       </div>
@@ -47,12 +47,12 @@
                   <span class="meta-time">{{ fmtTime(s.startTime) }}</span>
                 </div>
                 <div class="session-actions">
-                  <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" size="small" effect="plain">
+                  <ReTag :type="s.captureStatus === 1 ? 'success' : 'info'" effect="plain">
                     {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
                   </ReTag>
                   <div class="action-btns">
-                    <ReButton v-if="s.captureStatus === 1" link type="warning" icon="VideoPause" show-text size="small" @click.stop="stopSession(s.id)">停止</ReButton>
-                    <ReButton link type="danger" icon="Delete" show-text size="small" @click.stop="deleteSession(s.id)">删除</ReButton>
+                    <ReButton v-if="s.captureStatus === 1" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
+                    <ReButton link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
                   </div>
                 </div>
               </div>
@@ -110,14 +110,14 @@
           <template #title>
             <span class="panel-title"><ReIcon name="List" :size="13" /> 数据包明细</span>
           </template>
-          <ReTable :data="packets" :loading="loadingPackets" border stripe size="small" :pagination="false" :toolbar="false"
+          <ReTable :data="packets" :loading="loadingPackets" border stripe :pagination="false" :toolbar="false"
             :layout-table="{ height: 320 }">
             <ReTableColumn prop="packetTime" label="时间" width="170" align="center">
               <template #default="{ row }"><span class="mono dim">{{ row.packetTime || '' }}</span></template>
             </ReTableColumn>
             <ReTableColumn label="协议" width="90" align="center">
               <template #default="{ row }">
-                <ReTag :class="['proto-tag', protoClass(row.protocol)]" effect="plain" size="small">{{ row.protocol || 'OTHER' }}</ReTag>
+                <ReTag :class="['proto-tag', protoClass(row.protocol)]" effect="plain" >{{ row.protocol || 'OTHER' }}</ReTag>
               </template>
             </ReTableColumn>
             <ReTableColumn label="源" width="170">
@@ -140,7 +140,7 @@
             </ReTableColumn>
             <ReTableColumn label="操作" width="80" align="center">
               <template #default="{ row }">
-                <ReButton link type="primary" size="small" @click="openPacketDetail(row)">详情</ReButton>
+                <ReButton link type="primary" @click="openPacketDetail(row)">详情</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -162,7 +162,7 @@
     <ReDrawer v-model="detailOpen" title="数据包详情" size="55%">
       <template #content>
         <div v-if="packetDetail" class="packet-detail">
-          <ReDescriptions :column="2" border size="small">
+          <ReDescriptions :column="2" border >
             <ReDescriptionsItem label="协议">{{ packetDetail.protocol }}</ReDescriptionsItem>
             <ReDescriptionsItem label="长度">{{ packetDetail.packetLength }} 字节</ReDescriptionsItem>
             <ReDescriptionsItem label="源地址">{{ packetDetail.sourceIp }}:{{ packetDetail.sourcePort }}</ReDescriptionsItem>
@@ -493,6 +493,11 @@ function resizeCharts() {
 </script>
 
 <style scoped>
+/* 本文件原先整套用 pages/monitor/src/styles/tokens.css 的私有令牌（--bg-* / --text-*
+   / --border-subtle / --brand-500 / --status-* / --shadow-card / --radius-*），
+   而那份 tokens.css 只有 :root、没有暗色变体，暗色模式下这些值全部停留在亮色。
+   已统一改走 EP 语义令牌；--metric-* 是「网络/中间件域各自的固定色相」，
+   需要彼此可区分，保留不换成 EP 语义色。 */
 /* ==================== 布局 ==================== */
 .tshark-page {
   display: flex;
@@ -509,10 +514,10 @@ function resizeCharts() {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--radius-lg, 12px);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
+  /* koi 规约：工具条是容器，静止态不加投影，边界由上面那圈边框承载 */
   flex-wrap: wrap;
 }
 .toolbar-left {
@@ -533,23 +538,26 @@ function resizeCharts() {
   align-items: center;
   gap: 7px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 12px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  /* 原来写 transition: all 0.2s，all 会把布局属性也纳入过渡；显式列出真实会变的属性 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .status-ok {
-  color: var(--status-success, #16c916);
-  background: rgba(22, 201, 22, 0.10);
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
 }
 .status-bad {
-  color: var(--status-error, #ff4c4c);
-  background: rgba(255, 76, 76, 0.10);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
 .status-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: currentColor;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -563,9 +571,9 @@ function resizeCharts() {
 .iface-select :deep(.el-select__wrapper:hover),
 .iface-select :deep(.el-select.is-focused .el-select__wrapper) {
   box-shadow: none !important;
-  border-color: var(--border-subtle) !important;
+  border-color: var(--el-border-color-lighter) !important;
 }
-.iface-select :deep(.el-select__wrapper:hover) { background: var(--bg-hover); }
+.iface-select :deep(.el-select__wrapper:hover) { background: var(--el-fill-color-light); }
 .filter-input { width: 220px; }
 .count-input { width: 110px; }
 
@@ -597,11 +605,11 @@ function resizeCharts() {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   min-height: 320px;
 }
 .empty-illustration {
-  color: rgba(99, 102, 241, 0.30);
+  color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   opacity: 0.7;
 }
 
@@ -610,9 +618,9 @@ function resizeCharts() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-container-card);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：面板容器静止态不加投影 */
   overflow: hidden;
 }
 .panel-title {
@@ -621,7 +629,7 @@ function resizeCharts() {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
 
 .session-list {
@@ -634,12 +642,19 @@ function resizeCharts() {
 }
 .session-item {
   position: relative;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原来是 var(--radius-md)（tokens.css 里解析为 8px）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   padding: 10px 12px;
   cursor: pointer;
-  background: var(--bg-container-card);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+  background: var(--el-bg-color);
+  /* 原生可点行：去掉默认轮廓，改用自绘焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .session-item::before {
   content: '';
@@ -648,26 +663,26 @@ function resizeCharts() {
   top: 10px;
   bottom: 10px;
   width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--brand-500);
+  border-radius: 0 var(--el-radius-full, 9999px) var(--el-radius-full, 9999px) 0;
+  background: var(--el-color-primary);
   opacity: 0;
-  transition: opacity 0.18s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .session-item:hover {
-  border-color: rgba(99, 102, 241, 0.45);
-  background: var(--bg-hover);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  background: var(--el-fill-color-light);
   transform: translateY(-1px);
 }
 .session-item:hover::before { opacity: 0.5; }
 .session-item:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-color: var(--el-color-primary);
 }
 .session-item.active {
-  border-color: var(--brand-500);
-  background: rgba(99, 102, 241, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.30);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  /* 原来还有 inset 0 0 0 1px rgba(99,102,241,.30) 这圈内描边，属于重复表达：
+     选中态已有主色边框 + 浅底 + 左侧强调条（:before opacity:1），故去掉 */
 }
 .session-item.active::before { opacity: 1; }
 
@@ -680,7 +695,7 @@ function resizeCharts() {
 .session-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -689,23 +704,23 @@ function resizeCharts() {
   flex-shrink: 0;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
 }
-.state-run { background: var(--status-success); box-shadow: 0 0 0 3px rgba(22, 201, 22, 0.20); animation: pulse 2s ease-in-out infinite; }
-.state-stop { background: var(--text-tertiary); }
+.state-run { background: var(--el-color-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 20%, transparent); animation: pulse 2s ease-in-out infinite; }
+.state-stop { background: var(--el-text-color-placeholder); }
 
 .session-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 10.5px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   margin-top: 4px;
   flex-wrap: wrap;
 }
 .meta-iface {
   font-family: 'SF Mono', 'Cascadia Code', monospace;
-  color: var(--text-secondary);
+  color: var(--el-text-color-regular);
 }
 .meta-time { margin-left: auto; }
 
@@ -725,7 +740,7 @@ function resizeCharts() {
   padding-top: 10px;
   display: flex;
   justify-content: center;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--el-border-color-lighter);
   margin-top: 4px;
 }
 
@@ -743,14 +758,17 @@ function resizeCharts() {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-card);
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：卡片静止态不加投影，抬升反馈只放在 :hover */
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
   cursor: default;
 }
 .stat-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  /* 允许的两处投影之一：悬浮抬升反馈 */
+  box-shadow: var(--el-box-shadow);
   transform: translateY(-2px);
 }
 .stat-icon {
@@ -759,14 +777,16 @@ function resizeCharts() {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
 }
+/* --metric-* 是各监控域的固定色相（网络/中间件/数据库），彼此必须可区分，保留原色相 */
 .stat-net { --sc: var(--metric-net); }
 .stat-jvm { --sc: var(--metric-jvm); }
 .stat-db { --sc: var(--metric-db); }
+/* 磁贴底色跟着各自 --sc 走：原来三张卡统一垫靛蓝底，靛蓝底上的浅蓝数据库图标几乎看不出色差 */
 .stat-net .stat-icon, .stat-jvm .stat-icon, .stat-db .stat-icon {
-  background: rgba(99, 102, 241, 0.10);
+  background: color-mix(in srgb, var(--sc) 12%, transparent);
   color: var(--sc);
 }
 .stat-body {
@@ -776,13 +796,13 @@ function resizeCharts() {
 }
 .stat-label {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
 }
 .stat-value {
   font-size: 20px;
   font-weight: 700;
   line-height: 1;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -797,17 +817,17 @@ function resizeCharts() {
 }
 .chart-card {
   min-height: 220px;
-  background: var(--bg-container-card);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：图表容器静止态不加投影 */
 }
 .chart-box { height: 200px; width: 100%; }
 
 /* ==================== 表格 ==================== */
 .packet-card {
-  background: var(--bg-container-card);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：表格容器静止态不加投影 */
 }
 .table-footer {
   display: flex;
@@ -817,7 +837,7 @@ function resizeCharts() {
 
 /* ==================== 通用 ==================== */
 .mono { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 11px; }
-.dim { color: var(--text-tertiary); }
+.dim { color: var(--el-text-color-secondary); }
 .info-cell {
   display: block;
   max-width: 100%;
@@ -827,15 +847,16 @@ function resizeCharts() {
 }
 
 .proto-tag { font-family: 'SF Mono', monospace; }
+/* --metric-* 保留原色相（各协议/指标需彼此可区分）；--status-* 换成 EP 语义色 */
 .proto-tcp { color: var(--metric-cpu); }
-.proto-udp { color: var(--status-success); }
+.proto-udp { color: var(--el-color-success); }
 .proto-http { color: var(--metric-disk); }
-.proto-tls { color: var(--text-tertiary); }
-.proto-dns { color: var(--status-error); }
+.proto-tls { color: var(--el-text-color-placeholder); }
+.proto-dns { color: var(--el-color-danger); }
 .proto-icmp { color: var(--metric-jvm); }
 .proto-arp { color: var(--metric-disk); }
 .proto-ssh { color: var(--metric-net); }
-.proto-quic { color: var(--text-secondary); }
+.proto-quic { color: var(--el-text-color-regular); }
 
 .packet-detail {
   display: flex;
@@ -845,11 +866,11 @@ function resizeCharts() {
 .detail-section h4 {
   margin: 0 0 6px;
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
 .restored, .raw {
-  background: var(--bg-fill);
-  border-radius: var(--radius-sm, 8px);
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
   padding: 12px;
   font-size: 11px;
   line-height: 1.5;
@@ -860,7 +881,13 @@ function resizeCharts() {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* 状态点 / 运行中指示的呼吸动画：这两个状态本来就由点的底色（成功绿 / 危险红 / 禁用灰）
+     表达，动画只是附加动效，不是唯一信息，可以安全停掉 */
   .status-dot, .session-state { animation: none; }
   .session-item, .stat-card { transition: none; }
+  .status-pill,
+  .session-item::before {
+    transition: none;
+  }
 }
 </style>

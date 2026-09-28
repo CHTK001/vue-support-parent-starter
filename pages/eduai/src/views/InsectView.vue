@@ -76,7 +76,15 @@
     <div v-if="noteOpen" class="iw__notes">
       <div class="iw__notes-head">
         <h3 class="iw__notes-title">观察笔记</h3>
-        <button type="button" class="iw__notes-close" @click="noteOpen = false">✕</button>
+        <button
+          type="button"
+          class="iw__notes-close"
+          title="关闭"
+          aria-label="关闭观察笔记"
+          @click="noteOpen = false"
+        >
+          <ReIcon name="Close" :size="15" aria-hidden="true" />
+        </button>
       </div>
       <textarea
         v-model="noteDraft"
@@ -434,14 +442,17 @@ watch(activeCode, (code) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  /* 白字压在主色带上，靠描边阴影保证可读性；暗色模式色带更深，阴影同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .iw__title-dot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-white);
-  box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
 .iw__bar-ops {
   display: flex;
@@ -459,7 +470,7 @@ watch(activeCode, (code) => {
 }
 .iw__count--warn {
   background: var(--el-color-warning);
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 3px 10px;
   opacity: 1;
   cursor: help;
@@ -467,18 +478,26 @@ watch(activeCode, (code) => {
 .iw__op {
   height: 34px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 0;
   background: var(--el-bg-color);
   color: var(--el-color-primary);
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
-  transition: transform 0.15s, opacity 0.15s;
+  /* 原 slate 投影去掉：按钮压在主色渐变底上，白底 + 主色字已经足够跳出来；
+     浮起反馈只留给 :hover */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .iw__op:hover:not(:disabled) {
   transform: translateY(-1px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-black) 22%, transparent);
+}
+.iw__op:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .iw__op:disabled {
   opacity: 0.55;
@@ -495,7 +514,7 @@ watch(activeCode, (code) => {
   font-weight: 700;
   color: var(--el-color-white);
   background: var(--el-color-danger);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 10px 14px;
 }
 
@@ -521,18 +540,22 @@ watch(activeCode, (code) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   color: var(--el-text-color-secondary);
   font-size: 14px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .iw__motion {
   background: var(--el-bg-color);
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 12px 16px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .iw__motion-title {
   display: inline-block;
@@ -540,7 +563,7 @@ watch(activeCode, (code) => {
   font-weight: 800;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
   margin-bottom: 6px;
 }
@@ -554,9 +577,11 @@ watch(activeCode, (code) => {
 /* 观察笔记 */
 .iw__notes {
   background: var(--el-bg-color);
-  border-radius: 20px;
+  /* 原 20px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .iw__notes-head {
   display: flex;
@@ -576,10 +601,19 @@ watch(activeCode, (code) => {
   cursor: pointer;
   color: var(--el-text-color-secondary);
   font-size: 15px;
+  /* 换成 ReIcon 后需要 flex 容器让图标居中 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.iw__notes-close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .iw__notes-input {
   width: 100%;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
   padding: 10px 12px;
@@ -602,11 +636,17 @@ watch(activeCode, (code) => {
 .iw__notes-copy {
   height: 32px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 0;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.iw__notes-save:focus-visible,
+.iw__notes-copy:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .iw__notes-save {
   background: var(--el-color-primary);
@@ -625,7 +665,7 @@ watch(activeCode, (code) => {
   gap: 8px;
 }
 .iw__notes-item {
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-lighter);
   padding: 9px 12px;
 }
@@ -637,6 +677,11 @@ watch(activeCode, (code) => {
   font-weight: 900;
   color: var(--el-color-primary);
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.iw__notes-name:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .iw__notes-text {
   margin: 4px 0 0;
@@ -668,6 +713,17 @@ watch(activeCode, (code) => {
   }
   .iw__stage {
     height: min(52vh, 460px);
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .iw__op {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .iw__op:hover:not(:disabled) {
+    transform: none;
   }
 }
 </style>

@@ -3,13 +3,13 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">Agent 状态</span>
-        <el-tag v-if="stats.agentActive" type="success" effect="dark" round size="small">已注入</el-tag>
-        <el-tag v-else type="info" effect="plain" round size="small">未注入</el-tag>
+        <el-tag v-if="stats.agentActive" type="success" effect="dark" round >已注入</el-tag>
+        <el-tag v-else type="info" effect="plain" round >未注入</el-tag>
         <span class="live-dot" title="SSE 实时推送中">
           <i class="live-pulse"></i>实时
         </span>
       </div>
-      <el-button size="small" round @click="load" :loading="loading">
+      <el-button round @click="load" :loading="loading">
         <el-icon class="mr-1"><Refresh /></el-icon>刷新
       </el-button>
     </div>
@@ -26,7 +26,7 @@
         <b :class="slaPercentClass">{{ sla.slaPercent.toFixed(2) }}%</b>
         <span class="sla-detail">成功 {{ sla.successCount }} / {{ sla.totalCount }}</span>
       </span>
-      <el-button size="small" text type="primary" @click="router.push('/alerts')">
+      <el-button text type="primary" @click="router.push('/alerts')">
         告警中心 →
       </el-button>
     </div>
@@ -97,7 +97,7 @@
         <el-table
           :data="services.slice(0, 8)"
           class="apm-table"
-          size="small"
+
           empty-text="暂无服务数据"
           @row-click="(r: Record<string, unknown>) => router.push('/endpoints')"
         >
@@ -125,7 +125,7 @@
         <el-table
           :data="slowCalls.slice(0, 5)"
           class="apm-table"
-          size="small"
+
           empty-text="暂无慢调用"
           @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
         >
@@ -155,7 +155,7 @@
         <el-table
           :data="errorRanking.slice(0, 5)"
           class="apm-table"
-          size="small"
+
           empty-text="暂无错误"
           @row-click="(r: Record<string, unknown>) => router.push('/errors')"
         >
@@ -573,27 +573,34 @@ watch(stats, () => renderCharts(), { deep: true });
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--apm-success, #22c55e);
+  color: var(--apm-success);
 }
 
+/* 实时脉冲点：用 border + transform 做外扩脉冲，不用 box-shadow。
+   理由：koi 规约只允许「焦点环」「悬浮反馈」两类投影；且 border 在关闭动画后
+   仍留下一圈实色描边，关动效不会丢掉「SSE 实时推送中」这个唯一信号。 */
 .live-pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--apm-success, #22c55e);
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--apm-success);
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
   animation: live-pulse 1.6s ease-out infinite;
 }
 
 @keyframes live-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    transform: scale(0.55);
+    border-color: color-mix(in srgb, var(--el-color-success) 70%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    transform: scale(1);
+    border-color: color-mix(in srgb, var(--el-color-success) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    transform: scale(1);
+    border-color: color-mix(in srgb, var(--el-color-success) 0%, transparent);
   }
 }
 
@@ -608,17 +615,20 @@ watch(stats, () => renderCharts(), { deep: true });
   gap: 14px;
 }
 
+/* ---- 统计卡片 ---- */
 .stat-card {
   position: relative;
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 18px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
   overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .stat-card:hover {
@@ -628,6 +638,11 @@ watch(stats, () => renderCharts(), { deep: true });
 
 .stat-card.clickable {
   cursor: pointer;
+  outline: none;
+}
+
+.stat-card.clickable:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .stat-card.clickable::after {
@@ -639,7 +654,9 @@ watch(stats, () => renderCharts(), { deep: true });
   font-size: 14px;
   color: var(--apm-muted);
   opacity: 0;
-  transition: opacity 0.2s, right 0.2s;
+  transition:
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    right var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .stat-card.clickable:hover::after {
@@ -655,7 +672,7 @@ watch(stats, () => renderCharts(), { deep: true });
   gap: 14px;
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 12px 16px;
 }
 
@@ -701,7 +718,7 @@ watch(stats, () => renderCharts(), { deep: true });
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -742,7 +759,7 @@ watch(stats, () => renderCharts(), { deep: true });
 .panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -781,9 +798,9 @@ watch(stats, () => renderCharts(), { deep: true });
 .apm-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -825,6 +842,19 @@ watch(stats, () => renderCharts(), { deep: true });
   }
   .chart-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   .live-pulse 关掉脉冲后仍保留一圈实色描边（border 不随 animation 变化），
+   「SSE 实时推送中」这个唯一信号不会因为关动效而丢失 */
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse {
+    animation: none;
+  }
+  .stat-card,
+  .stat-card.clickable::after {
+    transition: none;
   }
 }
 </style>

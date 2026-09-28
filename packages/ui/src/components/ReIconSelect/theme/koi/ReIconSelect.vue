@@ -240,7 +240,7 @@ watch(filteredTotal, (total) => {
           :total="filteredTotal"
           :page-size="pageSize"
           :current-page="currentPage"
-          size="small"
+
           background
           @current-change="(p: number) => (currentPage = p)"
         />

@@ -5,6 +5,9 @@
  * 封装 el-switch，通过 layout 属性切换不同布局：
  *   <ReSwitch layout="card" title="多标签导航" sub="顶部标签栏" tip="..." v-model="val" />
  *   <ReSwitch title="菜单手风琴" v-model="val" />  <!-- layout="default" -->
+ *   <ReSwitch layout="popover" icon="Timer" title="自动刷新：已关闭" v-model="ms">
+ *     <ReSelect layout="square" vertical :data="档位" />   <!-- 纯方块入口 + 无边框浮层取档 -->
+ *   </ReSwitch>
  *
  * 布局通用 props：title / tip / sub / description
  * 布局专属 props：以布局名开头，如 card-hide-switch / card-show-radio
@@ -17,8 +20,8 @@ defineOptions({ name: "ReSwitch", inheritAttrs: true });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局类型：default（原生行内）| card（卡片式）| modern（现代化扁平）| square（正方形纯图标） */
-    layout?: "default" | "card" | "modern" | "square";
+    /** 布局类型：default（原生行内）| card（卡片式）| modern（现代化扁平）| square（正方形纯图标）| popover（纯方块入口 + 无边框浮层取档） */
+    layout?: "default" | "card" | "modern" | "square" | "popover";
     /** 主标题（通用） */
     title?: string;
     /** 灰色小标题（通用） */
@@ -64,6 +67,9 @@ watch(
         layoutComp.value = mod.default;
       } else if (layout === "square") {
         const mod = await import("./layouts/SquareReSwitch.vue");
+        layoutComp.value = mod.default;
+      } else if (layout === "popover") {
+        const mod = await import("./layouts/Popover.vue");
         layoutComp.value = mod.default;
       } else {
         const mod = await import("./layouts/DefaultReSwitch.vue");

@@ -73,32 +73,40 @@ const selectValue = computed({
 .re-select-label {
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: var(--el-text-color-regular);
   letter-spacing: 0.01em;
 }
 
+/* 与 ReInput 保持同一套三态写法：常态 / 悬浮 / 聚焦，都是 1px inset 描边，不加投影 */
 .re-select :deep(.el-select__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px #e2e8f0 inset;
-  transition: all 0.2s ease;
-  background: #ffffff;
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--el-bg-color);
   min-height: 36px;
 }
 
 .re-select :deep(.el-select__wrapper:hover) {
-  box-shadow: 0 0 0 1px #cbd5e1 inset;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
 }
 
 .re-select :deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3) inset;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 30%, transparent) inset;
 }
 
 .re-select :deep(.el-select__placeholder) {
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
 }
 
 .re-select :deep(.el-select__selected-item) {
-  color: #1e293b;
+  color: var(--el-text-color-primary);
   font-size: 14px;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .re-select :deep(.el-select__wrapper) {
+    transition: none;
+  }
 }
 </style>

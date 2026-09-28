@@ -164,24 +164,24 @@ watch(
         <div class="collect-form">
           <div class="collect-form__item collect-form__item--stack">
             <span class="collect-form__label"><i class="req">*</i>名称</span>
-            <ReInput v-model="form.collectCategoryName" size="small" placeholder="分类名称"/>
+            <ReInput v-model="form.collectCategoryName" placeholder="分类名称"/>
           </div>
           <div class="collect-form__item collect-form__item--stack">
             <span class="collect-form__label">上级分类</span>
-            <ReSelect v-model="form.collectCategoryPid" size="small" style="width: 100%" :options="parentOptions"/>
+            <ReSelect v-model="form.collectCategoryPid" style="width: 100%" :options="parentOptions"/>
           </div>
           <div class="collect-form__item collect-form__item--stack">
             <span class="collect-form__label">排序</span>
-            <ReInputNumber v-model="form.collectCategorySort" size="small" :controls="false" style="width: 100%"/>
+            <ReInputNumber v-model="form.collectCategorySort" :controls="false" style="width: 100%"/>
           </div>
           <div class="collect-form__item collect-form__item--stack">
             <span class="collect-form__label">备注</span>
-            <ReInput v-model="form.collectCategoryRemark" size="small" type="textarea" :rows="2"/>
+            <ReInput v-model="form.collectCategoryRemark" type="textarea" :rows="2"/>
           </div>
           <div class="category-actions">
-            <ReButton size="small" plain icon="DocumentAdd" @click="reset(null, '', 0)">新建</ReButton>
-            <ReButton size="small" type="primary" :loading="saving" @click="save">保存</ReButton>
-            <ReButton size="small" type="danger" plain :disabled="!form.collectCategoryId" @click="remove">删除</ReButton>
+            <ReButton plain icon="DocumentAdd" @click="reset(null, '', 0)">新建</ReButton>
+            <ReButton type="primary" :loading="saving" @click="save">保存</ReButton>
+            <ReButton type="danger" plain :disabled="!form.collectCategoryId" @click="remove">删除</ReButton>
           </div>
           <div class="collect-hint collect-hint--muted">数字是该分类直属流程数；有子分类或流程时无法删除。</div>
         </div>
@@ -203,7 +203,7 @@ watch(
   overflow: auto;
   padding: 6px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-blank);
 }
 
@@ -216,7 +216,8 @@ watch(
 
 .category-node em {
   padding: 0 5px;
-  border-radius: 7px;
+  /* 原为 7px，落在 sm(6)/md(8) 中间；计数徽标尺寸小，取更小的 sm(6px) */
+  border-radius: var(--el-radius-sm, 6px);
   font-style: normal;
   font-size: 11px;
   color: var(--el-text-color-secondary);

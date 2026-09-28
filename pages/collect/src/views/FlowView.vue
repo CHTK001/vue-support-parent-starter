@@ -17,6 +17,8 @@ import ReSelect from "@repo/ui/re-select";
 import type { ReOption } from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTag from "@repo/ui/re-tag";
+import { formatDuration } from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 import CategoryDialog from "../components/CategoryDialog.vue";
 import FlowDesigner from "../components/FlowDesigner.vue";
 import {
@@ -231,7 +233,17 @@ async function refreshTask(): Promise<void> {
       stopPolling();
       // 运行条是全局统计，只在进页时取过一次；任务结束不重拉就会一直停在旧值
       void fetchRuntime().then(info => (runtime.value = info));
-      const stat = `节点 ${task.collectTaskNodeCount ?? 0} · 请求 ${task.collectTaskRequestCount ?? 0} · 结果 ${task.collectTaskRecordCount ?? 0} · 耗时 ${task.collectTaskCost ?? 0}ms`;
+      // 耗时用 ReTime 的 formatDuration 格式化（与表格列同源），空值不编造 0
+      const parts = [
+        `节点 ${task.collectTaskNodeCount ?? 0}`,
+        `请求 ${task.collectTaskRequestCount ?? 0}`,
+        `结果 ${task.collectTaskRecordCount ?? 0}`,
+      ];
+      const cost = costMs(task.collectTaskCost);
+      if (cost != null) {
+        parts.push(`耗时 ${formatDuration(cost)}`);
+      }
+      const stat = parts.join(" · ");
       if (task.collectTaskStatus === "SUCCESS") {
         msgSuccess(`任务 ${task.collectTaskNo} 执行完成，${stat}`);
       } else if (task.collectTaskStatus === "FAILURE") {
@@ -535,7 +547,7 @@ async function refreshStates(): Promise<void> {
         <span class="tb-label">流程</span>
         <ReSelect
           :model-value="currentId ?? ''"
-          size="small"
+          
           style="width: 260px"
           :options="flowOptions"
           placeholder="选择已保存的流程"
@@ -543,18 +555,18 @@ async function refreshStates(): Promise<void> {
           clearable
           @update:model-value="selectFlow"
         />
-        <ReButton size="small" icon="DocumentAdd" @click="newFlow">新建</ReButton>
+        <ReButton  icon="DocumentAdd" @click="newFlow">新建</ReButton>
       </template>
       <span v-else class="tb-label">流程设计</span>
-      <ReTag v-if="dirty" size="small" type="warning">未保存</ReTag>
-      <ReTag v-else-if="currentId" size="small" type="success">已保存</ReTag>
+      <ReTag v-if="dirty"  type="warning">未保存</ReTag>
+      <ReTag v-else-if="currentId"  type="success">已保存</ReTag>
       <span class="tb-sep"/>
-      <ReButton size="small" type="primary" icon="Check" :loading="saving" @click="save">保存</ReButton>
-      <ReButton size="small" icon="CircleCheck" @click="validate">校验</ReButton>
-      <ReButton size="small" icon="VideoPlay" @click="doDryRun">试运行</ReButton>
-      <ReButton size="small" icon="Promotion" :disabled="!currentId" @click="doRun">运行</ReButton>
+      <ReButton  type="primary" icon="Check" :loading="saving" @click="save">保存</ReButton>
+      <ReButton  icon="CircleCheck" @click="validate">校验</ReButton>
+      <ReButton  icon="VideoPlay" @click="doDryRun">试运行</ReButton>
+      <ReButton  icon="Promotion" :disabled="!currentId" @click="doRun">运行</ReButton>
       <ReButton
-        size="small"
+        
         type="danger"
         plain
         icon="VideoPause"
@@ -564,20 +576,20 @@ async function refreshStates(): Promise<void> {
         停止
       </ReButton>
       <span class="tb-sep"/>
-      <ReButton size="small" icon="Setting" @click="openProps">流程属性</ReButton>
-      <ReButton size="small" icon="CopyDocument" :disabled="!currentId" @click="doCopy">复制</ReButton>
-      <ReButton size="small" icon="Delete" :disabled="!currentId" @click="doDelete">删除</ReButton>
-      <ReButton size="small" icon="Files" @click="categoryVisible = true">分类管理</ReButton>
+      <ReButton  icon="Setting" @click="openProps">流程属性</ReButton>
+      <ReButton  icon="CopyDocument" :disabled="!currentId" @click="doCopy">复制</ReButton>
+      <ReButton  icon="Delete" :disabled="!currentId" @click="doDelete">删除</ReButton>
+      <ReButton  icon="Files" @click="categoryVisible = true">分类管理</ReButton>
       <span class="spacer"/>
       <span class="tb-label">调度</span>
       <ReSwitch
-        size="small"
+        
         :model-value="currentFlow?.collectFlowStatus === 1"
         :disabled="!currentId"
         @update:model-value="toggleSchedule"
       />
-      <ReButton size="small" text @click="refreshStates">刷新节点状态</ReButton>
-      <ReButton v-if="!embedded" size="small" text icon="Refresh" @click="reload">刷新列表</ReButton>
+      <ReButton  text @click="refreshStates">刷新节点状态</ReButton>
+      <ReButton v-if="!embedded"  text icon="Refresh" @click="reload">刷新列表</ReButton>
     </div>
 
     <div v-if="!embedded" class="collect-card collect-runtime">
@@ -637,15 +649,15 @@ async function refreshStates(): Promise<void> {
       <div class="collect-form">
         <div class="collect-form__item">
           <span class="collect-form__label"><i class="req">*</i>流程名称</span>
-          <ReInput v-model="form.name" size="small" maxlength="128" placeholder="必填，不超过 128 字"/>
+          <ReInput v-model="form.name"  maxlength="128" placeholder="必填，不超过 128 字"/>
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">流程编码</span>
-          <ReInput v-model="form.code" size="small" maxlength="64" placeholder="留空自动生成 flow-xxxxxxxx"/>
+          <ReInput v-model="form.code"  maxlength="64" placeholder="留空自动生成 flow-xxxxxxxx"/>
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">分类</span>
-          <ReSelect v-model="form.categoryId" size="small" style="width: 100%" :options="categorySelectOptions"/>
+          <ReSelect v-model="form.categoryId"  style="width: 100%" :options="categorySelectOptions"/>
         </div>
         <div class="collect-form__item collect-form__item--stack">
           <span class="collect-form__label">cron</span>
@@ -658,12 +670,12 @@ async function refreshStates(): Promise<void> {
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">并发数</span>
-          <ReInputNumber v-model="form.concurrency" size="small" :min="1" :max="32" controls-position="right"/>
+          <ReInputNumber v-model="form.concurrency"  :min="1" :max="32" controls-position="right"/>
           <span class="collect-hint collect-hint--muted">同一流程在途任务上限，超出时本次触发跳过</span>
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">线程数</span>
-          <ReInputNumber v-model="form.threadCount" size="small" :min="1" :max="64" controls-position="right"/>
+          <ReInputNumber v-model="form.threadCount"  :min="1" :max="64" controls-position="right"/>
           <span class="collect-hint collect-hint--muted">流程内节点并行执行线程数</span>
         </div>
         <div class="collect-form__item collect-form__item--stack">
@@ -683,8 +695,8 @@ async function refreshStates(): Promise<void> {
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton size="small" @click="cancel">关闭</ReButton>
-        <ReButton size="small" type="primary" :loading="saving" @click="save">保存</ReButton>
+        <ReButton  @click="cancel">关闭</ReButton>
+        <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
   </div>

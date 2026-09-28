@@ -107,10 +107,12 @@ describe("PostManage 岗位管理页面", () => {
     expect(rowActions).toContain("编辑");
     expect(rowActions).toContain("删除");
     // 工具栏按钮（搜索区内置 搜索/重置，#toolbar 插槽提供 新增）
+    // 新增按钮按子串匹配「新增」：文案是「新增」还是「新增岗位」属于措辞偏好，
+    // 断言的意图只是「存在一个新增入口」，不该被文案调整打断
     const labels = wrapper.findAll("button").map((b) => b.text());
     expect(labels).toContain("搜索");
     expect(labels).toContain("重置");
-    expect(labels).toContain("新增");
+    expect(labels.some((l) => l.includes("新增"))).toBe(true);
   });
 
   it("calls page query on mount", async () => {

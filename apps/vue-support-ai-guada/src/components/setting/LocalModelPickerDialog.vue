@@ -44,7 +44,7 @@
             <div v-if="!loading && providerRows.length === 0" class="lmp-empty">
               <div class="lmp-empty-main">没有匹配的本地模型</div>
               <div class="lmp-empty-sub">可切换到「服务器目录」选择已放置的模型目录</div>
-              <el-button size="small" class="lmp-retry" @click="retry">重新加载</el-button>
+              <el-button class="lmp-retry" @click="retry">重新加载</el-button>
             </div>
           </div>
         </el-tab-pane>
@@ -248,7 +248,8 @@ watch(
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease;
 }
@@ -320,4 +321,25 @@ watch(
   color: var(--el-text-color-secondary);
 }
 .lmp-dir-actions { margin-top: 16px; }
+
+/* 动效降级：系统开启「减少动态效果」时，模型行的描边与底色直接到位。
+   只关 .lmp-row 自己的 transition，不写 `*` / .lmp-row * 通配，
+   避免把 el-badge / el-tag / el-input 内部 Element Plus 组件的合法过渡一起掐掉。
+   .is-active 选中态是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .lmp-row {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：模型行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 行底色透明、落在弹层表面色上，一档主色描边足够可见。 */
+.lmp-row {
+  outline: none;
+}
+
+.lmp-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 </style>

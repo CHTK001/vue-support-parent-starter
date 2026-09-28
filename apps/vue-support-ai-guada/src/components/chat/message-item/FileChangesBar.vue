@@ -102,9 +102,10 @@ function openFile(filePath: string) {
 .file-changes-bar {
   margin-top: 8px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
-  background: var(--color-surface);
+  background: var(--el-bg-color);
   font-size: 12px;
 }
 
@@ -213,7 +214,8 @@ function openFile(filePath: string) {
   gap: 3px;
   padding: 1px 7px;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: transparent;
   cursor: pointer;
   font-size: 11px;
@@ -249,5 +251,34 @@ function openFile(filePath: string) {
 .fcb-expand-leave-to {
   max-height: 0;
   opacity: 0;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，悬停底色与展开高度直接到位。
+   逐个列出，不写 `*` / `.file-changes-bar *` 通配，
+   避免把 el-button / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   展开动画的终态（max-height: 500px / opacity: 1）是静态声明，
+   停掉过渡后展开与折叠照样成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .fcb__header,
+  .fcb__file-row,
+  .fcb__diff-btn,
+  .fcb-expand-enter-active,
+  .fcb-expand-leave-active {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：摘要行与文件行都是带 @click 的 div（不是可聚焦控件），
+   浏览器不给默认焦点环。指针样式两者原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 外层 .file-changes-bar 底色是 --el-bg-color，
+   深浅两套主题下都只是一档主色描边，12% 足够可见。 */
+.fcb__header,
+.fcb__file-row {
+  outline: none;
+}
+
+.fcb__header:focus-visible,
+.fcb__file-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

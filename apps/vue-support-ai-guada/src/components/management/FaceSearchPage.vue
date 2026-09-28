@@ -501,27 +501,47 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/*
- * 全部走项目 CSS 变量体系：
- *   --color-*  结构色（亮/暗自动切换）
- *   --mp-*     圆角 / 阴影
- *   --fs-*     本页品牌色（橙 + 青），只在这里定义一次
- */
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 结构色由 --color-* 收敛到 refactor.css 已映射好的 --el-*：
+        --color-bg            → --el-bg-color
+        --color-surface       → --el-bg-color
+        --color-text          → --el-text-color-primary
+        --color-text-gray     → --el-text-color-secondary
+        --color-surface-border→ --el-border-color-lighter
+        --color-surface-hover → --el-fill-color-light
+   2. 品牌色（橙 + 青）是本页的**身份标识**：人脸框、关键点、相似度环、目录图标
+      都靠「主橙 / 辅青」这一组固定色相被识别（且与 SVG 的 stroke 一致），
+      换成语义色会和主题主色混成一片、失去「检测标记」的中性含义，
+      故 --fs-brand / --fs-accent 系列**刻意保留色值**，
+      亮暗两套取值在下方 :global(html.dark) 分支里各自固定。
+   3. 卡片 / 容器不加投影。原 --fs-shadow（--mp-shadow-pop）只挂在三处，
+      全部是「浮起来」的元素（悬空角标 / 右侧面板 / 右缘悬浮条），属 koi
+      允许的第二类投影，只把色源从写死 rgba 换成随模式派生。
+   4. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
 .fs-root {
   --fs-brand: #f97316;
   --fs-brand-2: #fb923c;
   --fs-accent: #06b6d4;
   --fs-accent-2: #14b8a6;
 
-  --fs-bg: var(--color-bg);
-  --fs-card: var(--color-surface);
-  --fs-text: var(--color-text);
-  --fs-muted: var(--color-text-gray);
-  --fs-border: var(--color-surface-border);
-  --fs-hover: var(--color-surface-hover);
-  --fs-radius: var(--mp-radius-lg, 14px);
-  --fs-radius-sm: var(--mp-radius, 11px);
-  --fs-shadow: var(--mp-shadow-pop, 0 10px 30px -10px rgba(16, 24, 40, 0.22));
+  --fs-bg: var(--el-bg-color);
+  --fs-card: var(--el-bg-color);
+  --fs-text: var(--el-text-color-primary);
+  --fs-muted: var(--el-text-color-secondary);
+  --fs-border: var(--el-border-color-lighter);
+  --fs-hover: var(--el-fill-color-light);
+  /* 原值 var(--mp-radius-lg, 14px) —— --mp-radius-lg 只在未被引入的
+     modern-polish.css 里定义，故此前一直取兜底 14px；14 距 lg(12px)/xl(16px)
+     各 2px，页面主容器取 lg 档（与 ReCard 同档） */
+  --fs-radius: var(--el-radius-lg, 12px);
+  /* 原值 var(--mp-radius, 11px) —— 同上，一直取兜底 11px；11 距 sm(6px)/md(8px)/
+     lg(12px) 中 lg 更近，取 lg 档 */
+  --fs-radius-sm: var(--el-radius-lg, 12px);
+  /* 悬浮层投影：原值 --mp-shadow-pop（同样未被引入，实际吃兜底 0 10px 30px -10px
+     rgba(16,24,40,.22)）。改从正文色派生，深色模式下自动变暗，不会糊成黑块 */
+  --fs-shadow: 0 10px 30px -10px color-mix(in srgb, var(--el-text-color-primary) 22%, transparent);
 
   position: relative;
   height: 100%;
@@ -535,7 +555,9 @@ onBeforeUnmount(() => {
   --fs-brand-2: #fdba74;
   --fs-accent: #22d3ee;
   --fs-accent-2: #2dd4bf;
-  --fs-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.6);
+  /* 深色下原值 0 14px 36px -10px rgba(0,0,0,.6) 的黑色投影在深底上完全不可见，
+     改从正文色（此时是浅色）派生才能继续表达「浮起」 */
+  --fs-shadow: 0 14px 36px -10px color-mix(in srgb, var(--el-text-color-primary) 22%, transparent);
 }
 
 .fs-body {
@@ -596,12 +618,16 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 0 6px var(--fs-accent));
 }
 
+/* SVG 关键点填充：盖在照片上必须是纯白才能在任何肤色/背景下都看得见，
+   故这里的 #fff 是功能性固定色，不参与换肤（描边才是本页身份色 --fs-accent） */
 .fs-kp {
   fill: #fff;
   stroke: var(--fs-accent);
   stroke-width: 3;
 }
 
+/* 识别中遮罩：盖在用户照片上，色源从卡片底派生（半透明），
+   照片明暗不可控，所以用 --fs-card 而不是固定黑 */
 .fs-mask {
   position: absolute;
   inset: 0;
@@ -659,7 +685,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 9px 16px;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--fs-card);
   border: 1px solid var(--fs-border);
   color: var(--fs-muted);
@@ -680,7 +707,15 @@ onBeforeUnmount(() => {
   border: 2px dashed var(--fs-border);
   background: var(--fs-card);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 空态拖放区是 div + @click：补键盘焦点环 */
+.fs-drop:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .fs-drop:hover {
@@ -700,14 +735,17 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
+/* 三个胶囊按钮的实底（主橙 / 主青渐变），文字一律纯白保证对比；
+   底色是本页身份色，故白字是唯一可行的前景色 */
 .fs-btn {
   height: 46px;
   padding: 0 30px;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 15px;
   font-weight: 600;
   border: none;
-  color: #fff;
+  color: var(--el-color-white);
 }
 
 .fs-btn-ghost {
@@ -727,6 +765,8 @@ onBeforeUnmount(() => {
 .fs-btn:disabled { opacity: 0.5; }
 
 /* ---------------- 右侧面板 ---------------- */
+/* 右侧面板：原带 box-shadow(--fs-shadow)。它是与舞台并列的**常驻侧栏**，
+   不是浮层也不是卡片，按 koi 规约去掉投影，层次改由 1px 边框 + 留白表达 */
 .fs-panel {
   width: 400px;
   flex: 0 0 400px;
@@ -738,7 +778,6 @@ onBeforeUnmount(() => {
   border-radius: var(--fs-radius);
   background: var(--fs-card);
   border: 1px solid var(--fs-border);
-  box-shadow: var(--fs-shadow);
   overflow-y: auto;
 }
 
@@ -756,7 +795,9 @@ onBeforeUnmount(() => {
 
 .fs-dots { display: flex; gap: 4px; }
 .fs-dots i {
-  width: 5px; height: 5px; border-radius: 50%;
+  width: 5px; height: 5px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--fs-accent);
 }
 
@@ -765,7 +806,8 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 6px;
   padding: 5px;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--fs-hover);
 }
 
@@ -773,19 +815,28 @@ onBeforeUnmount(() => {
   flex: 1 1 0;
   height: 34px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: transparent;
   color: var(--fs-muted);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s;
+  outline: none;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+.fs-tab:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 选中项从凹槽里「抬起」，投影在这里是功能必需的（不是卡片投影）：
+   四个页签底色与凹槽几乎同色，去掉就分不清选中的是哪一个 */
 .fs-tab.is-active {
   background: var(--fs-card);
   color: var(--fs-brand);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
 }
 
 /* 结果网格 */
@@ -801,9 +852,19 @@ onBeforeUnmount(() => {
   border: 1px solid var(--fs-border);
   background: var(--fs-card);
   cursor: pointer;
-  transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s;
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+/* 卡片是 div + @click（可选中的人脸）：补键盘焦点环 */
+.fs-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* hover 上浮：koi 允许的第二类投影（悬浮反馈） */
 .fs-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--fs-shadow);
@@ -814,7 +875,8 @@ onBeforeUnmount(() => {
 .fs-card-face {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 50%;
+  /* 原值 50%（正圆头像）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   overflow: hidden;
   background: var(--fs-hover);
 }
@@ -848,16 +910,18 @@ onBeforeUnmount(() => {
   stroke: var(--fs-brand);
   stroke-width: 7;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.5s ease;
+  transition: stroke-dashoffset var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+/* 选中勾：实心身份色圆底上的对勾，底色恒为主橙，故前景固定纯白 */
 .fs-check {
   position: absolute;
   top: 6px; right: 6px;
   width: 22px; height: 22px;
-  border-radius: 50%;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--fs-brand);
-  color: #fff;
+  color: var(--el-color-white);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px;
 }
@@ -920,9 +984,15 @@ onBeforeUnmount(() => {
   background: var(--fs-hover);
   color: var(--fs-muted);
   cursor: pointer;
+  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.fs-thumb:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .fs-thumb.is-active { border-color: var(--fs-brand); }
@@ -932,10 +1002,11 @@ onBeforeUnmount(() => {
 .fs-cta {
   height: 50px;
   border: none;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--el-color-white);
   background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
 }
 
@@ -976,6 +1047,8 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
+/* 右缘悬浮工具条：整条压在舞台之上，投影是「浮起来」的功能性提示，
+   属 koi 允许的第二类 */
 .fs-rail-btn {
   width: 40px;
   height: 40px;
@@ -987,17 +1060,48 @@ onBeforeUnmount(() => {
   background: var(--fs-card);
   color: var(--fs-muted);
   cursor: pointer;
+  outline: none;
   box-shadow: var(--fs-shadow);
-  transition: color 0.18s, border-color 0.18s, transform 0.18s;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.fs-rail-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .fs-rail-btn:hover { transform: translateY(-1px); }
 
 .fs-rail-btn.is-on {
-  color: #fff;
+  color: var(--el-color-white);
   border-color: transparent;
   background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
 }
 
 .fs-hidden { display: none; }
+
+/* 尊重系统「减少动态效果」偏好。
+   .is-spin（识别中转圈）关掉动画后不再有动态反馈，
+   但 .fs-mask 那一层始终显示「正在识别人脸…」文字，静态文字已足够，
+   故不额外补静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .fs-drop,
+  .fs-tab,
+  .fs-card,
+  .fs-thumb,
+  .fs-ring-bar,
+  .fs-rail-btn {
+    transition: none;
+  }
+  .fs-card:hover,
+  .fs-rail-btn:hover {
+    transform: none;
+  }
+  .is-spin {
+    animation: none;
+    opacity: 0.75;
+  }
+}
 </style>

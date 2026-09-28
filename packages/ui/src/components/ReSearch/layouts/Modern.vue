@@ -102,7 +102,7 @@ onMounted(() => {
           class="re-search__add-btn"
           type="primary"
           :icon="Plus"
-          size="small"
+
           @click="handleAdd"
         >
           {{ addText }}

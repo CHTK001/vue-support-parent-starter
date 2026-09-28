@@ -538,10 +538,10 @@ watch(() => props.modelValue, (v) => {
         <template v-if="!isLocalCollect">
         <div class="form-section full">认证方式</div>
         <ReFormItem label="登录方式">
-          <ReSelect v-model="formAuthMethod" size="small" style="width:100%" :options="authMethods" />
+          <ReSelect v-model="formAuthMethod" style="width:100%" :options="authMethods" />
         </ReFormItem>
         <ReFormItem v-if="formAuthMethod === 'IDENTITY'" label="绑定身份" class="col-span-2">
-          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable size="small" style="width:100%" :options="props.identityOptions" />
+          <ReSelect v-model="formIdentityId" placeholder="使用默认凭据" clearable style="width:100%" :options="props.identityOptions" />
         </ReFormItem>
         <template v-if="formAuthMethod === 'PASSWORD'">
           <ReFormItem label="登录账号">
@@ -564,7 +564,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.msServerGroupId" size="small" clearable placeholder="未分组" style="width:100%" :options="groupOptionsWithAdd" @change="onGroupChange" />
+          <ReSelect v-model="form.msServerGroupId" clearable placeholder="未分组" style="width:100%" :options="groupOptionsWithAdd" @change="onGroupChange" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />
@@ -585,7 +585,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 采集配置 ─── -->
         <div class="form-section full">采集配置</div>
         <ReFormItem label="采集方式" class="col-span-2">
-          <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModeOptions" />
+          <ReSelect v-model="form.serverHostCollectMode" style="width:100%" :options="collectModeOptions" />
         </ReFormItem>
         <ReFormItem v-if="form.serverHostCollectMode !== 'NONE'" label="自动采集" class="col-span-2">
           <div class="switch-row">
@@ -625,12 +625,12 @@ watch(() => props.modelValue, (v) => {
         </ReFormItem>
         <template v-if="form.serverHostRemoteEnabled === 1">
           <ReFormItem label="远控协议">
-            <ReSelect v-model="form.serverHostRemoteProtocol" size="small" style="width:100%" :options="remoteProtocolOptions" />
+            <ReSelect v-model="form.serverHostRemoteProtocol" style="width:100%" :options="remoteProtocolOptions" />
           </ReFormItem>
           <ReFormItem label="远控通道">
             <ReSelect
               v-model="form.serverHostRemoteMode"
-              size="small"
+
               style="width:100%"
               :disabled="!channelEditable"
               :options="channelOptions"
@@ -657,20 +657,20 @@ watch(() => props.modelValue, (v) => {
           </ReFormItem>
           <ReFormItem label="凭据状态">
             <div style="display:flex;gap:8px;align-items:center;">
-              <ReButton size="small" @click="verifyCredentials" :loading="verifying">校验凭据</ReButton>
+              <ReButton @click="verifyCredentials" :loading="verifying">校验凭据</ReButton>
               <span v-if="credVerified" style="color:#67c23a;">✓ 校验成功</span>
               <span v-else style="color:#909399;">未校验</span>
             </div>
           </ReFormItem>
           <ReFormItem v-if="credVerified" label="Agent 部署" class="col-span-2">
             <div style="display:flex;gap:8px;">
-              <ReButton size="small" type="primary" @click="deployAgent" :loading="deploying">自动部署 Agent</ReButton>
-              <ReButton size="small" @click="downloadAgent">下载 Agent 包</ReButton>
-              <ReButton size="small" type="success" @click="testAgentConnection">测试 Agent 连接</ReButton>
+              <ReButton type="primary" @click="deployAgent" :loading="deploying">自动部署 Agent</ReButton>
+              <ReButton @click="downloadAgent">下载 Agent 包</ReButton>
+              <ReButton type="success" @click="testAgentConnection">测试 Agent 连接</ReButton>
             </div>
           </ReFormItem>
           <ReFormItem v-else label="Agent 包下载" class="col-span-2">
-            <ReButton size="small" @click="downloadAgent">下载 Agent 包</ReButton>
+            <ReButton @click="downloadAgent">下载 Agent 包</ReButton>
           </ReFormItem>
         </template>
 
@@ -679,14 +679,14 @@ watch(() => props.modelValue, (v) => {
           <div class="form-section full">凭据校验与 Prometheus</div>
           <ReFormItem label="凭据状态" class="col-span-2">
             <div style="display:flex;gap:8px;align-items:center;">
-              <ReButton size="small" type="primary" :loading="promVerifying" @click="verifyPrometheus">凭据校验</ReButton>
+              <ReButton type="primary" :loading="promVerifying" @click="verifyPrometheus">凭据校验</ReButton>
               <span v-if="promVerified" style="color:#67c23a;">✓ 校验成功</span>
               <span v-else style="color:#909399;">未校验</span>
             </div>
           </ReFormItem>
           <ReFormItem label="Prometheus 包" class="col-span-2">
             <div style="display:flex;gap:8px;align-items:center;">
-              <ReButton size="small" @click="downloadPrometheus">下载 Prometheus 包</ReButton>
+              <ReButton @click="downloadPrometheus">下载 Prometheus 包</ReButton>
             </div>
           </ReFormItem>
         </template>

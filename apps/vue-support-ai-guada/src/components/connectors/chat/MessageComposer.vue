@@ -22,7 +22,7 @@
             :min="0"
             :max="50"
             :step="1"
-            size="small"
+
             controls-position="right"
             class="context-number"
             @update:model-value="v => $emit('update:contextCount', v ?? 0)"
@@ -100,10 +100,12 @@ function handleKeydown(e: Event | KeyboardEvent) {
   max-width: 820px;
   margin: 0 auto;
   padding: 13px 15px 11px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: 18px;
-  background: var(--color-surface);
-  box-shadow: var(--el-box-shadow-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
+  /* 焦点环保留；输入区是页面内联组件，不叠加常驻装饰投影 */
+  box-shadow: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .composer-card:focus-within {
@@ -144,7 +146,8 @@ function handleKeydown(e: Event | KeyboardEvent) {
   width: 108px;
 }
 .context-number :deep(.el-input__wrapper) {
-  border-radius: 9px;
+  /* 原值 9px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
 }
 
 .composer-actions {
@@ -155,10 +158,24 @@ function handleKeydown(e: Event | KeyboardEvent) {
 .btn-icon {
   margin-right: 3px;
 }
+/* 原值 11px → lg 档 */
 .btn-ai {
-  border-radius: 11px;
+  border-radius: var(--el-radius-lg, 12px);
 }
+/* 原值 11px → lg 档 */
 .btn-send {
-  border-radius: 11px;
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，输入卡的描边与焦点环保留的补间直接到位。
+   只关 .composer-card 自己的 transition，不写 `*` / .composer-card * 通配，
+   避免把内部 el-textarea / el-input-number / el-icon 组件的合法过渡一起掐掉。
+   特别说明：:focus-within 那条 3px 主色光环是本组件的焦点指示本身，
+   它是静态 box-shadow 声明，关掉 transition 只会让它瞬间出现、不会消失，
+   无障碍效果不受影响。 */
+@media (prefers-reduced-motion: reduce) {
+  .composer-card {
+    transition: none;
+  }
 }
 </style>

@@ -9,7 +9,7 @@
         <span class="match-hint">注入操作产生真实 APM 数据，统计经 SSE 实时刷新</span>
       </div>
       <div class="toolbar-right">
-        <ReButton size="small" :icon="Refresh" show-text :loading="statsLoading" @click="loadStats">刷新统计</ReButton>
+        <ReButton :icon="Refresh" show-text :loading="statsLoading" @click="loadStats">刷新统计</ReButton>
       </div>
     </div>
 
@@ -29,7 +29,7 @@
         </div>
         <div class="form-row">
           <ReSwitch v-model="injectedError" active-text="标记为错误调用" />
-          <ReButton size="small" text type="primary" @click="historyExpanded = !historyExpanded">
+          <ReButton text type="primary" @click="historyExpanded = !historyExpanded">
             注入历史（{{ history.length }}）
           </ReButton>
         </div>
@@ -88,7 +88,7 @@
         <ReEmpty v-if="!history.length" description="尚无注入操作" />
         <div v-else class="history-list">
           <div v-for="(h, i) in history" :key="i" class="history-item">
-            <ReTag :type="h.ok ? 'success' : 'danger'" size="small" round>{{ h.ok ? "成功" : "失败" }}</ReTag>
+            <ReTag :type="h.ok ? 'success' : 'danger'" round>{{ h.ok ? "成功" : "失败" }}</ReTag>
             <span class="history-msg">{{ h.msg }}</span>
             <span class="history-time mono">{{ h.time }}</span>
           </div>
@@ -334,7 +334,7 @@ onBeforeUnmount(() => {
 .panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -386,9 +386,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--el-fill-color-lighter);
   border: 1px solid var(--apm-border);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
 }
 
 .history-msg {
@@ -404,5 +404,15 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: var(--apm-muted);
   font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

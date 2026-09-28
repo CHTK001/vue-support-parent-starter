@@ -50,7 +50,7 @@
     <div>
       <!-- <div class="flex items-center justify-center mt-6">
         您也可以<span class="w-1"></span>
-        <el-button type="primary" plain round size="small" @click="handleCreateSessionClick">直接创建会话
+        <el-button type="primary" plain round @click="handleCreateSessionClick">直接创建会话
         </el-button>
       </div> -->
     </div>

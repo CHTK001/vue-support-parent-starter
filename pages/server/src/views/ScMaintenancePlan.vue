@@ -153,12 +153,12 @@ function hostNames(ids?: string): string {
       <ReTableColumn prop="planName" label="计划名称" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="类型" width="90">
         <template #default="{ row }">
-          <ReTag size="small">{{ planTypes.find(t => t.value === row.planType)?.label || row.planType }}</ReTag>
+          <ReTag >{{ planTypes.find(t => t.value === row.planType)?.label || row.planType }}</ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="状态" width="80">
         <template #default="{ row }">
-          <ReTag :type="statusType[row.status] || 'info'" size="small">{{ statusMap[row.status] || row.status }}</ReTag>
+          <ReTag :type="statusType[row.status] || 'info'" >{{ statusMap[row.status] || row.status }}</ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="开始时间" width="160">
@@ -173,8 +173,8 @@ function hostNames(ids?: string): string {
       <ReTableColumn prop="description" label="描述" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="操作" width="130" fixed="right">
         <template #default="{ row }">
-          <ReButton link size="small" @click="openEdit(row)">编辑</ReButton>
-          <ReButton link type="danger" size="small" @click="removePlan(row)">删除</ReButton>
+          <ReButton link @click="openEdit(row)">编辑</ReButton>
+          <ReButton link type="danger" @click="removePlan(row)">删除</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

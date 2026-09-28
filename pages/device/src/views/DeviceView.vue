@@ -17,10 +17,10 @@
         <div class="flex items-center justify-between">
           <div class="text-lg font-semibold text-el-text">{{ selectedDevice.deviceInfoName }}</div>
           <div class="flex items-center gap-2">
-            <el-button size="small" @click="showThresholdDialog">
+            <el-button @click="showThresholdDialog">
               <el-icon class="mr-1"><Timer /></el-icon>离线检测
             </el-button>
-            <el-button size="small" @click="exportDevices">
+            <el-button @click="exportDevices">
               <el-icon class="mr-1"><Download /></el-icon>导出 Excel
             </el-button>
           </div>
@@ -87,7 +87,7 @@
                   class="rounded-xl overflow-hidden bg-black aspect-video"
                 />
                 <div class="flex items-center gap-2 mt-3">
-                  <el-select v-model="currentChannel" placeholder="选择通道" size="small" style="width: 140px">
+                  <el-select v-model="currentChannel" placeholder="选择通道" style="width: 140px">
                     <el-option
                       v-for="ch in selectedDevice.channels || []"
                       :key="ch.deviceChannelId || ch.deviceChannelNo"
@@ -95,18 +95,18 @@
                       :value="ch.deviceChannelNo"
                     />
                   </el-select>
-                  <el-select v-model="videoProtocol" placeholder="协议" size="small" style="width: 110px">
+                  <el-select v-model="videoProtocol" placeholder="协议" style="width: 110px">
                     <el-option label="HLS" value="hls" />
                     <el-option label="FLV" value="flv" />
                     <el-option label="RTSP" value="rtsp" />
                   </el-select>
-                  <el-button size="small" type="primary" @click="reloadStream">
+                  <el-button type="primary" @click="reloadStream">
                     <el-icon class="mr-1"><Refresh /></el-icon>刷新
                   </el-button>
-                  <el-button size="small" type="primary" @click="reconnectDevice">
+                  <el-button type="primary" @click="reconnectDevice">
                     <el-icon class="mr-1"><Refresh /></el-icon>重连
                   </el-button>
-                  <el-button size="small" type="primary" @click="openMultiView">
+                  <el-button type="primary" @click="openMultiView">
                     <el-icon class="mr-1"><Grid /></el-icon>多路播放
                   </el-button>
                 </div>
@@ -256,7 +256,7 @@
               class="flex items-center justify-between p-2 rounded-lg border border-el-border"
             >
               <span class="text-sm text-el-text">{{ vendorLabel(vendor) }}</span>
-              <el-input-number v-model="providerConfigs[vendor]" :min="5" :max="86400" :step="5" size="small" style="width: 140px" @change="saveProviderConfig(vendor)" />
+              <el-input-number v-model="providerConfigs[vendor]" :min="5" :max="86400" :step="5" style="width: 140px" @change="saveProviderConfig(vendor)" />
             </div>
           </div>
           <div v-else class="text-xs text-el-text-secondary">加载中...</div>

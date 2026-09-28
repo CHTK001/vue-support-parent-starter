@@ -98,7 +98,7 @@ onMounted(loadVersions);
 
 <template>
   <div class="panel">
-    <el-form label-position="top" size="small">
+    <el-form label-position="top" >
       <el-form-item label="历史版本">
         <el-select v-model="form.versionId" :loading="loadingVersions" filterable style="width: 100%">
           <el-option v-for="v in versions" :key="v.id" :value="v.id" :label="v.title || v.id" />

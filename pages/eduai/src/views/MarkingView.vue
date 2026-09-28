@@ -37,12 +37,12 @@
         <ReTableColumn prop="comment" label="AI 评语" min-width="240" show-overflow-tooltip />
         <ReTableColumn label="教师修正" width="180">
           <template #default="{ row }">
-            <el-input-number v-model="row.teacherScore" :min="0" :max="row.maxScore ?? 100" size="small" controls-position="right" />
+            <el-input-number v-model="row.teacherScore" :min="0" :max="row.maxScore ?? 100" controls-position="right" />
           </template>
         </ReTableColumn>
         <ReTableColumn label="教师评语" min-width="220">
           <template #default="{ row }">
-            <el-input v-model="row.teacherComment" size="small" />
+            <el-input v-model="row.teacherComment" />
           </template>
         </ReTableColumn>
       </ReTable>
@@ -64,11 +64,11 @@
           <el-input v-model="submitForm.content" type="textarea" :rows="2" placeholder="可选 JSON" />
         </el-form-item>
         <el-form-item label="作答列表">
-          <el-button size="small" @click="addAnswer">新增一条</el-button>
+          <el-button @click="addAnswer">新增一条</el-button>
           <div v-for="(a, idx) in submitForm.answers" :key="idx" class="answer-row mt-2">
             <el-input-number v-model="a.questionId" :min="1" placeholder="题号" controls-position="right" style="width: 140px" />
             <el-input v-model="a.answer" placeholder="学生答案" class="ml-2" style="width: 320px" />
-            <el-button size="small" type="danger" link class="ml-2" @click="submitForm.answers.splice(idx, 1)">删除</el-button>
+            <el-button type="danger" link class="ml-2" @click="submitForm.answers.splice(idx, 1)">删除</el-button>
           </div>
         </el-form-item>
       </el-form>

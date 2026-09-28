@@ -117,7 +117,7 @@ function delRow(row: HashRow): void {
       <ReInput
         v-if="rows.length > 8"
         v-model="filter"
-        size="small"
+
         placeholder="筛选字段"
         prefix-icon="Search"
         clearable
@@ -132,25 +132,25 @@ function delRow(row: HashRow): void {
         <span class="rv-th-ops">操作</span>
       </div>
       <div v-for="row in visibleRows" :key="row.originalField" class="rv-tr" :class="{ dirty: isDirty(row) }">
-        <ReInput v-model="row.field" size="small" class="rv-mono" />
-        <ReInput v-model="row.value" size="small" class="rv-mono" @keyup.enter="saveRow(row)" />
+        <ReInput v-model="row.field" class="rv-mono" />
+        <ReInput v-model="row.value" class="rv-mono" @keyup.enter="saveRow(row)" />
         <div class="rv-ops">
           <ReButton
             icon="Check"
             layout="square"
-            size="small"
+
             title="保存"
             :disabled="busy || !isDirty(row)"
             @click="saveRow(row)"
           />
-          <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" :disabled="busy" @click="delRow(row)" />
+          <ReButton icon="Delete" layout="square" type="danger" title="删除" :disabled="busy" @click="delRow(row)" />
         </div>
       </div>
       <div class="rv-tr rv-tr--add">
-        <ReInput v-model="newField" size="small" placeholder="新字段" />
-        <ReInput v-model="newValue" size="small" placeholder="新值" @keyup.enter="addRow" />
+        <ReInput v-model="newField" placeholder="新字段" />
+        <ReInput v-model="newValue" placeholder="新值" @keyup.enter="addRow" />
         <div class="rv-ops">
-          <ReButton icon="Plus" layout="square" size="small" type="primary" title="添加" :disabled="busy" @click="addRow" />
+          <ReButton icon="Plus" layout="square" type="primary" title="添加" :disabled="busy" @click="addRow" />
         </div>
       </div>
     </div>

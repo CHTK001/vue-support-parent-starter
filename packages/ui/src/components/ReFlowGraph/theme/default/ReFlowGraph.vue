@@ -15,7 +15,16 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowR
 import ReButton from "../../../ReButton/ReButton.vue";
 import { FlowGraphEngine } from "../../internals/engine";
 import { resolveFlowIcon } from "../../internals/icons";
-import type { FlowEdge, FlowGraphData, FlowNode, FlowNodeTypeDef, FlowSelection, FlowStructureIssue } from "../../internals/types";
+import type {
+  FlowEdge,
+  FlowGraphData,
+  FlowMenuItem,
+  FlowNode,
+  FlowNodeTypeDef,
+  FlowSelection,
+  FlowStructureIssue,
+} from "../../internals/types";
+import type { Component } from "vue";
 
 defineOptions({ name: "ReFlowGraph" });
 
@@ -38,6 +47,32 @@ const props = withDefaults(
     endType?: string;
     /** 面板区标题 */
     propertiesTitle?: string;
+    /**
+     * 缩略图开关。缺省 false —— 原来只能在工具栏上手动点，宿主控不了初始状态，
+     * 这里补成 prop。运行中改动会同步到工具栏按钮的高亮态。
+     */
+    showMinimap?: boolean;
+    /** 画布平移（空格 + 拖），缺省 true */
+    panning?: boolean;
+    /** ctrl/meta + 滚轮缩放，缺省 true；不影响工具栏的缩放按钮 */
+    zoom?: boolean;
+    /** 节点能否被拖动，缺省 true；`readonly` 仍然一票否决 */
+    nodeDraggable?: boolean;
+    /**
+     * 右键菜单项，缺省为内置的「重命名 / 定位 / 复制 / 删除」四项。
+     *
+     * 传空数组即彻底关掉右键菜单。每项给 `action` 走内置实现，或给 `onClick` 自己处理。
+     */
+    menuItems?: FlowMenuItem[];
+    /**
+     * 自定义节点体组件，替代内置的 `FlowNodeCard`。
+     *
+     * 组件会被 `x6-vue-shape` 挂到节点的 `<foreignObject>` 里，收两个 prop：
+     * `node`（{@link X6Node}）与 `graph`。**注意拿不到宿主作用域的插槽** ——
+     * vue-shape 是自己 `createApp` 起的独立应用，插槽与 provide/inject 都不跨应用。
+     * 需要内容就靠 `node.getData()` 读业务数据自己渲染。
+     */
+    nodeComponent?: Component | null;
   }>(),
   {
     data: () => ({ nodes: [], edges: [] }),
@@ -51,6 +86,10 @@ const props = withDefaults(
     startType: "start",
     endType: "end",
     propertiesTitle: "属性",
+    showMinimap: false,
+    panning: true,
+    zoom: true,
+    nodeDraggable: true,
   },
 );
 
@@ -71,7 +110,9 @@ const minimapRef = ref<HTMLDivElement | null>(null);
 const engine = shallowRef<FlowGraphEngine | null>(null);
 
 const ui = reactive({
-  minimap: false,
+  // 缩略图的显示态。prop 是「源」、这里是被工具栏按钮和 v-show 消费的值，
+  // 所以两处都要写：watch 负责 prop -> ui，工具栏点击负责 ui -> prop 之外的单向覆盖。
+  minimap: props.showMinimap,
   grid: true,
   collapsed: false,
   /** 右侧属性停靠区宽度（px），由面板头拖拽调整 */
@@ -85,7 +126,22 @@ const ui = reactive({
 const selection = ref<FlowSelection>(null);
 const issues = ref<FlowStructureIssue[]>([]);
 const rename = reactive({ visible: false, value: "", id: "", left: 0, top: 0, width: 120 });
-const menu = reactive({ visible: false, x: 0, y: 0, node: null as FlowNode | null });
+const menu = reactive({ visible: false, x: 0, y: 0, node: null as FlowNode | null, event: null as MouseEvent | null });
+
+/**
+ * 右键菜单实际渲染的项。
+ *
+ * 缺省给回原来那四项，**行为与重构前完全一致** —— 宿主不传 `menuItems` 时看不出区别，
+ * 传了才接管。传空数组即彻底关掉菜单（`v-if` 走 false，`<ul>` 不渲染）。
+ */
+const menuItems = computed<FlowMenuItem[]>(() =>
+  props.menuItems ?? [
+    { key: "rename", label: "重命名", action: "rename" },
+    { key: "locate", label: "定位", action: "locate" },
+    { key: "copy", label: "复制", action: "copy" },
+    { key: "delete", label: "删除", action: "delete", danger: true },
+  ],
+);
 
 const shellStyle = computed(() => ({
   height: typeof props.height === "number" ? `${props.height}px` : props.height,
@@ -153,6 +209,10 @@ onMounted(async () => {
     nodeTypes: props.nodeTypes,
     readonly: props.readonly,
     grid: true,
+    panning: props.panning,
+    zoom: props.zoom,
+    nodeDraggable: props.nodeDraggable,
+    nodeComponent: props.nodeComponent,
     handlers: {
       onReady: (eng) => {
         eng.setData(props.data ?? { nodes: [], edges: [] });
@@ -180,6 +240,8 @@ onMounted(async () => {
         menu.x = ev.clientX;
         menu.y = ev.clientY;
         menu.node = node;
+        // 存下原始事件：菜单项被点时是另一个 click 事件，要靠它给 onClick 透传坐标
+        menu.event = ev;
         emit("node-contextmenu", node, ev);
       },
       onEdgeClick: (edge, ev) => emit("edge-click", edge, ev),
@@ -215,6 +277,23 @@ watch(
     syncStat();
   },
   { deep: true },
+);
+
+// 交互开关：prop 变化后引擎可能还没建（首帧），交给 applyInteraction 里的空引用兜住，
+// 真正生效的时机是引擎 onReady 之后 —— 那时构造参数已经带上了最新值，无需再补。
+watch(
+  () => [props.panning, props.zoom, props.nodeDraggable] as const,
+  ([panning, zoom, nodeDraggable]) => {
+    engine.value?.applyInteraction({ panning, zoom, nodeDraggable });
+  },
+);
+
+// 缩略图是纯 UI 态，不需要引擎配合，直接同步显示
+watch(
+  () => props.showMinimap,
+  (v) => {
+    ui.minimap = v;
+  },
 );
 
 // ------------------------------------------------------------
@@ -305,17 +384,33 @@ function pasteCells() {
   engine.value?.paste();
 }
 
-function menuAction(action: "rename" | "locate" | "copy" | "delete") {
+/**
+ * 执行一项右键菜单。
+ *
+ * @param item 被点击的菜单项
+ * @param event 触发点击的原始鼠标事件，透传给自定义 `onClick`
+ */
+function menuAction(item: FlowMenuItem, event: MouseEvent) {
   const node = menu.node;
   menu.visible = false;
+  // 无节点时只剩自定义项可能还能干活（内置四项都要节点），所以不禁用整个流程
+  if (item.disabled) {
+    return;
+  }
+  if (!item.action) {
+    if (node) {
+      item.onClick?.({ node, event });
+    }
+    return;
+  }
   if (!node || !engine.value) return;
-  if (action === "rename") startRename(node.id);
-  if (action === "locate") engine.value.focusNode(node.id);
-  if (action === "copy") {
+  if (item.action === "rename") startRename(node.id);
+  if (item.action === "locate") engine.value.focusNode(node.id);
+  if (item.action === "copy") {
     engine.value.selectNode(node.id);
     copySelected();
   }
-  if (action === "delete") {
+  if (item.action === "delete") {
     engine.value.removeNodes([node.id]);
     syncStat();
   }
@@ -481,10 +576,14 @@ defineExpose({
 
     <!-- 右键菜单 -->
     <ul v-if="menu.visible" class="flow-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
-      <li @click="menuAction('rename')">重命名</li>
-      <li @click="menuAction('locate')">定位</li>
-      <li @click="menuAction('copy')">复制</li>
-      <li class="danger" @click="menuAction('delete')">删除</li>
+      <li
+        v-for="item in menuItems"
+        :key="item.key"
+        :class="{ danger: item.danger, disabled: item.disabled }"
+        @click="menuAction(item, $event)"
+      >
+        {{ item.label }}
+      </li>
     </ul>
   </div>
 </template>
@@ -641,6 +740,9 @@ defineExpose({
 .flow-menu li { padding: 6px 10px; color: #4e5969; cursor: pointer; border-radius: 5px; }
 .flow-menu li:hover { background: #f2f6ff; color: var(--flow-accent); }
 .flow-menu li.danger:hover { background: #fff1f0; color: #c9403f; }
+/* 禁用项：置灰且不响应 hover 反馈，光靠 onClick 里 return 拦截的话用户看不出为什么点不动 */
+.flow-menu li.disabled { color: #c9cdd4; cursor: not-allowed; }
+.flow-menu li.disabled:hover { background: none; color: #c9cdd4; }
 /*
  * 磁吸端口：静止时隐藏、节点 hover 淡入。
  *

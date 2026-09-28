@@ -26,13 +26,13 @@
       <el-table-column prop="appKey" label="AppKey" min-width="200">
         <template #default="{ row }">
           <span class="key-text">{{ row.appKey }}</span>
-          <el-button size="small" link type="primary" @click="copyKey(row.appKey)">复制</el-button>
+          <el-button link type="primary" @click="copyKey(row.appKey)">复制</el-button>
         </template>
       </el-table-column>
       <el-table-column prop="provider" label="提供商" min-width="120" />
       <el-table-column prop="status" label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+          <el-tag :type="row.status === 1 ? 'success' : 'info'" >
             {{ row.status === 1 ? '启用' : '禁用' }}
           </el-tag>
         </template>
@@ -40,8 +40,8 @@
       <el-table-column prop="createTime" label="创建时间" min-width="160" />
       <el-table-column label="操作" width="180" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button size="small" type="primary" link @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" type="danger" link @click="deleteItem(row)">删除</el-button>
+          <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
+          <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -199,17 +199,20 @@ onMounted(() => loadData());
 }
 .page-header h2::before {
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 19px; border-radius: 4px;
+  width: 4px; height: 19px;
+  /* 原值 4px，恰为 19px 高的半径即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
 }
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .panel-card {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px 14px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  /* 表格容器是页面区块，不加投影 */
 }
 .flat-table { --el-table-border-color: var(--el-border-color-lighter); }
 .flat-table :deep(th.el-table__cell) {

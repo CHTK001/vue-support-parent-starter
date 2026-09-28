@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="tool" :text="data.reText" :subtitle="'工具 ' + (data.tool || '—')" />
+  <BaseNode type="tool" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="'工具 ' + (data.tool || '—')" />
 </template>

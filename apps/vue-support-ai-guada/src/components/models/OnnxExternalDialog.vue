@@ -220,4 +220,25 @@ watch(
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
 }
+
+/* 动效降级：系统开启「减少动态效果」时，模型行的描边与底色直接到位。
+   只关 .oxd-row 自己的 transition，不写 `*` / .oxd-row * 通配，
+   避免把 el-tag / el-input / el-scrollbar 内部 Element Plus 组件的合法过渡一起掐掉。
+   .is-active 选中态是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .oxd-row {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：模型行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 行底色透明、落在弹层表面色上，一档主色描边足够可见。 */
+.oxd-row {
+  outline: none;
+}
+
+.oxd-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 </style>

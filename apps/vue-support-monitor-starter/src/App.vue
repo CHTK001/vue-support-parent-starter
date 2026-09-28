@@ -5,11 +5,10 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
-import { useSocketService } from "@repo/core";
 import { getUserInfo, clearAuthCache } from "@repo/utils";
 import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
 
@@ -158,24 +157,24 @@ const crumb = computed(() => {
   return `监控管理 / ${top ?? (seg ? seg : "监控概览")}`;
 });
 
-/** 告警未处理徽标 —— socket 实时推送（新告警+1，处理/恢复-1），初次/网络恢复时 REST 补偿 */
+/**
+ * 告警未处理徽标。
+ *
+ * <p>本部署<strong>不订阅 socket</strong>，徽标只靠 REST 轮询/恢复时刷新。</p>
+ *
+ * <p>原因不是「socket 不好用」，而是这台后端没启用 socket 服务，订阅必然失败。
+ * 失败还不只是刷 console：dev server 把 {@code /socket.io} 代理成 ws，
+ * 每次握手被 403 拒就抛一次 {@code ws proxy socket error: write ECONNABORTED}，
+ * 异常会持续累积，直到把 vite 进程带崩——实测本机验收因此连挂两次。</p>
+ *
+ * <p>所以宁可不订阅：功能上 {@link refreshBadge} 已经覆盖了计数正确性
+ * （页面加载、路由恢复时拉真实值），只少了「毫秒级实时」。</p>
+ *
+ * <p>要恢复实时推送，正确做法是给后端开 socket 服务，而不是在前端硬扛失败重连。</p>
+ */
 const unhandled = ref(0);
-const socket = useSocketService();
 
-/** socket 到达时增加未处理计数 */
-const unsubAlarm = socket?.subscribe("monitor", "alarm", (msg: any) => {
-  try {
-    const data = (msg.data ?? msg) as any;
-    const status = String(data?.status ?? data?.msMonitorAlarmEventStatus ?? "").toUpperCase();
-    if (status === "NEW") unhandled.value++;
-    else if (status === "PROCESSED" || status === "FALSE_ALARM") {
-      unhandled.value = Math.max(0, unhandled.value - 1);
-    }
-  } catch { /* 静默 */ }
-});
-
-/** 初始加载 + 每次页面恢复时刷新真实计数（补偿 socket 断线期间丢失的事件） */
-/** 初始加载 + 每次页面恢复时刷新未处理告警计数（补偿 socket 断线期间丢失的事件） */
+/** 初始加载 + 每次页面恢复时刷新真实计数 */
 async function refreshBadge(): Promise<void> {
   try {
     const list = await fetchAlarmEvents();
@@ -183,7 +182,6 @@ async function refreshBadge(): Promise<void> {
   } catch { /* 静默 */ }
 }
 onMounted(() => { refreshBadge(); checkRedis(); loadCurrentUser(); });
-onBeforeUnmount(() => { unsubAlarm?.(); });
 
 /**
  * 路由跳转（当前路径与目标相同时不重复跳转）
@@ -225,23 +223,23 @@ const bare = computed(() => route.meta.standalone === true);
         </template>
       </nav>
       <div class="sidebar-foot">
-        <ReButton v-if="!collapse" icon="Fold" :show-text="true" text size="small" @click="collapse = true">折叠</ReButton>
+        <ReButton v-if="!collapse" icon="Fold" :show-text="true" text  @click="collapse = true">折叠</ReButton>
       </div>
     </aside>
 
     <!-- 顶栏 -->
     <header class="topbar">
       <ReButton v-if="collapse" icon="Expand" :show-text="false" :icon-size="30" @click="collapse = false" />
-      <ReButton v-else icon="Fold" layout="square" size="small" title="折叠侧栏" @click="collapse = true" />
+      <ReButton v-else icon="Fold" layout="square"  title="折叠侧栏" @click="collapse = true" />
       <div class="crumb">{{ crumb }}</div>
       <div class="spacer" />
       <div class="gsearch">
         <ReIcon name="Search" :size="14" />
-        <ReInput v-model="searchKw" placeholder="搜索资产、规则、文档…" size="small" class="gsearch-input" />
+        <ReInput v-model="searchKw" placeholder="搜索资产、规则、文档…"  class="gsearch-input" />
         <span class="kbd">⌘K</span>
       </div>
       <div class="bell-wrap">
-        <ReButton icon="Bell" layout="square" size="small" title="通知" @click="go('/alarms')" />
+        <ReButton icon="Bell" layout="square"  title="通知" @click="go('/alarms')" />
         <span v-if="unhandled>0" class="note-dot" />
       </div>
       <div class="avatar-wrap">

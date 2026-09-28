@@ -148,7 +148,8 @@ onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
 
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .brand-dot {
-  width: 7px; height: 7px; border-radius: 2px;
+  /* 2px 小方点，比 koi 最小档 4px 还小，用 EP 自带的 --el-border-radius-small(2px) */
+  width: 7px; height: 7px; border-radius: var(--el-border-radius-small, 2px);
   background: var(--el-color-primary);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
 }
@@ -168,20 +169,38 @@ onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
   50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--el-color-success) 8%, transparent); }
 }
 
-.nav-tabs { display: flex; gap: 2px; flex: 1; justify-content: center; padding: 3px; background: var(--el-fill-color-light); border-radius: 10px; }
+/* 状态点脉冲：2s 是「心跳」语义，与刷新动作无关，刻意不套 0.2s 档。
+   关键帧只改 box-shadow 的扩散半径，关掉动画后元素仍保留静态的 3px 绿环，
+   「系统正常」这个唯一视觉反馈不会丢，所以 reduced-motion 里可以安全停掉 */
+.nav-tabs { display: flex; gap: 2px; flex: 1; justify-content: center; padding: 3px; background: var(--el-fill-color-light); /* 原为 10px，10px 距 8/12 等距，取 12px(lg) */ border-radius: var(--el-radius-lg, 12px); }
 .nav-tab {
   display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border: none; border-radius: 7px;
+  /* 原为 7px，落在 sm(6)/md(8) 中间，取 md(8px) */
+  padding: 6px 12px; border: none; border-radius: var(--el-radius-md, 8px);
   background: transparent; color: var(--el-text-color-secondary);
   font-size: 12.5px; font-weight: 500; cursor: pointer;
-  transition: all 0.18s ease; white-space: nowrap;
+  /* 原生 button：去掉浏览器默认轮廓，改用自绘焦点环 */
+  outline: none;
+  /* 原来写 transition: all，会把 width/padding 等布局属性也纳入过渡；
+     显式列出这三个真正会变的属性，过渡更快也更可控 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+  white-space: nowrap;
+}
+/* 原生 button：自绘焦点环 */
+.nav-tab:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .nav-tab:hover { color: var(--el-text-color-primary); background: var(--el-bg-color); }
 .nav-tab.active {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
+  /* 原来写 var(--shadow-sm)，该变量全仓无人定义，选中标签其实一点投影都没有；
+     换成 EP 真实存在的 lighter 档，作为「浮起」反馈把选中态从灰底上托起来 */
+  box-shadow: var(--el-box-shadow-lighter);
 }
 .nav-icon { width: 13px; height: 13px; color: currentColor; }
 
@@ -191,12 +210,13 @@ onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
   font-size: 11px; color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
   padding: 3px 8px; background: var(--el-fill-color-light);
-  border-radius: 5px;
+  /* 原为 5px，落在 xs(4)/sm(6) 中间，取 sm(6px) */
+  border-radius: var(--el-radius-sm, 6px);
 }
 .user-zone {
   display: flex; align-items: center; gap: 6px;
-  padding: 4px 8px 4px 6px; border-radius: 6px;
-  cursor: pointer; transition: background 0.15s;
+  padding: 4px 8px 4px 6px; border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer; transition: background-color var(--el-transition-duration-fast, 0.2s);
 }
 .user-zone:hover { background: var(--el-fill-color-light); }
 .user-avatar {
@@ -209,4 +229,16 @@ onBeforeUnmount(() => { if (clockTimer) clearInterval(clockTimer) })
 .user-dropdown { display: none; }
 
 .monitor-content { flex: 1; padding: 16px; overflow: auto; }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  /* 状态点停掉脉冲：静态 3px 绿环仍然在，「系统正常」的反馈不依赖动画 */
+  .sys-dot {
+    animation: none;
+  }
+  .nav-tab,
+  .user-zone {
+    transition: none;
+  }
+}
 </style>

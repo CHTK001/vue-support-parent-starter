@@ -2,17 +2,17 @@
   <div class="channel-manager space-y-4">
     <div class="flex items-center justify-between">
       <span class="text-sm font-medium text-el-text">通道列表（{{ channels.length }}）</span>
-      <el-button size="small" type="primary" @click="openAdd">
+      <el-button type="primary" @click="openAdd">
         <el-icon class="mr-1"><Plus /></el-icon>添加通道
       </el-button>
     </div>
 
-    <el-table :data="channels" size="small" style="width: 100%" v-loading="loading">
+    <el-table :data="channels" style="width: 100%" v-loading="loading">
       <el-table-column prop="deviceChannelNo" label="通道号" width="90" />
       <el-table-column prop="deviceChannelName" label="通道名称" min-width="140" />
       <el-table-column prop="deviceChannelType" label="类型" width="100">
         <template #default="{ row }">
-          <el-tag size="small" effect="plain">{{ channelTypeLabel(row.deviceChannelType) }}</el-tag>
+          <el-tag effect="plain">{{ channelTypeLabel(row.deviceChannelType) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="deviceChannelSort" label="排序" width="80" />
@@ -22,15 +22,15 @@
             :model-value="row.deviceChannelStatus === 'enabled'"
             active-text="启用"
             inactive-text="禁用"
-            size="small"
+
             @change="(val: any) => toggleStatus(row, val)"
           />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="140">
         <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" size="small" @click="removeChannel(row)">删除</el-button>
+          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="removeChannel(row)">删除</el-button>
         </template>
       </el-table-column>
       <template #empty>

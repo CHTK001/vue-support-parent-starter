@@ -279,8 +279,8 @@ const tableColumns = [
           <span v-if="isUp(r) && r.ipv4" class="nt-ip mono">{{ r.ipv4 }}</span>
         </div>
         <div class="nt-actions">
-          <ReButton size="small" layout="square" @click="openStatus(r)">状态</ReButton>
-          <ReButton size="small" layout="square" @click="openProps(r)">属性</ReButton>
+          <ReButton layout="square" @click="openStatus(r)">状态</ReButton>
+          <ReButton layout="square" @click="openProps(r)">属性</ReButton>
         </div>
       </div>
     </div>
@@ -333,7 +333,7 @@ const tableColumns = [
         >
           <el-checkbox :model-value="true" disabled />
           <span class="pi-name">{{ item.name }}</span>
-          <ReButton v-if="item.editable" size="small" layout="square" @click="openIPv4()">属性</ReButton>
+          <ReButton v-if="item.editable" layout="square" @click="openIPv4()">属性</ReButton>
         </div>
       </div>
       <template #footer>

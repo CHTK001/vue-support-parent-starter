@@ -33,7 +33,7 @@
       </ReTableColumn>
       <ReTableColumn prop="taskType" label="任务类型" width="100" align="center">
         <template #default="{ row }">
-          <ReTag :class="['type-tag', typeClass(row.taskType)]" effect="plain" size="small">{{ typeLabel(row.taskType) }}</ReTag>
+          <ReTag :class="['type-tag', typeClass(row.taskType)]" effect="plain" >{{ typeLabel(row.taskType) }}</ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="所属资产" width="130" align="center">
@@ -45,7 +45,7 @@
       <ReTableColumn prop="taskCron" label="Cron" width="140" align="center" />
       <ReTableColumn prop="taskStatus" label="运行状态" width="100" align="center">
         <template #default="{ row }">
-          <ReTag v-if="row.taskStatus" :class="['status-pill', statusClass(row.taskStatus)]" effect="plain" size="small">
+          <ReTag v-if="row.taskStatus" :class="['status-pill', statusClass(row.taskStatus)]" effect="plain" >
             {{ statusLabel(row.taskStatus) }}
           </ReTag>
           <span v-else class="dim">—</span>
@@ -56,7 +56,7 @@
           <ReSwitch
             :model-value="row.taskEnabled === 1"
             :loading="row._toggling"
-            size="small"
+
             inline-prompt
             active-text="开"
             inactive-text="关"
@@ -72,9 +72,9 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <ReButton link size="small" @click="handleTrigger(row.id)">采集</ReButton>
-          <ReButton link size="small" @click="editRow(row)">编辑</ReButton>
-          <ReButton link size="small" type="danger" @click="handleDelete(row.id)">删除</ReButton>
+          <ReButton link @click="handleTrigger(row.id)">采集</ReButton>
+          <ReButton link @click="editRow(row)">编辑</ReButton>
+          <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

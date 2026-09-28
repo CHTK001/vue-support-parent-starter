@@ -79,7 +79,8 @@ const emit = defineEmits<{ (e: "close"): void }>();
   font-size: 28px;
   font-weight: 900;
   letter-spacing: 2px;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  /* 白字压在主色带上，靠描边阴影保证可读性；暗色模式色带更深，阴影同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .ick-head__sub {
   margin: 8px 0 0;
@@ -95,9 +96,11 @@ const emit = defineEmits<{ (e: "close"): void }>();
 .ick-card {
   position: relative;
   background: var(--el-bg-color);
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 18px 20px 18px 54px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
 }
 /* 左侧主题色竖条：复用每个物种自带的 accent */
@@ -114,7 +117,8 @@ const emit = defineEmits<{ (e: "close"): void }>();
   top: 18px;
   width: 26px;
   height: 26px;
-  border-radius: 50%;
+  /* 序号圆用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 13px;
@@ -141,7 +145,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
   font-weight: 700;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
 }
 .ick-card__latin {
@@ -180,17 +184,36 @@ const emit = defineEmits<{ (e: "close"): void }>();
   height: 48px;
   padding: 0 46px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 2px;
   background: var(--el-bg-color);
   color: var(--el-color-primary);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.25);
-  transition: transform 0.15s;
+  /* 按钮不是卡片：常驻投影去掉，改由 :hover 给浮起反馈 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ick-btn:hover {
   transform: translateY(-1px);
+  /* 浮起反馈：按钮压在主色渐变底上，用黑色投影保持原有的「白底浮起」观感 */
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--el-color-black) 25%, transparent);
+}
+.ick-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .ick-btn {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .ick-btn:hover {
+    transform: none;
+  }
 }
 </style>

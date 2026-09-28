@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="condition" :text="data.reText" :subtitle="data.expression ? 'IF ' + data.expression : '条件分支'" />
+  <BaseNode type="condition" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="data.expression ? 'IF ' + data.expression : '条件分支'" />
 </template>

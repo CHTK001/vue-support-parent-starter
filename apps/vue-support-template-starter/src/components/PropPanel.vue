@@ -2,10 +2,10 @@
   <div class="prop-panel">
     <div class="prop-panel__header">
       <span class="prop-panel__title">参数面板</span>
-      <el-tag size="small" type="info" effect="plain">{{ meta.name }}</el-tag>
+      <el-tag type="info" effect="plain">{{ meta.name }}</el-tag>
     </div>
     <div class="prop-panel__body">
-      <el-form label-position="top" size="small">
+      <el-form label-position="top" >
         <el-form-item
           v-for="field in meta.props"
           :key="field.key"
@@ -15,7 +15,7 @@
           <template #label>
             <div class="prop-field-label">
               <span class="prop-field-name">{{ field.label }}</span>
-              <el-tag v-if="field.type" size="small" type="info" effect="plain" round>{{ field.type }}</el-tag>
+              <el-tag v-if="field.type" type="info" effect="plain" round>{{ field.type }}</el-tag>
               <el-tooltip v-if="field.description" :content="field.description" placement="top">
                 <el-icon class="prop-field-tip"><QuestionFilled /></el-icon>
               </el-tooltip>
@@ -189,7 +189,8 @@ const setModelType = (type: "boolean" | "string" | "number") => {
   height: 100%;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：参数面板属卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -200,13 +201,14 @@ const setModelType = (type: "boolean" | "string" | "number") => {
   padding: 12px 16px;
   font-size: 13px;
   font-weight: 600;
-  background: linear-gradient(135deg, #eaf3ff 0%, #d9eaff 100%);
+  /* 原 #eaf3ff→#d9eaff 与 primary-light-9/8 基本同色，改走语义浅色档 */
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
 }
 
 .prop-panel__title {
-  color: #1f2329;
+  color: var(--el-text-color-primary);
 }
 
 .prop-panel__body {
@@ -235,7 +237,7 @@ const setModelType = (type: "boolean" | "string" | "number") => {
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   font-family: monospace;
 }
 
@@ -275,9 +277,21 @@ const setModelType = (type: "boolean" | "string" | "number") => {
   height: 32px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  border-radius: 8px;
+  /* 这两个是 Element Plus 核心令牌，必然有值，var() 里的 hex 兜底属死代码，去掉 */
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: var(--el-radius-md, 8px);
   text-transform: uppercase;
+}
+
+/* 尊重系统「减少动态效果」偏好：本组件样式未声明 transition / animation
+   （动效都在 el-form / el-input / ReSwitch 内部），这里做显式归零兜底。 */
+@media (prefers-reduced-motion: reduce) {
+  .prop-panel,
+  .prop-panel__header,
+  .prop-panel__body {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

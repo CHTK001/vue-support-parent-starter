@@ -7,19 +7,19 @@
         <span class="dsm-title">InfluxDB 时序数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton size="small" :disabled="!source" @click="testConnection">
+        <ReButton :disabled="!source" @click="testConnection">
           <template #icon><ReIcon name="Connection" /></template>测试连接
         </ReButton>
-        <ReButton size="small" @click="refresh">
+        <ReButton @click="refresh">
           <template #icon><ReIcon name="Refresh" /></template>刷新
         </ReButton>
-        <ReButton size="small" type="primary" @click="openQuery">
+        <ReButton type="primary" @click="openQuery">
           <template #icon><ReIcon name="Search" /></template>Flux 查询
         </ReButton>
-        <ReButton size="small" type="primary" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket">
+        <ReButton type="primary" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket">
           <template #icon><ReIcon name="Plus" /></template>新建 Bucket
         </ReButton>
-        <ReButton size="small" :disabled="!source" :loading="writeSaving" @click="openWritePoint">
+        <ReButton :disabled="!source" :loading="writeSaving" @click="openWritePoint">
           <template #icon><ReIcon name="EditPen" /></template>写入数据
         </ReButton>
       </div>
@@ -104,7 +104,7 @@
           <div class="dsm-info-row">
             <span class="dsm-info-label">状态</span>
             <div class="dsm-info-status">
-              <ReTag :type="gap ? 'danger' : 'success'" size="small">{{ gap ? "读取失败" : "正常" }}</ReTag>
+              <ReTag :type="gap ? 'danger' : 'success'" >{{ gap ? "读取失败" : "正常" }}</ReTag>
               <span class="dsm-info-sub">服务版本 {{ influxVersion || "未探测" }}</span>
             </div>
           </div>
@@ -123,8 +123,8 @@
           >
             <template #action="{ row }">
               <div class="dsm-row-ops">
-                <ReButton icon="EditPen" layout="square" size="small" title="编辑保留期" @click="openEditRetention(row)" />
-                <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="confirmDeleteBucket(row)" />
+                <ReButton icon="EditPen" layout="square" title="编辑保留期" @click="openEditRetention(row)" />
+                <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="confirmDeleteBucket(row)" />
               </div>
             </template>
           </ReTable>
@@ -134,7 +134,7 @@
         <div class="dsm-section" v-if="activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 测量列表
-            <ReButton size="small" text @click="loadMeasurements">
+            <ReButton text @click="loadMeasurements">
               <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
             </ReButton>
             <span class="dsm-section-hint">点击行按该度量生成 Flux 查询</span>
@@ -154,7 +154,7 @@
         <div class="dsm-section" v-if="activeBucket">
           <div class="dsm-section-title">
             {{ activeBucket }} - 最近数据
-            <ReButton size="small" text @click="loadBucketData">
+            <ReButton text @click="loadBucketData">
               <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
             </ReButton>
           </div>
@@ -237,17 +237,17 @@
     <!-- 数据浏览弹窗 -->
     <ReDialog v-model="browserVisible" :title="`数据浏览 · ${browserMeasurement}`" width="860px">
       <div class="dsm-browser-bar">
-        <ReSelect v-model="browserRange" size="small" style="width: 130px" @change="runBrowserQuery">
+        <ReSelect v-model="browserRange" style="width: 130px" @change="runBrowserQuery">
           <ReOption label="最近 1 小时" value="-1h" />
           <ReOption label="最近 6 小时" value="-6h" />
           <ReOption label="最近 24 小时" value="-24h" />
           <ReOption label="最近 7 天" value="-7d" />
         </ReSelect>
-        <ReSelect v-model="browserField" size="small" clearable placeholder="按 field 过滤" style="width: 160px" @change="runBrowserQuery">
+        <ReSelect v-model="browserField" clearable placeholder="按 field 过滤" style="width: 160px" @change="runBrowserQuery">
           <ReOption v-for="f in browserFields" :key="f" :label="f" :value="f" />
         </ReSelect>
         <span class="dsm-browser-meta">{{ browserRows.length }} 行</span>
-        <ReButton size="small" text @click="runBrowserQuery">
+        <ReButton text @click="runBrowserQuery">
           <template #icon><ReIcon name="Refresh" size="12" /></template>刷新
         </ReButton>
       </div>

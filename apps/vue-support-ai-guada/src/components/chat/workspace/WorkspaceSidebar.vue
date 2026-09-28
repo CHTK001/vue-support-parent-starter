@@ -2,7 +2,7 @@
     <div class="workspace-sidebar h-full flex flex-col relative">
         <!-- 顶部工具栏：资源管理器按钮 + 浏览器标签 + 窗口控制 -->
         <div
-            class="flex items-center h-11 drag-region shrink-0 border-b border-gray-100 dark:border-[#2e3035]">
+            class="flex items-center h-11 drag-region shrink-0 border-b border-gray-100 dark:border-[var(--el-border-color-lighter)]">
             <!-- 工作区 / 预览区 切换按钮 -->
             <div class="ml-1 shrink-0 no-drag flex items-center gap-0.5 mr-1">
                 <LTooltip :content="t('chat.workspace.workspaceArea')" placement="bottom">
@@ -95,12 +95,12 @@
                 @activate="handleBrowserWindowActivate" @close="handleBrowserWindowClose"
                 @create="createNewBrowserWindow" />
             <div v-if="isElectron && browserStore.sessionWebviews.length > 0" v-show="!isPreviewMode"
-                class="border-b border-gray-100 dark:border-[#2e3035] mx-4 mt-3"></div>
+                class="border-b border-gray-100 dark:border-[var(--el-border-color-lighter)] mx-4 mt-3"></div>
             <!-- 待办事项列表 -->
             <SessionTodoList v-show="!isPreviewMode" :session-id="props.sessionId" />
             <!-- 头部 -->
             <div class="shrink-0 flex items-center justify-between px-2  py-3 ">
-                <h3 class="text-sm font-normal text-gray-500 dark:text-[#8b8d95] whitespace-nowrap mx-2">
+                <h3 class="text-sm font-normal text-gray-500 dark:text-[var(--el-text-color-secondary)] whitespace-nowrap mx-2">
                     {{ t('chat.workspace.workingDir') }}</h3>
                 <div class="flex items-center gap-0 shrink-0">
                     <!-- 打开文件夹按钮（仅 Electron 环境） -->
@@ -132,7 +132,7 @@
 
             <!-- 目录树内容 -->
             <div class="flex-1 overflow-auto min-w-0">
-                <div v-if="!treeData.length" class="text-center py-12 text-gray-400 dark:text-[#6b6d73] text-xs p-2">
+                <div v-if="!treeData.length" class="text-center py-12 text-gray-400 dark:text-[var(--el-text-color-secondary)] text-xs p-2">
                     {{ t('chat.workspace.noFiles') }}
                 </div>
 
@@ -162,13 +162,13 @@
         <div v-if="isPreviewMode && !activeTabKey"
             class="flex flex-col items-center justify-center h-full w-full flex-1">
             <div class="text-center">
-                <svg class="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-[#3a3c40]" viewBox="0 0 24 24" fill="none"
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-[var(--el-text-color-placeholder)]" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <path d="M3 9h18" />
                     <path d="M9 21V9" />
                 </svg>
-                <p class="text-gray-400 dark:text-[#6b6d73] text-sm mb-4">{{ t('chat.workspace.noPreviewFile') }}</p>
+                <p class="text-gray-400 dark:text-[var(--el-text-color-secondary)] text-sm mb-4">{{ t('chat.workspace.noPreviewFile') }}</p>
                 <div class="flex items-center gap-2 justify-center">
                     <button v-if="isElectron" class="empty-state-btn" :disabled="!props.sessionId"
                         @click="createNewBrowserWindow">
@@ -1384,8 +1384,20 @@ onUnmounted(() => {
 /* 工作目录树样式 — 已迁移到 WorkspaceTreeNode.vue */
 
 /* 工作目录工具按钮 - 纯图标无框样式 */
+<style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 结构色由 --color-* 收敛到 refactor.css 已映射好的 --el-*。注意
+      --color-sidebar-bg-hover / --color-sidebar-bg-active 的第一层定义在
+      **未被 main.js 引入**的 style.css 里，所以此前一直在吃
+      var(--x, #f5f7fa) 的内层兜底 —— 深色模式下就是一片「浅灰底」。
+      --el-fill-color-light / --el-fill-color 才是真正随主题切换的一档。
+   2. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   3. 悬浮目录树面板（.tree-floating-panel）压在内容之上，投影与位移都是
+      「浮起」提示，属 koi 允许的第二类；本文件其余元素一律零投影。
+   ============================================================================ */
 .workspace-tool-btn {
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
     cursor: pointer;
     font-size: 14px;
     height: 24px;
@@ -1394,17 +1406,25 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
     margin: 0 2px;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    /* 原值 6px → sm 档 */
+    border-radius: var(--el-radius-sm, 6px);
     outline: none;
 }
 
+/* 24px 纯图标按钮，浏览器默认 outline 太弱 */
+.workspace-tool-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .workspace-tool-btn:hover {
-    background: var(--color-sidebar-bg-hover);
-    color: var(--color-text);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
 }
 
 .drag-region {
@@ -1422,18 +1442,25 @@ onUnmounted(() => {
     justify-content: center;
     padding: 4px;
     border: none;
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     background: transparent;
     cursor: pointer;
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
     flex-shrink: 0;
     align-self: center;
-    transition: all 0.2s;
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.sidebar-tool-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .sidebar-tool-btn:hover:not(:disabled) {
-    background: var(--color-sidebar-bg-hover);
-    color: var(--color-text);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
 }
 
 .sidebar-tool-btn:disabled {
@@ -1459,24 +1486,27 @@ onUnmounted(() => {
     height: 26px;
     min-width: 0;
     max-width: 190px;
-    border-radius: 6px;
+    /* 原值 6px → sm 档 */
+    border-radius: var(--el-radius-sm, 6px);
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.15s;
+    transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .browser-tab:hover {
-    background: var(--color-sidebar-bg-hover);
+    background: var(--el-fill-color-light);
 }
 
 .browser-tab.active {
-    background: var(--color-sidebar-bg-active);
-    color: var(--color-sidebar-text-active);
+    background: var(--el-fill-color);
+    color: var(--el-text-color-primary);
 }
 
 .tab-favicon {
     width: 14px;
     height: 14px;
+    /* 原值 2px → 不在六档内，最小的 xs(4px) 会让 14px 图标变成圆点；
+       2px 本身已接近方角，保留原值并在同行注明（这是本文件唯一保留的魔法圆角） */
     border-radius: 2px;
     flex-shrink: 0;
     object-fit: contain;
@@ -1489,13 +1519,13 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
 }
 
 .tab-title {
     font-size: 13px;
     line-height: 1;
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1503,7 +1533,7 @@ onUnmounted(() => {
 }
 
 .browser-tab.active .tab-title {
-    color: var(--color-sidebar-text-active);
+    color: var(--el-text-color-primary);
     font-weight: 500;
 }
 
@@ -1518,11 +1548,15 @@ onUnmounted(() => {
     justify-content: center;
     width: 16px;
     height: 16px;
-    border-radius: 4px;
-    color: var(--color-text);
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
+    color: var(--el-text-color-primary);
     flex-shrink: 0;
     opacity: 0.7;
-    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    transition:
+        opacity var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .browser-tab:hover .tab-close,
@@ -1530,9 +1564,10 @@ onUnmounted(() => {
     opacity: 1;
 }
 
+/* 关闭标签是「不可撤销」动作，用危险语义色 + 同色淡底 */
 .tab-close:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+    color: var(--el-color-danger);
 }
 
 /* ── 悬浮目录树面板（预览模式下） ── 视觉风格对齐 CustomPopover */
@@ -1548,16 +1583,21 @@ onUnmounted(() => {
     pointer-events: none;
 }
 
+/* 悬浮目录树面板：position:fixed 压在内容之上，投影 + 位移是「浮起」提示，
+   属 koi 允许的第二类投影。原来这里写死白底 + .dark 覆盖两套色，
+   而 refactor.css 的 --el-bg-color / --el-border-color-lighter 已随模式切换，
+   覆盖后即为多余（且 .dark 覆盖里那两行兜底在浅色下会误生效）。 */
 .tree-floating-panel {
     position: fixed;
     z-index: 2000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 0 16px rgba(0, 0, 0, 0.10);
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    /* 原值 12px → lg 档 */
+    border-radius: var(--el-radius-lg, 12px);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -1566,13 +1606,10 @@ onUnmounted(() => {
 }
 
 .tree-floating-panel.tree-transition-ready {
-    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
-}
-
-.dark .tree-floating-panel {
-    background: var(--color-surface, #242529);
-    border-color: var(--color-surface-border, #2e3035);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+    transition:
+        opacity var(--el-transition-duration-fast, 0.2s) ease,
+        transform var(--el-transition-duration-fast, 0.2s) ease,
+        visibility var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .tree-floating-panel.tree-floating-visible {
@@ -1590,10 +1627,13 @@ onUnmounted(() => {
     padding: 4px;
     border: none;
     background: transparent;
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
     cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.2s;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
     outline: none;
 }
 
@@ -1602,15 +1642,18 @@ onUnmounted(() => {
     height: 20px;
 }
 
+.seg-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .seg-btn:hover:not(:disabled) {
-    background: var(--color-sidebar-bg-hover);
-    color: var(--color-text);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
 }
 
 .seg-btn.active {
-    color: var(--color-text);
-    background: var(--color-sidebar-bg-active);
-    color: var(--color-sidebar-text-active);
+    background: var(--el-fill-color);
+    color: var(--el-text-color-primary);
 }
 
 .seg-btn:disabled {
@@ -1624,20 +1667,27 @@ onUnmounted(() => {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--el-radius-md, 8px);
     background: transparent;
-    color: var(--color-text-gray);
+    color: var(--el-text-color-secondary);
     cursor: pointer;
     font-size: 13px;
-    transition: all 0.15s ease;
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease,
+        border-color var(--el-transition-duration-fast, 0.2s) ease;
     outline: none;
 }
 
+.empty-state-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .empty-state-btn:hover:not(:disabled) {
-    background: var(--color-sidebar-bg-hover);
-    color: var(--color-text);
-    border-color: var(--color-text-gray);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+    border-color: var(--el-text-color-secondary);
 }
 
 .empty-state-btn:disabled {
@@ -1645,7 +1695,19 @@ onUnmounted(() => {
     cursor: not-allowed;
 }
 
-.dark .empty-state-btn {
-    border-color: var(--color-surface-border, #2e3035);
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .workspace-tool-btn,
+    .sidebar-tool-btn,
+    .browser-tab,
+    .tab-close,
+    .tree-floating-panel.tree-transition-ready,
+    .seg-btn,
+    .empty-state-btn {
+        transition: none;
+    }
+    .tree-floating-panel {
+        transform: none;
+    }
 }
 </style>

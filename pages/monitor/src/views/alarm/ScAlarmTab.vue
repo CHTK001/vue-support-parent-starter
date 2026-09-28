@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
         <ReRadioButton value="events">告警事件</ReRadioButton>
         <ReRadioButton value="rules">策略与规则</ReRadioButton>
       </ReRadioGroup>
-      <ReButton v-if="subView === 'events'" size="small" icon="Refresh" show-text @click="refresh">刷新</ReButton>
+      <ReButton v-if="subView === 'events'" icon="Refresh" show-text @click="refresh">刷新</ReButton>
     </div>
 
     <!-- 事件列表 -->
@@ -338,23 +338,23 @@ onBeforeUnmount(() => {
       <ReCard class="trend-card" v-if="trendData.length > 0" :radius="12" :padding="14">
         <ReSectionHead :title="`告警趋势（近 ${trendHours}h）`">
           <template #actions>
-            <ReSelect v-model="trendHours" size="small" style="width: 100px" @change="loadStats"
+            <ReSelect v-model="trendHours" style="width: 100px" @change="loadStats"
               :data="[{ value: 6, label: '6h' }, { value: 12, label: '12h' }, { value: 24, label: '24h' }, { value: 72, label: '72h' }]" />
           </template>
         </ReSectionHead>
         <div ref="trendChartRef" style="height: 180px; width: 100%" />
       </ReCard>
 
-      <ReRadioGroup v-model="eventStatusFilter" button capsule size="small" style="margin-bottom: 10px" @change="refresh">
+      <ReRadioGroup v-model="eventStatusFilter" button capsule style="margin-bottom: 10px" @change="refresh">
         <ReRadioButton value="">全部</ReRadioButton>
         <ReRadioButton value="NEW">未处理</ReRadioButton>
         <ReRadioButton value="PROCESSED">已处理</ReRadioButton>
         <ReRadioButton value="FALSE_ALARM">误报</ReRadioButton>
       </ReRadioGroup>
-      <ReTable :data="events" size="small" border :loading="loading" :pagination="false" :toolbar="false">
+      <ReTable :data="events" border :loading="loading" :pagination="false" :toolbar="false">
         <ReTableColumn label="级别" width="70">
           <template #default="{ row }">
-            <ReTag :type="levelType(row.msMonitorAlarmEventLevel)" size="small">{{ row.msMonitorAlarmEventLevel }}</ReTag>
+            <ReTag :type="levelType(row.msMonitorAlarmEventLevel)" >{{ row.msMonitorAlarmEventLevel }}</ReTag>
           </template>
         </ReTableColumn>
         <ReTableColumn prop="msMonitorAlarmEventMonitorName" label="目标" min-width="130" />
@@ -366,7 +366,7 @@ onBeforeUnmount(() => {
         </ReTableColumn>
         <ReTableColumn prop="msMonitorAlarmEventStatus" label="状态" width="100">
           <template #default="{ row }">
-            <ReTag :type="row.msMonitorAlarmEventStatus === 'NEW' ? 'danger' : 'info'" size="small">
+            <ReTag :type="row.msMonitorAlarmEventStatus === 'NEW' ? 'danger' : 'info'" >
               {{ row.msMonitorAlarmEventStatus === 'NEW' ? '未处理' : row.msMonitorAlarmEventStatus === 'PROCESSED' ? '已处理' : '误报' }}
             </ReTag>
           </template>
@@ -375,8 +375,8 @@ onBeforeUnmount(() => {
         <ReTableColumn label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <template v-if="row.msMonitorAlarmEventStatus === 'NEW'">
-              <ReButton link type="primary" size="small" @click="onHandleEvent(row, false)">处理</ReButton>
-              <ReButton link size="small" @click="onHandleEvent(row, true)">误报</ReButton>
+              <ReButton link type="primary" @click="onHandleEvent(row, false)">处理</ReButton>
+              <ReButton link @click="onHandleEvent(row, true)">误报</ReButton>
             </template>
           </template>
         </ReTableColumn>
@@ -388,14 +388,14 @@ onBeforeUnmount(() => {
       <div class="panel">
         <ReSectionHead title="告警策略">
           <template #actions>
-            <ReButton icon="Plus" show-text type="primary" size="small" @click="openPolicyForm()">新增策略</ReButton>
+            <ReButton icon="Plus" show-text type="primary" @click="openPolicyForm()">新增策略</ReButton>
           </template>
         </ReSectionHead>
-        <ReTable :data="policies" size="small" border :pagination="false" :toolbar="false">
+        <ReTable :data="policies" border :pagination="false" :toolbar="false">
           <ReTableColumn prop="msMonitorAlarmPolicyName" label="名称" min-width="140" />
           <ReTableColumn label="启用" width="80">
             <template #default="{ row }">
-              <ReTag :type="row.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" size="small">
+              <ReTag :type="row.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" >
                 {{ row.msMonitorAlarmPolicyEnabled === 1 ? '启用' : '停用' }}
               </ReTag>
             </template>
@@ -403,8 +403,8 @@ onBeforeUnmount(() => {
           <ReTableColumn prop="msMonitorAlarmPolicyRemark" label="备注" min-width="160" show-overflow-tooltip />
           <ReTableColumn label="操作" width="140">
             <template #default="{ row }">
-              <ReButton link size="small" @click="openPolicyForm(row)">编辑</ReButton>
-              <ReButton link type="danger" size="small" @click="removePolicy(row)">删除</ReButton>
+              <ReButton link @click="openPolicyForm(row)">编辑</ReButton>
+              <ReButton link type="danger" @click="removePolicy(row)">删除</ReButton>
             </template>
           </ReTableColumn>
         </ReTable>
@@ -413,10 +413,10 @@ onBeforeUnmount(() => {
       <div class="panel">
         <ReSectionHead title="告警规则">
           <template #actions>
-            <ReButton icon="Plus" show-text type="primary" size="small" :disabled="!policies.length" @click="openRuleForm()">新增规则</ReButton>
+            <ReButton icon="Plus" show-text type="primary" :disabled="!policies.length" @click="openRuleForm()">新增规则</ReButton>
           </template>
         </ReSectionHead>
-        <ReTable :data="rules" size="small" border :loading="loading" :pagination="false" :toolbar="false">
+        <ReTable :data="rules" border :loading="loading" :pagination="false" :toolbar="false">
           <ReTableColumn prop="msMonitorAlarmRuleMetricName" label="指标" width="130" />
           <ReTableColumn label="条件" width="90">
             <template #default="{ row }">{{ row.msMonitorAlarmRuleCondition }} {{ row.msMonitorAlarmRuleThreshold }}</template>
@@ -425,21 +425,21 @@ onBeforeUnmount(() => {
           <ReTableColumn prop="msMonitorAlarmRuleSilenceMinutes" label="静默(分)" width="85" />
           <ReTableColumn label="级别" width="70">
             <template #default="{ row }">
-              <ReTag :type="levelType(row.msMonitorAlarmRuleLevel)" size="small">{{ row.msMonitorAlarmRuleLevel }}</ReTag>
+              <ReTag :type="levelType(row.msMonitorAlarmRuleLevel)" >{{ row.msMonitorAlarmRuleLevel }}</ReTag>
             </template>
           </ReTableColumn>
           <ReTableColumn label="启用" width="80">
             <template #default="{ row }">
-              <ReTag :type="row.msMonitorAlarmRuleEnabled === 1 ? 'success' : 'info'" size="small">
+              <ReTag :type="row.msMonitorAlarmRuleEnabled === 1 ? 'success' : 'info'" >
                 {{ row.msMonitorAlarmRuleEnabled === 1 ? '是' : '否' }}
               </ReTag>
             </template>
           </ReTableColumn>
           <ReTableColumn label="操作" width="140">
             <template #default="{ row }">
-              <ReButton link size="small" @click="openRuleForm(row)">编辑</ReButton>
-              <ReButton link type="primary" size="small" @click="testRuleRule(row)">测试规则</ReButton>
-              <ReButton link type="danger" size="small" @click="removeRule(row)">删除</ReButton>
+              <ReButton link @click="openRuleForm(row)">编辑</ReButton>
+              <ReButton link type="primary" @click="testRuleRule(row)">测试规则</ReButton>
+              <ReButton link type="danger" @click="removeRule(row)">删除</ReButton>
             </template>
           </ReTableColumn>
         </ReTable>

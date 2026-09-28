@@ -40,13 +40,13 @@
             <div class="text-center">
                 <p class="text-sm text-(--color-text-secondary)">{{ t('settings.system.community.starPrompt') }}</p>
                 <div class="mt-3 flex justify-center gap-3">
-                    <el-button size="small" @click="openLink('https://gitee.com/zhendongdong/guada_ai')">
+                    <el-button @click="openLink('https://gitee.com/zhendongdong/guada_ai')">
                         ⭐ Gitee
                     </el-button>
-                    <el-button size="small" @click="openLink('https://github.com/donggua-zen/guada')">
+                    <el-button @click="openLink('https://github.com/donggua-zen/guada')">
                         ⭐ GitHub
                     </el-button>
-                    <el-button size="small" @click="openLink('https://atomgit.com/donggua_sherlock/GuaDaAI')">
+                    <el-button @click="openLink('https://atomgit.com/donggua_sherlock/GuaDaAI')">
                         ⭐ GitCode
                     </el-button>
                 </div>

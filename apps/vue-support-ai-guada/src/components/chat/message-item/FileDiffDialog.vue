@@ -178,7 +178,8 @@ function highlightLine(line: string): string {
   gap: 6px;
   padding: 4px 10px;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: transparent;
   cursor: pointer;
   font-size: 12px;
@@ -220,7 +221,8 @@ function highlightLine(line: string): string {
 /* Diff 表格 */
 .diff-view {
   /* border: 1px solid var(--el-border-color); */
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-bg-color);
 }
 
@@ -252,7 +254,7 @@ function highlightLine(line: string): string {
 
 /* 行背景 */
 .diff-line--add {
-  background: rgba(var(--el-color-success-rgb, 103, 194, 58), 0.08);
+  background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
 }
 
 .diff-line--add .diff-line__sign {
@@ -260,7 +262,7 @@ function highlightLine(line: string): string {
 }
 
 .diff-line--del {
-  background: rgba(var(--el-color-danger-rgb, 245, 108, 108), 0.08);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
 }
 
 .diff-line--del .diff-line__sign {
@@ -273,5 +275,15 @@ function highlightLine(line: string): string {
 
 .diff-line--ctx .diff-line__sign {
   color: var(--el-text-color-placeholder);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，文件页签的底色与描边直接到位。
+   只关 .diff-tab 自己的 transition，不写 `*` / `.diff-tab *` 通配，
+   避免把内部 el-icon / diff 表格相关组件的合法过渡一起掐掉。
+   本文件只有 transition、无 animation，.diff-tab--active 选中态是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .diff-tab {
+    transition: none;
+  }
 }
 </style>

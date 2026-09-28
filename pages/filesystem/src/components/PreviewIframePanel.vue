@@ -73,7 +73,7 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
 .preview-iframe-panel__wrap {
   position: relative;
   width: 100%;
-  transition: transform 0.2s ease;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
   overflow: visible;
 }
 
@@ -81,7 +81,7 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
   width: 100%;
   height: 65vh;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color-page);
 }
 
@@ -94,5 +94,12 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
 :fullscreen .preview-iframe-panel__frame {
   height: 100vh;
   border-radius: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .preview-iframe-panel__wrap {
+    transition: none;
+  }
 }
 </style>

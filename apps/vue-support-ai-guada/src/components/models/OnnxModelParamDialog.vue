@@ -4,9 +4,9 @@
     <div v-loading="loading" class="omp">
       <div class="omp-head">
         <span class="omp-model" :title="modelId">{{ modelId }}</span>
-        <el-tag v-if="recommended" size="small" type="warning">推荐模型</el-tag>
-        <el-tag v-if="gpuUsable" size="small" type="success">本机 GPU 可用</el-tag>
-        <el-tag v-else size="small" type="info">本机无 GPU / 缺 CUDA 组件</el-tag>
+        <el-tag v-if="recommended" type="warning">推荐模型</el-tag>
+        <el-tag v-if="gpuUsable" type="success">本机 GPU 可用</el-tag>
+        <el-tag v-else type="info">本机无 GPU / 缺 CUDA 组件</el-tag>
       </div>
 
       <!-- 推理设备 -->
@@ -43,7 +43,7 @@
       <div class="omp-field">
         <div class="omp-label">
           模型额外参数
-          <el-button link type="primary" size="small" @click="addExtra">+ 添加</el-button>
+          <el-button link type="primary" @click="addExtra">+ 添加</el-button>
         </div>
         <p class="omp-hint">
           不同模型支持的额外参数不同，由各自推理实现声明读取，例如 inputSize、candidates、
@@ -223,7 +223,8 @@ watch(() => props.modelId, (v) => {
 
 .omp-field {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   padding: 12px;
 }
 

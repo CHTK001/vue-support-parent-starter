@@ -7,11 +7,11 @@
         <div class="mcp-detail__headinfo">
           <div class="mcp-detail__name">{{ target.name }}</div>
           <div class="mcp-detail__badges">
-            <el-tag v-if="target.official" size="small" type="primary" effect="light">官方</el-tag>
-            <el-tag v-if="target.requiresKey" size="small" type="warning" effect="light">需 API Key</el-tag>
-            <el-tag v-if="target.requiresConfig" size="small" type="warning" effect="light">需补充配置</el-tag>
-            <el-tag v-if="!target.installable" size="small" type="info" effect="light">第三方仓库</el-tag>
-            <el-tag v-if="installed" size="small" type="success" effect="light">已安装</el-tag>
+            <el-tag v-if="target.official" type="primary" effect="light">官方</el-tag>
+            <el-tag v-if="target.requiresKey" type="warning" effect="light">需 API Key</el-tag>
+            <el-tag v-if="target.requiresConfig" type="warning" effect="light">需补充配置</el-tag>
+            <el-tag v-if="!target.installable" type="info" effect="light">第三方仓库</el-tag>
+            <el-tag v-if="installed" type="success" effect="light">已安装</el-tag>
           </div>
         </div>
       </div>
@@ -40,7 +40,7 @@
       </div>
 
       <div class="mcp-detail__docs" v-if="docsUrl">
-        <el-button link type="primary" size="small" @click="openDocs">
+        <el-button link type="primary" @click="openDocs">
           <el-icon class="mr-1"><LinkOutlined /></el-icon>查看文档 / 仓库
         </el-button>
       </div>
@@ -133,7 +133,8 @@ function openDocs() {
 .mcp-detail__transport {
   margin-top: 16px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 12px 14px;
   background: var(--el-fill-color-blank);
 }

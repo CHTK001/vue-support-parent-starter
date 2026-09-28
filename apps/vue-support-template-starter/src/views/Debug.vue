@@ -2,7 +2,14 @@
   <div class="debug">
     <!-- 顶部组件信息条 -->
     <header class="debug__head">
-      <div class="debug__back" @click="goHome">
+      <div
+        class="debug__back"
+        role="button"
+        tabindex="0"
+        @click="goHome"
+        @keydown.enter="goHome"
+        @keydown.space.prevent="goHome"
+      >
         <el-icon><ArrowLeft /></el-icon>
         <span>返回组件库</span>
       </div>
@@ -17,14 +24,14 @@
             <code class="debug__name-code">&lt;{{ name }} /&gt;</code>
             <el-tag
               v-if="hasSchema"
-              size="small"
+
               type="success"
               effect="plain"
               round
             >
               结构化参数
             </el-tag>
-            <el-tag v-else size="small" type="warning" effect="plain" round>通用调试</el-tag>
+            <el-tag v-else type="warning" effect="plain" round>通用调试</el-tag>
           </div>
           <div class="debug__desc">{{ meta?.description ?? '该组件尚未配置参数面板，使用通用调试模式' }}</div>
         </div>
@@ -57,7 +64,7 @@
       <section class="debug__preview">
         <div class="debug__preview-head">
           <span>实时预览</span>
-          <el-tag size="small" effect="plain" round>{{ name }}</el-tag>
+          <el-tag effect="plain" round>{{ name }}</el-tag>
         </div>
         <div class="debug__preview-body">
           <!-- 结构化参数模式 -->
@@ -228,13 +235,19 @@ const goHome = () => router.push("/home");
   font-size: 13px;
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 
   &:hover {
-    color: #409eff;
-    background: rgba(64, 158, 255, 0.08);
+    color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   }
+}
+
+/* 可点的非按钮元素（div + role=button），键盘可达，补主题化焦点环 */
+.debug__back:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .debug__info {
@@ -251,9 +264,12 @@ const goHome = () => router.push("/home");
   justify-content: center;
   width: 40px;
   height: 40px;
-  color: #fff;
-  background: linear-gradient(135deg, #409eff 0%, #6f42c1 100%);
-  border-radius: 10px;
+  /* --el-color-white 是 Element Plus 核心令牌，必然有值，var() 里的 hex 兜底属死代码 */
+  color: var(--el-color-white);
+  /* 品牌色阶全部走 --el-color-primary 系列，避免另起一套写死色 */
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+  /* 原 10px，取最近档 md(8px) */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
 }
 
@@ -278,9 +294,9 @@ const goHome = () => router.push("/home");
 .debug__name-code {
   font-size: 12px;
   padding: 2px 8px;
-  color: #5b8fd9;
-  background: rgba(64, 158, 255, 0.08);
-  border-radius: 4px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border-radius: var(--el-radius-xs, 4px);
 }
 
 .debug__desc {
@@ -319,9 +335,10 @@ const goHome = () => router.push("/home");
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: linear-gradient(180deg, #f4f7fb 0%, #eaf1f9 100%);
+  background: linear-gradient(180deg, var(--el-fill-color-extra-light) 0%, var(--el-bg-color-page) 100%);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：预览面板属卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -350,5 +367,12 @@ const goHome = () => router.push("/home");
 .debug__code {
   min-height: 0;
   overflow: hidden;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .debug__back {
+    transition: none;
+  }
 }
 </style>

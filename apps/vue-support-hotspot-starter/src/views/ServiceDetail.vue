@@ -3,13 +3,13 @@
     <!-- 顶部工具栏 -->
     <div class="view-toolbar">
       <div class="toolbar-left">
-        <ReButton size="small" icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
-        <ReTag v-if="service" type="info" size="small" round>
+        <ReButton icon="ArrowLeft" show-text @click="goBack">返回</ReButton>
+        <ReTag v-if="service" type="info" round>
           <code class="mono">{{ service }}</code>
         </ReTag>
       </div>
       <div class="toolbar-right">
-        <ReButton size="small" icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -76,7 +76,7 @@
               <span class="muted mono">{{ row.callCount.toLocaleString() }}</span>
             </template>
             <template #col-errorCount="{ row }">
-              <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" size="small" round>
+              <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" round>
                 {{ (row as unknown as ApmEndpoint).errorCount }}
               </ReTag>
               <span v-else class="muted mono">0</span>
@@ -279,22 +279,22 @@ onBeforeUnmount(() => {
 }
 
 .stat-row :deep(.re-stat-card) {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -315,9 +315,9 @@ onBeforeUnmount(() => {
 .table-panel :deep(.el-table) {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -345,9 +345,9 @@ onBeforeUnmount(() => {
 
 /* 面板 */
 .panel {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 16px;
 }
 
@@ -358,12 +358,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
 }
 
 .panel-sub {
   font-size: 12px;
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   font-weight: 400;
 }
 
@@ -384,6 +384,16 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .stat-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>

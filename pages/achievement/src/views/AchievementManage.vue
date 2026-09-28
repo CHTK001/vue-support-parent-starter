@@ -103,21 +103,21 @@ onMounted(loadTypes);
         >
           <template #toolbar>
             <div class="mb-4 flex flex-wrap items-center gap-3">
-              <el-select v-model="query.type" placeholder="Filter by type" clearable class="!w-44" size="small" @change="tableRef?.reload()">
+              <el-select v-model="query.type" placeholder="Filter by type" clearable class="!w-44" @change="tableRef?.reload()">
                 <el-option v-for="t in types" :key="t" :label="t" :value="t" />
               </el-select>
               <div class="flex-1" />
               <ReButton
                 v-admin
                 type="success"
-                size="small"
+
                 icon="Plus"
                 @click="handleAdd"
               >
                 Add Tier
               </ReButton>
               <ReButton
-                size="small"
+
                 icon="Refresh"
                 @click="tableRef?.reload()"
               >
@@ -130,16 +130,16 @@ onMounted(loadTypes);
             <span class="text-xl">{{ row.badge || '🏅' }}</span>
           </template>
           <template #type="{ row }">
-            <el-tag size="small" class="!rounded-full !border-0 !bg-gradient-to-r from-violet-100 to-indigo-100 !text-violet-600 dark:from-violet-900/40 dark:to-indigo-900/40 dark:!text-violet-300">{{ row.type }}</el-tag>
+            <el-tag class="!rounded-full !border-0 !bg-gradient-to-r from-violet-100 to-indigo-100 !text-violet-600 dark:from-violet-900/40 dark:to-indigo-900/40 dark:!text-violet-300">{{ row.type }}</el-tag>
           </template>
           <template #status="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small" class="!rounded-full !border-0" effect="plain">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" class="!rounded-full !border-0" effect="plain">
               {{ row.status === 1 ? "Active" : "Inactive" }}
             </el-tag>
           </template>
           <template #action="{ row }">
-            <el-button v-admin link type="primary" :icon="Edit" size="small" @click="handleEdit(row)">Edit</el-button>
-            <el-button v-admin link type="danger" :icon="Delete" size="small" @click="handleDelete(row)">Delete</el-button>
+            <el-button v-admin link type="primary" :icon="Edit" @click="handleEdit(row)">Edit</el-button>
+            <el-button v-admin link type="danger" :icon="Delete" @click="handleDelete(row)">Delete</el-button>
           </template>
         </ReTable>
       </ReCard>

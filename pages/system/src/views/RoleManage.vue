@@ -454,7 +454,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysRoleName", label: "角色名称", minWidth: 220, slot: "roleName" },
   { prop: "sysRoleCode", label: "角色编码", minWidth: 140 },
   { prop: "sysRoleSort", label: "排序", width: 80, align: "center" },
-  { prop: "sysRoleStatus", label: "状态", width: 90, slot: "status", align: "center" },
+  { prop: "sysRoleStatus", label: "状态", width: 100, slot: "status", align: "center" },
   { prop: "sysRoleInSystem", label: "系统", width: 80, slot: "system", align: "center" },
   { prop: "sysRoleRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
   { prop: "createTime", label: "创建时间", width: 170 },
@@ -484,19 +484,36 @@ onMounted(() => {
         @search-reset="handleReset"
       >
         <template #toolbar>
-          <el-button type="primary" icon="Plus" @click="handleAdd" text>新增</el-button>
+          <!-- C：工具栏主操作改为实心主色按钮（去掉 text），文案点明实体「角色」，避免与其他新增动作歧义 -->
+          <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
+        </template>
+        <!-- A：可操作空态。ReTable 未提供 #empty 时会回落到原生 el-empty，这里提供时接管 -->
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon">
+              <ReIcon name="UserFilled" size="22" />
+            </span>
+            <span class="page-empty__title">还没有角色</span>
+            <span class="page-empty__desc">角色把「菜单权限 + 数据范围」打包后授予用户，是权限体系的最小单元。</span>
+            <span class="page-empty__actions">
+              <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
+              <!-- 复用已有 handleReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+              <ReButton icon="Refresh" @click="handleReset">重置筛选</ReButton>
+            </span>
+          </div>
         </template>
         <template #roleName="{ row }">
           <div class="flex items-center gap-2">
             <el-icon :size="16" color="var(--el-color-primary)"><UserFilled /></el-icon>
             <span>{{ row.sysRoleName }}</span>
-            <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" size="small">内置</ReTag>
-            <ReTag v-if="row.sysRoleReadonly === 1" type="info" effect="plain" size="small">只读</ReTag>
+            <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" >内置</ReTag>
+            <ReTag v-if="row.sysRoleReadonly === 1" type="info" effect="plain" >只读</ReTag>
           </div>
         </template>
         <template #status="{ row }">
           <!-- 内置角色不允许显示切换按钮（连 disabled 状态也不显示，避免误操作） -->
-          <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" size="small">已启用</ReTag>
+          <!-- B：状态标签统一为 plain + dot（内置角色恒为启用，故用 success 点亮） -->
+          <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" dot>已启用</ReTag>
           <el-switch
             v-else
             :model-value="row.sysRoleStatus === 1"
@@ -504,16 +521,16 @@ onMounted(() => {
           />
         </template>
         <template #system="{ row }">
-          <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" size="small">内置</ReTag>
+          <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" >内置</ReTag>
           <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
         </template>
         <template #action="{ row }">
           <div class="flex items-center gap-2">
-            <ReButton layout="square" type="primary" icon="Key" @click="openPermDialog(row)">分配权限</ReButton>
-            <ReButton layout="square" type="primary" icon="Edit" @click="handleEdit(row)">编辑</ReButton>
-            <ReButton layout="square" type="success" icon="DocumentCopy" @click="handleCopy(row)">复制</ReButton>
-            <ReButton layout="square" type="info" icon="User" @click="openRoleUsers(row)">用户</ReButton>
-            <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" @click="handleDelete(row)">删除</ReButton>
+            <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
+            <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
+            <ReButton layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />
+            <ReButton layout="square" type="info" icon="User" tip="用户" @click="openRoleUsers(row)" />
+            <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" tip="删除" @click="handleDelete(row)" />
           </div>
         </template>
       </ReTable>
@@ -580,14 +597,14 @@ onMounted(() => {
               class="flex-1"
             />
             <el-button-group class="perm-toolbar__ops">
-              <el-button size="small" :icon="ArrowDown" @click="expandAllPermTree">展开</el-button>
-              <el-button size="small" :icon="ArrowUp" @click="collapsePermTree">收起</el-button>
+              <el-button  :icon="ArrowDown" @click="expandAllPermTree">展开</el-button>
+              <el-button  :icon="ArrowUp" @click="collapsePermTree">收起</el-button>
             </el-button-group>
             <el-button-group class="perm-toolbar__ops">
-              <el-button size="small" :icon="Select" @click="handleCheckAllMenu">全选</el-button>
-              <el-button size="small" :icon="RefreshLeft" @click="handleInvertMenu">反选</el-button>
+              <el-button  :icon="Select" @click="handleCheckAllMenu">全选</el-button>
+              <el-button  :icon="RefreshLeft" @click="handleInvertMenu">反选</el-button>
             </el-button-group>
-            <el-button size="small" type="danger" plain :icon="Delete" @click="handleClearMenu">清空</el-button>
+            <el-button  type="danger" plain :icon="Delete" @click="handleClearMenu">清空</el-button>
           </div>
           <div class="perm-summary">
             <span class="checked-count">已选 <b>{{ checkedCount }}</b> / 共 {{ totalMenuCount }} 项</span>
@@ -615,7 +632,7 @@ onMounted(() => {
                 <div class="perm-node">
                   <ReIcon v-if="data.sysMenuIcon" :name="data.sysMenuIcon" :size="14" class="perm-node__icon" />
                   <span class="perm-node__title">{{ data.sysMenuTitle }}</span>
-                  <ReTag :type="menuTypeTag(data)" effect="plain" size="small">
+                  <ReTag :type="menuTypeTag(data)" effect="plain" >
                     {{ menuTypeOf(data) }}
                   </ReTag>
                   <code v-if="data.sysMenuPerm" class="perm-node__perm">{{ data.sysMenuPerm }}</code>
@@ -692,16 +709,17 @@ onMounted(() => {
       :footer-hidden="true"
     >
       <template #content>
-        <el-table v-loading="usersLoading" :data="roleUsers" border stripe size="small" style="width: 100%">
+        <el-table v-loading="usersLoading" :data="roleUsers" border stripe  style="width: 100%">
           <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="sysUserUsername" label="账号" min-width="130" show-overflow-tooltip />
           <el-table-column prop="sysUserNickname" label="昵称" min-width="120" show-overflow-tooltip />
           <el-table-column prop="sysUserPhone" label="手机号" min-width="130" />
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+              <!-- B：抽屉里的用户状态同样统一为 ReTag + plain + dot（成功=success，禁用=danger） -->
+              <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
                 {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
-              </el-tag>
+              </ReTag>
             </template>
           </el-table-column>
         </el-table>
@@ -735,6 +753,18 @@ onMounted(() => {
   margin-top: 4px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* 表格外壳：卡片不加投影（koi 规约），只用 1px 描边表达层级；
+   键盘聚焦内部控件时描边转主色，让「焦点在哪一块」可感知 */
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
 }
 
 .perm-toolbar {
@@ -791,7 +821,7 @@ onMounted(() => {
     font-size: 11px;
     color: var(--el-text-color-placeholder);
     background: var(--el-fill-color-light);
-    border-radius: 4px;
+    border-radius: var(--el-radius-xs, 4px);
     padding: 0 5px;
     max-width: 220px;
     overflow: hidden;
@@ -803,7 +833,7 @@ onMounted(() => {
     font-size: 11px;
     color: var(--el-text-color-secondary);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
+    border-radius: var(--el-radius-md, 8px);
     padding: 0 6px;
     line-height: 16px;
   }
@@ -812,8 +842,8 @@ onMounted(() => {
 .perm-tree {
   :deep(.el-tree-node__content) {
     height: 34px;
-    border-radius: 6px;
-    transition: background-color 0.16s;
+    border-radius: var(--el-radius-sm, 6px);
+    transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
   }
 
   :deep(.el-tree-node__content:hover) {
@@ -836,6 +866,7 @@ onMounted(() => {
   }
 }
 
+/* 行高覆盖块：与上面的 .perm-tree 同选择器，此处只把行高压到 32px（树节点更紧凑） */
 .perm-tree {
   :deep(.el-tree-node__content) {
     height: 32px;
@@ -898,9 +929,9 @@ onMounted(() => {
   background: var(--el-bg-color);
   cursor: pointer;
   transition:
-    border-color var(--el-transition-duration, 0.2s) ease,
-    background-color var(--el-transition-duration, 0.2s) ease,
-    box-shadow var(--el-transition-duration, 0.2s) ease;
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .data-scope-card:hover {
@@ -911,6 +942,12 @@ onMounted(() => {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
+
+/* E：卡片内的 radio 被视觉隐藏但仍可 Tab 聚焦，
+   因此焦点环挂在卡片上（:focus-within），否则键盘用户看不到当前选中的数据范围 */
+.data-scope-card:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .data-scope-card__radio {
@@ -941,8 +978,8 @@ onMounted(() => {
   border-radius: var(--el-radius-full, 9999px);
   color: var(--el-color-white);
   transition:
-    border-color var(--el-transition-duration, 0.2s) ease,
-    background-color var(--el-transition-duration, 0.2s) ease;
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .data-scope-card.is-active .data-scope-card__dot {
@@ -976,8 +1013,18 @@ onMounted(() => {
 
   &__tree {
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
+    border-radius: var(--el-radius-md, 8px);
     padding: 8px;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：本文件所有新增/沿用的过渡统一关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table),
+  .perm-tree :deep(.el-tree-node__content),
+  .data-scope-card,
+  .data-scope-card__dot {
+    transition: none;
   }
 }
 </style>

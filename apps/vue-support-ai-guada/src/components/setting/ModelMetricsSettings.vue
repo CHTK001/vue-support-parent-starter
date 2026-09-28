@@ -3,7 +3,7 @@
     <!-- 推送配置 -->
     <SettingsCard title="推送配置">
       <template #actions>
-        <el-button type="primary" size="small" :loading="saving" @click="save">保存配置</el-button>
+        <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
       </template>
       <SettingsRow label="模型指标推送" description="开启后定时全量采集模型价格、速度、延迟等指标">
         <el-switch v-model="form.enabled" />
@@ -21,8 +21,8 @@
       </SettingsRow>
       <SettingsRow label="手动操作" description="立即拉取全量指标，或仅同步官方定价">
         <div class="flex gap-2">
-          <el-button size="small" type="primary" :loading="refreshing" @click="manualRefresh">全量同步指标</el-button>
-          <el-button size="small" :loading="syncing" @click="manualSyncPricing">同步官方定价</el-button>
+          <el-button type="primary" :loading="refreshing" @click="manualRefresh">全量同步指标</el-button>
+          <el-button :loading="syncing" @click="manualSyncPricing">同步官方定价</el-button>
         </div>
       </SettingsRow>
     </SettingsCard>
@@ -33,7 +33,7 @@
       subtitle="数据源 Artificial Analysis 的全量模型指标，与本地配置模型无关。点击锁形图标可手动改值并锁定，锁定字段同步不再覆盖；再次点击解锁即恢复指标源值。"
     >
       <template #actions>
-        <el-input v-model="keyword" size="small" clearable class="metrics-search"
+        <el-input v-model="keyword" clearable class="metrics-search"
           placeholder="搜索模型 / 厂商" @input="onSearch" @clear="onSearch">
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -71,7 +71,7 @@
               <td v-for="col in columns" :key="col.snake" class="num-col">
                 <div class="metric-cell" :class="{ 'is-locked': isLocked(row, col.snake) }">
                   <el-input v-if="isLocked(row, col.snake)" v-model.number="row.values[col.snake]"
-                    type="number" size="small" class="metric-input" @input="markDirty(row)" />
+                    type="number" class="metric-input" @input="markDirty(row)" />
                   <span v-else class="metric-val">{{ fmtVal(row, col) }}</span>
                   <button type="button" class="lock-btn" :class="{ 'is-on': isLocked(row, col.snake) }"
                     :title="isLocked(row, col.snake) ? '已锁定，点击解锁恢复指标源值' : '手动改值并锁定（同步不再覆盖）'"
@@ -89,9 +89,9 @@
               </td>
               <td class="op-col">
                 <div class="op-cell">
-                  <el-button size="small" type="primary" :disabled="!row.dirty" :loading="row.saving"
+                  <el-button type="primary" :disabled="!row.dirty" :loading="row.saving"
                     @click="saveRow(row)">保存</el-button>
-                  <el-button size="small" :disabled="!row.dirty" @click="discardRow(row)">还原</el-button>
+                  <el-button :disabled="!row.dirty" @click="discardRow(row)">还原</el-button>
                 </div>
               </td>
             </tr>
@@ -412,7 +412,9 @@ onMounted(() => {
 .model-col { min-width: 190px; }
 .model-cell { display: flex; align-items: center; gap: 10px; }
 .model-icon {
-  width: 28px; height: 28px; border-radius: 8px; object-fit: contain; flex-shrink: 0;
+  width: 28px; height: 28px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px); object-fit: contain; flex-shrink: 0;
   background: var(--el-fill-color-light);
 }
 .model-icon--ph {
@@ -426,7 +428,8 @@ onMounted(() => {
 /* 指标单元格 */
 .metric-cell {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 4px; border-radius: 8px;
+  /* 原值 8px → md 档 */
+  padding: 2px 4px; border-radius: var(--el-radius-md, 8px);
 }
 .metric-cell.is-locked {
   background: var(--el-color-warning-light-9);
@@ -438,7 +441,9 @@ onMounted(() => {
 
 .lock-btn {
   border: none; background: transparent; cursor: pointer;
-  width: 22px; height: 22px; padding: 2px; border-radius: 6px;
+  width: 22px; height: 22px; padding: 2px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-border-color);
   display: inline-flex; align-items: center; justify-content: center;
   transition: color 0.15s ease, background 0.15s ease;
@@ -451,4 +456,14 @@ onMounted(() => {
 .empty-row { text-align: center; color: var(--el-text-color-secondary); padding: 28px 12px; }
 
 .metrics-foot { display: flex; justify-content: flex-end; }
+
+/* 动效降级：系统开启「减少动态效果」时，锁定按钮的颜色与底色直接到位。
+   只关 .lock-btn 自己的 transition，不写 `*` / .lock-btn * 通配，
+   避免把 el-input / el-pagination 内部 Element Plus 组件的合法过渡一起掐掉。
+   .lock-btn.is-on 的警示色是状态表达（静态声明），停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .lock-btn {
+    transition: none;
+  }
+}
 </style>

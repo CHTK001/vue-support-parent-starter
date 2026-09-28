@@ -2,14 +2,14 @@
   <ReDialog v-model="visible" title="协议服务器管理" width="1000px" class="server-mgr-dialog">
     <!-- 工具栏 -->
     <div class="server-mgr-toolbar">
-      <ReInput v-model="keyword" placeholder="搜索服务器名称..." size="small" clearable style="width: 200px" @keyup.enter="loadList" />
-      <ReButton icon="RefreshRight" size="small" :loading="loading" @click="loadList">刷新</ReButton>
-      <ReButton icon="Plus" type="primary" size="small" @click="openCreate">新增服务器</ReButton>
+      <ReInput v-model="keyword" placeholder="搜索服务器名称..." clearable style="width: 200px" @keyup.enter="loadList" />
+      <ReButton icon="RefreshRight" :loading="loading" @click="loadList">刷新</ReButton>
+      <ReButton icon="Plus" type="primary" @click="openCreate">新增服务器</ReButton>
       <span class="server-mgr-count">共 {{ filteredList.length }} 个</span>
     </div>
 
     <!-- 服务器列表 -->
-    <ReTable :data="filteredList" :columns="columns" :loading="loading" size="small" stripe style="height: 380px">
+    <ReTable :data="filteredList" :columns="columns" :loading="loading" stripe style="height: 380px">
       <template #col-status="{ row }">
         <span :class="['status-badge', statusClass(row.status)]">{{ statusText(row.status) }}</span>
       </template>
@@ -19,11 +19,11 @@
       </template>
       <template #col-actions="{ row }">
         <div class="op-cell">
-          <ReButton icon="Play" layout="square" size="small" type="success" title="启动" :disabled="row.status === 'RUNNING'" @click="doStart(row)" />
-          <ReButton icon="Pause" layout="square" size="small" type="warning" title="停止" :disabled="row.status !== 'RUNNING'" @click="doStop(row)" />
-          <ReButton icon="EditPen" layout="square" size="small" title="编辑配置" @click="openEdit(row)" />
-          <ReButton icon="Filter" layout="square" size="small" title="过滤器配置" @click="openFilterConfig(row)" />
-          <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="doDelete(row)" />
+          <ReButton icon="Play" layout="square" type="success" title="启动" :disabled="row.status === 'RUNNING'" @click="doStart(row)" />
+          <ReButton icon="Pause" layout="square" type="warning" title="停止" :disabled="row.status !== 'RUNNING'" @click="doStop(row)" />
+          <ReButton icon="EditPen" layout="square" title="编辑配置" @click="openEdit(row)" />
+          <ReButton icon="Filter" layout="square" title="过滤器配置" @click="openFilterConfig(row)" />
+          <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="doDelete(row)" />
         </div>
       </template>
     </ReTable>
@@ -32,29 +32,29 @@
     <ReDialog v-model="formVisible" :title="formData.id ? '编辑服务器' : '新增服务器'" width="700px">
       <div class="server-form">
         <ReFormItem label="服务器名称" required>
-          <ReInput v-model="formData.name" placeholder="如 fileserver-01" size="small" />
+          <ReInput v-model="formData.name" placeholder="如 fileserver-01" />
         </ReFormItem>
         <div class="form-row">
           <ReFormItem label="协议类型" required style="flex:1">
-            <ReSelect v-model="formData.protocol" size="small" :options="protocolOptions" @change="onProtocolChange" />
+            <ReSelect v-model="formData.protocol" :options="protocolOptions" @change="onProtocolChange" />
           </ReFormItem>
           <ReFormItem label="传输引擎" style="flex:1">
-            <ReSelect v-model="formData.engine" size="small" :options="engineOptions" />
+            <ReSelect v-model="formData.engine" :options="engineOptions" />
           </ReFormItem>
         </div>
         <div class="form-row">
           <ReFormItem label="监听地址" style="flex:1">
-            <ReInput v-model="formData.host" placeholder="0.0.0.0" size="small" />
+            <ReInput v-model="formData.host" placeholder="0.0.0.0" />
           </ReFormItem>
           <ReFormItem label="监听端口" style="flex:1">
-            <ReInputNumber v-model="formData.port" :min="1" :max="65535" size="small" style="width:100%" />
+            <ReInputNumber v-model="formData.port" :min="1" :max="65535" style="width:100%" />
           </ReFormItem>
         </div>
         <ReFormItem label="是否启用">
           <el-switch v-model="enabledSwitch" active-text="启用（随应用拉起）" inactive-text="停用" />
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="formData.remark" type="textarea" :rows="2" placeholder="可选" size="small" />
+          <ReInput v-model="formData.remark" type="textarea" :rows="2" placeholder="可选" />
         </ReFormItem>
 
         <!-- 协议专属配置 -->
@@ -62,7 +62,7 @@
           <div class="config-title">协议专属配置</div>
           <div class="form-row" v-for="f in proxyFields" :key="f.key">
             <ReFormItem :label="f.label" :required="f.required" style="flex:1">
-              <ReInput v-model="formData.config[f.key]" :placeholder="f.placeholder" size="small" />
+              <ReInput v-model="formData.config[f.key]" :placeholder="f.placeholder" />
             </ReFormItem>
           </div>
         </div>
@@ -95,9 +95,9 @@
       <div class="filter-config">
         <div class="filter-toolbar">
           <span class="muted">为该服务器挂载 ServerFilter 插件，支持实时配置变更</span>
-          <ReButton icon="Plus" type="primary" size="small" @click="addFilter">添加过滤器</ReButton>
+          <ReButton icon="Plus" type="primary" @click="addFilter">添加过滤器</ReButton>
         </div>
-        <ReTable :data="filterList" :columns="filterColumns" size="small" stripe style="height: 300px">
+        <ReTable :data="filterList" :columns="filterColumns" stripe style="height: 300px">
           <template #col-params="{ row }">
             <span class="muted">{{ Object.keys(row.params ?? {}).length }} 项参数</span>
           </template>
@@ -107,13 +107,13 @@
                 v-if="hasFilterDetail(filterMeta(row.type))"
                 icon="View"
                 layout="square"
-                size="small"
+
                 type="primary"
                 :title="filterDetailLabel(row.type)"
                 @click="openFilterDetail(row)"
               />
-              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="editFilter(row, $index)" />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" title="移除" @click="removeFilter($index)" />
+              <ReButton icon="EditPen" layout="square" title="编辑" @click="editFilter(row, $index)" />
+              <ReButton icon="Delete" layout="square" type="danger" title="移除" @click="removeFilter($index)" />
             </div>
           </template>
         </ReTable>
@@ -123,14 +123,14 @@
       <ReDialog v-model="filterEditVisible" :title="filterEditIndex >= 0 ? '编辑过滤器' : '添加过滤器'" width="560px">
         <div class="filter-form">
           <ReFormItem label="过滤器名称" required>
-            <ReInput v-model="filterForm.name" placeholder="唯一名，如 file-storage" size="small" />
+            <ReInput v-model="filterForm.name" placeholder="唯一名，如 file-storage" />
           </ReFormItem>
           <ReFormItem label="过滤器类型" required>
-            <ReSelect v-model="filterForm.type" size="small" :options="filterTypeOptions" placeholder="预设别名或 FQCN" />
+            <ReSelect v-model="filterForm.type" :options="filterTypeOptions" placeholder="预设别名或 FQCN" />
           </ReFormItem>
           <div class="form-row">
             <ReFormItem label="执行顺序" style="flex:1">
-              <ReInputNumber v-model="filterForm.order" :min="0" size="small" style="width:100%" />
+              <ReInputNumber v-model="filterForm.order" :min="0" style="width:100%" />
             </ReFormItem>
             <ReFormItem label="启用" style="flex:1">
               <el-switch v-model="filterForm.enabled" />
@@ -139,11 +139,11 @@
           <div class="config-section">
             <div class="config-title">初始化参数（key=value）</div>
             <div v-for="(val, key) in filterForm.params" :key="key" class="param-row">
-              <ReInput v-model="paramKeys[key]" placeholder="参数名" size="small" style="width:45%" />
-              <ReInput :model-value="val" @update:model-value="updateParam(key, $event)" placeholder="参数值" size="small" style="width:45%" />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" @click="removeParam(key)" />
+              <ReInput v-model="paramKeys[key]" placeholder="参数名" style="width:45%" />
+              <ReInput :model-value="val" @update:model-value="updateParam(key, $event)" placeholder="参数值" style="width:45%" />
+              <ReButton icon="Delete" layout="square" type="danger" @click="removeParam(key)" />
             </div>
-            <ReButton icon="Plus" size="small" plain @click="addParam">添加参数</ReButton>
+            <ReButton icon="Plus" plain @click="addParam">添加参数</ReButton>
           </div>
         </div>
         <template #footer>

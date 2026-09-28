@@ -407,7 +407,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
           <span class="rail-count">{{ hosts.length }}</span>
           <span class="rail-collapse-btn" @click="railOpen = false" title="折叠资源条">«</span>
         </div>
-        <ReInput v-model="keyword" placeholder="搜索主机 / IP" clearable size="small" class="rail-search" />
+        <ReInput v-model="keyword" placeholder="搜索主机 / IP" clearable class="rail-search" />
         <div v-if="loading" class="tip">加载中…</div>
         <div v-else-if="error" class="tip err">{{ error }}</div>
         <ReScrollbar v-else class="rail-list">
@@ -448,19 +448,19 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         @mouseenter="onToolbarEnter"
         @mouseleave="onToolbarLeave"
       >
-        <ReButton layout="square" size="small" icon="SwitchButton" title="断开连接" @click="disconnect" />
+        <ReButton layout="square" icon="SwitchButton" title="断开连接" @click="disconnect" />
         <!-- 特殊按键：Ctrl+Alt+Del 等会被本机 OS 截获，需显式下发 -->
         <template v-if="supportsSpecialKeys">
           <span class="tt-sep" />
           <ReButton
             layout="square"
-            size="small"
+
             icon="Tools"
             title="任务管理器（Ctrl+Alt+Del）"
             @click="triggerTaskManager"
           />
           <ElDropdown trigger="click" placement="bottom" @command="onSpecialCommand">
-            <ReButton layout="square" size="small" icon="MoreFilled" title="其它无法透传的按键" />
+            <ReButton layout="square" icon="MoreFilled" title="其它无法透传的按键" />
             <template #dropdown>
               <ElDropdownMenu>
                 <ElDropdownItem v-for="c in specialKeyCombos" :key="c.value" :command="c.value">
@@ -474,7 +474,7 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         </template>
         <ReButton
           layout="square"
-          size="small"
+
           :icon="isFullscreen ? 'Aim' : 'FullScreen'"
           :type="isFullscreen ? 'primary' : 'default'"
           :title="isFullscreen ? '退出全屏' : '全屏（浏览器/OS）'"
@@ -482,13 +482,13 @@ onBeforeUnmount(() => { if (hideTimer) clearTimeout(hideTimer); });
         />
         <ReButton
           layout="square"
-          size="small"
+
           :icon="immersive ? 'Rank' : 'Expand'"
           :type="immersive ? 'primary' : 'default'"
           :title="immersive ? '退出可视范围全屏' : '可视范围全屏（应用内）'"
           @click="toggleImmersive"
         />
-        <ReButton layout="square" size="small" icon="TopRight" title="弹出独立页面（独占可视范围）" @click="popout" />
+        <ReButton layout="square" icon="TopRight" title="弹出独立页面（独占可视范围）" @click="popout" />
       </div>
       <div v-if="connection && connection.mode === 'NONE'" class="remote-empty">
         「{{ connection.hostName }}」的远控通道为「无需通道」，平台不做中转：请用本机

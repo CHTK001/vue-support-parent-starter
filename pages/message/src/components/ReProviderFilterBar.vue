@@ -49,7 +49,7 @@ const emit = defineEmits<{
           :value="p.sysMessageProviderId"
         />
       </el-select>
-      <el-tag v-if="currentProvider" size="small" effect="plain" type="info">
+      <el-tag v-if="currentProvider" effect="plain" type="info">
         {{ currentProvider.sysMessageProviderName }} · {{ currentProvider.sysMessageProviderType }}
       </el-tag>
       <div class="flex-1" />

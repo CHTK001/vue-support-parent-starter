@@ -74,6 +74,6 @@ watch(logoSrc, () => {
 
 .connector-plug-icon {
   /* 底色为浅色调，不能沿用容器的 text-white */
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 </style>

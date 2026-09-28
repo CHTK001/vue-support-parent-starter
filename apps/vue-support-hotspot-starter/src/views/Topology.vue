@@ -3,12 +3,12 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">系统拓扑（真实运行值）</span>
-        <ReTag v-if="topology" type="success" size="small" round>
+        <ReTag v-if="topology" type="success" round>
           {{ topology.center }} · PID {{ topology.jvmPid }}
         </ReTag>
       </div>
       <div class="toolbar-right">
-        <ReButton size="small" icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -34,7 +34,7 @@
             :pagination="false"
             :toolbar="false"
             border
-            size="small"
+
             :loading="loading"
           />
         </div>
@@ -47,7 +47,7 @@
             :pagination="false"
             :toolbar="false"
             border
-            size="small"
+
             :loading="loading"
           />
         </div>
@@ -226,7 +226,7 @@ function onResize() {
 .panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 16px;
 }
 .panel-head {
@@ -270,6 +270,16 @@ function onResize() {
 @media (max-width: 900px) {
   .panel-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>

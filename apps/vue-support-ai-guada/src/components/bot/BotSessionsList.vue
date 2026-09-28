@@ -54,7 +54,7 @@
 
         <el-table-column prop="platform" :label="t('bot.sessions.colPlatform')" width="120">
           <template #default="{ row }">
-            <el-tag size="small" type="info">
+            <el-tag type="info">
               {{ getPlatformName(row.platform) }}
             </el-tag>
           </template>
@@ -79,13 +79,13 @@
         <el-table-column :label="t('bot.sessions.colActions')" width="240" fixed="right">
           <template #default="{ row }">
             <div class="flex gap-2">
-              <el-button link type="primary" size="small" @click.stop="handleViewChat(row as Session)">
+              <el-button link type="primary" @click.stop="handleViewChat(row as Session)">
                 {{ t('bot.sessions.viewChat') }}
               </el-button>
-              <el-button link type="warning" size="small" @click.stop="handleClearMessages(row as Session)">
+              <el-button link type="warning" @click.stop="handleClearMessages(row as Session)">
                 {{ t('bot.sessions.clearMessages') }}
               </el-button>
-              <el-button link type="danger" size="small" @click.stop="handleDeleteSession(row as Session)">
+              <el-button link type="danger" @click.stop="handleDeleteSession(row as Session)">
                 {{ t('bot.sessions.delete') }}
               </el-button>
             </div>

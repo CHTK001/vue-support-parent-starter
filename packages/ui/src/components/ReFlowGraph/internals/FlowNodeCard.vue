@@ -33,9 +33,11 @@ interface CardState {
   color: string;
   /** 24×24 描边 path */
   icon: string;
+  /** 节点图片 URL；非空时优先于 icon 渲染 <img> */
+  image: string;
 }
 
-const state = ref<CardState>({ type: "", label: "", typeLabel: "", color: "#4f7cff", icon: "" });
+const state = ref<CardState>({ type: "", label: "", typeLabel: "", color: "#4f7cff", icon: "", image: "" });
 
 /** 从节点 data 读出卡片状态 */
 function read(): CardState {
@@ -45,6 +47,7 @@ function read(): CardState {
     flowTypeLabel?: string;
     flowColor?: string;
     flowIcon?: string;
+    flowImage?: string;
   };
   return {
     type: data.flowType ?? "default",
@@ -52,6 +55,7 @@ function read(): CardState {
     typeLabel: data.flowTypeLabel ?? "",
     color: data.flowColor || "#4f7cff",
     icon: data.flowIcon || "",
+    image: data.flowImage || "",
   };
 }
 
@@ -74,8 +78,16 @@ function kindOf(): string {
 
 /** data 变了就把新值读进 state，触发重绘 */
 function sync() {
-  state.value = read();
+  const next = read();
+  // 换图时要复位「加载失败」标记，否则上一张图裂了之后换张好图也永远显示不出来
+  if (next.image !== state.value.image) {
+    imageBroken.value = false;
+  }
+  state.value = next;
 }
+
+/** 图片 URL 是否已加载失败；失败则回落到 SVG path */
+const imageBroken = ref(false);
 
 // 首次挂载后订阅。onMounted 之前 getData 已可读，故 state 的初值在 setup 里就填好，
 // 避免「先渲染空卡片再补数据」造成的一帧闪烁。
@@ -98,8 +110,30 @@ watch(() => props.node, sync);
   -->
   <div class="flow-node-card" :style="{ borderLeftColor: state.color }">
     <span class="flow-node-icon" :style="{ background: state.color }">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <!--
+        图片优先于 SVG path：内部业务图（应用/处理器图标）用 <img> 比硬凑 24×24
+        path 方便得多。object-fit: contain 保证非方图不撑破圆角块。
+        加载失败（onerror）时回落到 path —— 图标 URL 挂了不应该让节点变成空白。
+      -->
+      <img
+        v-if="state.image && !imageBroken"
+        class="flow-node-img"
+        :src="state.image"
+        alt=""
+        @error="imageBroken = true"
+      />
+      <svg
+        v-else
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="#fff"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
         <path :d="state.icon" />
       </svg>
     </span>
@@ -141,7 +175,15 @@ watch(() => props.node, sync);
   width: 20px;
   height: 20px;
   margin: 0 8px 0 4px;
+  overflow: hidden;
   border-radius: 4px;
+}
+/* 图片铺满图标块并保持比例：非方图直接 width/height 100% 会被拉变形 */
+.flow-node-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .flow-node-label {
   flex: 1;

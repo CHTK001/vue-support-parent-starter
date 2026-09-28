@@ -3,7 +3,7 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">资源泄漏</span>
-        <el-select v-model="filterType" placeholder="类型" clearable size="small" class="filter-select">
+        <el-select v-model="filterType" placeholder="类型" clearable class="filter-select">
           <el-option label="File" value="File" />
           <el-option label="Socket" value="Socket" />
           <el-option label="Connection" value="Connection" />
@@ -13,35 +13,35 @@
           v-model="resourceNameSearch"
           placeholder="搜索资源名…"
           clearable
-          size="small"
+
           class="filter-input"
         />
         <el-input
           v-model="threadSearch"
           placeholder="搜索线程…"
           clearable
-          size="small"
+
           class="filter-input"
         />
-        <el-checkbox v-model="activeOnly" size="small">仅看活跃</el-checkbox>
+        <el-checkbox v-model="activeOnly" >仅看活跃</el-checkbox>
         <el-date-picker
           v-model="range"
           type="datetimerange"
           range-separator="~"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
-          size="small"
+
           style="width: 320px"
         />
       </div>
       <div class="toolbar-right">
-        <el-button size="small" round @click="exportCsvFull">
+        <el-button round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
-        <el-button size="small" type="primary" round :loading="injecting" @click="doInjectLeak">
+        <el-button type="primary" round :loading="injecting" @click="doInjectLeak">
           <el-icon class="mr-1"><Plus /></el-icon>制造一条泄漏
         </el-button>
-        <el-button size="small" round :loading="loading" @click="load">
+        <el-button round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
@@ -56,7 +56,7 @@
       >
         <el-table-column label="类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="typeTag(row.resourceType)" size="small" round>
+            <el-tag :type="typeTag(row.resourceType)" round>
               {{ row.resourceType }}
             </el-tag>
           </template>
@@ -82,7 +82,7 @@
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.active ? 'danger' : 'info'" size="small" effect="dark">
+            <el-tag :type="row.active ? 'danger' : 'info'" effect="dark">
               {{ row.active ? "活跃" : "已关闭" }}
             </el-tag>
           </template>
@@ -96,7 +96,7 @@
           <template #default="{ row }">
             <el-popover v-if="row.stackTrace" trigger="hover" width="420" placement="left">
               <template #reference>
-                <el-button size="small" text type="primary">展开</el-button>
+                <el-button text type="primary">展开</el-button>
               </template>
               <pre class="stack">{{ row.stackTrace }}</pre>
             </el-popover>
@@ -275,16 +275,16 @@ function exportCsvFull() {
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 8px;
 }
 
 .apm-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -313,5 +313,15 @@ function exportCsvFull() {
   display: flex;
   justify-content: flex-end;
   padding: 10px 8px 4px;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是 loading 与分页的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

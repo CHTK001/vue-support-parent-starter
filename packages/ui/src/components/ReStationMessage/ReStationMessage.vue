@@ -190,7 +190,7 @@ async function handleItemClick(msg: {
           <el-button
             link
             type="primary"
-            size="small"
+
             :loading="loading"
             @click="handleSync"
           >
@@ -200,7 +200,7 @@ async function handleItemClick(msg: {
             v-if="unread > 0"
             link
             type="primary"
-            size="small"
+
             @click="handleMarkAllRead"
           >
             全部已读
@@ -242,7 +242,7 @@ async function handleItemClick(msg: {
       </div>
 
       <div v-if="messages.length > 0" class="re-station-message-panel__footer">
-        <el-button link type="primary" size="small" @click="handleMarkAllRead">
+        <el-button link type="primary" @click="handleMarkAllRead">
           {{ unread > 0 ? `${unread}条未读，标记全部已读` : "全部已读" }}
         </el-button>
       </div>

@@ -82,7 +82,7 @@
                   <div class="font-medium text-base text-gray-900 dark:text-[#e8e9ed] truncate" :title="character.title">
                     {{ character.title }}
                   </div>
-                  <el-button link size="small" type="danger"
+                  <el-button link type="danger"
                     class="opacity-0 group-hover:opacity-100 transition-all duration-200 delete-btn"
                     @click.stop="$emit('deleteCharacter', character)">
                     <el-icon :size="18">
@@ -103,10 +103,10 @@
           <!-- 悬停按钮 -->
           <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white dark:from-[#232428] via-white/90 dark:via-[#232428]/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-b-lg"></div>
           <div class="absolute inset-x-2 bottom-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto z-20">
-            <el-button type="primary" size="small" class="flex-1 shadow-sm" @click.stop="$emit('startNewChat', character)">
+            <el-button type="primary" class="flex-1 shadow-sm" @click.stop="$emit('startNewChat', character)">
               {{ t('characters.list.useCharacter') }}
             </el-button>
-            <el-button size="small" class="flex-1 shadow-sm" @click.stop="$emit('editCharacter', character)">
+            <el-button class="flex-1 shadow-sm" @click.stop="$emit('editCharacter', character)">
               {{ t('characters.list.characterSettings') }}
             </el-button>
           </div>
@@ -212,11 +212,12 @@ const handleFileSelect = async (event: Event) => {
 }
 
 .delete-btn {
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
 }
 
 .delete-btn:hover {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
 }
 
 /* 分组标签删除 ×：默认隐藏，悬停该标签时显示，不引起布局跳动 */
@@ -224,7 +225,8 @@ const handleFileSelect = async (event: Event) => {
   opacity: 0;
   transition: opacity 0.18s ease;
   color: var(--el-text-color-secondary);
-  border-radius: 3px;
+  /* 原值 3px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
 }
 .char-group-tag:hover .char-group-tag__del {
   opacity: 0.85;
@@ -233,4 +235,29 @@ const handleFileSelect = async (event: Event) => {
   opacity: 1 !important;
   color: var(--el-color-danger);
 }
+
+/* 动效降级：系统开启「减少动态效果」时，删除 × 的显隐改为瞬间切换。
+   只关 .char-group-tag__del 自己的 transition，不写通配 *，
+   避免把卡片上 el-button / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   显隐本身靠 opacity: 0 / 悬停 0.85 这组静态声明表达，停掉过渡后「悬停出现 ×」照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .char-group-tag__del {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：分组标签是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
+   环用主色 12% —— 标签自身背景透明（非选中态无底色、选中态也只是 gray-100 / #2a2c30），
+   外描边落在列表页表面上，一档主色描边足够可见。 */
+.char-group-tag {
+  outline: none;
+}
+
+.char-group-tag:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 注意：B 段清单里的 px-3 是 Tailwind 工具类，「全部」标签与新建分组标签都带着它。
+   给它挂 outline: none 会波及本文件所有用 px-3 的元素，属于净损害，因此未在此改动。 */
 </style>

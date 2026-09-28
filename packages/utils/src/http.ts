@@ -27,6 +27,80 @@ const defaultOptions: HttpOptions = {
 };
 
 /**
+ * 第一方客户端标识 —— 字段一：承载请求头名
+ *
+ * <p>服务端「消息头拦截」默认会拦掉爬虫与自动化客户端的 User-Agent，特征清单里
+ * 也含 curl / axios / okhttp 这类通用 HTTP 客户端 —— 用 UA 根本分不出「脚本」与
+ * 「爬虫」。自家前端如果不做标识，会被自己刚上线的规则挡在门外。</p>
+ *
+ * <p>选 X-Trace-Id 是因为它本来就该出现在每个请求里（本系统的 MDC 链路追踪
+ * 就在读它），标记藏在取值末尾不显眼。</p>
+ */
+export const FIRST_PARTY_HEADER_A = "X-Trace-Id";
+
+/**
+ * 第一方客户端标识 —— 字段二：承载请求头名
+ *
+ * <p>X-Requested-With 是 AJAX 的事实标准头（jQuery / axios 都发这个），
+ * 一个不带它的请求本身就可疑，所以标记放在这里同样不显眼。</p>
+ *
+ * <p>服务端要求<b>两个字段同时</b>满足才豁免，只满足一个不算。</p>
+ */
+export const FIRST_PARTY_HEADER_B = "X-Requested-With";
+
+/**
+ * 第一方标记（两个字段的取值都要以它结尾）
+ *
+ * <p>刻意是个短小、无语义、看起来像随机后缀的串，而不是 "chua-console"
+ * 这种一眼看出用途的明文。</p>
+ */
+export const FIRST_PARTY_MARKER = "-7f3a";
+
+/**
+ * 造一个「看起来正常」的 X-Requested-With 取值
+ *
+ * @returns 形如 `XMLHttpRequest-7f3a` 的取值
+ */
+function firstPartyRequestedWith(): string {
+  return `XMLHttpRequest${FIRST_PARTY_MARKER}`;
+}
+
+/**
+ * 造一个「看起来正常」的 X-Trace-Id 取值
+ *
+ * <p>32 位十六进制 + 标记，形态与真实链路追踪 id 一致，不引人注意。</p>
+ *
+ * @returns 形如 `3f2a9c1b8e7d4056a2c1b9f3e8d70561-7f3a` 的取值
+ */
+function firstPartyTraceId(): string {
+  let hex = "";
+  for (let i = 0; i < 32; i++) {
+    hex += Math.floor(Math.random() * 16).toString(16);
+  }
+  return `${hex}${FIRST_PARTY_MARKER}`;
+}
+
+/**
+ * 第一方标识请求头
+ *
+ * <p><b>不是安全凭证</b>：两个头的取值都能伪造，凑齐即可整体绕过。
+ * 双字段只是把「要绕过就得同时注意到两处」的成本抬高一点。
+ * 不接受任何后门的部署，服务端把 first-party-enabled 关掉即可。</p>
+ *
+ * <p><b>刻意不写进 User-Agent</b>：浏览器不允许 JS 设置 User-Agent
+ * （Fetch 规范把它列为 forbidden header name，axios/XHR 写入会被静默丢弃），
+ * 写了也发不出去。</p>
+ *
+ * @returns 带两个标识字段的请求头
+ */
+function firstPartyHeaders(): Record<string, string> {
+  return {
+    [FIRST_PARTY_HEADER_A]: firstPartyTraceId(),
+    [FIRST_PARTY_HEADER_B]: firstPartyRequestedWith(),
+  };
+}
+
+/**
  * 模块级默认 axios 实例（拦截器所在）。
  *
  * 业务侧统一 `import { http } from "@repo/utils"` 使用本模块的 http()，
@@ -169,12 +243,18 @@ class RequestBuilder implements ChainableRequest, PromiseLike<AxiosResponse> {
     const headers: Record<string, string> = {};
     const rawHeaders = this.config.headers;
     if (rawHeaders) {
-      if (rawHeaders instanceof AxiosHeaders) {
-        rawHeaders.forEach((v: unknown, k: string) => {
+      // 不能用 instanceof AxiosHeaders 判断，也不该用 Object.entries 兜底：
+      // AxiosHeaders 的键值存在内部自有属性上，Object.entries 拿到的是一批
+      // undefined，forEach 在某些打包/多副本场景下又不是函数，
+      // 实测直接把 sse() 打成 `TypeError: r.forEach is not a function`，
+      // 建连在发请求之前就崩，表现为「实时推送一直连不上」且毫无堆栈提示。
+      // toJSON() 是 AxiosHeaders 自己的规范化出口，跨副本也稳定。
+      if (typeof (rawHeaders as AxiosHeaders).toJSON === "function") {
+        for (const [k, v] of Object.entries((rawHeaders as AxiosHeaders).toJSON())) {
           if (typeof v === "string") headers[k] = v;
-        });
+        }
       } else {
-        for (const [k, v] of Object.entries(rawHeaders)) {
+        for (const [k, v] of Object.entries(rawHeaders as Record<string, string>)) {
           if (typeof v === "string") headers[k] = v;
         }
       }
@@ -267,7 +347,14 @@ export class Http {
     apiVersion?: string;
   } {
     let timeout = this.options.timeout;
-    const headers = { ...this.options.headers };
+    // 第一方标识放在这里注入，而不是让各业务模块自己带：
+    // 这是所有 http() 请求的唯一收口，漏一处就会让那个调用被服务端的
+    // 爬虫/自动化拦截规则挡下（表现为接口莫名 403，且很难联想到 UA 规则）。
+    // 放在调用方之后再覆盖，允许个别请求改写，但默认一定有。
+    const headers: Record<string, string> = {
+      ...firstPartyHeaders(),
+      ...this.options.headers,
+    };
     let apiVersion: string | undefined;
     if (this.options.useAppConfig) {
       const cfg = getConfig();
@@ -341,7 +428,7 @@ export class Http {
     return createSseClient<T>(this.resolveRequestUrl(url), {
       ...rest,
       method,
-      headers: { ...this.options.headers, ...headers },
+      headers: this.buildSseHeaders(headers),
       body,
     });
   }
@@ -370,7 +457,7 @@ export class Http {
     return createOpenAiSseClient(this.resolveRequestUrl(url), {
       ...rest,
       method,
-      headers: { ...this.options.headers, ...headers },
+      headers: this.buildSseHeaders(headers),
       body,
     } as OpenAiSseOptions);
   }
@@ -390,9 +477,27 @@ export class Http {
     return createSpringAiSseClient(this.resolveRequestUrl(url), {
       ...rest,
       method,
-      headers: { ...this.options.headers, ...headers },
+      headers: this.buildSseHeaders(headers),
       body,
     } as SpringAiSseOptions);
+  }
+
+  /**
+   * SSE 请求头：同样带上第一方标识。
+   *
+   * <p>SSE 不走 {@link buildDefaults}（它自己拼 headers），所以第一方标识必须
+   * 在这里补一次，否则只有 REST 请求带标识、流式请求不带 —— 那种「列表页正常、
+   * 实时推送 403」的分裂现象极难排查。</p>
+   *
+   * @param extra 调用方本次显式传入的请求头（优先级高于默认值）
+   * @returns 合并后的请求头
+   */
+  private buildSseHeaders(extra: Record<string, string>): Record<string, string> {
+    return {
+      ...firstPartyHeaders(),
+      ...this.options.headers,
+      ...extra,
+    };
   }
 
   /**

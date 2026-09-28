@@ -56,22 +56,22 @@ function removeRow(index: number): void {
   <div class="pair-editor" @focusout="commit">
     <div v-for="(row, index) in rows" :key="index" class="pair-row">
       <ReInput
-        size="small"
+
         :placeholder="keyPlaceholder"
         :style="{ flex: `0 0 ${keyWidth}` }"
         :model-value="row.key"
         @update:model-value="(value: unknown) => (row.key = String(value ?? ''))"
       />
       <ReInput
-        size="small"
+
         class="pair-value"
         :placeholder="valuePlaceholder"
         :model-value="row.value"
         @update:model-value="(value: unknown) => (row.value = String(value ?? ''))"
       />
-      <ReButton size="small" text type="danger" icon="Delete" @click="removeRow(index)"/>
+      <ReButton text type="danger" icon="Delete" @click="removeRow(index)"/>
     </div>
-    <ReButton size="small" plain icon="Plus" @click="addRow">添加一项</ReButton>
+    <ReButton plain icon="Plus" @click="addRow">添加一项</ReButton>
   </div>
 </template>
 

@@ -9,7 +9,7 @@
  * 用法：
  *   const { loading, data, reload } = useDataSource<IOption[]>(() => props.data);
  */
-import { ref, watch, type Ref } from "vue";
+import { getCurrentScope, onScopeDispose, ref, watch, type Ref } from "vue";
 import { getApiHttp } from "../api";
 
 /** 数据源：静态值 | url | 函数 */
@@ -61,22 +61,38 @@ export function useDataSource<T = unknown>(source: Ref<ReDataSource<T>> | ReData
   const data = ref<T | null>(null) as Ref<T | null>;
   const error = ref<Error | undefined>(undefined);
 
+  /**
+   * 请求序号：只有**最新一次** resolve 的结果允许落地。
+   *
+   * <p>不加守卫时的竞态：快速翻页会并发多个请求，先发的可能后到，
+   * 它的结果落地就把新页数据覆盖成旧页（用户看到「点第 3 页却显示第 1 页的行」）。
+   * 同一个守卫也要管住 {@code loading} —— 否则过期请求的 finally 会把
+   * 新请求正在转的 loading 提前关掉。</p>
+   */
+  let seq = 0;
+
   const resolve = async (src: ReDataSource<T>): Promise<void> => {
+    const mine = ++seq;
     loading.value = true;
     error.value = undefined;
     try {
+      let next: T;
       if (typeof src === "function") {
-        data.value = (await (src as () => T | Promise<T>)()) as T;
+        next = (await (src as () => T | Promise<T>)()) as T;
       } else if (typeof src === "string") {
-        data.value = await fetchByUrl<T>(src);
+        next = await fetchByUrl<T>(src);
       } else {
-        data.value = src as T;
+        next = src as T;
       }
+      // 过期响应：直接丢弃，不碰 data / error / loading
+      if (mine !== seq) return;
+      data.value = next;
     } catch (e) {
+      if (mine !== seq) return;
       error.value = e instanceof Error ? e : new Error(String(e));
       data.value = null;
     } finally {
-      loading.value = false;
+      if (mine === seq) loading.value = false;
     }
   };
 
@@ -92,6 +108,15 @@ export function useDataSource<T = unknown>(source: Ref<ReDataSource<T>> | ReData
     },
     { immediate: true },
   );
+
+  /* 作用域销毁（组件卸载 / effect 停止）时让在飞的请求全部作废：
+     否则卸载后仍有 promise 持有闭包并在稍后写 ref，白占内存也可能在
+     keep-alive 复用时把旧数据写进新实例。 */
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      seq++;
+    });
+  }
 
   return { loading, data, error, reload };
 }

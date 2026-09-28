@@ -20,7 +20,7 @@
                     <h4 class="text-sm font-medium text-gray-900 dark:text-[#e8e9ed] truncate pr-2">
                         {{ file.displayName }}
                     </h4>
-                    <el-tag size="small" :type="statusType">
+                    <el-tag :type="statusType">
                         {{ statusText }}
                     </el-tag>
                 </div>
@@ -70,11 +70,11 @@
                 </div>
                 <!-- 操作按钮 -->
                 <div class="flex items-center gap-1 shrink-0" @click.stop>
-                    <el-button size="small" link @click="handleRetry">
+                    <el-button link @click="handleRetry">
                         <RefreshRight class="w-3 h-3 mr-1" />
                         {{ t('knowledge.file.retry') }}
                     </el-button>
-                    <el-button size="small" type="danger" link @click="handleDelete">
+                    <el-button type="danger" link @click="handleDelete">
                         <Delete class="w-3 h-3 mr-1" />
                         {{ t('common.delete') }}
                     </el-button>
@@ -293,6 +293,30 @@ function handleDelete() {
 }
 
 .file-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    /* 悬浮浮起反馈，投影改用令牌 */
+    box-shadow: var(--el-box-shadow-light);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，文件卡的投影直接落位。
+   逐个列出，不写 `*` / `.file-item *` 通配，
+   避免把 el-tag / el-progress / el-button 内部 Element Plus 组件的合法过渡一起掐掉。
+   本文件只有 transition、没有 animation，hover 投影本身是静态样式，照样生效。 */
+@media (prefers-reduced-motion: reduce) {
+    .file-item {
+        transition: none;
+    }
+}
+
+/* 键盘焦点可见性：文件卡是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里按 processingStatus 条件挂的 cursor-pointer / cursor-not-allowed，
+   这里不重复声明 —— 写死会把「处理中不可点」的状态也显示成手型。
+   环的透明度提到 45%（而不是常规的 12%）：卡片暗色态是写死的深底 dark:bg-[#232428]，
+   12% 的主色环落在近黑底上几乎不可见，等于没有焦点指示。 */
+.file-item {
+    outline: none;
+}
+
+.file-item:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
 }
 </style>

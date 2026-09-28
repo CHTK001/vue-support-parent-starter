@@ -25,7 +25,7 @@
         <el-input
           v-model="searchText"
           placeholder="搜索文件名"
-          size="small"
+
           clearable
         >
           <template #prefix>

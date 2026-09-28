@@ -1,9 +1,31 @@
 <template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
-    <!-- 分组菜单：分组布局(provide 标记)或 meta.isGroup → 分组标题 + 组内平铺可见 items（子项常显，不折叠） -->
-    <el-menu-item-group v-if="isGroupItem(item)" :title="getMenuLanguage(item.meta?.title)">
-      <ReAsideSubMenu :menuList="groupChildren(item)" />
+    <!-- 分组菜单：分组布局(provide 标记)或 meta.isGroup → 分组标题 + 组内平铺可见 items
+         标题走 title 插槽：小号灰标签 + 右侧箭头，箭头是真折叠开关（点标题或箭头都可收起/展开） -->
+    <el-menu-item-group v-if="isGroupItem(item)">
+      <template #title>
+        <button
+          type="button"
+          class="menu-group-title"
+          :class="{ 'is-collapsed': isGroupCollapsed(item) }"
+          :aria-expanded="!isGroupCollapsed(item)"
+          @click.stop="toggleGroup(item)"
+        >
+          <span class="menu-group-title__text" v-text="getMenuLanguage(item.meta?.title)"></span>
+          <svg class="menu-group-title__caret" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </template>
+      <!--
+        收起时传空列表而不是 v-show：
+        本组件模板是 v-for 多根节点（fragment），Vue 无法对 fragment 施加 v-show
+        （会报 "Runtime directive used on component with non-element root node" 并**静默失效**，
+        实测点箭头后 aria-expanded 已变 false 但子项仍可见）。
+        传空列表不引入额外包裹元素，避免多一层 div 破坏 el-menu 的结构与 ARIA 语义。
+      -->
+      <ReAsideSubMenu :menuList="isGroupCollapsed(item) ? [] : groupChildren(item)" />
     </el-menu-item-group>
     <!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
     <el-menu-item
@@ -78,7 +100,7 @@
 import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
-import { inject } from "vue";
+import { inject, provide, ref, type Ref } from "vue";
 import { getMenuLanguage } from "@repo/languages";
 import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
@@ -86,6 +108,32 @@ const router = useRouter();
 
 /** 是否处于「分组导航」布局：仅 LayoutGroup 通过 provide 置 true，vertical 等同级布局保持可折叠子菜单 */
 const groupMenuMode = inject<boolean>("koi-group-menu-mode", false);
+
+/**
+ * 收起的分组（存分组 path）。
+ *
+ * <p>本组件会自递归渲染子项，分组也可能出现在任意层级，所以状态必须由**最外层实例**持有并
+ * 向下共享：inject 拿到就复用，拿不到（自己就是最外层）才新建并 provide。
+ * 若每层各自 provide，收起深层分组时父层不知道，展开状态就会分裂。</p>
+ */
+const injectedCollapsed = inject<Ref<Set<string>> | null>("koi-group-collapsed", null);
+const collapsedGroups = injectedCollapsed ?? ref<Set<string>>(new Set<string>());
+provide("koi-group-collapsed", collapsedGroups);
+
+/** 该分组是否已收起 */
+const isGroupCollapsed = (item: any): boolean => collapsedGroups.value.has(String(item?.path ?? ""));
+
+/** 收起 / 展开该分组（就地改 Set，Vue 的 ref 对 Set 变更能触发依赖更新） */
+function toggleGroup(item: any): void {
+  const key = String(item?.path ?? "");
+  const next = new Set(collapsedGroups.value);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  collapsedGroups.value = next;
+}
 
 // 获取父组件传递过来的数据
 defineProps(["menuList"]);
@@ -196,21 +244,26 @@ const handleMenuRouter = (value: any) => {
     color: var(--el-menu-active-text-color);
     background: var(--el-menu-active-bg-color);
 
+    /* 左侧强调色条：用 background 而非 border-left 画。
+       原写法 `border-left: 4px solid var(--el-menu-border-left-color)` 里那个变量
+       **在整个 koi 主题中从未定义**，整条 border-left 因变量无法解析而作废，
+       实测 width 恒为 0px —— 激活态一直没有任何左侧色条。这里改用确定有定义的
+       --el-color-primary，并用绝对定位独立控制粗细/高度/圆角，不再依赖边框。 */
     &::before {
-      border-left: $aside-menu-border-left solid var(--el-menu-border-left-color);
-      z-index: auto;
       content: "";
-      background-color: transparent;
       position: absolute;
       left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
+      top: 50%;
+      width: 3px;
+      height: 18px;
+      transform: translateY(-50%);
+      z-index: auto;
       pointer-events: none;
-      border-radius: $aside-menu-border-left;
-      transition: background-color .3s ease-in-out;
+      background-color: var(--el-color-primary);
+      border-radius: 0 3px 3px 0;
+      transition: opacity 0.2s ease-in-out;
     }
-    
+
     .menu-icon {
       color: var(--el-menu-active-text-color);
     }
@@ -307,39 +360,119 @@ const handleMenuRouter = (value: any) => {
   border-radius: 50%;
 }
 
-/** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色、不可点。
+/** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色。
+    标题内已是自定义按钮（文字 + 箭头），本条只负责把 EP 标题容器本身「洗成」透明标签，
+    字号/颜色/字重交给 .menu-group-title 内部控制，避免两处各写一套互相覆盖。
     这是 menuConfig.groupNav=false 时的基础外观；开启增强后由全局
     .el-menu.is-group-nav 规则接管（见文件末尾非 scoped 样式块）。 */
 :deep(.el-menu-item-group__title) {
   --el-menu-base-level-padding: 10px; // 与二级菜单图标起点对齐（EP 用该变量算 padding-left，直接写 padding-left 会被更高特异性规则覆盖）
   padding-top: 12px;
   padding-bottom: 6px;
-  font-size: 12px;
-  font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.5px;
-  color: var(--el-text-color-secondary);
   text-transform: none;
-  pointer-events: none;
+  /* EP 默认给标题加 hover 底色，分组标签不该有 hover 反馈 */
+  background: transparent;
+  &:hover {
+    background: transparent;
+  }
+}
+
+/** 分组标题行：文字 + 右侧折叠箭头，整行可点（真折叠开关，非装饰） */
+.menu-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+
+  .menu-group-title__text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 箭头：默认指向下方（展开态），收起时旋转 90° 指向右侧 */
+  .menu-group-title__caret {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+  }
+
+  &.is-collapsed .menu-group-title__caret {
+    transform: rotate(-90deg);
+  }
 }
 </style>
 
 <style lang="scss">
 /**
- * 分组导航增强（menuConfig.groupNav=true，由各纵向布局给 el-menu 加 .is-group-nav）：
- * 分组标题按「分区标题」排版 —— 加大字号、加粗、去掉灰化弱化。
+ * 分组导航（menuConfig.groupNav=true，由各纵向布局给 el-menu 加 .is-group-nav）
+ *
+ * 排版口径 —— 分组标题是「分区标签」，不是菜单项：
+ *   字号更小、字重更轻、颜色更灰，与组内条目拉开层级。
+ *   早期版本把标题做成 13px/600/深色（--el-text-color-primary），结果标题和条目
+ *   几乎同权重，扫视时"题库资源/考试流程/数据配置"被当成可点条目，分组反而更难读。
  *
  * 用全局选择器而非组件 scoped：el-menu-item-group__title 由 Element Plus 在
- * el-menu-item-group 内部渲染，这里只需盖住组件内那条「小号灰字」基础规则。
+ * el-menu-item-group 内部渲染，这里只需盖住组件内那条基础规则。
  * 特异性 (0,3,0) 高于组件内 :deep() 规则 (0,2,0)，故无需 !important。
- * 分组标题保持 pointer-events:none —— 不可点、不折叠（子项常显）。
  */
 .el-menu.is-group-nav .el-menu-item-group__title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
+  color: var(--el-text-color-secondary);
+}
+
+/**
+ * 分组之间的呼吸感：除首个分组外都上移留白。
+ * 靠 .el-menu-item-group + .el-menu-item-group 相邻选择器，避免给首个分组也加顶部空隙
+ * （顶部空隙会把 Logo 下方第一组推离 Logo）。
+ */
+.el-menu.is-group-nav .el-menu-item-group + .el-menu-item-group {
+  margin-top: 10px;
+}
+
+/** 分组标题内的文字/箭头继承上面的灰字色；hover 时略深一点，给出可点反馈 */
+.el-menu.is-group-nav .el-menu-item-group__title .menu-group-title {
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s ease;
+}
+.el-menu.is-group-nav .el-menu-item-group__title .menu-group-title:hover {
   color: var(--el-text-color-primary);
+}
+
+/**
+ * 组内条目：圆角胶囊 + 主色图标。
+ * 图标用主色、文案用常规色，是 koi 的既有约定（图标负责定位，文案负责阅读），
+ * 激活时二者同为主色。
+ */
+.el-menu.is-group-nav .el-menu-item {
+  border-radius: 8px;
+  .menu-icon {
+    color: var(--el-color-primary);
+  }
+  &.is-active .menu-icon {
+    color: var(--el-menu-active-text-color);
+  }
 }
 
 /**
@@ -402,4 +535,3 @@ const handleMenuRouter = (value: any) => {
   }
 }
 </style>
-                                                             

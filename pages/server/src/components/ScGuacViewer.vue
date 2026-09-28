@@ -150,16 +150,21 @@ if (!props.inline) {
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  border-radius: 999px;
+  /* 原为 999px；胶囊形只需远超半高，改用 EP 的 full 档（9999px），视觉等价 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 12px;
   font-weight: 600;
 }
-.guac-status-tag.is-ok { background: #e6f4ea; color: #137333; }
+/* 原来是写死的浅绿底 + 深绿字（#e6f4ea / #137333），暗色模式下会变成刺眼亮块；
+   换成 EP 成功色浅底 + 深色档文字，亮暗色自动适配 */
+.guac-status-tag.is-ok { background: var(--el-color-success-light-9); color: var(--el-color-success-dark-2); }
 .guac-iframe {
   flex: 1;
   width: 100%;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
+  /* 刻意保留 #111：iframe 内是 Guacamole 远控画面，固定深底才能保证画面内
+     深色终端 / 浅色 GUI 的对比度，不能跟随主题切成浅底 */
   background: #111;
   min-height: 300px;
 }

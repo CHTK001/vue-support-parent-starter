@@ -359,7 +359,8 @@ onUnmounted(() => {
   width: 38px;
   height: 38px;
   border: none;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -375,7 +376,8 @@ onUnmounted(() => {
 .topbar-badge {
   width: 40px;
   height: 40px;
-  border-radius: 13px;
+  /* 原值 13px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -482,5 +484,17 @@ onUnmounted(() => {
   font-size: 10.5px;
   color: var(--el-color-warning-dark-2);
   background: var(--el-color-warning-light-9);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，返回按钮的底色与文字色直接到位。
+   只关 .back-btn 自己的 transition，不写 `*` / .back-btn * 通配，
+   避免把内部 el-icon 组件的合法过渡一起掐掉。
+   .is-active / :hover 都是静态声明，停掉过渡后照常成立。
+   注：本文件 </script> 与 <style scoped> 之间有一段游离在 style 块之外的 .topbar-btn 规则，
+   那是既有问题（那批样式实际不生效），本次不动。 */
+@media (prefers-reduced-motion: reduce) {
+  .back-btn {
+    transition: none;
+  }
 }
 </style>

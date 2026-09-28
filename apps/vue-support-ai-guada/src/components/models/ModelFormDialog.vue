@@ -271,6 +271,15 @@
                 default-first-option class="num-input" placeholder="回车添加，如 1024x1024" />
               <span class="me-hint">「图像生成」页的分辨率下拉取自这里</span>
             </el-form-item>
+            <el-form-item label="支持风格" prop="config.generate.style">
+              <el-switch v-model="form.config.generate.style" />
+              <span class="me-hint">关闭时不展示风格入口、也不下发 style 参数（部分上游不认该参数会直接报错）</span>
+            </el-form-item>
+            <el-form-item v-if="form.config.generate.style" label="可用风格" prop="config.generate.styles">
+              <el-select v-model="form.config.generate.styles" multiple filterable allow-create
+                default-first-option class="num-input" placeholder="回车添加风格 key，如 photo / anime" />
+              <span class="me-hint">留空则沿用内置默认风格表（无风格 / 胶片写实 / 动漫二次元 / 国风水墨 …）</span>
+            </el-form-item>
             <el-form-item label="步数区间" prop="config.generate.stepsDefault">
               <div class="me-inline">
                 <el-input-number v-model="form.config.generate.stepsMin" :min="1" :max="200"
@@ -511,9 +520,10 @@ const handleSave = async () => {
 .me-layout {
   display: flex;
   height: min(560px, 62vh);
-  border-radius: 14px;
+  /* 原值 14px → lg 档（距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 /* 类型轨 */
@@ -537,7 +547,8 @@ const handleSave = async () => {
   align-items: center;
   gap: 9px;
   padding: 6px 8px;
-  border-radius: 11px;
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   font-size: 13px;
   color: var(--color-text-gray);
   cursor: pointer;
@@ -547,10 +558,11 @@ const handleSave = async () => {
 .me-rail-ico {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; flex-shrink: 0;
-  border-radius: 9px;
-  background: var(--color-surface);
+  /* 原值 9px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
   color: var(--color-text-gray);
-  box-shadow: inset 0 0 0 1px var(--color-surface-border);
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 }
 .me-rail-name { flex: 1; }
 .me-rail-check { color: var(--el-color-primary); flex-shrink: 0; }
@@ -561,14 +573,15 @@ const handleSave = async () => {
 }
 .me-rail-item.active .me-rail-ico {
   color: var(--el-color-primary);
-  background: var(--color-surface);
+  background: var(--el-bg-color);
   box-shadow: inset 0 0 0 1px var(--el-color-primary-light-5);
 }
 
 /* 配置区 */
-.me-body { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 20px; background: var(--color-surface); }
+.me-body { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 20px; background: var(--el-bg-color); }
 .me-body::-webkit-scrollbar { width: 7px; }
-.me-body::-webkit-scrollbar-thumb { border-radius: 4px; background: var(--color-border); }
+/* 原值 4px，7px 宽的滑块近似胶囊；用 full 令牌表达同一种形状 */
+.me-body::-webkit-scrollbar-thumb { border-radius: var(--el-radius-full, 9999px); background: var(--el-border-color-lighter); }
 .me-form { display: flex; flex-direction: column; }
 
 /* 扁平分区 */
@@ -581,7 +594,9 @@ const handleSave = async () => {
 .me-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .me-section-ico {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 11px;
+  width: 32px; height: 32px;
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
@@ -639,9 +654,10 @@ const handleSave = async () => {
 .me-body :deep(.el-input__wrapper),
 .me-body :deep(.el-textarea__inner),
 .me-body :deep(.el-select__wrapper) {
-  border-radius: 11px;
-  box-shadow: 0 0 0 1px var(--color-surface-border) inset;
-  background: var(--color-surface);
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+  background: var(--el-bg-color);
 }
 .me-body :deep(.el-input__wrapper.is-focus),
 .me-body :deep(.el-textarea__inner:focus),
@@ -650,26 +666,55 @@ const handleSave = async () => {
 }
 .me-body :deep(.el-checkbox-button:first-child .el-checkbox-button__inner),
 .me-body :deep(.el-radio-button:first-child .el-radio-button__inner) {
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
+  /* 原值 10px → lg 档，与外层控件圆角一致 */
+  border-top-left-radius: var(--el-radius-lg, 12px);
+  border-bottom-left-radius: var(--el-radius-lg, 12px);
 }
 .me-body :deep(.el-checkbox-button:last-child .el-checkbox-button__inner),
 .me-body :deep(.el-radio-button:last-child .el-radio-button__inner) {
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
+  /* 原值 10px → lg 档，与外层控件圆角一致 */
+  border-top-right-radius: var(--el-radius-lg, 12px);
+  border-bottom-right-radius: var(--el-radius-lg, 12px);
 }
 
 /* 底部按钮 */
 .me-footer { display: flex; justify-content: flex-end; gap: 10px; }
-.me-foot-btn { border-radius: 11px; }
+/* 原值 11px → lg 档 */
+.me-foot-btn { border-radius: var(--el-radius-lg, 12px); }
 .me-foot-btn:not(.el-button--primary) {
-  background: var(--color-surface);
-  border-color: var(--color-surface-border);
+  background: var(--el-bg-color);
+  border-color: var(--el-border-color-lighter);
   color: var(--color-text);
 }
 .me-foot-btn:not(.el-button--primary):hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，左侧导航项的底色与文字直接到位。
+   只关 .me-rail-item 自己的 transition，不写 `*` / `.me-rail-item *` 通配，
+   避免把 el-form / el-input / el-select 内部 Element Plus 组件的合法过渡一起掐掉
+   （特别是下面 .is-focus 那条inset 描边环，它是输入框的焦点指示，不能被降级掉）。
+   本文件只有 transition、无 animation，.active 选中态是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .me-rail-item {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：左侧导航项与「已匹配到预设」提示都是带 @click 的 div
+   （不是可聚焦控件），浏览器不给默认焦点环。
+   两者原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 弹层底色是令牌化的 --el-bg-color，一档主色描边足够可见。
+   预设提示本身是主色文字，环与文字同源、不冲突。 */
+.me-rail-item,
+.preset-hint {
+  outline: none;
+}
+
+.me-rail-item:focus-visible,
+.preset-hint:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

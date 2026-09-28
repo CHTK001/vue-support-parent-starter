@@ -785,7 +785,7 @@ defineExpose({
         <el-input
           v-model="state.keyword"
           placeholder="搜索节点"
-          size="small"
+
           clearable
         >
           <template #prefix>
@@ -794,22 +794,22 @@ defineExpose({
         </el-input>
       </div>
       <div class="re-graph-3d__toolbar-right">
-        <el-button-group size="small">
-          <el-button size="small" @click="zoom(0.9)">
+        <el-button-group >
+          <el-button @click="zoom(0.9)">
             <el-icon><ZoomIn /></el-icon>
           </el-button>
-          <el-button size="small" @click="zoom(1.1)">
+          <el-button @click="zoom(1.1)">
             <el-icon><ZoomOut /></el-icon>
           </el-button>
-          <el-button size="small" @click="fitView">
+          <el-button @click="fitView">
             <el-icon><FullScreen /></el-icon>
           </el-button>
-          <el-button size="small" @click="toggleRotate">
+          <el-button @click="toggleRotate">
             <el-icon v-if="state.rotate"><VideoPause /></el-icon>
             <el-icon v-else><VideoPlay /></el-icon>
             {{ state.rotate ? "停止" : "旋转" }}
           </el-button>
-          <el-button size="small" @click="restart">
+          <el-button @click="restart">
             <el-icon><Refresh /></el-icon>
             重启
           </el-button>

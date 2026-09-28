@@ -52,7 +52,10 @@ function goPlayUrl() {
   <header class="vds-header">
     <div class="vds-header-inner">
       <a class="vds-logo" href="#/" aria-label="回到主页">
-        <span class="vds-logo-mark" aria-hidden="true">▶</span>
+        <!-- 用图标组件代替 ▶ 字符：emoji/几何字符作图标在不同字体下渲染不一致 -->
+        <span class="vds-logo-mark" aria-hidden="true">
+          <ReIcon name="VideoPlay" :size="14" />
+        </span>
         <span class="vds-logo-text">视频资源中心</span>
       </a>
 
@@ -90,7 +93,8 @@ function goPlayUrl() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(11, 14, 20, 0.82);
+  /* #0b0e14 正是 --vd-bg，毛玻璃底色改用 color-mix 取 alpha */
+  background: color-mix(in srgb, var(--vd-bg) 82%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--vd-border);
@@ -118,14 +122,15 @@ function goPlayUrl() {
 .vds-logo-mark {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  /* 原 10px，取最近档 md(8px) */
+  border-radius: var(--el-radius-md, 8px);
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 50%, transparent);
 }
 
 .vds-logo-text {
@@ -138,6 +143,13 @@ function goPlayUrl() {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Logo 是 <a href>，键盘可达，补实心焦点环 */
+.vds-logo:focus-visible {
+  outline: none;
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 /* 主导航 */
@@ -155,18 +167,27 @@ function goPlayUrl() {
   font-weight: 500;
   padding: 9px 16px;
   border-radius: var(--vd-radius-sm);
-  transition: color 0.2s var(--vd-ease), background 0.2s var(--vd-ease);
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
+    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   white-space: nowrap;
 }
 
 .vds-nav-link:hover {
   color: var(--vd-text);
-  background: rgba(148, 163, 184, 0.1);
+  /* #94a3b8 正是 --vd-text-secondary */
+  background: color-mix(in srgb, var(--vd-text-secondary) 10%, transparent);
 }
 
 .vds-nav-link.is-active {
   color: var(--vd-text);
   font-weight: 700;
+}
+
+/* router-link 渲染出的 <a>：补实心焦点环 */
+.vds-nav-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 .vds-nav-link.is-active::after {
@@ -176,9 +197,10 @@ function goPlayUrl() {
   right: 16px;
   bottom: 4px;
   height: 3px;
-  border-radius: 2px;
+  /* 原 2px（3px 高的下划条上即圆头），取胶囊档，渲染结果一致 */
+  border-radius: var(--el-radius-full, 9999px);
   background: linear-gradient(90deg, var(--vd-primary), var(--vd-secondary));
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 60%, transparent);
 }
 
 /* 右侧动作区 */
@@ -191,12 +213,12 @@ function goPlayUrl() {
 
 .vds-play-url-btn {
   color: var(--vd-primary-strong);
-  border-color: rgba(99, 102, 241, 0.45);
-  background: rgba(99, 102, 241, 0.1);
+  border-color: color-mix(in srgb, var(--vd-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--vd-primary) 10%, transparent);
 }
 
 .vds-play-url-btn:hover {
-  background: rgba(99, 102, 241, 0.22);
+  background: color-mix(in srgb, var(--vd-primary) 22%, transparent);
   border-color: var(--vd-primary-strong);
   color: var(--vd-text);
 }
@@ -207,15 +229,19 @@ function goPlayUrl() {
 }
 
 .vds-search :deep(.el-input__wrapper) {
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.1);
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--vd-text-secondary) 10%, transparent);
   box-shadow: 0 0 0 1px var(--vd-border) inset;
-  transition: box-shadow 0.2s var(--vd-ease), background 0.2s var(--vd-ease);
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
+    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
 }
 
 .vds-search :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--vd-primary) inset, 0 0 16px rgba(99, 102, 241, 0.2);
-  background: rgba(148, 163, 184, 0.14);
+  box-shadow:
+    0 0 0 1px var(--vd-primary) inset,
+    0 0 16px color-mix(in srgb, var(--vd-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--vd-text-secondary) 14%, transparent);
 }
 
 .vds-search :deep(.el-input__inner) {
@@ -240,6 +266,14 @@ function goPlayUrl() {
   }
   .vds-logo-text {
     display: none;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vds-nav-link,
+  .vds-search :deep(.el-input__wrapper) {
+    transition: none;
   }
 }
 </style>

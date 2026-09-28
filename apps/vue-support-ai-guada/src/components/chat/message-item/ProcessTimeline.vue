@@ -99,7 +99,7 @@ defineEmits<{
   justify-content: center;
   width: 18px;
   height: 24px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .timeline-body {
@@ -109,6 +109,6 @@ defineEmits<{
 
 /* 中间叙述文本：比最终回答弱化一档，强调它是过程而非结论 */
 .timeline-text {
-  color: var(--color-text-gray, #6b7280);
+  color: var(--el-text-color-secondary);
 }
 </style>

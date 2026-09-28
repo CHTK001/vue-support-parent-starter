@@ -1,6 +1,5 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never" class="mt-3 flex-1">
       <ReTable
         ref="tableRef"
         :loader="loadPapers"
@@ -39,15 +38,15 @@
             <el-tag  :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="200" fixed="right" align="center">
+        <ReTableColumn label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
             <ReButton icon="View" :show-text="false" type="primary" @click="openDetail(row)">详情</ReButton>
-            <ReButton icon="EditPen" :show-text="false" type="warning" @click="goCompose(row)">组卷</ReButton>
+            <ReButton icon="Edit" :show-text="false" type="warning" @click="openEdit(row)">编辑</ReButton>
+            <ReButton icon="EditPen" :show-text="false" type="info" @click="goCompose(row)">组卷</ReButton>
             <ReButton icon="Collection" :show-text="false" type="success" @click="openMarket(row)">题库</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>
-    </el-card>
 
     <!-- 组卷对话框：手动 / AI 共用一套卷头配置，AI 方式多出题量与分值 -->
     <el-dialog v-model="createDialogVisible" title="组卷" width="560">
@@ -64,7 +63,11 @@
         <el-form-item label="学科" required>
           <el-input v-model="createForm.subject" placeholder="请输入学科，如 数学" />
         </el-form-item>
-        <el-form-item label="学段">
+        <!--
+          学段/年级在 edu_paper 上是 NOT NULL 且无默认值，后端会前置校验。
+          这里同步标 required，避免用户以为可留空却拿到建卷失败。
+        -->
+        <el-form-item label="学段" required>
           <el-select
             v-model="createForm.gradeLevel"
             placeholder="请选择学段"
@@ -74,7 +77,7 @@
             <el-option v-for="opt in GRADE_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="年级">
+        <el-form-item label="年级" required>
           <el-select
             v-model="createForm.grade"
             placeholder="请先选择学段"
@@ -122,34 +125,65 @@
     <!-- 题库市场：勾选题目后加入该试卷的购物车 -->
     <QuestionMarketDialog v-model="marketVisible" :paper-id="currentPaperId" @picked="onMarketPicked" />
 
-    <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" :title="detail?.paperName" width="760">
-      <div v-if="detail" class="detail-content">
-        <el-descriptions :column="3" border >
-          <el-descriptions-item label="学科">{{ detail.paperSubject }}</el-descriptions-item>
-          <el-descriptions-item label="学段">{{ detail.paperGradeLevel }}</el-descriptions-item>
-          <el-descriptions-item label="年级">{{ detail.paperGrade }}</el-descriptions-item>
-          <el-descriptions-item label="总分">{{ detail.paperTotalScore }}</el-descriptions-item>
-          <el-descriptions-item label="题数">{{ detail.paperQuestionCount }}</el-descriptions-item>
-          <el-descriptions-item label="时长">{{ detail.paperDuration }} 分</el-descriptions-item>
-        </el-descriptions>
-        <el-divider content-position="left">题目清单</el-divider>
-        <div v-if="!detail.questions?.length" class="text-sm text-el-text-secondary">
-          该试卷没有题目，请确认题库中已有匹配学科与年级的题目后重新组卷。
+    <!-- 详情：直接渲染纸张预览，与组卷页中栏同一套排版 -->
+    <el-dialog v-model="detailVisible" :title="detail?.paperName" width="900">
+      <div v-if="detail" class="detail-preview">
+        <div class="detail-preview__meta">
+          <span>{{ detail.paperSubject }}</span>
+          <span>{{ detail.paperGradeLevel }}{{ detail.paperGrade }}</span>
+          <span>{{ detail.paperQuestionCount }} 题</span>
+          <span>满分 {{ detail.paperTotalScore }} 分</span>
+          <span>时长 {{ detail.paperDuration }} 分</span>
         </div>
-        <div v-for="(q, idx) in detail.questions" :key="q.id" class="question-item">
-          <div class="question-head">
-            <span class="question-no">{{ idx + 1 }}.</span>
-            <el-tag  type="info">{{ questionTypeLabel(q.type) }}</el-tag>
-            <el-tag  type="warning">{{ q.score ?? '-' }} 分</el-tag>
-            <span class="question-id">题目 ID {{ q.id }}</span>
-          </div>
-          <div class="question-stem">{{ q.stem }}</div>
-          <div v-for="(opt, oi) in parseOptions(q.options)" :key="oi" class="question-option">{{ opt }}</div>
-          <div class="question-answer">答案：{{ q.answer || '-' }}</div>
-          <div v-if="q.analysis" class="question-analysis">解析：{{ q.analysis }}</div>
-        </div>
+        <PaperPreview
+          :header="detailHeader"
+          :questions="detailQuestions"
+          :fit-width="DETAIL_PREVIEW_WIDTH"
+          empty-text="该试卷没有题目，请确认题库中已有匹配学科与年级的题目后重新组卷"
+        />
       </div>
+    </el-dialog>
+
+    <!-- 编辑：改卷头属性（组卷页只管题目与纸张，卷头属性在这里维护） -->
+    <el-dialog v-model="editVisible" title="编辑试卷" width="560">
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="试卷名称" required>
+          <el-input v-model="editForm.name" placeholder="请输入试卷名称" />
+        </el-form-item>
+        <el-form-item label="学科" required>
+          <el-input v-model="editForm.subject" placeholder="请输入学科，如 数学" />
+        </el-form-item>
+        <el-form-item label="学段" required>
+          <el-select v-model="editForm.gradeLevel" placeholder="请选择学段" style="width: 100%"
+            @change="onEditGradeLevelChange">
+            <el-option v-for="opt in GRADE_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="年级" required>
+          <el-select
+            v-model="editForm.grade"
+            placeholder="请先选择学段"
+            :disabled="!editForm.gradeLevel"
+            clearable
+            style="width: 100%"
+          >
+            <el-option v-for="g in editGradeOptions" :key="g.gradeId" :label="g.gradeName" :value="g.gradeName" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="总分">
+          <el-input-number v-model="editForm.totalScore" :min="1" :max="1000" />
+        </el-form-item>
+        <el-form-item label="难度">
+          <el-rate v-model="editForm.difficulty" :max="5" />
+        </el-form-item>
+        <el-form-item label="考试时长">
+          <el-input-number v-model="editForm.duration" :min="1" :max="600" /> 分钟
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editing" @click="doEdit">保存</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -163,6 +197,7 @@ import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplat
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import QuestionMarketDialog from '../components/paper/QuestionMarketDialog.vue';
+import PaperPreview from '../components/paper/PaperPreview.vue';
 import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
 
 const pageNo = ref(1);
@@ -248,21 +283,130 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
 
 const questionTypeLabel = (type?: string) => QUESTION_TYPE_LABEL[type || ''] || type || '-';
 
-/** 选项列存的是 JSON 文本，解析不出来时按分隔符兜底展示 */
-const parseOptions = (raw?: string): string[] => {
-  if (!raw) return [];
+/** 详情弹框内纸张预览的可用宽度（px），用于等比缩放纸张 */
+const DETAIL_PREVIEW_WIDTH = 620;
+
+/**
+ * 详情弹框的卷头取值。
+ *
+ * <p>列表接口返回的是 paper* 前缀字段，详情接口还带 titleStyle / pageSize 等纸张字段，
+ * 这里直接透传给 PaperPreview，缺省值由组件内部兜底（A4 纵向 / classic 标题）。</p>
+ */
+const detailHeader = computed(() => ({
+  name: detail.value?.paperName ?? '',
+  subject: detail.value?.paperSubject ?? '',
+  gradeLevel: detail.value?.paperGradeLevel ?? '',
+  grade: detail.value?.paperGrade ?? '',
+  pageSize: detail.value?.paperPageSize ?? 'A4',
+  pageOrientation: detail.value?.paperPageOrientation ?? 'PORTRAIT',
+  titleStyle: detail.value?.paperTitleStyle ?? 'classic',
+  header: detail.value?.paperHeader ?? '',
+  footer: detail.value?.paperFooter ?? '',
+}));
+
+/** 详情弹框的题目列表：按 order 升序，与组卷页画布顺序一致 */
+const detailQuestions = computed(() =>
+  [...(detail.value?.questions ?? [])]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((q) => ({
+      questionId: q.id,
+      type: q.type,
+      stem: q.stem,
+      options: q.options,
+      score: q.score,
+      paperQuestionNo: q.questionNo,
+    })),
+);
+
+/* ---------- 编辑试卷 ---------- */
+
+const editVisible = ref(false);
+const editing = ref(false);
+const editTargetId = ref<number | null>(null);
+
+/** 编辑弹框表单；打开时按行数据回填 */
+const editForm = reactive({
+  name: '',
+  subject: '',
+  gradeLevel: '',
+  grade: '',
+  totalScore: 100,
+  difficulty: 3,
+  duration: 60,
+});
+
+/**
+ * 年级下拉：按所选学段的中文标签过滤。
+ *
+ * <p>与新建弹框共用同一份维度数据（eduaiApi.dimensionDropdown），
+ * 避免为编辑再拉一次接口。</p>
+ */
+const editGradeOptions = computed(() => {
+  const label = GRADE_LEVEL_OPTIONS.find((o) => o.value === editForm.gradeLevel)?.label;
+  if (!label) {
+    return [];
+  }
+  return createGrades.value.filter((g) => g.gradeLevel === label);
+});
+
+/** 切换学段后原年级可能不属于新学段，先清空 */
+const onEditGradeLevelChange = () => {
+  editForm.grade = '';
+};
+
+/** 打开编辑弹框：用列表行已有值回填，年级下拉按所选学段过滤 */
+const openEdit = (row: Paper) => {
+  editTargetId.value = row.paperId;
+  editForm.name = row.paperName ?? '';
+  editForm.subject = row.paperSubject ?? '';
+  editForm.gradeLevel = gradeLevelToCode(row.paperGradeLevel);
+  editForm.grade = row.paperGrade ?? '';
+  editForm.totalScore = row.paperTotalScore ?? 100;
+  editForm.difficulty = row.paperDifficulty ?? 3;
+  editForm.duration = row.paperDuration ?? 60;
+  editVisible.value = true;
+};
+
+/** 提交编辑：字段名与后端 PaperComposeUpdateDTO 逐字一致，不能写成 paper* 前缀 */
+const doEdit = async () => {
+  if (editTargetId.value == null) {
+    return;
+  }
+  if (!editForm.name.trim()) {
+    ElMessage.warning('请填写试卷名称');
+    return;
+  }
+  if (!editForm.subject.trim()) {
+    ElMessage.warning('请填写学科');
+    return;
+  }
+  if (!editForm.gradeLevel) {
+    ElMessage.warning('请选择学段');
+    return;
+  }
+  if (!editForm.grade) {
+    ElMessage.warning('请选择年级');
+    return;
+  }
+  editing.value = true;
   try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map((v) => String(v));
-    if (parsed && typeof parsed === 'object') {
-      return Object.entries(parsed).map(([k, v]) => `${k}. ${v}`);
-    }
-    return [String(parsed)];
-  } catch {
-    return String(raw)
-      .split(/[\n;；]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const payload: PaperComposePayload = {
+      name: editForm.name.trim(),
+      subject: editForm.subject.trim(),
+      gradeLevel: editForm.gradeLevel,
+      grade: editForm.grade,
+      totalScore: editForm.totalScore,
+      difficulty: editForm.difficulty,
+      duration: editForm.duration,
+    };
+    await eduaiApi.updatePaper(editTargetId.value, payload);
+    ElMessage.success('保存成功');
+    editVisible.value = false;
+    reload();
+  } catch (e) {
+    ElMessage.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    editing.value = false;
   }
 };
 
@@ -318,6 +462,22 @@ const GRADE_LEVEL_OPTIONS = [
   { value: 'UNIVERSITY', label: '大学' },
   { value: 'OTHER', label: '其他' },
 ];
+
+/**
+ * 库里存的学段中文名 → 接口/下拉用的码值。
+ *
+ * <p>列表行的 paperGradeLevel 是后端落库的中文名，回填到以码值绑定的下拉前必须转换；
+ * 认不出的值原样返回，避免把历史脏数据清空。</p>
+ *
+ * @param label 库里的学段值（中文名或已经是码值）
+ * @returns 对应码值；无法识别时返回入参本身
+ */
+const gradeLevelToCode = (label?: string): string => {
+  if (!label) {
+    return '';
+  }
+  return GRADE_LEVEL_OPTIONS.find((o) => o.value === label || o.label === label)?.value ?? label;
+};
 
 const createDialogVisible = ref(false);
 const creating = ref(false);
@@ -394,9 +554,18 @@ const doCreate = async () => {
     ElMessage.warning('请填写学科');
     return;
   }
+  // 学段/年级为后端必填（edu_paper 对应列 NOT NULL 无默认值）
+  if (!createForm.gradeLevel) {
+    ElMessage.warning('请选择学段');
+    return;
+  }
+  if (!createForm.grade) {
+    ElMessage.warning('请选择年级');
+    return;
+  }
   creating.value = true;
   try {
-    const payload: Record<string, unknown> = {
+    const payload: PaperComposePayload = {
       name: createForm.name.trim(),
       subject: createForm.subject.trim(),
       gradeLevel: createForm.gradeLevel || undefined,
@@ -406,7 +575,7 @@ const doCreate = async () => {
       duration: createForm.duration,
       templateId: createForm.templateId ?? undefined,
     };
-    const newId = await eduaiApi.createPaper(payload as unknown as PaperComposePayload);
+    const newId = await eduaiApi.createPaper(payload);
     ElMessage.success('创建成功，正在进入组卷页');
     createDialogVisible.value = false;
     void router.push({ path: '/eduai/paper-compose', query: { paperId: String(newId) } });
@@ -458,15 +627,27 @@ const paperStatusLabel = (n?: number) =>
 </script>
 
 <style scoped>
-.page-container { padding: 16px; height: 100%; display: flex; flex-direction: column; }
-.detail-content { max-height: 60vh; overflow: auto; }
-.question-item { padding: 10px 0; border-bottom: 1px dashed var(--el-border-color-lighter); }
-.question-item:last-child { border-bottom: none; }
-.question-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.question-no { font-weight: 600; }
-.question-id { margin-left: auto; font-size: 12px; color: var(--el-text-color-secondary); }
-.question-stem { line-height: 1.6; }
-.question-option { padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--el-text-color-regular); }
-.question-answer { padding-left: 20px; margin-top: 4px; font-size: 13px; color: var(--el-color-success); }
-.question-analysis { padding-left: 20px; font-size: 12px; color: var(--el-text-color-secondary); }
+.page-container { height: 100%; display: flex; flex-direction: column; }
+
+/* 详情：纸张预览 + 顶部元信息行 */
+.detail-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.detail-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  width: 100%;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
 </style>

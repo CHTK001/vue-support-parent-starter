@@ -293,7 +293,8 @@ onMounted(async () => {
   width: 26px;
   height: 26px;
   border: none;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   background: transparent;
   color: var(--color-text-gray);
   cursor: pointer;
@@ -319,17 +320,18 @@ onMounted(async () => {
   gap: 9px;
   margin: 10px;
   padding: 11px 13px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: calc(var(--size-surface-radius) + 2px);
-  color: var(--color-text-gray);
-  background: var(--color-surface);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 calc(var(--size-surface-radius) + 2px)（=22px）→ xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 .mw-store:hover {
-  color: var(--color-primary);
-  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-surface-border));
-  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-border-color-lighter));
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
 }
 .mw-store-label { font-size: 13px; font-weight: 600; flex: 1; text-align: left; }
 .mw-store-count {
@@ -339,15 +341,16 @@ onMounted(async () => {
   min-width: 20px;
   height: 18px;
   padding: 0 6px;
-  border-radius: 9px;
+  /* 原值 9px，18px 高的计数胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-gray);
-  background: var(--color-surface-border);
+  color: var(--el-text-color-secondary);
+  background: var(--el-border-color-lighter);
 }
 
 /* 右侧工作区 */
-.mw-main { flex: 1; min-width: 0; background: var(--color-bg, var(--color-surface)); }
+.mw-main { flex: 1; min-width: 0; background: var(--el-bg-color); }
 .mw-main-empty {
   display: flex;
   flex-direction: column;
@@ -357,15 +360,45 @@ onMounted(async () => {
   padding: 20px;
   text-align: center;
 }
+/* 动效降级：系统开启「减少动态效果」时，左侧导航的底色、状态点/删除按钮显隐、
+   供应商入口的文字与描边全部改为瞬间切换。逐个列出，不写 `*` / .mw-item * 通配，
+   避免把 el-switch / el-dropdown / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   这些都只带 transition（无 animation）；.mw-item-status / .mw-item-del 的
+   opacity 0 与悬停时的 1 都是静态声明，停掉过渡后「悬停出删除按钮」照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .mw-round,
+  .mw-item,
+  .mw-item-status,
+  .mw-item-del,
+  .mw-store {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：模型导航项是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 侧栏底色是令牌化的表面色，一档主色描边足够可见。
+   注意 .mw-item-del 平时 opacity: 0、只在 .mw-item:hover 时显形，
+   键盘用户看不到删除入口；补 tabindex 时需一并处理显隐，
+   本次授权仅限 style 块、不改模板，故此处只报告不改。 */
+.mw-item {
+  outline: none;
+}
+
+.mw-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .mw-empty-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 64px;
   height: 64px;
-  border-radius: 18px;
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   margin-bottom: 18px;
 }
 .mw-empty-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-text); }

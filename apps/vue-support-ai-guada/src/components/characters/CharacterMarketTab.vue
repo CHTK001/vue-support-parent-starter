@@ -54,7 +54,7 @@
           </div>
           <div class="card-info">
             <div class="card-title">{{ item.title }}</div>
-            <el-tag size="small" type="info" class="category-chip">
+            <el-tag type="info" class="category-chip">
               {{ item.category }}
             </el-tag>
           </div>
@@ -64,7 +64,7 @@
           <el-button
             v-if="!item.added"
             type="primary"
-            size="small"
+
             :loading="adding === item.id"
             @click="handleAdd(item)"
           >
@@ -73,7 +73,7 @@
           <el-button
             v-else
             type="success"
-            size="small"
+
             @click="goToMyRoles"
           >
             已添加
@@ -191,14 +191,16 @@ onMounted(() => {
 
 .card {
   border: 1px solid var(--el-border-color);
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   padding: 16px;
   background: var(--el-bg-color);
   transition: box-shadow 0.2s;
 }
 
+/* 卡片本体不加投影；仅保留悬浮浮起反馈这一类 */
 .card:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .card-header {
@@ -211,7 +213,8 @@ onMounted(() => {
 .avatar {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
   display: flex;
@@ -262,7 +265,8 @@ onMounted(() => {
 .skeleton-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
   margin-bottom: 12px;
 }
@@ -271,7 +275,8 @@ onMounted(() => {
   height: 16px;
   width: 60%;
   background: var(--el-fill-color-light);
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   margin-bottom: 8px;
 }
 
@@ -279,11 +284,22 @@ onMounted(() => {
   height: 12px;
   width: 90%;
   background: var(--el-fill-color-light);
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   margin-bottom: 4px;
 }
 
 .empty-state {
   padding: 60px 0;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，卡片悬浮投影直接落位。
+   只关 .card 自己的 transition，不写 `*` / `.grid-container *` 通配，
+   避免把 el-button / el-tag / el-empty 内部 Element Plus 组件的合法过渡一起掐掉。
+   本文件只有 transition、没有 animation，投影本身是静态样式，照常生效。 */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
 }
 </style>

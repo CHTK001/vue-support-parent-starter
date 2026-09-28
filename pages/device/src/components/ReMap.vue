@@ -95,7 +95,9 @@ const positionedDevices = computed(() => {
 .fill-el-text {
   fill: var(--el-text-color-primary);
 }
+/* 序号文字压在在线/离线彩色圆点上，用 EP 常量白而非 --el-text-color-primary：
+   暗色模式下后者是近黑字，压在彩色圆点上会读不出（EP 的 --el-color-white 亮暗不变） */
 .fill-white {
-  fill: #fff;
+  fill: var(--el-color-white);
 }
 </style>

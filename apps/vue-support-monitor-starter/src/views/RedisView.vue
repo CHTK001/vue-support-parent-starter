@@ -605,7 +605,7 @@ const INFO_LABELS: Record<string, string> = {
       <ReSelect
         v-model="selectedDatasourceId"
         placeholder="选择 Redis 数据源"
-        size="small"
+
         style="width: 240px"
         filterable
         :options="datasources.map(d => ({ label: `${d.name} [${d.host}:${d.port}]`, value: d.id }))"
@@ -613,14 +613,14 @@ const INFO_LABELS: Record<string, string> = {
       <ReSelect
         v-model="db"
         placeholder="选择库"
-        size="small"
+
         style="width: 150px"
         :options="dbOptions()"
         :loading="dbLoading"
       />
       <span class="rc-bar-spacer" />
-      <ReButton icon="InfoFilled" :show-text="true" size="small" :disabled="!selectedDatasourceId" @click="openInfo">信息</ReButton>
-      <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="keysLoading" @click="refreshAll">刷新</ReButton>
+      <ReButton icon="InfoFilled" :show-text="true" :disabled="!selectedDatasourceId" @click="openInfo">信息</ReButton>
+      <ReButton icon="RefreshRight" :show-text="true" :loading="keysLoading" @click="refreshAll">刷新</ReButton>
     </div>
 
     <!-- 主体：左键浏览器 + 右详情 -->
@@ -644,7 +644,7 @@ const INFO_LABELS: Record<string, string> = {
           <ReButton
             icon="Grid"
             layout="square"
-            size="small"
+
             :type="viewMode === 'flat' ? 'primary' : ''"
             title="平铺"
             @click="viewMode = 'flat'"
@@ -652,7 +652,7 @@ const INFO_LABELS: Record<string, string> = {
           <ReButton
             icon="Share"
             layout="square"
-            size="small"
+
             :type="viewMode === 'tree' ? 'primary' : ''"
             title="树形"
             @click="viewMode = 'tree'"
@@ -681,7 +681,7 @@ const INFO_LABELS: Record<string, string> = {
               <ReIcon :name="k.ttl < 0 ? 'Timer' : 'Clock'" :size="12" />
               {{ k.ttl < 0 ? "永久" : k.ttl + "s" }}
             </span>
-            <ReButton icon="Delete" layout="square" size="small" class="rc-del" title="删除" @click.stop="removeKey(k.key)" />
+            <ReButton icon="Delete" layout="square" class="rc-del" title="删除" @click.stop="removeKey(k.key)" />
           </div>
         </div>
 
@@ -702,7 +702,7 @@ const INFO_LABELS: Record<string, string> = {
               />
               <ReIcon :name="row.expanded ? 'FolderOpened' : 'Folder'" :size="15" class="rc-folder" />
               <span class="rc-key" :title="row.path" @click="row.hasChildren && toggleExpand(row.path)">{{ row.name }}</span>
-              <ReButton icon="Delete" layout="square" size="small" class="rc-del" title="删除该前缀及子键" @click.stop="removeTreePrefix(row)" />
+              <ReButton icon="Delete" layout="square" class="rc-del" title="删除该前缀及子键" @click.stop="removeTreePrefix(row)" />
             </div>
             <div
               v-else
@@ -718,7 +718,7 @@ const INFO_LABELS: Record<string, string> = {
                 <ReIcon :name="(row.item?.ttl ?? 0) < 0 ? 'Timer' : 'Clock'" :size="12" />
                 {{ (row.item?.ttl ?? 0) < 0 ? "永久" : (row.item?.ttl ?? 0) + "s" }}
               </span>
-              <ReButton icon="Delete" layout="square" size="small" class="rc-del" title="删除键" @click.stop="row.item && removeKey(row.item.key)" />
+              <ReButton icon="Delete" layout="square" class="rc-del" title="删除键" @click.stop="row.item && removeKey(row.item.key)" />
             </div>
           </template>
         </div>
@@ -728,9 +728,9 @@ const INFO_LABELS: Record<string, string> = {
           <div v-if="checkedKeys.length" class="rc-foot-row">
             <span class="rc-sel">已选 {{ checkedKeys.length }} 项</span>
             <span class="rc-meta-spacer" />
-            <ReButton icon="Delete" type="danger" plain size="small" :show-text="true" :disabled="opBusy" @click="removeChecked">删除选中</ReButton>
+            <ReButton icon="Delete" type="danger" plain :show-text="true" :disabled="opBusy" @click="removeChecked">删除选中</ReButton>
           </div>
-          <ReButton v-if="hasMore" class="rc-more" size="small" :loading="keysLoading" @click="loadKeys(false)">加载更多</ReButton>
+          <ReButton v-if="hasMore" class="rc-more" :loading="keysLoading" @click="loadKeys(false)">加载更多</ReButton>
           <ReButton icon="Plus" type="primary" class="rc-add" @click="openNewKey">新增键</ReButton>
         </div>
       </div>
@@ -752,11 +752,11 @@ const INFO_LABELS: Record<string, string> = {
             <span class="rc-meta-spacer" />
             <span class="rc-ttl-edit">
               TTL
-              <ReInputNumber v-model="editTtl" :min="-1" size="small" layout="modern" style="width: 132px" />
-              <ReButton size="small" :disabled="opBusy" @click="applyTtl">设置</ReButton>
+              <ReInputNumber v-model="editTtl" :min="-1" layout="modern" style="width: 132px" />
+              <ReButton :disabled="opBusy" @click="applyTtl">设置</ReButton>
             </span>
-            <ReButton icon="RefreshRight" size="small" :loading="detailLoading" title="刷新详情与 TTL" @click="reloadDetail">刷新</ReButton>
-            <ReButton size="small" type="danger" plain @click="removeKey(selectedKey)">删除键</ReButton>
+            <ReButton icon="RefreshRight" :loading="detailLoading" title="刷新详情与 TTL" @click="reloadDetail">刷新</ReButton>
+            <ReButton type="danger" plain @click="removeKey(selectedKey)">删除键</ReButton>
           </div>
           <div class="rc-dbody">
             <div v-if="detailLoading" class="rc-loading">加载中...</div>
@@ -804,11 +804,11 @@ const INFO_LABELS: Record<string, string> = {
           <ReFormItem v-else-if="newKeyForm.type === 'HASH'" label="字段" class="is-full">
             <div class="rc-newrows">
               <div v-for="(r, i) in newKeyForm.hashRows" :key="i" class="rc-newrow">
-                <ReInput v-model="r.field" size="small" placeholder="字段" />
-                <ReInput v-model="r.value" size="small" placeholder="值" />
-                <ReButton icon="Delete" layout="square" size="small" title="删除" @click="newKeyForm.hashRows.splice(i, 1)" />
+                <ReInput v-model="r.field" placeholder="字段" />
+                <ReInput v-model="r.value" placeholder="值" />
+                <ReButton icon="Delete" layout="square" title="删除" @click="newKeyForm.hashRows.splice(i, 1)" />
               </div>
-              <ReButton size="small" icon="Plus" @click="newKeyForm.hashRows.push({ field: '', value: '' })">加一行</ReButton>
+              <ReButton icon="Plus" @click="newKeyForm.hashRows.push({ field: '', value: '' })">加一行</ReButton>
             </div>
           </ReFormItem>
 
@@ -823,11 +823,11 @@ const INFO_LABELS: Record<string, string> = {
           <ReFormItem v-else-if="newKeyForm.type === 'ZSET'" label="成员" class="is-full">
             <div class="rc-newrows">
               <div v-for="(r, i) in newKeyForm.zsetRows" :key="i" class="rc-newrow">
-                <ReInput v-model="r.member" size="small" placeholder="成员" />
-                <ReInputNumber v-model="r.score" size="small" style="width: 120px" />
-                <ReButton icon="Delete" layout="square" size="small" title="删除" @click="newKeyForm.zsetRows.splice(i, 1)" />
+                <ReInput v-model="r.member" placeholder="成员" />
+                <ReInputNumber v-model="r.score" style="width: 120px" />
+                <ReButton icon="Delete" layout="square" title="删除" @click="newKeyForm.zsetRows.splice(i, 1)" />
               </div>
-              <ReButton size="small" icon="Plus" @click="newKeyForm.zsetRows.push({ member: '', score: 0 })">加一行</ReButton>
+              <ReButton icon="Plus" @click="newKeyForm.zsetRows.push({ member: '', score: 0 })">加一行</ReButton>
             </div>
           </ReFormItem>
         </ReForm>

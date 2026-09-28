@@ -17,6 +17,12 @@ export interface KnowledgeBase {
     chunkMinSize: number
     isActive: boolean
     isPublic: boolean
+    /** 采集网址；空串表示未启用网址采集 */
+    sourceUrl: string
+    /** 采集模式，snapshot 表示快照式 */
+    sourceMode: string
+    /** 同域最多采集几页（含入口页） */
+    sourceMaxPages: number
     metadataConfig: Record<string, any> | null
     createdAt: string
     updatedAt: string
@@ -93,6 +99,9 @@ export const useKnowledgeBaseStore = defineStore('knowledgeBase', () => {
         chunkOverlapSize?: number
         chunkMinSize?: number
         isPublic?: boolean
+        sourceUrl?: string
+        sourceMode?: string
+        sourceMaxPages?: number
     }) {
         loading.value = true
         try {

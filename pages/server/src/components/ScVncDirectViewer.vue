@@ -198,7 +198,7 @@ defineExpose({ disconnect: teardown, sendSpecialKey });
 .sc-vnc__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-text-color-disabled);
   flex-shrink: 0;
 }
@@ -233,9 +233,20 @@ defineExpose({ disconnect: teardown, sendSpecialKey });
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-xs, 4px);
   cursor: pointer;
-  transition: all 0.15s ease;
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  /* 原来写 transition: all 0.15s ease：all 会把布局属性也纳入过渡，
+     0.15s 也不是任何标准档。显式列出三个真正会变的属性并取 0.2s 档 */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+/* 原生 button：自绘焦点环 */
+.sc-vnc__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .sc-vnc__btn:hover {
@@ -248,12 +259,15 @@ defineExpose({ disconnect: teardown, sendSpecialKey });
   position: relative;
   flex: 1;
   min-height: 0;
+  /* 刻意保留纯黑 #000：这是 VNC 远控画面画布，帧缓冲自带任意颜色，
+     垫底色若跟随主题变浅会在画面边缘留一圈亮边 */
   background: #000;
   overflow: hidden;
 }
 
 .sc-vnc__screen.is-ready {
-  border-radius: 0 0 var(--el-border-radius-base) var(--el-border-radius-base);
+  /* 原为 var(--el-border-radius-base)（EP 定义为 4px），统一到 koi 最小圆角档 xs */
+  border-radius: 0 0 var(--el-radius-xs, 4px) var(--el-radius-xs, 4px);
 }
 
 .sc-vnc__screen :deep(canvas) {
@@ -274,5 +288,17 @@ defineExpose({ disconnect: teardown, sendSpecialKey });
 @keyframes sc-vnc-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .sc-vnc__btn {
+    transition: none;
+  }
+  /* 连接中点的呼吸闪烁可以停：「连接中」这个状态本来就由点的黄色底色表达，
+     呼吸只是附加动效，不是唯一信息 */
+  .sc-vnc__status.is-connecting .sc-vnc__dot {
+    animation: none;
+  }
 }
 </style>

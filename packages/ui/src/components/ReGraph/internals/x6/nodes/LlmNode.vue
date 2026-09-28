@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="llm" :text="data.reText" :subtitle="'模型 ' + (data.model || 'gpt') + ' · T=' + (data.temperature ?? 0.7)" />
+  <BaseNode type="llm" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="'模型 ' + (data.model || 'gpt') + ' · T=' + (data.temperature ?? 0.7)" />
 </template>

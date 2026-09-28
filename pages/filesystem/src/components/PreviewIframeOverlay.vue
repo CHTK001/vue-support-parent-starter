@@ -36,7 +36,7 @@ defineProps<{ loading: boolean }>();
   gap: 14px;
   padding: 24px;
   background: var(--el-bg-color-page);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
 }
 
 .iframe-overlay__progress {

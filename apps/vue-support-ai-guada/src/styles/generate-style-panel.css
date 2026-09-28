@@ -1,0 +1,120 @@
+/*
+ * @ 风格选择面板（生图页）。
+ *
+ * 必须是**全局**样式，不能放进任何 <style scoped>：
+ * 面板由 GenerateComposer 用 <Teleport to="body"> 渲染，DOM 上不带父组件的
+ * data-v-xxx 属性，scoped 编译出的属性选择器一条都匹配不上。
+ * 踩过的坑：样式误放在 ScrollContainer.vue（同样是 scoped），
+ * 症状是 position: static、面板掉到视口外（y=900）、点击被 body 拦截。
+ *
+ * 位置选择：居中模态而非贴光标的 popper。风格项是带缩略图的宫格，
+ * 贴光标会被输入框边缘裁掉，也会挡住用户正在写的那句话。
+ */
+
+.gsp-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 32%);
+}
+
+.gsp-panel {
+  width: min(760px, 100%);
+  max-height: min(70vh, 620px);
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.gsp-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 14px;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gsp-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.gsp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.gsp-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+
+.gsp-item:hover,
+.gsp-item.is-active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.gsp-item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+.gsp-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+}
+
+.gsp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gsp-fallback {
+  padding: 0 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.gsp-name {
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gsp-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

@@ -52,7 +52,7 @@
               <div class="flex flex-items-center flex-wrap gap-6px">
                 <span v-text="mine.email || '-'"></span>
                 <el-tooltip v-if="mine.emailVerified === 1" :content="`验证于 ${mine.emailVerifyTime || '-'}`" placement="top">
-                  <el-tag type="success" size="small" effect="plain">已验证</el-tag>
+                  <el-tag type="success" effect="plain">已验证</el-tag>
                 </el-tooltip>
                 <el-button
                   v-else-if="emailVerifyEnabled && mine.email"
@@ -321,14 +321,14 @@
                 <div class="login-log__header">
                   <div class="login-log__title">近期登录记录</div>
                   <div class="login-log__desc">仅展示当前账号的登录记录，发现异常登录请立即修改密码</div>
-                  <el-button class="login-log__refresh" size="small" :loading="loginLogLoading" @click="loadLoginLogs">
+                  <el-button class="login-log__refresh" :loading="loginLogLoading" @click="loadLoginLogs">
                     刷新
                   </el-button>
                 </div>
                 <el-table
                   v-loading="loginLogLoading"
                   :data="loginLogRows"
-                  size="small"
+
                   :row-class-name="loginLogRowClass"
                   class="login-log__table"
                 >
@@ -354,9 +354,9 @@
                   <el-table-column label="状态" width="80">
                     <template #default="{ row }">
                       <el-tooltip v-if="row.sysLogStatus === 0 && row.sysLogMessage" :content="row.sysLogMessage" placement="top">
-                        <el-tag type="danger" size="small" effect="plain">失败</el-tag>
+                        <el-tag type="danger" effect="plain">失败</el-tag>
                       </el-tooltip>
-                      <el-tag v-else :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+                      <el-tag v-else :type="row.sysLogStatus === 1 ? 'success' : 'danger'" effect="plain">
                         {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
                       </el-tag>
                     </template>
@@ -366,7 +366,7 @@
                   v-if="loginLogTotal > loginLogPageSize"
                   class="login-log__pager"
                   layout="prev, pager, next, total"
-                  size="small"
+
                   background
                   :current-page="loginLogPage"
                   :page-size="loginLogPageSize"

@@ -1,6 +1,6 @@
 <template>
   <div class="ngx-lifecycle">
-    <ReButton size="small" :loading="busy === 'test'" @click="run('test')">
+    <ReButton  :loading="busy === 'test'" @click="run('test')">
       <template #icon><ReIcon name="CircleCheck" :size="14" /></template>
       校验配置
     </ReButton>
@@ -10,7 +10,7 @@
          isRunning 算了却没用上。UNKNOWN 视为「未运行」，保留「启动」兜底。 -->
     <ReButton
       v-if="canReload"
-      size="small"
+      
       type="primary"
       :loading="busy === 'reload'"
       @click="run('reload')"
@@ -19,19 +19,19 @@
       重载
     </ReButton>
 
-    <ReButton v-if="canRestart" size="small" :loading="busy === 'restart'" @click="confirmThen('restart')">
+    <ReButton v-if="canRestart"  :loading="busy === 'restart'" @click="confirmThen('restart')">
       <template #icon><ReIcon name="RefreshRight" :size="14" /></template>
       重启
     </ReButton>
 
-    <ReButton v-if="canStart" size="small" :loading="busy === 'start'" @click="run('start')">
+    <ReButton v-if="canStart"  :loading="busy === 'start'" @click="run('start')">
       <template #icon><ReIcon name="VideoPlay" :size="14" /></template>
       启动
     </ReButton>
 
     <ReButton
       v-if="canStop"
-      size="small"
+      
       type="danger"
       :loading="busy === 'stop'"
       @click="confirmThen('stop')"
@@ -52,7 +52,6 @@
       width="640px"
       :height="420"
       :footer-hidden="false"
-      @closed="result = null"
     >
       <div v-if="result" class="ngx-result">
         <div class="ngx-result-head" :class="result.success ? 'is-ok' : 'is-err'">
@@ -74,6 +73,19 @@
         />
       </div>
     </ReDialog>
+
+    <!-- 权限/托管告警：只在「停止或启动没能生效」时出现。
+         这两种情况用户点一次按钮看不出来，只会以为按钮坏了，
+         所以把原因和修法直接摆出来，而不是等他自己去翻日志。 -->
+    <ReAlert
+      v-if="blockedHint"
+      class="ngx-perm-alert"
+      type="warning"
+      :title="blockedHint.title"
+      :description="blockedHint.detail"
+      :closable="false"
+      show-icon
+    />
   </div>
 </template>
 
@@ -146,6 +158,59 @@ function labelOf(op: string): string {
     }[op] || op
   );
 }
+
+/**
+ * 「停止/启动没能生效」的告警。
+ *
+ * <p>这类情况点一次按钮看不出来：按钮不报错、弹窗也只是干巴巴一句
+ * 「已发送停止信号」，用户只会以为按钮坏了。真正的原因有两个，都得说清楚：</p>
+ *
+ * <ol>
+ *   <li><b>缺少 sudo 权限</b>：nginx 由 systemd 托管时，停止必须走
+ *       {@code systemctl stop}，那要改系统级服务状态。数据源的 SSH 用户
+ *       （如 {@code kali}）默认没有免密 sudo，于是只能退回发信号，
+ *       而单元配了 {@code Restart=always} 会把 nginx 立刻拉回——
+ *       表现为「停了但没停住」。</li>
+ *   <li><b>托管者自动重启</b>：权限没问题，但单元配了自动重启策略。</li>
+ * </ol>
+ *
+ * <p>只根据后端返回的文案判定，不自己猜——后端已经如实写明了原因，
+ * 这里只负责把它翻译成人能照着做的步骤。</p>
+ */
+const blockedHint = computed<{ title: string; detail: string } | null>(() => {
+  const r = result.value;
+  if (!r) {
+    return null;
+  }
+  const text = `${r.message || ""} ${r.stderr || ""}`;
+  // 权限不足：sudo 被拒 / 需要交互式认证
+  if (/sudo|permission denied|access denied|requires interactive|not permitted/i.test(text)) {
+    return {
+      title: "停止/启动未生效：SSH 用户缺少 systemctl 的免密 sudo 权限",
+      detail:
+        `nginx 由 systemd 托管时，启停必须走 systemctl（那是系统级操作），`
+        + `而数据源配置的 SSH 用户没有免密权限，控制台只能退回发信号的方式；`
+        + `若该单元配了 Restart=always，nginx 会被立刻拉回，表现为「停了没停住」。`
+        + `修复：在目标主机上为该用户加一条限定的免密规则，例如 `
+        + `echo 'kali ALL=(root) NOPASSWD: /usr/bin/systemctl start,stop,restart ngx-console' | sudo tee /etc/sudoers.d/ngx-console，`
+        + `并执行 sudo chmod 0440 /etc/sudoers.d/ngx-console。`
+        + `只放行这一个单元的启停即可，不要图省事写 NOPASSWD: ALL。`,
+    };
+  }
+  // 权限没问题，是托管者把它拉回来了
+  if (/仍未退出|尚未退出|Restart=always|进程管理器|守护/.test(text)) {
+    return {
+      title: "停止未生效：nginx 被进程管理器自动拉回",
+      detail:
+        `控制台已经成功向 nginx 发出停止信号，但托管它的 systemd 单元配了自动重启`
+        + `（Restart=always 之类），几秒后就把 nginx 重新拉起了——所以接口只能如实`
+        + `报告「已发信号但未退出」，而不是谎报成功。`
+        + `两种处理：① 保持崩溃自愈，给控制台的 SSH 用户加该单元的免密 systemctl 权限`
+        + `（见后端日志）；② 完全交给控制台管，把该单元改为 Restart=no。`,
+    };
+  }
+  return null;
+});
 
 /** 各操作的说明，用于二次确认文案 */
 const CONFIRM: Record<string, { title: string; body: string; danger: boolean }> = {
@@ -228,6 +293,18 @@ defineExpose({
   gap: 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 告警独占一行：.ngx-lifecycle 是 flex 容器，不换行会被挤到按钮右边，
+   而正文是一整段可照着做的操作步骤，挤在一行里根本读不下去 */
+.ngx-perm-alert {
+  flex-basis: 100%;
+  margin-top: 8px;
+
+  :deep(.el-alert__description) {
+    line-height: 1.7;
+    word-break: break-word;
+  }
 }
 
 .ngx-result {

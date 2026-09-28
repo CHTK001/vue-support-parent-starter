@@ -232,8 +232,10 @@ onUnmounted(() => {
   background: transparent;
   cursor: pointer;
   font-size: 12px;
-  color: var(--titlebar-text-color, rgba(255,255,255,0.4));
-  border-radius: 4px;
+  /* --titlebar-* 由 refactor.css 与 9 套主题恒定定义，原 rgba 兜底是死代码 */
+  color: var(--titlebar-text-color);
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   transition: all 0.15s ease-in-out;
   outline: none;
   font-family: inherit;
@@ -241,7 +243,26 @@ onUnmounted(() => {
 }
 
 .titlebar-menu-btn:hover {
-  background: var(--titlebar-hover-bg, rgba(255,255,255,0.1));
-  color: var(--titlebar-text-color, rgba(255,255,255,0.7));
+  background: var(--titlebar-hover-bg);
+  color: var(--titlebar-text-color);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，标题栏按钮的底色/文字直接到位。
+   逐个列出，不写 `*` / `.titlebar-menu-btn *` 通配，
+   避免把 LTooltip 内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .titlebar-menu-btn {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：更新提示那枚 .titlebar-menu-btn 是带 @click 的 div（不是 button），
+   而基础样式里已经写了 outline: none 却没有配套的焦点环 —— 那正是「只写 outline: none
+   是净损害」的典型：键盘用户完全看不到焦点在哪。这里把环补上，两者成对出现。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。
+   环的透明度提到 45%（而不是常规的 12%）：标题栏跟随应用表面色，
+   暗色主题下是一整块深底，12% 的主色环几乎不可见。 */
+.titlebar-menu-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
 }
 </style>

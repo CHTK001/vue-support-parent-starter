@@ -252,12 +252,14 @@ function handleSave() {
 .mf-section + .mf-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 .mf-section-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .mf-section-ico {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 29px; height: 29px; border-radius: 10px;
+  width: 29px; height: 29px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
@@ -273,8 +275,9 @@ function handleSave() {
   position: relative;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 12px 8px;
-  border-radius: 11px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   cursor: pointer;
@@ -304,8 +307,9 @@ function handleSave() {
 }
 .mf-form :deep(.el-input__wrapper),
 .mf-form :deep(.el-textarea__inner) {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--color-surface-border, var(--el-border-color-lighter)) inset;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
 }
 .mf-form :deep(.el-input__wrapper.is-focus),
 .mf-form :deep(.el-textarea__inner:focus) {
@@ -313,15 +317,37 @@ function handleSave() {
 }
 
 .mf-footer { display: flex; justify-content: flex-end; gap: 10px; }
-.mf-btn { border-radius: 10px; }
+/* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+.mf-btn { border-radius: var(--el-radius-lg, 12px); }
 .mf-btn:not(.el-button--primary) {
   background: var(--el-bg-color);
-  border-color: var(--color-surface-border, var(--el-border-color));
+  border-color: var(--el-border-color);
   color: var(--el-text-color-regular);
 }
 .mf-btn:not(.el-button--primary):hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，传输方式选项的描边与底色直接到位。
+   只关 .mf-transport-item 自己的 transition，不写 `*` / .mf-transport-item * 通配，
+   避免把内部 el-icon 组件的合法过渡一起掐掉。
+   .active 选中态是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .mf-transport-item {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：传输方式选项是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 弹层底色是令牌化的表面色，一档主色描边足够可见。 */
+.mf-transport-item {
+  outline: none;
+}
+
+.mf-transport-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

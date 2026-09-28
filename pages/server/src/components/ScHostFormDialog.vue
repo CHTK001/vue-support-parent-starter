@@ -378,7 +378,7 @@ function onSubmit(): void {
               <label class="field-label">PEM 私钥</label>
               <div class="pem-upload-wrap">
                 <label class="pem-pick">
-                  <ReButton size="small" :loading="pemLoading" plain tag="span">
+                  <ReButton :loading="pemLoading" plain tag="span">
                     <ReIcon name="Upload" :size="14" style="margin-right: 4px" />选择文件
                   </ReButton>
                   <input type="file" accept=".pem,.key,.priv" hidden :disabled="pemLoading" @change="onPemFileChange" />
@@ -460,7 +460,7 @@ function onSubmit(): void {
           <template #label>
             <label class="field-label">探针标识</label>
           </template>
-          <ReText type="info" size="small">{{ form.serverHostAgentKey }}</ReText>
+          <ReText type="info" >{{ form.serverHostAgentKey }}</ReText>
         </ReFormItem>
       </template>
     </ReForm>
@@ -539,9 +539,14 @@ function onSubmit(): void {
   gap: 6px;
   padding: 12px 8px;
   border: 1px solid var(--el-border-color);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
-  transition: border-color 0.2s var(--ease-out), background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  /* 缓动原来写 var(--ease-out)（pages/server 私有令牌），这里内联同一个
+     cubic-bezier(0.4, 0, 0.2, 1)；时长取 0.2s 微交互档 */
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1),
+    background-color var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--el-text-color-regular);
   background: var(--el-bg-color);
 
@@ -550,17 +555,20 @@ function onSubmit(): void {
     color: var(--el-color-primary);
   }
 
+  /* role="button" + tabindex="0" 的原生可点 div：统一用全站自绘焦点环，
+     替换原来的 outline: 2px + offset 写法 */
   &:focus-visible {
-    outline: 2px solid var(--el-color-primary);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   }
 
+  /* 选中态只用「主色边框 + 浅底 + 主色文字 + 加粗」表达，
+     按 koi 规约不再叠一层静态投影（原来这层 box-shadow 是纯装饰，边框已足够） */
   &.active {
     border-color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
     font-weight: 500;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
   }
 }
 
@@ -581,6 +589,13 @@ function onSubmit(): void {
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 12px;
     line-height: 1.6;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .os-type-card {
+    transition: none;
   }
 }
 </style>

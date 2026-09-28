@@ -13,7 +13,10 @@
       <div
         ref="triggerRef"
         class="re-card-select__trigger"
-        :class="{ 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact }"
+        :class="[
+          `re-card-select__trigger--${controlSize}`,
+          { 're-card-select__trigger--open': isOpen, 're-card-select__trigger--compact': compact },
+        ]"
       >
         <span class="re-card-select__trigger-label">{{ triggerLabel || placeholder }}</span>
         <svg
@@ -103,6 +106,7 @@
  */
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { ElPopover } from "element-plus";
+import type { ReSelectSize } from "../types";
 
 defineOptions({ name: "CardReSelect", inheritAttrs: true });
 
@@ -141,6 +145,13 @@ const props = withDefaults(
     compact?: boolean;
     /** 多选时是否显示全选 / 反选（默认 false） */
     bulkActions?: boolean;
+    /**
+     * 控件尺寸档位（small / default / large）。
+     *
+     * 命名带 control 前缀是为了与 Square 布局里的「图标尺寸 size(number)」区分开：
+     * 两者都叫 size 时语义完全不同，透传时极易串味。
+     */
+    controlSize?: ReSelectSize;
   }>(),
   {
     options: () => [],
@@ -153,6 +164,7 @@ const props = withDefaults(
     popoverWidth: 300,
     compact: false,
     bulkActions: false,
+    controlSize: "default",
   },
 );
 
@@ -489,6 +501,19 @@ html.dark .re-card-select__option-desc {
 }
 html.dark .re-card-select__trigger {
   background: var(--el-fill-color-light);
+}
+/* 尺寸档：与 default 布局的 28 / 34 / 40px 保持同一套基线 */
+.re-card-select__trigger--small {
+  min-height: 28px;
+  padding: 2px 12px;
+  border-radius: var(--rm-radius);
+  font-size: 12px;
+}
+.re-card-select__trigger--large {
+  min-height: 40px;
+  padding: 6px 18px;
+  border-radius: var(--rm-radius-xl);
+  font-size: 14px;
 }
 .re-card-select__trigger--compact {
   min-width: 0;

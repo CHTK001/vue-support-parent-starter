@@ -157,52 +157,14 @@
           </div>
         </template>
 
-        <div ref="previewViewportRef" class="preview-viewport">
-          <div v-for="(page, pi) in previewPages" :key="pi" class="preview-group">
-            <div class="page-slot" :style="pageSlotStyle">
-              <div class="paper-page" :style="paperPageStyle">
-                <!-- 首页页头：有页头富文本用富文本，否则用默认标题块 -->
-                <div v-if="pi === 0" class="paper-header">
-                  <div v-if="hasHeaderContent" class="paper-header__rich" v-html="headerHtml" />
-                  <template v-else>
-                    <div class="paper-header__title" :class="`is-${previewHeader.titleStyle}`">{{ previewHeader.name || "未命名试卷" }}</div>
-                    <div class="paper-header__meta">{{ metaLine }}</div>
-                  </template>
-                </div>
-
-                <div class="paper-body">
-                  <div v-for="item in page" :key="item.q.paperQuestionNo" class="paper-question">
-                    <div class="paper-question__stem">
-                      <span class="paper-question__no">{{ item.no }}.</span>
-                      <span v-if="item.stemHtml" class="paper-question__html" v-html="item.stemHtml" />
-                      <span v-else class="paper-question__empty">（题干为空）</span>
-                      <span class="paper-question__score">（{{ item.q.score }} 分）</span>
-                    </div>
-                    <div v-if="item.options.length" class="paper-question__options">
-                      <div v-for="(opt, oi) in item.options" :key="oi" class="paper-option">
-                        <span class="paper-option__letter">{{ optionLetter(oi) }}.</span>
-                        <span v-html="renderMixedText(opt)" />
-                      </div>
-                    </div>
-                    <!-- 答案区域留空：客观题在题干处作答，主观题留出空白书写区 -->
-                    <div
-                      v-if="item.answerHeight > 0"
-                      class="paper-question__answer"
-                      :style="{ height: `${item.answerHeight}px` }"
-                    />
-                  </div>
-                  <div v-if="!page.length" class="paper-body__empty">试卷还没有题目，把右侧购物车的题拖到上方题目清单后在此预览</div>
-                </div>
-
-                <div class="paper-footer">
-                  <div v-if="hasFooterContent" class="paper-footer__rich" v-html="footerHtml" />
-                  <div class="paper-footer__page">第 {{ pi + 1 }} 页 / 共 {{ pageCount }} 页</div>
-                </div>
-              </div>
-            </div>
-            <!-- 页面之间留缝显示页码 -->
-            <div v-if="pi < previewPages.length - 1" class="preview-gap">第 {{ pi + 1 }} 页</div>
-          </div>
+        <div class="preview-viewport">
+          <PaperPreview
+            ref="previewRef"
+            :header="previewHeader"
+            :questions="composeQuestions"
+            :zoom="previewZoom"
+            empty-text="试卷还没有题目，把右侧购物车的题拖到上方题目清单后在此预览"
+          />
         </div>
       </el-card>
 
@@ -327,49 +289,11 @@
           </div>
         </div>
 
-        <!-- 右：实时预览（复用纸张预览的渲染逻辑与样式） -->
+        <!-- 右：实时预览（复用纸张预览组件，按弹框宽度固定缩放） -->
         <div class="settings-preview">
           <div class="settings-preview__hint">实时预览（{{ settingsDraft.pageSize }} · {{ settingsDraft.pageOrientation === "LANDSCAPE" ? "横向" : "纵向" }} · 共 {{ pageCount }} 页）</div>
           <div class="settings-preview__viewport">
-            <div v-for="(page, pi) in previewPages" :key="pi" class="preview-group">
-              <div class="page-slot" :style="settingsPageSlotStyle">
-                <div class="paper-page" :style="settingsPaperPageStyle">
-                  <div v-if="pi === 0" class="paper-header">
-                    <div v-if="hasHeaderContent" class="paper-header__rich" v-html="headerHtml" />
-                    <template v-else>
-                      <div class="paper-header__title" :class="`is-${settingsDraft.titleStyle}`">{{ settingsDraft.name || "未命名试卷" }}</div>
-                      <div class="paper-header__meta">{{ metaLine }}</div>
-                    </template>
-                  </div>
-                  <div class="paper-body">
-                    <div v-for="item in page" :key="item.q.paperQuestionNo" class="paper-question">
-                      <div class="paper-question__stem">
-                        <span class="paper-question__no">{{ item.no }}.</span>
-                        <span v-if="item.stemHtml" class="paper-question__html" v-html="item.stemHtml" />
-                        <span v-else class="paper-question__empty">（题干为空）</span>
-                        <span class="paper-question__score">（{{ item.q.score }} 分）</span>
-                      </div>
-                      <div v-if="item.options.length" class="paper-question__options">
-                        <div v-for="(opt, oi) in item.options" :key="oi" class="paper-option">
-                          <span class="paper-option__letter">{{ optionLetter(oi) }}.</span>
-                          <span v-html="renderMixedText(opt)" />
-                        </div>
-                      </div>
-                      <div
-                        v-if="item.answerHeight > 0"
-                        class="paper-question__answer"
-                        :style="{ height: `${item.answerHeight}px` }"
-                      />
-                    </div>
-                    <div v-if="!page.length" class="paper-body__empty">试卷还没有题目</div>
-                  </div>
-                  <div class="paper-footer">
-                    <div v-if="hasFooterContent" class="paper-footer__rich" v-html="footerHtml" />
-                    <div class="paper-footer__page">第 {{ pi + 1 }} 页 / 共 {{ pageCount }} 页</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PaperPreview :header="settingsDraft" :questions="composeQuestions" :fit-width="SETTINGS_PREVIEW_WIDTH" />
           </div>
         </div>
       </div>
@@ -471,6 +395,7 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
 import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
+import PaperPreview from "../components/paper/PaperPreview.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 
 defineOptions({ name: "PaperComposeView" });
@@ -557,15 +482,6 @@ interface DimensionDropdown {
   grades?: { gradeName?: string; gradeLevel?: string | null }[];
 }
 
-/** 预览页中的题项（题干 / 选项已预渲染，避免模板内重复解析） */
-interface PreviewItem {
-  q: ComposeQuestion;
-  no: number;
-  options: string[];
-  stemHtml: string;
-  answerHeight: number;
-}
-
 /** 已从画布移除但仍存在于服务端的题项（保存时统一删除） */
 interface RemovedQuestion {
   questionId: number;
@@ -592,15 +508,6 @@ const QUESTION_TYPES = [
   { value: "ESSAY", label: "作文" },
 ];
 
-/** 纸张规格（按 96dpi 折算的屏幕像素近似值） */
-const PAPER_SIZES: Record<string, { width: number; height: number }> = {
-  A4: { width: 794, height: 1123 },
-  A3: { width: 1123, height: 1587 },
-  A5: { width: 559, height: 794 },
-  B5: { width: 665, height: 945 },
-  LETTER: { width: 816, height: 1056 },
-};
-
 const PAPER_SIZE_OPTIONS = [
   { value: "A4", label: "A4（默认）" },
   { value: "A3", label: "A3" },
@@ -619,12 +526,6 @@ const TITLE_STYLE_OPTIONS = [
 
 /** 未持久化题项的临时编号前缀；保存成功回读服务端编号后被替换 */
 const TMP_NO_PREFIX = "TMP-";
-
-/** 预览分页估算参数 */
-const PAGE_PADDING = 40;
-const HEADER_HEIGHT_RICH = 132;
-const HEADER_HEIGHT_DEFAULT = 88;
-const FOOTER_HEIGHT = 56;
 
 /** 设置弹框右侧实时预览的可用宽度（px），用于等比缩放纸张 */
 const SETTINGS_PREVIEW_WIDTH = 440;
@@ -697,7 +598,22 @@ function clampScore(score?: number): number {
   return Math.min(maxQuestionScore.value, Math.max(1, Math.round(n)));
 }
 
+/**
+ * 从异常里取出「对用户有用」的文案。
+ *
+ * <p>后端业务错误会带 {@code msg}（如「试卷总分必须为 100 分，当前为 30 分」），
+ * 直接用 axios 的 message 只会得到「Request failed with status code 400」，
+ * 用户看不到该改什么。这里按优先级取：响应体 msg → 响应体 message → Error.message。</p>
+ *
+ * @param e 捕获到的异常
+ * @returns 可展示的错误文案
+ */
 function errorText(e: unknown): string {
+  const resp = (e as { response?: { data?: { msg?: string; message?: string } } } | null)?.response;
+  const bizMsg = resp?.data?.msg || resp?.data?.message;
+  if (typeof bizMsg === "string" && bizMsg.trim()) {
+    return bizMsg.trim();
+  }
   return e instanceof Error ? e.message : String(e);
 }
 
@@ -1168,7 +1084,7 @@ function moveQuestion(from: number, to: number) {
 
 /* ==================== 保存 / 均分 / 发布 ==================== */
 
-function buildPaperPayload(): Record<string, unknown> {
+function buildPaperPayload(): PaperComposePayload {
   return {
     name: header.name.trim(),
     subject: header.subject,
@@ -1177,9 +1093,12 @@ function buildPaperPayload(): Record<string, unknown> {
     pageSize: header.pageSize,
     pageOrientation: header.pageOrientation,
     template: header.template,
-    templateId: header.templateId,
+    // null 表示「不引用模板」；后端约定为 null 即不修改，故统一转 undefined 省略该字段
+    templateId: header.templateId ?? undefined,
     titleStyle: header.titleStyle,
-    paperTotalScore: header.targetScore,
+    // 字段名必须是 totalScore：后端 PaperComposeUpdateDTO 的组件名是 totalScore，
+    // 早前误传 paperTotalScore 会被 Jackson 当未知属性丢弃，导致满分改了保存不上。
+    totalScore: header.targetScore,
     header: header.header,
     footer: header.footer,
   };
@@ -1189,10 +1108,10 @@ function buildPaperPayload(): Record<string, unknown> {
 async function ensurePaper(): Promise<number> {
   const payload = buildPaperPayload();
   if (paperId.value != null) {
-    await eduaiApi.updatePaper(paperId.value, payload as unknown as PaperComposePayload);
+    await eduaiApi.updatePaper(paperId.value, payload);
     return paperId.value;
   }
-  const created = await eduaiApi.createPaper(payload as unknown as PaperComposePayload);
+  const created = await eduaiApi.createPaper(payload);
   paperId.value = created;
   return created;
 }
@@ -1507,10 +1426,14 @@ async function loadDetail(id: number) {
 
 /* ==================== 预览（纸张尺寸 / 缩放 / 分页） ==================== */
 
-/** 预览取值来源：设置弹框打开时用草稿（实时预览），否则用当前卷头 */
+/**
+ * 预览取值来源：设置弹框打开时用草稿（实时预览），否则用当前卷头。
+ *
+ * <p>纸张渲染、分页与自适应缩放都已下沉到 PaperPreview 组件，
+ * 本视图只保留「用户手动缩放档位」这一层交互状态。</p>
+ */
 const previewHeader = computed<PaperHeader>(() => (settingsVisible.value ? settingsDraft : header));
 
-const previewViewportRef = ref<HTMLElement | null>(null);
 /**
  * 预览缩放倍数（相对「适应宽度」的倍率）。
  *
@@ -1544,158 +1467,14 @@ function onBack(): void {
   void router.push({ path: "/edu/paper" });
 }
 
-const previewViewportWidth = ref(0);
-/** 预览所在卡片 body 的可用高度（由 ResizeObserver 提供），用于按高度约束缩放 */
-const previewViewportHeight = ref(0);
-let previewObserver: ResizeObserver | null = null;
+/** 纸张预览组件实例：从中读取总页数与实际缩放倍率（分页与缩放已下沉到组件内） */
+const previewRef = ref<{ pageCount: number; scale: number } | null>(null);
 
-const previewPaperWidth = computed(() => {
-  const size = PAPER_SIZES[previewHeader.value.pageSize] ?? PAPER_SIZES.A4;
-  return previewHeader.value.pageOrientation === "LANDSCAPE" ? size.height : size.width;
-});
+/** 总页数；组件未挂载完成时回退 1，与组件内「空卷也返回一页」的约定一致 */
+const pageCount = computed(() => previewRef.value?.pageCount ?? 1);
 
-const previewPaperHeight = computed(() => {
-  const size = PAPER_SIZES[previewHeader.value.pageSize] ?? PAPER_SIZES.A4;
-  return previewHeader.value.pageOrientation === "LANDSCAPE" ? size.width : size.height;
-});
-
-/**
- * 预览缩放：按容器宽度等比缩放（最大 100%），再乘用户手动缩放倍率。
- *
- * <p>不按高度缩放：A4 在 96dpi 下高约 1123px，塞进几百像素高的卡片会缩成 20%~30%，
- * 文字不可读，反而不如保持宽度自适应 + 纵向滚动。卡片 body 已是 overflow-y:auto。</p>
- */
-const previewScale = computed(() => {
-  const fit = (() => {
-    if (previewViewportWidth.value <= 0) {
-      return 1;
-    }
-    const available = previewViewportWidth.value - 24;
-    if (available >= previewPaperWidth.value) {
-      return 1;
-    }
-    return Math.max(0.2, available / previewPaperWidth.value);
-  })();
-  return Math.min(3, fit * previewZoom.value);
-});
-
-const pageSlotStyle = computed(() => ({
-  width: `${previewPaperWidth.value * previewScale.value}px`,
-  height: `${previewPaperHeight.value * previewScale.value}px`,
-}));
-
-const paperPageStyle = computed(() => ({
-  width: `${previewPaperWidth.value}px`,
-  height: `${previewPaperHeight.value}px`,
-  transform: `scale(${previewScale.value})`,
-}));
-
-/** 设置弹框右侧实时预览：按弹框可用宽度等比缩放 */
-const settingsPreviewScale = computed(() => Math.min(1, SETTINGS_PREVIEW_WIDTH / previewPaperWidth.value));
-
-const settingsPageSlotStyle = computed(() => ({
-  width: `${previewPaperWidth.value * settingsPreviewScale.value}px`,
-  height: `${previewPaperHeight.value * settingsPreviewScale.value}px`,
-}));
-
-const settingsPaperPageStyle = computed(() => ({
-  width: `${previewPaperWidth.value}px`,
-  height: `${previewPaperHeight.value}px`,
-  transform: `scale(${settingsPreviewScale.value})`,
-}));
-
-const headerHtml = computed(() => renderRichWithMath(previewHeader.value.header));
-const footerHtml = computed(() => renderRichWithMath(previewHeader.value.footer));
-const hasHeaderContent = computed(() => htmlToMathText(previewHeader.value.header).length > 0);
-const hasFooterContent = computed(() => htmlToMathText(previewHeader.value.footer).length > 0);
-
-const metaLine = computed(() => {
-  const parts: string[] = [];
-  if (previewHeader.value.subject) {
-    parts.push(previewHeader.value.subject);
-  }
-  const gradeText = `${levelLabel(previewHeader.value.gradeLevel)}${previewHeader.value.grade || ""}`;
-  if (gradeText) {
-    parts.push(gradeText);
-  }
-  parts.push(`${composeQuestions.value.length} 题`);
-  parts.push(`满分 ${totalScore.value} 分`);
-  return parts.join(" · ");
-});
-
-/** 主观题作答留白高度（客观题在题干处作答，不额外留白） */
-function answerSpaceHeight(type: string): number {
-  if (type === "FILL") {
-    return 34;
-  }
-  if (type === "SHORT_ANSWER") {
-    return 60;
-  }
-  if (type === "ESSAY") {
-    return 96;
-  }
-  return 0;
-}
-
-function buildPreviewItem(q: ComposeQuestion, no: number): PreviewItem {
-  return {
-    q,
-    no,
-    options: parseOptions(q.options),
-    stemHtml: renderRichWithMath(q.stem),
-    answerHeight: answerSpaceHeight(q.type),
-  };
-}
-
-/** 估算题项渲染高度：基础高度 + 题干超出首行的部分 + 选项行 + 作答留白 */
-function estimateQuestionHeight(item: PreviewItem): number {
-  const base: Record<string, number> = {
-    SINGLE_CHOICE: 44,
-    MULTIPLE_CHOICE: 44,
-    JUDGE: 40,
-    FILL: 40,
-    SHORT_ANSWER: 44,
-    ESSAY: 48,
-  };
-  const stemLines = Math.max(1, Math.ceil(htmlToMathText(item.q.stem).length / 38));
-  const optionLines = item.options.reduce(
-    (sum, text) => sum + Math.max(1, Math.ceil(htmlToMathText(text).length / 44)),
-    0,
-  );
-  return (base[item.q.type] ?? 44) + (stemLines - 1) * 21 + optionLines * 21 + item.answerHeight + 14;
-}
-
-const headerBlockHeight = computed(() => (hasHeaderContent.value ? HEADER_HEIGHT_RICH : HEADER_HEIGHT_DEFAULT));
-
-/** 多页切分：按固定参数估算每题高度，超出当前页可容纳高度就新起一页 */
-const previewPages = computed<PreviewItem[][]>(() => {
-  const items = composeQuestions.value.map((q, index) => buildPreviewItem(q, index + 1));
-  const limit = previewPaperHeight.value - PAGE_PADDING - FOOTER_HEIGHT;
-  const firstPageStart = PAGE_PADDING + headerBlockHeight.value + 12;
-  const laterPageStart = PAGE_PADDING + 12;
-
-  const pages: PreviewItem[][] = [];
-  let current: PreviewItem[] = [];
-  let used = firstPageStart;
-  let isFirstPage = true;
-
-  for (const item of items) {
-    const height = estimateQuestionHeight(item);
-    if (current.length > 0 && used + height > limit) {
-      pages.push(current);
-      current = [];
-      isFirstPage = false;
-      used = laterPageStart;
-    }
-    current.push(item);
-    used += height;
-  }
-  pages.push(current);
-  return pages;
-});
-
-/** previewPages 至少返回一页（空卷为 [[]]），页数即数组长度 */
-const pageCount = computed(() => previewPages.value.length);
+/** 实际缩放倍率（含宽度自适应），用于工具栏百分比显示 */
+const previewScale = computed(() => previewRef.value?.scale ?? 1);
 
 /* ==================== 生命周期 ==================== */
 
@@ -1721,28 +1500,6 @@ async function initFromRoute() {
 onMounted(() => {
   void initFromRoute();
   void loadDimensionMeta();
-  if (previewViewportRef.value && typeof ResizeObserver !== "undefined") {
-    // 观察滚动容器（卡片 body）而不是预览自身：预览是 overflow:visible，
-    // 其自身高度等于内容高度，量不到「可用高度」。
-    const host = previewViewportRef.value.parentElement ?? previewViewportRef.value;
-    previewObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        previewViewportWidth.value = entry.contentRect.width;
-        previewViewportHeight.value = entry.contentRect.height;
-      }
-    });
-    previewObserver.observe(host);
-  } else if (previewViewportRef.value) {
-    previewViewportWidth.value = previewViewportRef.value.clientWidth;
-    previewViewportHeight.value =
-      previewViewportRef.value.parentElement?.clientHeight ?? previewViewportRef.value.clientHeight;
-  }
-});
-
-onBeforeUnmount(() => {
-  previewObserver?.disconnect();
-  previewObserver = null;
 });
 </script>
 
@@ -2457,178 +2214,41 @@ onBeforeUnmount(() => {
   padding: 8px 0;
 }
 
-/* ---------- 纸张预览（画布内与设置弹框内共用） ---------- */
+/* ---------- 纸张预览 ----------
+   纸张本体（.pp-*）与自适应缩放已下沉到 components/paper/PaperPreview.vue，
+   此处只保留中栏滚动容器的布局约束。 */
 .preview-viewport {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-  /* 原先 overflow:hidden 会把超出卡片高度的 A4 直接切掉；
-     改为可见溢出交给外层（卡片 body 已是 overflow-y:auto）滚动查看 */
+  /* 可见溢出交给外层（卡片 body 已是 overflow-y:auto）滚动查看，
+     这里若裁切会把超出卡片高度的 A4 切掉 */
   overflow: visible;
 }
 
-.preview-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ---------- 动效降级（prefers-reduced-motion） ----------
+   逐个列出本文件自带 transition 的选择器，不写 `*` / `.compose-page *` 通配：
+   通配会把 el-card / el-input-number / ReRichText 内部的合法过渡一起掐掉。
+   这四个都只带 transition（无 animation），拖拽的 .is-dragging 半透明态
+   与 .is-cart-over 投放高亮都是静态样式，关掉过渡不影响它们继续显示。 */
+@media (prefers-reduced-motion: reduce) {
+  .compose-dropzone,
+  .compose-row,
+  .compose-row__handle,
+  .cart-row {
+    transition: none;
+  }
 }
 
-.page-slot {
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
+/* ---------- 键盘焦点可见性 ----------
+   .zoom-value 是带 @click 的 span（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，这里不重复写。 */
+.zoom-value {
+  outline: none;
 }
 
-.paper-page {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
-  background: #ffffff;
-  color: #1f2329;
-  box-shadow: 0 6px 22px rgba(31, 35, 41, 0.14);
-  border-radius: 2px;
-  display: flex;
-  flex-direction: column;
-  padding: 40px 44px 24px;
-  box-sizing: border-box;
-}
-
-.paper-header {
-  flex-shrink: 0;
-  text-align: center;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #e5e6eb;
-  margin-bottom: 12px;
-}
-
-.paper-header__title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 2px;
-}
-
-/* 大标题风格：classic / modern / simple / exam */
-.paper-header__title.is-classic {
-  font-family: "Songti SC", "SimSun", serif;
-  letter-spacing: 3px;
-}
-
-.paper-header__title.is-modern {
-  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-  letter-spacing: 1px;
-  text-align: left;
-}
-
-.paper-header__title.is-simple {
-  font-weight: 500;
-  letter-spacing: 6px;
-  color: #4b5563;
-}
-
-.paper-header__title.is-exam {
-  letter-spacing: 4px;
-  border-bottom: 3px double #1f2329;
-  padding-bottom: 6px;
-}
-
-.paper-header__meta {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.paper-header__rich {
-  font-size: 14px;
-}
-
-.paper-body {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.paper-body__empty {
-  margin-top: 32px;
-  text-align: center;
-  font-size: 13px;
-  color: #9ca3af;
-}
-
-.paper-question__stem {
-  font-size: 13.5px;
-  line-height: 1.65;
-}
-
-.paper-question__no {
-  font-weight: 700;
-  margin-right: 4px;
-}
-
-.paper-question__score {
-  margin-left: 6px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.paper-question__empty {
-  color: #9ca3af;
-}
-
-.paper-question__options {
-  margin-top: 4px;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.paper-option {
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.paper-option__letter {
-  font-weight: 600;
-  margin-right: 4px;
-}
-
-.paper-question__answer {
-  margin-top: 6px;
-  border: 1px dashed #d0d3d9;
-  border-radius: 4px;
-}
-
-.paper-footer {
-  flex-shrink: 0;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #e5e6eb;
-  font-size: 11px;
-  color: #6b7280;
-  text-align: center;
-}
-
-.paper-footer__rich {
-  margin-bottom: 4px;
-}
-
-.paper-footer__page {
-  letter-spacing: 1px;
-}
-
-/* 页面之间的留缝 + 页码 */
-.preview-gap {
-  margin: 14px 0;
-  padding: 2px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
-  border: 1px dashed var(--el-border-color);
+.zoom-value:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

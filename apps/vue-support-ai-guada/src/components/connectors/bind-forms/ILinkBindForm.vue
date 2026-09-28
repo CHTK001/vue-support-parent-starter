@@ -163,6 +163,6 @@ onUnmounted(() => {
 
 <style scoped>
 .qr-card {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  /* 二维码卡片是页面内区块，不加装饰投影（去掉原 0 2px 10px rgba(0,0,0,.06)） */
 }
 </style>

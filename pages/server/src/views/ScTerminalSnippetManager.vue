@@ -8,14 +8,14 @@
       </template>
     </ReSectionHead>
 
-    <ReTable :data="snippets" size="small" border :pagination="false" :toolbar="false" highlight-current-row empty-text="暂无命令片段，点击右上角「新增片段」创建" @row-click="selectRow">
+    <ReTable :data="snippets" border :pagination="false" :toolbar="false" highlight-current-row empty-text="暂无命令片段，点击右上角「新增片段」创建" @row-click="selectRow">
       <ReTableColumn prop="id" label="编号" width="60" />
       <ReTableColumn prop="msTerminalSnippetName" label="片段名称" min-width="150" />
       <ReTableColumn prop="msTerminalSnippetRemark" label="备注" min-width="200" />
       <ReTableColumn label="操作" width="140">
         <template #default="{ row }">
-          <ReButton link size="small" @click="editRow(row)">编辑</ReButton>
-          <ReButton link size="small" type="danger" @click="deleteRow(row)">删除</ReButton>
+          <ReButton link @click="editRow(row)">编辑</ReButton>
+          <ReButton link type="danger" @click="deleteRow(row)">删除</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>

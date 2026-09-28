@@ -106,7 +106,11 @@ async function load(): Promise<void> {
   failReason.value = "";
   buffer.value = null;
   try {
-    const res = await fetch(props.src, { credentials: "include" });
+    // 不带 credentials：数据源是独立 origin（如 http://host:18080），鉴权由 URL 上的
+    // x-oauth-token 与请求头承担，不依赖 cookie。一旦写 credentials:"include"，
+    // 浏览器会强制要求响应带 Access-Control-Allow-Credentials: true，
+    // 而存储服务不返回该头 → 请求直接被 CORS 拦掉（预览整条链路失败）。
+    const res = await fetch(props.src);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -212,14 +216,14 @@ defineExpose({ wrapRef, toggleHelp });
   position: relative;
   width: 100%;
   min-height: 65vh;
-  transition: transform 0.2s ease;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
   overflow: visible;
 }
 
 .preview-office-panel__body {
   width: 100%;
   min-height: 65vh;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color-page);
 }
 
@@ -240,5 +244,12 @@ defineExpose({ wrapRef, toggleHelp });
 :fullscreen .preview-office-panel__mask {
   min-height: 100vh;
   border-radius: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .preview-office-panel__wrap {
+    transition: none;
+  }
 }
 </style>

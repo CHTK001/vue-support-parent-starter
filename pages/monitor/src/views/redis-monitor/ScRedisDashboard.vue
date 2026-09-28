@@ -306,6 +306,13 @@ onBeforeUnmount(() => {
 </script>
 
  <style scoped>
+/* 本文件原先整套用 pages/monitor/src/styles/tokens.css 的私有令牌（--bg-* / --text-*
+   / --border-subtle / --status-success / --shadow-card* / --border-radius* /
+   --transition-base），而那份 tokens.css 只有 :root、没有暗色变体，暗色模式下这些值
+   全部停留在亮色。已统一改走 EP 语义令牌；--metric-* 是各组件的固定标识色
+   （Redis 红 / CPU 蓝 / 磁盘橙，需彼此可区分），保留不换。 */
+/* 页面入场淡入：0.35s 刻意慢于微交互档（整块内容从下方 8px 升起，需要时间被看清），
+   且 both 填充保证动画结束后停在终态，reduced-motion 下直接停掉不会留残影 */
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
@@ -320,9 +327,11 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  /* 原为 var(--border-radius)（tokens.css 里是 10px），10px 距 8/12 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：容器静止态不加投影，边界改由这圈 1px 边框承载 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -330,24 +339,24 @@ onBeforeUnmount(() => {
   font-size: 10.5px;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--metric-redis) 10%, transparent);
+  border-radius: var(--el-radius-xs, 4px);
+  background: color-mix(in srgb, var(--metric-redis) 12%, transparent);
   color: var(--metric-redis);
   letter-spacing: 0.5px;
 }
 .page-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
   letter-spacing: -0.3px;
 }
-.page-desc { font-size: 11.5px; color: var(--text-tertiary); margin: 0; }
+.page-desc { font-size: 11.5px; color: var(--el-text-color-secondary); margin: 0; }
 
 .header-right { display: flex; align-items: center; gap: 12px; }
 .refresh-time {
   font-size: 11.5px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   font-family: 'SF Mono', monospace;
 }
 .redis-select { width: 240px; }
@@ -355,12 +364,15 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--el-radius-sm, 6px);
   padding: 8px 16px;
   font-size: 13px;
-  transition: var(--transition-base);
+  /* 原为 var(--transition-base)（展开即 all 0.18s ease），显式列出真实会变的属性并取 0.2s 档 */
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
-.refresh-btn:hover { background: var(--bg-fill); transform: translateY(-1px); }
+.refresh-btn:hover { background: var(--el-fill-color-lighter); transform: translateY(-1px); }
 .btn-icon { width: 14px; height: 14px; stroke-width: 2; }
 
 .overview-cards {
@@ -370,14 +382,19 @@ onBeforeUnmount(() => {
 }
 
 .ov-card {
+  /* 左侧 3px 强调色由各子类用 border-left-color 覆盖；border 必须写在它之前，
+     否则 1px 边框会把 3px 强调条压成 1px */
+  border: 1px solid var(--el-border-color-lighter);
   border-left: 3px solid;
-  transition: var(--transition-base);
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
   padding: 16px;
 }
-.ov-card:hover { box-shadow: var(--shadow-card-hover); }
+/* 允许的两处投影之一：悬浮抬升反馈 */
+.ov-card:hover { box-shadow: var(--el-box-shadow); }
 .ov-inner {
   display: flex;
   align-items: center;
@@ -391,21 +408,21 @@ onBeforeUnmount(() => {
   gap: 3px;
   min-width: 0;
 }
-.ov-label { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+.ov-label { font-size: 12px; color: var(--el-text-color-secondary); font-weight: 500; }
 .ov-value {
   font-size: 26px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   letter-spacing: -0.5px;
   line-height: 1.1;
 }
-.ov-note { font-size: 11px; color: var(--text-tertiary); }
+.ov-note { font-size: 11px; color: var(--el-text-color-secondary); }
 
 .detail-section {
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：容器静止态不加投影，边界由边框承载 */
+  border: 1px solid var(--el-border-color-lighter);
   padding: 16px 20px;
 }
 .section-head {
@@ -414,12 +431,12 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 .mode-tag {
@@ -429,9 +446,9 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 .mode-single {
-  background: color-mix(in srgb, var(--status-success) 8%, transparent);
-  color: var(--status-success);
-  border-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  color: var(--el-color-success);
+  border-color: color-mix(in srgb, var(--el-color-success) 20%, transparent);
 }
 .mode-cluster {
   background: color-mix(in srgb, var(--metric-cpu) 8%, transparent);
@@ -443,7 +460,7 @@ onBeforeUnmount(() => {
   color: var(--metric-disk);
   border-color: color-mix(in srgb, var(--metric-disk) 20%, transparent);
 }
-.mode-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.mode-dot { width: 5px; height: 5px; border-radius: var(--el-radius-full, 9999px); background: currentColor; }
 
 .detail-grid {
   display: grid;
@@ -455,16 +472,16 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: var(--bg-fill);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-sm);
-  transition: background var(--transition-base);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background-color var(--el-transition-duration-fast, 0.2s);
 }
 .detail-cell:hover { background: color-mix(in srgb, var(--metric-cpu) 4%, transparent); }
-.cell-label { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+.cell-label { font-size: 12px; color: var(--el-text-color-secondary); font-weight: 500; }
 .cell-value {
   font-size: 12.5px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-weight: 500;
   text-align: right;
 }
@@ -476,15 +493,18 @@ onBeforeUnmount(() => {
 }
 
 .chart-panel {
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：容器静止态不加投影，边界由边框承载 */
+  border: 1px solid var(--el-border-color-lighter);
   padding: 16px 20px;
-  transition: var(--transition-base);
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .chart-panel:hover {
-  box-shadow: var(--shadow-card-hover);
+  /* 允许的两处投影之一：悬浮抬升反馈 */
+  box-shadow: var(--el-box-shadow);
   transform: translateY(-1px);
 }
 
@@ -494,10 +514,10 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.panel-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.panel-subtitle { font-size: 11.5px; color: var(--text-tertiary); }
+.panel-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.panel-subtitle { font-size: 11.5px; color: var(--el-text-color-secondary); }
 
 .stat-grid {
   display: grid;
@@ -509,15 +529,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  background: var(--bg-fill);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-sm);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
 }
-.stat-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
+.stat-label { font-size: 11px; color: var(--el-text-color-secondary); font-weight: 500; }
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-family: 'SF Mono', monospace;
 }
 
@@ -531,7 +551,7 @@ onBeforeUnmount(() => {
   gap: 20px;
   margin-top: 8px;
   padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--el-border-color-lighter);
   width: 100%;
   justify-content: space-around;
 }
@@ -541,7 +561,21 @@ onBeforeUnmount(() => {
   gap: 2px;
   align-items: center;
 }
-.gauge-info-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
-.gauge-info-value { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.gauge-info-label { font-size: 11px; color: var(--el-text-color-secondary); font-weight: 500; }
+.gauge-info-value { font-size: 14px; font-weight: 700; color: var(--el-text-color-primary); }
 .gauge-warn { color: var(--metric-disk) !important; }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  /* 入场淡入可停：animation 用 both 填充，终态是完全不透明且无位移，停掉即直接呈现 */
+  .fade-in {
+    animation: none;
+  }
+  .ov-card,
+  .chart-panel,
+  .detail-cell,
+  .refresh-btn {
+    transition: none;
+  }
+}
 </style>

@@ -4,7 +4,7 @@
       <template #header>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span>{{ t('hotsport.traces.title') }}</span>
-          <el-button type="primary" size="small" @click="refresh">{{ t('hotsport.refresh') }}</el-button>
+          <el-button type="primary" @click="refresh">{{ t('hotsport.refresh') }}</el-button>
         </div>
       </template>
       <el-table :data="traces" border stripe style="width:100%">
@@ -14,14 +14,14 @@
         <el-table-column prop="methodName" :label="t('hotsport.traces.method')" min-width="140" />
         <el-table-column :label="t('hotsport.traces.durationMs')" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="(row.durationMs ?? row.duration ?? 0) > 100 ? 'danger' : 'success'" size="small">
+            <el-tag :type="(row.durationMs ?? row.duration ?? 0) > 100 ? 'danger' : 'success'" >
               {{ ((row.durationMs ?? row.duration ?? 0)).toFixed(1) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column :label="t('hotsport.traces.status')" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="(!row.status || row.status === 'OK') ? 'success' : 'danger'" size="small">
+            <el-tag :type="(!row.status || row.status === 'OK') ? 'success' : 'danger'" >
               {{ row.status || 'OK' }}
             </el-tag>
           </template>

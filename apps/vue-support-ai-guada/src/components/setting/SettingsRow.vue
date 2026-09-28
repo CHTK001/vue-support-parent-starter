@@ -101,4 +101,26 @@ const controlStyle = computed(() => {
 .set-row-control :deep(.el-select),
 .set-row-control :deep(.el-input-number),
 .set-row-control :deep(.el-input) { width: 100%; }
+
+/* 动效降级：系统开启「减少动态效果」时，可点击行的悬停底色直接到位。
+   只关 .set-row--clickable 自己的 transition，不写 `*` / `.set-row *` 通配，
+   避免把行内 el-switch / el-select / el-input 内部 Element Plus 组件的合法过渡
+   （尤其输入框的 focus 描边）一起掐掉。
+   本文件只有 transition、无 animation，hover 底色本身是静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .set-row--clickable {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：可点击设置行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 行底色透明、落在设置卡片表面色上，一档主色描边足够可见。 */
+.set-row--clickable {
+  outline: none;
+}
+
+.set-row--clickable:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 </style>

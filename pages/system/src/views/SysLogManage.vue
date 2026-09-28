@@ -10,6 +10,8 @@ import { ElMessage } from "element-plus";
 import { ArrowRight, Document, Download, Refresh, Search, Stamp } from "@element-plus/icons-vue";
 import { pageForSysLog, exportSysLog } from "../api/systemApi";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import ReTime from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 /** ReIpText 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
 const ReIpText = defineAsyncComponent(() => import("@repo/ui/re-ip-text").then((m) => m.default));
 /** 耗时着色文本：绿 / 黄 / 红标识请求快慢 */
@@ -148,6 +150,16 @@ async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<
 
 const tableRef = ref();
 
+/**
+ * 空态「刷新」按钮用：只重取当前页，不清空筛选条件。
+ *
+ * <p>与 handleReset 分开是刻意的——handleReset 是搜索区的「重置」，语义是丢掉条件；
+ * 空态里用户表达的是「没看到东西，再取一次」，顺手把条件清掉会让人以为筛选失效。</p>
+ */
+function reload() {
+  tableRef.value?.reload();
+}
+
 const columns: ReTableColumn[] = [
   { prop: "sysLogId", label: "ID", width: 70 },
   { prop: "sysLogUsername", label: "操作人", width: 110 },
@@ -158,7 +170,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogBrowser", label: "浏览器/系统", minWidth: 140, slot: "info" },
   { prop: "sysLogFingerprint", label: "指纹", width: 125, slot: "fingerprint" },
   { prop: "sysLogCost", label: "耗时(ms)", width: 100, slot: "cost", align: "center" },
-  { prop: "sysLogStatus", label: "状态", width: 80, slot: "status" },
+  { prop: "sysLogStatus", label: "状态", width: 100, slot: "status" },
   { prop: "createTime", label: "操作时间", width: 170 },
   { prop: "action", label: "操作", width: 80, slot: "action", fixed: "right", align: "center" },
 ];
@@ -184,11 +196,33 @@ const columns: ReTableColumn[] = [
         <template #toolbar>
           <ReButton type="success" text icon="Download" :loading="exporting" @click="handleExport">导出</ReButton>
         </template>
+        <!--
+          可操作空态：默认的 el-empty 只能看不能做。
+          操作日志由切面在运行时写入，管理端造不出来，所以只给一个「刷新」出口，不给「新增」。
+          语义用 Document（文档），与详情弹窗头部的图标同一个。
+          page-empty 系列样式在 pages/system/src/styles/system-page.css 全局提供，本页不重复定义。
+        -->
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon"><ReIcon name="Document" :size="22" /></span>
+            <span class="page-empty__title">还没有操作记录</span>
+            <span class="page-empty__desc">系统操作审计会在这里汇总，含操作人、模块与结果；有人操作后自动出现。</span>
+            <span class="page-empty__actions">
+              <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+            </span>
+          </div>
+        </template>
         <template #content="{ row }">
-          <span class="log-content-link" @click="openDetail(row)">{{ row.sysLogContent ?? '-' }}</span>
+          <span
+            class="log-content-link"
+            role="button"
+            tabindex="0"
+            @click="openDetail(row)"
+            @keydown.enter.space="openDetail(row)"
+          >{{ row.sysLogContent ?? '-' }}</span>
         </template>
         <template #status="{ row }">
-          <ReTag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+          <ReTag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
             {{ row.sysLogStatus === 1 ? "成功" : "失败" }}
           </ReTag>
         </template>
@@ -219,7 +253,7 @@ const columns: ReTableColumn[] = [
           <span v-else class="fp-empty">-</span>
         </template>
         <template #action="{ row }">
-          <ReButton layout="square" type="primary" icon="View" @click="openDetail(row)">详情</ReButton>
+          <ReButton layout="square" type="primary" icon="View" tip="详情" @click="openDetail(row)" />
         </template>
       </ReTable>
 
@@ -246,9 +280,14 @@ const columns: ReTableColumn[] = [
 
         <!-- 状态 + 耗时 -->
         <div class="sl-detail__summary">
+          <!--
+            详情头部的状态胶囊比表格 chip 大一号，是页面里的状态主视觉，
+            所以 effect 仍用 light（plain 的描边会和大号胶囊打架），只补状态点统一语义。
+          -->
           <ReTag
             round
             effect="light"
+            dot
             size="large"
             :type="currentLog.sysLogStatus === 1 ? 'success' : 'danger'"
           >
@@ -258,7 +297,7 @@ const columns: ReTableColumn[] = [
             class="sl-detail__cost"
             :class="{ 'sl-detail__cost--fail': currentLog.sysLogStatus === 0 }"
           >
-            {{ currentLog.sysLogCost == null ? "-" : `${currentLog.sysLogCost}ms` }}
+            <ReTime :value="costMs(currentLog.sysLogCost)" format="duration" placeholder="-" />
           </span>
         </div>
 
@@ -334,7 +373,7 @@ const columns: ReTableColumn[] = [
           <span class="sl-detail__block-label">请求地址：</span>
           <ReTag
             v-if="currentLog.sysLogMethod"
-            size="small"
+            
             effect="light"
             :type="methodTagType(currentLog.sysLogMethod)"
           >
@@ -397,6 +436,21 @@ const columns: ReTableColumn[] = [
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
+/*
+  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
+  ReTable 根节点只有圆角与底色、没有描边，所以这层边框是页面级补的，
+  与 DictManage / PostManage 同口径；不加投影——卡片投影会让整页变成一摞纸。
+*/
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
 /* ==================== 操作日志详情弹窗 ==================== */
 .sl-detail {
   padding: 22px 24px 20px;
@@ -423,7 +477,8 @@ const columns: ReTableColumn[] = [
     var(--el-color-primary),
     var(--el-color-primary-light-3)
   );
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  /* 原这里有一层 0 6px 14px 的彩色投影，与 koi「卡片容器不加投影、只留焦点环与悬浮浮起」的规约冲突；
+     徽标本身已有主色渐变，投影带不来信息，去掉后反而更干净。 */
 }
 
 .sl-detail__heading {
@@ -625,9 +680,17 @@ const columns: ReTableColumn[] = [
 .log-content-link {
   color: var(--el-color-primary);
   cursor: pointer;
+  /* 这个 span 是可点的：补圆角与过渡，键盘聚焦时才有东西可聚焦 */
+  border-radius: var(--el-radius-xs, 4px);
+  outline: none;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 
   &:hover {
     text-decoration: underline;
+  }
+  /* 焦点环：键盘用户看不见系统光标时，靠这圈描边知道自己在哪 */
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   }
 }
 
@@ -651,6 +714,14 @@ const columns: ReTableColumn[] = [
 
 .fp-empty {
   color: var(--el-text-color-placeholder);
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table),
+  .log-content-link {
+    transition: none;
+  }
 }
 </style>
 

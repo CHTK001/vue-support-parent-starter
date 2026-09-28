@@ -5,7 +5,7 @@
         <el-icon><InfoFilled /></el-icon>
         会话上下文
       </span>
-      <el-button size="small" link @click="visible = false">
+      <el-button link @click="visible = false">
         <el-icon><Close /></el-icon>
       </el-button>
     </div>
@@ -65,12 +65,12 @@
           <span class="section-actions">
             <el-button
               v-if="conversationMemories.length"
-              size="small"
+
               link
               type="danger"
               @click="handleClearConversation"
             >{{ t('chat.context.memoryClearConversation') }}</el-button>
-            <el-button size="small" link :loading="memoryLoading" @click="loadMemories">
+            <el-button link :loading="memoryLoading" @click="loadMemories">
               <el-icon><Refresh /></el-icon>
             </el-button>
           </span>
@@ -95,7 +95,7 @@
             </div>
             <div class="memory-row">
               <span class="memory-content" :title="item.content">{{ item.title || item.content }}</span>
-              <el-button size="small" link type="danger" :title="t('chat.context.memoryDelete')"
+              <el-button link type="danger" :title="t('chat.context.memoryDelete')"
                 @click="handleDeleteMemory(item)">
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -262,11 +262,22 @@ watch(() => props.sessionId, () => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 颜色一律走 --el-*。本应用 refactor.css 已把 --el-* 映射到 --color-* 主题层
+      （--el-bg-color / --el-border-color-lighter / --el-text-color-primary 等），
+      public/themes 下 9 套配色换肤时自动跟随。
+   2. 原文件里那一串 `var(--color-xxx, #兜底)` 的 hex 兜底是死代码（令牌恒有值），
+      本次一并去掉，避免「看起来有兜底、其实跟主题脱节」的错觉。
+   3. 面板是容器不是卡片，不加投影；层次靠 1px 分隔线与留白表达。
+   4. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
+
 .context-panel {
   width: 280px;
   height: 100%;
-  background: var(--color-bg, #fff);
-  border-left: 1px solid var(--color-border, #e4e7ed);
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -277,8 +288,8 @@ watch(() => props.sessionId, () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border, #e4e7ed);
-  background: var(--color-bg-secondary, #f5f7fa);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
 }
 
 .panel-title {
@@ -287,7 +298,7 @@ watch(() => props.sessionId, () => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
 .panel-content {
@@ -303,7 +314,7 @@ watch(() => props.sessionId, () => {
 .section-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -327,7 +338,7 @@ watch(() => props.sessionId, () => {
 
 .memory-stats {
   font-size: 11px;
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
   margin-bottom: 8px;
 }
 
@@ -341,8 +352,9 @@ watch(() => props.sessionId, () => {
 
 .memory-item {
   padding: 6px 8px;
-  border-radius: 6px;
-  background: var(--color-bg-secondary, #f5f7fa);
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
 }
 
 .memory-tags {
@@ -356,14 +368,23 @@ watch(() => props.sessionId, () => {
   font-size: 10px;
   line-height: 16px;
   padding: 0 5px;
-  border-radius: 3px;
-  color: var(--color-text-secondary, #909399);
-  background: var(--color-bg, #fff);
-  border: 1px solid var(--color-border, #e4e7ed);
+  /* 原值 3px：比 xs(4px) 还紧一档，视觉上两者无差，取最近的 xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
-.memory-tag.scope.global { color: #409eff; border-color: rgba(64, 158, 255, 0.35); }
-.memory-tag.scope.conversation { color: #67c23a; border-color: rgba(103, 194, 58, 0.35); }
+/* 作用域标签：全局=主色、会话=成功色。边框用 color-mix 派生同色淡描边，
+   换肤时与文字色自动保持同一色相 */
+.memory-tag.scope.global {
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+}
+.memory-tag.scope.conversation {
+  color: var(--el-color-success);
+  border-color: color-mix(in srgb, var(--el-color-success) 35%, transparent);
+}
 
 .memory-row {
   display: flex;
@@ -377,7 +398,7 @@ watch(() => props.sessionId, () => {
   min-width: 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -393,11 +414,11 @@ watch(() => props.sessionId, () => {
 }
 
 .info-label {
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .info-value {
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
@@ -426,13 +447,14 @@ watch(() => props.sessionId, () => {
   flex: 1;
   text-align: center;
   padding: 8px 4px;
-  background: var(--color-bg-secondary, #f5f7fa);
-  border-radius: 6px;
+  background: var(--el-fill-color-light);
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
 }
 
 .token-label {
   font-size: 11px;
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
   margin-bottom: 4px;
 }
 
@@ -441,9 +463,10 @@ watch(() => props.sessionId, () => {
   font-weight: 700;
 }
 
-.token-value.input { color: #409eff; }
-.token-value.output { color: #67c23a; }
-.token-value.total { color: #e6a23c; }
+/* 三格数字用「主色 / 成功 / 警告」区分语义，换肤时随主题走 */
+.token-value.input { color: var(--el-color-primary); }
+.token-value.output { color: var(--el-color-success); }
+.token-value.total { color: var(--el-color-warning); }
 
 .token-progress {
   margin-top: 8px;
@@ -453,16 +476,17 @@ watch(() => props.sessionId, () => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
   margin-bottom: 4px;
 }
 
 .system-prompt {
   font-size: 12px;
-  color: var(--color-text, #303133);
-  background: var(--color-bg-secondary, #f5f7fa);
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
   padding: 8px;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   line-height: 1.5;
   max-height: 120px;
   overflow-y: auto;
@@ -478,16 +502,19 @@ watch(() => props.sessionId, () => {
   display: flex;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   font-size: 12px;
 }
 
+/* 消息预览的浅底：原 rgba(...,0.1) 改用 color-mix 从语义色派生，
+   这样 9 套配色下淡底与角色色始终同色相，不会出现「蓝底配黄角色标」 */
 .preview-item.user {
-  background: rgba(64, 158, 255, 0.1);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .preview-item.assistant {
-  background: rgba(103, 194, 58, 0.1);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
 }
 
 .msg-role {
@@ -496,11 +523,11 @@ watch(() => props.sessionId, () => {
   width: 32px;
 }
 
-.preview-item.user .msg-role { color: #409eff; }
-.preview-item.assistant .msg-role { color: #67c23a; }
+.preview-item.user .msg-role { color: var(--el-color-primary); }
+.preview-item.assistant .msg-role { color: var(--el-color-success); }
 
 .msg-content {
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -508,8 +535,24 @@ watch(() => props.sessionId, () => {
 
 .empty-text {
   text-align: center;
-  color: var(--color-text-secondary, #909399);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   padding: 12px;
+}
+
+/* 本文件原本没有任何 transition / animation（面板、条目、进度条全是静态样式），
+   故此处只列出「本组件自有、且可能在下一次迭代里被加上动效」的选择器，
+   不写 `.context-panel *` 这种通配：通配会把内部 Element Plus 组件
+   （el-button / el-progress）的合法动效一并掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .panel-header,
+  .panel-content,
+  .memory-list,
+  .memory-item,
+  .message-preview,
+  .system-prompt {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

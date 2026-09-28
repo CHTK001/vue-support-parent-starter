@@ -53,7 +53,7 @@
                 class="w-full h-full flex items-center justify-center">
                 <div class="text-center">
                     <p class="text-gray-400 dark:text-gray-500 text-sm">{{ t('chat.workspace.unsupportedPreview') }}</p>
-                    <el-button v-if="isElectron" @click="handleOpenInExplorerForCurrent" size="small" class="mt-3">
+                    <el-button v-if="isElectron" @click="handleOpenInExplorerForCurrent" class="mt-3">
                         {{ t('chat.workspace.openInExplorer') }}
                     </el-button>
                 </div>
@@ -65,7 +65,7 @@
                 <div v-if="fileNotFound" class="w-full h-full flex items-center justify-center p-4">
                     <div class="text-center">
                         <p class="text-gray-400 dark:text-gray-500 text-sm">{{ t('chat.workspace.fileNotFound') }}</p>
-                        <el-button @click="emit('close')" size="small" class="mt-3">
+                        <el-button @click="emit('close')" class="mt-3">
                             {{ t('chat.workspace.closeTab') }}
                         </el-button>
                     </div>
@@ -75,7 +75,7 @@
                     <div class="text-center">
                         <p class="text-gray-400 dark:text-gray-500 text-sm">{{ previewError }}</p>
                         <el-button v-if="isElectron && previewType === 'unsupported'"
-                            @click="handleOpenInExplorerForCurrent" size="small" class="mt-3">
+                            @click="handleOpenInExplorerForCurrent" class="mt-3">
                             {{ t('chat.workspace.openInExplorer') }}
                         </el-button>
                     </div>
@@ -731,6 +731,16 @@ watch(() => props.contentVersion, (newVer, oldVer) => {
 </style>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（仅本 <style scoped> 块）：
+   1. 上面那个非 scoped 的 <style> 块是给 v-html 注入的高亮 DOM 用的，
+      属于「语法高亮配色」，按口径要求整体保留原样，不做任何令牌化。
+   2. 本块里 var(--color-sidebar-bg-hover) 在 refactor.css 中并不存在，
+      整条 background 声明因 var() 无法解析而被丢弃 —— 也就是说两个按钮
+      的 hover 底色一直没有生效。改用 --el-fill-color-light 后才真的能悬停变色。
+   3. 两个按钮原本写了 outline: none 却没有任何替代焦点样式，键盘用户完全看不到焦点，
+      本轮补 :focus-visible 主色光环。
+   ============================================================================ */
 .code-preview-container {
     overflow-y: auto;
     overflow-x: auto;
@@ -748,22 +758,35 @@ watch(() => props.contentVersion, (newVer, oldVer) => {
     width: 24px;
     height: 24px;
     border: none;
-    border-radius: 4px;
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     cursor: pointer;
     background: transparent;
-    color: var(--color-text-gray);
-    transition: background 0.15s ease, color 0.15s ease;
+    /* 原值 var(--color-text-gray) → 次级文字色令牌 */
+    color: var(--el-text-color-secondary);
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
     outline: none;
 }
 
+/* 键盘焦点环：24px 的小图标按钮上默认 outline 太弱 */
+.preview-mode-btn:focus-visible,
+.preview-close-btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .preview-mode-btn:hover {
-    background: var(--color-sidebar-bg-hover);
+    background: var(--el-fill-color-light);
 }
 
 .preview-mode-btn.is-active {
-    color: var(--color-text);
-    background: var(--color-bg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    /* 原值 var(--color-text) → 主文字色令牌 */
+    color: var(--el-text-color-primary);
+    /* 原值 var(--color-bg) → 页面底色令牌（分段控件的「选中」需要比槽底更亮） */
+    background: var(--el-bg-color);
+    /* 分段控件选中指示：极浅投影 + 1px 描边，属允许的「选中」标识而非卡片投影 */
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
 }
 
 /* 关闭预览按钮 */
@@ -774,15 +797,28 @@ watch(() => props.contentVersion, (newVer, oldVer) => {
     width: 28px;
     height: 28px;
     border: none;
-    border-radius: 4px;
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     cursor: pointer;
     background: transparent;
-    color: var(--color-text);
-    transition: background 0.15s ease, color 0.15s ease;
+    /* 原值 var(--color-text) → 主文字色令牌 */
+    color: var(--el-text-color-primary);
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
     outline: none;
 }
 
 .preview-close-btn:hover {
-    background: var(--color-sidebar-bg-hover);
+    background: var(--el-fill-color-light);
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   「源码」选中态靠底色 + 极浅投影表达，关掉过渡后仍然可辨。 */
+@media (prefers-reduced-motion: reduce) {
+    .preview-mode-btn,
+    .preview-close-btn {
+        transition: none;
+    }
 }
 </style>

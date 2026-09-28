@@ -11,19 +11,20 @@
           </p>
         </div>
         <div class="pp-pills">
+          <!-- 图标统一走 ReIcon：emoji 会被读屏念成「书本」「星星」之类的冗余文本 -->
           <div class="pp-pill">
-            <span class="pp-pill__ic is-blue">📘</span>
+            <span class="pp-pill__ic is-blue"><ReIcon name="Reading" :size="16" aria-hidden="true" /></span>
             <span class="pp-pill__val">{{ week?.studyCount ?? 0 }} 次</span>
             <span class="pp-pill__lbl">本周学习</span>
           </div>
           <div class="pp-pill">
-            <span class="pp-pill__ic is-gold">⭐</span>
+            <span class="pp-pill__ic is-gold"><ReIcon name="Star" :size="16" aria-hidden="true" /></span>
             <span class="pp-pill__val">{{ total?.stars ?? 0 }} 颗</span>
             <span class="pp-pill__lbl">星星奖励</span>
           </div>
           <div class="pp-pill">
             <span class="pp-pill__lbl is-inline">连续打卡</span>
-            <span class="pp-pill__check">✓</span>
+            <span class="pp-pill__check"><ReIcon name="CircleCheck" :size="17" aria-hidden="true" /></span>
             <span class="pp-pill__val">{{ streakDays }} 天</span>
           </div>
         </div>
@@ -50,7 +51,9 @@
           </span>
         </button>
       </div>
-      <div class="pp-more" @click="emit('open', '')">查看更多功能 ›</div>
+      <!-- 「查看更多功能」是 div 而不是 button，tabindex 让它能被 Tab 到，
+           否则下面的 :focus-visible 焦点环永远不会触发（键盘用户看不到焦点） -->
+      <div class="pp-more" tabindex="0" @click="emit('open', '')">查看更多功能 ›</div>
     </section>
   </div>
 </template>
@@ -105,12 +108,27 @@ function badgeOf(m: PortalModule): number {
 </script>
 
 <style scoped>
+/*
+ * koi 令牌口径（与 JuniorHome / SeniorHome / TeacherPortalView / StudentPortalView 完全一致）：
+ *   品牌色带 = --el-color-primary → --el-color-primary-light-3
+ *   页面底   = --el-bg-color-page，卡片面 = --el-bg-color
+ *   文字三级 = --el-text-color-primary / -regular / -secondary / -placeholder
+ *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
+ * 卡片类容器一律不加投影，投影只留给「悬浮浮起」与「键盘焦点环」两种反馈。
+ */
 .pp {
   position: fixed;
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  background: linear-gradient(180deg, #20a5eb 0%, #4fc3f7 42%, #eaf7ff 42.1%, #f5fbff 100%);
+  /* 顶部色带走主色令牌、底部页面底走页面令牌，换主题/切暗色时整页自动跟随 */
+  background: linear-gradient(
+    180deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 42%,
+    var(--el-bg-color-page) 42.1%,
+    var(--el-fill-color-lighter) 100%
+  );
 }
 .pp-head {
   padding: 28px 44px 0;
@@ -127,14 +145,17 @@ function badgeOf(m: PortalModule): number {
   font-size: 44px;
   font-weight: 900;
   letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.1);
+  color: var(--el-color-white);
+  /* 白字压在主色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 10%, transparent);
 }
 .pp-sub {
   margin: 10px 0 0;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  /* 色带上的白字不能换成 --el-text-color-primary（暗色下会变浅色失去对比），
+     用 --el-color-white + color-mix 保留原来的 95% 透明度 */
+  color: color-mix(in srgb, var(--el-color-white) 95%, transparent);
 }
 .pp-sep {
   margin: 0 8px;
@@ -152,43 +173,49 @@ function badgeOf(m: PortalModule): number {
   gap: 8px;
   height: 52px;
   padding: 0 20px;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(12, 74, 110, 0.16);
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  /* 卡片类容器不加投影：改用一条边框承载边界，暗色模式下也分得清 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pp-pill__ic {
   width: 30px;
   height: 30px;
-  border-radius: 9px;
+  /* 原 9px，最近档 8px（md） */
+  border-radius: var(--el-radius-md, 8px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
 }
-.pp-pill__ic.is-blue { background: #dbeafe; }
-.pp-pill__ic.is-gold { background: #fef3c7; }
+.pp-pill__ic.is-blue { background: color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
+.pp-pill__ic.is-gold { background: color-mix(in srgb, var(--el-color-warning) 14%, transparent); }
 .pp-pill__lbl {
   font-size: 13px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .pp-pill__lbl.is-inline { margin-right: 2px; }
 .pp-pill__val {
   font-size: 19px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
 }
 .pp-pill__check {
-  color: #22c55e;
+  color: var(--el-color-success);
   font-weight: 900;
   font-size: 17px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pp-body {
   margin: 26px 26px 0;
   padding: 30px 30px 22px;
-  border-radius: 28px 28px 0 0;
-  background: #fff;
+  /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  background: var(--el-bg-color);
   min-height: 60vh;
 }
 .pp-grid {
@@ -202,29 +229,38 @@ function badgeOf(m: PortalModule): number {
   align-items: center;
   gap: 16px;
   padding: 22px 20px;
-  border: 0;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
+  /* 原 20px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .pp-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+.pp-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .pp-card__ic {
   flex-shrink: 0;
   width: 58px;
   height: 58px;
-  border-radius: 50%;
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+  /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景；
+     原来的投影属于装饰性投影，koi 规约只留浮起与焦点环，去掉 */
+  color: var(--el-color-white);
 }
 .pp-card__text {
   display: flex;
@@ -235,12 +271,12 @@ function badgeOf(m: PortalModule): number {
 .pp-card__title {
   font-size: 21px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   letter-spacing: 1px;
 }
 .pp-card__sub {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
   font-weight: 600;
 }
 .pp-badge {
@@ -250,23 +286,29 @@ function badgeOf(m: PortalModule): number {
   min-width: 26px;
   height: 26px;
   padding: 0 7px;
-  border-radius: 13px;
-  background: #ef4444;
-  color: #fff;
+  /* 原 13px = 胶囊高度的一半，等价 full，语义比 12px(lg) 更准 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-danger);
+  color: var(--el-color-white);
   font-size: 13px;
   font-weight: 900;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
 }
 .pp-more {
   margin: 26px 0 10px;
   text-align: center;
   font-size: 15px;
   font-weight: 800;
-  color: #20a5eb;
+  color: var(--el-color-primary);
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.pp-more:focus-visible {
+  border-radius: var(--el-radius-sm, 6px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 @media (max-width: 1100px) {
   .pp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -276,5 +318,11 @@ function badgeOf(m: PortalModule): number {
   .pp-grid { grid-template-columns: minmax(0, 1fr); }
   .pp-head { padding: 20px 20px 0; }
   .pp-body { margin: 18px 12px 0; padding: 20px 16px; }
+}
+/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+@media (prefers-reduced-motion: reduce) {
+  .pp-card {
+    transition: none;
+  }
 }
 </style>

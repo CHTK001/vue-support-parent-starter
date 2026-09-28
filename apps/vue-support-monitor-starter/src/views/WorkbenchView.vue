@@ -117,34 +117,37 @@ onBeforeUnmount(() => {
         <p class="page-desc">资产健康一览 · 最近更新 {{ lastRefresh || "—" }} <span class="muted">· 实时更新</span></p>
       </div>
       <div class="page-actions">
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll()">刷新</ReButton>
-        <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="router.push('/assets')">新建资产</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="fetchAll()">刷新</ReButton>
+        <ReButton icon="Plus" :show-text="true" type="primary" @click="router.push('/assets')">新建资产</ReButton>
       </div>
     </div>
 
     <div v-if="loadError" class="as-error">
       <ReStatusIndicator type="danger" />
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll()">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll()">重试</ReButton>
     </div>
 
-    <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字） -->
+    <!-- KPI 统计卡：纯数值 + tooltip（title/desc 移入悬停提示——代替图表+文字）
+         size="compact"：这一行是四张窄卡并排，标准档（内距 16/18、数值 32px、
+         图标 30px）实测单卡 280x139，留白明显多于信息量。紧凑档把内距/数值/
+         标题字号一并收小，卡片高度降到约 1/4 以下而内容不减。 -->
     <ReSkeleton :loading="loading" :rows="4" animated>
       <section class="kpi-row cols-4">
-        <ReStatCard title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
-          <template #icon><ReButton icon="DataBoard" layout="square" size="small" /></template>
+        <ReStatCard size="compact" title="资产总数" :desc="`已启用 ${enabledCount} · 在线 ${onlineCount}`" icon-color="var(--brand-500)">
+          <template #icon><ReButton icon="DataBoard" layout="square" /></template>
           <template #value><span class="kpi-big">{{ hosts.length }}</span></template>
         </ReStatCard>
-        <ReStatCard title="未处理告警" :desc="`累计事件 ${totalAlarms}`" icon-color="var(--status-alarm)">
-          <template #icon><ReButton icon="Bell" layout="square" size="small" type="danger" /></template>
+        <ReStatCard size="compact" title="未处理告警" :desc="`累计事件 ${totalAlarms}`" icon-color="var(--status-alarm)">
+          <template #icon><ReButton icon="Bell" layout="square" type="danger" /></template>
           <template #value><span class="kpi-big">{{ unhandledCount }}</span></template>
         </ReStatCard>
-        <ReStatCard title="高危告警 P0+P1" desc="30 分钟内响应" icon-color="var(--sev-p0-text)">
-          <template #icon><ReButton icon="Warning" layout="square" size="small" type="danger" /></template>
+        <ReStatCard size="compact" title="高危告警 P0+P1" desc="30 分钟内响应" icon-color="var(--sev-p0-text)">
+          <template #icon><ReButton icon="Warning" layout="square" type="danger" /></template>
           <template #value><span class="kpi-big">{{ levelCounts.P0 + levelCounts.P1 }}</span></template>
         </ReStatCard>
-        <ReStatCard title="中危告警 P2" desc="当班处理" icon-color="var(--sev-p2-text)">
-          <template #icon><ReButton icon="AlarmClock" layout="square" size="small" type="warning" /></template>
+        <ReStatCard size="compact" title="中危告警 P2" desc="当班处理" icon-color="var(--sev-p2-text)">
+          <template #icon><ReButton icon="AlarmClock" layout="square" type="warning" /></template>
           <template #value><span class="kpi-big">{{ levelCounts.P2 }}</span></template>
         </ReStatCard>
       </section>
@@ -187,14 +190,14 @@ onBeforeUnmount(() => {
           </tbody>
         </table>
         <div v-if="totalAlarms > 5" class="see-all">
-          <ReButton icon="ArrowRight" :show-text="true" link type="primary" size="small" @click="router.push('/alarms')">查看全部</ReButton>
+          <ReButton icon="ArrowRight" :show-text="true" link type="primary" @click="router.push('/alarms')">查看全部</ReButton>
         </div>
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">快捷入口</span></div>
-        <ReButton icon="Position" :show-text="true" size="small" class="quick w100" @click="router.push('/terminal')">远程控制台</ReButton>
-        <ReButton icon="Monitor" :show-text="true" size="small" class="quick w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
-        <ReButton icon="Bell" :show-text="true" size="small" class="quick w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
+        <ReButton icon="Position" :show-text="true" class="quick w100" @click="router.push('/terminal')">远程控制台</ReButton>
+        <ReButton icon="Monitor" :show-text="true" class="quick w100" style="margin-top:8px" @click="router.push('/assets')">主机资产</ReButton>
+        <ReButton icon="Bell" :show-text="true" class="quick w100" style="margin-top:8px" @click="router.push('/alarms')">告警中心</ReButton>
       </div>
     </section>
   </div>
@@ -243,10 +246,12 @@ onBeforeUnmount(() => {
 .q-meta b { font-size: 13px; color: var(--text-primary); }
 .q-meta span { font-size: 11px; color: var(--text-tertiary); }
 .q-arrow { color: var(--text-tertiary); opacity: 0.6; transition: transform 0.15s var(--ease-out, ease), color 0.15s, opacity 0.15s; }
+/* KPI 主数值。32px 是标准档 ReStatCard 的规格，配紧凑档（内距 10/12）显得头重脚轻，
+   收到 24px；`.re-stat-card__value` 紧凑档的 20px 会被这条覆盖，故两者一起定。 */
 .kpi-big {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }

@@ -112,27 +112,27 @@ function delRow(row: ZsetRow): void {
     <div class="rv-rows">
       <div v-for="(row, i) in rows" :key="row.originalMember" class="rv-row" :class="{ dirty: isDirty(row) }">
         <span class="rv-rank" :class="`rank-${i < 3 ? i + 1 : 'n'}`">{{ i + 1 }}</span>
-        <ReInput v-model="row.member" size="small" class="rv-mono" />
-        <ReInputNumber v-model="row.score" size="small" controls-position="right" style="width: 140px" />
+        <ReInput v-model="row.member" class="rv-mono" />
+        <ReInputNumber v-model="row.score" controls-position="right" style="width: 140px" />
         <div class="rv-ops">
           <ReButton
             icon="Check"
             layout="square"
-            size="small"
+
             title="保存"
             :disabled="busy || !isDirty(row)"
             @click="saveRow(row)"
           />
-          <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" :disabled="busy" @click="delRow(row)" />
+          <ReButton icon="Delete" layout="square" type="danger" title="删除" :disabled="busy" @click="delRow(row)" />
         </div>
       </div>
       <ReEmpty v-if="rows.length === 0" description="暂无成员" :image-size="40" />
     </div>
 
     <div class="rv-add">
-      <ReInput v-model="newMember" size="small" placeholder="新成员" @keyup.enter="addRow" />
-      <ReInputNumber v-model="newScore" size="small" controls-position="right" style="width: 140px" />
-      <ReButton icon="Plus" type="primary" size="small" :show-text="true" :disabled="busy" @click="addRow">添加</ReButton>
+      <ReInput v-model="newMember" placeholder="新成员" @keyup.enter="addRow" />
+      <ReInputNumber v-model="newScore" controls-position="right" style="width: 140px" />
+      <ReButton icon="Plus" type="primary" :show-text="true" :disabled="busy" @click="addRow">添加</ReButton>
     </div>
   </div>
 </template>

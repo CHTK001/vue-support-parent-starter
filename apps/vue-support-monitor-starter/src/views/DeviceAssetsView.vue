@@ -193,7 +193,7 @@ onMounted(fetchList);
         <p class="page-desc">监控视角的设备台账 · 共 {{ devices.length }} 台 · 只读总览</p>
       </div>
       <div class="page-actions">
-        <el-button icon="RefreshRight" :show-text="true" size="small" :loading="loading" text @click="fetchList">
+        <el-button icon="RefreshRight" :show-text="true" :loading="loading" text @click="fetchList">
           刷新
         </el-button>
       </div>
@@ -201,7 +201,7 @@ onMounted(fetchList);
 
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchList">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchList">重试</ReButton>
     </div>
 
     <!-- KPI -->
@@ -284,7 +284,7 @@ onMounted(fetchList);
           <span><i class="k">厂商</i>{{ vendorLabel(d.vendor) }}</span>
         </div>
         <template #footer>
-          <el-button size="small" text type="primary" @click="openDetail(d)">详情</el-button>
+          <el-button text type="primary" @click="openDetail(d)">详情</el-button>
         </template>
       </ReCard>
       <el-empty v-if="!filtered.length && !loading" description="暂无设备资产" />
@@ -311,7 +311,7 @@ onMounted(fetchList);
         </el-table-column>
         <el-table-column label="操作" width="90" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="openDetail(row)">详情</el-button>
+            <el-button text type="primary" @click="openDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -357,7 +357,7 @@ onMounted(fetchList);
               通道
               <span class="dd-extra">已启用 {{ detail.enabledChannelCount ?? 0 }} / {{ detail.channelCount ?? 0 }}</span>
             </h4>
-            <el-table :data="detail.channels || []" border size="small" empty-text="无通道">
+            <el-table :data="detail.channels || []" border empty-text="无通道">
               <el-table-column prop="channelNo" label="通道号" width="80" align="center" />
               <el-table-column prop="channelName" label="通道名称" min-width="140" />
               <el-table-column prop="channelType" label="类型" width="100" align="center" />
@@ -370,7 +370,7 @@ onMounted(fetchList);
               监控项
               <span class="dd-extra">共 {{ detail.monitors?.length || 0 }} 项 · 活跃告警 {{ detail.activeAlarmCount || 0 }} 条</span>
             </h4>
-            <el-table :data="detail.monitors || []" border size="small" empty-text="该设备暂无关联监控项">
+            <el-table :data="detail.monitors || []" border empty-text="该设备暂无关联监控项">
               <el-table-column prop="name" label="监控项" min-width="140" />
               <el-table-column prop="host" label="地址" min-width="130" />
               <el-table-column prop="serviceType" label="服务类型" width="100" align="center" />

@@ -27,7 +27,9 @@ defineProps({
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
-  color: #94a3b8;
+  /* 空态是「弱信息」，占位文字色（placeholder）是唯一语义正确的令牌：
+     用 regular 会让空态看起来像有内容的正文 */
+  color: var(--el-text-color-placeholder);
 }
 
 .re-empty-icon {
@@ -37,6 +39,7 @@ defineProps({
   opacity: 0.5;
 }
 
+/* 模板里的 svg 用 stroke="currentColor"，颜色随上面的 color 走，改主题即自动跟随 */
 .re-empty-icon svg {
   width: 100%;
   height: 100%;
@@ -44,12 +47,25 @@ defineProps({
 
 .re-empty-text {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
   margin: 0 0 16px 0;
 }
 
 .re-empty-action {
   display: flex;
   gap: 12px;
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   本组件自身没有过渡与动画，这里列出选择器作为兜底：
+   消费方常通过 class 往 .re-empty 上挂自定义动画，需要一并被压制。 */
+@media (prefers-reduced-motion: reduce) {
+  .re-empty,
+  .re-empty-icon,
+  .re-empty-text,
+  .re-empty-action {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

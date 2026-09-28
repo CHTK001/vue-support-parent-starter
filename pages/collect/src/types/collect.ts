@@ -333,10 +333,13 @@ export interface CollectDatasourceVO {
 
 /* --------------------------------- 执行通知 -------------------------------- */
 
-/** 通知配置（实体直出），flowId 为 0 表示对全部流程生效 */
+/**
+ * 通知配置（实体直出）。
+ *
+ * 通知是平台级配置，后端表里已经没有流程列，这里也不留流程字段。
+ */
 export interface CollectNotice {
   collectNoticeId?: number | null;
-  collectNoticeFlowId?: number | null;
   collectNoticeName: string;
   collectNoticeChannel: string;
   /** 收件邮箱（逗号分隔）或回调地址 */

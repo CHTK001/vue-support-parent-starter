@@ -233,10 +233,36 @@ export const ReSearchStub: Stub = {
     '<div class="re-search-stub"><slot /><slot name="footer" /></div>',
 };
 
-/** ReButton 桩 */
+/**
+ * ReButton 桩
+ *
+ * 必须复刻真实 ReButton 的「提示语」链路，否则操作列的断言会全军覆没：
+ * 真实组件（packages/ui/src/components/ReButton/ReButton.vue）的 labelText 优先级是
+ * `tip` > 插槽文字 > 原生 `title`，并把它同时用作 tooltip 文案与 `aria-label`；
+ * 其中 `layout="square"` 是「纯图标 + tooltip」写法 —— 提示语写在 `tip` 上，
+ * **不会**渲染成按钮可见文字。
+ *
+ * 所以只渲染 `<slot />` 的话，icon 按钮的 text() 全是空串，
+ * `find(b => b.text().includes("编辑"))` 直接返回 undefined。
+ * 这里用 Vue 的 slot 兜底（`<slot>{{ label }}</slot>`）：插槽没给内容时回落到 tip，
+ * 既让 text() 断言可用，也与真实可访问名一致；给了内容的文字按钮行为不变。
+ */
 export const ReButtonStub: Stub = {
-  props: ["loading", "icon", "type", "disabled", "size", "plain", "link", "layout"],
-  template: '<button type="button" :data-icon="icon" :disabled="disabled"><slot /></button>',
+  props: [
+    "loading",
+    "icon",
+    "type",
+    "disabled",
+    "size",
+    "plain",
+    "link",
+    "layout",
+    "tip",
+    "title",
+    "showText",
+  ],
+  template:
+    '<button type="button" :data-icon="icon" :disabled="disabled" :title="tip || title" :aria-label="tip || title"><slot>{{ tip || title }}</slot></button>',
 };
 
 /** ReInput 桩 */

@@ -33,6 +33,8 @@ export type {
   FlowEdge,
   FlowEdgeKind,
   FlowGraphData,
+  FlowMenuAction,
+  FlowMenuItem,
   FlowNode,
   FlowNodeTypeDef,
   FlowSelection,

@@ -20,7 +20,7 @@
         <el-table-column prop="provider" label="供应商" width="120" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
+            <el-tag :type="row.status === 'success' ? 'success' : 'danger'" >
               {{ row.status === 'success' ? '成功' : '失败' }}
             </el-tag>
           </template>

@@ -40,10 +40,10 @@
     </div>
 
     <template #footer>
-      <ReButton size="small" @click="toggleMinimize">最小化</ReButton>
+      <ReButton @click="toggleMinimize">最小化</ReButton>
       <ReButton
         v-if="!isFinished"
-        size="small"
+
         type="danger"
         @click="visible = false"
       >
@@ -51,7 +51,7 @@
       </ReButton>
       <ReButton
         v-if="isFinished"
-        size="small"
+
         type="primary"
         @click="visible = false"
       >

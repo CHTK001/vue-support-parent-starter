@@ -21,8 +21,8 @@
         <div><img :src="result" alt="上色结果" /><span>结果</span></div>
       </div>
       <div class="re-colorize__actions">
-        <el-button size="small" @click="handleDownload"><el-icon><Download /></el-icon>下载</el-button>
-        <el-button size="small" @click="reset"><el-icon><Delete /></el-icon>清除</el-button>
+        <el-button @click="handleDownload"><el-icon><Download /></el-icon>下载</el-button>
+        <el-button @click="reset"><el-icon><Delete /></el-icon>清除</el-button>
       </div>
     </div>
   </div>

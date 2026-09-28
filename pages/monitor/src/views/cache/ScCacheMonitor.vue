@@ -27,7 +27,7 @@
             <span class="panel-title">缓存列表</span>
             <span class="panel-count">共 {{ cachePrefixes.length }} 条</span>
           </div>
-          <ReButton text size="small" icon="RefreshLeft" @click="refreshCacheList" class="panel-refresh">
+          <ReButton text icon="RefreshLeft" @click="refreshCacheList" class="panel-refresh">
             <ReIcon name="RefreshLeft" />
           </ReButton>
         </div>
@@ -51,7 +51,7 @@
                 <span class="cache-count">{{ item.count }} 个</span>
                 <ReButton
                   text
-                  size="small"
+
                   type="danger"
                   icon="Delete"
                   @click.stop="clearCachePrefix(item.prefix)"
@@ -72,7 +72,7 @@
             <span class="panel-title">键名列表</span>
             <span class="panel-count">{{ selectedCache ? `共 ${keyList.length} 个` : '' }}</span>
           </div>
-          <ReButton v-if="selectedCache" text size="small" icon="RefreshLeft" @click="refreshKeyList" class="panel-refresh">
+          <ReButton v-if="selectedCache" text icon="RefreshLeft" @click="refreshKeyList" class="panel-refresh">
             <ReIcon name="RefreshLeft" />
           </ReButton>
         </div>
@@ -97,7 +97,7 @@
               <span class="key-name">{{ key }}</span>
               <ReButton
                 text
-                size="small"
+
                 type="danger"
                 icon="Close"
                 @click.stop="deleteKey(key)"
@@ -120,7 +120,7 @@
             v-if="selectedKey"
             type="danger"
             text
-            size="small"
+
             icon="Close"
             show-text
             @click="clearSelectedKey"
@@ -166,11 +166,11 @@
               <div class="value-head">
                 <span class="value-label">Value</span>
                 <div class="value-actions">
-                  <ReButton size="small" icon="CopyDocument" show-text @click="copyValue" class="value-copy-btn">
+                  <ReButton icon="CopyDocument" show-text @click="copyValue" class="value-copy-btn">
                     <ReIcon name="CopyDocument" />
                     复制
                   </ReButton>
-                  <ReButton size="small" type="danger" icon="Delete" @click="clearSelectedKey" class="value-del-btn">
+                  <ReButton type="danger" icon="Delete" @click="clearSelectedKey" class="value-del-btn">
               <ReIcon name="Delete" />
                   </ReButton>
                 </div>

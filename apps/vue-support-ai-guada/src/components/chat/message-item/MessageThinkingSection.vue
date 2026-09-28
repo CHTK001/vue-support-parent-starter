@@ -79,7 +79,8 @@ watch(() => props.isThinking, (isThinking: boolean) => {
 
 <style scoped>
 .thinking-section {
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   overflow: hidden;
   animation: fadeIn 0.3s ease;
 }
@@ -117,5 +118,30 @@ watch(() => props.isThinking, (isThinking: boolean) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 动效降级：系统开启「减少动态效果」时，思考块直接出现在终态、
+   展开/折叠的高度变化不再补间。.is-collapsed 的 max-height 与渐变遮罩都是静态样式，
+   停掉过渡后折叠态照样成立，内容不会因此多露出来。
+   逐个列出，不写 `*` / `.process-section *` 通配，
+   避免把 el-icon / MarkdownContent 内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .thinking-section {
+    animation: none;
+  }
+
+  .thinking-content {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：标题行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。 */
+.thinking-section__header {
+  outline: none;
+}
+
+.thinking-section__header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

@@ -6,10 +6,10 @@
           <span>{{ t('hotsport.dependencies.title') }}</span>
           <div>
             <el-button-group>
-              <el-button :type="viewMode === 'graph' ? 'primary' : 'default'" size="small" @click="viewMode = 'graph'">{{ t('hotsport.graph') }}</el-button>
-              <el-button :type="viewMode === 'table' ? 'primary' : 'default'" size="small" @click="viewMode = 'table'">{{ t('hotsport.list') }}</el-button>
+              <el-button :type="viewMode === 'graph' ? 'primary' : 'default'"  @click="viewMode = 'graph'">{{ t('hotsport.graph') }}</el-button>
+              <el-button :type="viewMode === 'table' ? 'primary' : 'default'"  @click="viewMode = 'table'">{{ t('hotsport.list') }}</el-button>
             </el-button-group>
-            <el-button type="primary" size="small" @click="refresh" :loading="loading">{{ t('hotsport.refresh') }}</el-button>
+            <el-button type="primary"  @click="refresh" :loading="loading">{{ t('hotsport.refresh') }}</el-button>
           </div>
         </div>
       </template>
@@ -22,7 +22,7 @@
         <el-table-column prop="callCount" :label="t('hotsport.dependencies.callCount')" width="100" align="center" />
         <el-table-column prop="errorCount" :label="t('hotsport.dependencies.errorCount')" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.errorCount > 0 ? 'danger' : 'success'" size="small">
+            <el-tag :type="row.errorCount > 0 ? 'danger' : 'success'" >
               {{ row.errorCount }}
             </el-tag>
           </template>
@@ -41,6 +41,8 @@ import { getDependencies } from '../api/hotsportApi';
 import type { DependencyEdge } from '../api/types';
 import type { JsonNode, JsonLine } from '@relation-graph/vue3';
 import { ElMessage } from 'element-plus';
+import { formatDuration } from '@repo/ui/re-time';
+import { costMs } from '@repo/utils';
 
 // ReGraphRelation 的 default 是已包装好的异步组件，直接交给 defineAsyncComponent 即可；
 // 写成 `m.default()` 会抛 "m.default is not a function"，图区会整块空白
@@ -70,7 +72,7 @@ const graphLines = computed<JsonLine[]>(() =>
     id: `${e.source}->${e.target}`,
     from: e.source,
     to: e.target,
-    text: `${e.avgDurationMs}ms`,
+    text: formatDuration(costMs(e.avgDurationMs) ?? 0),
     color: e.errorCount > 0 ? '#f56c6c' : '#67c23a',
   })),
 );

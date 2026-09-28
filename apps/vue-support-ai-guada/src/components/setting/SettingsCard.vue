@@ -49,7 +49,9 @@ defineProps<{
 }
 .set-card-ico {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 11px;
+  width: 34px; height: 34px;
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   flex-shrink: 0;
@@ -65,20 +67,18 @@ defineProps<{
 .set-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .set-card {
-  border-radius: 16px;
+  /* 原值 16px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color, var(--el-fill-color-blank));
+  background: var(--el-bg-color);
   overflow: hidden;
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 4%, transparent),
-    0 6px 20px -12px color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
+  /* 设置卡是页面区块，不加常驻投影 */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+/* 仅保留悬浮浮起反馈这一类投影 */
 .set-card:hover {
   border-color: var(--el-border-color);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 5%, transparent),
-    0 10px 28px -14px color-mix(in srgb, var(--el-text-color-primary) 20%, transparent);
+  box-shadow: var(--el-box-shadow-light);
 }
 .set-card--flush { padding: 0; }
 .set-card--bare {
@@ -91,5 +91,16 @@ defineProps<{
 .set-card-footer {
   margin: 10px 4px 0; font-size: 12px; line-height: 1.55;
   color: var(--el-text-color-secondary);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，卡片悬浮的描边与投影直接到位。
+   只关 .set-card 自己的 transition，不写 `*` / .set-card * 通配，
+   避免把插槽里 el-switch / el-select / el-input 内部 Element Plus 组件的合法过渡
+   （尤其输入框的 focus 描边）一起掐掉。
+   .set-card--bare 的透明态与 hover 态都是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .set-card {
+    transition: none;
+  }
 }
 </style>

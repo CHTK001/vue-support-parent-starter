@@ -133,7 +133,8 @@ async function toggle() {
     gap: 4px;
     height: 26px;
     padding: 0 8px 0 8px;
-    border-radius: 4px;
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     cursor: pointer;
     font-size: 13px;
     color: var(--color-text);
@@ -172,7 +173,7 @@ async function toggle() {
 }
 
 .folder-icon {
-    color: #e6a23c;
+    color: var(--el-color-warning);
 }
 
 .file-icon img {
@@ -217,5 +218,43 @@ async function toggle() {
 }
 .fade-leave-to {
     opacity: 0;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，节点选中底色与加载指示器淡出改为瞬间切换。
+   逐个列出，不写 `*` / `.tree-node *` 通配，避免影响内部 SVG 图标。
+   .is-selected 的底色是 !important 静态声明，停掉过渡后选中态照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+    .tree-node-content,
+    .fade-leave-active {
+        transition: none;
+    }
+
+    /* 节点加载圈：这是「该节点正在展开」唯一的视觉提示 —— .loading-indicator
+       只在 loadingPaths 命中时渲染，所以圈一旦不转就必须自己站得住。
+       先把颜色从弱化的 --color-text-gray 提到主色、并显式保持满不透明，
+       让它停住之后仍是一枚清晰的静态进度环，而不是一个几乎看不见的灰弧。 */
+    .spin {
+        color: var(--el-color-primary);
+        opacity: 1;
+        animation: none;
+    }
+}
+
+/* 键盘焦点可见性：节点行与展开箭头都是带 @click 的 div/span（不是可聚焦控件），
+   浏览器不给默认焦点环。
+   .tree-node-content 原有 cursor: pointer 已在上面声明，不重复写；
+   .expand-icon 原本既没有 CSS 指针样式、模板里也没写 cursor-pointer，这里补上。 */
+.tree-node-content,
+.expand-icon {
+    outline: none;
+}
+
+.tree-node-content:focus-visible,
+.expand-icon:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.expand-icon {
+    cursor: pointer;
 }
 </style>

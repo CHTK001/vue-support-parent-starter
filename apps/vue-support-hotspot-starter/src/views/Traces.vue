@@ -7,25 +7,25 @@
           v-model="traceSearch"
           placeholder="按 traceId 搜索"
           clearable
-          size="small"
+
           class="filter-input trace-search"
           @keyup.enter="applyTraceSearch"
         />
-        <el-button v-if="traceSearch" size="small" text type="primary" @click="applyTraceSearch">
+        <el-button v-if="traceSearch" text type="primary" @click="applyTraceSearch">
           搜索
         </el-button>
         <el-input
           v-model="filters.source"
           placeholder="源端"
           clearable
-          size="small"
+
           class="filter-input"
         />
         <el-input
           v-model="filters.protocol"
           placeholder="协议"
           clearable
-          size="small"
+
           class="filter-input"
         />
         <el-date-picker
@@ -34,16 +34,16 @@
           range-separator="~"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
-          size="small"
+
           style="width: 320px"
         />
-        <el-checkbox v-model="filters.errorOnly" size="small">仅看错误</el-checkbox>
+        <el-checkbox v-model="filters.errorOnly" >仅看错误</el-checkbox>
       </div>
       <div class="toolbar-right">
-        <el-button size="small" round @click="exportCsvFull">
+        <el-button round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
-        <el-button size="small" round :loading="loading" @click="load">
+        <el-button round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
@@ -64,7 +64,7 @@
               <code class="mono trace-link" @click.stop="openWaterfall(row.traceId)">
                 {{ shortId(row.traceId) }}
               </code>
-              <el-button link size="small" type="primary" @click.stop="openWaterfall(row.traceId)">
+              <el-button link type="primary" @click.stop="openWaterfall(row.traceId)">
                 瀑布
               </el-button>
             </div>
@@ -81,7 +81,7 @@
         </el-table-column>
         <el-table-column prop="protocol" label="协议" width="110">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain" round>{{ row.protocol || "—" }}</el-tag>
+            <el-tag effect="plain" round>{{ row.protocol || "—" }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="耗时" width="90" align="center">
@@ -93,7 +93,7 @@
           <template #default="{ row }">
             <el-tag
               :type="row.status === 'OK' ? 'success' : 'danger'"
-              size="small"
+
               round
             >
               {{ row.status || "OK" }}
@@ -135,7 +135,7 @@
       size="640px"
     >
       <div v-if="detailTraceId" class="drawer-actions">
-        <el-button size="small" round type="primary" @click="openWaterfall(detailTraceId)">
+        <el-button round type="primary" @click="openWaterfall(detailTraceId)">
           <el-icon class="mr-1"><Right /></el-icon>查看瀑布图
         </el-button>
       </div>
@@ -144,7 +144,7 @@
         <div v-for="(span, i) in detailSpans" :key="span.spanId || i" class="span-card">
           <div class="span-head">
             <span class="span-idx">#{{ i + 1 }}</span>
-            <el-tag :type="span.status === 'OK' ? 'success' : 'danger'" size="small" round>
+            <el-tag :type="span.status === 'OK' ? 'success' : 'danger'" round>
               {{ span.status || "OK" }}
             </el-tag>
             <span class="span-duration mono">{{ span.durationMs }} ms</span>
@@ -358,16 +358,16 @@ onMounted(() => {
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 8px;
 }
 
 .apm-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -378,9 +378,15 @@ onMounted(() => {
   gap: 6px;
 }
 
+/* <code> 承载点击跳转：可点元素必须有手型光标与键盘焦点环 */
 .trace-link {
   cursor: pointer;
-  transition: opacity 0.15s;
+  outline: none;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.trace-link:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .trace-link:hover {
@@ -438,9 +444,10 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* 错误行：淡红底承载语义，行本身仍可点 */
 .trace-table :deep(.row-error) {
   cursor: pointer;
-  background: rgba(239, 68, 68, 0.05);
+  background: color-mix(in srgb, var(--el-color-danger) 5%, transparent);
 }
 
 /* ---- 详情抽屉 ---- */
@@ -457,10 +464,10 @@ onMounted(() => {
 }
 
 .span-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 10px，取最近档 lg */
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--el-fill-color-lighter);
 }
 
 .span-head {
@@ -472,13 +479,13 @@ onMounted(() => {
 
 .span-idx {
   font-size: 12px;
-  color: rgba(230, 237, 247, 0.45);
+  color: var(--apm-muted);
   min-width: 28px;
 }
 
 .span-duration {
   margin-left: auto;
-  color: var(--apm-accent, #3b82f6);
+  color: var(--apm-accent);
   font-weight: 600;
 }
 
@@ -496,52 +503,63 @@ onMounted(() => {
 }
 
 .span-row .k {
-  color: rgba(230, 237, 247, 0.45);
+  color: var(--apm-muted);
   min-width: 52px;
   flex-shrink: 0;
 }
 
 .span-error {
   margin-top: 10px;
-  border-top: 1px dashed rgba(239, 68, 68, 0.35);
+  border-top: 1px dashed color-mix(in srgb, var(--el-color-danger) 35%, transparent);
   padding-top: 8px;
 }
 
 .span-error-title {
-  color: var(--apm-danger, #ef4444);
+  color: var(--apm-danger);
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .span-error-msg {
-  color: var(--apm-danger, #ef4444);
+  color: var(--apm-danger);
   font-size: 11px;
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
   font-family: "JetBrains Mono", Consolas, monospace;
 }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .trace-link {
+    transition: none;
+  }
+  .detail-body :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
+}
 </style>
 
 <style>
-/* Trace 详情抽屉：Element Plus 抽屉默认白底，覆盖为深色主题
-   （抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式） */
+/* Trace 详情抽屉：抽屉 teleport 到 body，scoped 样式覆盖不到容器，须用全局样式。
+   颜色改走 APM 语义令牌后自动跟随系统明暗主题，不再需要单独写一套深色覆盖。 */
 .el-drawer {
-  --el-drawer-bg-color: var(--apm-panel, #131a2b);
-  background: var(--apm-panel, #131a2b);
-  color: var(--apm-fg, #e6edf7);
+  --el-drawer-bg-color: var(--apm-panel);
+  background: var(--apm-panel);
+  color: var(--apm-fg);
 }
 
 .el-drawer__header {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--apm-border);
   padding-bottom: 12px;
 }
 
 .el-drawer__body {
-  background: var(--apm-bg, #0b0f1a);
-  color: var(--apm-fg, #e6edf7);
+  background: var(--apm-bg);
+  color: var(--apm-fg);
 }
 </style>

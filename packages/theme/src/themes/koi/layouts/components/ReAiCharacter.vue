@@ -239,8 +239,8 @@ function handleClear() {
       <div class="ai-popover__header">
         <span>AI 助手</span>
         <div class="ai-popover__actions">
-          <el-button size="small" link @click="handleClear">清空</el-button>
-          <el-button size="small" link @click="popoverVisible = false">✕</el-button>
+          <el-button link @click="handleClear">清空</el-button>
+          <el-button link @click="popoverVisible = false">✕</el-button>
         </div>
       </div>
       <div class="ai-popover__body">

@@ -144,7 +144,8 @@ const filtered = computed(() => {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
+  /* 原值 9px，恰为 18px 高的半径即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -157,7 +158,8 @@ const filtered = computed(() => {
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 9px;
+  /* 原值 9px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,12 +184,13 @@ const filtered = computed(() => {
   flex-shrink: 0;
 }
 .rail-search :deep(.el-input__wrapper) {
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
   box-shadow: none;
 }
 .rail-search :deep(.el-input__wrapper.is-focus) {
-  background: var(--color-surface);
+  background: var(--el-bg-color);
   box-shadow: 0 0 0 1px var(--el-color-primary-light-7) inset;
 }
 
@@ -201,7 +204,8 @@ const filtered = computed(() => {
   width: 6px;
 }
 .rail-list::-webkit-scrollbar-thumb {
-  border-radius: 3px;
+  /* 原值 3px，恰为 6px 宽的半径即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-border-color-lighter);
 }
 
@@ -214,7 +218,8 @@ const filtered = computed(() => {
   padding: 10px;
   margin-bottom: 3px;
   border: none;
-  border-radius: 14px;
+  /* 原值 14px → lg 档（距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   text-align: left;
   cursor: pointer;
   background: transparent;
@@ -305,7 +310,8 @@ const filtered = computed(() => {
   min-width: 17px;
   height: 17px;
   padding: 0 5px;
-  border-radius: 9px;
+  /* 原值 9px，17px 高的计数胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -321,7 +327,8 @@ const filtered = computed(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  /* 原值 7px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -347,7 +354,8 @@ const filtered = computed(() => {
 .rail-empty-blob {
   width: 68px;
   height: 68px;
-  border-radius: 21px;
+  /* 原值 21px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,5 +373,40 @@ const filtered = computed(() => {
   margin: 0;
   font-size: 12px;
   color: var(--color-text-disabled);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，按钮与卡片的底色/文字直接到位。
+   逐个列出，不写 `*` / `.conv-rail *` 通配，
+   避免把 el-input / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .rail-icon-btn,
+  .conv-card,
+  .conv-clear {
+    transition: none;
+  }
+
+  /* 刷新图标旋转是「正在加载」的唯一反馈：加载期间按钮同时被 :disabled，
+     而本文件没有给 .rail-icon-btn 写任何 :disabled 样式，禁用后视觉上毫无变化。
+     所以先把图标静态染成主色作为「进行中」标记，再关动画 —— 只写 animation: none
+     会让反馈彻底消失，用户以为卡死。 */
+  .is-spin {
+    color: var(--el-color-primary);
+    animation: none;
+  }
+}
+
+/* 键盘焦点可见性：.conv-clear 是带 @click 的 span（不是可聚焦控件），浏览器不给默认焦点环。
+   它原本既没有 CSS 的 cursor: pointer、模板里也没写 cursor-pointer，这里补上。 */
+.conv-clear {
+  cursor: pointer;
+  outline: none;
+}
+
+/* 透明度一并提到 1：.conv-clear 平时是 opacity: 0、只在 .conv-card:hover 时才显形，
+   焦点环若也停在 0 就等于没画。环用主色 12% —— 卡片底色是 --color-surface，
+   深浅两套主题下都只是浅/深一档的主色描边，12% 足够可见。 */
+.conv-clear:focus-visible {
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

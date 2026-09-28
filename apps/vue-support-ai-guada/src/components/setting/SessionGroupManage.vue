@@ -20,7 +20,7 @@
         <el-checkbox :model-value="allSelected" :indeterminate="indeterminate" @change="toggleSelectAll">
           全选
         </el-checkbox>
-        <el-button v-if="selectedIds.length > 0" type="danger" plain size="small" @click="handleBatchDelete">
+        <el-button v-if="selectedIds.length > 0" type="danger" plain @click="handleBatchDelete">
           批量删除（{{ selectedIds.length }}）
         </el-button>
       </div>
@@ -43,10 +43,10 @@
 
               <!-- 编辑模式 -->
               <template v-if="editingId === element.id">
-                <el-input v-model="editingName" size="small" maxlength="20" class="flex-1"
+                <el-input v-model="editingName" maxlength="20" class="flex-1"
                   @keyup.enter="saveEdit" @keyup.esc="cancelEdit" />
-                <el-button type="primary" size="small" @click="saveEdit">保存</el-button>
-                <el-button size="small" @click="cancelEdit">取消</el-button>
+                <el-button type="primary" @click="saveEdit">保存</el-button>
+                <el-button @click="cancelEdit">取消</el-button>
               </template>
 
               <!-- 展示模式 -->
@@ -206,7 +206,7 @@ const onDragEnd = async () => {
 .list-toolbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 11px 16px;
-  border-bottom: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .group-list { max-height: 460px; overflow-y: auto; }
@@ -215,12 +215,12 @@ const onDragEnd = async () => {
 .group-item {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 16px;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
   transition: background 0.16s ease;
 }
 .group-item:first-child { border-top: none; }
 .group-item:hover { background: var(--el-fill-color-light); }
-.group-item.is-editing { background: var(--color-surface, var(--el-bg-color)); }
+.group-item.is-editing { background: var(--el-bg-color); }
 
 .drag-handle {
   cursor: grab; touch-action: none; color: var(--el-text-color-secondary);
@@ -234,7 +234,8 @@ const onDragEnd = async () => {
 
 .group-ops { display: flex; align-items: center; gap: 2px; }
 .op-btn {
-  width: 26px; height: 26px; border: none; border-radius: 7px; cursor: pointer;
+  /* 原值 7px → sm 档 */
+  width: 26px; height: 26px; border: none; border-radius: var(--el-radius-sm, 6px); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--el-text-color-secondary); background: transparent;
   transition: background 0.16s ease, color 0.16s ease;
@@ -244,6 +245,17 @@ const onDragEnd = async () => {
 
 .hints { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .hints li { line-height: 1.5; }
+
+/* 动效降级：系统开启「减少动态效果」时，分组行悬停底色与操作按钮底色直接到位。
+   逐个列出，不写 `*` / .group-item * 通配，
+   避免把 el-input / el-checkbox / Sortable 内部 Element Plus 组件的合法过渡一起掐掉。
+   这两个都只带 transition（无 animation），hover 与 .is-editing 态都是静态声明。 */
+@media (prefers-reduced-motion: reduce) {
+  .group-item,
+  .op-btn {
+    transition: none;
+  }
+}
 </style>
 
 <!-- 全局：Sortable fallback 拖拽层（挂载到 body，scoped 不生效），全部走变量 -->
@@ -256,10 +268,12 @@ const onDragEnd = async () => {
 .sortable-ghost .group-sort { color: var(--el-color-primary) !important; }
 .sortable-fallback {
   opacity: 0.96 !important;
-  border-radius: 10px;
-  box-shadow: 0 14px 34px var(--el-box-shadow-light, rgba(0, 0, 0, 0.18));
-  background: var(--el-bg-color, var(--color-surface));
-  border: 1px solid var(--el-border-color, var(--color-surface-border));
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  /* 拖拽浮层必须浮起，投影改用令牌 */
+  box-shadow: var(--el-box-shadow);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
 }
 .sortable-fallback .group-item { border-top: none !important; }
 .sortable-fallback.is-dragging { cursor: grabbing; }

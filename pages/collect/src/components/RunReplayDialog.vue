@@ -16,9 +16,10 @@ import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReSelect from "@repo/ui/re-select";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import FlowDesigner from "./FlowDesigner.vue";
 import { fetchMetas, fetchTaskLogs, getFlow, getTask } from "../api/collectApi";
-import { costText, statusTagType, statusText } from "../constants/taskStatus";
+import { costMs, statusTagType, statusText } from "../constants/taskStatus";
 import { errText } from "../composables/useCollectView";
 import type { CollectFlow, CollectShapeMeta, CollectTask, CollectTaskLog } from "../types/collect";
 
@@ -172,23 +173,23 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   >
     <div v-loading="loading" class="replay">
       <div class="replay__bar">
-        <ReTag size="small" :type="statusTagType(task?.collectTaskStatus)">
+        <ReTag  :type="statusTagType(task?.collectTaskStatus)">
           {{ statusText(task?.collectTaskStatus) }}
         </ReTag>
         <span class="mono">{{ task?.collectTaskNo }}</span>
         <span class="muted">{{ task?.collectTaskFlowName }}</span>
-        <span class="muted">耗时 {{ costText(task?.collectTaskCost) }}</span>
+        <span class="muted">耗时 <ReTime :value="costMs(task?.collectTaskCost)" format="duration" placeholder="—" /></span>
         <span class="muted">产出 {{ task?.collectTaskRecordCount ?? 0 }} 条</span>
         <span class="spacer" />
-        <ReButton size="small" icon="VideoPause" :disabled="!total" @click="stop">暂停</ReButton>
-        <ReButton size="small" type="primary" icon="VideoPlay" :disabled="!total" @click="play">
+        <ReButton  icon="VideoPause" :disabled="!total" @click="stop">暂停</ReButton>
+        <ReButton  type="primary" icon="VideoPlay" :disabled="!total" @click="play">
           {{ playing ? "播放中" : finished ? "重播" : "播放" }}
         </ReButton>
-        <ReButton size="small" icon="DArrowRight" :disabled="!total" @click="step">单步</ReButton>
-        <ReButton size="small" icon="RefreshLeft" :disabled="!total" @click="reset">重置</ReButton>
+        <ReButton  icon="DArrowRight" :disabled="!total" @click="step">单步</ReButton>
+        <ReButton  icon="RefreshLeft" :disabled="!total" @click="reset">重置</ReButton>
         <span class="speed">
           速度
-          <ReSelect v-model="stepMs" size="small" style="width: 96px" :options="SPEED_OPTIONS" />
+          <ReSelect v-model="stepMs"  style="width: 96px" :options="SPEED_OPTIONS" />
         </span>
       </div>
 
@@ -221,12 +222,13 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
               <div class="step-body">
                 <div class="step-title">
                   {{ log.collectTaskLogNodeName || log.collectTaskLogNodeId }}
-                  <ReTag size="small" :type="statusTagType(log.collectTaskLogStatus)" effect="plain">
+                  <ReTag  :type="statusTagType(log.collectTaskLogStatus)" effect="plain">
                     {{ statusText(log.collectTaskLogStatus) }}
                   </ReTag>
                 </div>
                 <div class="step-meta">
-                  {{ log.collectTaskLogNodeShape }} · {{ costText(log.collectTaskLogCost) }}
+                  {{ log.collectTaskLogNodeShape }} ·
+                  <ReTime :value="costMs(log.collectTaskLogCost)" format="duration" placeholder="—" />
                 </div>
                 <div v-if="log.collectTaskLogMessage" class="step-msg">{{ log.collectTaskLogMessage }}</div>
               </div>
@@ -273,7 +275,7 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   flex: 1;
   min-width: 0;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
 }
 .replay__empty {
@@ -288,7 +290,7 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   display: flex;
   flex-direction: column;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
 }
 .side-head {
@@ -311,9 +313,10 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   display: flex;
   gap: 8px;
   padding: 7px 8px;
-  border-radius: 5px;
+  /* 原为 5px，落在 xs(4)/sm(6) 中间，取 sm(6px) */
+  border-radius: var(--el-radius-sm, 6px);
   opacity: 0.45;
-  transition: opacity 0.2s;
+  transition: opacity var(--el-transition-duration-fast, 0.2s);
 }
 .step-item--done {
   opacity: 1;
@@ -327,7 +330,8 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   width: 8px;
   height: 8px;
   margin-top: 6px;
-  border-radius: 50%;
+  /* 8px 圆点：50% 与 full 档(9999px) 等价，统一到令牌 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-info);
 }
 .dot-SUCCESS {
@@ -374,5 +378,13 @@ const failedLog = computed(() => ownLogs.value.find(log => log.collectTaskLogSta
   border-top: 1px solid var(--el-border-color-lighter);
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  /* 步骤项淡入淡出：关掉后「已完成/未到达」仍由 opacity 静态值区分，不丢信息 */
+  .step-item {
+    transition: none;
+  }
 }
 </style>

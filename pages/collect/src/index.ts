@@ -29,5 +29,7 @@ export type { CollectColumn } from "./types/collect";
 
 // 采集侧的通用小件：平台总览（跑在 app 里）与包内视图都要用，故一并导出
 export * from "./constants/taskStatus";
+// 操作列全局配置：包内视图与宿主 app 共用同一份动作元数据
+export * from "./constants/actionColumns";
 export * from "./composables/useCollectView";
 export * from "./utils/time";

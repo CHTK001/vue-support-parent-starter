@@ -163,18 +163,18 @@ onMounted(() => {
         v-loading="loading"
       >
         <template #taskType="{ row }">
-          <ReTag type="primary" effect="plain" size="small">{{ row.taskType || "-" }}</ReTag>
+          <ReTag type="primary" effect="plain" >{{ row.taskType || "-" }}</ReTag>
         </template>
         <template #taskStatus="{ row }">
-          <ReTag :type="statusMeta(row.taskStatus).type" effect="plain" size="small">
+          <ReTag :type="statusMeta(row.taskStatus).type" effect="plain" >
             {{ statusMeta(row.taskStatus).label }}
           </ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton v-if="String(row.taskStatus).toUpperCase() !== 'CANCELLED'" layout="modern" link type="warning" :icon="CircleClose" :loading="opTaskId === row.taskId" @click="handleTaskAction('cancel', row)">取消</ReButton>
-          <ReButton v-if="String(row.taskStatus).toUpperCase() === 'PAUSED'" layout="modern" link type="success" :icon="VideoPlay" :loading="opTaskId === row.taskId" @click="handleTaskAction('resume', row)">恢复</ReButton>
-          <ReButton v-else-if="String(row.taskStatus).toUpperCase() !== 'CANCELLED'" layout="modern" link type="warning" :icon="VideoPause" :loading="opTaskId === row.taskId" @click="handleTaskAction('pause', row)">暂停</ReButton>
-          <ReButton layout="modern" link type="danger" :icon="Delete" :loading="opTaskId === row.taskId" @click="handleTaskAction('delete', row)">删除</ReButton>
+          <ReButton v-if="String(row.taskStatus).toUpperCase() !== 'CANCELLED'" layout="square" link type="warning" :icon="CircleClose" :loading="opTaskId === row.taskId" tip="取消" @click="handleTaskAction('cancel', row)"/>
+          <ReButton v-if="String(row.taskStatus).toUpperCase() === 'PAUSED'" layout="square" link type="success" :icon="VideoPlay" :loading="opTaskId === row.taskId" tip="恢复" @click="handleTaskAction('resume', row)"/>
+          <ReButton v-else-if="String(row.taskStatus).toUpperCase() !== 'CANCELLED'" layout="square" link type="warning" :icon="VideoPause" :loading="opTaskId === row.taskId" tip="暂停" @click="handleTaskAction('pause', row)"/>
+          <ReButton layout="square" link type="danger" :icon="Delete" :loading="opTaskId === row.taskId" tip="删除" @click="handleTaskAction('delete', row)"/>
         </template>
       </ReTable>
     </el-card>
@@ -203,7 +203,7 @@ onMounted(() => {
           <span v-else class="task-dim">-</span>
         </template>
         <template #tags="{ row }">
-          <ReTag v-for="t in row.tags ?? []" :key="t" type="info" effect="plain" size="small" class="task-tag-mr">
+          <ReTag v-for="t in row.tags ?? []" :key="t" type="info" effect="plain" class="task-tag-mr">
             {{ t }}
           </ReTag>
           <span v-if="!row.tags?.length" class="task-dim">-</span>
@@ -214,7 +214,7 @@ onMounted(() => {
           </span>
         </template>
         <template #action="{ row }">
-          <ReButton layout="modern" link type="danger" :icon="Delete" :loading="opNodeId === row.nodeId" @click="handleRemoveNode(row)">移除</ReButton>
+          <ReButton layout="square" link type="danger" :icon="Delete" :loading="opNodeId === row.nodeId" tip="移除" @click="handleRemoveNode(row)"/>
         </template>
       </ReTable>
     </el-card>
@@ -254,7 +254,7 @@ onMounted(() => {
 }
 
 .task-page__card {
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
 }
@@ -295,7 +295,8 @@ onMounted(() => {
 .task-status-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  /* 原为 999px 胶囊；改用 EP 的 full 档（9999px），视觉等价 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   font-weight: 600;
 }

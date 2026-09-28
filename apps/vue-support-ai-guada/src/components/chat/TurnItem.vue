@@ -136,7 +136,7 @@
                   <span>{{ t('chat.turn.maxIterationsReached') }}</span>
                 </template>
                 <div v-if="isLast" class="flex items-center gap-3 mt-2">
-                  <el-button type="primary" size="small" @click="emit('continue', activeAssistant)">
+                  <el-button type="primary" @click="emit('continue', activeAssistant)">
                     {{ t('chat.turn.continueExecution') }}
                   </el-button>
                 </div>
@@ -148,7 +148,7 @@
                   <span>{{ assistantMetadata.errorDetail }}</span>
                 </template>
                 <div v-if="isLast" class="flex items-center gap-3 mt-2">
-                  <el-button type="primary" size="small" @click="emit('continue', activeAssistant)">
+                  <el-button type="primary" @click="emit('continue', activeAssistant)">
                     {{ t('chat.turn.continueExecution') }}
                   </el-button>
                 </div>
@@ -717,6 +717,17 @@ const handleClick = (event: MouseEvent) => {
 </script>
 
 <style scoped>
+<style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 气泡底/字色沿用全局气泡令牌（--color-bubble-* / --color-bubble-assitant-*），
+      它们已在 refactor.css 里映射到 --el-* 主题层，9 套配色下自动跟随，
+      故本文件不再自行写死任何底色。
+   2. 消息卡片不加投影。原 .message-item--hover:hover 的投影属 koi 允许的
+      第二类（悬浮反馈），只把色源从写死 rgba(0,0,0,.08) 换成从正文色派生。
+   3. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
+
 /* 三点打字动画 */
 .typing-indicator {
   display: flex;
@@ -724,11 +735,16 @@ const handleClick = (event: MouseEvent) => {
   gap: 4px;
 }
 
+/* 三点打字动画。
+   关键：keyframes 的终态是 scale(0)，所以 prefers-reduced-motion 下
+   绝不能只是 animation:none —— 那三点会永远消失，「流式进行中」这一
+   唯一视觉反馈就没了。下方 media 查询里改为固定 scale(0.55) 静态显示。 */
 .typing-indicator span {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background-color: #9ca3af;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background-color: var(--el-text-color-secondary);
   animation: typing-bounce 1.4s infinite ease-in-out both;
 }
 
@@ -749,14 +765,16 @@ const handleClick = (event: MouseEvent) => {
   }
 }
 
-/* 消息卡片悬停效果 */
+/* 消息卡片悬停效果：投影属 koi 允许的第二类（悬浮反馈），
+   原值 0 2px 8px rgba(0,0,0,.08) 是纯黑投影（深色模式下会变成脏边），
+   改为从正文色派生 */
 .message-item--hover {
   position: relative;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .message-item--hover:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
 }
 
 .turn-wrapper {
@@ -764,7 +782,7 @@ const handleClick = (event: MouseEvent) => {
   margin-top: 20px;
   margin-bottom: 25px;
   contain: layout style;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .turn-wrapper.animate-in {
@@ -804,7 +822,8 @@ const handleClick = (event: MouseEvent) => {
 
   padding: 5px 12px;
 
-  border-radius: 16px;
+  /* 原值 16px → xl 档（气泡圆角，与连接器侧 MessageStream 的气泡同档） */
+  border-radius: var(--el-radius-xl, 16px);
 
   border: 1px solid var(--color-bubble-user-border);
 
@@ -823,6 +842,8 @@ const handleClick = (event: MouseEvent) => {
   align-items: flex-start;
 }
 
+/* 助手消息是整宽的正文区（不是气泡），零投影、无边框 ——
+   koi 规约：卡片/容器一律不加投影，层次靠留白与字重表达 */
 .assistant-section .message-item__card {
   background: var(--color-bubble-assitant-bg);
   color: var(--color-bubble-assitant-text);
@@ -901,14 +922,21 @@ const handleClick = (event: MouseEvent) => {
   margin-top: 0;
 }
 
+/* 分组折叠头：div + @click，补键盘焦点环 */
 .process-group__header {
   display: flex;
   align-items: center;
   max-width: 100%;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
   user-select: none;
+  outline: none;
+}
+
+.process-group__header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 :deep(.process-group__body .process-section:last-child .process-timeline) {
@@ -925,13 +953,17 @@ const handleClick = (event: MouseEvent) => {
 }
 
 /* 流式过程中的文字波纹效果（action + args 一起波纹） */
+/* 流式过程中的文字波纹效果（action + args 一起波纹）
+   --shimmer-base / --shimmer-highlight 由 JS 侧按主题注入，此处只给兜底。
+   兜底改成 --el-text-color-secondary（次级文字色），去掉了写死的
+   #a8aab3 / #ffffff：后者在浅色主题下等于「无波纹」而不是「亮色波纹」。 */
 .shimmer-text {
   background: linear-gradient(90deg,
-      var(--shimmer-base, #a8aab3) 0%,
-      var(--shimmer-base, #a8aab3) 25%,
-      var(--shimmer-highlight, #ffffff) 50%,
-      var(--shimmer-base, #a8aab3) 75%,
-      var(--shimmer-base, #a8aab3) 100%);
+      var(--shimmer-base, var(--el-text-color-secondary)) 0%,
+      var(--shimmer-base, var(--el-text-color-secondary)) 25%,
+      var(--shimmer-highlight, var(--el-color-white)) 50%,
+      var(--shimmer-base, var(--el-text-color-secondary)) 75%,
+      var(--shimmer-base, var(--el-text-color-secondary)) 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -949,10 +981,13 @@ const handleClick = (event: MouseEvent) => {
   }
 }
 
+/* 展开/收起用 grid-template-rows 0fr→1fr 的高度过渡。
+   prefers-reduced-motion 下关掉过渡即可：0fr 仍是「收起」终态，
+   展开只是瞬间到位，不丢任何信息（不像 spin 那样是唯一反馈）。 */
 .process-group__collapsible {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .process-group__collapsible.is-expanded {
@@ -998,7 +1033,7 @@ const handleClick = (event: MouseEvent) => {
 /* Token 消耗 */
 .token-usage-section {
   padding: 4px 0;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .dark .token-usage-section {
@@ -1028,6 +1063,9 @@ const handleClick = (event: MouseEvent) => {
   margin-top: 12px;
 }
 .token-arrow { display: inline-flex; align-items: center; }
+/* token 三分类是**身份标识**：Prompt / Completion / Cache 必须保持三种
+   可区分的色相，换成语义色（成功/警告/信息）会与本文件里其它语义色
+   （trace 的 success/warning/danger）混淆，故**刻意保留原色值** */
 .token-arrow-input { color: #52c41a; }
 .token-arrow-output { color: #722ed1; }
 .token-arrow-cache { color: #1677ff; }
@@ -1039,11 +1077,12 @@ const handleClick = (event: MouseEvent) => {
 .token-popover-divider { border-top: 1px solid var(--el-border-color); margin: 4px 0; }
 .token-popover-total { font-weight: 600; }
 
-/* 执行日志控制台 */
+/* 执行日志控制台：容器，零投影，靠 1px 边框表达层次 */
 .trace-console {
   margin: 8px 0 4px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   overflow: hidden;
   background: var(--el-fill-color-blank);
 }
@@ -1054,8 +1093,12 @@ const handleClick = (event: MouseEvent) => {
   padding: 6px 10px;
   cursor: pointer;
   user-select: none;
+  outline: none;
   color: var(--el-text-color-regular);
-  transition: background-color 0.2s ease;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.trace-console__header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .trace-console__header:hover { background: var(--el-fill-color-light); }
 .trace-console__icon { color: var(--el-text-color-secondary); }
@@ -1064,14 +1107,15 @@ const handleClick = (event: MouseEvent) => {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
-  border-radius: 9px;
+  /* 原值 9px → 不在六档内；16px 行高上的 9px 就是胶囊，取 full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   padding: 0 7px;
   line-height: 16px;
 }
 .trace-console__chevron {
   margin-left: auto;
   color: var(--el-text-color-secondary);
-  transition: transform 0.25s ease;
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
   transform: rotate(-90deg);
 }
 .trace-console__chevron.is-open { transform: rotate(0deg); }
@@ -1099,8 +1143,44 @@ const handleClick = (event: MouseEvent) => {
 .trace-line--tool_result .trace-line__tag { color: var(--el-color-success); }
 .trace-line--usage .trace-line__tag { color: var(--el-color-warning); }
 .trace-line--edge .trace-line__tag { color: var(--el-color-danger); }
+
+/* 尊重系统「减少动态效果」偏好。
+   三点打字动画（.typing-indicator span）是「流式进行中」的唯一视觉反馈 ——
+   若直接关掉动画，模型生成期间这一行只剩「工作中 / 12s」文字，且三点会因
+   缩放终态为 0 而完全消失，用户会以为卡死。故**先补静态态**：
+   取消 scale 归零（改为固定 0.55 缩放 + 次级色），让三点始终可见地
+   表达「还在输出」，再关掉动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .message-item--hover,
+  .turn-wrapper,
+  .process-group__header,
+  .process-group__collapsible,
+  .token-usage-section,
+  .trace-console__header,
+  .trace-console__chevron {
+    transition: none;
+    animation: none;
+  }
+  .turn-wrapper.animate-in {
+    animation: none;
+  }
+  .shimmer-text {
+    animation: none;
+    /* 波纹停住后仍需与普通文字可区分：整段用次级文字色（去掉透明填充） */
+    -webkit-text-fill-color: var(--el-text-color-secondary);
+    color: var(--el-text-color-secondary);
+  }
+  .typing-indicator span {
+    animation: none;
+    transform: scale(0.55);
+  }
+}
 </style>
 <style>
+/* 非 scoped 块：markdown 排版与 token popover 挂在子组件渲染出的
+   运行时 HTML 上（不带本组件 scoped id），只能全局生效。
+   三个 token 分类色是身份标识（必须保持可区分的三色相），刻意不令牌化，
+   理由见上方 scoped 块中的同名注释。 */
 @import "@/assets/markdown.css";
 @import 'highlight.js/styles/foundation.css';
 .token-arrow { display: inline-flex; align-items: center; }

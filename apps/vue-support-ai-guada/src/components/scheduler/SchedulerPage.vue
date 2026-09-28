@@ -55,7 +55,7 @@
                   <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
                     {{ task.name }}
                   </h3>
-                  <el-tag size="small" effect="plain" class="shrink-0 font-mono">{{ scheduleText(task) }}</el-tag>
+                  <el-tag effect="plain" class="shrink-0 font-mono">{{ scheduleText(task) }}</el-tag>
                 </div>
 
                 <!-- Description: prompt -->
@@ -78,14 +78,14 @@
                 <!-- Footer: actions + switch -->
                 <div class="flex items-center justify-between gap-2 mt-3">
                   <div class="flex items-center gap-2 shrink-0">
-                    <el-button link size="small" :loading="runningId === task.id" @click.stop="handleRunNow(task)">
+                    <el-button link :loading="runningId === task.id" @click.stop="handleRunNow(task)">
                       {{ t('scheduler.page.runNow') }}
                     </el-button>
-                    <el-button link size="small" @click.stop="handleViewLogs(task)">{{ t('scheduler.page.logs') }}</el-button>
-                    <el-button link size="small" type="danger" @click.stop="handleDeleteTask(task)">{{ t('scheduler.page.delete') }}</el-button>
+                    <el-button link @click.stop="handleViewLogs(task)">{{ t('scheduler.page.logs') }}</el-button>
+                    <el-button link type="danger" @click.stop="handleDeleteTask(task)">{{ t('scheduler.page.delete') }}</el-button>
                   </div>
                   <el-switch v-model="task.enabled" :active-value="true" :inactive-value="false"
-                    :loading="togglingId === task.id" @change="handleToggleTask(task)" @click.stop size="small" inline-prompt
+                    :loading="togglingId === task.id" @change="handleToggleTask(task)" @click.stop inline-prompt
                     :active-text="t('scheduler.page.enable')" :inactive-text="t('scheduler.page.disable')" />
                 </div>
               </div>

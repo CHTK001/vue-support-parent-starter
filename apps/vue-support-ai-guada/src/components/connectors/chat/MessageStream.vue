@@ -167,6 +167,16 @@ defineExpose({ scrollToBottom })
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+      注意 --el-transition-duration 在 EP base.css 里恒为 .3s 且 koi 不覆盖，
+      写 var(--el-transition-duration, 0.2s) 的兜底值是死代码、实际生效 .3s；
+      因此颜色/边框/位移这类微交互一律走 -fast 档（EP 自己就是这么用的）。
+   2. 消息气泡与滚动容器不是卡片，不加投影；唯一允许的投影是
+      「回到底部」悬浮按钮（浮起来才能和消息流分层，投影是功能必需的）。
+   3. 三个色值（占位块 / 头像底 / 加载态）统一走语义色，主题切换时自动跟随。
+   ============================================================================ */
 .message-stream {
   position: relative;
   flex: 1;
@@ -186,7 +196,9 @@ defineExpose({ scrollToBottom })
 .placeholder-blob {
   width: 96px;
   height: 96px;
-  border-radius: 30px;
+  /* 原值 30px：超出六档上限，96px 见方的占位方块取 xl 档（16px）后
+     相对边长约 17%，与卡片 xl 档在同一体量级，形状语义不变 */
+  border-radius: var(--el-radius-xl, 16px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -198,12 +210,12 @@ defineExpose({ scrollToBottom })
   margin: 0 0 6px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-gray);
+  color: var(--el-text-color-regular);
 }
 .placeholder-desc {
   margin: 0;
   font-size: 13px;
-  color: var(--color-text-disabled);
+  color: var(--el-text-color-secondary);
 }
 
 .stream-viewport {
@@ -216,7 +228,8 @@ defineExpose({ scrollToBottom })
   width: 7px;
 }
 .stream-viewport::-webkit-scrollbar-thumb {
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-border-color);
 }
 .stream-viewport::-webkit-scrollbar-thumb:hover {
@@ -236,9 +249,10 @@ defineExpose({ scrollToBottom })
 }
 .date-pill {
   padding: 3px 12px;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11.5px;
-  color: var(--color-text-gray);
+  color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
 }
 
@@ -258,14 +272,15 @@ defineExpose({ scrollToBottom })
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   display: flex;
   align-items: center;
   justify-content: center;
   align-self: flex-end;
 }
 .is-in .cluster-avatar {
-  color: var(--color-text-gray);
+  color: var(--el-text-color-secondary);
   background: var(--el-fill-color);
 }
 .is-out .cluster-avatar {
@@ -290,11 +305,11 @@ defineExpose({ scrollToBottom })
 .cluster-name {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-gray);
+  color: var(--el-text-color-secondary);
 }
 .cluster-time {
   font-size: 10.5px;
-  color: var(--color-text-disabled);
+  color: var(--el-text-color-secondary);
 }
 
 .bubble {
@@ -309,18 +324,22 @@ defineExpose({ scrollToBottom })
   border: 1px solid transparent;
 }
 /* 收到的消息（用户侧）：使用全局气泡令牌，与主会话 TurnItem 的用户气泡保持一致。
-   不能用 --el-fill-color-light：它在 style.css 中被别名到 --color-sidebar-bg-hover
+   不能用 --el-fill-color-light：在 style.css 中被别名到 --color-sidebar-bg-hover
    （浅色下仅 5% 覆盖），几乎不可见，导致用户消息看起来完全没有气泡样式。 */
 .is-in .bubble {
   color: var(--color-bubble-user-text);
   background: var(--color-bubble-user-bg);
   border-color: var(--color-bubble-user-border);
-  border-radius: 20px 6px 20px 20px;
+  /* 原值 20px 6px 20px 20px（右上角收紧的气泡尾巴造型）→ 最近的 xl / sm 档 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-sm, 6px) var(--el-radius-xl, 16px) var(--el-radius-xl, 16px);
 }
 .is-out .bubble {
-  color: var(--color-primary-text);
+  /* 气泡文字用 --el-color-white 而非原来的 --color-primary-text：
+     底色恒为主色，白字是对比度最高的反相色；9 套主题下都成立
+     （涂鸦本的米黄、蒸汽朋克的黄铜色底上白字同样清晰） */
+  color: var(--el-color-white);
   background: var(--el-color-primary);
-  border-radius: 20px 6px 20px 20px;
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-sm, 6px) var(--el-radius-xl, 16px) var(--el-radius-xl, 16px);
 }
 .bubble-text {
   min-width: 0;
@@ -347,7 +366,7 @@ defineExpose({ scrollToBottom })
   gap: 6px;
   padding: 26px 0;
   font-size: 12.5px;
-  color: var(--color-text-disabled);
+  color: var(--el-text-color-secondary);
 }
 .is-spin {
   animation: stream-spin 0.9s linear infinite;
@@ -356,22 +375,31 @@ defineExpose({ scrollToBottom })
   to { transform: rotate(360deg); }
 }
 
+/* 「回到底部」是浮在消息流之上的悬浮按钮：投影与位移都是「浮起」提示，
+   属于 koi 允许的第二类投影，只把色源从写死 rgba 换成色相派生 */
 .jump-bottom {
   position: absolute;
   right: 26px;
   bottom: 16px;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: 13px;
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 13px：不属六档，取最近的 lg(12px) */
+  border-radius: var(--el-radius-lg, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-gray);
-  background: var(--color-surface);
-  box-shadow: var(--el-box-shadow-lighter);
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
   cursor: pointer;
-  transition: color 0.18s ease, transform 0.18s ease;
+  outline: none;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
+}
+.jump-bottom:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .jump-bottom:hover {
   color: var(--el-color-primary);
@@ -379,12 +407,37 @@ defineExpose({ scrollToBottom })
 }
 .rise-enter-active,
 .rise-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .rise-enter-from,
 .rise-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   .is-spin 是「正在加载」的唯一视觉反馈，关掉旋转后必须补一个静态态，
+   否则加载与「没有更多消息」在视觉上无法区分 —— 这里用保持不透明 + 常显
+   来替代旋转（元素本身仍在，父级 .stream-loading 已有文字「正在加载…」，
+   故文字本身就是可靠的静态反馈）。 */
+@media (prefers-reduced-motion: reduce) {
+  .stream-viewport {
+    scroll-behavior: auto;
+  }
+  .is-spin {
+    animation: none;
+    opacity: 0.7;
+  }
+  .jump-bottom,
+  .rise-enter-active,
+  .rise-leave-active {
+    transition: none;
+  }
+  .jump-bottom:hover {
+    transform: none;
+  }
 }
 </style>
 
@@ -393,21 +446,26 @@ defineExpose({ scrollToBottom })
 @import "@/assets/markdown.css";
 
 /* IN 气泡（收到消息）底色为浅蓝灰，行内代码/引用块需比气泡底更深一档，
-   否则 #f3f3f5 的 code 底色贴在 #eef3fb 气泡上几乎看不出边界。 */
+   否则 markdown.css 的 code 底色贴在气泡上几乎看不出边界。
+   原写法是写死的 rgba(15,23,42,.06) / rgba(255,255,255,.1) 两套，
+   这里改为从当前模式下的正文色派生，换肤时自动跟随。 */
 .is-in .markdown-text code {
-  background-color: rgba(15, 23, 42, 0.06);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
 }
 .dark .is-in .markdown-text code {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--color-text);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
+  color: var(--el-text-color-primary);
 }
 .is-in .markdown-text blockquote {
   border-left-color: var(--color-bubble-user-border);
 }
 
-/* 蓝色 OUT 气泡内 markdown 元素的配色。
+/* 主色 OUT 气泡内 markdown 元素的配色。
    这些 HTML 由子组件 MarkdownContent 运行时生成、不带本组件 scoped id，
-   故覆盖规则必须放在全局块才能命中。 */
+   故覆盖规则必须放在全局块才能命中。
+   气泡底是 var(--el-color-primary)，其上的文字/描边必须始终与底色反相，
+   所以这里统一用「主色底的对立面 = 纯白」令牌 --el-color-white，
+   而不是留 #fff —— 写死的白在 9 套主题里若气泡底偏亮（如涂鸦本米黄）就糊成一片。 */
 .is-out .markdown-text,
 .is-out .markdown-text p,
 .is-out .markdown-text li,
@@ -417,36 +475,38 @@ defineExpose({ scrollToBottom })
 .is-out .markdown-text h4,
 .is-out .markdown-text h5,
 .is-out .markdown-text h6 {
-  color: var(--color-primary-text);
+  color: var(--el-color-white);
 }
 .is-out .markdown-text ul > li::before {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: color-mix(in srgb, var(--el-color-white) 85%, transparent);
 }
 .is-out .markdown-text ol > li:before {
-  color: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--el-color-white) 90%, transparent);
 }
 .is-out .markdown-text a {
-  color: #fff;
+  color: var(--el-color-white);
   text-decoration: underline;
 }
 /* 行内代码：半透明白底白字 */
 .is-out .markdown-text code {
-  background-color: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background-color: color-mix(in srgb, var(--el-color-white) 22%, transparent);
+  color: var(--el-color-white);
 }
 /* 浅色模式下代码块为浅底，pre 内文字强制深色（否则继承气泡白字，白底上看不清）。
-   深色模式交给 markdown.css 的 .dark 规则（浅字深底），不在此覆盖。 */
+   深色模式交给 markdown.css 的 .dark 规则（浅字深底），不在此覆盖。
+   原值 #1f2937 是写死的 slate-800，这里改用 --el-text-color-primary：
+   它随主题走，在涂鸦本这类暖色浅底上比固定深灰更协调。 */
 html:not(.dark) .is-out .markdown-text pre,
 html:not(.dark) .is-out .markdown-text pre code,
 html:not(.dark) .is-out .markdown-text pre.hljs,
 html:not(.dark) .is-out .markdown-text code.hljs {
-  color: #1f2937;
+  color: var(--el-text-color-primary);
 }
 html:not(.dark) .is-out .markdown-text .custom-code-block,
 html:not(.dark) .is-out .markdown-text pre {
-  background: var(--el-bg-color, #fff);
+  background: var(--el-bg-color);
 }
 .is-out .markdown-text blockquote {
-  border-left-color: rgba(255, 255, 255, 0.6);
+  border-left-color: color-mix(in srgb, var(--el-color-white) 60%, transparent);
 }
 </style>

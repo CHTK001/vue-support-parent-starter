@@ -387,7 +387,7 @@ onMounted(async () => {
       :footer-hidden="true"
     >
       <template #content>
-        <ReDescriptions v-if="detailSession" :column="1" border size="small">
+        <ReDescriptions v-if="detailSession" :column="1" border >
           <ReDescriptionsItem label="主机">
             {{ detailSession.msTerminalSessionHostName || hostMap[detailSession.msTerminalSessionHostId ?? 0] || '-' }}
           </ReDescriptionsItem>
@@ -430,7 +430,7 @@ onMounted(async () => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-lighter);
+  /* koi 规约：卡片静止态不加投影，边界由上面那圈 1px 边框承载 */
 }
 
 /* 刷新（工具条右侧） */
@@ -447,8 +447,18 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
-  transition: color var(--el-transition-duration), border-color var(--el-transition-duration),
-    background var(--el-transition-duration);
+  /* 原生 button：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+  outline: none;
+  /* 原来用 var(--el-transition-duration)，它被 EP base.css 定为 .3s，
+     对 40px 高的胶囊按钮 hover 明显发滞；EP 自己的 transition-color 也用 -fast(.2s) */
+  transition:
+    color var(--el-transition-duration-fast, 0.2s),
+    border-color var(--el-transition-duration-fast, 0.2s),
+    background-color var(--el-transition-duration-fast, 0.2s);
+}
+/* 原生 button：自绘焦点环 */
+.sa-refresh:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .sa-refresh:hover {
   color: var(--el-color-primary);
@@ -493,7 +503,7 @@ onMounted(async () => {
 .sa-stat__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
 }
 .sa-stat__value {
@@ -536,7 +546,7 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
-  transition: color var(--el-transition-duration), border-color var(--el-transition-duration);
+  transition: color var(--el-transition-duration-fast, 0.2s), border-color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
 }
 .sa-pill:hover {
   color: var(--el-color-primary);
@@ -560,14 +570,14 @@ onMounted(async () => {
   border: none;
   border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
-  transition: color var(--el-transition-duration), background var(--el-transition-duration);
+  transition: color var(--el-transition-duration-fast, 0.2s), background-color var(--el-transition-duration-fast, 0.2s);
 }
 .sa-seg__btn:hover:not(.is-active) {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
 .sa-seg__btn.is-active {
-  color: var(--el-color-white, #fff);
+  color: var(--el-color-white);
   background: var(--el-color-primary);
 }
 
@@ -625,7 +635,7 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  color: var(--el-color-white, #fff);
+  color: var(--el-color-white);
   border-radius: var(--el-radius-full, 9999px);
 }
 .sa-proto.is-vnc { background: var(--el-color-primary); }
@@ -646,7 +656,7 @@ onMounted(async () => {
   flex-shrink: 0;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-text-color-disabled);
 }
 .sa-status.is-open .sa-status__dot {
@@ -678,7 +688,7 @@ onMounted(async () => {
 .sa-link__dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
 }
 .sa-link.is-danger {
@@ -695,6 +705,23 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+/* ============ 键盘可达性 ============ */
+/* 下面这几个都是原生可聚焦元素（button / span[role=button][tabindex=0]），
+   不是 Element Plus 组件，拿不到 EP 自带的 :focus-visible 实线轮廓，
+   统一去掉浏览器默认轮廓并自绘与全站一致的焦点环 */
+.sa-pill,
+.sa-seg__btn,
+.sa-link {
+  outline: none;
+}
+.sa-pill:focus-visible,
+.sa-seg__btn:focus-visible,
+.sa-link:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  /* 行内文字按钮本身没有圆角，补一个最小档让焦点环不显得是硬方块 */
+  border-radius: var(--el-radius-xs, 4px);
 }
 
 /* 窄屏 */
@@ -715,6 +742,26 @@ onMounted(async () => {
   }
   .sa-filters__query {
     margin-left: 0;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .sa-refresh,
+  .sa-pill,
+  .sa-seg__btn {
+    transition: none;
+  }
+  /* 刷新中的旋转必须停；但这一帧唯一的反馈手段就是旋转动画，
+     直接 animation:none 会让「正在刷新」彻底无感，故补一层静态降透明度作为兜底信号 */
+  .sa-refresh.is-loading :deep(svg) {
+    animation: none;
+    opacity: 0.45;
+  }
+  /* 状态点的扩散光环可以停：开关状态本来就由点的底色（成功绿 / 禁用灰）区分，
+     光环只是附加动效，不承担唯一信息 */
+  .sa-status.is-open .sa-status__dot {
+    animation: none;
   }
 }
 </style>

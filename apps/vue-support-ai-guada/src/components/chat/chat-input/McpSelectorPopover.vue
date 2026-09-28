@@ -4,7 +4,7 @@
     <div class="mcp-sel">
       <div class="mcp-sel__header">
         <span class="mcp-sel__title">MCP 工具</span>
-        <el-button link size="small" @click="clearAll">全部不选</el-button>
+        <el-button link @click="clearAll">全部不选</el-button>
       </div>
       <div class="mcp-sel__hint">勾选后，本次会话将真实连接并调用所选 MCP 工具</div>
 
@@ -151,7 +151,8 @@ function clearAll() {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
 }
 .mcp-sel__item:hover { background: var(--el-fill-color-light); }
@@ -176,5 +177,17 @@ function clearAll() {
 .mcp-sel__check {
   flex: none;
   color: var(--el-color-primary);
+}
+
+/* 键盘焦点可见性：MCP 条目是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 弹层底色是浅色浮层表面（选中态也只是 primary-light-9），
+   一档主色描边足够可见。 */
+.mcp-sel__item {
+  outline: none;
+}
+
+.mcp-sel__item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

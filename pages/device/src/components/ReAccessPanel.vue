@@ -8,7 +8,7 @@
       >
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium text-el-text">{{ door.deviceDoorName }}</span>
-          <el-button size="small" type="primary" @click="emit('unlock', door.deviceDoorNo)">开门</el-button>
+          <el-button type="primary" @click="emit('unlock', door.deviceDoorNo)">开门</el-button>
         </div>
         <div class="text-xs text-el-text-secondary mt-1">状态: {{ door.deviceDoorStatus }}</div>
       </el-card>
@@ -18,11 +18,11 @@
     <el-card class="shadow-sm rounded-xl p-4">
       <div class="flex items-center justify-between mb-2">
         <span class="text-sm font-medium text-el-text">门禁事件</span>
-        <el-button size="small" text @click="emit('refresh')">
+        <el-button text @click="emit('refresh')">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
-      <el-table :data="events" size="small" style="width:100%">
+      <el-table :data="events" style="width:100%">
         <el-table-column prop="time" label="时间" width="180" />
         <el-table-column prop="doorName" label="门" />
         <el-table-column prop="eventType" label="事件类型" />

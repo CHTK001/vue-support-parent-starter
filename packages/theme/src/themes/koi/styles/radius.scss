@@ -9,6 +9,19 @@
  *   lg    = 12px   卡片（card / notification / message-box）
  *   xl    = 16px   浮层（dialog）
  *   full  = 9999px 胶囊（round 按钮 / tag pill）
+ *
+ * 分层约定（改动前先读）：
+ *   第 1 层「默认层」= packages/ui/src/components/shared/radius-vars.css
+ *            随组件库分发，只声明 --el-radius-* 六档，让不加载 koi 的应用
+ *            也能取到同一套档位，而不是各写各的兜底 px。
+ *   第 2 层「本文件」= koi 主题覆盖层
+ *            重申六档（同特异度 :root，后加载者胜；当前取值与默认层一致，
+ *            故加载顺序不影响结果），并额外把 Element Plus 的
+ *            --el-border-radius-* / --el-*-border-radius 重映射到这套档。
+ *
+ *   若将来要让 koi 偏离默认层取值（如 xl 改 20px），必须保证主题样式
+ *   晚于组件库样式加载，否则会被默认层覆盖回去 —— koi 应用中主题由
+ *   layout 动态引入，天然晚于应用入口的静态 import，条件成立。
  */
 
 :root {
