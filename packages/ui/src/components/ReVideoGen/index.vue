@@ -4,7 +4,7 @@
     <aside class="wan-video-gen__history">
       <div class="wan-video-gen__history-head">
         <span class="wan-video-gen__history-title">创作历史</span>
-        <el-button text size="small" :loading="historyLoading" @click="loadHistory">
+        <el-button text :loading="historyLoading" @click="loadHistory">
           刷新
         </el-button>
       </div>
@@ -35,7 +35,7 @@
             </div>
             <el-tag
               :type="statusTagType(item.status)"
-              size="small"
+
               class="wan-video-gen__history-status"
             >
               {{ statusLabel(item.status) }}
@@ -70,17 +70,17 @@
         <el-icon class="wan-video-gen__failed-icon"><WarningFilled /></el-icon>
         <p class="wan-video-gen__failed-title">生成失败</p>
         <p class="wan-video-gen__failed-sub">{{ activeTask.errorMessage }}</p>
-        <el-button size="small" @click="retry(activeTask)">重试</el-button>
+        <el-button @click="retry(activeTask)">重试</el-button>
       </div>
 
       <div v-else-if="activeTask.resultUrl" class="wan-video-gen__canvas-result">
         <video :src="activeTask.resultUrl" controls autoplay class="wan-video-gen__result-video" />
         <div class="wan-video-gen__result-actions">
-          <el-button size="small" @click="download(activeTask.resultUrl)">
+          <el-button @click="download(activeTask.resultUrl)">
             <el-icon><Download /></el-icon>
             下载
           </el-button>
-          <el-button size="small" @click="reusePrompt(activeTask)">
+          <el-button @click="reusePrompt(activeTask)">
             <el-icon><VideoCamera /></el-icon>
             再次生成
           </el-button>
@@ -121,7 +121,7 @@
 
       <div class="wan-video-gen__param-group">
         <div class="wan-video-gen__param-label">时长</div>
-        <el-radio-group v-model="duration" size="small">
+        <el-radio-group v-model="duration" >
           <el-radio-button :value="5">5 秒</el-radio-button>
           <el-radio-button :value="10">10 秒</el-radio-button>
         </el-radio-group>

@@ -39,24 +39,31 @@ defineEmits<{
 </script>
 
 <style scoped>
+/* 令牌口径：玻璃拟态小药丸。--color-secondary-surface / rgba(42,42,42,.8) 这类
+   手写半透明底色在换肤后必然对不上，改用 --el-fill-color-lighter 掺透明表达；
+   该令牌明暗两侧都有定义（浅色 #f7f9fd / 深色 #1a2230），故 .dark 分支可整体去掉。 */
 .attachment-chip {
-  background: var(--color-secondary-surface);
+  /* 原值 var(--color-secondary-surface) 不透明 + .dark 下 rgba(42,42,42,.8) 半透明；
+     统一成 82% 掺透明，保留 backdrop-filter 需要的通透感 */
+  background: color-mix(in srgb, var(--el-fill-color-lighter) 82%, transparent);
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  /* 原值 rgba(0,0,0,.06) / 深色下 rgba(255,255,255,.08) → 边框色令牌，明暗自动切换 */
+  border: 1px solid var(--el-border-color-lighter);
   cursor: default;
 }
 
-.dark .attachment-chip {
-  background: rgba(42, 42, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
+/* 原值 rgba(229,231,235,1) / 深色下 rgba(58,58,62,.9) → 悬停底色走 --el-fill-color */
 .attachment-chip:hover {
-  background: rgba(229, 231, 235, 1);
+  background: var(--el-fill-color);
 }
 
-.dark .attachment-chip:hover {
-  background: rgba(58, 58, 62, 0.9);
+/* 过渡写在模板的 Tailwind 类上（transition-colors / transition-opacity），
+   这些元素同样带 scoped 标记，故这里能覆盖到。 */
+@media (prefers-reduced-motion: reduce) {
+  .attachment-chip,
+  .attachment-chip button {
+    transition: none;
+  }
 }
 </style>

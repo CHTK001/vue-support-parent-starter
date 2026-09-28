@@ -161,8 +161,8 @@
       </el-checkbox>
       <span class="ms-count">已选 {{ selectedSessionIds.length }} 项</span>
       <div class="ms-spacer"></div>
-      <el-button size="small" round @click="exitMultiSelect">取消</el-button>
-      <el-button size="small" type="danger" round :disabled="selectedSessionIds.length === 0"
+      <el-button  round @click="exitMultiSelect">取消</el-button>
+      <el-button  type="danger" round :disabled="selectedSessionIds.length === 0"
         @click="handleBatchDelete">
         删除<template v-if="selectedSessionIds.length"> ({{ selectedSessionIds.length }})</template>
       </el-button>
@@ -336,7 +336,6 @@ import {
   ImageSearch20Regular,
   Key20Regular,
   ChatMultiple24Regular,
-  ClipboardPulse20Filled,
 } from '@vicons/fluent'
 import { MoreHorizontal20Filled, Settings20Regular, Grid16Regular } from '@vicons/fluent'
 import { Loading } from '@element-plus/icons-vue'
@@ -597,12 +596,6 @@ const navItems = computed(() => {
       showKey: 'showSchedulerMenu',
       adminOnly: true
     },
-    {
-      key: 'session-trace',
-      label: '执行轨迹',
-      icon: ClipboardPulse20Filled,
-      adminOnly: true
-    },
   ]
   
   // 从 localStorage 读取菜单显示配置（默认全部显示）
@@ -644,7 +637,6 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
   if (routeName === 'Skills') return 'skills'
-  if (routeName === 'SessionTrace') return 'session-trace'
   if (routeName === 'Capabilities') return 'capabilities'
   return ''
 })
@@ -865,8 +857,6 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Connectors' })
   } else if (tab === 'skills') {
     router.replace({ name: 'Skills' })
-  } else if (tab === 'session-trace') {
-    router.replace({ name: 'SessionTrace' })
   } else if (tab === 'capabilities') {
     router.replace({ name: 'Capabilities', params: { pipeline: 'text-to-image' } })
   }
@@ -1145,6 +1135,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 令牌口径：本文件的 --color-* 多半是 refactor.css 里真实存在的令牌（明暗各一份），
+   可以继续用；需要收敛的是手写半透明蒙版、魔法圆角与写死时长。
+   遮罩渐变里的 rgba(0,0,0,.65) 是 mask 的「不透明度阶梯」，不是颜色，必须保留。 */
+
 /* 会话项样式 */
 .session-title {
   overflow: hidden;
@@ -1186,17 +1180,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  border-radius: 0.25rem;
+  /* 原值 0.25rem（= 4px）→ xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+/* 原值 rgba(0,0,0,.05) / 暗色下 #383a40 → 悬停底色令牌，两侧都由 refactor.css 给值 */
 .session-action-trigger:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.dark .session-action-trigger:hover {
-  background-color: #383a40;
+  background-color: var(--el-fill-color-light);
 }
 
 /* 空状态 */
@@ -1209,7 +1201,7 @@ onUnmounted(() => {
 /* 滚动条样式 */
 :deep(.el-scrollbar__bar) {
   opacity: 0.6;
-  transition: opacity 0.2s;
+  transition: opacity var(--el-transition-duration-fast, 0.2s);
 }
 
 :deep(.el-scrollbar__bar:hover) {
@@ -1230,7 +1222,8 @@ onUnmounted(() => {
   gap: 10px;
   margin: 0 8px 6px;
   padding: 8px 10px;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, var(--color-surface-border, transparent));
   background: var(--color-surface, transparent);
 }
@@ -1241,5 +1234,39 @@ onUnmounted(() => {
 .session-in-check { padding-left: 8px; }
 .session-checked {
   background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+/* ============================================================================
+   无障碍增强：给「可点但不可 Tab 聚焦」的非按钮元素补焦点环。
+   模板里 div/span + @click 的可点元素（导航项、分组头、会话行、主题切换、
+   设置入口、分组选择项）都没有 tabindex，本轮不改模板（结构不动），
+   故这里只保证 :focus-visible 时视觉不缺失，键盘可达性属待办（见交付报告）。
+   优先用 outline 而不是 box-shadow：侧边栏各项 hover 时会换底色，
+   box-shadow 焦点环与 hover 态互斥会闪烁。
+   ============================================================================ */
+.nav-item:focus-visible,
+.group-header:focus-visible,
+.session-item:focus-visible,
+.session-action-trigger:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   注：nav-item / session-item / group-header 的过渡写在模板的 Tailwind 类上
+   （transition-all / transition-colors + duration-200），与本文件的 scoped
+   选择器同权重，媒体查询里再写一遍才能覆盖。 */
+@media (prefers-reduced-motion: reduce) {
+  .session-action-trigger,
+  :deep(.el-scrollbar__bar) {
+    transition: none;
+  }
+
+  .nav-item,
+  .group-header,
+  .session-item,
+  .session-action-trigger {
+    transition: none;
+  }
 }
 </style>

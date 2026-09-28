@@ -27,7 +27,7 @@
         </p>
         <div class="flex items-center justify-between">
           <span class="text-xs text-gray-400">63种昆虫 · 14个目</span>
-          <el-button type="primary" size="small">开始探索</el-button>
+          <el-button type="primary" >开始探索</el-button>
         </div>
       </div>
 
@@ -51,7 +51,7 @@
         </p>
         <div class="flex items-center justify-between">
           <span class="text-xs text-gray-400">小学 · 初中 · 高中</span>
-          <el-button type="warning" size="small">开始挑战</el-button>
+          <el-button type="warning" >开始挑战</el-button>
         </div>
       </div>
 
@@ -75,7 +75,7 @@
         </p>
         <div class="flex items-center justify-between">
           <span class="text-xs text-gray-400">20+成语</span>
-          <el-button size="small">管理</el-button>
+          <el-button >管理</el-button>
         </div>
       </div>
     </div>

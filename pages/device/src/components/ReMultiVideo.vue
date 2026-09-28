@@ -2,7 +2,7 @@
   <el-dialog :model-value="modelValue" title="多路视频" width="80%" :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
     <div class="flex items-center gap-4 mb-4">
       <span class="text-sm">布局：</span>
-      <el-radio-group :model-value="layout" size="small" @update:model-value="(v: number) => emit('update:layout', v)">
+      <el-radio-group :model-value="layout" @update:model-value="(v: number) => emit('update:layout', v)">
         <el-radio-button :value="1">1</el-radio-button>
         <el-radio-button :value="4">4</el-radio-button>
         <el-radio-button :value="9">9</el-radio-button>
@@ -19,7 +19,7 @@
         <ReVideo :url="urls[i-1]" class="w-full h-full" />
         <el-select
           :model-value="channels[i-1]"
-          size="small"
+
           class="absolute top-2 left-2 w-28"
           @update:model-value="(v: number) => emit('channelChange', { index: i-1, value: v })"
         >

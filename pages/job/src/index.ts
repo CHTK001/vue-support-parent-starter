@@ -13,6 +13,16 @@ import { registerMenuViewModules } from "@repo/core";
 // 样式随包走：谁 import 本包谁就得到调度侧样式，宿主不必记得单独引
 import "./styles/scheduler.css";
 
+/*
+ * 本包视图复用采集侧的骨架类（collect-page / collect-stats / collect-card /
+ * collect-hint / collect-cell-*），这些类只由 @pages/collect 的 collect.css 定义。
+ * 宿主只引 @pages/job 时（系统管理应用），collect.css 不会随包加载，上述类名全部失效：
+ * .collect-page 没有 flex + height:100%，.collect-stats 不是栅格 —— 结果是统计卡竖排成一列、
+ * 页面没有高度约束也不产生滚动条，表格下方数据与分页条被顶出可视区且滚不到。
+ * 故这里显式引入该样式表，让调度页在任何宿主里都自带采集侧骨架样式。
+ */
+import "@pages/collect/src/styles/collect.css";
+
 /**
  * 后端 sys_menu.component → 本地页面（懒加载，仅访问时 import）。
  *

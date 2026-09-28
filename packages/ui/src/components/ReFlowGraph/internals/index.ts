@@ -1,12 +1,14 @@
 export { FlowGraphEngine } from "./engine";
-export type { FlowEngineHandlers, FlowEngineOptions } from "./engine";
+export type { FlowEngineHandlers, FlowEngineOptions, FlowInteractionPatch } from "./engine";
 export {
   DEFAULT_NODE_COLOR,
+  FLOW_CUSTOM_NODE_SHAPE,
   FLOW_EDGE_SHAPE,
   FLOW_NODE_SHAPE,
   NODE_HEIGHT,
   NODE_WIDTH,
   FLOW_EDGE_COLORS,
+  ensureCustomShape,
   ensureFlowRegistered,
 } from "./shapes";
 export { isDagTerminalAllowed } from "./dagRules";
@@ -15,6 +17,8 @@ export type {
   FlowEdge,
   FlowEdgeKind,
   FlowGraphData,
+  FlowMenuAction,
+  FlowMenuItem,
   FlowNode,
   FlowNodeTypeDef,
   FlowSelection,

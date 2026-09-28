@@ -65,7 +65,10 @@
             <span class="ilp__name">{{ it.insectName }}</span>
             <span class="ilp__latin">{{ it.insectLatin }}</span>
           </span>
-          <span v-if="notedCodes.includes(it.insectCode)" class="ilp__note" title="已记笔记">✎</span>
+          <!-- 图标统一走 ReIcon：✎ 是 dingbat 字形，屏幕阅读器会念成「笔」之类的冗余文本 -->
+          <span v-if="notedCodes.includes(it.insectCode)" class="ilp__note" title="已记笔记">
+            <ReIcon name="EditPen" :size="12" aria-hidden="true" />
+          </span>
         </button>
       </li>
     </ul>
@@ -141,9 +144,11 @@ const listed = computed(() => {
   gap: 10px;
   min-height: 0;
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 14px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .ilp__head {
   display: flex;
@@ -173,7 +178,7 @@ const listed = computed(() => {
 .ilp__chip {
   height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
@@ -181,11 +186,16 @@ const listed = computed(() => {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ilp__chip:hover {
   border-color: var(--el-color-primary-light-5);
   color: var(--el-color-primary);
+}
+.ilp__chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .ilp__chip.is-active {
   background: var(--el-color-primary);
@@ -205,13 +215,15 @@ const listed = computed(() => {
   width: 100%;
   height: 32px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ilp__input:focus {
   border-color: var(--el-color-primary);
@@ -237,15 +249,21 @@ const listed = computed(() => {
   gap: 8px;
   padding: 7px 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, transform 0.12s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .ilp__item:hover {
   background: var(--el-color-primary-light-9);
-  transform: translateX(2px);
+}
+.ilp__item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .ilp__item.is-active {
   background: var(--el-color-primary);
@@ -253,7 +271,8 @@ const listed = computed(() => {
 .ilp__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  /* 分类色点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   flex-shrink: 0;
 }
 .ilp__body {
@@ -287,6 +306,9 @@ const listed = computed(() => {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--el-color-warning);
+  /* 换成 ReIcon 后需要 flex 容器让图标居中 */
+  display: inline-flex;
+  align-items: center;
 }
 .ilp__item.is-active .ilp__note {
   color: var(--el-color-white);
@@ -296,5 +318,14 @@ const listed = computed(() => {
   text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .ilp__chip,
+  .ilp__item,
+  .ilp__input {
+    transition: none;
+  }
 }
 </style>

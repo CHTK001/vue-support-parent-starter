@@ -317,6 +317,17 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*（refactor.css 已把 --el-* 映射到 --color-* 主题层）。
+   2. 阴影取舍：本组件是 position: fixed 的可拖拽浮层，「浮起」是功能必需的
+      （否则浮层与页面内容糊在一起，分不清层级），故容器与悬浮球保留
+      --el-box-shadow 系列；页面内的卡片一律不加投影。
+      --el-box-shadow 本身已带暗色值，下面的 .dark 规则保留只为可读性与
+      后续按主题微调。
+   3. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
+   ============================================================================ */
+
 .floating-chat-container {
   position: fixed;
   z-index: 100;
@@ -326,20 +337,23 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
   min-width: 320px;
   max-height: 70vh;
   height: 700px;
-  background: var(--color-bg, #ffffff);
-  border: 1px solid var(--color-surface-border, #e5e7eb);
+  background: var(--el-bg-color-page);
+  border: 1px solid var(--el-border-color-light);
   border-radius: var(--size-dialog-rounded-radius);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  /* 浮层必须「浮起」，用 --el-box-shadow 令牌（原值 0 8px 32px rgba(0,0,0,.12)） */
+  box-shadow: var(--el-box-shadow);
   overflow: hidden;
-  transition: height 0.25s ease;
+  /* 原值 0.25s，最近的令牌档是 0.2s */
+  transition: height var(--el-transition-duration-fast, 0.2s) ease;
   padding: 0;
+  /* 浮层内字号整体降一档：局部覆盖应用主题的 --size-text-base */
   --size-text-base: 14px;
 }
 
 .dark .floating-chat-container {
-  background: var(--color-bg, #1a1a1a);
-  border-color: var(--color-surface-border, #2e3035);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: var(--el-bg-color-page);
+  border-color: var(--el-border-color-light);
+  box-shadow: var(--el-box-shadow);
 }
 
 .floating-chat-header {
@@ -349,13 +363,14 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
   align-items: center;
   justify-content: space-between;
   padding: 0 8px 0 12px;
+  /* 拖拽区而非点击目标，光标用 move 而不是 pointer */
   cursor: move;
-  background: var(--color-surface, #f9fafb);
+  background: var(--el-bg-color-overlay);
 }
 
 .dark .floating-chat-header {
-  background: var(--color-surface, #1a1a1a);
-  border-color: var(--color-surface-border, #2e3035);
+  background: var(--el-bg-color-overlay);
+  border-color: var(--el-border-color-light);
 }
 
 .floating-chat-btn {
@@ -365,16 +380,25 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: transparent;
   cursor: pointer;
-  color: var(--color-text-gray, #9ca3af);
-  transition: background 0.15s, color 0.15s;
+  outline: none;
+  color: var(--el-text-color-secondary);
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 键盘焦点环：24px 的小图标按钮上默认 outline 太弱，改用主色光环 */
+.floating-chat-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .floating-chat-btn:hover {
-  background: var(--color-sidebar-bg-hover, #f3f4f6);
-  color: var(--color-text, #374151);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .floating-chat-body {
@@ -409,25 +433,36 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
   z-index: 100;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  /* 原值 50%（圆形）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary, #409eff);
-  color: #fff;
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: none;
+  /* 悬浮球同样是「浮起」元素，投影是功能必需，用令牌表达 */
+  box-shadow: var(--el-box-shadow-light);
   user-select: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 悬浮球是 div + @mousedown，不可 Tab 聚焦；此处先留好焦点环，
+   待模板补 tabindex="0" 即自动生效 */
+.floating-chat-ball:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .floating-chat-ball:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--el-box-shadow);
 }
 
 .dark .floating-chat-ball {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 /* ── 极简输入模式 ── */
@@ -438,7 +473,8 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
 
 .floating-chat-mode :deep(.input-area) {
   border: none !important;
-  border-top: 1px solid var(--color-input-border, #e5e7eb) !important;
+  border-top: 1px solid var(--color-input-border) !important;
+  /* 面板已是浮层，内部输入区再叠一层投影会显脏，koi 规约也要求容器不加投影 */
   box-shadow: none !important;
   padding: 12px 8px 12px 8px !important;
   min-height: auto !important;
@@ -473,5 +509,14 @@ watch(() => layoutStore.floatingChatCollapsed, (collapsed) => {
 /* 浮动模式下最后一个 turn 不需要 min-height 撑开 */
 .floating-chat-mode :deep(.turn-wrapper--last) {
   min-height: 0 !important;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .floating-chat-container,
+  .floating-chat-btn,
+  .floating-chat-ball {
+    transition: none;
+  }
 }
 </style>

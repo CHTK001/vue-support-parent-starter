@@ -20,6 +20,7 @@ import { getSummary, listNodes } from "../api/jobApi";
 import type { JobNode } from "../types/job";
 import { errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
+import { resolveHostPath } from "../utils/hostPath";
 
 defineOptions({ name: "CollectRemoteNode" });
 
@@ -91,7 +92,7 @@ function createJob(handler?: string): void {
   if (handler) {
     query.task = handler;
   }
-  void router.push({ path: "/collect/job", query });
+  void router.push({ path: resolveHostPath(router, "/collect/job"), query });
 }
 
 /** 空态描述：按本节点角色说明该由谁上报，别让人以为页面坏了 */
@@ -137,8 +138,8 @@ onBeforeUnmount(resetAutoTimer);
           <span class="node-card__title" :title="node.nodeId || node.clientId">
             {{ node.nodeId || node.clientId }}
           </span>
-          <ReTag size="small" type="success" effect="plain">在线</ReTag>
-          <ReTag size="small" type="info" effect="plain">{{ node.role || "EXECUTOR" }}</ReTag>
+          <ReTag type="success" effect="plain" dot>在线</ReTag>
+          <ReTag type="info" effect="plain">{{ node.role || "EXECUTOR" }}</ReTag>
         </div>
 
         <dl class="node-card__meta">
@@ -155,10 +156,12 @@ onBeforeUnmount(resetAutoTimer);
             v-for="handler in node.handlers"
             :key="handler"
             class="node-handler"
-            size="small"
+            role="button"
+            tabindex="0"
             effect="plain"
             title="点击创建调度作业"
             @click="createJob(handler)"
+            @keydown.enter.space="createJob(handler)"
           >
             {{ handler }}
           </ReTag>
@@ -196,6 +199,12 @@ onBeforeUnmount(resetAutoTimer);
       <h2 class="node-empty__title">暂无在线执行器节点</h2>
       <p class="node-empty__desc">{{ emptyTip }}</p>
       <el-button class="node-empty__action" @click="docVisible = true">查看接入文档</el-button>
+      <!--
+        空态也给一次手动重取：节点是执行器心跳上报的，刚起好的执行器可能要等一个
+        上报周期才出现在这里，只给「查看接入文档」等于让人干等。
+        本页没有 ReTable，空态是手写的 .node-empty，不走 ReTable 的 #empty 插槽。
+      -->
+      <ReButton class="node-empty__action" icon="Refresh" @click="load">刷新</ReButton>
     </section>
 
     <ReDialog v-model="docVisible" title="执行器接入（job-starter）" width="860px" top="6vh" footer-hidden>
@@ -481,13 +490,25 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
   padding: 2px 0;
 }
 
+/*
+  处理器芯片是 el-tag 而不是按钮：鼠标能点，键盘进不来。
+  模板里已补 role/tabindex/@keydown，这里补 outline 与焦点环，两边缺一不可。
+*/
 .node-handler {
   cursor: pointer;
+  outline: none;
+  transition:
+    border-color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--rm-transition, 150ms cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .node-handler:hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
+}
+
+.node-handler:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .node-card__none {
@@ -730,6 +751,15 @@ plugin.job.sync.executor.server-url=tcp://调度中心地址:18081</code></pre>
 
   .node-empty__title {
     font-size: 20px;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页的过渡全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .node-refresh :deep(.el-button),
+  .node-card,
+  .node-handler {
+    transition: none;
   }
 }
 </style>

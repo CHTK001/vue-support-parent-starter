@@ -59,7 +59,8 @@ function pick(value: string): void {
 </template>
 
 <style scoped>
-/* 卡片视觉与 ReSelect CardDropdown 卡片保持一致：10px 圆角、浅灰底、悬停/选中主色描边 */
+/* 卡片视觉与 ReSelect CardDropdown 卡片保持一致：浅灰底、悬停/选中主色描边。
+   圆角原为 10px，10px 距 8(md)/12(lg) 等距，按 koi 统一口径取 12px(lg) */
 .glue-cards {
   display: grid;
   /* 固定两列：对象/脚本始终并排一行，不再随宽度折行 */
@@ -73,13 +74,20 @@ function pick(value: string): void {
   gap: 4px;
   padding: 12px 14px;
   text-align: left;
-  border-radius: 10px;
+  border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--rm-border, var(--el-border-color-light));
   background: var(--rm-bg-subtle, var(--el-fill-color-light));
   cursor: pointer;
+  /* 原生 button：去掉浏览器默认轮廓，改用与全站一致的自绘焦点环 */
+  outline: none;
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 原生 button：自绘焦点环；禁用态不画，避免「禁用」看起来仍可聚焦 */
+.glue-cards__item:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .glue-cards__item:hover:not(:disabled) {
@@ -112,5 +120,12 @@ function pick(value: string): void {
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .glue-cards__item {
+    transition: none;
+  }
 }
 </style>

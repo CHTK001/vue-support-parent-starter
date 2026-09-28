@@ -72,6 +72,9 @@ import type {
   HotReloadRuntimeResult,
   HotReloadConfig,
   PolicyConfig,
+  PolicyHitDetail,
+  HeaderRuleRow,
+  HeaderPresets,
   RegisteredRoute,
 } from "./types";
 
@@ -1698,9 +1701,12 @@ export function listEnabledGray() {
  * {@code @RequestMapping} 反查，配置面写不了任意外部地址。</p>
  */
 export function listApiRouteTargets(keyword?: string) {
+  // 不能写 .query({ keyword })：keyword 为 undefined 时序列化器会发出字面量
+  // `keyword=undefined`，后端把它当真实过滤词。要么不带参数，要么带真值。
+  const q = keyword ? { keyword } : {};
   return http()
     .get("/v2/policy/api-route/targets")
-    .query({ keyword })
+    .query(q)
     .then<ApiResult<RegisteredRoute[]>>((r) => r.data);
 }
 
@@ -1709,6 +1715,52 @@ export function refreshApiRoute() {
   return http()
     .post("/v2/policy/api-route/refresh")
     .then<ApiResult<{ routeCount: number; policyCount: number }>>((r) => r.data);
+}
+
+/**
+ * 全部策略的命中次数，键为 `类型|策略键`
+ *
+ * <p>一次取回整张映射，列表页用它填「命中次数」列，避免每行发一次请求。</p>
+ */
+export function policyHitCounts() {
+  return http()
+    .get("/v2/policy/hit/counts")
+    .then<ApiResult<Record<string, number>>>((r) => r.data);
+}
+
+/** 单条策略的命中明细：累计次数、来源 IP 排行、分钟级趋势 */
+export function policyHitDetail(type: string, key: string) {
+  return http()
+    .get("/v2/policy/hit/detail")
+    .query({ type, key })
+    .then<ApiResult<PolicyHitDetail>>((r) => r.data);
+}
+
+/* ================== 策略任务 - 消息头拦截 ================== */
+
+/** 消息头拦截规则列表（后端已解析 config，前端直接展示/编辑） */
+export function listHeaderRules() {
+  return http()
+    .get("/v2/policy/header/list")
+    .then<ApiResult<HeaderRuleRow[]>>((r) => r.data);
+}
+
+/** 爬虫 / 自动化客户端的 UA 特征预设，用于「一键填入」 */
+export function listHeaderPresets() {
+  return http()
+    .get("/v2/policy/header/presets")
+    .then<ApiResult<HeaderPresets>>((r) => r.data);
+}
+
+/**
+ * 重载全部消息头拦截规则
+ *
+ * <p>正常情况下保存/启停/删除即生效，这里用于手工改过库之后补救。</p>
+ */
+export function refreshHeaderRules() {
+  return http()
+    .post("/v2/policy/header/refresh")
+    .then<ApiResult<{ policyCount: number }>>((r) => r.data);
 }
 
 /* ================== 备注 ==================

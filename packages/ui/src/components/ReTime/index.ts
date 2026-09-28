@@ -23,3 +23,13 @@ const plugin: Plugin = {
 export { plugin as install };
 export default ReTime;
 export * from "./types";
+
+/**
+ * 把耗时格式化函数透出，供**字符串上下文**复用。
+ *
+ * 为什么需要：ReTime 是组件，只能用在模板里。但耗时也会出现在 toast 文案、
+ * 复制到剪贴板的摘要这类纯字符串里。那里如果自己拼 `${x}ms`，就会和表格里的
+ * 「176 毫秒」对不上——同一份数据两个页面两种文本，正是这次要消除的问题。
+ * 透出后字符串侧与模板侧走同一个 formatDuration，格式永远一致。
+ */
+export { formatDuration, formatValue, relativeTime, toMs } from "./utils";

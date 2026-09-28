@@ -345,7 +345,9 @@
 }
 
 /*
- * ReCron（cron 表达式组件）：app 级全局去动效兜底（面板 teleport 到 body，scoped 覆盖不到）。
+ * ReCron（cron 表达式组件）：app 级全局去动效兜底。
+ * 设置弹层 append-to-body 后由 Element Plus 渲染外壳，scoped 覆盖不到外壳；
+ * 内容区样式在组件 scoped 里，这里只压外壳与输入盒。
  * 不使用通配选择器（lightningcss 对 `*::before` 之类会报 Delim('*')），改为显式列举关键元素。
  */
 .re-cron,
@@ -356,18 +358,11 @@
 .re-cron .el-input__suffix,
 .re-cron .re-button,
 .re-cron .re-select,
-.re-cron .re-tab,
-.re-cron .el-tabs__header,
-.re-cron .el-tabs__nav-wrap::after,
-.re-cron .el-tabs__active-bar,
-.re-cron__popper,
-.re-cron__popper .el-popover,
-.re-cron__popper .el-tabs__header,
-.re-cron__popper .el-tabs__nav-wrap::after,
-.re-cron__popper .el-tabs__active-bar,
-.re-cron__popper .re-tab,
-.re-cron__popper .re-button,
-.re-cron__popper .re-select {
+.re-cron__dialog,
+.re-cron__dialog .el-dialog,
+.re-cron__dialog .el-dialog__header,
+.re-cron__dialog .re-button,
+.re-cron__dialog .re-select {
   animation: none !important;
   transition: none !important;
 }

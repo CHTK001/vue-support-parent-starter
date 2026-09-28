@@ -33,6 +33,8 @@ export interface Question {
   questionSourceType?: string;
   questionAuditStatus?: number;
   questionUseCount?: number;
+  /** 被新加入试卷的次数（改分、重复提交不重复计）；由组卷保存时 +1 */
+  questionAddCount?: number;
   questionCorrectRate?: number;
   questionStatus?: number;
   /** 创建时间（后端实体来自 SysBase.createTime） */
@@ -80,6 +82,12 @@ export interface PaperQuestionItem {
   answer: string;
   analysis?: string;
   score?: number;
+  /** 题项编号（二维码内容）；注意字段名是 questionNo，不是 paperQuestionNo */
+  questionNo?: string;
+  /** 试卷内顺序（1 起） */
+  order?: number;
+  /** 题组 / 大题标识 */
+  section?: string;
 }
 
 /** 试卷 */
@@ -95,25 +103,61 @@ export interface Paper {
   paperStatus?: number;
   paperSource?: string;
   paperCreateTime?: string;
+  /** 试卷整体难度 1-5 */
+  paperDifficulty?: number;
+  /** 纸张规格: A4 / A3 / A5 / B5 / LETTER */
+  paperPageSize?: string;
+  /** 纸张方向: PORTRAIT / LANDSCAPE */
+  paperPageOrientation?: string;
+  /** 首页大标题风格: classic / modern / simple / exam */
+  paperTitleStyle?: string;
+  /** 页头（富文本） */
+  paperHeader?: string;
+  /** 页脚（富文本） */
+  paperFooter?: string;
+  /** 引用的组卷模板ID */
+  paperTemplateId?: number;
   questions?: PaperQuestionItem[];
 }
 
-/** 手动组卷 / 编辑试卷的保存载荷（创建与更新共用） */
+/**
+ * 手动组卷 / 编辑试卷的保存载荷（创建与更新共用）。
+ *
+ * <p>字段名必须与后端 {@code PaperComposeUpdateDTO} 的 record 组件名逐字一致。
+ * 该 DTO 未开启未知属性失败，多写或写错字段名会被 Jackson 静默丢弃 ——
+ * 曾因此把 {@code totalScore} 写成 {@code paperTotalScore}，表现为「保存成功但满分没变」。</p>
+ */
 export interface PaperComposePayload {
   /** 试卷名称 */
-  paperName: string;
+  name?: string;
   /** 学科 */
-  paperSubject: string;
-  /** 学段 PRIMARY / JUNIOR / SENIOR / UNIVERSITY */
-  paperGradeLevel: string;
+  subject?: string;
+  /** 学段 PRIMARY / JUNIOR / SENIOR / UNIVERSITY（服务端归一化为中文名） */
+  gradeLevel?: string;
   /** 年级 */
-  paperGrade: string;
-  /** 总分；不传由服务端按题目分值汇总 */
-  paperTotalScore?: number;
+  grade?: string;
   /** 考试时长（分钟） */
-  paperDuration?: number;
-  /** 来源：AI-智能组卷 / MANUAL-手动组卷，服务端兜底 */
-  paperSource?: string;
+  duration?: number;
+  /** 纸张规格: A4 / A3 / A5 / B5 / LETTER */
+  pageSize?: string;
+  /** 纸张方向: PORTRAIT / LANDSCAPE */
+  pageOrientation?: string;
+  /** 首页模板标识 */
+  template?: string;
+  /** 首页大标题风格: default / line / double / calligraphy */
+  titleStyle?: string;
+  /** 页头（富文本）；传空字符串表示清空 */
+  header?: string;
+  /** 页脚（富文本）；传空字符串表示清空 */
+  footer?: string;
+  /** 学科/学段是否锁定: 0-否 1-是 */
+  subjectLocked?: number;
+  /** 试卷整体难度 1-5 */
+  difficulty?: number;
+  /** 引用的组卷模板ID */
+  templateId?: number;
+  /** 试卷满分（目标总分）；为空时新建卷按默认 100 */
+  totalScore?: number;
 }
 
 /** 手动组卷：加入试卷的题目条目（POST /v2/edu/paper/{paperId}/questions） */
@@ -426,7 +470,7 @@ export interface PoemGameItem {
   difficulty: number;
 }
 
-/** 古诗文趣味游戏（六种玩法共用的题目载体，按 mode 解释 items 结构） */
+/** 古诗文趣味游戏（七种玩法共用的题目载体，按 mode 解释 items 结构） */
 export interface PoemChallengeData {
   mode: PoemChallengeMode;
   items: PoemChallengeItem[];
@@ -444,6 +488,7 @@ export type PoemChallengeMode =
   | "title"
   | "author"
   | "dynasty"
+  | "theme"
   | "fill";
 
 /** 古诗文趣味游戏单题（字段随 mode 不同而取用不同子集） */
@@ -455,19 +500,18 @@ export interface PoemChallengeItem {
   dynasty?: string;
   /** order：打乱后的句子 */
   sentences?: string[];
-  /** order：正确句序 */
-  answer?: string;
+  /** order：正确句序（字符串数组）；四选一：正确答案文本 */
+  answer?: string | string[];
   /** 四选一类的题干（title/author/dynasty） */
   question?: string;
-  /** 选项（title/author/dynasty/fill） */
-  options?: string[];
-  /** 正确项下标 */
+  /** 选项：四选一类为字符串数组，飞花令为 {text,hit} 对象数组 */
+  options?: Array<string | { text: string; hit: boolean }>;
+  /** 四选一类的正确项下标 */
   answerIndex?: number;
-  /** feihualing：关键字与候选句（hit 标记是否含该字） */
+  /** feihualing：关键字（单字） */
   keyword?: string;
+  /** feihualing：应选中的句数 */
   hitCount?: number;
-  /** feihualing 专用选项结构 */
-  hitOptions?: Array<{ text: string; hit: boolean }>;
   /** fill：挖空后的句子 */
   blanked?: string;
 }
@@ -977,6 +1021,8 @@ export interface EduStudent {
   studentGradeLevel?: string | null;
   studentGrade?: string | null;
   studentEnrollYear?: number | null;
+  /** 家长手机号：学生端可用它登录（与学号二选一）；同号可带多个孩子，故不唯一 */
+  studentParentPhone?: string | null;
   /** 0-离校 1-在读 */
   studentStatus?: number | null;
   createTime?: string;

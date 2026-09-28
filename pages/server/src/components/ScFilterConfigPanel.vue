@@ -214,9 +214,9 @@ watch(isDiscovery, next => {
     <!-- 插件头部 -->
     <div class="fc-head panel">
       <div class="fc-title">
-        <ReTag size="small" :type="meta?.spi ? 'success' : 'primary'">{{ meta?.spi ? 'SPI 插件' : '内置预设' }}</ReTag>
+        <ReTag :type="meta?.spi ? 'success' : 'primary'">{{ meta?.spi ? 'SPI 插件' : '内置预设' }}</ReTag>
         <span class="fc-name">{{ filterType }}</span>
-        <ReTag v-if="meta?.group" size="small" type="info">{{ meta.group }}</ReTag>
+        <ReTag v-if="meta?.group" type="info">{{ meta.group }}</ReTag>
       </div>
       <div class="fc-desc">{{ meta?.desc || '未找到该插件的元数据，按通用参数渲染' }}</div>
       <div v-if="meta?.require" class="fc-require">前提：{{ meta.require }}</div>
@@ -227,7 +227,7 @@ watch(isDiscovery, next => {
           show-text
           icon="TopRight"
           type="primary"
-          size="small"
+
           @click="emit('open-detail-page')"
         >{{ meta?.detailLabel || '查看详情' }}</ReButton>
       </div>
@@ -248,14 +248,14 @@ watch(isDiscovery, next => {
               v-else-if="field.type === 'enum' && optionsOf(field).length"
               :model-value="valueOf(field.name)"
               :data="optionsOf(field)"
-              size="small"
+
               style="width: 100%"
               @change="(v: any) => setValue(field.name, String(v))"
             />
             <ReInput
               v-else
               :model-value="valueOf(field.name)"
-              size="small"
+
               :placeholder="field.desc || field.name"
               @update:model-value="(v: any) => setValue(field.name, String(v ?? ''))"
             />
@@ -276,7 +276,7 @@ watch(isDiscovery, next => {
             <ReInput
               v-else
               :model-value="valueOf(field.name)"
-              size="small"
+
               @update:model-value="(v: any) => setValue(field.name, String(v ?? ''))"
             />
           </div>
@@ -301,14 +301,14 @@ watch(isDiscovery, next => {
             v-else-if="field.type === 'enum' && optionsOf(field).length"
             :model-value="valueOf(field.name)"
             :data="optionsOf(field)"
-            size="small"
+
             style="width: 100%"
             @change="(v: any) => setValue(field.name, String(v))"
           />
           <ReInput
             v-else
             :model-value="valueOf(field.name)"
-            size="small"
+
             :placeholder="field.desc || field.name"
             @update:model-value="(v: any) => setValue(field.name, String(v ?? ''))"
           />
@@ -325,23 +325,23 @@ watch(isDiscovery, next => {
           placeholder="发现协议"
           clearable
           :data="discoveryProtocols.map(p => ({ label: p, value: p }))"
-          size="small"
+
           style="width: 160px"
         />
         <ReInput
           v-model="discoveryUriSpec"
           placeholder="服务标识（如 order-service）"
           clearable
-          size="small"
+
           style="width: 240px"
         />
-        <ReButton show-text icon="Search" size="small" :loading="discoveryLoading" @click="loadDiscoveryInstances">查询实例</ReButton>
+        <ReButton show-text icon="Search" :loading="discoveryLoading" @click="loadDiscoveryInstances">查询实例</ReButton>
         <span v-if="discoveryMessage && discoveryMessage !== 'ok'" class="dim">{{ discoveryMessage }}</span>
       </div>
       <ReTable
         :data="discoveryInstances"
         :loading="discoveryLoading"
-        size="small"
+
         border
         :pagination="false"
         :toolbar="false"
@@ -351,7 +351,7 @@ watch(isDiscovery, next => {
         <ReTableColumn prop="host" label="主机" min-width="140" show-overflow-tooltip />
         <ReTableColumn prop="port" label="端口" width="80" />
         <ReTableColumn label="协议" width="90">
-          <template #default="{ row }"><ReTag size="small">{{ row.protocol }}</ReTag></template>
+          <template #default="{ row }"><ReTag >{{ row.protocol }}</ReTag></template>
         </ReTableColumn>
         <ReTableColumn prop="weight" label="权重" width="70" />
         <ReTableColumn prop="env" label="环境" width="90" />
@@ -368,7 +368,7 @@ watch(isDiscovery, next => {
         show-text
         icon="Lightning"
         type="primary"
-        size="small"
+
         :loading="applying"
         @click="onApply"
       >热更新参数</ReButton>
@@ -378,6 +378,9 @@ watch(isDiscovery, next => {
 </template>
 
 <style scoped lang="scss">
+/* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌（--text-primary /
+   --text-secondary / --text-tertiary / --brand-500 / --warning-600），而那份 tokens.css
+   只有 :root、没有暗色变体，暗色模式下这些值全部停留在亮色。上面已统一改走 EP 语义令牌。 */
 .filter-config {
   display: flex;
   flex-direction: column;
@@ -396,17 +399,17 @@ watch(isDiscovery, next => {
 .fc-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .fc-desc {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--el-text-color-secondary);
   line-height: 1.6;
 }
 .fc-require {
   font-size: 12px;
-  color: var(--warning-600, #b88230);
+  color: var(--el-color-warning-dark-2);
 }
 .fc-meta {
   display: flex;
@@ -417,10 +420,10 @@ watch(isDiscovery, next => {
 .fc-section-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 12px;
   padding-left: 8px;
-  border-left: 3px solid var(--brand-500);
+  border-left: 3px solid var(--el-color-primary);
   line-height: 1.2;
 }
 .fc-grid {
@@ -443,16 +446,16 @@ watch(isDiscovery, next => {
 }
 .fc-label > span:first-child {
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .fc-hint {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
 }
 .fc-empty {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   line-height: 1.7;
 }
 .fc-query {

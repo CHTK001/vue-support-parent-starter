@@ -49,6 +49,12 @@ function handleReset() {
   tableRef.value?.reload();
 }
 
+/** 空态「刷新」与表格工具栏共用：回到第一页重新拉取 */
+function reload() {
+  query.value = { ...query.value, page: 1 };
+  tableRef.value?.reload();
+}
+
 const searchFilters = computed(() => [
   { key: 'sysPostName', label: '岗位名称', type: 'input' as const, placeholder: '请输入' },
   { key: 'sysPostCode', label: '岗位编码', type: 'input' as const, placeholder: '请输入' },
@@ -184,16 +190,29 @@ onMounted(() => {
         @row-sort="handleDragSort"
       >
         <template #toolbar>
-          <el-button type="primary" icon="Plus" v-admin @click="handleAdd" text>新增</el-button>
+          <ReButton type="primary" icon="Plus" v-admin @click="handleAdd">新增岗位</ReButton>
+        </template>
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon">
+              <ReIcon name="Postcard" size="22" />
+            </span>
+            <span class="page-empty__title">还没有岗位</span>
+            <span class="page-empty__desc">岗位用于关联用户与数据权限，先建一个再分配人员。</span>
+            <span class="page-empty__actions">
+              <ReButton type="primary" icon="Plus" v-admin @click="handleAdd">新增岗位</ReButton>
+              <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+            </span>
+          </div>
         </template>
         <template #status="{ row }">
-          <ReTag :type="row.sysPostStatus === 0 ? 'success' : 'danger'" size="small">
+          <ReTag :type="row.sysPostStatus === 0 ? 'success' : 'danger'" effect="plain" dot>
             {{ row.sysPostStatus === 0 ? "启用" : "禁用" }}
           </ReTag>
         </template>
         <template #action="{ row }">
-          <ReButton layout="square" type="primary" icon="Edit" title="编辑" v-admin @click="handleEdit(row)" />
-          <ReButton layout="square" type="danger" icon="Delete" title="删除" v-admin :loading="deleteLoading === row.sysPostId" @click="handleDelete(row)" />
+          <ReButton layout="square" type="primary" icon="Edit" tip="编辑" v-admin @click="handleEdit(row)" />
+          <ReButton layout="square" type="danger" icon="Delete" tip="删除" v-admin :loading="deleteLoading === row.sysPostId" @click="handleDelete(row)" />
         </template>
       </ReTable>
 
@@ -237,5 +256,39 @@ onMounted(() => {
   gap: 16px;
   padding: 0;
   height: 100%;
+  box-sizing: border-box;
+}
+
+/* 表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈） */
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 行内可点区域（导出链接等）补焦点环，键盘用户才看得见当前焦点 */
+:deep(.re-table__cell a),
+:deep(.re-table__cell [role="button"]),
+:deep(.log-content-link) {
+  border-radius: var(--el-radius-xs, 4px);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table__cell [role="button"]:focus-visible),
+:deep(.log-content-link:focus-visible) {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table),
+  :deep(.re-table__cell [role="button"]),
+  :deep(.log-content-link) {
+    transition: none;
+  }
 }
 </style>

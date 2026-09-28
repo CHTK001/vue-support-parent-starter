@@ -51,7 +51,7 @@
     >
       <template #content>
         <div class="calendar-widget__form-head" v-if="editing">
-          <ReButton type="danger" plain size="small" @click="remove">删除</ReButton>
+          <ReButton type="danger" plain @click="remove">删除</ReButton>
         </div>
         <el-form :model="form" label-width="80px" size="default">
           <el-form-item label="日期">

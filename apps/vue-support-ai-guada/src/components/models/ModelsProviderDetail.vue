@@ -103,7 +103,7 @@
             <!-- 底部：与其它供应商一致（启用开关 + 编辑 + 删除） -->
             <div class="mc-foot">
               <span v-if="model.external" class="mc-src is-ext">外部目录</span>
-              <el-switch v-model="model.isActive" @change="handleToggle(model)" size="small" />
+              <el-switch v-model="model.isActive" @change="handleToggle(model)" />
               <div class="mc-foot-btns">
                 <button class="mc-btn" :title="t('common.edit')" @click="handleEdit(model)">
                   <el-icon :size="16"><SettingsOutlined /></el-icon>
@@ -422,10 +422,11 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   align-items: center;
   justify-content: center;
   min-width: 19px; height: 18px; padding: 0 6px;
-  border-radius: 9px;
+  /* 原值 9px，18px 高的计数胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px; font-weight: 600;
-  color: var(--color-text-gray);
-  background: var(--color-surface-border);
+  color: var(--el-text-color-secondary);
+  background: var(--el-border-color-lighter);
 }
 
 /* 模型卡片 */
@@ -535,4 +536,15 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 }
 .mc-btn:hover { color: var(--color-primary); background: var(--color-surface-border); }
 .mc-btn.danger:hover { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); }
+
+/* 动效降级：系统开启「减少动态效果」时，模型卡的描边/底色与卡片按钮的颜色直接到位。
+   逐个列出，不写 `*` / .mc * 通配，
+   避免把卡内 el-tag / el-switch / el-dialog 内部 Element Plus 组件的合法过渡一起掐掉。
+   这两个都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .mc,
+  .mc-btn {
+    transition: none;
+  }
+}
 </style>

@@ -49,9 +49,19 @@ otherConfig:
     quotaGb: 5
 
 # Socket 实时推送（/v2/setting/default 未下发 socket 配置时以本地为准）
-# urls 为空回退 http.baseUrl/当前源 → 经 vite proxy /socket.io → 后端 netty-socketio 29181
+#
+# 本部署关闭：192.168.50.198 的后端没有启用 socket 服务，
+# 每次握手都被拒（403）。这不是「少了个角标」的问题——vite 把 /socket.io 代理成 ws 后，
+# 每次失败的握手都会在 vite 侧抛一次 `ws proxy socket error: write ECONNABORTED`，
+# 异常持续累积直到把 dev server 进程带崩（实测一轮验收里刷出 117 次重连后前端就取不到数据了）。
+# createApp.initGlobalSocket 在 enable=false 时会调 closeGlobalSocketService() 主动断开，
+# 不是「不创建而已」，所以关得干净。
+#
+# nginx 指标的实时推送与本项无关，走的是 SSE（/ms/monitor/nginx/metric/stream）。
+# 后端将来启用了 socket 服务，把这里改回 true 即可恢复告警徽标的实时性；
+# 届时 refreshBadge 的 REST 补偿仍然保留，两者不冲突。
 socketConfig:
-  enable: true
+  enable: false
   protocol: socketio
   context: "/socket.io"
   transports:

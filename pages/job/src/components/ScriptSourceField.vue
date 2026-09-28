@@ -5,13 +5,18 @@
  * 预览保持紧凑（超长内部滚动），点击预览（或回车）打开编辑器弹层，
  * 保存后回写 v-model；供 ReForm 自定义字段使用（modelValue / update:modelValue / change）。
  *
- * lang 决定弹层标题、占位提示与模板：groovy 走 ScriptProvider SPI，
- * java 是完整类源码、执行器用 javax.tools 现场编译（入口方法三级回退见 Java 模板注释）。
+ * lang 是脚本引擎名（java / groovy），mode 决定正文形态，两者共同决定弹层标题、占位提示、
+ * 插入模板与底部说明：
+ *   - mode=file：完整文件（完整 Java 类 / 完整 Groovy 脚本），原样交 ScriptProvider 预编译；
+ *   - mode=fragment：只写 @Job 方法的**方法体**，类名、包名、入口签名、import 由后端
+ *     GlueScriptSynthesizer 生成后再交同一引擎编译。
+ *
+ * lang 允许任意引擎名（SPI 运行时枚举可能有第三个引擎），未知引擎按 groovy 的文案兜底。
  */
 import { computed, ref, watch } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
 
-/** 片段语言：与后端 sys_job_glue_type 一一对应 */
+/** 片段语言：与后端 sys_job_glue_type 一一对应（保留旧名以兼容既有调用） */
 export type GlueLang = "groovy" | "java";
 
 const props = withDefaults(
@@ -22,10 +27,12 @@ const props = withDefaults(
     placeholder?: string;
     /** 预览下方说明 */
     description?: string;
-    /** 片段语言 */
-    lang?: GlueLang;
+    /** 片段语言（引擎名）；未知引擎按 groovy 兜底 */
+    lang?: GlueLang | string;
+    /** 正文形态：file=完整文件（默认），fragment=只写方法体 */
+    mode?: "file" | "fragment";
   }>(),
-  { modelValue: "", placeholder: "", description: "", lang: "groovy" },
+  { modelValue: "", placeholder: "", description: "", lang: "groovy", mode: "file" },
 );
 
 const emit = defineEmits<{
@@ -38,57 +45,112 @@ const visible = ref(false);
 /** 编辑草稿：确认后才回写，取消不影响原值 */
 const draft = ref("");
 
-/** 弹层标题：跟着片段语言走 */
-const dialogTitle = computed(() =>
-  props.lang === "java" ? "编辑代码片段（Java 类）" : "编辑代码片段（Groovy 脚本）",
-);
+/** 是否 Java 引擎（未知引擎按 groovy 兜底，这里只认权威值 java） */
+const isJava = computed(() => props.lang === "java");
+/** 是否片段形态：只写方法体 */
+const isFragment = computed(() => props.mode === "fragment");
+
+/** 弹层标题：形态 + 语言共同决定 */
+const dialogTitle = computed(() => {
+  const label = isJava.value ? "Java" : "Groovy";
+  const shape = isFragment.value
+    ? (isJava.value ? "方法体" : "片段")
+    : (isJava.value ? "完整类" : "完整文件");
+  return `编辑代码片段（${label} · ${shape}）`;
+});
 
 /** 编辑器占位提示（含换行，模板属性里用绑定传入） */
-const editorPlaceholder = computed(() =>
-  props.lang === "java"
-    ? "必须是完整的类源码：package 可选，class 必写。\n入口方法按 @Job 注解 → execute() → 唯一 public 方法 三级回退。"
-    : "例：return 'ok ' + context.jobName\n可用变量：jobName / objectContext / executeParam；最后一条表达式即返回值",
-);
+const editorPlaceholder = computed(() => {
+  if (isFragment.value) {
+    return isJava.value
+      ? "只写方法体：不要写 package / class / import / @Job。\n类名、包名、入口方法与 import 由后端合成；可直接用 objectContext 与 environment。"
+      : "只写 @Job 方法的方法体（Groovy 裸语句）：不要写 class / @Job。\n入口与类名由后端合成；可用变量 jobName / objectContext / executeParam，最后一条表达式即返回值";
+  }
+  return isJava.value
+    ? "写完整 Java 类源码：package / import / class / @Job 入口方法都要自己写，保存时由 java 引擎预编译校验。"
+    : "写完整 Groovy 脚本文件：保存时由 groovy 引擎预编译校验；可用变量 jobName / objectContext / executeParam";
+});
 
-/** 弹层底部说明：两条链路的运行前提不同，必须说清 */
-const editorTip = computed(() =>
-  props.lang === "java"
-    ? "执行器需在 JDK 下运行（javax.tools 现场编译）；字段上的 @Autowired 会自动装配，取 bean 也可写 objectContext.getBean(Xxx.class)。"
-    : "执行器需安装脚本引擎（utils-support-groovy-starter）；objectContext.getBean(Xxx.class) 可直接取 Spring Bean。",
-);
+/** 弹层底部说明：脚本与片段两条链路的运行前提不同，必须说清 */
+const editorTip = computed(() => {
+  if (isFragment.value) {
+    return isJava.value
+      ? "执行器需在 JDK 下运行（后端把方法体合成完整类后交 java 引擎编译）；字段上的 @Autowired 已自动装配，取 bean 也可写 objectContext.getBean(Xxx.class)。"
+      : "执行器需安装脚本引擎（utils-support-groovy-starter）；objectContext.getBean(Xxx.class) 可直接取 Spring Bean。";
+  }
+  return isJava.value
+    ? "执行器需在 JDK 下运行（java 引擎编译整个类）；入口方法加 @Job 注解、命名为 execute，或保证类里只有一个 public 方法。"
+    : "执行器需安装脚本引擎（utils-support-groovy-starter）；整份脚本原样编译执行，objectContext.getBean(Xxx.class) 可直接取 Spring Bean。";
+});
 
-/** Java 片段模板：把三条入口回退与两条取 bean 路径都写在注释里 */
-const JAVA_SAMPLE = `package demo;
+/**
+ * Java 片段模板：**只写方法体**。
+ *
+ * 后端 GlueScriptSynthesizer 会把这段正文包进
+ * `public class Glue<hash> { @Job(...) public void execute(JobObjectContext objectContext) { ... } }`，
+ * 并预置 import 与一个已装配的 environment 字段，所以这里
+ *   - 不能写 package / class / import / @Job 注解（写了就会被包进方法体里 → 必然编译失败）
+ *   - objectContext（JobObjectContext）与 environment（Environment）可直接用
+ */
+const JAVA_FRAGMENT_SAMPLE = `// 只写方法体：类名 / 入口方法 / import 由后端合成
+// 可用变量：objectContext（JobObjectContext）；字段加 @Autowired 可注入 Bean
+objectContext.log("开始执行 job={}", objectContext.getJobKey());
+`;
+
+/**
+ * Java 完整文件模板：包名 / 类名 / @Job 入口方法都要自己写，整类交 java 引擎预编译。
+ */
+const JAVA_FILE_SAMPLE = `package com.example.job;
 
 import com.chua.starter.job.support.annotation.Job;
 import com.chua.starter.job.support.glue.JobObjectContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
-/**
- * 入口方法三级回退：@Job 注解 -> execute() -> 类里唯一的 public 方法。
- * 取 bean 两条路：字段 @Autowired（自动装配），或 objectContext.getBean(Xxx.class)。
- */
-public class MyJobGlue {
+public class MyGlueJob {
 
     @Autowired
-    private GreetingService greetingService;
+    private Environment environment;
 
-    @Job("my-job")
-    public void run(JobObjectContext objectContext) {
-        // 形参可以无参，也可以带一个 JobObjectContext
-        objectContext.log("开始执行 job={} param={}", objectContext.getJobKey(),
-                objectContext.getExecuteParam());
-        GreetingService svc = objectContext.getBean(GreetingService.class);
+    @Job("my-glue-job")
+    public void execute(JobObjectContext objectContext) {
+        objectContext.log("开始执行 job={}", objectContext.getJobKey());
+        String app = environment.getProperty("spring.application.name", "unknown");
+        objectContext.log("应用={} 处理完成", app);
     }
 }
 `;
 
+/** Groovy 片段模板：Groovy 允许裸语句，直接写 @Job 方法体 */
+const GROOVY_FRAGMENT_SAMPLE = `// 只写 @Job 方法的方法体（Groovy 裸语句），入口与类名由后端合成
+// 可用变量：jobName / objectContext / executeParam；最后一条表达式即返回值
+objectContext.log("开始执行 job={}", jobName)
+return "ok " + jobName
+`;
+
+/** Groovy 完整文件模板：整份脚本原样交 groovy 引擎预编译 */
+const GROOVY_FILE_SAMPLE = `// 完整 Groovy 脚本文件：可写 import / 类 / 方法，保存时整份预编译
+// 可用变量：jobName / objectContext / executeParam
+import java.time.LocalDateTime
+
+objectContext.log("开始执行 {} at {}", jobName, LocalDateTime.now())
+return "ok " + jobName
+`;
+
+/** 当前形态 + 语言对应的插入模板 */
+const sampleText = computed(() => {
+  if (isFragment.value) {
+    return isJava.value ? JAVA_FRAGMENT_SAMPLE : GROOVY_FRAGMENT_SAMPLE;
+  }
+  return isJava.value ? JAVA_FILE_SAMPLE : GROOVY_FILE_SAMPLE;
+});
+
 /** 草稿为空时才给「插入模板」，避免盖掉已写内容 */
-const canInsertSample = computed(() => props.lang === "java" && !draft.value.trim());
+const canInsertSample = computed(() => !draft.value.trim());
 
 /** 把模板写进草稿（仍在弹层内，取消不会回写） */
 function insertSample(): void {
-  draft.value = JAVA_SAMPLE;
+  draft.value = sampleText.value;
 }
 
 /** 高亮片段：cls 为空表示普通文本 */
@@ -201,7 +263,7 @@ watch(
       />
       <div class="script-source__editor-tip">
         <button v-if="canInsertSample" type="button" class="script-source__sample-btn" @click="insertSample">
-          插入 Java 模板
+          插入模板
         </button>
         <span>{{ editorTip }}</span>
       </div>

@@ -21,7 +21,16 @@
 
     <!-- 6 大能力卡片 -->
     <div class="card-grid mt-4">
-      <div v-for="card in cards" :key="card.path" class="cap-card" @click="go(card.path)">
+      <!-- 卡片本身可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
+      <div
+        v-for="card in cards"
+        :key="card.path"
+        class="cap-card"
+        role="button"
+        tabindex="0"
+        @click="go(card.path)"
+        @keydown.enter="go(card.path)"
+      >
         <div class="cap-icon" :style="{ background: card.gradient }">
           <el-icon :size="36"><component :is="card.icon" /></el-icon>
         </div>
@@ -29,7 +38,7 @@
           <div class="cap-title">{{ card.title }}</div>
           <div class="cap-desc">{{ card.desc }}</div>
           <div class="cap-tags">
-            <el-tag v-for="t in card.tags" :key="t" size="small" effect="plain" round>{{ t }}</el-tag>
+            <el-tag v-for="t in card.tags" :key="t"  effect="plain" round>{{ t }}</el-tag>
           </div>
         </div>
         <el-icon class="cap-arrow"><ArrowRight /></el-icon>
@@ -42,10 +51,10 @@
         <div class="flex items-center gap-2">
           <el-icon><Monitor /></el-icon>
           <span class="font-semibold">AI 健康详情</span>
-          <el-button link size="small" @click="loadHealth">刷新</el-button>
+          <el-button link  @click="loadHealth">刷新</el-button>
         </div>
       </template>
-      <el-descriptions :column="3" border size="small">
+      <el-descriptions :column="3" border >
         <el-descriptions-item label="AI 总开关">{{ health.enabled ? '启用' : '禁用' }}</el-descriptions-item>
         <el-descriptions-item label="Provider">{{ health.provider || '-' }}</el-descriptions-item>
         <el-descriptions-item label="Model">{{ health.model || '-' }}</el-descriptions-item>
@@ -53,7 +62,7 @@
         <el-descriptions-item label="队列类型">{{ health.queueType }}</el-descriptions-item>
         <el-descriptions-item label="队列连接">{{ health.queueConnected ? 'OK' : '未连接' }}</el-descriptions-item>
         <el-descriptions-item label="已注册 Provider" :span="3">
-          <el-tag v-for="p in (health.registeredProviders ?? [])" :key="p" size="small" class="mr-1">{{ p }}</el-tag>
+          <el-tag v-for="p in (health.registeredProviders ?? [])" :key="p"  class="mr-1">{{ p }}</el-tag>
           <span v-if="!health.registeredProviders?.length" class="text-el-text-secondary">无</span>
         </el-descriptions-item>
       </el-descriptions>
@@ -185,7 +194,6 @@ onMounted(loadHealth);
 
 <style scoped>
 .home-page {
-  padding: 16px;
   height: 100%;
   overflow-y: auto;
 }
@@ -213,10 +221,14 @@ onMounted(loadHealth);
 .cap-card {
   position: relative;
   background: var(--el-bg-color);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 18px;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -224,16 +236,22 @@ onMounted(loadHealth);
 }
 .cap-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  /* 浮起反馈是 koi 唯一允许的卡片投影；原来用的是纯黑 8%，
+     这里用 --el-color-black 8% 等价还原，不改成主色，保持原有中性观感 */
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+}
+.cap-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .cap-icon {
   width: 64px;
   height: 64px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-color-white);
   flex-shrink: 0;
 }
 .cap-body {
@@ -258,5 +276,16 @@ onMounted(loadHealth);
 .cap-arrow {
   color: var(--el-text-color-secondary);
   font-size: 18px;
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .cap-card {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .cap-card:hover {
+    transform: none;
+  }
 }
 </style>

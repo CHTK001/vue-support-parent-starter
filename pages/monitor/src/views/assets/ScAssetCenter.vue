@@ -57,7 +57,7 @@
     >
       <ReTableColumn label="大类" width="90" align="center">
         <template #default="{ row }">
-          <ReTag :class="['type-tag', row.assetType === 'HOST' ? 'blue' : 'purple']" effect="plain" size="small">
+          <ReTag :class="['type-tag', row.assetType === 'HOST' ? 'blue' : 'purple']" effect="plain" >
             {{ row.assetType === 'HOST' ? '主机' : '设备' }}
           </ReTag>
         </template>
@@ -99,7 +99,7 @@
       </ReTableColumn>
       <ReTableColumn label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <ReButton link size="small" @click="openDetail(row)">详情</ReButton>
+          <ReButton link @click="openDetail(row)">详情</ReButton>
         </template>
       </ReTableColumn>
     </ReTable>
@@ -142,7 +142,7 @@
                 <div class="flag" :class="hostDetail.remoteEnabled ? 'on' : 'off'">远控 {{ onOff(hostDetail.remoteEnabled) }}</div>
               </ReCol>
             </ReRow>
-            <ReTable :data="hostDetail.channels || []" border size="small" :pagination="false" :toolbar="false" empty-text="无服务节点">
+            <ReTable :data="hostDetail.channels || []" border :pagination="false" :toolbar="false" empty-text="无服务节点">
               <ReTableColumn prop="name" label="节点" min-width="140" />
               <ReTableColumn prop="protocol" label="协议" width="90" align="center" />
               <ReTableColumn prop="port" label="端口" width="80" align="center" />
@@ -207,7 +207,7 @@
               通道
               <span class="section-extra">已启用 {{ deviceDetail.enabledChannelCount }} / {{ deviceDetail.channelCount }}</span>
             </h4>
-            <ReTable :data="deviceDetail.channels || []" border size="small" :pagination="false" :toolbar="false" empty-text="无通道">
+            <ReTable :data="deviceDetail.channels || []" border :pagination="false" :toolbar="false" empty-text="无通道">
               <ReTableColumn prop="channelNo" label="通道号" width="80" align="center" />
               <ReTableColumn prop="channelName" label="通道名称" min-width="140" />
               <ReTableColumn prop="channelType" label="类型" width="100" align="center" />
@@ -226,7 +226,7 @@
               共 {{ currentMonitors.length }} 项 · 活跃告警 {{ currentActiveAlarmCount }} 条
             </span>
           </h4>
-          <ReTable :data="currentMonitors" border size="small" :pagination="false" :toolbar="false">
+          <ReTable :data="currentMonitors" border :pagination="false" :toolbar="false">
             <ReTableColumn prop="name" label="监控项" min-width="140" />
             <ReTableColumn prop="host" label="地址" min-width="130" />
             <ReTableColumn prop="serviceType" label="服务类型" width="100" align="center" />
@@ -372,6 +372,12 @@ onMounted(fetchList)
 </script>
 
 <style scoped>
+/* 本文件原先整套用 pages/monitor/src/styles/tokens.css 的私有令牌（--bg-* / --text-*
+   / --border-subtle / --status-* / --shadow-card / --border-radius*），而那份 tokens.css
+   只有 :root、没有暗色变体，暗色模式下这些值全部停留在亮色。已统一改走 EP 语义令牌；
+   --metric-* 是各监控域的固定色相（需彼此可区分），保留不换。 */
+/* 页面入场淡入：0.35s 刻意慢于微交互档（整块内容从下方 8px 升起，需要时间被看清），
+   且 both 填充保证动画结束后停在终态，reduced-motion 下直接停掉不会留残影 */
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
@@ -381,7 +387,9 @@ onMounted(fetchList)
   gap: 14px;
   margin-bottom: 20px;
 }
-.stat-bar { height: 3px; width: 32px; border-radius: 2px; margin-top: 6px; }
+/* 3px 高的统计色条，圆角 2px 比 koi 最小档 4px 还小，用 EP 自带的 --el-border-radius-small。
+   底色由模板 :style 传入（脚本里的 s.color），不属本文件令牌范围 */
+.stat-bar { height: 3px; width: 32px; border-radius: var(--el-border-radius-small, 2px); margin-top: 6px; }
 
 .filter-bar {
   display: flex;
@@ -389,9 +397,11 @@ onMounted(fetchList)
   flex-wrap: wrap;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  /* 原为 var(--border-radius)（tokens.css 里是 10px），10px 距 8/12 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：容器静止态不加投影，边界改由这圈 1px 边框承载 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .search-box {
   flex: 1;
@@ -399,9 +409,9 @@ onMounted(fetchList)
   align-items: center;
   gap: 8px;
   padding: 7px 12px;
-  background: var(--bg-fill);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-subtle);
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  border: 1px solid var(--el-border-color-lighter);
   min-width: 220px;
 }
 .search-box input {
@@ -410,36 +420,38 @@ onMounted(fetchList)
   outline: none;
   background: transparent;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
-.search-icon { width: 14px; height: 14px; color: var(--text-tertiary); flex-shrink: 0; }
+.search-icon { width: 14px; height: 14px; color: var(--el-text-color-secondary); flex-shrink: 0; }
 .filter-select { width: 140px; }
-.filter-divider { width: 1px; height: 24px; background: var(--border-subtle); }
-.filter-hint { font-size: 12px; color: var(--text-tertiary); }
+.filter-divider { width: 1px; height: 24px; background: var(--el-border-color-lighter); }
+.filter-hint { font-size: 12px; color: var(--el-text-color-secondary); }
 
 .asset-table {
   margin-top: 14px;
-  border-radius: var(--border-radius);
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
-  box-shadow: var(--shadow-card);
+  /* 原来只有 box-shadow: var(--shadow-card) 承载边界；按 koi 规约改成 1px 边框 */
+  border: 1px solid var(--el-border-color-lighter);
 }
-.name-cell { font-weight: 500; color: var(--text-primary); font-size: 13px; }
-.dim { color: var(--text-tertiary); font-size: 11.5px; }
+.name-cell { font-weight: 500; color: var(--el-text-color-primary); font-size: 13px; }
+.dim { color: var(--el-text-color-secondary); font-size: 11.5px; }
 
-.type-tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+.type-tag { font-size: 11px; font-weight: 600; padding: 1px 6px; /* 原为 3px，取最小档 4px */ border-radius: var(--el-radius-xs, 4px); }
+/* --metric-* 是各监控域的固定色相，彼此需可区分，保留原色相 */
 .type-tag.blue { color: var(--metric-cpu); }
 .type-tag.purple { color: var(--metric-jvm); }
 
 .status-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   font-weight: 600;
 }
-.status-pill.on { color: var(--status-success); background: color-mix(in srgb, var(--status-success) 10%, transparent); }
-.status-pill.off { color: var(--text-tertiary); background: var(--bg-fill); }
-.status-pill.alarm { color: var(--status-error); background: color-mix(in srgb, var(--status-error) 10%, transparent); }
+.status-pill.on { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 12%, transparent); }
+.status-pill.off { color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); }
+.status-pill.alarm { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); }
 
 .detail-body { min-height: 200px; }
 .detail-section { margin-bottom: 18px; }
@@ -449,38 +461,46 @@ onMounted(fetchList)
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   margin: 0 0 10px;
   padding-left: 8px;
   border-left: 3px solid var(--el-color-primary);
   line-height: 1.2;
 }
-.section-extra { font-size: 11px; font-weight: 400; color: var(--text-tertiary); }
+.section-extra { font-size: 11px; font-weight: 400; color: var(--el-text-color-secondary); }
 
 .kv { display: flex; gap: 8px; padding: 4px 0; font-size: 12.5px; }
-.kv .k { color: var(--text-tertiary); width: 62px; flex-shrink: 0; }
-.kv .v { color: var(--text-primary); word-break: break-all; }
+.kv .k { color: var(--el-text-color-secondary); width: 62px; flex-shrink: 0; }
+.kv .v { color: var(--el-text-color-primary); word-break: break-all; }
 .kv.wide { padding: 3px 0; }
 
 .flag {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--el-radius-sm, 6px);
   font-size: 12px;
   font-weight: 500;
-  background: var(--bg-fill);
-  color: var(--text-secondary);
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-regular);
 }
-.flag.on { color: var(--status-success); background: color-mix(in srgb, var(--status-success) 10%, transparent); }
-.flag.off { color: var(--text-tertiary); }
-.flag.plain { color: var(--text-secondary); }
+.flag.on { color: var(--el-color-success); background: color-mix(in srgb, var(--el-color-success) 12%, transparent); }
+.flag.off { color: var(--el-text-color-secondary); }
+.flag.plain { color: var(--el-text-color-regular); }
 
 .mb-12 { margin-bottom: 12px; }
 .mt-8 { margin-top: 8px; }
-.empty-hint { font-size: 12px; color: var(--text-tertiary); padding: 6px 0; }
+.empty-hint { font-size: 12px; color: var(--el-text-color-secondary); padding: 6px 0; }
 
 @media (max-width: 768px) {
   .summary-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .filter-select { width: 100% !important; flex: 1 1 100%; }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  /* 入场淡入可停：animation 用 both 填充，终态是完全不透明且无位移，停掉即直接呈现 */
+  .fade-in {
+    animation: none;
+  }
 }
 </style>

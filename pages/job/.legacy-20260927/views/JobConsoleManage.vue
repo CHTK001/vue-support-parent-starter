@@ -310,7 +310,7 @@ onMounted(() => {
         v-model:page-size="query.pageSize"
       >
         <template #group="{ row }">
-          <ReTag v-if="row.sysJobGroup" type="info" effect="plain" size="small">{{ row.sysJobGroup }}</ReTag>
+          <ReTag v-if="row.sysJobGroup" type="info" effect="plain" >{{ row.sysJobGroup }}</ReTag>
           <span v-else class="task-dim">-</span>
         </template>
         <template #scheduleType="{ row }">
@@ -321,7 +321,7 @@ onMounted(() => {
           <span v-else class="task-dim">-</span>
         </template>
         <template #dispatchMode="{ row }">
-          <ReTag :type="row.sysJobDispatchMode === 'REMOTE' ? 'warning' : 'primary'" effect="plain" size="small">
+          <ReTag :type="row.sysJobDispatchMode === 'REMOTE' ? 'warning' : 'primary'" effect="plain" >
             {{ row.sysJobDispatchMode || "-" }}
           </ReTag>
         </template>
@@ -389,12 +389,12 @@ onMounted(() => {
           <span class="task-dim">{{ row.sysJobLogTriggerType || "-" }}</span>
         </template>
         <template #triggerCode="{ row }">
-          <ReTag :type="codeMeta(row.sysJobLogTriggerCode).type" effect="plain" size="small">
+          <ReTag :type="codeMeta(row.sysJobLogTriggerCode).type" effect="plain" >
             {{ codeMeta(row.sysJobLogTriggerCode).label }}
           </ReTag>
         </template>
         <template #executeCode="{ row }">
-          <ReTag :type="codeMeta(row.sysJobLogExecuteCode).type" effect="plain" size="small">
+          <ReTag :type="codeMeta(row.sysJobLogExecuteCode).type" effect="plain" >
             {{ codeMeta(row.sysJobLogExecuteCode).label }}
           </ReTag>
         </template>

@@ -149,20 +149,20 @@ onMounted(fetchAll);
         <p class="page-desc">事件流 · 按级别响应 · 24h 触发 <b>{{ totalAlarms }}</b> 次 · 未处理 <b>{{ unhandledCount }}</b></p>
       </div>
       <div class="page-actions">
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true"  :loading="loading" @click="fetchAll">刷新</ReButton>
       </div>
     </div>
 
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
-      <ReButton icon="RefreshRight" type="primary" size="small" :show-text="true" @click="fetchAll">重试</ReButton>
+      <ReButton icon="RefreshRight" type="primary"  :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
     <!-- 级别 KPI 行（左色条对齐告警级别色） -->
     <section class="kpi-row cols-5">
       <div class="kpi" :class="`c-${kpiTone(lv)}`" v-for="lv in LEVELS" :key="lv">
         <div class="kpi-head">
-          <ReButton icon="Warning" layout="square" size="small" />
+          <ReButton icon="Warning" layout="square"  />
           <span class="kpi-label">{{ lv }} {{ LEVEL_LABELS[lv] }}</span>
           <span class="tag" :class="`sev-${lv}`">{{ sevLabel(lv) }}</span>
         </div>
@@ -173,9 +173,9 @@ onMounted(fetchAll);
 
     <!-- 过滤栏 -->
     <div class="filter-panel">
-      <ReInput v-model="keyword" placeholder="搜索主机 / 指标" clearable size="small" class="f-kw" />
-      <ReSelect v-model="filterLevel" placeholder="级别" clearable size="small" class="f-sel" :options="LEVELS.map(lv => ({ label: lv + ' ' + LEVEL_LABELS[lv], value: lv }))" />
-      <ReSelect v-model="filterStatus" placeholder="状态" clearable size="small" class="f-sel" :options="[
+      <ReInput v-model="keyword" placeholder="搜索主机 / 指标" clearable  class="f-kw" />
+      <ReSelect v-model="filterLevel" placeholder="级别" clearable  class="f-sel" :options="LEVELS.map(lv => ({ label: lv + ' ' + LEVEL_LABELS[lv], value: lv }))" />
+      <ReSelect v-model="filterStatus" placeholder="状态" clearable  class="f-sel" :options="[
         { label: '未处理', value: 'NEW' },
         { label: '已处理', value: 'PROCESSED' },
         { label: '误报', value: 'FALSE_ALARM' },
@@ -191,18 +191,18 @@ onMounted(fetchAll);
         :columns="alarmColumns"
         :loading="loading"
         :border="false"
-        size="small"
+        
         empty-text="暂无告警事件"
         table-id="monitor-alarms"
       >
         <template #col-time="{ row }"><span class="mono">{{ timeText(row) }}</span></template>
         <template #col-level="{ row }">
-          <ReTag :type="(alarmLevel(row)==='P0'||alarmLevel(row)==='P1')?'danger':alarmLevel(row)==='P2'?'warning':'success'" effect="dark" size="small">{{ alarmLevel(row) }}</ReTag>
+          <ReTag :type="(alarmLevel(row)==='P0'||alarmLevel(row)==='P1')?'danger':alarmLevel(row)==='P2'?'warning':'success'" effect="dark" >{{ alarmLevel(row) }}</ReTag>
         </template>
         <template #col-value="{ row }"><span class="mono">{{ valueText(row) }}</span></template>
         <template #col-status="{ row }"><ReTag :type="statusType(row)">{{ statusLabel(row) }}</ReTag></template>
         <template #col-op="{ row }">
-          <ReButton v-if="isUnhandled(row)" icon="Check" layout="square" size="small" type="primary" @click="openHandle(row)" title="处理" />
+          <ReButton v-if="isUnhandled(row)" icon="Check" layout="square"  type="primary" @click="openHandle(row)" title="处理" />
           <span v-else class="dim">—</span>
         </template>
       </ReTable>
@@ -259,4 +259,4 @@ onMounted(fetchAll);
   border-radius: 0 0 12px 12px;
   border-top: none;
 }
-</style>
+</style>

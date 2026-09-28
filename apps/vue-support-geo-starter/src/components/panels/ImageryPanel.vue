@@ -148,7 +148,7 @@ onMounted(async () => {
 
 <template>
   <div class="panel">
-    <el-form label-position="top" size="small">
+    <el-form label-position="top" >
       <el-form-item label="影像图源">
         <el-select v-model="form.source" :loading="sourcesLoading" filterable style="width: 100%">
           <el-option
@@ -261,7 +261,7 @@ onMounted(async () => {
   margin-bottom: 12px;
   padding: 10px 12px;
   background: var(--el-fill-color-light);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
 }
 .estimate-row {
   display: flex;
@@ -279,5 +279,14 @@ onMounted(async () => {
 }
 .panel-actions .el-button {
   flex: 1;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本面板自身无 transition/animation，需关掉的是图源下拉加载的旋转指示 */
+@media (prefers-reduced-motion: reduce) {
+  .panel :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

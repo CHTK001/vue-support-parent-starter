@@ -17,7 +17,7 @@
           </div>
 
           <!-- 状态标签 -->
-          <el-tag :type="getStatusType(task.processingStatus)" size="small" class="ml-2 shrink-0">
+          <el-tag :type="getStatusType(task.processingStatus)" class="ml-2 shrink-0">
             {{ getStatusText(task.processingStatus) }}
           </el-tag>
         </div>
@@ -39,10 +39,10 @@
 
         <!-- 操作按钮 -->
         <div v-if="task.processingStatus === 'failed'" class="mt-2 flex justify-end gap-2">
-          <el-button size="small" @click="$emit('retry', task)">
+          <el-button @click="$emit('retry', task)">
             {{ t('common.retry') }}
           </el-button>
-          <el-button size="small" type="danger" @click="$emit('delete', task)">
+          <el-button type="danger" @click="$emit('delete', task)">
             {{ t('common.delete') }}
           </el-button>
         </div>
@@ -60,7 +60,7 @@
     <!-- 底部操作 -->
     <template #footer>
       <div class="flex justify-end">
-        <el-button size="small" @click="handleClose">{{ t('common.close') }}</el-button>
+        <el-button @click="handleClose">{{ t('common.close') }}</el-button>
       </div>
     </template>
   </LDialog>

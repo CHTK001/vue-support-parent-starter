@@ -182,25 +182,38 @@ defineExpose({
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*。refactor.css 已把 --el-* 映射到 --color-* 主题层，
+      9 套配色换肤时自动跟随；原先成套的 .dark 硬编码色已被令牌吞掉，
+      .dark 规则保留仅为可读性与后续按主题微调。
+   2. 阴影取舍：技能弹层是浮在输入框上方的 popover，「浮起」是功能必需的，
+      故保留 --el-box-shadow 系列；弹层内部的列表项 / 标签不加投影。
+   3. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
+   ============================================================================ */
+
 .command-picker {
   position: absolute;
   bottom: calc(100% + 12px);
   left: 0;
   right: 0;
   z-index: 1000;
-  border-radius: 16px;
-  background: var(--el-bg-color, #fff);
-  border: 1px solid var(--el-border-color, #e4e7ed);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
+  /* 原值 16px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  /* 弹层用 overlay 底色令牌（--el-bg-color 是页面底色，层级不对） */
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
+  /* 浮起反馈：popover 必须与下层输入区拉开距离，原值 0 -8px 32px rgba(0,0,0,.08) */
+  box-shadow: var(--el-box-shadow-light);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .dark .command-picker {
-  background: #2d2d2d;
-  border-color: #3c3c3c;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--el-bg-color-overlay);
+  border-color: var(--el-border-color);
+  box-shadow: var(--el-box-shadow);
 }
 
 /* 技能列表 */
@@ -216,18 +229,26 @@ defineExpose({
   gap: 10px;
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 0.15s;
-  border-radius: 10px;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+  /* 原值 10px，最近的档位是 lg 12px */
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+/* 键盘焦点环：列表项是 div + @click，键盘可达性靠 ChatInput 的上下键
+   （moveUp / moveDown）+ .active 态；这里补上可见焦点环，双通道不冲突 */
+.picker-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .picker-item:hover,
 .picker-item.active {
-  background: var(--el-fill-color-light, #f5f7fa);
+  background: var(--el-fill-color-light);
 }
 
 .dark .picker-item:hover,
 .dark .picker-item.active {
-  background: #3c3c3c;
+  background: var(--el-fill-color);
 }
 
 .item-icon {
@@ -236,7 +257,8 @@ defineExpose({
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -265,7 +287,8 @@ defineExpose({
 .item-tag {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
   flex-shrink: 0;
@@ -293,13 +316,13 @@ defineExpose({
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-light, #e4e7ed);
-  background: var(--el-bg-color-page, #fafafa);
+  border-top: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color-page);
 }
 
 .dark .picker-search {
-  border-top-color: #3c3c3c;
-  background: #262626;
+  border-top-color: var(--el-border-color);
+  background: var(--el-bg-color-page);
 }
 
 .search-icon {
@@ -314,6 +337,11 @@ defineExpose({
   background: transparent;
   font-size: 14px;
   color: var(--el-text-color-primary);
+}
+
+/* 输入框有 outline: none，必须补可见焦点指示，否则键盘用户看不出焦点在哪 */
+.search-input:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .search-input::placeholder {
@@ -331,6 +359,14 @@ defineExpose({
 
 .picker-list::-webkit-scrollbar-thumb {
   background: var(--el-border-color);
-  border-radius: 3px;
+  /* 原值 3px，恰为 6px 滚动条宽的一半即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .picker-item {
+    transition: none;
+  }
 }
 </style>

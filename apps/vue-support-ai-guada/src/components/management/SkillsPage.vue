@@ -47,7 +47,7 @@
             </el-tooltip>
             <el-switch
               v-model="row.enabled"
-              size="small"
+
               :loading="toggling === keyOf(row)"
               @change="() => handleToggle(row)"
             />
@@ -96,10 +96,10 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="font-medium">{{ row.name }}</span>
-                  <el-tag size="small" :type="row.source === 'custom' ? 'success' : 'info'">
+                  <el-tag :type="row.source === 'custom' ? 'success' : 'info'">
                     {{ row.source === 'custom' ? '已安装' : '内置' }}
                   </el-tag>
-                  <el-tag v-if="!row.enabled" size="small" type="warning">已停用</el-tag>
+                  <el-tag v-if="!row.enabled" type="warning">已停用</el-tag>
                 </div>
                 <p class="text-xs text-gray-500 mt-1 truncate">{{ row.description || '（无描述）' }}</p>
               </div>
@@ -139,13 +139,13 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <h3 class="font-bold truncate hover:text-(--color-primary)">{{ item.name }}</h3>
-                    <el-tag v-if="item.installed" size="small" type="success">已安装</el-tag>
+                    <el-tag v-if="item.installed" type="success">已安装</el-tag>
                   </div>
                   <p class="text-xs text-gray-500 mt-1 line-clamp-2">
                     {{ item.description || '（该源未提供描述）' }}
                   </p>
                   <div class="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                    <el-tag size="small" type="info">{{ item.source }}</el-tag>
+                    <el-tag type="info">{{ item.source }}</el-tag>
                     <span v-if="item.author">{{ item.author }}</span>
                     <span v-if="item.stars">★ {{ item.stars }}</span>
                     <span v-if="item.forks">Fork {{ item.forks }}</span>
@@ -155,7 +155,7 @@
                 <div class="flex items-center gap-1 shrink-0">
                   <el-button
                     type="primary"
-                    size="small"
+
                     :disabled="!item.url"
                     :loading="installing === item.id"
                     @click.stop="handleInstall(item)"
@@ -407,12 +407,14 @@ onMounted(loadInstalled);
 
 <style scoped>
 .market-card {
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   transition: all 0.2s;
 }
+/* 卡片本体不加投影；仅保留悬浮浮起反馈这一类 */
 .market-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
 }
 .market-card-clickable {
   cursor: pointer;
@@ -423,7 +425,8 @@ onMounted(loadInstalled);
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 /* 已安装技能卡片：与技能市场卡片样式一致，右侧多「启用开关 + 卸载」 */
@@ -438,16 +441,18 @@ onMounted(loadInstalled);
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: var(--mp-radius-lg, 14px);
-  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
+     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   min-width: 0;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .mg-cell:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+  box-shadow: var(--el-box-shadow-light);
 }
 .mg-cell-icon {
   flex: none;
@@ -497,7 +502,8 @@ onMounted(loadInstalled);
   height: 26px;
   padding: 0;
   border: none;
-  border-radius: 7px;
+  /* 原值 7px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: transparent;
   color: var(--el-color-danger);
   cursor: pointer;
@@ -515,4 +521,32 @@ onMounted(loadInstalled);
 .mg-cell--off {
   opacity: 0.6;
 }
+
+/* 动效降级：系统开启「减少动态效果」时，市场卡上浮、单元描边与卸载底色直接到位。
+   逐个列出，不写 `*` / `.mg-cell *` 通配，
+   避免把 el-switch / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   这些都只带 transition（无 animation），hover 态都是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .market-card,
+  .mg-cell,
+  .mg-cell-uninstall {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：已安装技能单元是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 单元底色是令牌化的 --el-bg-color，一档主色描边足够可见。 */
+.mg-cell {
+  outline: none;
+}
+
+.mg-cell:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 注意：B 段清单里的 mg-cell-actions 不是可点元素 —— 它只是 @click.stop 的
+   点击拦截壳（防止开关/卸载的点击冒泡到卡片），自身既无 tabindex 也不可聚焦，
+   给它写 :focus-visible 规则永远不会命中，属于死代码，因此未在此改动。
+   同理 .mg-cell-uninstall 是原生 <button>，自带焦点环，也不需要补。 */
 </style>

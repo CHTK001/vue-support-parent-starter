@@ -102,16 +102,45 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 令牌口径：原 var(--color-text-secondary, #9ca3af) / var(--color-primary, #3b82f6)
+   / var(--color-hover-bg, #f3f4f6) 里的 --color-text-secondary 与 --color-hover-bg
+   在 refactor.css 里都不存在，一直是靠写死的 hex 在渲染，换肤必然对不上。 */
 .window-add-btn {
   padding: 4px;
   margin-right: 8px;
-  color: var(--color-text-secondary, #9ca3af);
-  transition: all 0.2s;
+  /* 原值 var(--color-text-secondary, #9ca3af) → 次级文字色令牌 */
+  color: var(--el-text-color-secondary);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .window-add-btn:hover {
-  color: var(--color-primary, #3b82f6);
-  background: var(--color-hover-bg, #f3f4f6);
-  border-radius: 4px;
+  /* 原值 var(--color-primary, #3b82f6) → 主色令牌 */
+  color: var(--el-color-primary);
+  /* 原值 var(--color-hover-bg, #f3f4f6) → 悬停底色令牌 */
+  background: var(--el-fill-color-light);
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，hover 的颜色渐变直接到位。
+   这里只关 .window-add-btn 自己的 transition，不写通配 *，
+   否则会把 el-button 内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .window-add-btn {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：窗口行是带 @click 的 div（不是 button），浏览器不给默认焦点环。
+   清单给出的选择器 mx-1 就是这一行身上的 Tailwind 工具类，
+   scoped 编译后会自动带上本组件的 data-v 标记，因此只命中这一行、不会外溢。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。 */
+.mx-1 {
+  outline: none;
+}
+
+.mx-1:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

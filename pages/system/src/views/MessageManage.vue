@@ -806,6 +806,7 @@ onMounted(() => {
           <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
+            engine="vxe"
             :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="msgQuery"
@@ -820,18 +821,36 @@ onMounted(() => {
             class="mt-2"
           >
             <template #toolbar>
-              <el-button type="primary" icon="Plus" v-admin @click="handleAdd" text></el-button>
+              <!-- C：去掉 text 改为实心主色按钮；handleAdd 打开的是「发送消息」弹窗，
+                   文案写「发送消息」而不是「新增消息」——它不做草稿暂存，点了就是发出去 -->
+              <ReButton type="primary" icon="Plus" v-admin @click="handleAdd">发送消息</ReButton>
+            </template>
+            <template #empty>
+              <div class="page-empty">
+                <span class="page-empty__icon">
+                  <ReIcon name="ChatDotRound" size="22" />
+                </span>
+                <span class="page-empty__title">还没有消息</span>
+                <span class="page-empty__desc">消息是系统投递给用户的通知记录，发布后可查送达与已读回执。</span>
+                <span class="page-empty__actions">
+                  <ReButton type="primary" icon="Plus" v-admin @click="handleAdd">发送消息</ReButton>
+                  <!-- 复用已有 handleMsgReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+                  <ReButton icon="Refresh" @click="handleMsgReset">重置筛选</ReButton>
+                </span>
+              </div>
             </template>
             <template #type="{ row }">
-              <ReTag type="primary" effect="light" round size="small">{{ typeLabel(row.sysMessageType) }}</ReTag>
+              <ReTag type="primary" effect="light" round >{{ typeLabel(row.sysMessageType) }}</ReTag>
             </template>
             <template #mchannel="{ row }">
-              <ReTag :type="msgChannelTagType(row.sysMessageChannel)" effect="light" round size="small">
+              <ReTag :type="msgChannelTagType(row.sysMessageChannel)" effect="light" round >
                 {{ msgChannelLabel(row.sysMessageChannel) }}
               </ReTag>
             </template>
             <template #level="{ row }">
-              <ReTag :type="levelTagType(row.sysMessageLevel)" effect="light" round size="small">
+              <!-- B：级别是紧急度状态（high/urgent=danger、low=info），统一 plain + dot；
+                   round 保留原有胶囊外形，不改 type 逻辑 -->
+              <ReTag :type="levelTagType(row.sysMessageLevel)" effect="plain" round dot>
                 {{ levelLabel(row.sysMessageLevel) }}
               </ReTag>
             </template>
@@ -845,31 +864,32 @@ onMounted(() => {
               <ReTime :value="row.sysMessageSendTime" format="YYYY-MM-DD HH:mm:ss" relative />
             </template>
             <template #mstatus="{ row }">
-              <ReTag :type="msgStatusTagType(row.sysMessageStatus)" effect="light" round size="small">{{ msgStatusLabel(row.sysMessageStatus) }}</ReTag>
+              <!-- B：发送状态（已发送=success / 已撤回=info / 草稿=warning）统一 plain + dot -->
+              <ReTag :type="msgStatusTagType(row.sysMessageStatus)" effect="plain" round dot>
+                {{ msgStatusLabel(row.sysMessageStatus) }}
+              </ReTag>
             </template>
             <template #action="{ row }">
-              <ReButton layout="square" icon="View" type="primary" title="详情" @click="handleMsgDetail(row)" />
+              <ReButton layout="square" icon="View" type="primary" tip="详情" @click="handleMsgDetail(row)" />
               <ReButton
                 layout="square"
                 type="warning"
                 icon="RefreshLeft"
                 v-admin
+                tip="撤回"
                 :disabled="row.sysMessageStatus === 2"
                 :loading="msgActionLoading === row.sysMessageId"
                 @click="handleRecall(row)"
-              >
-                撤回
-              </ReButton>
+              />
               <ReButton
                 layout="square"
                 type="danger"
                 icon="Delete"
                 v-admin
+                tip="删除"
                 :loading="msgActionLoading === row.sysMessageId"
                 @click="handleDeleteMsg(row)"
-              >
-                删除
-              </ReButton>
+              />
             </template>
           </ReTable>
         </template>
@@ -879,6 +899,7 @@ onMounted(() => {
           <ReTable
             ref="tplTableRef"
             table-id="system-message-template"
+            engine="vxe"
             :search="{ filters: tplSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="tplQuery"
@@ -893,9 +914,23 @@ onMounted(() => {
             class="mt-2"
           >
             <template #toolbar>
-              <el-tooltip content="新增模板" placement="top">
-                <el-button icon="Plus" v-admin @click="handleTplAdd" text/>
-              </el-tooltip>
+              <!-- C：原来是「只有图标的 text 按钮 + el-tooltip」，改为带文案的实心主色按钮；
+                   按钮已有文字标签，原 tooltip 与之重复，故不再包裹 -->
+              <ReButton type="primary" icon="Plus" v-admin @click="handleTplAdd">新增模板</ReButton>
+            </template>
+            <template #empty>
+              <div class="page-empty">
+                <span class="page-empty__icon">
+                  <ReIcon name="Document" size="22" />
+                </span>
+                <span class="page-empty__title">还没有消息模板</span>
+                <span class="page-empty__desc">模板是邮件 / 短信的统一文案来源，变量用 ${变量} 占位，业务方按编码调用。</span>
+                <span class="page-empty__actions">
+                  <ReButton type="primary" icon="Plus" v-admin @click="handleTplAdd">新增模板</ReButton>
+                  <!-- 复用已有 handleTplReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+                  <ReButton icon="Refresh" @click="handleTplReset">重置筛选</ReButton>
+                </span>
+              </div>
             </template>
             <template #tstatus="{ row }">
               <ReSwitch
@@ -905,14 +940,14 @@ onMounted(() => {
               />
             </template>
             <template #taction="{ row }">
-              <ReButton layout="square" icon="View" type="primary" title="预览" @click="handleTplPreview(row)" />
-              <ReButton layout="square" icon="Promotion" type="success" title="发送" v-admin @click="handleTplSend(row)" />
-              <ReButton layout="square" icon="Edit" type="primary" title="编辑" v-admin @click="handleTplEdit(row)" />
+              <ReButton layout="square" icon="View" type="primary" tip="预览" @click="handleTplPreview(row)" />
+              <ReButton layout="square" icon="Promotion" type="success" tip="发送" v-admin @click="handleTplSend(row)" />
+              <ReButton layout="square" icon="Edit" type="primary" tip="编辑" v-admin @click="handleTplEdit(row)" />
               <ReButton
                 layout="square"
                 icon="Delete"
                 type="danger"
-                title="删除"
+                tip="删除"
                 v-admin
                 :loading="tplActionLoading === row.sysMessageTemplateId"
                 @click="handleTplDelete(row)"
@@ -926,6 +961,7 @@ onMounted(() => {
           <ReTable
             ref="logTableRef"
             table-id="system-message-log"
+            engine="vxe"
             :search="{ filters: logSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="logQuery"
@@ -940,10 +976,26 @@ onMounted(() => {
             class="mt-2"
           >
             <template #toolbar>
-              <el-button type="danger" icon="Delete" v-admin @click="handleLogOpenClean" text></el-button>
+              <!-- C：清理是破坏性操作，保留 danger 语义（不套 primary），但补上明确文案 -->
+              <ReButton type="danger" icon="Delete" v-admin @click="handleLogOpenClean">清理历史日志</ReButton>
+            </template>
+            <template #empty>
+              <div class="page-empty">
+                <span class="page-empty__icon">
+                  <ReIcon name="Tickets" size="22" />
+                </span>
+                <span class="page-empty__title">还没有发送日志</span>
+                <span class="page-empty__desc">每次按模板推送都会在这里留一条记录，含渠道、耗时与回执，便于排查送达问题。</span>
+                <span class="page-empty__actions">
+                  <ReButton type="danger" icon="Delete" v-admin @click="handleLogOpenClean">清理历史日志</ReButton>
+                  <!-- 复用已有 handleLogReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+                  <ReButton icon="Refresh" @click="handleLogReset">重置筛选</ReButton>
+                </span>
+              </div>
             </template>
             <template #logstatus="{ row }">
-              <ReTag :type="logStatusTagType(row.sysMessageCode)" effect="plain" size="small">
+              <!-- B：推送结果状态（成功=success / 失败=danger / 其他=info）统一 plain + dot -->
+              <ReTag :type="logStatusTagType(row.sysMessageCode)" effect="plain" dot>
                 {{ logStatusLabel(row.sysMessageCode) }}
               </ReTag>
             </template>
@@ -954,7 +1006,7 @@ onMounted(() => {
               <ReTime :value="row.createTime" format="YYYY-MM-DD HH:mm:ss" relative />
             </template>
             <template #logaction="{ row }">
-              <ReButton layout="square" icon="View" type="primary" title="详情" @click="handleLogDetail(row)" />
+              <ReButton layout="square" icon="View" type="primary" tip="详情" @click="handleLogDetail(row)" />
             </template>
           </ReTable>
         </template>
@@ -1007,7 +1059,7 @@ onMounted(() => {
     <!-- ========== 消息详情弹窗（送达/已读回执） ========== -->
     <ReDialog v-model="msgDetailVisible" title="消息详情" width="760px" :footer-hidden="true">
       <div v-if="msgDetailRow" v-loading="msgDetailLoading">
-        <el-descriptions :column="2" border size="small" class="mb-4">
+        <el-descriptions :column="2" border  class="mb-4">
           <el-descriptions-item label="标题">{{ msgDetailRow.sysMessageTitle || '--' }}</el-descriptions-item>
           <el-descriptions-item label="渠道">{{ msgChannelLabel(msgDetailRow.sysMessageChannel) }}</el-descriptions-item>
           <el-descriptions-item label="类型">{{ typeLabel(msgDetailRow.sysMessageType) }}</el-descriptions-item>
@@ -1115,23 +1167,23 @@ onMounted(() => {
           <el-form-item v-else label="内容（富文本编辑器）">
             <div class="rich-editor">
               <div class="rich-editor__toolbar">
-                <el-button-group size="small">
+                <el-button-group >
                   <el-button @click="execRichCommand('bold')" title="加粗"><b>B</b></el-button>
                   <el-button @click="execRichCommand('italic')" title="斜体"><i>I</i></el-button>
                   <el-button @click="execRichCommand('underline')" title="下划线"><u>U</u></el-button>
                   <el-button @click="execRichCommand('strikeThrough')" title="删除线"><s>S</s></el-button>
                 </el-button-group>
-                <el-button-group size="small" style="margin-left: 8px">
+                <el-button-group  style="margin-left: 8px">
                   <el-button @click="execRichCommand('formatBlock', 'h3')" title="标题">H3</el-button>
                   <el-button @click="execRichCommand('insertUnorderedList')" title="列表">•</el-button>
                   <el-button @click="execRichCommand('insertOrderedList')" title="编号">1.</el-button>
                 </el-button-group>
-                <el-button-group size="small" style="margin-left: 8px">
+                <el-button-group  style="margin-left: 8px">
                   <el-button @click="execRichCommand('justifyLeft')" title="左对齐">左</el-button>
                   <el-button @click="execRichCommand('justifyCenter')" title="居中">中</el-button>
                   <el-button @click="execRichCommand('justifyRight')" title="右对齐">右</el-button>
                 </el-button-group>
-                <el-button size="small" style="margin-left: 8px" @click="execRichCommand('removeFormat')" title="清除格式">清除</el-button>
+                <el-button  style="margin-left: 8px" @click="execRichCommand('removeFormat')" title="清除格式">清除</el-button>
               </div>
               <div
                 ref="richEditorRef"
@@ -1242,8 +1294,9 @@ onMounted(() => {
           <h4 class="preview-layout__heading">渲染结果</h4>
           <div v-if="previewResult" class="preview-result">
             <div class="preview-result__tags">
-              <el-tag v-if="!previewResult.complete" type="warning" size="small">存在未解析变量</el-tag>
-              <el-tag v-else type="success" size="small">全部解析</el-tag>
+              <!-- B：变量是否全部解析是结果状态，换成 ReTag 并统一 plain + dot -->
+              <ReTag v-if="!previewResult.complete" type="warning" effect="plain" dot>存在未解析变量</ReTag>
+              <ReTag v-else type="success" effect="plain" dot>全部解析</ReTag>
             </div>
             <div v-if="previewResult.unresolvedParams?.length" class="preview-result__unresolved">
               未解析变量：{{ previewResult.unresolvedParams.join(', ') }}
@@ -1326,12 +1379,15 @@ onMounted(() => {
     <!-- ========== 日志详情弹窗 ========== -->
     <ReDialog v-model="logDetailVisible" title="日志详情" width="680px" :footer-hidden="true">
       <div v-if="logDetailRow" class="log-detail">
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="2" border >
           <el-descriptions-item label="接收人">{{ logDetailRow.sysMessageLogTarget || '--' }}</el-descriptions-item>
           <el-descriptions-item label="渠道">{{ channelLabel(logDetailRow.sysMessageLogChannel) }}</el-descriptions-item>
           <el-descriptions-item label="模板ID">{{ logDetailRow.sysMessageTemplateId ?? '--' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <ReTag :type="logStatusTagType(logDetailRow.sysMessageCode)" size="small">{{ logStatusLabel(logDetailRow.sysMessageCode) }}</ReTag>
+            <!-- B：日志详情里的推送结果同样统一 plain + dot -->
+            <ReTag :type="logStatusTagType(logDetailRow.sysMessageCode)" effect="plain" dot>
+              {{ logStatusLabel(logDetailRow.sysMessageCode) }}
+            </ReTag>
           </el-descriptions-item>
           <el-descriptions-item label="耗时">{{ logDetailRow.sysMessageCost != null ? logDetailRow.sysMessageCost + ' ms' : '--' }}</el-descriptions-item>
           <el-descriptions-item label="消息ID" :span="2">{{ logDetailRow.sysMessageLogMessageId || '--' }}</el-descriptions-item>
@@ -1387,6 +1443,18 @@ onMounted(() => {
   padding: 0;
   height: 100%;
 }
+
+/* 表格外壳：卡片不加投影（koi 规约），只用 1px 描边表达层级；
+   键盘聚焦内部控件时描边转主色，让「焦点在哪一块」可感知 */
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
 /* ==================== 消息管理：按 UI 图改造 ==================== */
 /* 搜索区：胶囊输入 / 按钮 + 主色渐变搜索按钮 */
 .system-page :deep(.koi-search .el-input__wrapper),
@@ -1438,13 +1506,14 @@ onMounted(() => {
     font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-regular);
+    /* 3px 宽的竖条：圆角走 full 令牌，视觉上被自身宽度夹住仍是小圆头 */
     &::before {
       content: "";
       display: inline-block;
       width: 3px;
       height: 13px;
       margin-right: 8px;
-      border-radius: 2px;
+      border-radius: var(--el-radius-full, 9999px);
       background: var(--el-color-primary);
     }
   }
@@ -1453,7 +1522,7 @@ onMounted(() => {
 .rich-editor {
   width: 100%;
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
   &__toolbar {
     display: flex;
@@ -1510,7 +1579,7 @@ onMounted(() => {
     overflow-y: auto;
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: var(--el-border-radius-base);
+    border-radius: var(--el-radius-sm, 6px);
     font-size: 14px;
     line-height: 1.7;
     color: var(--el-text-color-primary);
@@ -1523,7 +1592,7 @@ onMounted(() => {
   margin-top: 16px;
   padding: 12px;
   background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
   &__title { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--el-text-color-secondary); }
   &__item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
   &__key { font-family: monospace; color: var(--el-color-primary); }
@@ -1536,7 +1605,7 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
 }
 
 .receipt-section {
@@ -1550,7 +1619,7 @@ onMounted(() => {
   text-align: center;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
   &__num { font-size: 24px; font-weight: 700; color: var(--el-text-color-primary); }
   &__label { margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary); }
 }
@@ -1560,7 +1629,7 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   text-align: center;
   border: 1px dashed var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
 }
 .receipt-content {
   padding: 12px;
@@ -1570,7 +1639,7 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-sm, 6px);
 }
 
 .log-detail {
@@ -1581,7 +1650,7 @@ onMounted(() => {
     &--content { white-space: pre-wrap; line-height: 1.7; }
     &--pre {
       margin: 0; padding: 12px; background: var(--el-fill-color-light);
-      border-radius: var(--el-border-radius-base); font-size: 12px; line-height: 1.6;
+      border-radius: var(--el-radius-sm, 6px); font-size: 12px; line-height: 1.6;
       white-space: pre-wrap; word-break: break-word;
     }
   }
@@ -1598,6 +1667,13 @@ onMounted(() => {
     flex-direction: column;
     &__left { width: 100%; padding: 0 0 16px; border-right: none; border-bottom: 1px solid var(--el-border-color); }
     &__right { padding: 16px 0 0; }
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：本文件新增/沿用的过渡统一关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table) {
+    transition: none;
   }
 }
 </style>

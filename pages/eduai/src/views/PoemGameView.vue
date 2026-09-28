@@ -328,10 +328,11 @@ onBeforeUnmount(stopTimer);
 
 <style scoped>
 .pg-page {
+  /* 不设内边距：外层 .main-content 已提供 8px，避免双重边距 */
   min-height: 100%;
-  padding: 20px;
   background: linear-gradient(160deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
 }
 .pg-header {
   display: flex;
@@ -347,10 +348,11 @@ onBeforeUnmount(stopTimer);
 }
 .pg-today {
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 10px 18px;
   text-align: center;
-  box-shadow: var(--el-box-shadow-lighter);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pg-today__label {
   font-size: 12px;
@@ -370,9 +372,11 @@ onBeforeUnmount(stopTimer);
 }
 .pg-card {
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 20px 22px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pg-card__title {
   margin: 0 0 16px;
@@ -389,7 +393,8 @@ onBeforeUnmount(stopTimer);
 .pg-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
 }
 .pg-dot--green {
@@ -424,7 +429,7 @@ onBeforeUnmount(stopTimer);
 .pg-chip {
   height: 36px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
@@ -432,11 +437,16 @@ onBeforeUnmount(stopTimer);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .pg-chip:hover {
   border-color: var(--el-color-primary-light-5);
   color: var(--el-color-primary);
+}
+.pg-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .pg-chip.is-active {
   background: var(--el-color-primary);
@@ -453,7 +463,8 @@ onBeforeUnmount(stopTimer);
 .pg-count__bubble {
   min-width: 34px;
   height: 34px;
-  border-radius: 50%;
+  /* 纯圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-weight: 800;
@@ -465,12 +476,18 @@ onBeforeUnmount(stopTimer);
   width: 100%;
   height: 52px;
   border: 0;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 17px;
   font-weight: 800;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.pg-start:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .pg-start:disabled {
   opacity: 0.6;
@@ -511,7 +528,7 @@ onBeforeUnmount(stopTimer);
 .pg-side__level {
   align-self: flex-start;
   padding: 8px 18px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary-dark-2);
   font-weight: 800;
@@ -519,10 +536,12 @@ onBeforeUnmount(stopTimer);
 .pg-side__clock,
 .pg-progress {
   background: var(--el-bg-color);
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px;
   text-align: center;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pg-clock {
   font-size: 40px;
@@ -544,9 +563,11 @@ onBeforeUnmount(stopTimer);
 }
 .pg-main {
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 20px 22px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pg-main__head {
   display: flex;
@@ -566,7 +587,7 @@ onBeforeUnmount(stopTimer);
 }
 .pg-main__badge {
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary-dark-2);
   font-size: 12px;
@@ -576,7 +597,7 @@ onBeforeUnmount(stopTimer);
 .pg-question {
   margin: 22px 0;
   padding: 22px;
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-color-primary-light-9);
   font-size: 24px;
   font-weight: 800;
@@ -595,7 +616,8 @@ onBeforeUnmount(stopTimer);
   gap: 10px;
   min-height: 56px;
   padding: 10px 16px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: var(--el-text-color-primary);
@@ -603,17 +625,23 @@ onBeforeUnmount(stopTimer);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .pg-option:hover:not(:disabled) {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
+.pg-option:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .pg-option__idx {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  border-radius: 50%;
+  /* 选项序号圆用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-fill-color);
   color: var(--el-text-color-regular);
   font-weight: 800;
@@ -658,12 +686,17 @@ onBeforeUnmount(stopTimer);
   height: 46px;
   padding: 0 28px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.pg-next:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .pg-next:disabled {
   opacity: 0.5;
@@ -673,9 +706,11 @@ onBeforeUnmount(stopTimer);
   max-width: 760px;
   margin: 0 auto;
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 26px 28px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .pg-result__title {
   margin: 0 0 18px;
@@ -693,7 +728,8 @@ onBeforeUnmount(stopTimer);
 .pg-result__item {
   text-align: center;
   padding: 14px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary-light-9);
 }
 .pg-result__num {
@@ -714,7 +750,7 @@ onBeforeUnmount(stopTimer);
 }
 .pg-result__row {
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
   border-left: 4px solid var(--el-color-success);
 }
@@ -743,12 +779,18 @@ onBeforeUnmount(stopTimer);
 .pg-btn {
   height: 50px;
   border: 0;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.pg-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .pg-btn--ghost {
   background: var(--el-color-primary-light-9);
@@ -761,6 +803,14 @@ onBeforeUnmount(stopTimer);
   }
   .pg-options {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .pg-chip,
+  .pg-option {
+    transition: none;
   }
 }
 </style>

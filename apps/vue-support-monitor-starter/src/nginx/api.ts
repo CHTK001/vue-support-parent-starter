@@ -172,7 +172,75 @@ export interface NginxAccessTop {
   statuses: NginxTopStatus[];
   /** 统计口径说明 */
   message: string | null;
+  /**
+   * 本次扫描的出站字节总量（`$body_bytes_sent` 求和）
+   *
+   * <p>`null` 表示**无法统计**（access log 被自定义过 log_format、没有这一列），
+   * 不是「零流量」。界面必须区分这两种情况，原因见 {@link message}。</p>
+   */
+  bytesSent: number | null;
+  /** 独立客户端 IP 总数（`ips` 只含 Top N，不能拿它当总数） */
+  uniqueIps: number;
+  /** 4xx 请求数 */
+  clientErrors: number;
+  /** 5xx 请求数 */
+  serverErrors: number;
 }
+
+/** 按 URL 维度的访问趋势 */
+export interface NginxUrlTrend {
+  logName: string;
+  totalLines: number;
+  scannedLines: number;
+  /**
+   * 实际覆盖起点（epoch 秒）。
+   *
+   * <p>画图和标注都以这个为准，<strong>不要用 `fromTime`</strong>：
+   * `fromTime` 是服务器本地时间文本，不带时区，浏览器会按**自己所在的时区**去解析它，
+   * 前后端时区不一致时整条曲线会整体平移几个甚至几十个小时。
+   * epoch 秒是无歧义的绝对时刻。</p>
+   */
+  fromEpoch: number;
+  /** 实际覆盖终点（epoch 秒）；0 表示日志无法解析出时间 */
+  toEpoch: number;
+  /** 实际覆盖起点（服务器本地时间文本，仅供人读与排障） */
+  fromTime: string | null;
+  /** 实际覆盖终点（服务器本地时间文本） */
+  toTime: string | null;
+  /** 时间桶宽度（秒），由后端按实际跨度自适应挑选 */
+  bucketSeconds: number;
+  /** 口径说明（必须展示给用户，避免把「最近 N 行」误读成固定时间窗） */
+  message: string;
+  series: NginxUrlTrendSeries[];
+}
+
+/** 单个 URL 的时间序列 */
+export interface NginxUrlTrendSeries {
+  path: string;
+  /** 覆盖区间内的总命中数 */
+  hits: number;
+  /** 各时间桶计数，长度与桶数一致 */
+  buckets: number[];
+}
+
+/**
+ * 读取按 URL 的访问趋势。
+ *
+ * <p>与 24 小时趋势是两条独立链路：这个直接扫 access log 尾部，
+ * <strong>时间跨度由日志密度决定</strong>（高流量时可能只有几分钟），
+ * 所以界面上必须用 {@link NginxUrlTrend.message} 把实际覆盖区间标出来。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @param lines        扫描尾部行数，缺省 5000
+ * @param topN         取前几个 URL，缺省 5
+ * @return URL 趋势
+ */
+export const fetchNginxUrlTrend = (datasourceId?: number, lines?: number, topN?: number) =>
+  http()
+    .get(`${B}/log/url-trend`)
+    .query({ datasourceId, lines, topN })
+    .timeout(60_000)
+    .then(r => unwrap<NginxUrlTrend>(r));
 
 /**
  * 读取访问日志 Top 统计。
@@ -318,6 +386,17 @@ export interface NginxBackup {
   reason: string | null;
 }
 
+/** 备份与当前配置的差异结果 */export interface NginxBackupDiff {
+  backupName: string;
+  targetPath: string;
+  /** 新增行数：只存在于当前文件 */
+  added: number;
+  /** 删除行数：只存在于备份 */
+  removed: number;
+  /** unified-diff 风格行序列：`-` 删除、`+` 新增、两个空格前缀为未变 */
+  lines: string[];
+}
+
 /** 站点（一个 server 块）聚合视图 */
 export interface NginxSite {
   /** 该 server 块在其所属文件语法树中的路径标识，可直接用于定位编辑 */
@@ -351,9 +430,20 @@ export interface NginxTemplate {
 
 // ==================== 接口 ====================
 
-/** 总览 */
+/**
+ * 总览。
+ *
+ * <p>超时给到 60s：这个接口要走 SSH 上目标机、跑 {@code nginx -V} 定位 prefix、
+ * 读配置目录、跑 {@code nginx -t} 语法检查，再拉 stub_status。
+ * 实测常态就要 3.6~4.2s，赶上采集器（每 30s 一轮）并发时经常冲过 10s。</p>
+ *
+ * <p>原来没设 timeout，用的是全局默认 10s，于是本机验收里间歇性报
+ * 「总览加载失败 AxiosError: timeout of 10000ms exceeded」——
+ * 看着像接口挂了，其实是超时预算不够。相邻的重接口（test/reload/stop 等）
+ * 都显式给了 60~120s，唯独这里漏了。</p>
+ */
 export const fetchNginxOverview = (datasourceId?: number) =>
-  http().get(`${B}/overview`).query({ datasourceId }).noToast(true).then(r => unwrap<NginxOverview>(r));
+  http().get(`${B}/overview`).query({ datasourceId }).timeout(60_000).noToast(true).then(r => unwrap<NginxOverview>(r));
 
 /** 列出配置文件 */
 export const fetchNginxConfigFiles = (datasourceId?: number) =>
@@ -471,3 +561,23 @@ export const restoreNginxBackup = (
     .query({ datasourceId, targetPath })
     .timeout(60_000)
     .then(r => unwrap<NginxCommandResult>(r));
+
+/** 读取备份内容，供预览与下载使用 */
+export const fetchNginxBackupContent = (datasourceId: number | undefined, name: string) =>
+  http()
+    .get(`${B}/backup/content`)
+    .query({ datasourceId, name })
+    .timeout(60_000)
+    .then(r => unwrap<string>(r));
+
+/** 备份与当前配置的差异 */
+export const fetchNginxBackupDiff = (
+  datasourceId: number | undefined,
+  name: string,
+  target: string
+) =>
+  http()
+    .get(`${B}/backup/diff`)
+    .query({ datasourceId, name, target })
+    .timeout(60_000)
+    .then(r => unwrap<NginxBackupDiff>(r));

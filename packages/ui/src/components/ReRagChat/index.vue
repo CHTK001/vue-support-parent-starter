@@ -51,20 +51,20 @@
         <el-input
           v-model="topK"
           type="number"
-          size="small"
+
           style="width: 80px"
           placeholder="TopK"
         />
         <el-input
           v-model="threshold"
           type="number"
-          size="small"
+
           style="width: 100px"
           placeholder="阈值"
           step="0.05"
         />
         <el-button
-          size="small"
+
           :disabled="!libraryId"
           @click="handleClear"
         >

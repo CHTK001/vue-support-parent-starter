@@ -280,8 +280,8 @@
         @keyup.enter="confirmMkdir"
       />
       <template #footer>
-        <el-button size="small" @click="mkdirVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :disabled="!newName.trim()" @click="confirmMkdir">
+        <el-button @click="mkdirVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!newName.trim()" @click="confirmMkdir">
           创建
         </el-button>
       </template>
@@ -302,8 +302,8 @@
         class="we-editor-area"
       />
       <template #footer>
-        <el-button size="small" @click="editorVisible = false">关闭</el-button>
-        <el-button size="small" type="primary" :loading="saving" @click="saveEditor">
+        <el-button @click="editorVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="saving" @click="saveEditor">
           保存
         </el-button>
       </template>
@@ -325,7 +325,7 @@
       </div>
       <template #footer>
         <span class="we-preview-meta dim">{{ previewName }} · {{ formatSize(previewSize) }}</span>
-        <el-button size="small" @click="closePreview">关闭</el-button>
+        <el-button @click="closePreview">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -364,8 +364,8 @@
         </div>
       </div>
       <template #footer>
-        <el-button size="small" @click="permVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="permSaving" @click="savePerms">应用</el-button>
+        <el-button @click="permVisible = false">取消</el-button>
+        <el-button type="primary" :loading="permSaving" @click="savePerms">应用</el-button>
       </template>
     </el-dialog>
 

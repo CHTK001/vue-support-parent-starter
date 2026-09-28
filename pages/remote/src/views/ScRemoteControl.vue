@@ -4,7 +4,7 @@
       <template #header>
         <div class="panel-header">
           <span>远程连接</span>
-          <el-tag :type="wsConnected ? 'success' : 'info'" size="small">
+          <el-tag :type="wsConnected ? 'success' : 'info'" >
             {{ wsConnected ? '已连接' : '未连接' }}
           </el-tag>
         </div>
@@ -275,6 +275,9 @@ onBeforeUnmount(() => {
 }
 .terminal-container {
   flex: 1;
+  /* 终端配色固定不跟随主题：#0c0c0c 底 + #00ff41 荧光绿字是 SSH 输出区的既有约定，
+     脚本里 appendTerminalOutput 也是按同一组颜色给 span 上色（#ff4757 标 stderr），
+     改成主题色会让亮色模式下的终端失去黑底对比 */
   background: #0c0c0c;
   color: #00ff41;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
@@ -292,6 +295,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 同上：远控画面画布留固定深底，白色边框衬住桌面截图边缘更清楚 */
   background: #0c0c0c;
   min-height: 400px;
 }
@@ -301,7 +305,9 @@ onBeforeUnmount(() => {
   object-fit: contain;
 }
 .placeholder {
-  color: #666;
+  /* 原为写死的 #666，在亮色底上对比度只有 4.6:1，且暗色模式下几乎看不见；
+     换成语义次级文字色，亮暗色都可读 */
+  color: var(--el-text-color-secondary);
   font-size: 14px;
 }
 </style>

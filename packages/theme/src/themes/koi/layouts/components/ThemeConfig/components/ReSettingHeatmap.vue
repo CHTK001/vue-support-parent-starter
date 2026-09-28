@@ -164,7 +164,7 @@ onBeforeUnmount(() => removeCanvas());
       />
 
       <div v-if="heatmap.devHeatmap" class="heatmap-actions">
-        <el-button size="small" plain @click="clearHeatmap">
+        <el-button plain @click="clearHeatmap">
           {{ t("heatmap.clear") }}
         </el-button>
         <span class="heatmap-hint">{{ t("heatmap.hint", { count: heatPointCount }) }}</span>

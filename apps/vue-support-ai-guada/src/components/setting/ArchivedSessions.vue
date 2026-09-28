@@ -29,11 +29,11 @@
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <el-button type="primary" size="small" :disabled="selectedIds.size === 0" :loading="batchLoading"
+          <el-button type="primary" :disabled="selectedIds.size === 0" :loading="batchLoading"
             @click="handleBatchUnarchive">
             {{ t('settings.archived.batchUnarchive') }}
           </el-button>
-          <el-button type="danger" size="small" :disabled="selectedIds.size === 0" :loading="batchDeleting"
+          <el-button type="danger" :disabled="selectedIds.size === 0" :loading="batchDeleting"
             @click="handleBatchDelete">
             批量删除
           </el-button>
@@ -73,7 +73,7 @@
     <!-- 分页 -->
     <div v-if="total > pageSize" class="flex justify-center pt-1">
       <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="total"
-        layout="prev, pager, next" size="small" @current-change="handlePageChange" />
+        layout="prev, pager, next" @current-change="handlePageChange" />
     </div>
   </div>
 </template>
@@ -295,12 +295,12 @@ onMounted(() => {
 .filter-bar {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .batch-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .batch-count { font-size: 12px; color: var(--el-text-color-secondary); }
 
@@ -319,7 +319,7 @@ onMounted(() => {
 .arch-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 16px;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
   transition: background 0.16s ease;
 }
 .arch-item:hover { background: var(--el-fill-color-light); }
@@ -330,7 +330,8 @@ onMounted(() => {
 .arch-time { font-size: 12px; color: var(--el-text-color-secondary); flex-shrink: 0; width: 46px; text-align: right; }
 
 .op-btn {
-  width: 26px; height: 26px; border: none; border-radius: 7px; cursor: pointer;
+  /* 原值 7px → sm 档 */
+  width: 26px; height: 26px; border: none; border-radius: var(--el-radius-sm, 6px); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent; transition: background 0.16s ease, color 0.16s ease;
 }
@@ -338,4 +339,15 @@ onMounted(() => {
 .op-btn-primary:hover { background: var(--el-color-primary-light-9); }
 .op-btn-danger { color: var(--el-color-danger); }
 .op-btn-danger:hover { background: var(--el-color-danger-light-9); }
+
+/* 动效降级：系统开启「减少动态效果」时，列表行悬停底色与操作按钮底色直接到位。
+   逐个列出，不写 `*` / `.arch-list *` 通配，
+   避免把 el-checkbox / el-pagination / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
+   这两个都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .arch-item,
+  .op-btn {
+    transition: none;
+  }
+}
 </style>

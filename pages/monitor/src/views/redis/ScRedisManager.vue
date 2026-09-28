@@ -33,7 +33,7 @@
         <div v-else class="key-list">
           <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()">
             <span class="key-text">{{ k }}</span>
-            <ReButton link size="small" type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
+            <ReButton link type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
           </div>
           <ReEmpty v-if="filteredKeys.length === 0" description="暂无数据，请先扫描" :image-size="60" />
         </div>
@@ -47,7 +47,7 @@
           <ReForm :model="kvForm" label-position="top" class="kv-form">
             <ReFormItem label="Key"><ReInput v-model="kvForm.key" disabled /></ReFormItem>
             <ReFormItem label="Type">
-              <ReTag size="small" :type="getTypeColor(kvForm.type)">
+              <ReTag :type="getTypeColor(kvForm.type)">
                 {{ kvForm.type || 'string' }}
               </ReTag>
             </ReFormItem>

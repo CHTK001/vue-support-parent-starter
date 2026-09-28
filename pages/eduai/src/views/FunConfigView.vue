@@ -20,7 +20,7 @@
       </template>
       <ReTableColumn prop="funConfigGradeLevel" label="学段" width="100" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.funConfigGradeLevel" size="small" type="primary" effect="plain">
+          <el-tag v-if="row.funConfigGradeLevel" type="primary" effect="plain">
             {{ stageText(row.funConfigGradeLevel) }}
           </el-tag>
           <span v-else class="text-gray-400">通用</span>
@@ -41,7 +41,7 @@
             v-model="row.enabled"
             :active-value="1"
             :inactive-value="0"
-            size="small"
+
             inline-prompt
             active-text="启"
             inactive-text="停"

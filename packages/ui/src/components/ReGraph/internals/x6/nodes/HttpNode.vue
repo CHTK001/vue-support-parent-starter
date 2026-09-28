@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="http" :text="data.reText" :subtitle="(data.method || 'GET') + ' ' + (data.url || '—')" />
+  <BaseNode type="http" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="(data.method || 'GET') + ' ' + (data.url || '—')" />
 </template>

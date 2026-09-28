@@ -6,7 +6,7 @@
         项目管理
       </template>
       <template #actions>
-        <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openCreateDialog">新增项目</ReButton>
+        <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增项目</ReButton>
       </template>
     </ReSectionHead>
 
@@ -33,9 +33,9 @@
             <div class="card-header">
               <div class="title-row">
                 <h3 :title="item.projectName">{{ item.projectName }}</h3>
-                <el-tag v-if="item.enabled === false" size="small" type="info" effect="plain" round>已禁用</el-tag>
+                <el-tag v-if="item.enabled === false" type="info" effect="plain" round>已禁用</el-tag>
               </div>
-              <el-tag size="small" effect="plain" round>{{ typeLabel(item.projectType) }}</el-tag>
+              <el-tag effect="plain" round>{{ typeLabel(item.projectType) }}</el-tag>
             </div>
 
             <div class="card-body">
@@ -68,17 +68,17 @@
 
             <div class="card-footer">
               <div v-if="item.enabled !== false" class="actions-group">
-                <ReButton v-if="item.status !== 'running'" icon="VideoPlay" layout="square" size="small" title="启动" @click="handleStart(item)" />
+                <ReButton v-if="item.status !== 'running'" icon="VideoPlay" layout="square" title="启动" @click="handleStart(item)" />
                 <template v-else>
-                  <ReButton icon="VideoPause" layout="square" size="small" title="停止" @click="handleStop(item)" />
-                  <ReButton icon="RefreshRight" layout="square" size="small" title="重启" @click="handleRestart(item)" />
+                  <ReButton icon="VideoPause" layout="square" title="停止" @click="handleStop(item)" />
+                  <ReButton icon="RefreshRight" layout="square" title="重启" @click="handleRestart(item)" />
                 </template>
-                <ReButton icon="Top" layout="square" size="small" title="升级" @click="openUpgradeDialog(item)" />
+                <ReButton icon="Top" layout="square" title="升级" @click="openUpgradeDialog(item)" />
               </div>
               <div v-else class="disabled-tip">该项目已禁用，激活后可操作</div>
               <div class="actions-group">
                 <el-dropdown trigger="click" placement="top" @command="(c: string) => onMoreCommand(item, c)">
-                  <ReButton icon="MoreFilled" layout="square" size="small" title="更多" />
+                  <ReButton icon="MoreFilled" layout="square" title="更多" />
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="edit">
@@ -174,7 +174,7 @@
                 </div>
               </div>
             </div>
-            <ReButton icon="MagicStick" type="primary" size="small" :loading="autogenLoading" @click="autoGenerateScripts">一键生成四个脚本</ReButton>
+            <ReButton icon="MagicStick" type="primary" :loading="autogenLoading" @click="autoGenerateScripts">一键生成四个脚本</ReButton>
           </div>
           <div class="script-list">
             <ReCommand v-model="form.startScript" :context="scriptContext" :os="hostOs" :project-type="form.projectType" label="启动命令" :rows="4" script-kind="start" />
@@ -194,7 +194,7 @@
                   <div class="vars-card-title">项目配置（Spring Boot 外部配置）</div>
                   <div class="vars-card-count">{{ form.appConfig.length }} 项 · 生成 config/application.properties 覆盖 jar 内配置</div>
                 </div>
-                <ReButton icon="ArrowRight" layout="square" size="small" title="编辑" @click.stop="openAppConfigDialog" />
+                <ReButton icon="ArrowRight" layout="square" title="编辑" @click.stop="openAppConfigDialog" />
               </div>
             </div>
             <div v-for="v in varCards" :key="v.cat" class="vars-block">
@@ -207,7 +207,7 @@
                 <ReButton
                   :icon="varsExpanded === v.cat ? 'ArrowDown' : 'ArrowRight'"
                   layout="square"
-                  size="small"
+
                   :title="varsExpanded === v.cat ? '折叠' : '展开'"
                   @click.stop="toggleVarsExpand(v.cat)"
                 />
@@ -230,8 +230,8 @@
                   <div class="sys-card-title">系统服务</div>
                   <div class="sys-card-sub">将项目挂载为系统服务，统一管理生命周期</div>
                 </div>
-                <el-tag v-if="form.serviceName" type="success" effect="light" round size="small">已挂载</el-tag>
-                <el-tag v-else type="info" effect="plain" round size="small">未挂载</el-tag>
+                <el-tag v-if="form.serviceName" type="success" effect="light" round >已挂载</el-tag>
+                <el-tag v-else type="info" effect="plain" round >未挂载</el-tag>
               </div>
 
               <ReForm label-position="top" class="sys-form">
@@ -277,7 +277,7 @@
                 <div class="bk-title">备份记录</div>
                 <div class="bk-sub">备份保存在项目目录 backups/ 下，可用于升级前备份与回滚</div>
               </div>
-              <ReButton icon="FolderChecked" type="primary" size="small" :loading="backupActionLoading" @click="handleBackupNow">立即备份</ReButton>
+              <ReButton icon="FolderChecked" type="primary" :loading="backupActionLoading" @click="handleBackupNow">立即备份</ReButton>
             </div>
             <div v-if="backupLoading" class="bk-state-tip">加载备份记录…</div>
             <div v-else-if="!backupRows.length" class="bk-empty">
@@ -291,7 +291,7 @@
                   <div class="bk-row-name">{{ b.name }}</div>
                   <div class="bk-row-meta">{{ formatBackupTime(b.time) }} · {{ b.kind === 'dir' ? '目录镜像' : '压缩包' }}<template v-if="b.size != null"> · {{ formatSize(b.size) }}</template></div>
                 </div>
-                <ReButton icon="RefreshLeft" size="small" @click="handleRollbackTo(b)">回滚</ReButton>
+                <ReButton icon="RefreshLeft" @click="handleRollbackTo(b)">回滚</ReButton>
               </div>
             </div>
           </div>
@@ -344,9 +344,9 @@
             @focus="onValFocus"
           />
           <span v-else class="vd-boolean">开关项（无需值）</span>
-          <ReButton icon="Close" layout="square" size="small" title="移除" @click="varsRows.splice(idx, 1)" />
+          <ReButton icon="Close" layout="square" title="移除" @click="varsRows.splice(idx, 1)" />
         </div>
-        <ReButton icon="Plus" :show-text="true" size="small" class="vd-add" @click="varsRows.push({ key: '', value: '' })">添加一行</ReButton>
+        <ReButton icon="Plus" :show-text="true" class="vd-add" @click="varsRows.push({ key: '', value: '' })">添加一行</ReButton>
       </div>
       <template #footer>
         <ReButton @click="varsVisible = false">取消</ReButton>
@@ -363,9 +363,9 @@
         <div v-for="(row, idx) in appCfgRows" :key="idx" class="vd-row">
           <el-input v-model="row.key" class="vd-key-acfg" placeholder="配置键，如 server.port" />
           <el-input v-model="row.value" class="vd-val" placeholder="配置值，如 8081" />
-          <ReButton icon="Close" layout="square" size="small" title="移除" @click="appCfgRows.splice(idx, 1)" />
+          <ReButton icon="Close" layout="square" title="移除" @click="appCfgRows.splice(idx, 1)" />
         </div>
-        <ReButton icon="Plus" :show-text="true" size="small" class="vd-add" @click="appCfgRows.push({ key: '', value: '' })">添加一项</ReButton>
+        <ReButton icon="Plus" :show-text="true" class="vd-add" @click="appCfgRows.push({ key: '', value: '' })">添加一项</ReButton>
       </div>
       <template #footer>
         <ReButton @click="appCfgVisible = false">取消</ReButton>

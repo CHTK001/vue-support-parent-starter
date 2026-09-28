@@ -5,12 +5,12 @@
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span>{{ t('hotsport.leaks.title') }}</span>
           <div>
-            <el-select v-model="resourceType" :placeholder="t('hotsport.leaks.resourceType')" clearable size="small" style="width:140px; margin-right:12px;">
+            <el-select v-model="resourceType" :placeholder="t('hotsport.leaks.resourceType')" clearable style="width:140px; margin-right:12px;">
               <el-option label="FileInputStream" value="FileInputStream" />
               <el-option label="Socket" value="Socket" />
               <el-option label="Connection" value="Connection" />
             </el-select>
-            <el-button type="primary" size="small" @click="fetchLeaks">{{ t('hotsport.refresh') }}</el-button>
+            <el-button type="primary" @click="fetchLeaks">{{ t('hotsport.refresh') }}</el-button>
           </div>
         </div>
       </template>
@@ -19,7 +19,7 @@
         <el-table-column prop="resourceName" :label="t('hotsport.leaks.resourceName')" min-width="160" />
         <el-table-column prop="ageMs" label="存活时间(ms)" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.ageMs > 5000 ? 'danger' : 'warning'" size="small">
+            <el-tag :type="row.ageMs > 5000 ? 'danger' : 'warning'" >
               {{ row.ageMs.toFixed(0) }}
             </el-tag>
           </template>
@@ -29,7 +29,7 @@
           <template #default="{ row }">
             <el-popover trigger="hover" placement="left" width="400">
               <template #reference>
-                <el-button type="text" size="small">{{ t('hotsport.leaks.view') }}</el-button>
+                <el-button type="text" >{{ t('hotsport.leaks.view') }}</el-button>
               </template>
               <pre style="white-space:pre-wrap; font-size:12px;">{{ row.stackTrace || t('hotsport.leaks.noStack') }}</pre>
             </el-popover>

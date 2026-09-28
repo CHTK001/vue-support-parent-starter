@@ -16,7 +16,7 @@
         <span class="aside-count">{{ total }}</span>
       </div>
       <div class="aside-search">
-        <el-input v-model="keyword" size="small" placeholder="搜索会话标题" clearable :prefix-icon="Search16Filled"
+        <el-input v-model="keyword" placeholder="搜索会话标题" clearable :prefix-icon="Search16Filled"
           @keyup.enter="reload" @clear="reload" />
       </div>
       <div class="aside-list">
@@ -191,12 +191,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 原文件用的是 `--color-xxx, #兜底` 这一层（且 `--color-surface-hover` /
+      `--color-sidebar-bg-hover` 的第一层定义在未被引入的 style.css 里，
+      实际一直在吃兜底值）。统一收敛到 refactor.css 已经映射好的 --el-*，
+      顺手去掉恒不生效的 hex 兜底。
+   2. 左右两栏是容器不是卡片，不加投影；层次靠 1px 分隔线表达。
+   3. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
+
 .trace-page {
   display: flex;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-bg, #fff);
+  background: var(--el-bg-color);
 }
 
 /* ---------- 左侧会话列表 ---------- */
@@ -205,7 +215,7 @@ onMounted(() => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border, #e4e7ed);
+  border-right: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
 }
 
@@ -216,13 +226,13 @@ onMounted(() => {
   padding: 12px 14px 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
 .aside-count {
   font-size: 12px;
   font-weight: 400;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 
@@ -241,22 +251,31 @@ onMounted(() => {
   flex-direction: column;
   gap: 2px;
   padding: 7px 8px;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 会话行是 div + @click：光标已有，补键盘焦点环 */
+.session-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .session-item:hover {
-  background: var(--color-surface-hover, var(--color-sidebar-bg-hover, #f5f7fa));
+  background: var(--el-fill-color-light);
 }
 
+/* 选中态与 hover 同色：列表行靠填充色区分即可，不加投影 */
 .session-item.is-active {
-  background: var(--color-surface-hover, var(--color-sidebar-bg-hover, #f5f7fa));
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .session-title {
   font-size: 13px;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -264,14 +283,14 @@ onMounted(() => {
 
 .session-meta {
   font-size: 11px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .aside-hint,
 .main-hint {
   padding: 12px;
   font-size: 12px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   text-align: center;
 }
 
@@ -279,8 +298,13 @@ onMounted(() => {
   padding: 8px;
   font-size: 12px;
   text-align: center;
-  color: #409eff;
+  color: var(--el-color-primary);
   cursor: pointer;
+  outline: none;
+}
+
+.aside-more:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 /* ---------- 右侧轨迹 ---------- */
@@ -297,7 +321,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 18px;
-  border-bottom: 1px solid var(--color-border, #e4e7ed);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .main-title {
@@ -307,7 +331,7 @@ onMounted(() => {
   min-width: 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
 .main-title .title-text {
@@ -323,7 +347,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 
@@ -339,6 +363,13 @@ onMounted(() => {
 }
 
 .main-hint.is-error {
-  color: #f56c6c;
+  color: var(--el-color-danger);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .session-item {
+    transition: none;
+  }
 }
 </style>

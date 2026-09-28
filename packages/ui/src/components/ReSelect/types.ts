@@ -27,3 +27,11 @@ export interface ReOption {
 
 /** ReSelect 布局模式（card-dropdown 为 card 的历史别名，行为相同） */
 export type ReSelectLayout = "default" | "modern" | "card" | "table" | "square" | "tree" | "card-dropdown";
+
+/**
+ * 控件尺寸档位。
+ *
+ * 与 Element Plus 的 el-select 尺寸语义对齐：small 28px / default 34px / large 40px。
+ * 五种布局（default / modern / card / table / square）共用这一套档位。
+ */
+export type ReSelectSize = "large" | "default" | "small";

@@ -3,7 +3,7 @@
     <div class="ngl-bar">
       <ReSelect
         :model-value="currentPath"
-        size="small"
+
         filterable
         style="width: 320px"
         placeholder="选择日志文件"
@@ -24,17 +24,17 @@
         @update:model-value="onKeyword"
       />
 
-      <ReSwitch :model-value="auto" size="small" @change="onToggleAuto" />
+      <ReSwitch :model-value="auto" @change="onToggleAuto" />
       <span class="ngl-label">自动刷新</span>
 
-      <ReSelect :model-value="String(intervalMs)" size="small" style="width: 110px" @change="onPickInterval">
+      <ReSelect :model-value="String(intervalMs)" style="width: 110px" @change="onPickInterval">
         <ReOption value="3000" label="3 秒" />
         <ReOption value="5000" label="5 秒" />
         <ReOption value="10000" label="10 秒" />
         <ReOption value="30000" label="30 秒" />
       </ReSelect>
 
-      <ReSwitch v-model="wrap" size="small" />
+      <ReSwitch v-model="wrap" />
       <span class="ngl-label">自动换行</span>
 
       <div class="ngl-status">
@@ -43,11 +43,11 @@
         <span v-else-if="auto" class="ngl-state is-ok">每 {{ Math.round(intervalMs / 1000) }} 秒刷新</span>
         <span v-else class="ngl-state">已停止</span>
         <span class="ngl-count">{{ lineCount }} 行 / {{ formatSize(byteSize) }}</span>
-        <ReButton size="small" text :loading="loading" @click="refresh(true)">
+        <ReButton text :loading="loading" @click="refresh(true)">
           <template #icon><ReIcon name="Refresh" :size="12" /></template>
           立即刷新
         </ReButton>
-        <ReButton size="small" text @click="clear">
+        <ReButton text @click="clear">
           <template #icon><ReIcon name="Delete" :size="12" /></template>
           清屏
         </ReButton>
@@ -57,7 +57,14 @@
     <ReAlert v-if="logFilesError" type="warning" :title="logFilesError" class="ngl-alert" />
 
     <div class="ngl-body" ref="bodyRef">
-      <pre v-if="!displayLines.length" class="ngl-empty">暂无日志。确认路径正确、nginx 有写权限，或点「立即刷新」重试。</pre>
+      <!-- 首次读取用骨架屏占位。骨架按真实日志的等宽行高做，
+           数据到达时不会因为行数变化而跳动。
+           注意别把 loading 条件写成 v-if="!displayLines.length" 那类——
+           那样「已暂停」和「已停止」也会被骨架盖住，状态就看不见了。 -->
+      <div v-if="loading && !loaded" class="ngl-skel" aria-busy="true" aria-label="日志加载中">
+        <ReSkeleton loading animated :rows="14" />
+      </div>
+      <pre v-else-if="!displayLines.length" class="ngl-empty">暂无日志。确认路径正确、nginx 有写权限，或点「立即刷新」重试。</pre>
       <pre v-else class="ngl-log" :class="{ nowrap: !wrap }"><span
         v-for="(line, i) in displayLines"
         :key="i"
@@ -78,6 +85,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import { fetchNginxLogChunk, fetchNginxLogFiles, type NginxLogFile } from "../../nginx/api";
 
 const props = defineProps<{
@@ -103,6 +111,13 @@ const wrap = ref(true);
 const auto = ref(false);
 const intervalMs = ref(5000);
 const loading = ref(false);
+/**
+ * 首屏是否已渲染过真实内容。
+ *
+ * <p>日志面板开着自动刷新，每隔几秒就会拉一次；骨架屏只在首次出现，
+ * 之后刷新只更新内容区，不该把整个日志区换成骨架。</p>
+ */
+const loaded = ref(false);
 const paused = ref(false);
 const bodyRef = ref<HTMLElement | null>(null);
 
@@ -211,6 +226,8 @@ async function refresh(reset = false) {
     }
   } finally {
     loading.value = false;
+    // 首屏结束（含失败）：失败时该显示空态与错误提示，而不是永远停在骨架上
+    loaded.value = true;
   }
 }
 
@@ -357,6 +374,25 @@ defineExpose({ refresh, clear, stopTimer, loadFiles });
 
 .ngl-alert {
   margin: 0;
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 行高与真实 .ngl-log 接近，数据到达时不会因为行数变化而跳动 */
+.ngl-skel {
+  padding: 12px 14px;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngl-skel :deep(.el-skeleton) {
+  --el-skeleton-animation-bg-color: var(--el-fill-color);
+  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+}
+
+.ngl-skel :deep(.el-skeleton__item) {
+  height: 14px;
+  margin-bottom: 9px;
+  border-radius: 4px;
 }
 
 .ngl-body {

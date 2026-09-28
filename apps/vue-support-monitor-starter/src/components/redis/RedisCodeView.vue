@@ -99,11 +99,11 @@ watch(
     <div class="rv-code-bar">
       <span>JSON · {{ lineCount }} 行{{ isJson ? "" : " · 非法 JSON，按原文展示" }}</span>
       <span class="rv-spacer" />
-      <ReButton icon="CopyDocument" layout="square" size="small" title="复制原文" @click="copy" />
+      <ReButton icon="CopyDocument" layout="square" title="复制原文" @click="copy" />
       <ReButton
         :icon="editing ? 'View' : 'EditPen'"
         :show-text="true"
-        size="small"
+
         @click="editing = !editing"
       >{{ editing ? "预览" : "编辑" }}</ReButton>
     </div>

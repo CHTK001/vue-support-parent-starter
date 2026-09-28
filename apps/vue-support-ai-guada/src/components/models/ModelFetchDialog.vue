@@ -43,7 +43,7 @@
                   </LTooltip>
                 </template>
               </div>
-              <el-button link type="primary" size="small" @click="handleSelect(model)">
+              <el-button link type="primary" @click="handleSelect(model)">
                 {{ t('settings.providerDetail.select') }}
               </el-button>
             </li>
@@ -187,8 +187,9 @@ const handleSelect = (model: any) => {
 .fetch-search { position: sticky; top: 0; z-index: 10; margin-bottom: 12px; }
 .fetch-loading { display: flex; justify-content: center; align-items: center; padding: 48px 0; }
 .fetch-list {
-  border: 1px solid var(--color-surface-border);
-  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .fetch-row {
@@ -196,11 +197,11 @@ const handleSelect = (model: any) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  border-bottom: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: background 0.15s ease;
 }
 .fetch-row:last-child { border-bottom: none; }
-.fetch-row:hover { background: var(--color-surface-border); }
+.fetch-row:hover { background: var(--el-fill-color-light); }
 .fetch-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-right: 16px; }
 .fetch-name {
   font-size: 13px;
@@ -212,7 +213,8 @@ const handleSelect = (model: any) => {
 }
 .fetch-badge {
   padding: 1px 6px;
-  border-radius: 5px;
+  /* 原值 5px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   font-size: 11px;
   font-weight: 500;
   color: var(--el-color-primary);
@@ -227,7 +229,8 @@ const handleSelect = (model: any) => {
   gap: 11px;
   margin-top: 6px;
   padding: 14px 15px;
-  border-radius: 11px;
+  /* 原值 11px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
 }
@@ -240,5 +243,16 @@ const handleSelect = (model: any) => {
   margin-top: 3px;
   line-height: 1.5;
   word-break: break-word;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，供应商行的悬停底色与特性链接的文字色直接到位。
+   逐个列出，不写 `*` / .fetch-row * 通配，
+   避免把 el-dialog / el-tag 内部 Element Plus 组件的合法过渡一起掐掉。
+   这两个都只带 transition（无 animation），hover 态本身是静态样式，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .fetch-row,
+  .fetch-feature {
+    transition: none;
+  }
 }
 </style>

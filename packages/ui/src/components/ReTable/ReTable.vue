@@ -2,10 +2,13 @@
 /**
  * ReTable —— 表格组件
  *
- * 三种数据源模式：
- *   1) 静态数组：:data="[...]"
- *   2) 远程 url：url="/api/users" + :params="{...}" + 分页会自动带上 page/pageSize
- *   3) 自定义函数：:data="(p) => fetchUsers(p)"
+ * 两种数据源（只用这两个，url 形态已移除）：
+ *   1) 静态数组：:data="[...]" —— 前端分页，组件按 page / pageSize 切片，total 取数组长度
+ *   2) 远程加载：:loader="fetchUsers"（等价 :data="fetchUsers"）—— 后端分页，
+ *      组件只发 page / pageSize + :params，条数与 total 由接口给
+ *
+ * params：两种模式都支持，自定义键值随便加，但 page / pageSize 必定由组件注入且以组件为准
+ *   （页面自己往 params 里塞 page/pageSize 无效，见 internalParamsKey 的说明）。
  *
  * 暴露方法：
  *   - reload()  重新加载（带 resetPage 选项）
@@ -17,7 +20,9 @@
  *
  * 工具栏（分页上方右侧）：
  *   - 刷新：触发 reload()
- *   - 自动刷新（传 autoRefresh 才出现）：工具栏一个纯图标入口，浮层里用 ReSelect 方块档选间隔（含「关」= 不刷新），定时器随组件卸载 / keep-alive 失活停止
+ *   - 自动刷新（传 autoRefresh 才出现）：ReSwitch(popover) 布局，工具栏一枚纯 ReButton(square) 入口，
+ *     点开是无边框浮层，用 ReSelect 竖向档位菜单选间隔（含「不自动刷新」一档 = 关闭），
+ *     档位即状态（选中即生效并收起浮层），定时器随组件卸载 / keep-alive 失活停止
  *   - 列设置：popover 中可搜索 / 排序 / 隐藏 / 显示
  *   - 表格设置：popover 中切换斑马纹 / 边框 / 紧凑 / 高亮当前行 / 可调整列宽
  *
@@ -39,8 +44,8 @@
  */
 import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, useSlots, watch, nextTick } from "vue";
 import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption } from "element-plus";
-import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid } from "@element-plus/icons-vue";
-import { http, useDataSource, type ReDataSource } from "@repo/core";
+import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
+import { useDataSource, type ReDataSource } from "@repo/core";
 import ReTableCardView from "./ReTableCardView.vue";
 // 视图模式：默认模板已就绪，随主包加载，切换时零延迟（与卡片模式同一套选择/右键/空态能力）
 import ReTableView from "./ReTableView.vue";
@@ -55,6 +60,7 @@ import ReSwitch from "../ReSwitch/ReSwitch.vue";
 import RePagination from "../RePagination/RePagination.vue";
 import "./shared/table-vars.css";
 import Sortable from "sortablejs";
+import { useRoute } from "vue-router";
 import { VxeTable, VxeColumn } from "vxe-table";
 import "vxe-table/lib/style.css";
 import type {
@@ -68,6 +74,7 @@ import type {
   ReTableLayout,
   ReTableSwitchLayout,
   ReTableLoader,
+  ReTableLoadParams,
   ReTableSettings,
   ReTableToolbarConfig,
   ReTableSearchConfig,
@@ -106,13 +113,34 @@ const RE_TABLE_STORAGE_KEY = Symbol("ReTableStorage") as unknown as import("vue"
 
 const props = withDefaults(
   defineProps<{
-    /** 静态行数据 */
-    data?: Array<Record<string, unknown>>;
-    /** 远程 url（与 data/loader 二选一） */
-    url?: string;
-    /** 自定义加载器（与 url 二选一），签名见 types.ts */
+    /**
+     * 行数据。两种形态，自动分派：
+     * - 数组 → **前端分页**（组件按 page / pageSize 切片，total 取数组长度）
+     * - 函数 → **后端分页**（签名见 ReTableLoader，收到 page / pageSize / params，
+     *   需返回 { total, data|records|rows|... }）
+     *
+     * <p>与 {@link loader} 二选一；两者都传时以本项（函数形态）优先。</p>
+     */
+    data?: Array<Record<string, unknown>> | ReTableLoader;
+    /**
+     * 远程加载器（后端分页），签名见 types.ts 的 {@link ReTableLoader}。
+     *
+     * <p>与 {@link data} 传函数等价，写哪个都行；{@link data} 传数组时本项不参与。</p>
+     */
     loader?: ReTableLoader;
-    /** 远程查询参数 */
+    /**
+     * 查询参数。**两种数据源都支持**。
+     *
+     * <p>自定义键值随意加（如 `{ status: 1, keyword: 'x' }`），会与内置搜索区的提交值合并
+     * 后交给 {@link loader}（后者收到 `params.page` / `params.pageSize`）。</p>
+     *
+     * <p><b>page / pageSize 必定存在且以组件为准</b>：组件在合并之后写回这两个键，
+     * 页面自己塞进 params 的同名字段会被覆盖 —— 分页真值只能来自组件的内部状态，
+     * 否则翻页会出现「页码变了但查询没变」或反之。</p>
+     *
+     * <p>数组形态下没有加载器可消费它，此时本项只影响「params 变化是否回到第 1 页」这一行为
+     * （见 internalParamsKey），不影响切片结果 —— 数组就是唯一数据源。</p>
+     */
     params?: Record<string, unknown>;
     /** 列定义 */
     columns?: ReTableColumn[];
@@ -162,6 +190,17 @@ const props = withDefaults(
      * 否则不渲染——空表格上不该出现切了也没区别的按钮。</p>
      */
     layoutSwitch?: boolean;
+    /**
+     * 布局选择是否跨会话持久化（写 localStorage）。
+     *
+     * <p>默认 true，保持既有行为：用户在切换器里选过的布局会被记住，
+     * 下次进入时 localStorage 优先于 {@code layout}，尊重用户偏好。</p>
+     *
+     * <p>传 false 时 {@code layout} 永远优先——适合「业务上本来就该以某种布局呈现」
+     * 的页面（例如古诗库要求视图模式优先显示），避免被历史选择覆盖；
+     * 本次会话内仍可自由切换，只是不再记住。</p>
+     */
+    layoutPersist?: boolean;
     /** 布局切换器候选布局（默认 table + view + card，页面可裁剪） */
     layouts?: ReTableSwitchLayout[];
     /** 布局切换器文案覆盖（键：table / view / card） */
@@ -180,9 +219,39 @@ const props = withDefaults(
       maxHeight?: string | number;
       /** 表格最小高度（空数据时也保持此高度，默认 300px） */
       minHeight?: string | number;
+      /**
+       * 「吃满父容器 + 表头固定、body 内滚」的自适应模式。
+       *
+       * <p><b>缺省（不传）= 完全关闭</b>，表格保持原来的「撑开 + 页面滚动」，
+       * 既有页面行为一个字都不变。不能默认自动：全仓多数页面的父容器（ReCard body、
+       * flex 布局块）都有确定高度，一开自动就集体变成固定表头，属于大面积行为变更
+       * （实测会连带把空态的 440px 撑开顶掉，retable-empty 的用例就是这么塌的）。</p>
+       *
+       * <p>可选值：</p>
+       * <ul>
+       *   <li>{@code true} —— 强制开启，跳过父容器高度判定。适用于父容器高度由 JS / 内联
+       *     决定、computed 会解析成 auto 的场景。</li>
+       *   <li>{@code "auto"} —— 自动判定：父容器高度落在可用区间（见 FILL_MIN_HEIGHT 注释）
+       *     才开启，否则退回撑开。</li>
+       * </ul>
+       */
+      fill?: boolean | "auto";
     };
     /** 树形数据配置（透传 el-table tree-props） */
     treeProps?: ReTableTreeProps;
+    /**
+     * 表格渲染引擎。
+     *
+     * <p>{@code "element"}（默认）= element-plus 的 el-table；{@code "vxe"} = vxe-table。
+     * 两者对外能力（列、插槽、事件、批量操作、行拖拽）完全一致，切换只换渲染引擎，
+     * 业务页面不需要改代码。</p>
+     *
+     * <p>默认必须是 element：vxe-table 的 DOM 结构与 el-table 不同，页面里
+     * {@code :deep(.el-table …)} 这类内部覆盖、以及依赖 el-table 内部结构的脚本
+     * （读 {@code store.states.data}）都只在 element 引擎下成立。vxe 作为可选引擎，
+     * 用于需要固定表头 / 大数据量虚拟滚动的场景。</p>
+     */
+    engine?: "element" | "vxe";
     /** 是否启用行拖拽排序 */
     rowDraggable?: boolean;
     /** 拖拽排序字段名，默认sort */
@@ -214,13 +283,13 @@ const props = withDefaults(
   }>(),
   {
     data: () => [],
-    url: "",
     loader: undefined,
     params: () => ({}),
     columns: () => [],
     loading: false,
     settings: () => ({}),
     rowKey: "id",
+  engine: "element",
     emptyText: "暂无数据",
     pagination: true,
     total: 0,
@@ -237,6 +306,7 @@ const props = withDefaults(
     settingsTriggerText: "表格设置",
     layout: "table",
     layoutSwitch: true,
+    layoutPersist: true,
     layouts: () => ["table", "view", "card"],
     layoutLabels: () => ({}),
     layoutCard: () => ({}),
@@ -284,11 +354,35 @@ const emit = defineEmits<{
   (e: "refresh"): void;
 }>();
 
-/** ========== 批量选择状态（sessionStorage 记住跨页选择） ========== */
-const elTableRef = ref<any>(null);
+/**
+ * 当前路由 path（无路由环境为 null）。
+ *
+ * <p>用 {@code useRoute} 但不假设一定有 router：ReTable 也可能被用在无路由的独立页 /
+ * 组件预览里，vue-router 未注册时 useRoute 返回 undefined，这里统一兜成 null。
+ * 放在靠前位置是因为下面的 batchSelectionKey 就要用。</p>
+ */
+const routePath = (() => {
+  try {
+    const r = useRoute() as { path?: string } | undefined;
+    return typeof r?.path === "string" ? r.path : null;
+  } catch {
+    return null;
+  }
+})();
 
+/**
+ * 实际生效的 tableId：显式 prop 优先，缺省回落到当前路由 path。
+ *
+ * <p>这是「同一张表 = 同一个 tableId」的约定：页面不必为每个表格手写 table-id，
+ * 地址栏路径天然唯一。列配置 / 分页 / 表格设置 / 布局都按它持久化。
+ * 同一路由要放多张表时（各自独立的列与分页），仍需显式传 tableId 区分，
+ * 否则它们会共用一份状态。</p>
+ */
+const activeTableId = computed<string>(() => props.tableId || routePath || "");
+
+/** ========== 批量选择状态（sessionStorage 记住跨页选择） ========== */
 /** 选中行缓存：使用 sessionStorage 持久化跨页选择 */
-const batchSelectionKey = computed(() => (props.tableId ? `re-table-sel:${props.tableId}` : ""));
+const batchSelectionKey = computed(() => (props.tableId || routePath ? `re-table-sel:${activeTableId.value}` : ""));
 
 /** 从 sessionStorage 读取选中行 */
 function loadSelectionFromStorage(): Record<string, Record<string, unknown>> {
@@ -325,6 +419,42 @@ const currentPageSelection = ref<Record<string, unknown>[]>([]);
 const DEFAULT_PAGE_SIZE = 50;
 
 /**
+ * 每页条数硬上限。
+ *
+ * <p>为什么需要：pageSize 同时决定「远程请求拉多少条」和「本地切片渲染多少行 DOM」。
+ * el-table 没有虚拟滚动，渲染行数 = 喂进来的行数，一旦有人传 {@code pageSize: 1000}
+ * 就是 1000 行真实 DOM（cell 里的组件还会各自出 vnode），直接卡死。</p>
+ *
+ * <p>取值 200 的依据：常见业务表格一屏最多几十行；200 行 DOM 已经偏重，
+ * 但仍在可接受区间；超过这个量级的场景正确做法是**服务端分页 + 收窄查询条件**，
+ * 而不是把整页塞进 DOM。</p>
+ *
+ * <p>超出时钳制到上限并在 dev 下警告 —— 不静默吞掉：调用方多半是配置写错了，
+ * 静默改掉只会让「我明明传了 1000」的困惑留在原地。</p>
+ */
+const MAX_PAGE_SIZE = 200;
+
+/**
+ * 把任意输入钳制成合法的每页条数。
+ *
+ * @param size 原始值（可能来自 props、分页器、goto、或 localStorage 恢复）
+ * @param source 出处，仅用于警告文案定位问题来源
+ * @returns [1, MAX_PAGE_SIZE] 区间内的整数
+ */
+function clampPageSize(size: unknown, source: string): number {
+  const n = Math.floor(Number(size));
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PAGE_SIZE;
+  if (n <= MAX_PAGE_SIZE) return n;
+  if (import.meta.env.DEV) {
+    console.warn(
+      `[ReTable] ${source} 的每页条数 ${n} 超过上限 ${MAX_PAGE_SIZE}，已钳制为 ${MAX_PAGE_SIZE}。` +
+        `大数据量请用服务端分页收窄查询，不要把整页塞进 DOM。`,
+    );
+  }
+  return MAX_PAGE_SIZE;
+}
+
+/**
  * 判断每页条数是否在允许档位内。
  *
  * <p>用于恢复 localStorage 持久化状态时校验：默认档位调整后，历史存档里
@@ -343,15 +473,17 @@ function isAllowedPageSize(size: number): boolean {
  * 分页器上「每页条数」下拉的档位。
  *
  * <p>props.pageSizes 未传时用组件默认档（20/50/100）；做了去重与过滤，
- * 避免调用方给出重复值或非正数时下拉里出现两个一样的项或 0 条/页。</p>
+ * 避免调用方给出重复值或非正数时下拉里出现两个一样的项或 0 条/页。
+ * 超过 {@link MAX_PAGE_SIZE} 的档位直接剔除 —— 下拉里摆一个必然被钳制的选项，
+ * 用户选了却没生效，是比不提供更糟的体验。</p>
  */
 const pageSizeOptions = computed<number[]>(() => {
   const raw = Array.isArray(props.pageSizes) ? props.pageSizes : [];
   const seen = new Set<number>();
   for (const size of raw) {
-    const value = Number(size);
-    if (Number.isFinite(value) && value > 0) {
-      seen.add(Math.floor(value));
+    const value = Math.floor(Number(size));
+    if (Number.isFinite(value) && value > 0 && value <= MAX_PAGE_SIZE) {
+      seen.add(value);
     }
   }
   return [...seen];
@@ -359,11 +491,36 @@ const pageSizeOptions = computed<number[]>(() => {
 
 /** 内部分页状态（与 props 同步，确保 reload 时读到最新值） */
 const internalPage = ref(props.page ?? 1);
-const internalPageSize = ref(props.pageSize ?? DEFAULT_PAGE_SIZE);
+const internalPageSize = ref(clampPageSize(props.pageSize ?? DEFAULT_PAGE_SIZE, "props.page-size"));
 // 强制响应式：用 shallowRef 或 triggerRef
 import { triggerRef } from "vue";
 watch(() => props.page, (v) => { if (typeof v === "number") internalPage.value = v; });
-watch(() => props.pageSize, (v) => { if (typeof v === "number") internalPageSize.value = v; });
+watch(
+  () => props.pageSize,
+  (v) => {
+    if (typeof v === "number") internalPageSize.value = clampPageSize(v, "props.page-size");
+  },
+);
+
+/**
+ * 本次生效的每页条数（读取统一入口，已钳制）。
+ *
+ * <p>原本「internalPageSize → props.pageSize → DEFAULT」这串兜底在
+ * {@link pagedRows} 和 {@link buildRemoteSource} 里各写了一遍。两处都漏了上限：
+ * 兜底分支会直接把未经钳制的 {@code props.pageSize} 交给远程请求和本地切片 ——
+ * 也就是「上限看起来在，内部状态也确实被钳了，但真正决定渲染行数/请求条数的那次读取
+ * 绕过了它」，属于看起来有防护其实没有。</p>
+ *
+ * <p>收敛成这一个 computed 后：钳制只有一处、两个读取点不可能再分叉。
+ * 正常路径下 {@code internalPageSize} 已被钳过，这里直接原样返回不会重复告警；
+ * 只有兜底分支真的取到超限值时才会再警告一次，那正是需要看到的信号。</p>
+ */
+const currentPageSize = computed<number>(() =>
+  clampPageSize(
+    internalPageSize.value || props.pageSize || DEFAULT_PAGE_SIZE,
+    "生效值",
+  ),
+);
 
 /** 所有选中行（跨页合并） */
 const allSelectedRows = computed<Record<string, unknown>[]>(() => Object.values(selectedRowsMap.value));
@@ -474,7 +631,12 @@ function clearAllSelection(): void {
   selectedRowsMap.value = {};
   currentPageSelection.value = [];
   removeSelectionFromStorage();
-  elTableRef.value?.clearSelection();
+  // 两套引擎的清空勾选入口不同：element 是 clearSelection()，vxe 是 clearCheckboxRow()
+  if (useVxe.value) {
+    vxeTableRef.value?.clearCheckboxRow();
+  } else {
+    elTableRef.value?.clearSelection();
+  }
   emit("selection-change", []);
 }
 
@@ -622,6 +784,33 @@ const dragToggleLoading = ref(false);
 const sortableInitLock = ref(false);
 const vxeTableRef = ref<InstanceType<typeof VxeTable> | null>(null);
 const vxeDragData = ref<Array<Record<string, unknown>>>([]);
+/** element 引擎的表格实例（默认引擎）。只用到它的公开实例方法，不依赖内部结构。 */
+const elTableRef = ref<InstanceType<typeof ElTable> | null>(null);
+
+/** 当前是否走 vxe 引擎 */
+const useVxe = computed<boolean>(() => props.engine === "vxe");
+
+/**
+ * 让表格按当前容器宽度重新计算列宽。
+ *
+ * <p>两套引擎方法名不同，这里统一收口：element 走 {@code doLayout()}，
+ * vxe 走 {@code recalculate()}。列宽拖拽、窗口缩放、搜索区折叠这类
+ * 「容器宽度变了但表格不知道」的场景要调它，否则固定列与合计列宽会错位。</p>
+ *
+ * <p>用可选调用且吞异常：实例尚未挂载、或某个引擎版本改名，表现为「不再自动重算」
+ * 而不是整页渲染中断——这类排版兜底不值得让表格挂掉。</p>
+ */
+function recalcTable(): void {
+  try {
+    if (useVxe.value) {
+      (vxeTableRef.value as unknown as { recalculate?: (refull?: boolean) => unknown } | null)?.recalculate?.();
+    } else {
+      (elTableRef.value as unknown as { doLayout?: () => void } | null)?.doLayout?.();
+    }
+  } catch {
+    // noop：实例尚未挂载或已销毁时忽略
+  }
+}
 
 const vxeSortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
 let vxeTbodyObserver: MutationObserver | null = null;
@@ -756,8 +945,16 @@ function waitFrame(): Promise<void> {
   });
 }
 
+/** 取当前引擎表格的根元素（el-table 与 vxe-table 都把 DOM 挂在实例的 $el 上） */
+function currentTableEl(): HTMLElement | null {
+  const inst = (useVxe.value ? vxeTableRef.value : elTableRef.value) as unknown as
+    | { $el?: HTMLElement }
+    | null;
+  return inst?.$el ?? null;
+}
+
 function findDragTbody(): HTMLElement | null {
-  const tableEl = elTableRef.value?.$el as HTMLElement | undefined;
+  const tableEl = currentTableEl();
   if (!tableEl) return null;
   const tbodies = Array.from(tableEl.querySelectorAll("tbody"));
   // 仅找可见、有数据行的tbody，不要求手柄已渲染（Sortable事件委托自动处理后续插入的手柄）
@@ -777,27 +974,40 @@ async function toggleDragMode() {
     if (willEnable) {
       // 互斥：进入拖拽前先退出批量删除
       if (batchDeleteMode.value) cancelBatchDelete();
-      // 先从ElTable取数据，再切换模式，避免ElTable销毁后拿不到数据
-      const tableRows: Array<Record<string, unknown>> = elTableRef.value?.store?.states?.data?.value || [];
-      const snapshot = tableRows.map((r) => ({ ...r }));
+      // 数据快照直接取组件自己的分页结果：vxe-table 没有 el-table 的
+      // store.states.data 内部结构可读，而 pagedRows 就是喂给表格的同一份数据
+      const rows: Array<Record<string, unknown>> = pagedRows.value;
+      const snapshot = rows.map((r) => ({ ...r }));
       sortedRows.value = snapshot;
       originalRows.value = snapshot.map((r) => ({ ...r }));
-      vxeDragData.value = snapshot;
-      vxeRenderKey.value = 0;
       await nextTick();
       dragMode.value = true;
-      // 等待VXE表格渲染完成，多轮重试初始化Sortable
-      for (let i = 0; i < 10; i++) {
+      if (useVxe.value) {
+        // vxe 引擎：拖动过程中必须喂快照，否则翻页/外部刷新会覆盖正在拖的顺序
+        vxeDragData.value = snapshot;
+        vxeRenderKey.value = 0;
         await nextTick();
-        await waitFrame();
-        if (initVxeSortable()) break;
+        // 等待 VXE 表格渲染完成，多轮重试初始化 Sortable
+        for (let i = 0; i < 10; i++) {
+          await nextTick();
+          await waitFrame();
+          if (initVxeSortable()) break;
+        }
+        // 延迟做一次最终重绑，规避 VXE 列宽计算后重渲染替换 tbody
+        window.setTimeout(() => {
+          if (dragMode.value) initVxeSortable();
+        }, 350);
+        // 监听 tbody 替换，自动重绑
+        nextTick(() => startVxeTbodyObserver());
+      } else {
+        // element 引擎：Sortable 直接作用在 el-table 的 tbody 上，
+        // 拖完从 DOM 回读顺序（见 initSortable 的 onEnd），不做数据快照回填
+        for (let i = 0; i < 10; i++) {
+          await nextTick();
+          await waitFrame();
+          if (await initSortable()) break;
+        }
       }
-      // 延迟做一次最终重绑，规避VXE列宽计算后重渲染替换tbody
-      window.setTimeout(() => {
-        if (dragMode.value) initVxeSortable();
-      }, 350);
-      // 监听 tbody 替换，自动重绑
-      nextTick(() => startVxeTbodyObserver());
     } else {
       dragMode.value = false;
       stopVxeTbodyObserver();
@@ -819,9 +1029,10 @@ async function initSortable(retryCount = 0): Promise<boolean> {
   await nextTick();
   await waitFrame();
 
-  const tableInstance = elTableRef.value;
+  // 只看 tbody 有没有渲染出来，不依赖表格实例的内部数据结构：
+  // 快照直接从 pagedRows 取，拖完按 Sortable 给的 oldIndex/newIndex 改 sortedRows。
   const tbody = findDragTbody();
-  if (!tbody || !tableInstance) {
+  if (!tbody) {
     if (retryCount < 5) {
       await waitFrame();
       return initSortable(retryCount + 1);
@@ -829,7 +1040,7 @@ async function initSortable(retryCount = 0): Promise<boolean> {
     return false;
   }
 
-  const tableRows: Array<Record<string, unknown>> = tableInstance.store?.states?.data?.value || [];
+  const tableRows: Array<Record<string, unknown>> = pagedRows.value;
   const snapshot = tableRows.map((r) => ({ ...r }));
   sortedRows.value = snapshot;
   originalRows.value = snapshot.map((r) => ({ ...r }));
@@ -888,28 +1099,16 @@ function destroySortable() {
   document.body.style.webkitUserSelect = "";
 }
 
-watch(
-  () => elTableRef.value?.store?.states?.data?.value,
-  async () => {
-    if (!dragMode.value || dragChanged.value || sortableInitLock.value) return;
-    await nextTick();
-    await waitFrame();
-    // 数据行数变化说明是分页/外部刷新，重新初始化；仅拖拽换位不重绑
-    const newRows = elTableRef.value?.store?.states?.data?.value || [];
-    if (newRows.length !== originalRows.value.length) {
-      await initSortable();
-    }
-  },
-  { flush: "post" },
-);
 
 function confirmDragSort() {
   stopVxeTbodyObserver();
+  // element 引擎的顺序由 Sortable 在 onEnd 里从 DOM 回读并放进 sortedRows；
+  // vxe 引擎则是拖动过程中直接改 vxeDragData。两边取各自的当前顺序。
   emit("row-sort", {
     row: null,
     fromIndex: -1,
     toIndex: -1,
-    newData: vxeDragData.value,
+    newData: useVxe.value ? vxeDragData.value : sortedRows.value,
   });
   destroySortable();
   dragMode.value = false;
@@ -922,7 +1121,9 @@ function confirmDragSort() {
 function cancelDragSort() {
   stopVxeTbodyObserver();
   destroySortable();
-  vxeDragData.value = originalRows.value.map((r) => ({ ...r }));
+  if (useVxe.value) {
+    vxeDragData.value = originalRows.value.map((r) => ({ ...r }));
+  }
   dragMode.value = false;
   dragChanged.value = false;
   originalRows.value = [];
@@ -973,8 +1174,153 @@ function onSortChange(payload: { column?: any; prop: string; order: "ascending" 
   emit("sort-change", { prop: payload.prop, order: payload.order });
 }
 
-/** ========== 缺陷10: 树形数据 ========== */
+/** ========== 缺陷10: 树形数据 ==========
+ *  element 引擎直接用 el-table 的 tree-props；vxe 引擎的翻译见下方 vxeTreeConfig。 */
 const effectiveTreeProps = computed(() => props.treeProps ?? undefined);
+
+// ==================== vxe-table 适配层 ====================
+/*
+ * 以下计算属性与事件适配把 ReTable 原有的语义翻译成 vxe-table 的入参。
+ * 集中放在一处而不是散在模板里：vxe 与 element-plus 的属性名/事件载荷差异集中在
+ * 这里，改表格引擎时只需动这一段，模板与业务页面不受影响。
+ */
+
+/** vxe 引擎的表格数据源：拖拽态用快照（拖动过程中不能被重新分页覆盖），常态用分页结果。
+ *  element 引擎不用它——el-table 的拖拽由 Sortable 直改 tbody，再从 DOM 回读顺序。 */
+const tableRows = computed<Array<Record<string, unknown>>>(() =>
+  dragMode.value ? vxeDragData.value : pagedRows.value,
+);
+
+/**
+ * vxe-table 的 size 取值是 medium / small / mini，没有 element-plus 的 default。
+ *
+ * <p>ReTable 对外仍用 default / small（localSettings.compact 决定），这里单向翻译。
+ * 认不出的一律按 medium（vxe 默认）走，不要透传原始值——vxe 拿到非法值会静默
+ * 落回默认档，行为上没错，但会让「为什么我传了 small 却没生效」变成查不到的原因。</p>
+ */
+const vxeTableSize = computed<"medium" | "small">(() =>
+  tableSize.value === "small" ? "small" : "medium",
+);
+
+/** 行配置：主键字段 / hover 高亮 / 当前行高亮，统一在这里给定。
+ *
+ * <p>⚠ 刻意不设 {@code height}：vxe 的 {@code rowConfig.height} 会在 JS 侧把行高定死
+ * （实测设 44px 时行实际渲染 58.94px，且 CSS 与 --vxe-table-row-height-* 都覆盖不动），
+ * 与 element 引擎由内容决定的行高（51px）分叉。行高统一交给下方 CSS 的
+ * {@code .re-table .vxe-body--row} 控制，两套引擎才对得上。</p>
+ */
+const vxeRowConfig = computed(() => ({
+  keyField: props.rowKey,
+  isHover: true,
+  isCurrent: localSettings.value.highlightCurrentRow ?? false,
+}));
+
+/**
+ * 勾选配置：reserve 开启跨页保留勾选。
+ *
+ * <p>跨页勾选由组件自己的 selectedRowsMap + sessionStorage 兜底（见
+ * restoreSelection），vxe 的 reserve 负责让已勾选行在翻页回来时保持勾选态。</p>
+ */
+const vxeCheckboxConfig = computed(() => ({ reserve: true }));
+
+/**
+ * 树形配置：把 element-plus 的 tree-props 语义翻译成 vxe 的 tree-config。
+ *
+ * <p>字段名两边不一样，照抄会静默失效：EP 的 {@code children} 在 vxe 里叫
+ * {@code childrenField}、{@code hasChildren} 叫 {@code hasChildField}。
+ * vxe 的 TreeConfig 不接受 EP 那两个名字，传了等于没传，树形退化成平铺。</p>
+ */
+const vxeTreeConfig = computed(() => {
+  const tp = props.treeProps;
+  if (!tp && !props.defaultExpandAll) return undefined;
+  return {
+    childrenField: tp?.children || "children",
+    hasChildField: tp?.hasChildren || "hasChildren",
+    transform: true,
+    expandAll: props.defaultExpandAll,
+    lazy: tp?.lazy ?? false,
+  };
+});
+
+/**
+ * 列固定方式：element-plus 允许 fixed="left"，vxe 要求 "left" | "right" | true。
+ *
+ * <p>true 落到左侧，与 element-plus 的行为一致（EP 的 true 等价 left）。</p>
+ */
+function vxeFixed(col: ReTableColumn): "left" | "right" | "" {
+  if (col.fixed === true) return "left";
+  if (col.fixed === "left" || col.fixed === "right") return col.fixed;
+  return "";
+}
+
+/** 单元格溢出：vxe 用 show-overflow='tooltip'，element-plus 用 show-overflow-tooltip */
+function vxeShowOverflow(col: ReTableColumn): "tooltip" | false {
+  return col.showOverflowTooltip ? "tooltip" : false;
+}
+
+/**
+ * 单元格点击 → 同时派发 cell-click 与 row-click。
+ *
+ * <p>vxe-table 没有 row-click 事件（只有 cell-click），而调用方有 3 处依赖
+ * 「点任意单元格即选中该行」（@row-click="selectRow" 一类）。这里从 cell-click
+ * 合成 row-click，保持与 element-plus 一致的对外行为，调用方无需改动。</p>
+ */
+function onVxeCellClick(payload: {
+  row: Record<string, unknown>;
+  rowIndex: number;
+  column?: { field?: string; property?: string; title?: string; label?: string };
+  $event: MouseEvent;
+}): void {
+  const row = payload.row;
+  const column = payload.column ?? {};
+  const columnProp = column.field || column.property || "";
+  const columnLabel = column.title || column.label || "";
+  const event = payload.$event;
+  onCellClick(row, column, row?.[columnProp], event);
+  emit("row-click", row);
+}
+
+/**
+ * 单元格右键：vxe 用 cell-menu 承接（载荷里的 $event 就是原生 contextmenu 事件）。
+ *
+ * <p>element-plus 分成 row-contextmenu 与 cell-contextmenu 两个事件，vxe 只有
+ * cell-menu。两者都转成「行 + 列 + 事件」交给原有的 onRowContextMenu /
+ * onCellContextMenu，右键菜单的能力与调用方签名保持不变。</p>
+ */
+function onVxeCellMenu(payload: {
+  row: Record<string, unknown>;
+  column?: { field?: string; property?: string; title?: string; label?: string };
+  $event: MouseEvent;
+}): void {
+  const row = payload.row;
+  const column = payload.column ?? {};
+  const event = payload.$event;
+  onRowContextMenu(row, column, event);
+  onCellContextMenu(row, column, event);
+}
+
+/** 勾选变化：vxe 的 checkbox-change / checkbox-all 都给出 records，统一转成行数组 */
+function onVxeCheckboxChange(payload: { records?: Array<Record<string, unknown>> }): void {
+  onSelectionChange(payload.records ?? []);
+}
+
+function onVxeCheckboxAll(payload: { records?: Array<Record<string, unknown>> }): void {
+  onSelectionChange(payload.records ?? []);
+}
+
+/**
+ * 排序变化：翻译 vxe 的排序方向取值。
+ *
+ * <p>vxe 用 'asc' | 'desc'，element-plus 用 'ascending' | 'descending'。对外
+ * 契约（含 sort-change 事件载荷与远程排序入参）保持 element-plus 的写法不变，
+ * 只在边界做一次转换，调用方与后端接口都不需要跟着改。</p>
+ */
+function onVxeSortChange(payload: { property?: string; field?: string; order?: string | null }): void {
+  const prop = payload.property || payload.field || "";
+  const order =
+    payload.order === "asc" ? "ascending" : payload.order === "desc" ? "descending" : null;
+  onSortChange({ prop, order });
+}
 
 /** 单元格点击事件 */
 function onCellClick(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent): void {
@@ -990,20 +1336,55 @@ function onCellClick(row: Record<string, unknown>, column: any, cell: any, event
 
 /** 恢复当前页选中状态（分页切换后调用） */
 function restoreSelection(): void {
-  if (!batchSelectActive.value || !elTableRef.value) return;
+  if (!batchSelectActive.value) return;
   nextTick(() => {
     const data = dataList.value ?? [];
     for (const row of data) {
       const key = String(row[props.rowKey] ?? "");
-      if (key && selectedRowsMap.value[key]) {
+      if (!key || !selectedRowsMap.value[key]) continue;
+      if (useVxe.value) {
+        // vxe 用 setCheckboxRow() 勾选行；toggleCheckboxRow 是「反转」语义、不接受第二参
+        vxeTableRef.value?.setCheckboxRow(row, true);
+      } else {
         elTableRef.value?.toggleRowSelection(row, true);
       }
     }
   });
 }
 
-/** 是否使用远程模式 */
-const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.loader === "function");
+/**
+ * 是否使用远程（后端分页）模式。
+ *
+ * <p>两个入口：{@link loader}，以及 {@code data} 传函数（与 loader 等价）。
+ * {@code data} 传数组 = 前端分页，total 由数组长度决定，不请求后端。</p>
+ */
+const isRemote = computed<boolean>(
+  () => typeof props.loader === "function" || typeof props.data === "function",
+);
+
+/** data 传数组 → 本地；传函数 → 远程 */
+const localRows = computed<Array<Record<string, unknown>>>(() =>
+  Array.isArray(props.data) ? props.data : [],
+);
+
+/**
+ * 表格实际渲染的行。
+ *
+ * <p>远程模式：loader 每次只返回当前页，直接给。</p>
+ * <p>本地模式：这是需求「data 传数组走前端分页」的落地点 —— 之前
+ * {@code ElTable :data="dataList"} 直连全量，pagination 只把总数算对了却从不切片，
+ * 传 60 条会一次渲染 60 行、翻页无反应。现按 page / pageSize 切片。
+ * pagination 为 false 时不分页，返回全量。</p>
+ */
+const pagedRows = computed<Array<Record<string, unknown>>>(() => {
+  if (isRemote.value || !props.pagination) return dataList.value ?? [];
+  const all = dataList.value ?? [];
+  const size = currentPageSize.value;
+  const maxPage = Math.max(1, Math.ceil(all.length / size));
+  const page = Math.min(Math.max(1, internalPage.value || props.page || 1), maxPage);
+  const start = (page - 1) * size;
+  return all.slice(start, start + size);
+});
 
 /** 远程模式：总条数由接口返回 */
 const remoteTotal = ref<number>(0);
@@ -1054,11 +1435,11 @@ function defaultOrderFromColumns(): string[] {
 }
 
 function loadColumnState(): void {
-  if (!props.tableId) {
+  if (!activeTableId.value) {
     columnState.value = { order: defaultOrderFromColumns(), hidden: [] };
     return;
   }
-  const saved = effectiveStorage.value.get(props.tableId);
+  const saved = effectiveStorage.value.get(activeTableId.value);
   if (saved) {
     // 过滤掉已不存在的列 prop
     const propsList = props.columns.map((c) => c.prop);
@@ -1081,7 +1462,9 @@ function loadColumnState(): void {
         // pageSize 需校验档位：默认档位调整后，老用户 localStorage 里存的旧值（如 10）
         // 不在 pageSizes 中，若照搬会渲染出「分页器档位」与「实际每页条数」不一致的界面
         if (typeof full.pageSize === "number" && isAllowedPageSize(full.pageSize)) {
-          emit("update:pageSize", full.pageSize);
+          // 还要过一次上限钳制：存档是历史数据，可能存着上限提高前写下的超大值，
+          // 只靠上面的档位校验挡不住（pageSizes 为空时 isAllowedPageSize 恒真）
+          emit("update:pageSize", clampPageSize(full.pageSize, "localStorage 存档"));
         }
       if (full.settings) {
         localSettings.value = { ...localSettings.value, ...full.settings };
@@ -1097,26 +1480,29 @@ function loadColumnState(): void {
         }
       });
     }
+    // 布局不在这里恢复：它由 readStoredLayout() 在 activeLayout 初始化时读同一份状态，
+    // 两处都恢复会互相覆盖（且 activeLayout 声明更晚，拿不到这里的局部变量）。
     return;
   }
   columnState.value = { order: defaultOrderFromColumns(), hidden: [] };
 }
 
 function saveColumnState(): void {
-  if (!props.tableId) return;
-  // 保存列配置 + 分页 + 设置（完整状态）
+  if (!activeTableId.value) return;
+  // 保存列配置 + 分页 + 设置 + 布局（完整状态，统一落一份）
   const fullState: ReTableFullState = {
     ...columnState.value,
     page: props.page,
     pageSize: props.pageSize,
     settings: localSettings.value,
+    layout: activeLayout.value,
   };
-  effectiveStorage.value.set(props.tableId, fullState);
+  effectiveStorage.value.set(activeTableId.value, fullState);
 }
 
 /** 监听 tableId / columns 变化时重载列配置 */
 watch(
-  () => [props.tableId, props.columns] as const,
+  () => [activeTableId.value, props.columns] as const,
   () => {
     loadColumnState();
   },
@@ -1216,39 +1602,33 @@ function moveColumn(index: number, delta: number): void {
 }
 
 function resetColumns(): void {
-  if (props.tableId) effectiveStorage.value.remove(props.tableId);
+  if (activeTableId.value) effectiveStorage.value.remove(activeTableId.value);
   loadColumnState();
 }
 
-/** 远程数据加载 */
+/** 远程（后端分页）数据加载 */
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
     /** params 是页面显式声明的查询对象（提交快照），优先级高于搜索区的实时草稿值 */
     const paramObj = { ...(props.searchModel ?? {}), ...(props.params ?? {}) };
     const curPage = internalPage.value || props.page || 1;
-    const curSize = internalPageSize.value || props.pageSize || DEFAULT_PAGE_SIZE;
-    const loadParams = {
+    const curSize = currentPageSize.value;
+    /**
+     * page / pageSize 在合并 **之后** 写回：调用方在 params 里塞的同名字段一律作废。
+     * 分页真值只能来自组件内部状态 —— 否则会出现「页码跳了但查询条件没跟上」这类
+     * 难查的错位（接口按旧条件返回，看起来就是翻页没反应或数据重复）。
+     */
+    const loadParams: ReTableLoadParams = {
       page: curPage,
       pageSize: curSize,
       params: { ...paramObj, page: curPage, pageSize: curSize },
     };
     let result: RePageResult | undefined;
     try {
-      if (typeof props.loader === "function") {
-        result = await props.loader(loadParams);
-      } else if (props.url) {
-        const qs = new URLSearchParams();
-        qs.set("page", String(loadParams.page));
-        qs.set("pageSize", String(loadParams.pageSize));
-        for (const [k, v] of Object.entries(paramObj)) {
-          if (v === undefined || v === null || v === "") continue;
-          qs.set(k, String(v));
-        }
-        const sep = props.url.includes("?") ? "&" : "?";
-        const fullUrl = `${props.url}${sep}${qs.toString()}`;
-        const { data } = await http().get(fullUrl).headers({ Accept: "application/json" });
-        result = extractPageResult(data);
-      }
+      // 两个远程入口等价，data 传函数时优先用它
+      const fn = typeof props.data === "function" ? props.data : props.loader;
+      if (typeof fn !== "function") throw new Error("未提供 loader（或 data 传函数）");
+      result = await fn(loadParams);
       if (!result) throw new Error("未获取到分页数据");
       remoteTotal.value = Number(result.total ?? 0);
       emit("update:total", remoteTotal.value);
@@ -1263,18 +1643,6 @@ function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   return run;
 }
 
-function extractPageResult(payload: unknown): RePageResult | undefined {
-  if (payload == null || typeof payload !== "object") return undefined;
-  const obj = payload as Record<string, unknown>;
-  if (typeof obj.total === "number") return obj as unknown as RePageResult;
-  const inner = (typeof obj.data === "object" && obj.data !== null ? obj.data : obj) as Record<
-    string,
-    unknown
-  >;
-  if (typeof inner.total === "number") return inner as unknown as RePageResult;
-  return undefined;
-}
-
 function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
   for (const key of ["records", "rows", "list", "items", "content", "data"] as const) {
     if (Array.isArray(result[key])) return result[key] as Array<Record<string, unknown>>;
@@ -1284,11 +1652,39 @@ function extractRecords(result: RePageResult): Array<Record<string, unknown>> {
 
 const sourceRef = computed<ReDataSource<Array<Record<string, unknown>>>>(() => {
   if (isRemote.value) return buildRemoteSource();
-  return props.data ?? [];
+  return localRows.value;
 });
 
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<Array<Record<string, unknown>>>(
   sourceRef,
+);
+
+/**
+ * pagedRows 变化 → vxe 引擎下重绑行拖拽。
+ *
+ * <p>⚠ 这个 watch 必须放在 {@code useDataSource} 之后，也就是 dataList 声明之后。
+ * 原因：Vue 3.5 的 doWatch 会在 setup 期**急切求值一次源**（深监听告警路径），
+ * 哪怕源写成 {@code () => pagedRows.value} 也照样会求值。而 pagedRows 的 getter 读
+ * dataList，dataList 又是在 useDataSource 的解构里才声明的——watch 排在它前面就会
+ * "ReferenceError: Cannot access 'dataList' before initialization"，setup 抛出、
+ * 页面全白且 console 只留一条 watcher getter 警告。
+ * 之前用「改成 getter 源」来躲是无效的：Vue 同样会急切执行 getter。</p>
+ */
+watch(
+  () => pagedRows.value,
+  async () => {
+    // 只服务 vxe 引擎：它的行是虚拟滚动的，Sortable 绑在 tbody 上会被重渲染顶掉，
+    // 所以数据行数一变就得重绑。element 引擎的 tbody 由 el-table 自己管，Sortable 不会掉。
+    if (!useVxe.value) return;
+    if (!dragMode.value || dragChanged.value || sortableInitLock.value) return;
+    await nextTick();
+    await waitFrame();
+    // 数据行数变化说明是分页/外部刷新，重新初始化；仅拖拽换位不重绑
+    if (pagedRows.value.length !== originalRows.value.length) {
+      await initVxeSortable();
+    }
+  },
+  { flush: "post" },
 );
 
 /** params 变化 → 重置回第 1 页并重新加载 */
@@ -1328,7 +1724,7 @@ watch(internalPage, (p, oldP) => {
 
 /** 页码点击：RePagination 只在合法页码时 emit，这里仍做一次越界钳制作为兜底 */
 function onPageClick(p: number) {
-  const maxPage = Math.max(1, Math.ceil(totalToShow.value / (internalPageSize.value || DEFAULT_PAGE_SIZE)));
+  const maxPage = Math.max(1, Math.ceil(totalToShow.value / currentPageSize.value));
   if (p < 1 || p > maxPage || p === internalPage.value) return;
   internalPage.value = p;
   // watch internalPage 会自动 emit update:page 和 dsReload
@@ -1355,8 +1751,11 @@ function onPageChange(p: number): void {
   }
 }
 function onSizeChange(s: number): void {
-  internalPageSize.value = s;
-  emit("update:pageSize", s);
+  const size = clampPageSize(s, "分页器切换每页条数");
+  internalPageSize.value = size;
+  // emit 的也是钳制后的值：否则父级 v-model 拿到 1000、回流进 props 又被 watch 钳一次，
+  // 出现「内部是 200、父级以为是 1000」的不一致
+  emit("update:pageSize", size);
   if (props.page !== 1) {
     internalPage.value = 1;
     emit("update:page", 1);
@@ -1382,31 +1781,40 @@ function normalizeInterval(ms?: number): number {
 }
 /** 轮询间隔（ms），0 = 关闭；初始档位按 defaultOn 决定 */
 const autoRefreshMs = ref<number>(autoRefreshCfg.value?.defaultOn ? normalizeInterval(autoRefreshCfg.value?.interval) : 0);
-/** 浮层里的候选档位 */
+/** 浮层里的候选档位；页面没传 intervals 时的默认档：关 / 5s / 10s / 30s */
 const autoRefreshSteps = computed<number[]>(() => {
   const list = autoRefreshCfg.value?.intervals;
-  return Array.isArray(list) && list.length ? list.map((ms) => (ms > 0 ? normalizeInterval(ms) : 0)) : [0, 5000, 15000, 30000, 60000];
+  return Array.isArray(list) && list.length ? list.map((ms) => (ms > 0 ? normalizeInterval(ms) : 0)) : [0, 5000, 10000, 30000];
 });
-/** 选档浮层：工具栏只留一个纯图标入口，档位铺开在浮层里选 */
-const autoRefreshPop = ref(false);
+/** 轮询定时器句柄；换档 / keep-alive 激活态变化时统一经 startAutoRefresh 起停 */
 let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
-/** 浮层是竖向档位菜单：一行一档，0 档写成「不自动刷新」 */
+/** 浮层是无边框档位菜单：一行一档，0 档写成「不自动刷新」 */
 const autoRefreshOptions = computed<ReOption[]>(() =>
   autoRefreshSteps.value.map((ms) => ({
-    value: String(ms),
+    value: ms,
     label: ms > 0 ? `每 ${ms / 1000} 秒` : "不自动刷新",
   })),
 );
 
-/** 选档即起停表，并收起浮层 */
-const autoRefreshValue = computed<string>({
-  get: () => String(autoRefreshMs.value),
-  set: (val: string) => {
+/**
+ * 触发器的状态文案，同时是 ReSwitch(popover) 的 tooltip 与可访问名。
+ *
+ * 关闭态写「自动刷新：已关闭」而不是留空，是为了让读屏用户也能知道当前档位；
+ * 开启态把间隔一并报出来，光看图标打勾说不出到底是几秒。
+ */
+const autoRefreshStateText = computed<string>(() =>
+  autoRefreshMs.value > 0
+    ? `自动刷新中：每 ${Math.round(autoRefreshMs.value / 1000)} 秒`
+    : "自动刷新：已关闭",
+);
+
+/** 选档即换间隔；起停表交给 watch(autoRefreshMs) 统一处理，浮层收起由 ReSwitch 布局负责 */
+const autoRefreshValue = computed<number>({
+  get: () => autoRefreshMs.value,
+  set: (val: number) => {
     const ms = Number(val);
     autoRefreshMs.value = ms > 0 ? normalizeInterval(ms) : 0;
-    autoRefreshPop.value = false;
-    startAutoRefresh();
   },
 });
 
@@ -1426,6 +1834,9 @@ function startAutoRefresh(): void {
   }, autoRefreshMs.value);
 }
 
+/* 换档即换表：ReSwitch 布局与档位菜单都写同一个 ref，这里统一起停，避免两条入口各起一次定时器 */
+watch(autoRefreshMs, startAutoRefresh);
+
 onMounted(startAutoRefresh);
 onBeforeUnmount(stopAutoRefresh);
 /* keep-alive 缓存页离开时钩子不会卸载，必须停表，否则后台页面持续打接口 */
@@ -1441,8 +1852,9 @@ async function goto(page?: number, size?: number): Promise<void> {
     emit("update:page", page);
   }
   if (typeof size === "number" && size > 0) {
-    internalPageSize.value = size;
-    emit("update:pageSize", size);
+    const clamped = clampPageSize(size, "goto()");
+    internalPageSize.value = clamped;
+    emit("update:pageSize", clamped);
   }
   await nextTick();
   await dsReload();
@@ -1469,26 +1881,394 @@ const hasFixedHeight = computed(() => {
   return (table.height !== undefined && table.height !== null) || (table.maxHeight !== undefined && table.maxHeight !== null);
 });
 
-// ==================== 布局切换（表格 / 视图 / 卡片） ====================
+// ==================== 吃满父容器（表头固定 + body 内滚） ====================
 
-/** 布局偏好 localStorage key 前缀（按 tableId 区分，缺省 default） */
-const LAYOUT_STORAGE_PREFIX = "re-table-layout";
+/**
+ * 页面是否用 minHeight「撑开」表格 —— 这类页面走原来的撑开 + 页面滚动，不进自适应。
+ *
+ * <p>minHeight 与自适应互斥：minHeight 的语义是「至少这么高、内容可以更高」，
+ * 而自适应是「正好等于父容器剩余高度、body 内部滚」。两者同时生效会互相打架
+ * （表格高会被 minHeight 顶出容器）。</p>
+ */
+const hasMinHeight = computed(() => {
+  const mh = props.layoutTable?.minHeight;
+  return mh !== undefined && mh !== null;
+});
 
-/** 读取上次选择的布局 */
-function readStoredLayout(): ReTableSwitchLayout | null {
-  try {
-    const raw = window.localStorage.getItem(`${LAYOUT_STORAGE_PREFIX}:${props.tableId || "default"}`);
-    return raw === "table" || raw === "view" || raw === "card" ? raw : null;
-  } catch {
-    // 隐私模式等场景忽略
-    return null;
+/** 根节点 / 主体区 DOM 引用：量高度用 */
+const rootRef = ref<HTMLElement | null>(null);
+const mainRef = ref<HTMLElement | null>(null);
+
+/** 父容器高度是否可用于 fill（单一结论 ref，时序理由见 detectParentHeight） */
+const parentHeightUsable = ref(false);
+
+/**
+ * 父链没有确定高度时，用「本组件上沿到最近滚动容器下沿」量出的可用高度（px）。
+ *
+ * <p>背景：fill 的 CSS 是 {@code .re-table--fill { height: 100% }} + 内层
+ * {@code flex: 1 1 0}，它要求父链里至少有一环是**确定高度**。但本仓的页面根普遍是
+ * 内容尺寸（实测反馈页 {@code .feedback-page} 高 1242、溢出在 470 的
+ * {@code .el-main} 里；消息管理页的 {@code .re-tab} 也不参与拉伸），
+ * 于是 {@code height: 100%} 解析不出基准，flex 分配不到空间，表格塌成 0 高。
+ * 这种页面靠 CSS 绕不过去（百分比高度遇到 auto 父级就是不成立）。</p>
+ *
+ * <p>所以这里改用 JS 量出真实可用高度，直接给根节点一个像素高度，把「确定基准」
+ * 补上。量的是可见区域：搜索区收起后这一步会重测，表格随之长高——这正是调用方
+ * 期待的「隐藏 ReSearch 后高度盛满」。</p>
+ *
+ * <p>为 null 表示走原来的 CSS 百分比路径（父链确定时的正常情况）。</p>
+ */
+const viewportFillHeight = ref<number | null>(null);
+
+/** 表格可用高度（px）。自适应模式下由 ResizeObserver 量出并传给 el-table / vxe-table */
+const fillTableHeight = ref(0);
+
+/**
+ * 自适应是否生效。
+ *
+ * <p>判定顺序：页面是否已自管高度 &gt; 显式 fill 开关。
+ * 「已自管高度」指传了 height / maxHeight（fixed）或 minHeight（撑开）——
+ * 这两种页面传什么都维持原样。</p>
+ *
+ * <p><b>缺省开启</b>（2026-09-28 决策）：表格默认吃满父容器剩余高度、表体内部滚动、
+ * 表头固定，不再要求每个页面显式写 {@code fill: true}。原先缺省关闭是为了规避一次
+ * 空态塌陷（见下），现已由 {@link FILL_MIN_HEIGHT} 与空态样式兜住；让 40+ 个页面
+ * 各自记得写一遍开关，是把组件的默认行为推给调用方承担。</p>
+ *
+ * <p>需要退回「整页滚动」的页面传 {@code fill: false} 显式关闭即可。</p>
+ *
+ * <p>历史坑（保留记录，避免再次踩）：缺省自动开启后，若父容器是个 520px 的
+ * ReCard body，fill 会激活并带上 {@code .re-table--fixed-height}，命中那组
+ * {@code min-height: 0} 把空态原本的 440px 撑开顶成 0 高、空块整体不可见。
+ * 现在空态在 fill 下不再被压到 min-height:0，而是跟着 body 剩余区域走，
+ * 因此该塌陷路径已断开。</p>
+ *
+ * <p>{@code "auto"} 分支只认 {@link parentHeightUsable} 这一个结论，不在这里现算：
+ * 首次求值时 fill 的 CSS 还没落到 DOM，父容器仍是撑开状态，量到的是内容自然高度
+ * （几百 px，落在可用区间内）→ 会误判成可用；等 CSS 生效、父容器被压到 80px 就来不及了。
+ * 而且它必须是 ref 存结论，才能在 nextTick / rAF 重测后触发本 computed 重算
+ * （拆成两个 ref 时第二次检测值没变、Vue 不重算，错误的 true 会被永久固化）。</p>
+ */
+const fillActive = computed<boolean>(() => {
+  if (hasFixedHeight.value || hasMinHeight.value) return false;
+  // 显式关闭优先：fill: false 是「我要整页滚动」的唯一声明方式
+  if (props.layoutTable?.fill === false) return false;
+  // 显式开启：调用方确认父链有确定高度，强制走 fill
+  if (props.layoutTable?.fill === true) return true;
+  // 缺省与 "auto" 同语义：父容器量得出可用高度才开 fill。
+  // ⚠ 不能像早先那样缺省无条件 return true —— fill 的 flex 链是
+  //   `.re-table--fill > .re-table__main > .el-table { flex: 1 1 0; min-height: 0 }`，
+  //   父链一旦没有确定高度，这个 0 基准 + min-height:0 会把表格压成 0 高：
+  //   实测反馈管理页 .re-table 高 322、.re-table__main 高 156，而 .el-table 高 0，
+  //   表头和空态全被裁掉、页面看着像没渲染。交给 parentHeightUsable 判定可避免。
+  return parentHeightUsable.value;
+});
+
+/**
+ * fill 三条渲染路径的根节点 —— 必须与下方 `.re-table--fill` 的 flex 目标选择器一致。
+ *
+ * <p>量谁，就该由同一份选择器指认谁：否则「被量的」和「被 flex 分配高度的」一旦不是同一个
+ * 元素，写回给表格的 height 就是另一个元素的高度。</p>
+ *
+ * <p>两套引擎的根节点类名不同（el-table / vxe-table），两条都列上：同一时刻只会命中
+ * 其中一个（另一个引擎根本没渲染），因此不必按引擎切换选择器。</p>
+ */
+const FILL_TABLE_SELECTOR =
+  ":scope > .el-table, :scope > .vxe-table, :scope > .re-table__view-layout, :scope > .re-table__card-layout";
+
+/** 取主体区里承载表格的元素（找不到返回 null） */
+function fillTableEl(main: HTMLElement | null): HTMLElement | null {
+  if (!main) return null;
+  return main.querySelector<HTMLElement>(FILL_TABLE_SELECTOR);
+}
+
+/**
+ * 量一次可用高度并写回 fillTableHeight。
+ *
+ * <p>量的是**表格元素本身**（见 {@link FILL_TABLE_SELECTOR}），不是
+ * 「主体区高 − 工具栏行高」。后者会算错：工具栏行的 margin-bottom 不在
+ * getBoundingClientRect 里、v-if 切换前后量到的值也不同，早先实测就因此把
+ * 382px 传给 el-table、被 flex 二次收缩到 292px，EP 内联高度和实际布局打架。
+ * fill 模式下表格是 flex 项（flex:1 1 0），高度由容器精确分配，直接量它最准。</p>
+ *
+ * <p><b>不能用 {@code lastElementChild} 找表格</b>：主体区里表格<b>后面</b>还有
+ * {@code .re-table__footer}（{@code v-if="pagination || toolbar"}，而 toolbar 默认 true，
+ * 所以它几乎总在）。实测在采集器管理页上 {@code lastElementChild} 取到的就是 footer，
+ * {@code fillTableHeight} 一直等于 footer 的 30px，传给 el-table 的 height 也是 30px。
+ * 可见效果当时没露馅（盒子由 flex 拉伸、表头由 EP 的 CSS 固定在 body-wrapper 之外），
+ * 但写回去的 height 属于另一个元素 —— EP 的 JS 侧布局（滚动条 thumb、scrollTop 夹取、
+ * doLayout）都在拿这个错值算，属于「看起来对、实际是错的」，比直接不填更危险。</p>
+ *
+ * <p>不会自激：表格盒高只由 flex 决定，与内部内容无关，EP 拿到 height 后只改内部
+ * 表头/ body 的布局，不改外层盒子高度。变化源（搜索区折叠、窗口缩放、分页条出现/消失）
+ * 全部体现为「表格元素盒高变化」，由 RO 直接观察该元素兜住。</p>
+ */
+function measureFillHeight(): void {
+  if (!fillActive.value) {
+    // fill 关掉时清零：否则父容器从「假高/假低」恢复成真高度的那一帧，
+    // resolvedHeight 会先给出一个属于上一段布局的陈旧值
+    if (fillTableHeight.value !== 0) fillTableHeight.value = 0;
+    return;
+  }
+  const slot = fillTableEl(mainRef.value);
+  if (!slot) return;
+  const next = Math.floor(slot.getBoundingClientRect().height);
+  if (next > 0 && next !== fillTableHeight.value) fillTableHeight.value = next;
+}
+
+/**
+ * fill 可用的最小父容器高度（px）。
+ *
+ * <p>下限不是拍脑袋：表头约 59px，再留 2 行数据的空间。低于此值说明父容器的 flex 链
+ * 本身被压扁了（实测 koi-card__body 在告警页被挤成 80px），此时 fill 会把表格算成
+ * 几十 px、连表头都放不下，空块更被压成 0 高而整体不可见 —— 反而比撑开更糟。
+ * 这种页面该由它自己的布局去修，ReTable 不该在这里硬吃。</p>
+ */
+const FILL_MIN_HEIGHT = 120;
+
+/** 重新判定父容器高度（挂载 / 布局切换 / keep-alive 激活后重测） */
+function detectParentHeight(): void {
+  const p = rootRef.value?.parentElement;
+  if (!p) {
+    parentHeightUsable.value = false;
+    return;
+  }
+  const raw = getComputedStyle(p).height;
+  const h = parseFloat(raw);
+  if (raw === "auto" || raw === "" || !Number.isFinite(h) || h <= 0) {
+    parentHeightUsable.value = false;
+    return;
+  }
+  const viewport = typeof window === "undefined" ? 0 : window.innerHeight;
+  // 假高：被内容撑开（实测可达上万 px），进 fill 等于把内容高度锁死、永远不滚
+  if (viewport > 0 && h > viewport * 1.5) {
+    parentHeightUsable.value = false;
+    return;
+  }
+  // 假低：flex 链被压扁（实测 koi-card__body 被挤成 80px），进 fill 会把表格压到比表头还矮
+  if (h < FILL_MIN_HEIGHT) {
+    parentHeightUsable.value = false;
+    return;
+  }
+  if (ancestorHasSpareRoom(p)) {
+    // 父链本身有分配余量：走原来的 CSS 百分比路径即可，不需要像素补偿
+    parentHeightUsable.value = true;
+    viewportFillHeight.value = null;
+    return;
+  }
+  // 父链是内容尺寸（页面根没撑满滚动容器）——CSS 百分比高度解析不出基准，
+  // 改用实测的「到滚动容器下沿」距离补上确定高度，让表格能吃满可见区域。
+  const measured = measureViewportFillHeight();
+  if (measured !== null && measured >= FILL_MIN_HEIGHT) {
+    parentHeightUsable.value = true;
+    viewportFillHeight.value = measured;
+  } else {
+    parentHeightUsable.value = false;
+    viewportFillHeight.value = null;
   }
 }
 
-/** 记忆布局选择（同一表格下次进入保持） */
-function persistLayout(value: ReTableSwitchLayout): void {
+/**
+ * 祖先链里是否存在「高度不由内容决定」的容器。
+ *
+ * <p>为什么必须查：{@code getComputedStyle(parent).height} 对**内容撑开**的父容器
+ * 同样返回一个具体像素值，光看它 ≥ 120px 会把「auto 高度」误判成「确定高度」。
+ * 实测消息管理页整条链就是这样：{@code .re-tab-icon__panel} 340、{@code .system-page}
+ * 454、{@code .el-main} 470，每一层 computedH 都恰好等于自己的 scrollH、
+ * 且没有一层设过 height——全是内容决定的。这种链上一旦开 fill，
+ * {@code flex: 1 1 0 + min-height: 0} 会把表格压成 0 高（实测 .el-table 高 0，
+ * 表头与空态全被裁掉），页面看着像没渲染。</p>
+ *
+ * <p>判据：向上走到滚动容器为止，只要有一层「实际高度明显大于自身内容高度」，
+ * 说明这一层的高度来自 flex 分配或显式 height、还有余量，fill 才有意义。
+ * 全部相等就说明整条链都是内容尺寸，一律判不可用。</p>
+ */
+/**
+ * 找到最近的「纵向可滚动」祖先容器（没有则返回 null）。
+ *
+ * <p>判断依据是 computedStyle 的 overflowY，不看 scrollHeight 是否已超出：
+ * 搜索区收起前后容器可能都还装得下，但收起后仍应作为可用高度的边界。</p>
+ */
+function nearestScrollContainer(el: HTMLElement | null): HTMLElement | null {
+  let cur = el?.parentElement ?? null;
+  let depth = 0;
+  while (cur && depth < 10) {
+    const cs = getComputedStyle(cur);
+    if (/(auto|scroll)/.test(cs.overflowY)) return cur;
+    cur = cur.parentElement;
+    depth++;
+  }
+  return null;
+}
+
+/**
+ * 量「本组件上沿 → 最近滚动容器可视下沿」之间的距离，作为 fill 的像素高度。
+ *
+ * <p>减去组件上沿与容器上沿的差，再加上容器自身的 scrollTop：
+ * 页面已经向下滚过一段时，可用高度要按当前可见范围算，否则表格会高出一屏。</p>
+ *
+ * <p>拿不到滚动容器时退回视口底部，保证「至少填到看得见的地方」。</p>
+ */
+function measureViewportFillHeight(): number | null {
+  const root = rootRef.value;
+  if (!root) return null;
+  const top = root.getBoundingClientRect().top;
+  const scroller = nearestScrollContainer(root);
+  let bottom: number;
+  if (scroller) {
+    bottom = scroller.getBoundingClientRect().bottom;
+  } else if (typeof window !== "undefined") {
+    bottom = window.innerHeight;
+  } else {
+    return null;
+  }
+  const h = Math.floor(bottom - top);
+  return Number.isFinite(h) ? h : null;
+}
+
+function ancestorHasSpareRoom(start: HTMLElement): boolean {
+  let el: HTMLElement | null = start;
+  let depth = 0;
+  while (el && depth < 8) {
+    const used = el.clientHeight;
+    const content = el.scrollHeight;
+    // 余量 ≥ 24px：低于此值通常是边框/滚动条造成的 1~2px 差，不是真的留白
+    if (used > 0 && content > 0 && used - content >= 24) return true;
+    // 走到可滚动容器就停，再往上没有分配关系了
+    const cs = getComputedStyle(el);
+    if (/(auto|scroll)/.test(cs.overflowY) && used <= content) return false;
+    el = el.parentElement;
+    depth++;
+  }
+  return false;
+}
+/** 高度观察器句柄 */
+let fillObserver: ResizeObserver | null = null;
+
+function stopFillObserver(): void {
+  fillObserver?.disconnect();
+  fillObserver = null;
+}
+
+function startFillObserver(): void {
+  stopFillObserver();
+  detectParentHeight();
+  if (typeof ResizeObserver === "undefined") return;
+  /**
+   * 同时观察两个节点，缺一不可：
+   *
+   * <p><b>rootRef</b> —— 父容器高度变化的信号，供 {@link detectParentHeight} 重判
+   * 「auto」模式下父容器是否可用。fill 开启时 root 是 `height:100%`，被 flex 钉死，
+   * 它自己不会变，但父级布局变化仍会传导过来。</p>
+   *
+   * <p><b>表格元素</b> —— 这才是被量的对象，也是所有高度变化的真正落点。root 被钉死意味着
+   * 单看它会漏掉：分页条出现/消失、搜索区折叠、工具栏行增减、布局切换 —— 这些都只改变
+   * 「表格元素盒高」，不改变 root 盒高。原来只观察 root，等于这些场景永远不再重测。</p>
+   */
+  fillObserver = new ResizeObserver(() => {
+    detectParentHeight();
+    measureFillHeight();
+    // 布局切换（v-if）会换掉表格元素，旧引用已失效：重新 observe 才能继续跟随。
+    // 对已观察的元素重复 observe 是空操作，代价可忽略。
+    const el = fillTableEl(mainRef.value);
+    if (el) fillObserver?.observe(el);
+  });
+  if (rootRef.value) fillObserver.observe(rootRef.value);
+  const tableEl = fillTableEl(mainRef.value);
+  if (tableEl) fillObserver.observe(tableEl);
+}
+
+onMounted(() => {
+  startFillObserver();
+  // fill 判定要等布局稳定（keep-alive 首次进入、父级异步渲染），
+  // nextTick 还不够时用 rAF 兜一次，避免首帧量到 0 高度
+  nextTick(() => {
+    detectParentHeight();
+    measureFillHeight();
+    requestAnimationFrame(() => {
+      detectParentHeight();
+      measureFillHeight();
+    });
+  });
+});
+
+onBeforeUnmount(stopFillObserver);
+/* keep-alive 页面重新激活时父容器高度可能变了，重新判定并重测 */
+onActivated(() => {
+  nextTick(() => {
+    detectParentHeight();
+    measureFillHeight();
+  });
+});
+
+/* 开关变化（fill / height / maxHeight / minHeight）后需要重新判定 */
+watch(
+  () => [props.layoutTable?.fill, props.layoutTable?.height, props.layoutTable?.maxHeight, props.layoutTable?.minHeight] as const,
+  () => {
+    nextTick(() => {
+      detectParentHeight();
+      measureFillHeight();
+    });
+  },
+);
+
+/* 行数变化不改高度（fill 下高度由容器定），但空态切换要重排一次 */
+watch(isEmpty, () => nextTick(measureFillHeight));
+
+/** el-table / vxe-table 的最终高度：fill 模式用实测值，否则用页面传的值 */
+const resolvedHeight = computed<string | number | undefined>(() =>
+  fillActive.value ? fillTableHeight.value || undefined : props.layoutTable?.height,
+);
+/** el-table / vxe-table 的最终最大高度：fill 模式不设（高度已确定），否则用页面传的值 */
+const resolvedMaxHeight = computed<string | number | undefined>(() =>
+  fillActive.value ? undefined : props.layoutTable?.maxHeight,
+);
+/** 撑开模式的 minHeight 内联样式：fill 模式不需要（高度已确定） */
+const heightMinStyle = computed<Record<string, string> | undefined>(() => {
+  if (fillActive.value) return undefined;
+  if (props.layoutTable?.height || props.layoutTable?.maxHeight) return undefined;
+  return { minHeight: tableMinHeight.value };
+});
+
+// ==================== 布局切换（表格 / 视图 / 卡片） ====================
+
+/**
+ * 读取上次选择的布局。
+ *
+ * <p>与列配置 / 分页读同一份 {@link ReTableFullState}（effectiveStorage + tableId），
+ * 不再单独写 {@code re-table-layout:<tableId>}。仍读一次旧的独立 key 做兼容：
+ * 早期版本把布局存在那里，老用户 localStorage 里已有值，直接切走会让他们的选择丢失。</p>
+ */
+function readStoredLayout(): ReTableSwitchLayout | null {
   try {
-    window.localStorage.setItem(`${LAYOUT_STORAGE_PREFIX}:${props.tableId || "default"}`, value);
+    if (activeTableId.value) {
+      const saved = effectiveStorage.value.get(activeTableId.value) as ReTableFullState | null;
+      if (saved?.layout === "table" || saved?.layout === "view" || saved?.layout === "card") {
+        return saved.layout;
+      }
+    }
+    // 旧版独立 key（仅当调用方显式传了 tableId 时才可能命中）
+    if (props.tableId) {
+      const raw = window.localStorage.getItem(`re-table-layout:${props.tableId}`);
+      if (raw === "table" || raw === "view" || raw === "card") return raw;
+    }
+  } catch {
+    // 隐私模式等场景忽略
+  }
+  return null;
+}
+
+/**
+ * 记忆布局选择（同一表格下次进入保持）。
+ *
+ * <p>写回统一状态而非独立 key：{@code saveColumnState} 里已带 layout，
+ * 这里只需触发一次保存即可，避免两处状态各写一半、互相覆盖。</p>
+ */
+function persistLayout(value: ReTableSwitchLayout): void {
+  saveColumnState();
+  // 旧 key 清掉：否则下次 readStoredLayout 仍会命中它，新选择写不进去
+  try {
+    if (props.tableId) window.localStorage.removeItem(`re-table-layout:${props.tableId}`);
   } catch {
     // 忽略写入失败
   }
@@ -1497,10 +2277,16 @@ function persistLayout(value: ReTableSwitchLayout): void {
 /**
  * 当前生效布局。
  *
- * <p>layoutSwitch=false 时完全听 props.layout；否则 localStorage 记忆优先于 props.layout，
+ * <p>两种情况下完全听 props.layout：{@code layoutSwitch=false}（不提供切换器）、
+ * 或 {@code layoutPersist=false}（切换不跨会话记忆，业务指定的初始布局优先）。
+ * 其余情况持久化记忆优先于 props.layout，尊重用户上次的选择；
  * 用户切换只改这里，主体分支统一读 activeLayout。</p>
  */
-const activeLayout = ref<ReTableLayout>(props.layoutSwitch === false ? props.layout : (readStoredLayout() ?? props.layout));
+const activeLayout = ref<ReTableLayout>(
+  props.layoutSwitch === false || props.layoutPersist === false
+    ? props.layout
+    : (readStoredLayout() ?? props.layout),
+);
 
 /** props.layout 变化时跟随（受控场景） */
 watch(
@@ -1537,8 +2323,19 @@ watch(
       activeLayout.value = "table";
       return;
     }
-    if (props.layoutSwitch !== false) persistLayout(val);
+      if (props.layoutSwitch !== false && props.layoutPersist !== false) persistLayout(val);
   },
+);
+
+/* 布局切换（表格 / 视图 / 卡片）会换掉 DOM，需重新量高度并把 RO 重新挂到新元素上。
+   只 measure 不重新 observe 是不够的：旧表格元素已被 v-if 销毁，新元素不在观察列表里，
+   之后它的盒高再变也没人重测。
+   放在这里而不是上面的 fill 段：activeLayout 在此处才声明，提前 watch 会撞 TDZ。 */
+watch(activeLayout, () =>
+  nextTick(() => {
+    measureFillHeight();
+    startFillObserver();
+  }),
 );
 
 /** 切换布局 */
@@ -1548,7 +2345,7 @@ function switchLayout(key: ReTableSwitchLayout): void {
   // 切回表格后需重排列宽（表头与 body 对齐）
   nextTick(() => {
     try {
-      elTableRef.value?.doLayout?.();
+      recalcTable();
     } catch {
       // noop
     }
@@ -1557,13 +2354,13 @@ function switchLayout(key: ReTableSwitchLayout): void {
 
 /** 视图模式序号跨页连续 */
 const layoutIndexOffset = computed<number>(() =>
-  props.pagination ? Math.max(0, (internalPage.value - 1) * internalPageSize.value) : 0,
+  props.pagination ? Math.max(0, (internalPage.value - 1) * currentPageSize.value) : 0,
 );
 
 /** 数据加载/翻页后重新布局，确保表头与表体列宽始终对齐（异步数据、横向滚动、窗口缩放场景） */
 watch(dataList, () => {
   nextTick(() => {
-    try { elTableRef.value?.doLayout?.(); } catch { /* noop */ }
+    try { recalcTable(); } catch { /* noop */ }
   });
 });
 
@@ -1572,6 +2369,24 @@ const tableMinHeight = computed<string>(() => {
   const mh = props.layoutTable?.minHeight;
   if (mh === undefined || mh === null) return "440px";
   return typeof mh === "number" ? `${mh}px` : mh;
+});
+
+/**
+ * 根节点内联样式。
+ *
+ * <p>{@code --re-table-min-height} 供空态用；{@code height} 只在
+ * {@link viewportFillHeight} 有值（父链没有确定高度、改用实测可用高度补偿）时给出。
+ * 内联 height 优先级高于样式表里的 {@code .re-table--fill { height: 100% }}，
+ * 正好用来给 flex 链补上它缺的那个确定基准。</p>
+ *
+ * <p>fill 未生效时不给 height，页面该多高就多高。</p>
+ */
+const rootStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = { "--re-table-min-height": tableMinHeight.value };
+  if (fillActive.value && viewportFillHeight.value !== null) {
+    style.height = `${viewportFillHeight.value}px`;
+  }
+  return style;
 });
 
 defineExpose({
@@ -1642,15 +2457,19 @@ const iconSelect = Select;
 
 <template>
   <div
+    ref="rootRef"
     class="re-table"
     :class="{
       're-table--empty': isEmpty,
       're-table--compact': tableSize === 'small',
       're-table--separated': searchSeparated,
-      're-table--fixed-height': hasFixedHeight,
+      're-table--fixed-height': hasFixedHeight || fillActive,
+      're-table--fill': fillActive,
+      're-table--engine-element': !useVxe,
+      're-table--engine-vxe': useVxe,
       [`re-table--layout-${activeLayout}`]: true,
     }"
-    :style="{ '--re-table-min-height': tableMinHeight }"
+    :style="rootStyle"
   >
     <!-- 内置搜索区（search 开启内置 ReSearch；或 showSearch=true 配合 #search 插槽） -->
     <div
@@ -1697,7 +2516,7 @@ const iconSelect = Select;
     </div>
 
     <!-- 主体区（两卡模式下与搜索区分离，各自成卡） -->
-    <div class="re-table__main">
+    <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
       v-if="$slots.toolbar || searchEnabled || rowDraggable || batchDelete || autoRefresh || showLayoutSwitch"
@@ -1712,9 +2531,9 @@ const iconSelect = Select;
       >
         <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
         <template v-if="batchDeleteMode">
-          <el-button size="small" :disabled="batchProcessing" @click="cancelBatchDelete">取消</el-button>
+          <el-button  :disabled="batchProcessing" @click="cancelBatchDelete">取消</el-button>
           <el-button
-            size="small"
+            
             type="danger"
             :disabled="!hasSelected"
             :loading="batchProcessing"
@@ -1728,14 +2547,14 @@ const iconSelect = Select;
           v-if="dragMode && dragChanged"
           type="primary"
           text
-          size="small"
+          
           @click="cancelDragSort"
         >取消排序</el-button>
         <el-button
           v-if="dragMode && dragChanged"
           type="primary"
           text
-          size="small"
+          
           @click="confirmDragSort"
         >确认排序</el-button>
         <ReButton
@@ -1768,36 +2587,20 @@ const iconSelect = Select;
           :loading="dataLoading || loading"
           @click="onBuiltinSearchRefresh"
         />
-        <!-- 自动刷新：工具栏只留一个纯图标入口，间隔在浮层里选（含「关」= 不刷新） -->
-        <ElPopover
+        <!-- 自动刷新：ReSwitch(popover) —— 纯 ReButton(square) 作入口，点开是无边框的档位菜单。
+             档位即状态：选中哪档就是哪个间隔，浮层内不另设开关；点亮态走方块按钮主色 + 右上角打勾，
+             title 承担状态文案（「自动刷新：已关闭」/「自动刷新中：每 N 秒」）。 -->
+        <ReSwitch
           v-if="autoRefresh"
-          v-model:visible="autoRefreshPop"
-          placement="bottom-end"
-          :width="196"
-          trigger="click"
-          :persistent="false"
-          popper-class="re-table__popover"
+          v-model="autoRefreshMs"
+          layout="popover"
+          icon="Timer"
+          :title="autoRefreshStateText"
         >
-          <template #reference>
-            <ReButton
-              layout="square"
-              icon="Timer"
-              :title="autoRefreshMs > 0 ? `自动刷新中：每 ${Math.round(autoRefreshMs / 1000)} 秒` : '自动刷新：已关闭'"
-              :type="autoRefreshMs > 0 ? 'primary' : ''"
-            />
-          </template>
-          <div class="re-table__auto-refresh-panel">
-            <div class="re-table__auto-refresh-head">
-              <span class="re-table__auto-refresh-title">自动刷新</span>
-              <span
-                class="re-table__auto-refresh-state"
-                :class="{ 'is-off': autoRefreshMs <= 0 }"
-              >{{ autoRefreshMs > 0 ? `每 ${Math.round(autoRefreshMs / 1000)} 秒` : "已关闭" }}</span>
-            </div>
-            <ReSelect v-model="autoRefreshValue" layout="square" vertical :data="autoRefreshOptions" />
-            <div class="re-table__auto-refresh-hint">选中即生效，表格按该间隔自动重取当前页</div>
-          </div>
-        </ElPopover>
+          <span class="re-table__auto-refresh-title">自动刷新</span>
+          <ReSelect v-model="autoRefreshValue" layout="square" vertical :data="autoRefreshOptions" />
+          <span class="re-table__auto-refresh-hint">选中即生效，表格按该间隔自动重取当前页</span>
+        </ReSwitch>
         <!-- 布局切换（系统级分段控件，位于自动刷新右侧）：表格 / 视图 / 卡片
              候选 <2 或无数据时不渲染（没有可切换的 DOM 就不出现） -->
         <div
@@ -1839,68 +2642,12 @@ const iconSelect = Select;
       />
     </div>
 
-    <!-- VXE高性能表格：拖拽模式使用，内置原生流畅行拖拽 -->
-    <VxeTable
-      v-if="dragMode && activeLayout === 'table'"
-      :key="'vxe-drag-' + vxeRenderKey"
-      ref="vxeTableRef"
-      :data="vxeDragData"
-      :border="localSettings.border ?? true"
-      :stripe="localSettings.stripe ?? false"
-      :height="layoutTable?.height"
-      :max-height="layoutTable?.maxHeight"
-      :row-config="{ keyField: rowKey, isHover: true, height: 48 }"
-      :column-config="{ resizable: borderResizable }"
-    >
-      <VxeColumn
-        v-if="showSelection || batchSelectActive"
-        type="checkbox"
-        width="50"
-        fixed="left"
-      />
-      <VxeColumn width="48" align="center">
-        <template #default>
-          <ElIcon class="vxe-drag-handle" style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none">
-            <Rank />
-          </ElIcon>
-        </template>
-      </VxeColumn>
-
-      <VxeColumn
-        v-for="col in visibleColumns"
-        :key="col.prop || col.label"
-          :field="col.prop"
-          :title="col.label"
-          :width="col.width"
-          :min-width="col.minWidth"
-          :max-width="col.maxWidth"
-        :fixed="col.fixed === true ? 'left' : col.fixed || ''"
-        :align="col.align"
-        :sortable="Boolean(col.sortable)"
-      >
-        <template v-if="hasColSlot(col)" #default="{ row }">
-          <slot
-            :name="resolveColSlotName(col)"
-            :row="row"
-            :value="row[col.prop]"
-            :editing="batchEditing"
-          />
-        </template>
-        <template v-else #default="{ row }">
-          {{ formatCell(row, col) }}
-        </template>
-      </VxeColumn>
-      <template #empty>
-        <el-empty description="暂无数据" />
-      </template>
-    </VxeTable>
-
-    <!-- 默认ElTable：非拖拽模式 -->
+    <!-- 表格模式 · element 引擎（默认）：el-table，行拖拽走 Sortable 直改 tbody -->
     <ElTable
-      v-if="!dragMode && activeLayout === 'table'"
+      v-if="!useVxe && activeLayout === 'table'"
       ref="elTableRef"
       v-bind="$attrs"
-      :data="dataList ?? []"
+      :data="pagedRows"
       :loading="loading || dataLoading"
       :highlight-current-row="localSettings.highlightCurrentRow ?? false"
       :stripe="localSettings.stripe ?? false"
@@ -1908,16 +2655,16 @@ const iconSelect = Select;
       :size="tableSize"
       :row-key="rowKey"
       :show-header="layoutTable?.showHeader ?? true"
-      :height="layoutTable?.height"
-      :max-height="layoutTable?.maxHeight"
-      :style="!layoutTable?.height && !layoutTable?.maxHeight ? { minHeight: tableMinHeight } : undefined"
+      :height="resolvedHeight"
+      :max-height="resolvedMaxHeight"
+      :style="heightMinStyle"
       :tree-props="effectiveTreeProps"
       :default-expand-all="defaultExpandAll"
-      :row-style="rowDraggable ? { cursor: 'grab' } : undefined"
+      :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
       @cell-click="(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent) => onCellClick(row, column, cell, event)"
       @row-contextmenu="(row: Record<string, unknown>, column: any, event: MouseEvent) => onRowContextMenu(row, column, event)"
-      @cell-contextmenu="(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent) => onCellContextMenu(row, column, event)"
+      @cell-contextmenu="(row: Record<string, unknown>, column: any, event: MouseEvent) => onCellContextMenu(row, column, event)"
       @selection-change="onSelectionChange"
       @sort-change="(payload: any) => onSortChange(payload)"
     >
@@ -1928,7 +2675,7 @@ const iconSelect = Select;
         width="50"
         fixed="left"
       />
-      <!-- 拖拽排序列 -->
+      <!-- 拖拽手柄列：仅拖拽排序模式 -->
       <ElTableColumn
         v-if="dragMode"
         width="55"
@@ -1986,25 +2733,22 @@ const iconSelect = Select;
           <template #default="{ row, $index }">
             <!-- el-table 会用 {row:{}, $index:-1} 空跑一次默认插槽做列发现，此时不挂载单元格控件 -->
             <template v-if="Number($index) > -1">
-              <!-- 缺陷8: inline edit -->
+              <!-- 内联编辑：isColEditable 自带 batchEditing 判断（编辑态开关只在这里判一次） -->
               <template v-if="isColEditable(col)">
                 <ElInput
                   v-if="col.editType === 'text' || !col.editType"
                   :model-value="String(getEditValue(row, col) ?? '')"
-                  size="small"
                   @input="(v: string) => setEditValue(row, col, v)"
                 />
                 <ElInput
                   v-else-if="col.editType === 'number'"
                   type="number"
                   :model-value="String(getEditValue(row, col) ?? '')"
-                  size="small"
                   @input="(v: string) => setEditValue(row, col, Number(v))"
                 />
                 <el-select
                   v-else-if="col.editType === 'select'"
                   :model-value="getEditValue(row, col) as string | number"
-                  size="small"
                   @change="(v: unknown) => setEditValue(row, col, v)"
                 >
                   <el-option
@@ -2018,7 +2762,6 @@ const iconSelect = Select;
                   v-else-if="col.editType === 'date'"
                   type="date"
                   :model-value="String(getEditValue(row, col) ?? '')"
-                  size="small"
                   @input="(v: string) => setEditValue(row, col, v)"
                 />
               </template>
@@ -2032,16 +2775,137 @@ const iconSelect = Select;
           </template>
         </ElTableColumn>
       </template>
+      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为） -->
       <template #empty>
-        <el-empty :description="emptyText" :image-size="96" />
+        <slot name="empty" :description="emptyText">
+          <el-empty :description="emptyText" :image-size="96" />
+        </slot>
       </template>
       <slot />
     </ElTable>
 
+    <!-- 表格模式 · vxe 引擎（engine="vxe"）：固定表头 / 虚拟滚动场景 -->
+    <VxeTable
+      v-else-if="activeLayout === 'table'"
+      :key="dragMode ? 'vxe-drag-' + vxeRenderKey : 'vxe-plain'"
+      ref="vxeTableRef"
+      v-bind="$attrs"
+      :data="tableRows"
+      :loading="loading || dataLoading"
+      :border="localSettings.border ?? true"
+      :stripe="localSettings.stripe ?? false"
+      :size="vxeTableSize"
+      :height="resolvedHeight"
+      :max-height="resolvedMaxHeight"
+      :show-header="layoutTable?.showHeader ?? true"
+      :empty-text="emptyText"
+      :style="heightMinStyle"
+      :row-config="vxeRowConfig"
+      :column-config="{ resizable: borderResizable }"
+      :checkbox-config="vxeCheckboxConfig"
+      :tree-config="vxeTreeConfig"
+      :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
+      @cell-click="onVxeCellClick"
+      @cell-menu="onVxeCellMenu"
+      @checkbox-change="onVxeCheckboxChange"
+      @checkbox-all="onVxeCheckboxAll"
+      @sort-change="onVxeSortChange"
+    >
+      <!-- 勾选列：常驻选择 / 批量选择 / 批量删除三种场景共用一列 -->
+      <VxeColumn
+        v-if="showSelection || batchSelectActive || batchDeleteMode || isBatchEnabled(toolbarConfig.batchSelect)"
+        type="checkbox"
+        width="50"
+        fixed="left"
+      />
+      <!-- 拖拽手柄列：仅拖拽排序模式 -->
+      <VxeColumn v-if="dragMode" width="55" fixed="left" align="center">
+        <template #header>
+          <ElIcon><Rank /></ElIcon>
+        </template>
+        <template #default>
+          <ElIcon
+            class="vxe-drag-handle"
+            style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none"
+          ><Rank /></ElIcon>
+        </template>
+      </VxeColumn>
+      <VxeColumn
+        v-for="col in visibleColumns"
+        :key="col.prop || col.label"
+        :field="col.prop"
+        :title="col.label"
+        :width="col.width"
+        :min-width="col.minWidth"
+        :max-width="col.maxWidth"
+        :fixed="vxeFixed(col)"
+        :align="col.align"
+        :sortable="Boolean(col.sortable)"
+        :show-overflow="vxeShowOverflow(col)"
+      >
+        <template v-if="hasColSlot(col)" #default="{ row }">
+          <slot
+            :name="resolveColSlotName(col)"
+            :row="row"
+            :value="row[col.prop]"
+            :editing="batchEditing"
+          />
+        </template>
+        <template v-else #default="{ row }">
+          <!-- isColEditable 自带 batchEditing 判断（编辑态开关在这里只判一次） -->
+          <template v-if="isColEditable(col)">
+            <ElInput
+              v-if="col.editType === 'text' || !col.editType"
+              :model-value="String(getEditValue(row, col) ?? '')"
+              @input="(v: string) => setEditValue(row, col, v)"
+            />
+            <ElInput
+              v-else-if="col.editType === 'number'"
+              type="number"
+              :model-value="String(getEditValue(row, col) ?? '')"
+              @input="(v: string) => setEditValue(row, col, Number(v))"
+            />
+            <el-select
+              v-else-if="col.editType === 'select'"
+              :model-value="getEditValue(row, col) as string | number"
+              @change="(v: unknown) => setEditValue(row, col, v)"
+            >
+              <el-option
+                v-for="opt in (col.editOptions ?? [])"
+                :key="String(opt.value)"
+                :label="opt.label"
+                :value="opt.value as string | number"
+              />
+            </el-select>
+            <ElInput
+              v-else-if="col.editType === 'date'"
+              type="date"
+              :model-value="String(getEditValue(row, col) ?? '')"
+              @input="(v: string) => setEditValue(row, col, v)"
+            />
+          </template>
+          <span
+            v-else
+            :class="{ 're-table__cell-ellipsis': col.showOverflowTooltip }"
+            :title="String(row[col.prop] ?? '')"
+          >
+            {{ formatCell(row, col) }}
+          </span>
+        </template>
+      </VxeColumn>
+      <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为） -->
+      <template #empty>
+        <slot name="empty" :description="emptyText">
+          <el-empty :description="emptyText" :image-size="96" />
+        </slot>
+      </template>
+      <slot />
+    </VxeTable>
+
     <!-- 视图模式（一行一块；默认模板可被 #view 插槽整体替换） -->
     <ReTableView
       v-else-if="activeLayout === 'view'"
-      :rows="dataList ?? []"
+      :rows="pagedRows"
       :columns="visibleColumns"
       :layout="layoutView ?? {}"
       :row-key="rowKey"
@@ -2061,7 +2925,7 @@ const iconSelect = Select;
     <!-- 卡片模式（栅格） -->
     <ReTableCardView
       v-else-if="activeLayout === 'card'"
-      :rows="dataList ?? []"
+      :rows="pagedRows"
       :columns="visibleColumns"
       :layout="layoutCard ?? {}"
       :row-key="rowKey"
@@ -2092,7 +2956,7 @@ const iconSelect = Select;
             layout="modern"
             :total="totalToShow"
             :current-page="internalPage"
-            :page-size="internalPageSize"
+            :page-size="currentPageSize"
             :page-sizes="pageSizeOptions"
             :small="tableSize === 'small'"
             @current-change="onPageClick"
@@ -2147,7 +3011,7 @@ const iconSelect = Select;
                   <ElInput
                     v-model="columnSearchKey"
                     placeholder="搜索列..."
-                    size="small"
+                    
                     clearable
                     :prefix-icon="Search"
                   />
@@ -2178,8 +3042,8 @@ const iconSelect = Select;
                     </li>
                   </ul>
                 </ElCheckboxGroup>
-                <div v-if="!tableId" class="re-table__columns-hint">
-                  设置 tableId 后列顺序 / 隐藏将自动持久化
+                <div v-if="!activeTableId" class="re-table__columns-hint">
+                  当前不在路由下、也未设置 tableId，列顺序 / 隐藏 / 分页 / 布局不会持久化
                 </div>
               </div>
             </ElPopover>
@@ -2280,7 +3144,78 @@ const iconSelect = Select;
   background: var(--rt-bg);
   font-size: var(--rt-font);
 }
-/* 纯展示列的省略号：show-overflow-tooltip 未透传给 el-table-column，长值需自带单行截断 */
+/* ============ 吃满父容器（fill 模式，2026-09-28 起缺省开启） ============
+   传了 height / maxHeight / minHeight 的页面走原路径，不进这里；显式 fill:false 可退出。
+
+   链路：根节点 height:100% 继承父容器 → flex 列 → 主体区 flex:1 吃掉搜索区与分页条之外的
+   全部剩余高度 → 实测高度回填给 vxe-table 的 height，vxe 据此把 body 变成内部
+   滚动容器（表头固定）。回填 height 是必须的：vxe-table 只有拿到 height 才内部滚动。
+
+   ⚠ min-height: 0 是关键：flex 子项默认 min-height:auto，长内容会把主体区顶高、
+   撑破容器，flex:1 随之失效。 */
+.re-table--fill {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+.re-table--fill > .re-table__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* 主体区里承载表格的元素吃满剩余高度（工具栏行在前、表格在后）。
+   四条渲染路径的根节点：.el-table（element 引擎，默认）/ .vxe-table（vxe 引擎）/
+   .re-table__view-layout / .re-table__card-layout。后两路自带 overflow，
+   内部滚动由各自根节点负责；两个表格引擎同一时刻只渲染一个。
+
+   flex-basis 用 0 而不是 auto：auto 会拿表格的内联 height（引擎依据我们回填的
+   实测值写入）当基准再叠加 flex 分配，出现过内联值与实际渲染打架的情况。
+   basis:0 让 flex 纯粹按剩余空间分配，内联 height 只负责开启内部滚动机制。 */
+.re-table--fill > .re-table__main > .el-table,
+.re-table--fill > .re-table__main > .vxe-table,
+.re-table--fill > .re-table__main > .re-table__view-layout,
+.re-table--fill > .re-table__main > .re-table__card-layout {
+  flex: 1 1 0;
+  min-height: 0;
+}
+/* ⚠ fill 模式的地板：无论父链判定多准，表格都不允许被压到看不见。
+   flex:1 1 0 的 0 基准 + min-height:0 在「父容器高度由内容决定」时会算出 0 高，
+   表头与空态一起消失（实测 .el-table 高 0，而同页 .page-empty 有 206px 被裁掉）。
+   120px 是表头(约 59px) + 两行数据的下限；宁可让页面多滚一段，
+   也不能出现「表格整块看不见、像没渲染」的状态。 */
+.re-table--fill > .re-table__main > .el-table,
+.re-table--fill > .re-table__main > .vxe-table {
+  min-height: 120px;
+}
+/* fill 模式高度已确定：空态填满 body 剩余区域，不再用 440px 强撑。
+   vxe 没有 element-plus 那层 el-scrollbar，链路短一环：
+     .vxe-table--body-wrapper（滚动容器）→ .vxe-table--empty-block → el-empty
+   少给一环，空块就退回内容高度。⚠ 这里必须给 height:100% 而不是 min-height:0：
+   min-height:0 会让空块被压成 0 高、整体不可见（缺省开启 fill 之前踩过这个坑）。 */
+.re-table--fill.re-table--empty .vxe-table--body-wrapper,
+.re-table--fill.re-table--empty .vxe-table--empty-block {
+  min-height: 100%;
+  height: 100%;
+}
+.re-table--fill.re-table--empty .vxe-table--body-wrapper .el-empty {
+  padding: 0;
+  height: 100%;
+}
+/* element 引擎的空态高度链比 vxe 长一层（多了 el-scrollbar）：
+   body-wrapper → el-scrollbar__wrap → el-scrollbar__view → empty-block → el-empty。
+   少给一环空块就退回内容高度（实测只剩 143px，而不是 body 的 281px）。 */
+.re-table--fill.re-table--empty .el-table__body-wrapper .el-scrollbar__view,
+.re-table--fill.re-table--empty .el-table__body-wrapper .el-table__empty-block {
+  min-height: 100%;
+  height: 100%;
+}
+.re-table--fill.re-table--empty .el-table__body-wrapper .el-empty {
+  padding: 0;
+  height: 100%;
+}
+/* 纯展示列的省略号：长值需自带单行截断 */
 .re-table__cell-ellipsis {
   display: inline-block;
   max-width: 100%;
@@ -2293,30 +3228,62 @@ const iconSelect = Select;
   margin-bottom: 12px;
 }
 /* ============ 默认表格视觉增强 ============
-   只作用于 .re-table 内的 el-table，全部走 element-plus / koi 令牌，亮暗自适应：
+   只作用于 .re-table 内的 vxe-table，全部走 koi / element-plus 令牌，亮暗自适应：
      · 外框圆角 + 细描边 + 柔和投影，把表格从"裸网格"变成一块面板
-     · 表头渐变底 + 600 字重 + 横向滚动时的投影，避免头行与内容糊在一起
+     · 表头渐变底 + 600 字重，避免头行与内容糊在一起
      · 行高 44px（紧凑模式 36px）、斑马纹更淡、hover 混主色
      · hover / 选中行首列左侧主色条，弱化但可定位
+   ⚠ 表格引擎已由 element-plus 换成 vxe-table，这里改的是 vxe 的
+      --vxe-table-* 变量（vxe 不读 --el-table-*，照抄旧变量名不会生效）。
    ⚠ 分页条同步这套语言（见文件末尾分页样式），否则表格与分页会像两个组件。 */
-.re-table .el-table {
-  --el-table-border-color: var(--el-border-color-lighter);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-header-text-color: var(--el-text-color-primary);
-  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+.re-table .vxe-table {
+  --vxe-table-border-color: var(--el-border-color-lighter);
+  /* 表头底：置为透明，让下方 .re-table .vxe-header--column 的渐变生效。
+     不置透明时 vxe 会用这个变量在表头上再铺一层纯色，
+     结果渐变被盖成 #ebeeF5 平色 —— 与 element 引擎的 #fafafa→#fafcff 明显不同。 */
+  --vxe-table-header-background-color: transparent;
+  --vxe-table-header-font-color: var(--el-text-color-primary);
+  --vxe-table-row-hover-background-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+  --vxe-table-body-background-color: var(--el-table-bg-color, var(--el-bg-color));
+  --vxe-table-border-radius: calc(var(--rt-radius) + 2px);
+  /* 行高说明见下方 .re-table .vxe-body--row —— vxe 对它自己的 JS 内联高度
+     并不读这个变量（实测改成 24px 后单元格内联值仍是 44px），所以只为对齐
+     vxe 的样式表计算保留一个合理值，真正生效的是下面那条 !important。 */
+  /* ⚠ 行高请看下方 .re-table .vxe-body--row 那条注释：
+     vxe 的行高（rowConfig.height / --vxe-table-row-height-*）实测都不受
+     本组件控制，目前 element 引擎 51px、vxe 引擎 59px，差 8px 是已知差异。 */
+  --vxe-table-row-height-medium: 44px;
+  --vxe-table-row-height-small: 36px;
   font-size: 13.5px;
   border-radius: calc(var(--rt-radius) + 2px);
 
 }
+/* 行高与 element 引擎对齐。
+   vxe 会给每个单元格打**内联** height 44px（这个值写死在它的 JS 里，改
+   --vxe-table-row-height-medium 无效——实测改成 24px 后内联值依旧是 44px），
+   本组件又把上下内边距提到 10px，内容撑破该高度，行被顶到 58.94px
+   而 element 引擎是 51px，同页切引擎行距明显不同。
+   内联样式只能用 !important 压：行与单元格一起定死 51px（紧凑 36px），
+   与 element 的 10+10 padding + 20 line-height + 1 分隔线正好一致。 */
+.re-table .vxe-body--row,
+.re-table .vxe-body--row > .vxe-body--column {
+  height: 51px !important;
+}
+.re-table--compact .vxe-body--row,
+.re-table--compact .vxe-body--row > .vxe-body--column {
+  height: 36px !important;
+}
 /* 表头：渐变底 + 600 字重 + 底部描边
-   ⚠ 两个外部约束（都是"应用层全局样式晚于组件样式加载"的既有现实）：
-     1) 行高由内容决定（ReTag / 按钮等），不用 height 硬压；
-     2) 部分应用层样式用 `.el-table th.el-table__cell { padding: 12px !important }`
-        全局锁死表头内边距，这里用 !important 提权，保证组件内表头样式可控。 */
-.re-table .el-table__header-wrapper th.el-table__cell {
+   ⚠ 行高由内容决定（ReTag / 按钮等），不用 height 硬压；用 !important 提权，
+     压过应用层可能存在的全局表头内边距。
+   ⚠ background 也要 !important：vxe 自身会在表头单元格上铺两层
+     linear-gradient(#ebeeF5, #ebeeF5)（实测 computed backgroundImage 前两层），
+     把本条的渐变盖成平色，视觉上与 element 引擎的 #fafafa→#fafcff 分叉。
+     只改 --vxe-table-header-background-color 不够——那两层不来自该变量。 */
+.re-table .vxe-header--column {
   padding-top: 9px !important;
   padding-bottom: 9px !important;
-  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-fill-color-extra-light));
+  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-fill-color-extra-light)) !important;
   color: var(--el-text-color-primary);
   font-weight: 600;
   font-size: 13px;
@@ -2325,19 +3292,77 @@ const iconSelect = Select;
   letter-spacing: 0.2px;
   border-bottom: 1px solid var(--el-border-color);
 }
+.re-table--compact .vxe-header--column {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+/* 表体：内边距 + 更淡的分割线（行高由内容决定，不硬压 height）
+   !important 原因同表头：应用层 pages.css 存在全局锁死单元格内边距的写法。
+   ⚠ border-bottom 必须写全简写：只给 border-bottom-color 时，vxe 默认的
+     border-bottom-width 是 0，行与行之间没有分隔线（element 引擎是 1px），
+     实测两边差一条线。 */
+.re-table .vxe-body--column {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  transition: background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
+}
+.re-table--compact .vxe-body--column {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+/* 斑马纹（开启时更淡，不喧宾夺主）
+   vxe 4.6 的 stripe 不打 row--striped 类（实测产物里无此串），靠 --vxe-table-row-striped-background-color
+   着色。这里直接用 :nth-child(even) 兜住斑马纹，同时把变量一并接上，两条路径都生效。 */
+.re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column,
+.re-table .vxe-table tr.vxe-body--row:nth-child(even) > .vxe-body--column {
+  background: var(--el-fill-color-extra-light);
+}
+/* hover / 选中行首列主色条 */
+.re-table tr.vxe-body--row.row--hover > .vxe-body--column:first-child,
+.re-table tr.vxe-body--row.row--current > .vxe-body--column:first-child {
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
+}
+.re-table tr.vxe-body--row.row--current > .vxe-body--column {
+  background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+}
+/* 单元格内容：横向内边距与行高节奏（统一为 20px，配合 10px 上下内边距 ≈ 41px） */
+.re-table .vxe-body--column .vxe-cell,
+.re-table .vxe-header--column .vxe-cell {
+  padding: 0 12px;
+  line-height: 20px;
+}
+
+/* ============ element 引擎（默认）的表格视觉 ============
+   与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
+   44/36 行高、更淡的斑马纹、hover 混主色、首列主色条。
+   两套选择器的 class 名完全不相交（.el-table* vs .vxe-*），同时挂在样式表里也不会
+   互相干扰——同一时刻只有一个引擎渲染出 DOM，另一套自然全部落空。
+   ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 element 引擎下成立，
+     这也是 engine 默认为 "element" 的原因。 */
+.re-table .el-table {
+  --el-table-border-color: var(--el-border-color-lighter);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
+  --el-table-header-text-color: var(--el-text-color-primary);
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+  font-size: 13.5px;
+  border-radius: calc(var(--rt-radius) + 2px);
+}
+.re-table .el-table__header-wrapper th.el-table__cell {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-fill-color-extra-light));
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  border-bottom: 1px solid var(--el-border-color);
+}
 .re-table--compact .el-table__header-wrapper th.el-table__cell {
   padding-top: 6px !important;
   padding-bottom: 6px !important;
 }
-/* 横向滚动时表头投影，提示"右边还有列" */
-.re-table .el-table__header-wrapper.is-scrolling-middle,
-.re-table .el-table__header-wrapper.is-scrolling-left,
-.re-table .el-table__header-wrapper.is-scrolling-right {
-  box-shadow: 0 8px 14px -12px rgb(0 0 0 / 45%);
-}
-/* 表体：内边距 + 更淡的分割线（行高由内容决定，不硬压 height）
-   !important 原因同表头：应用层 pages.css 用 `.el-table td.el-table__cell
-   { padding: 10px 12px !important }` 全局锁死。 */
 .re-table .el-table__body td.el-table__cell {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
@@ -2348,11 +3373,9 @@ const iconSelect = Select;
   padding-top: 6px !important;
   padding-bottom: 6px !important;
 }
-/* 斑马纹（开启时更淡，不喧宾夺主） */
 .re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
   background: var(--el-fill-color-extra-light);
 }
-/* hover / 选中行首列主色条 */
 .re-table .el-table__body tr.el-table__row:hover > td.el-table__cell:first-child,
 .re-table .el-table__body tr.current-row > td.el-table__cell:first-child,
 .re-table .el-table__body tr.el-table__row--striped.current-row > td.el-table__cell:first-child {
@@ -2361,11 +3384,35 @@ const iconSelect = Select;
 .re-table .el-table__body tr.current-row > td.el-table__cell {
   background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
 }
-/* 单元格内容：横向内边距与行高节奏（element-plus 默认 line-height:23px 会把
-   44px 行高顶到 49/56，这里统一为 20px，配合 10px 上下内边距 ≈ 41px） */
 .re-table .el-table__cell .cell {
   padding: 0 12px;
   line-height: 20px;
+}
+/* 横向滚动时表头投影，提示"右边还有列" */
+.re-table .el-table__header-wrapper.is-scrolling-middle,
+.re-table .el-table__header-wrapper.is-scrolling-left,
+.re-table .el-table__header-wrapper.is-scrolling-right {
+  box-shadow: 0 8px 14px -12px rgb(0 0 0 / 45%);
+}
+/* 固定右侧列：el-table 用 fixed-column 类标在单元格上，需补不透明底色 */
+.re-table .el-table__body td.el-table-fixed-column--right {
+  background-color: var(--el-table-bg-color, #fff);
+}
+.re-table .el-table__body tr:hover td.el-table-fixed-column--right,
+.re-table .el-table__body tr.hover-row td.el-table-fixed-column--right {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
+}
+:deep(.el-table__fixed-right) {
+  z-index: 30 !important;
+}
+:deep(.el-table__fixed-right::before) {
+  z-index: 31 !important;
+}
+/* 拖拽模式下全局禁止表格文字选中 */
+.re-table:has(.drag-handle) .el-table__body,
+.re-table:has(.drag-handle) .el-table__body td .cell {
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 /* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色 */
 .re-table--separated {
@@ -2460,36 +3507,14 @@ const iconSelect = Select;
   background: var(--el-bg-color-overlay);
   box-shadow: var(--el-box-shadow-light);
 }
-/* 自动刷新浮层：状态行 + 竖向档位菜单 + 一行说明 */
-.re-table__auto-refresh-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.re-table__auto-refresh-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
+/* 自动刷新浮层内容：纯无边框（标题 / 档位菜单 / 说明都不画分隔线）。
+   状态不靠额外的「状态行」表达 —— 档位菜单里选中哪档就是哪个间隔，选中态是底色 + 右侧对勾。 */
 .re-table__auto-refresh-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary, #303133);
 }
-.re-table__auto-refresh-state {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-color-primary, #409eff);
-}
-.re-table__auto-refresh-state.is-off {
-  color: var(--el-text-color-secondary, #909399);
-}
 .re-table__auto-refresh-hint {
-  padding-top: 6px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
@@ -2519,20 +3544,41 @@ const iconSelect = Select;
 .re-table__search-toggle:hover {
   color: var(--el-color-primary);
 }
-/* el-table 在根元素上本地定义 --el-table-* 变量，令牌必须直接挂在 .el-table 上才生效 */
+/* vxe-table 在根元素上本地定义 --vxe-table-* 变量，令牌必须直接挂在 .vxe-table 上才生效。
+   这组与上面「默认表格视觉增强」同权重、位置更靠后，等于在基础视觉之上再叠一层 rt 令牌。 */
+.re-table .vxe-table {
+  --vxe-table-border-color: var(--rt-border);
+  /* ⚠ 表头底必须留空。vxe 把这个变量当成**第一层 background-image**
+     （linear-gradient(值, 值)）铺在表头上，会盖住 .re-table .vxe-header--column
+     里的渐变，视觉上与 element 引擎（渐变 #fafafa→#fafcff）分叉成 #ebeeF5 平色。
+     element 那边同样赋了 --el-table-header-bg-color，但它的 th 走 background 简写，
+     渐变优先级更高，所以看不出问题——vxe 这边必须显式透明。 */
+  --vxe-table-header-background-color: transparent;
+  --vxe-table-row-hover-background-color: var(--rt-bg-row-hover);
+  --vxe-table-body-background-color: var(--rt-bg);
+}
+/* 表头字体（vxe 默认色/字重偏浅，按 rt 令牌覆盖） */
+.re-table .vxe-header--column {
+  font-weight: var(--rt-header-font-weight);
+  font-size: var(--rt-header-font-size);
+  color: var(--rt-text-header);
+}
+/* 斑马纹美化（vxe 4.6 不打 striped 行类，用 nth-child 兜住） */
+.re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column {
+  background: var(--rt-bg-strip);
+}
+/* element 引擎的同一组 rt 令牌覆盖：位置更靠后、权重相同，等于在基础视觉之上再叠一层 */
 .re-table .el-table {
   --el-table-border-color: var(--rt-border);
   --el-table-header-bg-color: var(--rt-header-bg);
   --el-table-row-hover-bg-color: var(--rt-bg-row-hover);
   --el-table-tr-bg-color: var(--rt-bg);
 }
-/* 表头字体（element 默认色/字重偏浅，按 rt 令牌覆盖） */
 .re-table .el-table__header th.el-table__cell {
   font-weight: var(--rt-header-font-weight);
   font-size: var(--rt-header-font-size);
   color: var(--rt-text-header);
 }
-/* 斑马纹美化 */
 .re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
   background: var(--rt-bg-strip);
 }
@@ -2620,30 +3666,69 @@ const iconSelect = Select;
 :deep(.el-tooltip__popper) {
   z-index: 9999 !important;
 }
-:deep(.el-table__fixed-right) {
+/* 固定右侧列：vxe 用独立 fixed 容器渲染，需补不透明底色，
+   否则横向滚动时右侧列会透出下方内容 */
+.re-table .vxe-table--fixed-right-wrapper {
   z-index: 30 !important;
 }
-:deep(.el-table__fixed-right::before) {
-  z-index: 31 !important;
-}
-.el-table__body td.el-table-fixed-column--right {
+.re-table .vxe-body--column.col--fixed {
   background-color: var(--el-table-bg-color, #fff);
 }
-.el-table__body tr:hover td.el-table-fixed-column--right,
-.el-table__body tr.hover-row td.el-table-fixed-column--right {
+.re-table tr.vxe-body--row.row--hover > .vxe-body--column.col--fixed,
+.re-table tr.vxe-body--row.row--current > .vxe-body--column.col--fixed {
   background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
 }
-/* 空数据：撑满最小高度并居中。
-   ⚠ 权重陷阱：koi 主题 element.scss 里有同为一处 `.el-table .el-table__empty-block`
-   { position: absolute; top/left: 50%; transform: translate(-50%,-50%) }，
-   与本组件旧的 `.re-table .el-table__empty-block { position: static }` 权重完全相同
-   （都是 0,2,0），胜负只取决于样式表加载顺序。一旦主题样式晚于组件样式加载
-   （另一应用、懒加载主题 chunk），空块脱离文档流，整条链会塌成：
-     .el-table__body-wrapper 高度正常 → 其下 .el-scrollbar 只剩 20px
-     → table.el-table__body 高度 0 → 空块整体飘到 body-wrapper 之外
-     → .el-empty 只有一小截落在 body-wrapper 内。
-   因此空块相关规则统一挂 `.re-table .el-table__body-wrapper .el-xxx`（0,3,0），
-   无论加载顺序都压得住主题规则。 */
+/* 空数据：撑满最小高度并居中（vxe-table）。
+   ⚠ vxe 侧没有 element-plus 的 el-scrollbar 层，高度链短一环：.vxe-table--body-wrapper
+     → .vxe-table--empty-block → el-empty，少给一环空块就退回内容高度。
+   ⚠ 权重：空块相关规则一律挂 `.re-table .vxe-table--body-wrapper .vxe-table--empty-block`
+     （0,3,0），压得住主题里可能存在的同级空块定位规则。
+   ⚠ fill 缺省开启后最关键的一条在下方 --fixed-height 那组：min-height:0 会把空块
+     压成 0 高、整体不可见，必须叠 height:100% 让它跟着 body 走。 */
+.re-table--empty .vxe-table--body-wrapper {
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
+}
+/* 视口兜底高度：vxe 给空块写的是内联 height:100%，需要父级有确定高度，
+   否则视口与空块一起塌成一条线 */
+.re-table--empty .vxe-table--body-wrapper .vxe-table--empty-block {
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
+}
+.re-table .vxe-table--body-wrapper .vxe-table--empty-block {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  width: 100%;
+  min-height: var(--re-table-min-height, var(--rt-empty-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 表格高度已确定（调用方给了 height/max-height，或 fill 生效）：
+   空态改为填满 body 剩余区域，取消 440px 强撑。
+   ⚠ 缺省开启 fill 之后这条最关键：min-height:0 会把空块压成 0 高、整体不可见
+     （原先 fill 缺省关闭所以踩不到，现在每个页面都会命中）。
+   min-height:0 保留（允许收缩），再叠 height:100% 让它跟着 body 走。 */
+.re-table--empty.re-table--fixed-height .vxe-table--body-wrapper,
+.re-table--empty.re-table--fixed-height .vxe-table--body-wrapper .vxe-table--empty-block {
+  min-height: 0;
+  height: 100%;
+}
+.re-table .vxe-table--body-wrapper .vxe-table--empty-placeholder {
+  width: 100%;
+  min-width: 0;
+  line-height: inherit;
+  padding: 0 16px;
+}
+.re-table .vxe-table--body-wrapper .el-empty {
+  padding: 28px 0 36px;
+}
+/* element 引擎的空态（非 fill 分支）：高度链多一层 el-scrollbar，逐环给 100%。
+   ⚠ 权重：统一挂 `.re-table .el-table__body-wrapper .el-table__empty-block`（0,3,0），
+     压得住 koi 主题里可能存在的同级空块定位规则（该规则与本条权重相同，
+     胜负只取决于样式表加载顺序，主题晚加载时空块会脱离文档流）。 */
 .re-table--empty .el-table__body-wrapper {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
@@ -2653,8 +3738,6 @@ const iconSelect = Select;
 .re-table--empty .el-table__body-wrapper .el-scrollbar__wrap {
   height: 100% !important;
 }
-/* 视口兜底高度：element-plus 给空块写的是内联 height:100%，需要父级有确定高度，
-   否则视口与空块一起塌成一条线 */
 .re-table--empty .el-table__body-wrapper .el-scrollbar__view {
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
@@ -2671,12 +3754,11 @@ const iconSelect = Select;
   align-items: center;
   justify-content: center;
 }
-/* 调用方给了固定高度（layout-table height/max-height）：表格高已确定，
-   空态填满 body 剩余区域即可，取消 440px 强撑，避免空块溢出表格底部 */
 .re-table--empty.re-table--fixed-height .el-table__body-wrapper,
 .re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-scrollbar__view,
 .re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-table__empty-block {
   min-height: 0;
+  height: 100%;
 }
 .re-table .el-table__body-wrapper .el-table__empty-text {
   width: 100%;
@@ -2858,8 +3940,8 @@ const iconSelect = Select;
   background: var(--el-color-primary-light-9) !important;
 }
 /* 拖拽模式下全局禁止表格文字选中 */
-.re-table:has(.drag-handle) .el-table__body,
-.re-table:has(.drag-handle) .el-table__body td .cell {
+.re-table:has(.drag-handle) .vxe-table--body,
+.re-table:has(.drag-handle) .vxe-body--column .vxe-cell {
   user-select: none !important;
   -webkit-user-select: none !important;
 }

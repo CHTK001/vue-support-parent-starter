@@ -102,7 +102,7 @@ function delItem(row: ListRow): void {
       <ReInput
         v-if="rows.length > 8"
         v-model="filter"
-        size="small"
+
         placeholder="筛选元素"
         prefix-icon="Search"
         clearable
@@ -113,17 +113,17 @@ function delItem(row: ListRow): void {
     <div class="rv-rows">
       <div v-for="row in visibleRows" :key="row.index" class="rv-row" :class="{ dirty: isDirty(row) }">
         <span class="rv-idx" :title="`下标 ${row.index}`">{{ row.index }}</span>
-        <ReInput v-model="row.value" size="small" class="rv-mono" @keyup.enter="saveItem(row)" />
+        <ReInput v-model="row.value" class="rv-mono" @keyup.enter="saveItem(row)" />
         <div class="rv-ops">
           <ReButton
             icon="Check"
             layout="square"
-            size="small"
+
             title="保存"
             :disabled="busy || !isDirty(row)"
             @click="saveItem(row)"
           />
-          <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" :disabled="busy" @click="delItem(row)" />
+          <ReButton icon="Delete" layout="square" type="danger" title="删除" :disabled="busy" @click="delItem(row)" />
         </div>
       </div>
       <ReEmpty v-if="rows.length === 0" description="暂无元素" :image-size="40" />
@@ -131,8 +131,8 @@ function delItem(row: ListRow): void {
 
     <div class="rv-add">
       <span class="rv-add-label">追加到尾部</span>
-      <ReInput v-model="newItem" size="small" placeholder="新元素" @keyup.enter="addItem" />
-      <ReButton icon="Plus" type="primary" size="small" :show-text="true" :disabled="busy" @click="addItem">追加</ReButton>
+      <ReInput v-model="newItem" placeholder="新元素" @keyup.enter="addItem" />
+      <ReButton icon="Plus" type="primary" :show-text="true" :disabled="busy" @click="addItem">追加</ReButton>
     </div>
   </div>
 </template>

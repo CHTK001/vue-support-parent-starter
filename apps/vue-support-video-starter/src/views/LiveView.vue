@@ -201,9 +201,9 @@ onMounted(() => void load());
   font-size: 14px;
   font-weight: 500;
   padding: 7px 16px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -214,11 +214,17 @@ onMounted(() => void load());
   border-color: var(--vd-border-strong);
 }
 
+.vdl-group-btn:focus-visible {
+  outline: none;
+  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+}
+
 .vdl-group-btn.is-active {
-  color: #fff;
+  color: var(--vd-text);
   border-color: transparent;
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
 }
 
 .vdl-group-count {
@@ -251,9 +257,11 @@ onMounted(() => void load());
 .vdl-live-dot {
   width: 8px;
   height: 8px;
+  /* 50% 是几何形状（圆点）而非魔法像素，保留 */
   border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+  /* 直播红是危险/告警语义色，取 Element Plus 语义令牌 */
+  background: var(--el-color-danger);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger) 80%, transparent);
   animation: vdl-pulse 1.4s ease-in-out infinite;
 }
 
@@ -278,7 +286,9 @@ onMounted(() => void load());
 .vdl-player-error {
   margin: 10px 0 0;
   font-size: 13px;
-  color: #fca5a5;
+  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
+     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
+  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
 }
 
 /* ── 选台列表 ───────────────────────────── */
@@ -307,7 +317,7 @@ onMounted(() => void load());
   padding: 12px 10px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   text-align: center;
   overflow: hidden;
 }
@@ -315,13 +325,22 @@ onMounted(() => void load());
 .vdl-channel:hover {
   border-color: var(--vd-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 20%, transparent);
+}
+
+.vdl-channel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 .vdl-channel.is-active {
   border-color: transparent;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(56, 189, 248, 0.8));
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--vd-primary) 90%, transparent),
+    color-mix(in srgb, var(--vd-secondary) 80%, transparent)
+  );
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
 }
 
 .vdl-channel-badge {
@@ -331,11 +350,11 @@ onMounted(() => void load());
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #ef4444;
+  color: var(--el-color-danger);
 }
 
 .vdl-channel.is-active .vdl-channel-badge {
-  color: #fff;
+  color: var(--vd-text);
 }
 
 .vdl-channel-label {
@@ -355,7 +374,12 @@ onMounted(() => void load());
 .vdl-skeleton-item {
   height: 44px;
   border-radius: var(--vd-radius-sm);
-  background: linear-gradient(100deg, #1e2636 30%, #263145 50%, #1e2636 70%);
+  background: linear-gradient(
+    100deg,
+    var(--vd-surface-card) 30%,
+    var(--vd-surface-hover) 50%,
+    var(--vd-surface-card) 70%
+  );
   background-size: 200% 100%;
   animation: vd-skeleton 1.5s infinite;
 }
@@ -366,6 +390,25 @@ onMounted(() => void load());
   }
   .vdl-channel-grid {
     max-height: 320px;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vdl-group-btn,
+  .vdl-channel,
+  .vdl-channel:hover {
+    transition: none;
+    transform: none;
+  }
+  .vdl-live-dot {
+    animation: none;
+  }
+  /* 骨架屏的微光是唯一的「加载中」视觉提示，关掉动画前先补一个静态底色，
+     保证占位仍然可读（容器上还有 aria-busy 语义） */
+  .vdl-skeleton-item {
+    animation: none;
+    background: var(--vd-surface-hover);
   }
 }
 </style>

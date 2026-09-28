@@ -15,6 +15,8 @@ import "element-plus/theme-chalk/dark/css-vars.css";
 import "./tailwind.css";
 import "./styles/refactor.css";
 import "./styles/markdown-doc.css";
+// @ 风格选择面板：必须全局引入，面板 Teleport 到 body，scoped 样式匹配不上
+import "./styles/generate-style-panel.css";
 import "nprogress/nprogress.css";
 // 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
 import "@repo/ui/surface";
@@ -207,12 +209,6 @@ const routes = [
         component: () => import("./components/management/SkillsPage.vue"),
       },
       {
-        path: "session-trace",
-        name: "SessionTrace",
-        meta: { title: "执行轨迹", requiresAuth: true },
-        component: () => import("./components/management/SessionTracePage.vue"),
-      },
-      {
         path: "capabilities/:pipeline",
         name: "Capabilities",
         meta: { title: "视觉管线", requiresAuth: true },
@@ -231,30 +227,6 @@ const routes = [
     name: "Password",
     meta: { titleKey: "common.route.password" },
     component: () => import("./components/PasswordPage.vue"),
-  },
-  {
-    path: "/test",
-    name: "Test",
-    meta: { title: "UI 测试" },
-    component: () => import("./components/test/ui.vue"),
-  },
-  {
-    path: "/splitpanes-test",
-    name: "SplitpanesTest",
-    meta: { title: "Splitpanes 性能测试" },
-    component: () => import("./components/test/SplitpanesPerfTest.vue"),
-  },
-  {
-    path: "/simple-test",
-    name: "SimpleTest",
-    meta: { title: "简单测试" },
-    component: () => import("./components/test/SimpleTest.vue"),
-  },
-  {
-    path: "/input-test",
-    name: "InputTest",
-    meta: { title: "Contenteditable 输入测试" },
-    component: () => import("./components/test/InputTest.vue"),
   },
   {
     path: "/empty",

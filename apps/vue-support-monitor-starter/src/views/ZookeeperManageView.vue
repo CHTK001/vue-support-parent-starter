@@ -6,10 +6,10 @@
         <span class="dsm-title">ZooKeeper 注册中心管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton size="small" :disabled="!source" :loading="clusterLoading" @click="openCluster"><template #icon><ReIcon name="Monitor" /></template>集群信息</ReButton>
-        <ReButton size="small" :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton size="small" :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton size="small" type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
+        <ReButton :disabled="!source" :loading="clusterLoading" @click="openCluster"><template #icon><ReIcon name="Monitor" /></template>集群信息</ReButton>
+        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
+        <ReButton :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
+        <ReButton type="primary" :disabled="!source" @click="openCreate"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
       </div>
     </div>
 
@@ -62,7 +62,7 @@
           <div class="dsm-info-row"><span class="dsm-info-label">当前路径</span><span class="dsm-info-value mono">{{ activePath || "—" }}</span></div>
           <div class="dsm-info-row">
             <span class="dsm-info-label">状态</span>
-            <ReTag :type="gap ? 'danger' : 'success'" size="small">{{ gap ? "读取失败" : "正常" }}</ReTag>
+            <ReTag :type="gap ? 'danger' : 'success'" >{{ gap ? "读取失败" : "正常" }}</ReTag>
           </div>
           <div class="dsm-info-row">
             <span class="dsm-info-label">服务端版本</span>
@@ -78,9 +78,9 @@
           <div class="dsm-section-title">
             节点详情 - {{ activePath }}
             <div class="dsm-section-actions">
-              <ReButton size="small" text @click="loadNodeDetail"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
-              <ReButton size="small" text type="primary" :disabled="!nodeDetail" @click="editNode"><template #icon><ReIcon name="Edit" size="12" /></template>编辑数据</ReButton>
-              <ReButton size="small" text type="danger" :disabled="!nodeDetail" @click="deleteNode()"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
+              <ReButton text @click="loadNodeDetail"><template #icon><ReIcon name="Refresh" size="12" /></template>刷新</ReButton>
+              <ReButton text type="primary" :disabled="!nodeDetail" @click="editNode"><template #icon><ReIcon name="Edit" size="12" /></template>编辑数据</ReButton>
+              <ReButton text type="danger" :disabled="!nodeDetail" @click="deleteNode()"><template #icon><ReIcon name="Delete" size="12" /></template>删除</ReButton>
             </div>
           </div>
 
@@ -92,7 +92,7 @@
               </div>
               <div class="dsm-detail-row">
                 <span class="dsm-detail-label">节点类型</span>
-                <ReTag :type="nodeDetail.ephemeral ? 'warning' : 'info'" size="small">
+                <ReTag :type="nodeDetail.ephemeral ? 'warning' : 'info'" >
                   {{ nodeDetail.ephemeral ? "临时节点 (Ephemeral)" : "持久节点 (Persistent)" }}
                 </ReTag>
               </div>
@@ -153,9 +153,9 @@
               </div>
               <div v-else class="dsm-data-block">
                 <div class="dsm-data-title">ACL 列表</div>
-                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" :pagination="false" stripe border size="small">
+                <ReTable :data="aclList" :columns="aclColumns" :loading="aclLoading" :pagination="false" stripe border >
                   <template #col-perms="{ row }">
-                    <ReTag size="small" type="info">{{ (row as unknown as ZkNodeAcl).permsText }}</ReTag>
+                    <ReTag type="info">{{ (row as unknown as ZkNodeAcl).permsText }}</ReTag>
                   </template>
                 </ReTable>
               </div>
@@ -167,9 +167,9 @@
 
           <div v-if="children.length > 0" class="dsm-children-section">
             <div class="dsm-data-title">子节点列表</div>
-            <ReTable :data="children" :columns="childColumns" :loading="childLoading" :pagination="false" stripe border size="small">
+            <ReTable :data="children" :columns="childColumns" :loading="childLoading" :pagination="false" stripe border >
               <template #col-type="{ row }">
-                <ReTag :type="(row as unknown as ZkChildNode).ephemeral ? 'warning' : 'info'" size="small">
+                <ReTag :type="(row as unknown as ZkChildNode).ephemeral ? 'warning' : 'info'" >
                   {{ (row as unknown as ZkChildNode).ephemeral ? "临时" : "持久" }}
                 </ReTag>
               </template>
@@ -211,9 +211,9 @@
     </ReDialog>
 
     <ReDialog v-model="clusterVisible" title="ZooKeeper 集群信息（mntr）" width="960px">
-      <ReTable :data="clusterList" :columns="clusterColumns" :loading="clusterLoading" :pagination="false" stripe border size="small">
+      <ReTable :data="clusterList" :columns="clusterColumns" :loading="clusterLoading" :pagination="false" stripe border >
         <template #col-state="{ row }">
-          <ReTag :type="(row as unknown as ZkClusterNode).zkServerState === 'leader' ? 'warning' : 'info'" size="small">
+          <ReTag :type="(row as unknown as ZkClusterNode).zkServerState === 'leader' ? 'warning' : 'info'" >
             {{ (row as unknown as ZkClusterNode).zkServerState || "—" }}
           </ReTag>
         </template>

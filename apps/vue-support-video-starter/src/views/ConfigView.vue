@@ -203,7 +203,7 @@ onMounted(() => void load());
       <template #header>
         <div class="vdc-card-head">
           <span class="vdc-card-title">分类浏览关键词</span>
-          <el-button :icon="Plus" size="small" @click="addBrowseRow">添加</el-button>
+          <el-button :icon="Plus" @click="addBrowseRow">添加</el-button>
         </div>
       </template>
       <p class="vdc-hint">分类码（{{ BROWSE_HINTS.join(" / ") }}）→ 资源站检索关键词。</p>
@@ -224,8 +224,8 @@ onMounted(() => void load());
         <div class="vdc-card-head">
           <span class="vdc-card-title">直播目录（分组 / 频道 / 候选源）</span>
           <div class="vdc-card-actions">
-            <el-tag size="small" round>频道 {{ channelCount }}</el-tag>
-            <el-button :icon="MagicStick" size="small" @click="formatCatalog">格式化</el-button>
+            <el-tag round>频道 {{ channelCount }}</el-tag>
+            <el-button :icon="MagicStick" @click="formatCatalog">格式化</el-button>
           </div>
         </div>
       </template>
@@ -338,14 +338,17 @@ onMounted(() => void load());
   font-family: "JetBrains Mono", Consolas, Monaco, monospace;
   font-size: 12.5px;
   line-height: 1.6;
-  background: #0f172a;
-  color: #e2e8f0;
+  /* 代码编辑区沿用深色影院主题的面层令牌，避免另起一套写死色 */
+  background: var(--vd-surface);
+  color: var(--vd-text);
 }
 
 .vdc-json-error {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #fca5a5;
+  /* 浅红错误文字：EP 暗色档里 --el-color-danger-light-3 反而更暗，不能用；
+     用 danger 与正文色混出「浅红」，兼顾令牌化与深底对比度 */
+  color: color-mix(in srgb, var(--el-color-danger) 55%, var(--vd-text));
 }
 
 .vdc-channels {
@@ -365,5 +368,17 @@ onMounted(() => void load());
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 4px;
+}
+
+/* 尊重系统「减少动态效果」偏好：本页样式未声明 transition / animation
+   （动效都在 el-card / el-alert / el-input 内部），这里做显式归零兜底，
+   防止后续新增动效漏配。 */
+@media (prefers-reduced-motion: reduce) {
+  .vdc-card,
+  .vdc-row,
+  .vdc-actions {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

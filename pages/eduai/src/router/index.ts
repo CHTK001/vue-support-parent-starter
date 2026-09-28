@@ -171,6 +171,32 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "古诗补全", icon: "Reading", showLink: false, isVisible: "0", keepAlive: true },
   },
   {
+    // 古诗文闯关：七种玩法合一（诗句排序 / 飞花令 / 看句猜题 / 诗归其主 / 朝代溯源 / 题材归类 / 炼字填空）
+    path: "/edu/fun/poem-challenge",
+    name: "EduFunPoemChallenge",
+    component: () => import("../views/PoemChallengeView.vue"),
+    meta: { title: "古诗文闯关", icon: "Medal", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 学生登录页：独立全屏（position:fixed 脱离管理后台外壳）。
+    // 账号可用学号或家长手机号。
+    //
+    // meta.position="top" → 走框架既有的「顶部菜单」通道（packages/core/src/router/menu.ts
+    // 的 _position()），由 ReTopMenus 渲染到顶栏，不占侧边栏；icon 走标准菜单图标，
+    // 未配 icon 时框架会用 resolveMenuDefaultIcon() 兜底。
+    path: "/edu/student-login",
+    name: "EduStudentLogin",
+    component: () => import("../views/portal/StudentLoginView.vue"),
+    meta: {
+      title: "学生端",
+      icon: "User",
+      position: "top",
+      showLink: false,
+      isVisible: "0",
+      keepAlive: false,
+    },
+  },
+  {
     // 学生端：独立全屏页面（position:fixed 脱离管理后台外壳），
     // 进入未绑定会先弹登记表单；按档案学段渲染小学/初中/高中三套首页
     path: "/edu/student",

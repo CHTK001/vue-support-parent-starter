@@ -50,6 +50,15 @@ export interface ModelGenerateConfig {
   stepsMin: number | null
   stepsMax: number | null
   stepsDefault: number | null
+  /**
+   * 是否支持 style 参数。
+   *
+   * 关闭时不展示风格入口、提交也不带 style —— 部分上游（如 Agnes）
+   * 会直接拒绝该参数。
+   */
+  style: boolean
+  /** 可用风格 key 列表；留空表示沿用前端内置默认风格表 */
+  styles: string[]
 }
 
 /** 生成参数默认值：文生图基础档 */
@@ -64,6 +73,8 @@ export function createDefaultGenerateConfig(src: any = {}): ModelGenerateConfig 
     stepsMin: src.stepsMin ?? null,
     stepsMax: src.stepsMax ?? null,
     stepsDefault: src.stepsDefault ?? null,
+    style: src.style ?? true,
+    styles: Array.isArray(src.styles) ? [...src.styles] : [],
   }
 }
 

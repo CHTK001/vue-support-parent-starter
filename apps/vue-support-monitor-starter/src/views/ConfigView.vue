@@ -351,14 +351,14 @@ onUnmounted(() => {
         <p class="page-desc">告警策略 · 规则 · 维护窗口管理 · 通知渠道当前仅日志实现（webhook/邮件待补）</p>
       </div>
       <div class="page-actions">
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="fetchAll">刷新</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true"  :loading="loading" @click="fetchAll">刷新</ReButton>
       </div>
     </div>
 
     <div class="tabs">
-      <ReButton :class="['tab-btn', { active: tab === 'policy' }]" size="small" :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
-      <ReButton :class="['tab-btn', { active: tab === 'rule' }]" size="small" :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
-      <ReButton :class="['tab-btn', { active: tab === 'window' }]" size="small" :show-text="true" @click="tab = 'window'">维护窗口</ReButton>
+      <ReButton :class="['tab-btn', { active: tab === 'policy' }]"  :show-text="true" @click="tab = 'policy'">告警策略</ReButton>
+      <ReButton :class="['tab-btn', { active: tab === 'rule' }]"  :show-text="true" @click="tab = 'rule'">告警规则</ReButton>
+      <ReButton :class="['tab-btn', { active: tab === 'window' }]"  :show-text="true" @click="tab = 'window'">维护窗口</ReButton>
     </div>
 
     <!-- 策略 -->
@@ -366,7 +366,7 @@ onUnmounted(() => {
       <template #header>
         <div class="card-bar">
           <span class="card-title">策略总览</span>
-          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openPolicyAdd">新增策略</ReButton>
+          <ReButton icon="Plus" :show-text="true" type="primary"  @click="openPolicyAdd">新增策略</ReButton>
         </div>
       </template>
       <ReEmpty v-if="policies.length === 0" description="暂无策略 —— 策略是规则的逻辑容器，停用即整组失效" style="padding: 36px 0" />
@@ -375,13 +375,13 @@ onUnmounted(() => {
           <div class="p-main">
             <ReStatusIndicator :type="p.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" :pulse="p.msMonitorAlarmPolicyEnabled === 1" />
             <b class="p-name">{{ p.msMonitorAlarmPolicyName }}</b>
-            <ReTag :type="p.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" size="small">{{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}</ReTag>
+            <ReTag :type="p.msMonitorAlarmPolicyEnabled === 1 ? 'success' : 'info'" >{{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}</ReTag>
             <span class="p-hint">{{ p.msMonitorAlarmPolicyRemark || "—" }}</span>
           </div>
           <div class="p-ops">
-            <ReButton icon="Plus" layout="square" size="small" title="新增规则" @click="openRuleAdd(p.id)" />
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑策略" @click="openPolicyEdit(p)" />
-            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除策略" @click="removePolicy(p)" />
+            <ReButton icon="Plus" layout="square"  title="新增规则" @click="openRuleAdd(p.id)" />
+            <ReButton icon="EditPen" layout="square"  title="编辑策略" @click="openPolicyEdit(p)" />
+            <ReButton icon="Delete" layout="square"  type="danger" title="删除策略" @click="removePolicy(p)" />
           </div>
         </div>
       </div>
@@ -392,7 +392,7 @@ onUnmounted(() => {
       <template #header>
         <div class="card-bar">
           <span class="card-title">规则总览</span>
-          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openRuleAdd()">新增规则</ReButton>
+          <ReButton icon="Plus" :show-text="true" type="primary"  @click="openRuleAdd()">新增规则</ReButton>
         </div>
       </template>
       <ReEmpty v-if="rules.length === 0" description="暂无规则 —— 选指标 + 阈值 + 级别定义触发条件" style="padding: 36px 0" />
@@ -401,17 +401,17 @@ onUnmounted(() => {
           <div class="r-grp-title">{{ rulePolicyName(pid) }}</div>
           <div v-for="r in list" :key="r.id" class="r-row">
             <div class="r-main">
-              <ReTag :type="(r.msMonitorAlarmRuleLevel==='P0'||r.msMonitorAlarmRuleLevel==='P1')?'danger':r.msMonitorAlarmRuleLevel==='P2'?'warning':'success'" effect="dark" size="small">{{ r.msMonitorAlarmRuleLevel }}</ReTag>
+              <ReTag :type="(r.msMonitorAlarmRuleLevel==='P0'||r.msMonitorAlarmRuleLevel==='P1')?'danger':r.msMonitorAlarmRuleLevel==='P2'?'warning':'success'" effect="dark" >{{ r.msMonitorAlarmRuleLevel }}</ReTag>
               <span class="r-metric mono">{{ r.msMonitorAlarmRuleMetricName }}</span>
               <span class="r-cond mono">{{ condText(r.msMonitorAlarmRuleCondition) }} {{ r.msMonitorAlarmRuleThreshold }}</span>
               <span class="r-meta">{{ ruleMonitorName(r.msMonitorAlarmRuleMonitorId) }}</span>
               <span class="r-meta dim">连续 {{ r.msMonitorAlarmRuleConsecutiveCount }} 次 · 静默 {{ r.msMonitorAlarmRuleSilenceMinutes }}m</span>
-              <ReTag :type="r.msMonitorAlarmRuleEnabled === 1 ? 'success' : 'info'" size="small">{{ r.msMonitorAlarmRuleEnabled === 1 ? "启用" : "停用" }}</ReTag>
+              <ReTag :type="r.msMonitorAlarmRuleEnabled === 1 ? 'success' : 'info'" >{{ r.msMonitorAlarmRuleEnabled === 1 ? "启用" : "停用" }}</ReTag>
             </div>
             <div class="r-ops">
-              <ReButton icon="VideoPlay" layout="square" size="small" title="测试规则" :loading="ruleTesting" @click="runRuleTest(r)" />
-              <ReButton icon="EditPen" layout="square" size="small" title="编辑规则" @click="openRuleEdit(r)" />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除规则" @click="removeRule(r)" />
+              <ReButton icon="VideoPlay" layout="square"  title="测试规则" :loading="ruleTesting" @click="runRuleTest(r)" />
+              <ReButton icon="EditPen" layout="square"  title="编辑规则" @click="openRuleEdit(r)" />
+              <ReButton icon="Delete" layout="square"  type="danger" title="删除规则" @click="removeRule(r)" />
             </div>
           </div>
         </template>
@@ -423,7 +423,7 @@ onUnmounted(() => {
       <template #header>
         <div class="card-bar">
           <span class="card-title">告警静默时段</span>
-          <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="openWindowAdd">新增窗口</ReButton>
+          <ReButton icon="Plus" :show-text="true" type="primary"  @click="openWindowAdd">新增窗口</ReButton>
         </div>
       </template>
       <ReEmpty v-if="windows.length === 0" description="暂无维护窗口 —— 命中窗口时段的告警不产生事件，用于发布/巡检静默" style="padding: 36px 0" />
@@ -432,15 +432,15 @@ onUnmounted(() => {
           <div class="p-main">
             <ReStatusIndicator :type="w.msMonitorAlarmMaintenanceWindowEnabled === 1 ? 'success' : 'info'" :pulse="windowActiveNow(w)" />
             <b class="p-name">{{ w.windowName }}</b>
-            <ReTag :type="w.msMonitorAlarmMaintenanceWindowLevel ? 'warning' : 'info'" size="small" effect="dark">{{ windowLevelText(w) }}</ReTag>
+            <ReTag :type="w.msMonitorAlarmMaintenanceWindowLevel ? 'warning' : 'info'"  effect="dark">{{ windowLevelText(w) }}</ReTag>
             <span class="r-meta mono">{{ w.startTime || "—" }} ~ {{ w.endTime || "—" }}</span>
             <span class="r-meta">{{ windowDaysText(w) }}</span>
-            <ReTag v-if="windowActiveNow(w)" type="success" size="small">此刻生效</ReTag>
+            <ReTag v-if="windowActiveNow(w)" type="success" >此刻生效</ReTag>
             <span class="p-hint">{{ w.remark || "—" }}</span>
           </div>
           <div class="p-ops">
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑窗口" @click="openWindowEdit(w)" />
-            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除窗口" @click="removeWindow(w)" />
+            <ReButton icon="EditPen" layout="square"  title="编辑窗口" @click="openWindowEdit(w)" />
+            <ReButton icon="Delete" layout="square"  type="danger" title="删除窗口" @click="removeWindow(w)" />
           </div>
         </div>
       </div>
@@ -465,26 +465,26 @@ onUnmounted(() => {
     <ReDialog v-model="ruleVisible" :title="ruleForm.id ? '编辑规则' : '新增规则'" width="520px">
       <ReForm label-width="96px">
         <ReFormItem label="所属策略">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId" size="small" style="width: 100%" :options="policies.map(p => ({ label: p.msMonitorAlarmPolicyName, value: p.id }))" />
+          <ReSelect v-model="ruleForm.msMonitorAlarmRulePolicyId"  style="width: 100%" :options="policies.map(p => ({ label: p.msMonitorAlarmPolicyName, value: p.id }))" />
         </ReFormItem>
         <ReFormItem label="目标">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId" size="small" clearable style="width: 100%" :options="[
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMonitorId"  clearable style="width: 100%" :options="[
             { label: '全部目标', value: null as any },
             ...monitors.map(m => ({ label: m.monitorName, value: m.id })),
           ]" />
         </ReFormItem>
         <ReFormItem label="指标">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName" size="small" filterable allow-create style="width: 100%" :options="METRICS.map(mt => ({ label: mt, value: mt }))" />
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleMetricName"  filterable allow-create style="width: 100%" :options="METRICS.map(mt => ({ label: mt, value: mt }))" />
         </ReFormItem>
         <ReFormItem label="条件">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition" size="small" style="width: 120px" class="mr" :options="CONDITIONS.map(c => ({ label: c.label, value: c.value }))" />
-          <ReInputNumber v-model="ruleForm.msMonitorAlarmRuleThreshold" size="small" :min="0" :step="5" style="width: 140px" />
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleCondition"  style="width: 120px" class="mr" :options="CONDITIONS.map(c => ({ label: c.label, value: c.value }))" />
+          <ReInputNumber v-model="ruleForm.msMonitorAlarmRuleThreshold"  :min="0" :step="5" style="width: 140px" />
         </ReFormItem>
         <ReFormItem label="级别">
-          <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel" size="small" style="width: 120px" :options="LEVELS.map(lv => ({ label: lv + ' ' + lv, value: lv }))" />
+          <ReSelect v-model="ruleForm.msMonitorAlarmRuleLevel"  style="width: 120px" :options="LEVELS.map(lv => ({ label: lv + ' ' + lv, value: lv }))" />
         </ReFormItem>
-        <ReFormItem label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount" size="small" :min="1" :max="20" /></ReFormItem>
-        <ReFormItem label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes" size="small" :min="0" :max="1440" /></ReFormItem>
+        <ReFormItem label="连续次数"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleConsecutiveCount"  :min="1" :max="20" /></ReFormItem>
+        <ReFormItem label="静默(分钟)"><ReInputNumber v-model="ruleForm.msMonitorAlarmRuleSilenceMinutes"  :min="0" :max="1440" /></ReFormItem>
         <ReFormItem label="状态"><ReSwitch v-model="ruleForm.msMonitorAlarmRuleEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" /></ReFormItem>
       </ReForm>
       <template #footer>
@@ -497,17 +497,17 @@ onUnmounted(() => {
       <ReForm label-width="92px">
         <ReFormItem label="名称"><ReInput v-model="windowForm.windowName" placeholder="如 夜间发布静默" /></ReFormItem>
         <ReFormItem label="级别">
-          <ReSelect v-model="windowForm.msMonitorAlarmMaintenanceWindowLevel" size="small" clearable style="width: 100%" :options="LEVELS.map(lv => ({ label: lv, value: lv }))" />
+          <ReSelect v-model="windowForm.msMonitorAlarmMaintenanceWindowLevel"  clearable style="width: 100%" :options="LEVELS.map(lv => ({ label: lv, value: lv }))" />
           <div class="w-hint">只静默该级别的规则；留空表示全局静默（命中所有级别）</div>
         </ReFormItem>
         <ReFormItem label="每日时段">
-          <ReInput v-model="windowForm.startTime" size="small" placeholder="22:00" style="width: 104px" class="mr" />
+          <ReInput v-model="windowForm.startTime"  placeholder="22:00" style="width: 104px" class="mr" />
           <span class="w-sep">至</span>
-          <ReInput v-model="windowForm.endTime" size="small" placeholder="06:00" style="width: 104px" class="ml" />
+          <ReInput v-model="windowForm.endTime"  placeholder="06:00" style="width: 104px" class="ml" />
           <div class="w-hint">格式 HH:mm，支持跨午夜（22:00 ~ 06:00）；起止相同表示全天静默</div>
         </ReFormItem>
         <ReFormItem label="星期">
-          <ReSelect v-model="windowDays" size="small" multiple clearable collapse-tags style="width: 100%" :options="WEEKDAYS" placeholder="不选表示每天" />
+          <ReSelect v-model="windowDays"  multiple clearable collapse-tags style="width: 100%" :options="WEEKDAYS" placeholder="不选表示每天" />
         </ReFormItem>
         <ReFormItem label="备注"><ReInput v-model="windowForm.remark" type="textarea" :rows="2" placeholder="可选" /></ReFormItem>
         <ReFormItem label="状态">
@@ -560,4 +560,4 @@ onUnmounted(() => {
 .ml { margin-left: 8px; }
 .w-sep { font-size: 12px; color: var(--text-tertiary); margin: 0 8px; }
 .w-hint { width: 100%; margin-top: 4px; font-size: 11px; line-height: 1.5; color: var(--text-tertiary); }
-</style>
+</style>

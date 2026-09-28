@@ -90,7 +90,7 @@
       <ReTableColumn prop="collectTaskName" label="任务名称" min-width="170" show-overflow-tooltip />
       <ReTableColumn label="来源类型" width="110" align="center">
         <template #default="{ row }">
-          <el-tag size="small" :type="sourceTagType(row.collectTaskSourceType)">
+          <el-tag  :type="sourceTagType(row.collectTaskSourceType)">
             {{ sourceLabel(row.collectTaskSourceType) }}
           </el-tag>
         </template>
@@ -105,7 +105,7 @@
         <template #default="{ row }">
           <span class="text-xs cron-text">{{ row.cron || '未登记' }}</span>
           <el-tooltip v-if="row.cron && !row.handlerRegistered" content="本节点没有该任务的执行器，派发会被跳过；重启应用可自动补齐" placement="top">
-            <el-tag size="small" type="warning" class="ml-1">无执行器</el-tag>
+            <el-tag  type="warning" class="ml-1">无执行器</el-tag>
           </el-tooltip>
         </template>
       </ReTableColumn>
@@ -123,7 +123,7 @@
           <ReSwitch
             :model-value="row.collectTaskStatus === 1"
             :loading="row.collectTaskId === statusPendingId"
-            size="small"
+            
             inline-prompt
             active-text="启"
             inactive-text="停"
@@ -135,7 +135,7 @@
       <ReTableColumn label="最近执行" width="170" align="center">
         <template #default="{ row }">
           <template v-if="row.collectTaskLastRunTime">
-            <el-tag size="small" :type="row.collectTaskLastRunStatus === 1 ? 'success' : 'danger'">
+            <el-tag  :type="row.collectTaskLastRunStatus === 1 ? 'success' : 'danger'">
               {{ row.collectTaskLastRunCount ?? 0 }} 条
             </el-tag>
             <div class="text-xs text-gray-400 mt-1">{{ formatDateTime(row.collectTaskLastRunTime) }}</div>
@@ -226,21 +226,29 @@
 
         <!-- 前置处理器（必填）：把来源数据转成「一行一个」，支持 JSONPath / Groovy -->
         <el-form-item label="前置处理器" required>
-          <div class="proc-field" @click="openPre">
+          <!-- 整行可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
+          <div class="proc-field" role="button" tabindex="0" @click="openPre" @keydown.enter="openPre">
             <span :class="{ 'is-empty': !preSummary }">
               {{ preSummary || "点击配置：JSONPath / Groovy，把数据转成一行一个" }}
             </span>
-            <el-button size="small" @click.stop="openPre">配置</el-button>
+            <el-button  @click.stop="openPre">配置</el-button>
           </div>
         </el-form-item>
 
         <!-- 入库处理器（必填）：前置输出的 key → 数据库列（目标表来自后台接口） -->
         <el-form-item label="入库处理器" required>
-          <div class="proc-field" @click="impDialogVisible = true">
+          <!-- 整行可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
+          <div
+            class="proc-field"
+            role="button"
+            tabindex="0"
+            @click="impDialogVisible = true"
+            @keydown.enter="impDialogVisible = true"
+          >
             <span :class="{ 'is-empty': !impSummary }">
               {{ impSummary || "点击配置：目标表 / 唯一键 / 冲突策略 / 字段映射" }}
             </span>
-            <el-button size="small" @click.stop="impDialogVisible = true">配置</el-button>
+            <el-button  @click.stop="impDialogVisible = true">配置</el-button>
           </div>
         </el-form-item>
 
@@ -436,14 +444,14 @@
         <ReTableColumn prop="collectLogId" label="日志ID" width="80" align="center" />
         <ReTableColumn label="执行状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="logStatusType(row.collectLogStatus)">
+            <el-tag  :type="logStatusType(row.collectLogStatus)">
               {{ logStatusLabel(row.collectLogStatus) }}
             </el-tag>
           </template>
         </ReTableColumn>
         <ReTableColumn label="触发" width="80" align="center">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain" :type="row.collectLogTriggerType === 'AUTO' ? 'success' : 'info'">
+            <el-tag  effect="plain" :type="row.collectLogTriggerType === 'AUTO' ? 'success' : 'info'">
               {{ row.collectLogTriggerType === 'AUTO' ? '调度' : '手动' }}
             </el-tag>
           </template>
@@ -473,6 +481,7 @@ import { CircleCheck, DataLine, Document, RefreshLeft, Search } from "@element-p
 import { eduaiApi } from "../api/eduaiApi";
 import type { CollectMeta, CollectTask, CollectTaskForm, CollectDbTable } from "../api/types";
 import { createPageLoader, numParam, pageLoadError, strParam } from "../api/pageLoader";
+import { formatDuration } from "@repo/ui/re-time";
 
 /** 默认公开成语词库（约 3 万条，含 拼音/释义/出处/例句），页面默认填入，不留空 */
 const IDIOM_CORPUS_DEFAULT = "https://cdn.jsdelivr.net/gh/pwxcoo/chinese-xinhua@master/data/idiom.json";
@@ -1179,7 +1188,9 @@ function elapsed(row: { collectLogStartTime?: string; collectLogEndTime?: string
   if (!row.collectLogStartTime || !row.collectLogEndTime) return "-";
   const ms = new Date(row.collectLogEndTime).getTime() - new Date(row.collectLogStartTime).getTime();
   if (Number.isNaN(ms) || ms < 0) return "-";
-  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+  // 走全站统一的 duration 格式化：这里原先自造了一套「<1s 用 ms、否则用 s」，
+  // 与其它页面的耗时文本对不上（同一份数据两种写法）
+  return formatDuration(ms);
 }
 
 // ---- 辅助 ----
@@ -1320,20 +1331,23 @@ onUnmounted(() => {
   width: 148px;
   height: 148px;
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  box-shadow: var(--el-box-shadow-light);
-  border: 1px solid var(--el-border-color-light);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
@@ -1366,7 +1380,7 @@ onUnmounted(() => {
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1377,7 +1391,8 @@ onUnmounted(() => {
 
 /* ---------- 筛选（被统计卡下半压住） ---------- */
 .filter-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   margin-bottom: 14px;
   border: 0;
   position: relative;
@@ -1410,7 +1425,8 @@ onUnmounted(() => {
   align-items: center;
 }
 .filter-actions .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 88px;
   font-weight: 600;
 }
@@ -1426,7 +1442,7 @@ onUnmounted(() => {
   margin-bottom: 14px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
 }
 .sched-bar__left,
 .sched-bar__right {
@@ -1447,7 +1463,8 @@ onUnmounted(() => {
 
 /* ---------- 表格卡 ---------- */
 .table-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 0;
   position: relative;
   z-index: 1;
@@ -1484,13 +1501,22 @@ onUnmounted(() => {
   padding: 0 10px;
   min-height: 34px;
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   font-size: 13px;
   color: var(--el-text-color-primary);
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .proc-field:hover {
   border-color: var(--el-color-primary-light-5);
+}
+.proc-field:focus-visible {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .proc-field .is-empty {
   color: var(--el-text-color-placeholder);
@@ -1498,7 +1524,8 @@ onUnmounted(() => {
 .db-preview {
   margin: 4px 0 10px;
   padding: 10px 12px;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
   border: 1px dashed var(--el-border-color-lighter);
   display: flex;
@@ -1541,6 +1568,18 @@ onUnmounted(() => {
   }
   .stat-card__value {
     font-size: 24px;
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .proc-field {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .stat-card:hover {
+    transform: none;
   }
 }
 </style>

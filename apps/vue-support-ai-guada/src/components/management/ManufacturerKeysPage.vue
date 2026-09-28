@@ -44,21 +44,21 @@
       <el-table-column prop="weight" label="权重" width="80" align="center" />
       <el-table-column prop="status" label="状态" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+          <el-tag :type="statusTag(row.status)" >{{ statusText(row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
       <el-table-column prop="createTime" label="创建时间" min-width="160" />
       <el-table-column label="操作" width="210" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button size="small" type="primary" link @click="openEditDialog(row)">编辑</el-button>
+          <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
           <el-button
-            size="small"
+
             :type="row.status === 1 ? 'warning' : 'success'"
             link
             @click="toggleItem(row)"
           >{{ row.status === 1 ? '停用' : '启用' }}</el-button>
-          <el-button size="small" type="danger" link @click="deleteItem(row)">删除</el-button>
+          <el-button type="danger" link @click="deleteItem(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -321,17 +321,20 @@ onMounted(() => {
 }
 .page-header h2::before {
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 19px; border-radius: 4px;
+  width: 4px; height: 19px;
+  /* 原值 4px，恰为 19px 高的半径即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
 }
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .panel-card {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 18px 14px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  /* 表格容器是页面区块，不加投影 */
 }
 .flat-table { --el-table-border-color: var(--el-border-color-lighter); }
 .flat-table :deep(th.el-table__cell) {

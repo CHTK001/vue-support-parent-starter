@@ -22,11 +22,14 @@
   >
     <template #header>
       <div class="qmd-head">
-        <span class="qmd-head__title">题库市场</span>
-        <span ref="cartIconRef" class="qmd-head__cart" title="购物车">
-          <el-icon><ShoppingCart /></el-icon>
-          <span v-if="selectedIds.length" class="qmd-head__badge">{{ selectedIds.length }}</span>
+        <span class="qmd-head__title">
+          <span ref="cartIconRef" class="qmd-head__cart" title="购物车">
+            <el-icon><ShoppingCart /></el-icon>
+            <span v-if="selectedIds.length" class="qmd-head__badge">{{ selectedIds.length }}</span>
+          </span>
+          题库市场
         </span>
+     
       </div>
     </template>
 
@@ -71,7 +74,7 @@
         </span>
         <div class="qmd-row__body">
           <div class="qmd-row__head">
-            <el-tag size="small" type="info">{{ typeLabel(q.questionType) }}</el-tag>
+            <el-tag  type="info">{{ typeLabel(q.questionType) }}</el-tag>
             <span class="qmd-diff" :class="diffClass(q.questionDifficulty)">{{ diffLabel(q.questionDifficulty) }}</span>
             <span class="qmd-row__subject">{{ q.questionSubject || "未标学科" }}</span>
             <span v-if="q.questionGrade" class="qmd-row__grade">{{ q.questionGrade }}</span>
@@ -483,7 +486,8 @@ watch(
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  /* 购物车圆形底用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   font-size: 18px;
@@ -495,9 +499,9 @@ watch(
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-color-danger);
-  color: #fff;
+  color: var(--el-color-white);
   font-size: 11px;
   line-height: 16px;
   text-align: center;
@@ -523,7 +527,7 @@ watch(
   max-height: 52vh;
   overflow-y: auto;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
 }
 .qmd-row {
   display: flex;
@@ -568,7 +572,7 @@ watch(
 .qmd-diff {
   flex-shrink: 0;
   padding: 0 6px;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   font-size: 12px;
   line-height: 18px;
 }
@@ -604,6 +608,16 @@ watch(
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
+   本组件唯一的动效是 .qmd-fly-dot（飞入圆点），已在下面的全局 style 块里降级处理，
+   它的元素由 document.createElement 创建、不带 scoped 属性，故规则不能放在这里。 */
+@media (prefers-reduced-motion: reduce) {
+  .qmd-head__badge,
+  .qmd-row {
+    transition: none;
+  }
+}
 </style>
 
 <!-- 飞入圆点由 document.createElement 动态创建，scoped 属性不会附加，故用全局样式 -->
@@ -614,11 +628,25 @@ watch(
   width: 12px;
   height: 12px;
   margin: -6px 0 0 -6px;
-  border-radius: 50%;
+  /* 飞入圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
   pointer-events: none;
   opacity: 0.95;
+  /* 0.42s 是「刻意慢于微交互」的飞入叙事动画，必须与脚本里的 FLY_DURATION
+     （420ms）严格对齐 —— 改短会让圆点先消失后按钮才解除 loading；
+     也不并入 --el-transition-duration-fast（0.2s），那样飞行过程根本看不清 */
   transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.42s ease-in;
+}
+
+/* 无障碍：关闭飞入圆点。
+   不能只写 transition:none —— 那样圆点会停在起点原地约 480ms 才被移除，
+   看起来像卡住。直接 display:none 让它从创建起就不可见；
+   「正在加入」的反馈由「加入购物车」按钮自身的 :loading="flying" 承担，不会丢。 */
+@media (prefers-reduced-motion: reduce) {
+  .qmd-fly-dot {
+    display: none;
+  }
 }
 </style>

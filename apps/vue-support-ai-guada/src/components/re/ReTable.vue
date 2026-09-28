@@ -83,17 +83,18 @@ const pageSize = ref(50)
 <style scoped>
 .re-table-wrapper {
   background: transparent;
-  border-radius: var(--mp-radius, 12px);
+  /* 原 var(--mp-radius, 12px) 里的 --mp-radius 不是 koi 令牌（永远取不到），统一到 --el-radius-lg */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
 .re-table-toolbar {
   padding: 14px 18px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #f1f5f9);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--el-fill-color-light, transparent);
+  background: var(--el-fill-color-light);
 }
 
 .re-table :deep(.el-table) {
@@ -111,14 +112,15 @@ const pageSize = ref(50)
 }
 
 .re-table :deep(.el-table__body tr) {
-  transition: background 0.15s ease;
+  /* 原 0.15s 偏快，行高 50px 下会显得「闪」；统一到 --el-transition-duration 与其余组件同档 */
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .re-table :deep(.el-table__body td) {
   height: 50px;
   font-size: 13.5px;
   color: var(--el-table-text-color, var(--el-text-color-regular));
-  border-bottom-color: var(--el-border-color-lighter, #f1f5f9);
+  border-bottom-color: var(--el-border-color-lighter);
 }
 
 .re-table-index {
@@ -127,19 +129,19 @@ const pageSize = ref(50)
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  background: var(--el-fill-color, #f1f5f9);
-  color: var(--el-text-color-secondary, #64748b);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 500;
 }
 
 .re-table-pagination {
   padding: 14px 18px;
-  border-top: 1px solid var(--el-border-color-lighter, #f1f5f9);
+  border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   justify-content: flex-end;
-  background: var(--el-fill-color-light, transparent);
+  background: var(--el-fill-color-light);
 }
 
 .re-table-pagination :deep(.el-pagination) {
@@ -147,7 +149,14 @@ const pageSize = ref(50)
 }
 
 .re-table-pagination :deep(.el-pagination.is-background .el-pager li.is-active) {
-  background: var(--el-color-primary, #667eea);
-  color: var(--el-color-white, #ffffff);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .re-table :deep(.el-table__body tr) {
+    transition: none;
+  }
 }
 </style>

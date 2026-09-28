@@ -6,8 +6,8 @@
         <div class="ngx-card-head ngc-side-head">
           <span class="ngx-card-title">配置文件</span>
           <div class="ngc-side-ops">
-            <ReButton icon="Refresh" size="small" text :loading="filesLoading" title="刷新列表" @click="loadFiles" />
-            <ReButton icon="DocumentAdd" size="small" text title="新建 .conf 文件" @click="openCreateFile" />
+            <ReButton icon="Refresh" text :loading="filesLoading" title="刷新列表" @click="loadFiles" />
+            <ReButton icon="DocumentAdd" text title="新建 .conf 文件" @click="openCreateFile" />
           </div>
         </div>
         <div class="ngc-side-body">
@@ -31,7 +31,7 @@
       <section class="ngc-main">
         <div class="ngc-bar">
           <span class="ngc-path mono" :title="currentPath">{{ currentPath || "请选择左侧配置文件" }}</span>
-          <ReRadioGroup v-model="mode" size="small">
+          <ReRadioGroup v-model="mode" >
             <ReRadioButton value="FILE">文件模式</ReRadioButton>
             <ReRadioButton value="MODEL">表单模式</ReRadioButton>
           </ReRadioGroup>
@@ -53,22 +53,34 @@
           />
         </div>
 
-        <!-- 文件模式 -->
-        <div v-show="mode === 'FILE'" class="ngc-editor" v-loading="loading">
-          <div class="ngc-gutter">
-            <div v-for="n in lineCount" :key="n" class="ngc-lineno">{{ n }}</div>
+        <!-- 文件模式。
+             外层保留 v-show：它负责「切模式时保持编辑状态与滚动位置」，
+             改成 v-if 会在来回切模式时丢掉未保存的修改。骨架因此必须加在内层。
+             同理 inner 用 v-if 二选一，避免骨架与真实 DOM 同时存在。 -->
+        <div v-show="mode === 'FILE'" class="ngc-editor">
+          <div v-if="loading && !loaded" class="ngc-skel" aria-busy="true" aria-label="配置加载中">
+            <ReSkeleton loading animated :rows="16" />
           </div>
-          <textarea
-            v-model="content"
-            class="ngc-textarea"
-            spellcheck="false"
-            placeholder="选择左侧配置文件后在此编辑"
-            @input="markDirty"
-          />
+          <template v-else>
+            <div class="ngc-gutter">
+              <div v-for="n in lineCount" :key="n" class="ngc-lineno">{{ n }}</div>
+            </div>
+            <textarea
+              v-model="content"
+              class="ngc-textarea"
+              spellcheck="false"
+              placeholder="选择左侧配置文件后在此编辑"
+              @input="markDirty"
+            />
+          </template>
         </div>
 
-        <!-- 表单模式 -->
-        <div v-show="mode === 'MODEL'" class="ngc-model" v-loading="loading">
+        <!-- 表单模式。与文件模式同一套结构：骨架与真实内容 v-if 二选一 -->
+        <div v-show="mode === 'MODEL'" class="ngc-model">
+          <div v-if="loading && !loaded" class="ngc-skel" aria-busy="true" aria-label="配置加载中">
+            <ReSkeleton loading animated :rows="8" />
+          </div>
+          <template v-else>
           <NginxModelForm
             v-if="parsed"
             :key="formKey"
@@ -83,25 +95,26 @@
             @add-block="openAdd('block', $event)"
           />
           <ReEmptyState v-else description="请先选择配置文件" />
+          </template>
         </div>
 
         <!-- 底部操作条 -->
         <div class="ngc-foot">
           <div class="ngc-opts">
-            <ReSwitch v-model="optBackup" size="small" />
+            <ReSwitch v-model="optBackup" />
             <span class="ngc-opt-label">保存前备份</span>
-            <ReSwitch v-model="optValidate" size="small" />
+            <ReSwitch v-model="optValidate" />
             <span class="ngc-opt-label">保存后自动校验</span>
-            <ReSwitch v-model="optReload" size="small" />
+            <ReSwitch v-model="optReload" />
             <span class="ngc-opt-label">校验通过后自动重载</span>
           </div>
           <div class="ngc-ops">
-            <ReTag v-if="patchCount" size="small" type="warning">{{ patchCount }} 处改动</ReTag>
-            <ReButton size="small" :disabled="!hasChange" :loading="previewing" @click="doPreview">
+            <ReTag v-if="patchCount" type="warning">{{ patchCount }} 处改动</ReTag>
+            <ReButton :disabled="!hasChange" :loading="previewing" @click="doPreview">
               <template #icon><ReIcon name="View" :size="13" /></template>
               预览
             </ReButton>
-            <ReButton size="small" type="primary" :disabled="!hasChange" :loading="saving" @click="doSave">
+            <ReButton type="primary" :disabled="!hasChange" :loading="saving" @click="doSave">
               <template #icon><ReIcon name="Check" :size="13" /></template>
               保存
             </ReButton>
@@ -219,6 +232,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import NginxModelForm from "./NginxModelForm.vue";
 import {
   applyNginxConfig,
@@ -263,6 +277,14 @@ const metas = ref<Record<string, NginxDirectiveMeta>>({});
 const metaList = ref<NginxDirectiveMeta[]>([]);
 const patches = ref<NginxPatch[]>([]);
 const loading = ref(false);
+
+/**
+ * 首屏是否已渲染过真实内容。
+ *
+ * <p>骨架屏只在首次出现。切换 .conf 文件会再次走 loading，但那已经是
+ * 「有内容 → 换内容」，再闪一次骨架反而让人以为文件切失败了。</p>
+ */
+const loaded = ref(false);
 const saving = ref(false);
 const previewing = ref(false);
 
@@ -381,6 +403,8 @@ async function openFile(path: string) {
     ElMessage.error(`读取配置失败：${(e as Error).message}`);
   } finally {
     loading.value = false;
+    // 首屏结束（含失败）：失败时该显示「请选择配置文件」空态，而不是永远停在骨架上
+    loaded.value = true;
     if (props.focusNodePath) {
       await nextTick();
       scrollToFocus();
@@ -783,6 +807,25 @@ defineExpose({ loadFiles, openFile, doPreview, doSave, hasChange, openAdd, metas
 }
 
 /* 文件编辑器：内层视口，四周留出卡片内边距 */
+/* ============ 首屏骨架屏 ============ */
+.ngc-skel {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: hidden;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngc-skel :deep(.el-skeleton) {
+  --el-skeleton-animation-bg-color: var(--el-fill-color);
+  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+}
+
+.ngc-skel :deep(.el-skeleton__item) {
+  border-radius: 4px;
+}
+
 .ngc-editor {
   flex: 1;
   min-height: 0;

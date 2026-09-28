@@ -32,10 +32,10 @@
 
                 <!-- 分组名称（编辑模式） -->
                 <template v-if="editingId === element.id">
-                  <el-input v-model="editingName" size="small" maxlength="20" class="flex-1"
+                  <el-input v-model="editingName" maxlength="20" class="flex-1"
                     @keyup.enter="saveEdit" @keyup.esc="cancelEdit" />
-                  <el-button type="primary" size="small" @click="saveEdit">{{ t('session.group.save') }}</el-button>
-                  <el-button size="small" @click="cancelEdit">{{ t('session.group.cancel') }}</el-button>
+                  <el-button type="primary" @click="saveEdit">{{ t('session.group.save') }}</el-button>
+                  <el-button @click="cancelEdit">{{ t('session.group.cancel') }}</el-button>
                 </template>
 
                 <!-- 分组名称（展示模式） -->

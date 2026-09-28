@@ -154,19 +154,20 @@ function handleDropdownCommand(command: string, kb: KnowledgeBase) {
 <style scoped>
 /* 搜索框样式 */
 .search-box :deep(.el-input__wrapper) {
-    background-color: var(--color-surface);
-    border-radius: 8px;
-    box-shadow: 0 0 0 1px var(--color-border) inset;
+    background-color: var(--el-bg-color);
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
+    box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
     padding: 6px 12px;
     transition: all 0.2s ease;
 }
 
 .search-box :deep(.el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px var(--color-primary-300) inset;
+    box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
 }
 
 .search-box :deep(.el-input__wrapper.is-focus) {
-    box-shadow: 0 0 0 1px var(--color-primary) inset;
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
 }
 
 .search-box :deep(.el-input__inner) {
@@ -180,7 +181,8 @@ function handleDropdownCommand(command: string, kb: KnowledgeBase) {
     gap: 0.625rem;
     padding: 0.625rem 0.75rem;
     margin: 0.125rem 0.625rem;
-    border-radius: 0.5rem;
+    /* 原值 0.5rem（=8px）→ md 档 */
+    border-radius: var(--el-radius-md, 8px);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -233,17 +235,18 @@ function handleDropdownCommand(command: string, kb: KnowledgeBase) {
     align-items: center;
     justify-content: center;
     padding: 0.25rem;
-    border-radius: 0.25rem;
+    /* 原值 0.25rem（=4px）→ xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .kb-action-trigger:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
 }
 
 .dark .kb-action-trigger:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
 }
 
 /* 空状态样式 */
@@ -260,6 +263,41 @@ function handleDropdownCommand(command: string, kb: KnowledgeBase) {
 }
 
 .kb-sidebar :deep(.el-scrollbar__bar:hover) {
+    opacity: 1;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，搜索框描边、列表项底色、操作区显隐
+   全部改为瞬间切换。逐个列出，不写 `*` / `.kb-sidebar *` 通配，
+   避免把 el-input / el-dropdown 内部 Element Plus 组件的合法过渡一起掐掉。
+   .kb-actions 的 opacity: 0 与 .kb-item:hover 时的 1 都是静态声明，
+   停掉过渡后「悬停出现操作按钮」照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+    .search-box :deep(.el-input__wrapper),
+    .kb-item,
+    .kb-actions,
+    .kb-action-trigger,
+    .kb-sidebar :deep(.el-scrollbar__bar) {
+        transition: none;
+    }
+}
+
+/* 键盘焦点可见性：知识库行与操作触发器都是带 @click 的 div（不是可聚焦控件），
+   浏览器不给默认焦点环。指针样式两者原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 侧栏底色是令牌化的 --color-conversation-bg，一档主色描边足够可见。 */
+.kb-item,
+.kb-action-trigger {
+    outline: none;
+}
+
+.kb-item:focus-visible,
+.kb-action-trigger:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* .kb-action-trigger 平时藏在 opacity: 0 的 .kb-actions 里，只在 .kb-item:hover 时显形。
+   不处理的话，焦点环会和它的父级一起停在 0 —— 等于画了一个永远看不见的环。
+   这里用 :has() 在触发器获得键盘焦点时把父级点亮，两者是同一条状态链，缺一不可。 */
+.kb-item:has(.kb-action-trigger:focus-visible) .kb-actions {
     opacity: 1;
 }
 </style>

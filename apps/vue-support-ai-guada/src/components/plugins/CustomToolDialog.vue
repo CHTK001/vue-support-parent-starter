@@ -112,8 +112,9 @@ async function handleSave() {
   padding-bottom: 6px; line-height: 1.4;
 }
 .ct-form :deep(.el-input__wrapper) {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--color-surface-border, var(--el-border-color-lighter)) inset;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
 }
 .ct-form :deep(.el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px var(--el-color-primary-light-9);
@@ -122,24 +123,27 @@ async function handleSave() {
 .ct-tip {
   display: flex; align-items: flex-start; gap: 9px;
   padding: 11px 12px;
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary-light-9);
   color: var(--el-text-color-regular);
 }
 .ct-tip-ico { flex: none; margin-top: 1px; color: var(--el-color-primary); }
 .ct-tip-text { font-size: 12px; line-height: 1.7; }
 .ct-tip code {
-  padding: 1px 5px; border-radius: 5px;
+  /* 原值 5px → sm 档 */
+  padding: 1px 5px; border-radius: var(--el-radius-sm, 6px);
   background: var(--el-color-primary-light-7);
   font-family: var(--el-font-family-monospace, monospace);
   font-size: 11.5px;
 }
 
 .ct-footer { display: flex; justify-content: flex-end; gap: 10px; }
-.ct-btn { border-radius: 10px; }
+/* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+.ct-btn { border-radius: var(--el-radius-lg, 12px); }
 .ct-btn:not(.el-button--primary) {
   background: var(--el-bg-color);
-  border-color: var(--color-surface-border, var(--el-border-color));
+  border-color: var(--el-border-color);
   color: var(--el-text-color-regular);
 }
 .ct-btn:not(.el-button--primary):hover {

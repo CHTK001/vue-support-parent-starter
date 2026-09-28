@@ -12,7 +12,7 @@
           <el-select
             v-if="enableEngineSwitch"
             v-model="currentEngine"
-            size="small"
+
             style="width: 140px"
             :disabled="!status.ragClientReady"
             @change="handleEngineChange"
@@ -30,7 +30,7 @@
           <span class="re-rag-manager__stat-label">状态</span>
           <el-tag
             :type="status.ragClientReady ? 'success' : 'danger'"
-            size="small"
+
             effect="light"
           >
             {{ status.ragClientReady ? "在线" : "离线" }}
@@ -39,7 +39,7 @@
       </div>
       <div class="re-rag-manager__header-right">
         <slot name="header-actions">
-          <el-button :loading="loading" size="small" @click="fetchStatus">
+          <el-button :loading="loading" @click="fetchStatus">
             <el-icon style="margin-right: 4px"><Refresh /></el-icon>
             刷新
           </el-button>
@@ -114,7 +114,7 @@
           <el-input
             v-model="searchText"
             placeholder="搜索文档名"
-            size="small"
+
             clearable
             style="width: 240px"
           >
@@ -122,7 +122,7 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button :loading="loading" size="small" @click="fetchDocuments">
+          <el-button :loading="loading" @click="fetchDocuments">
             <el-icon><Refresh /></el-icon>
             刷新
           </el-button>
@@ -130,7 +130,7 @@
         <el-table
           v-loading="loading"
           :data="filteredDocuments"
-          size="small"
+
           stripe
           row-key="id"
         >
@@ -146,7 +146,7 @@
           </el-table-column>
           <el-table-column label="来源" width="100">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.source === 'URL' ? 'warning' : 'info'" effect="plain">
+              <el-tag :type="row.source === 'URL' ? 'warning' : 'info'" effect="plain">
                 {{ sourceLabel(row.source) }}
               </el-tag>
             </template>
@@ -164,7 +164,7 @@
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="statusTag(row.status)" size="small" effect="light">
+              <el-tag :type="statusTag(row.status)" effect="light">
                 {{ statusLabel(row.status) }}
               </el-tag>
             </template>
@@ -179,7 +179,7 @@
               <el-button
                 link
                 type="primary"
-                size="small"
+
                 @click="handlePreview(row as RagDocument)"
               >
                 预览
@@ -187,7 +187,7 @@
               <el-button
                 link
                 type="danger"
-                size="small"
+
                 @click="handleDelete(row as RagDocument)"
               >
                 删除

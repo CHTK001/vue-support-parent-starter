@@ -223,14 +223,19 @@ onMounted(() => void load());
 
 .vd-search :deep(.el-input__wrapper) {
   border-radius: var(--vd-radius-md);
-  background: rgba(148, 163, 184, 0.08);
+  /* #94a3b8 正是 --vd-text-secondary，alpha 统一走 color-mix */
+  background: color-mix(in srgb, var(--vd-text-secondary) 8%, transparent);
   box-shadow: 0 0 0 1px var(--vd-border) inset;
-  transition: box-shadow 0.2s var(--vd-ease), background 0.2s var(--vd-ease);
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
+    background var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
 }
 
 .vd-search :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--vd-primary) inset, 0 0 16px rgba(99, 102, 241, 0.18);
-  background: rgba(148, 163, 184, 0.12);
+  box-shadow:
+    0 0 0 1px var(--vd-primary) inset,
+    0 0 16px color-mix(in srgb, var(--vd-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
 }
 
 .vd-search :deep(.el-input__inner) {
@@ -259,22 +264,23 @@ onMounted(() => void load());
   padding: 7px 15px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   font-weight: 500;
 }
 
 .vd-type-tab:hover {
   color: var(--vd-text);
-  background: rgba(148, 163, 184, 0.12);
+  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
 }
 
 .vd-type-tab.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 45%, transparent);
 }
 
+/* 焦点轮廓已由 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
 .vd-type-tab:focus-visible {
   outline: 2px solid var(--vd-primary);
   outline-offset: 1px;
@@ -297,6 +303,14 @@ onMounted(() => void load());
   }
   .vd-search {
     width: 100%;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vd-search :deep(.el-input__wrapper),
+  .vd-type-tab {
+    transition: none;
   }
 }
 </style>

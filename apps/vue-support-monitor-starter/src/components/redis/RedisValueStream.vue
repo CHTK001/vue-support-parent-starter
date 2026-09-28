@@ -52,7 +52,7 @@ function fieldText(f: RedisField): string {
     <div class="rv-bar">
       <span class="rv-count">流消息（共 {{ messages.length }} 条）</span>
       <span class="rv-spacer" />
-      <ReButton icon="Plus" :show-text="true" type="primary" size="small" @click="$emit('add')">添加消息</ReButton>
+      <ReButton icon="Plus" :show-text="true" type="primary" @click="$emit('add')">添加消息</ReButton>
     </div>
     <div class="rv-msgs">
       <div v-for="msg in messages" :key="msg.id" class="rv-msg">

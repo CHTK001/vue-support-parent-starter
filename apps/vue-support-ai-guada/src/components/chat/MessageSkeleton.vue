@@ -85,8 +85,9 @@ defineProps<{
 .skeleton-avatar {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
-  background-color: color-mix(in srgb, var(--color-text) 10%, var(--color-bg));
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, var(--el-bg-color));
   flex-shrink: 0;
 }
 
@@ -107,8 +108,9 @@ defineProps<{
 /* 占位线条 */
 .skeleton-line {
   height: 16px;
-  border-radius: 4px;
-  background-color: color-mix(in srgb, var(--color-text) 10%, var(--color-bg));
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, var(--el-bg-color));
   width: 100%;
 }
 
@@ -141,5 +143,15 @@ defineProps<{
   }
 }
 
-
+/* 动效降级：系统开启「减少动态效果」时，骨架屏停止明暗呼吸。
+   为什么必须显式写 opacity: 1：这条 pulse 是 opacity 1 → 0.5 的无限循环，
+   直接删掉 animation 会让元素回到「未声明 opacity」的默认值 —— 恰好也是 1，
+   但那是隐式依赖。这里显式钉死成 1，让「正在加载」在停掉动画后
+   仍由那几根灰色占位条表达出来，而不是变成一片空白让人以为卡死。 */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-item {
+    opacity: 1;
+    animation: none;
+  }
+}
 </style>

@@ -11,29 +11,30 @@
           </p>
         </div>
         <div class="jp-stats">
+          <!-- 图标统一走 ReIcon：emoji 会被读屏念成「白色对勾」之类的冗余文本 -->
           <div class="jp-stat">
-            <span class="jp-stat__ic is-blue">✔</span>
+            <span class="jp-stat__ic is-blue"><ReIcon name="Timer" :size="15" aria-hidden="true" /></span>
             <div>
               <div class="jp-stat__lbl">今日学习</div>
               <div class="jp-stat__val">{{ today?.studyMinutes ?? 0 }}<i>分钟</i></div>
             </div>
           </div>
           <div class="jp-stat">
-            <span class="jp-stat__ic is-green">✓</span>
+            <span class="jp-stat__ic is-green"><ReIcon name="CircleCheck" :size="15" aria-hidden="true" /></span>
             <div>
               <div class="jp-stat__lbl">完成练习</div>
               <div class="jp-stat__val">{{ today?.questionCount ?? 0 }}<i>题</i></div>
             </div>
           </div>
           <div class="jp-stat">
-            <span class="jp-stat__ic is-amber">!</span>
+            <span class="jp-stat__ic is-amber"><ReIcon name="Warning" :size="15" aria-hidden="true" /></span>
             <div>
               <div class="jp-stat__lbl">错题本</div>
               <div class="jp-stat__val">{{ wrongPending }}<i>题待复习</i></div>
             </div>
           </div>
           <div class="jp-stat">
-            <span class="jp-stat__ic is-purple">✦</span>
+            <span class="jp-stat__ic is-info"><ReIcon name="StarFilled" :size="15" aria-hidden="true" /></span>
             <div>
               <div class="jp-stat__lbl">学习积分</div>
               <div class="jp-stat__val">{{ total?.points ?? 0 }}<i>分</i></div>
@@ -127,12 +128,27 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 </script>
 
 <style scoped>
+/*
+ * koi 令牌口径（与 PrimaryHome / SeniorHome / TeacherPortalView / StudentPortalView 完全一致）：
+ *   品牌色带 = --el-color-primary → --el-color-primary-light-3
+ *   页面底   = --el-bg-color-page，卡片面 = --el-bg-color
+ *   文字三级 = --el-text-color-primary / -regular / -secondary / -placeholder
+ *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
+ * 卡片类容器一律不加投影，投影只留给「悬浮浮起」与「键盘焦点环」两种反馈。
+ */
 .jp {
   position: fixed;
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  background: linear-gradient(175deg, #2563eb 0%, #3b82f6 34%, #eef2ff 34.1%, #f8fafc 100%);
+  /* 顶部色带走主色令牌、底部页面底走页面令牌，换主题/切暗色时整页自动跟随 */
+  background: linear-gradient(
+    175deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 34%,
+    var(--el-bg-color-page) 34.1%,
+    var(--el-fill-color-lighter) 100%
+  );
 }
 .jp-head {
   padding: 30px 44px 0;
@@ -149,14 +165,17 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   font-size: 44px;
   font-weight: 900;
   letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  color: var(--el-color-white);
+  /* 白字压在主色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .jp-sub {
   margin: 10px 0 0;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  /* 色带上的白字不能换成 --el-text-color-primary（暗色下会变浅色失去对比），
+     用 --el-color-white + color-mix 保留原来的 95% 透明度 */
+  color: color-mix(in srgb, var(--el-color-white) 95%, transparent);
 }
 .jp-sep {
   margin: 0 8px;
@@ -173,50 +192,58 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  /* 卡片类容器不加投影：改用一条边框承载边界，暗色模式下也分得清 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .jp-stat__ic {
   width: 30px;
   height: 30px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 15px;
   font-weight: 900;
-  color: #fff;
+  color: var(--el-color-white);
 }
-.jp-stat__ic.is-blue { background: #2563eb; }
-.jp-stat__ic.is-green { background: #22c55e; }
-.jp-stat__ic.is-amber { background: #f59e0b; }
-.jp-stat__ic.is-purple { background: #8b5cf6; }
+.jp-stat__ic.is-blue { background: var(--el-color-primary); }
+.jp-stat__ic.is-green { background: var(--el-color-success); }
+.jp-stat__ic.is-amber { background: var(--el-color-warning); }
+/* 第四枚用中性灰 info，不用紫色：
+   紫色在 element 语义位里没有对应项。先前用 color-mix(primary 50%, danger) 混出紫相，
+   但那是「当前主色恰好是蓝」才成立的巧合——主色换成橙就混出棕、换成绿就混出墨绿，
+   色相随主题漂移。这里改用语义位 info：色相在任何主题下都稳定为中性灰，
+   与蓝/绿/橙三枚仍可区分，代价是失去紫色辨识度（换取跨主题一致）。 */
+.jp-stat__ic.is-info { background: var(--el-color-info); }
 .jp-stat__lbl {
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .jp-stat__val {
   font-size: 20px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   font-variant-numeric: tabular-nums;
 }
 .jp-stat__val i {
   font-style: normal;
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
   margin-left: 3px;
 }
 
 .jp-body {
   margin: 26px 26px 0;
   padding: 30px 30px 22px;
-  border-radius: 28px 28px 0 0;
-  background: #fff;
+  /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  background: var(--el-bg-color);
   min-height: 55vh;
 }
 .jp-grid {
@@ -230,17 +257,25 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   flex-direction: column;
   gap: 14px;
   padding: 20px 18px;
-  border: 0;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  /* 原 18px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .jp-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.13);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+.jp-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .jp-card__no {
   position: absolute;
@@ -249,9 +284,9 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  color: #475569;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
   font-size: 12px;
   font-weight: 800;
   display: inline-flex;
@@ -267,12 +302,14 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   flex-shrink: 0;
   width: 46px;
   height: 46px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  color: #fff;
+  /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
+  color: var(--el-color-white);
 }
 .jp-card__text {
   min-width: 0;
@@ -280,12 +317,12 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 .jp-card__title {
   font-size: 18px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
 }
 .jp-card__sub {
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -293,23 +330,23 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-bar {
   height: 8px;
-  border-radius: 999px;
-  background: #eef2f7;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
   overflow: hidden;
 }
 .jp-bar__fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
-  transition: width 0.3s;
+  border-radius: var(--el-radius-full, 9999px);
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 .jp-rec {
   margin: 26px 0 10px;
   text-align: center;
   font-size: 15px;
   font-weight: 700;
-  color: #475569;
+  color: var(--el-text-color-regular);
 }
 @media (max-width: 1200px) {
   .jp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -320,5 +357,12 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   .jp-head { padding: 20px 20px 0; }
   .jp-title { font-size: 32px; }
   .jp-body { margin: 18px 12px 0; padding: 20px 16px; }
+}
+/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+@media (prefers-reduced-motion: reduce) {
+  .jp-card,
+  .jp-bar__fill {
+    transition: none;
+  }
 }
 </style>

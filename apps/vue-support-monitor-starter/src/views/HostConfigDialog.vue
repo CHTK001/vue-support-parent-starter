@@ -133,7 +133,7 @@ async function save(): Promise<void> {
 
     <ReForm v-else-if="props.mode === 'metric'" :model="form" label-position="top">
       <ReFormItem label="采集方式">
-        <ReSelect v-model="form.serverHostCollectMode" size="small" style="width:100%" :options="collectModes" />
+        <ReSelect v-model="form.serverHostCollectMode" style="width:100%" :options="collectModes" />
       </ReFormItem>
       <ReFormItem label="采集间隔(秒)">
         <ReInputNumber v-model="form.serverHostCollectInterval" :min="60" :max="86400" :step="60" style="width:100%" />

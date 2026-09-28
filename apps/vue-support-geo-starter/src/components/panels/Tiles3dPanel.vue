@@ -91,7 +91,7 @@ async function onSubmit() {
 
 <template>
   <div class="panel">
-    <el-form label-position="top" size="small">
+    <el-form label-position="top" >
       <el-form-item label="数据源类型">
         <el-radio-group v-model="sourceType">
           <el-radio-button value="url">URL</el-radio-button>
@@ -137,7 +137,7 @@ async function onSubmit() {
       <div class="estimate-row"><span>最大深度</span><b>{{ summary.maxDepth }}</b></div>
       <div class="estimate-row"><span>层级数</span><b>{{ summary.levels }}</b></div>
       <div class="estimate-row" v-if="summary.hasExternalTilesets">
-        <span>外部 tileset</span><el-tag size="small" type="warning">存在</el-tag>
+        <span>外部 tileset</span><el-tag type="warning">存在</el-tag>
       </div>
     </div>
 
@@ -151,9 +151,18 @@ async function onSubmit() {
 <style scoped>
 .panel{padding:4px}
 .mb-12{margin-bottom:12px}
-.estimate-card{margin-bottom:12px;padding:10px 12px;background:var(--el-fill-color-light);border-radius:6px}
+.estimate-card{margin-bottom:12px;padding:10px 12px;background:var(--el-fill-color-light);border-radius:var(--el-radius-sm, 6px)}
 .estimate-row{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--el-text-color-regular)}
 .estimate-row b{color:var(--el-color-primary)}
 .panel-actions{display:flex;gap:8px}
 .panel-actions .el-button{flex:1}
+
+/* 尊重系统「减少动态效果」偏好：
+   本面板自身无 transition/animation，需关掉的是查询期间的旋转指示 */
+@media (prefers-reduced-motion: reduce) {
+  .panel :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
+}
 </style>

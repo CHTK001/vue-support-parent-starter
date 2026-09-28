@@ -20,14 +20,14 @@
       <el-table-column prop="model" label="绑定模型" min-width="120" />
       <el-table-column label="类型" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.type === 'master' ? 'warning' : 'info'" size="small">
+          <el-tag :type="row.type === 'master' ? 'warning' : 'info'" >
             {{ row.type === 'master' ? '主Agent' : '子Agent' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="80">
         <template #default="{ row }">
-          <el-tag :type="row.enabled ? 'success' : 'danger'" size="small">
+          <el-tag :type="row.enabled ? 'success' : 'danger'" >
             {{ row.enabled ? '启用' : '禁用' }}
           </el-tag>
         </template>
@@ -45,7 +45,7 @@
     <!-- 已安装的智能体包（磁盘 + 落库状态） -->
     <div class="section-header">
       <h3>已安装的智能体包</h3>
-      <el-button size="small" @click="loadPackages" :loading="loadingPackages">
+      <el-button @click="loadPackages" :loading="loadingPackages">
         <el-icon><Refresh /></el-icon> 刷新
       </el-button>
     </div>
@@ -55,13 +55,13 @@
       <el-table-column prop="model" label="绑定模型" min-width="120" />
       <el-table-column label="来源" width="90">
         <template #default="{ row }">
-          <el-tag size="small" :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
+          <el-tag :type="row.source === 'builtin' ? 'info' : 'success'">{{ row.source }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="sub_agents" label="子智能体" width="90" align="center" />
       <el-table-column label="已落库" width="80" align="center">
         <template #default="{ row }">
-          <el-tag size="small" :type="row.installed ? 'success' : 'warning'">{{ row.installed ? '是' : '否' }}</el-tag>
+          <el-tag :type="row.installed ? 'success' : 'warning'">{{ row.installed ? '是' : '否' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="启用" width="80" align="center">
@@ -71,7 +71,7 @@
       </el-table-column>
       <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <el-button type="danger" link size="small" @click="handleUninstallPackage(row)">卸载</el-button>
+          <el-button type="danger" link @click="handleUninstallPackage(row)">卸载</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -113,14 +113,14 @@
         <!-- 子Agent管理 -->
         <el-tab-pane label="子Agent管理" name="sub-agents">
           <div class="sub-agents-toolbar">
-            <el-button type="primary" size="small" @click="handleAddSubAgent">
+            <el-button type="primary" @click="handleAddSubAgent">
               <el-icon><Plus /></el-icon> 添加子Agent
             </el-button>
-            <el-button size="small" @click="loadSubAgents" :loading="loadingSubAgents">
+            <el-button @click="loadSubAgents" :loading="loadingSubAgents">
               <el-icon><Refresh /></el-icon> 刷新
             </el-button>
           </div>
-          <el-table :data="subAgentList" v-loading="loadingSubAgents" border size="small" style="width: 100%; margin-top: 10px">
+          <el-table :data="subAgentList" v-loading="loadingSubAgents" border style="width: 100%; margin-top: 10px">
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="name" label="子Agent名称" min-width="150" />
             <el-table-column prop="model" label="绑定模型" min-width="120" />
@@ -129,8 +129,8 @@
             <el-table-column prop="condition" label="触发条件" min-width="150" show-overflow-tooltip />
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <el-button type="warning" link size="small" @click="handleEditSubAgent(row)">编辑</el-button>
-                <el-button type="danger" link size="small" @click="handleDeleteSubAgent(row)">删除</el-button>
+                <el-button type="warning" link @click="handleEditSubAgent(row)">编辑</el-button>
+                <el-button type="danger" link @click="handleDeleteSubAgent(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -145,9 +145,9 @@
             style="margin-bottom: 16px"
           />
           <div class="orchestration-toolbar">
-            <el-button type="primary" size="small" @click="saveOrchestration" :loading="savingOrchestration">保存编排</el-button>
-            <el-button type="success" size="small" @click="runOrchestration" :loading="runningOrchestration">运行测试</el-button>
-            <el-button size="small" @click="loadOrchestration" :loading="loadingOrchestration">重新加载</el-button>
+            <el-button type="primary" @click="saveOrchestration" :loading="savingOrchestration">保存编排</el-button>
+            <el-button type="success" @click="runOrchestration" :loading="runningOrchestration">运行测试</el-button>
+            <el-button @click="loadOrchestration" :loading="loadingOrchestration">重新加载</el-button>
           </div>
           <div style="margin-top: 10px">
             <el-input
@@ -173,7 +173,7 @@
             <el-descriptions-item label="模型编码">{{ registeredModel.modelCode || '-' }}</el-descriptions-item>
             <el-descriptions-item label="提供商">{{ registeredModel.provider || 'agent' }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag type="success" size="small">已注册</el-tag>
+              <el-tag type="success" >已注册</el-tag>
             </el-descriptions-item>
           </el-descriptions>
           <el-empty v-else description="尚未注册为模型" />
@@ -225,14 +225,14 @@
             <el-input v-model="marketKeyword" placeholder="关键词，可空" style="width: 220px" clearable @keyup.enter="handleMarketSearch" />
             <el-button type="primary" @click="handleMarketSearch" :loading="searchingMarket">搜索</el-button>
           </div>
-          <el-table :data="marketItems" v-loading="searchingMarket" border size="small" style="width: 100%; margin-top: 10px">
+          <el-table :data="marketItems" v-loading="searchingMarket" border style="width: 100%; margin-top: 10px">
             <el-table-column prop="name" label="名称" min-width="140" />
             <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
             <el-table-column prop="model" label="模型" width="120" />
             <el-table-column prop="display_source" label="来源" width="110" />
             <el-table-column label="操作" width="90" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" link size="small" @click="handleInstallFromMarket(row)">安装</el-button>
+                <el-button type="primary" link @click="handleInstallFromMarket(row)">安装</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -772,6 +772,6 @@ onMounted(() => {
 .install-hint {
   margin-top: 10px;
   font-size: 13px;
-  color: #67c23a;
+  color: var(--el-color-success);
 }
 </style>

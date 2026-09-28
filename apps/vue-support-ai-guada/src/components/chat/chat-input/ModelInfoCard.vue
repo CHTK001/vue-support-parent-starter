@@ -380,6 +380,7 @@ body .model-info-popover {
   padding: 0;
   background: var(--el-bg-color-overlay);
   border-color: var(--el-border-color-lighter);
-  box-shadow: var(--rm-shadow-lg, 0 12px 32px rgba(15, 23, 42, 0.14));
+  /* 弹层是浮层，必须浮起，投影改用令牌 */
+  box-shadow: var(--el-box-shadow);
 }
 </style>

@@ -2,7 +2,7 @@
   <el-card class="shadow-sm rounded-xl p-4">
     <div class="flex items-center justify-between mb-3">
       <span class="text-sm font-medium text-el-text">{{ title }}</span>
-      <el-button size="small" text @click="emit('refresh')">
+      <el-button text @click="emit('refresh')">
         <el-icon class="mr-1"><Refresh /></el-icon>刷新
       </el-button>
     </div>

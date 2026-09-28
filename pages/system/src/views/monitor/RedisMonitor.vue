@@ -182,7 +182,7 @@ const keyspaceOption = computed<EChartsOption>(() => {
           <div class="section-head__title">基本信息</div>
           <div class="section-head__desc">Redis 实例运行参数</div>
         </div>
-        <ReTag effect="plain" size="small" style="margin-left: auto">{{ info.mode === "cluster" ? "集群模式" : "单机模式" }}</ReTag>
+        <ReTag effect="plain" style="margin-left: auto">{{ info.mode === "cluster" ? "集群模式" : "单机模式" }}</ReTag>
       </div>
       <div class="info-grid">
         <div class="info-item"><span class="info-item__label">Redis 版本</span><b>{{ dash(info.version) }}</b></div>
@@ -193,8 +193,8 @@ const keyspaceOption = computed<EChartsOption>(() => {
         <div class="info-item"><span class="info-item__label">使用内存</span><b>{{ dash(info.usedMemory) }}</b></div>
         <div class="info-item"><span class="info-item__label">使用 CPU</span><b>{{ (info.usedCpuPercent ?? 0).toFixed(2) }}%</b></div>
         <div class="info-item"><span class="info-item__label">maxmemory</span><b>{{ hasMaxMemory ? dash(info.maxMemory) : "无限制" }}</b></div>
-        <div class="info-item"><span class="info-item__label">AOF</span><b><ReTag :type="info.aofEnabled ? 'success' : 'info'" effect="plain" size="small">{{ info.aofEnabled ? "已开启" : "未开启" }}</ReTag></b></div>
-        <div class="info-item"><span class="info-item__label">RDB</span><b><ReTag :type="info.rdbLastStatus === 'ok' ? 'success' : 'danger'" effect="plain" size="small">{{ dash(info.rdbLastStatus) }}</ReTag></b></div>
+        <div class="info-item"><span class="info-item__label">AOF</span><b><ReTag :type="info.aofEnabled ? 'success' : 'info'" effect="plain" >{{ info.aofEnabled ? "已开启" : "未开启" }}</ReTag></b></div>
+        <div class="info-item"><span class="info-item__label">RDB</span><b><ReTag :type="info.rdbLastStatus === 'ok' ? 'success' : 'danger'" effect="plain" >{{ dash(info.rdbLastStatus) }}</ReTag></b></div>
         <div class="info-item"><span class="info-item__label">Key 数量</span><b>{{ dash(info.keyCount) }}</b></div>
         <div class="info-item"><span class="info-item__label">网络 IO</span><b>{{ formatKps(info.netInputKps) }} / {{ formatKps(info.netOutputKps) }} kps</b></div>
       </div>
@@ -274,9 +274,12 @@ const keyspaceOption = computed<EChartsOption>(() => {
 
 .page-card {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px; background: var(--el-bg-color);
+  border-radius: var(--el-radius-md, 8px); background: var(--el-bg-color);
   padding: 16px 20px;
-  box-shadow: 0 1px 4px var(--el-box-shadow-light);
+  /* 原来写 box-shadow: 0 1px 4px var(--el-box-shadow-light)：
+     ① 卡片静止态不该有投影（koi 规约用边框承载边界）；
+     ② --el-box-shadow-light 本身已是完整阴影值(0 0 12px #0000001f)，
+     套进 0 1px 4px 里会拼成 6 段长度的非法阴影。直接去掉。 */
 }
 .header-card { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .header-card__title { font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); }
@@ -288,12 +291,13 @@ const keyspaceOption = computed<EChartsOption>(() => {
 .stat-card {
   padding: 14px 16px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px; background: var(--el-bg-color);
-  transition: box-shadow 0.2s;
+  border-radius: var(--el-radius-md, 8px); background: var(--el-bg-color);
+  transition: box-shadow var(--el-transition-duration-fast, 0.2s);
 }
-.stat-card:hover { box-shadow: 0 2px 8px var(--el-box-shadow-light); }
+/* 允许的两处投影之一：悬浮抬升反馈 */
+.stat-card:hover { box-shadow: var(--el-box-shadow-light); }
 .stat-card__icon {
-  width: 28px; height: 28px; border-radius: 6px;
+  width: 28px; height: 28px; border-radius: var(--el-radius-sm, 6px);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 8px;
   background: var(--icon-bg, var(--el-color-primary-light-9));
@@ -306,7 +310,7 @@ const keyspaceOption = computed<EChartsOption>(() => {
 
 .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .section-head__icon {
-  width: 32px; height: 32px; border-radius: 6px;
+  width: 32px; height: 32px; border-radius: var(--el-radius-sm, 6px);
   display: flex; align-items: center; justify-content: center;
   background: var(--icon-bg, var(--el-color-primary-light-9));
   color: var(--icon-color, var(--el-color-primary));
@@ -317,7 +321,7 @@ const keyspaceOption = computed<EChartsOption>(() => {
 
 .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .info-item {
-  padding: 8px 12px; border-radius: 6px;
+  padding: 8px 12px; border-radius: var(--el-radius-sm, 6px);
   background: var(--el-fill-color-light);
   display: flex; flex-direction: column; gap: 2px;
 }
@@ -335,7 +339,7 @@ const keyspaceOption = computed<EChartsOption>(() => {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;
 }
 .mem-detail__item {
-  padding: 8px 10px; border-radius: 6px;
+  padding: 8px 10px; border-radius: var(--el-radius-sm, 6px);
   background: var(--el-fill-color-light);
   display: flex; flex-direction: column; gap: 2px;
 }
@@ -347,5 +351,12 @@ const keyspaceOption = computed<EChartsOption>(() => {
   .bento-row { grid-template-columns: 1fr; }
   .info-grid { grid-template-columns: repeat(2, 1fr); }
   .mem-detail { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
 }
 </style>

@@ -115,7 +115,7 @@ function removeMember(member: string): void {
       <ReInput
         v-if="members.length > 12"
         v-model="filter"
-        size="small"
+
         placeholder="筛选成员"
         prefix-icon="Search"
         clearable
@@ -134,19 +134,19 @@ function removeMember(member: string): void {
     <div class="rv-add">
       <ReInput
         v-model="input"
-        size="small"
+
         :placeholder="editing != null ? '修改成员名' : '新成员'"
         @keyup.enter="submit"
       />
       <ReButton
         :icon="editing != null ? 'Check' : 'Plus'"
         type="primary"
-        size="small"
+
         :show-text="true"
         :disabled="busy"
         @click="submit"
       >{{ editing != null ? "保存" : "添加" }}</ReButton>
-      <ReButton v-if="editing != null" size="small" :show-text="true" @click="cancelEdit">取消</ReButton>
+      <ReButton v-if="editing != null" :show-text="true" @click="cancelEdit">取消</ReButton>
     </div>
   </div>
 </template>

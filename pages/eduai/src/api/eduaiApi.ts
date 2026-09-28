@@ -4,7 +4,7 @@
  * 复用 @repo/core 的 http() 实例（由 createApp 注入，含加密/拦截器）。
  * 返回的 Promise 直接 resolve 到 data 字段（业务负载）。
  */
-import { http, unwrapResult } from "@repo/utils";
+import { http, setAccessToken, unwrapResult } from "@repo/utils";
 import type {
   PageResult,
   Question,
@@ -29,6 +29,8 @@ import type {
   Idiom,
   IdiomGameData,
   Poem,
+  PoemChallengeData,
+  PoemChallengeMode,
   PoemGameData,
   Insect,
   InsectGameData,
@@ -73,7 +75,7 @@ function unwrap<T>(r: unknown): T {
  */
 export const eduaiApi = {
   // 题库
-  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number }) =>
+  pageQuestions: (params: { pageNum?: number; pageSize?: number; subject?: string; gradeLevel?: string; grade?: string; type?: string; difficulty?: number; status?: number; orderBy?: string; orderDir?: "asc" | "desc" }) =>
     http()
       .get("/v2/edu/question/page")
       .query(params)
@@ -452,6 +454,20 @@ export const eduaiApi = {
       .delete(`/v2/edu/poem/delete/${poemId}`)
       .then<boolean>(unwrap),
 
+  // 古诗文趣味游戏（七种玩法，见 EduPoemChallengeController）
+  poemChallenge: (
+    mode: PoemChallengeMode,
+    params: { gradeLevel?: string; grade?: string; keyword?: string; count?: number },
+  ) =>
+    http()
+      .get(`/v2/edu/poem-challenge/${mode}`)
+      .query(params)
+      .then<PoemChallengeData>(unwrap),
+  poemChallengeKeywords: () =>
+    http()
+      .get("/v2/edu/poem-challenge/keywords")
+      .then<string[]>(unwrap),
+
   // 昆虫图鉴（后端 EduInsectController；数据源自开源项目 insect-world，63 种 / 14 个目）
   insectLibrary: () =>
       http()
@@ -601,6 +617,25 @@ export const eduaiApi = {
       http()
         .get("/v2/edu/dimension/dropdown")
         .then<{ gradeLevels: GradeLevelOption[]; subjects: EduSubject[]; grades: EduGrade[] }>(unwrap),
+
+  /**
+   * 学生登录（/edu/student-login 用）
+   *
+   * 账号可为**学号**或**家长手机号**——两者都在 edu_student 上，
+   * 由后端登录接口自行判定登录名类型，前端不猜。
+   * 成功后把令牌写进框架 storage（与后台登录同一套存储），
+   * 这样学生端后续请求自动带上鉴权头。
+   */
+  studentLogin: async (data: { username: string; password: string }) => {
+    const res = await http()
+      .post("/v2/user/login")
+      .data(data as unknown as Record<string, unknown>)
+      .then<{ accessToken?: string; [k: string]: unknown } | undefined>(unwrap);
+    if (res?.accessToken) {
+      setAccessToken(res.accessToken);
+    }
+    return res;
+  },
 
   // 学生中心（学生端 /edu/student 专用；归属取自登录态，不接受客户端传学生 ID）
   studentMe: () =>

@@ -5,7 +5,7 @@
         <h2 class="skills-h-title">Skills 来源配置</h2>
         <p class="skills-h-sub">控制「安装技能 → 检索安装」中可检索与安装的来源，开关保存后立即生效。</p>
       </div>
-      <el-button type="primary" size="small" :loading="saving" @click="handleSave">保存</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
     </div>
 
     <div v-if="loading" class="skills-loading">
@@ -25,7 +25,7 @@
         <SettingsRow v-for="item in config.local" :key="item.key">
           <template #label>
             <span class="loc-name">{{ item.name }}</span>
-            <el-tag :type="item.installed ? 'success' : 'info'" size="small" effect="plain">
+            <el-tag :type="item.installed ? 'success' : 'info'" effect="plain">
               {{ item.installed ? '已安装' : '未安装' }}
             </el-tag>
             <span v-if="item.installed && item.count" class="loc-count">{{ item.count }} 个技能</span>

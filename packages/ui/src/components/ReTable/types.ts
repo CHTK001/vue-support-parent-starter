@@ -72,14 +72,22 @@ export interface RePageResult<T = Record<string, unknown>> {
   content?: T[];
 }
 
-/** 远程数据加载器签名：接收分页 + 查询参数，返回分页结果 */
+/** 远程（后端分页）数据加载器签名：接收分页 + 查询参数，返回分页结果 */
 export type ReTableLoader = (
   params: ReTableLoadParams,
 ) => RePageResult | Promise<RePageResult>;
 
 export interface ReTableLoadParams {
+  /** 当前页码，从 1 开始 */
   page: number;
+  /** 每页条数（组件已按 MAX_PAGE_SIZE 钳制） */
   pageSize: number;
+  /**
+   * 查询参数 = 页面 {@code params} + 内置搜索区提交值 + **必定存在的 page / pageSize**。
+   *
+   * <p>page / pageSize 由组件在合并之后写回，页面自己塞的同名字段会被覆盖 ——
+   * 分页真值只能来自组件内部状态。</p>
+   */
   params: Record<string, unknown>;
 }
 
@@ -91,7 +99,7 @@ export interface ReTableColumnState {
   hidden: string[];
 }
 
-/** 表格完整持久化状态（列配置 + 分页 + 设置） */
+/** 表格完整持久化状态（列配置 + 分页 + 设置 + 布局） */
 export interface ReTableFullState extends ReTableColumnState {
   /** 当前页码 */
   page?: number;
@@ -99,6 +107,8 @@ export interface ReTableFullState extends ReTableColumnState {
   pageSize?: number;
   /** 表格设置 */
   settings?: ReTableSettings;
+  /** 布局（表格 / 视图 / 卡片） */
+  layout?: ReTableSwitchLayout;
   /** 排序字段 */
   sortProp?: string;
   /** 排序方向 */
@@ -407,7 +417,8 @@ export interface ReTableSearchConfig {
 export type ReTableSearch = boolean | ReTableSearchConfig;
 
 /**
- * ReTable 内置自动刷新：工具栏出现计时按钮，点亮后由表格自身持有定时器轮询 reload。
+ * ReTable 内置自动刷新：工具栏出现一枚纯方块计时入口（ReSwitch 的 popover 布局），
+ * 点开在无边框浮层里选间隔，选中即生效并点亮按钮；表格自身持有定时器轮询 reload。
  *
  * <p>页面不要再自己 setInterval —— 定时器跟着组件与 keep-alive 的激活态一起起停。
  * 只需开关时传 {@code true}，要调间隔 / 默认开启时传对象。</p>
@@ -417,7 +428,11 @@ export type ReTableAutoRefresh = boolean | {
   interval?: number;
   /** 挂载即按 interval 开启（默认 false，关闭态由用户在浮层里选档） */
   defaultOn?: boolean;
-  /** 浮层里的可选档位（ms）；传 0 表示「关闭」这一档 */
+  /**
+   * 浮层里的可选档位（ms）；传 0 表示「关闭」这一档。
+   *
+   * 缺省（不传 / 传空数组）时用内置档：{@code [0, 5000, 10000, 30000]}（关 / 5s / 10s / 30s）。
+   */
   intervals?: number[];
 };
 

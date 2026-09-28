@@ -196,6 +196,7 @@ onMounted(() => void load());
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-lg);
   padding: 22px 24px;
+  /* 深色影院主题用投影表达层次，与全局 .vd-card 保持一致，故保留令牌投影 */
   box-shadow: var(--vd-shadow-sm);
 }
 
@@ -215,19 +216,19 @@ onMounted(() => void load());
 
 .vd-score-lg {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-weight: 700;
   font-size: 13px;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .vd-continue-pill {
   font-size: 12px;
   color: var(--vd-primary-strong);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--vd-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vd-primary) 30%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
   padding: 2px 10px;
 }
 
@@ -289,20 +290,27 @@ onMounted(() => void load());
   padding: 5px 14px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   font-weight: 500;
 }
 
 .vd-line-btn:hover {
   color: var(--vd-text);
-  background: rgba(148, 163, 184, 0.12);
+  /* #94a3b8 正是 --vd-text-secondary */
+  background: color-mix(in srgb, var(--vd-text-secondary) 12%, transparent);
+}
+
+.vd-line-btn:focus-visible {
+  outline: none;
+  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 .vd-line-btn.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
 }
 
 .vd-episode-grid {
@@ -319,7 +327,7 @@ onMounted(() => void load());
   padding: 8px 6px;
   border-radius: var(--vd-radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -329,17 +337,18 @@ onMounted(() => void load());
   border-color: var(--vd-secondary);
   color: var(--vd-primary-strong);
   transform: translateY(-1px);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 20%, transparent);
 }
 
 .vd-episode.is-active {
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
   border-color: transparent;
-  color: #fff;
+  color: var(--vd-text);
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
 }
 
+/* 焦点轮廓已由下方 :focus-visible 的 2px 实线 + 1px 偏移提供，可见性达标，不再覆盖 */
 .vd-episode:focus-visible {
   outline: 2px solid var(--vd-primary);
   outline-offset: 1px;
@@ -373,13 +382,14 @@ onMounted(() => void load());
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  color: #fff;
-  border-radius: 4px;
+  color: var(--vd-text);
+  border-radius: var(--el-radius-xs, 4px);
   padding: 2px 8px;
 }
 
 .vd-download-type.is-pan {
-  background: #f59e0b;
+  /* 网盘入口用告警语义色，与直链的主色区分 */
+  background: var(--el-color-warning);
 }
 
 .vd-download-type.is-cl {
@@ -406,6 +416,16 @@ onMounted(() => void load());
   }
   .vd-episode-grid {
     grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vd-line-btn,
+  .vd-episode,
+  .vd-episode:hover {
+    transition: none;
+    transform: none;
   }
 }
 </style>

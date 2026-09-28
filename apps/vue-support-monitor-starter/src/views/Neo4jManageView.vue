@@ -6,10 +6,10 @@
         <span class="dsm-title">Neo4j 图数据库管理</span>
       </div>
       <div class="dsm-toolbar-right">
-        <ReButton size="small" :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
-        <ReButton size="small" :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
-        <ReButton size="small" :disabled="!source" @click="openCreateNode"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
-        <ReButton size="small" type="primary" :disabled="!source" @click="openCypher"><template #icon><ReIcon name="Search" /></template>Cypher 查询</ReButton>
+        <ReButton :disabled="!source" :loading="testing" @click="testConnection"><template #icon><ReIcon name="Connection" /></template>测试连接</ReButton>
+        <ReButton :loading="loading" @click="refresh"><template #icon><ReIcon name="Refresh" /></template>刷新</ReButton>
+        <ReButton :disabled="!source" @click="openCreateNode"><template #icon><ReIcon name="Plus" /></template>新建节点</ReButton>
+        <ReButton type="primary" :disabled="!source" @click="openCypher"><template #icon><ReIcon name="Search" /></template>Cypher 查询</ReButton>
       </div>
     </div>
 
@@ -92,7 +92,7 @@
           <div class="dsm-info-row"><span class="dsm-info-label">版本类型</span><span class="dsm-info-value mono">{{ neo4jEdition || "未探测" }}</span></div>
           <div class="dsm-info-row">
             <span class="dsm-info-label">状态</span>
-            <ReTag :type="gap ? 'danger' : 'success'" size="small">{{ gap ? "读取失败" : "正常" }}</ReTag>
+            <ReTag :type="gap ? 'danger' : 'success'" >{{ gap ? "读取失败" : "正常" }}</ReTag>
           </div>
         </div>
 
@@ -127,7 +127,7 @@
         <div v-show="neo4jView === 'graph'" class="neo4j-graph-view">
           <div class="ngv-toolbar">
             <span>{{ graphNote || "节点关系采样图（来自 Cypher 采样查询）" }}</span>
-            <ReButton size="small" :loading="graphLoading" @click="loadGraph">
+            <ReButton :loading="graphLoading" @click="loadGraph">
               <template #icon><ReIcon name="Refresh" /></template>重新采样
             </ReButton>
           </div>
@@ -167,7 +167,7 @@
         <div v-show="neo4jView === 'nodes'" class="dsm-section">
           <div class="dsm-section-title">
             {{ activeLabel ? `${activeLabel} 节点` : "节点列表" }}
-            <ReButton size="small" text type="primary" :disabled="!activeLabel" @click="loadNodes">
+            <ReButton text type="primary" :disabled="!activeLabel" @click="loadNodes">
               <template #icon><ReIcon name="Refresh" size="12" /></template>重新查询
             </ReButton>
           </div>
@@ -188,7 +188,7 @@
         <div v-show="neo4jView === 'rels'" class="dsm-section">
           <div class="dsm-section-title">
             关系类型列表
-            <ReButton size="small" type="primary" @click="openCreateRel">
+            <ReButton type="primary" @click="openCreateRel">
               <template #icon><ReIcon name="Plus" /></template>新建关系
             </ReButton>
           </div>

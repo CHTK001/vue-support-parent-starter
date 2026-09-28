@@ -49,7 +49,9 @@
           <div class="sp-card__sub">已学 {{ progressOf(m) }}%</div>
         </button>
       </div>
-      <div class="sp-more" @click="emit('open', '')">查看全部 →</div>
+      <!-- 「查看全部」是 div 而不是 button，tabindex 让它能被 Tab 到，
+           否则下面的 :focus-visible 焦点环永远不会触发（键盘用户看不到焦点） -->
+      <div class="sp-more" tabindex="0" @click="emit('open', '')">查看全部 →</div>
     </section>
   </div>
 </template>
@@ -110,12 +112,29 @@ const daysToExam = computed(() => {
 </script>
 
 <style scoped>
+/*
+ * koi 令牌口径（与 JuniorHome / PrimaryHome / TeacherPortalView / StudentPortalView 完全一致）：
+ *   品牌色带 = --el-color-primary-dark-2 → --el-color-primary → --el-color-primary-light-3
+ *   页面底   = --el-bg-color-page，卡片面 = --el-bg-color
+ *   文字三级 = --el-text-color-primary / -regular / -secondary / -placeholder
+ *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
+ * 卡片类容器一律不加投影，投影只留给「悬浮浮起」与「键盘焦点环」两种反馈。
+ */
 .sp {
   position: fixed;
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  background: linear-gradient(178deg, #0b2447 0%, #123a6b 22%, #2563eb 40%, #f1f5f9 40.1%, #f8fafc 100%);
+  /* 高中端设计稿是「深蓝→亮蓝」的沉头渐变，用 primary-dark-2/primary/primary-light-3
+     三段还原同样的明暗跨度；底部页面底走页面令牌，换主题/切暗色时自动跟随 */
+  background: linear-gradient(
+    178deg,
+    var(--el-color-primary-dark-2) 0%,
+    var(--el-color-primary) 22%,
+    var(--el-color-primary-light-3) 40%,
+    var(--el-bg-color-page) 40.1%,
+    var(--el-fill-color-lighter) 100%
+  );
 }
 .sp-head {
   padding: 30px 44px 0;
@@ -132,14 +151,17 @@ const daysToExam = computed(() => {
   font-size: 44px;
   font-weight: 900;
   letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+  color: var(--el-color-white);
+  /* 白字压在深色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 15%, transparent);
 }
 .sp-sub {
   margin: 10px 0 0;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
+  /* 色带上的白字不能换成 --el-text-color-primary（暗色下会变浅色失去对比），
+     用 --el-color-white + color-mix 保留原来的 92% 透明度 */
+  color: color-mix(in srgb, var(--el-color-white) 92%, transparent);
 }
 .sp-sep {
   margin: 0 8px;
@@ -155,12 +177,13 @@ const daysToExam = computed(() => {
 .sp-stat__val {
   font-size: 46px;
   font-weight: 900;
-  color: #fff;
+  color: var(--el-color-white);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
   letter-spacing: -1px;
 }
-.sp-stat__val.is-accent { color: #4ade80; }
+/* 深色带上的浅绿强调：必须是「比 success 更亮」的一档，否则在深底上读不出来 */
+.sp-stat__val.is-accent { color: var(--el-color-success-light-3); }
 .sp-stat__val i {
   font-style: normal;
   font-size: 26px;
@@ -170,14 +193,15 @@ const daysToExam = computed(() => {
   margin-top: 4px;
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.78);
+  color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
 }
 
 .sp-body {
   margin: 26px 26px 0;
   padding: 30px 30px 22px;
-  border-radius: 28px 28px 0 0;
-  background: #fff;
+  /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  background: var(--el-bg-color);
   min-height: 52vh;
 }
 .sp-grid {
@@ -192,16 +216,24 @@ const daysToExam = computed(() => {
   align-items: center;
   gap: 12px;
   padding: 26px 16px 22px;
-  border: 0;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.07);
+  /* 原 18px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .sp-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+.sp-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .sp-card__no {
   position: absolute;
@@ -210,9 +242,9 @@ const daysToExam = computed(() => {
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #2563eb;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
   font-size: 12px;
   font-weight: 800;
   display: inline-flex;
@@ -222,23 +254,25 @@ const daysToExam = computed(() => {
 .sp-card__ic {
   width: 58px;
   height: 58px;
-  border-radius: 18px;
+  /* 原 18px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: #fff;
+  /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
+  color: var(--el-color-white);
 }
 .sp-card__title {
   font-size: 19px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   letter-spacing: 1px;
 }
 .sp-card__sub {
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
 }
 .sp-more {
@@ -246,8 +280,14 @@ const daysToExam = computed(() => {
   text-align: right;
   font-size: 15px;
   font-weight: 800;
-  color: #2563eb;
+  color: var(--el-color-primary);
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.sp-more:focus-visible {
+  border-radius: var(--el-radius-sm, 6px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 @media (max-width: 1200px) {
   .sp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -259,5 +299,11 @@ const daysToExam = computed(() => {
   .sp-head { padding: 20px 20px 0; }
   .sp-title { font-size: 32px; }
   .sp-body { margin: 18px 12px 0; padding: 20px 16px; }
+}
+/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+@media (prefers-reduced-motion: reduce) {
+  .sp-card {
+    transition: none;
+  }
 }
 </style>

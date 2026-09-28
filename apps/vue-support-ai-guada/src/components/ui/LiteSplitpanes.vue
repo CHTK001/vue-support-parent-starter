@@ -371,8 +371,11 @@ onUnmounted(() => {
   flex-shrink: 0;
   width: 1px;
   cursor: col-resize;
-  background-color: var(--color-sidebar-border, #f5f5f5);
-  transition: background-color 0.2s ease;
+  /* 原值 var(--color-sidebar-border, #f5f5f5)：--color-sidebar-border 在 refactor.css 里
+     并不存在，实际一直靠 #f5f5f5 兜底（浅灰，在浅色底上几乎看不见）。
+     改用 --el-border-color-lighter（明暗都有定义），分割线才真正分得开两个面板。 */
+  background-color: var(--el-border-color-lighter);
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
   position: relative;
   z-index: 10;
 }
@@ -387,13 +390,15 @@ onUnmounted(() => {
   width: 4px;
 }
 
+/* 悬停高亮：原值 var(--el-color-primary-light-8, #d9ecff) 在浅色下是接近白的浅蓝，
+   1px 分割线几乎看不出变化；改用主色 12% 掺透明，明暗下都能看见，且随主题走。 */
 .lite-splitpanes__splitter:hover {
-  background-color: var(--el-color-primary-light-8, #d9ecff);
+  background-color: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 /* 拖拽中持续高亮分割线，即使鼠标移出分割条区域 */
 .lite-splitpanes--resizing .lite-splitpanes__splitter {
-  background-color: var(--el-color-primary-light-8, #d9ecff);
+  background-color: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 /* 拖拽期间禁用所有过渡动画 */
@@ -407,14 +412,8 @@ onUnmounted(() => {
   pointer-events: none !important;
 }
 
-/* 暗色模式适配 */
-.dark .lite-splitpanes__splitter {
-  background-color: #25262a;
-}
-
-.dark .lite-splitpanes__splitter:hover {
-  background-color: var(--el-color-primary-light-8, #4a4d55);
-}
+/* 暗色模式适配：本应用暗色由 refactor.css 的 html.dark 统一重定义 --el-*，
+   分割线与高亮色都已跟随，故原先手写的 .dark 覆盖分支（#25262a / #4a4d55）可整体去掉。 */
 
 /* 拖拽时全屏遮罩，阻止下层元素收到 hover/mousemove 事件 */
 .lite-splitpanes-drag-overlay {
@@ -422,5 +421,12 @@ onUnmounted(() => {
   inset: 0;
   z-index: 99999;
   cursor: col-resize;
+}
+
+/* 尊重系统「减少动态效果」偏好：分割线高亮立即切换，不再渐变。 */
+@media (prefers-reduced-motion: reduce) {
+  .lite-splitpanes__splitter {
+    transition: none;
+  }
 }
 </style>

@@ -23,7 +23,7 @@
           <div>
             <div class="text-sm text-gray-500 mb-2">必填能力</div>
             <div class="flex flex-wrap gap-2">
-              <el-tag v-for="cap in requiredCapabilities" :key="cap" type="danger" size="small">
+              <el-tag v-for="cap in requiredCapabilities" :key="cap" type="danger" >
                 {{ cap }}
               </el-tag>
               <span v-if="requiredCapabilities.length === 0" class="text-gray-400 text-sm">无</span>
@@ -32,7 +32,7 @@
           <div>
             <div class="text-sm text-gray-500 mb-2">非必填能力</div>
             <div class="flex flex-wrap gap-2">
-              <el-tag v-for="cap in optionalCapabilities" :key="cap" type="info" size="small">
+              <el-tag v-for="cap in optionalCapabilities" :key="cap" type="info" >
                 {{ cap }}
               </el-tag>
               <span v-if="optionalCapabilities.length === 0" class="text-gray-400 text-sm">无</span>
@@ -46,7 +46,7 @@
         <template #header>
           <div class="flex items-center justify-between">
             <span class="font-bold">全局会话配置</span>
-            <el-tag type="warning" size="small">系统内部使用</el-tag>
+            <el-tag type="warning" >系统内部使用</el-tag>
           </div>
         </template>
         <el-form :model="configForm" label-width="120px" v-loading="configLoading">
@@ -80,7 +80,7 @@
           <el-table-column prop="capability" label="能力" width="150" />
           <el-table-column prop="enabled" label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '启用' : '禁用' }}</el-tag>
+              <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -97,7 +97,7 @@
           <el-table-column prop="capability" label="能力" width="150" />
           <el-table-column prop="enabled" label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '启用' : '禁用' }}</el-tag>
+              <el-tag :type="row.enabled ? 'success' : 'info'" >{{ row.enabled ? '启用' : '禁用' }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -208,12 +208,14 @@ onMounted(loadData);
 </script>
 
 <style scoped>
+/* 令牌口径：--el-border-color-lighter 由 refactor.css 在 :root 与 html.dark 两侧都给了值
+   （浅色 #e7edf6 / 深色 #252d3b），底色则交给 --el-bg-color，
+   故原先写死的 #e5e7eb / #374151 / #1f2937 三个值与 .dark 分支可整体去掉。
+   本文件样式里没有任何 transition/animation（EP 组件自带动效不归这里管），
+   故不需要 prefers-reduced-motion 分支。 */
 .pipeline-card {
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-.dark .pipeline-card {
-  border-color: #374151;
-  background-color: #1f2937;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
 }
 </style>

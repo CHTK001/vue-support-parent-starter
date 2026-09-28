@@ -2,7 +2,7 @@
   <div class="avatar-frame-panel">
     <div class="avatar-frame-toolbar">
       <span class="avatar-frame-toolbar-label">显示头像框</span>
-      <el-switch v-model="frameShow" size="small" @change="persistShow" />
+      <el-switch v-model="frameShow" @change="persistShow" />
     </div>
 
     <template v-if="frameShow">

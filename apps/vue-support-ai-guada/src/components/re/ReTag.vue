@@ -39,7 +39,7 @@ defineEmits(['close'])
 
 <style scoped>
 .re-tag {
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   font-weight: 500;
   letter-spacing: 0.01em;
   border: none;
@@ -48,28 +48,40 @@ defineEmits(['close'])
   line-height: 22px;
 }
 
+/* 各语义色的浅底：原来是「同色两个色相各 15% 透明度的渐变」，
+   两端透明度一样、视觉上就是一个纯 15% 淡色，渐变纯属噪音；
+   这里收敛成单层 color-mix，同时让配色跟主题走。 */
 .re-tag--primary {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-  color: #667eea;
+  background: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  color: var(--el-color-primary);
 }
 
 .re-tag--success {
-  background: linear-gradient(135deg, rgba(17, 153, 142, 0.15) 0%, rgba(56, 239, 125, 0.15) 100%);
-  color: #11998e;
+  background: color-mix(in srgb, var(--el-color-success) 15%, transparent);
+  color: var(--el-color-success);
 }
 
 .re-tag--warning {
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(245, 87, 108, 0.15) 100%);
-  color: #f5576c;
+  background: color-mix(in srgb, var(--el-color-warning) 15%, transparent);
+  color: var(--el-color-warning);
 }
 
 .re-tag--danger {
-  background: linear-gradient(135deg, rgba(235, 51, 73, 0.15) 0%, rgba(244, 92, 67, 0.15) 100%);
-  color: #eb3349;
+  background: color-mix(in srgb, var(--el-color-danger) 15%, transparent);
+  color: var(--el-color-danger);
 }
 
 .re-tag--info {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   模板上已用 :disable-transitions="true" 关掉 Element Plus 自带过渡，
+   这里再兜一层，防止消费方给 .re-tag 挂 class 时把动画带回来。 */
+@media (prefers-reduced-motion: reduce) {
+  .re-tag {
+    transition: none;
+  }
 }
 </style>

@@ -69,7 +69,7 @@
                     <div class="market-cell-title">{{ card.name }}</div>
                     <div class="market-cell-desc">{{ card.description }}</div>
                   </div>
-                  <el-button size="small" class="market-cell-btn" plain
+                  <el-button class="market-cell-btn" plain
                     :type="isInstalled(card) ? 'success' : ''"
                     :disabled="isInstalled(card)" :loading="installingId === card.id"
                     @click.stop="handleInstall(card)">
@@ -111,7 +111,7 @@
                       <div class="market-cell-title">{{ card.name }}</div>
                       <div class="market-cell-desc">{{ card.description }}</div>
                     </div>
-                    <el-button size="small" class="market-cell-btn" plain
+                    <el-button class="market-cell-btn" plain
                       :type="isInstalled(card) ? 'success' : ''" :disabled="isInstalled(card)"
                       :loading="installingId === card.id" @click.stop="handleInstall(card)">
                       {{ isInstalled(card) ? '已安装' : '安装' }}
@@ -132,7 +132,7 @@
                       <div class="market-cell-title">{{ card.name }}</div>
                       <div class="market-cell-desc">{{ card.description }}</div>
                     </div>
-                    <el-button size="small" class="market-cell-btn" plain type="primary"
+                    <el-button class="market-cell-btn" plain type="primary"
                       @click.stop="handleConfigure(card)">手动配置</el-button>
                   </div>
                 </div>
@@ -170,7 +170,7 @@
                 <div class="manage-card__meta">{{ transportLabel(s.transport) }}</div>
                 <div class="manage-card__status"
                   v-if="s.last_test_status && s.last_test_status !== 'disconnected'">
-                  <el-tag size="small"
+                  <el-tag
                     :type="s.last_test_status === 'connected' ? 'success' : 'danger'" effect="light">
                     {{ s.last_test_status === 'connected' ? '已连接' : '连接失败' }}
                   </el-tag>
@@ -178,16 +178,16 @@
               </div>
             </div>
             <div class="manage-card__actions">
-              <el-switch :model-value="s.enabled" size="small" @update:model-value="(v) => handleToggle(s, !!v)" />
+              <el-switch :model-value="s.enabled" @update:model-value="(v) => handleToggle(s, !!v)" />
               <LTooltip content="测试连接" placement="top">
-                <el-button link size="small" :loading="testingId === s.mcp_server_id"
+                <el-button link :loading="testingId === s.mcp_server_id"
                   @click="handleTest(s)"><el-icon><WifiTetheringOutlined /></el-icon></el-button>
               </LTooltip>
               <LTooltip content="编辑" placement="top">
-                <el-button link size="small" @click="openEditForm(s)"><el-icon><EditOutlined /></el-icon></el-button>
+                <el-button link @click="openEditForm(s)"><el-icon><EditOutlined /></el-icon></el-button>
               </LTooltip>
               <LTooltip content="删除" placement="top">
-                <el-button link size="small" type="danger" @click="handleDelete(s)">
+                <el-button link type="danger" @click="handleDelete(s)">
                   <el-icon><DeleteOutlined /></el-icon>
                 </el-button>
               </LTooltip>
@@ -603,15 +603,17 @@ onMounted(async () => {
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: var(--mp-radius-lg, 14px);
-  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
+     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   min-width: 0;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .market-cell:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+  box-shadow: var(--el-box-shadow-light);
 }
 .market-cell-icon {
   flex: none;
@@ -679,7 +681,8 @@ onMounted(async () => {
 /* ===== 骨架屏 ===== */
 .skel {
   flex: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: linear-gradient(90deg,
     var(--el-fill-color) 25%, var(--el-fill-color-light) 37%, var(--el-fill-color) 63%);
   background-size: 400% 100%;
@@ -711,7 +714,8 @@ onMounted(async () => {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--el-border-color);
-  border-radius: 10px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
 }
 .skel--circle { width: 34px; height: 34px; border-radius: 50%; }
@@ -734,14 +738,16 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: var(--mp-radius-lg, 14px);
-  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
+     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .manage-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+  box-shadow: var(--el-box-shadow-light);
 }
 .manage-card__main {
   display: flex;
@@ -787,9 +793,33 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 8px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
 }
 .source-item:hover { background: var(--el-fill-color-light); }
 .source-item__name { font-size: 13px; font-weight: 600; }
 .source-item__desc { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+
+/* 键盘焦点可见性：分类页签 / 分组头 / 市场单元 / 已装条目主区都是带 @click 的 div
+   （不是可聚焦控件），浏览器不给默认焦点环。
+   四者原有 cursor: pointer 都已在上面声明（.market-cell 走 .market-cell--clickable），
+   不重复写。环用主色 12% —— 本文件没有任何写死的深色底，底色全走令牌，
+   深浅两套主题下都只是一档主色描边，12% 足够可见。 */
+.market-tab,
+.market-group-head,
+.market-cell,
+.manage-card__main {
+  outline: none;
+}
+
+.market-tab:focus-visible,
+.market-group-head:focus-visible,
+.market-cell:focus-visible,
+.manage-card__main:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 注意：本文件不在 A 段清单内，所以 .market-tab / .market-group-arrow（折叠箭头旋转）/
+   .market-cell / .manage-card 自带的 transition 未做 reduced-motion 降级，
+   按「照清单做、不自行扩范围」的约定留待下一轮。 */
 </style>

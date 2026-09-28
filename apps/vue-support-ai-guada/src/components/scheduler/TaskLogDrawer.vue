@@ -6,7 +6,7 @@
         <div class="text-sm text-gray-500 dark:text-[#8b8d95]">
           {{ t('scheduler.log.count', { count: runs.length }) }}
         </div>
-        <el-button size="small" @click="handleRefresh" :loading="loading">
+        <el-button @click="handleRefresh" :loading="loading">
           <template #icon>
             <RefreshOutlined />
           </template>
@@ -51,7 +51,7 @@
         <div v-if="runs.length > 0" class="space-y-3">
           <div v-for="run in runs" :key="run.id" class="re-surface re-surface--dense">
             <div class="flex items-center justify-between mb-2">
-              <el-tag :type="getStatusType(run.status)" size="small" effect="light">
+              <el-tag :type="getStatusType(run.status)" effect="light">
                 {{ getStatusLabel(run.status) }}
               </el-tag>
               <span class="text-xs text-(--color-text-gray)">
@@ -88,14 +88,15 @@
 
 <style scoped>
 /* 运行记录条目直接用组件库基线 re-surface（ReStatCard 规格），此处只留错误条：
-   底色用 color-mix 与表面色融合，避免硬编码 #fff / #2a2a2a */
+   底色用 color-mix 与表面色融合，避免硬编码表面色 */
 .run-item__error {
   margin-top: 8px;
   padding: 8px;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   font-size: 12px;
-  color: var(--el-color-danger, #ef4444);
-  background: color-mix(in srgb, var(--el-color-danger, #ef4444) 10%, transparent);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
 }
 </style>
 

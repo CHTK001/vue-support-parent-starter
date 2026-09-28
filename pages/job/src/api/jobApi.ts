@@ -54,6 +54,9 @@ export const deleteJob = (jobKey: string) => del<boolean>(`${apiPrefix()}/${enco
 /** 本节点已注册执行器清单：@Job 扫描 + 三方编程式注入 */
 export const listExecutors = () => get<JobExecutor[]>(`${apiPrefix()}/executors`);
 
+/** 可用脚本引擎（SPI 运行时枚举）：驱动「语言」下拉，装了新引擎自动出现 */
+export const listGlueEngines = () => get<string[]>(`${apiPrefix()}/glue/engines`);
+
 /** 在线执行器节点清单：远程作业页用（节点身份 / 长链地址 / 处理器） */
 export const listNodes = () => get<JobNode[]>(`${apiPrefix()}/nodes`);
 

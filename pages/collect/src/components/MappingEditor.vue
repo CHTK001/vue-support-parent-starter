@@ -5,6 +5,10 @@
   换成目标表的真实列下拉：选项来自 /datasource/columns，列名/类型/主键都来自数据库
   元数据，不会因为表结构变了而写错列。表名或数据源变化时自动重新读候选，并把已经
   失效的映射行标出来而不是悄悄丢掉——用户要看到自己配的列没了。
+
+  目标表还不存在时（tableExists === false）走"新建表"模式：左列退回自由输入，
+  运行时由后端按这里填的列名自动建表。此时"字段在当前表里不存在"的告警要静默——
+  新列本来就不在库里，那条告警会把正常配置全部染成警告。
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
@@ -22,6 +26,10 @@ const props = withDefaults(
     columns?: CollectColumn[];
     /** 目标表名，用于空态提示与「重新读取」 */
     table?: string | null;
+    /**
+     * 目标表是否已存在：null=还没确认，true=已存在，false=确认不存在（新建表模式）
+     */
+    tableExists?: boolean | null;
     /** 读列失败时的原因，直接显示给用户 */
     loadError?: string | null;
     /** 正在读列 */
@@ -29,7 +37,7 @@ const props = withDefaults(
     /** 触发重新读取列元数据 */
     onRefresh?: () => void;
   }>(),
-  { columns: () => [], table: null, loadError: null, loading: false },
+  { columns: () => [], table: null, tableExists: null, loadError: null, loading: false },
 );
 
 const emit = defineEmits<{ (event: "update:modelValue", value: ParamPair[]): void }>();
@@ -57,11 +65,16 @@ const columnOptions = computed(() =>
 
 const knownColumns = computed(() => new Set(props.columns.map(column => column.name)));
 
-/** 已经配了但当前表里没有的列：表结构变了，必须让用户看见 */
+/** 目标表还不存在 → 新建表模式，左列改成自由输入，不做孤儿列告警 */
+const creatingTable = computed(() => props.tableExists === false);
+
+/** 已经配了但当前表里没有的列：表结构变了，必须让用户看见（新建表模式不算） */
 const orphanRows = computed(() =>
-  rows.value
-    .map((row, index) => ({ row, index }))
-    .filter(item => item.row.key.trim() !== "" && !knownColumns.value.has(item.row.key.trim())),
+  creatingTable.value
+    ? []
+    : rows.value
+      .map((row, index) => ({ row, index }))
+      .filter(item => item.row.key.trim() !== "" && !knownColumns.value.has(item.row.key.trim())),
 );
 
 function commit(): void {
@@ -91,15 +104,27 @@ function typeHint(name: string): string {
   <div class="mapping-editor" @focusout="commit">
     <div v-if="loading" class="mapping-state">正在读取表结构…</div>
     <div v-else-if="loadError" class="mapping-state mapping-state-error">{{ loadError }}</div>
-    <div v-else-if="!table" class="mapping-state">先选目标表，再配置字段映射</div>
+    <div v-else-if="!table" class="mapping-state">先填目标表，再配置字段映射</div>
+    <div v-else-if="creatingTable" class="mapping-state mapping-state-create">
+      目标表 {{ table }} 尚不存在，将按下面的列名自动创建；列类型按这一批实际取值推断
+    </div>
     <div v-else-if="!columnOptions.length" class="mapping-state">
       该表没有读到列，请确认表名正确或数据源可达
     </div>
 
     <template v-else>
       <div v-for="(row, index) in rows" :key="index" class="mapping-row">
+        <ReInput
+          v-if="creatingTable"
+          
+          class="mapping-column"
+          placeholder="新列名，如 title"
+          :model-value="row.key"
+          @update:model-value="(v: unknown) => (row.key = String(v ?? ''))"
+        />
         <ReSelect
-          size="small"
+          v-else
+          
           filterable
           clearable
           class="mapping-column"
@@ -109,18 +134,18 @@ function typeHint(name: string): string {
           @update:model-value="(v: unknown) => (row.key = String(v ?? ''))"
         />
         <ReInput
-          size="small"
+          
           class="mapping-value"
           placeholder="值 / ${表达式}"
           :model-value="row.value"
           @update:model-value="(v: unknown) => (row.value = String(v ?? ''))"
         />
         <span class="mapping-type">{{ typeHint(row.key.trim()) }}</span>
-        <ReButton size="small" text type="danger" icon="Delete" @click="removeRow(index)" />
+        <ReButton  text type="danger" icon="Delete" @click="removeRow(index)" />
       </div>
 
       <div v-if="orphanRows.length" class="mapping-orphan">
-        <ReTag type="warning" size="small">
+        <ReTag type="warning" >
           {{ orphanRows.length }} 个字段在当前表里不存在
         </ReTag>
         <span class="mapping-orphan-list">
@@ -128,8 +153,16 @@ function typeHint(name: string): string {
         </span>
       </div>
 
-      <ReButton size="small" plain icon="Refresh" @click="props.onRefresh?.()">重新读取表结构</ReButton>
-      <ReButton size="small" plain icon="Plus" @click="addRow">添加字段</ReButton>
+      <ReButton
+        v-if="!creatingTable"
+        
+        plain
+        icon="Refresh"
+        @click="props.onRefresh?.()"
+      >
+        重新读取表结构
+      </ReButton>
+      <ReButton  plain icon="Plus" @click="addRow">添加字段</ReButton>
     </template>
   </div>
 </template>
@@ -175,8 +208,16 @@ function typeHint(name: string): string {
 }
 
 .mapping-state-error {
-  color: var(--el-color-danger, #f56c6c);
+  /* 原来写 var(--el-color-danger, #f56c6c)，--el-color-danger 由 EP 必定定义，
+     兜底 hex 永远不会生效，属于误导性死代码，直接去掉兜底 */
+  color: var(--el-color-danger);
   opacity: 1;
+}
+
+/* 新建表是正常配置路径，不是故障：不用错误色，提示该做什么就行 */
+.mapping-state-create {
+  color: var(--el-color-primary);
+  opacity: 0.85;
 }
 
 .mapping-orphan {

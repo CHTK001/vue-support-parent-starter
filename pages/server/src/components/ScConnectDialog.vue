@@ -76,7 +76,7 @@ function onConnect(): void {
     @confirm="onConnect"
     @cancel="visible = false"
   >
-    <ReDescriptions v-if="host" :column="1" border size="small" style="margin-bottom: 16px">
+    <ReDescriptions v-if="host" :column="1" border style="margin-bottom: 16px">
       <ReDescriptionsItem label="主机">{{ host.serverHostName }}</ReDescriptionsItem>
       <ReDescriptionsItem label="地址">{{ host.serverHostAddress }}</ReDescriptionsItem>
       <ReDescriptionsItem label="系统">{{ host.serverHostOsType }}</ReDescriptionsItem>

@@ -1,8 +1,9 @@
 /**
  * ReTable —— 表格组件（el-table 封装）
  *
- * 支持动态数据源（data / url / 函数）与列 schema 渲染。
- *   <ReTable :columns="[{ prop: 'name', label: '名称' }]" url="/api/users" />
+ * 支持两种数据源与列 schema 渲染：
+ *   前端分页：<ReTable :columns="cols" :data="rows" />              （组件切片）
+ *   后端分页：<ReTable :columns="cols" :loader="fetchUsers" />     （组件只发分页与查询参数）
  */
 import { defineAsyncComponent, type App, type Plugin } from "vue";
 import ReTable from "./ReTable.vue";

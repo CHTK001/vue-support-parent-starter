@@ -59,22 +59,22 @@ function addField(): void {
     <div v-for="(field, index) in fields" :key="index" class="collect-field-card">
       <div class="card-head">
         <ReInput
-          size="small"
+
           placeholder="字段名"
           :model-value="field.name"
           @update:model-value="(value: unknown) => patch(index, { name: String(value ?? '') })"
         />
         <ReSelect
-          size="small"
+
           class="head-parser"
           :model-value="field.parserType || 'CSS'"
           :options="PARSER_TYPES"
           @update:model-value="(value: string | number | (string | number)[] | null) => patch(index, { parserType: String(value ?? 'CSS') })"
         />
-        <ReButton size="small" text type="danger" icon="Delete" @click="remove(index)">删</ReButton>
+        <ReButton text type="danger" icon="Delete" @click="remove(index)">删</ReButton>
       </div>
       <ReInput
-        size="small"
+
         placeholder="表达式：CSS 选择器 / 正则 / JSON 路径"
         :model-value="field.expression"
         @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
@@ -85,7 +85,7 @@ function addField(): void {
       <div class="card-row">
         <ReSelect
           v-if="field.parserType !== 'REGEX'"
-          size="small"
+
           class="head-attr"
           :model-value="field.attribute || 'text'"
           :options="ATTRIBUTES"
@@ -93,7 +93,7 @@ function addField(): void {
         />
         <ReInput
           v-if="field.attribute === 'attr'"
-          size="small"
+
           class="cell-grow"
           placeholder="属性名"
           :model-value="field.attrName"
@@ -101,7 +101,7 @@ function addField(): void {
         />
         <ReInputNumber
           v-if="field.parserType === 'REGEX'"
-          size="small"
+
           class="cell-group"
           :min="0"
           :controls="false"
@@ -110,7 +110,7 @@ function addField(): void {
           @update:model-value="(value: number | undefined) => patch(index, { group: Number(value ?? 1) })"
         />
         <ReInput
-          size="small"
+
           class="cell-grow"
           placeholder="空值默认"
           :model-value="field.defaultValue"
@@ -118,7 +118,7 @@ function addField(): void {
         />
       </div>
     </div>
-    <ReButton size="small" plain icon="Plus" @click="addField">添加字段</ReButton>
+    <ReButton plain icon="Plus" @click="addField">添加字段</ReButton>
   </div>
 </template>
 
@@ -129,15 +129,20 @@ function addField(): void {
   gap: 5px;
   padding: 7px 8px;
   margin-bottom: 6px;
-  background: linear-gradient(180deg, #fbfcfe, #f6f8fb);
-  border: 1px solid #e8eaef;
-  border-radius: 8px;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  /* 原为写死的 #fbfcfe → #f6f8fb 亮色渐变，暗色模式下会是刺眼白块；
+     改用「页面底色 → 更浅一档填充色」令牌渐变，保留原有的微渐变质感又能跟随主题 */
+  background: linear-gradient(180deg, var(--el-bg-color), var(--el-fill-color-lighter));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
+/* 允许的两处投影之一：悬浮抬升反馈；静止态不加投影，边界由边框承载 */
 .collect-field-card:hover {
-  border-color: #cdd8ea;
-  box-shadow: 0 2px 8px rgba(15, 23, 32, 0.05);
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .card-head,
@@ -154,7 +159,7 @@ function addField(): void {
 .card-hint {
   font-size: 11px;
   line-height: 1.5;
-  color: #8a94a6;
+  color: var(--el-text-color-secondary);
 }
 
 .head-attr {
@@ -168,5 +173,12 @@ function addField(): void {
 .cell-grow {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .collect-field-card {
+    transition: none;
+  }
 }
 </style>

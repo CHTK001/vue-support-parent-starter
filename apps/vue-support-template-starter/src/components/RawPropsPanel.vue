@@ -2,7 +2,7 @@
   <div class="raw-props">
     <div class="raw-props__header">
       <span class="raw-props__title">通用参数（JSON）</span>
-      <el-tag size="small" type="warning" effect="plain">{{ Object.keys(parsed).length }} 项</el-tag>
+      <el-tag type="warning" effect="plain">{{ Object.keys(parsed).length }} 项</el-tag>
     </div>
 
     <div class="raw-props__body">
@@ -115,7 +115,8 @@ const onSlotChange = (val: string) => {
   height: 100%;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px，取最近档 lg(12px)：参数面板属卡片层 */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -126,7 +127,8 @@ const onSlotChange = (val: string) => {
   padding: 12px 16px;
   font-size: 13px;
   font-weight: 600;
-  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+  /* 头部是「通用调试（未配置面板）」的告警语境，原米黄底改走 warning 浅色档 */
+  background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-color-warning-light-7) 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
 }
@@ -141,7 +143,8 @@ const onSlotChange = (val: string) => {
 .raw-props__error {
   margin-top: 4px;
   font-size: 12px;
-  color: #f56c6c;
+  /* #f56c6c 正是 --el-color-danger */
+  color: var(--el-color-danger);
 }
 
 .raw-props__tip {
@@ -152,5 +155,17 @@ const onSlotChange = (val: string) => {
   background: var(--el-fill-color-lighter);
   border-top: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好：本组件样式未声明 transition / animation
+   （动效都在 el-form / el-input 内部），这里做显式归零兜底。 */
+@media (prefers-reduced-motion: reduce) {
+  .raw-props,
+  .raw-props__header,
+  .raw-props__body,
+  .raw-props__tip {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

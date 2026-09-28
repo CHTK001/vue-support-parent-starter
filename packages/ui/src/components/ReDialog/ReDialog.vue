@@ -308,7 +308,7 @@ const showCloseFab = computed(() => props.headless);
           <ElButton
             v-if="fullscreenable"
             link
-            size="small"
+
             :title="isFullscreen ? '退出全屏' : '全屏'"
             @click="toggleFullscreen"
           >
@@ -323,8 +323,8 @@ const showCloseFab = computed(() => props.headless);
     <!-- 默认 footer -->
     <template v-if="showFooter" #footer>
       <slot name="footer" :ok="onOk" :cancel="onCancel">
-        <ElButton v-if="showCancel" size="small" @click="onCancel">{{ cancelText }}</ElButton>
-        <ElButton v-if="showOk" type="primary" size="small" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
+        <ElButton v-if="showCancel" @click="onCancel">{{ cancelText }}</ElButton>
+        <ElButton v-if="showOk" type="primary" :loading="confirmLoading" @click="onOk">{{ okText }}</ElButton>
       </slot>
     </template>
 

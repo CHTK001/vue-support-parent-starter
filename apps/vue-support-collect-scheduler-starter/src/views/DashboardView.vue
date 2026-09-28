@@ -15,6 +15,7 @@ import ReIcon from "@repo/ui/re-icon";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import ReStatCard from "@repo/ui/re-stat-card";
 import {
   fetchRuntime,
@@ -25,7 +26,7 @@ import {
   pageTasks,
 } from "@pages/collect";
 import { getSummary, pageJobs } from "@pages/job";
-import { costText, statusTagType, statusText, triggerText } from "@pages/collect";
+import { costMs, statusTagType, statusText, triggerText } from "@pages/collect";
 import { COLLECT_FLOW_GROUP, type JobRuntime, type JobSummary } from "@pages/job";
 import { useCollectView } from "@pages/collect";
 import { fmtMs } from "@pages/collect";
@@ -303,7 +304,7 @@ function shortTime(value: unknown): string {
     <div class="collect-head">
       <ReIcon name="Odometer" :size="18"/>
       <h2 class="collect-head__title">平台总览</h2>
-      <ReTag size="small" :type="runtime?.enable ? 'success' : 'danger'" effect="plain">
+      <ReTag  :type="runtime?.enable ? 'success' : 'danger'" effect="plain">
         {{ runtime?.enable ? "采集已启用" : "采集未启用" }}
       </ReTag>
       <span class="collect-pulse" :class="{ 'is-idle': !runtime?.runningTasks }"/>
@@ -313,8 +314,8 @@ function shortTime(value: unknown): string {
       </span>
       <span class="spacer"/>
       <span class="collect-hint collect-hint--muted">自动刷新</span>
-      <ReSwitch v-model="autoRefresh" size="small" aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
-      <ReButton size="small" icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新总览</ReButton>
+      <ReSwitch v-model="autoRefresh"  aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
+      <ReButton  icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新总览</ReButton>
     </div>
 
     <div class="collect-stats">
@@ -344,7 +345,7 @@ function shortTime(value: unknown): string {
           <ReIcon name="Timer" :size="14"/>
           <b>最近执行</b>
           <span class="spacer"/>
-          <ReButton size="small" text type="primary" @click="go('/collect/task')">任务监控</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/task')">任务监控</ReButton>
         </div>
         <ReTable
           :data="recentTasks as unknown as Record<string, unknown>[]"
@@ -356,12 +357,16 @@ function shortTime(value: unknown): string {
           empty-text="还没有执行记录，去「流程设计」运行一个流程"
         >
           <template #status="{ row }">
-            <ReTag size="small" :type="statusTagType(row.collectTaskStatus)" effect="plain">
+            <ReTag  :type="statusTagType(row.collectTaskStatus)" effect="plain">
               {{ statusText(row.collectTaskStatus) }}
             </ReTag>
           </template>
           <template #trigger="{ row }">{{ triggerText(row.collectTaskTriggerType) }}</template>
-          <template #cost="{ row }"><span class="collect-num">{{ costText(row.collectTaskCost) }}</span></template>
+          <template #cost="{ row }">
+            <span class="collect-num">
+              <ReTime :value="costMs(row.collectTaskCost)" format="duration" placeholder="—" />
+            </span>
+          </template>
           <template #begin="{ row }">
             <span class="collect-num">{{ shortTime(row.collectTaskBeginTime) }}</span>
           </template>
@@ -373,7 +378,7 @@ function shortTime(value: unknown): string {
           <ReIcon name="Share" :size="14"/>
           <b>流程健康</b>
           <span class="spacer"/>
-          <ReButton size="small" text type="primary" @click="go('/collect/design')">流程设计</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/design')">流程设计</ReButton>
         </div>
         <ReTable
           :data="flows as unknown as Record<string, unknown>[]"
@@ -398,7 +403,7 @@ function shortTime(value: unknown): string {
           <ReIcon name="AlarmClock" :size="14"/>
           <b>调度任务</b>
           <span class="spacer"/>
-          <ReButton size="small" text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
         </div>
         <ReTable
           :data="jobs as unknown as Record<string, unknown>[]"
@@ -411,7 +416,7 @@ function shortTime(value: unknown): string {
         >
           <template #name="{ row }">
             <span>{{ row.jobName || row.jobKey }}</span>
-            <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline" size="small" type="primary" effect="plain">
+            <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline"  type="primary" effect="plain">
               采集流程
             </ReTag>
           </template>
@@ -419,7 +424,7 @@ function shortTime(value: unknown): string {
             <span class="collect-cell-mono" :title="scheduleText(row as unknown as JobRuntime)">{{ row.scheduleType }}</span>
           </template>
           <template #status="{ row }">
-            <ReTag size="small" :type="row.enabled === true ? 'success' : 'info'" effect="plain">
+            <ReTag  :type="row.enabled === true ? 'success' : 'info'" effect="plain">
               {{ row.enabled === true ? "启用" : "停用" }}
             </ReTag>
           </template>
@@ -435,12 +440,12 @@ function shortTime(value: unknown): string {
         <ReIcon name="Setting" :size="14"/>
         <b>运行时参数</b>
         <span class="spacer"/>
-        <ReButton size="small" text icon="Share" @click="go('/collect/design')">新建流程</ReButton>
-        <ReButton size="small" text icon="SetUp" @click="go('/collect/variable')">变量</ReButton>
-        <ReButton size="small" text icon="Coin" @click="go('/collect/datasource')">数据源</ReButton>
-        <ReButton size="small" text icon="Operation" @click="go('/collect/function')">函数库</ReButton>
-        <ReButton size="small" text icon="Bell" @click="go('/collect/notice')">通知</ReButton>
-        <ReButton size="small" text icon="Tickets" @click="go('/collect/job-log')">作业日志</ReButton>
+        <ReButton  text icon="Share" @click="go('/collect/design')">新建流程</ReButton>
+        <ReButton  text icon="SetUp" @click="go('/collect/variable')">变量</ReButton>
+        <ReButton  text icon="Coin" @click="go('/collect/datasource')">数据源</ReButton>
+        <ReButton  text icon="Operation" @click="go('/collect/function')">函数库</ReButton>
+        <ReButton  text icon="Bell" @click="go('/collect/notice')">通知</ReButton>
+        <ReButton  text icon="Tickets" @click="go('/collect/job-log')">作业日志</ReButton>
       </div>
       <dl class="collect-kv dash-kv">
         <div v-for="item in schedulerRows" :key="item.label" class="dash-kv__item">
@@ -497,6 +502,14 @@ function shortTime(value: unknown): string {
 @media (min-width: 1100px) {
   .dash-kv {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 动效降级：系统开启「减少动态效果」时，KPI 卡上浮 + 投影不再渐变，直接到位。
+   只关 .dash-kpi 自己的 transition，不写通配 *，避免掐掉内部 ReStatCard 的合法动效。 */
+@media (prefers-reduced-motion: reduce) {
+  .dash-kpi {
+    transition: none;
   }
 }
 </style>

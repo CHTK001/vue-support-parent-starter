@@ -400,7 +400,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
           <p class="ex-head__desc">定时任务按 cron 后台执行；脚本任务仅手动执行</p>
         </div>
         <div class="ex-head__tools">
-          <ReButton show-text icon="Document" size="small" @click="openAllLogs">执行日志</ReButton>
+          <ReButton show-text icon="Document" @click="openAllLogs">执行日志</ReButton>
           <div class="ex-layout-toggle">
             <button
               type="button"
@@ -415,7 +415,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
               @click="setJobLayout('card')"
             ><ReIcon name="Postcard" /></button>
           </div>
-          <ReButton show-text icon="Plus" type="primary" size="small" @click="openJobForm()">新增任务</ReButton>
+          <ReButton show-text icon="Plus" type="primary" @click="openJobForm()">新增任务</ReButton>
         </div>
       </header>
 
@@ -553,7 +553,7 @@ function normalizeLogs(logs?: LogRow[] | null): LogRow[] {
     >
       <template #content>
         <div class="ex-logfilter">
-          <ReRadioGroup v-model="historyType" button size="small" capsule @change="loadHistory">
+          <ReRadioGroup v-model="historyType" button capsule @change="loadHistory">
             <ReRadioButton value="">全部</ReRadioButton>
             <ReRadioButton value="COMMAND">命令</ReRadioButton>
             <ReRadioButton value="FILE">文件</ReRadioButton>

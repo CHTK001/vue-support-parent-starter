@@ -18,15 +18,17 @@ import ReStatCard from "@repo/ui/re-stat-card";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
+import ReTime from "@repo/ui/re-time";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
 /** ECharts 配置类型从组件实例的 props 反推：app 未直接依赖 echarts，不引它的类型入口 */
 type ChartOption = InstanceType<typeof ReEcharts>["$props"]["option"];
 import { getSummary, pageJobLogs, pageJobs } from "../api/jobApi";
-import { costText } from "../constants/taskStatus";
+import { costMs } from "../constants/taskStatus";
 import { COLLECT_FLOW_GROUP, type JobLog, type JobRuntime, type JobSummary } from "../types/job";
 import { useCollectView } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
+import { resolveHostPath } from "../utils/hostPath";
 
 defineOptions({ name: "CollectJobOverview" });
 
@@ -268,7 +270,7 @@ const upcomingColumns: ReTableColumn[] = [
 const failureColumns: ReTableColumn[] = [
   { prop: "triggerTime", label: "触发时刻", width: 150, slot: "time" },
   { prop: "jobKey", label: "任务", minWidth: 150, slot: "job", showOverflowTooltip: true },
-  { prop: "costMs", label: "耗时", width: 74, slot: "cost", align: "right" },
+  { prop: "costMs", label: "耗时", width: 96, slot: "cost", align: "right" },
   { prop: "message", label: "消息", minWidth: 180, slot: "msg", showOverflowTooltip: true },
 ];
 
@@ -303,40 +305,12 @@ onUnmounted(() => {
 });
 
 /**
- * 宿主路径映射：同一份页面在两个宿主里挂在不同路径下。
- *
- * 采集调度宿主（vue-support-collect-scheduler-starter，route.mode=router）
- * 用本地静态路由树，路径是 /collect/**；系统管理宿主
- * （vue-support-system-starter，route.mode=remote）用后端菜单，路径是 /job/**。
- * 直接 push /collect/** 在系统宿主里查无此路由，会落 404，因此按当前
- * 路由表择一：静态路径在册就用它，否则退回系统宿主的菜单路径。
- */
-const HOST_PATH_FALLBACK: Record<string, string> = {
-  "/collect/job": "/job/console",
-  "/collect/job-log": "/job/log",
-  "/collect/remote-node": "/job/remote",
-};
-
-/**
- * 按当前宿主解析出可达的目标路径。
- *
- * @param path 目标路由（静态宿主口径）
- * @returns 当前宿主实际注册的路径
- */
-function resolveHostPath(path: string): string {
-  if (router.getRoutes().some((route) => route.path === path)) {
-    return path;
-  }
-  return HOST_PATH_FALLBACK[path] ?? path;
-}
-
-/**
  * 跳到指定页面。
  *
  * @param path 目标路由
  */
 function go(path: string): void {
-  void router.push(resolveHostPath(path));
+  void router.push(resolveHostPath(router, path));
 }
 </script>
 
@@ -350,11 +324,11 @@ function go(path: string): void {
         </p>
       </div>
       <div class="sc-head__actions">
-        <ReTag v-if="summary" size="small" :type="summary.leader ? 'success' : 'warning'" effect="plain">
+        <ReTag v-if="summary" :type="summary.leader ? 'success' : 'warning'" effect="plain" dot>
           {{ summary.leader ? "Leader" : "Follower" }}
         </ReTag>
         <span class="collect-hint collect-hint--muted">自动刷新</span>
-        <ReSwitch v-model="autoRefresh" size="small" aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
+        <ReSwitch v-model="autoRefresh"  aria-label="每 5 秒自动刷新" @change="toggleAuto"/>
         <ReButton icon="Refresh" :loading="loading" title="刷新总览" @click="reload">刷新</ReButton>
       </div>
     </div>
@@ -386,7 +360,7 @@ function go(path: string): void {
           <b>近 24 小时失败趋势</b>
           <span class="spacer"/>
           <span class="collect-hint collect-hint--muted">共 {{ summary?.recentFailures ?? 0 }} 次</span>
-          <ReButton size="small" text type="primary" @click="go('/collect/job-log')">作业日志</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/job-log')">作业日志</ReButton>
         </div>
         <ReEcharts :option="trendOption" height="220px"/>
       </div>
@@ -396,7 +370,7 @@ function go(path: string): void {
           <ReIcon name="AlarmClock" :size="14"/>
           <b>即将触发</b>
           <span class="spacer"/>
-          <ReButton size="small" text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/job')">调度工作台</ReButton>
         </div>
         <ReTable
           :data="upcoming as unknown as Record<string, unknown>[]"
@@ -407,12 +381,28 @@ function go(path: string): void {
           :layout-table="{ minHeight: 0 }"
           empty-text="没有启用的定时任务，去工作台启用一个或在流程设计页给流程配 cron"
         >
+          <!--
+            可操作空态：默认的 el-empty 只能看不能做。
+            本面板没有工具栏（:toolbar="false"），标题栏的「调度工作台」才是它的出口，
+            所以这里只给一个「刷新」出口，不重复造「去工作台」按钮。
+            empty-text 属性保留不动，它仍是 #empty 插槽 description 的回退值。
+          -->
+          <template #empty>
+            <div class="page-empty">
+              <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22" /></span>
+              <span class="page-empty__title">没有启用的定时任务</span>
+              <span class="page-empty__desc">这里只列启用中、且算得出下次触发时刻的任务；到工作台启用一个，或在流程设计页给流程配 cron。</span>
+              <span class="page-empty__actions">
+                <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+              </span>
+            </div>
+          </template>
           <template #name="{ row }">
             <span>{{ row.jobName || row.jobKey }}</span>
             <ReTag
               v-if="row.group === COLLECT_FLOW_GROUP"
               class="collect-tag-inline"
-              size="small"
+              
               type="primary"
               effect="plain"
             >
@@ -432,7 +422,7 @@ function go(path: string): void {
           <b>最近失败</b>
           <span class="spacer"/>
           <span class="collect-hint collect-hint--muted">近 24 小时</span>
-          <ReButton size="small" text type="primary" @click="go('/collect/job-log')">全部失败</ReButton>
+          <ReButton  text type="primary" @click="go('/collect/job-log')">全部失败</ReButton>
         </div>
         <ReTable
           :data="recentFailures as unknown as Record<string, unknown>[]"
@@ -445,7 +435,7 @@ function go(path: string): void {
         >
           <template #time="{ row }"><span class="collect-num">{{ fmtMs(row.triggerTime) }}</span></template>
           <template #job="{ row }">{{ jobNameOf(row as unknown as JobLog) }}</template>
-          <template #cost="{ row }"><span class="collect-num">{{ costText(row.costMs) }}</span></template>
+          <template #cost="{ row }"><ReTime :value="costMs(row.costMs)" format="duration" placeholder="—" /></template>
           <template #msg="{ row }"><span class="collect-cell-ellipsis">{{ row.message || "—" }}</span></template>
         </ReTable>
       </div>
@@ -480,5 +470,70 @@ function go(path: string): void {
 
 .koi-ov-head {
   padding-bottom: 8px;
+}
+
+/* ============ 可操作空态 ============
+   .page-empty 系列的定义在 pages/system/src/styles/system-page.css，那是 system 包的
+   全局 css（随宿主一次性加载）；job 包只有 scheduler.css，未收录这一组类名，
+   且本页样式是 scoped 的，拿不到别的包的全局类，所以此处自带一份最小必要样式，
+   取值与 system 包逐条对齐，换包不会走样。 */
+.page-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.page-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.page-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+.page-empty__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.page-empty__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/*
+  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
+  面板卡片（.sched-center .collect-card）已经带了圆角与阴影，这里只补 1px 细描边与
+  focus-within 反馈——卡片内再叠投影就成了一摞纸，koi 规约只给焦点环与悬浮浮起留投影。
+*/
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table) {
+    transition: none;
+  }
 }
 </style>

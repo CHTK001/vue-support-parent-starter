@@ -14,6 +14,8 @@ import type { MessageLog, MessageProvider } from "../api/types";
 import ReProviderFilterBar from "../components/ReProviderFilterBar.vue";
 import ReLogDetailDialog from "../components/ReLogDetailDialog.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
+import ReTime from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 
 const route = useRoute();
 const router = useRouter();
@@ -211,13 +213,13 @@ onMounted(() => {
         <el-table-column prop="sysMessageLogTarget" label="接收人" min-width="140" />
         <el-table-column prop="sysMessageLogChannel" label="渠道" width="110">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.sysMessageLogChannel }}</el-tag>
+            <el-tag  effect="plain">{{ row.sysMessageLogChannel }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag
-              size="small"
+              
               :type="row.sysMessageCode === 'SUCCESS' ? 'success' : 'danger'"
               effect="plain"
             >
@@ -229,7 +231,7 @@ onMounted(() => {
           <template #default="{ row }">
             <template v-if="row.sysMessageTrackToken">
               <el-tag
-                size="small"
+                
                 :type="row.sysMessageReadStatus === 1 ? 'success' : 'info'"
                 effect="plain"
               >
@@ -247,7 +249,7 @@ onMounted(() => {
         <el-table-column prop="sysMessageLogContent" label="内容" min-width="200" show-overflow-tooltip />
         <el-table-column label="耗时" width="100">
           <template #default="{ row }">
-            <span class="text-[--el-text-color-secondary]">{{ row.sysMessageCost }}ms</span>
+            <span class="text-[--el-text-color-secondary]"><ReTime :value="costMs(row.sysMessageCost)" format="duration" placeholder="—" /></span>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="发送时间" width="170" />

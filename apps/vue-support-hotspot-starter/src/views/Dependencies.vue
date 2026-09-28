@@ -3,23 +3,23 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">依赖拓扑</span>
-        <el-radio-group v-model="mode" size="small">
+        <el-radio-group v-model="mode" >
           <el-radio-button value="graph">图形</el-radio-button>
           <el-radio-button value="table">列表</el-radio-button>
         </el-radio-group>
       </div>
       <div class="toolbar-right">
-        <el-select v-model="injectProto" size="small" style="width: 96px">
+        <el-select v-model="injectProto" style="width: 96px">
           <el-option v-for="p in ['HTTP','REDIS','MYSQL','GRPC','KAFKA']" :key="p" :label="p" :value="p" />
         </el-select>
-        <el-input v-model="injectTarget" placeholder="目标 host:port" size="small" style="width: 170px" clearable />
-        <el-button size="small" type="primary" round :loading="injecting" @click="doInject">
+        <el-input v-model="injectTarget" placeholder="目标 host:port" style="width: 170px" clearable />
+        <el-button type="primary" round :loading="injecting" @click="doInject">
           <el-icon class="mr-1"><Plus /></el-icon>注入一条调用
         </el-button>
-        <el-button size="small" round :loading="batching" @click="doBatch">
+        <el-button round :loading="batching" @click="doBatch">
           <el-icon class="mr-1"><MagicStick /></el-icon>批量×20
         </el-button>
-        <el-button size="small" round :loading="loading" @click="load">
+        <el-button round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
@@ -35,10 +35,10 @@
           v-model="listKeyword"
           placeholder="过滤 源/目标/协议…"
           clearable
-          size="small"
+
           style="width: 220px"
         />
-        <el-checkbox v-model="listErrorOnly" size="small">仅看错误边</el-checkbox>
+        <el-checkbox v-model="listErrorOnly" >仅看错误边</el-checkbox>
         <span class="filter-hint">聚合后 {{ filteredEdges.length }} / {{ edges.length }} 条边</span>
       </div>
       <el-table
@@ -58,7 +58,7 @@
         </el-table-column>
         <el-table-column prop="protocol" label="协议" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.protocol" size="small" effect="plain" round>{{ row.protocol }}</el-tag>
+            <el-tag v-if="row.protocol" effect="plain" round>{{ row.protocol }}</el-tag>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -279,22 +279,22 @@ watch(mode, () => renderGraph());
   min-height: 480px;
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
 }
 
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 8px;
 }
 
 .apm-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -335,5 +335,15 @@ watch(mode, () => renderGraph());
 .muted {
   color: var(--apm-muted);
   font-size: 12px;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本页自身无 transition/animation，需关掉的是骨架屏与 loading 的旋转动画 */
+@media (prefers-reduced-motion: reduce) {
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

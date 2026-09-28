@@ -3,7 +3,7 @@
     <div class="view-toolbar">
       <div class="toolbar-left">
         <span class="section-label">日志</span>
-        <el-select v-model="filterLevel" placeholder="级别" clearable size="small" class="filter-select">
+        <el-select v-model="filterLevel" placeholder="级别" clearable class="filter-select">
           <el-option label="ERROR" value="ERROR" />
           <el-option label="WARN" value="WARN" />
           <el-option label="INFO" value="INFO" />
@@ -13,7 +13,7 @@
           v-model="keyword"
           placeholder="服务端搜索：消息 / Logger / 类名"
           clearable
-          size="small"
+
           class="filter-input"
           :prefix-icon="Search"
           @keyup.enter="doServerSearch"
@@ -22,7 +22,7 @@
           v-model="traceIdSearch"
           placeholder="按 traceId 精确过滤"
           clearable
-          size="small"
+
           class="filter-input trace-filter"
           @keyup.enter="doServerSearch"
         />
@@ -32,10 +32,10 @@
           range-separator="~"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
-          size="small"
+
           style="width: 320px"
         />
-        <el-button size="small" round :loading="loading" @click="doServerSearch">搜索</el-button>
+        <el-button round :loading="loading" @click="doServerSearch">搜索</el-button>
         <span class="match-hint" v-if="keyword || traceIdSearch">服务端命中 {{ total }} 条</span>
       </div>
       <div class="toolbar-right">
@@ -45,13 +45,13 @@
           class="live-switch"
           @change="toggleLiveStream"
         />
-        <el-button size="small" round @click="exportCsvFull">
+        <el-button round @click="exportCsvFull">
           <el-icon class="mr-1"><Download /></el-icon>导出 CSV（全量）
         </el-button>
-        <el-button size="small" type="primary" round :loading="injecting" @click="doInjectLog">
+        <el-button type="primary" round :loading="injecting" @click="doInjectLog">
           <el-icon class="mr-1"><Plus /></el-icon>写入一条日志
         </el-button>
-        <el-button size="small" round :loading="loading" @click="load">
+        <el-button round :loading="loading" @click="load">
           <el-icon class="mr-1"><Refresh /></el-icon>刷新
         </el-button>
       </div>
@@ -62,7 +62,7 @@
       <span class="section-label">级别分布</span>
       <div class="level-cards">
         <div v-for="s in logStats" :key="s.level" class="level-card">
-          <el-tag :type="levelTag(s.level)" size="small" round>{{ s.level }}</el-tag>
+          <el-tag :type="levelTag(s.level)" round>{{ s.level }}</el-tag>
           <span class="mono level-count">{{ s.count }}</span>
           <span class="mono muted level-pct">{{ s.percent.toFixed(1) }}%</span>
         </div>
@@ -77,7 +77,7 @@
       </div>
       <div class="live-list">
         <div v-for="(r, i) in liveItems" :key="i" class="live-row">
-          <el-tag :type="levelTag(r.level)" size="small" round>{{ r.level }}</el-tag>
+          <el-tag :type="levelTag(r.level)" round>{{ r.level }}</el-tag>
           <span class="muted mono live-time">{{ r.timestamp }}</span>
           <span class="mono live-logger">{{ r.logger }}</span>
           <span :class="{ 'err-text': r.level === 'ERROR' }" class="live-msg">{{ r.message }}</span>
@@ -100,7 +100,7 @@
         </el-table-column>
         <el-table-column label="级别" width="90">
           <template #default="{ row }">
-            <el-tag :type="levelTag(row.level)" size="small" round>
+            <el-tag :type="levelTag(row.level)" round>
               {{ row.level }}
             </el-tag>
           </template>
@@ -361,16 +361,16 @@ onMounted(() => {
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 8px;
 }
 
 .apm-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
@@ -380,15 +380,21 @@ onMounted(() => {
   font-size: 12px;
 }
 
+/* <a> 承载点击跳转：可点元素必须有手型光标与键盘焦点环 */
 .trace-link {
   cursor: pointer;
+  outline: none;
   text-decoration: none;
   color: var(--apm-accent);
-  transition: opacity 0.15s;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .trace-link:hover {
-  opacity: 0.7;
+  color: var(--el-color-primary-light-3);
+}
+
+.trace-link:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .muted {
@@ -412,7 +418,7 @@ onMounted(() => {
   gap: 14px;
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 10px 14px;
 }
 
@@ -442,7 +448,7 @@ onMounted(() => {
 .live-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -472,8 +478,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-lighter);
 }
 
 .live-time {
@@ -502,5 +508,17 @@ onMounted(() => {
   font-size: 12px;
   padding: 12px 0;
   text-align: center;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .trace-link {
+    transition: none;
+  }
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

@@ -14,6 +14,7 @@
  */
 import { Graph } from "@antv/x6";
 import { register } from "@antv/x6-vue-shape";
+import type { Component } from "vue";
 import { resolveFlowIcon } from "./icons";
 import FlowNodeCard from "./FlowNodeCard.vue";
 import type { FlowEdgeKind, FlowNodeTypeDef } from "./types";
@@ -82,15 +83,68 @@ export function flowPortItems() {
 
 let registered = false;
 
+/** 自定义节点体形状名的前缀，后面跟序号 */
+export const FLOW_CUSTOM_NODE_SHAPE = "flow-card-custom";
+
 /**
- * 注册卡片节点与连线图形，幂等。
+ * 组件 → 已注册的形状名。
  *
- * 节点走 `x6-vue-shape` 的 `register`：它内部会 `Graph.registerNode(shape, { inherit: 'vue-shape' })`
- * 并把 component 记进 `shapeMaps`；view 是 `vue-shape-view`，节点体被挂进 `<foreignObject>`。
+ * 用 WeakMap 而不是模块级变量存「当前的自定义组件」：选形是**每个引擎实例**的事
+ * （同一页面可以开两个画布，一个用内置卡片、一个用自定义组件），
+ * 而 X6 的 `Graph.registerNode` 是全局的、同一 shape 名会被后注册的组件顶掉。
+ * 所以每个组件拿到自己的形状名，谁也不会覆盖谁。
+ *
+ * WeakMap 而非 Map：组件被 GC 后条目自动消失，不用手工清。
  */
-export function ensureFlowRegistered(): void {
+const customShapes = new WeakMap<Component, string>();
+
+/** 形状名序号 */
+let customSeq = 0;
+
+/**
+ * 拿到（必要时注册）某组件对应的节点形状名。
+ *
+ * 注册走 `x6-vue-shape` 的 `register`：它内部 `Graph.registerNode(shape, { inherit: 'vue-shape' })`
+ * 并把 component 记进 `shapeMaps`，节点体挂进 `<foreignObject>`。
+ * 同一组件重复调用只注册一次（WeakMap 命中即返回），换组件才新增一个形状。
+ *
+ * @param component 自定义节点体组件
+ * @returns 该组件独占的形状名
+ */
+export function ensureCustomShape(component: Component): string {
+  const hit = customShapes.get(component);
+  if (hit) {
+    return hit;
+  }
+  customSeq += 1;
+  const shape = `${FLOW_CUSTOM_NODE_SHAPE}-${customSeq}`;
+  customShapes.set(component, shape);
+  register({
+    shape,
+    width: NODE_WIDTH,
+    height: NODE_HEIGHT,
+    component,
+    ports: {
+      groups: flowPortGroups(),
+      items: flowPortItems(),
+    },
+  });
+  return shape;
+}
+
+/**
+ * 注册内置卡片节点与连线图形，幂等。
+ *
+ * 内置形状只注册一次，且**永不替换** —— 别的引擎实例可能正用着它，
+ * 就地改会互相污染（同页两个画布的经典故障）。
+ *
+ * @param nodeShape 自定义组件对应的形状名；给了则本次建图的节点都用它
+ * @returns 节点该用的形状名
+ */
+export function ensureFlowRegistered(nodeComponent?: Component | null): string {
+  const nodeShape = nodeComponent ? ensureCustomShape(nodeComponent) : FLOW_NODE_SHAPE;
   if (registered) {
-    return;
+    return nodeShape;
   }
   registered = true;
 
@@ -127,6 +181,7 @@ export function ensureFlowRegistered(): void {
     },
     true,
   );
+  return nodeShape;
 }
 
 /**
@@ -147,11 +202,15 @@ export function buildFlowNodeMetadata(input: {
   y: number;
   color: string;
   iconPath?: string;
+  /** 节点图片 URL；有值时卡片渲染 <img>，优先于 iconPath */
+  image?: string;
+  /** 图形名，缺省内置卡片；自定义节点体由引擎把自己的形状名传进来 */
+  shape?: string;
   data?: Record<string, unknown>;
 }) {
   return {
     id: input.id,
-    shape: FLOW_NODE_SHAPE,
+    shape: input.shape ?? FLOW_NODE_SHAPE,
     x: input.x,
     y: input.y,
     width: NODE_WIDTH,
@@ -162,6 +221,7 @@ export function buildFlowNodeMetadata(input: {
       flowTypeLabel: input.typeLabel ?? "",
       flowColor: input.color || DEFAULT_NODE_COLOR,
       flowIcon: input.iconPath || resolveFlowIcon(input.type),
+      flowImage: input.image || "",
       flowData: input.data ?? {},
     },
   };

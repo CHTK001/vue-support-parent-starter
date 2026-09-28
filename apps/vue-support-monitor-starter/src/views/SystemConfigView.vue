@@ -175,8 +175,8 @@ onMounted(load);
         <p class="page-desc">远控网关与内网穿透配置 · 保存后即时生效</p>
       </div>
       <div class="page-actions">
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
-        <ReButton icon="Check" :show-text="true" type="primary" size="small" :loading="saving" @click="save">保存</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Check" :show-text="true" type="primary" :loading="saving" @click="save">保存</ReButton>
       </div>
     </div>
 
@@ -200,7 +200,7 @@ onMounted(load);
                 <ReTag
                   v-if="it.key === 'guacd.client.host'"
                   :type="values[it.key]?.trim() ? 'primary' : 'info'"
-                  size="small" effect="light"
+ effect="light"
                 >{{ clientMode(c) }}</ReTag>
               </span>
               <ReInput v-if="it.type === 'text'" v-model="values[it.key]" :placeholder="it.placeholder" class="sc-mono" style="width:100%" />
@@ -228,7 +228,7 @@ onMounted(load);
               <span class="sip-status-text">{{ sipRunning ? '运行中' : '已停止' }}</span>
               <ReButton
                 :type="sipRunning ? 'danger' : 'success'"
-                size="small"
+
                 :loading="sipStarting"
                 @click="toggleSip"
               >{{ sipRunning ? '停止' : '启动服务' }}</ReButton>

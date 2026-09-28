@@ -843,7 +843,6 @@ onMounted(() => {
 <style scoped>
 .page-container {
   min-height: 100%;
-  padding: 16px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -879,7 +878,8 @@ onMounted(() => {
   gap: 14px;
   min-width: 170px;
   padding: 12px 16px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -902,7 +902,7 @@ onMounted(() => {
 .stat-card__icon {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -911,7 +911,8 @@ onMounted(() => {
 
 .filter-card,
 .table-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .filter-grid {
   display: grid;
@@ -947,7 +948,7 @@ onMounted(() => {
 .model-hint code {
   font-size: 11px;
   background: var(--el-fill-color-light);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   padding: 1px 5px;
 }
 .table-wrap {
@@ -966,14 +967,15 @@ onMounted(() => {
 .cell-name__dot {
   width: 9px;
   height: 9px;
-  border-radius: 50%;
+  /* 分类色点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   flex-shrink: 0;
 }
 .tag-pill {
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
@@ -1010,19 +1012,28 @@ onMounted(() => {
   height: 28px;
   margin: 0 3px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .row-edit-btn:hover {
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
+.row-edit-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .row-del-btn:hover {
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
+}
+/* 删除键的焦点环用危险色，和它的 hover 底色保持同一语义 */
+.row-del-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 14%, transparent);
 }
 .table-footer {
   display: flex;
@@ -1049,7 +1060,8 @@ onMounted(() => {
 .dialog-head__icon {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
   display: flex;
@@ -1070,10 +1082,15 @@ onMounted(() => {
   width: 30px;
   height: 30px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.dialog-head__close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .q-dialog__body {
   max-height: 60vh;
@@ -1094,6 +1111,8 @@ onMounted(() => {
 .form-section__bar {
   width: 3px;
   height: 14px;
+  /* 原 2px 圆头竖条，最小档 4px 会把 3px 宽的竖条糊成胶囊，
+     这里保留 2px —— 它是纯装饰色条，不是可交互控件的圆角 */
   border-radius: 2px;
   background: var(--el-color-primary);
 }
@@ -1126,14 +1145,19 @@ onMounted(() => {
   width: 30px;
   height: 30px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 .repeat-row__del:hover {
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
+}
+.repeat-row__del:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 14%, transparent);
 }
 .repeat-add {
   margin-bottom: 6px;
@@ -1151,7 +1175,8 @@ onMounted(() => {
 .tab-label__dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  /* 标签小圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-warning);
 }
 .guide-tip {
@@ -1164,7 +1189,7 @@ onMounted(() => {
   gap: 8px;
   padding: 12px;
   margin-bottom: 10px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -1213,6 +1238,14 @@ onMounted(() => {
   }
   .form-grid--3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .row-edit-btn,
+  .row-del-btn {
+    transition: none;
   }
 }
 </style>

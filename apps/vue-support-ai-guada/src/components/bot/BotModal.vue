@@ -14,7 +14,7 @@
           </el-option>
         </el-select>
         <div class="mt-2">
-          <el-button link type="primary" size="small" @click="openConfigDoc">
+          <el-button link type="primary" @click="openConfigDoc">
             {{ configDocButtonText }}
           </el-button>
         </div>
@@ -124,7 +124,7 @@
           <template #title>
             <div class="flex items-center gap-2">
               <span>{{ t('bot.modal.advanced') }}</span>
-              <el-tag size="small" type="info">{{ t('bot.modal.advancedOptional') }}</el-tag>
+              <el-tag type="info">{{ t('bot.modal.advancedOptional') }}</el-tag>
             </div>
           </template>
 

@@ -176,6 +176,16 @@ function handleReset() {
   tableRef.value?.reload();
 }
 
+/**
+ * 空态「刷新」按钮的纯转发。
+ *
+ * <p>不复用 handleReset：它会顺手清空筛选与排序，那对「点了刷新却把条件也丢了」
+ * 来说是副作用而不是意图。这里只转发表格重载。</p>
+ */
+function reload() {
+  tableRef.value?.reload();
+}
+
 /** 表头点击排序（服务端排序） */
 const orderState = ref<{ prop: string; order: string } | null>(null);
 function onSortChange(payload: { prop: string; order: string | null }) {
@@ -471,6 +481,23 @@ onMounted(() => {
         <span class="id-cell">#{{ row.sysFeedbackId }}</span>
       </template>
 
+      <!--
+        可操作空态：默认的 el-empty 只能看不能做。
+        反馈由终端用户提交，管理端造不出来，所以只给一个「刷新」出口；
+        语义用 ChatLineSquare（对话气泡），与页面统计卡的 ChatDotRound 同族。
+        page-empty 系列样式在 pages/system/src/styles/system-page.css 全局提供，本页不重复定义。
+      -->
+      <template #empty>
+        <div class="page-empty">
+          <span class="page-empty__icon"><ReIcon name="ChatLineSquare" :size="22" /></span>
+          <span class="page-empty__title">还没有用户反馈</span>
+          <span class="page-empty__desc">用户从小程序、App 或平台内提交的功能建议、BUG 与其他问题都会汇总到这里。</span>
+          <span class="page-empty__actions">
+            <ReButton icon="Refresh" @click="reload">刷新</ReButton>
+          </span>
+        </div>
+      </template>
+
       <template #createTime="{ row }">
         <div class="time-cell">
           <ReTime :value="row.createTime" format="YYYY-MM-DD HH:mm:ss" relative />
@@ -478,7 +505,8 @@ onMounted(() => {
       </template>
 
       <template #type="{ row }">
-        <ReTag :type="getTypeTag(row.sysFeedbackType).type" size="small">
+        <!-- 状态标签统一：plain 底 + 状态点，扫行时靠点识别，不再靠实心色块 -->
+        <ReTag :type="getTypeTag(row.sysFeedbackType).type" effect="plain" dot>
           {{ getTypeTag(row.sysFeedbackType).text }}
         </ReTag>
       </template>
@@ -512,7 +540,7 @@ onMounted(() => {
       </template>
 
       <template #priority="{ row }">
-        <ReTag :type="getPriorityTag(row.sysFeedbackPriority).type" size="small">
+        <ReTag :type="getPriorityTag(row.sysFeedbackPriority).type" effect="plain" dot>
           {{ getPriorityTag(row.sysFeedbackPriority).text }}
         </ReTag>
       </template>
@@ -528,19 +556,19 @@ onMounted(() => {
       </template>
 
       <template #status="{ row }">
-        <ReTag :type="row.sysFeedbackStatus === 1 ? 'success' : 'warning'" size="small">
+        <ReTag :type="row.sysFeedbackStatus === 1 ? 'success' : 'warning'" effect="plain" dot>
           {{ row.sysFeedbackStatus === 1 ? "已处理" : "未处理" }}
         </ReTag>
       </template>
 
       <template #action="{ row }">
-        <ReButton layout="square" type="primary" icon="View" title="详情" @click="showDetail(row)" />
+        <ReButton layout="square" type="primary" icon="View" tip="详情" @click="showDetail(row)" />
         <ReButton
           v-admin
           layout="square"
           type="primary"
           icon="EditPen"
-          title="处理"
+          tip="处理"
           :disabled="row.sysFeedbackStatus === 1"
           @click="showIssue(row)"
         />
@@ -571,7 +599,7 @@ onMounted(() => {
             <div class="fb-detail__tags-left">
               <ReTag
                 round
-                size="small"
+                
                 effect="light"
                 class="fb-detail__tag"
                 :type="getTypeTag(detailData.sysFeedbackType).type"
@@ -580,19 +608,20 @@ onMounted(() => {
               </ReTag>
               <ReTag
                 round
-                size="small"
+                
                 effect="light"
                 class="fb-detail__tag"
                 :type="getPriorityTag(detailData.sysFeedbackPriority).type"
               >
                 {{ getPriorityTag(detailData.sysFeedbackPriority).text }}
               </ReTag>
+              <!-- 状态标签统一为 plain + 状态点；类型 / 优先级是「属性」不是「状态」，保留 light + round 以示区分 -->
               <ReTag
                 round
-                size="small"
                 effect="light"
                 class="fb-detail__tag"
                 :type="detailData.sysFeedbackStatus === 1 ? 'success' : 'warning'"
+                dot
               >
                 {{ detailData.sysFeedbackStatus === 1 ? "已处理" : "未处理" }}
               </ReTag>
@@ -800,8 +829,13 @@ onMounted(() => {
   padding: 18px 20px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  /* 原 10px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
+  /* 原 transition: all 0.2s → 逐项声明，避免 all 连带过渡未预期的属性 */
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .stat-card:hover {
@@ -815,7 +849,8 @@ onMounted(() => {
   justify-content: center;
   width: 46px;
   height: 46px;
-  border-radius: 10px;
+  /* 原 10px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
   font-size: 22px;
 }
 
@@ -864,7 +899,8 @@ onMounted(() => {
   padding: 16px 16px 8px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  /* 原 10px 魔法值 → --el-radius-md（8px 档） */
+  border-radius: var(--el-radius-md, 8px);
 }
 
 .chart-card__title {
@@ -898,6 +934,30 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   justify-content: flex-start;
+}
+
+/* ============ 表格外壳 ============
+   ReTable 自身不带外框，页面里它就是唯一的「数据区」，
+   补一层边框 + 圆角 + focus-within 变色，卡片区靠边框分层而不是投影分层。 */
+.feedback-page :deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.feedback-page :deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 反馈图片：el-image 根节点上挂预览点击，但元素本身不可聚焦，
+   补光标与焦点环，让「这里能点」和「这里有焦点」两件事都成立。 */
+.fb-detail__image {
+  cursor: pointer;
+  outline: none;
+}
+.fb-detail__image:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 /* ==================== 反馈详情弹窗（对齐设计稿 · koi/el 变量） ==================== */
@@ -1072,7 +1132,7 @@ onMounted(() => {
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   min-width: 0;
-  transition: border-color var(--el-transition-duration, 0.2s);
+  transition: border-color var(--el-transition-duration-fast, 0.2s);
 }
 
 .fb-detail__cell:hover {
@@ -1197,11 +1257,18 @@ onMounted(() => {
   font-weight: 500;
   color: var(--el-text-color-regular);
   cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s);
+  outline: none;
+  transition: color var(--el-transition-duration-fast, 0.2s);
 }
 
 .fb-detail__history-link:hover {
   color: var(--el-color-primary);
+}
+
+/* 键盘可达：原生 button 也要显焦点环 */
+.fb-detail__history-link:focus-visible {
+  border-radius: var(--el-radius-xs, 4px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .fb-detail__history-link-arrow {
@@ -1303,6 +1370,16 @@ onMounted(() => {
   }
   .chart-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增/沿用的过渡一并关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .fb-detail__cell,
+  .fb-detail__history-link,
+  .feedback-page :deep(.re-table) {
+    transition: none;
   }
 }
 </style>

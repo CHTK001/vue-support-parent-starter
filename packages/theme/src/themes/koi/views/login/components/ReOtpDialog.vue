@@ -25,12 +25,12 @@
       </div>
 
       <div class="otp-dialog-footer">
-        <el-button text size="small" @click="visible = false">
+        <el-button text @click="visible = false">
           <span class="otp-cancel-text">{{ $t("menu.login.otpCancel") }}</span>
         </el-button>
         <el-button
           type="primary"
-          size="small"
+
           :disabled="otpCode.length !== 6"
           @click="onConfirm"
         >

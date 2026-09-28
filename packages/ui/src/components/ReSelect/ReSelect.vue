@@ -9,6 +9,8 @@
  *   - "table"：表格形式（多列），适合用户列表等场景
  *   - "square"：正方形图标选择器，支持纯图标（默认）/ 图标+文字，直接展示所有选项；传 vertical 改为竖向档位菜单（一行一档）
  *
+ * 尺寸：type="small | default | large" 对五种布局统一生效（size 为旧名，兼容保留）。
+ *
  * 数据源（语义清晰，遵循 data=静态、url=远程、loader=函数 三分原则）：
  *   1) data   —— 静态数组（也可用 options 别名）
  *   2) url    —— 远程接口地址，自动请求 + 防抖 + 重试（getApiHttp）
@@ -22,7 +24,7 @@
 import { computed, defineAsyncComponent, ref, useAttrs, watch } from "vue";
 import { ElSelect, ElOption, ElCheckbox } from "element-plus";
 import { getApiHttp, useDataSource, type ReDataSource } from "@repo/core";
-import type { ReOption, ReSelectLayout } from "./types";
+import type { ReOption, ReSelectLayout, ReSelectSize } from "./types";
 import { debounce } from "@repo/utils";
 import "../shared/modern-vars.css";
 
@@ -65,8 +67,15 @@ const props = withDefaults(
     disabled?: boolean;
     /** loading（外部控制） */
     loading?: boolean;
-    /** 尺寸 */
-    size?: "large" | "default" | "small";
+    /**
+     * 控件尺寸：small / default / large，对五种布局统一生效。
+     *
+     * 与 size 是同一个语义，size 保留为兼容别名（历史调用点大量在用），
+     * 两者都传时以 type 为准。
+     */
+    type?: ReSelectSize;
+    /** @deprecated 尺寸的旧名，请改用 type；与 type 同时传时以 type 为准 */
+    size?: ReSelectSize;
     /** 卡片 / 表格模式 popover 宽度 */
     popoverWidth?: number;
     /** 表格模式：表格列配置 { key, label, width? } */
@@ -100,7 +109,8 @@ const props = withDefaults(
     collapseTags: false,
     disabled: false,
     loading: false,
-    size: "default",
+    type: undefined,
+    size: undefined,
     popoverWidth: 280,
     tableColumns: () => [],
     autoReload: true,
@@ -115,6 +125,14 @@ const props = withDefaults(
 
 /** 是否为远程模式（url / loader） */
 const isRemote = computed<boolean>(() => Boolean(props.url) || typeof props.loader === "function");
+
+/**
+ * 最终生效的尺寸档位：type 优先，size 作为兼容别名兜底。
+ *
+ * 抽成 computed 而不是各处写 props.type ?? props.size，是因为五种布局都要用，
+ * 而 size 会被 v-bind="$attrs" / modernProps 透传到子布局，各处重复兜底容易漏。
+ */
+const controlSize = computed<ReSelectSize>(() => props.type ?? props.size ?? "default");
 
 /** 静态模式下的最终数据（data 优先，否则 options） */
 const staticData = computed<ReOption[]>(() => props.data ?? props.options ?? []);
@@ -294,7 +312,7 @@ defineExpose({
 </script>
 
 <template>
-  <!-- Modern 扁平布局（异步加载） -->
+  <!-- Modern 扁平布局（异步加载）。type/size 已含在 modernBind 里，随 $attrs 透传给内层 default 布局 -->
   <ModernLayout
     v-if="layout === 'modern'"
     v-model="model"
@@ -317,6 +335,7 @@ defineExpose({
     :popover-width="popoverWidth"
     :compact="isCompact"
     :bulk-actions="bulkActions"
+    :control-size="controlSize"
     v-bind="$attrs"
   >
     <template v-if="$slots.option" #option="slotProps">
@@ -324,7 +343,7 @@ defineExpose({
     </template>
   </CardDropdownLayout>
 
-  <!-- Square 正方形图标布局（异步加载） -->
+  <!-- Square 正方形图标布局（异步加载）。图标尺寸走 :icon-size，避免与控件尺寸 type 同名串味 -->
   <SquareLayout
     v-else-if="layout === 'square'"
     :model-value="(model ?? '') as string | number | (string | number)[]"
@@ -335,6 +354,7 @@ defineExpose({
     :icon-only="iconOnly"
     :vertical="vertical"
     :compact="isCompact"
+    :control-size="controlSize"
     v-bind="$attrs"
   />
 
@@ -350,12 +370,12 @@ defineExpose({
     :collapse-tags="collapseTags"
     :disabled="disabled"
     :loading="loading || dataLoading"
-    :size="size"
+    :size="controlSize"
     :filter-method="onInput"
     :popper-class="isRichLayout ? 're-select__popper--rich' : ''"
     :teleported="true"
     class="re-select"
-    :class="[`re-select--${layout}`, { 're-select--compact': isCompact }]"
+    :class="[`re-select--${layout}`, `re-select--${controlSize}`, { 're-select--compact': isCompact }]"
   >
     <!-- 自定义选中态回显：仅当使用者显式提供 #selected 插槽时才覆盖 el-select 原生 label 渲染；
          否则交给 el-select 根据已注册的 el-option 原生回显 label（默认插槽/数据源选项均能正确解析）。
@@ -424,9 +444,15 @@ defineExpose({
 .re-select {
   display: block;
 }
+/* 这里只放视觉（底色 / 描边 / 阴影 / 过渡），**不写 min-height 与 padding**。
+   尺寸统一在下方「尺寸分档」按 .re-select--{尺寸} 三档写：
+   - EP 的 .el-select--small / .el-select--large 只有 0,2,0 特异性，而本文件编译后
+     带 [data-v-*]（0,3,0），直接压不过基础规则里的 min-height，size 会静默失效；
+   - el-select--small 与 .re-select 挂在**同一元素**上，纯后代选择器（.re-select .el-select--small）
+     永远匹配不到，必须写成同元素复合类。
+   共享样式 shared/re-inputs.css 只在页面显式 import 时才加载，未引入的应用
+   （如采集调度）拿不到，所以组件自身必须自成一套。 */
 .re-select :deep(.el-select__wrapper) {
-  min-height: 34px;
-  padding: 4px 12px;
   background: color-mix(in srgb, var(--rm-bg) 92%, transparent);
   border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius);
@@ -511,16 +537,25 @@ defineExpose({
   flex: 0 0 auto;
 }
 
-/* 尺寸：小 / 大 */
-.re-select :deep(.el-select--small .el-select__wrapper) {
-  min-height: 28px;
-  padding: 2px 10px;
-  border-radius: var(--rm-radius);
+/* 尺寸三档：default / small / large。
+ *
+ * 与根节点上的 re-select--{尺寸} 同元素复合，特异性 0,4,0，稳定压过上面的基础规则
+ * 与 Element Plus 自带的尺寸规则；数值走 --rm-height* 令牌，default 保持历史值 34px
+ * （modern-vars 里 --rm-height 是 36px，是其它组件的口径，直接换会让默认高度跳变）。
+ * card / square 布局的触发栏由各自布局文件按 controlSize 处理，不受这里影响。 */
+.re-select.re-select--default :deep(.el-select__wrapper) {
+  min-height: 34px;
+  padding: 4px 12px;
 }
-.re-select :deep(.el-select--large .el-select__wrapper) {
-  min-height: 40px;
+.re-select.re-select--small :deep(.el-select__wrapper) {
+  min-height: var(--rm-height-sm);
+  padding: 2px 10px;
+  font-size: var(--rm-font-sm);
+}
+.re-select.re-select--large :deep(.el-select__wrapper) {
+  min-height: var(--rm-height-lg);
   padding: 6px 14px;
-  border-radius: var(--rm-radius-xl);
+  font-size: var(--rm-font-lg);
 }
 
 /* table 模式 */

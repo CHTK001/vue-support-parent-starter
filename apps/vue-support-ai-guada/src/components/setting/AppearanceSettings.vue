@@ -48,7 +48,7 @@
         <div v-if="previewUrl" class="wall-preview">
           <img :src="previewUrl" class="wall-img" />
           <div class="wall-overlay">
-            <el-button type="danger" size="small" @click="handleRemoveWallpaper">
+            <el-button type="danger" @click="handleRemoveWallpaper">
               <el-icon class="mr-1"><Delete /></el-icon>
               删除
             </el-button>
@@ -421,20 +421,24 @@ onMounted(() => {
 /* 壁纸预览 */
 .wall-preview {
   position: relative; width: 100%; height: 160px;
-  border-radius: 10px; overflow: hidden;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px); overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
 }
 .wall-img { width: 100%; height: 100%; object-fit: cover; }
 .wall-overlay {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.32); opacity: 0;
+  /* 盖在壁纸预览图上的浮层蒙版，保留压暗效果但改为跟随主题前景色 */
+  background: color-mix(in srgb, var(--el-text-color-primary) 32%, transparent); opacity: 0;
   transition: opacity 0.18s ease;
 }
 .wall-preview:hover .wall-overlay { opacity: 1; }
 
 /* 上传拖放区 */
 .wall-dropzone {
-  width: 100%; height: 160px; border-radius: 10px;
+  width: 100%; height: 160px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 1.5px dashed var(--el-border-color);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; transition: border-color 0.18s ease;
@@ -448,5 +452,17 @@ onMounted(() => {
 .slider-val {
   width: 42px; text-align: right; font-size: 12.5px;
   color: var(--el-text-color-regular); flex-shrink: 0;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，预览蒙版与拖放区虚线框改为瞬间切换。
+   逐个列出，不写 `*` / .wall-preview * 通配，
+   避免把 el-upload / el-slider 内部 Element Plus 组件的合法过渡一起掐掉。
+   蒙版的 opacity: 0 与悬停时的 1、拖放区的虚线变色都是静态声明，
+   停掉过渡后「悬停出现蒙版」「拖放区高亮」照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .wall-overlay,
+  .wall-dropzone {
+    transition: none;
+  }
 }
 </style>

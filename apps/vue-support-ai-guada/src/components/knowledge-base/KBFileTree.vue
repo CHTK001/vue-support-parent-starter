@@ -31,20 +31,23 @@
       <p class="mt-2 text-sm text-gray-500 dark:text-[#8b8d95]">{{ t('knowledge.tree.loading') }}</p>
     </div>
 
-    <div v-else-if="currentItems.length > 0">
-      <!-- 表头 -->
+    <div v-else-if="visibleItems.length > 0" class="@container">
+      <!-- 表头。
+           左栏在「文档 + 智能问答」双栏里只有 ~430px 宽，五列固定宽（90+80+120+160）
+           加 4 个 16px 间距需要 514px，会把 1fr 的名称列压成 0 宽 —— 文件名完全看不见。
+           这里改成按容器宽度自适应：窄时只留「名称 + 状态」，宽了再逐级放出类型/大小/时间。 -->
       <div
-        class="grid grid-cols-[1fr_90px_80px_120px_160px] gap-4 px-4 py-2 border-b border-gray-200 dark:border-[#2e3035] text-xs font-medium text-gray-500 dark:text-[#8b8d95]">
+        class="grid gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#2e3035] text-xs font-medium text-gray-500 dark:text-[#8b8d95] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
         <div>{{ t('knowledge.tree.colName') }}</div>
         <div>{{ t('knowledge.tree.colStatus') }}</div>
-        <div>{{ t('knowledge.tree.colType') }}</div>
-        <div>{{ t('knowledge.tree.colSize') }}</div>
-        <div>{{ t('knowledge.tree.colModified') }}</div>
+        <div class="hidden @[520px]:block">{{ t('knowledge.tree.colType') }}</div>
+        <div class="hidden @[720px]:block">{{ t('knowledge.tree.colSize') }}</div>
+        <div class="hidden @[720px]:block">{{ t('knowledge.tree.colModified') }}</div>
       </div>
 
       <!-- 文件列表 -->
-      <div v-for="item in currentItems" :key="item.id"
-        class="file-row grid grid-cols-[1fr_90px_80px_120px_160px] gap-4 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-[#2e3035] last:border-b-0"
+      <div v-for="item in visibleItems" :key="item.id"
+        class="file-row grid gap-2 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-[#2e3035] last:border-b-0 grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]"
         @click="handleItemClick(item)" @contextmenu.prevent="handleContextMenu($event, item)">
         <!-- 名称-->
         <div class="flex items-center gap-2 min-w-0">
@@ -67,12 +70,12 @@
             <LTooltip v-if="(item.processingStatus === 'processing' || item.processingStatus === 'pending') && item.currentStep" 
               :content="item.currentStep" 
               placement="top">
-              <el-tag size="small" :type="getStatusType(item.processingStatus)" class="truncate max-w-full">
+              <el-tag :type="getStatusType(item.processingStatus)" class="truncate max-w-full">
                 {{ getStatusDisplayText(item) }}
               </el-tag>
             </LTooltip>
             <!-- 其他状态直接显示 -->
-            <el-tag v-else size="small" :type="getStatusType(item.processingStatus)">
+            <el-tag v-else :type="getStatusType(item.processingStatus)">
               {{ getStatusDisplayText(item) }}
             </el-tag>
           </template>
@@ -80,14 +83,14 @@
         </div>
 
         <!-- 类型-->
-        <div class="flex items-center">
+        <div class="hidden @[520px]:flex items-center">
           <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
             {{ item.isDirectory ? t('knowledge.tree.folder') : (item.fileExtension?.toUpperCase() || '-') }}
           </span>
         </div>
 
         <!-- 大小-->
-        <div class="flex items-center">
+        <div class="hidden @[720px]:flex items-center">
           <span v-if="!item.isDirectory" class="text-xs text-gray-500 dark:text-[#8b8d95]">
             {{ formatSize(item.fileSize) }}
           </span>
@@ -95,7 +98,7 @@
         </div>
 
         <!-- 修改时间-->
-        <div class="flex items-center">
+        <div class="hidden @[720px]:flex items-center">
           <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
             {{ formatDate(item.uploadedAt) }}
           </span>
@@ -117,7 +120,7 @@
     </div>
 
     <!-- 没有更多数据提示 -->
-    <div v-else-if="!hasMore && currentItems.length > 0" class="text-center py-3 text-gray-400 dark:text-[#6b6d75] text-sm">
+    <div v-else-if="!hasMore && visibleItems.length > 0" class="text-center py-3 text-gray-400 dark:text-[#6b6d75] text-sm">
       <p>{{ t('knowledge.tree.allLoaded') }}</p>
     </div>
 
@@ -195,9 +198,24 @@ import filePdfIcon from '@/assets/file_zip.svg'
 interface Props {
   kbId: string  // 知识库ID
   readonly?: boolean  // 只读模式（他人公开库）：不弹写操作菜单
+  /**
+   * 处理状态分栏过滤：all / indexed / parsing / failed。
+   *
+   * <p>父组件的「全部 / 已索引 / 解析中 / 失败」按钮改这个值来过滤列表。
+   * 目录条目没有处理状态，因此<b>任何分栏下都保留</b>——否则选了「已索引」
+   * 就没法进子目录去找未索引的文件了。</p>
+   */
+  statusFilter?: string
 }
 
-const props = withDefaults(defineProps<Props>(), { readonly: false })
+/** 状态分栏 → processingStatus 集合。indexed=已建索引，parsing=处理中，failed=失败。 */
+const STATUS_GROUPS: Record<string, string[]> = {
+  indexed: ['completed'],
+  parsing: ['queued', 'uploading', 'uploaded', 'pending', 'processing'],
+  failed: ['failed'],
+}
+
+const props = withDefaults(defineProps<Props>(), { readonly: false, statusFilter: 'all' })
 
 const { t } = useI18n()
 
@@ -223,6 +241,20 @@ const currentRelativePath = ref<string | null>(null)
  * 当前目录下的文件和文件夹(懒加载)
  */
 const currentItems = ref<KBFile[]>([])
+
+/**
+ * 按 statusFilter 过滤后的实际渲染列表。
+ *
+ * <p>「全部」或没有匹配状态时返回原数组本身（同一引用），避免无谓的深拷贝与重渲染。
+ * 目录恒保留——它没有 processingStatus，滤掉会让人进不去子目录。</p>
+ */
+const visibleItems = computed<KBFile[]>(() => {
+  const group = STATUS_GROUPS[props.statusFilter || 'all']
+  if (!group) {
+    return currentItems.value
+  }
+  return currentItems.value.filter((item) => item.isDirectory || group.includes(item.processingStatus))
+})
 
 /**
  * 加载状态
@@ -529,10 +561,13 @@ function handleItemClick(item: KBFile) {
   if (item.isDirectory) {
     // 文件夹: 导航到该路径
     currentRelativePath.value = item.relativePath || null
-  } else if (item.processingStatus === 'completed' || item.processingStatus === 'failed') {
-    // 文件: 触发查看事件（已完成或处理失败的文件均可查看）
-    emit('view', item)
+    return
   }
+  // 文件: 一律触发预览。
+  // 原来这里要求 completed||failed 才 emit('view')，而 api 层又把状态硬编码成 'uploaded'，
+  // 两个条件互斥 → 预览永远打不开（用户报的「文件无法预览」就是这个）。
+  // 原文预览只依赖「文件存在且是文本」，与是否已建索引无关，所以不设门禁。
+  emit('view', item)
 }
 
 /**
@@ -1147,10 +1182,22 @@ onUnmounted(() => {
 
 <style scoped>
 .node-content:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
 }
 
 .dark .node-content:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
+}
+
+/* 键盘焦点可见性：文件/文件夹行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
+   环的透明度提到 45%（而不是常规的 12%）：行本身透明，实际底色来自父容器的
+   dark:bg-[#232428] 写死深底，12% 的主色环落在近黑底上几乎不可见。 */
+.file-row {
+  outline: none;
+}
+
+.file-row:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
 }
 </style>

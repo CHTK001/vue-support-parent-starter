@@ -85,7 +85,7 @@
                       class="timer-zone-row__remove"
                       :icon="Delete"
                       circle
-                      size="small"
+
                       @click="removeTimerZone(index)"
                     />
                   </div>

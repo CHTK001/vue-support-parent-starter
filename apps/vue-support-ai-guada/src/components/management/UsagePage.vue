@@ -113,7 +113,7 @@
     <!-- 用量明细 -->
     <ReCard title="用量明细">
       <template #extra>
-        <el-input v-model="detailModelFilter" placeholder="按模型筛选" size="small" clearable class="filter-input" @keyup.enter="reloadDetails" @clear="reloadDetails" />
+        <el-input v-model="detailModelFilter" placeholder="按模型筛选" clearable class="filter-input" @keyup.enter="reloadDetails" @clear="reloadDetails" />
       </template>
       <ReTable :data="detailRecords" :loading="detailLoading" :show-index="false" class="detail-table" row-key="sysAiUsageId">
         <el-table-column label="时间" width="160">
@@ -127,7 +127,7 @@
         </el-table-column>
         <el-table-column label="账号" width="90">
           <template #default="{ row }">
-            <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'" size="small">{{ row.sysAiUsageUserId || '三方' }}</ReTag>
+            <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'" >{{ row.sysAiUsageUserId || '三方' }}</ReTag>
           </template>
         </el-table-column>
         <el-table-column label="服务商" width="100">
@@ -196,7 +196,7 @@
         </el-table-column>
         <el-table-column label="类型" width="130">
           <template #default="{ row }">
-            <ReTag :type="typeTagType(row.sysAiUsageType)" size="small">{{ formatTypeLabel(row.sysAiUsageType) }}</ReTag>
+            <ReTag :type="typeTagType(row.sysAiUsageType)" >{{ formatTypeLabel(row.sysAiUsageType) }}</ReTag>
           </template>
         </el-table-column>
       </ReTable>
@@ -691,6 +691,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余组件统一）：
+   1. --mp-radius 来自 src/styles/modern-polish.css，而 main.js 从未引入该文件，
+      是取不到值的空令牌，实际一直靠兜底的 14px 在渲染 → 收敛到 --el-radius-xl。
+   2. rgba(0,0,0,.08) 这类手写投影色改用 color-mix + --el-text-color-primary，
+      暗色下不会糊成黑块；投影只出现在「选中指示 / 悬浮浮起」两类允许的场景。
+   3. 过渡统一 var(--el-transition-duration-fast, 0.2s)。
+   注意：本文件 <script> 里的 ECharts option 颜色是 canvas 语境，var() 不生效，
+   属于刻意保留，不得令牌化。
+   ============================================================================ */
 .usage-page {
   height: 100%;
   box-sizing: border-box;
@@ -725,7 +735,9 @@ onMounted(() => {
   font-size: 12.5px; color: var(--el-text-color-secondary);
 }
 .sub-dot {
-  width: 7px; height: 7px; border-radius: 50%;
+  width: 7px; height: 7px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary);
   box-shadow: 0 0 0 3px var(--el-color-primary-light-9);
 }
@@ -733,33 +745,47 @@ onMounted(() => {
 
 .seg-pills {
   display: inline-flex; align-items: center; gap: 2px; padding: 3px;
-  background: var(--el-fill-color-light); border-radius: 10px;
+  background: var(--el-fill-color-light);
+  /* 原值 10px（距 8/12 等距，本仓统一取 lg 档） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .pill {
   appearance: none; border: 0; cursor: pointer;
-  padding: 6px 14px; border-radius: 8px;
+  /* 原值 8px → md 档 */
+  padding: 6px 14px; border-radius: var(--el-radius-md, 8px);
   font-size: 12.5px; font-weight: 500; white-space: nowrap;
   color: var(--el-text-color-secondary); background: transparent;
-  transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .pill:hover { color: var(--el-text-color-primary); }
 .pill.active {
   color: var(--el-color-primary); background: var(--el-bg-color);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--el-border-color-lighter);
+  /* 分段控件的「选中」指示：1px 描边 + 极浅投影，属于允许的选中态标识而非卡片投影 */
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent),
+    0 0 0 1px var(--el-border-color-lighter);
 }
 .hero-date { width: 268px; }
-.hero-date :deep(.el-range-editor.el-input__wrapper) { height: 34px; border-radius: 9px; }
+/* 原值 9px（离 8 更近）→ md 档 */
+.hero-date :deep(.el-range-editor.el-input__wrapper) { height: 34px; border-radius: var(--el-radius-md, 8px); }
 
 /* ===== KPI 卡 ===== */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .kpi-card {
   position: relative; overflow: hidden;
   padding: 16px 18px 15px 20px;
-  border-radius: var(--mp-radius, 14px);
+  /* 原值 var(--mp-radius, 14px)：--mp-radius 是空令牌，实为 14px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .kpi-card::before {
   content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
@@ -774,7 +800,8 @@ onMounted(() => {
 .kpi-icon {
   width: 30px; height: 30px; display: inline-flex;
   align-items: center; justify-content: center;
-  border-radius: 9px; color: var(--kpi-accent);
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px); color: var(--kpi-accent);
   background: var(--kpi-accent-soft, var(--el-color-primary-light-9));
 }
 .kpi-icon svg { width: 17px; height: 17px; }
@@ -809,7 +836,8 @@ onMounted(() => {
 .page-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 18px 20px;
 }
 
@@ -830,7 +858,8 @@ onMounted(() => {
 .seg-toggle {
   display: inline-flex;
   background: var(--el-fill-color-light);
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   padding: 2px;
 }
 
@@ -839,17 +868,18 @@ onMounted(() => {
   background: transparent;
   padding: 4px 12px;
   font-size: 12px;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--el-transition-duration-fast, 0.2s);
 }
 
 .seg-btn.active {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 8%, transparent);
 }
 
 .dist-table-wrap,
@@ -934,20 +964,22 @@ onMounted(() => {
 }
 .latency-cell { position: relative; display: inline-block; cursor: default; }
 .latency-inline { display: inline-flex; align-items: center; gap: 6px; }
-.latency-bar { width: 4px; height: 14px; border-radius: 2px; background: var(--el-color-danger); flex-shrink: 0; }
+/* 原值 2px（4px 宽细条的一半，视觉上就是胶囊）→ full 档 */
+.latency-bar { width: 4px; height: 14px; border-radius: var(--el-radius-full, 9999px); background: var(--el-color-danger); flex-shrink: 0; }
 .latency-value { color: var(--el-text-color-primary); }
 .latency-popover {
   display: none;
   position: absolute;
   min-width: 150px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
-  border-radius: 6px;
+  /* 下方又写了一次 6px 并覆盖之，属既有事实，此处只做令牌化保持原生效值 */
+  border-radius: var(--el-radius-sm, 6px);
   padding: 8px 12px;
   box-shadow: var(--el-box-shadow);
   white-space: nowrap;
@@ -958,7 +990,8 @@ onMounted(() => {
 .latency-cell:hover .latency-popover { display: block; }
 .latency-popover-title { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; }
 .latency-popover-row { display: flex; align-items: center; gap: 8px; height: 22px; }
-.latency-popover-row::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--el-color-danger); flex-shrink: 0; }
+/* 原值 2px（4px 宽色块）→ full 档 */
+.latency-popover-row::before { content: ''; width: 4px; height: 16px; border-radius: var(--el-radius-full, 9999px); background: var(--el-color-danger); flex-shrink: 0; }
 .latency-popover-label { color: var(--el-text-color-secondary); font-size: 12px; }
 .latency-popover-value { margin-left: auto; color: var(--el-color-danger); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -974,7 +1007,8 @@ onMounted(() => {
 .latency-track {
   width: 5px;
   height: 26px;
-  border-radius: 3px;
+  /* 原值 3px（5px 宽细条，略大于半高即胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   overflow: hidden;
   background: var(--el-fill-color-light);
   display: flex;
@@ -999,7 +1033,8 @@ onMounted(() => {
 }
 .latency-popover-content { font-size: 12px; }
 .latency-popover-content .latency-popover-row { display: flex; align-items: center; gap: 8px; height: 22px; }
-.latency-popover-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+/* 原值 50%（正圆）→ full 档 */
+.latency-popover-dot { width: 8px; height: 8px; border-radius: var(--el-radius-full, 9999px); flex-shrink: 0; }
 .latency-popover-content .latency-popover-label { color: var(--el-text-color-secondary); }
 .latency-popover-content .latency-popover-value { margin-left: auto; color: var(--el-text-color-primary); font-variant-numeric: tabular-nums; font-weight: 500; }
 .latency-popover-hint { margin-top: 6px; font-size: 11px; color: var(--el-text-color-placeholder); }
@@ -1017,7 +1052,8 @@ onMounted(() => {
 .tk-cache { color: var(--el-color-info); }
 .token-detail {
   display: none; position: absolute; min-width: 172px; bottom: calc(100% + 6px); right: 0;
-  padding: 10px 12px; border-radius: 8px; background: var(--el-bg-color-overlay);
+  /* 原值 8px → md 档 */
+  padding: 10px 12px; border-radius: var(--el-radius-md, 8px); background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light); box-shadow: var(--el-box-shadow);
   z-index: 100; font-size: 12px;
 }
@@ -1030,4 +1066,14 @@ onMounted(() => {
 .td-total .td-val { color: var(--el-text-color-primary); font-weight: 700; }
 .token-detail-divider { height: 1px; background: var(--el-border-color-lighter); margin: 4px 0; }
 .td-est-note { margin-top: 6px; font-size: 11px; line-height: 1.4; color: var(--el-color-warning); }
+
+/* 尊重系统「减少动态效果」偏好。
+   KPI 卡与分段按钮的选中态都靠底色 + 1px 描边表达，关掉过渡后依然可辨。 */
+@media (prefers-reduced-motion: reduce) {
+  .kpi-card,
+  .pill,
+  .seg-btn {
+    transition: none;
+  }
+}
 </style>

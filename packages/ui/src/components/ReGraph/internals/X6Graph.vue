@@ -426,7 +426,7 @@ defineExpose({
                 v-model="search.keyword"
                 placeholder="搜索节点（逗号分隔）"
                 clearable
-                size="small"
+
                 @input="runSearch"
                 @clear="clearSearch"
               >
@@ -434,11 +434,11 @@ defineExpose({
                   <el-icon><Search /></el-icon>
                 </template>
               </el-input>
-              <el-button-group size="small">
-                <el-button :type="search.mode === 'highlight' ? 'primary' : 'default'" size="small" @click="toggleSearchMode">
+              <el-button-group >
+                <el-button :type="search.mode === 'highlight' ? 'primary' : 'default'" @click="toggleSearchMode">
                   高亮
                 </el-button>
-                <el-button :type="search.mode === 'path' ? 'primary' : 'default'" size="small" @click="toggleSearchMode">
+                <el-button :type="search.mode === 'path' ? 'primary' : 'default'" @click="toggleSearchMode">
                   路径
                 </el-button>
               </el-button-group>
@@ -447,32 +447,32 @@ defineExpose({
         </div>
         <div class="x6rg__toolbar-right">
           <template v-if="resolved.toolbar.zoom !== false">
-            <el-button-group size="small">
-              <el-button size="small" @click="doZoom(20)"><el-icon><ZoomIn /></el-icon></el-button>
-              <el-button size="small" @click="doZoom(-20)"><el-icon><ZoomOut /></el-icon></el-button>
-              <el-button size="small" @click="doFit"><el-icon><FullScreen /></el-icon></el-button>
+            <el-button-group >
+              <el-button @click="doZoom(20)"><el-icon><ZoomIn /></el-icon></el-button>
+              <el-button @click="doZoom(-20)"><el-icon><ZoomOut /></el-icon></el-button>
+              <el-button @click="doFit"><el-icon><FullScreen /></el-icon></el-button>
             </el-button-group>
           </template>
           <template v-if="resolved.toolbar.collapseAll !== false || resolved.toolbar.expandAll !== false">
-            <el-button-group size="small">
-              <el-button v-if="resolved.toolbar.collapseAll !== false" size="small" @click="doCollapseAll"><el-icon><Folder /></el-icon>折叠</el-button>
-              <el-button v-if="resolved.toolbar.expandAll !== false" size="small" @click="doExpandAll"><el-icon><Expand /></el-icon>展开</el-button>
+            <el-button-group >
+              <el-button v-if="resolved.toolbar.collapseAll !== false" @click="doCollapseAll"><el-icon><Folder /></el-icon>折叠</el-button>
+              <el-button v-if="resolved.toolbar.expandAll !== false" @click="doExpandAll"><el-icon><Expand /></el-icon>展开</el-button>
             </el-button-group>
           </template>
           <template v-if="resolved.toolbar.layout !== false">
-            <el-button size="small" @click="doRelayout"><el-icon><Refresh /></el-icon>重排</el-button>
+            <el-button @click="doRelayout"><el-icon><Refresh /></el-icon>重排</el-button>
           </template>
           <template v-if="resolved.toolbar.history !== false && enableHistory">
-            <el-button-group size="small">
-              <el-button size="small" :disabled="!engine || !engine.canUndo()" @click="undo"><el-icon><ArrowLeft /></el-icon>撤销</el-button>
-              <el-button size="small" :disabled="!engine || !engine.canRedo()" @click="redo"><el-icon><ArrowRight /></el-icon>重做</el-button>
+            <el-button-group >
+              <el-button :disabled="!engine || !engine.canUndo()" @click="undo"><el-icon><ArrowLeft /></el-icon>撤销</el-button>
+              <el-button :disabled="!engine || !engine.canRedo()" @click="redo"><el-icon><ArrowRight /></el-icon>重做</el-button>
             </el-button-group>
           </template>
           <template v-if="resolved.toolbar.importExport !== false">
-            <el-button-group size="small">
-              <el-button size="small" @click="triggerImport"><el-icon><Upload /></el-icon>导入</el-button>
-              <el-button size="small" @click="exportJSON"><el-icon><Download /></el-icon>导出</el-button>
-              <el-button size="small" @click="exportPNG">PNG</el-button>
+            <el-button-group >
+              <el-button @click="triggerImport"><el-icon><Upload /></el-icon>导入</el-button>
+              <el-button @click="exportJSON"><el-icon><Download /></el-icon>导出</el-button>
+              <el-button @click="exportPNG">PNG</el-button>
             </el-button-group>
           </template>
           <template v-if="resolved.toolbar.minimap !== false && resolved.showMinimap">
@@ -487,7 +487,7 @@ defineExpose({
         <el-input
           v-model="search.keyword"
           placeholder="搜索节点"
-          size="small"
+
           clearable
           @input="runSearch"
           @clear="clearSearch"

@@ -426,21 +426,21 @@ async function viewMessage(email: any): Promise<void> {
         <div class="panel">
           <ReSectionHead title="SSH 密钥库">
             <template #actions>
-              <ReButton show-text icon="Key" size="small" @click="openGenForm()">生成密钥</ReButton>
-              <ReButton show-text icon="Plus" type="primary" size="small" @click="openKeyForm()">新增密钥</ReButton>
+              <ReButton show-text icon="Key" @click="openGenForm()">生成密钥</ReButton>
+              <ReButton show-text icon="Plus" type="primary" @click="openKeyForm()">新增密钥</ReButton>
             </template>
           </ReSectionHead>
-          <ReTable :data="keys" size="small" border :pagination="false" :toolbar="false" empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」">
+          <ReTable :data="keys" border :pagination="false" :toolbar="false" empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」">
             <ReTableColumn prop="msServerKeyName" label="名称" min-width="120" />
             <ReTableColumn prop="msServerKeyType" label="类型" width="90">
               <template #default="{ row }">
-                <ReTag size="small" type="info">{{ row.msServerKeyType || '-' }}</ReTag>
+                <ReTag type="info">{{ row.msServerKeyType || '-' }}</ReTag>
               </template>
             </ReTableColumn>
             <ReTableColumn label="操作" width="130">
               <template #default="{ row }">
-                <ReButton link size="small" @click="openKeyForm(row)">编辑</ReButton>
-                <ReButton link type="danger" size="small" @click="deleteKey(row)">删除</ReButton>
+                <ReButton link @click="openKeyForm(row)">编辑</ReButton>
+                <ReButton link type="danger" @click="deleteKey(row)">删除</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -452,15 +452,15 @@ async function viewMessage(email: any): Promise<void> {
         <div class="panel">
           <ReSectionHead title="登录身份">
             <template #actions>
-              <ReButton show-text icon="Plus" type="primary" size="small" @click="openIdentityForm()">新增身份</ReButton>
+              <ReButton show-text icon="Plus" type="primary" @click="openIdentityForm()">新增身份</ReButton>
             </template>
           </ReSectionHead>
-          <ReTable :data="identities" size="small" border :pagination="false" :toolbar="false" empty-text="暂无身份，点击右上角「新增身份」创建">
+          <ReTable :data="identities" border :pagination="false" :toolbar="false" empty-text="暂无身份，点击右上角「新增身份」创建">
             <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
             <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
             <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="120">
               <template #default="{ row }">
-                <ReTag size="small" :type="authTypeTagType(row.msServerIdentityAuthType)">
+                <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)">
                   {{ authTypeLabel(row.msServerIdentityAuthType) }}
                 </ReTag>
                 <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
@@ -468,9 +468,9 @@ async function viewMessage(email: any): Promise<void> {
             </ReTableColumn>
             <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
-                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link size="small" type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
-                <ReButton link size="small" @click="openIdentityForm(row)">编辑</ReButton>
-                <ReButton link type="danger" size="small" @click="deleteIdentity(row)">删除</ReButton>
+                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" link type="primary" @click="openMailbox(row)">打开邮件箱</ReButton>
+                <ReButton link @click="openIdentityForm(row)">编辑</ReButton>
+                <ReButton link type="danger" @click="deleteIdentity(row)">删除</ReButton>
               </template>
             </ReTableColumn>
           </ReTable>
@@ -522,7 +522,7 @@ async function viewMessage(email: any): Promise<void> {
         <ReFormItem label="用户名">
           <div v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource === 'TEMP'" class="temp-email-row">
             <ReInput v-model="identityForm.msServerIdentityUsername" placeholder="点击右侧按钮创建临时邮箱地址" />
-            <ReButton size="small" type="primary" :loading="tempEmailLoading" @click="handleCreateTempEmail()">创建临时邮箱</ReButton>
+            <ReButton type="primary" :loading="tempEmailLoading" @click="handleCreateTempEmail()">创建临时邮箱</ReButton>
           </div>
           <ReInput v-else v-model="identityForm.msServerIdentityUsername" />
         </ReFormItem>
@@ -599,8 +599,8 @@ async function viewMessage(email: any): Promise<void> {
       <div class="mailbox">
         <div class="mailbox-toolbar">
           <ReSelect v-model="mailboxFolder" :data="[{label:'收件箱',value:'INBOX'},{label:'已发送',value:'Sent'},{label:'草稿',value:'Drafts'}]" style="width:150px" @change="loadMailboxList()" />
-          <ReInputNumber v-model="mailboxLimit" :min="5" :max="100" size="small" style="width:100px" />
-          <ReButton size="small" :loading="mailboxLoading" @click="loadMailboxList()">刷新</ReButton>
+          <ReInputNumber v-model="mailboxLimit" :min="5" :max="100" style="width:100px" />
+          <ReButton :loading="mailboxLoading" @click="loadMailboxList()">刷新</ReButton>
           <span v-if="mailboxSseStatus === 'connected'" class="sse-status sse-connected">● SSE 实时推送中</span>
           <span v-else-if="mailboxSseStatus === 'connecting'" class="sse-status sse-connecting">● 连接中...</span>
           <span v-else class="sse-status sse-offline">● 离线</span>
@@ -610,14 +610,14 @@ async function viewMessage(email: any): Promise<void> {
           <div class="mailbox-detail-head">
             <strong>{{ selectedEmail.subject || '(无主题)' }}</strong>
             <span class="mailbox-detail-meta">发件人：{{ selectedEmail.from }} ｜ 日期：{{ selectedEmail.date }} ｜ 大小：{{ selectedEmail.size }} bytes</span>
-            <ReButton link size="small" @click="selectedEmail = null; mailboxNewEmailCount = 0">返回列表</ReButton>
+            <ReButton link @click="selectedEmail = null; mailboxNewEmailCount = 0">返回列表</ReButton>
           </div>
           <ReLoading :loading="mailboxDetailLoading">
             <pre class="mailbox-content">{{ selectedEmail.content }}</pre>
           </ReLoading>
         </div>
         <ReLoading v-else :loading="mailboxLoading">
-          <ReTable :data="mailboxEmails" size="small" border :pagination="false" empty-text="暂无邮件" @row-click="viewMessage">
+          <ReTable :data="mailboxEmails" border :pagination="false" empty-text="暂无邮件" @row-click="viewMessage">
             <ReTableColumn prop="subject" label="主题" min-width="200" />
             <ReTableColumn prop="from" label="发件人" min-width="160" />
             <ReTableColumn prop="date" label="日期" min-width="150" />
@@ -638,29 +638,29 @@ async function viewMessage(email: any): Promise<void> {
 .type-raw {
   margin-left: 6px;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .mailbox { display: flex; flex-direction: column; gap: 10px; }
 .mailbox-toolbar { display: flex; align-items: center; gap: 8px; }
 .mailbox-detail-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.mailbox-detail-meta { font-size: 12px; color: var(--text-tertiary); }
+.mailbox-detail-meta { font-size: 12px; color: var(--el-text-color-secondary); }
 .mailbox-content {
   white-space: pre-wrap;
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   max-height: 420px;
   overflow: auto;
   margin: 0;
 }
 .sse-status { font-size: 12px; margin-left: auto; }
-.sse-connected { color: var(--color-success, #67c23a); }
-.sse-connecting { color: var(--color-warning, #e6a23c); }
-.sse-offline { color: var(--text-tertiary); }
-.sse-badge { font-size: 12px; color: #fff; background: var(--pulse-alarm, #f56c6c); border-radius: 10px; padding: 1px 8px; }
+.sse-connected { color: var(--el-color-success); }
+.sse-connecting { color: var(--el-color-warning); }
+.sse-offline { color: var(--el-text-color-secondary); }
+.sse-badge { font-size: 12px; color: var(--el-color-white); background: var(--el-color-danger); /* 原为 10px，10px 距 8/12 等距，取 12px(lg) */ border-radius: var(--el-radius-lg, 12px); padding: 1px 8px; }
 .temp-email-row { display: flex; gap: 8px; align-items: center; }
 .temp-email-row > .re-input { flex: 1; }
 </style>

@@ -252,7 +252,7 @@
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.templateStatus === 1 ? 'success' : 'info'">
+              <el-tag :type="row.templateStatus === 1 ? 'success' : 'info'">
                 {{ row.templateStatus === 1 ? "启用" : "停用" }}
               </el-tag>
             </template>
@@ -1133,24 +1133,26 @@ onMounted(() => {
   width: 148px;
   height: 148px;
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  box-shadow:
-    0 10px 28px rgb(15 23 42 / 8%),
-    0 2px 6px rgb(15 23 42 / 4%);
-  border: 1px solid rgb(255 255 255 / 80%);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* koi 卡片不加投影：两层 slate 常驻投影换成一条主题边框。
+     原来的 rgb(255 255 255 / 80%) 白边在浅色主题下等于隐形 */
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 16px 36px rgb(15 23 42 / 12%),
-    0 4px 10px rgb(15 23 42 / 6%);
+  border-color: var(--el-color-primary-light-7);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
@@ -1180,7 +1182,7 @@ onMounted(() => {
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1190,7 +1192,8 @@ onMounted(() => {
 }
 
 .panel-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 0;
   /* 让内容区顶部被统计卡下半压住，同时自身仍从上区下沿开始 */
   position: relative;
@@ -1216,7 +1219,7 @@ onMounted(() => {
   gap: 4px;
   padding: 5px;
   background: var(--el-fill-color-light);
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .pill-tabs__btn {
@@ -1224,22 +1227,32 @@ onMounted(() => {
   border: 0;
   background: transparent;
   padding: 10px 26px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .pill-tabs__btn:hover {
   color: var(--el-color-primary);
 }
 
+.pill-tabs__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .pill-tabs__btn.is-active {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
-  box-shadow: 0 2px 8px rgb(15 23 42 / 8%);
+  /* 选中标签从灰色轨道上「浮起」，属于浮起反馈，不是卡片投影 */
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
 }
 
 .quick-add {
@@ -1259,7 +1272,8 @@ onMounted(() => {
 .quick-add__plus {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  /* 纯圆形图标底用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1268,7 +1282,7 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 600;
   line-height: 1;
-  box-shadow: 0 6px 14px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 原投影去掉：主色实心圆自身已足够突出 */
 }
 
 .quick-add:hover .quick-add__plus {
@@ -1290,7 +1304,7 @@ onMounted(() => {
 }
 
 .subject-search :deep(.el-input__wrapper) {
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 2px 14px 2px 8px;
   box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
 }
@@ -1301,7 +1315,8 @@ onMounted(() => {
 }
 
 .ghost-btn {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   font-weight: 600;
 }
 
@@ -1316,18 +1331,21 @@ onMounted(() => {
 .subject-card {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 18px 18px 14px;
-  box-shadow: var(--el-box-shadow-lighter);
+  /* koi 卡片不加投影：已有一条边框承载边界 */
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .subject-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
 .subject-card__head {
@@ -1340,12 +1358,13 @@ onMounted(() => {
 .subject-card__icon {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-white);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--el-box-shadow-light);
+  /* 原投影去掉：图标底色由 subjectTheme 数据驱动下发，投影只是脏边 */
 }
 
 .subject-card__name {
@@ -1365,18 +1384,24 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: transparent;
   color: var(--el-text-color-placeholder);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
 }
 
 .subject-card__more:hover {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
+}
+
+.subject-card__more:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .subject-card__tags {
@@ -1389,7 +1414,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
   font-size: 13px;
@@ -1437,7 +1462,8 @@ onMounted(() => {
 .status-dot {
   width: 9px;
   height: 9px;
-  border-radius: 50%;
+  /* 状态圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: currentColor;
 }
 
@@ -1449,7 +1475,7 @@ onMounted(() => {
 .icon-btn {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
@@ -1457,12 +1483,22 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .icon-btn:hover {
   border-color: var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
+}
+
+.icon-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .icon-btn.is-danger:hover {
@@ -1480,7 +1516,7 @@ onMounted(() => {
   color: var(--el-text-color-placeholder);
   background: var(--el-bg-color);
   border: 1px dashed var(--el-border-color-lighter);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
 }
 
 /* ---------- 学段 ---------- */
@@ -1490,7 +1526,8 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 .level-grid {
@@ -1503,7 +1540,7 @@ onMounted(() => {
   padding: 18px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1518,7 +1555,7 @@ onMounted(() => {
 .level-card__icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-white);
   font-weight: 800;
   font-size: 18px;
@@ -1577,7 +1614,8 @@ onMounted(() => {
   padding: 14px 16px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 .grade-row__name {
@@ -1593,13 +1631,14 @@ onMounted(() => {
 
 /* ---------- 对话框（严格对齐「新增学科」原型） ---------- */
 .card-dialog {
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
 }
 
 .card-dialog :deep(.el-dialog) {
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 0;
   background: var(--el-bg-color);
+  /* 模态对话框是浮层不是卡片，保留 EP 自带的 --el-box-shadow 表达「浮在页面之上」 */
   box-shadow: var(--el-box-shadow);
 }
 
@@ -1663,7 +1702,7 @@ onMounted(() => {
 
 .card-form :deep(.el-input__wrapper),
 .card-form :deep(.el-select__wrapper) {
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   min-height: 36px;
   box-shadow: 0 0 0 1px var(--el-border-color) inset;
 }
@@ -1704,7 +1743,7 @@ onMounted(() => {
 .dialog-btn {
   min-width: 96px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   font-weight: 600;
   font-size: 14px;
 }
@@ -1762,13 +1801,14 @@ onMounted(() => {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.35);
+  /* 原投影去掉：主色实心图标底自身已足够突出 */
 }
 
 .dlg-header__text {
@@ -1795,19 +1835,27 @@ onMounted(() => {
   height: 32px;
   margin-left: auto;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .dlg-close:hover {
   background: var(--el-border-color-lighter);
   color: var(--el-text-color-primary);
+}
+
+.dlg-close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .dlg-body {
@@ -1845,7 +1893,7 @@ onMounted(() => {
 .icon-opt {
   width: 52px;
   height: 52px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   border: 2px solid var(--el-border-color-lighter);
   background: var(--opt-bg, var(--el-fill-color-light));
   color: var(--opt-fg, var(--el-color-primary));
@@ -1853,12 +1901,21 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .icon-opt:hover {
   border-color: var(--el-color-primary-light-5);
   transform: translateY(-1px);
+}
+
+.icon-opt:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .icon-opt.is-active {
@@ -1876,17 +1933,27 @@ onMounted(() => {
 .color-dot {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 0;
   padding: 0;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgb(15 23 42 / 8%);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* 内描边是为了在浅色（如 #facc15）色块上也能看清圆点边界，
+     所以用「黑色 8% 混透明」而不是主题灰——换 --el-color-black 保持与原 rgba 同色 */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
   position: relative;
 }
 
 .color-dot:hover {
   transform: scale(1.08);
+}
+
+.color-dot:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .color-dot.is-active {
@@ -1909,14 +1976,23 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   padding: 8px 22px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .level-pill:hover {
   border-color: var(--el-color-primary-light-5);
   color: var(--el-color-primary);
+}
+
+.level-pill:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .level-pill.is-on {
@@ -2023,6 +2099,27 @@ onMounted(() => {
   .pill-tabs__btn {
     padding: 8px 14px;
     font-size: 14px;
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .subject-card,
+  .pill-tabs__btn,
+  .dlg-close,
+  .icon-btn,
+  .icon-opt,
+  .color-dot,
+  .level-pill {
+    transition: none;
+  }
+  /* 位移/缩放也是动效：关掉后 :hover / 选中态只剩颜色与边框反馈 */
+  .stat-card:hover,
+  .subject-card:hover,
+  .icon-opt:hover,
+  .color-dot:hover {
+    transform: none;
   }
 }
 </style>

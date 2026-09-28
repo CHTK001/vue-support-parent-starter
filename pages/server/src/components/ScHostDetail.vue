@@ -219,7 +219,7 @@ async function onSaveConfig(): Promise<void> {
     <template #content>
       <div v-if="host" class="host-detail">
       <!-- 基本信息 -->
-      <ReDescriptions :column="2" border size="small">
+      <ReDescriptions :column="2" border >
         <ReDescriptionsItem label="主机名称">{{ host.serverHostName }}</ReDescriptionsItem>
         <ReDescriptionsItem label="主机编码">{{ host.serverHostCode || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="主机地址">{{ host.serverHostAddress }}</ReDescriptionsItem>
@@ -227,74 +227,74 @@ async function onSaveConfig(): Promise<void> {
         <ReDescriptionsItem label="系统类型">{{ host.serverHostOsType }}</ReDescriptionsItem>
         <ReDescriptionsItem label="系统版本">{{ host.serverHostOsVersion || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="在线状态">
-          <ReTag :type="host.serverHostOnline === 1 ? 'success' : host.serverHostOnline === 0 ? 'danger' : 'info'" size="small">
+          <ReTag :type="host.serverHostOnline === 1 ? 'success' : host.serverHostOnline === 0 ? 'danger' : 'info'" >
             {{ host.serverHostOnline === 1 ? '在线' : host.serverHostOnline === 0 ? '离线' : '未知' }}
           </ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="最近延迟">
-          <ReTag v-if="host.serverHostDelayMs === null || host.serverHostDelayMs === undefined" size="small" type="info">未检测</ReTag>
-          <ReTag v-else :type="host.serverHostDelayMs < 0 ? 'danger' : host.serverHostDelayMs <= 50 ? 'success' : 'warning'" size="small">
+          <ReTag v-if="host.serverHostDelayMs === null || host.serverHostDelayMs === undefined" type="info">未检测</ReTag>
+          <ReTag v-else :type="host.serverHostDelayMs < 0 ? 'danger' : host.serverHostDelayMs <= 50 ? 'success' : 'warning'" >
             {{ host.serverHostDelayMs < 0 ? '不可达' : `${host.serverHostDelayMs} ms` }}
           </ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="公网IP">{{ host.serverHostPublicIp || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="内网IP">{{ host.serverHostPrivateIp || '-' }}</ReDescriptionsItem>
         <ReDescriptionsItem label="探针标识">
-          <ReText size="small" type="info">{{ host.serverHostAgentKey || '-' }}</ReText>
+          <ReText type="info">{{ host.serverHostAgentKey || '-' }}</ReText>
         </ReDescriptionsItem>
       </ReDescriptions>
 
       <!-- 硬件规格：后台探测结果，只读展示 -->
       <ReDivider content-position="left">
         硬件规格
-        <ReButton show-text icon="Cpu" type="primary" size="small" :loading="detecting" @click="onDetect">重新探测</ReButton>
+        <ReButton show-text icon="Cpu" type="primary" :loading="detecting" @click="onDetect">重新探测</ReButton>
       </ReDivider>
-      <ReDescriptions :column="3" border size="small">
+      <ReDescriptions :column="3" border >
         <ReDescriptionsItem label="CPU 核心">
-          <ReTag size="small">{{ host.serverHostCpuCores ?? '-' }}</ReTag>
+          <ReTag >{{ host.serverHostCpuCores ?? '-' }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="CPU 使用率">
-          <ReTag size="small" :type="usageType(host.serverHostCpuUsage)">{{ usageText(host.serverHostCpuUsage) }}</ReTag>
+          <ReTag :type="usageType(host.serverHostCpuUsage)">{{ usageText(host.serverHostCpuUsage) }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="内存">
-          <ReTag size="small">{{ formatMem(host.serverHostMemoryMb) }}</ReTag>
+          <ReTag >{{ formatMem(host.serverHostMemoryMb) }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="内存使用率">
-          <ReTag size="small" :type="usageType(host.serverHostMemUsage)">{{ usageText(host.serverHostMemUsage) }}</ReTag>
+          <ReTag :type="usageType(host.serverHostMemUsage)">{{ usageText(host.serverHostMemUsage) }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="磁盘">
-          <ReTag size="small">{{ formatDisk(host.serverHostDiskGb) }}</ReTag>
+          <ReTag >{{ formatDisk(host.serverHostDiskGb) }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="磁盘使用率">
-          <ReTag size="small" :type="usageType(host.serverHostDiskUsage)">{{ usageText(host.serverHostDiskUsage) }}</ReTag>
+          <ReTag :type="usageType(host.serverHostDiskUsage)">{{ usageText(host.serverHostDiskUsage) }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="GPU 卡数">
-          <ReTag size="small">{{ host.serverHostGpuCount ?? '-' }}</ReTag>
+          <ReTag >{{ host.serverHostGpuCount ?? '-' }}</ReTag>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="GPU 型号">
-          <ReText size="small" type="info">{{ host.serverHostGpuModel || '-' }}</ReText>
+          <ReText type="info">{{ host.serverHostGpuModel || '-' }}</ReText>
         </ReDescriptionsItem>
         <ReDescriptionsItem label="网卡">
-          <ReText size="small" type="info">{{ networksText }}</ReText>
+          <ReText type="info">{{ networksText }}</ReText>
         </ReDescriptionsItem>
       </ReDescriptions>
 
       <!-- 端口扫描结果 -->
       <ReDivider content-position="left">
         端口扫描
-        <ReButton show-text icon="Search" type="primary" size="small" :loading="scanning" @click="onScanPorts">扫描端口</ReButton>
+        <ReButton show-text icon="Search" type="primary" :loading="scanning" @click="onScanPorts">扫描端口</ReButton>
       </ReDivider>
       <div v-if="parsedPorts.length" class="detail-ports">
         <ReTag
           v-for="p in parsedPorts"
           :key="p.port"
-          size="small"
+
           type="info"
           class="detail-port-tag"
         >{{ portText(p) }}</ReTag>
       </div>
-      <ReText v-else-if="host.serverHostPorts" size="small" type="info">未发现开放端口</ReText>
-      <ReText v-else size="small" type="info">
+      <ReText v-else-if="host.serverHostPorts" type="info">未发现开放端口</ReText>
+      <ReText v-else type="info">
         尚未扫描（{{ host.serverHostLastPortScanTime ? '上次扫描：' + host.serverHostLastPortScanTime : '点击右上角扫描' }}）
       </ReText>
 
@@ -336,10 +336,10 @@ async function onSaveConfig(): Promise<void> {
           <ReInputNumber v-model="cfgForm.serverHostDelayInterval" :min="5" :max="86400" style="width: 180px" />
         </ReFormItem>
         <ReFormItem label="最近延迟">
-          <ReText v-if="host.serverHostDelayMs !== null && host.serverHostDelayMs >= 0" type="primary" size="small">
+          <ReText v-if="host.serverHostDelayMs !== null && host.serverHostDelayMs >= 0" type="primary" >
             {{ host.serverHostDelayMs }} ms
           </ReText>
-          <ReText v-else type="info" size="small">未检测</ReText>
+          <ReText v-else type="info" >未检测</ReText>
         </ReFormItem>
 
         <ReFormItem>

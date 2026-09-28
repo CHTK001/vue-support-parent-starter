@@ -89,7 +89,7 @@ onMounted(refresh);
     <ReSectionHead description="服务发现能力由可选模块提供，未启用时降级返回空数据">
       <template #title>发现服务</template>
       <template #actions>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="refresh">
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="refresh">
           刷新
         </ReButton>
       </template>
@@ -121,12 +121,12 @@ onMounted(refresh);
           v-model="queryProtocol"
           :options="protocolSelectOptions()"
           placeholder="协议（全部）"
-          size="small"
+
           clearable
           style="width: 180px"
         />
-        <ReInput v-model="queryUriSpec" placeholder="服务标识 uriSpec（可选）" size="small" clearable style="width: 240px" />
-        <ReButton icon="Search" type="primary" size="small" :loading="loading" @click="loadServices">查询</ReButton>
+        <ReInput v-model="queryUriSpec" placeholder="服务标识 uriSpec（可选）" clearable style="width: 240px" />
+        <ReButton icon="Search" type="primary" :loading="loading" @click="loadServices">查询</ReButton>
         <span class="count">共 {{ instances.length }} 条</span>
       </div>
       <ReEmpty v-if="message" :description="message" :image-size="70" style="padding: 16px 0" />
@@ -145,7 +145,7 @@ onMounted(refresh);
           { prop: 'metadata', label: '元数据', minWidth: 160, slot: 'metadata', showOverflowTooltip: true },
         ]"
         :loading="loading"
-        size="small"
+
         table-id="discovery-instances"
       >
         <template #col-metadata="{ row }">

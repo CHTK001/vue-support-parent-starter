@@ -60,7 +60,7 @@
     <!-- 手动四至面板 -->
     <div v-show="showBoundsInput" class="geo-map-bounds-panel">
       <div class="bounds-title">四至范围 (WGS-84)</div>
-      <el-form :inline="true" size="small" label-width="40px">
+      <el-form :inline="true" label-width="40px">
         <el-form-item label="北">
           <el-input-number v-model="manualBounds.north" :step="0.01" :precision="6" controls-position="right" />
         </el-form-item>
@@ -75,8 +75,8 @@
         </el-form-item>
       </el-form>
       <div class="bounds-actions">
-        <el-button type="primary" size="small" @click="applyManualBounds">应用</el-button>
-        <el-button size="small" @click="showBoundsInput = false">关闭</el-button>
+        <el-button type="primary" @click="applyManualBounds">应用</el-button>
+        <el-button @click="showBoundsInput = false">关闭</el-button>
       </div>
     </div>
   </div>
@@ -455,7 +455,7 @@ defineExpose({
   position: relative;
   width: 100%;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
   overflow: hidden;
 }
 
@@ -465,6 +465,8 @@ defineExpose({
   z-index: 1;
 }
 
+/* 浮在地图上的工具条 / 面板：边界用描边承载，不用投影
+   （koi 规约：卡片与容器不投影；且投影压在瓦片影像上会显脏） */
 .geo-map-toolbar {
   position: absolute;
   top: 8px;
@@ -473,10 +475,10 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
   padding: 6px 10px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: var(--el-radius-sm, 6px);
 }
 
 .ml-8 { margin-left: 8px; }
@@ -486,10 +488,10 @@ defineExpose({
   bottom: 8px;
   left: 8px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
   padding: 12px 16px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: var(--el-radius-sm, 6px);
   min-width: 340px;
 }
 
@@ -504,5 +506,17 @@ defineExpose({
   display: flex;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   本组件自身无 transition/animation，要关掉的是 Leaflet 自带的
+   缩放位移与弹层淡入动画 —— 瓦片与选区绘制结果不受影响，只是不再有过渡。
+   Leaflet 的 DOM 在 .geo-map-wrap 内，故用 :deep 命中。 */
+@media (prefers-reduced-motion: reduce) {
+  .geo-map-wrap :deep(.leaflet-zoom-anim .leaflet-zoom-animated),
+  .geo-map-wrap :deep(.leaflet-fade-anim .leaflet-tile),
+  .geo-map-wrap :deep(.leaflet-fade-anim .leaflet-popup) {
+    transition: none;
+  }
 }
 </style>

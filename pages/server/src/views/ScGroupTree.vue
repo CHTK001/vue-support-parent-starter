@@ -164,11 +164,11 @@ async function removeGroup(node: GroupNode) {
       <ReCard class="tree-card" v-loading="loading">
         <div class="tree-header">
           <span class="tree-title">分组列表</span>
-          <ReButton icon="Plus" layout="square" size="small" title="新建分组" @click="openCreate()" />
+          <ReButton icon="Plus" layout="square"  tip="新建分组" @click="openCreate()" />
         </div>
         
         <div class="tree-search">
-          <ReInput v-model="searchKeyword" placeholder="搜索分组..." clearable size="small">
+          <ReInput v-model="searchKeyword" placeholder="搜索分组..." clearable >
             <template #prefix><ReIcon icon="Search" /></template>
           </ReInput>
         </div>
@@ -215,9 +215,9 @@ async function removeGroup(node: GroupNode) {
               <p class="detail-desc">{{ currentNode.remark || '暂无描述' }}</p>
             </div>
             <div class="detail-actions">
-              <ReButton show-text icon="Plus" size="small" @click="openCreate(currentNode.id)">添加子分组</ReButton>
-              <ReButton show-text icon="EditPen" size="small" @click="openEdit(currentNode)">编辑</ReButton>
-              <ReButton show-text icon="Delete" size="small" type="danger" @click="removeGroup(currentNode)">删除</ReButton>
+              <ReButton show-text icon="Plus" @click="openCreate(currentNode.id)">添加子分组</ReButton>
+              <ReButton show-text icon="EditPen" @click="openEdit(currentNode)">编辑</ReButton>
+              <ReButton show-text icon="Delete" type="danger" @click="removeGroup(currentNode)">删除</ReButton>
             </div>
           </div>
 
@@ -336,6 +336,10 @@ async function removeGroup(node: GroupNode) {
 </template>
 
 <style scoped lang="scss">
+/* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌
+   （--border-subtle / --text-primary / --text-secondary / --text-tertiary / --bg-fill /
+   --bg-elevated，兜底还带 hex），而那份 tokens.css 只有 :root、没有暗色变体，
+   暗色模式下这些值全部停留在亮色。统一改走 EP 语义令牌。 */
 .group-tree {
   display: flex;
   flex-direction: column;
@@ -362,7 +366,7 @@ async function removeGroup(node: GroupNode) {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .tree-title {
@@ -372,7 +376,7 @@ async function removeGroup(node: GroupNode) {
 
 .tree-search {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .tree-label {
@@ -385,19 +389,22 @@ async function removeGroup(node: GroupNode) {
 .node-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #1a1a2e);
+  color: var(--el-text-color-primary);
 }
 
 .color-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+  /* 圆点本体的颜色由模板 :style 动态传入（分组自定义色），没法用 color-mix 跟随，
+     所以外圈光晕改用主题边框色令牌，亮暗色下都能保持一圈淡描边 */
+  box-shadow: 0 0 0 2px var(--el-border-color);
 }
 
 .color-dot--default {
-  background: #c0c4cc;
+  /* 「未设置颜色」的中性灰占位 */
+  background: var(--el-text-color-placeholder);
 }
 
 .node-badge {
@@ -407,9 +414,10 @@ async function removeGroup(node: GroupNode) {
   min-width: 20px;
   height: 18px;
   padding: 0 6px;
-  border-radius: 9px;
-  background: var(--el-color-primary-light-9, #e8e7ff);
-  color: var(--el-color-primary, #6d5dfc);
+  /* 18px 高的徽标：9px 已是胶囊圆角，统一到 full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   font-size: 11px;
   font-weight: 600;
 }
@@ -431,7 +439,7 @@ async function removeGroup(node: GroupNode) {
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .detail-title-area {
@@ -445,7 +453,7 @@ async function removeGroup(node: GroupNode) {
 }
 
 .detail-desc {
-  color: var(--text-secondary, #8a8a9e);
+  color: var(--el-text-color-secondary);
   font-size: 13px;
   margin: 0;
 }
@@ -464,14 +472,15 @@ async function removeGroup(node: GroupNode) {
 }
 
 .info-card {
-  background: var(--bg-fill, #f5f7fa);
-  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 16px;
 }
 
 .info-label {
   font-size: 12px;
-  color: var(--text-secondary, #8a8a9e);
+  color: var(--el-text-color-secondary);
   margin-bottom: 8px;
 }
 
@@ -481,7 +490,7 @@ async function removeGroup(node: GroupNode) {
 }
 
 .info-value--success {
-  color: #67c23a;
+  color: var(--el-color-success);
 }
 
 /* 详情区块 */
@@ -494,7 +503,7 @@ async function removeGroup(node: GroupNode) {
   font-weight: 600;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle, #eef0f6);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .detail-body {
@@ -515,7 +524,7 @@ async function removeGroup(node: GroupNode) {
 
 .detail-label {
   font-size: 12px;
-  color: var(--text-secondary, #8a8a9e);
+  color: var(--el-text-color-secondary);
 }
 
 .detail-value {
@@ -525,8 +534,9 @@ async function removeGroup(node: GroupNode) {
 
 /* 主机列表 */
 .host-list {
-  border: 1px solid var(--border-subtle, #eef0f6);
-  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -534,8 +544,8 @@ async function removeGroup(node: GroupNode) {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle, #eef0f6);
-  transition: background 0.2s;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  transition: background-color var(--el-transition-duration-fast, 0.2s);
 }
 
 .host-item:last-child {
@@ -543,18 +553,18 @@ async function removeGroup(node: GroupNode) {
 }
 
 .host-item:hover {
-  background: var(--bg-elevated, #fbfbff);
+  background: var(--el-fill-color-lighter);
 }
 
 .host-status {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   margin-right: 12px;
 }
 
 .host-status--online {
-  background: #67c23a;
+  background: var(--el-color-success);
 }
 
 .host-name {
@@ -563,17 +573,17 @@ async function removeGroup(node: GroupNode) {
 }
 
 .host-ip {
-  color: var(--text-secondary, #8a8a9e);
+  color: var(--el-text-color-secondary);
   font-size: 13px;
   margin-right: 16px;
 }
 
 .host-os {
   font-size: 12px;
-  color: var(--text-tertiary, #6b7280);
-  background: var(--bg-fill, #f5f7fa);
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 
 .color-field {
@@ -581,5 +591,12 @@ async function removeGroup(node: GroupNode) {
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .host-item {
+    transition: none;
+  }
 }
 </style>

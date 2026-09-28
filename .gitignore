@@ -136,3 +136,8 @@ hs_err*
 thread-dump*
 __pycache__/
 .data/
+
+# 临时工作区（Agent 脚本、备份、探针产物等，不属于源码）
+Temp/
+.run/
+.tmp/

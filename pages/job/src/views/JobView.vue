@@ -7,9 +7,10 @@
   写入后自动重取，逐行的启停与操作都在「操作」列上。要看单轮派发的详情去「作业日志」页，日志清理也在那一页，
   这里不再复制一份侧栏。
 
-  新建/编辑任务的弹层是手写的卡片式布局（模板里的 task-form 分支）：顶部两张卡片切执行类型（对象 / 脚本），
-  往下按「基本信息 / 脚本正文 / 调度配置 / 策略与告警」分区，字段集只在这一处维护；cron 用 ReCron 收口，
-  毫秒间隔按调度类型显隐。只有「编辑流程调度」另一种弹层状态走 ReForm schema（FLOW_FIELDS）。
+  新建/编辑任务的弹层是手写的卡片式布局（模板里的 task-form 分支）：顶部三张卡片切执行类型（对象 / 脚本 / 片段），
+  脚本与片段再按 SPI 枚举出的「语言」下拉细分引擎；往下按「基本信息 / 代码正文 / 调度配置 / 策略与告警」分区，
+  字段集只在这一处维护；cron 用 ReCron 收口，毫秒间隔按调度类型显隐。只有「编辑流程调度」另一种弹层状态
+  走 ReForm schema（FLOW_FIELDS）。
 
   两类行的写入口不同，这里按分组分流：
   - group=collect-flow 的行是采集流程的调度镜像，改名/改 cron/删除一律走采集流程接口
@@ -28,7 +29,7 @@
    工具条的批量启停/批量删除对勾选行逐个执行并逐行报错，任一失败不会中断整批。
 -->
 <script setup lang="ts">
-import { computed, nextTick, onActivated, reactive, ref, watch } from "vue";
+import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { msgError, msgInfo, msgSuccess } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
@@ -50,6 +51,7 @@ import {
   getJob,
   getSummary,
   listExecutors,
+  listGlueEngines,
   pageJobs,
   saveJob,
   setJobStatus,
@@ -67,6 +69,9 @@ import type { CollectFlow } from "@pages/collect";
 import ScriptSourceField from "../components/ScriptSourceField.vue";
 import { confirmAction, errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
+import { resolveHostPath } from "../utils/hostPath";
+import { CronExpression } from "@repo/utils";
+import ReIcon from "@repo/ui/re-icon";
 
 defineOptions({ name: "CollectJob" });
 
@@ -100,6 +105,29 @@ const SCHEDULE_OPTIONS: ReOption[] = [
   { label: "不自动调度", value: "NONE" },
 ];
 
+/**
+ * 表单校验提示的展示时长（毫秒）。
+ *
+ * 比 msgError 默认的 2 秒更长：这些提示都要求用户回到表单改字段，
+ * 2 秒内常常还没看清就消失了（自动化验收里直接读不到）。
+ */
+const FORM_MSG_DURATION = 4000;
+
+/** 调度类型 → 简称：校验提示里用它对齐下拉选项，避免用户找不到说的是哪一项 */
+const SCHEDULE_NAME: Record<string, string> = {
+  CRON: "CRON 表达式",
+  FIXED: "固定频率",
+  DELAY: "固定延迟",
+  NONE: "不自动调度",
+};
+
+/** 调度类型 → 该填的调度配置举例，直接告诉用户填什么格式 */
+const SCHEDULE_TIME_HINT: Record<string, string> = {
+  CRON: "cron 表达式（6 段，例如 0 0/30 * * * ?）",
+  FIXED: "固定频率毫秒数（例如 60000 表示每分钟一次）",
+  DELAY: "固定延迟毫秒数（例如 60000 表示上次结束后隔一分钟）",
+};
+
 const MISFIRE_OPTIONS: ReOption[] = [
   { label: "错过不补跑", value: "DO_NOTHING" },
   { label: "错过补跑一次", value: "FIRE_ONCE_NOW" },
@@ -113,17 +141,26 @@ const ALARM_TYPE_OPTIONS: ReOption[] = [
 ];
 
 /**
- * 执行类型（顶部三张卡片，与后端 GlueTypes 常量逐字对齐）：
- *  - 对象：从已注册执行器对象（Bean 处理器）里选一个执行，任务键即处理器名；
- *  - 脚本：Groovy 正文随任务下发到执行器执行（ScriptProvider SPI），无需注册处理器；
- *  - Java：完整类源码片段，执行器用 javax.tools 现场编译后反射调用，字段上的 @Autowired 生效。
+ * 执行类型（顶部三张卡片，与后端 GlueTypes 收敛后的三类语义一致）：
+ *  - 对象（BEAN）：从已注册执行器对象（@Job 处理器）里选一个执行，任务键即处理器名，正文为空；
+ *  - 脚本（裸引擎名，如 java / groovy）：写**完整文件**（完整 Java 类 / 完整 Groovy 脚本），
+ *    保存时由对应引擎预编译校验，执行时复用同一份编译产物；
+ *  - 片段（GLUE_ + 引擎名大写，如 GLUE_JAVA / GLUE_GROOVY）：只写 @Job 方法的**方法体**，
+ *    由后端 GlueScriptSynthesizer 合成完整脚本后再交同一引擎。
  *
- * 脚本侧写 GLUE_GROOVY 而非裸值 groovy：裸值是存量台账的写法，两者后端等价，
- * 新建统一用 GLUE_ 前缀形态，避免下拉里出现两个含义相同的值。
+ * 判据只有一条：值以 GLUE_ 开头就是片段（需要后端合成），否则是脚本；BEAN 是对象。
+ * 语言不写死在前端，由 SPI 运行时枚举（GET /glue/engines）驱动，装了新引擎自动进下拉。
  */
 const GLUE_BEAN = "BEAN";
-const GLUE_JAVA = "GLUE_JAVA";
-const GLUE_GROOVY = "GLUE_GROOVY";
+/** 片段类型前缀：带此前缀表示只写方法体，需要后端合成完整脚本 */
+const GLUE_FRAGMENT_PREFIX = "GLUE_";
+/** 用户首次点脚本 / 片段时的默认语言；选过之后由 lastGlueEngine 记住 */
+const DEFAULT_GLUE_ENGINE = "groovy";
+/** 引擎枚举拉取失败时的兜底清单，保证下拉始终可用 */
+const FALLBACK_GLUE_ENGINES = ["groovy", "java"];
+
+/** 已注册引擎名 -> 下拉展示名；未收录的引擎原样显示 */
+const GLUE_ENGINE_LABELS: Record<string, string> = { java: "Java", groovy: "Groovy" };
 
 const SEARCH: ReTableSearchConfig = {
   title: "搜索任务",
@@ -200,24 +237,102 @@ const executorCardOptions = computed<ReOption[]>(() =>
   }),
 );
 
+/** 可用脚本引擎（SPI 运行时枚举）：驱动「语言」下拉，装了新引擎自动出现 */
+const glueEngines = ref<string[]>([]);
+/** 用户上次选过的语言：切「脚本 / 片段」时保持不变，首次默认 groovy */
+const lastGlueEngine = ref(DEFAULT_GLUE_ENGINE);
+
+/** 语言下拉选项：label 映射到 Java / Groovy，未收录的引擎名原样展示 */
+const glueEngineOptions = computed<ReOption[]>(() =>
+  glueEngines.value.map(engine => ({ label: GLUE_ENGINE_LABELS[engine] ?? engine, value: engine })),
+);
+
+/** 取语言下拉选项值；请求失败或空列表静默回落到内置清单，保证下拉始终可用 */
+async function loadGlueEngines(): Promise<void> {
+  try {
+    const listed = await listGlueEngines();
+    // 统一小写：后端 SPI 注册表归一后的扩展名可能是大写（JAVA / GROOVY），
+    // 而 glueType 的口径是小写（java / groovy），不归一会出现「下拉值选不中选项」。
+    const engines = Array.isArray(listed)
+      ? [...new Set(listed.map(name => String(name ?? "")).filter(Boolean).map(name => name.toLowerCase()))]
+      : [];
+    glueEngines.value = engines.length ? engines : [...FALLBACK_GLUE_ENGINES];
+  } catch {
+    glueEngines.value = [...FALLBACK_GLUE_ENGINES];
+  }
+  // 默认语言不在枚举里（例如只装了 java）时，退到清单首项，避免下拉显示空值
+  if (!glueEngines.value.includes(lastGlueEngine.value)) {
+    lastGlueEngine.value = glueEngines.value[0] ?? DEFAULT_GLUE_ENGINE;
+  }
+}
+
 const columns = computed<ReTableColumn[]>(() => [
   { prop: "jobName", label: "任务名", minWidth: 160, slot: "name", showOverflowTooltip: true },
-  { prop: "scheduleType", label: "调度表达式", width: 126, slot: "schedule" },
-  { prop: "jobKey", label: "执行器", minWidth: 110, slot: "executor", showOverflowTooltip: true },
+  { prop: "scheduleType", label: "调度表达式", width: 186, slot: "schedule" },
+  { prop: "jobKey", label: "执行器", minWidth: 80, slot: "executor", showOverflowTooltip: true },
   { prop: "enabled", label: "状态开关", width: 84, slot: "status", align: "center" },
   { prop: "nextFireTime", label: "下次触发", width: 132, slot: "next" },
   { prop: "lastFireTime", label: "最近触发", width: 132, slot: "last" },
   { prop: "author", label: "负责人", width: 74, slot: "author" },
-  { prop: "action", label: "操作", width: 190, slot: "action", fixed: "right" },
+  /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
+     低频/危险动作收进下拉后，不再需要为平铺 6 个按钮留 268px。 */
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
 ]);
 
 function isFlowRow(job: JobRuntime): boolean {
   return job.group === COLLECT_FLOW_GROUP;
 }
 
-/** 代码片段任务：执行类型非 BEAN，不依赖处理器注册表（Groovy 脚本与 Java 片段都算） */
+/** 代码片段任务：执行类型非 BEAN，不依赖处理器注册表（脚本与片段都算） */
 function isScriptJob(job: JobRuntime): boolean {
   return Boolean(job.glueType) && job.glueType !== GLUE_BEAN;
+}
+
+/** 从 glueType 原值判形态：GLUE_ 前缀 = 片段，BEAN（含空）= 对象，其余 = 脚本 */
+function kindOfGlueType(glueType: string | null | undefined): "bean" | "script" | "fragment" {
+  const value = String(glueType ?? "");
+  if (!value || value === GLUE_BEAN) {
+    return "bean";
+  }
+  return value.toUpperCase().startsWith(GLUE_FRAGMENT_PREFIX) ? "fragment" : "script";
+}
+
+/** 从 glueType 原值取引擎名：片段去掉 GLUE_ 前缀，脚本原样；对象返回空串 */
+function engineOfGlueType(glueType: string | null | undefined): string {
+  const kind = kindOfGlueType(glueType);
+  if (kind === "bean") {
+    return "";
+  }
+  const value = String(glueType);
+  return (kind === "fragment" ? value.slice(GLUE_FRAGMENT_PREFIX.length) : value).toLowerCase();
+}
+
+/** 引擎展示名：java / groovy 归一成首字母大写，其余引擎名原样，空串落到「脚本」 */
+function glueEngineLabel(engine: string): string {
+  if (engine === "java") {
+    return "Java";
+  }
+  if (engine === "groovy") {
+    return "Groovy";
+  }
+  return engine || "脚本";
+}
+
+/** 列表标签用：片段 / 脚本 前缀 + 语言，例如「片段 · Java」「脚本 · Groovy」 */
+function glueKindLabel(job: JobRuntime): string {
+  const kind = kindOfGlueType(job.glueType);
+  const label = glueEngineLabel(engineOfGlueType(job.glueType));
+  return kind === "fragment" ? `片段 · ${label}` : `脚本 · ${label}`;
+}
+
+/** 详情正文标签：片段写方法体、脚本写完整文件，按语言分别说明 */
+function detailSourceLabel(job: JobRuntime): string {
+  const kind = kindOfGlueType(job.glueType);
+  const isJava = engineOfGlueType(job.glueType) === "java";
+  if (kind === "fragment") {
+    return isJava ? "Java 片段（方法体）" : `${glueEngineLabel(engineOfGlueType(job.glueType))} 片段`;
+  }
+  return isJava ? "Java 脚本（完整类）" : `${glueEngineLabel(engineOfGlueType(job.glueType))} 脚本（完整文件）`;
 }
 
 /** 台账行回到流程：优先用执行参数里的流程 ID，退回按 collect-flow-<id> 约定解析 */
@@ -532,7 +647,62 @@ function logsFromDetail(): void {
     return;
   }
   detailVisible.value = false;
-  void router.push({ path: "/collect/job-log", query: { jobKey: job.jobKey } });
+  // 本宿主口径可能是 /collect/job-log（采集）或 /job/log（系统管理），按路由表择一
+  void router.push({ path: resolveHostPath(router, "/collect/job-log"), query: { jobKey: job.jobKey } });
+}
+
+/** 后续执行时间点预览弹层：显隐与内容 */
+const fireTimesVisible = ref(false);
+const fireTimesTitle = ref("");
+const fireTimes = ref<Date[]>([]);
+const fireTimesError = ref("");
+
+/**
+ * 打开「后续执行时间点」弹层。
+ *
+ * <p>只对 cron 任务有意义：固定延迟 / 固定频率的下一拍取决于上一拍实际完成时刻，
+ * 事先算不出来，所以那两类任务不给这个按钮。</p>
+ *
+ * <p>时间直接用 @repo/utils 的 {@link CronExpression} 算——它是服务端
+ * {@code com.chua.common.support.task.scheduler.CronExpression} 的逐行镜像，
+ * 与保存后调度器实际触发的口径一致，不必为此加后端接口。</p>
+ *
+ * @param job 台账行
+ */
+function openFireTimes(job: JobRuntime): void {
+  const expression = String(job.scheduleTime ?? "").trim();
+  fireTimesTitle.value = job.jobName || job.jobKey || "";
+  fireTimes.value = [];
+  fireTimesError.value = "";
+  if (!expression) {
+    fireTimesError.value = "该任务没有填写调度配置";
+    fireTimesVisible.value = true;
+    return;
+  }
+  try {
+    fireTimes.value = new CronExpression(expression).getFireTimes(5, new Date());
+    if (!fireTimes.value.length) {
+      // 能解析但永不匹配（如 0 0 9 30 2 *）——与 ReCron 预览、后端校验同一口径
+      fireTimesError.value = "该表达式算不出后续触发时间";
+    }
+  } catch (error) {
+    fireTimesError.value = `表达式无法解析：${String((error as Error)?.message ?? error)}`;
+  }
+  fireTimesVisible.value = true;
+}
+
+/** 后续执行时间是否可看：仅 cron 任务 */
+function canPreviewFireTimes(job: JobRuntime): boolean {
+  return String(job.scheduleType ?? "").toUpperCase() === "CRON" && Boolean(String(job.scheduleTime ?? "").trim());
+}
+
+/** 预览弹层里的时间展示格式 */
+function fmtFireTime(value: Date): string {
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  return (
+    `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ` +
+    `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+  );
 }
 
 /** 复制：流程行走采集的流程复制（副本默认停用），外部任务预填新建表单（含脚本正文与策略） */
@@ -606,20 +776,73 @@ const form = reactive<JobSave & {
   flowThreadCount: 0,
 });
 
+/**
+ * 调度配置缺失的内联错误提示。
+ *
+ * toast 会自己消失，而「调度类型选了 CRON 却没填 cron」要求用户回到对应字段改，
+ * 所以在字段下面额外留一行红字，并把视图滚到那一项 —— 只弹 toast 时用户常常
+ * 不知道是哪一项没填、还要自己滚回去找。
+ */
+const scheduleError = ref("");
+
+/** 调度配置字段容器：校验失败时滚到它 */
+const scheduleFieldRef = ref<HTMLElement | null>(null);
+
+/** 用户一动调度类型或调度配置就撤掉红字，避免「已经改了还标红」 */
+watch([() => form.scheduleType, () => form.scheduleTime], () => {
+  scheduleError.value = "";
+});
+
 const isScriptForm = computed(() => Boolean(form.glueType) && form.glueType !== GLUE_BEAN);
 
-/** 当前片段语言：给 ScriptSourceField 决定标题/占位/模板，BEAN 落到 groovy 只是兜底取值 */
-const glueLang = computed<"groovy" | "java">(() =>
-  form.glueType === GLUE_JAVA ? "java" : "groovy",
-);
+/**
+ * 形态派生：以 form.glueType 为唯一真源。
+ * BEAN → bean；以 GLUE_ 开头 → fragment；其余非空值 → script。
+ */
+const taskKind = computed<"bean" | "script" | "fragment">(() => kindOfGlueType(form.glueType));
 
-/** 片段正文区的标题与占位：两种语言的写法要求不同，提示必须分开说 */
-const glueSourceTitle = computed(() => (form.glueType === GLUE_JAVA ? "Java 代码片段" : "脚本正文"));
-const glueSourcePlaceholder = computed(() =>
-  form.glueType === GLUE_JAVA
-    ? "点击编辑：完整类源码，package 可选、class 必写；入口方法支持 @Job 注解"
-    : "点击编辑脚本正文：可用变量 jobName / objectContext / executeParam，最后一条表达式即返回值",
-);
+/** 当前引擎名：片段去掉 GLUE_ 前缀，脚本原样；对象为空串 */
+const glueEngine = computed(() => engineOfGlueType(form.glueType));
+
+/**
+ * ScriptSourceField 的 lang：引擎归一成 java / groovy，未知引擎原样返回字符串
+ * （模板按 groovy 兜底）；对象类型落到记住的语言，仅作兜底取值。
+ */
+const glueLang = computed<string>(() => glueEngine.value || lastGlueEngine.value || DEFAULT_GLUE_ENGINE);
+
+/**
+ * 语言下拉的当前值；设置了就按当前形态回写 glueType（片段继续片段、脚本继续脚本）。
+ * 类型放宽到 ReSelect 的 model 联合类型，保证组件 v-model 赋值不报类型错。
+ */
+const glueEngineModel = computed<string | number | (string | number)[] | null>({
+  get: () => glueEngine.value || lastGlueEngine.value,
+  set: (value) => {
+    const engine = typeof value === "string" ? value : "";
+    if (engine) {
+      setGlueEngine(engine);
+    }
+  },
+});
+
+/** 正文区标题：形态 + 语言；脚本写完整文件、片段写方法体 */
+const glueSourceTitle = computed(() => {
+  const label = glueEngineLabel(glueLang.value);
+  return taskKind.value === "fragment"
+    ? `${label} 片段${label === "Java" ? "（方法体）" : ""}`
+    : `${label} 脚本（${label === "Java" ? "完整类" : "完整文件"}）`;
+});
+
+/** 正文区占位：脚本与片段的写法要求不同，提示必须分开说 */
+const glueSourcePlaceholder = computed(() => {
+  if (taskKind.value === "fragment") {
+    return glueLang.value === "java"
+      ? "点击编辑：只写 @Job 方法的方法体（不要写 package / class / import / @Job），后端会合成完整类"
+      : "点击编辑：只写 @Job 方法的方法体（Groovy 裸语句），入口与类名由后端合成";
+  }
+  return glueLang.value === "java"
+    ? "点击编辑完整 Java 类源码：package / class / @Job 入口方法都自己写，保存时后端预编译校验"
+    : "点击编辑完整 Groovy 脚本文件，保存时后端预编译校验";
+});
 
 /**
  * 片段正文长度上限：与台账列 sys_job_glue_source 同宽。
@@ -638,19 +861,41 @@ const glueSourceDesc = computed(() => {
 });
 
 /**
- * 切换执行类型。
+ * 应用执行类型（形态 + 引擎）到表单，并在落库值真的变化时清空正文。
  *
- * 类型一变，原正文就一定不合法（Groovy 正文当 Java 源码编译必然失败，反之亦然），
+ * 类型或语言一变，原正文就一定不合法（Groovy 正文当 Java 源码编译必然失败，反之亦然），
  * 所以顺手清空；不清的话用户会对着上一段正文反复踩编译错。
  *
- * @param glueType 目标执行类型
+ * @param kind   目标形态：bean / script / fragment
+ * @param engine 目标引擎名（对象形态忽略）
  */
-function setGlueType(glueType: string): void {
-  if (form.glueType !== glueType) {
+function applyGlueType(kind: "bean" | "script" | "fragment", engine: string): void {
+  const next = kind === "bean"
+    ? GLUE_BEAN
+    : kind === "fragment"
+      ? GLUE_FRAGMENT_PREFIX + engine.toUpperCase()
+      : engine;
+  if (form.glueType !== next) {
     form.glueSource = "";
   }
-  form.glueType = glueType;
+  form.glueType = next;
   clearFormErrors();
+}
+
+/** 切「对象 / 脚本 / 片段」：脚本与片段沿用记住的语言，不因切形态丢语言 */
+function setTaskKind(kind: "bean" | "script" | "fragment"): void {
+  if (kind === "bean") {
+    applyGlueType("bean", "");
+    return;
+  }
+  applyGlueType(kind, lastGlueEngine.value || DEFAULT_GLUE_ENGINE);
+}
+
+/** 切语言：保持当前形态归属，脚本↔脚本、片段↔片段，并记住这次选择 */
+function setGlueEngine(engine: string): void {
+  lastGlueEngine.value = engine;
+  const kind = taskKind.value === "bean" ? "script" : taskKind.value;
+  applyGlueType(kind, engine);
 }
 
 /** ReForm 实例：必填校验交给 el-form 规则，弹层重开时要清掉上一次的报错态 */
@@ -824,6 +1069,11 @@ function openEdit(job: JobRuntime): void {
     enabled: job.enabled,
     desc: job.desc ?? "",
   });
+  // 编辑回显：把存量任务的引擎同步进「上次选择」，之后切脚本 / 片段时语言不跳
+  const restoredEngine = engineOfGlueType(job.glueType);
+  if (restoredEngine) {
+    lastGlueEngine.value = restoredEngine;
+  }
   cronBroken.value = false;
   formVisible.value = true;
   clearFormValidate();
@@ -880,7 +1130,7 @@ async function submit(): Promise<void> {
   // 任务名称两种模式都必填（列表与作业日志按它展示）
   const jobName = String(form.jobName ?? "").trim();
   if (!jobName) {
-    msgError("任务名称不能为空");
+    msgError("任务名称不能为空", true, FORM_MSG_DURATION);
     return;
   }
   if (isScriptTask) {
@@ -889,27 +1139,38 @@ async function submit(): Promise<void> {
       ? String(form.originJobKey).trim()
       : "";
   } else if (!jobKey) {
-    msgError("请选择任务");
+    msgError("请选择任务", true, FORM_MSG_DURATION);
     return;
   }
   if (form.scheduleType === "CRON" && cronBroken.value) {
-    msgError("cron 表达式不合法");
+    msgError("cron 表达式不合法，请检查格式（6 段，例如 0 0/30 * * * ?）", true, FORM_MSG_DURATION);
     return;
   }
   if (form.scheduleType !== "NONE" && !String(form.scheduleTime ?? "").trim()) {
-    msgError("填写了调度类型就必须给调度配置");
+    // 提示要同时说清「哪个字段」和「另一条路怎么走」：默认调度类型就是 CRON，
+    // 不写清字段名和替代选项时，用户只看到一句「必须给调度配置」会不知道从哪改起。
+    // 除了 toast，还在字段下面留红字并把视图滚过去。
+    scheduleError.value = `调度类型选了「${SCHEDULE_NAME[form.scheduleType] ?? form.scheduleType}」，`
+      + `请填写：${SCHEDULE_TIME_HINT[form.scheduleType] ?? "调度配置"}`;
+    void nextTick(() => {
+      scheduleFieldRef.value?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    msgError(`${scheduleError.value}；不需要自动调度请把调度类型改成「不自动调度」`,
+      true, FORM_MSG_DURATION);
     return;
   }
+  scheduleError.value = "";
   if (isScriptTask && !String(form.glueSource ?? "").trim()) {
-    msgError("代码片段任务必须填写片段正文");
+    msgError("代码片段任务必须填写片段正文", true, FORM_MSG_DURATION);
     return;
   }
   if (isScriptTask && String(form.glueSource ?? "").length > GLUE_SOURCE_LIMIT) {
-    msgError(`片段正文过长（上限 ${GLUE_SOURCE_LIMIT} 字符，与台账列 sys_job_glue_source 同宽）`);
+    msgError(`片段正文过长（上限 ${GLUE_SOURCE_LIMIT} 字符，与台账列 sys_job_glue_source 同宽）`,
+      true, FORM_MSG_DURATION);
     return;
   }
   if (String(form.alarmType ?? "").trim() && !String(form.alarmEmail ?? "").trim()) {
-    msgError("选择了告警类型就必须填写告警目标，否则任务失败时不会告警");
+    msgError("选择了告警类型就必须填写告警目标，否则任务失败时不会告警", true, FORM_MSG_DURATION);
     return;
   }
   const originJobKey = formMode.value === "edit" ? String(form.originJobKey ?? "").trim() : "";
@@ -940,12 +1201,28 @@ async function submit(): Promise<void> {
 
 /** keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据（执行器清单可能被新流程改写） */
 let firstActivation = true;
-onActivated(() => {
+
+/**
+ * 首次挂载取一次执行器清单。
+ *
+ * <p>执行器清单原来只挂在 {@code onActivated} 上，但只有被 keep-alive 缓存的视图才会触发它：
+ * 系统管理宿主（route.mode=remote）下实测进入调度管理只请求了 {@code /v2/job/page}，
+ * {@code /v2/job/executors} 从未发出，于是「新建任务 → 对象」的任务选择器永远是
+ * 「暂无匹配选项」，对象类型任务根本建不出来。挂到 onMounted 上补齐这条路径。</p>
+ */
+onMounted(() => {
   void loadExecutors();
+  // 语言下拉由 SPI 运行时枚举驱动；只在挂载时取一次，失败静默回落到内置清单
+  void loadGlueEngines();
+});
+
+onActivated(() => {
   if (firstActivation) {
     firstActivation = false;
+    // 首次挂载已由 onMounted 取过清单，这里不重复请求（keep-alive 下两个钩子都会触发）
     return;
   }
+  void loadExecutors();
   reloadJobs();
 });
 
@@ -980,6 +1257,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         :columns="columns"
         row-key="jobKey"
         show-selection
+        :layout-switch="false"
         @selection-change="onSelectionChange"
         v-model:page="query.page"
         v-model:page-size="query.pageSize"
@@ -1005,18 +1283,54 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           </span>
         </template>
 
+        <!--
+          可操作空态：默认的 el-empty 只能看不能做。
+          台账空有两种成因，话必须分开说：带着筛选条件查不到 ≠ 台账真的没任务，
+          所以沿用已有的 filteredEmpty 区分文案与动作（带条件时空态不再给「新建任务」，
+          否则会把「筛太严」误导成「台账空了」）。empty-text 属性保留不动，
+          它仍是 #empty 插槽 description 的回退值。
+          本页的 page-empty 样式在下方 scoped 里自带一份，原因见那段注释。
+        -->
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon"><ReIcon name="AlarmClock" :size="22" /></span>
+            <span class="page-empty__title">
+              {{ filteredEmpty ? '没有符合当前条件的任务' : '还没有调度作业' }}
+            </span>
+            <span class="page-empty__desc">
+              {{ filteredEmpty
+                ? '换个关键字或状态，或点搜索区的「重置」看全部。'
+                : '调度作业由调度中心按 cron 派发；新建一个任务，或在流程设计页给流程配 cron 后会出现在这里。' }}
+            </span>
+            <span class="page-empty__actions">
+              <ReButton v-if="!filteredEmpty" type="primary" icon="Plus" @click="openCreate">新建任务</ReButton>
+              <ReButton icon="Refresh" @click="reloadJobs">刷新</ReButton>
+            </span>
+          </div>
+        </template>
+
         <template #name="{ row }">
         <span>{{ row.jobName || row.jobKey }}</span>
-        <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline" size="small" type="primary" effect="plain">
+        <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline"  type="primary" effect="plain">
           采集流程
         </ReTag>
-        <ReTag v-else-if="row.glueType === GLUE_JAVA" class="collect-tag-inline" size="small" type="warning" effect="plain">
-          Java 片段
+        <ReTag
+          v-else-if="kindOfGlueType((row as unknown as JobRuntime).glueType) === 'fragment'"
+          class="collect-tag-inline"
+          type="warning"
+          effect="plain"
+        >
+          {{ glueKindLabel(row as unknown as JobRuntime) }}
         </ReTag>
-        <ReTag v-else-if="isScriptJob(row as unknown as JobRuntime)" class="collect-tag-inline" size="small" type="success" effect="plain">
-          脚本
+        <ReTag
+          v-else-if="isScriptJob(row as unknown as JobRuntime)"
+          class="collect-tag-inline"
+          type="success"
+          effect="plain"
+        >
+          {{ glueKindLabel(row as unknown as JobRuntime) }}
         </ReTag>
-        <ReTag v-else-if="row.group" size="small" type="info" effect="plain">{{ row.group }}</ReTag>
+        <ReTag v-else-if="row.group"  type="info" effect="plain">{{ row.group }}</ReTag>
       </template>
       <template #schedule="{ row }">
         <span class="collect-cell-mono collect-cell-ellipsis">{{ scheduleText(row as unknown as JobRuntime) }}</span>
@@ -1026,7 +1340,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         <ReTag
           v-if="executorMissing(row as unknown as JobRuntime)"
           class="collect-tag-inline"
-          size="small"
+          dot
           type="danger"
           effect="plain"
         >
@@ -1035,7 +1349,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         <ReTag
           v-if="row.dispatchMode === 'REMOTE'"
           class="collect-tag-inline"
-          size="small"
+          
           type="warning"
           effect="plain"
           :title="remoteTagTip"
@@ -1048,7 +1362,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           :model-value="row.enabled === true"
           :disabled="busyKey === row.jobKey"
           :loading="busyKey === row.jobKey"
-          size="small"
+          
           aria-label="启用自动调度"
           @change="toggle(row as unknown as JobRuntime, $event === true)"
         />
@@ -1073,7 +1387,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         <ReButton
           layout="square"
           icon="View"
-          title="查看任务详情"
+          tip="查看任务详情"
           @click="openDetail(row as unknown as JobRuntime)"
         />
         <ReButton
@@ -1081,7 +1395,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           icon="VideoPlay"
           type="primary"
           :disabled="Boolean(busyKey) || row.enabled !== true"
-          :title="
+          :tip="
             row.enabled === true
               ? row.group === COLLECT_FLOW_GROUP ? '立即运行' : '立即触发'
               : '任务已停用，触发不会被派发，请先启用调度'
@@ -1090,26 +1404,55 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         />
         <ReButton
           layout="square"
-          icon="CopyDocument"
-          :disabled="Boolean(busyKey)"
-          :title="row.group === COLLECT_FLOW_GROUP ? '复制流程' : '复制为新建'"
-          @click="copy(row as unknown as JobRuntime)"
-        />
-        <ReButton
-          layout="square"
           icon="Edit"
           :disabled="Boolean(busyKey)"
-          :title="row.group === COLLECT_FLOW_GROUP ? '编辑流程调度' : '编辑任务'"
+          :tip="row.group === COLLECT_FLOW_GROUP ? '编辑流程调度' : '编辑任务'"
           @click="openEdit(row as unknown as JobRuntime)"
         />
-        <ReButton
-          layout="square"
-          icon="Delete"
-          type="danger"
-          :disabled="Boolean(busyKey)"
-          :title="row.group === COLLECT_FLOW_GROUP ? '删除流程' : '删除任务'"
-          @click="remove(row as unknown as JobRuntime)"
-        />
+        <!--
+          低频/危险动作收进「更多」：操作列平铺 6 个方形按钮时，按钮间距 38px 累积到
+          228px，宽一点的列也放不下，删除按钮会被挤到第二行。留 3 个常用动作在外，
+          其余按频率与风险降级到下拉里。
+        -->
+        <el-dropdown trigger="click" :disabled="Boolean(busyKey)">
+          <!--
+            触发器必须是**原生 button**：ReButton 的根节点是 ElTooltip / 异步加载的
+            SquareLayout，都是组件而不是元素，ElDropdown 解析不到触发元素，
+            popper 会挂载却永远不显示（点上去「像没反应」）。外观由 .job-action__more
+            复制 Square.vue 的方形按钮样式，与旁边三个按钮保持一致。
+          -->
+          <button
+            type="button"
+            class="job-action__more"
+            title="更多操作"
+            aria-label="更多操作"
+            :disabled="Boolean(busyKey)"
+          >
+            <ReIcon name="MoreFilled" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-if="canPreviewFireTimes(row as unknown as JobRuntime)"
+                :disabled="Boolean(busyKey)"
+                @click="openFireTimes(row as unknown as JobRuntime)"
+              >
+                后续 5 次执行时间
+              </el-dropdown-item>
+              <el-dropdown-item :disabled="Boolean(busyKey)" @click="copy(row as unknown as JobRuntime)">
+                {{ row.group === COLLECT_FLOW_GROUP ? "复制流程" : "复制为新建" }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                divided
+                :disabled="Boolean(busyKey)"
+                class="job-action__danger"
+                @click="remove(row as unknown as JobRuntime)"
+              >
+                {{ row.group === COLLECT_FLOW_GROUP ? "删除流程" : "删除任务" }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </template>
     </ReTable>
 
@@ -1133,8 +1476,8 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           <button
             type="button"
             class="task-form__type-card"
-            :class="{ 'is-active': !isScriptForm }"
-            @click="setGlueType(GLUE_BEAN)"
+            :class="{ 'is-active': taskKind === 'bean' }"
+            @click="setTaskKind('bean')"
           >
             <strong>对象</strong>
             <span>使用已注册的执行器对象（Bean）执行，从任务列表中选择</span>
@@ -1142,22 +1485,35 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           <button
             type="button"
             class="task-form__type-card"
-            :class="{ 'is-active': form.glueType === GLUE_GROOVY }"
-            @click="setGlueType(GLUE_GROOVY)"
+            :class="{ 'is-active': taskKind === 'script' }"
+            @click="setTaskKind('script')"
           >
             <strong>脚本</strong>
-            <span>Groovy 脚本正文随任务下发到执行器执行，objectContext.getBean 取 Spring Bean</span>
+            <span>写完整文件（完整 Java 类 / 完整 Groovy 脚本），保存时后端预编译校验</span>
           </button>
           <button
             type="button"
             class="task-form__type-card"
-            :class="{ 'is-active': form.glueType === GLUE_JAVA }"
-            @click="setGlueType(GLUE_JAVA)"
+            :class="{ 'is-active': taskKind === 'fragment' }"
+            @click="setTaskKind('fragment')"
           >
-            <strong>Java 片段</strong>
-            <span>完整类源码随任务下发，执行器现场编译后执行，字段上的 @Autowired 生效</span>
+            <strong>片段</strong>
+            <span>只写 @Job 方法的方法体，类名与入口由后端合成</span>
           </button>
         </div>
+
+        <label v-if="taskKind !== 'bean'" class="task-form__engine">
+          <span>语言</span>
+          <ReSelect
+            v-model="glueEngineModel"
+            :data="glueEngineOptions"
+            :clearable="false"
+            placeholder="选择脚本引擎"
+          />
+          <em class="task-form__help">
+            引擎清单来自本进程的 SPI 运行时枚举（{{ taskKind === 'fragment' ? '写方法体' : '写完整文件' }}）
+          </em>
+        </label>
 
         <section class="task-form__section">
           <h3>基本信息</h3>
@@ -1209,6 +1565,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           <ScriptSourceField
             v-model="form.glueSource"
             :lang="glueLang"
+            :mode="taskKind === 'fragment' ? 'fragment' : 'file'"
             :placeholder="glueSourcePlaceholder"
             :description="glueSourceDesc"
           />
@@ -1226,7 +1583,12 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
               <el-switch v-model="form.enabled" />
               <em class="task-form__help">关闭表示只登记台账，不进入自动调度</em>
             </div>
-            <label v-if="form.scheduleType === 'CRON'" class="task-form__field task-form__field--wide">
+            <label
+              v-if="form.scheduleType === 'CRON'"
+              ref="scheduleFieldRef"
+              class="task-form__field task-form__field--wide"
+              :class="{ 'is-error': scheduleError }"
+            >
               <span>cron 表达式</span>
               <ReCron
                 v-model="form.scheduleTime"
@@ -1234,11 +1596,18 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
                 placeholder="6 段表达式，例如 0 0/30 * * * ?"
                 @change="onCronChange"
               />
+              <em v-if="scheduleError" class="task-form__error">{{ scheduleError }}</em>
             </label>
-            <label v-else-if="form.scheduleType !== 'NONE'" class="task-form__field task-form__field--wide">
+            <label
+              v-else-if="form.scheduleType !== 'NONE'"
+              ref="scheduleFieldRef"
+              class="task-form__field task-form__field--wide"
+              :class="{ 'is-error': scheduleError }"
+            >
               <span>调度配置</span>
               <ReInput v-model="form.scheduleTime" placeholder="毫秒数，例如 60000" />
-              <em class="task-form__help">固定频率 / 固定延迟填毫秒间隔</em>
+              <em v-if="scheduleError" class="task-form__error">{{ scheduleError }}</em>
+              <em v-else class="task-form__help">固定频率 / 固定延迟填毫秒间隔</em>
             </label>
             <label class="task-form__field task-form__field--wide">
               <span>执行参数</span>
@@ -1343,7 +1712,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
               <div>
                 <dt>状态</dt>
                 <dd>
-                  <ReTag size="small" :type="detail.enabled ? 'success' : 'info'" effect="solid">
+                  <ReTag :type="detail.enabled ? 'success' : 'info'" effect="solid" dot>
                     {{ detail.enabled ? "启用" : "停用" }}
                   </ReTag>
                 </dd>
@@ -1363,14 +1732,14 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
                 <dd class="job-detail__handler">
                   <span class="job-detail__mono job-detail__link">{{ detail.jobKey }}</span>
                   <span class="job-detail__plus">+</span>
-                  <ReTag size="small" :type="isScriptJob(detail) ? 'primary' : detail.handlerRegistered ? 'success' : 'danger'" effect="solid">
+                  <ReTag :type="isScriptJob(detail) ? 'primary' : detail.handlerRegistered ? 'success' : 'danger'" effect="solid" dot>
                     {{ isScriptJob(detail) ? "代码片段任务" : detail.handlerRegistered ? "已注册" : "未注册" }}
                   </ReTag>
                   <span class="job-detail__mono">{{ detail.glueType || GLUE_BEAN }}</span>
                 </dd>
               </div>
               <div v-if="isScriptJob(detail)" class="job-detail__row-wide">
-                <dt>{{ detail.glueType === GLUE_JAVA ? "Java 代码片段" : "脚本正文" }}</dt>
+                <dt>{{ detailSourceLabel(detail) }}</dt>
                 <dd><pre class="job-detail__code">{{ detail.glueSource || "—" }}</pre></dd>
               </div>
               <div class="job-detail__row-wide">
@@ -1411,20 +1780,65 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         </div>
       </div>
     </ReDialog>
+
+    <!-- 后续执行时间点预览：只对 cron 任务开放，时间由与服务端同源的 CronExpression 算出 -->
+    <ReDialog
+      v-model="fireTimesVisible"
+      :title="`后续 5 次执行时间${fireTimesTitle ? ' · ' + fireTimesTitle : ''}`"
+      width="480px"
+      footer-hidden
+    >
+      <div class="job-fire-times">
+        <ol v-if="fireTimes.length" class="job-fire-times__list">
+          <li v-for="(time, index) in fireTimes" :key="index">
+            <span class="job-fire-times__seq">{{ index + 1 }}</span>
+            <span class="job-fire-times__time">{{ fmtFireTime(time) }}</span>
+          </li>
+        </ol>
+        <p v-else class="job-fire-times__empty">{{ fireTimesError || "暂无数据" }}</p>
+        <p class="job-fire-times__note">
+          由与服务端同一套解析引擎算出，保存后的实际触发时间与此一致；台账行的「下次触发」只显示最近一次。
+        </p>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
 <style scoped>
-/* 根节点挂 collect-page 与其余 11 个视图对齐，拿共享的 flex 列布局与间距 */
+/*
+ * 根节点挂 collect-page 与其余 11 个视图对齐，拿共享的 flex 列布局与间距。
+ *
+ * 这里对 ReTable 做了三处页内调整，都是「本页就该这样」，不动组件默认值：
+ *  1) 关掉布局切换器（见模板 :layout-switch="false"）：调度台账只该以表格呈现，
+ *     组件默认开着且 monitor 应用的 e2e 明确断言「默认可见」，
+ *     所以只能按页关闭，不能翻组件默认值。
+ *  2) 去掉外层卡片背景：台账直接铺在页面底上，不再套一层白卡。
+ *     --rt-bg 同时被用来画行底色（--el-table-tr-bg-color），不能改它，
+ *     只把外层 .re-table 自身的 background 置透明。
+ *  3) 补回滚动条：ReTable 只在调用方传 layout-table 高度时表体才内滚，
+ *     本页没传，而 .job-table 原先是 flex:1+min-height:0 —— 表格被压到容器高度、
+ *     内容溢出且页面 overflow:visible，等于没有滚动条。
+ *     改为按内容自然高度展开 + 页面纵向滚动，行为最可预期。
+ */
 .job-page {
   width: 100%;
+  overflow-y: auto;
 }
 
-/* collect-page 是 flex 列，表格要自己吃掉剩余高度并允许内部滚动 */
 .job-table {
   width: 100%;
-  flex: 1 1 auto;
+  /* 不再吃掉剩余高度：让表格按内容撑开，由 .job-page 滚动 */
+  flex: 0 0 auto;
   min-height: 0;
+}
+
+/*
+ * 去背景要带祖先选择器：ReTable 自身的 `.re-table[data-v-child]` 与本文件的
+ * `.job-table[data-v-parent]` 特异性相同（0,2,0），子组件样式在文档里靠后，
+ * 同特异性下会盖掉本文件。加 `.job-page` 前缀提到 0,4,0 才稳。
+ */
+.job-page .job-table {
+  background: transparent;
 }
 
 .job-toolbar-selected,
@@ -1438,6 +1852,115 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
   color: var(--el-color-warning);
 }
 
+/* 「更多」下拉里的删除项：与其余项同一行高，只用文字色区分危险级，不做整行红底（易与禁用态混淆） */
+.job-action__danger {
+  color: var(--el-color-danger);
+}
+
+/*
+  「更多」触发按钮：复制 ReButton Square.vue 的方形按钮外观（30×30 / 圆角 / 边框同色）。
+  不复用 .rs-btn 类的原因是那套样式是 Square.vue 的 scoped CSS，带自身作用域标记，
+  在别的组件模板里写同名 class 拿不到。之所以不用 ReButton 组件，是为了让
+  el-dropdown 拿到原生元素做触发器（见模板里的注释）。
+  圆角：Square.vue 写死的是 10px，koi 令牌里没有 10 这一档，取最近的
+  --el-radius-md(8px)；与旁边三个方形按钮有 2px 观感差，要完全对齐得改 UI 包本身，本页不越界改。
+*/
+.job-action__more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  /* 原这几行用的是「var(--el-border-color, 写死 hex)」这种带 hex 兜底的写法，
+     兜底色已去掉：koi 主题必定定义这些变量，留一份写死色反而在换肤 / 暗色下露出马脚（兜底色是亮色的） */
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  flex-shrink: 0;
+  transition: all var(--el-transition-duration, 0.2s) ease;
+}
+
+.job-action__more:hover:not(:disabled) {
+  border-color: var(--el-color-primary-light-3);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.job-action__more:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.job-action__more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 键盘可达：原生 button 默认有焦点环，但这里用 transform 做按压反馈，
+   焦点环会被 el-button 的样式压掉，显式补一圈 koi 焦点环 */
+.job-action__more:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 后续执行时间点预览：序号 + 等宽时间，5 行高度稳定不跳动 */
+.job-fire-times__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-fire-times__list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  /* 原写死 8px，对应 koi 的 --el-radius-md */
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+}
+
+.job-fire-times__seq {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  /* 原写死 9999px，对应 koi 的 --el-radius-full */
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.job-fire-times__time {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.job-fire-times__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-color-danger);
+}
+
+.job-fire-times__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
 .task-form {
   display: flex;
   flex-direction: column;
@@ -1447,7 +1970,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
 .task-form__type {
   display: grid;
   /*
-    三张类型卡片（对象 / 脚本 / Java 片段）：按容器实际宽度自适应，不写死列数。
+    三张类型卡片（对象 / 脚本 / 片段）：按容器实际宽度自适应，不写死列数。
     写成 repeat(3, minmax(0,1fr)) 在窄弹层下会把三张卡各挤成 ~72px、文案折成竖线；
     auto-fit + minmax(200px,1fr) 的行为是：容器够宽就一行三列，~420px 两列，再窄一列，
     不会出现细条。判断依据是容器宽度而非视口宽度——弹层实际宽度受 dialog width 与
@@ -1468,9 +1991,10 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color-overlay);
   cursor: pointer;
+  /* 原写死 0.15s，改用 --el-transition-duration 与全站过渡同档 */
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+    border-color var(--el-transition-duration, 0.2s) ease,
+    background-color var(--el-transition-duration, 0.2s) ease;
 }
 
 .task-form__type-card:hover {
@@ -1497,6 +2021,19 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
   color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 1.5;
+}
+
+/* 语言下拉：类型卡下方的独立一行，宽度跟类型卡列宽一致，不铺满弹层 */
+.task-form__engine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 260px;
+}
+
+.task-form__engine > span {
+  color: var(--el-text-color-regular);
+  font-size: 13px;
 }
 
 .task-form__section {
@@ -1541,6 +2078,18 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
   font-size: 12px;
   font-style: normal;
   line-height: 1.5;
+}
+
+/* 调度配置缺失时的内联错误：贴在字段下面，比 toast 更持久、也更靠近出错位置 */
+.task-form__error {
+  color: var(--el-color-danger);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.task-form__field.is-error > span {
+  color: var(--el-color-danger);
 }
 
 .task-form__field--wide {
@@ -1729,6 +2278,72 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
 @media (max-width: 760px) {
   .job-detail__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============ 可操作空态 ============
+   .page-empty 系列的定义在 pages/system/src/styles/system-page.css，那是 system 包的
+   全局 css（随宿主一次性加载）；job 包只有 scheduler.css，未收录这一组类名，
+   且本页样式是 scoped 的，拿不到别的包的全局类，所以此处自带一份最小必要样式，
+   取值与 system 包逐条对齐，换包不会走样。 */
+.page-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.page-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.page-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+.page-empty__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.page-empty__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/*
+  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
+  ReTable 根节点只有圆角与底色、没有描边，这层边框由页面补；不加投影。
+*/
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页的过渡全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table),
+  .job-action__more,
+  .task-form__type-card {
+    transition: none;
   }
 }
 </style>

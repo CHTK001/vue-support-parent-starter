@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
       <div class="tasks-title">
         <el-icon><List /></el-icon>
         <span>任务中心</span>
-        <el-tag size="small" type="info" effect="plain">{{ tasks.length }} 个任务</el-tag>
+        <el-tag type="info" effect="plain">{{ tasks.length }} 个任务</el-tag>
       </div>
       <div class="tasks-actions">
         <el-button :icon="'Refresh'" :loading="loading" @click="refresh">刷新</el-button>
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
       </el-table-column>
       <el-table-column label="状态" width="120" align="center">
         <template #default="{ row }">
-          <el-tag :type="(statusMap[row.status]?.type as any) ?? 'info'" size="small">
+          <el-tag :type="(statusMap[row.status]?.type as any) ?? 'info'" >
             {{ statusMap[row.status]?.label ?? row.status }}
           </el-tag>
         </template>
@@ -189,20 +189,20 @@ onBeforeUnmount(() => {
           <el-button
             link
             type="warning"
-            size="small"
+
             v-if="['downloading', 'pending', 'merging', 'exporting', 'processing'].includes(row.status)"
             @click="onPause(row.id)"
           >
             暂停
           </el-button>
-          <el-button link type="success" size="small" v-if="row.status === 'paused'" @click="onPause(row.id)">
+          <el-button link type="success" v-if="row.status === 'paused'" @click="onPause(row.id)">
             继续
           </el-button>
-          <el-button link type="danger" size="small" @click="onCancel(row.id)">取消</el-button>
-          <el-button link type="primary" size="small" v-if="row.status === 'failed'" @click="onExportPartial(row.id)">
+          <el-button link type="danger" @click="onCancel(row.id)">取消</el-button>
+          <el-button link type="primary" v-if="row.status === 'failed'" @click="onExportPartial(row.id)">
             部分导出
           </el-button>
-          <el-button link type="danger" size="small" @click="onRemove(row.id)">删除</el-button>
+          <el-button link type="danger" @click="onRemove(row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

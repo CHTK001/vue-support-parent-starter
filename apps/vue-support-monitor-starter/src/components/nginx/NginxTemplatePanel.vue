@@ -17,7 +17,7 @@
       >
         <div class="ngx-card-head">
           <span class="ngx-card-title">{{ t.title }}</span>
-          <ReTag size="small" :type="t.difficulty === 'easy' ? 'success' : 'warning'">
+          <ReTag :type="t.difficulty === 'easy' ? 'success' : 'warning'">
             {{ t.difficulty === "easy" ? "简单" : "进阶" }}
           </ReTag>
         </div>

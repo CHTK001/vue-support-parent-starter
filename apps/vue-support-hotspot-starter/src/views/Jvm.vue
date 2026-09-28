@@ -7,10 +7,10 @@
         <span class="live-hint" v-if="live">5s 自动刷新中</span>
       </div>
       <div class="toolbar-right">
-        <ReRadioGroup v-model="metricsWindow" size="small" @change="onWindowChange">
+        <ReRadioGroup v-model="metricsWindow" @change="onWindowChange">
           <ReRadioButton v-for="w in windowOptions" :key="w.value" :value="w.value" :label="w.label" />
         </ReRadioGroup>
-        <ReButton size="small" icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Refresh" show-text :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -26,7 +26,7 @@
           <div class="metric-line">
             <div class="metric-value">{{ mb(snapshot.memory.heapUsed) }}<span class="metric-unit"> / {{ mb(snapshot.memory.heapMax) }} MB</span></div>
             <div class="meter"><div class="meter-fill" :style="{ width: snapshot.memory.heapUsedPercent + '%' }" /></div>
-            <ReTag :type="snapshot.memory.heapUsedPercent > 85 ? 'danger' : snapshot.memory.heapUsedPercent > 60 ? 'warning' : 'success'" size="small" round>
+            <ReTag :type="snapshot.memory.heapUsedPercent > 85 ? 'danger' : snapshot.memory.heapUsedPercent > 60 ? 'warning' : 'success'" round>
               {{ snapshot.memory.heapUsedPercent.toFixed(1) }}%
             </ReTag>
           </div>
@@ -57,7 +57,7 @@
         </div>
         <div class="panel">
           <div class="panel-head"><span>进程信息</span></div>
-          <ReDescriptions :column="2" border size="small">
+          <ReDescriptions :column="2" border >
             <ReDescriptionsItem label="PID">{{ (snapshot.process as Record<string, unknown>).pid ?? '—' }}</ReDescriptionsItem>
             <ReDescriptionsItem label="主机">{{ (snapshot.process as Record<string, unknown>).hostName ?? '—' }}</ReDescriptionsItem>
             <ReDescriptionsItem label="JVM">{{ String((snapshot.process as Record<string, unknown>).vmVersion ?? '—') }}</ReDescriptionsItem>
@@ -76,12 +76,12 @@
       <div class="panel-row">
         <div class="panel">
           <div class="panel-head"><span>线程池</span><span class="panel-sub">按线程名分组（/thread-pools）</span></div>
-          <el-table :data="threadPools" class="apm-table" size="small" empty-text="暂无线程池数据">
+          <el-table :data="threadPools" class="apm-table" empty-text="暂无线程池数据">
             <el-table-column prop="name" label="线程组" min-width="140">
               <template #default="{ row }">
                 <span class="mono">
                   {{ row.name }}
-                  <ReTag v-if="row.knownPool" type="success" size="small" round effect="plain" style="margin-left:6px">已知池</ReTag>
+                  <ReTag v-if="row.knownPool" type="success" round effect="plain" style="margin-left:6px">已知池</ReTag>
                 </span>
               </template>
             </el-table-column>
@@ -96,7 +96,7 @@
         </div>
         <div class="panel">
           <div class="panel-head"><span>连接池</span><span class="panel-sub">按目标端点分组 + OS-FD（/connection-pools）</span></div>
-          <el-table :data="connectionPools" class="apm-table" size="small" empty-text="暂无连接池数据">
+          <el-table :data="connectionPools" class="apm-table" empty-text="暂无连接池数据">
             <el-table-column label="端点" min-width="160">
               <template #default="{ row }">
                 <span class="mono">{{ row.endpoint }}</span>
@@ -307,7 +307,7 @@ onBeforeUnmount(() => {
 }
 .live-hint {
   font-size: 12px;
-  color: var(--apm-success, #22c55e);
+  color: var(--apm-success);
 }
 .panel-row {
   display: grid;
@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
 .panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
   padding: 16px;
 }
 .panel-head {
@@ -353,14 +353,23 @@ onBeforeUnmount(() => {
 .meter {
   flex: 1;
   height: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color);
   overflow: hidden;
 }
+/* 绿→琥珀→红是内存水位语义色带，改用语义令牌，跨主题仍保持「低=绿 / 高=红」 */
 .meter-fill {
   height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #22c55e, #f59e0b 70%, #ef4444);
+  border-radius: var(--el-radius-xs, 4px);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-success),
+    var(--el-color-warning) 70%,
+    var(--el-color-danger)
+  );
+  /* 时长保留 0.5s：这是数据刷新动画（5s 轮询一次）不是微交互，
+     --el-transition-duration-* 没有能表达 0.5s 的档位，
+     而 var(--el-transition-duration, 0.5s) 的兜底会被 EP 根上的 .3s 顶掉（同死代码问题） */
   transition: width 0.5s ease;
 }
 .chip-row {
@@ -377,6 +386,18 @@ onBeforeUnmount(() => {
 @media (max-width: 900px) {
   .panel-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill {
+    transition: none;
+  }
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>

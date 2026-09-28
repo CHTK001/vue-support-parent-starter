@@ -1,7 +1,15 @@
 <template>
   <div class="idc" @click.self="emit('close')">
     <section class="idc__panel">
-      <button type="button" class="idc__close" title="关闭" @click="emit('close')">✕</button>
+      <button
+        type="button"
+        class="idc__close"
+        title="关闭"
+        aria-label="关闭"
+        @click="emit('close')"
+      >
+        <ReIcon name="Close" :size="15" aria-hidden="true" />
+      </button>
 
       <header class="idc__head">
         <h2 class="idc__title">{{ kindTitle }}</h2>
@@ -253,8 +261,10 @@ function optionClass(i: number): Record<string, boolean> {
   position: relative;
   width: min(560px, 100%);
   background: var(--el-bg-color);
-  border-radius: 26px;
+  /* 原 26px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 24px 26px 22px;
+  /* 模态浮层不是卡片：保留 EP 自带的 --el-box-shadow-dark 表达「浮在遮罩之上」 */
   box-shadow: var(--el-box-shadow-dark);
 }
 .idc__close {
@@ -264,11 +274,21 @@ function optionClass(i: number): Record<string, boolean> {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 50%;
+  /* 纯圆形关闭按钮用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
   font-size: 15px;
   cursor: pointer;
+  /* 换成 ReIcon 后需要 flex 容器让图标居中 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.idc__close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .idc__head {
   margin-bottom: 12px;
@@ -293,9 +313,9 @@ function optionClass(i: number): Record<string, boolean> {
 .idc__pip {
   flex: 1;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color);
-  transition: background 0.2s;
+  transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
 .idc__pip.is-done {
   background: var(--el-color-primary-light-5);
@@ -346,15 +366,21 @@ function optionClass(i: number): Record<string, boolean> {
   width: 100%;
   text-align: left;
   padding: 11px 14px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 2px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .idc__option:hover:not(:disabled) {
   border-color: var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
+}
+.idc__option:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .idc__option:disabled {
   cursor: default;
@@ -371,7 +397,8 @@ function optionClass(i: number): Record<string, boolean> {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  /* 选项序号圆用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   font-size: 12px;
@@ -390,7 +417,7 @@ function optionClass(i: number): Record<string, boolean> {
   font-size: 13px;
   line-height: 1.8;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
 }
 .idc__explain.is-right {
   background: var(--el-color-success-light-9);
@@ -411,15 +438,21 @@ function optionClass(i: number): Record<string, boolean> {
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 2px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .idc__stage:hover:not(:disabled) {
   border-color: var(--el-color-primary-light-5);
+}
+.idc__stage:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .idc__stage.is-active {
   border-color: var(--el-color-primary);
@@ -449,12 +482,17 @@ function optionClass(i: number): Record<string, boolean> {
 .idc__btn {
   height: 42px;
   padding: 0 20px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   border: 0;
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
-  transition: transform 0.15s, opacity 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .idc__btn:disabled {
   opacity: 0.45;
@@ -463,10 +501,16 @@ function optionClass(i: number): Record<string, boolean> {
 .idc__btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
+.idc__btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .idc__btn--primary {
   background: var(--el-color-primary);
   color: var(--el-color-white);
-  box-shadow: 0 8px 18px rgba(var(--el-color-primary-rgb), 0.32);
+  /* 按钮不是卡片：常驻投影去掉，改由 :hover 统一给浮起反馈 */
+}
+.idc__btn:hover:not(:disabled) {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
 }
 .idc__btn--ghost {
   background: var(--el-fill-color);
@@ -476,5 +520,19 @@ function optionClass(i: number): Record<string, boolean> {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
   border: 2px solid var(--el-color-primary);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .idc__pip,
+  .idc__option,
+  .idc__stage,
+  .idc__btn {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .idc__btn:hover:not(:disabled) {
+    transform: none;
+  }
 }
 </style>

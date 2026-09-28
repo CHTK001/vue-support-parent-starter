@@ -307,7 +307,7 @@
             <span class="viz-title">指标趋势 (近 {{ trendHours }}h)</span>
           </div>
           <div class="viz-actions">
-            <ReSelect v-model="trendHours" size="small" style="width: 80px; margin-right: 8px" @change="onMonitorChange"
+            <ReSelect v-model="trendHours" style="width: 80px; margin-right: 8px" @change="onMonitorChange"
               :data="[{ value: 1, label: '1h' }, { value: 6, label: '6h' }, { value: 12, label: '12h' }, { value: 24, label: '24h' }]" />
             <span class="viz-sub">{{ seriesSourceLabel }}</span>
           </div>
@@ -703,6 +703,13 @@ onBeforeUnmount(() => {
 </script>
 
  <style scoped>
+/* 本文件原先整套用 pages/monitor/src/styles/tokens.css 的私有令牌（--bg-* / --text-*
+   / --border-subtle / --status-success / --shadow-card* / --border-radius* /
+   --transition-base），而那份 tokens.css 只有 :root、没有暗色变体，暗色模式下这些值
+   全部停留在亮色。已统一改走 EP 语义令牌；--metric-* 是各监控域的固定色相
+   （CPU 蓝 / 内存紫 / 磁盘橙，需彼此可区分），保留不换。 */
+/* 页面入场淡入：0.35s 刻意慢于微交互档（整块内容从下方 8px 升起，需要时间被看清），
+   且 both 填充保证动画结束后停在终态，reduced-motion 下直接停掉不会留残影 */
 .fade-in { animation: fadeIn 0.35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
@@ -711,12 +718,14 @@ onBeforeUnmount(() => {
   align-items: flex-end;
   gap: 16px;
   padding: 16px;
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+  background: var(--el-bg-color);
+  /* 原为 var(--border-radius)（tokens.css 里是 10px），10px 距 8/12 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  /* koi 规约：容器静止态不加投影，边界改由这圈 1px 边框承载 */
+  border: 1px solid var(--el-border-color-lighter);
 }
 .sel-group { display: flex; flex-direction: column; gap: 4px; }
-.sel-label { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; }
+.sel-label { font-size: 11.5px; color: var(--el-text-color-secondary); font-weight: 500; }
 .sel-select { width: 340px; }
 .meta-info { display: flex; gap: 14px; flex: 1; align-items: flex-end; }
 .meta-item {
@@ -724,25 +733,29 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--el-text-color-regular);
 }
 .meta-item .dot {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   background: var(--metric-cpu);
 }
-.meta-item .dot-time { background: var(--text-tertiary); }
+.meta-item .dot-time { background: var(--el-text-color-placeholder); }
 .top-actions { display: flex; align-items: center; }
+/* 注意：.refresh-btn 在模板里已经没有对应元素（刷新按钮换成了 ReButton），
+   属于遗留死规则；本次只做令牌化，不删它，留给后续清理 */
 .refresh-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--el-radius-sm, 6px);
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 500;
-  transition: var(--transition-base);
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .metric-grid {
@@ -753,13 +766,19 @@ onBeforeUnmount(() => {
 }
 
 .metric-card {
+  /* koi 规约：卡片静止态不加投影，边界由边框承载；
+     注意 border 必须写在 border-left 之前，否则左侧 3px 强调条会被 1px 边框顶掉 */
+  border: 1px solid var(--el-border-color-lighter);
   border-left: 3px solid transparent;
-  transition: var(--transition-base);
-  background: var(--bg-container-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
+  /* 原为 var(--transition-base)（展开即 all 0.18s ease），显式列出真实会变的属性并取 0.2s 档 */
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--el-bg-color);
+  border-radius: var(--el-radius-lg, 12px);
 }
-.metric-card:hover { box-shadow: var(--shadow-card-hover); }
+/* 允许的两处投影之一：悬浮抬升反馈 */
+.metric-card:hover { box-shadow: var(--el-box-shadow); }
 .metric-card.warn { border-left-color: var(--metric-disk); }
 
 .card-head {
@@ -768,19 +787,19 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
 .card-status {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 10.5px;
   font-weight: 600;
 }
 .card-status.ok {
-  color: var(--status-success);
-  background: color-mix(in srgb, var(--status-success) 10%, transparent);
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
 }
 .card-status.warn {
   color: var(--metric-disk);
@@ -806,16 +825,18 @@ onBeforeUnmount(() => {
 .ring {
   width: 110px;
   height: 110px;
-  border-radius: 50%;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 8px;
   box-sizing: content-box;
+  /* 保留 0.4s 与 transition: all：进度环的底色是模板 inline style 拼的 conic-gradient，
+     真正要过渡的正是这个 background 渐变（数据刷新时让数值变化看得见），不属于微交互档 */
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ring-inner {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  background: var(--bg-container-card);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -832,19 +853,19 @@ onBeforeUnmount(() => {
 .ring-value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   letter-spacing: -0.5px;
   line-height: 1;
 }
 .ring-unit {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   margin-top: 4px;
   font-weight: 500;
 }
 .ring-label {
   font-size: 11px;
-  color: var(--status-success);
+  color: var(--el-color-success);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -858,12 +879,12 @@ onBeforeUnmount(() => {
 }
 .detail-label {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   font-weight: 500;
 }
 .detail-value {
   font-size: 12.5px;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
@@ -873,12 +894,12 @@ onBeforeUnmount(() => {
   gap: 2px;
   margin-top: 6px;
   padding-top: 8px;
-  border-top: 1px dashed var(--border-subtle);
+  border-top: 1px dashed var(--el-border-color-lighter);
 }
 .spark-svg { width: 100%; height: 30px; }
 .spark-label {
   font-size: 10.5px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   text-align: center;
 }
 
@@ -888,14 +909,14 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 4px 10px;
   margin-bottom: 4px;
-  background: var(--bg-fill);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-subtle);
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  border: 1px solid var(--el-border-color-lighter);
 }
 .jvm-version {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
   font-family: 'SF Mono', 'Cascadia Code', 'Menlo', monospace;
   letter-spacing: 0.3px;
 }
@@ -903,49 +924,50 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 500;
   padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--metric-cpu) 10%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--metric-cpu) 12%, transparent);
   color: var(--metric-cpu);
 }
 .jvm-gc {
   font-size: 11px;
   font-weight: 500;
   padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--status-success) 8%, transparent);
-  color: var(--status-success);
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  color: var(--el-color-success);
 }
 
 .disk-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .disk-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-.disk-mount { color: var(--text-secondary); min-width: 40px; font-weight: 500; }
+.disk-mount { color: var(--el-text-color-regular); min-width: 40px; font-weight: 500; }
 .disk-bar-wrap {
   flex: 1;
   height: 6px;
-  background: var(--bg-fill);
-  border-radius: 3px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-xs, 4px);
   overflow: hidden;
 }
 .disk-bar {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--el-radius-xs, 4px);
+  /* 进度条宽度过渡刻意慢于微交互档：磁盘占用的数值变化要看得见 */
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.disk-pct { color: var(--text-tertiary); min-width: 36px; text-align: right; }
+.disk-pct { color: var(--el-text-color-secondary); min-width: 36px; text-align: right; }
 
 .uptime-bar {
   height: 6px;
-  background: var(--bg-fill);
-  border-radius: 3px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-xs, 4px);
   overflow: hidden;
   margin-top: 6px;
 }
 .uptime-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--el-radius-xs, 4px);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.uptime-text { font-size: 10.5px; color: var(--text-tertiary); margin-top: 4px; }
+.uptime-text { font-size: 10.5px; color: var(--el-text-color-secondary); margin-top: 4px; }
 
 .viz-head {
   display: flex;
@@ -953,7 +975,26 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 .viz-title-wrap { display: flex; align-items: center; gap: 8px; }
-.viz-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.viz-sub { font-size: 11.5px; color: var(--text-tertiary); }
+.viz-title { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.viz-sub { font-size: 11.5px; color: var(--el-text-color-secondary); }
 .viz-body { width: 100%; }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  /* 入场淡入可停：animation 用 both 填充，终态是完全不透明且无位移，停掉即直接呈现 */
+  .fade-in {
+    animation: none;
+  }
+  .metric-card,
+  .refresh-btn {
+    transition: none;
+  }
+  /* 三个进度类动画（环形 conic-gradient、磁盘条、运行时长条）都可停：
+     它们的终值是脚本直接给的，动画只是让它平滑一点，不是唯一信息来源 */
+  .ring,
+  .disk-bar,
+  .uptime-bar-fill {
+    transition: none;
+  }
+}
  </style>

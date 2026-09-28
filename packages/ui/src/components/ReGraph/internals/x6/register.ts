@@ -102,7 +102,11 @@ export function ensureRegistered(extra: ReGraphNodeTypeDef[] = []): void {
 export function buildNodeMetadata(node: ReGraphNode) {
   const def = resolveNodeType(node.type);
   return {
-    shape: `re-graph-node-${node.type ?? "default"}`,
+    // shape 必须取 resolveNodeType 归一化后的类型，不能直接用 node.type：
+    // 调色板只注册了 start/llm/knowledge/... 这一批，调用方传业务自定义类型
+    // （如关系图谱的 person/location/event）时，直接拼接会得到未注册的 shape，
+    // X6 会抛 "Node with name 'xxx' does not exist" 并导致整张图渲染不出来。
+    shape: `re-graph-node-${def.type}`,
     id: node.id,
     x: node.x ?? 0,
     y: node.y ?? 0,

@@ -320,8 +320,8 @@ onMounted(async () => {
     <ReSectionHead description="反向代理节点（HTTP_PROXY / TCP_PROXY / SOCKS 等），支持增删改查与启停">
       <template #title>代理（反向代理服务器）</template>
       <template #actions>
-        <ReButton icon="Plus" :show-text="true" size="small" @click="openCreate">新增代理节点</ReButton>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="loadList">
+        <ReButton icon="Plus" :show-text="true" @click="openCreate">新增代理节点</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="loadList">
           刷新
         </ReButton>
       </template>
@@ -340,7 +340,7 @@ onMounted(async () => {
         :data="list"
         :columns="columns"
         :loading="loading"
-        size="small"
+
         stripe
         table-id="proxy-server-list"
       >
@@ -364,10 +364,10 @@ onMounted(async () => {
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
-            <ReButton icon="Play" layout="square" size="small" type="success" title="启动" :disabled="row.status === 'RUNNING'" @click="doStart(row)" />
-            <ReButton icon="Pause" layout="square" size="small" type="warning" title="停止" :disabled="row.status !== 'RUNNING'" @click="doStop(row)" />
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
-            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeOne(row)" />
+            <ReButton icon="Play" layout="square" type="success" title="启动" :disabled="row.status === 'RUNNING'" @click="doStart(row)" />
+            <ReButton icon="Pause" layout="square" type="warning" title="停止" :disabled="row.status !== 'RUNNING'" @click="doStop(row)" />
+            <ReButton icon="EditPen" layout="square" title="编辑" @click="openEdit(row)" />
+            <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="removeOne(row)" />
           </div>
         </template>
       </ReTable>
@@ -382,33 +382,33 @@ onMounted(async () => {
     >
       <div class="node-form">
         <ReFormItem label="节点名称" required>
-          <ReInput v-model="form.name" placeholder="如 内网 HTTP 代理" size="small" />
+          <ReInput v-model="form.name" placeholder="如 内网 HTTP 代理" />
         </ReFormItem>
         <ReFormItem label="代理协议" required>
-          <ReSelect v-model="form.protocol" size="small" style="width:100%" :options="protocolOptions" @change="onProtocolChange" />
+          <ReSelect v-model="form.protocol" style="width:100%" :options="protocolOptions" @change="onProtocolChange" />
         </ReFormItem>
         <ReFormItem label="监听主机">
-          <ReInput v-model="form.host" placeholder="0.0.0.0 表示全部网卡" size="small" />
+          <ReInput v-model="form.host" placeholder="0.0.0.0 表示全部网卡" />
         </ReFormItem>
         <ReFormItem label="监听端口" required>
-          <ReInputNumber v-model="form.port" :min="1" :max="65535" size="small" style="width:100%" />
+          <ReInputNumber v-model="form.port" :min="1" :max="65535" style="width:100%" />
         </ReFormItem>
         <template v-if="requiresBackend">
           <ReFormItem label="后端主机" required>
-            <ReInput v-model="form.backendHost" placeholder="如 127.0.0.1" size="small" />
+            <ReInput v-model="form.backendHost" placeholder="如 127.0.0.1" />
           </ReFormItem>
           <ReFormItem label="后端端口">
-            <ReInputNumber v-model="form.backendPort" :min="1" :max="65535" size="small" style="width:100%" />
+            <ReInputNumber v-model="form.backendPort" :min="1" :max="65535" style="width:100%" />
           </ReFormItem>
         </template>
         <ReFormItem label="引擎">
-          <ReInput v-model="form.engine" placeholder="缺省 jdk" size="small" />
+          <ReInput v-model="form.engine" placeholder="缺省 jdk" />
         </ReFormItem>
         <ReFormItem label="启用">
-          <el-switch v-model="enabledSwitch" size="small" />
+          <el-switch v-model="enabledSwitch" />
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="form.remark" placeholder="可选" size="small" />
+          <ReInput v-model="form.remark" placeholder="可选" />
         </ReFormItem>
         <p class="muted">保存后节点按新配置重建监听端口，运行中的节点会先停止再启动。</p>
       </div>

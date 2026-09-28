@@ -240,7 +240,7 @@ onMounted(() => {
         <el-table-column prop="sysMessageTemplateCode" label="编码" min-width="130" />
         <el-table-column prop="sysMessageTemplateType" label="类型" width="90">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.sysMessageTemplateType }}</el-tag>
+            <el-tag effect="plain">{{ row.sysMessageTemplateType }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="90">

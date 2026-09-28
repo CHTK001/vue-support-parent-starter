@@ -63,6 +63,46 @@
   gap: 8px;
 }
 
+/* 可操作空态：配合 ReTable 的 #empty 插槽使用
+   用法：<template #empty><div class="page-empty">…</div></template>
+   纯样式，不含文案与按钮，文案由页面给，避免 15 个页面各写一套 */
+.page-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.page-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.page-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+.page-empty__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.page-empty__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
 /* 响应式：移动端适当减小内边距 */
 @media screen and (max-width: 768px) {
   .system-page {

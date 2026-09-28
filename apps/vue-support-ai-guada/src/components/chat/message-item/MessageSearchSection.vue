@@ -72,7 +72,8 @@ watch(() => props.isSearching, (v: boolean) => {
 
 <style scoped>
 .search-section {
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   overflow: hidden;
   animation: fadeIn 0.3s ease;
 }
@@ -92,7 +93,8 @@ watch(() => props.isSearching, (v: boolean) => {
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
@@ -146,5 +148,42 @@ watch(() => props.isSearching, (v: boolean) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 动效降级：系统开启「减少动态效果」时，检索块直接出现在终态。
+   逐个列出，不写 `*` / `.process-section *` 通配，
+   避免把 el-icon / a 标签内部 Element Plus 组件的合法过渡一起掐掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .search-section {
+    animation: none;
+  }
+
+  /* 地球图标旋转：标题文案本身已经在「正在检索 / 检索完成」之间切换，
+     并不是唯一的加载信号；但仍先给一个静态的进行中标记再关动画，
+     这样在颜色单一的场景下也不会把「还在转」这条线索彻底抹掉。 */
+  .is-spinning {
+    color: var(--el-color-primary);
+    animation: none;
+  }
+
+  /* 三点等待动画（检索中且尚未拿到检索词时显示）：
+     真正挂 animation 的是 .search-dots i，所以选择器要落到 i 上才关得掉。
+     显式钉死 opacity: 1 —— dotPulse 是 0.2 ↔ 1 的循环，删掉动画后必须保证
+     三个点仍然看得见，否则「正在检索」就只剩一片空白、用户以为卡死。 */
+  .search-dots i {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* 键盘焦点可见性：标题行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
+   环用主色 12% —— 底色是聊天区表面色，深浅主题下都只是一档主色描边。 */
+.search-section__header {
+  outline: none;
+}
+
+.search-section__header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

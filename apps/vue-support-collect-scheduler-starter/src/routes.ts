@@ -25,6 +25,13 @@ export const hostRoutes: RouteConfigsTable[] = [
     component: () => import("./views/DashboardView.vue"),
     meta: { title: "平台总览", icon: "Odometer", showLink: true, keepAlive: true, rank: 0, isVisible: "1" },
   },
+  {
+    // 临时验收路由（ReFlowGraph 细粒度开关），验收后随 FlowGapProbe.vue 一起删
+    path: "/collect/flowgap-probe",
+    name: "FlowGapProbe",
+    component: () => import("./views/FlowGapProbe.vue"),
+    meta: { title: "流程图探针", showLink: false },
+  },
 ];
 
 export default hostRoutes;

@@ -37,7 +37,7 @@
             v-model="globalSearch"
             placeholder="全局搜索 traceId / 日志关键词 / 端点（按 / 聚焦）"
             clearable
-            size="small"
+
             class="global-search"
             @keyup.enter="applyGlobalSearch"
           >
@@ -46,8 +46,8 @@
             </template>
           </el-input>
           <span class="header-clock mono">{{ clockText }}</span>
-          <el-tag v-if="agentActive" type="success" size="small" round>Agent 运行中</el-tag>
-          <el-tag v-else type="info" size="small" round>降级模式</el-tag>
+          <el-tag v-if="agentActive" type="success" round>Agent 运行中</el-tag>
+          <el-tag v-else type="info" round>降级模式</el-tag>
         </div>
       </header>
       <section class="apm-content">
@@ -171,8 +171,8 @@ onUnmounted(() => {
 .apm-root {
   display: flex;
   height: 100vh;
-  background: var(--apm-bg, #0b0f1a);
-  color: var(--apm-fg, #e6edf7);
+  background: var(--apm-bg);
+  color: var(--apm-fg);
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -182,8 +182,9 @@ onUnmounted(() => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(17, 24, 41, 0.9);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  /* 侧栏用面板色与主区拉开一档，边界交给右边框承载（koi 规约：卡片不投影） */
+  background: var(--apm-panel);
+  border-right: 1px solid var(--apm-border);
   padding: 20px 14px;
   gap: 24px;
 }
@@ -198,11 +199,11 @@ onUnmounted(() => {
 .brand-logo {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 10px，取最近档 lg */
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-5));
+  color: var(--el-color-white);
 }
 
 .brand-text {
@@ -218,7 +219,7 @@ onUnmounted(() => {
 
 .brand-sub {
   font-size: 11px;
-  color: rgba(230, 237, 247, 0.45);
+  color: var(--el-text-color-placeholder);
   letter-spacing: 0.5px;
 }
 
@@ -229,17 +230,27 @@ onUnmounted(() => {
   flex: 1;
 }
 
+/* router-link 渲染成 <a>，是可点元素：补手型光标与键盘焦点环 */
 .apm-nav-item {
   position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   font-size: 14px;
-  color: rgba(230, 237, 247, 0.7);
-  transition: background 0.15s, color 0.15s;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  outline: none;
+  /* 只过渡 background-color：background 简写会连带触发 background-image 重绘 */
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
   text-decoration: none;
+}
+
+.apm-nav-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .apm-nav-item::before {
@@ -249,10 +260,10 @@ onUnmounted(() => {
   top: 20%;
   height: 60%;
   width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  border-radius: var(--el-radius-xs, 4px); /* 原 2px，取最近档 xs */
+  background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-5));
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .apm-nav-item.active::before {
@@ -260,13 +271,17 @@ onUnmounted(() => {
 }
 
 .apm-nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: var(--el-fill-color-light);
+  color: var(--el-color-white);
 }
 
 .apm-nav-item.active {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.12));
-  color: #fff;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--el-color-primary) 20%, transparent),
+    color-mix(in srgb, var(--el-color-primary-light-5) 12%, transparent)
+  );
+  color: var(--el-color-white);
   font-weight: 500;
 }
 
@@ -275,14 +290,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: rgba(230, 237, 247, 0.5);
+  color: var(--el-text-color-secondary);
   padding: 0 6px;
 }
 
 .footer-version {
   margin-left: auto;
   font-size: 10px;
-  color: rgba(230, 237, 247, 0.3);
+  color: var(--el-text-color-placeholder);
   font-family: "JetBrains Mono", Consolas, monospace;
 }
 
@@ -295,28 +310,30 @@ onUnmounted(() => {
 
 .global-search {
   width: 320px;
-  --el-input-bg-color: rgba(255, 255, 255, 0.04);
-  --el-input-border-color: var(--apm-border, rgba(255, 255, 255, 0.08));
-  --el-input-text-color: var(--apm-fg, #e6edf7);
-  --el-input-placeholder-color: var(--apm-muted, rgba(230, 237, 247, 0.4));
+  /* 输入框底色保留“内凹半透明”观感，但改成令牌派生才能跟随明暗主题 */
+  --el-input-bg-color: color-mix(in srgb, var(--el-fill-color) 60%, transparent);
+  --el-input-border-color: var(--el-border-color-lighter);
+  --el-input-text-color: var(--el-text-color-primary);
+  --el-input-placeholder-color: var(--el-text-color-placeholder);
 }
 
 .global-search :deep(.el-input-group__append) {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--el-fill-color-light);
   box-shadow: none;
-  border-color: var(--apm-border, rgba(255, 255, 255, 0.08));
+  border-color: var(--el-border-color-lighter);
 }
 
 .agent-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: #6b7280;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-info);
 }
 
+/* 连接状态：灰 → 绿本身就是唯一信号，不再叠发光投影
+   （koi 规约只允许焦点环与悬浮反馈两类 box-shadow） */
 .agent-dot.on {
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  background: var(--el-color-success);
 }
 
 /* ---- 主区 ---- */
@@ -334,8 +351,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(11, 15, 26, 0.6);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: color-mix(in srgb, var(--el-bg-color) 60%, transparent);
 }
 
 .apm-header h1 {
@@ -358,34 +375,56 @@ onUnmounted(() => {
 /* ---- 过渡 ---- */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.18s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
+
+/* 尊重系统「减少动态效果」偏好：关掉过渡后导航项仍靠 active 类 + ::before 强调条表达状态 */
+@media (prefers-reduced-motion: reduce) {
+  .apm-nav-item,
+  .apm-nav-item::before,
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
+  }
+}
 </style>
 
 <style>
 /* 全局变量与基础样式（非 scoped） */
+/* APM 语义色全部由 Element Plus / koi 令牌派生：
+   这样整套 APM 皮肤跟随系统明暗主题，页面里不再出现写死 hex。
+   语义命名保留（本层等同 --rm-* 的库内语义层），便于一处调参。 */
 :root {
-  --apm-bg: #0b0f1a;
-  --apm-panel: #131a2b;
-  --apm-fg: #e6edf7;
-  --apm-muted: rgba(230, 237, 247, 0.55);
-  --apm-border: rgba(255, 255, 255, 0.08);
-  --apm-accent: #3b82f6;
-  --apm-danger: #ef4444;
-  --apm-warning: #f59e0b;
-  --apm-success: #22c55e;
+  --apm-bg: var(--el-bg-color);
+  --apm-panel: var(--el-bg-color-overlay);
+  --apm-fg: var(--el-text-color-primary);
+  --apm-muted: var(--el-text-color-secondary);
+  --apm-border: var(--el-border-color-lighter);
+  --apm-accent: var(--el-color-primary);
+  --apm-danger: var(--el-color-danger);
+  --apm-warning: var(--el-color-warning);
+  --apm-success: var(--el-color-success);
 }
 
 body {
   margin: 0;
+  /* 两团极淡的环境光晕，只做氛围不承载信息，故用极低比例 color-mix 派生 */
   background:
-    radial-gradient(1200px 600px at 85% -10%, rgba(139, 92, 246, 0.08), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(59, 130, 246, 0.07), transparent 60%),
+    radial-gradient(
+      1200px 600px at 85% -10%,
+      color-mix(in srgb, var(--el-color-primary-light-5) 8%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at -10% 110%,
+      color-mix(in srgb, var(--el-color-primary) 7%, transparent),
+      transparent 60%
+    ),
     var(--apm-bg);
 }
 

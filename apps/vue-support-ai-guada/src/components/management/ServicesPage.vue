@@ -29,7 +29,7 @@
         <el-table-column prop="name" label="服务名称" min-width="180" />
         <el-table-column prop="running" label="运行状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.running ? 'success' : 'info'" size="small">
+            <el-tag :type="row.running ? 'success' : 'info'" >
               {{ row.running ? '运行中' : '已停止' }}
             </el-tag>
           </template>
@@ -166,11 +166,12 @@ onMounted(loadData);
 .svc-subtitle { font-size: 13px; color: var(--el-text-color-secondary); margin: 5px 0 0; }
 .svc-empty { font-size: 13px; color: var(--el-text-color-secondary); }
 .panel-card {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px 16px 12px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  /* 表格容器是页面区块，不加投影 */
 }
 .flat-table { --el-table-border-color: var(--el-border-color-lighter); }
 .flat-table :deep(th.el-table__cell) {

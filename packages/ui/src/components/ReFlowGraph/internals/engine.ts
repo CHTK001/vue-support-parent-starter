@@ -35,6 +35,7 @@ import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
 import { MiniMap } from "@antv/x6-plugin-minimap";
 import { Export } from "@antv/x6-plugin-export";
+import type { Component } from "vue";
 import { isDagTerminalAllowed } from "./dagRules";
 import {
   DEFAULT_NODE_COLOR,
@@ -146,7 +147,27 @@ export interface FlowEngineOptions {
   readonly?: boolean;
   /** 网格背景 */
   grid?: boolean;
+  /** 画布平移（空格 + 拖），缺省 true */
+  panning?: boolean;
+  /** 滚轮缩放，缺省 true */
+  zoom?: boolean;
+  /**
+   * 节点能否被拖动，缺省 true。
+   *
+   * 与 `readonly` 分开是因为真实需求里有「只读但允许挪位置看布局」这一档，
+   * 而 `readonly` 是一刀切关掉节点拖动 / 边拖动 / 折点增删七项，粒度太粗。
+   */
+  nodeDraggable?: boolean;
+  /** 宿主自定义节点体组件；给了则所有节点用它渲染 */
+  nodeComponent?: Component | null;
   handlers?: FlowEngineHandlers;
+}
+
+/** 交互开关的补丁，供运行时改 prop 用 */
+export interface FlowInteractionPatch {
+  panning?: boolean;
+  zoom?: boolean;
+  nodeDraggable?: boolean;
 }
 
 export class FlowGraphEngine {
@@ -155,13 +176,22 @@ export class FlowGraphEngine {
   /** setData 期间抑制 change 事件，避免上层拿到半成品 */
   private loading = false;
   private types: FlowNodeTypeDef[];
+  /**
+   * 本实例建节点用的形状名。
+   *
+   * 存成实例字段而不是全局变量：同一页面可以同时开「内置卡片」和「自定义组件」
+   * 两个画布，全局状态会让后建的把先建的形状一起换掉（实测会串）。
+   */
+  private nodeShape: string;
 
   constructor(options: FlowEngineOptions) {
-    ensureFlowRegistered();
+    this.nodeShape = ensureFlowRegistered(options.nodeComponent);
     this.opts = options;
     this.types = options.nodeTypes ?? [];
 
     const readonly = !!options.readonly;
+    // nodeDraggable 缺省 true；readonly 仍然一票否决（只读视图不该能拖）
+    const nodeDraggable = !readonly && options.nodeDraggable !== false;
     this.graph = new Graph({
       container: options.container,
       autoResize: true,
@@ -177,9 +207,15 @@ export class FlowGraphEngine {
             ],
           },
       // factor 1.1 / 缩放区间取自官方 DAG 示例；modifiers 放宽到 meta 以兼容 mac
-      mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], factor: 1.1, minScale: 0.5, maxScale: 1.5 },
+      mousewheel: {
+        enabled: options.zoom !== false,
+        modifiers: ["ctrl", "meta"],
+        factor: 1.1,
+        minScale: 0.5,
+        maxScale: 1.5,
+      },
       // 左键留给框选，平移走空格（官方是 leftMouseDown，理由见文件头）
-      panning: { enabled: true, modifiers: "space" },
+      panning: { enabled: options.panning !== false, modifiers: "space" },
       connecting: {
         router: { name: "orth", args: { padding: 28 } },
         connector: { name: "rounded", args: { radius: 8 } },
@@ -243,7 +279,8 @@ export class FlowGraphEngine {
             magnetConnectable: false,
           }
         : {
-            nodeMovable: true,
+            // nodeMovable 受 nodeDraggable 单独控制（见 FlowEngineOptions 的说明）
+            nodeMovable: nodeDraggable,
             edgeMovable: true,
             edgeLabelMovable: true,
             arrowheadMovable: true,
@@ -386,6 +423,38 @@ export class FlowGraphEngine {
   // ------------------------------------------------------------
 
   /**
+   * 运行时改交互开关，prop 变化时由组件调用。
+   *
+   * 三个开关各有各的官方入口，不能一律改 `options`：
+   * - 平移 / 滚轮：走 `togglePanning` / `toggleMouseWheel`，它们直接切插件的
+   *   disabled 标志；改 `options` 不生效（`panning.enabled` 只在构造时读一次）。
+   * - 节点拖动：`CellView.can('nodeMovable')` **每次**都实时读
+   *   `graph.options.interacting`，所以直接改这个对象即可（已在 x6 源码
+   *   `src/view/cell.ts` 的 `can()` 里核对过，不是猜的）。
+   *
+   * 只读模式下一律按「关」处理：prop 改成 true 也不能把只读视图变成可拖的。
+   *
+   * @param patch 待改开关；缺省的键保持原值
+   */
+  applyInteraction(patch: FlowInteractionPatch): void {
+    if (this.opts.readonly) {
+      return;
+    }
+    if (patch.panning != null) {
+      this.graph.togglePanning(patch.panning);
+    }
+    if (patch.zoom != null) {
+      this.graph.toggleMouseWheel(patch.zoom);
+    }
+    if (patch.nodeDraggable != null) {
+      const interacting = this.graph.options.interacting;
+      if (interacting && typeof interacting === "object") {
+        interacting.nodeMovable = patch.nodeDraggable;
+      }
+    }
+  }
+
+  /**
    * 用业务数据整体覆盖画布。
    *
    * 先关历史再灌图，避免「载入一次」塞满撤销栈；期间 `loading` 抑制逐 cell 的
@@ -409,6 +478,8 @@ export class FlowGraphEngine {
           y: node.y ?? 0,
           color: def.color ?? DEFAULT_NODE_COLOR,
           iconPath: def.path,
+          image: def.image,
+          shape: this.nodeShape,
           data: node.data,
         }),
       );
@@ -475,6 +546,8 @@ export class FlowGraphEngine {
         y: Math.round(at.y - NODE_HEIGHT / 2),
         color: def.color ?? DEFAULT_NODE_COLOR,
         iconPath: def.path,
+        image: def.image,
+        shape: this.nodeShape,
         data: {},
       }),
     );
@@ -548,11 +621,18 @@ export class FlowGraphEngine {
    *
    * @param id 节点 id
    * @param patch 待改字段；`label` 改显示名，`color` / `iconPath` 改类型外观，
+   *              `image` 传空串表示去掉图片回到 SVG 图标，
    *              `data` 整体替换业务参数
    */
   updateNode(
     id: string,
-    patch: { label?: string; data?: Record<string, unknown>; color?: string; iconPath?: string },
+    patch: {
+      label?: string;
+      data?: Record<string, unknown>;
+      color?: string;
+      iconPath?: string;
+      image?: string;
+    },
   ) {
     const cell = this.graph.getCellById(id);
     if (!cell?.isNode()) {
@@ -565,6 +645,7 @@ export class FlowGraphEngine {
       flowTypeLabel?: string;
       flowColor?: string;
       flowIcon?: string;
+      flowImage?: string;
       flowData?: Record<string, unknown>;
     };
     // 一次 setData 收齐所有字段：卡片组件订阅的是 change:data，
@@ -578,6 +659,10 @@ export class FlowGraphEngine {
     }
     if (patch.iconPath) {
       next.flowIcon = patch.iconPath;
+    }
+    // 用 != null 而不是真值判断：空串是「显式去掉图片」的合法意图
+    if (patch.image != null) {
+      next.flowImage = patch.image;
     }
     if (patch.data) {
       next.flowData = patch.data;

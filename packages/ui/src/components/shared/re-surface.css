@@ -34,6 +34,11 @@
  * 基线快照并阻止"只增不减"的漂移（npm run surface:check）。
  * ============================================================ */
 
+/* 圆角令牌默认层：本文件大量使用 var(--el-radius-*)，必须先于自身规则可用。
+   直接 import 本 css 的组件（ReCard / ReStat / ReStatCard / ReTableCardView / ReAlbum）
+   由此自动获得该层，无需各自再引一次。 */
+@import "./radius-vars.css";
+
 :root {
   /* 圆角：与 ReStatCard 的 --el-radius-xl 对齐，缺省 16px */
   --re-surface-radius: 16px;

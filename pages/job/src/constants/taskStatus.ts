@@ -87,14 +87,17 @@ export function triggerTagType(trigger: unknown): "primary" | "success" | "dange
 }
 
 /**
- * 耗时格式化：<1s 用毫秒，否则保留一位小数的秒。
+ * 耗时毫秒数归一，供 ReTime 的 duration 格式消费。
  *
- * @param ms 后端返回的毫秒数
+ * 为什么不直接把后端字段丢给 ReTime：ReTime 的 duration 分支只认 number，
+ * 传字符串会先走 toMs 的时间戳解析（"800" 会被当成秒级时间戳放大 1000 倍变成
+ * 13 分钟），所以这里必须先转成 number。空值一律返回 undefined，
+ * 让 ReTime 走自己的 placeholder，避免 Number(null) = 0 显示成 "0 毫秒"。
+ *
+ * 与 pages/collect 的同名函数保持一致：运行记录与作业日志是同一类「耗时」，
+ * 两边各写一套格式化会让同一份数据在两个页面显示成不同文本。
+ *
+ * 实现已上提到 `@repo/utils`（{@code packages/utils/src/modules/costMs.ts}），
+ * 与系统日志、发送日志共用一份；这里只做转出，保留本模块既有的导入路径不变。
  */
-export function costText(ms: unknown): string {
-  if (ms == null || ms === "") {
-    return "—";
-  }
-  const value = Number(ms);
-  return value < 1000 ? `${value}ms` : `${(value / 1000).toFixed(1)}s`;
-}
+export { costMs } from "@repo/utils";

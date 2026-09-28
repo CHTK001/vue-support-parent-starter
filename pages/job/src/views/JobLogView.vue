@@ -31,7 +31,7 @@ import type { ReOption } from "@repo/ui/re-select";
 import { useTableExport } from "@repo/ui/re-table";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs } from "../api/jobApi";
-import { statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
+import { costMs, statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
 import { COLLECT_FLOW_GROUP, type JobLog, type JobSummary } from "../types/job";
 import { confirmAction, errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
@@ -93,9 +93,19 @@ const detail = ref<JobLog | null>(null);
 
 /** 台账 jobKey → 任务名称：日志表不存名称，只能拿台账列表关联 */
 const jobNames = ref<Record<string, string>>({});
-const taskOptions = computed<ReOption[]>(() =>
-  Object.entries(jobNames.value).map(([jobKey, name]) => ({ label: name === jobKey ? jobKey : `${name} · ${jobKey}`, value: jobKey })),
-);
+const taskOptions = computed<ReOption[]>(() => {
+  const options: ReOption[] = Object.entries(jobNames.value).map(([jobKey, name]) => ({
+    label: name === jobKey ? jobKey : `${name} · ${jobKey}`,
+    value: jobKey,
+  }));
+  // 「查看日志」下钻带来的 jobKey 可能不在台账选项里（台账异步加载还没回来，或任务已被删），
+  // 而 el-select 对「值没有匹配选项」会直接清掉选中值 —— 那样首次进入就过滤不上，
+  // 明明带了 jobKey 却显示「全部任务」。这里把它并进选项，保证选中态成立。
+  if (routedJobKey && !options.some((item) => item.value === routedJobKey)) {
+    options.unshift({ label: routedJobKey, value: routedJobKey });
+  }
+  return options;
+});
 
 const SEARCH = computed<ReTableSearchConfig>(() => ({
   title: "搜索日志",
@@ -119,7 +129,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "jobKey", label: "任务", minWidth: 190, slot: "job", showOverflowTooltip: true },
   { prop: "triggerType", label: "触发方式", width: 88, slot: "trigger", align: "center" },
   { prop: "executeCode", label: "结果", width: 88, slot: "code", align: "center" },
-  { prop: "costMs", label: "耗时", width: 96, slot: "cost", align: "right" },
+  { prop: "costMs", label: "耗时", width: 110, slot: "cost", align: "right" },
   { prop: "message", label: "消息", minWidth: 220, slot: "msg", showOverflowTooltip: true },
   { prop: "nodeId", label: "节点", width: 120, slot: "node", showOverflowTooltip: true },
   { prop: "action", label: "操作", maxWidth: 80, slot: "action", fixed: "right" },
@@ -445,7 +455,7 @@ onUnmounted(() => {
     >
       <template #toolbar>
         <span class="collect-hint">保留</span>
-        <ReInputNumber v-model="retentionDays" size="small" :min="0" :max="3650" controls-position="right"
+        <ReInputNumber v-model="retentionDays"  :min="0" :max="3650" controls-position="right"
                        style="width: 104px" aria-label="日志保留天数"/>
         <span class="collect-hint collect-hint--muted">{{ retentionDays === 0 ? "天（0=清空全部）" : "天" }}</span>
         <ReButton icon="Delete" type="danger" title="按保留天数清理日志" @click="clean">按保留天数清理日志</ReButton>
@@ -460,34 +470,51 @@ onUnmounted(() => {
         </ReButton>
       </template>
 
+      <!--
+        可操作空态：默认的 el-empty 只能看不能做。
+        执行日志由调度器在派发时写入，管理端造不出来，所以只给一个「刷新」出口，不给「新增」。
+        「刷新」复用 reloadAll：它同时重取列表 / 概览 / 台账映射，正是本页一次刷新该做的事。
+        empty-text 属性保留不动，它仍是 #empty 插槽 description 的回退值。
+      -->
+      <template #empty>
+        <div class="page-empty">
+          <span class="page-empty__icon"><ReIcon name="Tickets" :size="22" /></span>
+          <span class="page-empty__title">还没有执行日志</span>
+          <span class="page-empty__desc">作业执行日志在这里按轮次记录；启用一个任务或手动触发一次后就会写入。</span>
+          <span class="page-empty__actions">
+            <ReButton icon="Refresh" @click="reloadAll">刷新</ReButton>
+          </span>
+        </div>
+      </template>
+
       <template #time="{ row }"><span class="collect-num">{{ fmtMs(row.triggerTime) }}</span></template>
       <template #job="{ row }">
         <span>{{ jobNameOf(row as unknown as JobLog) }}</span>
-        <ReTag v-if="isFlowKey(row as unknown as JobLog)" class="collect-tag-inline" size="small" type="primary" effect="plain">
+        <ReTag v-if="isFlowKey(row as unknown as JobLog)" class="collect-tag-inline"  type="primary" effect="plain">
           采集流程
         </ReTag>
       </template>
       <template #trigger="{ row }">
-        <ReTag size="small" :type="triggerTagType(row.triggerType)" effect="plain">
+        <ReTag  :type="triggerTagType(row.triggerType)" effect="plain">
           {{ triggerText(row.triggerType) }}
         </ReTag>
       </template>
       <template #code="{ row }">
-        <ReTag size="small" :type="statusTagType(row.executeCode)" effect="plain">
+        <ReTag :type="statusTagType(row.executeCode)" effect="plain" dot>
           {{ statusText(row.executeCode) }}
         </ReTag>
       </template>
       <template #cost="{ row }">
-        <span class="collect-num">
-          <ReTime :value="row.costMs || null" format="duration" placeholder="—" />
-        </span>
+        <ReTag type="info" effect="plain">
+          <ReTime :value="costMs(row.costMs)" format="duration" placeholder="—" />
+        </ReTag>
       </template>
       <template #msg="{ row }">
         <span class="collect-cell-ellipsis">{{ row.message || "—" }}</span>
       </template>
       <template #node="{ row }"><span class="collect-cell-mono">{{ row.nodeId || row.address || "—" }}</span></template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="View" type="primary" title="查看这条日志的完整字段" @click="showDetail(row)"/>
+        <ReButton layout="square" icon="View" type="primary" tip="查看这条日志的完整字段" @click="showDetail(row)"/>
       </template>
     </ReTable>
 
@@ -506,7 +533,7 @@ onUnmounted(() => {
               <ReTag
                 v-if="isFlowKey(detail)"
                 class="collect-tag-inline"
-                size="small"
+                
                 type="primary"
                 effect="plain"
               >
@@ -538,9 +565,10 @@ onUnmounted(() => {
             <span class="log-detail__label">派发码 / 执行码</span>
             <span class="log-detail__value">
               <span class="collect-cell-mono">{{ detail.triggerCode || "—" }}</span>
+              <!-- 详情里的执行码是这一屏的结论，dark 底强调保留，只补状态点统一语义 -->
               <ReTag
                 class="collect-tag-inline"
-                size="small"
+                dot
                 :type="statusTagType(detail.executeCode)"
                 effect="dark"
               >
@@ -551,7 +579,7 @@ onUnmounted(() => {
           <div class="log-detail__cell">
             <span class="log-detail__label">耗时</span>
             <span class="log-detail__value collect-num">
-              <ReTime :value="detail.costMs || null" format="duration" placeholder="—" />
+              <ReTime :value="costMs(detail.costMs)" format="duration" placeholder="—" />
             </span>
           </div>
           <div class="log-detail__cell">
@@ -573,6 +601,78 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ============ 可操作空态 ============
+   .page-empty 系列的定义在 pages/system/src/styles/system-page.css，那是 system 包的
+   全局 css（随宿主一次性加载）；job 包只有 scheduler.css，未收录这一组类名，
+   且本页样式是 scoped 的，拿不到别的包的全局类，所以此处自带一份最小必要样式，
+   取值与 system 包逐条对齐，换包不会走样。 */
+.page-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.page-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.page-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+.page-empty__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.page-empty__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/*
+  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
+  本页 ReTable 根节点还挂着全局 .collect-card（1px 描边 + 10px 圆角 + 极淡投影）：
+  描边与底色两边等价（--el-bg-color 即 --el-fill-color-blank），
+  圆角这里收进 koi 的 --el-radius-md 档，投影仍由 collect-card 提供（全局样式，不在本页范围）。
+*/
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+  /*
+   * 不吃剩余高度：.collect-page 是 height:100% 的 flex 列，ReTable 默认 flex:1 会被
+   * 压到容器高度、表体内容溢出，而页面 overflow 是 visible —— 结果就是下方数据与
+   * 分页条都看不到。改成表格按内容自然撑开，由 .job-log 纵向滚动。
+   */
+  flex: 0 0 auto;
+}
+.job-log {
+  overflow-y: auto;
+}
+/* 顶部统计卡不能跟着被压扁，固定按内容高度 */
+.job-log .collect-stats {
+  flex: none;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
+}
+
 .log-detail {
   display: flex;
   flex-direction: column;
@@ -652,5 +752,12 @@ onUnmounted(() => {
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table) {
+    transition: none;
+  }
 }
 </style>

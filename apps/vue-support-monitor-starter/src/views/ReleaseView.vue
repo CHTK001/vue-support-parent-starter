@@ -3,7 +3,7 @@
     <ReSectionHead description="管理服务器发布与项目 · 支持启动/停止/重启/升级/备份/回滚">
       <template #title>发布管理</template>
       <template #actions>
-        <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openCreateDialog">新增发布</ReButton>
+        <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增发布</ReButton>
       </template>
     </ReSectionHead>
 
@@ -107,7 +107,7 @@
               <div class="software-desc">{{ pkg.summary || '暂无描述' }}</div>
               <div class="software-version" v-if="pkg.version">版本: {{ pkg.version }}</div>
             </div>
-            <ReButton type="primary" size="small" icon="Download" @click="handleInstall(pkg)">安装</ReButton>
+            <ReButton type="primary" icon="Download" @click="handleInstall(pkg)">安装</ReButton>
           </div>
         </div>
       </div>

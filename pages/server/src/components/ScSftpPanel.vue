@@ -288,20 +288,20 @@ async function removeBookmark(id: number): Promise<void> {
   <div class="sftp-panel" :class="{ disabled: !hostId }">
     <!-- 工具栏 -->
     <div class="toolbar">
-      <ReButton size="small" @click="up" :disabled="currentPath === '/'">上级</ReButton>
+      <ReButton @click="up" :disabled="currentPath === '/'">上级</ReButton>
       <ReInput
         v-model="currentPath"
-        size="small"
+
         style="width: 380px"
         @keyup.enter="go()"
         placeholder="远程路径"
       />
-      <ReButton size="small" type="primary" @click="go()">刷新</ReButton>
-      <ReButton size="small" @click="onMkdir">新建目录</ReButton>
-      <ReButton size="small" @click="addBookmark">收藏路径</ReButton>
+      <ReButton type="primary" @click="go()">刷新</ReButton>
+      <ReButton @click="onMkdir">新建目录</ReButton>
+      <ReButton @click="addBookmark">收藏路径</ReButton>
       <label class="upload-btn">
         <input type="file" hidden @change="onUpload" />
-        <ReButton size="small" tag="span">上传到此目录</ReButton>
+        <ReButton tag="span">上传到此目录</ReButton>
       </label>
     </div>
 
@@ -311,7 +311,7 @@ async function removeBookmark(id: number): Promise<void> {
         v-for="bookmark in bookmarks"
         :key="bookmark.id"
         closable
-        size="small"
+
         class="bookmark-tag"
         @click="go(bookmark.msTerminalBookmarkPath)"
         @close="removeBookmark(bookmark.id)"
@@ -328,7 +328,7 @@ async function removeBookmark(id: number): Promise<void> {
         v-loading="loading"
         element-loading-text="正在读取远程目录…"
         :data="entries"
-        size="small"
+
         border
         :pagination="false"
         :toolbar="false"
@@ -351,10 +351,10 @@ async function removeBookmark(id: number): Promise<void> {
         </ReTableColumn>
         <ReTableColumn label="操作" width="200">
           <template #default="{ row }">
-            <ReButton v-if="!row.directory" link size="small" @click="openEditor(joint(row.name))">编辑</ReButton>
-            <ReButton v-if="!row.directory" link size="small" @click="download(row)">下载</ReButton>
-            <ReButton link size="small" @click="onRename(row)">改名</ReButton>
-            <ReButton link size="small" type="danger" @click="onDelete(row)">删除</ReButton>
+            <ReButton v-if="!row.directory" link @click="openEditor(joint(row.name))">编辑</ReButton>
+            <ReButton v-if="!row.directory" link @click="download(row)">下载</ReButton>
+            <ReButton link @click="onRename(row)">改名</ReButton>
+            <ReButton link type="danger" @click="onDelete(row)">删除</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>

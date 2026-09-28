@@ -61,7 +61,7 @@
             v-if="item.status === 'uploading'"
             link
             type="danger"
-            size="small"
+
             @click="handleCancel(item)"
           >
             取消
@@ -70,7 +70,7 @@
             v-if="item.status === 'fail' || item.status === 'cancelled'"
             link
             type="primary"
-            size="small"
+
             @click="handleRetry(item)"
           >
             重试
@@ -79,7 +79,7 @@
             v-if="item.status === 'success' && item.url"
             link
             type="primary"
-            size="small"
+
             @click="handleCopy(item.url)"
           >
             复制链接
@@ -87,7 +87,7 @@
           <el-button
             link
             type="danger"
-            size="small"
+
             @click="handleRemove(index)"
           >
             删除

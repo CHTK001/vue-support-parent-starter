@@ -123,7 +123,7 @@
         </el-select>
       </SettingsRow>
       <SettingsRow label="思考状态文案" description="同时自定义思考期间轮换显示的中文和英文文案。">
-        <el-button size="small" @click="openThinkingTextDialog">编辑文案</el-button>
+        <el-button @click="openThinkingTextDialog">编辑文案</el-button>
       </SettingsRow>
     </SettingsCard>
 

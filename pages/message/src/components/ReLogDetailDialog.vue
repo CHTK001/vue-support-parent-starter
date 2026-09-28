@@ -5,6 +5,8 @@
  * 通过 v-model:visible 控制显隐，v-model:model 绑定当前日志行数据。
  */
 import type { MessageLog } from "../api/types";
+import ReTime from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -21,19 +23,19 @@ const model = defineModel<MessageLog | null>("model", { required: true });
       <el-descriptions-item label="消息ID">{{ model.sysMessageLogMessageId ?? "-" }}</el-descriptions-item>
       <el-descriptions-item label="返回码">
         <el-tag
-          size="small"
+          
           :type="model.sysMessageCode === 'SUCCESS' ? 'success' : 'danger'"
           effect="plain"
         >
           {{ model.sysMessageCode }}
         </el-tag>
       </el-descriptions-item>
-      <el-descriptions-item label="耗时">{{ model.sysMessageCost }}ms</el-descriptions-item>
+      <el-descriptions-item label="耗时"><ReTime :value="costMs(model.sysMessageCost)" format="duration" placeholder="—" /></el-descriptions-item>
       <el-descriptions-item label="返回消息">{{ model.sysMessageMessage ?? "-" }}</el-descriptions-item>
       <el-descriptions-item label="阅读状态">
         <template v-if="model.sysMessageTrackToken">
           <el-tag
-            size="small"
+            
             :type="model.sysMessageReadStatus === 1 ? 'success' : 'info'"
             effect="plain"
           >

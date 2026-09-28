@@ -70,7 +70,7 @@ function onBoundsChange() {
         <div class="ws-map-title">
           <el-icon><component :is="activeModeMeta?.icon" /></el-icon>
           <span>{{ activeModeMeta?.label }}</span>
-          <el-tag size="small" type="info" effect="plain">{{ activeModeMeta?.description }}</el-tag>
+          <el-tag type="info" effect="plain">{{ activeModeMeta?.description }}</el-tag>
         </div>
         <el-tooltip :content="boundsText" placement="top">
           <div class="ws-bounds">
@@ -109,7 +109,7 @@ function onBoundsChange() {
   flex-shrink: 0;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: auto;
   margin-right: 8px;
 }
@@ -153,7 +153,7 @@ function onBoundsChange() {
   padding: 0 10px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
 }
 .ws-map-title {
   display: flex;
@@ -180,7 +180,7 @@ function onBoundsChange() {
   flex-direction: column;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   overflow: hidden;
 }
 .ws-panel-title {
@@ -199,10 +199,18 @@ function onBoundsChange() {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好：模式面板切换的淡入淡出直接生效 */
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
+  }
 }
 </style>

@@ -33,8 +33,15 @@ export interface KnowledgeBaseApi {
     chunkOverlapSize?: number;
     chunkMinSize?: number;
     isPublic?: boolean;
+    /** 采集网址；填写后知识库按 web 型创建并立即抓取 */
+    sourceUrl?: string;
+    /** 采集模式，默认 snapshot */
+    sourceMode?: string;
+    /** 同域最多采集几页（含入口页），默认 1 */
+    sourceMaxPages?: number;
   }): Promise<KnowledgeBase>;
   updateKnowledgeBase(kbId: string, data: Partial<KnowledgeBase>): Promise<KnowledgeBase>;
+  refreshKnowledgeBaseSource(kbId: string): Promise<{ fetched?: number; failed?: number; errors?: string[] }>;
   deleteKnowledgeBase(kbId: string): Promise<{ success: boolean }>;
   getKnowledgeBase(kbId: string): Promise<KnowledgeBase>;
   fetchKBFiles(kbId: string, skip?: number, limit?: number): Promise<PaginatedResponse<KBFile>>;
@@ -51,6 +58,45 @@ export interface KnowledgeBaseApi {
   retryKBFile(kbId: string, fileId: string): Promise<{ success: boolean; message: string }>;
   getKBFileChunks(kbId: string, fileId: string, skip?: number, limit?: number): Promise<any[]>;
   searchKnowledgeBase(kbId: string, query: string, topK?: number, filterFileId?: string): Promise<any>;
+  /** 关系图谱：GET /v2/rag/graph，返回 { nodes, edges, entityCount, relationCount, placeholder } */
+  fetchKnowledgeGraph(kbId: string, docPath?: string): Promise<{
+    nodes: any[];
+    edges: any[];
+    entityCount: number;
+    relationCount: number;
+    /** true = 该范围尚未抽取过关系（占位图），可触发一次生成 */
+    placeholder: boolean;
+  }>;
+  /** 按需生成图谱：POST /api/knowledge/bases/{id}/graph/generate，不传 docPath 则遍历全库 */
+  generateKnowledgeBaseGraph(
+    kbId: string,
+    docPath?: string,
+  ): Promise<{ files: number; entityCount: number; relationCount: number; elapsedMs: number }>;
+  /** 关系图谱计数：GET /v2/rag/graph/count */
+  fetchKnowledgeGraphCount(kbId: string): Promise<{ entityCount: number; relationCount: number }>;
+  /** 关系抽取开关是否启用：GET /v2/rag/graph/enabled */
+  fetchRelationExtractEnabled(): Promise<boolean>;
+  /** 列表页统计（汇总 + 每库计数） */
+  fetchKBOverview(): Promise<{
+    totals?: { kb_count?: number; file_count?: number; entity_count?: number; relation_count?: number };
+    per_base?: Record<string, { file_count?: number; entity_count?: number; relation_count?: number }>;
+  }>;
+  /** 读取知识点原文 */
+  readKBFileContent(kbId: string, relPath: string): Promise<{ rel_path?: string; content?: string; size?: number; modified_at?: number }>;
+  /** 库内问答，返回答案与引用 */
+  askKnowledgeBase(kbId: string, query: string, topK?: number): Promise<{
+    answer?: string;
+    citations?: Array<{ index?: number; doc_path?: string; file_name?: string; score?: number; snippet?: string }>;
+    elapsed_ms?: number;
+  }>;
+  // ── 图谱手工维护（后端 /v2/rag/graph 下的写入端点）──
+  createGraphEntity(kbId: string, kbName: string, name: string, type: string, description?: string): Promise<{ uid?: string }>;
+  updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string }): Promise<unknown>;
+  deleteGraphEntity(kbId: string, uid: string): Promise<unknown>;
+  batchDeleteGraphEntities(kbId: string, uids: string[]): Promise<{ deleted?: number; requested?: number }>;
+  createGraphRelation(kbId: string, kbName: string, source: string, target: string, type: string): Promise<{ uid?: string }>;
+  deleteGraphRelation(kbId: string, uid: string): Promise<unknown>;
+  batchDeleteGraphRelations(kbId: string, uids: string[]): Promise<{ deleted?: number; requested?: number }>;
 }
 
 /** /api/knowledge 客户端：不解包，信封与命名差异全部在本文件内翻译 */
@@ -59,15 +105,56 @@ const apiHttp = createClient(rootHttp, { unwrap: false });
 /** 后端知识库控制器根路径 */
 const KB = "/api/knowledge";
 
-/** 解包 ApiResult 信封：业务失败抛 Error，成功返回 data */
-function unwrapData<T = any>(env: any, route: string): T {
-  if (env && typeof env === "object" && ("success" in env || "code" in env || "error" in env)) {
-    if (env.success === false || env.code || env.error) {
-      throw new Error(`[knowledge-base] ${route} 调用失败：${env.error || env.msg || env.code || "未知错误"}`);
-    }
-    return env.data as T;
+/**
+ * 判定统一响应信封是否成功。
+ *
+ * <p>后端两套信封并存，code 的成功值不止一种：</p>
+ * <ul>
+ *   <li>{@code /api/knowledge/*} → {@code {success, data}}，无 code</li>
+ *   <li>{@code /v2/rag/*} → {@code {code:"00000", data:{success, data}}}，双层</li>
+ * </ul>
+ * <p>把 "00000" 当成错误码会让所有图谱接口直接抛错，因此必须显式枚举成功值。</p>
+ */
+function isOkEnvelope(env: any): boolean {
+  if (env.success === false) {
+    return false;
   }
-  return env as T;
+  if (env.error) {
+    return false;
+  }
+  const code = env.code;
+  if (code === undefined || code === null || code === "") {
+    return true;
+  }
+  const s = String(code).trim();
+  return s === "0" || s === "00000" || s === "200";
+}
+
+/**
+ * 解包 ApiResult 信封：业务失败抛 Error，成功返回最内层 data。
+ *
+ * <p>必须循环剥壳而不是只剥一层：图谱接口是双层信封，只剥一层会让调用方拿到
+ * {@code {success, data}} 而不是真正的节点列表，表现为「接口 200 但页面显示 0 条」。</p>
+ */
+function unwrapData<T = any>(env: any, route: string): T {
+  let cur: any = env;
+  for (let i = 0; i < 5 && cur && typeof cur === "object"; i++) {
+    if (!("data" in cur)) {
+      break;
+    }
+    // 只有带信封特征字段的对象才继续剥，避免把业务数据里恰好叫 data 的字段误剥
+    if (!("code" in cur || "success" in cur || "msg" in cur || "error" in cur)) {
+      break;
+    }
+    if (!isOkEnvelope(cur)) {
+      throw new Error(`[knowledge-base] ${route} 调用失败：${cur.error || cur.msg || cur.code || "未知错误"}`);
+    }
+    cur = cur.data;
+  }
+  if (cur && typeof cur === "object" && (cur.success === false || cur.error)) {
+    throw new Error(`[knowledge-base] ${route} 调用失败：${cur.error || cur.msg || "未知错误"}`);
+  }
+  return cur as T;
 }
 
 /** 取失败原因文本（信封或拒绝对象） */
@@ -123,6 +210,31 @@ function normalizeRelPath(relPath: string | null | undefined): string {
   return String(relPath ?? "").replace(/\\/g, "/").replace(/^\/+/, "");
 }
 
+/** 后端 source 配置 → 前端扁平的三个字段（URL / 模式 / 采集页数） */
+function readSource(raw: any): { sourceUrl: string; sourceMode: string; sourceMaxPages: number } {
+  const src = raw?.source;
+  const entries = Array.isArray(src?.entries) ? src.entries : [];
+  const first = entries[0] ?? {};
+  return {
+    sourceUrl: String(first?.url ?? ""),
+    sourceMode: String(src?.mode ?? ""),
+    sourceMaxPages: toNumber(first?.max_pages) || 1,
+  };
+}
+
+/** 前端扁平的三个字段 → 后端 source 配置（未填网址时返回空，表示不启用采集） */
+function buildSource(data: Record<string, any>): Record<string, any> | undefined {
+  const url = String((data as any).sourceUrl ?? "").trim();
+  if (!url) {
+    return undefined;
+  }
+  const maxPages = toNumber((data as any).sourceMaxPages) || 1;
+  return {
+    mode: String((data as any).sourceMode ?? "snapshot") || "snapshot",
+    entries: [{ url, title: "", max_pages: maxPages < 1 ? 1 : maxPages }],
+  };
+}
+
 /** snake_case 知识库元数据 → 前端 KnowledgeBase */
 function toKnowledgeBase(raw: any): KnowledgeBase {
   return {
@@ -131,11 +243,14 @@ function toKnowledgeBase(raw: any): KnowledgeBase {
     description: raw?.description == null ? null : String(raw.description),
     userId: String(raw?.user_id ?? ""),
     embeddingModelId: "",
-    chunkMaxSize: 0,
-    chunkOverlapSize: 0,
-    chunkMinSize: 0,
+    // 分片参数以前硬编码成 0，导致编辑弹窗永远回填 0，用户改的值存不进去。
+    // 后端补齐了这三个字段，这里如实读取；老数据缺失时回落到与后端一致的默认值。
+    chunkMaxSize: toNumber(raw?.chunk_max_size, 1000) || 1000,
+    chunkOverlapSize: toNumber(raw?.chunk_overlap_size, 100) || 100,
+    chunkMinSize: toNumber(raw?.chunk_min_size, 50) || 50,
     isActive: true,
     isPublic: Boolean(raw?.is_public),
+    ...readSource(raw),
     metadataConfig: {
       rootPath: raw?.root_path ?? null,
       managed: Boolean(raw?.managed),
@@ -168,7 +283,10 @@ function toKBFile(raw: any, kbId: string): KBFile {
     relativePath: relPath,
     parentFolderId: parentOf(relPath),
     isDirectory: isDir,
-    processingStatus: isDir ? "completed" : "uploaded",
+    // 后端 tree 接口按「向量库里是否已有该文件的分片」返回 completed / uploaded。
+    // 之前这里硬编码 'uploaded'，与树组件「只在 completed||failed 才 emit('view')」的
+    // 判断互斥，导致任何文件都点不开预览；也不要退回硬编码，缺字段时按未索引算。
+    processingStatus: isDir ? "completed" : (raw?.processing_status || "uploaded"),
     progressPercentage: 0,
     currentStep: null,
     errorMessage: null,
@@ -230,11 +348,27 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
 
   /** POST /api/knowledge/bases */
   async createKnowledgeBase(data) {
-    const env = await apiHttp.post(`${KB}/bases`, {
+    const payload: Record<string, unknown> = {
       name: data.name,
       description: data.description ?? "",
       is_public: data.isPublic === true,
-    });
+    };
+    // 填了网址才带 source：后端据此把知识库判定为 web 型（托管目录 + 立即抓取）
+    const source = buildSource(data);
+    if (source) {
+      payload.source = source;
+    }
+    // 分片参数：后端此前从不读取，这里补上 snake_case 键名与后端对齐
+    if (data.chunkMaxSize !== undefined) {
+      payload.chunk_max_size = data.chunkMaxSize;
+    }
+    if (data.chunkOverlapSize !== undefined) {
+      payload.chunk_overlap_size = data.chunkOverlapSize;
+    }
+    if (data.chunkMinSize !== undefined) {
+      payload.chunk_min_size = data.chunkMinSize;
+    }
+    const env = await apiHttp.post(`${KB}/bases`, payload);
     return toKnowledgeBase(unwrapData(env, `POST ${KB}/bases`));
   },
 
@@ -247,8 +381,30 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     const tags = (data as Record<string, any>).tags;
     if (Array.isArray(tags)) body.tags = tags;
     if (data.isPublic !== undefined) body.is_public = data.isPublic === true;
+    // 分片参数：同样要透传，否则编辑弹窗改了没用
+    if (data.chunkMaxSize !== undefined) body.chunk_max_size = data.chunkMaxSize;
+    if (data.chunkOverlapSize !== undefined) body.chunk_overlap_size = data.chunkOverlapSize;
+    if (data.chunkMinSize !== undefined) body.chunk_min_size = data.chunkMinSize;
+    // 网址改动必须透传，否则编辑弹窗里填的地址永远保存不进去
+    const hasSourceField = (data as Record<string, any>).sourceUrl !== undefined;
+    if (hasSourceField) {
+      const source = buildSource(data);
+      if (source) {
+        body.source = source;
+      } else {
+        // 清空网址：传空 entries 让后端把来源配置置空
+        body.source = { mode: "snapshot", entries: [] };
+      }
+    }
     const env = await apiHttp.put(`${KB}/bases/${encodeURIComponent(kbId)}`, body);
     return toKnowledgeBase(unwrapData(env, route));
+  },
+
+  /** POST /api/knowledge/bases/{knowledge_base_id}/refresh-source：重新抓取已配置的网址 */
+  async refreshKnowledgeBaseSource(kbId) {
+    const route = `POST ${KB}/bases/{id}/refresh-source`;
+    const env = await apiHttp.post(`${KB}/bases/${encodeURIComponent(kbId)}/refresh-source`, {});
+    return unwrapData<any>(env, route) ?? {};
   },
 
   /** DELETE /api/knowledge/bases/{knowledge_base_id}（不带 purge，保留磁盘目录） */
@@ -389,12 +545,118 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     );
   },
 
-  /** 无后端出口：全仓未提供分块（chunk）查询路由 */
-  async getKBFileChunks(kbId, fileId, skip, limit) {
-    return missingOutlet(
-      "getKBFileChunks",
-      "后端 /api/knowledge（及 /v2/rag）没有分块列表接口",
-    );
+  /**
+   * 知识点分片详情：GET /api/knowledge/bases/{id}/chunks?path=
+   *
+   * 后端此前没有这个接口（getKBFileChunks 注释写着「后端暂未提供」），
+   * 界面上只能看到分片数量、看不到内容。
+   */
+  async getKBFileChunks(kbId, relPath, skip = 0, limit = 200) {
+    const route = `GET ${KB}/bases/{id}/chunks`;
+    const env = await apiHttp.get(`${KB}/bases/${encodeURIComponent(kbId)}/chunks`, {
+      params: { path: normalizeRelPath(relPath), skip, limit },
+    });
+    const rows = unwrapData<any[]>(env, route) ?? [];
+    return Array.isArray(rows) ? rows : [];
+  },
+
+  // ── 图谱手工维护：实体 / 关系的增改删 ──
+
+  /** GET /api/knowledge/bases/{id}/file?path= ：读取知识点原文（仅文本类） */
+  async readKBFileContent(kbId: string, relPath: string) {
+    const route = `GET /api/knowledge/bases/${kbId}/file`;
+    const env = await apiHttp.get(`/api/knowledge/bases/${kbId}/file`, { params: { path: relPath } });
+    return unwrapData<{ rel_path?: string; content?: string; size?: number; modified_at?: number }>(env, route);
+  },
+
+  /** GET /api/knowledge/bases/overview：列表页统计（汇总 + 每库计数） */
+  async fetchKBOverview() {
+    const route = 'GET /api/knowledge/bases/overview';
+    const env = await apiHttp.get('/api/knowledge/bases/overview');
+    return unwrapData<{
+      totals?: { kb_count?: number; file_count?: number; entity_count?: number; relation_count?: number };
+      per_base?: Record<string, { file_count?: number; entity_count?: number; relation_count?: number }>;
+    }>(env, route);
+  },
+
+  /** POST /api/knowledge/bases/{id}/ask：库内问答（RAG 检索 + 作答 + 引用溯源） */
+  async askKnowledgeBase(kbId: string, query: string, topK = 6) {
+    const route = `POST /api/knowledge/bases/${kbId}/ask`;
+    const env = await apiHttp.post(`/api/knowledge/bases/${kbId}/ask`, { query, top_k: topK });
+    return unwrapData<{
+      answer?: string;
+      citations?: Array<{
+        index?: number;
+        doc_path?: string;
+        file_name?: string;
+        score?: number;
+        snippet?: string;
+      }>;
+      elapsed_ms?: number;
+    }>(env, route);
+  },
+
+  /** POST /v2/rag/graph/entity：手工新增实体（同名同类型会复用，不会产生重复节点） */
+  async createGraphEntity(kbId: string, kbName: string, name: string, type: string, description = "") {
+    const route = "POST /v2/rag/graph/entity";
+    const env = await apiHttp.post("/v2/rag/graph/entity", {}, {
+      params: { knowledge_base_id: kbId, knowledge_base_name: kbName, name, type, description },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/entity/update：改实体（只传要改的字段） */
+  async updateGraphEntity(kbId: string, uid: string, patch: { name?: string; type?: string; description?: string }) {
+    const route = "POST /v2/rag/graph/entity/update";
+    const env = await apiHttp.post("/v2/rag/graph/entity/update", {}, {
+      params: { knowledge_base_id: kbId, uid, ...patch },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/entity/delete：删单个实体（级联删关联与相关边） */
+  async deleteGraphEntity(kbId: string, uid: string) {
+    const route = "POST /v2/rag/graph/entity/delete";
+    const env = await apiHttp.post("/v2/rag/graph/entity/delete", {}, {
+      params: { knowledge_base_id: kbId, uid },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/entity/batch-delete：批量删实体 */
+  async batchDeleteGraphEntities(kbId: string, uids: string[]) {
+    const route = "POST /v2/rag/graph/entity/batch-delete";
+    const env = await apiHttp.post("/v2/rag/graph/entity/batch-delete", {}, {
+      params: { knowledge_base_id: kbId, uids: uids.join(",") },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/relation：手工新增关系（端点不存在自动建占位实体） */
+  async createGraphRelation(kbId: string, kbName: string, source: string, target: string, type: string) {
+    const route = "POST /v2/rag/graph/relation";
+    const env = await apiHttp.post("/v2/rag/graph/relation", {}, {
+      params: { knowledge_base_id: kbId, knowledge_base_name: kbName, source, target, type },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/relation/delete：删单条关系 */
+  async deleteGraphRelation(kbId: string, uid: string) {
+    const route = "POST /v2/rag/graph/relation/delete";
+    const env = await apiHttp.post("/v2/rag/graph/relation/delete", {}, {
+      params: { knowledge_base_id: kbId, uid },
+    });
+    return unwrapData<any>(env, route) ?? {};
+  },
+
+  /** POST /v2/rag/graph/relation/batch-delete：批量删关系 */
+  async batchDeleteGraphRelations(kbId: string, uids: string[]) {
+    const route = "POST /v2/rag/graph/relation/batch-delete";
+    const env = await apiHttp.post("/v2/rag/graph/relation/batch-delete", {}, {
+      params: { knowledge_base_id: kbId, uids: uids.join(",") },
+    });
+    return unwrapData<any>(env, route) ?? {};
   },
 
   /** POST /api/knowledge/search */
@@ -424,5 +686,73 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
       };
     });
     return { results, total: results.length };
+  },
+
+  /**
+   * 关系图谱：GET /v2/rag/graph?knowledge_base_id=&doc_path=
+   * 返回 { nodes, edges, entityCount, relationCount }，结构对齐前端 ReGraphData。
+   */
+  async fetchKnowledgeGraph(kbId: string, docPath?: string) {
+    const route = "GET /v2/rag/graph";
+    const env = await apiHttp.get("/v2/rag/graph", {
+      params: {
+        knowledge_base_id: kbId,
+        ...(docPath ? { doc_path: normalizeRelPath(docPath) } : {}),
+      },
+    });
+    const data = unwrapData<any>(env, route) ?? { nodes: [], edges: [] };
+    return {
+      nodes: Array.isArray(data.nodes) ? data.nodes : [],
+      edges: Array.isArray(data.edges) ? data.edges : [],
+      entityCount: toNumber(data.entityCount),
+      relationCount: toNumber(data.relationCount),
+      // 后端未返回 placeholder 时按「空图即占位」兜底，老后端也能正确显示「生成」按钮
+      placeholder: data.placeholder === undefined
+        ? !Array.isArray(data.nodes) || data.nodes.length === 0
+        : Boolean(data.placeholder),
+    };
+  },
+
+  /**
+   * 按需生成关系图谱：POST /api/knowledge/bases/{id}/graph/generate[?doc_path=]
+   *
+   * 用于「知识点是网页采集来的、当初没开关系提取」或「原文改了要重抽」两种场景。
+   * 不传 docPath 时后端遍历该知识库下全部文本文件。
+   */
+  async generateKnowledgeBaseGraph(kbId: string, docPath?: string) {
+    const route = `POST ${KB}/bases/{id}/graph/generate`;
+    const env = await apiHttp.post(
+      `${KB}/bases/${encodeURIComponent(kbId)}/graph/generate`,
+      {},
+      { params: docPath ? { doc_path: normalizeRelPath(docPath) } : {} },
+    );
+    const data = unwrapData<any>(env, route) ?? {};
+    return {
+      files: toNumber(data.files),
+      entityCount: toNumber(data.entity_count),
+      relationCount: toNumber(data.relation_count),
+      elapsedMs: toNumber(data.elapsed_ms),
+    };
+  },
+
+  /** 关系图谱统计：GET /v2/rag/graph/count?knowledge_base_id= */
+  async fetchKnowledgeGraphCount(kbId: string) {
+    const route = "GET /v2/rag/graph/count";
+    const env = await apiHttp.get("/v2/rag/graph/count", {
+      params: { knowledge_base_id: kbId },
+    });
+    const data = unwrapData<any>(env, route) ?? {};
+    return {
+      entityCount: toNumber(data.entity_count),
+      relationCount: toNumber(data.relation_count),
+    };
+  },
+
+  /** 关系提取开关状态：GET /v2/rag/graph/enabled */
+  async fetchRelationExtractEnabled() {
+    const route = "GET /v2/rag/graph/enabled";
+    const env = await apiHttp.get("/v2/rag/graph/enabled");
+    const data = unwrapData<any>(env, route) ?? {};
+    return Boolean(data.enabled);
   },
 };

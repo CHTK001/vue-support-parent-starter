@@ -164,7 +164,7 @@ onMounted(async () => {
         <el-select
           v-if="buckets.length > 1"
           v-model="bucket"
-          size="small"
+
           style="width: 160px"
           placeholder="存储桶"
           @change="switchBucket"
@@ -172,10 +172,10 @@ onMounted(async () => {
           <el-option v-for="b in buckets" :key="b" :label="b" :value="b" />
         </el-select>
         <label class="upload-label">
-          <ReButton icon="Upload" :show-text="true" size="small" type="primary">上传文件</ReButton>
+          <ReButton icon="Upload" :show-text="true" type="primary">上传文件</ReButton>
           <input type="file" class="upload-input" @change="handleUpload" />
         </label>
-        <ReButton icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="loadItems">刷新</ReButton>
+        <ReButton icon="RefreshRight" :show-text="true" :loading="loading" @click="loadItems">刷新</ReButton>
       </div>
     </div>
 
@@ -193,7 +193,7 @@ onMounted(async () => {
         :data="items"
         :columns="columns"
         :loading="loading"
-        size="small"
+
         :pagination="false"
         :toolbar="false"
         empty-text="当前目录为空"
@@ -214,8 +214,8 @@ onMounted(async () => {
         </template>
         <template #action="{ row }">
           <div class="op-cell">
-            <ReButton v-if="!row.directory" icon="Download" layout="square" size="small" title="下载" @click="downloadItem(row)" />
-            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="deleteItem(row)" />
+            <ReButton v-if="!row.directory" icon="Download" layout="square" title="下载" @click="downloadItem(row)" />
+            <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="deleteItem(row)" />
           </div>
         </template>
       </ReTable>

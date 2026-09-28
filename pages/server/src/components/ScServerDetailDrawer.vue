@@ -195,7 +195,7 @@ async function applyParams() {
       <div v-if="view === 'detail'" class="server-detail">
         <ReSkeleton :loading="loading" :rows="6" :count="1" animated>
           <template v-if="node">
-            <ReDescriptions :column="2" border size="small">
+            <ReDescriptions :column="2" border >
               <ReDescriptionsItem label="服务名称">{{ node.name }}</ReDescriptionsItem>
               <ReDescriptionsItem label="运行状态">
                 <span class="status-cell">
@@ -207,32 +207,32 @@ async function applyParams() {
                 </span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="协议类型">
-                <ReTag size="small">{{ node.protocolDesc || node.protocol }}</ReTag>
-                <ReText size="small" type="info" style="margin-left: 6px">{{ node.protocol }}</ReText>
+                <ReTag >{{ node.protocolDesc || node.protocol }}</ReTag>
+                <ReText type="info" style="margin-left: 6px">{{ node.protocol }}</ReText>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="传输引擎">{{ node.engine || '-' }}</ReDescriptionsItem>
               <ReDescriptionsItem label="监听地址">
                 <span class="mono">{{ node.host || '0.0.0.0' }}:{{ node.port ?? '-' }}</span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="访问地址">
-                <ReText v-if="node.serverUrl" size="small" type="primary">{{ node.serverUrl }}</ReText>
+                <ReText v-if="node.serverUrl" type="primary">{{ node.serverUrl }}</ReText>
                 <span v-else class="dim">未运行</span>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="自动启用">
-                <ReTag size="small" :type="node.enabled === 1 ? 'success' : 'info'">{{ node.enabled === 1 ? '是' : '否' }}</ReTag>
+                <ReTag :type="node.enabled === 1 ? 'success' : 'info'">{{ node.enabled === 1 ? '是' : '否' }}</ReTag>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="已挂插件">
-                <ReTag size="small" type="success">{{ node.filters?.length ?? 0 }} 个</ReTag>
+                <ReTag type="success">{{ node.filters?.length ?? 0 }} 个</ReTag>
               </ReDescriptionsItem>
               <ReDescriptionsItem label="备注" :span="2">{{ node.remark || '-' }}</ReDescriptionsItem>
               <ReDescriptionsItem v-if="node.error" label="最近错误" :span="2">
-                <ReTag size="small" type="danger">{{ node.error }}</ReTag>
+                <ReTag type="danger">{{ node.error }}</ReTag>
               </ReDescriptionsItem>
             </ReDescriptions>
 
             <!-- 协议配置 -->
             <ReDivider content-position="left">协议配置</ReDivider>
-            <ReDescriptions v-if="Object.keys(node.config || {}).length" :column="2" border size="small">
+            <ReDescriptions v-if="Object.keys(node.config || {}).length" :column="2" border >
               <ReDescriptionsItem v-for="(v, k) in node.config" :key="k" :label="String(k)">
                 <span class="mono">{{ v }}</span>
               </ReDescriptionsItem>
@@ -258,13 +258,13 @@ async function applyParams() {
                 <div class="fr-main">
                   <div class="fr-name">
                     {{ f.name }}
-                    <ReTag v-if="f.type && f.type !== f.name" size="small" type="info">{{ f.type }}</ReTag>
-                    <ReTag v-if="metaOf(index)?.spi" size="small" type="success">SPI</ReTag>
-                    <ReTag v-if="metaOf(index)?.group" size="small">{{ metaOf(index)?.group }}</ReTag>
+                    <ReTag v-if="f.type && f.type !== f.name" type="info">{{ f.type }}</ReTag>
+                    <ReTag v-if="metaOf(index)?.spi" type="success">SPI</ReTag>
+                    <ReTag v-if="metaOf(index)?.group" >{{ metaOf(index)?.group }}</ReTag>
                   </div>
                   <div class="fr-desc">{{ metaOf(index)?.desc || '未找到插件元数据' }}</div>
                   <div v-if="paramEntries(index).length" class="fr-params">
-                    <ReTag v-for="p in paramEntries(index)" :key="p.key" size="small" type="info" style="margin-right: 4px; margin-bottom: 4px">
+                    <ReTag v-for="p in paramEntries(index)" :key="p.key" type="info" style="margin-right: 4px; margin-bottom: 4px">
                       {{ p.key }}={{ p.value }}
                     </ReTag>
                   </div>
@@ -273,15 +273,15 @@ async function applyParams() {
                 <div class="fr-ops">
                   <ReSwitch
                     :model-value="f.enabled !== false"
-                    size="small"
+
                     :disabled="!isLive"
                     @change="(v: any) => onToggleFilter(index, !!v)"
                   />
-                  <ReButton link size="small" type="primary" @click="openConfig(index)">配置</ReButton>
+                  <ReButton link type="primary" @click="openConfig(index)">配置</ReButton>
                   <ReButton
                     v-if="hasDetail(index)"
                     link
-                    size="small"
+
                     type="success"
                     @click="emit('open-detail-page', node, index)"
                   >{{ metaOf(index)?.detailLabel || '查看详情' }}</ReButton>
@@ -309,7 +309,7 @@ async function applyParams() {
       <!-- ============ 插件配置页 ============ -->
       <div v-else class="filter-page">
         <div class="filter-page-bar">
-          <ReButton show-text icon="ArrowLeft" size="small" @click="view = 'detail'">返回详情</ReButton>
+          <ReButton show-text icon="ArrowLeft" @click="view = 'detail'">返回详情</ReButton>
           <span class="dim">第 {{ activeIndex + 1 }} 个插件 · {{ node?.filters?.[activeIndex]?.name }}</span>
         </div>
         <ScFilterConfigPanel
@@ -333,13 +333,17 @@ async function applyParams() {
   flex-direction: column;
   gap: 12px;
 }
+/* 本文件原先整套用 pages/server/src/styles/tokens.css 的私有令牌
+   （--text-tertiary / --bg-fill / --border-subtle / --bg-container-card / --brand-*），
+   而那份 tokens.css 只有 :root、没有暗色变体，暗色模式下这些值全部停留在亮色。
+   统一改走 EP 语义令牌，亮暗色自动跟随。 */
 .detail-empty {
   padding: 18px;
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary);
-  background: var(--bg-fill);
-  border-radius: 8px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
 }
 .filter-list {
   display: flex;
@@ -351,14 +355,21 @@ async function applyParams() {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--bg-container-card);
-  transition: var(--transition-base);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原为 10px，10px 距 8(md)/12(lg) 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  /* 原为 var(--transition-base)，展开即 all 0.18s ease：all 会把布局属性也纳入过渡，
+     且 0.18s 不是任何标准档。显式列出真正会变的三个属性并取 0.2s 档 */
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .filter-row:hover {
-  border-color: var(--brand-300);
-  box-shadow: var(--shadow-card);
+  border-color: var(--el-color-primary-light-5);
+  /* 允许的两处投影之一：悬浮抬升反馈；静止态不加投影，边界由边框承载 */
+  box-shadow: var(--el-box-shadow-lighter);
 }
 .filter-row.is-off {
   opacity: 0.62;
@@ -366,9 +377,10 @@ async function applyParams() {
 .fr-order {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: var(--brand-50);
-  color: var(--brand-600);
+  /* 22px 正圆：50% 与 full 档(9999px) 等价，统一到令牌 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
   font-size: 11px;
   display: flex;
   align-items: center;
@@ -389,11 +401,11 @@ async function applyParams() {
   gap: 6px;
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  color: var(--text-primary);
+  color: var(--el-text-color-primary);
 }
 .fr-desc {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--el-text-color-secondary);
   line-height: 1.6;
 }
 .fr-params {
@@ -414,6 +426,13 @@ async function applyParams() {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .filter-row {
+    transition: none;
+  }
 }
 </style>

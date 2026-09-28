@@ -113,7 +113,7 @@
         <!-- 输入区 -->
         <div class="tv-input">
           <div v-if="pendingAt" class="tv-at-chip">
-            <el-tag closable size="small" type="primary" @close="pendingAt = null">
+            <el-tag closable type="primary" @close="pendingAt = null">
               @{{ pendingAt.roleName }}
             </el-tag>
           </div>
@@ -252,7 +252,7 @@
 
           <div v-if="admin" class="member-random">
             <div class="random-head">
-              <el-switch v-model="mb.randomReplyEnabled" size="small" @change="onToggleRandom(mb)" />
+              <el-switch v-model="mb.randomReplyEnabled" @change="onToggleRandom(mb)" />
               <span class="random-title">主动发言</span>
               <span v-if="mb.randomReplyEnabled" class="random-prob">
                 概率 {{ mb.randomProbability }}%
@@ -272,7 +272,7 @@
                   v-model="mb.randomContextCount"
                   :min="1"
                   :max="50"
-                  size="small"
+
                   controls-position="right"
                   @change="saveMember(mb)"
                 />
@@ -301,7 +301,7 @@
       <template #header>
         <span class="tv-dlg-title">添加角色到群</span>
       </template>
-      <el-input v-model="charFilter" placeholder="搜索角色" size="small" class="char-filter" />
+      <el-input v-model="charFilter" placeholder="搜索角色" class="char-filter" />
       <div class="char-list">
         <div
           v-for="c in filteredCharacters"
@@ -313,7 +313,7 @@
             <div class="char-name">{{ c.name }}</div>
             <div class="char-desc">{{ c.description }}</div>
           </div>
-          <el-button size="small" type="primary" plain @click="confirmAddMember(c)">加入</el-button>
+          <el-button type="primary" plain @click="confirmAddMember(c)">加入</el-button>
         </div>
         <div v-if="!filteredCharacters.length" class="char-empty">没有可选角色</div>
       </div>
@@ -731,6 +731,15 @@ onMounted(loadGroups)
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余组件统一）：
+   1. 颜色已经全部走 --el-*，本轮把 9px/10px/11px 这些魔法圆角统一到 --el-radius-*
+      六档（9px 离 8 更近取 md，10/11px 离 12 更近取 lg，均在同行注释标出原值）。
+   2. 过渡统一 var(--el-transition-duration-fast, 0.2s)。
+   3. 可点的 div/span 补 outline:none + :focus-visible 焦点环；
+      原生 <button>（.tv-add / .tv-chat-set / .tv-tool / .tv-set-close）改为补主色光环，
+      32px 高的图标按钮上浏览器默认 outline 偏弱。
+   ============================================================================ */
 .tavern-root {
   display: flex;
   height: 100%;
@@ -761,7 +770,8 @@ onMounted(loadGroups)
   gap: 6px;
   height: 32px;
   padding: 0 10px;
-  border-radius: 9px;
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
 }
 .tv-search-ico { width: 15px; height: 15px; color: var(--el-text-color-secondary); flex-shrink: 0; }
@@ -783,29 +793,43 @@ onMounted(loadGroups)
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 9px;
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-add:hover { background: var(--el-color-primary-light-8); }
 .tv-add:active { transform: scale(0.94); }
 
+/* 键盘焦点环：32px 图标按钮上默认 outline 偏弱 */
+.tv-add:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .tv-list-body { flex: 1; overflow-y: auto; padding: 2px 6px 8px; }
 
+/* 群列表项：div + @click，可点不可 Tab 聚焦，焦点环先挂好 */
 .tv-conv {
   position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 9px 10px;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   cursor: pointer;
-  transition: background 0.16s ease;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-conv:hover { background: var(--el-fill-color-light); }
 .tv-conv.active { background: var(--el-color-primary-light-9); }
+.tv-conv:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-conv-avatar { flex-shrink: 0; }
 .tv-conv-main { flex: 1; min-width: 0; }
 .tv-conv-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -835,12 +859,22 @@ onMounted(loadGroups)
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-placeholder);
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   opacity: 0;
-  transition: opacity 0.16s ease, background 0.16s ease, color 0.16s ease;
+  outline: none;
+  transition:
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-conv:hover .tv-conv-more { opacity: 1; }
 .tv-conv-more:hover { color: var(--el-text-color-primary); background: var(--el-fill-color); }
+/* 焦点可见时不能被 hover 的 opacity:0 藏起来，否则键盘用户找不到「更多操作」 */
+.tv-conv-more:focus-visible {
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-conv-more :deep(.el-icon) { font-size: 16px; }
 
 .tv-list-empty {
@@ -889,13 +923,19 @@ onMounted(loadGroups)
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 9px;
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   color: var(--el-text-color-secondary);
   background: transparent;
-  transition: background 0.16s ease, color 0.16s ease;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-chat-set:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
+.tv-chat-set:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-chat-set :deep(.el-icon) { font-size: 19px; }
 
 /* 消息区 */
@@ -924,7 +964,8 @@ onMounted(loadGroups)
   color: var(--el-text-color-placeholder);
   background: var(--el-fill-color-light);
   padding: 1px 7px;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -935,7 +976,8 @@ onMounted(loadGroups)
 .tv-bubble {
   position: relative;
   padding: 9px 13px;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   font-size: 14px;
   line-height: 1.6;
   word-break: break-word;
@@ -948,7 +990,8 @@ onMounted(loadGroups)
 }
 .b-self {
   background: var(--el-color-primary);
-  color: var(--el-color-white, #fff);
+  /* 原值 var(--el-color-white, #fff)：--el-color-white 恒有值，兜底是死代码 */
+  color: var(--el-color-white);
 }
 .tv-plain { white-space: pre-wrap; }
 
@@ -1004,13 +1047,19 @@ onMounted(loadGroups)
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 8px;
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   background: transparent;
   color: var(--el-text-color-secondary);
-  transition: background 0.16s ease, color 0.16s ease;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-tool:hover { background: var(--el-fill-color-light); color: var(--el-color-primary); }
+.tv-tool:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-tool-at { font-size: 15px; font-weight: 600; }
 
 .tv-at-menu {
@@ -1022,7 +1071,8 @@ onMounted(loadGroups)
   max-height: 268px;
   overflow-y: auto;
   padding: 6px;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: var(--el-box-shadow-light);
@@ -1032,10 +1082,15 @@ onMounted(loadGroups)
   align-items: center;
   gap: 9px;
   padding: 6px 8px;
-  border-radius: 9px;
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
+  outline: none;
 }
 .tv-at-item:hover { background: var(--el-fill-color-light); }
+.tv-at-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-at-name { font-size: 13px; color: var(--el-text-color-primary); }
 .tv-at-empty { font-size: 12px; color: var(--el-text-color-secondary); padding: 10px 8px; }
 
@@ -1064,15 +1119,17 @@ onMounted(loadGroups)
   height: 32px;
   padding: 0 16px;
   border: 1px solid var(--el-border-color);
-  border-radius: 9px;
+  /* 原值 9px（离 8 更近）→ md 档 */
+  border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   font-size: 13px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  transition: all 0.18s ease;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tv-send.ready {
-  color: var(--el-color-white, #fff);
+  /* 原值 var(--el-color-white, #fff)：--el-color-white 恒有值，兜底是死代码 */
+  color: var(--el-color-white);
   background: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
@@ -1094,7 +1151,9 @@ onMounted(loadGroups)
 .tv-dlg-title { font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); }
 .char-filter { margin-bottom: 10px; }
 .char-list { max-height: 380px; overflow-y: auto; }
-.char-item { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 10px; }
+.char-item { display: flex; align-items: center; gap: 10px; padding: 8px 6px;
+  /* 原值 10px（距 8/12 等距，本仓统一取 lg 档） */
+  border-radius: var(--el-radius-lg, 12px); }
 .char-item:hover { background: var(--el-fill-color-light); }
 .char-info { flex: 1; min-width: 0; }
 .char-name { font-size: 13.5px; font-weight: 600; color: var(--el-text-color-primary); }
@@ -1118,10 +1177,14 @@ onMounted(loadGroups)
 .tv-set-title { font-size: 16px; font-weight: 700; color: var(--el-text-color-primary); }
 .tv-set-close {
   width: 28px; height: 28px; border: 0; cursor: pointer;
-  border-radius: 8px; background: transparent; color: var(--el-text-color-secondary);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px); background: transparent; color: var(--el-text-color-secondary);
   display: inline-flex; align-items: center; justify-content: center;
 }
 .tv-set-close:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
+.tv-set-close:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
 .tv-set-group { margin-bottom: 16px; }
 .tv-set-label { font-size: 13.5px; font-weight: 600; color: var(--el-text-color-primary); }
 .tv-set-tip { font-size: 11.5px; color: var(--el-text-color-secondary); margin: 6px 0 0; }
@@ -1143,7 +1206,8 @@ onMounted(loadGroups)
 .member-card {
   padding: 11px;
   margin-bottom: 10px;
-  border-radius: 12px;
+  /* 原值 12px → lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-light);
 }
 .member-main { display: flex; align-items: center; gap: 10px; }
@@ -1169,5 +1233,20 @@ onMounted(loadGroups)
 .random-ctx { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ctx-label { font-size: 11.5px; color: var(--el-text-color-secondary); }
 .random-ctx :deep(.el-input-number) { width: 96px; }
-.tv-add-member { border-radius: 11px; }
+/* 原值 11px（离 12 更近）→ lg 档 */
+.tv-add-member { border-radius: var(--el-radius-lg, 12px); }
+
+/* 尊重系统「减少动态效果」偏好。
+   群列表选中态靠底色、@ 菜单选中态靠 hover 底色，关掉过渡后依然可辨。 */
+@media (prefers-reduced-motion: reduce) {
+  .tv-add,
+  .tv-conv,
+  .tv-conv-more,
+  .tv-chat-set,
+  .tv-tool,
+  .tv-at-item,
+  .tv-send {
+    transition: none;
+  }
+}
 </style>

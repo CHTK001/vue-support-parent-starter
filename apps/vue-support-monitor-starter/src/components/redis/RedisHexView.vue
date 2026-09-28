@@ -71,7 +71,7 @@ async function copyHex(): Promise<void> {
       <span>HEX · {{ bytes.length }} 字节</span>
       <span class="rv-hint">只读视图，编辑请切换「文本 / JSON」</span>
       <span class="rv-spacer" />
-      <ReButton icon="CopyDocument" layout="square" size="small" title="复制 HEX" @click="copyHex" />
+      <ReButton icon="CopyDocument" layout="square" title="复制 HEX" @click="copyHex" />
     </div>
     <div class="rv-hex">
       <div v-for="row in rows" :key="row.offset" class="rv-hex-row">

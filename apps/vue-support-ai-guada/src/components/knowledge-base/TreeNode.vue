@@ -35,7 +35,7 @@
             </span>
             
             <!-- 状态标签 -->
-            <el-tag v-if="!node.isDirectory" size="small" :type="getStatusType(node.processingStatus)" class="shrink-0">
+            <el-tag v-if="!node.isDirectory" :type="getStatusType(node.processingStatus)" class="shrink-0">
                 <LTooltip v-if="node.processingStatus === 'processing' && node.currentStep" :content="node.currentStep" placement="top">
                     <span>{{ getStatusText(node.processingStatus) }}</span>
                 </LTooltip>
@@ -182,10 +182,23 @@ function getStatusText(status: string): string {
 }
 
 .node-content:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
 }
 
 .dark .node-content:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
+}
+
+/* 键盘焦点可见性：节点行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式沿用模板里已有的 cursor-pointer，不重复声明。
+   环用主色 12% —— 节点行本身透明、落在知识库页表面色上，一档主色描边足够可见。
+   注意：模板里的展开箭头用的是 Tailwind 的 transition-transform，
+   属于「本文件自有动效」但不在本次 reduced-motion 清单内，未在此改动。 */
+.node-content {
+    outline: none;
+}
+
+.node-content:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

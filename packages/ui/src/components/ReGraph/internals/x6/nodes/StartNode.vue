@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="start" :text="data.reText" :subtitle="data.trigger ? '触发：' + data.trigger : '流程起点'" />
+  <BaseNode type="start" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="data.trigger ? '触发：' + data.trigger : '流程起点'" />
 </template>

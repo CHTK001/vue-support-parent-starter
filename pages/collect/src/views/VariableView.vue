@@ -17,6 +17,7 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { deleteVariable, listVariables, saveVariable, updateVariable } from "../api/collectApi";
+import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import type { ReTableColumn, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectVariable } from "../types/collect";
@@ -187,13 +188,13 @@ async function remove(input: Record<string, unknown>): Promise<void> {
         </span>
       </template>
       <template #encrypted="{ row }">
-        <ReTag size="small" :type="row.collectVariableEncrypted === 1 ? 'warning' : 'info'" effect="plain">
+        <ReTag  :type="row.collectVariableEncrypted === 1 ? 'warning' : 'info'" effect="plain">
           {{ row.collectVariableEncrypted === 1 ? "是" : "否" }}
         </ReTag>
       </template>
       <template #action="{ row }">
-        <ReButton layout="square" icon="Edit" type="primary" tip="编辑这个变量" @click="openEdit(row)"/>
-        <ReButton layout="square" icon="Delete" type="danger" tip="删除这个变量" @click="remove(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.editVariable" layout="square" @click="openEdit(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.deleteVariable" layout="square" @click="remove(row)"/>
       </template>
     </ReTable>
 
@@ -208,7 +209,7 @@ async function remove(input: Record<string, unknown>): Promise<void> {
           <span class="collect-form__label"><i class="req">*</i>变量名</span>
           <ReInput
             v-model="form.collectVariableName"
-            size="small"
+            
             :disabled="Boolean(form.collectVariableId)"
             placeholder="如 accessToken"
           />
@@ -222,7 +223,7 @@ async function remove(input: Record<string, unknown>): Promise<void> {
           <span class="collect-form__label"><i class="req">*</i>值</span>
           <ReInput
             v-model="form.collectVariableValue"
-            size="small"
+            
             :type="form.collectVariableEncrypted === 1 ? 'password' : 'textarea'"
             :rows="2"
             show-password
@@ -235,12 +236,12 @@ async function remove(input: Record<string, unknown>): Promise<void> {
         </div>
         <div class="collect-form__item">
           <span class="collect-form__label">说明</span>
-          <ReInput v-model="form.collectVariableDescription" size="small" maxlength="200"/>
+          <ReInput v-model="form.collectVariableDescription"  maxlength="200"/>
         </div>
       </div>
       <template #footer="{ cancel }">
-        <ReButton size="small" @click="cancel">取消</ReButton>
-        <ReButton size="small" type="primary" :loading="saving" @click="save">保存</ReButton>
+        <ReButton  @click="cancel">取消</ReButton>
+        <ReButton  type="primary" :loading="saving" @click="save">保存</ReButton>
       </template>
     </ReDialog>
   </div>

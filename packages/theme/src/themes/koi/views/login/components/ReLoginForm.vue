@@ -130,7 +130,7 @@
       </el-form-item>
 
       <div class="flex flex-justify-center m-t-12px" v-if="loginConfig.captcha">
-        <el-button text size="small" @click="handleCaptcha">
+        <el-button text @click="handleCaptcha">
           <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
             {{ $t("menu.login.picture") }}
           </span>

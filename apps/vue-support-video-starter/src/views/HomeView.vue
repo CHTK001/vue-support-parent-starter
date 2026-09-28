@@ -190,6 +190,7 @@ onUnmounted(stopHeroLoop);
   min-height: 420px;
   display: flex;
   align-items: flex-end;
+  /* 深色影院主题用投影表达层次，与全局 .vd-theater / .vd-card 保持一致，故保留令牌投影 */
   box-shadow: var(--vd-shadow-lg);
   margin-bottom: 34px;
   border: 1px solid var(--vd-border);
@@ -200,8 +201,10 @@ onUnmounted(stopHeroLoop);
   inset: 0;
   background-size: cover;
   background-position: center 20%;
-  background-color: #0d1b2e;
+  /* 无封面时的兜底底色：取深色主题最深层令牌（原来写死 #0d1b2e） */
+  background-color: var(--vd-bg-deep);
   transform: scale(1.04);
+  /* 6s 是缓慢推近（Ken Burns），压成 0.2s 会变成抖动，故不套 -fast 档 */
   transition: transform 6s ease;
 }
 
@@ -209,14 +212,15 @@ onUnmounted(stopHeroLoop);
   transform: scale(1.08);
 }
 
+/* 遮罩原来写死 rgba(7,10,16,*)，而 #070a10 正是 --vd-bg-deep，改用 color-mix 取 alpha */
 .vds-hero-mask {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(7, 10, 16, 0.1) 0%,
-    rgba(7, 10, 16, 0.6) 55%,
-    rgba(7, 10, 16, 0.96) 100%
+    color-mix(in srgb, var(--vd-bg-deep) 10%, transparent) 0%,
+    color-mix(in srgb, var(--vd-bg-deep) 60%, transparent) 55%,
+    color-mix(in srgb, var(--vd-bg-deep) 96%, transparent) 100%
   );
 }
 
@@ -241,22 +245,24 @@ onUnmounted(stopHeroLoop);
 .vds-hero-badge {
   display: inline-block;
   background: linear-gradient(135deg, var(--vd-primary), var(--vd-secondary));
-  color: #fff;
+  color: var(--vd-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 4px;
   padding: 4px 14px;
   border-radius: var(--vd-radius-sm);
   margin-bottom: 14px;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  /* 浮起反馈类投影：色值改为 --vd-primary 的 alpha，原 rgba(99,102,241,.4) */
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--vd-primary) 40%, transparent);
 }
 
 .vds-hero-title {
   margin: 0 0 10px;
   font-size: 32px;
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  color: var(--vd-text);
+  /* 文字投影属于海报之上的可读性保障，不受「卡片不加投影」约束 */
+  text-shadow: 0 2px 16px color-mix(in srgb, var(--vd-bg-deep) 50%, transparent);
   line-height: 1.2;
 }
 
@@ -265,7 +271,7 @@ onUnmounted(stopHeroLoop);
   align-items: center;
   gap: 10px;
   margin: 0 0 10px;
-  color: rgba(226, 243, 255, 0.85);
+  color: color-mix(in srgb, var(--vd-text) 85%, transparent);
   font-size: 13px;
   flex-wrap: wrap;
 }
@@ -278,7 +284,7 @@ onUnmounted(stopHeroLoop);
 
 .vds-hero-remark {
   margin: 0 0 20px;
-  color: rgba(226, 243, 255, 0.7);
+  color: color-mix(in srgb, var(--vd-text) 70%, transparent);
   font-size: 13px;
   line-height: 1.8;
   display: -webkit-box;
@@ -294,16 +300,16 @@ onUnmounted(stopHeroLoop);
 }
 
 .vds-hero-more {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: color-mix(in srgb, var(--vd-surface) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vd-text) 22%, transparent);
+  color: var(--vd-text);
   backdrop-filter: blur(8px);
 }
 
 .vds-hero-more:hover {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+  background: color-mix(in srgb, var(--vd-surface) 80%, transparent);
+  border-color: color-mix(in srgb, var(--vd-text) 40%, transparent);
+  color: var(--vd-text);
 }
 
 /* 轮播指示点 */
@@ -319,17 +325,24 @@ onUnmounted(stopHeroLoop);
   width: 24px;
   height: 4px;
   border: none;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  /* 原 2px（4px 高的条上即圆头），取胶囊档，渲染结果一致 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--vd-text) 30%, transparent);
   cursor: pointer;
-  transition: all 0.25s var(--vd-ease);
+  transition: all var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
   padding: 0;
+}
+
+.vds-hero-dot:focus-visible {
+  outline: none;
+  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 .vds-hero-dot.is-active {
   background: linear-gradient(90deg, var(--vd-primary), var(--vd-secondary));
   width: 38px;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vd-primary) 50%, transparent);
 }
 
 /* ── 分类内容区 ──────────────────────────── */
@@ -357,20 +370,31 @@ onUnmounted(stopHeroLoop);
 .vds-section-bar {
   width: 4px;
   height: 20px;
-  border-radius: 2px;
+  /* 原 2px（4px 宽的竖条上即圆头），取胶囊档，渲染结果一致 */
+  border-radius: var(--el-radius-full, 9999px);
   background: linear-gradient(180deg, var(--vd-primary), var(--vd-secondary));
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vd-primary) 50%, transparent);
 }
 
 .vds-section-more {
   font-size: 13px;
   color: var(--vd-text-secondary);
   text-decoration: none;
-  transition: color 0.2s var(--vd-ease);
+  cursor: pointer;
+  border-radius: var(--el-radius-xs, 4px);
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
+    box-shadow var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
 }
 
 .vds-section-more:hover {
   color: var(--vd-primary-strong);
+}
+
+/* router-link 渲染出的 <a>：键盘可达，补实心焦点环 */
+.vds-section-more:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
 }
 
 /* 横向海报轨道 */
@@ -387,6 +411,8 @@ onUnmounted(stopHeroLoop);
 
 .vds-rail-card {
   scroll-snap-align: start;
+  /* 焦点轮廓由全局 .vd-card:focus-visible 提供（2px 实心 + 2px 偏移），
+     可见性已达标，这里不覆盖，避免把可见焦点环换成弱化的浅色环 */
 }
 
 .vds-rail-card:hover {
@@ -403,11 +429,14 @@ onUnmounted(stopHeroLoop);
 
 /* 海报渐变底 + 评分角标 */
 .vds-rail-card :deep(.vd-poster) {
-  background: linear-gradient(160deg, #1a2333, #111827);
+  background: linear-gradient(160deg, var(--vd-surface-card), var(--vd-surface));
 }
 
+/* 缩放与淡出是同一次微交互，原 0.35s/0.3s 统一收敛到 -fast 档 */
 .vds-rail-card :deep(.vd-poster img) {
-  transition: transform 0.35s var(--vd-ease), opacity 0.3s var(--vd-ease);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) var(--vd-ease),
+    opacity var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
 }
 
 .vds-rail-card:hover :deep(.vd-poster img) {
@@ -418,14 +447,15 @@ onUnmounted(stopHeroLoop);
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(7, 10, 16, 0.82);
+  background: color-mix(in srgb, var(--vd-bg-deep) 82%, transparent);
   color: var(--vd-gold);
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: var(--vd-radius-sm);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  /* #fbbf24 正是 --vd-gold */
+  border: 1px solid color-mix(in srgb, var(--vd-gold) 25%, transparent);
 }
 
 .vds-rail-card :deep(.vd-card-body) {
@@ -460,6 +490,25 @@ onUnmounted(stopHeroLoop);
   }
   .vds-rail {
     grid-auto-columns: 136px;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vds-hero-bg,
+  .vds-hero-content,
+  .vds-hero-dot,
+  .vds-section-more,
+  .vds-rail-card,
+  .vds-rail-card :deep(.vd-poster img) {
+    transition: none;
+    animation: none;
+  }
+  /* 关掉动画后这些 transform 只会造成位移动差，没有唯一视觉反馈承载，一并复位 */
+  .vds-hero-bg,
+  .vds-rail-card:hover,
+  .vds-rail-card:hover :deep(.vd-poster img) {
+    transform: none;
   }
 }
 </style>

@@ -1,24 +1,31 @@
 <!--
   ReStatCard —— 统计卡片（Dashboard 概览）
-  布局：左栏 标题/数值/描述 纵向堆叠 · 右栏 圆形图标垂直居中
+  布局：图标区 + 文案区（标题/数值/描述）。标准档下两区上下堆叠，
+        compact 档启用横排（详见样式段注释）。
   Props:
     - title: 标题
     - value: 主数值（slot 也可）
     - desc: 描述
     - icon: 右侧图标
     - iconColor: 图标颜色（CSS color 值）
+    - size: 尺寸档位。default 为标准尺寸；compact 用于「一行并排 4~5 张」的密集
+            概览，收紧内距、缩小数值与图标圆，并把文档里写的横排布局真正启用
+            （icon 在左、文案在右），避免宽而矮的卡片留白过大
   Slots:
     - value: 自定义主数值渲染（如 ReTag）
     - icon: 自定义右侧图标
 -->
 <template>
   <!-- re-surface 基类提供圆角/边框/投影/悬停（见 components/shared/re-surface.css） -->
-  <div class="re-stat-card re-surface re-surface--hover">
+  <div
+    class="re-stat-card re-surface re-surface--hover"
+    :class="{ 're-stat-card--compact': size === 'compact' }"
+  >
     <!-- 图标在左：渐变圆 + 柔光；数值/描述在右 -->
     <div class="re-stat-card__aside">
       <slot name="icon">
         <span v-if="icon" class="re-stat-card__icon" :style="iconStyle">
-          <el-icon :size="24"><component :is="icon" /></el-icon>
+          <el-icon :size="iconSize"><component :is="icon" /></el-icon>
         </span>
       </slot>
     </div>
@@ -46,14 +53,23 @@ const props = withDefaults(
     icon?: Component;
     /** CSS 颜色值或 CSS 变量 */
     iconColor?: string;
+    /** 尺寸档位：default（标准）/ compact（密集概览） */
+    size?: "default" | "compact";
   }>(),
   {
     value: "",
     desc: "",
     icon: undefined,
     iconColor: "var(--el-color-primary)",
+    size: "default",
   },
 );
+
+/** 是否紧凑档；模板与图标尺寸共用，避免两处各判一次 */
+const isCompact = computed(() => props.size === "compact");
+
+/** 图标字形大小：紧凑档跟着图标圆一起缩，否则 24px 字形会撑破 32px 圆 */
+const iconSize = computed(() => (isCompact.value ? 16 : 24));
 
 /**
  * 图标圆：iconColor 渐变实底 + 白色图标 + 同色柔和投影（对齐设计稿的"柔和层次感"）。
@@ -79,6 +95,43 @@ defineOptions({ name: "ReStatCard", inheritAttrs: true });
 .re-stat-card {
   /* 尺寸变量：基线未加载时（单独引入本组件）也能得到正确圆角 */
   border-radius: var(--re-surface-radius, var(--el-radius-xl, 16px));
+}
+
+/* ---------------- 紧凑档 ----------------
+   只覆写 re-surface 的令牌与自身排版，不新增投影/圆角声明：
+   圆角与内距继续由基线类消费，避免出现第二套卡片外壳规格。
+
+   顺带补上本组件文档里写的横排布局（"左栏 数值 · 右栏 图标"）：
+   标准档实际没有 `display: flex`，图标与数值是上下堆叠的，图标这一行
+   要独占 30~56px 高度。宽而矮的概览卡（如 280x139 里放一个 0）因此留白过大。
+   这里只在紧凑档启用横排 —— 改默认档会让既有 10+ 个调用方一起变样。 */
+.re-stat-card--compact {
+  --re-surface-padding: 10px 12px;
+  --re-surface-radius: var(--el-border-radius-lg, 12px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.re-stat-card--compact .re-stat-card__body {
+  gap: 2px;
+}
+
+.re-stat-card--compact .re-stat-card__value {
+  font-size: 20px;
+  min-height: 22px;
+  /* 有意不写 nowrap/ellipsis：概览里同排会出现「0 毫秒」和「2026/9/28 08:47:30」
+     这种长度悬殊的值，用省略号截断会把「最后检测」的秒数永久藏起来 ——
+     那种"变小"是拿丢信息换的。宁可让长值在空格处折成两行。 */
+}
+
+.re-stat-card--compact .re-stat-card__title {
+  font-size: 12px;
+}
+
+.re-stat-card--compact .re-stat-card__icon {
+  width: 32px;
+  height: 32px;
 }
 
 .re-stat-card__body {

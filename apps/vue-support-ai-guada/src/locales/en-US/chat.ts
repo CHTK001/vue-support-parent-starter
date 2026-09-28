@@ -1,4 +1,6 @@
 ﻿export default {
+  /** 消息滚动区：作为 role="region" 的可读名称（ScrollContainer） */
+  messages: 'Message list',
   // ── 输入区 ──
   input: {
     // ChatInput.vue

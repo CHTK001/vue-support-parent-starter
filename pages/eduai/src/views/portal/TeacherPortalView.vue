@@ -154,12 +154,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/*
+ * koi 令牌口径（与 JuniorHome / PrimaryHome / SeniorHome / StudentPortalView 完全一致）：
+ *   品牌色带 = --el-color-primary → --el-color-primary-light-3
+ *   页面底   = --el-bg-color-page，卡片面 = --el-bg-color
+ *   文字三级 = --el-text-color-primary / -regular / -secondary / -placeholder
+ *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
+ * 卡片类容器一律不加投影，投影只留给「悬浮浮起」与「键盘焦点环」两种反馈。
+ */
 .tp {
   position: fixed;
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  background: linear-gradient(176deg, #0f766e 0%, #14b8a6 30%, #f0fdfa 30.1%, #f8fafc 100%);
+  /* 顶部色带走主色令牌、底部页面底走页面令牌，换主题/切暗色时整页自动跟随 */
+  background: linear-gradient(
+    176deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 30%,
+    var(--el-bg-color-page) 30.1%,
+    var(--el-fill-color-lighter) 100%
+  );
 }
 .tp-head {
   display: flex;
@@ -174,14 +189,17 @@ onMounted(() => {
   font-size: 42px;
   font-weight: 900;
   letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  color: var(--el-color-white);
+  /* 白字压在主色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .tp-sub {
   margin: 10px 0 0;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  /* 色带上的白字不能换成 --el-text-color-primary（暗色下会变浅色失去对比），
+     用 --el-color-white + color-mix 保留原来的 95% 透明度 */
+  color: color-mix(in srgb, var(--el-color-white) 95%, transparent);
 }
 .tp-sep {
   margin: 0 8px;
@@ -197,23 +215,26 @@ onMounted(() => {
 .tp-stat__val {
   font-size: 42px;
   font-weight: 900;
-  color: #fff;
+  color: var(--el-color-white);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
 }
-.tp-stat__val.is-accent { color: #bbf7d0; }
+/* 深色带上的极浅绿强调：主色带会随主题变亮，纯 success 在浅色带上会读不出来，
+   所以按「success 向白混 30%」派生，保证任何主题下都是浅色 */
+.tp-stat__val.is-accent { color: color-mix(in srgb, var(--el-color-success) 30%, var(--el-color-white)); }
 .tp-stat__lbl {
   margin-top: 4px;
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--el-color-white) 80%, transparent);
 }
 
 .tp-body {
   margin: 26px 26px 0;
   padding: 30px 30px 26px;
-  border-radius: 28px 28px 0 0;
-  background: #fff;
+  /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
+  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  background: var(--el-bg-color);
   min-height: 50vh;
 }
 .tp-grid {
@@ -223,9 +244,10 @@ onMounted(() => {
 }
 .tp-card {
   padding: 20px;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  /* 原 18px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
 }
 .tp-card__head {
   display: flex;
@@ -236,14 +258,14 @@ onMounted(() => {
 .tp-card__name {
   font-size: 19px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
 }
 .tp-card__tag {
   font-size: 11px;
   font-weight: 700;
-  color: #0f766e;
-  background: #ccfbf1;
-  border-radius: 6px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
 }
 .tp-card__rows {
@@ -257,30 +279,31 @@ onMounted(() => {
   align-items: baseline;
   justify-content: space-between;
   font-size: 13px;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .tp-card__row b {
   font-size: 18px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
   font-variant-numeric: tabular-nums;
 }
 .tp-bar {
   height: 8px;
-  border-radius: 999px;
-  background: #eef2f7;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
   overflow: hidden;
 }
 .tp-bar__fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #14b8a6 0%, #5eead4 100%);
+  border-radius: var(--el-radius-full, 9999px);
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 .tp-card__hint {
   margin-top: 6px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
 }
 .tp-empty {
   padding: 40px 0;
@@ -297,12 +320,12 @@ onMounted(() => {
   margin: 0 0 6px;
   font-size: 22px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
 }
 .tp-bind__sub {
   margin: 0 0 16px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .tp-bind :deep(.el-form-item) {
   text-align: left;
@@ -311,14 +334,27 @@ onMounted(() => {
   width: 100%;
   height: 46px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   font-size: 16px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: #fff;
-  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
-  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.35);
+  color: var(--el-color-white);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  /* 原来的常驻彩色投影属装饰性投影，koi 规约只留浮起与焦点环：
+     静止态改平，把浮起反馈挪到 hover */
+  transition: box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.tp-bind__btn:hover:not(:disabled) {
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
+.tp-bind__btn:focus-visible {
+  /* 按钮本身就是主色渐变，纯 primary 12% 的焦点环会「糊」在同色背景上，
+     补一圈白描边保证任何主题下都看得见（仍是 koi 焦点环，只是加一层对比环） */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+    0 0 0 5px var(--el-color-white);
 }
 .tp-bind__btn:disabled {
   opacity: 0.6;
@@ -338,5 +374,12 @@ onMounted(() => {
   .tp-head { padding: 20px 20px 0; }
   .tp-title { font-size: 30px; }
   .tp-body { margin: 18px 12px 0; padding: 20px 16px; }
+}
+/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+@media (prefers-reduced-motion: reduce) {
+  .tp-bind__btn,
+  .tp-bar__fill {
+    transition: none;
+  }
 }
 </style>

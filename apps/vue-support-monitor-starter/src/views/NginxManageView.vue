@@ -18,14 +18,14 @@
       </div>
 
       <div class="ngm-actions">
-        <ReRadioGroup v-model="mode" size="small">
+        <ReRadioGroup v-model="mode" >
           <ReRadioButton value="standard">标准</ReRadioButton>
           <ReRadioButton value="newbie">新人</ReRadioButton>
         </ReRadioGroup>
 
         <ReSelect
           :model-value="datasourceId"
-          size="small"
+
           style="width: 170px"
           placeholder="选择实例"
           @change="onSwitchSource"
@@ -38,7 +38,7 @@
           />
         </ReSelect>
 
-        <ReButton show-text icon="Refresh" size="small" @click="reloadOverview">刷新</ReButton>
+        <ReButton show-text icon="Refresh" @click="reloadOverview">刷新</ReButton>
 
         <NginxLifecycleBar
           :datasource-id="datasourceId"

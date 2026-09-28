@@ -97,7 +97,7 @@
             <div class="font-medium text-gray-900 dark:text-[#e8e9ed] truncate">{{ connector.name }}</div>
             <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1 truncate">{{ connector.description }}</div>
           </div>
-          <el-button type="primary" size="small" round class="shrink-0" @click.stop="openBindDialog(connector)">绑定</el-button>
+          <el-button type="primary" round class="shrink-0" @click.stop="openBindDialog(connector)">绑定</el-button>
         </article>
       </div>
     </section>

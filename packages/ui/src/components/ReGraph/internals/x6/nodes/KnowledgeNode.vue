@@ -6,5 +6,5 @@ const data = computed(() => props.node?.getData?.() ?? {});
 </script>
 
 <template>
-  <BaseNode type="knowledge" :text="data.reText" :subtitle="'知识库 ' + (data.dataset || 'default')" />
+  <BaseNode type="knowledge" :text="data.reText" :color="data.reColor" :icon="data.reIcon" :subtitle="'知识库 ' + (data.dataset || 'default')" />
 </template>

@@ -10,6 +10,8 @@
  *      侧边栏菜单由 @repo/app 的 buildMenuFromRoutes 自动推导，无需 registerStaticMenu。
  */
 export { default as HomeView } from "./views/HomeView.vue";
+export { default as StudentManageView } from "./views/StudentManageView.vue";
+export { default as PoemBankView } from "./views/PoemBankView.vue";
 export { default as QuestionView } from "./views/QuestionView.vue";
 export { default as CollectTaskView } from "./views/CollectTaskView.vue";
 export { default as PaperView } from "./views/PaperView.vue";

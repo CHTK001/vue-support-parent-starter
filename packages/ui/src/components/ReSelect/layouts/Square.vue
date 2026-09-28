@@ -1,11 +1,14 @@
 <template>
   <div
     class="re-select-square"
-    :class="{
-      're-select-square--compact': compact,
-      're-select-square--text': !iconOnly,
-      're-select-square--vertical': vertical,
-    }"
+    :class="[
+      `re-select-square--${controlSize}`,
+      {
+        're-select-square--compact': compact,
+        're-select-square--text': !iconOnly,
+        're-select-square--vertical': vertical,
+      },
+    ]"
   >
     <div
       v-for="opt in displayOptions"
@@ -50,7 +53,7 @@
  */
 import { computed } from "vue";
 import ReIcon from "../../ReIcon/theme/default/ReIcon.vue";
-import type { ReOption } from "../types";
+import type { ReOption, ReSelectSize } from "../types";
 
 const props = withDefaults(
   defineProps<{
@@ -62,6 +65,12 @@ const props = withDefaults(
     multiple?: boolean;
     /** 图标尺寸 */
     size?: number;
+    /**
+     * 控件尺寸档位（small / default / large），只影响按钮本身的宽高与字号。
+     *
+     * 与上面的图标尺寸 size(number) 是两件事，故不复用 size 这个名字。
+     */
+    controlSize?: ReSelectSize;
     /** 仅显示图标，隐藏文字（默认 true） */
     iconOnly?: boolean;
     /** 紧凑模式（默认 true） */
@@ -79,6 +88,7 @@ const props = withDefaults(
     compact: true,
     vertical: false,
     disabled: false,
+    controlSize: "default",
   },
 );
 
@@ -294,5 +304,43 @@ function select(opt: ReOption) {
 .re-select-square--vertical .re-select-square__check svg {
   width: 14px;
   height: 14px;
+}
+
+/* ===== 控件尺寸档（controlSize）：28 / 34 / 40px 基线 =====
+   放在最后并用「尺寸 + 紧凑」双类选择器，保证能盖过上面 compact/text 档写死的宽高。 */
+.re-select-square--small.re-select-square--compact .re-select-square__item {
+  width: 32px;
+  height: 32px;
+  /* Modern 控件族用 --rm-* 令牌（= 8px），不要写死值 */
+  border-radius: var(--rm-radius);
+}
+.re-select-square--small.re-select-square--compact.re-select-square--text .re-select-square__item {
+  height: 26px;
+  padding: 0 8px;
+}
+.re-select-square--small.re-select-square--compact .re-select-square__label {
+  font-size: 11px;
+}
+
+.re-select-square--large.re-select-square--compact .re-select-square__item {
+  width: 46px;
+  height: 46px;
+  /* Modern 控件族用 --rm-* 令牌（= 12px），不要写死值 */
+  border-radius: var(--rm-radius-lg);
+}
+.re-select-square--large.re-select-square--compact.re-select-square--text .re-select-square__item {
+  height: 38px;
+  padding: 0 16px;
+}
+.re-select-square--large.re-select-square--compact .re-select-square__label {
+  font-size: 14px;
+}
+
+/* 竖向档是「一行一档」菜单，尺寸只调行高，不动通栏宽度 */
+.re-select-square--small.re-select-square--vertical .re-select-square__item {
+  height: 28px;
+}
+.re-select-square--large.re-select-square--vertical .re-select-square__item {
+  height: 40px;
 }
 </style>

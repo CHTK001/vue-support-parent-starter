@@ -1,6 +1,11 @@
 <!-- ScrollContainer.vue -->
 <template>
+    <!-- tabindex="0"：滚动容器默认不可聚焦，方向键 / PageUp / PageDown / Home / End
+         只会作用于聚焦元素或文档，鼠标能滚但键盘滚不动（会话页「向上翻历史」就是这样失效的）。
+         role="region" + aria-label 让读屏软件能把它当 landmark 跳过；focus-visible 只画焦点环，
+         鼠标点击不显示，避免和普通点击视觉冲突。 -->
     <div ref="scrollElement" class="scroll-container"
+        tabindex="0" role="region" :aria-label="ariaLabel || undefined"
         @scroll="handleScroll"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave">
@@ -23,6 +28,8 @@ const props = defineProps<{
     scrollThreshold?: number;
     smoothScroll?: boolean;
     enableScrollButton?: boolean;
+    /** 无障碍名称：作为 role="region" 的可读标签，不传则不带 aria-label */
+    ariaLabel?: string;
 }>();
 
 // Emits 类型化
@@ -152,10 +159,23 @@ defineExpose({
 </script>
 
 <style scoped>
+/*
+ * @ 风格面板（.gsp-*）的样式**不在这里**。
+ * 本组件是 scoped 样式，编译后每条规则都带 data-v-xxx 属性选择器，
+ * 而面板由 GenerateComposer Teleport 到 body 渲染、身上没有这个属性，
+ * 结果一条都匹配不上 —— 症状是 position: static、面板掉到视口外、点不动。
+ * 真正的样式在 src/styles/generate-style-panel.css。
+ */
 .scroll-container {
     overflow: auto;
     scroll-behavior: auto;
     scrollbar-gutter: stable both-edges;
+}
+
+/* 键盘焦点环：容器可聚焦后必须给出可见反馈，否则 Tab 到这里等于「不知道在哪」 */
+.scroll-container:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: -2px;
 }
 
 /* 滚动条基础样式 */
@@ -173,7 +193,8 @@ defineExpose({
 .scroll-container::-webkit-scrollbar-thumb {
     min-height: 80px;
     background-color: transparent;
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     background-clip: content-box;
     transition: background-color 0.2s linear;
     transition-delay: 0s;
@@ -183,25 +204,34 @@ defineExpose({
 /* 滚动中或悬停时：显示滚动条（显隐完全由 class 控制，避免 :hover 残留） */
 .scroll-container.is-scrolling::-webkit-scrollbar-thumb,
 .scroll-container.is-hovering::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.10);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
     transition-delay: 0s;
 }
 
 /* 滚动中或悬停时的 hover 状态 */
 .scroll-container.is-scrolling::-webkit-scrollbar-thumb:hover,
 .scroll-container.is-hovering::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 25%, transparent);
     cursor: pointer;
 }
 
 /* 暗色模式下的滚动条样式 */
 html.dark .scroll-container.is-scrolling::-webkit-scrollbar-thumb,
 html.dark .scroll-container.is-hovering::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 15%, transparent);
 }
 
 html.dark .scroll-container.is-scrolling::-webkit-scrollbar-thumb:hover,
 html.dark .scroll-container.is-hovering::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: color-mix(in srgb, var(--el-text-color-primary) 25%, transparent);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，滚动条显隐改为瞬间切换。
+   显隐本身是「能不能看到滚动条」的功能信号，必须保留 —— 只关过渡、不关显隐。 */
+@media (prefers-reduced-motion: reduce) {
+    .scroll-container::-webkit-scrollbar-thumb {
+        transition: none;
+        transition-delay: 0s;
+    }
 }
 </style>

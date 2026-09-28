@@ -11,15 +11,13 @@
  *   预览时间由 @repo/utils 的同源镜像 CronExpression 计算，与服务端逐字对齐。
  */
 import { computed, reactive, ref, watch } from "vue";
-import { ElPopover } from "element-plus";
+import { ElDialog } from "element-plus";
 import { CronExpression } from "@repo/utils";
 import ReButton from "../ReButton";
 import ReInput from "../ReInput";
 import ReInputNumber from "../ReInputNumber";
 import ReSelect from "../ReSelect";
 import type { ReOption } from "../ReSelect/types";
-import ReTab from "../ReTab";
-import type { ReTabItem } from "../ReTab/types";
 
 defineOptions({ name: "ReCron", inheritAttrs: true });
 
@@ -139,16 +137,12 @@ const SPEC: Record<string, { min: number; max: number; modes: FieldMode[] }> = {
   week: { min: 0, max: 6, modes: ["all", "step", "range", "points", "nth"] },
 };
 
-/** 六个字段页签（ReTab 的 tabs 入参） */
+/**
+ * 六个字段（秒/分/时/日/月/周），顺序即表达式字段顺序。
+ * 面板用「字段盒子 + 当前字段的匹配方式」呈现，不再用 ReTab 页签。
+ */
 const FIELDS = [SECOND, MINUTE, HOUR, DAY, MONTH, WEEK];
-const FIELD_TABS: ReTabItem[] = FIELDS.map(f => ({ name: f.key, label: f.label }));
 
-/** 某字段可用的匹配方式（ReTab 胶囊分段的 tabs 入参，name 即 FieldMode） */
-function modesOf(key: string): ReTabItem[] {
-  return SPEC[key].modes.map(m => ({ name: m, label: MODE_LABELS[m] }));
-}
-
-const PRESET_OPTIONS: ReOption[] = PRESETS.map(p => ({ label: p.label, value: p.cron }));
 const WEEK_OPTIONS: ReOption[] = WEEK_NAMES.map((n, i) => ({ label: n, value: i }));
 
 /** 面板状态 → 单字段 token */
@@ -358,6 +352,33 @@ function useExpressionText(): void {
   syncFromModel(rawExpression.value);
 }
 
+/**
+ * 打开面板时记下表达式快照。
+ *
+ * <p>面板是实时把改动写回 model 的（state → expression → model），
+ * 而弹层上给了「取消/保存」，所以取消必须能把整段还原回打开前的状态。</p>
+ */
+const snapshot = ref("");
+
+function openPanel(): void {
+  snapshot.value = model.value || "";
+  open.value = true;
+}
+
+/** 取消：还原到打开时的表达式与面板状态，本次改动不保留 */
+function cancelPanel(): void {
+  const back = snapshot.value;
+  rawMode.value = false;
+  syncFromModel(back);
+  model.value = back;
+  open.value = false;
+}
+
+/** 保存：改动已实时写入 model，关闭即可 */
+function savePanel(): void {
+  open.value = false;
+}
+
 watch(analysis, (a) => emit("change", trimmed.value, a.valid));
 </script>
 
@@ -378,120 +399,172 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
         data-1p-ignore
       >
         <template #append>
-          <ElPopover
-            v-model:visible="open"
-            trigger="click"
-            placement="bottom-end"
-            :width="620"
+          <ReButton
+            class="re-cron__gear"
+            icon="Setting"
+            title="可视化生成"
             :disabled="disabled"
-            popper-class="re-cron__popper"
-          >
-            <template #reference>
-              <ReButton class="re-cron__gear" icon="Setting" title="可视化生成" :disabled="disabled"/>
-            </template>
-
-            <div class="re-cron__panel">
-              <div class="re-cron__row">
-                <span class="re-cron__label">常用周期</span>
-                <ReSelect
-                  :model-value="''"
-                  size="small"
-                  class="re-cron__preset"
-                  style="width: 168px"
-                  :data="PRESET_OPTIONS"
-                  placeholder="选择一个预设"
-                  @change="applyPreset"
-                />
-                <ReButton v-if="defaultCron" size="small" text type="primary" @click="applyDefaultCron">
-                  用默认
-                </ReButton>
-                <ReButton size="small" text @click="clearAll">清空</ReButton>
-              </div>
-
-              <ReTab v-model="tab" :tabs="FIELD_TABS" size="small" class="re-cron__tabs">
-                <template v-for="spec in FIELDS" :key="spec.key" #[spec.key]>
-                  <div class="re-cron__pane">
-                    <ReTab :tabs="modesOf(spec.key)" variant="capsule" nav-only v-model="state[spec.key].mode"/>
-
-                    <div class="re-cron__controls">
-                      <template v-if="state[spec.key].mode === 'step'">
-                        <span>从</span>
-                        <ReInputNumber v-model="state[spec.key].start" size="small" :min="spec.min" :max="spec.max" controls-position="right"/>
-                        <span>{{ spec.label }}起，每隔</span>
-                        <ReInputNumber v-model="state[spec.key].step" size="small" :min="1" :max="spec.max" controls-position="right"/>
-                        <span>{{ spec.label }}</span>
-                      </template>
-
-                      <template v-else-if="state[spec.key].mode === 'range'">
-                        <span>从</span>
-                        <ReInputNumber v-model="state[spec.key].start" size="small" :min="spec.min" :max="spec.max" controls-position="right"/>
-                        <span>到</span>
-                        <ReInputNumber v-model="state[spec.key].end" size="small" :min="spec.min" :max="spec.max" controls-position="right"/>
-                        <span>{{ spec.label }}，步长</span>
-                        <ReInputNumber v-model="state[spec.key].step" size="small" :min="1" :max="spec.max" controls-position="right"/>
-                      </template>
-
-                      <template v-else-if="state[spec.key].mode === 'points'">
-                        <ReSelect
-                          v-model="state[spec.key].points"
-                          multiple
-                          collapse-tags
-                          collapse-tags-tooltip
-                          filterable
-                          size="small"
-                          class="re-cron__points"
-                          style="width: 100%"
-                          :data="optionsOf(spec)"
-                          placeholder="可多选，支持直接输入数字后回车"
-                        />
-                      </template>
-
-                      <template v-else-if="state[spec.key].mode === 'nearest'">
-                        <span>当月</span>
-                        <ReInputNumber v-model="state[spec.key].start" size="small" :min="1" :max="31" controls-position="right"/>
-                        <span>日，就近顺延到工作日</span>
-                      </template>
-
-                      <template v-else-if="state[spec.key].mode === 'nth'">
-                        <span>第</span>
-                        <ReInputNumber v-model="state[spec.key].nth" size="small" :min="1" :max="5" controls-position="right"/>
-                        <span>个</span>
-                        <ReSelect v-model="state[spec.key].start" size="small" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS"/>
-                      </template>
-
-                      <span v-else class="re-cron__hint">该字段不做限制（<code>*</code>）</span>
-                    </div>
-
-                    <div v-if="spec.key === 'week' || spec.key === 'day'" class="re-cron__hint re-cron__note">
-                      日与周同时受限时任一条件都会失效，本组件一律用 <code>*</code> 占位另一侧，保证与后端算出的触发时间一致。
-                    </div>
-                  </div>
-                </template>
-              </ReTab>
-
-              <div class="re-cron__expr">
-                <code class="re-cron__expr-text">{{ trimmed || '（未设置）' }}</code>
-                <span v-if="summary" class="re-cron__expr-desc">{{ summary }}</span>
-              </div>
-
-              <div class="re-cron__preview">
-                <div class="re-cron__preview-title">未来 {{ analysis.times.length }} 次触发</div>
-                <ul v-if="analysis.times.length" class="re-cron__times">
-                  <li v-for="(t, i) in analysis.times" :key="i">{{ fmt(t) }}</li>
-                </ul>
-                <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || '无匹配时间' }}</div>
-                <div class="re-cron__hint re-cron__note">与服务端同一套解析引擎算出，保存后的下次执行时间与此一致。</div>
-              </div>
-
-              <div v-if="rawMode" class="re-cron__row re-cron__row--foot">
-                <span class="re-cron__hint">面板与该表达式不同步</span>
-                <ReButton size="small" type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
-              </div>
-            </div>
-          </ElPopover>
+            @click="openPanel"
+          />
         </template>
       </ReInput>
     </div>
+
+    <ElDialog
+      v-model="open"
+      class="re-cron__dialog"
+      title="设置调度周期"
+      width="900px"
+      top="6vh"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
+      <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid }">
+        <div class="re-cron__summary-text">{{ summary || "未设置调度周期" }}</div>
+        <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
+      </div>
+
+      <div class="re-cron__presets">
+        <span class="re-cron__section-title">常用预设</span>
+        <div class="re-cron__pill-row">
+          <button
+            v-for="preset in PRESETS"
+            :key="preset.cron"
+            type="button"
+            class="re-cron__pill"
+            :class="{ 'is-active': trimmed === preset.cron }"
+            @click="applyPreset(preset.cron)"
+          >
+            {{ preset.label }}
+          </button>
+          <button v-if="defaultCron" type="button" class="re-cron__pill" @click="applyDefaultCron">用默认</button>
+          <button type="button" class="re-cron__pill" @click="clearAll">清空</button>
+        </div>
+      </div>
+
+      <div class="re-cron__body">
+        <!-- 左列：自定义字段（点字段盒子切换，下方的匹配方式与输入只作用于当前字段） -->
+        <section class="re-cron__col">
+          <div class="re-cron__section-title">自定义字段</div>
+
+          <div class="re-cron__fields">
+            <button
+              v-for="spec in FIELDS"
+              :key="spec.key"
+              type="button"
+              class="re-cron__field"
+              :class="{ 'is-active': tab === spec.key }"
+              @click="tab = spec.key"
+            >
+              <span class="re-cron__field-label">{{ spec.label }}</span>
+              <span class="re-cron__field-value">{{ tokenOf(spec.key) }}</span>
+            </button>
+          </div>
+
+          <template v-for="spec in FIELDS" :key="spec.key">
+            <div v-if="tab === spec.key" class="re-cron__editor">
+              <div class="re-cron__pill-row">
+                <button
+                  v-for="mode in SPEC[spec.key].modes"
+                  :key="mode"
+                  type="button"
+                  class="re-cron__pill"
+                  :class="{ 'is-active': state[spec.key].mode === mode }"
+                  @click="state[spec.key].mode = mode"
+                >
+                  {{ MODE_LABELS[mode] }}
+                </button>
+              </div>
+
+              <div class="re-cron__controls">
+                <template v-if="state[spec.key].mode === 'step'">
+                  <span>从</span>
+                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <span>{{ spec.label }}起，每隔</span>
+                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" />
+                  <span>{{ spec.label }}</span>
+                </template>
+
+                <template v-else-if="state[spec.key].mode === 'range'">
+                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <span class="re-cron__dash">—</span>
+                  <ReInputNumber v-model="state[spec.key].end" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <span>{{ spec.label }}，步长</span>
+                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" />
+                </template>
+
+                <template v-else-if="state[spec.key].mode === 'points'">
+                  <ReSelect
+                    v-model="state[spec.key].points"
+                    multiple
+                    collapse-tags
+                    collapse-tags-tooltip
+                    filterable
+                    class="re-cron__points"
+                    style="width: 100%"
+                    :data="optionsOf(spec)"
+                    placeholder="可多选，支持直接输入数字后回车"
+                  />
+                </template>
+
+                <template v-else-if="state[spec.key].mode === 'nearest'">
+                  <span>当月</span>
+                  <ReInputNumber v-model="state[spec.key].start" :min="1" :max="31" controls-position="right" />
+                  <span>日，就近顺延到工作日</span>
+                </template>
+
+                <template v-else-if="state[spec.key].mode === 'nth'">
+                  <span>第</span>
+                  <ReInputNumber v-model="state[spec.key].nth" :min="1" :max="5" controls-position="right" />
+                  <span>个</span>
+                  <ReSelect v-model="state[spec.key].start" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS" />
+                </template>
+
+                <span v-else class="re-cron__hint">该字段不做限制（<code>*</code>）</span>
+              </div>
+
+              <div v-if="spec.key === 'week' || spec.key === 'day'" class="re-cron__hint re-cron__note">
+                日与周同时受限时任一条件都会失效，本组件一律用 <code>*</code> 占位另一侧，保证与后端算出的触发时间一致。
+              </div>
+            </div>
+          </template>
+
+          <div v-if="rawMode" class="re-cron__raw">
+            <span class="re-cron__hint">面板与该表达式不同步</span>
+            <ReButton type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
+          </div>
+        </section>
+
+        <!-- 右列：未来触发时间 -->
+        <aside class="re-cron__col re-cron__col--preview">
+          <div class="re-cron__section-title">未来 {{ analysis.times.length }} 次触发</div>
+          <ul v-if="analysis.times.length" class="re-cron__times">
+            <li v-for="(t, i) in analysis.times" :key="i">
+              <span class="re-cron__times-dot" aria-hidden="true"></span>
+              <span class="re-cron__times-text">{{ fmt(t) }}</span>
+            </li>
+          </ul>
+          <div v-else class="re-cron__times re-cron__times--empty">{{ errorText || "无匹配时间" }}</div>
+        </aside>
+      </div>
+
+      <template #footer>
+        <div class="re-cron__footer">
+          <span class="re-cron__footer-hint" :class="{ 'is-error': !analysis.valid }">
+            {{
+              analysis.valid
+                ? "与服务端同一套解析引擎算出，保存后的触发时间与此一致"
+                : errorText
+            }}
+          </span>
+          <div class="re-cron__footer-actions">
+            <ReButton @click="cancelPanel">取消</ReButton>
+            <ReButton type="primary" @click="savePanel">保存</ReButton>
+          </div>
+        </div>
+      </template>
+    </ElDialog>
 
     <div :class="['re-cron__status', analysis.valid ? 'is-ok' : 'is-warn']">
       <template v-if="analysis.valid">
@@ -568,21 +641,10 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
 }
 
-/* 齿轮弹出的可视化面板：去掉 ElPopover 默认的 zoom 弹出动画 */
-.re-cron :deep(.el-zoom-in-center-enter-active),
-.re-cron :deep(.el-zoom-in-center-leave-active) {
-  transition: none !important;
-}
-
-/* 面板里 ReTab 默认档的滑块过渡 */
-.re-cron :deep(.el-tabs__animated-bar) {
-  transition: none !important;
-}
-
-/* 面板里 ReTab 胶囊档的变色过渡 */
-.re-cron :deep(.re-tab-capsule__item) {
-  transition: none !important;
-}
+/*
+ * 弹层/弹窗没走 :deep 而是全局块（见文件末尾），这里只留输入框自身的过渡压制。
+ * 曾用来压 ElPopover 的 zoom 动画与 ReTab 滑块/胶囊过渡，那两处随新结构一并去掉。
+ */
 
 .re-cron__gear {
   margin: 0 !important;
@@ -609,47 +671,181 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   margin: 0 4px;
 }
 
-.re-cron__panel {
+/* ---------- 弹层内容（按 UI 图：摘要条 → 常用预设 → 左字段/右预览 → 底栏） ---------- */
+
+/* 摘要条：主色浅底 + 一句人话，表达式放下面做技术兜底 */
+.re-cron__summary {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.re-cron__row {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 22px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  text-align: center;
+}
+
+.re-cron__summary.is-invalid {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+.re-cron__summary-text {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-color-primary, #409eff);
+}
+
+.re-cron__summary.is-invalid .re-cron__summary-text {
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.re-cron__summary-expr {
+  padding: 3px 14px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-bg-color, #ffffff);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.re-cron__presets {
+  margin-top: 16px;
+}
+
+.re-cron__section-title {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.re-cron__pill-row {
+  display: flex;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
-.re-cron__row--foot {
-  justify-content: space-between;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-  padding-top: 6px;
+/* 预设/匹配方式胶囊：普通态描边，选中态主色实底 */
+.re-cron__pill {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  background: var(--el-bg-color, #ffffff);
+  color: var(--el-text-color-regular, #606266);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 32px;
+  cursor: pointer;
 }
 
-.re-cron__label {
+.re-cron__pill.is-active {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary, #409eff);
+  color: var(--el-color-white, #ffffff);
+}
+
+.re-cron__pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 两列：左字段编辑、右触发预览 */
+.re-cron__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 22px;
+}
+
+/* 窄屏回落单列，避免字段盒子被压成细条 */
+@media (width <= 720px) {
+  .re-cron__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.re-cron__col {
+  min-width: 0;
+}
+
+/* 六个字段盒子：点一下切换当前字段，下方匹配方式只作用于它 */
+.re-cron__fields {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.re-cron__field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-bg-color, #ffffff);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.re-cron__field.is-active {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+
+.re-cron__field-label {
   font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
 }
 
-.re-cron__tabs :deep(.el-tabs__header) {
-  margin-bottom: 6px;
+.re-cron__field.is-active .re-cron__field-label {
+  color: var(--el-color-primary, #409eff);
 }
 
-.re-cron__pane {
+.re-cron__field-value {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.re-cron__editor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 108px;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light, #f5f7fa);
 }
 
 .re-cron__controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.re-cron__dash {
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.re-cron__raw {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .re-cron__hint {
@@ -661,41 +857,32 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   line-height: 1.5;
 }
 
-.re-cron__expr {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 6px 8px;
-  border-radius: 4px;
-  background: var(--el-fill-color-light, #f5f7fa);
+/* 未来触发：圆点 + 等宽时间，行间虚线分隔 */
+.re-cron__times {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.re-cron__expr-text {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
-}
-
-.re-cron__expr-desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-}
-
-.re-cron__preview-title {
+.re-cron__times li {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--el-border-color-lighter, #ebeef5);
 }
 
-.re-cron__times {
-  margin: 4px 0 0;
-  padding: 0 0 0 4px;
-  list-style: none;
+.re-cron__times-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary, #409eff);
+}
+
+.re-cron__times-text {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 13px;
   color: var(--el-text-color-regular, #606266);
 }
 
@@ -703,18 +890,62 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   font-family: inherit;
   color: var(--el-color-danger, #f56c6c);
 }
+
+/* 底栏：左侧提示、右侧取消/保存 */
+.re-cron__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.re-cron__footer-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.re-cron__footer-hint.is-error {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.re-cron__footer-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
 </style>
 
 <style lang="scss">
 /*
- * 可视化设置面板（teleport 到 body，scoped 管不到）：
- * 面板根及其内部元素（含伪元素）一律不做动画/过渡，弹出收起瞬时完成。
+ * 可视化设置弹层（append-to-body 后由 Element Plus 渲染外壳，scoped 管不到外壳）：
+ *  - 去动效：根及其内部元素（含伪元素）一律不做动画/过渡，弹出收起瞬时完成；
+ *  - 内边距与圆角走 koi 的 --el-dialog-* / 圆角令牌，不写死像素；
+ *  - 只有弹层外壳需要全局，内容区样式留在 scoped 里。
  */
-.re-cron__popper,
-.re-cron__popper *,
-.re-cron__popper *::before,
-.re-cron__popper *::after {
+.re-cron__dialog,
+.re-cron__dialog *,
+.re-cron__dialog *::before,
+.re-cron__dialog *::after {
   animation: none !important;
   transition: none !important;
+}
+
+.re-cron__dialog {
+  border-radius: var(--el-dialog-border-radius, var(--el-radius-xl, 16px));
+}
+
+.re-cron__dialog .el-dialog__body {
+  padding: 16px 20px 4px;
+}
+
+.re-cron__dialog .el-dialog__header {
+  padding-top: var(--el-dialog-header-padding-top, 16px);
+  padding-bottom: var(--el-dialog-header-padding-bottom, 8px);
+}
+
+.re-cron__dialog .el-dialog__footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 </style>

@@ -77,7 +77,7 @@
           <el-button
             v-if="!item.custom"
             :type="item.added ? 'success' : 'primary'"
-            size="small"
+
             :loading="quickLoadingId === item.id"
             @click="quickSummon(item)"
           >
@@ -85,10 +85,10 @@
           </el-button>
           <!-- 自建角色：删除 + 去对话 -->
           <div v-else class="market-custom-actions">
-            <el-button size="small" circle class="market-del" @click="handleDelete(item)">
+            <el-button circle class="market-del" @click="handleDelete(item)">
               <el-icon><Delete /></el-icon>
             </el-button>
-            <el-button size="small" type="primary" class="market-go" @click="goCustom(item)">去对话</el-button>
+            <el-button type="primary" class="market-go" @click="goCustom(item)">去对话</el-button>
           </div>
         </div>
       </div>
@@ -301,6 +301,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 令牌口径：
+   1. --mp-radius-lg / --size-surface-radius 来自 src/styles/modern-polish.css，
+      而 main.js 从未引入该文件 → 这两个 --mp-* 是取不到值的空令牌，
+      实际一直靠兜底的 14px / 20px 在渲染。统一收敛到 --el-radius-* 六档。
+   2. 10px 距 8/12 等距，按本仓口径统一取 lg(12px)，同行注释标出原值。
+   3. 卡片静止态零投影，只有 hover 浮起才给投影（koi 允许的第二类 box-shadow）。 */
 .character-market {
   display: flex;
   flex-direction: column;
@@ -317,7 +323,8 @@ onMounted(() => {
 }
 .market-create {
   margin-left: auto;
-  border-radius: 10px;
+  /* 原值 10px（距 8/12 等距，本仓统一取 lg 档） */
+  border-radius: var(--el-radius-lg, 12px);
 }
 .market-create-ico { margin-right: 2px; }
 
@@ -328,10 +335,12 @@ onMounted(() => {
   gap: 8px;
   width: 100%;
 }
-.market-custom-actions .market-go { flex: 1; border-radius: 10px; }
+/* 原值 10px（距 8/12 等距）→ lg 档 */
+.market-custom-actions .market-go { flex: 1; border-radius: var(--el-radius-lg, 12px); }
 .market-del {
   flex: none;
-  border-radius: 10px;
+  /* 原值 10px（距 8/12 等距）→ lg 档 */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-danger);
   border-color: var(--el-color-danger-light-5);
 }
@@ -346,23 +355,35 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 16px;
 }
+/* 分类是可点的 <span>：已有 cursor:pointer，再补键盘焦点环 */
 .market-cat {
   font-size: 12.5px;
   line-height: 1;
   padding: 7px 12px;
-  border-radius: 999px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-light);
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  transition: all 0.2s ease;
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+  outline: none;
 }
+
+.market-cat:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .market-cat:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary-light-5);
 }
 .market-cat.is-active {
-  color: #fff;
+  /* 原值 #fff → 白色令牌（主色按钮上的文字需恒为白，不随明暗变） */
+  color: var(--el-color-white);
   background: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
@@ -371,20 +392,32 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
   gap: 12px;
 }
+/* 卡片：div + @click，补键盘焦点环 */
 .market-card {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border-radius: var(--mp-radius-lg, 14px);
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  background: var(--color-surface, var(--el-fill-color-blank));
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-radius-lg 是空令牌，实为 14px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 var(--color-surface, var(--el-fill-color-blank)) → 卡片底色令牌 */
+  background: var(--el-bg-color-overlay);
   cursor: pointer;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  outline: none;
+  transition:
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
+
+.market-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 悬浮浮起：koi 允许的第二类投影。阴影色跟着主文字色走，明暗下都不会糊成黑块。 */
 .market-card:hover {
-  box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+  box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
   border-color: var(--el-color-primary-light-5);
 }
 .market-card-avatar {
@@ -428,7 +461,8 @@ onMounted(() => {
   font-size: 11px;
   line-height: 1;
   padding: 4px 8px;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
 }
@@ -446,10 +480,22 @@ onMounted(() => {
   color: var(--el-color-success);
   border-color: transparent;
 }
+/* 「已召唤」按钮前的勾：原值 content:"\2713" 用的是 ✓ 字形。
+   字形在不同系统字体下粗细/位置不一致，且无法跟随按钮文字色，
+   故改为纯 CSS 画的勾（旋转 45° 的两段边框 + currentColor）。
+   为什么不用 <ReIcon>：本应用没有全局注册 ReIcon，引入它必须改 <script setup>，
+   而本次任务禁止触碰脚本块。 */
 .market-card-action .el-button--success::before {
-  content: "\2713";
+  content: "";
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.32em;
+  height: 0.6em;
   margin-right: 5px;
-  font-weight: 700;
+  vertical-align: middle;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
 }
 .skeleton-card {
   height: 96px;
@@ -457,7 +503,8 @@ onMounted(() => {
 .skeleton-avatar {
   width: 40px;
   height: 40px;
-  border-radius: var(--size-surface-radius, 10px);
+  /* 原值 var(--size-surface-radius, 10px)，refactor.css 里实为 20px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-fill-color-light);
   flex-shrink: 0;
 }
@@ -467,17 +514,28 @@ onMounted(() => {
 .skeleton-title {
   height: 14px;
   width: 55%;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-fill-color-light);
   margin-bottom: 10px;
 }
 .skeleton-desc {
   height: 12px;
   width: 90%;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   background: var(--el-fill-color-light);
 }
 .market-empty {
   padding: 48px 0;
+}
+
+/* 尊重系统「减少动态效果」偏好：分类切换与卡片浮起立即生效。
+   分类选中态靠底色 + 边框色区分，关掉过渡后仍然看得见。 */
+@media (prefers-reduced-motion: reduce) {
+  .market-cat,
+  .market-card {
+    transition: none;
+  }
 }
 </style>

@@ -29,7 +29,7 @@
         <ReTableColumn prop="examDuration" label="时长(分)" width="100" />
         <ReTableColumn label="状态" width="100">
           <template #default="{ row }">
-            <el-tag size="small" :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
+            <el-tag :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
           </template>
         </ReTableColumn>
         <ReTableColumn label="操作" width="180" fixed="right" align="center">

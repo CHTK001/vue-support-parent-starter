@@ -18,6 +18,8 @@ import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTab from "@repo/ui/re-tab";
+import { formatDuration } from "@repo/ui/re-time";
+import { costMs } from "@repo/utils";
 import FieldTable from "./FieldTable.vue";
 import MappingEditor from "./MappingEditor.vue";
 import PairsEditor from "./PairsEditor.vue";
@@ -184,21 +186,6 @@ const PARAM_OPTION_LABELS: Record<string, string> = {
 };
 
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
-
-/** 临时排障：ReFlowGraph 组件实例，用来核对「设计器握着的引擎」与「外壳当前引擎」是不是同一个 */
-const graphRef = ref<{
-  engine: FlowGraphEngine | null;
-  getData: () => FlowGraphData;
-} | null>(null);
-
-/** 临时排障：外壳侧看到的节点数与引擎同一性 */
-const shellSig = computed(() => {
-  const inst = graphRef.value;
-  if (!inst) {
-    return "noinst";
-  }
-  return `${inst.getData().nodes.length}/${inst.engine === engine.value ? "same" : "DIFF"}`;
-});
 const flow = ref<FlowLevel>(emptyDsl());
 const engine = shallowRef<FlowGraphEngine | null>(null);
 const tab = ref<TabKey>("flow");
@@ -465,6 +452,33 @@ const activeTableKey = computed(
 
 const tableOptions = computed(() => (tablesByKey.value[activeTableKey.value] ?? []).map(name => ({ value: name, label: name })));
 
+/**
+ * 当前目标表是否已存在，三态而不是布尔：
+ * - null   表清单还没读到（正在加载、或读失败），无法判断，按"存在"处理避免误报
+ * - true   表清单里确实有这张表
+ * - false  表清单已确认没有这张表 → 走"新建表"模式，字段映射允许自由输入列名
+ *
+ * 为什么不靠"读列报错了"来判断不存在：读列失败还有数据源不可达、权限不足、
+ * 连接超时等多种原因，把它们一律当成"表不存在"会把真故障静默掉。
+ */
+const tableExists = computed<boolean | null>(() => {
+  const table = activeTable.value;
+  if (!table) return null;
+  const tables = tablesByKey.value[activeTableKey.value];
+  if (!tables) return null;
+  return tables.includes(table);
+});
+
+/**
+ * 目标表输入框的占位文案，按当前能确定的事实说人话：
+ * 读不到表清单就承认读不到，确认表不存在就直说是新表，别让用户以为只能从已有表里挑。
+ */
+const tablePlaceholder = computed(() => {
+  if (tablesError.value) return "读取表清单失败，可直接输入表名";
+  if (tableExists.value === false) return "新表名（首次运行自动建表）";
+  return "选择目标表，或直接输入新表名";
+});
+
 async function loadTablesForActive(): Promise<void> {
   const key = activeTableKey.value;
   if (!tableParamName.value) return;
@@ -499,6 +513,13 @@ async function loadColumnsForActive(force = false): Promise<void> {
   if (!mappingParamName.value || !activeTable.value) return;
   if (!force && columnsByKey.value[key]) return;
   if (!props.loadColumns) return;
+  // 表还不存在时不去读列：读不到是必然结果，只会换来一次注定失败的请求和一条
+  // 红色报错，把"运行时会自动建表"这件正常事显示成故障。直接给空候选即可。
+  if (tableExists.value === false) {
+    columnsByKey.value = { ...columnsByKey.value, [key]: [] };
+    columnsError.value = null;
+    return;
+  }
   columnsLoading.value = true;
   columnsError.value = null;
   try {
@@ -513,7 +534,9 @@ async function loadColumnsForActive(force = false): Promise<void> {
 }
 
 watch(
-  [activeTableKey, activeColumnKey, () => nodeForm.value?.id],
+  // tableExists 也要进监听源：表清单是异步读回来的，它从"未知"变成"确认不存在"
+  // 的那一刻，才知道该不该跳过读列。漏了它，表不存在时会先发一次注定失败的读列请求。
+  [activeTableKey, activeColumnKey, tableExists, () => nodeForm.value?.id],
   () => {
     void loadTablesForActive();
     void loadColumnsForActive();
@@ -701,20 +724,14 @@ function requestLoad(dsl: CollectDsl | null | undefined): void {
   }
   wantedDsl = dsl;
   if (engine.value) {
-    try {
-      load(dsl);
-      wantedDsl = null;
-    } catch (error) {
-      dbgErr = String((error as Error)?.message || error).slice(0, 60);
-    }
+    load(dsl);
+    wantedDsl = null;
   }
 }
 
 /** 引擎未就绪时暂存的图，等 onReady 补灌 */
 let wantedDsl: CollectDsl | null = null;
 
-/** 临时排障：记录灌图过程中的异常文案 */
-let dbgErr = "-";
 /** 挂载即请求灌图（引擎多半还没就绪，会先暂存） */
 onMounted(() => {
   requestLoad(props.initialDsl);
@@ -731,8 +748,10 @@ function stateText(nodeId: string): string {
   if (!state) return "";
   const label = STATE_LABELS[state.collectTaskLogStatus] ?? state.collectTaskLogStatus;
   const iteration = state.collectTaskLogIteration;
-  const cost = state.collectTaskLogCost == null ? "" : ` ${state.collectTaskLogCost}ms`;
-  return `${label}${iteration == null ? "" : ` ×${Number(iteration) + 1}`}${cost}`;
+  // 与表格列同源：走 ReTime 的 formatDuration，空值不显示耗时段
+  const cost = costMs(state.collectTaskLogCost);
+  const costText = cost == null ? "" : ` ${formatDuration(cost)}`;
+  return `${label}${iteration == null ? "" : ` ×${Number(iteration) + 1}`}${costText}`;
 }
 
 /** 描边只改 attrs 并临时关掉历史记录，避免轮询状态污染撤销栈 */
@@ -782,11 +801,7 @@ function load(dsl: CollectDsl | null | undefined): void {
   graphData.value = data;
   if (engine.value) {
     // 同时直灌内核：重复加载同一张图时结构签名没变，prop 那条路会被拦下
-    try {
-      engine.value.setData(data);
-    } catch (error) {
-      dbgErr = "SET:" + String((error as Error)?.message || error).slice(0, 70);
-    }
+    engine.value.setData(data);
     applyStates();
   }
   // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
@@ -841,7 +856,6 @@ defineExpose({ load, getGraph, addNode, startWith });
 <template>
   <div class="collect-flow">
     <ReFlowGraph
-      ref="graphRef"
       :data="graphData"
       :node-types="nodeTypes"
       :properties-title="panelTitle"
@@ -854,13 +868,6 @@ defineExpose({ load, getGraph, addNode, startWith });
       @edge-connected="onEdgeConnected"
     >
       <template #toolbar>
-        <span class="dbg"
-          >eng={{ engine ? 1 : 0 }} want={{ wantedDsl ? wantedDsl.nodes.length : -1 }} gd={{
-            graphData.nodes.length
-          }}/{{ graphData.edges.length }} props={{ props.initialDsl ? props.initialDsl.nodes.length : -1 }}
-          name={{ flow.name || "-" }} err={{ dbgErr }} model={{ engine ? engine.getData().nodes.length : -1 }}
-          shell={{ graphData.nodes.length }} sig={{ shellSig }}</span
-        >
         <ReButton icon="Camera" @click="exportPng">导出图片</ReButton>
       </template>
 
@@ -870,12 +877,12 @@ defineExpose({ load, getGraph, addNode, startWith });
             <div v-if="nodeForm && selectedMeta" class="pane-grid">
               <div class="field">
                 <div class="field-label">节点名称</div>
-                <ReInput size="small" :model-value="nodeForm.name" @update:model-value="renameNode"/>
+                <ReInput  :model-value="nodeForm.name" @update:model-value="renameNode"/>
               </div>
               <div class="field">
                 <div class="field-label">节点 ID / 类型</div>
                 <ReInput
-                  size="small"
+                  
                   disabled
                   :model-value="`${nodeForm.id} · ${selectedMeta.label}`"
                 />
@@ -931,7 +938,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 <ReInputNumber
                   v-else-if="param.type === 'number'"
                   :controls="false"
-                  size="small"
+                  
                   :placeholder="param.tip || ''"
                   :model-value="paramNumber(param.name)"
                   @update:model-value="(v: number | undefined) => setParam(param, v)"
@@ -943,7 +950,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 />
                 <ReSelect
                   v-else-if="param.type === 'select'"
-                  size="small"
+                  
                   class="pane-fill"
                   :placeholder="param.tip || '请选择'"
                   :model-value="paramOf(param.name)"
@@ -954,7 +961,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 />
                 <ReSelect
                   v-else-if="param.type === 'flow' && flowOptionsOf.length"
-                  size="small"
+                  
                   filterable
                   clearable
                   class="pane-fill"
@@ -967,7 +974,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 />
                   <ReSelect
                     v-else-if="param.type === 'datasource'"
-                    size="small"
+                    
                     filterable
                     class="pane-fill"
                     placeholder="选择数据源"
@@ -977,14 +984,25 @@ defineExpose({ load, getGraph, addNode, startWith });
                       (v: string | number | (string | number)[] | null) => setParam(param, v)
                     "
                   />
+                  <!--
+                    allow-create + default-first-option 必须成对用，缺一个就配不出新表：
+                    allow-create 负责在下拉顶部渲染「新建 xxx」这条真实 el-option，
+                    而 default-first-option 才让 el-select 把高亮落到它上面——
+                    没有它，hoveringIndex 停在 -1（useSelect.updateHoveringIndex），
+                    敲回车什么也不会发生，用户必须先按一下 ↓ 才建得出来。
+                    ReSelect 的 filter-method 只收集远程搜索词、不过滤静态候选，
+                    所以这里还得靠 default-first-option 兜住「回车选第一个」。
+                  -->
                   <ReSelect
                     v-else-if="param.type === 'table'"
-                    size="small"
+                    
                     filterable
+                    allow-create
+                    default-first-option
                     clearable
                     class="pane-fill"
                     :loading="tablesLoading"
-                    :placeholder="tablesError ? '读取表清单失败，可直接输入表名' : '选择目标表'"
+                    :placeholder="tablePlaceholder"
                     :model-value="paramOf(param.name)"
                     :options="tableOptions"
                     @update:model-value="
@@ -997,6 +1015,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                     :model-value="nodePairs(param)"
                     :columns="activeColumns"
                     :table="activeTable"
+                    :table-exists="tableExists"
                     :loading="columnsLoading"
                     :load-error="columnsError"
                     :on-refresh="() => loadColumnsForActive(true)"
@@ -1012,7 +1031,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 />
                 <ReInput
                   v-else
-                  size="small"
+                  
                   :placeholder="param.tip || ''"
                   :model-value="paramOf(param.name)"
                   @update:model-value="(v: unknown) => setParam(param, v)"
@@ -1036,12 +1055,12 @@ defineExpose({ load, getGraph, addNode, startWith });
             <div v-if="edgeForm" class="pane-grid">
               <div class="field">
                 <div class="field-label">流转方向</div>
-                <ReInput size="small" disabled :model-value="edgeFlowText"/>
+                <ReInput  disabled :model-value="edgeFlowText"/>
               </div>
               <div class="field" data-edge="exceptionFlow">
                 <div class="field-label">触发时机</div>
                 <ReSelect
-                  size="small"
+                  
                   class="pane-fill"
                   :model-value="edgeForm.exceptionFlow"
                   :options="EXCEPTION_OPTIONS"
@@ -1075,7 +1094,7 @@ defineExpose({ load, getGraph, addNode, startWith });
               </div>
               <div class="field">
                 <div class="field-label">连线操作</div>
-                <ReButton size="small" type="danger" plain @click="removeSelectedEdge">
+                <ReButton  type="danger" plain @click="removeSelectedEdge">
                   删除这条连线
                 </ReButton>
               </div>
@@ -1090,7 +1109,7 @@ defineExpose({ load, getGraph, addNode, startWith });
               <div class="field">
                 <div class="field-label">流程名称</div>
                 <ReInput
-                  size="small"
+                  
                   maxlength="128"
                   placeholder="随 DSL 一起保存"
                   :model-value="flow.name ?? ''"
@@ -1101,7 +1120,7 @@ defineExpose({ load, getGraph, addNode, startWith });
                 <div class="field-label">流程线程数</div>
                 <ReInputNumber
                   :controls="false"
-                  size="small"
+                  
                   :min="1"
                   :max="64"
                   placeholder="留空用全局默认"

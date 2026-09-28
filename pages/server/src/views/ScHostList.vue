@@ -556,10 +556,10 @@ async function onImportFile(file: File | undefined) {
 
     <div class="batch-bar" v-if="selectedIds.length > 0">
       <span class="batch-info">已选 {{ selectedIds.length }} 台</span>
-      <ReButton show-text icon="CircleCheck" type="success" size="small" @click="onBatchEnable(true)">批量启用</ReButton>
-      <ReButton show-text icon="CircleClose" type="warning" size="small" @click="onBatchEnable(false)">批量停用</ReButton>
-      <ReButton show-text icon="FolderOpened" size="small" @click="onBatchMoveGroup">移动分组</ReButton>
-      <ReButton show-text icon="Close" size="small" @click="selectedIds = []">清除选择</ReButton>
+      <ReButton show-text icon="CircleCheck" type="success" @click="onBatchEnable(true)">批量启用</ReButton>
+      <ReButton show-text icon="CircleClose" type="warning" @click="onBatchEnable(false)">批量停用</ReButton>
+      <ReButton show-text icon="FolderOpened" @click="onBatchMoveGroup">移动分组</ReButton>
+      <ReButton show-text icon="Close" @click="selectedIds = []">清除选择</ReButton>
     </div>
 
     <!-- 主机表格 -->
@@ -591,7 +591,7 @@ async function onImportFile(file: File | undefined) {
           <ReTag
             v-for="tag in parseTags(row.serverHostTags)"
             :key="tag"
-            size="small"
+
             style="margin-right: 4px"
           >{{ tag }}</ReTag>
         </template>
@@ -620,7 +620,7 @@ async function onImportFile(file: File | undefined) {
             <ReTag
               v-for="p in parsePorts(row.serverHostPorts)"
               :key="p.port"
-              size="small"
+
               type="info"
               style="margin-right: 4px; margin-bottom: 4px"
             >{{ portText(p) }}</ReTag>
@@ -630,14 +630,14 @@ async function onImportFile(file: File | undefined) {
       <ReTableColumn label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <span @click.stop>
-          <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
-          <ReButton show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
-          <ReButton show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
-          <ReButton show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
-          <ReButton show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
-          <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
-          <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
-          <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+          <ReButton show-text icon="View" type="primary" @click="openDetail(row)">详情</ReButton>
+          <ReButton show-text icon="Connection" type="primary" @click="onOpenConnect(row)">远控</ReButton>
+          <ReButton show-text icon="FolderOpened" type="primary" @click="onOpenSftp(row)">文件</ReButton>
+          <ReButton show-text icon="Aim" @click="onTestConnect(row)">测连</ReButton>
+          <ReButton show-text icon="Search" type="warning" @click="onScanPorts(row)">扫端口</ReButton>
+          <ReButton show-text icon="Edit" @click="openEdit(row)">编辑</ReButton>
+          <ReButton show-text icon="MoreFilled" @click="openConfig(row)">更多</ReButton>
+          <ReButton show-text icon="Delete" type="danger" @click="onDelete(row)">删除</ReButton>
           </span>
         </template>
       </ReTableColumn>
@@ -685,7 +685,7 @@ async function onImportFile(file: File | undefined) {
         </ReFormItem>
         <ReFormItem v-if="cfgForm.serverHostCollectMode === 'PROMETHEUS'" label="Prometheus">
           <div class="prom-actions">
-            <ReButton size="small" type="primary" :loading="promTestLoading" @click="onTestPrometheus">凭据校验</ReButton>
+            <ReButton type="primary" :loading="promTestLoading" @click="onTestPrometheus">凭据校验</ReButton>
             <a v-if="promPkgUrl" class="prom-dl" :href="promPkgUrl" target="_blank" rel="noopener">下载 Prometheus 包</a>
             <span v-else class="prom-tip">未配置安装包下载地址（系统配置 → Prometheus → 安装包下载地址）</span>
           </div>
@@ -725,14 +725,17 @@ async function onImportFile(file: File | undefined) {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
-  border-radius: var(--border-radius);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 15%, transparent);
-  animation: batch-in 0.2s var(--ease-out) both;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  /* 原为 var(--border-radius)（tokens.css 里是 10px），10px 距 8/12 等距，取 12px(lg) */
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+  /* 时长取 0.2s 微交互档；缓动原来是私有令牌 var(--ease-out)，这里内联同一个
+     cubic-bezier(0.4, 0, 0.2, 1)，避免继续依赖 pages/server 那套无暗色变体的 tokens.css */
+  animation: batch-in var(--el-transition-duration-fast, 0.2s) cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .batch-info {
   font-size: 12px;
-  color: var(--brand-500);
+  color: var(--el-color-primary);
   font-weight: 500;
   margin-right: 8px;
 }
@@ -740,10 +743,12 @@ async function onImportFile(file: File | undefined) {
 .delay-cell {
   font-variant-numeric: tabular-nums;
   font-size: 12px;
-  &.is-fast { color: var(--status-success, #67c23a); font-weight: 500; }
-  &.is-slow { color: var(--status-warning, #e6a23c); }
-  &.is-down { color: var(--status-error, #f56c6c); font-weight: 500; }
-  &.is-info { color: var(--text-tertiary, #909399); }
+  /* 原来写 var(--status-*, #hex) 形式：--status-* 只在 pages/server 的 tokens.css 里
+     定义且没有暗色变体，兜底 hex 才是实际生效值。直接换成 EP 语义色令牌 */
+  &.is-fast { color: var(--el-color-success); font-weight: 500; }
+  &.is-slow { color: var(--el-color-warning); }
+  &.is-down { color: var(--el-color-danger); font-weight: 500; }
+  &.is-info { color: var(--el-text-color-secondary); }
 }
 
 .ports-wrap {
@@ -753,7 +758,7 @@ async function onImportFile(file: File | undefined) {
 }
 
 .ports-empty {
-  color: var(--text-tertiary, #909399);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 
@@ -763,10 +768,19 @@ async function onImportFile(file: File | undefined) {
 .prom-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .prom-dl { font-size: 13px; color: var(--el-color-primary); text-decoration: none; }
 .prom-dl:hover { text-decoration: underline; }
-.prom-tip { font-size: 12px; color: var(--text-tertiary, #909399); }
+/* 原生 a 链接：去掉浏览器默认轮廓，改用全站统一的自绘焦点环 */
+.prom-dl:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); border-radius: var(--el-radius-xs, 4px); }
+.prom-tip { font-size: 12px; color: var(--el-text-color-secondary); }
 
 @keyframes batch-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .batch-bar {
+    animation: none;
+  }
 }
 </style>

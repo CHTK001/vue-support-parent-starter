@@ -775,18 +775,18 @@ onUnmounted(() => {
 }
 
 :deep(.splitpanes.default-theme .splitpanes__splitter) {
-  background-color: var(--color-sidebar-bg, #f5f5f5);
+  background-color: var(--el-bg-color);
   position: relative;
   transition: background-color 0.2s ease;
 }
 
 :deep(.dark .splitpanes.default-theme .splitpanes__splitter) {
-  background-color: #25262a;
+  background-color: var(--el-bg-color);
 }
 
 /* 悬停时显示主题色（中等浅色） */
 :deep(.splitpanes.default-theme .splitpanes__splitter:hover) {
-  background-color: var(--el-color-primary-light-8, #d9ecff) !important;
+  background-color: var(--el-color-primary-light-8) !important;
 }
 
 /* 移除 Pane 的边框，避免与分割线重叠 */
@@ -816,6 +816,32 @@ onUnmounted(() => {
 
 .chat-pane-content {
   contain: layout style;
+}
+
+/* 动效降级：系统开启「减少动态效果」时，路由切换的滑入滑出不再位移。
+   逐个列出，不写 `*` / `.chat-pane-content *` 通配，避免掐掉内部组件的合法过渡。
+   .slide-right-*-to 的终态（位移+透明）本身就是静态样式，关掉过渡不影响进出结果。 */
+@media (prefers-reduced-motion: reduce) {
+  .slide-right-enter-active,
+  .slide-right-leave-active {
+    transition: none;
+  }
+
+  /* splitpanes 是三方组件、分隔线的 hover 底色过渡在它自己的 DOM 上，
+     必须用 :deep() 才够得到；只关这一个属性，不动面板宽度等布局样式。 */
+  :deep(.splitpanes.default-theme .splitpanes__splitter) {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：.header-icon-btn 是带 @click 的 div（不是可聚焦控件），
+   浏览器不给默认焦点环。指针样式由 PageHeader 的全局样式提供，这里不重复写。 */
+.header-icon-btn {
+  outline: none;
+}
+
+.header-icon-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>
 

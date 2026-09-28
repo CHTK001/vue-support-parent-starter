@@ -1642,14 +1642,25 @@ function insertBadge(data: {
 defineExpose({ insertText, insertBadge });
 </script>
 <style scoped>
-/* 思考按钮激活状态 - 灯泡亮起 */
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*。本应用 refactor.css 已把 --el-* 映射到 --color-* 主题层，
+      9 套配色换肤时 --el-* 会跟着变。
+   2. 已有的纯令牌表达式（--color-primary / --color-sidebar-bg-hover 等，
+      无写死兜底）原样保留：它们是应用主题层的真实入口，改写只会引入无谓的
+      视觉变化。本次只处理「裸写死的 hex / rgb」与「带冗余 hex 兜底的令牌」。
+   3. 卡片 / 容器不加投影；本文件唯一允许的 box-shadow 是键盘焦点环。
+   ============================================================================ */
+
+/* 思考按钮激活状态 - 灯泡亮起。原值 #10b981（emerald）取语义更准的成功色令牌 */
 .thinking-active {
-  color: #10b981 !important;
-  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5));
+  color: var(--el-color-success) !important;
+  /* 光晕色跟前景同源：原值 rgba(16,185,129,0.5) 即 success 的 50% 透明度 */
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--el-color-success) 50%, transparent));
 }
 
 .thinking-active-text {
-  color: #10b981 !important;
+  color: var(--el-color-success) !important;
   font-weight: 600;
 }
 
@@ -1661,8 +1672,8 @@ defineExpose({ insertText, insertBadge });
 
 /* 拖拽悬停高亮 */
 .input-area.drag-over {
-  border-color: var(--color-primary) !important;
-  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-input-bg)) !important;
+  border-color: var(--el-color-primary) !important;
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--color-input-bg)) !important;
 }
 
 /* Tiptap 编辑器样式 - 模拟 textarea */
@@ -1680,7 +1691,7 @@ defineExpose({ insertText, insertBadge });
   background: transparent;
   overflow-y: auto;
   box-sizing: border-box;
-  transition: height 0.2s ease;
+  transition: height var(--el-transition-duration-fast, 0.2s) ease;
   color: inherit;
 }
 
@@ -1692,7 +1703,7 @@ defineExpose({ insertText, insertBadge });
 :deep(.message-editor .ProseMirror p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   float: left;
-  color: var(--el-text-color-placeholder, #a8abb2);
+  color: var(--el-text-color-placeholder);
   pointer-events: none;
   height: 0;
 }
@@ -1702,17 +1713,19 @@ defineExpose({ insertText, insertBadge });
   position: relative;
 }
 
-/* 命令徽标样式 */
+/* 命令徽标样式。可点但不可 Tab 聚焦（contenteditable="false"），
+   故只给指针与悬停反馈，不挂焦点环 */
 :deep(.command-badge) {
   display: inline;
   font-size: 12px;
   line-height: inherit;
   cursor: pointer;
   user-select: none;
-  background: #f3f3f3;
+  background: var(--el-fill-color-light);
   color: var(--color-text);
   padding: 0 8px;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   margin-right: 4px;
 }
 
@@ -1729,7 +1742,7 @@ defineExpose({ insertText, insertBadge });
   background: transparent;
   overflow-y: auto;
   box-sizing: border-box;
-  transition: height 0.2s ease;
+  transition: height var(--el-transition-duration-fast, 0.2s) ease;
   min-height: 58px;
 }
 
@@ -1766,11 +1779,17 @@ defineExpose({ insertText, insertBadge });
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all 0.2s;
+  transition: all var(--el-transition-duration-fast, 0.2s);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   outline: none;
+}
+
+/* 键盘焦点环：28px 的裸 button 默认 outline 太弱，用主色光环代替 */
+.tool-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .tool-btn:hover {
@@ -1782,14 +1801,17 @@ defineExpose({ insertText, insertBadge });
   background: var(--color-sidebar-bg-active);
 }
 
+/* 激活态原用 Ant Design 蓝阶（#e6f7ff / #bae7ff / #1890ff）写死，
+   暗色下浅蓝底会刺眼。改为「主色 + 透明度」派生：
+   浅色下仍是淡蓝底，暗色下自动变成暗底，等于顺手修掉了暗色模式缺陷 */
 .tool-btn-active {
-  background: #e6f7ff !important;
-  color: #1890ff !important;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
+  color: var(--el-color-primary) !important;
 }
 
 .tool-btn-active:hover {
-  background: #bae7ff !important;
-  color: #1890ff !important;
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent) !important;
+  color: var(--el-color-primary) !important;
 }
 
 /* 模型选择器按钮 - 原生 button */
@@ -1821,7 +1843,8 @@ defineExpose({ insertText, insertBadge });
   height: 28px;
   padding: 0 8px;
   border: none;
-  border-radius: 16px;
+  /* 原值 16px → xl 档（胶囊按钮） */
+  border-radius: var(--el-radius-xl, 16px);
   background-color: transparent;
   color: var(--color-text);
   display: flex;
@@ -1831,6 +1854,10 @@ defineExpose({ insertText, insertBadge });
   overflow: hidden;
   outline: none;
   font-size: 12px;
+}
+
+.model-selector-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .model-selector-btn:hover {
@@ -1852,15 +1879,20 @@ defineExpose({ insertText, insertBadge });
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 50%;
+  /* 原值 50%（圆形）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   background-color: var(--color-primary);
   color: var(--color-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--el-transition-duration-fast, 0.2s);
   outline: none;
   flex-shrink: 0;
+}
+
+.send-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .send-btn:hover:not(:disabled) {
@@ -1882,17 +1914,19 @@ defineExpose({ insertText, insertBadge });
   filter: saturate(0.4);
 }
 
+/* 停止按钮是危险语义：改用 danger 三档派生 hover / active
+   （原值 #f56c6c / #f78989 / #e64242 分别对应 base / light-3 / dark-2） */
 .send-btn.stop-btn {
-  background-color: #f56c6c;
-  color: #fff;
+  background-color: var(--el-color-danger);
+  color: var(--el-color-white);
 }
 
 .send-btn.stop-btn:hover {
-  background-color: #f78989;
+  background-color: var(--el-color-danger-light-3);
 }
 
 .send-btn.stop-btn:active {
-  background-color: #e64242;
+  background-color: var(--el-color-danger-dark-2);
 }
 
 .send-btn.queue-btn {
@@ -1916,14 +1950,25 @@ defineExpose({ insertText, insertBadge });
 .pasted-preview-text {
   margin: 0;
   padding: 16px;
-  background: var(--el-fill-color-light, #f5f7fa);
-  border: 1px solid var(--el-border-color-light, #e4e7ed);
-  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
-  color: var(--el-text-color-primary, #303133);
+  color: var(--el-text-color-primary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.message-editor .ProseMirror),
+  .message-input,
+  .tool-btn,
+  .send-btn {
+    transition: none;
+  }
 }
 </style>

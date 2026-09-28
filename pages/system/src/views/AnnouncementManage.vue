@@ -330,16 +330,33 @@ onMounted(() => {
     >
 
       <template #toolbar>
-        <el-button type="primary" icon="Plus" @click="handleAdd" text></el-button>
+        <!-- C：去掉 text 改为实心主色按钮，文案点明实体「公告」 -->
+        <ReButton type="primary" icon="Plus" @click="handleAdd">新增公告</ReButton>
+      </template>
+
+      <!-- A：可操作空态。ReTable 未提供 #empty 时会回落到原生 el-empty，这里提供时接管 -->
+      <template #empty>
+        <div class="page-empty">
+          <span class="page-empty__icon">
+            <ReIcon name="Bell" size="22" />
+          </span>
+          <span class="page-empty__title">还没有公告</span>
+          <span class="page-empty__desc">公告是发布给全体用户或指定角色的通知，支持定时发布与已读统计。</span>
+          <span class="page-empty__actions">
+            <ReButton type="primary" icon="Plus" @click="handleAdd">新增公告</ReButton>
+            <!-- 复用已有 handleReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+            <ReButton icon="Refresh" @click="handleReset">重置筛选</ReButton>
+          </span>
+        </div>
       </template>
 
       <template #action="{ row }">
-        <ReButton layout="square" icon="View" type="primary" title="预览" @click="handlePreview(row as SysAnnouncement)" />
-        <ReButton layout="square" icon="DataAnalysis" type="info" title="已读详情" @click="openReadUsers(row as SysAnnouncement)" />
-        <ReButton layout="square" icon="Edit" type="primary" title="编辑" v-admin @click="handleEdit(row as SysAnnouncement)" />
-        <ReButton v-if="row.sysAnnouncementStatus === 0" layout="square" icon="Promotion" type="success" title="发布" v-admin @click="handlePublish(row as SysAnnouncement)" />
-        <ReButton v-if="row.sysAnnouncementStatus === 1" layout="square" icon="Download" type="warning" title="下架" v-admin @click="handleUnpublish(row as SysAnnouncement)" />
-        <ReButton layout="square" icon="Delete" type="danger" title="删除" v-admin @click="handleDelete(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="View" type="primary" tip="预览" @click="handlePreview(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="DataAnalysis" type="info" tip="已读详情" @click="openReadUsers(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="Edit" type="primary" tip="编辑" v-admin @click="handleEdit(row as SysAnnouncement)" />
+        <ReButton v-if="row.sysAnnouncementStatus === 0" layout="square" icon="Promotion" type="success" tip="发布" v-admin @click="handlePublish(row as SysAnnouncement)" />
+        <ReButton v-if="row.sysAnnouncementStatus === 1" layout="square" icon="Download" type="warning" tip="下架" v-admin @click="handleUnpublish(row as SysAnnouncement)" />
+        <ReButton layout="square" icon="Delete" type="danger" tip="删除" v-admin @click="handleDelete(row as SysAnnouncement)" />
       </template>
     </ReTable>
 
@@ -348,9 +365,10 @@ onMounted(() => {
         <!-- 编辑时：只读展示当前状态（状态由 发布/下架 动作控制） -->
         <div v-if="isEdit" class="ann-form__status">
           <span class="ann-form__status-label">当前状态</span>
-          <el-tag size="small" :type="statusTagType(form.sysAnnouncementStatus)">
+          <!-- B：发布状态统一 plain + dot（已发布=success / 待发布=warning / 草稿·已下线=info） -->
+          <ReTag :type="statusTagType(form.sysAnnouncementStatus)" effect="plain" dot>
             {{ statusMap[form.sysAnnouncementStatus ?? 0] }}
-          </el-tag>
+          </ReTag>
         </div>
 
         <!-- 分组：公告内容 -->
@@ -477,7 +495,7 @@ onMounted(() => {
 
     <!-- 已读用户抽屉 -->
     <el-drawer v-model="readDrawerVisible" :title="readDrawerTitle" size="480px">
-      <el-table v-loading="readDrawerLoading" :data="readUsers" border stripe size="small" style="width: 100%">
+      <el-table v-loading="readDrawerLoading" :data="readUsers" border stripe  style="width: 100%">
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column prop="sysUserName" label="用户名" min-width="160" show-overflow-tooltip />
         <el-table-column prop="readTime" label="阅读时间" min-width="180" />
@@ -509,9 +527,11 @@ onMounted(() => {
         <!-- 级别 / 状态 / 发布时间 -->
         <div class="ann-preview__meta">
           <div class="ann-preview__tags">
+            <!-- B：级别是紧急度状态、发布状态也是状态，两者统一补 dot（round / type 保持原样） -->
             <ReTag
               round
               effect="plain"
+              dot
               :type="levelTagType(previewData.sysAnnouncementLevel)"
             >
               {{ levelLabel(previewData.sysAnnouncementLevel) }}
@@ -519,6 +539,7 @@ onMounted(() => {
             <ReTag
               round
               effect="plain"
+              dot
               :type="statusTagType(previewData.sysAnnouncementStatus)"
             >
               {{ statusMap[previewData.sysAnnouncementStatus ?? 0] ?? "-" }}
@@ -584,9 +605,21 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .system-page {
   padding: 0;
+}
+
+/* 表格外壳：卡片不加投影（koi 规约），只用 1px 描边表达层级；
+   键盘聚焦内部控件时描边转主色，让「焦点在哪一块」可感知 */
+:deep(.re-table) {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+:deep(.re-table:focus-within) {
+  border-color: var(--el-color-primary-light-5);
 }
 
 .system-page__header {
@@ -620,7 +653,7 @@ onMounted(() => {
     margin-bottom: 18px;
     background: var(--el-fill-color-light);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: var(--el-border-radius-base);
+    border-radius: var(--el-radius-sm, 6px);
   }
   &__status-label {
     font-size: 13px;
@@ -641,13 +674,14 @@ onMounted(() => {
     font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-regular);
+    /* 3px 宽的竖条：圆角走 full 令牌，视觉上被自身宽度夹住仍是小圆头 */
     &::before {
       content: "";
       display: inline-block;
       width: 3px;
       height: 13px;
       margin-right: 8px;
-      border-radius: 2px;
+      border-radius: var(--el-radius-full, 9999px);
       background: var(--el-color-primary);
     }
   }
@@ -806,11 +840,19 @@ onMounted(() => {
   font-weight: 500;
   color: var(--el-color-primary);
   cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s);
+  border-radius: var(--el-radius-xs, 4px);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .ann-preview__link:hover {
   color: var(--el-color-primary-dark-2);
+}
+
+/* E：这是原生 button（可 Tab 聚焦），但浏览器默认焦点环被 reset 掉了，
+   补一个与全局一致的主色焦点环，否则键盘用户看不到焦点位置 */
+.ann-preview__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .ann-preview__actions {
@@ -854,6 +896,14 @@ onMounted(() => {
   }
   .ann-preview__details {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好：本文件新增/沿用的过渡统一关掉 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.re-table),
+  .ann-preview__link {
+    transition: none;
   }
 }
 </style>

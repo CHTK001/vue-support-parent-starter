@@ -91,14 +91,11 @@
             </template>
           </el-table-column>
           <el-table-column prop="idiomTags" label="标签" width="130" show-overflow-tooltip />
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          <el-table-column label="操作" width="150" align="center" fixed="right">
             <template #default="{ row }">
-              <button type="button" class="row-edit-btn" title="编辑" @click.stop="openEdit(row)">
-                <el-icon><EditPen /></el-icon>
-              </button>
-              <button type="button" class="row-del-btn" title="删除" @click.stop="remove(row)">
-                <el-icon><Delete /></el-icon>
-              </button>
+              <ReButton layout="square" :icon="View" tip="预览" @click="openPreview(row)" />
+              <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openEdit(row)" />
+              <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="remove(row)" />
             </template>
           </el-table-column>
         </el-table>
@@ -130,9 +127,7 @@
               <div class="dialog-head__sub">维护成语释义与适用学段年级</div>
             </div>
           </div>
-          <button type="button" class="dialog-head__close" aria-label="关闭" @click="dialogVisible = false">
-            <el-icon><Close /></el-icon>
-          </button>
+          <ReButton layout="square" :icon="Close" tip="关闭" @click="dialogVisible = false" />
         </div>
       </template>
 
@@ -198,6 +193,85 @@
         </div>
       </template>
     </el-dialog>
+
+    <!--
+      纯预览弹窗：只读，刻意不放任何输入框 / 保存按钮。
+      与上方编辑弹窗并存，编辑入口仍在列表操作列。
+    -->
+    <el-dialog
+      v-model="previewVisible"
+      class="q-dialog pv-dialog"
+      width="720"
+      :show-close="false"
+      align-center
+    >
+      <template #header>
+        <div class="dialog-head">
+          <div class="dialog-head__left">
+            <span class="dialog-head__icon">
+              <el-icon :size="18"><View /></el-icon>
+            </span>
+            <div class="dialog-head__text">
+              <div class="dialog-head__title">成语预览</div>
+              <div class="dialog-head__sub">只读查看，不提供编辑</div>
+            </div>
+          </div>
+          <ReButton
+            layout="square"
+            :icon="Close"
+            tip="关闭"
+            @click="previewVisible = false"
+          />
+        </div>
+      </template>
+
+      <div v-if="previewRow" class="pv">
+        <div class="pv__head">
+          <div class="pv__word">{{ previewRow.idiomContent }}</div>
+          <div class="pv__pinyin">{{ previewRow.idiomPinyin || "—" }}</div>
+          <div class="pv__meta">
+            <span class="tag-pill" :class="diffClass(previewRow.idiomDifficulty)">
+              {{ diffLabel(previewRow.idiomDifficulty) }}
+            </span>
+            <span v-for="lv in previewRow.gradeLevels ?? []" :key="lv" class="pv__chip">{{ lv }}</span>
+            <span v-for="g in previewRow.grades ?? []" :key="g" class="pv__chip">{{ g }}</span>
+            <span v-for="t in previewTags" :key="t" class="pv__chip pv__chip--tag">{{ t }}</span>
+          </div>
+        </div>
+
+        <div class="pv__block">
+          <div class="pv__block-title">释义</div>
+          <div class="pv__block-text">{{ previewRow.idiomMeaning || "—" }}</div>
+        </div>
+
+        <div v-if="previewRow.idiomSource" class="pv__block">
+          <div class="pv__block-title">出处</div>
+          <div class="pv__block-text">{{ previewRow.idiomSource }}</div>
+        </div>
+
+        <div v-if="previewRow.idiomExample" class="pv__block">
+          <div class="pv__block-title">例句</div>
+          <div class="pv__block-text">{{ previewRow.idiomExample }}</div>
+        </div>
+
+        <div v-if="previewRow.idiomSynonyms || previewRow.idiomAntonyms" class="pv__grid">
+          <div v-if="previewRow.idiomSynonyms" class="pv__block">
+            <div class="pv__block-title">近义词</div>
+            <div class="pv__block-text">{{ previewRow.idiomSynonyms }}</div>
+          </div>
+          <div v-if="previewRow.idiomAntonyms" class="pv__block">
+            <div class="pv__block-title">反义词</div>
+            <div class="pv__block-text">{{ previewRow.idiomAntonyms }}</div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-foot">
+          <el-button @click="previewVisible = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -210,7 +284,7 @@
  */
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search } from "@element-plus/icons-vue";
+import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { Idiom } from "../api/types";
 
@@ -347,6 +421,41 @@ const openCreate = () => {
   dialogVisible.value = true;
 };
 
+// ==================== 纯预览（只读，无任何编辑控件） ====================
+/** 预览弹窗是否打开 */
+const previewVisible = ref(false);
+/** 预览中的成语（已补齐详情字段） */
+const previewRow = ref<Idiom | null>(null);
+
+/** 预览用的标签列表（idiomTags 为逗号分隔的字符串） */
+const previewTags = computed(() =>
+  (previewRow.value?.idiomTags ?? "")
+    .split(/[,，]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+);
+
+/**
+ * 打开只读预览。
+ *
+ * 与编辑弹窗刻意分开：这里不渲染任何 el-form / 输入框，只有排版好的内容，
+ * 供"只是看看"的场景（投屏讲解、核对释义）使用。
+ *
+ * @param row 列表行数据
+ */
+async function openPreview(row: Idiom) {
+  previewRow.value = { ...row };
+  previewVisible.value = true;
+  try {
+    const detail = await eduaiApi.getIdiomDetail(row.idiomId);
+    if (detail) {
+      previewRow.value = detail;
+    }
+  } catch {
+    /* 详情拉不到就用列表已有字段，不打断预览 */
+  }
+}
+
 async function openEdit(row: Idiom) {
   resetForm();
   Object.assign(form, { ...row });
@@ -458,20 +567,23 @@ onMounted(() => {
   width: 148px;
   height: 148px;
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  box-shadow: var(--el-box-shadow-light);
-  border: 1px solid var(--el-border-color-light);
-  transition: transform 0.15s, box-shadow 0.15s;
+  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
+  border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .stat-card__body {
   min-width: 0;
@@ -497,7 +609,7 @@ onMounted(() => {
 .stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -508,7 +620,8 @@ onMounted(() => {
 
 /* ---------- 筛选 ---------- */
 .filter-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   margin-bottom: 14px;
   border: 0;
   position: relative;
@@ -541,14 +654,16 @@ onMounted(() => {
   align-items: center;
 }
 .filter-actions .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 88px;
   font-weight: 600;
 }
 
 /* ---------- 表格 ---------- */
 .table-card {
-  border-radius: 14px;
+  /* 原 14px，最近档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   border: 0;
   position: relative;
   z-index: 1;
@@ -564,13 +679,14 @@ onMounted(() => {
   margin-bottom: 14px;
 }
 .table-toolbar__left .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   font-weight: 600;
 }
 .table-wrap {
   min-height: 320px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
 .idiom-table {
@@ -602,7 +718,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-color-white);
   white-space: nowrap;
 }
@@ -612,32 +728,6 @@ onMounted(() => {
 .tag-pill.is-gray {
   background: var(--el-fill-color);
   color: var(--el-text-color-regular);
-}
-
-.row-edit-btn,
-.row-del-btn {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-.row-edit-btn {
-  color: var(--el-color-primary);
-}
-.row-edit-btn:hover {
-  background: var(--el-color-primary-light-8);
-}
-.row-del-btn {
-  color: var(--el-color-danger);
-}
-.row-del-btn:hover {
-  background: var(--el-color-danger-light-9);
 }
 
 .table-footer {
@@ -683,7 +773,7 @@ onMounted(() => {
 .dialog-head__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-color-primary);
   color: var(--el-color-white);
   display: inline-flex;
@@ -701,24 +791,6 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
-}
-.dialog-head__close {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  font-size: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.dialog-head__close:hover {
-  background: var(--el-bg-color);
-  color: var(--el-text-color-primary);
 }
 .q-dialog__body {
   padding: 18px 24px 6px;
@@ -756,7 +828,8 @@ onMounted(() => {
   gap: 10px;
 }
 .dialog-foot .el-button {
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   min-width: 96px;
   font-weight: 600;
 }
@@ -771,6 +844,80 @@ onMounted(() => {
   }
   .stat-card__value {
     font-size: 24px;
+  }
+}
+
+/* ============ 纯预览（只读） ============ */
+.pv__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.pv__word {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--el-text-color-primary);
+}
+.pv__pinyin {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+.pv__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.pv__chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+}
+.pv__chip--tag {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.pv__block {
+  margin-top: 14px;
+}
+.pv__block-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 4px;
+}
+.pv__block-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.pv__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+@media (max-width: 720px) {
+  .pv__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
+   统计卡有 transition / transform（ReButton 的动效由组件自身负责）。 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  /* 位移也是动效：关掉后 :hover 只剩投影反馈 */
+  .stat-card:hover {
+    transform: none;
   }
 }
 </style>

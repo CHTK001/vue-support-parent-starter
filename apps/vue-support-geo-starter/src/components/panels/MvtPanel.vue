@@ -57,7 +57,7 @@ function copyPreviewUrl(): void {
       class="mb-12"
     />
 
-    <el-form label-position="top" size="small">
+    <el-form label-position="top" >
       <el-form-item label="矢量瓦片服务模板">
         <el-input v-model="form.urlTemplate" placeholder="https://{s}.tile.host/{z}/{x}/{y}.pbf" clearable />
         <div class="hint">支持 {z} {x} {y} {s} 占位符</div>

@@ -7,17 +7,17 @@
         placeholder="按域名 / 路径 / 后端搜索"
         @update:model-value="onKeyword"
       />
-      <ReSelect :model-value="scheme" size="small" style="width: 130px" @change="onScheme">
+      <ReSelect :model-value="scheme" style="width: 130px" @change="onScheme">
         <ReOption value="all" label="全部协议" />
         <ReOption value="http" label="仅 HTTP" />
         <ReOption value="https" label="仅 HTTPS" />
       </ReSelect>
-      <ReSwitch :model-value="onlyWarned" size="small" @change="onOnlyWarned" />
+      <ReSwitch :model-value="onlyWarned" @change="onOnlyWarned" />
       <span class="ngs-label">只看有提示的</span>
       <span class="ngs-count">
         共 {{ sites.length }} 个站点<template v-if="filtered.length !== sites.length">，当前显示 {{ filtered.length }} 个</template>
       </span>
-      <ReButton size="small" :loading="loading" @click="load">
+      <ReButton :loading="loading" @click="load">
         <template #icon><ReIcon name="Refresh" :size="13" /></template>
         刷新
       </ReButton>
@@ -29,9 +29,20 @@
       :title="`${warnedCount} 个站点存在需要留意的问题，已在卡片上标出`"
     />
 
-    <div class="ngs-body" v-loading="loading">
+    <div class="ngs-body">
+      <!-- 首次加载用骨架屏占位。骨架按真实 .ngs-card 的层级做（标题行 + 事实行），
+           数据到达时列表不位移。
+           每处 ReSkeleton 都必须显式写 loading：ReSkeleton 把该 prop 默认值设成 false，
+           而 el-skeleton 的语义是 loading=true 才显示骨架，少写就是「元素在、但空白」。 -->
+      <div v-if="loading && !loaded" class="ngs-skel" aria-busy="true" aria-label="站点加载中">
+        <div v-for="i in 3" :key="i" class="ngs-skel-card">
+          <ReSkeleton loading animated :rows="1" class="ngs-skel-head" />
+          <ReSkeleton loading animated :rows="4" />
+        </div>
+      </div>
+      <template v-else>
       <ReEmptyState
-        v-if="!filtered.length && !loading"
+        v-if="!filtered.length"
         :description="sites.length ? '没有符合筛选条件的站点' : '没有找到任何 server 块。配置可能还没写，或放在了本工具没扫描到的路径下。'"
       />
       <div v-for="s in filtered" :key="`${s.file}#${s.nodePath}`" class="ngs-card" :class="{ 'has-warn': s.warnings.length }">
@@ -41,10 +52,10 @@
             {{ s.displayName }}
           </div>
           <div class="ngs-tags">
-            <ReTag v-for="p in s.listenPorts" :key="p" size="small" type="info">:{{ p }}</ReTag>
-            <ReTag v-if="s.https" size="small" type="success">HTTPS</ReTag>
-            <ReTag v-if="s.defaultServer" size="small" type="warning">兜底</ReTag>
-            <ReTag v-if="s.hasCertificate" size="small" type="success">证书已配</ReTag>
+            <ReTag v-for="p in s.listenPorts" :key="p" type="info">:{{ p }}</ReTag>
+            <ReTag v-if="s.https" type="success">HTTPS</ReTag>
+            <ReTag v-if="s.defaultServer" type="warning">兜底</ReTag>
+            <ReTag v-if="s.hasCertificate" type="success">证书已配</ReTag>
           </div>
         </div>
 
@@ -57,7 +68,7 @@
             <dt>转发到</dt>
             <dd class="mono">
               {{ t }}
-              <ReTag v-if="isUpstream(s, t)" size="small" type="primary">upstream</ReTag>
+              <ReTag v-if="isUpstream(s, t)" type="primary">upstream</ReTag>
             </dd>
           </div>
           <div class="ngs-fact">
@@ -75,16 +86,18 @@
         </ul>
 
         <div class="ngs-ops">
-          <ReButton size="small" @click="emit('edit', s)">
+          <ReButton @click="emit('edit', s)">
             <template #icon><ReIcon name="Edit" :size="13" /></template>
             编辑这个站点
           </ReButton>
-          <ReButton size="small" text @click="copyUrl(s)">
+          <ReButton text @click="copyUrl(s)">
             <template #icon><ReIcon name="CopyDocument" :size="13" /></template>
             复制访问地址
           </ReButton>
         </div>
       </div>
+      <!-- /v-else：首屏骨架屏 -->
+      </template>
     </div>
   </div>
 </template>
@@ -92,6 +105,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import { fetchNginxSites, type NginxSite } from "../../nginx/api";
 
 const props = defineProps<{
@@ -106,6 +120,14 @@ const emit = defineEmits<{
 
 const sites = ref<NginxSite[]>([]);
 const loading = ref(false);
+
+/**
+ * 首屏是否已渲染过真实内容。
+ *
+ * <p>骨架屏只在首次出现：之后刷新不再退回骨架，否则每次重新拉站点清单
+ * 都会整页闪一下。</p>
+ */
+const loaded = ref(false);
 const keyword = ref("");
 const scheme = ref("all");
 const onlyWarned = ref(false);
@@ -184,6 +206,8 @@ async function load() {
     ElMessage.error(`读取站点清单失败：${(e as Error).message}`);
   } finally {
     loading.value = false;
+    // 成功失败都算首屏结束：失败时要显示「读取失败」而不是永远停在骨架上
+    loaded.value = true;
   }
 }
 
@@ -247,6 +271,40 @@ defineExpose({ load, sites });
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 10px;
   align-content: start;
+}
+
+/* ============ 首屏骨架屏 ============ */
+/* 与真实 .ngs-card 同一套盒模型（flex 列 + 同样的 padding/圆角/边框），
+   数据到达时列表不发生位移。 */
+.ngs-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ngs-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-lg, 12px);
+  background: var(--el-bg-color);
+}
+
+.ngs-skel-head {
+  margin-bottom: 2px;
+}
+
+/* el-skeleton 自带的 item 背景在本主题下过淡，覆盖动画两色才看得见。
+   覆盖变量而不是 background-image，是为了保住 shimmer 动画。 */
+.ngs-skel :deep(.el-skeleton) {
+  --el-skeleton-animation-bg-color: var(--el-fill-color);
+  --el-skeleton-animation-to-color: var(--el-fill-color-light);
+}
+
+.ngs-skel :deep(.el-skeleton__item) {
+  border-radius: 6px;
 }
 
 .ngs-card {

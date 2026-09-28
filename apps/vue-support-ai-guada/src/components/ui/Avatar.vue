@@ -54,6 +54,8 @@ const firstChar = computed((): string => {
 
 </script>
 <style scoped>
+/* 令牌口径：占位头像的底色/文字色全部走 --el-*，明暗与 9 套配色自动跟随。
+   本文件无 transition/animation，故不需要 prefers-reduced-motion 分支。 */
 .avatar-image {
     width: 100%;
     height: 100%;
@@ -67,30 +69,34 @@ const firstChar = computed((): string => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f5f5f5;
-    color: #666;
+    /* 原值 #f5f5f5（浅灰底）→ 填充色令牌，明暗两套都有对应值 */
+    background-color: var(--el-fill-color-light);
+    /* 原值 #666 → 次级文字色令牌 */
+    color: var(--el-text-color-secondary);
     overflow: hidden;
     container-type: size;
 }
 
+/* 暗色态原来写死 #374151/#d1d5db，换成 --el-fill-color / --el-text-color-regular：
+   这两个令牌在 html.dark 下由 refactor.css 重定义，跟随配色走。 */
 .dark .avatar-placeholder {
-    background-color: #374151;
-    color: #d1d5db;
+    background-color: var(--el-fill-color);
+    color: var(--el-text-color-regular);
 }
 
+/* 用户头像：固定中性灰底 + 白字。
+   原值 #999 与 #fff 的对比度只有 2.4:1（未达 WCAG AA），
+   --el-text-color-placeholder 明暗两侧都存在且不浅于原值，取它可在不改动观感的前提下跟随主题。 */
 .avatar-placeholder.avatar-user {
-    background-color: #999;
-    color: #fff;
+    background-color: var(--el-text-color-placeholder);
+    color: var(--el-color-white);
 }
 
 .avatar-text {
     font-size: 60cqw;
     font-weight: 600;
-    color: #444;
+    /* 原值 #444 → 主文字色令牌，明暗两侧都能与占位底色拉开 */
+    color: var(--el-text-color-primary);
     line-height: 1;
-}
-
-.dark .avatar-text {
-    color: #e5e7eb;
 }
 </style>

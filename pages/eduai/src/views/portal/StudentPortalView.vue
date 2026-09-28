@@ -3,7 +3,8 @@
     <!-- 未绑定：先弹绑定表单，绑完才放行 —— 进入系统就必须绑定信息 -->
     <div v-if="needBind" class="portal-bind">
       <div class="portal-bind__card">
-        <div class="portal-bind__icon">🎒</div>
+        <!-- 书包 emoji 会被读屏念成「背包」这类冗余文本，改走 ReIcon -->
+        <div class="portal-bind__icon"><ReIcon name="Notebook" :size="46" aria-hidden="true" /></div>
         <h2 class="portal-bind__title">先登记一下你的信息</h2>
         <p class="portal-bind__sub">
           学生端需要知道你是哪个学段、哪个班，才能给你看对的内容。
@@ -273,11 +274,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/*
+ * koi 令牌口径（与 JuniorHome / PrimaryHome / SeniorHome / TeacherPortalView 完全一致）：
+ *   品牌色带 = --el-color-primary → --el-color-primary-light-3
+ *   页面底   = --el-bg-color-page，卡片面 = --el-bg-color
+ *   文字三级 = --el-text-color-primary / -regular / -secondary / -placeholder
+ *   圆角只走 --el-radius-* 六档，动画只走 --el-transition-duration
+ * 卡片类容器一律不加投影，投影只留给「悬浮浮起」与「键盘焦点环」两种反馈。
+ */
 .portal {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: #f5f7fb;
+  background: var(--el-bg-color-page);
 }
 .portal-loading {
   height: 100%;
@@ -294,31 +303,42 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(160deg, #2563eb 0%, #60a5fa 55%, #e0f2fe 100%);
+  /* 登记页整屏是主色底衬一张卡片：走主色渐变，末站收在页面底令牌上 */
+  background: linear-gradient(
+    160deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 55%,
+    var(--el-bg-color-page) 100%
+  );
 }
 .portal-bind__card {
   width: min(460px, 100%);
   padding: 28px 30px 26px;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  /* 原 24px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
   text-align: center;
 }
 .portal-bind__icon {
   font-size: 46px;
   line-height: 1;
+  color: var(--el-color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .portal-bind__title {
   margin: 10px 0 8px;
   font-size: 23px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--el-text-color-primary);
 }
 .portal-bind__sub {
   margin: 0 0 18px;
   font-size: 13px;
   line-height: 1.8;
-  color: #64748b;
+  color: var(--el-text-color-secondary);
 }
 .portal-bind__form {
   text-align: left;
@@ -328,14 +348,27 @@ onMounted(() => {
   height: 48px;
   margin-top: 6px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   font-size: 17px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: #fff;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
+  color: var(--el-color-white);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  /* 原来的常驻彩色投影属装饰性投影，koi 规约只留浮起与焦点环：
+     静止态改平，把浮起反馈挪到 hover */
+  transition: box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.portal-bind__btn:hover:not(:disabled) {
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+}
+.portal-bind__btn:focus-visible {
+  /* 按钮本身就是主色渐变，纯 primary 12% 的焦点环会「糊」在同色背景上，
+     补一圈白描边保证任何主题下都看得见（仍是 koi 焦点环，只是加一层对比环） */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+    0 0 0 5px var(--el-color-white);
 }
 .portal-bind__btn:disabled {
   opacity: 0.6;
@@ -353,7 +386,7 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   z-index: 2100;
-  background: #f5f7fb;
+  background: var(--el-bg-color-page);
   display: flex;
   flex-direction: column;
 }
@@ -366,12 +399,24 @@ onMounted(() => {
   padding: 0 20px;
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: var(--el-color-white);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+}
+.portal-embed__back:focus-visible {
+  /* 返回栏本身是主色渐变，补一圈白描边保证焦点环在同色背景上看得见 */
+  box-shadow: inset 0 0 0 3px var(--el-color-white);
 }
 .portal-embed__body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+}
+/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+@media (prefers-reduced-motion: reduce) {
+  .portal-bind__btn {
+    transition: none;
+  }
 }
 </style>

@@ -32,6 +32,8 @@ const statusOptions = [
 const dictList = ref<SysDict[]>([]);
 const dictLoading = ref(false);
 const filterText = ref("");
+/** 状态筛选：all = 不限，1 = 启用，0 = 禁用（与 SysDict.sysDictStatus 同值域） */
+const statusFilter = ref<"all" | 0 | 1>("all");
 const currentDict = ref<SysDict | null>(null);
 const dictDialogVisible = ref(false);
 const dictSaving = ref(false);
@@ -41,14 +43,44 @@ const dictListBodyRef = ref<HTMLElement | null>(null);
 let dictSortable: ReturnType<typeof Sortable.create> | null = null;
 
 const filteredDictList = computed(() => {
-  if (!filterText.value) return dictList.value;
-  const kw = filterText.value.toLowerCase();
-  return dictList.value.filter(
-    (d) =>
+  const kw = filterText.value.trim().toLowerCase();
+  return dictList.value.filter((d) => {
+    // 状态筛选：非「全部」时按启用 / 禁用过滤
+    if (statusFilter.value !== "all" && d.sysDictStatus !== statusFilter.value) {
+      return false;
+    }
+    if (!kw) return true;
+    return (
       d.sysDictName?.toLowerCase().includes(kw) ||
       d.sysDictCode?.toLowerCase().includes(kw)
-  );
+    );
+  });
 });
+
+/** 启用 / 禁用数量，用于筛选器上的计数 */
+const dictStat = computed(() => ({
+  all: dictList.value.length,
+  enabled: dictList.value.filter((d) => d.sysDictStatus === 1).length,
+  disabled: dictList.value.filter((d) => d.sysDictStatus === 0).length,
+}));
+
+/** 状态筛选项（带计数，值为字符串 / 数字混合，el-segmented 走全等比较） */
+const statusFilterOptions = computed(() => [
+  { label: `全部 ${dictStat.value.all}`, value: "all" },
+  { label: `启用 ${dictStat.value.enabled}`, value: 1 },
+  { label: `禁用 ${dictStat.value.disabled}`, value: 0 },
+]);
+
+/** 搜索或状态筛选生效时锁定拖拽排序：此时可见索引与全量列表不对应 */
+const sortLocked = computed(
+  () => filterText.value.trim().length > 0 || statusFilter.value !== "all"
+);
+
+/** 清空搜索与状态筛选 */
+function resetFilter() {
+  filterText.value = "";
+  statusFilter.value = "all";
+}
 
 async function loadDictList() {
   dictLoading.value = true;
@@ -88,7 +120,7 @@ function initDictSortable() {
     ghostClass: "dict-sort-ghost",
     chosenClass: "dict-sort-chosen",
     dragClass: "dict-sort-drag",
-    disabled: !!filterText.value,
+    disabled: sortLocked.value,
     onEnd: async (evt) => {
       const { oldIndex, newIndex } = evt;
       // 位置未变化直接返回
@@ -127,6 +159,37 @@ async function handleSelectDict(dict: SysDict) {
   currentDict.value = dict;
   itemSearch.value = {};
   await nextTickReload();
+}
+
+/** 当前字典是否为选中项 */
+function isDictActive(dict: SysDict) {
+  return currentDict.value?.sysDictId === dict.sysDictId;
+}
+
+/** 列表项键盘操作：上下键切换字典，回车 / 空格选中（roving tabindex） */
+function onDictKeydown(evt: KeyboardEvent, dict: SysDict) {
+  if (evt.key === "Enter" || evt.key === " ") {
+    evt.preventDefault();
+    handleSelectDict(dict);
+    return;
+  }
+  if (evt.key !== "ArrowDown" && evt.key !== "ArrowUp") return;
+  evt.preventDefault();
+  const list = filteredDictList.value;
+  const idx = list.findIndex((d) => d.sysDictId === dict.sysDictId);
+  const next = evt.key === "ArrowDown" ? idx + 1 : idx - 1;
+  const target = list[Math.min(Math.max(next, 0), list.length - 1)];
+  if (!target) return;
+  handleSelectDict(target);
+  focusDictNode(target.sysDictId);
+}
+
+/** 焦点跟随键盘选中项 */
+function focusDictNode(id?: number) {
+  if (id == null) return;
+  nextTick(() => {
+    dictListBodyRef.value?.querySelector<HTMLElement>(`[data-id="${id}"]`)?.focus();
+  });
 }
 
 function handleDictAdd() {
@@ -204,6 +267,8 @@ const itemSaving = ref(false);
 const isEditItem = ref(false);
 const itemForm = ref<SysDictItem>({});
 const itemSearch = ref<Record<string, unknown>>({});
+/** 当前字典下的子项数量，用于区块标题计数 */
+const itemCount = ref(0);
 
 const itemColumns: ReTableColumn[] = [
   { prop: "sysDictItemName", label: "名称", minWidth: 160 },
@@ -215,6 +280,7 @@ const itemColumns: ReTableColumn[] = [
 
 async function loadDictItems(params: Record<string, unknown>) {
   if (!currentDict.value?.sysDictId) {
+    itemCount.value = 0;
     return { total: 0, data: [] };
   }
   try {
@@ -230,8 +296,10 @@ async function loadDictItems(params: Record<string, unknown>) {
           i.sysDictItemCode?.toLowerCase().includes(k)
       );
     }
+    itemCount.value = list.length;
     return { total: list.length, data: list };
   } catch {
+    itemCount.value = 0;
     return { total: 0, data: [] };
   }
 }
@@ -335,9 +403,9 @@ function removeProperty(idx: number) {
   itemForm.value.property?.splice(idx, 1);
 }
 
-// 搜索过滤时禁用拖拽，避免顺序错乱
-watch(filterText, (val) => {
-  if (dictSortable) dictSortable.option("disabled", !!val);
+// 搜索 / 状态筛选时禁用拖拽，避免可见索引与全量列表错位
+watch(sortLocked, (val) => {
+  dictSortable?.option("disabled", val);
 });
 
 onMounted(() => {
@@ -351,64 +419,132 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="dict-page system-page" style="display:flex !important;flex-direction:row !important;gap:8px;padding:0;width:100%;height:calc(100vh - 100px);box-sizing:border-box;">
+  <div class="dict-page system-page">
     <!-- 左侧：字典分类列表 -->
-    <div class="dict-tree-card" style="width:320px;flex-shrink:0;background:var(--el-bg-color);border-radius:8px;border:1px solid var(--el-border-color-lighter);display:flex;flex-direction:column;overflow:hidden;">
+    <section class="dict-tree-card" aria-label="字典分类">
       <div class="dict-tree-header">
         <div class="dict-tree-title">
-          <el-icon><Collection /></el-icon>
+          <span class="dict-tree-title__icon" aria-hidden="true">
+            <el-icon><Collection /></el-icon>
+          </span>
           <span>字典分类</span>
+          <span class="dict-tree-count" :title="`共 ${dictStat.all} 个字典`">{{ dictStat.all }}</span>
         </div>
-        <ReButton
-          layout="square"
-          icon="Plus"
-          type="primary"
-          title="新增字典"
-          @click="handleDictAdd"
-        />
+        <div class="dict-tree-actions">
+          <ReButton
+            layout="square"
+            icon="Refresh"
+            tip="刷新列表"
+            :loading="dictLoading"
+            @click="loadDictList"
+          />
+          <ReButton
+            layout="square"
+            icon="Plus"
+            type="primary"
+            tip="新增字典"
+            @click="handleDictAdd"
+          />
+        </div>
       </div>
       <div class="dict-tree-search">
         <el-input
           v-model="filterText"
-          placeholder="搜索字典名称/编码"
+          placeholder="搜索字典名称 / 编码"
           clearable
           :prefix-icon="Search"
         />
+        <el-segmented
+          v-model="statusFilter"
+          :options="statusFilterOptions"
+          size="small"
+          class="dict-status-filter"
+        />
+        <p v-if="sortLocked" class="dict-sort-lock">
+          <ReIcon name="InfoFilled" size="12" />
+          <span>筛选状态下已锁定排序，清空筛选后可拖拽</span>
+        </p>
       </div>
-      <div v-loading="dictLoading" class="dict-tree-body" ref="dictListBodyRef">
+      <div
+        v-loading="dictLoading"
+        class="dict-tree-body"
+        :class="{ 'is-locked': sortLocked }"
+        ref="dictListBodyRef"
+        role="group"
+        aria-label="字典分类列表"
+      >
         <div
           v-for="dict in filteredDictList"
           :key="dict.sysDictId"
           class="dict-tree-node"
-          :class="{ active: currentDict?.sysDictId === dict.sysDictId }"
-          @click="handleSelectDict(dict)"
+          :class="{ 'is-active': isDictActive(dict), 'is-off': dict.sysDictStatus !== 1 }"
+          :aria-current="isDictActive(dict) ? 'true' : undefined"
+          :tabindex="isDictActive(dict) ? 0 : -1"
           :data-id="dict.sysDictId"
+          role="button"
+          @click="handleSelectDict(dict)"
+          @keydown="onDictKeydown($event, dict)"
         >
+          <span class="dict-node-accent" aria-hidden="true" />
           <ReIcon name="Rank" size="14" class="dict-drag-handle" />
-          <ReIcon name="Collection" size="14" color="var(--el-color-primary)" />
-          <span class="node-label">{{ dict.sysDictName }}</span>
-          <span class="node-id">#{{ dict.sysDictId }}</span>
+          <span class="dict-node-icon" aria-hidden="true">
+            <ReIcon name="Collection" size="15" />
+          </span>
+          <span class="dict-node-body">
+            <span class="dict-node-name" :title="dict.sysDictName">{{ dict.sysDictName }}</span>
+            <span class="dict-node-sub">
+              <span class="dict-node-code" :title="dict.sysDictCode">{{ dict.sysDictCode || "-" }}</span>
+              <span v-if="dict.sysDictInSystem === 1" class="dict-node-badge" title="内置字典">内置</span>
+              <span class="dict-node-id">#{{ dict.sysDictId }}</span>
+            </span>
+          </span>
           <ReTag
+            class="dict-node-status"
             size="small"
             :type="dict.sysDictStatus === 1 ? 'success' : 'danger'"
             effect="plain"
+            dot
           >
             {{ dict.sysDictStatus === 1 ? "启用" : "禁用" }}
           </ReTag>
         </div>
-        <el-empty v-if="!filteredDictList.length" description="暂无字典" :image-size="60" />
+
+        <!-- 筛选无结果 / 尚无字典：居中浮层，不参与列表语义 -->
+        <div v-if="!filteredDictList.length && !dictLoading" class="dict-tree-empty">
+          <el-empty v-if="sortLocked" description="没有匹配的字典" :image-size="60">
+            <el-button text type="primary" icon="RefreshLeft" @click="resetFilter">清除筛选条件</el-button>
+          </el-empty>
+          <el-empty v-else description="暂无字典分类" :image-size="60">
+            <el-button type="primary" icon="Plus" @click="handleDictAdd">新增字典</el-button>
+          </el-empty>
+        </div>
       </div>
-    </div>
+    </section>
 
     <!-- 右侧：上下结构 -->
-    <div class="dict-detail-card" style="flex:1 1 0%;min-width:0;background:var(--el-bg-color);border-radius:8px;border:1px solid var(--el-border-color-lighter);overflow:auto;display:flex;flex-direction:column;">
+    <section class="dict-detail-card" aria-label="字典详情">
       <template v-if="currentDict">
         <!-- 上方：字典详情 -->
         <div class="dict-detail-header">
           <div class="dict-detail-title">
-            <ReIcon name="Collection" size="20" color="var(--el-color-primary)" />
-            <div>
-              <h3>{{ currentDict.sysDictName }}</h3>
+            <span class="dict-detail-icon" aria-hidden="true">
+              <ReIcon name="Collection" size="20" />
+            </span>
+            <div class="dict-detail-text">
+              <h3>
+                {{ currentDict.sysDictName }}
+                <ReTag
+                  size="small"
+                  :type="currentDict.sysDictStatus === 1 ? 'success' : 'danger'"
+                  effect="plain"
+                  dot
+                >
+                  {{ currentDict.sysDictStatus === 1 ? "启用" : "禁用" }}
+                </ReTag>
+                <ReTag v-if="currentDict.sysDictInSystem === 1" size="small" type="info" effect="plain">
+                  内置
+                </ReTag>
+              </h3>
               <p>字典编码：{{ currentDict.sysDictCode || '-' }}</p>
             </div>
           </div>
@@ -417,14 +553,14 @@ onUnmounted(() => {
               layout="square"
               icon="Edit"
               type="primary"
-              title="编辑字典"
+              tip="编辑字典"
               @click="handleDictEdit"
             />
             <ReButton
               layout="square"
               icon="Delete"
               type="danger"
-              title="删除字典"
+              tip="删除字典"
               @click="handleDictDelete"
             />
           </div>
@@ -435,7 +571,12 @@ onUnmounted(() => {
             <el-descriptions-item label="字典编码">{{ currentDict.sysDictCode || '-' }}</el-descriptions-item>
             <el-descriptions-item label="排序">{{ currentDict.sysDictSort ?? 0 }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <ReTag :type="currentDict.sysDictStatus === 1 ? 'success' : 'danger'" size="small">
+              <ReTag
+                size="small"
+                :type="currentDict.sysDictStatus === 1 ? 'success' : 'danger'"
+                effect="plain"
+                dot
+              >
                 {{ currentDict.sysDictStatus === 1 ? "启用" : "禁用" }}
               </ReTag>
             </el-descriptions-item>
@@ -460,220 +601,622 @@ onUnmounted(() => {
             @row-sort="handleItemDragSort"
           >
             <template #toolbar>
-              <el-button type="primary" icon="Plus" @click="handleItemAdd" text>新增子项</el-button>
+              <div class="dict-items-bar">
+                <span class="dict-items-bar-title">
+                  <ReIcon name="List" size="15" color="var(--el-color-primary)" />
+                  <span>字典项（{{ itemCount }}）</span>
+                </span>
+                <el-button type="primary" icon="Plus" @click="handleItemAdd" text>新增子项</el-button>
+              </div>
             </template>
             <template #col-sysDictItemName="{ row }">
               <span class="dict-item-name-cell">
-                <ReIcon v-if="row.sysDictItemIcon" :name="row.sysDictItemIcon" size="16" class="dict-item-name-icon" />
-                <span>{{ row.sysDictItemName }}</span>
+                <span class="dict-item-name-icon" aria-hidden="true">
+                  <ReIcon v-if="row.sysDictItemIcon" :name="row.sysDictItemIcon" size="15" />
+                  <ReIcon v-else name="Menu" size="15" />
+                </span>
+                <span class="dict-item-name-body">
+                  <span class="dict-item-name">{{ row.sysDictItemName }}</span>
+                  <span v-if="row.sysDictItemI18n" class="dict-item-i18n">{{ row.sysDictItemI18n }}</span>
+                </span>
                 <span class="dict-item-id">#{{ row.sysDictItemId }}</span>
               </span>
             </template>
             <template #col-sysDictItemStatus="{ row }">
-              <ReTag :type="row.sysDictItemStatus === 1 ? 'success' : 'danger'" size="small">
+              <ReTag
+                size="small"
+                :type="row.sysDictItemStatus === 1 ? 'success' : 'danger'"
+                effect="plain"
+                dot
+              >
                 {{ row.sysDictItemStatus === 1 ? "启用" : "禁用" }}
               </ReTag>
             </template>
             <template #col-action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" title="编辑" @click="handleItemEdit(row)" />
-              <ReButton layout="square" type="danger" icon="Delete" title="删除" @click="handleItemDelete(row)" />
+              <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleItemEdit(row)" />
+              <ReButton layout="square" type="danger" icon="Delete" tip="删除" @click="handleItemDelete(row)" />
             </template>
           </ReTable>
         </div>
       </template>
       <el-empty v-else description="请选择左侧字典查看详情" class="dict-empty" />
-    </div>
+    </section>
 
     <!-- 字典新增/编辑弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="dictDialogVisible"
       :title="isEditDict ? '编辑字典' : '新增字典'"
-      width="500px"
+      width="520"
+      :close-on-click-modal="false"
       destroy-on-close
+      layout="modern"
+      compact
+      :confirm-loading="dictSaving"
+      @ok="handleDictSubmit"
     >
       <el-form label-width="90px" :model="dictForm">
         <el-form-item label="字典名称" required>
-          <el-input v-model="dictForm.sysDictName" placeholder="如：用户性别" maxlength="100" />
+          <ReInput v-model="dictForm.sysDictName" layout="modern" placeholder="如：用户性别" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="字典编码" required>
-          <el-input v-model="dictForm.sysDictCode" placeholder="如：sys_user_sex" maxlength="100" :disabled="isEditDict" />
+          <ReInput
+            v-model="dictForm.sysDictCode"
+            layout="modern"
+            placeholder="如：sys_user_sex"
+            maxlength="100"
+            :disabled="isEditDict"
+          />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="dictForm.sysDictSort" :min="0" />
+          <ReInputNumber layout="modern" v-model="dictForm.sysDictSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
           <el-segmented v-model="dictForm.sysDictStatus" :options="statusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="dictForm.sysDictRemark" type="textarea" :rows="2" maxlength="255" />
+          <ReInput
+            v-model="dictForm.sysDictRemark"
+            layout="modern"
+            type="textarea"
+            :rows="2"
+            maxlength="255"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="dictDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="dictSaving" @click="handleDictSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
 
     <!-- 字典项新增/编辑弹窗 -->
-    <el-dialog
+    <ReDialog
       v-model="itemDialogVisible"
       :title="isEditItem ? '编辑字典项' : '新增字典项'"
-      width="600px"
+      width="640"
+      :close-on-click-modal="false"
       destroy-on-close
+      layout="modern"
+      compact
+      :confirm-loading="itemSaving"
+      @ok="handleItemSubmit"
     >
       <el-form label-width="90px" :model="itemForm">
         <el-form-item label="名称" required>
-          <el-input v-model="itemForm.sysDictItemName" placeholder="如：男" maxlength="100" />
+          <ReInput v-model="itemForm.sysDictItemName" layout="modern" placeholder="如：男" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="值" required>
-          <el-input v-model="itemForm.sysDictItemCode" placeholder="如：1" maxlength="100" />
+          <ReInput v-model="itemForm.sysDictItemCode" layout="modern" placeholder="如：1" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="图标">
           <ReIconSelect v-model="itemForm.sysDictItemIcon" placeholder="选择子项图标" class="w-full" />
         </el-form-item>
         <el-form-item label="国际化Key">
-          <el-input v-model="itemForm.sysDictItemI18n" placeholder="如：dict.male" maxlength="100" />
+          <ReInput v-model="itemForm.sysDictItemI18n" layout="modern" placeholder="如：dict.male" maxlength="100" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="itemForm.sysDictItemSort" :min="0" />
+          <ReInputNumber layout="modern" v-model="itemForm.sysDictItemSort" :min="0" class="!w-full" />
         </el-form-item>
         <el-form-item label="状态">
           <el-segmented v-model="itemForm.sysDictItemStatus" :options="statusOptions" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="itemForm.sysDictItemRemark" type="textarea" :rows="2" maxlength="255" />
+          <ReInput
+            v-model="itemForm.sysDictItemRemark"
+            layout="modern"
+            type="textarea"
+            :rows="2"
+            maxlength="255"
+            show-word-limit
+          />
         </el-form-item>
 
         <!-- 扩展配置 -->
         <el-form-item label="扩展配置">
-          <div style="width:100%">
-            <div
-              v-for="(p, idx) in itemForm.property"
-              :key="idx"
-              style="display:flex;gap:6px;margin-bottom:6px;align-items:center;"
-            >
-              <el-input v-model="p.sysDictItemPropertyGroup" placeholder="分组" style="width:90px" size="small" />
-              <el-input v-model="p.sysDictItemPropertyName" placeholder="配置名" style="flex:1" size="small" />
-              <el-input v-model="p.sysDictItemPropertyValue" placeholder="配置值" style="flex:1" size="small" />
-              <ReButton layout="square" type="danger" icon="Delete" size="small" title="删除" @click="removeProperty(idx)" />
+          <div class="dict-property">
+            <div v-for="(p, idx) in itemForm.property" :key="idx" class="dict-property-row">
+              <ReInput
+                v-model="p.sysDictItemPropertyGroup"
+                layout="modern"
+                placeholder="分组"
+                size="small"
+                class="dict-property-group"
+              />
+              <ReInput
+                v-model="p.sysDictItemPropertyName"
+                layout="modern"
+                placeholder="配置名"
+                size="small"
+                class="min-w-0 flex-1"
+              />
+              <ReInput
+                v-model="p.sysDictItemPropertyValue"
+                layout="modern"
+                placeholder="配置值"
+                size="small"
+                class="min-w-0 flex-1"
+              />
+              <ReButton
+                layout="square"
+                type="danger"
+                icon="Delete"
+                size="small"
+                tip="删除该配置"
+                @click="removeProperty(idx)"
+              />
             </div>
+            <p v-if="!itemForm.property?.length" class="dict-property-empty">暂无扩展配置</p>
             <el-button size="small" icon="Plus" @click="addProperty">添加配置</el-button>
           </div>
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="itemDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="itemSaving" @click="handleItemSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    </ReDialog>
   </div>
 </template>
 
 <style scoped lang="scss">
+/* ============ 页面骨架：左右分栏 ============ */
+.dict-page {
+  /* 全局 .system-page 是 column 纵向布局，本页需要横向，故这两条必须压过全局值 */
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px;
+  padding: 0;
+  width: 100%;
+  height: calc(100vh - 100px);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* ============ 左侧：字典分类 ============ */
+.dict-tree-card {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  flex-shrink: 0;
+  min-height: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dict-tree-card:focus-within {
+  border-color: var(--el-color-primary-light-5);
+}
 .dict-tree-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .dict-tree-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 600;
+  gap: 8px;
+  min-width: 0;
   font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.dict-tree-title__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.dict-tree-count {
+  flex: none;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.dict-tree-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
 }
 .dict-tree-search {
-  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
+.dict-status-filter {
+  width: 100%;
+}
+.dict-sort-lock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
 .dict-tree-body {
+  position: relative;
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 8px;
 }
-.dict-drag-handle { cursor: grab; color: var(--el-text-color-placeholder); opacity:0; transition:opacity .2s; } .dict-tree-node:hover .dict-drag-handle { opacity:1; } .dict-tree-node {
+
+/* 字典项：两行卡片（名称 / 编码），命中 44px 最小可点区域 */
+.dict-tree-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    background: var(--el-color-primary-light-9);
+  }
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
+  &.is-active {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
+  /* 禁用字典：名称降级为次级色，状态点仍是唯一可靠信号 */
+  &.is-off .dict-node-name {
+    color: var(--el-text-color-secondary);
+  }
+  &.is-active .dict-node-name {
+    color: var(--el-color-primary);
+    font-weight: 600;
+  }
+}
+/* 选中态左侧强调条 */
+.dict-node-accent {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dict-tree-node.is-active .dict-node-accent {
+  background: var(--el-color-primary);
+}
+/* 拖拽把手：默认隐藏，hover / 键盘聚焦时出现 */
+.dict-drag-handle {
+  flex: none;
+  cursor: grab;
+  color: var(--el-text-color-placeholder);
+  opacity: 0;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dict-tree-node:hover .dict-drag-handle,
+.dict-tree-node:focus-visible .dict-drag-handle {
+  opacity: 1;
+}
+/* 筛选态锁定排序，把手彻底隐藏并禁用拖拽光标 */
+.dict-tree-body.is-locked .dict-tree-node .dict-drag-handle {
+  opacity: 0;
+  cursor: not-allowed;
+}
+.dict-sort-drag .dict-drag-handle {
+  cursor: grabbing;
+}
+.dict-node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dict-tree-node:hover .dict-node-icon {
+  color: var(--el-color-primary);
+}
+.dict-tree-node.is-active .dict-node-icon {
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  color: var(--el-color-primary);
+}
+.dict-node-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dict-node-name {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dict-node-sub {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 2px;
-  &:hover {
-    background: var(--el-fill-color-light);
-  }
-  &.active {
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-  }
-  .node-id {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-    font-weight: 400;
-    margin-left: 2px;
-    font-variant-numeric: tabular-nums;
-  }
-  .node-label {
-    flex: 1;
-    font-size: 14px;
-  }
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--el-text-color-placeholder);
+}
+.dict-node-code {
+  min-width: 0;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dict-node-badge {
+  flex: none;
+  padding: 0 5px;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  line-height: 16px;
+}
+.dict-tree-node.is-active .dict-node-badge {
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  color: var(--el-color-primary);
+}
+.dict-node-id {
+  flex: none;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+/* ReTag 渲染的是 el-tag 根元素，拿不到本页 scoped 属性，只能走 :deep */
+.dict-tree-node :deep(.dict-node-status) {
+  flex: none;
+}
+/* 空态：盖在列表区上的居中浮层（列表为空时才存在） */
+.dict-tree-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: var(--el-bg-color);
+}
+
+/* ============ 右侧：字典详情 + 字典项 ============ */
+.dict-detail-card {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  overflow: auto;
 }
 .dict-detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .dict-detail-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  h3 { margin:0; font-size: 18px; }
-  p { margin:2px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+  gap: 12px;
+  min-width: 0;
+}
+.dict-detail-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.dict-detail-text {
+  min-width: 0;
+  h3 {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+  p {
+    margin: 2px 0 0;
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 .dict-detail-actions {
   display: flex;
   gap: 4px;
-  flex-shrink: 0;
+  flex: none;
 }
 .dict-detail-top {
-  padding: 16px;
+  padding: 16px 16px 0;
 }
 .dict-empty {
   padding-top: 100px;
 }
 .dict-items-section {
+  display: flex;
   flex: 1;
-  margin: 0 16px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  flex-direction: column;
+  min-height: 0;
+  margin: 16px;
   padding-top: 12px;
-  display:flex;
-  flex-direction:column;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 .dict-items-bar {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
-.dict-item-name-cell { display:inline-flex; align-items:center; gap:6px; } .dict-item-id { font-size:12px; color:var(--el-text-color-placeholder); font-weight:400; font-variant-numeric:tabular-nums; } .dict-item-name-icon { color:var(--el-color-primary); } .dict-items-bar-title {
-  font-weight:600;
-  font-size:14px;
+.dict-items-bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 字典项表格：名称 + 国际化 Key 两行 */
+.dict-item-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dict-item-name-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+}
+.dict-item-name-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dict-item-name {
+  overflow: hidden;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dict-item-i18n {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--el-text-color-placeholder);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dict-item-id {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
 }
 :deep(.el-table) {
   user-select: none;
 }
+
+/* 扩展配置行 */
+.dict-property {
+  width: 100%;
+}
+.dict-property-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+/* ReInput modern 布局的根节点自带 width:100%（0,2,0），
+   工具类压不过去，这里用三级选择器固定分组列宽 */
+.dict-property-row :deep(.dict-property-group) {
+  flex: none;
+  width: 92px;
+}
+.dict-property-empty {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 拖拽排序反馈 */
 .dict-sort-ghost {
-  opacity: 0.4;
+  opacity: 0.45;
   background: var(--el-color-primary-light-8) !important;
+  border-color: var(--el-color-primary-light-5);
 }
 .dict-sort-chosen {
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 22%, transparent);
 }
 .dict-sort-drag {
   cursor: grabbing !important;
 }
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .dict-tree-card,
+  .dict-tree-node,
+  .dict-node-accent,
+  .dict-node-icon,
+  .dict-drag-handle {
+    transition: none;
+  }
+}
 </style>
+

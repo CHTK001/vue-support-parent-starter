@@ -43,30 +43,30 @@
                     @click="handleViewDocumentation(skill.id)">
                     <div class="flex items-center gap-2.5 mb-3">
                         <PluginIcon :icon="skill.manifest.icon" :name="skill.manifest.name || skill.id" />
-                        <h3 class="font-semibold text-gray-900 dark:text-[#e8e9ed] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
+                        <h3 class="font-semibold text-gray-900 dark:text-[var(--el-text-color-primary)] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
                             {{ skill.manifest.name || skill.id }}
                         </h3>
-                        <el-tag v-if="skill.source === 'system'" size="small" type="success" effect="light">{{ t('plugins.skills.sourceBuiltin') }}</el-tag>
-                        <el-tag v-else-if="skill.source === 'agents'" size="small" type="warning" effect="light">{{ t('plugins.skills.sourceShared') }}</el-tag>
-                        <el-tag v-if="skill.manifest.version" type="info" size="small" effect="plain">v{{ skill.manifest.version }}</el-tag>
+                        <el-tag v-if="skill.source === 'system'" type="success" effect="light">{{ t('plugins.skills.sourceBuiltin') }}</el-tag>
+                        <el-tag v-else-if="skill.source === 'agents'" type="warning" effect="light">{{ t('plugins.skills.sourceShared') }}</el-tag>
+                        <el-tag v-if="skill.manifest.version" type="info" effect="plain">v{{ skill.manifest.version }}</el-tag>
                     </div>
 
-                    <p class="text-gray-400 dark:text-[#6b6d75] line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
+                    <p class="text-gray-400 dark:text-[var(--el-text-color-secondary)] line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
                     {{ skill.manifest.description || t('plugins.skills.noDescription') }}
                     </p>
 
                     <div class="flex items-center justify-end gap-2 mt-3">
-                        <el-button link size="small" @click.stop="handleReloadSkill(skill.id)"
+                        <el-button link @click.stop="handleReloadSkill(skill.id)"
                             :loading="reloadingSkills.has(skill.id)">
                             {{ t('plugins.skills.reload') }}
                         </el-button>
-                        <el-button v-if="skill.source !== 'system' && skill.source !== 'agents'" link size="small" type="danger"
+                        <el-button v-if="skill.source !== 'system' && skill.source !== 'agents'" link type="danger"
                             @click.stop="handleUninstallSkill(skill.id)"
                             :loading="uninstallingSkills.has(skill.id)">
                             {{ t('plugins.skills.uninstall') }}
                         </el-button>
                         <LTooltip v-else-if="skill.source === 'agents'" :content="t('plugins.skills.sharedTooltip')" placement="top">
-                            <el-button link size="small" type="danger" disabled>
+                            <el-button link type="danger" disabled>
                                 {{ t('plugins.skills.uninstall') }}
                             </el-button>
                         </LTooltip>
@@ -75,7 +75,7 @@
                             :loading="updatingSkills.has(skill.id)"
                             @update:model-value="(val: string | number | boolean) => handleToggleSkill(skill.id, !!val)"
                             @click.stop
-                            size="small"
+
                             inline-prompt
                             :active-text="t('common.enable')"
                             :inactive-text="t('common.disable')"
@@ -91,10 +91,10 @@
                     <el-icon size="64" class="mb-4 opacity-50 text-gray-400">
                         <InboxOutlined />
                     </el-icon>
-                    <div class="text-xl font-medium text-gray-600 dark:text-[#e8e9ed] mb-2">
+                    <div class="text-xl font-medium text-gray-600 dark:text-[var(--el-text-color-primary)] mb-2">
                         {{ t('plugins.skills.empty') }}
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-[#8b8d95] mb-4">
+                    <div class="text-sm text-gray-500 dark:text-[var(--el-text-color-secondary)] mb-4">
                         {{ t('plugins.skills.emptyHint') }}
                     </div>
                     <el-button type="primary" @click="handleShowInstallDialog">
@@ -115,7 +115,7 @@
                 <el-icon size="32" class="mb-2 opacity-50 text-gray-400">
                     <InboxOutlined />
                 </el-icon>
-                <div class="text-sm text-gray-500 dark:text-[#8b8d95]">
+                <div class="text-sm text-gray-500 dark:text-[var(--el-text-color-secondary)]">
                     {{ marketError }}
                 </div>
             </div>
@@ -169,7 +169,7 @@
                                         {{ skill.description || t('plugins.skills.noDescription') }}
                                     </div>
                                 </div>
-                                <el-button size="small" class="market-cell-btn" plain
+                                <el-button class="market-cell-btn" plain
                                     :type="skill.localStatus === 'installed' ? 'success'
                                         : skill.localStatus === 'updatable' ? 'warning' : ''"
                                     :disabled="skill.localStatus === 'installed'"
@@ -225,7 +225,7 @@
                                             {{ skill.description || t('plugins.skills.noDescription') }}
                                         </div>
                                     </div>
-                                    <el-button size="small" class="market-cell-btn" plain
+                                    <el-button class="market-cell-btn" plain
                                         :type="skill.localStatus === 'installed' ? 'success'
                                             : skill.localStatus === 'updatable' ? 'warning' : ''"
                                         :disabled="skill.localStatus === 'installed'"
@@ -300,7 +300,7 @@
 
                 <!-- 上传 ZIP -->
                 <div v-if="installMode === 'upload'">
-                    <div class="text-sm text-gray-600 dark:text-[#8b8d95] mb-4">
+                    <div class="text-sm text-gray-600 dark:text-[var(--el-text-color-secondary)] mb-4">
                         {{ t('plugins.skills.installDesc') }}
                     </div>
 
@@ -339,7 +339,7 @@
 
                 <!-- 检索安装（同时检索本地与在线，匹配结果直接显示） -->
                 <div v-else class="install-search">
-                    <el-input v-model="searchKeyword" class="mb-3" size="small" clearable
+                    <el-input v-model="searchKeyword" class="mb-3" clearable
                         :placeholder="t('plugins.skills.searchPlaceholder')" @keyup.enter="handleSearch"
                         @clear="handleSearch">
                         <template #append>
@@ -373,7 +373,7 @@
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2">
                                                 <span class="text-sm font-medium truncate">{{ item.name }}</span>
-                                                <el-tag v-if="item.installed" size="small" type="success" effect="plain">
+                                                <el-tag v-if="item.installed" type="success" effect="plain">
                                                     {{ t('plugins.skills.marketInstalled') }}
                                                 </el-tag>
                                             </div>
@@ -381,10 +381,10 @@
                                                 {{ item.description || t('plugins.skills.noDescription') }}
                                             </p>
                                             <div class="flex flex-wrap gap-1 mt-1">
-                                                <el-tag v-for="src in item.sources" :key="src" size="small" effect="light">{{ src }}</el-tag>
+                                                <el-tag v-for="src in item.sources" :key="src" effect="light">{{ src }}</el-tag>
                                             </div>
                                         </div>
-                                        <el-button size="small" type="primary" plain
+                                        <el-button type="primary" plain
                                             :loading="installingCatalog === item.name"
                                             @click="handleInstallLocal(item)">
                                             {{ t('plugins.skills.install') }}
@@ -406,7 +406,7 @@
                                                 {{ skill.description || t('plugins.skills.noDescription') }}
                                             </div>
                                         </div>
-                                        <el-button size="small" class="market-cell-btn" plain
+                                        <el-button class="market-cell-btn" plain
                                             :type="skill.localStatus === 'installed' ? 'success'
                                                 : skill.localStatus === 'updatable' ? 'warning' : 'primary'"
                                             :disabled="skill.localStatus === 'installed'"
@@ -436,7 +436,7 @@
                     <el-checkbox v-model="forceOverwrite">
                         <span class="text-sm">{{ t('plugins.skills.forceOverwrite') }}</span>
                     </el-checkbox>
-                    <div class="text-xs text-gray-500 dark:text-[#8b8d95] mt-1 ml-6">
+                    <div class="text-xs text-gray-500 dark:text-[var(--el-text-color-secondary)] mt-1 ml-6">
                         {{ t('plugins.skills.forceOverwriteHint') }}
                     </div>
                 </div>
@@ -454,14 +454,14 @@
         <!-- 市场技能安装对话框 -->
         <LDialog v-model="showMarketInstallDialog" :title="t('plugins.skills.marketInstallTitle')" width="420px" align-center destroy-on-close>
             <div v-if="selectedMarketSkill" class="py-2">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-[#e8e9ed] mb-2">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-[var(--el-text-color-primary)] mb-2">
                     {{ selectedMarketSkill.name }}
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-[#8b8d95] mb-3">
+                <p class="text-sm text-gray-600 dark:text-[var(--el-text-color-secondary)] mb-3">
                     {{ selectedMarketSkill.description || t('plugins.skills.noDescription') }}
                 </p>
                 <div v-if="selectedMarketSkill.labels && selectedMarketSkill.labels.length > 0" class="flex flex-wrap gap-1.5 mb-4">
-                    <el-tag v-for="label in selectedMarketSkill.labels" :key="label" size="small" effect="light">
+                    <el-tag v-for="label in selectedMarketSkill.labels" :key="label" effect="light">
                         {{ label }}
                     </el-tag>
                 </div>
@@ -1398,6 +1398,21 @@ onMounted(async () => {
 <style scoped>
 @import "@/assets/markdown.css";
 
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 结构色由手写 hex + `.dark xxx {}` 双份覆盖收敛到 refactor.css 已映射好的
+      --el-*（--el-fill-color-light / --el-border-color-lighter /
+      --el-text-color-* / --el-bg-color），`.dark` 覆盖随之删除 ——
+      它们既重复又漏（9 套主题换肤时完全不动）。
+   2. 例外：`pre.hljs` / `code` 的底色**刻意保留为固定深/浅两套**。markdown.css
+      与 highlight.js 的 foundation 主题是按「编辑器配色」设计的深浅色板，
+      底色一旦跟随页面主题，代码高亮里的对比度就不再可控（浅底 + 浅色 token）。
+      这里只把它交给 markdown.css 的既有规则，不自行换色。
+   3. 卡片 / 容器不加投影。.market-cell:hover 与 .install-mode-group 选中项
+      的投影属 koi 允许的第二类（悬浮反馈 / 抬起），只换色源。
+   4. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
+
 /* 市场安装弹窗中按钮垂直排列，取消 Element Plus 默认水平按钮间距 */
 .market-install-actions :deep(.el-button + .el-button) {
     margin-left: 0;
@@ -1407,13 +1422,10 @@ onMounted(async () => {
 /* 代码块容器 */
 .markdown-doc :deep(.custom-code-block) {
     margin-bottom: 1em;
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     overflow: hidden;
-    border: 1px solid #e3e3e7;
-}
-
-.dark .markdown-doc :deep(.custom-code-block) {
-    border-color: #333;
+    border: 1px solid var(--el-border-color-lighter);
 }
 
 /* 代码块头部 */
@@ -1422,39 +1434,28 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     padding: 7px 12px;
-    background: #f3f3f5;
-    color: #222;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
     font-size: 0.8em;
-    border-bottom: 1px solid #e3e3e7;
-}
-
-.dark .markdown-doc :deep(.code-header) {
-    background: #2a2c30;
-    color: #e8e9ed;
-    border-color: #333;
+    border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .markdown-doc :deep(.code-language) {
     font-weight: 600;
     text-transform: uppercase;
-    color: #666;
+    color: var(--el-text-color-secondary);
 }
 
-.dark .markdown-doc :deep(.code-language) {
-    color: #8b8d95;
-}
-
-/* 代码块内容 */
+/* 代码块内容
+   highlight.js 的 foundation 主题自带一套深浅色板（含 .hljs 的背景），
+   这里不再用 !important 覆写底色，改回 transparent 交给它渲染 ——
+   强行塞页面主题底色会让语法 token 的对比度失控。 */
 .markdown-doc :deep(pre.hljs) {
     margin: 0;
     border-radius: 0;
-    background: #fafafb !important;
+    background: transparent !important;
     padding: 16px;
     overflow-x: auto;
-}
-
-.dark .markdown-doc :deep(pre.hljs) {
-    background: #1a1c20 !important;
 }
 
 .markdown-doc :deep(code.hljs) {
@@ -1465,18 +1466,22 @@ onMounted(async () => {
     overflow-x: auto;
 }
 
-/* 行内代码 */
+/* 行内代码：#e83e8c（亮）/ #ff7b72（暗）是 GitHub 风格的代码强调色，
+   属「代码」这一固定语义而非页面语义（同 highlight.js 的 token 配色），
+   故保留这一对色值 —— 且**必须成对保留**：单独拿亮色值放到深色底上
+   对比度会掉到 3.4:1，代码几乎读不出来。
+   底色 / 圆角则改走令牌。 */
 .markdown-doc :deep(:not(pre) > code) {
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 0.875em;
-    background-color: #f0f0f0;
+    background-color: var(--el-fill-color-light);
     padding: 2px 6px;
-    border-radius: 4px;
+    /* 原值 4px → xs 档 */
+    border-radius: var(--el-radius-xs, 4px);
     color: #e83e8c;
 }
 
 .dark .markdown-doc :deep(:not(pre) > code) {
-    background-color: #2a2c30;
     color: #ff7b72;
 }
 
@@ -1505,15 +1510,10 @@ onMounted(async () => {
 }
 
 .markdown-doc :deep(blockquote) {
-    border-left: 4px solid #ddd;
+    border-left: 4px solid var(--el-border-color);
     padding-left: 1em;
-    color: #666;
+    color: var(--el-text-color-secondary);
     margin-bottom: 1em;
-}
-
-.dark .markdown-doc :deep(blockquote) {
-    border-left-color: #444;
-    color: #999;
 }
 
 .markdown-doc :deep(table) {
@@ -1524,34 +1524,22 @@ onMounted(async () => {
 
 .markdown-doc :deep(th),
 .markdown-doc :deep(td) {
-    border: 1px solid #ddd;
+    border: 1px solid var(--el-border-color-lighter);
     padding: 8px 12px;
     text-align: left;
 }
 
-.dark .markdown-doc :deep(th),
-.dark .markdown-doc :deep(td) {
-    border-color: #444;
-}
-
 .markdown-doc :deep(th) {
-    background-color: #f6f8fa;
+    background-color: var(--el-fill-color-light);
     font-weight: 600;
-}
-
-.dark .markdown-doc :deep(th) {
-    background-color: #2a2c30;
 }
 
 /* 元信息表格样式 */
 .skill-meta-table {
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     overflow: hidden;
-    border: 1px solid #e3e3e7;
-}
-
-.dark .skill-meta-table {
-    border-color: #333;
+    border: 1px solid var(--el-border-color-lighter);
 }
 
 .skill-meta-table table {
@@ -1562,11 +1550,7 @@ onMounted(async () => {
 
 .skill-meta-table td {
     padding: 10px 14px;
-    border-bottom: 1px solid #e3e3e7;
-}
-
-.dark .skill-meta-table td {
-    border-color: #333;
+    border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .skill-meta-table tr:last-child td {
@@ -1575,36 +1559,23 @@ onMounted(async () => {
 
 .skill-meta-table .meta-key {
     width: 100px;
-    background-color: #f6f8fa;
+    background-color: var(--el-fill-color-light);
     font-weight: 600;
-    color: #444;
+    color: var(--el-text-color-regular);
     white-space: nowrap;
 }
 
-.dark .skill-meta-table .meta-key {
-    background-color: #2a2c30;
-    color: #b0b2b8;
-}
-
 .skill-meta-table .meta-value {
-    color: #333;
+    color: var(--el-text-color-primary);
     word-break: break-word;
-}
-
-.dark .skill-meta-table .meta-value {
-    color: #e8e9ed;
 }
 
 /* All tags: flat gray style, no colored borders */
 .skills-page :deep(.el-tag) {
-    background-color: #f0f0f2;
+    background-color: var(--el-fill-color-light);
     border: none;
-    color: #6b6d75;
+    color: var(--el-text-color-secondary);
     font-size: calc(var(--size-text-base) - 3px);
-}
-html.dark .skills-page :deep(.el-tag) {
-    background-color: #2a2a2e;
-    color: #8b8d95;
 }
 
 /* ===== 安装弹窗：模式与检索结果 ===== */
@@ -1612,7 +1583,8 @@ html.dark .skills-page :deep(.el-tag) {
     width: 100%;
     display: flex;
     padding: 3px;
-    border-radius: 11px;
+    /* 原值 11px：不属六档，11 距 sm(6px)/md(8px)/lg(12px) 中 lg 更近（差 1px） */
+    border-radius: var(--el-radius-lg, 12px);
     background: var(--el-fill-color-light);
 }
 .install-mode-group :deep(.el-radio-button) {
@@ -1623,15 +1595,20 @@ html.dark .skills-page :deep(.el-tag) {
     border: none;
     background: transparent;
     box-shadow: none !important;
-    border-radius: 9px !important;
+    /* 原值 9px：不属六档，9 距 sm(6px)/md(8px) 中 md 更近（差 1px） */
+    border-radius: var(--el-radius-md, 8px) !important;
     padding: 8px 0;
     font-weight: 600;
-    transition: background 0.18s ease, color 0.18s ease;
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        color var(--el-transition-duration-fast, 0.2s) ease;
 }
+/* 选中项从凹槽里「抬起」，投影在这里是功能必需的（不是卡片投影）：
+   去掉就分不清选中的是哪个模式 */
 .install-mode-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
     background: var(--el-bg-color);
     color: var(--el-color-primary);
-    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
 }
 
 .catalog-results {
@@ -1658,11 +1635,14 @@ html.dark .skills-page :deep(.el-tag) {
 /* 上传拖拽区 */
 .upload-demo :deep(.el-upload-dragger) {
     width: 100%;
-    border-radius: 12px;
+    /* 原值 12px → lg 档 */
+    border-radius: var(--el-radius-lg, 12px);
     border: 1.5px dashed var(--el-border-color);
     background: var(--el-bg-color);
     padding: 26px 20px;
-    transition: border-color 0.2s ease, background 0.2s ease;
+    transition:
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .upload-demo :deep(.el-upload-dragger:hover),
 .upload-demo :deep(.el-upload-dragger.is-dragover) {
@@ -1691,14 +1671,17 @@ html.dark .skills-page :deep(.el-tag) {
     align-items: center;
     gap: 12px;
     padding: 10px 12px;
-    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-    border-radius: 11px;
-    background: var(--color-surface, var(--el-bg-color));
-    transition: border-color 0.18s ease, background 0.18s ease;
+    border: 1px solid var(--el-border-color-lighter);
+    /* 原值 11px：不属六档，11 距 sm(6px)/md(8px)/lg(12px) 中 lg 更近（差 1px） */
+    border-radius: var(--el-radius-lg, 12px);
+    background: var(--el-bg-color);
+    transition:
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .catalog-item:hover {
     border-color: var(--el-color-primary-light-5);
-    background: var(--color-surface-hover, var(--el-fill-color-light));
+    background: var(--el-fill-color-light);
 }
 
 /* 在线结果：两列卡片网格 */
@@ -1712,14 +1695,17 @@ html.dark .skills-page :deep(.el-tag) {
     align-items: flex-start;
     gap: 10px;
     padding: 10px;
-    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-    border-radius: 11px;
-    background: var(--color-surface, var(--el-bg-color));
-    transition: border-color 0.18s ease, background 0.18s ease;
+    border: 1px solid var(--el-border-color-lighter);
+    /* 原值 11px：不属六档，11 距 sm(6px)/md(8px)/lg(12px) 中 lg 更近（差 1px） */
+    border-radius: var(--el-radius-lg, 12px);
+    background: var(--el-bg-color);
+    transition:
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .catalog-card:hover {
     border-color: var(--el-color-primary-light-5);
-    background: var(--color-surface-hover, var(--el-fill-color-light));
+    background: var(--el-fill-color-light);
 }
 
 /* ===== 主页面技能市场（参考市场版式） ===== */
@@ -1761,7 +1747,7 @@ html.dark .skills-page :deep(.el-tag) {
     overflow-x: hidden;
     white-space: nowrap;
     padding: 2px 2px 10px;
-    border-bottom: 1px solid var(--color-surface-border, var(--el-border-color));
+    border-bottom: 1px solid var(--el-border-color);
     margin-bottom: 14px;
 }
 .market-tab {
@@ -1770,8 +1756,14 @@ html.dark .skills-page :deep(.el-tag) {
     cursor: pointer;
     padding-bottom: 6px;
     border-bottom: 2px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
+    transition:
+        color var(--el-transition-duration-fast, 0.2s) ease,
+        border-color var(--el-transition-duration-fast, 0.2s) ease;
     flex: none;
+    outline: none;
+}
+.market-tab:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .market-tab:hover {
     color: var(--el-text-color-primary);
@@ -1791,6 +1783,12 @@ html.dark .skills-page :deep(.el-tag) {
     margin-bottom: 10px;
     cursor: pointer;
     user-select: none;
+    outline: none;
+    border-radius: var(--el-radius-xs, 4px);
+    transition: color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.market-group-head:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .market-group-title {
     font-size: 13px;
@@ -1800,7 +1798,7 @@ html.dark .skills-page :deep(.el-tag) {
     color: var(--el-text-color-secondary);
     font-size: 16px;
     line-height: 1;
-    transition: transform 0.2s;
+    transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .market-group-arrow.collapsed {
     transform: rotate(90deg);
@@ -1816,15 +1814,22 @@ html.dark .skills-page :deep(.el-tag) {
     align-items: stretch;
     gap: 9px;
     padding: 14px;
-    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-    border-radius: var(--mp-radius-lg, 14px);
-    background: var(--color-surface, var(--el-bg-color));
+    border: 1px solid var(--el-border-color-lighter);
+    /* 原值 var(--mp-radius-lg, 14px) —— --mp-radius-lg 只在未被引入的
+       modern-polish.css 里定义，故此前一直取兜底 14px；14 距 lg(12px)/xl(16px)
+       各 2px，技能卡片取 lg 档（与 ReCard 同档） */
+    border-radius: var(--el-radius-lg, 12px);
+    background: var(--el-bg-color);
     min-width: 0;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
+/* hover 浮起：koi 允许的第二类投影。原值写死 rgba(16,24,40,.28)（纯黑投影，
+   深色模式下会糊成脏块），改为从正文色派生 */
 .market-cell:hover {
     border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+    box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--el-text-color-primary) 28%, transparent);
 }
 .market-cell-icon {
     flex: none;
@@ -1875,6 +1880,10 @@ html.dark .skills-page :deep(.el-tag) {
 }
 .market-cell--clickable {
     cursor: pointer;
+    outline: none;
+}
+.market-cell--clickable:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 /* ───── 搜索无结果空态 ───── */
@@ -1909,7 +1918,8 @@ html.dark .skills-page :deep(.el-tag) {
 /* ───── 骨架屏 ───── */
 .skel {
     flex: none;
-    border-radius: 6px;
+    /* 原值 6px → sm 档 */
+    border-radius: var(--el-radius-sm, 6px);
     background: linear-gradient(90deg,
         var(--el-fill-color) 25%,
         var(--el-fill-color-light) 37%,
@@ -1926,7 +1936,7 @@ html.dark .skills-page :deep(.el-tag) {
     align-items: center;
     gap: 16px;
     padding: 2px 2px 10px;
-    border-bottom: 1px solid var(--color-surface-border, var(--el-border-color));
+    border-bottom: 1px solid var(--el-border-color);
     margin-bottom: 14px;
 }
 .skel--tab { width: 56px; max-width: 12%; height: 15px; }
@@ -1942,18 +1952,21 @@ html.dark .skills-page :deep(.el-tag) {
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border: 1px solid var(--color-surface-border, var(--el-border-color));
-    border-radius: 10px;
-    background: var(--color-surface, var(--el-bg-color));
+    border: 1px solid var(--el-border-color);
+    /* 原值 10px：不属六档，10 到 md(8px) 与 lg(12px) 都是 2px，取 lg 档
+       （骨架屏格子与真实 .catalog-card 的 11px→lg 档保持同档，
+         否则「加载中 → 加载完」时格子圆角会跳一下） */
+    border-radius: var(--el-radius-lg, 12px);
+    background: var(--el-bg-color);
 }
-.skel--circle { width: 34px; height: 34px; border-radius: 50%; }
+.skel--circle { width: 34px; height: 34px; border-radius: var(--el-radius-full, 9999px); }
 .market-skeleton__lines { flex: 1; min-width: 0; }
 .skel--title { height: 12px; width: 62%; }
 .skel--desc { height: 10px; width: 92%; margin-top: 7px; }
 .skel--btn { width: 52px; height: 26px; }
-@media (prefers-reduced-motion: reduce) {
-    .skel { animation: none; }
-}
+/* 骨架屏的微光扫过是「正在加载」的唯一视觉反馈，关掉后必须补静态态：
+   下方 reduced-motion 分支把渐变固定在中间档（不再是循环动画），
+   形状与明暗关系不变，读者仍能看出「这是占位块」 */
 
 /* ───── 技能详情弹窗 ───── */
 .detail-header-icon {
@@ -1980,10 +1993,12 @@ html.dark .skills-page :deep(.el-tag) {
 }
 .detail-content-card {
     margin-top: 14px;
-    border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-    border-radius: var(--size-surface-radius, 10px);
+    border: 1px solid var(--el-border-color-lighter);
+    /* 原值 var(--size-surface-radius, 10px) —— 该令牌在 refactor.css 里 = 20px，
+       20px 超六档上限，取最近的 xl 档（16px） */
+    border-radius: var(--el-radius-xl, 16px);
     padding: 14px 16px;
-    background: var(--color-surface, var(--el-fill-color-blank));
+    background: var(--el-fill-color-blank);
     max-height: 46vh;
     overflow-y: auto;
 }
@@ -1994,7 +2009,7 @@ html.dark .skills-page :deep(.el-tag) {
 .detail-truncated {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+    border-top: 1px solid var(--el-border-color-lighter);
     font-size: 12.5px;
     color: var(--el-text-color-secondary);
 }
@@ -2008,9 +2023,35 @@ html.dark .skills-page :deep(.el-tag) {
     color: var(--el-color-primary);
     cursor: pointer;
     margin: 0 2px;
+    outline: none;
+    border-radius: var(--el-radius-xs, 4px);
+}
+.market-link:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .market-link:hover {
     text-decoration: underline;
+}
+
+/* 尊重系统「减少动态效果」偏好。
+   .skel 是「技能市场加载中」的唯一视觉反馈，故关掉动画的同时把渐变
+   固定在中间档（background-position 停在 50%），占位块仍可见；
+   其余过渡一律关掉 —— 它们都只影响观感，不承载任何信息。 */
+@media (prefers-reduced-motion: reduce) {
+    .install-mode-group :deep(.el-radio-button__inner),
+    .upload-demo :deep(.el-upload-dragger),
+    .catalog-item,
+    .catalog-card,
+    .market-tab,
+    .market-group-head,
+    .market-group-arrow,
+    .market-cell {
+        transition: none;
+    }
+    .skel {
+        animation: none;
+        background-position: 50% 50%;
+    }
 }
 </style>
 
@@ -2029,14 +2070,27 @@ html.dark .skills-page :deep(.el-tag) {
     padding: 8px 10px;
     border: none;
     background: transparent;
-    border-radius: 8px;
+    /* 原值 8px → md 档 */
+    border-radius: var(--el-radius-md, 8px);
     font-size: 13px;
     color: var(--el-text-color-regular);
     cursor: pointer;
     text-align: left;
     width: 100%;
+    outline: none;
+    transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.skill-add-popover .add-menu__item:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .skill-add-popover .add-menu__item:hover {
     background: var(--el-fill-color-light);
+}
+
+/* 尊重系统「减少动态效果」偏好（非 scoped 块，popover teleport 到 body） */
+@media (prefers-reduced-motion: reduce) {
+    .skill-add-popover .add-menu__item {
+        transition: none;
+    }
 }
 </style>

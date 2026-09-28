@@ -20,8 +20,8 @@
             </div>
           </div>
           <div class="conn-card-ops">
-            <el-button text size="small" @click="editConn(conn)">{{ t('common.edit') }}</el-button>
-            <el-button text size="small" type="danger" @click="deleteConn(conn.id)">{{ t('common.delete') }}</el-button>
+            <el-button text @click="editConn(conn)">{{ t('common.edit') }}</el-button>
+            <el-button text type="danger" @click="deleteConn(conn.id)">{{ t('common.delete') }}</el-button>
           </div>
         </div>
         <div class="conn-card-line">{{ conn.config.username }}@{{ conn.config.host }}:{{ conn.config.port || 22 }}</div>
@@ -159,8 +159,8 @@
               <p class="pane-sub">{{ t('settings.connection.browseDesc') }}</p>
             </div>
             <div class="flex gap-2 shrink-0">
-              <el-input v-model="browserPath" placeholder="/" size="small" @keyup.enter="navigateBrowser" />
-              <el-button size="small" :loading="browserLoading" @click="navigateBrowser">{{ t('settings.connection.goTo') }}</el-button>
+              <el-input v-model="browserPath" placeholder="/" @keyup.enter="navigateBrowser" />
+              <el-button :loading="browserLoading" @click="navigateBrowser">{{ t('settings.connection.goTo') }}</el-button>
             </div>
             <div class="fb">
               <div class="fb-up" :class="browserPath === '/' ? 'is-disabled' : ''" @click="goUp">
@@ -451,6 +451,17 @@ async function deleteConn(id: string) {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 颜色一律走 --el-*。原文件混用了 --color-surface* / --el-* 两层，
+      且 --color-surface* 的第一层定义在未被引入的 style.css 里（一直在吃
+      内层兜底）。统一收敛到 refactor.css 已经映射好的 --el-*。
+   2. 卡片不加投影；.conn-card:hover 的投影属 koi 允许的第二类（悬浮反馈），
+      只把写死 rgba(0,0,0,.07) 换成从正文色派生的色相。
+   3. 终端面板是「固定深色」的工具窗口（模拟终端），刻意保持深色，
+      它的 #14161a / #cbd5e1 属于功能性固定配色，不参与主题换肤。
+   4. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
 :deep(.conn-dialog .l-dialog__body) { padding: 0; }
 
 /* ===== 顶部 ===== */
@@ -464,19 +475,25 @@ async function deleteConn(id: string) {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 .conn-card {
-  padding: 14px; border-radius: 14px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  background: var(--color-surface, var(--el-bg-color));
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  /* 原值 14px：不属六档，14 距 lg(12px) 与 xl(16px) 各 2px，
+     取 lg 档（连接卡片是页面内网格卡片，与 ReCard 同档） */
+  padding: 14px; border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  transition: box-shadow var(--el-transition-duration-fast, 0.2s) ease, border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
+/* hover 浮起：koi 允许的第二类投影。原值 0 6px 20px rgba(0,0,0,.07)
+   是纯黑投影（深色模式下会变成脏边），改为从正文色派生 */
 .conn-card:hover {
   border-color: var(--el-border-color);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
 }
 .conn-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .conn-card-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .conn-avatar {
-  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  width: 34px; height: 34px;
+  /* 原值 10px：不属六档，10 距 sm(6px) 与 md(8px) 中 md 更近（差 2px），取 md */
+  border-radius: var(--el-radius-md, 8px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 700;
   color: var(--el-color-primary); background: var(--el-color-primary-light-9);
@@ -493,18 +510,20 @@ async function deleteConn(id: string) {
 
 /* ===== 向导 ===== */
 .wiz { display: flex; }
-.wiz-steps { flex-shrink: 0; padding: 18px 20px 18px 18px; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--color-surface-border, var(--el-border-color-lighter)); }
+.wiz-steps { flex-shrink: 0; padding: 18px 20px 18px 18px; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--el-border-color-lighter); }
 .wiz-step { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--el-text-color-secondary); white-space: nowrap; }
 .wiz-dot {
-  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  width: 22px; height: 22px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700;
   background: var(--el-fill-color-light); color: var(--el-text-color-secondary);
 }
 .wiz-step.is-active { color: var(--el-text-color-primary); font-weight: 600; }
-.wiz-step.is-active .wiz-dot { background: var(--el-color-primary); color: #fff; }
+.wiz-step.is-active .wiz-dot { background: var(--el-color-primary); color: var(--el-color-white); }
 .wiz-step.is-done { color: var(--el-color-success); }
-.wiz-step.is-done .wiz-dot { background: var(--el-color-success); color: #fff; }
+.wiz-step.is-done .wiz-dot { background: var(--el-color-success); color: var(--el-color-white); }
 .wiz-step-label { line-height: 1; }
 
 .wiz-content { flex: 1; min-width: 0; padding: 20px 22px; display: flex; flex-direction: column; }
@@ -519,14 +538,18 @@ async function deleteConn(id: string) {
 
 /* 状态 */
 .state-spinner {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  width: 32px; height: 32px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px); flex-shrink: 0;
   border: 3px solid var(--el-border-color-lighter);
   border-top-color: var(--el-text-color-regular);
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .state-ok, .state-bad {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  width: 32px; height: 32px;
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .state-ok { background: var(--el-color-success-light-9); color: var(--el-color-success); }
@@ -535,9 +558,14 @@ async function deleteConn(id: string) {
 .state-line-ok { color: var(--el-color-success); font-weight: 600; }
 .state-line-bad { color: var(--el-color-danger); font-weight: 600; }
 
-/* 终端（固定深色） */
+/* 终端（固定深色）
+   刻意不参与主题换肤：这是模拟真实终端的工具窗口，必须始终是深底浅字，
+   否则「部署日志」在浅色主题下会变成一块浅底浅字、完全读不了。
+   故这里的 #14161a / #cbd5e1 / #3f444d 属于功能性固定配色，不是遗漏的令牌化项。 */
 .term {
-  flex: 1; min-height: 120px; border-radius: 10px; padding: 12px;
+  flex: 1; min-height: 120px;
+  /* 原值 10px：不属六档，取最近的 md(8px) */
+  border-radius: var(--el-radius-md, 8px); padding: 12px;
   background: #14161a; overflow: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -547,21 +575,30 @@ async function deleteConn(id: string) {
 .log-scroll { scrollbar-width: thin; scrollbar-color: #3f444d #14161a; }
 .log-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .log-scroll::-webkit-scrollbar-track { background: #14161a; }
-.log-scroll::-webkit-scrollbar-thumb { background: #3f444d; border-radius: 4px; }
+/* 原值 4px → xs 档 */
+.log-scroll::-webkit-scrollbar-thumb { background: #3f444d; border-radius: var(--el-radius-xs, 4px); }
 
 /* 文件浏览 */
-.fb { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--el-border-color-lighter); border-radius: 10px; overflow: hidden; }
+.fb { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-radius-md, 8px); overflow: hidden; }
 .fb-up {
   display: flex; align-items: center; gap: 8px; padding: 9px 12px; flex-shrink: 0;
   font-size: 12.5px; color: var(--el-text-color-regular); cursor: pointer;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
+.fb-up:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
 .fb-up:hover { background: var(--el-fill-color-light); }
 .fb-up.is-disabled { opacity: 0.4; pointer-events: none; }
 .fb-up-ico { color: var(--el-text-color-secondary); }
 .fb-list { flex: 1; min-height: 0; overflow: auto; }
 .fb-info { padding: 30px 0; text-align: center; font-size: 13px; color: var(--el-text-color-secondary); }
-.fb-entry { display: flex; align-items: center; gap: 9px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+.fb-entry {
+  display: flex; align-items: center; gap: 9px; padding: 8px 12px;
+  cursor: pointer; font-size: 13px; outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.fb-entry:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent); }
 .fb-entry:hover { background: var(--el-fill-color-light); }
 .fb-ico { font-size: 16px; flex-shrink: 0; }
 .fb-ico-dir { color: var(--el-color-warning); }
@@ -570,4 +607,20 @@ async function deleteConn(id: string) {
 .fb-file-name { color: var(--el-text-color-secondary); }
 
 .wiz-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; margin-top: auto; flex-shrink: 0; }
+
+/* 尊重系统「减少动态效果」偏好。
+   .state-spinner（测试/部署进行中）与 .term-cursor（打字光标）关掉动画后
+   都不再有任何动态反馈，但二者的状态同时由同行文字承载
+   （testing / deploying 文案 + 日志在持续追加），故不额外补静态样式。 */
+@media (prefers-reduced-motion: reduce) {
+  .conn-card,
+  .fb-up,
+  .fb-entry {
+    transition: none;
+  }
+  .state-spinner,
+  .term-cursor {
+    animation: none;
+  }
+}
 </style>

@@ -8,7 +8,7 @@
           <div class="sm-block">
             <div class="page-header">
               <h3 class="col-title">服务实例</h3>
-              <el-button type="primary" size="small" @click="showCreateDialog = true">新建服务实例</el-button>
+              <el-button type="primary" @click="showCreateDialog = true">新建服务实例</el-button>
             </div>
 
             <div class="panel-card panel-card--fill">
@@ -17,32 +17,32 @@
                 <el-table-column prop="port" label="端口" width="76" />
                 <el-table-column label="协议" min-width="150">
                   <template #default="{ row }">
-                    <el-tag v-if="row.enableGpt" size="small" style="margin-right:4px">GPT</el-tag>
-                    <el-tag v-if="row.enableCc" size="small" type="success" style="margin-right:4px">CC</el-tag>
-                    <el-tag v-if="row.enableGemini" size="small" type="warning">Gemini</el-tag>
+                    <el-tag v-if="row.enableGpt" style="margin-right:4px">GPT</el-tag>
+                    <el-tag v-if="row.enableCc" type="success" style="margin-right:4px">CC</el-tag>
+                    <el-tag v-if="row.enableGemini" type="warning">Gemini</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="logUsage" label="记录用量" min-width="96">
                   <template #default="{ row }">
-                    <el-tag :type="row.logUsage ? 'success' : 'info'" size="small">
+                    <el-tag :type="row.logUsage ? 'success' : 'info'" >
                       {{ row.logUsage ? '开启' : '关闭' }}
                     </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="状态" min-width="92">
                   <template #default="{ row }">
-                    <el-tag :type="row.running ? 'success' : 'info'" size="small">
+                    <el-tag :type="row.running ? 'success' : 'info'" >
                       {{ row.running ? '运行中' : '已停止' }}
                     </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="操作" min-width="220">
                   <template #default="{ row }">
-                    <el-button size="small" @click="toggleInstance(row)">
+                    <el-button @click="toggleInstance(row)">
                       {{ row.running ? '停止' : '启动' }}
                     </el-button>
-                    <el-button size="small" @click="goTokens(row)">令牌</el-button>
-                    <el-button size="small" type="danger" plain :disabled="row.running"
+                    <el-button @click="goTokens(row)">令牌</el-button>
+                    <el-button type="danger" plain :disabled="row.running"
                       :title="row.running ? '请先停止该服务实例，再删除' : ''"
                       @click="deleteInstance(row)">删除</el-button>
                   </template>
@@ -55,16 +55,16 @@
             <div class="logs-header">
               <h3 class="col-title">访问日志</h3>
               <div class="logs-controls">
-                <el-select v-model="logInstanceId" size="small" class="logs-select logs-select--wide" @change="loadLogs">
+                <el-select v-model="logInstanceId" class="logs-select logs-select--wide" @change="loadLogs">
                   <el-option v-for="i in instances" :key="i.id" :label="i.name + ' (' + i.port + ')'" :value="i.id" />
                 </el-select>
-                <el-button size="small" @click="loadLogs">
+                <el-button @click="loadLogs">
                   <el-icon class="mr-1"><ArrowClockwise24Regular /></el-icon>刷新
                 </el-button>
               </div>
             </div>
             <div class="panel-card panel-card--fill">
-              <el-table :data="logs" v-loading="logsLoading" size="small" stripe class="flat-table" height="100%">
+              <el-table :data="logs" v-loading="logsLoading" stripe class="flat-table" height="100%">
                 <el-table-column prop="callTime" label="时间" min-width="160" />
                 <el-table-column prop="endpoint" label="端点" min-width="170" show-overflow-tooltip />
                 <el-table-column prop="protocol" label="协议" min-width="84" />
@@ -92,19 +92,19 @@
           <div class="logs-header">
             <h3 class="col-title">运行日志（系统日志）</h3>
             <div class="logs-controls">
-              <el-select v-model="runtimeSource" size="small" class="logs-select logs-select--fixed">
+              <el-select v-model="runtimeSource" class="logs-select logs-select--fixed">
                 <el-option label="标准输出" value="out" />
                 <el-option label="标准错误" value="err" />
               </el-select>
-              <el-select v-model.number="runtimeLines" size="small" class="logs-select logs-select--fixed">
+              <el-select v-model.number="runtimeLines" class="logs-select logs-select--fixed">
                 <el-option label="最近 200 行" :value="200" />
                 <el-option label="最近 500 行" :value="500" />
                 <el-option label="最近 1000 行" :value="1000" />
               </el-select>
               <LTooltip content="自动刷新运行日志" placement="top">
-                <el-switch v-model="runtimeAutoRefresh" size="small" />
+                <el-switch v-model="runtimeAutoRefresh" />
               </LTooltip>
-              <el-button size="small" @click="loadRuntimeLogs">
+              <el-button @click="loadRuntimeLogs">
                 <el-icon class="mr-1"><ArrowClockwise24Regular /></el-icon>刷新
               </el-button>
             </div>
@@ -379,11 +379,12 @@ onUnmounted(() => {
 }
 /* 表格容器窄屏可横向滚动，避免列被挤扁 */
 .panel-card {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 14px 16px 12px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  /* 表格容器是页面区块，不加投影 */
   max-width: 100%;
   overflow-x: auto;
 }
@@ -520,13 +521,13 @@ onUnmounted(() => {
   direction: rtl;
   text-align: left;
 }
-/* 运行日志：与其它卡片同一套表面语言（surface 底 + 边框 + 18px 圆角 + 阴影），
+/* 运行日志：与其它卡片同一套表面语言（surface 底 + 边框 + xl 圆角），
    内部再嵌一层 console 底色，形成「卡片 + 代码区」两层，与左栏表格卡片视觉一致 */
 .runtime-console {
-  background: var(--color-surface, var(--el-bg-color));
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 18px;
-  box-shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.22);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 18px → xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   max-height: 440px;
   overflow-y: auto;
   padding: 10px 12px;
@@ -553,11 +554,12 @@ onUnmounted(() => {
 .runtime-line--default .runtime-line__raw { color: var(--el-text-color-regular); }
 .runtime-console::-webkit-scrollbar { width: 8px; }
 .runtime-console::-webkit-scrollbar-thumb {
-  background: var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: 4px;
+  background: var(--el-border-color-lighter);
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
 }
 .runtime-console::-webkit-scrollbar-thumb:hover {
-  background: var(--color-surface-hover, var(--el-border-color));
+  background: var(--el-border-color);
 }
 .runtime-console::-webkit-scrollbar-track { background: transparent; }
 </style>

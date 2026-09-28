@@ -6,6 +6,52 @@
       :class="[styleClass, { 'drag-over': isDragOver }, { 'bg-(--color-input-bg)': !backdrop }, { 'bg-(--color-input-bg)/60 backdrop-blur-xl ': backdrop }]"
       @dragover.prevent @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop">
+      <!-- 风格选择面板：输入 @ 触发。
+           用 fixed + 视口居中，而不是贴光标的 popper：
+           风格项是带缩略图的宫格，贴光标会被输入框边缘裁掉、也挡住正在输入的句子。
+           teleported 到 body，避免被 .input-area 的 overflow 裁剪。 -->
+      <Teleport to="body">
+        <div
+          v-if="stylePanelOpen && allowStylePanel"
+          class="gsp-mask"
+          @mousedown.self="stylePanelOpen = false"
+        >
+          <div class="gsp-panel" role="dialog" aria-label="选择风格">
+            <p class="gsp-title">选择风格<span class="gsp-hint">风格会拼在提示词最前面</span></p>
+            <div class="gsp-grid">
+              <button
+                v-for="item in styleItems"
+                :key="item.key || 'none'"
+                type="button"
+                class="gsp-item"
+                :class="{ 'is-active': styleValue === item.key }"
+                :aria-pressed="styleValue === item.key"
+                @click="onPickStyle(item)"
+              >
+                <span class="gsp-thumb">
+                  <img
+                    v-if="item.thumb"
+                    :src="item.thumb"
+                    :alt="item.name"
+                    loading="lazy"
+                  />
+                  <span v-else class="gsp-fallback">{{ item.name }}</span>
+                </span>
+                <span class="gsp-name">{{ item.name }}</span>
+                <span v-if="item.prompt" class="gsp-desc">{{ item.prompt }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- 参考图（图生图）：由外部注入，挂在输入框内顶部，
+           与下面的文件列表 / 知识库标签同层；不能放到输入框外面，
+           否则缩略图会掉到输入条下方，和输入区脱节。
+           这里不加包裹层：插槽内容为空时不能留下空白间距（v-if 对空插槽恒真），
+           上下间距由注入方自己的 margin 承担 -->
+      <slot name="reference"></slot>
+
       <!-- 文件列表显示区域 -->
       <div class="file-list flex flex-wrap gap-2 mb-3" v-if="uploadFiles.length > 0">
         <FileItem v-for="file in uploadFiles" :key="file.id" :name="file.displayName" :type="file.fileType"
@@ -67,8 +113,29 @@
         <div class="tools left-tools flex gap-0.5 items-center">
           <!-- 生图参数芯片：由外部注入（模型 / 分辨率 / 比例 / 张数 / 风格） -->
           <slot name="buttons"></slot>
-          <!-- 参考图入口 -->
-          <button class="tool-btn" aria-label="添加参考图" title="添加参考图" @click.stop="$emit('pick-reference')">
+          <!-- 提示词优化：把当前输入交给大模型扩写成完整提示词，结果由外部回填 -->
+          <button
+            v-if="allowOptimize"
+            class="tool-btn"
+            :class="{ 'is-busy': optimizing }"
+            :disabled="props.readonly || optimizing || !inputContent.trim()"
+            aria-label="优化提示词"
+            :title="optimizing ? '正在优化…' : '优化提示词'"
+            @click.stop="$emit('optimize')"
+          >
+            <el-icon v-if="!optimizing" size="16">
+              <Wand20Regular />
+            </el-icon>
+            <span v-else class="tool-spinner" aria-hidden="true"></span>
+          </button>
+          <!-- 参考图入口：模型不支持图生图时隐藏（能力见 sys_ai_provider_model_capabilities） -->
+          <button
+            v-if="allowReference"
+            class="tool-btn"
+            aria-label="添加参考图"
+            title="添加参考图"
+            @click.stop="$emit('pick-reference')"
+          >
             <el-icon size="16">
               <Image24Regular />
             </el-icon>
@@ -267,6 +334,23 @@ const props = defineProps({
   // 生图提交中：禁用发送键（会话里对应的是流式状态）
   busy: { type: Boolean, default: false },
   placeholder: { type: String, default: '描述你所想象的场景...' },
+  // 当前模型是否支持参考图：不支持时隐藏上传入口，避免选了却用不上
+  allowReference: { type: Boolean, default: true },
+  // 是否展示「优化提示词」入口：默认关，由调用方按页面需要显式打开
+  allowOptimize: { type: Boolean, default: false },
+  // 提示词优化进行中：按钮转圈并禁用，防重复点击
+  optimizing: { type: Boolean, default: false },
+  // @ 风格面板：是否可用（图像模型才有风格）
+  allowStylePanel: { type: Boolean, default: false },
+  // 风格面板是否打开：由输入 @ 触发
+  stylePanelOpen: { type: Boolean, default: false },
+  // @ 面板的风格项：key / name / prompt / thumb 由父级提供（缩略图与描述都在那边维护）
+  styleItems: {
+    type: Array as PropType<ReadonlyArray<StyleItem>>,
+    default: () => []
+  },
+  // 当前选中的风格 key，用于面板内高亮
+  styleValue: { type: String, default: '' },
   buttons: { type: Object as PropType<Record<string, boolean>>, default: () => ({}) },
   class: { type: String, default: '' },
   sessionId: { type: [String, Number], default: null },
@@ -546,9 +630,22 @@ const emit = defineEmits([
   'files-change',
   'focus', 'blur',
   'update:modelId', 'config-change', 'update:knowledgeBaseIds',
-  // 生图专用：提交提示词、请求选择参考图
-  'submit', 'pick-reference',
+  // 生图专用：提交提示词、请求选择参考图、请求优化提示词
+  'submit', 'pick-reference', 'optimize',
+  // @ 风格面板选中：父级把风格描述拼到提示词前
+  'pick-style',
+  'update:stylePanelOpen',
 ]);
+
+/** @ 风格面板的一项（缩略图与描述由父级统一维护，避免两处各写一份） */
+export interface StyleItem {
+  key: string
+  name: string
+  /** 拼进提示词的风格描述；鼠标经过时展示 */
+  prompt?: string
+  /** 缩略图地址；为空时用风格名占位 */
+  thumb?: string
+}
 
 // 工具函数
 const getFileExtension = (fileName: string) => {
@@ -1119,6 +1216,66 @@ const closeCommandPicker = () => {
   selectedIndex.value = 0;
 };
 
+/**
+ * 触发风格面板时记下的 @ 位置。
+ *
+ * 用「节点绝对偏移」而不是「第几个字符」：Tiptap 的文档是多段结构，
+ * 直接按字符数 insertContent 会插到错误的段落里。
+ */
+let atFrom = -1
+let atTo = -1
+
+/**
+ * @ 触发风格面板。
+ *
+ * 与 / 命令共用「光标前文本」判定，但**不查询**（不像 / 会带 query 过滤）：
+ * 风格一共十来项，全列出来更好选。
+ *
+ * 触发条件刻意只要求「光标前最后一个字符是 @」：早期版本还要求 @ 前是空格或行首，
+ * 结果「生成全新的博美图片@」这种最自然的输入（@ 紧跟在中文后）根本不触发。
+ * 位置由 {@link atFrom}/{@link atTo} 记下，选中风格时替换掉这个 @。
+ */
+const checkAtTrigger = () => {
+  if (!editor.value || !props.allowStylePanel) return;
+  const { $from } = editor.value.state.selection;
+  const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
+  const lastAt = textBefore.lastIndexOf('@');
+  if (lastAt < 0) return;
+  if (textBefore.slice(lastAt + 1).includes(' ')) return;
+  const atPos = $from.pos - (textBefore.length - lastAt);
+  atFrom = atPos;
+  atTo = atPos + 1;
+  emit('update:stylePanelOpen', true);
+};
+
+/**
+ * 选中风格后的处理。
+ *
+ * 面板是被 @ 唤起的，所以把风格描述写进 @ 所在位置、并吃掉那个 @：
+ * 插到 @ 处而不是首行，是因为用户「一只猫，背景 @」就是想改这一段，
+ * 统一塞到最前面会把他后半句的构图描述也压到风格后面。
+ * 「无风格」不写任何文字，只删掉 @ 本身。
+ *
+ * @param item 选中的风格项
+ */
+const onPickStyle = (item: StyleItem) => {
+  emit('pick-style', item.key);
+  if (!editor.value || atFrom < 0) {
+    emit('update:stylePanelOpen', false);
+    return;
+  }
+  const chain = editor.value.chain().focus();
+  if (item.prompt) {
+    chain.insertContentAt({ from: atFrom, to: atTo }, item.prompt);
+  } else {
+    chain.deleteRange({ from: atFrom, to: atTo });
+  }
+  chain.run();
+  atFrom = -1;
+  atTo = -1;
+  emit('update:stylePanelOpen', false);
+};
+
 const checkCommandTrigger = () => {
   if (!editor.value) return;
 
@@ -1141,9 +1298,10 @@ const checkCommandTrigger = () => {
     }
   }
 
-  // 检测 @ 触发（艾特命令）
+  // 检测 @ 触发：会话里 @ 是「提及对象」，生图页 @ 打开风格面板，两者互斥。
+  // 有风格面板时把 @ 让给面板，否则退回原有的 mention 命令。
   const lastAtIndex = textBefore.lastIndexOf('@');
-  if (lastAtIndex >= 0) {
+  if (!props.allowStylePanel && lastAtIndex >= 0) {
     const charBeforeAt = textBefore[lastAtIndex - 1];
     if (lastAtIndex === 0 || charBeforeAt === ' ' || charBeforeAt === '\n') {
       const query = textBefore.slice(lastAtIndex + 1);
@@ -1330,6 +1488,7 @@ onMounted(() => {
       onUpdate: ({ editor: ed }) => {
         editorContent.value = ed.getText();
         checkCommandTrigger();
+        checkAtTrigger();
         nextTick(() => {
           const pmEl = document.querySelector('.message-editor .ProseMirror') as HTMLElement | null;
           if (pmEl) {
@@ -1450,14 +1609,29 @@ function insertBadge(data: {
 defineExpose({ insertText, insertBadge });
 </script>
 <style scoped>
-/* 思考按钮激活状态 - 灯泡亮起 */
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+      --el-transition-duration 在 EP base.css 里恒为 .3s 且 koi 不覆盖，
+      写 var(--el-transition-duration, 0.2s) 的兜底是死代码、实际 .3s，
+      所以微交互一律用 -fast 档。
+   2. 卡片 / 容器不加投影。.thinking-active 的 drop-shadow 不是卡片投影，
+      是「灯泡亮起」的发光反馈，关掉就看不出深度思考已开启，故保留，
+      只把色源从写死的翠绿换成成功语义色。
+   3. 结构色统一走 --el-*；--color-text-gray / --color-text /
+      --color-primary* 在 refactor.css 里都映射到 --el-* 同名档。
+   ============================================================================ */
+
+/* 思考按钮激活状态 - 灯泡亮起
+   翠绿 #10b981 就是「成功 / 已开启」的语义，改用 --el-color-success
+   后跟主题统一（且亮暗两套都有对应档）。 */
 .thinking-active {
-  color: #10b981 !important;
-  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5));
+  color: var(--el-color-success) !important;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--el-color-success) 50%, transparent));
 }
 
 .thinking-active-text {
-  color: #10b981 !important;
+  color: var(--el-color-success) !important;
   font-weight: 600;
 }
 
@@ -1469,8 +1643,8 @@ defineExpose({ insertText, insertBadge });
 
 /* 拖拽悬停高亮 */
 .input-area.drag-over {
-  border-color: var(--color-primary) !important;
-  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-input-bg)) !important;
+  border-color: var(--el-color-primary) !important;
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color)) !important;
 }
 
 /* Tiptap 编辑器样式 - 模拟 textarea */
@@ -1488,7 +1662,7 @@ defineExpose({ insertText, insertBadge });
   background: transparent;
   overflow-y: auto;
   box-sizing: border-box;
-  transition: height 0.2s ease;
+  transition: height var(--el-transition-duration-fast, 0.2s) ease;
   color: inherit;
 }
 
@@ -1500,7 +1674,7 @@ defineExpose({ insertText, insertBadge });
 :deep(.message-editor .ProseMirror p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   float: left;
-  color: var(--el-text-color-placeholder, #a8abb2);
+  color: var(--el-text-color-placeholder);
   pointer-events: none;
   height: 0;
 }
@@ -1517,10 +1691,11 @@ defineExpose({ insertText, insertBadge });
   line-height: inherit;
   cursor: pointer;
   user-select: none;
-  background: #f3f3f3;
-  color: var(--color-text);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
   padding: 0 8px;
-  border-radius: 4px;
+  /* 原值 4px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   margin-right: 4px;
 }
 
@@ -1537,7 +1712,7 @@ defineExpose({ insertText, insertBadge });
   background: transparent;
   overflow-y: auto;
   box-sizing: border-box;
-  transition: height 0.2s ease;
+  transition: height var(--el-transition-duration-fast, 0.2s) ease;
   min-height: 58px;
 }
 
@@ -1565,7 +1740,7 @@ defineExpose({ insertText, insertBadge });
 
 /* 工具按钮 - 原生 button */
 .tool-btn {
-  color: var(--color-text-gray);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
   font-size: 14px;
   height: 28px;
@@ -1574,30 +1749,75 @@ defineExpose({ insertText, insertBadge });
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all 0.2s;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   outline: none;
 }
 
+/* 28px 高的纯图标按钮，浏览器默认 outline 太弱，改用主色光环 */
+.tool-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .tool-btn:hover {
-  background: var(--color-sidebar-bg-hover);
-  color: var(--color-text);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .tool-btn:active {
-  background: var(--color-sidebar-bg-active);
+  background: var(--el-fill-color);
 }
 
+/* 提示词优化进行中：按钮禁用但保留可点区域，避免行宽跳动 */
+.tool-btn.is-busy,
+.tool-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.tool-btn.is-busy:hover {
+  background: transparent;
+  color: var(--el-text-color-secondary);
+}
+
+/* 纯 CSS 转圈：不引图标库的 loading 组件，避免为一个 14px 指示器多打一个依赖 */
+.tool-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: tool-spin 0.7s linear infinite;
+}
+
+@keyframes tool-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .tool-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* 激活态底色原为写死的 #e6f7ff / hover #bae7ff（Ant Design 蓝），
+   在 9 套主题下都不会跟随，且与主按钮撞色。改用主色的浅底档 */
 .tool-btn-active {
-  background: #e6f7ff !important;
-  color: #1890ff !important;
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
 }
 
 .tool-btn-active:hover {
-  background: #bae7ff !important;
-  color: #1890ff !important;
+  background: var(--el-color-primary-light-8) !important;
+  color: var(--el-color-primary) !important;
 }
 
 /* 模型选择器按钮 - 原生 button */
@@ -1629,9 +1849,10 @@ defineExpose({ insertText, insertBadge });
   height: 28px;
   padding: 0 8px;
   border: none;
-  border-radius: 16px;
+  /* 原值 16px → xl 档（28px 高的按钮，16px 即胶囊） */
+  border-radius: var(--el-radius-xl, 16px);
   background-color: transparent;
-  color: var(--color-text);
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1639,19 +1860,24 @@ defineExpose({ insertText, insertBadge });
   overflow: hidden;
   outline: none;
   font-size: 12px;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.model-selector-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .model-selector-btn:hover {
-  background: var(--color-sidebar-bg-hover);
-  color: var(--color-text);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .model-selector-btn:active {
-  background: var(--color-sidebar-bg-active);
+  background: var(--el-fill-color);
 }
 
 .model-selector-btn.is-open {
-  background: var(--color-sidebar-bg-active);
+  background: var(--el-fill-color);
 }
 
 /* 发送按钮 - 原生 button */
@@ -1660,28 +1886,36 @@ defineExpose({ insertText, insertBadge });
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 50%;
-  background-color: var(--color-primary);
-  color: var(--color-primary-text);
+  /* 原值 50%（正圆）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
   outline: none;
   flex-shrink: 0;
 }
 
+/* 28px 的正圆图标按钮，浏览器默认 outline 会贴着圆边几乎看不见 */
+.send-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
 .send-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: var(--el-color-primary-dark-2);
 }
 
 .send-btn:active:not(:disabled) {
-  background-color: var(--color-primary-active);
+  background-color: var(--el-color-primary-dark-2);
   transform: scale(0.92);
 }
 
 .send-btn:disabled {
-  background-color: var(--color-text-disabled);
+  background-color: var(--el-text-color-disabled);
   cursor: not-allowed;
   /* 禁用态可读性：主题色系的禁用底色只是"淡化的主题色"（如涂鸦本的
      米色、蒸汽朋克的黄铜色），看不出"关"。降不透明度 + 去饱和，
@@ -1690,26 +1924,30 @@ defineExpose({ insertText, insertBadge });
   filter: saturate(0.4);
 }
 
+/* 停止按钮：语义是「危险 / 中断」，改用 --el-color-danger 及派生档，
+   原值 #f56c6c 是写死的 EP danger，与本应用 refactor.css 的 #dc2626 不同步 */
 .send-btn.stop-btn {
-  background-color: #f56c6c;
-  color: #fff;
+  background-color: var(--el-color-danger);
+  color: var(--el-color-white);
 }
 
+/* hover / active 用「与纯白 / 纯黑混合」表达原值 #f78989（提亮）与 #e64242（压暗），
+   这样深色模式下也不会出现「深色底上越按越亮」的怪异手感 */
 .send-btn.stop-btn:hover {
-  background-color: #f78989;
+  background-color: color-mix(in srgb, var(--el-color-danger) 85%, white);
 }
 
 .send-btn.stop-btn:active {
-  background-color: #e64242;
+  background-color: color-mix(in srgb, var(--el-color-danger) 80%, black);
 }
 
 .send-btn.queue-btn {
-  background-color: var(--color-primary);
+  background-color: var(--el-color-primary);
   position: relative;
 }
 
 .send-btn.queue-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: var(--el-color-primary-dark-2);
 }
 
 /* ========== 粘贴文本预览弹窗样式 ========== */
@@ -1724,14 +1962,29 @@ defineExpose({ insertText, insertBadge });
 .pasted-preview-text {
   margin: 0;
   padding: 16px;
-  background: var(--el-fill-color-light, #f5f7fa);
-  border: 1px solid var(--el-border-color-light, #e4e7ed);
-  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
-  color: var(--el-text-color-primary, #303133);
+  color: var(--el-text-color-primary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.message-editor .ProseMirror),
+  .message-input,
+  .tool-btn,
+  .model-selector-btn,
+  .send-btn {
+    transition: none;
+  }
+  .send-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 </style>

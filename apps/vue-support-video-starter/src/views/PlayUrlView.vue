@@ -137,7 +137,7 @@ onMounted(() => {
           <el-button
             :icon="Delete"
             text
-            size="small"
+
             aria-label="删除记录"
             @click="removeHistory(h)"
           />
@@ -182,12 +182,17 @@ onMounted(() => {
 .vds-guide-icon {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
+  /* 原 20px，取最近档 xl(16px) */
+  border-radius: var(--el-radius-xl, 16px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--vd-primary-strong);
-  background: linear-gradient(160deg, rgba(99, 102, 241, 0.2), rgba(56, 189, 248, 0.12));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--vd-primary) 20%, transparent),
+    color-mix(in srgb, var(--vd-secondary) 12%, transparent)
+  );
   margin-bottom: 6px;
 }
 
@@ -211,6 +216,7 @@ onMounted(() => {
 .vds-theater {
   border-radius: var(--vd-radius-lg);
   overflow: hidden;
+  /* 深色影院主题用投影表达层次，与全局 .vd-theater 保持一致，故保留令牌投影 */
   box-shadow: var(--vd-shadow-lg);
 }
 
@@ -243,7 +249,7 @@ onMounted(() => {
   border: 1px solid var(--vd-border);
   border-radius: var(--vd-radius-sm);
   padding: 4px 8px 4px 12px;
-  transition: border-color 0.2s var(--vd-ease);
+  transition: border-color var(--el-transition-duration-fast, 0.2s) var(--vd-ease);
 }
 
 .vds-history-item:hover {
@@ -269,9 +275,23 @@ onMounted(() => {
   color: var(--vd-primary-strong);
 }
 
+.vds-history-link:focus-visible {
+  outline: none;
+  /* 深底上 12% 的浅色环几乎不可见，改用主色 45% 的实心焦点环 */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary-strong) 45%, transparent);
+}
+
 @media (max-width: 640px) {
   .vds-url-bar {
     flex-direction: column;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .vds-history-item,
+  .vds-history-link {
+    transition: none;
   }
 }
 </style>

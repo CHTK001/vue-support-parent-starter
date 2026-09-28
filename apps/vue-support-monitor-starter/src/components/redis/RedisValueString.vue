@@ -136,9 +136,9 @@ async function save(): Promise<void> {
           @click="view = opt.value"
         >{{ opt.label }}</button>
       </div>
-      <ReButton v-if="view === 'text' && isJson" icon="MagicStick" :show-text="true" size="small" @click="format">格式化</ReButton>
-      <ReButton icon="RefreshLeft" :show-text="true" size="small" :disabled="!dirty || busy" @click="reset">重置</ReButton>
-      <ReButton icon="Check" :show-text="true" type="primary" size="small" :loading="busy" :disabled="!dirty" @click="save">保存值</ReButton>
+      <ReButton v-if="view === 'text' && isJson" icon="MagicStick" :show-text="true" @click="format">格式化</ReButton>
+      <ReButton icon="RefreshLeft" :show-text="true" :disabled="!dirty || busy" @click="reset">重置</ReButton>
+      <ReButton icon="Check" :show-text="true" type="primary" :loading="busy" :disabled="!dirty" @click="save">保存值</ReButton>
     </div>
     <ReInput
       v-if="view === 'text'"

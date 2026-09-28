@@ -106,8 +106,12 @@
 }
 
 /* ============ 尺寸：small / large ============ */
+/* .el-select--small 必须单列：Element Plus 只给 select 根节点挂 el-select--small，
+   不会像 el-input 那样同时挂 el-input--small，所以上面那条 .el-input--small 兜不住 select。
+   漏了它，ReSelect / 原生 ElSelect 传 size="small" 会静默保持默认 34px。 */
 .el-input--small .el-input__wrapper,
 .el-input--small .el-select__wrapper,
+.el-select--small .el-select__wrapper,
 .el-input-number--small .el-input__wrapper {
   min-height: var(--rm-height-sm) !important;
   padding: 2px 10px !important;

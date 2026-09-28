@@ -12,7 +12,7 @@
  * @author CH
  * @since 4.0.0
  */
-import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, shallowRef, type Ref } from "vue";
 import * as echarts from "echarts";
 
 /** 令牌 → 回退色。回退只在令牌缺失（如单测无 DOM）时生效，正常运行读的是令牌值。 */
@@ -42,8 +42,28 @@ export function token(token: string): string {
   }
   const v = getComputedStyle(document.documentElement).getPropertyValue(token);
   const trimmed = v.trim();
-  return trimmed || FALLBACK[token] ?? "#888888";
+  return trimmed || (FALLBACK[token] ?? "#888888");
 }
+
+/**
+ * URL 趋势各序列的取色令牌。
+ *
+ * <p>刻意不用色板里的相邻色：那组（--metric-cpu / --status-success 等）是为了
+ * 「同一张图里 2~3 条粗线」设计的，URL 最多 10 条，相邻色会分不清。
+ * 这里用一组在浅色与深色下都能互相区分的语义色，并按序号取用、超出长度就循环。</p>
+ */
+export const URL_TREND_COLORS = [
+  "--el-color-primary",
+  "--el-color-warning",
+  "--el-color-success",
+  "--el-color-danger",
+  "--el-color-info",
+  "--metric-cpu",
+  "--status-success",
+  "--el-color-primary-light-3",
+  "--el-color-warning-light-3",
+  "--el-color-success-light-3"
+];
 
 /** 是否深色主题 */
 export function isDark(): boolean {
@@ -52,6 +72,39 @@ export function isDark(): boolean {
 
 /** 图表实例的持有者，交给 `useEchart` 统一管理生命周期 */
 export type ChartRef = Ref<HTMLElement | undefined> | Ref<HTMLElement | null>;
+
+/**
+ * 趋势序列描述。
+ *
+ * <p>刻意定义在 `.ts` 而不是图表组件的 `<script setup>` 里：SFC 的
+ * `<script setup>` 不允许出现 `export` 声明，而父组件需要用这个类型标注
+ * 自己算出来的序列数组。</p>
+ */
+export interface TrendSeriesInput {
+  /** 指标名 */
+  name: string;
+  /** 图例文案 */
+  label: string;
+  /** CSS 变量名（带 `--`），如 `--status-success`；渲染时解析成实际颜色 */
+  color: string;
+  /** `[时间戳, 值或null]`；值为 null 表示断点（worker 重启） */
+  data: Array<[number, number | null]>;
+}
+
+/**
+ * URL 访问趋势的单条序列。
+ *
+ * <p>与 {@link TrendSeriesInput} 分开定义而不是合并：URL 序列没有 `color`
+ * （配色由 `URL_TREND_COLORS` 按序号决定，保证 10 条线互相可辨），
+ * 也不允许 null（桶计数为 0 是真实值，不是断点——把它置 null 会让
+ * 「这个 URL 这一分钟没人访问」显示成「没采到数据」）。</p>
+ */
+export interface UrlTrendSeriesInput {
+  /** 归一化后的路径，同时作为图例名 */
+  path: string;
+  /** `[时间戳, 该桶内命中数]` */
+  data: Array<[number, number]>;
+}
 
 /** `useEchart` 的返回值 */
 export interface EchartHandle {
@@ -69,7 +122,15 @@ export interface EchartHandle {
  * @returns 图表句柄
  */
 export function useEchart(elRef: ChartRef, build: () => echarts.EChartsOption): EchartHandle {
-  const chart = ref<echarts.ECharts | null>(null);
+  /**
+ * 图表实例。
+ *
+ * <p>用 `shallowRef` 而不是 `ref`：`ref` 会对值做深层解包（`UnwrapRef`），
+ * 而 `ECharts` 是带私有字段的类，解包后类型被拆散，赋回去就报
+ * 「missing _ssr / _zr / _dom / _model and 26 more」。图表实例是外部对象，
+ * 本来就不该被深层响应式代理。</p>
+ */
+const chart = shallowRef<echarts.ECharts | null>(null);
   let observer: MutationObserver | null = null;
   let ro: ResizeObserver | null = null;
 

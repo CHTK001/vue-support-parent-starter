@@ -294,19 +294,20 @@ const loadMoreSessions = async (): Promise<void> => {
 <style scoped>
 /* 搜索框样式 */
 .search-input :deep(.el-input__wrapper) {
-  background-color: var(--color-surface);
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px var(--color-border) inset;
+  background-color: var(--el-bg-color);
+  /* 原值 8px → md 档 */
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
   padding: 6px 12px;
   transition: all 0.2s ease;
 }
 
 .search-input :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--color-primary-300) inset;
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
 }
 
 .search-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--color-primary) inset;
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
 }
 
 .search-input :deep(.el-input__inner) {
@@ -357,18 +358,19 @@ const loadMoreSessions = async (): Promise<void> => {
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  border-radius: 0.25rem;
+  /* 原值 0.25rem（=4px）→ xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .session-action-trigger:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
 }
 
 .dark .session-action-trigger:hover {
-  background-color: oklch(35% 0.03 250);
   /* 更柔和的悬停效果 */
+  background-color: color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
 }
 
 /* 空状态 */
@@ -387,4 +389,21 @@ const loadMoreSessions = async (): Promise<void> => {
 :deep(.el-scrollbar__bar:hover) {
   opacity: 1;
 }
+
+/* 动效降级：系统开启「减少动态效果」时，搜索框描边、会话操作区显隐、触发器底色、
+   滚动条透明度全部改为瞬间切换。逐个列出，不写 `*` / `.session-item *` 通配，
+   避免把 el-input / el-dropdown 内部 Element Plus 组件的合法过渡一起掐掉。
+   .session-actions 的 opacity: 0 与 hover 时的 1 都是静态声明，停掉过渡后照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .search-input :deep(.el-input__wrapper),
+  .session-actions,
+  .session-action-trigger,
+  :deep(.el-scrollbar__bar) {
+    transition: none;
+  }
+}
+
+/* 注意：B 段清单里的 flex / text-sm 是 Tailwind 工具类，不是本项目的可点 class，
+   给它们挂 outline: none 会波及组件内所有用到这两个工具类的元素，属于净损害，
+   因此未在此改动。 */
 </style>

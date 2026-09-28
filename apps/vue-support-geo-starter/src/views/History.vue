@@ -125,9 +125,9 @@ onMounted(refresh);
       <div class="history-title">
         <el-icon><Clock /></el-icon>
         <span>下载历史</span>
-        <el-tag size="small" type="info" effect="plain">{{ total }} 条记录</el-tag>
+        <el-tag type="info" effect="plain">{{ total }} 条记录</el-tag>
       </div>
-      <el-button type="danger" plain size="small" :disabled="total === 0" @click="onClearAll">
+      <el-button type="danger" plain :disabled="total === 0" @click="onClearAll">
         清空历史
       </el-button>
     </div>
@@ -152,7 +152,7 @@ onMounted(refresh);
       </el-table-column>
       <el-table-column label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="(statusMap[row.status]?.type as any) ?? 'info'" size="small">
+          <el-tag :type="(statusMap[row.status]?.type as any) ?? 'info'" >
             {{ statusMap[row.status]?.label ?? row.status ?? "-" }}
           </el-tag>
         </template>
@@ -165,8 +165,8 @@ onMounted(refresh);
       </el-table-column>
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="onBuildPyramid(row.id)">金字塔</el-button>
-          <el-button link type="danger" size="small" @click="onDelete(row.id)">删除</el-button>
+          <el-button link type="primary" @click="onBuildPyramid(row.id)">金字塔</el-button>
+          <el-button link type="danger" @click="onDelete(row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

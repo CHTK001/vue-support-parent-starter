@@ -7,14 +7,14 @@
           <span class="map3d-title">3D 地球</span>
         </div>
         <div class="map3d-controls">
-          <el-radio-group v-model="globeMode" size="small" class="map-mode">
+          <el-radio-group v-model="globeMode" class="map-mode">
             <el-radio-button value="globe">球体</el-radio-button>
             <el-radio-button value="wireframe">线框</el-radio-button>
             <el-radio-button value="dots">点阵</el-radio-button>
           </el-radio-group>
           <el-button-group class="map-nav">
-            <el-button size="small" plain @click="rotateToDefault"><ReIcon name="HomeFilled" /></el-button>
-            <el-button size="small" plain :icon="autoRotate ? '' : ''" @click="toggleRotate" :class="{ active: autoRotate }"><ReIcon name="RefreshRight" /></el-button>
+            <el-button plain @click="rotateToDefault"><ReIcon name="HomeFilled" /></el-button>
+            <el-button plain :icon="autoRotate ? '' : ''" @click="toggleRotate" :class="{ active: autoRotate }"><ReIcon name="RefreshRight" /></el-button>
           </el-button-group>
         </div>
       </div>

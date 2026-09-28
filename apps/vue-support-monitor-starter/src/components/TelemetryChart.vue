@@ -6,12 +6,12 @@
         <ReSelect
           v-if="!hideTimeRange"
           v-model="timeRange"
-          size="small"
+
           style="width: 100px"
           :options="timeRangeOptions"
           @change="onTimeRangeChange"
         />
-        <ReButton icon="ZoomIn" layout="square" size="small" title="查看历史详情" @click="openHistory" />
+        <ReButton icon="ZoomIn" layout="square" title="查看历史详情" @click="openHistory" />
       </div>
     </div>
     <div ref="chartRef" class="tel-chart-canvas" :style="{ height: height + 'px' }" />

@@ -647,12 +647,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色一律走 --el-*。本应用 refactor.css 已把 --el-* 映射到 --color-* 主题层
+      （--el-bg-color-overlay → var(--color-surface)、--el-text-color-primary →
+      var(--color-text)、--el-color-primary → var(--color-primary)），所以
+      public/themes 下 9 套配色（y2k / 蒸汽朋克 / 赛博朋克 …）换肤时依然生效，
+      不必再自己写 var(--color-*, #写死兜底)。
+   2. 卡片 / 容器一律不加投影（koi 规约）：层次靠 1px 分隔线与留白表达。
+      本文件唯一允许的 box-shadow 是键盘焦点环。
+   3. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
+   ============================================================================ */
+
+/* 面板容器：靠左侧 1px 分割线与消息区区分层次，不用投影 */
 .session-status-panel {
   width: 280px;
   height: 100%;
   flex-shrink: 0;
-  background: var(--color-surface, #fff);
-  border-left: 1px solid var(--color-border, #e4e7ed);
+  background: var(--el-bg-color-overlay);
+  border-left: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -663,8 +676,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px;
-  border-bottom: 1px solid var(--color-border, #e4e7ed);
-  background: var(--color-surface, #fff);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
 }
 
 .panel-title {
@@ -673,23 +686,25 @@ onMounted(() => {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
+/* 「工作中」是运行中语义（成功态），不是普通正文色 */
 .working-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
   font-weight: 500;
-  color: #67c23a;
+  color: var(--el-color-success);
 }
 
 .working-dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background: #67c23a;
+  /* 原值 50%（圆形）；6px 圆点用 full 令牌与 50% 视觉等价，且不再留魔法值 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-success);
   animation: working-pulse 1.2s ease-in-out infinite;
 }
 
@@ -711,16 +726,25 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: transparent;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  outline: none;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 键盘焦点环：24px 的小图标按钮上浏览器默认 outline 几乎看不清，改用主色光环 */
+.icon-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .icon-btn:hover {
-  background: var(--color-surface-hover, var(--color-sidebar-bg-hover, #f5f7fa));
-  color: var(--color-text, #303133);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .icon-btn:disabled {
@@ -751,7 +775,7 @@ onMounted(() => {
 .divider {
   height: 1px;
   margin: 12px 0;
-  background: var(--color-border, #e4e7ed);
+  background: var(--el-border-color-lighter);
 }
 
 .row {
@@ -764,12 +788,12 @@ onMounted(() => {
 }
 
 .label {
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   flex-shrink: 0;
 }
 
 .value {
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   font-weight: 500;
   text-align: right;
   min-width: 0;
@@ -782,19 +806,23 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* 进度槽：语义是「底槽填充」而非描边，故取 --el-fill-color（原值 #e5e7eb） */
 .progress {
   width: 100%;
   height: 6px;
   margin-top: 8px;
-  border-radius: 3px;
-  background: var(--color-border, #e5e7eb);
+  /* 原值 3px，恰为 6px 槽高的一半即胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
   overflow: hidden;
 }
 
+/* 填充色由模板内联 style 给出（progressColor 按占用率取 危险/警告/成功），
+   这里只负责形状与动效，故不写死颜色 */
 .progress-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  border-radius: var(--el-radius-full, 9999px);
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 /* 已用 / 剩余 具体数字 */
@@ -803,11 +831,11 @@ onMounted(() => {
   justify-content: space-between;
   margin-top: 6px;
   font-size: 11px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .token-numbers b {
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   font-weight: 600;
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
@@ -816,7 +844,7 @@ onMounted(() => {
 .breakdown {
   margin-top: 8px;
   padding-top: 6px;
-  border-top: 1px dashed var(--color-border, #e4e7ed);
+  border-top: 1px dashed var(--el-border-color-lighter);
 }
 
 .bd-row,
@@ -835,28 +863,30 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .tool-name {
   width: 64px;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
+/* 占比条底槽：同 .progress，取填充色令牌 */
 .bd-bar {
   flex: 1;
   min-width: 20px;
   height: 5px;
-  border-radius: 3px;
-  background: var(--color-border, #e5e7eb);
+  /* 原值 3px（略大于半高），视觉上仍是胶囊，取 full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
   overflow: hidden;
 }
 
 .bd-bar i {
   display: block;
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  border-radius: var(--el-radius-full, 9999px);
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .bd-value {
@@ -864,20 +894,21 @@ onMounted(() => {
   flex-shrink: 0;
   text-align: right;
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
 }
 
 .tool-failed {
   margin-top: 4px;
   font-size: 11px;
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 
 .empty-hint {
   font-size: 12px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
+/* 可点击的折叠头（div + @click，不是 button）：光标与焦点环都要自己给 */
 .section-header {
   display: flex;
   align-items: center;
@@ -885,9 +916,14 @@ onMounted(() => {
   padding: 2px 0;
   cursor: pointer;
   user-select: none;
+  outline: none;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
+}
+
+.section-header:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .section-title {
@@ -897,21 +933,21 @@ onMounted(() => {
 }
 
 .section-icon {
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
 .section-side {
   margin-left: auto;
   font-size: 12px;
   font-weight: 400;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 
 .chevron {
   margin-left: auto;
-  color: var(--color-text-gray, #909399);
-  transition: transform 0.2s ease;
+  color: var(--el-text-color-secondary);
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .section-side + .chevron {
@@ -931,6 +967,11 @@ onMounted(() => {
 .row--clickable {
   cursor: pointer;
   user-select: none;
+  outline: none;
+}
+
+.row--clickable:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .step-toggle-value {
@@ -941,8 +982,8 @@ onMounted(() => {
 
 .chevron-inline {
   font-size: 12px;
-  color: var(--color-text-gray, #909399);
-  transition: transform 0.2s ease;
+  color: var(--el-text-color-secondary);
+  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .chevron-inline.collapsed {
@@ -952,7 +993,7 @@ onMounted(() => {
 .step-detail {
   margin-top: 4px;
   padding-top: 6px;
-  border-top: 1px dashed var(--color-border, #e4e7ed);
+  border-top: 1px dashed var(--el-border-color-lighter);
   max-height: 260px;
   overflow-y: auto;
 }
@@ -970,7 +1011,7 @@ onMounted(() => {
   width: 18px;
   flex-shrink: 0;
   text-align: right;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
   opacity: 0.7;
 }
@@ -978,11 +1019,13 @@ onMounted(() => {
 .step-icon {
   flex-shrink: 0;
   font-size: 13px;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
 }
 
+/* 失败态图标：此处令牌化后会被模板里的内联 :style 覆盖（那里仍写死色），
+   保留本规则是为了将来去掉内联样式时颜色已是对的 */
 .step-row.is-failed .step-icon {
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 
 .step-label {
@@ -991,7 +1034,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text, #303133);
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
@@ -1001,7 +1044,22 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-gray, #909399);
+  color: var(--el-text-color-secondary);
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
+}
+
+/* 尊重系统「减少动态效果」偏好：脉冲 / 旋转属纯装饰，一律关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .working-dot,
+  .icon-btn .spinning {
+    animation: none;
+  }
+  .icon-btn,
+  .progress-fill,
+  .bd-bar i,
+  .chevron,
+  .chevron-inline {
+    transition: none;
+  }
 }
 </style>

@@ -92,12 +92,18 @@ const goWorkspace = () => {
   flex-shrink: 0;
 }
 
+/* 品牌区是 div + @click，属可点非按钮元素：手型光标 + 键盘焦点环 */
 .geo-brand {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  outline: none;
   user-select: none;
+}
+
+.geo-brand:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .geo-logo {
@@ -106,9 +112,9 @@ const goWorkspace = () => {
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-5));
-  color: #fff;
+  color: var(--el-color-white);
 }
 
 .geo-title {
@@ -138,10 +144,18 @@ const goWorkspace = () => {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 尊重系统「减少动态效果」偏好：路由切换淡入淡出直接生效，内容无信息损失 */
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
+  }
 }
 </style>

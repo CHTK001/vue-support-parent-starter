@@ -1,10 +1,10 @@
 <template>
   <div class="re-album" :class="{ 're-album--loading': loading }">
     <div class="re-album__toolbar" v-if="toolbar">
-      <el-button size="small" plain @click="handleUpload" v-if="uploadable">上传图片</el-button>
+      <el-button plain @click="handleUpload" v-if="uploadable">上传图片</el-button>
       <slot name="toolbar-extra" />
       <div class="re-album__spacer" />
-      <el-select v-if="selectable" v-model="selectMode" size="small" class="re-album__select-mode">
+      <el-select v-if="selectable" v-model="selectMode" class="re-album__select-mode">
         <el-option label="多选" :value="true" />
         <el-option label="预览" :value="false" />
       </el-select>
@@ -48,7 +48,7 @@
 
           <div v-if="!selectMode" class="re-album__overlay">
             <slot name="overlay" :item="item" :index="index">
-              <el-button size="small" circle @click.stop="handlePreview(item, index)">
+              <el-button circle @click.stop="handlePreview(item, index)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
                 </svg>

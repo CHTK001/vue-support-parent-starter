@@ -601,9 +601,9 @@ async function submitAdd(): Promise<void> {
         <p class="page-desc">{{ tab === 'identity' ? '登录身份（密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 ' + list.length + ' 条' : 'SSH 密钥库统一维护 · 供身份公钥登录引用' }}</p>
       </div>
       <div class="page-actions">
-        <ReButton v-if="tab === 'identity'" icon="Download" :show-text="true" size="small" @click="exportCsv">导出</ReButton>
-        <ReButton v-if="tab === 'identity'" icon="RefreshRight" :show-text="true" size="small" :loading="loading" @click="load">刷新</ReButton>
-        <ReButton v-else icon="RefreshRight" :show-text="true" size="small" :loading="keyLoading" @click="loadKeys">刷新</ReButton>
+        <ReButton v-if="tab === 'identity'" icon="Download" :show-text="true" @click="exportCsv">导出</ReButton>
+        <ReButton v-if="tab === 'identity'" icon="RefreshRight" :show-text="true" :loading="loading" @click="load">刷新</ReButton>
+        <ReButton v-else icon="RefreshRight" :show-text="true" :loading="keyLoading" @click="loadKeys">刷新</ReButton>
       </div>
     </div>
 
@@ -622,7 +622,7 @@ async function submitAdd(): Promise<void> {
       <ReSectionHead description="身份即登录凭据；主机可绑定多个身份，连接时按所选身份建连">
         <template #title>登录身份</template>
         <template #actions>
-          <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openAdd">新增身份</ReButton>
+          <ReButton icon="Plus" :show-text="true" type="primary" @click="openAdd">新增身份</ReButton>
         </template>
       </ReSectionHead>
 
@@ -643,7 +643,7 @@ async function submitAdd(): Promise<void> {
         :columns="columns"
         :loading="loading"
         table-id="identity-list"
-        size="small"
+
         :pagination="true"
         :page-size="pageSize"
         empty-text="暂无身份"
@@ -657,7 +657,7 @@ async function submitAdd(): Promise<void> {
         @selection-change="selection = $event"
       >
         <template #col-auth="{ row }">
-          <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" size="small">
+          <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" >
             {{ authTypeLabel(row.msServerIdentityAuthType) }}
           </ReTag>
         </template>
@@ -667,7 +667,7 @@ async function submitAdd(): Promise<void> {
         </template>
         <template #col-hosts="{ row }">
           <div v-if="boundHostCountOf(row.id) > 0" class="host-count" @click="openBind(row)">
-            <ReTag size="small" effect="plain" type="primary">{{ boundHostCountOf(row.id) }} 台</ReTag>
+            <ReTag effect="plain" type="primary">{{ boundHostCountOf(row.id) }} 台</ReTag>
             <span v-if="boundHostsOf(row.id).length > 0" class="host-preview dim">
               {{ boundHostsOf(row.id).slice(0, 2).map(h => h.serverHostName).join(', ') }}
               <span v-if="boundHostsOf(row.id).length > 2">...</span>
@@ -677,17 +677,17 @@ async function submitAdd(): Promise<void> {
         </template>
         <template #col-actions="{ row }">
           <div class="op-cell">
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openEdit(row)" />
-            <ReButton icon="Connection" layout="square" size="small" title="绑定主机" @click="openBind(row)" />
-            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" size="small" title="收件箱" @click="openMail(row)" />
-            <ReButton icon="CopyDocument" layout="square" size="small" title="复制用户名" @click="copyUsername(row)" />
-            <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="remove(row)" />
+            <ReButton icon="EditPen" layout="square" title="编辑" @click="openEdit(row)" />
+            <ReButton icon="Connection" layout="square" title="绑定主机" @click="openBind(row)" />
+            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" title="收件箱" @click="openMail(row)" />
+            <ReButton icon="CopyDocument" layout="square" title="复制用户名" @click="copyUsername(row)" />
+            <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="remove(row)" />
           </div>
         </template>
       </ReTable>
       <div v-if="selection.length" class="sel-bar">
         <ReTag type="primary" effect="plain">已选 {{ selection.length }} 项</ReTag>
-        <ReButton icon="Delete" size="small" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
+        <ReButton icon="Delete" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
       </div>
     </div>
       </el-scrollbar >
@@ -700,8 +700,8 @@ async function submitAdd(): Promise<void> {
         <ReSectionHead description="SSH 密钥库：密钥名称 / 类型 / 公钥指纹；身份选「公钥登录」时引用密钥">
           <template #title>SSH 密钥库</template>
           <template #actions>
-            <ReButton icon="MagicStick" :show-text="true" size="small" @click="openKeyAdd">生成密钥对</ReButton>
-            <ReButton icon="Plus" :show-text="true" size="small" type="primary" @click="openKeyManual">新增密钥</ReButton>
+            <ReButton icon="MagicStick" :show-text="true" @click="openKeyAdd">生成密钥对</ReButton>
+            <ReButton icon="Plus" :show-text="true" type="primary" @click="openKeyManual">新增密钥</ReButton>
           </template>
         </ReSectionHead>
 
@@ -710,7 +710,7 @@ async function submitAdd(): Promise<void> {
           :columns="keyColumns"
           :loading="keyLoading"
           table-id="ssh-key-list"
-          size="small"
+
           :pagination="true"
           :page-size="10"
           empty-text="暂无密钥"
@@ -723,23 +723,23 @@ async function submitAdd(): Promise<void> {
           }"
         >
           <template #col-type="{ row }">
-            <ReTag :type="row.msServerKeyType === 'RSA' ? 'warning' : 'primary'" size="small" effect="plain">{{ keyTypeLabel(row.msServerKeyType) }}</ReTag>
+            <ReTag :type="row.msServerKeyType === 'RSA' ? 'warning' : 'primary'" effect="plain">{{ keyTypeLabel(row.msServerKeyType) }}</ReTag>
           </template>
           <template #col-fp="{ row }">
             <span class="mono dim">{{ keyFingerprint(row.msServerKeyPublicKey) }}</span>
           </template>
           <template #col-actions="{ row }">
             <div class="op-cell">
-              <ReButton icon="EditPen" layout="square" size="small" title="编辑" @click="openKeyEdit(row)" />
-              <ReButton icon="Download" layout="square" size="small" title="下载公钥" @click="downloadPublicKey(row)" />
+              <ReButton icon="EditPen" layout="square" title="编辑" @click="openKeyEdit(row)" />
+              <ReButton icon="Download" layout="square" title="下载公钥" @click="downloadPublicKey(row)" />
               <ReButton
                 icon="Key"
                 layout="square"
-                size="small"
+
                 title="私钥不出库"
                 disabled
               />
-              <ReButton icon="Delete" layout="square" size="small" type="danger" title="删除" @click="removeKey(row)" />
+              <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="removeKey(row)" />
             </div>
           </template>
         </ReTable>
@@ -754,7 +754,7 @@ async function submitAdd(): Promise<void> {
           <ReInput v-model="addForm.msServerIdentityName" placeholder="如 root-prod" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="addForm.msServerIdentityAuthType" size="small" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
+          <ReSelect v-model="addForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="登录用户名">
           <ReInput v-model="addForm.msServerIdentityUsername" placeholder="如 root / ubuntu" style="width:100%" />
@@ -779,7 +779,7 @@ async function submitAdd(): Promise<void> {
           <ReInput v-model="keyForm.msServerKeyName" placeholder="如 prod-rsa-2026" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="密钥类型">
-          <ReSelect v-model="keyForm.msServerKeyType" size="small" style="width:100%" :options="KEY_TYPE_OPTIONS" :disabled="editingKeyId != null" />
+          <ReSelect v-model="keyForm.msServerKeyType" style="width:100%" :options="KEY_TYPE_OPTIONS" :disabled="editingKeyId != null" />
         </ReFormItem>
         <template v-if="!isGenerateKey">
           <ReFormItem label="公钥">
@@ -810,10 +810,10 @@ async function submitAdd(): Promise<void> {
         <div class="muted" style="margin-bottom:8px">已绑定主机（{{ bindHosts.length }}）</div>
         <div v-if="bindHosts.length" class="host-chips">
           <div v-for="h in bindHosts" :key="h.id" class="host-chip">
-            <ReTag :type="h.serverHostOnline === 1 ? 'success' : 'info'" size="small" effect="plain">{{ h.serverHostOnline === 1 ? '在线' : '离线' }}</ReTag>
+            <ReTag :type="h.serverHostOnline === 1 ? 'success' : 'info'" effect="plain">{{ h.serverHostOnline === 1 ? '在线' : '离线' }}</ReTag>
             <b>{{ h.serverHostName }}</b>
             <span class="mono dim">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
-            <ReButton icon="Unlink" layout="square" size="small" type="danger" title="解绑" @click="doUnbind(h.id)" />
+            <ReButton icon="Unlink" layout="square" type="danger" title="解绑" @click="doUnbind(h.id)" />
           </div>
         </div>
         <div v-else class="dim" style="padding:8px 0">未绑定任何主机</div>
@@ -823,7 +823,7 @@ async function submitAdd(): Promise<void> {
           <div v-for="h in bindAllHosts" :key="h.id" class="host-chip">
             <b>{{ h.serverHostName }}</b>
             <span class="mono dim">{{ h.serverHostAddress }}:{{ h.serverHostPort }}</span>
-            <ReButton icon="Link" layout="square" size="small" type="primary" title="绑定" @click="doBind(h.id)" />
+            <ReButton icon="Link" layout="square" type="primary" title="绑定" @click="doBind(h.id)" />
           </div>
         </div>
         <div v-else class="dim" style="padding:8px 0">已全部绑定</div>
@@ -871,15 +871,15 @@ async function submitAdd(): Promise<void> {
               <div class="mail-pane-header">
                 <div class="mail-pane-subject">{{ activeMail.subject || '(无主题)' }}</div>
                 <div class="mail-pane-meta">
-                  <ReTag size="small" effect="plain">发件人</ReTag>
+                  <ReTag effect="plain">发件人</ReTag>
                   <span class="mono">{{ activeMail.from || '—' }}</span>
                 </div>
                 <div class="mail-pane-meta">
-                  <ReTag size="small" effect="plain">时间</ReTag>
+                  <ReTag effect="plain">时间</ReTag>
                   <span class="mono">{{ activeMail.date || '—' }}</span>
                 </div>
                 <div v-if="activeMail.size != null" class="mail-pane-meta">
-                  <ReTag size="small" effect="plain">大小</ReTag>
+                  <ReTag effect="plain">大小</ReTag>
                   <span class="mono">{{ formatSize(activeMail.size) }}</span>
                 </div>
               </div>
@@ -888,7 +888,7 @@ async function submitAdd(): Promise<void> {
                 <div v-else class="dim">（该邮件暂无正文预览，点击下方查看原始内容）</div>
               </div>
               <div class="mail-pane-foot">
-                <ReButton icon="RefreshLeft" :show-text="true" size="small" @click="openMail(mailTarget!)">刷新</ReButton>
+                <ReButton icon="RefreshLeft" :show-text="true" @click="openMail(mailTarget!)">刷新</ReButton>
               </div>
             </template>
             <div v-else class="mail-pane-empty">

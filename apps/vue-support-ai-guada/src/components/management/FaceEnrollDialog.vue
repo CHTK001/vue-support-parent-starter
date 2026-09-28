@@ -16,10 +16,10 @@
             <span>未选择</span>
           </div>
           <div class="fe-photo-ops">
-            <el-button size="small" @click="pickPhoto">
+            <el-button @click="pickPhoto">
               <el-icon><FolderOpened /></el-icon>{{ form.photo ? '重新选择' : '选择照片' }}
             </el-button>
-            <el-button v-if="form.photo" size="small" text @click="form.photo = ''">清除</el-button>
+            <el-button v-if="form.photo" text @click="form.photo = ''">清除</el-button>
           </div>
         </div>
         <p class="fe-tip">正面清晰单人照效果最好；登记后可在人脸识别页做 1:N 相似匹配</p>

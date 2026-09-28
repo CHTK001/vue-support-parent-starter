@@ -1,7 +1,7 @@
 <template>
   <div class="re-tree">
     <div class="re-tree__toolbar" v-if="toolbar">
-      <el-button size="small" plain @click="handleAddRoot" v-if="enableAdd">添加根节点</el-button>
+      <el-button plain @click="handleAddRoot" v-if="enableAdd">添加根节点</el-button>
       <slot name="toolbar-extra" />
     </div>
 
@@ -42,9 +42,9 @@
 
         <div class="re-tree__node-actions" v-if="toolbar || $slots.actions">
           <slot name="actions" :node="node" :edit="() => handleEdit(node)" :remove="() => handleRemove(node)" :add="() => handleAddChild(node)">
-            <el-button v-if="enableAdd" size="small" link type="primary" @click.stop="handleAddChild(node)">添加</el-button>
-            <el-button v-if="enableEdit" size="small" link type="primary" @click.stop="handleEdit(node)">编辑</el-button>
-            <el-button v-if="enableRemove" size="small" link type="danger" @click.stop="handleRemove(node)">删除</el-button>
+            <el-button v-if="enableAdd" link type="primary" @click.stop="handleAddChild(node)">添加</el-button>
+            <el-button v-if="enableEdit" link type="primary" @click.stop="handleEdit(node)">编辑</el-button>
+            <el-button v-if="enableRemove" link type="danger" @click.stop="handleRemove(node)">删除</el-button>
           </slot>
         </div>
       </div>

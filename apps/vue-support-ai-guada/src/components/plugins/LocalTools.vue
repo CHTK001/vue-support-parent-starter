@@ -14,7 +14,7 @@
         <el-button
           v-if="loading"
           :loading="true"
-          size="small"
+
         >
           {{ t('common.loading') }}
         </el-button>
@@ -58,8 +58,8 @@
               size="md"
               class="lt-card__icon"
             />
-            <el-tag v-if="tool.source === 'dev'" size="small" type="warning" effect="light" class="lt-card__tag">{{ t('plugins.localTools.sourceDev') }}</el-tag>
-            <el-tag v-else-if="tool.source === 'user'" size="small" type="success" effect="light" class="lt-card__tag">{{ t('plugins.localTools.sourceUser') }}</el-tag>
+            <el-tag v-if="tool.source === 'dev'" type="warning" effect="light" class="lt-card__tag">{{ t('plugins.localTools.sourceDev') }}</el-tag>
+            <el-tag v-else-if="tool.source === 'user'" type="success" effect="light" class="lt-card__tag">{{ t('plugins.localTools.sourceUser') }}</el-tag>
           </div>
 
           <!-- 名称 -->
@@ -73,7 +73,7 @@
             <el-button
               v-if="tool.source === 'dev' || tool.source === 'user'"
               link
-              size="small"
+
               type="danger"
               @click.stop="handleUninstall(tool.pluginId)"
             >
@@ -103,8 +103,8 @@
           <CardAvatar :src="currentTool?.icon ? `/api/v1/plugins/${currentTool?.pluginId}/icon` : null" :name="currentTool?.displayName" size="md" />
           <div class="flex items-center gap-2">
             <span class="text-base font-semibold text-gray-900 dark:text-[#e8e9ed]">{{ currentTool?.displayName }}</span>
-            <el-tag v-if="currentTool?.source === 'dev'" size="small" type="warning" effect="dark">{{ t('plugins.localTools.sourceDev') }}</el-tag>
-            <el-tag v-else-if="currentTool?.source === 'user'" size="small" type="success" effect="plain">{{ t('plugins.localTools.sourceUser') }}</el-tag>
+            <el-tag v-if="currentTool?.source === 'dev'" type="warning" effect="dark">{{ t('plugins.localTools.sourceDev') }}</el-tag>
+            <el-tag v-else-if="currentTool?.source === 'user'" type="success" effect="plain">{{ t('plugins.localTools.sourceUser') }}</el-tag>
           </div>
         </div>
       </template>
@@ -312,16 +312,19 @@ onMounted(() => {
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
-  border-radius: var(--mp-radius-lg, 14px);
-  background: var(--color-surface, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
+     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
   min-width: 0;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+/* 卡片本体不加投影；仅保留悬浮浮起反馈这一类 */
 .lt-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 22px -12px rgba(16, 24, 40, 0.28);
+  box-shadow: var(--el-box-shadow-light);
 }
 .lt-card--off { opacity: 0.6; }
 .lt-card__top {
@@ -360,7 +363,7 @@ onMounted(() => {
 .lt-card__footer {
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -383,12 +386,15 @@ onMounted(() => {
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--el-border-color);
-  border-radius: var(--size-surface-radius, 10px);
+  /* 原值 var(--size-surface-radius, 10px)：令牌恒为 20px，兜底是死代码，
+     收敛到 xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color);
 }
 .lt-skeleton-lines { flex: 1; min-width: 0; }
 .lt-skel {
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: linear-gradient(90deg,
     var(--el-fill-color) 25%, var(--el-fill-color-light) 37%, var(--el-fill-color) 63%);
   background-size: 400% 100%;
@@ -403,5 +409,18 @@ onMounted(() => {
 }
 @media (prefers-reduced-motion: reduce) {
   .lt-skel { animation: none; }
+}
+
+/* 键盘焦点可见性：工具卡片是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 卡底色是令牌化的 --el-bg-color，一档主色描边足够可见。
+   注：上面那条 .lt-skel 的 reduced-motion 规则是本文件既有的，本次未改动；
+   .lt-card 自带的 transition 也不在本次 A 段清单内，故未降级。 */
+.lt-card {
+  outline: none;
+}
+
+.lt-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

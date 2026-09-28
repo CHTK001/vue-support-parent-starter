@@ -276,12 +276,14 @@ function slug(title: string) {
 .cf-section + .cf-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-surface-border, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 .cf-section-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .cf-section-ico {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: 10px;
+  width: 30px; height: 30px;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
@@ -304,8 +306,9 @@ function slug(title: string) {
 .cf-form :deep(.el-input__wrapper),
 .cf-form :deep(.el-textarea__inner),
 .cf-form :deep(.el-select__wrapper) {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--color-surface-border, var(--el-border-color-lighter)) inset;
+  /* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
 }
 .cf-form :deep(.el-input__wrapper.is-focus),
 .cf-form :deep(.el-textarea__inner:focus),
@@ -314,10 +317,11 @@ function slug(title: string) {
 }
 
 .cf-footer { display: flex; justify-content: flex-end; gap: 10px; }
-.cf-btn { border-radius: 10px; }
+/* 原值 10px → lg 档（距 8/12 等距，本仓统一取 12px） */
+.cf-btn { border-radius: var(--el-radius-lg, 12px); }
 .cf-btn:not(.el-button--primary) {
   background: var(--el-bg-color);
-  border-color: var(--color-surface-border, var(--el-border-color));
+  border-color: var(--el-border-color);
   color: var(--el-text-color-regular);
 }
 .cf-btn:not(.el-button--primary):hover {

@@ -17,22 +17,24 @@
       <ReInput
         v-if="node.headArg !== null || node.name === 'location' || node.name === 'upstream'"
         :model-value="node.headArg || ''"
-        size="small"
+        
         class="ngf-headarg"
         :placeholder="headPlaceholder"
         @change="onHeadArg"
       />
       <span class="ngf-lines mono">{{ node.startLine }}-{{ node.endLine }}</span>
-      <ReButton size="small" text @click="emit('add-directive')">
-        <template #icon><ReIcon name="Plus" :size="12" /></template>
-        指令
+      <!-- 指令 / 子块 / 删除：只留图标。
+           原来带文字标签，标题行被撑得过长，区块名和行号被挤到换行；
+           而这三个操作在图标上语义已经明确（+ / 文件夹+ / 垃圾桶），
+           靠 title 提示补充说明即可。 -->
+      <ReButton text title="给这个块加一条指令" @click="emit('add-directive')">
+        <template #icon><ReIcon name="Plus" :size="13" /></template>
       </ReButton>
-      <ReButton size="small" text @click="emit('add-block')">
-        <template #icon><ReIcon name="FolderAdd" :size="12" /></template>
-        子块
+      <ReButton text title="给这个块加一层子块" @click="emit('add-block')">
+        <template #icon><ReIcon name="FolderAdd" :size="13" /></template>
       </ReButton>
-      <ReButton size="small" text type="danger" @click="emit('remove')">
-        <template #icon><ReIcon name="Delete" :size="12" /></template>
+      <ReButton text type="danger" title="删除这个块" @click="emit('remove')">
+        <template #icon><ReIcon name="Delete" :size="13" /></template>
       </ReButton>
     </div>
 
@@ -62,15 +64,15 @@
         <div class="ngf-row">
           <div class="ngf-name" :title="d.meta?.desc || '未登记的指令，将按原样保存'">
             {{ d.name }}
-            <ReTag v-if="d.meta?.required" size="small" type="danger">必填</ReTag>
-            <ReTag v-else-if="!d.known" size="small" type="info">原样保留</ReTag>
+            <ReTag v-if="d.meta?.required"  type="danger">必填</ReTag>
+            <ReTag v-else-if="!d.known"  type="info">原样保留</ReTag>
           </div>
           <div class="ngf-control">
             <!-- 无参数开关：nginx 用 on / off / 注释掉 三态 -->
             <template v-if="d.meta?.argType === 'flag'">
               <ReSelect
                 :model-value="flagValue(d.value)"
-                size="small"
+                
                 class="ngf-flag"
                 @change="onValue(d, $event)"
               >
@@ -84,7 +86,7 @@
             <template v-else-if="d.meta?.argType === 'enum' && d.meta.enumValues.length">
               <ReSelect
                 :model-value="d.value"
-                size="small"
+                
                 filterable
                 allow-create
                 default-first-option
@@ -97,7 +99,7 @@
             <template v-else-if="d.meta?.argType === 'number'">
               <ReInputNumber
                 :model-value="Number(d.value)"
-                size="small"
+                
                 controls-position="right"
                 class="ngf-num"
                 @change="onValue(d, $event)"
@@ -108,7 +110,7 @@
             <template v-else-if="d.meta?.argType === 'size' || d.meta?.argType === 'duration'">
               <ReInput
                 :model-value="d.value"
-                size="small"
+                
                 class="ngf-sized"
                 :placeholder="d.meta.example"
                 @change="onValue(d, $event)"
@@ -134,14 +136,14 @@
             <template v-else>
               <ReInput
                 :model-value="d.value"
-                size="small"
+                
                 class="ngf-plain"
                 :placeholder="d.meta?.example || '值'"
                 @change="onValue(d, $event)"
               />
             </template>
           </div>
-          <ReButton size="small" text type="danger" @click="emit('remove', d)">
+          <ReButton text type="danger" :title="`删除指令 ${d.name}`" @click="emit('remove', d)">
             <template #icon><ReIcon name="Close" :size="12" /></template>
           </ReButton>
         </div>
@@ -310,20 +312,34 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
 }
 
 .ngf-blockname {
+  flex: 0 0 auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--el-color-primary);
+  white-space: nowrap;
 }
 
+/* 区块头参数：固定一段可用宽度，不写死也不自由伸缩。
+   写死 220px 会在窄面板里把「指令/子块/删除」挤出可视区；
+   但改成 flex:1 又会让它在宽面板里铺满整行，把三个按钮顶到最右、
+   删除按钮直接被裁掉（实测截图就是这个现象）。
+   所以：按需伸缩 + 封顶 260px，两头都不越界。 */
 .ngf-headarg {
-  width: 220px;
+  flex: 0 1 auto;
+  width: 240px;
+  max-width: 260px;
+  min-width: 80px;
 }
 
+/* 行号：靠 auto margin 顶到最右，但必须 flex:none，
+   否则它会参与伸缩被压扁，数字只显示半截 */
 .ngf-lines {
+  flex: 0 0 auto;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .ngf-children {
@@ -348,41 +364,74 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   align-items: center;
   gap: 8px;
   padding: 3px 6px 3px 0;
+  /* 强制单行：默认 flex-wrap 是 nowrap，这里写出来是为了让意图显式——
+     控件一旦折到下一行，视觉上就跟「多了一条指令」无法区分了。 */
+  flex-wrap: nowrap;
 }
 
+/* 指令名：按内容宽度排布、整体不换行。
+   原来写死 190px + ellipsis，指令名稍长就被截成「proxy_pass…」，得悬停才能看全，
+   而这里是编辑配置、名字必须一眼可读。改成「按需取宽、必要时压缩」：
+   flex-basis auto 让短名字不浪费空间，max-width 兜住长名字不会把右侧控件挤没。 */
 .ngf-name {
-  width: 190px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 96px;
+  max-width: 40%;
   display: flex;
   align-items: center;
   gap: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 名字是主要信息：宽度不够时压缩它，而不是换行 */
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .ngf-control {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
 }
 
+/* 选择/数字框统一不换行。数字框一旦被折到下一行，
+   上下两条指令的输入框会错位叠在一起，看着像控件坏了。 */
 .ngf-flag,
-.ngf-enum {
-  width: 160px;
-}
-
+.ngf-enum,
 .ngf-num {
-  width: 140px;
+  flex: 0 0 160px;
+  width: 160px;
+  white-space: nowrap;
 }
 
 .ngf-sized,
 .ngf-plain,
 .ngf-text {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 行尾操作按钮给固定方形尺寸。
+   不加约束时 ReButton 的 text 按钮宽度由内容撑，而 icon 是 svg，
+   在 flex 行里被挤到接近 0 宽就整个看不见了——「图标没显示」就是这个原因。 */
+.ngf-row :deep(.el-button),
+.ngf-blockhead :deep(.el-button) {
+  flex: 0 0 auto;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 图标再兜一层：svg 默认可压缩，这里禁止被压扁 */
+.ngf-row :deep(.el-button .el-icon),
+.ngf-blockhead :deep(.el-button .el-icon) {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
 }
 
 .ngf-unit {
@@ -395,7 +444,10 @@ function onChildAdd(parent: NginxConfigNode, kind: "directive" | "block") {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 6px 6px 196px;
+  /* 左内边距与 .ngf-row 内边距对齐（原 196px 是跟着写死的 190px 指令名列算的，
+     指令名列改成按内容伸缩后这里再写死就会和上方内容错位）。
+     用 padding-left 只做视觉缩进，宽度交由内容。 */
+  padding: 0 6px 6px 8px;
   font-size: 11.5px;
   line-height: 1.55;
   color: var(--el-text-color-secondary);

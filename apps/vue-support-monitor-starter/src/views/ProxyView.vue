@@ -456,9 +456,9 @@ onMounted(loadList);
         </template>
         <template #col-actions="{ row }">
           <div class="px-ops">
-            <ReButton icon="Connection" layout="square" size="small" title="检测" :disabled="row.id == null" class="px-op px-op--check" @click="checkOne(row)" />
-            <ReButton icon="EditPen" layout="square" size="small" title="编辑" class="px-op px-op--edit" @click="openEdit(row)" />
-            <ReButton icon="Delete" layout="square" size="small" title="删除" class="px-op px-op--delete" @click="removeOne(row)" />
+            <ReButton icon="Connection" layout="square" title="检测" :disabled="row.id == null" class="px-op px-op--check" @click="checkOne(row)" />
+            <ReButton icon="EditPen" layout="square" title="编辑" class="px-op px-op--edit" @click="openEdit(row)" />
+            <ReButton icon="Delete" layout="square" title="删除" class="px-op px-op--delete" @click="removeOne(row)" />
           </div>
         </template>
       </ReTable>
@@ -468,16 +468,16 @@ onMounted(loadList);
     <ReDialog v-model="formVisible" :title="editingId == null ? '新增代理' : '编辑代理'" width="480px" :close-on-click-modal="false">
       <div class="proxy-form">
         <ReFormItem label="代理主机" required>
-          <ReInput v-model="form.host" placeholder="如 127.0.0.1 或 proxy.example.com" size="small" />
+          <ReInput v-model="form.host" placeholder="如 127.0.0.1 或 proxy.example.com" />
         </ReFormItem>
         <ReFormItem label="代理端口" required>
-          <ReInputNumber v-model="form.port" :min="1" :max="65535" size="small" style="width:100%" />
+          <ReInputNumber v-model="form.port" :min="1" :max="65535" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="协议" required>
-          <ReSelect v-model="form.protocol" size="small" style="width:100%" :options="PROTOCOL_OPTIONS" />
+          <ReSelect v-model="form.protocol" style="width:100%" :options="PROTOCOL_OPTIONS" />
         </ReFormItem>
         <ReFormItem label="来源">
-          <ReInput v-model="form.source" placeholder="留空记为 manual" size="small" />
+          <ReInput v-model="form.source" placeholder="留空记为 manual" />
         </ReFormItem>
         <p v-if="editingId != null" class="px-hint">保存后探测结论会重置为未检测，需要时再点击行内「检测」。</p>
       </div>

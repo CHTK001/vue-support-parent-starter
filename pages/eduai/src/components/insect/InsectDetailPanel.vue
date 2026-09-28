@@ -146,9 +146,11 @@ function stageAvailable(stage: LifeStage): boolean {
   flex-direction: column;
   gap: 12px;
   background: var(--el-bg-color);
-  border-radius: 22px;
+  /* 原 22px，最近档 16px（xl） */
+  border-radius: var(--el-radius-xl, 16px);
   padding: 16px 16px 18px;
-  box-shadow: var(--el-box-shadow);
+  /* koi 卡片不加投影：改用一条边框承载边界 */
+  border: 1px solid var(--el-border-color-lighter);
   overflow-y: auto;
   max-height: 78vh;
 }
@@ -174,7 +176,7 @@ function stageAvailable(stage: LifeStage): boolean {
   font-weight: 700;
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
 }
 .idp__latin {
@@ -196,7 +198,7 @@ function stageAvailable(stage: LifeStage): boolean {
   line-height: 1.8;
   color: var(--el-text-color-regular);
   background: var(--el-fill-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-radius-lg, 12px);
   padding: 10px 12px;
 }
 
@@ -217,7 +219,8 @@ function stageAvailable(stage: LifeStage): boolean {
 .idp__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  /* 小节标题圆点用圆形令牌 */
+  border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-primary);
   flex-shrink: 0;
 }
@@ -235,7 +238,8 @@ function stageAvailable(stage: LifeStage): boolean {
   flex-direction: column;
   gap: 2px;
   padding: 7px 10px;
-  border-radius: 10px;
+  /* 原 10px，在 8px(md)/12px(lg) 之间等距，本批统一取大档 12px（lg） */
+  border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -286,14 +290,19 @@ function stageAvailable(stage: LifeStage): boolean {
   color: var(--el-text-color-primary);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
   padding: 4px 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  outline: none;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 .idp__life-stage.is-built:hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
+}
+.idp__life-stage:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .idp__life-stage.is-active {
   background: var(--el-color-primary);
@@ -315,7 +324,7 @@ function stageAvailable(stage: LifeStage): boolean {
   font-weight: 700;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   padding: 3px 9px;
 }
 .idp__empty {
@@ -323,5 +332,12 @@ function stageAvailable(stage: LifeStage): boolean {
   text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .idp__life-stage {
+    transition: none;
+  }
 }
 </style>

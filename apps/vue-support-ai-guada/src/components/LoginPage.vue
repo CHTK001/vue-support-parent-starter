@@ -189,15 +189,16 @@ const handleLogin = async (): Promise<void> => {
 <style scoped>
 /* Element Plus 控件外观统一到本应用的表面/边框变量（暗色模式自动跟随） */
 :deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--color-border) inset;
-  border-radius: var(--size-surface-radius);
-  background-color: var(--color-surface, #ffffff);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+  /* 原值 var(--size-surface-radius)（=20px）→ xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  background-color: var(--el-bg-color);
   transition: all 0.2s ease;
   padding: 4px 12px;
 }
 
 :deep(.el-input.is-focus .el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--color-primary) inset;
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
 }
 
 :deep(.el-form-item) {
@@ -212,5 +213,16 @@ const handleLogin = async (): Promise<void> => {
 :deep(.el-checkbox__label) {
   font-size: 14px;
   color: var(--color-text-gray);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，输入框的描边变化改为瞬间切换。
+   输入框本体是 Element Plus 组件，必须用 :deep() 才够得到它的内部 DOM。
+   特别说明：上面 .el-input.is-focus 那条 inset 主色描边是焦点指示本身，
+   它是静态 box-shadow 声明 —— 关掉 transition 只会让光环瞬间出现，不会消失，
+   键盘用户的焦点可见性完全不受影响。 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.el-input__wrapper) {
+    transition: none;
+  }
 }
 </style>

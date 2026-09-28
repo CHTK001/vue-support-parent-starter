@@ -94,14 +94,14 @@ async function onSubmit() {
 
 <template>
   <div class="panel">
-    <el-form label-position="top" size="small">
+    <el-form label-position="top" >
       <el-form-item>
         <div class="bbox-bar">
-          <el-tag size="small" type="info" effect="plain">选区 bbox</el-tag>
+          <el-tag type="info" effect="plain">选区 bbox</el-tag>
           <el-tooltip :content="bboxText" placement="top">
             <span class="bbox-text">{{ bboxText }}</span>
           </el-tooltip>
-          <el-button size="small" type="primary" plain @click="fillBounds">填入查询</el-button>
+          <el-button type="primary" plain @click="fillBounds">填入查询</el-button>
         </div>
       </el-form-item>
 
@@ -139,9 +139,18 @@ async function onSubmit() {
 .bbox-bar{display:flex;align-items:center;gap:8px;width:100%}
 .bbox-text{flex:1;font-size:12px;color:var(--el-text-color-regular);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hint{margin-top:4px;font-size:12px;color:var(--el-text-color-secondary)}
-.estimate-card{margin-bottom:12px;padding:10px 12px;background:var(--el-fill-color-light);border-radius:6px}
+.estimate-card{margin-bottom:12px;padding:10px 12px;background:var(--el-fill-color-light);border-radius:var(--el-radius-sm, 6px)}
 .estimate-row{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--el-text-color-regular)}
 .estimate-row b{color:var(--el-color-primary)}
 .panel-actions{display:flex;gap:8px}
 .panel-actions .el-button{flex:1}
+
+/* 尊重系统「减少动态效果」偏好：
+   本面板自身无 transition/animation，需关掉的是查询期间的旋转指示 */
+@media (prefers-reduced-motion: reduce) {
+  .panel :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
+  }
+}
 </style>

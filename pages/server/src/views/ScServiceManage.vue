@@ -277,14 +277,14 @@ function openDetailPage(row: ServerNodeView, index: number) {
       <ReTableColumn prop="name" label="服务名称" min-width="140" show-overflow-tooltip />
       <ReTableColumn label="协议" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
-          <ReTag size="small" :type="row.protocol && String(row.protocol).indexOf('proxy') >= 0 ? 'warning' : 'primary'">
+          <ReTag :type="row.protocol && String(row.protocol).indexOf('proxy') >= 0 ? 'warning' : 'primary'">
             {{ protocolLabel(row) }}
           </ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="引擎" width="80">
         <template #default="{ row }">
-          <ReText size="small" type="info">{{ row.engine || '-' }}</ReText>
+          <ReText type="info">{{ row.engine || '-' }}</ReText>
         </template>
       </ReTableColumn>
       <ReTableColumn label="监听地址" min-width="150">
@@ -292,20 +292,20 @@ function openDetailPage(row: ServerNodeView, index: number) {
       </ReTableColumn>
       <ReTableColumn label="插件" width="90">
         <template #default="{ row }">
-          <ReTag size="small" :type="(row.filters?.length ?? 0) > 0 ? 'success' : 'info'">
+          <ReTag :type="(row.filters?.length ?? 0) > 0 ? 'success' : 'info'">
             {{ row.filters?.length ?? 0 }}
           </ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="访问地址" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
-          <ReText v-if="row.serverUrl" size="small" type="primary">{{ row.serverUrl }}</ReText>
+          <ReText v-if="row.serverUrl" type="primary">{{ row.serverUrl }}</ReText>
           <span v-else class="dim">-</span>
         </template>
       </ReTableColumn>
       <ReTableColumn label="自动启用" width="90">
         <template #default="{ row }">
-          <ReTag size="small" :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
+          <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
       <ReTableColumn label="操作" width="330" fixed="right">
@@ -316,7 +316,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
               show-text
               icon="VideoPlay"
               type="success"
-              size="small"
+
               :loading="actingId === row.id"
               @click="onStart(row)"
             >启动</ReButton>
@@ -325,13 +325,13 @@ function openDetailPage(row: ServerNodeView, index: number) {
               show-text
               icon="VideoPause"
               type="warning"
-              size="small"
+
               :loading="actingId === row.id"
               @click="onStop(row)"
             >停止</ReButton>
-            <ReButton show-text icon="View" type="primary" size="small" @click="openDetail(row)">详情</ReButton>
-            <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
-            <ReButton show-text icon="Delete" type="danger" size="small" :loading="actingId === row.id" @click="onDelete(row)">删除</ReButton>
+            <ReButton show-text icon="View" type="primary" @click="openDetail(row)">详情</ReButton>
+            <ReButton show-text icon="Edit" @click="openEdit(row)">编辑</ReButton>
+            <ReButton show-text icon="Delete" type="danger" :loading="actingId === row.id" @click="onDelete(row)">删除</ReButton>
           </span>
         </template>
       </ReTableColumn>

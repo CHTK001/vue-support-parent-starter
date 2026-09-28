@@ -54,14 +54,40 @@ pnpm exec vitest run src/__tests__/PostManage.spec.ts src/__tests__/MessageManag
 | `UserManage.spec.ts` | `views/UserManage.vue` | 6 | 勾选行驱动批量按钮可用；批量启用确认；详情抽屉；“更多”下拉项与命令分发；“已锁定”标签 |
 | `RoleManage.spec.ts` | `views/RoleManage.vue` | 4 | 只读标签；内置角色隐藏删除按钮；编辑弹窗只读开关+提示；数据权限 5 种范围 |
 | `MessageManage.spec.ts` | `views/MessageManage.vue` | 5 | 消息/模板双 Tab 加载；工具栏“发送消息”弹窗；模板选择自动填充；撤回确认→撤回接口；接收者 0 显示“全体用户” |
-| `ErrorLogManage.spec.ts` | `views/ErrorLogManage.vue` | 4 | 4 个统计卡片；详情弹窗 `<pre>` 堆栈；标记已处理→状态接口；状态过滤项→查询带 sysErrorStatus |
-| `CacheManage.spec.ts` | `views/CacheManage.vue` | 3 | 6 项缓存渲染；单个刷新→refreshCache；刷新全部→确认→refreshAllCache |
+| `ErrorLogManage.spec.ts` | `views/ErrorLogManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
+| `CacheManage.spec.ts` | `views/CacheManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
 | `SettingManage.spec.ts` | `views/SettingManage.vue` | 4 | 历史抽屉；单条回滚→回滚接口；敏感值掩码+点击解密；按批次号查询 |
-| `MonitorManage.spec.ts` | `views/MonitorManage.vue` | 4 | 挂载拉取 JVM 信息；统计卡片与进度条；GC 信息；手动刷新再次调用 |
+| `PolicyTask.spec.ts` | `views/monitor/PolicyTask.vue` | 8 | 7 个页签逐个进入且标题互不相同；所有表格关闭布局切换器；**接口管控有效状态 = action × status**（停用/拦截/转发/未配置四种处境）；未配置行不显示启停开关；只有策略无注册路由的自定义路径也要列出；**顶部刷新按当前页签分发**（白名单断言，见下） |
 | `systemApi.spec.ts` | `api/systemApi.ts` | 21 | 各接口 URL/方法/参数构造（缓存、消息、IP、登录日志等） |
 | `helpers.ts` | — | — | 共享桩/工具，供上述 spec 使用 |
 
-合计 **9 个 spec、57 个用例，全部通过**（`cd pages/system && pnpm test`）。
+合计 **7 个 spec、66 个用例，全部通过**（`cd pages/system && pnpm test`）。
+
+> 2026-09-28 更正：本表此前还列着 `ErrorLogManage.spec.ts` / `CacheManage.spec.ts` /
+> `MonitorManage.spec.ts`，但这三个文件在磁盘上并不存在，用例数与 spec 数也是按它们
+> 写的（9 个 / 57 个）。上表已按实际文件重新统计；哪天要恢复这三个用例再补回来。
+
+## 写新 spec 时容易踩的三个坑
+
+1. **图标 mock 不能只靠 Proxy 兜底**。`vi.mock("@element-plus/icons-vue", () => new Proxy({}, { get: () => stub }))`
+   挡不住 Vitest 的导出校验，会报 `No "Xxx" export is defined on the mock`。两种可行写法：
+   Proxy 补 `has: () => true` 陷阱，或像 `PolicyTask.spec.ts` 那样显式列出用到的图标名。
+   后者更好 —— 图标名写错会在 “Failed to resolve component” 警告里立刻暴露，不会静默。
+   ⚠️ 这个坑以前还有一层更难查的放大器：`PolicyTask.vue` 当时挂着一个临时
+   `onErrorCaptured` 探针，handler `return false` 会**吞掉**错误（`app.config.errorHandler`
+   也不再触发），于是「组件渲染失败」在测试结果里完全看不见，表现为全绿。该探针已删除；
+   但**任何页面都不该用 `onErrorCaptured` + `return false` 来做临时排查**，
+   排查完必须连 ref、handler、模板里的浮层一起删干净。
+2. **`vue-i18n` 只能部分 mock**。只导出 `useI18n` 会让 `@repo/languages` 在模块顶层
+   调 `createI18n` 时直接加载失败（套件 0 用例、整体报错）。要用 `importOriginal`
+   保留真实导出、只替换 `useI18n`，让 `t()` 回显键名 —— 断言写键名而不是中文，
+   改文案时测试不必跟着改。
+3. **整模块 mock 必须列全被测代码树用到的每个导出**。`vi.mock("../api/systemApi", () => api)`
+   是**整体替换**，没列到的导出是 `undefined`。漏一个不一定立刻报错：
+   页面常用 `void someAsync()` 这种「发射后不管」的写法（不 await、不 catch），
+   漏掉的函数被调用时抛的错会变成**游离的 unhandled rejection** —— 用例照样绿，
+   失败信号只出现在日志末尾。`PolicyTask.spec.ts` 曾漏 `policyHitCounts` / `policyHitDetail`
+   （`usePolicyHit` 要用），已补齐。列 mock 时按「被测组件 + 它 import 的子组件」一起过一遍。
 
 ## 修复记录（2026-09-19）
 

@@ -58,39 +58,48 @@ const inputValue = computed({
 .re-input-label {
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: var(--el-text-color-regular);
   letter-spacing: 0.01em;
 }
 
+/* 输入框三态：常态 / 悬浮 / 聚焦，全部用 1px inset 描边表达，
+   不加投影（koi 规约）；聚焦环是允许的第二类阴影，保留原来的内描边形态 */
 .re-input :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px #e2e8f0 inset;
-  transition: all 0.2s ease;
-  background: #ffffff;
+  border-radius: var(--el-radius-md, 8px);
+  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+  transition: all var(--el-transition-duration-fast, 0.2s) ease;
+  background: var(--el-bg-color);
   padding: 0 14px;
 }
 
 .re-input :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #cbd5e1 inset;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
 }
 
 .re-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3) inset;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 30%, transparent) inset;
 }
 
 .re-input :deep(.el-input__inner) {
   height: 36px;
   font-size: 14px;
-  color: #1e293b;
+  color: var(--el-text-color-primary);
 }
 
 .re-input :deep(.el-input__inner::placeholder) {
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
 }
 
 .re-input-error {
   font-size: 12px;
-  color: #ef4444;
+  color: var(--el-color-danger);
   margin-top: 2px;
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .re-input :deep(.el-input__wrapper) {
+    transition: none;
+  }
 }
 </style>

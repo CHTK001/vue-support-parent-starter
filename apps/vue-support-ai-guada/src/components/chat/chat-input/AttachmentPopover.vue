@@ -22,15 +22,15 @@
       <div class="att-divider"></div>
       <div class="att-section-header">{{ t('chat.input.knowledgeBase') }}</div>
       <div class="att-kb-list">
-        <div v-if="knowledgeBases.length === 0" class="text-center py-3 text-gray-400 dark:text-[#6b6d75] text-xs">
+        <div v-if="knowledgeBases.length === 0" class="text-center py-3 text-gray-400 dark:text-[var(--el-text-color-secondary)] text-xs">
           {{ t('chat.input.noKnowledgeBase') }}
         </div>
         <div v-for="kb in knowledgeBases" :key="kb.id"
           class="att-kb-item" @click="$emit('toggle-kb', kb.id)">
-          <el-checkbox :model-value="selectedKbIds.includes(kb.id)" @click.stop size="small" />
+          <el-checkbox :model-value="selectedKbIds.includes(kb.id)" @click.stop />
           <div class="flex-1 min-w-0">
-            <div class="text-xs font-medium text-gray-700 dark:text-[#c5c7cc] truncate">{{ kb.name }}</div>
-            <div v-if="kb.description" class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">{{ kb.description }}</div>
+            <div class="text-xs font-medium text-gray-700 dark:text-[var(--el-text-color-regular)] truncate">{{ kb.name }}</div>
+            <div v-if="kb.description" class="text-xs text-gray-400 dark:text-[var(--el-text-color-secondary)] truncate">{{ kb.description }}</div>
           </div>
         </div>
       </div>
@@ -40,15 +40,15 @@
         <div class="att-divider"></div>
         <div class="att-section-header">{{ attType.label }}</div>
         <div class="att-kb-list">
-          <div v-if="!attType._items || attType._items.length === 0" class="text-center py-3 text-gray-400 dark:text-[#6b6d75] text-xs">
+          <div v-if="!attType._items || attType._items.length === 0" class="text-center py-3 text-gray-400 dark:text-[var(--el-text-color-secondary)] text-xs">
             {{ t('common.empty') }}
           </div>
           <div v-for="item in (attType._items || [])" :key="item.id"
             class="att-kb-item" @click="toggleAttachment(attType.id, item.id)">
-            <el-checkbox :model-value="isAttachmentSelected(attType.id, item.id)" @click.stop size="small" />
+            <el-checkbox :model-value="isAttachmentSelected(attType.id, item.id)" @click.stop />
             <div class="flex-1 min-w-0">
-              <div class="text-xs font-medium text-gray-700 dark:text-[#c5c7cc] truncate">{{ item.name }}</div>
-              <div v-if="item.description" class="text-xs text-gray-400 dark:text-[#6b6d75] truncate">{{ item.description }}</div>
+              <div class="text-xs font-medium text-gray-700 dark:text-[var(--el-text-color-regular)] truncate">{{ item.name }}</div>
+              <div v-if="item.description" class="text-xs text-gray-400 dark:text-[var(--el-text-color-secondary)] truncate">{{ item.description }}</div>
             </div>
           </div>
         </div>
@@ -144,6 +144,16 @@ function toggleAttachment(typeId: string, itemId: string) {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本应用其余已改组件统一）：
+   1. 原文件为每个元素都手写了一份 `.dark xxx { }` 覆盖（#9ca3af / #e5e7eb /
+      #6b7280 / rgba(255,255,255,.06) …），而本应用 refactor.css 已在 html.dark
+      下重定义整套 --el-*，这些覆盖既重复又漏（改了主题色也不会跟着变）。
+      本次统一收敛到 --el-*，`.dark` 覆盖随之删除。
+   2. 菜单行不是卡片，不加投影。
+   3. 圆角、过渡统一取 --el-radius-* / --el-transition-duration-fast 令牌。
+   ============================================================================ */
+
 .att-popover {
   display: flex;
   flex-direction: column;
@@ -155,57 +165,45 @@ function toggleAttachment(typeId: string, itemId: string) {
   align-items: center;
   gap: 10px;
   padding: 7px 8px;
-  border-radius: var(--size-dialog-rounded-radius);
+  /* 原值 var(--size-dialog-rounded-radius)（refactor.css 里 = 18px）→ 最近的 xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   cursor: pointer;
-  transition: all 0.15s;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 菜单行是 div + @click（目前不可 Tab 聚焦），先把键盘焦点环挂好，
+   等哪天补上 tabindex 就直接生效 */
+.att-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .att-item:hover {
-  background: var(--color-sidebar-bg-hover, #f5f5f5);
-}
-
-.dark .att-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--el-fill-color-light);
 }
 
 .att-item-icon {
-  color: #666;
-}
-
-.dark .att-item-icon {
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 
 .att-item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
-}
-
-.dark .att-item-name {
-  color: #e5e7eb;
+  color: var(--el-text-color-primary);
 }
 
 .att-section-header {
   font-size: 11px;
   font-weight: 500;
-  color: #999;
+  color: var(--el-text-color-secondary);
   padding: 4px 8px;
   user-select: none;
 }
 
-.dark .att-section-header {
-  color: #6b7280;
-}
-
 .att-divider {
   height: 1px;
-  background: #eee;
+  background: var(--el-border-color-lighter);
   margin: 6px 8px;
-}
-
-.dark .att-divider {
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .att-kb-list {
@@ -221,16 +219,26 @@ function toggleAttachment(typeId: string, itemId: string) {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: var(--size-dialog-rounded-radius);
+  /* 原值 var(--size-dialog-rounded-radius)（refactor.css 里 = 18px）→ 最近的 xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
   cursor: pointer;
-  transition: all 0.15s;
+  outline: none;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.att-kb-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .att-kb-item:hover {
-  background: var(--color-sidebar-bg-hover, #f5f5f5);
+  background: var(--el-fill-color-light);
 }
 
-.dark .att-kb-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .att-item,
+  .att-kb-item {
+    transition: none;
+  }
 }
 </style>

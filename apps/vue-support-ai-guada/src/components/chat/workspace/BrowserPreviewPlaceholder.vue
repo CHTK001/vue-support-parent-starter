@@ -222,6 +222,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   令牌口径（与本批 8 个聊天组件统一）：
+   1. 颜色走 --el-*（refactor.css 已把 --el-* 映射到 --color-* 主题层，
+      9 套配色换肤时自动跟随）。
+   2. 本文件原先用的 --color-text-secondary / --color-hover-bg / --color-bg-primary
+      三个名字在全仓（含 public/themes/*.css 与 src/styles/*.css）都**没有任何定义**，
+      属于死变量：真正生效的一直是后面的 hex 兜底。这里改判到语义正确的
+      --el-* 令牌上，顺手把这三个死名字清掉。
+   3. 容器不加投影（koi 规约）；本文件唯一允许的 box-shadow 是键盘焦点环。
+   4. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
+   ============================================================================ */
+
 .browser-preview-placeholder {
   display: flex;
   flex-direction: column;
@@ -238,7 +250,7 @@ onUnmounted(() => {
   height: 36px;
   flex-shrink: 0;
   background: transparent;
-  border-bottom: 1px solid var(--color-border, #d0d0d0);
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 /* 导航按钮组 */
@@ -252,22 +264,31 @@ onUnmounted(() => {
   width: 26px;
   height: 26px;
   border: none;
-  border-radius: 6px;
+  /* 原值 6px → sm 档 */
+  border-radius: var(--el-radius-sm, 6px);
   background: transparent;
-  color: var(--color-text-secondary, #555);
+  color: var(--el-text-color-secondary);
   cursor: pointer;
+  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 键盘焦点环：26px 的裸按钮上默认 outline 太弱，改用主色光环 */
+.nav-btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: var(--color-hover-bg, #e0e0e0);
+  background: var(--el-fill-color);
 }
 
 .nav-btn:active:not(:disabled) {
-  background: var(--color-border, #d0d0d0);
+  background: var(--el-fill-color-dark);
 }
 
 .nav-btn:disabled {
@@ -276,16 +297,17 @@ onUnmounted(() => {
 }
 
 .dark .nav-btn {
-  color: #aaa;
+  color: var(--el-text-color-regular);
 }
 
 .dark .nav-btn:hover:not(:disabled) {
-  background: var(--color-hover-bg, #3e4147);
+  background: var(--el-fill-color);
 }
 
+/* 危险操作（关闭）：浅红底 + 红字，用 danger 令牌派生 */
 .close-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  color: var(--el-color-danger);
 }
 
 /* 地址栏 */
@@ -295,21 +317,30 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   margin-left: 4px;
-  background: var(--color-bg-primary, #ffffff);
-  border: 1px solid var(--color-border, #c0d0d0);
-  border-radius: 14px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  /* 原值 14px，最近的档位是 lg 12px */
+  border-radius: var(--el-radius-lg, 12px);
   padding: 0 10px;
   height: 26px;
-  transition: border-color 0.2s;
+  transition:
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 输入框本身 outline: none，焦点指示上提到包裹层（含点击聚焦，范围更清晰） */
+.address-bar-wrapper:focus-within {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .address-bar-wrapper.focused {
-  border-color: var(--color-primary, #4a90d9);
+  border-color: var(--el-color-primary);
 }
 
 .dark .address-bar-wrapper {
-  background: var(--color-bg-primary, #1a1b1e);
-  border-color: var(--color-border, #3e4147);
+  background: var(--el-bg-color);
+  border-color: var(--el-border-color);
 }
 
 .security-icon {
@@ -334,13 +365,15 @@ onUnmounted(() => {
   opacity: 0.5;
 }
 
-/* 加载旋转动画 */
+/* 加载旋转动画：0.6s 是「转速」不是交互过渡时长，故不取
+   --el-transition-duration（那会让加载圈慢到看着像卡住） */
 .loading-spinner {
   width: 12px;
   height: 12px;
-  border: 1.5px solid var(--color-border, #ccc);
-  border-top-color: var(--color-primary, #4a90d9);
-  border-radius: 50%;
+  border: 1.5px solid var(--el-border-color);
+  border-top-color: var(--el-color-primary);
+  /* 原值 50%（圆形）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
   animation: spin 0.6s linear infinite;
   flex-shrink: 0;
 }
@@ -354,5 +387,16 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   /* 空壳：webview 会覆盖在此区域上方 */
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn,
+  .address-bar-wrapper {
+    transition: none;
+  }
+  .loading-spinner {
+    animation: none;
+  }
 }
 </style>

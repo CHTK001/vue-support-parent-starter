@@ -28,17 +28,36 @@
       <el-tabs v-model="activeTab" @tab-change="onTabChange">
         <!-- ============ 学生 ============ -->
         <el-tab-pane label="学生" name="student">
-          <div class="filter-row">
-            <el-input v-model="stuKeyword" clearable placeholder="姓名 / 学号 / 绑定账号" :prefix-icon="Search" style="width: 260px" />
-            <el-select v-model="stuLevel" clearable placeholder="全部学段" style="width: 140px">
-              <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-            <el-select v-model="stuClassId" clearable placeholder="全部班级" style="width: 180px">
-              <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
-            </el-select>
-            <el-button type="primary" :icon="Plus" @click="openStudent()">新增学生</el-button>
-            <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
-          </div>
+          <!-- 筛选区：与古诗库/成语库同构的 filter-card + filter-grid（带 label 的栅格） -->
+          <el-card shadow="never" class="filter-card">
+            <div class="filter-grid">
+              <div class="filter-field">
+                <label class="filter-field__label">关键字</label>
+                <el-input
+                  v-model="stuKeyword"
+                  clearable
+                  placeholder="姓名 / 学号 / 绑定账号"
+                  :prefix-icon="Search"
+                />
+              </div>
+              <div class="filter-field">
+                <label class="filter-field__label">学段</label>
+                <el-select v-model="stuLevel" clearable placeholder="全部学段" style="width: 100%">
+                  <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </div>
+              <div class="filter-field">
+                <label class="filter-field__label">班级</label>
+                <el-select v-model="stuClassId" clearable placeholder="全部班级" style="width: 100%">
+                  <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
+                </el-select>
+              </div>
+              <div class="filter-actions">
+                <el-button type="primary" :icon="Plus" @click="openStudent()">新增学生</el-button>
+                <el-button :icon="RefreshLeft" :loading="loading" @click="loadAll">刷新</el-button>
+              </div>
+            </div>
+          </el-card>
 
           <el-table v-loading="loading" :data="filteredStudents" stripe row-key="studentId" @row-click="openStudent">
             <template #empty><el-empty :image-size="80" description="暂无学生，点击「新增学生」创建" /></template>
@@ -60,6 +79,12 @@
               </template>
             </el-table-column>
             <el-table-column prop="studentAccount" label="绑定账号" width="140" show-overflow-tooltip />
+            <el-table-column label="家长手机号" width="130">
+              <template #default="{ row }">
+                <span v-if="row.studentParentPhone">{{ row.studentParentPhone }}</span>
+                <span v-else class="cell-muted">未填</span>
+              </template>
+            </el-table-column>
             <el-table-column label="状态" width="90" align="center">
               <template #default="{ row }">
                 <span class="tag-pill" :class="row.studentStatus === 1 ? 'is-blue' : 'is-grey'">
@@ -69,12 +94,8 @@
             </el-table-column>
             <el-table-column label="操作" width="110" align="center" fixed="right">
               <template #default="{ row }">
-                <button type="button" class="row-edit-btn" title="编辑" @click.stop="openStudent(row)">
-                  <el-icon><EditPen /></el-icon>
-                </button>
-                <button type="button" class="row-del-btn" title="删除" @click.stop="removeStudent(row)">
-                  <el-icon><Delete /></el-icon>
-                </button>
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openStudent(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeStudent(row)" />
               </template>
             </el-table-column>
           </el-table>
@@ -101,8 +122,8 @@
             </el-table-column>
             <el-table-column label="操作" width="110" align="center" fixed="right">
               <template #default="{ row }">
-                <button type="button" class="row-edit-btn" title="编辑" @click.stop="openClass(row)"><el-icon><EditPen /></el-icon></button>
-                <button type="button" class="row-del-btn" title="删除" @click.stop="removeClass(row)"><el-icon><Delete /></el-icon></button>
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openClass(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeClass(row)" />
               </template>
             </el-table-column>
           </el-table>
@@ -136,8 +157,8 @@
             </el-table-column>
             <el-table-column label="操作" width="110" align="center" fixed="right">
               <template #default="{ row }">
-                <button type="button" class="row-edit-btn" title="编辑" @click.stop="openTeacher(row)"><el-icon><EditPen /></el-icon></button>
-                <button type="button" class="row-del-btn" title="删除" @click.stop="removeTeacher(row)"><el-icon><Delete /></el-icon></button>
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openTeacher(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeTeacher(row)" />
               </template>
             </el-table-column>
           </el-table>
@@ -156,7 +177,7 @@
               <div class="dialog-head__sub">学号是学生端绑定的关键字段，一旦启用不要随意修改</div>
             </div>
           </div>
-          <button type="button" class="dialog-head__close" @click="stuVisible = false"><el-icon><Close /></el-icon></button>
+          <ReButton layout="square" :icon="Close" tip="关闭" @click="stuVisible = false" />
         </div>
       </template>
       <el-form :model="stuForm" label-width="96" @submit.prevent>
@@ -173,12 +194,21 @@
             </el-select>
           </el-form-item>
           <el-form-item label="年级">
-            <el-input v-model="stuForm.studentGrade" placeholder="如 三年级" />
+            <el-select v-model="stuForm.studentGrade" clearable placeholder="选择年级" style="width: 100%">
+              <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
+            </el-select>
           </el-form-item>
           <el-form-item label="班级">
             <el-select v-model="stuForm.studentClassId" clearable placeholder="选择班级" style="width: 100%">
               <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
             </el-select>
+          </el-form-item>
+          <el-form-item label="家长手机号">
+            <el-input
+              v-model="stuForm.studentParentPhone"
+              maxlength="11"
+              placeholder="学生端可用此号登录，非必填"
+            />
           </el-form-item>
           <el-form-item label="入学年份">
             <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
@@ -213,7 +243,7 @@
               <div class="dialog-head__sub">学生端登记时填的班级名会自动建立，这里可手工维护</div>
             </div>
           </div>
-          <button type="button" class="dialog-head__close" @click="clsVisible = false"><el-icon><Close /></el-icon></button>
+          <ReButton layout="square" :icon="Close" tip="关闭" @click="clsVisible = false" />
         </div>
       </template>
       <el-form :model="clsForm" label-width="96" @submit.prevent>
@@ -230,7 +260,9 @@
             </el-select>
           </el-form-item>
           <el-form-item label="年级">
-            <el-input v-model="clsForm.classGrade" placeholder="如 三年级" />
+            <el-select v-model="clsForm.classGrade" clearable placeholder="选择年级" style="width: 100%">
+              <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
+            </el-select>
           </el-form-item>
         </div>
         <el-form-item label="状态">
@@ -259,7 +291,7 @@
               <div class="dialog-head__sub">工号是老师端绑定的关键字段</div>
             </div>
           </div>
-          <button type="button" class="dialog-head__close" @click="teaVisible = false"><el-icon><Close /></el-icon></button>
+          <ReButton layout="square" :icon="Close" tip="关闭" @click="teaVisible = false" />
         </div>
       </template>
       <el-form :model="teaForm" label-width="96" @submit.prevent>
@@ -304,7 +336,7 @@
  *   - 学生本人首次进 /edu/student 时，用学号/姓名自己绑定登录账号
  *     （落到 edu_student.student_account），因此这里的「绑定账号」是只读状态。
  */
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Grid, Plus, Reading, RefreshLeft, Search, Star } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
@@ -412,7 +444,34 @@ async function loadLevels() {
       { value: "SENIOR", label: "高中" },
     ];
   }
+  syncGradeSource();
 }
+
+/**
+ * 学段 → 年级 的对应表
+ *
+ * 后端 edu_grade 也存了年级，但那是「可选的运营维度」，拉一次要多一个请求；
+ * 这里前端内置一份，理由是年级取值就是这 14 个固定值，且表单需要**随学段联动**
+ * ——联动要求在用户改学段的瞬间就刷新下拉，走接口做不到这个时延。
+ * 与 StudentPortalView.GRADES 保持同一份口径。
+ */
+const GRADES_BY_LEVEL: Record<string, string[]> = {
+  PRIMARY: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级"],
+  JUNIOR: ["初一", "初二", "初三"],
+  SENIOR: ["高一", "高二", "高三"],
+};
+
+/** 年级下拉的数据源：学段为空时给全集（避免用户必须先选学段才能填年级） */
+const gradeSource = ref<string[]>([]);
+function syncGradeSource() {
+  const level = stuForm.studentGradeLevel || clsForm.classGradeLevel;
+  gradeSource.value = level ? (GRADES_BY_LEVEL[level] ?? []) : Object.values(GRADES_BY_LEVEL).flat();
+}
+
+// 学段一变，年级立刻跟着收窄：原来选中的年级若不在新学段里会被清空，
+// 否则会存下「初中 + 一年级」这种自相矛盾的组合。
+watch(() => stuForm.studentGradeLevel, syncGradeSource);
+watch(() => clsForm.classGradeLevel, syncGradeSource);
 
 function onTabChange() {
   // 三个表一次拉全，切标签不需要重新请求；这里只在数据为空时补拉
@@ -438,6 +497,12 @@ function openStudent(row?: EduStudent) {
 async function saveStudent() {
   if (!stuForm.studentNo?.trim()) return ElMessage.warning("请填写学号");
   if (!stuForm.studentName?.trim()) return ElMessage.warning("请填写姓名");
+  // 家长手机号非必填，但填了就必须是 11 位手机号 —— 它将来是登录凭据，
+  // 格式错的号会让家长永远登不进来且查不出原因，故在提交前就拦。
+  const phone = stuForm.studentParentPhone?.trim() ?? "";
+  if (phone && !/^1\d{10}$/.test(phone)) {
+    return ElMessage.warning("家长手机号格式不对，应为 11 位手机号");
+  }
   saving.value = true;
   try {
     await eduaiApi.saveStudent({ ...stuForm, studentNo: stuForm.studentNo.trim(), studentName: stuForm.studentName.trim() });
@@ -485,12 +550,17 @@ function openClass(row?: EduClass) {
 }
 
 async function saveClass() {
-  if (!clsForm.className?.trim()) return ElMessage.warning("请填写班级名称");
+  const name = clsForm.className?.trim() ?? "";
+  if (!name) return ElMessage.warning("请填写班级名称");
+  // 班名是业务唯一（后端有唯一索引兜底）。先在已加载列表里查一次重名，
+  // 目的是把"唯一索引冲突"变成一句人话，而不是等请求失败才报。
+  const dup = classes.value.find((c) => c.className === name && c.classId !== clsForm.classId);
+  if (dup) return ElMessage.warning(`班级名称「${name}」已存在，请换一个名称`);
   saving.value = true;
   try {
     await eduaiApi.saveClass({
       ...clsForm,
-      className: clsForm.className.trim(),
+      className: name,
       classCode: clsForm.classCode?.trim() || undefined,
     });
     ElMessage.success("已保存");
@@ -583,110 +653,201 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/*
+ * 版式基线对齐 PoemBankView / IdiomBankView：
+ * page-container（整页滚动）→ top-zone（页头 + 悬浮方卡统计）→ filter-card → table-card。
+ * 统计卡是 148×148 的正方形，卡内纵向排布，图标块落在右下角。
+ */
 .page-container {
-  min-height: 100%;
-  padding: 16px 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  height: 100%;
+  overflow: auto;
   background: var(--el-bg-color-page);
 }
+
+/* ---------- 上区：页头 + 右侧悬浮正方形统计卡 ---------- */
 .top-zone {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: -74px;
+  position: relative;
+  z-index: 2;
+}
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 0;
+  padding-top: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.page-header__left {
+  min-width: 0;
 }
 .page-header__title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 26px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
-  letter-spacing: 1px;
+  line-height: 1.25;
 }
 .page-header__sub {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
 }
+
 .stats-row {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 14px;
 }
 .stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 170px;
-  padding: 12px 16px;
-  border-radius: 14px;
+  width: 148px;
+  height: 148px;
   background: var(--el-bg-color);
+  border-radius: var(--el-radius-xl, 16px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
   border: 1px solid var(--el-border-color-lighter);
+  transition:
+    transform var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  /* 浮起反馈是 koi 唯一允许的卡片投影 */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+.stat-card__body {
+  min-width: 0;
+  width: 100%;
 }
 .stat-card__title {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
 }
 .stat-card__value {
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 30px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 .stat-card__hint {
+  margin-top: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 .stat-card__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--el-radius-lg, 12px);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-color-primary);
+  color: var(--el-color-white);
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 .table-card {
-  border-radius: 14px;
-  /*
-   * 关键：.page-container 是 flex 纵列，子项默认 flex-shrink:1。
-   * 窗口变矮时这张卡片会被压缩，而 el-table 的空态块是 position:absolute，
-   * 被压到极小后就被 overflow 裁掉，只剩截图里那一条细缝。
-   * 禁止收缩后，内容超出时改为由外层布局滚动（布局内容区本身是 overflow-y:auto）。
-   */
-  flex-shrink: 0;
+  border-radius: var(--el-radius-lg, 12px);
+  border: 0;
+  position: relative;
+  z-index: 1;
+}
+.table-card :deep(.el-card__body) {
+  padding: 16px 20px 18px;
 }
 
 /*
- * 空态兜底下限：即使卡片被别的容器压到很矮，也保证「暂无数据」有可读高度，
- * 不会退化成一条细缝。Element Plus 默认只有 60px。
+ * 空态兜底下限：保证「暂无数据」有可读高度，不会退化成一条细缝。
+ * Element Plus 默认只有 60px。
  */
 .table-card :deep(.el-table__empty-block) {
   min-height: 180px;
 }
+/* ---------- 筛选卡（与古诗库/成语库同构） ---------- */
+.filter-card {
+  border-radius: var(--el-radius-lg, 12px);
+  margin-bottom: 14px;
+  border: 0;
+  position: relative;
+  z-index: 1;
+}
+.filter-card :deep(.el-card__body) {
+  padding: 18px 20px;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.4fr) minmax(130px, 1fr) minmax(150px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.filter-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+}
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.filter-actions .el-button {
+  border-radius: var(--el-radius-lg, 12px);
+  min-width: 88px;
+  font-weight: 600;
+}
+/* 班级 / 教师页签没有筛选条件，只放操作键 */
 .filter-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+}
+.filter-row .el-button {
+  border-radius: var(--el-radius-lg, 12px);
+  font-weight: 600;
 }
 .table-footer {
-  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 .table-footer__total {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
+/* 空值占位：与「—」同类语义，但中文更直白 */
+.cell-muted {
+  color: var(--el-text-color-placeholder);
+}
 .tag-pill {
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   padding: 1px 8px;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
@@ -703,64 +864,53 @@ onMounted(() => {
   background: var(--el-fill-color);
   color: var(--el-text-color-placeholder);
 }
-.row-edit-btn,
-.row-del-btn {
-  width: 28px;
-  height: 28px;
-  margin: 0 3px;
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  transition: all 0.15s;
+/* ---------- 弹窗：与古诗库/成语库同构 ---------- */
+.q-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  margin-right: 0;
 }
-.row-edit-btn:hover {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+.q-dialog :deep(.el-dialog__body) {
+  padding: 0;
 }
-.row-del-btn:hover {
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+.q-dialog :deep(.el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 .dialog-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
 }
 .dialog-head__left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 .dialog-head__icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  display: flex;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .dialog-head__title {
   font-size: 17px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--el-text-color-primary);
+  line-height: 1.3;
 }
 .dialog-head__sub {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 2px;
-}
-.dialog-head__close {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
 }
 .form-grid {
   display: grid;
@@ -774,9 +924,25 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 10px;
 }
+.dialog-foot .el-button {
+  border-radius: var(--el-radius-lg, 12px);
+  min-width: 96px;
+  font-weight: 600;
+}
 @media (max-width: 900px) {
   .form-grid--2 {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
+   统计卡有 transition / transform（ReButton 的动效由组件自身负责）。 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none;
+  }
+  .stat-card:hover {
+    transform: none;
   }
 }
 </style>

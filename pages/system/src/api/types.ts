@@ -1312,6 +1312,76 @@ export interface AccountBlackwhitePage {
   pages: number;
 }
 
+/* ================== 策略任务 - 消息头拦截 ================== */
+
+/** 消息头匹配方式 */
+export type HeaderMatchType = "CONTAINS" | "EQUALS" | "PREFIX" | "REGEX";
+
+/** 一条消息头拦截规则（后端已把 config JSON 解析成结构化字段） */
+export interface HeaderRuleRow {
+  sysPolicyConfigId?: number;
+  /** 消息头名，主要是 User-Agent */
+  headerName: string;
+  /** 1 启用，0 停用 */
+  status?: 0 | 1;
+  remark?: string;
+  updateTime?: string;
+  /** 后端能否解析这条规则；false 说明 config 坏了，需要修 */
+  parsed?: boolean;
+  matchType?: HeaderMatchType;
+  patterns?: string[];
+  /** 目前只有 BLOCK */
+  action?: string;
+  /** 拒绝时返回的 HTTP 状态码 */
+  blockStatus?: number;
+  message?: string;
+}
+
+/** 爬虫 / 自动化客户端特征预设 */
+export interface HeaderPresets {
+  /** 分组名 → 特征列表 */
+  groups: Record<string, string[]>;
+  /** 展平后的全量特征 */
+  flat: string[];
+}
+
+/* ================== 策略任务 - 命中统计 ================== */
+
+/** 命中统计的策略类型；与后端 {@code PolicyHitCollector.TYPE_*} 一一对应 */
+export type PolicyHitType =
+  | "IP_BLACK"
+  | "IP_WHITE"
+  | "ACCOUNT_BLACK"
+  | "ACCOUNT_WHITE"
+  | "RATE_LIMIT"
+  | "RATE_LIMIT_GLOBAL"
+  | "API_ROUTE"
+  | "HEADER";
+
+/** 单个来源 IP 的命中次数 */
+export interface PolicyHitIp {
+  ip: string;
+  count: number;
+}
+
+/** 趋势上的一个分钟桶 */
+export interface PolicyHitTrendPoint {
+  /** Unix 分钟（epoch/60000） */
+  minute: number;
+  /** 该分钟起点毫秒时间戳 */
+  time: number;
+  count: number;
+}
+
+/** 单条策略的命中明细 */
+export interface PolicyHitDetail {
+  total: number;
+  firstTime: number | null;
+  lastTime: number | null;
+  topIps: PolicyHitIp[];
+  trend: PolicyHitTrendPoint[];
+}
+
 /* ================== 策略任务 - 热更新 ================== */
 
 /** 热重载执行结果 */

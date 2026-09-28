@@ -22,9 +22,10 @@ import type { ReStatsCardItem } from "@repo/ui/re-stats-card";
 import ReTag from "@repo/ui/components/ReTag/ReTag.vue";
 import ReInput from "@repo/ui/components/ReInput/ReInput.vue";
 import ReTab from "@repo/ui/re-tab";
+import ReTime, { formatDuration } from "@repo/ui/re-time";
 import { getServerInfo, getRestfulApiStats, getActuatorEndpoint, setActuatorLogger, getScheduleTasks, updateScheduleTask, runScheduleTask } from "../../api/systemApi";
 import type { ManagedScheduleTask } from "../../api/systemApi";
-import { createSseClient } from "@repo/utils";
+import { createSseClient, costMs } from "@repo/utils";
 import type { SseClient } from "@repo/utils";
 import type { ServerInfo, ServerMemory, MemoryPoolInfo, NetworkInterfaceInfo, RestfulApiStats, RestfulTopUrl, RestfulTopIp } from "../../api/types";
 import { useElColors, withAlpha } from "./echarts-colors";
@@ -932,7 +933,8 @@ function restfulTrendChartOpt(): Opt {
           const i = arr[0]?.dataIndex ?? 0;
           const u = top[i];
           if (!u) return "";
-          return `${u.method} ${u.url}<br/>次数 <b>${u.count ?? 0}</b> · 成功 ${u.success ?? 0} · 失败 ${u.fail ?? 0}<br/>平均 ${u.avgMs ?? 0}ms`;
+          // 平均延迟是真耗时，格式与全站其它耗时列同源（ReTime 的 formatDuration）
+          return `${u.method} ${u.url}<br/>次数 <b>${u.count ?? 0}</b> · 成功 ${u.success ?? 0} · 失败 ${u.fail ?? 0}<br/>平均 ${formatDuration(costMs(u.avgMs) ?? 0)}`;
         },
       },
       series: [{
@@ -1132,7 +1134,8 @@ const gcSummary = computed(() => {
   const list = info.value.gcCollectors ?? [];
   const count = list.reduce((s, g) => s + (g.collectionCount ?? 0), 0);
   const time = list.reduce((s, g) => s + (g.collectionTime ?? 0), 0);
-  return `共 ${count} 次 · ${time} ms`;
+  // 累计 GC 耗时是真耗时，格式与全站其它耗时展示同源
+  return `共 ${count} 次 · ${formatDuration(costMs(time) ?? 0)}`;
 });
 
 /* ============ CPU 弹窗（左概要 + 右每核实时趋势） ============ */
@@ -1269,7 +1272,7 @@ function coreRowOpt(index: number): Opt {
                   <span class="srv-restful-top__m" :class="`is-${(u.method || 'GET').toLowerCase()}`">{{ u.method }}</span>
                   <code class="srv-restful-top__u" :title="u.url">{{ u.url }}</code>
                   <b class="srv-restful-top__c">{{ u.count }}</b>
-                  <small class="srv-restful-top__ms">{{ u.avgMs }}ms</small>
+                  <small class="srv-restful-top__ms"><ReTime :value="costMs(u.avgMs)" format="duration" placeholder="—" /></small>
                   <el-tooltip
                     v-if="u.ips?.length"
                     placement="top"
@@ -1291,7 +1294,7 @@ function coreRowOpt(index: number): Opt {
                   <span class="srv-restful-top__rank" :class="{ 'is-top': idx < 3 }">{{ idx + 1 }}</span>
                   <code class="srv-restful-top__u" :title="it.topUrl || ''">{{ it.ip }}</code>
                   <b class="srv-restful-top__c">{{ it.count }}</b>
-                  <small class="srv-restful-top__ms">{{ it.avgMs }}ms</small>
+                  <small class="srv-restful-top__ms"><ReTime :value="costMs(it.avgMs)" format="duration" placeholder="—" /></small>
                 </div>
               </div>
               <p v-else class="srv-empty-inline">暂无来源 IP 统计</p>
@@ -1796,7 +1799,7 @@ function coreRowOpt(index: number): Opt {
                 <div class="act-health__card-head">
                   <span class="act-health__card-dot" />
                   <span class="act-health__card-name">{{ n.name }}</span>
-                  <ReTag :type="n.status === 'UP' ? 'success' : 'danger'" effect="light" round size="small">{{ n.status }}</ReTag>
+                  <ReTag :type="n.status === 'UP' ? 'success' : 'danger'" effect="light" round >{{ n.status }}</ReTag>
                 </div>
                 <div v-if="n.details" class="act-health__card-detail">{{ n.details }}</div>
               </div>
@@ -1832,7 +1835,7 @@ function coreRowOpt(index: number): Opt {
 
           <!-- 日志级别（可编辑 + 前端分页） -->
           <template v-else-if="actuatorTab === 'loggers'">
-            <el-table :data="pagedLoggerRows" size="small" height="400" class="act-table">
+            <el-table :data="pagedLoggerRows"  height="400" class="act-table">
               <el-table-column prop="name" label="Logger" min-width="320" show-overflow-tooltip />
               <el-table-column prop="effective" label="生效级别" width="120" align="center" />
               <el-table-column label="配置级别（可修改）" width="200" align="center">
@@ -1840,7 +1843,7 @@ function coreRowOpt(index: number): Opt {
                   <el-select
                     :model-value="row.configured || 'INHERITED'"
                     :loading="actLevelSaving === row.name"
-                    size="small"
+                    
                     style="width: 160px"
                     @change="(v: string) => changeLoggerLevel(row.name, v)"
                   >
@@ -1856,7 +1859,7 @@ function coreRowOpt(index: number): Opt {
                 :page-sizes="[20, 50, 100, 200]"
                 :total="loggerRows.length"
                 layout="total, sizes, prev, pager, next, jumper"
-                size="small"
+                
                 background
               />
             </div>
@@ -1864,7 +1867,7 @@ function coreRowOpt(index: number): Opt {
 
           <!-- 请求映射 -->
           <template v-else-if="actuatorTab === 'mappings'">
-            <el-table :data="mappingRows" size="small" height="440" class="act-table">
+            <el-table :data="mappingRows"  height="440" class="act-table">
               <el-table-column prop="predicate" label="映射条件" min-width="320" show-overflow-tooltip />
               <el-table-column prop="handler" label="处理器" min-width="220" show-overflow-tooltip />
               <el-table-column prop="count" label="请求次数" width="110" align="right" sortable>
@@ -1874,7 +1877,7 @@ function coreRowOpt(index: number): Opt {
               </el-table-column>
               <el-table-column prop="avgMs" label="平均延迟" width="110" align="right" sortable>
                 <template #default="{ row }">
-                  <span :class="{ 'act-muted': !row.count }">{{ row.count ? `${row.avgMs}ms` : "-" }}</span>
+                  <span :class="{ 'act-muted': !row.count }"><ReTime v-if="row.count" :value="costMs(row.avgMs)" format="duration" placeholder="-" /><template v-else>-</template></span>
                 </template>
               </el-table-column>
               <el-table-column prop="ips" label="访问 IP" min-width="150" show-overflow-tooltip sortable>
@@ -1888,7 +1891,7 @@ function coreRowOpt(index: number): Opt {
 
           <!-- Bean 列表 -->
           <template v-else-if="actuatorTab === 'beans'">
-            <el-table :data="beanRows" size="small" height="440" class="act-table">
+            <el-table :data="beanRows"  height="440" class="act-table">
               <el-table-column prop="name" label="Bean 名称" min-width="240" show-overflow-tooltip />
               <el-table-column prop="type" label="类型" min-width="320" show-overflow-tooltip />
               <el-table-column prop="scope" label="作用域" width="110" align="center" />
@@ -1898,10 +1901,10 @@ function coreRowOpt(index: number): Opt {
 
           <!-- 自动配置条件 -->
           <template v-else-if="actuatorTab === 'conditions'">
-            <el-table :data="conditionRows" size="small" height="440" class="act-table">
+            <el-table :data="conditionRows"  height="440" class="act-table">
               <el-table-column label="结果" width="110" align="center">
                 <template #default="{ row }">
-                  <ReTag :type="row.result === 'positive' ? 'success' : 'info'" effect="light" round size="small">
+                  <ReTag :type="row.result === 'positive' ? 'success' : 'info'" effect="light" round >
                     {{ row.result === "positive" ? "命中" : "未命中" }}
                   </ReTag>
                 </template>
@@ -1913,11 +1916,11 @@ function coreRowOpt(index: number): Opt {
 
           <!-- 线程快照 -->
           <template v-else-if="actuatorTab === 'threaddump'">
-            <el-table :data="threadRows" size="small" height="440" class="act-table">
+            <el-table :data="threadRows"  height="440" class="act-table">
               <el-table-column prop="name" label="线程" min-width="240" show-overflow-tooltip />
               <el-table-column label="状态" width="120" align="center">
                 <template #default="{ row }">
-                  <ReTag :type="threadStateType(row.state)" effect="light" round size="small">{{ row.state }}</ReTag>
+                  <ReTag :type="threadStateType(row.state)" effect="light" round >{{ row.state }}</ReTag>
                 </template>
               </el-table-column>
               <el-table-column label="守护" width="70" align="center">
@@ -1935,7 +1938,7 @@ function coreRowOpt(index: number): Opt {
 
           <!-- 配置属性 -->
           <template v-else-if="actuatorTab === 'configprops'">
-            <el-table :data="configRows" size="small" height="440" class="act-table">
+            <el-table :data="configRows"  height="440" class="act-table">
               <el-table-column prop="prefix" label="前缀" min-width="240" show-overflow-tooltip />
               <el-table-column prop="key" label="属性" min-width="260" show-overflow-tooltip />
               <el-table-column prop="value" label="值" min-width="300" show-overflow-tooltip />
@@ -1951,13 +1954,13 @@ function coreRowOpt(index: number): Opt {
                 <small v-else-if="managedError" class="is-error">{{ managedError }}</small>
                 <small v-else>共 {{ managedTasks.length }} 个</small>
               </div>
-              <el-table :data="managedTasks" size="small" class="act-table" :show-header="true">
+              <el-table :data="managedTasks"  class="act-table" :show-header="true">
                 <el-table-column prop="label" label="任务" min-width="150" show-overflow-tooltip />
                 <el-table-column label="cron 表达式" min-width="210">
                   <template #default="{ row }">
                     <ReInput
                       v-model="row.cron"
-                      size="small"
+                      
                       placeholder="如 0 * * * * ?"
                       :disabled="managedSaving === row.key"
                       @keyup.enter="saveManagedCron(row)"
@@ -1968,7 +1971,7 @@ function coreRowOpt(index: number): Opt {
                   <template #default="{ row }">
                     <el-switch
                       :model-value="!!row.enabled"
-                      size="small"
+                      
                       :loading="managedSaving === row.key"
                       @change="(v: boolean | string | number) => toggleManagedTask(row, !!v)"
                     />
@@ -1982,7 +1985,7 @@ function coreRowOpt(index: number): Opt {
                       :type="String(row.lastStatus || '').startsWith('FAILED') ? 'danger' : row.lastStatus === 'SUCCESS' ? 'success' : 'info'"
                       effect="light"
                       round
-                      size="small"
+                      
                     >
                       {{ row.lastStatus || "-" }}
                     </ReTag>
@@ -1990,8 +1993,8 @@ function coreRowOpt(index: number): Opt {
                 </el-table-column>
                 <el-table-column label="操作" width="150" align="center" fixed="right">
                   <template #default="{ row }">
-                    <el-button link type="primary" size="small" :disabled="managedSaving === row.key" @click="saveManagedCron(row)">保存</el-button>
-                    <el-button link type="warning" size="small" :disabled="managedSaving === row.key" @click="runManagedTask(row)">执行一次</el-button>
+                    <el-button link type="primary"  :disabled="managedSaving === row.key" @click="saveManagedCron(row)">保存</el-button>
+                    <el-button link type="warning"  :disabled="managedSaving === row.key" @click="runManagedTask(row)">执行一次</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -2000,14 +2003,14 @@ function coreRowOpt(index: number): Opt {
               <span>Actuator 只读任务（Spring 托管）</span>
               <small>共 {{ scheduledRows.length }} 个</small>
             </div>
-            <el-table :data="scheduledRows" size="small" max-height="260" class="act-table">
+            <el-table :data="scheduledRows"  max-height="260" class="act-table">
               <el-table-column prop="type" label="类型" width="120" align="center" />
               <el-table-column prop="target" label="任务" min-width="300" show-overflow-tooltip />
               <el-table-column prop="expr" label="表达式 / 间隔" min-width="160" />
               <el-table-column prop="next" label="下次执行" min-width="220" show-overflow-tooltip />
               <el-table-column prop="lastStatus" label="上次状态" width="110" align="center">
                 <template #default="{ row }">
-                  <ReTag :type="row.lastStatus === 'SUCCESS' ? 'success' : 'info'" effect="light" round size="small">
+                  <ReTag :type="row.lastStatus === 'SUCCESS' ? 'success' : 'info'" effect="light" round >
                     {{ row.lastStatus }}
                   </ReTag>
                 </template>
@@ -2400,6 +2403,16 @@ function coreRowOpt(index: number): Opt {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   min-width: 40px;
+  text-align: right;
+  /* ReTime 根节点是 inline-flex + column，文字不跟 text-align 走，
+     改用 flex 自身右对齐（配合下面的 :deep），否则数值贴左、与右侧 IP 列错位 */
+  display: inline-flex;
+  justify-content: flex-end;
+}
+/* ReTime 内层 .re-time__main 自带 --el-text-color-primary，会盖掉上面徽标的
+   secondary 灰。scoped 样式穿不进子组件内部，必须用 :deep 显式压回灰色 */
+.srv-restful-top__ms :deep(.re-time__main) {
+  color: var(--el-text-color-secondary);
   text-align: right;
 }
 .srv-restful-top__ip {

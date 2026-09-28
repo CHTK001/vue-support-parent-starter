@@ -151,8 +151,9 @@ export default {
 .panel-label-bar {
   width: 3px;
   height: 14px;
-  border-radius: 2px;
-  background: var(--color-primary);
+  /* 原值 2px → xs 档 */
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-color-primary);
 }
 .panel-count {
   display: inline-flex;
@@ -161,11 +162,12 @@ export default {
   min-width: 20px;
   height: 18px;
   padding: 0 6px;
-  border-radius: 9px;
+  /* 原值 9px，18px 高的计数胶囊；用 full 令牌表达同一种形状 */
+  border-radius: var(--el-radius-full, 9999px);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-gray);
-  background: var(--color-surface-border);
+  color: var(--el-text-color-secondary);
+  background: var(--el-border-color-lighter);
 }
 
 .provider-grid {
@@ -179,15 +181,17 @@ export default {
   display: flex;
   flex-direction: column;
   padding: 18px;
-  border-radius: var(--size-surface-radius);
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  /* 原值 var(--size-surface-radius)（=20px）→ xl 档 */
+  border-radius: var(--el-radius-xl, 16px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
+/* 卡片本体不加投影；仅保留悬浮浮起反馈这一类 */
 .provider-card:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-surface-border));
-  box-shadow: 0 14px 30px -16px color-mix(in srgb, var(--color-text) 35%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--el-border-color-lighter));
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .pc-head {
@@ -203,11 +207,12 @@ export default {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  /* 原值 14px → lg 档（距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 .pc-logo.muted {
-  background: var(--color-surface-border);
+  background: var(--el-border-color-lighter);
 }
 .pc-id { min-width: 0; flex: 1; }
 .pc-name {
@@ -318,5 +323,32 @@ export default {
   text-align: center;
   font-size: 13px;
   color: var(--color-text-disabled);
+}
+
+/* 动效降级：系统开启「减少动态效果」时，供应商卡的描边/投影/底色、工具区显隐、
+   图标按钮与「进入」文字色全部改为瞬间切换。逐个列出，不写 `*` / .provider-card * 通配，
+   避免把卡内 el-tag / el-dropdown 内部 Element Plus 组件的合法过渡一起掐掉。
+   这些都只带 transition（无 animation），hover 态都是静态声明，照常成立。 */
+@media (prefers-reduced-motion: reduce) {
+  .provider-card,
+  .pc-tools,
+  .pc-icon,
+  .pc-enter {
+    transition: none;
+  }
+}
+
+/* 键盘焦点可见性：供应商卡是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
+   指针样式原有 cursor: pointer 已在上面声明，不重复写。
+   环用主色 12% —— 卡底色是令牌化的 --el-bg-color，一档主色描边足够可见。
+   注意 .pc-tools 平时是 opacity: 0、只在 .provider-card:hover 时显形，
+   键盘用户看不到里面的操作按钮；补 tabindex 时需要一并处理显隐，
+   本次授权仅限 style 块、不改模板，故此处只报告不改。 */
+.provider-card {
+  outline: none;
+}
+
+.provider-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 </style>

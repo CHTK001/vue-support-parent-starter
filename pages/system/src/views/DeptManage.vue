@@ -301,7 +301,7 @@ onMounted(loadList);
             layout="square"
             icon="Plus"
             type="primary"
-            title="新增顶级机构"
+            tip="新增顶级机构"
             v-admin
             @click="handleAdd()"
           />
@@ -351,7 +351,7 @@ onMounted(loadList);
               />
               <span class="dept-card__name">{{ row.node.sysDeptName }}</span>
               <ReTag
-                size="small"
+                
                 effect="light"
                 round
                 :type="row.node.sysDeptStatus === 0 ? 'success' : 'danger'"
@@ -369,7 +369,17 @@ onMounted(loadList);
               </button>
             </div>
           </div>
-          <ElEmpty v-if="!deptCardRows.length" description="暂无机构" :image-size="48" />
+          <!-- 卡片模式空态：可操作，不让用户对着一句「暂无机构」发呆 -->
+          <div v-if="!deptCardRows.length && !loading" class="page-empty">
+            <span class="page-empty__icon">
+              <ReIcon name="OfficeBuilding" size="22" />
+            </span>
+            <span class="page-empty__title">还没有机构</span>
+            <span class="page-empty__desc">机构是用户与数据权限的挂载点，先建一个顶级机构再往下挂子级。</span>
+            <span class="page-empty__actions">
+              <ReButton type="primary" icon="Plus" v-admin @click="handleAdd()">新增顶级机构</ReButton>
+            </span>
+          </div>
         </div>
 
         <ElTree
@@ -391,9 +401,9 @@ onMounted(loadList);
               <ReIcon :name="data.sysDeptIcon || 'OfficeBuilding'" size="14" color="var(--el-color-primary)" />
               <span class="node-label">{{ data.sysDeptName }}</span>
               <ReTag
-                size="small"
-                :type="data.sysDeptStatus === 0 ? 'success' : 'danger'"
                 effect="plain"
+                dot
+                :type="data.sysDeptStatus === 0 ? 'success' : 'danger'"
               >
                 {{ data.sysDeptStatus === 0 ? "启用" : "禁用" }}
               </ReTag>
@@ -415,13 +425,13 @@ onMounted(loadList);
             </div>
           </div>
           <div class="dept-detail-actions">
-            <ReButton layout="square" icon="Plus" type="primary" title="新增下级" v-admin @click="handleAdd(currentDept)" />
-            <ReButton layout="square" icon="Edit" type="primary" title="编辑" v-admin @click="handleEdit" />
+            <ReButton layout="square" icon="Plus" type="primary" tip="新增下级" v-admin @click="handleAdd(currentDept)" />
+            <ReButton layout="square" icon="Edit" type="primary" tip="编辑" v-admin @click="handleEdit" />
             <ReButton
               layout="square"
               icon="Delete"
               type="danger"
-              title="删除"
+              tip="删除"
               v-admin
               :loading="deleteLoading === currentDept.sysDeptId"
               @click="handleDelete"
@@ -439,7 +449,7 @@ onMounted(loadList);
           <ElDescriptionsItem label="联系方式">{{ currentDept.sysDeptContact || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="排序">{{ currentDept.sysDeptSort ?? 0 }}</ElDescriptionsItem>
           <ElDescriptionsItem label="状态">
-            <ReTag :type="currentDept.sysDeptStatus === 0 ? 'success' : 'danger'" size="small">
+            <ReTag :type="currentDept.sysDeptStatus === 0 ? 'success' : 'danger'" >
               {{ currentDept.sysDeptStatus === 0 ? "启用" : "禁用" }}
             </ReTag>
           </ElDescriptionsItem>
@@ -454,16 +464,16 @@ onMounted(loadList);
             <ElIcon><User /></ElIcon>
             <span>机构用户（{{ deptUsers.length }}）</span>
           </div>
-          <el-table v-loading="deptUsersLoading" :data="deptUsers" stripe size="small" style="width: 100%" height="260">
+          <el-table v-loading="deptUsersLoading" :data="deptUsers" stripe  style="width: 100%" height="260">
             <el-table-column type="index" label="#" width="50" align="center" />
             <el-table-column prop="sysUserUsername" label="账号" min-width="120" show-overflow-tooltip />
             <el-table-column prop="sysUserNickname" label="昵称" min-width="120" show-overflow-tooltip />
             <el-table-column prop="sysUserPhone" label="手机号" min-width="120" />
             <el-table-column label="状态" width="70" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" size="small" effect="plain">
+                <ReTag :type="row.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain" dot>
                   {{ row.sysUserStatus === 1 ? '启用' : '禁用' }}
-                </el-tag>
+                </ReTag>
               </template>
             </el-table-column>
           </el-table>
@@ -565,11 +575,15 @@ onMounted(loadList);
   width: 320px;
   flex-shrink: 0;
   background: var(--el-bg-color);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dept-tree-card:focus-within {
+  border-color: var(--el-color-primary-light-5);
 }
 .dept-tree-header {
   display: flex;
@@ -607,10 +621,15 @@ onMounted(loadList);
 }
 .dept-detail-card {
   flex: 1;
+  min-width: 0;
   background: var(--el-bg-color);
-  border-radius: 8px;
+  border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter);
   overflow: auto;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.dept-detail-card:focus-within {
+  border-color: var(--el-color-primary-light-5);
 }
 .dept-detail-header {
   display: flex;
@@ -647,7 +666,7 @@ onMounted(loadList);
 :deep(.el-dialog .el-textarea__inner) {
   box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
   background-color: var(--el-fill-color-blank);
-  border-radius: 4px;
+  border-radius: var(--el-radius-xs, 4px);
 }
 :deep(.el-dialog .el-select .el-input__wrapper:hover),
 :deep(.el-dialog .el-tree-select .el-input__wrapper:hover),
@@ -718,44 +737,55 @@ onMounted(loadList);
   border-top: 1px dashed var(--el-border-color);
 }
 
-/* 机构卡片 */
+/* 机构卡片：koi 规约「卡片无投影」，用边框与底色表达层级，不用 box-shadow */
 .dept-card {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   max-width: 100%;
+  min-height: 40px;
   padding: 9px 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-lighter);
   cursor: pointer;
+  outline: none;
   transition:
-    border-color var(--el-transition-duration, 0.2s) ease,
-    background-color var(--el-transition-duration, 0.2s) ease,
-    box-shadow var(--el-transition-duration, 0.2s) ease;
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .dept-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: var(--el-box-shadow-light);
+  background: var(--el-color-primary-light-9);
 }
+.dept-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* 选中态与字典分类面板保持同一套语言：主色描边 + light-9 底 + 左侧强调条 */
 .dept-card.is-active {
-  border-color: transparent;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary),
-    var(--el-color-primary-light-3)
-  );
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.dept-card.is-active::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary);
 }
 
 .dept-card__icon {
   flex: none;
-  color: var(--el-color-primary);
+  color: var(--el-text-color-secondary);
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 }
+.dept-card:hover .dept-card__icon,
 .dept-card.is-active .dept-card__icon {
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
 }
 
 .dept-card__name {
@@ -767,13 +797,7 @@ onMounted(loadList);
   white-space: nowrap;
 }
 .dept-card.is-active .dept-card__name {
-  color: var(--el-color-white);
-}
-
-.dept-card.is-active :deep(.el-tag) {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--el-color-white) 24%, transparent);
-  color: var(--el-color-white);
+  color: var(--el-color-primary);
 }
 
 .dept-card__toggle {
@@ -789,13 +813,24 @@ onMounted(loadList);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s) ease;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .dept-card__toggle:hover {
   color: var(--el-color-primary);
 }
 .dept-card.is-active .dept-card__toggle {
-  background: color-mix(in srgb, var(--el-color-white) 24%, transparent);
-  color: var(--el-color-white);
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  color: var(--el-color-primary);
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .dept-card,
+  .dept-card__icon,
+  .dept-card__toggle,
+  .dept-tree-card,
+  .dept-detail-card {
+    transition: none;
+  }
 }
 </style>

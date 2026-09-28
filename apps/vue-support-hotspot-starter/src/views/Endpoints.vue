@@ -8,14 +8,14 @@
           v-model="keyword"
           placeholder="过滤端点名称…"
           clearable
-          size="small"
+
           class="filter-input"
           prefix-icon="Search"
         />
         <span class="match-hint" v-if="keyword">命中 {{ filteredItems.length }} / {{ items.length }}</span>
       </div>
       <div class="toolbar-right">
-        <ReButton icon="Refresh" show-text size="small" round :loading="loading" @click="load">刷新</ReButton>
+        <ReButton icon="Refresh" show-text round :loading="loading" @click="load">刷新</ReButton>
       </div>
     </div>
 
@@ -73,7 +73,7 @@
           <span class="muted mono">{{ row.callCount.toLocaleString() }}</span>
         </template>
         <template #col-errorCount="{ row }">
-          <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" size="small" round>
+          <ReTag v-if="(row as unknown as ApmEndpoint).errorCount > 0" type="danger" round>
             {{ (row as unknown as ApmEndpoint).errorCount }}
           </ReTag>
           <span v-else class="muted mono">0</span>
@@ -405,22 +405,22 @@ onBeforeUnmount(() => {
 }
 
 .stat-row :deep(.re-stat-card) {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px，取最近档 lg */
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__title) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__value) {
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-row :deep(.re-stat-card .re-stat-card__desc) {
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -430,22 +430,23 @@ onBeforeUnmount(() => {
 .table-panel {
   background: var(--apm-panel);
   border: 1px solid var(--apm-border);
-  border-radius: 14px;
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 8px;
 }
 
 .table-panel :deep(.el-table) {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.04);
+  --el-table-row-hover-bg-color: var(--el-fill-color-light);
   --el-table-border-color: var(--apm-border);
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.03);
+  --el-table-header-bg-color: var(--el-fill-color-lighter);
   --el-table-text-color: var(--apm-fg);
   --el-table-header-text-color: var(--apm-muted);
 }
 
+/* 选中行：主色淡底，与 hover 底色区分开 */
 .table-panel :deep(.el-table__row.selected td) {
-  background: rgba(59, 130, 246, 0.08) !important;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
 }
 
 .endpoint-text {
@@ -471,9 +472,9 @@ onBeforeUnmount(() => {
 
 /* 耗时分布面板 */
 .panel {
-  background: var(--apm-panel, #131a2b);
-  border: 1px solid var(--apm-border, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: var(--apm-panel);
+  border: 1px solid var(--apm-border);
+  border-radius: var(--el-radius-lg, 12px); /* 原 14px */
   padding: 16px;
 }
 
@@ -484,12 +485,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: var(--apm-fg, #e6edf7);
+  color: var(--apm-fg);
 }
 
 .panel-sub {
   font-size: 12px;
-  color: var(--apm-muted, rgba(230, 237, 247, 0.55));
+  color: var(--apm-muted);
   font-weight: 400;
 }
 
@@ -508,16 +509,16 @@ onBeforeUnmount(() => {
 .call-share-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
+  background: var(--el-fill-color);
+  border-radius: var(--el-radius-xs, 4px); /* 原 3px，取最近档 xs */
   overflow: hidden;
 }
 
 .call-share-fill {
   height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-  transition: width 0.3s ease;
+  border-radius: var(--el-radius-xs, 4px); /* 原 3px */
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-5));
+  transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .call-share-label {
@@ -537,6 +538,18 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .stat-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .call-share-fill {
+    transition: none;
+  }
+  .view :deep(.el-skeleton__item),
+  .view :deep(.el-loading-spinner) {
+    animation: none;
+    transition: none;
   }
 }
 </style>
