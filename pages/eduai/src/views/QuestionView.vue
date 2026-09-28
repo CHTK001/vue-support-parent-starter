@@ -272,7 +272,7 @@
           </div>
           <div class="form-grid form-grid--2">
             <el-form-item label="题型" required>
-              <el-select v-model="form.questionType" style="width: 100%">
+              <el-select v-model="form.questionType" placeholder="选择题型" style="width: 100%">
                 <el-option
                   v-for="t in QUESTION_TYPES"
                   :key="t.value"
@@ -319,19 +319,18 @@
           </div>
           <div class="form-grid form-grid--2">
             <el-form-item label="学段">
-              <el-select v-model="form.questionGradeLevel" style="width: 100%" @change="onGradeLevelChange">
+              <el-select
+                v-model="form.questionGradeLevel"
+                placeholder="选择学段"
+                style="width: 100%"
+                @change="onGradeLevelChange"
+              >
                 <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
               </el-select>
             </el-form-item>
             <el-form-item label="年级" required>
-              <el-select
-                v-model="form.questionGrade"
-                filterable
-                allow-create
-                default-first-option
-                placeholder="选择年级"
-                style="width: 100%"
-              >
+              <!-- 纯选择：学段+年级都有完整词表（4 学段 / 16 年级），不允许自由输入 -->
+              <el-select v-model="form.questionGrade" placeholder="选择年级" style="width: 100%">
                 <el-option
                   v-for="g in gradeMetaOptions"
                   :key="g.gradeName"
@@ -846,7 +845,14 @@ const gradeMeta = ref<EduGrade[]>([]);
 
 const gradeMetaOptions = computed(() => {
   const level = form.questionGradeLevel || "";
-  const list = gradeMeta.value.filter((g) => !level || !g.gradeLevel || g.gradeLevel === level);
+  /*
+    码值必须先转成 label 再比对：
+    form.questionGradeLevel 存的是码值（PRIMARY/JUNIOR/…），
+    而后端 gradeMeta[].gradeLevel 返回的是中文（小学/初中/…）。
+    直接拿码值比中文永远不命中，会让年级下拉列出全部 16 项、学段筛选形同失效。
+  */
+  const levelName = level ? (GRADE_LEVELS.find((lv) => lv.code === level)?.label ?? level) : "";
+  const list = gradeMeta.value.filter((g) => !levelName || !g.gradeLevel || g.gradeLevel === levelName);
   if (!list.length) return gradeMeta.value;
   return list;
 });
@@ -1018,9 +1024,11 @@ async function hydrateKnowledge(idsStr?: string) {
 const reset = () => {
   Object.assign(form, {
     questionId: undefined,
-    questionType: "SINGLE_CHOICE",
+    // 不预设题型/学段：留空才能显示 placeholder「选择题型」「选择学段」，
+    // 也让用户明确做一次选择；题型为空时选项设置区自然隐藏。
+    questionType: "",
     questionSubject: applied.subject || "",
-    questionGradeLevel: "PRIMARY",
+    questionGradeLevel: "",
     questionGrade: "",
     questionScore: 5,
     questionDifficulty: 3,
