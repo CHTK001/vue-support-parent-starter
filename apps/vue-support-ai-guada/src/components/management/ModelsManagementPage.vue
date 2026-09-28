@@ -266,12 +266,6 @@ const defaultForm = () => ({
   frequencyPenalty: undefined as number | undefined,
   modelSort: 0,
   modelEnabled: true,
-  // 采样参数：未填写时保持 null，提交时后端按「未传」处理
-  contextWindow: null as number | null,
-  maxTokens: null as number | null,
-  temperature: null as number | null,
-  topP: null as number | null,
-  frequencyPenalty: null as number | null,
 });
 
 const form = ref(defaultForm());

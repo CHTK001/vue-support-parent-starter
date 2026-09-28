@@ -624,12 +624,21 @@ onMounted(load);
               <ReButton icon="View" :show-text="true" type="primary" @click="openManager(current)">打开管理</ReButton>
             </template>
             <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
-                <ReButton icon="MoreFilled" :show-text="false">更多</ReButton>
+                <!-- 触发器刻意用裸 el-button 而非 ReButton：
+                     ReButton 在 icon + show-text=false 时内部再包一层 ElTooltip，
+                     而 ElDropdown 自身也用 ElOnlyChild 克隆子节点挂 click 监听，
+                     两层 OnlyChild 嵌套会互相干扰，导致下拉点不开。 -->
+                <el-button class="ds-head__more" text aria-label="更多">
+                  <ReIcon name="MoreFilled" :size="16" />
+                </el-button>
                 <template #dropdown>
                   <ElDropdownMenu>
-                    <ElDropdownItem v-if="current?.type === 'jdbc'" command="schema"><ReIcon name="Grid" />浏览表结构</ElDropdownItem>
-                    <ElDropdownItem command="edit" :divided="current?.type === 'jdbc'"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
-                    <ElDropdownItem command="delete" divided style="color: var(--el-color-danger)"><ReIcon name="Delete" />删除数据源</ElDropdownItem>
+                    <ElDropdownItem command="refresh"><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
+                    <template v-if="current">
+                      <ElDropdownItem v-if="current.type === 'jdbc'" command="schema" divided><ReIcon name="Grid" />浏览表结构</ElDropdownItem>
+                      <ElDropdownItem command="edit"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
+                      <ElDropdownItem command="delete" divided style="color: var(--el-color-danger)"><ReIcon name="Delete" />删除数据源</ElDropdownItem>
+                    </template>
                   </ElDropdownMenu>
                 </template>
             </ElDropdown>
@@ -1088,6 +1097,18 @@ onMounted(load);
 }
 .ds-head :deep(.ds-head__search) {
   width: 220px;
+}
+
+/* 「更多」触发器：与相邻按钮同规格（32px 高、无内边距） */
+.ds-head__more {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  color: var(--el-text-color-regular);
+}
+.ds-head__more:hover {
+  color: var(--el-color-primary);
 }
 .ds-detail__name {
   margin: 0;

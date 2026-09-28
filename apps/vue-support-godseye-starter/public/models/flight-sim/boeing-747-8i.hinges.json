@@ -1,0 +1,644 @@
+{
+  "model": "boeing-747-8i.glb",
+  "generatedBy": "scripts/extract-hinges.mjs",
+  "note": "Node transforms in this asset are identity and geometry is baked in aircraft space, so every control surface must be rotated about the hinge below rather than about the model origin.",
+  "convention": {
+    "nose": "-X",
+    "up": "+Y",
+    "starboard": "+Z"
+  },
+  "hinges": {
+    "aileron_int_L": {
+      "axis": "z",
+      "hinge": [
+        6.2844,
+        -0.0033,
+        11.9711
+      ]
+    },
+    "aileron_int_R": {
+      "axis": "z",
+      "hinge": [
+        6.2844,
+        -0.0033,
+        -11.9711
+      ]
+    },
+    "aileron_L": {
+      "axis": "z",
+      "hinge": [
+        12.0566,
+        1.1823,
+        24.6951
+      ]
+    },
+    "aileron_R": {
+      "axis": "z",
+      "hinge": [
+        12.0783,
+        1.1823,
+        -24.6952
+      ]
+    },
+    "blades_1": {
+      "axis": "x",
+      "hinge": [
+        2.6604,
+        -1.3096,
+        21.0711
+      ]
+    },
+    "blades_2": {
+      "axis": "x",
+      "hinge": [
+        -5.9809,
+        -2.4895,
+        11.9066
+      ]
+    },
+    "blades_3": {
+      "axis": "x",
+      "hinge": [
+        -5.9809,
+        -2.4895,
+        -11.9066
+      ]
+    },
+    "blades_4": {
+      "axis": "x",
+      "hinge": [
+        2.6604,
+        -1.3096,
+        -21.071
+      ]
+    },
+    "doubleflaps_1_L": {
+      "axis": "z",
+      "hinge": [
+        -0.3514,
+        -0.3899,
+        7.2203
+      ]
+    },
+    "doubleflaps_1_R": {
+      "axis": "z",
+      "hinge": [
+        -0.3514,
+        -0.3899,
+        -7.2203
+      ]
+    },
+    "doubleflaps_2_L": {
+      "axis": "z",
+      "hinge": [
+        2.6985,
+        -0.5328,
+        7.1805
+      ]
+    },
+    "doubleflaps_2_R": {
+      "axis": "z",
+      "hinge": [
+        2.6985,
+        -0.5328,
+        -7.1805
+      ]
+    },
+    "elevator_left": {
+      "axis": "z",
+      "hinge": [
+        36.3969,
+        2.7334,
+        4.9367
+      ]
+    },
+    "elevator_left.001": {
+      "axis": "z",
+      "hinge": [
+        36.3969,
+        2.7334,
+        4.9367
+      ]
+    },
+    "elevator_right": {
+      "axis": "z",
+      "hinge": [
+        36.3969,
+        2.7334,
+        -4.9199
+      ]
+    },
+    "elevator_right.001": {
+      "axis": "z",
+      "hinge": [
+        36.3969,
+        2.7334,
+        -4.9199
+      ]
+    },
+    "external_flap_L": {
+      "axis": "z",
+      "hinge": [
+        6.4273,
+        0.4736,
+        16.8865
+      ]
+    },
+    "external_flap_R": {
+      "axis": "z",
+      "hinge": [
+        6.4273,
+        0.4736,
+        -16.8866
+      ]
+    },
+    "flap_compart_LB_1": {
+      "axis": "z",
+      "hinge": [
+        2.7904,
+        -1.4143,
+        6.0153
+      ]
+    },
+    "flap_compart_LB_2": {
+      "axis": "z",
+      "hinge": [
+        3.7102,
+        -1.3767,
+        8.7986
+      ]
+    },
+    "flap_compart_LB_3": {
+      "axis": "z",
+      "hinge": [
+        6.9193,
+        -0.357,
+        14.9443
+      ]
+    },
+    "flap_compart_LB_4": {
+      "axis": "z",
+      "hinge": [
+        9.1789,
+        0.1347,
+        18.3659
+      ]
+    },
+    "flap_compart_LF_1": {
+      "axis": "z",
+      "hinge": [
+        -1.1656,
+        -1.3941,
+        6.0097
+      ]
+    },
+    "flap_compart_LF_2": {
+      "axis": "z",
+      "hinge": [
+        -0.0648,
+        -1.3565,
+        8.7928
+      ]
+    },
+    "flap_compart_LF_3": {
+      "axis": "z",
+      "hinge": [
+        5.7033,
+        -0.3519,
+        14.9505
+      ]
+    },
+    "flap_compart_LF_4": {
+      "axis": "z",
+      "hinge": [
+        7.6019,
+        0.1349,
+        18.3656
+      ]
+    },
+    "flap_compart_RB_1": {
+      "axis": "z",
+      "hinge": [
+        2.7904,
+        -1.4143,
+        -6.0153
+      ]
+    },
+    "flap_compart_RB_2": {
+      "axis": "z",
+      "hinge": [
+        3.7102,
+        -1.3767,
+        -8.7987
+      ]
+    },
+    "flap_compart_RB_3": {
+      "axis": "z",
+      "hinge": [
+        6.9193,
+        -0.357,
+        -14.9443
+      ]
+    },
+    "flap_compart_RB_4": {
+      "axis": "z",
+      "hinge": [
+        9.1789,
+        0.1347,
+        -18.3659
+      ]
+    },
+    "flap_compart_RF_1": {
+      "axis": "z",
+      "hinge": [
+        -1.1656,
+        -1.3941,
+        -6.0097
+      ]
+    },
+    "flap_compart_RF_2": {
+      "axis": "z",
+      "hinge": [
+        -0.0648,
+        -1.3565,
+        -8.7928
+      ]
+    },
+    "flap_compart_RF_3": {
+      "axis": "z",
+      "hinge": [
+        5.7033,
+        -0.3519,
+        -14.9505
+      ]
+    },
+    "flap_compart_RF_4": {
+      "axis": "z",
+      "hinge": [
+        7.6019,
+        0.1349,
+        -18.3656
+      ]
+    },
+    "FLG_FL_in": {
+      "axis": "z",
+      "hinge": [
+        1.2093,
+        -2.7913,
+        1.1092
+      ]
+    },
+    "FLG_FL_in.in": {
+      "axis": "z",
+      "hinge": [
+        1.2093,
+        -2.7913,
+        1.1092
+      ]
+    },
+    "FLG_FL_out": {
+      "axis": "z",
+      "hinge": [
+        1.2148,
+        -2.3993,
+        2.4777
+      ]
+    },
+    "FLG_FL_out.in": {
+      "axis": "z",
+      "hinge": [
+        1.2148,
+        -2.3993,
+        2.4777
+      ]
+    },
+    "FLG_FR_in": {
+      "axis": "z",
+      "hinge": [
+        1.2093,
+        -2.7913,
+        -1.1092
+      ]
+    },
+    "FLG_FR_in.in": {
+      "axis": "z",
+      "hinge": [
+        1.2093,
+        -2.7913,
+        -1.1092
+      ]
+    },
+    "FLG_FR_out": {
+      "axis": "z",
+      "hinge": [
+        1.2148,
+        -2.3992,
+        -2.4777
+      ]
+    },
+    "FLG_FR_out.in": {
+      "axis": "z",
+      "hinge": [
+        1.2148,
+        -2.3992,
+        -2.4777
+      ]
+    },
+    "FLG_ML_in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.7913,
+        1.4481
+      ]
+    },
+    "FLG_ML_in.in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.7913,
+        1.4481
+      ]
+    },
+    "FLG_ML_out": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.6214,
+        2.3515
+      ]
+    },
+    "FLG_ML_out.in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.6214,
+        2.3515
+      ]
+    },
+    "FLG_MR_in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.7913,
+        -1.448
+      ]
+    },
+    "FLG_MR_in.in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.7913,
+        -1.448
+      ]
+    },
+    "FLG_MR_out": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.6214,
+        -2.3515
+      ]
+    },
+    "FLG_MR_out.in": {
+      "axis": "z",
+      "hinge": [
+        3.6438,
+        -2.6214,
+        -2.3515
+      ]
+    },
+    "FLG_RL_in": {
+      "axis": "z",
+      "hinge": [
+        4.8524,
+        -2.7913,
+        1.1092
+      ]
+    },
+    "FLG_RL_in.in": {
+      "axis": "z",
+      "hinge": [
+        4.8524,
+        -2.7913,
+        1.1092
+      ]
+    },
+    "FLG_RL_out": {
+      "axis": "z",
+      "hinge": [
+        5.461,
+        -2.6214,
+        2.3515
+      ]
+    },
+    "FLG_RL_out.in": {
+      "axis": "z",
+      "hinge": [
+        5.461,
+        -2.6214,
+        2.3515
+      ]
+    },
+    "FLG_RR_in": {
+      "axis": "z",
+      "hinge": [
+        4.8524,
+        -2.7913,
+        -1.1092
+      ]
+    },
+    "FLG_RR_in.in": {
+      "axis": "z",
+      "hinge": [
+        4.8524,
+        -2.7913,
+        -1.1092
+      ]
+    },
+    "FLG_RR_out": {
+      "axis": "z",
+      "hinge": [
+        5.461,
+        -2.6214,
+        -2.3515
+      ]
+    },
+    "FLG_RR_out.in": {
+      "axis": "z",
+      "hinge": [
+        5.461,
+        -2.6214,
+        -2.3515
+      ]
+    },
+    "NLG_L_lg": {
+      "axis": "z",
+      "hinge": [
+        -28.6648,
+        -1.5001,
+        0.44
+      ]
+    },
+    "NLG_L_lg.in": {
+      "axis": "z",
+      "hinge": [
+        -28.6648,
+        -1.5001,
+        0.44
+      ]
+    },
+    "NLG_L_sm": {
+      "axis": "z",
+      "hinge": [
+        -26.3554,
+        -2.3851,
+        0.2875
+      ]
+    },
+    "NLG_L_sm.in": {
+      "axis": "z",
+      "hinge": [
+        -26.3554,
+        -2.3851,
+        0.2875
+      ]
+    },
+    "NLG_R_lg": {
+      "axis": "z",
+      "hinge": [
+        -28.6648,
+        -1.4974,
+        -0.44
+      ]
+    },
+    "NLG_R_lg.in": {
+      "axis": "z",
+      "hinge": [
+        -28.6648,
+        -1.4974,
+        -0.44
+      ]
+    },
+    "NLG_R_sm": {
+      "axis": "z",
+      "hinge": [
+        -26.3554,
+        -2.3846,
+        -0.2875
+      ]
+    },
+    "NLG_R_sm.in": {
+      "axis": "z",
+      "hinge": [
+        -26.3554,
+        -2.3846,
+        -0.2875
+      ]
+    },
+    "rudder_1": {
+      "axis": "y",
+      "hinge": [
+        34.7124,
+        8.8874,
+        0.0016
+      ]
+    },
+    "speedbrake_1_L": {
+      "axis": "z",
+      "hinge": [
+        3.0804,
+        -0.195,
+        7.2256
+      ]
+    },
+    "speedbrake_1_R": {
+      "axis": "z",
+      "hinge": [
+        3.0804,
+        -0.195,
+        -7.2256
+      ]
+    },
+    "speedbrake_2_L": {
+      "axis": "z",
+      "hinge": [
+        3.783,
+        -0.0194,
+        9.3808
+      ]
+    },
+    "speedbrake_2_R": {
+      "axis": "z",
+      "hinge": [
+        3.783,
+        -0.0194,
+        -9.3808
+      ]
+    },
+    "speedbrake_3_L": {
+      "axis": "z",
+      "hinge": [
+        6.2957,
+        0.4349,
+        14.2436
+      ]
+    },
+    "speedbrake_3_R": {
+      "axis": "z",
+      "hinge": [
+        6.2957,
+        0.4349,
+        -14.2436
+      ]
+    },
+    "speedbrake_4_L": {
+      "axis": "z",
+      "hinge": [
+        7.3492,
+        0.586,
+        15.8415
+      ]
+    },
+    "speedbrake_4_R": {
+      "axis": "z",
+      "hinge": [
+        7.3492,
+        0.586,
+        -15.8416
+      ]
+    },
+    "speedbrake_5_L": {
+      "axis": "z",
+      "hinge": [
+        8.4207,
+        0.7313,
+        17.4486
+      ]
+    },
+    "speedbrake_5_R": {
+      "axis": "z",
+      "hinge": [
+        8.4207,
+        0.7314,
+        -17.4487
+      ]
+    },
+    "speedbrake_6_L": {
+      "axis": "z",
+      "hinge": [
+        9.4918,
+        0.8695,
+        19.054
+      ]
+    },
+    "speedbrake_6_R": {
+      "axis": "z",
+      "hinge": [
+        9.4918,
+        0.8695,
+        -19.0541
+      ]
+    }
+  }
+}

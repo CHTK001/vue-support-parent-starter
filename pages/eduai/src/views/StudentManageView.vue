@@ -652,6 +652,21 @@ onMounted(() => {
 }
 .table-card {
   border-radius: 14px;
+  /*
+   * 关键：.page-container 是 flex 纵列，子项默认 flex-shrink:1。
+   * 窗口变矮时这张卡片会被压缩，而 el-table 的空态块是 position:absolute，
+   * 被压到极小后就被 overflow 裁掉，只剩截图里那一条细缝。
+   * 禁止收缩后，内容超出时改为由外层布局滚动（布局内容区本身是 overflow-y:auto）。
+   */
+  flex-shrink: 0;
+}
+
+/*
+ * 空态兜底下限：即使卡片被别的容器压到很矮，也保证「暂无数据」有可读高度，
+ * 不会退化成一条细缝。Element Plus 默认只有 60px。
+ */
+.table-card :deep(.el-table__empty-block) {
+  min-height: 180px;
 }
 .filter-row {
   display: flex;
