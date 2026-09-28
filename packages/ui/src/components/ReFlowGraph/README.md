@@ -1,14 +1,43 @@
 # ReFlowGraph 流程设计器组件（基于 AntV X6）
 
-面向"设计器"而非"查看器"的流程编排组件，交互对齐 spider-flow 的编辑器：
-小图标节点 + 下方标签 + 正交彩色连线，节点/连线的业务参数全部由页面通过插槽提供，
+面向"设计器"而非"查看器"的流程编排组件，交互对齐
+[X6 官方 DAG 实践](https://x6.antv.antgroup.com/examples/showcase/practices/#dag)：
+180×36 横向卡片节点 + 正交彩色连线，节点/连线的业务参数全部由页面通过插槽提供，
 组件本身不认识任何业务字段。
 
 - 内核：`FlowGraphEngine`（`internals/engine.ts`），封装 `@antv/x6` 及其 snapline / selection /
   keyboard / clipboard / history / minimap / export 插件。
-- 图形：`internals/shapes.ts` 只注册两个通用图形（`flow-node` / `flow-edge`），
-  业务类型差异只体现在 attrs（图标 path、主色、虚实）与 data 上，**新增节点类型无需注册新图形**。
+- 节点：走 `@antv/x6-vue-shape` 的 `register()`，节点体是 Vue 组件 `internals/FlowNodeCard.vue`
+  （官方用 React 侧的 `@antv/x6-react-shape`，这里是它对应的 Vue 版）。
+  **节点的一切变化都落在 data 上**（`flowLabel` / `flowColor` / `flowIcon` / `flowTypeLabel`），
+  往 `attrs.label` / `attrs.badge` / `attrs.icon` 写不报错也不生效 —— 卡片节点没有这几个选择器。
+- 连线：`internals/shapes.ts` 注册 `flow-edge` 一个图形，业务差异只体现在 attrs
+  （语义色、`6 4` 虚线）与 data 上，**新增连线语义无需注册新图形**。
 - 图标：`internals/icons.ts` 收录采集/调度平台常用语义图标，未命中的 type 走 `DEFAULT_FLOW_ICON`。
+- 方向规则：`internals/dagRules.ts` 的 `isDagTerminalAllowed` 是零 X6 依赖的纯函数
+  （top 只作入边、bottom 只作出边），`engine.ts` 只做接线，便于脱离画布单测。
+
+## 与官方 DAG 实践的差异
+
+对齐的部分：节点走框架组件渲染 + `ports.groups`、180×36 卡片、`mousewheel` 缩放区间
+（0.5–1.5）、`connecting.snap`、拖拽中虚线预览边、`magnetAdsorbed` 高亮
+（青色 4px 描边 + 补 fill）、`Selection` 的 `rubberNode` / `rubberEdge`。
+
+有一处「行为对齐、实现方式必须改」：官方在 `edge:connected` 里直接清 `strokeDasharray`
+抹掉预览虚线。本组件的虚线有第二重语义（`transfer: false` = 不传递变量，本就该虚线），
+无脑清会把它们误改成实线，因此改成按语义整体重绘。**这里必须由 `flowEdgeAttrs` 返回
+空串 `""` 而不能返回 `undefined`** —— X6 的 `setAttrs` 是深合并，`undefined` 的键删不掉
+已有的值，实测后果是每条新连的线都残留一段 `5 5` 预览虚线。
+
+有意偏离的五处及理由：
+
+| 项            | 官方                          | 本组件                       | 理由                                                                                       |
+| ------------- | ----------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------ |
+| 方向约束      | `validateMagnet` 禁 top 磁吸  | `validateConnection` 调纯函数 | 官方靠 `anchor:'center'` 让连线不落端口，照抄会禁掉 `bottom→top` 的正常落点                 |
+| 平移手势      | `panning.eventTypes:左键`     | `modifiers: 'space'`         | 左键已被框选占用，改左键会与 Selection 橡皮筋冲突                                          |
+| 框选修饰键    | `rubberband.modifiers:'shift'` | 不加修饰键                   | 左键唯一职责就是框选，再叠一层 shift 等于把基础操作变成隐藏手势                             |
+| 连线连接器    | 自定义贝塞尔 `algo-connector`  | `orth` + `rounded`           | 业务流程编排的通行观感是正交折线（对齐 spider-flow / 宜搭 / 云效），多分支时曲线明显更难读 |
+| 端口组        | 只有 top / bottom             | 四向                          | 持久化数据里 `fromPort` / `toPort` 可能是 left / right，砍掉会让已存流程端点落空             |
 
 ## 主题
 
@@ -81,7 +110,7 @@ interface FlowNodeTypeDef {
 | `height` / `width` | `string \| number`  | `"100%"`      | 容器尺寸，数字按 px                      |
 | `showToolbar`      | `boolean`           | `true`        | 顶部工具条                               |
 | `showPalette`      | `boolean`           | `true`        | 左侧调色板                               |
-| `showProperties`   | `boolean`           | `true`        | 底部属性停靠区，只读视图可关掉           |
+| `showProperties`   | `boolean`           | `true`        | 右侧属性停靠区，只读视图可关掉           |
 | `startType`        | `string`            | `"start"`     | 结构预检用的开始类型名                   |
 | `endType`          | `string`            | `"end"`       | 结构预检用的结束类型名                   |
 | `propertiesTitle`  | `string`            | `"属性"`      | 停靠区标题                               |
