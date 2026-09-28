@@ -1010,6 +1010,9 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
         <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline" size="small" type="primary" effect="plain">
           采集流程
         </ReTag>
+        <ReTag v-else-if="row.glueType === GLUE_JAVA" class="collect-tag-inline" size="small" type="warning" effect="plain">
+          Java 片段
+        </ReTag>
         <ReTag v-else-if="isScriptJob(row as unknown as JobRuntime)" class="collect-tag-inline" size="small" type="success" effect="plain">
           脚本
         </ReTag>

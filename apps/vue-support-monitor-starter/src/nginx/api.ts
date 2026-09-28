@@ -107,6 +107,43 @@ export const fetchNginxTrend = (datasourceId?: number, hours?: number, interval?
     .noToast(true)
     .then(r => unwrap<NginxTrend>(r));
 
+/**
+ * 实时运行态（后端每轮采集经 SSE 推送）。
+ *
+ * <p>字段口径与 `NginxOverview` 一致，但只含趋势与状态胶囊要用的字段——
+ * 总览要遍历配置目录、读日志清单、跑 `nginx -t`，不适合 30s 推一次。</p>
+ */
+export interface NginxRuntime {
+  datasourceId: number | null;
+  /** RUNNING / STOPPED / UNKNOWN */
+  running: string | null;
+  masterPid: number | null;
+  uptimeText: string | null;
+  /** 取不到为 null（不是 0）：把「没读到」误报成「已停止」比显示「—」危险得多 */
+  activeConnections: number | null;
+  statusAvailable: boolean;
+  collectedAt: string;
+  message: string | null;
+}
+
+/** `metric` 事件的载荷：每个指标的最后一个点 */
+export interface NginxMetricPush {
+  datasourceId: number | null;
+  points: NginxTrendPoint[];
+}
+
+/**
+ * SSE 订阅地址。
+ *
+ * <p>刻意返回**相对路径**而不是拼绝对地址：SSE 客户端会把 `baseUrl` 拼到前面，
+ * 写死绝对地址会让 dev 代理与生产部署各写一份、极易指错后端。</p>
+ *
+ * @param datasourceId 数据源 ID
+ * @returns 相对路径
+ */
+export const nginxMetricStreamUrl = (datasourceId?: number): string =>
+  datasourceId ? `${B}/metric/stream?datasourceId=${datasourceId}` : `${B}/metric/stream`;
+
 /** Top 条目 */
 export interface NginxTopItem {
   /** 路径 或 IP */

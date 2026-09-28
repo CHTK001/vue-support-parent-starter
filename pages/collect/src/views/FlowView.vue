@@ -606,11 +606,25 @@ async function refreshStates(): Promise<void> {
       <span class="spacer"/>
     </div>
 
-      <FlowDesigner ref="designer" :metas="metas" :states="states" :flow-options="subflowOptions"
-                    :initial-dsl="currentFlow?.dsl ?? null"
-                    :datasource-options="datasourceOptions" :load-tables="loadTables"
-                    :load-columns="loadColumns"
-                    @change="dirty = true"/>
+      <!--
+        画布要等节点元数据（metas）到齐才挂。
+        ReFlowGraph 的内核在 onMounted 那一刻就把 nodeTypes 读进引擎，之后不再跟 prop 走；
+        画布先挂、metas 后到时引擎里一个节点类型都没有，灌进来的节点拿不到图形信息，
+        表现为「流程能选中、能保存，但画布空白、计数 0」（实测）。
+        预览图弹窗一直是先取 metas 再挂画布，所以只有设计器空白——两条路径的差别只在这里。
+      -->
+      <FlowDesigner
+        v-if="metas.length"
+        ref="designer"
+        :metas="metas"
+        :states="states"
+        :flow-options="subflowOptions"
+        :initial-dsl="currentFlow?.dsl ?? null"
+        :datasource-options="datasourceOptions"
+        :load-tables="loadTables"
+        :load-columns="loadColumns"
+        @change="dirty = true"
+      />
 
     <CategoryDialog v-model="categoryVisible"/>
 

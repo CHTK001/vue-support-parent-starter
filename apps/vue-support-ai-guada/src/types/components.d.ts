@@ -242,6 +242,7 @@ declare module 'vue' {
     SessionTracePage: typeof import('./../components/management/SessionTracePage.vue')['default']
     SettingsCard: typeof import('./../components/setting/SettingsCard.vue')['default']
     SettingsRow: typeof import('./../components/setting/SettingsRow.vue')['default']
+    SetupGuide: typeof import('./../components/SetupGuide.vue')['default']
     SidebarLayout: typeof import('./../components/ui/SidebarLayout.vue')['default']
     SimpleTest: typeof import('./../components/test/SimpleTest.vue')['default']
     SkillDetailDialog: typeof import('./../components/plugins/SkillDetailDialog.vue')['default']

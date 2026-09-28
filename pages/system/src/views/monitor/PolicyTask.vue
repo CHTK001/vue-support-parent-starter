@@ -57,6 +57,8 @@ import type {
   ReTableColumn,
   ReTableLoadParams,
   ReTableToolbarConfig,
+  ReViewField,
+  ReViewLayoutProps,
 } from "@repo/ui/re-table";
 import ReTab from "@repo/ui/re-tab";
 
@@ -587,14 +589,53 @@ function isFeatureRegistered(bizKey?: string): boolean {
 }
 
 /* ==================== 接口停用 / 转发 ==================== */
+
+/**
+ * 路由管控视图的一行
+ *
+ * <p>这张表的<b>主语是路由</b>而不是策略：系统里每一条已注册路由都占一行，
+ * 没配过策略的显示「放行」，配过的显示停用/转发及其详情。所以行 = 已注册路由
+ * ∪ 仅有策略但路径不在注册表里的自定义行（见 {@link mergeApiRouteRows}）。</p>
+ */
+interface ApiRouteRow {
+  /** 业务主键，等于策略的 bizKey，即应用内路径（不含 context-path） */
+  path: string;
+  /** HTTP 方法；自定义路径取不到，固定 "-" */
+  method: string;
+  /** 处理方法，形如 SysPolicyController#listFeatureStates */
+  handler: string;
+  /** 注册 key（`GET /v2/x`）；自定义路径为空 */
+  key: string;
+  /** 是否命中已注册路由表 */
+  registered: boolean;
+  /** 已配置策略时的主键；未配置为 undefined */
+  policyId?: number;
+  /** 生效中的动作；未配置视为 PASS */
+  action: ApiRouteAction;
+  /** 策略启用状态 0/1；未配置为 0 */
+  status: number;
+  /** 停用响应码 */
+  statusCode?: number;
+  /** 停用提示文案 */
+  message?: string;
+  /** 转发目标注册 key */
+  targetKey?: string;
+  /** 转发目标可读文本（含 handler） */
+  targetText: string;
+  /** 备注 */
+  remark: string;
+}
+
 const routeTableRef = ref<TableReloadRef>();
-const routeList = ref<PolicyConfig[]>([]);
 const routeLoading = ref(false);
 const routeTotal = ref(0);
 const routeToggleLoadingId = ref<number | null>(null);
 const routeDeleteLoadingId = ref<number | null>(null);
+/** 已注册路由（转发目标候选，同时也是表格的行来源） */
 const routeTargets = ref<RegisteredRoute[]>([]);
 const routeTargetLoading = ref(false);
+/** 全部 API_ROUTE 策略行（不分页，一次取完用于与路由表求并集） */
+const routePolicies = ref<PolicyConfig[]>([]);
 const routeIndexCount = ref(0);
 const routeRefreshLoading = ref(false);
 const routeDialogVisible = ref(false);
@@ -602,31 +643,61 @@ const routeSaving = ref(false);
 const routeIsEdit = ref(false);
 const routeForm = ref<PolicyConfig>({});
 const routeRule = ref<ApiRouteRuleConfig>({ action: "DISABLE", status: 503 });
-const routeQuery = ref({ page: 1, pageSize: 10, bizKey: "" });
+const routeQuery = ref({ page: 1, pageSize: 20, keyword: "" });
 
 const routeActions: Array<{ label: string; value: ApiRouteAction }> = [
   { label: "停用（直接拒绝）", value: "DISABLE" },
   { label: "转发（换到另一个接口）", value: "FORWARD" },
 ];
 
-/** 接口停用/转发列 */
-const routeColumns: ReTableColumn[] = [
-  { prop: "bizKey", label: "接口路径", minWidth: 240, showOverflowTooltip: true },
-  { prop: "actionText", label: "动作", width: 110, slot: "actionText", align: "center" },
-  {
-    prop: "targetText",
-    label: "转发目标",
-    minWidth: 240,
-    showOverflowTooltip: true,
-    // 必须给 formatter：targetText 是本地函数，不是行上的字段。
-    // 只写 prop 而不配 slot/formatter 时，ReTable 取 row["targetText"] 得到
-    // undefined，单元格恒显示 "-"，看起来像「没配转发目标」。
-    formatter: (row: Record<string, unknown>) => routeTargetText(row as PolicyConfig),
-  },
-  { prop: "status", label: "生效", width: 100, slot: "status", align: "center" },
-  { prop: "remark", label: "备注", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "center" },
+/**
+ * 停用响应码候选
+ *
+ * <p>给成下拉而不是自由输入：一是这类值只有寥寥几个语义档位，手打容易写出
+ * 客户端无法处理的码；二是下拉能顺带把含义讲清楚（见 subtitle）。</p>
+ */
+const ROUTE_STATUS_OPTIONS: Array<{ value: number; label: string; hint: string }> = [
+  { value: 503, label: "503 Service Unavailable", hint: "服务不可用。最常用的「临时停用」语义，客户端通常会重试或降级。" },
+  { value: 502, label: "502 Bad Gateway", hint: "网关错误。适合表达「这个接口被摘掉了，上游拿不到」。" },
+  { value: 500, label: "500 Internal Server Error", hint: "服务端错误。语义偏「内部异常」，停用接口用 500 容易和真实故障混淆。" },
+  { value: 429, label: "429 Too Many Requests", hint: "限流。适合「不是停用，而是要压流量」的场景。" },
+  { value: 403, label: "403 Forbidden", hint: "无权限。适合「接口还在，但当前调用方不许用」。" },
+  { value: 404, label: "404 Not Found", hint: "不存在。适合对外隐藏某接口，不暴露它存在过。" },
+  { value: 401, label: "401 Unauthorized", hint: "未认证。慎用：会与真实鉴权失败的排查混淆。" },
 ];
+
+/** 当前响应码的说明文案（subtitle） */
+const routeStatusHint = computed(
+  () => ROUTE_STATUS_OPTIONS.find((o) => o.value === routeRule.value.status)?.hint ?? "自定义响应码，未在候选列表中。",
+);
+
+/** 接口管控列（表格布局用） */
+const routeColumns: ReTableColumn[] = [
+  { prop: "path", label: "接口路径", minWidth: 260, showOverflowTooltip: true },
+  { prop: "method", label: "方法", width: 90, align: "center" },
+  { prop: "handler", label: "处理方法", minWidth: 200, showOverflowTooltip: true },
+  { prop: "actionText", label: "动作", width: 110, slot: "actionText", align: "center" },
+  { prop: "targetText", label: "转发目标", minWidth: 220, showOverflowTooltip: true },
+  { prop: "status", label: "生效", width: 100, slot: "status", align: "center" },
+  { prop: "action", label: "操作", width: 190, slot: "action", fixed: "right", align: "center" },
+];
+
+/** 视图模式字段（默认布局是 view，所以这套是主要呈现） */
+const routeViewFields: ReViewField[] = [
+  { prop: "method", tag: true },
+  { prop: "path", title: true },
+  { prop: "handler", desc: true },
+  { prop: "actionText", tag: true },
+  { prop: "statusCodeText", label: "响应码" },
+  { prop: "targetText", label: "转发目标" },
+  { prop: "remark", label: "备注" },
+];
+
+const routeViewLayout: ReViewLayoutProps = {
+  fields: routeViewFields,
+  showIndex: true,
+  minHeight: 76,
+};
 
 /** 解析一行规则，解析失败按放行展示，不让坏数据把页面白屏 */
 function parseRouteRule(config?: string): ApiRouteRuleConfig {
@@ -641,18 +712,84 @@ function parseRouteRule(config?: string): ApiRouteRuleConfig {
   }
 }
 
-function routeActionText(row: PolicyConfig): string {
-  const action = parseRouteRule(row.config).action;
+/** 动作中文 */
+function actionTextOf(action: ApiRouteAction): string {
   if (action === "DISABLE") return "停用";
   if (action === "FORWARD") return "转发";
   return "放行";
 }
 
-function routeTargetText(row: PolicyConfig): string {
-  const rule = parseRouteRule(row.config);
-  if (rule.action !== "FORWARD") return "-";
-  const target = routeTargets.value.find((item) => item.key === rule.targetKey);
-  return target ? `${target.key}  (${target.handler})` : (rule.targetKey || "-");
+/** 转发目标可读文本 */
+function resolveTargetText(targetKey?: string): string {
+  if (!targetKey) return "-";
+  const hit = routeTargets.value.find((item) => item.key === targetKey);
+  return hit ? `${hit.key}  (${hit.handler})` : targetKey;
+}
+
+/**
+ * 求并集：已注册路由 ∪ 仅有策略的自定义路径
+ *
+ * <p>两个来源都要：只取注册路由会漏掉自定义路径写的策略（配了却看不见，
+ * 管理员以为没生效）；只取策略又回到「只有配过的才显示」的老问题。
+ * 以 {@code path} 为键合并，自定义行标记 {@code registered=false} 并在
+ * handler 位置写明来源，避免「列表里这一行为什么没有处理方法」的疑问。</p>
+ */
+function mergeApiRouteRows(): ApiRouteRow[] {
+  const byPath = new Map<string, ApiRouteRow>();
+  for (const r of routeTargets.value) {
+    byPath.set(r.path, {
+      path: r.path,
+      method: r.method,
+      handler: r.handler,
+      key: r.key,
+      registered: true,
+      action: "PASS",
+      status: 0,
+      targetText: "-",
+      remark: "",
+    });
+  }
+  for (const p of routePolicies.value) {
+    const path = p.bizKey ?? "";
+    if (!path) {
+      continue;
+    }
+    const rule = parseRouteRule(p.config);
+    const row: ApiRouteRow = byPath.get(path) ?? {
+      path,
+      method: "-",
+      handler: "自定义路径（不在已注册路由中）",
+      key: "",
+      registered: false,
+      action: "PASS",
+      status: 0,
+      targetText: "-",
+      remark: "",
+    };
+    row.policyId = p.sysPolicyConfigId;
+    row.action = rule.action;
+    row.status = p.status ?? 0;
+    row.statusCode = rule.status;
+    row.message = rule.message;
+    row.targetKey = rule.targetKey;
+    row.targetText = rule.action === "FORWARD" ? resolveTargetText(rule.targetKey) : "-";
+    row.remark = p.remark ?? "";
+    byPath.set(path, row);
+  }
+  return [...byPath.values()];
+}
+
+/** 给表格/视图补上展示用的派生字段 */
+function decorateApiRouteRow(row: ApiRouteRow): Record<string, unknown> {
+  const configured = row.action !== "PASS";
+  return {
+    ...row,
+    actionText: actionTextOf(row.action),
+    statusCodeText: row.action === "DISABLE" && row.statusCode ? String(row.statusCode) : "-",
+    configured,
+    /** 视图/表格统一用的操作文案：没配过就是「配置」 */
+    actionLabel: configured ? "编辑" : "配置",
+  };
 }
 
 /**
@@ -663,31 +800,48 @@ function routeTargetText(row: PolicyConfig): string {
 async function loadRoute(params?: ReTableLoadParams): Promise<RePageResult> {
   routeLoading.value = true;
   try {
-    const pageRes = await pagePolicyConfig({
-      type: "API_ROUTE",
-      page: params?.page ?? routeQuery.value.page,
-      pageSize: params?.pageSize ?? routeQuery.value.pageSize,
-      bizKey: routeQuery.value.bizKey || undefined,
-    });
-    const records = (pageRes.data?.records ?? []) as PolicyConfig[];
-    routeList.value = records;
-    routeTotal.value = pageRes.data?.total ?? 0;
-    await loadRouteTargets();
-    return { total: pageRes.data?.total ?? 0, data: records as Record<string, unknown>[] };
+    await Promise.all([loadRouteTargets(), loadRoutePolicies()]);
+    const kw = routeQuery.value.keyword.trim().toLowerCase();
+    let rows = mergeApiRouteRows();
+    if (kw) {
+      rows = rows.filter((r) =>
+        [r.path, r.method, r.handler, r.key, r.remark].some((v) => String(v ?? "").toLowerCase().includes(kw)),
+      );
+    }
+    const page = params?.page ?? routeQuery.value.page;
+    const pageSize = params?.pageSize ?? routeQuery.value.pageSize;
+    const total = rows.length;
+    const slice = rows.slice((page - 1) * pageSize, page * pageSize).map(decorateApiRouteRow);
+    routeTotal.value = total;
+    return { total, data: slice as Record<string, unknown>[] };
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : "接口停用/转发加载失败");
+    ElMessage.error(error instanceof Error ? error.message : "接口管控加载失败");
     throw error;
   } finally {
     routeLoading.value = false;
   }
 }
 
-/** 加载可转发的已注册路由 */
-async function loadRouteTargets(keyword?: string): Promise<void> {
+/**
+ * 加载全部 API_ROUTE 策略行（不分页，用于与路由表求并集）
+ */
+async function loadRoutePolicies(): Promise<void> {
+  const res = await pagePolicyConfig({ type: "API_ROUTE", page: 1, pageSize: 1000 });
+  routePolicies.value = (res.data?.records ?? []) as PolicyConfig[];
+}
+
+/**
+ * 加载已注册路由（一次取全量，不过滤）
+ *
+ * <p>keyword 过滤挪到 {@link loadRoute} 本地做：搜索框要和分页在<b>同一份</b>数据上联动，
+ * 多打一次接口会出现「搜出来的条数」和「翻页翻到的内容」对不上的问题。</p>
+ */
+async function loadRouteTargets(): Promise<void> {
   routeTargetLoading.value = true;
   try {
-    const res = await listApiRouteTargets(keyword);
+    const res = await listApiRouteTargets();
     routeTargets.value = res.data ?? [];
+    routeIndexCount.value = routeTargets.value.length;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : "已注册路由加载失败");
   } finally {
@@ -701,8 +855,9 @@ async function handleRouteRefresh(): Promise<void> {
   try {
     const res = await refreshApiRoute();
     routeIndexCount.value = res.data?.routeCount ?? 0;
-    ElMessage.success(`已重载：路由 ${res.data?.routeCount ?? 0} 条，规则 ${res.data?.policyCount ?? 0} 条`);
-    await loadRouteTargets();
+    // 同步进表：后端重采了路由索引，前端这张表必须重新取一次并重排
+    await routeTableRef.value?.reload();
+    ElMessage.success(`已同步到表：路由 ${res.data?.routeCount ?? 0} 条，规则 ${res.data?.policyCount ?? 0} 条`);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : "重载失败");
   } finally {
@@ -710,6 +865,13 @@ async function handleRouteRefresh(): Promise<void> {
   }
 }
 
+/** 关键词搜索（本地过滤，统一交给 loader） */
+function handleRouteSearch(): void {
+  routeQuery.value.page = 1;
+  void routeTableRef.value?.reload();
+}
+
+/** 新增规则：路径留空，由用户自定义填写 */
 function handleRouteAdd(): void {
   routeIsEdit.value = false;
   routeForm.value = { type: "API_ROUTE", dimension: "", listType: 0, status: 1, sort: 0 };
@@ -717,10 +879,23 @@ function handleRouteAdd(): void {
   routeDialogVisible.value = true;
 }
 
-function handleRouteEdit(row: PolicyConfig): void {
-  routeIsEdit.value = true;
-  routeForm.value = { ...row };
-  routeRule.value = parseRouteRule(row.config);
+/**
+ * 从行进入配置
+ *
+ * <p>未配过策略的路由也走这里：此时 {@code policyId} 为空，提交时按新增处理。
+ * 所以「操作」列对「已配置」和「未配置」两类行是同一个入口，未配置时按钮文案是「配置」。</p>
+ */
+function handleRouteEdit(row: ApiRouteRow): void {
+  const policy = row.policyId == null
+    ? undefined
+    : routePolicies.value.find((p) => p.sysPolicyConfigId === row.policyId);
+  routeIsEdit.value = !!policy;
+  routeForm.value = policy
+    ? { ...policy }
+    : { type: "API_ROUTE", dimension: "", listType: 0, status: 1, sort: 0, bizKey: row.path };
+  routeRule.value = policy
+    ? parseRouteRule(policy.config)
+    : { action: "DISABLE", status: 503, message: "接口已停用，请稍后再试" };
   routeDialogVisible.value = true;
 }
 
@@ -758,6 +933,12 @@ async function handleRouteSubmit(): Promise<void> {
     ElMessage.warning("请选择转发目标");
     return;
   }
+  // 自定义路径是允许的（未注册的路径也能写规则），但要如实提示它的代价：
+  // 停用/放行对未注册路径没有运行时意义，只有转发到别处才可能被人访问到。
+  const known = routeTargets.value.some((r) => r.path === routeForm.value.bizKey);
+  if (!known) {
+    ElMessage.warning("该路径不在已注册路由中，规则会保存但不会对任何请求生效");
+  }
   const payload: PolicyConfig = {
     ...routeForm.value,
     type: "API_ROUTE",
@@ -785,11 +966,14 @@ async function handleRouteSubmit(): Promise<void> {
   }
 }
 
-async function handleRouteToggle(row: PolicyConfig, value: boolean | string | number): Promise<void> {
-  if (row.sysPolicyConfigId == null) return;
-  routeToggleLoadingId.value = row.sysPolicyConfigId;
+async function handleRouteToggle(row: ApiRouteRow, value: boolean | string | number): Promise<void> {
+  if (row.policyId == null) {
+    ElMessage.warning("该路由尚未配置策略，请先点「配置」");
+    return;
+  }
+  routeToggleLoadingId.value = row.policyId;
   try {
-    await togglePolicyConfig(row.sysPolicyConfigId, value ? 1 : 0);
+    await togglePolicyConfig(row.policyId, value ? 1 : 0);
     ElMessage.success(value ? "已生效" : "已停用");
     await routeTableRef.value?.reload();
   } catch (error) {
@@ -799,16 +983,19 @@ async function handleRouteToggle(row: PolicyConfig, value: boolean | string | nu
   }
 }
 
-async function handleRouteDelete(row: PolicyConfig): Promise<void> {
-  if (row.sysPolicyConfigId == null) return;
+async function handleRouteDelete(row: ApiRouteRow): Promise<void> {
+  if (row.policyId == null) {
+    ElMessage.warning("该路由没有配置过策略，无需删除");
+    return;
+  }
   try {
-    await ElMessageBox.confirm(`确认删除「${row.bizKey}」的停用/转发规则？`, "删除确认", { type: "warning" });
+    await ElMessageBox.confirm(`确认删除「${row.path}」的停用/转发规则？`, "删除确认", { type: "warning" });
   } catch {
     return;
   }
-  routeDeleteLoadingId.value = row.sysPolicyConfigId;
+  routeDeleteLoadingId.value = row.policyId;
   try {
-    await deletePolicyConfig(row.sysPolicyConfigId);
+    await deletePolicyConfig(row.policyId);
     ElMessage.success("已删除");
     await routeTableRef.value?.reload();
   } catch (error) {

@@ -65,6 +65,19 @@ export function setDatasourceHubBase(base?: string | null): void {
   hubBase = candidate;
 }
 
+/**
+ * 读取当前生效的数据源中心接口根路径。
+ *
+ * <p>用于调用方自己拼 URL 的场景（例如错误提示里回显实际请求地址、或把 hub 基址
+ * 传给非本包封装的请求）。默认返回 {@code /ms/datasource}；被
+ * {@link setDatasourceHubBase} 覆盖后返回覆盖值（去掉尾部斜杠）。</p>
+ *
+ * @return 当前根路径，始终以 {@code /} 开头、无尾部斜杠
+ */
+export function getDatasourceHubBase(): string {
+  return hubBase;
+}
+
 /** 应用主库保留字，对应容器里的主 DataSource，不是台账里的行 */
 export const APP_DATASOURCE = "app";
 

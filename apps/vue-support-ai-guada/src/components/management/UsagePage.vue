@@ -215,7 +215,6 @@ import ReCard from '@/components/re/ReCard.vue';
 import ReTable from '@/components/re/ReTable.vue';
 import ReTag from '@/components/re/ReTag.vue';
 import ReButton from '@/components/re/ReButton.vue';
-import type { EChartsOption } from 'echarts';
 import { usageApi } from '@/services/javaApi';
 
 type ChartType = 'token' | 'cost';

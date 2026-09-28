@@ -184,6 +184,21 @@ const PARAM_OPTION_LABELS: Record<string, string> = {
 };
 
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
+
+/** 临时排障：ReFlowGraph 组件实例，用来核对「设计器握着的引擎」与「外壳当前引擎」是不是同一个 */
+const graphRef = ref<{
+  engine: FlowGraphEngine | null;
+  getData: () => FlowGraphData;
+} | null>(null);
+
+/** 临时排障：外壳侧看到的节点数与引擎同一性 */
+const shellSig = computed(() => {
+  const inst = graphRef.value;
+  if (!inst) {
+    return "noinst";
+  }
+  return `${inst.getData().nodes.length}/${inst.engine === engine.value ? "same" : "DIFF"}`;
+});
 const flow = ref<FlowLevel>(emptyDsl());
 const engine = shallowRef<FlowGraphEngine | null>(null);
 const tab = ref<TabKey>("flow");
@@ -666,24 +681,43 @@ function onReady(instance: FlowGraphEngine): void {
   } finally {
     applying = false;
   }
-  // 引擎就绪后补灌声明式传入的图：外壳初始化早于数据到达时（弹窗内容延后挂载、
-  // 异步取详情），这一句保证图最终一定画得出来
-  if (props.initialDsl) {
-    load(props.initialDsl);
-  }
+  // 引擎与数据谁先到是随机的（X6 初始化 vs 详情接口），两条路必须在这里汇合：
+  // 只在 onReady 读 props.initialDsl 会在「引擎先到」时读到 null 而整个跳过，
+  // 只在 watcher 里灌又会在「引擎未就绪」时被跳过——两者互相错开就永远画不出图。
+  requestLoad(props.initialDsl ?? wantedDsl);
   applyStates();
 }
 
 /**
- * 挂载即灌图。
+ * 请求灌图：引擎没就绪就先记下来，就绪后补灌。
  *
- * <p>与 onReady 里的补灌是一对：这里覆盖「数据先到、引擎后到」，那里覆盖「引擎先到」。
- * 只留一处会漏，弹窗里两种顺序都真实发生过（内容延后挂载 vs 详情接口先返回）。</p>
+ * <p>所有入口（挂载、props 变化、引擎就绪）都走它，保证任意到达顺序都能画出图。</p>
+ *
+ * @param dsl 待载入的流程图；空值忽略
  */
-onMounted(() => {
-  if (props.initialDsl) {
-    load(props.initialDsl);
+function requestLoad(dsl: CollectDsl | null | undefined): void {
+  if (!dsl) {
+    return;
   }
+  wantedDsl = dsl;
+  if (engine.value) {
+    try {
+      load(dsl);
+      wantedDsl = null;
+    } catch (error) {
+      dbgErr = String((error as Error)?.message || error).slice(0, 60);
+    }
+  }
+}
+
+/** 引擎未就绪时暂存的图，等 onReady 补灌 */
+let wantedDsl: CollectDsl | null = null;
+
+/** 临时排障：记录灌图过程中的异常文案 */
+let dbgErr = "-";
+/** 挂载即请求灌图（引擎多半还没就绪，会先暂存） */
+onMounted(() => {
+  requestLoad(props.initialDsl);
 });
 
 function exportPng(): void {
@@ -748,7 +782,11 @@ function load(dsl: CollectDsl | null | undefined): void {
   graphData.value = data;
   if (engine.value) {
     // 同时直灌内核：重复加载同一张图时结构签名没变，prop 那条路会被拦下
-    engine.value.setData(data);
+    try {
+      engine.value.setData(data);
+    } catch (error) {
+      dbgErr = "SET:" + String((error as Error)?.message || error).slice(0, 70);
+    }
     applyStates();
   }
   // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
@@ -758,15 +796,12 @@ function load(dsl: CollectDsl | null | undefined): void {
 /**
  * 声明式图源：外部换了图就重灌。
  *
- * 引擎还没就绪时不在这里灌——onReady 会补灌一次（见 initialDsl 的说明），
- * 这里只处理「引擎已就绪、图又变了」的情况（弹窗里切换采集器、预览换流程）。
+ * 引擎还没就绪时交给 requestLoad 暂存（onReady 会补灌），这里只管「图又变了」。
  */
 watch(
   () => props.initialDsl,
   dsl => {
-    if (dsl && engine.value) {
-      load(dsl);
-    }
+    requestLoad(dsl);
   },
 );
 
@@ -806,6 +841,7 @@ defineExpose({ load, getGraph, addNode, startWith });
 <template>
   <div class="collect-flow">
     <ReFlowGraph
+      ref="graphRef"
       :data="graphData"
       :node-types="nodeTypes"
       :properties-title="panelTitle"
@@ -818,6 +854,13 @@ defineExpose({ load, getGraph, addNode, startWith });
       @edge-connected="onEdgeConnected"
     >
       <template #toolbar>
+        <span class="dbg"
+          >eng={{ engine ? 1 : 0 }} want={{ wantedDsl ? wantedDsl.nodes.length : -1 }} gd={{
+            graphData.nodes.length
+          }}/{{ graphData.edges.length }} props={{ props.initialDsl ? props.initialDsl.nodes.length : -1 }}
+          name={{ flow.name || "-" }} err={{ dbgErr }} model={{ engine ? engine.getData().nodes.length : -1 }}
+          shell={{ graphData.nodes.length }} sig={{ shellSig }}</span
+        >
         <ReButton icon="Camera" @click="exportPng">导出图片</ReButton>
       </template>
 
