@@ -1483,6 +1483,8 @@ function goUp(): void {
 const colObjects = ref<Record<string, StorageObject[]>>({});
 /** 分栏每列加载状态 */
 const colLoading = ref<Record<string, boolean>>({});
+/** 分栏每列的加载失败原因（key 为列路径，空串表示无错） */
+const colError = ref<Record<string, string>>({});
 
 /** 路径链：["", "a", "a/b", ...]（含当前目录，用于渲染各列） */
 const segmentPaths = computed<string[]>(() => {
@@ -1507,8 +1509,12 @@ async function ensureColumn(path: string): Promise<void> {
   try {
     const list = await listObjects(bucket.value, path);
     colObjects.value = { ...colObjects.value, [path]: list.filter((o) => o.name !== RECYCLE_DIR) };
-  } catch {
+    colError.value = { ...colError.value, [path]: "" };
+  } catch (e) {
+    // 加载失败不能一律当成空目录：服务端对不存在的目录返回 404（Directory Not Found），
+    // 一旦吞掉就会把"路径拼错"伪装成"空文件夹"，界面上完全看不出发生过请求失败。
     colObjects.value = { ...colObjects.value, [path]: [] };
+    colError.value = { ...colError.value, [path]: (e as Error)?.message ?? "目录加载失败" };
   } finally {
     colLoading.value = { ...colLoading.value, [path]: false };
   }
@@ -1517,6 +1523,7 @@ async function ensureColumn(path: string): Promise<void> {
 /** 清空并重新加载分栏各列 */
 function refreshColumns(): void {
   colObjects.value = {};
+  colError.value = {};
   segmentPaths.value.forEach((p) => { void ensureColumn(p); });
 }
 
@@ -1698,6 +1705,37 @@ function openContextMenu(e: MouseEvent, row: StorageObject): void {
     selected.value = new Set([row.name]);
   }
   ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
+}
+
+/**
+ * 分栏视图右键：先把该列切成当前目录，再打开菜单
+ *
+ * <p>分栏视图与其它三个视图的根本差别在于：其它视图的行全部来自
+ * {@code filteredObjects}（当前目录），而分栏视图把**祖先列**也一并渲染出来。
+ * 菜单里的每个动作（打开/重命名/删除/复制/下载/解压/建链接）都以
+ * {@code currentPath} 为基准计算对象键，若在祖先列上直接开菜单，
+ * 基准目录比行的父目录更深，拼出的键就是错的——最轻的症状是「打开」拼出
+ * 不存在的路径被服务端 404 吞成「空目录」，最重的症状是重命名/删除作用到
+ * 另一个目录下的同名对象。</p>
+ *
+ * <p>因此这里不做"跨目录操作"，而是先对齐基准目录：{@code currentPath} 一变，
+ * {@code segmentPaths} 随之重算，更深的列自动收起，界面与菜单的作用域一致。
+ * 代价是右键祖先列会收起右侧列，但换来的是不会出现作用到错误目录的删除。</p>
+ *
+ * @param e       鼠标事件
+ * @param row     对象
+ * @param colPath 该行所属列的目录路径（空串表示根目录）
+ */
+function openColumnContextMenu(e: MouseEvent, row: StorageObject, colPath: string): void {
+  e.stopPropagation();
+  if (colPath !== currentPath.value) {
+    currentPath.value = colPath;
+    recordRecent(colPath);
+    clearSelect();
+    lastSelectedIndex = -1;
+    void loadObjects();
+  }
+  openContextMenu(e, row);
 }
 
 /** 文件区空白处右键菜单（新建/粘贴/刷新） */
@@ -2274,6 +2312,7 @@ onUnmounted(() => {
               @contextmenu="openBlankContextMenu"
             >
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
+              <div v-else-if="colError[colPath]" class="fs-col__hint fs-col__hint--error">{{ colError[colPath] }}</div>
               <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">{{ keyword.trim() ? '无匹配项' : '空目录' }}</div>
               <div
                 v-for="(item, index) in columnItems(colPath)"
@@ -2291,7 +2330,7 @@ onUnmounted(() => {
                 @click="onColumnClick($event, item, colPath, index)"
                 @dblclick="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
                 @keydown.enter="item.directory ? onColumnClick($event, item, colPath, index) : openPreview(item)"
-                @contextmenu.stop="openContextMenu($event, item)"
+                @contextmenu.stop="openColumnContextMenu($event, item, colPath)"
                 @dragstart="onColumnDragStart($event, item, colPath)"
                 @dragover="onColumnRowDragOver($event, colPath, item)"
                 @dragleave="onColumnRowDragLeave(colPath, item)"
@@ -4667,6 +4706,12 @@ button.fs-stat:hover {
   padding: 12px 10px;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+/* 目录加载失败（如路径不存在被服务端 404）：必须与「空目录」视觉可区分 */
+.fs-col__hint--error {
+  color: var(--el-color-danger);
+  word-break: break-all;
 }
 
 .fs-col__row {
