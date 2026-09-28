@@ -54,7 +54,7 @@
             :class="{ 'is-active': activeTab === t.name }"
             role="tab"
             :aria-selected="activeTab === t.name"
-            @click="activeTab = t.name"
+            @click="onTabChange(t.name)"
           >
             {{ t.label }}
           </button>
@@ -218,6 +218,57 @@
           </div>
           <div v-if="!gradeLoading && !grades.length" class="empty-panel">暂无年级，点击「新增年级」创建</div>
         </div>
+      </section>
+
+      <!-- ==================== 组卷模板管理 ==================== -->
+      <section v-show="activeTab === 'template'" class="tab-panel">
+        <div class="subject-actions">
+          <el-input
+            v-model="templateKeyword"
+            class="subject-search"
+            clearable
+            placeholder="搜索模板名称..."
+            :prefix-icon="Search"
+          />
+          <div class="subject-actions__right">
+            <el-button type="primary" :icon="Plus" @click="openTemplateCreate">新增模板</el-button>
+          </div>
+        </div>
+
+        <el-table
+          v-loading="templateLoading"
+          :data="filteredTemplates"
+          border
+          stripe
+          class="template-table"
+        >
+          <el-table-column prop="templateName" label="模板名称" min-width="180" />
+          <el-table-column label="大标题风格" width="130">
+            <template #default="{ row }">{{ templateStyleLabel(row.templateStyle) }}</template>
+          </el-table-column>
+          <el-table-column prop="templatePageSize" label="纸张" width="100" />
+          <el-table-column label="方向" width="90">
+            <template #default="{ row }">{{ templateOrientationLabel(row.templateOrientation) }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.templateStatus === 1 ? 'success' : 'info'">
+                {{ row.templateStatus === 1 ? "启用" : "停用" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openTemplateEdit(row)">编辑</el-button>
+              <el-popconfirm :title="`确认删除模板「${row.templateName}」?`" @confirm="removeTemplate(row)">
+                <template #reference>
+                  <el-button link type="danger">删除</el-button>
+                </template>
+              </el-popconfirm>
+            </template>
+          </el-table-column>
+          <template #empty>暂无组卷模板，点击「新增模板」创建</template>
+        </el-table>
       </section>
     </el-card>
 
@@ -435,6 +486,93 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 新增/编辑组卷模板 -->
+    <el-dialog
+      v-model="templateDialogVisible"
+      width="640px"
+      class="card-dialog subject-dialog template-dialog"
+      align-center
+      :show-close="false"
+    >
+      <template #header>
+        <div class="dlg-header">
+          <div class="dlg-header__icon" aria-hidden="true">
+            <el-icon :size="26"><Document /></el-icon>
+          </div>
+          <div class="dlg-header__text">
+            <div class="dlg-header__title">{{ templateForm.templateId ? "编辑组卷模板" : "新增组卷模板" }}</div>
+            <div class="dlg-header__sub">{{ templateForm.templateId ? "更新模板样式与页眉页脚" : "创建可复用的组卷模板" }}</div>
+          </div>
+          <button type="button" class="dlg-close" aria-label="关闭" @click="templateDialogVisible = false">
+            <el-icon><Close /></el-icon>
+          </button>
+        </div>
+      </template>
+
+      <div class="dlg-body">
+        <!-- 基本信息 -->
+        <div class="block-title">基本信息</div>
+        <el-form :model="templateForm" label-width="96px" label-position="left" class="card-form subject-form">
+          <el-form-item label="模板名称" required>
+            <el-input v-model="templateForm.templateName" placeholder="输入模板名称，如 期末考试卷" />
+          </el-form-item>
+          <el-form-item label="大标题风格">
+            <el-select v-model="templateForm.templateStyle" style="width: 100%">
+              <el-option
+                v-for="opt in TEMPLATE_STYLE_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="纸张规格">
+            <el-select v-model="templateForm.templatePageSize" style="width: 100%">
+              <el-option
+                v-for="opt in TEMPLATE_PAGE_SIZE_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="纸张方向">
+            <el-select v-model="templateForm.templateOrientation" style="width: 100%">
+              <el-option label="纵向" value="PORTRAIT" />
+              <el-option label="横向" value="LANDSCAPE" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态" class="status-item">
+            <ReSwitch
+              layout="square"
+              :model-value="(templateForm.templateStatus ?? 1) === 1"
+              active-icon="ep:circle-check"
+              inactive-icon="ep:circle-close"
+              @update:model-value="(v: boolean) => (templateForm.templateStatus = v ? 1 : 0)"
+            />
+          </el-form-item>
+        </el-form>
+
+        <div class="dlg-divider" />
+
+        <!-- 页眉 / 页脚（富文本） -->
+        <div class="block-title">页眉（富文本）</div>
+        <ReRichText v-model="templateForm.templateHeader" placeholder="如：XX 学校 2026 学年第一学期期末考试" />
+
+        <div class="block-title">页脚（富文本）</div>
+        <ReRichText v-model="templateForm.templateFooter" placeholder="如：考试时间 90 分钟，满分 100 分" />
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button class="dialog-btn" @click="templateDialogVisible = false">取消</el-button>
+          <el-button class="dialog-btn is-primary" type="primary" :loading="templateSaving" @click="saveTemplate">
+            保存模板
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -442,9 +580,9 @@
 /**
  * 维度数据 —— 按原型重构：
  * - 渐变页头 + 玻璃统计卡（学科总数 / 学段数 / 启用率）
- * - 胶囊 Tab：学科管理 / 学段管理 / 年级管理
+ * - 胶囊 Tab：学科管理 / 学段管理 / 年级管理 / 组卷模板
  * - 学科：搜索 + 卡片网格（图标/编码/学段标签/启停状态/编辑删除）
- * - 学段：只读卡片；年级：列表 CRUD
+ * - 学段：只读卡片；年级：列表 CRUD；组卷模板：列表 CRUD（页眉页脚富文本）
  */
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -457,6 +595,7 @@ import {
   Collection,
   DataLine,
   Delete,
+  Document,
   Edit,
   EditPen,
   Files,
@@ -472,7 +611,8 @@ import {
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
-import type { EduGrade, EduSubject, GradeLevelOption } from "../api/types";
+import type { EduGrade, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
+import ReRichText from "@repo/ui/re-rich-text";
 
 const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
   { value: "PRIMARY", label: "小学" },
@@ -505,13 +645,25 @@ const COLOR_OPTIONS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f97316", "#14b8a6", "#
 const levelLabel = (v?: string) =>
   gradeLevelOptions.value.find((o) => o.value === v)?.label || v || "";
 
-const tabs = [
+const tabs: { name: DimensionTab; label: string }[] = [
   { name: "subject", label: "学科管理" },
   { name: "level", label: "学段管理" },
   { name: "grade", label: "年级管理" },
-] as const;
+  { name: "template", label: "组卷模板" },
+];
 
-const activeTab = ref<"subject" | "level" | "grade">("subject");
+/** 维度数据 Tab 名 */
+type DimensionTab = "subject" | "level" | "grade" | "template";
+
+const activeTab = ref<DimensionTab>("subject");
+
+/** 切 Tab；组卷模板为懒加载，切过去时才拉列表 */
+const onTabChange = (name: DimensionTab) => {
+  activeTab.value = name;
+  if (name === "template") {
+    void loadTemplates();
+  }
+};
 
 // ==================== 统计 ====================
 const subjectCoverHint = computed(() => {
@@ -797,6 +949,126 @@ const removeGrade = async (row: EduGrade) => {
     await eduaiApi.deleteGrade(row.gradeId as number);
     ElMessage.success("删除成功");
     void loadGrades();
+  } catch {
+    ElMessage.error("删除失败");
+  }
+};
+
+// ==================== 组卷模板 ====================
+
+/** 大标题风格选项（与后端 classic/modern/simple/exam 对齐） */
+const TEMPLATE_STYLE_OPTIONS = [
+  { value: "classic", label: "经典" },
+  { value: "modern", label: "现代" },
+  { value: "simple", label: "简约" },
+  { value: "exam", label: "考试专用" },
+];
+
+/** 纸张规格选项 */
+const TEMPLATE_PAGE_SIZE_OPTIONS = [
+  { value: "A4", label: "A4" },
+  { value: "A3", label: "A3" },
+  { value: "A5", label: "A5" },
+  { value: "B5", label: "B5" },
+  { value: "LETTER", label: "LETTER" },
+];
+
+const templateStyleLabel = (v?: string) => TEMPLATE_STYLE_OPTIONS.find((o) => o.value === v)?.label || v || "-";
+const templateOrientationLabel = (v?: string) => (v === "LANDSCAPE" ? "横向" : "纵向");
+
+const templates = ref<PaperTemplate[]>([]);
+const templateLoading = ref(false);
+const templateSaving = ref(false);
+const templateDialogVisible = ref(false);
+const templateKeyword = ref("");
+const templateForm = reactive<Partial<PaperTemplate>>({});
+
+/** 模板名称前端过滤 */
+const filteredTemplates = computed(() => {
+  const kw = templateKeyword.value.trim().toLowerCase();
+  if (!kw) {
+    return templates.value;
+  }
+  return templates.value.filter((t) => String(t.templateName ?? "").toLowerCase().includes(kw));
+});
+
+const loadTemplates = async () => {
+  templateLoading.value = true;
+  try {
+    const res = await eduaiApi.getPaperTemplatePage({ pageNum: 1, pageSize: 100 });
+    templates.value = Array.isArray(res?.data) ? res.data : [];
+  } catch {
+    ElMessage.error("加载组卷模板失败");
+  } finally {
+    templateLoading.value = false;
+  }
+};
+
+const openTemplateCreate = () => {
+  Object.assign(templateForm, {
+    templateId: undefined,
+    templateName: "",
+    templateStyle: "classic",
+    templateHeader: "",
+    templateFooter: "",
+    templatePageSize: "A4",
+    templateOrientation: "PORTRAIT",
+    templateStatus: 1,
+  });
+  templateDialogVisible.value = true;
+};
+
+const openTemplateEdit = (row: PaperTemplate) => {
+  Object.assign(templateForm, {
+    templateId: row.templateId,
+    templateName: row.templateName,
+    templateStyle: row.templateStyle || "classic",
+    templateHeader: row.templateHeader || "",
+    templateFooter: row.templateFooter || "",
+    templatePageSize: row.templatePageSize || "A4",
+    templateOrientation: row.templateOrientation || "PORTRAIT",
+    templateStatus: row.templateStatus ?? 1,
+  });
+  templateDialogVisible.value = true;
+};
+
+const saveTemplate = async () => {
+  if (!templateForm.templateName?.trim()) {
+    ElMessage.warning("模板名称必填");
+    return;
+  }
+  const payload: Partial<PaperTemplate> = {
+    templateName: templateForm.templateName.trim(),
+    templateStyle: templateForm.templateStyle ?? "classic",
+    templateHeader: templateForm.templateHeader ?? "",
+    templateFooter: templateForm.templateFooter ?? "",
+    templatePageSize: templateForm.templatePageSize,
+    templateOrientation: templateForm.templateOrientation,
+    templateStatus: templateForm.templateStatus ?? 1,
+  };
+  templateSaving.value = true;
+  try {
+    const templateId = templateForm.templateId;
+    if (templateId) {
+      await eduaiApi.updatePaperTemplate(templateId, payload);
+    } else {
+      await eduaiApi.savePaperTemplate(payload);
+    }
+    ElMessage.success("保存成功");
+    templateDialogVisible.value = false;
+    void loadTemplates();
+  } catch {
+    ElMessage.error("保存失败");
+  } finally {
+    templateSaving.value = false;
+  }
+};
+
+const removeTemplate = async (row: PaperTemplate) => {
+  try {
+    await eduaiApi.deletePaperTemplate(row.templateId);
+    ElMessage.success("删除成功");
+    void loadTemplates();
   } catch {
     ElMessage.error("删除失败");
   }
@@ -1698,6 +1970,15 @@ onMounted(() => {
 
 .grade-form .num-input {
   width: 220px;
+}
+
+/* ---------- 组卷模板 ---------- */
+.template-table {
+  width: 100%;
+}
+
+.template-dialog .block-title ~ .block-title {
+  margin-top: 14px;
 }
 
 /* ---------- 响应式 ---------- */

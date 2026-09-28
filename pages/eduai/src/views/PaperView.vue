@@ -19,7 +19,7 @@
       >
         <template #toolbar>
           <ReButton type="success" icon="MagicStick" @click="openGenerate">AI 组卷</ReButton>
-          <ReButton type="primary" icon="EditPen" @click="goCompose">手动组卷</ReButton>
+          <ReButton type="primary" icon="Plus" @click="openCreate">新增</ReButton>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
         <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
@@ -39,9 +39,11 @@
             <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="120" fixed="right" align="center">
+        <ReTableColumn label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <ReButton icon="View" :show-text="false" type="primary" @click="openDetail(row)">详情</ReButton>
+            <ReButton icon="EditPen" :show-text="false" type="warning" @click="goCompose(row)">组卷</ReButton>
+            <ReButton icon="Collection" :show-text="false" type="success" @click="openMarket(row)">题库</ReButton>
           </template>
         </ReTableColumn>
       </ReTable>
@@ -87,6 +89,60 @@
       </template>
     </el-dialog>
 
+    <!-- 新建试卷对话框（手动组卷的入口，创建成功后直接跳转组卷页） -->
+    <el-dialog v-model="createDialogVisible" title="新建试卷" width="560">
+      <el-form :model="createForm" label-width="100">
+        <el-form-item label="试卷名称" required>
+          <el-input v-model="createForm.name" placeholder="请输入试卷名称" />
+        </el-form-item>
+        <el-form-item label="学科" required>
+          <el-input v-model="createForm.subject" placeholder="请输入学科，如 数学" />
+        </el-form-item>
+        <el-form-item label="学段">
+          <el-select
+            v-model="createForm.gradeLevel"
+            placeholder="请选择学段"
+            style="width: 100%"
+            @change="onCreateGradeLevelChange"
+          >
+            <el-option v-for="opt in GRADE_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="年级">
+          <el-select
+            v-model="createForm.grade"
+            placeholder="请先选择学段"
+            :disabled="!createForm.gradeLevel"
+            clearable
+            style="width: 100%"
+          >
+            <el-option v-for="g in createGradeOptions" :key="g.gradeId" :label="g.gradeName" :value="g.gradeName" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="总分">
+          <el-input-number v-model="createForm.totalScore" :min="1" :max="1000" />
+        </el-form-item>
+        <el-form-item label="难度">
+          <el-rate v-model="createForm.difficulty" :max="5" />
+        </el-form-item>
+        <el-form-item label="考试时长">
+          <el-input-number v-model="createForm.duration" :min="1" :max="600" /> 分钟
+        </el-form-item>
+        <el-form-item label="组卷模板">
+          <el-select v-model="createForm.templateId" placeholder="不使用模板" clearable style="width: 100%">
+            <el-option v-for="t in templateOptions" :key="t.templateId" :label="t.templateName" :value="t.templateId" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="creating" @click="doCreate">创建并组卷</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 题库市场：勾选题目后加入该试卷的购物车 -->
+    <QuestionMarketDialog v-model="marketVisible" :paper-id="currentPaperId" @picked="onMarketPicked" />
+
     <!-- 详情对话框 -->
     <el-dialog v-model="detailVisible" :title="detail?.paperName" width="760">
       <div v-if="detail" class="detail-content">
@@ -120,13 +176,15 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
-import type { Paper } from '../api/types';
+import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
+import QuestionMarketDialog from '../components/paper/QuestionMarketDialog.vue';
+import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
 
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -240,14 +298,11 @@ const parseOptions = (raw?: string): string[] => {
   }
 };
 
-/** 手动组卷：带上当前检索的学科/学段跳转，供组卷页预填 */
-const goCompose = () => {
+/** 组卷：跳到组卷页并带上该试卷 ID */
+const goCompose = (row: Paper) => {
   void router.push({
     path: '/eduai/paper-compose',
-    query: {
-      subject: strParam(applied.value.subject),
-      gradeLevel: strParam(applied.value.gradeLevel),
-    },
+    query: { paperId: String(row.paperId) },
   });
 };
 
@@ -295,6 +350,134 @@ const doGenerate = async () => {
   } finally {
     generating.value = false;
   }
+};
+
+/* ==================== 新建试卷 ==================== */
+
+/** 学段码值与中文标签；后端 gradeLevel 落库为中文，筛选年级前必须先码值转 label */
+const GRADE_LEVEL_OPTIONS = [
+  { value: 'PRIMARY', label: '小学' },
+  { value: 'JUNIOR', label: '初中' },
+  { value: 'SENIOR', label: '高中' },
+  { value: 'UNIVERSITY', label: '大学' },
+  { value: 'OTHER', label: '其他' },
+];
+
+const createDialogVisible = ref(false);
+const creating = ref(false);
+const createGrades = ref<EduGrade[]>([]);
+const templateOptions = ref<PaperTemplate[]>([]);
+const createForm = reactive({
+  name: '',
+  subject: '',
+  gradeLevel: '',
+  grade: '',
+  totalScore: 100,
+  difficulty: 3,
+  duration: 60,
+  templateId: undefined as number | undefined,
+});
+
+/** 年级下拉：按所选学段的中文标签过滤（后端 gradeLevel 是中文，不是码值） */
+const createGradeOptions = computed(() => {
+  const label = GRADE_LEVEL_OPTIONS.find((o) => o.value === createForm.gradeLevel)?.label;
+  if (!label) {
+    return [];
+  }
+  return createGrades.value.filter((g) => g.gradeLevel === label);
+});
+
+/** 切换学段后原年级可能不属于新学段，先清空 */
+const onCreateGradeLevelChange = () => {
+  createForm.grade = '';
+};
+
+/** 打开新建弹框时拉取年级与启用中的模板 */
+const loadCreateOptions = async () => {
+  try {
+    const drop = await eduaiApi.dimensionDropdown();
+    createGrades.value = Array.isArray(drop?.grades) ? drop.grades : [];
+  } catch {
+    createGrades.value = [];
+  }
+  try {
+    const res = await eduaiApi.getPaperTemplatePage({ pageNum: 1, pageSize: 100 });
+    const list = (res?.data ?? []) as PaperTemplate[];
+    templateOptions.value = list.filter((t) => Number(t.templateStatus ?? 1) === 1);
+  } catch {
+    templateOptions.value = [];
+  }
+};
+
+const openCreate = () => {
+  Object.assign(createForm, {
+    name: '',
+    subject: '',
+    gradeLevel: '',
+    grade: '',
+    totalScore: 100,
+    difficulty: 3,
+    duration: 60,
+    templateId: undefined,
+  });
+  createDialogVisible.value = true;
+  void loadCreateOptions();
+};
+
+/** 建卷：POST /v2/edu/paper（PaperComposeUpdateDTO 短字段），成功后跳组卷页 */
+const doCreate = async () => {
+  if (!createForm.name.trim()) {
+    ElMessage.warning('请填写试卷名称');
+    return;
+  }
+  if (!createForm.subject.trim()) {
+    ElMessage.warning('请填写学科');
+    return;
+  }
+  creating.value = true;
+  try {
+    const payload: Record<string, unknown> = {
+      name: createForm.name.trim(),
+      subject: createForm.subject.trim(),
+      gradeLevel: createForm.gradeLevel || undefined,
+      grade: createForm.grade || undefined,
+      totalScore: createForm.totalScore,
+      difficulty: createForm.difficulty,
+      duration: createForm.duration,
+      templateId: createForm.templateId ?? undefined,
+    };
+    const newId = await eduaiApi.createPaper(payload as unknown as PaperComposePayload);
+    ElMessage.success('创建成功，正在进入组卷页');
+    createDialogVisible.value = false;
+    void router.push({ path: '/eduai/paper-compose', query: { paperId: String(newId) } });
+  } catch (e) {
+    ElMessage.error('创建失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    creating.value = false;
+  }
+};
+
+/* ==================== 题库市场（加入购物车） ==================== */
+
+const marketVisible = ref(false);
+const currentPaperId = ref<number | null>(null);
+/** 购物车按试卷维度：currentPaperId 变化即切换目标试卷 */
+const { addMany } = usePaperCart(currentPaperId);
+
+const openMarket = (row: Paper) => {
+  currentPaperId.value = row.paperId;
+  marketVisible.value = true;
+};
+
+/**
+ * QuestionMarketDialog 的勾选结果：题库市场字段名与购物车条目不同，
+ * 这里显式映射后写入购物车。
+ */
+const onMarketPicked = (list: MarketQuestion[]) => {
+  // 统一走共享映射（含分值兜底），避免各处各写一遍、并防止缺分值落成 0 分
+  const items: CartItem[] = list.map((q) => toCartItem(q));
+  const added = addMany(items);
+  ElMessage.success(`已加入购物车 ${added} 题`);
 };
 
 const openDetail = async (row: Paper) => {

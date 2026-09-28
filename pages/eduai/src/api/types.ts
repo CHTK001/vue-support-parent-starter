@@ -43,6 +43,27 @@ export interface Question {
   questionUpdateTime?: string;
 }
 
+/**
+ * 题库市场列表项
+ *
+ * 与既有 {@link Question} 中市场列表实际使用的字段一致（edu_question 实体字段），
+ * 供题库市场弹框（QuestionMarketDialog）与购物车（usePaperCart）共用。
+ */
+export interface MarketQuestion {
+  questionId: number;
+  questionType: string;
+  questionSubject: string;
+  questionGradeLevel: string;
+  questionGrade: string;
+  questionDifficulty?: number;
+  /** 总分（单题分值） */
+  questionScore?: number;
+  questionStem: string;
+  questionOptions?: string;
+  questionAnswer?: string;
+  questionAnalysis?: string;
+}
+
 /** 题库中真实存在的"学段 + 年级"组合，对应后端 QuestionGradeDimensionVO */
 export interface QuestionGradeDimension {
   gradeLevel: string | null;
@@ -137,6 +158,19 @@ export interface PaperQuestionQr {
   paperGradeLevel?: string;
   /** 年级 */
   paperGrade?: string;
+}
+
+/** 试卷模板（edu_paper_template；GET/POST/PUT/DELETE /v2/edu/paper-template） */
+export interface PaperTemplate {
+  templateId?: number;
+  templateName: string;
+  /** 版式：classic/modern/simple/exam */
+  templateStyle: string;
+  templateHeader?: string;
+  templateFooter?: string;
+  templatePageSize?: string;
+  templateOrientation?: string;
+  templateStatus?: number;
 }
 
 /** 答题卡 */
@@ -390,6 +424,52 @@ export interface PoemGameItem {
   options: string[];
   answerIndex: number;
   difficulty: number;
+}
+
+/** 古诗文趣味游戏（六种玩法共用的题目载体，按 mode 解释 items 结构） */
+export interface PoemChallengeData {
+  mode: PoemChallengeMode;
+  items: PoemChallengeItem[];
+  totalItems: number;
+  gradeLevel: string;
+  grade: string;
+  /** 无法出题时的说明（如朝代不足两种） */
+  hint?: string;
+}
+
+/** 古诗文趣味游戏玩法标识 */
+export type PoemChallengeMode =
+  | "order"
+  | "feihualing"
+  | "title"
+  | "author"
+  | "dynasty"
+  | "fill";
+
+/** 古诗文趣味游戏单题（字段随 mode 不同而取用不同子集） */
+export interface PoemChallengeItem {
+  mode: PoemChallengeMode;
+  poemId?: number;
+  title?: string;
+  author?: string;
+  dynasty?: string;
+  /** order：打乱后的句子 */
+  sentences?: string[];
+  /** order：正确句序 */
+  answer?: string;
+  /** 四选一类的题干（title/author/dynasty） */
+  question?: string;
+  /** 选项（title/author/dynasty/fill） */
+  options?: string[];
+  /** 正确项下标 */
+  answerIndex?: number;
+  /** feihualing：关键字与候选句（hit 标记是否含该字） */
+  keyword?: string;
+  hitCount?: number;
+  /** feihualing 专用选项结构 */
+  hitOptions?: Array<{ text: string; hit: boolean }>;
+  /** fill：挖空后的句子 */
+  blanked?: string;
 }
 
 /** 昆虫形态特征项（对应 insect-world 的 facts） */
