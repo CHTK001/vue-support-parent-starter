@@ -3,12 +3,12 @@
  * ReInputNumber —— 数字输入框组件
  *
  * 多种布局模式（与 ReSelect 等组件一致的分发模式）：
- *   - "default"：原生 el-input-number（默认）
- *   - "modern" / "card"：现代化扁平数字输入框（异步加载）
+ *   - "modern" / "card"：现代化扁平数字输入框，**默认**；加减按钮左右分置
+ *   - "default"：原生 el-input-number（需显式指定 layout="default"）
  *
  * 用法：
- *   <ReInputNumber v-model="num" />
- *   <ReInputNumber layout="modern" v-model="num" :min="0" :max="100" />
+ *   <ReInputNumber v-model="num" />                              <!-- modern（默认） -->
+ *   <ReInputNumber layout="default" v-model="num" :min="0" />     <!-- 原生 -->
  */
 import { computed, defineAsyncComponent } from "vue";
 import { ElInputNumber } from "element-plus";
@@ -23,7 +23,7 @@ const model = defineModel<number | undefined>({ default: undefined });
 
 const props = withDefaults(
   defineProps<{
-    /** 布局模式：default（原生 el-input-number）/ modern 或 card（现代化扁平数字输入框） */
+    /** 布局模式：modern 或 card（现代化扁平数字输入框，默认）/ default（原生 el-input-number） */
     layout?: ReInputNumberLayout;
     /** 最小值 */
     min?: number;
@@ -53,7 +53,7 @@ const props = withDefaults(
     suffix?: string;
   }>(),
   {
-    layout: "default",
+    layout: "modern",
     min: undefined,
     max: undefined,
     step: 1,

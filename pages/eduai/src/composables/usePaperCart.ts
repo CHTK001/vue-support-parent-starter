@@ -23,6 +23,8 @@ export interface CartItem {
   difficulty?: number;
   subject?: string;
   grade?: string;
+  /** 来源（题库原始码值，展示时转中文） */
+  source?: string;
 }
 
 /** 未关联试卷时的临时存储桶 */
