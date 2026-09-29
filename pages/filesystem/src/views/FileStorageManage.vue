@@ -34,7 +34,6 @@ import {
   Operation,
   Refresh,
   Scissor,
-  Search,
   Setting,
   Tickets,
   Upload,
@@ -267,6 +266,11 @@ const ARCHIVE_EXTS = [
   "7z", "rar", "zst", "tzst", "jar", "war", "apk",
 ];
 
+/** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
+type SortKey = "name" | "size" | "lastModified";
+/** 排序方向：asc 升序 / desc 降序 */
+type SortOrder = "asc" | "desc";
+
 /** 视图模式：columns=分栏（macOS Finder 风格，默认）/ details / largeIcons / mediumIcons / smallIcons */
 type ViewMode = "columns" | "details" | "largeIcons" | "mediumIcons" | "smallIcons";
 
@@ -303,13 +307,12 @@ const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
-const keyword = ref("");
 /** 视图模式：columns=分栏（默认，macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons / details */
 const viewMode = ref<ViewMode>("columns");
 /** 排序字段 */
-const sortKey = ref<"name" | "size" | "lastModified">("name");
+const sortKey = ref<SortKey>("name");
 /** 排序方向：asc 升序 / desc 降序 */
-const sortOrder = ref<"asc" | "desc">("asc");
+const sortOrder = ref<SortOrder>("asc");
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
 /** 存储桶公开配置（?config） */
@@ -335,10 +338,17 @@ const breadcrumbs = computed(() => {
   }))];
 });
 
-const filteredObjects = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  const base = kw ? objects.value.filter((item) => item.name.toLowerCase().includes(kw)) : [...objects.value];
-  return base.sort((a, b) => {
+/**
+ * 当前目录的展示列表（只排序，不过滤）
+ *
+ * <p>搜索框整行移除后关键词过滤随之删除，这里只剩两条规则：目录排在文件前面、
+ * 再按排序字段排。刻意先复制一份数组再 {@code sort}，否则就地排序会改动
+ * {@link objects} 本身，而 {@code objects} 还要拿去做统计与分栏缓存同步。</p>
+ *
+ * @return 排好序的当前目录条目
+ */
+const sortedObjects = computed(() => {
+  return [...objects.value].sort((a, b) => {
     // Windows 惯例：目录始终排在文件前面
     if (a.directory !== b.directory) return a.directory ? -1 : 1;
     const dir = sortOrder.value === "asc" ? 1 : -1;
@@ -512,7 +522,7 @@ function onRowClick(e: MouseEvent, item: StorageObject, index: number): void {
     const to = Math.max(lastSelectedIndex, index);
     const next = new Set(selected.value);
     for (let i = from; i <= to; i++) {
-      const it = filteredObjects.value[i];
+      const it = sortedObjects.value[i];
       if (it) next.add(it.name);
     }
     selected.value = next;
@@ -571,6 +581,26 @@ const RECYCLE_DIR = ".recycle";
 const RECENT_KEY = "filestorage.recent";
 /** localStorage：收藏夹路径 */
 const FAVORITE_KEY = "filestorage.favorites";
+/** localStorage：界面状态键前缀，后面拼桶名——按桶分别记忆 */
+const UI_STATE_PREFIX = "filestorage.ui.";
+/** 合法的视图模式白名单（用于校验持久化值，防止旧版本残留的非法值） */
+const VIEW_MODES: ViewMode[] = ["columns", "details", "largeIcons", "mediumIcons", "smallIcons"];
+/** 合法的排序字段白名单 */
+const SORT_KEYS: SortKey[] = ["name", "size", "lastModified"];
+/** 合法的排序方向 */
+const SORT_ORDERS: SortOrder[] = ["asc", "desc"];
+
+/** 单个桶的界面状态 */
+interface BucketUiState {
+  /** 视图模式 */
+  viewMode?: ViewMode;
+  /** 所在目录 */
+  currentPath?: string;
+  /** 排序字段 */
+  sortKey?: SortKey;
+  /** 排序方向 */
+  sortOrder?: SortOrder;
+}
 
 /**
  * 读取 localStorage 列表（损坏时回退空数组）
@@ -597,6 +627,64 @@ function writeList(key: string, list: unknown[]): void {
   try {
     localStorage.setItem(key, JSON.stringify(list));
   } catch { /* ignore */ }
+}
+
+/**
+ * 取某个桶的界面状态存储键
+ *
+ * @param bucketName 桶名
+ * @return localStorage 键
+ */
+function uiStateKey(bucketName: string): string {
+  return `${UI_STATE_PREFIX}${bucketName || "default"}`;
+}
+
+/**
+ * 读取某个桶的界面状态
+ *
+ * @param bucketName 桶名
+ * @return 界面状态；未记录过或数据损坏时返回空对象
+ */
+function readUiState(bucketName: string): BucketUiState {
+  try {
+    const raw = localStorage.getItem(uiStateKey(bucketName));
+    return raw ? (JSON.parse(raw) as BucketUiState) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 把当前界面状态写入某个桶
+ *
+ * @param bucketName 桶名
+ */
+function writeUiState(bucketName: string): void {
+  try {
+    localStorage.setItem(uiStateKey(bucketName), JSON.stringify({
+      viewMode: viewMode.value,
+      currentPath: currentPath.value,
+      sortKey: sortKey.value,
+      sortOrder: sortOrder.value,
+    } satisfies BucketUiState));
+  } catch { /* ignore */ }
+}
+
+/**
+ * 把某个桶记录的界面状态套用到当前页面
+ *
+ * <p>逐项按白名单校验后回落默认值，而不是整体信任持久化数据：
+ * 字段类型/取值对不上时不能把页面带进一个非法状态（旧版本遗留、被人手改过的
+ * localStorage 都会出现这种情况）。</p>
+ *
+ * @param bucketName 桶名
+ */
+function applyUiState(bucketName: string): void {
+  const saved = readUiState(bucketName);
+  viewMode.value = VIEW_MODES.includes(saved.viewMode as ViewMode) ? (saved.viewMode as ViewMode) : "columns";
+  currentPath.value = typeof saved.currentPath === "string" ? saved.currentPath : "";
+  sortKey.value = SORT_KEYS.includes(saved.sortKey as SortKey) ? (saved.sortKey as SortKey) : "name";
+  sortOrder.value = SORT_ORDERS.includes(saved.sortOrder as SortOrder) ? (saved.sortOrder as SortOrder) : "asc";
 }
 
 const recentPaths = ref<string[]>(readList<string>(RECENT_KEY));
@@ -688,9 +776,47 @@ function removeQuick(path: string): void {
   writeList(RECENT_KEY, recentPaths.value);
 }
 
-/** 路径显示名（最后一段） */
-function pathLabel(path: string): string {
-  return path.split("/").filter(Boolean).pop() || path;
+/**
+ * 快捷访问的父级部分（可能为空）
+ *
+ * <p>与 {@link quickLeaf} 配套：侧栏只有 232px，完整路径放不下会被尾部省略号截掉，
+ * 而尾部末段恰恰是用来区分 `1` 与 `1/1` 的那段。所以父级走「可收缩 + 变暗 + 省略号」，
+ * 末段固定不收缩，保证任何宽度下都能看清「自己是谁」。</p>
+ *
+ * @param path 目录路径
+ * @return 父级路径（含尾部 `/`）；只有一级时返回空串
+ */
+function quickParent(path: string): string {
+  const i = path.lastIndexOf("/");
+  return i < 0 ? "" : `${path.slice(0, i)}/`;
+}
+
+/**
+ * 快捷访问的末段（永不省略）
+ *
+ * @param path 目录路径
+ * @return 路径最后一段；空串（根目录）返回「根目录」
+ */
+function quickLeaf(path: string): string {
+  return path.slice(path.lastIndexOf("/") + 1) || "根目录";
+}
+
+/**
+ * 从最近访问中剔除一个已失效的路径
+ *
+ * <p>导航是「先 {@link recordRecent} 落盘、再发列表请求」，所以请求失败时那条
+ * 记录已经写进 localStorage 了。历史上分栏视图右键祖先列会用错路径导航，
+ * 留下 {@code 1/1} 这种根本不存在的路径，侧边栏就多出一个与 {@code 1} 撞名的
+ * 「1」。这里在加载失败时顺手清掉，让脏数据自愈而不是一直挂着。</p>
+ *
+ * @param path 目录路径
+ */
+function forgetRecent(path: string): void {
+  if (!path || !recentPaths.value.includes(path)) {
+    return;
+  }
+  recentPaths.value = recentPaths.value.filter((p) => p !== path);
+  writeList(RECENT_KEY, recentPaths.value);
 }
 
 /** 从快捷访问进入目录 */
@@ -829,6 +955,16 @@ async function loadObjects(): Promise<void> {
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
+    // 目录不存在（服务端 404）时顺手清掉最近访问里的这条脏记录，见 forgetRecent 的说明
+    forgetRecent(currentPath.value);
+    // 当前位置已失效：回落到根目录。这一步同时修掉「按桶记忆」的持久化残留——
+    // 不回落的话，写进 localStorage 的 currentPath 仍是那个不存在的目录，
+    // 每次刷新都会重新落进同一个 404 里，而 watch 会把回落后的值同步写回，
+    // 于是坏记忆自动被覆盖成根目录。
+    if (currentPath.value) {
+      currentPath.value = "";
+      recordHistory("");
+    }
   } finally {
     loading.value = false;
   }
@@ -883,7 +1019,7 @@ const canGoForward = computed(() => historyIndex.value < historyStack.value.leng
 
 /** 全选当前目录 */
 function selectAll(): void {
-  selected.value = new Set(filteredObjects.value.map((i) => i.name));
+  selected.value = new Set(sortedObjects.value.map((i) => i.name));
   lastSelectedIndex = -1;
 }
 
@@ -1528,30 +1664,20 @@ function refreshColumns(): void {
 }
 
 /**
- * 取某一列当前应当渲染的条目（叠加搜索关键词过滤）
+ * 取某一列应当渲染的条目
  *
  * <p>分栏视图的列数据来自 {@link colObjects} 这份「每列一份」的缓存，
- * 而不是当前目录的 {@code objects}，所以不能直接套 {@link filteredObjects}——
- * 后者只是当前目录的筛选结果，套到每一列上会把祖先列一起清空。
- * 结果就是搜索框只改状态栏计数、列表却纹丝不动（计数与可见条目长期对不上）。</p>
+ * 而当前目录的列表是 {@link sortedObjects}，两者来源不同，必须分开取：
+ * 拿当前目录那份套到每一列上，会把祖先列一起清空。</p>
  *
- * <p>这里只过滤<b>当前目录那一列</b>，祖先列保持完整：否则用户一搜索就看不到
- * 「当前目录是从哪一级进来的」这条路径信息，无法回退。语义与其它三个视图一致，
- * 即搜索框占位符所写的「在当前目录中搜索」。</p>
+ * <p>这里<b>不做</b>任何过滤（搜索框已整行移除）。列的条目由
+ * {@link ensureColumn} 负责按列路径加载，失败原因见 {@link colError}。</p>
  *
  * @param colPath 列对应的目录路径（空串表示根目录）
  * @return 该列应当渲染的条目列表；列尚未加载时返回空数组
  */
 function columnItems(colPath: string): StorageObject[] {
-  const list = colObjects.value[colPath];
-  if (list === undefined) {
-    return [];
-  }
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) {
-    return list;
-  }
-  return list.filter((item) => item.name.toLowerCase().includes(kw));
+  return colObjects.value[colPath] ?? [];
 }
 
 watch(segmentPaths, (paths) => {
@@ -1711,7 +1837,7 @@ function openContextMenu(e: MouseEvent, row: StorageObject): void {
  * 分栏视图右键：先把该列切成当前目录，再打开菜单
  *
  * <p>分栏视图与其它三个视图的根本差别在于：其它视图的行全部来自
- * {@code filteredObjects}（当前目录），而分栏视图把**祖先列**也一并渲染出来。
+ * {@code sortedObjects}（当前目录），而分栏视图把**祖先列**也一并渲染出来。
  * 菜单里的每个动作（打开/重命名/删除/复制/下载/解压/建链接）都以
  * {@code currentPath} 为基准计算对象键，若在祖先列上直接开菜单，
  * 基准目录比行的父目录更深，拼出的键就是错的——最轻的症状是「打开」拼出
@@ -1922,18 +2048,14 @@ function unbindDragEvents(): void {
 const previewVisible = ref(false);
 const previewLoading = ref(false);
 const previewName = ref("");
-const previewKind = ref<PreviewKind>("unknown");
 const previewKey = ref("");
 const previewZoom = ref(100);
 const previewError = ref(false);
 const iframeKey = ref(0);
-const previewMeta = ref<{ size?: number; lastModified?: number }>({});
 const iframeLoading = ref(false);
 
 async function openPreview(row: StorageObject): Promise<void> {
-  const kind = kindOf(row.name);
   previewName.value = row.name;
-  previewKind.value = kind;
   previewKey.value = fullKey(row.name);
   previewZoom.value = 100;
   previewError.value = false;
@@ -1941,7 +2063,6 @@ async function openPreview(row: StorageObject): Promise<void> {
   officeLoading.value = false;
   iframeLoading.value = true;
   previewLoading.value = false;
-  previewMeta.value = { size: row.size, lastModified: row.lastModified };
   previewVisible.value = true;
 }
 
@@ -2116,6 +2237,8 @@ function copyOneTimeLink(): void {
 }
 
 onMounted(() => {
+  // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
+  applyUiState(bucket.value);
   loadBucketConfig();
   loadCapabilities();
   // 播种初始历史：起始目录就是历史栈的第一条，否则后退/前进的索引会整体错位一格
@@ -2123,6 +2246,34 @@ onMounted(() => {
   loadObjects();
   loadRecycle();
   bindDragEvents();
+});
+
+// 界面状态变化即按当前桶落盘（切桶时由下面的 watch 负责先给旧桶补一次）
+watch([viewMode, currentPath, sortKey, sortOrder], () => {
+  writeUiState(bucket.value);
+});
+
+/**
+ * 切换存储桶：旧桶落盘 → 套用新桶的界面状态 → 重新加载
+ *
+ * <p>分栏缓存 {@link colObjects} 必须一起清掉：它是按目录路径做 key 的，
+ * 换桶后同名路径（如 `1`）指向的完全是另一个存储，不清就会显示旧桶的内容。</p>
+ *
+ * <p>当前版本还没有桶切换入口（{@code bucket} 只在初始化时从 URL / 默认桶赋值），
+ * 所以这个 watch 暂时不会触发；带 {@code ?bucket=} 换桶走的是整页加载，
+ * 由 {@link onMounted} 里的 {@link applyUiState} 负责恢复。这里先把切桶路径铺好，
+ * 以后加切换器时「各自独立记忆」才不用重写。</p>
+ */
+watch(bucket, (now, prev) => {
+  if (prev) {
+    writeUiState(prev);
+  }
+  applyUiState(now);
+  recordHistory(currentPath.value);
+  refreshColumns();
+  loadObjects();
+  loadBucketConfig();
+  loadCapabilities();
 });
 
 onUnmounted(() => {
@@ -2150,7 +2301,10 @@ onUnmounted(() => {
             @click="enterPath(p)"
           >
             <el-icon class="fs-nav__icon" :size="15"><Folder /></el-icon>
-            <span class="fs-nav__label">{{ pathLabel(p) }}</span>
+            <span class="fs-nav__label">
+              <span v-if="quickParent(p)" class="fs-nav__label-parent">{{ quickParent(p) }}</span>
+              <span class="fs-nav__label-leaf">{{ quickLeaf(p) }}</span>
+            </span>
             <el-icon
               class="fs-nav__del"
               :size="12"
@@ -2235,6 +2389,21 @@ onUnmounted(() => {
           </span>
           <span v-if="selectedCount > 0" class="fs-main__sel">已选 {{ selectedCount }} 项</span>
 
+          <!-- 上传/下载：原在搜索工具栏那一行，该行按需求整行删除后并入路径栏尾部，
+               保证上传入口不丢（那一整块曾被误删过一次，openUpload 一度成为孤儿） -->
+          <button type="button" class="fs-tb-btn" title="上传" :disabled="nav !== 'all'" @click="openUpload">
+            <el-icon :size="15"><Upload /></el-icon>上传
+          </button>
+          <button
+            v-if="selectedCount > 0 && nav === 'all'"
+            type="button"
+            class="fs-tb-btn"
+            title="下载选中"
+            @click="downloadSelected"
+          >
+            <el-icon :size="15"><Download /></el-icon>下载
+          </button>
+
           <!-- 存储统计：紧凑胶囊放路径栏右侧，点箭头展开明细；折叠态只显示当前目录占用大小 -->
           <div class="fs-stats">
             <button
@@ -2256,44 +2425,9 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 操作工具栏：搜索 + 上传/下载，其余操作收敛到右键菜单。
-             该块曾在工作区被整块删除（openUpload/downloadSelected/keyword 一度成为孤儿），
-             导致页面没有上传入口，故此处恢复。 -->
-        <div class="fs-toolbar">
-          <div class="fs-searchbox">
-            <span class="fs-searchbox__icon" aria-hidden="true">
-              <el-icon :size="16"><Search /></el-icon>
-            </span>
-            <input
-              v-model="keyword"
-              class="fs-searchbox__input"
-              type="text"
-              placeholder="在当前目录中搜索…"
-              @keydown.esc="keyword = ''"
-            />
-            <button
-              v-if="keyword"
-              type="button"
-              class="fs-searchbox__clear"
-              title="清除搜索"
-              aria-label="清除搜索"
-              @click="keyword = ''"
-            ><el-icon :size="12"><Close /></el-icon></button>
-          </div>
-          <button type="button" class="fs-tb-btn" title="上传" :disabled="nav !== 'all'" @click="openUpload">
-            <el-icon :size="15"><Upload /></el-icon>上传
-          </button>
-          <button
-            v-if="selectedCount > 0 && nav === 'all'"
-            type="button"
-            class="fs-tb-btn"
-            title="下载选中"
-            @click="downloadSelected"
-          >
-            <el-icon :size="15"><Download /></el-icon>下载
-          </button>
-          <span class="fs-toolbar__hint">右键文件或文件夹查看更多操作</span>
-        </div>
+        <!-- 搜索工具栏整行删除：搜索框已按需求移除，上传/下载并入上方路径栏尾部，
+             其余操作仍在右键菜单里。这一行原本是页面唯一的搜索入口，
+             删除后腾出的垂直空间全部让给文件列表（各视图行高同步调大）。 -->
 
         <!-- ===== 全部文件视图 ===== -->
         <template v-if="nav === 'all'">
@@ -2313,7 +2447,7 @@ onUnmounted(() => {
             >
               <div v-if="colObjects[colPath] === undefined" class="fs-col__hint">加载中…</div>
               <div v-else-if="colError[colPath]" class="fs-col__hint fs-col__hint--error">{{ colError[colPath] }}</div>
-              <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">{{ keyword.trim() ? '无匹配项' : '空目录' }}</div>
+              <div v-else-if="columnItems(colPath).length === 0" class="fs-col__hint">空目录</div>
               <div
                 v-for="(item, index) in columnItems(colPath)"
                 :key="item.name"
@@ -2363,12 +2497,12 @@ onUnmounted(() => {
               修改时间 <span class="fs-sort-arrow">{{ sortArrow('lastModified') }}</span>
             </span>
           </div>
-          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+          <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>当前目录为空</span>
           </div>
           <div
-            v-for="(item, index) in filteredObjects"
+            v-for="(item, index) in sortedObjects"
             :key="item.name"
             class="fs-details-row"
             :class="{
@@ -2403,12 +2537,12 @@ onUnmounted(() => {
 
         <!-- 大图标（Large Icons）- 使用 ?preview 渲染缩略图 -->
         <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" v-loading="loading" @contextmenu="openBlankContextMenu">
-          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+          <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>当前目录为空</span>
           </div>
           <div
-            v-for="(item, index) in filteredObjects"
+            v-for="(item, index) in sortedObjects"
             :key="item.name"
             class="fs-lg-card"
             :class="{
@@ -2449,12 +2583,12 @@ onUnmounted(() => {
 
         <!-- 中图标（Medium Icons） -->
         <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" v-loading="loading" @contextmenu="openBlankContextMenu">
-          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+          <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>当前目录为空</span>
           </div>
           <div
-            v-for="(item, index) in filteredObjects"
+            v-for="(item, index) in sortedObjects"
             :key="item.name"
             class="fs-md-card"
             :class="{
@@ -2487,13 +2621,13 @@ onUnmounted(() => {
 
         <!-- 小图标（Small Icons） -->
         <div v-else class="fs-files fs-files--small" v-loading="loading" @contextmenu="openBlankContextMenu">
-          <div v-if="filteredObjects.length === 0 && !loading" class="fs-files__empty">
+          <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span>当前目录为空</span>
           </div>
           <div class="fs-files__small-list">
             <div
-              v-for="(item, index) in filteredObjects"
+              v-for="(item, index) in sortedObjects"
               :key="item.name"
               class="fs-sm-row"
               :class="{
@@ -2550,7 +2684,7 @@ onUnmounted(() => {
         <!-- 状态栏：项数 + 视图切换 -->
         <div class="fs-statusbar">
           <span class="fs-statusbar__info">
-            {{ nav === 'recycle' ? recycleCount : filteredObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
+            {{ nav === 'recycle' ? recycleCount : sortedObjects.length }} 个项{{ selectedCount > 0 ? `（已选 ${selectedCount} 项）` : '' }}
           </span>
           <div class="fs-statusbar__views" role="group" aria-label="查看方式">
             <button
@@ -2875,13 +3009,29 @@ onUnmounted(() => {
       <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
     </el-dialog>
 
-    <!-- ===== 预览对话框 ===== -->
-    <el-dialog v-model="previewVisible" :title="previewName" width="720px" :append-to-body="true" destroy-on-close @closed="retryPreview">
-      <div v-if="previewMeta.size != null && !previewLoading && !previewError" class="fs-preview__meta">
-        <span><el-tag  type="info">{{ previewKind }}</el-tag></span>
-        <span>{{ formatSize(previewMeta.size) }}</span>
-        <span v-if="previewMeta.lastModified">{{ formatTime(previewMeta.lastModified) }}</span>
-      </div>
+    <!-- ===== 预览弹层（无头弹框）=====
+         不传 title、不给 header 插槽、show-close=false，文件名/类型/大小/修改时间一并不显示：
+         预览是为内容服务的，腾出的空间全给内容。
+         注意 element-plus 2.14.3 的 <header> 是无条件渲染的，光不给 title 压不掉那圈内边距，
+         真正让它消失的是非 scoped 块里的 `.fs-preview-dlg .el-dialog__header { display: none }`；
+         关闭按钮浮在右上角（.fs-preview__close）。 -->
+    <el-dialog
+      v-model="previewVisible"
+      class="fs-preview-dlg"
+      width="min(1200px, 92vw)"
+      :show-close="false"
+      :append-to-body="true"
+      :close-on-click-modal="true"
+      destroy-on-close
+      @closed="retryPreview"
+    >
+      <button
+        type="button"
+        class="fs-preview__close"
+        title="关闭"
+        aria-label="关闭预览"
+        @click="previewVisible = false"
+      ><el-icon :size="18"><Close /></el-icon></button>
       <div class="fs-preview">
         <div v-if="previewLoading" class="fs-preview__skeleton">
           <div class="sk sk--w40 sk--h24" /><div class="sk sk--full sk--h200" /><div class="sk sk--w60 sk--h120" />
@@ -2937,83 +3087,13 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* ===== 顶栏：搜索 + 上传 ===== */
+/* 注：本块（.fs-top / .fs-searchbox / .fs-ghost-btn / .fs-upload-btn）原本服务于
+   已被移出模板的旧顶栏，搜索框删除后整体不再有引用，属于改动前就存在的死样式。 */
 .fs-top {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.fs-searchbox {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fs-searchbox__icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
-}
-
-.fs-searchbox__icon:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-}
-
-.fs-searchbox__input {
-  flex: 1;
-  min-width: 0;
-  height: 44px;
-  padding: 0 20px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-primary);
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color var(--el-transition-duration, 0.2s), box-shadow var(--el-transition-duration, 0.2s);
-}
-
-.fs-searchbox__input::placeholder {
-  color: var(--el-text-color-placeholder);
-}
-
-.fs-searchbox__input:focus {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.fs-searchbox__clear {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  margin-left: -40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-}
-
-.fs-searchbox__clear:hover {
-  color: var(--el-color-primary);
 }
 
 .fs-top__right {
@@ -3337,10 +3417,26 @@ button.fs-stat:hover {
 
 .fs-nav__label {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* 父级：空间不够时从这里省略号截断，末段始终保留 */
+.fs-nav__label-parent {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-nav__label-leaf {
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .fs-nav__chev {
@@ -3568,7 +3664,7 @@ button.fs-stat:hover {
 }
 
 .fs-details-row {
-  height: 40px;
+  height: 48px;
   border-radius: var(--el-radius-md, 8px);
   cursor: pointer;
   border: 1px solid transparent;
@@ -3782,16 +3878,16 @@ button.fs-stat:hover {
 }
 
 .fs-md-card__thumb {
-  width: 44px;
-  height: 44px;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .fs-md-card__thumb svg {
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
 }
 
 .fs-md-card__thumb .fs-card-icon {
@@ -3819,7 +3915,7 @@ button.fs-stat:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 40px;
   padding: 0 8px;
   border: 1px solid transparent;
   border-radius: var(--el-radius-sm, 6px);
@@ -4071,6 +4167,37 @@ button.fs-stat:hover {
 }
 
 /* ===== 预览 ===== */
+/* 关闭按钮：浮在弹层右上角。.el-dialog 自带 position: relative，
+   所以这里的 absolute 锚点是弹层本身，不依赖 .fs-preview（它在按钮的兄弟层里）。
+   位置对应 .fs-preview-dlg.el-dialog 被去掉的 16px padding，尽量不压住内容。 */
+.fs-preview__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-preview__close:hover {
+  background: var(--el-fill-color-dark);
+  color: var(--el-color-primary);
+}
+
+.fs-preview__close:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
 .fs-preview {
   min-height: 200px;
   display: flex;
@@ -4078,19 +4205,6 @@ button.fs-stat:hover {
   align-items: center;
   justify-content: center;
   gap: 10px;
-}
-
-.fs-preview__meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 6px 0;
-  margin-bottom: 8px;
-  width: 100%;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
 .fs-preview__media {
@@ -4610,17 +4724,7 @@ button.fs-stat:hover {
   margin-left: 0;
 }
 
-/* 操作工具栏 */
-.fs-toolbar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
-  overflow-x: auto;
-}
-
+/* 上传/下载按钮：原先挂在搜索工具栏上，该行删除后并入路径栏尾部，样式沿用 */
 .fs-tb-btn {
   display: inline-flex;
   align-items: center;
@@ -4655,22 +4759,6 @@ button.fs-stat:hover {
 .fs-tb-btn--danger:hover:not(:disabled) {
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
-}
-
-.fs-toolbar__hint {
-  margin-left: 10px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fs-toolbar__sep {
-  width: 1px;
-  height: 18px;
-  margin: 0 6px;
-  background: var(--el-border-color-lighter);
 }
 
 /* ===== 分栏视图（macOS Finder 风格） ===== */
@@ -4718,7 +4806,7 @@ button.fs-stat:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  height: 40px;
   padding: 0 8px;
   border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
@@ -4867,18 +4955,19 @@ button.fs-stat:hover {
   box-shadow: none;
 }
 
+/* 缩略图：搜索工具栏整行删除后腾出垂直空间，这里把大图标整体放大一档 */
 .fs-lg-card__thumb {
-  width: 62px;
-  height: 62px;
+  width: 74px;
+  height: 74px;
 }
 
 .fs-lg-card__thumb svg {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
 }
 
 .fs-lg-card__thumb .fs-card-icon {
-  font-size: 56px;
+  font-size: 68px;
 }
 
 .fs-lg-card__label {
@@ -4921,6 +5010,30 @@ button.fs-stat:hover {
 }
 .el-message-box {
   border-radius: var(--el-radius-lg, 12px);
+}
+
+/* ── 预览弹层外壳（无头弹框，append-to-body 需非 scoped）──
+ * 模板里不传 title、不给 header 插槽、show-close=false。但 element-plus 2.14.3 的
+ * dialog-content 是**无条件**渲染 <header class="el-dialog__header"> 的
+ * （没有 shouldShowHeader 判定，slot 没内容时只是渲染一个空的 title span），
+ * 而该 header 自带 padding-bottom: var(--el-dialog-padding-primary)（16px），
+ * 叠加 .el-dialog 自身的 16px padding，框顶会空出 32px——正是要去掉的那个「头」。
+ * 所以这里显式 display:none，而不是指望不给 title 就等于没有 header。
+ * 关闭按钮由 .fs-preview__close 浮在右上角。 */
+.fs-preview-dlg.el-dialog {
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: hidden;
+  /* 自己的 16px padding 去掉：既然无头，就不该在内容外面再套一圈留白，
+     关闭按钮正好落进这块被去掉的留白里，不额外遮挡内容 */
+  padding: 0;
+}
+
+.fs-preview-dlg .el-dialog__header {
+  display: none;
+}
+
+.fs-preview-dlg .el-dialog__body {
+  padding: 12px 14px 14px;
 }
 
 /* ── 全局：Windows 风格类型图标 ──
