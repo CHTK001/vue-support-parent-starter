@@ -19,6 +19,7 @@
         <template #toolbar>
           <!-- 组卷只有一个入口：AI 组卷是它的功能之一（弹框内切换组卷方式） -->
           <ReButton type="primary" icon="MagicStick" @click="openCompose">组卷</ReButton>
+          <ReButton icon="Printer" @click="openPrint">打印</ReButton>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
         <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
@@ -85,7 +86,7 @@
             clearable
             style="width: 100%"
           >
-            <el-option v-for="g in createGradeOptions" :key="g.gradeId" :label="g.gradeName" :value="g.gradeName" />
+            <el-option v-for="g in createGradeOptions" :key="g.gradeId" :label="gradeDisplayName(g.gradeName)" :value="g.gradeName" />
           </el-select>
         </el-form-item>
         <el-form-item label="总分">
@@ -167,7 +168,7 @@
             clearable
             style="width: 100%"
           >
-            <el-option v-for="g in editGradeOptions" :key="g.gradeId" :label="g.gradeName" :value="g.gradeName" />
+            <el-option v-for="g in editGradeOptions" :key="g.gradeId" :label="gradeDisplayName(g.gradeName)" :value="g.gradeName" />
           </el-select>
         </el-form-item>
         <el-form-item label="总分">
@@ -185,13 +186,91 @@
         <el-button type="primary" :loading="editing" @click="doEdit">保存</el-button>
       </template>
     </el-dialog>
+
+    <!--
+      打印预览：弹层内看到的 A4 版面就是实际打印出去的内容（同一份 DOM，不做两份渲染）。
+      屏幕上把 .print-sheet 移到可视区外，打印时再用 @media print 把它移回页面原点。
+    -->
+    <el-dialog
+      v-model="printVisible"
+      title="打印预览"
+      width="860px"
+      top="4vh"
+      append-to-body
+      class="paper-print-dialog"
+      destroy-on-close
+      @closed="stopPrintMode"
+    >
+      <div v-loading="printLoading" class="print-hint">
+        <span>打印范围：<b>当前检索结果</b>（不受分页限制）</span>
+        <el-tag size="small" effect="plain">共 {{ printRows.length }} 份试卷</el-tag>
+        <span class="print-hint__tip">在打印对话框里可选择目标打印机、纸张与份数</span>
+      </div>
+
+      <!-- 打印视图本体：仅这一块会进入打印输出 -->
+      <div class="print-sheet">
+        <header class="print-sheet__head">
+          <h2 class="print-sheet__title">试卷清单</h2>
+          <div class="print-sheet__meta">
+            <span>组卷管理</span>
+            <span>生成时间：{{ printTime }}</span>
+            <span>共 {{ printRows.length }} 份</span>
+          </div>
+          <div v-if="printFilterText" class="print-sheet__filter">筛选：{{ printFilterText }}</div>
+        </header>
+
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>试卷名</th>
+              <th>学科</th>
+              <th>学段</th>
+              <th>年级</th>
+              <th class="col-num">总分</th>
+              <th class="col-num">题数</th>
+              <th class="col-num">时长</th>
+              <th>状态</th>
+              <th>创建时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in printRows" :key="p.paperId">
+              <td class="col-id">{{ p.paperId }}</td>
+              <td class="col-name">{{ p.paperName }}</td>
+              <td>{{ p.paperSubject || '—' }}</td>
+              <td>{{ p.paperGradeLevel || '—' }}</td>
+              <td>{{ p.paperGrade || '—' }}</td>
+              <td class="col-num">{{ p.paperTotalScore ?? '—' }}</td>
+              <td class="col-num">{{ p.paperQuestionCount ?? '—' }}</td>
+              <td class="col-num">{{ p.paperDuration ?? '—' }}</td>
+              <td>{{ paperStatusLabel(p.paperStatus) }}</td>
+              <td class="col-time">{{ formatDateTime(p.paperCreateTime) }}</td>
+            </tr>
+            <tr v-if="!printRows.length">
+              <td class="print-table__empty" colspan="10">当前检索结果为空，没有可打印的内容</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <footer class="print-sheet__foot">
+          <span>合计 {{ printRows.length }} 份 · 满分总和 {{ printTotalScore }} 分 · 题目总数 {{ printTotalQuestions }} 道</span>
+        </footer>
+      </div>
+
+      <template #footer>
+        <el-button @click="printVisible = false">关闭</el-button>
+        <el-button type="primary" :icon="Printer" :disabled="!printRows.length" @click="doPrint">打印</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { Printer } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
@@ -338,32 +417,111 @@ const editForm = reactive({
 /**
  * 年级下拉：按所选学段的中文标签过滤。
  *
- * <p>与新建弹框共用同一份维度数据（eduaiApi.dimensionDropdown），
- * 避免为编辑再拉一次接口。</p>
+ * <p>数据取自 {@code editGrades} 而不是新建弹框的 {@code createGrades}：
+ * 后者只在打开「组卷」弹框时才被填充，直接点「编辑」时它是空数组，
+ * el-select 找不到对应 option 就会把绑定值（库里存的 "3"）原样显示出来，
+ * 看起来像「下拉里是一串数字」。这里独立取一次，两处互不依赖。</p>
  */
+/**
+ * 年级展示名：把 edu_grade.grade_name 的数字写法转成中文。
+ *
+ * <p>{@code edu_grade.grade_name} 存的是 "1"/"2"/…，而 {@code edu_paper.paper_grade}
+ * 与 {@code edu_question.question_grade} 用的是「三年级」这类中文名，三处口径不一致。
+ * 下拉直接把 gradeName 当标签渲染就会显示成一串数字，这里只修展示层，
+ * 绑定值仍用 grade_name 原值，避免动到库里已有的两种写法。</p>
+ *
+ * @param name edu_grade.grade_name 原值
+ * @returns 中文展示名；非纯数字时原样返回
+ */
+const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+
+function gradeDisplayName(name?: string): string {
+  const s = (name ?? '').trim();
+  if (!s) {
+    return '';
+  }
+  if (/^\d{1,2}$/.test(s)) {
+    const n = Number(s);
+    return CN_NUM[n] ? `${CN_NUM[n]}年级` : s;
+  }
+  // 已经是中文名，但要补全「年级」后缀（有的存「三」没存「三年级」）
+  return /年级$/.test(s) ? s : `${s}年级`;
+}
+
+/**
+ * 把库里存的年级写法归一到当前下拉 option 的 value。
+ *
+ * <p>库里混着 "3"（AI 组卷写进来的）与 "三年级"（历史数据）两种；
+ * 下拉的 value 用的是 edu_grade.grade_name，直接绑定会出现「有值但无对应 option」
+ * 从而原样显示的问题。这里双向匹配一次，匹配不上才退回原值。</p>
+ *
+ * @param stored 库里存的年级值
+ * @param options 当前学段下的年级候选
+ * @returns 能与某个 option 对应的 value
+ */
+function matchGradeValue(stored: string | undefined, options: EduGrade[]): string {
+  const s = (stored ?? '').trim();
+  if (!s || !options.length) {
+    return s;
+  }
+  if (options.some((g) => g.gradeName === s)) {
+    return s;
+  }
+  // "3" -> 展示名 "三年级" -> 找到 gradeName 为 "3" 的项
+  const byLabel = options.find((g) => gradeDisplayName(g.gradeName) === s);
+  if (byLabel) {
+    return byLabel.gradeName;
+  }
+  // "三年级" -> 去掉后缀 "三" -> 找到展示名匹配（覆盖存了 "三" 的情况）
+  const short = s.replace(/年级$/, '');
+  const byShort = options.find((g) => g.gradeName === short || gradeDisplayName(g.gradeName) === s);
+  return byShort ? byShort.gradeName : s;
+}
+
 const editGradeOptions = computed(() => {
   const label = GRADE_LEVEL_OPTIONS.find((o) => o.value === editForm.gradeLevel)?.label;
   if (!label) {
     return [];
   }
-  return createGrades.value.filter((g) => g.gradeLevel === label);
+  return editGrades.value.filter((g) => g.gradeLevel === label);
 });
+
+/** 编辑弹框自用的年级维度数据（与新建弹框各自持有，互不依赖） */
+const editGrades = ref<EduGrade[]>([]);
+
+/** 为编辑弹框加载年级候选；已有数据则直接复用，避免重复请求 */
+const loadEditGrades = async () => {
+  if (editGrades.value.length) {
+    return;
+  }
+  try {
+    const drop = await eduaiApi.dimensionDropdown();
+    editGrades.value = Array.isArray(drop?.grades) ? drop.grades : [];
+  } catch (e) {
+    editGrades.value = [];
+    ElMessage.error('加载年级候选失败: ' + errorText(e));
+  }
+};
 
 /** 切换学段后原年级可能不属于新学段，先清空 */
 const onEditGradeLevelChange = () => {
   editForm.grade = '';
 };
 
-/** 打开编辑弹框：用列表行已有值回填，年级下拉按所选学段过滤 */
-const openEdit = (row: Paper) => {
+/** 打开编辑弹框：用列表行已有值回填，并确保年级候选已就位 */
+const openEdit = async (row: Paper) => {
   editTargetId.value = row.paperId;
   editForm.name = row.paperName ?? '';
   editForm.subject = row.paperSubject ?? '';
   editForm.gradeLevel = gradeLevelToCode(row.paperGradeLevel);
-  editForm.grade = row.paperGrade ?? '';
+  editForm.grade = matchGradeValue(row.paperGrade, editGrades.value.filter(
+    (g) => g.gradeLevel === GRADE_LEVEL_OPTIONS.find((o) => o.value === editForm.gradeLevel)?.label,
+  ));
   editForm.totalScore = row.paperTotalScore ?? 100;
   editForm.difficulty = row.paperDifficulty ?? 3;
   editForm.duration = row.paperDuration ?? 60;
+  // 先把候选拉到，再开弹框：否则 el-select 首次渲染时没有 option，会闪一下原始值
+  await loadEditGrades();
   editVisible.value = true;
 };
 
@@ -462,6 +620,18 @@ const GRADE_LEVEL_OPTIONS = [
   { value: 'UNIVERSITY', label: '大学' },
   { value: 'OTHER', label: '其他' },
 ];
+
+/**
+ * 学段码值（PRIMARY/JUNIOR/…）→ 中文标签，用于打印抬头这类面向人的文案。
+ *
+ * @param code 码值；也接受中文名，认不出时原样返回
+ * @returns 中文标签
+ */
+const gradeLevelLabel = (code: unknown): string => {
+  const s = code == null ? '' : String(code);
+  if (!s) return '';
+  return GRADE_LEVEL_OPTIONS.find((o) => o.value === s || o.label === s)?.label ?? s;
+};
 
 /**
  * 库里存的学段中文名 → 接口/下拉用的码值。
@@ -623,11 +793,294 @@ const paperStatusType = (n?: number) =>
 const paperStatusLabel = (n?: number) =>
   ({ 1: '已发布', 2: '已归档', 0: '草稿' } as Record<number, string>)[n ?? 0] || '-';
 
+/* ==================== 打印 ==================== */
+
+/** 打开打印时挂在 body 上的类名，@media print 据此把整页隐藏、只留打印视图 */
+const PRINT_BODY_CLASS = 'printing-paper-list';
+
+/** 一次打印最多取多少份试卷；超过则提示按条件收窄，避免打出几百页 */
+const PRINT_MAX_ROWS = 500;
+
+const printVisible = ref(false);
+const printLoading = ref(false);
+const printRows = ref<Paper[]>([]);
+const printTime = ref('');
+
+/** 打开打印预览：按当前检索条件取全量（不分页），再打开弹层 */
+const openPrint = async () => {
+  printLoading.value = true;
+  try {
+    const res = await eduaiApi.pagePapers({
+      pageNum: 1,
+      pageSize: PRINT_MAX_ROWS,
+      subject: strParam(applied.value.subject),
+      gradeLevel: strParam(applied.value.gradeLevel),
+      status: numParam(applied.value.status),
+    });
+    const list = (res?.data ?? []) as Paper[];
+    if (list.length >= PRINT_MAX_ROWS) {
+      ElMessage.warning(`结果已达 ${PRINT_MAX_ROWS} 份，仅打印前 ${PRINT_MAX_ROWS} 份，请收窄筛选条件`);
+    }
+    printRows.value = list;
+    printTime.value = formatDateTime(new Date().toISOString());
+    printVisible.value = true;
+    document.body.classList.add(PRINT_BODY_CLASS);
+  } catch (e) {
+    ElMessage.error('加载打印数据失败: ' + errorText(e));
+  } finally {
+    printLoading.value = false;
+  }
+};
+
+/** 关闭弹层后摘掉 body 类，否则残留会让后续任何打印都只剩打印视图 */
+const stopPrintMode = () => {
+  document.body.classList.remove(PRINT_BODY_CLASS);
+};
+
+/** 调起浏览器/系统打印对话框；打印输出由 @media print 规则决定 */
+const doPrint = () => {
+  window.print();
+};
+
+/** 打印抬头里的筛选条件描述；全空时不显示这一行 */
+const printFilterText = computed(() => {
+  const parts: string[] = [];
+  if (applied.value.subject) parts.push(`学科=${applied.value.subject}`);
+  if (applied.value.gradeLevel) parts.push(`学段=${gradeLevelLabel(applied.value.gradeLevel)}`);
+  if (applied.value.status != null) parts.push(`状态=${paperStatusLabel(Number(applied.value.status))}`);
+  return parts.join('　');
+});
+
+const printTotalScore = computed(() =>
+  printRows.value.reduce((sum, p) => sum + (Number(p.paperTotalScore) || 0), 0),
+);
+const printTotalQuestions = computed(() =>
+  printRows.value.reduce((sum, p) => sum + (Number(p.paperQuestionCount) || 0), 0),
+);
+
+/**
+ * 从异常里取出「对用户有用」的文案。
+ *
+ * <p>后端业务错误把原因放在响应体的 msg 里（如「试卷存在重复或缺失的题项编号」），
+ * 直接用 axios 的 message 只会得到 Request failed with status code 400。</p>
+ *
+ * @param e 捕获到的异常
+ * @returns 可展示的错误文案
+ */
+function errorText(e: unknown): string {
+  const resp = (e as { response?: { data?: { msg?: string; message?: string } } } | null)?.response;
+  const bizMsg = resp?.data?.msg || resp?.data?.message;
+  if (typeof bizMsg === 'string' && bizMsg.trim()) {
+    return bizMsg.trim();
+  }
+  return e instanceof Error ? e.message : String(e);
+}
+
+/**
+ * 归一化时间字符串为「YYYY-MM-DD HH:mm」。
+ *
+ * @param value 后端返回的时间，可能是 ISO 串或已是「YYYY-MM-DD HH:mm:ss」
+ * @returns 便于排版的本地时间串；无法解析时原样返回
+ */
+function formatDateTime(value?: string | null): string {
+  if (!value) return '—';
+  const raw = String(value);
+  const ts = Date.parse(raw.replace(' ', 'T'));
+  if (Number.isNaN(ts)) {
+    return raw.slice(0, 16);
+  }
+  const d = new Date(ts);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+onBeforeUnmount(stopPrintMode);
+
 
 </script>
 
 <style scoped>
 .page-container { height: 100%; display: flex; flex-direction: column; }
+
+/* ---------- 打印预览 ---------- */
+.print-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.print-hint__tip {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+/*
+ * 打印视图（.print-sheet）就是实际打印输出的内容，弹层里看到的即所得。
+ * 屏幕上把它移到可视区外，避免撑出滚动条；打印时由下方 @media print 移回页面原点。
+ * 宽度按 A4 内容区（210mm - 两侧各 12mm 页边距）设定，页边距交给浏览器默认设置。
+ */
+.print-sheet {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 186mm;
+  padding: 10mm 8mm;
+  background: #ffffff;
+  color: #1f2329;
+  font-size: 12px;
+}
+
+.print-sheet__head {
+  text-align: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #1f2329;
+}
+
+.print-sheet__title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.print-sheet__meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+.print-sheet__filter {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid #9ca3af;
+  padding: 4px 6px;
+  text-align: left;
+  word-break: break-all;
+}
+
+.print-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  text-align: center;
+}
+
+.print-table .col-id { width: 34px; text-align: center; }
+.print-table .col-num { width: 44px; text-align: center; }
+.print-table .col-time { width: 92px; }
+.print-table .col-name { width: auto; }
+
+.print-table__empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 18px 0;
+}
+
+.print-sheet__foot {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #d1d5db;
+  text-align: right;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+/*
+ * 打印隔离：输出里只保留 .print-sheet。
+ *
+ * 不用「visibility: hidden 刷一遍 body *」那种写法 —— visibility 会被后代自己声明的
+ * visible 覆盖掉（布局组件里就有），实测会漏出侧边栏。这里改成：
+ *   1) body 直属子节点里只留弹层（append-to-body 的 .el-overlay），应用外壳整体 display:none
+ *   2) 弹层内显式隐藏标题栏/底部按钮/提示条/遮罩，只留打印视图
+ * 3) 再用 visibility 兜一层，防止将来新增的包裹层漏出去
+ * 开关是 body 上的类名，只在本页打开打印预览期间生效，不影响其它页面的打印样式。
+ */
+@media print {
+  :global(body.printing-paper-list > *:not(.el-overlay)) {
+    display: none !important;
+  }
+
+  :global(body.printing-paper-list .el-dialog__header),
+  :global(body.printing-paper-list .el-dialog__footer),
+  :global(body.printing-paper-list .el-overlay__mask),
+  :global(body.printing-paper-list .print-hint) {
+    display: none !important;
+  }
+
+  :global(body.printing-paper-list .el-dialog) {
+    overflow: visible !important;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    /* 弹层自带内边距会在纸面上留一圈缩进，打印时一并清掉 */
+    padding: 0 !important;
+  }
+
+  :global(body.printing-paper-list .el-overlay),
+  :global(body.printing-paper-list .el-overlay-dialog) {
+    overflow: visible !important;
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  :global(body.printing-paper-list .el-dialog__body) {
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  :global(body.printing-paper-list .print-sheet) {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  :global(body.printing-paper-list *) {
+    visibility: hidden !important;
+  }
+
+  :global(body.printing-paper-list .print-sheet),
+  :global(body.printing-paper-list .print-sheet *) {
+    visibility: visible !important;
+  }
+
+  /* 表头在跨页时重复，便于多页清单阅读；单行不被分页切断 */
+  .print-table thead {
+    display: table-header-group;
+  }
+
+  .print-table tr {
+    break-inside: avoid;
+  }
+}
 
 /* 详情：纸张预览 + 顶部元信息行 */
 .detail-preview {

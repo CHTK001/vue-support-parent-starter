@@ -41,6 +41,20 @@
               <span class="panel-head__meta">共 {{ composeQuestions.length }} 题 · 试卷 ID {{ paperId ?? "未保存" }}</span>
             </span>
             <span class="panel-head__actions">
+              <!--
+                AI 组卷：往**当前这张卷**里补题（不建新卷）。
+                能力来自后端 spring-support-ai-starter，未引入/未配模型时禁用并把原因写在 tip 上，
+                不让用户点下去再失败。能力探测失败时按不可用处理，避免误开放。
+              -->
+              <ReButton
+                layout="square"
+                type="warning"
+                icon="MagicStick"
+                :disabled="!aiReady"
+                :tip="aiTip"
+                :loading="aiLoading"
+                @click="openAiCompose"
+              />
               <!-- 均分改为打开「分值配置」弹框：题多时在弹框里逐题核对，比行内更好操作 -->
               <ReButton layout="square" icon="Sort" tip="分值配置 / 按题数均分" @click="openScoreDialog" />
               <!-- 设置图标带徽章：提示还有多少题没分配分值 -->
@@ -340,6 +354,63 @@
       </template>
     </el-dialog>
 
+    <!-- ==================== AI 组卷弹框（往当前试卷补题） ====================
+         与试卷列表页的「组卷」不同：这里不建新卷，只按条件向 AI 要一批题目加入购物车，
+         用户再决定要不要加进试卷。能力不可用时按钮已禁用，本弹框不会被打开。 -->
+    <el-dialog
+      v-model="aiDialogVisible"
+      title="AI 组卷（补充题目）"
+      width="560px"
+      top="8vh"
+      append-to-body
+      destroy-on-close
+      class="ai-compose-dialog"
+    >
+      <el-alert
+        v-if="aiCapability?.available"
+        type="info"
+        :closable="false"
+        show-icon
+        title="AI 会按下面的条件挑选题目，加进右侧购物车后你可以再调整。"
+      />
+      <el-alert
+        v-else
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="aiCapability?.reason || '后端未启用 AI 组卷能力'"
+      />
+
+      <el-form label-width="82px" class="ai-dlg__form">
+        <el-form-item label="学科">
+          <el-input v-model="aiForm.subject" placeholder="如 语文" />
+        </el-form-item>
+        <el-form-item label="学段">
+          <el-select v-model="aiForm.gradeLevel" placeholder="选择学段" style="width: 100%">
+            <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="年级">
+          <el-select v-model="aiForm.grade" placeholder="选择年级" style="width: 100%">
+            <el-option v-for="g in gradeOptions" :key="g.gradeName" :label="g.gradeName" :value="g.gradeName" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="题目数量">
+          <ReInputNumber v-model="aiForm.count" :min="1" :max="50" />
+        </el-form-item>
+        <el-form-item label="每题分值">
+          <ReInputNumber v-model="aiForm.score" :min="1" :max="100" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="aiDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="aiLoading" :disabled="!canRunAi" @click="runAiSelect">
+          AI 选题并加入购物车
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- ==================== 编辑题目弹框 ====================
          只改「本卷内」这份题的展示内容，不回写题库。 -->
     <el-dialog v-model="editDialogVisible" title="编辑题目" width="760px" top="6vh" append-to-body class="edit-q-dialog">
@@ -392,7 +463,7 @@ import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
 import { eduaiApi } from "../api/eduaiApi";
-import type { MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
+import type { EduAiCapability, MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
 import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
 import PaperPreview from "../components/paper/PaperPreview.vue";
@@ -854,6 +925,123 @@ function onMarketPicked(list: MarketQuestion[]) {
     ElMessage.success(`已加入购物车 ${fresh.length} 题${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
   } else {
     ElMessage.info("所选题目都已在购物车中");
+  }
+}
+
+/* ==================== AI 组卷（能力由后端 spring-support-ai-starter 提供） ==================== */
+
+/**
+ * AI 能力探测结果。
+ *
+ * <p>null 表示「还没探测完 / 探测失败」，按不可用处理，避免误开放入口。</p>
+ */
+const aiCapability = ref<EduAiCapability | null>(null);
+
+/** AI 弹框是否打开 */
+const aiDialogVisible = ref(false);
+
+/** AI 选题进行中（按钮 loading 与防重复提交） */
+const aiLoading = ref(false);
+
+/** 能力探测中：此时按钮也禁用，避免探测未完成就被点开 */
+const aiProbing = ref(false);
+
+/** AI 组卷参数；打开弹框时以当前试卷的学科/学段/年级为默认值 */
+const aiForm = reactive({
+  subject: "",
+  gradeLevel: "",
+  grade: "",
+  count: 10,
+  score: 5,
+});
+
+/** AI 组卷入口是否可用：探测完成且后端明确可用 */
+const aiReady = computed(() => !aiProbing.value && aiCapability.value?.available === true);
+
+/** 按钮悬浮提示：不可用时直接给出后端给的原因，替代「点了没反应」 */
+const aiTip = computed(() => {
+  if (aiProbing.value) {
+    return "正在检测 AI 组卷能力…";
+  }
+  if (!aiCapability.value) {
+    return "AI 组卷不可用：未能获取后端 AI 能力状态";
+  }
+  return aiCapability.value.available
+    ? "AI 组卷：按条件补充题目"
+    : `AI 组卷不可用：${aiCapability.value.reason}`;
+});
+
+/** 弹框内「AI 选题并加入购物车」是否可点：条件齐了才让点 */
+const canRunAi = computed(
+  () => aiReady.value && !!aiForm.subject.trim() && !!aiForm.gradeLevel && !!aiForm.grade && aiForm.count > 0,
+);
+
+/**
+ * 探测后端 AI 能力。
+ *
+ * <p>AI 组卷依赖 spring-support-ai-starter 提供的对话客户端；没引入该 starter、
+ * 总开关关闭或没有可用模型时，后端返回 available=false 并给出原因。
+ * 探测本身失败（网络异常 / 接口不存在）时保持 null，入口按不可用处理。</p>
+ */
+async function loadAiCapability(): Promise<void> {
+  aiProbing.value = true;
+  try {
+    aiCapability.value = await eduaiApi.aiCapability();
+  } catch (e) {
+    aiCapability.value = null;
+    ElMessage.warning("AI 组卷能力检测失败：" + errorText(e));
+  } finally {
+    aiProbing.value = false;
+  }
+}
+
+/** 打开 AI 组卷弹框：以当前试卷的学科/学段/年级为默认值，省掉重复选择 */
+function openAiCompose(): void {
+  aiForm.subject = header.subject || "";
+  aiForm.gradeLevel = header.gradeLevel || "";
+  aiForm.grade = header.grade || "";
+  aiForm.count = aiForm.count > 0 ? aiForm.count : 10;
+  aiForm.score = aiForm.score > 0 ? aiForm.score : 5;
+  aiDialogVisible.value = true;
+}
+
+/**
+ * 调后端 AI 选题，把结果加入购物车。
+ *
+ * <p>加入购物车而不是直接塞进试卷：AI 选的是候选，用户还要能删、能改分值，
+ * 与题库挑题的路径保持一致。</p>
+ */
+async function runAiSelect(): Promise<void> {
+  if (!canRunAi.value) {
+    return;
+  }
+  aiLoading.value = true;
+  try {
+    const list = await eduaiApi.aiSelectQuestions({
+      subject: aiForm.subject.trim(),
+      gradeLevel: aiForm.gradeLevel,
+      grade: aiForm.grade,
+      count: aiForm.count,
+    });
+    if (!list.length) {
+      ElMessage.warning("AI 没有选出符合条件的题目，请放宽学科/学段/年级后重试");
+      return;
+    }
+    // 复用题库挑题的映射（含分值兜底）与去重逻辑
+    const mapped: CartItem[] = list.map((q) => toCartItem(q, aiForm.score));
+    const fresh = mapped.filter((it) => !cartHas(it.questionId));
+    const skipped = mapped.length - fresh.length;
+    if (fresh.length) {
+      addCartMany(fresh);
+      aiDialogVisible.value = false;
+      ElMessage.success(`AI 选出 ${fresh.length} 题已加入购物车${skipped ? `，跳过重复 ${skipped} 题` : ""}`);
+    } else {
+      ElMessage.info("AI 选出的题目都已在购物车中");
+    }
+  } catch (e) {
+    ElMessage.error("AI 选题失败: " + errorText(e));
+  } finally {
+    aiLoading.value = false;
   }
 }
 
@@ -1500,6 +1688,8 @@ async function initFromRoute() {
 onMounted(() => {
   void initFromRoute();
   void loadDimensionMeta();
+  // AI 组卷入口的能力门：探测未回来之前按钮是禁用的
+  void loadAiCapability();
 });
 </script>
 

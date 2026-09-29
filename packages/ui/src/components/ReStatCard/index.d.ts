@@ -8,6 +8,7 @@ declare const ReStatCard: import("vue").DefineComponent<{
   icon?: import("vue").Component;
   iconColor?: string;
   size?: "default" | "compact";
+  layout?: "auto" | "stacked" | "inline";
 }>;
 export default ReStatCard;
 export const component: () => Promise<typeof ReStatCard>;

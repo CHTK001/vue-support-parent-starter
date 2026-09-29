@@ -57,17 +57,17 @@ pnpm exec vitest run src/__tests__/PostManage.spec.ts src/__tests__/MessageManag
 | `ErrorLogManage.spec.ts` | `views/ErrorLogManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
 | `CacheManage.spec.ts` | `views/CacheManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
 | `SettingManage.spec.ts` | `views/SettingManage.vue` | 4 | 历史抽屉；单条回滚→回滚接口；敏感值掩码+点击解密；按批次号查询 |
-| `PolicyTask.spec.ts` | `views/monitor/PolicyTask.vue` | 8 | 7 个页签逐个进入且标题互不相同；所有表格关闭布局切换器；**接口管控有效状态 = action × status**（停用/拦截/转发/未配置四种处境）；未配置行不显示启停开关；只有策略无注册路由的自定义路径也要列出；**顶部刷新按当前页签分发**（白名单断言，见下） |
+| `PolicyTask.spec.ts` | `views/monitor/PolicyTask.vue` + `policy/tabs/*` | 9 | 7 个页签逐个进入且标题互不相同；所有表格关闭布局切换器；**接口管控有效状态 = action × status**（停用/拦截/转发/未配置四种处境）；未配置行不显示启停开关；只有策略无注册路由的自定义路径也要列出；**顶部刷新按当前页签分发**（白名单断言，见下）；**消息头行渲染**（回归：`hitCountOf` 漏解构导致 Vue patch 中断，表现为「侧栏切了、内容没换」） |
 | `systemApi.spec.ts` | `api/systemApi.ts` | 21 | 各接口 URL/方法/参数构造（缓存、消息、IP、登录日志等） |
 | `helpers.ts` | — | — | 共享桩/工具，供上述 spec 使用 |
 
-合计 **7 个 spec、66 个用例，全部通过**（`cd pages/system && pnpm test`）。
+合计 **7 个 spec、67 个用例，全部通过**（`cd pages/system && pnpm test`）。
 
 > 2026-09-28 更正：本表此前还列着 `ErrorLogManage.spec.ts` / `CacheManage.spec.ts` /
 > `MonitorManage.spec.ts`，但这三个文件在磁盘上并不存在，用例数与 spec 数也是按它们
 > 写的（9 个 / 57 个）。上表已按实际文件重新统计；哪天要恢复这三个用例再补回来。
 
-## 写新 spec 时容易踩的三个坑
+## 写新 spec 时容易踩的五个坑
 
 1. **图标 mock 不能只靠 Proxy 兜底**。`vi.mock("@element-plus/icons-vue", () => new Proxy({}, { get: () => stub }))`
    挡不住 Vitest 的导出校验，会报 `No "Xxx" export is defined on the mock`。两种可行写法：
@@ -88,6 +88,24 @@ pnpm exec vitest run src/__tests__/PostManage.spec.ts src/__tests__/MessageManag
    漏掉的函数被调用时抛的错会变成**游离的 unhandled rejection** —— 用例照样绿，
    失败信号只出现在日志末尾。`PolicyTask.spec.ts` 曾漏 `policyHitCounts` / `policyHitDetail`
    （`usePolicyHit` 要用），已补齐。列 mock 时按「被测组件 + 它 import 的子组件」一起过一遍。
+4. **等待要等「可观测的渲染结果」，不要等固定轮数**（2026-09-29 踩坑）。
+   页签拆成独立组件后，loader 链变成「组件边界 + 两个并发请求 + 并集 + 过滤 + 切片」，
+   需要的异步轮数不固定。原来写「循环 6 次 `settle()`」，在机器负载高时不够 ——
+   同一份代码连续跑，整体耗时在 **14s~79s** 之间跳，用例**时而红时而绿**。
+   改用 `waitFor(w, () => w.findAll(".re-row").length > 0)`：轮询到条件成立为止，
+   与负载无关，还顺带快得多（14~79s → 10~13s）。
+
+   等待条件必须是**渲染结果**，不能是「时间到了」。表格空的时候，
+   「文本应包含 xxx」这类正向断言会红，而「不包含 xxx」这类**反向断言会假绿** ——
+   两种都得防，所以 `renderRoutes` 里还要单独钉一条「表格确实出行了」的正向断言。
+5. **一个断言红的时候，先怀疑自己的等待，再怀疑产品代码**。
+   这次「有效状态」4 条断言集体红、而浏览器里显示完全正常，第一反应是
+   「组件渲染失败」，于是去加 `vi.mock("@repo/ui/re-tag")` 之类的东西 ——
+   那是**错的诊断**，撤掉 mock 连跑 4 次照样全绿。真因只是等待不足。
+   判断依据：把渲染结果落盘看（`writeFileSync(tmp, w.html())`），发现行渲染出来了、
+   状态标签位置是 `<!---->`；而同一插槽里的普通 `<span>` 文案正常。
+   `<!---->` 在「组件 vnode 类型非法」和「异步还没到位」两种情况下都会出现，
+   **单看它分不出来**。
 
 ## 修复记录（2026-09-19）
 

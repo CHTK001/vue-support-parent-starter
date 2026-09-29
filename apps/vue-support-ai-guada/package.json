@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",
     "@repo/theme": "workspace:*",

@@ -433,6 +433,12 @@ export async function getArchiveEntries(bucket: string, key: string): Promise<Ar
       .get(objectPath(bucket, key))
       .query({ format: "archive" })
       .then<ArchiveScanResponse>((r) => r.data);
+    // 服务端未识别 ?format=archive 时，请求会落到 inline/download 兜底通道并
+    // 回吐压缩包原始字节，形状对不上却在调用方渲染期才炸，定位成本很高。
+    // 在此提前拦下并给出可操作的错误信息。
+    if (!res || typeof res !== "object" || !Array.isArray(res.entries)) {
+      throw new Error("服务端未返回压缩包条目结构（?format=archive 未生效），请更新文件服务器后重试");
+    }
     return res;
   } catch (e) {
     throw new Error(toErrorMessage(e, "压缩包条目查询"));

@@ -43,7 +43,7 @@
             <el-input
               v-model="form.account"
               size="large"
-              placeholder="请输入账号 / 手机号"
+              placeholder="请输入学号 / 家长手机号"
               :prefix-icon="User"
               clearable
             />
@@ -71,22 +71,6 @@
         </button>
         <p v-if="error" class="sl-form__err">{{ error }}</p>
 
-        <div class="sl-form__divider"><span>其他登录方式</span></div>
-        <div class="sl-oauth">
-          <button
-            v-for="o in OAUTH"
-            :key="o.key"
-            type="button"
-            class="sl-oauth__btn"
-            :title="o.label"
-            :aria-label="o.label"
-            :style="{ '--oauth-color': o.color }"
-            @click="onOauth(o.key)"
-          >
-            <el-icon :size="20"><component :is="o.icon" /></el-icon>
-          </button>
-        </div>
-
         <p class="sl-form__foot">
           还没有账号?
           <button type="button" class="sl-link" @click="onRegister">立即注册</button>
@@ -103,13 +87,18 @@
  * 账号支持两种：**学号** 或 **家长手机号**（两者都存在 edu_student 上）。
  * 登录成功后由 StudentPortalView 拉档案并按学段分流到小学/初中/高中首页。
  *
- * 密码走系统用户体系（/v2/user/login），本登录页不自己建账号：
- * 学生账号由管理员在「学生管理」里建档后首次绑定，或走下方第三方登录。
+ * <p><b>登录落到哪套账号体系</b>：当前走系统既有的 {@code /v2/user/login}，
+ * 由后端把「学号 / 手机号」解析成登录名。注意现网鉴权还是
+ * {@code plugin.oauth.protocol=static} 的过渡态（账号写死在 application.yml，
+ * 只有 admin/alice/bob），**学生账号要等真正的 oauth 系统接入后才存在** ——
+ * 本页不自行建账号、也不往静态凭据里塞学生，避免与将来的账号体系打架。
+ * 接入后本页与 {@code eduaiApi.studentLogin} 无需改动：换的是后端解析规则，
+ * 不是前端契约。</p>
  */
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ChatDotRound, Lock, Sunny, User } from "@element-plus/icons-vue";
+import { Lock, User } from "@element-plus/icons-vue";
 // ReIcon 由 installKoi → installReIcon.install(app) 全局注册，
 // 与 PrimaryHome / JuniorHome / SeniorHome / StudentPortalView 同一口径，此处不单独 import。
 
@@ -118,13 +107,6 @@ const router = useRouter();
 const form = reactive({ account: "", password: "", remember: true });
 const loading = ref(false);
 const error = ref("");
-
-/** 第三方登录入口（当前为占位，接入时替换 onOauth） */
-const OAUTH = [
-  { key: "wechat", label: "微信登录", icon: ChatDotRound, color: "var(--el-color-success)" },
-  { key: "qq", label: "QQ 登录", icon: Sunny, color: "var(--el-color-primary)" },
-  { key: "alipay", label: "支付宝登录", icon: Lock, color: "var(--el-color-info)" },
-];
 
 /**
  * 提交登录
@@ -163,10 +145,6 @@ function onForget() {
 
 function onRegister() {
   ElMessage.info("学生账号由学校统一开通，无需自行注册");
-}
-
-function onOauth(key: string) {
-  ElMessage.info(`「${OAUTH.find((o) => o.key === key)?.label}」尚未接入`);
 }
 </script>
 
@@ -401,47 +379,6 @@ function onOauth(key: string) {
   font-weight: 700;
   color: var(--el-color-danger);
 }
-.sl-form__divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0 14px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.sl-form__divider::before,
-.sl-form__divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--el-border-color-lighter);
-}
-.sl-oauth {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-}
-.sl-oauth__btn {
-  width: 46px;
-  height: 46px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 50%;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: var(--el-color-white);
-  background: var(--oauth-color, var(--el-color-primary));
-  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
-  outline: none;
-}
-.sl-oauth__btn:hover {
-  transform: translateY(-2px);
-}
-.sl-oauth__btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
 .sl-form__foot {
   margin: 18px 0 0;
   text-align: center;
@@ -467,12 +404,8 @@ function onOauth(key: string) {
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .sl-link,
-  .sl-submit,
-  .sl-oauth__btn {
+  .sl-submit {
     transition: none;
-  }
-  .sl-oauth__btn:hover {
-    transform: none;
   }
 }
 </style>

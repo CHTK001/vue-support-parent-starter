@@ -12,6 +12,7 @@
 
     <div class="stat-row" v-if="!loading && items.length">
       <ReStatCard
+        size="compact"
         title="总错误数"
         :value="totalErrors.toLocaleString()"
         :desc="`所有错误类型累计`"
@@ -19,6 +20,7 @@
         icon-color="#ef4444"
       />
       <ReStatCard
+        size="compact"
         title="错误类型数"
         :value="items.length"
         :desc="`不同错误类型`"
@@ -26,6 +28,7 @@
         icon-color="#3b82f6"
       />
       <ReStatCard
+        size="compact"
         title="最频繁错误"
         :value="topErrorType"
         :desc="topErrorCount ? `${topErrorCount} 次` : '—'"

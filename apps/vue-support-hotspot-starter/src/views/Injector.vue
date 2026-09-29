@@ -74,10 +74,10 @@
         <div class="panel-title">统计变化（直观效果）</div>
         <ReSkeleton :loading="statsLoading" :rows="2" :animated="true">
           <div class="stat-grid">
-            <ReStatCard title="transmissionCount" :value="stats.transmissionCount ?? 0" desc="传输调用总数" :icon="Connection" icon-color="var(--apm-accent)" />
-            <ReStatCard title="dependencyCount" :value="stats.dependencyCount ?? 0" desc="依赖边总数" :icon="Share" icon-color="var(--apm-success)" />
-            <ReStatCard title="leakCount" :value="stats.leakCount ?? 0" desc="资源泄漏总数" :icon="Warning" icon-color="var(--apm-danger)" />
-            <ReStatCard title="errorCount" :value="stats.errorCount ?? 0" desc="错误记录总数" :icon="Close" icon-color="var(--apm-danger)" />
+            <ReStatCard size="compact" title="transmissionCount" :value="stats.transmissionCount ?? 0" desc="传输调用总数" :icon="Connection" icon-color="var(--apm-accent)" />
+            <ReStatCard size="compact" title="dependencyCount" :value="stats.dependencyCount ?? 0" desc="依赖边总数" :icon="Share" icon-color="var(--apm-success)" />
+            <ReStatCard size="compact" title="leakCount" :value="stats.leakCount ?? 0" desc="资源泄漏总数" :icon="Warning" icon-color="var(--apm-danger)" />
+            <ReStatCard size="compact" title="errorCount" :value="stats.errorCount ?? 0" desc="错误记录总数" :icon="Close" icon-color="var(--apm-danger)" />
           </div>
         </ReSkeleton>
       </div>

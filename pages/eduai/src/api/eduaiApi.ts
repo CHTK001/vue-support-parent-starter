@@ -8,6 +8,8 @@ import { http, setAccessToken, unwrapResult } from "@repo/utils";
 import type {
   PageResult,
   Question,
+  EduAiCapability,
+  QuestionAiSelectPayload,
   QuestionGradeDimension,
   Paper,
   PaperComposePayload,
@@ -119,6 +121,29 @@ export const eduaiApi = {
       .post("/v2/edu/paper/generate")
       .data(data as Record<string, unknown>)
       .then<number>(unwrap),
+
+  /**
+   * 探测 AI 组卷能力是否可用
+   *
+   * <p>AI 组卷依赖后端的 spring-support-ai-starter（需注册了可用的对话客户端）。
+   * 不可用时后端会给出具体原因，前端据此禁用入口并展示原因，而不是让用户点下去再失败。</p>
+   */
+  aiCapability: () =>
+    http()
+      .get("/v2/edu/ai/capability")
+      .then<EduAiCapability>(unwrap),
+
+  /**
+   * AI 选题：按条件向 AI 要一批题目，用于往**已存在的试卷**里补题
+   *
+   * <p>与 `generatePaper` 的区别是不建卷，只返回题目列表。AI 不可用时后端会回退到
+   * 规则选题，因此调用前应先用 `aiCapability()` 判断是否展示 AI 入口。</p>
+   */
+  aiSelectQuestions: (data: QuestionAiSelectPayload) =>
+    http()
+      .post("/v2/edu/question/ai-select")
+      .data(data as Record<string, unknown>)
+      .then<Question[]>(unwrap),
   replacePaperQuestion: (paperId: number, oldId: number, newId: number) =>
     http()
       .put(`/v2/edu/paper/${paperId}/replace`)
@@ -621,15 +646,20 @@ export const eduaiApi = {
   /**
    * 学生登录（/edu/student-login 用）
    *
-   * 账号可为**学号**或**家长手机号**——两者都在 edu_student 上，
-   * 由后端登录接口自行判定登录名类型，前端不猜。
+   * 走的是 oauth 统一登录接口 `/v2/user/login`，只多传一个 `accountType: "student"`，
+   * 由 oauth 的凭据扩展点交给 edu_student 去校验 —— 前端不自己判断学号还是手机号，
+   * 也不持有任何学生口令相关的分支逻辑。
+   *
    * 成功后把令牌写进框架 storage（与后台登录同一套存储），
    * 这样学生端后续请求自动带上鉴权头。
+   *
+   * @param data 登录名（学号或家长手机号）与口令
+   * @returns 登录结果，含 accessToken 与用户信息
    */
   studentLogin: async (data: { username: string; password: string }) => {
     const res = await http()
       .post("/v2/user/login")
-      .data(data as unknown as Record<string, unknown>)
+      .data({ ...data, accountType: "student" } as unknown as Record<string, unknown>)
       .then<{ accessToken?: string; [k: string]: unknown } | undefined>(unwrap);
     if (res?.accessToken) {
       setAccessToken(res.accessToken);
@@ -700,6 +730,30 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/dimension/students/${id}`)
       .then<boolean>(unwrap),
+  /**
+   * 代入指定学生：签发一个短期、只读、仅限学生端路径的临时令牌。
+   *
+   * 管理员用它打开某个学生的学生端页面排查问题，不必索要学生密码，
+   * 也不会写入学生的学习记录。仅管理员可用。
+   *
+   * @param data 学生标识、可选有效期（秒）与可访问路径
+   * @returns 临时令牌、有效期、只读标记与被代入学生信息
+   */
+  impersonateStudent: (data: {
+    studentId: number;
+    expireSeconds?: number;
+    allowedUrls?: string[];
+  }) =>
+    http()
+      .post("/v2/edu/dimension/students/impersonate")
+      .data(data as unknown as Record<string, unknown>)
+      .then<{
+        accessToken?: string;
+        expires?: number;
+        readonly?: boolean;
+        userId?: string;
+        nickname?: string;
+      }>(unwrap),
 
   listClasses: (params: { gradeLevel?: string; teacherId?: number } = {}) =>
     http()

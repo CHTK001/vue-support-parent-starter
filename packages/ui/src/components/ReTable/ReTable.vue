@@ -185,9 +185,10 @@ const props = withDefaults(
     /**
      * 是否显示布局切换器（表格 / 视图 / 卡片）。
      *
-     * <p>默认 true；传 false 关闭。切换器属于系统级工具，渲染在工具栏右侧
-     * （与刷新、列设置、表格设置同组）。只在"有东西可切"时出现：候选布局 ≥ 2，
-     * 否则不渲染——空表格上不该出现切了也没区别的按钮。</p>
+     * <p><b>默认 false</b>（2026-09-29 调整）：视图 / 卡片布局要页面自己提供
+     * {@code #view} / {@code #card} 插槽才有合适的呈现，否则切过去是组件的兜底样式，
+     * 信息密度与视觉都比表格差很多，看着像坏了。确实写了插槽的页面传
+     * {@code :layout-switch="true"} 打开。</p>
      */
     layoutSwitch?: boolean;
     /**
@@ -252,6 +253,16 @@ const props = withDefaults(
      * 用于需要固定表头 / 大数据量虚拟滚动的场景。</p>
      */
     engine?: "element" | "vxe";
+    /**
+     * 是否在工具栏显示「引擎切换器」（Element / VXE）。
+     *
+     * <p>默认 false，只给需要在两个引擎之间对照验收的场景用。切换会 emit
+     * {@code update:engine}，配 {@code v-model:engine} 双向绑定。</p>
+     *
+     * <p>同一个表格切引擎会换掉整棵表格 DOM（列宽、行高、边框都按引擎各自的实现走），
+     * 所以这是调试 / 选型向的能力，不适合当常规功能暴露给业务用户。</p>
+     */
+    engineSwitch?: boolean;
     /** 是否启用行拖拽排序 */
     rowDraggable?: boolean;
     /** 拖拽排序字段名，默认sort */
@@ -305,7 +316,8 @@ const props = withDefaults(
     columnsTriggerText: "列设置",
     settingsTriggerText: "表格设置",
     layout: "table",
-    layoutSwitch: true,
+    layoutSwitch: false,
+    engineSwitch: false,
     layoutPersist: true,
     layouts: () => ["table", "view", "card"],
     layoutLabels: () => ({}),
@@ -347,6 +359,7 @@ const emit = defineEmits<{
   (e: "load", payload: RePageResult): void;
   (e: "load-error", err: Error): void;
   (e: "update:searchVisible", visible: boolean): void;
+  (e: "update:engine", engine: "element" | "vxe"): void;
   (e: "toggle-search"): void;
   (e: "update:searchModel", value: Record<string, unknown>): void;
   (e: "search"): void;
@@ -854,12 +867,22 @@ function initVxeSortable(): boolean {
     scroll: true,
     onChoose: () => {
       document.body.style.userSelect = "none";
+      document.body.style.webkitUserSelect = "none";
     },
     onUnchoose: () => {
       document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
     },
     onEnd: (evt) => {
       document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+      // forceFallback + fallbackOnBody 会把拖影挂到 body 上，Sortable 自己不移除。
+      // 不清就会在页面上留一个孤儿节点。类名与上面 Sortable 配置一一对应。
+      document
+        .querySelectorAll(
+          ".drag-sort-fallback, .drag-sort-ghost, .drag-sort-chosen, .drag-sort-drag, .vxe-drag-fallback, .vxe-drag-ghost, .vxe-drag-chosen",
+        )
+        .forEach((el) => el.remove());
       const { oldIndex, newIndex, item } = evt;
       if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
       // Sortable(forceFallback) 移动后的真实 DOM 即目标顺序，无需手动还原；
@@ -2306,6 +2329,21 @@ const switchLayoutOptions = computed<ReTableSwitchLayout[]>(() => {
 /** 默认文案 / 图标（图标用 element-plus 图标组件，纯图标按钮与刷新等同级） */
 const LAYOUT_TEXT: Record<ReTableSwitchLayout, string> = { table: "表格", view: "视图", card: "卡片" };
 const LAYOUT_ICON: Record<ReTableSwitchLayout, unknown> = { table: Menu, view: View, card: Grid };
+/**
+ * 是否在工具条显示「行拖拽」开关。
+ *
+ * <p>2026-09-29 改为常显。原先挂在 {@code v-if="rowDraggable"} 上，而全仓 40+ 个
+ * ReTable 调用方里只有个别页面传了这个属性，结果绝大多数页面的工具条上根本没有
+ * 拖拽入口，想试都试不了。开关本身就是「要不要用」的决定权——点一下进拖拽态、
+ * 再点一下退出，不需要页面预先声明。</p>
+ *
+ * <p>{@code rowDraggable} 属性保留：它仍决定行是否渲染成 {@code cursor: grab}
+ * （拖拽态的视觉暗示），只是不再挡开关。</p>
+ */
+const showDragToggle = true;
+/** 引擎切换器候选与文案（仅 engineSwitch 打开时渲染） */
+const ENGINE_OPTIONS: Array<"element" | "vxe"> = ["element", "vxe"];
+const ENGINE_TEXT: Record<"element" | "vxe", string> = { element: "Element", vxe: "VXE" };
 function layoutText(key: ReTableSwitchLayout): string {
   return props.layoutLabels?.[key] ?? LAYOUT_TEXT[key];
 }
@@ -2349,6 +2387,28 @@ function switchLayout(key: ReTableSwitchLayout): void {
     } catch {
       // noop
     }
+  });
+}
+
+/** 当前生效的引擎：优先跟 props.engine 走（v-model:engine 时由外部驱动） */
+const currentEngine = computed<"element" | "vxe">(() => props.engine ?? "element");
+
+/**
+ * 切换表格引擎。
+ *
+ * <p>两套引擎渲染的是各自独立的表格 DOM，所以切引擎等于整棵表格重建：选中行、
+ * 滚动位置、列宽都不保留。这是预期行为 —— 切换器是验收 / 选型用的调试能力，
+ * 默认不暴露给业务用户。</p>
+ */
+function switchEngine(key: "element" | "vxe"): void {
+  if (key === currentEngine.value) {
+    return;
+  }
+  emit("update:engine", key);
+  // 旧引擎的选中态与高度测量都随 DOM 一起没了，新引擎要重新量一次
+  nextTick(() => {
+    measureFillHeight();
+    startFillObserver();
   });
 }
 
@@ -2519,14 +2579,14 @@ const iconSelect = Select;
     <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
-      v-if="$slots.toolbar || searchEnabled || rowDraggable || batchDelete || autoRefresh || showLayoutSwitch"
+      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || engineSwitch"
       class="re-table__toolbar-row"
     >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
         <slot name="toolbar" />
       </div>
       <div
-        v-if="searchEnabled || rowDraggable || batchDelete || autoRefresh || showLayoutSwitch"
+        v-if="searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || engineSwitch"
         class="re-table__toolbar-right"
       >
         <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
@@ -2566,7 +2626,7 @@ const iconSelect = Select;
           @click="toggleBatchDeleteMode"
         />
         <ReButton
-          v-if="rowDraggable"
+          v-if="showDragToggle"
           layout="square"
           icon="Rank"
           :title="dragMode ? '退出拖拽' : '拖拽排序'"
@@ -2620,6 +2680,23 @@ const iconSelect = Select;
             @click="switchLayout(key)"
           >
             <component :is="LAYOUT_ICON[key]" :size="16" />
+          </button>
+        </div>
+        <!-- 引擎切换（Element / VXE）：默认关闭，只给需要两套引擎对照验收的场景。
+             与布局切换一样是分段控件，但用文字不用图标 —— element / vxe 这两个词
+             本身没有公认图形，图标化反而要靠 tooltip 才能读懂。 -->
+        <div v-if="engineSwitch" class="re-table__layout-switch" role="group" aria-label="表格引擎切换">
+          <button
+            v-for="key in ENGINE_OPTIONS"
+            :key="key"
+            type="button"
+            class="re-table__layout-switch-item re-table__layout-switch-item--text"
+            :class="{ 'is-active': currentEngine === key }"
+            :aria-pressed="currentEngine === key"
+            :title="`切换到 ${ENGINE_TEXT[key]} 引擎`"
+            @click="switchEngine(key)"
+          >
+            {{ ENGINE_TEXT[key] }}
           </button>
         </div>
       </div>
@@ -3250,21 +3327,28 @@ const iconSelect = Select;
      并不读这个变量（实测改成 24px 后单元格内联值仍是 44px），所以只为对齐
      vxe 的样式表计算保留一个合理值，真正生效的是下面那条 !important。 */
   /* ⚠ 行高请看下方 .re-table .vxe-body--row 那条注释：
-     vxe 的行高（rowConfig.height / --vxe-table-row-height-*）实测都不受
-     本组件控制，目前 element 引擎 51px、vxe 引擎 59px，差 8px 是已知差异。 */
+     vxe 的行高由它自己 JS 写内联值控制，CSS 覆盖不动；两套引擎实测渲染
+     出来的行高是一致的（都是 59px），不需要额外对齐。 */
   --vxe-table-row-height-medium: 44px;
   --vxe-table-row-height-small: 36px;
   font-size: 13.5px;
   border-radius: calc(var(--rt-radius) + 2px);
-
+  /* ⚠ 必须裁剪：vxe 的 .vxe-table--header-wrapper / --body-wrapper 自身是
+     border-radius:0 的直角容器，本组件给 .vxe-table 加了圆角但 vxe 默认
+     overflow:visible，方角会直接戳到圆角外面 —— 视觉上就是「表格没有圆角」。
+     element 的 el-table 自带 overflow:hidden，所以那边看不出问题。 */
+  overflow: hidden;
 }
-/* 行高与 element 引擎对齐。
-   vxe 会给每个单元格打**内联** height 44px（这个值写死在它的 JS 里，改
-   --vxe-table-row-height-medium 无效——实测改成 24px 后内联值依旧是 44px），
-   本组件又把上下内边距提到 10px，内容撑破该高度，行被顶到 58.94px
-   而 element 引擎是 51px，同页切引擎行距明显不同。
-   内联样式只能用 !important 压：行与单元格一起定死 51px（紧凑 36px），
-   与 element 的 10+10 padding + 20 line-height + 1 分隔线正好一致。 */
+/* 行高：两套引擎本来就一致（同一页并排实测 element 59 / vxe 59），
+   所以这里不需要"把 vxe 压到 element 的值"——那个"vxe 比 element 高 8px"的说法
+   是跨页面比较造成的假阳性（拿消息管理页的 vxe 行高去比另一个页面的 element 行高），
+   已作废，不要再据此"修"。
+   ⚠ 这条 !important 目前并不生效：vxe 用 JS 在行/单元格上写内联 height，
+     优先级高于样式表，实测 computed 仍是 59px。保留它是给 vxe 行为变化留的
+     正确目标值（51px = 上下 10px 内边距 + 20px line-height + 1px 分隔线）。
+   ⚠ 要压 vxe 的行高只能改 rowConfig.height（Vue 侧属性），而它会写死行高、
+     同时让 --vxe-table-row-height-* 与本组件的 CSS 都覆盖不动 —— 两套引擎下
+     视觉必须一致，所以刻意不设。 */
 .re-table .vxe-body--row,
 .re-table .vxe-body--row > .vxe-body--column {
   height: 51px !important;
@@ -3290,7 +3374,16 @@ const iconSelect = Select;
   /* 应用层常给表头加 uppercase / 大字距（对中文表头是视觉噪声），组件内归一 */
   text-transform: none;
   letter-spacing: 0.2px;
-  border-bottom: 1px solid var(--el-border-color);
+  /* 表头边框两条，缺一不可：
+     · border-right 列间竖线 —— element 引擎的表头是分格的，靠右侧细线分列；
+       vxe 默认 border-right-width:0，表头是一整条灰底，列与列之间没有任何分隔，
+       多列表头会糊成一片。
+     · border-bottom 用 lighter（#ebeeF5）而不是 el-border-color（#dcdfe6）：
+       与下方数据行的分隔线同色，表头与第一行才是"一条线"而不是"两条深浅不同的线"。
+     ⚠ 必须写全 border-right 简写。只写 border-right-color 时，vxe 自带样式的
+       border-right-width 仍是 0，量出来还是 0px —— 这个坑踩过一次。 */
+  border-right: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .re-table--compact .vxe-header--column {
   padding-top: 6px !important;
@@ -3311,11 +3404,13 @@ const iconSelect = Select;
   padding-top: 6px !important;
   padding-bottom: 6px !important;
 }
-/* 斑马纹（开启时更淡，不喧宾夺主）
-   vxe 4.6 的 stripe 不打 row--striped 类（实测产物里无此串），靠 --vxe-table-row-striped-background-color
-   着色。这里直接用 :nth-child(even) 兜住斑马纹，同时把变量一并接上，两条路径都生效。 */
-.re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column,
-.re-table .vxe-table tr.vxe-body--row:nth-child(even) > .vxe-body--column {
+/* 斑马纹（仅在 stripe 开启时生效，且比 element 更淡、不喧宾夺主）
+   ⚠ vxe 4.6 的 stripe 不打 row--striped 行类（实测产物里无此串），
+     只能靠 :nth-child(even) 兜住 —— 所以选择器必须带 .vxe-table--striped 限定。
+     早先漏了这个限定：第二条选择器不带 --striped，对所有 vxe 表无条件生效，
+     于是 stripe 关闭的表也被打上偶数行底色 #fafcff，整张表隔行变色，
+     看着像"有的行有底色有的没有"。 */
+.re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column {
   background: var(--el-fill-color-extra-light);
 }
 /* hover / 选中行首列主色条 */
@@ -3484,6 +3579,21 @@ const iconSelect = Select;
 .re-table--compact .re-table__layout-switch-item {
   width: 26px;
   height: 26px;
+}
+/* 文字型分段项（引擎切换 Element / VXE）：父级给的是 30px 固定方块，
+   文字塞不下会被裁成竖条，所以这里放开宽度改成左右留白。 */
+.re-table__layout-switch-item--text {
+  width: auto;
+  min-width: 52px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.re-table--compact .re-table__layout-switch-item--text {
+  width: auto;
+  min-width: 46px;
+  padding: 0 8px;
 }
 /* element-plus 图标 svg 是 1em + 内联 width/height，需提权才能压到 16px */
 .re-table__layout-switch-item svg,
@@ -3920,7 +4030,14 @@ const iconSelect = Select;
   border-radius: var(--rt-radius-sm);
   line-height: 1;
 }
-.drag-sort-fallback {
+/* 拖拽兜底 / 拖影 / 选中态样式。
+   ⚠ 两套引擎的 Sortable 类名不同，每条规则都必须同时写两套，只写 element 那套
+      会导致 vxe 引擎下拖影与选中态**完全没样式**（看着就是"拖拽坏了"）：
+        element 引擎 → handle .drag-handle  / ghost .drag-sort-ghost   / chosen .drag-sort-chosen
+        vxe 引擎     → handle .vxe-drag-handle / ghost .vxe-drag-ghost  / chosen .vxe-drag-chosen
+      两边 fallbackClass 都叫 drag-sort-fallback，所以兜底样式只需写一条。 */
+.drag-sort-fallback,
+.vxe-drag-fallback {
   position: fixed !important;
   z-index: 3000 !important;
   pointer-events: none !important;
@@ -3932,20 +4049,31 @@ const iconSelect = Select;
   backface-visibility: hidden;
   cursor: grabbing !important;
 }
-.drag-sort-fallback td {
+.drag-sort-fallback td,
+.vxe-drag-fallback td {
   background: var(--el-bg-color, #fff) !important;
 }
-.drag-sort-ghost {
+.drag-sort-ghost,
+.vxe-drag-ghost {
   opacity: 0.4;
   background: var(--el-color-primary-light-9) !important;
 }
-/* 拖拽模式下全局禁止表格文字选中 */
-.re-table:has(.drag-handle) .vxe-table--body,
-.re-table:has(.drag-handle) .vxe-body--column .vxe-cell {
+.drag-sort-chosen,
+.vxe-drag-chosen {
+  background: var(--el-color-primary-light-9) !important;
+}
+/* 拖拽模式下禁止表格文字被选中。
+   ⚠ :has() 的参数也分引擎：element 手柄是 .drag-handle，vxe 手柄是 .vxe-drag-handle。
+      漏掉 vxe 那条时，vxe 拖拽过程中整表文字都可以被划选。 */
+.re-table:has(.drag-handle) .el-table__body,
+.re-table:has(.drag-handle) .el-table__body td .cell,
+.re-table:has(.vxe-drag-handle) .vxe-table--body,
+.re-table:has(.vxe-drag-handle) .vxe-body--column .vxe-cell {
   user-select: none !important;
   -webkit-user-select: none !important;
 }
-.drag-handle:active {
+.drag-handle:active,
+.vxe-drag-handle:active {
   cursor: grabbing;
 }
 </style>

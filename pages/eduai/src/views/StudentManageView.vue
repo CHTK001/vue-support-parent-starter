@@ -92,8 +92,15 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="110" align="center" fixed="right">
+            <el-table-column label="操作" width="150" align="center" fixed="right">
               <template #default="{ row }">
+                <ReButton
+                  layout="square"
+                  type="success"
+                  :icon="View"
+                  tip="代入该学生"
+                  @click="impersonate(row)"
+                />
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openStudent(row)" />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeStudent(row)" />
               </template>
@@ -210,6 +217,15 @@
               placeholder="学生端可用此号登录，非必填"
             />
           </el-form-item>
+          <el-form-item label="登录密码">
+            <el-input
+              v-model="stuForm.studentPwdInput"
+              type="password"
+              show-password
+              maxlength="32"
+              :placeholder="stuForm.studentId ? '留空表示不修改' : '非必填，留空则暂不能登录'"
+            />
+          </el-form-item>
           <el-form-item label="入学年份">
             <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
           </el-form-item>
@@ -220,7 +236,10 @@
             </el-radio-group>
           </el-form-item>
           <el-form-item label="绑定账号">
-            <el-input :model-value="stuForm.studentAccount || '（学生首次进学生端时自行绑定）'" disabled />
+            <el-input
+              :model-value="stuForm.studentAccount || (stuForm.studentNo ? `将自动设为 ${stuForm.studentNo}` : '（保存后按学号自动生成）')"
+              disabled
+            />
           </el-form-item>
         </div>
       </el-form>
@@ -338,7 +357,7 @@
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Close, Delete, EditPen, Grid, Plus, Reading, RefreshLeft, Search, Star } from "@element-plus/icons-vue";
+import { Close, Delete, EditPen, Grid, Plus, Reading, RefreshLeft, Search, Star, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 
@@ -491,7 +510,36 @@ function openStudent(row?: EduStudent) {
   } else {
     Object.assign(stuForm, { studentStatus: 1, studentEnrollYear: new Date().getFullYear() });
   }
+  // 编辑态不回填口令：后端只返回是否已设置，从不回显明文，
+  // 这里显式清空以免把上一条记录的输入残留到下一条。
+  stuForm.studentPwdInput = "";
   stuVisible.value = true;
+}
+
+/**
+ * 代入指定学生：向管理员展示该学生看到的学生端页面。
+ *
+ * 走 oauth 的临时令牌能力 —— 令牌短期、只读、且被限制在学生端路径内，
+ * 所以管理员能排查问题但既不会污染学生的学习记录，也碰不到管理端接口。
+ * 令牌只在本次跳转的窗口里用一次，因此不写入本地存储（刷新即失效）。
+ */
+async function impersonate(row: EduStudent) {
+  if (!row.studentId) return ElMessage.warning("该学生缺少标识，无法代入");
+  try {
+    const res = await eduaiApi.impersonateStudent({ studentId: row.studentId, expireSeconds: 300 });
+    if (!res?.accessToken) {
+      return ElMessage.error("签发临时令牌失败");
+    }
+    const url = `/edu/student?impersonate=${encodeURIComponent(res.accessToken)}`;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      ElMessage.warning("浏览器拦截了新窗口，请允许弹窗后重试");
+      return;
+    }
+    ElMessage.success(`已代入 ${row.studentName || row.studentNo}（5 分钟内有效）`);
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "代入失败");
+  }
 }
 
 async function saveStudent() {
@@ -503,9 +551,22 @@ async function saveStudent() {
   if (phone && !/^1\d{10}$/.test(phone)) {
     return ElMessage.warning("家长手机号格式不对，应为 11 位手机号");
   }
+  // 口令非必填（留空表示本次不改），但填了就要够长 —— 后端只存加盐摘要，
+  // 填得太短等于给学生留一个一猜就中的账号，故在提交前就拦。
+  const pwd = stuForm.studentPwdInput?.trim() ?? "";
+  if (pwd && (pwd.length < 6 || pwd.length > 32)) {
+    return ElMessage.warning("登录密码长度需为 6 到 32 位");
+  }
   saving.value = true;
   try {
-    await eduaiApi.saveStudent({ ...stuForm, studentNo: stuForm.studentNo.trim(), studentName: stuForm.studentName.trim() });
+    await eduaiApi.saveStudent({
+      ...stuForm,
+      studentNo: stuForm.studentNo.trim(),
+      studentName: stuForm.studentName.trim(),
+      // 留空时传 undefined 而非空串：后端据此判定「本次不改口令」，
+      // 传空串会被当成「设置成空口令」。
+      studentPwdInput: pwd || undefined,
+    });
     ElMessage.success("已保存");
     stuVisible.value = false;
     await loadAll();

@@ -1,8 +1,11 @@
 <template>
   <div class="asset-center fade-in">
     <!-- 概览 -->
+    <!-- layout="stacked"：图标插槽是 32x3px 横向色条，为竖排设计，详见 ScAssetList 同处注释。 -->
     <div class="summary-row">
       <ReStatCard
+        size="compact"
+        layout="stacked"
         v-for="s in summary"
         :key="s.label"
         :title="s.label"

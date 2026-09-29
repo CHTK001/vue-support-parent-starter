@@ -335,6 +335,7 @@ function go(path: string): void {
 
     <div class="collect-stats">
       <ReStatCard
+        size="compact"
         v-for="kpi in kpis"
         :key="kpi.key"
         :title="kpi.title"

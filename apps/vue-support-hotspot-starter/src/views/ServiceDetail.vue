@@ -24,6 +24,7 @@
       <!-- 统计卡片行 -->
       <div class="stat-row">
         <ReStatCard
+          size="compact"
           title="总调用量"
           :value="detail.callCount.toLocaleString()"
           :desc="`${detail.errorCount.toLocaleString()} 次错误`"
@@ -31,6 +32,7 @@
           icon-color="#3b82f6"
         />
         <ReStatCard
+          size="compact"
           title="错误率"
           :value="detail.errorRatePercent.toFixed(2) + ' %'"
           :desc="`avg ${detail.avgMs} ms · max ${detail.maxMs} ms`"
@@ -38,6 +40,7 @@
           :icon-color="detail.errorRatePercent > 5 ? '#ef4444' : detail.errorRatePercent > 1 ? '#f59e0b' : '#22c55e'"
         />
         <ReStatCard
+          size="compact"
           title="P95 耗时"
           :value="detail.p95Ms + ' ms'"
           :desc="`P99 ${detail.p99Ms} ms`"
@@ -45,6 +48,7 @@
           icon-color="#8b5cf6"
         />
         <ReStatCard
+          size="compact"
           title="端点数"
           :value="detail.endpointCount"
           :desc="`独立端点（protocol + operation）`"

@@ -12,6 +12,7 @@
 
     <div class="stat-row" v-if="!loading && items.length">
       <ReStatCard
+        size="compact"
         title="总服务数"
         :value="items.length"
         :desc="`活跃服务`"
@@ -19,6 +20,7 @@
         icon-color="#3b82f6"
       />
       <ReStatCard
+        size="compact"
         title="总调用量"
         :value="totalCalls.toLocaleString()"
         :desc="`所有服务调用总和`"
@@ -26,6 +28,7 @@
         icon-color="#8b5cf6"
       />
       <ReStatCard
+        size="compact"
         title="错误服务数"
         :value="errorServices.length"
         :desc="errorServices.length ? errorServices.join(' · ') : '全部健康'"

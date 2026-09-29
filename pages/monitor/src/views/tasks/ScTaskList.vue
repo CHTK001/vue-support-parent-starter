@@ -3,6 +3,7 @@
     <ReSkeleton :loading="loading" :rows="3" :count="1" animated>
       <div class="summary-row">
         <ReStatCard
+          size="compact"
           v-for="(s, i) in summary"
           :key="s.label"
           :title="s.label"

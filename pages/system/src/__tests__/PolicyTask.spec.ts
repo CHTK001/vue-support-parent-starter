@@ -150,6 +150,32 @@ function mountPage() {
   });
 }
 
+/**
+ * 等某个条件成立，而不是等固定轮数
+ *
+ * <p>页签拆成独立组件后 loader 链更长（组件边界 + 两个并发请求 + 并集 + 过滤 + 切片），
+ * 需要的异步轮数不固定。这里轮询到条件成立为止，与机器负载无关；
+ * 顺带比「空转固定轮数」快得多（全量用例耗时从 14~79s 降到 10~13s）。</p>
+ *
+ * <p>等待条件一定要是<b>可观测的渲染结果</b>（如「表格出行了」），
+ * 不能是「时间到了」—— 否则表格空的时候，正向断言红、反向断言假绿，两种都防不住。</p>
+ *
+ * @param w 挂载结果
+ * @param done 判定条件
+ * @param tries 最多尝试次数
+ */
+async function waitFor(
+  w: { vm: { $nextTick: () => Promise<void> } },
+  done: () => boolean,
+  tries = 60,
+): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    if (done()) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await w.vm.$nextTick();
+  }
+}
+
 /** 一条已注册路由 */
 function routeTarget(path: string, method = "GET", handler = "DemoController#demo") {
   return { path, method, handler, key: `${method} ${path}`, registered: true };
@@ -240,14 +266,22 @@ describe("策略任务 · 页签", () => {
 });
 
 describe("策略任务 · 接口管控有效状态（action × status）", () => {
-  /** 进入接口管控页签 */
+  /**
+   * 进入接口管控页签并**等表格真的出行**
+   *
+   * <p>用 {@link waitFor} 等行出现，不用固定轮数：这个页签已拆成独立组件，
+   * loader 链是「组件边界 + 两个并发请求 + 并集 + 过滤 + 切片」，
+   * 需要几轮异步不固定（实测同样代码耗时在 14s~79s 间跳）。
+   * 表格空的时候，下面多数「文本应包含 xxx」的断言会直接红，
+   * 而反向断言（「不包含 xxx」）会**假绿** —— 两种都得防。</p>
+   */
   async function renderRoutes(targets: unknown[], policies: unknown[]) {
     api.listApiRouteTargets.mockResolvedValue({ data: targets });
     api.pagePolicyConfig.mockResolvedValue({ data: { records: policies } });
     const w = mountPage();
     await settle(w);
     await w.findAll(".policy-nav__item")[6].trigger("click");
-    await settle(w);
+    await waitFor(w, () => w.findAll(".re-row").length > 0);
     return w;
   }
 
@@ -287,6 +321,9 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
 
   it("没有配置规则的路由：状态是「未配置」，且不显示启停开关", async () => {
     const w = await renderRoutes([routeTarget("/v2/plain")], []);
+    // 先钉住「表格确实出行了」。这条用例原本全是反向断言（不包含 xxx / 元素不存在），
+    // 表格空的时候它们会**全部通过** —— 看着绿，其实什么都没验。
+    expect(w.text(), "接口管控表格没有渲染出数据行").toContain("/v2/plain");
     const text = w.text();
     expect(text).toContain("policy.common.notConfigured");
     expect(text).toContain("policy.route.stateNoteUnconfigured");
@@ -344,18 +381,6 @@ describe("策略任务 · 顶部刷新按当前页签分发", () => {
     },
   ] as const;
 
-  /**
-   * 反复让出宏任务再等一次响应式更新。
-   * 单次 settle() 只让出一个宏任务，而 loadOverview 是 Promise.allSettled 包了 6 个请求，
-   * 刷新之后还要跟一层 loadHitCounts()，链比一次 flush 长。
-   * 这里循环多次，而不是去改共享的 settle()，免得影响其它 spec 的时序假设。
-   */
-  async function flush(w: { vm: { $nextTick: () => Promise<void> } }): Promise<void> {
-    for (let i = 0; i < 6; i++) {
-      await settle(w);
-    }
-  }
-
   it("7 个页签的刷新都打回自己的数据源", async () => {
     const w = mountPage();
     await settle(w);
@@ -373,7 +398,7 @@ describe("策略任务 · 顶部刷新按当前页签分发", () => {
       const btn = w.find('.policy-hero__actions [data-icon="Refresh"]');
       expect(btn.exists(), `${label} 找不到顶部刷新按钮`).toBe(true);
       await btn.trigger("click");
-      await flush(w);
+      await waitFor(w, () => true);
 
       const called = Object.keys(api).filter((k) => api[k as keyof typeof api].mock.calls.length > 0);
       expect(called, `${label} 刷新没有调用 ${c.hit}（按钮是空操作）`).toContain(c.hit);
@@ -381,5 +406,64 @@ describe("策略任务 · 顶部刷新按当前页签分发", () => {
       const extra = called.filter((k) => !(c.allow as readonly string[]).includes(k));
       expect(extra, `${label} 刷新打到了不属于本页签的接口：${extra.join(", ")}`).toEqual([]);
     }
+  });
+});
+
+/**
+ * 回归：消息头表格有数据行时，行的「命中次数」列必须能渲染出来。
+ *
+ * <p>曾经的缺陷：{@code headerHitCount} 用了 {@code hitCountOf}，而 PolicyTask.vue
+ * 从 {@code usePolicyHit()} 解构时漏了这一项。行插槽求值 → ReferenceError →
+ * Vue 同步 patch 被中断 → nav 的高亮已经打好（nav 在 {@code <main>} 之前），
+ * {@code <main>} 保留旧内容。表现是「侧栏切了、内容没换」，完全不像报错，
+ * 浏览器里也没有任何提示。</p>
+ *
+ * <p>为什么以前测不出来：{@code beforeEach} 把 listHeaderRules mock 成空数组，
+ * 没有行就永远不会求值行插槽里的 {@code headerHitCount}。所以这条用例的关键
+ * 是**必须给一行真实数据**。</p>
+ */
+describe("策略任务 · 消息头行渲染", () => {
+  it("有行时能算出并渲染命中次数（回归：hitCountOf 漏解构导致 patch 中断）", async () => {
+    api.listHeaderRules.mockResolvedValue({
+      data: [
+        {
+          sysPolicyConfigId: 306,
+          headerName: "User-Agent",
+          status: 1,
+          remark: "默认·拦截爬虫与自动化客户端",
+          parsed: true,
+          matchType: "CONTAINS",
+          patterns: ["Googlebot", "python-requests"],
+          action: "BLOCK",
+          blockStatus: 403,
+        },
+      ],
+    });
+    // 命中键 = `HEADER|{头名小写}|{特征原样}`（见 headerHitCount / hitKeyOf）
+    api.policyHitCounts.mockResolvedValue({ data: { "HEADER|user-agent|Googlebot": 12 } });
+
+    const w = mountPage();
+    await settle(w);
+    const nav = w.findAll(".policy-nav__item");
+    // 06 消息头拦截
+    await nav[5].trigger("click");
+    // 等行出现而不是等固定轮数，理由同 renderRoutes
+    await waitFor(w, () => w.findAll(".policy-hit-cell").length > 0);
+
+    // 命中单元格渲染出来了 —— 它的 :count 正是 headerHitCount(row) 的返回值。
+    // 断言值而不是只断言节点存在：值能出来才说明
+    // 「mock 的命中数 → headerHitCount 加总 → PolicyHitCell」整条链是通的
+    const cells = w.findAll(".policy-hit-cell");
+    expect(cells, "消息头表格没有渲染出数据行（命中单元格缺失）").toHaveLength(1);
+    expect(cells[0].text()).toBe("12");
+
+    // 切走再切回来：曾经就是这一跳让内容卡在上一页
+    await nav[0].trigger("click");
+    await settle(w);
+    expect(w.find(".policy-view h2").text()).toBe("policy.overview.chain");
+    await nav[5].trigger("click");
+    await waitFor(w, () => w.findAll(".policy-hit-cell").length > 0);
+    expect(w.find(".policy-view h2").text()).toBe("policy.nav.header.label");
+    expect(w.findAll(".policy-hit-cell"), "切回消息头后行丢了").toHaveLength(1);
   });
 });

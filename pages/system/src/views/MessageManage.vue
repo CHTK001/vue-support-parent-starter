@@ -216,6 +216,14 @@ const msgQuery = ref<{
 const msgTableRef = ref();
 const msgActionLoading = ref<number>(0);
 
+/**
+ * 消息记录的表格引擎。
+ *
+ * <p>用 vxe-table；工具栏的引擎切换器（:engine-switch）会写回这里，
+ * 便于在同一份数据上对照两个引擎的渲染。</p>
+ */
+const msgEngine = ref<"element" | "vxe">("vxe");
+
 async function loadMessages({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForMessageAdmin({
     page,
@@ -806,7 +814,8 @@ onMounted(() => {
           <ReTable
             ref="msgTableRef"
             table-id="system-message-admin"
-            engine="vxe"
+            v-model:engine="msgEngine"
+            engine-switch
             :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="msgQuery"

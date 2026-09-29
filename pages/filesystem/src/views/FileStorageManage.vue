@@ -72,205 +72,9 @@ import {
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
+import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
-
-/**
- * Windows 风格彩色类型图标（SVG 标记，viewBox 48x48）。
- *
- * <p>目录为经典黄色双层文件夹；txt/json/代码/office/pdf/压缩包等常见类型
- * 均按 Windows 资源管理器风格绘制（白纸折角 + 类型色块/字符）。</p>
- */
-const FS_TYPE_SVG: Record<string, string> = {
-  /** 目录：黄色双层文件夹 */
-  folder: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M5 13a4 4 0 0 1 4-4h10.2l4.6 4.6a2 2 0 0 0 1.4.6H39a4 4 0 0 1 4 4v3H5z" fill="#f0b429"/><path d="M5 18h38v16.5a4.5 4.5 0 0 1-4.5 4.5h-29A4.5 4.5 0 0 1 5 34.5z" fill="#ffd166"/><path d="M5 18h38v2.4H5z" fill="#ffe4a1"/></svg>`,
-  /** 兜底：空白文档 */
-  file: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/></svg>`,
-  /** 文本：白纸 + 蓝色行 */
-  txt: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M16 23h16M16 29h16M16 35h10" stroke="#4a90d9" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-  /** JSON：白纸 + 橙色花括号 */
-  json: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="24" y="31" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-size="13" font-weight="700" fill="#e8833a">{ }</text></svg>`,
-  /** 代码：白纸 + 蓝色尖括号 */
-  code: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><path d="M19.5 20l-5.5 5.5 5.5 5.5M28.5 20l5.5 5.5-5.5 5.5" fill="none" stroke="#2f74c0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  /** Markdown：白纸 + 靛蓝 M↓ */
-  md: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="21" y="32" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#5b6bd6">M</text><path d="M32 22v8m0 0l-3-3m3 3l3-3" fill="none" stroke="#5b6bd6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  /** 图片：相纸 + 山与太阳 */
-  image: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="8" width="36" height="30" rx="4" fill="#eaf4ff" stroke="#bcd7f0" stroke-width="1.6"/><circle cx="17" cy="18" r="3.6" fill="#ffd23f"/><path d="M9 38l10-12 7 8 5.5-5.5L38 34v2a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2z" fill="#57b368"/></svg>`,
-  /** 视频：蓝色胶片 + 播放键 */
-  video: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10" width="38" height="28" rx="5" fill="#3d6fd6"/><path d="M20.5 18.5l11 5.5-11 5.5z" fill="#fff"/><rect x="5" y="10" width="38" height="28" rx="5" fill="none" stroke="#2c55a8" stroke-width="1.6"/></svg>`,
-  /** 音频：紫色唱片 + 音符 */
-  audio: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="7" width="34" height="34" rx="7" fill="#8e5bd6"/><path d="M20 31V19.5l11-2.8V27" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.6" cy="31.2" r="3.2" fill="#fff"/><circle cx="28.6" cy="27.2" r="3.2" fill="#fff"/></svg>`,
-  /** PDF：白纸 + 红色徽标 */
-  pdf: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="10" y="25" width="24" height="9.5" rx="2.2" fill="#e5493a"/><text x="22" y="32.4" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" font-weight="700" fill="#fff">PDF</text></svg>`,
-  /** 压缩包：纸箱 + 拉链 */
-  zip: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M13 16l3-7h16l3 7z" fill="#d98f2b"/><rect x="9" y="16" width="30" height="24" rx="4" fill="#f2a63c"/><path d="M23.2 16h1.6v3h-1.6zM23.2 21h1.6v3h-1.6zM23.2 26h1.6v3h-1.6z" fill="#fff" opacity="0.85"/><rect x="20.5" y="30" width="7" height="6" rx="1.5" fill="#fff"/></svg>`,
-  /** Excel：白纸 + 绿色表格 */
-  excel: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2" fill="#2f9e5f"/><path d="M13 24.4h22M13 29.7h22M20.4 19v16M27.6 19v16" stroke="#fff" stroke-width="1.4"/></svg>`,
-  /** Word：白纸 + 蓝色 W */
-  word: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2.4" fill="#2b6fd4"/><text x="24" y="31.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#fff">W</text></svg>`,
-  /** PPT：白纸 + 橙色 P */
-  ppt: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><rect x="13" y="19" width="22" height="16" rx="2.4" fill="#e8833a"/><text x="24" y="31.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#fff">P</text></svg>`,
-  /** 字体：白纸 + 紫色 Aa */
-  font: `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M11 6a3 3 0 0 1 3-3h15l9 9v29a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3z" fill="#fff" stroke="#c8d3de" stroke-width="1.6"/><path d="M29 3l9 9h-7a2 2 0 0 1-2-2z" fill="#d9e4ee"/><text x="24" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#8e5bd6">Aa</text></svg>`,
-};
-
-/**
- * 根据文件名/目录标记返回 Windows 风格 SVG 图标标记。
- *
- * <p>目录返回黄色文件夹；json/代码/markdown 等文本细分类型优先，
- * office 再按 Excel/PowerPoint/Word 三类区分，其余按大类兜底。</p>
- *
- * @param name  文件名称
- * @param isDir 是否为目录
- * @return SVG 标记字符串（配合 v-html 渲染）
- */
-function fileSvg(name: string, isDir: boolean): string {
-  if (isDir) {
-    return FS_TYPE_SVG.folder;
-  }
-  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  switch (kindOf(name)) {
-    case "image":
-      return FS_TYPE_SVG.image;
-    case "video":
-      return FS_TYPE_SVG.video;
-    case "audio":
-      return FS_TYPE_SVG.audio;
-    case "pdf":
-      return FS_TYPE_SVG.pdf;
-    case "archive":
-      return FS_TYPE_SVG.zip;
-    case "font":
-      return FS_TYPE_SVG.font;
-    case "office":
-      // Excel 表格类 / PPT 演示类 / 其余按 Word 文档
-      if (["xlsx", "xls", "ods"].includes(ext)) {
-        return FS_TYPE_SVG.excel;
-      }
-      if (["pptx", "ppt", "odp", "pps"].includes(ext)) {
-        return FS_TYPE_SVG.ppt;
-      }
-      return FS_TYPE_SVG.word;
-    // 源代码统一蓝色尖括号图标
-    case "code":
-      return FS_TYPE_SVG.code;
-    // Markdown 专属 M↓ 图标
-    case "markdown":
-      return FS_TYPE_SVG.md;
-    // CSV 按表格类文件显示 Excel 图标
-    case "csv":
-      return FS_TYPE_SVG.excel;
-    // 邮件 / 日历 / 名片 / Jupyter 暂无专属绘制，使用通用文档图标
-    case "email":
-    case "calendar":
-    case "contact":
-    case "notebook":
-    case "model":
-      return FS_TYPE_SVG.file;
-    // HTML 网页沿用代码图标；数据库/大数据文件使用花括号图标
-    case "webpage":
-      return FS_TYPE_SVG.code;
-    case "data":
-      return FS_TYPE_SVG.json;
-    // PSD 设计稿按图片图标
-    case "design":
-      return FS_TYPE_SVG.image;
-    case "text":
-      // json 专属花括号图标，标记类文本使用代码图标，其余普通文本
-      if (ext === "json") {
-        return FS_TYPE_SVG.json;
-      }
-      if (["xml", "yaml", "yml"].includes(ext)) {
-        return FS_TYPE_SVG.code;
-      }
-      return FS_TYPE_SVG.txt;
-    default:
-      return FS_TYPE_SVG.file;
-  }
-}
-
-/** 预览类型 */
-type PreviewKind =
-  | "image"
-  | "text"
-  | "code"
-  | "markdown"
-  | "csv"
-  | "pdf"
-  | "office"
-  | "email"
-  | "calendar"
-  | "contact"
-  | "notebook"
-  | "webpage"
-  | "data"
-  | "design"
-  | "model"
-  | "video"
-  | "audio"
-  | "font"
-  | "archive"
-  | "unknown";
-
-/** 图片扩展名（浏览器原生可解码） */
-const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "avif", "apng", "jfif"];
-
-/** 纯文本扩展名（前端直接拉取原文展示） */
-const PLAIN_TEXT_EXTS = ["txt", "log", "json", "xml", "yaml", "yml"];
-
-/** 源代码 / 配置文件扩展名（走后端语法高亮预览） */
-const CODE_EXTS = [
-  "js", "mjs", "cjs", "ts", "jsx", "tsx", "vue", "css", "scss", "less",
-  "java", "kt", "groovy", "scala", "py", "rb", "go", "rs",
-  "c", "h", "cpp", "hpp", "cs", "php", "swift", "dart", "lua", "pl",
-  "sql", "sh", "bash", "zsh", "bat", "cmd", "ps1",
-  "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
-];
-
-/** Office 及其他服务端渲染的文档扩展名（统一走 iframe ?preview=true） */
-const OFFICE_EXTS = [
-  "xlsx", "xls", "docx", "doc", "pptx", "ppt",
-  "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
-  "dwg", "dgn", "rtf", "epub", "xmind",
-];
-
-/** 网页文件扩展名（后端沙箱渲染） */
-const WEBPAGE_EXTS = ["html", "htm"];
-
-/** 数据文件扩展名（数据库 / 大数据格式，服务端解析） */
-const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq"];
-
-/** 设计稿扩展名（服务端转图预览） */
-const DESIGN_EXTS = ["psd", "psb"];
-
-/** 3D / CAD / GIS 模型扩展名（服务端信息卡或在线渲染） */
-const MODEL_EXTS = [
-  "glb", "gltf", "obj", "stl", "dxf", "blend", "fbx",
-  "step", "stp", "iges", "igs", "brep", "shp",
-];
-
-/** 邮件扩展名 */
-const EMAIL_EXTS = ["eml", "msg"];
-
-/** 日历事件扩展名 */
-const CALENDAR_EXTS = ["ics", "ical", "ifb", "icalendar"];
-
-/** 通讯录名片扩展名 */
-const CONTACT_EXTS = ["vcf", "vcard"];
-
-/** 视频扩展名（仅浏览器原生可播放容器） */
-const VIDEO_EXTS = ["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv", "m4v", "3gp"];
-
-/** 音频扩展名（浏览器原生可播放） */
-const AUDIO_EXTS = ["mp3", "wav", "flac", "m4a", "oga", "opus", "weba"];
-
-/** 字体扩展名 */
-const FONT_EXTS = ["ttf", "otf", "woff", "woff2", "eot"];
-
-/** 压缩包扩展名（走后端条目列表预览） */
-const ARCHIVE_EXTS = [
-  "zip", "zipx", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz",
-  "7z", "rar", "zst", "tzst", "jar", "war", "apk",
-];
+import { fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
 type SortKey = "name" | "size" | "lastModified";
@@ -392,30 +196,6 @@ function formatTime(ts?: number): string {
   return new Date(ts).toLocaleString();
 }
 
-function kindOf(name: string): PreviewKind {
-  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  if (IMAGE_EXTS.includes(ext)) return "image";
-  if (CODE_EXTS.includes(ext)) return "code";
-  if (ext === "md" || ext === "markdown") return "markdown";
-  if (ext === "csv") return "csv";
-  if (PLAIN_TEXT_EXTS.includes(ext)) return "text";
-  if (ext === "pdf") return "pdf";
-  if (OFFICE_EXTS.includes(ext)) return "office";
-  if (EMAIL_EXTS.includes(ext)) return "email";
-  if (CALENDAR_EXTS.includes(ext)) return "calendar";
-  if (CONTACT_EXTS.includes(ext)) return "contact";
-  if (ext === "ipynb") return "notebook";
-  if (WEBPAGE_EXTS.includes(ext)) return "webpage";
-  if (DATA_EXTS.includes(ext)) return "data";
-  if (DESIGN_EXTS.includes(ext)) return "design";
-  if (MODEL_EXTS.includes(ext)) return "model";
-  if (VIDEO_EXTS.includes(ext)) return "video";
-  if (AUDIO_EXTS.includes(ext)) return "audio";
-  if (FONT_EXTS.includes(ext)) return "font";
-  if (ARCHIVE_EXTS.includes(ext)) return "archive";
-  return "unknown";
-}
-
 /** 是否压缩文件（大图标模式下不参与 ?preview 预览） */
 function isArchive(name: string): boolean {
   return kindOf(name) === "archive";
@@ -451,33 +231,6 @@ function fileIconClass(name: string, isDir: boolean): string {
     case "data":
       return "icon-text";
     default: return "icon-file";
-  }
-}
-
-/** 文件类型描述（详细信息列 / 排序提示） */
-function fileType(name: string): string {
-  if (isArchive(name)) return "压缩文件";
-  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  switch (kindOf(name)) {
-    case "image": return "图片";
-    case "text": return "文本";
-    case "code": return "代码文件";
-    case "markdown": return "Markdown 文档";
-    case "csv": return "CSV 表格";
-    case "pdf": return "PDF 文档";
-    case "office": return "Office 文档";
-    case "email": return "邮件";
-    case "calendar": return "日历事件";
-    case "contact": return "通讯录名片";
-    case "notebook": return "Jupyter 笔记本";
-    case "webpage": return "网页文件";
-    case "data": return "数据文件";
-    case "design": return "设计稿";
-    case "model": return "3D / CAD 模型";
-    case "video": return "视频";
-    case "audio": return "音频";
-    case "font": return "字体";
-    default: return ext ? `${ext.toUpperCase()} 文件` : "文件";
   }
 }
 
@@ -2519,6 +2272,7 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewZoom.value = 100;
   previewError.value = false;
   previewForceServer.value = false;
+  previewInnerPath.value = "";
   officeLoading.value = false;
   iframeLoading.value = true;
   previewLoading.value = false;
@@ -2534,6 +2288,43 @@ const previewSrc = computed(() => objectUrl(bucket.value, previewKey.value));
  * 客户端无法解析的格式返回 false，继续走服务端渲染链路。
  */
 const previewUsesClient = computed(() => isClientRenderable(previewName.value));
+
+/**
+ * 当前文件是否走压缩包面板（{@link ArchivePreviewPanel}）。
+ *
+ * 压缩包不进 iframe：那条通道渲染出的是一张独立 HTML 页面，读不到主应用的
+ * Element Plus / koi 主题变量，跟不上暗色模式与品牌色。改为在主应用文档内
+ * 渲染面板，结构数据走 {@code ?format=archive} 取。
+ */
+const previewIsArchive = computed(() => kindOf(previewName.value) === "archive");
+
+/**
+ * 压缩包内正在预览的条目路径（空串表示只看包结构）。
+ *
+ * 非空时从面板切到 iframe，用 {@code ?preview&inner=包内路径} 让后端
+ * 提取该条目并按其类型渲染——压缩包只负责「结构」这一层，
+ * 文件内容渲染仍复用既有通道，避免为每种格式再写一套。
+ */
+const previewInnerPath = ref("");
+
+/** 是否展示压缩包面板（选中压缩包且未下钻到包内文件） */
+const showArchivePanel = computed(
+  () => previewIsArchive.value && previewInnerPath.value === "",
+);
+
+/** 预览包内条目：切到 iframe 通道渲染该文件 */
+function openArchiveEntry(path: string): void {
+  previewInnerPath.value = path;
+  iframeLoading.value = true;
+  iframeKey.value++;
+}
+
+/** 从包内文件返回压缩包结构面板 */
+function backToArchive(): void {
+  previewInnerPath.value = "";
+  iframeLoading.value = true;
+  iframeKey.value++;
+}
 
 /**
  * 是否已退回服务端渲染。
@@ -2555,12 +2346,16 @@ const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
  * <p>所有类型（图片/文本/PDF/Office/音视频/压缩包等）一致，由后端按类型内联渲染或直出字节；
  * objectUrl 可能已带令牌查询参数，故分隔符按需取 &/?。
  * 客户端渲染失败退回时追加 {@code render=server}，要求后端走服务端渲染链路。</p>
+ *
+ * <p>预览压缩包内条目时追加 {@code inner=包内路径}，后端据此提取条目并按
+ * 条目自身类型渲染（见 {@link openArchiveEntry}）。</p>
  */
 const previewFrameSrc = computed(() => {
   const base = previewSrc.value;
   const sep = base.includes("?") ? "&" : "?";
   const server = previewForceServer.value ? `&render=${RENDER_SERVER}` : "";
-  return `${base}${sep}preview=true${server}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
+  const inner = previewInnerPath.value ? `&inner=${encodeURIComponent(previewInnerPath.value)}` : "";
+  return `${base}${sep}preview=true${server}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
 });
 
 
@@ -2988,7 +2783,7 @@ onUnmounted(() => {
               />
               <span :class="{ 'fs-name--dir': item.directory }">{{ item.name }}</span>
             </span>
-            <span v-if="showFormatCol" class="fs-details-row__type">{{ item.directory ? '文件夹' : fileType(item.name) }}</span>
+            <span v-if="showFormatCol" class="fs-details-row__type">{{ item.directory ? '文件夹' : fileTypeText(item.name) }}</span>
             <span v-if="showSizeCol" class="fs-details-row__size">{{ item.directory ? '-' : formatSize(item.size) }}</span>
             <span v-if="showTimeCol" class="fs-details-row__time">{{ formatTime(item.lastModified) }}</span>
           </div>
@@ -3267,16 +3062,6 @@ onUnmounted(() => {
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('zip')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Files /></el-icon>
             压缩下载
-          </button>
-          <button
-            v-if="!ctxMenu.row!.directory && isArchive(ctxMenu.row!.name)"
-            type="button"
-            class="fs-ctx__item"
-            role="menuitem"
-            @click="ctxAction('unzip')"
-          >
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><FolderOpened /></el-icon>
-            解压到此目录
           </button>
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button
@@ -3638,7 +3423,10 @@ onUnmounted(() => {
         :class="{ 'is-dragging': previewDragging }"
         @mousedown="startPreviewDrag"
       >
+        <!-- 压缩包面板自带头部（含关闭按钮），故此处的浮动关闭按钮在压缩包模式下隐藏，
+             否则同一位置会出现两个 ✕ 叠在一起。 -->
         <button
+          v-if="!showArchivePanel"
           type="button"
           class="fs-preview__close"
           title="关闭"
@@ -3656,8 +3444,25 @@ onUnmounted(() => {
               <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
             </el-empty>
           </div>
+          <!-- 下钻到压缩包内文件后的返回条：包结构由面板渲染，文件内容走 iframe，
+               这里补一条回到面板的路径，否则用户只能关掉弹层重开。 -->
+          <div
+            v-if="!previewError && previewIsArchive && previewInnerPath"
+            class="fs-preview__inner-bar"
+          >
+            <el-button :icon="ArrowLeft" text @click="backToArchive">返回压缩包</el-button>
+            <span class="fs-preview__inner-path" :title="previewInnerPath">{{ previewInnerPath }}</span>
+          </div>
+          <ArchivePreviewPanel
+            v-if="!previewError && showArchivePanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            @open-entry="openArchiveEntry"
+            @close="previewVisible = false"
+          />
           <PreviewOfficePanel
-            v-if="!previewError && previewUsesClient && !previewForceServer"
+            v-else-if="!previewError && previewUsesClient && !previewForceServer"
             ref="officePanelRef"
             v-model:zoom="previewZoom"
             v-model:loading="officeLoading"
@@ -4831,6 +4636,34 @@ button.fs-stat:hover {
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+/* 压缩包面板撑满可用宽度：.fs-preview 是 align-items:center 的列 flex，
+   子元素默认按内容宽度收缩，面板必须显式拉满（stretch）。 */
+.fs-preview > :deep(.arc) {
+  align-self: stretch;
+}
+
+/* 下钻包内文件后的返回条：与面板同一套 koi 变量，不引入新的色值或圆角档位 */
+.fs-preview__inner-bar {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+}
+
+.fs-preview__inner-path {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fs-preview__media {

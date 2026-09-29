@@ -189,7 +189,7 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     component: () => import("../views/portal/StudentLoginView.vue"),
     meta: {
       title: "学生端",
-      icon: "User",
+      icon: "Student",
       position: "top",
       showLink: false,
       isVisible: "0",

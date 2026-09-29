@@ -23,10 +23,10 @@
     <template v-else-if="waterfall">
       <!-- 统计卡片 -->
       <div class="panel-row stat-row">
-        <ReStatCard title="总耗时" :value="waterfall.totalMs + ' ms'" :desc="`trace ${traceId}`" :icon="Timer" icon-color="#3b82f6" />
-        <ReStatCard title="Span 数" :value="waterfall.spanCount" :desc="`${errorSpanCount} 个异常 span`" :icon="Connection" icon-color="#8b5cf6" />
-        <ReStatCard title="开始时间" :value="firstSpanStart" :desc="`深度 ${maxDepth} 层`" :icon="DataLine" icon-color="#f59e0b" />
-        <ReStatCard title="异常率" :value="errorRate" :desc="`${errorSpanCount} / ${waterfall.spanCount} span`" :icon="Warning" icon-color="#ef4444" />
+        <ReStatCard size="compact" title="总耗时" :value="waterfall.totalMs + ' ms'" :desc="`trace ${traceId}`" :icon="Timer" icon-color="#3b82f6" />
+        <ReStatCard size="compact" title="Span 数" :value="waterfall.spanCount" :desc="`${errorSpanCount} 个异常 span`" :icon="Connection" icon-color="#8b5cf6" />
+        <ReStatCard size="compact" title="开始时间" :value="firstSpanStart" :desc="`深度 ${maxDepth} 层`" :icon="DataLine" icon-color="#f59e0b" />
+        <ReStatCard size="compact" title="异常率" :value="errorRate" :desc="`${errorSpanCount} / ${waterfall.spanCount} span`" :icon="Warning" icon-color="#ef4444" />
       </div>
 
       <!-- 瀑布图 -->

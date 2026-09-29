@@ -16,7 +16,6 @@
  * @since 2026/09/26
  */
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
-import PreviewToolbar from "./PreviewToolbar.vue";
 import { officeRendererOfSniffed, type OfficeRenderer } from "../utils/officeRenderer";
 
 /**
@@ -60,8 +59,6 @@ const emit = defineEmits<{
 
 /** wrap 容器 DOM 引用（供父组件全屏切换） */
 const wrapRef = ref<HTMLDivElement>();
-/** 工具栏引用 */
-const toolbarRef = ref<InstanceType<typeof PreviewToolbar>>();
 
 /**
  * 文档二进制内容
@@ -161,7 +158,6 @@ defineExpose({ wrapRef, toggleHelp });
 
 <template>
   <div class="preview-office-panel">
-    <PreviewToolbar ref="toolbarRef" v-model:zoom="zoom" @fullscreen="$emit('fullscreen')" />
     <div
       ref="wrapRef"
       class="preview-office-panel__wrap"
