@@ -382,6 +382,12 @@ watch(() => props.fitWidth, () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* 必须显式撑满父容器：调用方（如组卷页的 .preview-viewport）是
+     align-items:center 的 flex 列，不写 width 时本节点会被收缩成「内容宽度」，
+     而内容宽度又随缩放变化 —— 会给下方 ResizeObserver 的自适应缩放喂出正反馈环
+     （放大→纸张变宽→量到的可用宽度变大→再放大），表现为点「适应宽度」不复位。
+     这里以父容器的确定宽度为准，观测值才稳定。 */
+  width: 100%;
   /* 可见溢出交给外层滚动；这里不裁切，否则超出容器的纸张会被切掉 */
   overflow: visible;
 }

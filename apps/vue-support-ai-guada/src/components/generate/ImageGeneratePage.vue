@@ -4,10 +4,54 @@
       <!-- 顶部：标题行 + 筛选行（照 UI 图） -->
       <header class="wg-head">
         <div class="wg-head-top">
-          <h1 class="wg-title">图像生成</h1>
+          <h1 class="wg-title">{{ mediaLabel }}生成</h1>
           <span class="wg-total">共 {{ tasks.length }} 个任务</span>
 
           <div class="wg-head-actions">
+            <!--
+              生成类型切换。
+              原来是在筛选行里放「图像 / 视频」两个行内 tab，占掉一整行左侧，
+              现在收到右上角做成一个按钮 + popover：既省位置，也和「网格/列表」
+              这类视图操作归到同一组工具按钮里。
+
+              视频入口仍受 videoAvailable 约束（后端 openai 协议没有 VideoClient），
+              只有一种类型时不做无意义的切换。
+            -->
+            <el-popover
+              v-if="videoAvailable"
+              ref="mediaPopoverRef"
+              placement="bottom-end"
+              :width="200"
+              trigger="click"
+              popper-class="wg-popper"
+            >
+              <template #reference>
+                <button type="button" class="wg-media-btn" title="生成类型">
+                  <WgIcon :d="mediaType === 'video' ? ICONS.video : ICONS.image" />
+                  <span>{{ mediaType === 'video' ? '视频' : '图像' }}</span>
+                  <WgIcon :d="ICONS.chevron" class="wg-media-caret" />
+                </button>
+              </template>
+              <div class="wg-menu">
+                <p class="wg-menu-title">生成类型</p>
+                <button
+                  v-for="opt in MEDIA_OPTIONS"
+                  :key="opt.value"
+                  type="button"
+                  class="wg-menu-item"
+                  :class="{ 'is-active': mediaType === opt.value }"
+                  @click="switchMedia(opt.value)"
+                >
+                  <WgIcon :d="ICONS[opt.icon]" class="wg-menu-icon" />
+                  <span class="wg-menu-text">
+                    <span class="wg-menu-name">{{ opt.label }}</span>
+                    <span class="wg-menu-desc">{{ opt.desc }}</span>
+                  </span>
+                  <WgIcon v-if="mediaType === opt.value" :d="ICONS.check" class="wg-menu-check" />
+                </button>
+              </div>
+            </el-popover>
+
             <div class="wg-views">
               <button
                 type="button"
@@ -24,26 +68,6 @@
         </div>
 
         <div class="wg-head-filters">
-          <!-- 图像 / 视频：无视频模型时整个 tab 不显示（后端 openai 协议无视频客户端） -->
-          <div v-if="videoAvailable" class="wg-media-switch">
-            <button
-              type="button"
-              class="wg-tab"
-              :class="{ 'is-active': mediaType === 'image' }"
-              @click="switchMedia('image')"
-            >
-              图像
-            </button>
-            <button
-              type="button"
-              class="wg-tab"
-              :class="{ 'is-active': mediaType === 'video' }"
-              @click="switchMedia('video')"
-            >
-              视频
-            </button>
-          </div>
-
           <label class="wg-search">
             <WgIcon :d="ICONS.search" />
             <input
@@ -657,6 +681,10 @@ const ICONS: Record<string, string> = {
   star: 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z',
   grid: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
   list: 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
+  image:
+    'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Z',
+  video:
+    'm15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z',
   plus: 'M12 4.5v15m7.5-7.5h-15', // 目前仅作图标库保留：新建创作按钮已按需求移除
   filter: 'M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z',
   arrowRight: 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3',
@@ -696,6 +724,24 @@ const STATUS_OPTIONS: ReadonlyArray<{ key: GenerateTaskStatus | ''; label: strin
 const SORT_OPTIONS = [
   { key: 'newest' as const, label: '最新优先' },
   { key: 'oldest' as const, label: '最早优先' },
+]
+
+/**
+ * 生成类型选项。
+ *
+ * 图像与视频**走同一套后端接口**（`/v2/ai/generate/**`，type 走参数），
+ * 由 `GenerateService` 按 type 分派到 `resolveImage()` / `resolveVideo()` 的
+ * 不同 SPI。差异只在模型级参数上，已经由 `config` 建模：
+ * 图像是 `maxCount`（张数），视频是 `durations`（时长）。
+ */
+const MEDIA_OPTIONS: ReadonlyArray<{
+  value: 'image' | 'video'
+  label: string
+  desc: string
+  icon: 'image' | 'video'
+}> = [
+  { value: 'image', label: '图像', desc: '文生图 / 图生图', icon: 'image' },
+  { value: 'video', label: '视频', desc: '文生视频 / 图生视频', icon: 'video' },
 ]
 
 /** 状态徽标文案 */
@@ -812,6 +858,18 @@ const loading = ref(false)
  * 保留「视频」入口会让用户切过去只看到空列表，所以直接不显示该 tab。
  */
 const videoAvailable = ref(false)
+
+/**
+ * 生成类型切换弹层的实例。
+ *
+ * `trigger="click"` 的 el-popover 点内容不会自动收起，而切换类型属于「跳转」
+ * 语义（下方模型列表与历史都会重载），选完必须关掉，否则弹层挡住刷新后的页面。
+ */
+const mediaPopoverRef = ref<{ hide: () => void } | null>(null)
+
+/** 当前生成类型的中文名（标题与切换按钮共用） */
+const mediaLabel = computed(() => (mediaType.value === 'video' ? '视频' : '图像'))
+
 const keyword = ref('')
 const modelFilter = ref('')
 const statusFilter = ref<GenerateTaskStatus | ''>('')
@@ -1331,6 +1389,8 @@ const stylePreview = (key: string) => {
 }
 
 const switchMedia = (value: 'image' | 'video') => {
+  // 切换类型是「跳转」而非「调节某个开关」，选完应当收起弹层
+  mediaPopoverRef.value?.hide()
   if (mediaType.value === value) {
     return
   }
@@ -2061,32 +2121,43 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.wg-media-switch {
+/*
+ * 生成类型切换按钮。
+ * 与 .wg-view 一样是 38px 高的方形工具按钮，但带文字（用户要一眼看出当前是图像还是视频），
+ * 尺寸随内容走。颜色继承 --color-* 令牌，暗色模式自动跟随。
+ */
+.wg-media-btn {
   display: flex;
   flex: 0 0 auto;
-  gap: 18px;
-}
-
-.wg-tab {
-  padding: 0 0 6px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--color-text-gray);
-  font-size: 15px;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--r);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.18s, border-color 0.18s;
 }
 
-.wg-tab:hover {
-  color: var(--color-text);
+.wg-media-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
-.wg-tab.is-active {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: 600;
+.wg-media-btn .wg-svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 右侧下拉箭头比左侧类型图标小一号，避免和主图标抢视觉重量 */
+.wg-media-caret {
+  width: 14px !important;
+  height: 14px !important;
+  color: var(--color-text-gray);
 }
 
 .wg-search {
@@ -2291,6 +2362,19 @@ onUnmounted(() => {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
+}
+
+/* 菜单项左侧的类型图标（图像/视频），选中时跟随主色 */
+.wg-menu-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-gray);
+  transition: color 0.18s;
+}
+
+.wg-menu-item.is-active .wg-menu-icon {
+  color: var(--color-primary);
 }
 
 .wg-seg {
@@ -3199,12 +3283,13 @@ onUnmounted(() => {
   background-color: var(--color-primary);
 }
 
-/* 动效降级：系统开启「减少动态效果」时，页签/搜索框/筛选芯片/视图切换/菜单项/
+/* 动效降级：系统开启「减少动态效果」时，类型切换/搜索框/筛选芯片/视图切换/菜单项/
    分段项/比例/风格/卡片/操作层/重试/缩略图操作条 的悬停与选中反馈全部改为瞬间切换。
    逐个列出，不写 `*` / .wg-main * 通配 —— viewerjs 的图片查看器与内部
    Element Plus 浮层的合法过渡不能被一起掐掉。 */
 @media (prefers-reduced-motion: reduce) {
-  .wg-tab,
+  .wg-media-btn,
+  .wg-menu-icon,
   .wg-search,
   .wg-chip,
   .wg-view,

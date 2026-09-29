@@ -1,7 +1,12 @@
 <template>
   <div class="asset-list fade-in">
     <div class="summary-row">
+      <!-- layout="stacked"：图标插槽里放的是 32x3px 的横向色条，是为竖排设计的。
+           紧凑档默认横排会把色条甩到数值左边变成一根短横线，所以这里保留竖排，
+           只拿紧凑档的尺寸收益。 -->
       <ReStatCard
+        size="compact"
+        layout="stacked"
         v-for="s in summary"
         :key="s.label"
         :title="s.label"

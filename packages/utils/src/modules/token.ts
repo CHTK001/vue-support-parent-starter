@@ -85,13 +85,64 @@ function refreshKey(): string {
 }
 
 /**
+ * 代入令牌的 sessionStorage key。
+ *
+ * 刻意不走框架 storage（localStorage）：代入令牌是按标签页临时借用的身份，
+ * 而框架 storage 是全标签共享的，写进去会覆盖管理员自己标签页里的登录态 ——
+ * 管理员点一下「代入该学生」，自己的后台就在下一次请求时变成学生身份了。
+ * sessionStorage 天然按标签页隔离，正好承载这种「只在本页生效」的凭据。
+ */
+const IMPERSONATE_TOKEN_KEY = "__impersonateAccessToken__";
+
+/**
+ * 写入代入令牌（仅本标签页生效）。
+ *
+ * @param token 管理员代入他人身份后拿到的临时令牌
+ */
+export function setImpersonateToken(token: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(IMPERSONATE_TOKEN_KEY, token);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * 读取代入令牌。
+ *
+ * @returns 本标签页的代入令牌；没有则返回空串
+ */
+export function getImpersonateToken(): string {
+  try {
+    if (typeof window === "undefined") return "";
+    return window.sessionStorage.getItem(IMPERSONATE_TOKEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** 清除本标签页的代入令牌（退出代入 / 完整登出时调用） */
+export function clearImpersonateToken(): void {
+  try {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.removeItem(IMPERSONATE_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
  * 获取当前 accessToken
  *
  * 从框架 storage 读取（key = tokenConfig.accessTokenKey，默认 "accessToken"）。
+ * 代入令牌优先：它只在本标签页存在，取到就说明本页正以被代入的身份工作。
  */
 export function getAccessToken(): string {
   try {
     if (typeof window === "undefined") return "";
+    const impersonate = getImpersonateToken();
+    if (impersonate) return impersonate;
     const token = getTokenStorage().get<string>(accessKey()) ?? "";
     if (token) return token;
     return "";
@@ -114,6 +165,10 @@ export function setAccessToken(token: string): void {
 export function getRefreshToken(): string {
   try {
     if (typeof window === "undefined") return "";
+    // 代入令牌同样优先：否则代入页续期时会拿管理员的 refreshToken 换回管理员令牌，
+    // 一次刷新就把「代入」静默变成了「本人」
+    const impersonate = getImpersonateToken();
+    if (impersonate) return impersonate;
     return getTokenStorage().get<string>(refreshKey()) ?? "";
   } catch {
     return "";
@@ -210,6 +265,8 @@ export function clearAuthCache(): void {
 export function clearAuthToken(): void {
   try {
     if (typeof window === "undefined") return;
+    // 代入令牌也要一并清掉，否则「登出」后本标签页仍以被代入身份继续可用
+    clearImpersonateToken();
     const storage = getTokenStorage();
     storage.remove(accessKey());
     storage.remove(refreshKey());

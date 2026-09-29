@@ -40,10 +40,10 @@
       </div>
 
       <div class="panel-row">
-        <ReStatCard title="进程 CPU" :value="snapshot.cpu.processCpuLoad.toFixed(1) + ' %'" :desc="`核心数 ${snapshot.cpu.cpuCores}`" :icon="Odometer" icon-color="#3b82f6" />
-        <ReStatCard title="GC 次数" :value="snapshot.gc.gcCount" :desc="`总耗时 ${snapshot.gc.gcTimeMs} ms · ${snapshot.gc.collectors.length} 收集器`" :icon="RefreshRight" icon-color="#8b5cf6" />
-        <ReStatCard title="线程数" :value="snapshot.threads.liveThreads" :desc="`峰值 ${snapshot.threads.peakThreads} · 守护 ${snapshot.threads.daemonThreads}`" :icon="Connection" icon-color="#22c55e" />
-        <ReStatCard title="系统负载" :value="snapshot.cpu.systemLoadAverage > 0 ? snapshot.cpu.systemLoadAverage.toFixed(2) : 'n/a'" :desc="`单核 ${snapshot.cpu.loadPerCore.toFixed(2)}`" :icon="DataLine" icon-color="#f59e0b" />
+        <ReStatCard size="compact" title="进程 CPU" :value="snapshot.cpu.processCpuLoad.toFixed(1) + ' %'" :desc="`核心数 ${snapshot.cpu.cpuCores}`" :icon="Odometer" icon-color="#3b82f6" />
+        <ReStatCard size="compact" title="GC 次数" :value="snapshot.gc.gcCount" :desc="`总耗时 ${snapshot.gc.gcTimeMs} ms · ${snapshot.gc.collectors.length} 收集器`" :icon="RefreshRight" icon-color="#8b5cf6" />
+        <ReStatCard size="compact" title="线程数" :value="snapshot.threads.liveThreads" :desc="`峰值 ${snapshot.threads.peakThreads} · 守护 ${snapshot.threads.daemonThreads}`" :icon="Connection" icon-color="#22c55e" />
+        <ReStatCard size="compact" title="系统负载" :value="snapshot.cpu.systemLoadAverage > 0 ? snapshot.cpu.systemLoadAverage.toFixed(2) : 'n/a'" :desc="`单核 ${snapshot.cpu.loadPerCore.toFixed(2)}`" :icon="DataLine" icon-color="#f59e0b" />
       </div>
 
       <!-- GC 收集器 + 网络 -->

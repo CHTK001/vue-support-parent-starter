@@ -515,19 +515,19 @@ async function onImportFile(file: File | undefined) {
     <!-- 资产统计 -->
     <ReSkeleton :loading="statsLoading" :rows="2" :count="1" animated>
       <div class="stats-grid">
-        <ReStatCard title="资产总数" :value="hostStats.total" icon-color="var(--metric-cpu)">
+        <ReStatCard size="compact" title="资产总数" :value="hostStats.total" icon-color="var(--metric-cpu)">
           <template #icon><Monitor /></template>
           <template #value><ReCountup :value="hostStats.total" :duration="800" /></template>
         </ReStatCard>
-        <ReStatCard title="在线" :value="hostStats.online" icon-color="var(--status-success)">
+        <ReStatCard size="compact" title="在线" :value="hostStats.online" icon-color="var(--status-success)">
           <template #icon><CircleCheckFilled /></template>
           <template #value><ReCountup :value="hostStats.online" :duration="800" /></template>
         </ReStatCard>
-        <ReStatCard title="离线" :value="hostStats.offline" icon-color="var(--status-error)">
+        <ReStatCard size="compact" title="离线" :value="hostStats.offline" icon-color="var(--status-error)">
           <template #icon><CircleCloseFilled /></template>
           <template #value><ReCountup :value="hostStats.offline" :duration="800" /></template>
         </ReStatCard>
-        <ReStatCard title="未知" :value="hostStats.unknown" icon-color="var(--metric-disk)">
+        <ReStatCard size="compact" title="未知" :value="hostStats.unknown" icon-color="var(--metric-disk)">
           <template #icon><QuestionFilled /></template>
           <template #value><ReCountup :value="hostStats.unknown" :duration="800" /></template>
         </ReStatCard>

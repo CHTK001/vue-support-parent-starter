@@ -1079,6 +1079,58 @@ function openEdit(job: JobRuntime): void {
   clearFormValidate();
 }
 
+/**
+ * 查台账里是否已有这个任务键。
+ *
+ * 对象类型建档是**按 jobKey 覆盖**已有台账行（脚本 / 片段的 jobKey 由后端生成，不会撞），
+ * 所以在「新建」路径上选中一个已登记的处理器，等于静默改掉那一行的名称、分组、
+ * 调度与启用状态。没有这一步提示时，操作者看到的是「保存成功」，线上任务却已被改。
+ *
+ * @param jobKey 待查的任务键
+ * @returns 已存在的运行态；查不到（新建）或查询异常都返回 null
+ */
+async function loadExistingForOverwrite(jobKey: string): Promise<JobRuntime | null> {
+  try {
+    return (await getJob(jobKey)) ?? null;
+  } catch {
+    // 查不到就按新建处理：不为一次存在性检查挡住用户，也不因为网络抖动把人拦在门外
+    return null;
+  }
+}
+
+/**
+ * 拼覆盖前的差异说明。
+ *
+ * 只列**会变**的字段：全量罗列会让真正的改动淹没在未变项里，点了确认也不知道改了什么。
+ *
+ * @param existing 台账里已存在的任务
+ * @param next 本次要保存的内容
+ * @returns 可直接放进确认框的差异文案
+ */
+function describeOverwriteDiff(existing: JobRuntime, next: JobSave): string {
+  const changes: string[] = [];
+  const name = String(next.jobName ?? "").trim();
+  if (name && name !== String(existing.jobName ?? "").trim()) {
+    changes.push(`任务名称「${existing.jobName || "空"}」改为「${name}」`);
+  }
+  const group = String(next.group ?? "").trim();
+  if (group !== String(existing.group ?? "").trim()) {
+    changes.push(`分组「${existing.group || "空"}」改为「${group || "空"}」`);
+  }
+  const scheduleType = next.scheduleType ?? "";
+  if (scheduleType !== String(existing.scheduleType ?? "")) {
+    changes.push(`调度类型「${existing.scheduleType || "空"}」改为「${scheduleType}」`);
+  }
+  const scheduleTime = String(next.scheduleTime ?? "").trim();
+  if (scheduleTime !== String(existing.scheduleTime ?? "").trim()) {
+    changes.push(`调度配置「${existing.scheduleTime || "空"}」改为「${scheduleTime || "空"}」`);
+  }
+  if (Boolean(next.enabled) !== Boolean(existing.enabled)) {
+    changes.push(`登记后启用「${existing.enabled ? "是" : "否"}」改为「${next.enabled ? "是" : "否"}」`);
+  }
+  return changes.length > 0 ? changes.join("；") : "本次没有字段变化";
+}
+
 async function submit(): Promise<void> {
   /** 流程调度编辑：走采集流程接口，画布 dsl 原样回写 */
   if (formMode.value === "flow") {
@@ -1187,6 +1239,20 @@ async function submit(): Promise<void> {
   if (!isScriptTask) {
     payload.glueType = GLUE_BEAN;
     payload.glueSource = "";
+  }
+  // 覆盖护栏：对象类型新建时若 jobKey 已在台账，先摆出差异再决定要不要覆盖
+  if (formMode.value === "create" && !isScriptTask && jobKey) {
+    const existing = await loadExistingForOverwrite(jobKey);
+    if (existing) {
+      const diff = describeOverwriteDiff(existing, payload);
+      const ok = await confirmAction(
+        `任务「${jobKey}」已在台账中，保存会覆盖它的配置：${diff}。确认覆盖？`,
+        "该任务已存在",
+      );
+      if (!ok) {
+        return;
+      }
+    }
   }
   try {
     await saveJob(payload);

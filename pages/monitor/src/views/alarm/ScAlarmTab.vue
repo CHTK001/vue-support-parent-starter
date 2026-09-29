@@ -323,11 +323,11 @@ onBeforeUnmount(() => {
     <!-- 事件列表 -->
     <template v-if="subView === 'events'">
       <div class="stats-row">
-        <ReStatCard title="今日告警" :value="alarmSummary.todayTotal" icon="Bell" icon-color="var(--metric-cpu)" />
-        <ReStatCard title="未处理" :value="alarmSummary.unprocessed" icon="AlarmClock" icon-color="var(--status-error)" />
-        <ReStatCard title="已处理" :value="alarmSummary.processed" icon="CircleCheck" icon-color="var(--status-success)" />
-        <ReStatCard title="误报" :value="alarmSummary.falseAlarm" icon="Warning" icon-color="var(--metric-disk)" />
-        <ReStatCard title="等级分布" icon="Histogram" icon-color="var(--metric-jvm)">
+        <ReStatCard size="compact" title="今日告警" :value="alarmSummary.todayTotal" icon="Bell" icon-color="var(--metric-cpu)" />
+        <ReStatCard size="compact" title="未处理" :value="alarmSummary.unprocessed" icon="AlarmClock" icon-color="var(--status-error)" />
+        <ReStatCard size="compact" title="已处理" :value="alarmSummary.processed" icon="CircleCheck" icon-color="var(--status-success)" />
+        <ReStatCard size="compact" title="误报" :value="alarmSummary.falseAlarm" icon="Warning" icon-color="var(--metric-disk)" />
+        <ReStatCard size="compact" title="等级分布" icon="Histogram" icon-color="var(--metric-jvm)">
           <template #value>
             <span class="stat-dist">{{ Object.entries(alarmSummary.levelDistribution || {}).map(([k,v]) => k+':'+v).join(' | ') }}</span>
           </template>

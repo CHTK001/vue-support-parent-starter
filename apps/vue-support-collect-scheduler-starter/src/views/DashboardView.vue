@@ -320,6 +320,7 @@ function shortTime(value: unknown): string {
 
     <div class="collect-stats">
       <ReStatCard
+        size="compact"
         v-for="kpi in kpis"
         :key="kpi.key"
         class="dash-kpi"

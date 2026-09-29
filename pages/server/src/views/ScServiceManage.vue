@@ -223,23 +223,23 @@ function openDetailPage(row: ServerNodeView, index: number) {
 
     <!-- 运行概览 -->
     <div class="stats-grid">
-      <ReStatCard title="服务总数" :value="stats.total" icon-color="var(--metric-cpu)">
+      <ReStatCard size="compact" title="服务总数" :value="stats.total" icon-color="var(--metric-cpu)">
         <template #icon><Monitor /></template>
         <template #value><ReCountup :value="stats.total" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard title="运行中" :value="stats.running" icon-color="var(--status-success)">
+      <ReStatCard size="compact" title="运行中" :value="stats.running" icon-color="var(--status-success)">
         <template #icon><CircleCheckFilled /></template>
         <template #value><ReCountup :value="stats.running" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard title="已停止" :value="stats.stopped" icon-color="var(--text-tertiary)">
+      <ReStatCard size="compact" title="已停止" :value="stats.stopped" icon-color="var(--text-tertiary)">
         <template #icon><VideoPause /></template>
         <template #value><ReCountup :value="stats.stopped" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard title="异常" :value="stats.error" icon-color="var(--status-error)">
+      <ReStatCard size="compact" title="异常" :value="stats.error" icon-color="var(--status-error)">
         <template #icon><CircleCloseFilled /></template>
         <template #value><ReCountup :value="stats.error" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard title="已挂插件" :value="stats.plugins" icon-color="var(--metric-jvm)">
+      <ReStatCard size="compact" title="已挂插件" :value="stats.plugins" icon-color="var(--metric-jvm)">
         <template #icon><Connection /></template>
         <template #value><ReCountup :value="stats.plugins" :duration="600" /></template>
       </ReStatCard>

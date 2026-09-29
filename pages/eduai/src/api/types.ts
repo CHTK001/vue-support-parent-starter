@@ -988,6 +988,36 @@ export interface GradeLevelOption {
 }
 
 /**
+ * AI 组卷能力探测结果
+ *
+ * <p>AI 组卷能力依赖后端的 spring-support-ai-starter（需要注册了可用的对话客户端）。
+ * 前端用它决定 AI 组卷入口是可用还是禁用：available 为 false 时应禁用入口并把
+ * reason 展示给用户，而不是让用户点下去再失败。</p>
+ *
+ * <p>对应后端 EduAiCapabilityVO。</p>
+ */
+export interface EduAiCapability {
+  /** 是否可用 */
+  available: boolean;
+  /** 结论说明；不可用时是具体原因 */
+  reason: string;
+  /** 配置的模型提供商，可能为空 */
+  provider?: string | null;
+  /** 配置的模型名，可能为空 */
+  model?: string | null;
+}
+
+/** AI 选题请求（对应后端 QuestionAiSelectDTO） */
+export interface QuestionAiSelectPayload {
+  subject?: string;
+  gradeLevel?: string;
+  grade?: string;
+  types?: string[];
+  knowledgePointIds?: number[];
+  count?: number;
+}
+
+/**
  * 班级
  *
  * 学生挂在班级下；class_teacher_id 是数字 userId，与登录账号（字符串）不同源，
@@ -1027,6 +1057,12 @@ export interface EduStudent {
   studentStatus?: number | null;
   createTime?: string;
   updateTime?: string;
+  /**
+   * 登录口令明文：**只提交、不回显**。
+   * 后端只返回加盐摘要，从不返回明文，因此编辑态恒为空串；
+   * 留空提交表示「本次不修改口令」。
+   */
+  studentPwdInput?: string;
 }
 
 /** 教师档案 */

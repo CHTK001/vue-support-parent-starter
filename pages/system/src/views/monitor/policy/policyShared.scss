@@ -149,6 +149,18 @@
 
 .policy-switch-field span { color: var(--el-text-color-secondary); font-size: 12px; }
 
+/* 弹窗底部的一段灰底说明。限流的「全局配置」弹窗和消息头的「规则」弹窗都要用，
+   两个页签各自独立之后没法再靠某一个组件的 scoped 块提供，所以进共享表。 */
+.policy-global-form__tip {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 /* ==================== 表格归一 ==================== */
 /* 原来写在 PolicyTask.vue 的 scoped 块里，用 :deep() 穿透 ReTable / el-table。
    这里是全局样式，:deep() 没有意义（也不该出现），直接写普通后代选择器：

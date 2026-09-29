@@ -2,27 +2,27 @@
   <div class="overview fade-in">
     <ReSkeleton :loading="loading" :rows="4" :count="1" animated>
       <div class="stats-grid">
-        <ReStatCard title="资产总数" :value="data.total" icon-color="var(--metric-cpu)">
+        <ReStatCard size="compact" title="资产总数" :value="data.total" icon-color="var(--metric-cpu)">
           <template #icon><DataAnalysis /></template>
           <template #value><ReCountup :value="data.total" /></template>
         </ReStatCard>
-        <ReStatCard title="运行中" :value="data.enabled" icon-color="var(--status-success)">
+        <ReStatCard size="compact" title="运行中" :value="data.enabled" icon-color="var(--status-success)">
           <template #icon><VideoPlay /></template>
           <template #value><ReCountup :value="data.enabled" /></template>
         </ReStatCard>
-        <ReStatCard title="已停用" :value="data.disabled" icon-color="var(--status-error)">
+        <ReStatCard size="compact" title="已停用" :value="data.disabled" icon-color="var(--status-error)">
           <template #icon><VideoPause /></template>
           <template #value><ReCountup :value="data.disabled" /></template>
         </ReStatCard>
-        <ReStatCard title="服务器" :value="data.serverCount" icon-color="var(--metric-net)">
+        <ReStatCard size="compact" title="服务器" :value="data.serverCount" icon-color="var(--metric-net)">
           <template #icon><Monitor /></template>
           <template #value><ReCountup :value="data.serverCount" /></template>
         </ReStatCard>
-        <ReStatCard title="Redis" :value="data.redisCount" icon-color="var(--metric-redis)">
+        <ReStatCard size="compact" title="Redis" :value="data.redisCount" icon-color="var(--metric-redis)">
           <template #icon><Coin /></template>
           <template #value><ReCountup :value="data.redisCount" /></template>
         </ReStatCard>
-        <ReStatCard title="数据库" :value="data.dbCount" icon-color="var(--metric-db)">
+        <ReStatCard size="compact" title="数据库" :value="data.dbCount" icon-color="var(--metric-db)">
           <template #icon><Collection /></template>
           <template #value><ReCountup :value="data.dbCount" /></template>
         </ReStatCard>

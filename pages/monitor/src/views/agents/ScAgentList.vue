@@ -1,13 +1,13 @@
 <template>
   <div class="agent-list fade-in">
     <div class="stats-row">
-      <ReStatCard title="Agent 总数" :value="agents.length" icon-color="var(--metric-cpu)">
+      <ReStatCard size="compact" title="Agent 总数" :value="agents.length" icon-color="var(--metric-cpu)">
         <template #value><ReCountup :value="agents.length" :duration="800" /></template>
       </ReStatCard>
-      <ReStatCard title="在线" :value="onlineCount" icon-color="var(--status-success)">
+      <ReStatCard size="compact" title="在线" :value="onlineCount" icon-color="var(--status-success)">
         <template #value><ReCountup :value="onlineCount" :duration="800" /></template>
       </ReStatCard>
-      <ReStatCard title="离线" :value="agents.length - onlineCount" icon-color="var(--status-error)">
+      <ReStatCard size="compact" title="离线" :value="agents.length - onlineCount" icon-color="var(--status-error)">
         <template #value><ReCountup :value="agents.length - onlineCount" :duration="800" /></template>
       </ReStatCard>
     </div>

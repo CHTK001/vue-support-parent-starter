@@ -9,8 +9,10 @@
     - icon: 右侧图标
     - iconColor: 图标颜色（CSS color 值）
     - size: 尺寸档位。default 为标准尺寸；compact 用于「一行并排 4~5 张」的密集
-            概览，收紧内距、缩小数值与图标圆，并把文档里写的横排布局真正启用
-            （icon 在左、文案在右），避免宽而矮的卡片留白过大
+            概览，收紧内距、缩小数值与图标圆
+    - layout: 排列方式。auto（默认）= 标准档竖排、紧凑档横排；
+              stacked = 永远竖排；inline = 永远横排。
+              图标插槽里放的是为竖排设计的装饰件（如横向色条）时用 stacked
   Slots:
     - value: 自定义主数值渲染（如 ReTag）
     - icon: 自定义右侧图标
@@ -19,10 +21,15 @@
   <!-- re-surface 基类提供圆角/边框/投影/悬停（见 components/shared/re-surface.css） -->
   <div
     class="re-stat-card re-surface re-surface--hover"
-    :class="{ 're-stat-card--compact': size === 'compact' }"
+    :class="{
+      're-stat-card--compact': size === 'compact',
+      're-stat-card--inline': isInline,
+    }"
   >
-    <!-- 图标在左：渐变圆 + 柔光；数值/描述在右 -->
-    <div class="re-stat-card__aside">
+    <!-- 图标在左：渐变圆 + 柔光；数值/描述在右。
+         只在真的有图标（prop 或插槽）时渲染这一栏：紧凑档是横排 flex，
+         空的一栏会白占 10px 间距（默认档是上下堆叠，空栏不占高度，所以以前无所谓）。 -->
+    <div v-if="icon || $slots.icon" class="re-stat-card__aside">
       <slot name="icon">
         <span v-if="icon" class="re-stat-card__icon" :style="iconStyle">
           <el-icon :size="iconSize"><component :is="icon" /></el-icon>
@@ -55,6 +62,15 @@ const props = withDefaults(
     iconColor?: string;
     /** 尺寸档位：default（标准）/ compact（密集概览） */
     size?: "default" | "compact";
+    /**
+     * 排列方式。auto（默认）= 标准档竖排、紧凑档横排；
+     * stacked = 永远竖排（图标在上）；inline = 永远横排（图标在左）。
+     *
+     * <p>什么时候要显式写 stacked：图标插槽里放的不是图标，而是**为竖排设计的装饰件**
+     * —— 例如 32x3px 的横向色条。横排后它会跑到数值左边，变成一根莫名其妙的短横线。
+     * 这种情况保留竖排、只享受紧凑档的尺寸收益。</p>
+     */
+    layout?: "auto" | "stacked" | "inline";
   }>(),
   {
     value: "",
@@ -62,11 +78,17 @@ const props = withDefaults(
     icon: undefined,
     iconColor: "var(--el-color-primary)",
     size: "default",
+    layout: "auto",
   },
 );
 
 /** 是否紧凑档；模板与图标尺寸共用，避免两处各判一次 */
 const isCompact = computed(() => props.size === "compact");
+
+/** 是否横排（图标左 / 文案右） */
+const isInline = computed(() =>
+  props.layout === "inline" || (props.layout !== "stacked" && isCompact.value),
+);
 
 /** 图标字形大小：紧凑档跟着图标圆一起缩，否则 24px 字形会撑破 32px 圆 */
 const iconSize = computed(() => (isCompact.value ? 16 : 24));
@@ -101,13 +123,20 @@ defineOptions({ name: "ReStatCard", inheritAttrs: true });
    只覆写 re-surface 的令牌与自身排版，不新增投影/圆角声明：
    圆角与内距继续由基线类消费，避免出现第二套卡片外壳规格。
 
-   顺带补上本组件文档里写的横排布局（"左栏 数值 · 右栏 图标"）：
-   标准档实际没有 `display: flex`，图标与数值是上下堆叠的，图标这一行
-   要独占 30~56px 高度。宽而矮的概览卡（如 280x139 里放一个 0）因此留白过大。
-   这里只在紧凑档启用横排 —— 改默认档会让既有 10+ 个调用方一起变样。 */
+   注意尺寸（--compact）与排列（--inline）是两件事，可分开用：
+   图标插槽里放的是为竖排设计的装饰件时，用 layout="stacked" 只收尺寸不换排列。 */
 .re-stat-card--compact {
   --re-surface-padding: 10px 12px;
   --re-surface-radius: var(--el-border-radius-lg, 12px);
+}
+
+/* 横排：图标在左、文案在右。
+   顺带补上本组件文档里写的那个布局 —— 标准档实际没有 `display: flex`，
+   图标与数值是上下堆叠的，图标这一行要独占 30~56px 高度。宽而矮的概览卡
+   （如 280x139 里放一个 0）因此留白过大。紧凑档默认启用；图标插槽里放的是
+   为竖排设计的装饰件时，用 layout="stacked" 关掉（见 props 注释）。
+   只影响显式开启的卡片 —— 改标准档会让既有 10+ 个调用方一起变样。 */
+.re-stat-card--inline {
   display: flex;
   align-items: center;
   gap: 10px;

@@ -20,3 +20,11 @@ registerMenuViewModules({
 });
 
 export * from "./api/filestorageApi";
+
+/**
+ * 文件存储管理页组件。
+ *
+ * 供其它应用（而非仅后端菜单路由）直接嵌入使用，例如把文件服务器
+ * 挂到「系统配置 → 文件存储」作为查看入口。
+ */
+export { default as FileStorageManage } from "./views/FileStorageManage.vue";

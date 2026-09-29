@@ -410,7 +410,8 @@ async function runSearch() {
   try {
     const form = new FormData()
     form.append('file', previewFile.value)
-    form.append('topK', '30')
+    // 不传 topK：由后端取「系统设置 → 默认模型 → 以图搜图」的 search_top_k。
+    // 此前这里写死 '30'，用户改设置对返回条数毫无影响，只能改代码重新打包。
     const data = await apiService._request('/image-search/search', {
       method: 'POST',
       data: form,

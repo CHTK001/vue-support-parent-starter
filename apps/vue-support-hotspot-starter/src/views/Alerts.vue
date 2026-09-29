@@ -18,6 +18,7 @@
 
     <div class="stat-row" v-if="!loading">
       <ReStatCard
+        size="compact"
         title="总告警数"
         :value="items.length"
         :desc="`最近 ${windowLabel} 事件`"
@@ -25,6 +26,7 @@
         icon-color="#3b82f6"
       />
       <ReStatCard
+        size="compact"
         title="CRITICAL"
         :value="criticalCount"
         :desc="criticalCount ? '存在严重告警' : '无严重告警'"
@@ -32,6 +34,7 @@
         :icon-color="criticalCount ? '#ef4444' : '#22c55e'"
       />
       <ReStatCard
+        size="compact"
         title="WARNING"
         :value="warningCount"
         :desc="warningCount ? '存在预警事件' : '无预警事件'"

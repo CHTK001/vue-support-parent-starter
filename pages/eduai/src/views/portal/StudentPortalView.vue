@@ -1,5 +1,13 @@
 <template>
-  <div class="portal">
+  <div class="portal" :class="{ 'portal--imp': impersonating }">
+    <!-- 管理员代入：必须显著提示，否则管理员会把学生的数据当成自己的 -->
+    <div v-if="impersonating" class="portal-imp">
+      <ReIcon name="View" :size="16" aria-hidden="true" />
+      <span class="portal-imp__text">
+        管理员代入查看中 · 本页数据属于该学生，且为只读
+      </span>
+      <button type="button" class="portal-imp__exit" @click="exitImpersonation">退出代入</button>
+    </div>
     <!-- 未绑定：先弹绑定表单，绑完才放行 —— 进入系统就必须绑定信息 -->
     <div v-if="needBind" class="portal-bind">
       <div class="portal-bind__card">
@@ -92,8 +100,9 @@
  * 学生不该看到管理员那套导航。
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { setImpersonateToken, clearImpersonateToken } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
 import { modulesOf, type PortalModule } from "./modules";
@@ -102,6 +111,7 @@ import JuniorHome from "./JuniorHome.vue";
 import SeniorHome from "./SeniorHome.vue";
 
 const router = useRouter();
+const route = useRoute();
 
 /**
  * 已实现、可嵌入学生端的模块
@@ -131,6 +141,14 @@ const binding = ref(false);
 const bindError = ref("");
 const needBind = ref(false);
 const overview = ref<StudentOverview | null>(null);
+
+/**
+ * 当前是否处于「管理员代入」状态。
+ *
+ * 必须让管理员一眼看出自己看的是别人的数据：代入态的读写都算在被代入学生头上，
+ * 没有提示的话管理员会把学生的数据当成自己的，进而做出错误判断。
+ */
+const impersonating = ref(false);
 
 const form = reactive({
   studentNo: "",
@@ -268,7 +286,39 @@ function openModule(moduleCode: string) {
   ElMessage.info("该模块正在建设中，敬请期待");
 }
 
+/**
+ * 管理员代入：URL 上带 `impersonate=<临时令牌>` 时用它作为本次会话的凭据。
+ *
+ * 写入的是**本标签页专属**的代入令牌（sessionStorage），不是框架 storage ——
+ * 后者全标签共享，写进去会把管理员自己标签页里的登录态覆盖成学生身份。
+ * 地址栏上的令牌随后被抹掉，避免被复制走或留在浏览器历史里。
+ *
+ * @returns 是否成功接管了本次会话
+ */
+function adoptImpersonationToken(): boolean {
+  const token = route.query.impersonate;
+  if (typeof token !== "string" || !token) {
+    return false;
+  }
+  setImpersonateToken(token);
+  impersonating.value = true;
+  void router.replace({ path: route.path, query: { ...route.query, impersonate: undefined } });
+  return true;
+}
+
+/**
+ * 退出代入：清掉本标签页的代入令牌并回到登录页。
+ *
+ * 只清代入令牌、不动管理员自己的登录态，因此管理员原标签页完全不受影响。
+ */
+function exitImpersonation() {
+  clearImpersonateToken();
+  impersonating.value = false;
+  void router.replace("/edu/student-login");
+}
+
 onMounted(() => {
+  adoptImpersonationToken();
   void load();
 });
 </script>
@@ -287,6 +337,57 @@ onMounted(() => {
   inset: 0;
   z-index: 2000;
   background: var(--el-bg-color-page);
+}
+
+/*
+ * 代入态给顶部让出提示条的高度。
+ * 用父级内边距而不是给每个子页面加 margin：子页面自己不知道自己上面多了条东西，
+ * 挨个补必然漏，以后新增页面还会再漏一次。
+ */
+.portal--imp {
+  padding-top: 37px;
+}
+
+/*
+ * 代入提示条：压在页面顶部，用 warning 色区分于学生自己的界面。
+ * 不写死色值，一律走 Element Plus 语义令牌，暗色模式下自动跟随。
+ */
+.portal-imp {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--el-color-warning-dark-2);
+  background: var(--el-color-warning-light-9);
+  border-bottom: 1px solid var(--el-color-warning-light-7);
+}
+.portal-imp__text {
+  flex: 1;
+  min-width: 0;
+}
+.portal-imp__exit {
+  flex: none;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--el-color-warning-dark-2);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: var(--el-radius-small, 4px);
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.portal-imp__exit:hover {
+  background: var(--el-color-warning-light-7);
+}
+.portal-imp__exit:focus-visible {
+  outline: 2px solid var(--el-color-warning);
+  outline-offset: 1px;
 }
 .portal-loading {
   height: 100%;

@@ -22,6 +22,7 @@
     <!-- 统计卡片行 -->
     <div class="stat-row" v-if="!loading && items.length">
       <ReStatCard
+        size="compact"
         title="总端点数"
         :value="items.length"
         :desc="`${totalCalls.toLocaleString()} 次调用`"
@@ -29,6 +30,7 @@
         icon-color="#3b82f6"
       />
       <ReStatCard
+        size="compact"
         title="平均 P95"
         :value="avgP95 + ' ms'"
         :desc="`P99 ${avgP99} ms · Max ${maxMsAll} ms`"
@@ -36,6 +38,7 @@
         icon-color="#8b5cf6"
       />
       <ReStatCard
+        size="compact"
         title="错误端点数"
         :value="errorEndpoints.length"
         :desc="errorEndpoints.length ? errorEndpoints.join(' · ') : '全部健康'"
@@ -43,6 +46,7 @@
         :icon-color="errorEndpoints.length ? '#ef4444' : '#22c55e'"
       />
       <ReStatCard
+        size="compact"
         title="错误率峰值"
         :value="maxErrorRate + ' %'"
         :desc="maxErrorRateEndpoint ? `端点 ${maxErrorRateEndpoint}` : '—'"

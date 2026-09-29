@@ -98,6 +98,15 @@
                         <template v-else-if="currentTabValue === 'service-tokens'">
                             <ServiceTokensPage />
                         </template>
+                        <!--
+                          文件存储：直接复用 @repo/filesystem 的 FileStorageManage。
+                          该页原本对接独立文件服务器（默认 127.0.0.1:18080），
+                          这里作为「系统配置」的一个只读查看入口，
+                          便于排查生成任务的参考图/产物是否真的落盘。
+                        -->
+                        <template v-else-if="currentTabValue === 'file-storage'">
+                            <FileStorageManage class="h-full" />
+                        </template>
                     </ScrollContainer>
                 </div>
             </div>
@@ -126,6 +135,8 @@ import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
+// 复用 pages/filesystem 的文件存储管理页（同一份实现，不复制）
+import { FileStorageManage } from '@pages/filesystem'
 
 import {
     Grid16Regular,
@@ -177,6 +188,7 @@ const groupMap = computed<Record<string, string>>(() => ({
     security: t('settings.system.groups.account'),
     services: t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
+    'file-storage': t('settings.system.groups.system'),
 }))
 
 // 设置项菜单
@@ -258,6 +270,14 @@ const sidebarItems = computed(() => [
         label: '服务配置',
         path: 'services',
         icon: Server24Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
+    {
+        // 文件存储：查看文件服务器上的对象，供排查生成任务的参考图/产物落盘情况
+        label: '文件存储',
+        path: 'file-storage',
+        icon: Folder20Regular,
         roles: ['primary'],
         adminOnly: true,
     },

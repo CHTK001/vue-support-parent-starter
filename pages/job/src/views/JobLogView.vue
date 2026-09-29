@@ -423,6 +423,7 @@ onUnmounted(() => {
   <div class="collect-page job-log ">
     <div class="collect-stats">
       <ReStatCard
+        size="compact"
         v-for="item in kpis"
         :key="item.key"
         :title="item.title"
