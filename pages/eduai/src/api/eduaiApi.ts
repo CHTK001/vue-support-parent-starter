@@ -190,6 +190,27 @@ export const eduaiApi = {
     http()
       .put(`/v2/edu/paper/${paperId}/publish`)
       .then<boolean>(unwrap),
+
+  /**
+   * 下架试卷（已发布 → 草稿）
+   *
+   * <p>业务口径「发布=冻结」：已发布的卷要改动必须先下架。下架后学生端不可见，
+   * 可以继续编辑，改完再发布。</p>
+   */
+  unpublishPaper: (paperId: number) =>
+    http()
+      .put(`/v2/edu/paper/${paperId}/unpublish`)
+      .then<boolean>(unwrap),
+
+  /**
+   * 归档试卷（草稿/已发布 → 已归档）
+   *
+   * <p>归档后只读留档：不可修改、不可再发布，学生端也不可见。</p>
+   */
+  archivePaper: (paperId: number) =>
+    http()
+      .put(`/v2/edu/paper/${paperId}/archive`)
+      .then<boolean>(unwrap),
   /** 试卷修改历史列表 */
   getPaperHistory: (paperId: number) =>
     http()
