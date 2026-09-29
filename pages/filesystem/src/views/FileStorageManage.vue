@@ -313,6 +313,8 @@ const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
+/** 当前目录加载失败的原因（空串表示无错误）；列表区据此显示真实原因而不是「当前目录为空」 */
+const loadError = ref("");
 /** 视图模式：columns=分栏（默认，macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons / details */
 const viewMode = ref<ViewMode>("columns");
 /** 排序字段 */
@@ -958,9 +960,17 @@ async function loadObjects(): Promise<void> {
     // 同步分栏缓存（当前列）
     colObjects.value = { ...colObjects.value, [currentPath.value]: objects.value };
     setDefaultBucket(bucket.value);
+    loadError.value = "";
   } catch (e) {
     ElMessage.error((e as Error)?.message ?? "加载失败");
     objects.value = [];
+    // 分栏渲染的是 colObjects 这份「每列一份」的缓存：成功分支会写它，失败分支不写的话
+    // colObjects[currentPath] 会一直是 undefined，列头就永远停在「加载中…」——
+    // 而此时 loading 已为 false、状态栏已显示 0 项，两处状态自相矛盾。
+    // 这里与 ensureColumn 的失败分支保持同一口径：写空数组 + 错误文案。
+    colObjects.value = { ...colObjects.value, [currentPath.value]: [] };
+    colError.value = { ...colError.value, [currentPath.value]: (e as Error)?.message ?? "目录加载失败" };
+    loadError.value = (e as Error)?.message ?? "目录加载失败";
     // 目录不存在（服务端 404）时顺手清掉最近访问里的这条脏记录，见 forgetRecent 的说明
     forgetRecent(currentPath.value);
     // 当前位置已失效：回落到根目录。这一步同时修掉「按桶记忆」的持久化残留——
@@ -2948,7 +2958,7 @@ onUnmounted(() => {
           </div>
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>当前目录为空</span>
+            <span>{{ loadError || "当前目录为空" }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -2988,7 +2998,7 @@ onUnmounted(() => {
         <div v-else-if="viewMode === 'largeIcons'" class="fs-files fs-files--large" v-loading="loading" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>当前目录为空</span>
+            <span>{{ loadError || "当前目录为空" }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -3034,7 +3044,7 @@ onUnmounted(() => {
         <div v-else-if="viewMode === 'mediumIcons'" class="fs-files fs-files--medium" v-loading="loading" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>当前目录为空</span>
+            <span>{{ loadError || "当前目录为空" }}</span>
           </div>
           <div
             v-for="(item, index) in sortedObjects"
@@ -3072,7 +3082,7 @@ onUnmounted(() => {
         <div v-else class="fs-files fs-files--small" v-loading="loading" @contextmenu="openBlankContextMenu">
           <div v-if="sortedObjects.length === 0 && !loading" class="fs-files__empty">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>当前目录为空</span>
+            <span>{{ loadError || "当前目录为空" }}</span>
           </div>
           <div class="fs-files__small-list">
             <div
