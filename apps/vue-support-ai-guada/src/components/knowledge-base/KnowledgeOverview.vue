@@ -757,65 +757,10 @@ defineExpose({ openModal })
   color: var(--el-text-color-placeholder);
 }
 
-/* ===================== 弹窗 ===================== */
-.kb-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: color-mix(in srgb, var(--el-text-color-primary) 42%, transparent);
-}
-
-.kb-overlay.is-show {
-  display: flex;
-}
-
-.kb-modal {
-  width: 560px;
-  max-width: 100%;
-  max-height: 92vh;
-  overflow-y: auto;
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color-overlay);
-  box-shadow: var(--el-box-shadow-dark);
-}
-
-.kb-modal__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22px 26px 16px;
-}
-
-.kb-modal__head b {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--el-text-color-primary);
-}
-
-.kb-modal__close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--el-text-color-placeholder);
-  cursor: pointer;
-}
-
-.kb-modal__close:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-}
+/* ===================== 弹窗内容 =====================
+   弹窗外壳改由 ReDialog 提供（遮罩 / 标题 / 关闭 / 拖拽 / 全屏 / koi 主题），
+   这里只保留内容区与底栏。原先自绘的 .kb-overlay / .kb-modal /
+   .kb-modal__head / .kb-modal__close 已随宿主替换一并删除。 */
 
 .kb-seg {
   display: flex;
