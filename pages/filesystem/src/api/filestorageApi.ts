@@ -254,10 +254,39 @@ export function objectUrl(bucket: string, key: string, download = false): string
  * @return 错误消息
  */
 function toErrorMessage(e: unknown, action: string): string {
-  if (e instanceof AxiosError && e.response) {
-    return `${action}失败（HTTP ${e.response.status}）`;
+  const err = e as { response?: { status?: number; data?: unknown } } | null;
+  const status = err?.response?.status;
+  if (status != null) {
+    // 服务端的错误正文几乎总是可读的纯文本（Forbidden: invalid admin token、
+    // Directory Not Found: 1/1），只报 HTTP 状态码等于把最有用的线索丢掉；
+    // 正文取不到时才退回状态码
+    const body = serverErrorBody(err?.response?.data);
+    return body ? `${action}失败：${body}` : `${action}失败（HTTP ${status}）`;
   }
   return (e as Error)?.message ?? `${action}失败`;
+}
+
+/**
+ * 提取服务端错误正文
+ *
+ * <p>兼容两种形态：纯文本（文件服务器的错误基本都是），以及统一响应体
+ * {@code {code,msg,data}}（经网关包装时）。取不到返回空串。</p>
+ *
+ * @param data 响应体
+ * @return 可读错误文本；无可读内容时返回空串
+ */
+function serverErrorBody(data: unknown): string {
+  if (typeof data === "string") {
+    return data.trim().slice(0, 200);
+  }
+  if (data && typeof data === "object") {
+    const obj = data as { msg?: unknown; message?: unknown; error?: unknown };
+    const raw = obj.msg ?? obj.message ?? obj.error;
+    if (typeof raw === "string" && raw.trim()) {
+      return raw.trim().slice(0, 200);
+    }
+  }
+  return "";
 }
 
 /**
@@ -686,6 +715,17 @@ export async function setBucketConfig(
       .data(JSON.stringify(config))
       .then<Record<string, unknown>>((r) => r.data);
   } catch (e) {
+    const status = (e as { response?: { status?: number } } | null)?.response?.status;
+    if (status === 403) {
+      // 403 只可能是令牌不匹配。服务端令牌每次启动随机生成，而前端把上次成功的
+      // 令牌存在 localStorage，服务端一重启旧值就必然失效——不点破这一点，
+      // 用户只看到「Forbidden」，根本不知道该去哪里取新令牌。
+      throw new Error(
+        "配置保存失败：管理员令牌无效。该令牌由文件服务器每次启动随机生成，"
+        + "服务端重启后旧令牌立即失效。请从服务端启动日志「文件服务器管理员令牌」"
+        + "一行复制当前值，重新粘贴到「管理员令牌」后再保存。",
+      );
+    }
     throw new Error(toErrorMessage(e, "配置保存"));
   }
 }
