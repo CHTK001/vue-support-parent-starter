@@ -45,10 +45,26 @@ export const LOOP_PARAM_NAMES: string[] = [
   "loopParallel",
 ];
 
+/** 预览抓取载荷，与 ReElementPicker 的 loader 返回形状一致 */
+export interface PreviewPayload {
+  /** HTTP 状态码 */
+  status: number;
+  /** 响应 Content-Type，可空 */
+  contentType?: string | null;
+  /** 正文字符数，可空 */
+  length?: number;
+  /** 正文原文 */
+  html: string;
+}
+
 /** 表单共享上下文：下拉候选、表/列联动状态与刷新回调，由 FlowDesigner 统一提供 */
 export interface NodeFormContext {
   /** 可用于插入的占位字段分组（全局变量 / 自定义函数 / 内置函数等），空数组即不显示插入入口 */
   placeholderGroups: PlaceholderGroup[];
+  /** 元素拾取器的预填地址：当前节点的上游抓取节点 URL；空串则拾取器里由用户自己填 */
+  previewUrl: string;
+  /** 元素拾取器的加载器；缺省时不显示「选取」入口（拾取器自身不发 HTTP） */
+  loadPreview?: (url: string) => Promise<PreviewPayload>;
   /** flow 类型下拉候选 */
   flowOptions: { value: string; label: string }[];
   /** datasource 类型下拉候选 */
