@@ -8,6 +8,15 @@
       </span>
       <button type="button" class="portal-imp__exit" @click="exitImpersonation">退出代入</button>
     </div>
+
+    <!-- 学生自助改密码：只在本人登录时出现，代入态一律不给改，
+         否则管理员代入会被迫（或误操作）改掉学生的真实口令。 -->
+    <div v-else class="portal-pwd">
+      <button type="button" class="portal-pwd__btn" @click="openChangePassword">
+        <ReIcon name="Key" :size="14" aria-hidden="true" />
+        <span>修改密码</span>
+      </button>
+    </div>
     <!-- 未绑定：先弹绑定表单，绑完才放行 —— 进入系统就必须绑定信息 -->
     <div v-if="needBind" class="portal-bind">
       <div class="portal-bind__card">
@@ -82,6 +91,39 @@
         <component :is="activeModule.component" />
       </div>
     </div>
+
+    <!-- 修改密码对话框 -->
+    <el-dialog v-model="pwdVisible" title="修改登录密码" width="420" append-to-body>
+      <el-form :model="pwdForm" label-width="76" @submit.prevent>
+        <el-form-item label="原密码">
+          <el-input
+            v-model="pwdForm.oldPassword"
+            type="password"
+            show-password
+            maxlength="32"
+            placeholder="首次设密可留空"
+          />
+        </el-form-item>
+        <el-form-item label="新密码" required>
+          <el-input
+            v-model="pwdForm.newPassword"
+            type="password"
+            show-password
+            maxlength="32"
+            placeholder="6-32 位，建议字母与数字组合"
+          />
+        </el-form-item>
+        <el-form-item v-if="pwdError" label=" ">
+          <span class="portal-bind__err">{{ pwdError }}</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="pwdVisible = false">取消</el-button>
+        <el-button type="primary" :loading="pwdSaving" @click="submitChangePassword">
+          确认修改
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -322,6 +364,48 @@ function exitImpersonation() {
   clearImpersonateToken();
   impersonating.value = false;
   void router.replace("/edu/student-login");
+}
+
+// ==================== 修改密码 ====================
+const pwdVisible = ref(false);
+const pwdSaving = ref(false);
+const pwdError = ref("");
+const pwdForm = reactive({ oldPassword: "", newPassword: "" });
+
+/** 打开改密对话框：每次都清空上一次的输入与错误，避免残留旧口令。 */
+function openChangePassword() {
+  pwdForm.oldPassword = "";
+  pwdForm.newPassword = "";
+  pwdError.value = "";
+  pwdVisible.value = true;
+}
+
+/**
+ * 提交改密。
+ *
+ * <p>原密码允许留空：学生首次设密、或管理员重置后学生自己设密时本来就没有原口令。
+ * 是否要求校验旧口令由后端按「库中是否已有口令」判断，前端不重复这层规则。</p>
+ */
+async function submitChangePassword() {
+  const newPassword = pwdForm.newPassword.trim();
+  if (newPassword.length < 6) {
+    pwdError.value = "新密码至少 6 位";
+    return;
+  }
+  pwdSaving.value = true;
+  pwdError.value = "";
+  try {
+    await eduaiApi.changeOwnPassword({
+      oldPassword: pwdForm.oldPassword.trim() || undefined,
+      newPassword,
+    });
+    ElMessage.success("密码已修改，下次登录请使用新密码");
+    pwdVisible.value = false;
+  } catch (e) {
+    pwdError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    pwdSaving.value = false;
+  }
 }
 
 onMounted(() => {
