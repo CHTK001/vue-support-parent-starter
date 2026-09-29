@@ -35,6 +35,8 @@ import {
   getFlow,
   getTask,
   listFlows,
+  listFunctions,
+  listVariables,
   runFlow,
   saveFlow,
   setFlowStatus,
@@ -54,6 +56,7 @@ import { confirmAction, errText, useCollectView } from "../composables/useCollec
     CollectTask,
     CollectTaskLog,
   } from "../types/collect";
+  import type { PlaceholderGroup } from "../components/nodes/paramContext";
 
 defineOptions({ name: "CollectDesign" });
 
@@ -78,6 +81,9 @@ const props = withDefaults(
 const emit = defineEmits<{ (event: "saved", flowId: number): void }>();
 
 const designer = ref<InstanceType<typeof FlowDesigner> | null>(null);
+
+/** 「插入占位」入口的分组数据：全局变量 + 自定义函数，由 onMounted 拉取 */
+const placeholderGroups = ref<PlaceholderGroup[]>([]);
 const metas = ref<CollectShapeMeta[]>([]);
 const flows = ref<CollectFlow[]>([]);
 const runtime = ref<CollectRuntime | null>(null);
@@ -187,7 +193,44 @@ onMounted(() => {
   void fetchDatasourceOptions()
     .then(rows => (datasourceOptions.value = rows ?? []))
     .catch(() => (datasourceOptions.value = []));
+  void loadPlaceholders();
 });
+
+/**
+ * 占位字段分组：全局变量 + 自定义函数。
+ *
+ * <p>两者都是「写表达式时可引用的东西」，所以合成分组交给设计器的「插入占位」入口。
+ * 失败一律降级成空数组 —— 拿不到占位清单不该把设计器整体打挂（用户仍能手打 `${}`）。</p>
+ */
+async function loadPlaceholders(): Promise<void> {
+  const [vars, funcs] = await Promise.all([
+    listVariables().catch(() => []),
+    listFunctions().catch(() => []),
+  ]);
+  const groups: PlaceholderGroup[] = [];
+  const varItems = (vars ?? [])
+    .filter(item => item.collectVariableName)
+    .map(item => ({
+      name: item.collectVariableName,
+      description: item.collectVariableDescription
+        || (item.collectVariableEncrypted ? "全局变量（密文）" : "全局变量"),
+      sample: item.collectVariableEncrypted ? "" : (item.collectVariableValue ?? "").slice(0, 40),
+    }));
+  if (varItems.length) {
+    groups.push({ label: "全局变量", items: varItems });
+  }
+  const funcItems = (funcs ?? [])
+    .filter(item => item.collectFunctionName)
+    .map(item => ({
+      name: item.collectFunctionName,
+      description: item.collectFunctionDescription || "自定义函数",
+      sample: item.collectFunctionParameters != null ? `${item.collectFunctionParameters} 个形参` : "",
+    }));
+  if (funcItems.length) {
+    groups.push({ label: "自定义函数", items: funcItems });
+  }
+  placeholderGroups.value = groups;
+}
 
 /** 读表清单：设计器按需调用并自行缓存，这里只做透传 */
 async function loadTables(datasource: string): Promise<string[]> {
@@ -649,6 +692,7 @@ async function refreshStates(): Promise<void> {
         :datasource-options="datasourceOptions"
         :load-tables="loadTables"
         :load-columns="loadColumns"
+        :placeholder-groups="placeholderGroups"
         @change="dirty = true"
       />
 

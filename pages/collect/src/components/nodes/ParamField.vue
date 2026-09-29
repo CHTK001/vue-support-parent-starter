@@ -8,6 +8,7 @@
 import { computed } from "vue";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
+import RePlaceholderPicker from "@repo/ui/re-placeholder-picker";
 import ReSelect from "@repo/ui/re-select";
 import ReSwitch from "@repo/ui/re-switch";
 import MappingEditor from "../MappingEditor.vue";
@@ -78,12 +79,44 @@ const numberValue = computed<number | undefined>(() =>
 );
 
 const keyPlaceholder = computed(() => pairPlaceholder(props.param.name));
+
+/**
+ * 是否给这个参数提供「插入占位」入口。
+ *
+ * <p>只在文本类参数上给：text / textarea 是写 `${}` 表达式最常见的地方。
+ * number / switch / select 不吃占位；pairs / mapping 的每一行值是子组件内部的输入框，
+ * 从这里插入到整串值里没有意义（会拼成畸形）。</p>
+ */
+const showPlaceholderPicker = computed(
+  () =>
+    (props.param.type === "text" || props.param.type === "textarea")
+    && (props.ctx.placeholderGroups?.length ?? 0) > 0,
+);
+
+/**
+ * 插入一个占位字段：追加到当前值末尾。
+ *
+ * <p>追加而不是替换 —— 用户往往是在「前缀里已经有文字」的情况下补一个 `${变量}`，
+ * 覆盖掉已有内容会把正在写的表达式弄丢。</p>
+ *
+ * @param value 形如 `${name}` 的占位串
+ */
+function appendPlaceholder(value: string): void {
+  emit("update", `${props.value ?? ""}${value}`);
+}
 </script>
 
 <template>
   <div class="field" :class="{ 'field-wide': wide }" :data-param="param.name">
     <div class="field-label">
       {{ param.label }}<span v-if="param.required" class="req">*</span>
+      <RePlaceholderPicker
+        v-if="showPlaceholderPicker"
+        class="label-picker"
+        :groups="ctx.placeholderGroups"
+        mode="button"
+        @pick="appendPlaceholder"
+      />
     </div>
 
     <ReInput
@@ -198,9 +231,17 @@ const keyPlaceholder = computed(() => pairPlaceholder(props.param.name));
 }
 
 .field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 3px;
   font-size: 12px;
   color: #86909c;
+}
+
+/* 插在标签行右侧的「插入占位」入口，不参与网格排版 */
+.label-picker {
+  margin-left: auto;
 }
 
 .req {

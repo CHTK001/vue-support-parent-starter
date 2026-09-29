@@ -339,6 +339,10 @@
       "types": "./src/components/ReKit/index.ts",
       "default": "./src/components/ReKit/index.ts"
     },
+    "./re-placeholder-picker": {
+      "types": "./src/components/RePlaceholderPicker/index.ts",
+      "default": "./src/components/RePlaceholderPicker/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

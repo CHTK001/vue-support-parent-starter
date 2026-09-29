@@ -24,6 +24,19 @@ export interface NodeForm {
   fields: CollectExtractField[];
 }
 
+/** 占位字段（插入时会被包成 `${name}`），结构与 RePlaceholderPicker 的 groups 一致 */
+export interface PlaceholderField {
+  name: string;
+  description?: string;
+  sample?: string;
+}
+
+/** 占位字段分组，如「全局变量」「自定义函数」 */
+export interface PlaceholderGroup {
+  label: string;
+  items: PlaceholderField[];
+}
+
 /** 所有可执行节点共用的循环四参数，由后端 CollectShapeMetas.loopParams() 统一追加 */
 export const LOOP_PARAM_NAMES: string[] = [
   "loopCount",
@@ -34,6 +47,8 @@ export const LOOP_PARAM_NAMES: string[] = [
 
 /** 表单共享上下文：下拉候选、表/列联动状态与刷新回调，由 FlowDesigner 统一提供 */
 export interface NodeFormContext {
+  /** 可用于插入的占位字段分组（全局变量 / 自定义函数 / 内置函数等），空数组即不显示插入入口 */
+  placeholderGroups: PlaceholderGroup[];
   /** flow 类型下拉候选 */
   flowOptions: { value: string; label: string }[];
   /** datasource 类型下拉候选 */

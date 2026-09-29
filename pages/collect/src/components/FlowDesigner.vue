@@ -46,7 +46,7 @@ import {
   replacePairs,
 } from "../utils/dsl";
 import type { ParamPair } from "../utils/dsl";
-import type { NodeForm, NodeFormContext } from "./nodes/paramContext";
+import type { NodeForm, NodeFormContext, PlaceholderGroup } from "./nodes/paramContext";
 import type {
   FlowEdge,
   FlowEdgeKind,
@@ -96,6 +96,13 @@ const props = defineProps<{
   readonly?: boolean;
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
   states?: Record<string, CollectTaskLog>;
+  /**
+   * 可插入的占位字段分组（全局变量 / 自定义函数等），透传给文本参数的「插入占位」入口。
+   *
+   * <p>刻意由宿主注入而不是设计器自己去调接口：设计器不依赖 api 层，只认 props，
+   * 这样它既能嵌在弹窗里用，也能在只读预览里被复用。</p>
+   */
+  placeholderGroups?: PlaceholderGroup[];
   /** 子流程节点可选的流程，未传时 flow 参数退回手填流程ID */
   flowOptions?: CollectOption[];
   /** 数据源下拉候选，首项固定是应用主库 */
@@ -169,12 +176,13 @@ const EXCEPTION_OPTIONS = [
 /**
  * 属性面板页签。
  *
- * <p>「连线」「流程设置」按要求停用：页签直接禁用、点不动，内容仍保留在下方插槽里，
- * 以便日后恢复。因此设计器也不会再主动切到这两个页签。</p>
+ * <p>「流程设置」按要求停用：页签禁用、点不动，内容仍保留在下方插槽里，以便日后恢复。
+ * 「连线」**保持可用**：判断节点（condition）算出的真假要靠出边的「流转条件」分流，
+ * 而那个输入框就在这个页签里 —— 禁掉它，条件分支就只能靠手改 DSL 才能编辑。</p>
  */
 const TABS: { name: TabKey; label: string; disabled?: boolean }[] = [
   { name: "node", label: "节点参数" },
-  { name: "edge", label: "连线", disabled: true },
+  { name: "edge", label: "连线" },
   { name: "flow", label: "流程设置", disabled: true },
 ];
 
@@ -210,6 +218,16 @@ const START_TYPE = "start";
 
 /** 画布上是否已存在开始节点：true 时调色板隐藏「开始」项，把后端的「有且仅有一个 start」提前到编辑期 */
 const hasStartNode = ref(false);
+
+/**
+ * 开始节点的「钉住」位置：id → 图形坐标。
+ *
+ * <p>需求要求开始节点不允许再拖动。X6 没有 per-node 的 draggable（`nodeMovable` 是整图级），
+ * 所以在 {@link lockStartPosition} 里监听位置变更把它弹回这里记下的坐标。</p>
+ *
+ * <p>每次载入/图变更都会重新记录 —— 位置来自持久化数据而非硬编码，换个布局的流程图照样能在新位置钉住。</p>
+ */
+const startPositions = new Map<string, { x: number; y: number }>();
 
 const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
   props.metas
@@ -577,6 +595,7 @@ const activeForm = computed<Component>(() =>
  * 避免每个表单各存一份导致状态不一致。</p>
  */
 const formContext = computed<NodeFormContext>(() => ({
+  placeholderGroups: props.placeholderGroups,
   flowOptions: flowOptionsOf.value,
   datasourceOptions: datasourceOptionsOf.value,
   tableOptions: tableOptions.value,
@@ -673,6 +692,13 @@ function syncForms(data: FlowGraphData): void {
 function refreshStartPresence(): void {
   const data = engine.value?.getData() ?? graphData.value;
   hasStartNode.value = data.nodes.some(node => node.type === START_TYPE);
+  // 同步刷新「钉住」坐标：图上没有的 id 要清掉，否则删掉再新建一个同 id 的 start 会用到旧坐标
+  startPositions.clear();
+  data.nodes.forEach(node => {
+    if (node.type === START_TYPE) {
+      startPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
+    }
+  });
 }
 
 /**
@@ -740,9 +766,9 @@ function onSelect(selection: FlowSelection): void {
     readNodeForm(selection.node);
     tab.value = "node";
   } else {
-    // 「连线」页签已停用：记录连线表单但不切页签，并清掉节点表单，避免展示上一个节点的参数
+    // 切到「连线」页签：流转条件（真假分流）就在这里编辑，判断节点的出边依赖它
     readEdgeForm(selection.edge);
-    nodeForm.value = null;
+    tab.value = "edge";
   }
 }
 
@@ -767,6 +793,7 @@ function onEdgeConnected(edge: FlowEdge): void {
     data: { condition: "", exceptionFlow: "0" },
   });
   readEdgeForm({ ...edge, kind: "normal", label: "", transfer: true, data: {} });
+  tab.value = "edge";
 }
 
 function onReady(instance: FlowGraphEngine): void {
@@ -783,6 +810,39 @@ function onReady(instance: FlowGraphEngine): void {
   requestLoad(props.initialDsl ?? wantedDsl);
   applyStates();
   refreshStartPresence();
+  lockStartPosition(instance);
+}
+
+/**
+ * 记录 start 节点的位置，并锁死它。
+ *
+ * <p>需求：「只支持一个开始」+ 开始节点不允许再拖动。X6 的 `interacting.nodeMovable`
+ * 是**整图级**的开关（源码 `CellView.can('nodeMovable')` 只读 `graph.options.interacting`，
+ * 没有 per-node 的 draggable —— 本会话核过源码），所以没法定点禁止某一个节点。
+ * 这里改成监听位置变更后把 start 弹回原位：改的是位置不是能力，但可观测结果一致
+ * （节点拖不动），且不影响其它节点。</p>
+ *
+ * <p>在 `node:change:position` 上回弹而不是等 `change` 事件：后者要等松手才收尾，
+ * 用户会看到节点被拖走再跳回来；前者在拖动过程中就顶回去。</p>
+ *
+ * @param instance 引擎实例
+ */
+function lockStartPosition(instance: FlowGraphEngine): void {
+  instance.graph.on("node:change:position", ({ node }: { node: { getData?: () => { flowType?: string }; id: string; getPosition: () => { x: number; y: number }; setPosition: (x: number, y: number) => void } }) => {
+    if (node.getData?.()?.flowType !== START_TYPE) {
+      return;
+    }
+    const pinned = startPositions.get(node.id);
+    if (!pinned) {
+      return;
+    }
+    const now = node.getPosition();
+    // 相等即短路：setPosition 会再次触发本事件，没有这个判断会无限递归
+    if (now.x === pinned.x && now.y === pinned.y) {
+      return;
+    }
+    node.setPosition(pinned.x, pinned.y);
+  });
 }
 
 /**
