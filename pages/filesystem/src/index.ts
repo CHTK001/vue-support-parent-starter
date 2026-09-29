@@ -10,6 +10,10 @@
  */
 import { registerMenuViewModules } from "@repo/core";
 
+// 上传弹框样式独立成文件：弹框 append-to-body，DOM 挂在 body 下，
+// 放全局比塞进组件 scoped 样式更贴合实际 DOM；类名统一 .fs-up* 前缀，无污染风险
+import "./styles/upload.css";
+
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import）
 registerMenuViewModules({
   "views/filesystem/filestorage/index.vue": () => import("./views/FileStorageManage.vue"),
