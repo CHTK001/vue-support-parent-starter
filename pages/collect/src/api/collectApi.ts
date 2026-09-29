@@ -56,6 +56,31 @@ export const fetchMetas = () => get<CollectShapeMeta[]>(`${API}/designer/metas`)
 /** 运行时概览（执行器、统计、线程与超时配置） */
 export const fetchRuntime = () => get<CollectRuntime>(`${API}/designer/runtime`);
 
+/** 预览抓取出参，形状与后端 CollectPreviewVO 对齐 */
+export interface CollectPreviewPayload {
+  /** HTTP 状态码 */
+  status: number;
+  /** 响应 Content-Type */
+  contentType?: string | null;
+  /** 正文字符数 */
+  length: number;
+  /** 正文原文（后端不清洗，剥 script 由前端渲染前做） */
+  html: string;
+}
+
+/**
+ * 设计期预览抓取：把 URL 抓回来给元素拾取器渲染。
+ *
+ * 后端只放行 http/https 且拒绝内网与本机地址，被拦时回业务错误（中文原因）。
+ * 抓取结果在流程运行期只活在变量里，设计期拿不到，所以走这个只读出口。
+ *
+ * @param url       目标地址
+ * @param timeoutMs 可选超时毫秒
+ * @returns 抓取结果
+ */
+export const fetchPreview = (url: string, timeoutMs?: number) =>
+  get<CollectPreviewPayload>(`${API}/designer/fetch-preview`, { url, timeoutMs });
+
 /* ---------------------------------- 流程 ---------------------------------- */
 
 /** 流程分页 */

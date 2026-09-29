@@ -7,15 +7,60 @@
   XPATH 也收敛掉「取值方式」—— 属性要写在 XPath 表达式里（如 //a/@href），右侧那一列对它无效。
 -->
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import ReButton from "@repo/ui/re-button";
+import ReElementPicker from "@repo/ui/re-element-picker";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import type { CollectExtractField } from "../types/collect";
+import type { CollectPreviewPayload } from "../api/collectApi";
 
-const props = defineProps<{ modelValue: CollectExtractField[] }>();
+const props = defineProps<{
+  modelValue: CollectExtractField[];
+  /** 预览抓取的预填地址（一般是上游抓取节点的 URL）；不给则「选取」入口不出现 */
+  previewUrl?: string;
+  /** 预览抓取的加载器；不给则「选取」入口不出现（组件自身不发 HTTP） */
+  loadPreview?: (url: string) => Promise<CollectPreviewPayload>;
+}>();
 const emit = defineEmits<{ (event: "update:modelValue", value: CollectExtractField[]): void }>();
+
+/** 正在拾取的字段下标；null 表示弹窗关闭 */
+const pickingIndex = ref<number | null>(null);
+
+/**
+ * 该行能否用元素拾取器。
+ *
+ * <p>只有 CSS / XPATH 两种解析器的值是「页面里的定位表达式」，拾取器生成的就是它们；
+ * 正则、JSON 路径、纯文本都没有对应的 DOM 元素，给按钮只会误导。</p>
+ *
+ * @param field 字段行
+ * @returns 可用时返回 true
+ */
+function canPick(field: CollectExtractField): boolean {
+  if (!props.loadPreview) {
+    return false;
+  }
+  const type = (field.parserType || "CSS").toUpperCase();
+  return type === "CSS" || type === "XPATH";
+}
+
+/**
+ * 把拾取结果写回该行：表达式与解析器类型一起改。
+ *
+ * <p>一起改是刻意的 —— 拾取器给出的是 CSS 还是 XPath，用户从界面上是看不出来的，
+ * 只回填表达式而不改类型，会让「用 XPath 插入」的路径被当成 CSS 去解析。</p>
+ *
+ * @param payload 拾取结果
+ */
+function applyPicked(payload: { expression: string; parserType: string }): void {
+  const index = pickingIndex.value;
+  if (index == null) {
+    return;
+  }
+  patch(index, { expression: payload.expression, parserType: payload.parserType });
+  pickingIndex.value = null;
+}
 
 const PARSER_TYPES = ["CSS", "REGEX", "JSON", "JSONPATH", "XPATH", "TEXT", "HTML"].map(item => ({ value: item, label: item }));
 const PARSER_HINTS: Record<string, string> = {
@@ -92,6 +137,9 @@ function addField(): void {
         :model-value="field.expression"
         @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
       />
+      <div v-if="canPick(field)" class="card-pick">
+        <ReButton text icon="Pointer" @click="pickingIndex = index">选取页面元素</ReButton>
+      </div>
       <div v-if="PARSER_HINTS[field.parserType || 'CSS']" class="card-hint">
         {{ PARSER_HINTS[field.parserType || "CSS"] }}
       </div>
@@ -133,6 +181,20 @@ function addField(): void {
     </div>
     <ReButton plain icon="Plus" @click="addField">添加字段</ReButton>
   </div>
+
+  <!--
+    元素拾取器：url 预填上游抓取节点的地址，用户可在弹窗里改；
+    loader 由宿主注入 —— 本组件与拾取器都不直接发 HTTP。
+  -->
+  <ReElementPicker
+    v-if="pickingIndex != null && loadPreview"
+    :visible="true"
+    :url="previewUrl || ''"
+    :parser-type="fields[pickingIndex]?.parserType || 'CSS'"
+    :loader="loadPreview"
+    @update:visible="(v: boolean) => { if (!v) pickingIndex = null; }"
+    @pick="applyPicked"
+  />
 </template>
 
 <style scoped>

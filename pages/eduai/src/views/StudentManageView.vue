@@ -92,7 +92,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="150" align="center" fixed="right">
+            <el-table-column label="操作" width="190" align="center" fixed="right">
               <template #default="{ row }">
                 <ReButton
                   layout="square"
@@ -102,6 +102,13 @@
                   @click="impersonate(row)"
                 />
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openStudent(row)" />
+                <ReButton
+                  layout="square"
+                  type="warning"
+                  :icon="Key"
+                  tip="重置密码"
+                  @click="openResetPassword(row)"
+                />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeStudent(row)" />
               </template>
             </el-table-column>
@@ -189,8 +196,14 @@
       </template>
       <el-form :model="stuForm" label-width="96" @submit.prevent>
         <div class="form-grid form-grid--2">
-          <el-form-item label="学号" required>
-            <el-input v-model="stuForm.studentNo" placeholder="如 20240101" />
+          <el-form-item label="学号">
+            <!-- 学号是学生的登录身份，由系统生成：新增时提交后回填，编辑时只读 -->
+            <el-input
+              :model-value="stuForm.studentNo || '保存后自动生成'"
+              readonly
+              disabled
+              placeholder="保存后自动生成"
+            />
           </el-form-item>
           <el-form-item label="姓名" required>
             <el-input v-model="stuForm.studentName" placeholder="如 小明" />
@@ -225,6 +238,25 @@
               maxlength="32"
               :placeholder="stuForm.studentId ? '留空表示不修改' : '非必填，留空则暂不能登录'"
             />
+          </el-form-item>
+          <el-form-item label="身份证号">
+            <el-input
+              v-model="stuForm.studentIdCard"
+              maxlength="18"
+              placeholder="仅管理端维护，学生端不可见"
+            />
+          </el-form-item>
+          <el-form-item label="头像">
+            <div class="stu-avatar">
+              <el-avatar :size="40" :src="stuForm.studentAvatar || ''">
+                {{ (stuForm.studentName || '学').slice(0, 1) }}
+              </el-avatar>
+              <el-input
+                v-model="stuForm.studentAvatar"
+                placeholder="图片 URL，非必填"
+                clearable
+              />
+            </div>
           </el-form-item>
           <el-form-item label="入学年份">
             <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
@@ -357,7 +389,7 @@
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Close, Delete, EditPen, Grid, Plus, Reading, RefreshLeft, Search, Star, View } from "@element-plus/icons-vue";
+import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 
@@ -594,6 +626,45 @@ async function removeStudent(row: EduStudent) {
     await loadAll();
   } catch (e) {
     ElMessage.error(`删除失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/**
+ * 管理员重置学生登录口令。
+ *
+ * <p>用 prompt 而非独立弹窗：只有「确认 + 输入口令」两步，
+ * 单独造一个对话框会多出一份状态与样式维护成本。
+ * 口令规则由后端 StudentPasswordSupport 统一校验，前端不重复实现。</p>
+ */
+async function openResetPassword(row: EduStudent) {
+  let input = "";
+  try {
+    const result = await ElMessageBox.prompt(
+      `为学生「${row.studentName ?? row.studentNo}」设置新的登录口令。该学生需用新口令重新登录。`,
+      "重置登录密码",
+      {
+        type: "warning",
+        confirmButtonText: "重置",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputPlaceholder: "6-32 位，建议字母与数字组合",
+        inputValidator: (value: string) => {
+          const raw = (value ?? "").trim();
+          if (raw.length < 6) return "口令至少 6 位";
+          if (raw.length > 32) return "口令最多 32 位";
+          return true;
+        },
+      },
+    );
+    input = result.value;
+  } catch {
+    return;
+  }
+  try {
+    await eduaiApi.resetStudentPassword(row.studentId, input);
+    ElMessage.success("口令已重置");
+  } catch (e) {
+    ElMessage.error(`重置失败：${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -1003,6 +1074,20 @@ onMounted(() => {
 @media (max-width: 900px) {
   .form-grid--2 {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 头像行：预览 + URL 输入并排，窄屏时换行 */
+.stu-avatar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .stu-avatar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
