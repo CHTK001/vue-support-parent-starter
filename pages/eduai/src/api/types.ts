@@ -1053,6 +1053,10 @@ export interface EduStudent {
   studentEnrollYear?: number | null;
   /** 家长手机号：学生端可用它登录（与学号二选一）；同号可带多个孩子，故不唯一 */
   studentParentPhone?: string | null;
+  /** 头像：图片 URL 或 Base64 */
+  studentAvatar?: string | null;
+  /** 身份证号：仅管理端维护，学生端接口不下发 */
+  studentIdCard?: string | null;
   /** 0-离校 1-在读 */
   studentStatus?: number | null;
   createTime?: string;

@@ -752,6 +752,27 @@ export const eduaiApi = {
       .delete(`/v2/edu/dimension/students/${id}`)
       .then<boolean>(unwrap),
   /**
+   * 管理员重置学生登录口令。
+   *
+   * <p>与学生自助改密（`/v2/edu/student/change-password`）分开：
+   * 这条不需要旧口令，但后端仍校验归属，越权重置会被拒。</p>
+   */
+  resetStudentPassword: (studentId: number, newPassword: string) =>
+    http()
+      .post("/v2/edu/dimension/students/reset-password")
+      .data({ studentId, newPassword } as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /**
+   * 学生自助修改登录口令。
+   *
+   * <p>改的是谁由登录态决定，请求体里不带学号——带了等于让客户端决定改谁的。</p>
+   */
+  changeOwnPassword: (data: { oldPassword?: string; newPassword: string }) =>
+    http()
+      .post("/v2/edu/student/change-password")
+      .data(data as unknown as Record<string, unknown>)
+      .then<boolean>(unwrap),
+  /**
    * 代入指定学生：签发一个短期、只读、仅限学生端路径的临时令牌。
    *
    * 管理员用它打开某个学生的学生端页面排查问题，不必索要学生密码，

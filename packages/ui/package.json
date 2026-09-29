@@ -343,6 +343,10 @@
       "types": "./src/components/RePlaceholderPicker/index.ts",
       "default": "./src/components/RePlaceholderPicker/index.ts"
     },
+    "./re-element-picker": {
+      "types": "./src/components/ReElementPicker/index.ts",
+      "default": "./src/components/ReElementPicker/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

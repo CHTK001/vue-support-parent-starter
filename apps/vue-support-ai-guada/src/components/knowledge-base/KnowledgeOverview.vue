@@ -97,15 +97,14 @@
       </section>
     </div>
 
-    <!-- ===================== 新建知识库弹窗 ===================== -->
-    <div class="kb-overlay" :class="{ 'is-show': modalVisible }" @click.self="closeModal">
-      <div class="kb-modal">
-        <div class="kb-modal__head">
-          <b><el-icon><Plus /></el-icon>新建知识库</b>
-          <button type="button" class="kb-modal__close" @click="closeModal">
-            <el-icon><Close /></el-icon>
-          </button>
-        </div>
+    <!-- ===================== 新建知识库弹窗（宿主改用仓库标准 ReDialog） ===================== -->
+    <ReDialog
+      v-model="modalVisible"
+      title="新建知识库"
+      :width="560"
+      :close-on-click-modal="false"
+    >
+      <div class="kb-modal__body">
 
         <div class="kb-seg">
           <button type="button" :class="{ on: seg === 'blank' }" @click="seg = 'blank'">空白创建</button>
@@ -141,15 +140,18 @@
           </div>
         </div>
 
+      </div>
+
+      <template #footer="{ cancel }">
         <div class="kb-modal__foot">
           <span class="kb-link" @click="seg = 'tpl'">需要预置结构？从模板创建</span>
           <div class="kb-modal__btns">
-            <button type="button" class="kb-btn-ghost" @click="closeModal">取消</button>
+            <button type="button" class="kb-btn-ghost" @click="cancel">取消</button>
             <button type="button" class="kb-btn-primary" @click="submit">创建知识库</button>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -172,8 +174,9 @@
  * 只有 {@code isPublic} 可对应）。当前只收集展示，提交时只把名称/描述/可见性交给父组件，
  * 不假装这些字段已持久化。</p>
  */
+import ReDialog from '@repo/ui/re-dialog'
 import {
-  Search, Plus, Files, Upload, Close, FolderOpened, Document, Connection,
+  Search, Plus, Files, Upload, FolderOpened, Document, Connection,
   Lock, Share,
 } from '@element-plus/icons-vue'
 import { computed, reactive, ref } from 'vue'
@@ -1017,6 +1020,11 @@ defineExpose({ openModal })
 
 .kb-toggle.off::after {
   right: 21px;
+}
+
+/* ReDialog 提供弹窗外壳（遮罩/标题/关闭/拖拽/全屏），这里只负责内容与底栏 */
+.kb-modal__body {
+  padding: 0 26px 4px;
 }
 
 .kb-modal__foot {
