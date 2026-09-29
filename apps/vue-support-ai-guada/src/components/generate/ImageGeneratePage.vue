@@ -418,7 +418,7 @@
         <GenerateComposer
           v-model:value="prompt"
           v-model:style-panel-open="stylePanelOpen"
-          :busy="submitting"
+          :busy="submitting || hasRunningTask"
           :placeholder="placeholder"
           :allow-reference="!!currentConfig?.referenceImage"
           allow-optimize
@@ -847,10 +847,20 @@ const style = ref('')
 const referenceImage = ref('')
 const submitting = ref(false)
 
+/**
+ * 是否已有未完成的任务。
+ *
+ * <p>一次只允许一个任务在跑：既避免同一供应商额度被并发打爆、也避免结果互相穿插
+ * 难以辨认。前端据此禁用发送，后端 {@code GenerateService#create} 也会再拦一道
+ * ——前端限制只是体验，后端限制才是约束。</p>
+ */
+const hasRunningTask = computed(
+  () => tasks.value.some((t) => t.status === 'PENDING' || t.status === 'RUNNING')
+)
+
 const tasks = ref<GenerateTask[]>([])
 /** 首次加载历史期间为 true，用于骨架屏 */
-const loading = ref(false)
-/**
+const loading = ref(false)/**
  * 是否存在可用的视频模型。
  *
  * 后端 `GenerateSpiRouter.KNOWN_VIDEO_SPI` 目前只有 zhipu 实现了 VideoClient，
@@ -1804,12 +1814,35 @@ const loadHistory = async () => {
     tasks.value = list
     loadedCount.value = list.length
     hasMore.value = list.length === PAGE_SIZE
+    resumePolling(list)
   } catch {
     tasks.value = []
     loadedCount.value = 0
     hasMore.value = false
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 对历史里未完成的任务重新发起轮询。
+ *
+ * <p>刷新页面 / 切换媒体类型后，{@link loadHistory} 只是把列表拉下来，
+ * 并不会重建轮询定时器。后果是：一个正在生成的任务在刷新后就永远停在
+ * 「生成中」，直到用户再次操作页面才可能更新——看起来就是卡死。
+ * 这里把 PENDING / RUNNING 的行重新拉回轮询。</p>
+ *
+ * @param list 刚拉到的任务列表
+ */
+const resumePolling = (list: GenerateTask[]) => {
+  for (const task of list) {
+    if (task.status !== 'PENDING' && task.status !== 'RUNNING') {
+      continue
+    }
+    if (pollTimers.has(task.taskId)) {
+      continue
+    }
+    void pollTask(task.taskId, 0)
   }
 }
 
@@ -1871,8 +1904,21 @@ const pollTask = async (taskId: string, attempt: number) => {
         return
       }
     }
-  } catch {
-    // 单次查询失败不终止轮询，达到上限后自然结束
+  } catch (error) {
+    // 404 = 服务端已无此任务（被删除，或被「清理失败」批量清掉）。
+    // 这是终态而非瞬时故障，继续重试只会白打 3 分钟的 404（90 次 × 2s），
+    // 既刷爆控制台又毫无意义，故立刻停止并移除本地行，避免列表里留一条查不到的死记录。
+    const err = error as { status?: number; code?: string | number; response?: { status?: number } }
+    const status = err?.status ?? err?.response?.status
+    if (status === 404 || err?.code === 'NOT_FOUND') {
+      pollTimers.delete(taskId)
+      const index = tasks.value.findIndex((item) => item.taskId === taskId)
+      if (index >= 0) {
+        tasks.value.splice(index, 1)
+      }
+      return
+    }
+    // 其它单次查询失败（网络抖动、5xx）不终止轮询，达到上限后自然结束
   }
   if (attempt >= 90) {
     pollTimers.delete(taskId)
@@ -1994,6 +2040,10 @@ const onComposerSubmit = async (text: string) => {
       referenceHeight: referenceMeta.value?.originalHeight || undefined,
     })
     tasks.value.unshift(task)
+    // 记住本次提交：创建接口只保证「记录已入库」便返回 200，上游是否受理要到轮询才知道
+    // （限流、队列满、Key 失效都发生在入库之后的异步提交里）。没有这层监听的话，
+    // 失败只会表现为卡片静默翻成「失败」——用户若提交后切走或看别的标签就完全察觉不到。
+    watchingFailureFor = task.taskId
     prompt.value = ''
     // 参考图是「本次生成」的一次性输入：不清掉的话下一条会继续带着上一张参考图，
     // 用户看到的是「我明明删了/换了啊怎么还是那张图」。尺寸信息与提示一并清，
@@ -2011,6 +2061,40 @@ const onComposerSubmit = async (text: string) => {
     submitting.value = false
   }
 }
+
+/**
+ * 正在等待失败通知的本地任务号。
+ *
+ * <p>创建接口返回 200 只代表记录已入库，上游是否受理要到轮询才知道。持有一份
+ * 「本次提交的 taskId」，在它翻成 FAILED/CANCELED 时弹一次提示。</p>
+ */
+let watchingFailureFor = ''
+
+/** 已经弹过失败提示的任务号，避免同一条记录在多次轮询里反复弹 */
+const notifiedFailure = new Set<string>()
+
+watch(
+  tasks,
+  (list) => {
+    if (!watchingFailureFor) {
+      return
+    }
+    const task = list.find((item) => item.taskId === watchingFailureFor)
+    if (!task) {
+      return
+    }
+    if (task.status !== 'FAILED' && task.status !== 'CANCELED') {
+      return
+    }
+    watchingFailureFor = ''
+    if (notifiedFailure.has(task.taskId)) {
+      return
+    }
+    notifiedFailure.add(task.taskId)
+    ElMessage.error(task.errorMessage || '生成失败，请查看任务记录了解详情')
+  },
+  { deep: true }
+)
 
 // 切换图像/视频时收藏集合是全局的，不需要随媒体类型清理；
 // 但筛选条件在切换后可能一个都匹配不到，这里保留条件让用户自己清。
