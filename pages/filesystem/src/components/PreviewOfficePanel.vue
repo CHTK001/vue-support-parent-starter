@@ -61,6 +61,16 @@ const emit = defineEmits<{
 const wrapRef = ref<HTMLDivElement>();
 
 /**
+ * 工具栏引用。
+ *
+ * <p>本面板的模板里并没有 {@code PreviewToolbar}（它只渲染 wrap 容器），
+ * 这个引用历史上从未声明过，{@code FileStorageManage} 里按 {@code ?} 键会调到
+ * {@code toggleHelp()}，从而抛 ReferenceError。这里补上声明使其安全退化为空操作：
+ * 办公室预览没有工具栏，按 {@code ?} 本就无事可做。</p>
+ */
+const toolbarRef = ref<{ toggleHelp?: () => void }>();
+
+/**
  * 文档二进制内容
  *
  * 用 shallowRef 而非 ref：ArrayBuffer 为大对象，深响应性代理没有意义且会拖慢渲染
@@ -149,9 +159,9 @@ function onRenderError(): void {
   emit("error");
 }
 
-/** 切换快捷键帮助弹窗 */
+/** 切换快捷键帮助弹窗（本面板无工具栏，故为空操作） */
 function toggleHelp(): void {
-  toolbarRef.value?.toggleHelp();
+  toolbarRef.value?.toggleHelp?.();
 }
 defineExpose({ wrapRef, toggleHelp });
 </script>
