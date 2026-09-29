@@ -73,6 +73,16 @@ const OLE2_MAGIC: readonly number[] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a,
 /** ZIP 本地文件头（OOXML 家族） */
 const ZIP_MAGIC: readonly number[] = [0x50, 0x4b, 0x03, 0x04];
 
+/**
+ * 必须以 ZIP 容器为前提的 OOXML 扩展名
+ *
+ * <p>这些格式按规范一定是 ZIP 容器，取到字节后若魔数不是 {@link ZIP_MAGIC}
+ * 即可判定文件本身已损坏（或上传时被写入了非预期内容）。此时必须拒绝直渲染，
+ * 否则 JSZip 会抛出 `Can't find end of central directory` 这类原始英文异常直达界面。
+ * 不含 pdf：PDF 不是 ZIP 容器，由 {@link EXTENSION_TO_RENDERER} 单独放行。</p>
+ */
+const OOXML_EXTS: ReadonlySet<string> = new Set(["docx", "xlsx", "pptx"]);
+
 /** 嗅探 OOXML 内部部件路径的最大扫描字节数 */
 const OOXML_SNIFF_LIMIT = 64 * 1024;
 
@@ -152,8 +162,9 @@ function sniffOoxmlRenderer(data: Uint8Array): OfficeRenderer | "" {
  */
 export function officeRendererOfSniffed(fileName: string, bytes?: Uint8Array): OfficeRenderer | "" {
   const ext = extensionOf(fileName);
-  if (!LEGACY_BINARY_EXTS.has(ext)) {
-    return EXTENSION_TO_RENDERER[ext] ?? "";
+  const renderer = LEGACY_BINARY_EXTS.has(ext) ? "" : (EXTENSION_TO_RENDERER[ext] ?? "");
+  if (!renderer) {
+    return "";
   }
   if (!bytes || bytes.length < 4) {
     // 无内容可嗅探：传统二进制扩展名交服务端处理
@@ -167,7 +178,32 @@ export function officeRendererOfSniffed(fileName: string, bytes?: Uint8Array): O
     // 扩展名写着 doc，内容其实是 OOXML：按真实类型走客户端组件
     return sniffOoxmlRenderer(bytes);
   }
-  return "";
+  if (OOXML_EXTS.has(ext)) {
+    // 扩展名是 .docx/.xlsx/.pptx，但内容既不是 ZIP(OOXML 容器) 也不是 OLE2(传统二进制)，
+    // 说明文件本身已损坏或被写入了非预期内容。此时不能交给 Office 组件，
+    // 否则 JSZip 会抛出 "Can't find end of central directory" 这类原始英文异常直达用户界面。
+    return "";
+  }
+  return renderer;
+}
+
+/**
+ * 判断文件内容是否已损坏（扩展名与实际格式不符）
+ *
+ * <p>用于把「浏览器不支持该格式」和「文件本身坏了」区分开：前者换浏览器有用，
+ * 后者只能重传。判定口径与 {@link officeRendererOfSniffed} 的拒绝分支保持一致。</p>
+ *
+ * @param fileName 文件名或对象键
+ * @param bytes    文件字节
+ * @returns 内容与扩展名不符时返回 {@code true}
+ */
+export function isCorruptOfficeFile(fileName: string, bytes?: Uint8Array): boolean {
+  const ext = extensionOf(fileName);
+  if (!OOXML_EXTS.has(ext) || !bytes || bytes.length < 4) {
+    return false;
+  }
+  // 合法容器：ZIP（OOXML 本体）与 OLE2（改扩展名的传统二进制）都不算损坏
+  return !startsWith(bytes, ZIP_MAGIC) && !startsWith(bytes, OLE2_MAGIC);
 }
 
 /**

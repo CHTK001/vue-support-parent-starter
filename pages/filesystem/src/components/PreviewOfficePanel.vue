@@ -16,7 +16,7 @@
  * @since 2026/09/26
  */
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
-import { officeRendererOfSniffed, type OfficeRenderer } from "../utils/officeRenderer";
+import { isCorruptOfficeFile, officeRendererOfSniffed, type OfficeRenderer } from "../utils/officeRenderer";
 
 /**
  * Vue3 Office 组件按需异步加载
@@ -129,12 +129,21 @@ async function load(): Promise<void> {
       return;
     }
     buffer.value = await res.arrayBuffer();
-    if (!officeRendererOfSniffed(props.fileName, new Uint8Array(buffer.value))) {
-      failReason.value = `客户端不支持直接解析该格式（${props.fileName}）`;
+    const bytes = new Uint8Array(buffer.value);
+    if (!officeRendererOfSniffed(props.fileName, bytes)) {
+      // 区分「浏览器端不支持该格式」与「文件内容本身已损坏」：
+      // OOXML 扩展名却既不是 ZIP 容器也不是 OLE2，说明文件已损坏或上传时被写入了
+      // 非预期内容，重传才能解决；混为一谈会让人以为是浏览器兼容问题。
+      failReason.value = isCorruptOfficeFile(props.fileName, bytes)
+        ? `文件已损坏或格式不符（${props.fileName}），请重新上传后再试`
+        : `客户端不支持直接解析该格式（${props.fileName}）`;
       emit("error");
     }
   } catch (e) {
-    failReason.value = (e as Error)?.message ?? "文档加载失败";
+    // JSZip / PDF 解析库抛的是英文原始异常（如 "Can't find end of central directory"），
+    // 直达界面对用户无意义。统一收敛为中文文案，具体原因见控制台。
+    console.warn("[PreviewOfficePanel] 文档加载失败", e);
+    failReason.value = `文档加载失败（${props.fileName}），可尝试下载后用本地软件打开`;
     emit("error");
   } finally {
     loading.value = false;
