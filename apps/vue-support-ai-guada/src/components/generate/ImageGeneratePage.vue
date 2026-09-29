@@ -303,7 +303,7 @@
                   v-for="(entry, idx) in row.items"
                   :key="entry.key"
                   class="wg-thumb"
-                  :class="{ 'is-lead': isLead(row, idx) }"
+                  :class="{ 'is-lead': isLead(row, idx), 'is-loaded': loadedImages.has(entry.key) }"
                 >
                   <video
                     v-if="row.task.type === 'video'"
@@ -311,8 +311,23 @@
                     class="wg-media"
                     controls
                     preload="metadata"
+                    @loadeddata="markLoaded(entry.key)"
                   />
-                  <img v-else :src="entry.url" class="wg-media" :alt="row.task.prompt" loading="lazy" />
+                  <!--
+                    decoding="async" 让解码不占主线程，配合 loading="lazy" 只解可见区的那几张。
+                    结果图现在走后端字节流地址（不再内联 base64），懒加载才真正起作用：
+                    内联时 30 张图的 base64 已经全在内存里，lazy 只是空转。
+                    is-loaded 只做透明度过渡，不加装饰投影（见 .wg-thumb）。
+                  -->
+                  <img
+                    v-else
+                    :src="entry.url"
+                    class="wg-media"
+                    :alt="row.task.prompt"
+                    loading="lazy"
+                    decoding="async"
+                    @load="markLoaded(entry.key)"
+                  />
 
                   <figcaption class="wg-thumb-actions">
                     <button
@@ -462,6 +477,14 @@
                 <WgIcon :d="ICONS.close" />
               </button>
             </figure>
+            <!--
+              「再次生成」正在把历史参考图取回成 base64 的那一下。
+              留一个和参考图同尺寸的占位，否则参数栏会先塌一下再撑开，
+              紧接着又弹「已删除参考图」——两次抖动比等待更让人以为出错了。
+            -->
+            <figure v-else-if="refilling" class="wg-ref-picked is-loading">
+              <span class="wg-ref-spin" aria-live="polite">取回参考图…</span>
+            </figure>
           </template>
 
           <!-- 参数芯片：模型 / 分辨率 / 比例 / 时长 / 张数 / 风格 -->
@@ -555,14 +578,27 @@
               </template>
               <div class="wg-menu">
                 <p class="wg-menu-title">时长</p>
-                <el-slider
-                  :model-value="duration || durations[0]"
-                  :min="Math.min(...durations)"
-                  :max="Math.max(...durations)"
-                  :step="1"
-                  :marks="durationMarks"
-                  @update:model-value="onDurationPick"
-                />
+                <!--
+                  用分段按钮而不是滑块。durations 是**非连续的离散集合**
+                  （如 [4,5,8,10,12]），滑块以 min..max、step=1 铺开会多出
+                  6/7/9/11 这些模型不支持的档位，用户拖到那里提交必然失败；
+                  而且 Element Plus 的 marks 标签首尾各向外探出半个标签宽，
+                  在 overflow:auto 的容器里会直接顶出横向滚动条。
+                  分段按钮只暴露合法值，且自带 flex-wrap，两个问题一并消除。
+                  与同页「分辨率」用同一套 .wg-seg 样式，保持一致。
+                -->
+                <div class="wg-seg">
+                  <button
+                    v-for="item in durations"
+                    :key="item"
+                    type="button"
+                    class="wg-seg-item"
+                    :class="{ 'is-active': (duration || durations[0]) === item }"
+                    @click="onDurationPick(item)"
+                  >
+                    {{ item }}s
+                  </button>
+                </div>
               </div>
             </el-popover>
 
@@ -657,9 +693,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, h, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { apiService } from '../../services/ApiService'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
+import { resolveReferenceImage } from '../../services/modules/generate.api'
 /*
  * 注意：v-viewer 的 default 导出是「插件对象」（只有 install），
  * 真正可用作指令的是具名导出 directive，而它是个工厂函数，
@@ -1011,17 +1048,6 @@ const ratios = computed(() => {
 
 const activeRatio = computed(() => ratioOf(size.value))
 
-const durationMarks = computed(() => {
-  if (durations.value.length < 2) {
-    return {}
-  }
-  const marks: Record<number, string> = {}
-  for (const d of durations.value) {
-    marks[d] = `${d}s`
-  }
-  return marks
-})
-
 const modelLabel = (value: string) => {
   if (!value) {
     return '选择模型'
@@ -1139,6 +1165,25 @@ interface Row {
   kind: RowKind
   task: GenerateTask
   items: Array<{ key: string; url: string }>
+}
+
+/**
+ * 已经显示出来的图片（键为「任务号-下标」）。
+ *
+ * <p>用 Set 而不是把 loaded 挂在 item 上：item 来自 computed，每次轮询都会整批重建，
+ * 挂在 item 上的字段当场丢失，淡入会反复重放。Set 按 key 记账则与重建无关。</p>
+ *
+ * <p>用 reactive 而非 ref(new Set())：往里 add 就能触发重渲染，不必每次复制一份新 Set。</p>
+ */
+const loadedImages = reactive(new Set<string>())
+
+/**
+ * 记一张图已加载完成。
+ *
+ * @param key 图片键（任务号-下标）
+ */
+const markLoaded = (key: string) => {
+  loadedImages.add(key)
 }
 
 /**
@@ -1382,9 +1427,16 @@ const pickRatio = (value: string) => {
   }
 }
 
-/** 时长滑块回填：el-slider 可能给出数组，取第一个 */
-const onDurationPick = (value: number | number[]) => {
-  duration.value = Array.isArray(value) ? value[0] : value
+/**
+ * 选时长。
+ *
+ * <p>入参只可能是 durations 里的合法值（分段按钮逐个渲染），
+ * 不需要再做「取数组第一个」那种滑块兼容处理。</p>
+ *
+ * @param value 选中的时长（秒）
+ */
+const onDurationPick = (value: number) => {
+  duration.value = value
 }
 
 /**
@@ -1470,7 +1522,7 @@ const pickReference = () => {
  *
  * 之前直接把原图 readAsDataURL 整张发上来：一张 1024×1024 的 PNG 就有约 1.7MB，
  * base64 再涨 1/3，参考图列一条 2.38MB —— 表很快撑到几百 MB，而图生图实际只需要
- * 看清构图与主体。��此在浏览器里先按长边缩到 {@link REF_MAX_EDGE}，
+ * 看清构图与主体。因此在浏览器里先按长边缩到 {@link REF_MAX_EDGE}，
  * 原始像素尺寸单独记下来，卡片渲染时按原比例还原，观感不变、存量降一个量级。
  *
  * 缩放失败（浏览器不支持 createObjectURL / canvas 被污染）时返回原图，
@@ -1673,6 +1725,14 @@ const refRatioOf = (task: GenerateTask): string => {
 /** 正在删除的任务号：用于禁用该卡的删除按钮，防重复点击 */
 const deletingId = ref('')
 
+/**
+ * 正在把历史参考图取回成 base64（「再次生成」回填阶段）。
+ *
+ * <p>历史里的参考图是地址，取字节要一次网络往返；这段时间里参数栏不能看着像
+ * 「已回填好参考图」——否则用户会以为可以提交了，实际提交出去的是文生图。</p>
+ */
+const refilling = ref(false)
+
 /** 清理失败记录的结果提示用 */
 const clearingFailed = ref(false)
 
@@ -1805,7 +1865,17 @@ const regenerate = async (task: GenerateTask) => {
   size.value = task.size ?? ''
   style.value = task.style ?? ''
   count.value = task.count ?? 1
-  referenceImage.value = task.referenceImage || ''
+  // 历史里的参考图是「地址」不是 base64（列表不再吐 base64，见 generate.api.ts），
+  // 而创建接口要的是 data URI，所以这一步按需把字节取回来再拼成 data URI。
+  // 取不回来就按「没有参考图」处理：宁可退化成文生图，也不要拿一个 URL 当参考图发出去。
+  refilling.value = true
+  try {
+    referenceImage.value = await resolveReferenceImage(task.referenceImage)
+  } catch {
+    referenceImage.value = ''
+  } finally {
+    refilling.value = false
+  }
   // 原始尺寸只在创建响应里带过，刷新后不在库里；回填时能拿到就用，
   // 拿不到就退回按图自身比例渲染（referenceRatio 会兜底成 1:1）
   referenceMeta.value = task.referenceWidth && task.referenceHeight
@@ -2427,7 +2497,15 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   max-height: 420px;
-  overflow: auto;
+  /*
+    纵向才滚动，横向必须 hidden。
+    用 overflow: auto 会变成**双向**：菜单里只要有比容器宽一点点的内容
+    （典型是 el-slider 的 marks 标签——首尾标签各 translateX(-50%) 外探半个宽度），
+    就会同时冒出横向与纵向两条滚动条，看起来像布局坏了。
+    菜单项本来就应该在宽度内换行，横向滚动没有任何意义。
+  */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .wg-menu-title {
@@ -3051,6 +3129,14 @@ onUnmounted(() => {
   aspect-ratio: 1 / 1;
   object-fit: cover;
   cursor: zoom-in;
+  /* 结果图改走字节流地址后才有意义：<img> 自身带占位（.wg-thumb 底色），
+     解码完成前保持半透明，避免先弹一张灰块再被图盖住的二次闪烁。 */
+  opacity: 0;
+  transition: opacity 0.22s ease-out;
+}
+
+.wg-thumb.is-loaded .wg-media {
+  opacity: 1;
 }
 
 /* 视频按 16:9 展示，压成方框会留大片黑边 */
@@ -3379,6 +3465,26 @@ onUnmounted(() => {
   max-height: 96px;
   border-radius: var(--el-border-radius-base);
   object-fit: cover;
+}
+
+/* 「再次生成」取回参考图期间的占位：与参考图同宽同高，
+   否则参数栏会先塌一下再撑开，比直接等更让人以为出错了。 */
+.wg-ref-picked.is-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  background: var(--color-secondary-surface);
+}
+
+.wg-ref-spin {
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-text-gray);
 }
 
 /* 删除按钮压在图上：深色实心圆在深色照片上看不清，改成表面色 + 细边 + 轻投影 */
