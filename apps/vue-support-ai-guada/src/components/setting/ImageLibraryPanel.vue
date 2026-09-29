@@ -1,6 +1,6 @@
 <template>
   <!--
-    以图搜图 · 图片库管理（管理员）
+    以图搜图 · 图像底库管理（管理员）
 
     底库是**全局共享资源**，任何人都能改就等于向量索引可被任意污染，而检索结果的
     准确度完全依赖它。所以管理动作（上传 / 删除 / 批量删除）收敛到这里，
@@ -19,7 +19,7 @@
     <!-- ── 页头 ───────────────────────────────────────────── -->
     <header class="lib-head">
       <div class="lib-head-text">
-        <h2 class="lib-head-title">图片库</h2>
+        <h2 class="lib-head-title">图像底库</h2>
         <p class="lib-head-sub">以图搜图的检索底库，上传图片后自动提取特征向量入库</p>
       </div>
       <div class="lib-head-actions">
@@ -32,6 +32,24 @@
       </div>
     </header>
 
+    <!--
+      模型未就绪 / 配置的模型不在可用清单里：给一条能直接走通的入口，
+      而不是只留一句「请去配置」。底库没有特征模型就没有任何可用能力 ——
+      上传必然失败、检索必然为空，此时整页只留这句引导，不摆一堆空控件。
+    -->
+    <section v-if="blockedReason" class="lib-blocked">
+      <el-icon class="lib-blocked-icon"><WarningFilled /></el-icon>
+      <h3 class="lib-blocked-title">{{ blockedReason.title }}</h3>
+      <p class="lib-blocked-desc">{{ blockedReason.desc }}</p>
+      <p class="lib-blocked-current">
+        当前配置的图像特征模型：<strong>{{ modelName || '（未配置）' }}</strong>
+      </p>
+      <el-button type="primary" @click="goModelConfig">
+        <el-icon><Setting /></el-icon>去配置模型
+      </el-button>
+    </section>
+
+    <template v-else>
     <!-- ── 统计卡 ─────────────────────────────────────────── -->
     <section class="lib-stats">
       <div class="lib-stat">
@@ -57,11 +75,7 @@
     </section>
 
     <!-- ── 上传区 ─────────────────────────────────────────── -->
-    <el-alert v-if="available === false" type="warning" :closable="false" show-icon class="lib-alert"
-      title="以图搜图未启用，无法管理图片库"
-      description="请先在「设置中心 → 默认模型」配置图像特征模型并保存，特征模型可用后才能上传入库。" />
-
-    <section v-else class="lib-upload">
+    <section class="lib-upload">
       <div class="lib-drop" :class="{ 'is-drag': dragging }" @click="pickFiles"
         @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
         <el-icon class="lib-drop-icon"><UploadFilled /></el-icon>
@@ -210,23 +224,25 @@
       特征模型：{{ modelName || '未配置' }}
       <template v-if="minSimilarity !== null"> · 相似度下限 {{ minSimilarity }}</template>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
-  CircleCheck, Delete, Files, Grid, Menu, Picture, Refresh, Search, Select, Upload, UploadFilled,
-  Warning, ZoomIn,
+  CircleCheck, Delete, Files, Grid, Menu, Picture, Refresh, Search, Select, Setting, Upload,
+  UploadFilled, Warning, WarningFilled, ZoomIn,
 } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
-import { currentToken } from '@/framework/context'
+import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { usePopup } from '@/composables/usePopup'
 
 /**
- * 以图搜图图片库管理面板。
+ * 以图搜图图像底库管理面板。
  *
  * <p>依赖后端 admin 接口：{@code GET /image-search/status}、
  * {@code GET /image-search/list}、{@code POST /image-search/index}、
@@ -252,6 +268,7 @@ interface ImageItem {
 }
 
 const { toast, confirm } = usePopup()
+const router = useRouter()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const gridRef = ref<HTMLElement | null>(null)
@@ -272,6 +289,17 @@ const progressText = ref('')
 const available = ref<boolean | null>(null)
 const modelName = ref('')
 const minSimilarity = ref<number | null>(null)
+/**
+ * 配置的模型是否出现在能力清单里。
+ *
+ * <p>null = 未探测/查询失败（不据此拦页面）；true/false = 权威结论。</p>
+ *
+ * <p>为什么要单独查：{@code /status} 只回答「配置项填了没有」，它读的是配置串本身。
+ * 填了一个并不存在、或没被注册进模型清单的名字，它照样说 available=true ——
+ * 用户按这个去配置页只能看到空白选项，却不知道问题在哪。能力清单
+ * {@code /v2/ai/models/capability/feature} 才是「这个模型能不能被选用」的判据。</p>
+ */
+const modelRegistered = ref<boolean | null>(null)
 /** 勾选中的记录 id，批量删除的作用域 */
 const selected = ref<Set<number>>(new Set())
 
@@ -279,6 +307,37 @@ const selected = ref<Set<number>>(new Set())
 let viewer: Viewer | null = null
 
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
+/**
+ * 是否该把整页拦成「去配置模型」。
+ *
+ * <p>两种情况都拦：① 压根没配特征模型；② 配了但名字不在能力清单里。
+ * 二者对用户都是「不可用」，区别只在文案 —— 第二种若不说明，
+ * 用户会以为自己配对了却仍然搜不到，比没配更让人困惑。</p>
+ */
+const blockedReason = computed<{ title: string; desc: string } | null>(() => {
+  if (available.value === false || modelRegistered.value === false) {
+    return {
+      title: modelRegistered.value === false ? '图像特征模型不可用' : '以图搜图未启用',
+      desc:
+        modelRegistered.value === false
+          ? '配置的图像特征模型不在后端可用模型清单中，上传与检索都会失败。请到模型配置页改选一个已注册的图像特征模型。'
+          : '图像底库需要「图像特征模型」才能提取特征。当前未配置，上传与检索都不可用。',
+    }
+  }
+  // available === null 表示仍在探测，避免闪烁先不拦
+  return null
+})
+
+/**
+ * 跳到模型配置页。
+ *
+ * <p>底库没有特征模型时没有任何可用能力，光提示「请去配置」等于把用户丢在原地，
+ * 所以给一个能直接走通的入口。</p>
+ */
+function goModelConfig() {
+  router.push({ name: 'SystemSettings', params: { tab: 'default-models' } })
+}
 
 const statWithOriginal = computed(() => items.value.filter((x) => x.hasOriginal).length)
 const statThumbOnly = computed(() => items.value.filter((x) => !x.hasOriginal).length)
@@ -340,23 +399,11 @@ const visibleItems = computed(() => {
 /**
  * 取可直接给 img.src 用的地址。
  *
- * <p>两个要点都是仓库既有约定：
- * 1) 后端 {@code list} 返回的 {@code url} 是**不带 /v2 前缀**的相对路径
- *    （{@code /image-search/{id}/image}），这里拼上 baseURL 即可；
- *    <b>后端绝不能再补 /v2</b>：前端已经拼过一次，补了就成了 {@code /v2/v2/...}，
- *    全部图片 404 但「元素存在」类断言照样通过，只能靠 naturalWidth&gt;0 抓出来。
- * 2) <code>&lt;img&gt;</code> 带不了请求头，所以令牌用
- *    {@code x-oauth-token} 查询参数传 —— 参数名与后端 oauth 客户端 tokenName 一致。</p>
+ * <p>实现收敛在 {@link resolveImageUrl} 一处：检索页此前各写了一份并漏掉
+ * baseURL 与令牌，搜出来的图整片裂开，而本面板是好的。两处共用即不会再漂移。</p>
  */
 function resolveUrl(item: ImageItem): string {
-  if (!item.url) {
-    return item.thumbnail ? `data:image/jpeg;base64,${item.thumbnail}` : ''
-  }
-  const base = apiService.baseURL.replace(/\/+$/, '')
-  const path = item.url.startsWith('/') ? item.url : '/' + item.url
-  const token = currentToken()
-  const q = token ? `?x-oauth-token=${encodeURIComponent(token)}` : ''
-  return base + path + q
+  return resolveImageUrl(item)
 }
 
 /**
@@ -476,7 +523,7 @@ async function upload(files: File[]) {
  * @param item 待删记录
  */
 async function removeOne(item: ImageItem) {
-  if (!(await confirm('删除图片', `确定把「${item.name || '未命名'}」从图片库删除？删除后无法恢复。`))) {
+  if (!(await confirm('删除图片', `确定把「${item.name || '未命名'}」从图像底库删除？删除后无法恢复。`))) {
     return
   }
   busy.value = true
@@ -601,7 +648,7 @@ async function load(target = 1) {
   } catch (e: any) {
     items.value = []
     total.value = 0
-    toast.error(e?.message || '加载图片库失败')
+    toast.error(e?.message || '加载图像底库失败')
   } finally {
     loading.value = false
   }
@@ -640,6 +687,34 @@ async function loadStatus() {
     modelName.value = data?.model || ''
   } catch {
     available.value = false
+    modelName.value = ''
+  }
+  await checkModelRegistered()
+}
+
+/**
+ * 用能力清单校验配置的模型是否真的可选。
+ *
+ * <p>查询失败不拦页面：宁可放过（用户还能用），也不要因为一个辅助接口抖动
+ * 就把整个底库页判成不可用。</p>
+ */
+async function checkModelRegistered() {
+  const want = modelName.value
+  if (!want) {
+    modelRegistered.value = null
+    return
+  }
+  try {
+    const raw = await apiService._request('/ai/models/capability/feature')
+    // 该接口可能返回双层包装，两种形态都兼容
+    const list = Array.isArray(raw) ? raw : raw?.data
+    if (!Array.isArray(list)) {
+      modelRegistered.value = null
+      return
+    }
+    modelRegistered.value = list.includes(want)
+  } catch {
+    modelRegistered.value = null
   }
 }
 
@@ -678,7 +753,8 @@ watch(viewMode, async (mode) => {
 onMounted(async () => {
   await loadStatus()
   loadSearchParams()
-  if (available.value) {
+  // 被拦时不拉列表：拉了也渲染不出来，只是白发一串必然失败的请求
+  if (!blockedReason.value) {
     await load(1)
   }
 })
@@ -748,6 +824,53 @@ defineExpose({ reload: load })
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* ── 未就绪引导 ───────────────────────────────────────── */
+.lib-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 44px 24px;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius);
+  background: var(--lib-surface);
+  text-align: center;
+}
+
+.lib-blocked-icon {
+  font-size: 34px;
+  color: var(--el-color-warning);
+}
+
+.lib-blocked-title {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lib-text);
+}
+
+.lib-blocked-desc {
+  max-width: 560px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--lib-text-secondary);
+}
+
+.lib-blocked-current {
+  margin: 2px 0 6px;
+  padding: 6px 12px;
+  border-radius: var(--lib-radius-sm);
+  background: var(--lib-surface-subtle);
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+}
+
+.lib-blocked-current strong {
+  color: var(--lib-text);
+  font-weight: 600;
 }
 
 /* ── 统计卡 ───────────────────────────────────────────── */

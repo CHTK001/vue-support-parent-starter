@@ -194,7 +194,9 @@ function handleAdd(): void {
 
 /** 打开编辑规则弹窗 */
 function handleEdit(row: Record<string, unknown>): void {
-  const r = row as HeaderRuleRow;
+  // ReTable 的插槽行类型是 Record<string, unknown>，转 HeaderRuleRow 需先过 unknown，
+  // 否则 TS2352：两个类型无足够重叠（Record 的索引签名不保证具体字段存在）。
+  const r = row as unknown as HeaderRuleRow;
   isEdit.value = true;
   form.value = {
     sysPolicyConfigId: r.sysPolicyConfigId ?? null,
@@ -270,7 +272,7 @@ async function handleSubmit(): Promise<void> {
  * @param value 开关新值
  */
 async function handleToggle(row: Record<string, unknown>, value: boolean | string | number): Promise<void> {
-  const r = row as HeaderRuleRow;
+  const r = row as unknown as HeaderRuleRow; // 同 handleEdit：需先过 unknown
   if (r.sysPolicyConfigId == null) {
     return;
   }
@@ -288,7 +290,7 @@ async function handleToggle(row: Record<string, unknown>, value: boolean | strin
 
 /** 删除规则 */
 async function handleDelete(row: Record<string, unknown>): Promise<void> {
-  const r = row as HeaderRuleRow;
+  const r = row as unknown as HeaderRuleRow; // 同 handleEdit：需先过 unknown
   if (r.sysPolicyConfigId == null) {
     return;
   }
@@ -460,7 +462,8 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             :aria-label="t('policy.header.form.patterns')"
           />
           <div class="policy-header-preset">
-            <ReButton layout="text" type="primary" icon="MagicStick" @click="handleFillPresets">
+            <!-- 文案按钮用 :text="true"，ReButton 的 layout 不接受 "text"，见 PolicyHitCell.vue 的同类说明 -->
+            <ReButton :text="true" type="primary" icon="MagicStick" @click="handleFillPresets">
               {{ t("policy.header.presetFill", { count: presets.flat.length }) }}
             </ReButton>
             <div v-if="Object.keys(presets.groups).length" class="policy-header-preset__groups">

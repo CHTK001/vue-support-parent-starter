@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>__v</title>
+  <style>
+    html,body{margin:0;height:100%;font:12px ui-monospace,monospace}
+    #bar{padding:5px 9px;background:#111;color:#0f0;position:sticky;top:0;z-index:9;white-space:pre-wrap}
+    iframe{border:0;width:100%;height:calc(100% - 110px)}
+  </style>
+</head>
+<body>
+  <div id="bar">boot</div>
+  <iframe id="app"></iframe>
+<script>
+const bar = document.getElementById("bar");
+const lines = [];
+const say = s => { lines.push(s); bar.textContent = lines.join("\n"); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const enter = el => el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+
+async function waitFor(fn, ms) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < (ms || 20000)) {
+    try { const v = fn(); if (v) return v; } catch (e) { /* retry */ }
+    await sleep(140);
+  }
+  return null;
+}
+
+// Inspect the TOP document too: el-dialog uses append-to-body, so the dialog
+// (and therefore the panel) is teleported out of the app iframe entirely.
+function inspect(topDoc, appDoc) {
+  const out = {};
+  const dlg = topDoc.querySelector(".fs-preview-dlg");
+  out.dialogOpen = !!dlg;
+  if (!dlg) return out;
+  out.title = (dlg.querySelector(".el-dialog__title") || {}).textContent || "";
+  // count header bars: the dialog's own + any panel-internal one
+  out.dialogHeaders = dlg.querySelectorAll(".el-dialog__header").length;
+  out.panelHeaders = dlg.querySelectorAll(".cad__header, .arc__header").length;
+  out.statsBars = dlg.querySelectorAll(".cad__stats, .arc__stats").length;
+  // toolbar buttons by aria-label
+  out.btnLabels = Array.from(dlg.querySelectorAll("button[aria-label], button[title]"))
+    .map(b => (b.getAttribute("aria-label") || b.getAttribute("title") || "").trim())
+    .filter(Boolean);
+  // zoom / help / fullscreen presence
+  out.hasHelp = dlg.innerHTML.indexOf("快捷键一览") >= 0;
+  out.hasFullscreenBtn = dlg.querySelectorAll("button[title*='全屏']").length;
+  // zoom readout
+  const zb = dlg.querySelector(".cad__zoom-btn");
+  out.zoomText = zb ? zb.innerText.trim() : "";
+  // any transform:scale left on containers (issue #2)
+  const scaled = [];
+  topDoc.querySelectorAll(".fs-preview-shell *, .el-dialog *").forEach(el => {
+    const t = el.style && el.style.transform;
+    if (t && t.indexOf("scale") >= 0) {
+      scaled.push((el.className || el.tagName) + " -> " + t);
+    }
+  });
+  out.scaledEls = scaled.slice(0, 4);
+  // image panel check
+  const img = dlg.querySelector("img");
+  if (img) out.image = img.naturalWidth + "x" + img.naturalHeight;
+  const cad = dlg.querySelector(".cad");
+  if (cad) out.cad = {
+    stats: (cad.querySelector(".cad__stats") || {}).innerText?.replace(/\s+/g, " ").trim() || "",
+    drawing: !!cad.querySelector(".cad__canvas svg"),
+    nodwg: !!cad.querySelector(".cad__nodwg"),
+  };
+  const arc = dlg.querySelector(".arc");
+  if (arc) out.arc = {
+    stats: (arc.querySelector(".arc__stats") || {}).innerText?.replace(/\s+/g, " ").trim() || "",
+    rows: arc.querySelectorAll(".arc__tr").length,
+  };
+  const err = dlg.querySelector(".arc__placeholder .el-empty__description");
+  if (err) out.errorState = err.textContent.replace(/\s+/g, " ").trim().slice(0, 80);
+  return out;
+}
+
+async function openCase(doc, dirs, file) {
+  const crumb = Array.from(doc.querySelectorAll("*")).find(e =>
+    e.children.length === 0 && (e.textContent || "").trim() === "根目录");
+  if (crumb) { crumb.click(); await sleep(1400); }
+  for (const p of dirs) {
+    const r = await waitFor(() => doc.querySelector('div[aria-label="' + p + '"]'), 12000);
+    if (!r) return "nav-fail:" + p;
+    enter(r);
+    await sleep(1300);
+  }
+  const row = await waitFor(() => doc.querySelector('div[aria-label="' + file + '"]'), 12000);
+  if (!row) return "row-missing";
+  enter(row);
+  await sleep(3800);
+  return "ok";
+}
+
+async function main() {
+  try { localStorage.clear(); } catch (e) { /* ignore */ }
+  const fr = document.getElementById("app");
+  await new Promise(res => { fr.addEventListener("load", res, { once: true }); fr.src = "/"; });
+  await sleep(3500);
+  const appDoc = fr.contentDocument;
+  const CASES = JSON.parse(decodeURIComponent(location.search.slice(1)));
+  let pass = 0, fail = 0;
+
+  for (const [label, dirs, file, expect] of CASES) {
+    const nav = await openCase(appDoc, dirs, file);
+    if (nav !== "ok") { say("FAIL  " + label + "  " + nav); fail++; continue; }
+    const i = inspect(document, appDoc);
+    // expectations: [panelKind, wantDialogHeaders, wantPanelHeaders]
+    const [kind, wantDlgHdr, wantPanelHdr] = expect;
+    const okPanel = kind === "any" || (kind === "cad" && !!i.cad) || (kind === "arc" && !!i.arc)
+      || (kind === "img" && !!i.image) || (kind === "err" && !!i.errorState);
+    const okHdr = i.dialogHeaders === wantDlgHdr && i.panelHeaders === wantPanelHdr;
+    const ok = okPanel && okHdr;
+    if (ok) pass++; else fail++;
+    let line = (ok ? "OK    " : "FAIL  ") + label.padEnd(22)
+      + " dlgHdr=" + i.dialogHeaders + " panelHdr=" + i.panelHeaders
+      + " stats=" + i.statsBars + " zoom=" + JSON.stringify(i.zoomText);
+    if (i.title) line += "\n        title=" + i.title;
+    if (i.cad) line += "\n        cad: " + JSON.stringify(i.cad);
+    if (i.arc) line += "\n        arc: " + JSON.stringify(i.arc);
+    if (i.image) line += " image=" + i.image;
+    if (i.errorState) line += "\n        errState=" + i.errorState;
+    if (i.hasHelp) line += "  !! HELP-STILL-PRESENT";
+    if (i.hasFullscreenBtn) line += "  !! FULLSCREEN-BTN=" + i.hasFullscreenBtn;
+    if (i.scaledEls.length) line += "\n        !! scaled: " + JSON.stringify(i.scaledEls);
+    line += "\n        buttons=" + JSON.stringify(i.btnLabels);
+    say(line);
+    const close = document.querySelector(".fs-preview-dlg .el-dialog__headerbtn");
+    if (close) close.click();
+    await sleep(1100);
+  }
+  say("---- PASS=" + pass + "  FAIL=" + fail + " ----");
+  document.title = fail === 0 ? "PROBE_OK" : "PROBE_FAIL";
+}
+main().catch(e => { say("ERR " + e); document.title = "PROBE_FAIL"; });
+say("ready");
+</script>
+</body>
+</html>

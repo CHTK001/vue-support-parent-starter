@@ -719,7 +719,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 以图搜图图片库：挂在本分组的字段列表之下，作为一块独立管理区 */
+/* 以图搜图图像底库：挂在本分组的字段列表之下，作为一块独立管理区 */
 .lib-slot {
   margin-top: 16px;
   padding-top: 16px;

@@ -35,9 +35,6 @@ const VueOfficePptx = defineAsyncComponent(() => import("@vue-office/pptx"));
 import "@vue-office/docx/lib/index.css";
 import "@vue-office/excel/lib/index.css";
 
-/** 缩放比例（v-model） */
-const zoom = defineModel<number>("zoom", { default: 100 });
-
 /** 数据加载中状态（v-model，由本组件在拉取字节期间置位） */
 const loading = defineModel<boolean>("loading", { default: false });
 
@@ -53,22 +50,10 @@ const emit = defineEmits<{
   rendered: [];
   /** 加载或解析失败，父组件应退回服务端渲染 */
   error: [];
-  /** 请求全屏 */
-  fullscreen: [];
 }>();
 
-/** wrap 容器 DOM 引用（供父组件全屏切换） */
+/** wrap 容器 DOM 引用 */
 const wrapRef = ref<HTMLDivElement>();
-
-/**
- * 工具栏引用。
- *
- * <p>本面板的模板里并没有 {@code PreviewToolbar}（它只渲染 wrap 容器），
- * 这个引用历史上从未声明过，{@code FileStorageManage} 里按 {@code ?} 键会调到
- * {@code toggleHelp()}，从而抛 ReferenceError。这里补上声明使其安全退化为空操作：
- * 办公室预览没有工具栏，按 {@code ?} 本就无事可做。</p>
- */
-const toolbarRef = ref<{ toggleHelp?: () => void }>();
 
 /**
  * 文档二进制内容
@@ -168,20 +153,14 @@ function onRenderError(): void {
   emit("error");
 }
 
-/** 切换快捷键帮助弹窗（本面板无工具栏，故为空操作） */
-function toggleHelp(): void {
-  toolbarRef.value?.toggleHelp?.();
-}
-defineExpose({ wrapRef, toggleHelp });
+defineExpose({ wrapRef });
 </script>
 
 <template>
   <div class="preview-office-panel">
-    <div
-      ref="wrapRef"
-      class="preview-office-panel__wrap"
-      :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }"
-    >
+    <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
+         表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
+    <div ref="wrapRef" class="preview-office-panel__wrap">
       <div v-if="loading" class="preview-office-panel__mask">
         <span class="preview-office-panel__mask-text">加载中…</span>
       </div>
@@ -252,13 +231,6 @@ defineExpose({ wrapRef, toggleHelp });
 .preview-office-panel__mask-text {
   color: var(--el-text-color-secondary);
   font-size: 13px;
-}
-
-:fullscreen .preview-office-panel__wrap,
-:fullscreen .preview-office-panel__body,
-:fullscreen .preview-office-panel__mask {
-  min-height: 100vh;
-  border-radius: 0;
 }
 
 /* 尊重系统「减少动态效果」偏好 */

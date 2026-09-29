@@ -77,7 +77,7 @@ try {
   await page.waitForTimeout(4000)
   const txt = await page.locator('body').innerText()
 
-  check('页头「图片库」', txt.includes('图片库'))
+  check('页头「图像底库」', txt.includes('图像底库'))
   check('副标题存在', txt.includes('上传图片后自动提取特征向量入库'))
   check('刷新按钮', txt.includes('刷新'))
   check('上传图片按钮', txt.includes('上传图片'))
@@ -126,9 +126,8 @@ try {
 
   check('有「特征已入库」角标', (await page.locator('.lib-badge.is-ok').count()) > 0)
   check('有「仅缩略图」角标', (await page.locator('.lib-badge.is-warn').count()) > 0)
-  // 5/6/8 是同一张图，指纹应识别出重复
-  const dupBadges = await page.locator('.lib-badge.is-dup').count()
-  check('重复图片被标记', dupBadges > 0, `dupBadge=${dupBadges}`)
+  // 「重复」不依赖存量数据判断（存量会被清理，断言会随之假红）：
+  // 由第 9 步上传两张完全相同的图来验证指纹机制，见下方 DUP_* 断言。
 
   await shot('new-lib-1-grid')
 
@@ -188,15 +187,46 @@ try {
 
   // ── 9. 批量删除真实生效 ───────────────────────────────
   console.log('=== 9. 批量删除 ===')
-  // 先造 2 张测试图，避免删掉用户数据
+  // 基线：不写死条数 —— 存量数据会被外部操作改变，断言「回到操作前」才有意义
+  const baseline = await page.evaluate(async (tk) => {
+    const r = await fetch('/v2/image-search/list?page=1&size=100', { headers: { 'x-oauth-token': tk } })
+    const o = await r.json()
+    const d = o.data || {}
+    return (d.data || d).total
+  }, token)
+  console.log(`  操作前基线: ${baseline} 条`)
+
+  // 造 2 张**完全相同**的测试图：既避免删掉用户数据，
+  // 又顺带验证「重复图片自动标记」的指纹机制真的生效（不依赖存量数据）
+  //
+  // 源图必须从**当前列表**里取：早先硬编码 /image-search/8/image，
+  // 该 id 被删后取图 404，造图静默失败，后续按位置删除就误删了真实记录。
   const created = await page.evaluate(async (tk) => {
+    const lr = await fetch('/v2/image-search/list?page=1&size=100', { headers: { 'x-oauth-token': tk } })
+    const lo = await lr.json()
+    const ld = lo.data || {}
+    const items = ((ld.data || ld).items) || []
+    if (!items.length) {
+      return { ids: [], names: [], error: '底库为空，无法取源图' }
+    }
+    const srcId = items[0].id
+    const sr = await fetch(`/v2/image-search/${srcId}/image`, { headers: { 'x-oauth-token': tk } })
+    if (!sr.ok) {
+      return { ids: [], names: [], error: `取源图失败 http=${sr.status} srcId=${srcId}` }
+    }
+    const blob = await sr.blob()
+    if (!blob.size) {
+      return { ids: [], names: [], error: '源图字节为空' }
+    }
     const ids = []
+    const names = []
+    const stamp = Date.now()
     for (let i = 0; i < 2; i++) {
-      const blob = await (await fetch('/v2/image-search/8/image', { headers: { 'x-oauth-token': tk } })).blob()
-      const file = new File([blob], `acc-batch-${Date.now()}-${i}.jpg`, { type: 'image/jpeg' })
+      const nm = `acc-dup-${stamp}-${i}.jpg`
+      const file = new File([blob], nm, { type: 'image/jpeg' })
       const form = new FormData()
       form.append('file', file)
-      form.append('name', file.name)
+      form.append('name', nm)
       const r = await fetch('/v2/image-search/index', {
         method: 'POST',
         headers: { 'x-oauth-token': tk },
@@ -204,47 +234,61 @@ try {
       })
       const o = await r.json()
       const id = (o.data || {}).id
-      if (id) ids.push(id)
+      if (id) {
+        ids.push(id)
+        names.push(nm)
+      }
     }
-    return ids
+    return { ids, names, error: null }
   }, token)
-  check('造出 2 张测试图', created.length === 2, `ids=${created}`)
+  check('造出 2 张相同测试图', created.ids.length === 2,
+    created.error ? `失败原因: ${created.error}` : `ids=${created.ids}`)
 
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.waitForTimeout(4000)
+  await page.waitForTimeout(4500)
 
-  // 勾选这两张测试图（按名字定位）
+  // 两张测试图内容完全相同 → 指纹机制应把它们都标成「重复」
+  const dupAfterUpload = await page.locator('.lib-badge.is-dup').count()
+  check('相同图片被标记为「重复」', dupAfterUpload >= 2, `dupBadge=${dupAfterUpload}`)
+
+  // 勾选这两张测试图：**按名字定位**，绝不能按位置（.nth(0)/.nth(1)）。
+  // 血的教训：造图失败时列表里只剩真实记录，按位置勾选会把用户的记录删掉。
+  const createdNames = created.names
   let picked = 0
-  for (const nm of created.map((id) => `acc-batch-`) ) {
-    // 名字带时间戳，用标题前缀匹配
+  for (const nm of createdNames) {
+    const cell = page.locator('.lib-cell', { hasText: nm }).first()
+    if (await cell.count()) {
+      await cell.locator('.lib-check').click()
+      picked++
+    }
   }
-  const totalCells = await page.locator('.lib-cell').count()
-  // 测试图排在最新（列表按 id 倒序），取前两张
-  const c0 = page.locator('.lib-cell .lib-check').nth(0)
-  const c1 = page.locator('.lib-cell .lib-check').nth(1)
-  await c0.click()
-  await c1.click()
   await page.waitForTimeout(600)
-  picked = await page.locator('.lib-cell.is-selected').count()
-  check('勾选 2 张测试图', picked === 2, `picked=${picked}`)
+  const pickedSelected = await page.locator('.lib-cell.is-selected').count()
+  check('按名字勾中 2 张测试图', picked === 2 && pickedSelected === 2, `picked=${picked} selected=${pickedSelected}`)
 
-  page.once('dialog', (d) => d.accept())
-  await page.locator('.lib-batch button:has-text("删除")').click()
-  await page.waitForTimeout(4000)
-  // usePopup 用 ElMessageBox，点确定
-  const confirmBtn = page.locator('.el-message-box__btns button.el-button--primary')
-  if (await confirmBtn.count()) {
-    await confirmBtn.click()
+  if (picked !== 2) {
+    // 定位不到自己的测试图就**不做删除**：宁可这一项失败，也不能误删真实数据
+    console.log('  [SKIP] 未能按名字定位测试图，跳过删除步骤以免误删真实记录')
+    check('底库未受影响（跳过删除）', true, 'skipped')
+  } else {
+    page.once('dialog', (d) => d.accept())
+    await page.locator('.lib-batch button:has-text("删除")').click()
+    await page.waitForTimeout(4000)
+    // usePopup 用 ElMessageBox，点确定
+    const confirmBtn = page.locator('.el-message-box__btns button.el-button--primary')
+    if (await confirmBtn.count()) {
+      await confirmBtn.click()
+    }
+    await page.waitForTimeout(5000)
+
+    const afterTotal = await page.evaluate(async (tk) => {
+      const r = await fetch('/v2/image-search/list?page=1&size=100', { headers: { 'x-oauth-token': tk } })
+      const o = await r.json()
+      const d = o.data || {}
+      return (d.data || d).total
+    }, token)
+    check('底库回到操作前基线（测试图已删）', afterTotal === baseline, `total=${afterTotal} baseline=${baseline}`)
   }
-  await page.waitForTimeout(5000)
-
-  const afterTotal = await page.evaluate(async (tk) => {
-    const r = await fetch('/v2/image-search/list?page=1&size=100', { headers: { 'x-oauth-token': tk } })
-    const o = await r.json()
-    const d = o.data || {}
-    return (d.data || d).total
-  }, token)
-  check('底库回到 8 条（测试图已删）', afterTotal === 8, `total=${afterTotal}`)
 
   // ── 10. 页面错误 ──────────────────────────────────────
   console.log('=== 10. 页面错误 ===')

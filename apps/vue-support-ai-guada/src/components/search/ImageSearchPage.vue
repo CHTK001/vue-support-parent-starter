@@ -37,7 +37,7 @@
           </div>
 
           <!-- 预览 + 检索态 -->
-          <div v-else class="is-canvas" :class="{ 'is-busy': searching }">
+          <div v-else ref="queryCanvasRef" class="is-canvas" :class="{ 'is-busy': searching }">
             <img :src="previewUrl" class="is-img" alt="查询图" />
             <div v-if="searching" class="is-scan"></div>
 
@@ -82,7 +82,7 @@
                 <el-icon><Link /></el-icon>粘贴图片
               </button>
               <button class="is-actcard-btn" :disabled="busy || !previewFile" @click="indexCurrent">
-                <el-icon><Plus /></el-icon>加入图片库
+                <el-icon><Plus /></el-icon>加入图像底库
               </button>
             </div>
 
@@ -108,6 +108,7 @@
 
             <div v-if="!searching && searched" class="is-result-tip">
               为你找到 <b>{{ results.length }}</b> 张相似图片
+              <span v-if="elapsedMs != null" class="is-result-cost">耗时 {{ elapsedMs }} ms</span>
             </div>
           </div>
         </div>
@@ -141,7 +142,7 @@
             </button>
           </div>
 
-          <div v-loading="searching" class="is-grid">
+          <div v-loading="searching" ref="resultGridRef" class="is-grid">
             <article v-for="(item, i) in filteredResults" :key="item.vectorId || i" class="is-card">
               <div class="is-card-media">
                 <img :src="resolveThumb(item)" :alt="item.name" />
@@ -159,20 +160,40 @@
               </div>
             </article>
 
+            <!--
+              空态与有结果时**保持同一版面**：占位尺寸、外层容器、底部统计条都不变，
+              只把内容换成提示。否则「有结果」与「没结果」两种情况下页面高度、
+              滚动位置、面板宽度都会跳，看起来像换了个页面。
+            -->
             <div v-if="!searching && filteredResults.length === 0" class="is-empty">
-              <el-icon :size="30"><Picture /></el-icon>
-              <span>{{ searched ? '底库里没有相似图片，可由管理员到「系统设置 → 默认模型 → 图片库」补充' : '选一张图开始搜索' }}</span>
+              <el-icon :size="34"><Picture /></el-icon>
+              <p class="is-empty-title">
+                {{ searched ? '底库里没有相似图片' : '选一张图开始搜索' }}
+              </p>
+              <p class="is-empty-desc">
+                {{ searched
+                  ? '可由管理员到「系统设置 → 图像底库」补充底图，或放宽上方相似度筛选'
+                  : '支持拖拽、点击选择与粘贴，检索结果会显示在这里' }}
+              </p>
             </div>
           </div>
         </template>
 
         <!-- ============ 底部统计条 ============ -->
-        <div v-if="scoreStats" class="is-footbar">
+        <!--
+          无结果时也要渲染，只是各项显示「—」：
+          这是「没数据也和有结果一致」的关键 —— 统计条若整块消失，
+          侧栏高度会突然缩短，下方内容跟着上移，视觉上像两个页面。
+        -->
+        <div v-if="available" class="is-footbar">
           <span class="is-footbar-title">检索统计</span>
           <div class="is-footbar-items">
-            <span class="is-footbar-item">命中：{{ scoreStats.count }}</span>
-            <span class="is-footbar-item">最高：{{ (scoreStats.top * 100).toFixed(0) }}%</span>
-            <span class="is-footbar-item">均值：{{ (scoreStats.avg * 100).toFixed(0) }}%</span>
+            <span class="is-footbar-item">命中：{{ scoreStats ? scoreStats.count : '—' }}</span>
+            <span class="is-footbar-item">最高：{{ scoreStats ? `${(scoreStats.top * 100).toFixed(0)}%` : '—' }}</span>
+            <span class="is-footbar-item">均值：{{ scoreStats ? `${(scoreStats.avg * 100).toFixed(0)}%` : '—' }}</span>
+            <span class="is-footbar-item is-footbar-cost">
+              耗时：{{ elapsedMs == null ? '—' : `${elapsedMs} ms` }}
+            </span>
           </div>
         </div>
       </aside>
@@ -181,21 +202,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-// 图标按实际使用裁剪：Search/Clock/Delete 随图片库迁往系统设置后已无用，
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+// 图标按实际使用裁剪：Search/Clock/Delete 随图像底库迁往系统设置后已无用，
 // 留着会让人以为本页还有搜索框与删除入口
 import {
   Camera, Upload, Picture, FolderOpened, Link,
   Plus, Warning, Loading, ArrowDown, CircleCheckFilled,
 } from '@element-plus/icons-vue'
+import Viewer from 'viewerjs'
+import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
+import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { usePopup } from '@/composables/usePopup'
 
 /**
  * 以图搜图页面
  *
  * <p>复用后端默认图像特征管线（image.feature_model 配置的特征模型）：
- * 选图后自动提特征检索底库；也可把图「加入图片库」建索引。
+ * 选图后自动提特征检索底库；也可把图「加入图像底库」建索引。
  * 上传前统一经 canvas 转 PNG —— 后端图像解码走 OpenCV，不支持 webp，
  * 同时顺带把超大图压到合理边长，避免无谓的特征计算开销。</p>
  *
@@ -221,6 +245,10 @@ const MAX_UPLOAD_EDGE = 1600
 const { toast, confirm } = usePopup()
 
 const fileInput = ref<HTMLInputElement | null>(null)
+/** 查询图画布容器：viewerjs 挂在这里，点查询图可放大查看细节 */
+const queryCanvasRef = ref<HTMLElement | null>(null)
+/** 结果网格容器：viewerjs 挂在这里，结果图可放大并左右切换 */
+const resultGridRef = ref<HTMLElement | null>(null)
 const previewUrl = ref('')
 const previewFile = ref<File | null>(null)
 /** 查询图自身的元信息，画布标注卡要显示，必须来自真实解码结果 */
@@ -234,6 +262,13 @@ const available = ref(false)
 const activeModel = ref('')
 const results = ref<ImageItem[]>([])
 const minScore = ref(0)
+/**
+ * 上次检索的端到端耗时（毫秒）。
+ *
+ * <p>{@code null} 表示本次会话尚未检索过 —— 显示为「—」而不是 0，
+ * 0 会被读成「瞬间完成」。</p>
+ */
+const elapsedMs = ref<number | null>(null)
 
 const scoreFilters = [
   { label: '全部', value: 0 },
@@ -288,16 +323,70 @@ const scoreBuckets = computed(() => {
   return buckets.map((b) => ({ ...b, pct: Math.round((b.n / max) * 100) }))
 })
 
-/** 缩略图 / 原图地址 */
+/**
+ * 缩略图 / 原图地址。
+ *
+ * <p>统一走 {@link resolveImageUrl}：原先这里直接 `return item.url`，漏了
+ * baseURL（/v2）与令牌，浏览器把 `/image-search/9/image` 解析到前端自身
+ * 且 vite 不代理该路径，搜出来的图整片 404。与底库面板共用一份实现，
+ * 避免再次各写一份而漂移。</p>
+ */
 function resolveThumb(item: ImageItem): string {
-  if (item.url) return item.url
-  if (item.thumbnail) return `data:image/jpeg;base64,${item.thumbnail}`
-  return ''
+  return resolveImageUrl(item)
+}
+
+/**
+ * 放大查看：查询图与结果图都用 viewerjs。
+ *
+ * <p>不再自己写弹层查看器：viewerjs 直接给到滚轮缩放、拖拽平移、
+ * 结果图左右切换与缩略导航，且它只接管容器内的 img，不会干扰卡片上的
+ * 其它交互元素。</p>
+ *
+ * <p>实例在容器重建（查询图/结果变化）后需要重建或 update，否则它内部
+ * 缓存的图片列表仍是旧的 —— 表现是「点新图没反应」或「切到已删的图」。</p>
+ */
+let queryViewer: Viewer | null = null
+let resultViewer: Viewer | null = null
+
+/** 查询图查看器：单图，工具栏保留缩放/1:1 */
+function syncQueryViewer() {
+  if (!previewUrl.value || !queryCanvasRef.value) {
+    queryViewer?.destroy()
+    queryViewer = null
+    return
+  }
+  if (queryViewer) {
+    queryViewer.update()
+    return
+  }
+  queryViewer = new Viewer(queryCanvasRef.value, {
+    navbar: false,
+    title: () => '查询图',
+    filter: (image: HTMLImageElement) => image.classList.contains('is-img'),
+  })
+}
+
+/** 结果图查看器：多图连播，带缩略导航便于逐张比对 */
+function syncResultViewer() {
+  if (!resultGridRef.value) {
+    resultViewer?.destroy()
+    resultViewer = null
+    return
+  }
+  if (resultViewer) {
+    resultViewer.update()
+    return
+  }
+  resultViewer = new Viewer(resultGridRef.value, {
+    navbar: true,
+    toolbar: true,
+    title: (image: HTMLImageElement) => image.alt || '',
+    filter: (image: HTMLImageElement) => image.closest('.is-card-media') !== null,
+  })
 }
 
 /** 字节数转可读文本 */
-function formatSize(bytes: number): string {
-  if (!bytes || bytes < 0) { return '—'; }
+function formatSize(bytes: number): string {  if (!bytes || bytes < 0) { return '—'; }
   if (bytes < 1024) { return `${bytes} B`; }
   if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(0)} KB`; }
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -403,10 +492,19 @@ function normalizeToPng(file: File): Promise<File> {
   })
 }
 
-/** 提特征检索 */
+/**
+ * 提特征检索。
+ *
+ * <p>顺带记录端到端耗时：从发请求到拿到结果的墙钟时间，包含网络往返与后端
+ * 特征提取。这是用户唯一能感知的指标，改模型/换向量库时靠它判断是否变慢。</p>
+ *
+ * <p>用 {@code performance.now()} 而非 {@code Date.now()}：前者是单调时钟，
+ * 不受系统时间调整影响；后者在 NTP 校时或手动改时间时可能给出负值。</p>
+ */
 async function runSearch() {
   if (!previewFile.value) return
   searching.value = true
+  const startedAt = performance.now()
   try {
     const form = new FormData()
     form.append('file', previewFile.value)
@@ -419,7 +517,10 @@ async function runSearch() {
     })
     results.value = Array.isArray(data) ? data : []
     searched.value = true
+    elapsedMs.value = Math.round(performance.now() - startedAt)
   } catch (e: any) {
+    // 失败也要给出耗时：超时/报错时「等了多久」是排查的第一手信息
+    elapsedMs.value = Math.round(performance.now() - startedAt)
     if (isNotConfigured(e)) available.value = false
     toast.error(e?.message || '检索失败')
   } finally {
@@ -440,7 +541,7 @@ async function indexCurrent() {
       data: form,
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    toast.success('已加入图片库')
+    toast.success('已加入图像底库')
     if (searched.value) await runSearch()
   } catch (e: any) {
     if (isNotConfigured(e)) available.value = false
@@ -466,8 +567,41 @@ async function loadStatus() {
   }
 }
 
+// 查询图换新后要重建查看器，否则 viewerjs 内部仍是上一张图
+watch(previewUrl, async () => {
+  queryViewer?.destroy()
+  queryViewer = null
+  await nextTick()
+  syncQueryViewer()
+})
+
+// 结果集变化（新检索、改筛选）后刷新查看器的图片列表
+watch(
+  () => filteredResults.value.length,
+  async () => {
+    await nextTick()
+    syncResultViewer()
+  }
+)
+
+// 结果面板首次可用时挂载结果查看器
+watch(available, async (ok) => {
+  if (!ok) {
+    return
+  }
+  await nextTick()
+  syncResultViewer()
+})
+
 onMounted(async () => {
   await loadStatus()
+})
+
+onBeforeUnmount(() => {
+  queryViewer?.destroy()
+  resultViewer?.destroy()
+  queryViewer = null
+  resultViewer = null
 })
 </script>
 
@@ -574,7 +708,7 @@ onMounted(async () => {
   border-color: var(--is-primary);
 }
 
-/* 原来的关键词输入框随图片库一起迁走了（这里搜的是库内条目），
+/* 原来的关键词输入框随图像底库一起迁走了（这里搜的是库内条目），
    位置留一句说明，避免顶栏右侧空一大块看着像控件坏了 */
 .is-searchbox-tip {
   flex: 1;
@@ -890,7 +1024,7 @@ onMounted(async () => {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  /* 「加入图片库」五个字在窄栏里会被断成两行 */
+  /* 「加入图像底库」五个字在窄栏里会被断成两行 */
   white-space: nowrap;
   transition: background var(--el-transition-duration-fast, 0.2s) ease;
 }
@@ -1348,10 +1482,39 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 40px 0;
+  gap: 6px;
+  /*
+    与有结果时占同样高度：空态若只在内容高度上，侧栏会随结果有无而伸缩，
+    页面看起来像换了一个。min-height 取网格一屏的近似值，两种状态视觉一致。
+  */
+  min-height: 320px;
+  padding: 32px 16px;
   color: var(--is-muted);
   font-size: 13px;
+  text-align: center;
+}
+
+.is-empty-title {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--is-regular);
+}
+
+.is-empty-desc {
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.6;
+  color: var(--is-muted);
+}
+
+/* 结果提示里的耗时：与「为你找到 N 张」同一行，弱化一档 */
+.is-result-cost {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+  opacity: 0.85;
 }
 
 /* ---------- 底部统计条 ---------- */
@@ -1362,6 +1525,12 @@ onMounted(async () => {
   padding: 10px 16px 12px;
   border-top: 1px solid var(--is-border);
   flex-shrink: 0;
+}
+
+/* 耗时放末尾，与命中/最高/均值同排；数字等宽避免每次刷新宽度抖动 */
+.is-footbar-cost {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .is-footbar-title {

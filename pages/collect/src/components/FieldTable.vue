@@ -22,7 +22,16 @@ const PARSER_HINTS: Record<string, string> = {
   CSS: "按 CSS 选择器命中元素，再取右侧的文本 / 属性 / HTML",
   REGEX: "正则匹配标记文本（元素取 outerHTML、纯文本取原文、响应取 JSON），不是页面可见文本",
   JSON: "按 JSON 路径取值，如 data.items[0].title",
-  JSONPATH: "同 JSON，JSONPATH 只是显式写法（都走同一套点号路径）。支持 $.a.b / a.b[0] / a.b[0][1]；不支持通配 [*]、递归下降 ..、过滤器 [?(...)]、切片 [0:2]",
+  // 切片示例的左方括号写成 \x5b 而不是真的方括号，原因如下（注意：本注释自身
+  // 也不能出现「方括号 + 冒号 + 数字 + 花括号」的连续字面量，见下）：
+  // 应用的 UnoCSS 开了 presetAttributify，它的 group 语法本身就是「[属性]{声明}」，
+  // 而提取器是对源文件原始文本做正则、**连注释一起扫**。于是说明文字里若出现
+  // 「方括号 0:2」这种连续片段，会被当成一条 group 规则，生成出「类名 + 声明 0:2」
+  // 的非法 CSS。开发模式不压缩 CSS，看不出来；一旦 pnpm build 走到 lightningcss
+  // 压缩这步就整包失败，报 [lightningcss minify] Unexpected token Semicolon
+  // （2026-09-29 实测，system-starter 与其它应用同时中招）。
+  // \x5b 在运行时就是左方括号，界面显示与改之前逐字节相同，只有源码字面量变了。
+  JSONPATH: "同 JSON，JSONPATH 只是显式写法（都走同一套点号路径）。支持 $.a.b / a.b[0] / a.b[0][1]；不支持通配 [*]、递归下降 ..、过滤器 [?(...)]、切片 \x5b0:2]",
   XPATH: "按 XPath 取字符串，如 //a/@href、//h1/text()。属性请写在表达式里，右侧「取值方式」对它无效",
   TEXT: "取来源可见文本；来源是纯文本且不含标记时原样返回",
   HTML: "取来源标记文本",

@@ -2,18 +2,18 @@
 /**
  * iframe 预览面板组件。
  *
- * 封装了缩放工具栏 + iframe 加载遮罩 + iframe 渲染的完整模式，
- * 用于 PDF、Office、Font 等 iframe 预览类型，消除三处重复代码。
+ * 只负责 iframe 加载遮罩与 iframe 本体：缩放 / 帮助 / 全屏工具条已按产品要求移除。
+ *
+ * <p><b>为什么不再对 iframe 容器做 transform: scale()</b>：那会把遮罩、边框、
+ * 定位上下文一起缩放，表现为「缩放时整个弹框都在动」，而不是只放大内容。
+ * 需要缩放内容时应由 iframe 内部的文档自己处理（PDF viewer、Office 组件等
+ * 本来就带自己的缩放），此处保持 1:1 呈现。</p>
  *
  * @author Buffy
  * @since 2026/09/10
  */
 import { ref } from "vue";
-import PreviewToolbar from "./PreviewToolbar.vue";
 import PreviewIframeOverlay from "./PreviewIframeOverlay.vue";
-
-/** 缩放比例（v-model） */
-const zoom = defineModel<number>("zoom", { default: 100 });
 
 const props = defineProps<{
   /** iframe src 地址 */
@@ -25,33 +25,20 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  fullscreen: [];
   load: [];
   error: [];
 }>();
 
-/** wrap 容器 DOM 引用（供父组件全屏切换） */
+/** wrap 容器 DOM 引用 */
 const wrapRef = ref<HTMLDivElement>();
 /** iframe DOM 引用 */
 const iframeRef = ref<HTMLIFrameElement>();
-/** 工具栏引用（供父组件调 toggleHelp） */
-const toolbarRef = ref<InstanceType<typeof PreviewToolbar>>();
-
-/** 切换快捷键帮助弹窗 */
-function toggleHelp(): void {
-  toolbarRef.value?.toggleHelp();
-}
-defineExpose({ wrapRef, iframeRef, toggleHelp });
+defineExpose({ wrapRef, iframeRef });
 </script>
 
 <template>
   <div class="preview-iframe-panel">
-    <PreviewToolbar ref="toolbarRef" v-model:zoom="zoom" @fullscreen="emit('fullscreen')" />
-    <div
-      ref="wrapRef"
-      class="preview-iframe-panel__wrap"
-      :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }"
-    >
+    <div ref="wrapRef" class="preview-iframe-panel__wrap">
       <PreviewIframeOverlay :loading="loading" />
       <iframe
         ref="iframeRef"
@@ -73,8 +60,7 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
 .preview-iframe-panel__wrap {
   position: relative;
   width: 100%;
-  transition: transform var(--el-transition-duration-fast, 0.2s) ease;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .preview-iframe-panel__frame {
@@ -83,23 +69,5 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
   border: none;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color-page);
-}
-
-:fullscreen .preview-iframe-panel__wrap {
-  width: 100vw;
-  height: 100vh;
-  transform-origin: top left;
-}
-
-:fullscreen .preview-iframe-panel__frame {
-  height: 100vh;
-  border-radius: 0;
-}
-
-/* 尊重系统「减少动态效果」偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .preview-iframe-panel__wrap {
-    transition: none;
-  }
 }
 </style>

@@ -1657,7 +1657,6 @@ defineExpose({ insertText, insertBadge });
   outline: none;
   font-size: var(--size-text-base, 14px);
   line-height: calc(var(--size-text-base) * 1.6);
-  ;
   padding: 0 8px;
   background: transparent;
   overflow-y: auto;

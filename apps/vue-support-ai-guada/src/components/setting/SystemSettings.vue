@@ -108,7 +108,7 @@
                             <FileStorageManage class="h-full" />
                         </template>
                         <!--
-                          图片库：以图搜图底库的独立管理页。
+                          图像底库：以图搜图底库的独立管理页。
                           从「默认模型」页底部提上来 —— 底库需要日常增删，
                           藏在 13 个分组的折叠面板最下方等于没有入口。
                         -->
@@ -146,7 +146,7 @@ import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
 // 复用 pages/filesystem 的文件存储管理页（同一份实现，不复制）
 import { FileStorageManage } from '@pages/filesystem'
-// 以图搜图图片库管理面板（同一份实现，被「图片库」tab 复用）
+// 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
 
 import {
@@ -294,11 +294,11 @@ const sidebarItems = computed(() => [
         adminOnly: true,
     },
     {
-        // 图片库：以图搜图的检索底库。底库是全局共享资源且直接决定检索准确度，
+        // 图像底库：以图搜图的检索底库。底库是全局共享资源且直接决定检索准确度，
         // 普通用户能改等于向量索引可被任意污染，故与「服务配置」同级、仅管理员可见。
         // 曾内嵌在「默认模型」页底部，用户反馈设置中心里看不到入口 —— 13 个分组的
         // 折叠面板把真正需要日常维护的功能埋在最下方，故提为独立 tab。
-        label: '图片库',
+        label: '图像底库',
         path: 'image-library',
         icon: Image24Regular,
         roles: ['primary'],
@@ -408,7 +408,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 图片库 tab 的外层容器：ScrollContainer 已给 p-4，这里只补上下留白与提示文字 */
+/* 图像底库 tab 的外层容器：ScrollContainer 已给 p-4，这里只补上下留白与提示文字 */
 .image-library-tab {
     display: flex;
     flex-direction: column;

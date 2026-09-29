@@ -363,6 +363,7 @@
     "@antv/x6-vue-shape": "^2.1.2",
     "@element-plus/icons-vue": "catalog:",
     "@iconify/vue": "catalog:",
+    "@medv/finder": "^4.0.2",
     "@microsoft/fetch-event-source": "catalog:",
     "@repo/config": "workspace:*",
     "@repo/core": "workspace:*",

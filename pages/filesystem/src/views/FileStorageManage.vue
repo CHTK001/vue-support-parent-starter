@@ -71,6 +71,7 @@ import {
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
+import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import CadPreviewPanel from "../components/CadPreviewPanel.vue";
@@ -236,12 +237,35 @@ function fileIconClass(name: string, isDir: boolean): string {
 }
 
 /**
+ * 配置指纹（缩略图 URL 的缓存击穿标记）
+ *
+ * <p>由影响缩略图渲染的配置字段拼成：任一变化即产生新串，缩略图 URL 随之改变，
+ * 浏览器重新回源、服务端按新配置重算——这是配置项「热更新」的关键。
+ * 配置未加载时返回 "0"，保证 URL 形态稳定。</p>
+ */
+const configStamp = computed(() => {
+  const c = bucketConfig.value;
+  if (!c) {
+    return "0";
+  }
+  return [c.imageFilter ?? "NONE", c.watermark ?? "", c.openWatermark ? "1" : "0"].join("|");
+});
+
+/**
  * 大图标缩略图 URL：所有可预览文件统一 ?preview=true（图片返回字节，其余转 HTML）
- * archive/unknown 返回空走图标兜底
+ *
+ * <p>末尾拼 {@code &_cfg=} 配置版本戳：图片处理（滤镜等）是服务端按配置实时算的，
+ * URL 不变时浏览器直接复用缓存里的旧图，管理员改完配置看不到效果。</p>
+ *
+ * @param name 对象名
+ * @returns 缩略图 URL；archive/unknown 返回空串走图标兜底
  */
 function objectThumbUrl(name: string): string {
   if (isArchive(name) || !isPreviewable(name)) return "";
-  return objectUrl(bucket.value, fullKey(name), false) + "?preview=true";
+  // objectUrl 已可能带 ?x-oauth-token=，分隔符必须按需取 &/?，拼成两个 ? 会让
+  // 服务端只认到第一个问号，后面的 preview/_cfg 全部丢失。
+  const base = objectUrl(bucket.value, fullKey(name), false);
+  return `${base}${base.includes("?") ? "&" : "?"}preview=true&_cfg=${encodeURIComponent(configStamp.value)}`;
 }
 
 /** 排序点击切换 */
@@ -1224,6 +1248,20 @@ const adminForm = reactive({
   imageFilter: "NONE",
   /** 是否私有桶（私有桶请求需携带访问令牌，由 OAuthServerFilter 鉴权；保存后实时生效） */
   privateBucket: false,
+  /**
+   * 全部私有桶（逗号分隔的 provider 名）
+   *
+   * <p>与 {@link adminForm.privateBucket} 的关系：后者只改 URL 里的当前桶（后端按
+   * bucket 增删集合），前者一次性替换整个集合。两个都发时以后者为准。</p>
+   */
+  privateBuckets: "",
+  /**
+   * 链接默认有效期（分钟）
+   *
+   * <p>后端字段是毫秒（oneTimeTtlMs），此处用分钟便于输入。留空表示不改，
+   * 保持服务端现值——避免每次保存配置都把管理员手改过的值重置回默认 10 分钟。</p>
+   */
+  oneTimeTtlMinutes: "",
 });
 
 /** 能力接口不可用时的内置兜底选项（纯前端 CSS 滤镜） */
@@ -1305,6 +1343,12 @@ function applyConfigToForm(cfg: BucketConfig | null): void {
   adminForm.showTime = cfg.showTime ?? true;
   adminForm.imageFilter = cfg.imageFilter || "NONE";
   adminForm.privateBucket = cfg.private ?? false;
+  adminForm.privateBuckets = (cfg.privateBuckets ?? []).join(",");
+  // 后端是毫秒，换算成分钟回显；非正数（不该出现）时留空，避免显示成 0
+  adminForm.oneTimeTtlMinutes =
+    typeof cfg.oneTimeTtlMs === "number" && cfg.oneTimeTtlMs > 0
+      ? String(Math.round(cfg.oneTimeTtlMs / 60000))
+      : "";
 }
 
 /**
@@ -1329,11 +1373,25 @@ async function saveAdminConfig(): Promise<void> {
   }
   adminSaving.value = true;
   try {
-    const { privateBucket, ...rest } = adminForm;
+    const { privateBucket, privateBuckets, oneTimeTtlMinutes, ...rest } = adminForm;
+    // 过期时间：留空=不改（不发给后端）；填了则校验并换算成毫秒
+    let oneTimeTtlMs: number | undefined;
+    const ttlText = oneTimeTtlMinutes.trim();
+    if (ttlText !== "") {
+      const minutes = Number(ttlText);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        ElMessage.warning("链接默认有效期需为正数（分钟）");
+        adminSaving.value = false;
+        return;
+      }
+      oneTimeTtlMs = Math.round(minutes * 60_000);
+    }
     await setBucketConfig(bucket.value, tokenValue, {
       ...rest,
       watermark: adminForm.watermark.trim(),
       private: privateBucket,
+      privateBuckets: privateBuckets.split(",").map((s) => s.trim()).filter(Boolean),
+      ...(oneTimeTtlMs === undefined ? {} : { oneTimeTtlMs }),
     });
     localStorage.setItem(ADMIN_TOKEN_KEY, tokenValue);
     adminVisible.value = false;
@@ -1662,6 +1720,9 @@ function ctxAction(action: string) {
       break;
     case "onetime":
       if (row) openOneTime(row);
+      break;
+    case "expiryLink":
+      if (row) openQuickExpiry(row);
       break;
     case "distribute":
       if (row && !row.directory) openDistribute(row);
@@ -2149,18 +2210,27 @@ const previewVisible = ref(false);
 const previewLoading = ref(false);
 const previewName = ref("");
 const previewKey = ref("");
-const previewZoom = ref(100);
 const previewError = ref(false);
 const iframeKey = ref(0);
 const iframeLoading = ref(false);
 /** 预览弹层外壳（内容区），仅用于裁剪结构，不再充当拖拽手柄 */
 const previewShellRef = ref<HTMLElement | null>(null);
 
+/**
+ * 弹层标题：面板自带 header 已被移除（与 el-dialog 标题重复），
+ * 文件名改由这里统一承载。
+ */
+const previewTitle = computed(() => {
+  if (previewInnerPath.value) {
+    return `${previewName.value} / ${previewInnerPath.value}`;
+  }
+  return previewName.value;
+});
+
 
 async function openPreview(row: StorageObject): Promise<void> {
   previewName.value = row.name;
   previewKey.value = fullKey(row.name);
-  previewZoom.value = 100;
   previewError.value = false;
   previewForceServer.value = false;
   previewInnerPath.value = "";
@@ -2190,6 +2260,21 @@ const previewUsesClient = computed(() => isClientRenderable(previewName.value));
 const previewIsArchive = computed(() => kindOf(previewName.value) === "archive");
 
 /**
+ * 当前文件是否走图片面板（{@link PreviewImagePanel}）
+ *
+ * <p>图片此前走 iframe + {@code transform: scale()}：位图被浏览器插值重采样，
+ * 放大必然模糊；且容器层面拿不到图像像素，无法裁剪、无法保存。改为 {@code <img>}
+ * + Canvas 后，缩放/旋转/裁剪都作用在真实像素上，滚轮即可缩放，不必再挂顶部工具栏。</p>
+ */
+const showImagePanel = computed(() => kindOf(previewName.value) === "image");
+
+/** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
+function onImageSaved(): void {
+  void loadObjects();
+  ElMessage.success("图片已更新");
+}
+
+/**
  * 当前文件是否走 CAD 面板（{@link CadPreviewPanel}）。
  *
  * DXF 可出真实图形，DWG 只有版本信息——两者都归这个面板，
@@ -2207,17 +2292,46 @@ const previewIsCad = computed(() => kindOf(previewName.value) === "model");
  */
 const previewInnerPath = ref("");
 
+/**
+ * 包内条目是否走 CAD 面板（而不是 iframe）。
+ *
+ * <p>DXF / DWG 留在 iframe 里会被 {@code ThreeModelPreviewProvider} 抢走：它也声明了
+ * {@code dxf}，出的是透视相机 + 轨道控制的蓝色线框，没有文字、没有图层、没有图层列表。
+ * 于是同一张图在顶层是二维 CAD 面板、在包内变成三维查看器。改为同样走
+ * {@code ?format=cad&inner=} 数据通道 + {@link CadPreviewPanel}，两层表现一致。</p>
+ */
+const innerIsCad = computed(() => kindOf(innerEntryName.value) === "model");
+
+/** 包内条目文件名（取路径末段，供类型判定用） */
+const innerEntryName = computed(() => {
+  const p = previewInnerPath.value;
+  if (!p) {
+    return "";
+  }
+  const slash = p.lastIndexOf("/");
+  return slash >= 0 ? p.slice(slash + 1) : p;
+});
+
 /** 是否展示压缩包面板（选中压缩包且未下钻到包内文件） */
 const showArchivePanel = computed(
   () => previewIsArchive.value && previewInnerPath.value === "",
 );
 
 /** 是否展示 CAD 面板（DXF 出图形 / DWG 出头部信息） */
-const showCadPanel = computed(() => previewIsCad.value);
+const showCadPanel = computed(() => previewIsCad.value || innerIsCad.value);
 
-/** 预览包内条目：切到 iframe 通道渲染该文件 */
+/** CAD 面板解析的条目路径：顶层为空串，包内为包内路径 */
+const cadInnerPath = computed(() => (innerIsCad.value ? previewInnerPath.value : ""));
+
+/** 预览包内条目：CAD 类走数据面板，其余切到 iframe 通道 */
 function openArchiveEntry(path: string): void {
   previewInnerPath.value = path;
+  const slash = path.lastIndexOf("/");
+  const name = slash >= 0 ? path.slice(slash + 1) : path;
+  if (kindOf(name) === "model") {
+    // CAD 面板自己发请求，不需要 iframe 加载态
+    return;
+  }
   iframeLoading.value = true;
   iframeKey.value++;
 }
@@ -2287,22 +2401,27 @@ function onOfficeError(): void {
   previewError.value = true;
 }
 
-function toggleFullscreen(el?: HTMLElement): void {
-  const t = el || officePanelRef.value?.wrapRef || iframePanelRef.value?.wrapRef;
-  if (!t) return;
-  document.fullscreenElement ? document.exitFullscreen() : t.requestFullscreen();
-}
-
+/**
+ * 预览弹层快捷键。
+ *
+ * <p>缩放 / 全屏 / 帮助的工具条已按产品要求移除，故这里不再处理
+ * {@code + - 0 R F ?}：留着只会让按键「看起来有反应」却什么都不做，
+ * 例如 R 在图片面板里是旋转、在父组件里曾被当成重置缩放，两边含义还不一致。</p>
+ *
+ * <p>只保留 Esc：退出全屏，或在图片态直接关掉弹层。</p>
+ */
 function onPreviewKeydown(e: KeyboardEvent): void {
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-  switch (e.key) {
-    case "+": case "=": e.preventDefault(); previewZoom.value = Math.min(previewZoom.value + 25, 300); break;
-    case "-": e.preventDefault(); previewZoom.value = Math.max(previewZoom.value - 25, 25); break;
-    case "0": case "r": case "R": e.preventDefault(); previewZoom.value = 100; break;
-    case "f": case "F": if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFullscreen(); } break;
-    case "?": e.preventDefault(); (officePanelRef.value ?? iframePanelRef.value)?.toggleHelp(); break;
-    case "Escape": if (document.fullscreenElement) { e.preventDefault(); e.stopPropagation(); document.exitFullscreen(); } break;
+  if (e.key === "Escape") {
+    if (document.fullscreenElement) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.exitFullscreen();
+    } else if (showImagePanel.value) {
+      e.preventDefault();
+      previewVisible.value = false;
+    }
   }
 }
 watch(previewVisible, (v) => { v ? document.addEventListener("keydown", onPreviewKeydown) : document.removeEventListener("keydown", onPreviewKeydown); });
@@ -2359,6 +2478,88 @@ function openOneTime(row: StorageObject): void {
   // once 无需过期时间（展示默认值即可）
   oneTimeExpiry.value = 600;
   oneTimeVisible.value = true;
+}
+
+/* ================== 右键直出限时链接（自定义过期时间） ================== */
+
+/** 自定义过期弹框可见性 */
+const quickExpiryVisible = ref(false);
+/** 自定义过期输入（支持 30s / 15m / 2h / 7d / 纯数字秒） */
+const quickExpiryInput = ref("2h");
+const quickExpiryBusy = ref(false);
+const quickExpiryResult = ref("");
+const quickExpiryTarget = ref<{ name: string; key: string }>();
+
+/**
+ * 把用户输入的过期时长解析成秒
+ *
+ * <p>支持纯数字（按秒）、以及 s/m/h/d 后缀（与后端 {@code parseOneTimeExpiry}
+ * 的解析规则一致，避免前后端对同一个字符串理解不同）。</p>
+ *
+ * @param text 原始输入
+ * @returns 秒数；非法或超出范围返回 0
+ */
+function parseExpiryToSeconds(text: string): number {
+  const v = text.trim().toLowerCase();
+  if (!v) {
+    return 0;
+  }
+  const m = /^(\d+(?:\.\d+)?)\s*(s|m|h|d)?$/.exec(v);
+  if (!m) {
+    return 0;
+  }
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n <= 0) {
+    return 0;
+  }
+  const unit = m[2];
+  const factor = unit === "s" ? 1 : unit === "m" ? 60 : unit === "h" ? 3600 : unit === "d" ? 86400 : 1;
+  const seconds = Math.floor(n * factor);
+  // 上限与后端一致：30 天。再长就交给服务端拒绝，避免本地算出超大值才报错
+  return seconds > 0 && seconds <= 30 * 86400 ? seconds : 0;
+}
+
+/** 打开「自定义过期时间」弹框（右键直达，不经过一次性/限时二选一那一步） */
+function openQuickExpiry(row: StorageObject): void {
+  if (row.directory) {
+    ElMessage.warning("目录不支持生成访问链接");
+    return;
+  }
+  quickExpiryTarget.value = { name: row.name, key: fullKey(row.name) };
+  quickExpiryInput.value = "2h";
+  quickExpiryResult.value = "";
+  quickExpiryVisible.value = true;
+}
+
+/** 生成限时链接（有效期内可多次访问） */
+async function generateQuickExpiryLink(): Promise<void> {
+  if (!quickExpiryTarget.value) {
+    return;
+  }
+  const seconds = parseExpiryToSeconds(quickExpiryInput.value);
+  if (!seconds) {
+    ElMessage.warning("过期时间格式不对，例：30s / 15m / 2h / 7d 或纯数字秒（最长 30 天）");
+    return;
+  }
+  quickExpiryBusy.value = true;
+  try {
+    const res = await createOneTimeLink(bucket.value, quickExpiryTarget.value.key, seconds, "expiry");
+    quickExpiryResult.value = `${getServerBase().replace(/\/+$/, "")}${res.url}`;
+    ElMessage.success(`限时链接已生成（${quickExpiryInput.value.trim()} 内可多次访问）`);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "生成失败");
+  } finally {
+    quickExpiryBusy.value = false;
+  }
+}
+
+/** 复制自定义过期链接（复用一次性链接的剪贴板实现） */
+function copyQuickExpiryLink(): void {
+  if (!quickExpiryResult.value) {
+    return;
+  }
+  oneTimeLink.value = quickExpiryResult.value;
+  copyOneTimeLink();
 }
 
 async function generateOneTimeLink(): Promise<void> {
@@ -2722,7 +2923,7 @@ onUnmounted(() => {
             <div class="fs-lg-card__thumb" :class="item.directory ? 'icon-folder' : fileIconClass(item.name, false)">
               <img
                 v-if="!item.directory && kindOf(item.name) === 'image'"
-                :src="objectUrl(bucket, fullKey(item.name))"
+                :src="objectThumbUrl(item.name)"
                 class="fs-lg-card__frame"
                 :alt="item.name"
                 loading="lazy"
@@ -2940,6 +3141,16 @@ onUnmounted(() => {
             创建链接
           </button>
           <button
+            v-if="!ctxMenu.row!.directory"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('expiryLink')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            生成限时链接（自定义过期）
+          </button>
+          <button
             v-if="ctxMenu.row!.directory"
             type="button"
             class="fs-ctx__item"
@@ -3097,6 +3308,22 @@ onUnmounted(() => {
                 <el-radio-button :value="false">公共</el-radio-button>
                 <el-radio-button :value="true">私有</el-radio-button>
               </el-radio-group>
+            </div>
+            <div class="fs-admin__row fs-admin__row--stack">
+              <span class="fs-admin__label">全部私有桶 <i class="fs-admin__arrow">→</i></span>
+              <el-input
+                v-model="adminForm.privateBuckets"
+                placeholder="逗号分隔，如 local,private-bucket；留空表示全部公共"
+                clearable
+              />
+            </div>
+            <div class="fs-admin__row fs-admin__row--stack">
+              <span class="fs-admin__label">链接默认有效期 <i class="fs-admin__arrow">→</i></span>
+              <el-input
+                v-model="adminForm.oneTimeTtlMinutes"
+                placeholder="分钟，如 10；留空表示不修改"
+                clearable
+              />
             </div>
           </div>
         </section>
@@ -3302,6 +3529,37 @@ onUnmounted(() => {
       <el-alert v-if="oneTimeLink" :type="oneTimeType === 'once' ? 'warning' : 'success'" :closable="false" :title="oneTimeType === 'once' ? '该链接只能访问一次，访问后立即销毁' : '该链接在有效期内可多次访问，到期自动失效'" class="mt-3" />
     </el-dialog>
 
+    <!-- ===== 自定义过期时间的限时链接（右键直达）=====
+         与上面的「创建链接」分开：那个要先选类型再挑 9 档预设，
+         这个只填一个时长就出链接，适合知道自己要多久的场景。 -->
+    <el-dialog
+      v-model="quickExpiryVisible"
+      :title="`生成限时链接 — ${quickExpiryTarget?.name ?? ''}`"
+      width="440px"
+      :append-to-body="true"
+      destroy-on-close
+    >
+      <el-form label-width="80px">
+        <el-form-item label="过期时间">
+          <el-input
+            v-model="quickExpiryInput"
+            placeholder="如 30s / 15m / 2h / 7d，或纯数字秒"
+            clearable
+            @keyup.enter="generateQuickExpiryLink"
+          />
+        </el-form-item>
+        <el-form-item label="链接">
+          <el-input v-model="quickExpiryResult" placeholder="填好过期时间后点生成" readonly :disabled="!quickExpiryResult" />
+        </el-form-item>
+      </el-form>
+      <p class="fs-admin__tip">支持 s/m/h/d 单位，最长 30 天；有效期内可多次访问，到期自动失效</p>
+      <template #footer>
+        <el-button v-if="quickExpiryResult" :icon="Document" @click="copyQuickExpiryLink">复制链接</el-button>
+        <el-button v-else type="primary" :loading="quickExpiryBusy" :icon="Document" @click="generateQuickExpiryLink">生成</el-button>
+        <el-button @click="quickExpiryVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ===== 预览弹层 =====
          保留 header 并启用 el-dialog 自带的 draggable：手柄就是 header，只有按住标题栏才拖得动。
          内容区（Excel / Word / iframe / Office 组件）不再挂任何 mousedown —— 此前把拖拽接管到
@@ -3311,7 +3569,7 @@ onUnmounted(() => {
       v-model="previewVisible"
       class="fs-preview-dlg"
       width="min(1200px, 92vw)"
-      :title="previewName"
+      :title="previewTitle"
       :show-close="true"
       :draggable="true"
       :append-to-body="true"
@@ -3346,34 +3604,36 @@ onUnmounted(() => {
             :object-key="previewKey"
             :file-name="previewName"
             @open-entry="openArchiveEntry"
-            @close="previewVisible = false"
           />
           <CadPreviewPanel
             v-else-if="!previewError && showCadPanel"
             :bucket="bucket"
             :object-key="previewKey"
             :file-name="previewName"
-            @close="previewVisible = false"
+            :inner="cadInnerPath"
+          />
+          <PreviewImagePanel
+            v-else-if="!previewError && showImagePanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+            @saved="onImageSaved"
           />
           <PreviewOfficePanel
             v-else-if="!previewError && previewUsesClient && !previewForceServer"
             ref="officePanelRef"
-            v-model:zoom="previewZoom"
             v-model:loading="officeLoading"
             :src="previewFrameSrc"
             :file-name="previewName"
-            @fullscreen="toggleFullscreen()"
             @rendered="onOfficeRendered"
             @error="onOfficeError"
           />
           <PreviewIframePanel
             v-else-if="!previewError"
             ref="iframePanelRef"
-            v-model:zoom="previewZoom"
             :src="previewFrameSrc"
             :loading="iframeLoading"
             :frame-key="iframeKey"
-            @fullscreen="toggleFullscreen()"
             @load="onFrameLoad"
             @error="onFrameError"
           />
@@ -4678,6 +4938,19 @@ button.fs-stat:hover {
   gap: 12px;
   min-height: 46px;
   min-width: 0;
+}
+
+/* 纵向表单项：标签在上、输入框占满下一行。用于私有桶集合、链接有效期这类
+   需要整行宽度的输入，横向排布会把 label 挤到换行。 */
+.fs-admin__row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.fs-admin__row--stack .fs-admin__label {
+  white-space: normal;
 }
 
 .fs-admin__label {
