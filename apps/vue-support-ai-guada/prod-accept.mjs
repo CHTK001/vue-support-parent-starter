@@ -154,8 +154,10 @@ await page.screenshot({ path: `${SHOT}/pa-3-video.png`, clip: { x: 0, y: 0, widt
 
 // ---------- 5. video failure notice ----------
 console.log('\n=== 5. video submit: record + notice + persistence ===')
-// ElMessage auto-dismisses after ~3s, so sampling after 14s would always find nothing.
-// Record every toast that appears during the window instead of sampling once.
+// ElMessage auto-dismisses after ~3s, so a single sample later finds nothing.
+// Watch the DOM instead of polling: a MutationObserver sees every insert, so
+// a toast can never slip between two polls. The interval is kept as a belt for
+// texts that arrive by textContent mutation without a childList change.
 await page.evaluate(() => {
   window.__toasts = []
   const grab = () => {
@@ -164,6 +166,7 @@ await page.evaluate(() => {
       if (t && !window.__toasts.includes(t)) window.__toasts.push(t)
     }
   }
+  new MutationObserver(grab).observe(document.body, { childList: true, subtree: true })
   window.__toastTimer = setInterval(grab, 120)
 })
 
@@ -175,22 +178,45 @@ await page.waitForTimeout(700)
 const btnBefore = await page.evaluate(() => document.querySelector('.send-btn')?.disabled)
 chk('send enabled when idle with text', btnBefore === false, `disabled=${btnBefore}`)
 await page.keyboard.press('Enter')
-await page.waitForTimeout(14000)
+// Wait for *this* task to reach a terminal state instead of a fixed sleep:
+// a fixed 14s can end before the async submit has even reached the provider,
+// in which case there is nothing to toast about yet.
+let terminal = null
+for (let i = 0; i < 40; i++) {
+  await page.waitForTimeout(1000)
+  const seen = await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.wg-card:not(.is-skeleton)')].find((x) =>
+      x.innerText.includes('acceptance video probe'),
+    )
+    if (!c) return null
+    const badge = c.querySelector('.wg-badge')?.innerText?.trim() ?? ''
+    return { badge, text: c.innerText.replace(/\n+/g, ' | ').slice(0, 220) }
+  })
+  if (seen && /完成|失败|取消/.test(seen.badge)) {
+    terminal = seen
+    break
+  }
+}
 const afterCards = await page.evaluate(() => document.querySelectorAll('.wg-card:not(.is-skeleton)').length)
 chk('card added after submit', afterCards > beforeCards, `${beforeCards} -> ${afterCards}`)
+chk('the submitted card reaches a terminal state', !!terminal, terminal ? terminal.badge : 'still running after 40s')
 const notice = await page.evaluate(() => {
   clearInterval(window.__toastTimer)
   return window.__toasts ?? []
 })
-const voidCard = await page.evaluate(() => {
-  const c = document.querySelector('.wg-card.is-void')
-  return c ? c.innerText.replace(/\n+/g, ' | ').slice(0, 220) : null
-})
+// The void card is located by this run's own prompt, never by .is-void alone:
+// a bare querySelector('.wg-card.is-void') happily returns the void card left
+// over from section 2, which makes the check pass on stale state.
+const voidCard = terminal?.text ?? null
 console.log(`  toast: ${notice.join(' / ') || '(none)'}`)
-console.log(`  void card: ${voidCard || '(none)'}`)
+console.log(`  this-run card: ${voidCard || '(none)'}`)
 if (notice.length) chk('failure toast shown', /供应商|稍后|Key/.test(notice.join(' ')), notice[0])
 else chk('failure toast shown', false, 'no toast captured')
-chk('void card carries our message', !!voidCard && /该供应商|稍后重试|API Key/.test(voidCard) && !/系统繁忙/.test(voidCard || ''), (voidCard || '').slice(0, 60))
+chk(
+  'void card carries our message',
+  !!voidCard && /该供应商|稍后重试|API Key/.test(voidCard) && !/系统繁忙/.test(voidCard || ''),
+  (voidCard || '').slice(0, 60),
+)
 await page.screenshot({ path: `${SHOT}/pa-4-failure.png` })
 
 // ---------- 6. refresh keeps record ----------
@@ -259,9 +285,15 @@ if (await del.count()) {
 // ---------- 9. settings -> file storage ----------
 console.log('\n=== 9. settings: file storage entry ===')
 await page.goto(`${FE}/setting`, { waitUntil: 'domcontentloaded' })
-await page.waitForTimeout(5000)
+// Wait for the entry itself instead of a fixed sleep: the settings page mounts
+// its sidebar asynchronously, and a 5s sleep intermittently runs before the
+// tab exists, which reported "tab not found" on a page that has it.
 const fsTab = page.locator('a,button,li,div,span').filter({ hasText: /^\s*文件存储\s*$/ }).last()
-if (await fsTab.count()) {
+const fsFound = await fsTab
+  .waitFor({ state: 'visible', timeout: 30000 })
+  .then(() => true)
+  .catch(() => false)
+if (fsFound) {
   await fsTab.click({ force: true })
   await page.waitForTimeout(7000)
   const fsView = await page.evaluate(() => ({
