@@ -60,7 +60,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { htmlToMathText, renderMixedText, renderRichWithMath } from "../../utils/mathText";
 
 /** 卷头 / 纸张 / 模板设置（只保留预览用到的字段，其余忽略） */
-interface PreviewHeader {
+export interface PreviewHeader {
   /** 试卷名称；为空时显示「未命名试卷」 */
   name?: string;
   /** 学科，进入首页信息行 */
@@ -82,7 +82,7 @@ interface PreviewHeader {
 }
 
 /** 一道题（预览所需的最小字段集） */
-interface PreviewQuestion {
+export interface PreviewQuestion {
   /** 题目标识，用作渲染 key */
   questionId: number;
   /** 题型码值，决定基准高度与作答留白 */
