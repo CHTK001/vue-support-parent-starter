@@ -10,6 +10,7 @@
 -->
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
+import type { Component } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReFlowGraph from "@repo/ui/re-flow-graph";
@@ -20,20 +21,32 @@ import ReSwitch from "@repo/ui/re-switch";
 import ReTab from "@repo/ui/re-tab";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
-import FieldTable from "./FieldTable.vue";
-import MappingEditor from "./MappingEditor.vue";
 import PairsEditor from "./PairsEditor.vue";
+import commentForm from "./nodes/commentForm.vue";
+import databaseForm from "./nodes/databaseForm.vue";
+import dedupForm from "./nodes/dedupForm.vue";
+import endForm from "./nodes/endForm.vue";
+import extractForm from "./nodes/extractForm.vue";
+import genericForm from "./nodes/genericForm.vue";
+import linkForm from "./nodes/linkForm.vue";
+import outputForm from "./nodes/outputForm.vue";
+import processForm from "./nodes/processForm.vue";
+import requestForm from "./nodes/requestForm.vue";
+import scriptForm from "./nodes/scriptForm.vue";
+import sleepForm from "./nodes/sleepForm.vue";
+import sqlForm from "./nodes/sqlForm.vue";
+import startForm from "./nodes/startForm.vue";
+import variableForm from "./nodes/variableForm.vue";
 import {
   createNode,
   emptyDsl,
   hasCycle,
   indexMetas,
-  pairPlaceholder,
   pairPrefix,
-  pairsOf,
   replacePairs,
 } from "../utils/dsl";
 import type { ParamPair } from "../utils/dsl";
+import type { NodeForm, NodeFormContext } from "./nodes/paramContext";
 import type {
   FlowEdge,
   FlowEdgeKind,
@@ -73,10 +86,12 @@ const props = defineProps<{
    * 流程预览图与运行回放都走这个模式——它们要的是同一张画布，
    * 不另写一套渲染，回放时只改 states 就能让节点逐个变色。
    *
-   * 注意：{@code @repo/ui/re-flow-graph} 是按主题加载的组件，本应用装的是 koi 主题，
-   * 它的开关叫 {@code editable}（内部翻译成 readonly / showPalette / showProperties）。
-   * 往它身上传 readonly 只会被 fallthrough 到外壳、又立刻被包装层的显式绑定覆盖，
-   * 结果是「永远只读」——这里必须传 editable。
+   * 注意：{@code @repo/ui/re-flow-graph} 是按主题加载的组件，两个主题的开关名不一样：
+   * koi 主题有 {@code editable}，内部翻译成 readonly / showPalette / showProperties；
+   * default 主题只有 {@code readonly}，没有 {@code editable}。
+   * 所以两个都传：koi 下 {@code editable} 生效、{@code readonly} 是无害的 fallthrough
+   * （会被 koi 壳的显式绑定覆盖）；default 下反过来。
+   * 少传一个的后果是切到另一主题时只读态静默失效 —— 组件不报错、画布照旧可拖。
    */
   readonly?: boolean;
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
@@ -108,14 +123,6 @@ interface NodeCanvas {
 interface EdgeCanvas {
   condition?: string;
   exceptionFlow?: string;
-}
-
-interface NodeForm {
-  id: string;
-  shape: string;
-  name: string;
-  params: CollectParam[];
-  fields: CollectExtractField[];
 }
 
 interface EdgeForm {
@@ -159,36 +166,22 @@ const EXCEPTION_OPTIONS = [
   { value: "1", label: "仅上游异常时流转" },
 ];
 
-const TABS = [
+/**
+ * 属性面板页签。
+ *
+ * <p>「连线」「流程设置」按要求停用：页签直接禁用、点不动，内容仍保留在下方插槽里，
+ * 以便日后恢复。因此设计器也不会再主动切到这两个页签。</p>
+ */
+const TABS: { name: TabKey; label: string; disabled?: boolean }[] = [
   { name: "node", label: "节点参数" },
-  { name: "edge", label: "连线" },
-  { name: "flow", label: "流程设置" },
+  { name: "edge", label: "连线", disabled: true },
+  { name: "flow", label: "流程设置", disabled: true },
 ];
-
-/** 同一个枚举值在不同参数里语义不同（all 在"继承上游变量"里是全部继承，在"变量回写"里是全部回写），按参数名覆盖 */
-const OPTION_LABELS: Record<string, string> = {
-  "0": "否",
-  "1": "是",
-  branch: "仅本分支",
-  global: "写入全局",
-  flow: "本流程",
-  task: "本次任务",
-  single: "单条抽取",
-  list: "列表抽行",
-};
-
-const PARAM_OPTION_LABELS: Record<string, string> = {
-  "inherit:all": "全部继承",
-  "inherit:none": "不继承",
-  "writeBack:changed": "仅回写改动",
-  "writeBack:all": "全部回写",
-  "writeBack:none": "不回写",
-};
 
 const graphData = ref<FlowGraphData>({ nodes: [], edges: [] });
 const flow = ref<FlowLevel>(emptyDsl());
 const engine = shallowRef<FlowGraphEngine | null>(null);
-const tab = ref<TabKey>("flow");
+const tab = ref<TabKey>("node");
 const nodeForm = ref<NodeForm | null>(null);
 const edgeForm = ref<EdgeForm | null>(null);
 
@@ -212,14 +205,22 @@ let applying = false;
 
 const metaMap = computed(() => indexMetas(props.metas));
 
+/** 开始节点类型标识，与 ReFlowGraph 的 start-type / 后端 CollectGraph.checkStartEnd() 口径一致 */
+const START_TYPE = "start";
+
+/** 画布上是否已存在开始节点：true 时调色板隐藏「开始」项，把后端的「有且仅有一个 start」提前到编辑期 */
+const hasStartNode = ref(false);
+
 const nodeTypes = computed<FlowNodeTypeDef[]>(() =>
-  props.metas.map(meta => ({
-    type: meta.shape,
-    label: meta.label,
-    group: meta.group || "其他",
-    color: GROUP_COLORS[meta.group ?? ""] ?? "#5b6b7b",
-    tips: [meta.description, meta.outputVariable].filter(Boolean).join("\n"),
-  })),
+  props.metas
+    .filter(meta => !(meta.shape === START_TYPE && hasStartNode.value))
+    .map(meta => ({
+      type: meta.shape,
+      label: meta.label,
+      group: meta.group || "其他",
+      color: GROUP_COLORS[meta.group ?? ""] ?? "#5b6b7b",
+      tips: [meta.description, meta.outputVariable].filter(Boolean).join("\n"),
+    })),
 );
 
 const selectedMeta = computed(() =>
@@ -252,15 +253,6 @@ const edgeFlowText = computed(() =>
 
 function text(value: unknown): string {
   return value === null || value === undefined ? "" : String(value);
-}
-
-function optionLabel(param: CollectParamMeta, value: string): string {
-  return PARAM_OPTION_LABELS[`${param.name}:${value}`] ?? OPTION_LABELS[value] ?? value;
-}
-
-/** ReSelect 吃的是对象字面量数组，自定义接口不能直接赋值，故逐项新建 */
-function optionsOf(param: CollectParamMeta): { value: string; label: string }[] {
-  return (param.options ?? []).map(item => ({ value: item, label: optionLabel(param, item) }));
 }
 
 /* ------------------------------ DSL ↔ 画布换算 ------------------------------ */
@@ -406,11 +398,6 @@ function paramOf(name: string): string {
   return nodeForm.value?.params.find(item => item.name === name)?.value ?? "";
 }
 
-function paramNumber(name: string): number | undefined {
-  const value = paramOf(name);
-  return value === "" ? undefined : Number(value);
-}
-
 /* --------------------------- 数据源联动（表 / 字段映射） --------------------------- */
 
 /*
@@ -544,10 +531,6 @@ watch(
   { immediate: true },
 );
 
-function nodePairs(param: CollectParamMeta): ParamPair[] {
-  return pairsOf({ params: nodeForm.value?.params }, pairPrefix(param.name));
-}
-
 function writeNodePairs(param: CollectParamMeta, pairs: ParamPair[]): void {
   const form = nodeForm.value;
   if (!form) return;
@@ -563,6 +546,53 @@ function writeFields(fields: CollectExtractField[]): void {
   form.fields = cloneFields(fields);
   pushNode();
 }
+
+/** shape → 专属表单组件；未登记的类型回落到通用表单，保证不漏节点类型 */
+const FORM_BY_SHAPE: Record<string, Component> = {
+  start: startForm,
+  request: requestForm,
+  extract: extractForm,
+  link: linkForm,
+  variable: variableForm,
+  database: databaseForm,
+  output: outputForm,
+  sql: sqlForm,
+  dedup: dedupForm,
+  sleep: sleepForm,
+  script: scriptForm,
+  process: processForm,
+  comment: commentForm,
+  end: endForm,
+};
+
+/** 当前节点该渲染的表单组件 */
+const activeForm = computed<Component>(() =>
+  nodeForm.value ? FORM_BY_SHAPE[nodeForm.value.shape] ?? genericForm : genericForm,
+);
+
+/**
+ * 表单共享上下文。
+ *
+ * <p>数据源联动、下拉候选这些状态仍由 FlowDesigner 持有，打包成一个对象下发给各 shape 表单，
+ * 避免每个表单各存一份导致状态不一致。</p>
+ */
+const formContext = computed<NodeFormContext>(() => ({
+  flowOptions: flowOptionsOf.value,
+  datasourceOptions: datasourceOptionsOf.value,
+  tableOptions: tableOptions.value,
+  tablesLoading: tablesLoading.value,
+  tablePlaceholder: tablePlaceholder.value,
+  activeColumns: activeColumns.value,
+  activeTable: activeTable.value,
+  tableExists: tableExists.value,
+  columnsLoading: columnsLoading.value,
+  columnsError: columnsError.value,
+  columnKey: activeColumnKey.value,
+  refreshColumns: () => {
+    void loadColumnsForActive(true);
+  },
+  writeFields,
+}));
 
 function patchEdge(changes: Partial<EdgeForm>): void {
   const form = edgeForm.value;
@@ -635,12 +665,52 @@ function syncForms(data: FlowGraphData): void {
   }
 }
 
+/**
+ * 刷新「画布上是否已有开始节点」。
+ *
+ * <p>以引擎数据为准（graphData 是灌图用的 prop，用户编辑后不会同步），引擎未就绪时退回 prop 数据。</p>
+ */
+function refreshStartPresence(): void {
+  const data = engine.value?.getData() ?? graphData.value;
+  hasStartNode.value = data.nodes.some(node => node.type === START_TYPE);
+}
+
+/**
+ * 拦截多余的开始节点。
+ *
+ * <p>后端 CollectGraph.checkStartEnd() 要求有且仅有一个 start；调色板已按 hasStartNode 隐藏「开始」项，
+ * 但连续双击、复制粘贴等路径仍可能一次落进两个，这里兜底删掉新增的并给出中文提示。</p>
+ *
+ * @param data 本次 change 的图数据
+ * @returns true 表示已回滚多余开始节点，本次改动不再标记为脏
+ */
+function rejectExtraStart(data: FlowGraphData): boolean {
+  const starts = data.nodes.filter(node => node.type === START_TYPE);
+  if (starts.length <= 1) {
+    return false;
+  }
+  const extra = starts.slice(1).map(node => node.id);
+  msgError("流程只能有一个开始节点，已阻止新增");
+  applying = true;
+  try {
+    engine.value?.removeNodes(extra);
+    if (nodeForm.value && extra.includes(nodeForm.value.id)) {
+      nodeForm.value = null;
+    }
+  } finally {
+    applying = false;
+  }
+  refreshStartPresence();
+  return true;
+}
+
 function onGraphChange(data: FlowGraphData): void {
   if (applying) return;
   if (!engine.value) {
     pending = false;
     return;
   }
+  refreshStartPresence();
   applying = true;
   try {
     seedCanvasNodes(data);
@@ -658,6 +728,9 @@ function onGraphChange(data: FlowGraphData): void {
   if (signatureOf(data) === loadedSignature) {
     return;
   }
+  if (rejectExtraStart(data)) {
+    return;
+  }
   emit("change");
 }
 
@@ -667,8 +740,9 @@ function onSelect(selection: FlowSelection): void {
     readNodeForm(selection.node);
     tab.value = "node";
   } else {
+    // 「连线」页签已停用：记录连线表单但不切页签，并清掉节点表单，避免展示上一个节点的参数
     readEdgeForm(selection.edge);
-    tab.value = "edge";
+    nodeForm.value = null;
   }
 }
 
@@ -693,7 +767,6 @@ function onEdgeConnected(edge: FlowEdge): void {
     data: { condition: "", exceptionFlow: "0" },
   });
   readEdgeForm({ ...edge, kind: "normal", label: "", transfer: true, data: {} });
-  tab.value = "edge";
 }
 
 function onReady(instance: FlowGraphEngine): void {
@@ -709,6 +782,7 @@ function onReady(instance: FlowGraphEngine): void {
   // 只在 watcher 里灌又会在「引擎未就绪」时被跳过——两者互相错开就永远画不出图。
   requestLoad(props.initialDsl ?? wantedDsl);
   applyStates();
+  refreshStartPresence();
 }
 
 /**
@@ -794,7 +868,8 @@ function load(dsl: CollectDsl | null | undefined): void {
   };
   nodeForm.value = null;
   edgeForm.value = null;
-  tab.value = "flow";
+  // 「流程设置」页签已停用，载入后停在「节点参数」页签
+  tab.value = "node";
   const data = toGraphData(source);
   // 两个分支都要写 graphData：ReFlowGraph 的「N 节点 / M 连线」统计只在 data prop
   // 变化时刷新（内部 syncStat），只调 engine.setData 会让画布有图而计数仍是 0（实测）。
@@ -804,6 +879,7 @@ function load(dsl: CollectDsl | null | undefined): void {
     engine.value.setData(data);
     applyStates();
   }
+  refreshStartPresence();
   // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
   loadedSignature = signatureOf(data);
 }
@@ -838,6 +914,10 @@ function addNode(shape: string, at?: { x: number; y: number }): void {
     msgError(`节点类型未注册: ${shape}`);
     return;
   }
+  if (shape === START_TYPE && hasStartNode.value) {
+    msgError("流程只能有一个开始节点，已阻止新增");
+    return;
+  }
   engine.value?.addNode(shape, at?.x, at?.y);
 }
 
@@ -860,6 +940,7 @@ defineExpose({ load, getGraph, addNode, startWith });
       :node-types="nodeTypes"
       :properties-title="panelTitle"
       :editable="!readonly"
+      :readonly="readonly"
       start-type="start"
       end-type="end"
       @ready="onReady"
@@ -908,143 +989,15 @@ defineExpose({ load, getGraph, addNode, startWith });
                 </div>
               </div>
 
-              <div
-                v-for="param in selectedMeta.params"
-                :key="param.name"
-                  :class="[
-                    'field',
-                    {
-                      'field-wide':
-                        param.type === 'textarea' ||
-                        param.type === 'pairs' ||
-                        param.type === 'mapping' ||
-                        param.type === 'table',
-                    },
-                  ]"
-                :data-param="param.name"
-              >
-                <div class="field-label">
-                  {{ param.label }}<span v-if="param.required" class="req">*</span>
-                </div>
-
-                <ReInput
-                  v-if="param.type === 'textarea'"
-                  type="textarea"
-                  :rows="3"
-                  :placeholder="param.tip || ''"
-                  :model-value="paramOf(param.name)"
-                  @update:model-value="(v: unknown) => setParam(param, v)"
-                />
-                <ReInputNumber
-                  v-else-if="param.type === 'number'"
-                  :controls="false"
-                  
-                  :placeholder="param.tip || ''"
-                  :model-value="paramNumber(param.name)"
-                  @update:model-value="(v: number | undefined) => setParam(param, v)"
-                />
-                <ReSwitch
-                  v-else-if="param.type === 'switch'"
-                  :model-value="paramOf(param.name) === '1'"
-                  @update:model-value="(v: boolean | string | number) => setParam(param, v ? '1' : '0')"
-                />
-                <ReSelect
-                  v-else-if="param.type === 'select'"
-                  
-                  class="pane-fill"
-                  :placeholder="param.tip || '请选择'"
-                  :model-value="paramOf(param.name)"
-                  :options="optionsOf(param)"
-                  @update:model-value="
-                    (v: string | number | (string | number)[] | null) => setParam(param, v)
-                  "
-                />
-                <ReSelect
-                  v-else-if="param.type === 'flow' && flowOptionsOf.length"
-                  
-                  filterable
-                  clearable
-                  class="pane-fill"
-                  placeholder="选择子流程"
-                  :model-value="paramOf(param.name)"
-                  :options="flowOptionsOf"
-                  @update:model-value="
-                    (v: string | number | (string | number)[] | null) => setParam(param, v)
-                  "
-                />
-                  <ReSelect
-                    v-else-if="param.type === 'datasource'"
-                    
-                    filterable
-                    class="pane-fill"
-                    placeholder="选择数据源"
-                    :model-value="paramOf(param.name) || param.defaultValue || ''"
-                    :options="datasourceOptionsOf"
-                    @update:model-value="
-                      (v: string | number | (string | number)[] | null) => setParam(param, v)
-                    "
-                  />
-                  <!--
-                    allow-create + default-first-option 必须成对用，缺一个就配不出新表：
-                    allow-create 负责在下拉顶部渲染「新建 xxx」这条真实 el-option，
-                    而 default-first-option 才让 el-select 把高亮落到它上面——
-                    没有它，hoveringIndex 停在 -1（useSelect.updateHoveringIndex），
-                    敲回车什么也不会发生，用户必须先按一下 ↓ 才建得出来。
-                    ReSelect 的 filter-method 只收集远程搜索词、不过滤静态候选，
-                    所以这里还得靠 default-first-option 兜住「回车选第一个」。
-                  -->
-                  <ReSelect
-                    v-else-if="param.type === 'table'"
-                    
-                    filterable
-                    allow-create
-                    default-first-option
-                    clearable
-                    class="pane-fill"
-                    :loading="tablesLoading"
-                    :placeholder="tablePlaceholder"
-                    :model-value="paramOf(param.name)"
-                    :options="tableOptions"
-                    @update:model-value="
-                      (v: string | number | (string | number)[] | null) => setParam(param, v)
-                    "
-                  />
-                  <MappingEditor
-                    v-else-if="param.type === 'mapping'"
-                    :key="`${nodeForm.id}:${param.name}:${activeColumnKey}`"
-                    :model-value="nodePairs(param)"
-                    :columns="activeColumns"
-                    :table="activeTable"
-                    :table-exists="tableExists"
-                    :loading="columnsLoading"
-                    :load-error="columnsError"
-                    :on-refresh="() => loadColumnsForActive(true)"
-                    @update:model-value="(v: ParamPair[]) => writeNodePairs(param, v)"
-                  />
-                  <PairsEditor
-                    v-else-if="param.type === 'pairs'"
-                  :key="`${nodeForm.id}:${param.name}`"
-                  :model-value="nodePairs(param)"
-                  :key-placeholder="pairPlaceholder(param.name)"
-                  value-placeholder="值 / ${表达式}"
-                  @update:model-value="(v: ParamPair[]) => writeNodePairs(param, v)"
-                />
-                <ReInput
-                  v-else
-                  
-                  :placeholder="param.tip || ''"
-                  :model-value="paramOf(param.name)"
-                  @update:model-value="(v: unknown) => setParam(param, v)"
-                />
-                <div v-if="param.tip && param.type !== 'textarea'" class="field-tip">
-                  {{ param.tip }}
-                </div>
-              </div>
-
-              <div v-if="selectedMeta.fieldEditor" class="field field-wide">
-                <div class="field-label">抽取字段</div>
-                <FieldTable :model-value="nodeForm.fields" @update:model-value="writeFields"/>
-              </div>
+              <!-- 参数表单按 shape 拆成独立组件，写回仍走上面的 setParam / writeNodePairs / writeFields -->
+              <component
+                :is="activeForm"
+                :node="nodeForm"
+                :meta="selectedMeta"
+                :ctx="formContext"
+                @set-param="setParam"
+                @set-pairs="writeNodePairs"
+              />
             </div>
             <div v-else class="pane-hint">
               点击画布中的节点即可编辑参数；双击节点可就地改名

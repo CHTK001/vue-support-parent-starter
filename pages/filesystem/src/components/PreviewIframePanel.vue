@@ -9,6 +9,7 @@
  * @since 2026/09/10
  */
 import { ref } from "vue";
+import PreviewToolbar from "./PreviewToolbar.vue";
 import PreviewIframeOverlay from "./PreviewIframeOverlay.vue";
 
 /** 缩放比例（v-model） */
@@ -33,6 +34,8 @@ const emit = defineEmits<{
 const wrapRef = ref<HTMLDivElement>();
 /** iframe DOM 引用 */
 const iframeRef = ref<HTMLIFrameElement>();
+/** 工具栏引用（供父组件调 toggleHelp） */
+const toolbarRef = ref<InstanceType<typeof PreviewToolbar>>();
 
 /** 切换快捷键帮助弹窗 */
 function toggleHelp(): void {
@@ -43,6 +46,7 @@ defineExpose({ wrapRef, iframeRef, toggleHelp });
 
 <template>
   <div class="preview-iframe-panel">
+    <PreviewToolbar ref="toolbarRef" v-model:zoom="zoom" @fullscreen="emit('fullscreen')" />
     <div
       ref="wrapRef"
       class="preview-iframe-panel__wrap"

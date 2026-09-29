@@ -680,14 +680,25 @@ function ctxCommand(cmd: string): void {
   if (cmd === "edit") { openEdit(h); return; }
   runRowCommand(cmd, h);
 }
-/** 表格根上的原生右键：把 <tr> 按行序号映射回主机并打开统一菜单（主表体/固定列同序） */
+/** 表格根上的原生右键：把 <tr> 按行序号映射回主机并打开统一菜单（主表体/固定列同序）
+ *
+ * <p>选择器必须**同时**认两套引擎的行类名：本页 ReTable 未传 engine，当前走默认的
+ * element 引擎（{@code tr.el-table__row}）；一旦该表格改用 {@code engine="vxe"}，
+ * 行会变成 {@code tr.vxe-body--row}，只写 element 那支时 closest 返回 null、
+ * 这里直接 return，右键菜单**静默失效且不报错**，排查成本很高。</p>
+ *
+ * <p>固定列（element 的 fixed / vxe 的 fixed-right wrapper）会各自渲染一份同序、
+ * 同数量的行，所以在任一 tbody 内取 :scope 直接子行，序号都与 filtered 对齐。</p>
+ */
 function onTableContextMenu(event: MouseEvent): void {
   const target = event.target as HTMLElement | null;
-  const tr = target?.closest?.("tr.el-table__row") as HTMLElement | null;
+  const tr = target?.closest?.("tr.el-table__row, tr.vxe-body--row") as HTMLElement | null;
   if (!tr) return;
   const tbody = tr.parentElement;
   if (!tbody) return;
-  const rows = Array.from(tbody.querySelectorAll(":scope > tr.el-table__row"));
+  const rows = Array.from(
+    tbody.querySelectorAll(":scope > tr.el-table__row, :scope > tr.vxe-body--row"),
+  );
   const idx = rows.indexOf(tr);
   const h = filtered.value[idx];
   if (h) openCtxMenu(event, h);

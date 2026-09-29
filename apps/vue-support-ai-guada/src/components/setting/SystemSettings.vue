@@ -107,6 +107,15 @@
                         <template v-else-if="currentTabValue === 'file-storage'">
                             <FileStorageManage class="h-full" />
                         </template>
+                        <!--
+                          图片库：以图搜图底库的独立管理页。
+                          从「默认模型」页底部提上来 —— 底库需要日常增删，
+                          藏在 13 个分组的折叠面板最下方等于没有入口。
+                        -->
+                        <template v-else-if="currentTabValue === 'image-library'">
+                            <!-- 面板自带页头与副标题，此处不再重复一段说明文字 -->
+                            <ImageLibraryPanel />
+                        </template>
                     </ScrollContainer>
                 </div>
             </div>
@@ -137,6 +146,8 @@ import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
 // 复用 pages/filesystem 的文件存储管理页（同一份实现，不复制）
 import { FileStorageManage } from '@pages/filesystem'
+// 以图搜图图片库管理面板（同一份实现，被「图片库」tab 复用）
+import ImageLibraryPanel from './ImageLibraryPanel.vue'
 
 import {
     Grid16Regular,
@@ -189,6 +200,7 @@ const groupMap = computed<Record<string, string>>(() => ({
     services: t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
     'file-storage': t('settings.system.groups.system'),
+    'image-library': t('settings.system.groups.system'),
 }))
 
 // 设置项菜单
@@ -278,6 +290,17 @@ const sidebarItems = computed(() => [
         label: '文件存储',
         path: 'file-storage',
         icon: Folder20Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
+    {
+        // 图片库：以图搜图的检索底库。底库是全局共享资源且直接决定检索准确度，
+        // 普通用户能改等于向量索引可被任意污染，故与「服务配置」同级、仅管理员可见。
+        // 曾内嵌在「默认模型」页底部，用户反馈设置中心里看不到入口 —— 13 个分组的
+        // 折叠面板把真正需要日常维护的功能埋在最下方，故提为独立 tab。
+        label: '图片库',
+        path: 'image-library',
+        icon: Image24Regular,
         roles: ['primary'],
         adminOnly: true,
     },
@@ -383,3 +406,21 @@ onMounted(() => {
     })
 })
 </script>
+
+<style scoped>
+/* 图片库 tab 的外层容器：ScrollContainer 已给 p-4，这里只补上下留白与提示文字 */
+.image-library-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 24px;
+}
+
+.image-library-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--el-text-color-secondary, #6b7280);
+}
+</style>
+

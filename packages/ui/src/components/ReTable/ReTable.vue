@@ -254,15 +254,17 @@ const props = withDefaults(
      */
     engine?: "element" | "vxe";
     /**
-     * 是否在工具栏显示「引擎切换器」（Element / VXE）。
+     * 调试模式：在工具栏暴露开发 / 验收用的辅助控件。
      *
-     * <p>默认 false，只给需要在两个引擎之间对照验收的场景用。切换会 emit
-     * {@code update:engine}，配 {@code v-model:engine} 双向绑定。</p>
+     * <p>与 {@code ReGraph} / {@code ReGraph3D} 的 {@code debug} 同一口径（默认 false），
+     * 不是业务功能开关，不进产品界面。目前它显示的是「引擎切换器」
+     * （Element / VXE 分段控件），用来对照两套引擎的渲染差异。</p>
      *
-     * <p>同一个表格切引擎会换掉整棵表格 DOM（列宽、行高、边框都按引擎各自的实现走），
-     * 所以这是调试 / 选型向的能力，不适合当常规功能暴露给业务用户。</p>
+     * <p>切换引擎会换掉整棵表格 DOM（列宽、行高、边框都按各自实现走），
+     * 属调试 / 选型向能力。切换通过 {@code update:engine} 抛出，
+     * 页面用 {@code v-model:engine} 接住；不接也能切，只是无法持久化。</p>
      */
-    engineSwitch?: boolean;
+    debug?: boolean;
     /** 是否启用行拖拽排序 */
     rowDraggable?: boolean;
     /** 拖拽排序字段名，默认sort */
@@ -317,7 +319,7 @@ const props = withDefaults(
     settingsTriggerText: "表格设置",
     layout: "table",
     layoutSwitch: false,
-    engineSwitch: false,
+    debug: false,
     layoutPersist: true,
     layouts: () => ["table", "view", "card"],
     layoutLabels: () => ({}),
@@ -729,16 +731,46 @@ const searchGapStyle = computed(() => ({ marginBottom: `${props.searchGap ?? 0}p
 function onSearchModelUpdate(value: Record<string, unknown>): void {
   emit("update:searchModel", value);
 }
+/**
+ * 重新加载远程数据，但**避开与 watch(internalParamsKey) 的重复**。
+ *
+ * <p>为什么需要这个：搜索按钮的流程是「emit('search') → 页面同步改 params →
+ * 组件重新加载」。页面改完 params 会让 {@code watch(internalParamsKey)} 自己
+ * 排一次 dsReload，如果这里再排一次，<strong>一次搜索就打两遍接口</strong>。
+ * 早先这里是直接同步 reload()，于是变成「先用旧条件打一遍（props 还没更新），
+ * 再由 watch 用新条件打一遍」—— 既重复又有一遍是脏数据。</p>
+ *
+ * <p>为什么不能干脆删掉这里的 reload：watch 有两道闸门
+ * （{@code isRemote} 与 {@code props.autoReload}），而
+ * {@code UserManage.vue} 就是 {@code :auto-reload="false"} + 内置搜索 ——
+ * 对它来说 watch 永不触发，这里是搜索唯一的驱动。</p>
+ *
+ * <p>所以判据是「watch 这次会不会自己加载」，会就交给它，不会才补一次。
+ * 比较的是 {@code internalParamsKey} 而不是 params 本身：key 与 watch 同源，
+ * 才能和 watch 的触发条件对齐。</p>
+ */
+function reloadUnlessWatchWill(): void {
+  const keyBefore = internalParamsKey.value;
+  nextTick(() => {
+    const watchWillReload = isRemote.value && props.autoReload && internalParamsKey.value !== keyBefore;
+    if (!watchWillReload) {
+      void reload();
+    }
+  });
+}
+
 function onBuiltinSearch(): void {
   emit("search");
-  void reload();
+  reloadUnlessWatchWill();
 }
 function onBuiltinSearchReset(): void {
+  // 重置同样只 emit，靠页面改 params 触发 watch 重新加载。
+  // 这里刻意不补 reload：params 没变时那一次是白发。
   emit("search-reset");
 }
 function onBuiltinSearchRefresh(): void {
   emit("refresh");
-  void reload();
+  reloadUnlessWatchWill();
 }
 const ctxMenuX = ref(0);
 const ctxMenuY = ref(0);
@@ -2332,16 +2364,15 @@ const LAYOUT_ICON: Record<ReTableSwitchLayout, unknown> = { table: Menu, view: V
 /**
  * 是否在工具条显示「行拖拽」开关。
  *
- * <p>2026-09-29 改为常显。原先挂在 {@code v-if="rowDraggable"} 上，而全仓 40+ 个
- * ReTable 调用方里只有个别页面传了这个属性，结果绝大多数页面的工具条上根本没有
- * 拖拽入口，想试都试不了。开关本身就是「要不要用」的决定权——点一下进拖拽态、
- * 再点一下退出，不需要页面预先声明。</p>
+ * <p><b>默认关闭</b>：开关跟随 {@code rowDraggable} 属性，页面不传就没有拖拽入口。</p>
  *
- * <p>{@code rowDraggable} 属性保留：它仍决定行是否渲染成 {@code cursor: grab}
- * （拖拽态的视觉暗示），只是不再挡开关。</p>
+ * <p>2026-09-29 先改成了常显，随后按要求回退。常显的理由（让所有页面都能试拖拽）
+ * 不成立 —— 拖拽是**有序语义**，页面得先有排序字段、还得实现拖拽后的持久化
+ * （见 {@code sortField} / {@code @row-sort}），乱开一个入口只会让用户点了发现
+ * 排序存不下来。所以入口应由页面显式声明，不是组件替它决定。</p>
  */
-const showDragToggle = true;
-/** 引擎切换器候选与文案（仅 engineSwitch 打开时渲染） */
+const showDragToggle = computed<boolean>(() => props.rowDraggable === true);
+/** 引擎切换器候选与文案（仅 debug 打开时渲染） */
 const ENGINE_OPTIONS: Array<"element" | "vxe"> = ["element", "vxe"];
 const ENGINE_TEXT: Record<"element" | "vxe", string> = { element: "Element", vxe: "VXE" };
 function layoutText(key: ReTableSwitchLayout): string {
@@ -2579,14 +2610,14 @@ const iconSelect = Select;
     <div ref="mainRef" class="re-table__main">
     <!-- 工具栏行：左侧 #toolbar 自定义按钮；右侧系统工具组（批量/拖拽/搜索/布局切换/自动刷新/刷新） -->
     <div
-      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || engineSwitch"
+      v-if="$slots.toolbar || searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || debug"
       class="re-table__toolbar-row"
     >
       <div v-if="$slots.toolbar" class="re-table__toolbar-left">
         <slot name="toolbar" />
       </div>
       <div
-        v-if="searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || engineSwitch"
+        v-if="searchEnabled || showDragToggle || batchDelete || autoRefresh || showLayoutSwitch || debug"
         class="re-table__toolbar-right"
       >
         <!-- 批量删除模式：右侧工具栏最左侧出现 取消 / 确认删除（与拖拽的取消/确认同位置，二者互斥） -->
@@ -2682,10 +2713,10 @@ const iconSelect = Select;
             <component :is="LAYOUT_ICON[key]" :size="16" />
           </button>
         </div>
-        <!-- 引擎切换（Element / VXE）：默认关闭，只给需要两套引擎对照验收的场景。
-             与布局切换一样是分段控件，但用文字不用图标 —— element / vxe 这两个词
-             本身没有公认图形，图标化反而要靠 tooltip 才能读懂。 -->
-        <div v-if="engineSwitch" class="re-table__layout-switch" role="group" aria-label="表格引擎切换">
+        <!-- 引擎切换（Element / VXE）：只在 debug 模式下出现，属验收 / 选型向控件，
+             不是业务功能。与布局切换一样是分段控件，但用文字不用图标 ——
+             element / vxe 这两个词本身没有公认图形，图标化反而要靠 tooltip 才能读懂。 -->
+        <div v-if="debug" class="re-table__layout-switch" role="group" aria-label="表格引擎切换">
           <button
             v-for="key in ENGINE_OPTIONS"
             :key="key"
@@ -3071,7 +3102,16 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton layout="square" :size="tableSize" :icon="iconColumns" :title="columnsTriggerText" />
+                <!-- ⚠ 必须外包一层单根元素：ElPopover 的 #reference 走 ElOnlyChild，
+                     它要求引用内容是**唯一根节点**。ReButton 的模板是 v-if/v-else-if
+                     多分支（fragment），直接当引用时 ElOnlyChild 会报
+                     "[ElOnlyChild] no valid child node found" 并**完全不挂触发器监听** ——
+                     表现就是点「列设置」只弹出按钮自带的 tooltip、面板永远不开（实测控制台
+                     正好两条该告警，对应列设置 + 表格设置）。外面这层 span 只是给
+                     ElOnlyChild 一个可挂载的单根节点，点击从内层按钮冒泡上来即可。 -->
+                <span class="re-table__settings-trigger">
+                  <ReButton layout="square" :size="tableSize" :icon="iconColumns" :title="columnsTriggerText" />
+                </span>
               </template>
               <div class="re-table__columns-panel">
                 <div class="re-table__columns-header">
@@ -3135,7 +3175,10 @@ const iconSelect = Select;
               popper-class="re-table__popover"
             >
               <template #reference>
-                <ReButton layout="square" :size="tableSize" :icon="iconSettings" :title="settingsTriggerText" />
+                <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
+                <span class="re-table__settings-trigger">
+                  <ReButton layout="square" :size="tableSize" :icon="iconSettings" :title="settingsTriggerText" />
+                </span>
               </template>
               <div class="re-table__settings-panel">
                 <div class="settings-header">
@@ -3374,16 +3417,23 @@ const iconSelect = Select;
   /* 应用层常给表头加 uppercase / 大字距（对中文表头是视觉噪声），组件内归一 */
   text-transform: none;
   letter-spacing: 0.2px;
-  /* 表头边框两条，缺一不可：
-     · border-right 列间竖线 —— element 引擎的表头是分格的，靠右侧细线分列；
-       vxe 默认 border-right-width:0，表头是一整条灰底，列与列之间没有任何分隔，
-       多列表头会糊成一片。
+  /* 表头边框：列间竖线只在「边框」开关打开时出现，横向分隔线始终保留。
+     · element 的语义就是这样：关掉边框只去掉 .el-table--border 带来的列间竖线，
+       单元格的 border-bottom 缺省一直在（表头/表体、行与行之间的横线不会消失）。
+     · vxe 用 .border--full / .border--default 表示边框开关，**且它是用
+       background-image 渐变画线、不写 border-* 属性**，所以我们加的 border-right
+       不会被它覆盖 —— 必须自己挂条件。实测：关掉边框后表头仍有 1px 竖线，
+       就是因为这条 border-right 原来没有限定（border--default 对表头没有任何 vxe 规则，
+       那条线唯一来源就是我们）。
      · border-bottom 用 lighter（#ebeeF5）而不是 el-border-color（#dcdfe6）：
        与下方数据行的分隔线同色，表头与第一行才是"一条线"而不是"两条深浅不同的线"。
      ⚠ 必须写全 border-right 简写。只写 border-right-color 时，vxe 自带样式的
        border-right-width 仍是 0，量出来还是 0px —— 这个坑踩过一次。 */
-  border-right: 1px solid var(--el-border-color-lighter);
   border-bottom: 1px solid var(--el-border-color-lighter);
+}
+/* 列间竖线：只在 border--full（边框开关＝开）时绘制 */
+.re-table .vxe-table--render-default.border--full .vxe-header--column {
+  border-right: 1px solid var(--el-border-color-lighter);
 }
 .re-table--compact .vxe-header--column {
   padding-top: 6px !important;
@@ -3699,6 +3749,17 @@ const iconSelect = Select;
   margin-top: var(--rt-gap);
   gap: var(--rt-gap);
   flex-wrap: wrap;
+  /* ⚠ 抬成高于表格固定列浮层的一层。
+     ReTable 给固定列浮层写了 z-index:30（element 的 .el-table__fixed-right /
+     vxe 的 .vxe-table--fixed-right-wrapper），而页脚里的「每页条数」菜单是
+     向上弹的（bottom: calc(100% + 6px)）、z-index 只有 20 —— 且它纵向必然落在
+     表格高度范围内，只要横向与固定列浮层相交，菜单就会被压在表格下面：
+     看着像"分页跑到表格后面"、点了没反应。菜单锚在按钮上、随窗口宽度左右移动，
+     所以这是随宽度触发的，不是必现。
+     页脚自己抬到 31（比 30 高一层）即可让整个页脚（含其内所有浮层）盖住表格，
+     不改布局：页脚与表格本来就不重叠，抬高只影响层叠顺序。 */
+  position: relative;
+  z-index: 31;
   /* 抵消根容器内边距，让分页行保持在原来的容器边缘位置 */
   margin-left: calc(var(--rt-padding, 12px) * 1);
   margin-right: calc(var(--rt-padding, 12px) * 1);
@@ -3804,17 +3865,84 @@ const iconSelect = Select;
   min-height: var(--re-table-min-height, var(--rt-empty-height));
 }
 .re-table .vxe-table--body-wrapper .vxe-table--empty-block {
-  position: static;
+  /* ⚠ vxe 用 JS 在内联样式里把空块宽度写成「整表内容宽」（实测 1160px），
+     而 .vxe-table--body-wrapper 的可视宽只有 780（横向可滚）。内联样式优先于
+     普通声明，所以这里的 width 必须带 !important 才压得住。
+     不压的后果（2026-09-29 实测）：空块按 1160 居中 → 内容中心落在 658，
+     而右侧固定列占 638..858，空态的下半截被固定列盖住、它的左竖线从空态
+     中间穿过去。这正是"没有消息的组件跑到固定列下面"的成因。
+     width: 100% 解析成父级内容盒 = 可视宽 780，中心 468，与表格可见中心一致。 */
+  width: 100% !important;
+  /* 横向可滚时必须吸左，否则往右滚一下空态就滑出可视区。
+     原来写 position: static 是为了压主题里可能的空块定位规则，sticky + left:0
+     同样是确定值，不会漏出主题的定位。 */
+  position: sticky;
+  left: 0;
   top: auto;
-  left: auto;
   right: auto;
   bottom: auto;
   transform: none;
-  width: 100%;
   min-height: var(--re-table-min-height, var(--rt-empty-height));
   display: flex;
   align-items: center;
   justify-content: center;
+}
+/* ⚠⚠ 有数据时，空块必须彻底不占高 —— 否则右侧固定列会"滚不动"、与行错位。
+   vxe 有数据时藏空块用的是 **visibility: hidden**，不是 display: none，
+   所以空块照旧留在文档流里，按上面的 min-height 吃掉 440px。
+   实测（消息管理，4 行数据）：
+     mainBody.scrollHeight  = 676 = 236(4 行) + 440(幽灵空块)
+     fixedBody.scrollHeight = 310            ← 固定列的克隆体没有这个空块
+   两个表体滚动高度差 440px，而 vxe 的纵向同步是"主表体滚 → 克隆体跟随"，
+   克隆体只有 310 可滚、主表体有 676 → 主表体滚到 183 时克隆体仍停在 0，
+   操作列的按钮与行错位 183px。用户看到的就是"滚动时固定列不滚"。
+   判据用 :has(.vxe-body--row) 而不是 dataList：vxe 是按**实际渲染出的行**决定
+   显不显示空态，本地分页时 dataList 可能非空而当前页没有行，那时空态该照常显示。
+   height + overflow 一起给：只给 height:0 时子元素仍会把 scrollHeight 撑开。 */
+.re-table:has(.vxe-body--row) .vxe-table--body-wrapper .vxe-table--empty-block {
+  min-height: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+/* vxe 自己的 .vxe-table--empty-content 是 width:50%（相对空块），
+   空块被改回可视宽后内容只剩一半、字会多折几行。改回 100% 让它与
+   element 引擎的空态同宽（实测两边都铺满可见宽），两个引擎观感才一致。 */
+.re-table .vxe-table--body-wrapper .vxe-table--empty-block > .vxe-table--empty-content {
+  width: 100%;
+}
+/* 空态下右侧固定列浮层要"让位"。
+   vxe 的 .vxe-table--fixed-right-wrapper 是 position:absolute + z-index:5 +
+   background-color:inherit（不透明），覆盖在 body 右侧。有数据时它显示固定列的行，
+   是对的；**无数据时它没有内容可显示，却仍把空态右半截盖住，左沿形成一条硬边**
+   —— 这才是"没有消息的组件跑到固定列下面"的第二个成因（第一个是空块宽度，见上）。
+   空态时把浮层底色与表体摘掉即可：表头在独立的 header-wrapper 里，列名照样可见；
+   被盖住的只是没有内容的表格体。element 引擎空态下干脆不生成固定列浮层，
+   这里等于把两个引擎的行为对齐。 */
+.re-table--empty .vxe-table--fixed-right-wrapper {
+  background-color: transparent;
+  /* ⚠ 还得摘掉 vxe 给固定列加的左侧投影：
+     `.vxe-table--render-default .vxe-table--fixed-right-wrapper.scrolling--middle`
+     带 box-shadow -8px 0 10px -5px（权重 0,3,0，比本选择器高），这条投影正是
+     空态右侧那条"竖线"—— 背景置透明只去掉了底，线还留着。必须 !important。 */
+  box-shadow: none !important;
+  /* ⚠ 同时要放行点击：浮层是 position:absolute + z-index:30（见上方既有规则），
+     即使不绘制也仍盖在空态之上，会吞掉落在该区域的点击 —— 空态里的按钮
+     一旦被列宽推到浮层范围内就会点不动。空态下浮层没有可交互内容，直接放行。 */
+  pointer-events: none;
+}
+.re-table--empty .vxe-table--fixed-right-wrapper .vxe-table--body-wrapper {
+  display: none;
+}
+/* 左固定列同理（如序号 / 勾选列固定时）。同一类缺陷，一并处理，
+   否则空态左侧会被左浮层盖住、并留下一条硬边。 */
+.re-table--empty .vxe-table--fixed-left-wrapper {
+  background-color: transparent;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+.re-table--empty .vxe-table--fixed-left-wrapper .vxe-table--body-wrapper {
+  display: none;
 }
 /* 表格高度已确定（调用方给了 height/max-height，或 fill 生效）：
    空态改为填满 body 剩余区域，取消 440px 强撑。
@@ -4075,5 +4203,37 @@ const iconSelect = Select;
 .drag-handle:active,
 .vxe-drag-handle:active {
   cursor: grabbing;
+}
+/* ============ 滚动条：对齐 element 引擎的「悬停才显形」 ============
+   element 引擎的表格走 el-scrollbar（自绘浮层条），鼠标离开表格就把滚动条藏掉、
+   重新移入再淡回来。vxe 4.6 **没有自绘滚动条组件** —— 它的样式表里
+   ::-webkit-scrollbar 规则为 0 条，用的是浏览器原生滚动条，而原生条是常驻的，
+   两个引擎手感不一致。这里把原生条改造成同款：默认 thumb / track 全透明
+   （只占位、不显形），鼠标进入 .re-table 才把 thumb 显出来。
+   尺寸与颜色对齐 element 的 .el-scrollbar__thumb：6px 粗、radius 4px、
+   颜色取 --el-text-color-secondary、常态 30% 透明度、thumb 自身 hover 时 50%。
+   ⚠ 仅 Chromium 生效：::-webkit-scrollbar 是 Blink / WebKit 私有属性；
+     Firefox 只有 scrollbar-width / scrollbar-color，没有「悬停态」可用。
+     本项目跑在 Chromium（Electron / Chrome），可接受。
+   ⚠ 不用 opacity 控制显隐：部分 Chromium 版本对滚动条伪元素上的 opacity
+     不生效（会导致"永远是 0、滚动条彻底看不见"），一律用带 alpha 的
+     background-color，这是各版本都稳的写法。 */
+.re-table .vxe-table--body-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.re-table .vxe-table--body-wrapper::-webkit-scrollbar-track,
+.re-table .vxe-table--body-wrapper::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.re-table .vxe-table--body-wrapper::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+}
+.re-table:hover .vxe-table--body-wrapper::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent);
+}
+.re-table .vxe-table--body-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--el-text-color-secondary) 50%, transparent);
 }
 </style>

@@ -446,6 +446,76 @@ export async function getArchiveEntries(bucket: string, key: string): Promise<Ar
 }
 
 /**
+ * CAD 图纸响应（?format=cad）
+ *
+ * DXF 与 DWG 结构不同：`renderable` 明确告知能否出图形——
+ * DXF 可渲染（svg 有值），DWG 不可渲染（仅头部信息）。
+ */
+export interface CadInfoResponse {
+  /** 文件名 */
+  name: string;
+  /** 扩展名（小写） */
+  extension: string;
+  /** 文件字节数 */
+  size: number;
+  /** 是否能渲染图形（DXF=true；DWG=false） */
+  renderable: boolean;
+  /** 内联 SVG（仅 renderable=true 时有值），描边用 currentColor 继承主题色 */
+  svg?: string;
+  /** DXF 版本声明（$ACADVER） */
+  acadVersion?: string;
+  /** DXF 图纸单位 */
+  units?: string;
+  /** 图元总数 */
+  entityCount?: number;
+  /** 图层数 */
+  layerCount?: number;
+  /** 图层名 → 该层图元数 */
+  layers?: Record<string, number>;
+  /** 图形宽度（图纸单位） */
+  width?: number;
+  /** 图形高度（图纸单位） */
+  height?: number;
+  /** 解析器跳过的实体类型，如实告知用户哪些内容没画出来 */
+  unsupported?: string[];
+  /** DWG 版本名称 */
+  versionLabel?: string;
+  /** DWG 版本代码 */
+  versionCode?: string;
+  /** DWG AutoCAD 发行号（R15/R32 等） */
+  acadRelease?: string;
+  /** DWG 维护版本号（-1 表示无） */
+  maintenanceVersion?: number;
+  /** 不支持时的错误说明 */
+  error?: string;
+}
+
+/**
+ * 查询 CAD 图纸信息
+ *
+ * 走 {@code ?format=cad} 纯数据通道，而非 {@code ?preview=true} 的服务端渲染：
+ * 后者渲染在 iframe 独立文档里，读不到主应用的 Element Plus / koi 主题变量。
+ *
+ * @param bucket 存储桶名
+ * @param key    图纸对象 Key
+ * @return CAD 图纸信息
+ */
+export async function getCadInfo(bucket: string, key: string): Promise<CadInfoResponse> {
+  try {
+    const res = await storageHttp()
+      .get(objectPath(bucket, key))
+      .query({ format: "cad" })
+      .then<CadInfoResponse>((r) => r.data);
+    if (!res || typeof res !== "object" || typeof res.renderable !== "boolean") {
+      throw new Error("服务端未返回 CAD 图纸结构（?format=cad 未生效），请更新文件服务器后重试");
+    }
+    return res;
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "CAD 图纸查询"));
+  }
+}
+
+/**
  * 目录树节点
  */
 export interface TreeItem {

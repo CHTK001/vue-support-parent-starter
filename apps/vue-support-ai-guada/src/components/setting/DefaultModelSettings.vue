@@ -101,23 +101,6 @@
         </el-collapse-item>
       </el-collapse>
 
-      <!-- 以图搜图图片库：仅管理员可见。
-           底库是全局共享资源且直接决定检索准确度，普通用户能改就等于向量索引可被
-           任意污染，所以管理动作（上传/删除）收敛到这里，检索页只保留「查询」。
-           后端 5 个接口也都带 @Permission("admin")，前端隐藏只是体验。
-           这里直接调 isAdmin()，不要包 computed：isAdmin() 读的是 permission.ts 里的
-           裸 let userRoles，没有任何响应式依赖，computed 会把首次求值结果永久缓存，
-           登录态恢复晚于本组件 setup 时管理员也会永远看不到。与 GlobalSidebar 的
-           adminOnly 过滤写法保持一致。 -->
-      <div v-if="group.group === 'image_search' && isAdmin()" class="lib-slot">
-        <div class="lib-slot-head">
-          <span class="lib-slot-title">图片库</span>
-          <span class="lib-slot-desc">
-            以图搜图的检索底库。上传的图会自动提取特征入库，检索页的结果来自这里。
-          </span>
-        </div>
-        <ImageLibraryPanel />
-      </div>
     </SettingsCard>
 
     <!-- 模型选择对话框 -->

@@ -58,6 +58,13 @@ export function getLinkOpenMode(): LinkOpenMode {
 /** 从后端加载设置（应用启动时调用一次即可） */
 export async function loadLinkOpenMode(): Promise<void> {
     try {
+        // 令牌未就绪时不打后端：分组设置受鉴权保护，未登录请求会返回 403 并在控制台
+        // 刷出一串 "API 请求失败: settings/browser 403"。功能不受影响（下面本来
+        // 就 catch 掉并降级到 localStorage），但噪音会淹没真正的报错。
+        const { waitForAuthReady } = await import('./authReady')
+        if (!(await waitForAuthReady())) {
+            return
+        }
         const { apiService } = await import('@/services/ApiService')
         const response = await apiService.fetchGroupSettings(SETTINGS_GROUP)
         const mode = response.linkOpenMode as LinkOpenMode | undefined

@@ -66,10 +66,15 @@ const DATA_EXTS = ["sqlite", "sqlite3", "db", "parquet", "pq"];
 /** 设计稿扩展名（服务端转图预览） */
 const DESIGN_EXTS = ["psd", "psb"];
 
-/** 3D / CAD / GIS 模型扩展名（服务端信息卡或在线渲染） */
+/**
+ * 3D / CAD / GIS 模型扩展名
+ *
+ * DXF 走 CAD 面板出真实图形；其余（glb/obj/stl/step/…）后端目前只有
+ * 信息卡或外部转换，同样归 CAD 面板，由它按 renderable 决定展示形态。
+ */
 const MODEL_EXTS = [
-  "glb", "gltf", "obj", "stl", "dxf", "blend", "fbx",
-  "step", "stp", "iges", "igs", "brep", "shp",
+  "glb", "gltf", "obj", "stl", "dxf", "dwg", "blend", "fbx",
+  "step", "stp", "iges", "igs", "brep", "shp", "dgn",
 ];
 
 /** 邮件扩展名 */

@@ -102,7 +102,7 @@
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { setImpersonateToken, clearImpersonateToken } from "@repo/utils";
+import { setImpersonateToken, getImpersonateToken, clearImpersonateToken } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
 import { modulesOf, type PortalModule } from "./modules";
@@ -296,6 +296,13 @@ function openModule(moduleCode: string) {
  * @returns 是否成功接管了本次会话
  */
 function adoptImpersonationToken(): boolean {
+  // 抹掉地址栏上的令牌会让本路由重新挂载一次（keepAlive: false + query 变化），
+  // 第二次 onMounted 时 URL 里已没有 impersonate 参数。若只认 URL 参数，
+  // 提示条会在抹掉令牌的同时消失。因此先认「本标签页已有代入令牌」这一事实。
+  if (getImpersonateToken()) {
+    impersonating.value = true;
+    return true;
+  }
   const token = route.query.impersonate;
   if (typeof token !== "string" || !token) {
     return false;
@@ -340,12 +347,31 @@ onMounted(() => {
 }
 
 /*
- * 代入态给顶部让出提示条的高度。
- * 用父级内边距而不是给每个子页面加 margin：子页面自己不知道自己上面多了条东西，
- * 挨个补必然漏，以后新增页面还会再漏一次。
+ * 代入提示条改为「流内首子元素」而非 fixed 覆盖：
+ * 学生端首页（PrimaryHome/JuniorHome/SeniorHome）的根是 .pp { position: fixed; inset: 0 }，
+ * fixed 会脱离父级流，父级的 padding / transform 都影响不到它 ——
+ * 提示条一旦 fixed 就会压在标题上。改成流内布局后，页面自然被挤到提示条下方，
+ * 不必再逐个子页面加偏移。
  */
 .portal--imp {
-  padding-top: 37px;
+  display: flex;
+  flex-direction: column;
+}
+.portal--imp .portal-imp {
+  position: static;
+  flex: none;
+}
+/* 其余内容吃掉剩余高度；.pp 的 position 由下面的规则改回 static */
+.portal--imp > *:not(.portal-imp) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.portal--imp .pp,
+.portal--imp .portal-bind,
+.portal--imp .portal-loading {
+  position: static;
+  inset: auto;
+  height: 100%;
 }
 
 /*
@@ -353,10 +379,7 @@ onMounted(() => {
  * 不写死色值，一律走 Element Plus 语义令牌，暗色模式下自动跟随。
  */
 .portal-imp {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   z-index: 2001;
   display: flex;
   align-items: center;

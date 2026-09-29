@@ -480,17 +480,18 @@ const GRADES_BY_LEVEL: Record<string, string[]> = {
   SENIOR: ["高一", "高二", "高三"],
 };
 
-/** 年级下拉的数据源：学段为空时给全集（避免用户必须先选学段才能填年级） */
+/**
+ * 年级下拉的数据源：学段为空时给全集（避免用户必须先选学段才能填年级）
+ *
+ * 只在这里声明，不在此处注册 watch：stuForm / clsForm 在下面才 const 出来，
+ * watch 的 getter 会立即执行，提前注册会撞 TDZ（Cannot access before initialization），
+ * setup 直接抛错导致整个页面空白。注册动作见文件末尾。
+ */
 const gradeSource = ref<string[]>([]);
 function syncGradeSource() {
   const level = stuForm.studentGradeLevel || clsForm.classGradeLevel;
   gradeSource.value = level ? (GRADES_BY_LEVEL[level] ?? []) : Object.values(GRADES_BY_LEVEL).flat();
 }
-
-// 学段一变，年级立刻跟着收窄：原来选中的年级若不在新学段里会被清空，
-// 否则会存下「初中 + 一年级」这种自相矛盾的组合。
-watch(() => stuForm.studentGradeLevel, syncGradeSource);
-watch(() => clsForm.classGradeLevel, syncGradeSource);
 
 function onTabChange() {
   // 三个表一次拉全，切标签不需要重新请求；这里只在数据为空时补拉
@@ -707,7 +708,16 @@ async function removeTeacher(row: EduTeacher) {
   }
 }
 
+// 学段一变，年级立刻跟着收窄：原来选中的年级若不在新学段里会被清空，
+// 否则会存下「初中 + 一年级」这种自相矛盾的组合。
+// 必须放在 stuForm / clsForm 声明之后 —— watch 的 getter 会立即求值，
+// 声明之前注册会读到尚未初始化的 const（TDZ），setup 抛错、整页空白。
+watch(() => stuForm.studentGradeLevel, syncGradeSource);
+watch(() => clsForm.classGradeLevel, syncGradeSource);
+
 onMounted(() => {
+  // 首次也要同步一次：新建学生时表单是空的，年级下拉得有全集可选
+  syncGradeSource();
   void loadLevels();
   void loadAll();
 });

@@ -331,10 +331,14 @@ async function selectFlow(flowId: unknown): Promise<void> {
   }
 }
 
-async function newFlow(): Promise<void> {
-  if (!(await confirmDiscard("新建流程"))) {
-    return;
-  }
+/**
+ * 清空到「未命名流程」态。
+ *
+ * 刻意不做「是否放弃未保存改动」的确认：由调用方各自决定要不要问。
+ * `newFlow` 是用户主动新建（该问）；删除成功后是既成事实（没什么可放弃的，
+ * 再问一遍只会让人有机会点「取消」，而删除又拦不住）。
+ */
+function resetToNewFlow(): void {
   stopPolling();
   activeTaskId.value = null;
   activeTask.value = null;
@@ -351,6 +355,13 @@ async function newFlow(): Promise<void> {
   designer.value?.startWith(form.name);
   dirty.value = true;
   propsVisible.value = true;
+}
+
+async function newFlow(): Promise<void> {
+  if (!(await confirmDiscard("新建流程"))) {
+    return;
+  }
+  resetToNewFlow();
 }
 
 /* -------------------------------- 保存与执行 ------------------------------- */
@@ -494,7 +505,11 @@ async function doDelete(): Promise<void> {
   try {
     await deleteFlow(currentId.value);
     msgSuccess("流程已删除");
-    await newFlow();
+    // 这里刻意不走 newFlow()：它开头会问「新建流程会丢弃当前画布上未保存的改动，是否继续？」，
+    // 用户点「取消」时 newFlow 直接 return，而本函数无从得知 —— 结果是流程已从服务端删除、
+    // 界面却还开着它、currentId 也没清，后续保存必然撞 400「流程不存在或已删除」。
+    // 删除已经发生，没有可放弃的东西，直接复位。
+    resetToNewFlow();
     flows.value = (await listFlows()) ?? [];
   } catch (error) {
     msgError(errText(error));
@@ -555,31 +570,30 @@ async function refreshStates(): Promise<void> {
           clearable
           @update:model-value="selectFlow"
         />
-        <ReButton  icon="DocumentAdd" @click="newFlow">新建</ReButton>
+        <ReButton layout="square" icon="DocumentAdd" tip="新建流程" @click="newFlow" />
       </template>
       <span v-else class="tb-label">流程设计</span>
       <ReTag v-if="dirty"  type="warning">未保存</ReTag>
       <ReTag v-else-if="currentId"  type="success">已保存</ReTag>
       <span class="tb-sep"/>
-      <ReButton  type="primary" icon="Check" :loading="saving" @click="save">保存</ReButton>
-      <ReButton  icon="CircleCheck" @click="validate">校验</ReButton>
-      <ReButton  icon="VideoPlay" @click="doDryRun">试运行</ReButton>
-      <ReButton  icon="Promotion" :disabled="!currentId" @click="doRun">运行</ReButton>
+      <ReButton layout="square" type="primary" icon="Check" tip="保存流程" :loading="saving" @click="save" />
+      <ReButton layout="square" icon="CircleCheck" tip="结构校验" @click="validate" />
+      <ReButton layout="square" icon="VideoPlay" tip="试运行" @click="doDryRun" />
+      <ReButton layout="square" icon="Promotion" tip="运行" :disabled="!currentId" @click="doRun" />
       <ReButton
-        
+        layout="square"
         type="danger"
         plain
         icon="VideoPause"
+        tip="停止运行"
         :disabled="!activeTaskId || !taskRunning"
         @click="doStop"
-      >
-        停止
-      </ReButton>
+      />
       <span class="tb-sep"/>
-      <ReButton  icon="Setting" @click="openProps">流程属性</ReButton>
-      <ReButton  icon="CopyDocument" :disabled="!currentId" @click="doCopy">复制</ReButton>
-      <ReButton  icon="Delete" :disabled="!currentId" @click="doDelete">删除</ReButton>
-      <ReButton  icon="Files" @click="categoryVisible = true">分类管理</ReButton>
+      <ReButton layout="square" icon="Setting" tip="流程属性" @click="openProps" />
+      <ReButton layout="square" icon="CopyDocument" tip="复制流程" :disabled="!currentId" @click="doCopy" />
+      <ReButton layout="square" type="danger" icon="Delete" tip="删除流程" :disabled="!currentId" @click="doDelete" />
+      <ReButton layout="square" icon="Files" tip="分类管理" @click="categoryVisible = true" />
       <span class="spacer"/>
       <span class="tb-label">调度</span>
       <ReSwitch
@@ -588,8 +602,8 @@ async function refreshStates(): Promise<void> {
         :disabled="!currentId"
         @update:model-value="toggleSchedule"
       />
-      <ReButton  text @click="refreshStates">刷新节点状态</ReButton>
-      <ReButton v-if="!embedded"  text icon="Refresh" @click="reload">刷新列表</ReButton>
+      <ReButton layout="square" icon="RefreshRight" tip="刷新节点状态" @click="refreshStates" />
+      <ReButton v-if="!embedded" layout="square" icon="Refresh" tip="刷新列表" @click="reload" />
     </div>
 
     <div v-if="!embedded" class="collect-card collect-runtime">

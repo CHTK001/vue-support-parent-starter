@@ -57,17 +57,17 @@ pnpm exec vitest run src/__tests__/PostManage.spec.ts src/__tests__/MessageManag
 | `ErrorLogManage.spec.ts` | `views/ErrorLogManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
 | `CacheManage.spec.ts` | `views/CacheManage.vue` | — | ⚠️ 文件不存在，列此仅作历史记录 |
 | `SettingManage.spec.ts` | `views/SettingManage.vue` | 4 | 历史抽屉；单条回滚→回滚接口；敏感值掩码+点击解密；按批次号查询 |
-| `PolicyTask.spec.ts` | `views/monitor/PolicyTask.vue` + `policy/tabs/*` | 9 | 7 个页签逐个进入且标题互不相同；所有表格关闭布局切换器；**接口管控有效状态 = action × status**（停用/拦截/转发/未配置四种处境）；未配置行不显示启停开关；只有策略无注册路由的自定义路径也要列出；**顶部刷新按当前页签分发**（白名单断言，见下）；**消息头行渲染**（回归：`hitCountOf` 漏解构导致 Vue patch 中断，表现为「侧栏切了、内容没换」） |
+| `PolicyTask.spec.ts` | `views/monitor/PolicyTask.vue` + `policy/tabs/*` | 19 | 7 个页签逐个进入且标题互不相同；所有表格关闭布局切换器；**接口管控有效状态 = action × status**（停用/拦截/转发/未配置四种处境）；未配置行不显示启停开关；只有策略无注册路由的自定义路径也要列出；**顶部刷新按当前页签分发**（白名单断言，见下）；**消息头行渲染**（回归：`hitCountOf` 漏解构导致 Vue patch 中断，表现为「侧栏切了、内容没换」）；**全局限流闸门的「生不生效」说明**（4 条，见坑 7）；**访问名单搜索过滤**（6 条，见坑 8） |
 | `systemApi.spec.ts` | `api/systemApi.ts` | 21 | 各接口 URL/方法/参数构造（缓存、消息、IP、登录日志等） |
 | `helpers.ts` | — | — | 共享桩/工具，供上述 spec 使用 |
 
-合计 **7 个 spec、67 个用例，全部通过**（`cd pages/system && pnpm test`）。
+合计 **7 个 spec、77 个用例，全部通过**（`cd pages/system && pnpm test`）。
 
 > 2026-09-28 更正：本表此前还列着 `ErrorLogManage.spec.ts` / `CacheManage.spec.ts` /
 > `MonitorManage.spec.ts`，但这三个文件在磁盘上并不存在，用例数与 spec 数也是按它们
 > 写的（9 个 / 57 个）。上表已按实际文件重新统计；哪天要恢复这三个用例再补回来。
 
-## 写新 spec 时容易踩的五个坑
+## 写新 spec 时容易踩的八个坑
 
 1. **图标 mock 不能只靠 Proxy 兜底**。`vi.mock("@element-plus/icons-vue", () => new Proxy({}, { get: () => stub }))`
    挡不住 Vitest 的导出校验，会报 `No "Xxx" export is defined on the mock`。两种可行写法：
@@ -106,6 +106,59 @@ pnpm exec vitest run src/__tests__/PostManage.spec.ts src/__tests__/MessageManag
    状态标签位置是 `<!---->`；而同一插槽里的普通 `<span>` 文案正常。
    `<!---->` 在「组件 vnode 类型非法」和「异步还没到位」两种情况下都会出现，
    **单看它分不出来**。
+
+   ⚠️ 这次还留下一个教训：**「连跑 N 次都绿」不能当确定性证明**。
+   后来大改完文件、机器同时重编 10 个文件时（`transform` 33s）又偶发过一次同症状，
+   有无 mock 各跑 6 次都没复现 —— 说明根因不明、只是被负载放大。
+   所以那条「有效状态」断言已改成**读表格桩持有的行数据**（`row.effectiveText`），
+   不再断言渲染字符串：与渲染链无关、更稳，而且验的正是要守的那个逻辑本身
+   （标签长什么样交给浏览器验）。
+   判据要稳，就别让它挂在一条与被测逻辑无关的依赖链上。
+
+6. **断言统计别用 `Select-String` 数 `FAIL` 行**。vitest 的输出带 ANSI 色码，
+   行首是转义序列而不是空格，`^\s*FAIL` 匹配不到 —— 明明有断言失败却报「FAIL行=0」，
+   我据此差点把一次真失败当成偶发噪声。**用退出码**（`$LASTEXITCODE`）。
+
+7. **新加的断言必须做变异验证，否则不知道它是不是"恰好通过"**。
+   2026-09-29 补「全局限流闸门」的 4 条用例时，两处都做了真实文件变异：
+
+   - `props.rateGlobalOn` → `true`（限定文案永远不生效）→ 用例红，报错正是
+     「总览仍在用不带限定的『已启用』文案」
+   - `v-if="!globalConfig.enabled"` → `v-if="false as boolean"`（横幅永不出现）
+     → 用例红，报错正是「全局关着却没有任何『都不生效』的提示」
+
+   还原后 `exit=0`。**只跑一次绿不算数**：一个从来没红过的断言，和一个恒真的断言
+   在结果上无法区分。
+
+   ⚠️ 其中「闸门开启时不显示横幅」是**反向断言**，光有它会假绿（整页没渲染时也绿）。
+   所以同一条用例里钉了正向锚点：`policy-list-head h3` 存在 + 表格确实有 1 行。
+   反向断言旁边必须站着一个正向锚点。
+
+   ⚠️ 这批用例还踩到一个数字陷阱：`loadOverview` 会把 interface / ip / account
+   **三个维度各拉一次** `listRateLimit`，`mockResolvedValue` 每次返回同一条 →
+   总数变成 3。断言写成 `enabled:1` 会红，而红的原因跟被测逻辑无关。
+   改成 `mockImplementation` 按维度返回值，才让数字回到真实语义。
+
+8. **测试替身少一段行为，写出来的测试可能两个方向都写错**。
+   2026-09-29 补「访问名单搜索过滤」时，「点重置后要重新查询」这条直接红了
+   （`expected 0 to be greater than 0`）。看着像产品缺陷，**其实是桩不忠实**：
+
+   - 真实 `ReTable` 挂了 `watch(internalParamsKey)`，params 一变就重新加载；
+   - 而 `onBuiltinSearchReset()` 只 `emit("search-reset")`，自己不 reload；
+   - 页面 handler 改 `params` → 靠上面那个 watch 兜住 → 重置是有效的；
+   - 但 `makeReTableStub` 没有那个 watch，于是「点重置」在测试里成了空操作。
+
+   处置：给桩补上同规则的 `paramsKey` computed + watcher（剔掉 page / pageSize，
+   与真实一致）。补完 6 条全绿，**其余 65 条也没被带崩**。
+
+   两条要记住的：
+   - **别急着改产品代码**。先问「替身复刻了被测组件的哪些行为」，缺口在替身还是
+     在产品，是两回事，方向搞反会改坏本来正确的东西。
+   - 替身是**双向**不可靠的：缺行为会让测试假红，**多**行为同样会让测试假绿。
+
+   ⚠️ 与之配套：`packages/ui` **没有任何测试基建**（无 vitest 配置、无 test 脚本、
+   无自有测试文件），所以 ReTable / ReSearch / ReInput 这些共享组件的行为
+   只能在浏览器里验。给它们写单测要先从零搭基建，那是独立立项。
 
 ## 修复记录（2026-09-19）
 
