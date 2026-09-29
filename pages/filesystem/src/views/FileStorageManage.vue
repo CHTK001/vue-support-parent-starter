@@ -9,7 +9,7 @@
  *  - 弹窗预览（图片/文本/Office/PDF/音视频）
  *  - 一次性链接（自定义过期时间）
  */
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   ArrowDown,
@@ -2053,6 +2053,119 @@ const previewZoom = ref(100);
 const previewError = ref(false);
 const iframeKey = ref(0);
 const iframeLoading = ref(false);
+/** 预览弹层外壳（关闭按钮 + 内容），兼作拖拽手柄 */
+const previewShellRef = ref<HTMLElement | null>(null);
+/** 拖拽中：只驱动光标样式，不参与位置计算 */
+const previewDragging = ref(false);
+/**
+ * 预览弹层位移（px）
+ *
+ * <p>刻意用普通对象而不是 ref：位置直接写进弹层元素的 {@code transform}，
+ * 走响应式反而多一次无用的渲染。语义与 Element Plus {@code useDraggable} 内部
+ * 的 transform 一致。</p>
+ */
+const previewDragOffset = { x: 0, y: 0 };
+
+/**
+ * 取预览弹层根元素
+ *
+ * <p>{@code el-dialog} 的根节点由组件内部渲染，模板里拿不到 ref；
+ * 关闭按钮与内容都包在 {@code .fs-preview-shell} 里，从它向上找最近的
+ * {@code .el-dialog} 即可，不依赖弹层是第几个、也不受 append-to-body 影响。</p>
+ *
+ * @return 弹层根元素；弹层未渲染时返回 null
+ */
+function previewDialogEl(): HTMLElement | null {
+  return previewShellRef.value?.closest(".el-dialog") ?? null;
+}
+
+/** 把当前位移写到弹层元素上 */
+function applyPreviewDrag(): void {
+  const el = previewDialogEl();
+  if (el) {
+    el.style.transform = `translate(${previewDragOffset.x}px, ${previewDragOffset.y}px)`;
+  }
+}
+
+/**
+ * 按下预览弹层即开始拖拽
+ *
+ * <p>不能用 {@code el-dialog} 自带的 {@code draggable}：它的手柄写死在
+ * {@code <header>} 上（{@code hooks/use-draggable} 里 {@code dragRef.addEventListener("mousedown", ...)}），
+ * 而本弹层为了无头已经把 header 置为 {@code display:none}，那个元素永远命中不到，
+ * 开了 {@code draggable} 也是哑炮。所以这里自己接管，手柄换成内容外壳。</p>
+ *
+ * <p>iframe 内部（Excel / Word 的服务端渲染）的事件属于 iframe 自己的文档，
+ * 不会冒泡到父文档，因此从预览内容正中按下拖不动——只能从内容边缘、
+ * 图片区域或关闭按钮那一角拖。这是浏览器的同源限制，绕不开。</p>
+ *
+ * @param e 鼠标按下事件
+ */
+function startPreviewDrag(e: MouseEvent): void {
+  // 只认主键；右键是留给文件/文件夹右键菜单的
+  if (e.button !== 0) {
+    return;
+  }
+  const el = previewDialogEl();
+  if (!el) {
+    return;
+  }
+  // 弹层内是 iframe / Office 组件，没有可选中的文本与图片，
+  // 这里掐掉默认行为只是兜底，防止将来塞进 <img> 时拖出半透明幽灵图
+  e.preventDefault();
+  // Element 的按钮（重试 / 下载文件）自己不参与拖拽：它们按下即点，拖动语义靠鼠标点击。
+  // 右上角那个自定义关闭按钮不在此列——它同时是边角抓手，拖动时 click 会因
+  // mouseup 目标改变而自然取消，不会误关弹层。
+  if ((e.target as HTMLElement | null)?.closest(".el-button")) {
+    return;
+  }
+  previewDragging.value = true;
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const baseX = previewDragOffset.x;
+  const baseY = previewDragOffset.y;
+
+  const onMove = (ev: MouseEvent): void => {
+    // rect 是**已应用当前 transform** 后的位置，所以边界要按基准位移换算：
+    // 新位移 x 对应的屏幕左边 = r.left + (x - baseX)，据此反解上下限。
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const minX = baseX - r.left;
+    const maxX = Math.max(minX, baseX + vw - r.right);
+    // 弹层比视口还高时不能按「整层留在视口内」算边界（会得到 min>max 而瞬跳），
+    // 与 Element Plus useDraggable 一致：只保证上边缘能被拖回视口内。
+    const minY = baseY - r.top;
+    const maxY = Math.max(minY, baseY + (r.height < vh ? vh - r.bottom : vh - r.top));
+    previewDragOffset.x = Math.min(Math.max(baseX + ev.clientX - startX, minX), maxX);
+    previewDragOffset.y = Math.min(Math.max(baseY + ev.clientY - startY, minY), maxY);
+    applyPreviewDrag();
+  };
+
+  const onUp = (): void => {
+    previewDragging.value = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  };
+
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+}
+
+// 每次打开都回到居中：上一次的位移不该带到这一次
+watch(previewVisible, (open) => {
+  if (!open) {
+    return;
+  }
+  previewDragOffset.x = 0;
+  previewDragOffset.y = 0;
+  void nextTick(() => {
+    const el = previewDialogEl();
+    if (el) {
+      el.style.transform = "";
+    }
+  });
+});
 
 async function openPreview(row: StorageObject): Promise<void> {
   previewName.value = row.name;
@@ -3025,46 +3138,55 @@ onUnmounted(() => {
       destroy-on-close
       @closed="retryPreview"
     >
-      <button
-        type="button"
-        class="fs-preview__close"
-        title="关闭"
-        aria-label="关闭预览"
-        @click="previewVisible = false"
-      ><el-icon :size="18"><Close /></el-icon></button>
-      <div class="fs-preview">
-        <div v-if="previewLoading" class="fs-preview__skeleton">
-          <div class="sk sk--w40 sk--h24" /><div class="sk sk--full sk--h200" /><div class="sk sk--w60 sk--h120" />
-          <span class="fs-preview__loading-text">加载中…</span>
+      <!-- 拖拽外壳：内容区几乎全被 iframe 占满，而 iframe 内的鼠标事件不会冒泡到父文档，
+           顶部留出的 14px 空条是唯一处处可抓的位置；右上角关闭按钮那一角同样可抓。 -->
+      <div
+        ref="previewShellRef"
+        class="fs-preview-shell"
+        :class="{ 'is-dragging': previewDragging }"
+        @mousedown="startPreviewDrag"
+      >
+        <button
+          type="button"
+          class="fs-preview__close"
+          title="关闭"
+          aria-label="关闭预览"
+          @click="previewVisible = false"
+        ><el-icon :size="18"><Close /></el-icon></button>
+        <div class="fs-preview">
+          <div v-if="previewLoading" class="fs-preview__skeleton">
+            <div class="sk sk--w40 sk--h24" /><div class="sk sk--full sk--h200" /><div class="sk sk--w60 sk--h120" />
+            <span class="fs-preview__loading-text">加载中…</span>
+          </div>
+          <div v-else-if="previewError" class="fs-preview__error">
+            <el-empty description="预览加载失败">
+              <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
+              <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
+            </el-empty>
+          </div>
+          <PreviewOfficePanel
+            v-if="!previewError && previewUsesClient && !previewForceServer"
+            ref="officePanelRef"
+            v-model:zoom="previewZoom"
+            v-model:loading="officeLoading"
+            :src="previewFrameSrc"
+            :file-name="previewName"
+            @fullscreen="toggleFullscreen()"
+            @rendered="onOfficeRendered"
+            @error="onOfficeError"
+          />
+          <PreviewIframePanel
+            v-else-if="!previewError"
+            ref="iframePanelRef"
+            v-model:zoom="previewZoom"
+            :src="previewFrameSrc"
+            :loading="iframeLoading"
+            :frame-key="iframeKey"
+            @fullscreen="toggleFullscreen()"
+            @load="onFrameLoad"
+            @error="onFrameError"
+          />
         </div>
-        <div v-else-if="previewError" class="fs-preview__error">
-          <el-empty description="预览加载失败">
-            <el-button type="primary" :icon="Refresh" @click="retryPreview">重试</el-button>
-            <el-button :icon="Download" @click="handleDownload({ name: previewName } as StorageObject)">下载文件</el-button>
-          </el-empty>
-        </div>
-        <PreviewOfficePanel
-          v-if="!previewError && previewUsesClient && !previewForceServer"
-          ref="officePanelRef"
-          v-model:zoom="previewZoom"
-          v-model:loading="officeLoading"
-          :src="previewFrameSrc"
-          :file-name="previewName"
-          @fullscreen="toggleFullscreen()"
-          @rendered="onOfficeRendered"
-          @error="onOfficeError"
-        />
-        <PreviewIframePanel
-          v-else-if="!previewError"
-          ref="iframePanelRef"
-          v-model:zoom="previewZoom"
-          :src="previewFrameSrc"
-          :loading="iframeLoading"
-          :frame-key="iframeKey"
-          @fullscreen="toggleFullscreen()"
-          @load="onFrameLoad"
-          @error="onFrameError"
-        />
       </div>
     </el-dialog>
   </div>
@@ -4167,8 +4289,20 @@ button.fs-stat:hover {
 }
 
 /* ===== 预览 ===== */
+/* 拖拽外壳：顶部 14px 空条是保证可抓的位置（内容被 iframe 占满，抓不到）。
+   cursor 跟随拖拽态变化，让「这里能拖」这件事在按下之前就看得出来。 */
+.fs-preview-shell {
+  padding-top: 14px;
+  cursor: move;
+}
+
+.fs-preview-shell.is-dragging {
+  cursor: grabbing;
+}
+
 /* 关闭按钮：浮在弹层右上角。.el-dialog 自带 position: relative，
-   所以这里的 absolute 锚点是弹层本身，不依赖 .fs-preview（它在按钮的兄弟层里）。
+   这里的 absolute 锚点是弹层本身（外壳是 static，不参与定位），
+   所以按钮仍贴着弹层边框，不随外壳的 14px 内边距缩进。
    位置对应 .fs-preview-dlg.el-dialog 被去掉的 16px padding，尽量不压住内容。 */
 .fs-preview__close {
   position: absolute;
