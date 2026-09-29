@@ -1521,6 +1521,9 @@ importers:
       '@iconify/vue':
         specifier: 'catalog:'
         version: 4.3.0(vue@3.5.40(typescript@5.9.3))
+      '@medv/finder':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@microsoft/fetch-event-source':
         specifier: 'catalog:'
         version: 2.0.1
@@ -3344,6 +3347,9 @@ packages:
 
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
+
+  '@medv/finder@4.0.2':
+    resolution: {integrity: sha512-RraNY9SCcx4KZV0Dh6BEW6XEW2swkqYca74pkFFRw6hHItSHiy+O/xMnpbofjYbzXj0tSpBGthUF1hHTsr3vIQ==}
 
   '@microsoft/fetch-event-source@2.0.1':
     resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
@@ -9049,6 +9055,8 @@ snapshots:
       minimist: 1.2.8
 
   '@marijn/find-cluster-break@1.0.4': {}
+
+  '@medv/finder@4.0.2': {}
 
   '@microsoft/fetch-event-source@2.0.1': {}
 

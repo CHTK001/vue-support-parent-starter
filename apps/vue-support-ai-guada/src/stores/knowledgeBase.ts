@@ -24,6 +24,14 @@ export interface KnowledgeBase {
     /** 同域最多采集几页（含入口页） */
     sourceMaxPages: number
     metadataConfig: Record<string, any> | null
+    /**
+     * 封面图地址。
+     *
+     * <p>后端 sys_ai_knowledge_base 目前**没有**封面字段（实体只有
+     * id/name/description/rootPath/kind/isPublic/tags/fileCount 等），
+     * 所以这里按可选处理：有值渲染图片，缺值由卡片渲染占位封面，不留空白。</p>
+     */
+    cover?: string
     createdAt: string
     updatedAt: string
 }

@@ -22,32 +22,29 @@ import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import {
   Aim,
-  Close,
   Document,
   Download,
-  FullScreen,
+  Folder,
   Histogram,
   Refresh,
-  ScaleToOriginal,
-  ZoomIn,
-  ZoomOut,
 } from "@element-plus/icons-vue";
 import { getCadInfo, objectUrl } from "../api/filestorageApi";
 import type { CadInfoResponse } from "../api/filestorageApi";
-import { fileSvg } from "../utils/fileKind";
 
 const props = defineProps<{
   /** 存储桶名 */
   bucket: string;
-  /** 图纸对象 Key（含目录前缀） */
+  /** 图纸对象 Key（含目录前缀）；传 inner 时是压缩包自身的 Key */
   objectKey: string;
   /** 图纸文件名（不含目录） */
   fileName: string;
-}>();
-
-const emit = defineEmits<{
-  /** 请求关闭预览弹窗 */
-  close: [];
+  /**
+   * 压缩包内条目路径（{@code ?format=cad&inner=}）。
+   *
+   * <p>为空表示解析对象本身。包内的 DXF / DWG 走这个参数而不是 iframe 通道：
+   * iframe 那条会被三维模型提供者抢走，同一张图在顶层与包内会呈现成两套界面。</p>
+   */
+  inner?: string;
 }>();
 
 /** 图纸信息 */
@@ -136,7 +133,8 @@ async function load(): Promise<void> {
   loading.value = true;
   errorMessage.value = "";
   try {
-    info.value = await getCadInfo(props.bucket, props.objectKey);
+    // inner 为空表示解析对象本身；非空表示解析压缩包内的该条目
+    info.value = await getCadInfo(props.bucket, props.objectKey, props.inner || undefined);
     resetView();
   } catch (e) {
     info.value = null;
@@ -147,22 +145,13 @@ async function load(): Promise<void> {
 }
 
 onMounted(load);
-watch(() => [props.bucket, props.objectKey], load);
+// inner 也要进依赖：同一个压缩包里先后点开两个 dxf，面板复用同一实例，必须重新取
+watch(() => [props.bucket, props.objectKey, props.inner], load);
 
 /** 复位视图：100% + 居中 */
 function resetView(): void {
   zoom.value = 100;
   pan.value = { x: 0, y: 0 };
-}
-
-/** 放大一级 */
-function zoomIn(): void {
-  zoom.value = Math.min(ZOOM_MAX, zoom.value + ZOOM_STEP);
-}
-
-/** 缩小一级 */
-function zoomOut(): void {
-  zoom.value = Math.max(ZOOM_MIN, zoom.value - ZOOM_STEP);
 }
 
 /**
@@ -230,29 +219,20 @@ function copyHint(): void {
     .catch(() => ElMessage.warning("复制失败，请手动记录"));
 }
 
-/** 图标（复用主列表的 Windows 风格 SVG） */
-function headerSvg(): string {
-  return fileSvg(props.fileName, false);
-}
+/**
+ * 面板内展示的图纸名。
+ *
+ * <p>包内条目优先用后端回的 {@code name}（那是包内路径，能看清图纸在压缩包里的位置）；
+ * 顶层文件用 props 传入的文件名。供页脚与统计条使用——标题栏已交由外层
+ * {@code el-dialog} 承载，这里不再重复渲染。</p>
+ */
+const displayName = computed(() => info.value?.name || props.fileName);
 </script>
 
 <template>
+  <!-- 无自带 header：文件名与关闭按钮由外层 el-dialog 承担，
+       面板再画一条 header 就是两层标题栏。 -->
   <section class="cad" aria-label="CAD 图纸预览">
-    <!-- ===== 头部：图标 + 文件名 + 关闭 ===== -->
-    <header class="cad__header">
-      <span class="cad__header-icon" v-html="headerSvg()" />
-      <h3 class="cad__header-title" :title="fileName">{{ fileName }}</h3>
-      <button
-        type="button"
-        class="cad__close"
-        title="关闭"
-        aria-label="关闭预览"
-        @click="emit('close')"
-      >
-        <el-icon :size="18"><Close /></el-icon>
-      </button>
-    </header>
-
     <!-- ===== 统计条 ===== -->
     <div class="cad__stats">
       <div class="cad__stat">
@@ -277,38 +257,10 @@ function headerSvg(): string {
       </div>
     </div>
 
-    <!-- ===== 工具条 ===== -->
+    <!-- ===== 操作条：只留下载/刷新。缩放靠 Ctrl+滚轮与拖拽平移即可，
+         独立的缩放/复位/全屏按钮属于冗余工具条，已按产品要求移除。 ===== -->
     <div class="cad__toolbar">
-      <el-button
-        :icon="ZoomOut"
-        :disabled="!hasDrawing || zoom <= ZOOM_MIN"
-        title="缩小 (Ctrl+滚轮)"
-        aria-label="缩小"
-        @click="zoomOut"
-      />
-      <el-button class="cad__zoom-btn" :disabled="!hasDrawing" @click="resetView">
-        {{ zoom }}%
-      </el-button>
-      <el-button
-        :icon="ZoomIn"
-        :disabled="!hasDrawing || zoom >= ZOOM_MAX"
-        title="放大 (Ctrl+滚轮)"
-        aria-label="放大"
-        @click="zoomIn"
-      />
-      <el-button
-        :icon="ScaleToOriginal"
-        :disabled="!hasDrawing"
-        title="复位视图"
-        aria-label="复位视图"
-        @click="resetView"
-      />
-      <el-button
-        :icon="FullScreen"
-        :disabled="!hasDrawing || !canvasRef"
-        title="全屏查看"
-        @click="canvasRef?.requestFullscreen?.()"
-      />
+      <span class="cad__zoom-btn">{{ zoom }}%</span>
       <div class="cad__spacer" />
       <el-button :icon="Refresh" :loading="loading" title="刷新" aria-label="刷新" @click="load" />
       <el-button :icon="Download" title="下载图纸" @click="downloadSelf">下载</el-button>
@@ -432,74 +384,13 @@ function headerSvg(): string {
   overflow: hidden;
 }
 
-/* ---- 头部 ---- */
-.cad__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-}
-
-.cad__header-icon {
-  display: flex;
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
-.cad__header-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
-}
-
-.cad__header-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cad__close {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-bg-color);
-  color: var(--el-text-color-regular);
-  cursor: pointer;
-  transition: color var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-
-.cad__close:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-}
-
-.cad__close:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
-}
+/* ---- 头部样式已随 header 一并移除：标题与关闭按钮由外层 el-dialog 承担 ---- */
 
 /* ---- 统计条 ---- */
 .cad__stats {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 16px;
   background: var(--el-fill-color-lighter);
   border-bottom: 1px solid var(--el-border-color-lighter);
   overflow-x: auto;
@@ -509,7 +400,7 @@ function headerSvg(): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 18px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 
@@ -545,7 +436,7 @@ function headerSvg(): string {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   flex-wrap: wrap;
@@ -575,7 +466,7 @@ function headerSvg(): string {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 10px 8px;
+  padding: 8px;
   border-right: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color-page);
 }
@@ -619,21 +510,21 @@ function headerSvg(): string {
 
 .cad__layer-count {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
 }
 
 .cad__unsupported {
   margin-top: 12px;
-  padding: 9px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
 }
 
 .cad__unsupported-title {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
@@ -641,7 +532,7 @@ function headerSvg(): string {
 
 .cad__unsupported-text {
   margin: 0 0 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-regular);
   word-break: break-all;
@@ -649,7 +540,7 @@ function headerSvg(): string {
 
 .cad__unsupported-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-placeholder);
 }
@@ -728,7 +619,7 @@ function headerSvg(): string {
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-bg-color-overlay, var(--el-bg-color));
   color: var(--el-text-color-placeholder);
-  font-size: 11px;
+  font-size: 12px;
   pointer-events: none;
   opacity: 0.85;
 }
@@ -740,7 +631,7 @@ function headerSvg(): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   padding: 24px;
   overflow-y: auto;
   text-align: center;
@@ -786,7 +677,7 @@ function headerSvg(): string {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-size: 13px;
 }
 
@@ -808,7 +699,7 @@ function headerSvg(): string {
 
 .cad__nodwg-tip {
   max-width: 460px;
-  padding: 11px 13px;
+  padding: 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-lighter);
@@ -835,7 +726,7 @@ function headerSvg(): string {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 16px;
+  padding: 8px 16px;
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   font-size: 12px;
@@ -851,7 +742,7 @@ function headerSvg(): string {
 
 .cad__layers::-webkit-scrollbar-thumb,
 .cad__nodwg::-webkit-scrollbar-thumb {
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-border-color-dark);
 }
 
@@ -863,8 +754,7 @@ function headerSvg(): string {
 /* ---- 无障碍：尊重「减少动态效果」偏好 ---- */
 @media (prefers-reduced-motion: reduce) {
   .cad__layer-row,
-  .cad__canvas-inner,
-  .cad__close {
+  .cad__canvas-inner {
     transition: none;
   }
 }

@@ -3,6 +3,8 @@
  */
 
 export { default as KnowledgeBasePage } from './KnowledgeBasePage.vue'
+export { default as KBMenu } from './KBMenu.vue'
+export { default as KBTemplateGallery } from './KBTemplateGallery.vue'
 export { default as FileChunksViewer } from './FileChunksViewer.vue'
 export { default as KBFileItem } from './KBFileItem.vue'
 export { default as KBFileUploader } from './KBFileUploader.vue'

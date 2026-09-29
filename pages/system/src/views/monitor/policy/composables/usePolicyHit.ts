@@ -10,6 +10,9 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
+// EChartsOption 是纯类型导入（type）：只用于给两个 computed 标注返回类型，
+// 运行时不需要 echarts 本身，那份体积由 ReEChart 组件引入。
+import type { EChartsOption } from "echarts";
 import { policyHitCounts, policyHitDetail } from "../../../../api/systemApi";
 import type { PolicyHitDetail, PolicyHitType, RateLimitRule } from "../../../../api/types";
 
@@ -104,8 +107,15 @@ export function usePolicyHit() {
       .join("　");
   });
 
-  /** 来源 IP Top 10 横向柱状图 */
-  const hitTopOption = computed(() => {
+  /**
+   * 来源 IP Top 10 横向柱状图
+   *
+   * <p>显式标注 {@link EChartsOption}：不标注时 TS 把对象字面量的 `type: "bar"`
+   * 推断成 {@code string}，而 EChartsOption 要求字面量联合类型
+   * （`"bar" | "line" | …`），于是 ReEChart 的 `option` 属性报 TS2322。
+   * dev 不做类型检查，只有 build 的第一步 vue-tsc 才暴露。</p>
+   */
+  const hitTopOption = computed<EChartsOption>(() => {
     const rows = (hitDetail.value?.topIps ?? []).slice(0, 10).reverse();
     return {
       grid: { left: 8, right: 40, top: 12, bottom: 8, containLabel: true },
@@ -128,8 +138,8 @@ export function usePolicyHit() {
     };
   });
 
-  /** 分钟级命中趋势折线图 */
-  const hitTrendOption = computed(() => {
+  /** 分钟级命中趋势折线图（类型理由同 {@link hitTopOption}） */
+  const hitTrendOption = computed<EChartsOption>(() => {
     const pts = hitDetail.value?.trend ?? [];
     return {
       grid: { left: 8, right: 16, top: 28, bottom: 8, containLabel: true },

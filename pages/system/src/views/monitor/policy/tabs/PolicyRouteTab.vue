@@ -71,6 +71,24 @@ interface ApiRouteRow {
   targetText: string;
   /** 备注 */
   remark: string;
+  /**
+   * 以下四个是 {@link decorateRow} 补上的展示派生字段，不是接口返回的。
+   *
+   * <p>必须写进接口类型：ReTable 的插槽行是 {@code Record<string, unknown>}，
+   * 模板里 {@code (row as unknown as ApiRouteRow).effectiveText} 会按 ApiRouteRow
+   * 查属性，类型里没有就报 TS2339。dev 不做类型检查，只有 build 的第一步
+   * vue-tsc 才暴露。</p>
+   */
+  /** 是否已配置过规则（action !== "PASS"） */
+  configured: boolean;
+  /** 有效状态文案：放行 / 已拦截 / 已转发 / 未生效 / 未配置 */
+  effectiveText: string;
+  /** 有效状态标签色 */
+  effectiveTagType: "danger" | "warning" | "info";
+  /** 白话说明：有没有规则、规则在不在跑、命中会怎样 */
+  stateNote: string;
+  /** 操作文案：没配过是「配置」，配过是「编辑」 */
+  actionLabel: string;
 }
 
 const tableRef = ref<TableReloadRef>();
@@ -220,6 +238,12 @@ function mergeApiRouteRows(): ApiRouteRow[] {
         status: 0,
         targetText: "-",
         remark: "",
+        // 下面四个是展示派生字段，merge 阶段先占位，真正赋值在 decorateRow
+        configured: false,
+        effectiveText: "",
+        effectiveTagType: "info",
+        stateNote: "",
+        actionLabel: "",
       });
     }
   }
@@ -245,6 +269,12 @@ function mergeApiRouteRows(): ApiRouteRow[] {
       status: 0,
       targetText: "-",
       remark: "",
+      // 同上：展示派生字段的占位，decorateRow 会覆盖
+      configured: false,
+      effectiveText: "",
+      effectiveTagType: "info",
+      stateNote: "",
+      actionLabel: "",
     };
     row.policyId = p.sysPolicyConfigId;
     row.action = parsed.action;

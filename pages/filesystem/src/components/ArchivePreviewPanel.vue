@@ -51,8 +51,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** 请求预览包内条目（参数为包内完整路径） */
   "open-entry": [path: string];
-  /** 请求关闭预览弹窗 */
-  close: [];
 }>();
 
 /** 压缩包结构数据 */
@@ -116,12 +114,28 @@ function buildDirTree(entries: ArchiveEntry[], name: string): DirNode[] {
   const roots: DirNode[] = [];
   const index = new Map<string, DirNode>();
 
+  /** 由路径末段推出显示名：`a/b/c` → `c`。隐式目录没有条目可取名，只能这样兜。 */
+  const nameFromPath = (path: string): string => {
+    const slash = path.lastIndexOf("/");
+    return slash >= 0 ? path.slice(slash + 1) : path;
+  };
+
   const ensure = (path: string, displayName: string): DirNode => {
     const existing = index.get(path);
     if (existing) {
+      // 隐式目录先于自己的目录条目出现（后端把文件排在目录前），此时节点是用
+      // 空名建的；目录条目到达后必须回填，否则树里那一行是空白的。
+      if (!existing.name) {
+        existing.name = displayName || nameFromPath(path);
+      }
       return existing;
     }
-    const node: DirNode = { path, name: displayName, itemCount: 0, children: [] };
+    const node: DirNode = {
+      path,
+      name: displayName || (path ? nameFromPath(path) : ""),
+      itemCount: 0,
+      children: [],
+    };
     index.set(path, node);
     if (path) {
       const slash = path.lastIndexOf("/");
@@ -441,20 +455,7 @@ async function extractTo(): Promise<void> {
 
 <template>
   <section class="arc" aria-label="压缩包内容预览">
-    <!-- ===== 头部：图标 + 文件名 + 关闭 ===== -->
-    <header class="arc__header">
-      <span class="arc__header-icon" v-html="fileSvg(fileName, false)" />
-      <h3 class="arc__header-title" :title="fileName">{{ fileName }}</h3>
-      <button
-        type="button"
-        class="arc__icon-btn arc__icon-btn--close"
-        title="关闭"
-        aria-label="关闭预览"
-        @click="emit('close')"
-      >
-        <el-icon :size="18"><Close /></el-icon>
-      </button>
-    </header>
+  
 
     <!-- ===== 统计条 ===== -->
     <div class="arc__stats">
@@ -482,30 +483,7 @@ async function extractTo(): Promise<void> {
 
     <!-- ===== 工具条：返回 / 面包屑 / 搜索 / 视图 / 刷新 / 下载 / 解压 ===== -->
     <div class="arc__toolbar">
-      <el-button
-        :icon="ArrowLeft"
-        :disabled="!canGoBack"
-        title="返回上一级"
-        aria-label="返回上一级"
-        @click="goBack"
-      />
-      <el-dropdown trigger="click" @command="enterDir">
-        <el-button class="arc__crumb">
-          <span class="arc__crumb-current">{{ breadcrumbText }}</span>
-          <el-icon class="arc__crumb-arrow"><ArrowDown /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="crumb in breadcrumbs" :key="crumb.path" :command="crumb.path">
-              {{ crumb.name }}
-            </el-dropdown-item>
-            <el-dropdown-item v-for="node in allDirs" :key="node.path" :command="node.path" divided>
-              {{ node.name }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-
+  
       <div class="arc__toolbar-spacer" />
 
       <el-input
@@ -543,14 +521,8 @@ async function extractTo(): Promise<void> {
         />
       </el-button-group>
       <el-button :icon="Refresh" :loading="loading" title="刷新" aria-label="刷新" @click="load" />
-      <el-button :icon="Download" title="下载压缩包" @click="downloadSelf">下载</el-button>
-      <el-button
-        type="primary"
-        :icon="TakeawayBox"
-        :loading="extracting"
-        title="解压到目标目录"
-        @click="extractTo"
-      >解压到…</el-button>
+      <el-button :icon="Download" title="下载压缩包" @click="downloadSelf"></el-button>
+
     </div>
 
     <!-- ===== 主体：左树 + 右表 ===== -->
@@ -680,76 +652,13 @@ async function extractTo(): Promise<void> {
   overflow: hidden;
 }
 
-/* ---- 头部 ---- */
-.arc__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-}
-
-.arc__header-icon {
-  display: flex;
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
-.arc__header-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
-}
-
-.arc__header-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 关闭按钮：图里是带描边的圆形 ✕，不是裸文字。
-   宽高/圆角/边框三者缺一，渲染出来就退化成一个飘在角落的字符。 */
-.arc__icon-btn--close {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-bg-color);
-  color: var(--el-text-color-regular);
-  cursor: pointer;
-  transition: color var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-
-.arc__icon-btn--close:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
-}
-
-.arc__icon-btn--close:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
-}
+/* ---- 头部样式已随 header 一并移除：标题与关闭按钮由外层 el-dialog 承担 ---- */
 
 /* ---- 统计条 ---- */
 .arc__stats {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 16px;
   background: var(--el-fill-color-lighter);
   border-bottom: 1px solid var(--el-border-color-lighter);
   overflow-x: auto;
@@ -759,7 +668,7 @@ async function extractTo(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 18px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 
@@ -795,7 +704,7 @@ async function extractTo(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   flex-wrap: wrap;
@@ -907,7 +816,7 @@ async function extractTo(): Promise<void> {
 
 .arc__tree-count {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
 
@@ -929,7 +838,7 @@ async function extractTo(): Promise<void> {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 10px 12px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
   color: var(--el-text-color-secondary);
@@ -965,7 +874,7 @@ async function extractTo(): Promise<void> {
 }
 
 .arc__tr td {
-  padding: 9px 12px;
+  padding: 8px 12px;
   color: var(--el-text-color-regular);
   vertical-align: middle;
 }
@@ -1000,7 +909,7 @@ async function extractTo(): Promise<void> {
   border-radius: var(--el-radius-full, 9999px);
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .arc__empty {
@@ -1014,7 +923,7 @@ async function extractTo(): Promise<void> {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 8px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .arc__grid-cell {
@@ -1066,7 +975,7 @@ async function extractTo(): Promise<void> {
 }
 
 .arc__grid-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
 
@@ -1076,7 +985,7 @@ async function extractTo(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 16px;
+  padding: 8px 16px;
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   font-size: 12px;
@@ -1097,7 +1006,7 @@ async function extractTo(): Promise<void> {
 
 .arc__tree::-webkit-scrollbar-thumb,
 .arc__content::-webkit-scrollbar-thumb {
-  border-radius: 6px;
+  border-radius: var(--el-radius-sm, 6px);
   background: var(--el-border-color-dark);
 }
 

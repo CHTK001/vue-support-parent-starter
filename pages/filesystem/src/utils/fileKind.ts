@@ -50,11 +50,17 @@ const CODE_EXTS = [
   "properties", "cfg", "conf", "ini", "env", "toml", "gradle",
 ];
 
-/** Office 及其他服务端渲染的文档扩展名（统一走 iframe ?preview=true） */
+/**
+ * Office 及其他服务端渲染的文档扩展名（统一走 iframe ?preview=true）
+ *
+ * <p>不要把 dwg / dgn 放这里：{@link kindOf} 先判本表再判 {@link MODEL_EXTS}，
+ * 留在这里会让它们被判成 office 而落回 iframe 通道，CAD 面板永远收不到 DWG。
+ * 那条通道上等着它们的是后端旧的 {@code CadPreviewProvider} HTML 信息卡。</p>
+ */
 const OFFICE_EXTS = [
   "xlsx", "xls", "docx", "doc", "pptx", "ppt",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
-  "dwg", "dgn", "rtf", "epub", "xmind",
+  "rtf", "epub", "xmind",
 ];
 
 /** 网页文件扩展名（后端沙箱渲染） */

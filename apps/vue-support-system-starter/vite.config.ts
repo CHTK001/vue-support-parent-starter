@@ -4,6 +4,15 @@ export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
   publicDir: "../../public",
+  /*
+   * CSS 压缩器切换：vite(rolldown) 默认用 lightningcss 压缩，本仓库在「合并后的样式」上会报
+   * `Unexpected token Semicolon`（逐文件压缩、以及 dist 里 102 个 CSS 产物全部累加后压缩都复现不到，
+   * 说明只在该压缩产物路径上）。改用 esbuild 压缩：既保留 CSS 压缩，又避开 lightningcss 的这条缺陷。
+   * 待 lightningcss 侧定位后可以移除本项。
+   */
+  config: {
+    build: { cssMinify: "esbuild" },
+  },
   // @pages/collect、@pages/datasource 未收录在 createVite 共享 REPO_ALIAS
   // （REPO_ALIAS 里的 @pages/* 指向 pages/xxx/src，@pages/system 等同理）。
   // 但本应用入口 import "@pages/job"、而 pages/collect 的路由树里用深路径引用

@@ -1469,15 +1469,45 @@ onMounted(() => {
   height: 100%;
 }
 
-/* 表格外壳：卡片不加投影（koi 规约），只用 1px 描边表达层级；
-   键盘聚焦内部控件时描边转主色，让「焦点在哪一块」可感知 */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
+/* 表格外壳：外层不再自己画框线。
+   ReTable 内部已经把「搜索面板」和「表格主体」各画成一张卡（.re-table__search /
+   .re-table__main），外层再套一圈边框会叠出第三层框线；focus-within 改挂在两张卡上，
+   焦点落在哪一块就只亮哪一块，比原来整页一起亮更准。
+   overflow: hidden 必须保留 —— vxe 的固定列浮层与空态裁剪依赖它裁切。 */
+.system-page :deep(.re-table) {
+  border: none;
+  border-radius: var(--re-surface-radius, 16px);
   overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
-:deep(.re-table:focus-within) {
+
+/* 卡片圆角：沿用 re-surface 登记的 16px。
+   投影不沿用 --re-surface-shadow —— 那个令牌是 `0 1px 2px + 0 12px 28px -14px`，
+   第二层的 -14px 负偏移把它压到元素后面，在 #f2f6fa 页底上几乎不可见，
+   「加了等于没加」。这里按设计稿的浮起感重写：小偏移 + 大范围 + 可察觉的浓度，
+   颜色用 color-mix 从文字主色混出，不写死 rgba。
+   亮色靠投影分层，暗色下投影失效，所以 1px 描边保留作为兜底边界。 */
+.system-page :deep(.re-table__search),
+.system-page :deep(.re-table__main) {
+  border-color: var(--el-border-color-lighter);
+  border-radius: var(--re-surface-radius, 16px);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 6%, transparent),
+    0 6px 22px color-mix(in srgb, var(--el-text-color-primary) 9%, transparent);
+  transition:
+    border-color var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
+}
+
+/* 悬停再抬一档，投影随鼠标进入而加深，给出「这一块可交互」的反馈 */
+.system-page :deep(.re-table__search:hover),
+.system-page :deep(.re-table__main:hover) {
+  box-shadow:
+    0 2px 4px color-mix(in srgb, var(--el-text-color-primary) 7%, transparent),
+    0 12px 32px color-mix(in srgb, var(--el-text-color-primary) 13%, transparent);
+}
+
+.system-page :deep(.re-table__search:focus-within),
+.system-page :deep(.re-table__main:focus-within) {
   border-color: var(--el-color-primary-light-5);
 }
 /* ==================== 消息管理：按 UI 图改造 ==================== */
@@ -1499,21 +1529,88 @@ onMounted(() => {
     color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info))
   );
   box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  transition:
+    transform var(--el-transition-duration, 0.2s) ease,
+    box-shadow var(--el-transition-duration, 0.2s) ease;
 }
 
-/* 表格：浅灰表头 + 宽松行高 + 胶囊标签 */
+/* 悬停抬升一格并加深投影，让按钮有可点感（对齐设计稿主按钮的 hover 反馈） */
+.system-page :deep(.koi-search .el-button--primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+/* 工具条左侧的页面主按钮（「发送消息」）与搜索主按钮统一形状：
+   搜索按钮已经是胶囊，这里还是 6px 方角，同页两种主按钮并排会显得没规范 */
+.system-page :deep(.re-table__toolbar-left .el-button--primary) {
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+/* vxe 表头：补一层极浅底色 + 一级文字色。
+   上面那条浅灰表头规则只覆盖 .el-table，切到 vxe 引擎后表头是完全透明的，
+   整张表会「塌」成一片没有层次。
+   底色只能挂在 .vxe-header--row（表头行容器）上：表头单元格 vxe 用 inline
+   background 简写画横竖线，简写里把 background-color 一起写成了 transparent，
+   任何选择器都压不过它（实测只有 !important 能赢，而那会留下技术债）。
+   行容器自身无 inline 背景，单元格透明底会把它透出来，线也照旧。 */
+.system-page :deep(.vxe-header--row) {
+  background-color: var(--el-fill-color-light);
+}
+
+.system-page :deep(.vxe-header--column) {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+/* vxe 数据行分隔线：与 element 侧的 .el-table__row 规则对齐 */
+.system-page :deep(.vxe-body--row) {
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+/* 工具条与表格之间的分隔线：工具条本身无底色，靠这条线独立成层 */
+.system-page :deep(.re-table-toolbar) {
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+/* 表格：浅灰表头 + 宽松行高 + 胶囊标签
+   —— 表头/数据行/工具条三者的层次靠「字重 + 底色 + 分隔线」三个维度拉开：
+   表头是唯一有底色且字重最高的一层，工具条与表格之间加一条分隔线，
+   数据行之间保持最弱的线，三层不会糊成一片。 */
+
+/* 表头：唯一带底色 + 最高字重的一层 */
 .system-page :deep(.el-table th.el-table__cell) {
   background: var(--el-fill-color-light);
   font-weight: 600;
+  color: var(--el-text-color-primary);
+  letter-spacing: 0.2px;
+}
+
+/* 数据行：加高让单元格透气，文字降到 regular 让表头更突出 */
+.system-page :deep(.el-table td.el-table__cell) {
+  padding: 14px 0;
   color: var(--el-text-color-regular);
 }
 
-.system-page :deep(.el-table td.el-table__cell) {
-  padding: 14px 0;
+/* 行分隔线比默认更实一点，配合行高形成清晰的横向节奏 */
+.system-page :deep(.el-table .el-table__row) {
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.system-page :deep(.el-table .el-table__row:hover > td.el-table__cell) {
+  background: var(--el-fill-color-lighter) !important;
 }
 
 .system-page :deep(.el-table .el-tag) {
   border-radius: var(--el-radius-full, 9999px);
+}
+
+/* 工具条与表格之间的分隔线：工具条本身无底色，靠这条线独立成层 */
+.system-page :deep(.re-table-toolbar) {
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 
@@ -1695,10 +1792,16 @@ onMounted(() => {
   }
 }
 
-/* 尊重系统「减少动态效果」偏好：本文件新增/沿用的过渡统一关掉 */
+/* 尊重系统「减少动态效果」偏好：本文件新增/沿用的过渡与悬停抬升统一关掉 */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.re-table) {
+  :deep(.re-table),
+  .system-page :deep(.re-table__search),
+  .system-page :deep(.re-table__main),
+  .system-page :deep(.koi-search .el-button--primary) {
     transition: none;
+  }
+  .system-page :deep(.koi-search .el-button--primary:hover) {
+    transform: none;
   }
 }
 </style>

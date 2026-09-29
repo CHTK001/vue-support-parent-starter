@@ -59,8 +59,14 @@ const shown = computed(() => props.count ?? hitCountOf(props.type, props.hitKey)
 </script>
 
 <template>
+  <!--
+    文案按钮用 type="text"，不是 layout="text"：
+    ReButton 的 layout 只接受 "el" | "modern" | "square"（ReButton.vue:50），
+    传 "text" 会被 vue-tsc 判 TS2322，build 的第一步 vue-tsc 直接失败。
+    el-button 的文字态是 :text="true" 布尔属性，不是 layout。
+  -->
   <ReButton
-    layout="text"
+    :text="true"
     type="primary"
     class="policy-hit-cell"
     :aria-label="t('policy.common.hitDetailOf', { name: props.label })"

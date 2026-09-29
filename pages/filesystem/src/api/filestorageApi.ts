@@ -433,6 +433,12 @@ export async function getArchiveEntries(bucket: string, key: string): Promise<Ar
       .get(objectPath(bucket, key))
       .query({ format: "archive" })
       .then<ArchiveScanResponse>((r) => r.data);
+    // 服务端解析失败时回的是 422 + {"error": "...", "entries": []}（见
+    // FileStorageServerFilter.writeArchiveEntries）。先看 error 字段，
+    // 否则下面那句「未生效」会把「文件本身坏了」误报成「服务器版本旧」。
+    if (res && typeof res === "object" && typeof (res as { error?: string }).error === "string") {
+      throw new Error((res as { error: string }).error);
+    }
     // 服务端未识别 ?format=archive 时，请求会落到 inline/download 兜底通道并
     // 回吐压缩包原始字节，形状对不上却在调用方渲染期才炸，定位成本很高。
     // 在此提前拦下并给出可操作的错误信息。
@@ -496,15 +502,23 @@ export interface CadInfoResponse {
  * 走 {@code ?format=cad} 纯数据通道，而非 {@code ?preview=true} 的服务端渲染：
  * 后者渲染在 iframe 独立文档里，读不到主应用的 Element Plus / koi 主题变量。
  *
+ * <p>传 {@code inner} 时解析的是压缩包内的条目（{@code ?format=cad&inner=包内路径}），
+ * 于是包内 DXF 与顶层 DXF 走同一套面板；不传则解析对象本身。</p>
+ *
  * @param bucket 存储桶名
- * @param key    图纸对象 Key
+ * @param key    图纸对象 Key（传 inner 时为压缩包自身的 Key）
+ * @param inner  压缩包内条目路径，不传表示不按下钻处理
  * @return CAD 图纸信息
  */
-export async function getCadInfo(bucket: string, key: string): Promise<CadInfoResponse> {
+export async function getCadInfo(
+  bucket: string,
+  key: string,
+  inner?: string,
+): Promise<CadInfoResponse> {
   try {
     const res = await storageHttp()
       .get(objectPath(bucket, key))
-      .query({ format: "cad" })
+      .query(inner ? { format: "cad", inner } : { format: "cad" })
       .then<CadInfoResponse>((r) => r.data);
     if (!res || typeof res !== "object" || typeof res.renderable !== "boolean") {
       throw new Error("服务端未返回 CAD 图纸结构（?format=cad 未生效），请更新文件服务器后重试");
@@ -785,10 +799,20 @@ export async function setBucketConfig(
 ): Promise<Record<string, unknown>> {
   try {
     const query = new URLSearchParams({ action: "setConfig", token }).toString();
+    // 服务端 doSetConfig 用 extractString 解析 privateBuckets（逗号分隔），
+    // 而 BucketConfig 里它是 string[]（GET 返回的形态）。这里在出口处拉平成字符串，
+    // 免得调用方为了发一个 POST 还要自己拼一次逗号串。
+    const { privateBuckets, ...rest } = config;
+    const payload: Record<string, unknown> = { ...rest };
+    if (Array.isArray(privateBuckets)) {
+      payload.privateBuckets = privateBuckets.filter(Boolean).join(",");
+    } else if (typeof privateBuckets === "string") {
+      payload.privateBuckets = privateBuckets;
+    }
     return await storageHttp()
       .post(`${objectPath(bucket)}?${query}`)
       .headers({ "Content-Type": "application/json;charset=UTF-8" })
-      .data(JSON.stringify(config))
+      .data(JSON.stringify(payload))
       .then<Record<string, unknown>>((r) => r.data);
   } catch (e) {
     const status = (e as { response?: { status?: number } } | null)?.response?.status;

@@ -48,6 +48,55 @@ registerAnnouncementApi({
 // 后端菜单不可用时仍保证左侧导航可见；远程菜单成功后会由 auth store 自动隐藏这些兜底根节点。
 registerStaticMenu(systemMenus);
 
+/**
+ * 启动失败兜底 —— 后端不可用时至少要让用户看见原因。
+ *
+ * <p>{@code mount()} 是 async，链路里任何一步失败都会让它 reject
+ * （{@code loadCrypto} 拉不到 wasm 密钥、{@code loadConfig} 拉不到远端配置等）。
+ * 而 {@code .mount("#app")} 是<strong>浮动 promise</strong>：reject 之后没人接，
+ * {@code #app} 就一直空着 —— 表现是<strong>永久白屏，且没有任何提示</strong>。
+ * 2026-09-29 实测：后端断续不可达期间，页面标题能出来（说明 index.html 加载了）
+ * 但 {@code #app} 零子节点、没有报错弹窗、连一条 console 都没有。</p>
+ *
+ * <p>两重保险：{@code .catch()} 接 reject；再挂一个定时器兜底「挂起」
+ * （既不 resolve 也不 reject）—— 那种情况下 catch 永远不会触发。</p>
+ */
+const BOOT_TIMEOUT_MS = 25_000;
+
+function renderBootError(reason: string, detail: string): void {
+  const el = document.querySelector<HTMLElement>("#app");
+  if (!el) return;
+  // 已经有内容说明应用挂上了，别覆盖
+  if (el.childElementCount > 0) return;
+  el.innerHTML =
+    '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;' +
+    'background:var(--el-bg-color,#fff);color:var(--el-text-color-primary,#303133);' +
+    "font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif\">" +
+    '<div style="max-width:560px;text-align:center">' +
+    '<div style="font-size:44px;line-height:1;margin-bottom:16px">⚠️</div>' +
+    `<h1 style="margin:0 0 12px;font-size:20px;font-weight:600">${reason}</h1>` +
+    '<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:var(--el-text-color-secondary,#606266)">' +
+    "后端服务未响应，控制台无法启动。请确认服务已启动、网关与代理配置正确，然后重试。</p>" +
+    '<pre style="margin:0 0 20px;padding:12px;border-radius:6px;text-align:left;' +
+    "background:var(--el-fill-color-light,#f5f7fa);color:var(--el-text-color-regular,#606266);" +
+    'font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow:auto">' +
+    `${detail}</pre>` +
+    '<button id="boot-retry" style="padding:9px 22px;border:0;border-radius:6px;cursor:pointer;' +
+    'font-size:14px;background:var(--el-color-primary,#409eff);color:#fff">重新加载</button>' +
+    "</div></div>";
+  document.getElementById("boot-retry")?.addEventListener("click", () => location.reload());
+}
+
+let booted = false;
+const bootTimer = setTimeout(() => {
+  if (booted) return;
+  renderBootError(
+    "控制台启动超时",
+    `超过 ${BOOT_TIMEOUT_MS / 1000} 秒仍未完成挂载。` +
+      "后端接口无响应时，启动链路会停在第一步且不报错。",
+  );
+}, BOOT_TIMEOUT_MS);
+
 createContextApp({
   defaults: {
     /**
@@ -83,4 +132,16 @@ createContextApp({
     ReIconSelectInstall,
     ReIpTextInstall,
   ])
-  .mount("#app");
+  .mount("#app")
+  .then(() => {
+    booted = true;
+    clearTimeout(bootTimer);
+  })
+  .catch((error: unknown) => {
+    clearTimeout(bootTimer);
+    const detail =
+      error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
+    // 原始错误同时进控制台，方便开发定位
+    console.error("[boot] 控制台挂载失败", error);
+    renderBootError("控制台启动失败", detail);
+  });
