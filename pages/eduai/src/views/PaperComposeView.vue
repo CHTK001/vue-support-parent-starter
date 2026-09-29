@@ -1826,6 +1826,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  /* 允许子项被压缩/收纳：否则标题与元信息会把右侧图标挤出可视区 */
+  min-width: 0;
 }
 
 .panel-head__title {
@@ -1833,6 +1835,7 @@ onMounted(() => {
   font-weight: 700;
   color: var(--el-text-color-primary);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .panel-head__sub {
@@ -1842,10 +1845,17 @@ onMounted(() => {
   margin-left: auto;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  /* 元信息属次要信息：空间不足时先压缩它，保住右侧操作图标不被挤出 */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel-head__meta {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* 标题右侧的操作图标组（设置/保存/发布、购物车的添加/清空） */

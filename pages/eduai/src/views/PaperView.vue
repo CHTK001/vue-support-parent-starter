@@ -43,14 +43,14 @@
           </span>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
-        <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
+        <ReTableColumn prop="paperName" label="试卷名" min-width="120" />
         <ReTableColumn prop="paperSubject" label="学科" width="100" />
         <ReTableColumn prop="paperGradeLevel" label="学段" width="100" />
         <ReTableColumn prop="paperGrade" label="年级" width="100" />
         <ReTableColumn prop="paperTotalScore" label="总分" width="80" />
         <ReTableColumn prop="paperQuestionCount" label="题数" width="80" />
         <ReTableColumn prop="paperDuration" label="时长(分)" width="100" />
-        <ReTableColumn label="来源" width="80">
+        <ReTableColumn label="来源" width="120">
           <template #default="{ row }">
             <el-tag  :type="row.paperSource === 'AI' ? 'success' : 'info'">{{ row.paperSource }}</el-tag>
           </template>
@@ -225,8 +225,10 @@
     </el-dialog>
 
     <!--
-      打印预览：弹层内看到的 A4 版面就是实际打印出去的内容（同一份 DOM，不做两份渲染）。
-      屏幕上把 .print-sheet 移到可视区外，打印时再用 @media print 把它移回页面原点。
+      打印预览：这里渲染的是**试卷本身**（A4 版面，与组卷页中栏、详情弹框同一套 PaperPreview），
+      不是数据清单导出。弹层内看到的版面就是实际打印出去的内容（同一份 DOM，不做两份渲染）。
+      屏幕上把 .print-sheet 移到可视区外，打印时再用 @media print 把它移回页面原点；
+      多份试卷之间用 break-after 分页。
     -->
     <el-dialog
       v-model="printVisible"
@@ -238,66 +240,42 @@
       destroy-on-close
       @closed="stopPrintMode"
     >
-      <div class="print-hint">
+      <div v-loading="printLoading" class="print-hint">
         <span>打印范围：<b>列表里勾选的试卷</b></span>
-        <el-tag size="small" effect="plain">共 {{ printRows.length }} 份</el-tag>
-        <span class="print-hint__tip">在打印对话框里可选择目标打印机、纸张与份数；要改范围请关掉本弹层重新勾选</span>
+        <el-tag size="small" effect="plain">共 {{ printSheets.length }} 份</el-tag>
+        <span class="print-hint__tip">
+          每份试卷独立分页；打印对话框里可选择目标打印机、纸张与份数；要改范围请关掉本弹层重新勾选
+        </span>
       </div>
 
-      <!-- 打印视图本体：仅这一块会进入打印输出 -->
-      <div class="print-sheet">
-        <header class="print-sheet__head">
-          <h2 class="print-sheet__title">试卷清单</h2>
-          <div class="print-sheet__meta">
-            <span>组卷管理</span>
-            <span>生成时间：{{ printTime }}</span>
-            <span>共 {{ printRows.length }} 份</span>
-          </div>
-          <div v-if="printFilterText" class="print-sheet__filter">筛选：{{ printFilterText }}</div>
-        </header>
-
-        <table class="print-table">
-          <thead>
-            <tr>
-              <th class="col-id">ID</th>
-              <th>试卷名</th>
-              <th>学科</th>
-              <th>学段</th>
-              <th>年级</th>
-              <th class="col-num">总分</th>
-              <th class="col-num">题数</th>
-              <th class="col-num">时长</th>
-              <th>状态</th>
-              <th>创建时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in printRows" :key="p.paperId">
-              <td class="col-id">{{ p.paperId }}</td>
-              <td class="col-name">{{ p.paperName }}</td>
-              <td>{{ p.paperSubject || '—' }}</td>
-              <td>{{ p.paperGradeLevel || '—' }}</td>
-              <td>{{ p.paperGrade || '—' }}</td>
-              <td class="col-num">{{ p.paperTotalScore ?? '—' }}</td>
-              <td class="col-num">{{ p.paperQuestionCount ?? '—' }}</td>
-              <td class="col-num">{{ p.paperDuration ?? '—' }}</td>
-              <td>{{ paperStatusLabel(p.paperStatus) }}</td>
-              <td class="col-time">{{ formatDateTime(p.paperCreateTime) }}</td>
-            </tr>
-            <tr v-if="!printRows.length">
-              <td class="print-table__empty" colspan="10">当前检索结果为空，没有可打印的内容</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <footer class="print-sheet__foot">
-          <span>合计 {{ printRows.length }} 份 · 满分总和 {{ printTotalScore }} 分 · 题目总数 {{ printTotalQuestions }} 道</span>
-        </footer>
+      <!-- 打印视图本体：仅这些 .print-sheet 会进入打印输出，一份一卷、一页起 -->
+      <div
+        v-for="(sheet, idx) in printSheets"
+        :key="sheet.paperId"
+        class="print-sheet"
+      >
+        <div class="print-sheet__caption">
+          <span class="print-sheet__caption-name">{{ sheet.header.name }}</span>
+          <span>{{ sheet.header.subject }}</span>
+          <span>{{ sheet.header.gradeLevel }}{{ sheet.header.grade }}</span>
+          <span>{{ sheet.questions.length }} 题</span>
+          <span>满分 {{ sheet.totalScore }} 分</span>
+          <span v-if="sheet.duration">时长 {{ sheet.duration }} 分钟</span>
+          <span class="print-sheet__caption-no">第 {{ idx + 1 }} / {{ printSheets.length }} 份</span>
+        </div>
+        <PaperPreview
+          :header="sheet.header"
+          :questions="sheet.questions"
+          :fit-width="sheet.paperWidth"
+          empty-text="该试卷没有题目"
+        />
       </div>
+
+      <el-empty v-if="!printSheets.length && !printLoading" description="没有可打印的试卷" :image-size="60" />
 
       <template #footer>
         <el-button @click="printVisible = false">关闭</el-button>
-        <el-button type="primary" :icon="Printer" :disabled="!printRows.length" @click="doPrint">打印</el-button>
+        <el-button type="primary" :icon="Printer" :disabled="!printSheets.length" @click="doPrint">打印</el-button>
       </template>
     </el-dialog>
   </div>
@@ -314,6 +292,7 @@ import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch 
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import QuestionMarketDialog from '../components/paper/QuestionMarketDialog.vue';
 import PaperPreview from '../components/paper/PaperPreview.vue';
+import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPreview.vue';
 import { usePaperCart, toCartItem, type CartItem } from '../composables/usePaperCart';
 
 const pageNo = ref(1);
@@ -914,8 +893,27 @@ const onArchiveRow = async (row: Paper) => {
 const PRINT_BODY_CLASS = 'printing-paper-list';
 
 const printVisible = ref(false);
-const printRows = ref<Paper[]>([]);
-const printTime = ref('');
+const printLoading = ref(false);
+const printSheets = ref<PrintSheet[]>([]);
+
+/** 纸张自然宽（96dpi 折算的 px）。传给 PaperPreview 当 fitWidth，使缩放为 1:1 */
+const PRINT_PAPER_WIDTH: Record<string, number> = {
+  A4: 794,
+  A3: 1123,
+  A5: 559,
+  B5: 665,
+  LETTER: 816,
+};
+
+/** 打印输出的一份试卷：卷头 + 题目 + 纸张自然宽 + 合计分 + 时长 */
+interface PrintSheet {
+  paperId: number;
+  header: PreviewHeader;
+  questions: PreviewQuestion[];
+  paperWidth: number;
+  totalScore: number;
+  duration: number | null;
+}
 
 /**
  * 当前勾选的行（ReTable 的 selection-change 给出）。
@@ -955,18 +953,57 @@ const onTableLoad = () => {
   syncPrintSelection();
 };
 
-/** 打开打印预览：只渲染当前勾选的试卷 */
-const openPrint = () => {
+/** 打开打印预览：拉取勾选试卷的**内容**，逐份按 A4 版面渲染（不是数据清单） */
+const openPrint = async () => {
   // 以 ReTable 的权威勾选集重算一次，避免用到过期数据
   syncPrintSelection();
   if (!printSelection.value.length) {
     ElMessage.warning('请先勾选要打印的试卷');
     return;
   }
-  printRows.value = [...printSelection.value];
-  printTime.value = formatDateTime(new Date().toISOString());
-  printVisible.value = true;
-  document.body.classList.add(PRINT_BODY_CLASS);
+  printLoading.value = true;
+  try {
+    const sheets: PrintSheet[] = [];
+    for (const row of printSelection.value) {
+      const d = (await eduaiApi.getPaper(row.paperId)) as unknown as Record<string, any>;
+      const pageSize = String(d.paperPageSize ?? d.pageSize ?? 'A4').toUpperCase();
+      sheets.push({
+        paperId: row.paperId,
+        paperWidth: PRINT_PAPER_WIDTH[pageSize] ?? PRINT_PAPER_WIDTH.A4,
+        header: {
+          name: d.paperName ?? d.name ?? row.paperName ?? '',
+          subject: d.paperSubject ?? d.subject ?? '',
+          gradeLevel: d.paperGradeLevel ?? d.gradeLevel ?? '',
+          grade: d.paperGrade ?? d.grade ?? '',
+          pageSize,
+          pageOrientation: d.paperPageOrientation ?? d.pageOrientation ?? 'PORTRAIT',
+          titleStyle: d.paperTitleStyle ?? d.titleStyle ?? 'classic',
+          header: d.paperHeader ?? '',
+          footer: d.paperFooter ?? '',
+        },
+        duration: d.paperDuration ?? null,
+        questions: [...((d.questions ?? []) as Array<Record<string, any>>)]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((q) => ({
+            questionId: q.id,
+            type: q.type,
+            stem: q.stem,
+            options: q.options,
+            score: q.score,
+            paperQuestionNo: q.questionNo,
+          })),
+        totalScore: ((d.questions ?? []) as Array<Record<string, any>>)
+          .reduce((sum, q) => sum + (Number(q.score) || 0), 0),
+      });
+    }
+    printSheets.value = sheets;
+    printVisible.value = true;
+    document.body.classList.add(PRINT_BODY_CLASS);
+  } catch (e) {
+    ElMessage.error('加载试卷内容失败: ' + errorText(e));
+  } finally {
+    printLoading.value = false;
+  }
 };
 
 /** 关闭弹层后摘掉 body 类，否则残留会让后续任何打印都只剩打印视图 */
@@ -978,22 +1015,6 @@ const stopPrintMode = () => {
 const doPrint = () => {
   window.print();
 };
-
-/** 打印抬头里的筛选条件描述；全空时不显示这一行 */
-const printFilterText = computed(() => {
-  const parts: string[] = [];
-  if (applied.value.subject) parts.push(`学科=${applied.value.subject}`);
-  if (applied.value.gradeLevel) parts.push(`学段=${gradeLevelLabel(applied.value.gradeLevel)}`);
-  if (applied.value.status != null) parts.push(`状态=${paperStatusLabel(Number(applied.value.status))}`);
-  return parts.join('　');
-});
-
-const printTotalScore = computed(() =>
-  printRows.value.reduce((sum, p) => sum + (Number(p.paperTotalScore) || 0), 0),
-);
-const printTotalQuestions = computed(() =>
-  printRows.value.reduce((sum, p) => sum + (Number(p.paperQuestionCount) || 0), 0),
-);
 
 /**
  * 从异常里取出「对用户有用」的文案。
@@ -1064,7 +1085,7 @@ onBeforeUnmount(stopPrintMode);
 /*
  * 打印视图（.print-sheet）就是实际打印输出的内容，弹层里看到的即所得。
  * 屏幕上把它移到可视区外，避免撑出滚动条；打印时由下方 @media print 移回页面原点。
- * 宽度按 A4 内容区（210mm - 两侧各 12mm 页边距）设定，页边距交给浏览器默认设置。
+ * 一份试卷一个 .print-sheet（内含 A4 版面），打印时逐份分页。
  */
 .print-sheet {
   position: fixed;
@@ -1077,73 +1098,28 @@ onBeforeUnmount(stopPrintMode);
   font-size: 12px;
 }
 
-.print-sheet__head {
-  text-align: center;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
-  border-bottom: 2px solid #1f2329;
-}
-
-.print-sheet__title {
-  margin: 0 0 6px;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 4px;
-}
-
-.print-sheet__meta {
+/* 每份试卷上方的一行说明（作为该份卷的抬头，区别于试卷自身的卷头） */
+.print-sheet__caption {
   display: flex;
-  justify-content: center;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #d1d5db;
   font-size: 11px;
   color: #4b5563;
 }
 
-.print-sheet__filter {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #6b7280;
+.print-sheet__caption-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2329;
 }
 
-.print-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.print-table th,
-.print-table td {
-  border: 1px solid #9ca3af;
-  padding: 4px 6px;
-  text-align: left;
-  word-break: break-all;
-}
-
-.print-table th {
-  background: #f3f4f6;
-  font-weight: 600;
-  text-align: center;
-}
-
-.print-table .col-id { width: 34px; text-align: center; }
-.print-table .col-num { width: 44px; text-align: center; }
-.print-table .col-time { width: 92px; }
-.print-table .col-name { width: auto; }
-
-.print-table__empty {
-  text-align: center;
+.print-sheet__caption-no {
+  margin-left: auto;
   color: #9ca3af;
-  padding: 18px 0;
-}
-
-.print-sheet__foot {
-  margin-top: 10px;
-  padding-top: 6px;
-  border-top: 1px solid #d1d5db;
-  text-align: right;
-  font-size: 11px;
-  color: #4b5563;
 }
 
 /*
@@ -1215,13 +1191,23 @@ onBeforeUnmount(stopPrintMode);
     visibility: visible !important;
   }
 
-  /* 表头在跨页时重复，便于多页清单阅读；单行不被分页切断 */
-  .print-table thead {
-    display: table-header-group;
+  /*
+   * 逐份试卷分页：一份一卷、一卷一页起。
+   * 不能对整卷用 break-inside: avoid —— 题目多的卷会长于一页，
+   * 那会把整份卷挤到下一页、并可能被浏览器截断。
+   * 只保证「单题不被分页切断」。
+   */
+  :global(body.printing-paper-list .print-sheet) {
+    break-after: page;
   }
 
-  .print-table tr {
-    break-inside: avoid;
+  :global(body.printing-paper-list .print-sheet:last-of-type) {
+    break-after: auto;
+  }
+
+  :global(body.printing-paper-list .print-sheet p) {
+    orphans: 3;
+    widows: 3;
   }
 }
 
