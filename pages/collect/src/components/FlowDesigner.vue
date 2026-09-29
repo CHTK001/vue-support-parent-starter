@@ -10,6 +10,7 @@
 -->
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
+import { fetchPreview } from "../api/collectApi";
 import type { Component } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
@@ -594,8 +595,33 @@ const activeForm = computed<Component>(() =>
  * <p>数据源联动、下拉候选这些状态仍由 FlowDesigner 持有，打包成一个对象下发给各 shape 表单，
  * 避免每个表单各存一份导致状态不一致。</p>
  */
+/**
+ * 找某个节点的上游抓取地址，给元素拾取器预填。
+ *
+ * <p>只沿入边找一跳：采集编排里 extract 的上一跳就是 request，这是约定。找不到就返回空串，
+ * 拾取器里由用户自己填 —— 不为了「猜得全」去遍历整张图，那样分支汇合时会给出让人意外的结果。</p>
+ *
+ * <p>值为 {@code ${url}} 这类占位符时**原样返回**：设计期解析不出种子 URL，
+ * 与其猜一个值，不如把占位符摆出来让用户改成真地址。</p>
+ *
+ * @param nodeId 当前节点 id
+ * @returns 上游抓取节点的 url 参数值；没有则空串
+ */
+function upstreamUrlOf(nodeId: string): string {
+  const data = engine.value?.getData() ?? graphData.value;
+  const incoming = data.edges.find(edge => edge.to === nodeId);
+  if (!incoming) {
+    return "";
+  }
+  const source = data.nodes.find(node => node.id === incoming.from);
+  const params = (source?.data as NodeCanvas | undefined)?.params ?? [];
+  return params.find(param => param.name === "url")?.value ?? "";
+}
+
 const formContext = computed<NodeFormContext>(() => ({
   placeholderGroups: props.placeholderGroups,
+  previewUrl: nodeForm.value ? upstreamUrlOf(nodeForm.value.id) : "",
+  loadPreview: fetchPreview,
   flowOptions: flowOptionsOf.value,
   datasourceOptions: datasourceOptionsOf.value,
   tableOptions: tableOptions.value,

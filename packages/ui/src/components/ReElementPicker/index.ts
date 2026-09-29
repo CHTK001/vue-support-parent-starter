@@ -19,7 +19,24 @@
  */
 import ReElementPicker from "./ReElementPicker.vue";
 
-export type { ElementPreviewPayload } from "./ReElementPicker.vue";
+/**
+ * 抓取结果载荷。
+ *
+ * 刻意在 index.ts 里再声明一份、而不是 `export type { X } from "./X.vue"`：
+ * SFC 的 `<script setup>` 类型导出在没有 vue-tsc 的纯 tsc 下不可见
+ * （实测 TS2614: Module '"*.vue"' has no exported member）。
+ * 结构与本组件内部、以及后端 CollectPreviewVO 保持一致。
+ */
+export interface ElementPreviewPayload {
+  /** HTTP 状态码 */
+  status: number;
+  /** 响应 Content-Type，可空 */
+  contentType?: string | null;
+  /** 正文字符数，可空 */
+  length?: number;
+  /** 正文原文 */
+  html: string;
+}
 
 /**
  * 注册为全局组件。

@@ -43,7 +43,10 @@
  *   - batch-delete / batch-edit / batch-save
  */
 import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, useSlots, watch, nextTick } from "vue";
-import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption } from "element-plus";
+// TableColumnCtx 是 element-plus 对 el-table 列对象的正式导出类型。
+// 模板上 @row-contextmenu / @cell-contextmenu / @cell-click 的形参必须与它一致，
+// 否则 vue-tsc 报 TS2322（此前这里写的是 any）。
+import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption, type TableColumnCtx } from "element-plus";
 import { Refresh, Setting, Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReTableCardView from "./ReTableCardView.vue";
@@ -61,7 +64,25 @@ import RePagination from "../RePagination/RePagination.vue";
 import "./shared/table-vars.css";
 import Sortable from "sortablejs";
 import { useRoute } from "vue-router";
-import { VxeTable, VxeColumn } from "vxe-table";
+/**
+ * vxe 的两个组件走「运行时从 vxe-table 导入 + 只用组件、不碰实例类型」的路子。
+ *
+ * <p>为什么不能写具名导入：{@code vxe-table@4.22.2} 的 types/all.d.ts 把
+ * VxeTable / VxeColumn 只声明在 {@code AllComponents} 接口里（第 41、49 行），
+ * 靠 {@code declare module '@vue/runtime-core'} 注册成全局组件；具名导出的只有
+ * 已废弃的 {@code VXETable}、{@code install} 和六个 {@code export *}。
+ * 所以 {@code import { VxeTable } from "vxe-table"} 类型层报 TS2724
+ * —— 但它在**运行时是存在的**（all.esm.js 里有具名导出），vue-tsc 不认而已。
+ *
+ * <p>另一条路（从 vxe-pc-ui/types/components/* 直接导入）也不行：
+ * 那个子路径在包内没有对应的 {@code exports} 映射，TS2307。
+ *
+ * <p>所以这里用默认导入拿运行时对象：{@code VxeTable} 挂在 {@code <VxeTable>} 标签上，
+ * {@code VxeColumn} 走全局组件名（vxe-table 通过 install 注册到 app.component），
+ * 不做 import。实例方法一律走下面 {@link TableInstanceHandle} 的结构声明，
+ * 两者互不依赖，也就不会触发 InstanceType 相关的 TS2339 / TS2344。</p>
+ */
+import VxeTable from "vxe-table";
 import "vxe-table/lib/style.css";
 import type {
   ReCardLayoutProps,
@@ -776,8 +797,20 @@ const ctxMenuX = ref(0);
 const ctxMenuY = ref(0);
 const ctxMenuContext = ref<ReTableContextMenuContext | undefined>(undefined);
 
-/** 行右键事件（el-table） */
-function onRowContextMenu(row: Record<string, unknown>, _column: any, event: MouseEvent): void {
+/**
+ * 行右键事件（el-table）
+ *
+ * <p>形参类型对齐 element-plus 的事件声明：{@code onRow-contextmenu} 传的是
+ * {@code (row, column: TableColumnCtx<T> | null, event: PointerEvent)}。
+ * 写成 {@code any} 会被 TS2322 拒（形参与声明不兼容），故直接用库导出的
+ * {@link TableColumnCtx}；事件类型用 PointerEvent —— 它是 MouseEvent 的子类，
+ * 形参声明为更宽的 PointerEvent 才能接住库传进来的值。</p>
+ */
+function onRowContextMenu(
+  row: Record<string, unknown>,
+  _column: TableColumnCtx<Record<string, unknown>> | null,
+  event: PointerEvent,
+): void {
   if (!props.contextMenu || props.contextMenu.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
@@ -790,8 +823,20 @@ function onRowContextMenu(row: Record<string, unknown>, _column: any, event: Mou
   ctxMenuVisible.value = true;
 }
 
-/** 单元格右键事件 */
-function onCellContextMenu(row: Record<string, unknown>, column: any, event: MouseEvent): void {
+/**
+ * 单元格右键事件
+ *
+ * <p>element-plus 的 {@code onCell-contextmenu} 传四个参数
+ * {@code (row, column, cell, event)}，本函数只用到前三个里的 row/column，
+ * 形参按声明写全（cell 不用但不能省，省了位置就错位）。类型理由同
+ * {@link onRowContextMenu}。</p>
+ */
+function onCellContextMenu(
+  row: Record<string, unknown>,
+  column: TableColumnCtx<Record<string, unknown>>,
+  _cell: HTMLTableCellElement,
+  event: PointerEvent,
+): void {
   if (!props.contextMenu || props.contextMenu.length === 0) return;
   event.preventDefault();
   ctxMenuX.value = event.clientX;
@@ -827,10 +872,47 @@ const sortedRows = ref<Array<Record<string, unknown>>>([]);
 const originalRows = ref<Array<Record<string, unknown>>>([]);
 const dragToggleLoading = ref(false);
 const sortableInitLock = ref(false);
-const vxeTableRef = ref<InstanceType<typeof VxeTable> | null>(null);
+/**
+ * vxe-table 的 cell-click / cell-menu 事件载荷（按结构声明）。
+ *
+ * <p>不能用库的 {@code CellClickEventParams}：它不在 "vxe-table" 根的导出面上
+ * （见 import 处注释）。本函数只读取 row / column 的四个字段，故声明这四个即可 ——
+ * 模板绑定处 vue-tsc 拿本类型与库的 {@code CellClick<D>} 比对，
+ * 形参类型只要是库载荷类型的**超集**就能通过。</p>
+ */
+interface VxeCellEvent {
+  row: Record<string, unknown>;
+  rowIndex: number;
+  column?: { field?: string; property?: string; title?: string; label?: string };
+  $event: MouseEvent;
+}
+
+/**
+ * 两个表格实例的 ref 都**按结构声明**，不用 {@code InstanceType<typeof VxeTable>} /
+ * {@code InstanceType<typeof ElTable>}：
+ *
+ * <ul>
+ *   <li>vue-tsc 对 SFC 组件推出的实例类型只含 {@code $props / $slots}，
+ *       拿不到运行期挂上去的实例方法（{@code clearCheckboxRow} / {@code setCheckboxRow}
+ *       / {@code clearSelection} / {@code toggleRowSelection}），调用处报 TS2339；
+ *       而 ElTable 那个还额外报 TS2344（不满足 {@code abstract new} 约束）。</li>
+ *   <li>方法声明为**必选**而非可选：调用点已用 {@code ref.value?.} 判空，
+ *       标成可选反而在「判空后调用」处报 TS2722（可能是 undefined）。</li>
+ * </ul>
+ */
+interface TableInstanceHandle {
+  // vxe 引擎
+  clearCheckboxRow: () => unknown;
+  setCheckboxRow: (row: unknown, checked: boolean) => unknown;
+  // element 引擎
+  clearSelection: () => unknown;
+  toggleRowSelection: (row: unknown, selected?: boolean) => unknown;
+  getSelectionRows: () => unknown[];
+}
+const vxeTableRef = ref<TableInstanceHandle | null>(null);
 const vxeDragData = ref<Array<Record<string, unknown>>>([]);
 /** element 引擎的表格实例（默认引擎）。只用到它的公开实例方法，不依赖内部结构。 */
-const elTableRef = ref<InstanceType<typeof ElTable> | null>(null);
+const elTableRef = ref<TableInstanceHandle | null>(null);
 
 /** 当前是否走 vxe 引擎 */
 const useVxe = computed<boolean>(() => props.engine === "vxe");
@@ -1320,18 +1402,18 @@ function vxeShowOverflow(col: ReTableColumn): "tooltip" | false {
  * 「点任意单元格即选中该行」（@row-click="selectRow" 一类）。这里从 cell-click
  * 合成 row-click，保持与 element-plus 一致的对外行为，调用方无需改动。</p>
  */
-function onVxeCellClick(payload: {
-  row: Record<string, unknown>;
-  rowIndex: number;
-  column?: { field?: string; property?: string; title?: string; label?: string };
-  $event: MouseEvent;
-}): void {
+function onVxeCellClick(payload: VxeCellEvent): void {
   const row = payload.row;
-  const column = payload.column ?? {};
-  const columnProp = column.field || column.property || "";
-  const columnLabel = column.title || column.label || "";
-  const event = payload.$event;
-  onCellClick(row, column, row?.[columnProp], event);
+  // vxe 的 column 用 field/title，element 用 property/label，两边字段名不同，
+  // 这里是唯一做字段名翻译的地方，转成 TableColumnCtx 再交给 onCellClick。
+  const src = payload.column ?? {};
+  const column = {
+    property: src.field ?? src.property,
+    label: src.title ?? src.label,
+  } as TableColumnCtx<Record<string, unknown>>;
+  const event = payload.$event as PointerEvent;
+  const cellValue = column.property ? row?.[column.property] : undefined;
+  onCellClick(row, column, cellValue as unknown as HTMLTableCellElement, event);
   emit("row-click", row);
 }
 
@@ -1342,16 +1424,16 @@ function onVxeCellClick(payload: {
  * cell-menu。两者都转成「行 + 列 + 事件」交给原有的 onRowContextMenu /
  * onCellContextMenu，右键菜单的能力与调用方签名保持不变。</p>
  */
-function onVxeCellMenu(payload: {
-  row: Record<string, unknown>;
-  column?: { field?: string; property?: string; title?: string; label?: string };
-  $event: MouseEvent;
-}): void {
+function onVxeCellMenu(payload: VxeCellEvent): void {
   const row = payload.row;
-  const column = payload.column ?? {};
-  const event = payload.$event;
+  const column = (payload.column ?? {}) as unknown as TableColumnCtx<Record<string, unknown>>;
+  const event = payload.$event as PointerEvent;
+  const columnProp = column.property || column.prop || "";
   onRowContextMenu(row, column, event);
-  onCellContextMenu(row, column, event);
+  // onCellContextMenu 的第三参是 cell（element-plus 会传 HTMLTableCellElement），
+  // vxe 的 cell-menu 载荷里没有 DOM 元素；该形参在函数体内未被读取，
+  // 这里传单元格的值只为把位置对齐，省掉会让 event 落到 cell 的位置。
+  onCellContextMenu(row, column, (row?.[columnProp] ?? null) as unknown as HTMLTableCellElement, event);
 }
 
 /** 勾选变化：vxe 的 checkbox-change / checkbox-all 都给出 records，统一转成行数组 */
@@ -1377,16 +1459,32 @@ function onVxeSortChange(payload: { property?: string; field?: string; order?: s
   onSortChange({ prop, order });
 }
 
-/** 单元格点击事件 */
-function onCellClick(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent): void {
-  emit("cell-click", {
+/**
+ * 单元格点击事件
+ *
+ * <p>element-plus 的 {@code onCell-click} 传
+ * {@code (row, column, cell, event)}；vxe 分支经 {@link onVxeCellClick} 转进来，
+ * 两边的 column 类型不同（见各自函数注释），故这里用库导出的
+ * {@link TableColumnCtx} 收口。payload 显式标注
+ * {@link ReTableCellClickPayload}，否则对象字面量会被推成更宽的类型，
+ * emit 处报 TS2322。</p>
+ */
+function onCellClick(
+  row: Record<string, unknown>,
+  column: TableColumnCtx<Record<string, unknown>>,
+  _cell: HTMLTableCellElement,
+  event: PointerEvent,
+): void {
+  const columnProp = column?.property || column?.prop || "";
+  const payload: ReTableCellClickPayload = {
     row,
     rowIndex: (dataList.value ?? []).indexOf(row),
-    columnProp: column?.property || column?.prop || "",
+    columnProp,
     columnLabel: column?.label || "",
-    cellValue: row[column?.property || column?.prop || ""],
+    cellValue: row[columnProp],
     event,
-  });
+  };
+  emit("cell-click", payload);
 }
 
 /** 恢复当前页选中状态（分页切换后调用） */
@@ -2770,9 +2868,9 @@ const iconSelect = Select;
       :default-expand-all="defaultExpandAll"
       :row-style="rowDraggable || dragMode ? { cursor: 'grab' } : undefined"
       @row-click="(row: Record<string, unknown>) => emit('row-click', row)"
-      @cell-click="(row: Record<string, unknown>, column: any, cell: any, event: MouseEvent) => onCellClick(row, column, cell, event)"
-      @row-contextmenu="(row: Record<string, unknown>, column: any, event: MouseEvent) => onRowContextMenu(row, column, event)"
-      @cell-contextmenu="(row: Record<string, unknown>, column: any, event: MouseEvent) => onCellContextMenu(row, column, event)"
+      @cell-click="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellClick(row, column, cell, event)"
+      @row-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>> | null, event: PointerEvent) => onRowContextMenu(row, column, event)"
+      @cell-contextmenu="(row: Record<string, unknown>, column: TableColumnCtx<Record<string, unknown>>, cell: HTMLTableCellElement, event: PointerEvent) => onCellContextMenu(row, column, cell, event)"
       @selection-change="onSelectionChange"
       @sort-change="(payload: any) => onSortChange(payload)"
     >
