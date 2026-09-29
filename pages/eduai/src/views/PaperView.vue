@@ -7,6 +7,7 @@
         :search="searchConfig"
         v-model:search-model="searchModel"
         row-key="paperId"
+        show-selection
         v-model:page="pageNo"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50, 100]"
@@ -15,11 +16,31 @@
         @search="commitSearch"
         @search-reset="resetSearch"
         @load-error="pageLoadError"
+        @selection-change="onPrintSelectionChange"
+        @load="onTableLoad"
       >
         <template #toolbar>
           <!-- 组卷只有一个入口：AI 组卷是它的功能之一（弹框内切换组卷方式） -->
           <ReButton type="primary" icon="MagicStick" @click="openCompose">组卷</ReButton>
-          <ReButton icon="Printer" @click="openPrint">打印</ReButton>
+          <!--
+            打印只对勾选的行生效：没勾选时禁用，避免误打印整页/整库。
+            禁用态的 el-tooltip 不会触发（disabled 元素收不到 hover），所以外面包一层
+            带原生 title 的 span —— 否则用户只看到一个灰按钮，不知道要先勾选。
+          -->
+          <span :title="printSelection.length
+            ? `打印已勾选的 ${printSelection.length} 份试卷`
+            : '打印：请先在左侧勾选要打印的试卷'">
+            <ReButton
+              icon="Printer"
+              :disabled="!printSelection.length"
+              :tip="printSelection.length
+                ? `打印已勾选的 ${printSelection.length} 份试卷`
+                : '打印：请先在左侧勾选要打印的试卷'"
+              @click="openPrint"
+            >
+              打印{{ printSelection.length ? `（${printSelection.length}）` : "" }}
+            </ReButton>
+          </span>
         </template>
         <ReTableColumn prop="paperId" label="ID" width="80" />
         <ReTableColumn prop="paperName" label="试卷名" min-width="200" />
@@ -201,10 +222,10 @@
       destroy-on-close
       @closed="stopPrintMode"
     >
-      <div v-loading="printLoading" class="print-hint">
-        <span>打印范围：<b>当前检索结果</b>（不受分页限制）</span>
-        <el-tag size="small" effect="plain">共 {{ printRows.length }} 份试卷</el-tag>
-        <span class="print-hint__tip">在打印对话框里可选择目标打印机、纸张与份数</span>
+      <div class="print-hint">
+        <span>打印范围：<b>列表里勾选的试卷</b></span>
+        <el-tag size="small" effect="plain">共 {{ printRows.length }} 份</el-tag>
+        <span class="print-hint__tip">在打印对话框里可选择目标打印机、纸张与份数；要改范围请关掉本弹层重新勾选</span>
       </div>
 
       <!-- 打印视图本体：仅这一块会进入打印输出 -->
@@ -798,38 +819,60 @@ const paperStatusLabel = (n?: number) =>
 /** 打开打印时挂在 body 上的类名，@media print 据此把整页隐藏、只留打印视图 */
 const PRINT_BODY_CLASS = 'printing-paper-list';
 
-/** 一次打印最多取多少份试卷；超过则提示按条件收窄，避免打出几百页 */
-const PRINT_MAX_ROWS = 500;
-
 const printVisible = ref(false);
-const printLoading = ref(false);
 const printRows = ref<Paper[]>([]);
 const printTime = ref('');
 
-/** 打开打印预览：按当前检索条件取全量（不分页），再打开弹层 */
-const openPrint = async () => {
-  printLoading.value = true;
-  try {
-    const res = await eduaiApi.pagePapers({
-      pageNum: 1,
-      pageSize: PRINT_MAX_ROWS,
-      subject: strParam(applied.value.subject),
-      gradeLevel: strParam(applied.value.gradeLevel),
-      status: numParam(applied.value.status),
-    });
-    const list = (res?.data ?? []) as Paper[];
-    if (list.length >= PRINT_MAX_ROWS) {
-      ElMessage.warning(`结果已达 ${PRINT_MAX_ROWS} 份，仅打印前 ${PRINT_MAX_ROWS} 份，请收窄筛选条件`);
-    }
-    printRows.value = list;
-    printTime.value = formatDateTime(new Date().toISOString());
-    printVisible.value = true;
-    document.body.classList.add(PRINT_BODY_CLASS);
-  } catch (e) {
-    ElMessage.error('加载打印数据失败: ' + errorText(e));
-  } finally {
-    printLoading.value = false;
+/**
+ * 当前勾选的行（ReTable 的 selection-change 给出）。
+ *
+ * <p>打印只对勾选项生效：不再按检索条件取全量 —— 那会打出一整库的卷，
+ * 也没法只打其中几张。没勾选时打印按钮禁用。</p>
+ */
+const printSelection = ref<Paper[]>([]);
+
+/**
+ * 把打印用的勾选集同步为「ReTable 当前勾选的 ∩ 当前页确实加载出来的」。
+ *
+ * <p>为什么取交集：筛选或翻页后 el-table 的勾选态可能没有同步回调，
+ * 勾选集里会留着已不在列表中的旧行，点打印就会把看不见的卷也打出去
+ * （实测：筛选到 2 行，预览仍出 5 行）。以 ReTable 自身的
+ * {@code getSelectedRows()} 为准、再按当前 data 收敛，就不会出现陈旧勾选。</p>
+ */
+const syncPrintSelection = () => {
+  const ref = tableRef.value;
+  const checked = (ref?.getSelectedRows?.() ?? []) as unknown as Paper[];
+  if (!checked.length) {
+    printSelection.value = [];
+    return;
   }
+  const visible = (ref?.data ?? []) as unknown as Paper[];
+  const visibleIds = new Set(visible.map((r) => r.paperId));
+  printSelection.value = checked.filter((r) => visibleIds.has(r.paperId));
+};
+
+/** 表格勾选变化 */
+const onPrintSelectionChange = () => {
+  syncPrintSelection();
+};
+
+/** 表格数据加载完成：勾选集需要跟着当前数据收敛 */
+const onTableLoad = () => {
+  syncPrintSelection();
+};
+
+/** 打开打印预览：只渲染当前勾选的试卷 */
+const openPrint = () => {
+  // 以 ReTable 的权威勾选集重算一次，避免用到过期数据
+  syncPrintSelection();
+  if (!printSelection.value.length) {
+    ElMessage.warning('请先勾选要打印的试卷');
+    return;
+  }
+  printRows.value = [...printSelection.value];
+  printTime.value = formatDateTime(new Date().toISOString());
+  printVisible.value = true;
+  document.body.classList.add(PRINT_BODY_CLASS);
 };
 
 /** 关闭弹层后摘掉 body 类，否则残留会让后续任何打印都只剩打印视图 */
