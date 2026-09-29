@@ -67,7 +67,12 @@ export function makeReTableStub(rowSlotNames: string[] = []): Stub {
       "search",
       "search-reset",
     ],
-    data: () => ({ rows: [] as unknown[], selectedRows: [] as unknown[] }),
+    data: () => ({
+      rows: [] as unknown[],
+      selectedRows: [] as unknown[],
+      /** params 的归一化快照，用来判断「查询条件真的变了」 */
+      lastParamsKey: null as string | null,
+    }),
     computed: {
       /** search=true 或 search={...} 时返回配置对象；未开启搜索返回 null（与真实 searchEnabled 一致） */
       searchCfg(): Record<string, unknown> | null {
@@ -76,6 +81,21 @@ export function makeReTableStub(rowSlotNames: string[] = []): Stub {
         if (self.search && typeof self.search === "object") return self.search as Record<string, unknown>;
         return null;
       },
+      /**
+       * params 的归一化键：与真实 ReTable 的 internalParamsKey 同规则（剔掉 page / pageSize）。
+       *
+       * <p>必须有这个：真实组件挂了一个 {@code watch(internalParamsKey)}，params 一变就
+       * 重新加载。桩早先漏了它，于是「点重置」这类<strong>只改 params、不调 reload</strong>
+       * 的路径在测试里表现为「点了没反应」—— 会被误判成产品缺陷，实际是替身保真度不够。
+       * 替身少一段行为，写出来的测试可能两个方向都写错。</p>
+       */
+      paramsKey(): string {
+        const self = this as unknown as { params?: Record<string, unknown> };
+        const p = { ...(self.params ?? {}) };
+        delete p.page;
+        delete p.pageSize;
+        return JSON.stringify(p);
+      },
     },
     watch: {
       data: {
@@ -83,6 +103,20 @@ export function makeReTableStub(rowSlotNames: string[] = []): Stub {
         handler(v: unknown) {
           const self = this as unknown as { loader?: unknown; rows: unknown[] };
           if (typeof self.loader !== "function") self.rows = (v as unknown[]) || [];
+        },
+      },
+      paramsKey: {
+        immediate: true,
+        handler(key: string) {
+          const self = this as unknown as {
+            lastParamsKey: string | null;
+            reload: () => Promise<void>;
+            loader?: unknown;
+          };
+          if (typeof self.loader !== "function") return;
+          if (key === self.lastParamsKey) return;
+          self.lastParamsKey = key;
+          void self.reload();
         },
       },
     },

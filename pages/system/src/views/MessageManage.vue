@@ -42,7 +42,7 @@ import type {
   SysRole,
   TemplatePreviewResponse,
 } from "../api/types";
-import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
+import type { ReTableColumn, ReTableLoadParams, RePageResult, ReTableRowSortPayload } from "@repo/ui/re-table";
 import type { ReTabItem } from "@repo/ui/re-tab";
 
 /* ================== 字典 ================== */
@@ -219,10 +219,24 @@ const msgActionLoading = ref<number>(0);
 /**
  * 消息记录的表格引擎。
  *
- * <p>用 vxe-table；工具栏的引擎切换器（:engine-switch）会写回这里，
- * 便于在同一份数据上对照两个引擎的渲染。</p>
+ * <p>用 vxe-table；本页给 ReTable 开了 {@code debug}，工具栏会多出「引擎切换器」
+ * （Element / VXE 分段控件），切换通过 {@code v-model:engine} 写回这里，
+ * 便于在同一份数据上对照两个引擎的渲染差异。</p>
+ *
+ * <p>{@code debug} 只在验收 / 排查期开，定稿后应移除。</p>
  */
 const msgEngine = ref<"element" | "vxe">("vxe");
+
+/**
+ * 行拖拽排序的落点（仅用于验收拖拽交互）。
+ *
+ * <p>消息记录后端没有排序字段可写回，这里只把新顺序记到本地并提示，
+ * <b>不做持久化</b> —— 刷新后仍按接口返回的顺序。真要落地需要后端补一个
+ * 排序字段 + 保存接口。</p>
+ */
+function onMsgRowSort(payload: ReTableRowSortPayload): void {
+  ElMessage.success(`拖拽排序已确认，本次共 ${payload.newData.length} 行（未持久化，仅供验收）`);
+}
 
 async function loadMessages({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForMessageAdmin({
@@ -815,7 +829,7 @@ onMounted(() => {
             ref="msgTableRef"
             table-id="system-message-admin"
             v-model:engine="msgEngine"
-            engine-switch
+            debug
             :search="{ filters: msgSearchFilters, title: '搜索', btnMode: 'text' }"
             :search-gap="16"
             v-model:search-model="msgQuery"
@@ -827,6 +841,8 @@ onMounted(() => {
             row-key="sysMessageId"
             v-model:page="msgQuery.page"
             v-model:page-size="msgQuery.pageSize"
+            row-draggable
+            @row-sort="onMsgRowSort"
             class="mt-2"
           >
             <template #toolbar>

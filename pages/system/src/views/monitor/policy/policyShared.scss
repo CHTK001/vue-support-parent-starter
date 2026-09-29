@@ -145,9 +145,26 @@
   white-space: nowrap;
 }
 
-.policy-switch-field { display: flex; align-items: center; gap: 10px; }
+.policy-switch-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
 
 .policy-switch-field span { color: var(--el-text-color-secondary); font-size: 12px; }
+
+/* 接管空态后的纯文字提示。
+   替代 el-empty 的插画版式：远程表格首次 loader 返回前会先渲染空态，
+   用 {@code <template #empty><p v-if="ready">…</p></template>} 接管后，
+   加载中不显示、真正为空时只留一句居中灰字，不会在切进页签时闪一下插画。 */
+.policy-table-empty {
+  margin: 0;
+  padding: 40px 0;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  font-size: 14px;
+}
 
 /* 弹窗底部的一段灰底说明。限流的「全局配置」弹窗和消息头的「规则」弹窗都要用，
    两个页签各自独立之后没法再靠某一个组件的 scoped 块提供，所以进共享表。 */

@@ -6,10 +6,6 @@
  */
 import type { CollectDsl, CollectEdge, CollectNode, CollectParam, CollectShapeMeta } from "../types/collect";
 
-/** 节点卡片尺寸，画布连线端点据此计算 */
-export const NODE_WIDTH = 150;
-export const NODE_HEIGHT = 64;
-
 /** 空白流程图 */
 export function emptyDsl(name?: string): CollectDsl {
   return {
@@ -195,33 +191,4 @@ export function hasCycle(nodes: CollectNode[], edges: CollectEdge[]): string[] |
     }
   }
   return null;
-}
-
-/** 图形坐标 → 连线端点（源节点右侧到目标节点左侧的三次贝塞尔） */
-export function wirePath(from: CollectNode, to: CollectNode): string {
-  const x1 = (from.x ?? 0) + NODE_WIDTH;
-  const y1 = (from.y ?? 0) + NODE_HEIGHT / 2;
-  const x2 = to.x ?? 0;
-  const y2 = (to.y ?? 0) + NODE_HEIGHT / 2;
-  const bend = Math.max(40, Math.abs(x2 - x1) / 2);
-  return `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`;
-}
-
-/** 拖拽连线中的临时路径终点用光标坐标 */
-export function draftPath(from: CollectNode, x: number, y: number): string {
-  const x1 = (from.x ?? 0) + NODE_WIDTH;
-  const y1 = (from.y ?? 0) + NODE_HEIGHT / 2;
-  const bend = Math.max(40, Math.abs(x - x1) / 2);
-  return `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x - bend} ${y}, ${x} ${y}`;
-}
-
-/** 画布内容外框，决定滚动区域与 svg 尺寸 */
-export function extentOf(nodes: CollectNode[]): { width: number; height: number } {
-  let width = 800;
-  let height = 480;
-  nodes.forEach(n => {
-    width = Math.max(width, (n.x ?? 0) + NODE_WIDTH + 160);
-    height = Math.max(height, (n.y ?? 0) + NODE_HEIGHT + 120);
-  });
-  return { width, height };
 }

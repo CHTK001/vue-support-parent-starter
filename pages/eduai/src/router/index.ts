@@ -15,6 +15,7 @@
  * 在路由树未含 homePath 时自动补到最前面，无需在此声明。
  */
 import type { RouteConfigsTable } from "@repo/core";
+import { loginView } from "@repo/theme/koi/framework";
 
 /** 分组父节点（仅菜单标题，不注册为路由） */
 function group(
@@ -231,5 +232,16 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     name: "EduSchedule",
     redirect: "/edu/collect",
     meta: { title: "采集管理", icon: "Timer", showLink: false, isVisible: "0", activeMenu: "/edu/collect" },
+  },
+  {
+    // 后台登录页。路径必须与 config.route.loginPath（默认 /login）一致：
+    // 路由守卫把「无令牌」的访问重定向到这里并直接放行（guard.ts 第 95-101 行），
+    // 但本路由树原先没有这条路由，于是未登录访问任何页面都会落到一个
+    // 没有组件匹配的地址 —— Vue Router 渲染出空白页，而不是登录表单。
+    // 组件复用框架主题包自带的 loginView，与其它应用同一份实现与同一套登录样式。
+    path: "/login",
+    name: "EduLogin",
+    component: loginView,
+    meta: { title: "登录", showLink: false, isVisible: "0", keepAlive: false },
   },
 ];

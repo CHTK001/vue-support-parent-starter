@@ -8,12 +8,36 @@
  *   - 大圆角（8px）
  *   - 平滑过渡动画
  */
-import { ref, computed } from "vue";
+import { ref, computed, useAttrs } from "vue";
 import "../../shared/modern-vars.css";
 
 defineOptions({ name: "ReInputModern", inheritAttrs: true });
 
 const model = defineModel<string | number | null | undefined>({ default: "" });
+
+/**
+ * 只把 {@code aria-*} 属性摘出来，单独透传给内层真正的 input / textarea。
+ *
+ * <p>为什么需要：{@code v-bind="$attrs"} 挂在包裹层 {@code .rm-input-wrap} 上，
+ * 于是 {@code aria-label} 落在 div 上 —— 而可访问名只认**表单控件自身**，
+ * 落在 div 上对读屏没有任何作用。实测 {@code PolicyRouteTab.vue} 明明写了
+ * {@code :aria-label="t('policy.route.filterAria')"}，浏览器仍报
+ * {@code missingAccessibleName: true}。</p>
+ *
+ * <p>为什么只摘 aria-* 而不是把 $attrs 整体再绑一次：class / style 绑两处会重复，
+ * 而事件监听器绑两处会**触发两次**（input 上的 keyup 会冒泡到包裹层，
+ * 同一个 handler 被调两遍）。aria-* 没有这两类副作用。</p>
+ */
+const attrs = useAttrs();
+const ariaAttrs = computed<Record<string, unknown>>(() => {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(attrs)) {
+    if (key.startsWith("aria-") && attrs[key] != null) {
+      out[key] = attrs[key];
+    }
+  }
+  return out;
+});
 
 const props = withDefaults(
   defineProps<{
@@ -117,6 +141,7 @@ function togglePassword(): void {
       :maxlength="maxlength as any"
       :minlength="minlength as any"
       class="rm-input__textarea"
+      v-bind="ariaAttrs"
       @input="onInput"
       @focus="focused = true"
       @blur="focused = false"
@@ -131,6 +156,7 @@ function togglePassword(): void {
       :maxlength="maxlength as any"
       :minlength="minlength as any"
       class="rm-input__inner"
+      v-bind="ariaAttrs"
       @input="onInput"
       @focus="focused = true"
       @blur="focused = false"

@@ -30,12 +30,14 @@ import {
   updatePolicyConfig,
 } from "../../../../api/systemApi";
 import type { ApiRouteAction, ApiRouteRuleConfig, PolicyConfig, RegisteredRoute } from "../../../../api/types";
-import { TABLE_TOOLBAR } from "../shared/policyTable";
+import { TABLE_TOOLBAR, useFirstLoadGuard } from "../shared/policyTable";
 import { usePolicyHitContext } from "../composables/policyHitContext";
 import PolicyHitCell from "../components/PolicyHitCell.vue";
 
 const { t } = useI18n();
 const { loadHitCounts } = usePolicyHitContext();
+/** 首次 loader 返回前不展示空态，避免切进页签时闪一下「暂无接口管控规则」 */
+const { ready, markReady } = useFirstLoadGuard();
 
 interface TableReloadRef {
   reload: () => Promise<void> | void;
@@ -379,6 +381,7 @@ async function load(params?: ReTableLoadParams): Promise<RePageResult> {
     throw error;
   } finally {
     loading.value = false;
+    markReady();
   }
 }
 
@@ -706,6 +709,11 @@ defineExpose({ reload: () => tableRef.value?.reload() });
       <template #action="{ row }">
         <ReButton layout="square" type="primary" icon="Setting" :tip="`${(row as unknown as ApiRouteRow).actionLabel} ${(row as unknown as ApiRouteRow).path}`" @click="handleEdit(row as unknown as ApiRouteRow)" />
       </template>
+      <!-- 首次 loader 返回前不渲染空态：否则切进页签会先闪一下「暂无接口管控规则」，
+           而 el-table 的 loading 遮罩是半透明的，遮不住它 -->
+      <template #empty>
+        <p v-if="ready" class="policy-table-empty">{{ t("policy.route.empty") }}</p>
+      </template>
     </ReTable>
 
     <!-- 接口停用 / 转发弹窗 -->
@@ -726,6 +734,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             maxlength="255"
             :disabled="isEdit"
             :placeholder="t('policy.route.form.pathPh')"
+            :aria-label="t('policy.route.form.path')"
           />
         </el-form-item>
         <el-form-item :label="t('policy.route.form.action')" required>
@@ -764,6 +773,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
               maxlength="200"
               :placeholder="t('policy.route.form.messagePh')"
               show-word-limit
+              :aria-label="t('policy.route.form.message')"
             />
           </el-form-item>
         </template>
@@ -774,6 +784,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             :loading="targetLoading"
             :placeholder="t('policy.route.form.targetPh')"
             style="width: 100%"
+            :aria-label="t('policy.route.form.target')"
           >
             <el-option
               v-for="item in targets"
@@ -784,10 +795,10 @@ defineExpose({ reload: () => tableRef.value?.reload() });
           </el-select>
         </el-form-item>
         <el-form-item :label="t('policy.common.active')">
-          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" />
+          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" :aria-label="t('policy.common.active')" />
         </el-form-item>
         <el-form-item :label="t('policy.common.remark')">
-          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit :aria-label="t('policy.common.remark')" />
         </el-form-item>
         <i18n-t keypath="policy.route.pathDesc" tag="p" class="policy-global-form__tip">
           <template #ctx><code>/system/api</code></template>
@@ -898,8 +909,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
-/* 「生效」列：开关 + 规则状态文字。
-   开关只表达规则的 status，文字说明规则本身处于什么状态；
+/* 「生效」列：开关 + 规则状态文字。   开关只表达规则的 status，文字说明规则本身处于什么状态；
    接口的实际处境由「动作」列的有效状态标签表达，两者不混用。 */
 .policy-route-status {
   display: inline-flex;

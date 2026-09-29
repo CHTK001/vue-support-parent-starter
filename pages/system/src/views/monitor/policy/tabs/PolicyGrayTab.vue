@@ -27,9 +27,11 @@ import {
   updatePolicyConfig,
 } from "../../../../api/systemApi";
 import type { PolicyConfig } from "../../../../api/types";
-import { TABLE_TOOLBAR, rowKeyOf } from "../shared/policyTable";
+import { TABLE_TOOLBAR, rowKeyOf, useFirstLoadGuard } from "../shared/policyTable";
 
 const { t } = useI18n();
+/** 首次 loader 返回前不展示空态，避免切进页签时闪一下「暂无灰度配置」 */
+const { ready, markReady } = useFirstLoadGuard();
 
 interface TableReloadRef {
   reload: () => Promise<void> | void;
@@ -83,6 +85,7 @@ async function load(params?: ReTableLoadParams): Promise<RePageResult> {
     throw error;
   } finally {
     loading.value = false;
+    markReady();
   }
 }
 
@@ -238,6 +241,10 @@ defineExpose({ reload: () => tableRef.value?.reload() });
           @click="handleDelete(row as PolicyConfig)"
         />
       </template>
+      <!-- 首次 loader 返回前不渲染空态，避免闪一下「暂无灰度配置」 -->
+      <template #empty>
+        <p v-if="ready" class="policy-table-empty">{{ t("policy.gray.empty") }}</p>
+      </template>
     </ReTable>
 
 
@@ -253,22 +260,22 @@ defineExpose({ reload: () => tableRef.value?.reload() });
     >
       <el-form label-width="110px" label-position="right">
         <el-form-item :label="t('policy.gray.form.bizKey')" required>
-          <ReInput v-model="form.bizKey" layout="modern" maxlength="255" :disabled="isEdit" :placeholder="t('policy.gray.form.bizKeyPh')" />
+          <ReInput v-model="form.bizKey" layout="modern" maxlength="255" :disabled="isEdit" :placeholder="t('policy.gray.form.bizKeyPh')" :aria-label="t('policy.gray.form.bizKey')" />
         </el-form-item>
         <el-form-item :label="t('policy.gray.form.weight')">
-          <ReInputNumber v-model="form.weight" :min="0" :max="100" :precision="0" controls-position="right" />
+          <ReInputNumber v-model="form.weight" :min="0" :max="100" :precision="0" controls-position="right" :aria-label="t('policy.gray.form.weight')" />
         </el-form-item>
         <el-form-item :label="t('policy.gray.form.sort')">
-          <ReInputNumber v-model="form.sort" :min="0" :precision="0" controls-position="right" />
+          <ReInputNumber v-model="form.sort" :min="0" :precision="0" controls-position="right" :aria-label="t('policy.gray.form.sort')" />
         </el-form-item>
         <el-form-item :label="t('policy.gray.form.hitStrategy')">
-          <ReInput v-model="form.config" layout="modern" type="textarea" :rows="4" :placeholder="t('policy.gray.form.hitStrategyPh')" />
+          <ReInput v-model="form.config" layout="modern" type="textarea" :rows="4" :placeholder="t('policy.gray.form.hitStrategyPh')" :aria-label="t('policy.gray.form.hitStrategy')" />
         </el-form-item>
         <el-form-item :label="t('policy.common.enable')">
-          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" />
+          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" :aria-label="t('policy.common.enable')" />
         </el-form-item>
         <el-form-item :label="t('policy.common.remark')">
-          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit :aria-label="t('policy.common.remark')" />
         </el-form-item>
       </el-form>
       <template #footer>

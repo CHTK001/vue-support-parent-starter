@@ -226,7 +226,18 @@ function onSizeChange(size: number): void {
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  z-index: 20;
+  /* ⚠ 必须高过表格内部所有层级。
+     这个菜单是**向上弹**的（bottom: calc(100% + 6px)），纵向必然落进表格的高度范围；
+     而表格会造出比普通内容高的层：
+       · ReTable 给固定列浮层写 z-index:30
+         （element 的 .el-table__fixed-right / vxe 的 .vxe-table--fixed-right-wrapper）
+       · 空态块是 position:sticky（sticky 会自建层叠上下文）
+     原来这里是 20，低于 30 → 菜单被表格内容/固定列浮层压在下面，
+     看着像"分页跑到表格后面、点了没反应"，而且随窗口宽度左右移动、不是必现。
+     ReTable 侧已把页脚抬到 31 兜底；这里再把菜单自身抬到 40，
+     使它**不依赖外层页脚的层叠**也一定在表格之上（两层保障，任一漏掉都不至于复现）。
+     40 仍远低于 el-popover/el-select 那类 teleport 浮层（约 2000+），不会越权盖住它们。 */
+  z-index: 40;
   min-width: 100%;
   padding: 4px;
   border: 1px solid var(--rm-border);

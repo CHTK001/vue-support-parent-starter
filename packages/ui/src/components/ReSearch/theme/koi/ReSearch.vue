@@ -295,6 +295,24 @@ function resetForm(): void {
 }
 
 const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }));
+
+/**
+ * 过滤项控件的可访问名称。
+ *
+ * <p>为什么需要：过滤项的标签是**兄弟节点** {@code <span class="koi-search__field-label">}，
+ * 既没有 {@code <label for>}，控件上也没有 {@code aria-label} /
+ * {@code aria-labelledby}。视觉上看得见标签，读屏却读不到 ——
+ * 浏览器实测这些 input 的 {@code missingAccessibleName} 全是 {@code true}，
+ * 读屏用户只能听出「编辑框」，不知道该填什么。</p>
+ *
+ * <p>取 filter.label，取不到就退回 placeholder，保证任何配置下都有名字。
+ * Element Plus 的 {@code ElInput} 等把 {@code aria-label} 声明成了正式 prop
+ * （{@code useAriaProps} 的 {@code ariaLabel}），会落到内层真正的 input 上，
+ * 而不是只停在包裹 div 上。</p>
+ */
+function ariaOf(filter: { label?: string; placeholder?: string }): string | undefined {
+  return filter.label || filter.placeholder || undefined;
+}
 </script>
 
 <template>
@@ -377,6 +395,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 v-if="!filter.type || filter.type === 'input'"
                 v-model="filterValues[filter.key]"
                 :placeholder="filter.placeholder || (filterMode === 'form' ? '请输入' : filter.label || '请输入')"
+                :aria-label="ariaOf(filter)"
                 clearable
                 v-bind="filter.attrs || {}"
                 @input="(val: string) => onFilterInput(filter.key, val)"
@@ -385,6 +404,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 v-else-if="filter.type === 'select'"
                 v-model="filterValues[filter.key]"
                 :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择' : filter.label || '请选择')"
+                :aria-label="ariaOf(filter)"
                 clearable
                 v-bind="filter.attrs || {}"
                 @change="(val: any) => onFilterInput(filter.key, val)"
@@ -403,6 +423,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 :model-value="filterValues[filter.key]"
                 layout="square"
                 :data="filter.options || []"
+                :aria-label="ariaOf(filter)"
                 v-bind="filter.attrs || {}"
                 @update:model-value="(val: any) => onFilterInput(filter.key, val)"
               />
@@ -410,6 +431,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 v-else-if="filter.type === 'date'"
                 v-model="filterValues[filter.key]"
                 :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择日期' : filter.label || '请选择日期')"
+                :aria-label="ariaOf(filter)"
                 type="date"
                 value-format="YYYY-MM-DD"
                 clearable
@@ -421,6 +443,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 v-model="filterValues[filter.key]"
                 :start-placeholder="filter.placeholder || '开始日期'"
                 end-placeholder="结束日期"
+                :aria-label="ariaOf(filter)"
                 type="daterange"
                 value-format="YYYY-MM-DD"
                 clearable
@@ -432,6 +455,7 @@ const containerStyle = computed<CSSProperties>(() => ({ padding: props.padding }
                 v-model="filterValues[filter.key]"
                 :data="filter.options || []"
                 :placeholder="filter.placeholder || (filterMode === 'form' ? '请选择' : filter.label || '请选择')"
+                :aria-label="ariaOf(filter)"
                 clearable
                 check-strictly
                 v-bind="filter.attrs || {}"

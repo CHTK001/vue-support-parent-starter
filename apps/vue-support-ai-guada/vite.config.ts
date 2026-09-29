@@ -193,6 +193,11 @@ export default defineConfig({
       // koi layouts/components/{AnnouncementBar,Main} 内是动态 import，编译期才解析；
       // 缺失时构建报 Rollup failed to resolve import "@pages/system/api/announcementApi"
       { find: '@pages/system', replacement: path.resolve(WORKSPACE_ROOT, 'pages/system/src') },
+      // SystemSettings.vue 的「文件存储」页直接复用 @repo/filesystem 的 FileStorageManage。
+      // 少这一行会让 dev server 报 Failed to resolve import "@pages/filesystem"，
+      // 整个 SystemSettings.vue 编译 500 —— 连带着系统设置页内的所有面板
+      // （含以图搜图的图片库）一并无法渲染。
+      { find: '@pages/filesystem', replacement: path.resolve(WORKSPACE_ROOT, 'pages/filesystem/src') },
       // PascalCase 的组件入口（@repo/ui 的 exports 未收录）由目录扫描生成
       ...Object.entries(uiComponentAliases()).map(([find, replacement]) => ({ find, replacement })),
     ],

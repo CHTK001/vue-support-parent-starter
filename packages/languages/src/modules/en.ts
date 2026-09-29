@@ -1118,6 +1118,10 @@ export default {
       hotReloadCount: "{count} runtime settings",
       rateLimit: "Traffic rate limit",
       rateCount: "{enabled}/{total} rules enabled",
+      // While the global gate is off, "enabled" only means each rule's own switch is on;
+      // nothing actually runs. The qualifier has to be spelled out or the figure reads
+      // as "rate limiting is already active".
+      rateCountGlobalOff: "{enabled}/{total} rules enabled · global limit off, none take effect",
       blackwhite: "Access list",
       blackwhiteCount: "{count} list entries",
       passBlock: "Pass / block",
@@ -1174,6 +1178,11 @@ export default {
       empty: "No {name}",
       globalAria: "Global rate limit config, currently {state}",
       global: "Global rate limit",
+      // Global gate off: no rule below can take effect, not even the ones marked enabled.
+      // This line is the only place that explains "the switch is on but nothing happens";
+      // the dialog's enableDesc is only visible after the user opens that dialog.
+      globalOffNotice:
+        "Global rate limiting is off, so none of the rules below take effect — rules marked enabled still pass straight through. Turn the global limit on to enforce them.",
       on: "On",
       off: "Off",
       hitTitle: "Rate limit rule {target}",
@@ -1345,7 +1354,10 @@ export default {
         weight: "Weight (%)",
         sort: "Sort",
         hitStrategy: "Hit Strategy",
-        hitStrategyPh: 'JSON, e.g. {"users":["sa"],"ips":["10.0.0.0/8"],"rule":"1==1"}',
+        // Braces must be wrapped in vue-i18n literal interpolation {'…'}: written bare they are
+        // parsed as message placeholders, which throws at compile time and kills the dialog's
+        // whole render (visible only in the console — in the UI it just "does nothing").
+        hitStrategyPh: 'JSON, e.g. {\'{"users":["sa"],"ips":["10.0.0.0/8"],"rule":"1==1"}\'}',
         dialogEdit: "Edit Gray Release Config",
         dialogAdd: "Add Gray Release Config"
       },

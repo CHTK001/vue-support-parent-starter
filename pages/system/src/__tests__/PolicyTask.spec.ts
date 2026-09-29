@@ -45,6 +45,10 @@ vi.mock("@element-plus/icons-vue", () => {
     "Warning",
     "Clock",
     "Document",
+    // PolicyOverviewTab.vue 的流水线第 4 节点用它
+    "CircleCheck",
+    // PolicyRateLimitTab.vue 的「全局闸门已关闭」横幅用它
+    "WarningFilled",
   ];
   const mod: Record<string, unknown> = { __esModule: true };
   for (const n of names) {
@@ -285,16 +289,42 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
     return w;
   }
 
+  /**
+   * 取出接口管控表格第一行的**派生字段**
+   *
+   * <p>为什么不直接断言渲染出来的标签文案：{@code effectiveText} 是包在
+   * {@code <ReTag>} 里的，而 ReTag 内部又依赖 element-plus 的 ElTag。
+   * 这条链上任何一环在测试环境里没解析到，整段就渲染成 {@code <!---->}，
+   * 标签里的文案随之消失 —— 2026-09-29 就在大改完文件、机器同时重编 10 个文件时
+   * 偶发过一次（{@code transform} 33s）。断言渲染字符串等于把这份测试的稳定性
+   * 押在那条链上。</p>
+   *
+   * <p>改成读表格桩持有的行数据：<b>与渲染无关、更稳定，而且更直接</b> ——
+   * 验的就是 {@code effectiveStateOf(action, status)} 这个真正要守的逻辑本身，
+   * 标签长什么样是另一回事（浏览器里验）。</p>
+   *
+   * @param w 挂载结果
+   * @returns 第一行的派生字段
+   */
+  function firstRow(w: ReturnType<typeof mountPage>): Record<string, unknown> {
+    const table = w.findComponent({ name: "ReTable" });
+    const rows = (table.vm as unknown as { rows: Array<Record<string, unknown>> }).rows;
+    expect(rows.length, "接口管控表格没有数据行").toBeGreaterThan(0);
+    return rows[0];
+  }
+
   it("规则停用：接口实际已放行，状态必须是「未生效」而不是「已拦截」", async () => {
     const w = await renderRoutes(
       [routeTarget("/v2/demo")],
       [routePolicy("/v2/demo", "DISABLE", 0)],
     );
-    const text = w.text();
-    expect(text).toContain("policy.route.stateInactive");
-    expect(text).toContain("policy.route.stateNoteInactive");
+    const row = firstRow(w);
+    expect(row.effectiveText).toBe("policy.route.stateInactive");
+    expect(row.effectiveTagType).toBe("info");
+    // 白话说明是包在普通 span 里的，可以直接断渲染文本
+    expect(w.text()).toContain("policy.route.stateNoteInactive");
     // 关键回归：不能显示成「已拦截」，否则用户会以为没生效而反复点开关
-    expect(text).not.toContain("policy.route.stateBlocked");
+    expect(row.effectiveText).not.toBe("policy.route.stateBlocked");
   });
 
   it("规则启用 + 停用动作：状态是「已拦截」，说明里带响应码", async () => {
@@ -302,10 +332,11 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
       [routeTarget("/v2/demo")],
       [routePolicy("/v2/demo", "DISABLE", 1)],
     );
-    const text = w.text();
-    expect(text).toContain("policy.route.stateBlocked");
-    expect(text).toContain('policy.route.stateNoteBlocked#{"code":"503"}');
-    expect(text).not.toContain("policy.route.stateInactive");
+    const row = firstRow(w);
+    expect(row.effectiveText).toBe("policy.route.stateBlocked");
+    expect(row.effectiveTagType).toBe("danger");
+    expect(w.text()).toContain('policy.route.stateNoteBlocked#{"code":"503"}');
+    expect(row.effectiveText).not.toBe("policy.route.stateInactive");
   });
 
   it("转发动作：状态是「已转发」", async () => {
@@ -313,10 +344,11 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
       [routeTarget("/v2/demo")],
       [routePolicy("/v2/demo", "FORWARD", 1)],
     );
-    const text = w.text();
-    expect(text).toContain("policy.route.stateForwarded");
-    expect(text).toContain("policy.route.stateNoteForwarded");
-    expect(text).not.toContain("policy.route.stateBlocked");
+    const row = firstRow(w);
+    expect(row.effectiveText).toBe("policy.route.stateForwarded");
+    expect(row.effectiveTagType).toBe("warning");
+    expect(w.text()).toContain("policy.route.stateNoteForwarded");
+    expect(row.effectiveText).not.toBe("policy.route.stateBlocked");
   });
 
   it("没有配置规则的路由：状态是「未配置」，且不显示启停开关", async () => {
@@ -324,6 +356,10 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
     // 先钉住「表格确实出行了」。这条用例原本全是反向断言（不包含 xxx / 元素不存在），
     // 表格空的时候它们会**全部通过** —— 看着绿，其实什么都没验。
     expect(w.text(), "接口管控表格没有渲染出数据行").toContain("/v2/plain");
+    const row = firstRow(w);
+    // 「未配置」既是 effectiveText，也出现在 #status 的 v-else 分支（普通 span）
+    expect(row.effectiveText).toBe("policy.common.notConfigured");
+    expect(row.effectiveTagType).toBe("info");
     const text = w.text();
     expect(text).toContain("policy.common.notConfigured");
     expect(text).toContain("policy.route.stateNoteUnconfigured");
@@ -333,9 +369,9 @@ describe("策略任务 · 接口管控有效状态（action × status）", () =>
 
   it("只有策略、没有注册路由的自定义路径也要出现在列表里", async () => {
     const w = await renderRoutes([], [routePolicy("/v2/custom", "DISABLE", 1, 9)]);
-    const text = w.text();
-    expect(text).toContain("/v2/custom");
-    expect(text).toContain("policy.route.stateBlocked");
+    expect(firstRow(w).path).toBe("/v2/custom");
+    expect(firstRow(w).registered).toBe(false);
+    expect(firstRow(w).effectiveText).toBe("policy.route.stateBlocked");
   });
 });
 
@@ -358,11 +394,13 @@ describe("策略任务 · 顶部刷新按当前页签分发", () => {
    *          旧缺陷正是分支漏写后落进「访问名单」，白名单会当场多出 pageForIp。
    */
   const CASES = [
-    // loadOverview：一次 allSettled 打 6 个读接口，没有独立的「统计」接口
+    // loadOverview：一次 allSettled 打 7 个读接口，没有独立的「统计」接口。
+    // getRateLimitGlobal 也在其中：总览要显示「N/M 条已启用 · 全局已关闭，都不生效」，
+    // 就必须知道全局闸门，否则只数规则自己的开关会谎报限流在跑。
     {
       tab: 0,
       hit: "pageForAccountBw",
-      allow: ["listHotReload", "listRateLimit", "pageForIp", "pageForAccountBw"],
+      allow: ["listHotReload", "listRateLimit", "pageForIp", "pageForAccountBw", "getRateLimitGlobal"],
     },
     // loadHotReload：只读自己那一张
     { tab: 1, hit: "listHotReload", allow: ["listHotReload"] },
@@ -465,5 +503,216 @@ describe("策略任务 · 消息头行渲染", () => {
     await waitFor(w, () => w.findAll(".policy-hit-cell").length > 0);
     expect(w.find(".policy-view h2").text()).toBe("policy.nav.header.label");
     expect(w.findAll(".policy-hit-cell"), "切回消息头后行丢了").toHaveLength(1);
+  });
+});
+
+/**
+ * 全局限流闸门 vs 规则自身开关：「生不生效」必须说得清。
+ *
+ * <p>缺陷：{@code rateEnabled} 只数规则自己的 {@code enabled === 1}，完全不知道
+ * {@code getRateLimitGlobal} 那道闸门。闸门关着时（线上就是这个状态），
+ * 总览仍然写「1/1 条已启用」，读者会以为限流正在跑；限流页签的「运行状态」列
+ * 也只有一个裸开关，更看不出这一条其实不生效。唯一的解释在全局配置弹窗里，
+ * 而那个弹窗要主动点开才看得到。</p>
+ *
+ * <p>用例要点：必须**真的给一条 enabled=1 的规则**。规则为空时
+ * 「0/0 条已启用」和「都不生效」看上去一样，断言会假绿。</p>
+ */
+describe("策略任务 · 全局限流闸门的「生不生效」说明", () => {
+  /** 一条启用中的接口维度规则。
+   *
+   * <p>按维度区分返回值：{@code loadOverview} 会把 interface / ip / account 三个维度
+   * 各拉一次，若三个都返回同一条，总数会变成 3，断言就得跟着这个假象写。</p>
+   */
+  function oneEnabledRule(): void {
+    api.listRateLimit.mockImplementation((dimension: string) =>
+      Promise.resolve({
+        data:
+          dimension === "interface"
+            ? [{ sysRateLimitRuleId: 1, dimension: "interface", target: "/v2/user/page", qps: 100, burstSize: 200, enabled: 1 }]
+            : [],
+      }),
+    );
+  }
+
+  /** 流水线第 2 个节点（流量限流）下面那行小字 */
+  function rateNodeText(w: ReturnType<typeof mountPage>): string {
+    return w.findAll(".policy-node")[1].find("small").text();
+  }
+
+  it("闸门关闭：总览的数字带上「都不生效」限定", async () => {
+    oneEnabledRule();
+    api.getRateLimitGlobal.mockResolvedValue({ data: { enabled: false, qps: 100 } });
+
+    const w = mountPage();
+    await settle(w);
+    await waitFor(w, () => w.findAll(".policy-node").length === 4);
+
+    const text = rateNodeText(w);
+    expect(text, "总览仍在用不带限定的「已启用」文案").toContain("policy.overview.rateCountGlobalOff");
+    expect(text).not.toBe("policy.overview.rateCount#{\"enabled\":1,\"total\":1}");
+  });
+
+  it("闸门开启：总览回到普通「已启用」文案", async () => {
+    oneEnabledRule();
+    api.getRateLimitGlobal.mockResolvedValue({ data: { enabled: true, qps: 100 } });
+
+    const w = mountPage();
+    await settle(w);
+    await waitFor(w, () => w.findAll(".policy-node").length === 4);
+
+    const text = rateNodeText(w);
+    expect(text).toBe('policy.overview.rateCount#{"enabled":1,"total":1}');
+    expect(text, "闸门开着就不该再显示「都不生效」").not.toContain("rateCountGlobalOff");
+  });
+
+  it("闸门关闭：限流页签出现白话提示", async () => {
+    oneEnabledRule();
+    api.getRateLimitGlobal.mockResolvedValue({ data: { enabled: false } });
+
+    const w = mountPage();
+    await settle(w);
+    await w.findAll(".policy-nav__item")[2].trigger("click");
+    await settle(w);
+    await waitFor(w, () => w.find(".policy-view h2").text() === "policy.nav.ratelimit.label");
+
+    const notice = w.find(".policy-gate-off-notice");
+    expect(notice.exists(), "全局关着却没有任何「都不生效」的提示").toBe(true);
+    expect(notice.text()).toContain("policy.rate.globalOffNotice");
+  });
+
+  it("闸门开启：限流页签不再显示该提示（反向断言配正向锚点）", async () => {
+    oneEnabledRule();
+    api.getRateLimitGlobal.mockResolvedValue({ data: { enabled: true } });
+
+    const w = mountPage();
+    await settle(w);
+    await w.findAll(".policy-nav__item")[2].trigger("click");
+    await settle(w);
+    await waitFor(w, () => w.find(".policy-view h2").text() === "policy.nav.ratelimit.label");
+
+    // 正向锚点：先证明限流页签真的渲染出来了。
+    // 没有它，「提示不存在」这条反向断言在整页渲染失败时也会绿 —— 空表格时必假绿。
+    expect(w.find(".policy-list-head h3").exists(), "限流页签没渲染出来").toBe(true);
+    expect(w.findAll(".re-row").length, "限流表格没有数据行").toBe(1);
+    expect(w.find(".policy-gate-off-notice").exists(), "闸门开着还在显示「都不生效」").toBe(false);
+  });
+});
+
+/**
+ * 访问名单的搜索过滤。
+ *
+ * <p>覆盖的是页面自己的那部分责任：{@code handleIpSearch} / {@code handleIpReset}
+ * 把过滤区草稿值搬进查询对象，以及 {@code v-model:search-model} 的接线。
+ * 浏览器验不了这块 —— browser.type 报 ok，但工具不暴露 input 的 value，
+ * 「输入到底进没进去」无法确认（2026-09-29 实测）。</p>
+ *
+ * <p>为什么这几个分支值得单测：{@code handleIpSearch} 里有两处容易写错的转换 ——
+ * {@code .trim() || undefined}（空白串要变成 undefined 而不是空串，否则后端
+ * 收到 {@code sysIpIp: ""} 会被当成「精确匹配空串」而不是「不过滤」），
+ * 以及下拉值必须保持数字类型（DOM 的 value 永远是字符串，
+ * 不还原成 0/1 就会把「黑名单」查成查不到）。</p>
+ */
+describe("策略任务 · 访问名单搜索过滤", () => {
+  /** 切到访问名单页签并等表格就绪 */
+  async function openBw() {
+    const w = mountPage();
+    await settle(w);
+    await w.findAll(".policy-nav__item")[3].trigger("click");
+    await settle(w);
+    await waitFor(w, () => w.find(".policy-view h2").text() === "policy.nav.blackwhite.label");
+    return w;
+  }
+
+  /** 某张表里的过滤项控件（data-filter-key 定位，避开同名控件） */
+  function filterOf(w: ReturnType<typeof mountPage>, key: string, kind: "input" | "select" = "input") {
+    return w.find(`.re-search-filter[data-filter-key="${key}"] .re-search-filter__${kind}`);
+  }
+
+  /** 过滤区里最后点搜索后，pageForIp 收到的查询参数 */
+  async function searchAndReadQuery(w: ReturnType<typeof mountPage>): Promise<Record<string, unknown>> {
+    await w.find(".re-search-query-btn").trigger("click");
+    await settle(w);
+    const calls = api.pageForIp.mock.calls;
+    expect(calls.length, "点搜索后没有重新查询").toBeGreaterThan(0);
+    return (calls[calls.length - 1][0] ?? {}) as Record<string, unknown>;
+  }
+
+  it("IP 过滤：输入值原样进入查询，且回到第一页", async () => {
+    const w = await openBw();
+    vi.clearAllMocks();
+
+    await filterOf(w, "sysIpIp").setValue("203.0.113");
+    const q = await searchAndReadQuery(w);
+    expect(q.sysIpIp).toBe("203.0.113");
+    expect(q.page, "换了过滤条件却停在旧页码").toBe(1);
+  });
+
+  it("IP 过滤：首尾空白被裁掉", async () => {
+    const w = await openBw();
+    vi.clearAllMocks();
+
+    await filterOf(w, "sysIpIp").setValue("  192.0.2.88  ");
+    const q = await searchAndReadQuery(w);
+    expect(q.sysIpIp).toBe("192.0.2.88");
+  });
+
+  it("IP 过滤：只有空白时变成 undefined，而不是空串", async () => {
+    const w = await openBw();
+    vi.clearAllMocks();
+
+    await filterOf(w, "sysIpIp").setValue("   ");
+    const q = await searchAndReadQuery(w);
+    // 空串会让后端按「IP 等于空串」精确匹配，返回空列表；这与「不过滤」不是一回事
+    expect(q.sysIpIp, "纯空白被当成了过滤条件").toBeUndefined();
+  });
+
+  it("IP 过滤：下拉的 0 必须保持数字，不能变成字符串", async () => {
+    const w = await openBw();
+    vi.clearAllMocks();
+
+    // 白名单=0 是 falsy，`value || undefined` 这类写法会把它吃掉 —— 这里钉住类型
+    await filterOf(w, "sysIpType", "select").setValue("0");
+    const q = await searchAndReadQuery(w);
+    expect(q.sysIpType, "白名单(0)被丢成了 undefined").toBe(0);
+  });
+
+  it("重置：清空全部过滤条件并回到第一页", async () => {
+    const w = await openBw();
+    // 先搜出有过滤条件的查询对象
+    await filterOf(w, "sysIpIp").setValue("203.0.113");
+    await filterOf(w, "sysIpStatus", "select").setValue("1");
+    await searchAndReadQuery(w);
+    vi.clearAllMocks();
+
+    await w.find(".re-search-reset-btn").trigger("click");
+    await settle(w);
+    const calls = api.pageForIp.mock.calls;
+    expect(calls.length, "点重置后没有重新查询").toBeGreaterThan(0);
+    const q = (calls[calls.length - 1][0] ?? {}) as Record<string, unknown>;
+    expect(q.sysIpIp, "重置后 IP 过滤没清掉").toBeUndefined();
+    expect(q.sysIpStatus, "重置后状态过滤没清掉").toBeUndefined();
+    expect(q.page).toBe(1);
+  });
+
+  it("账号子表：过滤条件进的是账号接口，不是 IP 接口", async () => {
+    const w = await openBw();
+    // 切到账号子表（真实 ReTab 渲染，文案走 i18n 键）
+    const accountTab = w.findAll(".policy-subnav *").find((n) => n.text() === "policy.nav.bw.account");
+    expect(accountTab.exists(), "找不到账号子表页签").toBe(true);
+    await accountTab!.trigger("click");
+    await settle(w);
+    await waitFor(w, () => filterOf(w, "account").exists());
+    vi.clearAllMocks();
+
+    await filterOf(w, "account").setValue("admin");
+    await w.find(".re-search-query-btn").trigger("click");
+    await settle(w);
+    const calls = api.pageForAccountBw.mock.calls;
+    expect(calls.length, "账号子表点搜索后没有重新查询").toBeGreaterThan(0);
+    const q = (calls[calls.length - 1][0] ?? {}) as Record<string, unknown>;
+    expect(q.account).toBe("admin");
+    // 反向锚点：IP 接口不该被账号子表的搜索带动
+    expect(api.pageForIp).not.toHaveBeenCalled();
   });
 });

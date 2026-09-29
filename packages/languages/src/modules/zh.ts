@@ -1120,6 +1120,9 @@ export default {
       hotReloadCount: "{count} 项运行配置",
       rateLimit: "流量限流",
       rateCount: "{enabled}/{total} 条已启用",
+      // 全局闸门关着时，「已启用」只说明规则自己的开关是开的，实际上一条都不会跑；
+      // 这行必须把这个差别说出来，否则统计数字会被读成「限流已经在跑」。
+      rateCountGlobalOff: "{enabled}/{total} 条已启用 · 全局已关闭，都不生效",
       blackwhite: "访问名单",
       blackwhiteCount: "{count} 条黑白名单",
       passBlock: "请求放行 / 拦截",
@@ -1177,6 +1180,11 @@ export default {
       empty: "暂无{name}",
       globalAria: "全局限流配置，当前{state}",
       global: "全局限流",
+      // 全局闸门关着时，下面每一条规则都跑不起来（含标记为「启用」的）。
+      // 这句话只在这个状态下出现，是唯一能解释「开关明明开着却不生效」的地方 ——
+      // 弹窗里的 enableDesc 只在用户主动打开弹窗时才看得到。
+      globalOffNotice:
+        "全局限流已关闭，下面所有规则都不会生效：标记为「启用」的规则也会照样放行。需要限流请先开启全局限流。",
       on: "已开启",
       off: "已关闭",
       hitTitle: "限流规则 {target}",
@@ -1349,7 +1357,11 @@ export default {
         weight: "权重(%)",
         sort: "排序",
         hitStrategy: "命中策略",
-        hitStrategyPh: 'JSON 形式，如 {"users":["sa"],"ips":["10.0.0.0/8"],"rule":"1==1"}',
+        // 花括号必须用 vue-i18n 的字面量插值 {'…'} 包起来：
+        // 裸写 {…} 会被当成消息占位符，编译期就抛
+        // "Message compilation error: Invalid token in placeholder"，
+        // 渲染函数整个失败 → 弹窗出不来（控制台才看得到，界面上只是「没反应」）。
+        hitStrategyPh: 'JSON 形式，如 {\'{"users":["sa"],"ips":["10.0.0.0/8"],"rule":"1==1"}\'}',
         dialogEdit: "编辑灰度配置",
         dialogAdd: "新增灰度配置",
       },

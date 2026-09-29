@@ -36,8 +36,15 @@ async function initLanguage(): Promise<void> {
     locale.value = saved
     return
   }
-  // 从后端 appearance 设置获取
+  // 从后端 appearance 设置获取。
+  // 令牌未就绪时不打后端：分组设置受鉴权保护，未登录请求会返回 403 并在控制台
+  // 刷出一串 "API 请求失败: settings/appearance 403"。下面本来就 catch 掉并用
+  // 默认值，功能不受影响，但噪音会淹没真正的报错。
   try {
+    const { waitForAuthReady } = await import('@/utils/authReady')
+    if (!(await waitForAuthReady())) {
+      return
+    }
     const settings = await apiService.fetchGroupSettings('appearance')
     if (settings.language === 'zh-CN' || settings.language === 'en-US') {
       locale.value = settings.language

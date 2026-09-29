@@ -176,7 +176,13 @@ export function ensureFlowRegistered(nodeComponent?: Component | null): string {
       // 刻意不跟官方一样用自定义贝塞尔连接器（官方 algo-connector）：本组件是
       // 业务流程编排，正交折线才是这类工具的通行观感（对齐 spider-flow / 宜搭 / 云效），
       // 换成曲线在多分支时会明显更难读。详见 README 的「与官方实践的差异」一节。
-      router: { name: "orth", args: { padding: 28 } },
+      //
+      // padding 是「连线离节点多远处开始拐弯」。原先 28 是按自上而下的主流程调的，
+      // 但横向布局（内置 GitHub 示例：卡片 180 宽、最小间距只有 20）里 28 > 间隙，
+      // 路由器装不下就绕路 —— 实测连线会从右端口向左、翻过卡片顶、再折回左端口，
+      // 画布上一串「拱门」。8 时最小间隙那条仍会留一个小台阶（20 - 2×8 只剩 4px 直行段），
+      // 4 才能让 20px 间隙也走成直线。
+      router: { name: "orth", args: { padding: 4 } },
       connector: { name: "rounded", args: { radius: 8 } },
     },
     true,
@@ -224,6 +230,44 @@ export function buildFlowNodeMetadata(input: {
       flowImage: input.image || "",
       flowData: input.data ?? {},
     },
+  };
+}
+
+/**
+ * 按两节点的相对位置挑默认端口。
+ *
+ * <p>端口默认写死「下→上」是给<b>自上而下</b>的流程图用的。但持久化数据里存在
+ * <b>横向一排</b>的布局（内置的 GitHub 示例就是 x=60..910、y 全为 180）。
+ * 横向布局配下→上端口时，连线会从左边卡片「底部」出发、贴着右边卡片的下沿走一段、
+ * 再拐进它的「顶部」—— 画布上表现为一条贯穿所有卡片底边的绿线，看着像装饰线而不是连接。
+ * 实测连线 path 为 {@code M 154.75 216 L 342 216 C ... L 350 186.55}，
+ * 其中 {@code y=216} 正是卡片底边、横线覆盖 x=260..440 整段目标卡片。</p>
+ *
+ * <p>所以按几何自动选向：横向为主走 右→左，纵向为主走 下→上。
+ * 数据里显式写了端口的仍以数据为准 —— 用户手绘的连线端口是 X6 给的，不能被这里覆盖。</p>
+ *
+ * @param from   源节点左上角坐标
+ * @param to     目标节点左上角坐标
+ * @param fromPort 数据里显式指定的源端口，未指定则为空
+ * @param toPort   数据里显式指定的目标端口，未指定则为空
+ * @returns 实际要用的源/目标端口
+ */
+export function pickFlowPorts(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  fromPort?: string | null,
+  toPort?: string | null,
+): { fromPort: string; toPort: string } {
+  if (fromPort && toPort) {
+    return { fromPort, toPort };
+  }
+  // 用卡片中心而不是左上角比较：左上角在纵向布局里会把同列的节点算成「横向」
+  const dx = to.x + NODE_WIDTH / 2 - (from.x + NODE_WIDTH / 2);
+  const dy = to.y + NODE_HEIGHT / 2 - (from.y + NODE_HEIGHT / 2);
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  return {
+    fromPort: fromPort || (horizontal ? "right" : "bottom"),
+    toPort: toPort || (horizontal ? "left" : "top"),
   };
 }
 

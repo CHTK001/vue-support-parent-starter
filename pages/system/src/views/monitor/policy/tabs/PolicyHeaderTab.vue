@@ -30,12 +30,14 @@ import {
   updatePolicyConfig,
 } from "../../../../api/systemApi";
 import type { HeaderMatchType, HeaderPresets, HeaderRuleRow, PolicyConfig } from "../../../../api/types";
-import { TABLE_TOOLBAR } from "../shared/policyTable";
+import { TABLE_TOOLBAR, useFirstLoadGuard } from "../shared/policyTable";
 import { usePolicyHitContext } from "../composables/policyHitContext";
 import PolicyHitCell from "../components/PolicyHitCell.vue";
 
 const { t } = useI18n();
 const { hitCountOf, loadHitCounts } = usePolicyHitContext();
+/** 首次 loader 返回前不展示空态，避免切进页签时闪一下「暂无消息头拦截规则」 */
+const { ready, markReady } = useFirstLoadGuard();
 
 interface TableReloadRef {
   reload: () => Promise<void> | void;
@@ -146,6 +148,7 @@ async function load(params?: ReTableLoadParams): Promise<RePageResult> {
   const curPage = params?.page ?? page.value;
   const curSize = params?.pageSize ?? pageSize.value;
   const start = (curPage - 1) * curSize;
+  markReady();
   return {
     total: rows.length,
     data: rows.slice(start, start + curSize) as unknown as Record<string, unknown>[],
@@ -413,6 +416,10 @@ defineExpose({ reload: () => tableRef.value?.reload() });
           @click="handleDelete(row)"
         />
       </template>
+      <!-- 首次 loader 返回前不渲染空态，避免闪一下「暂无消息头拦截规则」 -->
+      <template #empty>
+        <p v-if="ready" class="policy-table-empty">{{ t("policy.header.empty") }}</p>
+      </template>
     </ReTable>
 
     <ReDialog
@@ -431,6 +438,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             maxlength="128"
             :disabled="isEdit"
             placeholder="User-Agent"
+            :aria-label="t('policy.header.form.name')"
           />
           <i18n-t keypath="policy.header.form.nameDesc" tag="p" class="policy-form-tip">
             <template #ua><code>User-Agent</code></template>
@@ -449,6 +457,7 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             type="textarea"
             :rows="8"
             :placeholder="t('policy.header.phPatterns')"
+            :aria-label="t('policy.header.form.patterns')"
           />
           <div class="policy-header-preset">
             <ReButton layout="text" type="primary" icon="MagicStick" @click="handleFillPresets">
@@ -481,13 +490,14 @@ defineExpose({ reload: () => tableRef.value?.reload() });
             maxlength="200"
             :placeholder="t('policy.header.form.messagePh')"
             show-word-limit
+            :aria-label="t('policy.header.form.message')"
           />
         </el-form-item>
         <el-form-item :label="t('policy.header.form.active')">
-          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" />
+          <ReSwitch v-model="form.status" layout="square" :active-value="1" :inactive-value="0" :aria-label="t('policy.header.form.active')" />
         </el-form-item>
         <el-form-item :label="t('policy.common.remark')">
-          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit />
+          <ReInput v-model="form.remark" layout="modern" type="textarea" :rows="2" maxlength="500" show-word-limit :aria-label="t('policy.common.remark')" />
         </el-form-item>
         <i18n-t keypath="policy.header.form.desc" tag="p" class="policy-global-form__tip">
           <template #immediate><b>{{ t("policy.header.termImmediateAll") }}</b></template>

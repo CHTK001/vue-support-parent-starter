@@ -47,6 +47,7 @@ import {
   buildFlowNodeMetadata,
   ensureFlowRegistered,
   flowEdgeAttrs,
+  pickFlowPorts,
   resolveFlowType,
 } from "./shapes";
 import type {
@@ -586,16 +587,21 @@ export class FlowGraphEngine {
     this.loading = true;
     this.graph.disableHistory();
     this.graph.clearCells();
+    // 端口选向要用节点坐标，先记一份 id → 左上角坐标
+    const positions = new Map<string, { x: number; y: number }>();
     (data.nodes ?? []).forEach((node) => {
       const def = resolveFlowType(this.types, node.type);
+      const x = node.x ?? 0;
+      const y = node.y ?? 0;
+      positions.set(node.id, { x, y });
       this.graph.addNode(
         buildFlowNodeMetadata({
           id: node.id,
           type: node.type,
           label: node.label || def.label,
           typeLabel: def.label,
-          x: node.x ?? 0,
-          y: node.y ?? 0,
+          x,
+          y,
           color: def.color ?? DEFAULT_NODE_COLOR,
           iconPath: def.path,
           image: def.image,
@@ -605,13 +611,18 @@ export class FlowGraphEngine {
       );
     });
     (data.edges ?? []).forEach((edge) => {
+      // 端口按两节点相对位置自动选向：数据里没显式写端口时，
+      // 横向布局走 右→左 而不是写死的 下→上（写死会让线贴着目标卡片底边走，见 pickFlowPorts）。
+      const src = positions.get(edge.from) ?? { x: 0, y: 0 };
+      const dst = positions.get(edge.to) ?? { x: 0, y: 0 };
+      const ports = pickFlowPorts(src, dst, edge.fromPort, edge.toPort);
       this.graph.addEdge(
         buildFlowEdgeMetadata({
           id: edge.id,
           from: edge.from,
           to: edge.to,
-          fromPort: edge.fromPort,
-          toPort: edge.toPort,
+          fromPort: ports.fromPort,
+          toPort: ports.toPort,
           kind: edge.kind,
           label: edge.label,
           transfer: edge.transfer,
