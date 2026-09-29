@@ -170,6 +170,27 @@ export interface FlowInteractionPatch {
   nodeDraggable?: boolean;
 }
 
+/**
+ * 只读时强制关掉的交互项。
+ *
+ * 单独抽成常量而不是内联在构造参数里：构造期与运行期（{@link FlowGraphEngine.setReadonly}）
+ * 必须是同一份，否则会出现「建图时只读所以拖不动，切回可编辑后仍然拖不动」——
+ * 两处各写一遍，早晚会对不上。
+ *
+ * 刻意**不包含** panning / zoom：只读视图照样要能平移和缩放去看布局，
+ * 只读限制的是「改内容」，不是「看内容」。
+ */
+const READONLY_INTERACTING: Record<string, boolean> = {
+  nodeMovable: false,
+  edgeMovable: false,
+  edgeLabelMovable: false,
+  arrowheadMovable: false,
+  vertexMovable: false,
+  vertexAddable: false,
+  vertexDeletable: false,
+  magnetConnectable: false,
+};
+
 export class FlowGraphEngine {
   graph: Graph;
   private opts: FlowEngineOptions;
@@ -183,6 +204,21 @@ export class FlowGraphEngine {
    * 两个画布，全局状态会让后建的把先建的形状一起换掉（实测会串）。
    */
   private nodeShape: string;
+  /**
+   * 非只读状态下宿主要求的 `interacting`。
+   *
+   * 必须留底：只读是「整体替换」，退出只读时要恢复成宿主当初的意图，
+   * 而不是恢复成「全部可拖」—— 宿主传了 `nodeDraggable=false` 就不该被只读切换顶掉。
+   * 没被宿主显式设过的键不写进这个对象，交给 X6 走默认值。
+   */
+  private interactingOn: Record<string, boolean> = {};
+  /**
+   * 框选插件实例。
+   *
+   * 存成字段不是为了用它的能力，而是为了 {@link togglePanning} 能临时把它关掉 ——
+   * 原因见该方法的注释。
+   */
+  private selection: Selection;
 
   constructor(options: FlowEngineOptions) {
     this.nodeShape = ensureFlowRegistered(options.nodeComponent);
@@ -268,16 +304,7 @@ export class FlowGraphEngine {
         },
       },
       interacting: readonly
-        ? {
-            nodeMovable: false,
-            edgeMovable: false,
-            edgeLabelMovable: false,
-            arrowheadMovable: false,
-            vertexMovable: false,
-            vertexAddable: false,
-            vertexDeletable: false,
-            magnetConnectable: false,
-          }
+        ? { ...READONLY_INTERACTING }
         : {
             // nodeMovable 受 nodeDraggable 单独控制（见 FlowEngineOptions 的说明）
             nodeMovable: nodeDraggable,
@@ -291,21 +318,26 @@ export class FlowGraphEngine {
           },
     });
 
+    // 留一份底，供 setReadonly 退出只读时恢复；未显式设过的键不写进去，走 X6 默认
+    if (!readonly) {
+      this.interactingOn = { nodeMovable: nodeDraggable };
+    }
+
+    this.selection = new Selection({
+      enabled: true,
+      multiple: true,
+      rubberband: true,
+      // 官方 DAG 同款：框选时把节点/连线一起纳入选区
+      rubberNode: true,
+      rubberEdge: true,
+      showNodeSelectionBox: true,
+      // 选中框盖在节点上，若吃指针事件就从端口拖不出线了
+      pointerEvents: "none",
+    });
+
     this.graph
       .use(new Snapline({ enabled: true }))
-      .use(
-        new Selection({
-          enabled: true,
-          multiple: true,
-          rubberband: true,
-          // 官方 DAG 同款：框选时把节点/连线一起纳入选区
-          rubberNode: true,
-          rubberEdge: true,
-          showNodeSelectionBox: true,
-          // 选中框盖在节点上，若吃指针事件就从端口拖不出线了
-          pointerEvents: "none",
-        }),
-      )
+      .use(this.selection)
       .use(new Keyboard({ enabled: true }))
       .use(new Clipboard({ enabled: true }))
       .use(new History({ enabled: true }))
@@ -432,26 +464,114 @@ export class FlowGraphEngine {
    *   `graph.options.interacting`，所以直接改这个对象即可（已在 x6 源码
    *   `src/view/cell.ts` 的 `can()` 里核对过，不是猜的）。
    *
-   * 只读模式下一律按「关」处理：prop 改成 true 也不能把只读视图变成可拖的。
+   * 只读一票否决的**只有节点拖动**：`nodeDraggable` 改成 true 也拖不动
+   * （由 {@link syncInteracting} 兜）。平移与缩放不受只读限制 ——
+   * 「只读但允许挪位置看布局」是真实需求，只读限制的是改内容，不是看内容。
    *
    * @param patch 待改开关；缺省的键保持原值
    */
   applyInteraction(patch: FlowInteractionPatch): void {
-    if (this.opts.readonly) {
-      return;
-    }
     if (patch.panning != null) {
-      this.graph.togglePanning(patch.panning);
+      this.togglePanning(patch.panning);
     }
     if (patch.zoom != null) {
       this.graph.toggleMouseWheel(patch.zoom);
     }
     if (patch.nodeDraggable != null) {
-      const interacting = this.graph.options.interacting;
-      if (interacting && typeof interacting === "object") {
-        interacting.nodeMovable = patch.nodeDraggable;
+      this.interactingOn.nodeMovable = patch.nodeDraggable;
+      this.syncInteracting();
+    }
+  }
+
+  /**
+   * 运行期开关画布平移，并绕开 X6 2.19.2 的一个上游缺陷。
+   *
+   * 缺陷（`@antv/x6@2.19.2` 的 `es/graph/panning.js`）：
+   * `enablePanning()` / `disablePanning()` 都是**无参**调 `updateClassName()`（第 180/186 行），
+   * 而 `updateClassName` 第 91 行 `selection.allowRubberband(e, true)` 直接用这个 `e`，
+   * `allowRubberband` 内部 `ModifierKey.isMatch(e, ...)` 会读 `e.altKey` —— `e` 是
+   * `undefined`，直接 `TypeError: Cannot read properties of undefined (reading 'altKey')`。
+   * 上一行 `allowPanning(e)` 作者自己写了 `e ?? {}` 兜底，可见是漏改。
+   *
+   * `graph.togglePanning()` 走的正是 `enablePanning/disablePanning`，所以**只要装了框选插件
+   * 就必现**（`init()` 里第 21 行那次无参调用不炸，因为那时 selection 还没装上）。
+   * 实测在 Playwright 里被 pageerror 抓到，不是推测。
+   *
+   * 绕法：调用期间把框选关掉。`allowRubberband` 写成
+   * `!this.rubberbandDisabled && ModifierKey.isMatch(e, ...)`，`&&` 短路后压根不碰 `e`，
+   * 崩点就绕过去了；退出时按原值恢复。用的是公开 API，没去改 `protected` 方法。
+   *
+   * @param enabled true 表示允许平移
+   */
+  private togglePanning(enabled: boolean): void {
+    const rubberbandOn = this.selection.isRubberbandEnabled();
+    if (rubberbandOn) {
+      this.selection.disableRubberband();
+    }
+    try {
+      this.graph.togglePanning(enabled);
+    } finally {
+      if (rubberbandOn) {
+        this.selection.enableRubberband();
       }
     }
+  }
+
+  /**
+   * 运行时切换只读。
+   *
+   * 之前 `readonly` 只在构造期生效：组件的 prop 变了但 `opts.readonly` 永远停在
+   * 建图那一刻，于是宿主做「查看 / 编辑」切换时画布照样能拖 —— 实测确认过。
+   * 这里让 prop 能真正切过来，并在退出只读时按 {@link interactingOn} 恢复。
+   *
+   * @param readonly true 表示只读
+   */
+  setReadonly(readonly: boolean): void {
+    if (this.opts.readonly === readonly) {
+      return;
+    }
+    this.opts.readonly = readonly;
+    this.syncInteracting();
+  }
+
+  /**
+   * 把 `interactingOn` 落到 graph 上；只读时整体换成 {@link READONLY_INTERACTING}。
+   *
+   * 整体替换而不是逐键改：逐键改会漏 —— 只读要关的是 8 项，逐项维护清单迟早对不上。
+   * X6 的默认值等价于 `{}`，所以未设过的键不写进去是安全的。
+   */
+  private syncInteracting(): void {
+    const movable = !this.opts.readonly && this.interactingOn.nodeMovable !== false;
+    this.graph.options.interacting = this.opts.readonly ? { ...READONLY_INTERACTING } : { ...this.interactingOn };
+    this.refreshNodeMovableClass(movable);
+  }
+
+  /**
+   * 补刷节点容器上的 `x6-node-immovable` 类。
+   *
+   * X6 只在 `NodeView.render()` 里算这个类（`getContainerClassName()` / `empty()`），
+   * 改 `interacting` 不会让它重算，于是运行期切只读后节点光标仍是 `move`，
+   * 看着像能拖、实际拖不动（这个类唯一的 CSS 作用就是 `.x6-node-immovable{cursor:default}`）。
+   *
+   * 为什么不用 `view.render()` 重算：X6 没有公开的「只重算类名」入口，
+   * `render()` 会 `empty()` 掉容器 —— 对 `vue-shape` 那等于把 Vue 组件的挂载点
+   * 从 DOM 上摘下来，节点直接白掉。这里只动这一个类，不碰节点内容。
+   *
+   * 范围说明：只刷 `node-immovable`，因为只有 `nodeMovable` 是本组件对外暴露的开关
+   * （`nodeDraggable`）。只读集里另外 7 项（端口不可连线、顶点不可增删等）没有公开
+   * 的类名刷新入口，且它们的类在首次渲染时算的就是只读值，通常不会与本组件冲突。
+   *
+   * @param movable true 表示节点当前可拖动
+   */
+  private refreshNodeMovableClass(movable: boolean): void {
+    // 前缀从 X6 自己取，不写死 'x6-node-immovable'：宿主若改 prefixClassName 也不会错位
+    const cls = this.graph.view.prefixClassName("node-immovable");
+    this.graph.getNodes().forEach((node) => {
+      const el = this.graph.findViewByCell(node)?.container;
+      if (el) {
+        el.classList.toggle(cls, !movable);
+      }
+    });
   }
 
   /**

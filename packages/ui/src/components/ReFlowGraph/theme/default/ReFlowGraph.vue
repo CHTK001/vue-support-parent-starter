@@ -49,7 +49,13 @@ const props = withDefaults(
     propertiesTitle?: string;
     /**
      * 缩略图开关。缺省 false —— 原来只能在工具栏上手动点，宿主控不了初始状态，
-     * 这里补成 prop。运行中改动会同步到工具栏按钮的高亮态。
+     * 这里补成 prop。
+     *
+     * 语义是「初始值 + 后续变更跟随」：**prop 是初值来源，之后两者平级**。
+     * 用户点工具栏的「缩略图」按钮直接写内部 `ui.minimap`，不会回写 prop，
+     * 所以宿主若想强制覆盖，得在用户点过之后重新把 prop 设一次。
+     * 之所以这样设计：让宿主能控制初始状态即可，把工具栏变成双向绑定的受控组件
+     * 会让「宿主只想给个默认值」也变成负担。
      */
     showMinimap?: boolean;
     /** 画布平移（空格 + 拖），缺省 true */
@@ -285,6 +291,18 @@ watch(
   () => [props.panning, props.zoom, props.nodeDraggable] as const,
   ([panning, zoom, nodeDraggable]) => {
     engine.value?.applyInteraction({ panning, zoom, nodeDraggable });
+  },
+);
+
+// 只读同样要在运行期生效。少了这个 watch，宿主做「查看 / 编辑」切换时 prop 变了
+// 但引擎还停在建图那一刻的只读值上，画布照样能拖（实测确认）。
+// 顺序有讲究：先同步 readonly 再套交互开关，否则退出只读的那一帧会先用旧的
+// readonly=true 把 nodeDraggable 吞掉。
+watch(
+  () => props.readonly,
+  (v) => {
+    engine.value?.setReadonly(v);
+    engine.value?.applyInteraction({ panning: props.panning, zoom: props.zoom, nodeDraggable: props.nodeDraggable });
   },
 );
 
@@ -574,8 +592,17 @@ defineExpose({
            :style="{ left: rename.left + 'px', top: rename.top + 'px', width: rename.width + 'px' }"
            @keyup.enter="commitRename" @keyup.esc="cancelRename" @blur="commitRename" />
 
-    <!-- 右键菜单 -->
-    <ul v-if="menu.visible" class="flow-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
+    <!--
+      右键菜单。
+      menuItems.length 也要判：传空数组等于「关掉菜单」，若只判 menu.visible 会
+      留下一个空的 <ul> 浮在画布上（点它还会吃掉一次点击）。
+    -->
+    <ul
+      v-if="menu.visible && menuItems.length"
+      class="flow-menu"
+      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+      @click.stop
+    >
       <li
         v-for="item in menuItems"
         :key="item.key"

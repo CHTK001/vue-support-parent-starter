@@ -91,11 +91,15 @@ interface FlowNodeTypeDef {
   label: string;
   group?: string; // 调色板分组标题
   path?: string; // 自带 24×24 描边 path，覆盖内置图标
+  image?: string; // 图片地址（data URI 或 http URL），优先于 path
   color?: string; // 主色，缺省按 type 稳定取色
   tips?: string; // 悬浮提示
   fixed?: boolean; // true 时禁止删除
 }
 ```
+
+> `image` 优先于 `path`：配了 `image` 就渲染 `<img>`，加载失败（`@error`）自动回落到 `path`，
+> 不会留下空白节点。`updateNode({ image: "" })` 是「显式去掉图片」的合法意图，不是清空。
 
 > `label` 只做显示。业务上需要持久化、但 X6 没有对应概念的字段（如流转条件、异常流向），
 > 请放进 `data`，取数据时以 `data` 为准。
@@ -106,14 +110,67 @@ interface FlowNodeTypeDef {
 | ------------------ | ------------------- | ------------- | ---------------------------------------- |
 | `data`             | `FlowGraphData`     | 空图          | 整图数据；结构签名变化时才回灌，避免自激 |
 | `nodeTypes`        | `FlowNodeTypeDef[]` | `[]`          | 调色板节点类型，一般由后端 metas 驱动     |
-| `readonly`         | `boolean`           | `false`       | 只读（禁拖拽、禁连线、禁编辑）           |
+| `readonly`         | `boolean`           | `false`       | 只读（禁拖拽、禁连线、禁编辑），**运行中可切** |
 | `height` / `width` | `string \| number`  | `"100%"`      | 容器尺寸，数字按 px                      |
 | `showToolbar`      | `boolean`           | `true`        | 顶部工具条                               |
 | `showPalette`      | `boolean`           | `true`        | 左侧调色板                               |
 | `showProperties`   | `boolean`           | `true`        | 右侧属性停靠区，只读视图可关掉           |
+| `showMinimap`      | `boolean`           | `false`       | 缩略图初值；prop 后续变更也会跟随         |
+| `panning`          | `boolean`           | `true`        | 空格 + 拖动平移画布                      |
+| `zoom`             | `boolean`           | `true`        | ctrl/meta + 滚轮缩放；**不含工具栏缩放按钮** |
+| `nodeDraggable`    | `boolean`           | `true`        | 节点能否拖动；`readonly` 仍然一票否决      |
 | `startType`        | `string`            | `"start"`     | 结构预检用的开始类型名                   |
 | `endType`          | `string`            | `"end"`       | 结构预检用的结束类型名                   |
 | `propertiesTitle`  | `string`            | `"属性"`      | 停靠区标题                               |
+| `menuItems`        | `FlowMenuItem[]`    | 内置四项      | 右键菜单项；`[]` 即关掉右键菜单          |
+| `nodeComponent`    | `Component \| null` | `null`        | 自定义节点体组件，替代内置卡片            |
+
+### 交互开关的边界
+
+四个开关（`showMinimap` / `panning` / `zoom` / `nodeDraggable`）都是**响应式**的，
+运行中改 prop 即刻生效，不必重建画布。三点需要注意：
+
+1. **`readonly` 优先于 `nodeDraggable`**，但**不**压制 `panning` / `zoom` ——
+   「只读但允许挪位置看布局」是常见需求，只读限制的是改内容，不是看内容。
+2. **`zoom` 只管滚轮**。工具栏的放大 / 缩小按钮走 `graph.zoom()`，与滚轮是两条路，
+   `zoom=false` 时按钮依然可用（想连按钮一起禁就关 `showToolbar`）。
+3. **`showMinimap` 是初值 + 变更跟随**，不是受控绑定：用户点工具栏按钮直接改内部状态，
+   不回写 prop。宿主要强制覆盖，需在用户点过之后重新设一次 prop。
+
+### 右键菜单（`menuItems`）
+
+```ts
+const menuItems: FlowMenuItem[] = [
+  { key: "run", label: "执行", onClick: ({ node, event }) => run(node.id) },
+  { key: "rename", label: "重命名", action: "rename" },   // 复用内置实现
+  { key: "del", label: "删除", action: "delete", danger: true },
+  { key: "audit", label: "审计日志", disabled: true },
+];
+```
+
+- `action` 复用内置实现（`rename` / `locate` / `copy` / `delete`），`onClick` 自己处理；
+  两者都给时 `onClick` 优先。
+- `onClick` 的上下文是 `{ node, event }`。**没有 `edge`**：引擎只绑了 `node:contextmenu`，
+  给一个恒为 `null` 的字段属于投机性接口，不给。
+- 传 `[]` 等于关掉右键菜单（`<ul>` 根本不渲染，而不是留个空壳浮层吃掉点击）。
+
+### 自定义节点体（`nodeComponent`）
+
+```vue
+<script setup lang="ts">
+import type { Node as X6Node } from "@antv/x6";
+const props = defineProps<{ node: X6Node; graph: any }>();
+const kind = computed(() => props.node.getData()?.kind ?? "");
+</script>
+
+<template>
+  <div class="my-node">{{ kind }}</div>
+</template>
+```
+
+`x6-vue-shape` 会自己 `createApp` 挂载这个组件，因此**拿不到宿主作用域的插槽、
+provide / inject 都不跨应用**。需要内容就靠 `node.getData()` 读业务数据自己渲染。
+组件被按实例分配独占 shape 名（`WeakMap`），同一页面开两个画布、各用不同组件不会互相污染。
 
 ## Events
 
