@@ -364,10 +364,26 @@
                 </div>
               </div>
 
-              <!-- 失败 / 取消：错误条 -->
-              <div v-else class="wg-card-error" :class="{ 'is-canceled': row.task.status === 'CANCELED' }">
-                <WgIcon :d="row.task.status === 'CANCELED' ? ICONS.close : ICONS.error" />
-                <span>{{ row.task.errorMessage || voidText(row.task) }}</span>
+              <!--
+                失败 / 取消 / 无产物：占位块。
+                原来是一条扁错误条，卡片高度比有结果的矮一大截，网格里就出现一个空洞。
+                改成复用 .wg-generating 的几何（同一 aspect-ratio、同一 max-width 封顶），
+                视觉上仍占着一张图该占的位置，只是这块位置里画的是占位。
+                配色刻意不同于进行中块：进行中是主色流光，占位是中性面 + 边框，
+                免得「已失败」和「还在跑」在缩略图尺度下看起来一样。
+              -->
+              <div v-else class="wg-card-media">
+                <div
+                  class="wg-void"
+                  :class="row.task.status === 'CANCELED' ? 'is-canceled' : 'is-failed'"
+                  :style="{ aspectRatio: aspectOf(row.task.size), maxWidth: generatingMaxWidth(row) }"
+                >
+                  <span class="wg-void-icon">
+                    <WgIcon :d="row.task.type === 'video' ? ICONS.video : ICONS.image" />
+                  </span>
+                  <span class="wg-void-label">{{ voidLabel(row.task) }}</span>
+                  <span class="wg-void-err">{{ voidReason(row.task) }}</span>
+                </div>
               </div>
 
               <!--
@@ -1284,12 +1300,39 @@ const stageText = (task: GenerateTask) => {
   return '即将完成...'
 }
 
-/** 无产物行的占位文案；失败原因由错误条承载，这里只做状态区分 */
-const voidText = (task: GenerateTask) => {
+/**
+ * 无产物行占位块的标题。
+ *
+ * <p>只说「这条没拿到产物」以及是哪种产物，原因是下一行的事。
+ * 「已取消」和「失败」分开表述：前者是用户自己停的，重试无意义；
+ * 后者才是需要重试的。</p>
+ *
+ * @param task 任务行
+ * @return 占位块主文案
+ */
+const voidLabel = (task: GenerateTask) => {
+  const what = task.type === 'video' ? '视频' : '图片'
   if (task.status === 'CANCELED') {
-    return '已取消'
+    return `${what}已取消`
   }
-  return task.status === 'SUCCESS' ? '未返回图片' : '生成失败'
+  return task.status === 'SUCCESS' ? `未返回${what}` : `${what}未生成`
+}
+
+/**
+ * 无产物行占位块的原因行。
+ *
+ * <p>优先取服务端写入的中文原因——它已把上游英文（429 / video_queue_full 等）
+ * 归类翻译过，比这里再猜一层更准。服务端没给原因时才回落到通用兜底文案，
+ * 不留空白：空着会让这块看起来像加载失败而不是生成失败。</p>
+ *
+ * @param task 任务行
+ * @return 原因文案
+ */
+const voidReason = (task: GenerateTask) => {
+  if (task.errorMessage) {
+    return task.errorMessage
+  }
+  return task.status === 'CANCELED' ? '已手动停止' : '本次没有产出任何内容'
 }
 
 const isFavorite = (taskId: string) => favorites.value.includes(taskId)
@@ -3138,27 +3181,74 @@ onUnmounted(() => {
   }
 }
 
-/* 失败 / 取消 错误条 */
-.wg-card-error {
+/* 无产物占位块。
+   几何（宽度上限）由模板内联 max-width 给，与 .wg-grid / .wg-generating 同一套封顶公式；
+   这里只管形状与配色。用边框而不是投影承载边界，卡片基线不加装饰投影。
+   底纹是极淡的斜向条纹，与参考图区的斜线朝向一致，视觉上属于同一族。 */
+.wg-void {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: var(--size-dialog-rounded-radius);
-  color: var(--el-color-danger);
-  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
-  font-size: 13px;
-}
-
-.wg-card-error.is-canceled {
-  color: var(--color-text-gray);
-  background: var(--color-secondary-surface);
-}
-
-.wg-card-error .wg-svg {
+  /* 与 .wg-thumb 同宽，占位块才和真结果在同一列里视觉对齐；
+     宽度上限仍由模板内联 max-width 给（多图 / 带参考图时封顶）。 */
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: var(--wg-thumb);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 150px;
+  padding: 12px 16px;
+  overflow: hidden;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--size-dialog-rounded-radius);
+  text-align: center;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--el-text-color-primary) 5%, transparent) 0 1px,
+      transparent 1px 9px
+    ),
+    var(--color-secondary-surface);
+  color: var(--color-text-gray);
+}
+
+.wg-void.is-failed {
+  border-color: color-mix(in srgb, var(--el-color-danger) 34%, var(--el-border-color));
+}
+
+.wg-void.is-canceled {
+  opacity: 0.72;
+}
+
+.wg-void-icon .wg-svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.1;
+}
+
+.wg-void.is-failed .wg-void-icon {
+  color: color-mix(in srgb, var(--el-color-danger) 76%, var(--el-text-color-secondary));
+}
+
+.wg-void-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.wg-void-err {
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wg-void.is-failed .wg-void-err {
+  color: color-mix(in srgb, var(--el-color-danger) 88%, var(--el-text-color-regular));
 }
 
 /* 骨架屏 */
