@@ -1,0 +1,392 @@
+/**
+ * 文件管理页 · 上传弹框样式
+ *
+ * 独立成文件而非写进 FileStorageManage.vue 的 <style scoped>：
+ *   1) 上传弹框与目录选择弹框都是 append-to-body，DOM 挂在 body 下；
+ *   2) 类名统一 .fs-up* 前缀，与页面其它样式不冲突，挂在全局没有污染风险。
+ *
+ * 配色一律走 koi / Element Plus 令牌（--el-*），渐变用令牌派生，
+ * 不写死任何色值：换主题、切暗色自动跟随。
+ */
+
+/* ---------- 弹框骨架 ---------- */
+.fs-up {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fs-up__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-up__head-icon {
+  color: var(--el-color-primary);
+}
+
+.fs-up__head-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+/* ---------- 上传至：标签 + 目录胶囊 + 更换目录 ---------- */
+.fs-up__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-up__bar-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.fs-up__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 340px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+}
+
+.fs-up__chip b {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+.fs-up__chip-sep {
+  color: var(--el-text-color-placeholder);
+}
+
+/* 末段可省略，完整路径在 title 里 */
+.fs-up__chip-path {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--el-color-primary);
+}
+
+.fs-up__pick {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-family: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
+}
+
+.fs-up__pick:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.fs-up__pick:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- 拖拽区 ---------- */
+.fs-up__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 34px 20px 24px;
+  border: 1.5px dashed var(--el-border-color);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-blank);
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-up__drop:hover,
+.fs-up__drop:focus-visible {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+  outline: none;
+}
+
+/* 拖放悬停：虚线转实线 + 浅主色底，明确「放这里」 */
+.fs-up__drop.is-active {
+  border-color: var(--el-color-primary);
+  border-style: solid;
+  background: var(--el-color-primary-light-9);
+}
+
+.fs-up__drop-icon {
+  margin-bottom: 6px;
+  color: var(--el-color-primary);
+}
+
+.fs-up__drop-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-up__drop-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+/* 格式提示靠右，贴住虚线框下沿 */
+.fs-up__drop-hint {
+  align-self: flex-end;
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------- 队列 ---------- */
+.fs-up__queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fs-up__queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-up__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  cursor: pointer;
+}
+
+.fs-up__link:disabled {
+  color: var(--el-text-color-placeholder);
+  cursor: not-allowed;
+}
+
+.fs-up__list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  list-style: none;
+}
+
+.fs-up__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.fs-up__row + .fs-up__row {
+  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-up__row-icon {
+  flex-shrink: 0;
+  font-size: 26px;
+}
+
+.fs-up__row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-primary);
+}
+
+.fs-up__row-size {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__row-tail {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 212px;
+}
+
+.fs-up__track {
+  width: 128px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+}
+
+.fs-up__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  transition: width 0.2s linear;
+}
+
+.fs-up__pct {
+  width: 38px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.fs-up__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--el-color-success);
+}
+
+.fs-up__err {
+  max-width: 110px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--el-color-danger);
+}
+
+.fs-up__paused,
+.fs-up__wait {
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-up__row-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-up__row-btn.is-danger:hover {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.fs-up__row-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- 底部统计（与 el-dialog 的 footer 按钮同行） ---------- */
+.fs-up__stat {
+  float: left;
+  font-size: 13px;
+  line-height: 32px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---------- 目录选择 ---------- */
+.fs-updir {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fs-updir__cur {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.fs-updir__cur span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fs-updir__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.fs-updir__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+
+.fs-updir__item:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.fs-updir__item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+
+.fs-updir__item.is-up {
+  color: var(--el-text-color-secondary);
+}
+
+.fs-updir__empty {
+  padding: 18px 10px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--el-text-color-placeholder);
+}

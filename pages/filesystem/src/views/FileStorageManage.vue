@@ -14,6 +14,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import {
   ArrowDown,
   ArrowLeft,
+  CircleCheck,
   Close,
   CopyDocument,
   Delete,
@@ -37,6 +38,9 @@ import {
   Setting,
   Tickets,
   Upload,
+  UploadFilled,
+  VideoPause,
+  VideoPlay,
 } from "@element-plus/icons-vue";
 import {
   DEFAULT_BUCKET,
@@ -52,7 +56,9 @@ import {
   getCapabilities,
   getDefaultBucket,
   getQuotaBytes,
+  getBucketTree,
   getServerBase,
+  isUploadAborted,
   listObjects,
   moveObjects,
   objectUrl,
@@ -63,7 +69,7 @@ import {
   setBucketConfig,
   setDefaultBucket,
 } from "../api/filestorageApi";
-import type { BucketConfig, CapabilitiesResponse, StorageObject } from "../api/filestorageApi";
+import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from "../api/filestorageApi";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
@@ -1942,18 +1948,356 @@ document.addEventListener("click", closeContextMenu);
 
 /* ================== 上传（点击 + 拖拽） ================== */
 
+/** 单个文件的允许上限：500MB（与上传框文案一致，选文件时就拦下） */
+const UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
+
+/** 同时上传的并发数 */
+const UPLOAD_CONCURRENCY = 3;
+
+/** 上传项状态 */
+type UploadStatus = "pending" | "uploading" | "done" | "error" | "paused";
+
+/** 上传队列中的一项 */
+interface UploadItem {
+  /** 稳定唯一 id：同名文件允许重复添加，用递增序号区分 */
+  id: string;
+  /** 文件名 */
+  name: string;
+  /** 字节数 */
+  size: number;
+  /** 原始 File */
+  file: File;
+  /** 状态 */
+  status: UploadStatus;
+  /** 进度 0-100 */
+  percent: number;
+  /** 失败原因（status=error 时有值） */
+  error: string;
+  /** 中断句柄：暂停时 abort */
+  controller: AbortController | null;
+}
+
 const uploadVisible = ref(false);
-const uploading = ref(false);
 const uploadInput = ref<HTMLInputElement>();
+/** 上传目标目录（可在弹框内「更换目录」，与 currentPath 解耦） */
+const uploadTargetPath = ref("");
+/** 上传队列 */
+const uploadItems = ref<UploadItem[]>([]);
+/** 是否正在上传（弹框底部按钮态） */
+const uploading = ref(false);
 /** 是否正在拖拽文件到页面（用于高亮遮罩） */
 const dragging = ref(false);
+/** 上传弹框内是否正在被拖放悬停 */
+const uploadDropActive = ref(false);
 /** 拖拽计数器：防止 dragover 反复触发 enter/leave */
 let dragDepth = 0;
+/** 队列自增序号，用于生成 id */
+let uploadSeq = 0;
+/** 当前并发中的上传数 */
+let uploadRunning = 0;
 
-function openUpload(): void { uploadVisible.value = true; }
-function pickFiles(): void { uploadInput.value?.click(); }
+/** 已完成数量 */
+const uploadDoneCount = computed(() => uploadItems.value.filter((i) => i.status === "done").length);
 
-/** 执行上传：支持 FileList 与 DataTransferItem 的文件 */
+/** 待传数量（未开始 + 已暂停） */
+const uploadPendingCount = computed(
+  () => uploadItems.value.filter((i) => i.status === "pending" || i.status === "paused").length
+);
+
+/** 是否还有可上传的项 */
+const uploadHasPending = computed(() => uploadPendingCount.value > 0);
+
+/** 上传目标目录展示文本（桶 / 路径） */
+const uploadTargetText = computed(() => {
+  const seg = uploadTargetPath.value ? uploadTargetPath.value.split("/") : [];
+  return [bucket.value, ...seg].filter(Boolean).join(" / ");
+});
+
+/** 上传目标是否为桶根（根目录没有上一级，禁用「上一级」） */
+const uploadTargetIsRoot = computed(() => uploadTargetPath.value === "");
+
+/** 目录选择弹框 */
+const uploadDirVisible = ref(false);
+/** 目录选择树的根节点 */
+const uploadTree = ref<TreeItem[]>([]);
+/** 目录选择树加载中 */
+const uploadTreeLoading = ref(false);
+/** 目录选择中当前高亮的路径 */
+const uploadDirCursor = ref("");
+
+function openUpload(): void {
+  uploadTargetPath.value = currentPath.value;
+  uploadVisible.value = true;
+}
+
+function pickFiles(): void {
+  uploadInput.value?.click();
+}
+
+/** 关闭上传弹框：还有没传完的项时先确认，避免白等 */
+async function closeUpload(): Promise<void> {
+  if (uploadItems.value.some((i) => i.status === "uploading" || i.status === "pending" || i.status === "paused")) {
+    try {
+      await ElMessageBox.confirm("还有文件未上传完成，确定关闭吗？未上传的文件将被丢弃。", "关闭上传", {
+        type: "warning",
+        confirmButtonText: "关闭",
+        cancelButtonText: "继续上传",
+      });
+    } catch {
+      return;
+    }
+    abortAllUploads();
+  }
+  uploadItems.value = [];
+  uploadVisible.value = false;
+  uploadDropActive.value = false;
+  await loadObjects();
+}
+
+/** 中断全部进行中的上传（关闭弹框前调用） */
+function abortAllUploads(): void {
+  uploadItems.value.forEach((it) => {
+    it.controller?.abort();
+    it.controller = null;
+  });
+  uploadRunning = 0;
+  uploading.value = false;
+}
+
+/**
+ * 把选中的文件加入队列
+ *
+ * <p>只入队不立即上传，由「开始上传 / 全部开始」触发；超限文件当场拦下并提示，
+ * 不进队列。</p>
+ *
+ * @param files 选中的文件
+ */
+function addUploadFiles(files: File[]): void {
+  const tooLarge: string[] = [];
+  const accepted: File[] = [];
+  for (const f of files) {
+    if (f.size > UPLOAD_MAX_BYTES) {
+      tooLarge.push(f.name);
+    } else {
+      accepted.push(f);
+    }
+  }
+  if (tooLarge.length) {
+    ElMessage.error(`超过 500MB 上限：${tooLarge.join("、")}`);
+  }
+  if (!accepted.length) {
+    return;
+  }
+  uploadItems.value = [
+    ...uploadItems.value,
+    ...accepted.map((f) => ({
+      id: `u${(uploadSeq += 1)}`,
+      name: f.name,
+      size: f.size,
+      file: f,
+      status: "pending" as UploadStatus,
+      percent: 0,
+      error: "",
+      controller: null,
+    })),
+  ];
+}
+
+/** 从队列移除一项（上传中的先中断） */
+function removeUploadItem(item: UploadItem): void {
+  item.controller?.abort();
+  uploadItems.value = uploadItems.value.filter((i) => i.id !== item.id);
+}
+
+/** 找出队列中指定项的当前引用（数组整体替换后旧引用会失效） */
+function findUploadItem(id: string): UploadItem | undefined {
+  return uploadItems.value.find((i) => i.id === id);
+}
+
+/** 上传队列调度：并发不超过 {@link UPLOAD_CONCURRENCY}，有空闲就取下一个待传项 */
+function pumpUploads(): void {
+  uploading.value = uploadItems.value.some((i) => i.status === "uploading");
+  while (uploadRunning < UPLOAD_CONCURRENCY) {
+    const next = uploadItems.value.find((i) => i.status === "pending");
+    if (!next) {
+      break;
+    }
+    uploadRunning += 1;
+    void runUpload(next.id);
+  }
+}
+
+/**
+ * 上传单个文件
+ *
+ * @param id 上传项 id
+ */
+async function runUpload(id: string): Promise<void> {
+  const item = findUploadItem(id);
+  if (!item) {
+    uploadRunning = Math.max(0, uploadRunning - 1);
+    return;
+  }
+  const controller = new AbortController();
+  item.controller = controller;
+  item.status = "uploading";
+  item.error = "";
+  item.percent = 0;
+  try {
+    await putObject(bucket.value, joinKey(uploadTargetPath.value, item.name), item.file, {
+      signal: controller.signal,
+      onProgress: (percent) => {
+        const cur = findUploadItem(id);
+        if (cur) {
+          cur.percent = percent;
+        }
+      },
+    });
+    const cur = findUploadItem(id);
+    if (cur) {
+      cur.status = "done";
+      cur.percent = 100;
+    }
+  } catch (e) {
+    const cur = findUploadItem(id);
+    if (cur) {
+      if (isUploadAborted(e)) {
+        // 暂停与关闭都会走这里：暂停保留进度供继续，关闭时整条队列已被丢弃
+        cur.status = "paused";
+        cur.controller = null;
+      } else {
+        cur.status = "error";
+        cur.error = (e as Error)?.message ?? "上传失败";
+        cur.controller = null;
+      }
+    }
+  } finally {
+    item.controller = null;
+    uploadRunning = Math.max(0, uploadRunning - 1);
+    pumpUploads();
+    await loadObjects();
+  }
+}
+
+/** 开始 / 继续全部待传项 */
+function startAllUploads(): void {
+  uploadItems.value.forEach((i) => {
+    if (i.status === "paused") {
+      i.status = "pending";
+      i.percent = 0;
+    }
+  });
+  pumpUploads();
+}
+
+/** 开始 / 继续单项 */
+function startUploadItem(item: UploadItem): void {
+  const cur = findUploadItem(item.id);
+  if (!cur) {
+    return;
+  }
+  cur.status = "pending";
+  cur.percent = 0;
+  cur.error = "";
+  pumpUploads();
+}
+
+/**
+ * 暂停一项
+ *
+ * <p>暂停即中断当前请求。后端不支持断点续传，所以「继续」是从头重传，
+ * 进度会归零——这一点在按钮 title 里写明，不假装能续传。</p>
+ *
+ * @param item 上传项
+ */
+function pauseUploadItem(item: UploadItem): void {
+  const cur = findUploadItem(item.id);
+  if (!cur || cur.status !== "uploading") {
+    return;
+  }
+  cur.controller?.abort();
+}
+
+/** 重试一项（失败后） */
+function retryUploadItem(item: UploadItem): void {
+  startUploadItem(item);
+}
+
+/* ---------- 上传目标目录选择 ---------- */
+
+/** 打开目录选择弹框 */
+async function openUploadDirPicker(): Promise<void> {
+  uploadDirVisible.value = true;
+  uploadDirCursor.value = uploadTargetPath.value;
+  if (uploadTree.value.length) {
+    return;
+  }
+  uploadTreeLoading.value = true;
+  try {
+    uploadTree.value = await getBucketTree(bucket.value);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "目录树获取失败");
+  } finally {
+    uploadTreeLoading.value = false;
+  }
+}
+
+/** 确认目录选择 */
+function confirmUploadDir(): void {
+  uploadTargetPath.value = uploadDirCursor.value;
+  uploadDirVisible.value = false;
+}
+
+/** 目录树里逐级下钻（该路径有子节点才展开按钮） */
+function uploadTreeChildren(path: string): TreeItem[] {
+  if (!path) {
+    return uploadTree.value;
+  }
+  const segs = path.split("/");
+  let level = uploadTree.value;
+  for (const s of segs) {
+    const hit = level.find((n) => n.name === s);
+    if (!hit) {
+      return [];
+    }
+    level = hit.children ?? [];
+  }
+  return level;
+}
+
+/** 上传弹框内拖放悬停 */
+function onUploadDragOver(e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes("Files")) {
+    return;
+  }
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "copy";
+  uploadDropActive.value = true;
+}
+
+function onUploadDragLeave(): void {
+  uploadDropActive.value = false;
+}
+
+/** 拖放到上传弹框：加入队列而不是立刻上传 */
+function onUploadDrop(e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes("Files")) {
+    return;
+  }
+  e.preventDefault();
+  uploadDropActive.value = false;
+  addUploadFiles(Array.from(e.dataTransfer.files ?? []));
+}
+
+/** 选中文件后只入队，不自动开传 */
+function handleFileChange(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  addUploadFiles(files);
+}
+
+/** 执行上传：支持 FileList 与 DataTransferItem 的文件（页面级拖放，直接开传） */
 async function doUpload(files: File[]): Promise<void> {
   if (!files.length) return;
   uploading.value = true;
@@ -1970,14 +2314,6 @@ async function doUpload(files: File[]): Promise<void> {
   } finally {
     uploading.value = false;
   }
-}
-
-async function handleFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
-  await doUpload(files);
-  uploadVisible.value = false;
 }
 
 /* ================== 拖拽上传 ================== */
@@ -3085,11 +3421,157 @@ onUnmounted(() => {
       </template>
     </el-dialog>
 
-    <!-- ===== 上传对话框 ===== -->
-    <el-dialog v-model="uploadVisible" title="上传文件" width="440px" :append-to-body="true" destroy-on-close>
-      <el-alert v-if="currentPath" :title="`上传至 ${bucket}/${currentPath}/`" type="info" :closable="false" class="mb-3" />
-      <el-button type="primary" :icon="Upload" :loading="uploading" @click="pickFiles">选择文件（可多选）</el-button>
-      <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
+    <!-- ===== 上传对话框 =====
+         队列式上传：选文件只入队，由「开始上传 / 全部开始」触发；
+         关闭时若还有未完成项先确认，确认后中断全部请求。 -->
+    <el-dialog
+      v-model="uploadVisible"
+      class="fs-up-dlg"
+      width="720px"
+      :append-to-body="true"
+      destroy-on-close
+      @closed="abortAllUploads"
+    >
+      <template #header>
+        <div class="fs-up__head">
+          <el-icon class="fs-up__head-icon" :size="18"><Upload /></el-icon>
+          <span class="fs-up__head-title">上传文件</span>
+        </div>
+      </template>
+
+      <div class="fs-up">
+        <div class="fs-up__bar">
+          <span class="fs-up__bar-label">上传至</span>
+          <span class="fs-up__chip" :title="uploadTargetText">
+            <el-icon :size="15"><Folder /></el-icon>
+            <b>{{ bucket }}</b>
+            <template v-if="uploadTargetPath">
+              <span class="fs-up__chip-sep">/</span>
+              <span class="fs-up__chip-path">{{ uploadTargetPath }}</span>
+            </template>
+          </span>
+          <button type="button" class="fs-up__pick" @click="openUploadDirPicker">
+            <el-icon :size="15"><FolderOpened /></el-icon>更换目录
+          </button>
+        </div>
+
+        <div
+          class="fs-up__drop"
+          :class="{ 'is-active': uploadDropActive }"
+          role="button"
+          tabindex="0"
+          @click="pickFiles"
+          @keydown.enter="pickFiles"
+          @dragover="onUploadDragOver"
+          @dragleave="onUploadDragLeave"
+          @drop="onUploadDrop"
+        >
+          <el-icon class="fs-up__drop-icon" :size="52"><UploadFilled /></el-icon>
+          <p class="fs-up__drop-title">点击选择文件，或拖拽文件到此处</p>
+          <p class="fs-up__drop-sub">支持多文件同时上传，单个文件不超过 500MB</p>
+          <p class="fs-up__drop-hint">支持 JPG、PNG、PDF、DOCX、ZIP 等格式</p>
+        </div>
+        <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
+
+        <div v-if="uploadItems.length" class="fs-up__queue">
+          <div class="fs-up__queue-head">
+            <span>待上传文件（{{ uploadItems.length }}）</span>
+            <button type="button" class="fs-up__link" :disabled="!uploadHasPending" @click="startAllUploads">全部开始</button>
+          </div>
+          <ul class="fs-up__list">
+            <li v-for="item in uploadItems" :key="item.id" class="fs-up__row" :class="`is-${item.status}`">
+              <span class="fs-typeicon fs-up__row-icon" v-html="fileSvg(item.name, false)" aria-hidden="true" />
+              <span class="fs-up__row-name" :title="item.name">{{ item.name }}</span>
+              <span class="fs-up__row-size">{{ formatSize(item.size) }}</span>
+              <span class="fs-up__row-tail">
+                <template v-if="item.status === 'uploading'">
+                  <span class="fs-up__track"><i class="fs-up__fill" :style="{ width: item.percent + '%' }" /></span>
+                  <b class="fs-up__pct">{{ item.percent }}%</b>
+                  <button type="button" class="fs-up__row-btn" title="暂停" @click="pauseUploadItem(item)">
+                    <el-icon :size="15"><VideoPause /></el-icon>
+                  </button>
+                </template>
+                <template v-else-if="item.status === 'done'">
+                  <span class="fs-up__done"><el-icon :size="15"><CircleCheck /></el-icon>已完成</span>
+                </template>
+                <template v-else-if="item.status === 'error'">
+                  <span class="fs-up__err" :title="item.error">上传失败</span>
+                  <button type="button" class="fs-up__row-btn" title="重试" @click="retryUploadItem(item)">
+                    <el-icon :size="15"><Refresh /></el-icon>
+                  </button>
+                </template>
+                <template v-else-if="item.status === 'paused'">
+                  <span class="fs-up__paused" title="后端不支持断点续传，继续会从头上传">已暂停</span>
+                  <button type="button" class="fs-up__row-btn" title="继续（从头上传）" @click="startUploadItem(item)">
+                    <el-icon :size="15"><VideoPlay /></el-icon>
+                  </button>
+                </template>
+                <template v-else>
+                  <span class="fs-up__wait">等待中</span>
+                </template>
+                <button type="button" class="fs-up__row-btn is-danger" title="移除" @click="removeUploadItem(item)">
+                  <el-icon :size="15"><Delete /></el-icon>
+                </button>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="fs-up__stat">已完成 {{ uploadDoneCount }}/{{ uploadItems.length }}</span>
+        <el-button @click="closeUpload">取消</el-button>
+        <el-button type="primary" :icon="Upload" :loading="uploading" :disabled="!uploadHasPending" @click="startAllUploads">
+          开始上传
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ===== 上传目标目录选择 ===== -->
+    <el-dialog
+      v-model="uploadDirVisible"
+      class="fs-updir-dlg"
+      width="420px"
+      :append-to-body="true"
+    >
+      <template #header>
+        <div class="fs-up__head">
+          <el-icon class="fs-up__head-icon" :size="18"><FolderOpened /></el-icon>
+          <span class="fs-up__head-title">更换上传目录</span>
+        </div>
+      </template>
+      <div class="fs-updir">
+        <div class="fs-updir__cur">
+          <el-icon :size="15"><Folder /></el-icon>
+          <span :title="uploadDirCursor || '根目录'">{{ uploadDirCursor || "根目录" }}</span>
+        </div>
+        <div class="fs-updir__list" v-loading="uploadTreeLoading">
+          <button
+            v-if="uploadDirCursor"
+            type="button"
+            class="fs-updir__item is-up"
+            @click="uploadDirCursor = uploadDirCursor.split('/').slice(0, -1).join('/')"
+          >
+            <el-icon :size="15"><ArrowLeft /></el-icon>上一级
+          </button>
+          <div v-if="!uploadTreeLoading && !uploadTreeChildren(uploadDirCursor).length" class="fs-updir__empty">
+            此目录下没有子目录，可直接上传到当前目录
+          </div>
+          <button
+            v-for="d in uploadTreeChildren(uploadDirCursor)"
+            :key="d.path"
+            type="button"
+            class="fs-updir__item"
+            @click="uploadDirCursor = d.path"
+          >
+            <el-icon :size="15"><Folder /></el-icon>{{ d.name }}
+          </button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="uploadDirVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmUploadDir">确定</el-button>
+      </template>
     </el-dialog>
 
     <!-- ===== 创建链接对话框 ===== -->

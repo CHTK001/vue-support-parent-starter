@@ -348,6 +348,69 @@ export async function getCapabilities(bucket: string): Promise<CapabilitiesRespo
 }
 
 /**
+ * 压缩包条目（?format=archive 返回）
+ */
+export interface ArchiveEntry {
+  /** 包内完整路径（不含压缩包自身文件名） */
+  path: string;
+  /** 末段名称 */
+  name: string;
+  /** 是否为目录 */
+  directory: boolean;
+  /** 解压后大小（字节；目录为 0） */
+  size: number;
+  /** 压缩后大小（字节）；归档未记录时为 -1，表示未知 */
+  compressedSize: number;
+  /** 最后修改时间（epoch 毫秒；无时间戳时为 0） */
+  modified: number;
+}
+
+/**
+ * 压缩包结构响应（?format=archive）
+ */
+export interface ArchiveScanResponse {
+  /** 压缩包文件名 */
+  name: string;
+  /** 压缩包扩展名（小写） */
+  extension: string;
+  /** 压缩包自身体积（字节） */
+  archiveSize: number;
+  /** 文件数 */
+  fileCount: number;
+  /** 目录数 */
+  dirCount: number;
+  /** 解压后总体积（字节） */
+  totalSize: number;
+  /** 压缩率（%）：archiveSize / totalSize，空包为 0 */
+  compressRate: number;
+  /** 扁平条目清单（已去重并补全隐式目录） */
+  entries: ArchiveEntry[];
+}
+
+/**
+ * 查询压缩包条目清单
+ *
+ * 走 {@code ?format=archive} 纯数据通道，而非 {@code ?preview=true} 的
+ * 服务端 HTML 渲染：后者渲染在 iframe 独立文档里，读不到主应用的
+ * Element Plus / koi 主题变量，无法跟随系统主题与暗色模式。
+ *
+ * @param bucket 存储桶名
+ * @param key    压缩包对象 Key
+ * @return 压缩包结构
+ */
+export async function getArchiveEntries(bucket: string, key: string): Promise<ArchiveScanResponse> {
+  try {
+    const res = await storageHttp()
+      .get(objectPath(bucket, key))
+      .query({ format: "archive" })
+      .then<ArchiveScanResponse>((r) => r.data);
+    return res;
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "压缩包条目查询"));
+  }
+}
+
+/**
  * 目录树节点
  */
 export interface TreeItem {
@@ -359,8 +422,22 @@ export interface TreeItem {
   children?: TreeItem[];
 }
 
+/** 回收站目录（服务端约定的桶内隐藏目录，列表与目录树都不应出现） */
+const RECYCLE_DIR = ".recycle";
+
+/** 递归剔除回收站目录及其子树（目录树用） */
+function stripRecycleDir(nodes: TreeItem[]): TreeItem[] {
+  return nodes
+    .filter((n) => n.name !== RECYCLE_DIR)
+    .map((n) => (n.children?.length ? { ...n, children: stripRecycleDir(n.children) } : n));
+}
+
 /**
  * 获取目录树（仅目录，KodExplorer 式左侧文件树）
+ *
+ * <p>已剔除回收站目录 {@code .recycle}：它是服务端约定的桶内隐藏目录，
+ * 正常对象列表同样会过滤掉它；若留在树里，用户选中后把文件传进去，
+ * 那些文件在列表页就再也看不到、只会出现在回收站里。</p>
  *
  * @param bucket 存储桶名
  * @return 树节点数组
@@ -371,28 +448,133 @@ export async function getBucketTree(bucket: string): Promise<TreeItem[]> {
       .get(objectPath(bucket))
       .query({ tree: "true" })
       .then<TreeItem[]>((r) => r.data);
-    return res ?? [];
+    return stripRecycleDir(res ?? []);
   } catch (e) {
     throw new Error(toErrorMessage(e, "目录树获取"));
   }
 }
 
+/** 上传默认超时（毫秒）：10 分钟 */
+const UPLOAD_TIMEOUT_MS = 600_000;
+
+/** 上传被中断时的错误标记，供调用方区分「用户暂停」与「真的失败」 */
+const UPLOAD_ABORT_FLAG = "__uploadAborted";
+
+/** 上传进度回调 */
+export type UploadProgressHandler = (percent: number, loaded: number, total: number) => void;
+
+/** 上传可选项 */
+export interface UploadOptions {
+  /** 进度回调（0-100） */
+  onProgress?: UploadProgressHandler;
+  /** 中断信号：置为 aborted 后本函数 reject，且错误带 {@link UPLOAD_ABORT_FLAG} 标记 */
+  signal?: AbortSignal;
+  /** 超时毫秒数，默认 {@link UPLOAD_TIMEOUT_MS} */
+  timeoutMs?: number;
+}
+
 /**
- * 上传对象（原始内容直传）
+ * 判断一个异常是否为「用户主动中断」
+ *
+ * @param e 捕获的异常
+ * @return 是中断返回 true
+ */
+export function isUploadAborted(e: unknown): boolean {
+  return (e as { [UPLOAD_ABORT_FLAG]?: boolean } | null)?.[UPLOAD_ABORT_FLAG] === true;
+}
+
+/**
+ * 上传对象（原始内容直传，支持进度与中断）
+ *
+ * <p>刻意不走共享的 {@link Http} 客户端：那个客户端**没有** AbortSignal 支持
+ * （`packages/utils/src/http.ts` 里搜不到 signal / abort / CancelToken），
+ * 既给不出真实进度也无法中断，而上传框两样都要；而它是全站共用文件，
+ * 不应为单个页面的上传框去改动。这里用 {@link XMLHttpRequest} 自行实现，
+ * 只复用本模块已有的 URL 拼装与鉴权头。</p>
  *
  * @param bucket  存储桶名
  * @param key     对象 Key（支持子目录）
  * @param content 文件内容
+ * @param options 进度 / 中断 / 超时
  */
-export async function putObject(bucket: string, key: string, content: Blob | ArrayBuffer): Promise<void> {
-  try {
-    await storageHttp()
-      .put(objectPath(bucket, key))
-      .headers({ "Content-Type": "application/octet-stream" })
-      .data(content);
-  } catch (e) {
-    throw new Error(toErrorMessage(e, "上传"));
+export async function putObject(
+  bucket: string,
+  key: string,
+  content: Blob | ArrayBuffer,
+  options: UploadOptions = {}
+): Promise<void> {
+  const { onProgress, signal, timeoutMs = UPLOAD_TIMEOUT_MS } = options;
+  const token = getAccessToken();
+  // 私有桶既认 Authorization 头也认 x-oauth-token 查询参数（与 objectUrl 一致），两处都给
+  const params = new URLSearchParams();
+  if (token) {
+    params.set("x-oauth-token", token);
   }
+  const suffix = params.toString();
+  const url = `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix ? `?${suffix}` : ""}`;
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    let settled = false;
+
+    const finish = (fn: () => void): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      signal?.removeEventListener("abort", onAbort);
+      fn();
+    };
+
+    function onAbort(): void {
+      // 先置 settled 再 abort：否则 xhr.onerror 会先于 reject 触发，错误标记就丢了
+      settled = true;
+      signal?.removeEventListener("abort", onAbort);
+      xhr.abort();
+      const err = new Error("上传已暂停") as Error & { [UPLOAD_ABORT_FLAG]?: boolean };
+      err[UPLOAD_ABORT_FLAG] = true;
+      reject(err);
+    }
+
+    xhr.open("PUT", url, true);
+    xhr.timeout = timeoutMs;
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+    xhr.upload.onprogress = (ev) => {
+      // total 可能是 0（分块传输时不带总量），此时不给百分比，避免出现 NaN
+      if (!onProgress || !ev.lengthComputable || ev.total <= 0) {
+        return;
+      }
+      onProgress(Math.min(100, Math.round((ev.loaded / ev.total) * 100)), ev.loaded, ev.total);
+    };
+    xhr.onload = () => {
+      finish(() => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // 服务端不回 Content-Length，最后一段补满 100%，否则进度条永远停在 99%
+          const total = content instanceof Blob ? content.size : content.byteLength;
+          onProgress?.(100, total, total);
+          resolve();
+        } else {
+          reject(new Error(`上传失败（HTTP ${xhr.status}）`));
+        }
+      });
+    };
+    xhr.onerror = () => finish(() => reject(new Error("上传失败（网络错误）")));
+    xhr.ontimeout = () => finish(() => reject(new Error("上传超时")));
+    xhr.onabort = () => finish(() => reject(new Error("上传已取消")));
+
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+    signal?.addEventListener("abort", onAbort);
+    xhr.send(content as XMLHttpRequestBodyInit);
+  }).catch((e: unknown) => {
+    // 中断不是错误：调用方据 isUploadAborted 区分「暂停」与「失败」，此处原样抛出
+    throw isUploadAborted(e) ? e : new Error((e as Error)?.message ?? "上传失败");
+  });
 }
 
 /**
