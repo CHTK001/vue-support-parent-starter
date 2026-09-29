@@ -61,11 +61,26 @@
               <el-badge :value="unscoredCount" :hidden="unscoredCount === 0" type="danger" class="panel-head__badge">
                 <ReButton layout="square" icon="Setting" tip="设置" @click="openSettings" />
               </el-badge>
-              <ReButton layout="square" type="primary" icon="Check" tip="保存草稿" :loading="saving" @click="onSaveDraft" />
-              <ReButton layout="square" type="success" icon="Upload" tip="发布" :loading="publishing" @click="onPublish" />
+              <ReButton layout="square" type="primary" icon="Check"
+                :tip="readOnly ? '只读：非草稿不可保存' : '保存草稿'"
+                :disabled="readOnly" :loading="saving" @click="onSaveDraft" />
+              <ReButton layout="square" type="success" icon="Upload"
+                :tip="readOnly ? '只读：非草稿不可发布' : '发布'"
+                :disabled="readOnly" :loading="publishing" @click="onPublish" />
             </span>
           </div>
         </template>
+
+        <!-- 只读提示：非草稿（已发布/已归档）不可改内容 -->
+        <el-alert
+          v-if="readOnly"
+          class="compose-readonly"
+          type="warning"
+          :closable="false"
+          show-icon
+          title="当前试卷为只读"
+          :description="readOnlyReason"
+        />
 
         <div
           class="compose-dropzone"
@@ -528,6 +543,10 @@ interface PaperDetail {
   paperFooter?: string;
   paperTemplateId?: number;
   paperTotalScore?: number;
+  /** 试卷状态：0 草稿 / 1 已发布 / 2 已归档（用于页面的只读判定） */
+  paperStatus?: number;
+  /** 同上，兼容短字段名 */
+  status?: number;
   questions?: PaperQuestionVO[];
 }
 
@@ -706,6 +725,24 @@ function queryText(value: unknown): string {
 const paperId = ref<number | null>(null);
 const saving = ref(false);
 const publishing = ref(false);
+
+/**
+ * 当前试卷状态（0 草稿 / 1 已发布 / 2 已归档）。
+ *
+ * <p>业务口径「发布=冻结」：已发布与已归档都不允许再改内容，
+ * 组卷页据此转为只读，避免用户改完点保存才被后端拒。</p>
+ */
+const paperStatus = ref(0);
+
+/** 是否只读（非草稿即只读） */
+const readOnly = computed(() => paperStatus.value !== 0);
+
+/** 只读原因文案 */
+const readOnlyReason = computed(() =>
+  paperStatus.value === 1
+    ? '试卷已发布，学生端已可见。如需修改请先在试卷列表里「下架」，下架后回到草稿态再编辑。'
+    : '试卷已归档，只读留档，不能再修改或发布。',
+);
 const composeQuestions = ref<ComposeQuestion[]>([]);
 /** 已从画布移除但仍需通知服务端删除的题项 */
 const removedServerItems = ref<RemovedQuestion[]>([]);
@@ -1383,6 +1420,11 @@ async function savePaper(notify = true): Promise<boolean> {
 }
 
 function onSaveDraft() {
+  // 非草稿一律不可保存（后端也会拒，这里先给出明确提示，不让用户白等一次往返）
+  if (readOnly.value) {
+    ElMessage.warning(readOnlyReason.value);
+    return;
+  }
   void savePaper();
 }
 
@@ -1546,6 +1588,10 @@ async function distributeEvenly() {
 }
 
 function onPublish() {
+  if (readOnly.value) {
+    ElMessage.warning(readOnlyReason.value);
+    return;
+  }
   void publishPaper();
 }
 
@@ -1577,6 +1623,8 @@ async function publishPaper() {
 async function loadDetail(id: number) {
   const detail = (await eduaiApi.getPaper(id)) as unknown as PaperDetail;
   paperId.value = id;
+  // 业务口径「发布=冻结」：已发布/已归档的卷不可编辑，页面转为只读提示
+  paperStatus.value = Number(detail.status ?? detail.paperStatus ?? 0);
   header.name = detail.name ?? detail.paperName ?? header.name;
   header.subject = detail.subject ?? detail.paperSubject ?? header.subject;
   header.gradeLevel = detail.gradeLevel ?? detail.paperGradeLevel ?? header.gradeLevel;

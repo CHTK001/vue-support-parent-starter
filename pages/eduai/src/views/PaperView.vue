@@ -60,12 +60,28 @@
             <el-tag  :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="260" fixed="right" align="center">
+        <ReTableColumn label="操作" width="360" fixed="right" align="center">
           <template #default="{ row }">
+            <!-- 详情：任何状态都可看 -->
             <ReButton icon="View" :show-text="false" type="primary" @click="openDetail(row)">详情</ReButton>
-            <ReButton icon="Edit" :show-text="false" type="warning" @click="openEdit(row)">编辑</ReButton>
-            <ReButton icon="EditPen" :show-text="false" type="info" @click="goCompose(row)">组卷</ReButton>
-            <ReButton icon="Collection" :show-text="false" type="success" @click="openMarket(row)">题库</ReButton>
+            <!--
+              业务口径「发布=冻结」：
+                草稿(0)   → 编辑 / 组卷 / 题库 / 发布 / 归档
+                已发布(1) → 下架 / 归档
+                已归档(2) → 只读，仅详情
+            -->
+            <template v-if="paperStatusCode(row) === 0">
+              <ReButton icon="Edit" :show-text="false" type="warning" @click="openEdit(row)">编辑</ReButton>
+              <ReButton icon="EditPen" :show-text="false" type="info" @click="goCompose(row)">组卷</ReButton>
+              <ReButton icon="Collection" :show-text="false" type="success" @click="openMarket(row)">题库</ReButton>
+              <ReButton icon="Upload" :show-text="false" type="success" @click="onPublishRow(row)">发布</ReButton>
+              <ReButton icon="FolderChecked" :show-text="false" type="info" @click="onArchiveRow(row)">归档</ReButton>
+            </template>
+            <template v-else-if="paperStatusCode(row) === 1">
+              <ReButton icon="Download" :show-text="false" type="warning" @click="onUnpublishRow(row)">下架</ReButton>
+              <ReButton icon="FolderChecked" :show-text="false" type="info" @click="onArchiveRow(row)">归档</ReButton>
+            </template>
+            <span v-else class="paper-row__readonly">已归档（只读）</span>
           </template>
         </ReTableColumn>
       </ReTable>
@@ -290,7 +306,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Printer } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
 import type { EduGrade, MarketQuestion, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
@@ -814,6 +830,84 @@ const paperStatusType = (n?: number) =>
 const paperStatusLabel = (n?: number) =>
   ({ 1: '已发布', 2: '已归档', 0: '草稿' } as Record<number, string>)[n ?? 0] || '-';
 
+/* ==================== 状态流转（发布 / 下架 / 归档）====================
+   业务口径「发布=冻结」：
+     草稿   → 可编辑；学生端不可见
+     已发布 → 学生端可见；要改动必须先下架
+     已归档 → 只读留档；不可修改、不可再发布
+   三个动作都改变学生端可见性，因此都做二次确认。 */
+
+/** 试卷状态码；空值按草稿处理 */
+const paperStatusCode = (row: Paper): number => Number(row.paperStatus ?? 0);
+
+/** 二次确认：取消返回 false，不抛异常 */
+const confirmStatusChange = async (title: string, message: string): Promise<boolean> => {
+  try {
+    await ElMessageBox.confirm(message, title, {
+      type: 'warning',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** 发布：题分合计必须等于满分（后端闸门），发布后不可再改 */
+const onPublishRow = async (row: Paper) => {
+  const ok = await confirmStatusChange(
+    '发布试卷',
+    `发布后学生端即可见，且不能再改动；要修改需先下架。确定发布「${row.paperName}」？`,
+  );
+  if (!ok) {
+    return;
+  }
+  try {
+    await eduaiApi.publishPaper(row.paperId);
+    ElMessage.success('发布成功');
+    reload();
+  } catch (e) {
+    ElMessage.error('发布失败: ' + errorText(e));
+  }
+};
+
+/** 下架：回到草稿，学生端不再可见，可继续编辑 */
+const onUnpublishRow = async (row: Paper) => {
+  const ok = await confirmStatusChange(
+    '下架试卷',
+    `下架后学生端不再可见，试卷回到草稿态、可以继续编辑。确定下架「${row.paperName}」？`,
+  );
+  if (!ok) {
+    return;
+  }
+  try {
+    await eduaiApi.unpublishPaper(row.paperId);
+    ElMessage.success('已下架，试卷回到草稿态');
+    reload();
+  } catch (e) {
+    ElMessage.error('下架失败: ' + errorText(e));
+  }
+};
+
+/** 归档：只读留档，且不可再发布 */
+const onArchiveRow = async (row: Paper) => {
+  const ok = await confirmStatusChange(
+    '归档试卷',
+    `归档后只读留档：不能再修改，也不能再发布，学生端也不可见。确定归档「${row.paperName}」？`,
+  );
+  if (!ok) {
+    return;
+  }
+  try {
+    await eduaiApi.archivePaper(row.paperId);
+    ElMessage.success('已归档');
+    reload();
+  } catch (e) {
+    ElMessage.error('归档失败: ' + errorText(e));
+  }
+};
+
 /* ==================== 打印 ==================== */
 
 /** 打开打印时挂在 body 上的类名，@media print 据此把整页隐藏、只留打印视图 */
@@ -944,6 +1038,12 @@ onBeforeUnmount(stopPrintMode);
 
 <style scoped>
 .page-container { height: 100%; display: flex; flex-direction: column; }
+
+/* 操作列里「已归档（只读）」的文字占位：归档后没有任何可点的动作 */
+.paper-row__readonly {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
 
 /* ---------- 打印预览 ---------- */
 .print-hint {
