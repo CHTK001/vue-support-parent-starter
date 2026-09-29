@@ -3,6 +3,8 @@
 
   对应 CollectExtractFieldDTO：name/parserType/expression/attribute/attrName/group/defaultValue。
   attribute 只在 CSS/JSON 解析下有意义，group 只在 REGEX 下有意义，按此收敛表单项。
+  2026-09-29：parserType 增补 JSONPATH / XPATH（后端 CollectExtractExecutor 已支持）。
+  XPATH 也收敛掉「取值方式」—— 属性要写在 XPath 表达式里（如 //a/@href），右侧那一列对它无效。
 -->
 <script setup lang="ts">
 import { computed } from "vue";
@@ -15,11 +17,13 @@ import type { CollectExtractField } from "../types/collect";
 const props = defineProps<{ modelValue: CollectExtractField[] }>();
 const emit = defineEmits<{ (event: "update:modelValue", value: CollectExtractField[]): void }>();
 
-const PARSER_TYPES = ["CSS", "REGEX", "JSON", "TEXT", "HTML"].map(item => ({ value: item, label: item }));
+const PARSER_TYPES = ["CSS", "REGEX", "JSON", "JSONPATH", "XPATH", "TEXT", "HTML"].map(item => ({ value: item, label: item }));
 const PARSER_HINTS: Record<string, string> = {
   CSS: "按 CSS 选择器命中元素，再取右侧的文本 / 属性 / HTML",
   REGEX: "正则匹配标记文本（元素取 outerHTML、纯文本取原文、响应取 JSON），不是页面可见文本",
   JSON: "按 JSON 路径取值，如 data.items[0].title",
+  JSONPATH: "同 JSON，JSONPATH 只是显式写法（都走同一套点号路径）。支持 $.a.b / a.b[0] / a.b[0][1]；不支持通配 [*]、递归下降 ..、过滤器 [?(...)]、切片 [0:2]",
+  XPATH: "按 XPath 取字符串，如 //a/@href、//h1/text()。属性请写在表达式里，右侧「取值方式」对它无效",
   TEXT: "取来源可见文本；来源是纯文本且不含标记时原样返回",
   HTML: "取来源标记文本",
 };
@@ -84,7 +88,7 @@ function addField(): void {
       </div>
       <div class="card-row">
         <ReSelect
-          v-if="field.parserType !== 'REGEX'"
+          v-if="field.parserType !== 'REGEX' && field.parserType !== 'XPATH'"
 
           class="head-attr"
           :model-value="field.attribute || 'text'"
