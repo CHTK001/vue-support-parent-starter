@@ -14,14 +14,18 @@ import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReSelect from "@repo/ui/re-select";
 import type { CollectExtractField } from "../types/collect";
-import type { CollectPreviewPayload } from "../api/collectApi";
+// 预览抓取载荷用 paramContext 的 PreviewPayload，而不是 api 层的
+// CollectPreviewPayload：后者是「接口返回什么」，前者是「元素拾取器能吃什么」。
+// 两个层次曾各写一份，导致本组件与 extractForm 对同一个 loadPreview 给出互不兼容的
+// 签名，vue-tsc 报 TS2322（两类型互不赋值）。详见 paramContext.ts 的说明。
+import type { PreviewPayload } from "./nodes/paramContext";
 
 const props = defineProps<{
   modelValue: CollectExtractField[];
   /** 预览抓取的预填地址（一般是上游抓取节点的 URL）；不给则「选取」入口不出现 */
   previewUrl?: string;
   /** 预览抓取的加载器；不给则「选取」入口不出现（组件自身不发 HTTP） */
-  loadPreview?: (url: string) => Promise<CollectPreviewPayload>;
+  loadPreview?: (url: string) => Promise<PreviewPayload>;
 }>();
 const emit = defineEmits<{ (event: "update:modelValue", value: CollectExtractField[]): void }>();
 

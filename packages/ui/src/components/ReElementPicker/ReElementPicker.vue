@@ -10,7 +10,7 @@
   3) **本组件不发 HTTP**：页面正文由 loader 注入，这样组件可单测、可复用在别的宿主里。
 -->
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { ElButton, ElDialog, ElInput, ElMessage } from "element-plus";
 import { finder } from "@medv/finder";
 
@@ -121,8 +121,7 @@ async function load(): Promise<void> {
       error.value = `抓取成功但正文为空（HTTP ${payload.status}）`;
       return;
     }
-    await nextTick();
-    bindFrame();
+    // 绑定交给 iframe 的 @load（srcdoc 是异步解析的，这里绑会绑到空白文档）
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -141,6 +140,19 @@ function bindFrame(): void {
   if (!doc) {
     error.value = "无法读取预览文档（iframe 未就绪或跨域被拦）";
     return;
+  }
+  // iframe 的 srcdoc 是异步解析的，而且会先有一次 about:blank 的 load ——
+  // 必须在**每次 load 时**重新绑定，并且用标记防重复绑定（否则每个元素会被挂多次监听）。
+  // 早先版本在 nextTick 后直接 bind，绑到的是随后被替换掉的空白文档，表现为
+  // 「iframe 里能看到页面、点元素却没有任何反应」（实测踩过）。
+  if (doc.documentElement?.dataset.rePickerBound === "1") {
+    return;
+  }
+  if (!doc.body) {
+    return;
+  }
+  if (doc.documentElement) {
+    doc.documentElement.dataset.rePickerBound = "1";
   }
   // 用一段样式做高亮，不去改元素自身的 style —— 免得把页面原本的样式改坏
   const style = doc.createElement("style");
@@ -199,7 +211,13 @@ function applyPicked(el: Element): void {
   const text = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
   pickedSummary.value = `<${tag}>${cls ? " ." + cls : ""}${text ? "  “" + text + "”" : ""}`;
   try {
-    cssSelector.value = finder(el as HTMLElement);
+    // @medv/finder 的默认 root 是「当前 window 的 document.body」（finder.js 的 defaults）。
+    // 选中元素在预览 iframe 里，向上遍历永远到不了外层 body，查找只会走到
+    // "Selector was not found." 抛异常，然后被下面的 catch 吞成空 —— CSS 恒显示「—」。
+    // 所以必须把 root 显式指向元素自己所属的文档。
+    const doc = el.ownerDocument;
+    const root = doc?.body ?? doc?.documentElement ?? null;
+    cssSelector.value = root ? finder(el as HTMLElement, { root }) : "";
   } catch {
     cssSelector.value = "";
   }
@@ -290,6 +308,7 @@ async function copy(text: string): Promise<void> {
         class="picker-frame"
         sandbox="allow-same-origin"
         :srcdoc="srcdoc"
+        @load="bindFrame"
       />
     </div>
 
