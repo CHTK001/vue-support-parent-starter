@@ -535,7 +535,22 @@ export function unwrapResult<T>(res: unknown, successCode: string = "00000"): T 
     return ((body as { data?: unknown }).data ?? (body as T)) as T;
   }
   const msg = (body as { msg?: string })?.msg;
-  throw new Error(msg || "请求失败");
+  // 把 HTTP 状态码与业务码一并挂到 Error 上：页面要能区分「任务不存在(404)」
+  // 与「服务端抖动(5xx)」——前者是终态、该停止重试，后者才值得重试。
+  // 只抛裸 Error 的话两者在页面侧完全无法区分。
+  const httpStatus = (res as { status?: number })?.status;
+  const bizCode = (body as { code?: string | number })?.code;
+  const err = new Error(msg || "请求失败") as Error & {
+    status?: number;
+    code?: string | number;
+  };
+  if (httpStatus !== undefined) {
+    err.status = httpStatus;
+  }
+  if (bizCode !== undefined) {
+    err.code = bizCode;
+  }
+  throw err;
 }
 
 export { AxiosError };
