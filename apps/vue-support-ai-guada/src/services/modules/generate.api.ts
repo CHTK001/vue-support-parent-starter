@@ -226,6 +226,8 @@ export interface GenerateApi {
   deleteGenerateTask(taskId: string): Promise<boolean>;
   /** 清理当前用户的全部失败记录，返回删除条数 */
   deleteFailedTasks(): Promise<number>;
+  batchDeleteTasks(taskIds: string[]): Promise<number>;
+  deleteAllTasks(): Promise<number>;
   /** 生成任务历史（滚动分页：offset 跳过条数） */
   fetchGenerateHistory(type?: "image" | "video", limit?: number, offset?: number): Promise<GenerateTask[]>;
 }
@@ -270,6 +272,17 @@ export const generateApi: GenerateApi = {
   async deleteFailedTasks(this: ApiContext) {
     // 字面量路径必须比 /tasks/{taskId} 更具体，否则会被当成 taskId="failed"
     const body = await rawApi.delete("/v2/ai/generate/tasks/failed");
+    return takeData<number>(body) ?? 0;
+  },
+
+  async batchDeleteTasks(this: ApiContext, taskIds) {
+    // 同上：字面量路径必须比 /tasks/{taskId} 更具体
+    const body = await rawApi.post("/v2/ai/generate/tasks/batch-delete", { taskIds });
+    return takeData<number>(body) ?? 0;
+  },
+
+  async deleteAllTasks(this: ApiContext) {
+    const body = await rawApi.delete("/v2/ai/generate/tasks/all");
     return takeData<number>(body) ?? 0;
   },
 
