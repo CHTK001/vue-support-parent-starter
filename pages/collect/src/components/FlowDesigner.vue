@@ -686,7 +686,7 @@ function upstreamUrlOf(nodeId: string): string {
  * @param declaredOutput 该节点自己声明的出参变量名（可为空）
  * @returns 该 shape 的隐含出参列表
  */
-function defaultOutputsOf(shape: string, declaredOutput = ""): { name: string; desc: string }[] {
+function defaultOutputsOf(shape: string, declaredOutput = "", setNames: string[] = []): { name: string; desc: string }[] {
   if (shape === "start") {
     return [
       { name: "urlList", desc: "种子 URL 集合" },
@@ -714,6 +714,17 @@ function defaultOutputsOf(shape: string, declaredOutput = ""): { name: string; d
   if (shape === "condition") {
     return [{ name: "conditionResult", desc: "判断结果（真 / 假），出边条件用它分流" }];
   }
+  if (shape === "link") {
+    // 与 CollectLinkExecutor 的 DEFAULT_OUTPUT 一致；用户改过出参名就按改过的来
+    const out = declaredOutput.trim() || "linkList";
+    return [{ name: out, desc: "本页抽到的链接集合（可喂给下游循环）" }];
+  }
+  if (shape === "variable") {
+    // 变量节点唯一产出就是它声明的那些变量名 —— 不列出来，用户根本不知道下游能引用什么
+    return setNames.map(name => ({ name, desc: "变量节点赋的值" }));
+  }
+  // 其余 shape 的变量要么不存在（sleep / comment / end / output 明确无出参），
+  // 要么是内部暂存（database 的 _written/_cleared、dedup 的判重主键），故意不列 —— 列出只会变成噪音。
   return [];
 }
 
@@ -773,7 +784,13 @@ const flowVariableGroups = computed<PlaceholderGroup[]>(() => {
     if (declared) {
       push(declared, `来自「${nodeLabel}」`);
     }
-    for (const item of defaultOutputsOf(node.type ?? "", valueOf("outputVariable"))) {
+    // 变量节点的产出就是它 set: 声明的变量名 —— 先取出来再交给 defaultOutputsOf
+    const setNames = params
+      .map(item => String(item.name ?? ""))
+      .filter(name => name.startsWith("set:"))
+      .map(name => name.slice(4).trim())
+      .filter(Boolean);
+    for (const item of defaultOutputsOf(node.type ?? "", valueOf("outputVariable"), setNames)) {
       push(item.name, `${item.desc}（「${nodeLabel}」默认）`);
     }
     const loopIndex = valueOf("loopVariableName");
