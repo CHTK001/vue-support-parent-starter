@@ -48,6 +48,11 @@ const falseEdgeCondition = computed(() => "${" + resultVariable.value + " == fal
 </script>
 
 <template>
+  <div class="field field-wide node-intro">
+    判断节点：对下面的表达式求值，把结果写进结果变量；出边按该变量的真假分流 ——
+    真分支填 ${结果变量名}，假分支留空。判断节点两条出边都要连到下游，否则流程会被校验拦下。
+  </div>
+
   <ParamField
     v-for="param in fields"
     :key="param.name"
@@ -97,8 +102,22 @@ const falseEdgeCondition = computed(() => "${" + resultVariable.value + " == fal
 .edge-hint code {
   padding: 0 3px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #0e7490;
-  background: #eef6f8;
+  /* 原先写死 #0e7490 / #eef6f8：不跟随主题，暗色下与底色对比不足；改用主色令牌 */
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   border-radius: 3px;
+}
+
+/* 节点级说明：与其它节点表单同一形态（左侧 2px 主色竖条 + 浅底） */
+.node-intro {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 2px solid var(--el-color-primary);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color 200ms, background-color 200ms;
 }
 </style>
