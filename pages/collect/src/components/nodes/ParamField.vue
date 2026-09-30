@@ -56,6 +56,14 @@ const OPTION_LABELS: Record<string, string> = {
   // 批次失败策略（database 节点的 onBatchError）
   stop: "失败即终止（默认）",
   continue: "记录失败后继续",
+  // HTTP 方法（request 节点的 method）：动词保留英文（行业习惯、便于对照文档），补中文语义
+  GET: "GET（查询）",
+  POST: "POST（提交）",
+  PUT: "PUT（覆盖）",
+  PATCH: "PATCH（局部更新）",
+  DELETE: "DELETE（删除）",
+  HEAD: "HEAD（仅取响应头）",
+  OPTIONS: "OPTIONS（探询支持的方法）",
 };
 
 const PARAM_OPTION_LABELS: Record<string, string> = {
