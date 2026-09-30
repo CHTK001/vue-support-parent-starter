@@ -3024,6 +3024,49 @@ onUnmounted(() => {
   outline-offset: -2px;
 }
 
+/*
+  键盘焦点环：所有交互控件统一给可见反馈。
+
+  此前只有画布和「加载更多」两处有 :focus-visible，其余控件（类型切换、芯片、
+  卡片动作、图标按钮、菜单项、视图/分段/比例/风格选择）在 Tab 导航下完全没有焦点指示 ——
+  键盘用户看不到自己在哪。这是a11y 里最基础的一条（WCAG 2.4.7 可见焦点）。
+
+  用 outline 而不是 box-shadow：outline 不参与布局，不会因为出现/消失把相邻元素挤动；
+  outline-offset 取 2px 让环与圆角控件之间有缝，不会糊在边框上。
+  这里只列显式控件，不写通配 —— Element Plus 浮层与 viewerjs 的焦点样式不能被覆盖。
+*/
+.wg-media-btn:focus-visible,
+.wg-chip:focus-visible,
+.wg-view:focus-visible,
+.wg-menu-item:focus-visible,
+.wg-seg-item:focus-visible,
+.wg-ratio:focus-visible,
+.wg-style:focus-visible,
+.wg-act:focus-visible,
+.wg-retry:focus-visible,
+.wg-icon:focus-visible,
+.wg-pick:focus-visible,
+.wg-search-input:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+/* 图标按钮在卡片上叠着图，浅色焦点环可能被背景吃掉：再加一层深色外环保证任何底色上都可见。
+   两层都是 outline，不占布局。 */
+.wg-icon:focus-visible,
+.wg-pick:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-black) 24%, transparent);
+}
+
+/*
+  已知偏差（不改，记录理由）：skill 要求触控目标 ≥44×44，本页常态是 30px 图标按钮、
+  34px 芯片。试过在 pointer: coarse 下用伪元素把热区撑到 44px，实测会出问题：
+  图标按钮行 gap 只有 6px，热区每侧溢出 7px 就互相重叠 8px，后画的伪元素会截胡点击，
+  变成「点 A 命中 B」—— 这比目标偏小严重得多。要真正满足就得同时放大行间距，
+  那会改掉这个密集控制台的既定版式。故保持现状，仅在明确支持触屏时再整体调版式。
+*/
+
 .wg-list {
   display: flex;
   flex-direction: column;
