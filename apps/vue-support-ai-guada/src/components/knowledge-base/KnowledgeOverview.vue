@@ -33,6 +33,25 @@
         <button class="btn-new" id="btnNewTop" @click="openModal">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>新建知识库
         </button>
+        <!-- 详情入口（A 方案下页面不显示列表，入口放在顶栏，点开选库进入） -->
+        <el-popover v-if="bases.length > 0" placement="bottom-end" :width="300" trigger="click">
+          <template #reference>
+            <button class="btn-new" id="btnMyKb">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>我的知识库 ({{ bases.length }})
+            </button>
+          </template>
+          <div class="kb-pick">
+            <div
+              v-for="kb in bases"
+              :key="kb.id"
+              class="kb-pick__row"
+              @click="emit('open', { id: kb.id })"
+            >
+              <b>{{ kb.name }}</b>
+              <span>{{ kb.fileCount }} 篇文档 · {{ kb.fileCount > 0 ? '已就绪' : '待索引' }}</span>
+            </div>
+          </div>
+        </el-popover>
       </header>
       <div class="content">
         <!-- 统计卡片 -->
@@ -98,8 +117,8 @@
               </div>
               <div class="empty-hero">
                 <img :src="heroIllustration" alt="书本与知识节点">
-                <h3>还没有知识库</h3>
-                <p>上传文档即可自动提取知识点，生成实体与关系网络</p>
+                <h3>{{ bases.length > 0 ? '我的知识库' : '还没有知识库' }}</h3>
+                <p>{{ bases.length > 0 ? '从「我的知识库」进入已有知识库，或继续新建' : '上传文档即可自动提取知识点，生成实体与关系网络' }}</p>
               </div>
               <div class="create-actions">
                 <button class="ca ca-blank" id="btnBlank" @click="openModal">
@@ -564,6 +583,13 @@ input{font-family:inherit;outline:none}
 .btn-use:hover{background:var(--primary);color:var(--el-color-white);border-color:var(--primary)}
 
 /* 有库时的卡片网格（原稿无此块，为「进入详情」入口新增） */
+/* 顶栏「我的知识库」下拉里的条目（A 方案下的详情入口） */
+.kb-pick{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto}
+.kb-pick__row{display:flex;flex-direction:column;gap:2px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:.15s}
+.kb-pick__row:hover{background:var(--el-fill-color-light)}
+.kb-pick__row b{font-size:13.5px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-pick__row span{font-size:12px;color:var(--t3)}
+
 .kb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .kb-card{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card);display:flex;flex-direction:column;cursor:pointer;transition:.2s}
 .kb-card:hover{box-shadow:var(--shadow);border-color:var(--el-color-primary-light-5)}
