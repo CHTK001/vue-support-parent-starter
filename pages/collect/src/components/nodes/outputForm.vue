@@ -1,6 +1,6 @@
 <!--
   输出节点表单：逐条集合、业务表数据源 / 表、字段映射、业务主键与来源地址。
-  循环四参数由 paramContext 统一排在最前。
+  参数顺序由 paramContext 统一决定（必填置顶、循环四参数在末尾）。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
@@ -32,6 +32,11 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
 </script>
 
 <template>
+  <div class="field field-wide node-intro">
+    落采集记录：把字段写成一条条采集结果。填了「逐条集合」就按集合逐条产出，留空则按当前令牌
+    产出一条；填了「业务表」再镜像一份到该表（表不存在自动建、缺列自动补），记录数看任务详情的采集记录数。
+  </div>
+
   <ParamField
     v-for="param in fields"
     :key="param.name"
@@ -44,3 +49,27 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
   />
 </template>
+
+<style scoped>
+/* 参数容器：与 ParamField / genericForm 的字段样式保持一致 */
+.field {
+  min-width: 0;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+/* 节点级说明：一眼看清这个节点在流程里扮演什么角色 */
+.node-intro {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 2px solid var(--el-color-primary);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color 200ms, background-color 200ms;
+}
+</style>

@@ -54,37 +54,107 @@ function removeRow(index: number): void {
 
 <template>
   <div class="pair-editor" @focusout="commit">
+    <!-- 表头：说清左列是键、右列是值，避免用户不知道每列填什么 -->
+    <div v-if="rows.length" class="pair-head">
+      <span class="pair-head-key" :style="{ flex: `0 0 ${keyWidth}` }">{{ keyPlaceholder || "名称" }}</span>
+      <span class="pair-head-value">{{ valuePlaceholder || "值" }}</span>
+      <span class="pair-head-op"></span>
+    </div>
+
     <div v-for="(row, index) in rows" :key="index" class="pair-row">
       <ReInput
-
         :placeholder="keyPlaceholder"
         :style="{ flex: `0 0 ${keyWidth}` }"
         :model-value="row.key"
         @update:model-value="(value: unknown) => (row.key = String(value ?? ''))"
       />
       <ReInput
-
         class="pair-value"
         :placeholder="valuePlaceholder"
         :model-value="row.value"
         @update:model-value="(value: unknown) => (row.value = String(value ?? ''))"
       />
-      <ReButton text type="danger" icon="Delete" @click="removeRow(index)"/>
+      <ReButton text type="danger" icon="Delete" :show-text="false" :icon-size="28" tip="删除这一项" @click="removeRow(index)"/>
     </div>
+
+    <!-- 空态：说清这是什么、怎么写，并给一个具体例子（契约 §4.2） -->
+    <div v-if="!rows.length" class="pair-empty">
+      <div class="pair-empty-title">还没有配置</div>
+      <div class="pair-empty-tip">
+        点下面的「添加一项」开始：左列填名称（键），右列填值。
+        右列可直接写常量，也可写 ${表达式} 引用上游变量，例：token ← ${resp.selector('.token').text()}。
+      </div>
+    </div>
+
     <ReButton plain icon="Plus" @click="addRow">添加一项</ReButton>
   </div>
 </template>
 
 <style scoped>
+/* 一项一行，行间统一 8px 竖向节奏（契约 §2 间距阶梯） */
+.pair-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pair-head,
 .pair-row {
   display: flex;
-  gap: 5px;
   align-items: center;
-  margin-bottom: 5px;
+  gap: 8px;
+}
+
+/* 表头标签：小号灰字，与值列的输入框左边缘对齐 */
+.pair-head-key,
+.pair-head-value,
+.pair-head-op {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pair-head-value {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 占位与删除按钮同宽，保证表头与行的值列对齐 */
+.pair-head-op {
+  flex: 0 0 28px;
+}
+
+/* ReInput 根节点是 display:contents，宽度必须落在内层 el-input 上 */
+.pair-row :deep(.el-input) {
+  min-width: 0;
 }
 
 .pair-value {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* 空态：给出下一步动作与示例 */
+.pair-empty {
+  padding: 16px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.pair-empty-title {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.pair-empty-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
 }
 </style>

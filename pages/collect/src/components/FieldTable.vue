@@ -140,82 +140,131 @@ function addField(): void {
 
 <template>
   <div class="collect-fields">
-    <div v-for="(field, index) in fields" :key="index" class="collect-field-card">
-      <div class="card-head">
-        <ReInput
+    <!--
+      列头：与每张卡片共用同一套列宽，让「字段名 / 解析器 / 表达式 / 取值方式 / 空值默认」
+      上下对齐。窄面板（属性面板内联渲染本组件时）由容器查询隐藏，改在各单元格显示小标签。
+    -->
+    <div v-if="fields.length" class="collect-field-head">
+      <span>字段名</span>
+      <span>解析器</span>
+      <span>表达式</span>
+      <span>取值方式</span>
+      <span>空值默认</span>
+      <span class="head-ops">操作</span>
+    </div>
 
+    <div v-for="(field, index) in fields" :key="index" class="collect-field-card">
+      <div class="cell cell-name" data-label="字段名">
+        <ReInput
           placeholder="字段名"
           :model-value="field.name"
           @update:model-value="(value: unknown) => patch(index, { name: String(value ?? '') })"
         />
-        <ReSelect
+      </div>
 
-          class="head-parser"
+      <div class="cell cell-parser" data-label="解析器">
+        <ReSelect
+          class="cell-fill"
           :model-value="field.parserType || 'CSS'"
           :options="PARSER_TYPES"
           @update:model-value="(value: string | number | (string | number)[] | null) => patch(index, { parserType: String(value ?? 'CSS') })"
         />
-        <ReButton text type="danger" icon="Delete" @click="remove(index)">删</ReButton>
       </div>
-      <div class="expr-row">
-        <ReInput
 
-          placeholder="表达式：CSS 选择器 / 正则 / JSON 路径"
-          :model-value="field.expression"
-          @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
-        />
-        <!-- 占位插入入口放在写表达式的地方：上游节点出参、全局变量、函数都在这里可选，
-             不用去猜 ${projects} 是哪个节点产出的 -->
-        <RePlaceholderPicker
-          v-if="(placeholderGroups?.length ?? 0) > 0"
-          class="expr-picker"
-          :groups="placeholderGroups"
-          mode="icon"
-          @pick="(value: string) => appendToExpression(index, value)"
-        />
+      <div class="cell cell-expr" data-label="表达式">
+        <div class="expr-row">
+          <ReInput
+            placeholder="表达式：CSS 选择器 / 正则 / JSON 路径"
+            :model-value="field.expression"
+            @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
+          />
+          <!-- 占位插入入口放在写表达式的地方：上游节点出参、全局变量、函数都在这里可选，
+               不用去猜 ${projects} 是哪个节点产出的 -->
+          <RePlaceholderPicker
+            v-if="(placeholderGroups?.length ?? 0) > 0"
+            class="expr-picker"
+            :groups="placeholderGroups"
+            mode="icon"
+            @pick="(value: string) => appendToExpression(index, value)"
+          />
+        </div>
       </div>
-      <div v-if="canPick(field)" class="card-pick">
-        <ReButton text icon="Pointer" @click="pickingIndex = index">选取页面元素</ReButton>
-      </div>
-      <div v-if="PARSER_HINTS[field.parserType || 'CSS']" class="card-hint">
-        {{ PARSER_HINTS[field.parserType || "CSS"] }}
-      </div>
-      <div class="card-row">
+
+      <div class="cell cell-attr" data-label="取值方式">
+        <!-- CSS / JSON / TEXT / HTML：取文本、属性还是 HTML -->
         <ReSelect
           v-if="field.parserType !== 'REGEX' && field.parserType !== 'XPATH'"
-
-          class="head-attr"
+          class="cell-fill"
           :model-value="field.attribute || 'text'"
           :options="ATTRIBUTES"
           @update:model-value="(value: string | number | (string | number)[] | null) => patch(index, { attribute: String(value ?? 'text') })"
         />
-        <ReInput
-          v-if="field.attribute === 'attr'"
-
-          class="cell-grow"
-          placeholder="属性名"
-          :model-value="field.attrName"
-          @update:model-value="(value: unknown) => patch(index, { attrName: String(value ?? '') })"
-        />
+        <!-- REGEX：正则捕获组序号（0 表示整个匹配） -->
         <ReInputNumber
           v-if="field.parserType === 'REGEX'"
-
-          class="cell-group"
+          class="cell-fill"
           :min="0"
           :controls="false"
           placeholder="组号"
           :model-value="field.group ?? 1"
           @update:model-value="(value: number | undefined) => patch(index, { group: Number(value ?? 1) })"
         />
+        <!-- 只有选了「属性 attr」才有属性名 -->
         <ReInput
+          v-if="field.attribute === 'attr'"
+          class="cell-fill"
+          placeholder="属性名，如 href"
+          :model-value="field.attrName"
+          @update:model-value="(value: unknown) => patch(index, { attrName: String(value ?? '') })"
+        />
+        <!-- XPATH：属性要写在表达式里，这一列对它无效 -->
+        <span
+          v-if="field.parserType === 'XPATH'"
+          class="cell-note"
+          title="XPath 的属性请写在表达式里，如 //a/@href"
+        >见表达式</span>
+      </div>
 
-          class="cell-grow"
+      <div class="cell cell-default" data-label="空值默认">
+        <ReInput
           placeholder="空值默认"
           :model-value="field.defaultValue"
           @update:model-value="(value: unknown) => patch(index, { defaultValue: String(value ?? '') })"
         />
       </div>
+
+      <div class="cell cell-ops" data-label="操作">
+        <ReButton
+          v-if="canPick(field)"
+          text
+          icon="Pointer"
+          @click="pickingIndex = index"
+        >选取页面元素</ReButton>
+        <ReButton
+          text
+          type="danger"
+          icon="Delete"
+          :show-text="false"
+          :icon-size="28"
+          tip="删除这个字段"
+          @click="remove(index)"
+        />
+      </div>
+
+      <div v-if="PARSER_HINTS[field.parserType || 'CSS']" class="cell cell-hint">
+        {{ PARSER_HINTS[field.parserType || "CSS"] }}
+      </div>
     </div>
+
+    <!-- 空态：给出下一步动作，而不是只写「暂无数据」 -->
+    <div v-if="!fields.length" class="collect-empty">
+      <div class="collect-empty-title">还没有抽取字段</div>
+      <div class="collect-empty-tip">
+        点下面的「添加字段」新建一行；把该行解析器设为 CSS 后，可点「选取页面元素」从页面上直接点选要抽取的内容。
+        例：字段名 title、表达式 h1.title、取值方式 文本 text。
+      </div>
+    </div>
+
     <ReButton plain icon="Plus" @click="addField">添加字段</ReButton>
   </div>
 
@@ -235,33 +284,57 @@ function addField(): void {
 </template>
 
 <style scoped>
-.collect-field-card {
+/* 字段表整体：字段之间统一 8px 竖向节奏（契约 §2 间距阶梯） */
+.collect-fields {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 7px 8px;
-  margin-bottom: 6px;
-  /* 原为写死的 #fbfcfe → #f6f8fb 亮色渐变，暗色模式下会是刺眼白块；
-     改用「页面底色 → 更浅一档填充色」令牌渐变，保留原有的微渐变质感又能跟随主题 */
-  background: linear-gradient(180deg, var(--el-bg-color), var(--el-fill-color-lighter));
+  gap: 8px;
+  /* 建立容器查询上下文：窄面板（属性面板内联渲染 FieldTable 时）下换行折叠 */
+  container-type: inline-size;
+}
+
+/* 列头与卡片共用同一套列宽 —— 这是「每行控件上下对齐」的关键。
+   两处模板一旦拆分必须同步修改列定义，否则列会错位。 */
+.collect-field-head,
+.collect-field-card {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) 92px minmax(160px, 1.6fr) 104px 100px 176px;
+  gap: 8px;
+  align-items: start;
+}
+
+.collect-field-head {
+  padding: 0 10px;
+}
+
+.collect-field-head > span {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+}
+
+.collect-field-head .head-ops {
+  text-align: right;
+}
+
+.collect-field-card {
+  padding: 10px;
+  background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
+  /* 只过渡会变的属性：hover 仅改边框 / 底色，不加装饰投影（契约 §2） */
   transition:
-    border-color var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
-/* 允许的两处投影之一：悬浮抬升反馈；静止态不加投影，边界由边框承载 */
 .collect-field-card:hover {
   border-color: var(--el-color-primary-light-7);
-  box-shadow: var(--el-box-shadow-light);
+  background: var(--el-fill-color-light);
 }
 
-.card-head,
-.card-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.cell {
+  min-width: 0;
 }
 
 /* 表达式行：输入框占满，右侧留出占位插入图标 */
@@ -271,8 +344,9 @@ function addField(): void {
   gap: 4px;
 }
 
-.expr-row > :first-child {
-  flex: 1;
+/* ReInput 根节点是 display:contents，宽度必须落在内层 el-input 上 */
+.expr-row :deep(.el-input) {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -280,27 +354,116 @@ function addField(): void {
   flex: none;
 }
 
-.head-parser {
-  flex: 0 0 96px;
+/* 取值方式：不同解析器控件不同，纵向排布，不破坏与其它列的横向对齐 */
+.cell-attr {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.card-hint {
+.cell-fill {
+  width: 100%;
+}
+
+.cell-note {
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.45;
   color: var(--el-text-color-secondary);
 }
 
-.head-attr {
-  flex: 0 0 112px;
+/* 操作列：选取页面元素 + 删除，统一右对齐 */
+.cell-ops {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.cell-group {
-  flex: 0 0 78px;
+/* 解析器说明：整行铺开，用来解释「这一列怎么填」 */
+.cell-hint {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
 }
 
-.cell-grow {
-  flex: 1 1 auto;
-  min-width: 0;
+/* 空态：给出下一步动作，而不是只写「暂无数据」 */
+.collect-empty {
+  padding: 16px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.collect-empty-title {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.collect-empty-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+}
+
+/* 窄面板：隐藏列头（宽度放不下），卡片叠成两列，并逐格补出小标签 */
+@container (max-width: 820px) {
+  .collect-field-head {
+    display: none;
+  }
+
+  .collect-field-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cell-name {
+    grid-column: 1 / 2;
+  }
+
+  .cell-parser {
+    grid-column: 2 / 3;
+  }
+
+  .cell-expr {
+    grid-column: 1 / -1;
+  }
+
+  .cell-attr {
+    grid-column: 1 / 2;
+  }
+
+  .cell-default {
+    grid-column: 2 / 3;
+  }
+
+  .cell-ops {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .cell-ops::before {
+    flex: 0 0 100%;
+  }
+
+  .cell-hint {
+    grid-column: 1 / -1;
+  }
+
+  .cell::before {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--el-text-color-secondary);
+    content: attr(data-label);
+  }
+
+  .cell-hint::before {
+    display: none;
+  }
 }
 
 /* 尊重系统「减少动态效果」偏好 */

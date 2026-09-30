@@ -77,6 +77,25 @@ const orphanRows = computed(() =>
       .filter(item => item.row.key.trim() !== "" && !knownColumns.value.has(item.row.key.trim())),
 );
 
+/** 失效行下标集合：逐行标出「当前表中不存在」，不只在底部汇总 */
+const orphanIndexes = computed(() => new Set(orphanRows.value.map(item => item.index)));
+
+/**
+ * 目标列下拉的候选：真实列 + 已失效的历史列（禁用项）。
+ *
+ * <p>失效列必须补进候选里 —— 否则模型值匹配不到任何选项，el-select 会把输入框显示成空白，
+ * 用户看不到自己原来配的是哪个列，只能靠底部那行汇总文字去猜。补进来的项禁用，
+ * 既能把列名显示出来，又避免把已删除的列重新选回去。</p>
+ */
+const selectOptions = computed(() => {
+  const seen = new Set(columnOptions.value.map(option => option.value));
+  const stale = orphanRows.value
+    .map(item => item.row.key.trim())
+    .filter(name => name !== "" && !seen.has(name))
+    .map(name => ({ value: name, label: `${name}（当前表中不存在）`, disabled: true }));
+  return [...columnOptions.value, ...stale];
+});
+
 function commit(): void {
   emit(
     "update:modelValue",
@@ -102,18 +121,37 @@ function typeHint(name: string): string {
 
 <template>
   <div class="mapping-editor" @focusout="commit">
+    <!-- 状态与空态：每一种都要给出下一步动作，不能只报「没有」 -->
     <div v-if="loading" class="mapping-state">正在读取表结构…</div>
-    <div v-else-if="loadError" class="mapping-state mapping-state-error">{{ loadError }}</div>
-    <div v-else-if="!table" class="mapping-state">先填目标表，再配置字段映射</div>
+    <div v-else-if="loadError" class="mapping-state mapping-state-error">
+      <span>{{ loadError }}</span>
+      <span class="mapping-state-hint">可点下方「重新读取表结构」重试，或检查目标表名与数据源是否可用。</span>
+    </div>
+    <div v-else-if="!table" class="mapping-state">
+      先在上方填「目标表」，再回来配置：左边选这张表的列，右边写要写进去的值 / ${表达式}。
+    </div>
     <div v-else-if="creatingTable" class="mapping-state mapping-state-create">
-      目标表 {{ table }} 尚不存在，将按下面的列名自动创建；列类型按这一批实际取值推断
+      目标表 {{ table }} 尚不存在，将按下面填的列名自动建表，列类型按这一批实际取值推断；左边填新列名（如 title），右边写值。
     </div>
     <div v-else-if="!columnOptions.length" class="mapping-state">
-      该表没有读到列，请确认表名正确或数据源可达
+      该表没有读到列：确认表名正确、数据源可达，或点下方「重新读取表结构」重试。
     </div>
 
     <template v-else>
-      <div v-for="(row, index) in rows" :key="index" class="mapping-row">
+      <!-- 表头：写清左右两列各是什么，避免「目标列 ← 值表达式」的对应关系靠猜 -->
+      <div v-if="rows.length" class="mapping-head">
+        <span class="head-col">{{ creatingTable ? "新列名（将自动建列）" : "目标列（写到哪）" }}</span>
+        <span class="head-value">值表达式（写什么）</span>
+        <span class="head-type">列类型</span>
+        <span class="head-op"></span>
+      </div>
+
+      <div
+        v-for="(row, index) in rows"
+        :key="index"
+        class="mapping-row"
+        :class="{ 'mapping-row--orphan': orphanIndexes.has(index) }"
+      >
         <ReInput
           v-if="creatingTable"
           
@@ -128,29 +166,46 @@ function typeHint(name: string): string {
           filterable
           clearable
           class="mapping-column"
-          placeholder="目标列"
+          placeholder="选择目标表的列"
           :model-value="row.key"
-          :options="columnOptions"
+          :options="selectOptions"
           @update:model-value="(v: unknown) => (row.key = String(v ?? ''))"
         />
         <ReInput
           
           class="mapping-value"
-          placeholder="值 / ${表达式}"
+          placeholder="值 / ${表达式}，如 ${title} 或固定文本"
           :model-value="row.value"
           @update:model-value="(v: unknown) => (row.value = String(v ?? ''))"
         />
-        <span class="mapping-type">{{ typeHint(row.key.trim()) }}</span>
-        <ReButton  text type="danger" icon="Delete" @click="removeRow(index)" />
+        <span class="mapping-type">
+          <template v-if="orphanIndexes.has(index)">当前表中不存在</template>
+          <template v-else>{{ typeHint(row.key.trim()) || "—" }}</template>
+        </span>
+        <ReButton
+          text
+          type="danger"
+          icon="Delete"
+          :show-text="false"
+          :icon-size="28"
+          tip="删除这一行"
+          @click="removeRow(index)"
+        />
+      </div>
+
+      <!-- 空行态：给出下一步动作与示例 -->
+      <div v-if="!rows.length" class="mapping-empty">
+        <div class="mapping-empty-title">还没有字段映射</div>
+        <div class="mapping-empty-tip">
+          点下面的「添加字段」新建一行：左边选目标表的列，右边写要写进去的值。
+          例：目标列 title ← 值表达式 ${title}；也可以直接写固定文本。
+        </div>
       </div>
 
       <div v-if="orphanRows.length" class="mapping-orphan">
-        <ReTag type="warning" >
-          {{ orphanRows.length }} 个字段在当前表里不存在
-        </ReTag>
-        <span class="mapping-orphan-list">
-          {{ orphanRows.map(item => item.row.key).join("、") }}
-        </span>
+        <ReTag type="warning">当前表里已不存在 {{ orphanRows.length }} 列</ReTag>
+        <span class="mapping-orphan-list">{{ orphanRows.map(item => item.row.key).join("、") }}</span>
+        <span class="mapping-orphan-hint">这些列已被表结构删除，请改选或删掉对应行，否则保存后也写不进去。</span>
       </div>
 
       <ReButton
@@ -171,65 +226,141 @@ function typeHint(name: string): string {
 .mapping-editor {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
 }
 
+/* 表头与映射行共用同一套列宽，保证「目标列 / 值表达式 / 列类型」上下对齐 */
+.mapping-head,
 .mapping-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr 0.9fr 36px;
+  gap: 8px;
   align-items: center;
-  gap: 6px;
+  padding: 0 6px;
 }
 
-.mapping-column {
-  flex: 0 0 38%;
+.mapping-head > span {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
 }
 
-/* 值/表达式输入框：入库节点靠它决定往目标列写什么 */
+.mapping-row {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-md, 8px);
+}
+
+/* 失效行：底色 + 边框一起标出来，不用装饰投影（契约 §2） */
+.mapping-row--orphan {
+  background: var(--el-color-warning-light-9);
+  border-color: var(--el-color-warning-light-7);
+}
+
+.mapping-column,
 .mapping-value {
-  flex: 0 0 34%;
   min-width: 0;
 }
 
-.mapping-type {
-  flex: 1 1 auto;
+/* ReInput 根节点是 display:contents，网格项实际是内层 el-input，须显式允许收缩 */
+.mapping-column :deep(.el-input),
+.mapping-value :deep(.el-input) {
   min-width: 0;
-  font-size: 12px;
-  opacity: 0.65;
+}
+
+/* 列类型：小号徽标，比原来的灰色小字更容易扫读 */
+.mapping-type {
+  justify-self: start;
+  max-width: 100%;
+  padding: 1px 6px;
   overflow: hidden;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.mapping-row--orphan .mapping-type {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-8);
+  border-color: var(--el-color-warning-light-5);
 }
 
 .mapping-state {
+  padding: 8px 10px;
   font-size: 12px;
-  opacity: 0.65;
-  padding: 2px 0;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.mapping-state-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
 }
 
 .mapping-state-error {
   /* 原来写 var(--el-color-danger, #f56c6c)，--el-color-danger 由 EP 必定定义，
      兜底 hex 永远不会生效，属于误导性死代码，直接去掉兜底 */
   color: var(--el-color-danger);
-  opacity: 1;
+  background: var(--el-color-danger-light-9);
+  border-color: var(--el-color-danger-light-7);
 }
 
-/* 新建表是正常配置路径，不是故障：不用错误色，提示该做什么就行 */
+/* 新建表是正常配置路径，不是故障：用主色而不是错误色，提示该做什么就行 */
 .mapping-state-create {
   color: var(--el-color-primary);
-  opacity: 0.85;
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+
+.mapping-empty {
+  padding: 16px;
+  text-align: center;
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.mapping-empty-title {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.mapping-empty-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
 }
 
 .mapping-orphan {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
   flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-7);
+  border-radius: var(--el-radius-md, 8px);
 }
 
 .mapping-orphan-list {
-  opacity: 0.75;
+  color: var(--el-color-warning);
   word-break: break-all;
+}
+
+.mapping-orphan-hint {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 </style>
