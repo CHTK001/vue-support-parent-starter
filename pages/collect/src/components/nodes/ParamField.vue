@@ -263,9 +263,11 @@ const mappingSummary = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   font-size: 12px;
-  color: #86909c;
+  /* 写死的 #86909c 在暗色模式下与底色对比不足，且不跟随主题；改用令牌 */
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 
 /* 插在标签行右侧的「插入占位」入口，不参与网格排版 */
@@ -275,7 +277,7 @@ const mappingSummary = computed(() => {
 
 .req {
   margin-left: 2px;
-  color: #e5484d;
+  color: var(--el-color-danger);
 }
 
 .pane-fill {
@@ -305,9 +307,11 @@ const mappingSummary = computed(() => {
 }
 
 .field-tip {
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 11px;
-  line-height: 1.5;
-  color: #a3abb6;
+  line-height: 1.45;
+  /* 原为 #a3abb6：比任何主题令牌都浅，暗色下几乎不可读（对比度不足 4.5:1）。
+     说明文字最浅只到 secondary，这是可访问性下限，不要再往回改。 */
+  color: var(--el-text-color-secondary);
 }
 </style>
