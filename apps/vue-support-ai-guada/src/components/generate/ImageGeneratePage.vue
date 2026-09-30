@@ -1879,7 +1879,15 @@ const elapsedSeconds = (task: GenerateTask) => {
   if (!task.createdAt) {
     return 0
   }
-  return Math.max(0, Math.floor((nowTick.value + clockSkew.value - task.createdAt) / 1000))
+  // 时钟偏移必须按「这条任务自己」的 updatedAt 算，不能跨任务取最大值。
+  // 原因：运行中任务的 updatedAt 由服务端心跳每 2 秒刷新，等于「服务端此刻」；
+  // 而列表里只要有一条陈旧的进行中记录（心跳早停了、updatedAt 停在过去），
+  // 取最大值会把偏移拖成一个很大的负数，于是新任务的
+  // nowTick + skew - createdAt 恒为负，被 Math.max(0,…) 压成 0 —— 表现为
+  // 「已用时一直 0s」。这正是 records-accept 能复现、而单独提交不复现的原因。
+  const live = task.updatedAt && (task.status === 'PENDING' || task.status === 'RUNNING')
+  const skew = live ? task.updatedAt - nowTick.value : clockSkew.value
+  return Math.max(0, Math.floor((nowTick.value + skew - task.createdAt) / 1000))
 }
 
 /**
