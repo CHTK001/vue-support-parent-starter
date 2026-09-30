@@ -13,6 +13,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import ReButton from "../../../ReButton/ReButton.vue";
+import { ElDialog } from "element-plus";
 import { FlowGraphEngine } from "../../internals/engine";
 import { resolveFlowIcon } from "../../internals/icons";
 import type {
@@ -121,6 +122,9 @@ const ui = reactive({
   minimap: props.showMinimap,
   grid: true,
   collapsed: false,
+  // 属性面板弹窗：面板被拖窄或收起时，「弹窗」按钮把同一份 #properties 内容放进对话框编辑。
+  // 只在打开时才渲染槽（v-if），否则页面上会同时存在两份表单实例，自动化定位与事件都会打架。
+  popup: false,
   /** 右侧属性停靠区宽度（px），由面板头拖拽调整 */
   propsWidth: 340,
   scale: 1,
@@ -565,6 +569,14 @@ defineExpose({
           </span>
           <ReButton
             layout="square"
+            icon="FullScreen"
+            tip="弹窗配置（面板被拖窄或收起时用）"
+            @click="ui.popup = true"
+          >
+            弹窗
+          </ReButton>
+          <ReButton
+            layout="square"
             :icon="ui.collapsed ? 'ArrowLeft' : 'ArrowRight'"
             @click="ui.collapsed = !ui.collapsed"
           >
@@ -578,6 +590,22 @@ defineExpose({
           </slot>
         </div>
       </section>
+
+      <!-- 属性面板弹窗：面板窄/收起时把同一份内容放大编辑；只在打开时渲染，避免两份表单实例 -->
+      <ElDialog
+        v-if="ui.popup"
+        v-model="ui.popup"
+        title="节点参数"
+        width="880px"
+        append-to-body
+      >
+        <div class="flow-props-body flow-props-body--popup" style="max-height: 66vh; overflow: auto;">
+          <slot name="properties" :selection="selection" :node="selection?.kind === 'node' ? selection.node : null"
+                :edge="selection?.kind === 'edge' ? selection.edge : null" :node-types="nodeTypes" :engine="engine">
+            <div class="flow-props-hint">选中节点或连线后在此编辑参数</div>
+          </slot>
+        </div>
+      </ElDialog>
     </div>
 
     <!-- 结构问题 -->
