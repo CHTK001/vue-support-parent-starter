@@ -27,6 +27,11 @@
                                     : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
                                 <component :is="item.icon" class="w-4.5 h-4.5 shrink-0" />
                                 <span class="text-sm font-medium">{{ item.label }}</span>
+                                <!-- 管理员专属项加标记：与 filteredSidebarItems 的 adminOnly 同一个来源 -->
+                                <span v-if="item.adminOnly"
+                                    class="ml-auto shrink-0 rounded border px-1.5 py-0.5 text-xs leading-none text-(--el-color-primary) border-(--el-color-primary-light-5)">
+                                    管理员
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -46,6 +51,26 @@
             <div class="flex-1 overflow-hidden flex flex-col w-full" :class="contentMaxWidthClass">
                 <div class="flex-1 overflow-hidden py-3 min-w-0">
                     <ScrollContainer class="h-full p-4">
+                        <!--
+                          管理员专属 tab 的统一守卫。
+                          为什么要有：侧边栏只把 adminOnly 项**隐藏**了，而路由
+                          /setting/:tab 任何登录用户都能直达 —— 不拦的话，
+                          普通用户手敲 URL 会渲染出一个空的管理面板
+                          （数据拿不到，接口 403，但页壳与按钮都在）。
+                          这里按 sidebarItems 里声明的 adminOnly 统一判定，
+                          新增 tab 只要标了 adminOnly 就自动被拦住，不会漏。
+                          用函数而非 computed：isAdmin() 读的是非响应式的角色缓存，
+                          computed 会把首次求值结果永久缓存，权限后到就再也刷不对。
+                        -->
+                        <div v-if="isCurrentTabAdminOnly() && !isAdmin()" class="admin-only-denied">
+                            <el-empty description="仅管理员可访问">
+                                <template #description>
+                                    <p class="admin-only-title">仅管理员可访问</p>
+                                    <p class="admin-only-desc">当前账号无管理员权限，请用管理员账号登录后查看。</p>
+                                </template>
+                            </el-empty>
+                        </div>
+                        <template v-else>
                         <template v-if="currentTabValue === 'general'">
                             <GeneralSettings />
                         </template>
@@ -115,6 +140,7 @@
                         <template v-else-if="currentTabValue === 'image-library'">
                             <!-- 面板自带页头与副标题，此处不再重复一段说明文字 -->
                             <ImageLibraryPanel />
+                        </template>
                         </template>
                     </ScrollContainer>
                 </div>
@@ -206,16 +232,23 @@ const groupMap = computed<Record<string, string>>(() => ({
 // 设置项菜单
 const sidebarItems = computed(() => [
     {
+        // 通用/常规配置：系统级参数（缓存目录、工作目录、默认行为等），
+        // 普通用户改了会影响整台实例，故限管理员。
         label: t('settings.system.tabs.general'),
         path: 'general',
         icon: Settings16Regular,
         roles: ['primary'],
+        adminOnly: true,
     },
     {
         label: t('settings.system.tabs.defaultModels'),
         path: 'default-models',
         icon: Grid16Regular,
         roles: ['primary'],
+        // 该页保存的是模型与供应商配置（runtime / asr / bot / generate 等分组），属系统级配置。
+        // 接口侧已把普通账号对这些分组的写入拒掉，这里同步标为管理员专属，
+        // 免得普通账号看到一个「保存必失败」的页面。
+        adminOnly: true,
     },
 
     {
@@ -229,6 +262,9 @@ const sidebarItems = computed(() => [
         path: 'search',
         icon: Search16Regular,
         roles: ['primary'],
+        // search 分组里是搜索供应商的 API Key（bocha / tavily），系统级凭据。
+        // 同理：接口已拒绝普通账号写入，页面同步收进管理员专属。
+        adminOnly: true,
     },
     {
         label: t('settings.system.tabs.browser'),
@@ -255,10 +291,14 @@ const sidebarItems = computed(() => [
         roles: ['primary'],
     },
     {
+        // 用量配置：后端 /v2/usage/** 全部是 @Permission("admin")。
+        // 此前没标 adminOnly，非管理员能看到入口、点进去直接报
+        // 「加载用量配置失败：Request failed with status code 403」（实测确认）。
         label: '用量配置',
         path: 'usage',
         icon: DataUsage24Regular,
         roles: ['primary'],
+        adminOnly: true,
     },
     {
         label: '模型指标采集',
@@ -307,8 +347,7 @@ const sidebarItems = computed(() => [
 ])
 
 // 根据用户角色过滤菜单项
-const filteredSidebarItems = computed(() => {
-    const userRole = authStore.user?.role || 'primary'
+const filteredSidebarItems = computed(() => {    const userRole = authStore.user?.role || 'primary'
     return sidebarItems.value.filter(item => {
         if (item.adminOnly && !isAdmin()) return false
         return !item.roles || item.roles.includes(userRole)
@@ -338,6 +377,19 @@ const groupedSidebarItems = computed(() => {
 })
 
 // 获取默认标签页
+/**
+ * 当前 tab 是否为「管理员专属」。
+ *
+ * <p>判据直接取自 sidebarItems 里声明的 {@code adminOnly}，而不是另写一份
+ * tab 名单 —— 另写一份就会出现「侧边栏标了 adminOnly、模板忘了拦」这种漏。
+ * 用普通函数而非 computed：{@code isAdmin()} 读的是模块级非响应式的角色缓存，
+ * computed 会把首次求值结果永久缓存，登录态恢复晚于组件 setup 时管理员也会被误拦。
+ *
+ * @returns 当前 tab 仅管理员可见时为 true
+ */
+const isCurrentTabAdminOnly = () =>
+    sidebarItems.value.some((item) => item.path === currentTabValue.value && item.adminOnly === true)
+
 const getDefaultTabPath = () => {
     const userRole = authStore.user?.role || 'primary'
     const firstValidItem = filteredSidebarItems.value.find(item => {
@@ -421,6 +473,27 @@ onMounted(() => {
     font-size: 13px;
     line-height: 1.6;
     color: var(--el-text-color-secondary, #6b7280);
+}
+
+/* 管理员专属 tab 对非管理员展示的拒绝态：占满可用高度，居中说明 */
+.admin-only-denied {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+}
+
+.admin-only-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-text-color-primary, #303133);
+}
+
+.admin-only-desc {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--el-text-color-secondary, #909399);
 }
 </style>
 
