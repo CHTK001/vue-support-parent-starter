@@ -383,6 +383,9 @@ function statusClass(status: number): string {
 /* 第一行：方法窄、URL 宽、预览按钮贴右；用边框 + 底色强调为整张表单的主入口 */
 .request-primary {
   display: flex;
+  /* 关键：允许换行。原先不换行 —— 面板一窄，方法列(116px) 与预览列把 URL 挤成一条线，
+     输入框窄到看不见内容，这就是「样式被挤压变形」的成因。 */
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
   padding: 12px;
@@ -396,13 +399,16 @@ function statusClass(status: number): string {
   flex: 0 0 116px;
 }
 
+/* URL 给一个保底宽度：放不下时它自己换到下一行，而不是被压成几十像素 */
 .request-primary :deep(.primary-url) {
-  flex: 1 1 auto;
+  flex: 1 1 260px;
   min-width: 0;
 }
 
+/* 预览列：宽面板里贴右；换行后自成一行（靠右对齐） */
 .preview-cell {
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* 字段容器样式与 ParamField 保持一致（本组件内的 .field 只用于预览列） */
@@ -443,10 +449,11 @@ function statusClass(status: number): string {
   color: var(--el-text-color-secondary);
 }
 
-/* 组内字段网格：与属性面板一致的自适应列，竖向 8px、横向 14px */
+/* 组内字段网格：与属性面板一致的自适应列，竖向 8px、横向 14px。
+   列最小宽从 230px 收到 200px：窄面板下 230px 会让字段整体溢出、被裁掉右边缘。 */
 .group-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 8px 14px;
   align-content: start;
 }

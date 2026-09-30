@@ -18,6 +18,7 @@ import PairsEditor from "../PairsEditor.vue";
 import { pairPlaceholder } from "../../utils/dsl";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta } from "../../types/collect";
+import { LOOP_PARAM_NAMES } from "./paramContext";
 import type { NodeFormContext } from "./paramContext";
 
 const props = defineProps<{
@@ -130,6 +131,9 @@ const mappingSummary = computed(() => {
 <template>
   <div class="field" :class="{ 'field-wide': wide }" :data-param="param.name">
     <div class="field-label">
+      <!-- 循环四参数由后端追加给所有节点，但它们不是「本节点自己的参数」；
+           加个标识，用户才知道「这四项是让本节点对集合迭代」，而不是又一个没用的输入框 -->
+      <span v-if="LOOP_PARAM_NAMES.includes(param.name)" class="loop-tag">循环</span>
       {{ param.label }}<span v-if="param.required" class="req">*</span>
       <RePlaceholderPicker
         v-if="showPlaceholderPicker"
@@ -278,6 +282,18 @@ const mappingSummary = computed(() => {
 .req {
   margin-left: 2px;
   color: var(--el-color-danger);
+}
+
+/* 「循环」标识：循环四参数是后端追加给所有节点的，必须让用户认得出它们不是本节点的专属参数 */
+.loop-tag {
+  margin-right: 4px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 4px;
 }
 
 .pane-fill {
