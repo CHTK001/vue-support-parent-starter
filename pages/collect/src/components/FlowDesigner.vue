@@ -11,6 +11,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from "vue";
 import { fetchPreview } from "../api/collectApi";
+import type { PreviewPayload } from "./nodes/paramContext";
 import type { Component } from "vue";
 import { msgError } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
@@ -24,6 +25,7 @@ import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import PairsEditor from "./PairsEditor.vue";
 import commentForm from "./nodes/commentForm.vue";
+import conditionForm from "./nodes/conditionForm.vue";
 import databaseForm from "./nodes/databaseForm.vue";
 import dedupForm from "./nodes/dedupForm.vue";
 import endForm from "./nodes/endForm.vue";
@@ -581,6 +583,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   script: scriptForm,
   process: processForm,
   comment: commentForm,
+  condition: conditionForm,
   end: endForm,
 };
 
@@ -619,9 +622,14 @@ function upstreamUrlOf(nodeId: string): string {
 }
 
 const formContext = computed<NodeFormContext>(() => ({
-  placeholderGroups: props.placeholderGroups,
+  // props.placeholderGroups 是可选的（宿主不注入时占位插入入口不出现），
+  // 而 NodeFormContext.placeholderGroups 要求必填数组 —— 这里兜成空数组。
+  // 直接透传会让 computed 的 getter 返回 undefined，TS2769。
+  placeholderGroups: props.placeholderGroups ?? [],
   previewUrl: nodeForm.value ? upstreamUrlOf(nodeForm.value.id) : "",
-  loadPreview: fetchPreview,
+  // fetchPreview 的第二参 timeoutMs 是可选的，函数整体可直接赋给只收 url 的签名；
+  // 返回值 CollectPreviewPayload 与 PreviewPayload 字段一致，可直接赋值。
+  loadPreview: (url: string): Promise<PreviewPayload> => fetchPreview(url),
   flowOptions: flowOptionsOf.value,
   datasourceOptions: datasourceOptionsOf.value,
   tableOptions: tableOptions.value,
