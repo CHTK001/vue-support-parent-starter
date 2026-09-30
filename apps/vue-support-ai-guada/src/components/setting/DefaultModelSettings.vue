@@ -32,7 +32,7 @@
           :model-value="getFieldValue(group.group, item.field)"
           @update:model-value="updateFieldValue(group.group, item.field, $event)"
           class="w-full">
-          <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
+          <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
         </el-select>
         <!-- STRING：普通文本 -->
         <el-input v-else-if="item.valueType === 'STRING'"
@@ -82,7 +82,7 @@
               :model-value="getFieldValue(group.group, item.field)"
               @update:model-value="updateFieldValue(group.group, item.field, $event)"
               class="w-full">
-              <el-option v-for="opt in parseEnumOptions(item.description)" :key="opt" :label="opt" :value="opt" />
+              <el-option v-for="opt in optionsOf(item)" :key="opt" :label="opt" :value="opt" />
             </el-select>
             <!-- 普通文本 -->
             <el-input v-else-if="item.valueType === 'STRING'"
@@ -381,7 +381,7 @@ const getFieldLabel = (item) => {
             'pose_model': '姿态估计模型',
             'optimizer_model': '优化模型',
             'compression_model': '压缩模型',
-            'rag_embedding_model': 'Embedding模型',
+            'rag_embedding_model': 'Embedding引擎',
             'rag_llm_model': 'LLM模型',
             'rag_ocr_model': 'OCR模型',
             'image_model': '文生图模型',
@@ -463,9 +463,31 @@ const getFieldLabel = (item) => {
             'enable_usage_analysis': '用量开关',
             'usage_report_interval': '同步时间',
             'usage_sync_providers': '同步数据源',
-            'usage_timewheel_enabled': '时间轮调度'
+            'usage_timewheel_enabled': '时间轮调度',
+            // 以图搜图：字段名比「模型」长得多（default_image_feature_model / vector_storage_engine /
+            // search_top_k），此前不在表里，界面上直接显示英文原名。表只收录「人工确认过的短标签」，
+            // 未收录的走下面的描述前缀兜底，不要再往这里堆。
+            'default_image_feature_model': '图像特征模型',
+            'vector_storage_engine': '向量存储实现',
+            'search_top_k': '返回条数上限',
+            'min_similarity': '相似度下限'
         }
-        return labelMap[item.field] || item.field
+        // 1) 优先用人工维护的短标签（精确、跨分组统一）
+        if (labelMap[item.field]) {
+            return labelMap[item.field]
+        }
+        // 2) 兜底：从描述里取中文前缀。
+        //    provider 的 description 约定是「标签（补充说明）」或「标签：补充说明」，
+        //    取首个分隔符之前的部分即可。
+        //    为什么必须有这一层：labelMap 是硬编码的，后端新增一个设置项而前端忘了同步，
+        //    界面就会直接显示英文字段名。实测以图搜图(default_image_feature_model)、
+        //    记忆(memory_extract_model)、布局(layout_threshold)、用量(enable_usage_analysis)
+        //    四个分组都中过这个招。有兜底后，漏项最多显示成稍长的中文，不会再露出英文。
+        const prefix = String(item.description).match(/^\s*([^（(：:]{1,16})/)
+        if (prefix && /[\u4e00-\u9fa5]/.test(prefix[1])) {
+            return prefix[1].trim()
+        }
+        return item.field
     }
     return item.field
 }
@@ -515,9 +537,23 @@ const parseEnumOptions = (description) => {
     return optionsStr.split('/').map(opt => opt.trim().split(' ')[0]).filter(opt => opt && opt.length < 50)
 }
 
+/**
+ * 取值被固定的字段：只允许一个选项，其它一律删除。
+ *
+ * <p>例：客户端类型只支持管线（pipeline）；memory 已下线，不留在下拉里误导用户。</p>
+ */
+const FIXED_OPTIONS = { rag_client_provider: ['pipeline'] }
+
+/** 该字段可选项（固定项优先，其余从后端描述里的括号解析） */
+const optionsOf = (item) => {
+    if (item.field in FIXED_OPTIONS) return FIXED_OPTIONS[item.field]
+    return parseEnumOptions(item.description)
+}
+
 // 判断是否是枚举字段
 const isEnumField = (item) => {
     if (item.valueType !== 'STRING') return false
+    if (item.field in FIXED_OPTIONS) return true
     const options = parseEnumOptions(item.description)
     return options.length >= 2 && options.length <= 10
 }
@@ -674,11 +710,34 @@ const loadModels = () => {
 const loadSettingDefinitions = async () => {
     try {
         const response = await apiService._request("/global-setting-definitions")
-        settingGroups.value = response?.data || response || []
+        settingGroups.value = pickGroups(response)
     } catch (error) {
         console.error('获取配置定义失败:', error)
         notify.error('加载配置定义失败', error)
     }
+}
+
+/**
+ * 从响应里取出分组数组。
+ *
+ * <p>后端这个接口的响应是**双层信封**：
+ * {@code {code, data: {success, data: [ {group...} ]}}}。
+ * 此前直接取 {@code response?.data}，拿到的是内层的对象而不是数组，
+ * {@code v-for} 遍历对象渲染不出任何内容，于是「默认模型」等设置页整块空白
+ * （侧栏还在，正文没有）。这里把三种可能形态都兜住，避免再被包裹层数变化打穿。</p>
+ *
+ * @param response 接口响应
+ * @return 分组数组；取不到时返回空数组
+ */
+const pickGroups = (response) => {
+    const first = response?.data ?? response
+    if (Array.isArray(first)) {
+        return first
+    }
+    if (Array.isArray(first?.data)) {
+        return first.data
+    }
+    return []
 }
 
 // 加载某个分组的实际值
