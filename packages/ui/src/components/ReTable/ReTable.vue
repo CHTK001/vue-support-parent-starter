@@ -867,7 +867,14 @@ const filteredColumnsForSettings = computed<ReTableColumn[]>(() => {
   return allColumnsForSettings.value.filter((c) => c.label.toLowerCase().includes(key) || c.prop.toLowerCase().includes(key));
 });
 
-/** ========== Sortable 行拖拽排序 ========== */
+/** ========== 行拖拽排序（两引擎共用状态 + element 专属实现） ==========
+ * 删除 element 引擎支持时，本区块里这些**只服务 element**，可一并删除：
+ *   · sortableInstance / sortableInitLock / sortedRows（Sortable 专用）
+ *   · findDragTbody()（只给 Sortable 找 tbody）
+ *   · initSortable() / destroySortable()（Sortable 建绑/解绑，含 onEnd 回读 DOM 顺序）
+ * 保留（两引擎共用）：dragMode / dragChanged / originalRows / dragToggleLoading /
+ *   toggleDragMode（内部按 useVxe 分叉）/ confirmDragSort / cancelDragSort。
+ * element 侧的 Sortable 依赖 import { Sortable } from "sortablejs"，同删。 */
 const dragMode = ref(false);
 const dragChanged = ref(false);
 const sortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
@@ -990,6 +997,53 @@ function onVxeRowDragEnd(): void {
     const orig = originalRows.value[idx];
     return !orig || row[props.rowKey as string] !== orig[props.rowKey as string];
   });
+}
+
+/**
+ * vxe 引擎 · 自研拖拽手柄的 mousedown。
+ *
+ * <p>为什么不用 vxe 内置的 drag-sort 列：那列必须随 dragMode 增删，而 vxe 在列集合
+ * 变化时会重建列集合并重算**全部**列宽 + 一次全量布局 —— 实测点一次开关冻结
+ * 465~784ms（最大帧 482~807ms）；列数 10→7 时代价从 1138ms 降到 366ms，说明成正比。
+ * 改把手柄内嵌进第一列单元格后，列集合恒定，开关只改单元格内容。</p>
+ *
+ * <p>vxe 的行级 <b>HTML5 DnD</b> 只依赖 {@code rowConfig.drag}（{@code body.js} 里给每个
+ * {@code <tr>} 挂 dragstart/dragover/dragend），<b>不依赖任何列</b>；
+ * 但真正换位的 {@code handleRowDragSwapEvent} 需要两样前置状态，
+ * 平时由 drag-sort 列的 {@code handleCellDragMousedownEvent} 写入，这里由我们手工完成：</p>
+ * <ol>
+ *   <li>{@code reactData.dragRow = 当前行} —— 否则 dragover/dragend 直接 {@code return}；
+ *       vxe 的实例对象 {@code $xeTable} 直接暴露了 {@code reactData}，无需反射；</li>
+ *   <li>该 {@code <tr>} 的 {@code draggable = true} —— 否则浏览器根本不发起 HTML5 拖拽。</li>
+ * </ol>
+ *
+ * <p>清理交给 vxe：mouseup 会走 {@code clearDragStatus}，dragend 会走
+ * {@code handleRowDragSwapEvent} + 收尾清理。所以这里不自己清，避免与它抢状态。</p>
+ */
+function onVxeDragHandleMousedown(evt: MouseEvent, row: Record<string, unknown>): void {
+  const inst = vxeTableRef.value as unknown as
+    | {
+        reactData?: {
+          dragRow?: unknown;
+          isCrossDragRow?: boolean;
+          dragCol?: unknown;
+        };
+      }
+    | null;
+  const reactData = inst?.reactData;
+  if (!reactData) {
+    return;
+  }
+  // 阻止冒泡：手柄的按下不应触发单元格点击/选中
+  evt.stopPropagation();
+  const handleEl = evt.currentTarget as HTMLElement | null;
+  const trEl = handleEl?.closest("tr") ?? null;
+  if (trEl) {
+    trEl.draggable = true;
+  }
+  reactData.dragRow = row;
+  reactData.isCrossDragRow = false;
+  reactData.dragCol = null;
 }
 
 function waitFrame(): Promise<void> {
@@ -2746,6 +2800,15 @@ const iconSelect = Select;
       />
     </div>
 
+    <!-- ==================== ENGINE: element (BEGIN) ====================
+         删除 element 引擎支持时，需要一起清掉：
+           1. 本块（<ElTable> … </ElTable>，含上方注释）
+           2. 下一支 VxeTable 的 `v-else-if="activeLayout === 'table'"` → 改成 `v-if`
+           3. <style src="./engines/element/element-table.css"> 那一整行，以及 engines/element/ 目录
+           4. 脚本里 `useVxe.value ? … : …` 的 element 侧分支（共 7 处，均已标注）
+           5. Sortable 行拖拽（initSortable / destroySortable / onEnd 一段，已标注）
+           6. import 里的 ElTable / ElTableColumn / type TableColumnCtx
+         ================================================================== -->
     <!-- 表格模式 · element 引擎（默认）：el-table，行拖拽走 Sortable 直改 tbody -->
     <ElTable
       v-if="!useVxe && activeLayout === 'table'"
@@ -2887,7 +2950,9 @@ const iconSelect = Select;
       </template>
       <slot />
     </ElTable>
+    <!-- ==================== ENGINE: element (END) ==================== -->
 
+    <!-- ==================== ENGINE: vxe (BEGIN) ==================== -->
     <!-- 表格模式 · vxe 引擎（engine="vxe"）：固定表头 / 虚拟滚动场景 -->
     <VxeTable
       v-else-if="activeLayout === 'table'"
@@ -2923,27 +2988,15 @@ const iconSelect = Select;
         width="50"
         fixed="left"
       />
-      <!-- 拖拽手柄列：仅拖拽排序模式。
-           drag-sort 把本列标记为 vxe 内置行拖拽的手柄列。
-           ⚠ 必须保持 row-drag-config.showIcon 为默认的 true：vxe 源码 renderCellBaseVNs 里，
-           发起拖拽用的 onMousedown 是随 renderCellDragIcon 一起挂的（trigger 无默认值即
-           undefined，不等于 'cell'，故 mousedown 必挂）。一旦 showIcon=false，vxe 根本不
-           渲染手柄壳，onMousedown 也就无处可挂 —— 拖拽直接失效。
-           所以不能自己用 #default 画图标（那样一行出两个图标，且自己画的不带 mousedown），
-           要换图标只能走 row-drag-icon 插槽，让 vxe 的手柄壳包住我们的图标。 -->
-      <VxeColumn v-if="dragMode" width="55" fixed="left" align="center" drag-sort>
-        <template #header>
-          <ElIcon><Rank /></ElIcon>
-        </template>
-        <template #row-drag-icon>
-          <ElIcon
-            class="vxe-drag-handle"
-            style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none"
-          ><Rank /></ElIcon>
-        </template>
-      </VxeColumn>
+      <!-- vxe 引擎不再使用专门的 drag-sort 列。原因：那列一旦随 dragMode 增删，
+           vxe 就会重建列集合并重算**全部**列宽 + 一次全量布局 —— 实测点一次开关冻结
+           465~784ms（最大帧 482~807ms），列数 10→7 时代价从 1138ms 降到 366ms，成正比。
+           改为「手柄内嵌进第一列单元格」：列集合恒定，开关只改单元格内容。
+           手柄的 mousedown 由 onVxeDragHandleMousedown 手工完成 vxe 需要的那两步
+           （reactData.dragRow = 行、该 tr 的 draggable = true）。
+           行级 dragstart/dragover/dragend 仍由 vxe 提供（只依赖 rowConfig.drag，不依赖列）。 -->
       <VxeColumn
-        v-for="col in visibleColumns"
+        v-for="(col, colIdx) in visibleColumns"
         :key="col.prop || col.label"
         :field="col.prop"
         :title="col.label"
@@ -2956,6 +3009,11 @@ const iconSelect = Select;
         :show-overflow="vxeShowOverflow(col)"
       >
         <template v-if="hasColSlot(col)" #default="{ row }">
+          <span
+            v-if="dragMode && colIdx === 0"
+            class="re-table__row-drag-handle"
+            @mousedown="onVxeDragHandleMousedown($event, row)"
+          ><ElIcon><Rank /></ElIcon></span>
           <slot
             :name="resolveColSlotName(col)"
             :row="row"
@@ -2964,6 +3022,11 @@ const iconSelect = Select;
           />
         </template>
         <template v-else #default="{ row }">
+          <span
+            v-if="dragMode && colIdx === 0"
+            class="re-table__row-drag-handle"
+            @mousedown="onVxeDragHandleMousedown($event, row)"
+          ><ElIcon><Rank /></ElIcon></span>
           <!-- isColEditable 自带 batchEditing 判断（编辑态开关在这里只判一次） -->
           <template v-if="isColEditable(col)">
             <ElInput
@@ -3025,6 +3088,7 @@ const iconSelect = Select;
       </template>
       <slot />
     </VxeTable>
+    <!-- ==================== ENGINE: vxe (END) ==================== -->
 
     <!-- 视图模式（一行一块；默认模板可被 #view 插槽整体替换） -->
     <ReTableView
@@ -3345,18 +3409,7 @@ const iconSelect = Select;
   padding: 0;
   height: 100%;
 }
-/* element 引擎的空态高度链比 vxe 长一层（多了 el-scrollbar）：
-   body-wrapper → el-scrollbar__wrap → el-scrollbar__view → empty-block → el-empty。
-   少给一环空块就退回内容高度（实测只剩 143px，而不是 body 的 281px）。 */
-.re-table--fill.re-table--empty .el-table__body-wrapper .el-scrollbar__view,
-.re-table--fill.re-table--empty .el-table__body-wrapper .el-table__empty-block {
-  min-height: 100%;
-  height: 100%;
-}
-.re-table--fill.re-table--empty .el-table__body-wrapper .el-empty {
-  padding: 0;
-  height: 100%;
-}
+/* element 引擎 · 空态高度链（fill 分支）已移入 engines/element/element-table.css */
 /* 纯展示列的省略号：长值需自带单行截断 */
 .re-table__cell-ellipsis {
   display: inline-block;
@@ -3542,80 +3595,10 @@ const iconSelect = Select;
    互相干扰——同一时刻只有一个引擎渲染出 DOM，另一套自然全部落空。
    ⚠ 页面里 :deep(.el-table …) 这类内部覆盖只在 element 引擎下成立，
      这也是 engine 默认为 "element" 的原因。 */
-.re-table .el-table {
-  --el-table-border-color: var(--el-border-color-lighter);
-  --el-table-header-bg-color: var(--el-fill-color-lighter);
-  --el-table-header-text-color: var(--el-text-color-primary);
-  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
-  font-size: 13.5px;
-  border-radius: calc(var(--rt-radius) + 2px);
-}
-.re-table .el-table__header-wrapper th.el-table__cell {
-  padding-top: 9px !important;
-  padding-bottom: 9px !important;
-  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-fill-color-extra-light));
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: 0.2px;
-  border-bottom: 1px solid var(--el-border-color);
-}
-.re-table--compact .el-table__header-wrapper th.el-table__cell {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-.re-table .el-table__body td.el-table__cell {
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  border-bottom-color: var(--el-border-color-lighter);
-  transition: background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
-}
-.re-table--compact .el-table__body td.el-table__cell {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-.re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background: var(--el-fill-color-extra-light);
-}
-.re-table .el-table__body tr.el-table__row:hover > td.el-table__cell:first-child,
-.re-table .el-table__body tr.current-row > td.el-table__cell:first-child,
-.re-table .el-table__body tr.el-table__row--striped.current-row > td.el-table__cell:first-child {
-  box-shadow: inset 2px 0 0 var(--el-color-primary);
-}
-.re-table .el-table__body tr.current-row > td.el-table__cell {
-  background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
-}
-.re-table .el-table__cell .cell {
-  padding: 0 12px;
-  line-height: 20px;
-}
-/* 横向滚动时表头投影，提示"右边还有列" */
-.re-table .el-table__header-wrapper.is-scrolling-middle,
-.re-table .el-table__header-wrapper.is-scrolling-left,
-.re-table .el-table__header-wrapper.is-scrolling-right {
-  box-shadow: 0 8px 14px -12px rgb(0 0 0 / 45%);
-}
-/* 固定右侧列：el-table 用 fixed-column 类标在单元格上，需补不透明底色 */
-.re-table .el-table__body td.el-table-fixed-column--right {
-  background-color: var(--el-table-bg-color, #fff);
-}
-.re-table .el-table__body tr:hover td.el-table-fixed-column--right,
-.re-table .el-table__body tr.hover-row td.el-table-fixed-column--right {
-  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
-}
-:deep(.el-table__fixed-right) {
-  z-index: 30 !important;
-}
-:deep(.el-table__fixed-right::before) {
-  z-index: 31 !important;
-}
-/* 拖拽模式下全局禁止表格文字选中 */
-.re-table:has(.drag-handle) .el-table__body,
-.re-table:has(.drag-handle) .el-table__body td .cell {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
+/* element 引擎表格视觉（表头 / 表体 / 斑马纹 / 选中行 / 单元格）已移入
+   engines/element/element-table.css */
+/* element 引擎 · 横向滚动表头投影 / 固定右列底色 / 拖拽禁选 已移入
+   engines/element/element-table.css */
 /* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色。
    根容器必须 border:none + overflow:visible：两张卡与根容器左右等宽（实测 inset=0），
    根级 overflow:hidden 会把卡片的左右投影裁掉，只剩上下一截，投影看起来是"半截的"。
@@ -3821,21 +3804,7 @@ const iconSelect = Select;
 .re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column {
   background-color: var(--rt-bg-strip);
 }
-/* element 引擎的同一组 rt 令牌覆盖：位置更靠后、权重相同，等于在基础视觉之上再叠一层 */
-.re-table .el-table {
-  --el-table-border-color: var(--rt-border);
-  --el-table-header-bg-color: var(--rt-header-bg);
-  --el-table-row-hover-bg-color: var(--rt-bg-row-hover);
-  --el-table-tr-bg-color: var(--rt-bg);
-}
-.re-table .el-table__header th.el-table__cell {
-  font-weight: var(--rt-header-font-weight);
-  font-size: var(--rt-header-font-size);
-  color: var(--rt-text-header);
-}
-.re-table .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background: var(--rt-bg-strip);
-}
+/* element 引擎 · rt 令牌再叠一层已移入 engines/element/element-table.css */
 .re-table__footer {
   display: flex;
   align-items: center;
@@ -4057,50 +4026,7 @@ const iconSelect = Select;
 .re-table .vxe-table--body-wrapper .el-empty {
   padding: 28px 0 36px;
 }
-/* element 引擎的空态（非 fill 分支）：高度链多一层 el-scrollbar，逐环给 100%。
-   ⚠ 权重：统一挂 `.re-table .el-table__body-wrapper .el-table__empty-block`（0,3,0），
-     压得住 koi 主题里可能存在的同级空块定位规则（该规则与本条权重相同，
-     胜负只取决于样式表加载顺序，主题晚加载时空块会脱离文档流）。 */
-.re-table--empty .el-table__body-wrapper {
-  min-height: var(--re-table-min-height, var(--rt-empty-height));
-}
-.re-table--empty .el-table__body-wrapper .el-scrollbar {
-  height: 100%;
-}
-.re-table--empty .el-table__body-wrapper .el-scrollbar__wrap {
-  height: 100% !important;
-}
-.re-table--empty .el-table__body-wrapper .el-scrollbar__view {
-  min-height: var(--re-table-min-height, var(--rt-empty-height));
-}
-.re-table .el-table__body-wrapper .el-table__empty-block {
-  position: static;
-  top: auto;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  transform: none;
-  width: 100%;
-  min-height: var(--re-table-min-height, var(--rt-empty-height));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.re-table--empty.re-table--fixed-height .el-table__body-wrapper,
-.re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-scrollbar__view,
-.re-table--empty.re-table--fixed-height .el-table__body-wrapper .el-table__empty-block {
-  min-height: 0;
-  height: 100%;
-}
-.re-table .el-table__body-wrapper .el-table__empty-text {
-  width: 100%;
-  min-width: 0;
-  line-height: inherit;
-  padding: 0 16px;
-}
-.re-table .el-table__body-wrapper .el-empty {
-  padding: 28px 0 36px;
-}
+/* element 引擎 · 空态（非 fill 分支）已移入 engines/element/element-table.css */
 .re-table__empty {
   display: flex;
   flex-direction: column;
@@ -4308,6 +4234,24 @@ const iconSelect = Select;
    ⚠ 不用 opacity 控制显隐：部分 Chromium 版本对滚动条伪元素上的 opacity
      不生效（会导致"永远是 0、滚动条彻底看不见"），一律用带 alpha 的
      background-color，这是各版本都稳的写法。 */
+/* 自研拖拽手柄（vxe 引擎，内嵌在第一列单元格里）。
+   与 vxe 内置手柄 .vxe-drag-handle 的区别：这个是普通 DOM，不含 vxe 的手柄壳，
+   按下事件由 onVxeDragHandleMousedown 处理。
+   留出与内容之间的间距；手柄自身不可选中、光标 grab。 */
+.re-table__row-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-right: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 18px;
+  cursor: grab;
+  user-select: none;
+}
+.re-table__row-drag-handle:active {
+  cursor: grabbing;
+}
 .re-table .vxe-table--body-wrapper::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -4366,3 +4310,10 @@ const iconSelect = Select;
   }
 }
 </style>
+
+<!-- ==================== element 引擎专属样式（独立文件） ====================
+     抽到 engines/element/element-table.css，与 vxe 引擎彻底解耦：
+     将来删除 element 支持时，删掉本 <style src> 行 + engines/element/ 目录即可。
+     ⚠ 必须放在主 <style> 之后：引擎规则原本就排在共用规则之后，
+       顺序一换会让同权重的共用规则反压引擎规则。 -->
+<style src="./engines/element/element-table.css"></style>

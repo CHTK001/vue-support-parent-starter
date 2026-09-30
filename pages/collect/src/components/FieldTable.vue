@@ -325,7 +325,7 @@ function addField(): void {
 .collect-field-head,
 .collect-field-card {
   display: grid;
-  grid-template-columns: minmax(96px, 1fr) 92px minmax(160px, 1.6fr) 104px 100px 176px;
+  grid-template-columns: minmax(96px, 1fr) 122px minmax(160px, 1.6fr) 104px 100px 176px;
   gap: 8px;
   align-items: start;
 }

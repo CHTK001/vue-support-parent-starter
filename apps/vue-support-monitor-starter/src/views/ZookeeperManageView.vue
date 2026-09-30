@@ -212,19 +212,18 @@
 
     <ReDialog v-model="clusterVisible" title="ZooKeeper 集群信息（mntr）" width="960px">
       <ReTable :data="clusterList" :columns="clusterColumns" :loading="clusterLoading" :pagination="false" stripe border >
+        <!-- 注意：data 为空 + loading 时 ReTable 仍会调用列插槽，此时 row 为 undefined，
+             必须用可选链；此处曾因 row.zkServerState 直取导致整个弹窗渲染抛错、弹不出来 -->
         <template #col-state="{ row }">
-          <ReTag :type="(row as unknown as ZkClusterNode).zkServerState === 'leader' ? 'warning' : 'info'" >
-            {{ (row as unknown as ZkClusterNode).zkServerState || "—" }}
+          <ReTag :type="row?.zkServerState === 'leader' ? 'warning' : 'info'" >
+            {{ row?.zkServerState || "—" }}
           </ReTag>
         </template>
         <template #col-error="{ row }">
-          <span v-if="(row as unknown as ZkClusterNode).error" class="mono" style="color: #ef4444; font-size: 12px">
-            {{ (row as unknown as ZkClusterNode).error }}
+          <span v-if="row?.error" class="mono" style="color: #ef4444; font-size: 12px">
+            {{ row.error }}
           </span>
           <span v-else>—</span>
-        </template>
-        <template #default="{ row }">
-          <tr v-if="(row as unknown as ZkClusterNode).zkServerState === 'leader'" />
         </template>
       </ReTable>
       <div class="dsm-form-hint" style="margin-top: 8px">

@@ -498,6 +498,13 @@ export interface CadInfoResponse {
   size: number;
   /** 是否能渲染图形（DXF=true；DWG=false） */
   renderable: boolean;
+  /**
+   * DWG 专用：内容根本不是 DWG（版本码读不出来）
+   *
+   * <p>与「真 DWG 但几何需外部转换器」是两回事——前者是**文件损坏**，
+   * 要重新上传；后者是**格式能力**限制。混为一谈会让人白折腾格式转换。</p>
+   */
+  notDwg?: boolean;
   /** 内联 SVG（仅 renderable=true 时有值），描边用 currentColor 继承主题色 */
   svg?: string;
   /** DXF 版本声明（$ACADVER） */

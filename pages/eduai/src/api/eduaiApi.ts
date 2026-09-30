@@ -273,6 +273,21 @@ export const eduaiApi = {
       .data(data as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
 
+  /**
+   * 扫描试卷图片并阅卷。
+   *
+   * <p>SELF 自有卷按题号回数据库取准确分值；ANY 任意卷由模型抽取并判定。
+   * 表单字段：{@code file} 图片、{@code mode}、{@code paperId}、{@code studentId}、{@code maxScore}。</p>
+   *
+   * @param form 表单数据
+   * @returns 任务 ID，用 getMarkingResult 轮询
+   */
+  scanMarking: (form: FormData) =>
+    http()
+      .post("/v2/edu/marking/scan")
+      .data(form)
+      .then<string>(unwrap),
+
   // 知识点
   treeKnowledge: (params: { subject?: string; gradeLevel?: string; grade?: string } = {}) =>
     http()

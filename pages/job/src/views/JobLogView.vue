@@ -15,7 +15,7 @@
    「导出 CSV」按当前筛选条件分页拉全后交给 @repo/ui 的导出能力落盘，导的是整个结果集而非当前页。
 -->
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onUnmounted, ref } from "vue";
+import { computed, onActivated, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { msgError, msgInfo } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
@@ -80,10 +80,8 @@ const searchModel = ref<Record<string, unknown>>({
 const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
 const summary = ref<JobSummary | null>(null);
 const retentionDays = ref(30);
-const autoRefresh = ref(false);
 const hitTotal = ref(0);
 const exporting = ref(false);
-let timer: ReturnType<typeof setInterval> | null = null;
 
 /** 导出复用 @repo/ui 的 CSV 能力：这里只拼数据与列标题，编码 / BOM / 下载都交给它 */
 const { exportToCsv } = useTableExport({ enabled: true });
@@ -413,17 +411,13 @@ async function exportLogs(): Promise<void> {
   }
 }
 
-function toggleAuto(value: boolean): void {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-  if (value) {
-    timer = setInterval(() => void reloadAll(), 5000);
-  }
-}
-
-/** keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据 */
+/**
+ * keep-alive 命中后挂载只跑一次，重进页面靠激活钩子取新数据。
+ *
+ * 自动刷新交给 ReTable 的 autoRefresh（见模板）：定时器与开关都由它按 keep-alive
+ * 激活态自己启停。页面不再自建 setInterval —— 两套定时器会各刷一遍，而且页面这套
+ * 拿不到组件的激活态，停止时机必然错。
+ */
 let firstActivation = true;
 onActivated(() => {
   // 从工作台「查看日志」跳来：带 jobKey 时先把搜索区切到该任务再取数，随后抹掉 query 防止重复套用
@@ -432,9 +426,6 @@ onActivated(() => {
     searchModel.value = { ...searchModel.value, jobKey: incoming };
     void router.replace({ path: route.path, query: {} });
     void reloadAll();
-    if (autoRefresh.value) {
-      toggleAuto(true);
-    }
     return;
   }
   if (firstActivation) {
@@ -443,18 +434,6 @@ onActivated(() => {
     return;
   }
   void reloadAll();
-  if (autoRefresh.value) {
-    toggleAuto(true);
-  }
-});
-
-onDeactivated(() => toggleAuto(false));
-
-onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
 });
 </script>
 
@@ -487,6 +466,7 @@ onUnmounted(() => {
       v-model:page-size="query.pageSize"
       v-model:search-model="searchModel"
       :search="SEARCH"
+      :auto-refresh="{ interval: 5000 }"
       :page-sizes="[20, 50, 100, 200]"
       empty-text="还没有派发记录，去「调度工作台」启用一个任务或手动触发一次"
       stripe

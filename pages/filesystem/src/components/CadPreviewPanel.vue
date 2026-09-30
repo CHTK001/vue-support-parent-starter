@@ -314,16 +314,44 @@ const displayName = computed(() => info.value?.name || props.fileName);
         </div>
       </template>
 
-      <!-- DWG：只有头部信息，如实说明并给出出路 -->
+      <!-- DWG：区分「真 DWG 但几何需外部转换器」与「根本不是 DWG（文件损坏）」 -->
       <div v-else class="cad__nodwg">
         <div class="cad__nodwg-icon">
           <el-icon :size="30"><Document /></el-icon>
         </div>
-        <h4 class="cad__nodwg-title">{{ info?.versionLabel || "DWG 图纸" }}</h4>
-        <p class="cad__nodwg-text">
-          DWG 是 Autodesk 私有二进制格式，其图元几何存放在未公开的内部表中，
-          浏览器无法直接解析。因此这里只能展示图纸的版本信息。
-        </p>
+        <!--
+          这两种情况必须分开说，否则会误导：
+          · 真 DWG（版本码已识别）→ 是**格式能力**问题：DWG 图元需外部转换器
+          · 根本不是 DWG（版本码读不出来）→ 是**文件问题**：损坏或不是 DWG，要重新上传
+          实测桶里那个 .dwg 与那个坏 .docx 前 6 字节完全相同（同源损坏），
+          以前显示「未识别的 DWG 版本 + DWG 是私有格式」，会让人以为换个格式就好。
+        -->
+        <template v-if="info?.notDwg">
+          <h4 class="cad__nodwg-title">文件已加密、损坏，或不是 DWG</h4>
+          <p class="cad__nodwg-text">
+            该文件的内容不是有效的 DWG（开始字节既不是
+            <code>AC10xx</code> 版本码，也不是其他已知的 DWG 版本标识）。
+          </p>
+          <p class="cad__nodwg-text">
+            常见原因有两种：
+            <b>① 文件被图纸防泄密软件透明加密</b>——这类软件（如 360 防泄密等）
+            在磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密，
+            服务端与浏览器读到的是密文，任何解析器都无法打开；
+            <b>② 文件在传输或保存过程中损坏</b>。
+          </p>
+          <p class="cad__nodwg-text">
+            如果是加密文件，<b>重新上传也没用</b>（上传的仍是密文）。
+            请提供未加密的副本，或在本机用 CAD 软件另存为
+            <code>DXF</code>（纯文本格式，可正常预览）。
+          </p>
+        </template>
+        <template v-else>
+          <h4 class="cad__nodwg-title">{{ info?.versionLabel || "DWG 图纸" }}</h4>
+          <p class="cad__nodwg-text">
+            DWG 是 Autodesk 私有二进制格式，其图元几何存放在未公开的内部表中，
+            浏览器无法直接解析。因此这里只能展示图纸的版本信息。
+          </p>
+        </template>
         <dl class="cad__kv">
           <div class="cad__kv-row">
             <dt>版本代码</dt>

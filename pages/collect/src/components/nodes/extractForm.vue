@@ -46,7 +46,8 @@ const fieldsOpen = ref(false);
 const fieldSummary = computed(() => {
   const list = props.node.fields ?? [];
   if (!list.length) {
-    return "未配置";
+    // 抽取节点没有字段就等于什么都没抽；这里必须是显式告警，不能只写「未配置」。
+    return "未配置字段 —— 抽取节点至少要声明一个字段，否则节点跑完什么都不会产出";
   }
   const types = [...new Set(list.map(field => (field.parserType || "CSS").toUpperCase()))];
   return `${list.length} 个字段（${types.join(" / ")}）`;
@@ -71,13 +72,13 @@ const fieldSummary = computed(() => {
     @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
   />
   <div v-if="meta.fieldEditor" class="field field-wide">
-    <div class="field-label">抽取字段</div>
-    <div class="field-summary">
+    <div class="field-label">抽取字段<span class="req">*</span></div>
+    <div class="field-summary" :class="{ 'summary-missing': !node.fields?.length }">
       <span class="summary-text">{{ fieldSummary }}</span>
       <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
     </div>
     <!-- append-to-body：属性面板自身可能有 overflow/transform，弹框留在面板内会被裁掉 -->
-    <ElDialog v-model="fieldsOpen" title="抽取字段" width="920px" append-to-body>
+    <ElDialog v-model="fieldsOpen" title="抽取字段" width="1400px" top="10px" append-to-body>
       <FieldTable
         :model-value="node.fields"
         :preview-url="ctx.previewUrl"
@@ -125,6 +126,21 @@ const fieldSummary = computed(() => {
   color: var(--el-text-color-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 必填星号与「未配置」告警：抽取节点没有字段等于没抽，要一眼看见 */
+.req {
+  margin-left: 2px;
+  color: var(--el-color-danger);
+}
+
+.summary-missing {
+  background: var(--el-color-danger-light-9);
+  border-color: var(--el-color-danger-light-5);
+}
+
+.summary-missing .summary-text {
+  color: var(--el-color-danger);
 }
 
 /* 节点级说明：与其它节点表单同一形态（左侧 2px 主色竖条 + 浅底） */
