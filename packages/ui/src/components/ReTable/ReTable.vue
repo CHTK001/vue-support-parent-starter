@@ -3530,12 +3530,10 @@ const iconSelect = Select;
 .re-table .vxe-header--column .vxe-cell {
   min-height: 0 !important;
 }
-/* ⚠ 对照实验 B：暂时注释
 .re-table .vxe-body--column .vxe-cell {
   height: auto !important;
   min-height: 0 !important;
 }
-*/
 
 /* ============ element 引擎（默认）的表格视觉 ============
    与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
