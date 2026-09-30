@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 路由守卫 —— 三模式 + 权限校验 + 登录拦截 + 标题设置
  *
  * 守卫逻辑（与 getConfig() 联动，路径均来自 config.route）：
@@ -28,6 +28,34 @@ export const FORBIDDEN_PATH = "/403";
 
 /** 令牌提供函数（由 createApp 注入，避免循环依赖） */
 export type TokenProvider = () => string;
+
+/**
+ * 判断路径是否命中白名单（无需登录即可访问）。
+ *
+ * <p>支持两种写法，以覆盖默认清单与常见的通配需求：</p>
+ * <ul>
+ *   <li>精确路径：{@code /login}</li>
+ *   <li>前缀通配：{@code /edu/**}（匹配 {@code /edu} 与其全部子路径）</li>
+ * </ul>
+ *
+ * <p>为何需要这个函数：守卫此前把 {@code whiteList} 取出来后从未消费，
+ * 白名单机制等于失效（见 {@code beforeEach} 内的说明）。</p>
+ *
+ * @param whiteList 白名单规则
+ * @param path      目标路径（{@code to.path}，不含 query）
+ * @returns 命中返回 true
+ */
+export function isWhitelisted(whiteList: string[], path: string): boolean {
+  return whiteList.some((pattern) => {
+    if (!pattern) return false;
+    if (pattern === path) return true;
+    if (pattern.endsWith("/**")) {
+      const prefix = pattern.slice(0, -3);
+      return path === prefix || path.startsWith(prefix + "/");
+    }
+    return false;
+  });
+}
 
 /** 远程路由加载器：返回待注册的路由表；返回 void 视为已自行注册（如 addRoute） */
 export type RemoteRoutesLoader = (
@@ -100,7 +128,17 @@ export function setupRouterGuard(
       return true;
     }
 
-    // 6. 无 token → 登录页
+    // 白名单判定（命中即放行）与 token 检查 → 登录页
+    // 白名单：无需登录即可访问。
+    // 此前这里直接判 token 跳转，而上面取到的 whiteList **从未被消费** ——
+    // route.whiteList 与 ROUTER_WHITE_LIST 都只赋值不使用，白名单机制实际是死的
+    // （文件头注释「白名单路由直接放行」描述的行为并不存在）。
+    // 后果：任何不在 loginPath 上的免登录页（如学生登录页 /edu/student-login）
+    // 在未登录时都会被推回 loginPath，学生用自己的学号根本进不去。
+    if (isWhitelisted(whiteList, to.path)) {
+      return true;
+    }
+
     const token = getAccessToken();
     if (!token) {
       return { path: route.loginPath, replace: true };
