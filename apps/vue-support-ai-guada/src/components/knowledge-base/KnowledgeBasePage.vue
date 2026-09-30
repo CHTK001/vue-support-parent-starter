@@ -34,10 +34,14 @@
       :relation-count="overview.totals?.relation_count ?? 0"
       :activities="activities"
       :templates="overviewTemplates"
+      :bases="overviewBases"
       @create="handleOverviewCreate"
       @help="handleOpenCreate"
       @all-templates="showTplGallery = true"
       @search="handleOverviewSearch"
+      @open="handleOverviewOpen"
+      @update="handleOverviewUpdate"
+      @remove="handleOverviewDelete"
     />
 
     <!-- 旧列表视图：已被上面的总览整体取代，分支保留但条件不再命中，待清理 -->
@@ -941,6 +945,61 @@ const overviewTemplates = computed(() => [
   { key: 'idiom', name: '成语库', cover: coverIdiom, entity: 84, relation: 196 },
   { key: 'question', name: '题库知识库', cover: coverQuestion, entity: 84, relation: 196 },
 ])
+
+/**
+ * 总览页的知识库列表（含封面 / 计数 / 就绪态）。
+ *
+ * <p>这是**进入已有知识库的唯一入口**：缺了它，有库时页面上看不到也点不进去，
+ * 详情页整体不可达。</p>
+ */
+const overviewBases = computed(() =>
+  filteredKnowledgeBases.value.map((kb) => ({
+    id: kb.id,
+    name: kb.name,
+    description: kb.description,
+    cover: (kb as { cover?: string }).cover,
+    fileCount: countOf(kb.id, 'file_count'),
+    entityCount: countOf(kb.id, 'entity_count'),
+    relationCount: countOf(kb.id, 'relation_count'),
+    ready: isKbReady(kb),
+  })),
+)
+
+/**
+ * 从总览列表进入知识库详情。
+ *
+ * @param kb 被点击的列表条目
+ */
+function handleOverviewOpen(kb: { id: string }) {
+  const target = filteredKnowledgeBases.value.find((x) => x.id === kb.id)
+  if (target) {
+    handleSelectKB(target)
+  }
+}
+
+/**
+ * 总览页编辑提交：切到既有的知识库编辑流程（复用其校验与保存）。
+ *
+ * @param p 总览弹窗交回的字段
+ */
+function handleOverviewUpdate(p: { id: string; name: string; description: string; isPublic: boolean }) {
+  const target = filteredKnowledgeBases.value.find((x) => x.id === p.id)
+  if (target) {
+    handleEdit(target)
+  }
+}
+
+/**
+ * 总览页删除：复用既有的删除确认流程。
+ *
+ * @param kb 目标列表条目
+ */
+function handleOverviewDelete(kb: { id: string }) {
+  const target = filteredKnowledgeBases.value.find((x) => x.id === kb.id)
+  if (target) {
+    handleDelete(target)
+  }
+}
 
 /**
  * 总览页提交新建：复用既有建库流程，把总览弹窗收集到的字段填进既有表单。

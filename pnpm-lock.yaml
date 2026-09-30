@@ -1659,6 +1659,9 @@ importers:
       vue3-compare-image:
         specifier: 'catalog:'
         version: 1.2.6(vue@3.5.40(typescript@5.9.3))
+      vxe-pc-ui:
+        specifier: 4.18.19
+        version: 4.18.19(vue@3.5.40(typescript@5.9.3))
       vxe-table:
         specifier: 4.22.2
         version: 4.22.2
@@ -2087,30 +2090,6 @@ importers:
       vue-i18n:
         specifier: 'catalog:'
         version: 11.4.8(vue@3.5.40(typescript@6.0.3))
-
-  pages/imagesearch:
-    dependencies:
-      '@element-plus/icons-vue':
-        specifier: 'catalog:'
-        version: 2.3.2(vue@3.5.40(typescript@6.0.3))
-      '@repo/config':
-        specifier: workspace:*
-        version: link:../../packages/config
-      '@repo/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@repo/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-      element-plus:
-        specifier: 'catalog:'
-        version: 2.14.3(vue@3.5.40(typescript@6.0.3))
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.40(typescript@6.0.3)
-      vue-demi:
-        specifier: 'catalog:'
-        version: 0.14.10(vue@3.5.40(typescript@6.0.3))
 
   pages/job:
     dependencies:
@@ -8204,6 +8183,9 @@ packages:
     resolution: {integrity: sha512-FU5HCWBmsf20GpP3eudURW3WdWTKIbEIQxh9/8GE806hydR9qZqRRxRE3RjqX7PkuLuMQG/A7n3cfj9rCEchww==}
     peerDependencies:
       vue: ^3.0.1
+
+  vxe-pc-ui@4.18.19:
+    resolution: {integrity: sha512-BzOcOiSQ8Oo2kQACsxPEsDyrqxej5pTbRptOr/yrJ4JMKbMfmPKXYanqOglIEt6EI0CQnOJ+PUl7CrTxSKjPng==}
 
   vxe-table@4.22.2:
     resolution: {integrity: sha512-Au3GOA37IIh0VkNtNY/H1v8fUQRnLHalfea/rmFNXQDcqCyqmQsG4EHsM5e76VzEQHKBvm7f11yATP5/xlkPDQ==}
@@ -14837,6 +14819,12 @@ snapshots:
     dependencies:
       sortablejs: 1.14.0
       vue: 3.5.40(typescript@6.0.3)
+
+  vxe-pc-ui@4.18.19(vue@3.5.40(typescript@5.9.3)):
+    dependencies:
+      '@vxe-ui/core': 4.4.24(vue@3.5.40(typescript@5.9.3))
+    transitivePeerDependencies:
+      - vue
 
   vxe-table@4.22.2: {}
 

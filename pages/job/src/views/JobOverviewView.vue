@@ -529,25 +529,12 @@ function go(path: string): void {
 }
 
 /*
-  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
-  面板卡片（.sched-center .collect-card）已经带了圆角与阴影，这里只补 1px 细描边与
-  focus-within 反馈——卡片内再叠投影就成了一摞纸，koi 规约只给焦点环与悬浮浮起留投影。
+  ReTable 的卡片外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由插件提供，
+  页面不再自行补边：见 packages/ui ReTable/shared/table-vars.css 与
+  ReTable.vue 的 `.re-table` / `.re-table--separated` 规则。
 */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-bg-color);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
 
-/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
-@media (prefers-reduced-motion: reduce) {
-  :deep(.re-table) {
-    transition: none;
-  }
-}
+/* 尊重系统「减少动态效果」偏好：
+   ReTable 的过渡已由插件自带的同名媒体查询处理，本页无需再代管；
+   本页目前没有自己的过渡，故这里不再保留空的降级块。 */
 </style>

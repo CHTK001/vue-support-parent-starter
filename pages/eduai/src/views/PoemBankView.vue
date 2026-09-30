@@ -98,25 +98,27 @@
           <span v-else class="pb-cell pb-cell--none">—</span>
         </template>
         <template #col-actions="{ row }">
+          <!-- 必须 .stop：ReTable 绑了 @row-click 打开预览，
+               不阻止冒泡会让「点编辑/删除」也触发一次预览 -->
           <ReButton
             layout="square"
             :icon="View"
             tip="预览"
-            @click="openPoem(row as unknown as Poem, 'view')"
+            @click.stop="openPoem(row as unknown as Poem, 'view')"
           />
           <ReButton
             layout="square"
             type="primary"
             :icon="EditPen"
             tip="编辑"
-            @click="openPoem(row as unknown as Poem, 'edit')"
+            @click.stop="openPoem(row as unknown as Poem, 'edit')"
           />
           <ReButton
             layout="square"
             type="danger"
             :icon="Delete"
             tip="删除"
-            @click="remove(row as unknown as Poem)"
+            @click.stop="remove(row as unknown as Poem)"
           />
         </template>
 
@@ -145,21 +147,21 @@
                 layout="square"
                 :icon="View"
                 tip="预览"
-                @click="openPoem(row as unknown as Poem, 'view')"
+                @click.stop="openPoem(row as unknown as Poem, 'view')"
               />
               <ReButton
                 layout="square"
                 type="primary"
                 :icon="EditPen"
                 tip="编辑"
-                @click="openPoem(row as unknown as Poem, 'edit')"
+                @click.stop="openPoem(row as unknown as Poem, 'edit')"
               />
               <ReButton
                 layout="square"
                 type="danger"
                 :icon="Delete"
                 tip="删除"
-                @click="remove(row as unknown as Poem)"
+                @click.stop="remove(row as unknown as Poem)"
               />
             </div>
           </div>

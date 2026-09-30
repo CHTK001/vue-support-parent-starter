@@ -21,14 +21,21 @@
 
   /* 文字 */
   --rt-text: var(--el-text-color-primary, #1e293b);
-  --rt-text-header: var(--el-text-color-secondary, #64748b);
+  /* 表头文字：用一级文字色。
+     表头是本组件里唯一带底色 + 最高字重的一层，用二级色会让它比数据行还轻、层次倒挂。
+     这个令牌此前是 secondary，而 ReTable.vue 里靠后的同权重规则正好按它取值，
+     把前面 `.re-table .vxe-header--column { color: var(--el-text-color-primary) }`
+     的意图静默压掉（实测 computed 落到 #909399）。 */
+  --rt-text-header: var(--el-text-color-primary, #1e293b);
   --rt-text-secondary: var(--el-text-color-secondary, #64748b);
   --rt-text-placeholder: var(--el-text-color-placeholder, #94a3b8);
   --rt-text-white: #ffffff;
 
   /* 圆角 */
   --rt-radius-sm: 4px;
-  --rt-radius: 8px;
+  /* 卡片主圆角：对齐 re-surface 登记的 16px，与 ReSurface / ReCard 系列同口径。
+     表头/表体容器用 calc(--rt-radius + 2px)，见 ReTable 的 --vxe-table-border-radius。 */
+  --rt-radius: var(--re-surface-radius, 16px);
   --rt-radius-md: 10px;
   --rt-radius-lg: 14px;
   --rt-radius-full: 9999px;
@@ -46,6 +53,16 @@
   --rt-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --rt-shadow-primary: 0 4px 12px color-mix(in srgb, var(--rt-primary) 30%, transparent);
   --rt-shadow-focus: 0 0 0 3px color-mix(in srgb, var(--rt-primary) 15%, transparent);
+  /* 卡片投影：小偏移定住边界 + 大范围给出浮起感，颜色由文字主色 mix 出，
+     暗色下 --el-text-color-primary 自动变浅，投影随之转为贴合暗底的淡影，
+     因此不需要在这里再写 .dark 分支。
+     不沿用 --re-surface-shadow：它第二层带 -14px 负偏移，在浅色页底上几乎不可见。 */
+  --rt-shadow-card:
+    0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 6%, transparent),
+    0 6px 22px color-mix(in srgb, var(--el-text-color-primary) 9%, transparent);
+  --rt-shadow-card-hover:
+    0 2px 4px color-mix(in srgb, var(--el-text-color-primary) 7%, transparent),
+    0 12px 32px color-mix(in srgb, var(--el-text-color-primary) 13%, transparent);
 
   /* 字号 */
   --rt-font-xs: 11px;

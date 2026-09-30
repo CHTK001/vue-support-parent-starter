@@ -94,22 +94,25 @@
             </el-table-column>
             <el-table-column label="操作" width="190" align="center" fixed="right">
               <template #default="{ row }">
+                <!-- 操作列按钮必须 .stop：el-table 上绑了 @row-click="openStudent"，
+                     不阻止冒泡会让「点任何按钮」都额外触发一次「打开编辑弹窗」
+                     （实测：点代入/重置密码/删除都会弹出编辑学生对话框）。 -->
                 <ReButton
                   layout="square"
                   type="success"
                   :icon="View"
                   tip="代入该学生"
-                  @click="impersonate(row)"
+                  @click.stop="impersonate(row)"
                 />
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openStudent(row)" />
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openStudent(row)" />
                 <ReButton
                   layout="square"
                   type="warning"
                   :icon="Key"
                   tip="重置密码"
-                  @click="openResetPassword(row)"
+                  @click.stop="openResetPassword(row)"
                 />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeStudent(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeStudent(row)" />
               </template>
             </el-table-column>
           </el-table>
@@ -136,8 +139,8 @@
             </el-table-column>
             <el-table-column label="操作" width="110" align="center" fixed="right">
               <template #default="{ row }">
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openClass(row)" />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeClass(row)" />
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openClass(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeClass(row)" />
               </template>
             </el-table-column>
           </el-table>
@@ -171,8 +174,8 @@
             </el-table-column>
             <el-table-column label="操作" width="110" align="center" fixed="right">
               <template #default="{ row }">
-                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click="openTeacher(row)" />
-                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click="removeTeacher(row)" />
+                <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openTeacher(row)" />
+                <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeTeacher(row)" />
               </template>
             </el-table-column>
           </el-table>

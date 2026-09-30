@@ -22,8 +22,9 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { objectUrl, putObject } from "../api/filestorageApi";
+import { existObject, objectUrl, putObject } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
+import { displayToImage } from "../utils/imageCoords";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -53,8 +54,28 @@ const rotation = ref<0 | 90 | 180 | 270>(0);
 const cropMode = ref(false);
 /** 裁剪选框（相对原图像素坐标，未缩放/未旋转） */
 const cropRect = ref({ x: 0, y: 0, w: 0, h: 0 });
-/** 保存中 */
+/** 保存中（PUT 进行中，驱动按钮 loading 文案） */
 const saving = ref(false);
+/** 导出渲染中（renderEdited 进行中，用于防重入，与 saving 分开以免误示 loading） */
+const rendering = ref(false);
+/** 导出结果暂存：保存选项弹框确认后才真正写入 */
+let pendingBlob: Blob | null = null;
+/** 保存选项弹框是否可见 */
+const saveDlgVisible = ref(false);
+/** 保存方式：覆盖原文件 / 另存为新文件 */
+const saveMode = ref<"overwrite" | "new">("overwrite");
+/** 另存为的新文件名 */
+const saveNewName = ref("");
+/** 目标文件已存在时的提示 */
+const saveNameTip = ref("");
+/** 拖拽平移中 */
+const panning = ref(false);
+/** 鼠标是否在面板内（决定底部工具栏是否显示） */
+const hudHover = ref(false);
+/** 视口可视尺寸（用于判断是否可平移） */
+const viewportSize = ref({ w: 0, h: 0 });
+/** 监听视口尺寸变化，驱动 pannable */
+let viewportRo: ResizeObserver | null = null;
 /** 滚动容器 */
 const viewportRef = ref<HTMLDivElement>();
 /** 画布（承载旋转/缩放后的显示） */
@@ -66,9 +87,20 @@ const natural = ref({ w: 0, h: 0 });
 /** 保存覆盖前的原始字节，用于「还原」 */
 let originalBlob: Blob | null = null;
 
-/** 是否可保存（有实际编辑且原图已加载） */
-const dirty = computed(
-  () => scale.value !== 1 || rotation.value !== 0 || (cropRect.value.w > 0 && cropRect.value.h > 0),
+/**
+ * 是否有会影响导出结果的编辑（旋转 / 裁剪）
+ *
+ * <p>刻意**不含 scale**：缩放只是浏览行为，{@code renderEdited} 根本不用它，
+ * 输出永远是原图分辨率。若把 scale 算进来，随手滚一下滚轮「保存」就变可点，
+ * 用户能把一个视觉上毫无变化的文件重编码写回——白白改掉 mtime 与字节。</p>
+ */
+const canSave = computed(
+  () => rotation.value !== 0 || (cropRect.value.w > 0 && cropRect.value.h > 0),
+);
+
+/** 视图是否偏离初始（含缩放）：只用来决定状态条是否显形、重置是否可用 */
+const viewChanged = computed(
+  () => scale.value !== 1 || canSave.value,
 );
 
 /* ==================== 尺寸换算 ==================== */
@@ -99,19 +131,27 @@ const stageStyle = computed(() => {
 /**
  * 图片本身的样式
  *
- * <p>缩放不能写成固定的像素宽高：那样只把外层 stage 撑大，{@code <img>} 仍是原图尺寸，
- * 视觉上等于没缩放（实测状态显示 182% 而显示宽度纹丝不动）。</p>
+ * <p>缩放靠「img 显式像素尺寸 = 自然尺寸 × scale」实现，<b>不能用 width:100%</b>：
+ * 舞台在 90/270 时宽高已互换，100% 会让 img 的盒子也变成互换后的比例，
+ * 于是 600×400 的位图被塞进 400×600 的盒子 —— <b>旋转前就被压扁</b>。
+ * 实测顺时针 90° 后 img 盒子纵横比 1.50 → 0.67（偏差 55.5%），
+ * 叠加 CSS 旋转后整体变形，表现为「旋转不像旋转、像被压扁」。</p>
  *
- * <p>这里让 {@code <img>} 用百分比填满已缩放的 stage（写在样式表里，不进内联
- * style，避免 {@code imageRendering} 这类 CSS 枚举在内联对象上被 TS 判成
- * {@code string} 而报类型错），浏览器按 stage 尺寸重新采样：缩小是正常重采样
- * （画质最好），放大走最近邻（{@code is-px} 类）保持像素边缘清晰。旋转用
- * {@code transform}，只影响显示、不影响 stage 占位（占位已由
- * {@link displaySize} 按旋转后宽高算好）。</p>
+ * <p>正确做法：img 保持<b>未旋转</b>的尺寸并按 scale 缩放，在已互换的舞台里
+ * 居中；旋转后它的外接矩形恰好等于舞台，比例不失真。</p>
  */
-const imgStyle = computed(() => ({
-  transform: `rotate(${rotation.value}deg)`,
-}));
+const imgStyle = computed(() => {
+  const s = scale.value;
+  const nw = natural.value.w;
+  const nh = natural.value.h;
+  const style: Record<string, string> = { transform: `rotate(${rotation.value}deg)` };
+  // 未加载完时不给尺寸，避免出现 0×0 的闪断
+  if (nw > 0 && nh > 0) {
+    style.width = `${Math.max(1, Math.round(nw * s))}px`;
+    style.height = `${Math.max(1, Math.round(nh * s))}px`;
+  }
+  return style;
+});
 
 /* ==================== 加载 ==================== */
 
@@ -275,35 +315,28 @@ function rotateCcw(): void {
 
 /* ==================== 裁剪 ==================== */
 
-/** 拖拽起点（视口坐标） */
+/** 拖拽起点（原图像素坐标） */
 let dragStart: { x: number; y: number } | null = null;
-/** 视口坐标 → 原图像素坐标 */
+/**
+ * 视口坐标 → 原图像素坐标
+ *
+ * <p>换算规则抽到 {@link displayToImage} 纯函数里，旋转 90/270 的转置与
+ * 边界夹取都能单测，不必再靠 E2E 间接覆盖。</p>
+ */
 function toImageCoords(clientX: number, clientY: number): { x: number; y: number } {
   const stage = stageRef.value;
   if (!stage) {
     return { x: 0, y: 0 };
   }
   const rect = stage.getBoundingClientRect();
-  const d = displaySize.value;
-  // 旋转 90/270 时，显示坐标系相对原图转置，取模还原
-  let x = (clientX - rect.left) / scale.value;
-  let y = (clientY - rect.top) / scale.value;
-  if (rotation.value === 90) {
-    const t = x;
-    x = d.h - y;
-    y = t;
-  } else if (rotation.value === 180) {
-    x = d.w - x;
-    y = d.h - y;
-  } else if (rotation.value === 270) {
-    const t = x;
-    x = y;
-    y = d.w - t;
-  }
-  return {
-    x: Math.max(0, Math.min(natural.value.w, x)),
-    y: Math.max(0, Math.min(natural.value.h, y)),
-  };
+  return displayToImage(
+    clientX - rect.left,
+    clientY - rect.top,
+    scale.value,
+    displaySize.value,
+    natural.value,
+    rotation.value,
+  );
 }
 
 function onCropDown(e: MouseEvent): void {
@@ -332,6 +365,70 @@ function onCropMove(e: MouseEvent): void {
 
 function onCropUp(): void {
   dragStart = null;
+}
+
+/* ==================== 拖拽平移 ==================== */
+
+/** 平移起点：鼠标位置 + 当时的滚动量 */
+let panStart: { x: number; y: number; left: number; top: number } | null = null;
+
+/**
+ * 按下：非裁剪模式下按住拖动即平移画布
+ *
+ * <p>图片小于视口时不启动平移（没有可滚动的余量），否则会出现「拖了但画面
+ * 不动」的错觉。只响应左键，避免与右键菜单冲突。</p>
+ *
+ * @param e 鼠标事件
+ */
+function onPanDown(e: MouseEvent): void {
+  if (cropMode.value) {
+    onCropDown(e);
+    return;
+  }
+  if (e.button !== 0) {
+    return;
+  }
+  const vp = viewportRef.value;
+  if (!vp || !pannable.value) {
+    return;
+  }
+  e.preventDefault();
+  panStart = { x: e.clientX, y: e.clientY, left: vp.scrollLeft, top: vp.scrollTop };
+  panning.value = true;
+}
+
+/**
+ * 移动：按鼠标位移反向调整滚动量
+ *
+ * @param e 鼠标事件
+ */
+function onPanMove(e: MouseEvent): void {
+  if (cropMode.value) {
+    onCropMove(e);
+    return;
+  }
+  if (!panStart) {
+    return;
+  }
+  const vp = viewportRef.value;
+  if (!vp) {
+    return;
+  }
+  e.preventDefault();
+  vp.scrollLeft = panStart.left - (e.clientX - panStart.x);
+  vp.scrollTop = panStart.top - (e.clientY - panStart.y);
+}
+
+/**
+ * 抬起：结束平移/裁剪
+ */
+function onPanUp(): void {
+  if (cropMode.value) {
+    onCropUp();
+    return;
+  }
+  panStart = null;
+  panning.value = false;
 }
 
 /** 选框的显示矩形（相对舞台，已含缩放） */
@@ -445,7 +542,13 @@ async function renderEdited(quality = 0.92): Promise<Blob | null> {
     // 高质量重采样：裁剪本身已是 1:1，这里用 imageSmoothingQuality 提升边缘质量
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, swap ? sh : sw, swap ? sw : sh);
+    // 目标尺寸**必须与源尺寸一致**：ctx.rotate 已经把矩形整体转置了，
+    // 这里再按 swap 交换一次就是双重转置，会把画布画不满。
+    // 实测（600×400 转 90°，画布 400×600）：交换后画布足迹只剩 x∈[-200,400]、
+    // y∈[0,400]，左侧 200px 被裁、底部 200px 从未绘制 -> 输出底部约 1/3 透明。
+    // 当时「旋转后宽高互换」用例只查 naturalWidth/Height，宽高恰好是对的，
+    // 所以完全没暴露内容损坏，是靠像素级断言才抓到的。
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
     ctx.restore();
 
     const mime = mimeOf(props.fileName);
@@ -484,34 +587,201 @@ function mimeOf(name: string): string {
 /* ==================== 保存 ==================== */
 
 /** 保存并覆盖原对象 */
-async function save(): Promise<void> {
-  const blob = await renderEdited();
-  if (!blob) {
-    ElMessage.error("导出失败，未保存");
+/** 视口内边距（与 CSS 的 .pimg__vp padding 一致），用于判断是否真的溢出 */
+const VP_PADDING = 32;
+
+/**
+ * 当前图片是否超出视口（决定是否允许拖拽平移、是否显示抓手光标）
+ *
+ * <p>不超出时不给抓手，避免用户拖了没反应还以为坏了。</p>
+ */
+const pannable = computed(() => {
+  const d = displaySize.value;
+  const s = scale.value;
+  return (
+    d.w * s > Math.max(0, viewportSize.value.w - VP_PADDING) + 1 ||
+    d.h * s > Math.max(0, viewportSize.value.h - VP_PADDING) + 1
+  );
+});
+
+/**
+ * 取对象 Key 的目录前缀
+ *
+ * @param key 对象 Key
+ * @returns 含结尾斜杠的目录前缀；根目录返回空串
+ */
+function dirOf(key: string): string {
+  const idx = key.lastIndexOf("/");
+  return idx >= 0 ? key.slice(0, idx + 1) : "";
+}
+
+/**
+ * 拼同目录下的兄弟 Key
+ *
+ * @param name 文件名
+ * @returns 与原对象同目录的新 Key
+ */
+function siblingKey(name: string): string {
+  return dirOf(props.objectKey) + name;
+}
+
+/**
+ * 生成「另存为」的默认文件名
+ *
+ * @returns 形如 `原名-edited.png`；原名无扩展名时直接追加
+ */
+function suggestNewName(): string {
+  const key = props.fileName;
+  const dot = key.lastIndexOf(".");
+  if (dot <= 0) {
+    return `${key}-edited`;
+  }
+  return `${key.slice(0, dot)}-edited${key.slice(dot)}`;
+}
+
+/** 文件名里不允许出现的字符（路径分隔符与 Windows 保留字符） */
+const INVALID_NAME_CHARS = /[/\\:*?"<>|\u0000-\u001f]/;
+
+/**
+ * 校验「另存为」的文件名
+ *
+ * <p>扩展名必须与原文件一致：导出字节的格式由原文件名决定
+ * （{@code mimeOf(fileName)}），若允许改成别的扩展名，服务端之后按扩展名
+ * 回 Content-Type，就会出现「PNG 字节配 image/jpeg 头」这种解码失败的组合。</p>
+ *
+ * @param name 用户输入
+ * @returns 错误文案；合法返回空串
+ */
+function validateNewName(name: string): string {
+  const v = name.trim();
+  if (!v) {
+    return "请输入文件名";
+  }
+  if (INVALID_NAME_CHARS.test(v)) {
+    return '文件名不能包含 / \\ : * ? " < > | 等字符';
+  }
+  if (v === "." || v === "..") {
+    return "文件名不合法";
+  }
+  const wantExt = extensionOf(props.fileName).toLowerCase();
+  const gotExt = extensionOf(v).toLowerCase();
+  if (wantExt && gotExt !== wantExt) {
+    return `扩展名需保持 .${wantExt}（导出格式由原文件名决定）`;
+  }
+  if (v.length > 200) {
+    return "文件名过长";
+  }
+  return "";
+}
+
+/**
+ * 打开保存选项弹框
+ *
+ * <p>先把图渲染出来再弹框：渲染失败（解码异常等）时连选项都不必给，
+ * 直接报错返回。渲染期间用 {@code rendering} 挡住重复进入。</p>
+ */
+async function openSaveDialog(): Promise<void> {
+  if (rendering.value || saving.value) {
     return;
   }
+  rendering.value = true;
   try {
-    await ElMessageBox.confirm(
-      `将用编辑后的图片覆盖原文件「${props.fileName}」，此操作不可撤销。`,
-      "确认保存",
-      { confirmButtonText: "覆盖保存", cancelButtonText: "取消", type: "warning" },
-    );
+    const blob = await renderEdited();
+    if (!blob) {
+      ElMessage.error("导出失败，未保存");
+      return;
+    }
+    pendingBlob = blob;
+    saveMode.value = "overwrite";
+    saveNewName.value = suggestNewName();
+    saveNameTip.value = "";
+    saveDlgVisible.value = true;
+  } finally {
+    rendering.value = false;
+  }
+}
+
+/**
+ * 校验「另存为」名字并顺手查重
+ *
+ * @returns 是否通过（不通过时已给出提示）
+ */
+async function checkNewName(): Promise<boolean> {
+  const err = validateNewName(saveNewName.value);
+  if (err) {
+    saveNameTip.value = err;
+    return false;
+  }
+  const key = siblingKey(saveNewName.value.trim());
+  if (key === props.objectKey) {
+    saveNameTip.value = "与原文件同名，请换一个名字（或选择「覆盖原文件」）";
+    return false;
+  }
+  try {
+    if (await existObject(props.bucket, key)) {
+      saveNameTip.value = `「${saveNewName.value.trim()}」已存在，保存将覆盖它`;
+    } else {
+      saveNameTip.value = "";
+    }
   } catch {
+    // 查重失败不阻断保存，交给 PUT 自己报错
+    saveNameTip.value = "";
+  }
+  return true;
+}
+
+/** 确认保存（覆盖或另存为） */
+async function confirmSave(): Promise<void> {
+  if (saving.value) {
     return;
+  }
+  const blob = pendingBlob;
+  if (!blob) {
+    saveDlgVisible.value = false;
+    return;
+  }
+  const overwrite = saveMode.value === "overwrite";
+  let targetKey = props.objectKey;
+  if (!overwrite) {
+    if (!(await checkNewName())) {
+      return;
+    }
+    targetKey = siblingKey(saveNewName.value.trim());
+    if (await existObject(props.bucket, targetKey).catch(() => false)) {
+      try {
+        await ElMessageBox.confirm(
+          `「${saveNewName.value.trim()}」已存在，确认覆盖它？`,
+          "确认覆盖",
+          { confirmButtonText: "覆盖", cancelButtonText: "取消", type: "warning" },
+        );
+      } catch {
+        return;
+      }
+    }
   }
   saving.value = true;
   try {
-    await putObject(props.bucket, props.objectKey, blob);
-    ElMessage.success("已保存到存储桶");
+    await putObject(props.bucket, targetKey, blob);
+    saveDlgVisible.value = false;
+    pendingBlob = null;
+    ElMessage.success(overwrite ? "已覆盖原文件" : `已另存为「${saveNewName.value.trim()}」`);
     emit("saved");
-    // 重新拉取，拿到服务端的新图
-    reloadSeq.value += 1;
-    await loadOriginal();
+    if (overwrite) {
+      // 覆盖时才需要把面板里的图换成服务端的新图
+      reloadSeq.value += 1;
+      await loadOriginal();
+    }
   } catch (e) {
     ElMessage.error(`保存失败：${(e as Error)?.message ?? "未知错误"}`);
   } finally {
     saving.value = false;
   }
+}
+
+/** 取消保存选项弹框 */
+function cancelSave(): void {
+  saveDlgVisible.value = false;
+  pendingBlob = null;
 }
 
 /** 还原到原图（放弃当前编辑） */
@@ -572,9 +842,9 @@ function onKeydown(e: KeyboardEvent): void {
       emit("saved"); // 借用事件触发父组件关闭
     }
   } else if (e.key === "s" || e.key === "S") {
-    if (dirty.value) {
+    if (canSave.value) {
       e.preventDefault();
-      void save();
+      void openSaveDialog();
     }
   } else if (e.key === "+" || e.key === "=") {
     scale.value = Math.min(MAX_SCALE, scale.value * 1.25);
@@ -586,11 +856,29 @@ function onKeydown(e: KeyboardEvent): void {
 onMounted(() => {
   window.addEventListener("keydown", onKeydown);
   document.addEventListener("click", onDocClick);
+  // 松开鼠标可能发生在视口之外，必须挂到 window，否则会一直处于平移态
+  window.addEventListener("mouseup", onPanUp);
+  if (viewportRef.value) {
+    viewportRo = new ResizeObserver(() => {
+      const el = viewportRef.value;
+      if (el) {
+        viewportSize.value = { w: el.clientWidth, h: el.clientHeight };
+      }
+    });
+    viewportRo.observe(viewportRef.value);
+    viewportSize.value = {
+      w: viewportRef.value.clientWidth,
+      h: viewportRef.value.clientHeight,
+    };
+  }
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
   document.removeEventListener("click", onDocClick);
+  window.removeEventListener("mouseup", onPanUp);
+  viewportRo?.disconnect();
+  viewportRo = null;
   // 原来这里写的是 revokeObjectURL(createObjectURL(originalBlob))：
   // 凭空造一个新 URL 再立刻 revoke 它，真正持有的那个 Blob URL 从未释放。
   // 但 originalBlob 本身是 fetch 得到的 Blob，并没有为它创建过 objectURL
@@ -611,18 +899,20 @@ watch(
 </script>
 
 <template>
-  <div class="pimg">
+  <!-- 悬停即显示底部工具栏：此前只有缩放/编辑后才显形，
+       用户打开图片时看不到「旋转 / 反向 / 保存」，等于找不到功能。 -->
+  <div class="pimg" @mouseenter="hudHover = true" @mouseleave="hudHover = false">
     <!-- 视口：滚轮缩放 + 拖拽平移 + 裁剪选框 -->
     <div
       ref="viewportRef"
       class="pimg__vp"
-      :class="{ 'is-crop': cropMode, 'is-loading': loading }"
+      :class="{ 'is-crop': cropMode, 'is-loading': loading, 'is-pannable': pannable && !cropMode, 'is-panning': panning }"
       @wheel="onWheel"
       @contextmenu="onContextMenu"
-      @mousedown="onCropDown"
-      @mousemove="onCropMove"
-      @mouseup="onCropUp"
-      @mouseleave="onCropUp"
+      @mousedown="onPanDown"
+      @mousemove="onPanMove"
+      @mouseup="onPanUp"
+      @mouseleave="onPanUp"
     >
       <div ref="stageRef" class="pimg__stage" :style="stageStyle">
         <img
@@ -644,8 +934,16 @@ watch(
       </div>
     </div>
 
-    <!-- 悬浮状态条：只在有编辑或裁剪态时出现，不是常驻工具栏 -->
-    <div class="pimg__hud" :class="{ 'is-hidden': !dirty && !cropMode }">
+    <!-- 悬浮状态条：鼠标移入面板即显示；已编辑/缩放或裁剪态下保持显示 -->
+    <!--
+      is-hidden 只能改 opacity，**不能关 pointer-events**。
+      原来这里同时写了 pointer-events: none，于是「点旋转按钮」这个动作本身
+      失效：按钮此刻还是隐藏态，鼠标事件被 .pimg__vp 下的 <img> 吃掉。
+      实测 Chromium/Firefox/WebKit 三家一致——按钮 visible+enabled+stable，
+      但点击始终报「<img> subtree intercepts pointer events」。
+      键盘 R 能用，所以此前只用键盘的用例全绿，把这个洞盖住了。
+    -->
+    <div class="pimg__hud" :class="{ 'is-hidden': !hudHover && !viewChanged && !cropMode }">
       <span class="pimg__hud-item">{{ Math.round(scale * 100) }}%</span>
       <span v-if="rotation" class="pimg__hud-item">{{ rotation }}°</span>
       <span v-if="cropRect.w > 0" class="pimg__hud-item">
@@ -668,10 +966,10 @@ watch(
       <button
         class="pimg__hud-btn pimg__hud-btn--primary"
         type="button"
-        :disabled="!dirty || saving"
+        :disabled="!canSave || saving || rendering"
         title="保存 (S)"
-        @click.stop="save"
-      >{{ saving ? "保存中…" : "保存" }}</button>
+        @click.stop="openSaveDialog"
+      >{{ saving ? "保存中…" : rendering ? "导出中…" : "保存" }}</button>
     </div>
 
     <!-- 右键菜单 -->
@@ -693,21 +991,76 @@ watch(
       <button
         class="pimg__menu-item pimg__menu-item--primary"
         type="button"
-        :disabled="!dirty"
-        @click="closeMenu(); save()"
-      >保存并覆盖 <kbd>S</kbd></button>
+        :disabled="!canSave"
+        @click="closeMenu(); openSaveDialog()"
+      >保存… <kbd>S</kbd></button>
     </div>
+
+    <!--
+      保存选项弹框：覆盖原文件 / 另存为新文件。
+      放进面板内部（而非 ElMessageBox）是因为要同时给出「单选 + 文件名输入」，
+      MessageBox 只能给二个按钮，塞不下输入框。
+    -->
+    <el-dialog
+      v-model="saveDlgVisible"
+      title="保存图片"
+      width="440px"
+      append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="!saving"
+      class="pimg-save-dlg"
+      @closed="pendingBlob = null"
+    >
+      <el-radio-group v-model="saveMode" :disabled="saving" class="pimg__save-mode">
+        <el-radio value="overwrite">覆盖原文件</el-radio>
+        <el-radio value="new">另存为新文件</el-radio>
+      </el-radio-group>
+      <div class="pimg__save-origin">{{ props.fileName }}</div>
+
+      <div v-if="saveMode === 'new'" class="pimg__save-new">
+        <el-input
+          v-model="saveNewName"
+          :disabled="saving"
+          placeholder="新文件名（含扩展名）"
+          maxlength="200"
+          @blur="checkNewName"
+        />
+        <div v-if="saveNameTip" class="pimg__save-tip" :class="{ 'is-warn': !!saveNameTip }">
+          {{ saveNameTip }}
+        </div>
+        <div v-else class="pimg__save-tip">将保存到同一目录，扩展名需与原文件一致</div>
+      </div>
+
+      <template #footer>
+        <el-button :disabled="saving" @click="cancelSave">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="confirmSave">
+          {{ saveMode === "overwrite" ? "覆盖保存" : "另存为" }}
+        </el-button>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
 
 <style scoped>
+/*
+  面板必须自带确定高度。
+  此前写的是 height: 100%，而父链（el-dialog → __body → shell → .fs-preview）
+  全都没有确定高度，百分比直接失效回退成 auto —— 于是 .pimg__vp 的
+  flex:1 / min-height:0 / overflow:auto 拿不到有界高度，**永远不裁剪**。
+  实测把 600×400 的图放大 12 档后：弹框 481px -> 3549px、舞台 5203×3468，
+  表现为「滚轮缩放把整个弹出框也撑大了」。
+  width 同理：.fs-preview 只对 .arc/.cad 做了 stretch，.pimg 会按内容宽度
+  收缩，横向一起长（实测放大后 .pimg 宽 5235px）。
+  这里自己把宽高钉死，尺寸问题不再外溢到共用弹框。
+*/
 .pimg {
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
+  width: 100%;
+  height: min(72vh, 820px);
 }
 
 /* 视口：唯一可滚动的容器，滚轮在这里被拦截做缩放 */
@@ -730,24 +1083,47 @@ watch(
   -webkit-user-drag: none;
 }
 
+/*
+  可平移时才给抓手。图片小于视口时不给，否则用户拖了没反应会以为坏了。
+  grabbing 用 :active 语义由 .is-panning 承担（拖拽可能移出视口，
+  :active 会因事件目标变化而闪断）。
+*/
+.pimg__vp.is-pannable {
+  cursor: grab;
+}
+
+.pimg__vp.is-panning {
+  cursor: grabbing;
+  /* 拖拽中禁止选中，避免把图片当成文本拽出蓝色选区 */
+  user-select: none;
+}
+
 .pimg__vp.is-loading {
   align-items: center;
 }
 
-/* 舞台：缩放后的占位盒子，滚动条按它的尺寸算 */
+/* 舞台：旋转后的外接矩形，滚动条按它的尺寸算。
+   overflow:hidden 有两个作用：
+   ① 旋转 90/270 时 <img> 的**布局盒**仍是未旋转尺寸（600×400 落在 400×600 的
+      舞台里），不加裁剪会让它溢出舞台、给视口多出可滚动的空白；
+   ② 裁剪模式的压暗层是 stage 的 ::after（inset:0），需要按舞台边界裁。
+   旋转后 img 的可见外接矩形恰好等于舞台，所以裁不到任何图像内容。 */
 .pimg__stage {
   position: relative;
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   transition: width 0.12s ease, height 0.12s ease;
 }
 
 .pimg__img {
   display: block;
-  /* 填满已缩放的 stage：缩放靠外层尺寸变化 + 这里 100% 填满实现，
-     若给 img 写死像素宽高，则只把 stage 撑大而图不变（等于没缩放）。 */
-  width: 100%;
-  height: 100%;
+  /* 尺寸由 imgStyle 以内联像素给出（自然尺寸 × scale）；这里只做兜底，
+     不能用 100%——舞台宽高在 90/270 时互换，100% 会把图压扁。 */
   max-width: none;
+  max-height: none;
   user-select: none;
   -webkit-user-drag: none;
   box-shadow: var(--el-box-shadow-light, 0 2px 12px rgba(0, 0, 0, 0.12));
@@ -756,6 +1132,41 @@ watch(
 /* 放大时用最近邻保持像素锐利；缩小交给正常插值（pixelated 反而锯齿难看） */
 .pimg__img.is-px {
   image-rendering: pixelated;
+}
+
+/* ==================== 保存选项弹框 ==================== */
+
+.pimg__save-mode {
+  display: flex;
+  gap: 18px;
+}
+
+.pimg__save-origin {
+  margin: 8px 0 4px;
+  padding: 6px 10px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light, #f5f7fa);
+  color: var(--el-text-color-regular, #606266);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pimg__save-new {
+  margin-top: 12px;
+}
+
+.pimg__save-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  line-height: 1.5;
+}
+
+/* 已存在/校验失败时用警示色，与普通说明区分开 */
+.pimg__save-tip.is-warn {
+  color: var(--el-color-warning, #e6a23c);
 }
 
 /* 裁剪选框
@@ -821,9 +1232,12 @@ watch(
   z-index: 3;
 }
 
+/*
+  隐藏态只做视觉淡出，保留命中能力：可见性淡出期间按钮仍要能点，
+  否则「点旋转让状态条显形」就成了自相矛盾的死结（见模板处注释）。
+*/
 .pimg__hud.is-hidden {
   opacity: 0;
-  pointer-events: none;
 }
 
 .pimg__hud-item {

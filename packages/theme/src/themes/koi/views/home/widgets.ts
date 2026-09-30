@@ -11,9 +11,17 @@
  * environment 标识 widget 所属环境（正式 / 测试），区块面板会按环境分组。
  */
 import { canAccess, type UserPermission } from "@repo/core";
+// 仅运行时依赖 registerWidgets（值导入）；registry.ts 对本文件只有 type 导入（编译期擦除），
+// 因此运行期不存在循环依赖
+import { registerWidgets, type WidgetRegistration } from "./registry";
 
-/** widget 类型（与系统提供的组件一一对应） */
-export type WidgetType =
+/**
+ * 内置 widget 的 type 字面量。
+ *
+ * <p>仅用于文档、提示与内置目录的自我约束；<b>不是</b> {@link WidgetType} 的定义 ——
+ * 各 {@code pages/xx} 模块可以贡献这之外的任意 type。</p>
+ */
+export type BuiltinWidgetType =
   | "calendar"
   | "custom"
   | "note"
@@ -22,10 +30,21 @@ export type WidgetType =
   | "alarm"
   | "bookmark"
   | "quick-access"
-  | "online-user"
-  | "server-status"
-  | "server-metrics"
   | "weather";
+
+/**
+ * widget 类型标识。
+ *
+ * <p>开放为 string 而非封闭联合：TypeScript 的模块增强（declaration merging）只对
+ * interface / namespace 生效，<b>对联合类型无效</b>，所以 {@code pages/xx} 无法用
+ * {@code .d.ts} 扩展一个封闭联合。要让各模块贡献自己的 widget，唯一办法是开放类型、
+ * 改由运行时注册表校验（见 {@code ./registry.ts}）。</p>
+ *
+ * <p>随之而来的取舍：编译器不再能校验 type 拼写。兜底是注册表 ——
+ * 未注册的 type 会被渲染成<b>占位卡片</b>（而不是静默丢弃或坏卡片），
+ * 开发环境的注册期自检会指出「注册项缺 component」之类的登记错误。</p>
+ */
+export type WidgetType = string;
 
 /** widget 所属环境（正式 / 测试） */
 export type WidgetEnvironment = "prod" | "test";
@@ -46,6 +65,16 @@ export interface WidgetItem {
   title: string;
   /** 是否隐藏标题栏 */
   hideTitle?: boolean;
+  /**
+   * 贡献该 widget 的模块标识（如 {@code "collect"}），随布局持久化。
+   *
+   * <p>用途：当前应用<b>未启用</b>该模块时（注册表里查不到这个 type），
+   * 渲染成占位卡片并显示「该组件由 collect 模块提供，当前应用未启用」，
+   * 而不是把 widget 丢弃 —— 位置得以保留，切回有该模块的 app 即可复原。</p>
+   *
+   * <p>由内置目录派生的 widget 不带此字段（内置 widget 在所有 app 中都可用）。</p>
+   */
+  source?: string;
   /** 自定义组件配置（仅 type === 'custom' 时使用） */
   config?: CustomWidgetConfig;
   /** 便签组件配置（仅 type === 'note' 时使用） */
@@ -126,9 +155,17 @@ export interface HomeLayoutState {
 
 /** 自定义组件（iframe 嵌入）配置 */
 export interface CustomWidgetConfig {
-  url: string;
-  /** iframe 高度模式：100% 跟随父容器 / 固定像素 */
-  heightMode: "fill" | "fixed";
+  /**
+   * iframe 地址。
+   *
+   * <p>可选而非必填：新建 widget 时并不带 config（见 home/index.vue 的 addWidget），
+   * 配置也在设置弹窗里才补齐；未配置时 CustomWidget 走 `hasUrl === false` 分支提示去设置。
+   * 此前声明为必填，会让 `props.config ?? {}`、`initialConfig: () => ({})` 这类
+   * 真实存在的用法全部报类型错误。</p>
+   */
+  url?: string;
+  /** iframe 高度模式：100% 跟随父容器 / 固定像素；未配置按 "fill" 处理 */
+  heightMode?: "fill" | "fixed";
   /** 固定高度（heightMode === 'fixed' 时生效，单位 px） */
   fixedHeight?: number;
   /** 标题（覆盖默认 widget.title） */
@@ -175,7 +212,17 @@ export const WIDGET_ENVIRONMENT_LABEL: Record<WidgetEnvironment, string> = {
   test: "测试",
 };
 
-export const WIDGET_CATALOG: WidgetCatalogItem[] = [
+/**
+ * 内置 widget 注册项（自注册到 {@link ./registry}）。
+ *
+ * <p>模块求值时即完成注册，早于任何 app 的 {@code main.ts → mount()}，
+ * 因此内置 widget 在任何 app 中都默认可用。各 {@code pages/xx} 随后追加自己的条目，
+ * 顺序即面板视觉顺序（模块贡献的排在内置之后）。</p>
+ *
+ * <p>注意此处<b>不写</b> {@code source}：内置 widget 不依赖任何模块，
+ * 占位卡片对它们没有意义。</p>
+ */
+const BUILTIN_WIDGETS: WidgetRegistration[] = [
   {
     type: "calendar",
     title: "日历",
@@ -186,6 +233,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/CalendarWidget.vue"),
   },
   {
     type: "custom",
@@ -197,6 +245,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "test",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/CustomWidget.vue"),
   },
   {
     type: "note",
@@ -208,6 +257,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/NoteWidget.vue"),
   },
   {
     type: "client-info",
@@ -219,6 +269,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/ClientInfoWidget.vue"),
   },
   {
     type: "system-config",
@@ -230,6 +281,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "admin",
     maxCount: 1,
+    component: () => import("./widgets/SystemConfigWidget.vue"),
   },
   {
     type: "alarm",
@@ -241,6 +293,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/AlarmWidget.vue"),
   },
   {
     type: "bookmark",
@@ -252,6 +305,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/BookmarkWidget.vue"),
   },
   {
     type: "quick-access",
@@ -263,39 +317,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
-  },
-  {
-    type: "online-user",
-    title: "在线用户",
-    description: "实时在线用户数与列表",
-    icon: "User",
-    defaultSize: { w: 5, h: 4 },
-    category: "admin",
-    environment: "prod",
-    requiredPermission: "admin",
-    maxCount: 1,
-  },
-  {
-    type: "server-status",
-    title: "服务器状态",
-    description: "被监控服务器健康概览",
-    icon: "Monitor",
-    defaultSize: { w: 6, h: 4 },
-    category: "admin",
-    environment: "prod",
-    requiredPermission: "admin",
-    maxCount: 1,
-  },
-  {
-    type: "server-metrics",
-    title: "服务器指标",
-    description: "CPU / 内存实时环形图",
-    icon: "DataLine",
-    defaultSize: { w: 6, h: 4 },
-    category: "admin",
-    environment: "prod",
-    requiredPermission: "admin",
-    maxCount: 1,
+    component: () => import("./widgets/QuickAccessWidget.vue"),
   },
   {
     type: "weather",
@@ -307,12 +329,12 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
+    component: () => import("./widgets/WeatherWidget.vue"),
   },
 ];
 
-export function findWidgetCatalogItem(type: WidgetType): WidgetCatalogItem {
-  return WIDGET_CATALOG.find((w) => w.type === type) ?? WIDGET_CATALOG[0];
-}
+// 自注册：必须在本模块求值时完成，早于 app 的 mount() 与各 pages 模块的贡献
+registerWidgets(BUILTIN_WIDGETS);
 
 /**
  * 按当前用户权限过滤 widget 目录。
@@ -323,6 +345,10 @@ export function findWidgetCatalogItem(type: WidgetType): WidgetCatalogItem {
  *
  * 角色字面量（"admin" / "superadmin" / 自定义）由 app.yaml permissionConfig 提供，
  * canAccess() 内部统一读取，避免业务代码硬编码。
+ *
+ * @param catalog 待过滤的目录（通常传响应式 {@code widgetCatalog.value}，以便模块贡献的 widget 也能被看到）
+ * @param userPermission 当前用户权限等级
+ * @returns 该用户可见的目录条目
  */
 export function filterCatalogByPermission(
   catalog: WidgetCatalogItem[],

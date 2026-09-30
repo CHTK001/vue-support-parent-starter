@@ -97,9 +97,7 @@
 </template>
 
 <script setup lang="ts" name="CalendarWidget">
-// @ts-nocheck
 
-// @ts-nocheck
 /**
  * 日历 widget（el-calendar + IndexedDB 持久化）
  *
@@ -109,8 +107,10 @@
 import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Calendar, Plus, Sunny } from "@element-plus/icons-vue";
-import { getCalendarStore, type CalendarEvent } from "./calendarStore";
-import { CATEGORY_OPTIONS, categoryColor, type CalendarCategory } from "./calendarCategories";
+// CalendarCategory 由 calendarStore 定义（calendarCategories 只导入未再导出），
+// 从来源直接取，避免依赖一个并不存在的再导出
+import { getCalendarStore, type CalendarCategory, type CalendarEvent } from "./calendarStore";
+import { CATEGORY_OPTIONS, categoryColor } from "./calendarCategories";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
 

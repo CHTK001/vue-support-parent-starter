@@ -126,6 +126,23 @@ export interface JobLog {
   triggerTime: number | null;
 }
 
+/**
+ * 单次执行的日志正文（JobLogContentVO）。
+ *
+ * 日志行的 message 截断在 4000 字符且只是「结果说明」，长任务的业务日志会被截掉；
+ * 完整正文在每次执行一个的日志文件里，filePath 就是它的相对路径。
+ */
+export interface JobLogContent {
+  /** 日志文件相对路径；文件日志未启用时为空串 */
+  filePath: string;
+  /** 文件是否存在；false 表示本节点没开文件日志，或文件已被清理 */
+  exists: boolean;
+  /** 文件超过读取上限、只返回了尾部 */
+  truncated: boolean;
+  /** 日志正文 */
+  content: string;
+}
+
 /** 调度概览（JobSummaryVO） */
 export interface JobSummary {
   /** SCHEDULER / EXECUTOR / SINGLE */

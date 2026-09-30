@@ -76,6 +76,7 @@ import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import CadPreviewPanel from "../components/CadPreviewPanel.vue";
 import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
+import { parseExpiryToSeconds } from "../utils/expiry";
 import { fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
@@ -1066,6 +1067,10 @@ function saveBlob(blob: Blob, name: string): void {
 
 /** 智能下载：单文件走直链；多个对象或含目录时服务端打包 ZIP */
 async function smartDownload(keys: string[]): Promise<void> {
+  // 下载的统一入口：门禁放这里，所有调用方（右键下载、批量打包、工具栏）都覆盖到
+  if (!guardDownload()) {
+    return;
+  }
   if (!keys.length) {
     ElMessage.warning("请先选择对象");
     return;
@@ -1410,6 +1415,39 @@ const allowPreview = computed(() => bucketConfig.value?.openPreview ?? true);
 const allowDownload = computed(() => bucketConfig.value?.openDownload ?? true);
 /** 当前桶是否私有（私有桶请求需登录令牌） */
 const bucketPrivate = computed(() => bucketConfig.value?.private ?? false);
+
+/**
+ * 预览前的开关门禁
+ *
+ * <p>服务端对「预览被关闭」返回 403，但前端不能等它报错：用户点的是「预览」，
+ * 却弹出一个失败提示或**一个意料之外的下载**，都比提前拦住更糟。
+ * 这里统一拦下并说明去哪里改。</p>
+ *
+ * <p>特别地：预览被关闭时**绝不自动改成下载**——那是把一种被禁止的访问
+ * 悄悄换成另一种用户没要求的访问。</p>
+ *
+ * @returns 允许预览返回 true；否则给出提示并返回 false
+ */
+function guardPreview(): boolean {
+  if (allowPreview.value) {
+    return true;
+  }
+  ElMessage.warning("该存储桶已关闭预览，可在「系统配置 → 允许预览」中开启");
+  return false;
+}
+
+/**
+ * 下载前的开关门禁
+ *
+ * @returns 允许下载返回 true；否则给出提示并返回 false
+ */
+function guardDownload(): boolean {
+  if (allowDownload.value) {
+    return true;
+  }
+  ElMessage.warning("该存储桶已关闭下载，可在「系统配置 → 允许下载」中开启");
+  return false;
+}
 
 function enterDir(row: StorageObject): void {
   currentPath.value = fullKey(row.name);
@@ -2229,10 +2267,16 @@ const previewTitle = computed(() => {
 
 
 async function openPreview(row: StorageObject): Promise<void> {
+  // 开关门禁必须在最前面：预览被关闭时既不能打开预览弹框，
+  // 也不能「因为不能预览就自动下载」。
+  if (!guardPreview()) {
+    return;
+  }
   previewName.value = row.name;
   previewKey.value = fullKey(row.name);
   previewError.value = false;
   previewForceServer.value = false;
+  previewUsePdf.value = false;
   previewInnerPath.value = "";
   officeLoading.value = false;
   iframeLoading.value = true;
@@ -2351,6 +2395,15 @@ function backToArchive(): void {
  */
 const previewForceServer = ref(false);
 
+/**
+ * 是否让服务端把文档转成 PDF 后再给 iframe
+ *
+ * <p>客户端组件吃不下、且服务端也没有 HTML 渲染器时（实测 OLE2 的 .doc/.xls），
+ * 改走 {@code ?format=pdf}：服务端用 Aspose 转成 PDF，浏览器内置 PDF 阅读器渲染。
+ * 这条通道由 {@code PreviewOfficePanel} 探测后通过 {@code channel: "pdf"} 告知。</p>
+ */
+const previewUsePdf = ref(false);
+
 /** 客户端渲染加载中状态 */
 const officeLoading = ref(false);
 
@@ -2370,9 +2423,13 @@ const officePanelRef = ref<InstanceType<typeof PreviewOfficePanel>>();
 const previewFrameSrc = computed(() => {
   const base = previewSrc.value;
   const sep = base.includes("?") ? "&" : "?";
-  const server = previewForceServer.value ? `&render=${RENDER_SERVER}` : "";
+  // 兜底通道互斥：能转 PDF 就**不**再要求服务端渲染，否则地址里会同时出现
+  // render=server 与 format=pdf（两个参数语义冲突，虽然 PDF 分支先命中没错，
+  // 但地址自相矛盾会让排查的人以为有两条通道在打架）。
+  const pdf = previewUsePdf.value ? "&format=pdf" : "";
+  const server = previewForceServer.value && !previewUsePdf.value ? `&render=${RENDER_SERVER}` : "";
   const inner = previewInnerPath.value ? `&inner=${encodeURIComponent(previewInnerPath.value)}` : "";
-  return `${base}${sep}preview=true${server}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
+  return `${base}${sep}preview=true${server}${pdf}${inner}${iframeKey.value > 0 ? `&_t=${iframeKey.value}` : ""}`;
 });
 
 
@@ -2391,13 +2448,35 @@ function onOfficeRendered(): void { officeLoading.value = false; previewLoading.
  * 追加 {@code render=server} 让后端改走 SPI 提供者 / ConvertSupport，
  * 覆盖"客户端组件无法解析该文档"的情况（如个别非标准 OOXML 文件）。
  */
-function onOfficeError(): void {
+/**
+ * 客户端直渲染失败：按失败原因决定去向。
+ *
+ * <p>「不要再退回服务端」与「可以退回服务端」必须分开：</p>
+ * <ul>
+ *   <li>{@code noFallback}</li> 内容损坏（服务端拿到的还是同一堆坏字节），
+ *       或服务端也没有该格式的渲染器（实测 OLE2 的 .xls）。此时退回只会把面板
+ *       自己的中文提示顶掉，换成一个空白/乱码的 iframe。保留面板、清掉骨架屏。
+ *   <li>否则：追加 {@code render=server} 走 SPI / 转换链路。
+ * </ul>
+ *
+ * @param payload 失败信息
+ */
+function onOfficeError(payload?: { noFallback?: boolean; reason?: string; channel?: "server" | "pdf" }): void {
   officeLoading.value = false;
-  if (!previewForceServer.value) {
+  if (payload?.noFallback) {
+    // 面板自己会展示 failReason，这里只负责把骨架屏撤掉并保持该面板挂载
+    previewLoading.value = false;
+    previewError.value = false;
+    return;
+  }
+  if (!previewForceServer.value && !previewUsePdf.value) {
+    // 按探测结果选兜底通道：能转 PDF 就转 PDF，否则退回服务端渲染
+    previewUsePdf.value = payload?.channel === "pdf";
     previewForceServer.value = true;
     return;
   }
-  // 已退回服务端仍失败，交给通用错误态
+  // 已退回兜底通道仍失败，交给通用错误态
+  previewUsePdf.value = false;
   previewError.value = true;
 }
 
@@ -2429,7 +2508,12 @@ onUnmounted(() => { document.removeEventListener("keydown", onPreviewKeydown); }
 
 /* ================== 下载 / 检查 / 删除 ================== */
 
-function handleDownload(row: StorageObject): void { window.open(objectUrl(bucket.value, fullKey(row.name), true), "_blank"); }
+function handleDownload(row: StorageObject): void {
+  if (!guardDownload()) {
+    return;
+  }
+  window.open(objectUrl(bucket.value, fullKey(row.name), true), "_blank");
+}
 
 async function handleExist(row: StorageObject): Promise<void> {
   try {
@@ -2490,34 +2574,11 @@ const quickExpiryBusy = ref(false);
 const quickExpiryResult = ref("");
 const quickExpiryTarget = ref<{ name: string; key: string }>();
 
-/**
- * 把用户输入的过期时长解析成秒
- *
- * <p>支持纯数字（按秒）、以及 s/m/h/d 后缀（与后端 {@code parseOneTimeExpiry}
- * 的解析规则一致，避免前后端对同一个字符串理解不同）。</p>
- *
- * @param text 原始输入
- * @returns 秒数；非法或超出范围返回 0
+/*
+ * 过期时长解析已抽到 {@link parseExpiryToSeconds}（utils/expiry.ts）。
+ * 抽出来的原因：它与后端 parseOneTimeExpiry 是一份跨端约定，
+ * 内嵌在 SFC 里既没法单测，改规则时也极易只改一处。
  */
-function parseExpiryToSeconds(text: string): number {
-  const v = text.trim().toLowerCase();
-  if (!v) {
-    return 0;
-  }
-  const m = /^(\d+(?:\.\d+)?)\s*(s|m|h|d)?$/.exec(v);
-  if (!m) {
-    return 0;
-  }
-  const n = Number(m[1]);
-  if (!Number.isFinite(n) || n <= 0) {
-    return 0;
-  }
-  const unit = m[2];
-  const factor = unit === "s" ? 1 : unit === "m" ? 60 : unit === "h" ? 3600 : unit === "d" ? 86400 : 1;
-  const seconds = Math.floor(n * factor);
-  // 上限与后端一致：30 天。再长就交给服务端拒绝，避免本地算出超大值才报错
-  return seconds > 0 && seconds <= 30 * 86400 ? seconds : 0;
-}
 
 /** 打开「自定义过期时间」弹框（右键直达，不经过一次性/限时二选一那一步） */
 function openQuickExpiry(row: StorageObject): void {
@@ -3102,13 +3163,14 @@ onUnmounted(() => {
       >
         <template v-if="ctxMenu.row">
           <button
+            v-if="ctxMenu.row!.directory || allowPreview"
             type="button"
             class="fs-ctx__item"
             role="menuitem"
             @click="ctxAction(ctxMenu.row!.directory ? 'open' : 'preview')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            {{ ctxMenu.row!.directory ? '打开' : allowPreview ? '预览' : '打开' }}
+            {{ ctxMenu.row!.directory ? '打开' : '预览' }}
           </button>
           <button
             v-if="!ctxMenu.row!.directory && allowDownload"
@@ -3173,7 +3235,13 @@ onUnmounted(() => {
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Scissor /></el-icon>
             剪切
           </button>
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('zip')">
+          <button
+            v-if="allowDownload"
+            type="button"
+            class="fs-ctx__item"
+            role="menuitem"
+            @click="ctxAction('zip')"
+          >
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Files /></el-icon>
             压缩下载
           </button>

@@ -680,7 +680,10 @@ export const eduaiApi = {
   studentLogin: async (data: { username: string; password: string }) => {
     const res = await http()
       .post("/v2/user/login")
-      .data({ ...data, accountType: "student" } as unknown as Record<string, unknown>)
+      // authType 决定 OAuth 服务端用哪个认证实现：STUDENT 对应其
+      // StudentLoginService（查 edu_student）。accountType 仍一并传，
+      // 供不区分 authType 的链路（如 static）识别账号来源。
+      .data({ ...data, authType: "STUDENT", accountType: "student" } as unknown as Record<string, unknown>)
       .then<{ accessToken?: string; [k: string]: unknown } | undefined>(unwrap);
     if (res?.accessToken) {
       setAccessToken(res.accessToken);

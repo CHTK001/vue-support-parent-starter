@@ -656,15 +656,30 @@ function editFromDetail(): void {
   openEdit(job);
 }
 
-/** 详情里的「查看日志」：跳到作业日志页并按该任务预筛，补齐「任务 → 它的执行历史」这条动线 */
+/**
+ * 跳到作业日志页并按该任务预筛。
+ *
+ * 列表行的「更多 → 查看日志」与详情弹层底部的「查看日志」共用这一条动线：
+ * 两处各写一份跳转参数，日后只改其一会让入口行为分叉。
+ *
+ * @param job 台账行
+ */
+function openLogs(job: JobRuntime): void {
+  if (!job?.jobKey) {
+    return;
+  }
+  // 本宿主口径可能是 /collect/job-log（采集）或 /job/log（系统管理），按路由表择一
+  void router.push({ path: resolveHostPath(router, "/collect/job-log"), query: { jobKey: job.jobKey } });
+}
+
+/** 详情里的「查看日志」：关掉弹层再跳，补齐「任务 → 它的执行历史」这条动线 */
 function logsFromDetail(): void {
   const job = detail.value;
   if (!job) {
     return;
   }
   detailVisible.value = false;
-  // 本宿主口径可能是 /collect/job-log（采集）或 /job/log（系统管理），按路由表择一
-  void router.push({ path: resolveHostPath(router, "/collect/job-log"), query: { jobKey: job.jobKey } });
+  openLogs(job);
 }
 
 /** 后续执行时间点预览弹层：显隐与内容 */
@@ -1519,6 +1534,9 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           </button>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item :disabled="Boolean(busyKey)" @click="openLogs(row as unknown as JobRuntime)">
+                查看日志
+              </el-dropdown-item>
               <el-dropdown-item
                 v-if="canPreviewFireTimes(row as unknown as JobRuntime)"
                 :disabled="Boolean(busyKey)"
@@ -2411,23 +2429,14 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
 }
 
 /*
-  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
-  ReTable 根节点只有圆角与底色、没有描边，这层边框由页面补；不加投影。
+  ReTable 的卡片外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由插件提供，
+  页面不再自行补边：见 packages/ui ReTable/shared/table-vars.css 与
+  ReTable.vue 的 `.re-table` / `.re-table--separated` 规则。
 */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-bg-color);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration, 0.2s) ease;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
 
-/* 尊重系统「减少动态效果」偏好：把本页的过渡全部关掉 */
+/* 尊重系统「减少动态效果」偏好：把本页自己的过渡关掉
+   （ReTable 的过渡由插件自带的同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.re-table),
   .job-action__more,
   .task-form__type-card {
     transition: none;

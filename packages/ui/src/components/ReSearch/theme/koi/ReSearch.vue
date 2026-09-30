@@ -664,4 +664,45 @@ function ariaOf(filter: { label?: string; placeholder?: string }): string | unde
     margin-left: 0;
   }
 }
+
+/* ===== 形状语言：胶囊输入 / 胶囊按钮 / 主按钮渐变 =====
+   koi 主题里输入类控件与按钮统一胶囊形，与胶囊分页、胶囊主按钮同族；
+   默认 el-input / el-select 的 4px 方角在 koi 下会与胶囊控件并存两种形状语言。
+   这些是 element-plus 子组件的内部节点，scoped 下必须走 :deep()（本文件首处使用）。 */
+.koi-search :deep(.el-input__wrapper),
+.koi-search :deep(.el-select__wrapper) {
+  border-radius: var(--el-radius-full, 9999px);
+}
+.koi-search :deep(.el-button) {
+  border-radius: var(--el-radius-full, 9999px);
+}
+
+/* 主按钮（搜索）：主色渐变 + 投影，hover 抬升一格。
+   渐变第二色由主色与 info 色 mix 出，不写死色值，跟随主题换色。 */
+.koi-search :deep(.el-button--primary) {
+  border: none;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    color-mix(in srgb, var(--el-color-primary) 55%, var(--el-color-info))
+  );
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  transition:
+    transform var(--rs-transition, 0.2s ease),
+    box-shadow var(--rs-transition, 0.2s ease);
+}
+.koi-search :deep(.el-button--primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+/* 尊重系统「减少动态效果」偏好：只去掉过渡与抬升，颜色反馈保留 */
+@media (prefers-reduced-motion: reduce) {
+  .koi-search :deep(.el-button--primary) {
+    transition: none;
+  }
+  .koi-search :deep(.el-button--primary:hover) {
+    transform: none;
+  }
+}
 </style>

@@ -33,9 +33,19 @@ export interface IndexedDBStoreOptions {
   version?: number;
 }
 
+/**
+ * 记录约束：只要求有主键字段。
+ *
+ * <p>此前这里带了一个索引签名 {@code [key: string]: unknown}，但它并不被任何实现用到
+ * —— {@link IndexedDBStore.put} / {@link IndexedDBStore.putAll} 都是把值原样交给原生
+ * {@code store.put()}（形参类型 any），{@code get/getAll} 只是把 T 当取值泛型。</p>
+ *
+ * <p>索引签名放在泛型约束上是 TS 反模式：它要求所有实现者都能当
+ * {@code Record<string, unknown>} 用，于是 home 模块的 5 个模型
+ * （Alarm / Bookmark / CalendarEvent / Note / QuickItem）虽然都有 id，却因为没有索引签名
+ * 而全部不满足约束，凭空报出 12 个 "does not satisfy the constraint 'WithId'"。约束只需主键。*/
 interface WithId {
   id: string | number;
-  [key: string]: unknown;
 }
 
 const DEFAULT_DB = "koi-home-db";

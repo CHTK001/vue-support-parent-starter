@@ -85,9 +85,7 @@
 </template>
 
 <script setup lang="ts" name="homePage">
-// @ts-nocheck
 
-// @ts-nocheck
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { debounce, getDayText } from "@repo/utils";
@@ -103,7 +101,8 @@ import WidgetRenderer from "./WidgetRenderer.vue";
 import WidgetSettingsDialog from "./widgets/WidgetSettingsDialog.vue";
 import { useHomeLayout } from "./useHomeLayout";
 import { preloadWidgetComponents } from "./useWidgetLoader";
-import { filterCatalogByPermission, findWidgetCatalogItem, WIDGET_CATALOG } from "./widgets";
+import { filterCatalogByPermission } from "./widgets";
+import { getWidgetRegistration, getWidgetRegistrations, widgetCatalog } from "./registry";
 import type { GridPosition, WidgetItem, WidgetType } from "./types";
 
 const authStore = useAuthStore();
@@ -187,8 +186,10 @@ function flushAutoSave(): void {
  */
 const currentPermission = computed(() => getUserPermission());
 
+// 用注册表的响应式目录：各 pages 模块是在 app 的 mount() 阶段注册的，
+// 模块求值期就固定下来的静态数组看不到它们贡献的 widget
 const filteredCatalog = computed(() =>
-  filterCatalogByPermission(WIDGET_CATALOG, currentPermission.value),
+  filterCatalogByPermission(widgetCatalog.value, currentPermission.value),
 );
 
 const availableCatalog = computed(() =>
@@ -224,14 +225,31 @@ function computeNextPosition(defaultSize: { w: number; h: number }): { x: number
 }
 
 function addWidget(type: WidgetType): void {
-  const catalog = findWidgetCatalogItem(type);
+  // 查注册表而非「内置目录」：面板上能点到的条目也包括各 pages 模块贡献的，
+  // 只查内置目录会拿到错误的 maxCount / defaultSize，并丢掉 source
+  // （source 必须随 widget 落盘，缺少该模块的 app 才能显示占位卡片文案）
+  const reg = getWidgetRegistration(type);
+  if (!reg) {
+    ElMessage.warning(`组件「${type}」在当前应用未注册`);
+    return;
+  }
+  const { component: _c, iconComponent: _i, source, ...catalog } = reg;
   const counted = state.widgets.filter((w) => w.type === type).length;
   if (counted >= catalog.maxCount) {
     ElMessage.warning(`「${catalog.title}」最多添加 ${catalog.maxCount} 个`);
     return;
   }
   const id = nextId();
-  const widget = { id, type: catalog.type, title: catalog.title, appearance: { shadow: "soft" } };
+  // 显式标注类型：否则对象字面量里的 "soft" 会被推断成 string，
+  // 与 WidgetAppearance.shadow 的联合类型（WidgetShadowLevel）对不上
+  const widget: WidgetItem = {
+    id,
+    type: catalog.type,
+    title: catalog.title,
+    appearance: { shadow: "soft" },
+    // 内置 widget 没有 source（它们在所有 app 中都可用）
+    ...(source ? { source } : {}),
+  };
   const pos = computeNextPosition(catalog.defaultSize);
   state.widgets.push(widget);
   state.grid.push({ i: id, ...pos });
@@ -291,7 +309,9 @@ function saveLayout(): void {
 
 onMounted(() => {
   load();
-  preloadWidgetComponents(["calendar", "custom", "note", "client-info", "system-config", "alarm", "bookmark", "quick-access", "weather"]);
+  // 预热全部已注册类型：写死内置 9 个会让模块贡献的 widget 首次显示时多一次 loading 闪烁，
+  // 而新下线一个内置 widget 又必然漏改这里（与已修掉的 WIDGET_CATALOG / LOADER_MAP 漂移同类）
+  preloadWidgetComponents(getWidgetRegistrations().map((r) => r.type));
 });
 
 onBeforeUnmount(() => {

@@ -1008,14 +1008,23 @@ onBeforeUnmount(() => {
   border: 1px solid var(--is-border);
   background: var(--is-overlay);
   box-shadow: 0 4px 18px color-mix(in srgb, var(--el-color-black, #000) 14%, transparent);
+  /* 浮层自身不接收指针事件，只有按钮接收。
+     为什么必须这样：收窄成参考栏后画布高度 = 图片等比高度
+     （实测 259×480/640 = 194px），而底部横排的操作卡换行后高 97px，
+     正好盖住画布下半。若浮层照常吃点击，用户点图片（尤其最自然的「中心」）
+     会打在卡片的留白上，viewerjs 放大对查询图等于不可用。
+     卡片背景与内边距是装饰，不该成为点击目标。 */
+  pointer-events: none;
 }
 
+/* 按钮恢复可交互：留白穿透、按钮照常命中 */
 .is-actcard-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   width: 132px;
+  pointer-events: auto;
   padding: 9px 12px;
   border: 1px solid var(--is-primary-line);
   border-radius: var(--is-radius-sm);
