@@ -27,6 +27,9 @@ export * from "./types/collect";
 // 需要数据源台账的类型时，直接从 @pages/datasource 引。
 export type { CollectColumn } from "./types/collect";
 
+// 采集侧贡献给 home 仪表板的 widget（app 侧用 .widgets(defineWidgetContribution(collectWidgets)) 接线）
+export { collectWidgets } from "./widgets/collectWidgets";
+
 // 采集侧的通用小件：平台总览（跑在 app 里）与包内视图都要用，故一并导出
 export * from "./constants/taskStatus";
 // 操作列全局配置：包内视图与宿主 app 共用同一份动作元数据

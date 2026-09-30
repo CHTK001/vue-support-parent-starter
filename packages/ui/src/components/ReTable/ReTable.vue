@@ -65,24 +65,30 @@ import "./shared/table-vars.css";
 import Sortable from "sortablejs";
 import { useRoute } from "vue-router";
 /**
- * vxe 的两个组件走「运行时从 vxe-table 导入 + 只用组件、不碰实例类型」的路子。
+ * vxe 的两个组件用具名导入。
  *
- * <p>为什么不能写具名导入：{@code vxe-table@4.22.2} 的 types/all.d.ts 把
- * VxeTable / VxeColumn 只声明在 {@code AllComponents} 接口里（第 41、49 行），
- * 靠 {@code declare module '@vue/runtime-core'} 注册成全局组件；具名导出的只有
- * 已废弃的 {@code VXETable}、{@code install} 和六个 {@code export *}。
- * 所以 {@code import { VxeTable } from "vxe-table"} 类型层报 TS2724
- * —— 但它在**运行时是存在的**（all.esm.js 里有具名导出），vue-tsc 不认而已。
+ * <p><b>这里踩过一个坑，务必别改回默认导入。</b>vxe-table@4.22.2 的
+ * {@code es/index.esm.js} 是
+ * {@code import * as VxeUITableExport from './components'; export default VxeUITableExport;}
+ * —— 默认导出是<b>整个模块的命名空间对象</b>，不是表格组件。
+ * 写 {@code import VxeTable from "vxe-table"} 运行时拿到 {@code [object Module]}，
+ * Vue 报 "Component is missing template or render function"，表格直接渲染不出来。
+ * 4.6.25 的默认导出才是组件本体，升到 4.22.2 后这条路就断了。</p>
  *
- * <p>另一条路（从 vxe-pc-ui/types/components/* 直接导入）也不行：
- * 那个子路径在包内没有对应的 {@code exports} 映射，TS2307。
+ * <p>{@code VxeColumn} 同理必须具名导入：vxe 虽提供 {@code install(app)} 会把组件
+ * 注册成全局，但<b>全仓没有任何地方调用 {@code app.use(vxe-table)}</b>，
+ * 依赖全局注册会在运行时报 "Failed to resolve component: VxeColumn"。</p>
  *
- * <p>所以这里用默认导入拿运行时对象：{@code VxeTable} 挂在 {@code <VxeTable>} 标签上，
- * {@code VxeColumn} 走全局组件名（vxe-table 通过 install 注册到 app.component），
- * 不做 import。实例方法一律走下面 {@link TableInstanceHandle} 的结构声明，
- * 两者互不依赖，也就不会触发 InstanceType 相关的 TS2339 / TS2344。</p>
+ * <p>类型层同样是具名导出可用的：{@code types/all.d.ts} 里有
+ * {@code export * from 'vxe-pc-ui/types/components/table'}，而那个文件里
+ * {@code export declare const VxeTable: DefineVxeComponentApp<...>} 明明白白。
+ * （此前误判为"具名导入会报 TS2724"，真实原因是当时 {@code vxe-pc-ui} 根本没装，
+ * 类型链断在根上；补装 vxe-pc-ui@4.18.19 后该误判自动消失。）</p>
+ *
+ * <p>实例方法不靠 {@code InstanceType} 推断，改为下方 {@link TableInstanceHandle}
+ * 的结构声明，避免 vue-tsc 推不出运行期挂上去的方法（TS2339/TS2344）。</p>
  */
-import VxeTable from "vxe-table";
+import { VxeTable, VxeColumn } from "vxe-table";
 import "vxe-table/lib/style.css";
 import type {
   ReCardLayoutProps,
@@ -615,9 +621,6 @@ function toggleBatchSelect(): void {
 function exitDragMode(): void {
   if (!dragMode.value) return;
   dragMode.value = false;
-  stopVxeTbodyObserver();
-  vxeSortableInstance.value?.destroy();
-  vxeSortableInstance.value = null;
   destroySortable();
   vxeDragData.value = [];
   dragChanged.value = false;
@@ -876,15 +879,33 @@ const sortableInitLock = ref(false);
  * vxe-table 的 cell-click / cell-menu 事件载荷（按结构声明）。
  *
  * <p>不能用库的 {@code CellClickEventParams}：它不在 "vxe-table" 根的导出面上
- * （见 import 处注释）。本函数只读取 row / column 的四个字段，故声明这四个即可 ——
- * 模板绑定处 vue-tsc 拿本类型与库的 {@code CellClick<D>} 比对，
- * 形参类型只要是库载荷类型的**超集**就能通过。</p>
+ * （见 import 处注释）。本函数只读取 row / column 的四个字段，故只声明这些。</p>
+ *
+ * <p>注意 {@code $event} 用 {@code Event} 而不是 {@code MouseEvent}：库声明的
+ * {@code CellClick<D>} / {@code CellMenu<D>} 把载荷类型定在 {@code VxeEvent} 上，
+ * 形参若窄于它（写 MouseEvent），在 TS 的函数参数逆变检查下不兼容，模板绑定处报 TS2322。
+ * 用更宽的 {@code Event} 才能接住 —— 函数体内只用 {@code clientX/clientY}，
+ * 那两个字段 Event 上也有（DOM 规范）。</p>
  */
 interface VxeCellEvent {
   row: Record<string, unknown>;
   rowIndex: number;
-  column?: { field?: string; property?: string; title?: string; label?: string };
-  $event: MouseEvent;
+  /**
+   * 列对象。
+   *
+   * <p>{@code title} 必须放宽成 {@code string | number}：vxe 自己的
+   * {@code Title} 类型允许 number，而本接口早先写死 string，模板绑定处
+   * TS2322 报「Title 不能赋给 string」。同理 field/label 也放宽到
+   * {@code unknown} 之外的实际用到的类型即可 —— 函数体内对它们都做了
+   * {@code String()} 之外的直接读取，故保持 string | number。</p>
+   */
+  column?: {
+    field?: string;
+    property?: string;
+    title?: string | number;
+    label?: string;
+  };
+  $event: Event;
 }
 
 /**
@@ -939,141 +960,36 @@ function recalcTable(): void {
   }
 }
 
-const vxeSortableInstance = ref<ReturnType<typeof Sortable.create> | null>(null);
-let vxeTbodyObserver: MutationObserver | null = null;
-const vxeRenderKey = ref(0);
-
-/** 查找VXE主tbody（排除fixed区域） */
-function findVxeMainTbody(): HTMLElement | null {
-  const mainWrapper = document.querySelector(
-    ".vxe-table--body-wrapper.body--wrapper"
-  ) as HTMLElement | null;
-  if (!mainWrapper) return null;
-  const tbody = mainWrapper.querySelector("tbody") as HTMLElement | null;
-  if (!tbody || tbody.children.length === 0) return null;
-  const rect = tbody.getBoundingClientRect();
-  if (rect.width === 0) return null;
-  return tbody;
-}
-
-/** 初始化VXE表格Sortable拖拽 */
-function initVxeSortable(): boolean {
-  const vxeTbody = findVxeMainTbody();
-  if (!vxeTbody) {
-    return false;
-  }
-  // 已绑定在同一个tbody上则跳过，避免重复创建导致document事件残留冲突
-  const inst = vxeSortableInstance.value as unknown as { el?: HTMLElement } | null;
-  if (inst && inst.el === vxeTbody) return true;
-  vxeSortableInstance.value?.destroy();
-  vxeSortableInstance.value = null;
-  vxeSortableInstance.value = Sortable.create(vxeTbody, {
-    handle: ".vxe-drag-handle",
-    draggable: "tr",
-    animation: 180,
-    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-    ghostClass: "vxe-drag-ghost",
-    chosenClass: "vxe-drag-chosen",
-    fallbackClass: "drag-sort-fallback",
-    forceFallback: true,
-    fallbackOnBody: true,
-    fallbackTolerance: 3,
-    scroll: true,
-    onChoose: () => {
-      document.body.style.userSelect = "none";
-      document.body.style.webkitUserSelect = "none";
-    },
-    onUnchoose: () => {
-      document.body.style.userSelect = "";
-      document.body.style.webkitUserSelect = "";
-    },
-    onEnd: (evt) => {
-      document.body.style.userSelect = "";
-      document.body.style.webkitUserSelect = "";
-      // forceFallback + fallbackOnBody 会把拖影挂到 body 上，Sortable 自己不移除。
-      // 不清就会在页面上留一个孤儿节点。类名与上面 Sortable 配置一一对应。
-      document
-        .querySelectorAll(
-          ".drag-sort-fallback, .drag-sort-ghost, .drag-sort-chosen, .drag-sort-drag, .vxe-drag-fallback, .vxe-drag-ghost, .vxe-drag-chosen",
-        )
-        .forEach((el) => el.remove());
-      const { oldIndex, newIndex, item } = evt;
-      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-      // Sortable(forceFallback) 移动后的真实 DOM 即目标顺序，无需手动还原；
-      // 纯数据驱动：先按目标顺序重排，再交换这两行原有的排序字段值（仅两条记录变更）
-      const oldList = vxeDragData.value;
-      const movedRow = oldList[oldIndex];
-      const targetRow = oldList[newIndex];
-      const movedSort = movedRow[props.sortField];
-      const targetSort = targetRow[props.sortField];
-      const list = [...oldList];
-      const [moved] = list.splice(oldIndex, 1);
-      list.splice(newIndex, 0, moved);
-      // 交换发生在 list 内同一批行对象上，保证 VXE 渲染读取到的就是交换后的值
-      movedRow[props.sortField] = targetSort;
-      targetRow[props.sortField] = movedSort;
-      vxeDragData.value = list;
-      sortedRows.value = list;
-      dragChanged.value = true;
-      // 拖拽过程中 Sortable 移动过真实 tr，会破坏 VXE 内部 tr-行映射；
-      // 更新数据后递增 key，让 VXE 销毁并按新数据全新渲染，保证顺序与字段正确
-      vxeRenderKey.value++;
-    },
-  });
-
-  // VXE 重挂载后重新绑定 Sortable
-  watch(vxeRenderKey, async () => {
-    if (!dragMode.value) return;
-    for (let i = 0; i < 10; i++) {
-      await nextTick();
-      await waitFrame();
-      if (initVxeSortable()) break;
-    }
-    // 重挂载后 VXE $el 是全新节点，重新监听并确保 Sortable 绑定
-    startVxeTbodyObserver();
-  });
-  return true;
-}
-
-/** 启动 VXE tbody 监听：表格重渲染替换 tbody 后自动重绑 Sortable */
-function startVxeTbodyObserver() {
-  stopVxeTbodyObserver();
-  const rootEl = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el
-    || (document.querySelector(".vxe-table") as HTMLElement | null);
-  if (!rootEl || typeof MutationObserver === "undefined") return;
-  let scheduled = false;
-  vxeTbodyObserver = new MutationObserver(() => {
-    if (scheduled || !dragMode.value) return;
-    scheduled = true;
-    nextTick(() => {
-      scheduled = false;
-      if (dragMode.value) initVxeSortable();
-    });
-  });
-  vxeTbodyObserver.observe(rootEl, { childList: true, subtree: true });
-}
-
-function stopVxeTbodyObserver() {
-  if (vxeTbodyObserver) {
-    vxeTbodyObserver.disconnect();
-    vxeTbodyObserver = null;
-  }
-}
-
-/** VXE内置拖拽结束回调 */
-function onVxeDragEnd() {
-  const list = [...vxeDragData.value];
+/**
+ * vxe 内置行拖拽结束回调（绑定 {@code @row-dragend}）。
+ *
+ * <p>vxe 4.8+ 自带行拖拽，开关是 {@code rowConfig.drag}，事件 {@code row-dragend}。
+ * <b>关键</b>：vxe 在派发该事件<b>之前</b>已经把自己的 {@code tableFullData} 重排好了
+ * —— 源码里对 {@code tableFullData} 做 splice 后调 {@code handleTableData} +
+ * {@code updateAfterDataIndex}。所以这里绝不能按载荷里的 oldRow/newRow 再推算一遍顺序，
+ * 那样会把行移动两次。统一从实例 {@code getTableData().fullData} 读回权威顺序。</p>
+ *
+ * <p>原实现的 Sortable + MutationObserver + 递增 key 强制重挂载三件套在此整体删除：
+ * Sortable 直接搬 DOM 会破坏 vxe 内部的 tr↔行映射（原注释自承要用销毁重建来绕），
+ * 而 tbody 又会被虚拟滚动重渲染掉，还得再叠一层 observer 反复重绑 —— 四层补丁互相打架。</p>
+ */
+function onVxeRowDragEnd(): void {
+  const inst = vxeTableRef.value as unknown as
+    | { getTableData?: () => { fullData?: Array<Record<string, unknown>> } }
+    | null;
+  const full = inst?.getTableData?.()?.fullData;
+  // fullData 为空（理论上不该发生）时退回拖拽期快照，不让顺序凭空丢失
+  const list = full && full.length > 0 ? full.map((r) => ({ ...r })) : [...vxeDragData.value];
   list.forEach((row, idx) => {
     row[props.sortField] = idx + 1;
   });
   vxeDragData.value = list;
   sortedRows.value = list;
   // 仅当顺序与原始数据不同时才显示确认按钮
-  const changed = list.some((row, idx) => {
+  dragChanged.value = list.some((row, idx) => {
     const orig = originalRows.value[idx];
     return !orig || row[props.rowKey as string] !== orig[props.rowKey as string];
   });
-  dragChanged.value = changed;
 }
 
 function waitFrame(): Promise<void> {
@@ -1120,22 +1036,10 @@ async function toggleDragMode() {
       await nextTick();
       dragMode.value = true;
       if (useVxe.value) {
-        // vxe 引擎：拖动过程中必须喂快照，否则翻页/外部刷新会覆盖正在拖的顺序
+        // vxe 引擎：拖动过程中必须喂快照，否则翻页/外部刷新会覆盖正在拖的顺序。
+        // 拖拽能力由 vxe 内置的 rowConfig.drag 提供（见 vxeRowConfig），
+        // 无需再手工探测 tbody、绑 Sortable、监听重渲染重绑。
         vxeDragData.value = snapshot;
-        vxeRenderKey.value = 0;
-        await nextTick();
-        // 等待 VXE 表格渲染完成，多轮重试初始化 Sortable
-        for (let i = 0; i < 10; i++) {
-          await nextTick();
-          await waitFrame();
-          if (initVxeSortable()) break;
-        }
-        // 延迟做一次最终重绑，规避 VXE 列宽计算后重渲染替换 tbody
-        window.setTimeout(() => {
-          if (dragMode.value) initVxeSortable();
-        }, 350);
-        // 监听 tbody 替换，自动重绑
-        nextTick(() => startVxeTbodyObserver());
       } else {
         // element 引擎：Sortable 直接作用在 el-table 的 tbody 上，
         // 拖完从 DOM 回读顺序（见 initSortable 的 onEnd），不做数据快照回填
@@ -1147,9 +1051,6 @@ async function toggleDragMode() {
       }
     } else {
       dragMode.value = false;
-      stopVxeTbodyObserver();
-      vxeSortableInstance.value?.destroy();
-      vxeSortableInstance.value = null;
       destroySortable();
       vxeDragData.value = [];
     }
@@ -1238,9 +1139,8 @@ function destroySortable() {
 
 
 function confirmDragSort() {
-  stopVxeTbodyObserver();
   // element 引擎的顺序由 Sortable 在 onEnd 里从 DOM 回读并放进 sortedRows；
-  // vxe 引擎则是拖动过程中直接改 vxeDragData。两边取各自的当前顺序。
+  // vxe 引擎则是内置拖拽结束后从实例读回顺序并写进 vxeDragData。两边各取各自的当前顺序。
   emit("row-sort", {
     row: null,
     fromIndex: -1,
@@ -1256,7 +1156,6 @@ function confirmDragSort() {
 
 /** 取消拖拽排序，放弃修改恢复原始顺序 */
 function cancelDragSort() {
-  stopVxeTbodyObserver();
   destroySortable();
   if (useVxe.value) {
     vxeDragData.value = originalRows.value.map((r) => ({ ...r }));
@@ -1350,6 +1249,9 @@ const vxeRowConfig = computed(() => ({
   keyField: props.rowKey,
   isHover: true,
   isCurrent: localSettings.value.highlightCurrentRow ?? false,
+  // 行拖拽排序：vxe 4.8+ 内置能力，开关就是 rowOpts.drag（源码读的是 drag，不是同名的
+  // isDrag —— 那是列宽 resize 的变量）。只在拖拽排序模式打开，平时保持关闭，避免误拖。
+  drag: dragMode.value ? true : undefined,
 }));
 
 /**
@@ -1409,7 +1311,9 @@ function onVxeCellClick(payload: VxeCellEvent): void {
   const src = payload.column ?? {};
   const column = {
     property: src.field ?? src.property,
-    label: src.title ?? src.label,
+    // title 可能是 number（vxe 的 Title 类型），而 TableColumnCtx.label 是 string，
+    // 这里显式 String() 收口，不依赖 as 断言隐式转换
+    label: src.title != null ? String(src.title) : src.label,
   } as TableColumnCtx<Record<string, unknown>>;
   const event = payload.$event as PointerEvent;
   const cellValue = column.property ? row?.[column.property] : undefined;
@@ -1759,6 +1663,28 @@ function resetColumns(): void {
   loadColumnState();
 }
 
+/**
+ * vxe 引擎：列顺序变化后必须让 VxeTable 重新挂载，否则顺序改动不会生效。
+ *
+ * 原因（已读 vxe 源码确认）：vxe 的槽位式子列（`<VxeColumn v-for>`）在**挂载时按注册
+ * 顺序**给每一列写一次 `renderSortNumber`，真正决定渲染顺序的是它 ——
+ * `table.js` 里 `XEUtils.orderBy(internalData.collectColumn, 'renderSortNumber')`。
+ * 列设置里的「上移 / 下移 / 拖拽」只是把 vnode 换了位置，并不会改这个序号，
+ * 于是设置面板的顺序已经变了、表头却纹丝不动。
+ * 「取消勾选隐藏列」之所以看起来是好的，是因为组件卸载会把它从收集器里摘掉，
+ * 不依赖序号 —— 所以这个 bug 只在**换位置**时暴露。
+ *
+ * 试过 vxe 的 `refreshColumn(true)`（源码注释写「传 true 会检查列顺序并排序」），
+ * 实测**运行时调用不生效**：它内部只是按**旧的** renderSortNumber 再排一次，
+ * 而 `parseColumns` 并不会从当前 vnode 顺序重写这个序号。
+ * （首次挂载时看起来是对的，那是因为挂载本身就是按新顺序收集的，与 refreshColumn 无关。）
+ *
+ * 因此这里用 `:key` 触发重新挂载 —— 挂载即按新顺序收集，这是唯一确定有效的手段。
+ * 代价：换列顺序会重建一次表格（丢失内部滚动位置/选中态）。列设置是用户主动操作，
+ * 这个代价可接受；且 key 只跟**顺序**走，可见性切换不会触发重建（那一路本来就正常）。
+ */
+const vxeColumnKey = computed<string>(() => columnState.value.order.join("|"));
+
 /** 远程（后端分页）数据加载 */
 function buildRemoteSource(): ReDataSource<Array<Record<string, unknown>>> {
   const run = async (): Promise<Array<Record<string, unknown>>> => {
@@ -1810,34 +1736,6 @@ const sourceRef = computed<ReDataSource<Array<Record<string, unknown>>>>(() => {
 
 const { loading: dataLoading, data: dataList, reload: dsReload } = useDataSource<Array<Record<string, unknown>>>(
   sourceRef,
-);
-
-/**
- * pagedRows 变化 → vxe 引擎下重绑行拖拽。
- *
- * <p>⚠ 这个 watch 必须放在 {@code useDataSource} 之后，也就是 dataList 声明之后。
- * 原因：Vue 3.5 的 doWatch 会在 setup 期**急切求值一次源**（深监听告警路径），
- * 哪怕源写成 {@code () => pagedRows.value} 也照样会求值。而 pagedRows 的 getter 读
- * dataList，dataList 又是在 useDataSource 的解构里才声明的——watch 排在它前面就会
- * "ReferenceError: Cannot access 'dataList' before initialization"，setup 抛出、
- * 页面全白且 console 只留一条 watcher getter 警告。
- * 之前用「改成 getter 源」来躲是无效的：Vue 同样会急切执行 getter。</p>
- */
-watch(
-  () => pagedRows.value,
-  async () => {
-    // 只服务 vxe 引擎：它的行是虚拟滚动的，Sortable 绑在 tbody 上会被重渲染顶掉，
-    // 所以数据行数一变就得重绑。element 引擎的 tbody 由 el-table 自己管，Sortable 不会掉。
-    if (!useVxe.value) return;
-    if (!dragMode.value || dragChanged.value || sortableInitLock.value) return;
-    await nextTick();
-    await waitFrame();
-    // 数据行数变化说明是分页/外部刷新，重新初始化；仅拖拽换位不重绑
-    if (pagedRows.value.length !== originalRows.value.length) {
-      await initVxeSortable();
-    }
-  },
-  { flush: "post" },
 );
 
 /** params 变化 → 重置回第 1 页并重新加载 */
@@ -2993,7 +2891,7 @@ const iconSelect = Select;
     <!-- 表格模式 · vxe 引擎（engine="vxe"）：固定表头 / 虚拟滚动场景 -->
     <VxeTable
       v-else-if="activeLayout === 'table'"
-      :key="dragMode ? 'vxe-drag-' + vxeRenderKey : 'vxe-plain'"
+      :key="vxeColumnKey"
       ref="vxeTableRef"
       v-bind="$attrs"
       :data="tableRows"
@@ -3016,6 +2914,7 @@ const iconSelect = Select;
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
       @sort-change="onVxeSortChange"
+      @row-dragend="onVxeRowDragEnd"
     >
       <!-- 勾选列：常驻选择 / 批量选择 / 批量删除三种场景共用一列 -->
       <VxeColumn
@@ -3024,12 +2923,19 @@ const iconSelect = Select;
         width="50"
         fixed="left"
       />
-      <!-- 拖拽手柄列：仅拖拽排序模式 -->
-      <VxeColumn v-if="dragMode" width="55" fixed="left" align="center">
+      <!-- 拖拽手柄列：仅拖拽排序模式。
+           drag-sort 把本列标记为 vxe 内置行拖拽的手柄列。
+           ⚠ 必须保持 row-drag-config.showIcon 为默认的 true：vxe 源码 renderCellBaseVNs 里，
+           发起拖拽用的 onMousedown 是随 renderCellDragIcon 一起挂的（trigger 无默认值即
+           undefined，不等于 'cell'，故 mousedown 必挂）。一旦 showIcon=false，vxe 根本不
+           渲染手柄壳，onMousedown 也就无处可挂 —— 拖拽直接失效。
+           所以不能自己用 #default 画图标（那样一行出两个图标，且自己画的不带 mousedown），
+           要换图标只能走 row-drag-icon 插槽，让 vxe 的手柄壳包住我们的图标。 -->
+      <VxeColumn v-if="dragMode" width="55" fixed="left" align="center" drag-sort>
         <template #header>
           <ElIcon><Rank /></ElIcon>
         </template>
-        <template #default>
+        <template #row-drag-icon>
           <ElIcon
             class="vxe-drag-handle"
             style="cursor: grab; font-size: 18px; color: var(--el-text-color-secondary); user-select: none"
@@ -3355,12 +3261,18 @@ const iconSelect = Select;
 </template>
 
 <style>
-/* 根容器：圆角 + 内边距（组件与容器边缘的边距，可用 --rt-padding 调整） */
+/* 根容器：圆角 + 内边距（组件与容器边缘的边距，可用 --rt-padding 调整）
+   1px 描边是卡片边界的兜底表达：暗色下投影几乎不可见，靠这条线维持边界。
+   overflow: hidden 收口表格内部的浮层（vxe 固定列、空态）溢出；
+   它只裁剪后代、不裁剪自身投影，所以不影响卡片的 box-shadow。
+   两卡模式（.re-table--separated）下根容器透明且不收口，见下方该条。 */
 .re-table {
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--rt-radius);
   padding: var(--rt-padding, 12px);
   background: var(--rt-bg);
   font-size: var(--rt-font);
+  overflow: hidden;
 }
 /* ============ 吃满父容器（fill 模式，2026-09-28 起缺省开启） ============
    传了 height / maxHeight / minHeight 的页面走原路径，不进这里；显式 fill:false 可退出。
@@ -3456,6 +3368,14 @@ const iconSelect = Select;
    ⚠ 分页条同步这套语言（见文件末尾分页样式），否则表格与分页会像两个组件。 */
 .re-table .vxe-table {
   --vxe-table-border-color: var(--el-border-color-lighter);
+  /* ⚠ vxe 画单元格线读的是带 ui- 前缀的变量：--vxe-ui-table-border-color。
+     上面那条 --vxe-table-border-color（无 ui-）不是它读的那个，写了等于没写，
+     vxe 一直用自己的默认 #e8eaec —— 比本组件的 #ebeef5 深，
+     于是同一张表里「自己画的线」和「vxe 画的线」两种颜色。 */
+  --vxe-ui-table-border-color: var(--el-border-color-lighter);
+  /* ⚠ vxe 默认线宽是 1.05px，落在非整数像素上被浏览器抗锯齿，
+     渲染成一条发糊的灰线；压成整数 1px 才和 el-table 的实线一样锐利。 */
+  --vxe-ui-table-border-width: 1px;
   /* 表头底：置为透明，让下方 .re-table .vxe-header--column 的渐变生效。
      不置透明时 vxe 会用这个变量在表头上再铺一层纯色，
      结果渐变被盖成 #ebeeF5 平色 —— 与 element 引擎的 #fafafa→#fafcff 明显不同。 */
@@ -3545,7 +3465,14 @@ const iconSelect = Select;
 .re-table .vxe-body--column {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  /* ⚠ 这里刻意**不写** border-bottom：
+     表体单元格的下边线交给 vxe 自己的 background-image 渐变画
+     （见上方 --vxe-ui-table-border-color / --vxe-ui-table-border-width 两条说明）。
+     以前这里写了一条 1px border，与 vxe 那条渐变线叠在同一位置 ——
+     形成「1px 实线 + 1.05px 渐变线」的重影，颜色还不同，
+     渲染出来比 el-table 更粗更脏，这就是「vxe 边框不如 el-table 舒服」的来源。
+     表头不受此影响：表头的 background 被本组件的渐变 !important 覆盖，
+     vxe 的渐变线在表头上根本画不出来，所以表头必须自己写 border。 */
   transition: background-color var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--compact .vxe-body--column {
@@ -3559,7 +3486,10 @@ const iconSelect = Select;
      于是 stripe 关闭的表也被打上偶数行底色 #fafcff，整张表隔行变色，
      看着像"有的行有底色有的没有"。 */
 .re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column {
-  background: var(--el-fill-color-extra-light);
+  /* ⚠ 必须写 background-color 而不是 background 简写：
+     简写会把 vxe 用 background-image 画的单元格线一并重置成 none，
+     隔行底色的那些行就会丢掉右边线/下边线。 */
+  background-color: var(--el-fill-color-extra-light);
 }
 /* hover / 选中行首列主色条 */
 .re-table tr.vxe-body--row.row--hover > .vxe-body--column:first-child,
@@ -3567,13 +3497,30 @@ const iconSelect = Select;
   box-shadow: inset 2px 0 0 var(--el-color-primary);
 }
 .re-table tr.vxe-body--row.row--current > .vxe-body--column {
-  background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+  /* 同上：只改底色，不动 background-image */
+  background-color: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
 }
-/* 单元格内容：横向内边距与行高节奏（统一为 20px，配合 10px 上下内边距 ≈ 41px） */
+/* 单元格内容：横向内边距与行高节奏（统一为 20px，与 element 侧的 .cell 同口径） */
 .re-table .vxe-body--column .vxe-cell,
 .re-table .vxe-header--column .vxe-cell {
   padding: 0 12px;
   line-height: 20px;
+}
+/* 行高对齐 element（两处覆盖，都在这里集中说明）
+   ⚠ vxe 用 --vxe-ui-table-row-height-medium（medium 档 44px）给单元格内部定高，
+     而且是写成**内联样式**、表头与表体用的属性还不同（实测）：
+       · 表头 .vxe-cell：内联 min-height: 44px → 表头行被撑到 63px（element 39px）
+       · 表体 .vxe-cell：首列内联 height: 44px、其余列内联 min-height: 44px
+                          → 任取一行都被其中最高的那个单元格顶到 64px（element 59px）
+   两侧的 height 与 min-height 都要清掉，高度才回到「内边距 + 行高」的内容驱动口径：
+     表头 9+9+20+1 = 39；表体视内容（发送时间两行）自然撑开。
+   都必须带 !important —— 内联样式只有 !important 压得过。 */
+.re-table .vxe-header--column .vxe-cell {
+  min-height: 0 !important;
+}
+.re-table .vxe-body--column .vxe-cell {
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 /* ============ element 引擎（默认）的表格视觉 ============
@@ -3657,22 +3604,46 @@ const iconSelect = Select;
   user-select: none !important;
   -webkit-user-select: none !important;
 }
-/* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色 */
+/* 两卡模式（searchGap>0）：根容器透明，搜索区与主体区各自成白色圆角卡，间距露出页面底色。
+   根容器必须 border:none + overflow:visible：两张卡与根容器左右等宽（实测 inset=0），
+   根级 overflow:hidden 会把卡片的左右投影裁掉，只剩上下一截，投影看起来是"半截的"。
+   表格浮层的收口因此下移到 .re-table__main。 */
 .re-table--separated {
   background: transparent;
+  border: none;
   padding: 0;
+  overflow: visible;
 }
 .re-table--separated > .re-table__search {
   background: var(--rt-bg);
   border-radius: var(--rt-radius);
   padding: var(--rt-padding, 12px);
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--rt-shadow-card);
+  transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--separated > .re-table__main {
   background: var(--rt-bg);
   border-radius: var(--rt-radius);
   padding: var(--rt-padding, 12px);
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--rt-shadow-card);
+  /* 表格浮层（vxe 固定列、空态）在主体卡上收口（根容器已改为 visible） */
+  overflow: hidden;
+  /* ⚠ 主体卡刻意不写 transition，也不挂 :hover 换投影。
+     这张卡实测 1374×721，box-shadow 动画需要逐帧重绘整块大区域
+     （Chrome 不做合成层加速），是页面上唯一可能造成大面积重绘的样式。
+     搜索卡面积小，保留 hover 过渡；主体卡只保留静态投影。 */
+}
+/* 悬停抬一档投影：只给搜索卡（面积小、重绘代价低）。
+   主体卡面积大，hover 换投影会把"划过表格"变成持续重绘，故不参与。 */
+.re-table--separated > .re-table__search:hover {
+  box-shadow: var(--rt-shadow-card-hover);
+}
+/* 键盘聚焦到卡内控件时描边转主色，让"焦点落在哪一块"可感知 */
+.re-table--separated > .re-table__search:focus-within,
+.re-table--separated > .re-table__main:focus-within {
+  border-color: var(--el-color-primary-light-5);
 }
 /* 工具栏行：左侧业务按钮（#toolbar 插槽）；右侧系统工具组 */
 .re-table__toolbar-row {
@@ -3694,6 +3665,18 @@ const iconSelect = Select;
   display: flex;
   align-items: center;
   gap: 2px;
+}
+/* 工具条左侧的页面主按钮（「发送消息」这类）与搜索区主按钮统一为胶囊形：
+   搜索按钮已是胶囊，同一行出现两种主按钮形状会显得没有规范。
+   只收主按钮，次要/文字按钮保持原有方角，避免整排都是胶囊而失去主次。 */
+.re-table__toolbar-left .el-button--primary {
+  border-radius: var(--rt-radius-full, 9999px);
+}
+/* 表内标签统一胶囊形：表格单元格里 el-tag 默认 4px 方角，与胶囊分页/胶囊按钮
+   不属于同一套形状语言。 */
+.re-table .el-table .el-tag,
+.re-table .vxe-table .vxe-cell .el-tag {
+  border-radius: var(--rt-radius-full, 9999px);
 }
 /* 布局切换：分段控件（segmented），位于自动刷新右侧。
    外层灰底圆角轨道 + 内层浮起白底滑块：选中项主色图标、未选中项常规文字色，
@@ -3821,9 +3804,10 @@ const iconSelect = Select;
   font-size: var(--rt-header-font-size);
   color: var(--rt-text-header);
 }
-/* 斑马纹美化（vxe 4.6 不打 striped 行类，用 nth-child 兜住） */
+/* 斑马纹美化（vxe 4.6 不打 striped 行类，用 nth-child 兜住）
+   ⚠ background-color 而非 background 简写：见上方同名规则处的说明。 */
 .re-table .vxe-table--striped tr.vxe-body--row:nth-child(even) > .vxe-body--column {
-  background: var(--rt-bg-strip);
+  background-color: var(--rt-bg-strip);
 }
 /* element 引擎的同一组 rt 令牌覆盖：位置更靠后、权重相同，等于在基础视觉之上再叠一层 */
 .re-table .el-table {
@@ -4257,13 +4241,13 @@ const iconSelect = Select;
   line-height: 1;
 }
 /* 拖拽兜底 / 拖影 / 选中态样式。
-   ⚠ 两套引擎的 Sortable 类名不同，每条规则都必须同时写两套，只写 element 那套
-      会导致 vxe 引擎下拖影与选中态**完全没样式**（看着就是"拖拽坏了"）：
-        element 引擎 → handle .drag-handle  / ghost .drag-sort-ghost   / chosen .drag-sort-chosen
-        vxe 引擎     → handle .vxe-drag-handle / ghost .vxe-drag-ghost  / chosen .vxe-drag-chosen
-      两边 fallbackClass 都叫 drag-sort-fallback，所以兜底样式只需写一条。 */
-.drag-sort-fallback,
-.vxe-drag-fallback {
+   ⚠ 这里只服务 element 引擎。element 引擎仍走 Sortable：
+       handle .drag-handle  / ghost .drag-sort-ghost   / chosen .drag-sort-chosen
+       fallback .drag-sort-fallback
+   vxe 引擎已改用 vxe 4.8+ 内置行拖拽（rowConfig.drag），它自己渲染拖动引导线与提示，
+   并在行上打 row--drag-move / row--drag-origin 两个类，**不再产生** Sortable 那套
+   vxe-drag-ghost / vxe-drag-chosen / vxe-drag-fallback 类，故这些选择器已删除。 */
+.drag-sort-fallback {
   position: fixed !important;
   z-index: 3000 !important;
   pointer-events: none !important;
@@ -4275,22 +4259,18 @@ const iconSelect = Select;
   backface-visibility: hidden;
   cursor: grabbing !important;
 }
-.drag-sort-fallback td,
-.vxe-drag-fallback td {
+.drag-sort-fallback td {
   background: var(--el-bg-color, #fff) !important;
 }
-.drag-sort-ghost,
-.vxe-drag-ghost {
+.drag-sort-ghost {
   opacity: 0.4;
   background: var(--el-color-primary-light-9) !important;
 }
-.drag-sort-chosen,
-.vxe-drag-chosen {
+.drag-sort-chosen {
   background: var(--el-color-primary-light-9) !important;
 }
 /* 拖拽模式下禁止表格文字被选中。
-   ⚠ :has() 的参数也分引擎：element 手柄是 .drag-handle，vxe 手柄是 .vxe-drag-handle。
-      漏掉 vxe 那条时，vxe 拖拽过程中整表文字都可以被划选。 */
+   :has() 的参数分引擎：element 手柄是 .drag-handle，vxe 手柄是 .vxe-drag-handle。 */
 .re-table:has(.drag-handle) .el-table__body,
 .re-table:has(.drag-handle) .el-table__body td .cell,
 .re-table:has(.vxe-drag-handle) .vxe-table--body,
@@ -4333,5 +4313,16 @@ const iconSelect = Select;
 }
 .re-table .vxe-table--body-wrapper::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--el-text-color-secondary) 50%, transparent);
+}
+
+/* 尊重系统「减少动态效果」偏好：本组件的过渡统一降级为瞬时切换。
+   仓库内各 Re 组件都各自内联这一块（组件可独立分发，不依赖页面集中代管）；
+   悬停反馈本身保留 —— 只是不再有过渡动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .re-table,
+  .re-table--separated > .re-table__search,
+  .re-table__layout-switch-item {
+    transition: none;
+  }
 }
 </style>

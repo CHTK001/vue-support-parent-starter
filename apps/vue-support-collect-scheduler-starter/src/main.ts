@@ -18,8 +18,9 @@ import type { App as VueApp } from "vue";
 import { installKoi } from "@repo/theme/koi/framework";
 import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
-import { collectRoutes, registerCollectKeepAlive } from "@pages/collect";
+import { collectRoutes, collectWidgets, registerCollectKeepAlive } from "@pages/collect";
 import { jobRoutes } from "@pages/job";
+import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
 import { hostRoutes } from "./routes";
 
 /** 应用标识：与目录名、app.yaml 的托管路径一致，改动需三处同步 */
@@ -78,6 +79,9 @@ void (async () => {
     install: installCollectScheduler,
   })
     .routes(routes as never)
+    // 采集侧向 home 仪表板贡献「采集概览」widget。与 .routes() 同构：
+    // 在 mount() 阶段完成注册，早于首页首次渲染，贡献方无需关心时序
+    .widgets([defineWidgetContribution(collectWidgets)])
     .mount("#app");
 
   // keep-alive 白名单按路由 name 登记，不能依赖标签页流程（见 @pages/collect 的 useCollectKeepAlive）

@@ -4,7 +4,7 @@
       v-model:layout="layout"
       :is-draggable="false"
       :is-resizable="false"
-      :cols="12"
+      :cols="GRID_COLS"
       :row-height="80"
       :margin="[12, 12]"
       :use-css-transforms="true"
@@ -13,7 +13,7 @@
       class="home-grid__layout"
     >
       <GridItem
-        v-for="item in layout"
+        v-for="item in visibleLayout"
         :key="item.i"
         :i="item.i"
         :x="item.x"
@@ -23,7 +23,7 @@
         :static="true"
         class="home-grid__item"
       >
-        <slot :widget="resolveWidget(item.i)" />
+        <slot :widget="widgetById.get(item.i)!" />
       </GridItem>
     </GridLayout>
 
@@ -38,9 +38,7 @@
 </template>
 
 <script setup lang="ts" name="HomeGridView">
-// @ts-nocheck
 
-// @ts-nocheck
 /**
  * 主页仪表板视图（只读）
  *
@@ -50,6 +48,7 @@
 import { computed } from "vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
 import { DocumentRemove } from "@element-plus/icons-vue";
+import { GRID_COLS } from "./gridCompat";
 import type { GridPosition, WidgetItem } from "./types";
 
 const props = defineProps<{
@@ -72,9 +71,21 @@ const widgetById = computed(() => {
 
 const hasWidgets = computed(() => props.widgets.length > 0);
 
-function resolveWidget(id: string): WidgetItem {
-  return widgetById.value.get(id) ?? { id, type: "stats", title: id };
-}
+/**
+ * 只渲染「grid 里有位置、且 widgets 里有对应条目」的格子。
+ *
+ * <p>此前这里是 `widgetById.get(id) ?? { id, type: "stats", title: id }` ——
+ * 找不到就凭空造一个 {@code stats} widget。而 {@code stats} 是旧 home 组件的类型，
+ * 早已从注册表与组件加载表中下线，于是这个兜底会稳定渲染出一个「加载失败 + 重试」、
+ * 且重试必然再失败的坏卡片。改成直接过滤：没有对应 widget 的格子不占位，也就不会有坏卡片。</p>
+ *
+ * <p>注意与「占位卡片」的区别：本过滤针对的是 <b>grid 里有格子但 widgets 里没有条目</b>
+ * 的孤儿（结构损坏，无法知道该显示什么）；而 widgets 里有条目、只是当前 app 未注册
+ * 其模块的，条目会被保留并由 {@code WidgetRenderer} 渲染成占位卡片。</p>
+ */
+const visibleLayout = computed<GridPosition[]>(() =>
+  props.grid.filter((g) => widgetById.value.has(g.i)),
+);
 </script>
 
 <style lang="scss" scoped>

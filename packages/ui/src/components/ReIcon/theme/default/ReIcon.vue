@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- HTTP 图床 -->
   <img
     v-if="isHttp"

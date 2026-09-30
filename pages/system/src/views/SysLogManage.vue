@@ -437,19 +437,10 @@ const columns: ReTableColumn[] = [
   color: var(--el-text-color-secondary);
 }
 /*
-  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
-  ReTable 根节点只有圆角与底色、没有描边，所以这层边框是页面级补的，
-  与 DictManage / PostManage 同口径；不加投影——卡片投影会让整页变成一摞纸。
+  ReTable 的卡片外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由插件提供，
+  页面不再自行补边：见 packages/ui ReTable/shared/table-vars.css 与
+  ReTable.vue 的 `.re-table` / `.re-table--separated` 规则。
 */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
 
 /* ==================== 操作日志详情弹窗 ==================== */
 .sl-detail {
@@ -716,9 +707,9 @@ const columns: ReTableColumn[] = [
   color: var(--el-text-color-placeholder);
 }
 
-/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
+/* 尊重系统「减少动态效果」偏好：把本页自己的过渡关掉
+   （ReTable 的过渡由插件自带的同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.re-table),
   .log-content-link {
     transition: none;
   }

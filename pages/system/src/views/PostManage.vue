@@ -259,16 +259,7 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-/* 表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈） */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
+/* 表格外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由 ReTable 插件提供 */
 
 /* 行内可点区域（导出链接等）补焦点环，键盘用户才看得见当前焦点 */
 :deep(.re-table__cell a),
@@ -283,9 +274,8 @@ onMounted(() => {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-/* 尊重系统「减少动态效果」偏好 */
+/* 尊重系统「减少动态效果」偏好（ReTable 的过渡由插件自带同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.re-table),
   :deep(.re-table__cell [role="button"]),
   :deep(.log-content-link) {
     transition: none;

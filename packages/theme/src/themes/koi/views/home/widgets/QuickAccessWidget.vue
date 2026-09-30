@@ -26,7 +26,7 @@
               class="qw__item-img"
               @error="imgFailed[item.id!] = true"
             />
-            <el-icon v-else :size="20"><component :is="iconMap[item.icon] || 'Menu'" /></el-icon>
+            <el-icon v-else :size="20"><component :is="iconMap[item.icon ?? ''] || 'Menu'" /></el-icon>
           </div>
           <span class="qw__item-title">{{ item.title }}</span>
           <button v-if="!item.isSystem" type="button" class="qw__item-del" title="删除" @click.stop="remove(item.id!)">
@@ -68,9 +68,7 @@
 </template>
 
 <script setup lang="ts" name="QuickAccessWidget">
-// @ts-nocheck
 
-// @ts-nocheck
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
@@ -91,13 +89,33 @@ interface QuickItem {
   isSystem: boolean;
 }
 
+/**
+ * 持久化到 IndexedDB 的形态：id 必填。
+ *
+ * <p>{@link QuickItem} 是「系统菜单项 + 自定义项」合并后的**展示**类型，系统项由菜单生成、
+ * 本就没有 id（模板里的 {@code item.id!} 由此而来）。但写入库的只有自定义项，且写时必定带
+ * {@code cust_<timestamp>}（见 save()）。把两者分开，入库处就满足 IndexedDBStore 的
+ * {@code WithId} 约束，不必再靠断言糊过去。</p>
+ */
+type StoredQuickItem = QuickItem & { id: string };
+
 const router = useRouter();
 const authStore = useAuthStore();
 
 const iconMap: Record<string, unknown> = { Grid, Link, Menu, Setting, User, Document, DataBoard, Monitor, ChatDotSquare, Message, Bell, Key, Files, Folder, Tools, InfoFilled };
 
-/** 品牌 logo 图库（@repo/images/brand/），按域名 key 索引 */
-const brandImages = import.meta.glob<{ default: string }>("/packages/images/src/brand/*.webp", { eager: true, import: "default" }) as Record<string, string>;
+/**
+ * 品牌 logo 图库（@repo/images/brand/），按域名 key 索引。
+ *
+ * <p>{@code import: "default"} 时运行时取的是模块的 default 导出（字符串），但 Vite 的
+ * {@code import.meta.glob} 泛型标注的是**模块**类型，于是 TS 推出
+ * {@code Record<string, { default: string }>}，直接断言成 {@code Record<string, string>}
+ * 属于「无充分重叠」的错误断言。这里经 unknown 过渡一次并注明原因。</p>
+ */
+const brandImages = import.meta.glob<{ default: string }>(
+  "/packages/images/src/brand/*.webp",
+  { eager: true, import: "default" },
+) as unknown as Record<string, string>;
 
 /** 域名 → 品牌图片路径 */
 function brandForDomain(domain: string): string | undefined {
@@ -159,7 +177,7 @@ const merged = computed(() => {
 
 async function load(): Promise<void> {
   loading.value = true;
-  try { customItems.value = await store.getAll<QuickItem>(); }
+  try { customItems.value = await store.getAll<StoredQuickItem>(); }
   catch { /* ignore */ }
   finally { loading.value = false; }
 }
@@ -191,7 +209,7 @@ async function save(): Promise<void> {
     if (!form.routePath) { ElMessage.warning("请选择系统路由"); return; }
     const found = systemItems.value.find((m) => m.path === form.routePath);
     if (!found) return;
-    const item: QuickItem = { id: "cust_" + now, title: found.title, path: found.path, icon: found.icon, isSystem: false };
+    const item: StoredQuickItem = { id: "cust_" + now, title: found.title, path: found.path, icon: found.icon, isSystem: false };
     await store.put(item);
     customItems.value.push(item);
   } else {
@@ -199,7 +217,7 @@ async function save(): Promise<void> {
     const url = form.linkUrl.trim();
     if (!title) { ElMessage.warning("请输入快捷名称"); return; }
     if (!url) { ElMessage.warning("请输入链接地址"); return; }
-    const item: QuickItem = { id: "cust_" + now, title, url, icon: resolveIcon(url), isSystem: false };
+    const item: StoredQuickItem = { id: "cust_" + now, title, url, icon: resolveIcon(url), isSystem: false };
     await store.put(item);
     customItems.value.push(item);
   }

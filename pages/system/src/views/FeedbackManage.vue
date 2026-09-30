@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { EChartsOption } from "echarts";
@@ -937,18 +937,9 @@ onMounted(() => {
 }
 
 /* ============ 表格外壳 ============
-   ReTable 自身不带外框，页面里它就是唯一的「数据区」，
-   补一层边框 + 圆角 + focus-within 变色，卡片区靠边框分层而不是投影分层。 */
-.feedback-page :deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-bg-color);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-.feedback-page :deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
+   ReTable 的边框 / 圆角 / 投影 / focus-within 变色由插件自身提供，
+   见 packages/ui ReTable/shared/table-vars.css 与 ReTable.vue 的
+   `.re-table` / `.re-table--separated` 规则，本页不再重复声明。 */
 
 /* 反馈图片：el-image 根节点上挂预览点击，但元素本身不可聚焦，
    补光标与焦点环，让「这里能点」和「这里有焦点」两件事都成立。 */
@@ -1373,12 +1364,12 @@ onMounted(() => {
   }
 }
 
-/* 尊重系统「减少动态效果」偏好：把本页新增/沿用的过渡一并关掉 */
+/* 尊重系统「减少动态效果」偏好：把本页自己的过渡一并关掉
+   （ReTable 的过渡由插件自带的同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
   .stat-card,
   .fb-detail__cell,
-  .fb-detail__history-link,
-  .feedback-page :deep(.re-table) {
+  .fb-detail__history-link {
     transition: none;
   }
 }

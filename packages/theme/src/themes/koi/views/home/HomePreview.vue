@@ -11,7 +11,7 @@
         v-model:layout="layout"
         :is-draggable="true"
         :is-resizable="true"
-        :cols="12"
+        :cols="GRID_COLS"
         :row-height="80"
         :margin="[12, 12]"
         :use-css-transforms="true"
@@ -20,7 +20,7 @@
         class="home-editor__grid"
       >
         <GridItem
-          v-for="item in layout"
+          v-for="item in visibleLayout"
           :key="item.i"
           :i="item.i"
           :x="item.x"
@@ -32,7 +32,7 @@
           class="home-editor__item"
         >
           <div class="home-editor__item-shell">
-            <slot :widget="resolveWidget(item.i)" />
+            <slot :widget="widgetById.get(item.i)!" />
             <div class="home-editor__overlay">
               <button
                 type="button"
@@ -67,9 +67,7 @@
 </template>
 
 <script setup lang="ts" name="HomePreview">
-// @ts-nocheck
 
-// @ts-nocheck
 /**
  * 编辑模式左侧实时预览
  *
@@ -79,6 +77,7 @@
 import { computed } from "vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
 import { DeleteFilled, Setting } from "@element-plus/icons-vue";
+import { GRID_COLS } from "./gridCompat";
 import type { GridPosition, WidgetItem } from "./types";
 
 const props = defineProps<{
@@ -105,9 +104,17 @@ const widgetById = computed(() => {
 
 const hasWidgets = computed(() => props.widgets.length > 0);
 
-function resolveWidget(id: string): WidgetItem {
-  return widgetById.value.get(id) ?? { id, type: "stats", title: id };
-}
+/**
+ * 只渲染「grid 里有位置、且 widgets 里有对应条目」的格子。
+ *
+ * <p>与 {@link HomeGridView} 同一处修正：原来的兜底 `?? { id, type: "stats", title: id }`
+ * 会凭空造出一个 {@code stats} 部件，而该类型早已从目录与加载表中下线，
+ * 结果是稳定渲染出「加载失败 + 重试」、且重试必然再失败的坏卡片。
+ * 改为直接过滤，没有对应 widget 的格子不占位。</p>
+ */
+const visibleLayout = computed<GridPosition[]>(() =>
+  props.grid.filter((g) => widgetById.value.has(g.i)),
+);
 </script>
 
 <style lang="scss" scoped>

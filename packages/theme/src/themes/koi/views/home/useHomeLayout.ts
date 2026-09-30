@@ -20,7 +20,8 @@ import { getConfig } from "@repo/config";
 import { getLayout, saveLayout, toLayoutCacheShape } from "@repo/core";
 import { getLayoutCache, setLayoutCache } from "@repo/utils";
 import type { UserLayoutData } from "@repo/core";
-import type { HomeLayoutState, GridPosition, WidgetItem, WidgetType } from "./types";
+import type { HomeLayoutState, GridPosition, WidgetItem } from "./types";
+import { isWidgetRegistered } from "./registry";
 import { log } from "@repo/utils";
 
 interface PersistedLayout {
@@ -28,37 +29,26 @@ interface PersistedLayout {
   grid?: unknown;
 }
 
-function isWidgetType(v: unknown): v is WidgetType {
-  return (
-    v === "stats" ||
-    v === "welcome-extra" ||
-    v === "weather" ||
-    v === "todo" ||
-    v === "announcement" ||
-    v === "system-info" ||
-    v === "chart" ||
-    v === "calendar" ||
-    v === "note" ||
-    v === "custom" ||
-    v === "client-info" ||
-    v === "system-config" ||
-    v === "alarm" ||
-    v === "bookmark" ||
-    v === "quick-access" ||
-    v === "online-user" ||
-    v === "server-status" ||
-    v === "server-metrics"
-  );
-}
-
+/**
+ * 存档条目的结构校验（**刻意不查注册表**）。
+ *
+ * <p>这是「模块缺席时保留占位卡片」得以成立的关键：只要条目结构完整就保留，
+ * 哪怕当前 app 没注册这个 type。渲染层（{@code useWidgetLoader}）会把未注册的 type
+ * 渲染成占位卡片，并显示 {@code WidgetItem.source} 里记的模块名。</p>
+ *
+ * <p>反过来，早期版本在这里用 {@code isWidgetType} 查白名单，未注册即丢弃 ——
+ * 那意味着「在 A app 摆的模块 widget，切到没启用该模块的 B app 就凭空消失、
+ * 位置也丢了」。丢弃只对<b>结构损坏</b>的条目才是对的。</p>
+ */
 function isWidgetItem(v: unknown): v is WidgetItem {
   if (!v || typeof v !== "object") return false;
   const o = v as { id?: unknown; type?: unknown; title?: unknown };
   return (
     typeof o.id === "string" &&
-    typeof o.title === "string" &&
+    o.id.trim() !== "" &&
     typeof o.type === "string" &&
-    isWidgetType(o.type)
+    o.type.trim() !== "" &&
+    typeof o.title === "string"
   );
 }
 
@@ -77,9 +67,31 @@ function isGridPosition(v: unknown): v is GridPosition {
 /** 解析本地存储 / API 返回的布局，确保 widgets 与 grid 一一对应 */
 function normalize(raw: unknown): HomeLayoutState {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as PersistedLayout;
-  const widgets: WidgetItem[] = Array.isArray(parsed.widgets)
-    ? (parsed.widgets.filter(isWidgetItem) as WidgetItem[])
-    : [];
+  const rawWidgets: unknown[] = Array.isArray(parsed.widgets) ? parsed.widgets : [];
+
+  // ① 结构损坏的条目无法渲染，只能丢弃 —— 必须留痕，
+  //    否则用户会看到「布局里的东西凭空少了」却查不到原因。
+  const widgets: WidgetItem[] = rawWidgets.filter(isWidgetItem) as WidgetItem[];
+  if (widgets.length !== rawWidgets.length) {
+    log.warn(
+      `[home-layout] 丢弃 ${rawWidgets.length - widgets.length} 个结构损坏的 widget` +
+        `（缺少 id / type / title）`,
+    );
+  }
+
+  // ② 结构完好但当前 app 未注册的条目：**保留**，由渲染层显示占位卡片。
+  //    这里只做留痕，便于回答「为什么我的卡片变成占位了」。
+  const unregistered = widgets.filter((w) => !isWidgetRegistered(w.type));
+  if (unregistered.length > 0) {
+    const detail = unregistered
+      .map((w) => `${w.title}(${w.source ?? "来源未记录"})`)
+      .join("、");
+    log.info(
+      `[home-layout] ${unregistered.length} 个 widget 所属模块未在当前应用启用，` +
+        `已显示为占位卡片：${detail}`,
+    );
+  }
+
   const grid: GridPosition[] = Array.isArray(parsed.grid)
     ? (parsed.grid.filter(isGridPosition) as GridPosition[])
     : [];
@@ -100,21 +112,18 @@ function fromUserLayout(data: UserLayoutData | null | undefined): HomeLayoutStat
   if (shape) {
     return normalize(shape);
   }
+  /**
+   * 仅剩 grid 的历史格式：**没有 widget 类型信息，无法还原成可用布局**。
+   *
+   * <p>此前这里给每个格子硬编码 `type: "calendar"`，于是用户的旧布局会渲染成一排
+   * 一模一样的日历 —— 既不是他存的东西，也不是能用的东西，且无从追溯。
+   * 现在改为整体丢弃并留日志：仪表板变成空的、可以重新摆，比渲染错误内容更诚实。</p>
+   */
   if (typeof data.grid === "string" && data.grid.trim()) {
-    try {
-      const positions = JSON.parse(data.grid) as unknown;
-      if (Array.isArray(positions)) {
-        const grid = positions.filter(isGridPosition);
-        const widgets = grid.map<WidgetItem>((g) => ({
-          id: g.i,
-          type: "calendar",
-          title: g.i,
-        }));
-        return { widgets, grid };
-      }
-    } catch {
-      /* fallthrough */
-    }
+    log.warn(
+      "[home-layout] 远端布局只有 grid、缺少 widgets（无类型信息，无法还原），已忽略；" +
+        "请重新添加组件",
+    );
   }
   return { widgets: [], grid: [] };
 }

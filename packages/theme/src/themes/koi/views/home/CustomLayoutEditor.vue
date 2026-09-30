@@ -27,17 +27,17 @@
  */
 import HomePreview from "./HomePreview.vue";
 import WidgetLibrary from "./WidgetLibrary.vue";
-import { WIDGET_CATALOG } from "./widgets";
+import { widgetCatalog } from "./registry";
 import type { GridPosition, WidgetItem, WidgetType, WidgetCatalogItem } from "./types";
 
 withDefaults(
   defineProps<{
     widgets: WidgetItem[];
     grid: GridPosition[];
-    /** 已按当前用户权限过滤的组件目录（不传则显示全量） */
+    /** 已按当前用户权限过滤的组件目录（不传则用注册表的全量目录） */
     catalog?: WidgetCatalogItem[];
   }>(),
-  { catalog: () => WIDGET_CATALOG },
+  { catalog: () => widgetCatalog.value },
 );
 
 const emit = defineEmits<{

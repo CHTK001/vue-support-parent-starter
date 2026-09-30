@@ -61,9 +61,7 @@
 </template>
 
 <script setup lang="ts" name="ClientInfoWidget">
-// @ts-nocheck
 
-// @ts-nocheck
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Cpu, Histogram, Lightning, Monitor, Odometer, Position, Refresh, VideoPlay } from "@element-plus/icons-vue";
 import { usePerfMonitor } from "../../../layouts/components/ThemeConfig/components/usePerfMonitor";

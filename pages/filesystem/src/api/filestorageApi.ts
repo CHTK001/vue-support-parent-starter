@@ -190,6 +190,35 @@ export function setDefaultBucket(value: string): void {
 }
 
 /**
+ * 文件服务器识别登录令牌的请求头名
+ *
+ * <p>与服务端 {@code OAuthServerFilter.DEFAULT_TOKEN_NAME} 必须一致。
+ * 服务端的解析顺序是 自定义头 -> Authorization Bearer -> 查询参数 -> Cookie，
+ * 因此程序化请求（axios / XHR）走这个头即可。</p>
+ */
+const TOKEN_HEADER = "x-oauth-token";
+
+/**
+ * 构造带令牌的请求头
+ *
+ * <p>同时给 {@code x-oauth-token} 与 {@code Authorization: Bearer}：
+ * 前者是文件服务器的默认取法，后者兼容既有网关与拦截器。
+ * 服务端命中第一个非空的就返回，两个都带不影响鉴权。</p>
+ *
+ * <p>查询参数形式仍然保留，见 objectUrl 与 putObject —— img / iframe /
+ * 下载链接无法自定义请求头，只能靠参数传令牌。</p>
+ *
+ * @returns 请求头；未登录返回 undefined
+ */
+function tokenHeaders(): Record<string, string> | undefined {
+  const token = getAccessToken();
+  if (!token) {
+    return undefined;
+  }
+  return { [TOKEN_HEADER]: token, Authorization: `Bearer ${token}` };
+}
+
+/**
  * 创建指向文件服务器的请求实例
  *
  * 每次调用按最新配置创建，保证地址修改后即时生效。
@@ -199,12 +228,11 @@ export function setDefaultBucket(value: string): void {
  * @return Http 实例
  */
 function storageHttp(): Http {
-  const token = getAccessToken();
   return createHttp({
     baseUrl: getServerBase(),
     useAppConfig: false,
     timeout: 30_000,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers: tokenHeaders(),
   });
 }
 
@@ -436,8 +464,12 @@ export async function getArchiveEntries(bucket: string, key: string): Promise<Ar
     // 服务端解析失败时回的是 422 + {"error": "...", "entries": []}（见
     // FileStorageServerFilter.writeArchiveEntries）。先看 error 字段，
     // 否则下面那句「未生效」会把「文件本身坏了」误报成「服务器版本旧」。
-    if (res && typeof res === "object" && typeof (res as { error?: string }).error === "string") {
-      throw new Error((res as { error: string }).error);
+    // 先经 unknown 再断言：ArchiveScanResponse 与 { error: string } 无足够重叠
+    // （后者缺 entries），直接 as 会被 TS2352 拒。这里的判定只用 error 字段，
+    // 语义与注释一致。
+    const errText = (res as unknown as { error?: string } | null)?.error;
+    if (typeof errText === "string") {
+      throw new Error(errText);
     }
     // 服务端未识别 ?format=archive 时，请求会落到 inline/download 兜底通道并
     // 回吐压缩包原始字节，形状对不上却在调用方渲染期才炸，定位成本很高。
@@ -624,7 +656,9 @@ export async function putObject(
 ): Promise<void> {
   const { onProgress, signal, timeoutMs = UPLOAD_TIMEOUT_MS } = options;
   const token = getAccessToken();
-  // 私有桶既认 Authorization 头也认 x-oauth-token 查询参数（与 objectUrl 一致），两处都给
+  // 私有桶支持三种令牌入口，这里头与参数都给：
+  // 头 x-oauth-token / Authorization 是默认取法（服务端 header 优先），
+  // 参数 x-oauth-token 是兜底（与 objectUrl 一致，供无法带头的场景复用同一套约定）。
   const params = new URLSearchParams();
   if (token) {
     params.set("x-oauth-token", token);
@@ -659,6 +693,9 @@ export async function putObject(
     xhr.timeout = timeoutMs;
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     if (token) {
+      // 文件服务器默认从 x-oauth-token 头取令牌；Authorization 兼容既有网关。
+      // 查询参数同样保留（见上方 params），供无法自定义头的场景使用。
+      xhr.setRequestHeader("x-oauth-token", token);
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
     xhr.upload.onprogress = (ev) => {

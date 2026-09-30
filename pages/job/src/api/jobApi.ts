@@ -15,7 +15,7 @@
  */
 import { getConfig } from "@repo/config";
 import { get, post, put, del } from "./http";
-import type { JobExecutor, JobLog, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
+import type { JobExecutor, JobLog, JobLogContent, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
 
 /**
  * 治理出口前缀：取宿主配置，缺省回落到采集控制台出口（与 @repo/config 的默认值一致）。
@@ -62,7 +62,14 @@ export const listNodes = () => get<JobNode[]>(`${apiPrefix()}/nodes`);
 
 /** 执行日志分页（按触发时刻倒序） */
 export const pageJobLogs = (query: JobLogQuery) => get<JobPage<JobLog>>(`${apiPrefix()}/log/page`, { ...query });
-
+/**
+ * 读单次执行的日志正文。
+ *
+ * 入参是日志行上的 filePath（相对 plugin.job.log.base-path）；后端会做目录越界校验，
+ * 所以这里原样回传，不在前端拼路径。
+ */
+export const readJobLogContent = (filePath: string) =>
+  get<JobLogContent>(`${apiPrefix()}/log/content`, { filePath });
 /** 清理执行日志，retentionDays=0 表示清空全部 */
 export const cleanupJobLogs = (retentionDays: number) =>
   post<number>(`${apiPrefix()}/log/cleanup`, undefined, { retentionDays });

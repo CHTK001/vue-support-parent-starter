@@ -13,8 +13,8 @@
  *   - 列表项使用原生 <button>，天然支持 Tab 聚焦与 Enter 选中，不依赖鼠标。
  */
 import { computed, onBeforeUnmount, ref } from "vue";
-import { ElButton, ElInput, ElPopover } from "element-plus";
-import { Search } from "@element-plus/icons-vue";
+import { ElButton, ElIcon, ElInput, ElPopover } from "element-plus";
+import { MagicStick, Search } from "@element-plus/icons-vue";
 
 defineOptions({ name: "RePlaceholderPicker", inheritAttrs: true });
 
@@ -40,8 +40,8 @@ const props = withDefaults(
   defineProps<{
     /** 可选的占位字段分组；不传则组件不自己取数，只渲染空态 */
     groups?: PlaceholderGroup[];
-    /** 触发方式：'button'（默认，一个「插入占位」按钮）| 'input'（附带一个检索输入框） */
-    mode?: "button" | "input";
+    /** 触发方式：'button'（一个「插入占位」按钮）| 'icon'（仅图标的紧凑入口）| 'input'（附带一个检索输入框） */
+    mode?: "button" | "icon" | "input";
     /** 是否在插入前把选中的占位符复制到剪贴板 */
     copyOnPick?: boolean;
     /** 无匹配时的提示文案 */
@@ -137,7 +137,7 @@ async function onPick(item: PlaceholderField): Promise<void> {
     await copyToClipboard(value);
   }
   emit("pick", value, { name: item.name, description: item.description });
-  if (props.mode === "button") {
+  if (props.mode !== "input") {
     visible.value = false;
   }
 }
@@ -152,9 +152,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="re-placeholder-picker" :class="`is-${mode}`">
-    <!-- button 模式：触发器 + 弹层（teleported=false 保持 DOM 顺序，保证 Tab 可达） -->
+    <!-- 弹层模式：button 是带文字的按钮，icon 是仅图标的紧凑入口（标签行右侧用），
+         teleported=false 保持 DOM 顺序，保证 Tab 可达 -->
     <ElPopover
-      v-if="mode === 'button'"
+      v-if="mode !== 'input'"
       v-model:visible="visible"
       :width="340"
       :teleported="false"
@@ -163,7 +164,16 @@ onBeforeUnmount(() => {
       popper-class="re-placeholder-picker__popper"
     >
       <template #reference>
-        <ElButton class="rpp-trigger" :icon="Search">插入占位</ElButton>
+        <ElButton v-if="mode === 'button'" class="rpp-trigger" :icon="Search">插入占位</ElButton>
+        <button
+          v-else
+          type="button"
+          class="rpp-icon-trigger"
+          title="插入占位"
+          aria-label="插入占位"
+        >
+          <ElIcon><MagicStick /></ElIcon>
+        </button>
       </template>
 
       <div class="rpp-panel">
@@ -260,8 +270,36 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+/* icon 模式是行内元素，不占整行 */
+.re-placeholder-picker.is-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
 .rpp-trigger {
   max-width: 100%;
+}
+
+/* 仅图标的紧凑入口：贴在字段标签行右侧，不抢标签的视觉重量 */
+.rpp-icon-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--el-border-radius-base);
+}
+
+.rpp-icon-trigger:hover {
+  background: var(--el-color-primary-light-9);
+}
+
+.rpp-icon-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--el-color-primary);
 }
 
 .rpp-panel {

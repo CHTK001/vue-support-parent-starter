@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 // @ts-nocheck
 /**
  * ReTableToolbar —— ReTable 内置工具栏组件

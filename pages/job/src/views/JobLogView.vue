@@ -30,9 +30,9 @@ import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
 import { useTableExport } from "@repo/ui/re-table";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
-import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs } from "../api/jobApi";
+import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs, readJobLogContent } from "../api/jobApi";
 import { costMs, statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
-import { COLLECT_FLOW_GROUP, type JobLog, type JobSummary } from "../types/job";
+import { COLLECT_FLOW_GROUP, type JobLog, type JobLogContent, type JobSummary } from "../types/job";
 import { confirmAction, errText } from "../composables/useCollectView";
 import { fmtMs } from "../utils/time";
 
@@ -91,6 +91,17 @@ const { exportToCsv } = useTableExport({ enabled: true });
 const detailVisible = ref(false);
 const detail = ref<JobLog | null>(null);
 
+/**
+ * 「查看日志」弹层：读的是这一轮执行落的完整日志文件，不是日志行里那段截断的结果说明。
+ *
+ * 文件日志没开（或文件已被清理）时 exists=false，弹层据此显示原因，而不是显示空白
+ * ——空白会被读成「这一轮没打日志」。
+ */
+const logContentVisible = ref(false);
+const logContentLoading = ref(false);
+const logContent = ref<JobLogContent | null>(null);
+const logContentJob = ref<JobLog | null>(null);
+
 /** 台账 jobKey → 任务名称：日志表不存名称，只能拿台账列表关联 */
 const jobNames = ref<Record<string, string>>({});
 const taskOptions = computed<ReOption[]>(() => {
@@ -132,7 +143,8 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "costMs", label: "耗时", width: 110, slot: "cost", align: "right" },
   { prop: "message", label: "消息", minWidth: 220, slot: "msg", showOverflowTooltip: true },
   { prop: "nodeId", label: "节点", width: 120, slot: "node", showOverflowTooltip: true },
-  { prop: "action", label: "操作", maxWidth: 80, slot: "action", fixed: "right" },
+  { prop: "address", label: "运行客户端", width: 132, slot: "client", showOverflowTooltip: true },
+  { prop: "action", label: "操作", maxWidth: 120, slot: "action", fixed: "right" },
 ]);
 
 const kpis = computed(() => {
@@ -279,6 +291,33 @@ async function reloadAll(): Promise<void> {
 function showDetail(input: Record<string, unknown>): void {
   detail.value = input as unknown as JobLog;
   detailVisible.value = true;
+}
+
+/**
+ * 打开「查看日志」弹层并拉取这一轮的完整日志正文。
+ *
+ * 日志行只存结果说明（截断在 4000 字符），完整正文在每次执行一个的文件里，
+ * 路径由日志行的 filePath 给出。没有 filePath 说明本节点没开文件日志，
+ * 不必发请求，直接给出原因更省事也更清楚。
+ *
+ * @param input 当前行
+ */
+async function showLogContent(input: Record<string, unknown>): Promise<void> {
+  const row = input as unknown as JobLog;
+  logContentJob.value = row;
+  logContent.value = null;
+  logContentVisible.value = true;
+  if (!row.filePath) {
+    return;
+  }
+  logContentLoading.value = true;
+  try {
+    logContent.value = await readJobLogContent(row.filePath);
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    logContentLoading.value = false;
+  }
 }
 
 async function clean(): Promise<void> {
@@ -513,9 +552,13 @@ onUnmounted(() => {
       <template #msg="{ row }">
         <span class="collect-cell-ellipsis">{{ row.message || "—" }}</span>
       </template>
-      <template #node="{ row }"><span class="collect-cell-mono">{{ row.nodeId || row.address || "—" }}</span></template>
+      <template #node="{ row }"><span class="collect-cell-mono">{{ row.nodeId || "—" }}</span></template>
+      <template #client="{ row }">
+        <span class="collect-cell-mono">{{ row.address || "—" }}</span>
+      </template>
       <template #action="{ row }">
         <ReButton layout="square" icon="View" type="primary" tip="查看这条日志的完整字段" @click="showDetail(row)"/>
+        <ReButton layout="square" icon="Document" tip="查看这一轮执行的完整日志" @click="showLogContent(row)"/>
       </template>
     </ReTable>
 
@@ -591,12 +634,56 @@ onUnmounted(() => {
             <span class="log-detail__label">日志文件</span>
             <span class="log-detail__value collect-cell-mono">{{ detail.filePath || "—" }}</span>
           </div>
+          <div class="log-detail__cell">
+            <span class="log-detail__label">运行客户端</span>
+            <span class="log-detail__value collect-cell-mono">{{ detail.address || "—" }}</span>
+          </div>
         </div>
 
         <h4 class="log-detail__title">执行消息</h4>
         <pre class="log-detail__message">{{ detail.message || "（无执行消息）" }}</pre>
+        <div class="log-detail__footer">
+          <ReButton icon="Document" @click="showLogContent(detail as unknown as Record<string, unknown>)">
+            查看完整日志
+          </ReButton>
+        </div>
       </div>
 
+    </ReDialog>
+
+    <!--
+      完整日志正文弹层：读的是这一轮执行落的日志文件，不是上面那段截断的结果说明。
+      三种「看不到正文」的成因要分开说——没开文件日志 / 文件已被清理 / 读取中，
+      统一显示空白会被读成「这一轮没打日志」。
+    -->
+    <ReDialog v-model="logContentVisible" title="执行日志正文" width="820px" top="6vh">
+      <div class="log-content">
+        <div class="log-content__meta">
+          <span class="log-content__label">任务</span>
+          <span class="log-content__value collect-cell-mono">{{ logContentJob?.jobKey || "—" }}</span>
+        </div>
+        <div class="log-content__meta">
+          <span class="log-content__label">日志文件</span>
+          <span class="log-content__value collect-cell-mono">
+            {{ logContent?.filePath || logContentJob?.filePath || "—" }}
+          </span>
+        </div>
+        <div v-if="logContentLoading" class="log-content__hint">正在读取日志…</div>
+        <div v-else-if="!logContentJob?.filePath" class="log-content__hint">
+          这一轮没有落日志文件：本节点的文件日志开关（plugin.job.log.enabled）未启用。
+          启用后新产生的执行才会有完整日志正文。
+        </div>
+        <div v-else-if="!logContent" class="log-content__hint">日志未读取，请重新打开。</div>
+        <div v-else-if="!logContent.exists" class="log-content__hint">
+          日志文件不存在或本节点读不到：可能已被日志清理策略删除，或该次执行发生在文件日志启用之前。
+        </div>
+        <template v-else>
+          <div v-if="logContent.truncated" class="log-content__hint log-content__hint--warn">
+            文件超过读取上限，下面只显示尾部。
+          </div>
+          <pre class="log-content__body">{{ logContent.content }}</pre>
+        </template>
+      </div>
     </ReDialog>
   </div>
 </template>
@@ -645,17 +732,11 @@ onUnmounted(() => {
 }
 
 /*
-  表格外壳跟随主题色轻微变化，聚焦时给出可感知的边界（键盘可达的必备反馈）。
-  本页 ReTable 根节点还挂着全局 .collect-card（1px 描边 + 10px 圆角 + 极淡投影）：
-  描边与底色两边等价（--el-bg-color 即 --el-fill-color-blank），
-  圆角这里收进 koi 的 --el-radius-md 档，投影仍由 collect-card 提供（全局样式，不在本页范围）。
+  ReTable 的卡片外壳（描边 / 圆角 / 底色 / focus-within 转主色）已由插件提供，
+  见 packages/ui ReTable/shared/table-vars.css 与 ReTable.vue 的
+  `.re-table` / `.re-table--separated` 规则。本页只保留一条与布局强相关的覆盖：
 */
 :deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-bg-color);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
   /*
    * 不吃剩余高度：.collect-page 是 height:100% 的 flex 列，ReTable 默认 flex:1 会被
    * 压到容器高度、表体内容溢出，而页面 overflow 是 visible —— 结果就是下方数据与
@@ -669,9 +750,6 @@ onUnmounted(() => {
 /* 顶部统计卡不能跟着被压扁，固定按内容高度 */
 .job-log .collect-stats {
   flex: none;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
 }
 
 .log-detail {
@@ -755,10 +833,59 @@ onUnmounted(() => {
   overflow-wrap: anywhere;
 }
 
-/* 尊重系统「减少动态效果」偏好：把本页新增的过渡全部关掉 */
-@media (prefers-reduced-motion: reduce) {
-  :deep(.re-table) {
-    transition: none;
-  }
+.log-detail__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
+
+/* ============ 完整日志正文弹层 ============
+   正文可能很长（上限 512KB），必须限高 + 自滚，否则弹层会把整页顶开。 */
+.log-content__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.log-content__label {
+  flex: none;
+  width: 64px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+.log-content__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-content__hint {
+  padding: 10px 12px;
+  border-radius: var(--el-radius-md);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.log-content__hint--warn {
+  margin-bottom: 8px;
+  color: var(--el-color-warning);
+}
+.log-content__body {
+  margin: 8px 0 0;
+  padding: 14px 16px;
+  max-height: 62vh;
+  overflow: auto;
+  border-radius: var(--el-radius-md);
+  background: var(--el-text-color-primary);
+  color: var(--el-bg-color);
+  font-family: var(--cc-font-num);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 尊重系统「减少动态效果」偏好：
+   ReTable 的过渡已由插件自带的同名媒体查询处理，本页不再代管。 */
 </style>

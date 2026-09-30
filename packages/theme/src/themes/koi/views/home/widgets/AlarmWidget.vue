@@ -78,9 +78,7 @@
 </template>
 
 <script setup lang="ts" name="AlarmWidget">
-// @ts-nocheck
 
-// @ts-nocheck
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElNotification } from "element-plus";
 import { AlarmClock, Close, Plus } from "@element-plus/icons-vue";

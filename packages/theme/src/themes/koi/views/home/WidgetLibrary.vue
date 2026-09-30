@@ -13,7 +13,7 @@
       >
         <div class="widget-library__icon">
           <el-icon :size="20">
-            <component :is="resolveIcon(item.icon)" />
+            <component :is="resolveIcon(item)" />
           </el-icon>
         </div>
         <div class="widget-library__meta">
@@ -30,8 +30,9 @@
 /**
  * 系统组件面板（编辑模式右侧）
  *
- * 展示可放置的 widget 目录。点击触发 add 事件，由父组件决定位置。
- * 已按当前用户权限过滤的 catalog 由父组件传入，未传则显示全量。
+ * 展示可放置的 widget 目录（含各 pages 模块通过注册表贡献的条目）。
+ * 点击触发 add 事件，由父组件决定位置。
+ * 已按当前用户权限过滤的 catalog 由父组件传入，未传则用注册表的响应式全量目录。
  */
 import { computed } from "vue";
 import {
@@ -45,17 +46,19 @@ import {
   Calendar,
   Memo,
 } from "@element-plus/icons-vue";
-import { WIDGET_CATALOG } from "./widgets";
+import { getWidgetRegistration, widgetCatalog } from "./registry";
 import type { WidgetCatalogItem, WidgetType } from "./types";
 
-const props = withDefaults(
-  defineProps<{ catalog?: WidgetCatalogItem[] }>(),
-  { catalog: () => WIDGET_CATALOG },
-);
+const props = withDefaults(defineProps<{ catalog?: WidgetCatalogItem[] }>(), {
+  // 用注册表的响应式目录而非模块求值期就固定下来的静态数组：
+  // 各 pages 模块是在 app 的 mount() 阶段注册的，静态数组看不到它们
+  catalog: () => widgetCatalog.value,
+});
 const emit = defineEmits<{ (e: "add", type: WidgetType): void }>();
 
 const visibleCatalog = computed<WidgetCatalogItem[]>(() => props.catalog);
 
+/** 内置图标名 → 组件（仅覆盖内置 9 个 widget 的图标） */
 const ICON_MAP: Record<string, unknown> = {
   DataAnalysis,
   Sunny,
@@ -68,8 +71,18 @@ const ICON_MAP: Record<string, unknown> = {
   Memo,
 };
 
-function resolveIcon(name: string): unknown {
-  return ICON_MAP[name] ?? DataAnalysis;
+/**
+ * 取目录项的图标。
+ *
+ * <p>优先用注册项自带的 {@code iconComponent}：模块贡献的图标名多半不在上面的
+ * {@code ICON_MAP} 里，若只按名字查会静默退化成默认图标，等于模块的图标白写了。
+ * 其次按名字查内置映射，最后兜底默认图标。</p>
+ *
+ * @param item 目录项
+ * @returns 可渲染的图标组件
+ */
+function resolveIcon(item: WidgetCatalogItem): unknown {
+  return getWidgetRegistration(item.type)?.iconComponent ?? ICON_MAP[item.icon] ?? DataAnalysis;
 }
 </script>
 

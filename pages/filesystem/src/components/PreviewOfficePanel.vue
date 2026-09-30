@@ -16,7 +16,7 @@
  * @since 2026/09/26
  */
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
-import { isCorruptOfficeFile, officeRendererOfSniffed, type OfficeRenderer } from "../utils/officeRenderer";
+import { isCorruptOfficeFile, officeRendererOfSniffed, RENDER_SERVER, type OfficeRenderer } from "../utils/officeRenderer";
 
 /**
  * Vue3 Office 组件按需异步加载
@@ -48,8 +48,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** 渲染完成 */
   rendered: [];
-  /** 加载或解析失败，父组件应退回服务端渲染 */
-  error: [];
+  /**
+   * 加载或解析失败
+   *
+   * @param payload `noFallback=true` 表示**不要再退回服务端渲染**
+   *                （内容损坏，或服务端既没有渲染器也没有转换器）；
+   *                `channel` 告诉父组件该用哪条兜底通道（`server` / `pdf`）；
+   *                `reason` 是给用户看的中文文案
+   */
+  error: [payload?: { noFallback?: boolean; reason?: string; channel?: "server" | "pdf" }];
 }>();
 
 /** wrap 容器 DOM 引用 */
@@ -116,13 +123,35 @@ async function load(): Promise<void> {
     buffer.value = await res.arrayBuffer();
     const bytes = new Uint8Array(buffer.value);
     if (!officeRendererOfSniffed(props.fileName, bytes)) {
-      // 区分「浏览器端不支持该格式」与「文件内容本身已损坏」：
-      // OOXML 扩展名却既不是 ZIP 容器也不是 OLE2，说明文件已损坏或上传时被写入了
-      // 非预期内容，重传才能解决；混为一谈会让人以为是浏览器兼容问题。
-      failReason.value = isCorruptOfficeFile(props.fileName, bytes)
-        ? `文件已损坏或格式不符（${props.fileName}），请重新上传后再试`
-        : `客户端不支持直接解析该格式（${props.fileName}）`;
-      emit("error");
+      // 客户端组件吃不下这个文件，先判断是「内容坏了」还是「格式不支持」
+      const corrupt = isCorruptOfficeFile(props.fileName, bytes);
+      if (corrupt) {
+        failReason.value = `文件已损坏或格式不符（${props.fileName}），请重新上传后再试`;
+        // 内容损坏时退回服务端毫无意义（服务端拿到的是同一堆坏字节），
+        // 只会把面板自己的中文提示顶掉，换成一个空白的服务端渲染页。
+        emit("error", { noFallback: true, reason: failReason.value });
+        return;
+      }
+      // 格式不支持：确认服务端到底能不能渲染/转换。
+      // 有些扩展名（实测 OLE2 的 .xls）服务端没有 HTML 渲染器，`render=server`
+      // 会原样吐回二进制、不带任何 channel 头——直接丢给 iframe 只会得到一屏乱码
+      // 或一个意料之外的下载。
+      //
+      // 退路有两条，按优先级：
+      //   ① 服务端有该格式的 HTML 渲染器（channel=spi）→ 走 iframe；
+      //   ② 没有 HTML 渲染器，但有 Office→PDF 转换器（Aspose SPI）
+      //      → 让父组件用 ?format=pdf 直接把 PDF 交给浏览器内置阅读器。
+      const fallback = await probeFallback();
+      if (fallback === "server") {
+        failReason.value = "该文件需由服务端渲染";
+        emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
+      } else if (fallback === "pdf") {
+        failReason.value = "该文件需由服务端转换为 PDF 后预览";
+        emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
+      } else {
+        failReason.value = `该格式暂不支持在线预览（${props.fileName}），请下载后用本地软件打开`;
+        emit("error", { noFallback: true, reason: failReason.value });
+      }
     }
   } catch (e) {
     // JSZip / PDF 解析库抛的是英文原始异常（如 "Can't find end of central directory"），
@@ -133,6 +162,52 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 探测服务端能为该文件提供哪种兜底通道
+ *
+ * <p>按优先级探测：</p>
+ * <ol>
+ *   <li>{@code render=server} 返回 {@code X-FileStorage-Preview: spi} → 服务端有
+ *       HTML 渲染器，返回 {@code "server"}</li>
+ *   <li>{@code format=pdf} 返回 {@code X-FileStorage-Convert: pdf}
+ *       → 服务端有 Office→PDF 转换器（Aspose），返回 {@code "pdf"}</li>
+ *   <li>都没有 → {@code null}</li>
+ * </ol>
+ *
+ * <p>必须看响应头而不是只看状态码：转不成功时服务端**不报错**，而是带
+ * {@code X-FileStorage-Convert: unavailable} 继续走原通道并返回原始字节，
+ * 只看状态码会把 Office 二进制当成 PDF 交给读取器。</p>
+ *
+ * <p>探测失败（网络/超时）按「都没有」处理：宁可给一句可执行的提示，
+ * 也不要让用户看到一屏乱码。</p>
+ *
+ * @returns 可用通道；都没有返回 null
+ */
+async function probeFallback(): Promise<"server" | "pdf" | null> {
+  const sep = props.src.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${props.src}${sep}render=${RENDER_SERVER}`, { method: "GET" });
+    if (res.ok && res.headers.get("X-FileStorage-Preview") === "spi") {
+      return "server";
+    }
+  } catch {
+    // 继续探测下一条通道
+  }
+  try {
+    const res = await fetch(`${props.src}${sep}format=pdf`, { method: "GET" });
+    if (res.ok) {
+      const ct = res.headers.get("content-type") ?? "";
+      // 同时校验响应头与内容类型：头说明服务端真转换了，内容类型兜底防止代理改写
+      if (res.headers.get("X-FileStorage-Convert") === "pdf" || ct.startsWith("application/pdf")) {
+        return "pdf";
+      }
+    }
+  } catch {
+    // 都没有
+  }
+  return null;
 }
 
 watch(() => [props.src, props.fileName], () => void load(), { immediate: true });

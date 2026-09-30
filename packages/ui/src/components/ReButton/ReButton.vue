@@ -17,6 +17,16 @@
  *   dev 下编译器会保留注释并把条件链拆成多根 Fragment，$el 不再是按钮元素，
  *   外层 el-popconfirm / el-tooltip 便解析不到触发元素（确认框弹不出来）。
  *
+ * 维护约束（2026-09-30 补充）：**每个分支解析到的根都必须是真实元素**，
+ *   因此禁止把 ElTooltip / ElPopover 这类组件放在分支最外层当根。
+ *   它们自身的根是 ElPopper（fragment），Vue 会判定「组件根节点不是元素」，
+ *   导致挂在 <ReButton> 上的指令（v-admin / v-superadmin / v-role / v-perm / v-menu）
+ *   拿不到真实元素而**静默失效**（实测：{@code v-admin} 的 display:none 根本没执行，
+ *   非管理员能看到管理员专属按钮），并且每次渲染刷一条
+ *   "Runtime directive used on component with non-element root node" 警告。
+ *   需要 tooltip 时，把它放进布局组件内部（见 layouts/Square.vue 的 tip prop），
+ *   或改用原生 title。
+ *
  * 【square 布局注意】"square" 是纯图标正方形按钮，不允许带文字：
  *   - 传入的文字不会渲染到按钮上，仅作为 tooltip 悬浮提示与 aria-label 辅助信息
  *   - 需要"图标 + 文字"展示时，请使用默认 layout（带 show-text）或 modern 布局
@@ -42,7 +52,7 @@ const ModernLayout = defineAsyncComponent(() => import("./layouts/Modern.vue"));
 /** Square 布局组件（按需异步加载） */
 const SquareLayout = defineAsyncComponent(() => import("./layouts/Square.vue"));
 
-defineOptions({ name: "ReButton", inheritAttrs: true });
+defineOptions({ name: "ReButton", inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
@@ -183,24 +193,25 @@ function onClick(e: MouseEvent): void {
 </script>
 
 <template>
-  <ElTooltip
+  <span
     v-if="layout === 'square' && visible && labelText"
-    :content="labelText"
-    placement="top"
+    class="re-button__tip-wrap"
   >
-    <SquareLayout
-      :type="type"
-      :size="size"
-      :plain="plain"
-      :loading="loading"
-      :disabled="disabled"
-      :icon="icon"
-      :native-type="nativeType"
-      :aria-label="labelText"
-      v-bind="$attrs"
-      @click="onClick"
-    />
-  </ElTooltip>
+    <ElTooltip :content="labelText" placement="top">
+      <SquareLayout
+        :type="type"
+        :size="size"
+        :plain="plain"
+        :loading="loading"
+        :disabled="disabled"
+        :icon="icon"
+        :native-type="nativeType"
+        :aria-label="labelText"
+        v-bind="$attrs"
+        @click="onClick"
+      />
+    </ElTooltip>
+  </span>
   <SquareLayout
     v-else-if="layout === 'square' && visible"
     :type="type"
@@ -235,37 +246,38 @@ function onClick(e: MouseEvent): void {
     <slot />
   </ModernLayout>
 
-  <ElTooltip
+  <span
     v-else-if="visible && iconOnly && props.showText === false && labelText"
-    :content="labelText"
-    placement="top"
+    class="re-button__tip-wrap"
   >
-    <ElButton
-      :type="type"
-      :size="size"
-      :plain="plain"
-      :round="round"
-      :circle="circle"
-      :loading="loading"
-      :disabled="disabled"
-      :link="link"
-      :text="text"
-      :bg="bg"
-      :native-type="nativeType"
-      :aria-label="labelText"
-      :style="iconOnly ? { width: props.iconSize + 'px', height: props.iconSize + 'px' } : undefined"
-      :class="{ 're-button--icon-only': iconOnly }"
-      v-bind="$attrs"
-      @click="onClick"
-    >
-      <slot name="icon">
-        <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
-        <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
-          <component :is="icon" />
-        </ElIcon>
-      </slot>
-    </ElButton>
-  </ElTooltip>
+    <ElTooltip :content="labelText" placement="top">
+      <ElButton
+        :type="type"
+        :size="size"
+        :plain="plain"
+        :round="round"
+        :circle="circle"
+        :loading="loading"
+        :disabled="disabled"
+        :link="link"
+        :text="text"
+        :bg="bg"
+        :native-type="nativeType"
+        :aria-label="labelText"
+        :style="iconOnly ? { width: props.iconSize + 'px', height: props.iconSize + 'px' } : undefined"
+        :class="{ 're-button--icon-only': iconOnly }"
+        v-bind="$attrs"
+        @click="onClick"
+      >
+        <slot name="icon">
+          <ReIcon v-if="icon && !iconIsComponent" :name="iconName" class="re-button__icon" />
+          <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+            <component :is="icon" />
+          </ElIcon>
+        </slot>
+      </ElButton>
+    </ElTooltip>
+  </span>
 
   <ElButton
     v-else-if="visible"
@@ -297,6 +309,17 @@ function onClick(e: MouseEvent): void {
 <style scoped>
 .re-button__icon {
   margin-right: 4px;
+}
+/* 两处 tooltip 分支的外壳（square + 提示语 / el 纯图标 + 提示语）。
+   必须让根是真实元素：ElTooltip 的根是 ElPopper（fragment），直接当根会让挂在
+   <ReButton> 上的权限指令拿不到元素、静默失效并每次渲染刷警告
+   （见 script 顶部的维护约束）。
+   外壳保持 inline-flex，占位行为与按钮一致；tooltip 触发器仍是**整个按钮**，
+   悬浮热区不变。inheritAttrs 已置 false，调用方的 class/style 由各分支显式
+   v-bind="$attrs" 落到真实按钮上，不会被这层外壳吃掉。 */
+.re-button__tip-wrap {
+  display: inline-flex;
+  align-items: center;
 }
 .re-button__icon + :slotted(*) {
   margin-left: 0;

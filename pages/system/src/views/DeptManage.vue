@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 机构管理 - 左右分栏布局
  * 左侧：机构树，支持搜索、节点拖拽调整层级/排序

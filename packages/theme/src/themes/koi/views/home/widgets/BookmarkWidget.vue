@@ -44,9 +44,7 @@
 </template>
 
 <script setup lang="ts" name="BookmarkWidget">
-// @ts-nocheck
 
-// @ts-nocheck
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Close, Collection, Link, Plus } from "@element-plus/icons-vue";

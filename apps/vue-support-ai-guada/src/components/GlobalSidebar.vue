@@ -568,8 +568,9 @@ const navItems = computed(() => {
       key: 'image-search',
       label: '以图搜图',
       icon: ImageSearch20Regular,
-      // /v2/image-search/* 同为 @Permission("admin")
-      adminOnly: true
+      // 底库已按账号隔离（<工作目录>/<账号>/imagesearch），每个账号管自己的库，
+      // 因此不再标 adminOnly；后端 /v2/image-search/* 也已去掉 @Permission("admin")，
+      // 未登录仍会被 requireUserId() 拒掉。
     },
     {
       key: 'models',

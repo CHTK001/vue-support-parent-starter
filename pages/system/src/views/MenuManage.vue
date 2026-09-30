@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 菜单管理页面 —— 参考主流后台菜单管理风格实现
  *

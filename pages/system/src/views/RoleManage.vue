@@ -755,17 +755,10 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 表格外壳：卡片不加投影（koi 规约），只用 1px 描边表达层级；
-   键盘聚焦内部控件时描边转主色，让「焦点在哪一块」可感知 */
-:deep(.re-table) {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
-  overflow: hidden;
-  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
-}
-:deep(.re-table:focus-within) {
-  border-color: var(--el-color-primary-light-5);
-}
+/* 表格外壳（1px 描边 / 卡片圆角 / 卡片投影 / focus-within 转主色）
+   由 ReTable 插件自身提供，本页不再覆盖：
+   见 packages/ui ReTable/shared/table-vars.css 与 ReTable.vue 的
+   `.re-table` / `.re-table--separated` 规则。 */
 
 .perm-toolbar {
   display: flex;
@@ -1018,9 +1011,9 @@ onMounted(() => {
   }
 }
 
-/* 尊重系统「减少动态效果」偏好：本文件所有新增/沿用的过渡统一关掉 */
+/* 尊重系统「减少动态效果」偏好：本文件自己的过渡统一关掉
+   （ReTable 的过渡由插件自带的同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
-  :deep(.re-table),
   .perm-tree :deep(.el-tree-node__content),
   .data-scope-card,
   .data-scope-card__dot {
