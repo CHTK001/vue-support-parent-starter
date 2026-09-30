@@ -62,12 +62,14 @@ const PRIMARY_NAMES = ["method", "url"];
 const HEADER_NAMES = ["header:名称", "cookie:名称"];
 /** 请求体组 */
 const BODY_NAMES = ["body", "contentType"];
-/**
- * 高级组：低频配置，默认折叠。
+/** 高级组：低频配置，默认折叠。
  *
  * <p>多收了 saveDocument（保留文档对象）——后端在 meta 里确实下发了这个参数，
  * 任务给的高级清单里没列它，但它是关闭后会影响下游 CSS 抽取的行为开关，语义上属高级，
  * 并入本组而不是另起一组。</p>
+ *
+ * <p>「出参变量名」在本节点实际上只有一个候选（resp），常显一个单选项没有意义 ——
+ * 与数据库节点的数据源同一处理：只在候选多于一个时才显示。</p>
  */
 const ADVANCED_NAMES = [
   "timeout",
@@ -79,6 +81,12 @@ const ADVANCED_NAMES = [
   "outputVariable",
   "saveDocument",
 ];
+
+/** 出参变量名是否只有一个候选（后端 meta 的 options 只有一个值） */
+const outputVarIsSingleOption = computed(() => {
+  const meta = (props.meta.params ?? []).find(item => item.name === "outputVariable");
+  return (meta?.options?.length ?? 0) <= 1;
+});
 
 /**
  * 按给定顺序取参数，缺项自动跳过。
@@ -110,7 +118,11 @@ function fieldsBySet(names: string[]): CollectParamMeta[] {
 const primaryFields = computed(() => fieldsByOrder(PRIMARY_NAMES));
 const headerFields = computed(() => fieldsBySet(HEADER_NAMES));
 const bodyFields = computed(() => fieldsBySet(BODY_NAMES));
-const advancedFields = computed(() => fieldsBySet(ADVANCED_NAMES));
+const advancedFields = computed(() =>
+  fieldsBySet(ADVANCED_NAMES).filter(
+    param => !(param.name === "outputVariable" && outputVarIsSingleOption.value),
+  ),
+);
 /** 循环四参数由 paramContext 统一追加，单独成组 */
 const loopFields = computed(() => fieldsBySet(LOOP_PARAM_NAMES));
 /** 兜底组：不属于上面任何分组的后端新增参数，避免后端加了参数前端却不显示 */
