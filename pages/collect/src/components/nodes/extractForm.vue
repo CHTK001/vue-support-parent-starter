@@ -50,6 +50,7 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
       :model-value="node.fields"
       :preview-url="ctx.previewUrl"
       :load-preview="ctx.loadPreview"
+      :placeholder-groups="ctx.placeholderGroups"
       @update:model-value="ctx.writeFields"
     />
   </div>

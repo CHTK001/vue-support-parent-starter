@@ -12,13 +12,14 @@ import ReButton from "@repo/ui/re-button";
 import ReElementPicker from "@repo/ui/re-element-picker";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
+import RePlaceholderPicker from "@repo/ui/re-placeholder-picker";
 import ReSelect from "@repo/ui/re-select";
 import type { CollectExtractField } from "../types/collect";
 // 预览抓取载荷用 paramContext 的 PreviewPayload，而不是 api 层的
 // CollectPreviewPayload：后者是「接口返回什么」，前者是「元素拾取器能吃什么」。
 // 两个层次曾各写一份，导致本组件与 extractForm 对同一个 loadPreview 给出互不兼容的
 // 签名，vue-tsc 报 TS2322（两类型互不赋值）。详见 paramContext.ts 的说明。
-import type { PreviewPayload } from "./nodes/paramContext";
+import type { PlaceholderGroup, PreviewPayload } from "./nodes/paramContext";
 
 const props = defineProps<{
   modelValue: CollectExtractField[];
@@ -26,6 +27,13 @@ const props = defineProps<{
   previewUrl?: string;
   /** 预览抓取的加载器；不给则「选取」入口不出现（组件自身不发 HTTP） */
   loadPreview?: (url: string) => Promise<PreviewPayload>;
+  /**
+   * 可用于插入的占位字段分组（上游节点出参、全局变量、函数等）。
+   *
+   * <p>抽取表达式正是最需要它的地方：用户看到的往往是 {@code ${projects}} 这种
+   * 上游约定的变量名，没有入口就只能靠猜或者去翻上一个节点。留空则不显示插入入口。</p>
+   */
+  placeholderGroups?: PlaceholderGroup[];
 }>();
 const emit = defineEmits<{ (event: "update:modelValue", value: CollectExtractField[]): void }>();
 
@@ -64,6 +72,20 @@ function applyPicked(payload: { expression: string; parserType: string }): void 
   }
   patch(index, { expression: payload.expression, parserType: payload.parserType });
   pickingIndex.value = null;
+}
+
+/**
+ * 把占位字段追加到该行的表达式末尾。
+ *
+ * <p>追加而不是替换：表达式常常是「已有一段」再补一个变量（如 {@code ${prefix}-${id}}），
+ * 覆盖会把用户正在写的内容弄丢。与 ParamField 的插入行为保持一致。</p>
+ *
+ * @param index 字段行下标
+ * @param value 形如 ${name} 的占位串
+ */
+function appendToExpression(index: number, value: string): void {
+  const current = fields.value[index]?.expression ?? "";
+  patch(index, { expression: `${current}${value}` });
 }
 
 const PARSER_TYPES = ["CSS", "REGEX", "JSON", "JSONPATH", "XPATH", "TEXT", "HTML"].map(item => ({ value: item, label: item }));
@@ -135,12 +157,23 @@ function addField(): void {
         />
         <ReButton text type="danger" icon="Delete" @click="remove(index)">删</ReButton>
       </div>
-      <ReInput
+      <div class="expr-row">
+        <ReInput
 
-        placeholder="表达式：CSS 选择器 / 正则 / JSON 路径"
-        :model-value="field.expression"
-        @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
-      />
+          placeholder="表达式：CSS 选择器 / 正则 / JSON 路径"
+          :model-value="field.expression"
+          @update:model-value="(value: unknown) => patch(index, { expression: String(value ?? '') })"
+        />
+        <!-- 占位插入入口放在写表达式的地方：上游节点出参、全局变量、函数都在这里可选，
+             不用去猜 ${projects} 是哪个节点产出的 -->
+        <RePlaceholderPicker
+          v-if="(placeholderGroups?.length ?? 0) > 0"
+          class="expr-picker"
+          :groups="placeholderGroups"
+          mode="icon"
+          @pick="(value: string) => appendToExpression(index, value)"
+        />
+      </div>
       <div v-if="canPick(field)" class="card-pick">
         <ReButton text icon="Pointer" @click="pickingIndex = index">选取页面元素</ReButton>
       </div>
@@ -229,6 +262,22 @@ function addField(): void {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+/* 表达式行：输入框占满，右侧留出占位插入图标 */
+.expr-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.expr-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.expr-picker {
+  flex: none;
 }
 
 .head-parser {
