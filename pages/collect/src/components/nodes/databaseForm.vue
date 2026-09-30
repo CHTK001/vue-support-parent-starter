@@ -82,10 +82,28 @@ function startsLoopSegment(index: number): boolean {
  */
 const EXTRA_TIPS: Record<string, string> = {
   source: "填集合表达式，例 ${rows}；也接受单条映射（按一行处理）。抽取、SQL、链接节点的出参可直接喂进来。",
+  mode: "追加 = 只插入；覆盖 = 先清空整表再插入（不需要主键）；按主键更新 = 先按主键查、再改或插（必须先声明 key: 主键列）。三者的写入语义不同，不是同一件事。",
   batchSize:
     "写入批次大小，默认 500：把结果集合按这个大小切片、每片一次数据库批提交。它不是总量上限 —— 抓了 400 行、这里填 200，就是分 2 批写两次；值全部走预编译绑定，按主键更新时每批一个事务。",
   "key:主键列":
-    "这里填的主键列必须先在「字段映射」里声明为某个目标列，否则按主键更新会在建表 / 写数之前直接报错；联合主键填多条，右侧值留空。",
+    "只在「按主键更新」时生效：这里填的列必须先在「字段映射」里声明为某个目标列，否则会在建表 / 写数之前直接报错；联合主键填多条，右侧值留空。选「覆盖」时这一项会被忽略。",
+};
+
+/**
+ * 写入方式的中文标签 —— 暂时保留为「待接线」，不要直接改这里的映射。
+ *
+ * <p>后端的 {@code CollectParamMeta.options} 类型是 {@code string[]}，label 与值共用同一个字符串，
+ * 所以前端无法表达「值=update、显示=按主键更新」。要让下拉显示中文，必须先做二选一：</p>
+ * <ul>
+ *   <li>前端：把 {@code CollectParamMeta.options} 放宽为 {@code (string | { value; label })[]}，
+ *       并让 ParamField 的 select 分支兼容两种形态（改 types/collect.ts + ParamField）；</li>
+ *   <li>后端：给 metas 增加可带 label 的选项形态，让「写入方式」下发中文标签（需重新构建发布）。</li>
+ * </ul>
+ */
+const MODE_LABELS: Record<string, string> = {
+  append: "追加（只插入）",
+  replace: "覆盖（先清空整表）",
+  update: "按主键更新（改或插）",
 };
 
 /**

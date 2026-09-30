@@ -631,7 +631,19 @@ function upstreamUrlOf(nodeId: string): string {
  * @param shape 节点类型
  * @returns 默认变量（变量名 + 用途说明）
  */
-function defaultOutputsOf(shape: string): { name: string; desc: string }[] {
+/**
+ * 各 shape 的「隐含出参」——不写在 outputVariable 里、但运行期一定会出现在上下文中的变量。
+ *
+ * <p>此前这里只认 start 与 sql，其它 shape 一律返回空，于是请求节点的 {@code respJson} /
+ * {@code respDoc}、抽取节点的 {@code row} / {@code rows}、判断节点的 {@code conditionResult}
+ * 都不在占位清单里 —— 用户在内置示例里看到 {@code ${respJson}} 却找不到它从哪来
+ * （它就是「出参变量名 + Json/Doc」，见 CollectRequestExecutor）。这里按真实产出补齐。</p>
+ *
+ * @param shape          节点类型
+ * @param declaredOutput 该节点自己声明的出参变量名（可为空）
+ * @returns 该 shape 的隐含出参列表
+ */
+function defaultOutputsOf(shape: string, declaredOutput = ""): { name: string; desc: string }[] {
   if (shape === "start") {
     return [
       { name: "urlList", desc: "种子 URL 集合" },
@@ -640,6 +652,24 @@ function defaultOutputsOf(shape: string): { name: string; desc: string }[] {
   }
   if (shape === "sql") {
     return [{ name: "rows", desc: "查询结果行集合" }];
+  }
+  if (shape === "request") {
+    // 出参变量名默认 resp，另外两个同伴变量都由它派生（见 CollectRequestExecutor）
+    const out = declaredOutput.trim() || "resp";
+    return [
+      { name: `${out}Json`, desc: "响应体解析成 JSON 的对象（内容像 JSON 时才给出）" },
+      { name: `${out}Doc`, desc: "已绑定 base 的 jsoup 文档，供 CSS / XPath 抽取" },
+      { name: "url", desc: "本次请求的地址" },
+    ];
+  }
+  if (shape === "extract") {
+    return [
+      { name: "row", desc: "单条模式写出的「一行」（字段名 → 值）" },
+      { name: "rows", desc: "列表模式写出的行集合" },
+    ];
+  }
+  if (shape === "condition") {
+    return [{ name: "conditionResult", desc: "判断结果（真 / 假），出边条件用它分流" }];
   }
   return [];
 }
@@ -700,7 +730,7 @@ const flowVariableGroups = computed<PlaceholderGroup[]>(() => {
     if (declared) {
       push(declared, `来自「${nodeLabel}」`);
     }
-    for (const item of defaultOutputsOf(node.type ?? "")) {
+    for (const item of defaultOutputsOf(node.type ?? "", valueOf("outputVariable"))) {
       push(item.name, `${item.desc}（「${nodeLabel}」默认）`);
     }
     const loopIndex = valueOf("loopVariableName");

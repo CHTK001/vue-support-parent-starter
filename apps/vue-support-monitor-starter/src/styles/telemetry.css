@@ -519,7 +519,11 @@ html.dark {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px var(--shadow-md);
 }
-.el-button--primary {
+/* 渐变底只给「实心」按钮。is-text / is-plain / is-link 必须排除：
+   这两条原本命中所有 .el-button--primary/--danger，而 Element Plus 的 is-text 只把
+   background-color 置透明、**覆盖不掉 background-image**，于是文字按钮顶着紫/红渐变、
+   文字色又是主题色 —— 表现为「紫底浅蓝字」「红底红字」，糊成一片无法阅读。 */
+.el-button--primary:not(.is-text):not(.is-plain):not(.is-link) {
   background: var(--brand-gradient);
   border: none;
   box-shadow: 0 2px 10px rgba(109, 93, 252, 0.3);
@@ -534,7 +538,7 @@ html.dark {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(109, 93, 252, 0.3);
 }
-.el-button--danger {
+.el-button--danger:not(.is-text):not(.is-plain):not(.is-link) {
   background: linear-gradient(135deg, #f87171, #ef4444);
   border: none;
   box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
@@ -545,7 +549,7 @@ html.dark {
   box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
   filter: brightness(1.08);
 }
-.el-button--success {
+.el-button--success:not(.is-text):not(.is-plain):not(.is-link) {
   background: linear-gradient(135deg, #34d399, #10b981);
   border: none;
   box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
@@ -556,7 +560,7 @@ html.dark {
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
   filter: brightness(1.08);
 }
-.el-button--warning {
+.el-button--warning:not(.is-text):not(.is-plain):not(.is-link) {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   border: none;
   color: #1a1a1a;

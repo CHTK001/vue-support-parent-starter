@@ -126,7 +126,12 @@ async function load(): Promise<void> {
       // 客户端组件吃不下这个文件，先判断是「内容坏了」还是「格式不支持」
       const corrupt = isCorruptOfficeFile(props.fileName, bytes);
       if (corrupt) {
-        failReason.value = `文件已损坏或格式不符（${props.fileName}），请重新上传后再试`;
+        // 措辞要覆盖「加密」：实测本机 D:\施工图文件 下的 .dwg/.doc 都被
+        // 360 防泄密透明加密（4 个不同类型文件共用同一 16 字节密文头），
+        // 那种情况下「重新上传」是无用的动作，只会让用户反复试。
+        failReason.value = `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器：`
+          + "可能已损坏，也可能被文档防泄密软件透明加密（磁盘上是密文，只有授权终端能解密）。"
+          + "若是加密文件，重新上传也没用，请提供未加密的副本";
         // 内容损坏时退回服务端毫无意义（服务端拿到的是同一堆坏字节），
         // 只会把面板自己的中文提示顶掉，换成一个空白的服务端渲染页。
         emit("error", { noFallback: true, reason: failReason.value });

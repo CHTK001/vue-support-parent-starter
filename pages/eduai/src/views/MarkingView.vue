@@ -3,6 +3,7 @@
     <el-card shadow="never" class="toolbar">
       <div class="flex items-center gap-3">
         <ReButton type="primary" icon="Promotion" @click="openSubmit">提交答题卡</ReButton>
+        <ReButton type="success" icon="Camera" @click="openScan">扫描阅卷</ReButton>
         <el-input v-model="taskId" placeholder="已有 taskId 可直接查询" clearable style="width: 260px" />
         <ReButton icon="Search" @click="fetchResult">查询</ReButton>
       </div>
@@ -77,6 +78,46 @@
         <el-button type="primary" :loading="submitting" @click="doSubmit">提交</el-button>
       </template>
     </el-dialog>
+
+    <!-- 扫描阅卷对话框：上传试卷/答题卡图片，支持自有卷与任意卷两种模式 -->
+    <el-dialog v-model="scanDialogVisible" title="扫描阅卷" width="680">
+      <el-form :model="scanForm" label-width="110">
+        <el-form-item label="试卷类型" required>
+          <el-radio-group v-model="scanForm.mode">
+            <el-radio-button value="SELF">自有卷（题库有记录）</el-radio-button>
+            <el-radio-button value="ANY">任意卷（外来试卷）</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="scanForm.mode === 'SELF'" label="试卷" required>
+          <el-select v-model="scanForm.paperId" placeholder="选择试卷（按题号取准确分值）" style="width: 100%" filterable>
+            <el-option v-for="p in paperOptions" :key="p.paperId" :label="p.paperName" :value="p.paperId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-else label="每题满分">
+          <el-input-number v-model="scanForm.maxScore" :min="1" :max="150" />
+          <span class="text-xs text-gray-400 ml-2">任意卷题库无记录，由模型自行判定</span>
+        </el-form-item>
+        <el-form-item label="学生 ID">
+          <el-input v-model="scanForm.studentId" placeholder="留空则记为匿名" />
+        </el-form-item>
+        <el-form-item label="试卷图片" required>
+          <el-upload
+            :auto-upload="false"
+            :limit="1"
+            accept="image/*"
+            :on-change="onScanFileChange"
+            :on-remove="() => (scanForm.file = null)"
+            list-type="picture"
+          >
+            <el-button icon="Upload">选择图片</el-button>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="scanDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="scanning" @click="doScan">开始阅卷</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -102,6 +143,82 @@ const submitForm = reactive<{ examId: number; studentId: string; content: string
 
 const confirming = ref(false);
 let pollHandle: any = null;
+
+/** 扫描阅卷：模式选择（SELF 自有卷 / ANY 任意卷）、可选试卷、图片文件 */
+const scanDialogVisible = ref(false);
+const scanning = ref(false);
+const paperOptions = ref<Array<{ paperId: number; paperName: string }>>([]);
+const scanForm = reactive<{
+  mode: 'SELF' | 'ANY';
+  paperId: number | undefined;
+  studentId: string;
+  maxScore: number;
+  file: File | null;
+}>({
+  mode: 'SELF',
+  paperId: undefined,
+  studentId: '',
+  maxScore: 5,
+  file: null,
+});
+
+const openScan = async () => {
+  scanForm.mode = 'SELF';
+  scanForm.paperId = undefined;
+  scanForm.studentId = '';
+  scanForm.maxScore = 5;
+  scanForm.file = null;
+  scanDialogVisible.value = true;
+  // 自有卷需要选择试卷：分值与标准答案都按试卷题号回数据库取
+  try {
+    const page = await eduaiApi.pagePapers({ pageNum: 1, pageSize: 100 });
+    // PageResult 的主数组字段是 data（records 为兼容保留），二者取其一
+    const rows = page?.data ?? page?.records ?? [];
+    paperOptions.value = rows.map((p) => ({ paperId: p.paperId, paperName: p.paperName }));
+  } catch {
+    paperOptions.value = [];
+  }
+};
+
+/** el-upload 的 change 回调：只保存原始 File，提交时再组 FormData */
+const onScanFileChange = (uploadFile: any) => {
+  scanForm.file = (uploadFile?.raw as File) ?? null;
+};
+
+const doScan = async () => {
+  if (!scanForm.file) {
+    ElMessage.warning('请先选择试卷图片');
+    return;
+  }
+  if (scanForm.mode === 'SELF' && !scanForm.paperId) {
+    ElMessage.warning('自有卷必须选择试卷（用于按题号取准确分值）');
+    return;
+  }
+  scanning.value = true;
+  try {
+    const form = new FormData();
+    form.append('file', scanForm.file);
+    form.append('mode', scanForm.mode);
+    if (scanForm.mode === 'SELF' && scanForm.paperId) {
+      form.append('paperId', String(scanForm.paperId));
+    } else {
+      form.append('maxScore', String(scanForm.maxScore));
+    }
+    if (scanForm.studentId) {
+      form.append('studentId', scanForm.studentId);
+    }
+    const newTaskId = await eduaiApi.scanMarking(form);
+    ElMessage.success('已提交，正在识别与判分…');
+    taskId.value = newTaskId;
+    scanDialogVisible.value = false;
+    // 判分在服务端逐题调模型（每题数秒），必须轮询等待，不能只读一次
+    await fetchResult();
+  } catch (e) {
+    ElMessage.error('扫描阅卷失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    scanning.value = false;
+  }
+};
 
 const addAnswer = () => submitForm.answers.push({ questionId: 1, answer: '' });
 
