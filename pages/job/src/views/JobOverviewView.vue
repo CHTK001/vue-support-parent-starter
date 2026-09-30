@@ -281,6 +281,19 @@ function scheduleText(job: JobRuntime): string {
   return job.scheduleType === "CRON" ? `CRON · ${job.scheduleTime}` : `${job.scheduleType} · ${job.scheduleTime}ms`;
 }
 
+/**
+ * 采集流程镜像行的判断：key 约定为 collect-flow-<流程ID>。
+ *
+ * 不能只看 group——脚本与片段任务同样登记在 collect-flow 分组下（该分组同时是
+ * 调度选举的命名空间兜底），只看分组会把「片段 · Groovy」这类任务误标成采集流程。
+ *
+ * @param row 台账行
+ * @returns true 表示这一行是采集流程的调度镜像
+ */
+function isFlowRow(row: JobRuntime): boolean {
+  return row.jobKey?.startsWith(`${COLLECT_FLOW_GROUP}-`) === true;
+}
+
 function jobNameOf(row: JobLog): string {
   const key = row.jobKey ?? "";
   return jobNames.value[key] || key || "—";
@@ -401,7 +414,7 @@ function go(path: string): void {
           <template #name="{ row }">
             <span>{{ row.jobName || row.jobKey }}</span>
             <ReTag
-              v-if="row.group === COLLECT_FLOW_GROUP"
+              v-if="isFlowRow(row as unknown as JobRuntime)"
               class="collect-tag-inline"
               
               type="primary"
