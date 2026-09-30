@@ -49,7 +49,7 @@ import {
   replacePairs,
 } from "../utils/dsl";
 import type { ParamPair } from "../utils/dsl";
-import type { NodeForm, NodeFormContext, PlaceholderGroup } from "./nodes/paramContext";
+import type { NodeForm, NodeFormContext, PlaceholderGroup, DdlPreviewPayload } from "./nodes/paramContext";
 import type {
   FlowEdge,
   FlowEdgeKind,
@@ -114,6 +114,20 @@ const props = defineProps<{
   loadTables?: (datasource: string) => Promise<string[]>;
   /** 读某张表的列元数据，供字段映射控件用 */
   loadColumns?: (datasource: string, table: string) => Promise<CollectColumn[]>;
+  /** 预览建表 / 补列 DDL；未传时不显示「建表 / 补列」入口 */
+  previewDdl?: (request: {
+    datasource: string;
+    table: string;
+    columns: string[];
+    primaryKey: string[];
+  }) => Promise<DdlPreviewPayload>;
+  /** 执行建表 / 补列；未传时不显示「建表 / 补列」入口 */
+  executeDdl?: (request: {
+    datasource: string;
+    table: string;
+    columns: string[];
+    primaryKey: string[];
+  }) => Promise<DdlPreviewPayload>;
 }>();
 
 const emit = defineEmits<{ (event: "change"): void }>();
@@ -807,6 +821,9 @@ const formContext = computed<NodeFormContext>(() => ({
   refreshColumns: () => {
     void loadColumnsForActive(true);
   },
+  // 建表 / 补列：宿主实现（FlowView 调数据源中心的 DDL 接口），未传时表单不显示该入口
+  previewDdl: props.previewDdl,
+  executeDdl: props.executeDdl,
   writeFields,
 }));
 

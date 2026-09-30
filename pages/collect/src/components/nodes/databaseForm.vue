@@ -4,9 +4,12 @@
   表单额外补两块说明：来源集合与每批行数的真实语义、主键列必须先在字段映射里声明。
 -->
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { ElDialog } from "element-plus";
+import ReButton from "@repo/ui/re-button";
 import ParamField from "./ParamField.vue";
 import { LOOP_PARAM_NAMES, useShapeFieldList } from "./paramContext";
-import type { NodeForm, NodeFormContext } from "./paramContext";
+import type { DdlPreviewPayload, NodeForm, NodeFormContext } from "./paramContext";
 import type { ParamPair } from "../../utils/dsl";
 import type { CollectParamMeta, CollectShapeMeta } from "../../types/collect";
 
@@ -33,6 +36,86 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
 
 /** 循环四参数名集合，用于给「循环」分段定位 */
 const loopNames = new Set(LOOP_PARAM_NAMES);
+
+/* ---------------------------- 建表 / 补列（B9-3） ---------------------------- */
+
+/** 弹窗与执行态 */
+const ddlOpen = ref(false);
+const ddlBusy = ref(false);
+const ddlPayload = ref<DdlPreviewPayload | null>(null);
+const ddlError = ref("");
+
+/** 已映射的目标列（字段映射左侧的列名，去掉空行） */
+const ddlColumns = computed(() =>
+  pairsOfParam("column:目标列").map(pair => String(pair.key ?? "").trim()).filter(Boolean),
+);
+
+/** 主键列：只保留同时出现在字段映射里的（后端就是这么校验的，缺了会在动表前报错） */
+const ddlKeys = computed(() => {
+  const mapped = new Set(ddlColumns.value);
+  return pairsOfParam("key:主键列")
+    .map(pair => String(pair.key ?? "").trim())
+    .filter(name => Boolean(name) && mapped.has(name));
+});
+
+/** 是否给出建表入口：宿主提供了 DDL 能力 + 选了数据源和表 + 至少映射了一列 */
+const canDdl = computed(() =>
+  Boolean(props.ctx.previewDdl)
+  && Boolean(props.ctx.executeDdl)
+  && Boolean(valueOf("datasource").trim())
+  && Boolean(valueOf("table").trim())
+  && ddlColumns.value.length > 0,
+);
+
+/** 建表 / 补列的请求（表单只给列名与主键列名，列类型由宿主按运行期同一套规则补齐） */
+function ddlRequest(): { datasource: string; table: string; columns: string[]; primaryKey: string[] } {
+  return {
+    datasource: valueOf("datasource").trim(),
+    table: valueOf("table").trim(),
+    columns: ddlColumns.value,
+    primaryKey: ddlKeys.value,
+  };
+}
+
+/**
+ * 预览建表 / 补列：先把要执行的 SQL 摊给用户看，确认后才执行。
+ *
+ * <p>不直接执行是刻意的 —— 建表 / 补列是 DDL，错了要人工收拾；预览一次的成本远低于误建一张表。</p>
+ */
+async function openDdl(): Promise<void> {
+  if (!props.ctx.previewDdl) {
+    return;
+  }
+  ddlBusy.value = true;
+  ddlError.value = "";
+  ddlPayload.value = null;
+  try {
+    ddlPayload.value = await props.ctx.previewDdl(ddlRequest());
+    ddlOpen.value = true;
+  } catch (error) {
+    ddlError.value = error instanceof Error ? error.message : String(error);
+    ddlOpen.value = true;
+  } finally {
+    ddlBusy.value = false;
+  }
+}
+
+/** 执行建表 / 补列，成功后刷新左侧列候选（新列/新表立刻可选） */
+async function runDdl(): Promise<void> {
+  if (!props.ctx.executeDdl) {
+    return;
+  }
+  ddlBusy.value = true;
+  ddlError.value = "";
+  try {
+    ddlPayload.value = await props.ctx.executeDdl(ddlRequest());
+    props.ctx.refreshColumns();
+  } catch (error) {
+    ddlError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    ddlBusy.value = false;
+  }
+}
 
 /**
  * 参数是否整行展示。
@@ -137,8 +220,33 @@ function extraTip(name: string): string {
         @pairs="(value: ParamPair[]) => emit('set-pairs', param, value)"
       />
       <div v-if="extraTip(param.name)" class="field-tip">{{ extraTip(param.name) }}</div>
+      <!-- 建表 / 补列：放在「字段映射」下面，顺序就是「先选数据源与表 → 需要时先建表 → 再映射」 -->
+      <div v-if="param.name === 'column:目标列' && canDdl" class="ddl-actions">
+        <ReButton text type="primary" :loading="ddlBusy" @click="openDdl">建表 / 补列…</ReButton>
+        <span class="ddl-hint">
+          按上方映射的目标列建表或补列（列类型 TEXT，与运行期自动建表同一套规则）；建完自动刷新左侧列候选。
+        </span>
+      </div>
     </div>
   </template>
+
+  <ElDialog v-model="ddlOpen" title="建表 / 补列" width="760px" append-to-body>
+    <div v-if="ddlError" class="ddl-error">{{ ddlError }}</div>
+    <template v-else-if="ddlPayload">
+      <div class="ddl-summary">
+        目标表 {{ valueOf("table") }}：
+        {{ ddlPayload.created ? "已新建" : (ddlPayload.exists ? "已存在" : "不存在") }}
+        <span v-if="ddlPayload.appended.length">，补列 {{ ddlPayload.appended.join(" / ") }}</span>
+        <span v-if="!ddlPayload.created && !ddlPayload.appended.length">，无需变更</span>
+      </div>
+      <pre class="ddl-sql">{{ ddlPayload.sql || "（数据源中心未返回 SQL）" }}</pre>
+    </template>
+    <div v-else class="ddl-summary">正在生成 DDL…</div>
+    <template #footer>
+      <ReButton @click="ddlOpen = false">关闭</ReButton>
+      <ReButton type="primary" :loading="ddlBusy" @click="runDdl">执行</ReButton>
+    </template>
+  </ElDialog>
 </template>
 
 <style scoped>
@@ -178,5 +286,52 @@ function extraTip(name: string): string {
   font-size: 11px;
   line-height: 1.45;
   color: var(--el-text-color-secondary);
+}
+/* 建表 / 补列入口：与「字段映射」贴在一起 */
+.ddl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+  margin-top: 4px;
+}
+
+.ddl-hint {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+}
+
+.ddl-summary {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.ddl-error {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-5);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+/* 等宽显示 DDL：长语句要能横向滚动，不折行 */
+.ddl-sql {
+  max-height: 40vh;
+  margin: 8px 0 0;
+  padding: 10px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
+  white-space: pre;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
 }
 </style>
