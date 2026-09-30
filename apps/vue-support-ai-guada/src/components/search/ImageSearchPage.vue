@@ -1062,11 +1062,13 @@ onBeforeUnmount(() => {
   background: var(--el-color-primary-light-3, #79bbff);
 }
 
-/* 收窄成参考栏时竖排卡片会挤占画面，改为横排换行 */
+/* 收窄成参考栏时竖排卡片会挤占画面，改为横排换行；
+   并且不再绝对定位，而是作为画布纵向布局里的一个正常流元素排在图片下方，
+   从根本上避免「卡片压住图片下半」。（left/right/bottom 在 static 下自然失效） */
 .is-body.is-focused .is-actcard {
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
+  position: static;
+  align-self: stretch;
+  margin: 8px 10px 10px;
   flex-direction: row;
   flex-wrap: wrap;
   padding: 8px;
@@ -1242,8 +1244,15 @@ onBeforeUnmount(() => {
   max-height: 100%;
 }
 
+/* 收窄成参考栏后，画布高度 = 图片等比高度（实测 259×480/640 = 194px），
+   而底部横排的操作卡换行后高约 97px —— 直接压在图片下半。
+   此前只修了「点击穿透」（浮层不吃指针事件），视觉遮挡仍在：用户看着图片被挡住一半。
+   这里改为纵向排布、操作卡回到**正常流**：画布高度变成「图片 + 操作卡」，
+   两者不再重叠，也不需要在 CSS 里硬编码卡片高度（卡片换行行数随宽度变）。 */
 .is-body.is-focused .is-canvas {
   flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 /* 图片高度用 vh：.is-canvas 改成内容高度后高度不确定，

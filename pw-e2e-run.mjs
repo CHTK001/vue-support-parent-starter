@@ -48,7 +48,7 @@ const dsl = {
     { id: "n1", shape: "start", name: "起点", x: 60, y: 120, params: [p("urls", "https://example.com/")], fields: [] },
     { id: "n2", shape: "request", name: "抓取", x: 220, y: 120, params: [p("url", "${url}"), p("method", "GET"), p("outputVariable", "resp")], fields: [] },
     { id: "n3", shape: "extract", name: "抽取", x: 380, y: 120, params: [p("source", "${respDoc}"), p("mode", "single"), p("outputVariable", "rows")], fields: [
-      { name: "title", parserType: "CSS", expression: "h1", attribute: "text" },
+      { name: "title", parserType: "CSS", expression: "a", attribute: "text" },
       { name: "href", parserType: "XPATH", expression: "/html[1]/body[1]/a[1]/@href" },
     ] },
     { id: "n4", shape: "database", name: "写库", x: 540, y: 120, params: [
@@ -162,7 +162,9 @@ try {
   const rows = await mysql(`select href, title from ${TABLE}`);
   console.log("  表内容: " + rows.replace(/\s+/g, " ").trim());
   ck("草表里出现抓取结果", /iana\.org/.test(rows), rows.replace(/\s+/g, " ").trim().slice(0, 120));
-  ck("标题也被抽到了（h1 文本）", /Learn more/i.test(rows), "");
+  // 断言用页面上真实存在的元素：198 抓到的 example.com 变体里没有 <h1>
+  // （CSS 与 XPath 取 h1 都是 NULL，而 body/a 都能取到），拿 h1 断言会得到假红。
+  ck("文本也被抽到了（a 的可见文本）", /Learn more/i.test(rows), "");
 
   console.log("\npageerror: " + (errs.length ? errs.slice(0, 3).join(" || ") : "无"));
   await page.screenshot({ path: "D:/ch/project/vue-support-parent-starter/e2e-run.png" }).catch(() => {});

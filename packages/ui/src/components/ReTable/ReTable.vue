@@ -3005,6 +3005,18 @@ const iconSelect = Select;
           </span>
         </template>
       </VxeColumn>
+      <!-- 加载态：vxe 的 table.js 里有这段判断 ——
+           `if (props.loading && !VxeUILoadingComponent && !slots.loading) { errLog(缺少 vxe-loading); errLog(不支持的参数 loading=true) }`
+           即：只要传了 loading，就必须存在「全局注册的 vxe-loading 组件」或「本插槽」，
+           否则每次 nextTick 刷两条 error。本仓库刻意没有 app.use(vxe-table)（全局注册会带来
+           其它副作用），所以在这里提供插槽，顺带把加载态收进设计体系。
+           外层 .vxe-loading--custom-wrapper 由 vxe 提供（absolute + 100%×100% + display 切换），
+           这里只补遮罩与转圈内容。 -->
+      <template #loading>
+        <div class="re-table__loading">
+          <span class="re-table__loading-spinner" aria-hidden="true"></span>
+        </div>
+      </template>
       <!-- 空态：未提供 #empty 插槽时回落到 el-empty（保持既有行为） -->
       <template #empty>
         <slot name="empty" :description="emptyText">
@@ -3518,10 +3530,12 @@ const iconSelect = Select;
 .re-table .vxe-header--column .vxe-cell {
   min-height: 0 !important;
 }
+/* ⚠ 对照实验 B：暂时注释
 .re-table .vxe-body--column .vxe-cell {
   height: auto !important;
   min-height: 0 !important;
 }
+*/
 
 /* ============ element 引擎（默认）的表格视觉 ============
    与上面 vxe 那套是同一套设计语言的两种落地：同样的圆角细描边、渐变表头、
@@ -4310,6 +4324,34 @@ const iconSelect = Select;
 }
 .re-table:hover .vxe-table--body-wrapper::-webkit-scrollbar-thumb {
   background-color: color-mix(in srgb, var(--el-text-color-secondary) 30%, transparent);
+}
+/* vxe 加载态（#loading 插槽内容）：定位与显隐由 vxe 的 .vxe-loading--custom-wrapper 提供，
+   这里只补遮罩与转圈。遮罩用主题底色 mix 出来，暗色自动适配。 */
+.re-table__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
+}
+.re-table__loading-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+  border-top-color: var(--el-color-primary);
+  border-radius: var(--rt-radius-full, 9999px);
+  animation: re-table-loading-spin 0.8s linear infinite;
+}
+@keyframes re-table-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .re-table__loading-spinner {
+    animation: none;
+  }
 }
 .re-table .vxe-table--body-wrapper::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--el-text-color-secondary) 50%, transparent);
