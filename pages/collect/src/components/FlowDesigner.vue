@@ -301,6 +301,35 @@ function condLabel(condition?: string | null): string {
   return value.length > 18 ? `${value.slice(0, 18)}…` : value;
 }
 
+/**
+ * 连线标签：判断节点的出边直接标「真 / 假」，其它节点沿用条件原文。
+ *
+ * <p>判断节点是靠出边条件分流的，但它的出边条件通常写成 {@code ${conditionResult}} 或留空，
+ * 画布上看到的要么是一串占位符、要么什么都不显示 —— 用户没法一眼看出哪条是真的哪条是假的。
+ * 这里按源节点类型换成人话；条件里显式比较 false 的算假，留空即默认出边（也就等于假分支，
+ * 因为真分支已经被 {@code ${conditionResult}} 占掉了）。</p>
+ *
+ * @param edge        连线（至少有 condition）
+ * @param sourceShape 源节点类型
+ * @returns 画布上显示的连线标签
+ */
+function edgeLabelOf(
+  edge: { condition?: string | null; exceptionFlow?: string | null },
+  sourceShape: string,
+): string {
+  if (text(edge.exceptionFlow) === "1") {
+    return "异常时";
+  }
+  if (sourceShape !== "condition") {
+    return condLabel(edge.condition);
+  }
+  const raw = text(edge.condition).trim();
+  if (!raw) {
+    return "假（默认出边）";
+  }
+  return /false/.test(raw) ? "假" : "真";
+}
+
 function toGraphData(dsl: CollectDsl): FlowGraphData {
   return {
     nodes: (dsl.nodes ?? []).map(node => ({
@@ -319,7 +348,7 @@ function toGraphData(dsl: CollectDsl): FlowGraphData {
       from: edge.from,
       to: edge.to,
       kind: kindOf(edge.exceptionFlow, edge.condition),
-      label: condLabel(edge.condition),
+      label: edgeLabelOf(edge, (dsl.nodes ?? []).find(item => item.id === edge.from)?.shape ?? ""),
       transfer: edge.transmitVariable !== false,
       data: { condition: text(edge.condition), exceptionFlow: edge.exceptionFlow || "0" },
     })),
@@ -787,7 +816,11 @@ function patchEdge(changes: Partial<EdgeForm>): void {
   Object.assign(form, changes);
   engine.value?.updateEdge(form.id, {
     kind: kindOf(form.exceptionFlow, form.condition),
-    label: condLabel(form.condition),
+    // 与初次渲染同口径：判断节点的出边显示真/假，否则显示条件原文
+    label: edgeLabelOf(
+      form,
+      (engine.value?.getData() ?? graphData.value).nodes.find(item => item.id === form.from)?.type ?? "",
+    ),
     transfer: form.transmitVariable,
     data: { condition: form.condition, exceptionFlow: form.exceptionFlow },
   });
