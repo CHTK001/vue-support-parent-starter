@@ -761,6 +761,7 @@ const form = reactive<JobSave & {
 }>({
   jobKey: "",
   originJobKey: "",
+  version: 0,
   jobName: "",
   group: "",
   dispatchMode: "LOCAL",
@@ -1019,6 +1020,7 @@ function openCreate(): void {
   Object.assign(form, {
     jobKey: "",
     originJobKey: "",
+    version: 0,
     jobName: "",
     // 默认落到本调度中心分组：Leader 只派发同组任务，留空落 default 会"登记成功但永不派发"
     group: summary.value?.group ?? "",
@@ -1064,6 +1066,7 @@ function openEdit(job: JobRuntime): void {
   Object.assign(form, {
     jobKey: job.jobKey,
     originJobKey: job.jobKey,
+    version: job.version ?? 0,
     jobName: job.jobName ?? "",
     group: job.group ?? "",
     dispatchMode: job.dispatchMode === "REMOTE" ? "REMOTE" : "LOCAL",
@@ -1268,6 +1271,8 @@ async function submit(): Promise<void> {
       if (!ok) {
         return;
       }
+      // 覆盖确认基于刚读到的这一版：用它的版本做 CAS，期间被别人改过就拒绝覆盖而不是盖掉别人的改动
+      payload.version = existing.version ?? undefined;
     }
   }
   try {

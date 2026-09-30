@@ -60,6 +60,8 @@ export interface JobRuntime {
   alarmEmail?: string | null;
   /** 失败告警类型：EMAIL / WEBHOOK，空按 EMAIL */
   alarmType?: string | null;
+  /** 乐观锁版本：编辑保存时原样回传，后端据此判断台账是否已被他人修改 */
+  version?: number | null;
 }
 
 /** 登记/更新任务入参（JobSpecDTO） */
@@ -94,6 +96,11 @@ export interface JobSave {
   alarmType?: string;
   /** 编辑前的任务键：与 jobKey 不同时按重命名处理（编辑全字段放开） */
   originJobKey?: string;
+  /**
+   * 编辑前读到的乐观锁版本：回传后后端按此版本做 CAS，
+   * 期间台账被他人改过则保存被拒绝，而不是静默覆盖
+   */
+  version?: number | null;
 }
 
 /** 执行日志行（JobLogVO） */
