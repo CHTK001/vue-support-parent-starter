@@ -132,18 +132,87 @@
             </div>
           </el-popover>
 
-          <!-- 清理失败/取消记录：这些记录没有产出，留着只占列表 -->
-          <button
-            v-if="hasVoidRecords"
-            type="button"
-            class="wg-chip wg-chip-danger"
-            :disabled="clearingFailed"
-            :title="clearingFailed ? '正在清理…' : '清理失败与已取消的记录'"
-            @click="clearFailedTasks()"
+          <!--
+            记录管理：清理失败 / 批量删除 / 清空全部。
+            三个都是破坏性操作，收进一个 popover 而不是并排摆三个危险按钮 ——
+            并排会让「清空全部」离「清理失败」只有几十像素，误触代价却是全部作品。
+          -->
+          <el-popover
+            v-if="!selecting"
+            placement="bottom-end"
+            :width="280"
+            trigger="click"
+            popper-class="wg-popper"
           >
-            <WgIcon :d="ICONS.trash" />
-            <span>清理失败 {{ voidRecordCount }}</span>
-          </button>
+            <template #reference>
+              <button
+                type="button"
+                class="wg-chip wg-chip-danger"
+                :disabled="busyClearing"
+                :title="busyClearing ? '正在处理…' : '记录管理'"
+              >
+                <WgIcon :d="ICONS.trash" />
+                <span>清理{{ voidRecordCount ? ' ' + voidRecordCount : '' }}</span>
+                <WgIcon :d="ICONS.chevron" />
+              </button>
+            </template>
+            <div class="wg-menu">
+              <p class="wg-menu-title">记录管理</p>
+              <button
+                type="button"
+                class="wg-menu-item"
+                :disabled="!hasVoidRecords"
+                @click="clearFailedTasks()"
+              >
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">清理失败</span>
+                  <span class="wg-menu-desc">
+                    {{ hasVoidRecords ? `删除 ${voidRecordCount} 条失败与已取消的记录` : '没有失败或已取消的记录' }}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="wg-menu-item"
+                :disabled="!rows.length"
+                @click="enterSelectMode()"
+              >
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">批量删除</span>
+                  <span class="wg-menu-desc">勾选后删除指定记录</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="wg-menu-item is-danger"
+                :disabled="!tasks.length"
+                @click="confirmClearAll()"
+              >
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">清空全部</span>
+                  <span class="wg-menu-desc">删除全部 {{ tasks.length }} 条，含已生成的作品</span>
+                </span>
+              </button>
+            </div>
+          </el-popover>
+
+          <!-- 选择模式工具条：替换掉上面的入口，不并存两套操作，免得点了哪个说不清 -->
+          <template v-else>
+            <span class="wg-chip is-strong">已选 {{ selectedIds.size }} / {{ rows.length }}</span>
+            <button type="button" class="wg-chip" :disabled="!rows.length" @click="toggleSelectAll()">
+              {{ selectedIds.size === rows.length && rows.length ? '取消全选' : '全选' }}
+            </button>
+            <button
+              type="button"
+              class="wg-chip wg-chip-danger"
+              :disabled="!selectedIds.size || busyClearing"
+              @click="deleteSelected()"
+            >
+              <WgIcon :d="ICONS.trash" />
+              <span>删除选中{{ selectedIds.size ? ' ' + selectedIds.size : '' }}</span>
+            </button>
+            <button type="button" class="wg-chip" @click="exitSelectMode()">退出</button>
+          </template>
 
           <!-- 排序 -->
           <el-popover placement="bottom-end" :width="200" trigger="click" popper-class="wg-popper">
@@ -215,8 +284,13 @@
             v-for="row in rows"
             :key="row.id"
             class="wg-card"
-            :class="`is-${row.kind}`"
+            :class="[`is-${row.kind}`, { 'is-selecting': selecting, 'is-selected': selectedIds.has(row.id) }]"
+            @click="onCardClick(row)"
           >
+            <!-- 选择模式下每张卡左上角一个勾选框；其余操作整块屏蔽，避免误触删除/重试 -->
+            <span v-if="selecting" class="wg-pick" :aria-checked="selectedIds.has(row.id)" role="checkbox">
+              <WgIcon :d="selectedIds.has(row.id) ? ICONS.check : ICONS.circle" />
+            </span>
             <!-- 第一行：状态 + 提示词 + 耗时/时间 -->
             <div class="wg-card-head">
               <span class="wg-badge" :class="badgeClass(row.task)">{{ badgeText(row.task) }}</span>
@@ -376,6 +450,14 @@
                   <span class="wg-spark"><WgIcon :d="ICONS.sparkle" /></span>
                   <span class="wg-stage">{{ stageText(row.task) }}</span>
                   <span class="wg-stage-num">{{ row.task.progress ?? 0 }}%</span>
+                  <!--
+                    已用时：生成中这一段进度会长时间停在同一个数（上游不返回中间进度），
+                    光看一个不动的百分比像是卡死了。秒数按心跳同一事实推进——
+                    后端在生成期间每秒刷 updatedAt 证明 worker 活着（实测心跳序列
+                    0.1s/2.3s/4.4s/…/12.8s 连续推进），这里把它显示出来，
+                    而不是编一个假的百分比（不做时间插值是既定口径）。
+                  -->
+                  <span class="wg-stage-elapsed">已用时 {{ elapsedSeconds(row.task) }}s</span>
                 </div>
               </div>
 
@@ -720,6 +802,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
  */
 const ICONS: Record<string, string> = {
   check: 'm4.5 12.75 6 6 9-13.5',
+  circle:
+    'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   chevron: 'm19.5 8.25-7.5 7.5-7.5-7.5',
   download: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3',
   refresh:
@@ -793,8 +877,8 @@ const MEDIA_OPTIONS: ReadonlyArray<{
   desc: string
   icon: 'image' | 'video'
 }> = [
-  { value: 'image', label: '图像', desc: '文生图 / 图生图', icon: 'image' },
-  { value: 'video', label: '视频', desc: '文生视频 / 图生视频', icon: 'video' },
+  { value: 'image', label: '图像', desc: '文生图', icon: 'image' },
+  { value: 'video', label: '视频', desc: '文生视频', icon: 'video' },
 ]
 
 /** 状态徽标文案 */
@@ -907,9 +991,13 @@ const submitting = ref(false)
  * 难以辨认。前端据此禁用发送，后端 {@code GenerateService#create} 也会再拦一道
  * ——前端限制只是体验，后端限制才是约束。</p>
  */
-const hasRunningTask = computed(
-  () => tasks.value.some((t) => t.status === 'PENDING' || t.status === 'RUNNING')
-)
+const hasRunningTask = computed(() => {
+  const active = tasks.value.some((t) => t.status === 'PENDING' || t.status === 'RUNNING')
+  // 「已用时」的时钟跟着它启停：没有运行中的任务时它没有消费者，开着只是白每秒重渲染。
+  // 放在这里而不是散在七八个分支里，省得某个分支忘了关。
+  syncTick(active)
+  return active
+})
 
 const tasks = ref<GenerateTask[]>([])
 /** 首次加载历史期间为 true，用于骨架屏 */
@@ -1216,6 +1304,7 @@ const badgeText = (task: GenerateTask) => STATUS_TEXT[task.status] ?? task.statu
 const voidRecordCount = computed(
   () => tasks.value.filter((t) => t.status === 'FAILED' || t.status === 'CANCELED').length,
 )
+
 
 /** 有失败记录才显示清理入口，避免常驻一个点不动的按钮 */
 const hasVoidRecords = computed(() => voidRecordCount.value > 0)
@@ -1726,6 +1815,74 @@ const refRatioOf = (task: GenerateTask): string => {
 const deletingId = ref('')
 
 /**
+ * 选择模式：进入后每张卡出现勾选框，顶部换成「已选 / 全选 / 删除选中 / 退出」。
+ *
+ * <p>与「清理失败」「清空全部」互斥显示：三套删除入口并存会让人说不清点的是哪个，
+ * 而这三者后果差别很大（部分记录 / 勾选记录 / 全部记录含作品）。</p>
+ */
+const selecting = ref(false)
+
+/** 选择模式下已勾选的任务号 */
+const selectedIds = ref(new Set<string>())
+
+/** 清理/批量删除/清空共用同一个进行中标记，避免并发破坏性操作互相穿插 */
+const busyClearing = ref(false)
+
+/**
+ * 每秒推进一次的时钟，只为「已用时」这类相对时间用。
+ *
+ * <p>只在有任务在跑时开定时器：没有运行中的任务时它没有任何消费者，
+ * 开着就是白白每秒唤醒一次 vue 做无意义的重渲染。</p>
+ */
+const nowTick = ref(Date.now())
+let tickTimer: ReturnType<typeof setInterval> | null = null
+
+/**
+ * 按需启停时钟。
+ *
+ * @param active 是否还有进行中的任务
+ */
+const syncTick = (active: boolean) => {
+  if (active && tickTimer === null) {
+    tickTimer = setInterval(() => {
+      nowTick.value = Date.now()
+    }, 1000)
+  } else if (!active && tickTimer !== null) {
+    clearInterval(tickTimer)
+    tickTimer = null
+  }
+}
+
+/**
+ * 服务器时钟与浏览器时钟的偏移（毫秒，server - client）。
+ *
+ * <p>「已用时」要拿服务端写的 createdAt 减当前时间。若直接用浏览器时钟去减，
+ * 两台机器时钟不一致时结果就错了：实测服务端比浏览器快约 7 秒，
+ * 于是前 7 秒算出来是负数、被压成 0，计数器要等 7 秒才起步（并且中间还会跳秒）。</p>
+ *
+ * <p>偏移用「运行中任务的 updatedAt」估：后端在生成期间每秒刷新它（心跳），
+ * 所以它近似等于服务端的当前时间，误差约 1 秒。只取运行中的任务——
+ * 已结束任务的 updatedAt 停在完成那一刻，拿它估会把偏移算成偏负值。</p>
+ */
+const clockSkew = ref(0)
+
+/**
+ * 任务已用时（秒）。
+ *
+ * <p>把浏览器时钟换算到服务端时钟再与 createdAt 相减，避免时钟偏差吃掉开头几秒。
+ * 用 createdAt 而不是 updatedAt：后者被心跳每秒刷新，拿它算永远是 0 秒。</p>
+ *
+ * @param task 任务行
+ * @return 已用秒数
+ */
+const elapsedSeconds = (task: GenerateTask) => {
+  if (!task.createdAt) {
+    return 0
+  }
+  return Math.max(0, Math.floor((nowTick.value + clockSkew.value - task.createdAt) / 1000))
+}
+
+/**
  * 正在把历史参考图取回成 base64（「再次生成」回填阶段）。
  *
  * <p>历史里的参考图是地址，取字节要一次网络往返；这段时间里参数栏不能看着像
@@ -1733,8 +1890,149 @@ const deletingId = ref('')
  */
 const refilling = ref(false)
 
-/** 清理失败记录的结果提示用 */
-const clearingFailed = ref(false)
+/**
+ * 用运行中任务的心跳时间持续校正时钟偏移。
+ *
+ * <p>放在 watch 里而不是 computed 里：computed 只该用来求值，
+ * 在里面顺手改另一个响应式状态会让「谁改了它」变得难以追踪。</p>
+ */
+watch(
+  tasks,
+  (list) => {
+    const runningStamps = list
+      .filter((t) => t.status === 'PENDING' || t.status === 'RUNNING')
+      .map((t) => t.updatedAt ?? 0)
+    const newest = runningStamps.length ? Math.max(...runningStamps) : 0
+    if (newest > 0) {
+      clockSkew.value = newest - Date.now()
+    }
+  },
+  { deep: true },
+)
+
+/**
+ * 进入选择模式并清空上一轮的选择。
+ */
+const enterSelectMode = () => {
+  selectedIds.value = new Set()
+  selecting.value = true
+}
+
+/** 退出选择模式并清空选择 */
+const exitSelectMode = () => {
+  selecting.value = false
+  selectedIds.value = new Set()
+}
+
+/**
+ * 切换一条记录的选择状态。
+ *
+ * @param taskId 任务号
+ */
+const toggleSelect = (taskId: string) => {
+  const next = new Set(selectedIds.value)
+  if (next.has(taskId)) {
+    next.delete(taskId)
+  } else {
+    next.add(taskId)
+  }
+  // 换一个新 Set 而不是原地增删：原地改不会触发依赖 .size 的模板更新
+  selectedIds.value = next
+}
+
+/** 全选 / 取消全选（作用于当前可见的 rows，与筛选结果一致） */
+const toggleSelectAll = () => {
+  selectedIds.value =
+    selectedIds.value.size === rows.value.length && rows.value.length
+      ? new Set()
+      : new Set(rows.value.map((row) => row.id))
+}
+
+/**
+ * 选择模式下点击卡片本体即切换勾选，不需要精准点到那个小方框。
+ *
+ * @param row 卡片行
+ */
+const onCardClick = (row: { id: string }) => {
+  if (selecting.value) {
+    toggleSelect(row.id)
+  }
+}
+
+/** 删除勾选的记录 */
+const deleteSelected = async () => {
+  if (busyClearing.value) {
+    return
+  }
+  const ids = [...selectedIds.value]
+  if (!ids.length) {
+    ElMessage.info('请先勾选要删除的记录')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`将删除勾选的 ${ids.length} 条记录，此操作不可恢复。`, '批量删除', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+  busyClearing.value = true
+  try {
+    const removed = await apiService.batchDeleteTasks(ids)
+    await loadHistory()
+    exitSelectMode()
+    ElMessage.success(removed > 0 ? `已删除 ${removed} 条` : '没有可删除的记录')
+  } catch (error) {
+    ElMessage.error(`删除失败：${(error as Error)?.message || '未知错误'}`)
+  } finally {
+    busyClearing.value = false
+  }
+}
+
+/**
+ * 清空全部记录（含已生成的作品）。
+ *
+ * <p>要求手动输入确认词：这是唯一会删掉成功作品的入口，而两个按钮点一下的确认
+ * 对它的后果（全部作品不可恢复地消失）不成比例。确认词用「清空」——
+ * 与按钮同名，用户不需要猜该输什么。</p>
+ */
+const confirmClearAll = async () => {
+  if (busyClearing.value) {
+    return
+  }
+  const total = tasks.value.length
+  if (!total) {
+    ElMessage.info('当前没有记录')
+    return
+  }
+  try {
+    await ElMessageBox.prompt(
+      `将删除全部 ${total} 条记录，包括已生成的作品，且不可恢复。请输入「清空」以确认。`,
+      '清空全部记录',
+      {
+        type: 'warning',
+        confirmButtonText: '清空',
+        cancelButtonText: '取消',
+        inputPlaceholder: '清空',
+        inputValidator: (value: string) => (value || '').trim() === '清空' || '请输入「清空」两个字',
+      },
+    )
+  } catch {
+    return
+  }
+  busyClearing.value = true
+  try {
+    const removed = await apiService.deleteAllTasks()
+    await loadHistory()
+    ElMessage.success(removed > 0 ? `已清空 ${removed} 条` : '没有可清空的记录')
+  } catch (error) {
+    ElMessage.error(`清空失败：${(error as Error)?.message || '未知错误'}`)
+  } finally {
+    busyClearing.value = false
+  }
+}
 
 /**
  * 删除单条生成记录。
@@ -1786,9 +2084,9 @@ const removeTask = async (task: GenerateTask) => {
   }
 }
 
-/** 清理当前用户的全部失败记录（失败记录没有产出，留着只占列表） */
+/** 清理当前用户的全部失败与已取消记录 */
 const clearFailedTasks = async () => {
-  if (clearingFailed.value) {
+  if (busyClearing.value) {
     return
   }
   const count = tasks.value.filter(
@@ -1807,7 +2105,7 @@ const clearFailedTasks = async () => {
   } catch {
     return
   }
-  clearingFailed.value = true
+  busyClearing.value = true
   try {
     const removed = await apiService.deleteFailedTasks()
     if (removed > 0) {
@@ -1817,7 +2115,7 @@ const clearFailedTasks = async () => {
   } catch (error) {
     ElMessage.error(`清理失败：${(error as Error)?.message || '未知错误'}`)
   } finally {
-    clearingFailed.value = false
+    busyClearing.value = false
   }
 }
 
@@ -2246,6 +2544,11 @@ onActivated(async () => {
 onUnmounted(() => {
   pollTimers.forEach((timer) => clearTimeout(timer))
   pollTimers.clear()
+  // 停止「已用时」时钟：组件卸载后它没有消费者，留着就是每秒空转
+  if (tickTimer !== null) {
+    clearInterval(tickTimer)
+    tickTimer = null
+  }
 })
 </script>
 
@@ -3244,6 +3547,71 @@ onUnmounted(() => {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+}
+
+/* 已用时：进度长时间停在同一档时，这个每秒递增的秒数是「还活着」的唯一信号 */
+.wg-stage-elapsed {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* 选择模式：勾选框 + 选中的卡面反馈。
+   整块可点（不是只有那个小方框），选择模式下面片不再触发删除/重试等操作。 */
+.wg-card.is-selecting {
+  cursor: pointer;
+}
+
+.wg-pick {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-circle);
+  background: var(--color-surface);
+  color: var(--color-text-gray);
+}
+
+.wg-pick .wg-svg {
+  width: 12px;
+  height: 12px;
+}
+
+.wg-card.is-selected .wg-pick {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.wg-card.is-selected {
+  border-color: var(--color-primary);
+}
+
+/* 选择模式下屏蔽卡片内的交互操作，避免点选时误触删除/重试/下载 */
+.wg-card.is-selecting .wg-card-head-right,
+.wg-card.is-selecting .wg-thumb-actions {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* 破坏性菜单项：只在文案上标危险色，不加实心底，避免整块弹层过度抢眼 */
+.wg-menu-item.is-danger .wg-menu-name {
+  color: var(--el-color-danger);
+}
+
+.wg-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.wg-menu-item:disabled:hover {
+  background: transparent;
 }
 
 @keyframes wg-shimmer {
