@@ -4,7 +4,7 @@
     <SettingsCard v-for="group in settingGroups" :key="group.group" :title="group.groupName">
       <!-- 模型字段：始终显示 -->
       <SettingsRow
-        v-for="item in modelFields(group)"
+        v-for="item in visibleFields(group)"
         :key="item.field"
         :label="getFieldLabel(item)"
         :description="item.description"
@@ -204,8 +204,29 @@ const currentDialogField = ref('')
 // ===================== 字段分组辅助 =====================
 const modelFields = (group) =>
     (group.items || []).filter(item => isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+
+/**
+ * 是否属于「该直接显示、但不是选模型」的字段。
+ *
+ * <p>生成目录这类配置项名字里没有 "model"，会被判进「高级选项」折叠区 ——
+ * 而它是用户在设置页里最想直接看到并改的一项，藏起来等于没有。
+ * 这里把它们单独挑出来放到始终显示的那一块；注意不能直接让 isModelField 返回 true，
+ * 那会走「模型选择器」那一支（只读输入框 + 弹模型对话框），语义完全不同。</p>
+ */
+const isPlainVisibleField = (group, field) =>
+    group === 'generate' && String(field || '').startsWith('media_')
+
+/** 始终显示且不是选模型的字段 */
+const plainVisibleFields = (group) =>
+    (group.items || []).filter(item =>
+        !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+
+/** 始终显示的字段：选模型的 + 上面这类目录配置 */
+const visibleFields = (group) => [...modelFields(group), ...plainVisibleFields(group)]
+
 const advancedFields = (group) =>
-    (group.items || []).filter(item => !isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+    (group.items || []).filter(item =>
+        !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
 
 // ===================== 模型类型体系 =====================
 // 规范类型中文标签
@@ -386,6 +407,8 @@ const getFieldLabel = (item) => {
             'rag_ocr_model': 'OCR模型',
             'image_model': '文生图模型',
             'video_model': '文生视频模型',
+            'media_base_path': '生成文件根目录',
+            'media_upload_dir': '上传目录名',
             'classify_threshold': '分类阈值',
             'detect_threshold': '检测阈值',
             'temperature': '温度',
