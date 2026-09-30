@@ -47,7 +47,11 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   />
   <div v-if="meta.fieldEditor" class="field field-wide">
     <div class="field-label">抽取字段</div>
-    <FieldTable :model-value="node.fields" @update:model-value="ctx.writeFields" />
+    <FieldTable
+      :model-value="node.fields"
+      :placeholder-groups="ctx.placeholderGroups"
+      @update:model-value="ctx.writeFields"
+    />
   </div>
 </template>
 
