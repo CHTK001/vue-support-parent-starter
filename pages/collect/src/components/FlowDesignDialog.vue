@@ -7,6 +7,12 @@
 
   destroy-on-close 必开：设计器是有状态的（当前画布、未保存标记、轮询定时器），
   复用实例会把上一次的草稿带进下一次打开。
+
+  close-on-press-escape 必须显式关掉（ReDialog 默认是 true）：实测在设计器里按一次 Esc，
+  整个设计器被卸载（画布 1→0、节点 30→0、面板 1→0，hash 不变），配合 destroy-on-close
+  会连未保存的草稿一起销毁。属性面板里的「弹窗配置」与占位弹层也都在 ReDialog 体系内，
+  用户想「关掉那个小弹层」按 Esc 时会把整个设计器一起带走。
+  设计器改用头部关闭按钮退出；内层弹层仍按 Esc 关闭（只关最内层）。
 -->
 <script setup lang="ts">
 import ReDialog from "@repo/ui/re-dialog";
@@ -32,6 +38,7 @@ const emit = defineEmits<{
     fullscreen
     :title="props.title || (props.flowId ? '流程设计' : '新建采集器流程')"
     :destroy-on-close="true"
+    :close-on-press-escape="false"
     footer-hidden
     @update:model-value="emit('update:modelValue', $event)"
   >
