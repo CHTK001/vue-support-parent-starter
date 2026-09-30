@@ -49,6 +49,13 @@ const OPTION_LABELS: Record<string, string> = {
   task: "本次任务",
   single: "单条抽取",
   list: "列表抽行",
+  // 写入方式（database 节点的 mode）：值是后端枚举，直接显示等于让用户读英文
+  append: "追加（只插入）",
+  replace: "覆盖（先清空整表）",
+  update: "按主键更新（改或插）",
+  // 批次失败策略（database 节点的 onBatchError）
+  stop: "失败即终止（默认）",
+  continue: "记录失败后继续",
 };
 
 const PARAM_OPTION_LABELS: Record<string, string> = {
