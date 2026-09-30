@@ -54,6 +54,11 @@ const fieldSummary = computed(() => {
 </script>
 
 <template>
+  <div class="field field-wide node-intro">
+    抽取节点：把上游抓到的内容按「字段」解析成行列数据 —— 每行一个字段，
+    声明用哪种解析器（CSS / XPath / JSONPath / 正则…）以及取值表达式；结果供写库、输出或循环节点使用。
+  </div>
+
   <ParamField
     v-for="param in fields"
     :key="param.name"
@@ -120,5 +125,18 @@ const fieldSummary = computed(() => {
   color: var(--el-text-color-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 节点级说明：与其它节点表单同一形态（左侧 2px 主色竖条 + 浅底） */
+.node-intro {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 2px solid var(--el-color-primary);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color 200ms, background-color 200ms;
 }
 </style>

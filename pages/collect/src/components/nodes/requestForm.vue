@@ -187,6 +187,10 @@ function statusClass(status: number): string {
 
 <template>
   <div class="request-form">
+    <div class="node-intro">
+      抓取节点：按 URL 取回页面或接口响应，交给下游节点解析。下面先填请求方法与地址，
+      需要时点「预览响应」看服务端实际取到什么；请求头、请求体、超时重试等都在对应分组里。
+    </div>
     <!-- 第一行：方法 + URL + 预览，置顶并用边框 / 底色强调为整张表单的主入口 -->
     <div class="request-primary">
       <ParamField
@@ -361,6 +365,19 @@ function statusClass(status: number): string {
   grid-column: 1 / -1;
   gap: 12px;
   min-width: 0;
+}
+
+/* 节点级说明：与其它节点表单同一形态（左侧 2px 主色竖条 + 浅底） */
+.node-intro {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 2px solid var(--el-color-primary);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color 200ms, background-color 200ms;
 }
 
 /* 第一行：方法窄、URL 宽、预览按钮贴右；用边框 + 底色强调为整张表单的主入口 */
