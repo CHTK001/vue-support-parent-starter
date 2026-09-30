@@ -1,8 +1,11 @@
 <!--
-  抽取节点表单：抽取来源、抽取模式、行选择器、出参变量名，并内嵌抽取字段编辑器。
-  循环四参数由 paramContext 统一排在最前。
+  抽取节点表单：抽取来源、抽取模式、行选择器、出参变量名，以及抽取字段（弹框内配置）。
+  参数顺序由 paramContext 统一决定（必填置顶、循环参数在末尾）。
 -->
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { ElDialog } from "element-plus";
+import ReButton from "@repo/ui/re-button";
 import FieldTable from "../FieldTable.vue";
 import ParamField from "./ParamField.vue";
 import { useShapeFieldList } from "./paramContext";
@@ -30,6 +33,24 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.meta,
   ["source", "mode", "rowExpression", "outputVariable"],
 );
+
+/** 抽取字段弹框开关 */
+const fieldsOpen = ref(false);
+
+/**
+ * 字段摘要文案，与「字段映射」控件保持同一形态（「N 个字段（类型）」+「配置」）。
+ *
+ * <p>字段表原先整张铺在属性面板里，十几个字段比其它所有参数加起来都长，面板被撑爆；
+ * 收进弹框后这里只留一行摘要，需要改的时候再点开。</p>
+ */
+const fieldSummary = computed(() => {
+  const list = props.node.fields ?? [];
+  if (!list.length) {
+    return "未配置";
+  }
+  const types = [...new Set(list.map(field => (field.parserType || "CSS").toUpperCase()))];
+  return `${list.length} 个字段（${types.join(" / ")}）`;
+});
 </script>
 
 <template>
@@ -46,13 +67,20 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   />
   <div v-if="meta.fieldEditor" class="field field-wide">
     <div class="field-label">抽取字段</div>
-    <FieldTable
-      :model-value="node.fields"
-      :preview-url="ctx.previewUrl"
-      :load-preview="ctx.loadPreview"
-      :placeholder-groups="ctx.placeholderGroups"
-      @update:model-value="ctx.writeFields"
-    />
+    <div class="field-summary">
+      <span class="summary-text">{{ fieldSummary }}</span>
+      <ReButton text type="primary" @click="fieldsOpen = true">配置</ReButton>
+    </div>
+    <!-- append-to-body：属性面板自身可能有 overflow/transform，弹框留在面板内会被裁掉 -->
+    <ElDialog v-model="fieldsOpen" title="抽取字段" width="920px" append-to-body>
+      <FieldTable
+        :model-value="node.fields"
+        :preview-url="ctx.previewUrl"
+        :load-preview="ctx.loadPreview"
+        :placeholder-groups="ctx.placeholderGroups"
+        @update:model-value="ctx.writeFields"
+      />
+    </ElDialog>
   </div>
 </template>
 
@@ -70,5 +98,27 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   margin-bottom: 3px;
   font-size: 12px;
   color: #86909c;
+}
+
+/* 摘要行与字段映射控件同形：左侧文本、右侧「配置」 */
+.field-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.summary-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

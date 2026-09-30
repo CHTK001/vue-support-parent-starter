@@ -1,6 +1,8 @@
 <!--
-  开始节点表单：种子 URL 与集合变量名。
-  循环四参数由 paramContext 统一排在最前。
+  开始节点表单：只暴露种子 URL。
+  开始节点的职责就是「声明种子」，循环与集合变量名对它没有意义
+  （循环参数由 CollectShapeMetas 追加给所有节点，这里用 includeLoop=false 摘掉；
+  集合变量名固定默认 urlList，会作为流程变量出现在插入占位清单里，无需再暴露一个输入框）。
 -->
 <script setup lang="ts">
 import ParamField from "./ParamField.vue";
@@ -23,11 +25,12 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 开始节点专属参数，按后端 meta 的下发顺序排列 */
+/** 开始节点专属参数：只有种子 URL */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
-  ["urls", "outputVariable"],
+  ["urls"],
+  { includeLoop: false },
 );
 </script>
 

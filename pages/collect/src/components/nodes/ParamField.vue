@@ -5,7 +5,9 @@
   控件变更只 emit「新值 / 新 pairs」，写回仍由 FlowDesigner 统一处理。</p>
 -->
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { ElDialog } from "element-plus";
+import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReInputNumber from "@repo/ui/re-input-number";
 import RePlaceholderPicker from "@repo/ui/re-placeholder-picker";
@@ -104,6 +106,25 @@ const showPlaceholderPicker = computed(
 function appendPlaceholder(value: string): void {
   emit("update", `${props.value ?? ""}${value}`);
 }
+
+/** 字段映射弹框开关（每个 mapping 参数各一个实例，互不影响） */
+const mappingOpen = ref(false);
+
+/**
+ * 字段映射的摘要文案。
+ *
+ * <p>映射行数一多（十几列很常见），整张表铺在属性面板里会把其它参数挤到屏幕外；
+ * 这里只给「几列 + 列名」，需要改的时候再点开弹框。</p>
+ */
+const mappingSummary = computed(() => {
+  const list = props.pairs ?? [];
+  if (!list.length) {
+    return "未配置";
+  }
+  const names = list.map(pair => pair.key).filter(Boolean);
+  const shown = names.slice(0, 4).join(" / ");
+  return `${list.length} 列（${shown}${names.length > 4 ? " …" : ""}）`;
+});
 </script>
 
 <template>
@@ -114,7 +135,7 @@ function appendPlaceholder(value: string): void {
         v-if="showPlaceholderPicker"
         class="label-picker"
         :groups="ctx.placeholderGroups"
-        mode="button"
+        mode="icon"
         @pick="appendPlaceholder"
       />
     </div>
@@ -188,18 +209,26 @@ function appendPlaceholder(value: string): void {
       :options="ctx.tableOptions"
       @update:model-value="(v: string | number | (string | number)[] | null) => emit('update', v)"
     />
-    <MappingEditor
-      v-else-if="param.type === 'mapping'"
-      :key="`${nodeId}:${param.name}:${ctx.columnKey}`"
-      :model-value="pairs"
-      :columns="ctx.activeColumns"
-      :table="ctx.activeTable"
-      :table-exists="ctx.tableExists"
-      :loading="ctx.columnsLoading"
-      :load-error="ctx.columnsError"
-      :on-refresh="ctx.refreshColumns"
-      @update:model-value="(v: ParamPair[]) => emit('pairs', v)"
-    />
+    <template v-else-if="param.type === 'mapping'">
+      <!-- 映射收进弹框：与「抽取字段」同形（摘要 + 配置），需要改时才点开 -->
+      <div class="field-summary">
+        <span class="summary-text">{{ mappingSummary }}</span>
+        <ReButton text type="primary" @click="mappingOpen = true">配置</ReButton>
+      </div>
+      <ElDialog v-model="mappingOpen" :title="param.label" width="920px" append-to-body>
+        <MappingEditor
+          :key="`${nodeId}:${param.name}:${ctx.columnKey}`"
+          :model-value="pairs"
+          :columns="ctx.activeColumns"
+          :table="ctx.activeTable"
+          :table-exists="ctx.tableExists"
+          :loading="ctx.columnsLoading"
+          :load-error="ctx.columnsError"
+          :on-refresh="ctx.refreshColumns"
+          @update:model-value="(v: ParamPair[]) => emit('pairs', v)"
+        />
+      </ElDialog>
+    </template>
     <PairsEditor
       v-else-if="param.type === 'pairs'"
       :key="`${nodeId}:${param.name}`"
@@ -251,6 +280,28 @@ function appendPlaceholder(value: string): void {
 
 .pane-fill {
   width: 100%;
+}
+
+/* 摘要行：与「抽取字段」的配置入口同形 */
+.field-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.summary-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field-tip {

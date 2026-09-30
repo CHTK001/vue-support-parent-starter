@@ -22,11 +22,12 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 结束节点没有专属参数，names 传空，仅保留公共循环四参数 */
+/** 结束节点没有专属参数；它也不是可迭代单元，循环四参数一并摘掉 */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
   [],
+  { includeLoop: false },
 );
 </script>
 

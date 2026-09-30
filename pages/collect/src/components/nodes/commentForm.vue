@@ -23,11 +23,12 @@ const emit = defineEmits<{
   (e: "set-pairs", param: CollectParamMeta, pairs: ParamPair[]): void;
 }>();
 
-/** 注释节点专属参数，按后端 meta 的下发顺序排列 */
+/** 注释节点专属参数；注释不参与执行，循环四参数摘掉 */
 const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.node,
   () => props.meta,
   ["comment"],
+  { includeLoop: false },
 );
 </script>
 
