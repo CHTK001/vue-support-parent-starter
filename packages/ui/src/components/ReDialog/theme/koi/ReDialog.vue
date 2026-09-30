@@ -30,6 +30,15 @@ const props = withDefaults(
     alignCenter?: boolean;
     height?: number;
     closeOnClickModal?: boolean;
+    /**
+     * 是否按 Esc 关闭（对齐 el-dialog，默认 true）。
+     *
+     * <p>本变体 inheritAttrs 为 false，props 又没声明它，调用方传的
+     * close-on-press-escape 会被静默丢弃，内层 el-dialog 永远用自己的默认 true ——
+     * 全屏设计器（FlowDesignDialog）就是这样被一次 Esc 整个卸载的。基类 ReDialog
+     * 早就声明并透传了该 prop，这里补齐。</p>
+     */
+    closeOnPressEscape?: boolean;
     confirmText?: string;
     cancelText?: string;
     destroyOnClose?: boolean;
@@ -57,6 +66,7 @@ const props = withDefaults(
     center: true,
     alignCenter: true,
     closeOnClickModal: false,
+    closeOnPressEscape: true,
     confirmText: "",
     cancelText: "",
     destroyOnClose: false,
@@ -177,6 +187,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :center="center"
     :align-center="alignCenter"
     :close-on-click-modal="closeOnClickModal"
+    :close-on-press-escape="closeOnPressEscape"
     append-to-body
     modal-class="koi-dialog-modal"
     draggable
