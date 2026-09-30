@@ -17,6 +17,15 @@ export const jobRoutes: RouteConfigsTable[] = [
     meta: { title: "调度中心", icon: "AlarmClock", showLink: true, rank: 2 },
     children: [
       {
+        // 概览页此前只登记在 index.ts 的「本地视图映射」里（key views/job/index.vue），
+        // 没有任何静态路由或菜单指向它 —— 页面存在却点不到。这里给它补上入口，
+        // rank 1 放在分组最前，与「先看概览再进明细」的动线一致。
+        path: "/collect/job-overview",
+        name: "CollectJobOverview",
+        component: () => import("../views/JobOverviewView.vue"),
+        meta: { title: "调度概览", icon: "DataAnalysis", showLink: true, keepAlive: true, rank: 1, isVisible: "1" },
+      },
+      {
         path: "/collect/job",
         name: "CollectJob",
         component: () => import("../views/JobView.vue"),
