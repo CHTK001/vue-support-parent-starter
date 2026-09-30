@@ -27,6 +27,7 @@ import {
     dryRun,
     fetchCategoryOptions,
     fetchDatasourceColumns,
+    APP_DATASOURCE,
     fetchDatasourceOptions,
     fetchDatasourceTables,
     fetchMetas,
@@ -186,13 +187,31 @@ const subflowOptions = computed<CollectOption[]>(() => flows.value
 
 /* ------------------------- 入库节点：数据源 / 表 / 列 ------------------------- */
 
-/** 数据源下拉候选，后端已把应用主库固定为首项 */
+/** 数据源下拉候选 */
 const datasourceOptions = ref<CollectOption[]>([]);
+
+/**
+ * 保证「本系统」始终排在第一项。
+ *
+ * <p>台账接口可能返回空、也可能直接失败（原实现失败时把候选清成空数组），那时用户在选择
+ * 「目标数据源」时**一个可选项都没有**，字段映射自然无从下手。应用主库是平台自己本来就有的，
+ * 不该依赖台账接口是否可用 —— 所以这里无条件兜底，label 也写成人话而不是 {@code app}。</p>
+ *
+ * @param rows 台账返回的候选（可为空）
+ * @returns 已确保含「本系统」的候选列表
+ */
+function withAppDatasource(rows?: CollectOption[] | null): CollectOption[] {
+  const list = [...(rows ?? [])];
+  if (!list.some(item => item.value === APP_DATASOURCE)) {
+    list.unshift({ value: APP_DATASOURCE, label: "本系统（当前应用库）" });
+  }
+  return list;
+}
 
 onMounted(() => {
   void fetchDatasourceOptions()
-    .then(rows => (datasourceOptions.value = rows ?? []))
-    .catch(() => (datasourceOptions.value = []));
+    .then(rows => (datasourceOptions.value = withAppDatasource(rows)))
+    .catch(() => (datasourceOptions.value = withAppDatasource([])));
   void loadPlaceholders();
 });
 

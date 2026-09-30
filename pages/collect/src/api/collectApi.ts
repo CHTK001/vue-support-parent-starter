@@ -223,6 +223,7 @@ export const deleteVariable = (variableId: number) => del<boolean>(`${API}/varia
  * 这里只做再导出，页面与 API 都不在本 app 里另放一份。
  */
 export {
+  APP_DATASOURCE,
   fetchDatasourceOptions,
   fetchDatasourceTables,
   fetchDatasourceColumns,
