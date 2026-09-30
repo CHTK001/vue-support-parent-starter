@@ -58,7 +58,10 @@
           <!-- 创建面板 -->
           <div class="panel create-panel">
             <!-- 有库时：卡片网格（原稿只有空状态，这块是「进入详情」的必要入口） -->
-            <template v-if="bases.length > 0">
+            <!-- A 方案（已定）：主页面永远按原稿那一屏渲染 —— 插图 + 空白创建/从模板创建 +
+                 底部教育场景模板，不显示知识库列表。
+                 要把「我的知识库」列表恢复回来，把下面 v-if 改回 bases.length > 0 即可。 -->
+            <template v-if="false">
               <div class="panel-head">
                 <h2>我的知识库</h2>
                 <span class="link-doc" @click="emit('help')">查看帮助文档</span>
