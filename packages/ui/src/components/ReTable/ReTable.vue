@@ -981,13 +981,17 @@ function recalcTable(): void {
  * 而 tbody 又会被虚拟滚动重渲染掉，还得再叠一层 observer 反复重绑 —— 四层补丁互相打架。</p>
  */
 /**
- * 清掉自研手柄在行上留下的 {@code draggable}。
+ * 清掉拖拽在行上留下的 {@code draggable}。
  *
- * <p>vxe 只在自己那条 mousedown 路径（{@code handleCellDragMousedownEvent}）里置
- * {@code trEl.draggable = true}，随后的复位走 {@code clearRowDropOrigin()}（只对带
- * {@code row--drag-origin} 类的行生效）。我们绕过它自研手柄后，实测拖完**源行的
- * draggable 会残留 true** —— 那行的行体因此变成可拖，出现"能拖但不动"的幽灵拖影，
- * 每拖一行还多留一个。所以在拖拽结束与退出拖拽模式时都要自己收尾。</p>
+ * <p>由 {@code onVxeDragHandleMousedown} 置位的 {@code <tr>} draggable，
+ * 随后的复位走 vxe 的 {@code clearRowDropOrigin()} —— 但它<b>只对带
+ * {@code row--drag-origin} 类的行生效</b>，拖拽被取消/中断时那行未必带该类，
+ * 就会残留 {@code draggable=true}。残留的行体因此变成可拖，出现「能拖但不动」的
+ * 幽灵拖影，每拖一行还多留一个。因此在拖拽结束与退出拖拽模式时都要自己收尾。</p>
+ *
+ * <p>只清 {@code <tr>}：vxe 自己推断出的那个「trEl」在本组件的 DOM 里其实是
+ * {@code <td>}，已在 mousedown 里就地复位，不留残留（见 onVxeDragHandleMousedown
+ * 的说明）。</p>
  */
 function clearVxeRowDraggable(): void {
   const tableEl = currentTableEl();
@@ -1044,6 +1048,27 @@ function onVxeRowDragEnd(): void {
  *
  * <p>取不到时回退到最小实现（只保证能拖，牺牲变淡与 row-dragstart），
  * 这样 vxe 将来若改内部结构也不会直接失效。</p>
+ *
+ * <p><b>但委托之后必须自己把 {@code draggable} 补到真正的 {@code <tr>} 上。</b>
+ * vxe 是靠 DOM 关系反推的：{@code rowDragConfig.trigger} 既不是 {@code 'cell'} 也不是
+ * {@code 'row'}（用全局默认）时走 {@code tdEl = currentTarget.parentElement.parentElement}
+ * 再 {@code trEl = tdEl.parentElement}。而我们的手柄是 {@code span}，外面还包着
+ * {@code .vxe-cell--wrapper} 与 {@code .vxe-cell} 两层 div，实测反推结果是：</p>
+ *
+ * <pre>
+ *   i=0 SPAN  re-table__row-drag-handle
+ *   i=1 DIV   vxe-cell--wrapper
+ *   i=2 DIV   vxe-cell          ← vxe 认作 tdEl
+ *   i=3 TD    vxe-table--column ← vxe 的 trEl，draggable 被设到了这里
+ *   i=4 TR    vxe-body--row     ← 真正挂 dragstart/dragover 的元素，从未 draggable
+ * </pre>
+ *
+ * <p>后果是<b>只有合成事件才拖得动</b>：手工派发 {@code DragEvent} 不受「拖拽源必须
+ * draggable」约束，所以看起来一切正常；而真实鼠标（Playwright {@code mouse.move/down/up}
+ * 走浏览器真实输入管线）根本不会发起拖拽 —— 实测行序完全不变。所以这里按 DOM 关系自己
+ * 取 {@code <tr>} 置位，让拖拽能力不再依赖 vxe 那套层数假设；同时把 vxe 误设到包装层
+ * 与 {@code <td>} 上的 {@code draggable} 复位，否则 {@code <td draggable>} 会抢走单元格
+ * 内选中文本时的浏览器原生拖拽。</p>
  */
 function onVxeDragHandleMousedown(evt: MouseEvent, row: Record<string, unknown>): void {
   const inst = vxeTableRef.value as unknown as
@@ -1061,7 +1086,16 @@ function onVxeDragHandleMousedown(evt: MouseEvent, row: Record<string, unknown>)
     | null;
   const delegate = inst?.handleCellDragMousedownEvent;
   if (inst && typeof delegate === "function") {
+    const trEl = (evt.target as HTMLElement | null)?.closest?.("tr") ?? null;
+    if (trEl) {
+      trEl.draggable = true;
+    }
     delegate.call(inst, evt, { row });
+    let node = evt.currentTarget as HTMLElement | null;
+    while (node && node !== trEl) {
+      node.draggable = false;
+      node = node.parentElement;
+    }
     return;
   }
   // 回退路径：vxe 内部方法不可用时，手工完成最小必要两步
