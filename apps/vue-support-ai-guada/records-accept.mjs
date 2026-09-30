@@ -147,6 +147,18 @@ console.log(`  toast = ${toast}`)
 chk('it reports a real count, not "nothing to clean"', /已清理/.test(toast), toast)
 
 console.log('\n=== 3. 批量删除 deletes only the ticked records ===')
+// 自备数据：上一步「清理失败」会把所有 FAILED/CANCELED 记录删光，页面上就没有卡可勾了
+// （此时「批量删除」被正确禁用，功能没问题，红的是我拿不到可勾的卡）。
+// 这里再造几张卡：提交后立刻取消，得到 CANCELED 卡 —— 选择模式对卡片状态没有要求。
+for (let i = 0; i < 3; i++) {
+  const s = await submit('image', `select seed ${Date.now()}-${i}`)
+  await sleep(400)
+  await fetch(`${API}/v2/ai/generate/tasks/${s.taskId}/cancel`, { method: 'POST', headers: H })
+}
+await sleep(2000)
+await page.reload({ waitUntil: 'domcontentloaded' })
+await page.waitForSelector('.wg-card:not(.is-skeleton)')
+await sleep(2500)
 const beforeBatch = (await list('image')).length
 console.log(`  server rows before = ${beforeBatch}`)
 await page.evaluate(() => {
