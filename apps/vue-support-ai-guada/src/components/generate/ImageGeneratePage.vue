@@ -3059,13 +3059,8 @@ onUnmounted(() => {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-black) 24%, transparent);
 }
 
-/*
-  已知偏差（不改，记录理由）：skill 要求触控目标 ≥44×44，本页常态是 30px 图标按钮、
-  34px 芯片。试过在 pointer: coarse 下用伪元素把热区撑到 44px，实测会出问题：
-  图标按钮行 gap 只有 6px，热区每侧溢出 7px 就互相重叠 8px，后画的伪元素会截胡点击，
-  变成「点 A 命中 B」—— 这比目标偏小严重得多。要真正满足就得同时放大行间距，
-  那会改掉这个密集控制台的既定版式。故保持现状，仅在明确支持触屏时再整体调版式。
-*/
+/* 触屏命中区的规则已移到主样式表最末（同权重下靠后生效），
+   放这里会被后面 .wg-card-head-right 的基样式覆盖，实测间距退回过 12px。 */
 
 .wg-list {
   display: flex;
@@ -4021,6 +4016,56 @@ onUnmounted(() => {
   .wg-sk {
     background-position: 50% 50%;
     animation: none;
+  }
+}
+
+/*
+  触屏（粗指针）下的命中区下限：44×44。
+
+  两条硬约束，都必须满足：
+
+  ① **顺序**：必须先拉开行间距，再撑热区。只撑热区时实测出问题 ——
+    `.wg-thumb-actions` 的 gap 只有 6px，而 30px 按钮撑到 44px 会每侧溢出 7px，
+    相邻两个热区互相重叠 8px，后画的伪元素截胡点击，变成「点 A 命中 B」。
+    故间距提到 16px（> 2×7px，留 2px 余量而不只是刚好不碰）。
+
+  ② **位置**：这一块必须放在主样式表**最末**。此前放在中段（.wg-canvas 焦点环之后），
+    结果被源序更靠后的 `.wg-card-head-right { gap: 12px }` 覆盖，实测该行仍是 12px、
+    热区重叠 2px —— CSS 同权重下后者胜，与选择器精确度无关。
+
+  用伪元素撑热区而不是改控件尺寸：视觉密度与布局都不动，只是可点范围变大。
+*/
+@media (pointer: coarse) {
+  .wg-thumb-actions,
+  .wg-card-head-right,
+  .wg-head-actions,
+  .wg-card-head,
+  .wg-head-top {
+    gap: 16px;
+  }
+
+  .wg-icon,
+  .wg-act,
+  .wg-chip,
+  .wg-retry,
+  .wg-pick,
+  .wg-media-btn {
+    position: relative;
+  }
+
+  .wg-icon::after,
+  .wg-act::after,
+  .wg-chip::after,
+  .wg-retry::after,
+  .wg-pick::after,
+  .wg-media-btn::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 }
 </style>
