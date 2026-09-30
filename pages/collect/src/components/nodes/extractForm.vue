@@ -34,6 +34,18 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   ["source", "mode", "rowExpression", "outputVariable"],
 );
 
+/**
+ * 实际渲染的参数：**「行选择器」只在列表模式显示**。
+ *
+ * <p>它是列表模式用来把来源切成多行的（如 CSS 的 li.item、JSON 的 data.items）；单条模式下
+ * 它不起作用，摆在表单里只会让人以为必须填 —— 实测用户正是这么被绕住的。收起而不是删除：
+ * 切回列表模式时它还按原值在（后端契约不变）。</p>
+ */
+const isListMode = computed(() => String(valueOf("mode") || "").trim().toLowerCase() === "list");
+const visibleFields = computed(() =>
+  fields.value.filter(param => param.name !== "rowExpression" || isListMode.value),
+);
+
 /** 抽取字段弹框开关 */
 const fieldsOpen = ref(false);
 
@@ -61,7 +73,7 @@ const fieldSummary = computed(() => {
   </div>
 
   <ParamField
-    v-for="param in fields"
+    v-for="param in visibleFields"
     :key="param.name"
     :param="param"
     :value="valueOf(param.name)"
