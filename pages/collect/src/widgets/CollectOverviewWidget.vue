@@ -46,7 +46,7 @@
 import { computed, defineAsyncComponent, onMounted, ref } from "vue";
 import { Connection, Loading, Timer, WarningFilled } from "@element-plus/icons-vue";
 import { fetchRunningCount, listFlows } from "../api/collectApi";
-import type { WidgetItem } from "@repo/theme/koi/views/home/types";
+import type { WidgetItem } from "@repo/theme/koi/views/home/types.ts";
 
 const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
 

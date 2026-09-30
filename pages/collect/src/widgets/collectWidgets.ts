@@ -27,7 +27,7 @@
  * </ul>
  */
 import { DataBoard } from "@element-plus/icons-vue";
-import type { WidgetRegistration } from "@repo/theme/koi/views/home/registry";
+import type { WidgetRegistration } from "@repo/theme/koi/views/home/registry.ts";
 
 /** 采集侧贡献的全部 widget */
 export const collectWidgets: WidgetRegistration[] = [
