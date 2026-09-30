@@ -88,11 +88,21 @@ function appendToExpression(index: number, value: string): void {
   patch(index, { expression: `${current}${value}` });
 }
 
-const PARSER_TYPES = ["CSS", "REGEX", "JSON", "JSONPATH", "XPATH", "TEXT", "HTML"].map(item => ({ value: item, label: item }));
+/**
+ * 下拉里提供的解析器类型。
+ *
+ * <p>只保留采集实际在用的四种：CSS（页面元素）、XPATH（页面/XML）、JSONPATH（接口 JSON）、
+ * REGEX（正则）。JSON 与 JSONPATH 在后端是同一套点号路径（JSONPATH 只是显式写法），
+ * TEXT / HTML 属于「整页文本/标记」的小众取法，需求上已明确去掉，避免下拉里塞七项让人挑不动。</p>
+ *
+ * <p><b>后端仍支持被移除的类型</b>，且存量流程里若有 JSON/TEXT/HTML，下面的 optionsOf 会把
+ * 当前值补成一项（禁用）显示出来 —— 否则下拉会渲染成空，用户以为类型丢了而误改。</p>
+ */
+const PARSER_TYPES = ["CSS", "XPATH", "JSONPATH", "REGEX"].map(item => ({ value: item, label: item }));
 const PARSER_HINTS: Record<string, string> = {
   CSS: "按 CSS 选择器命中元素，再取右侧的文本 / 属性 / HTML",
   REGEX: "正则匹配标记文本（元素取 outerHTML、纯文本取原文、响应取 JSON），不是页面可见文本",
-  JSON: "按 JSON 路径取值，如 data.items[0].title",
+  JSON: "按 JSON 路径取值，如 data.items[0].title；建议改用 JSONPATH（同一套点号路径，写法更明确）",
   // 切片示例的左方括号写成 \x5b 而不是真的方括号，原因如下（注意：本注释自身
   // 也不能出现「方括号 + 冒号 + 数字 + 花括号」的连续字面量，见下）：
   // 应用的 UnoCSS 开了 presetAttributify，它的 group 语法本身就是「[属性]{声明}」，
@@ -102,11 +112,28 @@ const PARSER_HINTS: Record<string, string> = {
   // 压缩这步就整包失败，报 [lightningcss minify] Unexpected token Semicolon
   // （2026-09-29 实测，system-starter 与其它应用同时中招）。
   // \x5b 在运行时就是左方括号，界面显示与改之前逐字节相同，只有源码字面量变了。
-  JSONPATH: "同 JSON，JSONPATH 只是显式写法（都走同一套点号路径）。支持 $.a.b / a.b[0] / a.b[0][1]；不支持通配 [*]、递归下降 ..、过滤器 [?(...)]、切片 \x5b0:2]",
+  JSONPATH: "按 JSON 点号路径取值（与 JSON 同一套）。支持 $.a.b / a.b[0]；不支持通配 [*]、递归下降 ..、过滤器 [?(...)]、切片 \x5b0:2]",
   XPATH: "按 XPath 取字符串，如 //a/@href、//h1/text()。属性请写在表达式里，右侧「取值方式」对它无效",
-  TEXT: "取来源可见文本；来源是纯文本且不含标记时原样返回",
-  HTML: "取来源标记文本",
+  TEXT: "取来源可见文本；来源是纯文本且不含标记时原样返回（已从下拉移除，存量字段照常运行）",
+  HTML: "取来源标记文本（已从下拉移除，存量字段照常运行）",
 };
+
+/**
+ * 该行解析器下拉的选项：标准类型 + 当前值（若已不在标准清单里则补一项并禁用）。
+ *
+ * <p>与字段映射里「失效列以禁用项显示」是同一套思路：只读展示原值，不允许再选回去，
+ * 更不允许因为选不到而渲染成空。</p>
+ *
+ * @param current 该行当前的 parserType
+ * @returns 供下拉使用的选项列表
+ */
+function optionsOf(current: string): { value: string; label: string; disabled?: boolean }[] {
+  const type = String(current || "").toUpperCase();
+  if (!type || PARSER_TYPES.some(item => item.value === type)) {
+    return PARSER_TYPES;
+  }
+  return [...PARSER_TYPES, { value: type, label: `${type}（旧类型）`, disabled: true }];
+}
 const ATTRIBUTES = [
   { value: "text", label: "文本 text" },
   { value: "attr", label: "属性 attr" },
@@ -166,7 +193,7 @@ function addField(): void {
         <ReSelect
           class="cell-fill"
           :model-value="field.parserType || 'CSS'"
-          :options="PARSER_TYPES"
+          :options="optionsOf(field.parserType || 'CSS')"
           @update:model-value="(value: string | number | (string | number)[] | null) => patch(index, { parserType: String(value ?? 'CSS') })"
         />
       </div>
