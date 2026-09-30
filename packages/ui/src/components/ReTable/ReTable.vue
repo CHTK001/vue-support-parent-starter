@@ -980,7 +980,29 @@ function recalcTable(): void {
  * Sortable 直接搬 DOM 会破坏 vxe 内部的 tr↔行映射（原注释自承要用销毁重建来绕），
  * 而 tbody 又会被虚拟滚动重渲染掉，还得再叠一层 observer 反复重绑 —— 四层补丁互相打架。</p>
  */
+/**
+ * 清掉自研手柄在行上留下的 {@code draggable}。
+ *
+ * <p>vxe 只在自己那条 mousedown 路径（{@code handleCellDragMousedownEvent}）里置
+ * {@code trEl.draggable = true}，随后的复位走 {@code clearRowDropOrigin()}（只对带
+ * {@code row--drag-origin} 类的行生效）。我们绕过它自研手柄后，实测拖完**源行的
+ * draggable 会残留 true** —— 那行的行体因此变成可拖，出现"能拖但不动"的幽灵拖影，
+ * 每拖一行还多留一个。所以在拖拽结束与退出拖拽模式时都要自己收尾。</p>
+ */
+function clearVxeRowDraggable(): void {
+  const tableEl = currentTableEl();
+  if (!tableEl) {
+    return;
+  }
+  const rows = tableEl.querySelectorAll<HTMLElement>('tbody tr[draggable="true"]');
+  rows.forEach((tr) => {
+    tr.draggable = false;
+  });
+}
+
 function onVxeRowDragEnd(): void {
+  // 先复位行 draggable，再读顺序（见 clearVxeRowDraggable 的说明）
+  clearVxeRowDraggable();
   const inst = vxeTableRef.value as unknown as
     | { getTableData?: () => { fullData?: Array<Record<string, unknown>> } }
     | null;
@@ -1007,22 +1029,29 @@ function onVxeRowDragEnd(): void {
  * 465~784ms（最大帧 482~807ms）；列数 10→7 时代价从 1138ms 降到 366ms，说明成正比。
  * 改把手柄内嵌进第一列单元格后，列集合恒定，开关只改单元格内容。</p>
  *
- * <p>vxe 的行级 <b>HTML5 DnD</b> 只依赖 {@code rowConfig.drag}（{@code body.js} 里给每个
- * {@code <tr>} 挂 dragstart/dragover/dragend），<b>不依赖任何列</b>；
- * 但真正换位的 {@code handleRowDragSwapEvent} 需要两样前置状态，
- * 平时由 drag-sort 列的 {@code handleCellDragMousedownEvent} 写入，这里由我们手工完成：</p>
- * <ol>
- *   <li>{@code reactData.dragRow = 当前行} —— 否则 dragover/dragend 直接 {@code return}；
- *       vxe 的实例对象 {@code $xeTable} 直接暴露了 {@code reactData}，无需反射；</li>
- *   <li>该 {@code <tr>} 的 {@code draggable = true} —— 否则浏览器根本不发起 HTML5 拖拽。</li>
- * </ol>
+ * <p>但「发起拖拽」这件事必须交给 vxe 自己做，不能只复刻它的两步
+ * （{@code reactData.dragRow = 行} + {@code tr.draggable = true}）。完整行为还包括：
+ * {@code updateRowDropOrigin}（源行加 {@code row--drag-origin} 并变淡）、
+ * {@code updateRowDropTipContent}（拖拽提示文案）、以及派发 {@code row-dragstart} 事件。
+ * 只做两步的实测后果：拖拽时**源行没有变淡反馈**、{@code row-dragstart} 从不触发
+ * （实测 DOM 上 {@code drag--origin} 类为空）。</p>
  *
- * <p>清理交给 vxe：mouseup 会走 {@code clearDragStatus}，dragend 会走
- * {@code handleRowDragSwapEvent} + 收尾清理。所以这里不自己清，避免与它抢状态。</p>
+ * <p>所以这里**直接委托 vxe 实例上的 {@code handleCellDragMousedownEvent}**。
+ * 该方法是内部 API、不在公开文档里，但实测 {@code VxeTable} 组件的 {@code proxy} 与
+ * {@code setupState} 都能取到；它对 {@code evnt.currentTarget} 的用法恰好与我们的手柄一致
+ * （{@code trigger} 非 'cell'/'row' 时取 {@code currentTarget.parentElement.parentElement}
+ * 作为 td，再上一级即 tr —— 我们的手柄是 span → cell 包裹 span → td，正好命中）。</p>
+ *
+ * <p>取不到时回退到最小实现（只保证能拖，牺牲变淡与 row-dragstart），
+ * 这样 vxe 将来若改内部结构也不会直接失效。</p>
  */
 function onVxeDragHandleMousedown(evt: MouseEvent, row: Record<string, unknown>): void {
   const inst = vxeTableRef.value as unknown as
     | {
+        handleCellDragMousedownEvent?: (
+          e: MouseEvent,
+          params: { row: Record<string, unknown> },
+        ) => void;
         reactData?: {
           dragRow?: unknown;
           isCrossDragRow?: boolean;
@@ -1030,11 +1059,16 @@ function onVxeDragHandleMousedown(evt: MouseEvent, row: Record<string, unknown>)
         };
       }
     | null;
+  const delegate = inst?.handleCellDragMousedownEvent;
+  if (inst && typeof delegate === "function") {
+    delegate.call(inst, evt, { row });
+    return;
+  }
+  // 回退路径：vxe 内部方法不可用时，手工完成最小必要两步
   const reactData = inst?.reactData;
   if (!reactData) {
     return;
   }
-  // 阻止冒泡：手柄的按下不应触发单元格点击/选中
   evt.stopPropagation();
   const handleEl = evt.currentTarget as HTMLElement | null;
   const trEl = handleEl?.closest("tr") ?? null;
@@ -1106,6 +1140,8 @@ async function toggleDragMode() {
     } else {
       dragMode.value = false;
       destroySortable();
+      // 退出拖拽模式时复位自研手柄留下的行 draggable（见 clearVxeRowDraggable）
+      clearVxeRowDraggable();
       vxeDragData.value = [];
     }
   } finally {
@@ -1203,6 +1239,8 @@ function confirmDragSort() {
   });
   destroySortable();
   dragMode.value = false;
+  // 复位自研手柄留下的行 draggable（见 clearVxeRowDraggable）
+  clearVxeRowDraggable();
   dragChanged.value = false;
   originalRows.value = [];
   vxeDragData.value = [];
@@ -1215,6 +1253,7 @@ function cancelDragSort() {
     vxeDragData.value = originalRows.value.map((r) => ({ ...r }));
   }
   dragMode.value = false;
+  clearVxeRowDraggable();
   dragChanged.value = false;
   originalRows.value = [];
   // 刷新表格恢复原始顺序
@@ -1304,8 +1343,15 @@ const vxeRowConfig = computed(() => ({
   isHover: true,
   isCurrent: localSettings.value.highlightCurrentRow ?? false,
   // 行拖拽排序：vxe 4.8+ 内置能力，开关就是 rowOpts.drag（源码读的是 drag，不是同名的
-  // isDrag —— 那是列宽 resize 的变量）。只在拖拽排序模式打开，平时保持关闭，避免误拖。
-  drag: dragMode.value ? true : undefined,
+  // isDrag —— 那是列宽 resize 的变量）。
+  // ⚠ 这里刻意**常开**，不跟随 dragMode：
+  //   · rowConfig.drag 只决定「要不要给每个 <tr> 挂 dragstart/dragover/dragend」；
+  //     没有 drag-sort 列时它不产生手柄，也不给单元格加 is--drag-cell；
+  //   · 真正的拖拽能力由手柄的 mousedown 赋予（置 reactData.dragRow + 该 tr 的 draggable），
+  //     行体本身 draggable=false，平时拖不动行，不会误触发；
+  //   · 若随 dragMode 开关，vxe 每次都要给 10 行重挂/摘事件并重渲染表体 ——
+  //     实测那是开关卡顿里的主要残项，常开后可再省约 150~250ms。
+  drag: true,
 }));
 
 /**
