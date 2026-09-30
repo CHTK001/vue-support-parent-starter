@@ -279,8 +279,24 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
 ]);
 
+/**
+ * 台账行是否按「采集流程镜像」处理（启停/删除都回落到采集流程接口）。
+ *
+ * 不能只看分组：脚本与片段任务同样登记在 collect-flow 分组下，
+ * 但它们的 jobKey 是 script-<脚本ID>，末尾那串是脚本的雪花 ID——
+ * 既不是流程 ID，也远超 Integer 范围。若按流程行处理，flowIdOf 会用正则
+ * 从 jobKey 末尾抓出该数字发给 /collect/flow/status，后端以 Integer 接收
+ * 直接 400（且 JS Number 已把雪花末位舍掉），启用与删除整个不可用。
+ *
+ * 所以这里要求同时满足：属于该分组、不是脚本类任务、且真能解析出流程 ID。
+ * 解析不出的行（如 collect.self.check 这类非流程的内置任务）走调度治理接口，
+ * 与批量启停「缺流程 ID 的行跳过」的口径一致。
+ *
+ * @param job 台账行
+ * @returns true 表示应走采集流程接口，false 表示走调度治理接口
+ */
 function isFlowRow(job: JobRuntime): boolean {
-  return job.group === COLLECT_FLOW_GROUP;
+  return job.group === COLLECT_FLOW_GROUP && !isScriptJob(job) && flowIdOf(job) > 0;
 }
 
 /** 代码片段任务：执行类型非 BEAN，不依赖处理器注册表（脚本与片段都算） */
@@ -1377,7 +1393,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
 
         <template #name="{ row }">
         <span>{{ row.jobName || row.jobKey }}</span>
-        <ReTag v-if="row.group === COLLECT_FLOW_GROUP" class="collect-tag-inline"  type="primary" effect="plain">
+        <ReTag v-if="isFlowRow(row as unknown as JobRuntime)" class="collect-tag-inline"  type="primary" effect="plain">
           采集流程
         </ReTag>
         <ReTag
@@ -1463,7 +1479,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           :disabled="Boolean(busyKey) || row.enabled !== true"
           :tip="
             row.enabled === true
-              ? row.group === COLLECT_FLOW_GROUP ? '立即运行' : '立即触发'
+              ? isFlowRow(row as unknown as JobRuntime) ? '立即运行' : '立即触发'
               : '任务已停用，触发不会被派发，请先启用调度'
           "
           @click="runNow(row as unknown as JobRuntime)"
@@ -1472,7 +1488,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
           layout="square"
           icon="Edit"
           :disabled="Boolean(busyKey)"
-          :tip="row.group === COLLECT_FLOW_GROUP ? '编辑流程调度' : '编辑任务'"
+          :tip="isFlowRow(row as unknown as JobRuntime) ? '编辑流程调度' : '编辑任务'"
           @click="openEdit(row as unknown as JobRuntime)"
         />
         <!--
@@ -1506,7 +1522,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
                 后续 5 次执行时间
               </el-dropdown-item>
               <el-dropdown-item :disabled="Boolean(busyKey)" @click="copy(row as unknown as JobRuntime)">
-                {{ row.group === COLLECT_FLOW_GROUP ? "复制流程" : "复制为新建" }}
+                {{ isFlowRow(row as unknown as JobRuntime) ? "复制流程" : "复制为新建" }}
               </el-dropdown-item>
               <el-dropdown-item
                 divided
@@ -1514,7 +1530,7 @@ watch(() => route.query, () => applyCreateQuery(), { immediate: true });
                 class="job-action__danger"
                 @click="remove(row as unknown as JobRuntime)"
               >
-                {{ row.group === COLLECT_FLOW_GROUP ? "删除流程" : "删除任务" }}
+                {{ isFlowRow(row as unknown as JobRuntime) ? "删除流程" : "删除任务" }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
