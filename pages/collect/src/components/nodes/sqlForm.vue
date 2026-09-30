@@ -4,6 +4,7 @@
   SQL 属于高危节点，表单顶部固定展示一条警示条（契约 §4.4）。
 -->
 <script setup lang="ts">
+import { computed } from "vue";
 import ParamField from "./ParamField.vue";
 import { useShapeFieldList } from "./paramContext";
 import type { NodeForm, NodeFormContext } from "./paramContext";
@@ -30,6 +31,16 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
   () => props.meta,
   ["statement", "datasource", "outputVariable"],
 );
+
+/**
+ * 不在界面上暴露的参数：SQL 查询结果固定写进 rows（CollectSqlExecutor.DEFAULT_OUTPUT），
+ * 下游用 ${rows} 引用即可，多数流程不需要改名 —— 常显一个「结果变量名」只会增加噪音。
+ * 只摘界面、不删数据：已有流程若改过名字，仍按其值运行。
+ */
+const HIDDEN_PARAMS = ["outputVariable"];
+
+/** 实际渲染的参数（上面那个已被摘掉） */
+const visibleFields = computed(() => fields.value.filter(param => !HIDDEN_PARAMS.includes(param.name)));
 
 /**
  * 参数是否整行展示。
@@ -84,7 +95,7 @@ function extraTip(name: string): string {
   </div>
 
   <div
-    v-for="param in fields"
+    v-for="param in visibleFields"
     :key="param.name"
     class="field"
     :class="{ 'field-wide': isWide(param) }"

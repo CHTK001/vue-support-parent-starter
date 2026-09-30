@@ -37,6 +37,25 @@ const { fields, valueOf, pairsOfParam } = useShapeFieldList(
 /** 循环四参数名集合，用于给「循环」分段定位 */
 const loopNames = new Set(LOOP_PARAM_NAMES);
 
+/**
+ * 实际渲染的参数：**数据源只有一个可选项、且当前值就是它时收起**。
+ *
+ * <p>台账为空时下拉里只有「本系统（当前应用库）」一项，常显一个单选项没有意义；但只要有第二个
+ * 数据源、或这条流程指向的别的数据源，它就必须出现 —— 所以判据是「唯一项 且 当前值就是它（或还没填）」，
+ * 而不是「选项数 == 1」。</p>
+ */
+const visibleFields = computed(() => {
+  const options = props.ctx.datasourceOptions ?? [];
+  const only = options.length === 1 ? String(options[0].value) : "";
+  return fields.value.filter(param => {
+    if (param.name !== "datasource" || !only) {
+      return true;
+    }
+    const current = valueOf("datasource").trim();
+    return current !== "" && current !== only;
+  });
+});
+
 /* ---------------------------- 建表 / 补列（B9-3） ---------------------------- */
 
 /** 弹窗与执行态 */
@@ -145,7 +164,8 @@ function isWide(param: CollectParamMeta): boolean {
  * @returns 是分段首项返回 true
  */
 function startsLoopSegment(index: number): boolean {
-  const list = fields.value;
+  // 必须与模板渲染的是同一个数组：参数被收起后下标会移动，用未过滤的 fields 会判错段首
+  const list = visibleFields.value;
   const current = list[index];
   const previous = list[index - 1];
   return (
@@ -206,7 +226,7 @@ function extraTip(name: string): string {
     实际取值推断；本节点不产采集记录，写入行数看节点摘要。
   </div>
 
-  <template v-for="(param, index) in fields" :key="param.name">
+  <template v-for="(param, index) in visibleFields" :key="param.name">
     <div v-if="startsLoopSegment(index)" class="field field-wide group-title">循环</div>
 
     <div class="field" :class="{ 'field-wide': isWide(param) }">
