@@ -621,11 +621,115 @@ function upstreamUrlOf(nodeId: string): string {
   return params.find(param => param.name === "url")?.value ?? "";
 }
 
+/**
+ * 某类节点默认对外产出的变量名。
+ *
+ * <p>只登记执行器里**写死**的默认名（有源码依据），不猜：
+ * 开始节点写 {@code urlList} 与首条 {@code url}，SQL 节点默认 {@code rows}。
+ * 其余节点若没显式配「输出变量名」，就不列 —— 与其给一个不存在的变量，不如不给。</p>
+ *
+ * @param shape 节点类型
+ * @returns 默认变量（变量名 + 用途说明）
+ */
+function defaultOutputsOf(shape: string): { name: string; desc: string }[] {
+  if (shape === "start") {
+    return [
+      { name: "urlList", desc: "种子 URL 集合" },
+      { name: "url", desc: "首条种子 URL" },
+    ];
+  }
+  if (shape === "sql") {
+    return [{ name: "rows", desc: "查询结果行集合" }];
+  }
+  return [];
+}
+
+/**
+ * 本流程各节点对外产出的变量，作为「插入占位」的分组。
+ *
+ * <p>原先占位清单只有「全局变量 / 自定义函数」，用户配表达式时看不到本流程里
+ * 上游节点产出的东西（如开始节点的 {@code urlList}、接口/抽取节点的输出变量），
+ * 只能凭记忆手打 ${}。这里按当前编辑节点的**上游 / 其它**分成两组：
+ * 上游在前（沿入边反向可达），并标出来自哪个节点，顺带解决「这变量哪来的」。</p>
+ */
+const flowVariableGroups = computed<PlaceholderGroup[]>(() => {
+  const data = engine.value?.getData() ?? graphData.value;
+  const nodes = (data.nodes ?? []) as unknown as { id: string; type?: string; label?: string; data?: NodeCanvas }[];
+  const edges = (data.edges ?? []) as unknown as { from: string; to: string }[];
+  const editingId = nodeForm.value?.id ?? "";
+
+  // 上游集合：从当前节点沿入边反向广度优先
+  const upstream = new Set<string>();
+  if (editingId) {
+    const queue: string[] = [editingId];
+    while (queue.length) {
+      const current = queue.shift() as string;
+      for (const edge of edges) {
+        if (edge.to === current && !upstream.has(edge.from)) {
+          upstream.add(edge.from);
+          queue.push(edge.from);
+        }
+      }
+    }
+  }
+
+  const near: PlaceholderGroup["items"] = [];
+  const far: PlaceholderGroup["items"] = [];
+  for (const node of nodes) {
+    // 本节点自己还没执行完，它的产出不该出现在自己的占位里
+    if (node.id === editingId) {
+      continue;
+    }
+    const canvas = (node.data ?? {}) as NodeCanvas;
+    const params = canvas.params ?? [];
+    const valueOf = (name: string): string =>
+      String(params.find(param => param.name === name)?.value ?? "").trim();
+    const nodeLabel = node.label || node.type || "节点";
+    const bucket = upstream.has(node.id) ? near : far;
+    const seen = new Set<string>();
+
+    const push = (name: string, desc: string): void => {
+      if (!name || seen.has(name)) {
+        return;
+      }
+      seen.add(name);
+      bucket.push({ name, description: desc });
+    };
+
+    const declared = valueOf("outputVariable");
+    if (declared) {
+      push(declared, `来自「${nodeLabel}」`);
+    }
+    for (const item of defaultOutputsOf(node.type ?? "")) {
+      push(item.name, `${item.desc}（「${nodeLabel}」默认）`);
+    }
+    const loopIndex = valueOf("loopVariableName");
+    if (loopIndex) {
+      push(loopIndex, `迭代下标（「${nodeLabel}」）`);
+    }
+    const loopItem = valueOf("loopItemVariableName");
+    if (loopItem) {
+      push(loopItem, `迭代元素（「${nodeLabel}」）`);
+    }
+  }
+
+  const groups: PlaceholderGroup[] = [];
+  if (near.length) {
+    groups.push({ label: "上游节点变量", items: near });
+  }
+  if (far.length) {
+    groups.push({ label: "其它节点变量", items: far });
+  }
+  return groups;
+});
+
 const formContext = computed<NodeFormContext>(() => ({
   // props.placeholderGroups 是可选的（宿主不注入时占位插入入口不出现），
   // 而 NodeFormContext.placeholderGroups 要求必填数组 —— 这里兜成空数组。
   // 直接透传会让 computed 的 getter 返回 undefined，TS2769。
-  placeholderGroups: props.placeholderGroups ?? [],
+  // 宿主注入的（全局变量 / 自定义函数）在前，本流程节点变量在后 ——
+  // 后者随画布实时变化，位置靠后不影响前者稳定性。
+  placeholderGroups: [...(props.placeholderGroups ?? []), ...flowVariableGroups.value],
   previewUrl: nodeForm.value ? upstreamUrlOf(nodeForm.value.id) : "",
   // fetchPreview 的第二参 timeoutMs 是可选的，函数整体可直接赋给只收 url 的签名；
   // 返回值 CollectPreviewPayload 与 PreviewPayload 字段一致，可直接赋值。
@@ -1073,8 +1177,13 @@ defineExpose({ load, getGraph, addNode, startWith });
                 </span>
               </div>
 
+              <!--
+                通用说明只在「没有专属表单、回落到 genericForm」时显示。
+                15 个 shape 现在都有自己的 .node-intro（讲得更准），再叠一块就重复了；
+                保留这条是为了将来后端新增 shape 时前端仍有基本说明。
+              -->
               <div
-                v-if="selectedMeta.description || selectedMeta.outputVariable"
+                v-if="!FORM_BY_SHAPE[nodeForm.shape] && (selectedMeta.description || selectedMeta.outputVariable)"
                 class="field field-wide"
               >
                 <div v-if="selectedMeta.description" class="field-tip">{{ selectedMeta.description }}</div>
