@@ -187,22 +187,27 @@ async function load(): Promise<void> {
  */
 async function probeFallback(): Promise<"server" | "pdf" | null> {
   const sep = props.src.includes("?") ? "&" : "?";
+  // 顺序：先试 Office→PDF 转换，再试服务端 HTML 渲染。
+  // 产品口径是「客户端能显示就用客户端，报错才转 PDF」——所以兜底时
+  // PDF 优先：转换出来的文档与原样一致，比服务端拼的 HTML 预览页更可靠。
   try {
-    const res = await fetch(`${props.src}${sep}render=${RENDER_SERVER}`, { method: "GET" });
-    if (res.ok && res.headers.get("X-FileStorage-Preview") === "spi") {
-      return "server";
+    const res = await fetch(`${props.src}${sep}format=pdf`, { method: "GET" });
+    if (res.ok) {
+      const ct = res.headers.get("content-type") ?? "";
+      // 同时看响应头与内容类型：`X-FileStorage-Convert` 说明服务端真转换了；
+      // 内容类型兜底，防止中间代理改写响应头。
+      // 只看状态码不行——转换失败时服务端仍返回 200，靠这个头区分。
+      if (res.headers.get("X-FileStorage-Convert") === "pdf" || ct.startsWith("application/pdf")) {
+        return "pdf";
+      }
     }
   } catch {
     // 继续探测下一条通道
   }
   try {
-    const res = await fetch(`${props.src}${sep}format=pdf`, { method: "GET" });
-    if (res.ok) {
-      const ct = res.headers.get("content-type") ?? "";
-      // 同时校验响应头与内容类型：头说明服务端真转换了，内容类型兜底防止代理改写
-      if (res.headers.get("X-FileStorage-Convert") === "pdf" || ct.startsWith("application/pdf")) {
-        return "pdf";
-      }
+    const res = await fetch(`${props.src}${sep}render=${RENDER_SERVER}`, { method: "GET" });
+    if (res.ok && res.headers.get("X-FileStorage-Preview") === "spi") {
+      return "server";
     }
   } catch {
     // 都没有
@@ -223,9 +228,47 @@ function onRendered(): void {
  * 四个组件均声明 emits:["rendered","error"]，但错误载荷不一致
  * （pdf 透传异常对象，其余无载荷），故此处只取固定文案。
  */
+/**
+ * 客户端组件解析失败后的兜底
+ *
+ * <p>产品口径：客户端能显示就用客户端，报错才转。所以这里不是无条件退回
+ * 服务端渲染，而是先探测兜底通道（PDF 优先），由结果决定去向：</p>
+ * <ul>
+ *   <li>有转换器 → 让父组件用 {@code ?format=pdf} 交给浏览器内置 PDF 阅读器</li>
+ *   <li>只有 HTML 渲染器 → 退回 {@code render=server}</li>
+ *   <li>都没有 → 面板自己给一句可执行的中文提示，不再切换通道</li>
+ * </ul>
+ */
+async function fallbackAfterClientError(): Promise<void> {
+  loading.value = true;
+  let fallback: "server" | "pdf" | null = null;
+  try {
+    fallback = await probeFallback();
+  } finally {
+    loading.value = false;
+  }
+  if (fallback === "pdf") {
+    failReason.value = "客户端解析失败，已改用 PDF 预览";
+    emit("error", { noFallback: false, reason: failReason.value, channel: "pdf" });
+    return;
+  }
+  if (fallback === "server") {
+    failReason.value = "该文件需由服务端渲染";
+    emit("error", { noFallback: false, reason: failReason.value, channel: "server" });
+    return;
+  }
+  failReason.value = `文档解析失败（${props.fileName}），可尝试下载后用本地软件打开`;
+  emit("error", { noFallback: true, reason: failReason.value });
+}
+
+/**
+ * Vue3 Office 组件解析失败
+ *
+ * <p>四个组件的错误载荷不一致（pdf 透传异常对象，其余无载荷），故此处不取载荷，
+ * 统一交给 {@link fallbackAfterClientError} 按兜底通道决定去向。</p>
+ */
 function onRenderError(): void {
-  failReason.value = "文档解析失败";
-  emit("error");
+  void fallbackAfterClientError();
 }
 
 defineExpose({ wrapRef });

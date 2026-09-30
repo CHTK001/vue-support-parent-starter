@@ -47,7 +47,7 @@ const dsl = {
   nodes: [
     { id: "n1", shape: "start", name: "起点", x: 60, y: 120, params: [p("urls", "https://example.com/")], fields: [] },
     { id: "n2", shape: "request", name: "抓取", x: 220, y: 120, params: [p("url", "${url}"), p("method", "GET"), p("outputVariable", "resp")], fields: [] },
-    { id: "n3", shape: "extract", name: "抽取", x: 380, y: 120, params: [p("source", "${resp}"), p("mode", "single")], fields: [
+    { id: "n3", shape: "extract", name: "抽取", x: 380, y: 120, params: [p("source", "${respDoc}"), p("mode", "single"), p("outputVariable", "rows")], fields: [
       { name: "title", parserType: "CSS", expression: "h1", attribute: "text" },
       { name: "href", parserType: "XPATH", expression: "/html[1]/body[1]/a[1]/@href" },
     ] },
@@ -143,6 +143,17 @@ try {
       await page.waitForTimeout(2000);
       d = (await api(`/v2/collect/task/detail?taskId=${task.collectTaskId}`, { headers: H }))?.data;
       if (d && /SUCCESS|FAIL|STOP/i.test(String(d.collectTaskStatus))) break;
+    }
+    // 取证必须在清理之前：上一轮就是先清理后取证，失败原因丢了。
+    const logs = (await api(`/v2/collect/task/logs?taskId=${task.collectTaskId}`, { headers: H }))?.data ?? [];
+    console.log("  ---- 节点日志（清理前取证）----");
+    for (const l of logs) {
+      console.log(`     | ${l.collectTaskLogNodeId} ${l.collectTaskLogNodeShape} ${l.collectTaskLogStatus} ${String(l.collectTaskLogMessage ?? "").replace(/\s+/g, " ").slice(0, 220)}`);
+    }
+    console.log("  任务详情: " + JSON.stringify(d).slice(0, 320));
+    console.log("  提交的节点参数（便于与日志对照）:");
+    for (const n of dsl.nodes) {
+      console.log(`     ${n.id}(${n.shape}) params=${JSON.stringify(n.params)} fields=${n.fields?.length ?? 0}`);
     }
     ck("任务跑完且成功", /SUCCESS/i.test(String(d?.collectTaskStatus)), "status=" + d?.collectTaskStatus);
   }

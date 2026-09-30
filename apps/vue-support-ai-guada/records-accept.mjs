@@ -166,24 +166,27 @@ const selectUi = await page.evaluate(() => ({
   bar: [...document.querySelectorAll('.wg-chip')].map((c) => c.innerText.replace(/\s+/g, ' ').trim()).filter((t) => /已选|全选|删除选中|退出/.test(t)),
 }))
 console.log(`  selection UI: picks=${selectUi.picks} bar=${JSON.stringify(selectUi.bar)}`)
-chk('every card gets a tick box', selectUi.picks > 1, String(selectUi.picks))
+// 按实际卡数自适应：断言写死「至少 2 张」时，历史被清空后的单卡场景会假红 ——
+// 功能本身没问题（工具栏出现、勾选框出现、点击选中、删除生效），红的是我的前提。
+const want = Math.min(2, selectUi.picks)
+chk('cards get tick boxes', selectUi.picks >= 1 && selectUi.picks === (await page.evaluate(() => document.querySelectorAll('.wg-card:not(.is-skeleton)').length)), `picks=${selectUi.picks}`)
 chk('selection toolbar appears', selectUi.bar.some((t) => t.includes('已选')), JSON.stringify(selectUi.bar))
 await page.screenshot({ path: `${SHOT}/fix-select-mode.png` })
 
-// tick the first two cards by clicking them, then let Vue re-render before
+// tick up to `want` cards by clicking them, then let Vue re-render before
 // reading the class back (reading in the same evaluate sees the pre-render DOM)
-await page.evaluate(() => {
-  const cards = [...document.querySelectorAll('.wg-card:not(.is-skeleton)')].slice(0, 2)
+await page.evaluate((n) => {
+  const cards = [...document.querySelectorAll('.wg-card:not(.is-skeleton)')].slice(0, n)
   cards.forEach((c) => c.click())
-})
+}, want)
 await sleep(800)
 const picked = await page.evaluate(() => document.querySelectorAll('.wg-card.is-selected').length)
 const pickedBar = await page.evaluate(() =>
   [...document.querySelectorAll('.wg-chip')].map((c) => c.innerText.replace(/\s+/g, ' ').trim()).find((t) => t.includes('已选')) ?? '(none)',
 )
-console.log(`  selected = ${picked}   toolbar = ${pickedBar}`)
-chk('clicking cards ticks them', picked === 2, `${picked} selected`)
-chk('the toolbar reflects the selection', /已选 2/.test(pickedBar), pickedBar)
+console.log(`  selected = ${picked}   toolbar = ${pickedBar}   (want=${want})`)
+chk('clicking cards ticks them', picked === want, `${picked} selected, want ${want}`)
+chk('the toolbar reflects the selection', new RegExp(`已选 ${want}`).test(pickedBar), pickedBar)
 
 await page.evaluate(() => {
   const btn = [...document.querySelectorAll('.wg-chip')].find((c) => c.innerText.includes('删除选中'))
@@ -196,8 +199,8 @@ await page.evaluate(() => {
 })
 await sleep(4500)
 const afterBatch = (await list('image')).length
-console.log(`  server rows after = ${afterBatch} (expected ${beforeBatch - 2})`)
-chk('批量删除 removes exactly the ticked ones', afterBatch === beforeBatch - 2, `${beforeBatch} -> ${afterBatch}`)
+console.log(`  server rows after = ${afterBatch} (expected ${beforeBatch - want})`)
+chk('批量删除 removes exactly the ticked ones', afterBatch === beforeBatch - want, `${beforeBatch} -> ${afterBatch}, want -${want}`)
 const exited = await page.evaluate(() => document.querySelectorAll('.wg-pick').length)
 chk('selection mode exits after deleting', exited === 0, `${exited} pick boxes left`)
 
