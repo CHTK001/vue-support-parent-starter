@@ -81,6 +81,145 @@ export function flowPortItems() {
   return (["top", "right", "bottom", "left"] as const).map((g) => ({ group: g, id: g }));
 }
 
+/**
+ * 判断节点（分支）图形名：一入两出的真菱形，不用卡片矩形冒充。
+ *
+ * 刻意标注成 {@link string} 而不是保留字面量类型：X6 的 `registerNode` 有一个
+ * `<K extends string>(name: K, entity: never[K])` 重载，名字是字面量时 TS 会优先撞上它
+ * 并报「参数类型不兼容 never」。
+ */
+export const FLOW_DIAMOND_SHAPE: string = "flow-diamond";
+
+/** 菱形边长。方形才放得下两行字（节点名 + 类型小字），也符合流程图里判断框的惯例 */
+export const DIAMOND_SIZE = 96;
+
+/**
+ * 默认走菱形的节点类型。
+ *
+ * <p>判断类节点在多数流程工具里都是菱形，这个组件此前对所有类型一律用 180×36 卡片，
+ * 判断节点看起来和「抓取」一样，靠外形分不出「这里要选一条路走」。
+ * 宿主可用引擎选项 `diamondTypes` 覆盖这份名单。</p>
+ */
+export const DEFAULT_DIAMOND_TYPES: readonly string[] = ["condition", "branch", "judge", "decision"];
+
+/** 菱形实际提供的端口：入 = top，出 = right（真）/ bottom（假）。刻意不给 left */
+export const DIAMOND_PORTS: readonly string[] = ["top", "right", "bottom"];
+
+/** 卡片实际提供的端口：四向 */
+export const CARD_PORTS: readonly string[] = ["top", "right", "bottom", "left"];
+
+/**
+ * 判断某类型是否该走菱形。
+ *
+ * @param type 节点类型标识
+ * @param diamondTypes 覆盖名单，缺省用 {@link DEFAULT_DIAMOND_TYPES}
+ * @returns 命中名单返回 {@code true}
+ */
+export function isDiamondType(type: string | undefined, diamondTypes: readonly string[] = DEFAULT_DIAMOND_TYPES): boolean {
+  return !!type && diamondTypes.includes(type);
+}
+
+/**
+ * 某类型节点该用的图形与尺寸。
+ *
+ * <p>引擎每个建节点入口都要过这里，避免「载入存量节点」和「新建节点」两处各写一份
+ * 判断而漂移 —— 之前单一 `this.nodeShape` 就是这么漂移出问题的。</p>
+ *
+ * @param type 节点类型标识
+ * @param cardShape 卡片图形名（宿主自定义组件形状或内置卡片）
+ * @param diamondTypes 覆盖名单，缺省用 {@link DEFAULT_DIAMOND_TYPES}
+ * @returns 图形名、宽高，以及是否菱形（决定要不要走 label 型 attrs）
+ */
+export function flowNodeShapeSpec(
+  type: string | undefined,
+  cardShape: string,
+  diamondTypes: readonly string[] = DEFAULT_DIAMOND_TYPES,
+): { shape: string; width: number; height: number; diamond: boolean } {
+  if (isDiamondType(type, diamondTypes)) {
+    return { shape: FLOW_DIAMOND_SHAPE, width: DIAMOND_SIZE, height: DIAMOND_SIZE, diamond: true };
+  }
+  return { shape: cardShape, width: NODE_WIDTH, height: NODE_HEIGHT, diamond: false };
+}
+
+/**
+ * 菱形的外框路径。
+ *
+ * <p>内缩 1px：路径正好压在节点盒边界上时，描边有一半会被视口裁掉。</p>
+ *
+ * @param size 边长
+ * @returns SVG path 的 d 属性
+ */
+function diamondPath(size: number): string {
+  const half = size / 2;
+  return `M ${half} 1 L ${size - 1} ${half} L ${half} ${size - 1} L 1 ${half} Z`;
+}
+
+/** 菱形的端口组：只有 top / right / bottom 三个锚点 */
+function flowDiamondPortGroups() {
+  const circle = {
+    r: 4,
+    magnet: true,
+    stroke: "#4f7cff",
+    strokeWidth: 1.5,
+    fill: "#ffffff",
+  };
+  return {
+    top: { position: "top", attrs: { circle } },
+    right: { position: "right", attrs: { circle } },
+    bottom: { position: "bottom", attrs: { circle } },
+  } as const;
+}
+
+/** 菱形的端口实例，id 与组名同名（dagRules 靠这个读方向名） */
+function flowDiamondPortItems() {
+  return DIAMOND_PORTS.map((g) => ({ group: g, id: g }));
+}
+
+/**
+ * 菱形的文字 attrs。
+ *
+ * <p>菱形不走 vue-shape 的 foreignObject：卡片那套「图标块 + 单行标签 + 右侧类型角标」
+ * 塞进菱形必然溢出（上下两角是空的、左右两角是尖的）。改成 SVG text 两行居中，
+ * 字色字号沿用卡片同一套（FlowNodeCard 的 #4e5969 / #a4abb5），两类节点看上去是一套东西。</p>
+ *
+ * @param label 节点名
+ * @param typeLabel 类型中文名，可为空
+ * @param color 节点主色，用作描边
+ * @returns 可直接喂给 `graph.addNode` 的 attrs
+ */
+export function flowDiamondAttrs(label: string, typeLabel: string, color: string) {
+  const half = DIAMOND_SIZE / 2;
+  // 类型名为空、或与节点名重复时只画一行，避免出现「判断  判断」这种噪声
+  const twoLines = !!typeLabel && typeLabel !== label;
+  return {
+    body: {
+      d: diamondPath(DIAMOND_SIZE),
+      fill: "#ffffff",
+      stroke: color || DEFAULT_NODE_COLOR,
+      strokeWidth: 1.5,
+      strokeLinejoin: "round",
+    },
+    label: {
+      x: half,
+      y: twoLines ? half - 8 : half,
+      text: label,
+      textAnchor: "middle",
+      textVerticalAnchor: "middle",
+      fontSize: 13,
+      fill: "#4e5969",
+    },
+    typeLabel: {
+      x: half,
+      y: half + 10,
+      text: twoLines ? typeLabel : "",
+      textAnchor: "middle",
+      textVerticalAnchor: "middle",
+      fontSize: 11,
+      fill: "#a4abb5",
+    },
+  };
+}
+
 let registered = false;
 
 /** 自定义节点体形状名的前缀，后面跟序号 */
@@ -159,6 +298,28 @@ export function ensureFlowRegistered(nodeComponent?: Component | null): string {
     },
   });
 
+  // 判断节点：真菱形，一入两出（入 = top，出 = right 真 / bottom 假）。
+  // 用原生节点而不是 vue-shape —— 菱形里塞 foreignObject 必然溢出，见 flowDiamondAttrs 的说明。
+  Graph.registerNode(
+    FLOW_DIAMOND_SHAPE,
+    {
+      width: DIAMOND_SIZE,
+      height: DIAMOND_SIZE,
+      markup: [
+        // 字段名是 tagName 不是 tag（X6 的 Markup.JSONMarkup）：写错会被静默忽略、
+        // 回退成默认矩形 markup，label / typeLabel 两个 selector 不存在、字也不显示。
+        { tagName: "path", selector: "body" },
+        { tagName: "text", selector: "label" },
+        { tagName: "text", selector: "typeLabel" },
+      ],
+      ports: {
+        groups: flowDiamondPortGroups(),
+        items: flowDiamondPortItems(),
+      },
+    },
+    true,
+  );
+
   Graph.registerEdge(
     FLOW_EDGE_SHAPE,
     {
@@ -212,20 +373,30 @@ export function buildFlowNodeMetadata(input: {
   image?: string;
   /** 图形名，缺省内置卡片；自定义节点体由引擎把自己的形状名传进来 */
   shape?: string;
+  /** 节点宽高，缺省 180×36；菱形由引擎按 96×96 传 */
+  width?: number;
+  height?: number;
+  /** 是否菱形：决定要不要给 SVG text 两行标签（卡片走 Vue 组件，不吃 attrs） */
+  diamond?: boolean;
   data?: Record<string, unknown>;
 }) {
+  const label = input.label;
+  const typeLabel = input.typeLabel ?? "";
+  const color = input.color || DEFAULT_NODE_COLOR;
   return {
     id: input.id,
     shape: input.shape ?? FLOW_NODE_SHAPE,
     x: input.x,
     y: input.y,
-    width: NODE_WIDTH,
-    height: NODE_HEIGHT,
+    width: input.width ?? NODE_WIDTH,
+    height: input.height ?? NODE_HEIGHT,
+    // 卡片形状不设 attrs（节点体是 Vue 组件，attrs 不会被渲染）；菱形必须给
+    ...(input.diamond ? { attrs: flowDiamondAttrs(label, typeLabel, color) } : {}),
     data: {
       flowType: input.type,
-      flowLabel: input.label,
-      flowTypeLabel: input.typeLabel ?? "",
-      flowColor: input.color || DEFAULT_NODE_COLOR,
+      flowLabel: label,
+      flowTypeLabel: typeLabel,
+      flowColor: color,
       flowIcon: input.iconPath || resolveFlowIcon(input.type),
       flowImage: input.image || "",
       flowData: input.data ?? {},
@@ -257,18 +428,49 @@ export function pickFlowPorts(
   to: { x: number; y: number },
   fromPort?: string | null,
   toPort?: string | null,
+  options?: FlowPortPickOptions,
 ): { fromPort: string; toPort: string } {
-  if (fromPort && toPort) {
-    return { fromPort, toPort };
-  }
-  // 用卡片中心而不是左上角比较：左上角在纵向布局里会把同列的节点算成「横向」
-  const dx = to.x + NODE_WIDTH / 2 - (from.x + NODE_WIDTH / 2);
-  const dy = to.y + NODE_HEIGHT / 2 - (from.y + NODE_HEIGHT / 2);
+  const diamondTypes = options?.diamondTypes ?? DEFAULT_DIAMOND_TYPES;
+  // 两端各自「实际有哪些端口」：菱形没有 left，横向落进菱形时首选的 left 会落空
+  const fromPorts = isDiamondType(options?.fromType, diamondTypes) ? DIAMOND_PORTS : CARD_PORTS;
+  const toPorts = isDiamondType(options?.toType, diamondTypes) ? DIAMOND_PORTS : CARD_PORTS;
+  const fw = options?.fromSize?.width ?? NODE_WIDTH;
+  const fh = options?.fromSize?.height ?? NODE_HEIGHT;
+  const tw = options?.toSize?.width ?? NODE_WIDTH;
+  const th = options?.toSize?.height ?? NODE_HEIGHT;
+  // 用节点中心而不是左上角比较：左上角在纵向布局里会把同列的节点算成「横向」
+  const dx = to.x + tw / 2 - (from.x + fw / 2);
+  const dy = to.y + th / 2 - (from.y + fh / 2);
   const horizontal = Math.abs(dx) >= Math.abs(dy);
-  return {
-    fromPort: fromPort || (horizontal ? "right" : "bottom"),
-    toPort: toPort || (horizontal ? "left" : "top"),
+  /**
+   * 显式端口若该端根本没有，不能照搬。
+   *
+   * <p>X6 接受任意 port 名，连线照样连上，但锚点落在节点盒子外 —— 表现为
+   * 「线接上了却没有连接点」或绕一大圈。所以这里按可用端口夹取，
+   * 落空时退回几何首选方向，再落空就用该端第一个端口。</p>
+   */
+  const pick = (explicit: string | null | undefined, preferred: string, available: readonly string[]) => {
+    if (explicit && available.includes(explicit)) {
+      return explicit;
+    }
+    return available.includes(preferred) ? preferred : available[0];
   };
+  return {
+    fromPort: pick(fromPort, horizontal ? "right" : "bottom", fromPorts),
+    toPort: pick(toPort, horizontal ? "left" : "top", toPorts),
+  };
+}
+
+/** {@link pickFlowPorts} 的可选参数：两端是什么类型、多大，决定端口可用性与几何比较 */
+export interface FlowPortPickOptions {
+  fromType?: string;
+  toType?: string;
+  /** 覆盖菱形类型名单，缺省用 {@link DEFAULT_DIAMOND_TYPES} */
+  diamondTypes?: readonly string[];
+  /** 源节点尺寸，缺省按卡片 180×36 */
+  fromSize?: { width: number; height: number };
+  /** 目标节点尺寸，缺省按卡片 180×36 */
+  toSize?: { width: number; height: number };
 }
 
 /**
