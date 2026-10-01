@@ -6,13 +6,35 @@
 
 ---
 
+## 0. 先读这一段：这份报告覆盖什么、不覆盖什么
+
+**被验的是 `684250a3de38`，它对应 `d939651a1`（2026-10-01 10:58）。**
+**该基线落后当时 HEAD 24 个提交**，因此这份 111/0：
+
+- **只证明**：`d939651a1` 这个源码版本上，下面列出的 9 套验收全部通过
+- **完全不能证明**：那 24 个提交的改动（人脸 / influxdb / eduai / monitor 等）是好的
+  —— **它们根本不在被验的二进制里**
+
+具体到一个可核对的例子：`d939651a1` 的 `FaceController` **没有** `@GetMapping("/list")`
+（该接口由 `4dbc38dd1` 于 17:26 加入，晚于基线）。所以那个构建上 `/v2/face/list`
+必然 **404**，而我的报告不会有任何异常 —— 因为**我没有一套验人脸**。
+
+> 这正是 AGENTS.md §4.6 记录的事故形态：**报告证明的是一个已经不存在的二进制**。
+> 我这份报告不存在「人脸被 revert」的问题，但存在**同一类**的错：把
+> 「我验的这 9 套全绿」当成「这个构建整体可用」的表述便利。
+
+**纪律（据 §4.6）**：本报告的结论**与 md5 绑定**，换包即失效；
+签收前必须重新核对线上 md5，不要凭「应该没被换过」下结论。
+
+---
+
 ## 1. 验收基线
 
 | 项 | 值 |
 |---|---|
 | 验收的构建 | jar md5 **`684250a3de38`** |
 | 构建时间 | 2026-10-01 13:25:57 |
-| spring 基线 | **`d939651a1`**（10-01 10:58） |
+| spring 基线 | **`d939651a1`**（10-01 10:58）—— **落后当时 HEAD 24 个提交**（见 §0） |
 | vue 基线 | **`4d05b93da4`**（10-01 13:20） |
 | 前端形态 | 本机 vite 直接服务工作树（**未打包**），非产物验收 |
 | 部署方式 | `deploy.sh`：先停旧进程 → 1b 验 jar 完整性（`OK 条目数=1429`）→ 替换 → 等就绪约 30s |
@@ -26,6 +48,9 @@
 ---
 
 ## 2. 验收结果：9 套 / PASS 111 / FAIL 0
+
+> **范围**：这 9 套全部落在「图像/视频生成 + 认证」这一片。
+> 它们**不覆盖**人脸、influxdb、eduai、monitor、collect 等模块 —— 见 §0。
 
 | 套件 | 结果 | 覆盖 |
 |---|---|---|
@@ -90,6 +115,7 @@
 | `336e97e31` | 已用时时钟偏移按本任务算 | `records-accept` |
 | `e2203830d` | ops 验收加深版 | `ops-accept` 14/0 |
 | `a2b20b189` | **前端代理默认指向远端后端**（修「本机 pnpm dev 必登录 500」） | ⚠️ **不在验构建内**（10-01 18:04，晚于验收）。单独验过：不带环境变量 `/v2/user/login` 200、`login-accept` 8/0 |
+| — | **基线之后新增的 24 个提交**（`4dbc38dd1` 人脸 list/delete、`aa1076bf1` influxdb、`9c3241cd9`/`2227b1b6c`/`c72ec2731` eduai、`6c2e676e7`/`aad6eb09b`/`acbd6c98e`/`8982985f2`/`f8d956e60` monitor、`c21e0d9e4` 快照 …） | ❌ **不在被验的二进制里，本报告对其无任何结论**。它们由各自作者与 CI 负责，我不代验 |
 
 ---
 
@@ -97,6 +123,7 @@
 
 | 项 | 性质 | 证据 |
 |---|---|---|
+| **人脸 / influxdb / eduai / monitor / collect 等模块** | **不在验收范围** | 基线 `d939651a1` 里就没有后续 24 个提交的改动。例：`FaceController` 在基线**无** `@GetMapping("/list")`（17:26 才加），故该构建 `/v2/face/list` 必 404 —— 而我有意**没有**验人脸，所以报告不会有异常 |
 | **视频成功渲染** | 上游依赖 | 提交后上游回 **HTTP 400**；此前长期 503/429。配置与降级链路已验，**成功路径从未跑通** |
 | **真实 OAuth 认证** | 部署形态 | 生效档 `plugin.oauth.protocol=static`，按设计**不外呼**。本机有 oauth 服务（19180–19185）但未接上 |
 | **图生视频** | 配置缺失 | `plugin.filesystem.storage-server.public-host` 未定，Agnes 取不到参考图 |
@@ -114,3 +141,39 @@
 | 本表 | `apps/vue-support-ai-guada/DELIVERY.md` |
 | 部署门禁脚本 | 服务器 `/home/kali/jar-guard.sh` + `/home/kali/deploy.sh`（不在仓库内） |
 | 机器重置前的回滚点 | 服务器 `/opt/ai-starter/app.jar.bak-*`（保留最新 1 个） |
+
+---
+
+## 6. 签收纪律（据 AGENTS.md §4.6）
+
+本报告的全部结论**与 md5 `684250a3de38` 绑定**。签收前必须做两件事：
+
+1. **重新核对线上 md5**：
+   ```
+   md5sum /opt/ai-starter/app.jar | cut -c1-12      # 对不上即为换包，本报告作废，须重跑
+   ```
+2. 换包后**不要**沿用本报告的结论 —— 报告证明的是那个二进制，不是「这个功能」。
+
+**已知的当前状态（写表时的观测，非承诺）**：线上 jar 为 `f00a8e95e7f2`
+（并发会话的构建），**不是** `684250a3de38`。故本表的 111/0 **不对线上当前版本负责**。
+
+---
+
+## 7. 可复核的原始证据
+
+本轮 9 套的原始日志已固化，与上表逐条对应：
+
+```
+.tmp/sg/PA.log                          prod-accept            31/0
+.tmp/sg/P3-ops-accept.log               ops-accept             14/0
+.tmp/sg/P3-records-accept.log           records-accept         20/0
+.tmp/sg/P4-static-accounts-accept.log   static-accounts-accept 10/0
+.tmp/sg/P3-id-stability-accept.log      id-stability-accept     9/0
+.tmp/sg/login-after-fix.log             login-accept            8/0
+.tmp/sg/P4-touch-target-accept.log      touch-target-accept     8/0
+.tmp/sg/P5-try1.log                     media-store-accept      6/0
+.tmp/sg/P4-a11y-focus-accept.log        a11y-focus-accept       5/0
+```
+
+> 注意：`.tmp/` **不在版本控制内**，这些日志会随清理消失。
+> 要长期留档需另存到仓库或备份目录。
