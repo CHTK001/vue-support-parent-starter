@@ -1,11 +1,22 @@
 import { createVite } from "../../turbo/vite/createVite.ts";
 
-// 后端端口：spring-support-monitor-starter 与 spring-support-server-starter 的
-// application.yml 均声明 server.port=8082（全后端体系无 8081 服务），
-// 故默认代理到 8082。需指向其他实例时用环境变量覆盖：
+// 后端实例：后台只跑在 Kali 上，本机不起后端进程，所以缺省值指向远端而不是 127.0.0.1。
+// 与 vue-support-ai-guada / vue-support-system-starter 同一口径
+// （见 a2b20b189「前端代理默认指向远端后端」）。
+//
+// 为什么这件事值得单独说明：缺省目标指向一个**没人监听的本机端口**时，dev 代理返回的是
+//   {"code":"00000","data":[],"success":true}
+// 也就是**合法 JSON 但数据为空**。它不像连不上那样报错，表现是「服务管理列表 0 个服务」，
+// 排查方向会整个跑偏到「数据丢了 / 查询写错了 / 后台没起节点」，而真实原因只是代理指错机器。
+// 这类静默错误比直接报错更贵，本轮已实测踩过一次。
+//
+// 端口：8112 是 monitor 后台实际监听的端口；29612 是它的 socket.io 推送端口
+// （与 project-start.sh 的 --plugin.socket.room[0].port=29612 一致）。
+// 注意此前缺省写的 29181 是**错的端口**，即使把主机改成远端，socket 推送仍然连不上。
+// 需要指向其他实例时用环境变量覆盖：
 //   MS_API_TARGET=http://127.0.0.1:8082 pnpm dev
-const apiTarget = process.env.MS_API_TARGET ?? "http://127.0.0.1:8082";
-const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://127.0.0.1:29181";
+const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8112";
+const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
 
 export default createVite({
   appName: "vue-support-monitor-starter",
