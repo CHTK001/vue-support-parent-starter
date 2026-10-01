@@ -327,6 +327,56 @@ function condLabel(condition?: string | null): string {
  * @param sourceShape 源节点类型
  * @returns 画布上显示的连线标签
  */
+/**
+ * 判断节点出边属于哪个分支：真 / 假。
+ *
+ * <p>判断节点是靠出边条件分流的：条件里显式比较 false 的算假，留空即默认出边
+ * （也就等于假分支，因为真分支已经被 `${conditionResult}` 占掉了）。</p>
+ *
+ * @param edge        连线（至少有 condition）
+ * @param sourceShape 源节点类型
+ * @returns 「真」/「假」；非判断节点或异常边返回空串
+ */
+function branchOf(
+  edge: { condition?: string | null; exceptionFlow?: string | null },
+  sourceShape: string,
+): string {
+  if (text(edge.exceptionFlow) === "1" || sourceShape !== "condition") {
+    return "";
+  }
+  const raw = text(edge.condition).trim();
+  if (!raw) {
+    return "假";
+  }
+  return /false/.test(raw) ? "假" : "真";
+}
+
+/**
+ * 判断节点出边该走的端口：真 → right，假 → bottom。
+ *
+ * <p>判断节点在画布上是菱形，只有一个入边锚（top）和两个出边锚（right / bottom）。
+ * 不指定端口时 {@code pickFlowPorts} 按几何选向，真分支可能从 bottom 出去、假分支从
+ * right 出去 —— 标签写着「真」但线走的却是假端口，「一入两出」就只是画得像。
+ * 这里按分支把端口定死；非判断节点与异常边返回 undefined，交给几何自动选。</p>
+ *
+ * @param edge        连线（至少有 condition）
+ * @param sourceShape 源节点类型
+ * @returns 端口名；不适用时为 undefined
+ */
+function branchPortOf(
+  edge: { condition?: string | null; exceptionFlow?: string | null },
+  sourceShape: string,
+): string | undefined {
+  const branch = branchOf(edge, sourceShape);
+  if (branch === "真") {
+    return "right";
+  }
+  if (branch === "假") {
+    return "bottom";
+  }
+  return undefined;
+}
+
 function edgeLabelOf(
   edge: { condition?: string | null; exceptionFlow?: string | null },
   sourceShape: string,
@@ -341,7 +391,7 @@ function edgeLabelOf(
   if (!raw) {
     return "假（默认出边）";
   }
-  return /false/.test(raw) ? "假" : "真";
+  return branchOf(edge, sourceShape);
 }
 
 function toGraphData(dsl: CollectDsl): FlowGraphData {
@@ -357,15 +407,20 @@ function toGraphData(dsl: CollectDsl): FlowGraphData {
         fields: (node.fields ?? []).map(item => ({ ...item })),
       },
     })),
-    edges: (dsl.edges ?? []).map(edge => ({
-      id: edge.id,
-      from: edge.from,
-      to: edge.to,
-      kind: kindOf(edge.exceptionFlow, edge.condition),
-      label: edgeLabelOf(edge, (dsl.nodes ?? []).find(item => item.id === edge.from)?.shape ?? ""),
-      transfer: edge.transmitVariable !== false,
-      data: { condition: text(edge.condition), exceptionFlow: edge.exceptionFlow || "0" },
-    })),
+    edges: (dsl.edges ?? []).map(edge => {
+      const sourceShape = (dsl.nodes ?? []).find(item => item.id === edge.from)?.shape ?? "";
+      return {
+        id: edge.id,
+        from: edge.from,
+        to: edge.to,
+        // 判断节点按分支定端口（真 right / 假 bottom），其余交给几何自动选
+        fromPort: branchPortOf(edge, sourceShape),
+        kind: kindOf(edge.exceptionFlow, edge.condition),
+        label: edgeLabelOf(edge, sourceShape),
+        transfer: edge.transmitVariable !== false,
+        data: { condition: text(edge.condition), exceptionFlow: edge.exceptionFlow || "0" },
+      };
+    }),
   };
 }
 

@@ -38,6 +38,7 @@ import { Export } from "@antv/x6-plugin-export";
 import type { Component } from "vue";
 import { isDagTerminalAllowed } from "./dagRules";
 import {
+  DEFAULT_DIAMOND_TYPES,
   DEFAULT_NODE_COLOR,
   FLOW_EDGE_SHAPE,
   FLOW_NODE_SHAPE,
@@ -47,6 +48,8 @@ import {
   buildFlowNodeMetadata,
   ensureFlowRegistered,
   flowEdgeAttrs,
+  flowNodeShapeSpec,
+  isDiamondType,
   pickFlowPorts,
   resolveFlowType,
 } from "./shapes";
@@ -161,6 +164,11 @@ export interface FlowEngineOptions {
   nodeDraggable?: boolean;
   /** 宿主自定义节点体组件；给了则所有节点用它渲染 */
   nodeComponent?: Component | null;
+  /**
+   * 走菱形的节点类型名单，缺省见 shapes.ts 的 DEFAULT_DIAMOND_TYPES。
+   * 宿主类型标识不叫 condition/branch/judge/decision 时用这个覆盖。
+   */
+  diamondTypes?: readonly string[];
   handlers?: FlowEngineHandlers;
 }
 
@@ -206,6 +214,13 @@ export class FlowGraphEngine {
    */
   private nodeShape: string;
   /**
+   * 走菱形的类型名单。
+   *
+   * 存成实例字段而不是直接读全局常量：宿主可以只给某一个画布换名单，
+   * 同一页面两个画布用不同类型体系时互不影响。
+   */
+  private diamondTypes: readonly string[];
+  /**
    * 非只读状态下宿主要求的 `interacting`。
    *
    * 必须留底：只读是「整体替换」，退出只读时要恢复成宿主当初的意图，
@@ -223,6 +238,7 @@ export class FlowGraphEngine {
 
   constructor(options: FlowEngineOptions) {
     this.nodeShape = ensureFlowRegistered(options.nodeComponent);
+    this.diamondTypes = options.diamondTypes ?? DEFAULT_DIAMOND_TYPES;
     this.opts = options;
     this.types = options.nodeTypes ?? [];
 
@@ -282,11 +298,29 @@ export class FlowGraphEngine {
         },
         // DAG 方向约束：top 是入边锚、bottom 是出边锚。此处而非 validateMagnet，
         // 因为只有本回调能拿到 sourcePort/targetPort（理由见文件头）
-        validateConnection({ sourceCell, targetCell, sourcePort, targetPort }) {
+        validateConnection: ({ sourceCell, targetCell, sourcePort, targetPort }) => {
           if (!sourceCell || !targetCell || sourceCell === targetCell) {
             return false;
           }
-          return isDagTerminalAllowed(sourcePort, targetPort);
+          if (!isDagTerminalAllowed(sourcePort, targetPort)) {
+            return false;
+          }
+          // 判断节点的每个出边锚只允许一条线：菱形只有 right（真）/ bottom（假）两个出边锚，
+          // 不限的话能拉三条线，「一入两出」就只是画得像。存量连线同样占名额。
+          // 取边走 graph.getEdges() 而不是 cell.getEdges()：后者不在 Cell 的类型面上。
+          const sourceType = (sourceCell.getData() as { flowType?: string } | undefined)?.flowType;
+          if (sourcePort && isDiamondType(sourceType, this.diamondTypes)) {
+            const used = this.graph
+              .getEdges()
+              .some((e) => {
+                const src = e.getSource() as { cell?: string; port?: string } | undefined;
+                return src?.cell === sourceCell.id && src.port === sourcePort;
+              });
+            if (used) {
+              return false;
+            }
+          }
+          return true;
         },
       },
       highlighting: {
@@ -587,13 +621,14 @@ export class FlowGraphEngine {
     this.loading = true;
     this.graph.disableHistory();
     this.graph.clearCells();
-    // 端口选向要用节点坐标，先记一份 id → 左上角坐标
-    const positions = new Map<string, { x: number; y: number }>();
+    // 端口选向要用节点坐标与类型，先记一份 id → 几何 + 规格
+    const positions = new Map<string, { x: number; y: number; type: string; width: number; height: number }>();
     (data.nodes ?? []).forEach((node) => {
       const def = resolveFlowType(this.types, node.type);
       const x = node.x ?? 0;
       const y = node.y ?? 0;
-      positions.set(node.id, { x, y });
+      const spec = this.shapeSpec(node.type);
+      positions.set(node.id, { x, y, type: node.type, width: spec.width, height: spec.height });
       this.graph.addNode(
         buildFlowNodeMetadata({
           id: node.id,
@@ -605,7 +640,10 @@ export class FlowGraphEngine {
           color: def.color ?? DEFAULT_NODE_COLOR,
           iconPath: def.path,
           image: def.image,
-          shape: this.nodeShape,
+          shape: spec.shape,
+          width: spec.width,
+          height: spec.height,
+          diamond: spec.diamond,
           data: node.data,
         }),
       );
@@ -613,9 +651,22 @@ export class FlowGraphEngine {
     (data.edges ?? []).forEach((edge) => {
       // 端口按两节点相对位置自动选向：数据里没显式写端口时，
       // 横向布局走 右→左 而不是写死的 下→上（写死会让线贴着目标卡片底边走，见 pickFlowPorts）。
-      const src = positions.get(edge.from) ?? { x: 0, y: 0 };
-      const dst = positions.get(edge.to) ?? { x: 0, y: 0 };
-      const ports = pickFlowPorts(src, dst, edge.fromPort, edge.toPort);
+      // 两端是不是菱形要一起给：菱形没有 left 端口，横向落进菱形时首选方向会落空。
+      const src = positions.get(edge.from) ?? { x: 0, y: 0, type: "", width: NODE_WIDTH, height: NODE_HEIGHT };
+      const dst = positions.get(edge.to) ?? { x: 0, y: 0, type: "", width: NODE_WIDTH, height: NODE_HEIGHT };
+      const ports = pickFlowPorts(
+        { x: src.x, y: src.y },
+        { x: dst.x, y: dst.y },
+        edge.fromPort,
+        edge.toPort,
+        {
+          fromType: src.type,
+          toType: dst.type,
+          diamondTypes: this.diamondTypes,
+          fromSize: { width: src.width, height: src.height },
+          toSize: { width: dst.width, height: dst.height },
+        },
+      );
       this.graph.addEdge(
         buildFlowEdgeMetadata({
           id: edge.id,
@@ -664,21 +715,27 @@ export class FlowGraphEngine {
     const same = this.graph
       .getNodes()
       .filter((n) => (n.getData() as { flowType?: string })?.flowType === type).length;
-    // 落点由鼠标给出时按卡片中心对齐，X6 的 x/y 是左上角，180×36 的卡片不居中的话
-    // 光标会明显偏在左上（原来 40×40 时偏差看不出来）
-    const at = x == null || y == null ? this.cascadeSpot() : { x, y };
+    // 落点由鼠标给出时按节点中心对齐，X6 的 x/y 是左上角：180×36 的卡片不居中的话
+    // 光标会明显偏在左上（原来 40×40 时偏差看不出来）。菱形 96×96 用同一套逻辑。
+    const spec = this.shapeSpec(type);
+    const at = x == null || y == null
+      ? this.cascadeSpot({ width: spec.width, height: spec.height })
+      : { x, y };
     const node = this.graph.addNode(
       buildFlowNodeMetadata({
         id: uid("node"),
         type,
         label: same > 0 ? `${def.label} ${same + 1}` : def.label,
         typeLabel: def.label,
-        x: Math.round(at.x - NODE_WIDTH / 2),
-        y: Math.round(at.y - NODE_HEIGHT / 2),
+        x: Math.round(at.x - spec.width / 2),
+        y: Math.round(at.y - spec.height / 2),
         color: def.color ?? DEFAULT_NODE_COLOR,
         iconPath: def.path,
         image: def.image,
-        shape: this.nodeShape,
+        shape: spec.shape,
+        width: spec.width,
+        height: spec.height,
+        diamond: spec.diamond,
         data: {},
       }),
     );
@@ -701,6 +758,18 @@ export class FlowGraphEngine {
     return { x: p.x, y: p.y };
   }
 
+  /**
+   * 某类型节点该用的图形与尺寸。
+   *
+   * 载入存量节点与新建节点都必须走这里 —— 两处各写一份判断必然漂移。
+   *
+   * @param type 节点类型标识
+   * @returns 图形名、宽高与是否菱形
+   */
+  private shapeSpec(type: string) {
+    return flowNodeShapeSpec(type, this.nodeShape, this.diamondTypes);
+  }
+
   /** 视口中心（新增节点的默认落位） */
   private blankCenter(): { x: number; y: number } {
     const area = this.graph.getGraphArea();
@@ -710,20 +779,32 @@ export class FlowGraphEngine {
   /**
    * 从视口中心向外一圈圈找空位，连续点击调色板时节点不会叠成一堆。
    *
-   * 环形步长与重叠判据都跟着卡片尺寸走：节点从 40×40 变成 180×36 之后，
+   * 环形步长与重叠判据都跟着节点尺寸走：节点从 40×40 变成 180×36 之后，
    * 沿用原来的 180/120 步长会让同环的卡片横向压在一起（180 宽的卡片配 180 步长，
    * 相邻两张刚好首尾相接，看起来像连成一条），而 170/120 的重叠判据对 180 宽的卡片
-   * 形同虚设。所以这里按 NODE_WIDTH / NODE_HEIGHT 推导，不再写死魔法数。
+   * 形同虚设。所以这里按尺寸推导，不再写死魔法数。
    *
+   * <p>两种尺寸并存（卡片 180×36 / 菱形 96×96）后判据必须用「两个节点各自的半宽之和」：
+   * 仍按卡片尺寸算的话，96 宽的菱形会被判成「不重叠」而压在卡片上。</p>
+   *
+   * @param size 待放入节点的尺寸，缺省按卡片 180×36
    * @returns 一个不与现有节点重叠的画布局部坐标；8 圈都找不到时退回视口中心
    */
-  private cascadeSpot(): { x: number; y: number } {
+  private cascadeSpot(size?: { width: number; height: number }): { x: number; y: number } {
     const base = this.blankCenter();
-    const taken = this.graph.getNodes().map((node) => node.getBBox().center);
+    const w = size?.width ?? NODE_WIDTH;
+    const h = size?.height ?? NODE_HEIGHT;
+    const taken = this.graph.getNodes().map((node) => {
+      const box = node.getBBox();
+      return { x: box.center.x, y: box.center.y, width: box.width, height: box.height };
+    });
     const fits = (p: { x: number; y: number }) =>
-      !taken.some((q) => Math.abs(q.x - p.x) < NODE_WIDTH + 24 && Math.abs(q.y - p.y) < NODE_HEIGHT + 24);
-    const stepX = NODE_WIDTH + 60;
-    const stepY = NODE_HEIGHT + 70;
+      !taken.some(
+        (q) => Math.abs(q.x - p.x) < (q.width + w) / 2 + 24 && Math.abs(q.y - p.y) < (q.height + h) / 2 + 24,
+      );
+    // 步长取两类节点里更大的那个，菱形才不会落到卡片那一圈的空位上
+    const stepX = Math.max(NODE_WIDTH, w) + 60;
+    const stepY = Math.max(NODE_HEIGHT, h) + 70;
     for (let ring = 0; ring < 8; ring += 1) {
       const spots = ring === 0
         ? [base]
