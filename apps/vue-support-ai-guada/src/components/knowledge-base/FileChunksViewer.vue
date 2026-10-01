@@ -1,226 +1,186 @@
-﻿<!-- KnowledgeBasePage/FileChunksViewer.vue -->
 <template>
-    <LDialog v-model="showModal" :title="t('knowledge.chunks.title', { name: selectedFile?.displayName })" width="800px"
-        :close-on-click-modal="true" @close="handleClose">
-        <div v-if="loading" class="loading-container text-center py-8">
-            <el-icon class="text-2xl text-gray-400 dark:text-[#6b6d75]">
-                <Loading />
-            </el-icon>
-            <p class="mt-2 text-gray-500 dark:text-[#8b8d95]">{{ t('knowledge.chunks.loading') }}</p>
-        </div>
-        <div v-else-if="chunks.length === 0" class="no-chunks-container text-center py-8">
-            <el-icon class="text-2xl text-gray-400 dark:text-[#6b6d75]">
-                <Document />
-            </el-icon>
-            <p class="mt-2 text-gray-500 dark:text-[#8b8d95]">{{ t('knowledge.chunks.empty') }}</p>
-        </div>
-        <div v-else class="chunks-container">
-            <div v-for="(chunk, index) in chunks" :key="chunk.id"
-                class="chunk-item mb-4 p-4 bg-gray-50 dark:bg-[#2a2c30] rounded-lg border border-gray-200 dark:border-[#2e3035]">
-                <div class="chunk-header flex justify-between items-center mb-2">
-                    <span class="chunk-index text-sm font-mono text-gray-500 dark:text-[#8b8d95]">
-                        #{{ (currentPage - 1) * pageSize + index + 1 }}
-                    </span>
-                    <span class="chunk-meta text-xs text-gray-400 dark:text-[#6b6d75]">
-                        {{ t('knowledge.chunks.index') }}: {{ chunk.chunkIndex }}, {{ t('knowledge.chunks.tokenCount') }}: {{ chunk.tokenCount }}
-                    </span>
-                </div>
-                <div class="chunk-content text-sm text-gray-800 dark:text-[#e8e9ed] whitespace-pre-wrap font-mono">
-                    {{ chunk.content }}
-                </div>
-            </div>
-        </div>
+  <LDialog
+    v-model="showModal"
+    :title="t('knowledge.chunks.title', { name: selectedFile?.displayName })"
+    width="800px"
+    :close-on-click-modal="true"
+    append-to-body
+    @close="handleClose"
+  >
+    <div v-if="loading" class="min-h-[200px] flex flex-col items-center justify-center text-[var(--rm-text-secondary)]">
+      <el-icon class="text-2xl"><Loading /></el-icon>
+      <p class="mt-2 text-sm">{{ t('knowledge.chunks.loading') }}</p>
+    </div>
 
-        <!-- 分页控件 -->
-        <template #footer v-if="chunks.length > 0">
-            <div class="flex justify-between items-center">
-                <div class="text-sm text-gray-500 dark:text-[#8b8d95]">
-                    {{ t('knowledge.chunks.pagination', { total: totalChunks, start: Math.min(totalChunks, (currentPage - 1) * pageSize + 1), end: Math.min(totalChunks, currentPage * pageSize) }) }}
-                </div>
-                <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="totalChunks"
-                    layout="prev, pager, next" :hide-on-single-page="totalChunks <= pageSize"
-                    @current-change="handlePageChange" />
-            </div>
-        </template>
-    </LDialog>
+    <ReEmpty v-else-if="chunks.length === 0" :text="t('knowledge.chunks.empty')" />
+
+    <div v-else class="flex flex-col gap-3">
+      <div
+        v-for="(chunk, index) in chunks"
+        :key="chunk.id"
+        class="re-surface re-surface--dense re-surface--hover flex flex-col"
+      >
+        <div class="flex justify-between items-center gap-2 pb-2 mb-2 border-b border-[var(--rm-border-light)]">
+          <span class="text-sm font-mono font-bold text-[var(--rm-text-secondary)]">
+            #{{ (currentPage - 1) * pageSize + index + 1 }}
+          </span>
+          <span class="text-xs text-[var(--rm-text-disabled)]">
+            {{ t('knowledge.chunks.index') }}: {{ chunk.chunkIndex }}，{{ t('knowledge.chunks.tokenCount') }}: {{ chunk.tokenCount }}
+          </span>
+        </div>
+        <div class="text-sm whitespace-pre-wrap break-words font-mono leading-relaxed p-3 rounded-[var(--rm-radius-sm,4px)] bg-[var(--rm-bg-subtle)] text-[var(--rm-text)]">
+          {{ chunk.content }}
+        </div>
+      </div>
+    </div>
+
+    <template v-if="chunks.length > 0" #footer>
+      <div class="flex justify-between items-center gap-3 flex-wrap w-full">
+        <div class="text-sm text-[var(--rm-text-secondary)]">
+          {{ t('knowledge.chunks.pagination', {
+            total: totalChunks,
+            start: Math.min(totalChunks, (currentPage - 1) * pageSize + 1),
+            end: Math.min(totalChunks, currentPage * pageSize),
+          }) }}
+        </div>
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="totalChunks"
+          layout="prev, pager, next"
+          :hide-on-single-page="totalChunks <= pageSize"
+          @current-change="handlePageChange"
+        />
+      </div>
+    </template>
+  </LDialog>
 </template>
 
 <script setup lang="ts">
+/**
+ * 文件分块内容查看。
+ *
+ * <p>风格与系统一致：弹框外壳用应用标准 {@code LDialog}，内部（加载态 / 空态 / 分块卡 /
+ * 分页条）全部走 Tailwind 工具类 + 组件库基线 {@code re-surface} + {@code ReEmpty}；
+ * 颜色只用 koi 令牌 {@code --rm-*}，不再出现硬编码暗色值
+ * （原先散落的 {@code dark:text-[#6b6d75]} 一类已全部移除）。</p>
+ */
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Loading, Document } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
 import type { KBFile } from '@/stores/knowledgeBase'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReEmpty from '@/components/re/ReEmpty.vue'
 
+/** 组件属性 */
 interface Props {
-    modelValue: boolean
-    selectedFile: KBFile | null
+  /** 是否显示（v-model） */
+  modelValue: boolean
+  /** 目标文件 */
+  selectedFile: KBFile | null
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-    'update:modelValue': [value: boolean]
+  /** 同步显示状态 */
+  'update:modelValue': [value: boolean]
 }>()
 
 const store = useKnowledgeBaseStore()
 const { t } = useI18n()
 const { toast } = usePopup()
 
-// 状态
+/** 弹框显隐（内部副本） */
 const showModal = ref(false)
+/** 是否加载中 */
 const loading = ref(false)
+/** 当前页分块 */
 const chunks = ref<any[]>([])
+/** 分块总数 */
 const totalChunks = ref(0)
+/** 当前页码 */
 const currentPage = ref(1)
+/** 每页条数 */
 const pageSize = ref(10)
 
 // 监听外部传入的 modelValue
 watch(() => props.modelValue, (newValue) => {
-    showModal.value = newValue
-    if (newValue && props.selectedFile) {
-        // 打开弹窗时加载第一页数据
-        currentPage.value = 1
-        loadChunks()
-    }
+  showModal.value = newValue
+  if (newValue && props.selectedFile) {
+    // 打开弹窗时加载第一页数据
+    currentPage.value = 1
+    loadChunks()
+  }
 })
 
 // 监听内部 showModal 变化，同步到外部
 watch(showModal, (newValue) => {
-    emit('update:modelValue', newValue)
+  emit('update:modelValue', newValue)
 })
 
 /**
- * 加载文件分块内容
+ * 加载文件分块内容。
  */
 async function loadChunks() {
-    if (!props.selectedFile || !store.activeKnowledgeBaseId) {
-        toast.error(t('knowledge.chunks.noFileSelected'))
-        return
-    }
+  if (!props.selectedFile || !store.activeKnowledgeBaseId) {
+    toast.error(t('knowledge.chunks.noFileSelected'))
+    return
+  }
 
-    // 已完成或处理失败的文件均可查看分块内容
-    if (props.selectedFile.processingStatus !== 'completed' && props.selectedFile.processingStatus !== 'failed') {
-        toast.warning(t('knowledge.chunks.fileNotReady'))
-        return
-    }
+  // 已完成或处理失败的文件均可查看分块内容
+  if (props.selectedFile.processingStatus !== 'completed' && props.selectedFile.processingStatus !== 'failed') {
+    toast.warning(t('knowledge.chunks.fileNotReady'))
+    return
+  }
 
-    loading.value = true
+  loading.value = true
 
-    try {
-        // 获取分块数据，计算正确的 skip 值 (currentPage 从 1 开始，所以要减 1)
-        const skip = (currentPage.value - 1) * pageSize.value
-        const data = await apiService.getKBFileChunks(
-            store.activeKnowledgeBaseId,
-            props.selectedFile.id,
-            skip,
-            pageSize.value
-        )
+  try {
+    // 获取分块数据，计算正确的 skip 值 (currentPage 从 1 开始，所以要减 1)
+    const skip = (currentPage.value - 1) * pageSize.value
+    const data = await apiService.getKBFileChunks(
+      store.activeKnowledgeBaseId,
+      props.selectedFile.id,
+      skip,
+      pageSize.value,
+    )
 
-        chunks.value = data
+    chunks.value = data
 
-        // 使用文件记录中的totalChunks字段作为总分块数
-        totalChunks.value = props.selectedFile.totalChunks || 0
-    } catch (error: any) {
-        console.error('获取文件分块失败:', error)
-        toast.error(error.response?.data?.detail || t('knowledge.chunks.loadFailed'))
-        chunks.value = []
-        totalChunks.value = 0
-    } finally {
-        loading.value = false
-    }
-}
-
-/**
- * 处理分页变化
- */
-async function handlePageChange(page: number) {
-    currentPage.value = page
-    await loadChunks()
-}
-
-/**
- * 处理关闭事件
- */
-function handleClose() {
-    // 重置状态
+    // 使用文件记录中的 totalChunks 字段作为总分块数
+    totalChunks.value = props.selectedFile.totalChunks || 0
+  } catch (error: any) {
+    console.error('获取文件分块失败:', error)
+    toast.error(error.response?.data?.detail || t('knowledge.chunks.loadFailed'))
     chunks.value = []
     totalChunks.value = 0
-    currentPage.value = 1
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 处理分页变化。
+ *
+ * @param page 目标页码
+ */
+async function handlePageChange(page: number) {
+  currentPage.value = page
+  await loadChunks()
+}
+
+/** 处理关闭事件：重置状态 */
+function handleClose() {
+  chunks.value = []
+  totalChunks.value = 0
+  currentPage.value = 1
 }
 
 // 暴露方法供父组件调用
 defineExpose({
-    loadChunks
+  loadChunks,
 })
 </script>
-
-<style scoped>
-
-.chunk-item {
-    border: 1px solid var(--el-border-color);
-    /* 原值 8px → md 档 */
-    border-radius: var(--el-radius-md, 8px);
-    transition: all 0.2s ease;
-}
-
-.chunk-item:hover {
-    border-color: var(--el-color-primary);
-    /* 悬浮浮起反馈。原写法 0 2px 8px var(--el-box-shadow-light) 是把阴影值
-       套进了 box-shadow 里，整条声明无效、实际不生效，这里直接用令牌 */
-    box-shadow: var(--el-box-shadow-light);
-}
-
-.chunk-header {
-    border-bottom: 1px solid var(--el-border-color);
-    padding-bottom: 0.5rem;
-}
-
-.chunk-content {
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-    line-height: 1.6;
-    padding: 0.75rem;
-    background-color: var(--el-bg-color-overlay);
-    /* 原值 4px → xs 档 */
-    border-radius: var(--el-radius-xs, 4px);
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.chunk-index {
-    font-weight: bold;
-    color: var(--el-text-color-secondary);
-}
-
-.chunk-meta {
-    color: var(--el-text-color-placeholder);
-}
-
-.loading-container {
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-.no-chunks-container {
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-/* 动效降级：系统开启「减少动态效果」时，分块卡的边框与投影直接到位。
-   只关 .chunk-item 自己的 transition，不写 `*` / `.chunk-item *` 通配，
-   避免把 el-pagination / el-icon 内部 Element Plus 组件的合法过渡一起掐掉。
-   本文件只有 transition、没有自己的 animation，hover 描边本身是静态样式。 */
-@media (prefers-reduced-motion: reduce) {
-    .chunk-item {
-        transition: none;
-    }
-}
-</style>

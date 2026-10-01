@@ -7,13 +7,20 @@
  * 后端只允许读文本类文件（{@code readFile} 对非文本抛 INVALID_PARAM），
  * 所以这里不需要处理 PDF/DOCX 的二进制渲染。</p>
  *
- * <p>所有颜色走 Element Plus / koi 变量，暗色模式自动跟随，不写死浅色底。</p>
+ * <p><b>风格</b>：弹框外壳用应用标准 {@code LDialog}；标题行 / 路径 / 字数等「外壳」
+ * 全部走 Tailwind 工具类；颜色走 koi 令牌 {@code --rm-*}。</p>
+ *
+ * <p><b>为什么仍保留一段 :deep() 样式</b>：markdown 正文的排版（h1-p-ul-code-blockquote-table）
+ * 是<b>内容渲染</b>而非 UI 外壳，且全仓没有可复用的全局 markdown 样式类
+ * （模板里那个 {@code re-md} 类实际未定义，是历史残留）。因此这里保留并只把变量换成 koi。</p>
  */
 import { computed, ref, watch } from 'vue'
 import { marked } from 'marked'
 import type { KBFile } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReTag from '@/components/re/ReTag.vue'
+import ReButton from '@/components/re/ReButton.vue'
 
 /**
  * 原文预览的定位方式有两种，二选一即可：
@@ -107,67 +114,46 @@ async function load() {
   }
 }
 
+/** 关闭弹框并通知父组件 */
+function onClose() {
+  visible.value = false
+  emit('close')
+}
+
 // 打开且目标文件变化时重新拉取
 watch(visible, (v) => { if (v) load() })
 watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) load() })
 </script>
 
 <template>
-  <LDialog v-model="visible" :title="fileName" width="820px" append-to-body class="kb-preview-dialog">
-    <div v-loading="loading" class="kb-preview">
+  <LDialog v-model="visible" :title="fileName" width="820px" append-to-body @close="onClose">
+    <div v-loading="loading" class="max-h-[68vh] overflow-auto">
       <el-alert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
-      <div v-else class="kb-preview__head">
-        <el-tag effect="plain">{{ ext.toUpperCase() || 'TEXT' }}</el-tag>
-        <span class="kb-preview__path">{{ relPath }}</span>
-        <span class="kb-preview__size">{{ content.length }} 字符</span>
-      </div>
-      <!-- eslint-disable-next-line vue/no-v-html —— Markdown 由 marked 渲染，原文 HTML 已关闭 -->
-      <div class="kb-preview__body re-md" v-html="renderedHtml" />
+      <template v-else>
+        <div class="flex items-center gap-2 pb-2.5 mb-2.5 border-b border-[var(--rm-border-light)] text-xs text-[var(--rm-text-secondary)]">
+          <ReTag size="small" effect="plain">{{ ext.toUpperCase() || 'TEXT' }}</ReTag>
+          <span class="flex-1 min-w-0 truncate">{{ relPath }}</span>
+          <span class="shrink-0">{{ content.length }} 字符</span>
+        </div>
+        <!-- eslint-disable-next-line vue/no-v-html —— Markdown 由 marked 渲染，原文 HTML 已关闭 -->
+        <div class="kb-md text-sm leading-relaxed text-[var(--rm-text)]" v-html="renderedHtml" />
+      </template>
     </div>
     <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
-      <el-button type="primary" @click="load">刷新</el-button>
+      <ReButton @click="onClose">关闭</ReButton>
+      <ReButton type="primary" @click="load">刷新</ReButton>
     </template>
   </LDialog>
 </template>
 
 <style scoped>
-.kb-preview {
-  max-height: 68vh;
-  overflow: auto;
-}
-
-.kb-preview__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.kb-preview__path {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kb-preview__body {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--el-text-color-primary);
-}
-
-.kb-preview__body :deep(pre) {
+/* markdown 正文排版（内容渲染，非 UI 外壳）。变量统一走 koi --rm-*。 */
+.kb-md :deep(pre) {
   margin: 0;
   padding: 12px;
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
+  border-radius: var(--rm-radius, 8px);
+  background: var(--rm-bg-subtle);
+  color: var(--rm-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.65;
@@ -175,76 +161,76 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
   word-break: break-word;
 }
 
-.kb-preview__body :deep(h1),
-.kb-preview__body :deep(h2),
-.kb-preview__body :deep(h3) {
+.kb-md :deep(h1),
+.kb-md :deep(h2),
+.kb-md :deep(h3) {
   margin: 18px 0 8px;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.kb-preview__body :deep(h1) { font-size: 20px; }
-.kb-preview__body :deep(h2) { font-size: 17px; }
-.kb-preview__body :deep(h3) { font-size: 15px; }
+.kb-md :deep(h1) { font-size: 20px; }
+.kb-md :deep(h2) { font-size: 17px; }
+.kb-md :deep(h3) { font-size: 15px; }
 
-.kb-preview__body :deep(p) { margin: 8px 0; }
+.kb-md :deep(p) { margin: 8px 0; }
 
-.kb-preview__body :deep(ul),
-.kb-preview__body :deep(ol) {
+.kb-md :deep(ul),
+.kb-md :deep(ol) {
   margin: 8px 0;
   padding-left: 22px;
 }
 
-.kb-preview__body :deep(li) { margin: 3px 0; }
+.kb-md :deep(li) { margin: 3px 0; }
 
-.kb-preview__body :deep(code) {
+.kb-md :deep(code) {
   padding: 1px 5px;
-  border-radius: var(--el-radius-sm, 4px);
-  background: var(--el-fill-color);
+  border-radius: var(--rm-radius-sm, 4px);
+  background: var(--rm-bg-subtle);
   font-size: 0.92em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.kb-preview__body :deep(blockquote) {
+.kb-md :deep(blockquote) {
   margin: 10px 0;
   padding: 4px 14px;
-  border-left: 3px solid var(--el-color-primary-light-5);
-  color: var(--el-text-color-secondary);
-  background: var(--el-color-primary-light-9);
-  border-radius: 0 var(--el-radius-sm, 4px) var(--el-radius-sm, 4px) 0;
+  border-left: 3px solid var(--rm-primary);
+  color: var(--rm-text-secondary);
+  background: var(--rm-primary-light-9);
+  border-radius: 0 var(--rm-radius-sm, 4px) var(--rm-radius-sm, 4px) 0;
 }
 
-.kb-preview__body :deep(a) {
-  color: var(--el-color-primary);
+.kb-md :deep(a) {
+  color: var(--rm-primary);
   text-decoration: none;
 }
 
-.kb-preview__body :deep(a:hover) { text-decoration: underline; }
+.kb-md :deep(a:hover) { text-decoration: underline; }
 
-.kb-preview__body :deep(table) {
+.kb-md :deep(table) {
   width: 100%;
   margin: 10px 0;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.kb-preview__body :deep(th),
-.kb-preview__body :deep(td) {
+.kb-md :deep(th),
+.kb-md :deep(td) {
   padding: 7px 10px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--rm-border-light);
   text-align: left;
 }
 
-.kb-preview__body :deep(th) {
-  background: var(--el-fill-color-light);
+.kb-md :deep(th) {
+  background: var(--rm-bg-subtle);
   font-weight: 600;
 }
 
-.kb-preview__body :deep(hr) {
+.kb-md :deep(hr) {
   margin: 16px 0;
   border: 0;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--rm-border-light);
 }
 
-.kb-preview__body :deep(img) { max-width: 100%; }
+.kb-md :deep(img) { max-width: 100%; }
 </style>
