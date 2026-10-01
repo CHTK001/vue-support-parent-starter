@@ -59,6 +59,7 @@ const MONITOR_RE_COMPONENTS = [
   "ReProcessTask",
   "ReCommand",
   "ReIconSelect",
+  "ReRelationGraph",
 ];
 
 /**

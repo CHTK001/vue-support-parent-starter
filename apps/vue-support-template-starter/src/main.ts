@@ -79,7 +79,7 @@ const ALL_RE_COMPONENTS = [
   "ReGraphCircle",
   "ReGraphCenter",
   "ReGraphFixed",
-  "ReGraphRelation",
+  "ReRelationGraph",
   "ReTagFilter",
   "ReAvatar3D",
   "ReThree",

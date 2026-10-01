@@ -502,7 +502,7 @@ async function openConfigDialog(row: NacosConfig, mode: "view" | "edit") {
     ready();
   } catch (e) {
     contentHint.value = `配置内容读取失败：${String((e as Error)?.message ?? e)}`;
-    fail(e, `/ms/monitor/nacos/config/${row.dataId}`);
+    fail(e, `/ms/monitor/nacos/config?dataId=${row.dataId}`);
   }
 }
 
@@ -582,7 +582,7 @@ async function deleteConfig(row: NacosConfig) {
     ready();
     await Promise.all([loadConfigs(), loadNamespaces()]);
   } catch (e) {
-    fail(e, `/ms/monitor/nacos/config/${row.dataId}`);
+    fail(e, `/ms/monitor/nacos/config?dataId=${row.dataId}`);
   }
 }
 
@@ -801,7 +801,7 @@ async function exportConfig(row: NacosConfig) {
     content = detail?.content ?? "";
     ready();
   } catch (e) {
-    fail(e, `/ms/monitor/nacos/config/${row.dataId}`);
+    fail(e, `/ms/monitor/nacos/config?dataId=${row.dataId}`);
     return;
   }
   const extMap: Record<string, string> = { yaml: "yml", properties: "properties", json: "json", xml: "xml" };

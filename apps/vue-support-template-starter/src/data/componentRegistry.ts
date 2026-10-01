@@ -141,7 +141,7 @@ export const registry: ComponentMeta[] = [
   { name: "ReGraphFixed", title: "固定布局", description: "固定坐标关系图", category: "chart", icon: "Lock" },
   { name: "ReGraphForce", title: "力导布局", description: "力导向关系图", category: "chart", icon: "Connection" },
   { name: "ReGraphMind", title: "思维导图", description: "思维导图关系图", category: "chart", icon: "Share" },
-  { name: "ReGraphRelation", title: "拓扑图", description: "拓扑布局关系图", category: "chart", icon: "Connection" },
+  { name: "ReRelationGraph", title: "关系图谱", description: "G6 内核：多布局 / 分组高亮 / 小地图 / 动态增删", category: "chart", icon: "Connection" },
   { name: "ReGraphTree", title: "树形图", description: "树形布局关系图", category: "chart", icon: "Share" },
   { name: "ReGraph3D", title: "3D 关系图", description: "3D 力导向关系图（three.js + d3-force）", category: "chart", icon: "MagicStick" },
   { name: "ReColorize", title: "色彩化", description: "文本色彩化（关键词高亮）", category: "chart", icon: "Brush" },

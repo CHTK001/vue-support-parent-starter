@@ -195,6 +195,13 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "InfluxDB 管理", icon: "DataAnalysis", showLink: false, activeMenu: "/datasource" },
   },
   {
+    // 关系图组件能力验收台：不挂侧边栏，仅供验收脚本访问
+    path: "/re-relation-graph-lab",
+    name: "ReRelationGraphLab",
+    component: () => import("./views/ReRelationGraphLab.vue"),
+    meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
+  },
+  {
     path: "/neo4j",
     name: "Neo4j",
     component: () => import("./views/Neo4jManageView.vue"),
