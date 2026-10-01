@@ -14,8 +14,18 @@ import type { PluginOption } from 'vite'
 const APP_NAME = 'vue-support-ai-guada'
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..')
 const SHARED_PUBLIC_DIR = path.join(WORKSPACE_ROOT, 'public')
-// 后端地址：默认本机 8787；前端在本机、后端部署在远端时用 AI_API_TARGET 覆盖
-const AI_API_TARGET = process.env.AI_API_TARGET ?? 'http://localhost:8787'
+// 后端地址。
+//
+// 默认值必须是**远端**，不能是 localhost —— 本项目的约定是后端只部署在
+// 192.168.50.198、本机不跑后台（「不要再我本机运行后台」）。此前默认
+// `http://localhost:8787`，于是任何人在本机 `pnpm dev` 后打开页面，
+// 登录都会走 vite 代理打到 192.168.50.198 之外的 localhost:8787，
+// 得到 HTTP 500（代理无处可转），表现为「登录一直失败、停在 /login」，
+// 而真正原因（代理指向一个不存在的本机后端）完全看不出来。
+//
+// 需要指向别处时用 AI_API_TARGET 覆盖，例如本机临时起了后端：
+//   AI_API_TARGET=http://localhost:8787 pnpm dev
+const AI_API_TARGET = process.env.AI_API_TARGET ?? 'http://192.168.50.198:8787'
 
 /** 精确映射：框架 createApp 约定按这些 URL 拉取配置与 wasm 产物 */
 const EXACT_ASSETS: Record<string, string> = {
