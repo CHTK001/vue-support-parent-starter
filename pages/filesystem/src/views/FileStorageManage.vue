@@ -2335,7 +2335,31 @@ function onImageSaved(): void {
  * 由它按 `renderable` 决定显示画布还是信息卡。
  * 同样不进 iframe：那条通道读不到主应用的 koi 主题变量。
  */
-const previewIsCad = computed(() => kindOf(previewName.value) === "model");
+/**
+ * 该文件是否交给 CAD 面板（而不是 iframe）。
+ *
+ * <p>CAD 面板走的是 {@code ?format=cad} 数据通道，而后端该通道**只解析 DXF 与 DWG**；
+ * 其余「模型类」扩展名（glb/gltf/obj/stl/step/stp/iges/igs/brep/shp/dgn/blend/fbx）
+ * 后端没有 CAD 结构可返回。继续把它们留在 CAD 面板，会得到
+ * 「服务端未返回 CAD 图纸结构（?format=cad 未生效），请更新文件服务器后重试」——
+ * 这条提示把**客户端的路由选择**说成了**服务端版本问题**，会把人引向错误方向
+ * （实测 {@code fixture.stl} / {@code fixture.step} 都是这个表现）。
+ *
+ * <p>这些格式改走 iframe：后端的 3D 查看器（ThreeModelPreviewProvider）
+ * 或信息卡才是它们的正解。</p>
+ *
+ * @param name 文件名
+ * @returns true 表示该走 CAD 面板
+ */
+function isCadPanelFile(name: string): boolean {
+  if (kindOf(name) !== "model") {
+    return false;
+  }
+  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  return ext === "dxf" || ext === "dwg";
+}
+
+const previewIsCad = computed(() => isCadPanelFile(previewName.value));
 
 /**
  * 压缩包内正在预览的条目路径（空串表示只看包结构）。
@@ -2354,7 +2378,7 @@ const previewInnerPath = ref("");
  * 于是同一张图在顶层是二维 CAD 面板、在包内变成三维查看器。改为同样走
  * {@code ?format=cad&inner=} 数据通道 + {@link CadPreviewPanel}，两层表现一致。</p>
  */
-const innerIsCad = computed(() => kindOf(innerEntryName.value) === "model");
+const innerIsCad = computed(() => isCadPanelFile(innerEntryName.value));
 
 /** 包内条目文件名（取路径末段，供类型判定用） */
 const innerEntryName = computed(() => {
