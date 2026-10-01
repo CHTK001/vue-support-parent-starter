@@ -6,7 +6,13 @@ import { createVite } from "../../turbo/vite/createVite.ts";
  * 后端代理指向 spring-support-eduai-starter（默认 19095）。
  * 同机可能同时跑多套后端，验证时用 VUE_EDUAI_API_TARGET 改指向，不必改这里。
  */
-const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://localhost:19095";
+// 后端只跑在 Kali 上（eduai 的 19095 实例实测在远端监听），本机不起后端进程，
+    // 所以缺省指向远端而不是 localhost。
+    // 注意：缺省目标指向没人监听的本机端口时，dev 代理返回的是合法 JSON 但 data 为空，
+    // 不会报连接错误，排查方向容易被带偏。
+    // 需要指向其他实例时用环境变量覆盖：
+    //   VUE_EDUAI_API_TARGET=http://localhost:19095 pnpm dev
+    const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://192.168.50.198:19095";
 
 /**
  * three 单例化。
