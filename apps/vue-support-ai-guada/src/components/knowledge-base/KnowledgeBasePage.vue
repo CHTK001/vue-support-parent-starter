@@ -11,7 +11,7 @@
           </el-icon>
           <h2 class="rag-gate__title">{{ t('knowledge.ragGate.title') }}</h2>
           <p class="rag-gate__desc">
-            {{ ragStatus?.message || t('knowledge.ragGate.desc') }}
+            {{ ragStatus?.embeddingIssue || ragStatus?.message || t('knowledge.ragGate.desc') }}
           </p>
           <el-button type="primary" round @click="goToConfig(ragStatus?.configPath)">
             {{ t('knowledge.ragGate.goConfig') }}
@@ -27,6 +27,7 @@
 
     <!-- 知识库总览（按设计稿 HTML 还原；左侧导航与顶栏由系统 layout 提供，不重复实现） -->
     <KnowledgeOverview
+      ref="overviewRef"
       v-else-if="viewMode === 'list'"
       :kb-count="overview.totals?.kb_count ?? 0"
       :file-count="overview.totals?.file_count ?? 0"
@@ -740,7 +741,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed, watch, defineAsyncComponent } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus, Search, FolderOpened, Document, Share, Connection,
@@ -1007,10 +1008,20 @@ function handleOverviewDelete(kb: { id: string }) {
  * @param p 总览弹窗交回的字段（只含后端真实支持的项）
  */
 function handleOverviewCreate(p: { name: string; description: string; isPublic: boolean }) {
-  handleOpenCreate()
+  // 一次弹框一次落库：把总览页 ReDialog 交回的字段直接写进 dialogForm 并调用同一条保存路径，
+  // 不再 handleOpenCreate() 打开旧的 .kb-dialog（那样会变成「两次弹框、要点两次创建」）。
+  dialogForm.id = ''
   dialogForm.name = p.name
   dialogForm.description = p.description
   dialogForm.isPublic = p.isPublic
+  dialogForm.chunkMaxSize = 1000
+  dialogForm.chunkOverlapSize = 100
+  dialogForm.chunkMinSize = 50
+  dialogForm.sourceUrl = ''
+  dialogForm.sourceMode = 'snapshot'
+  dialogForm.sourceMaxPages = 1
+  dialogMode.value = 'create'
+  void handleKbSave()
 }
 
 /**
@@ -1024,6 +1035,9 @@ function handleOverviewSearch(kw: string) {
 
 /** 是否展示「从模板创建」页（覆盖列表视图） */
 const showTplGallery = ref(false)
+
+/** 总览页实例：用于把「使用此模板创建」切到它的 koi ReDialog */
+const overviewRef = ref<any>(null)
 
 /**
  * 主页面（列表视图）的两种数据形态，二者都由同一套模板渲染，不是两个页面：
@@ -1053,8 +1067,17 @@ function handleTemplateCreate(name: string) {
   // 注意：handleOpenCreate() 无参，且模板里多处写作 @click="handleOpenCreate"
   // （Vue 会把事件对象当第一个实参），所以这里不能给它加形参，
   // 只能在它把表单重置完之后再写名字，否则 dialogForm.name 会被 MouseEvent 覆盖。
-  handleOpenCreate()
-  dialogForm.name = name
+  // 统一走总览页的 koi ReDialog（不再弹父页面旧的 .kb-dialog）；
+  // 总览页与模板页是 v-else-if 互斥的，必须等它挂载后再调用。
+  nextTick(() => {
+    const ov = overviewRef.value as { openCreate?: (n?: string) => void } | null
+    if (ov && typeof ov.openCreate === 'function') {
+      ov.openCreate(name)
+    } else {
+      handleOpenCreate()
+      dialogForm.name = name
+    }
+  })
 }
 
 /**
@@ -1461,7 +1484,13 @@ const ragStatus = ref<any>(null)
  *
  * <p>状态接口未返回时按「未就绪」处理：先提示、后放行，避免用未验证的半成品数据。</p>
  */
-const ragReady = computed(() => ragStatus.value?.available === true)
+// 门禁：不仅要求 RAG 客户端可用，还要求 embedding 配置完整。
+// 后端 /v2/rag/status 的 available 只校验 ChatClient + 向量存储，embedding 静默回落成
+// 内存占位（维度全 0、检索不可用）时 available 仍为 true —— 那样会放用户进到一个
+// 「能建库、能传文档、但检索永远没结果」的空壳里。embeddingReady 由后端 embeddingIssue() 判定。
+const ragReady = computed(() =>
+  ragStatus.value?.available === true && ragStatus.value?.embeddingReady !== false,
+)
 
 // 获取 RAG 状态
 const fetchRagStatus = async () => {
@@ -1658,10 +1687,9 @@ async function handleKbSave() {
     return
   }
 
-  if (dialogMode.value === 'create' && !dialogForm.embeddingModelId) {
-    toast.warning(t('knowledge.page.selectModelWarning'))
-    return
-  }
+  // 不再强制要求 embeddingModelId：嵌入模型现在是「设置中心 → 默认模型」的全局配置，
+  // 后端 sys_ai_knowledge_base 也没有该列（toKnowledgeBase 始终回填空串）。
+  // 保留这个校验只会让「主页面空白创建」这条路永远建不了库。
 
   try {
     if (dialogMode.value === 'create') {

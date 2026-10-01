@@ -1,4 +1,4 @@
-﻿<!-- KnowledgeBasePage/TreeNode.vue -->
+<!-- KnowledgeBasePage/TreeNode.vue -->
 <template>
     <div class="tree-node">
         <!-- 节点内容 -->
