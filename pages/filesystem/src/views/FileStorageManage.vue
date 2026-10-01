@@ -73,6 +73,7 @@ import type { BucketConfig, CapabilitiesResponse, StorageObject, TreeItem } from
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
+import PreviewPdfPanel from "../components/PreviewPdfPanel.vue";
 import ArchivePreviewPanel from "../components/ArchivePreviewPanel.vue";
 import CadPreviewPanel from "../components/CadPreviewPanel.vue";
 import { isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
@@ -2312,6 +2313,15 @@ const previewIsArchive = computed(() => kindOf(previewName.value) === "archive")
  */
 const showImagePanel = computed(() => kindOf(previewName.value) === "image");
 
+/**
+ * 当前文件是否走 PDF 面板（{@link PreviewPdfPanel}）
+ *
+ * <p>PDF 不走 VueOfficePdf：后者把全部页按原始尺寸纵向堆叠且不限高，
+ * 实测 679KB 的 PDF 被渲染成 209,362 px、弹框被撑到 20 万像素。
+ * 本面板用内置 pdf.js 自己渲染，左分页缩略图 + 右当前页，滚动限制在舞台内。</p>
+ */
+const showPdfPanel = computed(() => kindOf(previewName.value) === "pdf");
+
 /** 图片面板保存成功后刷新当前目录，让列表里的缩略图与大小同步更新 */
 function onImageSaved(): void {
   void loadObjects();
@@ -3637,6 +3647,7 @@ onUnmounted(() => {
       v-model="previewVisible"
       class="fs-preview-dlg"
       width="min(1200px, 92vw)"
+      top="10px"
       :title="previewTitle"
       :show-close="true"
       :draggable="true"
@@ -3687,11 +3698,18 @@ onUnmounted(() => {
             :file-name="previewName"
             @saved="onImageSaved"
           />
+          <PreviewPdfPanel
+            v-else-if="!previewError && showPdfPanel"
+            :bucket="bucket"
+            :object-key="previewKey"
+            :file-name="previewName"
+          />
           <PreviewOfficePanel
             v-else-if="!previewError && previewUsesClient && !previewForceServer"
             ref="officePanelRef"
             v-model:loading="officeLoading"
             :src="previewFrameSrc"
+            :raw-src="previewSrc"
             :file-name="previewName"
             @rendered="onOfficeRendered"
             @error="onOfficeError"
@@ -4814,6 +4832,9 @@ button.fs-stat:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* 吃满 body：否则内部面板的 height:100% / flex:1 没有可参照的高度，
+     内容会按自身高度撑开，滚动条落在半空 */
+  flex: 1;
 }
 
 .fs-preview {
@@ -4823,6 +4844,9 @@ button.fs-stat:hover {
   align-items: center;
   justify-content: center;
   gap: 10px;
+  /* 同上：把 body 的高度继续传递下去 */
+  flex: 1;
+  min-height: 0;
 }
 
 /* 压缩包 / CAD 面板撑满可用宽度：.fs-preview 是 align-items:center 的列 flex，
@@ -5681,6 +5705,25 @@ button.fs-stat:hover {
   border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
   padding: 0;
+  /*
+    高度钉成「视口 - 上下各 10px」，让内容真正吃满屏幕：
+    此前弹框高度由内容决定，而 iframe 面板固定 65vh、PDF 面板更是能撑到
+    20 万像素（VueOfficePdf 按原始尺寸堆叠全部页面），表现为
+    「弹框只占屏幕一部分、滚动条出现在半空」。
+    改成确定高度后，滚动交给各面板内部（flex:1 + min-height:0）。
+  */
+  height: calc(100vh - 20px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* body 必须能伸缩，否则子面板的 flex:1 拿不到有界高度 */
+.fs-preview-dlg .el-dialog__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 14px;
 }
 
 /* 拖拽手柄：光标由 header 承载，并让标题过长时省略而不是把关闭按钮挤走 */
@@ -5709,6 +5752,7 @@ button.fs-stat:hover {
 }
 
 .fs-preview-dlg .el-dialog__body {
+  /* 见上方同名规则：这里只保留 padding，伸缩相关已在上方声明 */
   padding: 12px 14px 14px;
 }
 

@@ -10,18 +10,21 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "vue": "catalog:",
-    "element-plus": "catalog:",
+    "@ant-design/x-markdown": "2.9.0",
     "@element-plus/icons-vue": "catalog:",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/pinia": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@vue-office/docx": "catalog:",
     "@vue-office/excel": "catalog:",
     "@vue-office/pdf": "catalog:",
     "@vue-office/pptx": "catalog:",
-    "vue-demi": "catalog:",
-    "@repo/core": "workspace:*",
-    "@repo/ui": "workspace:*",
-    "@repo/utils": "workspace:*",
-    "@repo/config": "workspace:*",
-    "@repo/pinia": "workspace:*"
+    "element-plus": "catalog:",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "vue": "catalog:",
+    "vue-demi": "catalog:"
   }
 }

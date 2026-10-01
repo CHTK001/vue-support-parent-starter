@@ -81,6 +81,35 @@ const ZIP_MAGIC: readonly number[] = [0x50, 0x4b, 0x03, 0x04];
  * 否则 JSZip 会抛出 `Can't find end of central directory` 这类原始英文异常直达界面。
  * 不含 pdf：PDF 不是 ZIP 容器，由 {@link EXTENSION_TO_RENDERER} 单独放行。</p>
  */
+/**
+ * 文档防泄密软件（实测 360 防泄密）透明加密后的密文文件头
+ *
+ * <p><b>判据来源</b>：3 个 .dwg 与 1 个 .doc 的**前 18 字节完全相同**，
+ * 且熵 7.99 bit/byte（8.0 = 完全随机）、不含 AC10xx / AcDb / PK / OLE2
+ * 任何特征串。不同类型文件共用同一文件头，只能是同一个加密容器，
+ * 不是各自「坏掉」——随机损坏不可能产生这个。</p>
+ *
+ * <p>这类文件只有装了客户端并获授权的终端才能解密；服务端与浏览器读到的是密文，
+ * 任何解析器都打不开，**重新上传也没用**。</p>
+ */
+export const CIPHER_MAGIC: readonly number[] = [
+  0x40, 0x21, 0x28, 0x15, 0x2a, 0x2d, 0x1b, 0x20, 0x23, 0x30,
+  0x1e, 0x19, 0x2f, 0x22, 0x16, 0x40, 0x01, 0x00,
+];
+
+/**
+ * 判断字节是否带防泄密软件的密文头
+ *
+ * @param bytes 文件字节
+ * @returns 是密文返回 true
+ */
+export function isEncryptedDoc(bytes?: Uint8Array): boolean {
+  if (!bytes || bytes.length < CIPHER_MAGIC.length) {
+    return false;
+  }
+  return CIPHER_MAGIC.every((b, i) => bytes[i] === b);
+}
+
 const OOXML_EXTS: ReadonlySet<string> = new Set(["docx", "xlsx", "pptx"]);
 
 /** 嗅探 OOXML 内部部件路径的最大扫描字节数 */
@@ -170,6 +199,11 @@ export function officeRendererOfSniffed(fileName: string, bytes?: Uint8Array): O
     // 无内容可嗅探：传统二进制扩展名交服务端处理
     return "";
   }
+  if (isEncryptedDoc(bytes)) {
+    // 防泄密软件加密的密文：客户端组件解析不了，服务端同样解析不了
+    // （读到的是密文），直接拒绝，由上层给出「已加密」的可执行提示。
+    return "";
+  }
   if (startsWith(bytes, OLE2_MAGIC)) {
     // 确实是传统二进制格式（真 .doc / .xls / .ppt），交服务端
     return "";
@@ -198,6 +232,12 @@ export function officeRendererOfSniffed(fileName: string, bytes?: Uint8Array): O
  * @returns 内容与扩展名不符时返回 {@code true}
  */
 export function isCorruptOfficeFile(fileName: string, bytes?: Uint8Array): boolean {
+  // 密文头优先：防泄密软件加密过的文件不管扩展名是什么，都不是可解析的容器。
+  // 放在扩展名判断之前——老格式（.doc/.xls）原本直接返回 false，
+  // 会被误判成「客户端不支持」而送去服务端渲染，得到一个空页。
+  if (isEncryptedDoc(bytes)) {
+    return true;
+  }
   const ext = extensionOf(fileName);
   if (!OOXML_EXTS.has(ext) || !bytes || bytes.length < 4) {
     return false;
