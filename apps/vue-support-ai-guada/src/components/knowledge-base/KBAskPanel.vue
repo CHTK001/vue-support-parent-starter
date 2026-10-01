@@ -11,11 +11,19 @@
  *
  * <p>颜色一律走 Element Plus / koi 变量，暗色自动跟随。</p>
  */
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Promotion, Search, Position, ChatLineSquare, Loading } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
 import KBFilePreview from './KBFilePreview.vue'
+
+// 关系图用 G6 内核的 ReRelationGraph（@repo/ui 提供）。
+// 必须显式引入：本应用没有全局注册它（vite 的 Components() 只扫本应用 src/components，
+// 该组件在 packages/ui 下），漏了会让 <ReRelationGraph> 解析失败、迷你图谱整块空白，
+// 且只有控制台一条 "Failed to resolve component" 警告。
+const ReRelationGraph = defineAsyncComponent(() =>
+  import('@repo/ui/re-relation-graph').then((m) => m.default),
+)
 
 const props = defineProps<{
   /** 知识库ID */
@@ -199,7 +207,7 @@ watch(() => props.kbId, () => clearTurns())
                 </el-tag>
               </div>
               <div class="kb-ask__mini-canvas">
-                <ReGraphRelation
+                <ReRelationGraph
                   :nodes="miniGraph.nodes"
                   :edges="miniGraph.edges"
                   height="180px"

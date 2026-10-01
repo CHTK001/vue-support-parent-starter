@@ -1684,11 +1684,14 @@ export const fetchNacosConfigs = (params: { datasourceId?: number; namespace?: s
 
 /**
  * 获取 Nacos 配置详情
+ *
+ * <p>dataId 走**查询参数**：放在路径里时含 `/` 的 dataId 会被 Tomcat 拒绝编码斜杠（400）。</p>
+ *
  * @param dataId 配置 dataId
  * @param params 数据源/命名空间/分组
  */
 export const fetchNacosConfigDetail = (dataId: string, params: { datasourceId?: number; namespace?: string; group?: string }) =>
-  http().get(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`).query(params).then(r => unwrap<NacosConfigDetail>(r));
+  http().get("/ms/monitor/nacos/config").query({ ...params, dataId }).then(r => unwrap<NacosConfigDetail>(r));
 
 /**
  * 保存 Nacos 配置
@@ -1699,11 +1702,14 @@ export const saveNacosConfig = (config: Partial<NacosConfigDetail> & { datasourc
 
 /**
  * 删除 Nacos 配置
+ *
+ * <p>dataId 走**查询参数**（同详情接口，避免含 `/` 的 dataId 被拒）。</p>
+ *
  * @param dataId 配置 dataId
  * @param params 数据源/命名空间/分组
  */
 export const deleteNacosConfig = (dataId: string, params: { datasourceId?: number; namespace?: string; group?: string }) =>
-  http().delete(`/ms/monitor/nacos/config/${encodeURIComponent(dataId)}`).query(params).then(r => unwrap<boolean>(r));
+  http().delete("/ms/monitor/nacos/config").query({ ...params, dataId }).then(r => unwrap<boolean>(r));
 
 /**
  * 获取 Nacos 服务列表

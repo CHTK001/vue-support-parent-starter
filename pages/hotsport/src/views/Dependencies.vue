@@ -14,7 +14,7 @@
         </div>
       </template>
       <div v-if="viewMode === 'graph'" class="deps-graph-wrapper">
-        <ReGraphRelation :nodes="graphNodes" :lines="graphLines" height="500px" />
+        <ReRelationGraph :nodes="graphNodes" :lines="graphLines" height="500px" />
       </div>
       <el-table v-else :data="edges" border stripe style="width:100%">
         <el-table-column prop="source" :label="t('hotsport.dependencies.source')" min-width="140" />
@@ -44,10 +44,10 @@ import { ElMessage } from 'element-plus';
 import { formatDuration } from '@repo/ui/re-time';
 import { costMs } from '@repo/utils';
 
-// ReGraphRelation 的 default 是已包装好的异步组件，直接交给 defineAsyncComponent 即可；
+// ReRelationGraph 的 default 是已包装好的异步组件，直接交给 defineAsyncComponent 即可；
 // 写成 `m.default()` 会抛 "m.default is not a function"，图区会整块空白
-const ReGraphRelation = defineAsyncComponent(() =>
-  import('@repo/ui/re-graph-relation').then((m) => m.default),
+const ReRelationGraph = defineAsyncComponent(() =>
+  import('@repo/ui/re-relation-graph').then((m) => m.default),
 );
 
 const { t } = useI18n();

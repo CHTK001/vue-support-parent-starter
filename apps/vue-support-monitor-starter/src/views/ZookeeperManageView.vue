@@ -210,24 +210,51 @@
       </template>
     </ReDialog>
 
-    <ReDialog v-model="clusterVisible" title="ZooKeeper 集群信息（mntr）" width="960px">
-      <ReTable :data="clusterList" :columns="clusterColumns" :loading="clusterLoading" :pagination="false" stripe border >
-        <!-- 注意：data 为空 + loading 时 ReTable 仍会调用列插槽，此时 row 为 undefined，
-             必须用可选链；此处曾因 row.zkServerState 直取导致整个弹窗渲染抛错、弹不出来 -->
-        <template #col-state="{ row }">
-          <ReTag :type="row?.zkServerState === 'leader' ? 'warning' : 'info'" >
-            {{ row?.zkServerState || "—" }}
-          </ReTag>
-        </template>
-        <template #col-error="{ row }">
-          <span v-if="row?.error" class="mono" style="color: #ef4444; font-size: 12px">
-            {{ row.error }}
-          </span>
-          <span v-else>—</span>
-        </template>
-      </ReTable>
+    <ReDialog v-model="clusterVisible" title="ZooKeeper 集群拓扑（mntr）" width="960px">
+      <div v-loading="clusterLoading" class="zk-cluster">
+        <ReRelationGraph
+          :nodes="clusterGraph.nodes"
+          :edges="clusterGraph.edges"
+          layout="radial"
+          height="360px"
+          highlight="group"
+          :minimap="clusterGraph.nodes.length > 2"
+          :node-size="38"
+          empty-text="未取到集群节点（检查 4lw.commands.whitelist 是否放开 mntr）"
+          @node-click="onClusterNodeClick"
+          @node-hover="onClusterNodeHover"
+        >
+          <template #hover="{ node }">
+            <div class="zk-cluster__tip-title">{{ node.label }}</div>
+            <div class="zk-cluster__tip-row">角色：{{ node.data?.role || "—" }}</div>
+            <div class="zk-cluster__tip-row">版本：{{ node.data?.zkVersion || "—" }}</div>
+            <div class="zk-cluster__tip-row">
+              延迟：{{ node.data?.zkAvgLatency ?? "—" }} / {{ node.data?.zkMaxLatency ?? "—" }} ms
+            </div>
+          </template>
+        </ReRelationGraph>
+
+        <!-- 鼠标经过或点击节点 -> 该节点的 mntr 详情 -->
+        <div class="zk-cluster__detail">
+          <template v-if="clusterActive">
+            <div class="zk-cluster__detail-head">
+              <span>mntr 详情 · {{ clusterActive.host }}</span>
+              <ReTag :type="clusterActive.zkServerState === 'leader' ? 'warning' : 'info'">
+                {{ clusterActive.zkServerState || "—" }}
+              </ReTag>
+            </div>
+            <div class="zk-cluster__grid">
+              <div v-for="row in clusterDetailRows" :key="row.label" class="zk-cluster__cell">
+                <span class="zk-cluster__label">{{ row.label }}</span>
+                <span class="zk-cluster__value mono">{{ row.value }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="zk-cluster__hint">鼠标经过或点击上方节点，查看该节点的 mntr 详情</div>
+        </div>
+      </div>
       <div class="dsm-form-hint" style="margin-top: 8px">
-        四字命令 mntr 需在服务端 4lw.commands.whitelist 中放开；多节点时 leader 行高亮显示。
+        四字命令 mntr 需在服务端 4lw.commands.whitelist 中放开；leader → follower 的同步边为动态虚线。
       </div>
     </ReDialog>
   </div>
@@ -323,19 +350,112 @@ const clusterVisible = ref(false);
 const clusterLoading = ref(false);
 const clusterList = ref<ZkClusterNode[]>([]);
 
-/** 集群节点表格列 */
-const clusterColumns = [
-  { prop: "host", label: "节点", minWidth: 150, slot: null },
-  { prop: "zkVersion", label: "版本", minWidth: 130 },
-  { prop: "zkServerState", label: "角色", width: 100, slot: "state" },
-  { prop: "zkAvgLatency", label: "平均延迟(ms)", width: 120 },
-  { prop: "zkMaxLatency", label: "最大延迟", width: 100 },
-  { prop: "zkNumAliveConnections", label: "连接数", width: 90 },
-  { prop: "zkOutstandingRequests", label: "堆积请求", width: 90 },
-  { prop: "zkZnodeCount", label: "Znode 数", width: 90 },
-  { prop: "zkWatchCount", label: "Watch 数", width: 90 },
-  { prop: "error", label: "状态", minWidth: 120, slot: "error" },
-];
+/**
+ * 鼠标经过 / 点击某个集群节点时展示的 mntr 详情。
+ *
+ * <p>经过是「临时看」，点击是「钉住看」——两者共用同一份字段渲染，
+ * 避免两套展示口径不一致。</p>
+ */
+const clusterActive = ref<ZkClusterNode | null>(null);
+
+/** mntr 详情行：label 与取值 key 一一对应（无值的行不渲染） */
+const clusterDetailRows = computed(() => {
+  const r = clusterActive.value;
+  if (!r) {
+    return [] as Array<{ label: string; value: string }>;
+  }
+  const rows: Array<{ label: string; value: string }> = [
+    { label: "节点", value: r.host || "—" },
+    { label: "角色", value: r.zkServerState || "—" },
+    { label: "版本", value: r.zkVersion || "—" },
+    { label: "平均延迟", value: r.zkAvgLatency != null ? `${r.zkAvgLatency} ms` : "—" },
+    { label: "最大延迟", value: r.zkMaxLatency != null ? `${r.zkMaxLatency} ms` : "—" },
+    { label: "连接数", value: r.zkNumAliveConnections != null ? String(r.zkNumAliveConnections) : "—" },
+    { label: "堆积请求", value: r.zkOutstandingRequests != null ? String(r.zkOutstandingRequests) : "—" },
+    { label: "Znode 数", value: r.zkZnodeCount != null ? String(r.zkZnodeCount) : "—" },
+    { label: "Watch 数", value: r.zkWatchCount != null ? String(r.zkWatchCount) : "—" },
+    { label: "数据量", value: r.zkApproximateDataSize != null ? `${r.zkApproximateDataSize} B` : "—" },
+    { label: "打开句柄", value: r.zkOpenFileDescriptorCount != null ? String(r.zkOpenFileDescriptorCount) : "—" },
+    { label: "收发包", value: r.zkPacketsReceived != null ? `${r.zkPacketsReceived} / ${r.zkPacketsSent}` : "—" },
+  ];
+  if (r.error) {
+    rows.push({ label: "错误", value: r.error });
+  }
+  return rows;
+});
+
+/**
+ * 集群拓扑 -> ReRelationGraph 数据。
+ *
+ * <p>中心是当前数据源，成员按角色着色并作为分组；有 leader 时额外画
+ * leader→follower 的同步边（动态虚线），让「谁同步给谁」一眼可见。</p>
+ */
+const clusterGraph = computed(() => {
+  const rows = clusterList.value || [];
+  const centerId = "__cluster__";
+  const centerLabel = (source.value?.name as string) || "ZooKeeper 集群";
+  const nodes: any[] = [
+    {
+      id: centerId,
+      label: centerLabel,
+      size: 56,
+      group: "cluster",
+      style: { fill: "#6d5dfc", stroke: "#8f83fd" },
+      data: { kind: "cluster", count: rows.length, host: source.value?.host },
+    },
+  ];
+  const edges: any[] = [];
+  rows.forEach((r, i) => {
+    const id = r.host || `node-${i}`;
+    const role = r.zkServerState || "unknown";
+    const fill = role === "leader" ? "#f59e0b" : role === "follower" ? "#2992ff" : "#10b981";
+    nodes.push({
+      id,
+      label: r.host || id,
+      size: role === "leader" ? 46 : 38,
+      group: role,
+      style: { fill, stroke: fill },
+      data: { ...r, kind: "server", role },
+    });
+    edges.push({
+      id: `${centerId}->${id}`,
+      source: centerId,
+      target: id,
+      label: role,
+      directed: false,
+      data: { kind: "member" },
+    });
+  });
+  const leader = rows.find(r => r.zkServerState === "leader");
+  if (leader?.host) {
+    rows
+      .filter(r => r.host && r.host !== leader.host)
+      .forEach(r => {
+        edges.push({
+          id: `${leader.host}->${r.host}`,
+          source: leader.host as string,
+          target: r.host as string,
+          label: "sync",
+          directed: true,
+          animated: true,
+          data: { kind: "replication" },
+        });
+      });
+  }
+  return { nodes, edges };
+});
+
+/** 点击节点：把 mntr 原始行钉到详情面板 */
+const onClusterNodeClick = (node: { data?: ZkClusterNode & { kind?: string } }) => {
+  clusterActive.value = node?.data?.kind === "server" ? (node.data as ZkClusterNode) : null;
+};
+
+/** 鼠标经过节点：临时显示详情（离开时若没点选则清空） */
+const onClusterNodeHover = (node: { data?: ZkClusterNode & { kind?: string } } | null) => {
+  if (node?.data?.kind === "server") {
+    clusterActive.value = node.data as ZkClusterNode;
+  }
+};
 
 /** ACL 表格列 */
 const aclColumns = [
@@ -875,4 +995,34 @@ onMounted(async () => {
 .dsm-form-hint { font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
 .dsm-node-data { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
 .dsm-node-data:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
+
+/* ---- 集群拓扑（ReRelationGraph）---- */
+.zk-cluster { display: flex; flex-direction: column; gap: 10px; }
+.zk-cluster__tip-title { font-weight: 600; margin-bottom: 4px; }
+.zk-cluster__tip-row { color: var(--el-text-color-regular, #606266); line-height: 1.6; }
+.zk-cluster__detail {
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-elevated, #fff);
+  min-height: 96px;
+}
+.zk-cluster__detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.zk-cluster__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 16px;
+}
+.zk-cluster__cell { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12px; }
+.zk-cluster__label { color: var(--text-tertiary); flex: 0 0 auto; }
+.zk-cluster__value { color: var(--text-primary); text-align: right; word-break: break-all; }
+.zk-cluster__hint { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; min-height: 72px; }
 </style>

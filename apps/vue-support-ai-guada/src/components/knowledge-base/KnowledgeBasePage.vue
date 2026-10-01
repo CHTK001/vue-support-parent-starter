@@ -455,7 +455,7 @@
             </div>
             <div class="flex-1 min-h-0 flex gap-2 m-2">
               <div v-loading="graphLoading" class="flex-1 min-h-0 rounded-lg kb-graph__canvas kb-graph__stage">
-                <ReGraphRelation v-if="graphNodes.length > 0" :nodes="graphNodes" :edges="graphEdges" height="100%"
+                <ReRelationGraph v-if="graphNodes.length > 0" :nodes="graphNodes" :edges="graphEdges" height="100%"
                   @node-click="handleGraphNodeClick" />
 
                 <!-- 图例：按当前图谱里实际出现的实体类型生成，不写死 -->
@@ -762,9 +762,9 @@ import coverIdiom from '@/assets/kb/tpl-idiom.png'
 import coverQuestion from '@/assets/kb/tpl-question.png'
 import KBAskPanel from './KBAskPanel.vue'
 import KBFilePreview from './KBFilePreview.vue'
-// 关系图谱使用 X6 内核的 ReGraphRelation（@repo/ui 已提供），异步加载避免拖慢知识库首屏
-const ReGraphRelation = defineAsyncComponent(() =>
-  import('@repo/ui/re-graph-relation').then((m) => m.default),
+// 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供），异步加载避免拖慢知识库首屏
+const ReRelationGraph = defineAsyncComponent(() =>
+  import('@repo/ui/re-relation-graph').then((m) => m.default),
 )
 import { useStorage, useDebounceFn } from '@vueuse/core'
 import { usePopup } from '@/composables/usePopup'
