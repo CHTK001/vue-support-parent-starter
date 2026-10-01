@@ -120,6 +120,24 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
+  // ==================== 服务管理 ====================
+  // 与「资产管理」「发布管理」平级的独立分组，rank 取 15 落在 10 与 20 之间。
+  // 子菜单指向 @pages/server 的 ScServiceManage（协议服务器节点：Server 接口 + ServerFilter 编排），
+  // 该页面此前已存在但未挂任何路由，侧边栏无从进入。
+  {
+    path: "/grp-service",
+    name: "GroupService",
+    meta: { title: "服务管理", icon: "Operation", showLink: true, rank: 15 },
+    children: [
+      {
+        path: "/services",
+        name: "Services",
+        component: () => import("@pages/server/src/views/ScServiceManage.vue"),
+        meta: { title: "服务管理", icon: "Connection", showLink: true, rank: 15 },
+      },
+    ],
+  },
+
   // ==================== 发布管理 ====================
   {
     path: "/grp-release",
