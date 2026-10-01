@@ -16,7 +16,13 @@
  * @since 2026/09/26
  */
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
-import { isCorruptOfficeFile, officeRendererOfSniffed, RENDER_SERVER, type OfficeRenderer } from "../utils/officeRenderer";
+import {
+  isCorruptOfficeFile,
+  isEncryptedDoc,
+  officeRendererOfSniffed,
+  RENDER_SERVER,
+  type OfficeRenderer,
+} from "../utils/officeRenderer";
 
 /**
  * Vue3 Office 组件按需异步加载
@@ -41,6 +47,14 @@ const loading = defineModel<boolean>("loading", { default: false });
 const props = defineProps<{
   /** 文件字节地址（后端预览通道 ?preview=true） */
   src: string;
+  /**
+   * 原始字节地址（不带 preview/render 参数）
+   *
+   * <p>用于后端把文件判成 {@code spi}（服务端渲染）时**再嗅探一次真实字节**：
+   * 密文文件后端也解析不了，会回一个服务端渲染页，若直接采信就会得到空页，
+   * 而不是「已加密」的可执行提示。</p>
+   */
+  rawSrc?: string;
   /** 文件名（用于选择渲染器） */
   fileName: string;
 }>();
@@ -100,6 +114,30 @@ const officeSrc = computed<ArrayBuffer | string | undefined>(() =>
  * （如真正的 OLE2 传统 .doc），响应体是 HTML 预览页，此时不能作为
  * {@code ArrayBuffer} 交给 Office 组件解析，需交回父组件走服务端渲染。</p>
  */
+/**
+ * 取原始字节用于嗅探（不带 preview/render 参数）
+ *
+ * <p>拿不到时返回 undefined：嗅探失败不应阻断原有的兜底流程。</p>
+ *
+ * @returns 原始字节；失败返回 undefined
+ */
+async function sniffRawBytes(): Promise<Uint8Array | undefined> {
+  if (!props.rawSrc) {
+    return undefined;
+  }
+  try {
+    const r = await fetch(props.rawSrc);
+    if (!r.ok) {
+      return undefined;
+    }
+    // 只取前 64 字节即可判定密文头，避免为一个大文件白白拉全量
+    const buf = await r.arrayBuffer();
+    return new Uint8Array(buf.slice(0, 64));
+  } catch {
+    return undefined;
+  }
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   failReason.value = "";
@@ -115,7 +153,17 @@ async function load(): Promise<void> {
     }
     const channel = res.headers.get("X-FileStorage-Preview");
     if (channel && channel !== "client") {
-      // 服务端已按自己的链路渲染出 HTML 预览页，无法作为文档字节解析
+      // 服务端已按自己的链路渲染出 HTML 预览页，无法作为文档字节解析。
+      // 但**先嗅探一次原始字节**：密文（防泄密软件透明加密）后端同样解析不了，
+      // 也会回 spi，若直接采信就会得到一张空页，而不是「已加密」的可执行提示。
+      const raw = await sniffRawBytes();
+      if (isEncryptedDoc(raw)) {
+        failReason.value = `该文件已被文档防泄密软件透明加密（${props.fileName}）：`
+          + "磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密。"
+          + "服务端与浏览器读到的都是密文，重新上传也没用，请提供未加密的副本";
+        emit("error", { noFallback: true, reason: failReason.value });
+        return;
+      }
       failReason.value = "该文件需由服务端渲染";
       emit("error");
       return;
@@ -126,12 +174,15 @@ async function load(): Promise<void> {
       // 客户端组件吃不下这个文件，先判断是「内容坏了」还是「格式不支持」
       const corrupt = isCorruptOfficeFile(props.fileName, bytes);
       if (corrupt) {
-        // 措辞要覆盖「加密」：实测本机 D:\施工图文件 下的 .dwg/.doc 都被
-        // 360 防泄密透明加密（4 个不同类型文件共用同一 16 字节密文头），
-        // 那种情况下「重新上传」是无用的动作，只会让用户反复试。
-        failReason.value = `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器：`
-          + "可能已损坏，也可能被文档防泄密软件透明加密（磁盘上是密文，只有授权终端能解密）。"
-          + "若是加密文件，重新上传也没用，请提供未加密的副本";
+        // 加密与损坏分开说：加密时必须点破「重新上传无用」，否则用户会反复
+        // 重传同一个密文文件（实测 .doc/.dwg/.docx 都被 360 防泄密透明加密，
+        // 4 个不同类型文件共用同一 18 字节密文头）。
+        failReason.value = isEncryptedDoc(bytes)
+          ? `该文件已被文档防泄密软件透明加密（${props.fileName}）：`
+            + "磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密。"
+            + "服务端与浏览器读到的都是密文，重新上传也没用，请提供未加密的副本"
+          : `文件不是有效的 ${props.fileName.split(".").pop()?.toUpperCase()} 容器（${props.fileName}）：`
+            + "内容已损坏或格式不符，请重新上传后再试";
         // 内容损坏时退回服务端毫无意义（服务端拿到的是同一堆坏字节），
         // 只会把面板自己的中文提示顶掉，换成一个空白的服务端渲染页。
         emit("error", { noFallback: true, reason: failReason.value });
@@ -327,19 +378,27 @@ defineExpose({ wrapRef });
 <style scoped>
 .preview-office-panel {
   width: 100%;
+  /* 吃满父容器并允许内部滚动：此前只有 width + min-height:65vh，
+     内容比容器高时（实测 docx 内容 1158px > 可用 881px）会直接顶出弹框。 */
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .preview-office-panel__wrap {
   position: relative;
   width: 100%;
-  min-height: 65vh;
+  flex: 1;
+  min-height: 0;
+  /* 唯一滚动容器：Office 组件内容超出时在这里滚，而不是撑高弹框 */
+  overflow: auto;
   transition: transform var(--el-transition-duration-fast, 0.2s) ease;
-  overflow: visible;
 }
 
 .preview-office-panel__body {
   width: 100%;
-  min-height: 65vh;
+  min-height: 0;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color-page);
 }
@@ -348,7 +407,8 @@ defineExpose({ wrapRef });
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 65vh;
+  min-height: 0;
+  flex: 1;
 }
 
 .preview-office-panel__mask-text {
