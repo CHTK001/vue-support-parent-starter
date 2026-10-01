@@ -100,17 +100,19 @@
         <el-form-item label="学生 ID">
           <el-input v-model="scanForm.studentId" placeholder="留空则记为匿名" />
         </el-form-item>
-        <el-form-item label="试卷图片" required>
+        <el-form-item label="试卷图片（可多张）" required>
           <el-upload
             :auto-upload="false"
-            :limit="1"
+            multiple
+            :limit="20"
             accept="image/*"
             :on-change="onScanFileChange"
-            :on-remove="() => (scanForm.file = null)"
+            :on-remove="onScanFileRemove"
             list-type="picture"
           >
-            <el-button icon="Upload">选择图片</el-button>
+            <el-button icon="Upload">选择图片（可多选）</el-button>
           </el-upload>
+          <div class="text-xs text-gray-400">一份试卷通常跨多页，请按页序选择，最多 20 张</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -144,7 +146,7 @@ const submitForm = reactive<{ examId: number; studentId: string; content: string
 const confirming = ref(false);
 let pollHandle: any = null;
 
-/** 扫描阅卷：模式选择（SELF 自有卷 / ANY 任意卷）、可选试卷、图片文件 */
+/** 扫描阅卷：模式选择（SELF 自有卷 / ANY 任意卷）、可选试卷、图片文件（可多张，按页序） */
 const scanDialogVisible = ref(false);
 const scanning = ref(false);
 const paperOptions = ref<Array<{ paperId: number; paperName: string }>>([]);
@@ -153,13 +155,13 @@ const scanForm = reactive<{
   paperId: number | undefined;
   studentId: string;
   maxScore: number;
-  file: File | null;
+  files: File[];
 }>({
   mode: 'SELF',
   paperId: undefined,
   studentId: '',
   maxScore: 5,
-  file: null,
+  files: [],
 });
 
 const openScan = async () => {
@@ -167,7 +169,7 @@ const openScan = async () => {
   scanForm.paperId = undefined;
   scanForm.studentId = '';
   scanForm.maxScore = 5;
-  scanForm.file = null;
+  scanForm.files = [];
   scanDialogVisible.value = true;
   // 自有卷需要选择试卷：分值与标准答案都按试卷题号回数据库取
   try {
@@ -180,13 +182,18 @@ const openScan = async () => {
   }
 };
 
-/** el-upload 的 change 回调：只保存原始 File，提交时再组 FormData */
-const onScanFileChange = (uploadFile: any) => {
-  scanForm.file = (uploadFile?.raw as File) ?? null;
+/** el-upload 的 change 回调：保存当前列表的原始 File（多张按页序），提交时再组 FormData */
+const onScanFileChange = (_uploadFile: any, uploadFiles: any[]) => {
+  scanForm.files = (uploadFiles ?? []).map((f) => f?.raw as File).filter(Boolean) as File[];
+};
+
+/** 移除某张图片后同步列表（否则被移除的图片仍会被提交） */
+const onScanFileRemove = (_uploadFile: any, uploadFiles: any[]) => {
+  scanForm.files = (uploadFiles ?? []).map((f) => f?.raw as File).filter(Boolean) as File[];
 };
 
 const doScan = async () => {
-  if (!scanForm.file) {
+  if (!scanForm.files.length) {
     ElMessage.warning('请先选择试卷图片');
     return;
   }
@@ -197,7 +204,8 @@ const doScan = async () => {
   scanning.value = true;
   try {
     const form = new FormData();
-    form.append('file', scanForm.file);
+    // 同名 file 字段重复提交即多张；后端按提交顺序（页序）接收
+    scanForm.files.forEach((f) => form.append('file', f));
     form.append('mode', scanForm.mode);
     if (scanForm.mode === 'SELF' && scanForm.paperId) {
       form.append('paperId', String(scanForm.paperId));
