@@ -117,6 +117,7 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
   nacos: { icon: "Coin", color: "var(--metric-disk, var(--el-color-warning))", label: "Nacos 配置中心" },
   zookeeper: { icon: "Coin", color: "var(--el-color-warning)", label: "ZooKeeper" },
   nginx: { icon: "Connection", color: "var(--metric-net, var(--el-color-info))", label: "Nginx" },
+  etcd: { icon: "Coin", color: "var(--metric-net, var(--el-color-info))", label: "etcd 配置中心" },
 };
 
 const typeMeta = (type: string) => TYPE_META[type] || { icon: "Coin", color: "var(--el-text-color-placeholder)", label: type };
@@ -355,6 +356,7 @@ const TYPE_ROUTE_MAP: Record<string, string> = {
   nacos: "/nacos",
   zookeeper: "/zookeeper",
   nginx: "/nginx",
+  etcd: "/etcd",
 };
 
 /** 打开对应类型的管理页面 */
@@ -390,6 +392,7 @@ const defaultPort = (type: string): number => {
     nacos: 8848,
     zookeeper: 2181,
     nginx: 80,
+    etcd: 2379,
   };
   return ports[type] ?? 3306;
 };

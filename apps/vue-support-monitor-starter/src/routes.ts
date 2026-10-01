@@ -220,6 +220,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
     meta: { title: "关系图验收台", icon: "Share", showLink: false, activeMenu: "/datasource" },
   },
   {
+    path: "/etcd",
+    name: "Etcd",
+    component: () => import("./views/EtcdManageView.vue"),
+    meta: { title: "etcd 管理", icon: "Coin", showLink: false, activeMenu: "/datasource" },
+  },
+  {
     path: "/neo4j",
     name: "Neo4j",
     component: () => import("./views/Neo4jManageView.vue"),
