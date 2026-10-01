@@ -87,12 +87,31 @@ console.log('=== login ===')
 await page.goto(`${FE}/login`, { waitUntil: 'domcontentloaded' })
 await page.waitForSelector("input[type='text']")
 await sleep(2500)
-await page.fill("input[type='text']", 'admin')
-await page.fill("input[type='password']", 'admin123')
-await page.click('button.flex')
-await page
-  .waitForFunction(() => Object.keys(localStorage).some((k) => /accessToken/i.test(k)), null, { timeout: 30000 })
-  .catch(() => console.log('  token did not appear within 30s'))
+// Retry the login: a redeploy can make /v2/user/login return 500 for a moment,
+// and a one-shot attempt turns that transient into a fatal "no token" abort.
+let gotToken = false
+for (let attempt = 1; attempt <= 6 && !gotToken; attempt++) {
+  await page.fill("input[type='text']", 'admin')
+  await page.fill("input[type='password']", 'admin123')
+  await page.click('button.flex')
+  gotToken = await page
+    .waitForFunction(() => Object.keys(localStorage).some((k) => /accessToken/i.test(k)), null, { timeout: 20000 })
+    .then(() => true)
+    .catch(() => false)
+  console.log(`  login attempt ${attempt}: token=${gotToken}`)
+  if (!gotToken) {
+    await page.goto(`${FE}/login`, { waitUntil: 'domcontentloaded' })
+    await sleep(3000)
+  }
+}
+chk('logged in', gotToken)
+if (!gotToken) {
+  await page.screenshot({ path: `${SHOT}/model-hover-login-failed.png` })
+  await browser.close()
+  console.log(`\n=== SUMMARY: PASS ${pass.length} / FAIL ${fail.length} ===`)
+  console.log('  ABORT: could not log in (backend redeploying)')
+  process.exit(2)
+}
 await sleep(1500)
 
 console.log('=== open chat page ===')
