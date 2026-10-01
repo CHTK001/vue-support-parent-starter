@@ -34,11 +34,52 @@ export interface ScriptTemplate {
   restart: string;
 }
 
-/** Linux 下通用的 PID 方式停止/启动片段（java/node/二进制共用思路） */
+/**
+ * 由主入口名生成「不会匹配到脚本自身命令行」的进程匹配模式。
+ *
+ * <p>首字符写成字符类（[x]yyy）：脚本自身命令行里是 [x]yyy，x 之后紧跟 `]`，与模式
+ * 要求的下一个字符不符；目标进程命令行里是裸的 xyyy，可被匹配。缺少这层处理时，
+ * pgrep / -like 会把执行脚本的 shell 自身也匹配出来，表现为「永远杀不干净」，
+ * 或者反过来「把自己杀掉」。</p>
+ *
+ * @param entry 主入口名（可含路径，只取文件名部分）
+ * @returns 自安全匹配模式；入口为空时返回空串
+ */
+export function selfSafePattern(entry: string): string {
+  const base = (entry || '').trim().replace(/[\\/]+$/, '').split(/[\\/]/).pop() || '';
+  if (!base) {
+    return '';
+  }
+  const esc = base.replace(/[\\+*?()[\]{}|^$]/g, (c) => '\\' + c);
+  return /[A-Za-z0-9]/.test(esc[0]) ? `[${esc[0]}]${esc.slice(1)}` : esc;
+}
+
+/**
+ * Linux 下通用的 PID 方式停止片段（java/node/二进制共用思路）。
+ *
+ * <p>1) 先按 app.pid 停止，SIGTERM 后 10 秒仍未退出则升级为 SIGKILL；</p>
+ * <p>2) 兜底：app.pid 陈旧或丢失时，回收「主入口匹配且工作目录=本项目目录」的残留进程。
+ * pid 文件一旦指向已退出的进程（回滚会还原备份里当时的旧 pid、异常中断会留下未更新的 pid），
+ * 真实进程就再也停不掉，残留进程会一直占着端口，使后续启动 bind 失败。</p>
+ */
 const LINUX_PID_STOP = `if [ -f app.pid ]; then
-  kill $(cat app.pid) 2>/dev/null
+  pid=$(cat app.pid)
+  kill $pid 2>/dev/null
+  i=0
+  while kill -0 $pid 2>/dev/null && [ $i -lt 10 ]; do
+    sleep 1
+    i=$((i + 1))
+  done
+  kill -9 $pid 2>/dev/null
   rm -f app.pid
-fi`;
+fi
+if [ -d /proc ] && [ -n '__ENTRYRE__' ] && [ -n '__PATH__' ]; then
+  for __p in $(pgrep -f '__ENTRYRE__' 2>/dev/null); do
+    [ "$__p" = "$$" ] && continue
+    [ "$(readlink /proc/$__p/cwd 2>/dev/null)" = '__PATH__' ] && kill -9 "$__p" 2>/dev/null
+  done
+fi
+true`;
 
 // ==================== Linux 模板 ====================
 
@@ -160,7 +201,16 @@ echo $! > app.pid`,
 
 // ==================== Windows 模板 ====================
 
-const WIN_PID_STOP = `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*__ENTRY__*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`;
+/**
+ * Windows 停止片段。
+ *
+ * <p>用 {@code -match}（正则）+ 自安全模式，而不是 {@code -like '*__ENTRY__*'}：
+ * 后者的通配符会把「脚本自身命令行里那串 `'*__ENTRY__*'` 字面量」也匹配上，
+ * 于是执行停止脚本的 PowerShell 会把自己结束掉，同时也会误杀主入口同名的其它项目。</p>
+ *
+ * <p>普通用户执行 CIM 可能被拒（见后端同名实现的说明），故整体 try/catch，失败时静默跳过。</p>
+ */
+const WIN_PID_STOP = `try { Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object { $_.CommandLine -and $_.ProcessId -ne $PID -and $_.CommandLine -match '__ENTRYRE__' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch { }`;
 
 const WINDOWS_TEMPLATES: ScriptTemplate[] = [
   {
@@ -174,8 +224,7 @@ const WINDOWS_TEMPLATES: ScriptTemplate[] = [
     stop: WIN_PID_STOP,
     restart: `${WIN_PID_STOP}
 Start-Sleep -Seconds 2
-Start-Process -FilePath 'java' -ArgumentList '-jar','__ENTRY__' -WindowStyle Hidden -RedirectStandardOutput '__LOG__'`,
-  },
+Start-Process -FilePath 'java' -ArgumentList '-jar','__ENTRY__' -WindowStyle Hidden -RedirectStandardOutput '__LOG__'`,  },
   {
     id: 'win-ps1',
     name: '自带脚本 (start.ps1/stop.ps1)',
@@ -195,8 +244,8 @@ Start-Process -FilePath 'java' -ArgumentList '-jar','__ENTRY__' -WindowStyle Hid
     types: ['separated', '*'],
     needEntry: true,
     start: `Start-Process -FilePath 'node' -ArgumentList '__ENTRY__' -WindowStyle Hidden -RedirectStandardOutput '__LOG__'`,
-    stop: `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*__ENTRY__*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`,
-    restart: `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*__ENTRY__*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+    stop: WIN_PID_STOP,
+    restart: `${WIN_PID_STOP}
 Start-Sleep -Seconds 2
 Start-Process -FilePath 'node' -ArgumentList '__ENTRY__' -WindowStyle Hidden -RedirectStandardOutput '__LOG__'`,
   },
@@ -279,12 +328,15 @@ export function fillTemplate(tpl: ScriptTemplate, ctx: FillContext) {
   }
   const replacements: Record<string, string> = {
     __ENTRY__: entry,
+    // 自安全匹配模式（首字符字符类）：供停止脚本的 pgrep -f / -match 使用。
+    // 放在 __ENTRY__ 之前匹配，避免前缀关系造成的歧义。
+    __ENTRYRE__: selfSafePattern(entry),
     __LOG__: resolveLogFile(ctx.log),
     __PATH__: (ctx.path || '').trim(),
     __APPNAME__: (ctx.appName || 'app').trim(),
   };
   const apply = (src: string) =>
-    src.replace(/__ENTRY__|__LOG__|__PATH__|__APPNAME__/g, (m) => replacements[m] ?? m);
+    src.replace(/__ENTRYRE__|__ENTRY__|__LOG__|__PATH__|__APPNAME__/g, (m) => replacements[m] ?? m);
   return {
     startScript: apply(tpl.start),
     stopScript: apply(tpl.stop),
