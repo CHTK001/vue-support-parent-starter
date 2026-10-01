@@ -9,10 +9,10 @@ import vue from "@vitejs/plugin-vue";
  * 过滤器类型别名归一、深度查看入口解析这类**纯逻辑**一旦回归，
  * 表现为「按钮点不动 / 打开的是死链」，编译与构建都是绿的，CI 抓不到。
  *
- * - environment: node。本包的测试只覆盖纯函数（注册表解析、入口 URL 拼装），
- *   不挂载组件，因此不需要 jsdom——顺带避开 catalog 里并未收录 jsdom、
- *   只能靠传递依赖碰巧装上的问题（pages/system 用了 jsdom，那是它的选择，
- *   不是本包的需要）。
+ * - environment: jsdom。组件测试用 @vue/test-utils 的 shallowMount，而它**即使浅挂载
+ *   也需要 document**（实测在 node 环境下 10 例全部 ReferenceError: document is not
+ *   defined），所以本包一旦引入组件级测试就必须用 jsdom；纯逻辑用例在 jsdom 下同样正常。
+ *   之前选 node 是因为当时只有纯逻辑用例，那个前提已经不成立了。
  * - plugins: 需要 @vitejs/plugin-vue，因为注册表模块 import 了三个 .vue 面板，
  *   markRaw(ScFileStorageFilterPanel) 在模块加载时就会求值。
  * - include: 与 pages/system 保持一致，收 src 下的 *.spec.ts
@@ -24,7 +24,7 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   plugins: [vue()],
   test: {
-    environment: "node",
+    environment: "jsdom",
     globals: true,
     include: ["src/**/*.spec.ts"],
   },
