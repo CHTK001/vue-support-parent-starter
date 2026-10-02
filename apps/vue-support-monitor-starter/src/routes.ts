@@ -66,6 +66,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/ScDataCenterView.vue"),
         meta: { title: "数据源中心", icon: "Coin", showLink: true, rank: 1 },
       },
+      {
+        path: "/sync-tasks",
+        name: "SyncTasks",
+        // 数据同步：源 jdbc 数据源按 SQL 读 → 字段映射 → 目标 jdbc 数据源的表，
+        // 执行由后端复用 datasync 引擎完成（源读取 / 字段映射转换 / Sink 契约）。
+        component: () => import("./views/SyncTaskView.vue"),
+        meta: { title: "数据同步", icon: "Refresh", showLink: true, rank: 2 },
+      },
     ],
   },
 
