@@ -2277,7 +2277,12 @@ async function openPreview(row: StorageObject): Promise<void> {
   previewKey.value = fullKey(row.name);
   previewError.value = false;
   previewForceServer.value = false;
-  previewUsePdf.value = false;
+  // ODF（odt/ods/odp 及其模板变体）服务端有转换器但**没有** HTML 渲染器：
+  // 直接 `?preview=true` 只会拿到「需配置 LibreOffice」的提示卡。
+  // 预置 format=pdf，让后端用 Aspose 转成 PDF 再由浏览器内置阅读器渲染。
+  // 这条通道此前只有「客户端组件失败后回报 channel:pdf」才会走，
+  // 而 ODF 根本不是客户端可渲染格式（previewUsesClient=false），永远触发不到。
+  previewUsePdf.value = isOdfDocument(row.name);
   previewInnerPath.value = "";
   officeLoading.value = false;
   iframeLoading.value = true;
@@ -2335,6 +2340,24 @@ function onImageSaved(): void {
  * 由它按 `renderable` 决定显示画布还是信息卡。
  * 同样不进 iframe：那条通道读不到主应用的 koi 主题变量。
  */
+/**
+ * 该文件是否为 OpenDocument（ODF）文档。
+ *
+ * <p>后端对 ODF 有两条路：SPI 预览提供器只给「需配置 LibreOffice」的提示卡，
+ * 而 Aspose 转换器可以直接把它转成 PDF（实测 odt/ods/odp 分别产出
+ * 23 KB / 7.6 KB / 14.8 KB 的有效 PDF）。因此这里识别出 ODF 后，
+ * 预览入口会预置 {@code format=pdf} 走转换通道。</p>
+ *
+ * <p>覆盖正文与其模板变体：odt/ott（文本）、ods/ots（表格）、odp/otp（演示）。</p>
+ *
+ * @param name 文件名
+ * @returns true 表示应走 PDF 转换通道
+ */
+function isOdfDocument(name: string): boolean {
+  const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+  return ["odt", "ott", "ods", "ots", "odp", "otp"].includes(ext);
+}
+
 /**
  * 该文件是否交给 CAD 面板（而不是 iframe）。
  *
