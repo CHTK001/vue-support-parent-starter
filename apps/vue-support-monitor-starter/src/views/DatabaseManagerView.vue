@@ -877,6 +877,21 @@ const columnComments = reactive<Record<string, string>>({});
 const filterWhere = ref("");
 /** 当前排序（服务器端） */
 const sortState = reactive<{ prop: string; order: "ASC" | "DESC" | "" }>({ prop: "", order: "" });
+
+/**
+ * 清空排序与过滤条件。
+ *
+ * <p>这两个是**共享状态**，不是页签私有：切表时若不清，会把上一张表的 {@code ORDER BY} 列名
+ * 发给新表。新表没有该列时后端直接报错，而 {@code loadTableData} 的 catch 只弹一条提示、
+ * **不会清空 {@code tableData}**，于是网格静默保留上一张表的列与数据——现象就是
+ * 「页签已切到新表，表头却还是旧表的列」，并连带 {@code pkColumns} 也是旧的，
+ * 造成「主键列不可编辑」误判。2026-10-02 JDBC 工作台验收实测复现（无主键表 + score 排序）。</p>
+ */
+function resetTableQueryState() {
+  sortState.prop = "";
+  sortState.order = "";
+  filterWhere.value = "";
+}
 /** 当前选中的行 */
 const selection = ref<Record<string, unknown>[]>([]);
 
@@ -1318,6 +1333,15 @@ const exportTableCsv = () => {
   ElMessage.success('导出成功');
 };
 const tableLoading = ref(false);
+/**
+ * 表数据请求序号：只接受最后一次请求的结果。
+ *
+ * <p>切表/刷新的请求是并发的，先发的请求可能后到。没有这个护栏时，旧响应会把
+ * {@code tableData}（列/行）写回上一张表，表现为「页签已切到新表、网格表头却还是旧表的列」，
+ * 并且 {@code loadPkInfo} 也会把主键集合写成旧表的——直接导致「主键列不可编辑」误判。
+ * 2026-10-02 验收复现。</p>
+ */
+const tableDataReqSeq = ref(0);
 /** 本地表格列定义（ReTable 的列结构） */
 type Column = { prop: string; label: string; width?: number; minWidth?: number; showOverflowTooltip?: boolean; slot?: string; fixed?: string; sortable?: boolean | "custom"; formatter?: (row: any) => string };
 const tableColumns = computed<Column[]>(() =>
@@ -1560,6 +1584,10 @@ async function loadPkInfo(tab: Tab | undefined) {
   if (!tab?.tableName) return;
   try {
     const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
+    // 期间可能已切表：过期响应会把主键集合/列类型写成上一张表的，必须丢弃
+    if (activeTab.value !== tab.id) {
+      return;
+    }
     const pk = new Set<string>();
     const types = new Map<string, string>();
     const long = new Set<string>();
@@ -2035,6 +2063,8 @@ function openTableData(tableName: string, database = activeDatabase.value) {
     tabs.value.push(tab);
   }
   activeTab.value = id;
+  // 排序/过滤是上一张表的条件，切表必须清掉，否则新表可能因列不存在而加载失败
+  resetTableQueryState();
   tableData.page = 1;
   loadTableData(tab);
 }
@@ -2047,6 +2077,7 @@ function selectTab(id: string) {
   activeTab.value = id;
   const tab = activeTabObj.value;
   if (tab?.type === "table") {
+    resetTableQueryState();
     tableData.page = 1;
     loadTableData(tab);
   } else if (tab?.type === "design") {
@@ -2123,6 +2154,7 @@ function closeTab(id: string) {
 
 async function loadTableData(tab: Tab | undefined, page?: number) {
   if (!tab?.tableName) return;
+  const seq = ++tableDataReqSeq.value;
   tableLoading.value = true;
   try {
     const result = await fetchTableData(
@@ -2136,6 +2168,10 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       showTotal.value,
       filterWhere.value || undefined,
     );
+    // 期间可能已切表/切页签：过期响应直接丢弃，否则会把网格写回上一张表
+    if (seq !== tableDataReqSeq.value || activeTab.value !== tab.id) {
+      return;
+    }
     Object.assign(tableData, result);
     if (!showTotal.value) {
       tableData.total = -1;
@@ -2143,9 +2179,14 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
     void loadColumnComments(tab);
     loadPkInfo(tab);
   } catch (e) {
-    ElMessage.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
+    if (seq === tableDataReqSeq.value) {
+      ElMessage.error(`加载表数据失败: ${String((e as Error)?.message ?? e)}`);
+    }
   } finally {
-    tableLoading.value = false;
+    // 只有最后一次请求才复位 loading，否则新请求的转圈会被旧请求提前关掉
+    if (seq === tableDataReqSeq.value) {
+      tableLoading.value = false;
+    }
   }
 }
 
