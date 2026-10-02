@@ -1606,6 +1606,14 @@ export function saveHotReload(data: HotReloadConfig) {
 }
 
 /** 主动热重载全部配置（清理 AOP 使用的 Redis 缓存，下一次访问按需回填） */
+/** 删除热更新配置 */
+export function deleteHotReload(id: number) {
+  return http()
+    .delete("/v2/policy/hotreload/delete")
+    .query({ id })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
 export function reloadHotReload() {
   return http()
     .post("/v2/policy/hotreload/reload")

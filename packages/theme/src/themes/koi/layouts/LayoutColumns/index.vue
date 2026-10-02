@@ -48,7 +48,8 @@
                 fit="cover"
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
-              <el-image class="column-user-avatar" fit="cover" :src="avatar"></el-image>
+              <!-- alt：el-image 内部渲染 <img> 但不自带 alt，缺了会命中 axe image-alt -->
+              <el-image class="column-user-avatar" fit="cover" :src="avatar" :alt="userName"></el-image>
               <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(36)"></div>
               <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
             </div>
@@ -60,7 +61,7 @@
                 :src="authStore.loginUser?.avatar || 'https://pic4.zhimg.com/v2-702a23ebb518199355099df77a3cfe07_b.webp'"
               /> -->
               <div class="user-card-avatar-wrap" :style="{ padding: frameSpill(36) + 'px' }">
-                <el-image class="w-36px h-36px rounded-full select-none" :src="avatar"></el-image>
+                <el-image class="w-36px h-36px rounded-full select-none" :src="avatar" :alt="userName"></el-image>
                 <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
                 <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
               </div>

@@ -13,7 +13,8 @@
           <div class="user-avatar-frame">
             <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(32)"></div>
             <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(32)"></span>
-            <el-image class="user-avatar" fit="cover" :src="avatar"></el-image>
+            <!-- alt：el-image 内部渲染 <img> 但不自带 alt，缺了会命中 axe image-alt -->
+            <el-image class="user-avatar" fit="cover" :src="avatar" :alt="userName"></el-image>
           </div>
         </div>
       </template>
@@ -24,7 +25,7 @@
           <div class="user-avatar-card-wrap" :style="{ padding: frameSpill(36) + 'px' }">
             <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
             <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
-            <el-image class="user-avatar-card" fit="cover" :src="avatar"></el-image>
+            <el-image class="user-avatar-card" fit="cover" :src="avatar" :alt="userName"></el-image>
           </div>
           <div class="user-info">
             <div class="user-name">{{ userName }}</div>
