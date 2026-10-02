@@ -10,7 +10,7 @@
  */
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -18,7 +18,7 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
-import { listHotReload, reloadHotReload, saveHotReload } from "../../../../api/systemApi";
+import { listHotReload, reloadHotReload, saveHotReload, deleteHotReload } from "../../../../api/systemApi";
 import type { HotReloadConfig } from "../../../../api/types";
 import { TABLE_TOOLBAR, rowKeyOf, useFirstLoadGuard } from "../shared/policyTable";
 
@@ -32,6 +32,8 @@ const reloading = ref(false);
 const info = ref<{ enabledCount: number; reloadTime: string } | null>(null);
 const dialogVisible = ref(false);
 const saving = ref(false);
+/** 正在删除的配置主键；null 表示没有删除在进行 */
+const deletingId = ref<number | null>(null);
 const isEdit = ref(false);
 const form = ref<HotReloadConfig>({});
 
@@ -89,6 +91,42 @@ function handleEdit(row: HotReloadConfig): void {
   isEdit.value = true;
   form.value = { ...row };
   dialogVisible.value = true;
+}
+
+/**
+ * 删除热更新配置
+ *
+ * <p>其余 5 个策略页签都有删除入口，本页此前只有编辑（配错了清不掉）。2026-10-01 补齐。</p>
+ *
+ * @param row 配置行
+ */
+async function handleDelete(row: HotReloadConfig): Promise<void> {
+  const id = row.sysSettingId;
+  if (id == null || deletingId.value != null) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      t("policy.hotreload.deleteBody", { name: row.sysSettingName ?? row.sysSettingCode ?? "-" }),
+      t("policy.hotreload.deleteTitle"),
+      { type: "warning", confirmButtonText: t("policy.common.remove"), cancelButtonText: t("policy.common.cancel") },
+    );
+  } catch {
+    return;
+  }
+  deletingId.value = id;
+  try {
+    const res = await deleteHotReload(id);
+    if (res.data === false) {
+      throw new Error(t("policy.hotreload.errNotDeleted"));
+    }
+    ElMessage.success(t("policy.hotreload.deleted"));
+    await load();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : t("policy.common.deleteFailed"));
+  } finally {
+    deletingId.value = null;
+  }
 }
 
 /**
@@ -207,6 +245,14 @@ defineExpose({ reload: load });
       </template>
       <template #action="{ row }">
         <ReButton layout="square" type="primary" icon="Edit" :tip="t('policy.common.editOf', { name: rowKeyOf(row) })" @click="handleEdit(row as HotReloadConfig)" />
+        <ReButton
+          layout="square"
+          type="danger"
+          icon="Delete"
+          :tip="t('policy.common.deleteOf', { name: rowKeyOf(row) })"
+          :loading="deletingId === (row as HotReloadConfig).sysSettingId"
+          @click="handleDelete(row as HotReloadConfig)"
+        />
       </template>
       <!-- 首次加载返回前不渲染空态，避免闪一下「暂无热更新配置」 -->
       <template #empty>

@@ -14,39 +14,64 @@
       next-aria-label="向右滚动标签"
       :active-selector="activeTabSelector"
     >
-      <div
-        v-for="(item, index) in tabList"
-        :key="item.path"
-        class="layout-tabs-bar__item"
-        :class="{ 'is-active': activeTab === item.path }"
-        :data-tab-index="index"
-        :data-tab-path="item.path"
-        role="tab"
-        :aria-selected="activeTab === item.path"
-        @click="handleTabClick(item.path)"
-        @contextmenu.stop.prevent="handleTabsMenuChildren(item.path, $event)"
-      >
-        <span v-if="tabsStyle === 'google'" class="line" aria-hidden="true"></span>
-        <div class="layout-tabs-bar__label" :class="{ 'tab-label-inner': tabsStyle === 'card' }">
-          <ReIcon v-show="tabIcon && item.icon" :name="item.icon" size="16" class="m-r-6px" />
-          <span class="layout-tabs-bar__title">{{ getMenuLanguage(item?.title) }}</span>
-          <ReIcon
-            v-if="item.isAffix === '1'"
-            name="koi-affixed"
-            width="16"
-            height="16"
-            class="m-l-4px"
-          />
-        </div>
-        <button
-          v-if="getClosable(item)"
-          type="button"
-          class="layout-tabs-bar__close"
-          :aria-label="t('tabs.closeCurrent')"
-          @click.stop="removeTab(item.path)"
+      <!--
+        定位参照层：关闭按钮用绝对定位贴回标签右侧，而 .koi-scroll-nav__track
+        没有 position: relative（那是公共组件，改它会影响所有 ReScrollNav 用法），
+        所以这里自建一层 position: relative 的包裹。
+      -->
+      <div class="layout-tabs-bar__items">
+        <!--
+        三条无障碍规则的联合约束，决定了下面的层级，改动时不要随意调整：
+          - aria-required-parent：role="tab" 必须在 role="tablist" 之内；
+          - aria-required-children：tablist 的子元素里必须**只**出现 role="tab"；
+            中间插 role="presentation" 或给按钮加 role="none" 都试过，
+            axe 都不认（后者还会额外触发 aria-allowed-role 与
+            presentation-role-conflict），所以关闭按钮必须完全移出 tablist；
+          - nested-interactive：关闭 <button> 不能放进 role="tab" 内部。
+
+        解法：tablist 里只放 tab；关闭按钮作为 tablist 的**兄弟节点**放在同一
+        滚动轨道里，用绝对定位贴回对应标签右侧。
+      -->
+      <div class="layout-tabs-bar__list" role="tablist" :aria-label="t('tabs.listLabel')">
+        <div
+          v-for="(item, index) in tabList"
+          :key="item.path"
+          class="layout-tabs-bar__item"
+          :class="{ 'is-active': activeTab === item.path }"
+          :data-tab-index="index"
+          :data-tab-path="item.path"
+          role="tab"
+          :tabindex="activeTab === item.path ? 0 : -1"
+          :aria-selected="activeTab === item.path"
+          @click="handleTabClick(item.path)"
+          @contextmenu.stop.prevent="handleTabsMenuChildren(item.path, $event)"
         >
-          <el-icon :size="14"><Close /></el-icon>
-        </button>
+          <span v-if="tabsStyle === 'google'" class="line" aria-hidden="true"></span>
+          <div class="layout-tabs-bar__label" :class="{ 'tab-label-inner': tabsStyle === 'card' }">
+            <ReIcon v-show="tabIcon && item.icon" :name="item.icon" size="16" class="m-r-6px" />
+            <span class="layout-tabs-bar__title">{{ getMenuLanguage(item?.title) }}</span>
+            <ReIcon
+              v-if="item.isAffix === '1'"
+              name="koi-affixed"
+              width="16"
+              height="16"
+              class="m-l-4px"
+            />
+          </div>
+        </div>
+      </div>
+      <!-- 关闭按钮：与 tablist 平级（同一个滚动轨道内），绝对定位贴回标签右侧 -->
+      <button
+        v-for="item in closableTabs"
+        :key="`close-${item.path}`"
+        type="button"
+        class="layout-tabs-bar__close layout-tabs-bar__close--abs"
+        :style="{ left: `${item.closeLeft}px` }"
+        :aria-label="t('tabs.closeCurrent')"
+        @click="removeTab(item.path)"
+      >
+        <el-icon :size="14"><Close /></el-icon>
+      </button>
       </div>
     </ReScrollNav>
     <ReTabMenu ref="tabMenuRef" />
@@ -55,7 +80,7 @@
 
 <script setup lang="ts">
 import { Close } from "@element-plus/icons-vue";
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReTabMenu.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
@@ -100,7 +125,56 @@ const {
   handleTabsMenuParent,
   handleTabsMenuChildren
 } = useLayoutTabs(getTrackEl, { tabMenuRef, scrollNavRef });
-</script>
+
+/**
+ * 需要显示关闭按钮的标签，及其关闭按钮相对 __list 的横向位置。
+ *
+ * <p>关闭按钮不能放进 role="tab" 里（nested-interactive），也不能放在
+ * role="tablist" 与 role="tab" 之间（试过 role="presentation" 的 wrapper，
+ * axe 的 aria-required-children 不认）。所以这里把关闭按钮提到 tablist 的
+ * 直接子元素位置，再用绝对定位贴回对应标签的右侧。</p>
+ *
+ * <p>位置用 <b>getBoundingClientRect 差值</b>算，不能用 offsetLeft：
+ * 标签在滚动容器（ReScrollNav 的 track）里，offsetLeft 是相对该容器的，
+ * 减去容器偏移后曾实测偏差 200px 以上（关闭按钮会叠到别的标签上）。</p>
+ */
+function computeCloseLeft(path: string): number {
+  // 参照物是自建的定位层 .layout-tabs-bar__items（position: relative）
+  const baseEl = document.querySelector<HTMLElement>(".layout-tabs-bar__items");
+  const tabEl = document.querySelector<HTMLElement>(`[data-tab-path="${CSS.escape(String(path))}"]`);
+  if (!baseEl || !tabEl) return 0;
+  const baseRect = baseEl.getBoundingClientRect();
+  const tabRect = tabEl.getBoundingClientRect();
+  return Math.max(0, tabRect.right - baseRect.left - 20);
+}
+
+const closableTabs = ref<{ path: string; closeLeft: number }[]>([]);
+
+/** 标签尺寸随字体加载/窗口变化而变，重算关闭按钮位置 */
+function refreshClosePositions(): void {
+  const list = tabList.value ?? [];
+  closableTabs.value = list
+    .filter((item) => getClosable(item))
+    .map((item) => ({ path: item.path, closeLeft: computeCloseLeft(item.path) }));
+}
+
+onMounted(() => {
+  refreshClosePositions();
+  window.addEventListener("resize", refreshClosePositions);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", refreshClosePositions);
+});
+
+// 标签增删后位置会变
+watch(
+  () => tabList.value?.length,
+  async () => {
+    await nextTick();
+    refreshClosePositions();
+  }
+);</script>
 
 <style lang="scss" scoped>
 .layout-tabs-bar {
@@ -120,11 +194,33 @@ const {
   box-sizing: border-box;
 }
 
+/*
+ * tablist 容器与每个标签的 wrapper。
+ * 2026-10-02 为修无障碍新增：
+ *   - __list  提供 role="tablist"（aria-required-parent 要求）
+ *   - __wrap 承载「标签 + 关闭按钮」，使 role="tab" 内不再嵌套可点击元素
+ *     （nested-interactive）。原先 item 直接是滚动容器的 inline-flex 子元素，
+ *     布局样式整体下移到 wrapper 上，item 退化为 wrapper 内的 flex 子项。
+ */
+.layout-tabs-bar__items {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.layout-tabs-bar__list {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .layout-tabs-bar__item {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
+  min-width: 0;
   max-width: 220px;
   height: 32px;
   margin-top: 0;
@@ -177,11 +273,24 @@ const {
   outline: none;
 }
 
-.layout-tabs-bar__item.is-active .layout-tabs-bar__close {
+/*
+ * 关闭按钮移出 tablist 后需要绝对定位贴回标签右侧。
+ * 定位参照物是滚动轨道 .koi-scroll-nav__track（需 position: relative）。
+ */
+.layout-tabs-bar__close--abs {
+  position: absolute;
+  top: 50%;
+  margin-left: 0;
+  transform: translateY(-50%);
+}
+
+/* 关闭按钮已移出 role="tab"（修 nested-interactive），选中态改由 tab 自身驱动 */
+.layout-tabs-bar__item.is-active ~ .layout-tabs-bar__close,
+.layout-tabs-bar__close--abs:hover {
   color: inherit;
 }
 
-.layout-tabs-bar__item.is-active .layout-tabs-bar__close:hover {
+.layout-tabs-bar__close--abs:hover {
   background-color: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-primary));
 }
 
@@ -276,6 +385,7 @@ const {
     }
   }
 
+  /* 兄弟节点层级已变：标签现在是 __wrap 的子元素，下划线 .line 的相邻兄弟是 __item */
   &:hover + .layout-tabs-bar__item .line,
   &.is-active + .layout-tabs-bar__item .line {
     opacity: 0;

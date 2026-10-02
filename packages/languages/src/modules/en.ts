@@ -372,6 +372,7 @@ export default {
     maximize: "Maximize",
     exitMaximize: "Exit Maximize",
     closeCurrent: "Close Current",
+    listLabel: "Open page tabs",
     closeLeft: "Close Left",
     closeRight: "Close Right",
     closeOther: "Close Other",
@@ -1121,7 +1122,7 @@ export default {
       // While the global gate is off, "enabled" only means each rule's own switch is on;
       // nothing actually runs. The qualifier has to be spelled out or the figure reads
       // as "rate limiting is already active".
-      rateCountGlobalOff: "{enabled}/{total} rules enabled · global limit off, none take effect",
+      rateCountGlobalOff: "{enabled}/{total} rules enabled · global ceiling off (rules still apply)",
       blackwhite: "Access list",
       blackwhiteCount: "{count} list entries",
       passBlock: "Pass / block",
@@ -1170,7 +1171,11 @@ export default {
       reloadFailed: "Hot reload failed",
       loadFailed: "Failed to load hot reload settings",
       dialogEdit: "Edit Hot Reload Setting",
-      dialogAdd: "Add Hot Reload Setting"
+      dialogAdd: "Add Hot Reload Setting",
+      deleteTitle: "Delete hot reload setting",
+      deleteBody: "Delete \"{name}\"? The runtime will stop reading this setting.",
+      deleted: "Hot reload setting deleted",
+      errNotDeleted: "Setting not deleted; it may no longer exist"
     },
     rate: {
       desc: "Maintain exact rules by endpoint, IP and account; global parameters are configured separately from the entry on the right.",
@@ -1178,11 +1183,12 @@ export default {
       empty: "No {name}",
       globalAria: "Global rate limit config, currently {state}",
       global: "Global rate limit",
-      // Global gate off: no rule below can take effect, not even the ones marked enabled.
-      // This line is the only place that explains "the switch is on but nothing happens";
-      // the dialog's enableDesc is only visible after the user opens that dialog.
+      // Two independent rate-limit layers (not a gate): the global limit is one shared
+      // system-wide token bucket; each rule has its own bucket keyed by dimension:target.
+      // PolicyRateLimitFilter.enforceRule() reads the rule cache and never consults the
+      // global switch, so rules keep working while the global limit is off.
       globalOffNotice:
-        "Global rate limiting is off, so none of the rules below take effect — rules marked enabled still pass straight through. Turn the global limit on to enforce them.",
+        "Global rate limiting is off: no system-wide QPS ceiling is applied, but the enabled rules below still enforce their own QPS. Turn it on only if you need a ceiling for the whole system.",
       on: "On",
       off: "Off",
       hitTitle: "Rate limit rule {target}",
@@ -1218,7 +1224,7 @@ export default {
       globalDialog: {
         title: "Global Rate Limit",
         enable: "Enable global rate limit",
-        enableDesc: "When off every request passes; when on all traffic shares one global QPS",
+        enableDesc: "When off no system-wide QPS ceiling applies (rules still enforce their own QPS); when on all traffic shares one ceiling",
         enableAria: "Enable global rate limit",
         qps: "Global QPS",
         burst: "Burst",

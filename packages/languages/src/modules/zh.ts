@@ -373,6 +373,7 @@ export default {
     maximize: "全屏切换",
     exitMaximize: "退出全屏",
     closeCurrent: "关闭当前",
+    listLabel: "已打开页面标签",
     closeLeft: "关闭左侧",
     closeRight: "关闭右侧",
     closeOther: "关闭其它",
@@ -1120,9 +1121,16 @@ export default {
       hotReloadCount: "{count} 项运行配置",
       rateLimit: "流量限流",
       rateCount: "{enabled}/{total} 条已启用",
-      // 全局闸门关着时，「已启用」只说明规则自己的开关是开的，实际上一条都不会跑；
-      // 这行必须把这个差别说出来，否则统计数字会被读成「限流已经在跑」。
-      rateCountGlobalOff: "{enabled}/{total} 条已启用 · 全局已关闭，都不生效",
+      // 全局上限关着时，规则**照常生效** —— 这两层是并列的，不是闸门关系：
+      //   全局限流 = 全系统共用一个令牌桶，是额外的一道总上限
+      //   单条规则 = 按 dimension:target 各自的令牌桶
+      // 依据：PolicyRateLimitFilter.enforceRule() 读的是规则缓存（保存规则时写入），
+      // 全程不读全局开关；全局判定是紧随其后的另一段（systemRateLimitManager.tryAcquire()）。
+      // 2026-10-01 实测：全局 enabled=false 时建一条 ip 规则，8 次请求得 200/429×7，
+      // 命中键是 RATE_LIMIT|ip:...（规则命中），RATE_LIMIT_GLOBAL|global 为 0。
+      // 旧文案写成「全局关闭则规则都不生效」是与后端相反的说法，会把管理员引去开一个
+      // 其实不需要开的开关，故改掉。
+      rateCountGlobalOff: "{enabled}/{total} 条已启用 · 全局上限已关闭（规则仍生效）",
       blackwhite: "访问名单",
       blackwhiteCount: "{count} 条黑白名单",
       passBlock: "请求放行 / 拦截",
@@ -1173,6 +1181,10 @@ export default {
       loadFailed: "热更新配置加载失败",
       dialogEdit: "编辑热更新配置",
       dialogAdd: "新增热更新配置",
+      deleteTitle: "删除热更新配置",
+      deleteBody: "确认删除「{name}」？删除后运行时将不再读取该配置。",
+      deleted: "热更新配置已删除",
+      errNotDeleted: "配置未删除，记录可能已不存在",
     },
     rate: {
       desc: "按接口、IP、账号维护精确规则；全局参数通过右上角入口单独配置。",
@@ -1181,10 +1193,10 @@ export default {
       globalAria: "全局限流配置，当前{state}",
       global: "全局限流",
       // 全局闸门关着时，下面每一条规则都跑不起来（含标记为「启用」的）。
-      // 这句话只在这个状态下出现，是唯一能解释「开关明明开着却不生效」的地方 ——
-      // 弹窗里的 enableDesc 只在用户主动打开弹窗时才看得到。
+      // 说明两层限流的关系（并列，不是闸门）。旧文案写「全局关闭则规则都不生效」，
+      // 与后端行为相反，实测见 rateCountGlobalOff 上方的注释。
       globalOffNotice:
-        "全局限流已关闭，下面所有规则都不会生效：标记为「启用」的规则也会照样放行。需要限流请先开启全局限流。",
+        "全局限流已关闭：不再设系统级 QPS 总上限，但下面已启用的规则仍按各自 QPS 生效。需要给全系统加一道总上限时再开启。",
       on: "已开启",
       off: "已关闭",
       hitTitle: "限流规则 {target}",
@@ -1220,7 +1232,7 @@ export default {
       globalDialog: {
         title: "全局限流配置",
         enable: "启用全局限流",
-        enableDesc: "关闭时所有请求直接放行，开启后按全局 QPS 统一限流",
+        enableDesc: "关闭时不再设系统级 QPS 总上限（各规则仍按自己的 QPS 生效）；开启后全系统共用一道总上限",
         enableAria: "启用全局限流",
         qps: "全局 QPS",
         burst: "突发参数",

@@ -328,9 +328,10 @@ defineExpose({ reload: load });
       <ReButton layout="modern" type="primary" icon="Plus" @click="handleAdd">{{ t("policy.rate.add") }}</ReButton>
     </div>
 
-    <!-- 全局闸门关着时的白话提示。规则表里的「运行状态」开关只表达规则自身状态，
-         不含全局闸门；不写这一句，界面上会出现「开关是开的却不限流」且无处可查。
-         弹窗里的 enableDesc 解释的是同一件事，但只有主动打开弹窗才看得到。 -->
+    <!-- 全局上限关着时的提示。两层限流是并列的（全局总上限 + 各规则自己的桶），
+         不是闸门关系：规则读的是规则缓存，后端不读全局开关，
+         所以「全局关闭」只意味着没有系统级总上限，规则照常生效。
+         2026-10-01 实测确认（全局 enabled=false 时规则仍 429）。 -->
     <p v-if="!globalConfig.enabled" class="policy-gate-off-notice">
       <el-icon :size="14"><WarningFilled /></el-icon>
       <span>{{ t("policy.rate.globalOffNotice") }}</span>

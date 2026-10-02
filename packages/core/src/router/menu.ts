@@ -149,6 +149,34 @@ export function createMenuRouteResolver(
   const _tagName = (i: any) =>
     i.tagName ?? i.sysMenuTagName ?? i.meta?.tagName;
 
+  /**
+   * 节点是否具备被渲染的最小条件：必须有可用的 path 与 名称。
+   *
+   * <p>为什么需要它：下面建路由时有一行
+   * `path: item.path.startsWith("/") ? item.path : "/" + item.path`，
+   * 一旦后端下发的某个节点 path 为 undefined，这里就会抛 TypeError，
+   * <b>整个 generateRoutes 中断</b>——不只是坏节点不显示，
+   * 而是同一次返回里的所有正常菜单（实测 26 条进、0 条出）。</p>
+   *
+   * <p>真实触发路径（2026-10-01）：POST /v2/menu/save 当时没有任何必填校验，
+   * 一次空体请求就 INSERT 出标题/路径/组件/名称全为 NULL 的菜单行。
+   * admin 是唯一走「全部菜单」分支的角色（SysMenuServiceImpl 里
+   * `isSuperAdmin(roles) || isBuiltinAdmin(username)`），
+   * 因此只有 admin 会拿到这些脏节点 —— 表现为**最高权限账号侧栏一个菜单都不显示**，
+   * 而普通用户因为接口返回空、回落到静态路由反而正常。</p>
+   *
+   * <p>这里只做「跳过坏节点」：一条脏数据不该让整个系统不可用。
+   * 根因（save 缺必填校验）已在服务端补上，此处是前端侧的兜底。</p>
+   */
+  const _isRenderableNode = (i: any): boolean => {
+    if (!i || typeof i !== "object") return false;
+    const path = i.path ?? i.sysMenuPath;
+    if (typeof path !== "string" || path.trim() === "") return false;
+    const name = _menuName(i);
+    if (name === undefined || name === null || String(name).trim() === "") return false;
+    return true;
+  };
+
   // 扁平化：API 可能返回嵌套 children 树，也可能返回扁平数组，两种都兼容
   function flattenMenu(items: any[]): any[] {
     const result: any[] = [];
@@ -224,6 +252,11 @@ export function createMenuRouteResolver(
         if (visibleOnly && !_menuVisible(item)) {
           continue;
         }
+        // 缺 path / 名称的脏节点直接跳过：不解引用 item.path，避免抛错拖垮整棵菜单
+        if (!_isRenderableNode(item)) {
+          log.warn(`[route] 菜单节点缺少 path 或名称，已跳过: ${JSON.stringify(_menuId(item))}`);
+          continue;
+        }
         const isDirectory = _menuType(item) == menuTypeValue;
         const componentTemplate = item?.component;
         const route: any = {
@@ -275,6 +308,11 @@ export function createMenuRouteResolver(
     const flat = flattenMenu(data);
     const routes: any[] = [];
     for (const item of flat) {
+      // 同 generateRoutes：脏节点不解引用 item.path
+      if (!_isRenderableNode(item)) {
+        log.warn(`[route] 菜单节点缺少 path 或名称，已跳过(扁平): ${JSON.stringify(_menuId(item))}`);
+        continue;
+      }
       const componentTemplate = item?.component;
       const route: any = {
         path: item.path.startsWith("/") ? item.path : `/${item.path}`,
