@@ -37,7 +37,7 @@
         </el-table-column>
         <el-table-column label="启用" width="78" align="center">
           <template #default="{ row }">
-            <el-switch :model-value="row.syncTaskEnabled === 1" @change="value => toggle(row, !!value)" />
+            <el-switch :model-value="row.syncTaskEnabled === 1" @change="(value: string | number | boolean) => toggle(row, !!value)" />
           </template>
         </el-table-column>
         <el-table-column label="最近执行" min-width="230">
@@ -351,9 +351,12 @@ const applySourceTable = () => {
 const openCreate = () => {
   editingId.value = null;
   form.name = "";
-  form.sourceDatasourceId = jdbcSources.value.length ? jdbcSources.value[0].id : null;
+  // DataSourceInfo.id 在类型上是可选值，赋给 number|null 的表单字段前先归一成 null
+  const defaultSource = jdbcSources.value[0];
+  const defaultTarget = jdbcSources.value[1] ?? jdbcSources.value[0];
+  form.sourceDatasourceId = defaultSource ? (defaultSource.id ?? null) : null;
   form.sourceSql = "";
-  form.targetDatasourceId = jdbcSources.value.length > 1 ? jdbcSources.value[1].id : (jdbcSources.value[0]?.id ?? null);
+  form.targetDatasourceId = defaultTarget ? (defaultTarget.id ?? null) : null;
   form.targetTable = "";
   form.writeMode = "INSERT";
   form.batchSize = 500;
