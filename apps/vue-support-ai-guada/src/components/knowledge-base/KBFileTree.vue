@@ -5,18 +5,18 @@
     <div v-if="breadcrumbPath.length > 0" class="mb-2 mx-2 py-1.5">
       <div class="flex items-center gap-1 text-sm">
         <button @click="navigateToFolderByPath(null)"
-          class="text-gray-500 dark:text-[#8b8d95] hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
+          class="text-[var(--rm-text-secondary)] hover:text-[var(--rm-primary)] transition-colors cursor-pointer">
           {{ t('knowledge.tree.root') }}
         </button>
 
         <!-- 路径分隔符和各级文件夹-->
         <template v-for="(folder, index) in breadcrumbPath" :key="folder.path">
-          <span class="text-gray-400 mx-0.5">></span>
+          <span class="text-[var(--rm-text-disabled)] mx-0.5">></span>
           <button v-if="index !== breadcrumbPath.length - 1" @click="navigateToFolderByPath(folder.path)"
-            class="transition-colors cursor-pointer text-gray-500 dark:text-[#8b8d95] hover:text-blue-600 dark:hover:text-blue-400">
+            class="transition-colors cursor-pointer text-[var(--rm-text-secondary)] hover:text-[var(--rm-primary)]">
             {{ folder.displayName }}
           </button>
-          <span v-else class="text-gray-900 dark:text-[#e8e9ed] font-semibold">
+          <span v-else class="text-[var(--rm-text)] font-semibold">
             {{ folder.displayName }}
           </span>
         </template>
@@ -25,10 +25,10 @@
 
     <!-- 文件/文件夹列表-->
     <div v-if="isLoading" class="text-center py-8">
-      <el-icon class="animate-spin text-blue-500" size="32">
+      <el-icon class="animate-spin text-[var(--rm-primary)]" size="32">
         <Loading />
       </el-icon>
-      <p class="mt-2 text-sm text-gray-500 dark:text-[#8b8d95]">{{ t('knowledge.tree.loading') }}</p>
+      <p class="mt-2 text-sm text-[var(--rm-text-secondary)]">{{ t('knowledge.tree.loading') }}</p>
     </div>
 
     <div v-else-if="visibleItems.length > 0" class="@container">
@@ -37,7 +37,7 @@
            加 4 个 16px 间距需要 514px，会把 1fr 的名称列压成 0 宽 —— 文件名完全看不见。
            这里改成按容器宽度自适应：窄时只留「名称 + 状态」，宽了再逐级放出类型/大小/时间。 -->
       <div
-        class="grid gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#2e3035] text-xs font-medium text-gray-500 dark:text-[#8b8d95] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
+        class="grid gap-2 px-3 py-2 border-b border-[var(--rm-border-light)] text-xs font-medium text-[var(--rm-text-secondary)] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
         <div>{{ t('knowledge.tree.colName') }}</div>
         <div>{{ t('knowledge.tree.colStatus') }}</div>
         <div class="hidden @[520px]:block">{{ t('knowledge.tree.colType') }}</div>
@@ -47,18 +47,18 @@
 
       <!-- 文件列表 -->
       <div v-for="item in visibleItems" :key="item.id"
-        class="file-row grid gap-2 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#2a2c30]/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-[#2e3035] last:border-b-0 grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]"
+        class="file-row grid gap-2 px-3 py-2.5 hover:bg-[var(--rm-bg-subtle)] cursor-pointer transition-colors border-b border-[var(--rm-border-light)] last:border-b-0 grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]"
         @click="handleItemClick(item)" @contextmenu.prevent="handleContextMenu($event, item)">
         <!-- 名称-->
         <div class="flex items-center gap-2 min-w-0">
           <!-- 文件图标 -->
-          <el-icon v-if="item.isDirectory" class="text-yellow-500 shrink-0" size="18">
+          <el-icon v-if="item.isDirectory" class="text-[var(--rm-warning)] shrink-0" size="18">
             <Folder />
           </el-icon>
           <img v-else :src="getFileIcon(item)" class="w-5 h-5 object-contain shrink-0" alt="file icon" />
 
           <!-- 名称 -->
-          <span class="text-sm text-gray-700 dark:text-[#e8e9ed] truncate" :title="item.displayName">
+          <span class="text-sm text-[var(--rm-text)] truncate" :title="item.displayName">
             {{ item.displayName }}
           </span>
         </div>
@@ -79,27 +79,27 @@
               {{ getStatusDisplayText(item) }}
             </el-tag>
           </template>
-          <span v-else class="text-xs text-gray-400">-</span>
+          <span v-else class="text-xs text-[var(--rm-text-disabled)]">-</span>
         </div>
 
         <!-- 类型-->
         <div class="hidden @[520px]:flex items-center">
-          <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
+          <span class="text-xs text-[var(--rm-text-secondary)]">
             {{ item.isDirectory ? t('knowledge.tree.folder') : (item.fileExtension?.toUpperCase() || '-') }}
           </span>
         </div>
 
         <!-- 大小-->
         <div class="hidden @[720px]:flex items-center">
-          <span v-if="!item.isDirectory" class="text-xs text-gray-500 dark:text-[#8b8d95]">
+          <span v-if="!item.isDirectory" class="text-xs text-[var(--rm-text-secondary)]">
             {{ formatSize(item.fileSize) }}
           </span>
-          <span v-else class="text-xs text-gray-400">-</span>
+          <span v-else class="text-xs text-[var(--rm-text-disabled)]">-</span>
         </div>
 
         <!-- 修改时间-->
         <div class="hidden @[720px]:flex items-center">
-          <span class="text-xs text-gray-500 dark:text-[#8b8d95]">
+          <span class="text-xs text-[var(--rm-text-secondary)]">
             {{ formatDate(item.uploadedAt) }}
           </span>
         </div>
@@ -107,20 +107,20 @@
     </div>
 
     <!-- 空文件夹-->
-    <div v-else class="text-center py-8 text-gray-500 dark:text-[#8b8d95]">
+    <div v-else class="text-center py-8 text-[var(--rm-text-secondary)]">
       <p>{{ currentRelativePath ? t('knowledge.tree.folderEmpty') : t('knowledge.tree.empty') }}</p>
     </div>
 
     <!-- 加载更多指示器 -->
     <div v-if="isLoadingMore" class="text-center py-4">
-      <el-icon class="animate-spin text-blue-500" size="24">
+      <el-icon class="animate-spin text-[var(--rm-primary)]" size="24">
         <Loading />
       </el-icon>
-      <p class="mt-2 text-sm text-gray-500">{{ t('knowledge.tree.loadingMore') }}</p>
+      <p class="mt-2 text-sm text-[var(--rm-text-secondary)]">{{ t('knowledge.tree.loadingMore') }}</p>
     </div>
 
     <!-- 没有更多数据提示 -->
-    <div v-else-if="!hasMore && visibleItems.length > 0" class="text-center py-3 text-gray-400 dark:text-[#6b6d75] text-sm">
+    <div v-else-if="!hasMore && visibleItems.length > 0" class="text-center py-3 text-[var(--rm-text-disabled)] text-sm">
       <p>{{ t('knowledge.tree.allLoaded') }}</p>
     </div>
 
@@ -137,8 +137,8 @@
     <LDialog v-model="showRenameDialog" :title="t('knowledge.tree.renameTitle')" width="400px" :close-on-click-modal="false" append-to-body>
       <el-input v-model="renameForm.newName" :placeholder="t('knowledge.tree.newNamePlaceholder')" @keyup.enter="confirmRename" />
       <template #footer>
-        <el-button @click="showRenameDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="confirmRename" :loading="renameLoading">{{ t('common.ok') }}</el-button>
+        <ReButton @click="showRenameDialog = false">{{ t('common.cancel') }}</ReButton>
+        <ReButton type="primary" @click="confirmRename" :loading="renameLoading">{{ t('common.ok') }}</ReButton>
       </template>
     </LDialog>
 
@@ -146,8 +146,8 @@
     <LDialog v-model="showMoveDialog" :title="t('knowledge.tree.moveTitle')" width="500px" :close-on-click-modal="false" append-to-body>
       <div class="max-h-80 overflow-y-auto">
         <!-- 根目录选项 -->
-        <div class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          :class="{ 'bg-blue-50 dark:bg-blue-900/30': selectedTargetFolderId === null }" @click="selectRootDirectory">
+        <div class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[var(--rm-bg-subtle)] rounded"
+          :class="{ 'bg-[var(--rm-primary-light-9)]': selectedTargetFolderId === null }" @click="selectRootDirectory">
           <el-icon>
             <Folder />
           </el-icon>
@@ -168,8 +168,8 @@
         </el-tree>
       </div>
       <template #footer>
-        <el-button @click="showMoveDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="confirmMove" :loading="moveLoading">{{ t('common.ok') }}</el-button>
+        <ReButton @click="showMoveDialog = false">{{ t('common.cancel') }}</ReButton>
+        <ReButton type="primary" @click="confirmMove" :loading="moveLoading">{{ t('common.ok') }}</ReButton>
       </template>
     </LDialog>
   </div>
@@ -186,6 +186,7 @@ import { apiService } from '@/services/ApiService'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReButton from '@/components/re/ReButton.vue'
 
 // 导入文件图标
 import fileCodeIcon from '@/assets/file_code.svg'
@@ -1182,11 +1183,7 @@ onUnmounted(() => {
 
 <style scoped>
 .node-content:hover {
-  background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
-}
-
-.dark .node-content:hover {
-  background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
+  background-color: color-mix(in srgb, var(--rm-text) 4%, transparent);
 }
 
 /* 键盘焦点可见性：文件/文件夹行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
@@ -1198,6 +1195,6 @@ onUnmounted(() => {
 }
 
 .file-row:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 45%, transparent);
 }
 </style>
