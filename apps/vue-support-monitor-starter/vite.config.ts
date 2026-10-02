@@ -18,6 +18,9 @@ import { createVite } from "../../turbo/vite/createVite.ts";
 const apiTarget = process.env.MS_API_TARGET ?? "http://192.168.50.198:8112";
 const socketTarget = process.env.MS_SOCKET_TARGET ?? "http://192.168.50.198:29612";
 
+/** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
+const apmTarget = process.env.APM_TARGET ?? "http://127.0.0.1:8582";
+
 export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
@@ -100,12 +103,24 @@ export default createVite({
         ws: true,
         changeOrigin: true,
       },
+      // APM 观测后端（/api/apm 与 /agent 共用）。
+      //
+      // 实测（2026-10-02）：**8582 上没有任何进程监听**，所以这个缺省是死端口 ——
+      // 请求会直接连接失败好在能看见。
+      // 同时该主机上不存在 APM 观测后端：逐个探测 8086/8582/9848/9849/19180-19185/
+      // 19380/19390，只有 8086 有响应，而那是 influxd（对任意路径返回 200 + 它的
+      // HTML 落地页，响应头带 X-Influxdb-Build: OSS）。
+      // 因此这里**不**把缺省改成任何远端地址：填 8086 会拿到 200 + HTML 这种
+      // 垃圾数据，比死端口更难排查。改为显式可覆盖：
+      //   APM_TARGET=http://<apm-host>:<port> pnpm dev
+      // 待办：部署真实 APM 后端或确认该功能已下线，然后与 hotspot 应用统一该缺省
+      // （hotspot 的 /api/apm 缺省是 8082→已改为可覆盖，两边数字本来就不一致）。
       "/api/apm": {
-        target: "http://127.0.0.1:8582",
+        target: apmTarget,
         changeOrigin: true,
       },
       "/agent": {
-        target: "http://127.0.0.1:8582",
+        target: apmTarget,
         changeOrigin: true,
       },
       "/monitor/api": {
