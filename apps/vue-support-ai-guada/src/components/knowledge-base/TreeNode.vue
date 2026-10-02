@@ -3,14 +3,14 @@
     <div class="tree-node">
         <!-- 节点内容 -->
         <div 
-            class="node-content flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2a2c30] cursor-pointer transition-colors"
-            :class="{ 'bg-blue-50 dark:bg-blue-900/20': node.isDirectory && isExpanded }"
+            class="node-content flex items-center gap-2 px-2 py-1.5 rounded-[var(--rm-radius-sm,6px)] hover:bg-[var(--rm-bg-subtle)] cursor-pointer transition-colors"
+            :class="{ 'bg-[var(--rm-primary-light-9)]': node.isDirectory && isExpanded }"
             @click="handleNodeClick"
         >
             <!-- 展开/折叠图标 -->
             <el-icon 
                 v-if="node.isDirectory" 
-                class="text-gray-400 transition-transform duration-200"
+                class="text-[var(--rm-text-disabled)] transition-transform duration-200"
                 :class="{ 'rotate-90': isExpanded }"
                 size="14"
             >
@@ -19,18 +19,18 @@
             <div v-else class="w-3.5"></div>
             
             <!-- 文件夹/文件图标 -->
-            <el-icon v-if="node.isDirectory" class="text-yellow-500" size="18">
+            <el-icon v-if="node.isDirectory" class="text-[var(--rm-warning)]" size="18">
                 <Folder />
             </el-icon>
             <img v-else :src="getFileIcon(node)" class="w-5 h-5 object-contain" alt="file icon" />
             
             <!-- 名称 -->
-            <span class="text-sm text-gray-700 dark:text-[#e8e9ed] truncate flex-1">
+            <span class="text-sm text-[var(--rm-text)] truncate flex-1">
                 {{ node.displayName }}
             </span>
             
             <!-- 文件信息(仅文件显示) -->
-            <span v-if="!node.isDirectory" class="text-xs text-gray-500 dark:text-[#8b8d95] shrink-0">
+            <span v-if="!node.isDirectory" class="text-xs text-[var(--rm-text-secondary)] shrink-0">
                 {{ formatSize(node.fileSize) }}
             </span>
             
@@ -45,7 +45,7 @@
         
         <!-- 子节点(递归渲染) -->
         <div v-if="node.isDirectory && isExpanded && node.children.length > 0" 
-             class="ml-5 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-[#2e3035] pl-2">
+             class="ml-5 mt-1 space-y-1 border-l-2 border-[var(--rm-border-light)] pl-2">
             <TreeNode
                 v-for="child in node.children"
                 :key="child.id"
@@ -59,7 +59,7 @@
         
         <!-- 空文件夹提示 -->
         <div v-if="node.isDirectory && isExpanded && node.children.length === 0" 
-             class="ml-7 py-1 text-xs text-gray-400 dark:text-[#6b6d75] italic">
+             class="ml-7 py-1 text-xs text-[var(--rm-text-disabled)] italic">
             {{ t('knowledge.treeNode.emptyFolder') }}
         </div>
     </div>
@@ -182,11 +182,7 @@ function getStatusText(status: string): string {
 }
 
 .node-content:hover {
-    background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
-}
-
-.dark .node-content:hover {
-    background-color: color-mix(in srgb, var(--el-text-color-primary) 4%, transparent);
+    background-color: color-mix(in srgb, var(--rm-text) 4%, transparent);
 }
 
 /* 键盘焦点可见性：节点行是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
@@ -199,6 +195,6 @@ function getStatusText(status: string): string {
 }
 
 .node-content:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rm-primary) 12%, transparent);
 }
 </style>
