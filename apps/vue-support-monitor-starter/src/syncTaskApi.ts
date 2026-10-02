@@ -44,8 +44,9 @@ export interface SyncTask {
   syncTaskLastMessage?: string | null;
 }
 
-/** 任务新建/修改入参 */
-export interface SyncTaskPayload {
+/** 任务新建/修改入参（用 type 而非 interface：`.data()` 的参数要求 Record<string, unknown>，
+    interface 没有隐式索引签名，会报 TS2345；匿名对象类型/类型别名则有） */
+export type SyncTaskPayload = {
   name: string;
   sourceDatasourceId: number;
   sourceSql: string;
