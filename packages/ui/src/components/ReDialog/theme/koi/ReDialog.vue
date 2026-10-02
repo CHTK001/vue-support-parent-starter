@@ -56,6 +56,18 @@ const props = withDefaults(
     headless?: boolean;
     /** 紧凑模式：减小弹窗内边距 */
     compact?: boolean;
+    /**
+     * 浮层层级（透传给 el-dialog 的 z-index）；不传则由 Element Plus 自动分配。
+     *
+     * <p>自动分配是按 <b>浮层被创建</b>的顺序递增（PopupManager.nextZIndex，2000 起），
+     * 而不是按「谁在谁里面」——所以一个<b>从弹窗内部打开的子弹窗</b>完全可能拿到
+     * 比它父弹窗更低的层级，被父弹窗整片盖住、点击全被吃掉。
+     * 2026-10-02 在采集器产物（dist）实测：全屏设计器壳拿到 2011，而从它内部打开的
+     * 「抽取字段」对话框只拿到 2005，于是字段表整片点不动（占位弹层打不开）。
+     * 把<b>作为容器</b>的那层钉在基线（如 2000，恰好低于自动分配的首个值 2001），
+     * 壳内的弹窗与浮层再按正常顺序往上叠，两种构建形态就一致了。</p>
+     */
+    zIndex?: number;
   }>(),
   {
     title: "ReDialog",
@@ -78,6 +90,8 @@ const props = withDefaults(
     showFullscreen: false,
     headless: false,
     compact: false,
+    // 默认不传：交给 Element Plus 自动分配，等同于修复前的行为
+    zIndex: undefined,
   },
 );
 
@@ -193,6 +207,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     draggable
     :destroy-on-close="destroyOnClose"
     :fullscreen="dialogFullscreen"
+    :z-index="props.zIndex"
     :loading="loading"
     :show-close="!showWindowShell"
   >
