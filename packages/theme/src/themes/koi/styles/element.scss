@@ -1,5 +1,36 @@
 ﻿@use "./variable.scss" as *;
 
+/* ==================== 文本灰阶：WCAG AA 达标（可访问性硬指标，非口味选择） ====================
+ *
+ * <p>Element Plus 默认的两档灰在本项目实测不达标（2026-10-02，六个代表页 182 个
+ * color-contrast 违规里 151 个来自这两个令牌，占 83%）：</p>
+ * <ul>
+ *   <li><code>--el-text-color-secondary: #909399</code> → 最差 2.67 : 1</li>
+ *   <li><code>--el-text-color-placeholder: #a8abb2</code> → 最差 1.99 : 1</li>
+ * </ul>
+ *
+ * <p>为什么普通文本要 4.5 : 1：WCAG AA 对 18.66px 以下非粗体文本的硬要求。
+ * 这两个令牌在本仓被大量用作真实内容（字典编码、策略步骤序号、说明文字、
+ * 分页统计），不只是输入框占位符，所以不能按「占位符可豁免」处理。</p>
+ *
+ * <p>取值 #5E636B / #666C75 的来历：约束背景取实测出现过的最深浅底 #e9effa
+ * （深色文字的对比度随背景变暗而下降，所以最不利的是最深那个，不是白色）。
+ * 在 #e9effa 上分别为 5.24 : 1 与 4.59 : 1，白底上 6.05 / 5.29。
+ * Element 自己的 regular 档 #606266 是 5.29，AA 下留给 secondary / placeholder
+ * 的层级空间极窄 —— 这两个值已是该区间内「secondary 深、placeholder 浅」
+ * 分得最开的一档。</p>
+ *
+ * <p>选择器用 :root:not(.dark)：特异性 (0,2,0) 高于 Element 基础 :root 的
+ * (0,1,0)，不必依赖引入顺序；暗色模式下该规则不匹配，仍走 dark/css-vars.css
+ * 提供的 html.dark 值 (0,1,1)，不会被亮色值污染。</p>
+ *
+ * <p>回退：删掉本段即恢复 Element 默认。本段不影响主色与色阶。</p>
+ */
+:root:not(.dark) {
+  --el-text-color-secondary: #5e636b;
+  --el-text-color-placeholder: #666c75;
+}
+
 /* popper/tooltip 寮瑰眰鑳屾櫙璺熼殢涓婚浜殫鑹?*/
 :root {
   --el-bg-color-overlay: #ffffff;
