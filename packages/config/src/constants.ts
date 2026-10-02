@@ -20,8 +20,17 @@ export const CACHE_PREFIX: string = "koi-";
 /** 本地 svg 图标前缀（koi- 开头才会生效） */
 export const SVG_PREFIX: string = "koi-";
 
-/** 默认主题色 */
-export const DEFAULT_THEME: string = "#2992FF";
+/**
+ * 默认主题色
+ *
+ * <p>取 #2563C9 而非 Element 默认的 #409EFF：后者在白底上只有 2.78 : 1，
+ * 低于 WCAG AA 对 14px 普通文本要求的 4.5 : 1。#2563C9 为 5.67 : 1，
+ * 在菜单选中底 #EAF4FF 上为 5.09 : 1，白字在按钮填充上同为 5.67 : 1。</p>
+ *
+ * <p>这是「配置缺失时」的兜底值，与 packages/theme/src/tokens.ts 的
+ * colorPrimary 保持一致 —— 两处若不一致，主题色会在换肤时跳变回不达标的值。</p>
+ */
+export const DEFAULT_THEME: string = "#2563C9";
 
 /** 路由白名单地址 */
 export const ROUTER_WHITE_LIST: string[] = ["/500"];
