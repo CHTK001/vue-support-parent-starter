@@ -4,33 +4,33 @@
         <!-- 上传按钮组 -->
         <div class="flex gap-2 items-center">
             <!-- 新建文件夹按钮 -->
-            <el-button class="upload-btn" @click="showCreateFolderDialog = true">
-                <FolderAdd16Regular class="btn-icon" />
+            <ReButton @click="showCreateFolderDialog = true">
+                <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.newFolder') }}
-            </el-button>
+            </ReButton>
 
             <!-- 上传文件按钮 -->
             <input ref="fileInputRef" type="file" multiple :accept="ALLOWED_FILE_EXTENSIONS" @change="handleFileSelect"
                 class="hidden" />
-            <el-button class="upload-btn" @click="triggerFileInput">
-                <DocumentAdd16Regular class="btn-icon" />
+            <ReButton @click="triggerFileInput">
+                <DocumentAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadFile') }}
-            </el-button>
+            </ReButton>
 
             <!-- 上传文件夹按钮 -->
             <input ref="folderInputRef" type="file" webkitdirectory directory multiple @change="handleFolderSelect"
                 class="hidden" />
-            <el-button class="upload-btn" @click="triggerFolderInput">
-                <FolderAdd16Regular class="btn-icon" />
+            <ReButton @click="triggerFolderInput">
+                <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadFolder') }}
-            </el-button>
+            </ReButton>
 
             <!-- 上传任务按钮(仅在有任务时显示) -->
-            <el-button v-if="uploadTasks.length > 0" @click="emit('show-upload-task')" class="upload-btn">
-                <Upload class="btn-icon" />
+            <ReButton v-if="uploadTasks.length > 0" @click="emit('show-upload-task')">
+                <Upload class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadTask') }}
                 <el-badge :value="uploadTasks.length" type="warning" class="ml-1" />
-            </el-button>
+            </ReButton>
         </div>
 
         <!-- 新建文件夹对话框 -->
@@ -41,33 +41,33 @@
                 @keyup.enter="confirmCreateFolder"
             />
             <template #footer>
-                <el-button @click="showCreateFolderDialog = false">{{ t('common.cancel') }}</el-button>
-                <el-button type="primary" @click="confirmCreateFolder" :loading="createFolderLoading">{{ t('common.ok') }}</el-button>
+                <ReButton @click="showCreateFolderDialog = false">{{ t('common.cancel') }}</ReButton>
+                <ReButton type="primary" @click="confirmCreateFolder" :loading="createFolderLoading">{{ t('common.ok') }}</ReButton>
             </template>
         </LDialog>
 
         <!-- 冲突处理对话框 -->
         <LDialog v-model="showConflictDialog" :title="t('knowledge.upload.conflictTitle')" width="600px" :close-on-click-modal="false">
             <div class="space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">
+                <p class="text-sm text-[var(--rm-text-secondary)]">
                     {{ t('knowledge.upload.conflictDesc') }}
                 </p>
 
                 <div class="max-h-80 overflow-y-auto space-y-2">
                     <div v-for="conflict in conflicts" :key="conflict.relativePath"
-                        class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                        <el-icon size="20" :class="conflict.type === 'directory' ? 'text-yellow-500' : 'text-blue-500'">
+                        class="flex items-center gap-3 p-3 rounded-[var(--rm-radius-md,8px)] bg-[var(--rm-bg-subtle)] border border-[var(--rm-border-light)]">
+                        <el-icon size="20" :class="conflict.type === 'directory' ? 'text-[var(--rm-warning)]' : 'text-[var(--rm-primary)]'">
                             <Folder v-if="conflict.type === 'directory'" />
                             <Document v-else />
                         </el-icon>
                         <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            <div class="text-sm font-medium text-[var(--rm-text)] truncate">
                                 {{ conflict.originalName }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div class="text-xs text-[var(--rm-text-secondary)]">
                                 {{ conflict.type === 'directory' ? t('knowledge.upload.conflictDir') : t('knowledge.upload.conflictFile') }}{{ t('knowledge.upload.conflictExists') }}
                             </div>
-                            <div v-if="conflictMode === 'keep-both'" class="text-xs text-green-600 dark:text-green-400 mt-1">
+                            <div v-if="conflictMode === 'keep-both'" class="text-xs text-[var(--rm-success)] mt-1">
                                 {{ t('knowledge.upload.conflictRenameTo', { name: conflict.suggestedName }) }}
                             </div>
                         </div>
@@ -79,13 +79,13 @@
                         <el-radio value="overwrite" size="large">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ t('knowledge.upload.conflictOverwrite') }}</span>
-                                <span class="text-xs text-gray-500">{{ t('knowledge.upload.conflictOverwriteDesc') }}</span>
+                                <span class="text-xs text-[var(--rm-text-secondary)]">{{ t('knowledge.upload.conflictOverwriteDesc') }}</span>
                             </div>
                         </el-radio>
                         <el-radio value="keep-both" size="large">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ t('knowledge.upload.conflictKeepBoth') }}</span>
-                                <span class="text-xs text-gray-500">{{ t('knowledge.upload.conflictKeepBothDesc') }}</span>
+                                <span class="text-xs text-[var(--rm-text-secondary)]">{{ t('knowledge.upload.conflictKeepBothDesc') }}</span>
                             </div>
                         </el-radio>
                     </el-radio-group>
@@ -94,8 +94,8 @@
 
             <template #footer>
                 <div class="flex justify-end gap-3">
-                    <el-button @click="showConflictDialog = false">{{ t('common.cancel') }}</el-button>
-                    <el-button type="primary" @click="handleConflictConfirm">{{ t('common.ok') }}</el-button>
+                    <ReButton @click="showConflictDialog = false">{{ t('common.cancel') }}</ReButton>
+                    <ReButton type="primary" @click="handleConflictConfirm">{{ t('common.ok') }}</ReButton>
                 </div>
             </template>
         </LDialog>
@@ -113,6 +113,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReButton from '@/components/re/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 
 /**
@@ -701,14 +702,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 所有样式已使用 Tailwind CSS */
-
-/* 上传按钮图标样式 */
-.upload-btn :deep(.btn-icon) {
-    width: 18px;
-    height: 18px;
-    margin-right: 6px;
-    display: inline-block;
-    vertical-align: middle;
-}
+/* 样式全部由 Tailwind 工具类 + 组件库基线 re-surface + koi 令牌承担；
+   原先的 .upload-btn / .btn-icon 手写规则已随按钮改造成 ReButton 一并移除。 */
 </style>
