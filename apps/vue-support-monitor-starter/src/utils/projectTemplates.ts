@@ -50,7 +50,8 @@ export function selfSafePattern(entry: string): string {
   if (!base) {
     return '';
   }
-  const esc = base.replace(/[\\+*?()[\]{}|^$]/g, (c) => '\\' + c);
+  // . 也要转义：不转义时 "smoke.jar" 作为正则会连带匹配 "smokeXjar" 这类无关进程
+  const esc = base.replace(/[\\+*?()[\]{}|^$.]/g, (c) => '\\' + c);
   return /[A-Za-z0-9]/.test(esc[0]) ? `[${esc[0]}]${esc.slice(1)}` : esc;
 }
 
