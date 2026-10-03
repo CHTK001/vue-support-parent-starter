@@ -9,10 +9,59 @@
  *   __LOG__     日志文件路径（由日志地址推导，缺省 app.log）
  *   __PATH__    项目地址
  *   __APPNAME__ 应用名（用于 systemd 服务名等，取项目名）
-*   __LOGOP__   日志重定向操作符（> 清空 / >> 追加）
+*   __LOGOP__        日志重定向操作符（> 清空 / >> 追加）
+ *   __SELFPATTERN__  主入口名的自安全匹配模式（见 selfSafePattern），仅停止段兜底用
+ *
+ * 本文件是后端 `com.chua.starter.server.support.util.ProjectScripts` 的前端镜像，
+ * 改任何一侧都必须同步另一侧。原因：后端 `ReleaseServiceImpl#applyDefaultScripts`
+ * 只在脚本字段**为空**时才填默认值（`if (isBlank(project.getStopScript()))`），
+ * 而本表单总是填好并提交非空脚本 —— 也就是说 **UI 建的项目实际用的是这里的模板**，
+ * 后端的同名修复对它不生效。两侧漂移会直接表现为「同一版本、不同建单方式、
+ * 停止与启动行为不一样」。
  */
 
 export type OsKind = 'linux' | 'windows';
+
+/** 正则元字符：与后端 selfSafePattern 的转义集合保持一致 */
+const REGEX_META = '\\+*?()[]{}|^$.';
+
+/**
+ * 生成「自安全」的主入口匹配模式。
+ *
+ * 首字符写成字符类（`smoke.jar` → `[s]moke\.jar`），
+ * 否则 `pgrep -f` / `Get-CimInstance` 会把**执行该脚本的 shell 自身**也匹配进去，
+ * 导致停止脚本自杀、状态脚本永远报 running。
+ *
+ * 与后端 `ProjectScripts#selfSafePattern` 逐行等价：先去目录部分，
+ * 再对正则元字符逐个反斜杠转义（`.` 必须转义，否则 `smoke.jar` 会连带匹配
+ * `smokeXjar` 这类无关进程），最后把首字符包成字符类。
+ *
+ * @param entry 主入口名（可含路径，只取文件名部分）
+ * @returns 自安全匹配模式；入口为空时返回空串
+ */
+export function selfSafePattern(entry: string): string {
+  const trimmed = (entry || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+  const slash = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+  const name = slash >= 0 ? trimmed.slice(slash + 1) : trimmed;
+  if (!name) {
+    return '';
+  }
+  let escaped = '';
+  for (const ch of name) {
+    if (REGEX_META.includes(ch)) {
+      escaped += '\\';
+    }
+    escaped += ch;
+  }
+  const first = escaped.charAt(0);
+  if (/[0-9A-Za-z]/.test(first)) {
+    return `[${first}]${escaped.slice(1)}`;
+  }
+  return escaped;
+}
 
 export interface CommandTemplate {
   /** 模板唯一标识 */
@@ -41,6 +90,11 @@ export interface CommandTemplate {
  * Linux 下通用的 PID 方式停止片段（java/node/python/二进制共用思路）。
  * kill 只发 SIGTERM，JVM/运行时需优雅退出；10 秒内未退出升级为 SIGKILL，
  * 否则「重启」会与旧进程抢 jar 与端口。
+ *
+ * 末尾的兜底段不可省：只按 app.pid 停止在 pid 陈旧（回滚还原备份不会更新 pid、
+ * 异常中断会留下未更新的 pid）时**完全失效**，残留进程会一直占着端口，
+ * 使后续启动 bind 失败 —— 实测出现过三个同类进程并存。
+ * 兜底按 /proc/<pid>/cwd 限定为本项目目录，避免误杀「主入口同名但属于别的项目」的进程。
  */
 const LINUX_PID_STOP = `if [ -f app.pid ]; then
   pid=$(cat app.pid)
@@ -52,16 +106,32 @@ const LINUX_PID_STOP = `if [ -f app.pid ]; then
   done
   kill -9 $pid 2>/dev/null
   rm -f app.pid
-fi`;
+fi
+# >>> ORPHAN_REAPER
+# 兜底：app.pid 陈旧/丢失时回收本项目残留进程。模式首字符用字符类以免匹配到脚本自身；
+# 并限定「工作目录=本项目目录」，避免误杀主入口同名的其它项目。
+if [ -d /proc ] && [ -n '__PATH__' ]; then
+  for __p in $(pgrep -f '__SELFPATTERN__' 2>/dev/null); do
+    [ "$__p" = "$$" ] && continue
+    [ "$(readlink /proc/$__p/cwd 2>/dev/null)" = '__PATH__' ] && kill -9 "$__p" 2>/dev/null
+  done
+else
+  pkill -9 -f '__SELFPATTERN__' 2>/dev/null
+fi
+true
+# <<< ORPHAN_REAPER`;
 
 /**
- * Linux PID 状态片段：内置启动模板都会写 app.pid，故以 app.pid 为准。
- * 仅在无 app.pid 时才按主入口 pgrep，且排除当前 shell 自身
- * （脚本命令行同样含主入口路径，直接 pgrep -f 会误报 running）。
+ * Linux PID 状态片段：内置启动模板都会写 app.pid，故**只以 app.pid 为准**。
+ *
+ * 这里刻意**不**加 `pgrep -f <主入口>` 兜底分支：状态脚本的命令行本身就含主入口路径，
+ * `pgrep -f` 会把执行脚本的 shell 自身也匹配进去，导致永远报 running。
+ * 原先那个 `pgrep -f ... | grep -qv "^$$\\$"` 的写法并不能修正 —— 双引号里 `$$`
+ * 展开成 shell 的 pid、`\$` 是字面量 `$`，拼出来的模式是 `^<pid>$`，
+ * 而 pgrep 输出的是裸 pid 行，永远匹配不上，过滤等于没写。
+ * 与后端 `ProjectScripts` 的 Linux status 模板保持一致。
  */
-const LINUX_PID_STATUS = (entry: string) => `if [ -f app.pid ] && kill -0 $(cat app.pid) 2>/dev/null; then
-  echo running
-elif [ -n '${entry}' ] && pgrep -f '${entry}' 2>/dev/null | grep -qv "^$$\\$"; then
+const LINUX_PID_STATUS = `if [ -f app.pid ] && kill -0 $(cat app.pid) 2>/dev/null; then
   echo running
 else
   echo stopped
@@ -94,7 +164,7 @@ echo $! > app.pid`,
 sleep 2
 ${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ --spring.profiles.active=prod __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
-    status: LINUX_PID_STATUS('__ENTRY__'),
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-fatjar',
@@ -110,7 +180,7 @@ echo $! > app.pid`,
 sleep 2
 ${LINUX_ENTER}nohup java __JVMARGS__ -jar __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
-    status: LINUX_PID_STATUS('__ENTRY__'),
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-binary',
@@ -128,7 +198,7 @@ sleep 2
 ${LINUX_ENTER}chmod +x __ENTRY__;
 nohup ./__ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
-    status: LINUX_PID_STATUS('__ENTRY__'),
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-shell',
@@ -159,7 +229,7 @@ echo $! > app.pid`,
 sleep 2
 ${LINUX_ENTER}nohup node __ENTRY__ __ARGS__ __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
-    status: LINUX_PID_STATUS('node __ENTRY__'),
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-static-nginx',
@@ -196,7 +266,7 @@ echo $! > app.pid`,
 sleep 2
 ${LINUX_ENTER}nohup python3 -m http.server 80 __LOGOP__ __LOG__ 2>&1 &
 echo $! > app.pid`,
-    status: LINUX_PID_STATUS('http.server 80'),
+    status: LINUX_PID_STATUS,
   },
   {
     id: 'linux-python',
@@ -246,9 +316,26 @@ echo $! > app.pid`,
  * Windows 停止片段主体（不含 exit）：
  * 重启 = 主体 + sleep + 启动；独立停止脚本再补 exit 0。
  * 注意：不要把 exit 0 放进主体，否则「重启」脚本会在停止后就退出，启动步永不执行。
+ *
+ * 末尾的 CIM 兜底与 Linux 同理：app.pid 陈旧或丢失时只按 pid 停止完全失效。
+ * Windows 上没有等价于 /proc/<pid>/cwd 的廉价手段，故按命令行匹配；
+ * 为不误伤主入口同名的其它项目，模式走自安全字符类（首字符字符类），
+ * 并排除当前 PowerShell 自身（`-ne $PID`）—— 用 `-like` 通配会误伤且匹配不可控。
+ * 普通用户执行 Get-CimInstance 可能被拒，故整体 try/catch：CIM 不可用时静默跳过，
+ * 不影响按 app.pid 停止这条主路径。
  */
 const WIN_PID_STOP_BODY = `$ErrorActionPreference = 'SilentlyContinue'
-if (Test-Path 'app.pid') { Get-Content 'app.pid' | ForEach-Object { & taskkill.exe /PID $_ /T /F | Out-Null }; Remove-Item 'app.pid' -Force }`;
+if (Test-Path 'app.pid') { Get-Content 'app.pid' | ForEach-Object { & taskkill.exe /PID $_ /T /F | Out-Null }; Remove-Item 'app.pid' -Force }
+# >>> ORPHAN_REAPER
+# 兜底：app.pid 陈旧/丢失时按命令行回收本项目残留进程（CIM 不可用时静默跳过）
+try {
+  $re = '__SELFPATTERN__'
+  foreach ($op in (Get-CimInstance Win32_Process -ErrorAction Stop |
+      Where-Object { $_.CommandLine -and $_.ProcessId -ne $PID -and $_.CommandLine -match $re })) {
+    & taskkill.exe /PID $op.ProcessId /T /F | Out-Null
+  }
+} catch { }
+# <<< ORPHAN_REAPER`;
 
 const WIN_PID_STOP = `${WIN_PID_STOP_BODY}
 exit 0`;
@@ -260,14 +347,27 @@ exit 0`;
 const WIN_STATUS = `if (Test-Path 'app.pid') { if (Get-Process -Id (Get-Content 'app.pid') -ErrorAction SilentlyContinue) { 'running' } else { 'stopped' } } else { 'stopped' }`;
 
 /**
- * Windows 下经 WMI Win32_Process.Create 启动，脱离 WinRM 作业（WinRM 命令结束时
- * Start-Process 产生的进程会被作业回收）。返回的 ProcessId 为 cmd 外壳，停止时
- * taskkill /T 连子进程一并结束。stdout/err 由 cmd 重定向到日志文件。
+ * Windows 下经 WMI Win32_Process.Create 启动，脱离 WinRM/SSH 作业
+ * （会话命令结束时作业被回收，作业内的进程会被一并结束）。
+ * 返回的 ProcessId 为 cmd 外壳，停止时 taskkill /T 连子进程一并结束。
+ * stdout/err 由 cmd 重定向到日志文件。
+ *
+ * WMI 失败时回退 Start-Process：主机安全产品会拦截「经 WMI 创建进程」
+ * （实测 cmd.exe 返回 ReturnValue=2、java.exe 创建后秒死），
+ * 而 Start-Process 正常且能跨会话存活。仅在 WMI 失败时走这条，
+ * 健康主机行为完全不变。
  */
 const winLaunch = (exe: string, buildArgs: string): string => `$all = ${buildArgs}
 $argLine = $all -join ' '
-$cmdLine = 'cmd /c "' + '${exe} ' + $argLine + ' __LOGOP__ "__LOG__" 2>&1' + '"'
+$inner = '${exe} ' + $argLine + ' __LOGOP__ "__LOG__" 2>&1'
+$cmdLine = 'cmd /c ' + $inner
 $r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmdLine; CurrentDirectory = '__PATH__' }
+if ($r.ReturnValue -ne 0) {
+  $wmiCode = $r.ReturnValue
+  $sp = Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c ' + $inner) -WorkingDirectory '__PATH__' -WindowStyle Hidden -PassThru
+  $r = [pscustomobject]@{ ReturnValue = 0; ProcessId = $sp.Id }
+  Write-Output ('WMI 创建进程被拒(code=' + $wmiCode + ')，已回退 Start-Process pid=' + $sp.Id)
+}
 if ($r.ReturnValue -ne 0) { throw ('启动失败 Win32_Process.Create code=' + $r.ReturnValue) }
 $r.ProcessId | Out-File -FilePath 'app.pid' -Encoding ascii
 Write-Output $r.ProcessId`;
@@ -436,9 +536,25 @@ export function fillTemplate(tpl: CommandTemplate, ctx: FillContext) {
     __PATH__: (ctx.path || '').trim(),
     __APPNAME__: (ctx.appName || 'app').trim(),
     __LOGOP__: ctx.logOp || '>',
+    __SELFPATTERN__: selfSafePattern(entry),
   };
-  const apply = (src: string) =>
-    src.replace(/__ENTRY__|__LOG__|__PATH__|__APPNAME__|__LOGOP__/g, (m) => replacements[m] ?? m);
+  const apply = (src: string) => {
+    const filled = src.replace(
+      /__ENTRY__|__LOG__|__PATH__|__APPNAME__|__LOGOP__|__SELFPATTERN__/g,
+      (m) => replacements[m] ?? m,
+    );
+    // 哨兵只是本文件的填充期标记，不能出现在最终下发的脚本里（后端产物里没有）。
+    const stripped = filled.replace(/^# (>>>|<<<) ORPHAN_REAPER$\n?/gm, '');
+    // 入口为空（needEntry=false 且调用方未给 entry）时必须整段剔除孤儿兜底：
+    //   - PowerShell 侧 `-match ''` 会匹配**每一个**进程，兜底段会 taskkill 全机；
+    //   - pgrep -f '' 同样匹配全部进程。
+    // 后端 selfSafePattern 在入口为空时返回空、并直接不生成该段（见 ProjectScripts
+    // #linuxOrphanReaper / #winOrphanReaper），这里必须保持同样语义，不能只替空串。
+    if (replacements.__SELFPATTERN__) {
+      return stripped;
+    }
+    return stripped.replace(/[^\n]*# >>> ORPHAN_REAPER\n[\s\S]*?# <<< ORPHAN_REAPER\n?/g, '');
+  };
   return {
     start: apply(tpl.start),
     stop: apply(tpl.stop),
