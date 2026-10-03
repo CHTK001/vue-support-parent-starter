@@ -852,7 +852,7 @@ function getFileIcon(file: KBFile): string {
 }
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小。
  */
 function formatSize(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -863,7 +863,7 @@ function formatSize(bytes: number): string {
 }
 
 /**
- * 获取状态类�?
+ * 获取状态类型。
  */
 function getStatusType(status: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' {
   const types: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
@@ -904,7 +904,7 @@ function getStatusText(status: string): string {
 
 
 /**
- * 格式化日�?
+ * 格式化日期。
  */
 function formatDate(dateString: string | null): string {
   if (!dateString) return '-'
@@ -1142,7 +1142,7 @@ async function confirmMove() {
 }
 
 /**
- * 从菜单重新处�?
+ * 从菜单重新处理。
  */
 function handleRetryFromMenu() {
   if (contextMenu.value.item) {
@@ -1152,7 +1152,7 @@ function handleRetryFromMenu() {
 }
 
 /**
- * 从菜单删�?
+ * 从菜单删除。
  */
 function handleDeleteFromMenu() {
   if (contextMenu.value.item) {
