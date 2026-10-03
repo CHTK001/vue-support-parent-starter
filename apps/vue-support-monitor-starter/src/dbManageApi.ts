@@ -157,3 +157,148 @@ export const dropDbColumn = (tableName: string, columnName: string, datasourceId
     .noToast(true)
     .query({ datasourceId, database })
     .then(r => unwrap<boolean>(r));
+
+/* ==================== 导入 / 导出（Navicat 向导） ==================== */
+
+/** 导入预览结果（解析文件但不写库） */
+export interface DbImportPreview {
+  /** 解析出的列名（文件里的表头顺序） */
+  columns: string[];
+  /** 预览行 */
+  rows: Record<string, unknown>[];
+  /** 文件内数据总行数（不含表头） */
+  rowCount: number;
+  /** 预览行数上限 */
+  previewSize: number;
+  /** 实际使用的分隔符 */
+  delimiter: string;
+  /** 实际使用的字符集 */
+  encoding: string;
+}
+
+/**
+ * 导入预览：解析文件回显列名与前若干行，**不写库**。
+ *
+ * 用于向导第一步确认「分隔符 / 编码 / 表头识别是否正确」，避免用户配好映射后才发现解析错了。
+ *
+ * @param file      上传的文件
+ * @param format    格式：auto / csv / tsv / json
+ * @param hasHeader 首行是否为表头
+ * @param encoding  字符集名，为空按 UTF-8
+ * @returns 预览结果
+ */
+export const previewDbImport = (file: File, format: string, hasHeader: boolean, encoding?: string) => {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("format", format);
+  form.append("hasHeader", String(hasHeader));
+  if (encoding) {
+    form.append("encoding", encoding);
+  }
+  return http()
+    .post("/ms/monitor/db/import/preview")
+    .noToast(true)
+    .data(form)
+    .then(r => unwrap<DbImportPreview>(r));
+};
+
+/** 导入选项（随 multipart 一起提交的 JSON） */
+export type DbImportOptions = {
+  fileName?: string;
+  format?: string;
+  hasHeader?: boolean;
+  encoding?: string;
+  database?: string;
+  tableName: string;
+  /** 源列名 → 目标列名；未列出的源列忽略 */
+  columnMapping?: Record<string, string>;
+  /** 导入前是否清空目标表（破坏性） */
+  truncateFirst?: boolean;
+  /** 冲突策略：skip / replace */
+  onConflict?: "skip" | "replace";
+  batchSize?: number;
+  datasourceId?: number;
+};
+
+/** 导入统计 */
+export interface DbImportResult {
+  totalRows: number;
+  inserted: number;
+  replaced: number;
+  skipped: number;
+  /** 逐行错误明细（最多 50 条） */
+  errors: string[];
+}
+
+/**
+ * 执行导入：按字段映射把文件写入目标表。
+ *
+ * @param file    上传的文件
+ * @param options 导入选项
+ * @returns 导入统计
+ */
+export const importDbFile = (file: File, options: DbImportOptions) => {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("option", JSON.stringify(options));
+  return http()
+    .post("/ms/monitor/db/import")
+    .noToast(true)
+    .data(form)
+    .then(r => unwrap<DbImportResult>(r));
+};
+
+/** 导出请求 */
+export type DbExportRequest = {
+  tableName: string;
+  format: "csv" | "tsv" | "json" | "xml" | "sql";
+  /** 范围：structure 仅结构 / data 仅数据 / all 结构+数据 */
+  scope: "structure" | "data" | "all";
+  database?: string;
+  datasourceId?: number;
+  /** 数据行上限，<=0 用后端默认（20 万） */
+  limit?: number;
+  where?: string;
+  orderBy?: string;
+  orderDir?: "ASC" | "DESC";
+};
+
+/** 导出结果（内容由前端侧落盘为文件） */
+export interface DbExportResult {
+  content: string;
+  rowCount: number;
+  truncated: boolean;
+  format: string;
+  /** 后端建议的文件名 */
+  fileName: string;
+}
+
+/**
+ * 导出表数据 / 结构。
+ *
+ * @param request 导出请求
+ * @returns 导出内容
+ */
+export const exportDbTable = (request: DbExportRequest) =>
+  http()
+    .post("/ms/monitor/db/export")
+    .noToast(true)
+    .data(request)
+    .then(r => unwrap<DbExportResult>(r));
+
+/** 导出格式与范围的可选值 */
+export interface DbExportOptions {
+  formats: { value: string; label: string }[];
+  scopes: { value: string; label: string }[];
+}
+
+/**
+ * 取导出格式与范围枚举。
+ *
+ * 由后端下发，避免前后端各写一份枚举后漂移。
+ */
+export const fetchDbExportOptions = () =>
+  http()
+    .get("/ms/monitor/db/export/options")
+    .noToast(true)
+    .then(r => unwrap<DbExportOptions>(r));

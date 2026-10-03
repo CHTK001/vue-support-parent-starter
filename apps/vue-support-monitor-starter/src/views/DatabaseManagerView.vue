@@ -23,7 +23,8 @@
         <!-- 内嵌模式不显示数据源下拉：宿主页签已经表明当前浏览的是哪个数据源，
              再放一个下拉会和宿主左栏的选择打架（两个可改同一个值）。 -->
         <template v-if="!embedded">
-          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" style="width: 200px" @change="onDatasourceChange">
+          <!-- 用 watch 而非 @change：ReSelect 不发 change 事件 -->
+          <ReSelect v-model="currentDatasourceId" placeholder="选择数据源" style="width: 200px">
             <ReOption v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
           </ReSelect>
         </template>
@@ -172,7 +173,7 @@
               <span>统计总数</span>
             </label>
             <ReButton type="primary" icon="Plus" :show-text="true" @click="openAddRowDialog">新增行</ReButton>
-            <ReButton icon="Download" :show-text="true" @click="exportTableCsv">导出 CSV</ReButton>
+            <ReButton icon="Download" :show-text="true" @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)">导出</ReButton>
             <ReButton icon="RefreshRight" :show-text="true" @click="refreshTableData">刷新</ReButton>
             <ReButton type="danger" plain icon="Delete" :show-text="true" @click="confirmTruncate(activeTabObj.tableName, activeTabObj.database)">清空表</ReButton>
             <RePagination
@@ -397,13 +398,17 @@
               <span v-else-if="queryResult.rowCount !== undefined" class="dbm-result-message">查询完成，共 {{ queryResult.rowCount }} 行{{ queryResult.truncated ? '（已截断）' : '' }}</span>
               <span v-else-if="queryResult.affectedRows !== undefined" class="dbm-result-message">执行完成，影响 {{ queryResult.affectedRows }} 行</span>
               <span class="dbm-spacer" />
-              <ReButton
+              <ReSelect
                 v-if="queryResult.columns && queryResult.columns.length > 0"
-
-                icon="Download"
-                :show-text="true"
-                @click="exportQueryCsv"
-              >导出 CSV</ReButton>
+                v-model="queryExportFormat"
+                placeholder="导出结果"
+                style="width: 128px"
+              >
+                <ReOption label="导出 CSV" value="csv" />
+                <ReOption label="导出 TSV" value="tsv" />
+                <ReOption label="导出 JSON" value="json" />
+                <ReOption label="导出 XML" value="xml" />
+              </ReSelect>
             </div>
             <ReTable
               v-if="queryResult.columns && queryResult.columns.length > 0"
@@ -462,7 +467,7 @@
           <div class="dbm-context-item" @click="openImportDataFor(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="Upload" :size="14" />导入数据
           </div>
-          <div class="dbm-context-item" @click="exportTableCsvFor(contextMenu.tableName, contextMenu.database)">
+          <div class="dbm-context-item" @click="openExportDialog(contextMenu.tableName, contextMenu.database)">
             <ReIcon name="Download" :size="14" />导出 CSV
           </div>
           <div class="dbm-context-divider" />
@@ -549,7 +554,7 @@
         </div>
         <div class="dbm-form-item">
           <label>字符集</label>
-          <ReSelect v-model="newDbCharset" style="width: 100%" @change="onCharsetChange">
+          <ReSelect v-model="newDbCharset" style="width: 100%">
             <ReOption label="utf8mb4" value="utf8mb4" />
             <ReOption label="utf8" value="utf8" />
             <ReOption label="gbk" value="gbk" />
@@ -568,43 +573,193 @@
     </ReDialog>
 
     <!-- 导入数据弹窗 -->
-    <ReDialog v-model="importVisible" title="导入数据" width="640px">
-      <div class="dbm-create-form">
-        <div class="dbm-form-item">
-          <label>目标库</label>
-          <ReInput :model-value="importDatabase" disabled />
-        </div>
-        <div class="dbm-form-item">
-          <label>目标表</label>
-          <ReSelect v-model="importTableName" filterable placeholder="选择表" style="width: 100%">
-            <ReOption v-for="t in getTablesForDb(importDatabase)" :key="t.name" :label="t.name" :value="t.name" />
-          </ReSelect>
-        </div>
-        <div class="dbm-form-item">
-          <label>数据格式</label>
-          <ReSelect v-model="importFormat" style="width: 100%">
-            <ReOption label="CSV" value="csv" />
-            <ReOption label="JSON 数组" value="json" />
-            <ReOption label="SQL 语句" value="sql" />
-          </ReSelect>
-        </div>
-        <div v-if="importFormat === 'csv'" class="dbm-form-item">
-          <label>跳过表头</label>
-          <ReSwitch v-model="importSkipHeader" />
-        </div>
-        <div class="dbm-form-item">
-          <label>数据内容</label>
-          <ReInput
-            v-model="importData"
-            type="textarea"
-            :rows="8"
-            :placeholder="importFormat === 'sql' ? '多条 INSERT / UPDATE 语句，以分号分隔' : importFormat === 'json' ? '[{&quot;id&quot;:1,&quot;name&quot;:&quot;a&quot;}]' : '列1,列2,列3\n值1,值2,值3'"
+    <ReDialog v-model="importVisible" title="导入向导" width="920px">
+      <div class="dbm-import">
+        <!-- 第 1 步：选文件 + 解析参数 -->
+        <div class="dbm-import-step">
+          <span class="dbm-import-step-no">1</span>
+          <span class="dbm-import-step-title">选择文件</span>
+          <ReButton icon="Upload" :show-text="true" @click="importFileInput?.click()">
+            {{ importFile ? "重新选择" : "选择文件" }}
+          </ReButton>
+          <input
+            ref="importFileInput"
+            type="file"
+            class="dbm-file-input"
+            accept=".csv,.tsv,.tab,.json,.sql,.txt"
+            @change="onImportFilePicked"
           />
+          <span v-if="importFile" class="dbm-import-file">
+            {{ importFile.name }}
+            <em>（{{ importFile.size }} 字节）</em>
+          </span>
+          <span v-else class="dbm-hint">支持 CSV / TSV / JSON 数组 / SQL 脚本</span>
+        </div>
+        <div class="dbm-import-params">
+          <div class="dbm-form-item">
+            <label>格式</label>
+            <!-- ReSelect 只发 update:modelValue，不发 change；用 watch 触发重新解析 -->
+            <ReSelect v-model="importFormat" style="width: 150px">
+              <ReOption label="自动识别" value="auto" />
+              <ReOption label="CSV" value="csv" />
+              <ReOption label="TSV" value="tsv" />
+              <ReOption label="JSON 数组" value="json" />
+              <ReOption label="SQL 脚本" value="sql" />
+            </ReSelect>
+          </div>
+          <div class="dbm-form-item">
+            <label>首行是表头</label>
+            <ReSwitch v-model="importHasHeader" @change="runImportPreview" />
+          </div>
+          <div class="dbm-form-item">
+            <label>字符集</label>
+            <ReSelect v-model="importEncoding" style="width: 150px">
+              <ReOption label="UTF-8" value="" />
+              <ReOption label="GBK" value="GBK" />
+              <ReOption label="GB18030" value="GB18030" />
+              <ReOption label="ISO-8859-1" value="ISO-8859-1" />
+            </ReSelect>
+          </div>
+        </div>
+
+        <!-- 第 2 步：目标与映射 -->
+        <div class="dbm-import-step">
+          <span class="dbm-import-step-no">2</span>
+          <span class="dbm-import-step-title">目标与字段映射</span>
+        </div>
+        <div class="dbm-import-params">
+          <div class="dbm-form-item">
+            <label>目标表</label>
+            <ReSelect v-model="importTableName" filterable placeholder="选择表" style="width: 240px">
+              <ReOption v-for="t in getTablesForDb(importDatabase)" :key="t.name" :label="t.name" :value="t.name" />
+            </ReSelect>
+            <span class="dbm-hint">库：{{ importDatabase }}</span>
+          </div>
+          <div class="dbm-form-item">
+            <label>冲突策略</label>
+            <ReSelect v-model="importConflict" style="width: 190px">
+              <ReOption label="跳过冲突行" value="skip" />
+              <ReOption label="替换冲突行" value="replace" />
+            </ReSelect>
+          </div>
+          <div class="dbm-form-item">
+            <label>每批行数</label>
+            <ReInputNumber v-model="importBatchSize" :min="1" :max="5000" controls-position="right" style="width: 120px" />
+          </div>
+          <div class="dbm-form-item">
+            <label>导入前清空表</label>
+            <ReSwitch v-model="importTruncate" />
+            <span v-if="importTruncate" class="dbm-danger-hint">会删除目标表全部现有数据</span>
+          </div>
+        </div>
+
+        <!-- 预览 + 映射 -->
+        <div v-if="importPreviewing" class="dbm-import-preview-hint">正在解析文件…</div>
+        <div v-else-if="importPreview && importPreview.columns.length" class="dbm-import-preview">
+          <div class="dbm-import-preview-head">
+            已解析 <strong>{{ importPreview.rowCount }}</strong> 行、
+            <strong>{{ importPreview.columns.length }}</strong> 列
+            <span class="dbm-hint">下方逐列配置映射，示例值取自前 {{ importPreview.rows.length }} 行</span>
+            <ReButton icon="Refresh" :show-text="true" @click="runImportPreview">重新解析</ReButton>
+          </div>
+          <ReTable
+            :data="importPreviewRows"
+            :columns="importPreviewColumns"
+            :pagination="false"
+            stripe
+            border
+            height="240px"
+          >
+            <template #col-mapping="{ row }">
+              <div class="dbm-mapping-cell">
+                <span class="dbm-mapping-src">{{ row.__src }}</span>
+                <span class="dbm-mapping-arrow">→</span>
+                <ReSelect v-model="importMapping[row.__src]" size="small" placeholder="不导入" style="width: 130px">
+                  <ReOption label="（不导入）" value="" />
+                  <ReOption v-for="c in importTargetColumns" :key="c" :label="c" :value="c" />
+                </ReSelect>
+              </div>
+            </template>
+          </ReTable>
+          <div v-if="importMappingConflict" class="dbm-danger-hint">映射冲突：{{ importMappingConflict }}</div>
+        </div>
+
+        <!-- 结果与错误报告 -->
+        <div v-if="importResult" class="dbm-import-result">
+          <div class="dbm-import-result-head">
+            总行数 <strong>{{ importResult.totalRows }}</strong>，
+            新增 <strong>{{ importResult.inserted }}</strong>，
+            替换 <strong>{{ importResult.replaced }}</strong>，
+            跳过 <strong>{{ importResult.skipped }}</strong>
+          </div>
+          <div v-if="importResult.errors.length" class="dbm-import-errors">
+            <div class="dbm-import-errors-title">错误明细（最多 50 条）</div>
+            <div v-for="(err, i) in importResult.errors" :key="i" class="dbm-import-error">{{ err }}</div>
+          </div>
         </div>
       </div>
       <template #footer>
-        <ReButton @click="importVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="importing" @click="doImportData">导入</ReButton>
+        <ReButton @click="closeImportWizard">关闭</ReButton>
+        <ReButton
+          type="primary"
+          :loading="importing"
+          :disabled="!importReady"
+          @click="doImportData"
+        >开始导入</ReButton>
+      </template>
+    </ReDialog>
+
+    <!-- 导出向导 -->
+    <ReDialog v-model="exportVisible" title="导出向导" width="560px">
+      <div class="dbm-create-form">
+        <div class="dbm-form-item">
+          <label>目标表</label>
+          <ReInput :model-value="`${exportDatabase}.${exportTable}`" disabled />
+        </div>
+        <div class="dbm-form-item">
+          <label>文件格式</label>
+          <ReSelect v-model="exportFormat" style="width: 100%">
+            <ReOption label="CSV（逗号分隔，Excel 友好）" value="csv" />
+            <ReOption label="TSV（制表符分隔）" value="tsv" />
+            <ReOption label="JSON 数组" value="json" />
+            <ReOption label="XML" value="xml" />
+            <ReOption label="SQL 脚本（可回灌）" value="sql" />
+          </ReSelect>
+        </div>
+        <div class="dbm-form-item">
+          <label>导出范围</label>
+          <ReSelect v-model="exportScope" style="width: 100%">
+            <ReOption label="仅数据" value="data" />
+            <ReOption label="仅结构（建表语句）" value="structure" />
+            <ReOption label="结构 + 数据" value="all" />
+          </ReSelect>
+        </div>
+        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
+          <label>行数上限</label>
+          <ReInputNumber v-model="exportLimit" :min="1" :max="200000" controls-position="right" style="width: 160px" />
+          <span class="dbm-hint">后端硬上限 200000</span>
+        </div>
+        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
+          <label>WHERE 过滤</label>
+          <ReInput v-model="exportWhere" class="dbm-mono" placeholder="留空导出全部；例：status = 1" clearable />
+        </div>
+        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
+          <label>排序</label>
+          <ReSelect v-model="exportOrderBy" filterable clearable placeholder="不排序" style="width: 190px">
+            <ReOption v-for="c in importTargetColumns" :key="c" :label="c" :value="c" />
+          </ReSelect>
+          <ReSelect v-model="exportOrderDir" style="width: 100px">
+            <ReOption label="升序" value="ASC" />
+            <ReOption label="降序" value="DESC" />
+          </ReSelect>
+        </div>
+        <div v-if="exportFormat !== 'sql' && exportScope === 'structure'" class="dbm-danger-hint">
+          结构只有建表语句，请选 SQL 格式
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="exportVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="exporting" @click="doExport">导出并下载</ReButton>
       </template>
     </ReDialog>
   </div>
@@ -729,7 +884,12 @@ import {
   addDbColumn,
   modifyDbColumn,
   dropDbColumn,
+  previewDbImport,
+  importDbFile,
+  exportDbTable,
   type DbIndexInfo,
+  type DbImportPreview,
+  type DbImportResult,
 } from "../dbManageApi";
 
 const route = useRoute();
@@ -1118,14 +1278,51 @@ const createDatabase = async () => {
   }
 };
 
-// ==================== 导入数据 ====================
+// ==================== 导入向导 ====================
+/**
+ * 导入向导（对齐 Navicat）：选文件 → 预览解析结果 → 字段映射 → 执行 + 错误报告。
+ *
+ * <p>解析与写入都走后端 {@code /db/import}，前端**不再拼 SQL**：
+ * 早期实现在前端逐条拼 INSERT 再调 {@code /db/execute}，既绕过了批量写入与
+ * 类型转换，也让「一行坏数据」会中断整批，且 CSV 引号/换行解析不正确。</p>
+ */
 const importVisible = ref(false);
 const importTableName = ref("");
 const importDatabase = ref("");
-const importFormat = ref("csv");
-const importData = ref("");
-const importSkipHeader = ref(true);
+/** 选中的文件（原生 File，不落 base64，省内存） */
+const importFile = ref<File | null>(null);
+/** 格式：auto 让后端按后缀与内容探测 */
+const importFormat = ref("auto");
+/** 首行是否为表头 */
+const importHasHeader = ref(true);
+/** 字符集，空表示 UTF-8 */
+const importEncoding = ref("");
+/** 预览结果（解析但不写库） */
+const importPreview = ref<DbImportPreview | null>(null);
+/** 预览中（调后端解析） */
+const importPreviewing = ref(false);
+/**
+ * 源列名 → 目标列名。
+ *
+ * <p>用 {@code ref} 包普通对象（而非 {@code reactive}）：预填时要**整体替换**这个对象，
+ * {@code ref} 天然支持；改成 {@code reactive} 后逐键赋值不会让已渲染的下拉重算选中值。</p>
+ */
+const importMapping = ref<Record<string, string>>({});
+/** 导入前清空目标表（破坏性） */
+const importTruncate = ref(false);
+/** 冲突策略 */
+const importConflict = ref<"skip" | "replace">("skip");
+/** 每批行数 */
+const importBatchSize = ref(500);
+/** 执行中 */
 const importing = ref(false);
+/** 导入结果（用于展示错误报告） */
+const importResult = ref<DbImportResult | null>(null);
+/** 原生 file input 的 DOM 引用 */
+const importFileInput = ref<HTMLInputElement | null>(null);
+/** 目标表的列（映射下拉候选），按「库.表」缓存 */
+const importColumns = ref<DbColumnInfo[]>([]);
+const importColumnsKey = ref("");
 
 const openImportData = async (tableName?: string, database?: string) => {
   const db = database || activeDatabase.value;
@@ -1140,10 +1337,43 @@ const openImportData = async (tableName?: string, database?: string) => {
   }
   const list = tablesByDb[db] || [];
   importTableName.value = tableName || list[0]?.name || "";
-  importFormat.value = "csv";
-  importData.value = "";
+  importFormat.value = "auto";
+  importFile.value = null;
+  importPreview.value = null;
+  importResult.value = null;
+  importTruncate.value = false;
+  importConflict.value = "skip";
+  importBatchSize.value = 500;
   importVisible.value = true;
+  // 必须主动拉一次结构：映射下拉的候选来自目标表列，
+  // 而列只在**树节点展开**时才缓存。从右键进来时目标表未必展开过，
+  // 不拉一次就会拿到空候选 → 映射全落「不导入」→ 「开始导入」常灰。
+  await loadImportTargetColumns();
 };
+
+/**
+ * 拉取目标表的列，作为字段映射的候选。
+ *
+ * <p>按「库.表」缓存，已缓存直接复用，避免每次开向导都打接口。</p>
+ */
+async function loadImportTargetColumns(): Promise<void> {
+  const db = importDatabase.value;
+  const table = importTableName.value;
+  if (!db || !table) {
+    return;
+  }
+  const key = `${db}.${table}`;
+  if (importColumnsKey.value === key && importColumns.value.length) {
+    return;
+  }
+  try {
+    importColumns.value = (await fetchTableColumns(table, currentDatasourceId.value, db)) || [];
+    importColumnsKey.value = key;
+  } catch (e) {
+    importColumns.value = [];
+    ElMessage.warning(`读取目标表结构失败：${String((e as Error)?.message ?? e)}`);
+  }
+}
 
 /**
  * 工具栏入口：不带参数调用时不能把 MouseEvent 当成表名
@@ -1157,67 +1387,365 @@ const openImportDataFromToolbar = () => openImportData();
  */
 const openImportDataFor = (tableName: string, database: string) => openImportData(tableName || undefined, database);
 
-const doImportData = async () => {
+/**
+ * 目标表的列（映射下拉的候选）。
+ *
+ * <p>用 {@link loadImportTargetColumns} 主动拉的缓存，而不是树节点的展开缓存 ——
+ * 后者只在用户展开过该表节点时有值，从右键入口进来时是空的。</p>
+ */
+const importTargetColumns = computed<string[]>(() => importColumns.value.map(c => c.name));
+
+/**
+ * 是否允许提交导入。
+ *
+ * <p>SQL 脚本没有列概念，只要求「选了文件 + 选了表」；其余格式必须先解析出列，
+ * 否则等于盲写。</p>
+ */
+const importReady = computed(() => {
+  if (!importFile.value || !importTableName.value) return false;
+  if (importFormat.value === "sql" || /\.sql$/i.test(importFile.value.name)) return true;
+  return (importPreview.value?.columns.length ?? 0) > 0;
+});
+
+/** 映射里已选中的目标列（检测两个源列映射到同一目标列） */
+const importMappingConflict = computed(() => {
+  const used = new Map<string, string>();
+  for (const [source, target] of Object.entries(importMapping.value)) {
+    if (!target) continue;
+    if (used.has(target)) return `${used.get(target)} 与 ${source} 都映射到 ${target}`;
+    used.set(target, source);
+  }
+  return "";
+});
+
+/**
+ * 选中文件后自动触发一次预览（用户能立刻看到解析对不对）。
+ * @param event input 的 change 事件
+ */
+function onImportFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement;
+  importFile.value = input.files?.[0] ?? null;
+  importPreview.value = null;
+  importResult.value = null;
+  if (importFile.value) {
+    void runImportPreview();
+  }
+}
+
+/**
+ * 请求后端解析文件（不写库），并按同名列自动预填字段映射。
+ */
+async function runImportPreview(): Promise<void> {
+  const file = importFile.value;
+  if (!file) {
+    ElMessage.warning("请先选择文件");
+    return;
+  }
+  importPreviewing.value = true;
+  try {
+    const preview = await previewDbImport(file, importFormat.value, importHasHeader.value, importEncoding.value || undefined);
+    importPreview.value = preview;
+    // 整体替换成新对象：逐键删除/赋值不会让已渲染的 ReSelect 重算选中值
+    const next: Record<string, string> = {};
+    for (const col of preview.columns) {
+      next[col] = importTargetColumns.value.find(c => c === col) ?? "";
+    }
+    importMapping.value = next;
+  } catch (e) {
+    importPreview.value = null;
+    ElMessage.error(`解析失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    importPreviewing.value = false;
+  }
+}
+
+/**
+ * 切换目标表后重跑映射预填（列集合变了）。
+ */
+/**
+ * 目标表变了 → 拉新表结构并按同名重新预填映射。
+ */
+watch(importTableName, async () => {
+  await loadImportTargetColumns();
+  prefillImportMapping();
+});
+
+/** 切换数据源 → 重载树与库列表 */
+watch(currentDatasourceId, () => {
+  void onDatasourceChange();
+});
+
+/** 新建库对话框里选了字符集 → 刷新可选排序规则 */
+watch(newDbCharset, () => {
+  onCharsetChange();
+});
+
+/**
+ * 解析参数变了 → 自动重新解析。
+ *
+ * <p>用 watch 而不是模板上的 {@code @change}：{@code ReSelect} 只发
+ * {@code update:modelValue}，**不发 {@code change}**（见 packages/ui 的 ReSelect
+ * 两个 layout 都只 emit 了 update:modelValue）。挂 {@code @change} 会静默不触发，
+ * 表现为「换了格式/字符集但预览不变」。</p>
+ */
+watch([importFormat, importEncoding], () => {
+  if (importFile.value) {
+    void runImportPreview();
+  }
+});
+
+/**
+ * 预览结果或目标列变化时按同名预填映射。
+ *
+ * <p>必须双向兜底：选文件触发的 {@link runImportPreview} 与开向导时的
+ * {@link loadImportTargetColumns} 是**并行**的，预览先回来时目标列还没到。
+ * 只在预览里写一次映射会让下拉停在「不导入」——而后端会按同名列兜底，
+ * 于是**界面显示不导入、实际却导入了**，属于误导性 UI。</p>
+ */
+watch([importPreview, importColumns], () => {
+  prefillImportMapping();
+});
+
+/**
+ * 按同名规则预填字段映射（已配置的不覆盖）。
+ *
+ * <p>用 {@code importMapping.value = next} **整体替换**而不是逐键赋值：映射对象是
+ * {@code reactive} 的普通对象，键在渲染之后才动态加进来时，逐键赋值不会让已渲染的
+ * {@code ReSelect} 重算选中值，表现为「下拉里有目标列、当前值却还停在「不导入」」。</p>
+ */
+function prefillImportMapping(): void {
+  const preview = importPreview.value;
+  if (!preview) return;
+  const targets = importTargetColumns.value;
+  const next: Record<string, string> = { ...importMapping.value };
+  let changed = false;
+  for (const col of preview.columns) {
+    if (next[col]) continue;
+    const hit = targets.find(c => c === col);
+    if (hit) {
+      next[col] = hit;
+      changed = true;
+    }
+  }
+  if (changed) {
+    importMapping.value = next;
+  }
+}
+
+/**
+ * 预览表格的数据：**一行一个源列**（左侧是映射下拉，右侧是该列在各预览行里的取值）。
+ *
+ * <p><b>不能直接渲染 {@code preview.rows}</b>：那些行是「数据行」，一行里含所有列，
+ * 而字段映射是「一个源列 → 一个目标列」，粒度不同。直接渲染会让
+ * {@code row.__src} 取到 undefined，映射全写到 {@code "undefined"} 键上，
+ * 界面停在「不导入」而后端却按同名列兜底导入 —— 界面与实际行为不一致。</p>
+ */
+const importPreviewRows = computed(() => {
+  const preview = importPreview.value;
+  if (!preview) return [];
+  const sample = preview.rows[0] ?? {};
+  return preview.columns.map(column => ({
+    __src: column,
+    __sample: sample[column] === null || sample[column] === undefined ? "" : String(sample[column]),
+  }));
+});
+
+/** 预览表的列定义 */
+const importPreviewColumns = computed(() => [
+  { prop: "__src", label: "源列 → 目标列", minWidth: 230, slot: "mapping", fixed: "left" },
+  { prop: "__sample", label: "示例值", minWidth: 180, showOverflowTooltip: true },
+]);
+
+/**
+ * 执行导入。
+ */
+async function doImportData(): Promise<void> {
   if (!importTableName.value) {
     ElMessage.warning("请选择目标表");
     return;
   }
-  if (!importData.value.trim()) {
-    ElMessage.warning("请输入数据内容");
+  if (!importFile.value) {
+    ElMessage.warning("请选择要导入的文件");
     return;
   }
-  importing.value = true;
-  try {
-    const statements: string[] = [];
-    if (importFormat.value === "sql") {
-      for (const raw of importData.value.split(";")) {
-        const stmt = raw.trim();
-        if (stmt) statements.push(stmt);
-      }
-    } else if (importFormat.value === "csv") {
-      const lines = importData.value.trim().split("\n").map(l => l.trim()).filter(l => l);
-      // 首行为表头时按其列名生成 INSERT 列清单（Navicat 行为：列数与表头一致即可，无需覆盖全表列）
-      const headerColumns = importSkipHeader.value && lines.length > 0
-        ? lines[0].split(",").map(c => c.trim()).filter(c => /^[A-Za-z_][A-Za-z0-9_]*$/.test(c))
-        : [];
-      const startIdx = importSkipHeader.value ? 1 : 0;
-      const values = lines.slice(startIdx).map(line => {
-        const fields = line.split(",").map(f => `'${f.trim().replace(/'/g, "''")}'`);
-        return `(${fields.join(", ")})`;
-      });
-      if (values.length > 0) {
-        const columnClause = headerColumns.length > 0
-          ? ` (${headerColumns.map(c => `\`${c}\``).join(", ")})`
-          : "";
-        statements.push(`INSERT INTO \`${importTableName.value}\`${columnClause} VALUES ${values.join(", ")}`);
-      }
-    } else if (importFormat.value === "json") {
-      const data = JSON.parse(importData.value);
-      if (Array.isArray(data) && data.length > 0) {
-        const columns = Object.keys(data[0]);
-        const values = data.map(row => {
-          const vals = columns.map(col => sqlLiteral(row[col]));
-          return `(${vals.join(", ")})`;
-        });
-        statements.push(`INSERT INTO \`${importTableName.value}\` (${columns.map(c => `\`${c}\``).join(", ")}) VALUES ${values.join(", ")}`);
-      }
-    }
-    if (statements.length === 0) {
-      ElMessage.warning("没有解析到可执行的语句，请检查数据内容");
+  // SQL 脚本自带完整语句，**不需要也不应该**配字段映射；
+  // 拿映射去要求用户配置会把它挡在门外（实测报「请至少配置一个字段映射」）。
+  const isSqlScript = importFormat.value === "sql" || /\.sql$/i.test(importFile.value.name);
+  const mapping: Record<string, string> = {};
+  for (const [source, target] of Object.entries(importMapping.value)) {
+    if (target) mapping[source] = target;
+  }
+  if (!isSqlScript) {
+    if (Object.keys(mapping).length === 0) {
+      ElMessage.warning("请至少配置一个字段映射");
       return;
     }
-    for (const stmt of statements) {
-      await executeDbSql(stmt, currentDatasourceId.value, importDatabase.value);
+    if (importMappingConflict.value) {
+      ElMessage.warning(`字段映射有冲突：${importMappingConflict.value}`);
+      return;
     }
-    ElMessage.success(`导入成功，共执行 ${statements.length} 条语句`);
-    importVisible.value = false;
+  }
+  if (importTruncate.value) {
+    try {
+      await ElMessageBox.confirm(
+        `导入前会**清空目标表 ${importTableName.value} 的全部数据**，此操作不可撤销。确定继续？`,
+        "确认清空并导入",
+        { type: "warning", confirmButtonText: "清空并导入", cancelButtonText: "取消" }
+      );
+    } catch {
+      return;
+    }
+  }
+  importing.value = true;
+  importResult.value = null;
+  try {
+    const result = await importDbFile(importFile.value, {
+      fileName: importFile.value.name,
+      format: importFormat.value,
+      hasHeader: importHasHeader.value,
+      encoding: importEncoding.value || undefined,
+      database: importDatabase.value,
+      tableName: importTableName.value,
+      columnMapping: mapping,
+      truncateFirst: importTruncate.value,
+      onConflict: importConflict.value,
+      batchSize: importBatchSize.value,
+      datasourceId: currentDatasourceId.value,
+    });
+    importResult.value = result;
+    const done = result.inserted + result.replaced;
+    if (result.skipped > 0) {
+      ElMessage.warning(`导入完成：成功 ${done} 行，跳过 ${result.skipped} 行（见下方错误报告）`);
+    } else {
+      ElMessage.success(`导入完成：成功 ${done} 行`);
+    }
     openTableData(importTableName.value, importDatabase.value);
   } catch (e) {
     ElMessage.error(`导入失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
     importing.value = false;
   }
+}
+
+/** 关闭向导并清掉临时状态 */
+function closeImportWizard(): void {
+  importVisible.value = false;
+  resetImportWizard();
+}
+
+/**
+ * 清空向导的临时状态。
+ *
+ * <p>不能挂在 ReDialog 的关闭事件上：该组件只发 {@code ok / cancel / update:modelValue /
+ * close-fab / fullscreen-change}，**没有 {@code closed}**，挂上去不会触发。
+ * 改为 watch 可见性，点右上角 ×、按 ESC、点遮罩都能清干净。</p>
+ */
+function resetImportWizard(): void {
+  importFile.value = null;
+  importPreview.value = null;
+  importResult.value = null;
+  if (importFileInput.value) {
+    // 清掉已选文件，否则同名文件再选一次不会触发 change
+    importFileInput.value.value = "";
+  }
+}
+
+watch(importVisible, visible => {
+  if (!visible) {
+    resetImportWizard();
+  }
+});
+
+// ==================== 导出向导 ====================
+/**
+ * 导出对话框（对齐 Navicat）：格式 + 范围 + 过滤条件。
+ *
+ * <p>导出走后端 {@code /db/export}，不再受「当前页 1000 行」限制；
+ * 早期实现只在前端把当前页拼成 CSV，右键导出的表数据实际只有第一页。</p>
+ */
+const exportVisible = ref(false);
+const exportTable = ref("");
+const exportDatabase = ref("");
+const exportFormat = ref<"csv" | "tsv" | "json" | "xml" | "sql">("csv");
+const exportScope = ref<"structure" | "data" | "all">("data");
+const exportWhere = ref("");
+const exportOrderBy = ref("");
+const exportOrderDir = ref<"ASC" | "DESC">("ASC");
+const exportLimit = ref(10000);
+const exporting = ref(false);
+
+/** 从工具栏/右键打开导出对话框 */
+function openExportDialog(tableName?: string, database?: string): void {
+  if (!tableName) {
+    ElMessage.warning("请先选择要导出的表");
+    return;
+  }
+  exportTable.value = tableName;
+  exportDatabase.value = database || activeDatabase.value;
+  exportFormat.value = "csv";
+  exportScope.value = "data";
+  exportWhere.value = "";
+  exportOrderBy.value = "";
+  exportOrderDir.value = "ASC";
+  exportLimit.value = 10000;
+  exportVisible.value = true;
+}
+
+/** 把后端返回的内容落盘为文件 */
+function downloadText(filename: string, content: string, mime: string): void {
+  // CSV 带 BOM，Excel 打开中文才不乱码
+  const needsBom = mime.includes("csv");
+  const blob = new Blob([needsBom ? "\ufeff" : "", content], { type: `${mime};charset=utf-8;` });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+/** 导出格式 → MIME 与是否结构化（结构化格式的 scope 强制为结构） */
+const EXPORT_MIME: Record<string, string> = {
+  csv: "text/csv",
+  tsv: "text/tab-separated-values",
+  json: "application/json",
+  xml: "application/xml",
+  sql: "application/sql",
 };
+
+/**
+ * 执行导出并下载。
+ */
+async function doExport(): Promise<void> {
+  if (!exportTable.value) return;
+  exporting.value = true;
+  try {
+    const result = await exportDbTable({
+      tableName: exportTable.value,
+      format: exportFormat.value,
+      scope: exportScope.value,
+      database: exportDatabase.value,
+      datasourceId: currentDatasourceId.value,
+      limit: exportLimit.value,
+      where: exportWhere.value || undefined,
+      orderBy: exportOrderBy.value || undefined,
+      orderDir: exportOrderDir.value,
+    });
+    if (!result.content) {
+      ElMessage.warning("没有可导出的内容");
+      return;
+    }
+    downloadText(result.fileName || `${exportTable.value}.${exportFormat.value}`, result.content,
+      EXPORT_MIME[exportFormat.value] ?? "text/plain");
+    ElMessage.success(
+      `已导出 ${result.rowCount} 行${result.truncated ? `（达到上限 ${exportLimit.value} 行，已截断）` : ""}`
+    );
+    exportVisible.value = false;
+  } catch (e) {
+    ElMessage.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    exporting.value = false;
+  }
+}
 
 // ==================== 行编辑 ====================
 /** 值 → SQL 字面量：NULL 必须还原为 NULL 关键字，包成 'null' 会把字符串写进库 */
@@ -2593,51 +3121,76 @@ async function showTableDdl(tableName: string, database?: string): Promise<void>
   ddlVisible.value = true;
 }
 
-/** 导出查询结果为 CSV */
-function exportQueryCsv(): void {
+/**
+ * 查询结果的导出格式。
+ *
+ * <p>初值空串（显示 placeholder），而不是 {@code "csv"}：下拉选中项会直接导出，
+ * 若初值就是 {@code "csv"}，用户选「导出 CSV」属于**同值**，
+ * el-select 的 {@code change} 不会触发，表现为「点了没反应」。</p>
+ */
+const queryExportFormat = ref<"" | "csv" | "tsv" | "json" | "xml">("");
+
+/**
+ * 选中某个导出格式就立刻导出。
+ *
+ * <p>同样不能用 {@code @change}：{@code ReSelect} 不发该事件。</p>
+ */
+watch(queryExportFormat, format => {
+  if (format) {
+    exportQueryCsv(format);
+  }
+});
+
+/** 查询结果变化时复位，让下一次选择一定触发 */
+watch(() => queryResult.columns, () => {
+  queryExportFormat.value = "";
+});
+
+/**
+ * 导出查询结果（客户端生成，结果集已在内存，无需回后端）。
+ *
+ * @param format 目标格式；SQL 格式对查询结果无意义，故不提供
+ */
+function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
   const cols = queryResult.columns ?? [];
   const rows = queryResult.rows ?? [];
   if (!cols.length) {
     ElMessage.warning("没有可导出的查询结果");
     return;
   }
-  const lines = [cols.join(",")];
-  for (const row of rows) {
-    lines.push(cols.map(c => `"${String((row as Record<string, unknown>)[c] ?? "").replace(/"/g, '""')}"`).join(","));
+  const cell = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+  let content: string;
+  if (format === "json") {
+    content = JSON.stringify(
+      rows.map(row => Object.fromEntries(cols.map(c => [c, (row as Record<string, unknown>)[c] ?? null]))),
+      null,
+      2
+    );
+  } else if (format === "xml") {
+    const esc = (s: string): string =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    content = '<?xml version="1.0" encoding="UTF-8"?>\n<rows>\n'
+      + rows.map(row => `  <row>\n${cols.map(c => `    <${c}>${esc(cell((row as Record<string, unknown>)[c]))}</${c}>\n`).join("")}  </row>\n`).join("")
+      + "</rows>\n";
+  } else {
+    const sep = format === "tsv" ? "\t" : ",";
+    const quote = (v: string): string =>
+      (format === "csv" && (v.includes(",") || v.includes('"') || v.includes("\n") || v.trim() !== v))
+        ? `"${v.replace(/"/g, '""')}"`
+        : v;
+    content = [cols.join(sep)]
+      .concat(rows.map(row => cols.map(c => quote(cell((row as Record<string, unknown>)[c]))).join(sep)))
+      .join("\n");
   }
-  const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `query-result-${Date.now()}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  downloadText(`query-result-${Date.now()}.${format}`, content, EXPORT_MIME[format] ?? "text/plain");
   ElMessage.success(`已导出 ${rows.length} 行`);
-}
-
-/**
- * 导出指定表为 CSV（最多 1000 行，不依赖当前页签）
- * @param tableName 表名
- * @param database  所属库
- */
-async function exportTableCsvFor(tableName: string, database?: string): Promise<void> {
-  if (!tableName) return;
-  try {
-    const result = await fetchTableData(tableName, 1, 1000, undefined, undefined, currentDatasourceId.value, database);
-    const cols = result?.columns ?? [];
-    const lines = [cols.join(",")];
-    for (const row of result?.rows ?? []) {
-      lines.push(cols.map(col => `"${String((row as Record<string, unknown>)[col] ?? "").replace(/"/g, '""')}"`).join(","));
-    }
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${tableName}-${Date.now()}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    ElMessage.success(`已导出 ${(result?.rows ?? []).length} 行（上限 1000）`);
-  } catch (e) {
-    ElMessage.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
-  }
+  // 复位成空：否则连续导出同一格式第二次是同值，change 不再触发
+  queryExportFormat.value = "";
 }
 
 onMounted(() => {
@@ -2960,6 +3513,93 @@ onBeforeUnmount(() => {
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
 .dbm-simple-pager { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ============================================================
+   导入 / 导出向导
+   ============================================================ */
+.dbm-import { display: flex; flex-direction: column; gap: 12px; padding: 14px 18px 4px; }
+
+/* 步骤条：编号圆点 + 标题 */
+.dbm-import-step { display: flex; align-items: center; gap: 8px; }
+.dbm-import-step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+.dbm-import-step-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+
+/* 原生 file input 藏起来，由按钮触发（ReUpload 不在组件库里） */
+.dbm-file-input { display: none; }
+.dbm-import-file { font-size: 13px; color: var(--el-text-color-regular); }
+.dbm-import-file em { font-style: normal; color: var(--el-text-color-placeholder); font-size: 12px; }
+
+/* 参数行：横向铺开，窄屏自动换行 */
+.dbm-import-params {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+.dbm-import-params .dbm-form-item { flex-direction: row; align-items: center; gap: 8px; }
+.dbm-import-params .dbm-form-item label { white-space: nowrap; }
+
+.dbm-import-preview-hint { padding: 20px 0; text-align: center; color: var(--el-text-color-placeholder); font-size: 13px; }
+.dbm-import-preview { display: flex; flex-direction: column; gap: 8px; }
+.dbm-import-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+/* 映射单元：源列 → 目标列下拉 */
+.dbm-mapping-cell { display: flex; align-items: center; gap: 6px; }
+.dbm-mapping-src {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-mapping-arrow { color: var(--el-text-color-placeholder); }
+
+.dbm-danger-hint { font-size: 12px; color: var(--el-color-danger); }
+
+/* 导入结果与错误报告 */
+.dbm-import-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-fill-color-lighter);
+}
+.dbm-import-result-head { font-size: 13px; color: var(--el-text-color-regular); }
+.dbm-import-errors {
+  max-height: 140px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dbm-import-errors-title { font-size: 12px; font-weight: 600; color: var(--el-color-danger); }
+.dbm-import-error {
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
+}
 
 /* 过滤条（Navicat WHERE + 批量操作） */
 .dbm-filter-bar {
