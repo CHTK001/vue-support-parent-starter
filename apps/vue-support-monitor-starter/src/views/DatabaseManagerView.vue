@@ -338,6 +338,8 @@
                 :disabled="designDirtyCount === 0"
                 @click="saveDesignAll"
               >保存{{ designDirtyCount > 0 ? `（${designDirtyCount}）` : "" }}</ReButton>
+              <ReButton icon="Setting" :show-text="true" @click="openTableOptionsDialog">表属性</ReButton>
+              <ReButton icon="Key" :show-text="true" @click="openPkDialog">主键</ReButton>
               <ReButton icon="RefreshRight" :show-text="true" @click="reloadDesignArea">刷新</ReButton>
               <span class="dbm-hint">单元格可直接编辑，改动行高亮，保存后生效</span>
             </div>
@@ -360,7 +362,7 @@
                 :class="{ dirty: isDesignDirty(row) }"
               >
                 <span class="dbm-dgrid-idx">{{ i + 1 }}</span>
-                <ReInput v-model="row.name" class="dbm-mono" />
+                <ReInput v-model="row.name" class="dbm-mono" @dblclick="openColumnDialog('edit', row)" />
                 <ReSelect v-model="row.type" :options="columnTypeOptions.map(t => ({ label: t, value: t }))" />
                 <ReInputNumber v-model="row.size" :min="1" :max="65535" controls-position="right" style="width: 100%" />
                 <ReSwitch v-model="row.nullable" />
@@ -368,6 +370,12 @@
                 <ReInput v-model="row.defaultValue" class="dbm-mono" placeholder="默认值" />
                 <ReInput v-model="row.comment" placeholder="注释" />
                 <span class="dbm-dgrid-ops">
+                  <ReButton
+                    icon="Setting"
+                    layout="square"
+                    title="列属性"
+                    @click="openColumnDialog('edit', row)"
+                  />
                   <ReButton
                     icon="Check"
                     layout="square"
@@ -918,56 +926,266 @@
     </template>
   </ReDialog>
 
-  <!-- 新增/修改列弹窗 -->
-  <ReDialog v-model="columnDialogVisible" :title="columnDialogMode === 'add' ? '新增列' : '修改列'" width="560px">
-    <ReForm label-width="100px">
-      <ReFormItem label="列名">
+  <!-- 新增/修改列弹窗：属性维度对齐 Navicat「列属性」页 -->
+  <ReDialog
+    v-model="columnDialogVisible"
+    :title="columnDialogMode === 'add' ? '新增列' : '修改列'"
+    width="640px"
+  >
+    <div class="dbm-create-form">
+      <div class="dbm-form-item">
+        <label>列名</label>
         <ReInput v-model="columnForm.columnName" :disabled="columnDialogMode === 'edit'" placeholder="请输入列名" />
-      </ReFormItem>
-      <ReFormItem label="类型">
-        <ReSelect v-model="columnForm.type" style="width: 100%">
-          <ReOption v-for="t in columnTypeOptions" :key="t" :label="t" :value="t" />
-        </ReSelect>
-      </ReFormItem>
-      <ReFormItem v-if="columnForm.type === 'VARCHAR' || columnForm.type === 'DECIMAL'" label="长度">
-        <ReInputNumber v-model="columnForm.size" :min="1" :max="65535" style="width: 100%" />
-      </ReFormItem>
-      <ReFormItem label="可空">
+      </div>
+      <div class="dbm-form-item">
+        <label>类型</label>
+        <ReSelect v-model="columnForm.type" filterable :options="columnTypeSelectOptions" />
+      </div>
+      <div v-if="columnNeedsSize" class="dbm-form-item">
+        <label>长度</label>
+        <ReInputNumber v-model="columnForm.size" :min="1" :max="65535" controls-position="right" />
+      </div>
+      <div v-if="columnAllowsScale" class="dbm-form-item">
+        <label>小数位</label>
+        <ReInputNumber v-model="columnForm.scale" :min="0" :max="30" controls-position="right" />
+      </div>
+      <div v-if="columnAllowsUnsigned" class="dbm-form-item">
+        <label>无符号</label>
+        <ReSwitch v-model="columnForm.unsigned" />
+      </div>
+      <div
+        v-if="columnForm.unsigned && columnForm.type !== 'FLOAT' && columnForm.type !== 'DOUBLE'"
+        class="dbm-form-item"
+      >
+        <label>补零</label>
+        <ReSwitch v-model="columnForm.zerofill" />
+      </div>
+      <div v-if="columnIsEnum" class="dbm-form-item">
+        <label>{{ columnForm.type === "SET" ? "集合取值" : "枚举取值" }}</label>
+        <ReInput
+          v-model="columnForm.enumValues"
+          type="textarea"
+          :rows="3"
+          placeholder="每行一个取值，也可用逗号分隔。例：待审&#10;通过&#10;驳回"
+        />
+      </div>
+      <template v-if="columnIsChar">
+        <div class="dbm-form-item">
+          <label>字符集</label>
+          <ReSelect
+            v-model="columnForm.charset"
+            filterable
+            clearable
+            placeholder="留空则跟随表"
+            :options="charsetOptions"
+            @update:model-value="onColumnCharsetChange"
+          />
+        </div>
+        <div class="dbm-form-item">
+          <label>排序规则</label>
+          <ReSelect
+            v-model="columnForm.collation"
+            filterable
+            clearable
+            placeholder="留空则跟随表"
+            :options="columnCollationOptions.map(c => ({ label: c.collation, value: c.collation }))"
+          />
+        </div>
+      </template>
+      <div class="dbm-form-item">
+        <label>可空</label>
         <ReSwitch v-model="columnForm.nullable" />
-      </ReFormItem>
-      <ReFormItem label="默认值">
+      </div>
+      <div v-if="columnAllowsUnsigned" class="dbm-form-item">
+        <label>自动递增</label>
+        <ReSwitch v-model="columnForm.autoIncrement" />
+      </div>
+      <div class="dbm-form-item">
+        <label>默认值</label>
         <ReInput v-model="columnForm.defaultValue" placeholder="留空则不设置默认值" />
-      </ReFormItem>
-      <ReFormItem label="注释">
+      </div>
+      <div v-if="/DATE|TIME/.test(columnForm.type)" class="dbm-form-item">
+        <label>自动更新</label>
+        <ReSelect
+          v-model="columnForm.onUpdate"
+          :options="onUpdateOptions"
+        />
+      </div>
+      <div class="dbm-form-item">
+        <label>注释</label>
         <ReInput v-model="columnForm.comment" placeholder="列注释（可选）" />
-      </ReFormItem>
-    </ReForm>
+      </div>
+    </div>
     <template #footer>
       <ReButton @click="columnDialogVisible = false">取消</ReButton>
       <ReButton type="primary" @click="saveColumn">保存</ReButton>
     </template>
   </ReDialog>
 
-  <!-- 新建索引弹窗 -->
-  <ReDialog v-model="indexDialogVisible" title="新建索引" width="520px">
-    <ReForm label-width="100px">
-      <ReFormItem label="索引名">
+  <!-- 新建索引弹窗：类型 / 列序 / 前缀长度 / 主键索引 -->
+  <ReDialog v-model="indexDialogVisible" title="新建索引" width="600px">
+    <div class="dbm-create-form">
+      <div v-if="!indexForm.primary" class="dbm-form-item">
+        <label>索引名</label>
         <ReInput v-model="indexForm.indexName" placeholder="请输入索引名" />
-      </ReFormItem>
-      <ReFormItem label="索引列">
-        <ReSelect v-model="indexForm.columns" multiple style="width: 100%" placeholder="可多选">
-          <ReOption v-for="c in designColumns" :key="c.name" :label="c.name" :value="c.name" />
-        </ReSelect>
-      </ReFormItem>
-      <ReFormItem label="唯一索引">
+      </div>
+      <div class="dbm-form-item">
+        <label>索引类型</label>
+        <ReSelect v-model="indexForm.indexType" :options="indexTypeOptions" />
+      </div>
+      <div class="dbm-form-item">
+        <label>索引列</label>
+        <div class="dbm-idx-cols">
+          <ReSelect
+            v-model="indexForm.columns"
+            multiple
+            placeholder="可多选；选择顺序即复合索引的列序"
+            :options="designColumnOptions"
+          />
+          <div v-if="indexForm.columns.length > 1" class="dbm-idx-order">
+            <span class="dbm-idx-order-label">列序</span>
+            <span v-for="(c, i) in indexForm.columns" :key="c" class="dbm-idx-order-item">
+              <span class="dbm-idx-order-no">{{ i + 1 }}</span>{{ c }}
+              <button
+                type="button"
+                class="dbm-idx-order-move"
+                aria-label="把该列上移"
+                :disabled="i === 0"
+                @click="moveIndexColumn(i, -1)"
+              >
+                <ReIcon name="ArrowUp" :size="11" />
+              </button>
+              <button
+                type="button"
+                class="dbm-idx-order-move"
+                aria-label="把该列下移"
+                :disabled="i === indexForm.columns.length - 1"
+                @click="moveIndexColumn(i, 1)"
+              >
+                <ReIcon name="ArrowDown" :size="11" />
+              </button>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div v-if="indexForm.columns.length > 0" class="dbm-form-item">
+        <label>前缀长度</label>
+        <div class="dbm-idx-prefix">
+          <div v-for="(c, i) in indexForm.columns" :key="c" class="dbm-idx-prefix-row">
+            <span class="dbm-idx-order-no">{{ i + 1 }}</span>
+            <span class="dbm-mono dbm-idx-prefix-name">{{ c }}</span>
+            <ReInputNumber
+              v-model="indexForm.prefixes[i]"
+              :min="0"
+              :max="3072"
+              size="small"
+              controls-position="right"
+            />
+          </div>
+          <span class="dbm-hint">0 表示整列（仅字符 / 二进制列可用前缀）</span>
+        </div>
+      </div>
+      <div v-if="!indexForm.primary" class="dbm-form-item">
+        <label>唯一索引</label>
         <ReSwitch v-model="indexForm.unique" />
-      </ReFormItem>
-    </ReForm>
+      </div>
+      <div class="dbm-form-item">
+        <label>设为主键</label>
+        <ReSwitch v-model="indexForm.primary" />
+      </div>
+    </div>
       <template #footer>
         <ReButton @click="indexDialogVisible = false">取消</ReButton>
-        <ReButton type="primary" @click="saveIndex">创建</ReButton>
+        <ReButton type="primary" @click="saveIndex">{{ indexForm.primary ? "设为主键" : "创建" }}</ReButton>
       </template>
     </ReDialog>
+
+  <!-- 表属性弹窗 -->
+  <ReDialog v-model="optionsDialogVisible" title="表属性" width="560px">
+    <div class="dbm-create-form">
+      <div class="dbm-form-item">
+        <label>存储引擎</label>
+        <ReSelect v-model="optionsForm.engine" filterable :options="engineOptions" />
+      </div>
+      <div class="dbm-form-item">
+        <label>字符集</label>
+        <ReSelect
+          v-model="optionsForm.charset"
+          filterable
+          clearable
+          placeholder="留空则不改"
+          :options="charsetOptions"
+          @update:model-value="onOptionsCharsetChange"
+        />
+      </div>
+      <div class="dbm-form-item">
+        <label>排序规则</label>
+        <ReSelect
+          v-model="optionsForm.collation"
+          filterable
+          clearable
+          placeholder="留空则不改"
+          :options="optionsCollationOptions"
+        />
+      </div>
+      <div class="dbm-form-item">
+        <label>自增起始</label>
+        <ReInputNumber v-model="optionsForm.autoIncrement" :min="1" placeholder="不设置则不改" />
+      </div>
+      <div class="dbm-form-item">
+        <label>表注释</label>
+        <ReInput v-model="optionsForm.comment" type="textarea" :rows="2" placeholder="表注释（可选）" />
+      </div>
+    </div>
+    <template #footer>
+      <ReButton @click="optionsDialogVisible = false">取消</ReButton>
+      <ReButton type="primary" :loading="optionsSaving" @click="saveTableOptions">保存</ReButton>
+    </template>
+  </ReDialog>
+
+  <!-- 主键设置弹窗 -->
+  <ReDialog v-model="pkDialogVisible" title="设置主键" width="520px">
+    <div class="dbm-pk-hint">
+      按住列名拖动可调整顺序，<strong>顺序即复合主键的列序</strong>；不选任何列表示清除主键。
+    </div>
+    <ReSelect
+      v-model="pkDialogColumns"
+      multiple
+      style="width: 100%"
+      placeholder="选择构成主键的列"
+      :options="designColumns.map(c => ({ label: c.name, value: c.name }))"
+    />
+    <div v-if="pkDialogColumns.length > 1" class="dbm-idx-order">
+      <span class="dbm-idx-order-label">列序</span>
+      <span v-for="(c, i) in pkDialogColumns" :key="c" class="dbm-idx-order-item">
+        <span class="dbm-idx-order-no">{{ i + 1 }}</span>{{ c }}
+        <button
+          type="button"
+          class="dbm-idx-order-move"
+          aria-label="把该列上移"
+          :disabled="i === 0"
+          @click="movePkColumn(i, -1)"
+        >
+          <ReIcon name="ArrowUp" :size="11" />
+        </button>
+        <button
+          type="button"
+          class="dbm-idx-order-move"
+          aria-label="把该列下移"
+          :disabled="i === pkDialogColumns.length - 1"
+          @click="movePkColumn(i, 1)"
+        >
+          <ReIcon name="ArrowDown" :size="11" />
+        </button>
+      </span>
+    </div>
+    <template #footer>
+      <ReButton @click="pkDialogVisible = false">取消</ReButton>
+      <ReButton type="primary" :loading="pkSaving" @click="savePrimaryKey">
+        {{ pkDialogColumns.length === 0 ? '清除主键' : '保存主键' }}
+      </ReButton>
+    </template>
+  </ReDialog>
 
     <!-- 建表语句弹窗 -->
     <ReDialog v-model="ddlVisible" title="建表语句" width="680px">
@@ -1037,6 +1255,11 @@ import {
   type DbImportResult,
   type DbObjectCategory,
   type DbObjectInfo,
+  type DbCollationItem,
+  fetchDbTableOptions,
+  updateDbTableOptions,
+  fetchDbTableOptionValues,
+  setDbTablePrimaryKey,
 } from "../dbManageApi";
 
 const route = useRoute();
@@ -2281,7 +2504,38 @@ const tableColumns = computed<Column[]>(() =>
 );
 
 // ==================== 表设计（可编辑网格，Navicat 风格） ====================
-/** 设计行：包含原始值快照用于脏检测 */
+/**
+ * 「列属性」弹窗的入参形状。
+ *
+ * <p>刻意用结构化窄类型而不是让 {@link DesignRow} `extends DbColumnInfo` ——
+ * 两者对 `size` 的声明不一致（网格用 `number | null` 表示「无长度」，
+ * 接口用 `number`），`extends` 会直接报 TS2430。
+ * 这里只列弹窗真正要读的字段，于是 `DbColumnInfo`（接口层返回）与
+ * `DesignRow`（网格行）都能满足同一个签名。</p>
+ */
+interface ColumnAttrSource {
+  name: string;
+  type?: string;
+  default?: string;
+  remark?: string;
+  nullable?: boolean;
+  baseType?: string;
+  unsigned?: boolean;
+  zerofill?: boolean;
+  autoIncrement?: boolean;
+  charset?: string;
+  collation?: string;
+  enumValues?: string[];
+  scale?: number;
+}
+
+/**
+ * 设计行：包含原始值快照用于脏检测。
+ *
+ * <p>除表格里显示的几列外，还带上了列的**完整属性**（无符号 / 字符集 / 自增 /
+ * 枚举取值等）。这些在网格里不显示，但「列属性」弹窗要靠它们回填 ——
+ * 若不带上，打开弹窗只能看到空值，用户一点保存就把属性全清掉。</p>
+ */
 interface DesignRow {
   originalName: string;
   name: string;
@@ -2291,6 +2545,16 @@ interface DesignRow {
   isPrimaryKey: boolean;
   defaultValue: string;
   comment: string;
+  default?: string;
+  remark?: string;
+  baseType?: string;
+  unsigned?: boolean;
+  zerofill?: boolean;
+  autoIncrement?: boolean;
+  charset?: string;
+  collation?: string;
+  enumValues?: string[];
+  scale?: number;
   origin: { name: string; type: string; size: number | null; nullable: boolean; defaultValue: string; comment: string };
 }
 
@@ -2557,11 +2821,19 @@ async function submitAddForeignKey(): Promise<void> {
 /**
  * 删除一个外键。
  *
+ * <p>必须先判 {@code row.fkName} 存在：内核对外键名缺失的行仍会返回一条记录，
+ * 拿 undefined 去拼路径会退化成删「表名/foreign-key/undefined」，
+ * 报一个与真实原因无关的 404。</p>
+ *
  * @param row 外键行
  */
 async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
   const tab = activeTabObj.value;
   if (!tab?.tableName || !tab.database) return;
+  if (!row.fkName) {
+    ElMessage.warning("该外键没有名称，无法删除");
+    return;
+  }
   try {
     await ElMessageBox.confirm(`确定删除外键「${row.fkName}」？`, "确认删除", { type: "warning" });
   } catch {
@@ -2600,13 +2872,189 @@ async function loadForeignKeys(): Promise<void> {
 // 列编辑弹窗
 const columnDialogVisible = ref(false);
 const columnDialogMode = ref<"add" | "edit">("add");
-const columnTypeOptions = ["VARCHAR", "INT", "BIGINT", "TEXT", "DATETIME", "DECIMAL", "FLOAT", "DOUBLE", "BOOLEAN", "BLOB"];
-const columnForm = reactive({ columnName: "", type: "VARCHAR", size: 255, nullable: true, defaultValue: "", comment: "" });
-const editingDesignColumn = ref<DbColumnInfo | null>(null);
+
+/**
+ * 列类型全集（按类别分组，与后端 `DbColumnDef.SUPPORTED_TYPES` 对齐）。
+ *
+ * <p>此前只有 10 种，用户想建 ENUM / JSON / MEDIUMINT 时根本选不到，
+ * 只能去别处改结构。按类别分组是为了下拉可读，不是为了分批请求。</p>
+ */
+const COLUMN_TYPE_GROUPS: Array<{ label: string; types: string[] }> = [
+  { label: "整数", types: ["TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT"] },
+  { label: "布尔 / 位", types: ["BIT", "BOOL", "BOOLEAN"] },
+  { label: "定点 / 浮点", types: ["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION"] },
+  { label: "字符", types: ["CHAR", "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT"] },
+  { label: "二进制", types: ["BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB"] },
+  { label: "日期时间", types: ["DATE", "TIME", "DATETIME", "TIMESTAMP", "YEAR"] },
+  { label: "枚举 / 集合", types: ["ENUM", "SET"] },
+  { label: "JSON", types: ["JSON"] },
+];
+const columnTypeOptions = COLUMN_TYPE_GROUPS.flatMap(g => g.types);
+
+/**
+ * 列类型下拉项（ReSelect 用 `group` 字段做分组标题，不是 el-option-group）。
+ *
+ * <p>分组是可计算属性而不是常量：`openColumnDialog` 在遇到后端类型表以外的类型时
+ * 会往分组里补一条「其他」，若下拉项是常量快照就看不到新补的项。</p>
+ */
+const columnTypeSelectOptions = computed(() =>
+  COLUMN_TYPE_GROUPS.flatMap(g => g.types.map(t => ({ label: t, value: t, group: g.label })))
+);
+
+/** 允许 UNSIGNED 的类型（与后端 UNSIGNED_ALLOWED 一致，用于置灰而不是让用户试错） */
+const UNSIGNED_ALLOWED = new Set([
+  "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT",
+  "DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "BIT", "YEAR",
+]);
+/** 需要长度输入的类型 */
+const SIZE_REQUIRED = new Set(["CHAR", "VARCHAR", "BINARY", "VARBINARY", "DECIMAL", "NUMERIC"]);
+/** 允许小数位的类型 */
+const SCALE_ALLOWED = new Set(["DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL"]);
+/** ON UPDATE 可选值（后端只放行这几个） */
+const ON_UPDATE_OPTIONS = ["", "CURRENT_TIMESTAMP", "NOW()", "CURRENT_TIMESTAMP(3)", "CURRENT_TIMESTAMP(6)"];
+/** ON UPDATE 下拉项 */
+const onUpdateOptions = ON_UPDATE_OPTIONS.map(v => ({ label: v || "不设置", value: v }));
+/** 索引类型下拉项（空 = 由内核决定） */
+const indexTypeOptions = ["", "BTREE", "HASH", "RTREE"].map(v => ({
+  label: v || "默认（内核决定）",
+  value: v,
+}));
+/** 存储引擎下拉项（内核下发） */
+const engineOptions = computed(() =>
+  tableOptionValues.value.engines.map(e => ({ label: e, value: e }))
+);
+/** 设计视图的列候选（索引列 / 主键列共用） */
+const designColumnOptions = computed(() =>
+  designColumns.value.map(c => ({ label: c.name, value: c.name }))
+);
+
+/** 列属性表单（对齐后端 DbColumnDef 的全部维度） */
+const columnForm = reactive({
+  columnName: "",
+  type: "VARCHAR",
+  size: 255 as number | undefined,
+  scale: undefined as number | undefined,
+  unsigned: false,
+  zerofill: false,
+  charset: "",
+  collation: "",
+  nullable: true,
+  defaultValue: "",
+  onUpdate: "",
+  autoIncrement: false,
+  /** ENUM / SET 取值：用换行分隔录入，避免为每个取值再做一个输入框 */
+  enumValues: "",
+  comment: "",
+});
+/** 当前正在编辑的列（弹窗打开期间持有；仅弹窗内部读，不参与脏检测） */
+const editingDesignColumn = ref<ColumnAttrSource | null>(null);
+
+/** 当前列类型是否需要长度输入 */
+const columnNeedsSize = computed<boolean>(() => SIZE_REQUIRED.has(columnForm.type));
+/** 当前列类型是否允许小数位 */
+const columnAllowsScale = computed<boolean>(() => SCALE_ALLOWED.has(columnForm.type));
+/** 当前列类型是否允许 UNSIGNED */
+const columnAllowsUnsigned = computed<boolean>(() => UNSIGNED_ALLOWED.has(columnForm.type));
+/** 当前列类型是否是枚举/集合（决定是否要展示取值列表） */
+const columnIsEnum = computed<boolean>(() => columnForm.type === "ENUM" || columnForm.type === "SET");
+/** 当前列类型是否是字符类（决定是否展示字符集/排序规则） */
+const columnIsChar = computed<boolean>(() =>
+  /CHAR|TEXT|ENUM|SET|JSON/.test(columnForm.type)
+);
+
+/** 表属性 / 可选值（内核下发，不在前端硬编码） */
+const tableOptionValues = ref<{ engines: string[]; collations: DbCollationItem[] }>({
+  engines: [],
+  collations: [],
+});
+/** 按当前列的字符集过滤后的排序规则 */
+const columnCollationOptions = computed<DbCollationItem[]>(() => {
+  const all = tableOptionValues.value.collations;
+  if (!columnForm.charset) return all;
+  return all.filter(c => c.charset === columnForm.charset);
+});
 
 // 索引新建弹窗
 const indexDialogVisible = ref(false);
-const indexForm = reactive({ indexName: "", columns: [] as string[], unique: false });
+const indexForm = reactive({
+  indexName: "",
+  columns: [] as string[],
+  unique: false,
+  indexType: "BTREE",
+  /** 各列前缀长度，与 columns 同序；0 表示整列 */
+  prefixes: [] as number[],
+  primary: false,
+});
+
+// 表属性弹窗
+const optionsDialogVisible = ref(false);
+const optionsSaving = ref(false);
+const optionsForm = reactive({
+  engine: "",
+  charset: "",
+  collation: "",
+  comment: "",
+  autoIncrement: undefined as number | undefined,
+});
+const tableOptionOriginal = reactive({
+  engine: "",
+  charset: "",
+  collation: "",
+  comment: "",
+  autoIncrement: undefined as number | undefined,
+});
+
+/** 主键设置弹窗 */
+const pkDialogVisible = ref(false);
+const pkSaving = ref(false);
+/** 待设为主键的列（顺序即复合主键列序）；名字避开已有的 pkColumns（数据网格用的主键列集合） */
+const pkDialogColumns = ref<string[]>([]);
+
+/** 表属性的排序规则候选（按当前所选字符集过滤） */
+const optionsCollationList = computed<DbCollationItem[]>(() => {
+  const all = tableOptionValues.value.collations;
+  if (!optionsForm.charset) return all;
+  return all.filter(c => c.charset === optionsForm.charset);
+});
+/** 表属性的排序规则下拉项 */
+const optionsCollationOptions = computed(() =>
+  optionsCollationList.value.map(c => ({ label: c.collation, value: c.collation }))
+);
+
+/**
+ * 按字符集拉取可用的排序规则。
+ *
+ * <p>内核返回的排序规则有数百条，一次性塞进下拉既慢又难用；
+ * 先按字符集筛一遍，选中字符集后再刷新。</p>
+ *
+ * @param charset 字符集，空表示全部
+ */
+async function loadTableOptionValues(charset?: string) {
+  const tab = activeTabObj.value;
+  try {
+    const data = await fetchDbTableOptionValues(charset, currentDatasourceId.value, tab?.database);
+    if (data?.engines || data?.collations) {
+      tableOptionValues.value = { engines: data.engines ?? [], collations: data.collations ?? [] };
+    }
+  } catch {
+    // 拉不到就让下拉保持上一次的结果，不阻塞主流程（内核可能不支持 information_schema.ENGINES）
+  }
+}
+
+/**
+ * 把 ENUM / SET 的文本录入解析成取值数组。
+ *
+ * <p>按逗号或换行分隔，并逐个 trim；空段直接丢弃（用户在末尾多打一个逗号是常态）。
+ * 保留空格的取值（`ENUM('a b')` 是合法的），所以只在**首尾** trim。</p>
+ *
+ * @returns 取值数组
+ */
+function parseEnumValues(): string[] {
+  return columnForm.enumValues
+    .split(/[,\n]/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+}
 
 // 单元格内联编辑：当前正在编辑的单元格（用行对象引用定位）
 const editingCell = ref<{ row: Record<string, any>; column: string; value: string } | null>(null);
@@ -2812,14 +3260,127 @@ function reloadDesignArea() {
 }
 
 function openIndexDialog() {
-  Object.assign(indexForm, { indexName: "", columns: [] as string[], unique: false });
+  Object.assign(indexForm, {
+    indexName: "",
+    columns: [] as string[],
+    unique: false,
+    indexType: "BTREE",
+    prefixes: [] as number[],
+    primary: false,
+  });
   indexDialogVisible.value = true;
+}
+
+/**
+ * 调整复合索引的列序。
+ *
+ * <p>索引列的顺序决定前缀能不能命中，改列序是复合索引最常做的调整，
+ * 但下拉多选本身不提供排序控件，所以额外给上移/下移。
+ * 后端按数组顺序原样建索引（不排序），因此这里的顺序就是最终列序。</p>
+ *
+ * @param index 当前列下标
+ * @param delta 移动方向：-1 上移，1 下移
+ */
+function moveIndexColumn(index: number, delta: number) {
+  const next = index + delta;
+  if (next < 0 || next >= indexForm.columns.length) return;
+  const cols = [...indexForm.columns];
+  [cols[index], cols[next]] = [cols[next], cols[index]];
+  indexForm.columns = cols;
+  // 前缀长度跟着列一起走，否则改序后前缀会挂到错误的列上（且不会有任何提示）
+  const prefixes = normalizePrefixes(cols, indexForm.prefixes);
+  indexForm.prefixes = prefixes;
+}
+
+/**
+ * 把前缀长度数组对齐到给定的列序列。
+ *
+ * <p>多选增删列会让 prefixes 与 columns 长度不一致，后端按下标取，
+ * 对不齐就会把 A 列的前缀套到 B 列上 —— 这里统一按**当前列**重新排布，
+ * 能按列名对上的沿用原值，对不上的置 0（整列）。</p>
+ *
+ * @param columns 当前列序列
+ * @param previous 调整前的前缀数组（与旧列序列同序）
+ * @returns 与 columns 等长的前缀数组
+ */
+function normalizePrefixes(columns: string[], previous: number[]): number[] {
+  return columns.map((_, i) => {
+    const value = previous[i];
+    return typeof value === "number" && value > 0 ? value : 0;
+  });
+}
+
+/**
+ * 调整主键的列序。
+ *
+ * @param index 当前列下标
+ * @param delta 移动方向：-1 上移，1 下移
+ */
+function movePkColumn(index: number, delta: number) {
+  const next = index + delta;
+  if (next < 0 || next >= pkDialogColumns.value.length) return;
+  const cols = [...pkDialogColumns.value];
+  [cols[index], cols[next]] = [cols[next], cols[index]];
+  pkDialogColumns.value = cols;
+}
+
+/** 当前全部可选字符集（由内核下发） */
+const charsetOptions = computed<Array<{ label: string; value: string }>>(() => {
+  const seen = new Set<string>();
+  const list: Array<{ label: string; value: string }> = [];
+  for (const c of tableOptionValues.value.collations) {
+    if (!c.charset || seen.has(c.charset)) continue;
+    seen.add(c.charset);
+    list.push({ label: c.charset, value: c.charset });
+  }
+  return list;
+});
+
+/**
+ * 列的字符集变了就刷新排序规则下拉，并清掉不属于新字符集的旧排序规则。
+ *
+ * <p>不清的话会把 utf8mb4_general_ci 提交到 latin1 列上，内核会报
+ * "COLLATION 'utf8mb4_general_ci' is not valid for CHARACTER SET 'latin1'" ——
+ * 用户只能从报错里反推哪里错了。</p>
+ *
+ * @param charset 新选的字符集
+ */
+function onColumnCharsetChange(charset: string | undefined) {
+  if (!charset) {
+    columnForm.collation = "";
+    return;
+  }
+  void loadTableOptionValues(charset);
+  const stillValid = tableOptionValues.value.collations.some(
+    c => c.collation === columnForm.collation && c.charset === charset
+  );
+  if (!stillValid) {
+    columnForm.collation = "";
+  }
+}
+
+/**
+ * 表属性的字符集变了就清掉不匹配的排序规则（同 {@link onColumnCharsetChange}）。
+ *
+ * @param charset 新选的字符集
+ */
+function onOptionsCharsetChange(charset: string | undefined) {
+  if (!charset) return;
+  void loadTableOptionValues(charset);
+  if (tableOptionValues.value.collations.length > 0) {
+    const stillValid = tableOptionValues.value.collations.some(
+      c => c.collation === optionsForm.collation && c.charset === charset
+    );
+    if (!stillValid) {
+      optionsForm.collation = "";
+    }
+  }
 }
 
 async function saveIndex() {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
-  if (!indexForm.indexName.trim()) {
+  if (!indexForm.primary && !indexForm.indexName.trim()) {
     ElMessage.warning("请输入索引名");
     return;
   }
@@ -2831,15 +3392,133 @@ async function saveIndex() {
     await createDbIndex(tab.tableName, {
       indexName: indexForm.indexName.trim(),
       columns: indexForm.columns,
-      unique: indexForm.unique,
+      unique: indexForm.primary ? true : indexForm.unique,
+      indexType: indexForm.indexType || undefined,
+      prefixes: indexForm.prefixes.length > 0 ? indexForm.prefixes : undefined,
+      primary: indexForm.primary,
       database: tab.database,
       datasourceId: currentDatasourceId.value,
     });
-    ElMessage.success("索引已创建");
+    ElMessage.success(indexForm.primary ? "已设为主键" : "索引已创建");
     indexDialogVisible.value = false;
-    loadIndexes();
+    await loadIndexes();
+    await loadTableDesign(tab);
+    loadPkInfo(tab);
   } catch (e) {
-    ElMessage.error(`创建索引失败: ${String((e as Error)?.message ?? e)}`);
+    ElMessage.error(`${indexForm.primary ? "设置主键" : "创建索引"}失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/**
+ * 打开表属性弹窗。
+ *
+ * <p>同时拉两样东西：当前表属性（回填表单）与内核可选值（引擎 / 排序规则下拉）。
+ * 可选值必须由内核下发 —— 不同内核、不同版本可用的引擎与排序规则不同，
+ * 前端硬编码会让用户选到内核不认的值。</p>
+ */
+async function openTableOptionsDialog() {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return;
+  await loadTableOptionValues();
+  try {
+    const data = await fetchDbTableOptions(tab.tableName, currentDatasourceId.value, tab.database);
+    Object.assign(optionsForm, {
+      engine: data?.engine ?? "",
+      charset: data?.charset ?? "",
+      collation: data?.collation ?? "",
+      comment: data?.comment ?? "",
+      autoIncrement: data?.autoIncrement ?? undefined,
+    });
+    Object.assign(tableOptionOriginal, { ...optionsForm });
+    optionsDialogVisible.value = true;
+  } catch (e) {
+    ElMessage.error(`读取表属性失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/**
+ * 保存表属性。
+ *
+ * <p>只提交**真正改动过的字段**：后端把「未传」理解为不改，
+ * 若把整个表单原样回传，会把用户没碰过的字段也写一遍，
+ * 在大表上是纯粹的锁竞争。</p>
+ */
+async function saveTableOptions() {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return;
+  const payload: Record<string, unknown> = {};
+  if (optionsForm.engine !== tableOptionOriginal.engine) payload.engine = optionsForm.engine;
+  if (optionsForm.charset !== tableOptionOriginal.charset) payload.charset = optionsForm.charset;
+  if (optionsForm.collation !== tableOptionOriginal.collation) payload.collation = optionsForm.collation;
+  if (optionsForm.comment !== tableOptionOriginal.comment) payload.comment = optionsForm.comment;
+  if (optionsForm.autoIncrement !== tableOptionOriginal.autoIncrement) {
+    payload.autoIncrement = optionsForm.autoIncrement;
+  }
+  if (Object.keys(payload).length === 0) {
+    ElMessage.info("没有改动");
+    optionsDialogVisible.value = false;
+    return;
+  }
+  optionsSaving.value = true;
+  try {
+    await updateDbTableOptions(tab.tableName, {
+      ...payload,
+      database: tab.database,
+      datasourceId: currentDatasourceId.value,
+    } as never);
+    ElMessage.success("表属性已保存");
+    optionsDialogVisible.value = false;
+    // 表属性变了会连带影响行的存储格式，重新读一次设计视图让用户看到最终态
+    await loadTableDesign(tab);
+  } catch (e) {
+    ElMessage.error(`保存表属性失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    optionsSaving.value = false;
+  }
+}
+
+/** 打开主键设置弹窗，并回填当前主键（按列序，复合主键的顺序不能乱） */
+async function openPkDialog() {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return;
+  await loadPkInfo(tab);
+  const ordered = designColumns.value.filter(c => c.isPrimaryKey).map(c => c.name);
+  pkDialogColumns.value = ordered;
+  pkDialogVisible.value = true;
+}
+
+/** 保存主键（不选任何列 = 清除主键） */
+async function savePrimaryKey() {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return;
+  const clearing = pkDialogColumns.value.length === 0;
+  if (clearing) {
+    try {
+      await ElMessageBox.confirm(
+        "清除主键后，该表将不再有唯一性约束与自增基准，确定吗？",
+        "清除主键",
+        { type: "warning" }
+      );
+    } catch {
+      return;
+    }
+  }
+  pkSaving.value = true;
+  try {
+    await setDbTablePrimaryKey(
+      tab.tableName,
+      pkDialogColumns.value,
+      currentDatasourceId.value,
+      tab.database
+    );
+    ElMessage.success(clearing ? "主键已清除" : "主键已保存");
+    pkDialogVisible.value = false;
+    await loadTableDesign(tab);
+    loadPkInfo(tab);
+  } catch (e) {
+    ElMessage.error(`设置主键失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    pkSaving.value = false;
   }
 }
 
@@ -2861,20 +3540,74 @@ async function removeIndex(row: DbIndexInfo) {
 }
 
 // ===== 列（表结构）编辑 =====
-function openColumnDialog(mode: "add" | "edit", row?: DbColumnInfo) {
+/**
+ * 打开列编辑弹窗。
+ *
+ * <p>回填时优先用后端读出的 `baseType` / `unsigned` / `enumValues` 等属性 ——
+ * 此前只从 `type` 文本里正则抠出类型名和长度，`int(10) unsigned` 会被当成 INT/10，
+ * 无符号、字符集、自增、枚举取值全部丢失，用户一打开就是错的，再一点保存就把
+ * 属性改没了。</p>
+ *
+ * @param mode add=新增 / edit=修改
+ * @param row  被修改的列（add 时可空）
+ */
+async function openColumnDialog(mode: "add" | "edit", row?: ColumnAttrSource) {
   columnDialogMode.value = mode;
+  // 字符集 / 排序规则下拉的数据源来自内核，**新增时也要加载**：
+  // 此前只在「修改」分支里加载，导致「新增列」弹窗里这两个下拉是空的，
+  // 用户无从设置（验收里表现为「字符集下拉由内核下发」PASS，但候选列表为空 —— 断言本身也写松了）。
+  if (tableOptionValues.value.collations.length === 0) {
+    await loadTableOptionValues(row?.charset);
+  }
   if (mode === "edit" && row) {
     editingDesignColumn.value = row;
-    columnForm.columnName = row.name;
-    const m = /^([A-Za-z]+)\s*(?:\(\s*(\d+)\s*\))?/.exec(row.type || "");
-    columnForm.type = (m?.[1] || "VARCHAR").toUpperCase();
-    columnForm.size = m?.[2] ? Number(m[2]) : 255;
-    columnForm.nullable = row.nullable !== false;
-    columnForm.defaultValue = row.default ?? "";
-    columnForm.comment = row.remark ?? "";
+    const rawType = (row.type || "").toUpperCase();
+    const m = /^([A-Z ]+?)\s*(?:\(\s*(\d+)\s*(?:,\s*(\d+)\s*)?\))?/.exec(rawType);
+    const baseType = (row.baseType || m?.[1] || "VARCHAR").toUpperCase().replace(/\s+/g, " ");
+    // 后端类型可能不在分组表里（例如从别的内核读来的），补进分组避免下拉显示空白。
+    // 注意必须在计算 size 之前判断「是否本来就需要长度」，否则补进分组后
+    // includes() 恒为 true，需要长度的类型会拿不到默认长度。
+    const known = columnTypeOptions.includes(baseType);
+    if (!known) {
+      COLUMN_TYPE_GROUPS.push({ label: "其他", types: [baseType] });
+    }
+    const needsSizeByDefault = !known && (SIZE_REQUIRED.has(baseType) || /DATE|TIME/.test(baseType));
+    Object.assign(columnForm, {
+      columnName: row.name,
+      type: baseType,
+      size: m?.[2] ? Number(m[2]) : needsSizeByDefault ? 255 : undefined,
+      scale: m?.[3] ? Number(m[3]) : row.scale || undefined,
+      unsigned: row.unsigned === true,
+      zerofill: row.zerofill === true,
+      charset: row.charset ?? "",
+      collation: row.collation ?? "",
+      nullable: row.nullable !== false,
+      defaultValue: row.default ?? "",
+      // 内核只在 EXTRA 里给 on update CURRENT_TIMESTAMP，列元数据没这一项，
+      // 所以这里不猜：有默认值且是日期时间类型时才提示，由用户决定要不要开
+      onUpdate: "",
+      autoIncrement: row.autoIncrement === true,
+      enumValues: (row.enumValues ?? []).join("\n"),
+      comment: row.remark ?? "",
+    });
   } else {
     editingDesignColumn.value = null;
-    Object.assign(columnForm, { columnName: "", type: "VARCHAR", size: 255, nullable: true, defaultValue: "", comment: "" });
+    Object.assign(columnForm, {
+      columnName: "",
+      type: "VARCHAR",
+      size: 255,
+      scale: undefined,
+      unsigned: false,
+      zerofill: false,
+      charset: "",
+      collation: "",
+      nullable: true,
+      defaultValue: "",
+      onUpdate: "",
+      autoIncrement: false,
+      enumValues: "",
+      comment: "",
+    });
   }
   columnDialogVisible.value = true;
 }
@@ -2886,12 +3619,39 @@ async function saveColumn() {
     ElMessage.warning("请输入列名");
     return;
   }
+  // 前端先做一遍与后端同口径的校验：目的是给出**就地**提示，
+  // 而不是让用户发一次请求、再从内核报错里读懂自己填错了什么。
+  if (columnNeedsSize.value && !columnForm.size) {
+    ElMessage.warning(`${columnForm.type} 必须指定长度`);
+    return;
+  }
+  if (columnIsEnum.value && parseEnumValues().length === 0) {
+    ElMessage.warning(`${columnForm.type} 必须至少配置一个取值`);
+    return;
+  }
+  if (columnForm.autoIncrement && columnForm.nullable) {
+    ElMessage.warning("自动递增的列不能可空");
+    return;
+  }
+  if (columnForm.unsigned && !columnAllowsUnsigned.value) {
+    ElMessage.warning(`${columnForm.type} 不支持无符号`);
+    return;
+  }
+  const enumValues = columnIsEnum.value ? parseEnumValues() : undefined;
   const payload = {
     columnName: columnForm.columnName.trim(),
     type: columnForm.type,
-    size: columnForm.size,
+    size: columnNeedsSize.value ? columnForm.size : undefined,
+    scale: columnAllowsScale.value ? columnForm.scale : undefined,
+    unsigned: columnAllowsUnsigned.value ? columnForm.unsigned : false,
+    zerofill: columnForm.unsigned && columnForm.zerofill,
+    charset: columnIsChar.value ? columnForm.charset || undefined : undefined,
+    collation: columnIsChar.value ? columnForm.collation || undefined : undefined,
     nullable: columnForm.nullable,
     defaultValue: columnForm.defaultValue || undefined,
+    onUpdate: columnForm.onUpdate || undefined,
+    autoIncrement: columnForm.autoIncrement,
+    enumValues,
     comment: columnForm.comment || undefined,
     database: tab.database,
     datasourceId: currentDatasourceId.value,
@@ -2906,6 +3666,7 @@ async function saveColumn() {
     }
     columnDialogVisible.value = false;
     await loadTableDesign(tab);
+    loadPkInfo(tab);
     refreshTableData();
   } catch (e) {
     ElMessage.error(`保存列失败: ${String((e as Error)?.message ?? e)}`);
@@ -3315,6 +4076,18 @@ async function loadTableDesign(tab: Tab) {
         originalName: c.name,
         ...origin,
         isPrimaryKey: !!c.isPrimaryKey,
+        // 把列的完整属性带进行内（类型文本保持内核原样：弹窗要靠它抠长度与小数位）
+        type: c.type || origin.type,
+        remark: c.remark ?? "",
+        default: c.default ?? "",
+        baseType: c.baseType,
+        unsigned: c.unsigned === true,
+        zerofill: c.zerofill === true,
+        autoIncrement: c.autoIncrement === true,
+        charset: c.charset ?? "",
+        collation: c.collation ?? "",
+        enumValues: c.enumValues ?? [],
+        scale: c.scale ?? 0,
         origin,
       };
     });
@@ -4053,6 +4826,84 @@ onBeforeUnmount(() => {
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
 .dbm-simple-pager { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ============================================================
+   索引列序 / 前缀长度（弹窗内）
+   ============================================================ */
+.dbm-idx-cols { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+
+/* 列序条：把「多选下拉里选出来的顺序」显式摊开，否则用户无法确认也不调整 */
+.dbm-idx-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+}
+.dbm-idx-order-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-right: 2px;
+}
+.dbm-idx-order-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 2px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 12px;
+  background: var(--el-bg-color);
+}
+/* 序号圆点：让列序一眼可辨，不靠数组下标的隐式约定 */
+.dbm-idx-order-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+/* 列序的上下移按钮：用原生 button 承载，图标只是装饰。
+   原生 button 自带边框/背景/内边距，不重置就会在标签里出现一个灰色小块，
+   且 disabled 态也需要真正禁用（图标元素做不到）。 */
+.dbm-idx-order-move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--el-text-color-placeholder);
+}
+.dbm-idx-order-move:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+}
+.dbm-idx-order-move:disabled { cursor: not-allowed; opacity: 0.35; }
+
+.dbm-idx-prefix { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.dbm-idx-prefix-row { display: flex; align-items: center; gap: 8px; }
+.dbm-idx-prefix-name { flex: 1; font-size: 12px; }
+
+.dbm-pk-hint {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
 
 /* ============================================================
    导入 / 导出向导
