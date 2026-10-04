@@ -90,7 +90,7 @@ const alarmColumns = computed(() => [
   { prop: "msMonitorAlarmEventMetricName", label: "指标", minWidth: 130, showOverflowTooltip: true },
   { prop: "valueText", label: "当前值 / 阈值", width: 118, slot: "value" },
   { prop: "msMonitorAlarmEventStatus", label: "状态", width: 84, slot: "status" },
-  { prop: "id", label: "操作", width: 62, fixed: "right", slot: "op" },
+  { prop: "id", label: "操作", width: 62, fixed: "right", align: "right", slot: "op" },
 ]);
 
 /** 行级格式化辅助（供 slot 使用） */
