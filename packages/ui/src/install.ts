@@ -59,6 +59,11 @@ const componentLoaders: Record<string, () => Promise<{ install: unknown }>> = {
   ReGraphCircle: () => import("./components/ReGraphCircle"),
   ReGraphCenter: () => import("./components/ReGraphCenter"),
   ReGraphFixed: () => import("./components/ReGraphFixed"),
+  /* ReGraph3D 此前只有组件本体而没有 loader：目录、index.ts、default/koi 两套主题都在，
+     唯独这里漏了一行。后果是演示站按名字注册时走 `log.warn("[ui] 未找到组件 ReGraph3D")`
+     并被跳过，预览渲染成同名未知元素（<regraph3d>），而 log.warn 走 console.log，
+     控制台里连 warning 都不明显 —— 属静默失败。 */
+  ReGraph3D: () => import("./components/ReGraph3D"),
   ReRelationGraph: () => import("./components/ReRelationGraph"),
   ReFlowGraph: () => import("./components/ReFlowGraph"),
   ReEcharts: () => import("./components/ReEcharts"),

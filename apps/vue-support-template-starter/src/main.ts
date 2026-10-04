@@ -84,6 +84,17 @@ const ALL_RE_COMPONENTS = [
   "ReAvatar3D",
   "ReThree",
   "ReClineCharacter",
+  /* ⚠ 以下 7 项曾漏登记：注册表（src/data/componentRegistry.ts）里有卡片，
+     但不在这里 → 卡片可点、预览是空的（Vue 把未注册的组件渲染成同名未知元素），
+     页面不报错。`tests/e2e/registry-consistency.mjs` 专门守这条不变量：
+     注册表里出现过的 Re* 必须都出现在本列表里。 */
+  "ReCron",
+  "ReColorize",
+  "ReScrollbar",
+  "ReUploadChunk",
+  "ReIconSelect",
+  "ReImageCompare",
+  "ReGraph3D",
 ];
 
 /** 单页面应用最小化主题安装器 */
