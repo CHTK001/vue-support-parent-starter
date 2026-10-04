@@ -141,6 +141,14 @@
                             <!-- 面板自带页头与副标题，此处不再重复一段说明文字 -->
                             <ImageLibraryPanel />
                         </template>
+                        <!--
+                          人脸底库：从外侧主导航的「人脸识别」迁入（同一份实现，不复制）。
+                          与图像底库同属「底库」分组，入口语义一致。
+                          该页自带两栏版面（图片舞台 + 相似面孔推荐），故记入 WIDE_TABS。
+                        -->
+                        <template v-else-if="currentTabValue === 'face-library'">
+                            <FaceSearchPage />
+                        </template>
                         </template>
                     </ScrollContainer>
                 </div>
@@ -174,6 +182,8 @@ import ScrollContainer from '../ui/ScrollContainer.vue'
 import { FileStorageManage } from '@pages/filesystem'
 // 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
+// 人脸底库（原来挂在外侧主导航「人脸识别」，现迁入「底库」分组，同一份实现）
+import FaceSearchPage from '../management/FaceSearchPage.vue'
 
 import {
     Grid16Regular,
@@ -191,6 +201,7 @@ import {
     DataUsage24Regular,
     PuzzlePiece24Regular,
     Server24Regular,
+    Person20Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -226,7 +237,11 @@ const groupMap = computed<Record<string, string>>(() => ({
     services: t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
     'file-storage': t('settings.system.groups.system'),
-    'image-library': t('settings.system.groups.system'),
+    // 底库：图像底库与人脸底库归到同一个分组。
+    // 原先图像底库挂在「系统」组、人脸库挂在外侧主导航，两个同类功能分处两地；
+    // 收进同一个「底库」分组后，入口位置与语义一致。
+    'image-library': t('settings.system.groups.library'),
+    'face-library': t('settings.system.groups.library'),
 }))
 
 // 设置项菜单
@@ -339,9 +354,19 @@ const sidebarItems = computed(() => [
         // 向量索引可被任意污染」的理由在隔离之后不成立。
         // 曾内嵌在「默认模型」页底部，用户反馈设置中心里看不到入口 —— 13 个分组的
         // 折叠面板把真正需要日常维护的功能埋在最下方，故提为独立 tab。
-        label: '图像底库',
+        label: t('settings.system.tabs.imageLibrary'),
         path: 'image-library',
         icon: Image24Regular,
+        roles: ['primary'],
+    },
+    {
+        // 人脸底库：从外侧主导航的「人脸识别」迁入。
+        // 人脸库与图像底库是同类功能（都是「按账号隔离的本地底库」），
+        // 分处主导航与设置中心两处会让入口位置失去一致性，故一并收进「底库」分组。
+        // 同样按账号隔离，故不设 adminOnly。
+        label: t('settings.system.tabs.faceLibrary'),
+        path: 'face-library',
+        icon: Person20Regular,
         roles: ['primary'],
     },
 ])
@@ -361,6 +386,7 @@ const groupedSidebarItems = computed(() => {
         t('settings.system.groups.general'),
         t('settings.system.groups.personalization'),
         t('settings.system.groups.dataManagement'),
+        t('settings.system.groups.library'),
         t('settings.system.groups.account'),
         t('settings.system.groups.system'),
     ]
@@ -405,7 +431,7 @@ const currentTabValue = ref(getDefaultTabPath())
 
 // 宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
 // 这些页签放开 max-w 限制；其余窄内容页签保持居中定宽，避免长行难读。
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'face-library']
 const contentMaxWidthClass = computed(() =>
     WIDE_TABS.includes(currentTabValue.value) ? '' : 'md:max-w-220 md:mx-auto',
 )
