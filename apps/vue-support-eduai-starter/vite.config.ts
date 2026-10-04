@@ -15,6 +15,38 @@ import { createVite } from "../../turbo/vite/createVite.ts";
     const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://192.168.50.198:19095";
 
 /**
+ * 单例化「Vue 运行时 + 路由 + 状态」。
+ *
+ * <p>为什么必须做：`useRoute()` / `useRouter()` 靠 `app.provide` 的**注入键**工作。
+ * 注入键是模块级 Symbol —— 一旦打包产物里出现两份 vue / vue-router，
+ * 组件里 inject 的就是「另一份」的键，于是 `useRoute()` 返回 **undefined**，
+ * 调用点炸出 `Cannot read properties of undefined (reading 'query')` /
+ * `(reading 'push')`。</p>
+ *
+ * <p>实测（2026-10-04）：同一套代码在 dev（ESM 天然去重）正常，
+ * 打包后 `/edu/student` 永久停在「加载中…」（StudentPortalView 的 onMounted
+ * 先调 adoptImpersonationToken()，里面读 `route.query.impersonate` 即抛错，
+ * 于是 load() 根本没机会跑）；学生登录页的 `router.push` 同样失败。
+ * 老师端恰好只用 `useRouter()` 且在另一条渲染路径上，所以没暴露。</p>
+ *
+ * <p>three 的 dedupe 见下：那是同一个坑的另一半（three 重复实例会让
+ * instanceof 全部落空、模型渲染成空）。</p>
+ */
+function runtimeDedupe() {
+  return {
+    name: "eduai-runtime-dedupe",
+    enforce: "pre" as const,
+    config() {
+      return {
+        resolve: {
+          dedupe: ["vue", "vue-router", "vue-demi", "pinia", "@vue/runtime-core", "@vue/runtime-dom"],
+        },
+      };
+    },
+  };
+}
+
+/**
  * three 单例化。
  *
  * 3D 展台（pages/eduai/src/components/insect/InsectStage3D.vue）同时 import 了
@@ -49,7 +81,7 @@ function threeDedupe() {
 export default createVite({
   appName: "vue-support-eduai-starter",
   title: "教育 AI 工作台",
-  plugins: [threeDedupe()],
+  plugins: [runtimeDedupe(), threeDedupe()],
     server: {
       port: 19093,
       strictPort: false,

@@ -111,7 +111,7 @@
                 <el-table-column label="状态" width="80">
                   <template #default="{ row }">{{ row.studentStatus === 1 ? "在读" : "离校" }}</template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="210" align="right">
+                <el-table-column label="操作" min-width="210">
                   <template #default="{ row }">
                     <el-button link type="primary" @click.stop="openStudentDialog(row)">编辑</el-button>
                     <el-button link type="warning" @click.stop="openResetDialog(row)">重置口令</el-button>
@@ -160,7 +160,7 @@
                 <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" min-width="300" align="right">
+            <el-table-column label="操作" min-width="300">
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
                 <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
@@ -195,7 +195,7 @@
                 </template>
               </el-table-column>
               <el-table-column prop="assignTime" label="布置时间" width="180" />
-              <el-table-column label="操作" width="100" align="right">
+              <el-table-column label="操作" width="100">
                 <template #default="{ row }">
                   <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
                 </template>
@@ -277,7 +277,7 @@
                 </el-table-column>
                 <el-table-column prop="markingTaskStage" label="阶段" width="120" />
                 <el-table-column prop="markingTaskCreateTime" label="创建时间" min-width="160" />
-                <el-table-column label="操作" width="110" align="right">
+                <el-table-column label="操作" width="110">
                   <template #default="{ row }">
                     <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
                   </template>
@@ -395,7 +395,9 @@
           <span class="tp-dialog-static">{{ assignDialog.paperName || "—" }}</span>
         </el-form-item>
         <el-form-item label="班级" required>
-          <el-select v-model="assignDialog.classId" placeholder="选择我的班级" style="width: 100%">
+          <!-- filterable：班级数会随学期累积，长列表里靠滚动找班很容易点错行；
+               支持输入过滤后，直接打班名即可定位。 -->
+          <el-select v-model="assignDialog.classId" filterable placeholder="选择我的班级" style="width: 100%">
             <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
           </el-select>
         </el-form-item>
