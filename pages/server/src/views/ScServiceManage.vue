@@ -7,8 +7,18 @@
  *   2. 启停、热更新（过滤器链就地替换，不中断服务）
  *   3. 打开编辑抽屉做过滤器编排（左 SPI → 右已选，可重复添加）
  *   4. 打开详情抽屉查看运行态与过滤器链，并支持单过滤器热启停 / 热改参
+ *
+ * 视觉（对齐「代理管理」「账号管理」页）：顶部 ReSectionHead 已删除——页面标题由
+ * 外壳面包屑承担，其中的「新增服务 / 刷新」合并到筛选行右侧、统一改成图标 + tip；
+ * 统计卡改用 ReStatCard 的 icon 属性（原先用 #icon 插槽塞裸图标，绕过了组件自带的
+ * 渐变图标圆）；数据表格吃满剩余高度、表体内部滚动。
+ *
+ * ⚠ 统计卡的 icon 必须是脚本作用域里的**组件**（ReStatCard 内部走
+ * {@code <component :is="icon" />}），所以图标必须显式 import —— 全局注册的组件
+ * 在模板表达式里取不到标识符，写成 {@code :icon="Monitor"} 会静默渲染成 undefined。
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { CircleCheckFilled, CircleCloseFilled, Connection, Monitor, VideoPause } from '@element-plus/icons-vue';
 import { message } from '@repo/core';
 import { useRouter } from 'vue-router';
 import {
@@ -285,13 +295,6 @@ function openDetailPage(row: ServerNodeView, index: number) {
 
 <template>
   <div class="service-manage sc-page">
-    <ReSectionHead class="page-head" title="服务管理" description="基于 Server 接口的协议服务器节点编排，支持 ServerFilter 插件挂载与热更新">
-      <template #actions>
-        <ReButton show-text icon="Plus" type="primary" @click="openCreate">新增服务</ReButton>
-        <ReButton show-text icon="Refresh" @click="refresh">刷新</ReButton>
-      </template>
-    </ReSectionHead>
-
     <!-- 首屏/刷新降级提示：协议或插件元数据失败时必须出声，
          否则用户只会看到「协议下拉是空的」，无从判断是故障还是无权限 -->
     <el-alert
@@ -303,35 +306,49 @@ function openDetailPage(row: ServerNodeView, index: number) {
       class="load-notice"
     />
 
-    <!-- 运行概览 -->
-    <div class="stats-grid">
-      <ReStatCard size="compact" title="服务总数" :value="stats.total" icon-color="var(--metric-cpu)">
-        <template #icon><Monitor /></template>
+    <!-- 运行概览：ReStatCard 紧凑档，icon 走属性（用组件自带的渐变图标圆）。
+         原 hero 的说明文案改以 title 悬浮保留，不丢信息也不再独占一块纵向空间。 -->
+    <div class="stats-grid" title="基于 Server 接口的协议服务器节点编排，支持 ServerFilter 插件挂载与热更新">
+      <ReStatCard size="compact" title="服务总数" :value="stats.total" desc="Server 节点" :icon="Monitor" icon-color="var(--metric-cpu)">
         <template #value><ReCountup :value="stats.total" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard size="compact" title="运行中" :value="stats.running" icon-color="var(--status-success)">
-        <template #icon><CircleCheckFilled /></template>
+      <ReStatCard
+        size="compact"
+        title="运行中"
+        :value="stats.running"
+        :desc="stats.total ? `占比 ${Math.round((stats.running / stats.total) * 100)}%` : '暂无服务'"
+        :icon="CircleCheckFilled"
+        icon-color="var(--status-success)"
+      >
         <template #value><ReCountup :value="stats.running" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard size="compact" title="已停止" :value="stats.stopped" icon-color="var(--text-tertiary)">
-        <template #icon><VideoPause /></template>
+      <ReStatCard size="compact" title="已停止" :value="stats.stopped" desc="可手动或自动启动" :icon="VideoPause" icon-color="var(--text-tertiary)">
         <template #value><ReCountup :value="stats.stopped" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard size="compact" title="异常" :value="stats.error" icon-color="var(--status-error)">
-        <template #icon><CircleCloseFilled /></template>
+      <ReStatCard
+        size="compact"
+        title="异常"
+        :value="stats.error"
+        :desc="stats.unknown ? `另有 ${stats.unknown} 个状态未知` : '需查看失败原因'"
+        :icon="CircleCloseFilled"
+        icon-color="var(--status-error)"
+      >
         <template #value><ReCountup :value="stats.error" :duration="600" /></template>
       </ReStatCard>
-      <ReStatCard size="compact" title="已挂插件" :value="stats.plugins" icon-color="var(--metric-jvm)">
-        <template #icon><Connection /></template>
+      <ReStatCard size="compact" title="已挂插件" :value="stats.plugins" desc="ServerFilter 链" :icon="Connection" icon-color="var(--metric-jvm)">
         <template #value><ReCountup :value="stats.plugins" :duration="600" /></template>
       </ReStatCard>
     </div>
 
-    <!-- 筛选工具条 -->
+    <!-- 筛选工具条 + 全部操作（原 hero 的新增服务/刷新合并到右侧，图标 + tip） -->
     <div class="page-toolbar">
-      <ReInput v-model="keyword" placeholder="搜索名称 / 协议 / 监听地址" clearable prefix-icon="Search" style="width: 260px" />
-      <ReSelect v-model="filterProtocol" placeholder="全部协议" clearable :data="protocolOptions" style="width: 240px" />
-      <span class="dim">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
+      <ReInput v-model="keyword" placeholder="搜索名称 / 协议 / 监听地址" clearable prefix-icon="Search" class="tb-search" />
+      <ReSelect v-model="filterProtocol" placeholder="全部协议" clearable :data="protocolOptions" class="tb-proto" />
+      <span class="dim tb-meta">共 {{ visibleNodes.length }} / {{ stats.total }} 个服务</span>
+      <div class="tb-ops">
+        <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="openCreate" />
+        <ReButton icon="Refresh" layout="square" tip="刷新" :loading="loading" @click="refresh" />
+      </div>
     </div>
 
     <ReTable
@@ -452,6 +469,56 @@ function openDetailPage(row: ServerNodeView, index: number) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* 外层 sc-page 全仓没有任何样式定义、不提供高度，所以必须自己撑满：
+     height:100% 让高度由外壳内容区给出，min-height:0 允许 flex 子项收缩，
+     少了它长列表会把页面顶高、外层出滚动条（实测未加时本页只有内容高 235px） */
+  height: 100%;
+  min-height: 0;
+}
+
+/* 统计卡与工具条固定高，只有表格吃满剩余高度。
+   注意 .stats-grid / .page-toolbar 原先全仓没有任何样式定义，
+   统计卡是 5 个块级 div 直接纵向堆叠 —— 这里补上栅格与工具条布局。 */
+.stats-grid,
+.page-toolbar,
+.load-notice {
+  flex: none;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+/* 表格伸展：basis 0 让 flex 纯按剩余空间分配，min-height:0 必须置 */
+.service-manage > :deep(.re-table) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* 筛选工具条 + 右侧操作组 */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tb-search { width: 260px; }
+.tb-proto { width: 240px; }
+.tb-meta { margin-left: auto; white-space: nowrap; }
+/* 与筛选之间用竖线分隔，视觉上区分「筛选」与「操作」 */
+.tb-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-subtle);
+}
+@media (max-width: 900px) {
+  .tb-search,
+  .tb-proto { width: 100%; }
+  .tb-meta { margin-left: 0; }
+  .tb-ops { padding-left: 0; border-left: none; }
 }
 
 /* 状态列改成上下两行：状态灯一行，失败原因一行。
