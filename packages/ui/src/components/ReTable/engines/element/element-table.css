@@ -71,12 +71,17 @@
   box-shadow: 0 8px 14px -12px rgb(0 0 0 / 45%);
 }
 /* 固定右侧列：el-table 用 fixed-column 类标在单元格上，需补不透明底色 */
+/* 兜底值不写死 #fff：--el-table-bg-color 只在 element-plus 的 .el-table 作用域里
+   有定义，作用域一旦不在（例如这段样式被搬到没有 .el-table 祖先的位置），
+   var() 会解析为空并落到 #fff 上，暗色模式里固定列就成了白底。
+   实测（2026-10-04）本组件 element 引擎下该变量确实有值，这只是把兜底换成
+   同样会随暗色变化的 --el-bg-color，行为不变、失效时不白底。 */
 .re-table .el-table__body td.el-table-fixed-column--right {
-  background-color: var(--el-table-bg-color, #fff);
+  background-color: var(--el-table-bg-color, var(--el-bg-color, #ffffff));
 }
 .re-table .el-table__body tr:hover td.el-table-fixed-column--right,
 .re-table .el-table__body tr.hover-row td.el-table-fixed-column--right {
-  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, var(--el-bg-color, #ffffff))) !important;
 }
 :deep(.el-table__fixed-right) {
   z-index: 30 !important;

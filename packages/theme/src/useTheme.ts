@@ -94,6 +94,17 @@ export const useTheme = () => {
     }
     html.classList.toggle("dark", effectiveDark);
     html.style.colorScheme = effectiveDark ? "dark" : "light";
+    /* vxe-table 自带一套明暗两套配色，只认根元素上的 data-vxe-ui-theme 属性：
+       [data-vxe-ui-theme=light] 给 --vxe-ui-layout-background-color: #fff、
+       --vxe-ui-table-header-background-color: #f8f8f9，
+       [data-vxe-ui-theme=dark] 才是 #121212 / #28282a。
+       不同步这个属性的后果是 vxe 画的每一处底色都停在亮色值上：
+       .vxe-table--body-wrapper（表体）与 .vxe-table--header-wrapper（表头）
+       在暗色页面里仍是白底，而单元格自身是透明的 —— 计算样式读单元格会得到
+       transparent，看不出问题，只有截图能看出来（2026-10-04 实测）。
+       放在这里而不是 ReTable 里：.dark class 也是在这里落地的，
+       两者必须同源，否则会出现「class 已切、vxe 主题没切」的分裂状态。 */
+    html.setAttribute("data-vxe-ui-theme", effectiveDark ? "dark" : "light");
     const effectiveHeaderInverted =
       headerInverted.value || (layout.value === "horizontal" && asideInverted.value);
     html.classList.toggle("header-inverted", effectiveHeaderInverted && !effectiveDark);

@@ -3512,31 +3512,24 @@ const iconSelect = Select;
       --vxe-table-* 变量（vxe 不读 --el-table-*，照抄旧变量名不会生效）。
    ⚠ 分页条同步这套语言（见文件末尾分页样式），否则表格与分页会像两个组件。 */
 .re-table .vxe-table {
-  --vxe-table-border-color: var(--el-border-color-lighter);
-  /* ⚠ vxe 画单元格线读的是带 ui- 前缀的变量：--vxe-ui-table-border-color。
-     上面那条 --vxe-table-border-color（无 ui-）不是它读的那个，写了等于没写，
-     vxe 一直用自己的默认 #e8eaec —— 比本组件的 #ebeef5 深，
-     于是同一张表里「自己画的线」和「vxe 画的线」两种颜色。 */
+  /* ⚠ vxe 4.22 的样式表只读 --vxe-ui-* 这一族变量。实测把 style.css 全文
+     grep 下来：header-background / header-font-color / row-hover-background /
+     border-color / border-radius / row-height-* 这些名字，
+     var(--vxe-ui-*) 的引用数分别是 6/1/5/44/59/4，
+     而 var(--vxe-table-*)（无 ui- 前缀）是 0 —— 一个消费者都没有。
+     所以本文件此前所有 --vxe-table-* 声明都是死写：写进去不报错、
+     不生效、也没有任何症状提示，最容易让人以为「已经设过了」。
+     下面只保留带 ui- 前缀的（这两条是真的在生效）。 */
   --vxe-ui-table-border-color: var(--el-border-color-lighter);
   /* ⚠ vxe 默认线宽是 1.05px，落在非整数像素上被浏览器抗锯齿，
      渲染成一条发糊的灰线；压成整数 1px 才和 el-table 的实线一样锐利。 */
   --vxe-ui-table-border-width: 1px;
-  /* 表头底：置为透明，让下方 .re-table .vxe-header--column 的渐变生效。
-     不置透明时 vxe 会用这个变量在表头上再铺一层纯色，
-     结果渐变被盖成 #ebeeF5 平色 —— 与 element 引擎的 #fafafa→#fafcff 明显不同。 */
-  --vxe-table-header-background-color: transparent;
-  --vxe-table-header-font-color: var(--el-text-color-primary);
-  --vxe-table-row-hover-background-color: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
-  --vxe-table-body-background-color: var(--el-table-bg-color, var(--el-bg-color));
-  --vxe-table-border-radius: calc(var(--rt-radius) + 2px);
-  /* 行高说明见下方 .re-table .vxe-body--row —— vxe 对它自己的 JS 内联高度
-     并不读这个变量（实测改成 24px 后单元格内联值仍是 44px），所以只为对齐
-     vxe 的样式表计算保留一个合理值，真正生效的是下面那条 !important。 */
-  /* ⚠ 行高请看下方 .re-table .vxe-body--row 那条注释：
-     vxe 的行高由它自己 JS 写内联值控制，CSS 覆盖不动；两套引擎实测渲染
-     出来的行高是一致的（都是 59px），不需要额外对齐。 */
-  --vxe-table-row-height-medium: 44px;
-  --vxe-table-row-height-small: 36px;
+  /* 表头 / 行 hover / 圆角 / 行高这四项此前写的是 --vxe-table-*（无 ui- 前缀），
+     已删除：它们是死写（见上方实测计数）。不要靠"补上前缀"来恢复——
+     表头底与行 hover 现在由 data-vxe-ui-theme 提供 vxe 自带的明暗两套值
+     （见 packages/theme/src/useTheme.ts），那才是 vxe 认可的配色来源；
+     圆角由下面那条 border-radius 声明负责（实测 tableRadius=18px）；
+     行高由 vxe 的 JS 内联值负责，CSS 覆盖不动（见下方 .vxe-body--row 注释）。 */
   font-size: 13.5px;
   border-radius: calc(var(--rt-radius) + 2px);
   /* ⚠ 必须裁剪：vxe 的 .vxe-table--header-wrapper / --body-wrapper 自身是
@@ -3860,18 +3853,13 @@ const iconSelect = Select;
 .re-table__search-toggle:hover {
   color: var(--el-color-primary);
 }
-/* vxe-table 在根元素上本地定义 --vxe-table-* 变量，令牌必须直接挂在 .vxe-table 上才生效。
-   这组与上面「默认表格视觉增强」同权重、位置更靠后，等于在基础视觉之上再叠一层 rt 令牌。 */
+/* vxe 的配色令牌必须带 ui- 前缀（--vxe-ui-table-*），这一点上方已实测。
+   原来这里还叠了一层 --vxe-table-*（无前缀）到「rt 令牌再叠一层」的写法，
+   同样是死写，已删除；不要再按「令牌要挂在 .vxe-table 上」这条旧注释去补前缀。 */
 .re-table .vxe-table {
-  --vxe-table-border-color: var(--rt-border);
-  /* ⚠ 表头底必须留空。vxe 把这个变量当成**第一层 background-image**
-     （linear-gradient(值, 值)）铺在表头上，会盖住 .re-table .vxe-header--column
-     里的渐变，视觉上与 element 引擎（渐变 #fafafa→#fafcff）分叉成 #ebeeF5 平色。
-     element 那边同样赋了 --el-table-header-bg-color，但它的 th 走 background 简写，
-     渐变优先级更高，所以看不出问题——vxe 这边必须显式透明。 */
-  --vxe-table-header-background-color: transparent;
-  --vxe-table-row-hover-background-color: var(--rt-bg-row-hover);
-  --vxe-table-body-background-color: var(--rt-bg);
+  /* 本块目前刻意为空：表头底 / 行 hover / 表体底改由 data-vxe-ui-theme 决定
+     （vxe 自带 light/dark 两套），保留位置是为了让「rt 令牌叠 vxe 令牌」这件事
+     在文件里仍然可见，将来确需覆盖时按 --vxe-ui-table-* 写。 */
 }
 /* 表头字体（vxe 默认色/字重偏浅，按 rt 令牌覆盖） */
 .re-table .vxe-header--column {
@@ -3985,12 +3973,18 @@ const iconSelect = Select;
 .re-table .vxe-table--fixed-right-wrapper {
   z-index: 30 !important;
 }
+/* ⚠ 兜底值不能写死 #fff。--el-table-bg-color 只在 element-plus 的 .el-table
+   作用域里有定义，vxe 引擎没有这个作用域，var() 解析为空后会落到兜底值上；
+   兜底若是 #fff，暗色模式里固定列就变成白底。
+   实测（2026-10-04，vxe 4.22.2）：body 单元格上根本没有 col--fixed 这个类
+   （vxe 用 fixed--visible / fixed--hidden 标记），所以下面两条当前匹配为空、
+   是防御性保留；但兜底已改成 var(--el-bg-color)，一旦 vxe 改了标记也不会白底。 */
 .re-table .vxe-body--column.col--fixed {
-  background-color: var(--el-table-bg-color, #fff);
+  background-color: var(--el-table-bg-color, var(--el-bg-color, #ffffff));
 }
 .re-table tr.vxe-body--row.row--hover > .vxe-body--column.col--fixed,
 .re-table tr.vxe-body--row.row--current > .vxe-body--column.col--fixed {
-  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, #fff)) !important;
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-table-bg-color, var(--el-bg-color, #ffffff))) !important;
 }
 /* 空数据：撑满最小高度并居中（vxe-table）。
    ⚠ vxe 侧没有 element-plus 的 el-scrollbar 层，高度链短一环：.vxe-table--body-wrapper
