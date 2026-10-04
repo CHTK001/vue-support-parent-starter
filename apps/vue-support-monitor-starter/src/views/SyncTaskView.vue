@@ -71,104 +71,140 @@
       </el-table>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="880px" :close-on-click-modal="false">
-      <div class="st-form">
-        <div class="st-form-item">
-          <label>任务名称</label>
-          <el-input v-model="form.name" placeholder="例如：订单表 → 报表库" />
-        </div>
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑同步任务' : '新建同步任务'" width="920px" :close-on-click-modal="false">
+      <el-steps :active="step" align-center finish-status="success" class="st-steps">
+        <el-step title="设置输入" description="源数据源与取数方式" />
+        <el-step title="设置输出" description="目标数据源与写入表" />
+        <el-step title="设置配置" description="调度与运行参数" />
+      </el-steps>
 
-        <div class="st-grid">
+      <div class="st-form">
+        <!-- ① 设置输入：数据源中心选 jdbc 数据源，选表或写 SQL -->
+        <template v-if="step === 0">
           <div class="st-form-item">
             <label>源数据源（jdbc）</label>
-            <el-select v-model="form.sourceDatasourceId" placeholder="选择源数据源" class="st-full" @change="onSourceChange">
+            <el-select v-model="form.sourceDatasourceId" placeholder="从数据源中心选择源数据源" class="st-full" @change="onSourceChange">
               <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
             </el-select>
+            <div v-if="!jdbcSources.length" class="st-form-hint">数据源中心还没有 jdbc 数据源，请先到「数据源中心」新增。</div>
           </div>
-          <div class="st-form-item">
-            <label>目标数据源（jdbc）</label>
-            <el-select v-model="form.targetDatasourceId" placeholder="选择目标数据源" class="st-full" @change="onTargetChange">
-              <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
-            </el-select>
-          </div>
-        </div>
 
-        <div class="st-form-item">
-          <label>源读取 SQL（必须以 SELECT 开头）</label>
-          <div class="st-inline">
-            <el-select v-model="pickedSourceTable" placeholder="从源库选表生成（可选）" filterable clearable class="st-pick" @change="applySourceTable">
+          <div class="st-form-item">
+            <label>取数方式</label>
+            <el-radio-group v-model="sourceMode" @change="onSourceModeChange">
+              <el-radio-button value="table">选择数据表</el-radio-button>
+              <el-radio-button value="sql">自定义 SQL</el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div v-if="sourceMode === 'table'" class="st-form-item">
+            <label>数据表</label>
+            <el-select v-model="pickedSourceTable" placeholder="选择源库数据表" filterable clearable class="st-full" @change="applySourceTable">
               <el-option v-for="t in sourceTables" :key="t" :label="t" :value="t" />
             </el-select>
-            <span class="st-form-hint">只读源库：写语句会被后端挡下</span>
+            <div class="st-form-hint">选中后自动生成 SELECT（见下方 SQL，只读）；需要微调请切到「自定义 SQL」。</div>
           </div>
-          <el-input v-model="form.sourceSql" type="textarea" :rows="3" placeholder="SELECT id, name FROM t_order" />
-        </div>
 
-        <div class="st-grid">
           <div class="st-form-item">
-            <label>目标表</label>
-            <el-select v-model="form.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
-              <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
+            <label>源读取 SQL（必须以 SELECT 开头）</label>
+            <el-input v-model="form.sourceSql" type="textarea" :rows="4" class="mono" :readonly="sourceMode === 'table'" placeholder="SELECT id, name FROM t_order" />
+            <div class="st-form-hint">只读源库：写语句会被后端挡下。</div>
+          </div>
+        </template>
+
+        <!-- ② 设置输出：数据源中心选 jdbc 数据源，选目标表 + 字段映射 -->
+        <template v-else-if="step === 1">
+          <div class="st-form-item">
+            <label>目标数据源（jdbc）</label>
+            <el-select v-model="form.targetDatasourceId" placeholder="从数据源中心选择目标数据源" class="st-full" @change="onTargetChange">
+              <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
             </el-select>
           </div>
-          <div class="st-form-item">
-            <label>写入模式</label>
-            <el-select v-model="form.writeMode" class="st-full">
-              <el-option v-for="m in writeModes" :key="m.code" :label="m.label + '（' + m.code + '）'" :value="m.code" />
-            </el-select>
-          </div>
-        </div>
 
-        <div class="st-grid">
-          <div class="st-form-item">
-            <label>批量提交条数</label>
-            <el-input-number v-model="form.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
-          </div>
-          <div class="st-form-item">
-            <label>定时表达式（Spring 6 段 cron，留空只手动执行）</label>
-            <el-input v-model="form.cron" placeholder="0 0/5 * * * ?" class="mono" />
-          </div>
-        </div>
-
-        <div class="st-form-item st-switch-item">
-          <label>启用定时</label>
-          <el-switch v-model="form.enabled" />
-        </div>
-
-        <div class="st-map">
-          <div class="st-map-head">
-            <span>字段映射</span>
-            <div class="st-inline">
-              <ReButton @click="doPreview">
-                <template #icon><ReIcon name="View" /></template>预览 / 自动配对
-              </ReButton>
-              <ReButton @click="addMappingRow">
-                <template #icon><ReIcon name="Plus" /></template>加一行
-              </ReButton>
+          <div class="st-grid">
+            <div class="st-form-item">
+              <label>目标数据表</label>
+              <el-select v-model="form.targetTable" placeholder="选择或输入目标表名" filterable allow-create default-first-option class="st-full">
+                <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
+              </el-select>
+              <div class="st-form-hint">表清单取自目标数据源；不在清单中的表名可直接输入。</div>
+            </div>
+            <div class="st-form-item">
+              <label>写入模式</label>
+              <el-select v-model="form.writeMode" class="st-full">
+                <el-option v-for="m in writeModes" :key="m.code" :label="m.label + '（' + m.code + '）'" :value="m.code" />
+              </el-select>
             </div>
           </div>
-          <div v-for="(warning, index) in previewWarnings" :key="index" class="st-warn">{{ warning }}</div>
-          <div v-for="(item, index) in form.mapping" :key="index" class="st-map-row">
-            <el-select v-model="item.source" placeholder="源列" filterable class="st-map-col">
-              <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-            </el-select>
-            <span class="st-arrow">→</span>
-            <el-select v-model="item.target" placeholder="目标列" filterable class="st-map-col">
-              <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
-            </el-select>
-            <ReButton type="danger" @click="form.mapping.splice(index, 1)">
-              <template #icon><ReIcon name="Delete" /></template>
-            </ReButton>
+
+          <div class="st-map">
+            <div class="st-map-head">
+              <span>字段映射（源 → 目标）</span>
+              <div class="st-inline">
+                <ReButton @click="doPreview">
+                  <template #icon><ReIcon name="View" /></template>预览 / 自动配对
+                </ReButton>
+                <ReButton @click="addMappingRow">
+                  <template #icon><ReIcon name="Plus" /></template>加一行
+                </ReButton>
+              </div>
+            </div>
+            <div v-for="(warning, index) in previewWarnings" :key="index" class="st-warn">{{ warning }}</div>
+            <div v-for="(item, index) in form.mapping" :key="index" class="st-map-row">
+              <el-select v-model="item.source" placeholder="源列" filterable class="st-map-col">
+                <el-option v-for="c in sourceColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+              </el-select>
+              <span class="st-arrow">→</span>
+              <el-select v-model="item.target" placeholder="目标列" filterable class="st-map-col">
+                <el-option v-for="c in targetColumnOptions" :key="c.name" :label="c.name" :value="c.name" />
+              </el-select>
+              <ReButton type="danger" @click="form.mapping.splice(index, 1)">
+                <template #icon><ReIcon name="Delete" /></template>
+              </ReButton>
+            </div>
+            <div v-if="!form.mapping.length" class="st-form-hint">
+              留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
+            </div>
           </div>
-          <div v-if="!form.mapping.length" class="st-form-hint">
-            留空则按「同名（忽略大小写）」自动配对；建议先点「预览 / 自动配对」确认配对结果。
+        </template>
+
+        <!-- ③ 设置配置：任务名 / 批量 / 定时（ReCron） -->
+        <template v-else>
+          <div class="st-form-item">
+            <label>任务名称</label>
+            <el-input v-model="form.name" placeholder="例如：订单表 → 报表库" />
           </div>
-        </div>
+
+          <div class="st-form-item">
+            <label>定时表达式（Spring 6 段 cron，留空只手动执行）</label>
+            <ReCron
+              v-model="form.cron"
+              :preview-count="5"
+              placeholder="6 段表达式，例如 0 0/30 * * * ?"
+              @change="onCronChange"
+            />
+            <div v-if="cronError" class="st-warn">{{ cronError }}</div>
+          </div>
+
+          <div class="st-grid">
+            <div class="st-form-item">
+              <label>批量提交条数</label>
+              <el-input-number v-model="form.batchSize" :min="1" :max="100000" :step="100" controls-position="right" class="st-full" />
+            </div>
+            <div class="st-form-item st-switch-item">
+              <label>启用定时</label>
+              <el-switch v-model="form.enabled" :disabled="!form.cron.trim()" />
+              <span class="st-form-hint">未填定时表达式时不能启用</span>
+            </div>
+          </div>
+        </template>
       </div>
 
       <template #footer>
+        <ReButton v-if="step > 0" @click="prevStep">上一步</ReButton>
         <ReButton @click="dialogVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="saving" @click="submit">保存</ReButton>
+        <ReButton v-if="step < 2" type="primary" @click="nextStep">下一步</ReButton>
+        <ReButton v-else type="primary" :loading="saving" @click="submit">保存</ReButton>
       </template>
     </el-dialog>
   </div>
@@ -189,8 +225,8 @@
  */
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
-import { fetchDbTables } from "../monitorApi";
+import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
+import ReCron from "@repo/ui/re-cron";
 import {
   createSyncTask,
   deleteSyncTask,
@@ -204,6 +240,7 @@ import {
   type SyncColumn,
   type SyncFieldMapping,
   type SyncTask,
+  type SyncTaskPayload,
   type SyncTaskRunResult,
   type SyncWriteMode,
 } from "../syncTaskApi";
@@ -238,6 +275,12 @@ const previewSourceColumns = ref<SyncColumn[]>([]);
 const previewTargetColumns = ref<SyncColumn[]>([]);
 /** 预览提示 */
 const previewWarnings = ref<string[]>([]);
+/** 当前向导步骤：0 设置输入 / 1 设置输出 / 2 设置配置 */
+const step = ref(0);
+/** 输入取数方式：table 选数据表（自动生成 SELECT）/ sql 自定义 SQL */
+const sourceMode = ref<"table" | "sql">("table");
+/** cron 非法提示（留空视为「只手动执行」，不算错） */
+const cronError = ref("");
 
 /** 表单 */
 const form = reactive({
@@ -303,6 +346,10 @@ const refresh = async () => {
 
 /**
  * 加载某数据源的表清单
+ *
+ * <p>走数据源中心（{@code @pages/datasource}）而非直接调监控后端的 /db 接口：
+ * 中心侧会按数据源登记的库名挑选实际库，避免「登记库不是目标库」时列出空清单。</p>
+ *
  * @param id 数据源 ID
  * @param target 是否为目标侧
  */
@@ -311,11 +358,11 @@ const loadTables = async (id: number | null, target: boolean) => {
     return;
   }
   try {
-    const list = await fetchDbTables(id);
+    const list = await fetchDatasourceTables(id);
     if (target) {
-      targetTables.value = list.map(item => item.name);
+      targetTables.value = list;
     } else {
-      sourceTables.value = list.map(item => item.name);
+      sourceTables.value = list;
     }
   } catch {
     // 表清单只是辅助，取不到不影响手填 SQL / 表名
@@ -347,6 +394,69 @@ const applySourceTable = () => {
   }
 };
 
+/** 切换取数方式：回到「选择数据表」时按所选表重建 SQL */
+const onSourceModeChange = () => {
+  if (sourceMode.value === "table") {
+    applySourceTable();
+  }
+};
+
+/**
+ * ReCron 变更：只在明确判定非法（第二参 false）且表达式非空时提示
+ * @param expression 当前表达式
+ * @param valid      组件给出的合法性
+ */
+const onCronChange = (expression: string, valid: boolean) => {
+  cronError.value = expression.trim() && !valid ? "cron 表达式不合法，请检查后再保存" : "";
+};
+
+/**
+ * 校验某一步能否进入下一步
+ * @param index 步骤下标
+ */
+const validateStep = (index: number): boolean => {
+  if (index === 0) {
+    if (form.sourceDatasourceId == null) {
+      ElMessage.warning("请先选择源数据源");
+      return false;
+    }
+    if (!form.sourceSql.trim()) {
+      ElMessage.warning("请选择数据表或填写源读取 SQL");
+      return false;
+    }
+    if (!/^\s*select/i.test(form.sourceSql)) {
+      ElMessage.warning("源读取 SQL 必须以 SELECT 开头");
+      return false;
+    }
+    return true;
+  }
+  if (index === 1) {
+    if (form.targetDatasourceId == null) {
+      ElMessage.warning("请先选择目标数据源");
+      return false;
+    }
+    if (!form.targetTable.trim()) {
+      ElMessage.warning("请选择或输入目标数据表");
+      return false;
+    }
+    return true;
+  }
+  return true;
+};
+
+/** 下一步 */
+const nextStep = () => {
+  if (!validateStep(step.value)) {
+    return;
+  }
+  step.value = Math.min(2, step.value + 1);
+};
+
+/** 上一步 */
+const prevStep = () => {
+  step.value = Math.max(0, step.value - 1);
+};
+
 /** 打开新建弹窗 */
 const openCreate = () => {
   editingId.value = null;
@@ -369,6 +479,9 @@ const openCreate = () => {
   pickedSourceTable.value = null;
   sourceTables.value = [];
   targetTables.value = [];
+  step.value = 0;
+  sourceMode.value = "table";
+  cronError.value = "";
   dialogVisible.value = true;
   void loadTables(form.sourceDatasourceId, false);
   void loadTables(form.targetDatasourceId, true);
@@ -396,6 +509,13 @@ const openEdit = (row: SyncTask) => {
   pickedSourceTable.value = null;
   sourceTables.value = [];
   targetTables.value = [];
+  cronError.value = "";
+  step.value = 0;
+  // 存量 SQL 若正是「选表生成」的形状，则回到选表模式并回填表名；否则进 SQL 模式（可编辑），
+  // 否则 readonly 的 SQL 框会让存量自定义 SQL 无法修改。
+  const tableHit = /^\s*select\s+\*\s+from\s+`([^`]+)`\s*;?\s*$/i.exec(row.syncTaskSourceSql || "");
+  sourceMode.value = tableHit ? "table" : "sql";
+  pickedSourceTable.value = tableHit ? tableHit[1] : null;
   dialogVisible.value = true;
   void loadTables(form.sourceDatasourceId, false);
   void loadTables(form.targetDatasourceId, true);
@@ -457,30 +577,41 @@ const doPreview = async () => {
 
 /** 保存任务 */
 const submit = async () => {
+  // 兜底再校验前置步骤，并把向导跳回出问题的那一步
+  if (!validateStep(0)) {
+    step.value = 0;
+    return;
+  }
+  if (!validateStep(1)) {
+    step.value = 1;
+    return;
+  }
+  if (cronError.value) {
+    ElMessage.warning(cronError.value);
+    return;
+  }
   if (!form.name.trim()) {
     ElMessage.warning("任务名称不能为空");
     return;
   }
-  if (form.sourceDatasourceId == null || form.targetDatasourceId == null) {
-    ElMessage.warning("请选择源与目标数据源");
-    return;
-  }
-  if (!form.sourceSql.trim()) {
-    ElMessage.warning("源读取 SQL 不能为空");
-    return;
-  }
-  if (!form.targetTable.trim()) {
-    ElMessage.warning("目标表名不能为空");
+  if (form.enabled && !form.cron.trim()) {
+    ElMessage.warning("启用定时前请先填写定时表达式");
     return;
   }
   const mapping = form.mapping.filter(item => item.source && item.target);
+  // validateStep 已在运行时保证非空，这里再收窄一次类型（number|null → number）
+  const sourceId = form.sourceDatasourceId;
+  const targetId = form.targetDatasourceId;
+  if (sourceId == null || targetId == null) {
+    return;
+  }
   saving.value = true;
   try {
-    const payload = {
+    const payload: SyncTaskPayload = {
       name: form.name.trim(),
-      sourceDatasourceId: form.sourceDatasourceId,
+      sourceDatasourceId: sourceId,
       sourceSql: form.sourceSql.trim(),
-      targetDatasourceId: form.targetDatasourceId,
+      targetDatasourceId: targetId,
       targetTable: form.targetTable.trim(),
       columnMapping: mapping.length ? JSON.stringify(mapping) : null,
       writeMode: form.writeMode,
@@ -586,6 +717,10 @@ onMounted(async () => {
 
 <style scoped>
 .st-body { padding: 0 16px 16px; }
+/* 三步向导头部：与表单区留出呼吸感 */
+.st-steps { margin-bottom: 20px; }
+.st-steps :deep(.el-step__title) { font-size: 13px; }
+.st-steps :deep(.el-step__description) { font-size: 12px; }
 .st-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .st-sub { font-size: 12px; color: var(--text-tertiary); }
 .st-sql { font-size: 12px; color: var(--text-secondary); }
