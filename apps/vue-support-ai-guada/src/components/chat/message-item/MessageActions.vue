@@ -3,7 +3,7 @@
     :class="[isAssistant ? 'justify-start -translate-x-1' : 'justify-end translate-x-1']">
 
     <LTooltip :content="t('chat.messageActions.copy')" placement="top">
-      <div class="message-action-button" @click="$emit('copy')">
+      <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.copy')" @click="$emit('copy')">
         <el-icon :size="16">
           <Copy16Regular />
         </el-icon>
@@ -12,7 +12,7 @@
 
     <template v-if="!isAssistant && allowGenerate">
       <LTooltip :content="t('chat.messageActions.regenerate')" placement="top">
-        <div class="message-action-button" @click="$emit('generate')">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.regenerate')" @click="$emit('generate')">
           <el-icon :size="16">
             <ArrowClockwise16Regular />
           </el-icon>
@@ -22,7 +22,7 @@
 
     <template v-if="isAssistant && isLast">
       <LTooltip :content="t('chat.messageActions.regenerate')" placement="top">
-        <div class="message-action-button" @click="$emit('regenerate')">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.regenerate')" @click="$emit('regenerate')">
           <el-icon :size="16">
             <ArrowClockwise16Regular />
           </el-icon>
@@ -32,7 +32,7 @@
 
     <template v-if="isLast && contentVersions.length > 1">
       <LTooltip :content="t('chat.messageActions.prevVersion')" placement="top">
-        <div class="message-action-button" @click="$emit('switchVersion', 'prev')" :disabled="!hasPrev">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.prevVersion')" @click="$emit('switchVersion', 'prev')" :disabled="!hasPrev">
           <el-icon :size="16">
             <ChevronLeft24Filled />
           </el-icon>
@@ -42,7 +42,7 @@
         {{ currentVersionIndex + 1 }} / {{ contentVersions.length }}
       </div>
       <LTooltip :content="t('chat.messageActions.nextVersion')" placement="top">
-        <div class="message-action-button" @click="$emit('switchVersion', 'next')" :disabled="!hasNext">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.nextVersion')" @click="$emit('switchVersion', 'next')" :disabled="!hasNext">
           <el-icon :size="16">
             <ChevronRight24Filled />
           </el-icon>
@@ -53,7 +53,7 @@
     <!-- 从此处回退：删除本轮及之后的全部消息（破坏性，需上层确认） -->
     <template v-if="isAssistant">
       <LTooltip :content="t('chat.messageActions.rewindHere')" placement="top">
-        <div class="message-action-button" @click="$emit('rewind')">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.rewindHere')" @click="$emit('rewind')">
           <el-icon :size="16">
             <ArrowUndo16Regular />
           </el-icon>
@@ -62,7 +62,7 @@
 
       <!-- 从此处分叉：把截至本轮的内容复制成新会话，原会话不动 -->
       <LTooltip :content="t('chat.messageActions.forkHere')" placement="top">
-        <div class="message-action-button" @click="$emit('fork')">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.forkHere')" @click="$emit('fork')">
           <el-icon :size="16">
             <BranchFork16Regular />
           </el-icon>
@@ -72,19 +72,19 @@
 
     <LTooltip :content="t('chat.messageActions.more')" placement="top">
       <DropdownMenu @command="handleCommand">
-        <div class="message-action-button">
+        <div class="message-action-button" role="button" :aria-label="t('chat.messageActions.more')">
           <el-icon :size="16" class="pointer-events-none">
             <MoreHorizontal16Regular />
           </el-icon>
         </div>
       <template #dropdown>
-        <DropdownMenuItem command="edit">
+        <DropdownMenuItem command="edit" role="menuitem" :aria-label="t('chat.messageActions.editContent')">
           <el-icon class="mr-2">
             <Edit16Regular />
           </el-icon>
           {{ t('chat.messageActions.editContent') }}
         </DropdownMenuItem>
-        <DropdownMenuItem command="delete">
+        <DropdownMenuItem command="delete" role="menuitem" :aria-label="t('chat.messageActions.deleteMessage')">
           <el-icon class="mr-2">
             <Delete16Regular />
           </el-icon>
