@@ -5,7 +5,7 @@
       <div class="page-header">
         <div class="page-header__left">
           <h1 class="page-header__title">维度数据</h1>
-          <p class="page-header__sub">管理学科、学段、年级等教学基础维度</p>
+          <p class="page-header__sub">管理学科、学段、年级、班级等教学基础维度</p>
         </div>
       </div>
 
@@ -217,6 +217,58 @@
             </div>
           </div>
           <div v-if="!gradeLoading && !grades.length" class="empty-panel">暂无年级，点击「新增年级」创建</div>
+        </div>
+      </section>
+
+      <!-- ==================== 班级管理 ==================== -->
+      <section v-show="activeTab === 'class'" class="tab-panel">
+        <div class="subject-actions">
+          <el-select
+            v-model="classLevelFilter"
+            clearable
+            placeholder="全部学段"
+            style="width: 160px"
+            @change="loadClasses"
+          >
+            <el-option
+              v-for="opt in gradeLevelOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <div class="subject-actions__right">
+            <el-button type="primary" :icon="Plus" @click="openClassCreate">新增班级</el-button>
+          </div>
+        </div>
+
+        <div v-loading="classLoading" class="grade-list">
+          <div v-for="c in classes" :key="c.classId" class="grade-row">
+            <span class="grade-row__name">{{ c.className }}</span>
+            <span class="grade-row__code">{{ c.classCode || "编码自动生成" }}</span>
+            <span class="level-chip">{{ levelLabel(c.classGradeLevel) }}</span>
+            <span class="grade-row__order">{{ c.classGrade || "未设年级" }}</span>
+            <span class="grade-row__order">{{ classStudentCount(c.classId) }} 人</span>
+            <span class="status-pill" :class="c.classStatus === 1 ? 'is-on' : 'is-off'">
+              <i class="status-dot" />
+              {{ c.classStatus === 1 ? "启用" : "停用" }}
+            </span>
+            <div class="subject-card__ops">
+              <button type="button" class="icon-btn" title="编辑" @click="openClassEdit(c)">
+                <el-icon><EditPen /></el-icon>
+              </button>
+              <el-popconfirm :title="`确认删除班级「${c.className}」?`" @confirm="removeClass(c)">
+                <template #reference>
+                  <button type="button" class="icon-btn is-danger" title="删除">
+                    <el-icon><Delete /></el-icon>
+                  </button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </div>
+          <div v-if="!classLoading && !classes.length" class="empty-panel">
+            暂无班级，点击「新增班级」创建
+          </div>
         </div>
       </section>
 
@@ -487,6 +539,79 @@
       </template>
     </el-dialog>
 
+    <!-- 新增/编辑班级 -->
+    <el-dialog
+      v-model="classDialogVisible"
+      width="560px"
+      class="card-dialog subject-dialog grade-dialog"
+      align-center
+      :show-close="false"
+    >
+      <template #header>
+        <div class="dlg-header">
+          <div class="dlg-header__icon" aria-hidden="true">
+            <el-icon :size="26"><Grid /></el-icon>
+          </div>
+          <div class="dlg-header__text">
+            <div class="dlg-header__title">{{ classForm.classId ? "编辑班级" : "新增班级" }}</div>
+            <div class="dlg-header__sub">班级是学生的必填归属；学生端登记时填的班级名也会自动建立</div>
+          </div>
+          <button type="button" class="dlg-close" aria-label="关闭" @click="classDialogVisible = false">
+            <el-icon><Close /></el-icon>
+          </button>
+        </div>
+      </template>
+
+      <div class="dlg-body">
+        <div class="block-title">选择学段</div>
+        <div class="level-pills">
+          <button
+            v-for="opt in gradeLevelOptions"
+            :key="opt.value"
+            type="button"
+            class="level-pill"
+            :class="{ 'is-on': classForm.classGradeLevel === opt.value }"
+            @click="classForm.classGradeLevel = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+
+        <div class="dlg-divider" />
+
+        <div class="block-title">基本信息</div>
+        <el-form :model="classForm" label-position="top" class="card-form grade-form">
+          <el-form-item label="班级名称" required>
+            <el-input v-model="classForm.className" placeholder="如 三年二班" />
+          </el-form-item>
+          <el-form-item label="班级编码">
+            <el-input v-model="classForm.classCode" placeholder="留空自动生成" />
+            <div class="field-hint">唯一标识，留空由后端生成；已有学生挂靠时不要随意改</div>
+          </el-form-item>
+          <el-form-item label="年级">
+            <el-select v-model="classForm.classGrade" clearable placeholder="选择年级" style="width: 100%">
+              <el-option v-for="g in classGradeOptions" :key="g" :label="g" :value="g" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+
+        <div class="block-title">状态</div>
+        <el-radio-group v-model="classForm.classStatus">
+          <el-radio-button :value="1">启用</el-radio-button>
+          <el-radio-button :value="0">停用</el-radio-button>
+        </el-radio-group>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button class="dialog-btn" @click="classDialogVisible = false">取消</el-button>
+          <el-button class="dialog-btn is-primary" type="primary" :loading="classSaving" @click="saveClass">
+            保存班级
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 新增/编辑组卷模板 -->
     <el-dialog
       v-model="templateDialogVisible"
@@ -611,7 +736,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
-import type { EduGrade, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
+import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 
 const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
@@ -642,26 +767,31 @@ const ICON_OPTIONS: { key: string; label: string; icon: Component; bg: string; f
 /** 对话框颜色选项（对齐原型 8 色） */
 const COLOR_OPTIONS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f97316", "#14b8a6", "#facc15", "#ec4899", "#ef4444"];
 
-const levelLabel = (v?: string) =>
+const levelLabel = (v?: string | null) =>
   gradeLevelOptions.value.find((o) => o.value === v)?.label || v || "";
 
 const tabs: { name: DimensionTab; label: string }[] = [
   { name: "subject", label: "学科管理" },
   { name: "level", label: "学段管理" },
   { name: "grade", label: "年级管理" },
+  // 班级也是教学基础维度（学生挂班级、教师带班级），原先这里漏了它
+  { name: "class", label: "班级管理" },
   { name: "template", label: "组卷模板" },
 ];
 
 /** 维度数据 Tab 名 */
-type DimensionTab = "subject" | "level" | "grade" | "template";
+type DimensionTab = "subject" | "level" | "grade" | "class" | "template";
 
 const activeTab = ref<DimensionTab>("subject");
 
-/** 切 Tab；组卷模板为懒加载，切过去时才拉列表 */
+/** 切 Tab；组卷模板 / 班级为懒加载，切过去时才拉列表 */
 const onTabChange = (name: DimensionTab) => {
   activeTab.value = name;
   if (name === "template") {
     void loadTemplates();
+  }
+  if (name === "class") {
+    void loadClasses();
   }
 };
 
@@ -949,6 +1079,92 @@ const removeGrade = async (row: EduGrade) => {
     await eduaiApi.deleteGrade(row.gradeId as number);
     ElMessage.success("删除成功");
     void loadGrades();
+  } catch {
+    ElMessage.error("删除失败");
+  }
+};
+
+// ==================== 班级 ====================
+const classes = ref<EduClass[]>([]);
+const classLoading = ref(false);
+const classSaving = ref(false);
+const classDialogVisible = ref(false);
+const classForm = reactive<Partial<EduClass>>({});
+const classLevelFilter = ref("");
+/** 仅用于「班级学生数」展示：与班级一起懒加载，避免进页面就多发一次请求 */
+const classStudents = ref<EduStudent[]>([]);
+
+const loadClasses = async () => {
+  classLoading.value = true;
+  try {
+    const [cls, stu] = await Promise.all([
+      eduaiApi.listClasses(classLevelFilter.value ? { gradeLevel: classLevelFilter.value } : {}),
+      // 学生数按班级聚合展示，失败不影响班级列表本身
+      eduaiApi.listStudents().catch(() => [] as EduStudent[]),
+    ]);
+    classes.value = Array.isArray(cls) ? cls : [];
+    classStudents.value = Array.isArray(stu) ? stu : [];
+  } catch {
+    ElMessage.error("加载班级失败");
+  } finally {
+    classLoading.value = false;
+  }
+};
+
+/** 某班级下的学生数 */
+const classStudentCount = (classId?: number) =>
+  classId ? classStudents.value.filter((s) => s.studentClassId === classId).length : 0;
+
+/** 班级表单的年级候选：跟随所选学段；未选学段时给全量 */
+const classGradeOptions = computed(() => {
+  const level = classForm.classGradeLevel;
+  return (level ? gradesOfLevel(level) : grades.value).map((g) => g.gradeName).filter(Boolean) as string[];
+});
+
+const openClassCreate = () => {
+  Object.assign(classForm, {
+    classId: undefined,
+    className: "",
+    classCode: "",
+    classGradeLevel: classLevelFilter.value || "",
+    classGrade: "",
+    classStatus: 1,
+  });
+  classDialogVisible.value = true;
+};
+
+const openClassEdit = (row: EduClass) => {
+  Object.assign(classForm, { ...row });
+  classDialogVisible.value = true;
+};
+
+const saveClass = async () => {
+  if (!classForm.className?.trim()) {
+    ElMessage.warning("班级名称必填");
+    return;
+  }
+  classSaving.value = true;
+  try {
+    await eduaiApi.saveClass({
+      ...classForm,
+      className: classForm.className.trim(),
+      classCode: classForm.classCode?.trim() || undefined,
+    });
+    ElMessage.success("保存成功");
+    classDialogVisible.value = false;
+    void loadClasses();
+  } catch {
+    ElMessage.error("保存失败");
+  } finally {
+    classSaving.value = false;
+  }
+};
+
+const removeClass = async (row: EduClass) => {
+  try {
+    await eduaiApi.deleteClass(row.classId as number);
+    ElMessage.success("删除成功");
+    void loadClasses();
   } catch {
     ElMessage.error("删除失败");
   }
@@ -1627,6 +1843,13 @@ onMounted(() => {
 .grade-row__time {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+/* 班级编码：与年级的次要信息同款弱化样式 */
+.grade-row__code {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
 /* ---------- 对话框（严格对齐「新增学科」原型） ---------- */

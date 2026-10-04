@@ -672,7 +672,7 @@ const stuProfileItems = computed(() => [
 /** 头像文件选择框（隐藏，点头像时 programmatic click） */
 const stuAvatarInput = ref<HTMLInputElement | null>(null);
 /** 头像显示地址：相对路径拼成后端预览地址，http/data: 原样返回 */
-const stuAvatarSrc = computed(() => eduaiApi.studentAvatarUrl(stuForm.studentAvatar));
+const stuAvatarSrc = computed(() => eduaiApi.studentAvatarUrl(stuForm.studentAvatar ?? undefined));
 
 /** 点头像 -> 唤出文件选择 */
 function pickStuAvatar() {
