@@ -806,9 +806,10 @@ export const fetchTableColumns = (tableName: string, datasourceId?: number, data
  * @param database 数据库名（可选）
  * @param countTotal 是否统计总数（false 跳过大表 COUNT，total 返回 -1 表示未知）
  * @param where WHERE 过滤条件（Navicat 式自由条件，可选）
+ * @param filters 结构化筛选条件（高级筛选，可选；与 where 同时给出时按 AND 组合）
  * @returns 表数据分页结果
  */
-export const fetchTableData = (tableName: string, page = 1, pageSize = 50, orderBy?: string, orderDir?: string, datasourceId?: number, database?: string, countTotal = true, where?: string) =>
+export const fetchTableData = (tableName: string, page = 1, pageSize = 50, orderBy?: string, orderDir?: string, datasourceId?: number, database?: string, countTotal = true, where?: string, filters?: DbFilterCondition[]) =>
   http()
     .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/data`)
     .noToast(true)
@@ -821,8 +822,61 @@ export const fetchTableData = (tableName: string, page = 1, pageSize = 50, order
       database,
       count: countTotal,
       where: where?.trim() ? where.trim() : undefined,
+      // 空数组不传：传 `[]` 也会让后端走一次 JSON 解析，而语义上与不传完全相同
+      filters: filters && filters.length > 0 ? JSON.stringify(filters) : undefined,
     })
     .then(r => unwrap<DbTableDataResult>(r));
+
+/**
+ * 结构化筛选条件（Navicat 式高级筛选的一行）
+ *
+ * <p>与 WHERE 自由文本是**两套独立机制**：列名走标识符白名单、值走
+ * PreparedStatement 绑定（所以值里的引号不构成注入）；而 where 文本框
+ * 只能靠「拒绝分隔符」的黑名单。两者同时给出时按 AND 组合。</p>
+ *
+ * @author CH
+ * @since 4.0.0.45
+ */
+export interface DbFilterCondition {
+  /** 列名（后端过标识符白名单） */
+  column: string;
+  /** 运算符：= <> > >= < <= LIKE "NOT LIKE" "IS NULL" "IS NOT NULL" IN "NOT IN" BETWEEN */
+  op: string;
+  /** 值1；IN 时为逗号分隔的多值；BETWEEN 时为下界 */
+  value?: string;
+  /** 值2：仅 BETWEEN 用作上界 */
+  value2?: string;
+}
+
+/** 高级筛选支持的运算符（与后端 DbFilter.operators 同口径） */
+export const DB_FILTER_OPS = [
+  "=", "<>", ">", ">=", "<", "<=",
+  "LIKE", "NOT LIKE", "IS NULL", "IS NOT NULL",
+  "IN", "NOT IN", "BETWEEN",
+] as const;
+
+/**
+ * 该运算符是否需要第二个值（BETWEEN 的上界）
+ * @param op 运算符
+ * @returns true=需要 value2
+ */
+export const dbFilterNeedsValue2 = (op: string): boolean => op === "BETWEEN";
+
+/**
+ * 该运算符是否不接受任何值（IS NULL / IS NOT NULL）
+ * @param op 运算符
+ * @returns true=无值
+ */
+export const dbFilterTakesNoValue = (op: string): boolean =>
+  op === "IS NULL" || op === "IS NOT NULL";
+
+/**
+ * 该运算符是否接受逗号分隔的多值（IN / NOT IN）
+ * @param op 运算符
+ * @returns true=多值
+ */
+export const dbFilterTakesMultipleValues = (op: string): boolean =>
+  op === "IN" || op === "NOT IN";
 
 /**
  * 获取表的建表语句（DDL）
