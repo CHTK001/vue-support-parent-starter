@@ -12,7 +12,8 @@
     <!-- 学生自助改密码：只在本人登录时出现，代入态一律不给改，
          否则管理员代入会被迫（或误操作）改掉学生的真实口令。 -->
     <div v-else class="portal-pwd">
-      <button type="button" class="portal-pwd__btn" @click="openChangePassword">
+      <!-- 显式无参调用：直接把 openChangePassword 交给 @click 会把 MouseEvent 当 firstTime 传进去 -->
+      <button type="button" class="portal-pwd__btn" @click="openChangePassword()">
         <ReIcon name="Key" :size="14" aria-hidden="true" />
         <span>修改密码</span>
       </button>
@@ -92,8 +93,19 @@
       </div>
     </div>
 
-    <!-- 修改密码对话框 -->
-    <el-dialog v-model="pwdVisible" title="修改登录密码" width="420" append-to-body>
+    <!-- 修改密码对话框；首次登录时作为「引导修改初始密码」弹窗，不可点遮罩/ESC 关闭 -->
+    <el-dialog
+      v-model="pwdVisible"
+      :title="pwdFirstTime ? '首次登录：请修改初始密码' : '修改登录密码'"
+      width="420"
+      append-to-body
+      :close-on-click-modal="!pwdFirstTime"
+      :close-on-press-escape="!pwdFirstTime"
+      :show-close="!pwdFirstTime"
+    >
+      <p v-if="pwdFirstTime" class="portal-pwd__tip">
+        你的账号当前用的是管理员设置的初始密码，为保护自己的学习记录，请先改成只有你知道的密码。
+      </p>
       <el-form :model="pwdForm" label-width="76" @submit.prevent>
         <el-form-item label="原密码">
           <el-input
@@ -118,9 +130,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pwdVisible = false">取消</el-button>
+        <!-- 首次引导不给「取消」：初始口令往往是全班同一个，学生必须先改成自己的 -->
+        <el-button v-if="!pwdFirstTime" @click="pwdVisible = false">取消</el-button>
         <el-button type="primary" :loading="pwdSaving" @click="submitChangePassword">
-          确认修改
+          {{ pwdFirstTime ? "设置我的密码" : "确认修改" }}
         </el-button>
       </template>
     </el-dialog>
@@ -263,6 +276,12 @@ async function load() {
       return;
     }
     needBind.value = false;
+    // 首次登录引导改密：管理员设/重置过初始口令、且学生还没自己改过时弹一次引导。
+    // 标记由服务端在学生自助改密成功后置 0，所以只有第一次（或每次被重置后）会弹。
+    // 用窄类型断言读这个可选字段，不改 types.ts —— 该文件当前有他人未提交改动，按 §4.7 不裹入。
+    if ((me as { mustChangePassword?: boolean }).mustChangePassword === true) {
+      openChangePassword(true);
+    }
     overview.value = await eduaiApi.studentOverview();
     if (overview.value?.stage) {
       await loadModules(overview.value.stage);
@@ -371,12 +390,15 @@ const pwdVisible = ref(false);
 const pwdSaving = ref(false);
 const pwdError = ref("");
 const pwdForm = reactive({ oldPassword: "", newPassword: "" });
+/** 是否处于「首次登录引导改密」：为真时弹窗不可取消，且隐藏「取消」按钮 */
+const pwdFirstTime = ref(false);
 
 /** 打开改密对话框：每次都清空上一次的输入与错误，避免残留旧口令。 */
-function openChangePassword() {
+function openChangePassword(firstTime = false) {
   pwdForm.oldPassword = "";
   pwdForm.newPassword = "";
   pwdError.value = "";
+  pwdFirstTime.value = firstTime;
   pwdVisible.value = true;
 }
 
@@ -401,6 +423,8 @@ async function submitChangePassword() {
     });
     ElMessage.success("密码已修改，下次登录请使用新密码");
     pwdVisible.value = false;
+    // 改完就退出「首次引导」态，避免后续再打开改密框时仍被当成强制
+    pwdFirstTime.value = false;
   } catch (e) {
     pwdError.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -587,6 +611,17 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 700;
   color: var(--el-color-danger);
+}
+
+/* 首次登录改密引导的说明文案 */
+.portal-pwd__tip {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2, var(--el-text-color-primary));
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 /* 模块内嵌层：铺满学生端，顶部一条返回栏 */
