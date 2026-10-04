@@ -14,7 +14,9 @@
       "@pages/filesystem/*": ["../../pages/filesystem/*"],
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
       "@pages/datasource/*": ["../../pages/datasource/*"],
-      "@pages/datasource": ["../../pages/datasource/src/index.ts"]
+      "@pages/datasource": ["../../pages/datasource/src/index.ts"],
+      "@pages/device/*": ["../../pages/device/*"],
+      "@pages/device": ["../../pages/device/src/index.ts"]
     }
   },
   "include": [
@@ -27,6 +29,7 @@
     "../../pages/message/src/**/*.d.ts",
     "../../pages/hotsport/src/**/*.d.ts",
     "../../pages/filesystem/src/**/*.d.ts",
-    "../../pages/datasource/src/**/*.d.ts"
+    "../../pages/datasource/src/**/*.d.ts",
+      "../../pages/device/src/**/*.d.ts"
   ]
 }

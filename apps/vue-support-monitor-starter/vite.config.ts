@@ -34,6 +34,7 @@ export default createVite({
     "@pages/project": "pages/project",
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
+    "@pages/device": "pages/device",
   },
   server: {
     port: 8848,
@@ -76,6 +77,11 @@ export default createVite({
         changeOrigin: true,
       },
       "/ms/monitor": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      // 设备模块：device-starter 原生前缀，不在 /ms/* 体系内，需单独放行
+      "/api/device": {
         target: apiTarget,
         changeOrigin: true,
       },

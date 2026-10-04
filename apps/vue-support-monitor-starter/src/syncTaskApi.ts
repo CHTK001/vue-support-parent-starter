@@ -26,8 +26,16 @@ export interface SyncWriteMode {
 export interface SyncTask {
   id: number;
   syncTaskName: string;
-  syncTaskSourceDatasourceId: number;
-  syncTaskSourceSql: string;
+  /** 输入源类型：JDBC / FILE / DIR */
+  syncTaskSourceType?: string | null;
+  /** 源数据源 ID（仅 JDBC 源有值） */
+  syncTaskSourceDatasourceId?: number | null;
+  /** 源读取 SQL（仅 JDBC 源有值） */
+  syncTaskSourceSql?: string | null;
+  /** 文件/目录路径（FILE=文件 / DIR=目录） */
+  syncTaskSourcePath?: string | null;
+  /** 文件/目录选项 JSON：{format,delimiter,sheetIndex,pattern,recursive,afterProcess} */
+  syncTaskSourceOptions?: string | null;
   syncTaskTargetDatasourceId: number;
   syncTaskTargetTable: string;
   /** 字段映射 JSON 数组，空表示按同名自动匹配 */
@@ -48,8 +56,14 @@ export interface SyncTask {
     interface 没有隐式索引签名，会报 TS2345；匿名对象类型/类型别名则有） */
 export type SyncTaskPayload = {
   name: string;
-  sourceDatasourceId: number;
-  sourceSql: string;
+  /** 输入源类型 JDBC/FILE/DIR，空按 JDBC */
+  sourceType?: string | null;
+  sourceDatasourceId?: number | null;
+  sourceSql?: string | null;
+  /** 文件/目录路径（服务器本地绝对路径） */
+  sourcePath?: string | null;
+  /** 文件/目录选项 JSON */
+  sourceOptions?: string | null;
   targetDatasourceId: number;
   targetTable: string;
   columnMapping?: string | null;
@@ -148,15 +162,39 @@ export const disableSyncTask = (id: number) =>
 
 /**
  * 预览字段映射（不落库）
- * @param data 源/目标与已配映射
+ * @param data 输入源（JDBC 用 datasourceId+sql；文件/目录用 path+options）与目标、已配映射
  */
 export const previewSyncMapping = (data: {
-  sourceDatasourceId: number;
-  sourceSql: string;
+  sourceType?: string | null;
+  sourceDatasourceId?: number | null;
+  sourceSql?: string | null;
+  sourcePath?: string | null;
+  sourceOptions?: string | null;
   targetDatasourceId: number;
   targetTable: string;
   mapping?: SyncFieldMapping[];
 }) => http().post("/ms/monitor/datasync/preview").data(data).noToast(true).then(r => unwrap<SyncPreview>(r));
+
+/** 本机文件条目（「选择文件 / 选择文件夹」用） */
+export interface LocalFileEntry {
+  key: string;
+  name: string;
+  isDir: boolean;
+  size?: number | null;
+  updatedAt?: number | null;
+}
+
+/**
+ * 列举后端所在机器的目录（只读）
+ *
+ * <p>数据同步的输入源可以是「服务器本地文件 / 目录」，而 ReFilePicker 需要一个列目录的 loader。
+ * 监控后端为此提供 {@code /ms/monitor/local-files/list}。</p>
+ *
+ * @param path  绝对路径；留空列出文件系统根
+ * @param files 是否同时返回数据文件（选择文件时传 true）
+ */
+export const fetchLocalFiles = (path?: string | null, files = false) =>
+  http().get("/ms/monitor/local-files/list").query({ path, files }).then(r => unwrap<LocalFileEntry[]>(r));
 
 /**
  * 写入模式字典

@@ -20,6 +20,11 @@ routeConfig:
 # API 基础路径
 httpConfig:
   baseUrl: /
+  # 各业务模块后端前缀（createModuleHttp 读取，未配置则回退 baseUrl）。
+  # device 用 device-starter 的原生前缀 /api/device——该模块未纳入 /ms/* 体系，
+  # 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
+  moduleBaseUrl:
+    device: /api/device
 
 # 登录页配置（本地验收期间关闭滑块：自动化工具无法拖拽滑块；验收完成后还原为 true）
 loginConfig:

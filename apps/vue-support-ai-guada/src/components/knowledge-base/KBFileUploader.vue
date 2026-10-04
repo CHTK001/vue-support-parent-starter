@@ -25,6 +25,18 @@
                 {{ t('knowledge.upload.uploadFolder') }}
             </ReButton>
 
+            <!-- 新建 Markdown 文档（直接按文本写入，不占上传任务队列） -->
+            <ReButton type="default" @click="openMarkdownDialog">
+                <DocumentAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
+                新建 Markdown
+            </ReButton>
+
+            <!-- 从网页导入（抓取正文落成 Markdown） -->
+            <ReButton type="default" @click="openWebDialog">
+                <el-icon class="mr-1.5 !align-middle"><Link /></el-icon>
+                从网页导入
+            </ReButton>
+
             <!-- 上传任务按钮(仅在有任务时显示) -->
             <ReButton type="default" v-if="uploadTasks.length > 0" @click="emit('show-upload-task')">
                 <Upload class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
@@ -99,13 +111,60 @@
                 </div>
             </template>
         </ReDialog>
+
+        <!-- 新建 Markdown 文档 -->
+        <ReDialog v-model="showMarkdownDialog" title="新建 Markdown 文档" :width="560" :close-on-click-modal="false">
+            <div class="flex flex-col gap-3">
+                <el-input v-model="mdName" placeholder="文件名（无需扩展名，自动补 .md）" @keyup.enter="confirmMarkdown" />
+                <el-input
+                    v-model="mdContent"
+                    type="textarea"
+                    :rows="12"
+                    placeholder="在此撰写 Markdown 内容，保存后立即入库并可检索"
+                />
+                <div class="text-xs text-[var(--rm-text-disabled)]">
+                    保存位置：{{ props.currentFolderPath || '根目录' }}
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <ReButton type="default" @click="showMarkdownDialog = false">{{ t('common.cancel') }}</ReButton>
+                    <ReButton type="primary" :loading="savingMarkdown" @click="confirmMarkdown">保存</ReButton>
+                </div>
+            </template>
+        </ReDialog>
+
+        <!-- 从网页导入 -->
+        <ReDialog v-model="showWebDialog" title="从网页导入" :width="520" :close-on-click-modal="false">
+            <div class="flex flex-col gap-3">
+                <el-input v-model="webUrl" placeholder="https://example.com/article" @keyup.enter="confirmWebImport" />
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-[var(--rm-text-secondary)]">最多抓取页数</span>
+                    <el-input-number v-model="webMaxPages" :min="1" :max="50" controls-position="right" size="small" />
+                    <span class="text-xs text-[var(--rm-text-disabled)]">1 = 只抓当前页；&gt;1 按同域链接展开</span>
+                </div>
+                <el-input v-model="webDir" placeholder="保存目录（默认 web）" />
+                <div class="text-xs text-[var(--rm-text-disabled)]">
+                    正文会落成 Markdown 并立即建立索引；仅允许公网地址（内网地址会被拒绝）
+                </div>
+                <div v-if="webResult" class="text-xs text-[var(--rm-success)]">
+                    成功 {{ webResult.added?.length || 0 }} 篇{{ webResult.failed?.length ? '，失败 ' + webResult.failed.length + ' 篇' : '' }}
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <ReButton type="default" @click="showWebDialog = false">{{ t('common.cancel') }}</ReButton>
+                    <ReButton type="primary" :loading="importingWeb" @click="confirmWebImport">导入</ReButton>
+                </div>
+            </template>
+        </ReDialog>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Upload, Folder, Document } from '@element-plus/icons-vue'
+import { Upload, Folder, Document, Link } from '@element-plus/icons-vue'
 import { DocumentAdd16Regular, FolderAdd16Regular } from '@vicons/fluent'
 import { ElMessage } from 'element-plus'
 import { useFileUploadStore } from '@/stores/fileUpload'
@@ -141,6 +200,91 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+// ==================== 新建 Markdown 文档 ====================
+// 直接按文本写入知识库（复用 PUT /bases/{id}/file），不走上传任务队列：
+// 这类内容天然是文本，走队列只会让用户多等一次「上传中」。
+const showMarkdownDialog = ref(false)
+const mdName = ref('')
+const mdContent = ref('')
+const savingMarkdown = ref(false)
+
+/** 打开新建 Markdown 弹窗（每次重置，避免带入上次内容） */
+function openMarkdownDialog() {
+    mdName.value = ''
+    mdContent.value = ''
+    showMarkdownDialog.value = true
+}
+
+/** 保存 Markdown：自动补 .md 后缀并写入当前目录 */
+async function confirmMarkdown() {
+    const base = mdName.value.trim().replace(/\.md$/i, '')
+    if (!base) {
+        ElMessage.warning('请输入文件名')
+        return
+    }
+    if (base.length > 80) {
+        ElMessage.warning('文件名过长（最多 80 字）')
+        return
+    }
+    savingMarkdown.value = true
+    try {
+        const file = new File([mdContent.value || ''], `${base}.md`, { type: 'text/markdown' })
+        await knowledgeBaseApi.uploadKBFile(props.kbId, file, props.currentFolderPath || null)
+        ElMessage.success('已保存')
+        showMarkdownDialog.value = false
+        // 复用「目录已变更」信号刷新文件树（父组件据此 forceReload）
+        emit('folder-created')
+    } catch (e: any) {
+        ElMessage.error('保存失败: ' + (e?.message || ''))
+    } finally {
+        savingMarkdown.value = false
+    }
+}
+
+// ==================== 从网页导入 ====================
+// 抓取正文落成 Markdown 并建立索引；与知识库「来源（URL 抓取）」的区别：
+// 那是有状态的长效同步配置，这里是「添加一条」的一次性动作。
+const showWebDialog = ref(false)
+const webUrl = ref('')
+const webMaxPages = ref(1)
+const webDir = ref('web')
+const importingWeb = ref(false)
+const webResult = ref<any>(null)
+
+/** 打开从网页导入弹窗 */
+function openWebDialog() {
+    webUrl.value = ''
+    webMaxPages.value = 1
+    webDir.value = 'web'
+    webResult.value = null
+    showWebDialog.value = true
+}
+
+/** 抓取并入库 */
+async function confirmWebImport() {
+    const url = webUrl.value.trim()
+    if (!/^https?:\/\//i.test(url)) {
+        ElMessage.warning('请输入 http(s) 开头的网址')
+        return
+    }
+    importingWeb.value = true
+    webResult.value = null
+    try {
+        const res: any = await knowledgeBaseApi.addKnowledgeWebPage(props.kbId, {
+            url,
+            maxPages: webMaxPages.value,
+            path: webDir.value.trim() || 'web',
+        })
+        webResult.value = res || null
+        ElMessage.success(`导入完成：成功 ${res?.added?.length || 0} 篇`)
+        emit('folder-created')
+    } catch (e: any) {
+        ElMessage.error('导入失败: ' + (e?.message || ''))
+    } finally {
+        importingWeb.value = false
+    }
+}
 
 const uploadStore = useFileUploadStore()
 const kbStore = useKnowledgeBaseStore()

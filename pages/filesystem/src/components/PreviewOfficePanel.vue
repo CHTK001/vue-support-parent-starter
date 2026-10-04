@@ -17,6 +17,7 @@
  */
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from "vue";
 import {
+  extensionOf,
   isCorruptOfficeFile,
   isEncryptedDoc,
   officeRendererOfSniffed,
@@ -83,6 +84,76 @@ const wrapRef = ref<HTMLDivElement>();
  */
 const buffer = shallowRef<ArrayBuffer | null>(null);
 
+/**
+ * 服务端转换后使用的渲染器（传统二进制 → OOXML 后置位）
+ *
+ * <p>前端组件吃不下真正的 OLE2 传统格式（.doc / .xls），但后端可以用
+ * {@code ?format=docx} / {@code ?format=xlsx} 把它们转成 OOXML；转换成功后
+ * 在这里记录目标渲染器，并用转换后的字节驱动 {@code @vue-office/*} 组件。
+ * 为空时仍按原字节的魔数嗅探结果选渲染器。</p>
+ */
+const convertedRenderer = ref<OfficeRenderer | "">("");
+
+/**
+ * 传统二进制格式 → 可客户端渲染的 OOXML 目标（对应后端 {@code ?format=} 转换）
+ *
+ * <p>只收录「浏览器组件解析不了、但服务端有转换器」的格式。转换失败时后端会
+ * 带 {@code X-FileStorage-Convert: unavailable} 返回原字节，前端据此继续走
+ * PDF / 服务端渲染兜底。</p>
+ */
+const CONVERT_TARGET: Readonly<Record<string, { format: "docx" | "xlsx"; mime: string; renderer: OfficeRenderer }>> = {
+  doc: {
+    format: "docx",
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    renderer: "docx",
+  },
+  xls: {
+    format: "xlsx",
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    renderer: "excel",
+  },
+};
+
+/**
+ * 尝试让服务端把传统二进制文档转成 OOXML 后本地渲染。
+ *
+ * @returns 转换成功并已填充 {@link buffer} / {@link convertedRenderer} 返回 true
+ */
+async function tryConvertFallback(): Promise<boolean> {
+  const target = CONVERT_TARGET[extensionOf(props.fileName)];
+  if (!target) {
+    return false;
+  }
+  // rawSrc（不带 preview/render 参数）更干净；缺失时退回 src 也可命中后端 format 分支
+  const base = props.rawSrc || props.src;
+  const sep = base.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${base}${sep}format=${target.format}`);
+    if (!res.ok) {
+      return false;
+    }
+    // 只看状态码不行：转换失败时服务端仍返回 200（原始字节）。
+    // 转换成功的判定同时看响应头与内容类型——存储服务是独立 origin（如 :18080），
+    // 未把 X-FileStorage-Convert 放进 CORS expose-headers 时该头读不到，
+    // 只能靠内容类型（与 ?format=pdf 兜底同一套判定口径）。
+    const header = res.headers.get("X-FileStorage-Convert");
+    const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+    if (header !== target.format && !contentType.startsWith(target.mime)) {
+      return false;
+    }
+    const ab = await res.arrayBuffer();
+    // 二次嗅探：防止后端误标或转换器产出非 OOXML/空文档
+    if (!officeRendererOfSniffed(`converted.${target.format}`, new Uint8Array(ab))) {
+      return false;
+    }
+    buffer.value = ab;
+    convertedRenderer.value = target.renderer;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** 加载失败信息（渲染错误时展示，便于定位） */
 const failReason = ref("");
 
@@ -95,7 +166,8 @@ const failReason = ref("");
  * 拿到字节前退化为按扩展名判定。
  */
 const renderer = computed<OfficeRenderer | "">(() =>
-  officeRendererOfSniffed(props.fileName, buffer.value ? new Uint8Array(buffer.value) : undefined),
+  convertedRenderer.value
+    || officeRendererOfSniffed(props.fileName, buffer.value ? new Uint8Array(buffer.value) : undefined),
 );
 
 /** 是否为可客户端直渲染的类型（false 时提示父组件走服务端） */
@@ -142,6 +214,7 @@ async function load(): Promise<void> {
   loading.value = true;
   failReason.value = "";
   buffer.value = null;
+  convertedRenderer.value = "";
   try {
     // 不带 credentials：数据源是独立 origin（如 http://host:18080），鉴权由 URL 上的
     // x-oauth-token 与请求头承担，不依赖 cookie。一旦写 credentials:"include"，
@@ -162,6 +235,12 @@ async function load(): Promise<void> {
           + "磁盘上存放的是密文，只有装了客户端并获授权的终端才能解密。"
           + "服务端与浏览器读到的都是密文，重新上传也没用，请提供未加密的副本";
         emit("error", { noFallback: true, reason: failReason.value });
+        return;
+      }
+      // 传统二进制（.doc / .xls）被服务端判为需服务端渲染（channel=spi/native）时，
+      // 先尝试让后端转成 OOXML（doc→docx / xls→xlsx）：转成了就仍回到客户端组件渲染，
+      // 保真度与交互都优于服务端拼的 HTML 或转 PDF。
+      if (await tryConvertFallback()) {
         return;
       }
       failReason.value = "该文件需由服务端渲染";
@@ -193,6 +272,12 @@ async function load(): Promise<void> {
       // 会原样吐回二进制、不带任何 channel 头——直接丢给 iframe 只会得到一屏乱码
       // 或一个意料之外的下载。
       //
+      // 优先让服务端把传统二进制转成 OOXML（doc→docx / xls→xlsx）：转换成功后
+      // 仍由客户端组件渲染，保真度与交互都优于退回 PDF / 服务端 HTML。
+      // 服务端没有对应转换器时会带 X-FileStorage-Convert: unavailable，此处返回 false。
+      if (await tryConvertFallback()) {
+        return;
+      }
       // 退路有两条，按优先级：
       //   ① 服务端有该格式的 HTML 渲染器（channel=spi）→ 走 iframe；
       //   ② 没有 HTML 渲染器，但有 Office→PDF 转换器（Aspose SPI）

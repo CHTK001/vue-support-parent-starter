@@ -227,8 +227,8 @@ defineProps<{
 const emit = defineEmits<{
   /** 取消并回到列表 */
   (e: 'cancel'): void
-  /** 用该模板名创建知识库 */
-  (e: 'create', name: string): void
+  /** 用该模板名创建知识库，并携带模板示例文档（建库后落库） */
+  (e: 'create', name: string, docs: Array<{ path: string; content: string }>): void
 }>()
 
 /** 分类清单 */
@@ -351,12 +351,56 @@ function select(t: TemplateItem) {
   kbName.value = t.name
 }
 
-/** 用当前模板创建 */
+/** 用当前模板创建（携带示例文档，建库后由父页面逐篇落库） */
 function onCreate() {
   const name = kbName.value.trim()
   if (name.length < 2 || name.length > 20) {
     return
   }
-  emit('create', name)
+  emit('create', name, selected.value ? buildTemplateDocs(selected.value) : [])
+}
+
+/**
+ * 按模板的预置类型生成示例文档内容。
+ *
+ * <p>以前这里只给出文件名（结构示意），用户建完库文件树是空的；现在生成真实内容，
+ * 由父页面在建库成功后写进知识库，保证「模板里看到的 md」= 「库里真实存在的 md」。</p>
+ *
+ * @param t 模板
+ * @returns 文档列表（path + content）
+ */
+function buildTemplateDocs(t: TemplateItem): Array<{ path: string; content: string }> {
+  const [a, b] = t.entityTypes
+  const [r1, r2] = t.relationTypes
+  const header = `# ${t.name}\n\n> 由模板「${t.name}」自动生成，请按下方结构补充真实内容。\n\n`
+  const types = `## 预置类型\n\n- 实体类型：${t.entityTypes.join('、')}\n- 关系类型：${t.relationTypes.join('、')}\n\n`
+
+  return [
+    {
+      path: `01-${t.name}-概述.md`,
+      content: header + `本知识库用于沉淀《${t.name}》相关资料。\n\n` + types +
+        `## 使用方式\n\n1. 先在本文件写清范围与术语口径；\n2. 再按后续目录逐类补充条目；\n3. 上传后系统会自动切分并建立索引。\n`,
+    },
+    {
+      path: `02-${a ?? '实体'}-名录.md`,
+      content: header + `## ${a ?? '实体'}名录\n\n| 名称 | 类型 | 说明 |\n| --- | --- | --- |\n| （示例，请替换） | ${a ?? '实体'} | 简要说明 |\n\n` +
+        `> 每行一条${a ?? '实体'}；说明保持一句话以内，便于检索命中。\n`,
+    },
+    {
+      path: `03-${a ?? '实体'}-${r1 ?? '关系'}-${b ?? '明细'}.md`,
+      content: header + `## ${r1 ?? '关系'}关系\n\n| ${a ?? '主体'} | 关系 | ${b ?? '客体'} | 说明 |\n| --- | --- | --- | --- |\n| （示例） | ${r1 ?? '关系'} | （示例） |  |\n\n` +
+        `> 关系词固定使用：${t.relationTypes.join('、')}。\n`,
+    },
+    {
+      path: `04-${b ?? '实体'}-属性明细.md`,
+      content: header + `## ${b ?? '实体'}属性明细\n\n| 名称 | 属性 | 取值 | 备注 |\n| --- | --- | --- | --- |\n| （示例） | （属性） | （取值） |  |\n\n` +
+        `> 属性名统一用中文短词（如：朝代、体裁、出处），避免同义异名。\n`,
+    },
+    {
+      path: `05-${t.name}-常见问答.md`,
+      content: header + `## 常见问答\n\n### Q1. （问题）\n\n（回答，尽量给出依据来源）\n\n` +
+        `### Q2. （问题）\n\n（回答）\n\n> 问答对同样会进入检索，问题句尽量贴近用户真实提问方式${r2 ? `；可用关系「${r2}」串联相关内容` : ''}。\n`,
+    },
+  ]
 }
 </script>
