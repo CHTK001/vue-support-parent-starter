@@ -480,6 +480,23 @@
               <ReButton layout="square" icon="Files" tip="执行脚本（逐条出结果）" @click="executeScript" />
               <ReButton layout="square" icon="Tickets" tip="执行计划" @click="executeExplain" />
               <ReButton layout="square" icon="Operation" tip="查询参数" @click="openParamDialog" />
+              <!-- 事务开关：关着时一切照旧（各自独立自动提交），
+                   开着时执行会挂进一个未提交的事务，由「提交/回滚」收尾 -->
+              <label class="dbm-switch dbm-tx-switch" :class="{ on: txWanted || !!txId }">
+                <ReSwitch v-model="txWanted" />
+                <span>事务</span>
+              </label>
+              <template v-if="txId">
+                <ReButton layout="square" type="success" icon="Select" tip="提交事务" @click="commitTx" />
+                <ReButton layout="square" type="danger" plain icon="CloseBold" tip="回滚事务" @click="rollbackTx" />
+              </template>
+              <ReButton
+                v-else-if="txBusy"
+                layout="square"
+                icon="Loading"
+                tip="正在开启事务"
+                disabled
+              />
               <span class="dbm-spacer" />
               <ReButton layout="square" icon="MagicStick" tip="格式化 SQL" @click="formatSql" />
               <ReButton layout="square" icon="Download" tip="保存为 SQL 文件" @click="saveSqlFile" />
@@ -1586,6 +1603,10 @@ import {
 import {
   executeDbSqlBatch,
   scanSqlParams,
+  beginDbTx,
+  commitDbTx,
+  rollbackDbTx,
+  fetchDbTxStatus,
   type DbBatchResult,
   type DbStatementResult,
 } from "../dbQueryApi";
@@ -5135,7 +5156,8 @@ async function executeQuery() {
   activeResultSet.value = 0;
   const started = Date.now();
   try {
-    const result = await executeDbSql(tab.sql, currentDatasourceId.value, queryTargetDatabase());
+    const tx = await ensureTx();
+    const result = await executeDbSql(tab.sql, currentDatasourceId.value, queryTargetDatabase(), tx || undefined);
     Object.assign(queryResult, result);
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
@@ -5161,6 +5183,159 @@ function describeResult(r: DbQueryResult | DbStatementResult): string {
   return "失败";
 }
 
+// ---------- E4 显式事务 ----------
+
+/** 用户想要事务（工具条开关） */
+const txWanted = ref(false);
+/** 当前未提交事务的 ID，空串表示没有 */
+const txId = ref("");
+/** 事务绑定的库；改目标库后旧的 txId 就不再适用 */
+const txDatabase = ref("");
+/** 正在开启 / 提交 / 回滚 */
+const txBusy = ref(false);
+/** 正在接管孤儿事务（防止并发重复接管） */
+let adoptingTx = false;
+
+/**
+ * 执行前确保事务已开启（若用户开了开关）。
+ *
+ * <p>懒开启而不是「开关一打开就开后端事务」：开关是意图，
+ * 真正开事务的时机是第一次执行 —— 否则用户只是看一眼工具条
+ * 就白白占住一条连接。</p>
+ *
+ * @returns 事务 ID；没开事务时返回空串
+ */
+async function ensureTx(): Promise<string> {
+  if (!txWanted.value) return "";
+  const db = queryTargetDatabase();
+  if (txId.value && txDatabase.value === db) return txId.value;
+  if (txId.value) {
+    // 目标库变了：旧事务的改动在另一个库里，硬接下去会让提交与改动对不上。
+    // 先回滚并如实告知，不静默丢弃用户的改动。
+    try {
+      await rollbackDbTx(txId.value);
+      ElMessage.warning(`目标库已切换，原事务已回滚（改动在 ${txDatabase.value || "默认库"}）`);
+    } catch {
+      ElMessage.warning("目标库已切换，但原事务回滚失败，请刷新页面确认");
+    }
+    txId.value = "";
+  }
+  txBusy.value = true;
+  try {
+    const started = await beginDbTx(currentDatasourceId.value, db);
+    txId.value = started.txId;
+    txDatabase.value = started.database || db || "";
+    ElMessage.success(`已开启事务（库：${txDatabase.value || "默认"}），执行后请提交或回滚`);
+  } catch (e) {
+    ElMessage.error(`开启事务失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    txBusy.value = false;
+  }
+  return txId.value;
+}
+
+/** 提交当前事务 */
+async function commitTx(): Promise<void> {
+  if (!txId.value) return;
+  txBusy.value = true;
+  try {
+    await commitDbTx(txId.value);
+    ElMessage.success("事务已提交");
+    txId.value = "";
+    txDatabase.value = "";
+  } catch (e) {
+    ElMessage.error(`提交失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    txBusy.value = false;
+  }
+}
+
+/**
+ * 回滚当前事务。
+ *
+ * <p>必须二次确认：回滚不可逆，而用户点它多半是「顺手点一下试试」，
+ * 一屏改动的代价不该由误点承担。</p>
+ */
+async function rollbackTx(): Promise<void> {
+  if (!txId.value) return;
+  try {
+    await ElMessageBox.confirm(
+      "回滚会撤销本事务里的全部未提交改动，且不可恢复。确定回滚？",
+      "回滚事务",
+      { type: "warning", confirmButtonText: "回滚", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  txBusy.value = true;
+  try {
+    await rollbackDbTx(txId.value);
+    ElMessage.success("事务已回滚");
+    txId.value = "";
+    txDatabase.value = "";
+  } catch (e) {
+    ElMessage.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    txBusy.value = false;
+  }
+}
+
+/**
+ * 关闭页签 / 离开页面时兜底回滚。
+ *
+ * <p>没有这一步的话，用户开着事务直接关标签页，
+ * 后端那条连接会一直挂着直到空闲超时（10 分钟）才被回收 ——
+ * 而他根本不知道自己留了东西。</p>
+ */
+async function releaseTxOnUnmount(): Promise<void> {
+  const tx = txId.value;
+  if (!tx) return;
+  txId.value = "";
+  txDatabase.value = "";
+  try {
+    await rollbackDbTx(tx);
+  } catch {
+    // 页面正在卸载，报不出来也没人看；后端的空闲回收会兜底
+  }
+}
+
+/**
+ * 查一次后端有没有孤儿事务并接管。
+ *
+ * <p>前端状态在刷新后就没了，但后端那条连接还活着 —— 不查就会变成
+ * 「用户看不见、也关不掉」的事务，白占一条连接直到空闲超时。</p>
+ *
+ * <p><b>只按数据源匹配，不按库匹配</b>：页面刷新后当前页签/库都没了，
+ * 早先还拿 {@code queryTargetDatabase()} 去比，结果永远是匹配不上 ——
+ * 功能看起来存在，实际一次都触发不了。</p>
+ *
+ * <p>同一数据源有多个未结束事务时只接管一个，并如实告知还剩几个：
+ * 一次全接管会让用户面对一个说不清对应哪段操作的事务。
+ * 每收掉一个，下次切数据源/刷新会再接管下一个。</p>
+ */
+async function adoptOrphanTx(): Promise<void> {
+  if (adoptingTx) return;
+  adoptingTx = true;
+  try {
+    const list = await fetchDbTxStatus();
+    if (!list || list.length === 0) return;
+    const dsId = currentDatasourceId.value;
+    const mine = list.find(s => s.datasourceId === dsId);
+    if (!mine) return;
+    txId.value = mine.txId;
+    txDatabase.value = mine.database || "";
+    txWanted.value = true;
+    const rest = list.filter(s => s.datasourceId === dsId).length - 1;
+    ElMessage.warning(rest > 0
+      ? `发现上次未结束的事务，已接管（另有 ${rest} 个待处理）`
+      : "发现上次未结束的事务，已接管；请提交或回滚");
+  } catch {
+    // 查不到不影响使用：只是失去了一次自检机会
+  } finally {
+    adoptingTx = false;
+  }
+}
+
 /**
  * 执行脚本：多条语句逐条出结果集。
  *
@@ -5176,7 +5351,8 @@ async function executeScript(): Promise<void> {
   activeResultSet.value = 0;
   const started = Date.now();
   try {
-    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase());
+    const tx = await ensureTx();
+    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), undefined, undefined, tx || undefined);
     applyBatchResult(batch);
     pushQueryHistory(tab.sql, describeBatch(batch));
   } catch (e) {
@@ -5774,10 +5950,22 @@ function exportQueryCsv(format: "csv" | "tsv" | "json" | "xml" = "csv"): void {
 
 onMounted(() => {
   document.addEventListener("click", closeContextMenu);
+  void adoptOrphanTx();
+});
+
+// 切数据源时也要查：孤儿事务是「用户忘了提交」留下的，
+// 而用户很可能正是在切回那个数据源时才想把它收拾掉。
+watch(currentDatasourceId, () => {
+  if (!txId.value) {
+    void adoptOrphanTx();
+  }
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", closeContextMenu);
+  // 开着事务离开页面就等于把改动留在后端那条连接上，
+  // 用户既看不见也关不掉（要等空闲超时才被回收）—— 这里兜底回滚。
+  void releaseTxOnUnmount();
 });
 </script>
 
@@ -6005,6 +6193,16 @@ onBeforeUnmount(() => {
 }
 
 /* 列设置弹窗 */
+/* 事务开关：开着时整条工具条染色。
+   必要性：事务开着时所有写操作都**不会立刻落库**，
+   而这一点除了这条提示之外没有任何界面证据 —— 用户会以为改动已经存了 */
+.dbm-tx-switch.on {
+  padding: 2px 8px;
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+  box-shadow: inset 0 0 0 1px var(--el-color-warning);
+}
+
 .dbm-colset { display: flex; flex-direction: column; gap: 8px; }
 .dbm-colset-head { display: flex; align-items: center; gap: 8px; }
 .dbm-colset-hint { font-size: 12.5px; color: var(--el-text-color-secondary); }

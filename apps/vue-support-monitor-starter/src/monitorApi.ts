@@ -921,13 +921,14 @@ export const fetchForeignKeys = (tableName: string, datasourceId?: number, datab
  * @param sql SQL 语句
  * @param datasourceId 数据源 ID（可选）
  * @param database 目标库名（可选，为空用连接默认库）
+ * @param txId 显式事务 ID（可选）；传了就在该事务的连接上执行
  * @returns SQL 执行结果
  */
-export const executeDbSql = (sql: string, datasourceId?: number, database?: string) =>
+export const executeDbSql = (sql: string, datasourceId?: number, database?: string, txId?: string) =>
   http()
     .post("/ms/monitor/db/execute")
     .noToast(true)
-    .data({ sql, datasourceId, database })
+    .data({ sql, datasourceId, database, txId })
     .then(r => unwrap<DbQueryResult>(r));
 
 /**
