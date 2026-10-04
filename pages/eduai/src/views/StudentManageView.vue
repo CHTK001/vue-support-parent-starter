@@ -69,13 +69,20 @@
                      该表格绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
                 <span class="no-cell">
                   <span class="no-cell__text">{{ row.studentNo || "—" }}</span>
-                  <ReButton
+                  <!-- 复制学号：不是按钮，用 ReIcon；默认隐藏，鼠标经过该单元格才显示。
+                       必须 .stop —— 该表格绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
+                  <span
                     v-if="row.studentNo"
-                    layout="square"
-                    :icon="CopyDocument"
-                    tip="复制学号"
+                    class="no-cell__copy"
+                    role="button"
+                    tabindex="0"
+                    title="复制学号"
+                    aria-label="复制学号"
                     @click.stop="copyStudentNo(row.studentNo)"
-                  />
+                    @keydown.enter.stop="copyStudentNo(row.studentNo)"
+                  >
+                    <ReIcon name="CopyDocument" :size="14" aria-hidden="true" />
+                  </span>
                 </span>
               </template>
             </el-table-column>
@@ -500,7 +507,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
-  Calendar, CircleCheck, Collection, CopyDocument, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
+  Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 
@@ -1078,9 +1085,15 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  /* 统计卡「悬浮」压住下方卡片区顶部 74px（见 .table-card 的 z-index）。
+     本容器是通栏 flex，重叠区里它自己是**透明**的，但照常接收指针 ——
+     实测 elementFromPoint 在页签中心命中的是这里而不是页签，
+     于是「学生 / 班级 / 教师」三个页签整条点不动（activeTab 恒为 student）。
+     容器不吃指针，只把指针交还给真正可交互的子项（统计卡的 hover 反馈）。 */
   margin-bottom: -74px;
   position: relative;
   z-index: 2;
+  pointer-events: none;
 }
 .page-header {
   display: flex;
@@ -1124,6 +1137,9 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  /* 父级 .top-zone 已 pointer-events:none（避免重叠区吃掉页签点击），
+     统计卡自身的悬浮反馈需要指针，故显式收回 */
+  pointer-events: auto;
   /* koi 卡片不加投影：已有一条边框承载边界，边界色再提浅一档（-light → -lighter） */
   border: 1px solid var(--el-border-color-lighter);
   transition:
@@ -1291,7 +1307,7 @@ onMounted(() => {
 .cell-muted {
   color: var(--el-text-color-placeholder);
 }
-/* 学号单元格：号码 + 复制按钮同排，号码过长时省略而不是把按钮挤出去 */
+/* 学号单元格：号码 + 复制图标同排，号码过长时省略而不是把图标挤出去 */
 .no-cell {
   display: flex;
   align-items: center;
@@ -1305,6 +1321,35 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+/* 复制图标：默认隐藏，鼠标经过单元格才显示（不是按钮，只是可点的图标） */
+.no-cell__copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.no-cell:hover .no-cell__copy {
+  opacity: 1;
+}
+.no-cell__copy:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+.no-cell__copy:focus-visible {
+  opacity: 1;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+  outline: none;
 }
 .tag-pill {
   display: inline-block;

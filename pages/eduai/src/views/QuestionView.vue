@@ -110,85 +110,73 @@
       <div v-loading="loading" class="table-wrap">
         <!-- 列表视图 -->
         <template v-if="viewMode === 'list'">
-          <el-table
+          <!--
+            列表视图：改用 ReTable（题库管理是最后一个还用裸 el-table 的管理页，
+            其余 9 个已是 ReTable）。
+            本页自己的「列表/卡片」切换与底部 el-pagination 保留不动，
+            所以关掉 ReTable 自带的 toolbar / pagination，避免出现两套分页与工具条。
+          -->
+          <ReTable
             :data="rows"
+            :columns="questionColumns"
+            :row-key="'questionId'"
+            layout="table"
+            :layout-switch="false"
+            :pagination="false"
+            :toolbar="false"
+            border
             stripe
             class="question-table"
-            row-key="questionId"
-            @row-click="openEdit"
+            empty-text="暂无题目，点击「新增题目」创建"
+            @row-click="(row: Record<string, unknown>) => openEdit(row as unknown as Question)"
           >
-            <template #empty>
-              <el-empty
-                :image-size="88"
-                description="暂无题目，点击「新增题目」创建"
-              />
+            <template #col-questionType="{ row }">
+              <span class="tag-pill" :class="typeClass(row.questionType)">
+                {{ typeLabel(row.questionType) }}
+              </span>
             </template>
-            <el-table-column prop="questionId" label="ID" width="80" />
-            <el-table-column label="题型" width="110">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="typeClass(row.questionType)">
-                  {{ typeLabel(row.questionType) }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="questionSubject" label="学科" width="90" />
-            <el-table-column label="学段/年级" width="130">
-              <template #default="{ row }">
-                {{ levelLabel(row.questionGradeLevel) }}{{ row.questionGrade || "" }}
-              </template>
-            </el-table-column>
-            <el-table-column label="难度" width="90">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="diffClass(row.questionDifficulty)">
-                  {{ diffLabel(row.questionDifficulty) }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="题干摘要" min-width="280" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span class="stem-cell" v-html="stemSummary(row)" />
-              </template>
-            </el-table-column>
-            <el-table-column label="使用次数" width="100" align="right">
-              <template #default="{ row }">{{ row.questionUseCount ?? 0 }}次</template>
-            </el-table-column>
+            <template #col-gradeRange="{ row }">
+              {{ levelLabel(row.questionGradeLevel) }}{{ row.questionGrade || "" }}
+            </template>
+            <template #col-questionDifficulty="{ row }">
+              <span class="tag-pill" :class="diffClass(row.questionDifficulty)">
+                {{ diffLabel(row.questionDifficulty) }}
+              </span>
+            </template>
+            <template #col-stem="{ row }">
+              <span class="stem-cell" v-html="stemSummary(row as unknown as Question)" />
+            </template>
+            <template #col-questionUseCount="{ row }">{{ row.questionUseCount ?? 0 }}次</template>
             <!--
               添加次数：被新加入某张试卷的次数（改分、重复提交不重复计）。
               与「使用次数」语义不同，单独一列；点上方「添加最多」可按它排序。
             -->
-            <el-table-column label="添加次数" width="100" align="right">
-              <template #default="{ row }">
-                <span :class="{ 'add-count--hot': (row.questionAddCount ?? 0) > 0 }">
-                  {{ row.questionAddCount ?? 0 }}次
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="审核状态" width="100">
-              <template #default="{ row }">
-                <span class="tag-pill" :class="auditClass(row.questionAuditStatus)">
-                  {{ auditLabel(row.questionAuditStatus) }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <span class="status-dot" :class="row.questionStatus === 0 ? 'is-off' : 'is-on'" />
-                <span class="status-text">{{ row.questionStatus === 0 ? "草稿" : "已发布" }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="70" align="center" fixed="right">
-              <template #default="{ row }">
-                <button
-                  type="button"
-                  class="row-edit-btn"
-                  title="编辑"
-                  @click.stop="openEdit(row)"
-                >
-                  <el-icon><EditPen /></el-icon>
-                </button>
-              </template>
-            </el-table-column>
-          </el-table>
+            <template #col-questionAddCount="{ row }">
+              <span :class="{ 'add-count--hot': (row.questionAddCount ?? 0) > 0 }">
+                {{ row.questionAddCount ?? 0 }}次
+              </span>
+            </template>
+            <template #col-questionAuditStatus="{ row }">
+              <span class="tag-pill" :class="auditClass(row.questionAuditStatus)">
+                {{ auditLabel(row.questionAuditStatus) }}
+              </span>
+            </template>
+            <template #col-questionStatus="{ row }">
+              <span class="status-dot" :class="row.questionStatus === 0 ? 'is-off' : 'is-on'" />
+              <span class="status-text">{{ row.questionStatus === 0 ? "草稿" : "已发布" }}</span>
+            </template>
+            <template #col-actions="{ row }">
+              <!-- 必须 .stop：ReTable 绑了 @row-click 打开编辑，不阻止冒泡会再多弹一次 -->
+              <button
+                type="button"
+                class="row-edit-btn"
+                title="编辑"
+                @click.stop="openEdit(row as unknown as Question)"
+              >
+                <el-icon><EditPen /></el-icon>
+              </button>
+            </template>
+          </ReTable>
         </template>
 
         <!-- 卡片视图 -->
@@ -626,6 +614,8 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { EduGrade, EduSubject, KnowledgePoint, Question, QuestionGradeDimension } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReTab from "@repo/ui/re-tab";
+import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
+import type { ReTableColumn } from "@repo/ui/components/ReTable/types";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 
@@ -735,6 +725,28 @@ const SORT_GETTERS: Record<string, (q: Question) => number | string> = {
   useCount: (q) => q.questionUseCount ?? 0,
   difficulty: (q) => q.questionDifficulty ?? 0,
 };
+
+/**
+ * 题目列表的列定义（ReTable 表格模式用）。
+ *
+ * <p>自定义单元格一律走 {@code #col-<prop>} 插槽，插槽名与这里的 {@code slot} 字段一一对应；
+ * 不在行数据上的两列（{@code gradeRange} / {@code stem}）只是插槽载体，没有真实字段。</p>
+ *
+ * <p>操作列宽 70 与迁移前一致，并保持 {@code fixed="right"}：横向滚动时编辑按钮不会被推走。</p>
+ */
+const questionColumns: ReTableColumn[] = [
+  { prop: "questionId", label: "ID", width: 80 },
+  { prop: "questionType", label: "题型", width: 110, slot: "col-questionType" },
+  { prop: "questionSubject", label: "学科", width: 90 },
+  { prop: "gradeRange", label: "学段/年级", width: 130, slot: "col-gradeRange" },
+  { prop: "questionDifficulty", label: "难度", width: 90, slot: "col-questionDifficulty" },
+  { prop: "stem", label: "题干摘要", minWidth: 280, slot: "col-stem" },
+  { prop: "questionUseCount", label: "使用次数", width: 100, align: "right", slot: "col-questionUseCount" },
+  { prop: "questionAddCount", label: "添加次数", width: 100, align: "right", slot: "col-questionAddCount" },
+  { prop: "questionAuditStatus", label: "审核状态", width: 100, slot: "col-questionAuditStatus" },
+  { prop: "questionStatus", label: "状态", width: 100, slot: "col-questionStatus" },
+  { prop: "actions", label: "操作", width: 70, align: "center", fixed: "right", slot: "col-actions" },
+];
 
 const subjectOptions = computed(() => {
   const names = [...new Set(allQuestions.value.map((q) => q.questionSubject).filter(Boolean))];
