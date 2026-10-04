@@ -66,11 +66,22 @@ export interface FaceSettingItem {
   sort?: number;
 }
 
+/** 人脸库一条已登记条目（服务端权威列表项；metadata 里是登记时传入的档案字段）。 */
+export interface FaceLibraryItem {
+  id: string;
+  /** 登记时传入的元数据（label/name/age/gender/hair/idCard/photogenic/note） */
+  [k: string]: unknown;
+}
+
 export interface FaceApi {
   /** 读 `face` 分组配置（检测/特征模型、阈值、topK 等），即「系统设置里的默认模型」 */
   getFaceSettings(): Promise<Record<string, unknown>>;
   /** 可用模型目录，按能力分组（detector / feature / liveness / ...） */
   getFaceModels(): Promise<Record<string, string[]>>;
+  /** 当前账号人脸库已登记条目（服务端权威：跨浏览器/跨账号以它为准） */
+  listFaces(): Promise<{ items: FaceLibraryItem[]; total: number }>;
+  /** 从当前账号人脸库删除一条（后端同步删向量索引与快照） */
+  deleteFace(id: string): Promise<boolean>;
   /** 人脸检测：返回框、关键点、裁剪图、活体分数 */
   detectFace(file: File | Blob, filename?: string): Promise<FaceDetectResult>;
   /** 1:N 识别：拿上传图片与向量库里已登记人脸比对 */
@@ -131,6 +142,18 @@ export const faceApi: FaceApi = {
   async getFaceModels(this: ApiContext) {
     const res = await this.client.get("/face/config/models");
     return unwrap<Record<string, string[]>>(res) ?? {};
+  },
+
+  async listFaces(this: ApiContext) {
+    const res = await this._request("/face/list");
+    const data = unwrap<{ items?: FaceLibraryItem[]; total?: number }>(res) ?? {};
+    const items = Array.isArray(data.items) ? data.items : [];
+    return { items, total: typeof data.total === "number" ? data.total : items.length };
+  },
+
+  async deleteFace(this: ApiContext, id: string) {
+    const res = await this._request(`/face/${encodeURIComponent(id)}`, { method: "DELETE" });
+    return unwrap<boolean>(res) === true;
   },
 
   async detectFace(this: ApiContext, file: File | Blob, filename = "face.png") {

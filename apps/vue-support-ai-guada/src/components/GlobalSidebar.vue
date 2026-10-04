@@ -332,6 +332,7 @@ import {
   DataBarVertical20Regular,
   PlugConnected20Regular,
   Image20Regular,
+  Person20Regular,
   ImageSearch20Regular,
   Key20Regular,
   ChatMultiple24Regular,
@@ -557,6 +558,17 @@ const navItems = computed(() => {
       alwaysShow: true
     },
     {
+      key: 'face-search',
+      label: '人脸识别',
+      icon: Person20Regular,
+      // 底库已按账号隔离（<工作目录>/<账号>/face/），每个账号管自己的库，
+      // 因此不再标 adminOnly；后端 /v2/face/* 也已去掉 @Permission("admin")，
+      // 未登录仍会被 requireUserId() 拒掉。
+      // 注意：人脸「模型」配置是全局设置，仍只有管理员能改（不受此项影响）。
+      // 底库的**管理**（列表/删除/登记）在「系统设置 → 底库 → 人脸底库」，
+      // 本页只做识别/检索 —— 与「以图搜图（外侧） + 图像底库（设置内）」同一分工。
+    },
+    {
       key: 'image-search',
       label: '以图搜图',
       icon: ImageSearch20Regular,
@@ -619,6 +631,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'ImageGenerate') return 'image-generate'
+  if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
@@ -825,6 +838,8 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Scheduler' })
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
+  } else if (tab === 'face-search') {
+    router.replace({ name: 'FaceSearch' })
   } else if (tab === 'image-search') {
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'models') {

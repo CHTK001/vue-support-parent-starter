@@ -142,12 +142,12 @@
                             <ImageLibraryPanel />
                         </template>
                         <!--
-                          人脸底库：从外侧主导航的「人脸识别」迁入（同一份实现，不复制）。
-                          与图像底库同属「底库」分组，入口语义一致。
-                          该页自带两栏版面（图片舞台 + 相似面孔推荐），故记入 WIDE_TABS。
+                          人脸底库：只做**管理**（查看/登记/删除），识别与检索在外侧「人脸识别」页。
+                          与「以图搜图（外侧） + 图像底库（设置内）」同一分工 ——
+                          两个同类功能的入口位置一致，也不会让改底库混在识别流程里。
                         -->
                         <template v-else-if="currentTabValue === 'face-library'">
-                            <FaceSearchPage />
+                            <FaceLibraryPanel />
                         </template>
                         </template>
                     </ScrollContainer>
@@ -182,8 +182,8 @@ import ScrollContainer from '../ui/ScrollContainer.vue'
 import { FileStorageManage } from '@pages/filesystem'
 // 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
 import ImageLibraryPanel from './ImageLibraryPanel.vue'
-// 人脸底库（原来挂在外侧主导航「人脸识别」，现迁入「底库」分组，同一份实现）
-import FaceSearchPage from '../management/FaceSearchPage.vue'
+// 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
+import FaceLibraryPanel from './FaceLibraryPanel.vue'
 
 import {
     Grid16Regular,
@@ -431,7 +431,7 @@ const currentTabValue = ref(getDefaultTabPath())
 
 // 宽表格类 tab（服务配置 / 令牌 / 供应商 / 模型指标）不吃满宽会挤成横向滚动条，
 // 这些页签放开 max-w 限制；其余窄内容页签保持居中定宽，避免长行难读。
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'face-library']
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics']
 const contentMaxWidthClass = computed(() =>
     WIDE_TABS.includes(currentTabValue.value) ? '' : 'md:max-w-220 md:mx-auto',
 )
