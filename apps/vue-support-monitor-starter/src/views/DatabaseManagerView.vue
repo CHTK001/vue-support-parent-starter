@@ -451,10 +451,26 @@
           <div class="dbm-query-editor">
             <div class="dbm-query-toolbar">
               <ReButton layout="square" type="primary" icon="VideoPlay" tip="执行（Ctrl+Enter）" @click="executeQuery" />
+              <ReButton layout="square" icon="Files" tip="执行脚本（逐条出结果）" @click="executeScript" />
+              <ReButton layout="square" icon="Tickets" tip="执行计划" @click="executeExplain" />
+              <ReButton layout="square" icon="Operation" tip="查询参数" @click="openParamDialog" />
+              <span class="dbm-spacer" />
               <ReButton layout="square" icon="MagicStick" tip="格式化 SQL" @click="formatSql" />
+              <ReButton layout="square" icon="Download" tip="保存为 SQL 文件" @click="saveSqlFile" />
+              <ReButton layout="square" icon="Upload" tip="打开 SQL 文件" @click="openSqlFile" />
+              <ReButton layout="square" icon="Clock" tip="查询历史" @click="toggleHistory" />
               <ReSelect v-model="activeTabObj.database" placeholder="目标库" style="width: 200px">
                 <ReOption v-for="db in databases" :key="db" :label="db" :value="db" />
               </ReSelect>
+              <!-- 打开 .sql：隐藏的原生 file input。不能用按钮直接触发，
+                   因为要拿到 file 对象必须走 input[type=file] 的 change 事件 -->
+              <input
+                ref="sqlFileInputRef"
+                type="file"
+                accept=".sql,text/plain"
+                class="dbm-hidden-input"
+                @change="onSqlFilePicked"
+              />
             </div>
             <DbSqlEditor
               v-model="activeSqlModel"
@@ -465,6 +481,19 @@
             />
           </div>
           <div class="dbm-query-result">
+            <!-- 多结果集页签：只有「执行脚本」且脚本里有多条语句时才出现。
+                 单条执行的形状保持不变（data.columns/data.rows），
+                 6 个既有 UI 套件按 .dbm-result-message 与表头断言，不受影响 -->
+            <div v-if="resultSets.length > 1" class="dbm-result-set-tabs">
+              <button
+                v-for="(r, i) in resultSets"
+                :key="i"
+                type="button"
+                class="dbm-result-set-tab"
+                :class="{ active: activeResultSet === i }"
+                @click="selectResultSet(i)"
+              >{{ resultSetLabel(r, i) }}</button>
+            </div>
             <div class="dbm-result-header">
               <span v-if="queryResult.message" class="dbm-result-message">{{ queryResult.message }}</span>
               <span v-else-if="queryResult.rowCount !== undefined" class="dbm-result-message">查询完成，共 {{ queryResult.rowCount }} 行{{ queryResult.truncated ? '（已截断）' : '' }}</span>
@@ -491,7 +520,40 @@
               border
               height="calc(100% - 40px)"
             />
+            <!-- 失败的那条没有结果集，但**必须把原因整段显示出来**：
+                 只在标题栏放一句「执行失败」时，长 SQL + 长错误信息会被截断，
+                 用户看不出是哪条语句、错在哪个库。 -->
+            <div v-else-if="activeResultIsFailure" class="dbm-result-error">
+              <div class="dbm-result-error-title">第 {{ activeResultSet + 1 }} 条执行失败</div>
+              <pre class="dbm-result-error-body">{{ queryResult.message }}</pre>
+            </div>
+            <div v-else-if="activeResultIsUpdate" class="dbm-result-plain">
+              第 {{ activeResultSet + 1 }} 条是更新语句，没有结果集（影响 {{ queryResult.affectedRows ?? 0 }} 行）
+            </div>
             <ReEmpty v-else description="执行 SQL 后显示结果" />
+          </div>
+          <!-- 查询历史：落 localStorage（刷新后仍在），点条目回填编辑器 -->
+          <div v-if="historyVisible" class="dbm-history">
+            <div class="dbm-history-head">
+              <span class="dbm-hint">查询历史（{{ queryHistory.length }} 条）</span>
+              <span class="dbm-spacer" />
+              <ReButton layout="square" icon="Delete" tip="清空查询历史" @click="clearQueryHistory" />
+              <ReButton layout="square" icon="Close" tip="关闭查询历史" @click="historyVisible = false" />
+            </div>
+            <div class="dbm-history-list">
+              <div
+                v-for="(h, i) in queryHistory"
+                :key="i"
+                class="dbm-history-item"
+                :title="h.sql"
+                @click="loadFromHistory(h.sql)"
+              >
+                <span class="dbm-history-time">{{ h.at }}</span>
+                <span class="dbm-history-sql">{{ h.sql }}</span>
+                <span class="dbm-history-meta">{{ h.summary }}</span>
+              </div>
+              <ReEmpty v-if="queryHistory.length === 0" description="还没有执行记录" />
+            </div>
           </div>
         </div>
 
@@ -1130,6 +1192,31 @@
       </template>
     </ReDialog>
 
+    <!-- 查询参数弹窗：把脚本里的 ${name} 收集出来一次性填值后执行 -->
+    <ReDialog v-model="paramDialogVisible" title="查询参数" width="520px">
+      <div class="dbm-create-form">
+        <div v-if="paramNames.length === 0" class="dbm-hint">
+          当前脚本里没有 <code>${name}</code> 形式的占位符，无需填参数。
+        </div>
+        <div
+          v-for="name in paramNames"
+          :key="name"
+          class="dbm-form-item dbm-params-row"
+          :data-param-name="name"
+        >
+          <label>{{ name }}</label>
+          <ReInput
+            v-model="paramValues[name]"
+            :placeholder="'${' + name + '}'"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="paramDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="runWithParams">执行</ReButton>
+      </template>
+    </ReDialog>
+
   <!-- 表属性弹窗 -->
   <ReDialog v-model="optionsDialogVisible" title="表属性" width="560px">
     <div class="dbm-create-form">
@@ -1291,6 +1378,12 @@ import {
   fetchDbTableOptionValues,
   setDbTablePrimaryKey,
 } from "../dbManageApi";
+import {
+  executeDbSqlBatch,
+  scanSqlParams,
+  type DbBatchResult,
+  type DbStatementResult,
+} from "../dbQueryApi";
 
 const route = useRoute();
 
@@ -3757,9 +3850,192 @@ async function removeColumn(row: DbColumnInfo) {
 
 // SQL 查询
 const queryResult = reactive<DbQueryResult>({});
+/**
+ * 多结果集（仅「执行脚本」会产生多条）。
+ *
+ * <p>单条执行**仍然只写 {@link queryResult}**，形状保持 `data.columns`/`data.rows` 不变 ——
+ * 6 个既有 UI 验收套件按这个形状断言，改形状等于让它们的结论全部失效。</p>
+ */
+const resultSets = ref<DbStatementResult[]>([]);
+/** 当前显示第几个结果集 */
+const activeResultSet = ref(0);
+/** 当前结果集是不是更新语句（无结果集，要给一句说明而不是空表格） */
+const activeResultIsUpdate = computed(() => {
+  const r = resultSets.value[activeResultSet.value];
+  return !!r && r.columns === undefined && r.affectedRows !== undefined;
+});
+/** 当前结果集是不是失败的那条（有 message 但没有结果集） */
+const activeResultIsFailure = computed(() => {
+  const r = resultSets.value[activeResultSet.value];
+  return !!r && r.columns === undefined && r.affectedRows === undefined && !!r.message;
+});
+/** 「打开 SQL 文件」用的隐藏 file input */
+const sqlFileInputRef = ref<HTMLInputElement | null>(null);
 const queryColumns = computed(() =>
   (queryResult.columns || []).map(col => ({ prop: col, label: col, minWidth: 120, showOverflowTooltip: true }))
 );
+
+/**
+ * 结果集页签文案：既标第几条，也标这条是查询还是更新。
+ *
+ * <p>只写「第 3 条」不够 —— 用户看到第 3 条是空的，得知道那是因为它是
+ * `UPDATE` 而不是「查询没查到东西」。</p>
+ *
+ * @param r 结果集
+ * @param i 下标
+ * @returns 页签文案
+ */
+function resultSetLabel(r: DbStatementResult, i: number): string {
+  if (r.columns !== undefined) {
+    return `第 ${i + 1} 条 · 查询 · ${r.rowCount ?? 0} 行`;
+  }
+  if (r.affectedRows !== undefined) {
+    return `第 ${i + 1} 条 · 更新 · 影响 ${r.affectedRows} 行`;
+  }
+  if (r.message) {
+    return `第 ${i + 1} 条 · 失败`;
+  }
+  return `第 ${i + 1} 条 · 无结果`;
+}
+
+/**
+ * 切换当前显示的结果集。
+ *
+ * <p>必须经这个函数而不是直接改 {@link activeResultSet}：
+ * 结果区只认 {@link queryResult}，只改下标的话表格内容纹丝不动，
+ * 表现为「点页签没反应」。</p>
+ *
+ * @param i 结果集下标
+ */
+function selectResultSet(i: number): void {
+  activeResultSet.value = i;
+  showResultSet(resultSets.value[i]);
+}
+
+/** 把某个结果集写进 {@link queryResult}（结果区只认这一个） */
+function showResultSet(r: DbStatementResult | undefined): void {
+  Object.assign(queryResult, {
+    columns: r?.columns,
+    rows: r?.rows,
+    rowCount: r?.rowCount,
+    truncated: r?.truncated,
+    affectedRows: r?.affectedRows,
+    message: r?.message,
+  });
+}
+
+// ---------- 查询历史（落 localStorage，刷新后仍在） ----------
+const HISTORY_KEY = "dbm-query-history";
+/** 历史条数上限：再往上浏览器存储会被撑大，而 200 条已经远超日常回溯需要 */
+const HISTORY_LIMIT = 200;
+interface QueryHistoryItem {
+  /** 执行时刻 HH:MM:SS */
+  at: string;
+  sql: string;
+  /** 结果摘要（行数 / 影响行数 / 失败原因） */
+  summary: string;
+}
+/**
+ * 从 localStorage 读历史。
+ *
+ * <p>存储损坏（被别的标签页写坏、手工改坏）时返回空数组而不是抛错 ——
+ * 历史是便利功能，不该因为它坏了就打不开查询页签。</p>
+ */
+function loadQueryHistory(): QueryHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as QueryHistoryItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+const queryHistory = ref<QueryHistoryItem[]>(loadQueryHistory());
+const historyVisible = ref(false);
+/** 切换历史面板显示 */
+function toggleHistory(): void {
+  historyVisible.value = !historyVisible.value;
+}
+/** 记一条执行历史（最新在前；同一段 SQL 不重复记） */
+function pushQueryHistory(sql: string, summary: string): void {
+  const text = sql.trim();
+  if (!text) return;
+  const at = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  const rest = queryHistory.value.filter(h => h.sql !== text);
+  queryHistory.value = [{ at, sql: text, summary }, ...rest].slice(0, HISTORY_LIMIT);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(queryHistory.value));
+  } catch {
+    // 配额满 / 隐私模式禁写：历史降级为「仅本次会话」，不影响查询功能
+    ElMessage.warning("查询历史无法持久化（浏览器存储不可用），本次会话内仍可回看");
+  }
+}
+/** 点历史条目把 SQL 回填编辑器 */
+function loadFromHistory(sql: string): void {
+  const tab = activeTabObj.value;
+  if (!tab) return;
+  tab.sql = sql;
+  historyVisible.value = false;
+}
+/** 清空历史（localStorage 也要清，否则刷新后又回来） */
+function clearQueryHistory(): void {
+  queryHistory.value = [];
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {
+    // 同上：清不了就只清内存，提示一次
+  }
+  ElMessage.success("查询历史已清空");
+}
+
+// ---------- 查询参数 ----------
+const paramDialogVisible = ref(false);
+/** 脚本里用到的变量名（来自 /db/scan-params） */
+const paramNames = ref<string[]>([]);
+/** 变量取值 */
+const paramValues = reactive<Record<string, string>>({});
+/** 当前查询页签的目标库，批量/参数执行都要用它 */
+function queryTargetDatabase(): string | undefined {
+  return activeTabObj.value?.database || activeDatabase.value || undefined;
+}
+/**
+ * 打开参数弹窗：先扫描占位符，再带上历史取值。
+ *
+ * <p>扫描走纯文本端点、不执行 SQL —— 编辑器每次改动都问一次后端的话，
+ * 成本会体现在每次按键的延迟上。</p>
+ */
+async function openParamDialog(): Promise<void> {
+  const sql = activeTabObj.value?.sql ?? "";
+  if (!sql.trim()) {
+    ElMessage.info("先写点 SQL 再填参数");
+    return;
+  }
+  try {
+    const names = await scanSqlParams(sql);
+    paramNames.value = Array.isArray(names) ? names : [];
+    // 已填过的值默认带回来：调试时反复改一个变量是常态
+    for (const k of Object.keys(paramValues)) {
+      if (!paramNames.value.includes(k)) delete paramValues[k];
+    }
+    for (const n of paramNames.value) {
+      if (paramValues[n] === undefined) paramValues[n] = "";
+    }
+    paramDialogVisible.value = true;
+  } catch (e) {
+    ElMessage.error(`扫描参数失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+/** 填完参数直接执行（关弹窗） */
+async function runWithParams(): Promise<void> {
+  const missing = paramNames.value.filter(n => paramValues[n] === undefined || paramValues[n] === "");
+  if (missing.length > 0) {
+    ElMessage.warning(`请填写参数：${missing.join("、")}`);
+    return;
+  }
+  paramDialogVisible.value = false;
+  await executeScriptWithParams();
+}
 
 // 右键菜单
 const contextMenu = reactive({ visible: false, x: 0, y: 0, tableName: "", database: "" });
@@ -4166,11 +4442,196 @@ async function executeQuery() {
   const tab = activeTabObj.value;
   if (!tab?.sql) return;
   Object.assign(queryResult, { columns: [], rows: [], rowCount: 0, truncated: false, affectedRows: undefined, message: undefined });
+  resultSets.value = [];
+  activeResultSet.value = 0;
+  const started = Date.now();
   try {
-    const result = await executeDbSql(tab.sql, currentDatasourceId.value, tab.database || activeDatabase.value || undefined);
+    const result = await executeDbSql(tab.sql, currentDatasourceId.value, queryTargetDatabase());
     Object.assign(queryResult, result);
+    resultSets.value = [{ ...result }];
+    activeResultSet.value = 0;
+    pushQueryHistory(tab.sql, describeResult(result));
+  } catch (e) {
+    const msg = "执行失败: " + String((e as Error)?.message ?? e);
+    queryResult.message = msg;
+    // 失败也要入历史：调试时最想回看的恰恰是「刚才那条报错的」
+    pushQueryHistory(tab.sql, "失败");
+  }
+  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+}
+
+/**
+ * 结果摘要（进查询历史）。
+ *
+ * @param r 单条结果
+ * @returns 一行摘要
+ */
+function describeResult(r: DbQueryResult | DbStatementResult): string {
+  if (r.columns !== undefined) return `${r.rowCount ?? 0} 行`;
+  if (r.affectedRows !== undefined) return `影响 ${r.affectedRows} 行`;
+  return "失败";
+}
+
+/**
+ * 执行脚本：多条语句逐条出结果集。
+ *
+ * <p>默认「执行」按钮走单条端点、保持既有形状；这个入口是给多语句脚本用的，
+ * 走 {@code /db/execute-batch}。两者共用同一套切分与参数替换规则
+ * （在后端实现），所以同一条 SQL 在两条路径下行为一致。</p>
+ */
+async function executeScript(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab?.sql?.trim()) return;
+  Object.assign(queryResult, { columns: [], rows: [], rowCount: 0, truncated: false, affectedRows: undefined, message: undefined });
+  resultSets.value = [];
+  activeResultSet.value = 0;
+  const started = Date.now();
+  try {
+    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase());
+    applyBatchResult(batch);
+    pushQueryHistory(tab.sql, describeBatch(batch));
   } catch (e) {
     queryResult.message = "执行失败: " + String((e as Error)?.message ?? e);
+    pushQueryHistory(tab.sql, "失败");
+  }
+  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+}
+
+/** 带参数执行脚本（参数弹窗的「执行」） */
+async function executeScriptWithParams(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab?.sql?.trim()) return;
+  const params: Record<string, string> = {};
+  for (const n of paramNames.value) params[n] = paramValues[n];
+  Object.assign(queryResult, { columns: [], rows: [], rowCount: 0, truncated: false, affectedRows: undefined, message: undefined });
+  resultSets.value = [];
+  activeResultSet.value = 0;
+  const started = Date.now();
+  try {
+    const batch = await executeDbSqlBatch(tab.sql, currentDatasourceId.value, queryTargetDatabase(), params);
+    applyBatchResult(batch);
+    pushQueryHistory(tab.sql, describeBatch(batch));
+  } catch (e) {
+    queryResult.message = "执行失败: " + String((e as Error)?.message ?? e);
+    pushQueryHistory(tab.sql, "失败");
+  }
+  ElMessage.info(`耗时 ${Date.now() - started} ms`);
+}
+
+/**
+ * 把批量结果铺到结果区。
+ *
+ * <p>有失败时**停在第一条失败的结果集上**：用户第一眼要看到的是「错在哪」，
+ * 而不是脚本第一段的正常输出。</p>
+ *
+ * @param batch 批量结果
+ */
+function applyBatchResult(batch: DbBatchResult): void {
+  const sets = batch.results || [];
+  // 失败那条语句**不在** results 里：后端在它出错的位置就把整批短路了，
+  // results 只含「已成功执行」的那些。所以要把失败的那条补成一个条目，
+  // 否则「第 2 条失败」在界面上根本不存在 —— 用户只看到第 1 条的结果，
+  // 完全不知道后面还有两条、更不知道错在哪。
+  const failedIndex = batch.failedIndex !== undefined && batch.failedIndex >= 0 ? batch.failedIndex : -1;
+  const all: DbStatementResult[] = failedIndex >= 0 && sets.length === failedIndex
+    ? [...sets, { message: batch.message || "该语句执行失败" }]
+    : sets;
+  resultSets.value = all;
+  const target = failedIndex >= 0 ? Math.min(failedIndex, all.length - 1) : 0;
+  activeResultSet.value = Math.max(0, target);
+  showResultSet(all[activeResultSet.value]);
+  if (all.length === 0) {
+    queryResult.message = batch.message || "脚本里没有可执行的语句";
+  }
+}
+
+/** 批量结果摘要（进查询历史） */
+function describeBatch(batch: DbBatchResult): string {
+  const n = batch.statementCount ?? batch.results?.length ?? 0;
+  if (batch.failedIndex !== undefined && batch.failedIndex >= 0) {
+    return `${n} 条，第 ${batch.failedIndex + 1} 条失败`;
+  }
+  return `${n} 条全部成功`;
+}
+
+/**
+ * 执行计划（EXPLAIN）。
+ *
+ * <p>只在**单条**语句上有意义：EXPLAIN 后面跟多条语句时内核会报错，
+ * 而报的是语法错误，看不出是「你选了多条」。所以这里先判一下并给明确提示。</p>
+ */
+async function executeExplain(): Promise<void> {
+  const tab = activeTabObj.value;
+  const sql = (tab?.sql ?? "").trim();
+  if (!sql) {
+    ElMessage.info("先写点 SQL 再看执行计划");
+    return;
+  }
+  const withoutComments = sql
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\n]*/g, " ")
+    .replace(/#[^\n]*/g, " ")
+    .trim();
+  if (withoutComments.includes(";")) {
+    ElMessage.warning("执行计划只支持单条语句：脚本含多条时，请先只选中要分析的那条");
+    return;
+  }
+  const started = Date.now();
+  try {
+    // 用单条端点而不是批量：EXPLAIN 只需要一条的结果，批量会让页签多出一个壳
+    const result = await executeDbSql(`EXPLAIN ${sql}`, currentDatasourceId.value, queryTargetDatabase());
+    Object.assign(queryResult, result);
+    resultSets.value = [{ ...result }];
+    activeResultSet.value = 0;
+    ElMessage.success(`执行计划已生成（${Date.now() - started} ms）`);
+  } catch (e) {
+    ElMessage.error(`生成执行计划失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/** 下载当前编辑器内容为 .sql（UTF-8 无 BOM：BOM 会让部分客户端报语法错） */
+function saveSqlFile(): void {
+  const sql = activeTabObj.value?.sql ?? "";
+  if (!sql.trim()) {
+    ElMessage.info("编辑器是空的，没什么可保存");
+    return;
+  }
+  const db = queryTargetDatabase() || "sql";
+  const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+  // 用 Uint8Array 而不是 Blob 字符串：Blob 会带上 BOM
+  const bytes = new TextEncoder().encode(sql);
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/sql;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${db}_${stamp}.sql`;
+  a.click();
+  URL.revokeObjectURL(url);
+  ElMessage.success("已保存为 .sql 文件");
+}
+
+/** 触发隐藏的 file input */
+function openSqlFile(): void {
+  sqlFileInputRef.value?.click();
+}
+
+/**
+ * 读取用户选中的 .sql 并灌进编辑器。
+ *
+ * @param e input 的 change 事件
+ */
+async function onSqlFilePicked(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // 先清空，否则同一个文件二次选择不会触发 change
+  input.value = "";
+  if (!file) return;
+  const tab = activeTabObj.value;
+  if (!tab) return;
+  try {
+    tab.sql = await file.text();
+    ElMessage.success(`已打开 ${file.name}`);
+  } catch (e) {
+    ElMessage.error(`读取文件失败: ${String((e as Error)?.message ?? e)}`);
   }
 }
 
@@ -4825,8 +5286,114 @@ onBeforeUnmount(() => {
 }
 .dbm-ddl { height: 300px; resize: vertical; }
 .dbm-query-result { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
-.dbm-result-header { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-result-header { font-size: 12.5px; color: var(--el-text-color-secondary); display: flex; align-items: center; }
 .dbm-result-message { color: var(--el-color-success); }
+/* 失败那条：整段错误信息（可滚动），不要只留一句话 */
+.dbm-result-error {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--el-color-danger-light-7, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-color-danger-light-9, var(--el-fill-color-lighter));
+  box-sizing: border-box;
+}
+.dbm-result-error-title { font-size: 13px; color: var(--el-color-danger); }
+.dbm-result-error-body {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 结果集里若有更新语句，它没有结果集；给一句说明而不是摆一张空表 */
+.dbm-result-plain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 多结果集页签：只有脚本执行且有多条时才出现，单条执行不占这一行 */
+.dbm-result-set-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.dbm-result-set-tab {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dbm-result-set-tab:hover { border-color: var(--el-color-primary); }
+.dbm-result-set-tab.active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+}
+
+/* 「打开 SQL 文件」的隐藏 input：不能用按钮直接选文件，必须走 input[type=file] 的 change */
+.dbm-hidden-input { display: none; }
+
+/* 查询历史面板：与结果区同层，点条目回填编辑器 */
+.dbm-history {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  padding: 10px;
+  box-sizing: border-box;
+}
+.dbm-history-head { display: flex; align-items: center; gap: 8px; }
+.dbm-history-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.dbm-history-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.dbm-history-item:hover {
+  background: var(--el-fill-color-light);
+  border-color: var(--el-border-color-lighter);
+}
+.dbm-history-time { font-size: 12px; color: var(--el-text-color-placeholder); font-variant-numeric: tabular-nums; }
+.dbm-history-sql {
+  font-size: 12.5px;
+  font-family: var(--el-font-family-mono, monospace);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbm-history-meta { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+
+/* 参数弹窗里的变量行 */
+.dbm-params-row code { font-family: var(--el-font-family-mono, monospace); }
 
 /* 空态 */
 .dbm-empty {
