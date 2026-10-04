@@ -82,6 +82,8 @@ export interface FaceApi {
   listFaces(): Promise<{ items: FaceLibraryItem[]; total: number }>;
   /** 从当前账号人脸库删除一条（后端同步删向量索引与快照） */
   deleteFace(id: string): Promise<boolean>;
+  /** 更新一条人脸的档案字段（不重跑检测、不动特征向量） */
+  updateFace(id: string, metadata: Record<string, unknown>): Promise<boolean>;
   /** 人脸检测：返回框、关键点、裁剪图、活体分数 */
   detectFace(file: File | Blob, filename?: string): Promise<FaceDetectResult>;
   /** 1:N 识别：拿上传图片与向量库里已登记人脸比对 */
@@ -154,6 +156,19 @@ export const faceApi: FaceApi = {
   async deleteFace(this: ApiContext, id: string) {
     const res = await this._request(`/face/${encodeURIComponent(id)}`, { method: "DELETE" });
     return unwrap<boolean>(res) === true;
+  },
+
+  async updateFace(this: ApiContext, id: string, metadata: Record<string, unknown>) {
+    // 后端返回的是 ReturnResult.ok("更新成功") / error("未找到该人脸：…")
+    const res = await this._request(`/face/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      data: metadata,
+    });
+    const r = res as any;
+    if (r && typeof r === "object" && "code" in r) {
+      return r.code === "00000";
+    }
+    return true;
   },
 
   async detectFace(this: ApiContext, file: File | Blob, filename = "face.png") {

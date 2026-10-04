@@ -84,7 +84,7 @@
       </ul>
     </section>
 
-    <FaceEnrollDialog v-model="enrollVisible" @enrolled="load" />
+    <FaceEnrollDialog v-model="enrollVisible" :record="editItem" @enrolled="load" />
 
     <!-- ── 列表区 ─────────────────────────────────────────── -->
     <section class="lib-panel">
@@ -134,6 +134,9 @@
             </span>
 
             <div class="lib-actions">
+              <button type="button" class="lib-act" title="编辑信息" @click.stop="openEdit(item)">
+                <el-icon><EditPen /></el-icon>
+              </button>
               <button type="button" class="lib-act" title="查看大图" @click.stop="preview(item)">
                 <el-icon><ZoomIn /></el-icon>
               </button>
@@ -174,6 +177,9 @@
             <span v-if="item.thumb" class="lib-badge is-ok">有缩略图</span>
             <span v-else class="lib-badge is-warn">无缩略图</span>
           </span>
+          <button type="button" class="lib-act is-onlight" title="编辑信息" @click.stop="openEdit(item)">
+            <el-icon><EditPen /></el-icon>
+          </button>
           <button type="button" class="lib-act is-danger is-onlight" title="删除" :disabled="busy"
             @click.stop="removeOne(item)">
             <el-icon><Delete /></el-icon>
@@ -223,13 +229,13 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  CircleCheck, Delete, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Upload,
+  CircleCheck, Delete, EditPen, Grid, Menu, Picture, Postcard, Refresh, Search, Select, Upload,
   UploadFilled, UserFilled, Warning, ZoomIn,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { apiService } from '@/services/ApiService'
-import { useFaceRegistry, ageBucket, maskIdCard } from '@/composables/useFaceRegistry'
+import { useFaceRegistry, ageBucket, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
 
 /** 合并后的展示行 */
@@ -240,6 +246,7 @@ interface Row {
   gender: string
   hair: string
   idCard: string
+  photogenic: number
   note: string
   thumb: string
 }
@@ -247,6 +254,8 @@ interface Row {
 const loading = ref(false)
 const busy = ref(false)
 const enrollVisible = ref(false)
+/** 正在编辑的行；null = 新增登记模式 */
+const editItem = ref<FaceRecord | null>(null)
 const keyword = ref('')
 const statusFilter = ref<'all' | 'thumb' | 'noThumb'>('all')
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -267,6 +276,7 @@ const rows = computed<Row[]>(() =>
     const local = registry.byId(id)
     const pick = (k: string): unknown => (meta[k] != null && meta[k] !== '' ? meta[k] : (local as any)?.[k])
     const ageRaw = pick('age')
+    const photoRaw = pick('photogenic')
     return {
       id,
       name: String(pick('name') ?? pick('label') ?? ''),
@@ -274,6 +284,7 @@ const rows = computed<Row[]>(() =>
       gender: String(pick('gender') ?? ''),
       hair: String(pick('hair') ?? ''),
       idCard: String(pick('idCard') ?? ''),
+      photogenic: typeof photoRaw === 'number' ? photoRaw : photoRaw == null || photoRaw === '' ? 3 : Number(photoRaw),
       note: String(pick('note') ?? ''),
       thumb: local?.thumb ?? '',
     }
@@ -341,6 +352,30 @@ async function mountViewer() {
 }
 
 function openEnroll() {
+  editItem.value = null
+  enrollVisible.value = true
+}
+
+/**
+ * 打开「编辑信息」：把当前行转成 FaceEnrollDialog 需要的 record 形状。
+ *
+ * <p>编辑只改档案字段，不重跑检测 —— 所以不需要照片在本地。</p>
+ *
+ * @param item 列表行
+ */
+function openEdit(item: Row) {
+  editItem.value = {
+    id: item.id,
+    name: item.name,
+    age: item.age,
+    gender: item.gender,
+    hair: item.hair,
+    idCard: item.idCard,
+    photogenic: item.photogenic,
+    note: item.note,
+    thumb: item.thumb,
+    enrolledAt: 0,
+  }
   enrollVisible.value = true
 }
 
