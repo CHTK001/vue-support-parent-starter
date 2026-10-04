@@ -201,12 +201,18 @@ const TOKEN_HEADER = "x-oauth-token";
 /**
  * 构造带令牌的请求头
  *
- * <p>同时给 {@code x-oauth-token} 与 {@code Authorization: Bearer}：
- * 前者是文件服务器的默认取法，后者兼容既有网关与拦截器。
- * 服务端命中第一个非空的就返回，两个都带不影响鉴权。</p>
+ * <p><b>只发一个头</b>：服务端（{@code OAuthServerFilter}）的解析顺序是
+ * 自定义头 -> Authorization Bearer -> 查询参数 -> Cookie，**任一命中即通过**，
+ * 因此同时发 {@code x-oauth-token} 与 {@code Authorization: Bearer} 属于
+ * **把同一份令牌重复传输两遍**：请求头更大、CORS 预检的
+ * {@code Access-Control-Request-Headers} 列表更长，且两处不一致时排查困难。
+ * 这里只发文件服务器**文档化的默认入口** {@code x-oauth-token}。</p>
  *
- * <p>查询参数形式仍然保留，见 objectUrl 与 putObject —— img / iframe /
- * 下载链接无法自定义请求头，只能靠参数传令牌。</p>
+ * <p>服务端仍然**同时支持**两者（未做改动），换回 {@code Authorization} 只需改这一处。</p>
+ *
+ * <p>查询参数形式保留给**无法自定义请求头**的场景（{@code img src} / iframe /
+ * 下载直链），见 {@link objectUrl}；能带头的程序化请求一律走头，不再往 URL 里塞令牌
+ * （令牌进 URL 会留在访问日志与浏览器历史里）。</p>
  *
  * @returns 请求头；未登录返回 undefined
  */
@@ -215,7 +221,7 @@ function tokenHeaders(): Record<string, string> | undefined {
   if (!token) {
     return undefined;
   }
-  return { [TOKEN_HEADER]: token, Authorization: `Bearer ${token}` };
+  return { [TOKEN_HEADER]: token };
 }
 
 /**
@@ -663,15 +669,10 @@ export async function putObject(
 ): Promise<void> {
   const { onProgress, signal, timeoutMs = UPLOAD_TIMEOUT_MS } = options;
   const token = getAccessToken();
-  // 私有桶支持三种令牌入口，这里头与参数都给：
-  // 头 x-oauth-token / Authorization 是默认取法（服务端 header 优先），
-  // 参数 x-oauth-token 是兜底（与 objectUrl 一致，供无法带头的场景复用同一套约定）。
-  const params = new URLSearchParams();
-  if (token) {
-    params.set("x-oauth-token", token);
-  }
-  const suffix = params.toString();
-  const url = `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix ? `?${suffix}` : ""}`;
+  // 上传走 XHR，**能自定义请求头**，故令牌只放请求头、不再同时塞进 URL 查询串：
+  // 同一份令牌发两遍没有收益，而进 URL 会留在访问日志与浏览器历史里。
+  // （无法带头的场景才用查询参数，见 objectUrl。）
+  const url = `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}`;
 
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -700,10 +701,9 @@ export async function putObject(
     xhr.timeout = timeoutMs;
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     if (token) {
-      // 文件服务器默认从 x-oauth-token 头取令牌；Authorization 兼容既有网关。
-      // 查询参数同样保留（见上方 params），供无法自定义头的场景使用。
+      // 只发一个头：服务端解析顺序是「自定义头 -> Authorization -> 查询参数 -> Cookie」，
+      // 任一命中即通过，双发等于把同一份令牌重复传输。
       xhr.setRequestHeader("x-oauth-token", token);
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
     xhr.upload.onprogress = (ev) => {
       // total 可能是 0（分块传输时不带总量），此时不给百分比，避免出现 NaN

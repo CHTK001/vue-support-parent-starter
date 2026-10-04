@@ -286,8 +286,15 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       startLoading();
     }
 
-    // 默认从框架 storage 读取 token 并注入 Authorization（已有则保留）
-    if (!config.headers.has("Authorization")) {
+    // 默认从框架 storage 读取 token 并注入 Authorization（已有则保留）。
+    //
+    // 但**调用方已自带 x-oauth-token 时不再注入**：文件存储网关（独立端口 18080）
+    // 的令牌入口就是 x-oauth-token，而服务端解析顺序是
+    // 「自定义头 -> Authorization Bearer -> 查询参数 -> Cookie」，任一命中即通过。
+    // 两个都发等于把同一份令牌重复传输两遍：请求头更大、
+    // CORS 预检的 Access-Control-Request-Headers 列表更长，两处不一致时还难排查。
+    // 其它客户端（不设 x-oauth-token）行为不变，仍走 Authorization。
+    if (!config.headers.has("Authorization") && !config.headers.has("x-oauth-token")) {
       const token = getAccessToken();
       if (token) {
         config.headers.set("Authorization", `Bearer ${token}`);
