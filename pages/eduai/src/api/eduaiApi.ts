@@ -274,6 +274,36 @@ export const eduaiApi = {
       .then<boolean>(unwrap),
 
   /**
+   * 获取「与图片同版式」的结构化解析结果。
+   *
+   * <p>逐页返回版面区域/文字块坐标（已归一化到 0~1）与页尺寸，以及题号锚点与判分明细
+   * （含知识点），用于把分数标记/对错/知识点按原图位置叠放。</p>
+   *
+   * @param taskId 任务标识
+   * @returns 结构化数据
+   */
+  getMarkingStructure: (taskId: string) =>
+    http()
+      .get(`/v2/edu/marking/structure/${taskId}`)
+      .then<Record<string, any>>(unwrap),
+
+  /**
+   * 获取答卷原图（同版式展示的打底图）。
+   *
+   * <p>返回 Blob 而非 JSON：该接口输出 PNG 字节，需要带鉴权头请求后由前端转 objectURL。</p>
+   *
+   * @param taskId 任务标识
+   * @param page   页码（从 1 开始）
+   * @returns 图片 Blob
+   */
+  getSheetImageBlob: (taskId: string, page: number) =>
+    http()
+      .get(`/v2/edu/marking/image/${taskId}`)
+      .query({ page })
+      .responseType("blob")
+      .then<Blob>((resp: any) => resp.data as Blob),
+
+  /**
    * 扫描试卷图片并阅卷。
    *
    * <p>SELF 自有卷按题号回数据库取准确分值；ANY 任意卷由模型抽取并判定。

@@ -1,0 +1,422 @@
+<template>
+  <div class="sheet-structure">
+    <div class="ss-toolbar">
+      <el-radio-group v-model="page" size="small">
+        <el-radio-button v-for="p in pageCount" :key="p" :value="p">第 {{ p }} 页</el-radio-button>
+      </el-radio-group>
+      <div class="ss-legend">
+        <span class="ss-dot ss-correct"></span>正确
+        <span class="ss-dot ss-partial"></span>部分分
+        <span class="ss-dot ss-wrong"></span>错误
+        <span class="ss-tip">点击题号标记可定位到右侧题目</span>
+      </div>
+    </div>
+
+    <div class="ss-body">
+      <div class="ss-stage-wrap">
+        <div class="ss-stage">
+          <img v-if="imageUrl" :src="imageUrl" class="ss-image" alt="答卷" />
+          <div v-if="imageUrl" class="ss-overlay">
+            <div
+              v-for="(b, i) in currentLayout"
+              :key="'layout-' + i"
+              class="ss-layout"
+              :class="{ 'ss-layout-active': activeLayout === i }"
+              :style="boxStyle(b)"
+              @click="activeLayout = activeLayout === i ? -1 : i"
+            >
+              <span class="ss-layout-label">{{ b.label }}</span>
+            </div>
+            <div
+              v-for="a in currentAnchors"
+              :key="'anchor-' + a.no"
+              class="ss-anchor"
+              :class="anchorClass(a.no)"
+              :style="boxStyle(a)"
+              @click="selectQuestion(String(a.no))"
+            >
+              <span class="ss-badge">{{ anchorText(String(a.no)) }}</span>
+            </div>
+          </div>
+          <el-empty v-else description="未取到答卷图片" :image-size="80" />
+        </div>
+      </div>
+
+      <div class="ss-panel">
+        <el-table :data="questions" height="100%" @row-click="(row: any) => selectQuestion(String(row.no))">
+          <el-table-column label="题号" width="72">
+            <template #default="{ row }">
+              <span :class="{ 'ss-row-active': String(row.no) === selectedNo }">{{ row.no || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="得分" width="96">
+            <template #default="{ row }">
+              <span :class="scoreClass(row)">{{ row.editScore }} / {{ row.maxScore ?? '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="作答" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.studentAnswer || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="对错编辑" width="150">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                :type="row.edit === 'right' ? 'success' : 'default'"
+                @click.stop="mark(row, 'right')"
+              >对</el-button>
+              <el-button
+                size="small"
+                :type="row.edit === 'wrong' ? 'danger' : 'default'"
+                @click.stop="mark(row, 'wrong')"
+              >错</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column label="知识点" min-width="170">
+            <template #default="{ row }">
+              <template v-if="kpList(row).length">
+                <el-tag
+                  v-for="kp in kpList(row)"
+                  :key="kp"
+                  size="small"
+                  class="ss-kp"
+                  @click.stop="openKp(kp)"
+                >{{ kp }}</el-tag>
+              </template>
+              <span v-else class="ss-muted">无</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="ss-actions">
+          <el-button type="primary" :disabled="!dirty" :loading="saving" @click="save">保存对错修正</el-button>
+          <span v-if="selectedNo" class="ss-sel">已选中第 {{ selectedNo }} 题</span>
+        </div>
+      </div>
+    </div>
+
+    <el-drawer v-model="kpDrawer" title="知识点详情" size="360px">
+      <div v-if="kpLoading" class="ss-muted">加载中…</div>
+      <template v-else>
+        <div class="ss-kp-key">查询：{{ kpKeyword }}</div>
+        <div v-if="kpDetail.length === 0" class="ss-muted">未找到该知识点的详情（知识点库为空或未建立关联）</div>
+        <ul v-else class="ss-kp-list">
+          <li v-for="k in kpDetail" :key="k.id ?? k.name">
+            <div class="ss-kp-name">{{ k.name }}</div>
+            <div class="ss-kp-desc">{{ k.description || k.subject || '' }}</div>
+          </li>
+        </ul>
+      </template>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onUnmounted, ref, watch } from 'vue';
+import { ElMessage } from 'element-plus';
+import { eduaiApi } from '../../api/eduaiApi';
+
+const props = defineProps<{ taskId: string }>();
+
+const structure = ref<Record<string, any> | null>(null);
+const page = ref(1);
+const imageUrl = ref('');
+const activeLayout = ref(-1);
+const selectedNo = ref('');
+const dirty = ref(false);
+const saving = ref(false);
+const questions = ref<any[]>([]);
+
+const kpDrawer = ref(false);
+const kpKeyword = ref('');
+const kpLoading = ref(false);
+const kpDetail = ref<any[]>([]);
+
+let objectUrl = '';
+
+/** 逐页结构（pages 下标从 0 开始，页码从 1 开始） */
+const pageCount = computed(() => Number(structure.value?.pageCount || 0));
+const currentPage = computed(() => (structure.value?.pages || [])[page.value - 1] || { layout: [], blocks: [] });
+const currentLayout = computed(() => currentPage.value.layout || []);
+const currentAnchors = computed(() =>
+  (structure.value?.questionAnchors || []).filter((a: any) => Number(a.page) === page.value),
+);
+
+/** 归一化坐标 → 百分比定位；版面区域与题号锚点共用 */
+const boxStyle = (b: any) => ({
+  left: `${(Number(b.x) || 0) * 100}%`,
+  top: `${(Number(b.y) || 0) * 100}%`,
+  width: `${(Number(b.width) || 0) * 100}%`,
+  height: `${(Number(b.height) || 0) * 100}%`,
+});
+
+const questionOf = (no: string) => questions.value.find((q) => String(q.no) === no);
+const scoreClass = (row: any) => {
+  const s = Number(row.editScore ?? 0);
+  const m = Number(row.maxScore ?? 0);
+  if (m > 0 && s >= m) return 'ss-score-correct';
+  if (s <= 0) return 'ss-score-wrong';
+  return 'ss-score-partial';
+};
+const anchorClass = (no: string) => {
+  const q = questionOf(no);
+  if (!q) return 'ss-anchor-unknown';
+  return scoreClass(q).replace('ss-score-', 'ss-anchor-');
+};
+const anchorText = (no: string) => {
+  const q = questionOf(no);
+  return q ? `${q.editScore}` : '?';
+};
+
+const kpList = (row: any): string[] => {
+  const raw = row?.knowledgePointIds;
+  if (raw === null || raw === undefined || raw === '') return [];
+  if (Array.isArray(raw)) return raw.map((x) => String(x));
+  return String(raw)
+    .split(/[,，\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+const selectQuestion = (no: string) => {
+  selectedNo.value = no;
+};
+
+const mark = (row: any, kind: 'right' | 'wrong') => {
+  row.edit = kind;
+  row.editScore = kind === 'right' ? Number(row.maxScore ?? 0) : 0;
+  dirty.value = true;
+};
+
+const openKp = async (kp: string) => {
+  kpKeyword.value = kp;
+  kpDrawer.value = true;
+  kpLoading.value = true;
+  kpDetail.value = [];
+  try {
+    const list = await eduaiApi.listKnowledge({ keyword: kp, limit: 20 });
+    kpDetail.value = Array.isArray(list) ? list : [];
+  } catch {
+    kpDetail.value = [];
+  } finally {
+    kpLoading.value = false;
+  }
+};
+
+const loadImage = async (taskId: string, p: number) => {
+  try {
+    const blob = await eduaiApi.getSheetImageBlob(taskId, p);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(blob);
+    imageUrl.value = objectUrl;
+  } catch {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = '';
+    }
+    imageUrl.value = '';
+  }
+};
+
+const load = async (taskId: string) => {
+  structure.value = null;
+  questions.value = [];
+  selectedNo.value = '';
+  dirty.value = false;
+  activeLayout.value = -1;
+  page.value = 1;
+  if (!taskId) return;
+  try {
+    const data = await eduaiApi.getMarkingStructure(taskId);
+    structure.value = data || null;
+    questions.value = (data?.questions || []).map((q: any) => ({
+      ...q,
+      edit: undefined as 'right' | 'wrong' | undefined,
+      editScore: Number(q.score ?? 0),
+    }));
+    await loadImage(taskId, 1);
+  } catch (e) {
+    ElMessage.error('获取结构化解析失败: ' + (e instanceof Error ? e.message : String(e)));
+  }
+};
+
+watch(
+  () => props.taskId,
+  (v) => {
+    void load(String(v || ''));
+  },
+  { immediate: true },
+);
+
+watch(page, async (p) => {
+  activeLayout.value = -1;
+  if (props.taskId) await loadImage(props.taskId, p);
+});
+
+const save = async () => {
+  if (!props.taskId) return;
+  const adjustments = questions.value
+    .filter((q) => q.edit && Number(q.resultId) > 0)
+    .map((q) => ({
+      resultId: Number(q.resultId),
+      score: Number(q.editScore ?? 0),
+      comment: q.comment ?? '',
+    }));
+  if (!adjustments.length) {
+    ElMessage.warning('没有需要保存的对错修正');
+    return;
+  }
+  saving.value = true;
+  try {
+    await eduaiApi.confirmMarking({ taskId: props.taskId, adjustments });
+    ElMessage.success('对错修正已保存');
+    dirty.value = false;
+    await load(props.taskId);
+  } catch (e) {
+    ElMessage.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    saving.value = false;
+  }
+};
+
+onUnmounted(() => {
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+});
+</script>
+
+<style scoped>
+.sheet-structure {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 420px;
+}
+.ss-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.ss-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ss-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.ss-correct { background: var(--el-color-success); }
+.ss-partial { background: var(--el-color-warning); }
+.ss-wrong { background: var(--el-color-danger); }
+.ss-tip { margin-left: 8px; }
+
+.ss-body {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+  padding-top: 12px;
+}
+.ss-stage-wrap {
+  flex: 0 0 46%;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  background: var(--el-fill-color-blank);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8px;
+}
+.ss-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.ss-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+.ss-overlay {
+  position: absolute;
+  inset: 0;
+}
+.ss-layout {
+  position: absolute;
+  border: 1px solid var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ss-layout-active {
+  opacity: 0.75;
+  border-color: var(--el-color-primary);
+}
+.ss-layout-label {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  font-size: 10px;
+  color: var(--el-color-primary);
+  background: var(--el-bg-color);
+  padding: 0 2px;
+}
+.ss-anchor {
+  position: absolute;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  min-height: 14px;
+}
+.ss-anchor .ss-badge {
+  font-size: 11px;
+  line-height: 1;
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  white-space: nowrap;
+}
+.ss-anchor-correct { background: color-mix(in srgb, var(--el-color-success) 22%, transparent); border: 1px solid var(--el-color-success); }
+.ss-anchor-partial { background: color-mix(in srgb, var(--el-color-warning) 22%, transparent); border: 1px solid var(--el-color-warning); }
+.ss-anchor-wrong { background: color-mix(in srgb, var(--el-color-danger) 22%, transparent); border: 1px solid var(--el-color-danger); }
+.ss-anchor-unknown { background: color-mix(in srgb, var(--el-text-color-secondary) 18%, transparent); border: 1px dashed var(--el-text-color-secondary); }
+.ss-anchor-correct .ss-badge { background: var(--el-color-success); }
+.ss-anchor-partial .ss-badge { background: var(--el-color-warning); }
+.ss-anchor-wrong .ss-badge { background: var(--el-color-danger); }
+.ss-anchor-unknown .ss-badge { background: var(--el-text-color-secondary); }
+
+.ss-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ss-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+.ss-sel { font-size: 12px; color: var(--el-text-color-secondary); }
+.ss-score-correct { color: var(--el-color-success); font-weight: 600; }
+.ss-score-partial { color: var(--el-color-warning); font-weight: 600; }
+.ss-score-wrong { color: var(--el-color-danger); font-weight: 600; }
+.ss-row-active { color: var(--el-color-primary); font-weight: 600; }
+.ss-kp { margin-right: 4px; cursor: pointer; }
+.ss-muted { color: var(--el-text-color-placeholder); font-size: 12px; }
+.ss-kp-key { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px; }
+.ss-kp-list { list-style: none; padding: 0; margin: 0; }
+.ss-kp-list li { padding: 8px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
+.ss-kp-name { font-weight: 600; }
+.ss-kp-desc { font-size: 12px; color: var(--el-text-color-secondary); }
+</style>
