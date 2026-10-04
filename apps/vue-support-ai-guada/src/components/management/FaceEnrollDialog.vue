@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="人脸登记"
+    :title="dialogTitle"
     width="640px"
     append-to-body
     :close-on-click-modal="false"
@@ -104,7 +104,7 @@
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="submit">提交登记</el-button>
+      <el-button type="primary" :loading="submitting" @click="submit">{{ isEdit ? '保存修改' : '提交登记' }}</el-button>
     </template>
 
     <input ref="fileInput" type="file" accept="image/*" class="fe-hidden" @change="onPhotoPicked" />
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Close, UploadFilled, Warning } from '@element-plus/icons-vue'
 // 系统统一的数字输入控件（自带边框，与 el-input 观感一致）
@@ -120,8 +120,18 @@ import ReInputNumber from '@repo/ui/re-input-number'
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, isValidIdCard, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 
-const props = defineProps<{ modelValue: boolean }>()
+const props = defineProps<{ modelValue: boolean; record?: FaceRecord | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'enrolled', record: FaceRecord): void }>()
+
+/**
+ * 编辑模式：传入 record 即为「改档案」，此时**不要求重传照片**、也不重跑检测。
+ *
+ * <p>为什么要有这个模式：`enroll` 需要图片，而「只改姓名/年龄/身份证」不该要求
+ * 重新上传照片 —— 原照片可能已不在本地（缩略图只在登记它的浏览器里），
+ * 强行要求重传会把一次纯文本修改卡死。</p>
+ */
+const isEdit = computed(() => !!props.record)
+const dialogTitle = computed(() => (isEdit.value ? '编辑人脸信息' : '人脸登记'))
 
 const visible = computed({
   get: () => props.modelValue,
@@ -151,8 +161,14 @@ const form = reactive({
 
 const maskedIdCard = computed(() => maskIdCard(form.idCard))
 
-const rules: FormRules = {
-  photo: [{ required: true, message: '请选择人脸照片', trigger: 'change' }],
+/**
+ * 校验规则。
+ *
+ * <p>编辑模式下**不要求照片**：档案字段可以独立于照片修改，
+ * 而原照片未必还在本地（缩略图只存在登记它的浏览器里）。</p>
+ */
+const rules = computed<FormRules>(() => ({
+  photo: isEdit.value ? [] : [{ required: true, message: '请选择人脸照片', trigger: 'change' }],
   name: [{ required: true, message: '请填写姓名', trigger: 'blur' }],
   age: [{ required: true, message: '请填写年龄', trigger: 'change' }],
   idCard: [
@@ -169,7 +185,35 @@ const rules: FormRules = {
       trigger: 'blur',
     },
   ],
-}
+}))
+
+/**
+ * 打开时按模式初始化表单：编辑模式预填 record，登记模式清空。
+ *
+ * <p>用 watch 而不是 onMounted：弹窗是同一个实例反复打开的，
+ * 每次打开都要按当次的 record 重置，否则会串上一次的数据。</p>
+ */
+watch(
+  () => [props.modelValue, props.record] as const,
+  ([open]) => {
+    if (!open) return
+    if (props.record) {
+      const r = props.record
+      form.photo = r.thumb || ''
+      form.name = r.name || ''
+      form.age = r.age ?? null
+      form.gender = r.gender || '未知'
+      form.hair = r.hair || ''
+      form.idCard = r.idCard || ''
+      form.photogenic = r.photogenic ?? 3
+      form.note = r.note || ''
+    } else {
+      reset()
+    }
+    // 打开后清掉上一次的校验痕迹
+    nextTick(() => formRef.value?.clearValidate())
+  },
+)
 
 function pickPhoto() {
   fileInput.value?.click()
@@ -211,14 +255,12 @@ function setPhoto(file: File) {
   reader.readAsDataURL(file)
 }
 
-/** 提交：调 /v2/face/enroll，档案同时落前端登记簿 */
+/** 提交：登记走 /v2/face/enroll；编辑走 PUT /v2/face/{id}（只改档案） */
 async function submit() {
   const ok = await formRef.value?.validate().catch(() => false)
   if (!ok) return
   submitting.value = true
   try {
-    const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    const blob = await (await fetch(form.photo)).blob()
     // metadata 会随向量一起存进后端，1:N 命中时原样回传
     const metadata = {
       label: form.name,
@@ -230,6 +272,34 @@ async function submit() {
       photogenic: form.photogenic,
       note: form.note,
     }
+
+    if (isEdit.value && props.record) {
+      // 编辑：只改档案，不重跑检测、不动向量；照片保持不变
+      const id = props.record.id
+      const okUpd = await apiService.updateFace(id, metadata)
+      if (!okUpd) {
+        ElMessage.error('更新失败：底库未确认更新')
+        return
+      }
+      const updated: FaceRecord = {
+        ...props.record,
+        name: form.name,
+        age: form.age,
+        gender: form.gender,
+        hair: form.hair,
+        idCard: form.idCard,
+        photogenic: form.photogenic,
+        note: form.note,
+      }
+      upsert(updated)
+      emit('enrolled', updated)
+      ElMessage.success(`已更新：${form.name}`)
+      visible.value = false
+      return
+    }
+
+    const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const blob = await (await fetch(form.photo)).blob()
     await apiService.enrollFace(id, blob, metadata, 'enroll.png')
 
     upsert({
@@ -249,7 +319,7 @@ async function submit() {
     visible.value = false
     reset()
   } catch (e: any) {
-    ElMessage.error(`登记失败：${e?.message ?? e}`)
+    ElMessage.error(`${isEdit.value ? '更新' : '登记'}失败：${e?.message ?? e}`)
   } finally {
     submitting.value = false
   }
