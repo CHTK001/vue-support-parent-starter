@@ -112,6 +112,13 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "昆虫库", icon: "Aim", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
+      // 汉字库：字 / 读音 / 笔顺（顺序）/ 字画 / 释义 的基础数据维护
+      path: "/edu/hanzi",
+      name: "EduHanzi",
+      component: () => import("../views/HanziBankView.vue"),
+      meta: { title: "汉字库", icon: "EditPen", showLink: true, keepAlive: true, isVisible: "1" },
+    },
+    {
       // 模块管理：配置**每个学段有哪些趣味模块**（学生端首页卡片由此生成）。
       // 这是纯配置页，不是用来打开模块的 —— 模块由学生端自己的页面消费。
       path: "/edu/fun/config",
@@ -163,6 +170,20 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     name: "EduFunIdiom",
     component: () => import("../views/IdiomGameView.vue"),
     meta: { title: "成语消消乐", icon: "Trophy", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 成语接龙：学生端模块卡的实际落点，题目由服务端自动生成（首尾相接）
+    path: "/edu/fun/idiom-chain",
+    name: "EduFunIdiomChain",
+    component: () => import("../views/IdiomChainView.vue"),
+    meta: { title: "成语接龙", icon: "Connection", showLink: false, isVisible: "0", keepAlive: true },
+  },
+  {
+    // 汉字识字：消费「汉字库」的读音/笔顺/字画/释义，题目由服务端自动生成
+    path: "/edu/fun/hanzi",
+    name: "EduFunHanzi",
+    component: () => import("../views/HanziGameView.vue"),
+    meta: { title: "汉字识字", icon: "Reading", showLink: false, isVisible: "0", keepAlive: true },
   },
   {
     // 古诗补全：给一句诗选下一句（趣味学习组，学生端消费）

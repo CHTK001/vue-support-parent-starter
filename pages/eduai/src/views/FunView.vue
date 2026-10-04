@@ -55,6 +55,54 @@
         </div>
       </div>
 
+      <!-- 成语接龙 -->
+      <div
+        v-if="isModuleEnabled('idiom-chain')"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer"
+        @click="openModule('idiom-chain')"
+      >
+        <div class="flex items-center mb-4">
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">🔗</span>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-800">成语接龙</h3>
+            <p class="text-sm text-gray-500">首尾相接挑战</p>
+          </div>
+        </div>
+        <p class="text-gray-600 text-sm mb-4">
+          下一个成语的首字要接上当前成语的末字，题目由服务端自动生成，越接越长！
+        </p>
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-gray-400">小学 · 初中 · 高中</span>
+          <el-button type="primary">开始接龙</el-button>
+        </div>
+      </div>
+
+      <!-- 汉字识字 -->
+      <div
+        v-if="isModuleEnabled('hanzi-learn')"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer"
+        @click="openModule('hanzi-learn')"
+      >
+        <div class="flex items-center mb-4">
+          <div class="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">✍️</span>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-semibold text-gray-800">汉字识字</h3>
+            <p class="text-sm text-gray-500">读音 · 笔画 · 笔顺</p>
+          </div>
+        </div>
+        <p class="text-gray-600 text-sm mb-4">
+          看字画、读读音、数笔画，答完展示笔顺与释义，边玩边认字。
+        </p>
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-gray-400">小学 · 初中 · 高中</span>
+          <el-button type="primary">开始识字</el-button>
+        </div>
+      </div>
+
       <!-- 成语库 -->
       <div
         v-if="isModuleEnabled('IDIOM_BANK')"
@@ -100,6 +148,16 @@
             v-else-if="currentModule.moduleCode === 'IDIOM_BANK'"
             @close="currentModule = null"
           />
+          <!-- 成语接龙：题目由服务端自动生成（首尾相接），答案不下发 -->
+          <IdiomChainView
+            v-else-if="currentModule.moduleCode === 'idiom-chain'"
+            @close="currentModule = null"
+          />
+          <!-- 汉字识字：消费汉字库的读音/笔顺/字画/释义 -->
+          <HanziGameView
+            v-else-if="currentModule.moduleCode === 'hanzi-learn'"
+            @close="currentModule = null"
+          />
         </div>
       </div>
     </div>
@@ -113,6 +171,8 @@ import type { FunConfig } from "../api/types";
 import InsectView from "./InsectView.vue";
 import IdiomGameView from "./IdiomGameView.vue";
 import IdiomBankView from "./IdiomBankView.vue";
+import IdiomChainView from "./IdiomChainView.vue";
+import HanziGameView from "./HanziGameView.vue";
 
 const configs = ref<FunConfig[]>([]);
 const currentModule = ref<FunConfig | null>(null);

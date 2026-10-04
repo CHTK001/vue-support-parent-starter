@@ -435,6 +435,100 @@ export interface IdiomGameData {
   totalItems: number;
   gradeLevel: string;
   grade: string;
+  /**
+   * 取材范围：
+   * - `level` 全部按学段取材
+   * - `mixed` 本学段成语不够，已用全库补齐
+   * - `all` 本学段无成语，整盘来自全库
+   */
+  scope?: "level" | "mixed" | "all" | string;
+}
+
+/** 成语接龙：起始题目（GET /v2/edu/idiom/chain/start） */
+export interface IdiomChainStart {
+  start: { idiomId?: number; content: string; pinyin?: string | null; meaning?: string | null };
+  /** 期望步数 */
+  length: number;
+  /**
+   * 出题取材范围：
+   * - `level`：按请求的学段取材
+   * - `all`：本学段没有可接续的成语，已回落全库（前端需要给出说明）
+   */
+  scope?: "level" | "all" | string;
+  /** 规则说明 */
+  rule?: string;
+}
+
+/** 成语接龙：一步校验结果（POST /v2/edu/idiom/chain/validate） */
+export interface IdiomChainStep {
+  ok: boolean;
+  message?: string;
+  content?: string;
+  /** 接上后的末字 */
+  next?: string;
+  pinyin?: string | null;
+  meaning?: string | null;
+}
+
+/** 成语接龙：提示（GET /v2/edu/idiom/chain/hint） */
+export interface IdiomChainHint {
+  ok: boolean;
+  content?: string;
+  pinyin?: string | null;
+  meaning?: string | null;
+}
+
+/**
+ * 汉字基础数据（字 / 读音 / 笔画 / 部首 / 结构 / 笔顺 / 释义 / 字画 / 学段）。
+ *
+ * 对应后端 {@code edu_hanzi} 表；唯一键是 hanziChar（一个字一条）。
+ */
+export interface EduHanzi {
+  hanziId?: number;
+  /** 汉字（单个字） */
+  hanziChar: string;
+  /** 读音（拼音，可带声调） */
+  hanziPinyin?: string | null;
+  /** 笔画数 */
+  hanziStrokes?: number | null;
+  /** 部首 */
+  hanziRadical?: string | null;
+  /** 结构：独体 / 上下 / 左右 / 半包围 / 全包围 */
+  hanziStructure?: string | null;
+  /** 笔顺（按书写顺序排列的笔画名） */
+  hanziStrokeOrder?: string | null;
+  /** 释义 / 常用组词 */
+  hanziMeaning?: string | null;
+  /** 字画（图片路径或字形图） */
+  hanziImage?: string | null;
+  /** 适用学段：PRIMARY / JUNIOR / SENIOR */
+  hanziGradeLevel?: string | null;
+  /** 状态：0 停用 / 1 启用 */
+  hanziStatus?: number | null;
+}
+
+/**
+ * 汉字识字练习：一道题。
+ *
+ * type=pinyin 时选项是读音文本；type=strokes 时选项是笔画数字字符串。
+ * 题干同时带上笔顺/部首/结构/释义/字画，答完直接当「学习卡」讲解。
+ */
+export interface HanziQuestion {
+  type: "pinyin" | "strokes" | "order" | "none" | string;
+  hanziId?: number;
+  /** 汉字（单字） */
+  char: string;
+  pinyin?: string | null;
+  strokes?: number | null;
+  radical?: string | null;
+  structure?: string | null;
+  strokeOrder?: string | null;
+  meaning?: string | null;
+  image?: string | null;
+  /** 正确选项 */
+  answer: string;
+  /** 选项（含正确项，服务端已打乱） */
+  options: string[];
 }
 
 /** 成语游戏项目 */

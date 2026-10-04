@@ -89,7 +89,7 @@
         ← 返回{{ activeModule.title }}
       </button>
       <div class="portal-embed__body">
-        <component :is="activeModule.component" />
+        <component :is="activeModule.component" v-bind="embedProps(activeModule.code)" />
       </div>
     </div>
 
@@ -176,6 +176,10 @@ const route = useRoute();
  */
 const EMBEDDED: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   "idiom-game": defineAsyncComponent(() => import("../IdiomGameView.vue")),
+  // 成语接龙：题目由服务端自动生成（首尾相接）
+  "idiom-chain": defineAsyncComponent(() => import("../IdiomChainView.vue")),
+  // 汉字识字：消费汉字库的读音/笔顺/字画/释义
+  "hanzi-learn": defineAsyncComponent(() => import("../HanziGameView.vue")),
   // 我的试卷：老师布置给本班的试卷，按登录态定位班级（/v2/edu/paper-assign/my-class）
   "my-papers": defineAsyncComponent(() => import("./StudentPapersView.vue")),
   // 我的答题/阅卷记录与错题本：都用后端 /v2/edu/student/* 的「本人视角」接口
@@ -349,6 +353,22 @@ async function doBind() {
   } finally {
     binding.value = false;
   }
+}
+
+/**
+ * 内嵌模块的透传属性。
+ *
+ * 目前只有「汉字识字」需要学段（按学段出题）；其余内嵌模块不接收 props，
+ * 这里返回空对象，避免给它们的根元素凭空加一个 level 属性。
+ *
+ * @param code 模块编码
+ * @returns 需要透传给该模块的属性
+ */
+function embedProps(code: string): Record<string, unknown> {
+  // 这三个模块都要按学生学段出题：汉字识字、成语接龙、成语消消乐
+  return code === "hanzi-learn" || code === "idiom-chain" || code === "idiom-game"
+    ? { level: stage.value }
+    : {};
 }
 
 /**
