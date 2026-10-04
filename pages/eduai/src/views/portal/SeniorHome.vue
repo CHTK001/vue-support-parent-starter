@@ -40,7 +40,10 @@
           class="sp-card"
           @click="emit('open', m.moduleCode)"
         >
-          <span class="sp-card__no">{{ i + 1 }}</span>
+          <span
+            class="sp-card__no"
+            :style="{ background: `linear-gradient(135deg, ${m.color} 0%, ${m.colorTo} 100%)` }"
+          >{{ i + 1 }}</span>
           <span
             class="sp-card__ic"
             :style="{ background: `linear-gradient(135deg, ${m.color} 0%, ${m.colorTo} 100%)` }"
@@ -125,13 +128,13 @@ const daysToExam = computed(() => {
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  /* 高中端：深海军蓝→石板灰的克制渐变，与小学亮蓝、初中靛蓝区分 */
+  /* 高中端：深海军蓝→亮蓝（对齐设计稿 #111827 / #2563EB） */
   background: linear-gradient(
     178deg,
     #0f172a 0%,
-    #1e3a5f 24%,
-    #334155 46%,
-    var(--el-bg-color-page) 46.1%,
+    #1e3a8a 30%,
+    #2563eb 52%,
+    var(--el-bg-color-page) 52.1%,
     var(--el-fill-color-lighter) 100%
   );
 }
@@ -214,13 +217,13 @@ const daysToExam = computed(() => {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 26px 16px 22px;
-  /* 原 18px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
+  padding: 28px 16px 22px;
+  /* 对齐设计稿：白卡 + 柔和投影、20px 圆角 */
+  border: 0;
+  border-radius: 20px;
   background: var(--el-bg-color);
   cursor: pointer;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  box-shadow: 0 10px 24px color-mix(in srgb, #0f172a 12%, transparent);
   outline: none;
   transition:
     transform var(--el-transition-duration-fast, 0.2s) ease,
@@ -228,8 +231,7 @@ const daysToExam = computed(() => {
 }
 .sp-card:hover {
   transform: translateY(-3px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 26px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  box-shadow: 0 16px 30px color-mix(in srgb, #0f172a 20%, transparent);
 }
 .sp-card:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
@@ -238,12 +240,13 @@ const daysToExam = computed(() => {
   position: absolute;
   top: 10px;
   left: 12px;
-  min-width: 22px;
-  height: 22px;
+  min-width: 24px;
+  height: 24px;
   padding: 0 6px;
   border-radius: var(--el-border-radius-circle, 50%);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
+  /* 对齐设计稿：序号圆牌用该卡片的主题色（底色由模板内联下发），文字白 */
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
   font-size: 12px;
   font-weight: 800;
   display: inline-flex;
@@ -251,16 +254,17 @@ const daysToExam = computed(() => {
   justify-content: center;
 }
 .sp-card__ic {
-  width: 58px;
-  height: 58px;
-  /* 原 18px，最近档 16px（xl） */
-  border-radius: var(--el-radius-xl, 16px);
+  width: 72px;
+  height: 72px;
+  /* 对齐设计稿：更大的圆角方块图标 + 柔和投影 */
+  border-radius: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 32px;
   /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
   color: var(--el-color-white);
+  box-shadow: 0 10px 20px -6px color-mix(in srgb, var(--el-color-black) 24%, transparent);
 }
 .sp-card__title {
   font-size: 19px;
