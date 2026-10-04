@@ -332,7 +332,6 @@ import {
   DataBarVertical20Regular,
   PlugConnected20Regular,
   Image20Regular,
-  Person20Regular,
   ImageSearch20Regular,
   Key20Regular,
   ChatMultiple24Regular,
@@ -558,13 +557,6 @@ const navItems = computed(() => {
       alwaysShow: true
     },
     {
-      key: 'face-search',
-      label: '人脸识别',
-      icon: Person20Regular,
-      // /v2/face/* 全是 @Permission("admin")，非管理员看不到入口
-      adminOnly: true
-    },
-    {
       key: 'image-search',
       label: '以图搜图',
       icon: ImageSearch20Regular,
@@ -627,7 +619,6 @@ const currentActiveTab = computed(() => {
   if (routeName === 'Plugins') return 'plugins'
   if (routeName === 'Scheduler') return 'scheduler'
   if (routeName === 'ImageGenerate') return 'image-generate'
-  if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'ImageSearch') return 'image-search'
   if (routeName === 'Models') return 'models'
   if (routeName === 'AppKeys') return 'app-keys'
@@ -834,8 +825,6 @@ const handleNavClick = (tab: string) => {
     router.replace({ name: 'Scheduler' })
   } else if (tab === 'image-generate') {
     router.replace({ name: 'ImageGenerate' })
-  } else if (tab === 'face-search') {
-    router.replace({ name: 'FaceSearch' })
   } else if (tab === 'image-search') {
     router.replace({ name: 'ImageSearch' })
   } else if (tab === 'models') {

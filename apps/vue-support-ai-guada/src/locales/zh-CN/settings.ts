@@ -197,6 +197,7 @@ export default {
       system: '系统',
       dataManagement: '数据管理',
       account: '账户',
+      library: '底库',
     },
     tabs: {
       general: '通用设置',
@@ -209,6 +210,8 @@ export default {
       connections: '远程工作区',
       sessionGroups: '分组管理',
       sessionArchived: '归档管理',
+      imageLibrary: '图像底库',
+      faceLibrary: '人脸底库',
       profile: '账户概览',
       security: '安全设置',
       community: '反馈/社区',

@@ -9,45 +9,81 @@
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="96px" label-position="right">
       <el-form-item label="人脸照片" prop="photo">
-        <div class="fe-photo">
+        <!--
+          拖拽上传区：点击选图 + 拖放落图，不再配「选择照片 / 重新选择」按钮。
+          清除只留右上角一个图标入口（不是操作按钮行）—— 否则选错照片就没法去掉。
+        -->
+        <div
+          class="fe-drop"
+          :class="{ 'is-dragover': dragover, 'has-photo': !!form.photo }"
+          @click="pickPhoto"
+          @dragover.prevent="dragover = true"
+          @dragleave.prevent="dragover = false"
+          @drop.prevent="onDrop"
+        >
           <img v-if="form.photo" :src="form.photo" class="fe-photo-img" alt="人脸照片" />
           <div v-else class="fe-photo-empty">
-            <el-icon :size="26"><Picture /></el-icon>
-            <span>未选择</span>
+            <el-icon :size="26"><UploadFilled /></el-icon>
+            <span>点击选择，或把照片拖到这里</span>
           </div>
-          <div class="fe-photo-ops">
-            <el-button @click="pickPhoto">
-              <el-icon><FolderOpened /></el-icon>{{ form.photo ? '重新选择' : '选择照片' }}
-            </el-button>
-            <el-button v-if="form.photo" text @click="form.photo = ''">清除</el-button>
-          </div>
+          <span
+            v-if="form.photo"
+            class="fe-drop-clear"
+            title="清除照片"
+            @click.stop="form.photo = ''"
+          >
+            <el-icon><Close /></el-icon>
+          </span>
         </div>
         <p class="fe-tip">正面清晰单人照效果最好；登记后可在人脸识别页做 1:N 相似匹配</p>
       </el-form-item>
 
-      <div class="fe-row">
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="真实姓名或昵称" maxlength="24" />
-        </el-form-item>
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="form.age" :min="0" :max="120" :controls="false" style="width: 100%" placeholder="0-120" />
-        </el-form-item>
-      </div>
+      <!-- 两列用 el-row/el-col 而不是自定义 grid：栅格由 Element 统一算宽度与换行，
+           同一行两个控件的 label 与 content 天然对齐（此前自定义 grid 下
+           radio-group 与 select 高度不同会左右错位）。 -->
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="姓名" prop="name">
+            <el-input v-model="form.name" placeholder="真实姓名或昵称" maxlength="24" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="年龄" prop="age">
+            <!-- 换 ReInputNumber：el-input-number 在本主题下（:controls="false"）没有可见边框，
+                 与同排的 el-input 观感不一致；ReInputNumber 是系统统一的数字输入控件。
+                 model 与 update 分开绑：表单里 age 的既有语义是 number | null
+                 （FaceRecord.age 就是可空），而 ReInputNumber 的 model 是 number | undefined，
+                 这里显式做一次映射，不为了迁就控件去改 age 的对外语义。 -->
+            <ReInputNumber
+              :model-value="form.age ?? undefined"
+              :min="0"
+              :max="120"
+              placeholder="0-120"
+              style="width: 100%"
+              @update:model-value="form.age = $event ?? null"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
 
-      <div class="fe-row">
-        <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="form.gender">
-            <el-radio value="男">男</el-radio>
-            <el-radio value="女">女</el-radio>
-            <el-radio value="未知">未知</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="发型" prop="hair">
-          <el-select v-model="form.hair" placeholder="选择发型" clearable filterable allow-create style="width: 100%">
-            <el-option v-for="h in HAIR_OPTIONS" :key="h" :label="h" :value="h" />
-          </el-select>
-        </el-form-item>
-      </div>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="性别" prop="gender">
+            <el-radio-group v-model="form.gender">
+              <el-radio value="男">男</el-radio>
+              <el-radio value="女">女</el-radio>
+              <el-radio value="未知">未知</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="发型" prop="hair">
+            <el-select v-model="form.hair" placeholder="选择发型" clearable filterable allow-create style="width: 100%">
+              <el-option v-for="h in HAIR_OPTIONS" :key="h" :label="h" :value="h" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
 
       <el-form-item label="身份证号" prop="idCard">
         <el-input v-model="form.idCard" placeholder="18 位身份证号" maxlength="18" />
@@ -78,7 +114,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { FolderOpened, Picture, Warning } from '@element-plus/icons-vue'
+import { Close, UploadFilled, Warning } from '@element-plus/icons-vue'
+// 系统统一的数字输入控件（自带边框，与 el-input 观感一致）
+import ReInputNumber from '@repo/ui/re-input-number'
 import { apiService } from '@/services/ApiService'
 import { useFaceRegistry, isValidIdCard, maskIdCard, type FaceRecord } from '@/composables/useFaceRegistry'
 
@@ -96,6 +134,8 @@ const RATE_TEXTS = ['很差', '偏差', '一般', '不错', '很上镜']
 const formRef = ref<FormInstance>()
 const fileInput = ref<HTMLInputElement | null>(null)
 const submitting = ref(false)
+/** 拖拽悬停态：仅用于高亮落点，拖离或落下即复位 */
+const dragover = ref(false)
 const { upsert } = useFaceRegistry()
 
 const form = reactive({
@@ -116,8 +156,12 @@ const rules: FormRules = {
   name: [{ required: true, message: '请填写姓名', trigger: 'blur' }],
   age: [{ required: true, message: '请填写年龄', trigger: 'change' }],
   idCard: [
+    // 身份证改为必填（业务要求：档案需可实名核验）。
+    // 两条规则必须分开：required 管「没填」，格式 validator 只管「填了但格式不对」。
+    // 合成一个 validator 的话，空值分支 return cb() 会同时放行「未填」——
+    // 即必填判定被自己的空值短路绕过去。
+    { required: true, message: '请填写身份证号', trigger: 'blur' },
     {
-      // 身份证选填；填了才校验格式，避免逼着用户填敏感信息
       validator: (_r, v: string, cb: (e?: Error) => void) => {
         if (!v || !String(v).trim()) return cb()
         return isValidIdCard(v) ? cb() : cb(new Error('身份证号格式不正确（18 位，末位可为 X）'))
@@ -136,6 +180,21 @@ function onPhotoPicked(e: Event) {
   const f = input.files?.[0]
   if (f) void setPhoto(f)
   input.value = ''
+}
+
+/**
+ * 拖放落图。
+ *
+ * <p>只取第一个文件，且必须是图片类型 —— 拖进来一个 .txt 或文件夹时
+ * 静默忽略，不要走 setPhoto（FileReader 读非图片会得到无法渲染的 dataURL，
+ * 表现为「照片区变成一块空白」而不是明确报错）。</p>
+ *
+ * @param e 拖放事件
+ */
+function onDrop(e: DragEvent) {
+  dragover.value = false
+  const f = e.dataTransfer?.files?.[0]
+  if (f && f.type.startsWith('image/')) void setPhoto(f)
 }
 
 /**
@@ -209,26 +268,36 @@ function reset() {
 </script>
 
 <style scoped>
-.fe-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 16px;
+/* 拖拽上传区：整块可点、可拖放。未选图时虚线框，选中后只展示照片。
+   两列布局交给 el-row/el-col，这里不再保留自定义 grid（原 .fe-row 已移除）。 */
+.fe-drop {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: var(--el-border-radius-base, 6px);
+  border: 1px dashed var(--el-border-color);
+  background: var(--el-fill-color-blank);
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration), background-color var(--el-transition-duration);
 }
 
-.fe-photo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.fe-drop:hover,
+.fe-drop.is-dragover {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.fe-drop.has-photo {
+  border-style: solid;
+  border-color: var(--el-border-color-lighter);
 }
 
 .fe-photo-img,
 .fe-photo-empty {
-  width: 96px;
-  height: 96px;
-  border-radius: var(--mp-radius, 11px);
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
   object-fit: cover;
-  border: 1px solid var(--color-surface-border);
-  background: var(--color-surface-hover);
 }
 
 .fe-photo-empty {
@@ -236,15 +305,33 @@ function reset() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  color: var(--color-text-gray);
+  gap: 6px;
+  padding: 0 10px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
+  line-height: 1.5;
 }
 
-.fe-photo-ops {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* 清除入口：右上角图标，不是按钮行 —— 仅补一个「选错了能去掉」的操作 */
+.fe-drop-clear {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, var(--el-text-color-primary) 55%, transparent);
+  opacity: 0;
+  transition: opacity var(--el-transition-duration);
+}
+
+.fe-drop:hover .fe-drop-clear {
+  opacity: 1;
 }
 
 .fe-tip {

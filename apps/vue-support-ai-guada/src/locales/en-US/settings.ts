@@ -195,6 +195,7 @@
       system: 'System',
       dataManagement: 'Data Management',
       account: 'Account',
+      library: 'Libraries',
     },
     tabs: {
       general: 'General Settings',
@@ -207,6 +208,8 @@
       connections: 'Remote Workspace',
       sessionGroups: 'Group Management',
       sessionArchived: 'Archive Management',
+      imageLibrary: 'Image Library',
+      faceLibrary: 'Face Library',
       profile: 'Account Overview',
       security: 'Security Settings',
       community: 'Feedback / Community',
