@@ -322,6 +322,21 @@
                   @blur="saveCell(row, col)"
                 />
               </div>
+              <!-- 二进制 / 长文本：不进格内编辑，走 Blob Viewer -->
+              <div
+                v-else-if="isBinaryCol(col) || isLongTextCol(col)"
+                class="dbm-cell-box"
+              >
+                <button
+                  type="button"
+                  class="dbm-cell-blob"
+                  :aria-label="`打开 ${col} 的内容查看器`"
+                  @click.stop="openBlobViewer(row, col, value)"
+                >
+                  <ReIcon :name="blobIcon(col, value)" :size="12" />
+                  <span class="dbm-cell-blob-text">{{ blobSummary(col, value) }}</span>
+                </button>
+              </div>
               <div v-else class="dbm-cell-box">
                 <span
                   class="dbm-cell-value"
@@ -708,6 +723,69 @@
         </template>
       </div>
     </Teleport>
+
+    <!-- BLOB / 二进制 / 长文本查看器（Navicat 的 Blob Viewer） -->
+    <ReDialog v-model="blobVisible" :title="blobTitle" width="760px">
+      <div class="dbm-blob">
+        <div class="dbm-blob-head">
+          <span class="dbm-blob-meta">{{ blobMeta }}</span>
+          <span class="dbm-spacer" />
+          <ReButton
+            layout="square"
+            icon="DocumentCopy"
+            tip="复制为 base64"
+            @click="copyText(blobBase64)"
+          />
+          <ReButton
+            v-if="blobImageSrc"
+            layout="square"
+            icon="Download"
+            tip="下载原始文件"
+            @click="downloadBlob"
+          />
+        </div>
+        <div class="dbm-blob-tabs">
+          <button
+            v-for="m in blobModes"
+            :key="m"
+            type="button"
+            class="dbm-blob-tab"
+            :class="{ active: blobMode === m }"
+            @click="blobMode = m"
+          >{{ BLOB_MODE_LABELS[m] }}</button>
+          <span class="dbm-spacer" />
+          <label class="dbm-switch">
+            <ReSwitch v-model="blobEditing" />
+            <span>编辑</span>
+          </label>
+        </div>
+        <!-- 图片视图 -->
+        <div v-if="blobMode === 'image'" class="dbm-blob-image">
+          <img v-if="blobImageSrc" :src="blobImageSrc" alt="二进制内容预览" />
+          <ReEmpty v-else description="不是可识别的图片格式" />
+        </div>
+        <!-- 文本视图（可编辑） -->
+        <ReInput
+          v-else-if="blobMode === 'text'"
+          v-model="blobText"
+          type="textarea"
+          :rows="16"
+          class="dbm-mono dbm-blob-text"
+          :readonly="!blobEditing"
+        />
+        <!-- HEX 视图（只读：手改 hex 的收益远低于出错风险） -->
+        <pre v-else class="dbm-blob-hex">{{ blobHex }}</pre>
+      </div>
+      <template #footer>
+        <ReButton @click="blobVisible = false">关闭</ReButton>
+        <ReButton
+          v-if="blobEditing"
+          type="primary"
+          :loading="blobSaving"
+          @click="saveBlob"
+        >保存</ReButton>
+      </template>
+    </ReDialog>
 
     <!-- 高级筛选弹窗（Navicat 式：列 + 运算符 + 值，多条按 AND 组合） -->
     <ReDialog v-model="filterDialogVisible" title="高级筛选" width="720px">
@@ -3476,6 +3554,239 @@ function formatCellValue(v: unknown) {
   return v === null || v === undefined ? "" : String(v);
 }
 
+// ---------- BLOB / 二进制 / 长文本查看器（Navicat 的 Blob Viewer） ----------
+/** 该列是不是二进制类型（值以 base64 下发，必须解成字节才看得出内容） */
+function isBinaryCol(col: string): boolean {
+  const t = (columnTypes.value.get(col) || "").toLowerCase();
+  return t.includes("blob") || t.includes("binary") || t === "bytea";
+}
+
+/** 该列是不是长文本（值直接是文本，但太长不宜塞进格子） */
+function isLongTextCol(col: string): boolean {
+  return longTextColumns.value.has(col);
+}
+
+/** base64 解码成字节，失败返回空数组（宁可显示「无法解码」也不抛） */
+function base64ToBytes(b64: string): Uint8Array {
+  try {
+    const raw = atob((b64 || "").replace(/\s+/g, ""));
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  } catch {
+    return new Uint8Array(0);
+  }
+}
+
+/** 字节的十六进制全文（连续大写） */
+function bytesToHex(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += b.toString(16).padStart(2, "0").toUpperCase();
+  return s;
+}
+
+/** 字节按 UTF-8 解码（不可解码的字节用替换符，不抛） */
+function bytesToText(bytes: Uint8Array): string {
+  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+}
+
+/** 按 MIME 魔数猜图片类型，不是图片返回空串 */
+function sniffImageMime(bytes: Uint8Array): string {
+  if (bytes.length < 4) return "";
+  const sig = (a: number, b: number, c: number, d: number) =>
+    bytes[0] === a && bytes[1] === b && bytes[2] === c && bytes[3] === d;
+  if (sig(0xff, 0xd8, 0xff, 0xe0) || sig(0xff, 0xd8, 0xff, 0xe1)) return "image/jpeg";
+  if (sig(0x89, 0x50, 0x4e, 0x47)) return "image/png";
+  if (sig(0x47, 0x49, 0x46, 0x38)) return "image/gif";
+  if (sig(0x42, 0x4d, 0x00, 0x00)) return "image/bmp";
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+    return "image/webp";
+  }
+  return "";
+}
+
+const BLOB_MODE_LABELS: Record<string, string> = {
+  text: "文本",
+  hex: "HEX",
+  image: "图片",
+};
+const blobVisible = ref(false);
+const blobEditing = ref(false);
+const blobSaving = ref(false);
+const blobMode = ref<"text" | "hex" | "image">("hex");
+const blobColumn = ref("");
+const blobBase64 = ref("");
+const blobText = ref("");
+const blobHex = ref("");
+const blobImageSrc = ref("");
+const blobIsBinary = ref(false);
+/** 当前查看器对应的行（保存时要靠它定位主键） */
+const blobRow = ref<Record<string, unknown> | null>(null);
+
+const blobModes = computed(() => {
+  const modes: ("text" | "hex" | "image")[] = [];
+  if (!blobIsBinary.value) {
+    modes.push("text");
+  }
+  modes.push("hex");
+  if (blobImageSrc.value) {
+    modes.push("image");
+  }
+  // 只有可解码成文本的二进制才提供「文本」视图
+  if (blobIsBinary.value && blobText.value && !/�/.test(blobText.value)) {
+    modes.unshift("text");
+  }
+  return modes;
+});
+
+const blobTitle = computed(() => `内容查看器 · ${blobColumn.value}`);
+const blobMeta = computed(() => {
+  const bytes = blobBase64.value ? base64ToBytes(blobBase64.value).length : 0;
+  return blobIsBinary.value
+    ? `二进制 · ${formatBytes(bytes)}`
+    : `文本 · ${blobText.value.length} 字符`;
+});
+
+/** 人类可读的字节数 */
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+/** 格子里的摘要：一行就能看出「多大、什么类型」 */
+function blobSummary(col: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "(空)";
+  if (!isBinaryCol(col)) {
+    const s = String(value);
+    return `${s.length} 字符`;
+  }
+  const bytes = base64ToBytes(String(value)).length;
+  const mime = sniffImageMime(base64ToBytes(String(value)));
+  return `${formatBytes(bytes)}${mime ? " · 图片" : ""}`;
+}
+
+function blobIcon(col: string, value: unknown): string {
+  if (!isBinaryCol(col)) return "Document";
+  if (value === null || value === undefined || value === "") return "Document";
+  const mime = sniffImageMime(base64ToBytes(String(value)));
+  return mime ? "Picture" : "Coin";
+}
+
+/**
+ * 打开内容查看器。
+ *
+ * @param row   当前行
+ * @param col   列名
+ * @param value 单元格原始值（二进制列是 base64 文本）
+ */
+function openBlobViewer(row: Record<string, unknown>, col: string, value: unknown): void {
+  blobRow.value = row;
+  blobColumn.value = col;
+  blobEditing.value = false;
+  blobIsBinary.value = isBinaryCol(col);
+  if (value === null || value === undefined) {
+    blobBase64.value = "";
+    blobText.value = "";
+    blobHex.value = "";
+    blobImageSrc.value = "";
+  } else if (blobIsBinary.value) {
+    blobBase64.value = String(value);
+    const bytes = base64ToBytes(String(value));
+    blobHex.value = bytesToHex(bytes);
+    blobText.value = bytesToText(bytes);
+    const mime = sniffImageMime(bytes);
+    blobImageSrc.value = mime
+      ? `data:${mime};base64,${String(value).replace(/\s+/g, "")}`
+      : "";
+  } else {
+    blobText.value = String(value);
+    blobBase64.value = btoa(String(value).split("").map(c =>
+      // 非 ASCII 用 encodeURIComponent 兜底，否则 btoa 会抛
+      c.charCodeAt(0) < 128 ? c : "%" + c.charCodeAt(0).toString(16).padStart(2, "0"),
+    ).join(""));
+    blobHex.value = bytesToHex(base64ToBytes(blobBase64.value));
+    blobImageSrc.value = "";
+  }
+  blobMode.value = blobImageSrc.value ? "image" : (blobIsBinary.value ? "hex" : "text");
+  blobVisible.value = true;
+}
+
+/** 下载原始内容 */
+function downloadBlob(): void {
+  const bytes = base64ToBytes(blobBase64.value);
+  const mime = sniffImageMime(bytes) || "application/octet-stream";
+  // 包成 ArrayBuffer 再给 Blob：TS 的 Uint8Array 泛型与 BlobPart 不兼容
+  const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${blobColumn.value}.${mime.split("/")[1] || "bin"}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 保存查看器里的编辑。
+ *
+ * <p>二进制列在文本视图里改完要**重新编码成 base64**；
+ * 而后端会把 base64 解回字节再绑定（否则存进去的是 base64 的 ASCII 文本）。</p>
+ */
+async function saveBlob(): Promise<void> {
+  const row = blobRow.value;
+  const tab = activeTabObj.value;
+  if (!row || !tab?.tableName) return;
+  const keys = Object.keys(row);
+  const primaryKey: Record<string, unknown> = {};
+  for (const k of pkColumns.value) {
+    if (keys.includes(k)) primaryKey[k] = row[k];
+  }
+  if (Object.keys(primaryKey).length === 0) {
+    ElMessage.error("该表没有主键，无法定位要修改的行");
+    return;
+  }
+  const value = blobIsBinary.value
+    // 用 TextEncoder 重新编码：手工 charCodeAt 拼接对非 ASCII 会算错字节数
+    ? bytesToBase64(new TextEncoder().encode(blobText.value))
+    : blobText.value;
+  blobSaving.value = true;
+  try {
+    await updateDbCell({
+      tableName: tab.tableName,
+      column: blobColumn.value,
+      newValue: value,
+      primaryKey,
+      database: tab.database || activeDatabase.value,
+      datasourceId: currentDatasourceId.value,
+    });
+    row[blobColumn.value] = value;
+    blobEditing.value = false;
+    blobBase64.value = value;
+    if (blobIsBinary.value) {
+      const bytes = base64ToBytes(String(value));
+      blobHex.value = bytesToHex(bytes);
+      const mime = sniffImageMime(bytes);
+      blobImageSrc.value = mime ? `data:${mime};base64,${value}` : "";
+    }
+    ElMessage.success("已保存");
+    void loadTableData(tab);
+  } catch (e) {
+    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    blobSaving.value = false;
+  }
+}
+
+/** 字节数组 → base64（分块喂给 btoa，避免超长参数爆栈） */
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
 /** 按列类型决定提交值：数字列转 Number，空串转 null */
 function normalizeCellValue(col: string, raw: string) {
   if (raw === "") return null;
@@ -5511,6 +5822,92 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* 二进制 / 长文本格子：一行摘要，点开进内容查看器 */
+.dbm-cell-blob {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+  max-width: 100%;
+}
+.dbm-cell-blob:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.dbm-cell-blob-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 内容查看器 */
+.dbm-blob { display: flex; flex-direction: column; gap: 10px; }
+.dbm-blob-head { display: flex; align-items: center; gap: 8px; }
+.dbm-blob-meta { font-size: 12.5px; color: var(--el-text-color-secondary); }
+.dbm-blob-tabs { display: flex; align-items: center; gap: 6px; }
+.dbm-blob-tab {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  cursor: pointer;
+}
+.dbm-blob-tab.active {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+}
+.dbm-blob-text {
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+}
+.dbm-blob-hex {
+  height: 320px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  font-family: var(--el-font-family-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  word-break: break-all;
+}
+.dbm-blob-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  max-height: 340px;
+  overflow: auto;
+  padding: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  /* 图片在深色底上要有对比边界，否则透明 PNG 会「看不见」 */
+  background-image:
+    linear-gradient(45deg, var(--el-border-color-lighter) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--el-border-color-lighter) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--el-border-color-lighter) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--el-border-color-lighter) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.dbm-blob-image img { max-width: 100%; max-height: 320px; }
 
 /* 结果集里若有更新语句，它没有结果集；给一句说明而不是摆一张空表 */
 .dbm-result-plain {
