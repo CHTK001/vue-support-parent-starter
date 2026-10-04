@@ -53,7 +53,7 @@
       @update:grid="onGridUpdate"
     >
       <template #default="{ widget }">
-        <WidgetRenderer :widget="widget" />
+        <WidgetRenderer :widget="widget" @patch-config="patchWidget(widget.id, $event)" />
       </template>
     </HomeGridView>
 
@@ -69,7 +69,7 @@
       @update:widget="patchWidget"
     >
       <template #widget="{ widget }">
-        <WidgetRenderer :widget="widget" />
+        <WidgetRenderer :widget="widget" @patch-config="patchWidget(widget.id, $event)" />
       </template>
     </CustomLayoutEditor>
 
@@ -262,17 +262,37 @@ function removeWidget(id: string): void {
   if (gridIdx >= 0) state.grid.splice(gridIdx, 1);
 }
 
-/** 合并 widget 字段（由 CustomLayoutEditor 的设置 dialog 触发） */
+/**
+ * 合并 widget 字段。
+ *
+ * <p><b>嵌套对象一律深一层合并</b>，不只针对 appearance —— 否则日历 widget 的
+ * 头部按钮只改一个 {@code showFestival} 时，整个 calendarConfig 会被换成单字段对象，
+ * 用户在设置弹窗里选好的 cellMode / showBadge 被静默抹掉。
+ * 这里刻意只合并一层：配置对象本身都是扁平的（没有再往下的对象），
+ * 再深的结构说明该换成分层字段，不该靠递归合并硬凑。</p>
+ *
+ * @param id widget id
+ * @param patch 要合并的字段
+ */
 function patchWidget(id: string, patch: Partial<WidgetItem>): void {
   const idx = state.widgets.findIndex((w) => w.id === id);
   if (idx < 0) return;
   const target = state.widgets[idx];
   for (const key in patch) {
-    if (key === "appearance" && patch.appearance) {
-      target.appearance ??= {};
-      Object.assign(target.appearance, patch.appearance);
+    const incoming = (patch as Record<string, unknown>)[key];
+    const current = (target as Record<string, unknown>)[key];
+    const bothPlainObjects =
+      incoming !== null &&
+      typeof incoming === "object" &&
+      !Array.isArray(incoming) &&
+      current !== null &&
+      typeof current === "object" &&
+      !Array.isArray(current);
+    if (bothPlainObjects) {
+      // 保留目标上已有但本次未传入的键，避免局部更新丢掉其它配置
+      Object.assign(current as Record<string, unknown>, incoming as Record<string, unknown>);
     } else {
-      (target as Record<string, unknown>)[key] = (patch as Record<string, unknown>)[key];
+      (target as Record<string, unknown>)[key] = incoming;
     }
   }
 }
@@ -325,12 +345,26 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   width: 100%;
   padding: 0;
   border-radius: 8px;
   gap: 12px;
+  /**
+   * 撑满整页高度。
+   *
+   * <p>关键：父容器 {@code .main-content} 就是 Element Plus 的 {@code el-main}，
+   * 其样式为 {@code display: block}（见 element-plus index.css 的 {@code .el-main}），
+   * <b>不是 flex 容器</b> —— 所以这里的 {@code flex: 1} 一直是<b>空转</b>的，
+   * home 页高度实际上等于内容高度，这就是「默认高度没吃满」的根因。
+   * 内部 {@code .home-grid { flex: 1 }} 逐级生效的前提，是本级先有确定高度。</p>
+   *
+   * <p>{@code el-main} 作为 {@code .el-container}（display:flex）的 flex item，
+   * 高度已被拉伸确定，因此这里用 {@code height: 100%} 能正确解析。
+   * {@code flex: 1} 保留：将来父级若改成 flex 容器，本级无需再改。</p>
+   */
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .home-card__welcome {

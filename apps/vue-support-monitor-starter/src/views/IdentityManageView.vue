@@ -76,7 +76,7 @@ const columns = [
   { prop: "auth", label: "类型", width: 130, slot: "auth" },
   { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
   { prop: "key", label: "密钥", width: 130, slot: "key" },
-  { prop: "hosts", label: "绑定主机", width: 90, slot: "hosts" },
+  { prop: "hosts", label: "绑定主机", width: 120, slot: "hosts" },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 140 },
   { prop: "id", label: "操作", width: 220, slot: "actions" },
 ];

@@ -61,11 +61,13 @@ const iframeStyle = computed(() => {
 </template>
 
 <style scoped>
+/* iframe 容器：不加卡片边框与背景 —— 嵌入页面本身就该铺满，外壳只留一条标题栏 */
 .custom-widget {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -75,10 +77,11 @@ const iframeStyle = computed(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--el-text-color-disabled);
   gap: 8px;
   padding: 24px;
   text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-disabled);
 }
 
 .custom-widget__empty-title {
@@ -95,33 +98,36 @@ const iframeStyle = computed(() => {
 .custom-widget__header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 16px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  flex-shrink: 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
+/* min-width:0 必需 —— flex 子项默认不缩到内容宽度以下，
+   没有它长 URL 标题既不省略也不换行，会把标题栏撑破 */
 .custom-widget__title {
-  font-weight: 500;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
 }
 
 .custom-widget__body {
+  display: flex;
   flex: 1;
   min-height: 0;
-  display: flex;
   width: 100%;
   overflow: auto;
 }
 
 .custom-widget__iframe {
+  display: block;
   width: 100%;
   border: 0;
-  display: block;
   background: var(--el-fill-color-blank);
 }
 </style>

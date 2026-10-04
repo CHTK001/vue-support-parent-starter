@@ -282,3 +282,4 @@ export * from "./backendProbe";
 export * from "./capability";
 export * from "./weather";
 export * from "./typhoon";
+export * from "./holiday";

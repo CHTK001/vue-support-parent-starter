@@ -51,8 +51,8 @@
                     {{ s.captureStatus === 1 ? '抓包中' : '已停止' }}
                   </ReTag>
                   <div class="action-btns">
-                    <ReButton v-if="s.captureStatus === 1" link type="warning" icon="VideoPause" show-text @click.stop="stopSession(s.id)">停止</ReButton>
-                    <ReButton link type="danger" icon="Delete" show-text @click.stop="deleteSession(s.id)">删除</ReButton>
+                    <ReButton v-if="s.captureStatus === 1" icon="VideoPause" layout="square" tip="停止抓包" @click.stop="stopSession(s.id)" />
+                    <ReButton icon="Delete" layout="square" type="danger" tip="删除会话" @click.stop="deleteSession(s.id)" />
                   </div>
                 </div>
               </div>
@@ -68,29 +68,13 @@
 
       <!-- 右侧：详情 -->
       <section class="detail-panel" v-show="activeSessionId">
-        <!-- 统计卡片 -->
+        <!-- 统计卡片：改用 ReStatCard 紧凑档，与「代理管理 / 账号管理 / 服务管理」
+             同一套规格（渐变图标圆 + 数值 + 标题 + 描述）。原先是手写的
+             .stat-card div，图标是没有底色的裸 ReIcon，与全站卡片外观不一致。 -->
         <div class="stat-cards">
-          <div class="stat-card stat-net">
-            <div class="stat-icon"><ReIcon name="DataLine" :size="16" /></div>
-            <div class="stat-body">
-              <span class="stat-label">数据包总数</span>
-              <span class="stat-value">{{ packetTotal }}</span>
-            </div>
-          </div>
-          <div class="stat-card stat-jvm">
-            <div class="stat-icon"><ReIcon name="Collection" :size="16" /></div>
-            <div class="stat-body">
-              <span class="stat-label">协议种类</span>
-              <span class="stat-value">{{ protoStats.length }}</span>
-            </div>
-          </div>
-          <div class="stat-card stat-db">
-            <div class="stat-icon"><ReIcon name="TrendCharts" :size="16" /></div>
-            <div class="stat-body">
-              <span class="stat-label">Top 流</span>
-              <span class="stat-value">{{ topFlows.length }}</span>
-            </div>
-          </div>
+          <ReStatCard size="compact" title="数据包总数" :value="packetTotal" desc="已入库明细" :icon="DataLine" icon-color="var(--metric-cpu)" />
+          <ReStatCard size="compact" title="协议种类" :value="protoStats.length" desc="按协议层统计" :icon="Collection" icon-color="var(--el-color-success)" />
+          <ReStatCard size="compact" title="Top 会话流" :value="topFlows.length" desc="按字节量排序" :icon="TrendCharts" icon-color="var(--el-color-warning)" />
         </div>
 
         <!-- 图表 -->
@@ -110,8 +94,7 @@
           <template #title>
             <span class="panel-title"><ReIcon name="List" :size="13" /> 数据包明细</span>
           </template>
-          <ReTable :data="packets" :loading="loadingPackets" border stripe :pagination="false" :toolbar="false"
-            :layout-table="{ height: 320 }">
+          <ReTable :data="packets" :loading="loadingPackets" border stripe :pagination="false" :toolbar="false">
             <ReTableColumn prop="packetTime" label="时间" width="170" align="center">
               <template #default="{ row }"><span class="mono dim">{{ row.packetTime || '' }}</span></template>
             </ReTableColumn>
@@ -190,6 +173,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
+import { Collection, DataLine, TrendCharts } from '@element-plus/icons-vue'
 import { message, useSocketService } from '@repo/core'
 import {
   checkTshark, getTsharkInterfaces, startTsharkCapture, stopTsharkCapture,
@@ -744,66 +728,19 @@ function resizeCharts() {
   margin-top: 4px;
 }
 
-/* ==================== 统计卡片 ==================== */
+/* ==================== 统计卡片 ====================
+   卡面规格统一交给 ReStatCard（渐变图标圆 / 数值 / 标题 / 描述 / 悬停抬升），
+   这里只负责排布。原先手写的 .stat-card / .stat-icon / .stat-body / .stat-value
+   已随模板一并删除 —— 留着就是没人引用的死样式。 */
 .stat-cards {
+  flex: none;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 紧凑档单卡较窄，用 auto-fit 自动换行；原来的固定 3 列在窄面板会挤成一条 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 @media (max-width: 768px) {
   .stat-cards { grid-template-columns: 1fr; }
-}
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--el-bg-color);
-  border-radius: var(--el-radius-lg, 12px);
-  /* koi 规约：卡片静止态不加投影，抬升反馈只放在 :hover */
-  transition:
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
-    transform var(--el-transition-duration-fast, 0.2s) ease;
-  cursor: default;
-}
-.stat-card:hover {
-  /* 允许的两处投影之一：悬浮抬升反馈 */
-  box-shadow: var(--el-box-shadow);
-  transform: translateY(-2px);
-}
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--el-radius-md, 8px);
-  flex-shrink: 0;
-}
-/* --metric-* 是各监控域的固定色相（网络/中间件/数据库），彼此必须可区分，保留原色相 */
-.stat-net { --sc: var(--metric-net); }
-.stat-jvm { --sc: var(--metric-jvm); }
-.stat-db { --sc: var(--metric-db); }
-/* 磁贴底色跟着各自 --sc 走：原来三张卡统一垫靛蓝底，靛蓝底上的浅蓝数据库图标几乎看不出色差 */
-.stat-net .stat-icon, .stat-jvm .stat-icon, .stat-db .stat-icon {
-  background: color-mix(in srgb, var(--sc) 12%, transparent);
-  color: var(--sc);
-}
-.stat-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-label {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ==================== 图表 ==================== */
@@ -824,12 +761,33 @@ function resizeCharts() {
 .chart-box { height: 200px; width: 100%; }
 
 /* ==================== 表格 ==================== */
+/* 数据包表吃满剩余高度：统计卡与图表固定高，只有这张卡伸展。
+   min-height 240px 是下限——空间再紧也保证能看见几行；不够时由 .detail-panel
+   的 overflow:auto 兜底出滚动条，而不是把表格压成看不见的一条。 */
+.charts-row { flex: none; }
 .packet-card {
+  flex: 1 1 0;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
   background: var(--el-bg-color);
   border-radius: var(--el-radius-lg, 12px);
   /* koi 规约：表格容器静止态不加投影 */
 }
+/* ReCard 把内容包在 .el-card__body 里，必须让它也成为可伸展的 flex 列，
+   否则里面的表格拿到的仍是内容高度。 */
+.packet-card :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.packet-card :deep(.re-table) {
+  flex: 1 1 0;
+  min-height: 0;
+}
 .table-footer {
+  flex: none;
   display: flex;
   justify-content: flex-end;
   padding-top: 10px;
@@ -884,7 +842,9 @@ function resizeCharts() {
   /* 状态点 / 运行中指示的呼吸动画：这两个状态本来就由点的底色（成功绿 / 危险红 / 禁用灰）
      表达，动画只是附加动效，不是唯一信息，可以安全停掉 */
   .status-dot, .session-state { animation: none; }
-  .session-item, .stat-card { transition: none; }
+  /* .stat-card 已随模板删除（改用 ReStatCard），此处改指组件根类，
+     否则统计卡的悬停抬升动效在「减少动态效果」偏好下反而没被停掉 */
+  .session-item, :deep(.re-stat-card) { transition: none; }
   .status-pill,
   .session-item::before {
     transition: none;

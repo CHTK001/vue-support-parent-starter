@@ -5,7 +5,7 @@
         <el-icon class="aw__title-icon"><AlarmClock /></el-icon>
         <span>{{ widget.title }}</span>
       </div>
-      <button type="button" class="aw__add" title="添加闹钟" @click="openAdd">
+      <button type="button" class="aw__add" title="添加闹钟" aria-label="添加闹钟" @click="openAdd">
         <el-icon><Plus /></el-icon>
       </button>
     </div>
@@ -30,7 +30,7 @@
           </div>
           <div class="aw__item-actions">
             <el-switch :model-value="a.enabled" @change="toggle(a.id, $event)" />
-            <button type="button" class="aw__item-del" title="删除" @click="remove(a.id)">
+            <button type="button" class="aw__item-del" :title="`删除闹钟 ${a.title}`" :aria-label="`删除闹钟 ${a.title}`" @click="remove(a.id)">
               <el-icon><Close /></el-icon>
             </button>
           </div>
@@ -284,6 +284,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 统一规范：圆角只用令牌、字号最小 12px、间距 4/8 基准、过渡走 --el-transition-duration */
 .aw {
   display: flex;
   flex-direction: column;
@@ -292,7 +293,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--el-card-border-radius, var(--el-radius-lg, 12px));
   overflow: hidden;
 }
 
@@ -300,19 +301,22 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 12px 16px 8px;
 }
 
 .aw__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .aw__title-icon {
+  flex-shrink: 0;
   color: var(--el-color-primary);
 }
 
@@ -320,25 +324,31 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   border: none;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  color: var(--el-color-primary);
   cursor: pointer;
-  transition: background 0.15s;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s);
 }
 
 .aw__add:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+}
+
+.aw__add:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .aw__body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0 12px 12px;
+  padding: 0 16px 16px;
 }
 
 .aw__empty {
@@ -348,24 +358,31 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 8px;
   height: 100%;
-  color: var(--el-text-color-disabled);
   font-size: 13px;
+  color: var(--el-text-color-disabled);
 }
 
 .aw__empty-btn {
   margin-top: 4px;
-  padding: 6px 16px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--el-color-primary);
+  padding: 8px 16px;
   cursor: pointer;
   font-size: 12px;
-  transition: background 0.15s;
+  color: var(--el-color-primary);
+  background: transparent;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
 }
 
 .aw__empty-btn:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
+}
+
+.aw__empty-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
 .aw__list {
@@ -378,27 +395,30 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  padding: 12px 16px;
   background: var(--el-fill-color-blank);
-  transition: border-color 0.15s, background 0.15s;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  transition: border-color var(--el-transition-duration, 0.2s),
+    background var(--el-transition-duration, 0.2s);
 }
 
 .aw__item:hover {
+  background: var(--el-bg-color);
   border-color: var(--el-border-color);
 }
 
+/* 已关闭的闹钟整体弱化，但仍保持可读（opacity 过低会让文字对比度不达标） */
 .aw__item--off {
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
 .aw__item-time {
+  min-width: 60px;
   font-size: 22px;
   font-weight: 700;
   color: var(--el-color-primary);
   font-variant-numeric: tabular-nums;
-  min-width: 60px;
 }
 
 .aw__item-time--off {
@@ -406,64 +426,74 @@ onBeforeUnmount(() => {
 }
 
 .aw__item-main {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .aw__item-top {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .aw__item-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .aw__item-badge {
   flex-shrink: 0;
-  font-size: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--el-radius-full, 9999px);
 }
 
 .aw__item-countdown {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
 }
 
 .aw__item-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .aw__item-del {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  transition: background var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
 }
 
 .aw__item-del:hover {
-  background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+.aw__item-del:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 20%, transparent);
 }
 </style>

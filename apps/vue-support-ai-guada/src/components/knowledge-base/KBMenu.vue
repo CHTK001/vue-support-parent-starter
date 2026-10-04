@@ -3,7 +3,6 @@
     <!-- 顶部：当前知识库名 + 返回 -->
     <div class="flex items-center justify-between gap-1.5 pb-3 border-b border-[var(--rm-border-light)]">
       <span class="min-w-0 text-sm font-semibold truncate" :title="kbName">{{ kbName || '知识库' }}</span>
-      <ReButton link :icon="ArrowLeft" size="small" title="返回列表" @click="emit('back')" />
     </div>
 
     <!-- 视图项：切换 activeTab -->

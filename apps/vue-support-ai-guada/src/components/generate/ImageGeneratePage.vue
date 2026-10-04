@@ -1885,8 +1885,9 @@ const elapsedSeconds = (task: GenerateTask) => {
   // 取最大值会把偏移拖成一个很大的负数，于是新任务的
   // nowTick + skew - createdAt 恒为负，被 Math.max(0,…) 压成 0 —— 表现为
   // 「已用时一直 0s」。这正是 records-accept 能复现、而单独提交不复现的原因。
-  const live = task.updatedAt && (task.status === 'PENDING' || task.status === 'RUNNING')
-  const skew = live ? task.updatedAt - nowTick.value : clockSkew.value
+  const updatedAt = task.updatedAt
+  const live = updatedAt != null && (task.status === 'PENDING' || task.status === 'RUNNING')
+  const skew = live ? updatedAt - nowTick.value : clockSkew.value
   return Math.max(0, Math.floor((nowTick.value + skew - task.createdAt) / 1000))
 }
 

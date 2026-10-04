@@ -9,6 +9,7 @@
       :is="loader.Component"
       v-if="loader.state === 'ready' && loader.Component"
       :widget="widget"
+      @patch-config="(p: Partial<WidgetItem>) => emit('patch-config', p)"
     />
     <div v-else-if="loader.state === 'loading'" class="widget-renderer__loading" aria-busy="true">
       <el-icon class="widget-renderer__loading-icon" :size="22">
@@ -56,6 +57,15 @@ import type { WidgetItem } from "./types";
 const ReButton = defineAsyncComponent(() => import("@repo/ui/re-button").then((m) => m.default));
 
 const props = defineProps<{ widget: WidgetItem }>();
+
+/**
+ * widget 内部改了自己的配置（当前只有日历的头部开关），转发给页面层落盘。
+ *
+ * <p>命名用 {@code patch-config} 而不是 {@code update}：widget 是 props，
+ * 组件不能直接改父级的数据；而 {@code update} 语义太泛，
+ * 将来某个 widget 想用 {@code v-model} 就会撞车。</p>
+ */
+const emit = defineEmits<{ (e: "patch-config", patch: Partial<WidgetItem>): void }>();
 
 const loader = useWidgetLoader(() => props.widget.type);
 

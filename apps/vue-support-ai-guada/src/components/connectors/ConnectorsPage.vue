@@ -130,7 +130,6 @@
       </div>
 
       <template #footer>
-        <el-button @click="bindDialogVisible = false">{{ bindIsQr ? '关闭' : '取消' }}</el-button>
         <el-button v-if="!bindIsQr" type="primary" :loading="binding" @click="handleBind">确认绑定</el-button>
       </template>
     </el-dialog>

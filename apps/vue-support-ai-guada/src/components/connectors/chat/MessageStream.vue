@@ -337,7 +337,7 @@ defineExpose({ scrollToBottom })
   /* 气泡文字用 --el-color-white 而非原来的 --color-primary-text：
      底色恒为主色，白字是对比度最高的反相色；9 套主题下都成立
      （涂鸦本的米黄、蒸汽朋克的黄铜色底上白字同样清晰） */
-  color: var(--el-color-white);
+  //color: var(--el-color-white);
   background: var(--el-color-primary);
   border-radius: var(--el-radius-xl, 16px) var(--el-radius-sm, 6px) var(--el-radius-xl, 16px) var(--el-radius-xl, 16px);
 }
@@ -475,7 +475,7 @@ defineExpose({ scrollToBottom })
 .is-out .markdown-text h4,
 .is-out .markdown-text h5,
 .is-out .markdown-text h6 {
-  color: var(--el-color-white);
+ /* color: var(--el-color-white);*/
 }
 .is-out .markdown-text ul > li::before {
   background-color: color-mix(in srgb, var(--el-color-white) 85%, transparent);
@@ -484,13 +484,13 @@ defineExpose({ scrollToBottom })
   color: color-mix(in srgb, var(--el-color-white) 90%, transparent);
 }
 .is-out .markdown-text a {
-  color: var(--el-color-white);
+  //color: var(--el-color-white);
   text-decoration: underline;
 }
 /* 行内代码：半透明白底白字 */
 .is-out .markdown-text code {
   background-color: color-mix(in srgb, var(--el-color-white) 22%, transparent);
-  color: var(--el-color-white);
+  //color: var(--el-color-white);
 }
 /* 浅色模式下代码块为浅底，pre 内文字强制深色（否则继承气泡白字，白底上看不清）。
    深色模式交给 markdown.css 的 .dark 规则（浅字深底），不在此覆盖。

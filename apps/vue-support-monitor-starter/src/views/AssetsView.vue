@@ -358,12 +358,12 @@ const tableColumns = computed(() => [
   { prop: "serverHostAddress", label: "地址", width: 150, slot: "addr" },
   { prop: "msServerGroupId", label: "分组", width: 92, slot: "group" },
   { prop: "serverHostTags", label: "标签", minWidth: 120, slot: "tags" },
-  { prop: "serverHostOsType", label: "协议", width: 70, slot: "proto" },
+  { prop: "serverHostOsType", label: "协议", width: 100, slot: "proto" },
   { prop: "serverHostOnline", label: "状态", width: 84, slot: "status" },
   { prop: "serverHostDelayMs", label: "延迟", width: 84, slot: "delay" },
   { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
   { prop: "serverHostPorts", label: "端口", minWidth: 140, slot: "ports" },
-  { prop: "serverHostAgentEnabled", label: "Agent", width: 84, slot: "agent" },
+  { prop: "serverHostAgentEnabled", label: "Agent", width: 90, slot: "agent" },
   { prop: "id", label: "操作", width: 140, fixed: "right", slot: "actions" },
 ]);
 

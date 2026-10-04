@@ -54,53 +54,57 @@
 
         <form novalidate @submit.prevent="submit">
           <div class="sl-field" :class="{ 'is-error': accountError }">
-            <span class="sl-field__ic">
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4.5 20c1.2-3.6 4.2-5 7.5-5s6.3 1.4 7.5 5" />
-              </svg>
-            </span>
-            <input
-              v-model="form.account"
-              type="text"
-              placeholder="请输入学号 / 工号 / 手机号"
-              autocomplete="username"
-              @input="accountError = ''"
-            />
+            <div class="sl-field__box">
+              <span class="sl-field__ic">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4.5 20c1.2-3.6 4.2-5 7.5-5s6.3 1.4 7.5 5" />
+                </svg>
+              </span>
+              <input
+                v-model="form.account"
+                type="text"
+                placeholder="请输入学号 / 工号 / 手机号"
+                autocomplete="username"
+                @input="accountError = ''"
+              />
+            </div>
             <p class="sl-field__err">{{ accountError }}</p>
           </div>
 
           <div class="sl-field" :class="{ 'is-error': passwordError }">
-            <span class="sl-field__ic">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="11" width="14" height="9" rx="2.5" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-              </svg>
-            </span>
-            <input
-              v-model="form.password"
-              :type="showPwd ? 'text' : 'password'"
-              placeholder="请输入密码"
-              autocomplete="current-password"
-              @input="passwordError = ''"
-            />
-            <button
-              type="button"
-              class="sl-eye"
-              :aria-label="showPwd ? '隐藏密码' : '显示密码'"
-              @click="showPwd = !showPwd"
-            >
-              <svg v-if="!showPwd" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
-                <circle cx="12" cy="12" r="2.8" />
-              </svg>
-              <svg v-else width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M4 4l16 16" />
-                <path d="M9.5 9.6a3 3 0 0 0 4.2 4.2M6.4 6.6C3.9 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.5 0 2.8-.4 4-1" />
-                <path d="M14.8 6.7c-.9-.3-1.8-.4-2.8-.4C6 6.3 2.5 12 2.5 12" />
-                <path d="M9.5 5.2C10.3 5 11.1 5 12 5c6 0 9.5 6.5 9.5 6.5-.5 1-1.2 2-2 2.9" />
-              </svg>
-            </button>
+            <div class="sl-field__box">
+              <span class="sl-field__ic">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="11" width="14" height="9" rx="2.5" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+              </span>
+              <input
+                v-model="form.password"
+                :type="showPwd ? 'text' : 'password'"
+                placeholder="请输入密码"
+                autocomplete="current-password"
+                @input="passwordError = ''"
+              />
+              <button
+                type="button"
+                class="sl-eye"
+                :aria-label="showPwd ? '隐藏密码' : '显示密码'"
+                @click="showPwd = !showPwd"
+              >
+                <svg v-if="!showPwd" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                  <circle cx="12" cy="12" r="2.8" />
+                </svg>
+                <svg v-else width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M4 4l16 16" />
+                  <path d="M9.5 9.6a3 3 0 0 0 4.2 4.2M6.4 6.6C3.9 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.5 0 2.8-.4 4-1" />
+                  <path d="M14.8 6.7c-.9-.3-1.8-.4-2.8-.4C6 6.3 2.5 12 2.5 12" />
+                  <path d="M9.5 5.2C10.3 5 11.1 5 12 5c6 0 9.5 6.5 9.5 6.5-.5 1-1.2 2-2 2.9" />
+                </svg>
+              </button>
+            </div>
             <p class="sl-field__err">{{ passwordError }}</p>
           </div>
 
@@ -559,6 +563,11 @@ onMounted(() => {
 .sl-field {
   position: relative;
   margin-top: 20px;
+}
+/* 图标/眼睛以「输入框」为定位基准，而不是整个字段 ——
+   否则错误文案出现后字段变高，图标会跟着下移（实测偏移）。 */
+.sl-field__box {
+  position: relative;
 }
 .sl-field__ic {
   position: absolute;

@@ -330,6 +330,7 @@ export const defaultAppConfig: AppConfig = {
       location: true,
       typhoon: true,
       ipLookup: true,
+      holiday: true,
     },
     toolbar: {
       searchMenu: true,

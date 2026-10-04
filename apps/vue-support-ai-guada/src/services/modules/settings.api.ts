@@ -6,6 +6,18 @@ export interface SettingsApi {
   updateSettings(data: any): Promise<GlobalSettings>;
   fetchGroupSettings(group: string): Promise<any>;
   updateGroupSettings(group: string, data: any): Promise<any>;
+  /**
+   * 取当前登录用户在该分组的「全局默认 + 本人覆盖」合并视图。
+   *
+   * 每项含 field / value / defaultValue / overridden：overridden=false 表示该值继承自全局默认。
+   */
+  fetchMergedGroupSettings(group: string): Promise<any>;
+  /**
+   * 写入当前登录用户自己的覆盖（只影响本人，不改全局默认）。
+   *
+   * 值传 null 表示撤销该字段的本人覆盖（即「重置」，回落到继承值）。
+   */
+  updateUserGroupOverrides(group: string, data: any): Promise<any>;
   fetchWorkspaceBaseDir(): Promise<{ workspaceBaseDir: string | null }>;
   updateWorkspaceBaseDir(workspaceBaseDir: string | null): Promise<{ success: boolean }>;
   queryPlugins(config?: any, lang?: string): Promise<any>;
@@ -30,6 +42,14 @@ export const settingsApi: SettingsApi = {
 
   async updateGroupSettings(this: ApiContext, group: string, data: any) {
     return await this._request(`/settings/${group}`, { method: "PUT", data });
+  },
+
+  async fetchMergedGroupSettings(this: ApiContext, group: string) {
+    return await this._request(`/settings/${group}/merged`);
+  },
+
+  async updateUserGroupOverrides(this: ApiContext, group: string, data: any) {
+    return await this._request(`/settings/${group}/overrides`, { method: "PUT", data });
   },
 
   async fetchWorkspaceBaseDir(this: ApiContext) {

@@ -31,6 +31,23 @@ export const TYPHOON_DETAIL_PATH = "/v2/typhoon/detail";
 /** 后台 IP 归属地（IP 转物理地址）查询接口 */
 export const IP_LOOKUP_PATH = "/v2/ip/lookup";
 
+/**
+ * 后台节假日列表接口。
+ *
+ * <p>取日历的年度放假安排与补班日。路径取自
+ * {@code SysHolidayController}（{@code @RequestMapping("/v2/holiday")}
+ * + {@code @GetMapping("/get")}）。</p>
+ */
+export const HOLIDAY_LIST_PATH = "/v2/holiday/get";
+
+/**
+ * 后台节假日同步接口（管理员权限，从三方同步到本地库）。
+ *
+ * <p>取自 {@code SysHolidayController#sync}。后台当前是返回 {@code false} 的占位实现，
+ * 前端据返回值提示「尚未实现」，不静默当成功。</p>
+ */
+export const HOLIDAY_SYNC_PATH = "/v2/holiday/sync";
+
 /** 业务能力登记项 */
 export interface BackendCapability {
   /** 能力 key，对应 app.yaml `other.capabilities` 的键 */
@@ -49,6 +66,8 @@ export const BACKEND_CAPABILITIES: readonly BackendCapability[] = [
   { key: "location", path: LOCATION_RESOLVE_PATH, probe: true, i18n: "location" },
   { key: "typhoon", path: TYPHOON_ACTIVE_PATH, probe: true, i18n: "typhoon" },
   { key: "ipLookup", path: IP_LOOKUP_PATH, probe: false, i18n: "ipLookup" },
+  // 日历节假日：探测后按年取数，失败时退回日历内置表，故与天气同一档
+  { key: "holiday", path: HOLIDAY_LIST_PATH, probe: true, i18n: "holiday" },
 ];
 
 /** 按 key 取能力登记项（未登记返回 null） */
