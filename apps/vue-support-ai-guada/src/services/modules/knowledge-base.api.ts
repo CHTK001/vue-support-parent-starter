@@ -452,6 +452,18 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     return node;
   },
 
+  /** POST /api/knowledge/bases/{id}/web：抓取网页正文并落成 Markdown 入库（一次性添加，区别于长效「来源」同步） */
+  async addKnowledgeWebPage(kbId, payload) {
+    const route = `POST ${KB}/bases/{id}/web`;
+    const env = await apiHttp.post(`${KB}/bases/${encodeURIComponent(kbId)}/web`, {
+      url: payload.url,
+      path: payload.path || undefined,
+      max_pages: payload.maxPages || 1,
+      title: payload.title || undefined,
+    });
+    return unwrapData(env, route);
+  },
+
   /** GET /api/knowledge/bases/{knowledge_base_id}/file?path={fileId} */
   async getKBFile(kbId, fileId) {
     const route = `GET ${KB}/bases/{id}/file`;

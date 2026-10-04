@@ -225,7 +225,7 @@
                         <h4 class="kb-tpl__name truncate">{{ tpl.name }}</h4>
                         <div class="kb-tpl__meta">
                           <span class="kb-tpl__tag">{{ tpl.tag }}</span>
-                          <el-button size="small" class="kb-tpl__use" @click="handleOpenCreate">使用模板</el-button>
+                          <el-button size="small" class="kb-tpl__use" @click="showTplGallery = true">使用模板</el-button>
                         </div>
                       </div>
                     </article>
@@ -733,6 +733,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { useAuthStore } from '@/stores/auth'
 import { useFileUploadStore } from '@/stores/fileUpload'
+import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 import type { KnowledgeBase, KBFile } from '@/stores/knowledgeBase'
 import type { UploadTask } from '@/stores/fileUpload'
 import { FileChunksViewer, KBFileUploader, KBFileTree, KBMenu, KBSearchPanel, KBTemplateGallery, UploadTaskModal } from './index'
@@ -1043,8 +1044,10 @@ const overviewRef = ref<any>(null)
  *
  * @param name 模板名（同时作为知识库名）
  */
-function handleTemplateCreate(name: string) {
-  showTplGallery.value = false
+function handleTemplateCreate(name: string, docs?: Array<{ path: string; content: string }>) {  showTplGallery.value = false
+  // 模板自带的示例文档：建库成功后逐篇落库（见 materializeTemplateDocs），
+  // 不再只显示文件名而库里没有对应文件。
+  pendingTemplateDocs.value = Array.isArray(docs) ? docs : []
   // 注意：handleOpenCreate() 无参，且模板里多处写作 @click="handleOpenCreate"
   // （Vue 会把事件对象当第一个实参），所以这里不能给它加形参，
   // 只能在它把表单重置完之后再写名字，否则 dialogForm.name 会被 MouseEvent 覆盖。
@@ -1059,6 +1062,43 @@ function handleTemplateCreate(name: string) {
       dialogForm.name = name
     }
   })
+}
+
+/** 模板自带的示例文档（建库成功后落库；空数组表示非模板创建） */
+const pendingTemplateDocs = ref<Array<{ path: string; content: string }>>([])
+
+/**
+ * 把模板的示例文档写入新建的知识库。
+ *
+ * <p>模板页展示的 {@code 01-xx概述.md} 等文件名必须是**真实存在**的文件，否则
+ * 用户点「使用此模板创建」后进文件树会一片空白。这里逐篇按文本写入
+ * （复用 {@code PUT /bases/{id}/file}，写完即建索引），最后刷新文件树。</p>
+ *
+ * @param kbId 新建知识库标识
+ */
+async function materializeTemplateDocs(kbId: string) {
+  const docs = pendingTemplateDocs.value
+  pendingTemplateDocs.value = []
+  if (!docs.length) {
+    return
+  }
+  let ok = 0
+  for (const doc of docs) {
+    try {
+      const fileName = doc.path.split('/').pop() || doc.path
+      const file = new File([doc.content], fileName, { type: 'text/markdown' })
+      await knowledgeBaseApi.uploadKBFile(kbId, file, null)
+      ok++
+    } catch (e) {
+      console.warn('[KB] 模板文档写入失败:', doc.path, e)
+    }
+  }
+  if (ok > 0) {
+    toast.success(`已按模板生成 ${ok} 篇示例文档`)
+    if (fileTreeRef.value && fileTreeRef.value.forceReload) {
+      await fileTreeRef.value.forceReload()
+    }
+  }
 }
 
 /**
@@ -1657,6 +1697,9 @@ async function handleKbSave() {
       if (createdKb) {
         await handleSelectKB(createdKb)
       }
+
+      // 来自模板创建：把模板的示例文档真正写进新库（模板页展示的文件名必须真实存在）
+      await materializeTemplateDocs(newKb.id)
     } else {
       // 更新
       await store.updateKnowledgeBase(dialogForm.id, {

@@ -116,20 +116,47 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 设备资产 ====================
+  // ==================== 设备管理 ====================
   // 从「资产管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见，
   // 不必先进资产管理再找。rank 取 11，紧邻资产管理（10）且早于服务管理（15）。
-  // 与「服务管理」同为单页独立分组（分组标题与子菜单同名，children 仅一项）。
+  //
+  // 组名用「设备管理」而非「设备资产」：组内已不止资产台账，还含组织/通道/日志/提供商配置。
+  // 四个子页都走 device-starter 原生前缀 /api/device（见 app.yaml 的 moduleBaseUrl.device），
+  // 后端由 spring-support-monitor-starter 依赖 device-starter 承载。
   {
     path: "/grp-device",
     name: "GroupDevice",
-    meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 11 },
+    meta: { title: "设备管理", icon: "VideoCamera", showLink: true, rank: 11 },
     children: [
       {
         path: "/device-assets",
         name: "DeviceAssets",
         component: () => import("./views/DeviceAssetsView.vue"),
-        meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 11 },
+        meta: { title: "设备资产", icon: "Monitor", showLink: true, rank: 11 },
+      },
+      {
+        path: "/device-orgs",
+        name: "DeviceOrgs",
+        component: () => import("./views/DeviceOrganizationView.vue"),
+        meta: { title: "设备组织", icon: "FolderOpened", showLink: true, rank: 12 },
+      },
+      {
+        path: "/device-channels",
+        name: "DeviceChannels",
+        component: () => import("./views/DeviceChannelView.vue"),
+        meta: { title: "通道管理", icon: "Connection", showLink: true, rank: 13 },
+      },
+      {
+        path: "/device-events",
+        name: "DeviceEvents",
+        component: () => import("./views/DeviceEventLogView.vue"),
+        meta: { title: "设备日志", icon: "Tickets", showLink: true, rank: 14 },
+      },
+      {
+        path: "/device-providers",
+        name: "DeviceProviders",
+        component: () => import("./views/DeviceProviderConfigView.vue"),
+        meta: { title: "提供商配置", icon: "Setting", showLink: true, rank: 15 },
       },
     ],
   },

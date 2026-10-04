@@ -102,11 +102,6 @@ const filtered = computed<DeviceAssetDetail[]>(() => {
   });
 });
 
-const onlineCount = computed(() => devices.value.filter((d) => d.online).length);
-const offlineCount = computed(() => devices.value.filter((d) => !d.online).length);
-const locatedCount = computed(() => devices.value.filter((d) => d.geo?.located).length);
-const channelCount = computed(() => devices.value.reduce((sum, d) => sum + (d.channelCount || 0), 0));
-
 /**
  * 大类展示名：后端中文名优先，缺失时用本地映射兜底
  * @param d 设备
@@ -192,49 +187,12 @@ onMounted(fetchList);
         <h1 class="page-title">设备资产</h1>
         <p class="page-desc">监控视角的设备台账 · 共 {{ devices.length }} 台 · 只读总览</p>
       </div>
-      <div class="page-actions">
-        <el-button icon="RefreshRight" :show-text="true" :loading="loading" text @click="fetchList">
-          刷新
-        </el-button>
-      </div>
     </div>
 
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchList">重试</ReButton>
     </div>
-
-    <!-- KPI -->
-    <section class="kpi-row cols-4">
-      <div class="kpi c-brand">
-        <span class="hk-tile"><ReIcon name="VideoCamera" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ devices.length }}<span class="hk-unit">台</span></div>
-          <div class="hk-label">已注册设备</div>
-        </div>
-      </div>
-      <div class="kpi c-green">
-        <span class="hk-tile"><ReIcon name="CircleCheck" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ onlineCount }}<span class="hk-unit">/ {{ devices.length }}</span></div>
-          <div class="hk-label">当前在线</div>
-        </div>
-      </div>
-      <div class="kpi c-gray">
-        <span class="hk-tile"><ReIcon name="Tickets" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ offlineCount }}<span class="hk-unit">台</span></div>
-          <div class="hk-label">离线待处理</div>
-        </div>
-      </div>
-      <div class="kpi c-blue">
-        <span class="hk-tile"><ReIcon name="Location" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ channelCount }}<span class="hk-unit">路</span></div>
-          <div class="hk-label">通道总数 · 已定位 {{ locatedCount }} 台</div>
-        </div>
-      </div>
-    </section>
 
     <!-- 筛选条 -->
     <div class="as-panel as-filter">
@@ -392,13 +350,6 @@ onMounted(fetchList);
   gap: 14px;
 }
 
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 .page-title {
   margin: 0 0 4px;
   font-size: 20px;
@@ -420,62 +371,6 @@ onMounted(fetchList);
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
   font-size: 13px;
-}
-
-.kpi-row {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 4px;
-}
-
-.kpi-row.cols-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.kpi {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-}
-
-.hk-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.c-brand .hk-tile { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
-.c-green .hk-tile { background: linear-gradient(135deg, #00b894, #55efc4); }
-.c-gray .hk-tile { background: linear-gradient(135deg, #636e72, #b2bec3); }
-.c-blue .hk-tile { background: linear-gradient(135deg, #0984e3, #74b9ff); }
-
-.hk-body { min-width: 0; }
-
-.hk-value {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.hk-unit {
-  margin-left: 2px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-}
-
-.hk-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
 .as-panel {
