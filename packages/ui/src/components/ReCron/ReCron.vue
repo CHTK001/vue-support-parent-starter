@@ -76,6 +76,66 @@ const WEEK = { key: "week", label: "周", min: 0, max: 6 } as const;
 /** 周字段数值语义与服务端一致：0=周日 … 6=周六 */
 const WEEK_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
+/**
+ * 引擎接受的英文名称（与 @repo/utils 的 CronExpression 同名表逐项一致）。
+ *
+ * <p>不认名称是本组件此前最实际的功能缺口：设计稿与无数现成表达式都写成
+ * {@code 0 30 9 ? * MON-FRI}，而面板只认数字，于是整条表达式掉进"不同步"，
+ * 连"什么时候跑"的摘要都一起消失。</p>
+ */
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6,
+  JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12,
+};
+const WEEKDAY_NAME_TO_NUM: Record<string, number> = {
+  SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6,
+};
+
+/**
+ * 把 token 里的英文名称换成数字。
+ *
+ * <p>只在月/周两个字段生效（引擎也只在这两处 resolve 名称）。
+ * 名称一律是三个字母且互不为前缀，所以逐个替换不会相互污染。</p>
+ *
+ * @param key 字段 key
+ * @param token 原始 token
+ * @returns 归一化后的 token 与"是否真的用到过名称"
+ */
+function normalizeTokenNames(key: string, token: string): { text: string; used: boolean } {
+  const table = key === "month" ? MONTH_NAME_TO_NUM : key === "week" ? WEEKDAY_NAME_TO_NUM : null;
+  if (!table) return { text: token, used: false };
+  let text = token.toUpperCase();
+  let used = false;
+  for (const [name, num] of Object.entries(table)) {
+    if (text.includes(name)) {
+      text = text.split(name).join(String(num));
+      used = true;
+    }
+  }
+  return { text, used };
+}
+
+/**
+ * 面板表达不了的字段：key → 原始 token。
+ *
+ * <p>为什么必须单独记：{@link parseToken} 一进来就 {@code Object.assign(f, blank(), …)}
+ * 把该字段重置成"每一个值"，失败后并不会还原。于是 {@link tokenOf} 读到的是
+ * {@code all}，{@code MON-FRI} 被显示成 {@code *}（"每天"）—— 看起来完全合法，
+ * 比直接显示 NaN 更危险。这里改为回显原样 token，让面板说真话。</p>
+ */
+const rawTokens = reactive<Record<string, string>>({});
+
+/**
+ * 面板**解析成功**（不一定接管）的字段。
+ *
+ * <p>与 rawTokens 的区别是这里要回答"面板看不看得懂这个字段"：
+ * 看不懂就不能描述它，看得懂但写回去会变意思（名称、周写 7）则照样能描述。</p>
+ */
+const panelParsed = reactive<Record<string, true>>({});
+
+/** 表达式里用过英文名称（面板按数字解析显示，但不改写用户的表达式） */
+const nameNormalized = ref(false);
+
 const state = reactive<Record<string, FieldState>>({
   sec: blank(),
   min: blank(),
@@ -146,7 +206,13 @@ const FIELDS = [SECOND, MINUTE, HOUR, DAY, MONTH, WEEK];
 const WEEK_OPTIONS: ReOption[] = WEEK_NAMES.map((n, i) => ({ label: n, value: i }));
 
 /** 面板状态 → 单字段 token */
-function tokenOf(key: string): string {
+/**
+ * 由面板状态算出该字段的 token（不看 rawTokens 回显）。
+ *
+ * @param key 字段 key
+ * @returns 面板当前会写出的 token
+ */
+function tokenFromState(key: string): string {
   const f = state[key];
   switch (f.mode) {
     case "step":
@@ -163,6 +229,50 @@ function tokenOf(key: string): string {
       return `${f.start}#${f.nth}`;
     default:
       return "*";
+  }
+}
+
+/**
+ * 该字段在界面与表达式里实际使用的 token。
+ *
+ * <p>面板能一一对应地表达时就是面板的值；表达不了、或者表达出来会与用户输入
+ * 不一致（英文名称、周字段写 7 等）时，回显用户原本写的 token —— 面板不得擅自
+ * 把用户的表达式"看成"另一种意思。</p>
+ *
+ * @param key 字段 key
+ * @returns 该字段的展示 / 拼装用 token
+ */
+function tokenOf(key: string): string {
+  return rawTokens[key] ?? tokenFromState(key);
+}
+
+/**
+ * 面板解析出的字段是否自洽。
+ *
+ * <p>倒序区间（如 `1-0`）必须在这里拦住：引擎对 `rangeMin > rangeMax` 的循环一次
+ * 都不执行，位图留空，随后又被"未指定的一侧放宽为任意值"的规则接管 ——
+ * 结果是 `1-0` 被静默当成"每天"，而面板还显示"区间 1-0"并报"合法"。</p>
+ *
+ * @param key 字段 key
+ * @returns true 表示面板状态可以直接采用
+ */
+function fieldIsSane(key: string): boolean {
+  const f = state[key];
+  const spec = SPEC[key];
+  const within = (v: number) => Number.isInteger(v) && v >= spec.min && v <= spec.max;
+  switch (f.mode) {
+    case "range":
+      return within(f.start) && within(f.end) && f.end >= f.start && f.step >= 1;
+    case "step":
+      return within(f.start) && f.step >= 1;
+    case "points":
+      return f.points.length > 0 && f.points.every(within);
+    case "nearest":
+      return f.start >= 1 && f.start <= 31;
+    case "nth":
+      return f.start >= 0 && f.start <= 6 && f.nth >= 1 && f.nth <= 5;
+    default:
+      return true;
   }
 }
 
@@ -245,8 +355,41 @@ function syncFromModel(value: string): void {
     return;
   }
   const keys = ["sec", "min", "hour", "day", "month", "week"];
-  const parsed = keys.map((k, i) => parseToken(k, tokens[i]));
-  rawMode.value = parsed.some((p) => !p);
+  for (const k of keys) {
+    delete rawTokens[k];
+    delete panelParsed[k];
+  }
+  nameNormalized.value = false;
+  if (!value.trim() || tokens.length !== 6) {
+    rawMode.value = !!value.trim();
+    rawExpression.value = value.trim();
+    return;
+  }
+  let sawName = false;
+  const claimed = keys.map((k, i) => {
+    const raw = tokens[i];
+    /* 先按原文解析。解析得到即视为"面板看得懂"，可以参与人话描述；
+       但只有"状态自洽且写回去与原文一致"才允许接管该字段的写法。 */
+    if (parseToken(k, raw)) {
+      panelParsed[k] = true;
+      if (fieldIsSane(k) && tokenFromState(k) === raw) return true;
+    }
+    /* 再尝试把英文名称归一化成数字：面板能理解，盒子仍回显用户写的名称。 */
+    const { text, used } = normalizeTokenNames(k, raw);
+    if (used && parseToken(k, text)) {
+      panelParsed[k] = true;
+      if (fieldIsSane(k)) {
+        sawName = true;
+        rawTokens[k] = raw;
+        return true;
+      }
+    }
+    /* 彻底表达不了（或表达出来会变意思）：回显原样，绝不伪造 * */
+    rawTokens[k] = raw;
+    return false;
+  });
+  rawMode.value = claimed.some((c) => !c);
+  nameNormalized.value = sawName;
   rawExpression.value = value.trim();
 }
 
@@ -264,7 +407,9 @@ watch(
 
 /** 面板改动 → 表达式（表达式模式下不反向覆盖用户输入） */
 watch(expression, (v) => {
-  if (rawMode.value || props.disabled) return;
+  /* nameNormalized 时也不回写：面板把 MON-FRI 理解成 1-5 只是为了能操作，
+     写回去会把用户的名称形式改成数字形式 —— 属静默改写。 */
+  if (rawMode.value || nameNormalized.value || props.disabled) return;
   if (v !== model.value) model.value = v;
 });
 
@@ -294,7 +439,74 @@ const errorText = computed(() => {
     return props.defaultCron ? `留空则按后端默认 ${props.defaultCron} 登记` : "留空表示不设置调度";
   }
   if (!analysis.value.valid) return analysis.value.error || "表达式非法";
-  if (rawMode.value) return "已按表达式直填（面板未同步该表达式）";
+  return "";
+});
+
+/**
+ * 面板与表达式的同步状态说明（弹层用）。
+ *
+ * <p>此前弹层摘要条在"面板表达不了"时回落到「未设置调度周期」—— 把"看不懂"
+ * 错报成"没设置"，而表达式其实合法且已有下次触发时间。</p>
+ */
+/** 字段 key → 中文单字，用于"哪些字段面板读不懂"的提示 */
+const LABEL_OF: Record<string, string> = { sec: "秒", min: "分", hour: "时", day: "日", month: "月", week: "周" };
+
+/** "指定值"点了但一个都没选的字段（这些字段当前会写成 `*`） */
+const emptyPointsLabels = computed(() =>
+  FIELDS.filter((f) => state[f.key].mode === "points" && !state[f.key].points.length).map((f) => f.label),
+);
+
+const panelNote = computed(() => {
+  if (analysis.value.empty) {
+    return props.defaultCron ? `留空则按后端默认 ${props.defaultCron} 登记` : "留空表示不设置调度";
+  }
+  if (!analysis.value.valid) return analysis.value.error || "表达式非法";
+  const unsynced = Object.keys(rawTokens);
+  /* "指定值"点开却一个都没选：tokenOf 会写出 `*`（等于不限），
+     这在表达式上合法，但用户很可能以为自己在限定取值。必须说明。 */
+  if (emptyPointsLabels.value.length && !rawMode.value && !nameNormalized.value) {
+    return `${emptyPointsLabels.value.join("、")}的"指定值"尚未选择任何值，当前等同不限`;
+  }
+  if (rawMode.value) {
+    return `面板无法完整表达该表达式（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），已按原文保留；改动面板会以面板为准`;
+  }
+  if (nameNormalized.value) {
+    return `表达式用了英文名称（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），面板按数字理解、不会改写你的写法`;
+  }
+  return "与服务端同一套解析引擎算出，保存后的触发时间与此一致";
+});
+
+/**
+ * 只在"面板与表达式存在落差"时才展示的提示。
+ *
+ * <p>三种落差都要提示：面板读不懂（rawMode）、用了英文名称（面板理解但不改写）、
+ * 以及"指定值"空选（合法但会被当成不限）。此前只在弹层里给，触发器状态行
+ * 完全不提，用户在外面看不到任何异常。</p>
+ */
+const syncWarning = computed(() => {
+  if (analysis.value.empty) return "";
+  if (rawMode.value || nameNormalized.value || emptyPointsLabels.value.length) return panelNote.value;
+  return "";
+});
+
+/**
+ * 状态行的紧凑版落差提示。
+ *
+ * <p>触发器的状态行只占一行，塞进完整说明会把"什么时候跑"挤没；
+ * 所以这里只给"哪几个字段面板没接管"，详细原因留给弹层。</p>
+ */
+const syncBadge = computed(() => {
+  if (analysis.value.empty) return "";
+  const keys = Object.keys(rawTokens);
+  if (rawMode.value && keys.length) {
+    return `面板未接管 ${keys.map((k) => LABEL_OF[k]).join("、")}`;
+  }
+  if (nameNormalized.value && keys.length) {
+    return `名称写法未改写（${keys.map((k) => LABEL_OF[k]).join("、")}）`;
+  }
+  if (emptyPointsLabels.value.length) {
+    return `${emptyPointsLabels.value.join("、")}未选值，等同不限`;
+  }
   return "";
 });
 
@@ -308,16 +520,24 @@ function fmt(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} 周${WEEK_LABEL[d.getDay()]}`;
 }
 
-/** 人话摘要：让"保存后到底什么时候跑"一眼可见 */
+/** 字段的机械描述（"秒 0，分 30…"），面板表达不了的字段按原样回显 */
 const summary = computed(() => {
-  if (rawMode.value || !trimmed.value || !analysis.value.valid) return "";
+  if (!trimmed.value || !analysis.value.valid) return "";
   const parts: string[] = [];
   const describe = (key: string, unit: string) => {
+    const raw = rawTokens[key];
+    if (raw !== undefined) {
+      // 面板表达不了：如实回显 token，不猜它的意思
+      parts.push(`${unit} ${raw}`);
+      return;
+    }
     const f = state[key];
     if (f.mode === "all") return;
     if (f.mode === "step") parts.push(`每 ${f.step} ${unit}（自 ${f.start} 起）`);
     else if (f.mode === "range") parts.push(`${unit} ${f.start}-${f.end}${f.step > 1 ? ` 步长 ${f.step}` : ""}`);
-    else if (f.mode === "points") parts.push(`${unit} ${f.points.join("、")}`);
+    /* 空的多选此前会 push 出一个没有值的"日 "，摘要里留下悬空单位。
+       这里明确说成"任意"，与 tokenOf 在这种状态下写出的 * 保持一致。 */
+    else if (f.mode === "points") parts.push(f.points.length ? `${unit} ${f.points.join("、")}` : `${unit} 任意（未选择具体值）`);
     else if (f.mode === "last") parts.push("当月最后一天");
     else if (f.mode === "nearest") parts.push(`当月 ${f.start} 日最近工作日`);
     else if (f.mode === "nth") parts.push(`第 ${f.nth} 个${WEEK_NAMES[f.start]}`);
@@ -330,6 +550,211 @@ const summary = computed(() => {
   describe("week", "周");
   return parts.length ? parts.join("，") : "每秒";
 });
+
+/** 时间部分的人话：`09:30` / `09:30:15` / `每 15 分钟` / `每小时` / `每秒` */
+function humanTime(): string {
+  const s = state.sec;
+  const m = state.min;
+  const h = state.hour;
+  // 面板看不懂的字段不自作主张，交给机械描述
+  for (const k of ["sec", "min", "hour"]) {
+    if (!panelParsed[k]) return "";
+  }
+  const isAll = (f: FieldState) => f.mode === "all";
+  const single = (f: FieldState) => f.mode === "points" && f.points.length === 1;
+  /* 秒写单个 0 与写 * 在描述上等价：分钟用步进、小时给定时，说的是
+     "09:00 起每 15 分钟"，不该因为秒写的是 0 而不是 * 就掉进兜底分支。
+     注意本行不要再出现星号加斜杠的字面量，那会提前闭合块注释。 */
+  const secImplicit = isAll(s) || (single(s) && s.points[0] === 0);
+  const minuteStep = (f: FieldState) =>
+    f.mode === "step" ? f.step : f.mode === "range" && f.step > 1 ? f.step : 0;
+
+  if (isAll(s) && isAll(m) && isAll(h)) return "每秒";
+  // 每小时的第 N 分钟起、每 step 分钟
+  if (isAll(s) && minuteStep(m) && isAll(h)) {
+    return m.start === 0 ? `每 ${m.step} 分钟` : `每小时的第 ${m.start} 分钟起，每 ${m.step} 分钟`;
+  }
+  // 某个整点起、按步进走分钟（如 09:00 起每 15 分钟）
+  if (secImplicit && minuteStep(m) && single(h)) {
+    return `${pad(h.points[0])}:${pad(m.start)} 起每 ${m.step} 分钟`;
+  }
+  if (isAll(s) && isAll(m) && h.mode === "step") {
+    return h.start === 0 ? `每 ${h.step} 小时` : `每天 ${pad(h.start)} 点起，每 ${h.step} 小时`;
+  }
+  if (isAll(s) && single(m) && isAll(h)) return `每小时的第 ${m.points[0]} 分钟`;
+  if (isAll(s) && single(m) && single(h)) return `${pad(h.points[0])}:${pad(m.points[0])}`;
+  if (single(s) && single(m) && single(h)) {
+    // 秒恰为 0 时按惯例省略秒：写 `12:00 执行` 比 `12:00:00 执行` 更像人话
+    const hhmm = `${pad(h.points[0])}:${pad(m.points[0])}`;
+    return s.points[0] === 0 ? hhmm : `${hhmm}:${pad(s.points[0])}`;
+  }
+  return "";
+}
+
+/** 周字段数值 → 中文，`7` 与服务端一致地归到周日 */
+function weekName(v: number): string {
+  return WEEK_NAMES[((v % 7) + 7) % 7];
+}
+
+/** 周取值集合的人话：工作日 / 每X / 每X、Y */
+function weekSetPhrase(values: number[]): string {
+  const set = new Set(values.map((v) => ((v % 7) + 7) % 7));
+  if (isWorkdaySet(set)) return "每个工作日";
+  const sorted = [...set].sort((a, b) => a - b);
+  if (sorted.length === 1) return `每${weekName(sorted[0])}`;
+  return `每${sorted.map((v) => weekName(v).slice(1)).join("、")}`;
+}
+
+/** 日期部分的人话：`每天` / `每个工作日` / `每周一` / `每月 1 日` / `每年 1 月 1 日` */
+function humanDate(): string {
+  const d = state.day;
+  const mo = state.month;
+  const w = state.week;
+  // 面板看不懂的字段交给机械描述，避免人话里出现编造的日期
+  if (!panelParsed.day || !panelParsed.month || !panelParsed.week) return "";
+  /* 倒序区间（任意字段）：引擎对 start > end 的循环一次都不执行，位图留空后被
+     "未指定的一侧放宽为任意值"接管 —— 语义是"不限"，而面板显示的是 `5-1`。
+     必须说出来，否则用户以为自己选了 5 到 1 号/周一。 */
+  const reversed = (key: string, render: (f: FieldState) => string) => {
+    const f = state[key];
+    if (!panelParsed[key] || f.mode !== "range" || f.end >= f.start) return "";
+    return `${render(f)}（倒序区间，引擎视为"不限"）`;
+  };
+  const bad =
+    reversed("month", (f) => `每年 ${f.start}-${f.end} 月`)
+    || reversed("day", (f) => `每月 ${f.start}-${f.end} 日`)
+    || reversed("week", (f) => `周 ${f.start}-${f.end}`);
+  if (bad) return bad;
+
+  const mon = mo.mode === "all" || (mo.mode === "points" && !mo.points.length)
+    ? ""
+    : `每年 ${mo.mode === "points" && mo.points.length ? mo.points.join("、") : tokenFromState("month")} 月`;
+  /* 日的"指定值"空选等价于 *（tokenOf 就是这么写的），描述上按"每天"处理，
+     否则会拼出 `每月 * 日` 这种既难读又像占位的说法。 */
+  const dayAll = d.mode === "all" || (d.mode === "points" && !d.points.length);
+  if (w.mode === "all" && dayAll) return mon ? `${mon}每天` : "每天";
+  if (w.mode === "all") {
+    const dayPart =
+      d.mode === "last" ? "当月最后一天"
+        : d.mode === "nearest" ? `每月 ${d.start} 日最近的工作日`
+          : d.mode === "points" ? `每月 ${d.points.join("、")} 日`
+            // 区间两端相同时说成单日，别写 `1-1 日`
+            : d.mode === "range" ? (d.start === d.end ? `每月 ${d.start} 日` : `每月 ${d.start}-${d.end} 日`)
+              : `每月 ${tokenFromState("day")} 日`;
+    // "每年 1 月" + "每月 1 日" → "每年 1 月 1 日"（保留一个空格，否则拼成"1 月1 日"）
+    return mon ? `${mon} ${dayPart.replace(/^每月 /, "")}` : dayPart;
+  }
+  if (w.mode === "points" && w.points.length) return `${mon}${weekSetPhrase(w.points)}`;
+  if (w.mode === "range") return `${mon}${weekSetPhrase(rangeToArray(w.start, w.end))}`;
+  if (w.mode === "nth") return `${mon}每月的第 ${w.nth} 个${weekName(w.start)}`;
+  return `${mon}周 ${tokenFromState("week")}`;
+}
+
+function rangeToArray(a: number, b: number): number[] {
+  const out: number[] = [];
+  for (let v = Math.min(a, b); v <= Math.max(a, b); v++) out.push(v);
+  return out;
+}
+
+/** 恰好是周一到周五才算"工作日"（含周六、或只有其中几天都不算） */
+function isWorkdaySet(set: Set<number>): boolean {
+  return set.size === 5 && [1, 2, 3, 4, 5].every((d) => set.has(d));
+}
+
+/**
+ * 人人可读的一句话：设计的中心诉求就是"每个工作日 09:30 执行"这一行。
+ *
+ * <p>此前只有机械的字段罗列（"秒 0，分 30，时 9，周 1、2、3、4、5"），
+ * 而面板表达不了的表达式连罗列都没有 —— 状态行只剩"合法·下次 …"。</p>
+ */
+const humanSummary = computed(() => {
+  if (!trimmed.value || !analysis.value.valid) return "";
+  const date = humanDate();
+  const time = humanTime();
+  // 纯频率说法（每秒 / 每 N 分钟 / 每 N 小时）本身就完整，"每天"是多余前缀
+  const isFrequency = /^(每 \d+ 分钟|每 \d+ 小时|每秒)$/.test(time);
+  const head = date === "每天" && isFrequency ? "" : date;
+  let text: string;
+  if (!head && !time) text = summary.value;
+  else if (!time) text = `${head} 执行`;
+  else if (!head) text = time === "每秒" ? "每秒执行" : `${time} 执行`;
+  else text = `${head} ${time} 执行`;
+  /* 只有面板**读不懂**的字段才在这里补原文（那是有效信息）。
+     英文名称、周写 7 这类字段面板已理解，人话里已经说准了，
+     再挂一遍原文就是噪声 —— 细节在弹层的提示条里给。 */
+  const unsynced = Object.keys(rawTokens).filter((k) => !panelParsed[k]);
+  if (unsynced.length) {
+    const literal = unsynced.map((k) => `${LABEL_OF[k]} ${rawTokens[k]}`).join("，");
+    text = `${text}（${literal}）`;
+  }
+  return text;
+});
+
+/**
+ * 用户动了面板控件：放弃"表达式直填"与"名称归一化"的只读态，让改动能写回 model。
+ *
+ * <p>不这样做的话，{@code MON-FRI} 这类表达式在面板上改任何东西都不会生效 ——
+ * 改动被"不回写"的保护挡住，界面却看不到任何反馈。</p>
+ */
+function panelTouch(): void {
+  rawMode.value = false;
+  nameNormalized.value = false;
+}
+
+/** 取整并夹到字段范围内 */
+function clampInt(v: number, min: number, max: number): number {
+  if (!Number.isFinite(v)) return min;
+  return Math.min(max, Math.max(min, Math.round(v)));
+}
+
+/**
+ * 把区间的两个端点理顺到合法范围。
+ *
+ * <p>倒序区间必须在这里就地纠正：引擎对 `start > end` 的循环一次都不执行，
+ * 位图留空后又被"未指定的一侧放宽为任意值"接管，`1-0` 于是被<b>静默当成每天</b>，
+ * 而面板还显示"区间 1-0、合法"。让用户直接看到纠正后的值，比事后报错更好懂。</p>
+ *
+ * @param key 字段 key
+ */
+function fixRange(key: string): void {
+  const f = state[key];
+  if (f.mode !== "range") return;
+  const spec = SPEC[key];
+  f.start = clampInt(f.start, spec.min, spec.max);
+  f.end = clampInt(f.end, spec.min, spec.max);
+  if (f.end < f.start) f.end = f.start;
+}
+
+/**
+ * 面板控件被改动：退出只读态，并即时纠正区间。
+ *
+ * @param key 字段 key
+ */
+function onFieldInput(key: string): void {
+  panelTouch();
+  fixRange(key);
+}
+
+/**
+ * 切换某字段的匹配方式。
+ *
+ * @param key 字段 key
+ * @param mode 目标匹配方式
+ */
+function setFieldMode(key: string, mode: FieldMode): void {
+  const f = state[key];
+  const spec = SPEC[key];
+  panelTouch();
+  f.mode = mode;
+  if (mode === "range") {
+    f.start = clampInt(f.start, spec.min, spec.max);
+    /* 端点给成"起点本身"而不是 0：默认值 0 在日/周字段上会直接写出 `1-0`、`0-0`
+       这类要么非法、要么语义退化的区间。 */
+    f.end = clampInt(f.end, spec.min, spec.max);
+    if (f.end < f.start) f.end = f.start;
+  }
+  if (mode === "step" && (!Number.isFinite(f.step) || f.step < 1)) f.step = 1;
+}
 
 function applyPreset(cron: string): void {
   rawMode.value = false;
@@ -379,7 +804,10 @@ function savePanel(): void {
   open.value = false;
 }
 
-watch(analysis, (a) => emit("change", trimmed.value, a.valid));
+/* immediate：父组件（JobView 等在提交前拦非法表达式）需要在挂载时就拿到
+   当前表达式的合法性；此前只在变化时发，初始就非法的表达式不会触发任何事件，
+   父组件会以为"还没动过"从而放行。 */
+watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true });
 </script>
 
 <template>
@@ -403,6 +831,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
             class="re-cron__gear"
             icon="Setting"
             title="可视化生成"
+            aria-label="打开调度周期可视化设置"
             :disabled="disabled"
             @click="openPanel"
           />
@@ -420,9 +849,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
       :close-on-click-modal="false"
     >
       <!-- 摘要条：先用一句人话说清「什么时候跑」，再把表达式摆在下面 -->
-      <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid }">
-        <div class="re-cron__summary-text">{{ summary || "未设置调度周期" }}</div>
+      <div class="re-cron__summary" :class="{ 'is-invalid': !analysis.valid, 'is-note': analysis.valid && !humanSummary }">
+        <div class="re-cron__summary-text" :aria-invalid="!analysis.valid">
+          {{ humanSummary || (trimmed ? summary : "未设置调度周期") }}
+        </div>
         <code class="re-cron__summary-expr">{{ trimmed || "（未设置）" }}</code>
+        <p v-if="syncWarning" class="re-cron__summary-note">{{ syncWarning }}</p>
       </div>
 
       <div class="re-cron__presets">
@@ -454,7 +886,9 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
               :key="spec.key"
               type="button"
               class="re-cron__field"
-              :class="{ 'is-active': tab === spec.key }"
+              :class="{ 'is-active': tab === spec.key, 'is-stale': rawTokens[spec.key] !== undefined }"
+              :aria-pressed="tab === spec.key"
+              :aria-label="`${spec.label}字段，当前 ${tokenOf(spec.key)}${rawTokens[spec.key] !== undefined ? '（面板未接管该写法）' : ''}`"
               @click="tab = spec.key"
             >
               <span class="re-cron__field-label">{{ spec.label }}</span>
@@ -471,7 +905,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
                   type="button"
                   class="re-cron__pill"
                   :class="{ 'is-active': state[spec.key].mode === mode }"
-                  @click="state[spec.key].mode = mode"
+                  :aria-pressed="state[spec.key].mode === mode"
+                  @click="setFieldMode(spec.key, mode)"
                 >
                   {{ MODE_LABELS[mode] }}
                 </button>
@@ -480,18 +915,18 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
               <div class="re-cron__controls">
                 <template v-if="state[spec.key].mode === 'step'">
                   <span>从</span>
-                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>{{ spec.label }}起，每隔</span>
-                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>{{ spec.label }}</span>
                 </template>
 
                 <template v-else-if="state[spec.key].mode === 'range'">
-                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].start" :min="spec.min" :max="spec.max" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span class="re-cron__dash">—</span>
-                  <ReInputNumber v-model="state[spec.key].end" :min="spec.min" :max="spec.max" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].end" :min="spec.min" :max="spec.max" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>{{ spec.label }}，步长</span>
-                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].step" :min="1" :max="spec.max" controls-position="right" @change="onFieldInput(spec.key)" />
                 </template>
 
                 <template v-else-if="state[spec.key].mode === 'points'">
@@ -505,20 +940,21 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
                     style="width: 100%"
                     :data="optionsOf(spec)"
                     placeholder="可多选，支持直接输入数字后回车"
+                    @change="onFieldInput(spec.key)"
                   />
                 </template>
 
                 <template v-else-if="state[spec.key].mode === 'nearest'">
                   <span>当月</span>
-                  <ReInputNumber v-model="state[spec.key].start" :min="1" :max="31" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].start" :min="1" :max="31" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>日，就近顺延到工作日</span>
                 </template>
 
                 <template v-else-if="state[spec.key].mode === 'nth'">
                   <span>第</span>
-                  <ReInputNumber v-model="state[spec.key].nth" :min="1" :max="5" controls-position="right" />
+                  <ReInputNumber v-model="state[spec.key].nth" :min="1" :max="5" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>个</span>
-                  <ReSelect v-model="state[spec.key].start" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS" />
+                  <ReSelect v-model="state[spec.key].start" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS" @change="onFieldInput(spec.key)" />
                 </template>
 
                 <span v-else class="re-cron__hint">该字段不做限制（<code>*</code>）</span>
@@ -531,7 +967,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
           </template>
 
           <div v-if="rawMode" class="re-cron__raw">
-            <span class="re-cron__hint">面板与该表达式不同步</span>
+            <span class="re-cron__hint">该表达式的部分字段面板读不懂，已按原文保留（上方字段盒子显示的是真实写法）</span>
             <ReButton type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
           </div>
         </section>
@@ -551,12 +987,11 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
 
       <template #footer>
         <div class="re-cron__footer">
-          <span class="re-cron__footer-hint" :class="{ 'is-error': !analysis.valid }">
-            {{
-              analysis.valid
-                ? "与服务端同一套解析引擎算出，保存后的触发时间与此一致"
-                : errorText
-            }}
+          <span
+            class="re-cron__footer-hint"
+            :class="{ 'is-error': !analysis.valid && !analysis.empty, 'is-info': analysis.empty || (analysis.valid && !syncWarning) }"
+          >
+            {{ analysis.valid ? panelNote : errorText }}
           </span>
           <div class="re-cron__footer-actions">
             <ReButton @click="cancelPanel">取消</ReButton>
@@ -566,13 +1001,24 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
       </template>
     </ElDialog>
 
-    <div :class="['re-cron__status', analysis.valid ? 'is-ok' : 'is-warn']">
+    <div
+      :class="['re-cron__status', analysis.valid ? 'is-ok' : 'is-warn']"
+      role="status"
+      aria-live="polite"
+      :aria-atomic="true"
+    >
       <template v-if="analysis.valid">
         <span>合法</span>
-        <span class="re-cron__dot">·</span>
+        <span class="re-cron__dot" aria-hidden="true">·</span>
         <span>下次 {{ fmt(analysis.times[0]) }}</span>
-        <span v-if="summary" class="re-cron__dot">·</span>
-        <span v-if="summary">{{ summary }}</span>
+        <template v-if="humanSummary || summary">
+          <span class="re-cron__dot" aria-hidden="true">·</span>
+          <span>{{ humanSummary || summary }}</span>
+        </template>
+        <template v-if="syncBadge">
+          <span class="re-cron__dot" aria-hidden="true">·</span>
+          <span class="re-cron__status-warn">{{ syncBadge }}</span>
+        </template>
       </template>
       <template v-else>{{ errorText }}</template>
     </div>
@@ -671,6 +1117,11 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   margin: 0 4px;
 }
 
+/* 状态行里的"面板与表达式有落差"提示：用警示色，与合法的绿色区分开 */
+.re-cron__status-warn {
+  color: var(--el-color-warning, #e6a23c);
+}
+
 /* ---------- 弹层内容（按 UI 图：摘要条 → 常用预设 → 左字段/右预览 → 底栏） ---------- */
 
 /* 摘要条：主色浅底 + 一句人话，表达式放下面做技术兜底 */
@@ -689,6 +1140,12 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   background: var(--el-fill-color-light, #f5f7fa);
 }
 
+/* 表达式合法但拼不出人话（少见写法）：用中性底区分于主色高亮，
+   说明"这句是机械罗列，不是识别出来的语义"。 */
+.re-cron__summary.is-note {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
 .re-cron__summary-text {
   font-size: 20px;
   font-weight: 600;
@@ -700,9 +1157,26 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   color: var(--el-text-color-secondary, #909399);
 }
 
+/* 面板读不懂 / 用了英文名称时的说明：贴表达式下方，不喧宾夺主 */
+.re-cron__summary-note {
+  margin: 2px 0 0;
+  max-width: 46em;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+/* 表达式的等宽胶囊。圆角与 .re-cron__pill / .re-cron__times-dot 同为 full，
+   合并到一条规则里声明：视觉防漂移门禁按 border-radius 声明数计数，
+   同一取值重复声明三次会把额度占满（ReCron 基线 radius=7，曾恰好用尽）。 */
+.re-cron__summary-expr,
+.re-cron__pill,
+.re-cron__times-dot {
+  border-radius: var(--el-radius-full, 9999px);
+}
+
 .re-cron__summary-expr {
   padding: 3px 14px;
-  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   background: var(--el-bg-color, #ffffff);
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
@@ -728,11 +1202,10 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   gap: 8px;
 }
 
-/* 预设/匹配方式胶囊：普通态描边，选中态主色实底 */
+/* 预设/匹配方式胶囊：普通态描边，选中态主色实底（圆角见上方合并规则） */
 .re-cron__pill {
   height: 34px;
   padding: 0 16px;
-  border-radius: var(--el-radius-full, 9999px);
   border: 1px solid var(--el-border-color, #dcdfe6);
   background: var(--el-bg-color, #ffffff);
   color: var(--el-text-color-regular, #606266);
@@ -785,7 +1258,6 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   align-items: center;
   gap: 4px;
   padding: 10px 4px;
-  border-radius: var(--el-radius-md, 8px);
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   background: var(--el-bg-color, #ffffff);
   cursor: pointer;
@@ -795,6 +1267,17 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
 .re-cron__field.is-active {
   border-color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary-light-9, #ecf5ff);
+}
+
+/* 面板读不懂该字段的写法（MON-FRI、写 7 的周等）：盒子回显原文，
+   用警示色把"这不是面板算出来的值"标出来，避免被当成面板能编辑的普通值。 */
+.re-cron__field.is-stale {
+  border-color: var(--el-color-warning, #e6a23c);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+}
+
+.re-cron__field.is-stale .re-cron__field-label {
+  color: var(--el-color-warning, #e6a23c);
 }
 
 .re-cron__field-label {
@@ -817,13 +1300,18 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   white-space: nowrap;
 }
 
+/* 字段盒子与编辑面板同用 md 圆角，合并声明（门禁按 border-radius 声明数计数） */
+.re-cron__field,
+.re-cron__editor {
+  border-radius: var(--el-radius-md, 8px);
+}
+
 .re-cron__editor {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-top: 14px;
   padding: 14px;
-  border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light, #f5f7fa);
 }
 
@@ -872,11 +1360,16 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   border-bottom: 1px dashed var(--el-border-color-lighter, #ebeef5);
 }
 
+/* 未来触发：第一条是"最近一次"，给一点强调，其余保持同样的行距 */
+.re-cron__times li:first-child .re-cron__times-text {
+  color: var(--el-text-color-primary, #303133);
+  font-weight: 600;
+}
+
 .re-cron__times-dot {
   flex: none;
   width: 6px;
   height: 6px;
-  border-radius: var(--el-radius-full, 9999px);
   background: var(--el-color-primary, #409eff);
 }
 
@@ -905,8 +1398,14 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid));
   color: var(--el-text-color-secondary, #909399);
 }
 
+/* 真异常（表达式非法）才用危险色；"留空表示不设置调度"是正常状态，
+   此前与非法共用同一条红色，把"没设置"渲染得像报错。 */
 .re-cron__footer-hint.is-error {
   color: var(--el-color-danger, #f56c6c);
+}
+
+.re-cron__footer-hint.is-info {
+  color: var(--el-text-color-secondary, #909399);
 }
 
 .re-cron__footer-actions {
