@@ -7,8 +7,8 @@
  * 后端只允许读文本类文件（{@code readFile} 对非文本抛 INVALID_PARAM），
  * 所以这里不需要处理 PDF/DOCX 的二进制渲染。</p>
  *
- * <p><b>风格</b>：弹框外壳用应用标准 {@code LDialog}；标题行 / 路径 / 字数等「外壳」
- * 全部走 Tailwind 工具类；颜色走 koi 令牌 {@code --rm-*}。</p>
+ * <p><b>风格</b>：弹框外壳用仓库标准 {@code ReDialog}（koi 变体自带标题栏拖拽、全屏/最小化）；
+ * 标题行 / 路径 / 字数等「外壳」全部走 Tailwind 工具类；颜色走 koi 令牌 {@code --rm-*}。</p>
  *
  * <p><b>为什么仍保留一段 :deep() 样式</b>：markdown 正文的排版（h1-p-ul-code-blockquote-table）
  * 是<b>内容渲染</b>而非 UI 外壳，且全仓没有可复用的全局 markdown 样式类
@@ -18,7 +18,7 @@ import { computed, ref, watch } from 'vue'
 import { marked } from 'marked'
 import type { KBFile } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReTag from '@/components/re/ReTag.vue'
 import ReButton from '@/components/re/ReButton.vue'
 
@@ -114,19 +114,21 @@ async function load() {
   }
 }
 
-/** 关闭弹框并通知父组件 */
+/**
+ * 关闭弹框。ReDialog（koi）关闭时只更新 v-model、不发 close 事件，
+ * 这里统一由 visible 的 watcher 通知父组件，避免「点关闭按钮」与「点 X」两条路发两次。
+ */
 function onClose() {
   visible.value = false
-  emit('close')
 }
 
-// 打开且目标文件变化时重新拉取
-watch(visible, (v) => { if (v) load() })
+// 打开时拉取原文；关闭时通知父组件
+watch(visible, (v) => { if (v) { load() } else { emit('close') } })
 watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) load() })
 </script>
 
 <template>
-  <LDialog v-model="visible" :title="fileName" width="820px" append-to-body @close="onClose">
+  <ReDialog v-model="visible" :title="fileName" :width="820" :close-on-click-modal="false">
     <div v-loading="loading" class="max-h-[68vh] overflow-auto">
       <el-alert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
       <template v-else>
@@ -143,7 +145,7 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
       <ReButton @click="onClose">关闭</ReButton>
       <ReButton type="primary" @click="load">刷新</ReButton>
     </template>
-  </LDialog>
+  </ReDialog>
 </template>
 
 <style scoped>
