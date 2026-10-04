@@ -1067,15 +1067,43 @@ async function forkFromHere(message: any) {
   }
 }
 
+/**
+ * 复制消息内容到剪贴板。
+ *
+ * 优先用异步剪贴板 API；它在「文档未聚焦 / 非安全上下文 / 无用户手势」时会抛
+ * NotAllowedError（实测：用自动化工具打开的标签页不在前台时就是这样）。
+ * 此时回落到 textarea + document.execCommand('copy')，让复制在受限环境下也能成功，
+ * 而不是直接甩给用户一个「复制失败」。
+ *
+ * @param message 被点击的消息
+ */
 async function copyMessage(message: any) {
   try {
     const turns = getCurrentTurns(message)
     const currentContent = turns[turns.length - 1]
 
-    if (currentContent.content) {
-      await navigator.clipboard.writeText(currentContent.content);
-      toast.success(t('common.copySuccess'));
+    if (!currentContent.content) {
+      return
     }
+    const text = currentContent.content
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (clipboardError) {
+      // 回落：临时 textarea + execCommand
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.top = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      const copied = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (!copied) {
+        throw clipboardError
+      }
+    }
+    toast.success(t('common.copySuccess'));
   } catch (error) {
     console.error("复制消息失败:", error);
     toast.error(t('common.copyFailed'));
