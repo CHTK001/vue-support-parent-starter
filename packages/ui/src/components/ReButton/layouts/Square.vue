@@ -87,7 +87,9 @@ const iconName = computed<string>(() => (typeof props.icon === "string" ? props.
   justify-content: center;
   margin: 0 4px;
   border: 1px solid var(--el-border-color, #dcdfe6);
-  border-radius: 10px;
+  /* 圆角统一用 Element 控件档（= 新增学生等 el-button 的 --el-border-radius-base，
+     koi 里映射到 --el-radius-sm = 6px）。原先硬编码 10px，与 el-button 不一致。 */
+  border-radius: var(--el-border-radius-base, 6px);
   background: var(--el-bg-color, #fff);
   color: var(--el-text-color-secondary, #909399);
   cursor: pointer;

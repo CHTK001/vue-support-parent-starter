@@ -765,6 +765,35 @@ export const eduaiApi = {
       .post("/v2/edu/dimension/students/save")
       .data(data as unknown as Record<string, unknown>)
       .then<number>(unwrap),
+  /**
+   * 上传学生头像，返回相对路径供 saveStudent 绑定到 studentAvatar。
+   *
+   * <p>单独一条上传通道（不复用知识点附件上传）：两者存储目录与生命周期不同，
+   * 混用会让「换学生头像」误动到知识点附件。</p>
+   */
+  uploadStudentAvatar: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return http()
+      .post("/v2/edu/student-avatar/upload")
+      .data(form)
+      .then<{ filePath: string }>(unwrap);
+  },
+  /**
+   * 头像直链地址（后端已 whitelist，`<img>` 可直接带 path 访问）。
+   *
+   * <p>相对路径要拼成预览地址：库里存的是 `data/student-avatars` 下的相对路径，
+   * 不是可直接用的 URL。已是 http(s)/data: 的旧值原样返回，兼容历史数据。</p>
+   */
+  studentAvatarUrl: (path?: string) => {
+    if (!path) {
+      return "";
+    }
+    if (/^(https?:)?\/\//.test(path) || path.startsWith("data:")) {
+      return path;
+    }
+    return `/v2/edu/student-avatar/file?path=${encodeURIComponent(path)}`;
+  },
   deleteStudent: (id: number) =>
     http()
       .delete(`/v2/edu/dimension/students/${id}`)
