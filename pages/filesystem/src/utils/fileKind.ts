@@ -59,6 +59,10 @@ const CODE_EXTS = [
  */
 const OFFICE_EXTS = [
   "xlsx", "xls", "docx", "doc", "pptx", "ppt",
+  // wps：WPS 文字文档。归到 office 只是**语义归类**（isClientRenderable 不看本清单，
+  // 它只认 EXTENSION_TO_RENDERER / LEGACY_BINARY_EXTS），实际走「服务端转 PDF」通道
+  // —— 见 FileStorageManage.vue 的 needsPdfConvert。
+  "wps",
   "odt", "ods", "odp", "vsd", "vsdx", "vssx", "vstx", "vdx",
   "rtf", "epub", "xmind",
 ];

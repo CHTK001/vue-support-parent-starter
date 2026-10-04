@@ -2360,7 +2360,15 @@ function onImageSaved(): void {
  */
 function needsPdfConvert(name: string): boolean {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
-  return ["odt", "ott", "ods", "ots", "odp", "otp", "rtf"].includes(ext);
+  // wps：WPS 文字。**后端 AsposeWord 的源格式里已经有 wps**（实测把一份 OLE2 文档
+  // 改名成 .wps 走 format=pdf 能出真 PDF 19745 B），故接线。转不动时会**优雅降级**：
+  // convertToPdf 返回 null -> 带 convert=unavailable 继续走原通道 -> 落到提示卡
+  // （提示卡现在会显示「WPS Office」），不会崩也不会吐垃圾。
+  // 注意：这证明的是**路由 + 转换器链路**通，真 WPS 格式的保真度仍需真样本验证。
+  //
+  // et / dps 不在此列：三个 Aspose 转换器的源格式里都没有它们，实测接线也只会
+  // 得到 convert=unavailable 并退回提示卡，属于白试一次，故不接。
+  return ["odt", "ott", "ods", "ots", "odp", "otp", "rtf", "wps"].includes(ext);
 }
 
 /**
