@@ -468,7 +468,7 @@ const panelNote = computed(() => {
     return `${emptyPointsLabels.value.join("、")}的"指定值"尚未选择任何值，当前等同不限`;
   }
   if (rawMode.value) {
-    return `面板无法完整表达该表达式（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），已按原文保留；改动面板会以面板为准`;
+    return `面板无法完整表达该表达式（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），已按原文保留；改动面板只会写回面板能表达的部分，读不懂的字段仍保留原文`;
   }
   if (nameNormalized.value) {
     return `表达式用了英文名称（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），面板按数字理解、不会改写你的写法`;
@@ -1124,7 +1124,10 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 /* ---------- 弹层内容（按 UI 图：摘要条 → 常用预设 → 左字段/右预览 → 底栏） ---------- */
 
-/* 摘要条：主色浅底 + 一句人话，表达式放下面做技术兜底 */
+/* 摘要条：主色浅底 + 一句人话，表达式放下面做技术兜底。
+   底色用 --el-color-primary-light-9：已实测它在本仓的 Element Plus 里**确实存在
+   且随主题变**（亮 #ecf5ff / 暗 #18222b），不是硬编码兜底 —— 不要因为"名字像兜底值"
+   就改成 color-mix，两者实测逐值相同。 */
 .re-cron__summary {
   display: flex;
   flex-direction: column;
@@ -1270,7 +1273,8 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 }
 
 /* 面板读不懂该字段的写法（MON-FRI、写 7 的周等）：盒子回显原文，
-   用警示色把"这不是面板算出来的值"标出来，避免被当成面板能编辑的普通值。 */
+   用警示色把"这不是面板算出来的值"标出来，避免被当成面板能编辑的普通值。
+   底色用 --el-color-warning-light-9：实测随主题变（亮 #fdf6ec / 暗 #292218）。 */
 .re-cron__field.is-stale {
   border-color: var(--el-color-warning, #e6a23c);
   background: var(--el-color-warning-light-9, #fdf6ec);
