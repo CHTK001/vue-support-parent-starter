@@ -176,6 +176,8 @@ const route = useRoute();
  */
 const EMBEDDED: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   "idiom-game": defineAsyncComponent(() => import("../IdiomGameView.vue")),
+  // 我的试卷：老师布置给本班的试卷，按登录态定位班级（/v2/edu/paper-assign/my-class）
+  "my-papers": defineAsyncComponent(() => import("./StudentPapersView.vue")),
   // 我的答题/阅卷记录与错题本：都用后端 /v2/edu/student/* 的「本人视角」接口
   "my-records": defineAsyncComponent(() => import("./StudentRecordsView.vue")),
   wrongbook: defineAsyncComponent(() => import("./StudentWrongbookView.vue")),
@@ -244,6 +246,7 @@ const remoteModules = ref<PortalModule[] | null>(null);
  * {@code modules.ts} 的默认目录里（后台一旦配置了模块，默认目录就不会被采用）。</p>
  */
 const STUDENT_FIXED_MODULES: PortalModule[] = [
+  { moduleCode: "my-papers", title: "我的试卷", subtitle: "老师布置·班级共享", icon: "📄", color: "#6366f1", colorTo: "#818cf8" },
   { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
   { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];

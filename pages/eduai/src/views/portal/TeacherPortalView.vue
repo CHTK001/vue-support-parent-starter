@@ -160,15 +160,49 @@
                 <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" min-width="240">
+            <el-table-column label="操作" min-width="300">
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
+                <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
+                     未发布的卷点布置会先提示发布（学生端只显示已发布的卷）。 -->
+                <el-button link type="success" @click.stop="openAssign(row)">布置给班级</el-button>
                 <el-button v-if="paperStatusCode(row) === 0" link type="success" @click.stop="publishPaper(row)">发布</el-button>
                 <el-button v-else-if="paperStatusCode(row) === 1" link type="warning" @click.stop="unpublishPaper(row)">下架</el-button>
                 <el-button v-if="paperStatusCode(row) !== 2" link @click.stop="archivePaper(row)">归档</el-button>
               </template>
             </el-table-column>
           </el-table>
+
+          <!-- 已布置记录：谁把哪张卷布置到了哪个班，可撤回（撤回后学生端立即看不到） -->
+          <div class="tp-assign">
+            <div class="tp-assign__head">
+              <h3 class="tp-assign__title">我布置的试卷</h3>
+              <el-button link type="primary" :loading="assignLoading" @click="loadAssigns">刷新</el-button>
+            </div>
+            <el-table v-loading="assignLoading" :data="assigns" size="small" border class="tp-table">
+              <el-table-column prop="paperName" label="试卷" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="className" label="班级" width="150" show-overflow-tooltip />
+              <el-table-column label="学段" width="90">
+                <template #default="{ row }">{{ gradeLevelLabel(row.paperGradeLevel) }}</template>
+              </el-table-column>
+              <el-table-column label="状态" width="90">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.assignStatus === 1 ? 'success' : 'info'">
+                    {{ row.assignStatus === 1 ? "已布置" : "已撤回" }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="assignTime" label="布置时间" width="180" />
+              <el-table-column label="操作" width="100">
+                <template #default="{ row }">
+                  <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
+                </template>
+              </el-table-column>
+              <template #empty>
+                <span class="tp-empty-text">还没有布置过试卷 —— 在上表点「布置给班级」即可</span>
+              </template>
+            </el-table>
+          </div>
         </el-tab-pane>
 
         <!-- ==================== 阅卷 ==================== -->
@@ -351,6 +385,35 @@
         <el-button type="primary" :loading="saving" @click="doGenerate">生成</el-button>
       </template>
     </el-dialog>
+
+    <!-- 布置试卷到班级：只列出「我名下的班级」（后端同样按登录态校验，前端只是提前拦） -->
+    <el-dialog v-model="assignDialog.visible" title="布置试卷到班级" width="460px">
+      <el-form label-width="72px">
+        <el-form-item label="试卷">
+          <span class="tp-dialog-static">{{ assignDialog.paperName || "—" }}</span>
+        </el-form-item>
+        <el-form-item label="班级" required>
+          <el-select v-model="assignDialog.classId" placeholder="选择我的班级" style="width: 100%">
+            <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="assignDialog.remark" maxlength="200" show-word-limit placeholder="如：本周五前完成（可不填）" />
+        </el-form-item>
+        <el-alert
+          v-if="!classes.length"
+          type="warning"
+          :closable="false"
+          title="你还没有班级，请先在「我的班级」新建一个"
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="assignDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="assignSaving" :disabled="!assignDialog.classId" @click="submitAssign">
+          布置
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -376,6 +439,7 @@ import type {
   EduStudent,
   MarkingResultVO,
   Paper,
+  PaperAssignVO,
   TeacherMarkingTask,
   TeacherOverview,
 } from "../../api/types";
@@ -690,6 +754,104 @@ async function loadPapers() {
   }
 }
 
+/* ==================== 班级试卷布置 ==================== */
+
+/** 我布置过的试卷（含已撤回的历史行，方便回看） */
+const assigns = ref<PaperAssignVO[]>([]);
+const assignLoading = ref(false);
+const assignSaving = ref(false);
+const assignDialog = reactive<{
+  visible: boolean;
+  paperId: number | null;
+  paperName: string;
+  classId: number | null;
+  remark: string;
+}>({
+  visible: false,
+  paperId: null,
+  paperName: "",
+  classId: null,
+  remark: "",
+});
+
+/**
+ * 打开「布置到班级」对话框。
+ *
+ * <p>未发布的试卷先提示发布：后端的学生端查询只返回「已布置 + 试卷已发布」，
+ * 现在布置了学生也看不到，不如当场说清楚，省得以为功能没生效。</p>
+ *
+ * @param row 试卷行
+ */
+function openAssign(row: Paper) {
+  if (paperStatusCode(row) !== 1) {
+    ElMessage.warning("请先把试卷「发布」，再布置给班级（未发布的试卷学生端看不到）");
+    return;
+  }
+  assignDialog.paperId = row.paperId;
+  assignDialog.paperName = row.paperName;
+  assignDialog.classId = classes.value[0]?.classId ?? null;
+  assignDialog.remark = "";
+  assignDialog.visible = true;
+}
+
+/** 提交布置：同一班同一卷重复布置由后端「复活」已有行，不会堆出重复记录 */
+async function submitAssign() {
+  if (!assignDialog.paperId || !assignDialog.classId) {
+    return ElMessage.warning("请选择班级");
+  }
+  assignSaving.value = true;
+  try {
+    await eduaiApi.assignPaperToClass({
+      paperId: assignDialog.paperId,
+      classId: assignDialog.classId,
+      remark: assignDialog.remark.trim() || undefined,
+    });
+    ElMessage.success("已布置，班内学生现在能在学生端看到这份试卷");
+    assignDialog.visible = false;
+    await loadAssigns();
+  } catch (e) {
+    ElMessage.error(`布置失败：${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    assignSaving.value = false;
+  }
+}
+
+/** 我布置过的试卷 */
+async function loadAssigns() {
+  assignLoading.value = true;
+  try {
+    assigns.value = (await eduaiApi.myPaperAssigns()) || [];
+  } catch (e) {
+    ElMessage.error(`布置记录加载失败：${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    assignLoading.value = false;
+  }
+}
+
+/**
+ * 撤回布置：软删（后端把状态置 0），学生端立即看不到。
+ *
+ * @param row 布置记录
+ */
+async function revokeAssign(row: PaperAssignVO) {
+  try {
+    await ElMessageBox.confirm(
+      `撤回后「${row.className || "该班级"}」的学生将看不到《${row.paperName}》，确定吗？`,
+      "撤回布置",
+      { type: "warning" },
+    );
+  } catch {
+    return; // 用户取消
+  }
+  try {
+    await eduaiApi.revokePaperAssign(row.assignId);
+    ElMessage.success("已撤回");
+    await loadAssigns();
+  } catch (e) {
+    ElMessage.error(`撤回失败：${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 /** AI 能力探测：不可用则禁用入口并展示原因 */
 async function loadAiCapability() {
   try {
@@ -881,6 +1043,7 @@ const taskStatusType = (n?: number) => {
 onMounted(() => {
   void load();
   void loadPapers();
+  void loadAssigns();
   void loadAiCapability();
   void loadMarkTasks();
 });
@@ -1041,6 +1204,38 @@ onMounted(() => {
   text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* 已布置记录区：与上方试卷表拉开距离，标题行右侧放「刷新」 */
+.tp-assign {
+  margin-top: 22px;
+}
+
+.tp-assign__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tp-assign__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+/* 表格空态文案（el-table 的 #empty 插槽里） */
+.tp-empty-text {
+  display: inline-block;
+  padding: 18px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 对话框里只读展示的试卷名 */
+.tp-dialog-static {
+  color: var(--el-text-color-regular);
 }
 
 /* ----- 工具条 ----- */

@@ -161,6 +161,26 @@ export interface PaperComposePayload {
 }
 
 /** 手动组卷：加入试卷的题目条目（POST /v2/edu/paper/{paperId}/questions） */
+/** 班级试卷布置（布置记录 + 试卷摘要），老师端与学生端共用同一视图 */
+export interface PaperAssignVO {
+  assignId: number;
+  paperId: number;
+  paperNo?: string | null;
+  paperName?: string | null;
+  paperSubject?: string | null;
+  paperGradeLevel?: string | null;
+  paperGrade?: string | null;
+  paperTotalScore?: number | null;
+  paperQuestionCount?: number | null;
+  paperDuration?: number | null;
+  classId: number;
+  className?: string | null;
+  teacherAccount?: string | null;
+  assignStatus?: number | null;
+  assignRemark?: string | null;
+  assignTime?: string | null;
+}
+
 export interface PaperQuestionAddItem {
   /** 题目标识 */
   questionId: number;

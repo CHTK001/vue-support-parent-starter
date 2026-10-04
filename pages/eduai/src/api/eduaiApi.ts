@@ -66,6 +66,7 @@ import type {
   DimensionDropdown,
   TeacherMarkingTask,
   StudentWrongQuestion,
+  PaperAssignVO,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -862,6 +863,29 @@ export const eduaiApi = {
       .get("/v2/edu/teacher/marking/tasks")
       .query({ limit })
       .then<TeacherMarkingTask[]>(unwrap),
+
+  // ==================== 班级试卷布置（老师给班级组卷 -> 班内学生可见） ====================
+  /** 老师把一张试卷布置给自己的某个班级（重复布置同一班同一卷走「复活」，不重复建行） */
+  assignPaperToClass: (data: { paperId: number; classId: number; remark?: string }) =>
+    http()
+      .post("/v2/edu/paper-assign")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 我（老师）布置过的试卷 */
+  myPaperAssigns: () =>
+    http()
+      .get("/v2/edu/paper-assign/mine")
+      .then<PaperAssignVO[]>(unwrap),
+  /** 撤回布置（软删，学生端立即看不到） */
+  revokePaperAssign: (assignId: number) =>
+    http()
+      .delete(`/v2/edu/paper-assign/${assignId}`)
+      .then<boolean>(unwrap),
+  /** 学生：我所在班级收到的试卷（按登录态定位自己的班级，不传班级 ID） */
+  myClassPapers: () =>
+    http()
+      .get("/v2/edu/paper-assign/my-class")
+      .then<PaperAssignVO[]>(unwrap),
 
   /**
    * 指定学段的模块清单（学生端首页用）。

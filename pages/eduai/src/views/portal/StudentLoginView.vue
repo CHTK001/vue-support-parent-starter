@@ -142,7 +142,7 @@
  * <p>按需求本页**不提供第三方登录**（微信 / QQ / 支付宝均不实现），
  * 因此设计稿里的「其他登录方式」整块被移除。</p>
  */
-import { reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import mascotBook from "../../assets/mascot-book.png";
@@ -172,6 +172,82 @@ function looksLikeStudent(account: string): boolean {
 }
 
 /**
+ * 把任意「抛出物」转成可展示的文案。
+ *
+ * <p>不能直接 `String(e)`：抛出物不保证是 Error —— 实测本页登录失败时它在浏览器里
+ * 被渲染成 `[object Object]`（红字），而 `String({msg: "..."})` 恰好就是那串字符，
+ * 真正的后端提示（如「密码错误，还剩 N 次尝试机会」）被整段吞掉。</p>
+ *
+ * <p>兜底顺序：Error.message → 字符串 → {msg|message|error} → JSON → 统一文案，
+ * 保证任何形状都能给出**人话**，绝不把对象本身打印给用户。</p>
+ *
+ * @param e 捕获到的任意异常
+ * @returns 可直接渲染的中文文案
+ */
+function errorText(e: unknown): string {
+  if (e instanceof Error && e.message) {
+    return e.message;
+  }
+  if (typeof e === "string" && e.trim()) {
+    return e;
+  }
+  const box = e as { msg?: unknown; message?: unknown; error?: unknown } | null | undefined;
+  for (const candidate of [box?.msg, box?.message, box?.error]) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate;
+    }
+  }
+  try {
+    const json = JSON.stringify(e);
+    if (json && json !== "{}" && json !== "null") {
+      return json;
+    }
+  } catch {
+    // 循环引用等无法序列化的情况：落到统一兜底文案
+  }
+  return "登录失败，请稍后重试";
+}
+
+/**
+ * 「记住我」在本地保存的账号键。
+ *
+ * <p>**只存账号，不存口令**：这类页面常出现在机房 / 共用电脑上，
+ * 把口令落进 localStorage 等于把它交给下一个使用者。</p>
+ */
+const REMEMBER_KEY = "eduai.login.account";
+
+/**
+ * 读取上次记住的登录账号。
+ *
+ * @returns 记住的账号；未记住或存储不可用时返回空串
+ */
+function readRememberedAccount(): string {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) ?? "";
+  } catch {
+    // 隐身模式 / 存储被禁用：不影响登录，按「没记住」处理
+    return "";
+  }
+}
+
+/**
+ * 按「记住我」的勾选状态写入或清除账号。
+ *
+ * @param account 本次登录使用的账号
+ */
+function writeRememberedAccount(account: string): void {
+  try {
+    if (form.remember && account) {
+      localStorage.setItem(REMEMBER_KEY, account);
+    } else {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+  } catch {
+    // 写不进去也不该中断登录流程
+  }
+}
+
+/**
  * 统一登录：学生与老师共用本页，登录后按身份进入各自首页。
  */
 async function submit() {
@@ -186,6 +262,8 @@ async function submit() {
     passwordError.value = "请输入密码";
     return;
   }
+  // 只要提交就按勾选状态记账号：失败重试时不用重敲，这也正是「记住我」的用处
+  writeRememberedAccount(account);
   loading.value = true;
   try {
     const { eduaiApi } = await import("../../api/eduaiApi");
@@ -200,7 +278,7 @@ async function submit() {
     ElMessage.success("登录成功");
     await router.push(toStudent ? "/edu/student" : "/edu/teacher");
   } catch (e) {
-    passwordError.value = e instanceof Error ? e.message : String(e);
+    passwordError.value = errorText(e);
   } finally {
     loading.value = false;
   }
@@ -215,6 +293,14 @@ function onForget() {
 function onRegister() {
   ElMessage.info("学生账号由学校统一开通，无需自行注册");
 }
+
+// 进入页面就把上次记住的账号填回来（只回填账号，绝不回填口令）
+onMounted(() => {
+  const saved = readRememberedAccount();
+  if (saved) {
+    form.account = saved;
+  }
+});
 </script>
 
 <style scoped>

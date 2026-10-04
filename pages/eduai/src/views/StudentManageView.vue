@@ -62,7 +62,23 @@
           <el-table v-loading="loading" :data="filteredStudents" stripe row-key="studentId" @row-click="openStudent">
             <template #empty><el-empty :image-size="80" description="暂无学生，点击「新增学生」创建" /></template>
             <el-table-column prop="studentId" label="ID" width="70" />
-            <el-table-column prop="studentNo" label="学号" width="150" show-overflow-tooltip />
+            <el-table-column label="学号" width="190" show-overflow-tooltip>
+              <template #default="{ row }">
+                <!-- 学号是发给家长的登录凭据，最常被「念一遍 / 贴进群里」：
+                     给一个一键复制，省掉手工框选。按钮必须 .stop ——
+                     该表格绑了 @row-click="openStudent"，不挡冒泡会顺带打开编辑弹窗。 -->
+                <span class="no-cell">
+                  <span class="no-cell__text">{{ row.studentNo || "—" }}</span>
+                  <ReButton
+                    v-if="row.studentNo"
+                    layout="square"
+                    :icon="CopyDocument"
+                    tip="复制学号"
+                    @click.stop="copyStudentNo(row.studentNo)"
+                  />
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column prop="studentName" label="姓名" width="120" />
             <el-table-column label="学段" width="90">
               <template #default="{ row }">{{ levelText(row.studentGradeLevel) }}</template>
@@ -484,7 +500,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
-  Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
+  Calendar, CircleCheck, Collection, CopyDocument, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 
@@ -724,6 +740,41 @@ function openStudent(row?: EduStudent) {
   // 每次打开都从「基本资料」开始，避免上一条停在「修改密码」页签造成误操作。
   stuTab.value = "basic";
   stuVisible.value = true;
+}
+
+/**
+ * 复制学号。
+ *
+ * <p>不能只用 navigator.clipboard：它要求安全上下文，而本系统部署在
+ * http://192.168.50.198 这种内网明文地址上，浏览器里 navigator.clipboard 直接是
+ * undefined（dev 的 127.0.0.1 反而有），所以必须带 textarea + execCommand 的降级分支，
+ * 否则会出现「本机好用、上线点不动」这种只在生产暴露的假绿。</p>
+ *
+ * @param studentNo 学号
+ */
+async function copyStudentNo(studentNo?: string): Promise<void> {
+  const text = (studentNo ?? "").trim();
+  if (!text) {
+    ElMessage.warning("该学生还没有学号");
+    return;
+  }
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      document.body.removeChild(area);
+    }
+    ElMessage.success(`已复制学号 ${text}`);
+  } catch {
+    ElMessage.error("复制失败，请手动选择后复制");
+  }
 }
 
 /**
@@ -1239,6 +1290,21 @@ onMounted(() => {
 /* 空值占位：与「—」同类语义，但中文更直白 */
 .cell-muted {
   color: var(--el-text-color-placeholder);
+}
+/* 学号单元格：号码 + 复制按钮同排，号码过长时省略而不是把按钮挤出去 */
+.no-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.no-cell__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .tag-pill {
   display: inline-block;
