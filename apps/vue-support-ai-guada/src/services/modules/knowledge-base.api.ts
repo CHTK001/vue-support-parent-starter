@@ -28,7 +28,6 @@ export interface KnowledgeBaseApi {
   createKnowledgeBase(data: {
     name: string;
     description?: string;
-    embeddingModelId: string;
     chunkMaxSize?: number;
     chunkOverlapSize?: number;
     chunkMinSize?: number;
@@ -242,7 +241,6 @@ function toKnowledgeBase(raw: any): KnowledgeBase {
     name: String(raw?.name ?? ""),
     description: raw?.description == null ? null : String(raw.description),
     userId: String(raw?.user_id ?? ""),
-    embeddingModelId: "",
     // 分片参数以前硬编码成 0，导致编辑弹窗永远回填 0，用户改的值存不进去。
     // 后端补齐了这三个字段，这里如实读取；老数据缺失时回落到与后端一致的默认值。
     chunkMaxSize: toNumber(raw?.chunk_max_size, 1000) || 1000,

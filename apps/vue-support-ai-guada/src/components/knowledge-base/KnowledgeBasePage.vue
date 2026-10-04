@@ -131,10 +131,10 @@
                     <!-- 小卡的次要信息行：更新时间 / 归属，用真实字段，不编造 -->
                     <div v-if="idx !== 0" class="kb-card__meta">
                       <span class="kb-card__meta-item">
-                        <el-icon><Clock /></el-icon>{{ fmtTime(kb.updateTime || kb.createTime) }}
+                        <el-icon><Clock /></el-icon>{{ fmtTime(kb.updatedAt || kb.createdAt) }}
                       </span>
                       <span class="kb-card__meta-item">
-                        <el-icon><Calendar /></el-icon>{{ fmtTime(kb.createTime) }}
+                        <el-icon><Calendar /></el-icon>{{ fmtTime(kb.createdAt) }}
                       </span>
                     </div>
 
@@ -672,19 +672,8 @@
         </div>
       </section>
 
-      <!-- 检索模型 -->
-      <section class="kb-sec">
-        <div class="kb-field">
-          <label class="kb-label">{{ t('knowledge.page.embeddingModel') }}<i class="kb-req">*</i></label>
-          <el-select v-model="dialogForm.embeddingModelId" :placeholder="t('knowledge.page.embeddingModelPlaceholder')" class="kb-select" filterable>
-            <template v-for="provider in embeddingProviders" :key="provider.id">
-              <el-option-group :label="provider.name">
-                <el-option v-for="model in provider.models" :key="model.id" :label="model.modelName" :value="model.id" />
-              </el-option-group>
-            </template>
-          </el-select>
-        </div>
-      </section>
+      <!-- 嵌入模型：已改为「设置中心 → 默认模型」的全局配置，后端 sys_ai_knowledge_base 无该列，
+           故此处不再放「向量模型」选择器（放了也不生效、还会标成必填误导用户）。 -->
 
       <!-- 分块配置 -->
       <section class="kb-sec">
@@ -794,10 +783,8 @@ const showFileChunksModal = ref(false)  // 文件分块查看弹窗
 const showUploadTaskModal = ref(false)  // 上传任务弹窗
 const selectedFile = ref<KBFile | null>(null)  // 选中的文件
 const activeTab = ref<'overview' | 'files' | 'search' | 'graph' | 'ask'>('files')  // 当前激活的 Tab: 'files' / 'search' / 'graph'
-const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详情
+const viewMode = ref<'list' | 'detail' | 'list-legacy'>('list')  // 视图模式：列表或详情（list-legacy 为保留的旧列表分支）
 const searchKeyword = ref('')  // 知识库搜索关键词
-const embeddingModels = ref<any[]>([]) // 嵌入模型列表
-const embeddingProviders = ref<any[]>([]) // 嵌入模型供应商列表
 
 // ---- 关系图谱（Tab=graph）状态 ----
 const graphLoading = ref(false)        // 图谱加载中
@@ -1532,7 +1519,6 @@ const dialogForm = reactive({
   id: '',
   name: '',
   description: '',
-  embeddingModelId: '',
   chunkMaxSize: 1000,
   chunkOverlapSize: 100,
   chunkMinSize: 50,
@@ -1580,40 +1566,6 @@ const filteredKnowledgeBases = computed(() => {
 })
 
 // ========== Methods ==========
-
-/**
- * 加载嵌入模型列表
- */
-/** 判断模型是否为向量（embedding）模型：兼容顶层 modelType 与 capabilities[].task 两种口径 */
-const isEmbeddingModel = (m: any) =>
-  m?.modelType === 'embedding' ||
-  (Array.isArray(m?.capabilities) && m.capabilities.some((c: any) => c.task === 'embedding'))
-
-const loadEmbeddingModels = async () => {
-  try {
-    const response = await apiService.fetchModels()
-
-    // 只保留 embedding 类型的模型；/api/providers 原始模型用 provider_id/model 字段，需归一化出 id/modelName
-    embeddingModels.value = []
-    embeddingProviders.value = (response.items || [])
-      .map((provider: any) => {
-        const pid = provider.provider_id || provider.id
-        const models = (provider.models || [])
-          .filter(isEmbeddingModel)
-          .map((m: any) => {
-            const mid = m.model || m.id || m.name
-            return {
-              id: `${pid}:${mid}`,
-              modelName: m.modelName || m.alias || mid
-            }
-          })
-        return { id: pid, name: provider.name, models }
-      })
-      .filter((provider: any) => provider.models.length > 0)
-  } catch (error: any) {
-    console.error('获取嵌入模型列表失败:', error)
-  }
-}
 
 /**
  * 选择知识库并加载文件列表
@@ -1664,7 +1616,6 @@ function handleOpenCreate() {
   dialogForm.id = ''
   dialogForm.name = ''
   dialogForm.description = ''
-  dialogForm.embeddingModelId = ''
   dialogForm.chunkMaxSize = 1000
   dialogForm.chunkOverlapSize = 100
   dialogForm.chunkMinSize = 50
@@ -1687,9 +1638,8 @@ async function handleKbSave() {
     return
   }
 
-  // 不再强制要求 embeddingModelId：嵌入模型现在是「设置中心 → 默认模型」的全局配置，
-  // 后端 sys_ai_knowledge_base 也没有该列（toKnowledgeBase 始终回填空串）。
-  // 保留这个校验只会让「主页面空白创建」这条路永远建不了库。
+  // 嵌入模型为「设置中心 → 默认模型」的全局配置，后端 sys_ai_knowledge_base 无该列，
+  // 因此保存不涉及 embeddingModelId；此前的「向量模型」选择器已移除，避免误导。
 
   try {
     if (dialogMode.value === 'create') {
@@ -1697,7 +1647,6 @@ async function handleKbSave() {
       const newKb = await store.createKnowledgeBase({
         name: dialogForm.name,
         description: dialogForm.description || undefined,
-        embeddingModelId: dialogForm.embeddingModelId,
         chunkMaxSize: dialogForm.chunkMaxSize,
         chunkOverlapSize: dialogForm.chunkOverlapSize,
         chunkMinSize: dialogForm.chunkMinSize,
@@ -1720,23 +1669,9 @@ async function handleKbSave() {
       }
     } else {
       // 更新
-      // 检测向量模型是否变更
-      const currentKb = store.knowledgeBases.find(kb => kb.id === dialogForm.id)
-      const modelChanged = currentKb && dialogForm.embeddingModelId && currentKb.embeddingModelId !== dialogForm.embeddingModelId
-
-      if (modelChanged) {
-        const confirmed = await confirm(
-          t('knowledge.page.switchModelTitle'),
-          t('knowledge.page.switchModelDesc'),
-          { type: 'warning', confirmText: t('knowledge.page.switchModelConfirm'), cancelText: t('common.cancel') }
-        )
-        if (!confirmed) return
-      }
-
       await store.updateKnowledgeBase(dialogForm.id, {
         name: dialogForm.name,
         description: dialogForm.description,
-        embeddingModelId: dialogForm.embeddingModelId || undefined,
         chunkMaxSize: dialogForm.chunkMaxSize,
         chunkOverlapSize: dialogForm.chunkOverlapSize,
         chunkMinSize: dialogForm.chunkMinSize,
@@ -1767,7 +1702,6 @@ function handleEdit(kb: KnowledgeBase) {
     id: kb.id,
     name: kb.name,
     description: kb.description || '',
-    embeddingModelId: kb.embeddingModelId || '',
     chunkMaxSize: kb.chunkMaxSize,
     chunkOverlapSize: kb.chunkOverlapSize,
     chunkMinSize: kb.chunkMinSize,
@@ -2347,7 +2281,6 @@ watch(() => store.activeKnowledgeBaseId, () => {
 
 onMounted(async () => {
   fetchRagStatus()
-  await loadEmbeddingModels() // 加载嵌入模型列表
   await store.fetchKnowledgeBases()
   await loadOverview() // 列表页统计卡与卡片计数（须在库列表之后，per_base 才有意义）
 
@@ -2827,6 +2760,14 @@ watch(
   font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+  /* 标题与篇数徽标不参与压缩，压缩只发生在副标题（知识库名）上，
+     否则窄栏下「文档」会被右侧上传按钮挤成竖排两行 */
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.kb-split__title .el-tag {
+  flex: 0 0 auto;
 }
 
 .kb-split__sub {
@@ -2835,6 +2776,9 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* 唯一允许被压缩的项：空间不足时先省略知识库名，而不是把标题挤换行 */
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .kb-split__readonly {
