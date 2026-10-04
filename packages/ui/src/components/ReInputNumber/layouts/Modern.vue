@@ -330,8 +330,4 @@ function stepBy(dir: 1 | -1): void {
     transform: none;
   }
 }
-
-/* ===================== Dark Mode 自适应 ===================== */
-@media (prefers-color-scheme: dark) {
-}
 </style>

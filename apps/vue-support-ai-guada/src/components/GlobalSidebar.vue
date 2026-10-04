@@ -67,7 +67,8 @@
               </div>
             </template>
             <template v-else>
-              <div v-for="session in getGroupSessions(group.id)" :key="session.id"
+              <div v-for="session in getGroupSessions(group.id)" :key="session.id" class="session-wrap">
+              <div
                 class="session-item flex items-center gap-2 py-1.5 pr-1 pl-2 ml-1 mr-0.5  rounded-md cursor-pointer transition-all duration-200 ease-in-out group"
                 :class="{
                   'session-item-active': !multiSelectMode && session.id === currentSessionId,
@@ -88,6 +89,15 @@
                     class="w-1 h-1 rounded-full bg-red-500" />
                   <div v-else class="w-1 h-1 rounded-full bg-gray-400 opacity-50" />
                 </div>
+
+                <!-- 展开/收起：露出子会话、最近消息、元信息与操作 -->
+                <button v-if="!multiSelectMode" type="button" class="session-expand-btn shrink-0"
+                  :class="{ 'is-open': isSessionExpanded(session.id) }"
+                  :title="isSessionExpanded(session.id) ? '收起' : '展开'"
+                  :aria-expanded="isSessionExpanded(session.id)"
+                  @click.stop="toggleSessionExpand(session)">
+                  <el-icon size="12"><ChevronDown12Regular /></el-icon>
+                </button>
 
                 <div class="session-info flex-1 min-w-0 flex items-center">
                   <div class="session-title text-sm font-medium w-full">
@@ -131,6 +141,61 @@
                     </DropdownMenu>
                   </div>
                 </div>
+              </div>
+
+              <!-- 会话展开详情：子会话 / 智能体、最近消息、元信息、操作 -->
+              <div v-if="isSessionExpanded(session.id)" class="session-detail" @click.stop>
+                <div v-if="sessionDetailLoading(session.id)" class="session-detail-loading">
+                  <el-icon class="animate-spin" size="12"><Loading /></el-icon>
+                  <span>加载中…</span>
+                </div>
+                <template v-else>
+                  <!-- 子会话 / 智能体 -->
+                  <div class="session-detail-section"
+                    v-if="(sessionDetail(session.id)?.agents?.length || 0) + (sessionDetail(session.id)?.subSessions?.length || 0) > 0">
+                    <div class="session-detail-label">子会话 / 智能体</div>
+                    <div v-for="ag in (sessionDetail(session.id)?.agents || [])" :key="'ag-' + ag.agent_id"
+                      class="session-detail-agent">
+                      <span class="agent-role" :class="ag.role === 'master' ? 'is-master' : 'is-sub'">
+                        {{ ag.role === 'master' ? '主' : '子' }}
+                      </span>
+                      <span class="agent-name">{{ ag.name || ag.agent_id }}</span>
+                      <span class="agent-status" :class="'is-' + (ag.status || 'idle')">{{ ag.status || 'idle' }}</span>
+                    </div>
+                    <div v-for="sub in (sessionDetail(session.id)?.subSessions || [])" :key="'sub-' + sub.id"
+                      class="session-detail-sub" @click="onSessionClick({ id: sub.id, title: sub.title })">
+                      <span class="sub-title">{{ sub.title || sub.id }}</span>
+                      <span class="sub-time">{{ formatLastActive(sub.updatedAt) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- 最近消息预览 -->
+                  <div class="session-detail-section" v-if="sessionPreview(session)">
+                    <div class="session-detail-label">最近消息</div>
+                    <div class="session-detail-msg">{{ sessionPreview(session) }}</div>
+                  </div>
+
+                  <!-- 元信息 -->
+                  <div class="session-detail-section">
+                    <div class="session-detail-label">会话信息</div>
+                    <div class="session-detail-meta">
+                      <span>模型：{{ session.model || session.modelId || '默认' }}</span>
+                      <span v-if="session.messageCount != null">消息：{{ session.messageCount }}</span>
+                      <span v-if="session.lastActiveAt || session.updatedAt">
+                        活跃：{{ formatLastActive(session.lastActiveAt || session.updatedAt) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- 操作 -->
+                  <div class="session-detail-actions">
+                    <button type="button" class="detail-action" @click="handleDropdownSelect('rename', session)">重命名</button>
+                    <button type="button" class="detail-action" @click="handleDropdownSelect('move', session)">移动</button>
+                    <button type="button" class="detail-action" @click="handleDropdownSelect('archive', session)">归档</button>
+                    <button type="button" class="detail-action is-danger" @click="handleDropdownSelect('delete', session)">删除</button>
+                  </div>
+                </template>
+              </div>
               </div>
 
               <!-- 分组内加载更多 -->
@@ -297,6 +362,7 @@ import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
 import LTooltip from './ui/LTooltip.vue'
 import LDialog from '@/components/ui/LDialog.vue'
 import { apiService } from '@/services/ApiService'
+import { sessionAgentApi } from '@/services/javaApi'
 import { isAdmin } from '@repo/core'
 import type { SessionGroup } from '@/types/session'
 import { ElMessageBox } from 'element-plus'
@@ -707,6 +773,78 @@ const isGroupExpanded = (groupId: string): boolean => {
 // 切换分组展开/折叠
 const toggleGroupExpand = (groupId: string): void => {
   sessionGroupStore.toggleExpand(groupId)
+}
+
+// ==================== 会话条目展开（子会话 / 智能体 / 预览 / 元信息 / 操作） ====================
+// 展开态与详情缓存都放在组件内：详情按需懒加载，避免列表渲染时对每个会话都发请求。
+const expandedSessionIds = ref<Set<string>>(new Set())
+const sessionDetails = ref<Record<string, { agents: any[]; subSessions: any[] }>>({})
+const sessionDetailLoadingIds = ref<Set<string>>(new Set())
+
+/** 会话是否已展开 */
+const isSessionExpanded = (sessionId: string | number): boolean =>
+  expandedSessionIds.value.has(String(sessionId))
+
+/** 会话展开详情（未加载时为空） */
+const sessionDetail = (sessionId: string | number) =>
+  sessionDetails.value[String(sessionId)]
+
+/** 会话详情是否加载中 */
+const sessionDetailLoading = (sessionId: string | number): boolean =>
+  sessionDetailLoadingIds.value.has(String(sessionId))
+
+/** 最近消息预览：会话对象自带字段，取不到则不展示该段 */
+const sessionPreview = (session: any): string => {
+  const raw = session?.lastMessage ?? session?.lastContent ?? session?.last_message
+  if (raw == null) {
+    return ''
+  }
+  const text = typeof raw === 'string' ? raw : (raw.content ?? '')
+  return String(text).slice(0, 60)
+}
+
+/** 展开/收起某会话；首次展开时懒加载详情 */
+const toggleSessionExpand = async (session: any): Promise<void> => {
+  const id = String(session.id)
+  const next = new Set(expandedSessionIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+    expandedSessionIds.value = next
+    return
+  }
+  next.add(id)
+  expandedSessionIds.value = next
+  if (!sessionDetails.value[id]) {
+    await loadSessionDetail(session)
+  }
+}
+
+/** 懒加载会话详情：已绑定智能体 + 子会话 */
+const loadSessionDetail = async (session: any): Promise<void> => {
+  const id = String(session.id)
+  sessionDetailLoadingIds.value = new Set(sessionDetailLoadingIds.value).add(id)
+  let agents: any[] = []
+  let subSessions: any[] = []
+  try {
+    const [agentsRes, subsRes] = await Promise.allSettled([
+      sessionAgentApi.list(id),
+      sessionAgentApi.listSubSessions(id),
+    ])
+    if (agentsRes.status === 'fulfilled') {
+      const r: any = agentsRes.value
+      agents = Array.isArray(r) ? r : (r?.data ?? [])
+    }
+    if (subsRes.status === 'fulfilled') {
+      const r: any = subsRes.value
+      subSessions = Array.isArray(r) ? r : (r?.data ?? [])
+    }
+  } catch (e) {
+    // 详情加载失败不阻断列表；展开区回落为「仅元信息 + 操作」
+  }
+  sessionDetails.value = { ...sessionDetails.value, [id]: { agents, subSessions } }
+  const done = new Set(sessionDetailLoadingIds.value)
+  done.delete(id)
+  sessionDetailLoadingIds.value = done
 }
 
 // 分组是否还有更多会话
@@ -1273,5 +1411,161 @@ onUnmounted(() => {
   .session-action-trigger {
     transition: none;
   }
+}
+
+/* ==================== 会话条目展开 ==================== */
+.session-expand-btn {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-disabled, #b8bcc5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+.session-expand-btn:hover {
+  color: var(--color-text, #303133);
+}
+.session-expand-btn.is-open {
+  transform: rotate(180deg);
+}
+
+.session-detail {
+  margin: 2px 0 6px 26px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 0 6px 6px 0;
+  background: var(--el-fill-color-light, #f5f7fa);
+  font-size: 12px;
+}
+.session-detail-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-gray, #909399);
+}
+.session-detail-section + .session-detail-section {
+  margin-top: 8px;
+}
+.session-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-gray, #909399);
+  margin-bottom: 4px;
+}
+.session-detail-agent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.agent-role {
+  flex-shrink: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+.agent-role.is-master {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+}
+.agent-role.is-sub {
+  color: var(--el-color-info);
+  background: var(--el-color-info-light-9);
+}
+.agent-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+.agent-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--color-text-disabled, #b8bcc5);
+}
+.agent-status.is-running {
+  color: var(--el-color-primary);
+}
+.agent-status.is-done {
+  color: var(--el-color-success);
+}
+.agent-status.is-error {
+  color: var(--el-color-danger);
+}
+
+.session-detail-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0 3px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.session-detail-sub:hover {
+  background: var(--el-fill-color, #f0f2f5);
+}
+.sub-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+.sub-time {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--color-text-disabled, #b8bcc5);
+}
+
+.session-detail-msg {
+  color: var(--color-text-gray, #909399);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--color-text-gray, #909399);
+}
+
+.session-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.detail-action {
+  padding: 2px 8px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-gray, #606266);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.detail-action:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+.detail-action.is-danger:hover {
+  border-color: var(--el-color-danger);
+  color: var(--el-color-danger);
 }
 </style>

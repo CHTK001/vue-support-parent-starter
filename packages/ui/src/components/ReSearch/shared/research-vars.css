@@ -54,15 +54,6 @@
   --rs-color-icon: var(--el-color-primary, #6366f1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --rs-bg-card: #1e293b;
-    --rs-bg-hover: #334155;
-    --rs-border: #475569;
-    --rs-border-hover: #64748b;
-  }
-}
-
 .dark {
   --rs-bg-card: #1e293b;
   --rs-bg-hover: #334155;

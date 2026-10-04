@@ -21,6 +21,9 @@ import ReMaskDialog from "../components/ReMaskDialog.vue";
 import AgentDeployDialog from "../components/AgentDeployDialog.vue";
 import ReProgressTask from "@repo/ui/components/ReProgress/ReProgressTask.vue";
 import { submitAgentAction } from "../monitorApi";
+import type { Component } from "vue";
+import { CircleCheck, DocumentChecked, Download, Tickets } from "@element-plus/icons-vue";
+import ReStatCard from "@repo/ui/re-stat-card";
 
 export interface Host {
   id: number;
@@ -326,6 +329,58 @@ function onlineText(h: Host): string {
 const onlineCount = computed(() => hosts.value.filter(h => h.serverHostOnline === 1).length);
 const remoteCount = computed(() => hosts.value.filter(h => h.serverHostRemoteEnabled === 1).length);
 const offlineCount = computed(() => hosts.value.length - onlineCount.value);
+
+/**
+ * 统计卡定义。
+ *
+ * <p>与「账号管理 / 代理管理」同口径：{@code icon} 必须是组件
+ * （ReStatCard 内部走 {@code <component :is="icon" />}），所以引用
+ * @element-plus/icons-vue 的组件而不是图标名字符串；{@code iconColor}
+ * 用 koi 令牌，不写死品牌色。</p>
+ */
+interface HostKpi {
+  key: string;
+  title: string;
+  value: number | string;
+  desc: string;
+  icon: Component;
+  iconColor: string;
+}
+
+const hostKpis = computed<HostKpi[]>(() => [
+  {
+    key: "total",
+    title: "可远控目标",
+    value: hosts.value.length,
+    desc: "共注册可远控目标",
+    icon: DocumentChecked,
+    iconColor: "var(--brand-500, var(--el-color-primary))",
+  },
+  {
+    key: "online",
+    title: "可连接资产",
+    value: `${onlineCount.value} / ${hosts.value.length}`,
+    desc: "当前在线可连接",
+    icon: CircleCheck,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "offline",
+    title: "需关注处理",
+    value: offlineCount.value,
+    desc: "离线或采集异常",
+    icon: Tickets,
+    iconColor: "var(--el-text-color-placeholder)",
+  },
+  {
+    key: "remote",
+    title: "支持远程连接",
+    value: remoteCount.value,
+    desc: "已开启远控协议",
+    icon: Download,
+    iconColor: "var(--metric-cpu, var(--el-color-primary))",
+  },
+]);
 
 const filtered = computed(() => {
   const fs = filterState.value;
@@ -852,56 +907,23 @@ function osTileClass(h: Host): string {
 
 <template>
   <div class="as">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">主机资产</h1>
-        <p class="page-desc">统一管理可远控目标 · 共 {{ hosts.length }} 台 · 完整增删改查</p>
-      </div>
-      <div class="page-actions">
-        <label class="color-switch">
-          <span>实时监控</span>
-          <el-switch v-model="realtimeEnabled" @change="onRealtimeToggle" />
-        </label>
-        <el-button icon="RefreshRight" :show-text="true" :loading="loading" @click="fetchAll" text>刷新</el-button>
-        <el-button icon="Plus" :show-text="true" type="primary" @click="openAdd" text>新增资产</el-button>
-      </div>
-    </div>
-
     <div v-if="loadError" class="as-error">
       <span>数据加载失败：{{ loadError }}</span>
       <ReButton icon="RefreshRight" type="primary" :show-text="true" @click="fetchAll">重试</ReButton>
     </div>
 
-    <!-- KPI（对齐 UI 稿：圆形渐变图标 + 数值/说明） -->
-    <section class="kpi-row cols-4 host-kpis">
-      <div class="kpi c-brand">
-        <span class="hk-tile"><ReIcon name="DocumentChecked" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ hosts.length }}<span class="hk-unit">台</span></div>
-          <div class="hk-label">共注册可远控目标</div>
-        </div>
-      </div>
-      <div class="kpi c-green">
-        <span class="hk-tile"><ReIcon name="CircleCheck" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ onlineCount }}<span class="hk-unit">/ {{ hosts.length }}</span></div>
-          <div class="hk-label">当前可连接资产</div>
-        </div>
-      </div>
-      <div class="kpi c-gray">
-        <span class="hk-tile"><ReIcon name="Tickets" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ offlineCount }}<span class="hk-unit">台</span></div>
-          <div class="hk-label">需关注处理</div>
-        </div>
-      </div>
-      <div class="kpi c-blue">
-        <span class="hk-tile"><ReIcon name="Download" :size="26" /></span>
-        <div class="hk-body">
-          <div class="hk-value">{{ remoteCount }}<span class="hk-unit">台</span></div>
-          <div class="hk-label">支持远程连接</div>
-        </div>
-      </div>
+    <!-- 统计卡：ReStatCard 紧凑档，与「账号管理 / 代理管理」同规格 -->
+    <section class="host-kpis">
+      <ReStatCard
+        v-for="k in hostKpis"
+        :key="k.key"
+        size="compact"
+        :title="k.title"
+        :value="k.value"
+        :desc="k.desc"
+        :icon="k.icon"
+        :icon-color="k.iconColor"
+      />
     </section>
 
     <!-- 筛选条（对齐 UI 稿：独立白色圆角面板） -->
@@ -936,6 +958,15 @@ function osTileClass(h: Host): string {
           <button class="vt-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'">
             <ReIcon name="Menu" :size="14" />列表
           </button>
+        </div>
+        <!-- 操作区：统一 ReButton square（图标 + tip），落在视图切换右侧 -->
+        <div class="filter-ops">
+          <label class="color-switch">
+            <span>实时监控</span>
+            <el-switch v-model="realtimeEnabled" @change="onRealtimeToggle" />
+          </label>
+          <ReButton icon="RefreshRight" layout="square" tip="刷新" :loading="loading" @click="fetchAll" />
+          <ReButton icon="Plus" layout="square" type="primary" tip="新增资产" @click="openAdd" />
         </div>
       </div>
     </div>
@@ -1290,75 +1321,16 @@ function osTileClass(h: Host): string {
 }
 
 /* ============================================================
-   页头（对齐 UI 稿：大标题 + 圆角主操作）
+   统计卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供）
+   —— 顶部 hero（大标题 + 主操作）已删除：页面标题由外壳面包屑承担，
+   原 hero 上的「实时监控 / 刷新 / 新增资产」下沉到筛选行右侧。
    ============================================================ */
-.as .page-header { align-items: flex-start; }
-.as .page-title {
-  margin: 0;
-  font-size: clamp(26px, 2.3vw, 34px);
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--el-text-color-primary);
-}
-.as .page-desc {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-}
-.as-add { border-radius: var(--el-radius-full, 9999px) !important; }
-.as .page-actions .color-switch { padding: 0 4px; font-size: 13px; }
-
-/* ============================================================
-   KPI（对齐 UI 稿：圆形渐变图标 + 数值/说明）
-   ============================================================ */
-.host-kpis .kpi {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 20px 24px;
-  overflow: visible;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-/* 去掉全局 KPI 的左侧色条与顶部柔光，改为图标承担语义色 */
-.host-kpis .kpi::before,
-.host-kpis .kpi::after { display: none; }
-.host-kpis .kpi:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow, var(--shadow-2));
-  border-color: var(--el-border-color);
-}
-.hk-tile {
+.host-kpis {
   display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  flex: none;
-  --tile: var(--el-color-primary);
-  border-radius: var(--el-border-radius-circle, 50%);
-  color: var(--el-color-white, #fff);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--tile) 62%, var(--el-bg-color)), var(--tile));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--tile) 30%, transparent);
+  /* 紧凑档单卡较窄，auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
-.host-kpis .kpi.c-brand .hk-tile { --tile: var(--brand-500, var(--el-color-primary)); }
-.host-kpis .kpi.c-green .hk-tile { --tile: var(--el-color-success); }
-.host-kpis .kpi.c-gray .hk-tile { --tile: var(--el-text-color-placeholder); }
-.host-kpis .kpi.c-blue .hk-tile { --tile: var(--metric-cpu, var(--el-color-primary)); }
-.hk-body { min-width: 0; }
-.hk-value {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
-}
-.hk-unit { margin-left: 6px; font-size: 14px; font-weight: 500; color: var(--el-text-color-secondary); }
-.hk-label { margin-top: 4px; font-size: 13px; color: var(--el-text-color-secondary); }
 
 /* ============================================================
    筛选面板（对齐 UI 稿：独立白色圆角条）
@@ -1377,6 +1349,13 @@ function osTileClass(h: Host): string {
   margin: 16px 0;
 }
 .as-filter .filter { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+/* 筛选行右侧操作区：统一 ReButton square（图标 + tip），与视图切换同一行 */
+.filter-ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
 /* 视图切换（UI 稿：胶囊分段） */
 .view-toggle {
   display: inline-flex;
