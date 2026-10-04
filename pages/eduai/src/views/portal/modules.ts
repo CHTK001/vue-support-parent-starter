@@ -72,6 +72,31 @@ export const SENIOR_MODULES: PortalModule[] = [
 ];
 
 /**
+ * 学段归一化：把「PRIMARY / primary / 小学」等写法统一成 {@link Stage}。
+ *
+ * <p>后端已归一化下发的 stage，但库里存量数据可能是中文（管理员手填班级学段），
+ * 前端再兜一层，避免 {@code stage === "PRIMARY"} 判不中而落到其它学段版式
+ * （实测：小学学生因此显示了高中版式）。</p>
+ *
+ * @param v 原始学段值
+ * @returns 归一化后的学段；无法识别或缺省时按小学处理
+ */
+export function normalizeStage(v?: string | null): Stage {
+  const raw = (v ?? "").trim();
+  const upper = raw.toUpperCase();
+  if (upper === "PRIMARY" || raw === "小学") {
+    return "PRIMARY";
+  }
+  if (upper === "JUNIOR" || raw === "初中" || raw === "初级中学") {
+    return "JUNIOR";
+  }
+  if (upper === "SENIOR" || raw === "高中" || upper === "UNIVERSITY" || raw === "大学") {
+    return "SENIOR";
+  }
+  return "PRIMARY";
+}
+
+/**
  * 按学段取模块目录
  *
  * @param stage 学段

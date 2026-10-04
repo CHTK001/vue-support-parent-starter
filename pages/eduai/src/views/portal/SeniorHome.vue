@@ -125,14 +125,13 @@ const daysToExam = computed(() => {
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  /* 高中端设计稿是「深蓝→亮蓝」的沉头渐变，用 primary-dark-2/primary/primary-light-3
-     三段还原同样的明暗跨度；底部页面底走页面令牌，换主题/切暗色时自动跟随 */
+  /* 高中端：深海军蓝→石板灰的克制渐变，与小学亮蓝、初中靛蓝区分 */
   background: linear-gradient(
     178deg,
-    var(--el-color-primary-dark-2) 0%,
-    var(--el-color-primary) 22%,
-    var(--el-color-primary-light-3) 40%,
-    var(--el-bg-color-page) 40.1%,
+    #0f172a 0%,
+    #1e3a5f 24%,
+    #334155 46%,
+    var(--el-bg-color-page) 46.1%,
     var(--el-fill-color-lighter) 100%
   );
 }
