@@ -116,7 +116,7 @@
             <ReButton type="primary" class="!flex-1" :loading="creating" @click="onCreate">
               {{ creating ? '创建中…' : '使用此模板创建' }}
             </ReButton>
-            <ReButton @click="previewVisible = true">预览效果</ReButton>
+            <ReButton type="default" @click="previewVisible = true">预览效果</ReButton>
           </div>
         </div>
       </ReCard>

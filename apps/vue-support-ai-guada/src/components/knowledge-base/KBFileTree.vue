@@ -137,7 +137,7 @@
     <ReDialog v-model="showRenameDialog" :title="t('knowledge.tree.renameTitle')" :width="400" :close-on-click-modal="false">
       <el-input v-model="renameForm.newName" :placeholder="t('knowledge.tree.newNamePlaceholder')" @keyup.enter="confirmRename" />
       <template #footer>
-        <ReButton @click="showRenameDialog = false">{{ t('common.cancel') }}</ReButton>
+        <ReButton type="default" @click="showRenameDialog = false">{{ t('common.cancel') }}</ReButton>
         <ReButton type="primary" @click="confirmRename" :loading="renameLoading">{{ t('common.ok') }}</ReButton>
       </template>
     </ReDialog>
@@ -168,7 +168,7 @@
         </el-tree>
       </div>
       <template #footer>
-        <ReButton @click="showMoveDialog = false">{{ t('common.cancel') }}</ReButton>
+        <ReButton type="default" @click="showMoveDialog = false">{{ t('common.cancel') }}</ReButton>
         <ReButton type="primary" @click="confirmMove" :loading="moveLoading">{{ t('common.ok') }}</ReButton>
       </template>
     </ReDialog>

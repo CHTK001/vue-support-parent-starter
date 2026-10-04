@@ -104,7 +104,7 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <ReButton @click="dialogVisible = false">{{ t('common.close') }}</ReButton>
+        <ReButton type="default" @click="dialogVisible = false">{{ t('common.close') }}</ReButton>
       </div>
     </template>
   </ReDialog>

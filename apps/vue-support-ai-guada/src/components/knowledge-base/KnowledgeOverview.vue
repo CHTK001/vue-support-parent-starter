@@ -76,7 +76,7 @@
                   </span>
                 </span>
               </ReButton>
-              <ReButton size="large" class="!h-auto !py-4 !justify-start" @click="emit('all-templates')">
+              <ReButton type="default" size="large" class="!h-auto !py-4 !justify-start" @click="emit('all-templates')">
                 <span class="flex items-center gap-3 text-left">
                   <svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M8 4v5" /></svg>
                   <span class="flex flex-col leading-tight">
@@ -171,7 +171,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap w-full">
           <ReButton link type="primary" @click="onToTemplate">需要预置结构？从模板创建</ReButton>
           <div class="flex gap-2.5">
-            <ReButton @click="cancel">取消</ReButton>
+            <ReButton type="default" @click="cancel">取消</ReButton>
             <ReButton type="primary" @click="submit">创建知识库</ReButton>
           </div>
         </div>

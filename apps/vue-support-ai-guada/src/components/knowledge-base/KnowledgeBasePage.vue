@@ -580,7 +580,7 @@
                 </div>
               </div>
               <template #footer>
-                <ReButton @click="showEntityForm = false">取消</ReButton>
+                <ReButton type="default" @click="showEntityForm = false">取消</ReButton>
                 <ReButton type="primary" :loading="entityFormSaving" @click="handleSaveEntity">保存</ReButton>
               </template>
             </ReDialog>
@@ -611,7 +611,7 @@
                 </p>
               </div>
               <template #footer>
-                <ReButton @click="showRelationForm = false">取消</ReButton>
+                <ReButton type="default" @click="showRelationForm = false">取消</ReButton>
                 <ReButton type="primary" :loading="relationFormSaving" @click="handleSaveRelation">保存</ReButton>
               </template>
             </ReDialog>
@@ -704,7 +704,7 @@
     </div>
 
     <template #footer>
-      <ReButton @click="showKbDialog = false">{{ t('common.cancel') }}</ReButton>
+      <ReButton type="default" @click="showKbDialog = false">{{ t('common.cancel') }}</ReButton>
       <ReButton type="primary" :loading="store.loading" @click="handleKbSave">
         {{ dialogMode === 'create' ? t('common.create') : t('common.save') }}
       </ReButton>
