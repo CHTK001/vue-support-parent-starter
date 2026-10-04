@@ -370,7 +370,7 @@ const bucketColumns: Column[] = [
   { prop: "name", label: "存储桶名称", minWidth: 180 },
   { prop: "retentionHours", label: "保留时长(h)", width: 120 },
   { prop: "createdAt", label: "创建时间", minWidth: 170 },
-  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 130, slot: "action", fixed: "right", align: "right" },
 ];
 const measurementColumns: Column[] = [
   { prop: "name", label: "度量名称", minWidth: 160 },
@@ -1172,7 +1172,7 @@ watch(source, applyConnectionInfo);
 .dsm-row-ops {
   display: flex;
   gap: 4px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .dsm-form-hint {

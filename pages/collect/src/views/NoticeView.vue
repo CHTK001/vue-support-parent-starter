@@ -100,7 +100,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectNoticeEnabled", label: "启用", width: 76, slot: "enabled", align: "center" },
   { prop: "collectNoticeLastResult", label: "最近结果", minWidth: 220, slot: "last" },
   { prop: "collectNoticeLastTime", label: "最近发送", width: 176 },
-  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right", align: "right" },
 ]);
 
 const { loading, reload } = useCollectView(async () => {

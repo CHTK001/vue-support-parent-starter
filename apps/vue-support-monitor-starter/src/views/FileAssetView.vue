@@ -141,7 +141,7 @@ const columns = [
   { prop: "name", label: "文件名", minWidth: 280, slot: "name" },
   { prop: "size", label: "大小", width: 120, slot: "size", align: "center" as const },
   { prop: "lastModified", label: "修改时间", width: 180, slot: "modified" },
-  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" as const },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" as const, align: "right" as const },
 ];
 
 onMounted(async () => {
@@ -279,6 +279,7 @@ onMounted(async () => {
 .op-cell {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
 }
 .mono {
   font-family: ui-monospace, SFMono-Regular, monospace;

@@ -121,7 +121,7 @@
                 <span class="info-cell" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="80" align="center">
+            <ReTableColumn label="操作" width="80" align="right" fixed="right">
               <template #default="{ row }">
                 <ReButton link type="primary" @click="openPacketDetail(row)">详情</ReButton>
               </template>

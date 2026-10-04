@@ -372,7 +372,7 @@ onBeforeUnmount(() => {
           </template>
         </ReTableColumn>
         <ReTableColumn prop="msMonitorAlarmEventTriggerTime" label="触发时间" width="160" />
-        <ReTableColumn label="操作" width="150" fixed="right">
+        <ReTableColumn label="操作" width="150" fixed="right" align="right">
           <template #default="{ row }">
             <template v-if="row.msMonitorAlarmEventStatus === 'NEW'">
               <ReButton link type="primary" @click="onHandleEvent(row, false)">处理</ReButton>
@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
             </template>
           </ReTableColumn>
           <ReTableColumn prop="msMonitorAlarmPolicyRemark" label="备注" min-width="160" show-overflow-tooltip />
-          <ReTableColumn label="操作" width="140">
+          <ReTableColumn label="操作" width="140" align="right" fixed="right">
             <template #default="{ row }">
               <ReButton link @click="openPolicyForm(row)">编辑</ReButton>
               <ReButton link type="danger" @click="removePolicy(row)">删除</ReButton>
@@ -435,7 +435,7 @@ onBeforeUnmount(() => {
               </ReTag>
             </template>
           </ReTableColumn>
-          <ReTableColumn label="操作" width="140">
+          <ReTableColumn label="操作" width="140" align="right" fixed="right">
             <template #default="{ row }">
               <ReButton link @click="openRuleForm(row)">编辑</ReButton>
               <ReButton link type="primary" @click="testRuleRule(row)">测试规则</ReButton>

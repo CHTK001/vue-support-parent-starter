@@ -163,7 +163,7 @@ onMounted(refresh);
       <el-table-column label="创建时间" width="170">
         <template #default="{ row }">{{ row.createdAt ?? "-" }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="140" fixed="right">
+      <el-table-column label="操作" width="140" fixed="right" align="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="onBuildPyramid(row.id)">金字塔</el-button>
           <el-button link type="danger" @click="onDelete(row.id)">删除</el-button>

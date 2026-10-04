@@ -685,7 +685,7 @@ const columns: ReTableColumn[] = [
   { prop: "createTime", label: "创建时间", width: 160 },
   { prop: "sysUserLastLoginTime", label: "最近登录", minWidth: 160, showOverflowTooltip: true },
   { prop: "sysUserLastIp", label: "最近 IP", minWidth: 140, slot: "ip" },
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "right" },
 ];
 
 onMounted(() => {
@@ -1247,7 +1247,7 @@ onMounted(() => {
 .row-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 4px;
 }
 .custom-pagination {

@@ -345,7 +345,7 @@ onMounted(() => {
             />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right" align="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openTemplates(row.sysMessageProviderId)">
               <el-icon class="mr-0.5" :size="14"><Memo /></el-icon>模板

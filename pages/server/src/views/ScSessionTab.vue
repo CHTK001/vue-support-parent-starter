@@ -360,7 +360,7 @@ onMounted(async () => {
             </span>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="132">
+        <ReTableColumn label="操作" width="132" align="right" fixed="right">
           <template #default="{ row }">
             <button class="sa-link" type="button" @click="openDetail(row)">
               <i class="sa-link__dot" />详情

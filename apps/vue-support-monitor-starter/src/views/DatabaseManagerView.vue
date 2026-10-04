@@ -2838,7 +2838,7 @@ const indexColumnDefs = [
   { prop: "nonUnique", label: "非唯一", width: 90, formatter: (r: any) => (r.nonUnique ? "是" : "否") },
   { prop: "indexType", label: "类型", width: 80 },
   { prop: "seqInIndex", label: "序号", width: 80 },
-  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right" },
+  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right", align: "right" },
 ];
 
 // 外键页签（可增删）
@@ -2854,7 +2854,7 @@ const foreignKeyColumnDefs = [
   { prop: "refColumn", label: "引用列", minWidth: 130 },
   { prop: "updateRule", label: "更新规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.updateRule] ?? r.updateRule ?? "" },
   { prop: "deleteRule", label: "删除规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.deleteRule] ?? r.deleteRule ?? "" },
-  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right" },
+  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right", align: "right" },
 ];
 
 /** 引用动作的可选项（与后端白名单一致） */

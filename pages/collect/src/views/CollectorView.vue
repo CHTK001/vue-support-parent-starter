@@ -136,7 +136,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFlowCron", label: "自动调度", width: 200, slot: "cron", showOverflowTooltip: true },
   { prop: "collectFlowNextExecTime", label: "下次执行", width: 176, slot: "next" },
   { prop: "lastRun", label: "最近运行", minWidth: 210, slot: "lastRun" },
-  { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 320, slot: "action", fixed: "right", align: "right" },
 ]);
 
 /* ------------------------------- 行内操作 ------------------------------- */
@@ -429,5 +429,6 @@ function runMore(command: string, flow: CollectFlow): void {
   align-items: center;
   flex-wrap: wrap;
   gap: 2px;
+  justify-content: flex-end;
 }
 </style>

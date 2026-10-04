@@ -32,7 +32,7 @@
             <el-tag :type="examStatusType(row.examStatus)">{{ examStatusLabel(row.examStatus) }}</el-tag>
           </template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="180" fixed="right" align="center">
+        <ReTableColumn label="操作" width="180" fixed="right" align="right">
           <template #default="{ row }">
             <ReButton icon="Edit" :show-text="false" type="primary" @click="openEdit(row)">编辑</ReButton>
             <ReButton icon="Delete" :show-text="false" type="danger" @click="remove(row)">删除</ReButton>
