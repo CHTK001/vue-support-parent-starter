@@ -11,7 +11,6 @@ export interface KnowledgeBase {
     name: string
     description: string | null
     userId: string
-    embeddingModelId: string
     chunkMaxSize: number
     chunkOverlapSize: number
     chunkMinSize: number
@@ -102,7 +101,6 @@ export const useKnowledgeBaseStore = defineStore('knowledgeBase', () => {
     async function createKnowledgeBase(data: {
         name: string
         description?: string
-        embeddingModelId: string
         chunkMaxSize?: number
         chunkOverlapSize?: number
         chunkMinSize?: number

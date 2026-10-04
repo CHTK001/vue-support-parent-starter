@@ -148,36 +148,8 @@
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">图标</label>
-            <div class="flex flex-wrap gap-2">
-              <ReButton
-                v-for="(ic, i) in ICONS" :key="i"
-                :type="form.icon === i ? 'primary' : 'default'"
-                class="!w-9 !h-9 !p-0"
-                @click="form.icon = i"
-              >
-                <svg viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="ic" />
-              </ReButton>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">主题色</label>
-            <div class="flex flex-wrap gap-2.5">
-              <button
-                v-for="c in COLOR_CHOICES" :key="c"
-                type="button"
-                class="w-6 h-6 rounded-full relative border-0 cursor-pointer"
-                :style="{ background: c, color: c }"
-                :class="form.color === c ? 'ring-2 ring-offset-2 ring-current' : ''"
-                @click="form.color = c"
-              />
-            </div>
-          </div>
-
-          <div>
             <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">可见范围</label>
-            <div class="grid grid-cols-3 gap-2.5">
+            <div class="grid grid-cols-2 gap-2.5">
               <button
                 v-for="s in SCOPES" :key="s.label"
                 type="button"
@@ -190,17 +162,6 @@
                 <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" v-html="s.icon" />
                 {{ s.label }}<br>{{ s.hint }}
               </button>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">高级配置（默认开启）</label>
-            <div class="flex flex-col gap-3">
-              <div v-for="sw in SWITCHES" :key="sw.key" class="flex items-center gap-3">
-                <svg viewBox="0 0 24 24" class="w-[18px] h-[18px] shrink-0 text-[var(--rm-text-secondary)]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" v-html="sw.icon" />
-                <span class="flex-1 text-sm">{{ sw.label }}</span>
-                <el-switch v-model="form.toggles[sw.key]" />
-              </div>
             </div>
           </div>
         </div>
@@ -324,33 +285,10 @@ const emit = defineEmits<{
   (e: 'remove', kb: { id: string }): void
 }>()
 
-/** 弹框里的 8 个图标（内联 SVG，保持原稿图形） */
-const ICONS = [
-  '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/>',
-  '<path d="M22 9 12 4 2 9l10 5z"/><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
-  '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
-  '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-  '<path d="M18 14.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v13l3.5-2 3 2 3-2"/><path d="M9 8h5M9 11h3"/>',
-  '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
-  '<path d="m12 3 2.6 5.6L20 9.4l-4 4 1 6-5-2.8L7 19.4l1-6-4-4 5.4-.8z"/>',
-  '<path d="M12 14c-3 0-6-2-6-5.5C6 5.5 8.5 3 12 3s6 2.5 6 5.5c0 3.5-3 5.5-6 5.5z"/><path d="M9 14c-1 3-1.5 6-3 7 3-.3 5-1.5 6-3 1 1.5 3 2.7 6 3-1.5-1-2-4-3-7"/>',
-]
-
-/** 主题色候选（用户可选颜色，属数据） */
-const COLOR_CHOICES = ['#12b8c8', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#64748b']
-
-/** 可见范围（原稿三项） */
+/** 可见范围：仅私有 / 公开（后端只有 is_public 一列，无「团队」语义） */
 const SCOPES = [
   { label: '私有', hint: '仅自己可见', icon: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>' },
-  { label: '团队', hint: '成员可见', icon: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5.5M21 20a6 6 0 0 0-4-5.6"/>' },
   { label: '公开', hint: '所有人可见', icon: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 0 0-18"/>' },
-]
-
-/** 高级配置三项（后端暂无对应列，仅本地选择项） */
-const SWITCHES = [
-  { key: 'extract', label: '上传文档后自动提取知识点', icon: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>' },
-  { key: 'graph', label: '自动生成知识图谱', icon: '<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8 10.8 16 7.2M8 13.2l8 3.8"/>' },
-  { key: 'qa', label: '接入 AI 问答', icon: '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l.8-5.5A8 8 0 1 1 21 12z"/><path d="M9.5 10.5h5M9.5 13.5h3"/>' },
 ]
 
 /** 最近使用的 2 个知识库（按文档数降序，稳定可预期） */
@@ -362,10 +300,7 @@ const modalVisible = ref(false)
 const form = reactive({
   name: '',
   description: '',
-  icon: 0,
-  color: COLOR_CHOICES[0],
-  scope: '团队',
-  toggles: { extract: true, graph: true, qa: true } as Record<string, boolean>,
+  scope: '私有',
 })
 
 /**
@@ -382,12 +317,7 @@ function initialsOf(name: string): string {
 function openModal() {
   form.name = ''
   form.description = ''
-  form.icon = 0
-  form.color = COLOR_CHOICES[0]
-  form.scope = '团队'
-  form.toggles.extract = true
-  form.toggles.graph = true
-  form.toggles.qa = true
+  form.scope = '私有'
   modalVisible.value = true
 }
 

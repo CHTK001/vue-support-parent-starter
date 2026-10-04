@@ -3,13 +3,7 @@
     <!-- ===== 顶栏：面包屑 + 标题 + 搜索 ===== -->
     <header class="shrink-0 border-b border-[var(--rm-border-light)] px-4 py-3 flex flex-wrap items-end gap-4">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-1.5 text-xs text-[var(--rm-text-secondary)] mb-1.5">
-          <ReButton link :icon="ArrowLeft" title="返回" @click="emit('cancel')" />
-          <span class="cursor-pointer text-[var(--rm-primary)] hover:underline" @click="emit('cancel')">知识库</span>
-          <span class="text-[var(--rm-text-disabled)]">/</span>
-          <span>新建知识库</span>
-        </div>
-        <h1 class="text-lg font-bold">从模板创建</h1>
+        <h1 class="text-lg font-bold flex items-center gap-1"><ReButton link :icon="ArrowLeft" title="返回" @click="emit('cancel')" />从模板创建</h1>
         <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成实体类型与关系结构</p>
       </div>
 
