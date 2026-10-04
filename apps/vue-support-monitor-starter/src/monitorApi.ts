@@ -931,6 +931,49 @@ export const executeDbSql = (sql: string, datasourceId?: number, database?: stri
     .data({ sql, datasourceId, database, txId })
     .then(r => unwrap<DbQueryResult>(r));
 
+/** ER 图里的一个表 */
+export interface DbErTable {
+  name: string;
+  comment?: string;
+}
+
+/** ER 图里的一条外键关系 */
+export interface DbErRelation {
+  name?: string;
+  fromTable: string;
+  fromColumn?: string;
+  toTable: string;
+  toColumn?: string;
+  /** JDBC 规范：0=RESTRICT 1=CASCADE 2=SET NULL 3=NO ACTION 4=SET DEFAULT */
+  updateRule?: number;
+  deleteRule?: number;
+}
+
+/** ER 图元数据 */
+export interface DbErDiagram {
+  catalog?: string;
+  tables: DbErTable[];
+  relations: DbErRelation[];
+}
+
+/**
+ * 读取库级 ER 图元数据（表清单 + 全部外键）。
+ *
+ * <p>一次往返拿完整库。前端逐表调外键端点在 40 表规模上是 40 次请求，
+ * 每次都要重新连库、切库，ER 图这种「整体视图」会明显卡住。</p>
+ *
+ * @param tables 表名过滤（LIKE 模式，可为空表示全部）
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库名（可选）
+ * @returns ER 图元数据
+ */
+export const fetchErDiagram = (tables?: string, datasourceId?: number, database?: string) =>
+  http()
+    .get("/ms/monitor/db/er-diagram")
+    .noToast(true)
+    .query({ datasourceId, database, tables })
+    .then(r => unwrap<DbErDiagram>(r));
+
 /**
  * 删除表
  * @param tableName 表名

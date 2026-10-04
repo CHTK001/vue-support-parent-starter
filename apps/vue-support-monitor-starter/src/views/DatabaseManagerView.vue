@@ -600,6 +600,100 @@
           </div>
         </div>
 
+        <!-- ER 图页签（Navicat 的表关系可视化） -->
+        <div v-if="activeTabObj && activeTabObj.type === 'er'" class="dbm-er-view">
+          <div class="dbm-er-toolbar">
+            <span class="dbm-table-name">{{ qualifiedEr }}</span>
+            <ReInput
+              v-model="erTableFilter"
+              class="dbm-mono dbm-er-filter"
+              placeholder="只画匹配这些表的图（支持 % 与 _，留空为全部）"
+              clearable
+              @keyup.enter="loadErDiagram"
+            />
+            <ReButton layout="square" type="primary" icon="Search" tip="按过滤条件重画" @click="loadErDiagram" />
+            <span class="dbm-spacer" />
+            <span class="dbm-er-stat">{{ erStatText }}</span>
+            <ReSelect v-model="erLayout" class="dbm-er-layout" placeholder="布局">
+              <ReOption v-for="l in ER_LAYOUT_CHOICES" :key="l.value" :label="l.label" :value="l.value" />
+            </ReSelect>
+            <ReButton
+              layout="square"
+              :type="erShowLabels ? 'primary' : 'default'"
+              icon="Label"
+              tip="显示 / 隐藏关系名"
+              @click="erShowLabels = !erShowLabels"
+            />
+            <ReButton layout="square" icon="Refresh" tip="重新读取元数据" @click="loadErDiagram" />
+            <ReButton layout="square" icon="Download" tip="导出为 DOT（Graphviz）" @click="exportErDot" />
+          </div>
+          <div v-if="erLoading" class="dbm-er-mask">正在读取表与外键…</div>
+          <ReEmpty
+            v-else-if="erError"
+            class="dbm-er-empty"
+            :description="erError"
+          />
+          <ReEmpty
+            v-else-if="erNodes.length === 0"
+            class="dbm-er-empty"
+            :description="erTableFilter ? '没有匹配的表' : '这个库里还没有表'"
+          />
+          <ReRelationGraph
+            v-else
+            ref="erGraphRef"
+            class="dbm-er-graph"
+            :nodes="erNodes"
+            :edges="erEdges"
+            :layout="erLayout"
+            highlight="adjacent"
+            :toolbar="true"
+            :minimap="true"
+            @node-dblclick="onErNodeDblClick"
+          />
+          <!-- 表清单侧栏：图上双击要靠坐标命中，100 张表时图本身就没法导航。
+               清单给出确定的入口，也让「这张表有几条关系」一眼可见。 -->
+          <div class="dbm-er-list">
+            <div
+              v-for="t in erTables"
+              :key="t.name"
+              class="dbm-er-list-row"
+              :class="{ missing: erMissingTables.has(t.name) }"
+              :title="t.comment || t.name"
+              @click="highlightErNode(t.name)"
+              @dblclick="openErColumns(t.name)"
+            >
+              <span class="dbm-er-list-name">{{ t.name }}</span>
+              <span class="dbm-spacer" />
+              <span class="dbm-er-list-deg">{{ erDegree(t.name) }}</span>
+            </div>
+          </div>
+          <!-- 双击节点后的列清单：ER 图上看列才能定位到具体字段 -->
+          <ReDialog v-model="erColumnsVisible" :title="`${erPickedTable} 的列`" width="520px">
+            <div class="dbm-er-cols">
+              <div
+                v-for="c in erPickedColumns"
+                :key="c.name"
+                class="dbm-er-col-row"
+              >
+                <span class="dbm-er-col-name">{{ c.name }}</span>
+                <span class="dbm-er-col-type">{{ c.type }}</span>
+                <span class="dbm-er-col-flags">
+                  <span v-if="c.isPrimaryKey" class="dbm-er-flag pk">PK</span>
+                  <span v-if="c.nullable" class="dbm-er-flag null">可空</span>
+                </span>
+              </div>
+              <ReEmpty v-if="erPickedColumns.length === 0" description="没有列信息" />
+            </div>
+            <template #footer>
+              <ReButton
+                type="primary"
+                @click="openErTableData(erPickedTable)"
+              >打开该表数据</ReButton>
+              <ReButton @click="erColumnsVisible = false">关闭</ReButton>
+            </template>
+          </ReDialog>
+        </div>
+
         <!-- 对象定义页签（存储过程 / 函数 / 触发器 / 事件） -->
     <div v-if="activeTabObj && activeTabObj.type === 'object'" class="dbm-object-view">
       <div class="dbm-object-toolbar">
@@ -706,6 +800,9 @@
           </div>
           <div class="dbm-context-item" @click="openQueryWithSql('', contextMenu.database)">
             <ReIcon name="EditPen" :size="14" />新建查询
+          </div>
+          <div class="dbm-context-item" @click="openErDiagram(contextMenu.database)">
+            <ReIcon name="Share" :size="14" />ER 图（表关系）
           </div>
           <div class="dbm-context-item" @click="copyText(contextMenu.database)">
             <ReIcon name="CopyDocument" :size="14" />复制库名
@@ -1567,6 +1664,9 @@ import {
   type DbTableDataResult,
   type DbQueryResult,
   type DbForeignKeyInfo,
+  fetchErDiagram,
+  type DbErTable,
+  type DbErRelation,
 } from "../monitorApi";
 import { fetchDataSources, type DataSourceInfo } from "@pages/datasource";
 import {
@@ -1945,7 +2045,7 @@ const activeTable = ref<string>("");
 interface Tab {
   id: string;
   /** object = 存储过程/函数/触发器/事件的定义页 */
-  type: "table" | "design" | "query" | "object";
+  type: "table" | "design" | "query" | "object" | "er";
   title: string;
   tableName?: string;
   database?: string;
@@ -4993,6 +5093,238 @@ function tabTitle(tableName: string, database: string) {
   return database ? `${database}.${tableName}` : tableName;
 }
 
+// ---------- F1 ER 图（表关系可视化） ----------
+
+/** 可选布局。刻意只给非层级布局：树形布局在普通关系图上会抛
+ *  "Tree structure not found"（G6 内部异步抛出，组件侧 try/catch 拦不住）。 */
+const ER_LAYOUT_CHOICES = [
+  { value: "dagre" as const, label: "有向分层" },
+  { value: "antv-dagre" as const, label: "有向分层(antv)" },
+  { value: "force" as const, label: "力导向" },
+  { value: "d3-force" as const, label: "D3 力导向" },
+  { value: "circular" as const, label: "环形" },
+  { value: "grid" as const, label: "网格" },
+];
+const erLayout = ref<(typeof ER_LAYOUT_CHOICES)[number]["value"]>("dagre");
+const erLoading = ref(false);
+const erError = ref("");
+const erTables = ref<DbErTable[]>([]);
+const erRelations = ref<DbErRelation[]>([]);
+/** 表名过滤（LIKE 模式） */
+const erTableFilter = ref("");
+/** 是否在边上显示约束名 */
+const erShowLabels = ref(true);
+/** 列清单弹窗 */
+const erColumnsVisible = ref(false);
+const erPickedTable = ref("");
+const erPickedColumns = ref<DbColumnInfo[]>([]);
+
+/** 图上的节点 */
+const erNodes = computed(() => erTables.value.map(t => ({
+  id: t.name,
+  label: t.comment ? `${t.name}\n${t.comment}` : t.name,
+  type: "rect" as const,
+  size: [180, 52] as [number, number],
+  style: {
+    fill: erMissingTables.value.has(t.name) ? "var(--el-fill-color-dark)" : "var(--el-bg-color-overlay)",
+    stroke: erMissingTables.value.has(t.name) ? "var(--el-color-warning)" : "var(--el-color-primary)",
+    lineWidth: 1,
+    radius: 6,
+    labelFill: "var(--el-text-color-primary)",
+    labelFontSize: 12,
+    cursor: "pointer",
+  },
+  data: { tableName: t.name, missing: erMissingTables.value.has(t.name) },
+})));
+
+/** 只被外键引用、却不在表清单里的表（跨库外键等） */
+const erMissingTables = computed(() => new Set(
+  erTables.value.filter(t => t.comment?.startsWith("（")).map(t => t.name),
+));
+
+/** 外键规则码 → 中文（JDBC 规范：0=RESTRICT 1=CASCADE 2=SET NULL 3=NO ACTION 4=SET DEFAULT） */
+function fkRuleText(code?: number): string {
+  switch (code) {
+    case 0: return "限制";
+    case 1: return "级联";
+    case 2: return "置空";
+    case 3: return "无动作";
+    case 4: return "设默认";
+    default: return "";
+  }
+}
+
+/** 图上的边：一条外键一条边，指向被引用的表 */
+const erEdges = computed(() => erRelations.value.map((r, i) => {
+  const label = [
+    r.fromColumn ? `${r.fromColumn} → ${r.toColumn ?? "?"}` : "",
+    r.name ?? "",
+    fkRuleText(r.deleteRule) ? `删除:${fkRuleText(r.deleteRule)}` : "",
+  ].filter(Boolean).join("  ");
+  return {
+    id: `fk-${i}-${r.fromTable}-${r.toTable}`,
+    source: r.fromTable,
+    target: r.toTable,
+    label: erShowLabels.value ? label : undefined,
+    // 复合外键会产生多条同名边，靠列名区分开，否则 id 冲突
+    type: "cubic-horizontal" as const,
+    directed: true,
+    style: {
+      stroke: "var(--el-color-primary-light-3)",
+      lineWidth: 1.2,
+      endArrow: true,
+      labelFill: "var(--el-text-color-secondary)",
+      labelFontSize: 10,
+      labelBackground: true,
+      labelBackgroundFill: "var(--el-bg-color-overlay)",
+      labelBackgroundRadius: 2,
+    },
+    data: r,
+  };
+}));
+
+/** 工具条右侧的统计文本 */
+const erStatText = computed(() => {
+  if (erLoading.value) return "";
+  return `${erTables.value.length} 张表 · ${erRelations.value.length} 条外键`;
+});
+
+/** 页签标题里的库名 */
+const qualifiedEr = computed(() => {
+  const db = activeTabObj.value?.database || "";
+  return db ? `${db} · ER 图` : "ER 图";
+});
+
+/**
+ * 打开 ER 图页签。
+ *
+ * @param database 库名；缺省用当前选中库
+ */
+function openErDiagram(database = activeDatabase.value) {
+  if (!database) {
+    ElMessage.warning("请先在左侧选择一个库");
+    return;
+  }
+  const id = "er-" + database;
+  let tab = tabs.value.find(t => t.id === id);
+  if (!tab) {
+    tab = { id, type: "er", title: tabTitle(database, "") + " - ER 图", database };
+    tabs.value.push(tab);
+  }
+  activeTab.value = id;
+  void loadErDiagram();
+}
+
+/**
+ * 读取并绘制 ER 图。
+ *
+ * <p>只在这一个页签需要时才拉数据：ER 图对大库是**一次性整体视图**，
+ * 在每次切库/切页签时都重拉会让浏览树的过程明显变慢。</p>
+ */
+async function loadErDiagram(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab || tab.type !== "er") return;
+  erLoading.value = true;
+  erError.value = "";
+  try {
+    const data = await fetchErDiagram(
+      erTableFilter.value.trim() || undefined,
+      currentDatasourceId.value,
+      tab.database,
+    );
+    erTables.value = data.tables || [];
+    erRelations.value = data.relations || [];
+    // 关系指向的表若不在清单里，补一个占位节点：
+    // 少一个节点的话，边会指向虚空，用户分不清是「表没画」还是「约束坏了」
+    const names = new Set(erTables.value.map(t => t.name));
+    for (const r of erRelations.value) {
+      for (const n of [r.fromTable, r.toTable]) {
+        if (n && !names.has(n)) {
+          names.add(n);
+          erTables.value.push({ name: n, comment: "（被外键引用，但不在当前库的表清单里）" });
+        }
+      }
+    }
+  } catch (e) {
+    erError.value = `读取失败：${String((e as Error)?.message ?? e)}`;
+    erTables.value = [];
+    erRelations.value = [];
+  } finally {
+    erLoading.value = false;
+  }
+}
+
+/** ER 图组件实例（用于从清单跳转时高亮/居中） */
+const erGraphRef = ref<unknown>(null);
+
+/** 双击图上的节点：列出该表的列 */
+async function onErNodeDblClick(node: { id?: string }): Promise<void> {
+  await openErColumns(String(node?.id ?? ""));
+}
+
+/** 打开某张表的列清单 */
+async function openErColumns(name: string): Promise<void> {
+  if (!name) return;
+  erPickedTable.value = name;
+  erColumnsVisible.value = true;
+  erPickedColumns.value = [];
+  try {
+    const cols = await fetchTableColumns(name, currentDatasourceId.value, activeTabObj.value?.database);
+    erPickedColumns.value = cols || [];
+  } catch (e) {
+    ElMessage.error(`读取列失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/** 每张表参与的外键条数（清单上显示，一眼看出「这张表是孤立的」） */
+function erDegree(name: string): number {
+  return erRelations.value.filter(r => r.fromTable === name || r.toTable === name).length;
+}
+
+/** 点清单里的一行：在图上高亮该节点并居中 */
+function highlightErNode(name: string): void {
+  const api = erGraphRef.value as {
+    highlight?: (ids: string[]) => void;
+    centerOn?: (id: string) => void;
+  } | null;
+  api?.highlight?.([name]);
+  api?.centerOn?.(name);
+}
+
+/** 从 ER 图打开该表的数据页签 */
+function openErTableData(tableName: string) {
+  if (!tableName) return;
+  erColumnsVisible.value = false;
+  openTableData(tableName, activeTabObj.value?.database || activeDatabase.value);
+}
+
+/**
+ * 导出为 Graphviz DOT。
+ *
+ * <p>不给 PNG 是因为那是**服务端渲染**，而这里只有浏览器 ——
+ * 假装能导出图片、点下去给个空文件，比不给这个按钮更糟。
+ * DOT 可以直接喂给本地 Graphviz 出图。</p>
+ */
+function exportErDot(): void {
+  const q = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  const lines = ["digraph er {", "  rankdir=LR;", '  node [shape=record, fontsize=10];'];
+  for (const t of erTables.value) {
+    const label = t.comment ? `${t.name}\\n${t.comment}` : t.name;
+    lines.push(`  ${q(t.name)} [label="${label}"];`);
+  }
+  for (const r of erRelations.value) {
+    lines.push(`  ${q(r.fromTable)} -> ${q(r.toTable)} `
+      + `[label="${r.fromColumn ?? ""}${r.name ? ` (${r.name})` : ""}"];`);
+  }
+  lines.push("}");
+  downloadText(
+    `${activeTabObj.value?.database || "er"}-${Date.now()}.dot`,
+    lines.join("\n"),
+    "text/plain",
+  );
+  ElMessage.success(`已导出 ${erRelations.value.length} 条关系`);
+}
+
 /**
  * 页签内显示的 库.表 全名
  * @param tab 当前页签
@@ -6193,6 +6525,117 @@ onBeforeUnmount(() => {
 }
 
 /* 列设置弹窗 */
+/* ER 图视图 */
+.dbm-er-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dbm-er-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+.dbm-er-filter { width: 280px; }
+.dbm-er-layout { width: 150px; }
+.dbm-er-stat {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.dbm-er-mask,
+.dbm-er-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+}
+/* 图本身撑满剩余高度：ER 图是「整体视图」，
+   给固定高度会让 40 张表的图挤成一团且没法滚 */
+.dbm-er-graph {
+  flex: 1;
+  min-height: 320px;
+}
+/* 表清单侧栏：100 张表时图本身没法导航，给一个确定入口 */
+.dbm-er-list {
+  flex: 0 0 240px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 4px);
+  background: var(--el-bg-color-overlay);
+}
+.dbm-er-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-er-list-row:hover { background: var(--el-fill-color-light); }
+.dbm-er-list-row.missing {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, transparent);
+}
+.dbm-er-list-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--el-font-family-mono, monospace);
+}
+/* 关系条数：0 表示孤立表，一眼可辨 */
+.dbm-er-list-deg {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+.dbm-er-cols {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.dbm-er-col-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dbm-er-col-name {
+  font-family: var(--el-font-family-mono, monospace);
+  min-width: 140px;
+}
+.dbm-er-col-type {
+  flex: 1;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+}
+.dbm-er-flag {
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 17px;
+  border-radius: 3px;
+}
+.dbm-er-flag.pk {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.dbm-er-flag.null {
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+
 /* 事务开关：开着时整条工具条染色。
    必要性：事务开着时所有写操作都**不会立刻落库**，
    而这一点除了这条提示之外没有任何界面证据 —— 用户会以为改动已经存了 */
