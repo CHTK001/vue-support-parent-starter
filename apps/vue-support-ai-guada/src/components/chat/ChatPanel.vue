@@ -808,6 +808,7 @@ async function handleStreamResponse(
   regenerationMode: any = null,
   assistantMessageId: string | null = null,
   userMessageId?: string | null,
+  model?: string | null,
 ) {
   try {
     const handler = useStreamResponse(sessionStore, apiService)
@@ -816,6 +817,10 @@ async function handleStreamResponse(
       regenerationMode,
       assistantMessageId,
       userMessageId,
+      undefined,
+      // 重新回答/继续：必须带上会话模型。不传时后端解析不到模型会回落默认值，
+      // 而默认模型无真实凭据时会退化为 MemoryChatClient（“内存模式”模拟回答）。
+      model ?? currentModelId.value ?? undefined,
     )
   } catch (error) {
     // 错误已在 composable 中处理，这里只负责显示通知

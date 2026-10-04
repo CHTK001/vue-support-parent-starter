@@ -908,6 +908,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     assistantMessageId: string | null = null,
     userMessageId?: string | null,
     lastContentId?: string | null,
+    model?: string | null,
   ): Promise<void> {
     const userMessage = userMessageId ? { id: userMessageId } : undefined;
     await processStreamLoop(
@@ -916,6 +917,12 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
       assistantMessageId,
       userMessage,
       lastContentId,
+      undefined,
+      undefined,
+      // 重新回答/继续必须带上会话模型：不传时后端解析不到会回落到默认模型，
+      // 而默认模型未配置真实凭据时会退化到 MemoryChatClient（“内存模式”模拟回答），
+      // 表现为「点重新回答，模型变成 gpt-4o 且返回模拟答案」。
+      model,
     );
   }
 
