@@ -213,8 +213,21 @@ const currentDialogGroup = ref('')
 const currentDialogField = ref('')
 
 // ===================== 字段分组辅助 =====================
+/**
+ * 管理员专属字段对普通账号不可见。
+ *
+ * <p>定义接口会带出 {@code adminOnly} 标记（如 runtime 的 user_tool_access）；取值出口
+ * 已剔除其值，若这里不过滤，普通账号会在「高级选项」里看到一个空的管理员专属开关。
+ * 前端按同一标记隐藏，与后端 {@code adminOnlyFields} 保持一致。</p>
+ *
+ * @param item 定义项
+ * @return true 表示当前账号可见
+ */
+const notAdminOnly = (item) => !(item && item.adminOnly === true && !isAdmin())
+
 const modelFields = (group) =>
-    (group.items || []).filter(item => isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
+    (group.items || []).filter(item =>
+        notAdminOnly(item) && isModelField(group.group, item.field) && shouldShowField(group.group, item.field))
 
 /**
  * 是否属于「该直接显示、但不是选模型」的字段。
@@ -230,14 +243,14 @@ const isPlainVisibleField = (group, field) =>
 /** 始终显示且不是选模型的字段 */
 const plainVisibleFields = (group) =>
     (group.items || []).filter(item =>
-        !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && !isModelField(group.group, item.field) && isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
 
 /** 始终显示的字段：选模型的 + 上面这类目录配置 */
 const visibleFields = (group) => [...modelFields(group), ...plainVisibleFields(group)]
 
 const advancedFields = (group) =>
     (group.items || []).filter(item =>
-        !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
+        notAdminOnly(item) && !isModelField(group.group, item.field) && !isPlainVisibleField(group.group, item.field) && shouldShowField(group.group, item.field))
 
 // ===================== 模型类型体系 =====================
 // 规范类型中文标签
