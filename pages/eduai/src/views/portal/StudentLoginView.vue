@@ -63,7 +63,7 @@
             <input
               v-model="form.account"
               type="text"
-              placeholder="请输入账号 / 手机号"
+              placeholder="请输入学号 / 工号 / 手机号"
               autocomplete="username"
               @input="accountError = ''"
             />
@@ -158,14 +158,28 @@ const accountError = ref("");
 const passwordError = ref("");
 
 /**
- * 提交登录：先做前端必填校验，再交由后端判定账号是否有效。
+ * 账号形状判断：学号与家长手机号都是纯数字，老师/管理员工号含字母。
+ *
+ * <p>用它来决定走「学生凭据」还是「老师凭据」，而**不是两种都试一遍**：
+ * 学生登录失败会扣减尝试次数（实测返回「还剩 N 次尝试机会」），
+ * 双试会把老师账号的可用次数也吃掉。</p>
+ *
+ * @param account 登录账号
+ * @returns 纯数字且长度 >= 6 时视为学生账号
+ */
+function looksLikeStudent(account: string): boolean {
+  return /^\d{6,20}$/.test(account);
+}
+
+/**
+ * 统一登录：学生与老师共用本页，登录后按身份进入各自首页。
  */
 async function submit() {
   accountError.value = "";
   passwordError.value = "";
   const account = form.account.trim();
   if (!account) {
-    accountError.value = "请输入账号或手机号";
+    accountError.value = "请输入学号 / 工号 / 手机号";
     return;
   }
   if (!form.password) {
@@ -175,9 +189,16 @@ async function submit() {
   loading.value = true;
   try {
     const { eduaiApi } = await import("../../api/eduaiApi");
-    await eduaiApi.studentLogin({ username: account, password: form.password });
+    const isStudent = looksLikeStudent(account);
+    const res = isStudent
+      ? await eduaiApi.studentLogin({ username: account, password: form.password })
+      : await eduaiApi.userLogin({ username: account, password: form.password });
+    // 身份判定：优先看令牌里的角色，其次看账号形状
+    const roles = ((res as { roles?: string[] } | undefined)?.roles ?? []).map((r) => String(r).toUpperCase());
+    const ext = (res as { user?: { ext?: { accountType?: string } } } | undefined)?.user?.ext;
+    const toStudent = isStudent || roles.includes("STUDENT") || ext?.accountType === "student";
     ElMessage.success("登录成功");
-    await router.push("/edu/student");
+    await router.push(toStudent ? "/edu/student" : "/edu/teacher");
   } catch (e) {
     passwordError.value = e instanceof Error ? e.message : String(e);
   } finally {

@@ -176,6 +176,9 @@ const route = useRoute();
  */
 const EMBEDDED: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   "idiom-game": defineAsyncComponent(() => import("../IdiomGameView.vue")),
+  // 我的答题/阅卷记录与错题本：都用后端 /v2/edu/student/* 的「本人视角」接口
+  "my-records": defineAsyncComponent(() => import("./StudentRecordsView.vue")),
+  wrongbook: defineAsyncComponent(() => import("./StudentWrongbookView.vue")),
 };
 
 /** 当前内嵌打开的模块；null 表示停留在学生端首页 */
@@ -228,7 +231,24 @@ watch(
 const stage = computed(() => overview.value?.stage ?? form.gradeLevel);
 /** 后端按学段配置的模块清单；取不到时回落到内置目录，保证页面不空 */
 const remoteModules = ref<PortalModule[] | null>(null);
-const modules = computed<PortalModule[]>(() => remoteModules.value ?? modulesOf(stage.value));
+
+/**
+ * 学生端固定能力：无论后台「模块配置」怎么配，这两个入口都必须存在。
+ *
+ * <p>它们依赖的是学生本人的数据（我的答题/阅卷记录、我的错题本），
+ * 漏配就相当于学生看不到自己的批改与错题；因此在前端兜底追加，而不是只写在
+ * {@code modules.ts} 的默认目录里（后台一旦配置了模块，默认目录就不会被采用）。</p>
+ */
+const STUDENT_FIXED_MODULES: PortalModule[] = [
+  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
+];
+
+const modules = computed<PortalModule[]>(() => {
+  const base = remoteModules.value ?? modulesOf(stage.value);
+  const have = new Set(base.map((m) => m.moduleCode));
+  return [...base, ...STUDENT_FIXED_MODULES.filter((m) => !have.has(m.moduleCode))];
+});
 
 /**
  * 拉取该学段的模块清单（后台「模块配置」维护）
