@@ -180,10 +180,20 @@ const MODE_LABELS: Record<FieldMode, string> = {
   nth: "第 N 个周几",
 };
 
+/**
+ * 选项标签带上单位。
+ *
+ * <p>此前时间字段只给裸数字，指定值选中后会显示成一个孤零零的 `0`
+ * （截图复核发现），看不出是"0 秒"还是别的。周字段本来就有"0 周日"的形式，
+ * 这里把其余字段补齐为 `值 + 字段名`。标签只影响展示，value 仍是数字。</p>
+ *
+ * @param spec 字段规格
+ * @returns 选项列表
+ */
 function optionsOf(spec: { min: number; max: number; key: string }): { value: number; label: string }[] {
   const out: { value: number; label: string }[] = [];
   for (let v = spec.min; v <= spec.max; v++) {
-    out.push({ value: v, label: spec.key === "week" ? `${v} ${WEEK_NAMES[v]}` : String(v) });
+    out.push({ value: v, label: spec.key === "week" ? `${v} ${WEEK_NAMES[v]}` : `${v} ${LABEL_OF[spec.key] ?? ""}`.trim() });
   }
   return out;
 }
@@ -953,7 +963,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
                     class="re-cron__points"
                     style="width: 100%"
                     :data="optionsOf(spec)"
-                    placeholder="可多选，支持直接输入数字后回车"
+                    :placeholder="`选择${spec.label}（${spec.min}~${spec.max}），可多选，也支持直接输入数字后回车`"
                     @change="onFieldInput(spec.key)"
                   />
                 </template>
@@ -1251,8 +1261,10 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
   margin-top: 22px;
 }
 
-/* 窄屏回落单列，避免字段盒子被压成细条 */
-@media (width <= 720px) {
+/* 窄屏回落单列。
+   断点从 720px 提到 880px：实测 760px 视口下两列已被压得很挤
+   （六个字段盒子各剩不到 70px，右侧预览列也在挤），而弹层本身到 900px 才收窄。 */
+@media (width <= 880px) {
   .re-cron__body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1450,6 +1462,16 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
 
 .re-cron__dialog {
   border-radius: var(--el-dialog-border-radius, var(--el-radius-xl, 16px));
+  /* 组件把宽度写死成 900px，视口小于它时右侧会被直接裁掉 —— 实测 760px 视口下
+     预设行末端与"保存"按钮都被切出屏幕。压一个 94vw 上限让弹层随视口收缩。 */
+  max-width: 94vw;
+}
+
+/* 视口偏矮时内容比屏幕高，底栏（取消/保存）会被顶出可视区：给正文加上限并允许滚动，
+   保证任何窗口尺寸下都能点到操作按钮。 */
+.re-cron__dialog .el-dialog__body {
+  max-height: 68vh;
+  overflow-y: auto;
 }
 
 .re-cron__dialog .el-dialog__body {
