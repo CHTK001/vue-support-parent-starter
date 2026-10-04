@@ -201,9 +201,26 @@
       <div class="rec-editor">
         <aside class="rec-profile">
           <div class="rec-profile__hero">
-            <el-avatar :size="84" :src="stuForm.studentAvatar || ''" class="rec-profile__avatar">
-              {{ (stuForm.studentName || "学").slice(0, 1) }}
-            </el-avatar>
+            <!-- 头像即上传入口：点头像选图 -> 上传 -> 写回 stuForm.studentAvatar（保存时提交）。
+                 头像要在 <img> 里显示，而后端预览路径已 whitelist（img 带不了令牌）。 -->
+            <button
+              type="button"
+              class="rec-profile__avatar-btn"
+              :title="stuForm.studentAvatar ? '点击更换头像' : '点击上传头像'"
+              @click="pickStuAvatar"
+            >
+              <el-avatar :size="84" :src="stuAvatarSrc" class="rec-profile__avatar">
+                {{ (stuForm.studentName || "学").slice(0, 1) }}
+              </el-avatar>
+              <span class="rec-profile__avatar-hint">换头像</span>
+            </button>
+            <input
+              ref="stuAvatarInput"
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+              class="rec-profile__file"
+              @change="onStuAvatarPicked"
+            />
             <div class="rec-profile__name">{{ stuForm.studentName || "未命名学生" }}</div>
             <div class="rec-profile__sub">{{ stuProfileSubline }}</div>
           </div>
@@ -275,18 +292,6 @@
                     <el-radio-button :value="1">在读</el-radio-button>
                     <el-radio-button :value="0">离校</el-radio-button>
                   </el-radio-group>
-                </el-form-item>
-                <el-form-item label="头像">
-                  <div class="stu-avatar">
-                    <el-avatar :size="40" :src="stuForm.studentAvatar || ''">
-                      {{ (stuForm.studentName || '学').slice(0, 1) }}
-                    </el-avatar>
-                    <el-input
-                      v-model="stuForm.studentAvatar"
-                      placeholder="图片 URL，非必填"
-                      clearable
-                    />
-                  </div>
                 </el-form-item>
                 <el-form-item label="绑定账号">
                   <el-input
@@ -664,6 +669,48 @@ const stuProfileItems = computed(() => [
   { label: "入学年份", value: stuForm.studentEnrollYear ? String(stuForm.studentEnrollYear) : "未填", icon: Calendar },
 ]);
 
+/** 头像文件选择框（隐藏，点头像时 programmatic click） */
+const stuAvatarInput = ref<HTMLInputElement | null>(null);
+/** 头像显示地址：相对路径拼成后端预览地址，http/data: 原样返回 */
+const stuAvatarSrc = computed(() => eduaiApi.studentAvatarUrl(stuForm.studentAvatar));
+
+/** 点头像 -> 唤出文件选择 */
+function pickStuAvatar() {
+  stuAvatarInput.value?.click();
+}
+
+/**
+ * 选完头像文件 -> 上传 -> 写回 stuForm.studentAvatar（保存表单时才落库）。
+ *
+ * <p>只上传不即存：与其它字段一致，统一由「保存」提交，避免误点头像就永久改档。
+ * 上传成功只提示「点保存生效」，管理员仍可取消。</p>
+ */
+async function onStuAvatarPicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // 清空 value：否则连续选同一个文件不会再触发 change
+  input.value = "";
+  if (!file) {
+    return;
+  }
+  if (!file.type.startsWith("image/")) {
+    return ElMessage.warning("请选择图片文件");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    return ElMessage.warning("头像图片不要超过 2MB");
+  }
+  try {
+    const res = await eduaiApi.uploadStudentAvatar(file);
+    if (!res?.filePath) {
+      return ElMessage.error("上传失败");
+    }
+    stuForm.studentAvatar = res.filePath;
+    ElMessage.success("头像已更新，点「保存」生效");
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : "上传失败");
+  }
+}
+
 function openStudent(row?: EduStudent) {
   Object.keys(stuForm).forEach((k) => delete (stuForm as Record<string, unknown>)[k]);
   if (row) {
@@ -967,7 +1014,10 @@ onMounted(() => {
  */
 .page-container {
   height: 100%;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  /* 整页不再滚动：剩余高度全部交给表格区，避免 tab 内容不满高、底部留白 */
+  overflow: hidden;
   background: var(--el-bg-color-page);
 }
 
@@ -1071,9 +1121,49 @@ onMounted(() => {
   border: 0;
   position: relative;
   z-index: 1;
+  /* 撑满 page-container 的剩余高度，让 tab 区「吃满」而不是按内容高度收缩 */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .table-card :deep(.el-card__body) {
   padding: 16px 20px 18px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* page → card → el-tabs → content → tab-pane → table 纵向 flex 链 */
+.table-card :deep(.el-tabs) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.table-card :deep(.el-tabs__content) {
+  flex: 1;
+  min-height: 0;
+}
+.table-card :deep(.el-tab-pane) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.table-card :deep(.el-tab-pane > .el-table) {
+  flex: 1;
+  min-height: 0;
+}
+.table-card :deep(.el-table__inner-wrapper) {
+  height: 100%;
+}
+/* 操作列（fixed="right"）表头必须与其它列表头同色：
+   Element Plus 的固定列会给单元格上 background: var(--el-bg-color)（白），
+   盖掉主题 element.scss 里 .el-table__header-wrapper th 的 --el-fill-color-light，
+   于是「操作」表头看着是白的、与其它列不一致。这里把表头单元格背景钉回主题色。 */
+.table-card :deep(.el-table__header-wrapper th.el-table__cell) {
+  background: var(--el-fill-color-light);
 }
 
 /*
@@ -1257,20 +1347,6 @@ onMounted(() => {
   }
 }
 
-/* 头像行：预览 + URL 输入并排，窄屏时换行 */
-.stu-avatar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-@media (max-width: 900px) {
-  .stu-avatar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
 /* ============ 数据配置对话框：左右结构（学生 / 班级 / 教师 共用）============ */
 /* 左画像 / 右编辑；学生用大头像，班级/教师无头像图故用图标牌 */
 .rec-editor {
@@ -1303,6 +1379,42 @@ onMounted(() => {
 .rec-profile__avatar {
   border-radius: var(--el-radius-lg, 12px);
   box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
+}
+/* 头像即上传入口：去掉按钮默认外观，hover/聚焦时浮出「换头像」 */
+.rec-profile__avatar-btn {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: var(--el-radius-lg, 12px);
+}
+.rec-profile__avatar-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+.rec-profile__avatar-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 0;
+  border-radius: 0 0 var(--el-radius-lg, 12px) var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-color-primary) 82%, transparent);
+  color: var(--el-color-white);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+.rec-profile__avatar-btn:hover .rec-profile__avatar-hint,
+.rec-profile__avatar-btn:focus-visible .rec-profile__avatar-hint {
+  opacity: 1;
+}
+/* 隐藏的文件选择框：由点击头像触发 */
+.rec-profile__file {
+  display: none;
 }
 /* 无头像图的实体（班级/教师）用图标牌占据同一位置，保持两个对话框视觉一致 */
 .rec-profile__badge {

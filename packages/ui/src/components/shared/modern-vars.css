@@ -38,7 +38,10 @@
   --rm-height-lg: 44px;
 
   /* 圆角 */
-  --rm-radius: 8px;
+  /* 圆角：默认档对齐 Element 控件圆角（--el-border-radius-base = --el-radius-sm = 6px），
+     与 el-button 统一；原先 8px，与 ReButton Square（曾硬编码 10px）和 el-button 三者不一。
+     md/lg/xl 仍保留梯度。 */
+  --rm-radius: var(--el-radius-sm, 6px);
   --rm-radius-sm: 6px;
   --rm-radius-md: 10px;
   --rm-radius-lg: 12px;
