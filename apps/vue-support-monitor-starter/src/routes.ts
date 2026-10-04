@@ -191,13 +191,18 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("./views/ReleaseView.vue"),
         meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
       },
-      {
-        path: "/projects",
-        name: "Projects",
-        component: () => import("./views/ProjectsView.vue"),
-        meta: { title: "项目管理", icon: "Folder", showLink: false, rank: 21 },
-      },
     ],
+  },
+  {
+    // 项目管理：按需求从「发布管理」菜单摘除（原先 showLink:false 挂在分组 children 下，
+    // 而菜单过滤不递归、菜单组件也不校验子项 showLink，实测展开「发布管理」仍会渲染出它）。
+    // 移到顶层隐藏区才真正生效 —— 与下方 /db-manager 同一套做法。
+    // 路由本身保留可访问：发布管理列表的卡片与「进入」按钮都跳这里（见 ReleaseView.vue），
+    // 直接删掉路由会让那两个入口变成死链。
+    path: "/projects",
+    name: "Projects",
+    component: () => import("./views/ProjectsView.vue"),
+    meta: { title: "项目管理", icon: "Folder", showLink: false, activeMenu: "/release" },
   },
 
   // ==================== 系统管理 ====================
