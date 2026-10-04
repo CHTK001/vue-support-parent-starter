@@ -3,7 +3,9 @@
  *
  * ReTable 各主题/布局共用的 CSS 自定义属性，统一色彩、间距、圆角、阴影、动画。
  * 通过 var(--el-*) 映射，主题切换时自动适配。
- * 暗色模式通过 .dark 类或 prefers-color-scheme 自动切换。
+ * 暗色只跟随应用主题（html.dark 类，由 packages/theme 的 useTheme 统一落），
+ * 不监听 prefers-color-scheme —— 那是操作系统偏好，与应用内的明亮/暗色选择无关，
+ * 一旦跟随会让「应用选明亮但系统是深色」的表格整块变黑。
  */
 
 :root {
@@ -83,17 +85,6 @@
 
   /* 空数据最小高度（撑开空态，避免表格无行时塌成一条线；与 ReTable.tableMinHeight 默认一致） */
   --rt-empty-height: 440px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --rt-bg: #1e293b;
-    --rt-bg-header: #334155;
-    --rt-bg-strip: #243042;
-    --rt-bg-overlay: #1e293b;
-    --rt-border: #475569;
-    --rt-border-hover: #64748b;
-  }
 }
 
 .dark {

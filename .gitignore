@@ -150,3 +150,5 @@ Temp/
 /probe-*.mjs
 /pw-*.mjs
 **/_probe-*.mjs
+/__probe_*.mjs
+**/__probe_*.mjs

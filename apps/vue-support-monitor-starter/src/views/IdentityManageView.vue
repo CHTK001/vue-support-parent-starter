@@ -78,7 +78,7 @@ const columns = [
   { prop: "key", label: "密钥", width: 130, slot: "key" },
   { prop: "hosts", label: "绑定主机", width: 120, slot: "hosts" },
   { prop: "msServerIdentityRemark", label: "备注", minWidth: 140 },
-  { prop: "id", label: "操作", width: 220, slot: "actions" },
+  { prop: "id", label: "操作", width: 220, slot: "actions", align: "right", fixed: "right" },
 ];
 
 const keyColumns = [
@@ -86,7 +86,7 @@ const keyColumns = [
   { prop: "type", label: "类型", width: 90, slot: "type" },
   { prop: "fp", label: "公钥指纹", minWidth: 180, slot: "fp" },
   { prop: "msServerKeyRemark", label: "备注", minWidth: 140 },
-  { prop: "id", label: "操作", width: 120, slot: "actions" },
+  { prop: "id", label: "操作", width: 120, slot: "actions", align: "right", fixed: "right" },
 ];
 
 const list = ref<Identity[]>([]);
@@ -1110,7 +1110,7 @@ async function submitAdd(): Promise<void> {
   border-left: 1px solid var(--border-subtle);
 }
 
-.op-cell { display: flex; gap: 6px; }
+.op-cell { display: flex; gap: 6px; justify-content: flex-end; }
 .sel-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; }
 .dim { color: var(--text-tertiary); }
