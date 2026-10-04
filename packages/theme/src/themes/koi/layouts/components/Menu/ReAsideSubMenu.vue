@@ -1,31 +1,14 @@
 <template>
   <!-- 有下级，用el-sub-menu，无下级用el-menu-item -->
   <template v-for="item in menuList" :key="item.path">
-    <!-- 分组菜单：分组布局(provide 标记)或 meta.isGroup → 分组标题 + 组内平铺可见 items
-         标题走 title 插槽：小号灰标签 + 右侧箭头，箭头是真折叠开关（点标题或箭头都可收起/展开） -->
+    <!-- 分组菜单：分组布局(provide 标记)或 meta.isGroup → 分组标题 + 组内平铺可见 items。
+         标题是**纯分区标签**：不可点、不可折叠 —— 分组只是把同域条目归到一起，
+         给它一个折叠开关只会让人误以为功能被删（需求口径：分组菜单不支持折叠，故无折叠按钮）。 -->
     <el-menu-item-group v-if="isGroupItem(item)">
       <template #title>
-        <button
-          type="button"
-          class="menu-group-title"
-          :class="{ 'is-collapsed': isGroupCollapsed(item) }"
-          :aria-expanded="!isGroupCollapsed(item)"
-          @click.stop="toggleGroup(item)"
-        >
-          <span class="menu-group-title__text" v-text="getMenuLanguage(item.meta?.title)"></span>
-          <svg class="menu-group-title__caret" viewBox="0 0 24 24" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+        <span class="menu-group-title" v-text="getMenuLanguage(item.meta?.title)"></span>
       </template>
-      <!--
-        收起时传空列表而不是 v-show：
-        本组件模板是 v-for 多根节点（fragment），Vue 无法对 fragment 施加 v-show
-        （会报 "Runtime directive used on component with non-element root node" 并**静默失效**，
-        实测点箭头后 aria-expanded 已变 false 但子项仍可见）。
-        传空列表不引入额外包裹元素，避免多一层 div 破坏 el-menu 的结构与 ARIA 语义。
-      -->
-      <ReAsideSubMenu :menuList="isGroupCollapsed(item) ? [] : groupChildren(item)" />
+      <ReAsideSubMenu :menuList="groupChildren(item)" />
     </el-menu-item-group>
     <!-- 单个子菜单且启用折叠：直接渲染子菜单项，用父级图标 -->
     <el-menu-item
@@ -100,7 +83,7 @@
 import ReAsideSubMenu from "@repo/theme/koi/layouts/components/Menu/ReAsideSubMenu.vue";
 import { msgWarning } from "@repo/core";
 import { useRouter } from "vue-router";
-import { inject, provide, ref, type Ref } from "vue";
+import { inject } from "vue";
 import { getMenuLanguage } from "@repo/languages";
 import { getConfig, resolveMenuDefaultIcon } from "@repo/config";
 
@@ -108,32 +91,6 @@ const router = useRouter();
 
 /** 是否处于「分组导航」布局：仅 LayoutGroup 通过 provide 置 true，vertical 等同级布局保持可折叠子菜单 */
 const groupMenuMode = inject<boolean>("koi-group-menu-mode", false);
-
-/**
- * 收起的分组（存分组 path）。
- *
- * <p>本组件会自递归渲染子项，分组也可能出现在任意层级，所以状态必须由**最外层实例**持有并
- * 向下共享：inject 拿到就复用，拿不到（自己就是最外层）才新建并 provide。
- * 若每层各自 provide，收起深层分组时父层不知道，展开状态就会分裂。</p>
- */
-const injectedCollapsed = inject<Ref<Set<string>> | null>("koi-group-collapsed", null);
-const collapsedGroups = injectedCollapsed ?? ref<Set<string>>(new Set<string>());
-provide("koi-group-collapsed", collapsedGroups);
-
-/** 该分组是否已收起 */
-const isGroupCollapsed = (item: any): boolean => collapsedGroups.value.has(String(item?.path ?? ""));
-
-/** 收起 / 展开该分组（就地改 Set，Vue 的 ref 对 Set 变更能触发依赖更新） */
-function toggleGroup(item: any): void {
-  const key = String(item?.path ?? "");
-  const next = new Set(collapsedGroups.value);
-  if (next.has(key)) {
-    next.delete(key);
-  } else {
-    next.add(key);
-  }
-  collapsedGroups.value = next;
-}
 
 // 获取父组件传递过来的数据
 defineProps(["menuList"]);
@@ -361,8 +318,8 @@ const handleMenuRouter = (value: any) => {
 }
 
 /** 分组菜单标题（meta.isGroup）：一级只做分区说明 —— 小号、灰色。
-    标题内已是自定义按钮（文字 + 箭头），本条只负责把 EP 标题容器本身「洗成」透明标签，
-    字号/颜色/字重交给 .menu-group-title 内部控制，避免两处各写一套互相覆盖。
+    标题容器里现在只有一个纯文本 span（无折叠按钮），本条只负责把 EP 标题容器本身
+    「洗成」透明标签，字号/颜色/字重交给 .menu-group-title 与全局 .is-group-nav 规则控制。
     这是 menuConfig.groupNav=false 时的基础外观；开启增强后由全局
     .el-menu.is-group-nav 规则接管（见文件末尾非 scoped 样式块）。 */
 :deep(.el-menu-item-group__title) {
@@ -378,46 +335,15 @@ const handleMenuRouter = (value: any) => {
   }
 }
 
-/** 分组标题行：文字 + 右侧折叠箭头，整行可点（真折叠开关，非装饰） */
+/** 分组标题行：纯分区标签（不可点、不可折叠），只负责单行省略 */
 .menu-group-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   width: 100%;
   min-width: 0;
-  padding: 0;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   user-select: none;
-
-  .menu-group-title__text {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* 箭头：默认指向下方（展开态），收起时旋转 90° 指向右侧 */
-  .menu-group-title__caret {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 0.2s ease;
-  }
-
-  &.is-collapsed .menu-group-title__caret {
-    transform: rotate(-90deg);
-  }
 }
 </style>
 

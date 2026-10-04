@@ -206,17 +206,30 @@ function checkApiResponse(
   if (isApiError(data)) {
     const cfg = getConfig();
     const toastEnable = cfg.http?.toast?.enable ?? true;
+    const rawMsg = data.msg || data.message;
     if (toastEnable && !noToast && !isSilentError(data)) {
-      const msg = data.msg || data.message || i18n.global.t("msg.requestFailed");
+      const msg = rawMsg || i18n.global.t("msg.requestFailed");
       if (claimErrorToast(msg)) msgError(msg);
     }
-    return Promise.reject({
-      code: data.code,
-      msg: data.msg || data.message,
-      message: data.msg || data.message,
-      success: data.success,
-      ok: data.ok,
-    });
+    // 这里必须 reject 一个**真正的 Error**。
+    // 早前是 `Promise.reject({ code, msg, message, success, ok })` —— 一个裸对象，
+    // 于是所有 `e instanceof Error ? e.message : String(e)` 的调用方（本仓几十处）
+    // 都拿到 `String(Object)` = "[object Object]"，把后端提示整段吞掉：
+    // 实测学生登录页密码框下方那行红字就是它，而接口其实返回的是
+    // 「学号或家长手机号不存在，还剩 N 次尝试机会」。
+    // 用 Object.assign 把原有字段挂回 Error 实例，`err.code / err.msg / err.success / err.ok`
+    // 的既有调用方无需改动；同时 `e.message` 也有了可读文案。
+    const err = new Error(rawMsg || i18n.global.t("msg.requestFailed")) as Error & {
+      code?: unknown;
+      msg?: string;
+      success?: boolean;
+      ok?: boolean;
+    };
+    err.code = data.code;
+    err.msg = rawMsg;
+    err.success = data.success;
+    err.ok = data.ok;
+    return Promise.reject(err);
   }
   // 解内层业务包装：后端分页接口返回 {code:"00000", data:{code:0, data:{total,data}}}，
   // 把内层 {code:0, data:{...}} 展平为 {code:"00000", data:{...}}，让业务侧 res.data 直接拿到业务数据。
