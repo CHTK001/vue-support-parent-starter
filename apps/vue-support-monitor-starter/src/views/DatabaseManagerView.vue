@@ -199,7 +199,7 @@
                 @click="headerMode = m.value"
               >{{ m.label }}</span>
             </div>
-            <!-- 行显示模式：数据 / 数据+注释 -->
+            <!-- 行显示模式：数据 / 数据+注释（三档的表头模式在上面的 HEADER_MODES） -->
             <div class="dbm-subtabs">
               <span
                 v-for="m in ROW_MODES"
@@ -1670,7 +1670,15 @@ const HEADER_MODES = [
 ];
 const headerMode = ref<"name" | "comment" | "both">("name");
 
-/** 行显示模式 */
+/**
+ * 行显示模式。
+ *
+ * <p>只有两档：**数据 / 数据+注释**。三档（字段 / 注释 / 字段+注释）在
+ * {@link HEADER_MODES}（表头显示模式）里，那是控制表头文字的；
+ * 两者的 label 不要重名 —— {@code jdbc-workbench-acceptance.mjs} 用
+ * {@code .dbm-subtab:has-text("字段")} 定位，重名后同一个选择器会命中两个元素，
+ * {@code .first()} 拿到哪个取决于渲染顺序，断言就会变得不可预测。</p>
+ */
 const ROW_MODES = [
   { label: "数据", value: "data" as const },
   { label: "数据+注释", value: "data-comment" as const },

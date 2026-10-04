@@ -468,12 +468,26 @@ const panelNote = computed(() => {
     return `${emptyPointsLabels.value.join("、")}的"指定值"尚未选择任何值，当前等同不限`;
   }
   if (rawMode.value) {
-    return `面板无法完整表达该表达式（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），已按原文保留；改动面板只会写回面板能表达的部分，读不懂的字段仍保留原文`;
+    return `面板无法表达 ${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}，已按原文保留`;
   }
   if (nameNormalized.value) {
     return `表达式用了英文名称（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），面板按数字理解、不会改写你的写法`;
   }
   return "与服务端同一套解析引擎算出，保存后的触发时间与此一致";
+});
+
+/**
+ * 底栏提示：只放一句短的。
+ *
+ * <p>此前底栏直接复用 {@link panelNote}，于是同一条"面板读不懂"的说明在摘要条、
+ * 字段编辑区、底栏**同时出现三次** —— 信息量没增加，可读性明显变差。
+ * 详细原因留在摘要条（紧挨表达式），底栏只表明状态。</p>
+ */
+const footerHint = computed(() => {
+  if (analysis.value.empty) return errorText.value;
+  if (!analysis.value.valid) return errorText.value;
+  if (syncWarning.value) return "表达式已按原文保留（原因见上方）";
+  return "与服务端解析一致，保存后的触发时间与此相符";
 });
 
 /**
@@ -967,7 +981,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
           </template>
 
           <div v-if="rawMode" class="re-cron__raw">
-            <span class="re-cron__hint">该表达式的部分字段面板读不懂，已按原文保留（上方字段盒子显示的是真实写法）</span>
+            <span class="re-cron__hint">面板未接管全部字段</span>
             <ReButton type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
           </div>
         </section>
@@ -991,7 +1005,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             class="re-cron__footer-hint"
             :class="{ 'is-error': !analysis.valid && !analysis.empty, 'is-info': analysis.empty || (analysis.valid && !syncWarning) }"
           >
-            {{ analysis.valid ? panelNote : errorText }}
+            {{ footerHint }}
           </span>
           <div class="re-cron__footer-actions">
             <ReButton @click="cancelPanel">取消</ReButton>
