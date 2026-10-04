@@ -13,9 +13,9 @@
           <p class="rag-gate__desc">
             {{ ragStatus?.embeddingIssue || ragStatus?.message || t('knowledge.ragGate.desc') }}
           </p>
-          <el-button type="primary" round @click="goToConfig(ragStatus?.configPath)">
+          <ReButton type="primary" round @click="goToConfig(ragStatus?.configPath)">
             {{ t('knowledge.ragGate.goConfig') }}
-          </el-button>
+          </ReButton>
         </div>
       </div>
     </div>
@@ -496,7 +496,7 @@
               </ReButton>
               <ReButton v-if="graphView.nodes.length > 0" @click="goManage('entity')">管理实体</ReButton>
               <ReButton v-if="graphView.nodes.length > 0" @click="goManage('relation')">管理关系</ReButton>
-              <span v-if="graphError" class="text-sm text-red-500">{{ graphError }}</span>
+              <span v-if="graphError" class="text-sm text-[var(--rm-danger)]">{{ graphError }}</span>
               <span v-else-if="!graphLoading && graphView.nodes.length === 0" class="text-sm kb-graph__hint">
                 <template v-if="graphView.placeholder">
                   暂无图谱数据（尚未抽取过关系）。点「生成图谱」让 AI 从现有知识点里抽一遍。
@@ -529,9 +529,7 @@
               <aside v-if="selectedGraphNode" class="kb-gedetail re-surface">
                 <div class="kb-gedetail__head">
                   <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
-                  <el-button link class="kb-gedetail__close" @click="selectedGraphNode = null">
-                    <el-icon><Close /></el-icon>
-                  </el-button>
+                  <ReButton link class="kb-gedetail__close" :icon="Close" @click="selectedGraphNode = null" />
                 </div>
                 <div class="kb-gedetail__sub">
                   实体 ID:{{ selectedGraphNode.id }}
@@ -564,60 +562,59 @@
             </div>
 
             <!-- 新增/编辑实体表单 -->
-            <LDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" width="460px"
-              append-to-body class="kb-dialog">
-              <div class="kb-form">
-                <div class="kb-field">
-                  <label class="kb-label">名称<i class="kb-req">*</i></label>
+            <ReDialog v-model="showEntityForm" :title="entityForm.id ? '编辑实体' : '新增实体'" :width="460" :close-on-click-modal="false">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
                   <el-input v-model="entityForm.name" maxlength="128" />
                 </div>
-                <div class="kb-field">
-                  <label class="kb-label">类型</label>
-                  <el-select v-model="entityForm.type" class="kb-grow">
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">类型</label>
+                  <el-select v-model="entityForm.type" class="!w-full">
                     <el-option v-for="t in ENTITY_TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
                   </el-select>
                 </div>
-                <div class="kb-field">
-                  <label class="kb-label">说明</label>
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">说明</label>
                   <el-input v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
                 </div>
               </div>
               <template #footer>
-                <el-button @click="showEntityForm = false">取消</el-button>
-                <el-button type="primary" :loading="entityFormSaving" @click="handleSaveEntity">保存</el-button>
+                <ReButton @click="showEntityForm = false">取消</ReButton>
+                <ReButton type="primary" :loading="entityFormSaving" @click="handleSaveEntity">保存</ReButton>
               </template>
-            </LDialog>
+            </ReDialog>
 
             <!-- 新增关系表单 -->
-            <LDialog v-model="showRelationForm" title="新增关系" width="460px" append-to-body class="kb-dialog">
-              <div class="kb-form">
-                <div class="kb-field">
-                  <label class="kb-label">源实体<i class="kb-req">*</i></label>
+            <ReDialog v-model="showRelationForm" title="新增关系" :width="460" :close-on-click-modal="false">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
                   <el-select v-model="relationForm.source" filterable allow-create default-first-option
-                    placeholder="输入或选择已有实体名" class="kb-grow">
+                    placeholder="输入或选择已有实体名" class="!w-full">
                     <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
                   </el-select>
                 </div>
-                <div class="kb-field">
-                  <label class="kb-label">关系类型<i class="kb-req">*</i></label>
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">关系类型<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
                   <el-input v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
                 </div>
-                <div class="kb-field">
-                  <label class="kb-label">目标实体<i class="kb-req">*</i></label>
+                <div>
+                  <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">目标实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
                   <el-select v-model="relationForm.target" filterable allow-create default-first-option
-                    placeholder="输入或选择已有实体名" class="kb-grow">
+                    placeholder="输入或选择已有实体名" class="!w-full">
                     <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
                   </el-select>
                 </div>
-                <div class="kb-hint">
+                <p class="text-xs text-[var(--rm-text-disabled)] leading-relaxed">
                   源/目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝。
-                </div>
+                </p>
               </div>
               <template #footer>
-                <el-button @click="showRelationForm = false">取消</el-button>
-                <el-button type="primary" :loading="relationFormSaving" @click="handleSaveRelation">保存</el-button>
+                <ReButton @click="showRelationForm = false">取消</ReButton>
+                <ReButton type="primary" :loading="relationFormSaving" @click="handleSaveRelation">保存</ReButton>
               </template>
-            </LDialog>
+            </ReDialog>
           </div>
         </div>
       </div>
@@ -760,7 +757,6 @@ import PageHeader from '@/components/PageHeader.vue'
 import { apiService } from '@/services/ApiService'
 import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
-import LDialog from '@/components/ui/LDialog.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 

@@ -134,16 +134,16 @@
     />
 
     <!-- 重命名对话框 -->
-    <LDialog v-model="showRenameDialog" :title="t('knowledge.tree.renameTitle')" width="400px" :close-on-click-modal="false" append-to-body>
+    <ReDialog v-model="showRenameDialog" :title="t('knowledge.tree.renameTitle')" :width="400" :close-on-click-modal="false">
       <el-input v-model="renameForm.newName" :placeholder="t('knowledge.tree.newNamePlaceholder')" @keyup.enter="confirmRename" />
       <template #footer>
         <ReButton @click="showRenameDialog = false">{{ t('common.cancel') }}</ReButton>
         <ReButton type="primary" @click="confirmRename" :loading="renameLoading">{{ t('common.ok') }}</ReButton>
       </template>
-    </LDialog>
+    </ReDialog>
 
     <!-- 移动对话框 -->
-    <LDialog v-model="showMoveDialog" :title="t('knowledge.tree.moveTitle')" width="500px" :close-on-click-modal="false" append-to-body>
+    <ReDialog v-model="showMoveDialog" :title="t('knowledge.tree.moveTitle')" :width="500" :close-on-click-modal="false">
       <div class="max-h-80 overflow-y-auto">
         <!-- 根目录选项 -->
         <div class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[var(--rm-bg-subtle)] rounded"
@@ -171,7 +171,7 @@
         <ReButton @click="showMoveDialog = false">{{ t('common.cancel') }}</ReButton>
         <ReButton type="primary" @click="confirmMove" :loading="moveLoading">{{ t('common.ok') }}</ReButton>
       </template>
-    </LDialog>
+    </ReDialog>
   </div>
 </template>
 
@@ -185,7 +185,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
-import LDialog from '@/components/ui/LDialog.vue'
+import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/re/ReButton.vue'
 
 // 导入文件图标
