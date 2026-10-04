@@ -57,7 +57,7 @@
             </slot>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right" align="right">
           <template #default="scope">
             <el-button type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="danger" link @click="handleDelete(scope.row)">删除</el-button>

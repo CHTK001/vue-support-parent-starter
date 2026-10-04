@@ -349,7 +349,7 @@ async function removeBookmark(id: number): Promise<void> {
         <ReTableColumn label="大小" width="110">
           <template #default="{ row }">{{ row.directory ? '-' : formatSize(row.size) }}</template>
         </ReTableColumn>
-        <ReTableColumn label="操作" width="200">
+        <ReTableColumn label="操作" width="200" align="right" fixed="right">
           <template #default="{ row }">
             <ReButton v-if="!row.directory" link @click="openEditor(joint(row.name))">编辑</ReButton>
             <ReButton v-if="!row.directory" link @click="download(row)">下载</ReButton>

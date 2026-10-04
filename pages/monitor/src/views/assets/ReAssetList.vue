@@ -21,7 +21,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="150" align="right">
           <template #default="{ row }">
             <el-button text type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button text type="danger" @click="handleDelete(row.id)">删除</el-button>

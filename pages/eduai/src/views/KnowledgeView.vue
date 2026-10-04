@@ -191,7 +191,7 @@
         <el-table-column label="时间" width="130">
           <template #default="{ row }">{{ relativeTime(row) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right" align="right">
           <template #default="{ row }">
             <el-button link type="primary" @click.stop="openEdit(row)">编辑</el-button>
             <el-popconfirm :title="`确认删除 ${row.knowledgePointName}?`" @confirm="removeCard(row)">

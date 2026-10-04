@@ -417,7 +417,7 @@ function openDetailPage(row: ServerNodeView, index: number) {
           <ReTag :type="row.enabled === 1 ? 'success' : 'info'">{{ row.enabled === 1 ? '是' : '否' }}</ReTag>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="330" fixed="right">
+      <ReTableColumn label="操作" width="330" fixed="right" align="right">
         <template #default="{ row }">
           <span @click.stop>
             <ReButton

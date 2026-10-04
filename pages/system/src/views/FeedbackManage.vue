@@ -139,7 +139,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysFeedbackRecoverTime", label: "处理时间", width: 168, align: "center", slot: "recoverTime", sortable: "custom" },
   { prop: "sysFeedbackPriority", label: "优先级", width: 90, align: "center", slot: "priority", sortable: "custom" },
   { prop: "sysFeedbackStatus", label: "状态", width: 90, align: "center", slot: "status" },
-  { prop: "action", label: "操作", width: 104, align: "center", fixed: "right", slot: "action" }
+  { prop: "action", label: "操作", width: 104, align: "right", fixed: "right", slot: "action" }
 ];
 
 async function loadFeedback({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {

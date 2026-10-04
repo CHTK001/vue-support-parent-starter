@@ -122,7 +122,7 @@ const taskColumns: ReTableColumn[] = [
   { prop: "retryCount", label: "重试次数", width: 90, align: "center" },
   { prop: "createdAt", label: "创建时间", width: 170, align: "center" },
   { prop: "completedAt", label: "完成时间", width: 170, align: "center" },
-  { prop: "action", label: "操作", width: 220, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 220, slot: "action", fixed: "right", align: "right" },
 ];
 
 const nodeColumns: ReTableColumn[] = [
@@ -133,7 +133,7 @@ const nodeColumns: ReTableColumn[] = [
   { prop: "weight", label: "权重", width: 80, align: "center" },
   { prop: "online", label: "在线", width: 80, slot: "online", align: "center" },
   { prop: "lastHeartbeat", label: "最后心跳", minWidth: 160 },
-  { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right", align: "right" },
 ];
 
 onMounted(() => {

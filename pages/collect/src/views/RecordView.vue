@@ -132,7 +132,7 @@ const columns = computed<ReTableColumn[]>(() => {
     formatter: (row: Record<string, unknown>) => cellOf(row, column.name),
   }));
   return [...base, ...dynamic, { prop: "createTime", label: "采集时间", width: 176 },
-    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right" }];
+    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right", align: "right" }];
 });
 
 /** 字段定义驱动列：未选流程时没有稳定 schema，只展示固定列 */

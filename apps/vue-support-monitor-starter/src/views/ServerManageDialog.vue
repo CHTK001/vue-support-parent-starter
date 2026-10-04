@@ -213,7 +213,7 @@ const columns = [
   { prop: "status", label: "状态", width: 100, slot: "status" },
   { prop: "filters", label: "过滤器", width: 100, slot: "filters" },
   { prop: "serverUrl", label: "访问地址", minWidth: 160, showOverflowTooltip: true },
-  { prop: "actions", label: "操作", width: 220, fixed: "right", slot: "actions" },
+  { prop: "actions", label: "操作", width: 220, fixed: "right", align: "right", slot: "actions" },
 ];
 
 const filterColumns = [
@@ -222,7 +222,7 @@ const filterColumns = [
   { prop: "order", label: "顺序", width: 70 },
   { prop: "enabled", label: "启用", width: 70, formatter: (r: any) => r.enabled === false ? "否" : "是" },
   { prop: "params", label: "参数", width: 100, slot: "params" },
-  { prop: "actions", label: "操作", width: 140, slot: "actions" },
+  { prop: "actions", label: "操作", width: 140, fixed: "right", align: "right", slot: "actions" },
 ];
 
 // 协议/引擎选项
@@ -560,7 +560,7 @@ watch(visible, v => { if (v) loadList(); });
   margin-bottom: 12px;
 }
 .server-mgr-count { margin-left: auto; font-size: 12px; color: var(--tel-text-muted, #94a3b8); }
-.op-cell { display: flex; gap: 4px; }
+.op-cell { display: flex; gap: 4px; justify-content: flex-end; }
 .status-badge {
   display: inline-block;
   padding: 2px 8px;

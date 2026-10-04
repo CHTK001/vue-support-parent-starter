@@ -111,7 +111,7 @@
                 <el-table-column label="状态" width="80">
                   <template #default="{ row }">{{ row.studentStatus === 1 ? "在读" : "离校" }}</template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="210">
+                <el-table-column label="操作" min-width="210" align="right">
                   <template #default="{ row }">
                     <el-button link type="primary" @click.stop="openStudentDialog(row)">编辑</el-button>
                     <el-button link type="warning" @click.stop="openResetDialog(row)">重置口令</el-button>
@@ -160,7 +160,7 @@
                 <el-tag size="small" :type="paperStatusType(row.paperStatus)">{{ paperStatusLabel(row.paperStatus) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" min-width="300">
+            <el-table-column label="操作" min-width="300" align="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
                 <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
@@ -195,7 +195,7 @@
                 </template>
               </el-table-column>
               <el-table-column prop="assignTime" label="布置时间" width="180" />
-              <el-table-column label="操作" width="100">
+              <el-table-column label="操作" width="100" align="right">
                 <template #default="{ row }">
                   <el-button v-if="row.assignStatus === 1" link type="danger" @click.stop="revokeAssign(row)">撤回</el-button>
                 </template>
@@ -277,7 +277,7 @@
                 </el-table-column>
                 <el-table-column prop="markingTaskStage" label="阶段" width="120" />
                 <el-table-column prop="markingTaskCreateTime" label="创建时间" min-width="160" />
-                <el-table-column label="操作" width="110">
+                <el-table-column label="操作" width="110" align="right">
                   <template #default="{ row }">
                     <el-button link type="primary" @click.stop="loadTaskResult(row)">查看</el-button>
                   </template>

@@ -171,7 +171,7 @@ function hostNames(ids?: string): string {
         <template #default="{ row }">{{ hostNames(row.targetHostIds) }}</template>
       </ReTableColumn>
       <ReTableColumn prop="description" label="描述" min-width="140" show-overflow-tooltip />
-      <ReTableColumn label="操作" width="130" fixed="right">
+      <ReTableColumn label="操作" width="130" fixed="right" align="right">
         <template #default="{ row }">
           <ReButton link @click="openEdit(row)">编辑</ReButton>
           <ReButton link type="danger" @click="removePlan(row)">删除</ReButton>

@@ -302,7 +302,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysAnnouncementPublishTime", label: "发布时间", width: 160 },
   { prop: "sysAnnouncementExpireTime", label: "过期时间", width: 160 },
   { prop: "sysAnnouncementPublisherName", label: "发布人", width: 100 },
-  { prop: "action", label: "操作", slot: "action", fixed: "right", width: 240, align: "center" },
+  { prop: "action", label: "操作", slot: "action", fixed: "right", width: 240, align: "right" },
 ];
 
 onMounted(() => {

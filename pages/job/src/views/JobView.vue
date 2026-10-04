@@ -276,7 +276,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "author", label: "负责人", width: 74, slot: "author" },
   /* 操作列：3 个常用方形按钮 + 1 个「更多」下拉触发器 = 4×38 的间距。
      低频/危险动作收进下拉后，不再需要为平铺 6 个按钮留 268px。 */
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "right" },
 ]);
 
 /**
