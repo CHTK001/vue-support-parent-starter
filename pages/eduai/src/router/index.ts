@@ -206,11 +206,13 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     meta: { title: "学生端", icon: "Star", showLink: false, isVisible: "0", keepAlive: false },
   },
   {
-    // 老师端：独立全屏页面，只看本人带的班级
+    // 老师端：独立全屏页面，只看本人带的班级。
+    // position:"top" 与「学生端」走同一顶部菜单通道 —— 否则老师端只有知道 URL 才进得来
+    // （用户反馈「老师的页面呢」正是因为没有可见入口）。
     path: "/edu/teacher",
     name: "EduTeacherPortal",
     component: () => import("../views/portal/TeacherPortalView.vue"),
-    meta: { title: "老师端", icon: "Reading", showLink: false, isVisible: "0", keepAlive: false },
+    meta: { title: "老师端", icon: "Reading", position: "top", showLink: false, isVisible: "0", keepAlive: false },
   },
   {
     // 昆虫图鉴卡片：昆虫识图配对错误时弹出（remind=true 只注册路由、不进菜单，也不被菜单导航控制）

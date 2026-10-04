@@ -2,13 +2,16 @@
   <div class="pp">
     <header class="pp-head">
       <div class="pp-head__row">
-        <div>
-          <h1 class="pp-title">趣味学习</h1>
-          <p class="pp-sub">
-            {{ stageText }} · {{ overview?.student?.grade || "—" }}
-            <span class="pp-sep">|</span>
-            你好，{{ displayName }}
-          </p>
+        <div class="pp-brand">
+          <img class="pp-brand__mascot" :src="mascot" alt="" aria-hidden="true" />
+          <div>
+            <h1 class="pp-title">趣味学习</h1>
+            <p class="pp-sub">
+              {{ stageText }} · {{ overview?.student?.grade || "—" }}
+              <span class="pp-sep">|</span>
+              你好，{{ displayName }}
+            </p>
+          </div>
         </div>
         <div class="pp-pills">
           <!-- 图标统一走 ReIcon：emoji 会被读屏念成「书本」「星星」之类的冗余文本 -->
@@ -72,6 +75,8 @@ import { computed } from "vue";
 import type { PortalModule } from "./modules";
 import { stageLabel } from "./modules";
 import type { StudentOverview } from "../../api/types";
+// 小学端刻意卡通：复用登录页的吉祥物，形成品牌连续性
+import mascot from "../../assets/mascot-book.png";
 
 const props = defineProps<{
   overview: StudentOverview | null;
@@ -121,14 +126,19 @@ function badgeOf(m: PortalModule): number {
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  /* 顶部色带走主色令牌、底部页面底走页面令牌，换主题/切暗色时整页自动跟随 */
-  background: linear-gradient(
-    180deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 42%,
-    var(--el-bg-color-page) 42.1%,
-    var(--el-fill-color-lighter) 100%
-  );
+  /* 小学端刻意卡通：天空蓝渐变 + 纯 CSS 白云（不引图片），与登录页同一套童趣语言 */
+  background:
+    radial-gradient(circle at 10% 12%, rgba(255, 255, 255, 0.55) 0 58px, transparent 59px),
+    radial-gradient(circle at 20% 16%, rgba(255, 255, 255, 0.42) 0 38px, transparent 39px),
+    radial-gradient(circle at 86% 9%, rgba(255, 255, 255, 0.4) 0 44px, transparent 45px),
+    radial-gradient(circle at 94% 14%, rgba(255, 255, 255, 0.3) 0 30px, transparent 31px),
+    linear-gradient(
+      180deg,
+      var(--el-color-primary-light-3) 0%,
+      var(--el-color-primary-light-7) 44%,
+      var(--el-bg-color-page) 44.1%,
+      var(--el-fill-color-lighter) 100%
+    );
 }
 .pp-head {
   padding: 28px 44px 0;
@@ -140,14 +150,36 @@ function badgeOf(m: PortalModule): number {
   gap: 24px;
   flex-wrap: wrap;
 }
+/* 品牌区：吉祥物轻微浮动（小学端卡通氛围） */
+.pp-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pp-brand__mascot {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(12, 70, 130, 0.28));
+  animation: pp-floaty 3.6s ease-in-out infinite;
+}
+@keyframes pp-floaty {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(2deg);
+  }
+}
 .pp-title {
   margin: 0;
-  font-size: 44px;
+  font-size: 46px;
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   color: var(--el-color-white);
-  /* 白字压在主色带上的可读性靠描边阴影，暗色模式下色带更深，描边同样跟随 */
-  text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 10%, transparent);
+  /* 卡通描边：更厚的落下阴影，像贴纸字 */
+  text-shadow: 0 4px 0 color-mix(in srgb, var(--el-color-black) 14%, transparent);
 }
 .pp-sub {
   margin: 10px 0 0;
@@ -213,8 +245,8 @@ function badgeOf(m: PortalModule): number {
 .pp-body {
   margin: 26px 26px 0;
   padding: 30px 30px 22px;
-  /* 原 28px，最近档 16px（xl）；底部两角贴边所以保留 0 */
-  border-radius: var(--el-radius-xl, 16px) var(--el-radius-xl, 16px) 0 0;
+  /* 小学端卡通：更大的圆角 */
+  border-radius: 28px 28px 0 0;
   background: var(--el-bg-color);
   min-height: 60vh;
 }
@@ -229,38 +261,43 @@ function badgeOf(m: PortalModule): number {
   align-items: center;
   gap: 16px;
   padding: 22px 20px;
-  /* 原 20px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
+  /* 小学端卡通：更圆的角、更粗的描边、更大更「贴纸」的图标 */
+  border: 2.5px solid var(--el-color-primary-light-7);
+  border-radius: 24px;
   background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
   outline: none;
   transition:
     transform var(--el-transition-duration-fast, 0.2s) ease,
-    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 .pp-card:hover {
-  transform: translateY(-3px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  /* 卡通悬浮：轻微放大 + 歪一点，像贴纸被戳了一下 */
+  transform: translateY(-4px) scale(1.025) rotate(-1deg);
+  border-color: var(--el-color-primary-light-3);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+}
+.pp-card:active {
+  transform: translateY(-1px) scale(0.99);
 }
 .pp-card:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 .pp-card__ic {
   flex-shrink: 0;
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   border-radius: var(--el-border-radius-circle, 50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景；
-     原来的投影属于装饰性投影，koi 规约只留浮起与焦点环，去掉 */
+  font-size: 30px;
   color: var(--el-color-white);
+  /* 卡通「贴纸」：白描边 + 落下阴影（小学端刻意的装饰投影） */
+  border: 3px solid var(--el-color-white);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--el-color-black) 10%, transparent);
 }
 .pp-card__text {
   display: flex;
@@ -319,10 +356,13 @@ function badgeOf(m: PortalModule): number {
   .pp-head { padding: 20px 20px 0; }
   .pp-body { margin: 18px 12px 0; padding: 20px 16px; }
 }
-/* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
+/* 尊重系统「减少动态效果」偏好：关掉本页全部动画/过渡 */
 @media (prefers-reduced-motion: reduce) {
   .pp-card {
     transition: none;
+  }
+  .pp-brand__mascot {
+    animation: none;
   }
 }
 </style>
