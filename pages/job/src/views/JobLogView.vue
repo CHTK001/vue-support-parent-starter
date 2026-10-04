@@ -142,7 +142,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "message", label: "消息", minWidth: 220, slot: "msg", showOverflowTooltip: true },
   { prop: "nodeId", label: "节点", width: 120, slot: "node", showOverflowTooltip: true },
   { prop: "address", label: "运行客户端", width: 132, slot: "client", showOverflowTooltip: true },
-  { prop: "action", label: "操作", maxWidth: 120, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", maxWidth: 120, slot: "action", fixed: "right", align: "right" },
 ]);
 
 const kpis = computed(() => {

@@ -745,7 +745,7 @@ const questionColumns: ReTableColumn[] = [
   { prop: "questionAddCount", label: "添加次数", width: 100, align: "right", slot: "col-questionAddCount" },
   { prop: "questionAuditStatus", label: "审核状态", width: 100, slot: "col-questionAuditStatus" },
   { prop: "questionStatus", label: "状态", width: 100, slot: "col-questionStatus" },
-  { prop: "actions", label: "操作", width: 70, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 70, align: "right", fixed: "right", slot: "col-actions" },
 ];
 
 const subjectOptions = computed(() => {

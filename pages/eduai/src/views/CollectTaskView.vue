@@ -143,7 +143,7 @@
           <span v-else class="text-gray-400 text-xs">未执行</span>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="220" fixed="right" align="center">
+      <ReTableColumn label="操作" width="220" fixed="right" align="right">
         <template #default="{ row }">
           <ReButton
             icon="VideoPlay"

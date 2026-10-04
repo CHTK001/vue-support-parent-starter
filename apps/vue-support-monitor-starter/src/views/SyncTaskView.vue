@@ -55,7 +55,7 @@
             <span v-else class="st-sub">尚未执行</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right" align="right">
           <template #default="{ row }">
             <ReButton :loading="runningId === row.id" @click="run(row)">
               <template #icon><ReIcon name="VideoPlay" /></template>立即执行

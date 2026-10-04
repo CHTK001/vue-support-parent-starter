@@ -129,7 +129,7 @@
           empty-text="暂无慢调用"
           @row-click="(r: Record<string, unknown>) => openTrace(r as never)"
         >
-          <el-table-column label="操作" min-width="120">
+          <el-table-column label="操作" min-width="120" align="right">
             <template #default="{ row }">
               <span class="mono">{{ String(row.operation ?? '—').slice(0, 24) }}</span>
             </template>

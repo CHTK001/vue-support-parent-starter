@@ -145,7 +145,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysLogMessage", label: "失败原因", minWidth: 150, slot: "message" },
   { prop: "sysDeptName", label: "部门", width: 110, slot: "dept" },
   { prop: "createTime", label: "登录时间", width: 170 },
-  { prop: "action", label: "操作", width: 90, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 90, slot: "action", fixed: "right", align: "right" },
 ];
 </script>
 

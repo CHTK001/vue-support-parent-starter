@@ -597,7 +597,7 @@ async function handleEmailCheck() {
 const detailColumns: ReTableColumn[] = [
   { prop: "info", label: "配置", minWidth: 260, slot: "info" },
   { prop: "value", label: "预览 / 编辑", minWidth: 320, slot: "value" },
-  { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "center" },
+  { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "right" },
 ];
 
 onMounted(() => {
@@ -904,7 +904,7 @@ onMounted(() => {
             <el-button v-if="batchMode" link type="info" @click="exitBatchMode">返回普通查看</el-button>
           </div>
           <el-table :data="batchMode ? batchList : historyList" border stripe style="width: 100%" >
-            <el-table-column prop="sysSettingOperation" label="操作" width="80" align="center">
+            <el-table-column prop="sysSettingOperation" label="操作" width="80" align="right">
               <template #default="{ row }">
                 <el-tag :type="(operationMap[row.sysSettingOperation ?? '']?.type ?? 'info') as never"  effect="plain">
                   {{ operationMap[row.sysSettingOperation ?? '']?.label ?? row.sysSettingOperation }}
@@ -940,7 +940,7 @@ onMounted(() => {
               </template>
             </el-table-column>
             <el-table-column prop="createTime" label="时间" width="170" />
-            <el-table-column label="操作" width="90" fixed="right" align="center">
+            <el-table-column label="操作" width="90" fixed="right" align="right">
               <template #default="{ row }">
                 <el-button type="primary" link  :loading="rollbackLoading === row.sysSettingHistoryId" @click="handleRollbackSingle(row)">
                   回滚

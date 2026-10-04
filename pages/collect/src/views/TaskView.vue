@@ -119,7 +119,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskNodeCount", label: "节点/请求/结果", width: 126, slot: "counts", align: "center" },
   { prop: "collectTaskExecutorId", label: "执行器", width: 200, showOverflowTooltip: true },
   { prop: "collectTaskError", label: "错误", minWidth: 160, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 176, slot: "action", fixed: "right", align: "right" },
 ]);
 
 const logColumns = computed<ReTableColumn[]>(() => [

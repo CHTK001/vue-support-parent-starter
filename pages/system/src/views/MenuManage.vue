@@ -1229,7 +1229,7 @@ onMounted(() => {
                 </template>
               </el-table-column>
               <el-table-column label="创建时间" prop="createTime" width="180px" align="center" />
-              <el-table-column label="操作" align="center" width="130" fixed="right">
+              <el-table-column label="操作" align="right" width="130" fixed="right">
                 <template #default="{ row }">
                   <div class="menu-table-actions">
                     <el-tooltip content="编辑" placement="top">

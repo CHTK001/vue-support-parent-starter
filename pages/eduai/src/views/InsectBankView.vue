@@ -132,7 +132,7 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          <el-table-column label="操作" width="120" align="right" fixed="right">
             <template #default="{ row }">
               <button type="button" class="row-edit-btn" title="编辑" @click.stop="openEdit(row)">
                 <el-icon><EditPen /></el-icon>

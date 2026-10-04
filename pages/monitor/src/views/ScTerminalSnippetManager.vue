@@ -11,7 +11,7 @@
         <ReTableColumn prop="name" label="名称" width="150" />
         <ReTableColumn prop="content" label="命令内容" />
         <ReTableColumn prop="category" label="分类" width="100" />
-        <ReTableColumn label="操作" width="150">
+        <ReTableColumn label="操作" width="150" align="right" fixed="right">
           <template #default="{ row }">
             <ReButton link type="primary" @click="handleEdit(row)">编辑</ReButton>
             <ReButton link type="danger" @click="handleDelete(row.id)">删除</ReButton>
