@@ -271,6 +271,16 @@
             />
             <ReButton layout="square" type="primary" icon="Search" tip="应用过滤（Enter）" @click="applyFilter" />
             <ReButton layout="square" icon="RefreshLeft" tip="清除过滤" @click="clearFilter" />
+            <ReButton
+              layout="square"
+              icon="Filter"
+              tip="高级筛选（列 + 运算符 + 值）"
+              @click="openFilterDialog"
+            />
+            <span
+              v-if="activeFilters.length"
+              class="dbm-filter-badge"
+            >{{ activeFilters.length }} 个条件</span>
             <span class="dbm-spacer" />
             <span v-if="selection.length" class="dbm-sel-count">已选 {{ selection.length }} 行</span>
             <ReButton
@@ -698,6 +708,73 @@
         </template>
       </div>
     </Teleport>
+
+    <!-- 高级筛选弹窗（Navicat 式：列 + 运算符 + 值，多条按 AND 组合） -->
+    <ReDialog v-model="filterDialogVisible" title="高级筛选" width="720px">
+      <div class="dbm-filter-list">
+        <div
+          v-for="(row, i) in filterDraft"
+          :key="i"
+          class="dbm-filter-row"
+          :data-filter-row="i"
+        >
+          <ReSelect
+            v-model="row.column"
+            placeholder="列"
+            style="width: 190px"
+            filterable
+          >
+            <ReOption
+              v-for="c in filterColumns"
+              :key="c.name"
+              :label="columnOptionLabel(c)"
+              :value="c.name"
+            />
+          </ReSelect>
+          <ReSelect
+            v-model="row.op"
+            placeholder="运算符"
+            style="width: 140px"
+          >
+            <ReOption v-for="o in DB_FILTER_OPS" :key="o" :label="o" :value="o" />
+          </ReSelect>
+          <template v-if="dbFilterTakesNoValue(row.op)">
+            <span class="dbm-filter-novalue">该运算符不需要值</span>
+          </template>
+          <template v-else>
+            <ReInput
+              v-model="row.value"
+              :placeholder="dbFilterTakesMultipleValues(row.op) ? '多个值用逗号分隔' : '值'"
+              class="dbm-mono"
+            />
+            <ReInput
+              v-if="dbFilterNeedsValue2(row.op)"
+              v-model="row.value2"
+              placeholder="上界"
+              class="dbm-mono"
+            />
+          </template>
+          <ReButton
+            layout="square"
+            type="danger"
+            plain
+            icon="Delete"
+            tip="删除这一条条件"
+            @click="filterDraft.splice(i, 1)"
+          />
+        </div>
+        <ReEmpty v-if="filterDraft.length === 0" description="还没有条件，点「添加条件」开始" />
+      </div>
+      <template #footer>
+        <ReButton
+          icon="Plus"
+          :show-text="true"
+          @click="filterDraft.push({ column: '', op: '=', value: '', value2: '' })"
+        >添加条件</ReButton>
+        <ReButton @click="filterDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" @click="applyAdvancedFilter">应用筛选</ReButton>
+      </template>
+    </ReDialog>
 
     <!-- 新建表弹窗 -->
     <ReDialog v-model="createTableVisible" title="新建表" width="600px">
@@ -1334,6 +1411,11 @@ import {
   fetchDbTables,
   fetchTableColumns,
   fetchTableData,
+  DB_FILTER_OPS,
+  dbFilterNeedsValue2,
+  dbFilterTakesNoValue,
+  dbFilterTakesMultipleValues,
+  type DbFilterCondition,
   fetchTableDdl,
   fetchForeignKeys,
   executeDbSql,
@@ -1840,10 +1922,124 @@ function applyFilter(): void {
   void loadTableData(tab, 1);
 }
 
-/** 清除 WHERE 过滤 */
+/**
+ * 清除过滤。
+ *
+ * <p>必须**同时**清掉 {@link filterWhere} 与 {@link activeFilters}：
+ * 只清文本框的话，「清除过滤」清不掉高级筛选设的条件，
+ * 而工具条上「N 个条件」标识还亮着 —— 按钮名与实际效果对不上。</p>
+ */
 function clearFilter(): void {
   filterWhere.value = "";
+  activeFilters.value = [];
+  filterDraft.value = [];
   applyFilter();
+}
+
+// ---------- 高级筛选（Navicat 式：列 + 运算符 + 值） ----------
+const filterDialogVisible = ref(false);
+/**
+ * 已生效的结构化筛选条件。
+ *
+ * <p>与 {@link filterWhere}（自由文本）是**两套独立机制**，同时给出时按 AND 组合：
+ * 前者的列名过标识符白名单、值走 PreparedStatement 绑定；
+ * 后者只能靠「拒绝分隔符」的黑名单。两条路径各自的安全性不该互相依赖。</p>
+ */
+const activeFilters = ref<DbFilterCondition[]>([]);
+/** 弹窗里正在编辑的草稿（点「取消」不影响已生效的条件） */
+const filterDraft = ref<DbFilterCondition[]>([]);
+/**
+ * 筛选面板的列候选。
+ *
+ * <p>刻意**不复用** `designColumns`：那个只在「设计视图」加载，
+ * 在数据页签下是空的，于是筛选面板的列下拉会「能打开但一个选项都没有」——
+ * 面板正常、点得开、就是没东西可选，从界面上完全看不出哪里错了。
+ * 这里独立拉一次列，筛选与设计视图互不依赖。</p>
+ */
+const filterColumns = ref<{ name: string; type?: string; remark?: string }[]>([]);
+
+/**
+ * 加载筛选面板用的列候选。
+ *
+ * @param tab 当前表页签
+ */
+async function loadFilterColumns(tab: Tab): Promise<void> {
+  if (!tab.tableName) return;
+  try {
+    const cols = await fetchTableColumns(tab.tableName, currentDatasourceId.value, tab.database);
+    filterColumns.value = cols.map(c => ({ name: c.name, type: c.type, remark: c.remark }));
+  } catch {
+    filterColumns.value = [];
+    ElMessage.error("加载列信息失败，筛选面板没有可选列");
+  }
+}
+
+/**
+ * 下拉里的列选项标签：带类型与注释，避免同名列（大小写不同）分不清。
+ *
+ * @param c 列
+ * @returns 标签文本
+ */
+function columnOptionLabel(c: { name: string; type?: string; remark?: string }): string {
+  const type = c.type ? `（${c.type}${c.remark ? " · " + c.remark : ""}）` : "";
+  return `${c.name}${type}`;
+}
+
+/** 打开高级筛选：草稿初始化为已生效条件的副本 */
+function openFilterDialog(): void {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) {
+    ElMessage.info("先打开一张表再用高级筛选");
+    return;
+  }
+  void loadFilterColumns(tab);
+  filterDraft.value = activeFilters.value.map(f => ({ ...f }));
+  if (filterDraft.value.length === 0) {
+    filterDraft.value.push({ column: "", op: "=", value: "", value2: "" });
+  }
+  filterDialogVisible.value = true;
+}
+
+/**
+ * 应用高级筛选。
+ *
+ * <p>无列名的行按「跳过」处理而不是拼进 SQL：用户在多行编辑时留一行空是常态，
+ * 直接提交会让整条筛选失败并报「列名非法」，而界面上看不出是哪一行的问题。</p>
+ */
+function applyAdvancedFilter(): void {
+  // 有行却一列都没选：当作「还没填完」而不是「清空全部条件」。
+  // 否则用户不小心点掉列下拉再点应用，会**静默丢掉所有已生效的筛选**，
+  // 表现是「我明明设了条件，怎么全表出来了」。
+  if (filterDraft.value.length > 0 && filterDraft.value.every(f => !f.column.trim().length)) {
+    ElMessage.warning("至少给一条条件选择列名");
+    return;
+  }
+  const usable = filterDraft.value.filter(f => f.column.trim().length > 0);
+  const bad = usable.find(f => !DB_FILTER_OPS.includes(f.op as (typeof DB_FILTER_OPS)[number]));
+  if (bad) {
+    ElMessage.warning(`运算符「${bad.op}」不可用`);
+    return;
+  }
+  const missingValue = usable.find(f =>
+    !dbFilterTakesNoValue(f.op)
+    && (!f.value || !f.value.trim().length)
+    && !(dbFilterTakesMultipleValues(f.op) && f.value));
+  if (missingValue) {
+    ElMessage.warning(`条件「${missingValue.column} ${missingValue.op}」还没填值`);
+    return;
+  }
+  const betweenMissing = usable.find(f => dbFilterNeedsValue2(f.op) && !(f.value2 || "").trim().length);
+  if (betweenMissing) {
+    ElMessage.warning(`区间条件「${betweenMissing.column}」缺上界`);
+    return;
+  }
+  activeFilters.value = usable.map(f => ({ ...f }));
+  filterDialogVisible.value = false;
+  const tab = activeTabObj.value;
+  if (tab) {
+    tableData.page = 1;
+    void loadTableData(tab, 1);
+  }
 }
 
 /** 批量删除选中行（按主键定位；无主键时按全列等值定位） */
@@ -2838,7 +3034,7 @@ const indexColumnDefs = [
   { prop: "nonUnique", label: "非唯一", width: 90, formatter: (r: any) => (r.nonUnique ? "是" : "否") },
   { prop: "indexType", label: "类型", width: 80 },
   { prop: "seqInIndex", label: "序号", width: 80 },
-  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right", align: "right" },
+  { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right" },
 ];
 
 // 外键页签（可增删）
@@ -2854,7 +3050,7 @@ const foreignKeyColumnDefs = [
   { prop: "refColumn", label: "引用列", minWidth: 130 },
   { prop: "updateRule", label: "更新规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.updateRule] ?? r.updateRule ?? "" },
   { prop: "deleteRule", label: "删除规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.deleteRule] ?? r.deleteRule ?? "" },
-  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right", align: "right" },
+  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right" },
 ];
 
 /** 引用动作的可选项（与后端白名单一致） */
@@ -4336,6 +4532,7 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       tab.database,
       showTotal.value,
       filterWhere.value || undefined,
+      activeFilters.value.length > 0 ? activeFilters.value : undefined,
     );
     // 期间可能已切表/切页签：过期响应直接丢弃，否则会把网格写回上一张表
     if (seq !== tableDataReqSeq.value || activeTab.value !== tab.id) {
@@ -5719,6 +5916,30 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
 }
 .dbm-filter-input { width: 420px; max-width: 46vw; }
+/* 已生效条件数：用户得知道「现在看到的行是被筛过的」 */
+.dbm-filter-badge {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  border: 1px solid var(--el-color-primary-light-7, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-base, 4px);
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* 高级筛选弹窗 */
+.dbm-filter-list { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto; }
+.dbm-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dbm-filter-row .dbm-mono { width: 150px; }
+.dbm-filter-novalue {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  width: 150px;
+}
 .dbm-sel-count { font-size: 12.5px; color: var(--el-text-color-secondary); }
 
 /* 树分组标题（表 / 视图） */
