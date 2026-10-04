@@ -302,3 +302,191 @@ export const fetchDbExportOptions = () =>
     .get("/ms/monitor/db/export/options")
     .noToast(true)
     .then(r => unwrap<DbExportOptions>(r));
+
+/* ==================== 数据库对象（存储过程 / 函数 / 触发器 / 事件） ==================== */
+
+/** 对象类别 */
+export type DbObjectCategory = "procedure" | "function" | "trigger" | "event";
+
+/** 各类别在树上的展示名与图标 */
+export const DB_OBJECT_CATEGORIES: { value: DbObjectCategory; label: string; icon: string }[] = [
+  { value: "procedure", label: "存储过程", icon: "Document" },
+  { value: "function", label: "函数", icon: "SetUp" },
+  { value: "trigger", label: "触发器", icon: "Lightning" },
+  { value: "event", label: "事件", icon: "AlarmClock" },
+];
+
+/** 对象清单条目（字段随类别略有差异，故用可选属性） */
+export interface DbObjectInfo {
+  name: string;
+  category: string;
+  /** 函数才有：返回类型 */
+  returns?: string | null;
+  /** 函数才有：是否 DETERMINISTIC */
+  deterministic?: boolean;
+  dataAccess?: string | null;
+  /** 例程的 DEFINER */
+  definer?: string | null;
+  /** 触发器才有：作用的表 */
+  table?: string | null;
+  /** 触发器才有：BEFORE / AFTER */
+  timing?: string | null;
+  /** 触发器才有：INSERT / UPDATE / DELETE */
+  event?: string | null;
+  /** 事件才有：ENABLED / DISABLED / SLAVESIDE_DISABLED */
+  status?: string | null;
+  starts?: string | null;
+  ends?: string | null;
+  onCompletion?: string | null;
+  created?: string | null;
+  modified?: string | null;
+  comment?: string | null;
+}
+
+/** 分类计数 */
+export interface DbObjectSummary {
+  counts: Record<DbObjectCategory, number>;
+  /** 某一类读不到时的原因（权限不足 / 内核无此概念） */
+  errors: Record<string, string>;
+}
+
+/**
+ * 取各类对象的数量（树节点角标）。
+ *
+ * @param datasourceId 数据源 ID
+ * @param database 库名
+ */
+export const fetchDbObjectSummary = (datasourceId?: number, database?: string) =>
+  http()
+    .get("/ms/monitor/db/objects/summary")
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<DbObjectSummary>(r));
+
+/**
+ * 列出某类对象。
+ *
+ * @param category 类别
+ * @param datasourceId 数据源 ID
+ * @param database 库名
+ */
+export const fetchDbObjects = (category: DbObjectCategory, datasourceId?: number, database?: string) =>
+  http()
+    .get(`/ms/monitor/db/objects/${category}`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<DbObjectInfo[]>(r));
+
+/**
+ * 读对象定义。
+ *
+ * @param category 类别
+ * @param name 对象名
+ * @param datasourceId 数据源 ID
+ * @param database 库名
+ */
+export const fetchDbObjectDefinition = (
+  category: DbObjectCategory,
+  name: string,
+  datasourceId?: number,
+  database?: string
+) =>
+  http()
+    .get(`/ms/monitor/db/objects/${category}/${encodeURIComponent(name)}/definition`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<string>(r));
+
+/**
+ * 新建或整体替换对象。
+ *
+ * <p>{@code existOk=true} 时后端走「先删后建」实现改定义。</p>
+ *
+ * @param category 类别
+ * @param definition 完整 DDL
+ * @param options 数据源与目标库
+ * @param existOk 是否允许覆盖已存在的同名对象
+ */
+export const saveDbObject = (
+  category: DbObjectCategory,
+  definition: string,
+  options: { datasourceId?: number; database?: string },
+  existOk = false
+) =>
+  http()
+    .post(`/ms/monitor/db/objects/${category}`)
+    .noToast(true)
+    .data({ definition, existOk, ...options })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除对象。
+ *
+ * @param category 类别
+ * @param name 对象名
+ * @param options 数据源与目标库
+ * @param ifExists 对象不存在时是否静默成功
+ */
+export const dropDbObject = (
+  category: DbObjectCategory,
+  name: string,
+  options: { datasourceId?: number; database?: string },
+  ifExists = true
+) =>
+  http()
+    .delete(`/ms/monitor/db/objects/${category}/${encodeURIComponent(name)}`)
+    .noToast(true)
+    .query({ ...options, ifExists })
+    .then(r => unwrap<boolean>(r));
+
+/* ==================== 外键 ==================== */
+
+/** 外键详情（来自 JDBC getImportedKeys） */
+export interface DbForeignKeyInfo {
+  fkName: string;
+  columnName: string;
+  refTable: string;
+  refColumn: string;
+  updateRule?: number | string;
+  deleteRule?: number | string;
+}
+
+/** 新增外键的请求体 */
+export type DbForeignKeyPayload = {
+  name: string;
+  columns: string[];
+  refTable: string;
+  refColumns: string[];
+  onUpdate?: string;
+  onDelete?: string;
+  database?: string;
+  datasourceId?: number;
+};
+
+/**
+ * 新增外键。
+ *
+ * @param tableName 本表
+ * @param payload 外键定义
+ */
+export const addDbForeignKey = (tableName: string, payload: DbForeignKeyPayload) =>
+  http()
+    .post(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/foreign-key`)
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 删除外键。
+ *
+ * @param tableName 本表
+ * @param fkName 约束名
+ * @param datasourceId 数据源 ID
+ * @param database 库名
+ */
+export const dropDbForeignKey = (tableName: string, fkName: string, datasourceId?: number, database?: string) =>
+  http()
+    .delete(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/foreign-key/${encodeURIComponent(fkName)}`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<boolean>(r));
