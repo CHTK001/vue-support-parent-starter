@@ -4,10 +4,9 @@
     <div
       class="thinking-section__header flex items-center text-sm text-gray-700 dark:text-[#8b8d95] cursor-pointer font-medium transition-colors duration-200"
       @click.stop="handleToggle">
-      <el-icon size="15" class="shrink-0">
-        <BrainCircuit20Regular />
-      </el-icon>
-      <span class="text-gray-600 dark:text-gray-400 ml-1.5">{{ isThinking ? t('chat.turn.thinkingActive') : t('chat.turn.thinkingDone') }}</span>
+      <!-- 不再重复画思考图标：外层 ProcessTimeline 的 timeline-rail 已经给了一个，
+           组件内再画会导致同一块思考出现两个图标（用户反馈「思考的图标重复出现」） -->
+      <span class="text-gray-600 dark:text-gray-400">{{ isThinking ? t('chat.turn.thinkingActive') : t('chat.turn.thinkingDone') }}</span>
       <span v-if="thinkingDuration" class="text-xs text-gray-400 ml-2">
         {{ formattedDuration }}
       </span>
@@ -26,9 +25,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, inject } from 'vue';
-import { ElIcon } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { BrainCircuit20Regular } from '@vicons/fluent';
 import MarkdownContent from '../../ui/MarkdownContent.vue';
 import { formatDuration } from '../../../utils/messageUtils';
 
@@ -93,6 +90,13 @@ watch(() => props.isThinking, (isThinking: boolean) => {
 
 .thinking-content {
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 展开态：内容过长时给一个可滚动上限。此前展开后没有上限，
+   超长思考会把整条消息撑得极长且页面无法定位（用户反馈「信息过多无法滚动」）。 */
+.thinking-content:not(.is-collapsed) {
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .thinking-content.is-collapsed {
