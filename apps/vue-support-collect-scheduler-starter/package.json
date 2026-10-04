@@ -23,6 +23,7 @@
     "@repo/config": "workspace:*",
     "@repo/pinia": "workspace:*",
     "@pages/collect": "workspace:*",
+    "@pages/datasource": "workspace:*",
     "@pages/job": "workspace:*"
   },
   "devDependencies": {
