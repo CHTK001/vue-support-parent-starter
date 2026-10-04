@@ -5,7 +5,10 @@
  * 页面免费代理从数据表读取（/ms/server/proxy/list——快）；
  * 获取免费代理走 /ms/server/proxy/free（抓取→清空→录入——较慢）。
  *
- * 视觉：对齐 UI 稿 —— 大标题 + 4 张 KPI 卡（圆形渐变图标）+ 独立筛选条 + 白色表格卡；
+ * 视觉：4 张 ReStatCard 统计卡（紧凑档横排）+ 筛选/操作合并条 + 吃满剩余高度的表格卡。
+ * 顶部原先的大标题 hero 已删除——页面标题由外壳面包屑承担（「监控管理 / 代理管理」），
+ * hero 上的 4 个操作按钮已合并到「查询」按钮右侧，改成图标 + tip（ReButton square 布局），
+ * 单行内完成筛选与全部操作，不再额外占一整块纵向空间。
  * 样式统一使用 koi/Element Plus 变量（--el-*、--el-radius-*、--metric-*），不写死品牌色。
  *
  * 说明：已移除「当前代理」卡片——当前代理 = 代理表第一条（host:port），
@@ -15,8 +18,11 @@
  * @since 4.0.0
  */
 import { computed, onMounted, reactive, ref } from "vue";
+import type { Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { CircleCheck, DataAnalysis, Postcard, Tickets } from "@element-plus/icons-vue";
 import { http, unwrapResult } from "@repo/utils";
+import ReStatCard from "@repo/ui/re-stat-card";
 
 const BASE = "/ms/server/proxy";
 
@@ -78,31 +84,70 @@ const kpiSocks = computed<number>(
 /** 已检测数量（以探测时间为准） */
 const checkedCount = computed<number>(() => freeList.value.filter(p => p.checkTime != null).length);
 
-/** 待检测数量（KPI 徽标） */
+/** 待检测数量（总代理数卡的描述） */
 const uncheckedCount = computed<number>(() => kpiTotal.value - checkedCount.value);
+
+/** 已检测且可达的数量 */
+const reachableCount = computed<number>(
+  () => freeList.value.filter(p => p.checkTime != null && p.reachable).length,
+);
 
 /** 可用率：已检测中可达占比（未检测不参与分母，避免拉取后长期显示 0%） */
 const kpiAvailability = computed<string>(() => {
   if (!checkedCount.value) return "0%";
-  const ok = freeList.value.filter(p => p.checkTime != null && p.reachable).length;
-  return `${Math.round((ok / checkedCount.value) * 100)}%`;
+  return `${Math.round((reachableCount.value / checkedCount.value) * 100)}%`;
 });
 
-/** KPI 卡片定义（tone 映射到 koi 色板，见样式区） */
+/**
+ * KPI 卡片定义。
+ *
+ * <p>{@code icon} 必须是组件（ReStatCard 内部走 {@code <component :is="icon" />}），
+ * 所以这里直接引用 @element-plus/icons-vue 的组件，不再传图标名字符串；
+ * {@code iconColor} 沿用原有的 koi 令牌（原先散在样式区的 --tile 值上移到数据里，
+ * 不写死品牌色）。</p>
+ */
 interface ProxyKpi {
   key: string;
-  label: string;
+  title: string;
   value: number | string;
-  icon: string;
-  tone: "violet" | "blue" | "green" | "orange";
-  badge?: string;
+  desc: string;
+  icon: Component;
+  iconColor: string;
 }
 
 const kpis = computed<ProxyKpi[]>(() => [
-  { key: "total", label: "总代理数", value: kpiTotal.value, icon: "Tickets", tone: "violet", badge: `待检 ${uncheckedCount.value}` },
-  { key: "http", label: "Http", value: kpiHttp.value, icon: "Postcard", tone: "blue" },
-  { key: "socks", label: "Socks5", value: kpiSocks.value, icon: "CircleCheck", tone: "green" },
-  { key: "availability", label: "可用率", value: kpiAvailability.value, icon: "DataAnalysis", tone: "orange" },
+  {
+    key: "total",
+    title: "总代理数",
+    value: kpiTotal.value,
+    desc: `待检 ${uncheckedCount.value}`,
+    icon: Tickets,
+    iconColor: "var(--brand-500, var(--el-color-primary))",
+  },
+  {
+    key: "http",
+    title: "Http",
+    value: kpiHttp.value,
+    desc: "Http + Https",
+    icon: Postcard,
+    iconColor: "var(--metric-cpu, var(--el-color-primary))",
+  },
+  {
+    key: "socks",
+    title: "Socks5",
+    value: kpiSocks.value,
+    desc: "含 Socks4",
+    icon: CircleCheck,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "availability",
+    title: "可用率",
+    value: kpiAvailability.value,
+    desc: `可达 ${reachableCount.value} / 已检 ${checkedCount.value}`,
+    icon: DataAnalysis,
+    iconColor: "var(--metric-disk, var(--el-color-warning))",
+  },
 ]);
 
 /**
@@ -345,35 +390,27 @@ onMounted(loadList);
 
 <template>
   <div class="px">
-    <!-- 页头：大标题 + 操作区（对齐 UI 稿） -->
-    <header class="px-head">
-      <div class="px-head__main">
-        <h1 class="px-title">代理管理</h1>
-        <p class="px-desc">免费代理获取 · 后台代理每次获取清空重录 · 页面从数据库读取</p>
-      </div>
-      <div class="px-head__actions">
-        <ReButton icon="Plus" :show-text="true" size="large" @click="openCreate">新增代理</ReButton>
-        <ReButton icon="MagicStick" :show-text="true" size="large" type="primary" :loading="fetching" @click="fetchFree">获取免费代理</ReButton>
-        <ReButton icon="Monitor" :show-text="true" size="large" :loading="checking" @click="checkAll">批量检测</ReButton>
-        <ReButton icon="Delete" :show-text="true" size="large" type="danger" :disabled="!freeList.length" @click="clearAll">清空代理表</ReButton>
-      </div>
-    </header>
-
-    <!-- KPI 卡：总代理数 / Http / Socks5 / 可用率 -->
+    <!-- KPI 卡：总代理数 / Http / Socks5 / 可用率
+         用 ReStatCard 紧凑档——横排密集概览（图标在左、数值+标题+描述在右），
+         四张并排只占一行，把纵向空间让给下面的表格。 -->
     <section class="px-kpis">
-      <article v-for="k in kpis" :key="k.key" class="px-kpi" :class="`is-${k.tone}`">
-        <span class="px-kpi__tile"><ReIcon :name="k.icon" :size="22" /></span>
-        <div class="px-kpi__body">
-          <div class="px-kpi__label">
-            <span>{{ k.label }}</span>
-            <span v-if="k.badge" class="px-kpi__badge">{{ k.badge }}</span>
-          </div>
-          <div class="px-kpi__value">{{ k.value }}</div>
-        </div>
-      </article>
+      <ReStatCard
+        v-for="k in kpis"
+        :key="k.key"
+        size="compact"
+        :title="k.title"
+        :value="k.value"
+        :desc="k.desc"
+        :icon="k.icon"
+        :icon-color="k.iconColor"
+      />
     </section>
 
-    <!-- 筛选条：关键词 / 协议 / 状态 + 窗口提示 + 查询（字段用包裹层定宽：ReInput 根为 contents、ReSelect 类透传到 el-select） -->
+    <!-- 筛选条 + 操作区合并成一行：关键词 / 协议 / 状态 + 窗口提示 + 查询 + 图标操作组。
+         原顶部 hero 上的 4 个按钮已全部合并到「查询」右侧，改成图标 + tip
+         （ReButton square 布局自带 el-tooltip），不再额外占一整块纵向空间；
+         「每次获取清空重录」的副作用说明从 hero 副标题挪到「获取免费代理」的 tip 里。
+         字段用包裹层定宽：ReInput 根为 contents、ReSelect 类透传到 el-select。 -->
     <section class="px-panel px-filter">
       <div class="px-field px-field--search">
         <ReInput
@@ -406,15 +443,38 @@ onMounted(loadList);
         {{ freeList.length }} 条<template v-if="freeList.length >= LIST_LIMIT">（已达窗口上限，请缩小筛选）</template>
       </span>
       <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="loadList">查询</ReButton>
+      <div class="px-toolbar-ops">
+        <ReButton icon="Plus" layout="square" tip="新增代理" @click="openCreate" />
+        <ReButton
+          icon="MagicStick"
+          layout="square"
+          type="primary"
+          tip="获取免费代理（抓取外部源并清空重录）"
+          :loading="fetching"
+          @click="fetchFree"
+        />
+        <ReButton icon="Monitor" layout="square" tip="批量检测" :loading="checking" @click="checkAll" />
+        <ReButton
+          icon="Delete"
+          layout="square"
+          type="danger"
+          tip="清空代理表"
+          :disabled="!freeList.length"
+          @click="clearAll"
+        />
+      </div>
     </section>
 
-    <!-- 代理列表（从数据表读取——快） -->
+    <!-- 代理列表（从数据表读取——快）。卡片本身是 flex:1 + min-height:0，
+         ReTable 的 fill 由此拿到确定高度，表体内部滚动、表头固定，页面不再出现外层滚动条。 -->
     <section class="px-panel px-table-card">
       <div v-if="fetching" class="px-fetching">
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>正在获取免费代理…（抓取外部源较慢，请稍候）</span>
       </div>
-      <ReEmpty v-else-if="!freeList.length" description="暂无代理，点击「获取免费代理」拉取代理源或「新增代理」手工录入" :image-size="80" />
+      <div v-else-if="!freeList.length" class="px-table-empty">
+        <ReEmpty description="暂无代理，点击「获取免费代理」拉取代理源或「新增代理」手工录入" :image-size="80" />
+      </div>
       <ReTable
         v-else
         :data="freeList"
@@ -491,120 +551,28 @@ onMounted(loadList);
 
 <style scoped lang="scss">
 /* ============================================================
-   代理管理（UI 稿对齐）—— 全部走 koi / Element Plus 变量
+   代理管理 —— 全部走 koi / Element Plus 变量
+   布局：整页 flex 列（KPI / 筛选条 固定高，表格卡 flex:1 吃满剩余高度）
    ============================================================ */
 .px {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 10px 12px 28px;
+  gap: 14px;
+  padding: 10px 12px 12px;
+  /* 撑满外壳主区（.main 是 grid 项，本身高度确定；未设这两条时百分比高度无基准，
+     表格卡的 flex:1 会因为父级是内容高度而拿不到空间）。 */
+  height: 100%;
+  min-height: 0;
   color: var(--el-text-color-primary);
 }
 
-/* ---------- 页头 ---------- */
-.px-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 6px 4px 0;
-}
-.px-head__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.px-title {
-  margin: 0;
-  font-size: clamp(26px, 2.3vw, 34px);
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--el-text-color-primary);
-}
-.px-desc {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-}
-@media (max-width: 900px) {
-  .px-head { flex-direction: column; }
-  .px-head__actions { justify-content: flex-start; }
-}
-
-/* ---------- KPI 卡 ---------- */
+/* ---------- KPI 卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供） ---------- */
 .px-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-}
-@media (max-width: 1280px) {
-  .px-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 640px) {
-  .px-kpis { grid-template-columns: 1fr; }
-}
-
-.px-kpi {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 22px 24px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.px-kpi:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow, var(--shadow-2));
-  border-color: var(--el-border-color);
-}
-
-/* 圆形渐变图标：--tile 为色调令牌（koi 色板），浅深两端由 color-mix 与容器底色混合得出 */
-.px-kpi__tile {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
   flex: none;
-  border-radius: var(--el-radius-full, 9999px);
-  color: var(--el-color-white, var(--text-inverse));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--tile) 62%, var(--el-bg-color)), var(--tile));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--tile) 32%, transparent);
-}
-.px-kpi.is-violet .px-kpi__tile { --tile: var(--brand-500, var(--el-color-primary)); }
-.px-kpi.is-blue .px-kpi__tile { --tile: var(--metric-cpu, var(--el-color-primary)); }
-.px-kpi.is-green .px-kpi__tile { --tile: var(--el-color-success); }
-.px-kpi.is-orange .px-kpi__tile { --tile: var(--metric-disk, var(--el-color-warning)); }
-
-.px-kpi__body { min-width: 0; }
-.px-kpi__label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-}
-.px-kpi__badge {
-  padding: 1px 8px;
-  font-size: 11px;
-  line-height: 18px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
-  border-radius: var(--el-radius-full, 9999px);
-}
-.px-kpi__value {
-  margin-top: 4px;
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-primary);
+  display: grid;
+  /* 紧凑档单卡很窄，用 auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 /* ---------- 通用面板（筛选条 / 表格卡） ---------- */
@@ -615,13 +583,23 @@ onMounted(loadList);
   box-shadow: var(--el-box-shadow-light, var(--shadow-1));
 }
 
-/* 筛选条 */
+/* 筛选条 + 操作区合并成一行 */
 .px-filter {
+  flex: none;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
+}
+/* 操作图标组：与「查询」之间用一条竖线分隔，视觉上区分「筛选」与「操作」。
+   注意类名不能叫 px-ops —— 那是表格行内操作按钮的容器（见样式区末尾）。 */
+.px-toolbar-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
 }
 /* 字段包裹层定宽（ReInput 根 display:contents、ReSelect 类落到内部 el-select，故套一层） */
 .px-field { width: 160px; }
@@ -637,19 +615,36 @@ onMounted(loadList);
   .px-field,
   .px-field--search { width: 100%; }
   .px-filter__meta { margin-left: 0; }
+  /* 换行后竖线分隔不再有意义 */
+  .px-toolbar-ops { padding-left: 0; border-left: none; }
 }
 
-/* 表格卡 */
-.px-table-card { padding: 6px 8px 8px; }
+/* 表格卡：flex:1 + min-height:0 才能吃满剩余高度。
+   min-height 默认是 auto，长内容（表格行多时）会把卡片顶高、外层 .main 出现滚动条，
+   ReTable 的 fill 也因此拿不到确定高度；置 0 后高度由 flex 精确分配、表体内部滚动。 */
+.px-table-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px 8px;
+}
 
 .px-fetching {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 48px 24px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* 空态：占满表格卡剩余高度并居中，避免贴在卡片顶部 */
+.px-table-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
 
 /* 表格外观对齐 UI 稿：表头无底色、去大写、行距更松 */
