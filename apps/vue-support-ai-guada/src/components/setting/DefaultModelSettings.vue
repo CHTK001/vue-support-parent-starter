@@ -140,6 +140,9 @@
           </div>
         </div>
       </div>
+      <template #footer>
+        <ReButton type="default" @click="clearModelField">清空（使用默认）</ReButton>
+      </template>
     </LDialog>
   </div>
 </template>
@@ -155,6 +158,7 @@ import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
 import LDialog from '@/components/ui/LDialog.vue'
+import ReButton from '@/components/re/ReButton.vue'
 import ReTag from '@/components/re/ReTag.vue'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -629,6 +633,19 @@ const openModelDialog = async (group, field) => {
 const selectModel = (modelId) => {
     if (!modelId) return
     updateFieldValue(currentDialogGroup.value, currentDialogField.value, modelId)
+    modelDialogVisible.value = false
+}
+
+/**
+ * 清空当前字段（写入空值覆盖，使其回到「未配置」）。
+ *
+ * <p>此前模型字段一旦选过就再也清不掉：弹框只列出可选模型、没有清空入口，
+ * 而 {@code selectModel} 又要求非空模型 id。这里显式写空值，后端按用户覆盖层存空串，
+ * 读取时即为「未配置」，不会被其它默认值顶回来。</p>
+ */
+const clearModelField = () => {
+    if (!currentDialogGroup.value || !currentDialogField.value) return
+    updateFieldValue(currentDialogGroup.value, currentDialogField.value, '')
     modelDialogVisible.value = false
 }
 
