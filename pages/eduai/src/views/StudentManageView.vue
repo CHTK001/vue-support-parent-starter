@@ -198,32 +198,32 @@
         </div>
       </template>
       <!-- 左右结构：左=学生画像（跟随表单实时预览），右=编辑区（基本资料 / 修改密码） -->
-      <div class="stu-editor">
-        <aside class="stu-profile">
-          <div class="stu-profile__hero">
-            <el-avatar :size="84" :src="stuForm.studentAvatar || ''" class="stu-profile__avatar">
+      <div class="rec-editor">
+        <aside class="rec-profile">
+          <div class="rec-profile__hero">
+            <el-avatar :size="84" :src="stuForm.studentAvatar || ''" class="rec-profile__avatar">
               {{ (stuForm.studentName || "学").slice(0, 1) }}
             </el-avatar>
-            <div class="stu-profile__name">{{ stuForm.studentName || "未命名学生" }}</div>
-            <div class="stu-profile__sub">{{ stuProfileSubline }}</div>
+            <div class="rec-profile__name">{{ stuForm.studentName || "未命名学生" }}</div>
+            <div class="rec-profile__sub">{{ stuProfileSubline }}</div>
           </div>
-          <ul class="stu-profile__list">
-            <li v-for="it in stuProfileItems" :key="it.label" class="stu-profile__item">
-              <span class="stu-profile__ico"><el-icon :size="16"><component :is="it.icon" /></el-icon></span>
-              <div class="stu-profile__meta">
-                <span class="stu-profile__label">{{ it.label }}</span>
-                <span class="stu-profile__value">{{ it.value }}</span>
+          <ul class="rec-profile__list">
+            <li v-for="it in stuProfileItems" :key="it.label" class="rec-profile__item">
+              <span class="rec-profile__ico"><el-icon :size="16"><component :is="it.icon" /></el-icon></span>
+              <div class="rec-profile__meta">
+                <span class="rec-profile__label">{{ it.label }}</span>
+                <span class="rec-profile__value">{{ it.value }}</span>
               </div>
             </li>
           </ul>
         </aside>
 
-        <section class="stu-editor__main">
+        <section class="rec-editor__main">
           <el-tabs v-model="stuTab">
             <el-tab-pane label="基本资料" name="basic">
-              <div class="stu-editor__head">
-                <div class="stu-editor__title">基本资料</div>
-                <div class="stu-editor__desc">维护学生的姓名、学段、班级与联系方式</div>
+              <div class="rec-editor__head">
+                <div class="rec-editor__title">基本资料</div>
+                <div class="rec-editor__desc">维护学生的姓名、学段、班级与联系方式</div>
               </div>
               <el-form :model="stuForm" label-width="88" @submit.prevent>
                 <el-form-item label="学号">
@@ -297,9 +297,9 @@
               </el-form>
             </el-tab-pane>
             <el-tab-pane label="修改密码" name="pwd">
-              <div class="stu-editor__head">
-                <div class="stu-editor__title">登录密码</div>
-                <div class="stu-editor__desc">学生端用「学号 / 家长手机号」+ 此口令登录；留空表示不修改</div>
+              <div class="rec-editor__head">
+                <div class="rec-editor__title">登录密码</div>
+                <div class="rec-editor__desc">学生端用「学号 / 家长手机号」+ 此口令登录；留空表示不修改</div>
               </div>
               <el-form label-width="88" @submit.prevent>
                 <el-form-item label="登录密码">
@@ -325,7 +325,7 @@
     </el-dialog>
 
     <!-- ============ 班级对话框 ============ -->
-    <el-dialog v-model="clsVisible" class="q-dialog" width="560" :show-close="false" align-center>
+    <el-dialog v-model="clsVisible" class="q-dialog" width="860" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -338,32 +338,55 @@
           <ReButton layout="square" :icon="Close" tip="关闭" @click="clsVisible = false" />
         </div>
       </template>
-      <el-form :model="clsForm" label-width="96" @submit.prevent>
-        <el-form-item label="班级名称" required>
-          <el-input v-model="clsForm.className" placeholder="如 三年二班" />
-        </el-form-item>
-        <el-form-item label="班级编码">
-          <el-input v-model="clsForm.classCode" placeholder="留空自动生成" />
-        </el-form-item>
-        <div class="form-grid form-grid--2">
-          <el-form-item label="学段">
-            <el-select v-model="clsForm.classGradeLevel" clearable placeholder="选择学段" style="width: 100%">
-              <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="年级">
-            <el-select v-model="clsForm.classGrade" clearable placeholder="选择年级" style="width: 100%">
-              <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
-            </el-select>
-          </el-form-item>
-        </div>
-        <el-form-item label="状态">
-          <el-radio-group v-model="clsForm.classStatus">
-            <el-radio-button :value="1">启用</el-radio-button>
-            <el-radio-button :value="0">停用</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
+      <div class="rec-editor">
+        <aside class="rec-profile">
+          <div class="rec-profile__hero">
+            <span class="rec-profile__badge"><el-icon :size="34"><Grid /></el-icon></span>
+            <div class="rec-profile__name">{{ clsForm.className || "未命名班级" }}</div>
+            <div class="rec-profile__sub">{{ clsProfileSubline }}</div>
+          </div>
+          <ul class="rec-profile__list">
+            <li v-for="it in clsProfileItems" :key="it.label" class="rec-profile__item">
+              <span class="rec-profile__ico"><el-icon :size="16"><component :is="it.icon" /></el-icon></span>
+              <div class="rec-profile__meta">
+                <span class="rec-profile__label">{{ it.label }}</span>
+                <span class="rec-profile__value">{{ it.value }}</span>
+              </div>
+            </li>
+          </ul>
+        </aside>
+
+        <section class="rec-editor__main">
+          <div class="rec-editor__head">
+            <div class="rec-editor__title">基本资料</div>
+            <div class="rec-editor__desc">班级是学生的必填归属；学生端登记时填的班级名也会自动建立</div>
+          </div>
+          <el-form :model="clsForm" label-width="88" @submit.prevent>
+            <el-form-item label="班级名称" required>
+              <el-input v-model="clsForm.className" placeholder="如 三年二班" />
+            </el-form-item>
+            <el-form-item label="班级编码">
+              <el-input v-model="clsForm.classCode" placeholder="留空自动生成" />
+            </el-form-item>
+            <el-form-item label="学段">
+              <el-select v-model="clsForm.classGradeLevel" clearable placeholder="选择学段" style="width: 100%">
+                <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="年级">
+              <el-select v-model="clsForm.classGrade" clearable placeholder="选择年级" style="width: 100%">
+                <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-radio-group v-model="clsForm.classStatus">
+                <el-radio-button :value="1">启用</el-radio-button>
+                <el-radio-button :value="0">停用</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+        </section>
+      </div>
       <template #footer>
         <div class="dialog-foot">
           <el-button @click="clsVisible = false">取消</el-button>
@@ -373,7 +396,7 @@
     </el-dialog>
 
     <!-- ============ 教师对话框 ============ -->
-    <el-dialog v-model="teaVisible" class="q-dialog" width="560" :show-close="false" align-center>
+    <el-dialog v-model="teaVisible" class="q-dialog" width="860" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -386,26 +409,51 @@
           <ReButton layout="square" :icon="Close" tip="关闭" @click="teaVisible = false" />
         </div>
       </template>
-      <el-form :model="teaForm" label-width="96" @submit.prevent>
-        <el-form-item label="工号" required>
-          <el-input v-model="teaForm.teacherNo" placeholder="如 T2024001" />
-        </el-form-item>
-        <el-form-item label="姓名" required>
-          <el-input v-model="teaForm.teacherName" placeholder="如 王老师" />
-        </el-form-item>
-        <el-form-item label="任教学科">
-          <el-input v-model="teaForm.teacherSubjectCode" placeholder="如 MATH" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="teaForm.teacherStatus">
-            <el-radio-button :value="1">在职</el-radio-button>
-            <el-radio-button :value="0">离职</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="绑定账号">
-          <el-input :model-value="teaForm.teacherAccount || '（老师首次进老师端时自行绑定）'" disabled />
-        </el-form-item>
-      </el-form>
+      <div class="rec-editor">
+        <aside class="rec-profile">
+          <div class="rec-profile__hero">
+            <span class="rec-profile__badge"><el-icon :size="34"><Reading /></el-icon></span>
+            <div class="rec-profile__name">{{ teaForm.teacherName || "未命名教师" }}</div>
+            <div class="rec-profile__sub">{{ teaProfileSubline }}</div>
+          </div>
+          <ul class="rec-profile__list">
+            <li v-for="it in teaProfileItems" :key="it.label" class="rec-profile__item">
+              <span class="rec-profile__ico"><el-icon :size="16"><component :is="it.icon" /></el-icon></span>
+              <div class="rec-profile__meta">
+                <span class="rec-profile__label">{{ it.label }}</span>
+                <span class="rec-profile__value">{{ it.value }}</span>
+              </div>
+            </li>
+          </ul>
+        </aside>
+
+        <section class="rec-editor__main">
+          <div class="rec-editor__head">
+            <div class="rec-editor__title">基本资料</div>
+            <div class="rec-editor__desc">工号是老师端绑定的关键字段；绑定账号由老师首次进老师端时自行绑定</div>
+          </div>
+          <el-form :model="teaForm" label-width="88" @submit.prevent>
+            <el-form-item label="工号" required>
+              <el-input v-model="teaForm.teacherNo" placeholder="如 T2024001" />
+            </el-form-item>
+            <el-form-item label="姓名" required>
+              <el-input v-model="teaForm.teacherName" placeholder="如 王老师" />
+            </el-form-item>
+            <el-form-item label="任教学科">
+              <el-input v-model="teaForm.teacherSubjectCode" placeholder="如 MATH" />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-radio-group v-model="teaForm.teacherStatus">
+                <el-radio-button :value="1">在职</el-radio-button>
+                <el-radio-button :value="0">离职</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="绑定账号">
+              <el-input :model-value="teaForm.teacherAccount || '（老师首次进老师端时自行绑定）'" disabled />
+            </el-form-item>
+          </el-form>
+        </section>
+      </div>
       <template #footer>
         <div class="dialog-foot">
           <el-button @click="teaVisible = false">取消</el-button>
@@ -758,6 +806,23 @@ async function openResetPassword(row: EduStudent) {
 // ==================== 班级 ====================
 const clsVisible = ref(false);
 const clsForm = reactive<Partial<EduClass>>({});
+/** 班级画像副标题：学段 · 年级（全空给「未设置」） */
+const clsProfileSubline = computed(() => {
+  const parts = [levelText(clsForm.classGradeLevel), clsForm.classGrade].filter((x) => x && x !== "—");
+  return parts.length ? parts.join(" · ") : "未设置学段年级";
+});
+/** 班级画像信息卡：跟随 clsForm 实时预览 */
+const clsProfileItems = computed(() => [
+  { label: "班级编码", value: clsForm.classCode || "保存后自动生成", icon: Grid },
+  {
+    label: "学段",
+    value: levelText(clsForm.classGradeLevel) === "—" ? "未填" : levelText(clsForm.classGradeLevel),
+    icon: School,
+  },
+  { label: "年级", value: clsForm.classGrade || "未填", icon: Collection },
+  { label: "学生数", value: clsForm.classId ? `${studentsInClass(clsForm.classId)} 人` : "—", icon: User },
+  { label: "状态", value: clsForm.classStatus === 0 ? "停用" : "启用", icon: CircleCheck },
+]);
 
 function openClass(row?: EduClass) {
   Object.keys(clsForm).forEach((k) => delete (clsForm as Record<string, unknown>)[k]);
@@ -818,6 +883,19 @@ async function removeClass(row: EduClass) {
 // ==================== 教师 ====================
 const teaVisible = ref(false);
 const teaForm = reactive<Partial<EduTeacher>>({});
+/** 教师画像副标题：工号 · 任教学科（全空给「未设置」） */
+const teaProfileSubline = computed(() => {
+  const parts = [teaForm.teacherNo, teaForm.teacherSubjectCode].filter((x) => x && String(x).trim());
+  return parts.length ? parts.join(" · ") : "未设置工号/学科";
+});
+/** 教师画像信息卡：跟随 teaForm 实时预览 */
+const teaProfileItems = computed(() => [
+  { label: "工号", value: teaForm.teacherNo || "未填", icon: Postcard },
+  { label: "姓名", value: teaForm.teacherName || "未填", icon: User },
+  { label: "任教学科", value: teaForm.teacherSubjectCode || "未填", icon: Reading },
+  { label: "状态", value: teaForm.teacherStatus === 0 ? "离职" : "在职", icon: CircleCheck },
+  { label: "绑定账号", value: teaForm.teacherAccount || "首次进老师端时自行绑定", icon: Link },
+]);
 
 function openTeacher(row?: EduTeacher) {
   Object.keys(teaForm).forEach((k) => delete (teaForm as Record<string, unknown>)[k]);
@@ -1178,51 +1256,64 @@ onMounted(() => {
   }
 }
 
-/* ============ 学生对话框：左右结构（左画像 / 右编辑）============ */
-.stu-editor {
+/* ============ 数据配置对话框：左右结构（学生 / 班级 / 教师 共用）============ */
+/* 左画像 / 右编辑；学生用大头像，班级/教师无头像图故用图标牌 */
+.rec-editor {
   display: grid;
   grid-template-columns: 296px minmax(0, 1fr);
   min-height: 440px;
 }
 @media (max-width: 860px) {
-  .stu-editor {
+  .rec-editor {
     grid-template-columns: minmax(0, 1fr);
   }
-  .stu-profile {
+  .rec-profile {
     border-right: none;
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
 }
 /* 左：学生画像 */
-.stu-profile {
+.rec-profile {
   padding: 26px 18px;
   border-right: 1px solid var(--el-border-color-lighter);
   background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-fill-color-blank) 240px);
 }
-.stu-profile__hero {
+.rec-profile__hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   padding-bottom: 18px;
 }
-.stu-profile__avatar {
+.rec-profile__avatar {
   border-radius: var(--el-radius-lg, 12px);
   box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
 }
-.stu-profile__name {
+/* 无头像图的实体（班级/教师）用图标牌占据同一位置，保持两个对话框视觉一致 */
+.rec-profile__badge {
+  width: 84px;
+  height: 84px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-lg, 12px);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  color: var(--el-color-white);
+  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
+}
+.rec-profile__name {
   margin-top: 10px;
   font-size: 17px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   line-height: 1.3;
 }
-.stu-profile__sub {
+.rec-profile__sub {
   margin-top: 2px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
-.stu-profile__list {
+.rec-profile__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1230,7 +1321,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 8px;
 }
-.stu-profile__item {
+.rec-profile__item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1239,7 +1330,7 @@ onMounted(() => {
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color-overlay);
 }
-.stu-profile__ico {
+.rec-profile__ico {
   width: 30px;
   height: 30px;
   flex-shrink: 0;
@@ -1250,38 +1341,38 @@ onMounted(() => {
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
-.stu-profile__meta {
+.rec-profile__meta {
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
-.stu-profile__label {
+.rec-profile__label {
   font-size: 11px;
   line-height: 1.4;
   color: var(--el-text-color-secondary);
 }
-.stu-profile__value {
+.rec-profile__value {
   font-size: 13px;
   line-height: 1.5;
   color: var(--el-text-color-primary);
   overflow-wrap: anywhere;
 }
 /* 右：编辑区 */
-.stu-editor__main {
+.rec-editor__main {
   padding: 18px 22px 4px;
   min-width: 0;
 }
-.stu-editor__head {
+.rec-editor__head {
   padding-bottom: 12px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.stu-editor__title {
+.rec-editor__title {
   font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-primary);
 }
-.stu-editor__desc {
+.rec-editor__desc {
   margin-top: 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
