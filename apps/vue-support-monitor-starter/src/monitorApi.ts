@@ -321,36 +321,9 @@ export const delAlarmWindow = (id: number) =>
 
 // ==================== 系统 Redis 信息（当前应用自身连接的 Redis，与监控资产/Agent 无关） ====================
 
-/**
- * 当前系统 Redis 指标（INFO 解析后的 key 数值表）
- * @author CH
- * @since 4.0.0
- */
-export interface SystemRedisInfo {
-  connected_clients?: number;
-  used_memory?: number;
-  used_memory_human?: string;
-  os?: string;
-  redis_version?: string;
-  uptime_in_seconds?: number;
-  instantaneous_ops_per_sec?: number;
-  keyspace_hits?: number;
-  keyspace_misses?: number;
-  total_connections_received?: number;
-  total_commands_processed?: number;
-  role?: string;
-  [key: string]: number | string | undefined;
-}
-
-/**
- * 获取当前系统自身连接 Redis 的运行指标
- * @returns Redis 指标信息，无 Redis 时为 null
- */
-export const fetchSystemRedisInfo = () =>
-  http()
-    .get("/ms/monitor/system/redis-info")
-    .then(r => unwrap<SystemRedisInfo | null>(r));
-
+// 说明：原「系统自身 Redis 运行指标」接口（SystemRedisInfo + fetchSystemRedisInfo，
+// /ms/monitor/system/redis-info）随「Redis 监控」页一并下线。下方「Redis 资产时序指标」
+// 是另一套功能（主机侧 Redis exporter 的 /ms/monitor/metric/redis），不受影响。
 // ==================== 监控 Redis 资产时序指标（/ms/monitor/metric/redis） ====================
 
 /**

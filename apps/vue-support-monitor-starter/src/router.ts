@@ -1,8 +1,10 @@
 /**
  * 监控管理平台路由 —— 对齐 prototype.html 的页面清单：
- * 概览 · 告警 · Redis 监控 · 抓包分析 · 主机资产 · 主机详情 · 远程控制 · 监控配置
+ * 概览 · 告警 · 抓包分析 · 主机资产 · 主机详情 · 远程控制 · 监控配置
  *
  * 说明：当前主入口 main.ts 走 routes.ts + koi 布局，本文件保留为独立路由配置。
+ * 「Redis 监控」已下线（路由、视图、API 与 6 个键值编辑器组件一并删除），
+ * 故本表不再保留 /redis 条目。
  * @author CH
  * @since 4.0.0
  */
@@ -11,7 +13,6 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-rou
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/groups" },
   { path: "/alarms", name: "alarms", component: () => import("./views/AlarmsView.vue"), meta: { title: "告警中心" } },
-  { path: "/redis", name: "redis", component: () => import("./views/RedisView.vue"), meta: { title: "Redis 监控" } },
   { path: "/tshark", name: "tshark", component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"), meta: { title: "抓包分析" } },
   { path: "/assets", name: "assets", component: () => import("./views/AssetsView.vue"), meta: { title: "主机资产" } },
   { path: "/host/:id", name: "host-detail", component: () => import("./views/HostDetailView.vue"), meta: { title: "主机监控详情" } },
