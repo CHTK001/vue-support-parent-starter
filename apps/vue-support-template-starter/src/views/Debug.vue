@@ -64,7 +64,13 @@
       <section class="debug__preview">
         <div class="debug__preview-head">
           <span>实时预览</span>
-          <el-tag effect="plain" round>{{ name }}</el-tag>
+          <span class="debug__preview-meta">
+            <!-- 最近一次组件事件：工作台本就该显示"组件往外发了什么"。
+                 有了它，「挂载即发 change」这类"零交互时是否已经通知父组件"的行为
+                 才能被自动验收（只断言渲染结果看不出事件有没有发出来）。 -->
+            <span class="debug__event" data-testid="debug-event">{{ eventText }}</span>
+            <el-tag effect="plain" round>{{ name }}</el-tag>
+          </span>
         </div>
         <div class="debug__preview-body">
           <!-- 结构化参数模式 -->
@@ -73,6 +79,7 @@
               :is="name"
               v-bind="vBindProps"
               v-model="state.model"
+              @change="onComponentEvent"
             >
               <template v-for="slot in templateMeta?.slots" :key="slot.name" #[slot.name]>
                 {{ state.slots[slot.name] }}
@@ -86,6 +93,7 @@
               :is="name"
               v-bind="rawProps"
               v-model="state.model"
+              @change="onComponentEvent"
             >
               <template v-for="(text, slotName) in state.slots" :key="slotName" #[slotName]>
                 {{ text }}
@@ -141,11 +149,12 @@ function initialState(): TemplateState {
       };
 }
 
-/** 路由变化时重置状态 */
+/** 路由变化时重置状态与事件记录（事件记录是"每次加载"的语义，切组件后必须清掉） */
 watch(
   name,
   () => {
     state.value = initialState();
+    lastEvent.value = null;
   },
 );
 
@@ -207,6 +216,28 @@ const debugCode = computed(() => {
 });
 
 const goHome = () => router.push("/home");
+
+/**
+ * 最近一次组件向父组件发出的事件。
+ *
+ * <p>为什么要有：只断言渲染结果无法证明"事件发出去了"。像 ReCron 的
+ * {@code change} 是否**在挂载时就发**（父组件要靠它拿到初始合法性）完全不可见，
+ * 必须把事件本身显示出来才能自动验收。</p>
+ */
+const lastEvent = ref<{ name: string; args: unknown[] } | null>(null);
+
+/** 转发组件事件（库内自定义事件目前只有 change 一类，按名转发即可） */
+const onComponentEvent = (...args: unknown[]) => {
+  lastEvent.value = { name: "change", args };
+};
+
+/** 事件的一行文本：字符串加引号，其余按原样 */
+const eventText = computed(() => {
+  const e = lastEvent.value;
+  if (!e) return "本次加载尚未触发事件";
+  const fmt = (v: unknown) => (typeof v === "string" ? JSON.stringify(v) : String(v));
+  return `${e.name}(${e.args.map(fmt).join(", ")})`;
+});
 </script>
 
 <style lang="scss" scoped>
@@ -352,6 +383,25 @@ const goHome = () => router.push("/home");
   background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
+}
+
+.debug__preview-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 最近一次组件事件：等宽、次要色，长表达式允许省略，不挤占组件名标签 */
+.debug__event {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
 }
 
 .debug__preview-body {
