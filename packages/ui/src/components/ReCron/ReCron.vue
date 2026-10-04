@@ -461,6 +461,22 @@ const errorText = computed(() => {
 /** 字段 key → 中文单字，用于"哪些字段面板读不懂"的提示 */
 const LABEL_OF: Record<string, string> = { sec: "秒", min: "分", hour: "时", day: "日", month: "月", week: "周" };
 
+/**
+ * 面板**真的读不懂**的字段（语法层面解析不了）。
+ *
+ * <p>与 {@link spellingDiff} 必须分开：`?`（日/周里表示"不指定"）与英文名称都是
+ * 面板读得懂的写法，只是无法原样复现，写回去会变成 `*` / 数字。把它们说成
+ * "面板无法表达"是误报 —— 实测截图里 `0 30 9 ? * MON-FRI` 被报成
+ * "面板无法表达 日=?"，而 `?` 恰恰是最常见的写法，还会给出一个毫无意义的
+ * "按表达式重建面板"按钮。</p>
+ */
+const notUnderstood = computed(() => FIELDS.filter((f) => !panelParsed[f.key]).map((f) => f.label));
+
+/** 面板读得懂、但写回去会改变写法（`?`、英文名称、周写 7、倒序区间）的字段 */
+const spellingDiff = computed(() =>
+  FIELDS.filter((f) => panelParsed[f.key] === true && rawTokens[f.key] !== undefined).map((f) => f.label),
+);
+
 /** "指定值"点了但一个都没选的字段（这些字段当前会写成 `*`） */
 const emptyPointsLabels = computed(() =>
   FIELDS.filter((f) => state[f.key].mode === "points" && !state[f.key].points.length).map((f) => f.label),
@@ -477,11 +493,13 @@ const panelNote = computed(() => {
   if (emptyPointsLabels.value.length && !rawMode.value && !nameNormalized.value) {
     return `${emptyPointsLabels.value.join("、")}的"指定值"尚未选择任何值，当前等同不限`;
   }
-  if (rawMode.value) {
-    return `面板无法表达 ${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}，已按原文保留`;
+  if (notUnderstood.value.length) {
+    return `面板读不懂 ${unsynced.filter((k) => !panelParsed[k]).map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}，已按原文保留`;
   }
-  if (nameNormalized.value) {
-    return `表达式用了英文名称（${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}），面板按数字理解、不会改写你的写法`;
+  /* 英文名称、`?`、周写 7、倒序区间同属"面板读得懂但写法不同"。
+     不要把它们分别贴标签：`?` 不是名称，写成"用了英文名称（日=?）"是错的。 */
+  if (spellingDiff.value.length) {
+    return `面板不会改写你的写法：${unsynced.map((k) => `${LABEL_OF[k]}=${rawTokens[k]}`).join("、")}（按数字理解，保存时保持原文）`;
   }
   return "与服务端同一套解析引擎算出，保存后的触发时间与此一致";
 });
@@ -509,7 +527,14 @@ const footerHint = computed(() => {
  */
 const syncWarning = computed(() => {
   if (analysis.value.empty) return "";
-  if (rawMode.value || nameNormalized.value || emptyPointsLabels.value.length) return panelNote.value;
+  if (
+    notUnderstood.value.length ||
+    nameNormalized.value ||
+    emptyPointsLabels.value.length ||
+    spellingDiff.value.length
+  ) {
+    return panelNote.value;
+  }
   return "";
 });
 
@@ -521,16 +546,9 @@ const syncWarning = computed(() => {
  */
 const syncBadge = computed(() => {
   if (analysis.value.empty) return "";
-  const keys = Object.keys(rawTokens);
-  if (rawMode.value && keys.length) {
-    return `面板未接管 ${keys.map((k) => LABEL_OF[k]).join("、")}`;
-  }
-  if (nameNormalized.value && keys.length) {
-    return `名称写法未改写（${keys.map((k) => LABEL_OF[k]).join("、")}）`;
-  }
-  if (emptyPointsLabels.value.length) {
-    return `${emptyPointsLabels.value.join("、")}未选值，等同不限`;
-  }
+  if (notUnderstood.value.length) return `面板未接管 ${notUnderstood.value.join("、")}`;
+  if (spellingDiff.value.length) return `原样保留 ${spellingDiff.value.join("、")}`;
+  if (emptyPointsLabels.value.length) return `${emptyPointsLabels.value.join("、")}未选值，等同不限`;
   return "";
 });
 
@@ -990,8 +1008,10 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
             </div>
           </template>
 
-          <div v-if="rawMode" class="re-cron__raw">
-            <span class="re-cron__hint">面板未接管全部字段</span>
+          <!-- 只有在"面板真的读不懂"时才有重建的意义；`?`、英文名称这类只是写法不同，
+               给"重建面板"按钮等于给了个按了没变化的按钮。 -->
+          <div v-if="notUnderstood.length" class="re-cron__raw">
+            <span class="re-cron__hint">面板读不懂 {{ notUnderstood.join("、") }}</span>
             <ReButton type="primary" plain @click="useExpressionText">按表达式重建面板</ReButton>
           </div>
         </section>
