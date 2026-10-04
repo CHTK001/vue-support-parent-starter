@@ -120,5 +120,11 @@ export function deriveTurnPhases(
     order.splice(order.length, 0, "editFile");
   }
 
+  // 只有「组织回答」一个阶段时，说明本轮既没思考也没调工具——阶段条不含任何过程信息，
+  // 纯属噪音。按需求「没信息就不要显示出来」直接返回空数组（调用方 v-if 自然不渲染）。
+  if (order.length === 1 && order[0] === "compose") {
+    return [];
+  }
+
   return order.map((kind) => ({ kind, count: counts.get(kind) || 0 }));
 }

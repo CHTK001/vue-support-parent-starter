@@ -5,6 +5,12 @@
     <!-- User 部分 -->
     <!-- ============================================ -->
     <div v-if="turn.user" class="user-section">
+      <!-- 用户头像（与助手侧同构：小头像 + 名称，整体右对齐） -->
+      <div class="user-header">
+        <span v-if="userDisplayName" class="user-header__name">{{ userDisplayName }}</span>
+        <Avatar class="w-6 h-6 ml-2.5" type="user" :round="true"
+          :src="authStore.user?.avatarUrl" :name="userDisplayName" />
+      </div>
       <div class="message-item__wrapper">
         <div class="message-item__card message-item--hover" :title="userTime.full">
           <!-- 用户文本 -->
@@ -245,9 +251,18 @@ import FileDiffDialog from './message-item/FileDiffDialog.vue';
 import PlanApprovalCard from './message-item/PlanApprovalCard.vue';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
 import { deriveTurnPhases } from '@/utils/turnPhases';
+import { useAuthStore } from '@/stores/auth';
 
 const { toast } = usePopup();
 const { t } = useI18n();
+const authStore = useAuthStore();
+
+/**
+ * 当前登录用户的展示名：优先昵称，退回用户名；都缺时返回空串（模板据此不渲染名字）。
+ */
+const userDisplayName = computed(
+  () => authStore.user?.nickname || authStore.user?.username || '',
+);
 
 const props = defineProps<{
   turn: { user: Message; assistants: Message[] };
@@ -812,6 +827,20 @@ const handleClick = (event: MouseEvent) => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+}
+
+/* 用户头像行：与助手侧同构（小头像 + 名称），整体右对齐 */
+.user-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--color-text-gray);
+}
+
+.user-header__name {
+  font-weight: 500;
 }
 
 .user-section .message-item__card {
