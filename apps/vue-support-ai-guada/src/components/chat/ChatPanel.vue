@@ -921,47 +921,46 @@ function editMessage(message: any) {
 }
 
 /**
- * 判定错误是否为「端点不存在 / 资源不存在」（404）。
+ * 判定错误是否为「后端没有提供该端点」—— 404（未映射路径）或 405（路径存在但不支持该方法）。
  *
- * 用于回退时决定是否降级。ApiError 的状态字段在不同版本里出现过
- * status / statusCode 两种，这里都取一遍，避免只认一种导致降级分支永远不触发。
+ * <p>回退动作据此决定是否降级为逐条删除。**必须同时认 405**：批量回退端点是
+ * {@code DELETE /sessions/{id}/messages}，而后端已存在 {@code GET /sessions/{id}/messages}
+ * 的映射，Spring 对这种情况返回的是 **405**（"不支持DELETE请求，请使用GET方法"）而不是 404；
+ * 只认 404 会让降级分支永远不触发，界面只剩「回退失败」。</p>
+ *
+ * <p>ApiError 的状态字段在不同版本里出现过 status / statusCode 两种，这里都取一遍。</p>
  *
  * @param error 捕获到的错误
- * @returns 是 404 时为 true
+ * @returns 端点缺失（404/405）时为 true
  */
-function isNotFound(error: any): boolean {
+function isEndpointMissing(error: any): boolean {
   const status = error?.statusCode ?? error?.status ?? error?.response?.status
-  if (status === 404) {
+  if (status === 404 || status === 405) {
     return true
   }
-  return /404|not found|资源不存在/i.test(String(error?.message ?? ''))
+  return /404|405|not found|资源不存在|不支持\s*DELETE/i.test(String(error?.message ?? ''))
 }
 
 /**
- * 收集「从某条消息所在轮起、直到会话末尾」的全部消息 id，按对话顺序。
+ * 收集「从第 turnIndex 轮起、直到会话末尾」的全部消息 id，按对话顺序。
  *
  * 与确认框的措辞一致（「本轮及之后的全部消息」）：锚点是助手消息时，
  * 该轮的**用户消息也要一起删**，否则会留下没有回复的孤儿提问。
- * 用于后端没有批量回退端点时逐条删除。
  *
- * @param messageId 起点消息 id（用户或助手消息均可）
- * @returns 需要删除的消息 id 列表；找不到起点时返回空数组
+ * 刻意按**轮序号**取，而不是按消息 id 取：实时流式产出的那一轮，前端持有的是本地
+ * 消息 id（UUID），而后端删除接口要的是数据库数字主键 —— 按轮序号可以在刷新出
+ * 数字主键之后再取，避免拿 UUID 去删（会 404，表现为「点了回退却什么都没删」）。
+ *
+ * @param turnIndex 起点轮序号（0 起）
+ * @returns 需要删除的消息 id 列表；轮序号越界时返回空数组
  */
-function collectMessageIdsFrom(messageId: string): string[] {
+function collectMessageIdsFromTurn(turnIndex: number): string[] {
   const ids: string[] = []
   const turns = visibleTurns.value as any[]
-  let startIndex = -1
-  for (let i = 0; i < turns.length; i++) {
-    const turnIds: string[] = [turns[i]?.user?.id, ...(turns[i]?.assistants || []).map((a: any) => a?.id)]
-    if (turnIds.includes(messageId)) {
-      startIndex = i
-      break
-    }
-  }
-  if (startIndex < 0) {
+  if (turnIndex < 0 || turnIndex >= turns.length) {
     return ids
   }
-  for (let i = startIndex; i < turns.length; i++) {
+  for (let i = turnIndex; i < turns.length; i++) {
     const user = turns[i]?.user
     if (user?.id && !ids.includes(user.id)) {
       ids.push(user.id)
@@ -1014,17 +1013,20 @@ async function rewindFromHere(message: any) {
       // 后端尚未提供「按 fromMessageId 批量回退」端点时降级为逐条删除。
       // DELETE /v2/sessions/messages/{id} 是既有可用端点，两者都只动对话、不动工作区，
       // 语义一致；等后端补上批量端点后，这里会自动改走上面那条分支。
-      if (!isNotFound(error)) {
+      if (!isEndpointMissing(error)) {
         throw error
       }
-      const targets = collectMessageIdsFrom(message.id)
+      // 先刷新一次：实时流式产出的那一轮在前端是本地 id（UUID），删除接口要的是数据库
+      // 数字主键；刷新后 visibleTurns 里就是数字主键，按轮序号取才不会打空。
+      await loadMessages(sessionId, { isInitial: true })
+      const targets = collectMessageIdsFromTurn(turnIndex)
       for (const id of targets) {
         try {
           await apiService.deleteMessage(id)
           removedMessages += 1
         } catch (innerError) {
           // 删用户消息时后端可能已级联删掉对应助手消息，再删会 404 —— 这不算失败
-          if (!isNotFound(innerError)) {
+          if (!isEndpointMissing(innerError)) {
             throw innerError
           }
         }
