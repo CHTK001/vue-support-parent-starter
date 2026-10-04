@@ -94,6 +94,53 @@
                   </div>
                 </template>
 
+                <!-- 对象分类节点（存储过程 / 函数 / 触发器 / 事件，Navicat 式分组） -->
+                <template v-for="cat in DB_OBJECT_CATEGORIES" :key="'cat:' + db + '.' + cat.value">
+                  <div
+                    class="dbm-tree-node dbm-tree-children"
+                    :class="{ active: expandedObjects.has('obj:' + db + ':' + cat.value) }"
+                    @click="toggleObjectNode(db, cat.value)"
+                  >
+                    <ReIcon
+                      :name="objectNodeExpanded(db, cat.value) ? 'ArrowDown' : 'ArrowRight'"
+                      :size="12"
+                      class="dbm-arrow"
+                    />
+                    <ReIcon :name="cat.icon" :size="14" class="dbm-tree-icon dbm-col-icon" />
+                    <span class="dbm-tree-label">{{ cat.label }}</span>
+                    <span class="dbm-tree-remark">{{ objectCountOf(db, cat.value) }}</span>
+                    <ReIcon
+                      name="Plus"
+                      :size="12"
+                      class="dbm-tree-add"
+                      title="新建"
+                      @click.stop="openObjectDefinition(cat.value, '', db)"
+                    />
+                  </div>
+                  <div v-if="objectNodeExpanded(db, cat.value)" class="dbm-tree-children">
+                    <div v-if="objectErrorOf(db, cat.value)" class="dbm-tree-hint">
+                      {{ objectErrorOf(db, cat.value) }}
+                    </div>
+                    <ReEmpty v-else-if="!objectsOf(db, cat.value).length" description="无对象" :image-size="24" />
+                    <div
+                      v-for="obj in objectsOf(db, cat.value)"
+                      :key="'obj:' + db + ':' + cat.value + ':' + obj.name"
+                      class="dbm-tree-node dbm-table-node"
+                      @click="openObjectDefinition(cat.value, obj.name, db)"
+                    >
+                      <span class="dbm-arrow" />
+                      <ReIcon :name="cat.icon" :size="13" class="dbm-tree-icon dbm-col-icon" />
+                      <span class="dbm-tree-label" :title="obj.definer ? `DEFINER=${obj.definer}` : obj.name">{{ obj.name }}</span>
+                      <span v-if="cat.value === 'trigger'" class="dbm-tree-remark">
+                        {{ obj.timing }}·{{ obj.event }}
+                      </span>
+                      <span v-else-if="cat.value === 'event' && obj.status" class="dbm-tree-remark">
+                        {{ obj.status }}
+                      </span>
+                    </div>
+                  </div>
+                </template>
+
                 <div v-if="viewsOf(db).length" class="dbm-tree-group">视图（{{ viewsOf(db).length }}）</div>
                 <template v-for="view in viewsOf(db)" :key="db + '.V.' + view.name">
                   <div
@@ -137,7 +184,12 @@
             :class="{ active: activeTab === tab.id }"
             @click="selectTab(tab.id)"
           >
-            <ReIcon :name="tab.type === 'query' ? 'Edit' : 'Grid'" size="12" />
+            <ReIcon
+              :name="tab.type === 'query' ? 'Edit' : tab.type === 'object'
+                ? (DB_OBJECT_CATEGORIES.find(c => c.value === tab.objectCategory)?.icon ?? 'Document')
+                : 'Grid'"
+              size="12"
+            />
             <span class="dbm-tab-title">{{ tab.title }}</span>
             <ReIcon name="Close" size="12" class="dbm-tab-close" @click.stop="closeTab(tab.id)" />
           </div>
@@ -352,11 +404,12 @@
             </ReTable>
           </template>
 
-          <!-- 外键（只读，Navicat 外键页签） -->
+          <!-- 外键（可增删，Navicat 外键页签） -->
           <template v-else>
             <div class="dbm-col-actions">
+              <ReButton type="primary" icon="Plus" :show-text="true" @click="openAddForeignKey">新增外键</ReButton>
               <ReButton icon="RefreshRight" :show-text="true" @click="loadForeignKeys">刷新外键</ReButton>
-              <span class="dbm-hint">外键由建表 DDL 维护；此处只读展示</span>
+              <span class="dbm-hint">外键是真实约束，新增后立即对写入生效</span>
             </div>
             <ReTable
               :data="foreignKeys"
@@ -366,7 +419,11 @@
               stripe
               border
               height="calc(100% - 104px)"
-            />
+            >
+              <template #col-fk-actions="{ row }">
+                <ReButton text type="danger" @click="removeForeignKey(row)">删除</ReButton>
+              </template>
+            </ReTable>
           </template>
         </div>
 
@@ -423,7 +480,33 @@
           </div>
         </div>
 
-        <!-- 空状态 -->
+        <!-- 对象定义页签（存储过程 / 函数 / 触发器 / 事件） -->
+    <div v-if="activeTabObj && activeTabObj.type === 'object'" class="dbm-object-view">
+      <div class="dbm-object-toolbar">
+        <span class="dbm-table-name">
+          {{ objectTabTitle }}
+        </span>
+        <span class="dbm-hint">整段 DDL 直接交给数据库执行，保存即生效</span>
+        <span class="dbm-spacer" />
+        <ReButton v-if="activeTabObj.objectName" type="danger" plain icon="Delete" :show-text="true" @click="deleteCurrentObject">
+          删除
+        </ReButton>
+        <ReButton type="primary" icon="Check" :show-text="true" :loading="objectSaving" @click="saveObjectDefinition">
+          保存
+        </ReButton>
+      </div>
+      <div v-if="objectLoading" class="dbm-import-preview-hint">正在读取定义…</div>
+      <ReInput
+        v-else
+        v-model="objectDefinition"
+        type="textarea"
+        class="dbm-mono dbm-object-editor"
+        :rows="26"
+        placeholder="CREATE PROCEDURE / FUNCTION / TRIGGER / EVENT …"
+      />
+    </div>
+
+    <!-- 空状态 -->
         <div v-if="tabs.length === 0" class="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
@@ -762,6 +845,60 @@
         <ReButton type="primary" :loading="exporting" @click="doExport">导出并下载</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 新增外键弹窗 -->
+    <ReDialog v-model="fkDialogVisible" title="新增外键" width="560px">
+      <div class="dbm-create-form">
+        <div class="dbm-form-item">
+          <label>约束名</label>
+          <ReInput v-model="fkForm.name" class="dbm-mono" placeholder="例：fk_child_parent" />
+        </div>
+        <div class="dbm-form-item">
+          <label>本表列</label>
+          <ReSelect v-model="fkForm.column" filterable placeholder="选择列" style="width: 100%">
+            <ReOption v-for="c in designTableColumns()" :key="c.name" :label="`${c.name} (${c.type})`" :value="c.name" />
+          </ReSelect>
+        </div>
+        <div class="dbm-form-item">
+          <label>引用表</label>
+          <ReSelect v-model="fkForm.refTable" filterable placeholder="选择表" style="width: 100%">
+            <ReOption
+              v-for="t in tablesOf(activeTabObj?.database ?? '')"
+              :key="t.name"
+              :label="t.name"
+              :value="t.name"
+            />
+          </ReSelect>
+        </div>
+        <div class="dbm-form-item">
+          <label>引用列</label>
+          <ReSelect v-model="fkForm.refColumn" filterable placeholder="选择列" style="width: 100%">
+            <ReOption
+              v-for="c in fkRefColumns"
+              :key="c.name"
+              :label="`${c.name} (${c.type})`"
+              :value="c.name"
+            />
+          </ReSelect>
+        </div>
+        <div class="dbm-form-item">
+          <label>ON UPDATE</label>
+          <ReSelect v-model="fkForm.onUpdate" style="width: 100%">
+            <ReOption v-for="a in FK_ACTIONS" :key="'u' + a" :label="a" :value="a" />
+          </ReSelect>
+        </div>
+        <div class="dbm-form-item">
+          <label>ON DELETE</label>
+          <ReSelect v-model="fkForm.onDelete" style="width: 100%">
+            <ReOption v-for="a in FK_ACTIONS" :key="'d' + a" :label="a" :value="a" />
+          </ReSelect>
+        </div>
+      </div>
+      <template #footer>
+        <ReButton @click="fkDialogVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="fkSaving" @click="submitAddForeignKey">创建</ReButton>
+      </template>
+    </ReDialog>
   </div>
 
   <!-- 编辑/新增行弹窗 -->
@@ -887,9 +1024,19 @@ import {
   previewDbImport,
   importDbFile,
   exportDbTable,
+  DB_OBJECT_CATEGORIES,
+  fetchDbObjectSummary,
+  fetchDbObjects,
+  fetchDbObjectDefinition,
+  saveDbObject,
+  dropDbObject,
+  addDbForeignKey,
+  dropDbForeignKey,
   type DbIndexInfo,
   type DbImportPreview,
   type DbImportResult,
+  type DbObjectCategory,
+  type DbObjectInfo,
 } from "../dbManageApi";
 
 const route = useRoute();
@@ -927,6 +1074,250 @@ const currentDatasourceName = computed(() => {
 const databases = ref<string[]>([]);
 /** 按库缓存表列表，避免展开第二个库时显示上一个库的表 */
 const tablesByDb = reactive<Record<string, DbTableInfo[]>>({});
+
+/* ==================== 数据库对象（存储过程 / 函数 / 触发器 / 事件） ==================== */
+
+/** 每个库的四类对象清单 */
+const objectsByDb = reactive<Record<string, Record<string, DbObjectInfo[]>>>({});
+/** 每个库的四类对象计数（树节点角标） */
+const objectCounts = reactive<Record<string, Record<string, number>>>({});
+/** 某一类读不到时的原因（权限不足 / 内核无此概念），显示在节点上 */
+const objectErrors = reactive<Record<string, Record<string, string>>>({});
+
+/** 拉取某库的对象清单与计数（展开分类节点时调用）。 */
+async function loadDbObjects(db: string): Promise<void> {
+  if (!db) return;
+  try {
+    const summary = await fetchDbObjectSummary(currentDatasourceId.value, db);
+    objectCounts[db] = summary.counts as unknown as Record<string, number>;
+    objectErrors[db] = (summary.errors ?? {}) as unknown as Record<string, string>;
+  } catch (e) {
+    objectCounts[db] = { procedure: 0, function: 0, trigger: 0, event: 0 };
+    objectErrors[db] = {};
+  }
+}
+
+/** 拉取某库某一类的对象清单。 */
+async function loadDbObjectList(db: string, category: DbObjectCategory): Promise<void> {
+  if (!db) return;
+  if (!objectsByDb[db]) objectsByDb[db] = {};
+  try {
+    objectsByDb[db][category] = await fetchDbObjects(category, currentDatasourceId.value, db);
+  } catch (e) {
+    objectsByDb[db][category] = [];
+    const hint = String((e as Error)?.message ?? e);
+    if (!objectErrors[db]) objectErrors[db] = {};
+    objectErrors[db][category] = hint;
+  }
+}
+
+/** 某库某一类的对象清单 */
+function objectsOf(db: string, category: DbObjectCategory): DbObjectInfo[] {
+  return objectsByDb[db]?.[category] ?? [];
+}
+
+/** 某库某一类的对象数（清单未拉时回落到计数接口的值） */
+function objectCountOf(db: string, category: DbObjectCategory): number {
+  const loaded = objectsByDb[db]?.[category];
+  if (loaded) return loaded.length;
+  return objectCounts[db]?.[category] ?? 0;
+}
+
+/** 某库某一类的读取错误 */
+function objectErrorOf(db: string, category: DbObjectCategory): string {
+  return objectErrors[db]?.[category] ?? "";
+}
+
+/** 分类节点的树 key */
+function objectNodeKey(db: string, category: DbObjectCategory): string {
+  return `obj:${db}:${category}`;
+}
+
+/** 分类节点是否展开（用 dbm-tree 的箭头判断，避免与表节点状态混在一起） */
+function objectNodeExpanded(db: string, category: DbObjectCategory): boolean {
+  return expandedObjects.value.has(objectNodeKey(db, category));
+}
+
+/** 已展开的对象分类节点 */
+const expandedObjects = ref(new Set<string>());
+
+/**
+ * 展开/收起对象分类节点：展开时才拉清单（避免每个库都打 4 个请求）。
+ */
+async function toggleObjectNode(db: string, category: DbObjectCategory): Promise<void> {
+  const key = objectNodeKey(db, category);
+  if (expandedObjects.value.has(key)) {
+    expandedObjects.value.delete(key);
+  } else {
+    expandedObjects.value.add(key);
+    await loadDbObjectList(db, category);
+  }
+  expandedObjects.value = new Set(expandedObjects.value);
+}
+
+/** 对象页签正在编辑的定义 */
+const objectDefinition = ref("");
+/** 对象定义是否已改动 */
+const objectDirty = ref(false);
+/** 读定义中 */
+const objectLoading = ref(false);
+/** 保存中 */
+const objectSaving = ref(false);
+/** 新建对象时的默认骨架 */
+const objectTemplate = ref("");
+
+/**
+ * 打开对象定义页签。
+ *
+ * @param category 类别
+ * @param name 对象名（新建时为空）
+ * @param db 所属库
+ */
+async function openObjectDefinition(category: DbObjectCategory, name: string, db: string): Promise<void> {
+  const tab: Tab = {
+    id: `${category}:${db}.${name}`,
+    type: "object",
+    title: name ? `${name}` : `新建${categoryLabel(category)}`,
+    database: db,
+    objectCategory: category,
+    objectName: name,
+  };
+  const existing = tabs.value.find(t => t.id === tab.id);
+  if (!existing) {
+    tabs.value.push(tab);
+  }
+  activeTab.value = tab.id;
+  objectDirty.value = false;
+  if (name) {
+    objectLoading.value = true;
+    try {
+      objectDefinition.value = await fetchDbObjectDefinition(category, name, currentDatasourceId.value, db);
+    } catch (e) {
+      ElMessage.error(`读取定义失败: ${String((e as Error)?.message ?? e)}`);
+      objectDefinition.value = "";
+    } finally {
+      objectLoading.value = false;
+    }
+  } else {
+    objectDefinition.value = objectTemplateOf(category, db);
+  }
+}
+
+/** 类别中文名 */
+function categoryLabel(category: DbObjectCategory): string {
+  return DB_OBJECT_CATEGORIES.find(c => c.value === category)?.label ?? category;
+}
+
+/**
+ * 对象页签的标题。
+ *
+ * <p>放computed 而不是写在模板表达式里：模板里既不能用 TypeScript 的非空断言
+ * {@code !}，也不适合拼多段逻辑。vue-tsc 不报错但 Babel 会在编译期炸掉，
+ * 表现为页面整块白屏、树节点一个都不渲染。</p>
+ */
+const objectTabTitle = computed(() => {
+  const tab = activeTabObj.value;
+  if (tab?.objectName) {
+    return `定义 ${tab.objectName}`;
+  }
+  return `新建${tab?.objectCategory ? categoryLabel(tab.objectCategory) : "对象"}`;
+});
+
+/**
+ * 新建对象的默认骨架。
+ *
+ * <p>两点必须注意：</p>
+ * <ol>
+ *   <li><b>反引号里只能包名字</b>：写成 {@code `db.p_new`} 会把点号写进对象名 ——
+ *       内核会建出一个名字真叫 {@code db.p_new} 的对象。库由会话定位
+ *       （保存请求已带 database，后端会先 USE）。</li>
+ *   <li><b>不要拿占位词当库名</b>：早先写死字面量 {@code db}，用户直接保存会得到
+ *       {@code Access denied … to database 'information_schema'} 这种与上下文无关的权限错误。</li>
+ * </ol>
+ *
+ * @param category 类别
+ * @param db 目标库名
+ * @returns 完整 DDL 骨架
+ */
+function objectTemplateOf(category: DbObjectCategory, db: string): string {
+  const quoted = (n: string): string => `\`${n}\``;
+  const table = tablesOf(db)[0]?.name;
+  switch (category) {
+    case "procedure":
+      return `CREATE PROCEDURE ${quoted("p_new")}()\nBEGIN\n  SELECT 1;\nEND`;
+    case "function":
+      return `CREATE FUNCTION ${quoted("f_new")}(p INT) RETURNS INT DETERMINISTIC\nBEGIN\n  RETURN p;\nEND`;
+    case "trigger":
+      return table
+        ? `-- 作用表：${table}\nCREATE TRIGGER ${quoted("tg_new")} BEFORE INSERT ON ${quoted(table)}\nFOR EACH ROW\nBEGIN\n  SET NEW.id = NEW.id;\nEND`
+        : `-- 先在左侧展开本库，这里会自动填入第一张表名\nCREATE TRIGGER ${quoted("tg_new")} BEFORE INSERT ON ${quoted("your_table")}\nFOR EACH ROW\nBEGIN\nEND`;
+    default:
+      return `CREATE EVENT ${quoted("ev_new")} ON SCHEDULE EVERY 1 DAY\nDO\n  SELECT 1`;
+  }
+}
+
+/**
+ * 保存对象定义（存在同名则先删后建）。
+ */
+async function saveObjectDefinition(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab || tab.type !== "object" || !tab.objectCategory) return;
+  const definition = objectDefinition.value.trim();
+  if (!definition) {
+    ElMessage.warning("定义不能为空");
+    return;
+  }
+  objectSaving.value = true;
+  try {
+    await saveDbObject(
+      tab.objectCategory,
+      definition,
+      { datasourceId: currentDatasourceId.value, database: tab.database },
+      true
+    );
+    ElMessage.success("已保存");
+    objectDirty.value = false;
+    if (tab.database) {
+      await loadDbObjects(tab.database);
+      await loadDbObjectList(tab.database, tab.objectCategory);
+    }
+  } catch (e) {
+    ElMessage.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    objectSaving.value = false;
+  }
+}
+
+/**
+ * 删除当前对象。
+ */
+async function deleteCurrentObject(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab || tab.type !== "object" || !tab.objectCategory || !tab.objectName) return;
+  try {
+    await ElMessageBox.confirm(`确定删除 ${categoryLabel(tab.objectCategory)}「${tab.objectName}」？`, "确认删除", {
+      type: "warning",
+    });
+  } catch {
+    return;
+  }
+  try {
+    await dropDbObject(
+      tab.objectCategory,
+      tab.objectName,
+      { datasourceId: currentDatasourceId.value, database: tab.database },
+      true
+    );
+    ElMessage.success("已删除");
+    if (tab.database) {
+      await loadDbObjects(tab.database);
+      await loadDbObjectList(tab.database, tab.objectCategory);
+    }
+    closeTab(tab.id);
+  } catch (e) {
+    ElMessage.error(`删除失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
 /** 当前选中的库，跨库查看数据/执行 SQL 都以它为准 */
 const activeDatabase = ref("");
 const expandedNodes = ref(new Set<string>(["root"]));
@@ -981,11 +1372,16 @@ const activeTable = ref<string>("");
 // 标签页
 interface Tab {
   id: string;
-  type: "table" | "design" | "query";
+  /** object = 存储过程/函数/触发器/事件的定义页 */
+  type: "table" | "design" | "query" | "object";
   title: string;
   tableName?: string;
   database?: string;
   sql?: string;
+  /** object 页签：对象类别 */
+  objectCategory?: DbObjectCategory;
+  /** object 页签：对象名 */
+  objectName?: string;
 }
 const tabs = ref<Tab[]>([]);
 const activeTab = ref<string>("");
@@ -2024,7 +2420,7 @@ const indexColumnDefs = [
   { prop: "__actions", label: "操作", width: 90, slot: "actions", fixed: "right" },
 ];
 
-// 外键页签（只读）
+// 外键页签（可增删）
 const foreignKeys = ref<DbForeignKeyInfo[]>([]);
 const fkLoading = ref(false);
 const FOREIGN_KEY_RULE: Record<number, string> = {
@@ -2037,7 +2433,148 @@ const foreignKeyColumnDefs = [
   { prop: "refColumn", label: "引用列", minWidth: 130 },
   { prop: "updateRule", label: "更新规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.updateRule] ?? r.updateRule ?? "" },
   { prop: "deleteRule", label: "删除规则", width: 110, formatter: (r: any) => FOREIGN_KEY_RULE[r.deleteRule] ?? r.deleteRule ?? "" },
+  { prop: "__actions", label: "操作", width: 80, slot: "fk-actions", fixed: "right" },
 ];
+
+/** 引用动作的可选项（与后端白名单一致） */
+const FK_ACTIONS = ["CASCADE", "RESTRICT", "SET NULL", "NO ACTION"] as const;
+
+/** 新增外键弹窗 */
+const fkDialogVisible = ref(false);
+const fkSaving = ref(false);
+const fkForm = reactive({
+  name: "",
+  column: "",
+  refTable: "",
+  refColumn: "",
+  onUpdate: "RESTRICT",
+  onDelete: "RESTRICT",
+});
+
+/**
+ * 当前表的列（新增外键时的本表列候选）。
+ *
+ * <p>先读树节点的展开缓存，取不到就退回设计页的列。
+ * 树缓存只在**用户展开过该表节点**时才有值，而从工具栏/搜索进入设计视图时
+ * 表节点未必展开过 —— 早先只读树缓存，导致「本表列」下拉是空的，用户没法建外键。</p>
+ */
+function designTableColumns(): DbColumnInfo[] {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName) return designColumns.value;
+  const cached = columnsOf(tab.database ?? "", tab.tableName);
+  return cached.length ? cached : designColumns.value;
+}
+
+/**
+ * 打开新增外键弹窗，预填一个默认值。
+ */
+/**
+ * 引用表的列（新增外键时的「引用列」候选）。
+ *
+ * <p><b>必须主动拉</b>：树缓存只在用户展开过该表节点时有值，而引用表往往是
+ * 用户没展开过的另一张表；设计页兜底也只覆盖「引用表就是当前表」这一种情况。
+ * 因此选了引用表就调一次接口，拿到后再渲染下拉。</p>
+ */
+const fkRefColumns = ref<DbColumnInfo[]>([]);
+
+/** 拉取引用表的列 */
+async function loadForeignKeyRefColumns(table: string): Promise<void> {
+  const db = activeTabObj.value?.database ?? "";
+  if (!db || !table) {
+    fkRefColumns.value = [];
+    return;
+  }
+  const cached = columnsOf(db, table);
+  if (cached.length) {
+    fkRefColumns.value = cached;
+    return;
+  }
+  try {
+    fkRefColumns.value = (await fetchTableColumns(table, currentDatasourceId.value, db)) || [];
+  } catch (e) {
+    fkRefColumns.value = [];
+    ElMessage.warning(`读取引用表结构失败：${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/** 切换引用表 → 重新加载其列，并清掉已选的引用列（不同表的列没有可比性） */
+watch(() => fkForm.refTable, table => {
+  fkForm.refColumn = "";
+  void loadForeignKeyRefColumns(table);
+});
+
+/**
+ * 打开新增外键弹窗，预填一个默认值。
+ */
+function openAddForeignKey(): void {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName || !tab.database) return;
+  const cols = designTableColumns();
+  const firstCol = cols[0]?.name ?? "";
+  const base = tab.tableName.replace(/[^A-Za-z0-9_]/g, "_");
+  fkForm.name = `fk_${base}_1`;
+  fkForm.column = firstCol;
+  fkForm.refTable = tablesOf(tab.database).find(t => t.name !== tab.tableName)?.name ?? "";
+  fkForm.refColumn = "";
+  fkForm.onUpdate = "RESTRICT";
+  fkForm.onDelete = "RESTRICT";
+  fkRefColumns.value = [];
+  fkDialogVisible.value = true;
+}
+
+/**
+ * 提交新增外键。
+ */
+async function submitAddForeignKey(): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName || !tab.database) return;
+  if (!fkForm.name || !fkForm.column || !fkForm.refTable || !fkForm.refColumn) {
+    ElMessage.warning("请填写完整的约束名、本表列、引用表与引用列");
+    return;
+  }
+  fkSaving.value = true;
+  try {
+    await addDbForeignKey(tab.tableName, {
+      name: fkForm.name,
+      columns: [fkForm.column],
+      refTable: fkForm.refTable,
+      refColumns: [fkForm.refColumn],
+      onUpdate: fkForm.onUpdate,
+      onDelete: fkForm.onDelete,
+      datasourceId: currentDatasourceId.value,
+      database: tab.database,
+    });
+    ElMessage.success("外键已创建");
+    fkDialogVisible.value = false;
+    await loadForeignKeys();
+  } catch (e) {
+    ElMessage.error(`新增外键失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    fkSaving.value = false;
+  }
+}
+
+/**
+ * 删除一个外键。
+ *
+ * @param row 外键行
+ */
+async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName || !tab.database) return;
+  try {
+    await ElMessageBox.confirm(`确定删除外键「${row.fkName}」？`, "确认删除", { type: "warning" });
+  } catch {
+    return;
+  }
+  try {
+    await dropDbForeignKey(tab.tableName, row.fkName, currentDatasourceId.value, tab.database);
+    ElMessage.success("已删除");
+    await loadForeignKeys();
+  } catch (e) {
+    ElMessage.error(`删除外键失败: ${String((e as Error)?.message ?? e)}`);
+  }
+}
 
 /** 打开外键页签并加载 */
 async function openForeignKeys(): Promise<void> {
@@ -2552,6 +3089,9 @@ function toggleNode(key: string) {
       activeDatabase.value = db;
       activeTable.value = "";
       loadTables(db);
+      // 展开库时把四类对象的计数一起拉回来（树上要显示角标）；
+      // 各类的**清单**仍然等到展开该分类节点时才拉，避免一次打满 4 个请求。
+      void loadDbObjects(db);
     }
   }
 }
@@ -3574,6 +4114,25 @@ onBeforeUnmount(() => {
 .dbm-mapping-arrow { color: var(--el-text-color-placeholder); }
 
 .dbm-danger-hint { font-size: 12px; color: var(--el-color-danger); }
+
+/* ============================================================
+   数据库对象（存储过程 / 函数 / 触发器 / 事件）
+   ============================================================ */
+/* 分类节点上的「新建」小按钮：hover 才显形，避免树里全是图标 */
+.dbm-tree-add { opacity: 0; cursor: pointer; color: var(--el-text-color-placeholder); }
+.dbm-tree-node:hover .dbm-tree-add { opacity: 1; }
+.dbm-tree-add:hover { color: var(--el-color-primary); }
+/* 某类对象读不到时的提示（权限不足 / 内核无此概念） */
+.dbm-tree-hint {
+  padding: 4px 8px 4px 28px;
+  font-size: 12px;
+  color: var(--el-color-warning);
+  word-break: break-all;
+}
+
+.dbm-object-view { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; }
+.dbm-object-toolbar { display: flex; align-items: center; gap: 10px; }
+.dbm-object-editor { font-size: 13px; line-height: 1.6; }
 
 /* 导入结果与错误报告 */
 .dbm-import-result {
