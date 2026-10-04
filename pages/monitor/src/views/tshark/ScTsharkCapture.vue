@@ -570,8 +570,28 @@ function resizeCharts() {
   min-height: 0;
 }
 @media (max-width: 900px) {
-  .body-grid { grid-template-columns: 1fr; }
+  /* 窄屏改成上下堆叠时，两块都要限高并各自内部滚动。
+     原来只有 detail-panel 有 overflow:auto，session-panel 没有，于是窄屏下
+     会话列表会按内容长高、把 detail-panel 挤到只剩 367px（实测 880px 视口），
+     表格被压到 689px 的内容高里、露出 547px 的内部滚动 —— 表格并没有"吃满"
+     可用高度，只是被挤进了更小的框里。 */
+  /* 会话列表限高 200px。窄屏是上下堆叠，不限高的话列表会按内容长高、
+     把报文明细挤到只剩几十像素（实测 760 宽时可用高度 82.8px）。 */
+  .body-grid { grid-template-columns: 1fr; grid-template-rows: minmax(0, 200px) minmax(0, 1fr); }
+  .session-panel { overflow: auto; }
+  /* 窄屏把统计卡压成一行三列：按 auto-fit 换行时 760px 宽会变成两行、占 265px，
+     再叠会话列表，留给报文明细的就只剩几十像素，等于看不见。 */
+  .stat-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .empty-detail { grid-column: 1; }
+}
+
+/* 极窄（<820px）时隐藏统计卡描述行并压缩内边距：三张卡的标题 + 数值本身就够
+   表达概览，描述行是重复信息，却占掉统计卡高度的大头。
+   断点 820px 来自实测：760px 宽时 stat 占 253.2px，留给明细的只有 82.8px。 */
+@media (max-width: 820px) {
+  .stat-cards { gap: 6px; }
+  .stat-cards :deep(.re-stat-card) { padding: 6px 8px; }
+  .stat-cards :deep(.re-stat-card__desc) { display: none; }
 }
 .session-panel { min-width: 0; }
 .detail-panel {
@@ -762,12 +782,28 @@ function resizeCharts() {
 
 /* ==================== 表格 ==================== */
 /* 数据包表吃满剩余高度：统计卡与图表固定高，只有这张卡伸展。
-   min-height 240px 是下限——空间再紧也保证能看见几行；不够时由 .detail-panel
-   的 overflow:auto 兜底出滚动条，而不是把表格压成看不见的一条。 */
+   这里刻意不给 .packet-card 设 min-height 下限 —— 下限一旦生效，表格就被钉死
+   在固定像素上，可用高度只能变成 .detail-panel 的纵向滚动条。改成 min-height:0
+   后空间不足由 .detail-panel 的 overflow:auto 兜底，空间充足则一路吃到面板底边。 */
 .charts-row { flex: none; }
+/* 空间实在不够时（窄屏 + 统计卡换行），整块图表让位给表格。
+   图表是可再生的概览，报文明细才是这个页面的主数据；把稀缺高度优先给主数据，
+   而不是让表格被压成一条 22px 后再让面板出滚动条。 */
+/* 纵向空间不足时整块图表让位给表格。
+   断点按「图表固定 232px + 统计卡最坏 265px + 表格至少 200px + gap」倒推：
+   视口 1080 高时三块都装得下（实测 1600/1280 宽下 fitsInPanel=true）；
+   900 高时宽屏本来也装得下，但矮视口与窄屏叠加就不够，隐藏图表把高度让给报文明细。
+   阈值取 960px，落在「900 高（隐藏）」与「1080 高（保留）」之间。 */
+@media (max-height: 960px) {
+  .charts-row { display: none; }
+}
 .packet-card {
   flex: 1 1 0;
-  min-height: 240px;
+  /* 不要 min-height 下限：它一旦生效，表格就被钉死在 240px，剩下的可用高度
+     只能变成 .detail-panel 的纵向滚动条（实测 1000px 视口下 panel 溢出 109px）。
+     改成 min-height:0 后空间不足时由 .detail-panel 的 overflow:auto 统一兜底，
+     空间充足时表格可以一直吃到面板底边。 */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--el-bg-color);
