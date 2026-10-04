@@ -131,6 +131,40 @@ const sortKey = ref<SortKey>("name");
 const sortOrder = ref<SortOrder>("asc");
 /** 当前右键菜单 */
 const ctxMenu = ref<{ visible: boolean; x: number; y: number; row: StorageObject | null }>({ visible: false, x: 0, y: 0, row: null });
+
+/**
+ * 右键菜单元素引用
+ *
+ * <p>用于把菜单位置**收拢进视口**：菜单是 {@code position:fixed} 且贴着鼠标点渲染，
+ * 在**底部/右侧**右键时会溢出视口，下半截/右半截看不见（实测：列表底部的文件右键，
+ * 菜单部分落在可视区之外）。故先按原始点渲染，再测量真实尺寸并夹到视口内。</p>
+ */
+const ctxMenuRef = ref<HTMLElement | null>(null);
+
+/**
+ * 打开右键菜单，并把位置收拢进视口
+ *
+ * <p>不能直接用 {@code clientX/clientY}：菜单高度随内容变化（文件菜单与空白菜单项数不同），
+ * 只有在渲染后测量才知道真实尺寸，所以这里 {@code nextTick} 后再夹一次。
+ * 夹取时留 8px 边距，避免菜单贴边。</p>
+ *
+ * @param e   鼠标事件（取 clientX/clientY）
+ * @param row 目标对象；空白处右键传 null
+ */
+async function openMenuAt(e: MouseEvent, row: StorageObject | null): Promise<void> {
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
+  await nextTick();
+  const el = ctxMenuRef.value;
+  if (!el) {
+    return;
+  }
+  const rect = el.getBoundingClientRect();
+  const margin = 8;
+  const maxX = window.innerWidth - rect.width - margin;
+  const maxY = window.innerHeight - rect.height - margin;
+  ctxMenu.value.x = Math.max(margin, Math.min(ctxMenu.value.x, Math.max(margin, maxX)));
+  ctxMenu.value.y = Math.max(margin, Math.min(ctxMenu.value.y, Math.max(margin, maxY)));
+}
 /** 存储桶公开配置（?config） */
 const bucketConfig = ref<BucketConfig | null>(null);
 /** SPI 真实能力列表（?format=capabilities，滤镜/URL 参数动态渲染用） */
@@ -1697,7 +1731,7 @@ function openContextMenu(e: MouseEvent, row: StorageObject): void {
   if (!selected.value.has(row.name)) {
     selected.value = new Set([row.name]);
   }
-  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row };
+  void openMenuAt(e, row);
 }
 
 /**
@@ -1734,7 +1768,7 @@ function openColumnContextMenu(e: MouseEvent, row: StorageObject, colPath: strin
 /** 文件区空白处右键菜单（新建/粘贴/刷新） */
 function openBlankContextMenu(e: MouseEvent): void {
   e.preventDefault();
-  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row: null };
+  void openMenuAt(e, null);
 }
 
 function closeContextMenu(): void {
@@ -3225,6 +3259,7 @@ onUnmounted(() => {
     <Teleport to="body">
       <div
         v-if="ctxMenu.visible"
+        ref="ctxMenuRef"
         class="fs-ctx"
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
         role="menu"
