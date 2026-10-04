@@ -184,7 +184,7 @@
     </el-card>
 
     <!-- ============ 学生对话框 ============ -->
-    <el-dialog v-model="stuVisible" class="q-dialog" width="720" :show-close="false" align-center>
+    <el-dialog v-model="stuVisible" class="q-dialog" width="920" :show-close="false" align-center>
       <template #header>
         <div class="dialog-head">
           <div class="dialog-head__left">
@@ -197,87 +197,125 @@
           <ReButton layout="square" :icon="Close" tip="关闭" @click="stuVisible = false" />
         </div>
       </template>
-      <el-form :model="stuForm" label-width="96" @submit.prevent>
-        <div class="form-grid form-grid--2">
-          <el-form-item label="学号">
-            <!-- 学号是学生的登录身份，由系统生成：新增时提交后回填，编辑时只读 -->
-            <el-input
-              :model-value="stuForm.studentNo || '保存后自动生成'"
-              readonly
-              disabled
-              placeholder="保存后自动生成"
-            />
-          </el-form-item>
-          <el-form-item label="姓名" required>
-            <el-input v-model="stuForm.studentName" placeholder="如 小明" />
-          </el-form-item>
-          <el-form-item label="学段">
-            <el-select v-model="stuForm.studentGradeLevel" clearable placeholder="选择学段" style="width: 100%">
-              <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="年级">
-            <el-select v-model="stuForm.studentGrade" clearable placeholder="选择年级" style="width: 100%">
-              <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="班级">
-            <el-select v-model="stuForm.studentClassId" clearable placeholder="选择班级" style="width: 100%">
-              <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="家长手机号">
-            <el-input
-              v-model="stuForm.studentParentPhone"
-              maxlength="11"
-              placeholder="学生端可用此号登录，非必填"
-            />
-          </el-form-item>
-          <el-form-item label="登录密码">
-            <el-input
-              v-model="stuForm.studentPwdInput"
-              type="password"
-              show-password
-              maxlength="32"
-              :placeholder="stuForm.studentId ? '留空表示不修改' : '非必填，留空则暂不能登录'"
-            />
-          </el-form-item>
-          <el-form-item label="身份证号">
-            <el-input
-              v-model="stuForm.studentIdCard"
-              maxlength="18"
-              placeholder="仅管理端维护，学生端不可见"
-            />
-          </el-form-item>
-          <el-form-item label="头像">
-            <div class="stu-avatar">
-              <el-avatar :size="40" :src="stuForm.studentAvatar || ''">
-                {{ (stuForm.studentName || '学').slice(0, 1) }}
-              </el-avatar>
-              <el-input
-                v-model="stuForm.studentAvatar"
-                placeholder="图片 URL，非必填"
-                clearable
-              />
-            </div>
-          </el-form-item>
-          <el-form-item label="入学年份">
-            <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="状态">
-            <el-radio-group v-model="stuForm.studentStatus">
-              <el-radio-button :value="1">在读</el-radio-button>
-              <el-radio-button :value="0">离校</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="绑定账号">
-            <el-input
-              :model-value="stuForm.studentAccount || (stuForm.studentNo ? `将自动设为 ${stuForm.studentNo}` : '（保存后按学号自动生成）')"
-              disabled
-            />
-          </el-form-item>
-        </div>
-      </el-form>
+      <!-- 左右结构：左=学生画像（跟随表单实时预览），右=编辑区（基本资料 / 修改密码） -->
+      <div class="stu-editor">
+        <aside class="stu-profile">
+          <div class="stu-profile__hero">
+            <el-avatar :size="84" :src="stuForm.studentAvatar || ''" class="stu-profile__avatar">
+              {{ (stuForm.studentName || "学").slice(0, 1) }}
+            </el-avatar>
+            <div class="stu-profile__name">{{ stuForm.studentName || "未命名学生" }}</div>
+            <div class="stu-profile__sub">{{ stuProfileSubline }}</div>
+          </div>
+          <ul class="stu-profile__list">
+            <li v-for="it in stuProfileItems" :key="it.label" class="stu-profile__item">
+              <span class="stu-profile__ico"><el-icon :size="16"><component :is="it.icon" /></el-icon></span>
+              <div class="stu-profile__meta">
+                <span class="stu-profile__label">{{ it.label }}</span>
+                <span class="stu-profile__value">{{ it.value }}</span>
+              </div>
+            </li>
+          </ul>
+        </aside>
+
+        <section class="stu-editor__main">
+          <el-tabs v-model="stuTab">
+            <el-tab-pane label="基本资料" name="basic">
+              <div class="stu-editor__head">
+                <div class="stu-editor__title">基本资料</div>
+                <div class="stu-editor__desc">维护学生的姓名、学段、班级与联系方式</div>
+              </div>
+              <el-form :model="stuForm" label-width="88" @submit.prevent>
+                <el-form-item label="学号">
+                  <!-- 学号是登录身份，由系统生成：新增提交后回填，编辑只读 -->
+                  <el-input
+                    :model-value="stuForm.studentNo || '保存后自动生成'"
+                    readonly
+                    disabled
+                    placeholder="保存后自动生成"
+                  />
+                </el-form-item>
+                <el-form-item label="姓名" required>
+                  <el-input v-model="stuForm.studentName" placeholder="如 小明" />
+                </el-form-item>
+                <el-form-item label="学段">
+                  <el-select v-model="stuForm.studentGradeLevel" clearable placeholder="选择学段" style="width: 100%">
+                    <el-option v-for="o in levelOptions" :key="o.value" :label="o.label" :value="o.value" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="年级">
+                  <el-select v-model="stuForm.studentGrade" clearable placeholder="选择年级" style="width: 100%">
+                    <el-option v-for="g in gradeSource" :key="g" :label="g" :value="g" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="班级">
+                  <el-select v-model="stuForm.studentClassId" clearable placeholder="选择班级" style="width: 100%">
+                    <el-option v-for="c in classes" :key="c.classId" :label="c.className" :value="c.classId" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="家长手机号">
+                  <el-input
+                    v-model="stuForm.studentParentPhone"
+                    maxlength="11"
+                    placeholder="学生端可用此号登录，非必填"
+                  />
+                </el-form-item>
+                <el-form-item label="身份证号">
+                  <el-input
+                    v-model="stuForm.studentIdCard"
+                    maxlength="18"
+                    placeholder="仅管理端维护，学生端不可见"
+                  />
+                </el-form-item>
+                <el-form-item label="入学年份">
+                  <el-input-number v-model="stuForm.studentEnrollYear" :min="2000" :max="2100" controls-position="right" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="状态">
+                  <el-radio-group v-model="stuForm.studentStatus">
+                    <el-radio-button :value="1">在读</el-radio-button>
+                    <el-radio-button :value="0">离校</el-radio-button>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item label="头像">
+                  <div class="stu-avatar">
+                    <el-avatar :size="40" :src="stuForm.studentAvatar || ''">
+                      {{ (stuForm.studentName || '学').slice(0, 1) }}
+                    </el-avatar>
+                    <el-input
+                      v-model="stuForm.studentAvatar"
+                      placeholder="图片 URL，非必填"
+                      clearable
+                    />
+                  </div>
+                </el-form-item>
+                <el-form-item label="绑定账号">
+                  <el-input
+                    :model-value="stuForm.studentAccount || (stuForm.studentNo ? `将自动设为 ${stuForm.studentNo}` : '（保存后按学号自动生成）')"
+                    disabled
+                  />
+                </el-form-item>
+              </el-form>
+            </el-tab-pane>
+            <el-tab-pane label="修改密码" name="pwd">
+              <div class="stu-editor__head">
+                <div class="stu-editor__title">登录密码</div>
+                <div class="stu-editor__desc">学生端用「学号 / 家长手机号」+ 此口令登录；留空表示不修改</div>
+              </div>
+              <el-form label-width="88" @submit.prevent>
+                <el-form-item label="登录密码">
+                  <el-input
+                    v-model="stuForm.studentPwdInput"
+                    type="password"
+                    show-password
+                    maxlength="32"
+                    :placeholder="stuForm.studentId ? '留空表示不修改' : '非必填，留空则暂不能登录'"
+                  />
+                </el-form-item>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
+        </section>
+      </div>
       <template #footer>
         <div class="dialog-foot">
           <el-button @click="stuVisible = false">取消</el-button>
@@ -392,7 +430,8 @@
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View } from "@element-plus/icons-vue";
+import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
+  Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { EduClass, EduStudent, EduTeacher } from "../api/types";
 
@@ -538,6 +577,44 @@ function onTabChange() {
 // ==================== 学生 ====================
 const stuVisible = ref(false);
 const stuForm = reactive<Partial<EduStudent>>({});
+/** 编辑区当前页签：basic=基本资料，pwd=修改密码 */
+const stuTab = ref("basic");
+
+/**
+ * 画像副标题：学段 · 年级 · 班级，全空时给「尚未分班」。
+ *
+ * 用「—」判定空值：levelText/className 找不到时返回「—」，
+ * 直接拼接会出现「— · — · —」。
+ */
+const stuProfileSubline = computed(() => {
+  const parts = [
+    levelText(stuForm.studentGradeLevel),
+    stuForm.studentGrade,
+    className(stuForm.studentClassId),
+  ].filter((x) => x && x !== "—");
+  return parts.length ? parts.join(" · ") : "尚未分班";
+});
+
+/**
+ * 画像信息卡：全部跟随 stuForm 实时预览（含未保存的改动），
+ * 让管理员在右侧改动时左侧立刻看到结果。
+ */
+const stuProfileItems = computed(() => [
+  { label: "学号", value: stuForm.studentNo || "保存后自动生成", icon: Postcard },
+  { label: "姓名", value: stuForm.studentName || "未填", icon: User },
+  { label: "学段", value: levelText(stuForm.studentGradeLevel) === "—" ? "未填" : levelText(stuForm.studentGradeLevel), icon: School },
+  { label: "年级", value: stuForm.studentGrade || "未填", icon: Collection },
+  { label: "班级", value: className(stuForm.studentClassId) === "—" ? "未分班" : className(stuForm.studentClassId), icon: OfficeBuilding },
+  { label: "家长手机号", value: stuForm.studentParentPhone || "未填", icon: Iphone },
+  { label: "身份证号", value: stuForm.studentIdCard || "未填", icon: CreditCard },
+  {
+    label: "绑定账号",
+    value: stuForm.studentAccount || (stuForm.studentNo ? `将设为 ${stuForm.studentNo}` : "保存后生成"),
+    icon: Link,
+  },
+  { label: "状态", value: stuForm.studentStatus === 0 ? "离校" : "在读", icon: CircleCheck },
+  { label: "入学年份", value: stuForm.studentEnrollYear ? String(stuForm.studentEnrollYear) : "未填", icon: Calendar },
+]);
 
 function openStudent(row?: EduStudent) {
   Object.keys(stuForm).forEach((k) => delete (stuForm as Record<string, unknown>)[k]);
@@ -549,6 +626,8 @@ function openStudent(row?: EduStudent) {
   // 编辑态不回填口令：后端只返回是否已设置，从不回显明文，
   // 这里显式清空以免把上一条记录的输入残留到下一条。
   stuForm.studentPwdInput = "";
+  // 每次打开都从「基本资料」开始，避免上一条停在「修改密码」页签造成误操作。
+  stuTab.value = "basic";
   stuVisible.value = true;
 }
 
@@ -579,7 +658,11 @@ async function impersonate(row: EduStudent) {
 }
 
 async function saveStudent() {
-  if (!stuForm.studentNo?.trim()) return ElMessage.warning("请填写学号");
+  // 学号由系统生成：新增时不填（输入框 disabled），保存后回填；只有编辑态才要求它已存在。
+  // 原先这里无条件要求学号，而输入框是 disabled —— 新增学生会被前端自己拦住。
+  if (stuForm.studentId && !stuForm.studentNo?.trim()) {
+    return ElMessage.warning("学号缺失，无法保存");
+  }
   if (!stuForm.studentName?.trim()) return ElMessage.warning("请填写姓名");
   // 家长手机号非必填，但填了就必须是 11 位手机号 —— 它将来是登录凭据，
   // 格式错的号会让家长永远登不进来且查不出原因，故在提交前就拦。
@@ -597,7 +680,8 @@ async function saveStudent() {
   try {
     await eduaiApi.saveStudent({
       ...stuForm,
-      studentNo: stuForm.studentNo.trim(),
+      // 新增时学号为空：传 undefined 让后端生成；直接 .trim() 会抛 TypeError。
+      studentNo: stuForm.studentNo?.trim() || undefined,
       studentName: stuForm.studentName.trim(),
       // 留空时传 undefined 而非空串：后端据此判定「本次不改口令」，
       // 传空串会被当成「设置成空口令」。
@@ -1092,6 +1176,115 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* ============ 学生对话框：左右结构（左画像 / 右编辑）============ */
+.stu-editor {
+  display: grid;
+  grid-template-columns: 296px minmax(0, 1fr);
+  min-height: 440px;
+}
+@media (max-width: 860px) {
+  .stu-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stu-profile {
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+}
+/* 左：学生画像 */
+.stu-profile {
+  padding: 26px 18px;
+  border-right: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-fill-color-blank) 240px);
+}
+.stu-profile__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 18px;
+}
+.stu-profile__avatar {
+  border-radius: var(--el-radius-lg, 12px);
+  box-shadow: 0 2px 10px var(--el-box-shadow-lighter);
+}
+.stu-profile__name {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  line-height: 1.3;
+}
+.stu-profile__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.stu-profile__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stu-profile__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay);
+}
+.stu-profile__ico {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+.stu-profile__meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.stu-profile__label {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+.stu-profile__value {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
+}
+/* 右：编辑区 */
+.stu-editor__main {
+  padding: 18px 22px 4px;
+  min-width: 0;
+}
+.stu-editor__head {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.stu-editor__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+.stu-editor__desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============
