@@ -6,7 +6,7 @@ const SUITES = [
   'acc-prodgrade-frontend.mjs','acc-search-ux.mjs','acc-search-render.mjs',
   'acc-image-lib-ui.mjs','acc-image-lib-foot.mjs','acc-image-library-tab.mjs',
   'acc-image-lib-rename.mjs','acc-video-duration.mjs','acc-salted-login.mjs',
-  'acc-library-menu.mjs',
+  'acc-library-menu.mjs','acc-face-edit.mjs',
 ]
 
 import { execFile } from 'node:child_process'
