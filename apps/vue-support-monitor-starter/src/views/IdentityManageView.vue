@@ -3,12 +3,25 @@
  * 账号管理 —— 登录身份（账号密码 / SSH 私钥 / 邮箱 / Token 等）统一维护
  * 数据源：@pages/server 身份接口（getIdentities / saveIdentity / delIdentity）
  * 主机连接 / 编辑时从该列表选择身份
+ *
+ * 视觉（对齐「代理管理」页）：顶部 hero 已删除——页面标题由外壳面包屑承担，
+ * hero 上的「导出 / 刷新」与分区头里的操作按钮合并到筛选行右侧，统一改成
+ * 图标 + tip（ReButton square 布局自带 el-tooltip），单行内完成筛选与全部操作。
+ * 每个 tab 一排 ReStatCard 统计卡（紧凑档横排），下方卡片吃满剩余高度、
+ * 表体内部滚动。
+ *
+ * 说明：筛选是前端实时计算（{@code filteredList} + ReFilter 的 @change），
+ * 没有服务端查询，所以不设「查询」按钮——加一个点了不起的按钮比不加更糟。
+ *
  * @author CH
  * @since 4.0.0
  */
 import { computed, onMounted, ref } from "vue";
+import type { Component } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { CircleCheck, Collection, Connection, Key, Lock, Monitor, Postcard, Unlock, User } from "@element-plus/icons-vue";
 import { ReFormItem } from "@repo/ui/re-kit";
+import ReStatCard from "@repo/ui/re-stat-card";
 import type { ReFilterItem } from "@repo/ui/components/ReFilter/types";
 import { getIdentities, saveIdentity, delIdentity, getKeys, saveKey, delKey, generateKeyPair, queryHosts, listBoundIdentities, bindIdentity, unbindIdentity, listMailbox, getMailboxMessage } from "@pages/server/src/api";
 import { useDialogPrerender } from "../utils/dialogPrerender";
@@ -488,10 +501,111 @@ function onFilterReset(): void {
   filterState.value = { keyword: "", type: "" };
 }
 
-/** 类型统计：主机 / 通用 / 未知 */
+// ==================== KPI 统计卡（每个 tab 一组） ====================
+
+/** 主机类身份数（口令 / 公钥两种主机登录方式） */
 const hostCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PASSWORD" || i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+/** 非主机类身份数（邮箱 / Token 等） */
 const genericCount = computed(() => list.value.length - hostCount.value);
+/** 走公钥登录的身份数 */
 const keyCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+/** 已引用密钥库中某个密钥的身份数（引用关系存在密钥主键上） */
+const keyRefCount = computed(() => list.value.filter((i) => i.msServerIdentityKeyId != null).length);
+/** 已绑定至少一台主机的身份数 */
+const boundIdentityCount = computed(() => Object.keys(bindCache.value).filter((id) => (bindCache.value[Number(id)]?.length ?? 0) > 0).length);
+/** RSA 密钥数（类型缺省按 RSA 计，与 keyTypeLabel 的兜底保持一致） */
+const rsaCount = computed(() => keys.value.filter((k) => keyTypeLabel(k.msServerKeyType) === "RSA").length);
+
+/**
+ * 统计卡定义。
+ *
+ * <p>{@code icon} 必须是组件（ReStatCard 内部走 {@code <component :is="icon" />}），
+ * 所以直接引用 @element-plus/icons-vue 的组件，不传图标名字符串；
+ * {@code iconColor} 用 koi 令牌，不写死品牌色。</p>
+ */
+interface ImKpi {
+  key: string;
+  title: string;
+  value: number | string;
+  desc: string;
+  icon: Component;
+  iconColor: string;
+}
+
+/** 「登录身份」tab 的统计卡 */
+const identityKpis = computed<ImKpi[]>(() => [
+  {
+    key: "total",
+    title: "身份总数",
+    value: list.value.length,
+    desc: boundIdentityCount.value ? `已绑定主机 ${boundIdentityCount.value}` : "尚未绑定主机",
+    icon: User,
+    iconColor: "var(--brand-500, var(--el-color-primary))",
+  },
+  {
+    key: "host",
+    title: "主机登录",
+    value: hostCount.value,
+    desc: "口令 + 公钥",
+    icon: Monitor,
+    iconColor: "var(--metric-cpu, var(--el-color-primary))",
+  },
+  {
+    key: "publickey",
+    title: "公钥登录",
+    value: keyCount.value,
+    desc: keyRefCount.value ? `已引用密钥 ${keyRefCount.value}` : "未引用密钥库",
+    icon: Key,
+    iconColor: "var(--el-color-success)",
+  },
+  {
+    key: "generic",
+    title: "通用凭据",
+    value: genericCount.value,
+    desc: "邮箱 / Token 等",
+    icon: Postcard,
+    iconColor: "var(--metric-disk, var(--el-color-warning))",
+  },
+]);
+
+/** 「SSH 密钥库」tab 的统计卡 */
+const keyKpis = computed<ImKpi[]>(() => [
+  {
+    key: "total",
+    title: "密钥总数",
+    value: keys.value.length,
+    desc: "供公钥登录身份引用",
+    icon: Collection,
+    iconColor: "var(--brand-500, var(--el-color-primary))",
+  },
+  {
+    key: "rsa",
+    title: "RSA",
+    value: rsaCount.value,
+    desc: "类型缺省按 RSA 计",
+    icon: Lock,
+    iconColor: "var(--metric-cpu, var(--el-color-primary))",
+  },
+  {
+    key: "other",
+    title: "其他类型",
+    value: keys.value.length - rsaCount.value,
+    desc: "ECDSA / ED25519 等",
+    icon: Unlock,
+    iconColor: "var(--el-color-warning)",
+  },
+  {
+    key: "ref",
+    title: "已被引用",
+    value: keyRefCount.value,
+    desc: keyRefCount.value ? "对应身份已绑定密钥" : "暂无身份引用",
+    icon: Connection,
+    iconColor: "var(--el-color-success)",
+  },
+]);
+
+/** 当前 tab 展示的统计卡 */
+const activeKpis = computed<ImKpi[]>(() => (tab.value === "identity" ? identityKpis.value : keyKpis.value));
 
 const filterItems = computed<ReFilterItem[]>(() => [
   { prop: "keyword", label: "名称/用户", type: "input", placeholder: "搜索名称 / 登录用户 / 备注", clearable: true, always: true },
@@ -595,17 +709,8 @@ async function submitAdd(): Promise<void> {
 
 <template>
   <div class="im tel-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">账号管理</h1>
-        <p class="page-desc">{{ tab === 'identity' ? '登录身份（密码 / SSH 私钥 / 邮箱 / Token 等）统一维护 · 共 ' + list.length + ' 条' : 'SSH 密钥库统一维护 · 供身份公钥登录引用' }}</p>
-      </div>
-      <div class="page-actions">
-        <ReButton v-if="tab === 'identity'" icon="Download" :show-text="true" @click="exportCsv">导出</ReButton>
-        <ReButton v-if="tab === 'identity'" icon="RefreshRight" :show-text="true" :loading="loading" @click="load">刷新</ReButton>
-        <ReButton v-else icon="RefreshRight" :show-text="true" :loading="keyLoading" @click="loadKeys">刷新</ReButton>
-      </div>
-    </div>
+    <!-- 顶部 hero（大标题 + 副标题 + 导出/刷新）已删除：页面标题由外壳面包屑承担，
+         hero 上的「导出 / 刷新」与分区头里的操作按钮合并到下方筛选行右侧（图标 + tip）。 -->
 
     <!-- Tab 切换 -->
     <div class="tabs">
@@ -615,18 +720,29 @@ async function submitAdd(): Promise<void> {
 
     <!-- 身份 tab -->
     <template v-if="tab === 'identity'">
-    <el-scrollbar >
+      <!-- 统计卡：ReStatCard 紧凑档，四张并排只占一行 -->
+      <section class="im-kpis">
+        <ReStatCard
+          v-for="k in activeKpis"
+          :key="k.key"
+          size="compact"
+          :title="k.title"
+          :value="k.value"
+          :desc="k.desc"
+          :icon="k.icon"
+          :icon-color="k.iconColor"
+        />
+      </section>
 
-
-    <div class="card">
+      <section class="card im-card">
       <ReSectionHead description="身份即登录凭据；主机可绑定多个身份，连接时按所选身份建连">
         <template #title>登录身份</template>
-        <template #actions>
-          <ReButton icon="Plus" :show-text="true" type="primary" @click="openAdd">新增身份</ReButton>
-        </template>
       </ReSectionHead>
 
-      <div class="filter">
+      <!-- 筛选行 + 全部操作合并为一行：筛选在左（原 hero 的导出/刷新与分区头的新增身份
+           合并到右侧，图标 + tip）。ReFilter 的 show-actions 保持关闭：筛选是前端实时
+           计算（filteredList），没有服务端查询可触发，加一个按钮点了不起反而更糟。 -->
+      <div class="im-toolbar">
         <ReFilter
           :items="filterItems"
           :columns="2"
@@ -634,10 +750,16 @@ async function submitAdd(): Promise<void> {
           :show-actions="false"
           @change="onFilterChange"
           @reset="onFilterReset"
-          style="width:100%"
+          class="im-toolbar__filter"
         />
+        <span class="im-toolbar__meta">{{ filteredList.length }} / {{ list.length }} 条</span>
+        <div class="im-ops">
+          <ReButton icon="Plus" layout="square" type="primary" tip="新增身份" @click="openAdd" />
+          <ReButton icon="Download" layout="square" tip="导出 CSV" @click="exportCsv" />
+          <ReButton icon="RefreshRight" layout="square" tip="刷新" :loading="loading" @click="load" />
+        </div>
       </div>
-  
+
       <ReTable
         :data="filteredList"
         :columns="columns"
@@ -689,21 +811,39 @@ async function submitAdd(): Promise<void> {
         <ReTag type="primary" effect="plain">已选 {{ selection.length }} 项</ReTag>
         <ReButton icon="Delete" type="danger" :show-text="true" @click="batchDelete(selection as unknown as Record<string, unknown>[])">批量删除</ReButton>
       </div>
-    </div>
-      </el-scrollbar >
+      </section>
     </template>
   
     <!-- 密钥库 tab -->
     <template v-else>
-     <el-scrollbar >
-      <div class="card">
+      <!-- 统计卡：随 tab 切换为密钥口径 -->
+      <section class="im-kpis">
+        <ReStatCard
+          v-for="k in activeKpis"
+          :key="k.key"
+          size="compact"
+          :title="k.title"
+          :value="k.value"
+          :desc="k.desc"
+          :icon="k.icon"
+          :icon-color="k.iconColor"
+        />
+      </section>
+
+      <section class="card im-card">
         <ReSectionHead description="SSH 密钥库：密钥名称 / 类型 / 公钥指纹；身份选「公钥登录」时引用密钥">
           <template #title>SSH 密钥库</template>
-          <template #actions>
-            <ReButton icon="MagicStick" :show-text="true" @click="openKeyAdd">生成密钥对</ReButton>
-            <ReButton icon="Plus" :show-text="true" type="primary" @click="openKeyManual">新增密钥</ReButton>
-          </template>
         </ReSectionHead>
+
+        <!-- 该 tab 没有筛选条件，操作行左侧放条数提示，右侧统一放操作 -->
+        <div class="im-toolbar">
+          <span class="im-toolbar__meta im-toolbar__meta--only">{{ keys.length }} 个密钥</span>
+          <div class="im-ops">
+            <ReButton icon="MagicStick" layout="square" tip="生成密钥对" @click="openKeyAdd" />
+            <ReButton icon="Plus" layout="square" type="primary" tip="新增密钥" @click="openKeyManual" />
+            <ReButton icon="RefreshRight" layout="square" tip="刷新密钥库" :loading="keyLoading" @click="loadKeys" />
+          </div>
+        </div>
 
         <ReTable
           :data="keys"
@@ -743,8 +883,7 @@ async function submitAdd(): Promise<void> {
             </div>
           </template>
         </ReTable>
-      </div>
-      </el-scrollbar >
+      </section>
     </template>
 
     <!-- 新增身份 -->
@@ -910,7 +1049,67 @@ async function submitAdd(): Promise<void> {
 </template>
 
 <style scoped lang="scss">
-.im { display: flex; flex-direction: column; gap: 14px; }
+/* ============================================================
+   账号管理 —— 全部走 koi / Element Plus 变量
+   布局：整页 flex 列（tabs / 统计卡 / 筛选行 固定高，卡片 flex:1 吃满剩余高度）
+   ============================================================ */
+/* .tel-page 已提供 height:100% 与 overflow-y:auto；这里补 min-height:0，
+   否则 flex 子项默认 min-height:auto，长列表会把卡片顶高、外层出滚动条 */
+.im { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.tabs { flex: none; }
+
+/* ---------- 统计卡（ReStatCard 紧凑档横排，卡片外壳规格由组件基线提供） ---------- */
+.im-kpis {
+  flex: none;
+  display: grid;
+  /* 紧凑档单卡很窄，用 auto-fit 让 4 张按可用宽度自动换行，无需断点硬切 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- 数据卡片：吃满剩余高度 ---------- */
+.im-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* ReTable 是卡片里唯一该伸展的子项：basis 0 让 flex 纯按剩余空间分配，
+   min-height 0 必须置（flex 子项默认 auto），否则内容会把卡片顶高、
+   ReTable 的 fill 也拿不到确定高度。 */
+.im-card > :deep(.re-table) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* ---------- 筛选行 + 操作区（合并成一行） ---------- */
+.im-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.im-toolbar__filter {
+  flex: 1;
+  min-width: 0;
+}
+.im-toolbar__meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* 该 tab 没有筛选时不需要把提示推到右边 */
+.im-toolbar__meta--only { margin-left: 0; }
+/* 操作图标组：与筛选/条数提示之间用竖线分隔，视觉上区分「筛选」与「操作」 */
+.im-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-subtle);
+}
+
 .op-cell { display: flex; gap: 6px; }
 .sel-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
 .mono { font-family: ui-monospace, SFMono-Regular, monospace; }
