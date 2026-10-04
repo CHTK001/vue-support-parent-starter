@@ -76,11 +76,11 @@
               <template v-if="kpList(row).length">
                 <el-tag
                   v-for="kp in kpList(row)"
-                  :key="kp"
+                  :key="kp.id"
                   size="small"
                   class="ss-kp"
                   @click.stop="openKp(kp)"
-                >{{ kp }}</el-tag>
+                >{{ kp.name }}</el-tag>
               </template>
               <span v-else class="ss-muted">无</span>
             </template>
@@ -166,14 +166,15 @@ const anchorText = (no: string) => {
   return q ? `${q.editScore}` : '?';
 };
 
-const kpList = (row: any): string[] => {
+const kpList = (row: any): Array<{ id: any; name: string; description?: string }> => {
+  // 后端已把知识点 id 解析成 {id,name,description}，直接渲染名称、点开即出描述。
+  const list = row?.knowledgePoints;
+  if (Array.isArray(list) && list.length) return list;
+  // 兼容仅返回 id 串的旧结构：退化成显示 id，仍可点击
   const raw = row?.knowledgePointIds;
   if (raw === null || raw === undefined || raw === '') return [];
-  if (Array.isArray(raw)) return raw.map((x) => String(x));
-  return String(raw)
-    .split(/[,，\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const arr = Array.isArray(raw) ? raw : String(raw).split(/[,，\s]+/);
+  return arr.filter(Boolean).map((x) => ({ id: x, name: String(x) }));
 };
 
 const selectQuestion = (no: string) => {
@@ -186,19 +187,12 @@ const mark = (row: any, kind: 'right' | 'wrong') => {
   dirty.value = true;
 };
 
-const openKp = async (kp: string) => {
-  kpKeyword.value = kp;
+const openKp = (kp: any) => {
+  // 名称与描述已随结构返回，无需再按 id 反查（按 id 搜关键字搜不到，点开会是空的）
+  kpKeyword.value = kp?.name || '';
+  kpDetail.value = kp ? [kp] : [];
   kpDrawer.value = true;
-  kpLoading.value = true;
-  kpDetail.value = [];
-  try {
-    const list = await eduaiApi.listKnowledge({ keyword: kp, limit: 20 });
-    kpDetail.value = Array.isArray(list) ? list : [];
-  } catch {
-    kpDetail.value = [];
-  } finally {
-    kpLoading.value = false;
-  }
+  kpLoading.value = false;
 };
 
 const loadImage = async (taskId: string, p: number) => {
