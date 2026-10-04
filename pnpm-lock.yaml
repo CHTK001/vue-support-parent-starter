@@ -496,6 +496,9 @@ importers:
       '@pages/collect':
         specifier: workspace:*
         version: link:../../pages/collect
+      '@pages/datasource':
+        specifier: workspace:*
+        version: link:../../pages/datasource
       '@pages/job':
         specifier: workspace:*
         version: link:../../pages/job
