@@ -60,13 +60,19 @@
           </div>
         </div>
       </div>
-      <!-- 关闭按钮：与 tablist 平级（同一个滚动轨道内），绝对定位贴回标签右侧 -->
+      <!--
+        关闭按钮：与 tablist 平级（同一个滚动轨道内），绝对定位贴回标签右侧。
+        left 由 computeCloseLeft() 给出「标签右边缘相对 __items 左边缘」的横向距离，
+        再由 CSS 的 translate(-100%) 把按钮**右边缘**对齐过去 —— 因此 JS 侧
+        不需要知道按钮自身宽度。
+      -->
       <button
         v-for="item in closableTabs"
         :key="`close-${item.path}`"
         type="button"
         class="layout-tabs-bar__close layout-tabs-bar__close--abs"
-        :style="{ left: `${item.closeLeft}px` }"
+        :class="{ 'is-active': activeTab === item.path }"
+        :style="{ left: `${item.closeLeft}px`, top: `${item.closeTop}px` }"
         :aria-label="t('tabs.closeCurrent')"
         @click="removeTab(item.path)"
       >
@@ -127,7 +133,18 @@ const {
 } = useLayoutTabs(getTrackEl, { tabMenuRef, scrollNavRef });
 
 /**
- * 需要显示关闭按钮的标签，及其关闭按钮相对 __list 的横向位置。
+ * 关闭按钮相对「标签右边缘」的内缩距离（px）。
+ *
+ * <p>原先这里写的是「标签右边缘 − 20」，把「按钮宽度（假定 14px）+ 内缩（6px）」
+ * 一起编码进了减数。于是图标尺寸或字体一变就漂移；且三种 tabsStyle 的右内边距
+ * 不同（glass-cards 10px / google 12px / plain 12px），对齐只是碰巧差不多。
+ * 现在由 CSS 用 {@code translate(-100%)} 对齐按钮<b>右边缘</b>，JS 只算内缩这一个
+ * 真正的设计值，与按钮自身宽度解耦。</p>
+ */
+const CLOSE_BUTTON_INSET = 6;
+
+/**
+ * 需要显示关闭按钮的标签，及其关闭按钮相对 __items 的横向位置。
  *
  * <p>关闭按钮不能放进 role="tab" 里（nested-interactive），也不能放在
  * role="tablist" 与 role="tab" 之间（试过 role="presentation" 的 wrapper，
@@ -137,43 +154,119 @@ const {
  * <p>位置用 <b>getBoundingClientRect 差值</b>算，不能用 offsetLeft：
  * 标签在滚动容器（ReScrollNav 的 track）里，offsetLeft 是相对该容器的，
  * 减去容器偏移后曾实测偏差 200px 以上（关闭按钮会叠到别的标签上）。</p>
+ *
+ * <p>查询一律 scope 到本组件的 {@code rootRef}：原来用的是全局
+ * {@code document.querySelector}，页面上存在第二个页签栏实例时会取到别人的
+ * 参照层，按钮整体错位。</p>
  */
 function computeCloseLeft(path: string): number {
   // 参照物是自建的定位层 .layout-tabs-bar__items（position: relative）
-  const baseEl = document.querySelector<HTMLElement>(".layout-tabs-bar__items");
-  const tabEl = document.querySelector<HTMLElement>(`[data-tab-path="${CSS.escape(String(path))}"]`);
+  const root = rootRef.value;
+  const baseEl = root?.querySelector<HTMLElement>(".layout-tabs-bar__items") ?? null;
+  const tabEl =
+    root?.querySelector<HTMLElement>(`[data-tab-path="${CSS.escape(String(path))}"]`) ?? null;
   if (!baseEl || !tabEl) return 0;
   const baseRect = baseEl.getBoundingClientRect();
   const tabRect = tabEl.getBoundingClientRect();
-  return Math.max(0, tabRect.right - baseRect.left - 20);
+  // 只减内缩：按钮右边缘由 CSS 的 translate(-100%) 对齐到这个坐标
+  return Math.max(0, tabRect.right - baseRect.left - CLOSE_BUTTON_INSET);
 }
 
-const closableTabs = ref<{ path: string; closeLeft: number }[]>([]);
+/**
+ * 关闭按钮纵向中心对齐到标签中心所需的 top（相对 __items 左上）。
+ *
+ * <p>原先 CSS 写的是 {@code top: 50%}，那是 __items 的中线。但 google 风格给
+ * .layout-tabs-bar__item 加了 {@code margin-top: 6px}（把圆角胶囊压低让出顶部），
+ * 于是 __items 的中线比标签自身中心高 3px，× 在 google 风格下会偏上 3px。
+ * 与其在这里补一个 {@code +3px} 的魔法数，不如直接量标签中心 —— 横纵都用同
+ * 一套测量，任何风格（改 margin-top / 改行高）都对齐。</p>
+ */
+function computeCloseTop(path: string): number {
+  const root = rootRef.value;
+  const baseEl = root?.querySelector<HTMLElement>(".layout-tabs-bar__items") ?? null;
+  const tabEl =
+    root?.querySelector<HTMLElement>(`[data-tab-path="${CSS.escape(String(path))}"]`) ?? null;
+  if (!baseEl || !tabEl) return 0;
+  const baseRect = baseEl.getBoundingClientRect();
+  const tabRect = tabEl.getBoundingClientRect();
+  // CSS 的 translateY(-50%) 会再上移自身高度的一半，正好让按钮中心落在此点
+  return tabRect.top + tabRect.height / 2 - baseRect.top;
+}
 
-/** 标签尺寸随字体加载/窗口变化而变，重算关闭按钮位置 */
+const closableTabs = ref<{ path: string; closeLeft: number; closeTop: number }[]>([]);
+
+/** 重算关闭按钮位置 */
 function refreshClosePositions(): void {
   const list = tabList.value ?? [];
   closableTabs.value = list
     .filter((item) => getClosable(item))
-    .map((item) => ({ path: item.path, closeLeft: computeCloseLeft(item.path) }));
+    .map((item) => ({
+      path: item.path,
+      closeLeft: computeCloseLeft(item.path),
+      closeTop: computeCloseTop(item.path),
+    }));
 }
+
+/**
+ * 把重算合并到下一帧。
+ *
+ * <p>ResizeObserver 在一次布局里可能连着触发两次（root 与 list 各一次），
+ * 而 refreshClosePositions 会对每个可关闭标签做 2 次 getBoundingClientRect，
+ * 页签多时是白做的功。合并到 rAF 后每帧最多算一次。</p>
+ */
+let closeRafId = 0;
+function scheduleRefreshClosePositions(): void {
+  if (closeRafId) cancelAnimationFrame(closeRafId);
+  closeRafId = requestAnimationFrame(() => {
+    closeRafId = 0;
+    refreshClosePositions();
+  });
+}
+
+/**
+ * 尺寸变化的重算入口。
+ *
+ * <p>原来只监听 {@code window.resize}，漏掉三类真实变化：字体加载完成
+ * （标签宽度变了，但字体就绪不触发 resize）、标题变长（i18n 异步解析出更长文案）、
+ * tabsStyle 切换（三种风格的内边距与边框不同）。这三种都会改变 tablist 的
+ * <b>内容宽度</b>，而 {@code ResizeObserver} 盯的正是它；root（width:100%）
+ * 则覆盖窗口缩放。</p>
+ */
+let closeRO: ResizeObserver | null = null;
 
 onMounted(() => {
   refreshClosePositions();
-  window.addEventListener("resize", refreshClosePositions);
+  const root = rootRef.value;
+  const listEl = root?.querySelector(".layout-tabs-bar__list") ?? null;
+  if (typeof ResizeObserver !== "undefined" && root && listEl) {
+    closeRO = new ResizeObserver(() => scheduleRefreshClosePositions());
+    closeRO.observe(root);
+    closeRO.observe(listEl);
+  } else {
+    // 兜底：ResizeObserver 不可用时，至少窗口缩放还能跟上
+    window.addEventListener("resize", scheduleRefreshClosePositions);
+  }
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", refreshClosePositions);
+  closeRO?.disconnect();
+  closeRO = null;
+  if (closeRafId) {
+    cancelAnimationFrame(closeRafId);
+    closeRafId = 0;
+  }
+  window.removeEventListener("resize", scheduleRefreshClosePositions);
 });
 
-// 标签增删后位置会变
+// 标签增删**与换序**都会改变关闭按钮位置。
+// 原来只 watch length，漏掉 Sortable 拖拽换序（长度不变、顺序变了）——
+// 拖完之后关闭按钮全部留在原位，与页签一一错位。改成 watch 路径序列。
 watch(
-  () => tabList.value?.length,
+  () => (tabList.value ?? []).map((t) => t.path).join("|"),
   async () => {
     await nextTick();
     refreshClosePositions();
-  }
+  },
 );</script>
 
 <style lang="scss" scoped>
@@ -198,7 +291,7 @@ watch(
  * tablist 容器与每个标签的 wrapper。
  * 2026-10-02 为修无障碍新增：
  *   - __list  提供 role="tablist"（aria-required-parent 要求）
- *   - __wrap 承载「标签 + 关闭按钮」，使 role="tab" 内不再嵌套可点击元素
+ *   - 关闭按钮移出 tablist 并绝对定位，使 role="tab" 内不再嵌套可点击元素
  *     （nested-interactive）。原先 item 直接是滚动容器的 inline-flex 子元素，
  *     布局样式整体下移到 wrapper 上，item 退化为 wrapper 内的 flex 子项。
  */
@@ -275,22 +368,37 @@ watch(
 
 /*
  * 关闭按钮移出 tablist 后需要绝对定位贴回标签右侧。
- * 定位参照物是滚动轨道 .koi-scroll-nav__track（需 position: relative）。
+ * 定位参照物是自建的 .layout-tabs-bar__items（position: relative），
+  * **不是** .koi-scroll-nav__track —— 那是公共组件且没有 position: relative。
+  *
+  * left 由 JS 给出的是「标签右边缘」的坐标，translate(-100%) 把按钮**右边缘**
+  * 对齐过去，于是 JS 侧不需要知道按钮自身宽度（见 computeCloseLeft 的
+  * CLOSE_BUTTON_INSET）。原先这里只写 translateY(-50%)、配 JS 里的「减 20」，
+  * 等于把按钮宽度硬编码进了 JS。
  */
 .layout-tabs-bar__close--abs {
   position: absolute;
-  top: 50%;
+  /* left / top 都由 JS 按标签实测盒给出（见 computeCloseLeft / computeCloseTop），
+     这里的 0 只是首帧兜底；不要改回 50%，google 风格的 margin-top 会让 × 偏上 3px */
+  top: 0;
   margin-left: 0;
-  transform: translateY(-50%);
+  transform: translate(-100%, -50%);
 }
 
-/* 关闭按钮已移出 role="tab"（修 nested-interactive），选中态改由 tab 自身驱动 */
-.layout-tabs-bar__item.is-active ~ .layout-tabs-bar__close,
-.layout-tabs-bar__close--abs:hover {
-  color: inherit;
+/*
+  * 选中态颜色：关闭按钮已移出 role="tab"，不能再靠 color: inherit 从标签继承 ——
+  * 继承源变成了 __items，永远拿不到标签的选中色，于是 d2089d4a1 之后选中标签的
+  * 叉号一直不是主题色。改为由模板上的 is-active 类显式驱动。
+  *
+  * 原先这里是 `.layout-tabs-bar__item.is-active ~ .layout-tabs-bar__close`：
+  * 兄弟选择器在按钮移出 tablist 之后**永不匹配**，是条死规则，已删除。
+  */
+.layout-tabs-bar__close--abs.is-active {
+  color: var(--el-color-primary);
 }
 
 .layout-tabs-bar__close--abs:hover {
+  color: var(--el-color-primary);
   background-color: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-primary));
 }
 
@@ -385,7 +493,7 @@ watch(
     }
   }
 
-  /* 兄弟节点层级已变：标签现在是 __wrap 的子元素，下划线 .line 的相邻兄弟是 __item */
+  /* 兄弟节点层级已变：标签的相邻兄弟仍是标签自身，下划线 .line 的相邻兄弟是 __item */
   &:hover + .layout-tabs-bar__item .line,
   &.is-active + .layout-tabs-bar__item .line {
     opacity: 0;
@@ -405,9 +513,9 @@ watch(
     color: var(--el-color-primary);
   }
 
-  .layout-tabs-bar__close {
-    color: inherit;
-  }
+  /* 选中态的叉号由 .layout-tabs-bar__close--abs.is-active 统一驱动；
+     此前这里还有一条 .layout-tabs-bar__close { color: inherit }，
+     嵌套在 __item 内，而按钮已不是 __item 的后代，同样是永不匹配的死规则。 */
 
   :deep(.el-icon) {
     color: inherit;
