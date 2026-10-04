@@ -141,12 +141,12 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  /* 初中端：靛蓝→青 的「青春期活力」渐变，与小学亮蓝、高中深蓝区分 */
+  /* 初中端：蓝→靛蓝渐变（对齐设计稿），与小学亮蓝、高中深蓝区分 */
   background: linear-gradient(
     175deg,
-    #4f46e5 0%,
-    #06b6d4 54%,
-    var(--el-bg-color-page) 54.1%,
+    #4a5cf5 0%,
+    #7c8bff 46%,
+    var(--el-bg-color-page) 46.1%,
     var(--el-fill-color-lighter) 100%
   );
 }
@@ -237,6 +237,12 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   color: var(--el-text-color-placeholder);
   margin-left: 3px;
 }
+/* 对齐设计稿：四枚统计胶囊各有浅色底（蓝/绿/橙/紫），通过 nth-child 着色，
+   不改模板；第四枚固定紫（语义位里没有紫，用固定值保证色相稳定）。 */
+.jp-stat:nth-child(1) { background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color)); }
+.jp-stat:nth-child(2) { background: color-mix(in srgb, var(--el-color-success) 10%, var(--el-bg-color)); }
+.jp-stat:nth-child(3) { background: color-mix(in srgb, var(--el-color-warning) 12%, var(--el-bg-color)); }
+.jp-stat:nth-child(4) { background: color-mix(in srgb, #7c3aed 10%, var(--el-bg-color)); }
 
 .jp-body {
   margin: 26px 26px 0;
@@ -257,13 +263,13 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   flex-direction: column;
   gap: 14px;
   padding: 20px 18px;
-  /* 原 18px，最近档 16px（xl）；原 box-shadow 换成边框（koi 卡片不加投影） */
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
+  /* 对齐设计稿：白卡 + 柔和投影、20px 圆角 */
+  border: 0;
+  border-radius: 20px;
   background: var(--el-bg-color);
   cursor: pointer;
   text-align: left;
-  /* 浏览器默认焦点框太粗，统一换成 koi 焦点环 */
+  box-shadow: 0 10px 24px color-mix(in srgb, #2b3a8f 10%, transparent);
   outline: none;
   transition:
     transform var(--el-transition-duration-fast, 0.2s) ease,
@@ -271,8 +277,7 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-card:hover {
   transform: translateY(-3px);
-  /* 浮起反馈是 koi 唯一允许的卡片投影 */
-  box-shadow: 0 12px 26px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  box-shadow: 0 16px 30px color-mix(in srgb, #2b3a8f 18%, transparent);
 }
 .jp-card:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
@@ -285,8 +290,10 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   height: 22px;
   padding: 0 6px;
   border-radius: var(--el-border-radius-circle, 50%);
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
+  /* 对齐设计稿：描边小圆牌（不是实心灰底） */
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 800;
   display: inline-flex;
@@ -300,16 +307,17 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-card__ic {
   flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  /* 原 14px，最近档 12px（lg） */
-  border-radius: var(--el-radius-lg, 12px);
+  width: 56px;
+  height: 56px;
+  /* 对齐设计稿：圆角方块图标 + 柔和投影 */
+  border-radius: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 26px;
   /* 底色由 modules.ts 的 color/colorTo 渐变内联下发（数据驱动），这里只定前景 */
   color: var(--el-color-white);
+  box-shadow: 0 8px 18px -6px color-mix(in srgb, var(--el-color-black) 22%, transparent);
 }
 .jp-card__text {
   min-width: 0;
