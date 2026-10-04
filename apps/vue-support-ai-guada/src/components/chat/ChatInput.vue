@@ -219,6 +219,8 @@ import {
   Flash24Regular, ClipboardTask24Regular, Add24Regular, Wrench24Regular, BrainCircuit20Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular
 } from '@vicons/fluent'
 import { usePopup } from '@/composables/usePopup';
+import { useRouter } from 'vue-router';
+import { useSessionStore } from '@/stores/session';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import { isAdmin } from '@repo/core';
@@ -263,6 +265,8 @@ const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('lg') // md = 768px
 
 const { confirm } = usePopup();
+const router = useRouter();
+const sessionStore = useSessionStore();
 const { t } = useI18n()
 
 // 响应式数据
@@ -1414,6 +1418,13 @@ const selectCommand = (item: any) => {
     editor.value.chain().focus().deleteRange({ from, to }).run();
   }
 
+  // 内置命令：执行会话级动作（压缩上下文 / 创建技能 / 新建会话），不插入命令节点
+  if (item && item.builtin) {
+    closeCommandPicker();
+    void runBuiltinCommand(item.builtin);
+    return;
+  }
+
   const providerId = item.providerId || 'skill';
   const name = item.name;
   const label = item.label || item.name;
@@ -1433,12 +1444,89 @@ const selectCommand = (item: any) => {
 };
 
 // ==================== 命令数据加载（按需 + 缓存） ====================
+
+/**
+ * 内置命令：不依赖后端命令列表，始终排在 `/` 列表最前。
+ *
+ * <p>为什么要内置：会话此前只有后端下发的「技能 / MCP 工具」，没有「压缩上下文」
+ * 这类会话级动作（用户反馈「会话缺少内置的命令，比如压缩上下文，创建技能等等」）。
+ */
+const BUILTIN_COMMANDS = [
+  {
+    name: 'builtin-compress',
+    label: '压缩上下文',
+    description: '把当前会话历史压缩为摘要，释放上下文窗口',
+    builtin: 'compress',
+    providerId: 'builtin',
+  },
+  {
+    name: 'builtin-create-skill',
+    label: '创建技能',
+    description: '打开技能管理，新建一个可复用技能',
+    builtin: 'create-skill',
+    providerId: 'builtin',
+  },
+  {
+    name: 'builtin-new-session',
+    label: '新建会话',
+    description: '另起一个会话继续',
+    builtin: 'new-session',
+    providerId: 'builtin',
+  },
+];
+
+/**
+ * 执行内置命令。
+ *
+ * @param kind 内置命令类型（compress / create-skill / new-session）
+ */
+async function runBuiltinCommand(kind: string): Promise<void> {
+  if (kind === 'compress') {
+    const sessionId = props.sessionId == null ? '' : String(props.sessionId);
+    if (!sessionId) {
+      ElMessage.warning('当前没有会话，无法压缩上下文');
+      return;
+    }
+    if (sessionStore.sessionIsStreaming(sessionId)) {
+      ElMessage.warning('会话正在生成中，请稍后再试');
+      return;
+    }
+    try {
+      sessionStore.setSessionIsCompressing(sessionId, true);
+      const res: any = await apiService.compressSession(sessionId);
+      if (res && res.success) {
+        ElMessage.success('上下文已压缩');
+      } else {
+        ElMessage.warning(res?.message || '未执行压缩');
+      }
+    } catch (error: any) {
+      ElMessage.error(error?.message || '压缩失败');
+    } finally {
+      sessionStore.setSessionIsCompressing(sessionId, false);
+    }
+    return;
+  }
+  if (kind === 'create-skill') {
+    router.push({ name: 'Skills' });
+    return;
+  }
+  if (kind === 'new-session') {
+    router.push({ name: 'Chat', params: { sessionId: 'new-session' } });
+  }
+}
+
 const loadCommands = async (trigger: 'slash' | 'mention') => {
   try {
     const res = await apiService.fetchCommands(trigger, props.characterId || undefined);
-    commandsCache[trigger] = res.items || [];
+    const remote = res.items || [];
+    // 内置命令只挂在 / 列表上（@ 是提及角色 / 工具，语义不同）
+    commandsCache[trigger] = trigger === 'slash' ? [...BUILTIN_COMMANDS, ...remote] : remote;
   } catch (error) {
     console.error('获取命令列表失败:', error);
+    // 后端命令列表不可用时，内置命令仍然要可用
+    if (trigger === 'slash') {
+      commandsCache[trigger] = [...BUILTIN_COMMANDS];
+    }
   }
 };
 
