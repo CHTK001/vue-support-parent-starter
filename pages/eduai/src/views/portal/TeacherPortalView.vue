@@ -164,8 +164,10 @@
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="goCompose(row)">组卷</el-button>
                 <!-- 布置：把这张卷发给自己的某个班级，班内学生端「我的试卷」即可看到。
-                     未发布的卷点布置会先提示发布（学生端只显示已发布的卷）。 -->
-                <el-button link type="success" @click.stop="openAssign(row)">布置给班级</el-button>
+                     未发布的卷点布置会先提示发布（学生端只显示已发布的卷）。
+                     类名 tp-assign-open 是稳定钩子：与「发布」同为 success 色，
+                     只靠文本/颜色定位在自动化里会点错行。 -->
+                <el-button link type="success" class="tp-assign-open" @click.stop="openAssign(row)">布置给班级</el-button>
                 <el-button v-if="paperStatusCode(row) === 0" link type="success" @click.stop="publishPaper(row)">发布</el-button>
                 <el-button v-else-if="paperStatusCode(row) === 1" link type="warning" @click.stop="unpublishPaper(row)">下架</el-button>
                 <el-button v-if="paperStatusCode(row) !== 2" link @click.stop="archivePaper(row)">归档</el-button>

@@ -86,13 +86,21 @@ async function load() {
   }
 }
 
-/** 查看试卷：按需拉一次详情（含题目），不预拉全部 */
+/**
+ * 查看试卷：按需拉一次详情（含题目），不预拉全部。
+ *
+ * <p>走 {@code myClassPaperDetail}（按「布置给本班」授权），不能用通用
+ * {@code getPaper} —— 后者按「试卷归属人」鉴权，学生不是归属人会被 400 拒掉，
+ * 表现为点「查看试卷」弹出空对话框（实测 B0500S0001）。</p>
+ *
+ * @param row 我班的试卷记录
+ */
 async function openPaper(row: PaperAssignVO) {
   detailVisible.value = true;
   detailLoading.value = true;
   detail.value = null;
   try {
-    detail.value = await eduaiApi.getPaper(row.paperId);
+    detail.value = await eduaiApi.myClassPaperDetail(row.paperId);
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "加载试卷详情失败");
   } finally {

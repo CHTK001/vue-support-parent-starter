@@ -30,6 +30,11 @@ import type {
   FunConfig,
   Idiom,
   IdiomGameData,
+  IdiomChainStart,
+  IdiomChainStep,
+  IdiomChainHint,
+  EduHanzi,
+  HanziQuestion,
   Poem,
   PoemChallengeData,
   PoemChallengeMode,
@@ -523,6 +528,54 @@ export const eduaiApi = {
     http()
       .delete(`/v2/edu/idiom/delete/${idiomId}`)
       .then<boolean>(unwrap),
+  /** 成语接龙：服务端自动出题（首尾相接），返回起始成语与步数（不含答案） */
+  idiomChainStart: (params: { gradeLevel?: string; grade?: string; length?: number } = {}) =>
+    http()
+      .get("/v2/edu/idiom/chain/start")
+      .query(params)
+      .then<IdiomChainStart>(unwrap),
+  /** 成语接龙：校验一步（答案由服务端判定，前端拿不到答案） */
+  idiomChainValidate: (data: { current: string; answer: string }) =>
+    http()
+      .post("/v2/edu/idiom/chain/validate")
+      .data(data as unknown as Record<string, unknown>)
+      .then<IdiomChainStep>(unwrap),
+  /** 成语接龙：给当前成语一个提示答案 */
+  idiomChainHint: (current: string) =>
+    http()
+      .get("/v2/edu/idiom/chain/hint")
+      .query({ current })
+      .then<IdiomChainHint>(unwrap),
+
+  // 汉字基础数据（字 / 读音 / 笔顺 / 字画 / 释义）
+  /** 分页查询汉字（关键字匹配 字/拼音/释义） */
+  pageHanzi: (params: { keyword?: string; gradeLevel?: string; pageNum?: number; pageSize?: number }) =>
+    http()
+      .get("/v2/edu/hanzi/page")
+      .query(params)
+      .then<PageResult<EduHanzi>>(unwrap),
+  /** 汉字详情 */
+  getHanzi: (id: number) =>
+    http()
+      .get(`/v2/edu/hanzi/${id}`)
+      .then<EduHanzi>(unwrap),
+  /** 保存汉字（同一个字重复提交则更新） */
+  saveHanzi: (data: Partial<EduHanzi>) =>
+    http()
+      .post("/v2/edu/hanzi/save")
+      .data(data as unknown as Record<string, unknown>)
+      .then<number>(unwrap),
+  /** 删除汉字 */
+  deleteHanzi: (id: number) =>
+    http()
+      .delete(`/v2/edu/hanzi/${id}`)
+      .then<boolean>(unwrap),
+  /** 汉字识字练习：服务端自动出题（读音 / 笔画，题目带笔顺与释义） */
+  hanziPractice: (params: { gradeLevel?: string; count?: number } = {}) =>
+    http()
+      .get("/v2/edu/hanzi/practice")
+      .query(params)
+      .then<HanziQuestion[]>(unwrap),
 
   // 古诗库与古诗游戏（补全下句）
   listPoems: (params: { gradeLevel?: string; grade?: string; count?: number }) =>
@@ -886,6 +939,16 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/paper-assign/my-class")
       .then<PaperAssignVO[]>(unwrap),
+  /**
+   * 学生：查看布置给本班的某张试卷详情（含题目）。
+   *
+   * <p>不能用通用的 {@code getPaper}：那个接口按「试卷归属人」鉴权，学生不是归属人，
+   * 实测 400 B0500S0001 —— 学生只能看到卷名、点「查看试卷」是空的。</p>
+   */
+  myClassPaperDetail: (paperId: number) =>
+    http()
+      .get(`/v2/edu/paper-assign/paper/${paperId}`)
+      .then<Paper>(unwrap),
 
   /**
    * 指定学段的模块清单（学生端首页用）。
