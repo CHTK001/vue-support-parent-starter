@@ -64,13 +64,13 @@ defineEmits(['click'])
 
 /* 语义色：渐变两端分别取「本色 / 本色 dark-2」两档令牌。
    原来写死的是紫色系渐变，主题切换后会与主色打架，必须跟主题走。 */
-.re-button--primary {
+.re-button--primary:not(.is-link) {
   background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
   border: none;
   color: var(--el-color-white);
 }
 
-.re-button--primary:hover {
+.re-button--primary:not(.is-link):hover {
   background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
   box-shadow: 0 6px 20px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
 }
@@ -82,35 +82,74 @@ defineEmits(['click'])
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 30%, transparent);
 }
 
-.re-button--success {
+.re-button--success:not(.is-link) {
   background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-dark-2) 100%);
   border: none;
   color: var(--el-color-white);
 }
 
-.re-button--warning {
+.re-button--warning:not(.is-link) {
   background: linear-gradient(135deg, var(--el-color-warning) 0%, var(--el-color-warning-dark-2) 100%);
   border: none;
   color: var(--el-color-white);
 }
 
-.re-button--danger {
+.re-button--danger:not(.is-link) {
   background: linear-gradient(135deg, var(--el-color-danger) 0%, var(--el-color-danger-dark-2) 100%);
   border: none;
   color: var(--el-color-white);
 }
 
 /* default：页面底色 / 细边框 / 常规文字三枚令牌，暗色自动反相 */
-.re-button--default {
+.re-button--default:not(.is-link) {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   color: var(--el-text-color-regular);
 }
 
-.re-button--default:hover {
+.re-button--default:not(.is-link):hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
   background: var(--el-fill-color-light);
+}
+
+/* link 变体：透明底 + 语义色文字。
+   上面按 type 写死的白字对 link 不适用——否则 link+primary/danger 会得到
+   「白字 + 透明底」，在浅色面板上完全不可见（实测 color=rgb(255,255,255)、
+   background=rgba(0,0,0,0)）。这里显式按语义给文字色。 */
+.re-button.is-link {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0 4px;
+  height: auto;
+  min-height: 0;
+}
+
+.re-button.is-link:hover {
+  transform: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.re-button--primary.is-link {
+  color: var(--el-color-primary);
+}
+
+.re-button--success.is-link {
+  color: var(--el-color-success);
+}
+
+.re-button--warning.is-link {
+  color: var(--el-color-warning);
+}
+
+.re-button--danger.is-link {
+  color: var(--el-color-danger);
+}
+
+.re-button--default.is-link {
+  color: var(--el-text-color-regular);
 }
 
 .re-button :deep(.el-icon) {
