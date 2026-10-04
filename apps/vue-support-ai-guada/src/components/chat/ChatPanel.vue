@@ -921,11 +921,69 @@ function editMessage(message: any) {
 }
 
 /**
+ * 判定错误是否为「端点不存在 / 资源不存在」（404）。
+ *
+ * 用于回退时决定是否降级。ApiError 的状态字段在不同版本里出现过
+ * status / statusCode 两种，这里都取一遍，避免只认一种导致降级分支永远不触发。
+ *
+ * @param error 捕获到的错误
+ * @returns 是 404 时为 true
+ */
+function isNotFound(error: any): boolean {
+  const status = error?.statusCode ?? error?.status ?? error?.response?.status
+  if (status === 404) {
+    return true
+  }
+  return /404|not found|资源不存在/i.test(String(error?.message ?? ''))
+}
+
+/**
+ * 收集「从某条消息所在轮起、直到会话末尾」的全部消息 id，按对话顺序。
+ *
+ * 与确认框的措辞一致（「本轮及之后的全部消息」）：锚点是助手消息时，
+ * 该轮的**用户消息也要一起删**，否则会留下没有回复的孤儿提问。
+ * 用于后端没有批量回退端点时逐条删除。
+ *
+ * @param messageId 起点消息 id（用户或助手消息均可）
+ * @returns 需要删除的消息 id 列表；找不到起点时返回空数组
+ */
+function collectMessageIdsFrom(messageId: string): string[] {
+  const ids: string[] = []
+  const turns = visibleTurns.value as any[]
+  let startIndex = -1
+  for (let i = 0; i < turns.length; i++) {
+    const turnIds: string[] = [turns[i]?.user?.id, ...(turns[i]?.assistants || []).map((a: any) => a?.id)]
+    if (turnIds.includes(messageId)) {
+      startIndex = i
+      break
+    }
+  }
+  if (startIndex < 0) {
+    return ids
+  }
+  for (let i = startIndex; i < turns.length; i++) {
+    const user = turns[i]?.user
+    if (user?.id && !ids.includes(user.id)) {
+      ids.push(user.id)
+    }
+    for (const assistant of turns[i]?.assistants || []) {
+      if (assistant?.id && !ids.includes(assistant.id)) {
+        ids.push(assistant.id)
+      }
+    }
+  }
+  return ids
+}
+
+/**
  * 从此处回退：删除本轮及之后的全部消息。
  *
  * 破坏性操作，故先弹确认框说清影响范围。回退只动对话，
  * 工作目录里已被工具写入的文件不会回滚 —— 这点在确认文案里明确告知，
  * 否则用户会误以为代码也一并还原了。
+ *
+ * 优先走后端的批量回退端点；后端尚未提供（404）时降级为逐条删除，
+ * 见下方 catch 分支的说明。
  */
 async function rewindFromHere(message: any) {
   const sessionId = currentSessionId.value
@@ -948,12 +1006,35 @@ async function rewindFromHere(message: any) {
   if (!confirmed) return
 
   try {
-    const result = await apiService.rewindSession(sessionId, message.id)
+    let removedMessages = 0
+    try {
+      const result = await apiService.rewindSession(sessionId, message.id)
+      removedMessages = result?.removedMessages ?? 0
+    } catch (error) {
+      // 后端尚未提供「按 fromMessageId 批量回退」端点时降级为逐条删除。
+      // DELETE /v2/sessions/messages/{id} 是既有可用端点，两者都只动对话、不动工作区，
+      // 语义一致；等后端补上批量端点后，这里会自动改走上面那条分支。
+      if (!isNotFound(error)) {
+        throw error
+      }
+      const targets = collectMessageIdsFrom(message.id)
+      for (const id of targets) {
+        try {
+          await apiService.deleteMessage(id)
+          removedMessages += 1
+        } catch (innerError) {
+          // 删用户消息时后端可能已级联删掉对应助手消息，再删会 404 —— 这不算失败
+          if (!isNotFound(innerError)) {
+            throw innerError
+          }
+        }
+      }
+    }
     await loadMessages(sessionId, { isInitial: true })
     toast.success(
       affectedTurns <= 1
         ? t('chat.rewindDialog.successLastTurn')
-        : t('chat.rewindDialog.success', { messages: result?.removedMessages ?? 0 })
+        : t('chat.rewindDialog.success', { messages: removedMessages })
     )
   } catch (error) {
     console.error('回退失败:', error)
