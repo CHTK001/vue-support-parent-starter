@@ -41,7 +41,7 @@
                 @keyup.enter="confirmCreateFolder"
             />
             <template #footer>
-                <ReButton @click="showCreateFolderDialog = false">{{ t('common.cancel') }}</ReButton>
+                <ReButton type="default" @click="showCreateFolderDialog = false">{{ t('common.cancel') }}</ReButton>
                 <ReButton type="primary" @click="confirmCreateFolder" :loading="createFolderLoading">{{ t('common.ok') }}</ReButton>
             </template>
         </ReDialog>
@@ -94,7 +94,7 @@
 
             <template #footer>
                 <div class="flex justify-end gap-3">
-                    <ReButton @click="showConflictDialog = false">{{ t('common.cancel') }}</ReButton>
+                    <ReButton type="default" @click="showConflictDialog = false">{{ t('common.cancel') }}</ReButton>
                     <ReButton type="primary" @click="handleConflictConfirm">{{ t('common.ok') }}</ReButton>
                 </div>
             </template>

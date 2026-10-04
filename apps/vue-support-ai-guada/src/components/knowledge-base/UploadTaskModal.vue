@@ -36,7 +36,7 @@
 
         <!-- 失败操作 -->
         <div v-if="task.processingStatus === 'failed'" class="mt-2 flex justify-end gap-2">
-          <ReButton @click="emit('retry', task)">{{ t('common.retry') }}</ReButton>
+          <ReButton type="default" @click="emit('retry', task)">{{ t('common.retry') }}</ReButton>
           <ReButton type="danger" @click="emit('delete', task)">{{ t('common.delete') }}</ReButton>
         </div>
       </div>
@@ -48,7 +48,7 @@
     <!-- 底部操作 -->
     <template #footer>
       <div class="flex justify-end">
-        <ReButton @click="handleClose">{{ t('common.close') }}</ReButton>
+        <ReButton type="default" @click="handleClose">{{ t('common.close') }}</ReButton>
       </div>
     </template>
   </ReDialog>

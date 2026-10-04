@@ -142,7 +142,7 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
       </template>
     </div>
     <template #footer>
-      <ReButton @click="onClose">关闭</ReButton>
+      <ReButton type="default" @click="onClose">关闭</ReButton>
       <ReButton type="primary" @click="load">刷新</ReButton>
     </template>
   </ReDialog>
