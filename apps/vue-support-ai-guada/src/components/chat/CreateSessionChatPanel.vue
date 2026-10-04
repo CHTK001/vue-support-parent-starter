@@ -42,7 +42,7 @@
       <ChatInputToolbar :config="chatInputConfig" @config-change="handleConfigChange" />
       <div class="w-full relative z-30">
         <ChatInput v-model:value="inputMessage.content" :config="chatInputConfig" mode="create"
-          :character-id="currentSession.characterId || ''" @config-change="handleConfigChange"
+          :character-id="currentSession.characterId != null ? String(currentSession.characterId) : ''" @config-change="handleConfigChange"
           :buttons="chatInputButtons" :files="inputMessage.files" :streaming="false" @send="sendMessage" />
       </div>
 
@@ -320,8 +320,13 @@ const loadCharacters = async (): Promise<void> => {
       // 设置初始化标志，防止 watch 干扰
       isInitializing.value = true;
 
+      // 会话默认角色固定为内置「通用」角色（code=general-assistant，或名称含「通用」），
+      // 不再跟随「上次选择」——否则默认会落到上一次用过的任意角色上。
       const savedCharacter = characters.value.find(c => String(c.id) === String(lastSelectedCharacterId.value));
-      const targetCharacter = savedCharacter || characters.value[0];
+      const genericCharacter = characters.value.find(c =>
+        String(c.code || '').toLowerCase() === 'general-assistant'
+        || /通用/.test(String(c.title || c.name || '')));
+      const targetCharacter = genericCharacter || savedCharacter || characters.value[0];
 
       if (targetCharacter) {
         currentSession.value.characterId = targetCharacter.id;

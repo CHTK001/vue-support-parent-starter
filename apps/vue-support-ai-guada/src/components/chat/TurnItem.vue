@@ -842,16 +842,17 @@ const handleClick = (event: MouseEvent) => {
   align-items: flex-start;
 }
 
-/* 助手消息是整宽的正文区（不是气泡），零投影、无边框 ——
-   koi 规约：卡片/容器一律不加投影，层次靠留白与字重表达 */
+/* 助手消息卡片：用户反馈原「整宽正文区、与背景同色」很难看，故改为有承载面的卡片。
+   仍遵守 koi 规约：不加投影，层次靠底色 + 圆角 + 内边距 + 细边框表达。 */
 .assistant-section .message-item__card {
   background: var(--color-bubble-assitant-bg);
   color: var(--color-bubble-assitant-text);
   margin-right: auto;
   width: 100%;
-  padding: 0;
+  padding: 12px 16px;
+  border-radius: var(--el-radius-xl, 16px);
+  border: 1px solid var(--color-bubble-assitant-border);
   box-shadow: none;
-  border: none;
 }
 
 .assistant-section .message-item__card strong {

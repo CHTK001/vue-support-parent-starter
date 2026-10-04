@@ -62,13 +62,14 @@
   --color-border: #e2e9f3;
   --code-block-bg: #f6f8fc;
 
-  /* 消息气泡 */
-  --color-bubble-user-bg: #eef3fb;
+  /* 消息气泡。assistant 不能再是 transparent：那等于与页面背景同色，
+     整段回复看起来没有承载面，用户反馈「和背景色一样，很难看」。 */
+  --color-bubble-user-bg: #e2ecfb;
   --color-bubble-user-text: #0f172a;
-  --color-bubble-user-border: #e2e9f3;
-  --color-bubble-assitant-bg: transparent;
+  --color-bubble-user-border: #cfe0f7;
+  --color-bubble-assitant-bg: #ffffff;
   --color-bubble-assitant-text: #0f172a;
-  --color-bubble-assitant-border: none;
+  --color-bubble-assitant-border: #e7edf6;
   --color-bubble-assitant-text-strong: #0b1220;
 
   /* 侧边栏 / 标题栏 */
@@ -175,12 +176,12 @@ html.dark {
   --color-border: #252d3b;
   --code-block-bg: #1a212e;
 
-  --color-bubble-user-bg: #1f2839;
+  --color-bubble-user-bg: #24304a;
   --color-bubble-user-text: var(--color-text);
-  --color-bubble-user-border: var(--color-border);
-  --color-bubble-assitant-bg: transparent;
+  --color-bubble-user-border: #2f3d5c;
+  --color-bubble-assitant-bg: #161c27;
   --color-bubble-assitant-text: var(--color-text);
-  --color-bubble-assitant-border: transparent;
+  --color-bubble-assitant-border: #252d3b;
   --color-bubble-assitant-text-strong: var(--color-text);
 
   --color-sidebar-bg: #131925;
