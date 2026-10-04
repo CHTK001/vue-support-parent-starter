@@ -21,7 +21,7 @@ import type { ReOption } from "../ReSelect/types";
 
 defineOptions({ name: "ReCron", inheritAttrs: true });
 
-type FieldMode = "all" | "step" | "range" | "points" | "last" | "nearest" | "nth";
+type FieldMode = "all" | "step" | "range" | "points" | "last" | "lastNth" | "nearest" | "nth";
 
 /** 单字段的面板状态 */
 interface FieldState {
@@ -176,9 +176,27 @@ const MODE_LABELS: Record<FieldMode, string> = {
   range: "区间",
   points: "指定值",
   last: "最后一天",
+  lastNth: "最后一个周几",
   nearest: "最近工作日",
   nth: "第 N 个周几",
 };
+
+/**
+ * 单个匹配方式的展示文案。
+ *
+ * <p>`last`（`L`）在日与周两个字段上的引擎语义并不相同，必须分开叫：
+ * 日字段是"当月最后一天"；周字段走的是 {@code isLastWeekDay}，判定为
+ * "月末当天 **或** 与月末同星期的那些天" —— 实测 `0 0 9 * * L` 的下次触发是
+ * 2026-10-10（周六），而 10-31 也是周六。把它也叫"最后一天"会误导用户。</p>
+ *
+ * @param key 字段 key
+ * @param mode 匹配方式
+ * @returns 展示文案
+ */
+function modeLabel(key: string, mode: FieldMode): string {
+  if (mode === "last" && key === "week") return "与月末同星期";
+  return MODE_LABELS[mode];
+}
 
 /**
  * 选项标签带上单位。
@@ -204,7 +222,10 @@ const SPEC: Record<string, { min: number; max: number; modes: FieldMode[] }> = {
   hour: { min: 0, max: 23, modes: ["all", "step", "range", "points"] },
   day: { min: 1, max: 31, modes: ["all", "step", "range", "points", "last", "nearest"] },
   month: { min: 1, max: 12, modes: ["all", "step", "range", "points"] },
-  week: { min: 0, max: 6, modes: ["all", "step", "range", "points", "nth"] },
+  /* 周字段的 `L` 与 `dL` 都是引擎已实现的写法（`dL` = 当月最后一个星期 d，
+     裸 `L` = 当月最后一天），文档里也写了，此前面板没有对应模式，
+     于是 `0 0 9 * * 5L` 会整体退化成"面板未接管"、人话摘要连日期都丢掉。 */
+  week: { min: 0, max: 6, modes: ["all", "step", "range", "points", "nth", "lastNth", "last"] },
 };
 
 /**
@@ -233,6 +254,8 @@ function tokenFromState(key: string): string {
       return f.points.length ? [...f.points].sort((a, b) => a - b).join(",") : "*";
     case "last":
       return "L";
+    case "lastNth":
+      return `${f.start}L`;
     case "nearest":
       return `${f.start}W`;
     case "nth":
@@ -279,6 +302,8 @@ function fieldIsSane(key: string): boolean {
       return f.points.length > 0 && f.points.every(within);
     case "nearest":
       return f.start >= 1 && f.start <= 31;
+    case "lastNth":
+      return f.start >= 0 && f.start <= 6;
     case "nth":
       return f.start >= 0 && f.start <= 6 && f.nth >= 1 && f.nth <= 5;
     default:
@@ -300,8 +325,24 @@ function parseToken(key: string, token: string): boolean {
     f.mode = "all";
     return true;
   }
-  if (token === "L" && key === "day") {
+  /* `L`（当月最后一天）与 `LW`：引擎的 parseDaysOfMonth 对 `LW` 走的是
+     `lastDayOfMonth = true`，与 `L` **完全同义** —— 它不是"最后一个工作日"，
+     实测 `0 0 9 LW * *` 的下次触发是 2026-10-31（周六）。面板按同义处理，
+     原始写法由 rawTokens 回显，不会被悄悄改写成 `L`。 */
+  if ((token === "L" || token === "LW") && key === "day") {
     f.mode = "last";
+    return true;
+  }
+  /* 周字段的两个 L 写法：`dL` = 当月最后一个星期 d（引擎 lastWeekdayOfMonth），
+     裸 `L` = 当月最后一天（引擎 lastDayOfWeek）。此前两者都解析不了，
+     于是 `0 0 9 * * 5L` 会让整条表达式退化成"面板未接管"。 */
+  if (key === "week" && token === "L") {
+    f.mode = "last";
+    return true;
+  }
+  if (key === "week" && /^[0-7]L$/.test(token)) {
+    f.mode = "lastNth";
+    f.start = Number.parseInt(token, 10);
     return true;
   }
   if (token.endsWith("W") && key === "day" && /^\d+W$/.test(token)) {
@@ -580,7 +621,8 @@ const summary = computed(() => {
     /* 空的多选此前会 push 出一个没有值的"日 "，摘要里留下悬空单位。
        这里明确说成"任意"，与 tokenOf 在这种状态下写出的 * 保持一致。 */
     else if (f.mode === "points") parts.push(f.points.length ? `${unit} ${f.points.join("、")}` : `${unit} 任意（未选择具体值）`);
-    else if (f.mode === "last") parts.push("当月最后一天");
+    else if (f.mode === "last") parts.push(key === "week" ? "与月末同星期的那些天" : "当月最后一天");
+    else if (f.mode === "lastNth") parts.push(`当月最后一个${WEEK_NAMES[f.start]}`);
     else if (f.mode === "nearest") parts.push(`当月 ${f.start} 日最近工作日`);
     else if (f.mode === "nth") parts.push(`第 ${f.nth} 个${WEEK_NAMES[f.start]}`);
   };
@@ -689,6 +731,10 @@ function humanDate(): string {
   if (w.mode === "points" && w.points.length) return `${mon}${weekSetPhrase(w.points)}`;
   if (w.mode === "range") return `${mon}${weekSetPhrase(rangeToArray(w.start, w.end))}`;
   if (w.mode === "nth") return `${mon}每月的第 ${w.nth} 个${weekName(w.start)}`;
+  if (w.mode === "lastNth") return `${mon}当月最后一个${weekName(w.start)}`;
+  /* 周字段的裸 `L` 不是"月末一天"：引擎 isLastWeekDay 判定为
+     "月末当天 **或** 与月末同星期的那些天"（实测 10 月会命中每个周六）。 */
+  if (w.mode === "last") return `${mon}当月中与月末同星期的那些天`;
   return `${mon}周 ${tokenFromState("week")}`;
 }
 
@@ -768,11 +814,26 @@ function fixRange(key: string): void {
 }
 
 /**
+ * 用户通过面板接管某字段：清掉它的"原文回显"与"读不懂"标记，让面板的值生效。
+ *
+ * <p>必须清 rawTokens：否则该字段的原文回显会在 {@link tokenOf} 里压过面板状态。
+ * 实测的坏例子：默认表达式 `0 0 12 * * ?` 的周字段回显为 `?`，用户在面板把它改成
+ * "最后一个周几"后，表达式仍然是 `?` —— 面板改动完全不生效，且界面没有任何提示。</p>
+ *
+ * @param key 字段 key
+ */
+function claimField(key: string): void {
+  delete rawTokens[key];
+  panelParsed[key] = true;
+}
+
+/**
  * 面板控件被改动：退出只读态，并即时纠正区间。
  *
  * @param key 字段 key
  */
 function onFieldInput(key: string): void {
+  claimField(key);
   panelTouch();
   fixRange(key);
 }
@@ -786,6 +847,7 @@ function onFieldInput(key: string): void {
 function setFieldMode(key: string, mode: FieldMode): void {
   const f = state[key];
   const spec = SPEC[key];
+  claimField(key);
   panelTouch();
   f.mode = mode;
   if (mode === "range") {
@@ -950,7 +1012,7 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
                   :aria-pressed="state[spec.key].mode === mode"
                   @click="setFieldMode(spec.key, mode)"
                 >
-                  {{ MODE_LABELS[mode] }}
+                  {{ modeLabel(spec.key, mode) }}
                 </button>
               </div>
 
@@ -997,6 +1059,20 @@ watch(analysis, (a) => emit("change", trimmed.value, a.valid), { immediate: true
                   <ReInputNumber v-model="state[spec.key].nth" :min="1" :max="5" controls-position="right" @change="onFieldInput(spec.key)" />
                   <span>个</span>
                   <ReSelect v-model="state[spec.key].start" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS" @change="onFieldInput(spec.key)" />
+                </template>
+
+                <template v-else-if="state[spec.key].mode === 'lastNth'">
+                  <span>当月最后一个</span>
+                  <ReSelect v-model="state[spec.key].start" class="re-cron__nth" style="width: 96px" :data="WEEK_OPTIONS" @change="onFieldInput(spec.key)" />
+                </template>
+
+                <!-- `last`（`L`）此前落进了下面的 v-else，被显示成"该字段不做限制（*）"，
+                     而它实际生成的 token 是 `L` —— 控件说明与产物直接矛盾。 -->
+                <template v-else-if="state[spec.key].mode === 'last'">
+                  <span>{{ spec.key === 'week' ? '当月中与月末同星期的那些天' : '当月最后一天' }}</span>
+                  <span v-if="rawTokens[spec.key] && rawTokens[spec.key] !== 'L'" class="re-cron__hint">
+                    写作 <code>{{ rawTokens[spec.key] }}</code>，与 <code>L</code> 同义
+                  </span>
                 </template>
 
                 <span v-else class="re-cron__hint">该字段不做限制（<code>*</code>）</span>
