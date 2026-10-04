@@ -65,6 +65,7 @@ import type {
   GradeLevelOption,
   DimensionDropdown,
   TeacherMarkingTask,
+  StudentWrongQuestion,
 } from "./types";
 
 /** 解包 { code, msg, data }（兼容 AxiosResponse 双层包装）为业务负载 */
@@ -757,6 +758,46 @@ export const eduaiApi = {
       .post("/v2/edu/student/study/report")
       .data(data as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
+  /** 我的错题本（带题干/选项/答案） */
+  studentWrongbook: (params: { subject?: string; masteryLevel?: number } = {}) =>
+    http()
+      .get("/v2/edu/student/wrongbook")
+      .query(params)
+      .then<StudentWrongQuestion[]>(unwrap),
+  /** 更新我的错题掌握度（0 未掌握 / 1 复习中 / 2 已掌握） */
+  updateStudentWrongMastery: (wrongId: number, masteryLevel: number) =>
+    http()
+      .put("/v2/edu/student/wrongbook/mastery")
+      .query({ wrongId, masteryLevel })
+      .then<boolean>(unwrap),
+  /** 我的答题/阅卷记录 */
+  studentMarkingTasks: (limit = 20) =>
+    http()
+      .get("/v2/edu/student/marking/tasks")
+      .query({ limit })
+      .then<TeacherMarkingTask[]>(unwrap),
+  /** 我的某次阅卷结果 */
+  studentMarkingResult: (taskId: string) =>
+    http()
+      .get(`/v2/edu/student/marking/result/${taskId}`)
+      .then<MarkingResultVO>(unwrap),
+
+  /**
+   * 通用登录（教务端统一登录页用）。
+   *
+   * <p>不带 authType：由 oauth 走默认凭据链，用于老师/管理员账号。
+   * 学生账号走 {@link #studentLogin}（authType=STUDENT）。</p>
+   */
+  userLogin: async (data: { username: string; password: string }) => {
+    const res = await http()
+      .post("/v2/user/login")
+      .data(data as unknown as Record<string, unknown>)
+      .then<{ accessToken?: string; roles?: string[]; user?: Record<string, unknown>; [k: string]: unknown } | undefined>(unwrap);
+    if (res?.accessToken) {
+      setAccessToken(res.accessToken);
+    }
+    return res;
+  },
 
   // 教师中心（老师端 /edu/teacher 专用）
   teacherMe: () =>

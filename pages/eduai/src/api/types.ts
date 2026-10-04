@@ -842,8 +842,7 @@ export interface DimensionDropdown {
 }
 
 /** 教师端阅卷任务（GET /v2/edu/teacher/marking/tasks） */
-export interface TeacherMarkingTask {
-  markingTaskId: number;
+export interface TeacherMarkingTask {  markingTaskId: number;
   /** 对外业务任务号，查结果用 */
   markingTaskTaskId: string;
   /** 0 待处理 / 1 处理中 / 2 完成 / 3 失败 */
@@ -858,6 +857,25 @@ export interface TeacherMarkingTask {
   markingTaskError?: string | null;
   markingTaskStartTime?: string | null;
   markingTaskFinishTime?: string | null;
+}
+
+/** 学生端错题卡（带题干/选项/答案，GET /v2/edu/student/wrongbook） */
+export interface StudentWrongQuestion {
+  wrongQuestionId: number;
+  questionId?: number | null;
+  questionType?: string | null;
+  questionSubject?: string | null;
+  questionGradeLevel?: string | null;
+  questionGrade?: string | null;
+  questionDifficulty?: number | null;
+  questionStem?: string | null;
+  questionOptions?: string | null;
+  questionAnswer?: string | null;
+  wrongCount?: number | null;
+  /** 0 未掌握 / 1 复习中 / 2 已掌握 */
+  masteryLevel?: number | null;
+  reviewCount?: number | null;
+  lastWrongTime?: string | null;
 }
 
 /**

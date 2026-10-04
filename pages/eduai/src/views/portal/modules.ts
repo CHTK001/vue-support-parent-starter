@@ -39,6 +39,8 @@ export const PRIMARY_MODULES: PortalModule[] = [
   { moduleCode: "english-word", title: "英语单词", subtitle: "记单词·赢奖杯", icon: "🔤", color: "#a855f7", colorTo: "#c084fc", badgeFromIncomplete: true },
   { moduleCode: "science-lab", title: "科学小实验", subtitle: "动手做·探奥秘", icon: "🏆", color: "#06b6d4", colorTo: "#22d3ee", badgeFromIncomplete: true },
   { moduleCode: "story-book", title: "故事绘本", subtitle: "听故事·读绘本", icon: "📖", color: "#ec4899", colorTo: "#f472b6" },
+  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];
 
 /** 初中端：简洁现代，8 个模块 */
@@ -51,6 +53,8 @@ export const JUNIOR_MODULES: PortalModule[] = [
   { moduleCode: "chemistry", title: "化学探秘", subtitle: "元素与反应探秘", icon: "⚗️", color: "#ef4444", colorTo: "#f87171" },
   { moduleCode: "history", title: "历史故事", subtitle: "朝代与人物故事", icon: "🏛️", color: "#eab308", colorTo: "#facc15" },
   { moduleCode: "geography", title: "地理探索", subtitle: "山川与气候探索", icon: "🗺️", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];
 
 /** 高中端：专业克制，8 个模块 */
@@ -63,6 +67,8 @@ export const SENIOR_MODULES: PortalModule[] = [
   { moduleCode: "chemistry-topic", title: "化学专题", subtitle: "反应原理", icon: "⚗️", color: "#06b6d4", colorTo: "#22d3ee" },
   { moduleCode: "biology-lab", title: "生物实验", subtitle: "实验与探究", icon: "🔬", color: "#ef4444", colorTo: "#f87171" },
   { moduleCode: "wrong-drill", title: "错题集训", subtitle: "错题重练", icon: "🗂️", color: "#eab308", colorTo: "#facc15" },
+  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];
 
 /**
