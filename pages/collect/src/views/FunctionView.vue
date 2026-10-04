@@ -95,7 +95,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectFunctionDescription", label: "说明", minWidth: 140, slot: "description", showOverflowTooltip: true },
   { prop: "collectFunctionEnabled", label: "启用", width: 76, slot: "enabled", align: "center" },
   { prop: "collectFunctionLastResult", label: "最近结果", minWidth: 220, slot: "last" },
-  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 140, slot: "action", fixed: "right", align: "right" },
 ]);
 
 function openCreate(): void {

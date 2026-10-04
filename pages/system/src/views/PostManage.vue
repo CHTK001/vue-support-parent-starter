@@ -161,7 +161,7 @@ const columns: ReTableColumn[] = [
   { prop: "userCount", label: "关联用户数", width: 110, align: "center" },
   { prop: "createTime", label: "创建时间", width: 170 },
   { prop: "remark", label: "备注", minWidth: 150, showOverflowTooltip: true },
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right" },
+  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "right" },
 ];
 
 onMounted(() => {

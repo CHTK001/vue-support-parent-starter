@@ -275,7 +275,7 @@ interface NamespaceRow {
 }
 
 /** ReTable 列定义 */
-type Column = { prop: string; label: string; width?: number | string; minWidth?: number; fixed?: string; slot?: string };
+type Column = { prop: string; label: string; width?: number | string; minWidth?: number; fixed?: string; align?: "left" | "center" | "right"; slot?: string };
 
 const namespaces = ref<NamespaceRow[]>([]);
 const configs = ref<NacosConfig[]>([]);
@@ -291,7 +291,7 @@ const configColumns: Column[] = [
   { prop: "group", label: "Group", width: 140 },
   { prop: "format", label: "格式", width: 100 },
   { prop: "updatedAt", label: "更新时间", width: 180 },
-  { prop: "actions", label: "操作", width: 180, fixed: "right", slot: "actions" },
+  { prop: "actions", label: "操作", width: 180, fixed: "right", align: "right", slot: "actions" },
 ];
 const serviceColumns: Column[] = [
   { prop: "name", label: "服务名", minWidth: 180, slot: "name" },
@@ -355,7 +355,7 @@ const instanceColumns: Column[] = [
   { prop: "enabled", label: "状态", width: 90, slot: "enabled" },
   { prop: "ephemeral", label: "临时", width: 80 },
   { prop: "clusterName", label: "集群", width: 110 },
-  { prop: "actions", label: "操作", width: 220, fixed: "right", slot: "actions" },
+  { prop: "actions", label: "操作", width: 220, fixed: "right", align: "right", slot: "actions" },
 ];
 
 /**

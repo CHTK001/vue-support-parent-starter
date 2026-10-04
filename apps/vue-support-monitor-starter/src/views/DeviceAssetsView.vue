@@ -309,7 +309,7 @@ onMounted(fetchList);
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="90" align="center" fixed="right">
+        <el-table-column label="操作" width="90" align="right" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" @click="openDetail(row)">详情</el-button>
           </template>

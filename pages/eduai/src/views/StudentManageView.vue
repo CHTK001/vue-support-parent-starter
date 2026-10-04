@@ -115,7 +115,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="170" align="center" fixed="right" class-name="op-col">
+            <el-table-column label="操作" width="170" align="right" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <!-- 操作列按钮必须 .stop：el-table 上绑了 @row-click="openStudent"，
                      不阻止冒泡会让「点任何按钮」都额外触发一次「打开编辑弹窗」
@@ -160,7 +160,7 @@
             <el-table-column label="学生数" width="90" align="center">
               <template #default="{ row }">{{ studentsInClass(row.classId) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
+            <el-table-column label="操作" width="96" align="right" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openClass(row)" />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeClass(row)" />
@@ -195,7 +195,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
+            <el-table-column label="操作" width="96" align="right" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openTeacher(row)" />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeTeacher(row)" />

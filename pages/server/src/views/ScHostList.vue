@@ -627,7 +627,7 @@ async function onImportFile(file: File | undefined) {
           </div>
         </template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="380" fixed="right">
+      <ReTableColumn label="操作" width="380" fixed="right" align="right">
         <template #default="{ row }">
           <span @click.stop>
           <ReButton show-text icon="View" type="primary" @click="openDetail(row)">详情</ReButton>

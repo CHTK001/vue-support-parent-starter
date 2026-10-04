@@ -26,7 +26,7 @@
       <ReTableColumn label="最后心跳" width="160">
         <template #default="{ row }">{{ row.lastHeartbeat || '-' }}</template>
       </ReTableColumn>
-      <ReTableColumn label="操作" width="120" fixed="right">
+      <ReTableColumn label="操作" width="120" fixed="right" align="right">
         <template #default="{ row }">
           <ReButton link type="primary" @click="viewConfig(row)">配置</ReButton>
         </template>

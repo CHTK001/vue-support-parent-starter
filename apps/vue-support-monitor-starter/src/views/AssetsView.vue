@@ -419,7 +419,7 @@ const tableColumns = computed(() => [
   { prop: "serverHostCollectMode", label: "采集模式", width: 100, formatter: (_: unknown, __: unknown, v: unknown) => collectModeLabel(String(v ?? "")) },
   { prop: "serverHostPorts", label: "端口", minWidth: 140, slot: "ports" },
   { prop: "serverHostAgentEnabled", label: "Agent", width: 90, slot: "agent" },
-  { prop: "id", label: "操作", width: 140, fixed: "right", slot: "actions" },
+  { prop: "id", label: "操作", width: 140, fixed: "right", align: "right", slot: "actions" },
 ]);
 
 /** 表格合计统计（筛选后数量顶部展示） */
@@ -1607,7 +1607,7 @@ function osTileClass(h: Host): string {
 }
 .hc-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--el-text-color-placeholder); font-size: 13px; }
 /* 表格操作列：主操作 + 更多下拉，按钮固定窄列内不折行 */
-.op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+.op-cell { display: flex; align-items: center; gap: 2px; white-space: nowrap; justify-content: flex-end; }
 </style>
 
 <style lang="scss">
