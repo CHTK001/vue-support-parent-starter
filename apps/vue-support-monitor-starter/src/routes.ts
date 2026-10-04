@@ -36,12 +36,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "告警中心", icon: "Bell", showLink: true, rank: 2 },
       },
       {
-        path: "/redis",
-        name: "Redis",
-        component: () => import("./views/RedisView.vue"),
-        meta: { title: "Redis 监控", icon: "Coin", showLink: false, rank: 3 },
-      },
-      {
         path: "/tshark",
         name: "Tshark",
         component: () => import("@pages/monitor/src/views/tshark/ScTsharkCapture.vue"),

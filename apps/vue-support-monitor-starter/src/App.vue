@@ -10,7 +10,7 @@ import { useRoute, useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { resolveAssetUrl } from "@repo/assets";
 import { getUserInfo, clearAuthCache } from "@repo/utils";
-import { fetchAlarmEvents, fetchSystemRedisInfo, isUnhandled } from "./monitorApi";
+import { fetchAlarmEvents, isUnhandled } from "./monitorApi";
 
 const route = useRoute();
 const router = useRouter();
@@ -75,24 +75,6 @@ function goProfile(): void {
   router.push(personagePath).catch(() => router.push("/"));
 }
 
-/** 当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单） */
-const redisAvailable = ref(false);
-let redisCheckDone = false;
-/**
- * 检查当前系统是否连接 Redis（无 Redis 时隐藏 Redis 监控菜单）
- * @returns Promise<void>
- */
-async function checkRedis(): Promise<void> {
-  if (redisCheckDone) return;
-  redisCheckDone = true;
-  try {
-    const info = await fetchSystemRedisInfo();
-    redisAvailable.value = !!(info && Object.keys(info).length > 0);
-  } catch {
-    redisAvailable.value = false;
-  }
-}
-
 /** 打平所有项用于激活判断 */
 const groups = computed(() => {
   const base = [
@@ -104,7 +86,6 @@ const groups = computed(() => {
       title: "监控",
       items: [
         { path: "/alarms", label: "告警中心", icon: "Bell", badge: "alarm" },
-        { path: "/redis", label: "Redis 监控", icon: "Coin" },
         { path: "/tshark", label: "抓包分析", icon: "Search" },
       ],
     },
@@ -135,10 +116,6 @@ const groups = computed(() => {
       ],
     },
   ];
-  if (!redisAvailable.value) {
-    const monitorGroup = base.find(g => g.title === "监控");
-    if (monitorGroup) monitorGroup.items = monitorGroup.items.filter(i => i.path !== "/redis");
-  }
   return base;
 });
 const allNavPaths = computed(() => groups.value.flatMap(g => g.items.map(i => i.path)));
@@ -181,7 +158,7 @@ async function refreshBadge(): Promise<void> {
     unhandled.value = list.filter(isUnhandled).length;
   } catch { /* 静默 */ }
 }
-onMounted(() => { refreshBadge(); checkRedis(); loadCurrentUser(); });
+onMounted(() => { refreshBadge(); loadCurrentUser(); });
 
 /**
  * 路由跳转（当前路径与目标相同时不重复跳转）
