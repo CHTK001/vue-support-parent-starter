@@ -121,7 +121,7 @@
                 <span class="info-cell" :title="row.packetInfo">{{ row.packetInfo || row.restoredText || '—' }}</span>
               </template>
             </ReTableColumn>
-            <ReTableColumn label="操作" width="80" align="right" fixed="right">
+            <ReTableColumn label="操作" width="80" align="center">
               <template #default="{ row }">
                 <ReButton link type="primary" @click="openPacketDetail(row)">详情</ReButton>
               </template>
@@ -570,28 +570,52 @@ function resizeCharts() {
   min-height: 0;
 }
 @media (max-width: 900px) {
-  /* 窄屏改成上下堆叠时，两块都要限高并各自内部滚动。
-     原来只有 detail-panel 有 overflow:auto，session-panel 没有，于是窄屏下
-     会话列表会按内容长高、把 detail-panel 挤到只剩 367px（实测 880px 视口），
-     表格被压到 689px 的内容高里、露出 547px 的内部滚动 —— 表格并没有"吃满"
-     可用高度，只是被挤进了更小的框里。 */
-  /* 会话列表限高 200px。窄屏是上下堆叠，不限高的话列表会按内容长高、
-     把报文明细挤到只剩几十像素（实测 760 宽时可用高度 82.8px）。 */
-  .body-grid { grid-template-columns: 1fr; grid-template-rows: minmax(0, 200px) minmax(0, 1fr); }
-  .session-panel { overflow: auto; }
-  /* 窄屏把统计卡压成一行三列：按 auto-fit 换行时 760px 宽会变成两行、占 265px，
-     再叠会话列表，留给报文明细的就只剩几十像素，等于看不见。 */
+  /* 窄屏改成上下堆叠。统计卡必须固定一行三列：按 auto-fit 换行时 760 宽会变成
+     两行、占 265px，再叠会话列表，留给报文明细的就只剩几十像素，等于看不见。
+     限高与图表让位规则见下方各自的媒体查询。 */
   .stat-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .empty-detail { grid-column: 1; }
 }
 
-/* 极窄（<820px）时隐藏统计卡描述行并压缩内边距：三张卡的标题 + 数值本身就够
-   表达概览，描述行是重复信息，却占掉统计卡高度的大头。
-   断点 820px 来自实测：760px 宽时 stat 占 253.2px，留给明细的只有 82.8px。 */
-@media (max-width: 820px) {
+/* 窄屏把统计卡压成「图标 + 数值」单行：标题与描述都是重复信息，让位给报文明细。
+   ReStatCard 紧凑档 value 20px / min-height 22px，这里降到 16px 并清掉 min-height。
+   断点 1000px 来自实测：880 宽时三列 + 仅隐藏描述行 → 统计卡仍占 76px、明细只剩 109.6px。 */
+@media (max-width: 1000px) {
   .stat-cards { gap: 6px; }
-  .stat-cards :deep(.re-stat-card) { padding: 6px 8px; }
+  .stat-cards :deep(.re-stat-card) { padding: 5px 8px; }
+  .stat-cards :deep(.re-stat-card__title),
   .stat-cards :deep(.re-stat-card__desc) { display: none; }
+  .stat-cards :deep(.re-stat-card__value) { font-size: 16px; min-height: 0; line-height: 1.1; }
+  .stat-cards :deep(.re-stat-card__icon) { width: 24px; height: 24px; }
+}
+
+/* 窄到连「图标 + 数值」都排不开时（每列 < 130px），把图标也去掉，只留数值 ——
+   数字本身不依赖图标即可读，再挤下去三列就会互相压字。
+   760×1000 实测：三列 + 图标时统计卡占 156px，明细只剩 74px。 */
+@media (max-width: 800px) {
+  .stat-cards :deep(.re-stat-card__aside) { display: none; }
+  .stat-cards :deep(.re-stat-card) { padding: 4px 6px; text-align: center; }
+  .stat-cards :deep(.re-stat-card__value) { font-size: 18px; }
+}
+
+/* 窄屏上下堆叠时，会话列表必须限高，否则列表按内容长高、把明细挤没。
+   限得太死又会让明细看不见 —— 实测折中：
+     200px → 760 宽时明细只剩 44px（不够一行表头）
+     160px → 760 宽时明细 74px、880 宽时 186px，两档都可用
+   160px 还能显示 3 条以上会话（每条约 48px 加头尾）。 */
+@media (max-width: 900px) {
+  .body-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 160px) minmax(0, 1fr);
+  }
+  .session-panel { overflow: auto; }
+}
+
+/* 视口又窄又矮时，图表是唯一还能整块让位的东西：它高度固定（232px），
+   在 760×1000 这种组合下会把明细压到几十 px。与其让用户面对一条看不见的表格，
+   不如先撤掉图表（协议分布 / Top 流随时可切到别的会话去看）。 */
+@media (max-width: 900px), (max-height: 860px) {
+  .charts-row { display: none; }
 }
 .session-panel { min-width: 0; }
 .detail-panel {
@@ -789,11 +813,9 @@ function resizeCharts() {
 /* 空间实在不够时（窄屏 + 统计卡换行），整块图表让位给表格。
    图表是可再生的概览，报文明细才是这个页面的主数据；把稀缺高度优先给主数据，
    而不是让表格被压成一条 22px 后再让面板出滚动条。 */
-/* 纵向空间不足时整块图表让位给表格。
-   断点按「图表固定 232px + 统计卡最坏 265px + 表格至少 200px + gap」倒推：
-   视口 1080 高时三块都装得下（实测 1600/1280 宽下 fitsInPanel=true）；
-   900 高时宽屏本来也装得下，但矮视口与窄屏叠加就不够，隐藏图表把高度让给报文明细。
-   阈值取 960px，落在「900 高（隐藏）」与「1080 高（保留）」之间。 */
+/* 纵向空间不足时整块图表让位给表格（宽屏 + 高视口场景）。
+   断点 960px 来自实测：1080 高时三块都装得下；900 高时宽屏装得下但明细偏矮。
+   窄屏的让位规则见下方 max-width:1000px 那组，两者取并集。 */
 @media (max-height: 960px) {
   .charts-row { display: none; }
 }
