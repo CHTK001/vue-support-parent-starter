@@ -37,7 +37,7 @@
           v-for="(item, index) in tabList"
           :key="item.path"
           class="layout-tabs-bar__item"
-          :class="{ 'is-active': activeTab === item.path }"
+          :class="{ 'is-active': activeTab === item.path, 'has-close': getClosable(item) }"
           :data-tab-index="index"
           :data-tab-path="item.path"
           role="tab"
@@ -271,6 +271,11 @@ watch(
 
 <style lang="scss" scoped>
 .layout-tabs-bar {
+  /* 关闭按钮的尺寸与它和标题之间的间距。
+     按钮是绝对定位、不在流内，标签的 flex:1 不会自动给它让位，
+     必须由 .has-close 显式预留（见 .layout-tabs-bar__item.has-close）。 */
+  --tab-close-size: 14px;
+  --tab-close-gap: 8px;
   width: 100%;
   min-width: 0;
   flex-shrink: 0;
@@ -340,6 +345,18 @@ watch(
   align-items: center;
   min-width: 0;
   flex: 1;
+  box-sizing: border-box;
+}
+
+/*
+  有关闭按钮的标签：为按钮预留右侧空间。
+  d2089d4a1 把按钮移出 role="tab" 改成绝对定位后，标签不再有「流内按钮」，
+  flex:1 会一路撑到内容盒右沿，绝对定位的按钮就压在标题文字上
+  （实测 × 盖住标题末字）。这里给 label 加右内边距把文字让开。
+  只加在 .has-close 上：固钉标签没有按钮，不该多出这段空白。
+*/
+.layout-tabs-bar__item.has-close .layout-tabs-bar__label {
+  padding-right: calc(var(--tab-close-size) + var(--tab-close-gap));
 }
 
 .layout-tabs-bar__label.tab-label-inner {
