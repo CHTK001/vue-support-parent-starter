@@ -867,6 +867,9 @@ function formatSize(bytes: number): string {
  */
 function getStatusType(status: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' {
   const types: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
+    'queued': 'info',
+    'uploading': 'warning',
+    'uploaded': 'primary',
     'pending': 'info',
     'processing': 'warning',
     'completed': 'success',
@@ -894,6 +897,9 @@ function getStatusDisplayText(item: KBFile): string {
  */
 function getStatusText(status: string): string {
   const texts: Record<string, string> = {
+    'queued': t('knowledge.status.queued'),
+    'uploading': t('knowledge.status.uploading'),
+    'uploaded': t('knowledge.status.uploaded'),
     'pending': t('knowledge.status.pending'),
     'processing': t('knowledge.status.processing'),
     'completed': t('knowledge.status.completed'),

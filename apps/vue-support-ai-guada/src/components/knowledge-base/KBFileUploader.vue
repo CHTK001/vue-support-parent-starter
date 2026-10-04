@@ -4,7 +4,7 @@
         <!-- 上传按钮组 -->
         <div class="flex gap-2 items-center">
             <!-- 新建文件夹按钮 -->
-            <ReButton @click="showCreateFolderDialog = true">
+            <ReButton type="default" @click="showCreateFolderDialog = true">
                 <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.newFolder') }}
             </ReButton>
@@ -12,7 +12,7 @@
             <!-- 上传文件按钮 -->
             <input ref="fileInputRef" type="file" multiple :accept="ALLOWED_FILE_EXTENSIONS" @change="handleFileSelect"
                 class="hidden" />
-            <ReButton @click="triggerFileInput">
+            <ReButton type="primary" @click="triggerFileInput">
                 <DocumentAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadFile') }}
             </ReButton>
@@ -20,13 +20,13 @@
             <!-- 上传文件夹按钮 -->
             <input ref="folderInputRef" type="file" webkitdirectory directory multiple @change="handleFolderSelect"
                 class="hidden" />
-            <ReButton @click="triggerFolderInput">
+            <ReButton type="default" @click="triggerFolderInput">
                 <FolderAdd16Regular class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadFolder') }}
             </ReButton>
 
             <!-- 上传任务按钮(仅在有任务时显示) -->
-            <ReButton v-if="uploadTasks.length > 0" @click="emit('show-upload-task')">
+            <ReButton type="default" v-if="uploadTasks.length > 0" @click="emit('show-upload-task')">
                 <Upload class="w-[18px] h-[18px] mr-1.5 inline-block align-middle" />
                 {{ t('knowledge.upload.uploadTask') }}
                 <el-badge :value="uploadTasks.length" type="warning" class="ml-1" />
