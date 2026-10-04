@@ -159,6 +159,7 @@
 
       <!-- 右侧棋盘 -->
       <main class="ig-main">
+        <p v-if="scopeNotice" class="ig-scope">{{ scopeNotice }}</p>
         <div class="ig-board-head">
           <div class="ig-target">
             请找出：<span class="ig-target__name">{{ hintIdiom || "全部消除" }}</span>
@@ -271,6 +272,31 @@ const router = useRouter();
 
 /** 学段与对应年级（与成语库入库值保持一致） */
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
+
+/**
+ * 可选学段：学生端会把当前学段透传进来（码值 PRIMARY/JUNIOR/SENIOR 或中文名）。
+ *
+ * 不传时按「小学」，与历史默认一致；传了就按学生的真实学段起步 ——
+ * 否则高中学生一进来默认玩的是小学成语。
+ */
+const props = defineProps<{ level?: string }>();
+
+/** 学段码值 → 中文名（本页选择器用中文名） */
+const LEVEL_BY_CODE: Record<string, string> = { PRIMARY: "小学", JUNIOR: "初中", SENIOR: "高中" };
+
+/**
+ * 初始学段：码值与中文名都识别，识别不了或没传就按小学。
+ *
+ * @returns 学段选择器的初始值
+ */
+function initialLevel(): string {
+  const raw = (props.level ?? "").trim();
+  if (!raw) {
+    return "小学";
+  }
+  const mapped = LEVEL_BY_CODE[raw.toUpperCase()] ?? raw;
+  return (GRADE_LEVELS as readonly string[]).includes(mapped) ? mapped : "小学";
+}
 const GRADES_BY_LEVEL: Record<string, string[]> = {
   小学: ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级"],
   初中: ["初一", "初二", "初三"],
@@ -286,7 +312,7 @@ const DIFFICULTY_OPTIONS = [
 const REC_BADGES = ["捧", "捧", "捧"];
 const DAILY_GOAL = 6;
 
-const selectedGradeLevel = ref<string>("小学");
+const selectedGradeLevel = ref<string>(initialLevel());
 const selectedGrade = ref<string>("一年级");
 const gradeOptions = computed(() => GRADES_BY_LEVEL[selectedGradeLevel.value] ?? []);
 
@@ -303,6 +329,22 @@ const loading = ref(false);
 const gameStarted = ref(false);
 const gameCompleted = ref(false);
 const gameData = ref<IdiomGameData | null>(null);
+
+/**
+ * 取材范围提示。
+ *
+ * 服务端在本学段成语不够（例如高中目前 0 条）时会用全库补齐，这里要如实告诉学生，
+ * 否则会出现「我选的高中，出来的却是初中/小学成语」的困惑。
+ */
+const scopeNotice = computed(() => {
+  const scope = gameData.value?.scope;
+  if (!scope || scope === "level") {
+    return "";
+  }
+  return scope === "mixed"
+    ? "本学段的成语不够一副牌，已用全库成语补齐。"
+    : "本学段暂无成语，已改用全库成语出题。";
+});
 const score = ref(0);
 const usingMock = ref(false);
 const wrongCount = ref(0);
@@ -1248,6 +1290,14 @@ onBeforeUnmount(() => {
   padding: 16px 18px 18px;
   /* koi 卡片不加投影：改用边框 */
   border: 1px solid var(--el-border-color-lighter);
+}
+.ig-scope {
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+  border-radius: var(--el-radius-sm, 6px);
 }
 .ig-board-head {
   display: flex;
