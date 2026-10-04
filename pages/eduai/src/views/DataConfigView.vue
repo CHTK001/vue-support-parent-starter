@@ -287,40 +287,44 @@
           </div>
         </div>
 
-        <el-table
+        <!-- 组卷模板：改用 ReTable 的 view 模式（一行一块：左边信息、右边操作同屏） -->
+        <ReTable
           v-loading="templateLoading"
           :data="filteredTemplates"
-          border
-          stripe
-          class="template-table"
+          row-key="templateId"
+          layout="view"
+          empty-text="暂无组卷模板，点击「新增模板」创建"
         >
-          <el-table-column prop="templateName" label="模板名称" min-width="180" />
-          <el-table-column label="大标题风格" width="130">
-            <template #default="{ row }">{{ templateStyleLabel(row.templateStyle) }}</template>
-          </el-table-column>
-          <el-table-column prop="templatePageSize" label="纸张" width="100" />
-          <el-table-column label="方向" width="90">
-            <template #default="{ row }">{{ templateOrientationLabel(row.templateOrientation) }}</template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.templateStatus === 1 ? 'success' : 'info'">
-                {{ row.templateStatus === 1 ? "启用" : "停用" }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="150" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openTemplateEdit(row)">编辑</el-button>
-              <el-popconfirm :title="`确认删除模板「${row.templateName}」?`" @confirm="removeTemplate(row)">
-                <template #reference>
-                  <el-button link type="danger">删除</el-button>
-                </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-          <template #empty>暂无组卷模板，点击「新增模板」创建</template>
-        </el-table>
+          <ReTableColumn prop="templateName" label="模板名称" />
+          <ReTableColumn label="大标题风格" />
+          <ReTableColumn label="纸张" />
+          <ReTableColumn label="方向" />
+          <ReTableColumn label="状态" />
+          <template #view="{ row }">
+            <div class="tpl-view">
+              <div class="tpl-view__main">
+                <div class="tpl-view__name">{{ asTpl(row).templateName }}</div>
+                <div class="tpl-view__meta">
+                  <span class="tpl-chip">{{ templateStyleLabel(asTpl(row).templateStyle) }}</span>
+                  <span class="tpl-chip">{{ asTpl(row).templatePageSize || "A4" }}</span>
+                  <span class="tpl-chip">{{ templateOrientationLabel(asTpl(row).templateOrientation) }}</span>
+                  <span class="status-pill" :class="asTpl(row).templateStatus === 1 ? 'is-on' : 'is-off'">
+                    <i class="status-dot" />{{ asTpl(row).templateStatus === 1 ? "启用" : "停用" }}
+                  </span>
+                </div>
+              </div>
+              <!-- 操作用 .stop：view 行本身绑了 row-click，不阻止会连点两下 -->
+              <div class="tpl-view__ops">
+                <el-button link type="primary" @click.stop="openTemplateEdit(asTpl(row))">编辑</el-button>
+                <el-popconfirm :title="`确认删除模板「${asTpl(row).templateName}」?`" @confirm="removeTemplate(asTpl(row))">
+                  <template #reference>
+                    <el-button link type="danger" @click.stop>删除</el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+            </div>
+          </template>
+        </ReTable>
       </section>
     </el-card>
 
@@ -1191,6 +1195,8 @@ const TEMPLATE_PAGE_SIZE_OPTIONS = [
 
 const templateStyleLabel = (v?: string) => TEMPLATE_STYLE_OPTIONS.find((o) => o.value === v)?.label || v || "-";
 const templateOrientationLabel = (v?: string) => (v === "LANDSCAPE" ? "横向" : "纵向");
+/** ReTable view 插槽里 row 是 Record<string, unknown>，收敛成模板类型，避免模板里到处 as */
+const asTpl = (row: Record<string, unknown>) => row as unknown as PaperTemplate;
 
 const templates = ref<PaperTemplate[]>([]);
 const templateLoading = ref(false);
@@ -1852,6 +1858,49 @@ onMounted(() => {
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
+/* ---------- 组卷模板 ReTable view 模式：一行一块 ---------- */
+.tpl-view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+.tpl-view__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpl-view__name {
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpl-view__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tpl-chip {
+  padding: 1px 8px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.tpl-view__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* ---------- 对话框（严格对齐「新增学科」原型） ---------- */
 .card-dialog {
   border-radius: var(--el-radius-xl, 16px);
@@ -2272,10 +2321,6 @@ onMounted(() => {
 }
 
 /* ---------- 组卷模板 ---------- */
-.template-table {
-  width: 100%;
-}
-
 .template-dialog .block-title ~ .block-title {
   margin-top: 14px;
 }
