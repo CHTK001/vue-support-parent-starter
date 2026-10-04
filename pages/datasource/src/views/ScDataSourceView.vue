@@ -51,6 +51,15 @@ import {
 } from "../api";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReTabItem } from "@repo/ui/re-tab";
+// 状态口径与左栏筛选抽成纯函数模块：原先内联在本文件里，「异常」档没有判定分支
+// 也无人能测出来。纯函数可被 node --test 直接覆盖（tests/datasourceStatus.test.mjs）。
+import {
+  filterDataSources,
+  isAbnormal,
+  isEnabled,
+  statusCounts,
+  type DataSourceStatusKey
+} from "../datasourceStatus";
 
 /**
  * 宿主应用注入的额外页签（如监控台的「数据表」= 数据库管理器内嵌）。
@@ -69,7 +78,7 @@ const props = withDefaults(
 );
 
 /** 左栏状态过滤键：all 全部 / online 在线 / abnormal 异常 / offline 离线 */
-type StatusFilterKey = "all" | "online" | "abnormal" | "offline";
+type StatusFilterKey = DataSourceStatusKey;
 
 /** 左栏状态过滤项 */
 interface StatusFilterItem {
@@ -79,7 +88,7 @@ interface StatusFilterItem {
   label: string;
   /** 圆点颜色（应用层语义色，带令牌兜底） */
   color: string;
-  /** 数量徽标；null 表示现有模型没有该口径，不展示 */
+  /** 数量徽标；null 表示该口径无判定来源、不展示徽标（当前四个内置项都有值） */
   count: number | null;
 }
 
@@ -410,12 +419,15 @@ const onTypeChange = (type: string) => {
 
 // ------------------------------ 视图派生数据 ------------------------------
 
-/**
+/*
  * 启用口径与 API 层保持一致（见 api/index.ts 的 fetchDatasourceOptions）：
  * status 为 0 表示停用，其余（含 null 未标注）视为启用。
- * 现有数据模型没有「异常」的判定来源，因此异常过滤恒为空、不展示数量徽标。
+ *
+ * <p>口径与筛选已抽到 ../datasourceStatus（纯函数、有单元测试）。
+ * 此前这里写着「现有数据模型没有『异常』的判定来源」，实际 api/index.ts 早有
+ * lastTestOk 字段（0 失败 / 1 连通 / null 未测试），于是「异常」页签被渲染、
+ * 可点击，却因缺少筛选分支而永远为空——注释的错误前提掩盖了缺陷。</p>
  */
-const isEnabled = (item: DataSourceInfo): boolean => item.status !== 0;
 
 /** 当前选中的数据源；未显式选择或所选项已不存在时回落到第一条 */
 const current = computed<DataSourceInfo | null>(() => {
@@ -425,33 +437,21 @@ const current = computed<DataSourceInfo | null>(() => {
   return list.value.find(item => item.id === currentId.value) ?? list.value[0];
 });
 
-/** 左栏数据源列表：状态过滤 + 关键词过滤（名称 / 类型 / 地址 / 备注） */
-const filteredList = computed<DataSourceInfo[]>(() => {
-  const key = keyword.value.trim().toLowerCase();
-  return list.value.filter(item => {
-    const matchStatus =
-      statusKey.value === "all" ||
-      (statusKey.value === "online" && isEnabled(item)) ||
-      (statusKey.value === "offline" && !isEnabled(item));
-    if (!matchStatus) {
-      return false;
-    }
-    if (!key) {
-      return true;
-    }
-    return [item.name, item.type, item.host, item.remark]
-      .filter(value => value != null && value !== "")
-      .some(value => String(value).toLowerCase().includes(key));
-  });
-});
+/** 左栏数据源列表：状态过滤 + 关键词过滤（口径见 ../datasourceStatus） */
+const filteredList = computed<DataSourceInfo[]>(() =>
+  filterDataSources(list.value, statusKey.value, keyword.value),
+);
 
-/** 左栏状态过滤项与计数（异常无判定来源，count 置 null 不展示徽标） */
-const statusFilters = computed<StatusFilterItem[]>(() => [
-  { key: "all", label: "全部", color: "var(--brand-500, var(--el-color-primary))", count: list.value.length },
-  { key: "online", label: "在线", color: "var(--status-success, var(--el-color-success))", count: list.value.filter(isEnabled).length },
-  { key: "abnormal", label: "异常", color: "var(--status-warning, var(--el-color-warning))", count: null },
-  { key: "offline", label: "离线", color: "var(--status-error, var(--el-color-danger))", count: list.value.filter(item => !isEnabled(item)).length },
-]);
+/** 左栏状态过滤项与计数；三类互斥可加（online + abnormal + offline === all） */
+const statusFilters = computed<StatusFilterItem[]>(() => {
+  const counts = statusCounts(list.value);
+  return [
+    { key: "all", label: "全部", color: "var(--brand-500, var(--el-color-primary))", count: counts.all },
+    { key: "online", label: "在线", color: "var(--status-success, var(--el-color-success))", count: counts.online },
+    { key: "abnormal", label: "异常", color: "var(--status-warning, var(--el-color-warning))", count: counts.abnormal },
+    { key: "offline", label: "离线", color: "var(--status-error, var(--el-color-danger))", count: counts.offline },
+  ];
+});
 
 /** 右栏页签定义：内置页签 + 宿主注入页签（extraTabs 追加在后面） */
 const tabItems = computed<ReTabItem[]>(() => [
@@ -462,8 +462,41 @@ const tabItems = computed<ReTabItem[]>(() => [
   ...props.extraTabs,
 ]);
 
-/** 概览「运行状态」卡片文案：沿用 status 字段口径（0 停用 / 其余启用） */
-const runtimeText = computed<string>(() => (current.value?.status === 0 ? "已停用" : "正常"));
+/** 概览「运行状态」卡片文案：与左栏三态口径同源（正常 / 异常 / 已停用） */
+const runtimeText = computed<string>(() => {
+  const item = current.value;
+  if (!item) {
+    return "—";
+  }
+  if (isAbnormal(item)) {
+    return "异常";
+  }
+  return isEnabled(item) ? "正常" : "已停用";
+});
+
+/** 详情头状态徽标文案：与左栏三态口径同源（在线 / 异常 / 已停用） */
+const detailBadgeText = computed<string>(() => {
+  const item = current.value;
+  if (!item) {
+    return "—";
+  }
+  if (isAbnormal(item)) {
+    return "异常";
+  }
+  return isEnabled(item) ? "在线" : "已停用";
+});
+
+/** 详情头状态徽标样式：is-on 在线 / is-warn 异常 / is-off 已停用 */
+const detailBadgeClass = computed<string>(() => {
+  const item = current.value;
+  if (!item) {
+    return "is-off";
+  }
+  if (isAbnormal(item)) {
+    return "is-warn";
+  }
+  return isEnabled(item) ? "is-on" : "is-off";
+});
 
 /** 毫秒数转卡片文案；无值时统一显示占位符，避免出现 0ms 误导 */
 function formatLatency(value?: number | null): string {
@@ -641,9 +674,9 @@ onMounted(load);
               <span class="ds-detail__chip" :style="{ '--tile': typeMeta(current.type).color }">
                 {{ current.type.toUpperCase() }}
               </span>
-              <span class="ds-detail__badge" :class="current.status === 0 ? 'is-off' : 'is-on'">
+              <span class="ds-detail__badge" :class="detailBadgeClass">
                 <span class="ds-detail__badge-dot" />
-                {{ current.status === 0 ? "已停用" : "在线" }}
+                {{ detailBadgeText }}
               </span>
             </template>
           </div>
@@ -1215,6 +1248,9 @@ onMounted(load);
 }
 .ds-detail__badge.is-on {
   --badge: var(--status-success, var(--el-color-success));
+}
+.ds-detail__badge.is-warn {
+  --badge: var(--status-warning, var(--el-color-warning));
 }
 .ds-detail__badge.is-off {
   --badge: var(--status-error, var(--el-color-danger));
