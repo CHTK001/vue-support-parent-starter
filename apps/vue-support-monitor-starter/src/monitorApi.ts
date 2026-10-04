@@ -726,6 +726,22 @@ export interface DbColumnInfo {
   default?: string;
   position?: number;
   isPrimaryKey?: boolean;
+  /** 去掉长度与 UNSIGNED/ZEROFILL 后的基础类型，如 `int(10) unsigned` → `INT` */
+  baseType?: string;
+  /** 是否无符号 */
+  unsigned?: boolean;
+  /** 是否补零 */
+  zerofill?: boolean;
+  /** 是否自增（内核 EXTRA 含 auto_increment） */
+  autoIncrement?: boolean;
+  /** 列字符集 */
+  charset?: string;
+  /** 列排序规则 */
+  collation?: string;
+  /** ENUM / SET 的取值列表 */
+  enumValues?: string[];
+  /** 小数位 */
+  scale?: number;
 }
 
 /**

@@ -62,8 +62,15 @@ export const fetchDbIndexes = (tableName: string, datasourceId?: number, databas
 /** 新建索引请求体 */
 export type DbIndexCreatePayload = {
   indexName: string;
+  /** 索引列，**数组顺序即复合索引的列序**，前端不要排序 */
   columns: string[];
   unique?: boolean;
+  /** 索引类型：BTREE / HASH / RTREE，留空由内核决定 */
+  indexType?: string;
+  /** 各列的前缀长度，与 columns 等长；元素为 0/undefined 表示整列 */
+  prefixes?: number[];
+  /** 是否建为主键索引（此时走 ADD PRIMARY KEY，索引名被忽略） */
+  primary?: boolean;
   database?: string;
   datasourceId?: number;
 };
@@ -112,8 +119,18 @@ export type DbColumnPayload = {
   columnName: string;
   type: string;
   size?: number;
+  scale?: number;
+  unsigned?: boolean;
+  zerofill?: boolean;
+  charset?: string;
+  collation?: string;
   nullable?: boolean;
   defaultValue?: string;
+  /** ON UPDATE 表达式，只支持 CURRENT_TIMESTAMP / NOW()（可带 0~6 位小数秒） */
+  onUpdate?: string;
+  autoIncrement?: boolean;
+  /** ENUM / SET 的取值列表 */
+  enumValues?: string[];
   comment?: string;
   database?: string;
   datasourceId?: number;
@@ -156,6 +173,124 @@ export const dropDbColumn = (tableName: string, columnName: string, datasourceId
     .delete(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/column/${encodeURIComponent(columnName)}`)
     .noToast(true)
     .query({ datasourceId, database })
+    .then(r => unwrap<boolean>(r));
+
+/* ==================== 表属性 / 主键（Navicat 表属性页） ==================== */
+
+/**
+ * 表属性。
+ *
+ * <p>全部由内核 `information_schema` 读出，**不在前端硬编码**可选取值 ——
+ * 不同内核、不同版本的引擎与排序规则集合不同，前端写死会让用户选到内核不认的值。
+ */
+export interface DbTableOptions {
+  /** 存储引擎，如 InnoDB */
+  engine?: string;
+  /** 字符集（由排序规则前缀推导） */
+  charset?: string;
+  /** 排序规则，如 utf8mb4_general_ci */
+  collation?: string;
+  /** 表注释 */
+  comment?: string;
+  /** 建表时的额外选项 */
+  createOptions?: string;
+  /** 行格式 */
+  rowFormat?: string;
+  /** 下一个自增值 */
+  autoIncrement?: number | null;
+  /** 估算行数 */
+  rows?: number;
+}
+
+/** 表属性修改请求（未传的字段表示不改；comment 传空串表示清空） */
+export type DbTableOptionsPayload = {
+  engine?: string;
+  charset?: string;
+  collation?: string;
+  comment?: string;
+  autoIncrement?: number;
+  database?: string;
+  datasourceId?: number;
+};
+
+/**
+ * 读取表属性。
+ * @param tableName 表名
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库（可选）
+ */
+export const fetchDbTableOptions = (tableName: string, datasourceId?: number, database?: string) =>
+  http()
+    .get(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/options`)
+    .noToast(true)
+    .query({ datasourceId, database })
+    .then(r => unwrap<DbTableOptions>(r));
+
+/**
+ * 修改表属性。
+ * @param tableName 表名
+ * @param payload 属性（未传字段不改）
+ */
+export const updateDbTableOptions = (tableName: string, payload: DbTableOptionsPayload) =>
+  http()
+    .put(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/options`)
+    .noToast(true)
+    .data(payload)
+    .then(r => unwrap<boolean>(r));
+
+/** 排序规则候选项 */
+export interface DbCollationItem {
+  charset: string;
+  collation: string;
+}
+
+/** 可选的存储引擎与排序规则（由内核下发） */
+export interface DbTableOptionValues {
+  engines: string[];
+  collations: DbCollationItem[];
+}
+
+/**
+ * 列出内核支持的存储引擎与排序规则。
+ *
+ * <p>传 charset 则只返回该字符集下的排序规则（用于「字符集变了就刷新排序规则下拉」）。
+ *
+ * @param charset 限定字符集（可选）
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库（可选）
+ */
+export const fetchDbTableOptionValues = (
+  charset?: string,
+  datasourceId?: number,
+  database?: string
+) =>
+  http()
+    .get("/ms/monitor/db/table-options/available")
+    .noToast(true)
+    .query({ charset, datasourceId, database })
+    .then(r => unwrap<DbTableOptionValues>(r));
+
+/**
+ * 设置主键（可改可加可清空）。
+ *
+ * <p>传空数组表示清除主键。后端会先 DROP 旧主键再 ADD 新的，
+ * 因此列序即复合主键的列序。
+ *
+ * @param tableName 表名
+ * @param columns 主键列（顺序即列序），空数组表示清除
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库（可选）
+ */
+export const setDbTablePrimaryKey = (
+  tableName: string,
+  columns: string[],
+  datasourceId?: number,
+  database?: string
+) =>
+  http()
+    .put(`/ms/monitor/db/table/${encodeURIComponent(tableName)}/primary-key`)
+    .noToast(true)
+    .data({ columns, datasourceId, database })
     .then(r => unwrap<boolean>(r));
 
 /* ==================== 导入 / 导出（Navicat 向导） ==================== */
