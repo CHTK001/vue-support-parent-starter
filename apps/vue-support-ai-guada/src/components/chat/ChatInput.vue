@@ -135,18 +135,20 @@
         </div>
         <div class="right-actions flex items-center gap-1">
           <slot name="right-actions-before" />
-          <!-- 模型选择按钮 -->
-          <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-selector-btn"
-            :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }">
-            <div class="w-5 h-5 shrink-0 mr-1">
-              <Avatar v-if="currentModel" :src="getModelAvatarPath(currentModel.modelName, detectModelProvider(currentModel.modelName)) || undefined"
-                :name="currentModel.modelName" type="assistant" :round="false" class="w-full h-full" />
-            </div>
-            <span class="text-sm font-medium truncate flex-1 min-w-0"
-              style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
-                currentModelNameOnly }}</span>
-            <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
-          </button>
+          <!-- 模型选择按钮：悬停显示当前模型信息；宽度为自然宽的 2 倍 -->
+          <LTooltip :content="modelInfoTooltip" placement="top">
+            <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-selector-btn"
+              :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }">
+              <div class="w-5 h-5 shrink-0 mr-1">
+                <Avatar v-if="currentModel" :src="getModelAvatarPath(currentModel.modelName, detectModelProvider(currentModel.modelName)) || undefined"
+                  :name="currentModel.modelName" type="assistant" :round="false" class="w-full h-full" />
+              </div>
+              <span class="text-sm font-medium truncate flex-1 min-w-0"
+                style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{
+                  currentModelNameOnly }}</span>
+              <span v-if="currentThinkingLabel" class="text-xs text-gray-400 shrink-0 ml-1">{{ currentThinkingLabel }}</span>
+            </button>
+          </LTooltip>
           <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
           <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" @click="abortResponse">
@@ -567,6 +569,25 @@ const currentModelName = computed(() => {
 });
 
 // 当前选中的知识库列表（根据 ID 从完整列表中过滤）
+/**
+ * 输入框模型按钮的悬停信息：模型名 · 提供方 · 思考档位（有则显示）。
+ */
+const modelInfoTooltip = computed(() => {
+  const model = currentModel.value;
+  if (!model) {
+    return currentModelNameOnly.value;
+  }
+  const parts: string[] = [model.modelName];
+  const provider = detectModelProvider(model.modelName);
+  if (provider) {
+    parts.push(provider);
+  }
+  if (currentThinkingLabel.value) {
+    parts.push(currentThinkingLabel.value);
+  }
+  return parts.join(" · ");
+});
+
 const selectedKnowledgeBases = computed(() => {
   const kbIds = props.config?.knowledgeBaseIds || [];
   return knowledgeBases.value.filter(kb => kbIds.includes(kb.id));
@@ -688,7 +709,7 @@ const createFileObject = (file: File, fileType: string, isPasted = false) => {
 };
 
 // 打开模型面板
-const MODEL_BUTTON_MAX_WIDTH = 200
+const MODEL_BUTTON_MAX_WIDTH = 400
 const MODEL_BUTTON_TRANSITION_MS = 200
 let modelOpenTimer: ReturnType<typeof setTimeout> | null = null;
 let modelCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -719,9 +740,11 @@ function collapseModelButton() {
   if (modelCloseTimer) clearTimeout(modelCloseTimer)
 
   modelButtonExpanded.value = false
-  modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+  // 输入框模型名称的宽度：取自然宽的 2 倍（上限见 MODEL_BUTTON_MAX_WIDTH）
+  modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
   modelCloseTimer = setTimeout(() => {
-    modelButtonWidth.value = undefined
+    // 常驻 2 倍宽（用户要求「选中的宽度增加一倍」）：收起时保持，不回落到自适应窄宽
+    modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
     modelCloseTimer = null
   }, MODEL_BUTTON_TRANSITION_MS)
 }
@@ -1467,6 +1490,10 @@ const handleClickOutside = (e: MouseEvent) => {
 };
 
 onMounted(() => {
+  // 模型名称按钮常驻 2 倍宽（用户要求「选中的宽度增加一倍」）：挂载后量一次自然宽并置位
+  nextTick(() => {
+    modelButtonWidth.value = `${measureModelButtonNaturalWidth() * 2}px`
+  });
   adjustTextareaHeight();
   loadModels();
   initThinkingEffort(); // 初始化思考强度
