@@ -222,6 +222,7 @@
               @click="openExportDialog(activeTabObj.tableName, activeTabObj.database)"
             />
             <ReButton layout="square" icon="Operation" tip="列显示设置（显示 / 固定列）" @click="openColumnViewDialog" />
+            <ReButton layout="square" icon="RefreshLeft" tip="恢复默认设置（视图偏好与各表筛选条件）" @click="resetViewSettings" />
             <ReButton layout="square" icon="Refresh" tip="刷新数据" @click="refreshTableData" />
             <ReButton
               layout="square"
@@ -1701,6 +1702,15 @@ import {
   setDbTablePrimaryKey,
 } from "../dbManageApi";
 import {
+  loadViewPref,
+  saveViewPref,
+  loadTablePref,
+  saveTablePref,
+  clearTablePref,
+  pruneTablePrefs,
+  resetAllPrefs,
+} from "../dbViewPref";
+import {
   executeDbSqlBatch,
   scanSqlParams,
   beginDbTx,
@@ -2078,7 +2088,18 @@ const activeSqlModel = computed<string>({
 });
 
 // 表数据
-const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: 50 });
+/**
+ * 视图偏好（F5：从本地存储恢复，见 dbViewPref.ts）。
+ *
+ * <p>声明放在这里而不是紧贴使用处：{@code tableData.pageSize} 在下面就要用到它，
+ * 放到使用处后面会变成「先用后声明」。</p>
+ *
+ * <p>整体读一次、各字段取用 —— 这样「某个字段被写坏」只影响那一个字段，
+ * 不会把整份偏好一起拖成默认值。</p>
+ */
+const viewPref = loadViewPref();
+
+const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: viewPref.pageSize });
 
 // ==================== 数据视图：表头/行显示模式 + 总数开关 ====================
 /** 表头显示模式 */
@@ -2087,7 +2108,7 @@ const HEADER_MODES = [
   { label: "注释", value: "comment" as const },
   { label: "字段+注释", value: "both" as const },
 ];
-const headerMode = ref<"name" | "comment" | "both">("name");
+const headerMode = ref<"name" | "comment" | "both">(viewPref.headerMode);
 
 /**
  * 行显示模式。
@@ -2102,10 +2123,10 @@ const ROW_MODES = [
   { label: "数据", value: "data" as const },
   { label: "数据+注释", value: "data-comment" as const },
 ];
-const rowMode = ref<"data" | "data-comment">("data");
+const rowMode = ref<"data" | "data-comment">(viewPref.rowMode);
 
 /** 是否统计总数（关闭后跳过 COUNT，走「上一页/下一页」模式） */
-const showTotal = ref(localStorage.getItem("dbm-show-total") !== "false");
+const showTotal = ref(viewPref.showTotal);
 /** 列注释映射（表头/行显示模式） */
 const columnComments = reactive<Record<string, string>>({});
 
@@ -2117,16 +2138,24 @@ const sortState = reactive<{ prop: string; order: "ASC" | "DESC" | "" }>({ prop:
 /**
  * 清空排序与过滤条件。
  *
- * <p>这两个是**共享状态**，不是页签私有：切表时若不清，会把上一张表的 {@code ORDER BY} 列名
- * 发给新表。新表没有该列时后端直接报错，而 {@code loadTableData} 的 catch 只弹一条提示、
- * **不会清空 {@code tableData}**，于是网格静默保留上一张表的列与数据——现象就是
+ * <p>这三个是**共享状态**，不是页签私有：切表时若不清，会把上一张表的 {@code ORDER BY} 列名
+ * 或高级筛选条件发给新表。新表没有该列时后端直接报错，而 {@code loadTableData} 的 catch
+ * 只弹一条提示、**不会清空 {@code tableData}**，于是网格静默保留上一张表的列与数据——现象就是
  * 「页签已切到新表，表头却还是旧表的列」，并连带 {@code pkColumns} 也是旧的，
  * 造成「主键列不可编辑」误判。2026-10-02 JDBC 工作台验收实测复现（无主键表 + score 排序）。</p>
+ *
+ * <p><b>原实现漏了 {@code activeFilters}</b>（2026-10-05 F5 期间发现）：
+ * 手动点「清除过滤」会清它，但切表这条路不会 ——
+ * 于是给 A 表设了高级筛选后切到 B 表，B 表的加载请求带着 A 表的列名过去，
+ * 必然报错且网格停在旧数据。{@link clearFilter} 的注释里已经写明
+ * 「必须同时清掉 filterWhere 与 activeFilters」，这里就是漏了同一处。</p>
  */
 function resetTableQueryState() {
   sortState.prop = "";
   sortState.order = "";
   filterWhere.value = "";
+  activeFilters.value = [];
+  filterDraft.value = [];
 }
 /** 当前选中的行 */
 const selection = ref<Record<string, unknown>[]>([]);
@@ -2163,6 +2192,9 @@ function applyFilter(): void {
   const tab = activeTabObj.value;
   if (!tab) return;
   tableData.page = 1;
+  // 条件变了就落盘：用户配好筛选条件后最小化的下一个动作就是刷新页面，
+  // 那时候还在内存里的条件等于没配。
+  persistTablePref();
   void loadTableData(tab, 1);
 }
 
@@ -2282,6 +2314,11 @@ function applyAdvancedFilter(): void {
   const tab = activeTabObj.value;
   if (tab) {
     tableData.page = 1;
+    // 必须落盘。这个函数**不走** applyFilter()（高级筛选是弹窗应用、
+    // WHERE 是工具条按钮，两条路径），早先只在 applyFilter 里调
+    // persistTablePref()，结果「高级筛选配好的条件刷新即丢」——
+    // 而 WHERE 那条却正常，现象上像是「高级筛选功能有 bug」。
+    persistTablePref();
     void loadTableData(tab, 1);
   }
 }
@@ -4887,7 +4924,13 @@ async function loadDatasources() {
     const list = await fetchDataSources();
     const jdbc = list.filter(d => d.type === "jdbc");
     datasources.value = [DEFAULT_DATASOURCE, ...jdbc];
-    const requested = resolveDatasourceId();
+    let requested = resolveDatasourceId();
+    // F5：没有显式指定（路由没带 datasourceId、也不是内嵌模式）时，
+    // 回到上次用的数据源 —— Navicat 就是记住连接的。
+    // 记下来的那个若已不存在，走下面的「未登记」分支如实告知，不静默失败。
+    if (requested <= 0 && viewPref.lastDatasourceId > 0 && !embedded) {
+      requested = viewPref.lastDatasourceId;
+    }
     if (requested > 0) {
       if (jdbc.some(d => d.id === requested)) {
         currentDatasourceId.value = requested;
@@ -4906,6 +4949,40 @@ async function loadDatasources() {
   }
   await loadTree();
 }
+
+/**
+ * 清掉「表已不存在」的每表偏好。
+ *
+ * <p>表改名或删掉后偏好会一直占着位置，把真正在用的挤出 120 条上限。
+ * 这里按「当前库里真实存在的表」对一遍，而不是等上限触发 ——
+ * 等上限触发时，被挤掉的往往是用户**最近还在用**的那几张。</p>
+ */
+async function pruneStaleTablePrefs(): Promise<void> {
+  const db = activeDatabase.value;
+  if (!db) return;
+  try {
+    const tables = await fetchDbTables(currentDatasourceId.value, db);
+    const exist = new Set((tables || []).map(t => `${db}.${t.name}`));
+    if (exist.size === 0) return;
+    const removed = pruneTablePrefs(exist);
+    if (removed > 0) {
+      console.info(`[dbm] 清理了 ${removed} 条已失效的表筛选偏好`);
+    }
+  } catch {
+    // 读不到表清单就不清理：宁可多占点地方，也不要因为一次网络失败
+    // 把用户精心配的筛选条件全删了。
+  }
+}
+
+/** 数据源切换后：记住它，并清掉该数据源下已失效的每表筛选偏好 */
+watch(currentDatasourceId, id => {
+  if (id > 0) {
+    saveViewPref({ lastDatasourceId: id });
+  }
+  // 换数据源意味着「库.表」这套键全部换了含义，
+  // 上一批偏好对这里一张表都不适用，按真实存在的表清理掉。
+  void pruneStaleTablePrefs();
+});
 
 /**
  * 宿主（左栏）切换了数据源时跟随切换。
@@ -5043,6 +5120,9 @@ function openTableData(tableName: string, database = activeDatabase.value) {
   activeTab.value = id;
   // 排序/过滤是上一张表的条件，切表必须清掉，否则新表可能因列不存在而加载失败
   resetTableQueryState();
+  // 再把这张表**自己**的条件恢复回来（F5）：清掉是必须的，
+  // 但不能只清不恢复 —— 用户为这张表配好的条件会白配。
+  restoreTablePref(tab);
   tableData.page = 1;
   loadTableData(tab);
 }
@@ -5360,6 +5440,65 @@ function closeTab(id: string) {
       }
     }
   }
+}
+
+/**
+ * 当前表的查询偏好键（`库.表`）。
+ *
+ * <p>刻意按表分键：A 表的 `status = 1` 套到 B 表上会引用 B 表不存在的列，
+ * 直接报错。E2 的列偏好已经踩过同一个坑（全局一份会让「在 A 表隐藏的列
+ * 到 B 表也消失」）。</p>
+ */
+function tablePrefKey(tab?: { tableName?: string; database?: string }): string {
+  const t = tab ?? activeTabObj.value;
+  if (!t?.tableName) return "";
+  return `${t.database || activeDatabase.value}.${t.tableName}`;
+}
+
+/**
+ * 「正在恢复某张表的偏好」标志。
+ *
+ * <p>{@link restoreTablePref} 会先把旧条件清空再填新条件，这一帧不该被
+ * 兜底落盘的 watch 看到 —— 否则会把**上一张表**的条件写进**这张表**的键，
+ * 正好制造出「切表后刷新，A 表的条件跑到 B 表上」的故障。</p>
+ */
+let tabPrefRestoring = false;
+
+/**
+ * 切到某张表时恢复它自己的筛选条件。
+ *
+ * <p>不恢复的话，用户为宽表配了 5 个条件、刷新一次就得重配一遍 ——
+ * 而筛选条件往往是「排查了半小时才凑出来」的。</p>
+ */
+function restoreTablePref(tab: { tableName?: string; database?: string }): void {
+  const pref = loadTablePref(tablePrefKey(tab));
+  // 恢复成「无筛选」而不是保留上一张表的：把 A 表的条件留在 B 表上
+  // 会让 B 表直接报错，而用户完全不知道条件是哪来的。
+  tabPrefRestoring = true;
+  try {
+    filterWhere.value = pref?.filterWhere ?? "";
+    activeFilters.value = (pref?.filters ?? []).map(f => ({ ...f }));
+  } finally {
+    tabPrefRestoring = false;
+  }
+  if (pref && (pref.filterWhere || pref.filters.length > 0)) {
+    ElMessage.info(`已恢复该表的筛选条件（${pref.filters.length} 个条件）`);
+  }
+}
+
+/** 把当前表的筛选条件存进本地（筛选变更时调用） */
+function persistTablePref(): void {
+  const key = tablePrefKey();
+  if (!key) return;
+  if (!filterWhere.value && activeFilters.value.length === 0) {
+    // 没有筛选就别留空记录，否则容量上限会被一堆空条目占满
+    clearTablePref(key);
+    return;
+  }
+  saveTablePref(key, {
+    filterWhere: filterWhere.value,
+    filters: activeFilters.value.map(f => ({ ...f })),
+  });
 }
 
 async function loadTableData(tab: Tab | undefined, page?: number) {
@@ -5987,13 +6126,102 @@ async function deleteDatabase(database: string) {
 // ==================== Navicat 风格辅助动作 ====================
 /** 总数开关：切换后按新模式重载当前表 */
 watch(showTotal, value => {
-  localStorage.setItem("dbm-show-total", String(value));
+  // 统一写进 dbViewPref（带版本号与逐字段校验），
+  // 不再单独用裸 key —— 裸 key 没有版本，结构一变就是静默读出垃圾。
+  saveViewPref({ showTotal: value });
   const tab = activeTabObj.value;
   if (tab?.type === "table") {
     tableData.page = 1;
     void loadTableData(tab, 1);
   }
 });
+
+/**
+ * 视图偏好落盘（F5）。
+ *
+ * <p>表头/行模式、页大小、ER 图设置都是「刷新后应该还在」的东西。
+ * 用一个 watcher 统一落，而不是在每个 setter 里各写一遍 ——
+ * 各写一遍的必然结果是漏掉某个（早先 `dbm-show-total` 就是单独写的）。</p>
+ */
+watch(
+  [headerMode, rowMode, erLayout, erShowLabels, erTableFilter],
+  () => {
+    saveViewPref({
+      headerMode: headerMode.value,
+      rowMode: rowMode.value,
+      erLayout: erLayout.value,
+      erShowLabels: erShowLabels.value,
+      erTableFilter: erTableFilter.value,
+    });
+  },
+  { deep: true },
+);
+
+/** 每页行数变化：落盘并回到第一页（否则第 N 页可能超出新页大小的范围） */
+watch(() => tableData.pageSize, value => {
+  saveViewPref({ pageSize: value });
+});
+
+/**
+ * 筛选条件变化的**兜底**落盘。
+ *
+ * <p>不靠「记得在每个改动点调用 persistTablePref()」——
+ * F5 第一版就是这么写的，结果漏了高级筛选弹窗那条路径
+ * （它不走 {@code applyFilter}），表现为「WHERE 能记住、高级筛选记不住」。
+ * 两条路径、两个入口，靠人记必然漏。watch 挂在数据上就没有漏的可能。</p>
+ *
+ * <p>{@code restoreTablePref} 恢复时会触发它，那正是我们要的
+ * （恢复后的条件同样该落盘，保证下次刷新还在）。</p>
+ */
+watch(
+  [filterWhere, activeFilters],
+  () => {
+    // 切表时 restoreTablePref 会先把旧条件清空再填新条件，
+    // 中间这一帧不应该把「上一张表的偏好」写进「这张表的键」。
+    // 用 tabPrefRestoring 挡住这一帧。
+    if (tabPrefRestoring) return;
+    persistTablePref();
+  },
+  { deep: true },
+);
+
+/**
+ * 恢复默认设置：视图偏好 + 各表筛选条件 + 列显示偏好全清。
+ *
+ * <p>必须有这个出口：偏好存在浏览器里，用户能改就一定能清。
+ * 只让用户去清浏览器数据的话，一旦偏好写坏了（别的代码写坏、手改、
+ * 旧版本结构变更）就**没有任何界面上的恢复路径**。</p>
+ */
+async function resetViewSettings(): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      "将清空本机保存的视图偏好（表头/行模式、每页行数、ER 图设置）与所有表的筛选条件。列显示偏好也会一并恢复默认。继续？",
+      "恢复默认设置",
+      { type: "warning", confirmButtonText: "恢复默认", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  resetAllPrefs();
+  columnPrefs.value = {};
+  headerMode.value = "name";
+  rowMode.value = "data";
+  showTotal.value = true;
+  tableData.pageSize = 50;
+  erLayout.value = "dagre";
+  erShowLabels.value = true;
+  erTableFilter.value = "";
+  filterWhere.value = "";
+  activeFilters.value = [];
+  const tab = activeTabObj.value;
+  if (tab?.type === "table") {
+    tableData.page = 1;
+    void loadTableData(tab, 1);
+  } else if (tab?.type === "er") {
+    void loadErDiagram();
+  }
+  ElMessage.success("已恢复默认设置");
+}
 
 /** SQL 编辑器补全字段缓存（库.表 → 字段名） */
 const sqlColumnCache = new Map<string, string[]>();
