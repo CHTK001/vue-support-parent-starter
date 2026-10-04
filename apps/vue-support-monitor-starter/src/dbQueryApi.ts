@@ -67,6 +67,7 @@ export interface DbBatchResult {
  * @param database 目标库（可选）
  * @param params {@code ${name}} 占位符取值（可选）
  * @param stopOnError 遇错是否停止（默认 true）
+ * @param txId 显式事务 ID（可选）；传了就在该事务的连接上执行
  * @returns 批量执行结果
  */
 export const executeDbSqlBatch = (
@@ -75,12 +76,73 @@ export const executeDbSqlBatch = (
   database?: string,
   params?: Record<string, string>,
   stopOnError?: boolean,
+  txId?: string,
 ) =>
   http()
     .post("/ms/monitor/db/execute-batch")
     .noToast(true)
-    .data({ sql, datasourceId, database, params, stopOnError })
+    .data({ sql, datasourceId, database, params, stopOnError, txId })
     .then(r => unwrap<DbBatchResult>(r));
+
+/** 事务会话状态 */
+export interface DbTxStatus {
+  txId: string;
+  datasourceId: number;
+  database: string;
+  idleSeconds: number;
+}
+
+/**
+ * 开启显式事务。
+ *
+ * <p>返回的 txId 要一路带到后续执行/commit/rollback ——
+ * 后端把连接跨请求持有，靠的就是这个 ID 找到同一条连接。</p>
+ *
+ * @param datasourceId 数据源 ID（可选）
+ * @param database 目标库（可选）
+ * @returns 新建的事务标识与库
+ */
+export const beginDbTx = (datasourceId?: number, database?: string) =>
+  http()
+    .post("/ms/monitor/db/tx/begin")
+    .noToast(true)
+    .data({ datasourceId, database })
+    .then(r => unwrap<{ txId: string; datasourceId: number; database: string }>(r));
+
+/**
+ * 提交事务。
+ * @param txId 事务标识
+ */
+export const commitDbTx = (txId: string) =>
+  http()
+    .post("/ms/monitor/db/tx/commit")
+    .noToast(true)
+    .data({ txId })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 回滚事务。
+ * @param txId 事务标识
+ */
+export const rollbackDbTx = (txId: string) =>
+  http()
+    .post("/ms/monitor/db/tx/rollback")
+    .noToast(true)
+    .data({ txId })
+    .then(r => unwrap<boolean>(r));
+
+/**
+ * 查询未结束的事务。
+ *
+ * <p>用途是「界面显示开着事务，后端其实没有」的自检 ——
+ * 页面刷新后前端状态会丢，而后端那条连接还活着，
+ * 不查一次就会变成一个用户看不见、也关不掉的孤儿事务。</p>
+ */
+export const fetchDbTxStatus = () =>
+  http()
+    .get("/ms/monitor/db/tx/status")
+    .noToast(true)
+    .then(r => unwrap<DbTxStatus[]>(r));
 
 /**
  * 扫描 SQL 里的 {@code ${name}} 占位符。
