@@ -84,12 +84,6 @@ export const monitorRoutes: RouteConfigsTable[] = [
         meta: { title: "主机资产", icon: "Monitor", showLink: true, rank: 10 },
       },
       {
-        path: "/device-assets",
-        name: "DeviceAssets",
-        component: () => import("./views/DeviceAssetsView.vue"),
-        meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 10 },
-      },
-      {
         path: "/files",
         name: "FileAssets",
         component: () => import("@pages/filesystem/src/views/FileStorageManage.vue"),
@@ -118,6 +112,24 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "TerminalSnippets",
         component: () => import("@pages/server/src/views/ScTerminalSnippetManager.vue"),
         meta: { title: "片段管理", icon: "DocumentCopy", showLink: true, rank: 16 },
+      },
+    ],
+  },
+
+  // ==================== 设备资产 ====================
+  // 从「资产管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见，
+  // 不必先进资产管理再找。rank 取 11，紧邻资产管理（10）且早于服务管理（15）。
+  // 与「服务管理」同为单页独立分组（分组标题与子菜单同名，children 仅一项）。
+  {
+    path: "/grp-device",
+    name: "GroupDevice",
+    meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 11 },
+    children: [
+      {
+        path: "/device-assets",
+        name: "DeviceAssets",
+        component: () => import("./views/DeviceAssetsView.vue"),
+        meta: { title: "设备资产", icon: "VideoCamera", showLink: true, rank: 11 },
       },
     ],
   },
