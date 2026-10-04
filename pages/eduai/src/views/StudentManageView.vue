@@ -92,7 +92,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="190" align="center" fixed="right">
+            <el-table-column label="操作" width="170" align="center" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <!-- 操作列按钮必须 .stop：el-table 上绑了 @row-click="openStudent"，
                      不阻止冒泡会让「点任何按钮」都额外触发一次「打开编辑弹窗」
@@ -137,7 +137,7 @@
             <el-table-column label="学生数" width="90" align="center">
               <template #default="{ row }">{{ studentsInClass(row.classId) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="110" align="center" fixed="right">
+            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openClass(row)" />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeClass(row)" />
@@ -172,7 +172,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="110" align="center" fixed="right">
+            <el-table-column label="操作" width="96" align="center" fixed="right" class-name="op-col">
               <template #default="{ row }">
                 <ReButton layout="square" type="primary" :icon="EditPen" tip="编辑" @click.stop="openTeacher(row)" />
                 <ReButton layout="square" type="danger" :icon="Delete" tip="删除" @click.stop="removeTeacher(row)" />
@@ -1171,6 +1171,21 @@ onMounted(() => {
   background: var(--el-fill-color);
   color: var(--el-text-color-placeholder);
 }
+/* ---------- 操作列：图标按钮组统一样式 ----------
+   三张表（学生/班级/教师）的操作列共用 .op-col：
+   用 flex + gap 统一间距与居中，并清零 ReButton(Square) 自带的 margin: 0 4px
+   （不清零时首尾各多 4px，三张表的按钮组看起来不齐）。
+   .rs-btn 是 ReButton 内部的 scoped 类，必须 :deep() 穿透。 */
+:deep(.op-col .cell) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+:deep(.op-col .cell .rs-btn) {
+  margin: 0;
+}
+
 /* ---------- 弹窗：与古诗库/成语库同构 ---------- */
 .q-dialog :deep(.el-dialog__header) {
   padding: 0;
