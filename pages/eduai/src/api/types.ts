@@ -834,6 +834,32 @@ export interface TeacherOverview {
   studentCount?: number;
 }
 
+/** 教师端字典下拉（GET /v2/edu/teacher/dropdown） */
+export interface DimensionDropdown {
+  gradeLevels: GradeLevelOption[];
+  subjects: EduSubject[];
+  grades: EduGrade[];
+}
+
+/** 教师端阅卷任务（GET /v2/edu/teacher/marking/tasks） */
+export interface TeacherMarkingTask {
+  markingTaskId: number;
+  /** 对外业务任务号，查结果用 */
+  markingTaskTaskId: string;
+  /** 0 待处理 / 1 处理中 / 2 完成 / 3 失败 */
+  markingTaskStatus: number;
+  /** SELF 自有卷 / ANY 任意卷 */
+  markingTaskMode?: string | null;
+  markingTaskPaperId?: number | null;
+  markingTaskStudentId?: string | null;
+  markingTaskStage?: string | null;
+  markingTaskTotal?: number | null;
+  markingTaskDoneCount?: number | null;
+  markingTaskError?: string | null;
+  markingTaskStartTime?: string | null;
+  markingTaskFinishTime?: string | null;
+}
+
 /**
  * 趣味模块配置（edu_fun_config） *
  * 同一张表两用：
