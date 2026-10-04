@@ -160,7 +160,7 @@ import { ElMessage } from "element-plus";
 import { setImpersonateToken, getImpersonateToken, clearImpersonateToken } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
 import type { StudentOverview } from "../../api/types";
-import { modulesOf, type PortalModule } from "./modules";
+import { modulesOf, normalizeStage, type PortalModule, type Stage } from "./modules";
 import PrimaryHome from "./PrimaryHome.vue";
 import JuniorHome from "./JuniorHome.vue";
 import SeniorHome from "./SeniorHome.vue";
@@ -228,7 +228,11 @@ watch(
   },
 );
 
-const stage = computed(() => overview.value?.stage ?? form.gradeLevel);
+/**
+ * 当前学段：后端/库里可能是中文（「小学」）或大小写不一，统一归一化后再判分支，
+ * 否则 {@code === "PRIMARY"} 判不中会落到其它学段版式（实测小学学生显示高中版式）。
+ */
+const stage = computed<Stage>(() => normalizeStage(overview.value?.stage ?? form.gradeLevel));
 /** 后端按学段配置的模块清单；取不到时回落到内置目录，保证页面不空 */
 const remoteModules = ref<PortalModule[] | null>(null);
 
@@ -304,7 +308,7 @@ async function load() {
     }
     overview.value = await eduaiApi.studentOverview();
     if (overview.value?.stage) {
-      await loadModules(overview.value.stage);
+      await loadModules(stage.value);
     }
   } catch (e) {
     ElMessage.error(`学生端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
@@ -335,7 +339,7 @@ async function doBind() {
     needBind.value = false;
     overview.value = await eduaiApi.studentOverview();
     if (overview.value?.stage) {
-      await loadModules(overview.value.stage);
+      await loadModules(stage.value);
     }
   } catch (e) {
     bindError.value = e instanceof Error ? e.message : String(e);

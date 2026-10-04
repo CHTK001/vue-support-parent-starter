@@ -141,12 +141,12 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   inset: 0;
   z-index: 2000;
   overflow: auto;
-  /* 顶部色带走主色令牌、底部页面底走页面令牌，换主题/切暗色时整页自动跟随 */
+  /* 初中端：靛蓝→青 的「青春期活力」渐变，与小学亮蓝、高中深蓝区分 */
   background: linear-gradient(
     175deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 34%,
-    var(--el-bg-color-page) 34.1%,
+    #4f46e5 0%,
+    #06b6d4 54%,
+    var(--el-bg-color-page) 54.1%,
     var(--el-fill-color-lighter) 100%
   );
 }
